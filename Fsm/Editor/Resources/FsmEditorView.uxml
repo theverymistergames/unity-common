@@ -1,0 +1,18 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="True">
+    <Style src="FsmEditorViewStyle.uss" />
+    <uie:Toolbar>
+        <uie:ObjectField label="Asset" name="asset" />
+    </uie:Toolbar>
+    <MisterGames.Common.Editor.Views.SplitView fixed-pane-initial-dimension="200">
+        <ui:VisualElement name="left-panel" style="width: 600px;">
+            <ui:VisualElement name="inspector-container">
+                <ui:Label display-tooltip-when-elided="true" name="inspector-header" text="Inspector" style="padding-left: 3px; padding-right: 3px; background-color: rgba(37, 37, 37, 255); padding-top: 3px; padding-bottom: 3px;" />
+                <ui:Label display-tooltip-when-elided="true" name="object-inspector" style="padding-left: 9px; padding-top: 6px; -unity-font-style: normal;" />
+                <MisterGames.Common.Editor.Views.InspectorView style="padding-left: 8px; padding-right: 8px; padding-top: 4px; padding-bottom: 8px;" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement name="right-panel">
+            <MisterGames.Fsm.Editor.Views.FsmView focusable="true" style="flex-grow: 1;" />
+        </ui:VisualElement>
+    </MisterGames.Common.Editor.Views.SplitView>
+</ui:UXML>

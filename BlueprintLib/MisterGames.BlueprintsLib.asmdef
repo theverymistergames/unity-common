@@ -1,0 +1,20 @@
+{
+    "name": "MisterGames.BlueprintsLib",
+    "rootNamespace": "MisterGames.BlueprintsLib",
+    "references": [
+        "GUID:0175294ec022c624cbe537915e3c9e71",
+        "GUID:9389483754b96b24488bc84bc80f8ac0",
+        "GUID:27b41c8f92a5419d8b9fce851e1339f8",
+        "GUID:30f50d247fb9adf46b9165dfc62f4527",
+        "GUID:9263d626fa3143948a41b819e0c5288e"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

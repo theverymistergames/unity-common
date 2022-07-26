@@ -1,0 +1,16 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="True">
+    <Style src="StateViewStyle.uss" />
+    <ui:VisualElement name="node-border">
+        <ui:VisualElement name="contents">
+            <ui:VisualElement name="top">
+                <ui:VisualElement name="title-container">
+                    <ui:Label name="title" text="State" class="unity-text-element unity-label" style="padding-left: 0;" />
+                </ui:VisualElement>
+                <ui:Label name="header" text="State" class="unity-text-element unity-label" style="padding-left: 0; padding-right: 0; padding-top: 0; padding-bottom: 0;" />
+                <ui:VisualElement name="divider" class="vertical" />
+                <ui:VisualElement name="output" picking-mode="Ignore" />
+                <ui:VisualElement name="input" style="width: 0; height: 0;" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

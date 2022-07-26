@@ -1,0 +1,20 @@
+{
+    "name": "MisterGames.Interact.Editor",
+    "rootNamespace": "MisterGames.Interact.Editor",
+    "references": [
+        "GUID:bc3879bae5b869d48a8b5df880b31fff",
+        "GUID:0175294ec022c624cbe537915e3c9e71",
+        "GUID:0be29683dbd94234881d7802a3660630"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -1,0 +1,10 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="True">
+    <Style src="BlueprintsEditorViewStyle.uss" />
+    <uie:Toolbar>
+        <uie:ObjectField label="Asset" name="asset" allow-scene-objects="false" style="align-items: stretch; justify-content: flex-start; flex-shrink: 0; flex-grow: 0; flex-direction: row; flex-wrap: nowrap;" />
+        <uie:ToolbarSpacer style="width: 24px;" />
+        <uie:ToolbarToggle focusable="false" label="Blackboard" value="false" name="blackboard-toggle" style="flex-shrink: 1; flex-wrap: wrap; flex-direction: row; align-items: stretch; justify-content: flex-start; flex-grow: 0;" />
+        <uie:ToolbarToggle focusable="false" label="Minimap" name="minimap-toggle" style="flex-shrink: 1; flex-wrap: wrap; flex-grow: 0;" />
+    </uie:Toolbar>
+    <MisterGames.Blueprints.Editor.Views.BlueprintsView focusable="true" style="flex-grow: 1;" />
+</ui:UXML>

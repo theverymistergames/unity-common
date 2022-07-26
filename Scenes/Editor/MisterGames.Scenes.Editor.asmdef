@@ -1,0 +1,20 @@
+{
+    "name": "MisterGames.Scenes.Editor",
+    "rootNamespace": "MisterGames.Scenes.Editor",
+    "references": [
+        "GUID:0175294ec022c624cbe537915e3c9e71",
+        "GUID:bc3879bae5b869d48a8b5df880b31fff",
+        "GUID:9263d626fa3143948a41b819e0c5288e"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

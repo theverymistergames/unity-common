@@ -1,0 +1,20 @@
+{
+    "name": "MisterGames.Blueprints.Editor",
+    "rootNamespace": "MisterGames.Blueprints.Editor",
+    "references": [
+        "GUID:0175294ec022c624cbe537915e3c9e71",
+        "GUID:bc3879bae5b869d48a8b5df880b31fff",
+        "GUID:9389483754b96b24488bc84bc80f8ac0"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
