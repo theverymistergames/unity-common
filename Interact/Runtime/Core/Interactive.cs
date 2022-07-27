@@ -13,6 +13,9 @@ namespace MisterGames.Interact.Core {
         public event Action<InteractiveUser> OnStartInteractBy = delegate {  };
         public event Action OnStopInteract = delegate {  };
 
+        public InteractStrategy Strategy => _strategy;
+        public bool IsInteracting => _isInteracting;
+
         private Transform _transform;
 
         private InteractiveUser _lastDetectedUser;
