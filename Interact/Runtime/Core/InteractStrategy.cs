@@ -1,6 +1,4 @@
-﻿using MisterGames.Common.Attributes;
-using MisterGames.Input.Actions;
-using MisterGames.Input.Bindings;
+﻿using MisterGames.Input.Actions;
 using MisterGames.Input.Core;
 using UnityEngine;
 
@@ -11,30 +9,15 @@ namespace MisterGames.Interact.Core {
         
         [Header("Input Settings")]
         public InputActionKey inputAction;
-        public Mode mode;
-        
+        public InteractiveMode mode;
+
         [Header("Modifiers")]
-        [SerializeField] private InputActionFilter _filter;
+        public InputActionFilter filter;
 
         [Header("Conditions")]
         public bool stopInteractWhenExceededMaxDistance;
         public bool stopInteractWhenNotInView;
         public float maxInteractDistance;
-
-        public void Apply(InteractiveUser user) {
-            _filter.Apply();
-        }
-
-        public void Release(InteractiveUser user) {
-            _filter.Release();
-        }
-        
-        public enum Mode {
-            Tap,
-            WhilePressed,
-            ClickOnOff,
-        }
-
     }
-    
+
 }

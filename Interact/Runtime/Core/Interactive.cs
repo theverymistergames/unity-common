@@ -1,4 +1,5 @@
 ﻿using System;
+using MisterGames.Common.Maths;
 using MisterGames.Common.Routines;
 using UnityEngine;
 
@@ -8,25 +9,25 @@ namespace MisterGames.Interact.Core {
 
         [SerializeField] private TimeDomain _timeDomain;
         [SerializeField] private InteractStrategy _strategy;
-        
-        public event Action<InteractiveUser, Vector3> OnStartInteract = delegate {  };
+
+        public event Action<InteractiveUser> OnStartInteractBy = delegate {  };
         public event Action OnStopInteract = delegate {  };
 
         private Transform _transform;
-        private int _hash;
-        
-        private Transform _userTransform;
-        private InteractiveUser _user;
-        private Vector3 _point;
+
+        private InteractiveUser _lastDetectedUser;
+        private InteractiveUser _interactionUser;
+        private Transform _interactionUserTransform;
+        private IInteractiveMode _strategyMode;
+
         private bool _isInteracting;
+        private bool _isDetectedByInteractionUser;
+        private float _maxInteractionSqrDistance;
 
         private void Awake() {
             _transform = transform;
-            _hash = _transform.GetHashCode();
-        }
-
-        private void OnEnable() {
-            _timeDomain.SubscribeUpdate(this);
+            _maxInteractionSqrDistance = _strategy.maxInteractDistance * _strategy.maxInteractDistance;
+            _strategyMode = _strategy.mode.Build();
         }
 
         private void OnDisable() {
@@ -35,136 +36,107 @@ namespace MisterGames.Interact.Core {
 
         void IUpdate.OnUpdate(float dt) {
             if (!_isInteracting) return;
-
             if (IsValidDistance() && IsValidViewDirection()) return;
             
-            StopInteract();
-            StopInteractWithUser();
+            StopInteractByUser(_interactionUser);
         }
 
-        internal void OnUserStartInteract(InteractiveUser user, Vector3 point) {
-            if (_user != null || _user == user) return;
-            _user = user;
-            _point = point;
-            _userTransform = _user.transform;
+        public void OnDetectedByUser(InteractiveUser user) {
+            if (user == null) return;
+
+            _lastDetectedUser = user;
+            _isDetectedByInteractionUser = _isInteracting && _interactionUser.IsDetectedTarget(this);
+
+            SubscribeOnInputAction();
         }
 
-        internal void OnInteractInputPressed() {
-            if (_user == null || !_strategy.inputAction.IsPressed) return;
-            
-            if (_isInteracting) {
-                OnInputPressedWhileIsInteracting();
-                return;
-            }
+        public void OnLostByUser(InteractiveUser user) {
+            _isDetectedByInteractionUser = _isInteracting && _interactionUser.IsDetectedTarget(this);
+            _lastDetectedUser = null;
+
+            if (_isInteracting) return;
+
+            UnsubscribeFromInputAction();
+        }
+
+        public void StartInteractByUser(InteractiveUser user) {
+            if (_isInteracting || user == null) return;
+
+            SetInteractionUser(user);
 
             if (!IsValidDistance() || !IsValidViewDirection()) {
-                StopInteractWithUser();
-                return;
-            }
-            
-            OnInputPressedWhileIsNotInteracting();
-        }
-        
-        internal void OnInteractInputReleased() {
-            if (_user == null || _strategy.inputAction.IsPressed) return;
-
-            if (_isInteracting) {
-                OnInputReleasedWhileIsInteracting();
+                ResetInteractionUser();
                 return;
             }
 
-            OnInputReleasedWhileIsNotInteracting();
+            _strategy.filter.Apply();
+            _timeDomain.SubscribeUpdate(this);
+
+            OnStartInteractBy.Invoke(_interactionUser);
         }
 
-        private void StartInteract() {
-            _isInteracting = true;
-            _strategy.Apply(_user);
-            OnStartInteract.Invoke(_user, _point);
-        }
+        public void StopInteractByUser(InteractiveUser user) {
+            if (!_isInteracting || user != _interactionUser) return;
 
-        private void StopInteract() {
-            _isInteracting = false;
+            _timeDomain.UnsubscribeUpdate(this);
+            _strategy.filter.Release();
+            ResetInteractionUser();
+
             OnStopInteract.Invoke();
-            _strategy.Release(_user);
         }
 
-        private void StopInteractWithUser() {
-            _user.StopInteractWith(this);
-            _user = null;
-            _userTransform = null;
+        private void OnInteractInputPressed() {
+            if (_isInteracting) {
+                _strategyMode.OnInputPressedWhileIsInteracting(_interactionUser, this);
+                return;
+            }
+
+            if (_lastDetectedUser == null) return;
+            _strategyMode.OnInputPressedWhileIsNotInteracting(_lastDetectedUser, this);
         }
-        
-        private void OnInputPressedWhileIsInteracting() {
-            switch (_strategy.mode) {
-                case InteractStrategy.Mode.Tap: 
-                    break;
-                    
-                case InteractStrategy.Mode.WhilePressed: 
-                    break;
-                    
-                case InteractStrategy.Mode.ClickOnOff:
-                    StopInteract();
-                    StopInteractWithUser();    
-                    break;
+
+        private void OnInteractInputReleased() {
+            if (_isInteracting) {
+                _strategyMode.OnInputReleasedWhileIsInteracting(_interactionUser, this);
             }
         }
-        
-        private void OnInputPressedWhileIsNotInteracting() {
-            switch (_strategy.mode) {
-                case InteractStrategy.Mode.Tap:
-                    StartInteract();
-                    StopInteract();
-                    StopInteractWithUser();
-                    break;
-                    
-                case InteractStrategy.Mode.WhilePressed: 
-                    StartInteract();
-                    break;
-                    
-                case InteractStrategy.Mode.ClickOnOff:
-                    StartInteract();
-                    break;
-            }
+
+        private void SubscribeOnInputAction() {
+            _strategy.inputAction.OnPress -= OnInteractInputPressed;
+            _strategy.inputAction.OnRelease -= OnInteractInputReleased;
+
+            _strategy.inputAction.OnPress += OnInteractInputPressed;
+            _strategy.inputAction.OnRelease += OnInteractInputReleased;
         }
-        
-        private void OnInputReleasedWhileIsInteracting() {
-            switch (_strategy.mode) {
-                case InteractStrategy.Mode.Tap: 
-                    break;
-                    
-                case InteractStrategy.Mode.WhilePressed: 
-                    StopInteract();
-                    StopInteractWithUser();
-                    break;
-                    
-                case InteractStrategy.Mode.ClickOnOff:
-                    break;
-            }
+
+        private void UnsubscribeFromInputAction() {
+            _strategy.inputAction.OnPress -= OnInteractInputPressed;
+            _strategy.inputAction.OnRelease -= OnInteractInputReleased;
         }
-        
-        private void OnInputReleasedWhileIsNotInteracting() {
-            switch (_strategy.mode) {
-                case InteractStrategy.Mode.Tap:
-                    break;
-                    
-                case InteractStrategy.Mode.WhilePressed: 
-                    break;
-                    
-                case InteractStrategy.Mode.ClickOnOff:
-                    break;
-            }
+
+        private void SetInteractionUser(InteractiveUser user) {
+            _interactionUser = user;
+            _interactionUserTransform = _interactionUser.transform;
+            _isInteracting = true;
+            _isDetectedByInteractionUser = _interactionUser.IsDetectedTarget(this);
+        }
+
+        private void ResetInteractionUser() {
+            _interactionUser = null;
+            _interactionUserTransform = null;
+            _isInteracting = false;
+            _isDetectedByInteractionUser = false;
         }
 
         private bool IsValidViewDirection() {
-            if (!_strategy.stopInteractWhenNotInView) return true;
-            return _user.PerformRayCast(out var hit) && hit.transform.GetHashCode() == _hash;
+            return !_strategy.stopInteractWhenNotInView || !_isDetectedByInteractionUser;
         }
 
         private bool IsValidDistance() {
             if (!_strategy.stopInteractWhenExceededMaxDistance) return true;
             
-            float distance = Vector3.Distance(_userTransform.position, _transform.position);
-            return distance < _strategy.maxInteractDistance;
+            float sqrDistance = _transform.position.SqrDistanceTo(_interactionUserTransform.position);
+            return sqrDistance < _maxInteractionSqrDistance;
         }
     }
 

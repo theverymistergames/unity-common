@@ -20,11 +20,11 @@ namespace MisterGames.Common.Collisions {
         }
         
         private void OnEnable() {
-            _collisionDetector.OnSurfaceChanged += HandleSurfaceChanged;
+            _collisionDetector.OnTransformChanged += HandleTransformChanged;
         }
 
         private void OnDisable() {
-            _collisionDetector.OnSurfaceChanged -= HandleSurfaceChanged;
+            _collisionDetector.OnTransformChanged -= HandleTransformChanged;
         }
 
         private void InitMaterialData() {
@@ -32,7 +32,7 @@ namespace MisterGames.Common.Collisions {
             Material = _empty;
         }
 
-        private void HandleSurfaceChanged() {
+        private void HandleTransformChanged() {
             Material = ExtractMaterial();
             OnMaterialChanged.Invoke();
         }
@@ -41,7 +41,7 @@ namespace MisterGames.Common.Collisions {
             var info = _collisionDetector.CollisionInfo;
             if (!info.hasContact) return _empty;
 
-            var holder = info.surface.GetComponentInParent<MaterialHolder>();
+            var holder = info.transform.GetComponentInParent<MaterialHolder>();
             return holder != null ? Optional<MaterialData>.WithValue(holder.materialData) : _default;
         }
         

@@ -68,7 +68,7 @@
                 ? _targetDirection 
                 : GetSmoothedDirection(_targetDirection, dt);
             
-            _motion = _currentDirection.RotateFromTo(Vector3.up, _groundDetector.CollisionInfo.normal);
+            _motion = _currentDirection.RotateFromTo(Vector3.up, _groundDetector.CollisionInfo.lastNormal);
             _adapter.Move(_motion);
         }
         

@@ -89,9 +89,9 @@ namespace MisterGames.Character.Collisions {
 
             var info = new CollisionInfo {
                 hasContact = isGrounded,
-                normal = normal,
+                lastNormal = normal,
                 lastHitPoint = hitPoint,
-                surface = surface
+                transform = surface
             };
             
             SetCollisionInfo(info, forceNotify);
@@ -135,7 +135,7 @@ namespace MisterGames.Character.Collisions {
             
             if (_debugDrawNormal) {
                 var start = CollisionInfo.hasContact ? CollisionInfo.lastHitPoint : GetOrigin() + _groundDetectionDirection * (GetDistance() + _radius);
-                DbgRay.Create().From(start).Dir(CollisionInfo.normal).Color(Color.blue).Arrow(0.1f).Draw();
+                DbgRay.Create().From(start).Dir(CollisionInfo.lastNormal).Color(Color.blue).Arrow(0.1f).Draw();
             }
 
             if (_debugDrawHitPoint) {

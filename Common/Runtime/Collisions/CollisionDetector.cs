@@ -7,7 +7,7 @@ namespace MisterGames.Common.Collisions {
 
         public event Action OnContact = delegate {  };
         public event Action OnLostContact = delegate {  };
-        public event Action OnSurfaceChanged = delegate {  };
+        public event Action OnTransformChanged = delegate {  };
 
         public CollisionInfo CollisionInfo { get; private set; }
 
@@ -15,13 +15,13 @@ namespace MisterGames.Common.Collisions {
             var lastInfo = CollisionInfo;
             CollisionInfo = newInfo;
             
-            CheckContact(lastInfo, newInfo, forceNotify);
-            CheckSurface(lastInfo, newInfo, forceNotify);
+            CheckContactChanged(lastInfo, newInfo, forceNotify);
+            CheckTransformChanged(lastInfo, newInfo, forceNotify);
         }
 
-        private void CheckContact(CollisionInfo lastInfo, CollisionInfo newInfo, bool forceNotify) {
-            var hadContact = lastInfo.hasContact;
-            var hasContact = newInfo.hasContact;
+        private void CheckContactChanged(CollisionInfo lastInfo, CollisionInfo newInfo, bool forceNotify) {
+            bool hadContact = lastInfo.hasContact;
+            bool hasContact = newInfo.hasContact;
 
             if ((hadContact || forceNotify) && !hasContact) {
                 OnLostContact.Invoke();
@@ -33,17 +33,16 @@ namespace MisterGames.Common.Collisions {
             }
         }
 
-        private void CheckSurface(CollisionInfo lastInfo, CollisionInfo newInfo, bool forceNotify) {
-            var surfaceChanged = forceNotify ||
+        private void CheckTransformChanged(CollisionInfo lastInfo, CollisionInfo newInfo, bool forceNotify) {
+            bool surfaceChanged =
                 !lastInfo.hasContact && newInfo.hasContact ||
                 lastInfo.hasContact && !newInfo.hasContact ||
-                lastInfo.hasContact && lastInfo.surface.GetHashCode() != newInfo.surface.GetHashCode();
+                lastInfo.hasContact && lastInfo.transform.GetHashCode() != newInfo.transform.GetHashCode();
             
-            if (surfaceChanged) {
-                OnSurfaceChanged.Invoke();
+            if (forceNotify || surfaceChanged) {
+                OnTransformChanged.Invoke();
             }
         }
-
     }
 
 }

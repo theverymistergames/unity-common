@@ -130,7 +130,7 @@
         
         private void HandleColliderHit() {
             if (IsGrounded) return;
-            _inertiaComp = Vector3.ProjectOnPlane(_inertiaComp, _hitDetector.CollisionInfo.normal);
+            _inertiaComp = Vector3.ProjectOnPlane(_inertiaComp, _hitDetector.CollisionInfo.lastNormal);
             _targetInertia = _inertiaComp;
         }
         
@@ -145,7 +145,7 @@
 
         private void UpdateInertia(float factor) {
             _targetInertia = Vector3.Lerp(_targetInertia, Vector3.zero, factor);
-            _inertiaComp = _targetInertia.RotateFromTo(Vector3.up, _groundDetector.CollisionInfo.normal);
+            _inertiaComp = _targetInertia.RotateFromTo(Vector3.up, _groundDetector.CollisionInfo.lastNormal);
         }
 
         private void UpdateGravity(float dt) {

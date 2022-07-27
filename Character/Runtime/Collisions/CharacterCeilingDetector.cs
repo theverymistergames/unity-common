@@ -65,9 +65,9 @@ namespace MisterGames.Character.Collisions {
             
             var info = new CollisionInfo {
                 hasContact = hasCeiling,
-                normal = normal,
+                lastNormal = normal,
                 lastHitPoint = hitPoint,
-                surface = surface
+                transform = surface
             };
             
             SetCollisionInfo(info, forceNotify);

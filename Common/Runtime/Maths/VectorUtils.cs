@@ -71,7 +71,25 @@ namespace MisterGames.Common.Maths {
         public static Vector2 WithY(this Vector2 vector, float y) {
             return new Vector2(vector.x, y);
         }
-        
+
+        // ---------------- ---------------- Utils ---------------- ----------------
+
+        public static float DistanceTo(this Vector3 first, Vector3 second) {
+            return Vector3.Distance(first, second);
+        }
+
+        public static float SqrDistanceTo(this Vector3 first, Vector3 second) {
+            return (second - first).sqrMagnitude;
+        }
+
+        public static float DistanceTo(this Vector2 first, Vector2 second) {
+            return Vector2.Distance(first, second);
+        }
+
+        public static float SqrDistanceTo(this Vector2 first, Vector2 second) {
+            return (second - first).sqrMagnitude;
+        }
+
         public static Vector3 FindNearestPointOnSegment(Vector3 start, Vector3 end, Vector3 point) {
             var direction = (end - start);
             float magnitude = direction.magnitude;
