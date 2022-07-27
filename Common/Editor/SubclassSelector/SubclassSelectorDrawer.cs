@@ -14,23 +14,13 @@ namespace MisterGames.Common.SubclassSelector {
 		
 		private const int MaxTypePopupLineCount = 13;
 		private static readonly Type UnityObjectType = typeof(Object);
-		private static readonly GUIContent NullDisplayName = new GUIContent(SubclassSelectorUtils.NullDisplayName);
-		private static readonly GUIContent IsNotManagedReferenceLabel = new GUIContent("The property type is not managed reference.");
+		private static GUIContent NullDisplayName => new GUIContent(SubclassSelectorUtils.NullDisplayName);
+		private static GUIContent IsNotManagedReferenceLabel => new GUIContent("The property type is not managed reference.");
 
-		private readonly Dictionary<string, TypePopupCache> _typePopups = new Dictionary<string, TypePopupCache>();
+		private readonly Dictionary<string, AdvancedTypePopup> _typePopups = new Dictionary<string, AdvancedTypePopup>();
 		private readonly Dictionary<string, GUIContent> _typeNameCaches = new Dictionary<string, GUIContent>();
 		
 		private SerializedProperty _targetProperty;
-		
-		private readonly struct TypePopupCache {
-			public readonly AdvancedTypePopup typePopup;
-			public readonly AdvancedDropdownState state;
-		
-			public TypePopupCache(AdvancedTypePopup typePopup, AdvancedDropdownState state) {
-				this.typePopup = typePopup;
-				this.state = state;
-			}
-		}
 
 		public override void OnGUI(Rect position,SerializedProperty property, GUIContent label) {
 			EditorGUI.BeginProperty(position, label, property);
@@ -44,7 +34,7 @@ namespace MisterGames.Common.SubclassSelector {
 				if (EditorGUI.DropdownButton(popupPosition,GetTypeName(property), FocusType.Keyboard)) {
 					var popup = GetTypePopup(property);
 					_targetProperty = property;
-					popup.typePopup.Show(popupPosition);
+					popup.Show(popupPosition);
 				}
 
 				EditorGUI.PropertyField(position, property, label, true);
@@ -56,7 +46,7 @@ namespace MisterGames.Common.SubclassSelector {
 			EditorGUI.EndProperty();
 		}
 
-		private TypePopupCache GetTypePopup(SerializedProperty property) {
+		private AdvancedTypePopup GetTypePopup(SerializedProperty property) {
 			string managedReferenceFieldTypename = property.managedReferenceFieldTypename;
 			if (_typePopups.TryGetValue(managedReferenceFieldTypename, out var result)) {
 				return result;
@@ -86,7 +76,7 @@ namespace MisterGames.Common.SubclassSelector {
 				_targetProperty.serializedObject.Update();
 			};
 
-			result = new TypePopupCache(popup, state);
+			result = popup;
 			_typePopups.Add(managedReferenceFieldTypename, result);
 			return result;
 		}
