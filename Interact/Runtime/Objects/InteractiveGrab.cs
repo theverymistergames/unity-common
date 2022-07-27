@@ -44,13 +44,13 @@ namespace MisterGames.Interact.Objects {
         }
 
         private void OnEnable() {
-            _interactive.OnStartInteractBy += OnStartInteractBy;
+            _interactive.OnStartInteract += OnStartInteract;
             _interactive.OnStopInteract += OnStopInteract;
             _timeDomain.SubscribeUpdate(this);
         }
 
         private void OnDisable() {
-            _interactive.OnStartInteractBy -= OnStartInteractBy;
+            _interactive.OnStartInteract -= OnStartInteract;
             _interactive.OnStopInteract -= OnStopInteract;
             _timeDomain.UnsubscribeUpdate(this);
         }
@@ -72,7 +72,7 @@ namespace MisterGames.Interact.Objects {
             OnGrab.Invoke(prevSmoothedGrabPoint, _smoothedGrabPoint);
         }
 
-        private void OnStartInteractBy(InteractiveUser user) {
+        private void OnStartInteract(InteractiveUser user) {
             _userTransform = user.transform;
             _userPosition = _userTransform.position;
             

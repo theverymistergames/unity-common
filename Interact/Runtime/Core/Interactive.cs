@@ -10,7 +10,7 @@ namespace MisterGames.Interact.Core {
         [SerializeField] private TimeDomain _timeDomain;
         [SerializeField] private InteractStrategy _strategy;
 
-        public event Action<InteractiveUser> OnStartInteractBy = delegate {  };
+        public event Action<InteractiveUser> OnStartInteract = delegate {  };
         public event Action OnStopInteract = delegate {  };
 
         public InteractStrategy Strategy => _strategy;
@@ -75,7 +75,7 @@ namespace MisterGames.Interact.Core {
             _strategy.filter.Apply();
             _timeDomain.SubscribeUpdate(this);
 
-            OnStartInteractBy.Invoke(_interactionUser);
+            OnStartInteract.Invoke(_interactionUser);
         }
 
         public void StopInteractByUser(InteractiveUser user) {
