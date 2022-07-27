@@ -12,22 +12,22 @@ namespace MisterGames.Input.Core {
         [SerializeField] private InputAction[] _addActions;
         [SerializeField] private InputAction[] _removeActions;
 
-        public bool IsApplied { get; private set; }
+        private bool _isApplied;
         
         public void Apply() {
-            if (IsApplied) return;
+            if (_isApplied) return;
             
             Deactivate(_removeActions);
             Activate(_addActions);
-            IsApplied = true;
+            _isApplied = true;
         }
         
         public void Release() {
-            if (!IsApplied) return;
+            if (!_isApplied) return;
             
             Deactivate(_addActions);
             Activate(_removeActions);
-            IsApplied = false;
+            _isApplied = false;
         }
 
         private void Activate(InputAction[] actions) {
