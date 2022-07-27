@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using MisterGames.Input.Bindings;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -149,7 +150,6 @@ namespace MisterGames.Input.Global {
             keys[KeyBinding.JoystickSelect] = _globalInputs.Joystick.select;
             keys[KeyBinding.JoystickStart] = _globalInputs.Joystick.start;
         }
-
     }
 
 }

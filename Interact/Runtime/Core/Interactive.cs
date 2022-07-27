@@ -50,7 +50,7 @@ namespace MisterGames.Interact.Core {
         }
 
         internal void OnInteractInputPressed() {
-            if (_user == null || !_strategy.binding.IsActive()) return;
+            if (_user == null || !_strategy.inputAction.IsPressed) return;
             
             if (_isInteracting) {
                 OnInputPressedWhileIsInteracting();
@@ -66,7 +66,7 @@ namespace MisterGames.Interact.Core {
         }
         
         internal void OnInteractInputReleased() {
-            if (_user == null || _strategy.binding.IsActive()) return;
+            if (_user == null || _strategy.inputAction.IsPressed) return;
 
             if (_isInteracting) {
                 OnInputReleasedWhileIsInteracting();

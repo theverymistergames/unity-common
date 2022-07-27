@@ -1,4 +1,4 @@
-﻿namespace MisterGames.Input.Global {
+﻿namespace MisterGames.Input.Bindings {
     
     public enum AxisBinding {
         MouseDelta,

@@ -1,4 +1,5 @@
 ﻿using System;
+using MisterGames.Common.Attributes;
 using MisterGames.Common.Lists;
 using MisterGames.Common.Maths;
 using MisterGames.Input.Bindings;
@@ -10,7 +11,7 @@ namespace MisterGames.Input.Actions {
     [CreateAssetMenu(fileName = nameof(InputActionAxis), menuName = "MisterGames/Input/Action/" + nameof(InputActionAxis))]
     public sealed class InputActionAxis : InputAction {
         
-        [SerializeField] private InputBindingAxisBase[] _bindings;
+        [SerializeReference] [SubclassSelector] private IInputBindingAxis[] _bindings;
         [SerializeField] private float _sensitivity = 1f;
         [SerializeField] private bool _ignoreNewValueIfNotChanged;
         [SerializeField] private bool _ignoreZero;

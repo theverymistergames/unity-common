@@ -1,24 +1,27 @@
 ﻿using System;
-using System.Linq;
+using MisterGames.Common.Attributes;
 using MisterGames.Common.Lists;
 using MisterGames.Common.Maths;
-using MisterGames.Input.Activation;
 using MisterGames.Input.Bindings;
 using MisterGames.Input.Core;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 namespace MisterGames.Input.Actions {
 
     [CreateAssetMenu(fileName = nameof(InputActionVector2), menuName = "MisterGames/Input/Action/" + nameof(InputActionVector2))]
     public sealed class InputActionVector2 : InputAction {
         
-        [SerializeField] private InputBindingVector2Base[] _bindings;
+        [SerializeReference] [SubclassSelector] private IInputBindingVector2[] _bindings;
         [SerializeField] private NormalizeMode _normalize = NormalizeMode.None;
-        [SerializeField] private float _sensitivity = 1f;
         [SerializeField] private bool _ignoreNewValueIfNotChanged;
         [SerializeField] private bool _ignoreZero;
-        
+
+        private enum NormalizeMode {
+            None,
+            Always,
+            Clamp,
+        }
+
         public event Action<Vector2> OnChanged = delegate {  };
         
         private Vector2 _vector = Vector2.zero;
@@ -45,7 +48,7 @@ namespace MisterGames.Input.Actions {
         
         protected override void OnUpdate(float dt) {
             var prevVector = _vector;
-            _vector = ReadInput() * _sensitivity;
+            _vector = ReadInput();
 
             switch (_normalize) {
                 case NormalizeMode.Always:
@@ -84,13 +87,6 @@ namespace MisterGames.Input.Actions {
             _vector.y = 0f;
             OnChanged.Invoke(_vector);
         }
-
-        private enum NormalizeMode {
-            None,
-            Always,
-            Clamp,
-        }
-
     }
 
 }

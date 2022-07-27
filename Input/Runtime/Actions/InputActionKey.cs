@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using MisterGames.Common.Attributes;
 using MisterGames.Common.Lists;
 using MisterGames.Input.Activation;
 using MisterGames.Input.Bindings;
@@ -12,7 +13,7 @@ namespace MisterGames.Input.Actions {
     [CreateAssetMenu(fileName = nameof(InputActionKey), menuName = "MisterGames/Input/Action/" + nameof(InputActionKey))]
     public sealed class InputActionKey : InputAction {
 
-        [SerializeField] private InputBindingKeyBase[] _bindings;
+        [SerializeReference] [SubclassSelector] private IInputBindingKey[] _bindings;
         [SerializeField] private KeyActivationStrategy _strategy;
 
         public event Action OnUse = delegate {  };
@@ -63,7 +64,7 @@ namespace MisterGames.Input.Actions {
             return IsPressed;
         }
         
-        internal InputBindingKeyBase[] GetBindings() {
+        internal IInputBindingKey[] GetBindings() {
             return _bindings;
         }
 

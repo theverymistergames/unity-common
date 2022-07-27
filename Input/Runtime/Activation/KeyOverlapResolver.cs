@@ -1,9 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using MisterGames.Input.Actions;
+using MisterGames.Input.Bindings;
 using MisterGames.Input.Core;
-using MisterGames.Input.Global;
-using UnityEngine;
 
 namespace MisterGames.Input.Activation {
     
@@ -58,7 +57,7 @@ namespace MisterGames.Input.Activation {
                 var bindings = keyedAction.GetBindings();
                 
                 foreach (var binding in bindings) {
-                    var keys = binding.GetKeys();
+                    var keys = binding.GetBindings();
                     int keyCount = keys.Length;
 
                     foreach (var key in keys) {

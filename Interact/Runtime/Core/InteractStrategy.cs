@@ -1,4 +1,6 @@
-﻿using MisterGames.Input.Bindings;
+﻿using MisterGames.Common.Attributes;
+using MisterGames.Input.Actions;
+using MisterGames.Input.Bindings;
 using MisterGames.Input.Core;
 using UnityEngine;
 
@@ -8,13 +10,13 @@ namespace MisterGames.Interact.Core {
     public sealed class InteractStrategy : ScriptableObject {
         
         [Header("Input Settings")]
-        public InputBindingKeyBase binding;
+        public InputActionKey inputAction;
         public Mode mode;
         
         [Header("Modifiers")]
         [SerializeField] private InputActionFilter _filter;
 
-        [Header("Interact conditions")]
+        [Header("Conditions")]
         public bool stopInteractWhenExceededMaxDistance;
         public bool stopInteractWhenNotInView;
         public float maxInteractDistance;
