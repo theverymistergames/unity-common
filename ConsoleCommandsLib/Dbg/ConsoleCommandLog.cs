@@ -1,9 +1,11 @@
-﻿using MisterGames.Common.Lists;
+﻿using System;
+using MisterGames.Common.Lists;
 using MisterGames.Dbg.Console.Core;
 using UnityEngine;
 
 namespace MisterGames.ConsoleCommandsLib {
 
+    [Serializable]
     public sealed class ConsoleCommandLog : IConsoleCommand {
         
         public string Name { get; } = "log";

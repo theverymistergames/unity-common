@@ -1,9 +1,11 @@
-﻿using MisterGames.Common.Lists;
+﻿using System;
+using MisterGames.Common.Lists;
 using MisterGames.Dbg.Console.Core;
 
 namespace MisterGames.Dbg.Console.Commands {
 
-    internal sealed class ConsoleCommandClear : IConsoleCommand {
+    [Serializable]
+    public sealed class ConsoleCommandClear : IConsoleCommand {
         
         public string Name { get; } = "clear";
         public string Description { get; } = "clears console";

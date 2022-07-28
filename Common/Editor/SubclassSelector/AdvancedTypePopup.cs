@@ -5,7 +5,7 @@ using UnityEditor;
 using UnityEditor.IMGUI.Controls;
 using UnityEngine;
 
-namespace MisterGames.Common.SubclassSelector {
+namespace MisterGames.Common.Editor.SubclassSelector {
 	
 	public class AdvancedTypePopupItem : AdvancedDropdownItem {
 		
@@ -23,7 +23,7 @@ namespace MisterGames.Common.SubclassSelector {
 		private const int MaxNamespaceNestCount = 16;
 		private static readonly float HeaderHeight = EditorGUIUtility.singleLineHeight * 2f;
 
-		private Type[] _types;
+		private readonly Type[] _types;
 		
 		public AdvancedTypePopup(IEnumerable<Type> types, int maxLineCount, AdvancedDropdownState state) : base(state) {
 			_types = types.ToArray();

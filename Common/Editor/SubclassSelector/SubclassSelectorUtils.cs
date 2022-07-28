@@ -5,7 +5,7 @@ using System.Reflection;
 using MisterGames.Common.Attributes;
 using UnityEditor;
 
-namespace MisterGames.Common.SubclassSelector {
+namespace MisterGames.Common.Editor.SubclassSelector {
 	
 	public static class SubclassSelectorUtils {
 		

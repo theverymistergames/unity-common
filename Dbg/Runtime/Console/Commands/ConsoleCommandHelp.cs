@@ -1,12 +1,14 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using MisterGames.Common.Lists;
 using MisterGames.Dbg.Console.Core;
 
 namespace MisterGames.Dbg.Console.Commands {
-    
-    internal class ConsoleCommandHelp : IConsoleCommand {
+
+    [Serializable]
+    public class ConsoleCommandHelp : IConsoleCommand {
         
         public static readonly IConsoleCommandResult NoSuchCommand = 
             ConsoleCommandResults.Instant("No such command, type help to see list of all commands");

@@ -1,10 +1,12 @@
-﻿using System.Globalization;
+﻿using System;
+using System.Globalization;
 using MisterGames.Common.Lists;
 using MisterGames.Dbg.Console.Core;
 using UnityEngine;
 
 namespace MisterGames.ConsoleCommandsLib {
 
+    [Serializable]
     public sealed class ConsoleCommandSetPosition : IConsoleCommand {
         
         public string Name { get; } = "setposition";

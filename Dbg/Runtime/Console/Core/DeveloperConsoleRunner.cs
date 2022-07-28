@@ -1,8 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Text;
+using MisterGames.Common.Attributes;
 using MisterGames.Common.Lists;
 using MisterGames.Common.Routines;
-using MisterGames.Dbg.Console.Commands;
 using MisterGames.Input.Actions;
 using TMPro;
 using UnityEngine;
@@ -29,7 +30,10 @@ namespace MisterGames.Dbg.Console.Core {
 
         [Header("Commands")]
         [SerializeField] private int _maxCommandHistorySize = 20;
-        
+
+        [BeginReadOnlyGroup]
+        [SerializeReference] [SubclassSelector] private IConsoleCommand[] _consoleCommands = Array.Empty<IConsoleCommand>();
+
         private readonly StringBuilder _stringBuilder = new StringBuilder();
         
         private readonly List<string> _commandHistory = new List<string>();
@@ -42,22 +46,9 @@ namespace MisterGames.Dbg.Console.Core {
 
         private string _lastOutput;
         private bool IsShowingConsole => _canvas.activeSelf;
-        
-        private void Awake() {
-            /*
-            var types = TypeCache.GetTypesDerivedFrom<IConsoleCommand>();
-            var commands = new IConsoleCommand[types.Count];
 
-            for (int i = 0; i < types.Count; i++) {
-                var type = types[i];
-                commands[i] = Activator.CreateInstance(type) as IConsoleCommand;
-            }
-            */
-            var commands = new IConsoleCommand[] {
-                new ConsoleCommandHelp(), 
-                new ConsoleCommandClear(), 
-            };
-            _console = new DeveloperConsole(this, commands);
+        private void Awake() {
+            _console = new DeveloperConsole(this, _consoleCommands);
             
             OnHideConsole();
             AppendText(_greeting);
@@ -91,6 +82,10 @@ namespace MisterGames.Dbg.Console.Core {
             }
             
             _lastResult = _currentResult;
+        }
+
+        public void SetConsoleCommands(IConsoleCommand[] commands) {
+            _consoleCommands = commands;
         }
 
         public void SetTextFieldFontSize(float size) {

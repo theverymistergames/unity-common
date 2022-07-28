@@ -1,13 +1,16 @@
-﻿using System.Globalization;
+﻿using System;
+using System.Globalization;
 using System.Text;
 using MisterGames.Character.Access;
 using MisterGames.Character.Spawn;
 using MisterGames.Common.Lists;
 using MisterGames.Dbg.Console.Core;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace MisterGames.ConsoleCommandsLib {
 
+    [Serializable]
     public sealed class ConsoleCommandHero : IConsoleCommand {
 
         public string Name { get; } = "hero";

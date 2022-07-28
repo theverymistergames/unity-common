@@ -7,7 +7,7 @@ using UnityEditor.IMGUI.Controls;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-namespace MisterGames.Common.SubclassSelector {
+namespace MisterGames.Common.Editor.SubclassSelector {
 	
 	[CustomPropertyDrawer(typeof(SubclassSelectorAttribute))]
 	public class SubclassSelectorDrawer : PropertyDrawer {
@@ -58,12 +58,12 @@ namespace MisterGames.Common.SubclassSelector {
 			var types = TypeCache
 				.GetTypesDerivedFrom(baseType)
 				.Append(baseType)
-				.Where(p => 
-					(p.IsPublic || p.IsNestedPublic) && 
-					!p.IsAbstract && 
-					!p.IsGenericType && 
-					!UnityObjectType.IsAssignableFrom(p) && 
-					Attribute.IsDefined(p, typeof(SerializableAttribute))
+				.Where(t =>
+					(t.IsPublic || t.IsNestedPublic) &&
+					!t.IsAbstract &&
+					!t.IsGenericType &&
+					!UnityObjectType.IsAssignableFrom(t) &&
+					Attribute.IsDefined(t, typeof(SerializableAttribute))
 				);
 			
 			var popup = new AdvancedTypePopup(types, MaxTypePopupLineCount, state);

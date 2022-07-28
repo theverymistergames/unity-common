@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using MisterGames.Common.Lists;
@@ -8,6 +9,7 @@ using UnityEngine;
 
 namespace MisterGames.ConsoleCommandsLib {
 
+    [Serializable]
     public sealed class ConsoleCommandScene : IConsoleCommand {
         
         public string Name { get; } = "scenes";
