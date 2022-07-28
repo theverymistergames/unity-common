@@ -1,7 +1,7 @@
 ﻿using MisterGames.Common.Data;
 using UnityEngine;
 
-namespace MisterGames.View {
+namespace MisterGames.Character.View {
 
     public class CameraController : MonoBehaviour {
 

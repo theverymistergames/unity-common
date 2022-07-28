@@ -1,6 +1,6 @@
 ﻿using MisterGames.Character.Phys;
+using MisterGames.Character.View;
 using MisterGames.Common.Routines;
-using MisterGames.View;
 using UnityEngine;
 
 namespace MisterGames.Character.Motion {

@@ -1,10 +1,10 @@
 ﻿using System;
 using MisterGames.Character.Collisions;
 using MisterGames.Character.Configs;
+using MisterGames.Character.View;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Routines;
 using MisterGames.Fsm.Core;
-using MisterGames.View;
 using UnityEngine;
 
 namespace MisterGames.Character.Pose {
