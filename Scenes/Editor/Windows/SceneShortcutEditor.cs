@@ -58,11 +58,10 @@ namespace MisterGames.Scenes.Editor.Windows {
 						EditorSceneManager.SaveScene(activeScene);
 						break;
 					case 1: // Cancel
-						break;
+						return;
 					case 2: // Don't Save
 						break;
 				}
-				return;
 			}
 
 			string targetSceneName = sceneNames[newSceneIndex];
@@ -84,4 +83,3 @@ namespace MisterGames.Scenes.Editor.Windows {
 		}
 	}
 }
-
