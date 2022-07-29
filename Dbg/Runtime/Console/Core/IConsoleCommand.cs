@@ -5,6 +5,6 @@
         string Name { get; }
         string Description { get; }
 
-        IConsoleCommandResult Process(DeveloperConsoleRunner runner, string[] args);
+        IConsoleCommandResult Process(string[] args);
     }
 }

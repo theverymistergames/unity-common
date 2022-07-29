@@ -31,24 +31,26 @@ namespace MisterGames.Dbg.Console.Core {
         [Header("Commands")]
         [SerializeField] private int _maxCommandHistorySize = 20;
 
-        [BeginReadOnlyGroup]
-        [SerializeReference] [SubclassSelector] private IConsoleCommand[] _consoleCommands = Array.Empty<IConsoleCommand>();
+        [SubclassSelector] [SerializeReference]
+        private IConsoleCommand[] _consoleCommands = Array.Empty<IConsoleCommand>();
+
+        public static DeveloperConsoleRunner Instance { get; private set; }
+
+        private DeveloperConsole _console;
 
         private readonly StringBuilder _stringBuilder = new StringBuilder();
-        
         private readonly List<string> _commandHistory = new List<string>();
-        private string _historyCurrentInput;
-        private int _historyPointer;
-        
-        private DeveloperConsole _console;
+
         private IConsoleCommandResult _currentResult;
         private IConsoleCommandResult _lastResult;
 
         private string _lastOutput;
-        private bool IsShowingConsole => _canvas.activeSelf;
+        private string _historyCurrentInput;
+        private int _historyPointer;
 
         private void Awake() {
-            _console = new DeveloperConsole(this, _consoleCommands);
+            Instance = this;
+            _console = new DeveloperConsole(_consoleCommands);
             
             OnHideConsole();
             AppendText(_greeting);
@@ -68,7 +70,7 @@ namespace MisterGames.Dbg.Console.Core {
             _timeDomain.UnsubscribeUpdate(this);
         }
 
-        public void OnUpdate(float dt) {
+        void IUpdate.OnUpdate(float dt) {
             if (_currentResult == null) return;
 
             if (_lastResult == _currentResult) RemoveLastOutput();
@@ -82,6 +84,20 @@ namespace MisterGames.Dbg.Console.Core {
             }
             
             _lastResult = _currentResult;
+        }
+
+        public void ProcessCommand(string input) {
+            if (_currentResult is { IsCompleted: false }) return;
+
+            AddCommandToHistory(input);
+            _historyPointer = _commandHistory.Count;
+
+            AppendText($"<color=yellow>> {input}</color>");
+
+            _currentResult = _console.ProcessCommand(input);
+            _lastResult = null;
+
+            ResetTextInputField();
         }
 
         public void SetConsoleCommands(IConsoleCommand[] commands) {
@@ -104,7 +120,7 @@ namespace MisterGames.Dbg.Console.Core {
         }
         
         private void OnPressActivationInput() {
-            if (IsShowingConsole) OnHideConsole();
+            if (_canvas.activeSelf) OnHideConsole();
             else OnShowConsole();
         }
 
@@ -131,20 +147,6 @@ namespace MisterGames.Dbg.Console.Core {
             
             _historyUpInput.OnPress -= OnHistoryUp;
             _historyDownInput.OnPress -= OnHistoryDown;
-        }
-
-        private void ProcessCommand(string input) {
-            if (_currentResult is { IsCompleted: false }) return;
-            
-            AddCommandToHistory(input);
-            _historyPointer = _commandHistory.Count;
-
-            AppendText($"<color=yellow>> {input}</color>");
-            
-            _currentResult = _console.ProcessCommand(input);
-            _lastResult = null;
-            
-            ResetTextInputField();
         }
 
         private void AddCommandToHistory(string input) {
