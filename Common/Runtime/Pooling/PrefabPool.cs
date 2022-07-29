@@ -6,7 +6,8 @@ namespace MisterGames.Common.Pooling {
 
     public class PrefabPool : MonoBehaviour {
 
-        [SerializeField] [Min(0)] private int _defaultCapacity = 0;
+        [Header("Default pool settings")]
+        [SerializeField] [Min(0)] private int _initialCapacity = 0;
         [SerializeField] [Range(0f, 1f)] private float _ensureCapacityAt = 0.3f;
         [SerializeField] [Range(1f, 3f)] private float _ensureCapacityCoeff = 1.7f;
 
@@ -17,6 +18,8 @@ namespace MisterGames.Common.Pooling {
         {
             public GameObject prefab;
             [Min(0)] public int initialCapacity;
+            [Range(0f, 1f)] public float ensureCapacityAt;
+            [Range(1f, 3f)] public float ensureCapacityCoeff;
         }
 
         public static PrefabPool Instance { get; private set; }
@@ -46,9 +49,9 @@ namespace MisterGames.Common.Pooling {
         private void OnEnable() {
             for (int i = 0; i < _prefabIds.Count; i++) {
                 int prefabId = _prefabIds[i];
-                int initialCapacity = _poolLaunchers[i].initialCapacity;
+                var launcher = _poolLaunchers[i];
 
-                _pools[prefabId].Initialize(_ensureCapacityAt, _ensureCapacityCoeff, initialCapacity);
+                _pools[prefabId].Initialize(launcher.ensureCapacityAt, launcher.ensureCapacityCoeff, launcher.initialCapacity);
             }
         }
 
@@ -122,7 +125,10 @@ namespace MisterGames.Common.Pooling {
             {
                 var newPrefab = newPrefabs[i];
                 string newPrefabName = newPrefab.name;
-                int capacity = _defaultCapacity;
+
+                int capacity = _initialCapacity;
+                float ensureCapacityAt = _ensureCapacityAt;
+                float ensureCapacityCoeff = _ensureCapacityCoeff;
 
                 for (int p = 0; p < oldCount; p++)
                 {
@@ -133,6 +139,8 @@ namespace MisterGames.Common.Pooling {
                     }
 
                     capacity = lastItem.initialCapacity;
+                    ensureCapacityAt = lastItem.ensureCapacityAt;
+                    ensureCapacityCoeff = lastItem.ensureCapacityCoeff;
                     break;
                 }
 
@@ -140,6 +148,8 @@ namespace MisterGames.Common.Pooling {
                 {
                     prefab = newPrefab,
                     initialCapacity = capacity,
+                    ensureCapacityAt = ensureCapacityAt,
+                    ensureCapacityCoeff = ensureCapacityCoeff
                 };
             }
         }
