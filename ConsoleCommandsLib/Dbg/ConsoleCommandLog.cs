@@ -8,10 +8,10 @@ namespace MisterGames.ConsoleCommandsLib {
     [Serializable]
     public sealed class ConsoleCommandLog : IConsoleCommand {
         
-        public string Name { get; } = "log";
-        public string Description { get; } = "Debug.Log";
+        public string Name => "log";
+        public string Description => "Debug.Log";
 
-        IConsoleCommandResult IConsoleCommand.Process(DeveloperConsoleRunner runner, string[] args) {
+        IConsoleCommandResult IConsoleCommand.Process(string[] args) {
             if (args.IsEmpty()) return ConsoleCommandResults.Instant($"{Name} command usage: {Name} somelog");
 
             string text = string.Join(" ", args);

@@ -4,6 +4,7 @@ using System.Text;
 using MisterGames.Character.Access;
 using MisterGames.Character.Spawn;
 using MisterGames.Common.Lists;
+using MisterGames.Common.Pooling;
 using MisterGames.Dbg.Console.Core;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -13,20 +14,24 @@ namespace MisterGames.ConsoleCommandsLib {
     [Serializable]
     public sealed class ConsoleCommandHero : IConsoleCommand {
 
-        public string Name { get; } = "hero";
-        public string Description { get; } = "hero actions";
+        private const string SPAWN_POINT_ZERO_NAME = "World zero";
 
-        IConsoleCommandResult IConsoleCommand.Process(DeveloperConsoleRunner runner, string[] args) {
+        [SerializeField] private GameObject _heroPrefab;
+
+        public string Name => "hero";
+        public string Description => "hero actions";
+
+        IConsoleCommandResult IConsoleCommand.Process(string[] args) {
             if (args.IsEmpty()) return Usage();
             return args[0] switch {
-                "spawns" => ExecuteSpawns(args),
+                "spawns" => SpawnList(args),
                 "spawn" => ExecuteSpawn(args),
                 "teleport" => ExecuteTeleport(args),
                 _ => Usage()
             };
         }
 
-        private IConsoleCommandResult ExecuteSpawns(string[] args) {
+        private IConsoleCommandResult SpawnList(string[] args) {
             if (args.Length != 1) return Usage();
             
             var spawns = Object.FindObjectsOfType<CharacterSpawnPoint>();
@@ -34,64 +39,75 @@ namespace MisterGames.ConsoleCommandsLib {
                 return ConsoleCommandResults.Instant($"No character spawn points found");
             }
 
-            return ConsoleCommandResults.Instant($"{GetSpawnList(spawns)}");
+            return ConsoleCommandResults.Instant($"{SpawnPointListToText(spawns)}");
         }
 
         private IConsoleCommandResult ExecuteSpawn(string[] args) {
             if (args.Length != 2) return Usage();
             
-            var spawns = Object.FindObjectsOfType<CharacterSpawnPoint>();
-            if (spawns.IsEmpty()) {
-                return ConsoleCommandResults.Instant($"No character spawn points found");
+            var spawnPoints = Object.FindObjectsOfType<CharacterSpawnPoint>();
+            if (spawnPoints.IsEmpty()) {
+                return ConsoleCommandResults.Instant("No character spawn points found");
             }
 
-            CharacterSpawnPoint spawn = null;
-                
-            if (int.TryParse(args[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int spawnIndex)) 
-            {
-                if (spawnIndex < 0 || spawnIndex >= spawns.Length) {
+            string spawnPointName = SPAWN_POINT_ZERO_NAME;
+            var spawnPosition = Vector3.zero;
+
+            if (int.TryParse(args[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int inputIndex)) {
+                int spawnPointIndex = inputIndex - 1;
+
+                if (spawnPointIndex >= spawnPoints.Length) {
                     return ConsoleCommandResults.Instant(
-                        $"Spawn point with index {spawnIndex} not found.\n" +
-                        $"Existent spawn points:\n{GetSpawnList(spawns)}"
+                        $"Spawn point with index {inputIndex} not found.\n" +
+                        $"Existent spawn points:\n{SpawnPointListToText(spawnPoints)}"
                     );
                 }
 
-                spawn = spawns[spawnIndex];
+                if (spawnPointIndex >= 0) {
+                    var spawnPoint = spawnPoints[spawnPointIndex];
+
+                    spawnPosition = spawnPoint.transform.position;
+                    spawnPointName = spawnPoint.name;
+                }
             }
             else {
                 string spawnName = args[1];
-                    
-                for (int i = 0; i < spawns.Length; i++) {
-                    var point = spawns[i];
+                CharacterSpawnPoint spawnPoint = null;
+                for (int i = 0; i < spawnPoints.Length; i++) {
+                    var point = spawnPoints[i];
                     if (point.name != spawnName) continue;
 
-                    spawn = point;
+                    spawnPoint = point;
                     break;
                 }
-                    
-                if (spawn == null) {
+
+                if (spawnPoint == null) {
                     return ConsoleCommandResults.Instant(
                         $"Spawn point with name '{spawnName}' not found.\n" +
-                        $"Existent spawn points:\n{GetSpawnList(spawns)}"
+                        $"Existent spawn points:\n{SpawnPointListToText(spawnPoints)}"
                     );
                 }
+
+                spawnPosition = spawnPoint.transform.position;
+                spawnPointName = spawnPoint.name;
             }
 
             var access = Object.FindObjectOfType<CharacterAccess>();
             if (access == null) {
+                var newHeroInstance = PrefabPool.Instance.TakeActive(_heroPrefab);
+                access = newHeroInstance.GetComponent<CharacterAccess>();
+            }
+
+            if (access == null) {
                 return ConsoleCommandResults.Instant(
-                    $"Character not found. " +
-                    $"There must be a {nameof(CharacterAccess)} component on the character to teleport."
+                    $"Character with {nameof(CharacterAccess)} component not found on the scene and in prefabs."
                 );
             }
 
-            var position = spawn.GetPoint();
-            access.SetPosition(position);
-                
+            access.SetPosition(spawnPosition);
+
             return ConsoleCommandResults.Instant(
-                $"Character {access.gameObject.name} was teleported " +
-                $"to spawn point {spawn.gameObject.name} " +
-                $"at position {position}"
+                $"Character {access.gameObject.name} was respawned at point [{spawnPointName} :: {spawnPosition}]"
             );
         }
         
@@ -104,29 +120,35 @@ namespace MisterGames.ConsoleCommandsLib {
             {
                 return Usage();
             }
-            
+
             var access = Object.FindObjectOfType<CharacterAccess>();
             if (access == null) {
+                var newHeroInstance = PrefabPool.Instance.TakeActive(_heroPrefab);
+                access = newHeroInstance.GetComponent<CharacterAccess>();
+            }
+
+            if (access == null) {
                 return ConsoleCommandResults.Instant(
-                    $"Character not found. " +
-                    $"There must be a {nameof(CharacterAccess)} component on the character to teleport."
+                    $"Character with {nameof(CharacterAccess)} component not found " +
+                    $"on scene to teleport and in prefabs to spawn new instance."
                 );
             }
 
             var position = new Vector3(x, y, z);
             access.SetPosition(position);
- 
+
             return ConsoleCommandResults.Instant(
-                $"Character {access.gameObject.name} was teleported " +
-                $"to position {position}"
+                $"Character {access.gameObject.name} was teleported to [{position}]"
             );
         }
 
-        private static string GetSpawnList(CharacterSpawnPoint[] spawns) {
+        private static string SpawnPointListToText(CharacterSpawnPoint[] spawns) {
             var builder = new StringBuilder();
+            builder.Append($"[0] World zero: {Vector3.zero}");
+
             for (int i = 0; i < spawns.Length; i++) {
                 var spawn = spawns[i];
-                string item = $"[{i}] {spawn.gameObject.name} : {spawn.GetPoint()}";
+                string item = $"[{i + 1}] {spawn.gameObject.name} : {spawn.transform.position}";
                 
                 if (i < spawns.Length - 1) builder.AppendLine(item);
                 else builder.Append(item);

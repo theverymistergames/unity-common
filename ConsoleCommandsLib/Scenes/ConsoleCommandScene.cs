@@ -12,10 +12,10 @@ namespace MisterGames.ConsoleCommandsLib {
     [Serializable]
     public sealed class ConsoleCommandScene : IConsoleCommand {
         
-        public string Name { get; } = "scenes";
-        public string Description { get; } = "load scenes, list all scenes";
+        public string Name => "scenes";
+        public string Description => "load scenes, list all scenes";
 
-        IConsoleCommandResult IConsoleCommand.Process(DeveloperConsoleRunner runner, string[] args) {
+        IConsoleCommandResult IConsoleCommand.Process(string[] args) {
             if (args.IsEmpty()) return Usage();
             return args[0] switch {
                 "load" => ExecuteLoadScene(args),

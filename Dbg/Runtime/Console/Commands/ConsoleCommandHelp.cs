@@ -7,8 +7,7 @@ using MisterGames.Dbg.Console.Core;
 
 namespace MisterGames.Dbg.Console.Commands {
 
-    [Serializable]
-    public class ConsoleCommandHelp : IConsoleCommand {
+    internal class ConsoleCommandHelp : IConsoleCommand {
         
         public static readonly IConsoleCommandResult NoSuchCommand = 
             ConsoleCommandResults.Instant("No such command, type help to see list of all commands");
@@ -40,7 +39,7 @@ namespace MisterGames.Dbg.Console.Commands {
             _result = ConsoleCommandResults.Instant(builder.ToString());
         }
 
-        IConsoleCommandResult IConsoleCommand.Process(DeveloperConsoleRunner runner, string[] args) {
+        IConsoleCommandResult IConsoleCommand.Process(string[] args) {
             if (args.IsEmpty() || args.Length > 1) return _result;
 
             int nameHash = args[0].GetHashCode();

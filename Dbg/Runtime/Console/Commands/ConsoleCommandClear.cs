@@ -7,15 +7,15 @@ namespace MisterGames.Dbg.Console.Commands {
     [Serializable]
     public sealed class ConsoleCommandClear : IConsoleCommand {
         
-        public string Name { get; } = "clear";
-        public string Description { get; } = "clears console";
-        
-        IConsoleCommandResult IConsoleCommand.Process(DeveloperConsoleRunner runner, string[] args) {
+        public string Name => "clear";
+        public string Description => "clears console";
+
+        IConsoleCommandResult IConsoleCommand.Process(string[] args) {
             if (args.IsNotEmpty()) {
                 return ConsoleCommandResults.Instant($"{Name} command usage: {Name}");
             } 
             
-            runner.ClearConsole();
+            DeveloperConsoleRunner.Instance.ClearConsole();
             return ConsoleCommandResults.Empty;
         }
     }

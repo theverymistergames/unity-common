@@ -9,10 +9,10 @@ namespace MisterGames.ConsoleCommandsLib {
     [Serializable]
     public sealed class ConsoleCommandSetPosition : IConsoleCommand {
         
-        public string Name { get; } = "setposition";
-        public string Description { get; } = "set position for gameobject found by name";
+        public string Name => "setposition";
+        public string Description => "set position for gameobject found by name";
 
-        IConsoleCommandResult IConsoleCommand.Process(DeveloperConsoleRunner runner, string[] args) {
+        IConsoleCommandResult IConsoleCommand.Process(string[] args) {
             int length = args.Length;
             
             if (length < 4 ||
