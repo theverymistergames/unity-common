@@ -43,6 +43,8 @@ namespace MisterGames.Character.Pose {
         }
         
         private void SetInitialParameters(PoseStateData data) {
+            if (data == null) return;
+
             _prevPoseData = data;
             _initialPoseData = data; 
             _characterController.height = data.colliderHeight;
