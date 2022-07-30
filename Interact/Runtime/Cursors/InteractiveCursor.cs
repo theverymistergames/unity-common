@@ -17,7 +17,11 @@ namespace MisterGames.Interact.Cursors {
         [SerializeField] private Image _cursorImage;
         [SerializeField] private CursorIcon _initialCursorIcon;
 
-        [Header("Cursor Distance Raycast Settings")]
+        [Header("Transparency Settings")]
+        [SerializeField] private bool _isAlphaControlledByDistance = true;
+        [SerializeField] private AnimationCurve _alphaByDistance = AnimationCurve.Linear(0f, 1f, 1f, 0f);
+
+        [Header("Transparency Raycast Settings")]
         [SerializeField] [Min(1)] private int _maxHits = 6;
         [SerializeField] [Min(0.01f)] private float _maxDistance = 6f;
         [SerializeField] private LayerMask _layerMask;
@@ -39,11 +43,15 @@ namespace MisterGames.Interact.Cursors {
             _interactiveUser.OnInteractiveDetected += OnInteractiveDetected;
             _interactiveUser.OnInteractiveLost += OnInteractiveLost;
 
-            _timeDomain.SubscribeUpdate(this);
+            if (_isAlphaControlledByDistance) {
+                _timeDomain.SubscribeUpdate(this);
+            }
         }
 
         private void OnDisable() {
-            _timeDomain.UnsubscribeUpdate(this);
+            if (_isAlphaControlledByDistance) {
+                _timeDomain.UnsubscribeUpdate(this);
+            }
 
             _interactiveUser.OnInteractiveDetected -= OnInteractiveDetected;
             _interactiveUser.OnInteractiveLost -= OnInteractiveLost;
@@ -56,15 +64,8 @@ namespace MisterGames.Interact.Cursors {
         }
 
         void IUpdate.OnUpdate(float deltaTime) {
-            bool hasPossibleInteractive = _interactiveUser.PossibleInteractive != null;
-            float distance = _interactiveUser.LastDetectionDistance;
-
-            if (!hasPossibleInteractive && PerformRaycast(out var hit)) {
-                hasPossibleInteractive = true;
-                distance = hit.distance;
-            }
-
-            float alpha = hasPossibleInteractive.ToInt() * (1f - distance / _maxDistance);
+            bool hasHit = PerformRaycast(out var hit);
+            float alpha = hasHit.ToInt() * _alphaByDistance.Evaluate(hit.distance / _maxDistance);
             SetImageAlpha(alpha);
         }
 
@@ -123,7 +124,16 @@ namespace MisterGames.Interact.Cursors {
         private void SetCursorIcon(CursorIcon icon) {
             if (_cursorImage == null) return;
 
-            _cursorImage.sprite = icon != null ? icon.sprite : null;
+            if (icon == null) {
+                _cursorImage.sprite = null;
+                return;
+            }
+
+            _cursorImage.sprite = icon.sprite;
+
+            var rectTransform = _cursorImage.rectTransform;
+            rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, icon.size.x);
+            rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, icon.size.y);
         }
 
         private void SetImageAlpha(float value) {
