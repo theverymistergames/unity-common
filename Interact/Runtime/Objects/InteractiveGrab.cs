@@ -76,7 +76,7 @@ namespace MisterGames.Interact.Objects {
             _userTransform = user.transform;
             _userPosition = _userTransform.position;
             
-            _grabPoint = user.Handle;
+            _grabPoint = user.LastHitPoint;
             _smoothedGrabPoint = _grabPoint;
             
             _inputAxis.OnChanged -= OnInputAxisChanged;

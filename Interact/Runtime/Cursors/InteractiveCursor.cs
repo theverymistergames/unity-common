@@ -13,22 +13,15 @@ namespace MisterGames.Interact.Cursors {
         [SerializeField] private InteractiveUser _interactiveUser;
 
         [Header("Cursor Settings")]
+        [SerializeField] [Min(0.01f)] private float _maxCursorVisibilityDistance = 7f;
         [SerializeField] private Image _cursorImage;
         [SerializeField] private CursorIcon _initialCursorIcon;
 
-        [Header("Raycast Settings")]
-        [SerializeField] [Min(1)] private int _maxHits = 6;
-        [SerializeField] [Min(0.01f)] private float _maxDistance = 6f;
-        [SerializeField] private LayerMask _layerMask;
-        [SerializeField] private QueryTriggerInteraction _triggerInteraction = QueryTriggerInteraction.Ignore;
-
         private Interactive _interactive;
-        private Transform _transform;
-        private RaycastHit[] _hits;
 
         private void Awake() {
-            _transform = transform;
-            _hits = new RaycastHit[_maxHits];
+            Cursor.visible = false;
+            Cursor.lockState = CursorLockMode.Locked;
         }
 
         private void OnEnable() {
@@ -48,13 +41,14 @@ namespace MisterGames.Interact.Cursors {
         }
 
         private void Start() {
-
             SetCursorIcon(_initialCursorIcon);
         }
 
         void IUpdate.OnUpdate(float deltaTime) {
-            bool hasHit = PerformRaycast(out var hit);
-            float alpha = hasHit.ToInt() * (1f - hit.distance / _maxDistance);
+            bool showCursor = _interactiveUser.HasPossibleInteractive;
+            float distance = _interactiveUser.LastDetectionDistance;
+            float alpha = showCursor.ToInt() * (1f - distance / _maxCursorVisibilityDistance);
+
             SetImageAlpha(alpha);
         }
 
@@ -122,32 +116,6 @@ namespace MisterGames.Interact.Cursors {
             var color = _cursorImage.color;
             color.a = value;
             _cursorImage.color = color;
-        }
-
-        private bool PerformRaycast(out RaycastHit hit) {
-            int hitCount = Physics.RaycastNonAlloc(
-                _transform.position,
-                _transform.forward,
-                _hits,
-                _maxDistance,
-                _layerMask,
-                _triggerInteraction
-            );
-
-            if (hitCount <= 0) {
-                hit = default;
-                return false;
-            }
-
-            hit = _hits[0];
-            float distance = hit.distance;
-
-            for (int i = 1; i < hitCount; i++) {
-                var nextHit = _hits[i];
-                if (nextHit.distance < distance) hit = nextHit;
-            }
-
-            return true;
         }
     }
 
