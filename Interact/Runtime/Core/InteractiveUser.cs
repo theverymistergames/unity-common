@@ -12,7 +12,7 @@ namespace MisterGames.Interact.Core {
         public event Action<Interactive> OnInteractiveDetected = delegate {  };
         public event Action OnInteractiveLost = delegate {  };
 
-        public bool HasPossibleInteractive => _possibleInteractive != null;
+        public Interactive PossibleInteractive { get; private set; }
 
         public Vector3 LastHitPoint => _lastDetectionSource switch {
             DetectionSource.UiRaycaster => _uiRaycaster.CollisionInfo.lastHitPoint,
@@ -24,7 +24,6 @@ namespace MisterGames.Interact.Core {
             _ => _physicsRaycaster.CollisionInfo.lastDistance,
         };
 
-        private Interactive _possibleInteractive;
         private DetectionSource _lastDetectionSource;
         private int _lastDetectionFrame;
 
@@ -45,58 +44,44 @@ namespace MisterGames.Interact.Core {
         }
 
         public bool IsDetectedTarget(Interactive interactive) {
-            return _possibleInteractive == interactive;
+            return PossibleInteractive == interactive;
         }
 
         private void OnPhysicsRaycasterTransformChanged() {
-            int frame = Time.frameCount;
-            var info = _physicsRaycaster.CollisionInfo;
-
-            if (_possibleInteractive == null ||
-                frame == _lastDetectionFrame &&
-                info.lastDistance < LastDetectionDistance
-            ) {
-                CheckNewPossibleInteractive(info, DetectionSource.PhysicsRaycaster);
-            }
-
-            _lastDetectionFrame = frame;
+            CheckNewPossibleInteractive(_physicsRaycaster.CollisionInfo, DetectionSource.PhysicsRaycaster);
         }
 
         private void OnUiRaycasterTransformChanged() {
-            int frame = Time.frameCount;
-            var info = _uiRaycaster.CollisionInfo;
-
-            if (_possibleInteractive == null ||
-                frame == _lastDetectionFrame &&
-                info.lastDistance < LastDetectionDistance
-            ) {
-                CheckNewPossibleInteractive(info, DetectionSource.UiRaycaster);
-            }
-
-            _lastDetectionFrame = frame;
+            CheckNewPossibleInteractive(_uiRaycaster.CollisionInfo, DetectionSource.UiRaycaster);
         }
 
         private void CheckNewPossibleInteractive(CollisionInfo info, DetectionSource detectionSource) {
-            if (_possibleInteractive != null) {
-                _possibleInteractive.OnLostByUser(this);
+            int frame = Time.frameCount;
+
+            if (PossibleInteractive != null) {
+                if (frame == _lastDetectionFrame && info.lastDistance > LastDetectionDistance) return;
+
+                PossibleInteractive.OnLostByUser(this);
                 OnInteractiveLost.Invoke();
             }
 
             if (!info.hasContact) {
-                _possibleInteractive = null;
+                PossibleInteractive = null;
                 _lastDetectionSource = DetectionSource.None;
                 return;
             }
 
-            _possibleInteractive = info.transform.GetComponent<Interactive>();
-            if (_possibleInteractive == null) {
+            PossibleInteractive = info.transform.GetComponent<Interactive>();
+            if (PossibleInteractive == null) {
                 _lastDetectionSource = DetectionSource.None;
                 return;
             }
 
-            _possibleInteractive.OnDetectedByUser(this);
-            OnInteractiveDetected.Invoke(_possibleInteractive);
+            PossibleInteractive.OnDetectedByUser(this);
+            OnInteractiveDetected.Invoke(PossibleInteractive);
+
             _lastDetectionSource = detectionSource;
+            _lastDetectionFrame = frame;
         }
     }
 

@@ -1,4 +1,5 @@
-﻿using MisterGames.Common.Maths;
+﻿using MisterGames.Common.Collisions;
+using MisterGames.Common.Maths;
 using MisterGames.Common.Routines;
 using MisterGames.Interact.Core;
 using UnityEngine;
@@ -13,15 +14,25 @@ namespace MisterGames.Interact.Cursors {
         [SerializeField] private InteractiveUser _interactiveUser;
 
         [Header("Cursor Settings")]
-        [SerializeField] [Min(0.01f)] private float _maxCursorVisibilityDistance = 7f;
         [SerializeField] private Image _cursorImage;
         [SerializeField] private CursorIcon _initialCursorIcon;
 
+        [Header("Cursor Distance Raycast Settings")]
+        [SerializeField] [Min(1)] private int _maxHits = 6;
+        [SerializeField] [Min(0.01f)] private float _maxDistance = 6f;
+        [SerializeField] private LayerMask _layerMask;
+        [SerializeField] private QueryTriggerInteraction _triggerInteraction = QueryTriggerInteraction.Ignore;
+
         private Interactive _interactive;
+        private Transform _transform;
+        private RaycastHit[] _hits;
 
         private void Awake() {
             Cursor.visible = false;
             Cursor.lockState = CursorLockMode.Locked;
+
+            _transform = transform;
+            _hits = new RaycastHit[_maxHits];
         }
 
         private void OnEnable() {
@@ -45,10 +56,15 @@ namespace MisterGames.Interact.Cursors {
         }
 
         void IUpdate.OnUpdate(float deltaTime) {
-            bool showCursor = _interactiveUser.HasPossibleInteractive;
+            bool hasPossibleInteractive = _interactiveUser.PossibleInteractive != null;
             float distance = _interactiveUser.LastDetectionDistance;
-            float alpha = showCursor.ToInt() * (1f - distance / _maxCursorVisibilityDistance);
 
+            if (!hasPossibleInteractive && PerformRaycast(out var hit)) {
+                hasPossibleInteractive = true;
+                distance = hit.distance;
+            }
+
+            float alpha = hasPossibleInteractive.ToInt() * (1f - distance / _maxDistance);
             SetImageAlpha(alpha);
         }
 
@@ -116,6 +132,19 @@ namespace MisterGames.Interact.Cursors {
             var color = _cursorImage.color;
             color.a = value;
             _cursorImage.color = color;
+        }
+
+        private bool PerformRaycast(out RaycastHit hit) {
+            int hitCount = Physics.RaycastNonAlloc(
+                _transform.position,
+                _transform.forward,
+                _hits,
+                _maxDistance,
+                _layerMask,
+                _triggerInteraction
+            );
+
+            return CollisionUtils.TryGetMinimumDistanceHit(hitCount, _hits, out hit);
         }
     }
 

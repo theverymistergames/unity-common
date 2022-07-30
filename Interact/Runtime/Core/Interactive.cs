@@ -14,16 +14,15 @@ namespace MisterGames.Interact.Core {
         public event Action OnStopInteract = delegate {  };
 
         public InteractStrategy Strategy => _strategy;
-        public bool IsInteracting => _isInteracting;
+        public bool IsInteracting { get; private set; }
 
         private Transform _transform;
 
         private InteractiveUser _lastDetectedUser;
-        private InteractiveUser _interactionUser;
+        private InteractiveUser _interactiveUser;
         private Transform _interactionUserTransform;
         private IInteractiveMode _strategyMode;
 
-        private bool _isInteracting;
         private bool _isDetectedByInteractionUser;
         private float _maxInteractionSqrDistance;
 
@@ -38,32 +37,32 @@ namespace MisterGames.Interact.Core {
         }
 
         void IUpdate.OnUpdate(float dt) {
-            if (!_isInteracting) return;
+            if (!IsInteracting) return;
             if (IsValidDistance() && IsValidViewDirection()) return;
             
-            StopInteractByUser(_interactionUser);
+            StopInteractByUser(_interactiveUser);
         }
 
         public void OnDetectedByUser(InteractiveUser user) {
             if (user == null) return;
 
             _lastDetectedUser = user;
-            _isDetectedByInteractionUser = _isInteracting && _interactionUser.IsDetectedTarget(this);
+            _isDetectedByInteractionUser = IsInteracting && _interactiveUser.IsDetectedTarget(this);
 
             SubscribeOnInputAction();
         }
 
         public void OnLostByUser(InteractiveUser user) {
-            _isDetectedByInteractionUser = _isInteracting && _interactionUser.IsDetectedTarget(this);
+            _isDetectedByInteractionUser = IsInteracting && _interactiveUser.IsDetectedTarget(this);
             _lastDetectedUser = null;
 
-            if (_isInteracting) return;
+            if (IsInteracting) return;
 
             UnsubscribeFromInputAction();
         }
 
         public void StartInteractByUser(InteractiveUser user) {
-            if (_isInteracting || user == null) return;
+            if (IsInteracting || user == null) return;
 
             SetInteractionUser(user);
 
@@ -75,11 +74,11 @@ namespace MisterGames.Interact.Core {
             _strategy.filter.Apply();
             _timeDomain.SubscribeUpdate(this);
 
-            OnStartInteract.Invoke(_interactionUser);
+            OnStartInteract.Invoke(_interactiveUser);
         }
 
         public void StopInteractByUser(InteractiveUser user) {
-            if (!_isInteracting || user != _interactionUser) return;
+            if (!IsInteracting || user != _interactiveUser) return;
 
             _timeDomain.UnsubscribeUpdate(this);
             _strategy.filter.Release();
@@ -89,8 +88,8 @@ namespace MisterGames.Interact.Core {
         }
 
         private void OnInteractInputPressed() {
-            if (_isInteracting) {
-                _strategyMode.OnInputPressedWhileIsInteracting(_interactionUser, this);
+            if (IsInteracting) {
+                _strategyMode.OnInputPressedWhileIsInteracting(_interactiveUser, this);
                 return;
             }
 
@@ -99,8 +98,8 @@ namespace MisterGames.Interact.Core {
         }
 
         private void OnInteractInputReleased() {
-            if (_isInteracting) {
-                _strategyMode.OnInputReleasedWhileIsInteracting(_interactionUser, this);
+            if (IsInteracting) {
+                _strategyMode.OnInputReleasedWhileIsInteracting(_interactiveUser, this);
             }
         }
 
@@ -118,16 +117,16 @@ namespace MisterGames.Interact.Core {
         }
 
         private void SetInteractionUser(InteractiveUser user) {
-            _interactionUser = user;
-            _interactionUserTransform = _interactionUser.transform;
-            _isInteracting = true;
-            _isDetectedByInteractionUser = _interactionUser.IsDetectedTarget(this);
+            _interactiveUser = user;
+            _interactionUserTransform = _interactiveUser.transform;
+            IsInteracting = true;
+            _isDetectedByInteractionUser = _interactiveUser.IsDetectedTarget(this);
         }
 
         private void ResetInteractionUser() {
-            _interactionUser = null;
+            _interactiveUser = null;
             _interactionUserTransform = null;
-            _isInteracting = false;
+            IsInteracting = false;
             _isDetectedByInteractionUser = false;
         }
 
