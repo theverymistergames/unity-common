@@ -20,10 +20,6 @@ namespace MisterGames.Character.View {
         private Vector2 _targetView;
         private Vector2 _currentView;
 
-        private void Awake() {
-            Cursor.lockState = CursorLockMode.Locked;
-        }
-
         private void OnEnable() {
             _input.View += HandleView;
             _timeDomain.SubscribeUpdate(this);
@@ -59,7 +55,6 @@ namespace MisterGames.Character.View {
         private static Vector2 ToLocalSpace(Vector2 vector) {
             return new Vector2(-vector.y, vector.x);
         }
-        
     }
 
 }
