@@ -9,5 +9,9 @@ namespace MisterGames.UI.Initialization {
         private void Start() {
             CanvasRegistry.Instance.AddCanvas(_canvas);
         }
+
+        private void OnDestroy() {
+            CanvasRegistry.Instance.RemoveCanvas(_canvas);
+        }
     }
 }

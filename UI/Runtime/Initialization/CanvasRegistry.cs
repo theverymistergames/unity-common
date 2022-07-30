@@ -19,11 +19,18 @@ namespace MisterGames.UI.Initialization {
             _canvases.Add(canvas);
         }
 
+        public void RemoveCanvas(Canvas canvas) {
+            _canvases.Remove(canvas);
+        }
+
         public void SetCanvasEventCamera(Camera eventCamera) {
             _eventCamera = eventCamera;
 
             for (int i = 0; i < _canvases.Count; i++) {
-                _canvases[i].worldCamera = eventCamera;
+                var canvas = _canvases[i];
+                if (canvas == null) continue;
+
+                canvas.worldCamera = eventCamera;
             }
         }
     }
