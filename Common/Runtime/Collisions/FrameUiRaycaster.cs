@@ -34,12 +34,17 @@ namespace MisterGames.Common.Collisions {
         }
 
         private void UpdateContacts(bool forceNotify = false) {
+            var origin = new PointerEventData(_eventSystem) { position = Input.mousePosition };
+            _eventSystem.RaycastAll(origin, _hits);
+
+            bool hasContact = CollisionUtils.TryGetMinimumDistanceHit(_hits.Count, _hits, out var hit);
+
             var info = new CollisionInfo {
-                hasContact = PerformEventSystemRaycast(out var hit),
+                hasContact = hasContact,
                 lastDistance = CollisionInfo.lastDistance,
                 lastNormal = CollisionInfo.lastNormal,
                 lastHitPoint = CollisionInfo.lastHitPoint,
-                transform = hit.gameObject.transform
+                transform = hasContact ? hit.gameObject.transform : null
             };
 
             if (info.hasContact) {
@@ -49,40 +54,6 @@ namespace MisterGames.Common.Collisions {
             }
 
             SetCollisionInfo(info, forceNotify);
-        }
-
-        private bool PerformEventSystemRaycast(out RaycastResult hit) {
-            hit = default;
-
-            var origin = new PointerEventData(_eventSystem) { position = Input.mousePosition };
-            _eventSystem.RaycastAll(origin, _hits);
-
-            int hitCount = _hits.Count;
-            if (hitCount <= 0) return false;
-
-            float minDistance = -1f;
-            int hitIndex = -1;
-
-            for (int i = 0; i < hitCount; i++) {
-                var nextHit = _hits[i];
-                float distance = nextHit.distance;
-
-                if (distance <= 0f || !_layerMask.Contains(nextHit.gameObject.layer)) continue;
-
-                if (distance < minDistance) {
-                    hitIndex = i;
-                    minDistance = distance;
-                    continue;
-                }
-
-                hitIndex = i;
-                minDistance = distance;
-            }
-
-            if (hitIndex < 0) return false;
-
-            hit = _hits[hitIndex];
-            return true;
         }
     }
 

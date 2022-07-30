@@ -3,14 +3,13 @@ using UnityEngine;
 
 namespace MisterGames.Common.Collisions {
 
-    public class FrameSphereCaster : CollisionDetector, IUpdate {
+    public class FrameRaycaster : CollisionDetector, IUpdate {
 
         [SerializeField] private TimeDomain _timeDomain;
 
-        [Header("SphereCast Settings")]
+        [Header("Raycast Settings")]
         [SerializeField] [Min(1)] private int _maxHits = 6;
         [SerializeField] private float _maxDistance = 3f;
-        [SerializeField] private float _radius = 0.5f;
         [SerializeField] private LayerMask _layerMask;
         [SerializeField] private QueryTriggerInteraction _triggerInteraction = QueryTriggerInteraction.Ignore;
 
@@ -39,9 +38,8 @@ namespace MisterGames.Common.Collisions {
         }
 
         private void UpdateContacts(bool forceNotify = false) {
-            int hitCount = Physics.SphereCastNonAlloc(
+            int hitCount = Physics.RaycastNonAlloc(
                 _transform.position,
-                _radius,
                 _transform.forward,
                 _hits,
                 _maxDistance,
