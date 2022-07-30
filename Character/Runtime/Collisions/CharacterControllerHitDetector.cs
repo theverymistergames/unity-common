@@ -10,6 +10,7 @@ namespace MisterGames.Character.Collisions {
         private void OnControllerColliderHit(ControllerColliderHit hit) {
             var info = new CollisionInfo {
                 hasContact = true,
+                lastDistance = 0f,
                 lastNormal = hit.normal,
                 lastHitPoint = hit.point,
                 transform = hit.transform

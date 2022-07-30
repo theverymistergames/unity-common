@@ -1,6 +1,4 @@
-﻿using System;
-using System.Diagnostics;
-using MisterGames.Common.Collisions;
+﻿using MisterGames.Common.Collisions;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Routines;
 using MisterGames.Dbg.Draw;
@@ -45,26 +43,30 @@ namespace MisterGames.Character.Collisions {
         }
 
         private void RequestCeiling(bool forceNotify = false) {
-            var hitCount = PerformSphereCast(_transform.position, _radius, _distance, _hitsMain);
-            
-            var hasCeiling = hitCount > 0;
+            int hitCount = PerformSphereCast(_transform.position, _radius, _distance, _hitsMain);
+            bool hasHits = hitCount > 0;
+
             Vector3 normal;
             Vector3 hitPoint;
+            float hitDistance;
             Transform surface = null;
 
-            if (hasCeiling) {
+            if (hasHits) {
                 var hit = _hitsMain[0];
                 hitPoint = hit.point;
                 normal = hit.normal;
                 surface = hit.transform;
+                hitDistance = hit.distance;
             }
             else {
                 hitPoint = CollisionInfo.lastHitPoint;
                 normal = _ceilingDetectionDirection.Inverted().normalized;
+                hitDistance = CollisionInfo.lastDistance;
             }
-            
+
             var info = new CollisionInfo {
-                hasContact = hasCeiling,
+                hasContact = hasHits,
+                lastDistance = hitDistance,
                 lastNormal = normal,
                 lastHitPoint = hitPoint,
                 transform = surface

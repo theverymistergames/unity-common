@@ -3,11 +3,11 @@ using UnityEngine;
 
 namespace MisterGames.Common.Collisions {
 
-    public class SphereRaycaster : CollisionDetector, IUpdate {
+    public class FrameSphereCaster : CollisionDetector, IUpdate {
 
         [SerializeField] private TimeDomain _timeDomain;
 
-        [Header("Sphere cast settings")]
+        [Header("SphereCast Settings")]
         [SerializeField] [Min(1)] private int _maxHits = 6;
         [SerializeField] private float _maxDistance = 3f;
         [SerializeField] private float _radius = 0.5f;
@@ -41,12 +41,14 @@ namespace MisterGames.Common.Collisions {
         private void UpdateContacts(bool forceNotify = false) {
             var info = new CollisionInfo {
                 hasContact = PerformSphereCast(out var hit),
+                lastDistance = CollisionInfo.lastDistance,
                 lastNormal = CollisionInfo.lastNormal,
                 lastHitPoint = CollisionInfo.lastHitPoint,
                 transform = hit.transform
             };
 
             if (info.hasContact) {
+                info.lastDistance = hit.distance;
                 info.lastNormal = hit.normal;
                 info.lastHitPoint = hit.point;
             }
@@ -55,6 +57,8 @@ namespace MisterGames.Common.Collisions {
         }
 
         private bool PerformSphereCast(out RaycastHit hit) {
+            hit = default;
+
             int hitCount = Physics.SphereCastNonAlloc(
                 _transform.position,
                 _radius,
@@ -65,19 +69,30 @@ namespace MisterGames.Common.Collisions {
                 _triggerInteraction
             );
 
-            if (hitCount <= 0) {
-                hit = default;
-                return false;
-            }
+            if (hitCount <= 0) return false;
 
-            hit = _hits[0];
-            float distance = hit.distance;
+            float minDistance = -1f;
+            int hitIndex = -1;
 
-            for (int i = 1; i < hitCount; i++) {
+            for (int i = 0; i < hitCount; i++) {
                 var nextHit = _hits[i];
-                if (nextHit.distance < distance) hit = nextHit;
+                float distance = nextHit.distance;
+
+                if (distance <= 0f) continue;
+
+                if (distance < minDistance) {
+                    hitIndex = i;
+                    minDistance = distance;
+                    continue;
+                }
+
+                hitIndex = i;
+                minDistance = distance;
             }
 
+            if (hitIndex < 0) return false;
+
+            hit = _hits[hitIndex];
             return true;
         }
     }

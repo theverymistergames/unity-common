@@ -56,17 +56,18 @@ namespace MisterGames.Character.Collisions {
             var origin = GetOrigin();
             int hitCount = PerformSphereCast(origin, _radius, GetDistance(), _hitsMain);
             
-            bool isGrounded = hitCount > 0;
+            bool hasHits = hitCount > 0;
             var normal = Vector3.zero;
             var hitPoint = Vector3.zero;
+            float hitDistance;
             Transform surface = null;
-            
-            if (isGrounded) {
+
+            if (hasHits) {
                 float minSqrMagnitude = -1f;
 
                 for (int i = 0; i < hitCount; i++) {
                     var hit = _hitsMain[i];
-                    
+
                     var point = hit.point;
                     hitPoint += point;
 
@@ -81,14 +82,17 @@ namespace MisterGames.Character.Collisions {
 
                 normal = normal.normalized;
                 hitPoint /= hitCount;
+                hitDistance = origin.DistanceTo(hitPoint);
             }
             else {
                 normal = _groundDetectionDirection.Inverted().normalized;
                 hitPoint = CollisionInfo.lastHitPoint;
+                hitDistance = CollisionInfo.lastDistance;
             }
 
             var info = new CollisionInfo {
-                hasContact = isGrounded,
+                hasContact = hasHits,
+                lastDistance = hitDistance,
                 lastNormal = normal,
                 lastHitPoint = hitPoint,
                 transform = surface
