@@ -7,8 +7,9 @@ namespace MisterGames.Character.View {
 
         [SerializeField] private Camera _camera;
 
+        public Camera Camera => _camera;
         public Quaternion Rotation => _cameraTransform.rotation;
-        
+
         private Transform _cameraTransform;
         private Vector3 _cameraBaseOffset;
         private Quaternion _cameraBaseRotation;
