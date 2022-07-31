@@ -36,7 +36,7 @@ namespace MisterGames.Character.Motion {
             _massProcessor.ApplyImpulse(impulse);
         }
 
-        public void TeleportTo(Vector3 targetPosition) {
+        public void TryTeleportTo(Vector3 targetPosition) {
             var currentPosition = _characterController.transform.position;
             var diff = targetPosition - currentPosition;
 

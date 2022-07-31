@@ -23,7 +23,7 @@ namespace MisterGames.Character.Access {
         }
 
         public void SetPosition(Vector3 position) {
-            _characterAdapter.TeleportTo(position);
+            _characterAdapter.TryTeleportTo(position);
         }
         
         public void SetRotation(Quaternion rotation) {
