@@ -140,6 +140,13 @@ namespace MisterGames.Interact.Core {
             float sqrDistance = _transform.position.SqrDistanceTo(_interactionUserTransform.position);
             return sqrDistance < _maxInteractionSqrDistance;
         }
+
+        public override string ToString() {
+            return $"{nameof(Interactive)}(" +
+                   $"{name}" +
+                   $", user = {(_interactiveUser == null ? "null" : $"{_interactiveUser.name}")}" +
+                   $")";
+        }
     }
 
 }

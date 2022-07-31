@@ -1,88 +1,75 @@
 ﻿using System;
-using MisterGames.Common.Collisions;
+using MisterGames.Common.Collisions.Core;
+using MisterGames.Dbg.Draw;
 using UnityEngine;
 
 namespace MisterGames.Interact.Core {
 
     public sealed class InteractiveUser : MonoBehaviour {
 
-        [SerializeField] private CollisionDetector _physicsRaycaster;
-        [SerializeField] private FrameUiRaycaster _uiRaycaster;
+        [SerializeField] private CollisionFilter _collisionFilter = new() { maxDistance = 3f };
+        [SerializeField] private CollisionDetector _collisionDetector;
 
         public event Action<Interactive> OnInteractiveDetected = delegate {  };
         public event Action OnInteractiveLost = delegate {  };
 
         public Interactive PossibleInteractive { get; private set; }
+        public CollisionInfo LastCollisionInfo => _lastCollisionInfo;
 
-        public Vector3 LastHitPoint => _lastDetectionSource switch {
-            DetectionSource.UiRaycaster => _uiRaycaster.CollisionInfo.lastHitPoint,
-            _ => _physicsRaycaster.CollisionInfo.lastHitPoint
-        };
-
-        public float LastDetectionDistance => _lastDetectionSource switch {
-            DetectionSource.UiRaycaster => _uiRaycaster.CollisionInfo.lastDistance,
-            _ => _physicsRaycaster.CollisionInfo.lastDistance,
-        };
-
-        private DetectionSource _lastDetectionSource;
-        private int _lastDetectionFrame;
-
-        private enum DetectionSource {
-            PhysicsRaycaster,
-            UiRaycaster,
-            None
-        }
+        private CollisionInfo _lastCollisionInfo;
 
         private void OnEnable() {
-            _uiRaycaster.OnTransformChanged += OnUiRaycasterTransformChanged;
-            _physicsRaycaster.OnTransformChanged += OnPhysicsRaycasterTransformChanged;
+            _collisionDetector.OnTransformChanged += OnCollisionDetectorTransformChanged;
         }
 
         private void OnDisable() {
-            _uiRaycaster.OnTransformChanged -= OnUiRaycasterTransformChanged;
-            _physicsRaycaster.OnTransformChanged -= OnPhysicsRaycasterTransformChanged;
+            _collisionDetector.OnTransformChanged -= OnCollisionDetectorTransformChanged;
         }
 
         public bool IsDetectedTarget(Interactive interactive) {
             return PossibleInteractive == interactive;
         }
 
-        private void OnPhysicsRaycasterTransformChanged() {
-            CheckNewPossibleInteractive(_physicsRaycaster.CollisionInfo, DetectionSource.PhysicsRaycaster);
+        private void OnCollisionDetectorTransformChanged() {
+            _collisionDetector.FilterLastResults(_collisionFilter, out _lastCollisionInfo);
+            CheckNewPossibleInteractive(_lastCollisionInfo);
         }
 
-        private void OnUiRaycasterTransformChanged() {
-            CheckNewPossibleInteractive(_uiRaycaster.CollisionInfo, DetectionSource.UiRaycaster);
-        }
-
-        private void CheckNewPossibleInteractive(CollisionInfo info, DetectionSource detectionSource) {
-            int frame = Time.frameCount;
-
+        private void CheckNewPossibleInteractive(CollisionInfo info) {
             if (PossibleInteractive != null) {
-                if (frame == _lastDetectionFrame && info.lastDistance > LastDetectionDistance) return;
-
                 PossibleInteractive.OnLostByUser(this);
                 OnInteractiveLost.Invoke();
             }
 
             if (!info.hasContact) {
                 PossibleInteractive = null;
-                _lastDetectionSource = DetectionSource.None;
                 return;
             }
 
             PossibleInteractive = info.transform.GetComponent<Interactive>();
-            if (PossibleInteractive == null) {
-                _lastDetectionSource = DetectionSource.None;
-                return;
-            }
+            if (PossibleInteractive == null) return;
 
             PossibleInteractive.OnDetectedByUser(this);
             OnInteractiveDetected.Invoke(PossibleInteractive);
-
-            _lastDetectionSource = detectionSource;
-            _lastDetectionFrame = frame;
         }
+
+        public override string ToString() {
+            return $"{nameof(InteractiveUser)}(" +
+                   $"{name}" +
+                   $", possibleInteractive = {(PossibleInteractive == null ? "null" : $"{PossibleInteractive.name}")}" +
+                   $")";
+        }
+
+#if UNITY_EDITOR
+        [Header("Debug")]
+        [SerializeField] private bool _debugDrawRaycastHit;
+
+        private void Update() {
+            if (_debugDrawRaycastHit) {
+                DbgPointer.Create().Color(Color.green).Position(_lastCollisionInfo.lastHitPoint).Size(0.5f).Draw();
+            }
+        }
+#endif
     }
 
 }

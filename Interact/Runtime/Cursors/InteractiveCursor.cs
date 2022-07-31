@@ -1,6 +1,8 @@
 ﻿using MisterGames.Common.Collisions;
+using MisterGames.Common.Collisions.Core;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Routines;
+using MisterGames.Dbg.Draw;
 using MisterGames.Interact.Core;
 using UnityEngine;
 using UnityEngine.UI;
@@ -20,38 +22,29 @@ namespace MisterGames.Interact.Cursors {
         [Header("Transparency Settings")]
         [SerializeField] private bool _isAlphaControlledByDistance = true;
         [SerializeField] private AnimationCurve _alphaByDistance = AnimationCurve.Linear(0f, 1f, 1f, 0f);
-
-        [Header("Transparency Raycast Settings")]
-        [SerializeField] [Min(1)] private int _maxHits = 6;
-        [SerializeField] [Min(0.01f)] private float _maxDistance = 6f;
-        [SerializeField] private LayerMask _layerMask;
-        [SerializeField] private QueryTriggerInteraction _triggerInteraction = QueryTriggerInteraction.Ignore;
+        [SerializeField] private float _maxDistance;
+        [SerializeField] private CollisionDetector _transparencyRaycaster;
 
         private Interactive _interactive;
-        private Transform _transform;
-        private RaycastHit[] _hits;
+        private CollisionFilter _transparencyRaycastFilter;
+        private CollisionInfo _lastCollisionInfo;
 
         private void Awake() {
             Cursor.visible = false;
             Cursor.lockState = CursorLockMode.Locked;
 
-            _transform = transform;
-            _hits = new RaycastHit[_maxHits];
+            _transparencyRaycastFilter = new CollisionFilter { maxDistance = _maxDistance };
         }
 
         private void OnEnable() {
             _interactiveUser.OnInteractiveDetected += OnInteractiveDetected;
             _interactiveUser.OnInteractiveLost += OnInteractiveLost;
 
-            if (_isAlphaControlledByDistance) {
-                _timeDomain.SubscribeUpdate(this);
-            }
+            _timeDomain.SubscribeUpdate(this);
         }
 
         private void OnDisable() {
-            if (_isAlphaControlledByDistance) {
-                _timeDomain.UnsubscribeUpdate(this);
-            }
+            _timeDomain.UnsubscribeUpdate(this);
 
             _interactiveUser.OnInteractiveDetected -= OnInteractiveDetected;
             _interactiveUser.OnInteractiveLost -= OnInteractiveLost;
@@ -64,8 +57,13 @@ namespace MisterGames.Interact.Cursors {
         }
 
         void IUpdate.OnUpdate(float deltaTime) {
-            bool hasHit = PerformRaycast(out var hit);
-            float alpha = hasHit.ToInt() * _alphaByDistance.Evaluate(hit.distance / _maxDistance);
+            if (!_isAlphaControlledByDistance) return;
+
+            _transparencyRaycaster.FilterLastResults(_transparencyRaycastFilter, out _lastCollisionInfo);
+
+            float alpha = _lastCollisionInfo.hasContact.ToInt();
+            alpha *= _alphaByDistance.Evaluate(_lastCollisionInfo.lastDistance / _maxDistance);
+
             SetImageAlpha(alpha);
         }
 
@@ -144,18 +142,20 @@ namespace MisterGames.Interact.Cursors {
             _cursorImage.color = color;
         }
 
-        private bool PerformRaycast(out RaycastHit hit) {
-            int hitCount = Physics.RaycastNonAlloc(
-                _transform.position,
-                _transform.forward,
-                _hits,
-                _maxDistance,
-                _layerMask,
-                _triggerInteraction
-            );
+#if UNITY_EDITOR
+        [Header("Debug")]
+        [SerializeField] private bool _debugDrawRaycastHit;
 
-            return CollisionUtils.TryGetMinimumDistanceHit(hitCount, _hits, out hit);
+        private void Update() {
+            DbgDraw();
         }
+
+        private void DbgDraw() {
+            if (_debugDrawRaycastHit) {
+                DbgPointer.Create().Color(Color.cyan).Position(_lastCollisionInfo.lastHitPoint).Size(0.5f).Draw();
+            }
+        }
+#endif
     }
 
 }

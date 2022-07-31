@@ -3,7 +3,8 @@
     "rootNamespace": "MisterGames.Interact",
     "references": [
         "GUID:0175294ec022c624cbe537915e3c9e71",
-        "GUID:27b41c8f92a5419d8b9fce851e1339f8"
+        "GUID:27b41c8f92a5419d8b9fce851e1339f8",
+        "GUID:850a500602d96814c8248951d59795a7"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
