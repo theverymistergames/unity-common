@@ -1,12 +1,15 @@
-﻿using System.Diagnostics;
-using MisterGames.Common.Collisions;
+﻿using MisterGames.Common.Collisions.Core;
 using MisterGames.Dbg.Draw;
 using UnityEngine;
 
 namespace MisterGames.Character.Collisions {
 
     public class CharacterControllerHitDetector : CollisionDetector {
-        
+
+        public override void FilterLastResults(CollisionFilter filter, out CollisionInfo info) {
+            info = default;
+        }
+
         private void OnControllerColliderHit(ControllerColliderHit hit) {
             var info = new CollisionInfo {
                 hasContact = true,

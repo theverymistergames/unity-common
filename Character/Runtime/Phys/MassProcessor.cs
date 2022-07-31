@@ -1,6 +1,7 @@
 ﻿﻿using System;
  using MisterGames.Character.Configs;
  using MisterGames.Common.Collisions;
+ using MisterGames.Common.Collisions.Core;
  using MisterGames.Common.Data;
  using MisterGames.Common.Maths;
  using MisterGames.Common.Routines;

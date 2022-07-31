@@ -1,8 +1,9 @@
 ﻿using System;
+using MisterGames.Common.Collisions.Core;
 using MisterGames.Common.Data;
 using UnityEngine;
 
-namespace MisterGames.Common.Collisions {
+namespace MisterGames.Common.Collisions.Materials {
 
     public class MaterialDetector : MonoBehaviour {
 

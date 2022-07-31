@@ -1,7 +1,7 @@
 ﻿using System;
 using UnityEngine;
 
-namespace MisterGames.Common.Collisions {
+namespace MisterGames.Common.Collisions.Core {
 
     public abstract class CollisionDetector : MonoBehaviour {
 
@@ -10,6 +10,8 @@ namespace MisterGames.Common.Collisions {
         public event Action OnTransformChanged = delegate {  };
 
         public CollisionInfo CollisionInfo { get; private set; }
+
+        public abstract void FilterLastResults(CollisionFilter filter, out CollisionInfo info);
 
         protected void SetCollisionInfo(CollisionInfo newInfo, bool forceNotify = false) {
             var lastInfo = CollisionInfo;

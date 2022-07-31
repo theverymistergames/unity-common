@@ -1,4 +1,6 @@
 ﻿using MisterGames.Common.Collisions;
+using MisterGames.Common.Collisions.Core;
+using MisterGames.Common.Collisions.Utils;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Routines;
 using MisterGames.Dbg.Draw;
@@ -19,11 +21,12 @@ namespace MisterGames.Character.Collisions {
 
         private readonly Vector3 _ceilingDetectionDirection = Vector3.up;
         private Transform _transform;
-        private RaycastHit[] _hitsMain;
+        private RaycastHit[] _hits;
+        private int _hitCount;
 
         private void Awake() {
             _transform = transform;
-            _hitsMain = new RaycastHit[_maxHits];
+            _hits = new RaycastHit[_maxHits];
         }
 
         private void Start() {
@@ -42,9 +45,27 @@ namespace MisterGames.Character.Collisions {
             RequestCeiling();
         }
 
+        public override void FilterLastResults(CollisionFilter filter, out CollisionInfo info) {
+            info = default;
+
+            if (!CollisionInfo.hasContact) return;
+
+            bool hasHit = _hits
+                .Filter(_hitCount, filter, out int filterCount)
+                .TryGetMinimumDistanceHit(filterCount, out var hit);
+
+            info = new CollisionInfo {
+                hasContact = hasHit,
+                lastDistance = hit.distance,
+                lastNormal = hit.normal,
+                lastHitPoint = hit.point,
+                transform = hit.transform
+            };
+        }
+
         private void RequestCeiling(bool forceNotify = false) {
-            int hitCount = PerformSphereCast(_transform.position, _radius, _distance, _hitsMain);
-            bool hasHits = hitCount > 0;
+            _hitCount = PerformSphereCast(_transform.position, _radius, _distance, _hits);
+            bool hasHits = _hitCount > 0;
 
             Vector3 normal;
             Vector3 hitPoint;
@@ -52,7 +73,7 @@ namespace MisterGames.Character.Collisions {
             Transform surface = null;
 
             if (hasHits) {
-                var hit = _hitsMain[0];
+                var hit = _hits[0];
                 hitPoint = hit.point;
                 normal = hit.normal;
                 surface = hit.transform;
@@ -110,7 +131,7 @@ namespace MisterGames.Character.Collisions {
             }
             
             if (_debugDrawHasCeilingText) {
-                var text = CollisionInfo.hasContact ? "has ceiling" : "";
+                string text = CollisionInfo.hasContact ? "has ceiling" : "";
                 DbgText.Create().Text(text).Position(_transform.position + _debugDrawHasCeilingTextOffset).Draw();
             }
         }

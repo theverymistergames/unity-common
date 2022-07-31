@@ -1,5 +1,5 @@
-﻿using System;
-using MisterGames.Common.Collisions;
+﻿using MisterGames.Common.Collisions.Core;
+using MisterGames.Common.Collisions.Utils;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Routines;
 using MisterGames.Dbg.Draw;
@@ -29,6 +29,7 @@ namespace MisterGames.Character.Collisions {
         private Transform _transform;
         private RaycastHit[] _hitsMain;
         private RaycastHit[] _hitsNormal;
+        private int _hitCount;
 
         private void Awake() {
             _transform = transform;
@@ -52,11 +53,29 @@ namespace MisterGames.Character.Collisions {
             RequestGround();
         }
 
+        public override void FilterLastResults(CollisionFilter filter, out CollisionInfo info) {
+            info = default;
+
+            if (!CollisionInfo.hasContact) return;
+
+            bool hasHit = _hitsMain
+                .Filter(_hitCount, filter, out int filterCount)
+                .TryGetMinimumDistanceHit(filterCount, out var hit);
+
+            info = new CollisionInfo {
+                hasContact = hasHit,
+                lastDistance = hit.distance,
+                lastNormal = hit.normal,
+                lastHitPoint = hit.point,
+                transform = hit.transform
+            };
+        }
+
         private void RequestGround(bool forceNotify = false) {
             var origin = GetOrigin();
-            int hitCount = PerformSphereCast(origin, _radius, GetDistance(), _hitsMain);
+            _hitCount = PerformSphereCast(origin, _radius, GetDistance(), _hitsMain);
             
-            bool hasHits = hitCount > 0;
+            bool hasHits = _hitCount > 0;
             var normal = Vector3.zero;
             var hitPoint = Vector3.zero;
             float hitDistance;
@@ -65,7 +84,7 @@ namespace MisterGames.Character.Collisions {
             if (hasHits) {
                 float minSqrMagnitude = -1f;
 
-                for (int i = 0; i < hitCount; i++) {
+                for (int i = 0; i < _hitCount; i++) {
                     var hit = _hitsMain[i];
 
                     var point = hit.point;
@@ -81,7 +100,7 @@ namespace MisterGames.Character.Collisions {
                 }
 
                 normal = normal.normalized;
-                hitPoint /= hitCount;
+                hitPoint /= _hitCount;
                 hitDistance = origin.DistanceTo(hitPoint);
             }
             else {

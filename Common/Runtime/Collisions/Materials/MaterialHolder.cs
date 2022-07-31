@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace MisterGames.Common.Collisions {
+namespace MisterGames.Common.Collisions.Materials {
 
     public class MaterialHolder : MonoBehaviour {
 

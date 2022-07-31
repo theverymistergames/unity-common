@@ -1,8 +1,7 @@
 ﻿﻿using System;
  using MisterGames.Character.Configs;
  using MisterGames.Character.Input;
- using MisterGames.Character.Pose;
- using MisterGames.Common.Collisions;
+ using MisterGames.Common.Collisions.Core;
  using MisterGames.Fsm.Core;
  using UnityEngine;
 

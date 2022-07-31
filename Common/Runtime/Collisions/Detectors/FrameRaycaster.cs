@@ -1,7 +1,9 @@
-﻿using MisterGames.Common.Routines;
+﻿using MisterGames.Common.Collisions.Core;
+using MisterGames.Common.Collisions.Utils;
+using MisterGames.Common.Routines;
 using UnityEngine;
 
-namespace MisterGames.Common.Collisions {
+namespace MisterGames.Common.Collisions.Detectors {
 
     public class FrameRaycaster : CollisionDetector, IUpdate {
 
@@ -9,12 +11,13 @@ namespace MisterGames.Common.Collisions {
 
         [Header("Raycast Settings")]
         [SerializeField] [Min(1)] private int _maxHits = 6;
-        [SerializeField] private float _maxDistance = 3f;
+        [SerializeField] [Min(0f)] private float _maxDistance = 3f;
         [SerializeField] private LayerMask _layerMask;
         [SerializeField] private QueryTriggerInteraction _triggerInteraction = QueryTriggerInteraction.Ignore;
 
         private Transform _transform;
         private RaycastHit[] _hits;
+        private int _hitCount;
 
         private void Awake() {
             _transform = transform;
@@ -37,17 +40,26 @@ namespace MisterGames.Common.Collisions {
             UpdateContacts();
         }
 
-        private void UpdateContacts(bool forceNotify = false) {
-            int hitCount = Physics.RaycastNonAlloc(
-                _transform.position,
-                _transform.forward,
-                _hits,
-                _maxDistance,
-                _layerMask,
-                _triggerInteraction
-            );
+        public override void FilterLastResults(CollisionFilter filter, out CollisionInfo info) {
+            info = default;
 
-            bool hasContact = CollisionUtils.TryGetMinimumDistanceHit(hitCount, _hits, out var hit);
+            if (!CollisionInfo.hasContact) return;
+
+            bool hasHit = _hits
+                .Filter(_hitCount, filter, out int filterCount)
+                .TryGetMinimumDistanceHit(filterCount, out var hit);
+
+            info = new CollisionInfo {
+                hasContact = hasHit,
+                lastDistance = hit.distance,
+                lastNormal = hit.normal,
+                lastHitPoint = hit.point,
+                transform = hit.transform
+            };
+        }
+
+        private void UpdateContacts(bool forceNotify = false) {
+            bool hasContact = PerformRaycast(out var hit);
 
             var info = new CollisionInfo {
                 hasContact = hasContact,
@@ -64,6 +76,21 @@ namespace MisterGames.Common.Collisions {
             }
 
             SetCollisionInfo(info, forceNotify);
+        }
+
+        private bool PerformRaycast(out RaycastHit hit) {
+            _hitCount = Physics.RaycastNonAlloc(
+                _transform.position,
+                _transform.forward,
+                _hits,
+                _maxDistance,
+                _layerMask,
+                _triggerInteraction
+            );
+
+            return _hits
+                .RemoveInvalidHits(_hitCount, out _hitCount)
+                .TryGetMinimumDistanceHit(_hitCount, out hit);
         }
     }
 
