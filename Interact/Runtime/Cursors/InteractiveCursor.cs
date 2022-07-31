@@ -1,5 +1,4 @@
-﻿using MisterGames.Common.Collisions;
-using MisterGames.Common.Collisions.Core;
+﻿using MisterGames.Common.Collisions.Core;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Routines;
 using MisterGames.Dbg.Draw;
@@ -59,6 +58,7 @@ namespace MisterGames.Interact.Cursors {
         void IUpdate.OnUpdate(float deltaTime) {
             if (!_isAlphaControlledByDistance) return;
 
+            _transparencyRaycaster.FetchResults();
             _transparencyRaycaster.FilterLastResults(_transparencyRaycastFilter, out _lastCollisionInfo);
 
             float alpha = _lastCollisionInfo.hasContact.ToInt();

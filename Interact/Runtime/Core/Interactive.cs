@@ -145,7 +145,7 @@ namespace MisterGames.Interact.Core {
             return $"{nameof(Interactive)}(" +
                    $"{name}" +
                    $", user = {(_interactiveUser == null ? "null" : $"{_interactiveUser.name}")}" +
-                   $")";
+                   ")";
         }
     }
 

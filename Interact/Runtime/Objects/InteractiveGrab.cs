@@ -76,7 +76,7 @@ namespace MisterGames.Interact.Objects {
             _userTransform = user.transform;
             _userPosition = _userTransform.position;
             
-            _grabPoint = user.LastCollisionInfo.lastHitPoint;
+            _grabPoint = user.CurrentCollisionInfo.lastHitPoint;
             _smoothedGrabPoint = _grabPoint;
             
             _inputAxis.OnChanged -= OnInputAxisChanged;
