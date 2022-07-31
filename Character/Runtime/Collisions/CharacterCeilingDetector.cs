@@ -23,6 +23,7 @@ namespace MisterGames.Character.Collisions {
         private Transform _transform;
         private RaycastHit[] _hits;
         private int _hitCount;
+        private int _lastUpdateFrame = -1;
 
         private void Awake() {
             _transform = transform;
@@ -45,6 +46,10 @@ namespace MisterGames.Character.Collisions {
             RequestCeiling();
         }
 
+        public override void FetchResults() {
+
+        }
+
         public override void FilterLastResults(CollisionFilter filter, out CollisionInfo info) {
             info = default;
 
@@ -64,6 +69,9 @@ namespace MisterGames.Character.Collisions {
         }
 
         private void RequestCeiling(bool forceNotify = false) {
+            int frame = Time.frameCount;
+            if (frame == _lastUpdateFrame) return;
+
             _hitCount = PerformSphereCast(_transform.position, _radius, _distance, _hits);
             bool hasHits = _hitCount > 0;
 
@@ -94,6 +102,7 @@ namespace MisterGames.Character.Collisions {
             };
             
             SetCollisionInfo(info, forceNotify);
+            _lastUpdateFrame = frame;
         }
         
         private int PerformSphereCast(Vector3 origin, float radius, float distance, RaycastHit[] hits) {

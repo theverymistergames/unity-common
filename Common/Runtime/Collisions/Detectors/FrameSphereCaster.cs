@@ -19,6 +19,7 @@ namespace MisterGames.Common.Collisions.Detectors {
         private Transform _transform;
         private RaycastHit[] _hits;
         private int _hitCount;
+        private int _lastUpdateFrame = -1;
 
         private void Awake() {
             _transform = transform;
@@ -41,6 +42,10 @@ namespace MisterGames.Common.Collisions.Detectors {
             UpdateContacts();
         }
 
+        public override void FetchResults() {
+            UpdateContacts();
+        }
+
         public override void FilterLastResults(CollisionFilter filter, out CollisionInfo info) {
             info = default;
 
@@ -60,6 +65,9 @@ namespace MisterGames.Common.Collisions.Detectors {
         }
 
         private void UpdateContacts(bool forceNotify = false) {
+            int frame = Time.frameCount;
+            if (frame == _lastUpdateFrame) return;
+
             bool hasContact = PerformRaycast(out var hit);
 
             var info = new CollisionInfo {
@@ -77,6 +85,7 @@ namespace MisterGames.Common.Collisions.Detectors {
             }
 
             SetCollisionInfo(info, forceNotify);
+            _lastUpdateFrame = frame;
         }
 
         private bool PerformRaycast(out RaycastHit hit) {

@@ -6,6 +6,8 @@ namespace MisterGames.Character.Collisions {
 
     public class CharacterControllerHitDetector : CollisionDetector {
 
+        public override void FetchResults() { }
+
         public override void FilterLastResults(CollisionFilter filter, out CollisionInfo info) {
             info = default;
         }

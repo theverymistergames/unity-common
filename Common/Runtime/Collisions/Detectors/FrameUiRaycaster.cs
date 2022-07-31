@@ -14,9 +14,10 @@ namespace MisterGames.Common.Collisions.Detectors {
         [SerializeField] private TimeDomain _timeDomain;
         [SerializeField] private CollisionFilter _collisionFilter;
 
-        private EventSystem _eventSystem;
         private readonly List<RaycastResult> _hits = new List<RaycastResult>();
+        private EventSystem _eventSystem;
         private int _hitCount;
+        private int _lastUpdateFrame = -1;
 
         private void Awake() {
             _eventSystem = EventSystem.current;
@@ -38,6 +39,10 @@ namespace MisterGames.Common.Collisions.Detectors {
             UpdateContacts();
         }
 
+        public override void FetchResults() {
+            UpdateContacts();
+        }
+
         public override void FilterLastResults(CollisionFilter filter, out CollisionInfo info) {
             info = default;
 
@@ -56,25 +61,10 @@ namespace MisterGames.Common.Collisions.Detectors {
             };
         }
 
-        private string HitsToText(int hitCount) {
-            var sb = new StringBuilder();
-
-            sb.AppendLine("Hits {");
-
-            hitCount = Math.Min(hitCount, _hits.Count);
-            for (int i = 0; i < hitCount; i++) {
-                var hit = _hits[i];
-                bool hasContact = hit.gameObject != null;
-
-                sb.AppendLine($" - Hit[{i}] : {(hasContact ? $"{hit.gameObject.name}::{hit.distance}" : "none")}");
-            }
-
-            sb.AppendLine("}");
-
-            return sb.ToString();
-        }
-
         private void UpdateContacts(bool forceNotify = false) {
+            int frame = Time.frameCount;
+            if (frame == _lastUpdateFrame) return;
+
             var origin = new PointerEventData(_eventSystem) { position = Input.mousePosition };
             _eventSystem.RaycastAll(origin, _hits);
             _hitCount = _hits.Count;
@@ -99,6 +89,7 @@ namespace MisterGames.Common.Collisions.Detectors {
             }
 
             SetCollisionInfo(info, forceNotify);
+            _lastUpdateFrame = frame;
         }
     }
 

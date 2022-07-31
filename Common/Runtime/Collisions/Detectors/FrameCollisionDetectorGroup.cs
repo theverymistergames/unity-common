@@ -22,6 +22,10 @@ namespace MisterGames.Common.Collisions.Detectors {
             _timeDomain.UnsubscribeUpdate(this);
         }
 
+        private void Start() {
+            UpdateContacts(forceNotify: true);
+        }
+
         public override void FilterLastResults(CollisionFilter filter, out CollisionInfo info) {
             info = default;
 
@@ -38,32 +42,40 @@ namespace MisterGames.Common.Collisions.Detectors {
             }
         }
 
-        void IUpdate.OnUpdate(float dt) {
-            int frame = Time.frameCount;
+        public override void FetchResults() {
+            UpdateContacts();
+        }
 
+        void IUpdate.OnUpdate(float dt) {
+            UpdateContacts();
+        }
+
+        private void UpdateContacts(bool forceNotify = false) {
+            int frame = Time.frameCount;
             for (int i = 0; i < _detectorGroup.Length; i++) {
                 var detector = _detectorGroup[i];
 
+                detector.FetchResults();
                 detector.FilterLastResults(_collisionFilter, out var info);
-                OnNewCollision(info, frame);
+                OnNewCollision(info, frame, forceNotify);
             }
         }
 
-        private void OnNewCollision(CollisionInfo info, int frame) {
+        private void OnNewCollision(CollisionInfo info, int frame, bool forceNotify) {
             if (frame > _lastDetectionFrame ||
                 !_lastHasContact && info.hasContact ||
                 info.hasContact && info.lastDistance < _lastDetectionDistance)
             {
-                SetLastCollision(info, frame);
+                SetLastCollision(info, frame, forceNotify);
             }
         }
 
-        private void SetLastCollision(CollisionInfo info, int frame) {
+        private void SetLastCollision(CollisionInfo info, int frame, bool forceNotify) {
             _lastHasContact = info.hasContact;
             _lastDetectionDistance = info.lastDistance;
             if (info.hasContact) _lastDetectionFrame = frame;
 
-            SetCollisionInfo(info);
+            SetCollisionInfo(info, forceNotify);
         }
     }
 

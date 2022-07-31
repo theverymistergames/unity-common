@@ -30,6 +30,7 @@ namespace MisterGames.Character.Collisions {
         private RaycastHit[] _hitsMain;
         private RaycastHit[] _hitsNormal;
         private int _hitCount;
+        private int _lastUpdateFrame = -1;
 
         private void Awake() {
             _transform = transform;
@@ -53,6 +54,10 @@ namespace MisterGames.Character.Collisions {
             RequestGround();
         }
 
+        public override void FetchResults() {
+
+        }
+
         public override void FilterLastResults(CollisionFilter filter, out CollisionInfo info) {
             info = default;
 
@@ -72,6 +77,9 @@ namespace MisterGames.Character.Collisions {
         }
 
         private void RequestGround(bool forceNotify = false) {
+            int frame = Time.frameCount;
+            if (frame == _lastUpdateFrame) return;
+
             var origin = GetOrigin();
             _hitCount = PerformSphereCast(origin, _radius, GetDistance(), _hitsMain);
             
@@ -118,6 +126,7 @@ namespace MisterGames.Character.Collisions {
             };
             
             SetCollisionInfo(info, forceNotify);
+            _lastUpdateFrame = frame;
         }
         
         private bool ClarifyNormalAtPoint(Vector3 point) {

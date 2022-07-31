@@ -1,4 +1,5 @@
 ﻿using System;
+using MisterGames.Common.Collisions.Utils;
 using UnityEngine;
 
 namespace MisterGames.Common.Collisions.Core {
@@ -12,6 +13,8 @@ namespace MisterGames.Common.Collisions.Core {
         public CollisionInfo CollisionInfo { get; private set; }
 
         public abstract void FilterLastResults(CollisionFilter filter, out CollisionInfo info);
+
+        public abstract void FetchResults();
 
         protected void SetCollisionInfo(CollisionInfo newInfo, bool forceNotify = false) {
             var lastInfo = CollisionInfo;
@@ -36,12 +39,7 @@ namespace MisterGames.Common.Collisions.Core {
         }
 
         private void CheckTransformChanged(CollisionInfo lastInfo, CollisionInfo newInfo, bool forceNotify) {
-            bool surfaceChanged =
-                !lastInfo.hasContact && newInfo.hasContact ||
-                lastInfo.hasContact && !newInfo.hasContact ||
-                lastInfo.hasContact && lastInfo.transform.GetHashCode() != newInfo.transform.GetHashCode();
-            
-            if (forceNotify || surfaceChanged) {
+            if (forceNotify || newInfo.IsTransformChanged(lastInfo)) {
                 OnTransformChanged.Invoke();
             }
         }
