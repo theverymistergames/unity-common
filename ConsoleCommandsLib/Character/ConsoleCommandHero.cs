@@ -93,24 +93,21 @@ namespace MisterGames.ConsoleCommandsLib {
             }
 
             var access = Object.FindObjectOfType<CharacterAccess>();
-            if (access != null) {
-                PrefabPool.Instance.Recycle(access.gameObject);
+            if (access == null) {
+                var newHeroInstance = PrefabPool.Instance.TakeActive(_heroPrefab);
+                access = newHeroInstance.GetComponent<CharacterAccess>();
             }
-
-            var newHeroInstance = PrefabPool.Instance.TakeInactive(_heroPrefab);
-            access = newHeroInstance.GetComponent<CharacterAccess>();
 
             if (access == null) {
                 return ConsoleCommandResults.Instant(
-                    $"Character with {nameof(CharacterAccess)} component not found on the scene."
+                    $"Character with {nameof(CharacterAccess)} component not found on the scene and in prefabs."
                 );
             }
 
-            access.transform.position = spawnPosition;
-            access.gameObject.SetActive(true);
+            access.SetPosition(spawnPosition);
 
             return ConsoleCommandResults.Instant(
-                $"Character {access.gameObject.name} was respawned at point [{spawnPointName} :: {spawnPosition}]"
+                $"Character {access.name} was respawned at point [{spawnPointName} :: {spawnPosition}]"
             );
         }
         
@@ -125,31 +122,28 @@ namespace MisterGames.ConsoleCommandsLib {
             }
 
             var access = Object.FindObjectOfType<CharacterAccess>();
-            if (access != null) {
-                PrefabPool.Instance.Recycle(access.gameObject);
+            if (access == null) {
+                var newHeroInstance = PrefabPool.Instance.TakeActive(_heroPrefab);
+                access = newHeroInstance.GetComponent<CharacterAccess>();
             }
-
-            var newHeroInstance = PrefabPool.Instance.TakeInactive(_heroPrefab);
-            access = newHeroInstance.GetComponent<CharacterAccess>();
 
             if (access == null) {
                 return ConsoleCommandResults.Instant(
-                    $"Character with {nameof(CharacterAccess)} component not found on the scene."
+                    $"Character with {nameof(CharacterAccess)} component not found on the scene and in prefabs."
                 );
             }
 
             var spawnPosition = new Vector3(x, y, z);
-            access.transform.position = spawnPosition;
-            access.gameObject.SetActive(true);
+            access.SetPosition(spawnPosition);
 
             return ConsoleCommandResults.Instant(
-                $"Character {access.gameObject.name} was teleported to [{spawnPosition}]"
+                $"Character {access.name} was teleported to [{spawnPosition}]"
             );
         }
 
         private static string SpawnPointListToText(CharacterSpawnPoint[] spawns) {
             var builder = new StringBuilder();
-            builder.AppendLine($"[0] World zero");
+            builder.AppendLine("[0] World zero");
 
             for (int i = 0; i < spawns.Length; i++) {
                 var spawn = spawns[i];

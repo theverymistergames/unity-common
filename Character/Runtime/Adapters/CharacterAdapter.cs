@@ -37,11 +37,9 @@ namespace MisterGames.Character.Motion {
         }
 
         public void TryTeleportTo(Vector3 targetPosition) {
-            var currentPosition = _characterController.transform.position;
-            var diff = targetPosition - currentPosition;
-
-            _characterController.Move(diff);
-            _massProcessor.ResetAllForces();
+            _characterController.gameObject.SetActive(false);
+            _characterController.transform.position = targetPosition;
+            _characterController.gameObject.SetActive(true);
         }
         
         private void Awake() {
@@ -51,13 +49,15 @@ namespace MisterGames.Character.Motion {
         private void OnEnable() {
             _cameraController.RegisterInteractor(this);
             _massProcessor.RegisterForceSource(this);
+
             _timeDomain.SubscribeUpdate(this);
         }
 
         private void OnDisable() {
+            _timeDomain.UnsubscribeUpdate(this);
+
             _cameraController.UnregisterInteractor(this);
             _massProcessor.UnregisterForceSource(this);
-            _timeDomain.UnsubscribeUpdate(this);
         }
         
         void IUpdate.OnUpdate(float dt) {
