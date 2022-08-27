@@ -1,4 +1,4 @@
-﻿﻿﻿# MisterGames ConsoleCommandsLib v0.1.0
+﻿﻿﻿﻿# MisterGames ConsoleCommandsLib v0.1.0
 
 ## Features
 - todo

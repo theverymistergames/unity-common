@@ -10,7 +10,7 @@ namespace MisterGames.Interact.Core {
     public sealed class InteractiveUser : MonoBehaviour, IUpdate {
 
         [SerializeField] private TimeDomain _timeDomain;
-        [SerializeField] private CollisionFilter _collisionFilter = new() { maxDistance = 3f };
+        [SerializeField] private CollisionFilter _collisionFilter = new CollisionFilter { maxDistance = 3f };
         [SerializeField] private CollisionDetector _collisionDetector;
 
         public event Action<Interactive> OnInteractiveDetected = delegate {  };
