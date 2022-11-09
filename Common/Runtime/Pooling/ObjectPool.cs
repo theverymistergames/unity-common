@@ -75,7 +75,7 @@ namespace MisterGames.Common.Pooling {
         }
 
         private void ValidateParameters() {
-            if (_ensureCapacityAt is < 0f or > 1f) {
+            if (_ensureCapacityAt < 0f || _ensureCapacityAt > 1f) {
                 throw new ArgumentException($"{this} has invalid parameter [ensureCapacityAt = {_ensureCapacityAt}], value must be in range [0, 1]");
             }
 

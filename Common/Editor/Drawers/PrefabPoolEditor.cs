@@ -12,11 +12,13 @@ namespace MisterGames.Common.Editor.Drawers {
         public override void OnInspectorGUI() {
             base.OnInspectorGUI();
             
-            if (target is not PrefabPool pool) return;
+            if (!(target is PrefabPool pool)) return;
 
             if (GUILayout.Button("Refresh pools")) {
                 var prefabs = GetAllPrefabs(pool.SearchPrefabsInFolders);
                 pool.Refresh(prefabs);
+
+                EditorUtility.SetDirty(pool);
             }
         }
 
