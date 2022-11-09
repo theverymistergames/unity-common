@@ -2,7 +2,7 @@
 
 namespace MisterGames.Dbg.Console.Core {
 
-    public struct Command {
+    internal struct Command {
 
         public string cmd;
         public IConsoleModule module;

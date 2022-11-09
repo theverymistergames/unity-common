@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text;
+using MisterGames.Common.Attributes;
 using MisterGames.Input.Actions;
 using TMPro;
 using UnityEngine;
@@ -15,27 +17,30 @@ namespace MisterGames.Dbg.Console.Core {
         [SerializeField] private int _textFieldFontSize = 20;
         [SerializeField] private TMP_InputField _textInputField;
         [SerializeField] private int _textInputFieldFontSize = 18;
-        [TextArea] [SerializeField] private string _greeting;
+        [TextArea] [SerializeField] private string _greeting = "MisterGames Debug Console";
 
         [Header("Inputs")]
         [SerializeField] private InputActionKey _activationInput;
 
-        public static ConsoleRunner Instance { get; private set; }
+        [SerializeReference] [SubclassSelector] private IConsoleModule[] _consoleModules;
 
         public event Action OnShowConsole = delegate {  };
         public event Action OnHideConsole = delegate {  };
         public event Action<string> OnBeforeRunCommand = delegate {  };
 
-        public Console Console { get; private set; }
         public string CurrentInput => _textInputField.text;
+        internal IReadOnlyList<Command> Commands => _console.Commands;
 
+        private readonly Console _console = new Console();
         private readonly StringBuilder _stringBuilder = new StringBuilder();
 
         private void Awake() {
-            Instance = this;
+            for (int i = 0; i < _consoleModules.Length; i++) {
+                var module = _consoleModules[i];
+                module.ConsoleRunner = this;
 
-            Console = new Console();
-            Console.Initialize();
+                _console.AddModule(module);
+            }
 
             SetTextFieldFontSize(_textFieldFontSize);
             SetTextInputFieldFontSize(_textInputFieldFontSize);
@@ -49,7 +54,8 @@ namespace MisterGames.Dbg.Console.Core {
         private void OnDestroy() {
             ClearConsole();
             HideConsole();
-            Console.DeInitialize();
+
+            _console.ClearModules();
         }
 
         private void OnEnable() {
@@ -71,7 +77,7 @@ namespace MisterGames.Dbg.Console.Core {
             ResetTextInputField();
             AppendLine($"<color=yellow>> {input}</color>");
 
-            Console.Run(input);
+            _console.Run(input);
         }
 
         public void AppendLine(string text) {
@@ -138,6 +144,30 @@ namespace MisterGames.Dbg.Console.Core {
             int toRemoveCount = length - lengthShouldBe;
             _stringBuilder.Remove(0, toRemoveCount);
         }
+
+#if UNITY_EDITOR
+        public void RefreshModules(IReadOnlyList<IConsoleModule> newModules) {
+            var existentConsoleModulesTypeMap = new Dictionary<Type, IConsoleModule>(_consoleModules.Length);
+            for (int i = 0; i < _consoleModules.Length; i++) {
+                var consoleModule = _consoleModules[i];
+                existentConsoleModulesTypeMap.Add(consoleModule.GetType(), consoleModule);
+            }
+
+            var targetConsoleModules = new List<IConsoleModule>();
+
+            for (int i = 0; i < newModules.Count; i++) {
+                var newModule = newModules[i];
+
+                var moduleToAdd = existentConsoleModulesTypeMap.TryGetValue(newModule.GetType(), out var existentModule)
+                    ? existentModule
+                    : newModule;
+
+                targetConsoleModules.Add(moduleToAdd);
+            }
+
+            _consoleModules = targetConsoleModules.ToArray();
+        }
+#endif
     }
     
 }

@@ -53,7 +53,7 @@ namespace MisterGames.Dbg.Console.Plugins {
 
         private void OnHistoryUp() {
             if (_historyPointer == _commandHistory.Count) {
-                _historyCurrentInput = ConsoleRunner.Instance.CurrentInput;
+                _historyCurrentInput = _consoleRunner.CurrentInput;
             }
 
             _historyPointer = Mathf.Max(_historyPointer - 1, 0);
@@ -84,22 +84,20 @@ namespace MisterGames.Dbg.Console.Plugins {
                 ? _historyCurrentInput
                 : _commandHistory[_historyPointer];
 
-            ConsoleRunner.Instance.TypeIn(text);
+            _consoleRunner.TypeIn(text);
         }
 
         private void SubscribeConsoleInput() {
-            var runner = ConsoleRunner.Instance;
-            if (runner == null) return;
+            if (_consoleRunner == null) return;
 
-            runner.OnBeforeRunCommand -= OnBeforeRunCommand;
-            runner.OnBeforeRunCommand += OnBeforeRunCommand;
+            _consoleRunner.OnBeforeRunCommand -= OnBeforeRunCommand;
+            _consoleRunner.OnBeforeRunCommand += OnBeforeRunCommand;
         }
 
         private void UnsubscribeConsoleInput() {
-            var runner = ConsoleRunner.Instance;
-            if (runner == null) return;
+            if (_consoleRunner == null) return;
 
-            runner.OnBeforeRunCommand -= OnBeforeRunCommand;
+            _consoleRunner.OnBeforeRunCommand -= OnBeforeRunCommand;
         }
 
         private void SubscribeShowHideConsole() {

@@ -1,45 +1,28 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
-using MisterGames.Common.Lists;
 using MisterGames.Dbg.Console.Attributes;
 
 namespace MisterGames.Dbg.Console.Core {
 
-    public sealed class Console {
+    internal sealed class Console {
 
-        public Command[] Commands => _commands.ToArray();
+        public IReadOnlyList<Command> Commands => _commands;
         private readonly List<Command> _commands = new List<Command>();
 
-        internal void Initialize() {
-            CollectCommandsInConsoleModules();
+        public void AddModule(IConsoleModule module) {
+            CollectModuleCommands(module);
         }
 
-        internal void DeInitialize() {
+        public void ClearModules() {
             _commands.Clear();
         }
 
-        internal void Run(string input) {
+        public void Run(string input) {
             if (string.IsNullOrEmpty(input)) return;
             if (!TryGetCommand(input, out var command, out object[] args)) return;
 
             command.method.Invoke(command.module, args);
-        }
-
-        private void CollectCommandsInConsoleModules() {
-            var assemblies = AppDomain.CurrentDomain.GetAssemblies();
-            for (int a = 0; a < assemblies.Length; a++) {
-                var assembly = assemblies[a];
-                var types = assembly.GetTypes();
-
-                for (int t = 0; t < types.Length; t++) {
-                    var type = types[t];
-                    if (type.IsAbstract || !type.GetInterfaces().Contains(typeof(IConsoleModule))) continue;
-
-                    var module = (IConsoleModule) Activator.CreateInstance(type);
-                    CollectModuleCommands(module);
-                }
-            }
         }
 
         private void CollectModuleCommands(IConsoleModule module) {
@@ -71,8 +54,8 @@ namespace MisterGames.Dbg.Console.Core {
                 int cmdLength = cmd.Length;
                 if (inputLength < cmdLength) continue;
 
-                string matched = input[..cmdLength];
-                if (cmd != matched) continue;
+                string possibleCommand = input[..cmdLength];
+                if (cmd != possibleCommand || inputLength > cmdLength && input[cmdLength] != ' ') continue;
 
                 string[] argStrings = GetArgs(c, input);
                 int argsLength = argStrings.Length;

@@ -1,18 +1,23 @@
-﻿using MisterGames.Character.Access;
+﻿using System;
+using MisterGames.Character.Access;
 using MisterGames.Character.Spawn;
 using MisterGames.Common.Pooling;
 using MisterGames.Dbg.Console.Attributes;
 using MisterGames.Dbg.Console.Core;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace MisterGames.ConsoleCommandsLib.Modules {
 
+    [Serializable]
     public class HeroConsoleModule : IConsoleModule {
 
         [SerializeField] private GameObject _heroPrefab;
 
         private const string SPAWN_POINT_ZERO_NAME = "World zero";
 
+        public ConsoleRunner ConsoleRunner { get; set; }
+        
         [ConsoleCommand("hero/spawni")]
         [ConsoleCommandHelp("spawn character at spawn point with index as in hero/spawns output")]
         public void SpawnAtPointByIndex(int index) {
@@ -23,7 +28,7 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
 
             int spawnPointIndex = index - 1;
             if (index < 0 || spawnPointIndex >= spawnPoints.Length) {
-                ConsoleRunner.Instance.AppendLine($"Spawn point with index {index} not found. See hero/spawns");
+                ConsoleRunner.AppendLine($"Spawn point with index {index} not found. See hero/spawns");
                 return;
             }
 
@@ -53,7 +58,7 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
             }
 
             if (spawnPoint == null && spawnPointName != SPAWN_POINT_ZERO_NAME) {
-                ConsoleRunner.Instance.AppendLine($"Spawn point {spawnPointName} not found. See hero/spawns");
+                ConsoleRunner.AppendLine($"Spawn point {spawnPointName} is not found. See hero/spawns");
                 return;
             }
 
@@ -68,13 +73,13 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
         [ConsoleCommand("hero/spawns")]
         [ConsoleCommandHelp("print character spawn points in current scene")]
         public void PrintSpawnList() {
-            ConsoleRunner.Instance.AppendLine("Spawn points:");
-            ConsoleRunner.Instance.AppendLine($"[0] {SPAWN_POINT_ZERO_NAME}");
+            ConsoleRunner.AppendLine("Spawn points:");
+            ConsoleRunner.AppendLine($"[0] {SPAWN_POINT_ZERO_NAME}");
 
             var spawnPoints = Object.FindObjectsOfType<CharacterSpawnPoint>();
             for (int i = 0; i < spawnPoints.Length; i++) {
                 var spawn = spawnPoints[i];
-                ConsoleRunner.Instance.AppendLine($"[{i + 1}] {spawn.gameObject.name} : {spawn.transform.position}");
+                ConsoleRunner.AppendLine($"[{i + 1}] {spawn.gameObject.name} : {spawn.transform.position}");
             }
         }
 
@@ -86,12 +91,12 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
             }
 
             if (access == null) {
-                ConsoleRunner.Instance.AppendLine($"Character with {nameof(CharacterAccess)} component not found on the scene and in prefabs.");
+                ConsoleRunner.AppendLine($"Character with {nameof(CharacterAccess)} component not found on the scene and in prefabs.");
                 return;
             }
 
             access.SetPosition(position);
-            ConsoleRunner.Instance.AppendLine($"Character {access.name} was respawned at point [{spawnPointName} :: {position}]");
+            ConsoleRunner.AppendLine($"Character {access.name} was respawned at point [{spawnPointName} :: {position}]");
         }
     }
 

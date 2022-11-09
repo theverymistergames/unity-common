@@ -17,6 +17,8 @@ namespace MisterGames.Common.Editor.Drawers {
             if (GUILayout.Button("Refresh pools")) {
                 var prefabs = GetAllPrefabs(pool.SearchPrefabsInFolders);
                 pool.Refresh(prefabs);
+
+                EditorUtility.SetDirty(pool);
             }
         }
 

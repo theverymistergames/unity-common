@@ -1,43 +1,48 @@
-﻿using System.Reflection;
+﻿using System;
+using System.Linq;
+using System.Reflection;
 using System.Text;
 using MisterGames.Dbg.Console.Attributes;
 using MisterGames.Dbg.Console.Core;
 
 namespace MisterGames.Dbg.Console.Modules {
 
+    [Serializable]
     public class HelpConsoleModule : IConsoleModule {
+
+        public ConsoleRunner ConsoleRunner { get; set; }
 
         [ConsoleCommand("help")]
         [ConsoleCommandHelp("prints all commands help")]
         public void PrintAllCommandsHelp() {
-            var commands = ConsoleRunner.Instance.Console.Commands;
-            ConsoleRunner.Instance.AppendLine("Commands:");
+            var commands = ConsoleRunner.Commands.OrderBy(c => c.cmd).ToArray();
 
+            ConsoleRunner.AppendLine("Commands:");
             for (int i = 0; i < commands.Length; i++) {
                 string help = GetHelpText(commands[i]);
-                ConsoleRunner.Instance.AppendLine($" - {help}");
+                ConsoleRunner.AppendLine($" - {help}");
             }
         }
 
         [ConsoleCommand("help")]
         [ConsoleCommandHelp("prints command help")]
         public void PrintCommandHelp(string cmd) {
-            var commands = ConsoleRunner.Instance.Console.Commands;
+            var commands = ConsoleRunner.Commands;
             cmd = cmd.ToLower();
 
             bool foundAtLeastOneCommand = false;
 
-            for (int i = 0; i < commands.Length; i++) {
+            for (int i = 0; i < commands.Count; i++) {
                 var command = commands[i];
                 if (command.cmd != cmd) continue;
 
                 string help = GetHelpText(commands[i]);
-                ConsoleRunner.Instance.AppendLine($" - {help}");
+                ConsoleRunner.AppendLine($" - {help}");
                 foundAtLeastOneCommand = true;
             }
 
             if (!foundAtLeastOneCommand) {
-                ConsoleRunner.Instance.AppendLine($"Command {cmd} is not found. Type help to see list of all commands.");
+                ConsoleRunner.AppendLine($"Command {cmd} is not found. Type help to see list of all commands.");
             }
         }
 
@@ -71,9 +76,7 @@ namespace MisterGames.Dbg.Console.Modules {
             var parameters = methodInfo.GetParameters();
             for (int i = 0; i < parameters.Length; i++) {
                 var parameter = parameters[i];
-                var type = parameter.GetType();
-
-                sb.Append($"<{type.Name}> ");
+                sb.Append($"[{parameter.ParameterType.Name}] ");
             }
 
             return sb.ToString().Trim();

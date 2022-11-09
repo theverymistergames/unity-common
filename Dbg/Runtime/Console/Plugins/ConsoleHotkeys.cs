@@ -7,6 +7,7 @@ namespace MisterGames.Dbg.Console.Plugins {
 
     public class ConsoleHotkeys : MonoBehaviour {
 
+        [SerializeField] private ConsoleRunner _consoleRunner;
         [SerializeField] private ConsoleHotkey[] _hotkeys;
 
         private HotkeyHandler[] _hotkeyHandlers;
@@ -20,7 +21,7 @@ namespace MisterGames.Dbg.Console.Plugins {
         private void Awake() {
             _hotkeyHandlers = new HotkeyHandler[_hotkeys.Length];
             for (int i = 0; i < _hotkeys.Length; i++) {
-                _hotkeyHandlers[i] = new HotkeyHandler(_hotkeys[i]);
+                _hotkeyHandlers[i] = new HotkeyHandler(_hotkeys[i], _consoleRunner);
             }
         }
 
@@ -39,9 +40,11 @@ namespace MisterGames.Dbg.Console.Plugins {
         private class HotkeyHandler {
 
             private readonly ConsoleHotkey _hotkey;
+            private readonly ConsoleRunner _consoleRunner;
 
-            public HotkeyHandler(ConsoleHotkey hotkey) {
+            public HotkeyHandler(ConsoleHotkey hotkey, ConsoleRunner consoleRunner) {
                 _hotkey = hotkey;
+                _consoleRunner = consoleRunner;
             }
 
             public void SubscribeOnInput() {
@@ -54,7 +57,7 @@ namespace MisterGames.Dbg.Console.Plugins {
             }
 
             private void OnUseHotkey() {
-                ConsoleRunner.Instance.RunCommand(_hotkey.command);
+                _consoleRunner.RunCommand(_hotkey.command);
             }
         }
 

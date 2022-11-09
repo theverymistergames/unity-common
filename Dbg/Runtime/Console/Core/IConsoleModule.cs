@@ -1,5 +1,9 @@
 ﻿namespace MisterGames.Dbg.Console.Core {
 
-    public interface IConsoleModule { }
+    public interface IConsoleModule {
+
+        ConsoleRunner ConsoleRunner { get; set; }
+
+    }
 
 }
