@@ -33,6 +33,8 @@ namespace MisterGames.Dbg.Console.Core {
 
         private readonly Console _console = new Console();
         private readonly StringBuilder _stringBuilder = new StringBuilder();
+        private CursorLockMode _lastCursorLockMode;
+        private bool _lastCursorVisibility;
 
         private void Awake() {
             for (int i = 0; i < _consoleModules.Length; i++) {
@@ -110,6 +112,12 @@ namespace MisterGames.Dbg.Console.Core {
         }
 
         private void ShowConsole() {
+            _lastCursorLockMode = Cursor.lockState;
+            _lastCursorVisibility = Cursor.visible;
+
+            Cursor.visible = true;
+            Cursor.lockState = CursorLockMode.None;
+
             _canvas.SetActive(true);
             ResetTextInputField();
             
@@ -123,6 +131,9 @@ namespace MisterGames.Dbg.Console.Core {
             _canvas.SetActive(false);
             
             _textInputField.onSubmit.RemoveListener(RunCommand);
+
+            Cursor.visible = _lastCursorVisibility;
+            Cursor.lockState = _lastCursorLockMode;
 
             OnHideConsole.Invoke();
         }
@@ -150,6 +161,8 @@ namespace MisterGames.Dbg.Console.Core {
             var existentConsoleModulesTypeMap = new Dictionary<Type, IConsoleModule>(_consoleModules.Length);
             for (int i = 0; i < _consoleModules.Length; i++) {
                 var consoleModule = _consoleModules[i];
+                if (consoleModule == null) continue;
+
                 existentConsoleModulesTypeMap.Add(consoleModule.GetType(), consoleModule);
             }
 
