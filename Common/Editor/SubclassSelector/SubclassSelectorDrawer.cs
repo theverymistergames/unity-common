@@ -25,22 +25,22 @@ namespace MisterGames.Common.Editor.SubclassSelector {
 		public override void OnGUI(Rect position,SerializedProperty property, GUIContent label) {
 			EditorGUI.BeginProperty(position, label, property);
 
-			if (property.propertyType == SerializedPropertyType.ManagedReference) {
+			if (property.propertyType != SerializedPropertyType.ManagedReference) {
+				EditorGUI.LabelField(position, label, IsNotManagedReferenceLabel);
+			}
+			else {
 				var popupPosition = new Rect(position);
 				popupPosition.width -= EditorGUIUtility.labelWidth;
 				popupPosition.x += EditorGUIUtility.labelWidth;
 				popupPosition.height = EditorGUIUtility.singleLineHeight;
 
-				if (EditorGUI.DropdownButton(popupPosition,GetTypeName(property), FocusType.Keyboard)) {
+				if (EditorGUI.DropdownButton(popupPosition, GetTypeNameLabel(property), FocusType.Keyboard)) {
 					var popup = GetTypePopup(property);
 					_targetProperty = property;
 					popup.Show(popupPosition);
 				}
 
 				EditorGUI.PropertyField(position, property, label, true);
-			} 
-			else {
-				EditorGUI.LabelField(position, label, IsNotManagedReferenceLabel);
 			}
 
 			EditorGUI.EndProperty();
@@ -69,8 +69,8 @@ namespace MisterGames.Common.Editor.SubclassSelector {
 			var popup = new AdvancedTypePopup(types, MaxTypePopupLineCount, state);
 			
 			popup.OnItemSelected += item => {
-				var type = item.Type;
-				object obj = _targetProperty.SetManagedReference(type);
+				var type = item.type;
+				object obj = SubclassSelectorUtils.SetManagedReference(_targetProperty, type);
 				_targetProperty.isExpanded = (obj != null);
 				_targetProperty.serializedObject.ApplyModifiedProperties();
 				_targetProperty.serializedObject.Update();
@@ -81,7 +81,7 @@ namespace MisterGames.Common.Editor.SubclassSelector {
 			return result;
 		}
 
-		private GUIContent GetTypeName(SerializedProperty property) 
+		private GUIContent GetTypeNameLabel(SerializedProperty property)
 		{
 			string managedReferenceFullTypename = property.managedReferenceFullTypename;
 			if (string.IsNullOrEmpty(managedReferenceFullTypename)) {
@@ -93,24 +93,9 @@ namespace MisterGames.Common.Editor.SubclassSelector {
 			}
 
 			var type = SubclassSelectorUtils.GetType(managedReferenceFullTypename);
-			string typeName = null;
-
-			var typeMenu = SubclassSelectorUtils.GetAttribute(type);
-			if (typeMenu != null) {
-				typeName = typeMenu.GetTypeNameWithoutPath();
-				
-				if (!string.IsNullOrWhiteSpace(typeName)) 
-				{
-					typeName = ObjectNames.NicifyVariableName(typeName);
-				}
-			}
-
-			if (string.IsNullOrWhiteSpace(typeName)) {
-				typeName = ObjectNames.NicifyVariableName(type.Name);
-			}
-
-			var result = new GUIContent(typeName);
+			var result = new GUIContent(type.Name);
 			_typeNameCaches.Add(managedReferenceFullTypename, result);
+
 			return result;
 		}
 

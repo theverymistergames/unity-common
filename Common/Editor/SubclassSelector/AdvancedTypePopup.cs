@@ -6,39 +6,37 @@ using UnityEditor.IMGUI.Controls;
 using UnityEngine;
 
 namespace MisterGames.Common.Editor.SubclassSelector {
-	
-	public class AdvancedTypePopupItem : AdvancedDropdownItem {
-		
-		public Type Type { get; }
-
-		public AdvancedTypePopupItem(Type type, string name) : base(name) {
-			Type = type;
-		}
-	}
 
 	public class AdvancedTypePopup : AdvancedDropdown {
-		
-		public event Action<AdvancedTypePopupItem> OnItemSelected = delegate {  };
+
+		public event Action<Item> OnItemSelected = delegate {  };
 		
 		private const int MaxNamespaceNestCount = 16;
 		private static readonly float HeaderHeight = EditorGUIUtility.singleLineHeight * 2f;
+		private readonly IEnumerable<Type> _types;
 
-		private readonly Type[] _types;
-		
-		public AdvancedTypePopup(IEnumerable<Type> types, int maxLineCount, AdvancedDropdownState state) : base(state) {
-			_types = types.ToArray();
+		public class Item : AdvancedDropdownItem {
+			public readonly Type type;
+
+			public Item(Type type, string name) : base(name) {
+				this.type = type;
+			}
+		}
+
+		public AdvancedTypePopup(IEnumerable<Type> types, int maxLineCount, AdvancedDropdownState  state) : base(state) {
+			_types = types;
 			minimumSize = new Vector2(minimumSize.x, EditorGUIUtility.singleLineHeight * maxLineCount + HeaderHeight);
 		}
 
 		protected override AdvancedDropdownItem BuildRoot() {
 			var root = new AdvancedDropdownItem("Select Type");
-			AddTo(root,_types);
+			AddTo(root, _types);
 			return root;
 		}
 
 		protected override void ItemSelected(AdvancedDropdownItem item) {
 			base.ItemSelected(item);
-			if (item is AdvancedTypePopupItem typePopupItem) {
+			if (item is Item typePopupItem) {
 				OnItemSelected.Invoke(typePopupItem);
 			}
 		}
@@ -46,32 +44,28 @@ namespace MisterGames.Common.Editor.SubclassSelector {
 		private static void AddTo(AdvancedDropdownItem root, IEnumerable<Type> types) {
 			int itemCount = 0;
 
-			var nullItem = new AdvancedTypePopupItem(null, SubclassSelectorUtils.NullDisplayName) { id = itemCount++ };
+			var nullItem = new Item(null, SubclassSelectorUtils.NullDisplayName) { id = itemCount++ };
 			root.AddChild(nullItem);
 
-			var typeArray = SubclassSelectorUtils.OrderByType(types).ToArray();
+			var typeArray = types.OrderBy(t => t.Name).ToArray();
 
 			bool isSingleNamespace = true;
 			string[] namespaces = new string[MaxNamespaceNestCount];
-			
+
 			foreach (var type in typeArray) {
 				string[] splittedTypePath = SubclassSelectorUtils.GetSplittedTypePath(type);
-				if (splittedTypePath.Length <= 1) {
-					continue;
-				}
-				
+				if (splittedTypePath.Length <= 1) continue;
+
 				for (int k = 0; splittedTypePath.Length - 1 > k; k++) {
 					string ns = namespaces[k];
-					
+
 					if (ns == null) {
 						namespaces[k] = splittedTypePath[k];
 						continue;
 					}
 
-					if (ns == splittedTypePath[k]) {
-						continue;
-					}
-					
+					if (ns == splittedTypePath[k]) continue;
+
 					isSingleNamespace = false;
 					break;
 				}
@@ -99,18 +93,15 @@ namespace MisterGames.Common.Editor.SubclassSelector {
 				}
 
 				string path = splittedTypePath[splittedTypePath.Length - 1];
-				var item = new AdvancedTypePopupItem(type, ObjectNames.NicifyVariableName(path)) { id = itemCount++ };
+				var item = new Item(type, path) { id = itemCount++ };
 				parent.AddChild(item);
 			}
 		}
 
 		private static AdvancedDropdownItem GetItem(AdvancedDropdownItem parent, string name) {
 			foreach (var item in parent.children) {
-				if (item.name == name) {
-					return item;
-				}
+				if (item.name == name) return item;
 			}
-			
 			return null;
 		}
 	}
