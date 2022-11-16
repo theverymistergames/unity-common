@@ -1,4 +1,5 @@
-﻿using MisterGames.Common.Attributes;
+﻿using System;
+using MisterGames.Common.Attributes;
 using UnityEditor;
 using UnityEngine;
 
@@ -12,7 +13,15 @@ namespace MisterGames.Common.Editor.Drawers {
         }
  
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
-            using (new EditorGUI.DisabledGroupScope(true)) {
+            var readOnlyAttribute = (ReadOnlyAttribute) attribute;
+
+            bool disableGui = readOnlyAttribute.mode switch {
+                ReadOnlyMode.Always => true,
+                ReadOnlyMode.PlayModeOnly => Application.isPlaying,
+                _ => throw new NotImplementedException($"Read only mode {readOnlyAttribute.mode} is not supported for ReadOnly editor.")
+            };
+
+            using (new EditorGUI.DisabledGroupScope(disableGui)) {
                 EditorGUI.PropertyField(position, property, label, true);
             }
         }
