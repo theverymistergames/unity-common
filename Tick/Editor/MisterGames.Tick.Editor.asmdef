@@ -1,0 +1,18 @@
+{
+    "name": "MisterGames.Tick.Editor",
+    "rootNamespace": "MisterGames.Tick.Editor",
+    "references": [
+        "GUID:b887f5744765cba4b9c25a5554ce71b3"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
