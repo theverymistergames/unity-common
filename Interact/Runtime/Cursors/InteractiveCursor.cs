@@ -1,8 +1,8 @@
-﻿using MisterGames.Common.Collisions.Core;
+﻿using MisterGames.Collisions.Core;
 using MisterGames.Common.Maths;
-using MisterGames.Common.Routines;
 using MisterGames.Dbg.Draw;
 using MisterGames.Interact.Core;
+using MisterGames.Tick.Core;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -39,11 +39,11 @@ namespace MisterGames.Interact.Cursors {
             _interactiveUser.OnInteractiveDetected += OnInteractiveDetected;
             _interactiveUser.OnInteractiveLost += OnInteractiveLost;
 
-            _timeDomain.SubscribeUpdate(this);
+            _timeDomain.Source.Subscribe(this);
         }
 
         private void OnDisable() {
-            _timeDomain.UnsubscribeUpdate(this);
+            _timeDomain.Source.Unsubscribe(this);
 
             _interactiveUser.OnInteractiveDetected -= OnInteractiveDetected;
             _interactiveUser.OnInteractiveLost -= OnInteractiveLost;

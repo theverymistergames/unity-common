@@ -1,6 +1,6 @@
 ﻿using System;
 using MisterGames.Common.Maths;
-using MisterGames.Common.Routines;
+using MisterGames.Tick.Core;
 using UnityEngine;
 
 namespace MisterGames.Interact.Objects {
@@ -66,25 +66,25 @@ namespace MisterGames.Interact.Objects {
             _grab.OnGrab += OnGrab;
             _grab.OnStartGrab += OnStartGrab;
             _grab.OnStopGrab += OnStopGrab;
-            _timeDomain.SubscribeUpdate(this);
+            _timeDomain.Source.Subscribe(this);
         }
 
         private void OnDisable() {
             _grab.OnGrab -= OnGrab;
             _grab.OnStartGrab -= OnStartGrab;
             _grab.OnStopGrab -= OnStopGrab;
-            _timeDomain.UnsubscribeUpdate(this);
+            _timeDomain.Source.Unsubscribe(this);
         }
 
         void IUpdate.OnUpdate(float dt) {
             if (_isOpenCloseInvalid || _isGrabbing) return;
 
             var prevPosition = _transform.position;
-            ConsumeIntertia();
-            if (_isSnapping) ApplySnap();
+            ConsumeIntertia(dt);
+            if (_isSnapping) ApplySnap(dt);
 
             ApplyPosition();
-            ProcessEvents(prevPosition, _targetPosition);
+            ProcessEvents(prevPosition, _targetPosition, dt);
         }
 
         private void ApplyPosition() {
@@ -95,7 +95,7 @@ namespace MisterGames.Interact.Objects {
             var prevPosition = _transform.position;
             ConsumeGrab(to - from);
             ApplyPosition();
-            ProcessEvents(prevPosition, _targetPosition);
+            ProcessEvents(prevPosition, _targetPosition, _timeDomain.Source.DeltaTime);
         }
 
         private void OnStartGrab() {
@@ -106,7 +106,7 @@ namespace MisterGames.Interact.Objects {
         private void OnStopGrab() {
             _isGrabbing = false;
 
-            _intertiaMagnitude = Math.Min(_config.maxSpeed, _intertiaVector.magnitude / _timeDomain.DeltaTime);
+            _intertiaMagnitude = Math.Min(_config.maxSpeed, _intertiaVector.magnitude / _timeDomain.Source.DeltaTime);
 
             float prevTargetToClosedSqrMag = (_targetPosition - _intertiaVector - _positionClosed).sqrMagnitude;
             float targetToClosedSqrMag = (_targetPosition - _positionClosed).sqrMagnitude;
@@ -116,9 +116,9 @@ namespace MisterGames.Interact.Objects {
                 : targetToClosedSqrMag < prevTargetToClosedSqrMag ? -1f : 1f;
         }
         
-        private void ProcessEvents(Vector3 prevPosition, Vector3 position) {
+        private void ProcessEvents(Vector3 prevPosition, Vector3 position, float dt) {
             var positionDiff = position - prevPosition;
-            var velocity = positionDiff / _timeDomain.DeltaTime;
+            var velocity = positionDiff / dt;
             
             if (velocity.sqrMagnitude < _minSpeedSqr) return;
 
@@ -142,18 +142,18 @@ namespace MisterGames.Interact.Objects {
             _intertiaVector = _targetPosition - _transform.position;
         }
 
-        private void ConsumeIntertia() {
+        private void ConsumeIntertia(float dt) {
             if (_intertiaMagnitude <= 0f) return;
             
             var currentPosition = _transform.position;
             float closedToCurrentDistance = (_positionClosed - currentPosition).magnitude;
             
             float currentProcess = closedToCurrentDistance / _openCloseDistance;
-            float processDiff = _intertiaDirection * _intertiaMagnitude / _openCloseDistance * _timeDomain.DeltaTime;
+            float processDiff = _intertiaDirection * _intertiaMagnitude / _openCloseDistance * dt;
             float targetProcess = Mathf.Clamp01(currentProcess + processDiff);
             
             _targetPosition = Vector3.Lerp(_positionClosed, _positionOpened, targetProcess);
-            _intertiaMagnitude -= _timeDomain.DeltaTime * _config.friction;
+            _intertiaMagnitude -= dt * _config.friction;
 
             if (_intertiaMagnitude <= _config.snapIfSpeedBelow) {
                 if (targetProcess <= _config.snapToClosedAtProcess) {
@@ -186,9 +186,9 @@ namespace MisterGames.Interact.Objects {
             _snapDistance = (_targetSnapPosition - _startSnapPosition).magnitude;
         }
 
-        private void ApplySnap() {
+        private void ApplySnap(float dt) {
             float currentProcess = (_targetPosition - _startSnapPosition).magnitude / _snapDistance;
-            float targetProcess = Mathf.Clamp01(currentProcess + _timeDomain.DeltaTime * _config.snapSpeed / _snapDistance);
+            float targetProcess = Mathf.Clamp01(currentProcess + dt * _config.snapSpeed / _snapDistance);
 
             _targetPosition = Vector3.Lerp(_startSnapPosition, _targetSnapPosition, targetProcess);
 

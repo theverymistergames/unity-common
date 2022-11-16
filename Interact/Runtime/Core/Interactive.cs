@@ -1,6 +1,6 @@
 ﻿using System;
 using MisterGames.Common.Maths;
-using MisterGames.Common.Routines;
+using MisterGames.Tick.Core;
 using UnityEngine;
 
 namespace MisterGames.Interact.Core {
@@ -33,7 +33,7 @@ namespace MisterGames.Interact.Core {
         }
 
         private void OnDisable() {
-            _timeDomain.UnsubscribeUpdate(this);
+            _timeDomain.Source.Unsubscribe(this);
         }
 
         void IUpdate.OnUpdate(float dt) {
@@ -72,7 +72,7 @@ namespace MisterGames.Interact.Core {
             }
 
             _strategy.filter.Apply();
-            _timeDomain.SubscribeUpdate(this);
+            _timeDomain.Source.Subscribe(this);
 
             OnStartInteract.Invoke(_interactiveUser);
         }
@@ -80,7 +80,7 @@ namespace MisterGames.Interact.Core {
         public void StopInteractByUser(InteractiveUser user) {
             if (!IsInteracting || user != _interactiveUser) return;
 
-            _timeDomain.UnsubscribeUpdate(this);
+            _timeDomain.Source.Unsubscribe(this);
             _strategy.filter.Release();
             ResetInteractionUser();
 

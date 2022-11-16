@@ -1,6 +1,6 @@
 ﻿using System;
 using MisterGames.Common.Maths;
-using MisterGames.Common.Routines;
+using MisterGames.Tick.Core;
 using MisterGames.Input.Actions;
 using MisterGames.Interact.Core;
 using UnityEngine;
@@ -10,7 +10,7 @@ namespace MisterGames.Interact.Objects {
     [RequireComponent(typeof(Interactive))]
     public sealed class InteractiveGrab : MonoBehaviour, IUpdate {
 
-        [SerializeField] private TimeDomain _timeDomain; 
+        [SerializeField] private TimeDomain _timeDomain;
         
         [Header("Input")]
         [SerializeField] private InputActionVector2 _inputAxis;
@@ -46,13 +46,13 @@ namespace MisterGames.Interact.Objects {
         private void OnEnable() {
             _interactive.OnStartInteract += OnStartInteract;
             _interactive.OnStopInteract += OnStopInteract;
-            _timeDomain.SubscribeUpdate(this);
+            _timeDomain.Source.Subscribe(this);
         }
 
         private void OnDisable() {
             _interactive.OnStartInteract -= OnStartInteract;
             _interactive.OnStopInteract -= OnStopInteract;
-            _timeDomain.UnsubscribeUpdate(this);
+            _timeDomain.Source.Unsubscribe(this);
         }
 
         void IUpdate.OnUpdate(float dt) {

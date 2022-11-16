@@ -1,8 +1,8 @@
 ﻿using System;
-using MisterGames.Common.Collisions.Core;
-using MisterGames.Common.Collisions.Utils;
-using MisterGames.Common.Routines;
+using MisterGames.Collisions.Core;
+using MisterGames.Collisions.Utils;
 using MisterGames.Dbg.Draw;
+using MisterGames.Tick.Core;
 using UnityEngine;
 
 namespace MisterGames.Interact.Core {
@@ -23,11 +23,11 @@ namespace MisterGames.Interact.Core {
         private bool _hasPossibleInteractive;
 
         private void OnEnable() {
-            _timeDomain.SubscribeUpdate(this);
+            _timeDomain.Source.Subscribe(this);
         }
 
         private void OnDisable() {
-            _timeDomain.UnsubscribeUpdate(this);
+            _timeDomain.Source.Unsubscribe(this);
         }
 
         public bool IsDetectedTarget(Interactive interactive) {
