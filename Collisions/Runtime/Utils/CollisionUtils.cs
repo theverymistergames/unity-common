@@ -28,10 +28,6 @@ namespace MisterGames.Collisions.Utils {
                 lastInfo.hasContact && lastInfo.transform.GetHashCode() != newInfo.transform.GetHashCode();
         }
 
-        public static bool Contains(this LayerMask mask, int layer) {
-            return mask == (mask | (1 << layer));
-        }
-
         public static IList<RaycastHit> RemoveInvalidHits(
             this IList<RaycastHit> hits,
             int hitCount,
