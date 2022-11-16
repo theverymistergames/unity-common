@@ -1,0 +1,17 @@
+{
+    "name": "MisterGames.Collisions",
+    "rootNamespace": "MisterGames.Collisions",
+    "references": [
+        "GUID:b887f5744765cba4b9c25a5554ce71b3",
+        "GUID:0175294ec022c624cbe537915e3c9e71"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
