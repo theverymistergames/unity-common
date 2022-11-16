@@ -1,4 +1,4 @@
-﻿using MisterGames.Common.Routines;
+﻿using MisterGames.Tick.Core;
 using MisterGames.Input.Global;
 using UnityEngine;
 
@@ -22,13 +22,13 @@ namespace MisterGames.Input.Core {
         private void OnEnable() {
             GlobalInput.Enable();
             _inputChannel.Activate();
-            _timeDomain.SubscribeUpdate(this);
+            _timeDomain.Source.Subscribe(this);
         }
 
         private void OnDisable() {
             GlobalInput.Disable();
             _inputChannel.Deactivate();
-            _timeDomain.UnsubscribeUpdate(this);    
+            _timeDomain.Source.Unsubscribe(this);
         }
 
         void IUpdate.OnUpdate(float dt) {
