@@ -1,30 +1,32 @@
-﻿using MisterGames.Common.Collisions;
-using MisterGames.Common.Collisions.Utils;
-using MisterGames.Common.Routines;
+﻿using MisterGames.Common.Layers;
+using MisterGames.Scenes.Core;
+using MisterGames.Tick.Core;
+using MisterGames.Tick.Jobs;
+using MisterGames.Tick.Utils;
 using UnityEngine;
 
-namespace MisterGames.Scenes.Core {
+namespace MisterGames.Scenes.Transactions {
 
-    public sealed class LoadSceneOnTrigger : MonoBehaviour {
+    public sealed class SceneTransactionTrigger : MonoBehaviour {
 
         [SerializeField] private TimeDomain _timeDomain;
-        [SerializeField] private SceneReference _scene;
         [SerializeField] private LayerMask _layerMask;
-        
+
         [SerializeField] [Min(0f)] private float _ignoreTriggerAfterSceneStartDelay = 1f;
         [SerializeField] [Min(0f)] private float _loadDelay = 0f;
 
-        private readonly SingleJobHandler _handler = new SingleJobHandler();
-        private IAsyncTaskReadOnly _currentLoading;
+        [SerializeField] private SceneTransactions _sceneTransactions;
+
+        private IJob _loadSceneJob;
         private float _startTime;
         private bool _exitedOnce;
 
         private void OnDestroy() {
-            _handler.Stop();
+            _loadSceneJob?.Stop();
         }
 
         private void OnDisable() {
-            _handler.Stop();
+            _loadSceneJob?.Stop();
         }
 
         private void Start() {
@@ -46,18 +48,12 @@ namespace MisterGames.Scenes.Core {
         }
 
         private void StartLoad() {
-            Jobs.Do(_timeDomain.Delay(_loadDelay))
-                .Then(Load)
-                .Then(_timeDomain.EachFrameWhile(IsLoading))
-                .StartFrom(_handler);
-        }
-        
-        private void Load() {
-            _currentLoading = SceneLoader.LoadScene(_scene.scene);
-        }
+            _loadSceneJob?.Stop();
 
-        private bool IsLoading() {
-            return _currentLoading is { IsDone: false };
+            _loadSceneJob = JobSequence.Create()
+                .Delay(_loadDelay)
+                .WaitCompletion(SceneLoader.Instance.CommitTransaction(_sceneTransactions))
+                .StartFrom(_timeDomain.Source);
         }
 
         private bool CanTriggerByFilter(GameObject go) {

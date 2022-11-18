@@ -1,5 +1,9 @@
-﻿using MisterGames.Common.Lists;
-using MisterGames.Common.Routines;
+﻿using System;
+using System.Collections.Generic;
+using MisterGames.Scenes.Transactions;
+using MisterGames.Tick.Core;
+using MisterGames.Tick.Jobs;
+using MisterGames.Tick.Utils;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -7,89 +11,151 @@ namespace MisterGames.Scenes.Core {
     
     public class SceneLoader : MonoBehaviour {
 
-        public static IAsyncTaskReadOnly CurrentLoading => Instance._task;
-        private static SceneLoader Instance;
+        [SerializeField] private TimeDomain _timeDomain;
 
-        private Scene _pendingActiveScene;
-        private string _requestedActiveSceneName;
-        private readonly AsyncTask _task = new AsyncTask();
+        public static SceneLoader Instance { get; private set; }
 
-        public static IAsyncTaskReadOnly LoadScene(string sceneName, bool makeActive = true) {
-            return Instance.LoadSceneAdditive(sceneName, makeActive);
+        public IJobReadOnly TotalLoading => _totalLoadingJobs;
+
+        private readonly JobObserver _totalLoadingJobs = new JobObserver();
+        private readonly Dictionary<string, Scene> _loadedScenes = new Dictionary<string, Scene>();
+        private readonly Dictionary<string, LoadingJob> _sceneLoadingJobMap = new Dictionary<string, LoadingJob>();
+
+        private struct LoadingJob {
+            public IJob job;
+            public SceneTransactionType transactionType;
         }
-        
+
+        private enum SceneTransactionType {
+            Load,
+            Unload,
+        }
+
         private void Awake() {
+            ValidateFirstLoadedScene();
+
             Instance = this;
             
             SceneManager.sceneLoaded -= OnSceneLoaded;
             SceneManager.sceneLoaded += OnSceneLoaded;
 
-            LoadSceneAdditive(ScenesStorage.Instance.SceneStart, true);
+            SceneManager.sceneUnloaded -= OnSceneUnloaded;
+            SceneManager.sceneUnloaded += OnSceneUnloaded;
+
+            var rootScene = SceneManager.GetActiveScene();
+            _loadedScenes[rootScene.name] = rootScene;
+
+            LoadScene(ScenesStorage.Instance.SceneStart, true);
         }
 
         private void OnDestroy() {
             SceneManager.sceneLoaded -= OnSceneLoaded;
+            SceneManager.sceneUnloaded -= OnSceneUnloaded;
+
+            _loadedScenes.Clear();
+
+            _totalLoadingJobs.StopAll();
+            _totalLoadingJobs.Clear();
         }
 
-        private IAsyncTaskReadOnly LoadSceneAdditive(string sceneName, bool makeActive) {
-            var loadedScenes = GetLoadedScenes();
-            if (loadedScenes.Contains(sceneName)) return AsyncTask.Done;
+        public IJobReadOnly CommitTransaction(ISceneTransaction transaction) {
+            return transaction.Perform(this);
+        }
 
-            var task = new AsyncTask();
+        public IJobReadOnly LoadScene(string sceneName, bool makeActive = false) {
             string rootScene = ScenesStorage.Instance.SceneRoot;
-            
-            for (int i = 0; i < loadedScenes.Length; i++) {
-                string loadedScene = loadedScenes[i];
-                if (loadedScene == rootScene || loadedScene == sceneName) continue;
-
-                var unloadOperation = SceneManager.UnloadSceneAsync(loadedScene);
-                task.Add(unloadOperation);
+            if (sceneName == rootScene) {
+                Debug.LogWarning($"Trying to load root scene {rootScene}, it is not allowed.");
+                return Jobs.Completed;
             }
-            
-            var loadOperation = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
-            task.Add(loadOperation);
 
-            if (makeActive) {
-                RequestActiveScene(sceneName);
+            if (_loadedScenes.TryGetValue(sceneName, out var scene)) {
+                if (_sceneLoadingJobMap.TryGetValue(sceneName, out var invalidLoadingJob)) {
+                    invalidLoadingJob.job.Stop();
+                    _sceneLoadingJobMap.Remove(sceneName);
+                }
+
+                if (makeActive) SceneManager.SetActiveScene(scene);
+                return Jobs.Completed;
             }
-            
-            return task;
+
+            if (_sceneLoadingJobMap.TryGetValue(sceneName, out var loadingJob)) {
+                if (loadingJob.transactionType == SceneTransactionType.Load) return loadingJob.job;
+
+                loadingJob.job.Stop();
+                _sceneLoadingJobMap.Remove(sceneName);
+            }
+
+            var job = JobSequence.Create()
+                .WaitCompletion(SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive).AsReadOnlyJob())
+                .Action(() => {
+                    if (makeActive) SceneManager.SetActiveScene(_loadedScenes[sceneName]);
+                    _sceneLoadingJobMap.Remove(sceneName);
+                });
+
+            _sceneLoadingJobMap[sceneName] = new LoadingJob {
+                job = job,
+                transactionType = SceneTransactionType.Load,
+            };
+
+            return job
+                .StartFrom(_timeDomain.Source)
+                .ObserveBy(_totalLoadingJobs);
+        }
+
+        public IJobReadOnly UnloadScene(string sceneName) {
+            string rootScene = ScenesStorage.Instance.SceneRoot;
+            if (sceneName == rootScene) {
+                Debug.LogWarning($"Trying to unload root scene {rootScene}, it is not allowed.");
+                return Jobs.Completed;
+            }
+
+            if (!_loadedScenes.TryGetValue(sceneName, out var scene)) {
+                if (_sceneLoadingJobMap.TryGetValue(sceneName, out var invalidLoadingJob)) {
+                    invalidLoadingJob.job.Stop();
+                    _sceneLoadingJobMap.Remove(sceneName);
+                }
+
+                return Jobs.Completed;
+            }
+
+            if (_sceneLoadingJobMap.TryGetValue(sceneName, out var loadingJob)) {
+                if (loadingJob.transactionType == SceneTransactionType.Unload) return loadingJob.job;
+
+                loadingJob.job.Stop();
+                _sceneLoadingJobMap.Remove(sceneName);
+            }
+
+            var job = JobSequence.Create()
+                .WaitCompletion(SceneManager.UnloadSceneAsync(scene).AsReadOnlyJob())
+                .Action(() => _sceneLoadingJobMap.Remove(sceneName));
+
+            _sceneLoadingJobMap[sceneName] = new LoadingJob {
+                job = job,
+                transactionType = SceneTransactionType.Unload,
+            };
+
+            return job
+                .StartFrom(_timeDomain.Source)
+                .ObserveBy(_totalLoadingJobs);
         }
 
         private void OnSceneLoaded(Scene scene, LoadSceneMode mode) {
-            CheckSetRequestedActiveScene(scene);
+            _loadedScenes[scene.name] = scene;
         }
 
-        private void RequestActiveScene(string sceneName) {
-            if (SceneManager.GetActiveScene().name == sceneName) {
-                return;
-            }
-            
-            _requestedActiveSceneName = sceneName;
+        private void OnSceneUnloaded(Scene scene) {
+            _loadedScenes.Remove(scene.name);
         }
 
-        private void CheckSetRequestedActiveScene(Scene scene) {
-            if (scene.name != _requestedActiveSceneName) {
-                return;
-            }
-            
-            if (SceneManager.GetActiveScene().name == scene.name) {
-                return;
-            }
-            
-            SceneManager.SetActiveScene(scene);
-        }
+        private static void ValidateFirstLoadedScene() {
+            string firstScene = SceneManager.GetActiveScene().name;
+            string rootScene = ScenesStorage.Instance.SceneRoot;
 
-        private static string[] GetLoadedScenes() {
-            int sceneCount = SceneManager.sceneCount;
-            var result = new string[sceneCount];
-            
-            for (int i = 0; i < sceneCount; i++) {
-                var scene = SceneManager.GetSceneAt(i);
-                result[i] = scene.name;
+            if (firstScene != rootScene) {
+                Debug.LogWarning($"First loaded scene [{firstScene}] is not root scene [{rootScene}]. " +
+                                 $"Move {nameof(SceneLoader)} prefab to root scene.");
             }
-
-            return result;
         }
     }
     
