@@ -1,7 +1,9 @@
 ﻿using System.Collections.Generic;
 using MisterGames.Blueprints;
 using MisterGames.Blueprints.Core;
-using MisterGames.Common.Routines;
+using MisterGames.Tick.Core;
+using MisterGames.Tick.Jobs;
+using MisterGames.Tick.Utils;
 using UnityEngine;
 
 namespace MisterGames.BlueprintLib {
@@ -14,8 +16,8 @@ namespace MisterGames.BlueprintLib {
         [SerializeField] [Min(1)] private int _times;
         [SerializeField] private bool _isInfinite;
 
-        private readonly SingleJobHandler _handler = new SingleJobHandler();
-        private TimeDomain _timeDomain;
+        private IJob _scheduleJob;
+        private ITimeSource _timeSource;
         
         protected override IReadOnlyList<Port> CreatePorts() => new List<Port> {
             Port.Enter("Start"),
@@ -27,28 +29,27 @@ namespace MisterGames.BlueprintLib {
         };
 
         protected override void OnInit() {
-            _handler.Stop();
-            _timeDomain = runner.TimeDomain;
+            _scheduleJob?.Stop();
         }
 
         protected override void OnTerminate() {
-            _handler.Stop();
+            _scheduleJob?.Stop();
         }
 
         void IBlueprintEnter.Enter(int port) {
             if (port == 0) {
-                _handler.Stop();
+                _scheduleJob?.Stop();
 
                 float startDelay = Read(2, _startDelay);
                 float period = Read(3, _period);
                 int times = Read(4, _times);
                 
-                _handler.Start(GetJob(startDelay, period, times));    
+                _scheduleJob = GetJob(startDelay, period, times).StartFrom(_timeSource);
                 return;
             }
 
             if (port == 1) {
-                _handler.Stop();
+                _scheduleJob?.Stop();
             }
         }
 
@@ -57,15 +58,15 @@ namespace MisterGames.BlueprintLib {
         }
 
         private void Finish() {
-            _handler.Stop();
+            _scheduleJob?.Stop();
         }
-        
+
         private IJob GetJob(float startDelay, float period, int times) {
+            var job = JobSequence.Create().Delay(startDelay);
+
             return _isInfinite
-                ? _timeDomain.Schedule(startDelay, period, Execute)
-                : Jobs
-                    .Do(_timeDomain.ScheduleTimes(startDelay, period, times, Execute))
-                    .Then(Finish);
+                ? job.Schedule(period, Execute)
+                : job.ScheduleTimes(period, times, Execute).Action(Finish);
         }
     }
 

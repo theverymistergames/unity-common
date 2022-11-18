@@ -1,7 +1,9 @@
 ﻿using System.Collections.Generic;
 using MisterGames.Blueprints;
 using MisterGames.Blueprints.Core;
-using MisterGames.Common.Routines;
+using MisterGames.Tick.Core;
+using MisterGames.Tick.Jobs;
+using MisterGames.Tick.Utils;
 using UnityEngine;
 
 namespace MisterGames.BlueprintLib {
@@ -11,8 +13,7 @@ namespace MisterGames.BlueprintLib {
         
         [SerializeField] private float _defaultDuration;
 
-        private readonly SingleJobHandler _handler = new SingleJobHandler();
-        private TimeDomain _timeDomain;
+        private IJob _delayJob;
         
         protected override IReadOnlyList<Port> CreatePorts() => new List<Port> {
             Port.Enter("Start"),
@@ -22,26 +23,29 @@ namespace MisterGames.BlueprintLib {
         };
 
         protected override void OnInit() {
-            _handler.Stop();
-            _timeDomain = runner.TimeDomain;
+            _delayJob?.Stop();
         }
 
         protected override void OnTerminate() {
-            _handler.Stop();
+            _delayJob?.Stop();
         }
 
         void IBlueprintEnter.Enter(int port) {
             if (port == 0) {
+                _delayJob?.Stop();
+
                 float duration = Read(2, _defaultDuration);
-                Jobs.Do(_timeDomain.Delay(duration))
-                    .Then(OnDelayFinished)
-                    .StartFrom(_handler);
+
+                _delayJob = JobSequence.Create()
+                    .Delay(duration)
+                    .Action(OnDelayFinished)
+                    .StartFrom(runner.TimeSource);
 
                 return;
             }
 
             if (port == 1) {
-                _handler.Stop();
+                _delayJob?.Stop();
             }
         }
 
