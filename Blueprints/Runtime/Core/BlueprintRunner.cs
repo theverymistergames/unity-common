@@ -1,6 +1,6 @@
 ﻿using System;
 using MisterGames.Common.Data;
-using MisterGames.Common.Routines;
+using MisterGames.Tick.Core;
 using UnityEngine;
 
 namespace MisterGames.Blueprints.Core {
@@ -18,7 +18,7 @@ namespace MisterGames.Blueprints.Core {
     public sealed class BlueprintRunner : MonoBehaviour, IBlueprintHost {
 
         [SerializeField] private TimeDomain _timeDomain;
-        public TimeDomain TimeDomain => _timeDomain;
+        public ITimeSource TimeSource => _timeDomain.Source;
 
         [SerializeField] private Blueprint _blueprint;
         Blueprint IBlueprintHost.Source => _blueprint;
