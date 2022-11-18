@@ -1,5 +1,7 @@
-﻿using MisterGames.Common.Routines;
+﻿using MisterGames.Tick.Core;
+using MisterGames.Tick.Jobs;
 using MisterGames.Fsm.Core;
+using MisterGames.Tick.Utils;
 using UnityEngine;
 
 namespace MisterGames.Fsm.Basics {
@@ -8,27 +10,29 @@ namespace MisterGames.Fsm.Basics {
         
         [SerializeField] private float _delay;
 
-        private readonly SingleJobHandler _handler = new SingleJobHandler();
-        private TimeDomain _timeDomain;
+        private IJob _delayJob;
+        private ITimeSource _timeSource;
 
         protected override void OnAttach(StateMachineRunner runner) {
-            _timeDomain = runner.TimeDomain;
+            _timeSource = runner.TimeSource;
         }
 
         protected override void OnDetach() {
-            _handler.Stop();
+            _delayJob?.Stop();
         }
 
         protected override void OnEnterSourceState() {
-            Jobs.Do(_timeDomain.Delay(_delay))
-                .Then(Transit)
-                .StartFrom(_handler);
+            _delayJob?.Stop();
+
+            _delayJob = JobSequence.Create()
+                .Delay(_delay)
+                .Action(Transit)
+                .StartFrom(_timeSource);
         }
 
         protected override void OnExitSourceState() {
-            _handler.Stop();
+            _delayJob?.Stop();
         }
-
     }
 
 }

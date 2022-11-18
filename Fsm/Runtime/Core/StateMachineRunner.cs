@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using MisterGames.Common.Routines;
+using MisterGames.Tick.Core;
 using UnityEngine;
 using UnityEngine.Assertions;
 
@@ -15,7 +15,7 @@ namespace MisterGames.Fsm.Core {
     /// </summary>
     public sealed class StateMachineRunner : MonoBehaviour {
 
-        [SerializeField] private TimeDomain _timeDomain;
+        [SerializeField] private TimeDomain timeDomain;
         [SerializeField] private StateMachine _stateMachine;
 
         public event Action<FsmState> OnEnterState = delegate {  }; 
@@ -23,7 +23,7 @@ namespace MisterGames.Fsm.Core {
         
         public StateMachine Source => _stateMachine;
         public StateMachine Instance { get; private set; }
-        public TimeDomain TimeDomain => _timeDomain;
+        public ITimeSource TimeSource => timeDomain.Source;
 
         private void Awake() {
             Instance = CloneInstance(_stateMachine);

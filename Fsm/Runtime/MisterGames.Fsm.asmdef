@@ -2,7 +2,8 @@
     "name": "MisterGames.Fsm",
     "rootNamespace": "MisterGames.Fsm",
     "references": [
-        "GUID:0175294ec022c624cbe537915e3c9e71"
+        "GUID:0175294ec022c624cbe537915e3c9e71",
+        "GUID:b887f5744765cba4b9c25a5554ce71b3"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
