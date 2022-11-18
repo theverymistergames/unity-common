@@ -10,6 +10,15 @@ namespace MisterGames.Tick.Utils {
             return job;
         }
 
+        public static IJobReadOnly ObserveBy(this IJobReadOnly job, JobObserver jobObserver) {
+            jobObserver.Observe(job);
+            return job;
+        }
+
+        public static IJob ObserveBy(this IJob job, JobObserver jobObserver) {
+            jobObserver.Observe(job);
+            return job;
+        }
     }
 
 }

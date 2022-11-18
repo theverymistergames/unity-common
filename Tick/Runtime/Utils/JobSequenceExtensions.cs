@@ -33,6 +33,18 @@ namespace MisterGames.Tick.Utils {
             return jobSequence.Add(Jobs.ScheduleWhile(periodSec, actionWhile));
         }
 
+        public static JobSequence ScheduleTimes(this JobSequence jobSequence, float periodSec, int times, Action action) {
+            return jobSequence.Add(Jobs.ScheduleTimes(periodSec, times, action));
+        }
+
+        public static JobSequence ScheduleTimesWhile(this JobSequence jobSequence, float periodSec, int times, Func<bool> actionWhile) {
+            return jobSequence.Add(Jobs.ScheduleTimesWhile(periodSec, times, actionWhile));
+        }
+
+        public static JobSequence WaitCompletion(this JobSequence jobSequence, params IJobReadOnly[] jobs) {
+            return jobSequence.Add(Jobs.WaitCompletion(jobs));
+        }
+
         public static JobSequence Process(this JobSequence jobSequence, Func<float> getProcess, Action<float> action) {
             return jobSequence.Add(Jobs.Process(getProcess, action));
         }

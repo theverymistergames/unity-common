@@ -5,6 +5,8 @@ namespace MisterGames.Tick.Utils {
 
     public static class Jobs {
 
+        public static readonly IJob Completed = new CompletedJob();
+
         public static IJob Action(Action action) {
             return new InstantJob(action);
         }
@@ -37,6 +39,25 @@ namespace MisterGames.Tick.Utils {
 
         public static IJob ScheduleWhile(float periodSec, Func<bool> actionWhile) {
             return new ScheduleWhileJob(periodSec, actionWhile);
+        }
+
+        public static IJob ScheduleTimes(float periodSec, int times, Action action) {
+            if (times < 1) return Completed;
+
+            return new ScheduleWhileJob(periodSec, () => {
+                action.Invoke();
+                return --times > 0;
+            });
+        }
+
+        public static IJob ScheduleTimesWhile(float periodSec, int times, Func<bool> actionWhile) {
+            if (times < 1) return Completed;
+
+            return new ScheduleWhileJob(periodSec, () => actionWhile.Invoke() && --times > 0);
+        }
+
+        public static IJob WaitCompletion(params IJobReadOnly[] jobs) {
+            return new WaitCompletionJob(jobs);
         }
 
         public static IJob Process(Func<float> getProcess, Action<float> action) {

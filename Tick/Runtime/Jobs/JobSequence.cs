@@ -19,7 +19,7 @@ namespace MisterGames.Tick.Jobs {
         }
 
         public JobSequence Add(IJob job) {
-            if (job.IsCompleted) _jobs.Enqueue(job);
+            if (!job.IsCompleted) _jobs.Enqueue(job);
             return this;
         }
 
