@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using MisterGames.Scenes.Transactions;
 using MisterGames.Tick.Core;
 using MisterGames.Tick.Jobs;
@@ -64,10 +63,7 @@ namespace MisterGames.Scenes.Core {
 
         public IJobReadOnly LoadScene(string sceneName, bool makeActive = false) {
             string rootScene = ScenesStorage.Instance.SceneRoot;
-            if (sceneName == rootScene) {
-                Debug.LogWarning($"Trying to load root scene {rootScene}, it is not allowed.");
-                return Jobs.Completed;
-            }
+            if (sceneName == rootScene) return Jobs.Completed;
 
             if (_loadedScenes.TryGetValue(sceneName, out var scene)) {
                 if (_sceneLoadingJobMap.TryGetValue(sceneName, out var invalidLoadingJob)) {
@@ -105,10 +101,7 @@ namespace MisterGames.Scenes.Core {
 
         public IJobReadOnly UnloadScene(string sceneName) {
             string rootScene = ScenesStorage.Instance.SceneRoot;
-            if (sceneName == rootScene) {
-                Debug.LogWarning($"Trying to unload root scene {rootScene}, it is not allowed.");
-                return Jobs.Completed;
-            }
+            if (sceneName == rootScene) return Jobs.Completed;
 
             if (!_loadedScenes.TryGetValue(sceneName, out var scene)) {
                 if (_sceneLoadingJobMap.TryGetValue(sceneName, out var invalidLoadingJob)) {
