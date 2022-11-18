@@ -14,27 +14,38 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
         [ConsoleCommand("scenes/load")]
         [ConsoleCommandHelp("load scene by name")]
         public void LoadSceneByName(string sceneName) {
-            string[] sceneNames = ScenesStorage.Instance.SceneNames;
-            if (!sceneNames.Contains(sceneName)) {
-                ConsoleRunner.AppendLine($"Scene with name {sceneName} is not found. Type scenes/list to see all scenes.");
-                return;
-            }
+            if (!ValidateSceneName(sceneName)) return;
 
-            SceneLoader.LoadScene(sceneName);
+            SceneLoader.Instance.LoadScene(sceneName);
             ConsoleRunner.AppendLine($"Loading scene {sceneName}");
         }
 
         [ConsoleCommand("scenes/loadi")]
         [ConsoleCommandHelp("load scene by index as in scenes/list output")]
         public void LoadSceneByIndex(int index) {
-            string[] sceneNames = ScenesStorage.Instance.SceneNames;
-            if (index < 0 || index >= sceneNames.Length) {
-                ConsoleRunner.AppendLine($"Scene with index {index} is not found. Type scenes/list to see all scenes.");
-                return;
-            }
+            if (!ValidateSceneIndex(index)) return;
 
-            string sceneName = sceneNames[index];
-            SceneLoader.LoadScene(sceneName);
+            string sceneName = ScenesStorage.Instance.SceneNames[index];
+            SceneLoader.Instance.LoadScene(sceneName);
+            ConsoleRunner.AppendLine($"Loading scene {sceneName}");
+        }
+
+        [ConsoleCommand("scenes/unload")]
+        [ConsoleCommandHelp("unload scene by name")]
+        public void UnloadSceneByName(string sceneName) {
+            if (!ValidateSceneName(sceneName)) return;
+
+            SceneLoader.Instance.UnloadScene(sceneName);
+            ConsoleRunner.AppendLine($"Loading scene {sceneName}");
+        }
+
+        [ConsoleCommand("scenes/unloadi")]
+        [ConsoleCommandHelp("unload scene by index as in scenes/list output")]
+        public void UnloadSceneByIndex(int index) {
+            if (!ValidateSceneIndex(index)) return;
+
+            string sceneName = ScenesStorage.Instance.SceneNames[index];
+            SceneLoader.Instance.UnloadScene(sceneName);
             ConsoleRunner.AppendLine($"Loading scene {sceneName}");
         }
 
@@ -47,6 +58,26 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
             for (int i = 0; i < sceneNames.Length; i++) {
                 ConsoleRunner.AppendLine($" - [{i}] {sceneNames[i]}");
             }
+        }
+
+        private bool ValidateSceneName(string sceneName) {
+            string[] sceneNames = ScenesStorage.Instance.SceneNames;
+            if (!sceneNames.Contains(sceneName)) {
+                ConsoleRunner.AppendLine($"Scene with name {sceneName} is not found. Type scenes/list to see all scenes.");
+                return false;
+            }
+
+            return true;
+        }
+
+        private bool ValidateSceneIndex(int sceneIndex) {
+            string[] sceneNames = ScenesStorage.Instance.SceneNames;
+            if (sceneIndex < 0 || sceneIndex >= sceneNames.Length) {
+                ConsoleRunner.AppendLine($"Scene with index {sceneIndex} is not found. Type scenes/list to see all scenes.");
+                return false;
+            }
+
+            return true;
         }
     }
 
