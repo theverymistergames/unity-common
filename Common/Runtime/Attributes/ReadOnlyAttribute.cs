@@ -18,7 +18,7 @@ namespace MisterGames.Common.Attributes {
     public class BeginReadOnlyGroupAttribute : PropertyAttribute {
         public readonly ReadOnlyMode mode;
 
-        public BeginReadOnlyGroupAttribute(ReadOnlyMode mode) {
+        public BeginReadOnlyGroupAttribute(ReadOnlyMode mode = ReadOnlyMode.Always) {
             this.mode = mode;
         }
     }

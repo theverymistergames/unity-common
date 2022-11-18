@@ -14,17 +14,13 @@ namespace MisterGames.Common.Editor.Drawers {
  
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
             var readOnlyAttribute = (ReadOnlyAttribute) attribute;
-
-            bool disableGui = readOnlyAttribute.mode switch {
-                ReadOnlyMode.Always => true,
-                ReadOnlyMode.PlayModeOnly => Application.isPlaying,
-                _ => throw new NotImplementedException($"Read only mode {readOnlyAttribute.mode} is not supported for ReadOnly editor.")
-            };
+            bool disableGui = ReadOnlyUtils.IsDisabledGui(readOnlyAttribute.mode);
 
             using (new EditorGUI.DisabledGroupScope(disableGui)) {
                 EditorGUI.PropertyField(position, property, label, true);
             }
         }
+
 
     }
 
@@ -36,7 +32,10 @@ namespace MisterGames.Common.Editor.Drawers {
         }
  
         public override void OnGUI(Rect position) {
-            EditorGUI.BeginDisabledGroup(true);
+            var readOnlyAttribute = (BeginReadOnlyGroupAttribute) attribute;
+            bool disableGui = ReadOnlyUtils.IsDisabledGui(readOnlyAttribute.mode);
+
+            EditorGUI.BeginDisabledGroup(disableGui);
         }
  
     }
@@ -52,6 +51,18 @@ namespace MisterGames.Common.Editor.Drawers {
             EditorGUI.EndDisabledGroup();
         }
  
+    }
+
+    internal static class ReadOnlyUtils {
+
+        public static bool IsDisabledGui(ReadOnlyMode readOnlyMode) {
+            return readOnlyMode switch {
+                ReadOnlyMode.Always => true,
+                ReadOnlyMode.PlayModeOnly => Application.isPlaying,
+                _ => throw new NotImplementedException($"Read only mode {readOnlyMode} is not supported for ReadOnly editor.")
+            };
+        }
+
     }
     
 }
