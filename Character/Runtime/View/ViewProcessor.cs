@@ -1,7 +1,7 @@
 ﻿using MisterGames.Character.Configs;
 using MisterGames.Character.Input;
 using MisterGames.Character.Motion;
-using MisterGames.Common.Routines;
+using MisterGames.Tick.Core;
 using UnityEngine;
 
 namespace MisterGames.Character.View {
@@ -22,12 +22,12 @@ namespace MisterGames.Character.View {
 
         private void OnEnable() {
             _input.View += HandleView;
-            _timeDomain.SubscribeUpdate(this);
+            _timeDomain.Source.Subscribe(this);
         }
 
         private void OnDisable() {
             _input.View -= HandleView;
-            _timeDomain.UnsubscribeUpdate(this);
+            _timeDomain.Source.Unsubscribe(this);
         }
 
         void IUpdate.OnUpdate(float dt) {

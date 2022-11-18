@@ -1,4 +1,4 @@
-﻿using MisterGames.Common.Collisions.Core;
+﻿using MisterGames.Collisions.Core;
 using MisterGames.Dbg.Draw;
 using UnityEngine;
 

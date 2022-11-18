@@ -1,9 +1,7 @@
-﻿﻿using MisterGames.Character.Input;
- using MisterGames.Character.Pose;
- using MisterGames.Character.Collisions;
- using MisterGames.Common.Collisions;
- using MisterGames.Common.Collisions.Core;
- using MisterGames.Common.Maths;
+﻿using MisterGames.Character.Input;
+using MisterGames.Character.Pose;
+using MisterGames.Collisions.Core;
+using MisterGames.Common.Maths;
 using MisterGames.Fsm.Core;
 using UnityEngine;
 

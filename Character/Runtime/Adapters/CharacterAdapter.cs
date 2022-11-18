@@ -1,6 +1,6 @@
 ﻿using MisterGames.Character.Phys;
 using MisterGames.Character.View;
-using MisterGames.Common.Routines;
+using MisterGames.Tick.Core;
 using UnityEngine;
 
 namespace MisterGames.Character.Motion {
@@ -50,11 +50,11 @@ namespace MisterGames.Character.Motion {
             _cameraController.RegisterInteractor(this);
             _massProcessor.RegisterForceSource(this);
 
-            _timeDomain.SubscribeUpdate(this);
+            _timeDomain.Source.Subscribe(this);
         }
 
         private void OnDisable() {
-            _timeDomain.UnsubscribeUpdate(this);
+            _timeDomain.Source.Unsubscribe(this);
 
             _cameraController.UnregisterInteractor(this);
             _massProcessor.UnregisterForceSource(this);

@@ -4,7 +4,7 @@ using MisterGames.Character.Collisions;
 using MisterGames.Character.Configs;
 using MisterGames.Character.Motion;
 using MisterGames.Common.Maths;
-using MisterGames.Common.Routines;
+using MisterGames.Tick.Core;
 using MisterGames.Dbg.Draw;
 using UnityEngine;
 
@@ -24,11 +24,11 @@ namespace MisterGames.Character.Systems {
         private float _stepDistance;
 
         private void OnEnable() {
-            _timeDomain.SubscribeUpdate(this);
+            _timeDomain.Source.Subscribe(this);
         }
 
         private void OnDisable() {
-            _timeDomain.UnsubscribeUpdate(this);
+            _timeDomain.Source.Unsubscribe(this);
         }
 
         void IUpdate.OnUpdate(float dt) {

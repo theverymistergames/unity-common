@@ -1,14 +1,14 @@
-﻿﻿using System;
- using MisterGames.Character.Collisions;
- using MisterGames.Character.Configs;
- using MisterGames.Character.Input;
- using MisterGames.Common.Maths;
- using MisterGames.Common.Routines;
- using MisterGames.Dbg.Draw;
- using MisterGames.Fsm.Core;
- using UnityEngine;
+﻿using System;
+using MisterGames.Character.Collisions;
+using MisterGames.Character.Configs;
+using MisterGames.Character.Input;
+using MisterGames.Common.Maths;
+using MisterGames.Dbg.Draw;
+using MisterGames.Fsm.Core;
+using MisterGames.Tick.Core;
+using UnityEngine;
 
- namespace MisterGames.Character.Motion {
+namespace MisterGames.Character.Motion {
 
     public class MotionInputProcessor : MonoBehaviour, IUpdate {
 
@@ -45,13 +45,13 @@
         private void OnEnable() {
             _input.Move += HandleMoveInput;
             _motionFsm.OnEnterState += HandleMotionStateChanged;
-            _timeDomain.SubscribeUpdate(this);
+            _timeDomain.Source.Subscribe(this);
         }
 
         private void OnDisable() {
             _input.Move -= HandleMoveInput;
             _motionFsm.OnEnterState -= HandleMotionStateChanged;
-            _timeDomain.UnsubscribeUpdate(this);
+            _timeDomain.Source.Unsubscribe(this);
         }
 
         private void Start() {

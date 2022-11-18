@@ -1,11 +1,10 @@
 ﻿﻿using System;
  using MisterGames.Character.Configs;
- using MisterGames.Common.Collisions;
- using MisterGames.Common.Collisions.Core;
+ using MisterGames.Collisions.Core;
  using MisterGames.Common.Data;
  using MisterGames.Common.Maths;
- using MisterGames.Common.Routines;
  using MisterGames.Dbg.Draw;
+ using MisterGames.Tick.Core;
  using UnityEngine;
  using Object = UnityEngine.Object;
 
@@ -74,7 +73,7 @@
             _groundDetector.OnContact += HandleLanded;
             _ceilingDetector.OnContact += HandleCeilingAppeared;
             _hitDetector.OnContact += HandleColliderHit;
-            _timeDomain.SubscribeUpdate(this);
+            _timeDomain.Source.Subscribe(this);
         }
 
         private void OnDisable() {
@@ -83,7 +82,7 @@
             _groundDetector.OnContact -= HandleLanded;
             _ceilingDetector.OnContact -= HandleCeilingAppeared;
             _hitDetector.OnContact -= HandleColliderHit;
-            _timeDomain.UnsubscribeUpdate(this);
+            _timeDomain.Source.Unsubscribe(this);
         }
 
         void IUpdate.OnUpdate(float dt) {

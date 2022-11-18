@@ -3,8 +3,10 @@ using MisterGames.Character.Collisions;
 using MisterGames.Character.Configs;
 using MisterGames.Character.View;
 using MisterGames.Common.Maths;
-using MisterGames.Common.Routines;
 using MisterGames.Fsm.Core;
+using MisterGames.Tick.Core;
+using MisterGames.Tick.Jobs;
+using MisterGames.Tick.Utils;
 using UnityEngine;
 
 namespace MisterGames.Character.Pose {
@@ -22,7 +24,7 @@ namespace MisterGames.Character.Pose {
 
         public bool IsCrouching { get; private set;  }
 
-        private readonly SingleJobHandler _handler = new SingleJobHandler();
+        private IJob _changePoseJob;
         private PoseStateData _initialPoseData;
         private PoseStateData _prevPoseData;
 
@@ -34,7 +36,8 @@ namespace MisterGames.Character.Pose {
         private void OnDisable() {
             _cameraController.UnregisterInteractor(this);
             _poseFsm.OnEnterState -= HandleStateChanged;
-            _handler.Stop();
+            _changePoseJob?.Stop();
+
             SetInitialParameters(_initialPoseData);
         }
 
@@ -101,18 +104,21 @@ namespace MisterGames.Character.Pose {
             float tempHeight = prevHeight;
 
             float time = 0f;
-            
-            _handler.Start(_timeDomain.Process(
-                getProcess: () => {
-                    time += _timeDomain.DeltaTime;
-                    return duration.IsNearlyZero() ? 1f : time / duration;
-                },
-                action: process => {
-                    float height = prevHeight + curve.Evaluate(process) * diffHeight;
-                    ApplyHeight(tempHeight, height);
-                    tempHeight = height;
-                }
-            ));
+
+            _changePoseJob?.Stop();
+            _changePoseJob = Jobs
+                .Process(
+                    getProcess: () => {
+                        time += _timeDomain.Source.DeltaTime;
+                        return duration.IsNearlyZero() ? 1f : time / duration;
+                    },
+                    action: process => {
+                        float height = prevHeight + curve.Evaluate(process) * diffHeight;
+                        ApplyHeight(tempHeight, height);
+                        tempHeight = height;
+                    }
+                )
+                .StartFrom(_timeDomain.Source);
         }
 
         private void ApplyHeight(float current, float target) {

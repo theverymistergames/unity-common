@@ -1,8 +1,7 @@
-﻿using MisterGames.Common.Collisions;
-using MisterGames.Common.Collisions.Core;
-using MisterGames.Common.Collisions.Utils;
+﻿using MisterGames.Collisions.Core;
+using MisterGames.Collisions.Utils;
 using MisterGames.Common.Maths;
-using MisterGames.Common.Routines;
+using MisterGames.Tick.Core;
 using MisterGames.Dbg.Draw;
 using UnityEngine;
 
@@ -35,11 +34,11 @@ namespace MisterGames.Character.Collisions {
         }
 
         private void OnEnable() {
-            _timeDomain.SubscribeUpdate(this);
+            _timeDomain.Source.Subscribe(this);
         }
 
         private void OnDisable() {
-            _timeDomain.UnsubscribeUpdate(this);
+            _timeDomain.Source.Unsubscribe(this);
         }
 
         void IUpdate.OnUpdate(float dt) {
