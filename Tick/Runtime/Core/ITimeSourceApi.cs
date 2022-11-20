@@ -1,8 +1,11 @@
-﻿using MisterGames.Tick.TimeProviders;
+﻿using System.Collections.Generic;
+using MisterGames.Tick.TimeProviders;
 
 namespace MisterGames.Tick.Core {
 
     public interface ITimeSourceApi {
+
+        IReadOnlyList<IUpdate> Subscribers { get; }
 
         void Initialize(ITimeProvider timeProvider);
         void DeInitialize();

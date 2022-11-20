@@ -1,11 +1,9 @@
-﻿using System;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace MisterGames.Tick.TimeProviders {
 
-    [Serializable]
-    public readonly struct MainUpdate : ITimeProvider {
-        float ITimeProvider.UnscaledDeltaTime => Time.unscaledDeltaTime;
+    internal readonly struct MainUpdate : ITimeProvider {
+        public float UnscaledDeltaTime => Time.unscaledDeltaTime;
     }
 
 }

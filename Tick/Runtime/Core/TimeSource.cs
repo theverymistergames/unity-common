@@ -18,16 +18,18 @@ namespace MisterGames.Tick.Core {
             set => _isPaused = value;
         }
 
+        public IReadOnlyList<IUpdate> Subscribers => _updateList;
+
         private readonly List<IUpdate> _updateList = new List<IUpdate>();
-        private readonly HashSet<int> _unsubscribeIndexSet = new HashSet<int>();
         private ITimeProvider _timeProvider;
 
-        private float _deltaTime;
         private float _timeScale = 1f;
+        private float _deltaTime;
 
         private bool _isPaused;
         private bool _isEnabled;
         private bool _isInitialized;
+        private bool _isInUpdateLoop;
 
         public void Subscribe(IUpdate sub) {
             int index = _updateList.IndexOf(sub);
@@ -38,36 +40,23 @@ namespace MisterGames.Tick.Core {
             int index = _updateList.IndexOf(sub);
             if (index < 0) return;
 
-            if (IsNotUpdating()) {
-                _updateList.RemoveAt(index);
+            if (_isInUpdateLoop) {
+                _updateList[index] = null;
                 return;
             }
 
-            _unsubscribeIndexSet.Add(index);
-        }
-
-        public void Run(IJob job) {
-            job.Start();
-            if (job.IsCompleted) return;
-
-            if (job is IUpdate update) Subscribe(update);
+            _updateList.RemoveAt(index);
         }
 
         public void Initialize(ITimeProvider timeProvider) {
             _timeProvider = timeProvider;
-
             _isInitialized = true;
             UpdateDeltaTime();
         }
 
         public void DeInitialize() {
             _isInitialized = false;
-            UpdateDeltaTime();
-
-            _timeProvider = null;
-
-            _updateList.Clear();
-            _unsubscribeIndexSet.Clear();
+            if (!_isInUpdateLoop) Reset();
         }
 
         public void Enable() {
@@ -81,33 +70,69 @@ namespace MisterGames.Tick.Core {
         }
 
         public void Tick() {
-            if (IsNotUpdating()) return;
             UpdateDeltaTime();
 
+            _isInUpdateLoop = CanTick();
+            if (!_isInUpdateLoop) return;
+
             for (int i = _updateList.Count - 1; i >= 0; i--) {
-                var update = _updateList[i];
-
-                if (_unsubscribeIndexSet.Contains(i)) {
-                    _updateList.RemoveAt(i);
-                    continue;
-                }
-
-                update.OnUpdate(_deltaTime);
-
-                if (update is IJob { IsCompleted: true }) {
-                    _updateList.RemoveAt(i);
-                }
+                UpdateByIndex(i);
             }
 
-            _unsubscribeIndexSet.Clear();
+            _isInUpdateLoop = false;
+            UpdateDeltaTime();
+
+            if (!_isInitialized && _timeProvider != null) Reset();
         }
 
         public void UpdateDeltaTime() {
-            _deltaTime = IsNotUpdating() ? 0f : _timeProvider.UnscaledDeltaTime * _timeScale;
+            if (_isInUpdateLoop) return;
+            _deltaTime = CanTick() ? _timeProvider.UnscaledDeltaTime * _timeScale : 0f;
         }
 
-        private bool IsNotUpdating() {
-            return _isPaused || !_isEnabled || !_isInitialized;
+        private void UpdateByIndex(int index) {
+            var update = _updateList[index];
+
+            // to prevent update if was unsubscribed
+            if (CanRemoveUpdate(update)) {
+                _updateList.RemoveAt(index);
+                return;
+            }
+
+            update.OnUpdate(_deltaTime);
+
+            // to be able to unsubscribe self in this tick
+            if (CanRemoveUpdate(update)) {
+                _updateList.RemoveAt(index);
+            }
+        }
+
+        private bool CanTick() {
+            return !_isPaused && _isEnabled && _isInitialized;
+        }
+
+        private void Reset() {
+            _deltaTime = 0f;
+            _timeScale = 1f;
+
+            _isEnabled = false;
+            _isPaused = false;
+
+            _timeProvider = null;
+            _updateList.Clear();
+        }
+
+        private static bool CanRemoveUpdate(IUpdate update) {
+            return update is null or IJob { IsCompleted: true };
+        }
+
+        public override string ToString() {
+            return $"{nameof(TimeSource)}(\n" +
+                   $"timeProvider {_timeProvider}, \n" +
+                   $"enabled {_isEnabled}, paused {_isPaused}, \n" +
+                   $"timeScale {_timeScale}, dt {_deltaTime}, \n" +
+                   $"subscribers ({_updateList.Count}): [{(_updateList.Count == 0 ? "]\n" : $"\n- {string.Join("\n- ", _updateList)}\n]")}" +
+                   ")";
         }
     }
 

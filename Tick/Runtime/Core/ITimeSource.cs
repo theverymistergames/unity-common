@@ -1,6 +1,4 @@
-﻿using MisterGames.Tick.Jobs;
-
-namespace MisterGames.Tick.Core {
+﻿namespace MisterGames.Tick.Core {
 
     public interface ITimeSource {
 
@@ -11,8 +9,6 @@ namespace MisterGames.Tick.Core {
 
         void Subscribe(IUpdate sub);
         void Unsubscribe(IUpdate sub);
-
-        void Run(IJob job);
     }
 
 }

@@ -5,7 +5,12 @@ namespace MisterGames.Tick.Utils {
 
     public static class JobExtensions {
 
-        public static IJob StartFrom(this IJob job, ITimeSource timeSource) {
+        public static void Run(this ITimeSource timeSource, IJob job) {
+            job.Start();
+            if (!job.IsCompleted && job is IUpdate update) timeSource.Subscribe(update);
+        }
+
+        public static IJob RunFrom(this IJob job, ITimeSource timeSource) {
             timeSource.Run(job);
             return job;
         }
