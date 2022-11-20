@@ -1,19 +1,23 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using MisterGames.Common.Attributes;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 #if UNITY_EDITOR
 using UnityEditor;
 using UnityEditor.SceneManagement;
+using System.Linq;
+using UnityEngine.SceneManagement;
+using System.Collections.Generic;
 #endif
 
 namespace MisterGames.Scenes.Core {
 
-    public sealed class ScenesStorage : Common.Data.ScriptableSingleton<ScenesStorage> {
-        
+    public sealed class ScenesStorage : MisterGames.Common.Data.ScriptableSingleton<ScenesStorage> {
+
+#if UNITY_EDITOR
+        [SerializeField] private bool _enablePlayModeStartSceneOverride = true;
+#endif
+
         [SerializeField] private SceneReference _sceneRoot;
         [SerializeField] [ReadOnly] private string _sceneStart;
         [SerializeField] [BeginReadOnlyGroup] private string[] _sceneNames;
@@ -31,14 +35,14 @@ namespace MisterGames.Scenes.Core {
             SetActiveSceneAsStartSceneIfNotSet();
             TrySetSceneRootIfNotSet();
             SaveAsset();
-            
-            SetSceneRootAsPlaymodeStartScene();
+
+            TrySetPlaymodeStartScene(_sceneRoot.scene);
 #endif
         }
 
 #if UNITY_EDITOR
         private void OnValidate() {
-            SetSceneRootAsPlaymodeStartScene();
+            TrySetPlaymodeStartScene(_sceneRoot.scene);
         }
 
         public void Refresh() {
@@ -75,13 +79,18 @@ namespace MisterGames.Scenes.Core {
             _sceneRoot.scene = SceneManager.GetActiveScene().name;
         }
         
-        private void SetSceneRootAsPlaymodeStartScene() {
+        private void TrySetPlaymodeStartScene(string sceneName) {
+            if (!_enablePlayModeStartSceneOverride) {
+                EditorSceneManager.playModeStartScene = null;
+                return;
+            }
+
             var currentPlaymodeStartScene = EditorSceneManager.playModeStartScene;
-            if (currentPlaymodeStartScene != null && currentPlaymodeStartScene.name == _sceneRoot.scene) {
+            if (currentPlaymodeStartScene != null && currentPlaymodeStartScene.name == sceneName) {
                 return;
             }
             
-            var sceneRootAsset = GetAllSceneAssets().FirstOrDefault(asset => asset.name == _sceneRoot.scene);
+            var sceneRootAsset = GetAllSceneAssets().FirstOrDefault(asset => asset.name == sceneName);
             if (sceneRootAsset == null) return;
 
             EditorSceneManager.playModeStartScene = sceneRootAsset;

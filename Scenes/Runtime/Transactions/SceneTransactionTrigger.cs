@@ -53,7 +53,7 @@ namespace MisterGames.Scenes.Transactions {
             _loadSceneJob = JobSequence.Create()
                 .Delay(_loadDelay)
                 .WaitCompletion(SceneLoader.Instance.CommitTransaction(_sceneTransactions))
-                .StartFrom(_timeDomain.Source);
+                .RunFrom(_timeDomain.Source);
         }
 
         private bool CanTriggerByFilter(GameObject go) {

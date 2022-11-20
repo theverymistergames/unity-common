@@ -95,7 +95,7 @@ namespace MisterGames.Scenes.Core {
             };
 
             return job
-                .StartFrom(_timeDomain.Source)
+                .RunFrom(_timeDomain.Source)
                 .ObserveBy(_totalLoadingJobs);
         }
 
@@ -129,7 +129,7 @@ namespace MisterGames.Scenes.Core {
             };
 
             return job
-                .StartFrom(_timeDomain.Source)
+                .RunFrom(_timeDomain.Source)
                 .ObserveBy(_totalLoadingJobs);
         }
 
