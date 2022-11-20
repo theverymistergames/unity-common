@@ -80,7 +80,7 @@ namespace MisterGames.Dbg.Console.Plugins {
         }
 
         private void SetTextInputFieldFromHistory() {
-            string text = _commandHistory.IsEmpty() || _historyPointer == _commandHistory.Count
+            string text = _commandHistory.Count == 0 || _historyPointer == _commandHistory.Count
                 ? _historyCurrentInput
                 : _commandHistory[_historyPointer];
 

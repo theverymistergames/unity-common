@@ -188,7 +188,7 @@ namespace MisterGames.Fsm.Editor.Views {
 
         private void UpdateSelection() {
             var selectedElements = graphElements.Where(e => e.selected).ToList();
-            if (selectedElements.HasOneElement()) {
+            if (selectedElements.Count == 1) {
                 Select(selectedElements.First());
                 return;
             }
@@ -267,9 +267,9 @@ namespace MisterGames.Fsm.Editor.Views {
                 }
             });
 
-            bool hasElementsToRemove = change.elementsToRemove != null && change.elementsToRemove.IsNotEmpty();
-            bool hasMovedElements = change.movedElements != null && change.movedElements.IsNotEmpty();
-            bool hasEdgesToCreate = change.edgesToCreate != null && change.edgesToCreate.IsNotEmpty();
+            bool hasElementsToRemove = change.elementsToRemove != null && change.elementsToRemove.Count > 0;
+            bool hasMovedElements = change.movedElements != null && change.movedElements.Count > 0;
+            bool hasEdgesToCreate = change.edgesToCreate != null && change.edgesToCreate.Count > 0;
 
             if (hasMovedElements || hasElementsToRemove) {
                 SaveAsset();
@@ -445,7 +445,7 @@ namespace MisterGames.Fsm.Editor.Views {
 
             Undo.RecordObject(_stateMachine, "Fsm (CreateState)");
             _stateMachine.states.Add(state);
-            if (_stateMachine.states.HasOneElement()) _stateMachine.initialState = state;
+            if (_stateMachine.states.Count == 1) _stateMachine.initialState = state;
             
             Undo.RecordObject(state, "Fsm (CreateStateData)");
             ((IStatePosition) state).Position = localPosition;
@@ -515,7 +515,7 @@ namespace MisterGames.Fsm.Editor.Views {
             RemoveFromAsset(state);
             
             if (_stateMachine.initialState == state) {
-                _stateMachine.initialState = _stateMachine.states.IsNotEmpty()
+                _stateMachine.initialState = _stateMachine.states.Count > 0
                     ? _stateMachine.states.First()
                     : null;
             }

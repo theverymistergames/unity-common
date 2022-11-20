@@ -68,7 +68,7 @@ namespace MisterGames.Input.Actions {
 
         private Vector2 ReadInput() {
             var result = Vector2.zero;
-            if (_bindings.IsEmpty()) return result;
+            if (_bindings.Length == 0) return result;
 
             int count = 0;
             for (int i = 0; i < _bindings.Length; i++) {

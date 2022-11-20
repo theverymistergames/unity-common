@@ -27,7 +27,7 @@ namespace MisterGames.Fsm.Basics {
             _delayJob = JobSequence.Create()
                 .Delay(_delay)
                 .Action(Transit)
-                .StartFrom(_timeSource);
+                .RunFrom(_timeSource);
         }
 
         protected override void OnExitSourceState() {
