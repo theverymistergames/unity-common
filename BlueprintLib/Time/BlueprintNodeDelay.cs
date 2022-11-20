@@ -39,7 +39,7 @@ namespace MisterGames.BlueprintLib {
                 _delayJob = JobSequence.Create()
                     .Delay(duration)
                     .Action(OnDelayFinished)
-                    .StartFrom(runner.TimeSource);
+                    .RunFrom(runner.TimeSource);
 
                 return;
             }

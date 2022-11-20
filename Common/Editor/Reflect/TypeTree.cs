@@ -48,7 +48,7 @@ namespace MisterGames.Common.Editor.Reflect {
             };
 
             if (!entry.IsAbstract() && !entry.children.Contains(selfChild)) {
-                if (entry.children.IsEmpty()) entry.children.Add(selfChild);
+                if (entry.children.Count == 0) entry.children.Add(selfChild);
                 else entry.children.Insert(0, selfChild);
             }
             return entry;
@@ -63,7 +63,7 @@ namespace MisterGames.Common.Editor.Reflect {
         }
 
         public static TreeEntry<Type> RemoveAbstractBranches(this TreeEntry<Type> entry) {
-            while (entry.AbstractLeafs().IsNotEmpty()) {
+            while (!entry.AbstractLeafs().IsEmpty()) {
                 entry = entry.RemoveAbstractLeafs();
             }
             return entry;
@@ -78,7 +78,7 @@ namespace MisterGames.Common.Editor.Reflect {
             return new TreeEntry<Type> {
                 data = type,
                 children = children,
-                isLeaf = children.IsEmpty(),
+                isLeaf = children.Count == 0,
                 level = level
             };
         }

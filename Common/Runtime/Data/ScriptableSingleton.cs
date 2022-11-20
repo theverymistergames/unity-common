@@ -18,7 +18,7 @@ namespace MisterGames.Common.Data {
                 if (_instance != null) return _instance;
 
                 var instances = Resources.LoadAll<T>("");
-                if (instances == null || instances.IsEmpty()) {
+                if (instances == null || instances.Length == 0) {
                     if (Application.isPlaying) {
                         throw new Exception(
                             $"ScriptableSingleton instance of type [{typeof(T).Name}] is not found. " +

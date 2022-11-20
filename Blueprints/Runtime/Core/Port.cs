@@ -164,7 +164,7 @@ namespace MisterGames.Blueprints.Core {
                 return;
             }
 
-            if (!_isMultiple && _links.IsNotEmpty()) {
+            if (!_isMultiple && _links.Count > 0) {
                 DisconnectLink(_links[0], owner, port);
                 _links.Clear();
             }
@@ -218,7 +218,7 @@ namespace MisterGames.Blueprints.Core {
         }
 
         internal T Read<T>(BlueprintNode owner, int port, T defaultValue = default) {
-            return _links.IsEmpty() ? defaultValue : ReadLink(owner, port, _links[0], defaultValue);
+            return _links.Count == 0 ? defaultValue : ReadLink(owner, port, _links[0], defaultValue);
         }
 
         internal bool TryCallLink(BlueprintNode owner, int port, in Link link) {

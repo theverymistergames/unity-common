@@ -20,7 +20,7 @@ namespace MisterGames.Common.Trees {
             
             var children = new List<TreeEntry<T>>();
             foreach (var child in entry.children) {
-                if (child.isLeaf || children.IsEmpty() || !children.Last().isLeaf) {
+                if (child.isLeaf || children.Count == 0 || !children.Last().isLeaf) {
                     children.Add(child);
                     continue;
                 }
@@ -38,7 +38,7 @@ namespace MisterGames.Common.Trees {
                 .Where(predicate.Invoke)
                 .Select(e => RemoveLeafsIf(e, predicate))
                 .ToList();
-            entry.isLeaf = entry.children.IsEmpty();
+            entry.isLeaf = entry.children.Count == 0;
             return entry;
         }
 

@@ -118,7 +118,7 @@ namespace MisterGames.Character.Pose {
                         tempHeight = height;
                     }
                 )
-                .StartFrom(_timeDomain.Source);
+                .RunFrom(_timeDomain.Source);
         }
 
         private void ApplyHeight(float current, float target) {

@@ -40,7 +40,7 @@ namespace MisterGames.BlueprintLib {
             _loadSceneJob = JobSequence.Create()
                 .WaitCompletion(SceneLoader.Instance.CommitTransaction(_sceneTransactions))
                 .Action(OnFinish)
-                .StartFrom(_timeSource);
+                .RunFrom(_timeSource);
         }
 
         private void OnFinish() {

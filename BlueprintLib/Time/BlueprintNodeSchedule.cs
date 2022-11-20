@@ -44,7 +44,7 @@ namespace MisterGames.BlueprintLib {
                 float period = Read(3, _period);
                 int times = Read(4, _times);
                 
-                _scheduleJob = GetJob(startDelay, period, times).StartFrom(_timeSource);
+                _scheduleJob = GetJob(startDelay, period, times).RunFrom(_timeSource);
                 return;
             }
 

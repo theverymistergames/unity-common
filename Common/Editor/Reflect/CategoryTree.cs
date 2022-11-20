@@ -25,10 +25,10 @@ namespace MisterGames.Common.Editor.Reflect {
                     var subs = meta.category
                         .Split('/')
                         .Select(s => s.Trim())
-                        .Where(s => s.IsNotEmpty())
+                        .Where(s => !s.IsEmpty())
                         .ToArray();
                     
-                    string category = subs.IsEmpty() ? "" : string.Join("/", subs);
+                    string category = subs.Length == 0 ? "" : string.Join("/", subs);
                 
                     return new MetaData {
                         name = meta.name, 

@@ -16,7 +16,7 @@ namespace MisterGames.Blueprints.Editor {
         public string position;
 
         public static string Serialize(List<BlueprintNode> nodes, List<CopyPasteLink> links) {
-            if (nodes.IsEmpty()) return JsonUtility.ToJson(new CopyData());
+            if (nodes.Count == 0) return JsonUtility.ToJson(new CopyData());
 
             var copiedNodes = nodes
                 .Select(n => new CopiedNode {

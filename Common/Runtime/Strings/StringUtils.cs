@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Linq;
+using System.Text.RegularExpressions;
 using MisterGames.Common.Lists;
 using UnityEngine;
 
@@ -27,7 +28,7 @@ namespace MisterGames.Common.Strings {
         public static string UpperFirstLetter(this string str) {
             if (str.IsEmpty()) return str;
             var firstLetter = char.ToUpper(str[0]).ToString();
-            return str.HasOneElement() ? firstLetter : $"{firstLetter}{str.Substring(1)}";
+            return str.Count() == 1 ? firstLetter : $"{firstLetter}{str.Substring(1)}";
         }
         
     }

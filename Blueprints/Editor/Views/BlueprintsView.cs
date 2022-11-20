@@ -522,9 +522,9 @@ namespace MisterGames.Blueprints.Editor.Views {
                 }
             });
 
-            bool hasElementsToRemove = change.elementsToRemove != null && change.elementsToRemove.IsNotEmpty();
-            bool hasMovedElements = change.movedElements != null && change.movedElements.IsNotEmpty();
-            bool hasEdgesToCreate = change.edgesToCreate != null && change.edgesToCreate.IsNotEmpty();
+            bool hasElementsToRemove = change.elementsToRemove != null && change.elementsToRemove.Count > 0;
+            bool hasMovedElements = change.movedElements != null && change.movedElements.Count > 0;
+            bool hasEdgesToCreate = change.edgesToCreate != null && change.edgesToCreate.Count > 0;
 
             if (hasElementsToRemove || hasEdgesToCreate) {
                ScheduleRepopulate();
@@ -661,7 +661,7 @@ namespace MisterGames.Blueprints.Editor.Views {
         private void OnUnserializeAndPaste(string operationName, string data) {
             var pasteData = PasteData.Deserialize(data);
 
-            if (pasteData.nodes.IsEmpty()) return;
+            if (pasteData.nodes.Count == 0) return;
 
             var positionDiff = _mousePosition - pasteData.position;
             var guidMap = new Dictionary<string, string>();

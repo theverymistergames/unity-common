@@ -64,7 +64,7 @@ using UnityEngine;
                     else {
                         var exposedPort = port.CopyWithoutLinks();
                         
-                        if (port.IsBuiltIn && !exposedPorts.IsEmpty()) {
+                        if (port.IsBuiltIn && exposedPorts.Count > 0) {
                             exposedPorts.Insert(0, exposedPort);
                             index = 0;
 
@@ -202,7 +202,7 @@ using UnityEngine;
             var sourcePort = fromNode.AsIBlueprintNode().Ports[fromPort];
             if (sourcePort.IsOwned) {
                 var links = sourcePort.Links;
-                if (links.IsEmpty()) return false;
+                if (links.Length == 0) return false;
 
                 var link = links[0];
                 var remote = link.remote;
