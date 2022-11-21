@@ -45,7 +45,7 @@ namespace Core {
         public void Subscribers_AreNotUpdating_IfPaused() {
             var timeSource = new TimeSource();
             var timeProvider = new ConstantTimeProvider(1f);
-            var frameCounter = new FrameCounterUpdate();
+            var frameCounter = new CountOnUpdate();
 
             timeSource.Initialize(timeProvider);
             timeSource.Enable();
@@ -63,7 +63,7 @@ namespace Core {
         public void Subscribers_AreUpdating_After_DisablePause() {
             var timeSource = new TimeSource();
             var timeProvider = new ConstantTimeProvider(1f);
-            var frameCounter = new FrameCounterUpdate();
+            var frameCounter = new CountOnUpdate();
 
             timeSource.Initialize(timeProvider);
             timeSource.Enable();
@@ -85,7 +85,7 @@ namespace Core {
         public void Can_Pause_InUpdateLoop_And_WillBePaused_OnNextTick() {
             var timeSource = new TimeSource();
             var timeProvider = new ConstantTimeProvider(1f);
-            var frameCounter = new FrameCounterUpdate();
+            var frameCounter = new CountOnUpdate();
             var pauseOnUpdate = new ActionOnUpdate(update => timeSource.IsPaused = true);
 
             timeSource.Initialize(timeProvider);

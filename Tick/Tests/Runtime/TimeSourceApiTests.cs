@@ -98,7 +98,7 @@ namespace Core {
         public void Can_Disable_InUpdateLoop_And_UpdateLoop_WillBeFinished_AscendingOrder() {
             var timeSource = new TimeSource();
             var timeProvider = new ConstantTimeProvider(1f);
-            var frameCounter = new FrameCounterUpdate();
+            var frameCounter = new CountOnUpdate();
             var disableOnUpdate = new ActionOnUpdate(update => timeSource.Disable());
 
             timeSource.Initialize(timeProvider);
@@ -118,7 +118,7 @@ namespace Core {
         public void Can_Disable_InUpdateLoop_And_UpdateLoop_WillBeFinished_DescendingOrder() {
             var timeSource = new TimeSource();
             var timeProvider = new ConstantTimeProvider(1f);
-            var frameCounter = new FrameCounterUpdate();
+            var frameCounter = new CountOnUpdate();
             var disableOnUpdate = new ActionOnUpdate(update => timeSource.Disable());
 
             timeSource.Initialize(timeProvider);
@@ -138,7 +138,7 @@ namespace Core {
         public void Can_DeInitialize_InUpdateLoop_And_UpdateLoop_WillBeFinished_AscendingOrder() {
             var timeSource = new TimeSource();
             var timeProvider = new ConstantTimeProvider(1f);
-            var frameCounter = new FrameCounterUpdate();
+            var frameCounter = new CountOnUpdate();
             var disableOnUpdate = new ActionOnUpdate(update => timeSource.DeInitialize());
 
             timeSource.Initialize(timeProvider);
@@ -158,7 +158,7 @@ namespace Core {
         public void Can_DeInitialize_InUpdateLoop_And_UpdateLoop_WillBeFinished_DescendingOrder() {
             var timeSource = new TimeSource();
             var timeProvider = new ConstantTimeProvider(1f);
-            var frameCounter = new FrameCounterUpdate();
+            var frameCounter = new CountOnUpdate();
             var disableOnUpdate = new ActionOnUpdate(update => timeSource.DeInitialize());
 
             timeSource.Initialize(timeProvider);

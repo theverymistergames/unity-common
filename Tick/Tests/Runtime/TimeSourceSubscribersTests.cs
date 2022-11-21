@@ -1,5 +1,4 @@
-﻿using MisterGames.Common.Lists;
-using MisterGames.Tick.Core;
+﻿using MisterGames.Tick.Core;
 using NUnit.Framework;
 
 namespace Core {
@@ -10,7 +9,7 @@ namespace Core {
         public void Subscribers_AreUpdating() {
             var timeSource = new TimeSource();
             var timeProvider = new ConstantTimeProvider(1f);
-            var frameCounter = new FrameCounterUpdate();
+            var frameCounter = new CountOnUpdate();
 
             timeSource.Initialize(timeProvider);
             timeSource.Enable();
@@ -27,7 +26,7 @@ namespace Core {
         public void Unsubscribed_AreNotUpdating() {
             var timeSource = new TimeSource();
             var timeProvider = new ConstantTimeProvider(1f);
-            var frameCounter = new FrameCounterUpdate();
+            var frameCounter = new CountOnUpdate();
 
             timeSource.Initialize(timeProvider);
             timeSource.Enable();
@@ -45,7 +44,7 @@ namespace Core {
         public void CanSubscribeOther_InUpdateLoop_And_WillBeSubscribed_OnNextTick() {
             var timeSource = new TimeSource();
             var timeProvider = new ConstantTimeProvider(1f);
-            var frameCounter = new FrameCounterUpdate();
+            var frameCounter = new CountOnUpdate();
             var subscribeOnUpdate = new ActionOnUpdate(update => timeSource.Subscribe(frameCounter));
 
             timeSource.Initialize(timeProvider);
@@ -63,7 +62,7 @@ namespace Core {
         public void CanUnsubscribeOther_InUpdateLoop_AscendingOrder() {
             var timeSource = new TimeSource();
             var timeProvider = new ConstantTimeProvider(1f);
-            var frameCounter = new FrameCounterUpdate();
+            var frameCounter = new CountOnUpdate();
             var unsubscribeOnUpdate = new ActionOnUpdate(update => timeSource.Unsubscribe(frameCounter));
 
             timeSource.Initialize(timeProvider);
@@ -84,7 +83,7 @@ namespace Core {
         public void CanUnsubscribeOther_InUpdateLoop_DescendingOrder() {
             var timeSource = new TimeSource();
             var timeProvider = new ConstantTimeProvider(1f);
-            var frameCounter = new FrameCounterUpdate();
+            var frameCounter = new CountOnUpdate();
             var unsubscribeOnUpdate = new ActionOnUpdate(update => timeSource.Unsubscribe(frameCounter));
 
             timeSource.Initialize(timeProvider);
@@ -110,7 +109,7 @@ namespace Core {
 
             timeSource.Subscribe(unsubscribeOnUpdate);
             timeSource.Tick();
-            Assert.IsTrue(!timeSource.Subscribers.Contains(unsubscribeOnUpdate));
+            Assert.IsTrue(!timeSource.Unsubscribe(unsubscribeOnUpdate));
         }
     }
 
