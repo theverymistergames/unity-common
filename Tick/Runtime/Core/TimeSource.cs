@@ -78,35 +78,29 @@ namespace MisterGames.Tick.Core {
             if (!_isInUpdateLoop) return;
 
             for (int i = _updateList.Count - 1; i >= 0; i--) {
-                UpdateByIndex(i);
+                var update = _updateList[i];
+
+                if (update == null) {
+                    _updateList.RemoveAt(i);
+                    continue;
+                }
+
+                update.OnUpdate(_deltaTime);
+
+                if (update is null or IJob { IsCompleted: true }) {
+                    _updateList.RemoveAt(i);
+                }
             }
 
             _isInUpdateLoop = false;
-            UpdateDeltaTime();
 
+            UpdateDeltaTime();
             if (!_isInitialized && _timeProvider != null) Reset();
         }
 
         public void UpdateDeltaTime() {
             if (_isInUpdateLoop) return;
             _deltaTime = CanTick() ? _timeProvider.UnscaledDeltaTime * _timeScale : 0f;
-        }
-
-        private void UpdateByIndex(int index) {
-            var update = _updateList[index];
-
-            // to prevent update if was unsubscribed
-            if (CanRemoveUpdate(update)) {
-                _updateList.RemoveAt(index);
-                return;
-            }
-
-            update.OnUpdate(_deltaTime);
-
-            // to be able to unsubscribe self in this tick
-            if (CanRemoveUpdate(update)) {
-                _updateList.RemoveAt(index);
-            }
         }
 
         private bool CanTick() {
@@ -122,10 +116,6 @@ namespace MisterGames.Tick.Core {
 
             _timeProvider = null;
             _updateList.Clear();
-        }
-
-        private static bool CanRemoveUpdate(IUpdate update) {
-            return update is null or IJob { IsCompleted: true };
         }
 
         public override string ToString() {

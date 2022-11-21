@@ -59,7 +59,7 @@ namespace Core {
         }
 
         [Test]
-        public void CanUnsubscribeOther_InUpdateLoop_AscendingOrder() {
+        public void CanUnsubscribeOther_InUpdateLoop_And_WillBeUnsubscribed_AtEndOfTick_AscendingOrder() {
             var timeSource = new TimeSource();
             var timeProvider = new ConstantTimeProvider(1f);
             var frameCounter = new CountOnUpdate();
@@ -69,9 +69,8 @@ namespace Core {
             timeSource.Enable();
 
             timeSource.Subscribe(unsubscribeOnUpdate);
-            timeSource.Tick();
-
             timeSource.Subscribe(frameCounter);
+
             timeSource.Tick();
             Assert.IsTrue(frameCounter.Count == 1);
 
@@ -80,7 +79,7 @@ namespace Core {
         }
 
         [Test]
-        public void CanUnsubscribeOther_InUpdateLoop_DescendingOrder() {
+        public void CanUnsubscribeOther_InUpdateLoop_And_WillBeUnsubscribed_AtEndOfTick_DescendingOrder() {
             var timeSource = new TimeSource();
             var timeProvider = new ConstantTimeProvider(1f);
             var frameCounter = new CountOnUpdate();
@@ -90,12 +89,9 @@ namespace Core {
             timeSource.Enable();
 
             timeSource.Subscribe(frameCounter);
-            timeSource.Tick();
-            Assert.IsTrue(frameCounter.Count == 1);
-
             timeSource.Subscribe(unsubscribeOnUpdate);
             timeSource.Tick();
-            Assert.IsTrue(frameCounter.Count == 1);
+            Assert.IsTrue(frameCounter.Count == 0);
         }
 
         [Test]
