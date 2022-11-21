@@ -18,8 +18,6 @@ namespace MisterGames.Tick.Core {
             set => _isPaused = value;
         }
 
-        public IReadOnlyList<IUpdate> Subscribers => _updateList;
-
         private readonly List<IUpdate> _updateList = new List<IUpdate>();
         private ITimeProvider _timeProvider;
 
@@ -31,21 +29,25 @@ namespace MisterGames.Tick.Core {
         private bool _isInitialized;
         private bool _isInUpdateLoop;
 
-        public void Subscribe(IUpdate sub) {
+        public bool Subscribe(IUpdate sub) {
             int index = _updateList.IndexOf(sub);
-            if (index < 0) _updateList.Add(sub);
+            if (index >= 0) return false;
+
+            _updateList.Add(sub);
+            return true;
         }
 
-        public void Unsubscribe(IUpdate sub) {
+        public bool Unsubscribe(IUpdate sub) {
             int index = _updateList.IndexOf(sub);
-            if (index < 0) return;
+            if (index < 0) return false;
 
             if (_isInUpdateLoop) {
                 _updateList[index] = null;
-                return;
+                return true;
             }
 
             _updateList.RemoveAt(index);
+            return true;
         }
 
         public void Initialize(ITimeProvider timeProvider) {

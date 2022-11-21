@@ -7,8 +7,8 @@
 
         bool IsPaused { get; set; }
 
-        void Subscribe(IUpdate sub);
-        void Unsubscribe(IUpdate sub);
+        bool Subscribe(IUpdate sub);
+        bool Unsubscribe(IUpdate sub);
     }
 
 }

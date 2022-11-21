@@ -29,7 +29,6 @@ namespace MisterGames.Tick.Editor.TimeDomains {
             GUILayout.Space(4);
             DrawTimeDomainControlButtons(timeDomain);
             GUILayout.Space(4);
-            DrawTimeDomainSubscribers(timeDomain);
         }
 
         private void OnEditorUpdate() {
@@ -61,16 +60,6 @@ namespace MisterGames.Tick.Editor.TimeDomains {
             EditorGUILayout.IntField("FPS", fps);
 
             GUI.enabled = lastGuiState;
-        }
-
-        private static void DrawTimeDomainSubscribers(TimeDomain timeDomain) {
-            GUILayout.Label("Subscribers");
-
-            var subs = timeDomain.SourceApi.Subscribers;
-            for (int i = 0; i < subs.Count; i++) {
-                var sub = subs[i];
-                GUILayout.Label($"- {sub}");
-            }
         }
 
         private static void DrawTimeDomainState(TimeDomain timeDomain) {

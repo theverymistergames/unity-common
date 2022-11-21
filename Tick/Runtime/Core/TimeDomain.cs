@@ -11,7 +11,7 @@ namespace MisterGames.Tick.Core {
         [SerializeField] private TimerProviderType _timeProviderType;
 
         public ITimeSource Source => _timeSource;
-        public ITimeSourceApi SourceApi => _timeSource;
+        internal ITimeSourceApi SourceApi => _timeSource;
         internal TimerProviderType TimerProviderType => _timeProviderType;
 
         private readonly TimeSource _timeSource = new TimeSource();
