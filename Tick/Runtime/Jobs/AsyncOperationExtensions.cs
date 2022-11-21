@@ -1,7 +1,6 @@
-﻿using MisterGames.Tick.Jobs;
-using UnityEngine;
+﻿using UnityEngine;
 
-namespace MisterGames.Tick.Utils {
+namespace MisterGames.Tick.Jobs {
 
     public static class AsyncOperationExtensions {
 

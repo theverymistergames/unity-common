@@ -21,6 +21,10 @@ namespace MisterGames.Tick.Jobs {
         }
 
         public void Stop() { }
+
+        public void Reset() {
+            _isCompleted = false;
+        }
     }
     
 }

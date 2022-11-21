@@ -3,6 +3,8 @@
     public interface IJob : IJobReadOnly {
         void Start();
         void Stop();
+
+        void Reset();
     }
 
     public interface IJobReadOnly {

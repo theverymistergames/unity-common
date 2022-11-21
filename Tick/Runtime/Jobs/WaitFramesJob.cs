@@ -23,6 +23,11 @@ namespace MisterGames.Tick.Jobs {
             _isUpdating = false;
         }
 
+        public void Reset() {
+            _frameTimer = 0;
+            _isUpdating = false;
+        }
+
         public void OnUpdate(float dt) {
             if (!_isUpdating) return;
 

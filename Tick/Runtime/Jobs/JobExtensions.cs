@@ -1,7 +1,6 @@
 ﻿using MisterGames.Tick.Core;
-using MisterGames.Tick.Jobs;
 
-namespace MisterGames.Tick.Utils {
+namespace MisterGames.Tick.Jobs {
 
     public static class JobExtensions {
 

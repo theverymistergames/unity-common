@@ -13,8 +13,6 @@ namespace MisterGames.Tick.Jobs {
 
         public EachFrameWhileJob(Func<bool> actionWhile) {
             _actionWhile = actionWhile;
-            _isUpdating = false;
-            _isCompleted = false;
         }
         
         public void Start() {
@@ -23,6 +21,11 @@ namespace MisterGames.Tick.Jobs {
 
         public void Stop() {
             _isUpdating = false;
+        }
+
+        public void Reset() {
+            _isUpdating = false;
+            _isCompleted = false;
         }
 
         public void OnUpdate(float dt) {

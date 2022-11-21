@@ -1,11 +1,14 @@
 ﻿using System;
-using MisterGames.Tick.Jobs;
 
-namespace MisterGames.Tick.Utils {
+namespace MisterGames.Tick.Jobs {
 
     public static class Jobs {
 
         public static readonly IJob Completed = new CompletedJob();
+
+        public static JobSequenceBuilder Sequence() {
+            return new JobSequenceBuilder();
+        }
 
         public static IJob Action(Action action) {
             return new InstantJob(action);
