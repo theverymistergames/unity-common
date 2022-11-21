@@ -18,7 +18,11 @@ namespace MisterGames.Tick.Jobs {
         }
 
         public void Start() {
-            _isUpdating = true;
+            for (int i = _jobs.Count - 1; i >= 0; i--) {
+                if (_jobs[i].IsCompleted) _jobs.RemoveAt(i);
+            }
+
+            _isUpdating = _jobs.Count > 0;
         }
 
         public void Stop() {

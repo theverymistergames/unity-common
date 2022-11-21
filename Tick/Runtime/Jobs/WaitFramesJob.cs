@@ -4,21 +4,19 @@ namespace MisterGames.Tick.Jobs {
     
     internal sealed class WaitFramesJob : IJob, IUpdate {
 
-        public bool IsCompleted => _isCompleted;
+        public bool IsCompleted => _frameTimer >= _waitFrames;
 
         private readonly int _waitFrames;
 
         private int _frameTimer;
         private bool _isUpdating;
-        private bool _isCompleted;
 
         public WaitFramesJob(int waitFrames) {
             _waitFrames = waitFrames;
         }
 
         public void Start() {
-            _isCompleted = _frameTimer >= _waitFrames;
-            _isUpdating = !_isCompleted;
+            _isUpdating = _frameTimer < _waitFrames;
         }
 
         public void Stop() {
@@ -31,7 +29,6 @@ namespace MisterGames.Tick.Jobs {
             _frameTimer++;
             if (_frameTimer < _waitFrames) return;
 
-            _isCompleted = true;
             _isUpdating = false;
         }
     }

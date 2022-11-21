@@ -4,21 +4,19 @@ namespace MisterGames.Tick.Jobs {
     
     internal sealed class DelayJob : IJob, IUpdate {
 
-        public bool IsCompleted => _isCompleted;
+        public bool IsCompleted => _timer >= _delay;
 
         private readonly float _delay;
 
         private float _timer;
         private bool _isUpdating;
-        private bool _isCompleted;
 
         public DelayJob(float delaySeconds) {
             _delay = delaySeconds;
         }
 
         public void Start() {
-            _isCompleted = _timer >= _delay;
-            _isUpdating = !_isCompleted;
+            _isUpdating = _timer < _delay;
         }
 
         public void Stop() {
@@ -29,10 +27,7 @@ namespace MisterGames.Tick.Jobs {
             if (!_isUpdating) return;
 
             _timer += dt;
-            if (_timer < _delay) return;
-
-            _isCompleted = true;
-            _isUpdating = false;
+            _isUpdating = _timer < _delay;
         }
     }
     

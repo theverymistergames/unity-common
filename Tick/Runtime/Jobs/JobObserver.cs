@@ -1,16 +1,10 @@
 ﻿using System.Collections.Generic;
-using MisterGames.Tick.Core;
 
 namespace MisterGames.Tick.Jobs {
     
     public sealed class JobObserver : IJobReadOnly {
 
-        public bool IsCompleted {
-            get {
-                RemoveCompletedJobs();
-                return _jobs.Count == 0;
-            }
-        }
+        public bool IsCompleted => CheckCompletion();
 
         private readonly List<IJobReadOnly> _jobs = new List<IJobReadOnly>();
 
@@ -27,6 +21,11 @@ namespace MisterGames.Tick.Jobs {
 
         public void Clear() {
             _jobs.Clear();
+        }
+
+        private bool CheckCompletion() {
+            RemoveCompletedJobs();
+            return _jobs.Count == 0;
         }
 
         private void RemoveCompletedJobs() {

@@ -5,12 +5,11 @@ namespace MisterGames.Tick.Jobs {
     
     public sealed class JobSequence : IJob, IUpdate {
 
-        public bool IsCompleted => _isCompleted;
+        public bool IsCompleted => _jobs.Count == 0;
 
         private readonly Queue<IJob> _jobs = new Queue<IJob>();
 
         private bool _isUpdating;
-        private bool _isCompleted;
 
         private JobSequence() { }
 
@@ -24,16 +23,10 @@ namespace MisterGames.Tick.Jobs {
         }
 
         public void Start() {
-            if (_isCompleted) return;
+            if (IsCompleted) return;
 
             StartJobsTillUnableToComplete();
-
-            if (_jobs.Count == 0) {
-                SetCompleted();
-                return;
-            }
-
-            SetUpdating();
+            _isUpdating = _jobs.Count > 0;
         }
 
         public void Stop() {
@@ -45,15 +38,22 @@ namespace MisterGames.Tick.Jobs {
             if (!_isUpdating) return;
 
             if (!_jobs.TryPeek(out var job)) {
-                SetCompleted();
+                _isUpdating = false;
+                return;
+            }
+
+            if (job.IsCompleted) {
+                StartJobsTillUnableToComplete();
+                _isUpdating = _jobs.Count > 0;
                 return;
             }
 
             if (job is IUpdate update) update.OnUpdate(dt);
-            if (!job.IsCompleted) return;
 
-            StartJobsTillUnableToComplete();
-            if (_jobs.Count == 0) SetCompleted();
+            if (job.IsCompleted) {
+                StartJobsTillUnableToComplete();
+                _isUpdating = _jobs.Count > 0;
+            }
         }
 
         private void StartJobsTillUnableToComplete() {
@@ -63,16 +63,6 @@ namespace MisterGames.Tick.Jobs {
 
                 _jobs.Dequeue();
             }
-        }
-
-        private void SetUpdating() {
-            _isUpdating = true;
-            _isCompleted = false;
-        }
-
-        private void SetCompleted() {
-            _isUpdating = false;
-            _isCompleted = true;
         }
     }
     

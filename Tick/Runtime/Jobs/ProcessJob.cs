@@ -6,12 +6,12 @@ namespace MisterGames.Tick.Jobs {
     
     internal sealed class ProcessJob : IJob, IUpdate {
 
-        public bool IsCompleted => _isCompleted;
+        public bool IsCompleted => _process >= 1f;
 
         private readonly Func<float> _getProcess;
         private readonly Action<float> _action;
 
-        private bool _isCompleted = false;
+        private float _process;
         private bool _isUpdating = false;
 
         public ProcessJob(Func<float> getProcess, Action<float> action) {
@@ -20,16 +20,7 @@ namespace MisterGames.Tick.Jobs {
         }
         
         public void Start() {
-            if (_isCompleted) {
-                _isUpdating = false;
-                return;
-            }
-
-            float process = Mathf.Clamp01(_getProcess.Invoke());
-            _action.Invoke(process);
-
-            _isUpdating = process < 1f;
-            _isCompleted = !_isUpdating;
+            _isUpdating = _process < 1f;
         }
 
         public void Stop() {
@@ -39,13 +30,10 @@ namespace MisterGames.Tick.Jobs {
         public void OnUpdate(float dt) {
             if (!_isUpdating) return;
 
-            float process = Mathf.Clamp01(_getProcess.Invoke());
-            _action.Invoke(process);
+            _process = Mathf.Clamp01(_getProcess.Invoke());
+            _action.Invoke(_process);
 
-            if (process < 1f) return;
-
-            _isCompleted = true;
-            _isUpdating = false;
+            _isUpdating = _process < 1;
         }
     }
     
