@@ -56,7 +56,6 @@ namespace Jobs {
             Assert.IsTrue(resultJob.Result.Equals(input));
             Assert.IsTrue(sequence.Result.Equals(input));
         }
-
     }
 
 }
