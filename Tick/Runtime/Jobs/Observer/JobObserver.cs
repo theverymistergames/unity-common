@@ -18,12 +18,6 @@ namespace MisterGames.Tick.Jobs {
             RemoveCompletedJobs();
         }
 
-        public void StopAll() {
-            for (int i = 0; i < _jobs.Count; i++) {
-                if (_jobs[i] is IJob job) job.Stop();
-            }
-        }
-
         public void Clear() {
             _jobs.Clear();
         }

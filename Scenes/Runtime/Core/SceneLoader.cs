@@ -50,9 +50,11 @@ namespace MisterGames.Scenes.Core {
             SceneManager.sceneLoaded -= OnSceneLoaded;
             SceneManager.sceneUnloaded -= OnSceneUnloaded;
 
-            _loadedScenes.Clear();
+            foreach (var loading in _sceneLoadingJobMap.Values) {
+                loading.job.Stop();
+            }
 
-            _totalLoadingJobs.StopAll();
+            _loadedScenes.Clear();
             _totalLoadingJobs.Clear();
         }
 
