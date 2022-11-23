@@ -29,6 +29,57 @@ namespace JobTests {
         }
 
         [Test]
+        public void EachFrameAction_CanBeStopped() {
+            var timeSource = new TimeSource();
+            var timeProvider = new ConstantTimeProvider(1f);
+
+            int counter = 0;
+            var job = Jobs.EachFrame(() => counter++);
+
+            timeSource.Initialize(timeProvider);
+            timeSource.Enable();
+
+            timeSource.Run(job);
+            timeSource.Tick();
+            Assert.IsTrue(counter == 1);
+
+            job.Stop();
+            timeSource.Tick();
+            Assert.IsTrue(counter == 1);
+
+            timeSource.Tick();
+            Assert.IsTrue(counter == 1);
+        }
+
+        [Test]
+        public void EachFrameAction_CanBeStarted_AfterStop() {
+            var timeSource = new TimeSource();
+            var timeProvider = new ConstantTimeProvider(1f);
+
+            int counter = 0;
+            var job = Jobs.EachFrame(() => counter++);
+
+            timeSource.Initialize(timeProvider);
+            timeSource.Enable();
+
+            timeSource.Run(job);
+            timeSource.Tick();
+            Assert.IsTrue(counter == 1);
+
+            job.Stop();
+            timeSource.Tick();
+            timeSource.Tick();
+            Assert.IsTrue(counter == 1);
+
+            job.Start();
+            timeSource.Tick();
+            Assert.IsTrue(counter == 2);
+
+            timeSource.Tick();
+            Assert.IsTrue(counter == 3);
+        }
+
+        [Test]
         public void EachFrameWhile_IsCompleting_AfterActionWhileReturnsFalse() {
             var timeSource = new TimeSource();
             var timeProvider = new ConstantTimeProvider(1f);

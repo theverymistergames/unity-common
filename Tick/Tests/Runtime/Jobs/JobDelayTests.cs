@@ -70,6 +70,48 @@ namespace JobTests {
             timeSource.Tick();
             Assert.IsTrue(job2.IsCompleted);
         }
+
+        [Test]
+        public void Delay_CanBeStopped() {
+            var timeSource = new TimeSource();
+            var timeProvider = new ConstantTimeProvider(1f);
+
+            var job = Jobs.Delay(2f);
+
+            timeSource.Initialize(timeProvider);
+            timeSource.Enable();
+
+            timeSource.Run(job);
+            timeSource.Tick();
+            Assert.IsTrue(!job.IsCompleted);
+
+            job.Stop();
+            timeSource.Tick();
+            Assert.IsTrue(!job.IsCompleted);
+        }
+
+        [Test]
+        public void Delay_CanBeStopped_ThenCanBeContinued() {
+            var timeSource = new TimeSource();
+            var timeProvider = new ConstantTimeProvider(1f);
+
+            var job = Jobs.Delay(2f);
+
+            timeSource.Initialize(timeProvider);
+            timeSource.Enable();
+
+            timeSource.Run(job);
+            timeSource.Tick();
+            Assert.IsTrue(!job.IsCompleted);
+
+            job.Stop();
+            timeSource.Tick();
+            Assert.IsTrue(!job.IsCompleted);
+
+            job.Start();
+            timeSource.Tick();
+            Assert.IsTrue(job.IsCompleted);
+        }
     }
 
 }

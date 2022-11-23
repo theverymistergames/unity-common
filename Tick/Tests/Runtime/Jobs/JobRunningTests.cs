@@ -21,6 +21,22 @@ namespace JobTests {
         }
 
         [Test]
+        public void IsNotStarting_Job_If_CompletedBeforeStart() {
+            var timeSource = new TimeSource();
+            var timeProvider = new ConstantTimeProvider(1f);
+
+            bool actionCalled = false;
+            var job = new ActionOnStartJob(j => actionCalled = true);
+
+            timeSource.Initialize(timeProvider);
+            timeSource.Enable();
+
+            job.ForceComplete();
+            timeSource.Run(job);
+            Assert.IsTrue(!actionCalled);
+        }
+
+        [Test]
         public void IsNotSubscribing_UpdateJob_If_CompletedBeforeStart() {
             var timeSource = new TimeSource();
             var timeProvider = new ConstantTimeProvider(1f);
