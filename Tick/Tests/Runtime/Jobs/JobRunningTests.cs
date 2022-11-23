@@ -3,7 +3,7 @@ using MisterGames.Tick.Jobs;
 using NUnit.Framework;
 using Utils;
 
-namespace Jobs {
+namespace JobTests {
 
     public class JobRunningTests {
 

@@ -3,15 +3,21 @@ using MisterGames.Tick.Jobs;
 using NUnit.Framework;
 using Utils;
 
-namespace Jobs {
+namespace JobTests {
 
     public class JobSequenceResultTests {
 
         [Test]
-        [TestCase(1)]
-        [TestCase(2f)]
-        [TestCase("abc")]
-        public void NextJob_InSequence_CanReceiveResult_FromPreviousResultJob<R>(R input) {
+        public void NextJob_InSequence_CanReceiveResult_FromPreviousResultJob_Test() {
+            NextJob_InSequence_CanReceiveResult_FromPreviousResultJob(1);
+            NextJob_InSequence_CanReceiveResult_FromPreviousResultJob(2f);
+            NextJob_InSequence_CanReceiveResult_FromPreviousResultJob("abc");
+            NextJob_InSequence_CanReceiveResult_FromPreviousResultJob<object>(null);
+            NextJob_InSequence_CanReceiveResult_FromPreviousResultJob(new object());
+            NextJob_InSequence_CanReceiveResult_FromPreviousResultJob(new ActionOnStartJob());
+        }
+
+        private static void NextJob_InSequence_CanReceiveResult_FromPreviousResultJob<R>(R input) {
             var timeSource = new TimeSource();
             var timeProvider = new ConstantTimeProvider(1f);
 
@@ -32,14 +38,26 @@ namespace Jobs {
             Assert.IsTrue(sequence.IsCompleted);
             Assert.IsTrue(resultJob0.IsCompleted);
             Assert.IsTrue(resultJob1.IsCompleted);
+
+            if (input == null) {
+                Assert.IsTrue(resultJob1.Result == null);
+                return;
+            }
+
             Assert.IsTrue(resultJob1.Result.Equals(input));
         }
 
         [Test]
-        [TestCase(1)]
-        [TestCase(2f)]
-        [TestCase("abc")]
-        public void LastResultJob_InSequence_IsSequenceResultJob<R>(R input) {
+        public void LastResultJob_InSequence_IsSequenceResultJob() {
+            LastResultJob_InSequence_IsSequenceResultJob_Test(1);
+            LastResultJob_InSequence_IsSequenceResultJob_Test(2f);
+            LastResultJob_InSequence_IsSequenceResultJob_Test("abc");
+            LastResultJob_InSequence_IsSequenceResultJob_Test<object>(null);
+            LastResultJob_InSequence_IsSequenceResultJob_Test(new object());
+            LastResultJob_InSequence_IsSequenceResultJob_Test(new ActionOnStartJob());
+        }
+
+        private static void LastResultJob_InSequence_IsSequenceResultJob_Test<R>(R input) {
             var timeSource = new TimeSource();
             var timeProvider = new ConstantTimeProvider(1f);
 
@@ -53,6 +71,13 @@ namespace Jobs {
             timeSource.Run(sequence);
             Assert.IsTrue(sequence.IsCompleted);
             Assert.IsTrue(resultJob.IsCompleted);
+
+            if (input == null) {
+                Assert.IsTrue(resultJob.Result == null);
+                Assert.IsTrue(sequence.Result == null);
+                return;
+            }
+
             Assert.IsTrue(resultJob.Result.Equals(input));
             Assert.IsTrue(sequence.Result.Equals(input));
         }
