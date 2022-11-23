@@ -1,8 +1,9 @@
 ﻿using MisterGames.Tick.Core;
 using MisterGames.Tick.Jobs;
 using NUnit.Framework;
+using Utils;
 
-namespace Core {
+namespace Jobs {
 
     public class JobSequenceTests {
 
