@@ -1,11 +1,10 @@
 ﻿using System.Collections.Generic;
 using MisterGames.Blueprints;
 using MisterGames.Blueprints.Core;
-using MisterGames.Tick.Core;
 using MisterGames.Scenes.Core;
 using MisterGames.Scenes.Transactions;
+using MisterGames.Tick.Core;
 using MisterGames.Tick.Jobs;
-using MisterGames.Tick.Utils;
 using UnityEngine;
 
 namespace MisterGames.BlueprintLib {
@@ -38,7 +37,7 @@ namespace MisterGames.BlueprintLib {
             _loadSceneJob?.Stop();
 
             _loadSceneJob = JobSequence.Create()
-                .WaitCompletion(SceneLoader.Instance.CommitTransaction(_sceneTransactions))
+                .Wait(SceneLoader.Instance.CommitTransaction(_sceneTransactions))
                 .Action(OnFinish)
                 .RunFrom(_timeSource);
         }

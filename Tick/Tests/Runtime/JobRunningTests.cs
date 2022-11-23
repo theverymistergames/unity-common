@@ -1,5 +1,5 @@
 ﻿using MisterGames.Tick.Core;
-using MisterGames.Tick.Utils;
+using MisterGames.Tick.Jobs;
 using NUnit.Framework;
 
 namespace Core {

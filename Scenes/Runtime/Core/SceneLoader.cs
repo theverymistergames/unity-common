@@ -2,7 +2,6 @@
 using MisterGames.Scenes.Transactions;
 using MisterGames.Tick.Core;
 using MisterGames.Tick.Jobs;
-using MisterGames.Tick.Utils;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -83,7 +82,7 @@ namespace MisterGames.Scenes.Core {
             }
 
             var job = JobSequence.Create()
-                .WaitCompletion(SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive).AsReadOnlyJob())
+                .Wait(SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive).AsReadOnlyJob())
                 .Action(() => {
                     if (makeActive) SceneManager.SetActiveScene(_loadedScenes[sceneName]);
                     _sceneLoadingJobMap.Remove(sceneName);
@@ -120,7 +119,7 @@ namespace MisterGames.Scenes.Core {
             }
 
             var job = JobSequence.Create()
-                .WaitCompletion(SceneManager.UnloadSceneAsync(scene).AsReadOnlyJob())
+                .Wait(SceneManager.UnloadSceneAsync(scene).AsReadOnlyJob())
                 .Action(() => _sceneLoadingJobMap.Remove(sceneName));
 
             _sceneLoadingJobMap[sceneName] = new LoadingJob {

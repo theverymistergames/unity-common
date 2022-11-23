@@ -2,7 +2,6 @@
 using MisterGames.Scenes.Core;
 using MisterGames.Tick.Core;
 using MisterGames.Tick.Jobs;
-using MisterGames.Tick.Utils;
 using UnityEngine;
 
 namespace MisterGames.Scenes.Transactions {
@@ -17,16 +16,17 @@ namespace MisterGames.Scenes.Transactions {
 
         [SerializeField] private SceneTransactions _sceneTransactions;
 
-        private IJob _loadSceneJob;
         private float _startTime;
         private bool _exitedOnce;
 
+        private IJob _loadJob;
+
         private void OnDestroy() {
-            _loadSceneJob?.Stop();
+            _loadJob?.Stop();
         }
 
         private void OnDisable() {
-            _loadSceneJob?.Stop();
+            _loadJob?.Stop();
         }
 
         private void Start() {
@@ -37,7 +37,7 @@ namespace MisterGames.Scenes.Transactions {
             if (!enabled) return;
             if (!CanTriggerByStartTime() || !CanTriggerByFilter(other.gameObject)) return;
             
-            StartLoad();
+            RestartLoadJob();
         }
 
         private void OnTriggerExit(Collider other) {
@@ -47,19 +47,19 @@ namespace MisterGames.Scenes.Transactions {
             _exitedOnce = true;
         }
 
-        private void StartLoad() {
-            _loadSceneJob?.Stop();
+        private void RestartLoadJob() {
+            _loadJob?.Stop();
 
-            _loadSceneJob = JobSequence.Create()
+            _loadJob = JobSequence.Create()
                 .Delay(_loadDelay)
-                .WaitCompletion(SceneLoader.Instance.CommitTransaction(_sceneTransactions))
+                .Wait(SceneLoader.Instance.CommitTransaction(_sceneTransactions))
                 .RunFrom(_timeDomain.Source);
         }
 
         private bool CanTriggerByFilter(GameObject go) {
             return _layerMask.Contains(go.layer);
         }
-        
+
         private bool CanTriggerByStartTime() {
             if (_exitedOnce) return true;
             float timeSinceStartup = Time.realtimeSinceStartup;

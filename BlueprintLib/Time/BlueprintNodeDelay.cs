@@ -1,9 +1,7 @@
 ﻿using System.Collections.Generic;
 using MisterGames.Blueprints;
 using MisterGames.Blueprints.Core;
-using MisterGames.Tick.Core;
 using MisterGames.Tick.Jobs;
-using MisterGames.Tick.Utils;
 using UnityEngine;
 
 namespace MisterGames.BlueprintLib {
