@@ -16,7 +16,6 @@ namespace MisterGames.BlueprintLib {
         [SerializeField] private bool _isInfinite;
 
         private IJob _scheduleJob;
-        private ITimeSource _timeSource;
         
         protected override IReadOnlyList<Port> CreatePorts() => new List<Port> {
             Port.Enter("Start"),
@@ -43,7 +42,7 @@ namespace MisterGames.BlueprintLib {
                 float period = Read(3, _period);
                 int times = Read(4, _times);
                 
-                _scheduleJob = GetJob(startDelay, period, times).RunFrom(_timeSource);
+                _scheduleJob = GetJob(startDelay, period, times).RunFrom(runner.TimeSource);
                 return;
             }
 

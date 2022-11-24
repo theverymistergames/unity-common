@@ -15,7 +15,6 @@ namespace MisterGames.BlueprintLib {
         [SerializeField] private SceneTransactions _sceneTransactions;
 
         private IJob _loadSceneJob;
-        private ITimeSource _timeSource;
         
         protected override IReadOnlyList<Port> CreatePorts() => new List<Port> {
             Port.Enter(),
@@ -24,7 +23,6 @@ namespace MisterGames.BlueprintLib {
 
         protected override void OnInit() {
             _loadSceneJob?.Stop();
-            _timeSource = runner.TimeSource;
         }
 
         protected override void OnTerminate() {
@@ -39,7 +37,7 @@ namespace MisterGames.BlueprintLib {
             _loadSceneJob = JobSequence.Create()
                 .Wait(SceneLoader.Instance.CommitTransaction(_sceneTransactions))
                 .Action(OnFinish)
-                .RunFrom(_timeSource);
+                .RunFrom(runner.TimeSource);
         }
 
         private void OnFinish() {
