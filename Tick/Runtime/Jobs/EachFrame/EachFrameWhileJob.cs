@@ -5,18 +5,17 @@ namespace MisterGames.Tick.Jobs {
     
     internal sealed class EachFrameWhileJob : IJob, IUpdate {
 
-        public bool IsCompleted => _isCompleted;
+        public bool IsCompleted { get; private set; }
 
         private readonly Func<bool> _actionWhile;
         private bool _isUpdating;
-        private bool _isCompleted;
 
         public EachFrameWhileJob(Func<bool> actionWhile) {
             _actionWhile = actionWhile;
         }
         
         public void Start() {
-            _isUpdating = !_isCompleted;
+            _isUpdating = !IsCompleted;
         }
 
         public void Stop() {
@@ -28,7 +27,7 @@ namespace MisterGames.Tick.Jobs {
 
             if (_actionWhile.Invoke()) return;
 
-            _isCompleted = true;
+            IsCompleted = true;
             _isUpdating = false;
         }
     }

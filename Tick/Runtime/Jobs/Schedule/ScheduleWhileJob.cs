@@ -5,14 +5,13 @@ namespace MisterGames.Tick.Jobs {
     
     internal sealed class ScheduleWhileJob : IJob, IUpdate {
 
-        public bool IsCompleted => _isCompleted;
+        public bool IsCompleted { get; private set; }
 
         private readonly Func<bool> _actionWhile;
         private readonly float _period;
 
         private float _timer;
         private bool _isUpdating;
-        private bool _isCompleted;
 
         public ScheduleWhileJob(float period, Func<bool> actionWhile) {
             _actionWhile = actionWhile;
@@ -20,7 +19,7 @@ namespace MisterGames.Tick.Jobs {
         }
         
         public void Start() {
-            _isUpdating = !_isCompleted;
+            _isUpdating = !IsCompleted;
         }
 
         public void Stop() {
@@ -36,7 +35,7 @@ namespace MisterGames.Tick.Jobs {
             _timer = 0f;
             if (_actionWhile.Invoke()) return;
 
-            _isCompleted = true;
+            IsCompleted = true;
         }
     }
     
