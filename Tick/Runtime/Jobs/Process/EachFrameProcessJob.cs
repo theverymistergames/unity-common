@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace MisterGames.Tick.Jobs {
     
-    internal sealed class ProcessJob : IJob, IUpdate {
+    internal sealed class EachFrameProcessJob : IJob, IUpdate {
 
         public bool IsCompleted => _process >= 1f;
 
@@ -12,11 +12,11 @@ namespace MisterGames.Tick.Jobs {
         private readonly Action<float> _action;
 
         private float _process;
-        private bool _isUpdating = false;
+        private bool _isUpdating;
 
-        public ProcessJob(Func<float> getProcess, Action<float> action) {
-            _action = action;
+        public EachFrameProcessJob(Func<float> getProcess, Action<float> action) {
             _getProcess = getProcess;
+            _action = action;
         }
         
         public void Start() {
@@ -27,18 +27,13 @@ namespace MisterGames.Tick.Jobs {
             _isUpdating = false;
         }
 
-        public void Reset() {
-            _isUpdating = false;
-            _process = 0f;
-        }
-
         public void OnUpdate(float dt) {
             if (!_isUpdating) return;
 
             _process = Mathf.Clamp01(_getProcess.Invoke());
             _action.Invoke(_process);
 
-            _isUpdating = _process < 1;
+            _isUpdating = _process < 1f;
         }
     }
     

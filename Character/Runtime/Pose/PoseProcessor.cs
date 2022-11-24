@@ -106,7 +106,7 @@ namespace MisterGames.Character.Pose {
 
             _changePoseJob?.Stop();
             _changePoseJob = Jobs
-                .Process(
+                .EachFrameProcess(
                     getProcess: () => {
                         time += _timeDomain.Source.DeltaTime;
                         return duration.IsNearlyZero() ? 1f : time / duration;
