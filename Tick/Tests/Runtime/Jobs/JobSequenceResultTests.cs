@@ -39,12 +39,7 @@ namespace JobTests {
             Assert.IsTrue(resultJob0.IsCompleted);
             Assert.IsTrue(resultJob1.IsCompleted);
 
-            if (input == null) {
-                Assert.IsTrue(resultJob1.Result == null);
-                return;
-            }
-
-            Assert.IsTrue(resultJob1.Result.Equals(input));
+            Assert.AreEqual(input, resultJob1.Result);
         }
 
         [Test]
@@ -78,8 +73,8 @@ namespace JobTests {
                 return;
             }
 
-            Assert.IsTrue(resultJob.Result.Equals(input));
-            Assert.IsTrue(sequence.Result.Equals(input));
+            Assert.AreEqual(input, resultJob.Result);
+            Assert.AreEqual(input, sequence.Result);
         }
     }
 

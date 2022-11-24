@@ -1,5 +1,4 @@
-﻿using MisterGames.Common.Maths;
-using MisterGames.Tick.Core;
+﻿using MisterGames.Tick.Core;
 using NUnit.Framework;
 using Utils;
 
@@ -24,19 +23,19 @@ namespace Core {
             var timeProvider = new ConstantTimeProvider(1f);
 
             timeSource.Initialize(timeProvider);
-            Assert.IsTrue(timeSource.DeltaTime.IsNearlyEqual(0f));
+            Assert.AreEqual(0f, timeSource.DeltaTime);
 
             timeSource.Enable();
-            Assert.IsTrue(timeSource.DeltaTime.IsNearlyEqual(1f));
+            Assert.AreEqual(1f, timeSource.DeltaTime);
 
             timeSource.DeInitialize();
-            Assert.IsTrue(timeSource.DeltaTime.IsNearlyEqual(0f));
+            Assert.AreEqual(0f, timeSource.DeltaTime);
 
             timeSource.Enable();
-            Assert.IsTrue(timeSource.DeltaTime.IsNearlyEqual(0f));
+            Assert.AreEqual(0f, timeSource.DeltaTime);
 
             timeSource.Initialize(timeProvider);
-            Assert.IsTrue(timeSource.DeltaTime.IsNearlyEqual(1f));
+            Assert.AreEqual(1f, timeSource.DeltaTime);
         }
 
         [Test]
@@ -47,25 +46,25 @@ namespace Core {
             timeSource.Initialize(timeProvider);
 
             timeSource.Enable();
-            Assert.IsTrue(timeSource.DeltaTime.IsNearlyEqual(1f));
+            Assert.AreEqual(1f, timeSource.DeltaTime);
 
             timeSource.Disable();
-            Assert.IsTrue(timeSource.DeltaTime.IsNearlyEqual(0f));
+            Assert.AreEqual(0f, timeSource.DeltaTime);
 
             timeSource.Enable();
-            Assert.IsTrue(timeSource.DeltaTime.IsNearlyEqual(1f));
+            Assert.AreEqual(1f, timeSource.DeltaTime);
 
             timeSource.DeInitialize();
             timeSource.Initialize(timeProvider);
 
             timeSource.Enable();
-            Assert.IsTrue(timeSource.DeltaTime.IsNearlyEqual(1f));
+            Assert.AreEqual(1f, timeSource.DeltaTime);
 
             timeSource.Disable();
-            Assert.IsTrue(timeSource.DeltaTime.IsNearlyEqual(0f));
+            Assert.AreEqual(0f, timeSource.DeltaTime);
 
             timeSource.Enable();
-            Assert.IsTrue(timeSource.DeltaTime.IsNearlyEqual(1f));
+            Assert.AreEqual(1f, timeSource.DeltaTime);
         }
 
         [Test]
@@ -74,25 +73,25 @@ namespace Core {
             var timeProvider = new ConstantTimeProvider(1f);
 
             timeSource.Enable();
-            Assert.IsTrue(timeSource.DeltaTime.IsNearlyEqual(0f));
+            Assert.AreEqual(0f, timeSource.DeltaTime);
 
             timeSource.Disable();
-            Assert.IsTrue(timeSource.DeltaTime.IsNearlyEqual(0f));
+            Assert.AreEqual(0f, timeSource.DeltaTime);
 
             timeSource.Enable();
-            Assert.IsTrue(timeSource.DeltaTime.IsNearlyEqual(0f));
+            Assert.AreEqual(0f, timeSource.DeltaTime);
 
             timeSource.Initialize(timeProvider);
             timeSource.DeInitialize();
 
             timeSource.Enable();
-            Assert.IsTrue(timeSource.DeltaTime.IsNearlyEqual(0f));
+            Assert.AreEqual(0f, timeSource.DeltaTime);
 
             timeSource.Disable();
-            Assert.IsTrue(timeSource.DeltaTime.IsNearlyEqual(0f));
+            Assert.AreEqual(0f, timeSource.DeltaTime);
 
             timeSource.Enable();
-            Assert.IsTrue(timeSource.DeltaTime.IsNearlyEqual(0f));
+            Assert.AreEqual(0f, timeSource.DeltaTime);
         }
 
         [Test]
@@ -109,10 +108,10 @@ namespace Core {
             timeSource.Subscribe(disableOnUpdate);
 
             timeSource.Tick();
-            Assert.IsTrue(frameCounter.Count == 1);
+            Assert.AreEqual(1, frameCounter.Count);
 
             timeSource.Tick();
-            Assert.IsTrue(frameCounter.Count == 1);
+            Assert.AreEqual(1, frameCounter.Count);
         }
 
         [Test]
@@ -129,10 +128,10 @@ namespace Core {
             timeSource.Subscribe(frameCounter);
 
             timeSource.Tick();
-            Assert.IsTrue(frameCounter.Count == 1);
+            Assert.AreEqual(1, frameCounter.Count);
 
             timeSource.Tick();
-            Assert.IsTrue(frameCounter.Count == 1);
+            Assert.AreEqual(1, frameCounter.Count);
         }
 
         [Test]
@@ -149,10 +148,10 @@ namespace Core {
             timeSource.Subscribe(disableOnUpdate);
 
             timeSource.Tick();
-            Assert.IsTrue(frameCounter.Count == 1);
+            Assert.AreEqual(1, frameCounter.Count);
 
             timeSource.Tick();
-            Assert.IsTrue(frameCounter.Count == 1);
+            Assert.AreEqual(1, frameCounter.Count);
         }
 
         [Test]
@@ -169,10 +168,10 @@ namespace Core {
             timeSource.Subscribe(frameCounter);
 
             timeSource.Tick();
-            Assert.IsTrue(frameCounter.Count == 1);
+            Assert.AreEqual(1, frameCounter.Count);
 
             timeSource.Tick();
-            Assert.IsTrue(frameCounter.Count == 1);
+            Assert.AreEqual(1, frameCounter.Count);
         }
     }
 

@@ -17,10 +17,10 @@ namespace Core {
 
             timeSource.Subscribe(frameCounter);
             timeSource.Tick();
-            Assert.IsTrue(frameCounter.Count == 1);
+            Assert.AreEqual(1, frameCounter.Count);
 
             timeSource.Tick();
-            Assert.IsTrue(frameCounter.Count == 2);
+            Assert.AreEqual(2, frameCounter.Count);
         }
 
         [Test]
@@ -34,11 +34,11 @@ namespace Core {
 
             timeSource.Subscribe(frameCounter);
             timeSource.Tick();
-            Assert.IsTrue(frameCounter.Count == 1);
+            Assert.AreEqual(1, frameCounter.Count);
 
             timeSource.Unsubscribe(frameCounter);
             timeSource.Tick();
-            Assert.IsTrue(frameCounter.Count == 1);
+            Assert.AreEqual(1, frameCounter.Count);
         }
 
         [Test]
@@ -53,10 +53,10 @@ namespace Core {
 
             timeSource.Subscribe(subscribeOnUpdate);
             timeSource.Tick();
-            Assert.IsTrue(frameCounter.Count == 0);
+            Assert.AreEqual(0, frameCounter.Count);
 
             timeSource.Tick();
-            Assert.IsTrue(frameCounter.Count == 1);
+            Assert.AreEqual(1, frameCounter.Count);
         }
 
         [Test]
@@ -73,10 +73,10 @@ namespace Core {
             timeSource.Subscribe(frameCounter);
 
             timeSource.Tick();
-            Assert.IsTrue(frameCounter.Count == 1);
+            Assert.AreEqual(1, frameCounter.Count);
 
             timeSource.Tick();
-            Assert.IsTrue(frameCounter.Count == 1);
+            Assert.AreEqual(1, frameCounter.Count);
         }
 
         [Test]
@@ -92,7 +92,7 @@ namespace Core {
             timeSource.Subscribe(frameCounter);
             timeSource.Subscribe(unsubscribeOnUpdate);
             timeSource.Tick();
-            Assert.IsTrue(frameCounter.Count == 0);
+            Assert.AreEqual(0, frameCounter.Count);
         }
 
         [Test]

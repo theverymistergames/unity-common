@@ -166,11 +166,11 @@ namespace JobTests {
 
             timeSource.Run(sequence);
             timeSource.Tick();
-            Assert.IsTrue(job.Count == 1);
+            Assert.AreEqual(1, job.Count);
 
             sequence.Stop();
             timeSource.Tick();
-            Assert.IsTrue(job.Count == 1);
+            Assert.AreEqual(1, job.Count);
         }
 
         [Test]
@@ -192,7 +192,7 @@ namespace JobTests {
 
             timeSource.Subscribe(stopOnUpdate);
             timeSource.Tick();
-            Assert.IsTrue(job.Count == 1);
+            Assert.AreEqual(1, job.Count);
             Assert.IsTrue(job.IsStopped);
         }
 
@@ -213,7 +213,7 @@ namespace JobTests {
             timeSource.Run(sequence);
             timeSource.Tick();
 
-            Assert.IsTrue(job.Count == 1);
+            Assert.AreEqual(1, job.Count);
             Assert.IsTrue(job.IsStopped);
         }
 
@@ -231,16 +231,16 @@ namespace JobTests {
 
             timeSource.Run(sequence);
             timeSource.Tick();
-            Assert.IsTrue(job.Count == 1);
+            Assert.AreEqual(1, job.Count);
 
             sequence.Stop();
             timeSource.Tick();
-            Assert.IsTrue(job.Count == 1);
+            Assert.AreEqual(1, job.Count);
             Assert.IsTrue(job.IsStopped);
 
             sequence.Start();
             timeSource.Tick();
-            Assert.IsTrue(job.Count == 2);
+            Assert.AreEqual(2, job.Count);
         }
 
         [Test]
@@ -260,11 +260,11 @@ namespace JobTests {
             sequence.Stop();
 
             timeSource.Tick();
-            Assert.IsTrue(job.Count == 0);
+            Assert.AreEqual(0, job.Count);
 
             timeSource.Subscribe(startOnUpdate);
             timeSource.Tick();
-            Assert.IsTrue(job.Count == 1);
+            Assert.AreEqual(1, job.Count);
         }
 
         [Test]
@@ -286,10 +286,10 @@ namespace JobTests {
             sequence.Stop();
 
             timeSource.Tick();
-            Assert.IsTrue(job.Count == 0);
+            Assert.AreEqual(0, job.Count);
 
             timeSource.Tick();
-            Assert.IsTrue(job.Count == 1);
+            Assert.AreEqual(1, job.Count);
         }
     }
 

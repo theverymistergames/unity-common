@@ -1,5 +1,4 @@
-﻿using MisterGames.Common.Maths;
-using MisterGames.Tick.Core;
+﻿using MisterGames.Tick.Core;
 using MisterGames.Tick.Jobs;
 using NUnit.Framework;
 using Utils;
@@ -77,12 +76,12 @@ namespace JobTests {
         [TestCase(0.5f)]
         [TestCase(1f)]
         [TestCase(2f)]
-        public void ProcessValue_IsInRange_BetweenOneAndZero_Inclusive(float process) {
+        public void ProcessValue_IsInRange_BetweenOneAndZero_Inclusive(float input) {
             var timeSource = new TimeSource();
             var timeProvider = new ConstantTimeProvider(1f);
 
             float processValue = 0f;
-            var job = Jobs.EachFrameProcess(() => process, result => processValue = result);
+            var job = Jobs.EachFrameProcess(() => input, result => processValue = result);
 
             timeSource.Initialize(timeProvider);
             timeSource.Enable();
@@ -90,17 +89,17 @@ namespace JobTests {
             timeSource.Run(job);
             timeSource.Tick();
 
-            if (process <= 0f) {
-                Assert.IsTrue(processValue.IsNearlyZero());
+            if (input <= 0f) {
+                Assert.AreEqual(0f, processValue);
                 return;
             }
 
-            if (process >= 1f) {
-                Assert.IsTrue(processValue.IsNearlyEqual(1f));
+            if (input >= 1f) {
+                Assert.AreEqual(1f, processValue);
                 return;
             }
 
-            Assert.IsTrue(processValue.IsNearlyEqual(process));
+            Assert.AreEqual(input, processValue);
         }
     }
 

@@ -62,10 +62,10 @@ namespace JobTests {
 
             timeSource.Run(job);
             timeSource.Tick();
-            Assert.IsTrue(job.Count == 1);
+            Assert.AreEqual(1, job.Count);
 
             timeSource.Tick();
-            Assert.IsTrue(job.Count == 2);
+            Assert.AreEqual(2, job.Count);
         }
 
         [Test]

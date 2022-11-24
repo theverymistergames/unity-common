@@ -21,7 +21,7 @@ namespace JobTests {
             timeSource.Enable();
 
             timeSource.Run(job);
-            Assert.IsTrue(counter == 1);
+            Assert.AreEqual(1, counter);
             Assert.IsTrue(job.IsCompleted);
         }
 
@@ -40,7 +40,7 @@ namespace JobTests {
             timeSource.Enable();
 
             timeSource.Run(job);
-            Assert.IsTrue(job.Result.Equals(input));
+            Assert.AreEqual(input, job.Result);
             Assert.IsTrue(job.IsCompleted);
         }
     }

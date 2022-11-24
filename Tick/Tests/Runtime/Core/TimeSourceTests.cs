@@ -1,5 +1,4 @@
-﻿using MisterGames.Common.Maths;
-using MisterGames.Tick.Core;
+﻿using MisterGames.Tick.Core;
 using NUnit.Framework;
 using Utils;
 
@@ -16,13 +15,13 @@ namespace Core {
             timeSource.Enable();
 
             timeSource.Tick();
-            Assert.IsTrue(timeSource.DeltaTime.IsNearlyEqual(1f));
+            Assert.AreEqual(1f, timeSource.DeltaTime);
 
             timeSource.TimeScale = 2f;
-            Assert.IsTrue(timeSource.DeltaTime.IsNearlyEqual(1f));
+            Assert.AreEqual(1f, timeSource.DeltaTime);
 
             timeSource.Tick();
-            Assert.IsTrue(timeSource.DeltaTime.IsNearlyEqual(2f));
+            Assert.AreEqual(2f, timeSource.DeltaTime);
         }
 
         [Test]
@@ -35,11 +34,11 @@ namespace Core {
             timeSource.Enable();
 
             timeSource.Tick();
-            Assert.IsTrue(timeSource.DeltaTime.IsNearlyEqual(1f));
+            Assert.AreEqual(1f, timeSource.DeltaTime);
 
             timeSource.Subscribe(changeTimeScaleOnUpdate);
             timeSource.Tick();
-            Assert.IsTrue(timeSource.DeltaTime.IsNearlyEqual(2f));
+            Assert.AreEqual(2f, timeSource.DeltaTime);
         }
 
         [Test]
@@ -53,11 +52,11 @@ namespace Core {
 
             timeSource.Subscribe(frameCounter);
             timeSource.Tick();
-            Assert.IsTrue(frameCounter.Count == 1);
+            Assert.AreEqual(1, frameCounter.Count);
 
             timeSource.IsPaused = true;
             timeSource.Tick();
-            Assert.IsTrue(frameCounter.Count == 1);
+            Assert.AreEqual(1, frameCounter.Count);
         }
 
         [Test]
@@ -71,15 +70,15 @@ namespace Core {
 
             timeSource.Subscribe(frameCounter);
             timeSource.Tick();
-            Assert.IsTrue(frameCounter.Count == 1);
+            Assert.AreEqual(1, frameCounter.Count);
 
             timeSource.IsPaused = true;
             timeSource.Tick();
-            Assert.IsTrue(frameCounter.Count == 1);
+            Assert.AreEqual(1, frameCounter.Count);
 
             timeSource.IsPaused = false;
             timeSource.Tick();
-            Assert.IsTrue(frameCounter.Count == 2);
+            Assert.AreEqual(2, frameCounter.Count);
         }
 
         [Test]
@@ -94,14 +93,14 @@ namespace Core {
 
             timeSource.Subscribe(frameCounter);
             timeSource.Tick();
-            Assert.IsTrue(frameCounter.Count == 1);
+            Assert.AreEqual(1, frameCounter.Count);
 
             timeSource.Subscribe(pauseOnUpdate);
             timeSource.Tick();
-            Assert.IsTrue(frameCounter.Count == 2);
+            Assert.AreEqual(2, frameCounter.Count);
 
             timeSource.Tick();
-            Assert.IsTrue(frameCounter.Count == 2);
+            Assert.AreEqual(2, frameCounter.Count);
         }
 
     }
