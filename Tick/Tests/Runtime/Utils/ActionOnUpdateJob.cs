@@ -10,6 +10,8 @@ namespace Utils {
         public bool IsStarted { get; private set; }
         public bool IsStopped { get; private set; }
 
+        public float Progress => IsCompleted ? 1f : 0f;
+
         private readonly Action<ActionOnUpdateJob> _action;
 
         public ActionOnUpdateJob(Action<ActionOnUpdateJob> action = null) {
