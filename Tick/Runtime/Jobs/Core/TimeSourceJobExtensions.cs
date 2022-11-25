@@ -13,7 +13,7 @@ namespace MisterGames.Tick.Jobs {
             if (job is IUpdate update) timeSource.Subscribe(update);
         }
 
-        public static T RunFrom<T>(this T job, ITimeSource timeSource) where T : IJob {
+        public static T RunFrom<T>(this T job, ITimeSource timeSource) where T : class, IJob {
             timeSource.Run(job);
             return job;
         }

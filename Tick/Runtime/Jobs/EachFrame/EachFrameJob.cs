@@ -2,7 +2,34 @@
 using MisterGames.Tick.Core;
 
 namespace MisterGames.Tick.Jobs {
-    
+
+    internal sealed class EachFrameJob : IJob, IUpdate {
+
+        public bool IsCompleted => false;
+        public float Progress => 0f;
+
+        private readonly Action _action;
+        private bool _isUpdating;
+
+        public EachFrameJob(Action action) {
+            _action = action;
+        }
+
+        public void Start() {
+            _isUpdating = true;
+        }
+
+        public void Stop() {
+            _isUpdating = false;
+        }
+
+        public void OnUpdate(float dt) {
+            if (!_isUpdating) return;
+
+            _action.Invoke();
+        }
+    }
+
     internal sealed class EachFrameWhileJob : IJob, IUpdate {
 
         public bool IsCompleted => !_canContinue;
@@ -31,5 +58,4 @@ namespace MisterGames.Tick.Jobs {
             _isUpdating = _canContinue;
         }
     }
-    
 }

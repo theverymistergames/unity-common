@@ -5,10 +5,7 @@ namespace MisterGames.Tick.Jobs {
     public static partial class Jobs {
 
         public static IJob Schedule(float periodSec, Action action) {
-            return new ScheduleWhileJob(periodSec, () => {
-                action.Invoke();
-                return true;
-            });
+            return new ScheduleJob(periodSec, action);
         }
 
         public static IJob ScheduleWhile(float periodSec, Func<bool> actionWhile) {
@@ -18,10 +15,7 @@ namespace MisterGames.Tick.Jobs {
         public static IJob ScheduleTimes(float periodSec, int times, Action action) {
             return times < 1
                 ? Completed
-                : new ScheduleTimesWhileJob(periodSec, times, () => {
-                    action.Invoke();
-                    return true;
-                });
+                : new ScheduleTimesJob(periodSec, times, action);
         }
 
         public static IJob ScheduleTimesWhile(float periodSec, int times, Func<bool> actionWhile) {
