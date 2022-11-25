@@ -5,17 +5,19 @@ namespace MisterGames.Tick.Jobs {
     
     internal sealed class EachFrameWhileJob : IJob, IUpdate {
 
-        public bool IsCompleted { get; private set; }
+        public bool IsCompleted => !_canContinue;
+        public float Progress => _canContinue ? 0f : 1f;
 
         private readonly Func<bool> _actionWhile;
         private bool _isUpdating;
+        private bool _canContinue = true;
 
         public EachFrameWhileJob(Func<bool> actionWhile) {
             _actionWhile = actionWhile;
         }
         
         public void Start() {
-            _isUpdating = !IsCompleted;
+            _isUpdating = _canContinue;
         }
 
         public void Stop() {
@@ -25,10 +27,8 @@ namespace MisterGames.Tick.Jobs {
         public void OnUpdate(float dt) {
             if (!_isUpdating) return;
 
-            if (_actionWhile.Invoke()) return;
-
-            IsCompleted = true;
-            _isUpdating = false;
+            _canContinue = _actionWhile.Invoke();
+            _isUpdating = _canContinue;
         }
     }
     

@@ -1,10 +1,12 @@
 ﻿using MisterGames.Tick.Core;
+using UnityEngine;
 
 namespace MisterGames.Tick.Jobs {
     
     internal sealed class DelayJob : IJob, IUpdate {
 
         public bool IsCompleted => _timer >= _delay;
+        public float Progress => _delay <= 0f ? 1f : Mathf.Clamp01(_timer / _delay);
 
         private readonly float _delay;
 

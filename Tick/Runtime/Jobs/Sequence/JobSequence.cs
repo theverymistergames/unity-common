@@ -1,14 +1,19 @@
 ﻿using System.Collections.Generic;
 using MisterGames.Tick.Core;
+using UnityEngine;
 
 namespace MisterGames.Tick.Jobs {
     
     public sealed class JobSequence : IJob, IUpdate {
 
         public bool IsCompleted => _jobs.Count == 0;
+        public float Progress => _jobs.Count == 0 ? 1f : _progress;
 
-        private readonly Queue<IJob> _jobs;
+        private readonly Queue<IJob> _jobs = new Queue<IJob>();
 
+        private int _totalJobs;
+        private int _completeCount;
+        private float _progress;
         private bool _isUpdating;
 
         public static JobSequence Create(params IJob[] jobs) {
@@ -17,17 +22,22 @@ namespace MisterGames.Tick.Jobs {
 
         private JobSequence() { }
 
-        private JobSequence(IEnumerable<IJob> jobs) {
-            _jobs = new Queue<IJob>(jobs);
+        private JobSequence(IReadOnlyList<IJob> jobs) {
+            for (int i = 0; i < jobs.Count; i++) {
+                RequestAddJob(jobs[i]);
+            }
+            UpdateProgress();
         }
 
         public JobSequence Add(IJob job) {
-            if (!job.IsCompleted) _jobs.Enqueue(job);
+            RequestAddJob(job);
+            UpdateProgress();
             return this;
         }
 
         public JobSequence<R> Add<R>(IJob<R> job) {
-            if (!job.IsCompleted) _jobs.Enqueue(job);
+            RequestAddJob(job);
+            UpdateProgress();
             return new JobSequence<R>(this, job);
         }
 
@@ -38,6 +48,7 @@ namespace MisterGames.Tick.Jobs {
 
         public void Start() {
             StartJobsUntilUnableToComplete();
+            UpdateProgress();
             _isUpdating = _jobs.Count > 0;
         }
 
@@ -51,11 +62,14 @@ namespace MisterGames.Tick.Jobs {
 
             if (!_jobs.TryPeek(out var job)) {
                 _isUpdating = false;
+                _progress = 1f;
                 return;
             }
 
             if (job.IsCompleted) {
                 StartJobsUntilUnableToComplete();
+                UpdateProgress();
+                _isUpdating = _jobs.Count > 0;
                 return;
             }
 
@@ -63,7 +77,16 @@ namespace MisterGames.Tick.Jobs {
 
             if (job.IsCompleted) {
                 StartJobsUntilUnableToComplete();
+                UpdateProgress();
+                _isUpdating = _jobs.Count > 0;
             }
+        }
+
+        private void RequestAddJob(IJob job) {
+            _totalJobs++;
+
+            if (job.IsCompleted) _completeCount++;
+            else _jobs.Enqueue(job);
         }
 
         private void StartJobsUntilUnableToComplete() {
@@ -71,14 +94,26 @@ namespace MisterGames.Tick.Jobs {
                 if (!job.IsCompleted) job.Start();
                 if (!job.IsCompleted) return;
 
+                _completeCount++;
                 _jobs.Dequeue();
             }
+        }
+
+        private void UpdateProgress() {
+            if (!_jobs.TryPeek(out var job)) {
+                _progress = 1f;
+                return;
+            }
+
+            float jobProgress = job.IsCompleted ? 1f : job.Progress;
+            _progress = Mathf.Clamp01((_completeCount + jobProgress) / _totalJobs);
         }
     }
 
     public sealed class JobSequence<R> : IJob<R>, IUpdate {
 
         public bool IsCompleted => _sequence.IsCompleted;
+        public float Progress => _sequence.Progress;
         public R Result => _resultJob.Result;
 
         private readonly JobSequence _sequence;

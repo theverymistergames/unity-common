@@ -5,6 +5,7 @@ namespace MisterGames.Tick.Jobs {
     internal sealed class WaitFramesJob : IJob, IUpdate {
 
         public bool IsCompleted => _frameTimer >= _waitFrames;
+        public float Progress => _waitFrames <= 0 ? 1f : (float) _frameTimer / _waitFrames;
 
         private readonly int _waitFrames;
 
@@ -27,9 +28,7 @@ namespace MisterGames.Tick.Jobs {
             if (!_isUpdating) return;
 
             _frameTimer++;
-            if (_frameTimer < _waitFrames) return;
-
-            _isUpdating = false;
+            _isUpdating = _frameTimer < _waitFrames;
         }
     }
     

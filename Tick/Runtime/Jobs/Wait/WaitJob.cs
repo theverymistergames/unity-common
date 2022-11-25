@@ -1,69 +1,103 @@
-﻿using System.Collections.Generic;
-using MisterGames.Tick.Core;
-
-namespace MisterGames.Tick.Jobs {
+﻿namespace MisterGames.Tick.Jobs {
     
-    internal sealed class WaitAllJob : IJob, IUpdate {
+    internal sealed class WaitAllJob : IJob {
 
-        public bool IsCompleted => _jobs.Count == 0;
+        public bool IsCompleted {
+            get {
+                if (_isActive) _isCompleted = _jobObserver.IsCompleted;
+                return _isCompleted;
+            }
+        }
 
-        private readonly List<IJobReadOnly> _jobs = new List<IJobReadOnly>();
-        private bool _isUpdating;
+        public float Progress {
+            get {
+                if (_isActive) _progress = _jobObserver.Progress;
+                return _progress;
+            }
+        }
+
+        private readonly JobObserver _jobObserver = new JobObserver(JobObserver.ProgressMode.TotalObservedProgress);
+        private bool _isActive;
+        private bool _isCompleted;
+        private float _progress;
 
         public WaitAllJob(params IJobReadOnly[] jobs) {
-            for (int i = 0; i < jobs.Length; i++) {
-                var job = jobs[i];
-                if (!job.IsCompleted) _jobs.Add(job);
-            }
+            _jobObserver.ObserveAll(jobs);
+            _isCompleted = _jobObserver.IsCompleted;
+            _progress = _jobObserver.Progress;
         }
 
         public void Start() {
-            for (int i = _jobs.Count - 1; i >= 0; i--) {
-                if (_jobs[i].IsCompleted) _jobs.RemoveAt(i);
-            }
+            _isCompleted = _jobObserver.IsCompleted;
+            _progress = _jobObserver.Progress;
 
-            _isUpdating = _jobs.Count > 0;
+            _isActive = !_isCompleted;
         }
 
         public void Stop() {
-            _isUpdating = false;
-        }
-
-        public void OnUpdate(float dt) {
-            if (!_isUpdating) return;
-
-            for (int i = _jobs.Count - 1; i >= 0; i--) {
-                if (_jobs[i].IsCompleted) _jobs.RemoveAt(i);
-            }
-
-            if (IsCompleted) _isUpdating = false;
+            _isActive = false;
         }
     }
 
-    internal sealed class WaitJob<R> : IJob<R>, IUpdate {
+    internal sealed class WaitJob : IJob {
 
-        public bool IsCompleted => _resultJob.IsCompleted;
+        public bool IsCompleted {
+            get {
+                if (_isActive) _isCompleted = _waitForJob.IsCompleted;
+                return _isCompleted;
+            }
+        }
+
+        public float Progress {
+            get {
+                if (_isActive) _progress = _waitForJob.Progress;
+                return _progress;
+            }
+        }
+
+        private readonly IJobReadOnly _waitForJob;
+        private float _progress;
+        private bool _isActive;
+        private bool _isCompleted;
+
+        public WaitJob(IJobReadOnly job) {
+            _waitForJob = job;
+            _isCompleted = _waitForJob.IsCompleted;
+            _progress = _waitForJob.Progress;
+        }
+
+        public void Start() {
+            _isCompleted = _waitForJob.IsCompleted;
+            _progress = _waitForJob.Progress;
+
+            _isActive = !_isCompleted;
+        }
+
+        public void Stop() {
+            _isActive = false;
+        }
+    }
+
+    internal sealed class WaitJobResult<R> : IJob<R> {
+
+        public bool IsCompleted => _waitJob.IsCompleted;
+        public float Progress => _waitJob.Progress;
         public R Result => _resultJob.Result;
 
+        private readonly WaitJob _waitJob;
         private readonly IJobReadOnly<R> _resultJob;
-        private bool _isUpdating;
 
-        public WaitJob(IJobReadOnly<R> job) {
+        public WaitJobResult(IJobReadOnly<R> job) {
+            _waitJob = new WaitJob(job);
             _resultJob = job;
         }
 
         public void Start() {
-            _isUpdating = !_resultJob.IsCompleted;
+            _waitJob.Start();
         }
 
         public void Stop() {
-            _isUpdating = false;
-        }
-
-        public void OnUpdate(float dt) {
-            if (!_isUpdating) return;
-
-            if (_resultJob.IsCompleted) _isUpdating = false;
+            _waitJob.Stop();
         }
     }
 }

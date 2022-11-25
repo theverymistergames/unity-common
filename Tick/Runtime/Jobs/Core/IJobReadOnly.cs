@@ -2,6 +2,7 @@
 
     public interface IJobReadOnly {
         bool IsCompleted { get; }
+        float Progress { get; }
     }
 
     public interface IJobReadOnly<out R> : IJobReadOnly {

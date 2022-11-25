@@ -18,16 +18,16 @@ namespace MisterGames.Tick.Jobs {
         public static IJob ScheduleTimes(float periodSec, int times, Action action) {
             return times < 1
                 ? Completed
-                : new ScheduleWhileJob(periodSec, () => {
+                : new ScheduleTimesWhileJob(periodSec, times, () => {
                     action.Invoke();
-                    return --times > 0;
+                    return true;
                 });
         }
 
         public static IJob ScheduleTimesWhile(float periodSec, int times, Func<bool> actionWhile) {
             return times < 1
                 ? Completed
-                : new ScheduleWhileJob(periodSec, () => actionWhile.Invoke() && --times > 0);
+                : new ScheduleTimesWhileJob(periodSec, times, actionWhile);
         }
     }
 

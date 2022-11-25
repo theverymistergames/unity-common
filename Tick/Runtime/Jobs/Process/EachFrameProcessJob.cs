@@ -7,6 +7,7 @@ namespace MisterGames.Tick.Jobs {
     internal sealed class EachFrameProcessJob : IJob, IUpdate {
 
         public bool IsCompleted => _process >= 1f;
+        public float Progress => _process;
 
         private readonly Func<float> _getProcess;
         private readonly Action<float> _action;

@@ -5,6 +5,7 @@ namespace MisterGames.Tick.Jobs {
     internal sealed class ActionJob : IJob {
 
         public bool IsCompleted { get; private set; }
+        public float Progress => IsCompleted ? 1f : 0f;
 
         private readonly Action _action;
 
@@ -23,8 +24,10 @@ namespace MisterGames.Tick.Jobs {
     }
 
     internal sealed class ActionJob<R> : IJob<R> {
-        public R Result { get; private set; }
+
         public bool IsCompleted { get; private set; }
+        public float Progress => IsCompleted ? 1f : 0f;
+        public R Result { get; private set; }
 
         private readonly Func<R> _func;
 

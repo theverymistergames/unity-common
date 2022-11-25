@@ -3,11 +3,11 @@
     public static partial class Jobs {
 
         public static IJob Wait(IJobReadOnly job) {
-            return new WaitAllJob(job);
+            return new WaitJob(job);
         }
 
         public static IJob<R> Wait<R>(IJobReadOnly<R> job) {
-            return new WaitJob<R>(job);
+            return new WaitJobResult<R>(job);
         }
 
         public static IJob WaitAll(params IJobReadOnly[] jobs) {
