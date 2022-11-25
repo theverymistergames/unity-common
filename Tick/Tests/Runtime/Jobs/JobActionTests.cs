@@ -9,6 +9,26 @@ namespace JobTests {
     public class JobActionTests {
 
         [Test]
+        public void NotCompletedAction_HasProgressValueZero() {
+            var job = Jobs.Action(() => { });
+            Assert.AreEqual(0f, job.Progress);
+        }
+
+        [Test]
+        public void CompletedAction_HasProgressValueOne() {
+            var timeSource = new TimeSource();
+            var timeProvider = new ConstantTimeProvider(1f);
+
+            var job = Jobs.Action(() => { });
+
+            timeSource.Initialize(timeProvider);
+            timeSource.Enable();
+
+            timeSource.Run(job);
+            Assert.AreEqual(1f, job.Progress);
+        }
+
+        [Test]
         public void Action_IsCompleting_AtStart() {
             var timeSource = new TimeSource();
             var timeProvider = new ConstantTimeProvider(1f);
