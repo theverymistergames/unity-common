@@ -118,7 +118,7 @@ namespace MisterGames.Dbg.Console.Core {
                 result = Convert.ChangeType(arg, targetType);
                 return true;
             }
-            catch (Exception e) {
+            catch (Exception) {
                 result = default;
                 return false;
             }
