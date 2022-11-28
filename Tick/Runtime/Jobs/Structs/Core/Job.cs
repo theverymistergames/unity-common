@@ -2,7 +2,7 @@
 
     public readonly struct Job {
 
-        public bool IsCompleted => _system.IsJobCompleted(_id);
+        public bool IsCompleted => _system?.IsJobCompleted(_id) ?? true;
 
         private readonly IJobSystemBase _system;
         private readonly int _id;
@@ -13,11 +13,11 @@
         }
 
         public void Start() {
-            _system.StartJob(_id);
+            _system?.StartJob(_id);
         }
 
         public void Stop() {
-            _system.StopJob(_id);
+            _system?.StopJob(_id);
         }
 
         public bool Equals(Job other) {
