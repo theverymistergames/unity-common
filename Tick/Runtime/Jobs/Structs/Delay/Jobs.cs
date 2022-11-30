@@ -1,9 +1,11 @@
-﻿namespace MisterGames.Tick.Jobs.Structs {
+﻿using MisterGames.Tick.Core;
+
+namespace MisterGames.Tick.Jobs.Structs {
 
     public static partial class Jobs {
 
-        public static JobLaunchData<float, JobSystemDelay> Delay(float delay) {
-            return new JobLaunchData<float, JobSystemDelay>(delay);
+        public static Job Delay(ITimeSource timeSource, float delay) {
+            return CreateJob<JobSystemDelay, float>(timeSource, delay);
         }
 
     }

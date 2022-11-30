@@ -19,49 +19,31 @@ namespace MisterGames.Tick.Jobs.Structs {
         [SerializeReference] [SubclassSelector] [EndReadOnlyGroup]
         private IJobSystemBase[] _customJobSystems;
 
-        private readonly List<JobSystemRunner> _jobSystemRunners = new List<JobSystemRunner>();
-        private readonly Dictionary<ITimeSource, IJobSystemProvider> _jobSystemProviders = new Dictionary<ITimeSource, IJobSystemProvider>();
+        private readonly Dictionary<ITimeSource, JobSystemsContainer> _jobSystemProviders = new Dictionary<ITimeSource, JobSystemsContainer>();
         private readonly IJobIdFactory _jobIdFactory = new NextJobIdFactory();
 
         private void Awake() {
-            JobSystemProviders.Instance = this;
+            Jobs.JobSystemProviders = this;
 
-            SetupJobSystems();
+            for (int i = 0; i < _timeDomains.Length; i++) {
+                var timeSource = _timeDomains[i].Source;
+
+                var provider = new JobSystemsContainer(CreateNewJobSystems());
+                provider.Initialize(timeSource, _jobIdFactory);
+
+                _jobSystemProviders.Add(timeSource, provider);
+            }
         }
 
         private void OnDestroy() {
-            for (int i = 0; i < _jobSystemRunners.Count; i++) {
-                _jobSystemRunners[i].DeInitialize();
+            foreach (var provider in _jobSystemProviders.Values) {
+                provider.DeInitialize();
             }
-            _jobSystemRunners.Clear();
+            _jobSystemProviders.Clear();
         }
 
-        private void OnEnable() {
-            for (int i = 0; i < _jobSystemRunners.Count; i++) {
-                _jobSystemRunners[i].Enable();
-            }
-        }
-
-        private void OnDisable() {
-            for (int i = 0; i < _jobSystemRunners.Count; i++) {
-                _jobSystemRunners[i].Disable();
-            }
-        }
-
-        IJobSystemProvider IJobSystemProviders.GetProvider(ITimeSource timeSource) {
+        public IJobSystemProvider GetProvider(ITimeSource timeSource) {
             return _jobSystemProviders[timeSource];
-        }
-
-        private void SetupJobSystems() {
-            for (int i = 0; i < _timeDomains.Length; i++) {
-                var timeSource = _timeDomains[i].Source;
-                var runner = new JobSystemRunner(timeSource, CreateNewJobSystems());
-
-                runner.Initialize(_jobIdFactory);
-
-                _jobSystemProviders.Add(timeSource, runner);
-                _jobSystemRunners.Add(runner);
-            }
         }
 
         private List<IJobSystemBase> CreateNewJobSystems() {

@@ -19,18 +19,6 @@
         public void Stop() {
             _system?.StopJob(_id);
         }
-
-        public bool Equals(Job other) {
-            return _id == other._id;
-        }
-
-        public override bool Equals(object obj) {
-            return obj is Job other && Equals(other);
-        }
-
-        public override int GetHashCode() {
-            return _id;
-        }
     }
 
 }

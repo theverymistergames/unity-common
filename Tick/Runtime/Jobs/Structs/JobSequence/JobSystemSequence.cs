@@ -4,7 +4,7 @@ using MisterGames.Tick.Core;
 namespace MisterGames.Tick.Jobs.Structs {
 
     [Serializable]
-    internal sealed class JobSystemDelay : IJobSystem<float>, IUpdate {
+    public sealed class JobSystemSequence : IJobSystem<float>, IUpdate {
 
         private readonly JobsDataContainer<JobData> _jobsData = new JobsDataContainer<JobData>();
 
