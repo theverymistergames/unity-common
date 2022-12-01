@@ -23,7 +23,7 @@ namespace MisterGames.Tick.Jobs.Structs {
         private readonly IJobIdFactory _jobIdFactory = new NextJobIdFactory();
 
         private void Awake() {
-            Jobs.JobSystemProviders = this;
+            Jobs.InjectJobSystemProviders(this);
 
             for (int i = 0; i < _timeDomains.Length; i++) {
                 var timeSource = _timeDomains[i].Source;

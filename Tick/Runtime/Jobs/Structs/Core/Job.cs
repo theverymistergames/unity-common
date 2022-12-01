@@ -1,6 +1,8 @@
-﻿namespace MisterGames.Tick.Jobs.Structs {
+﻿using System;
 
-    public readonly struct Job {
+namespace MisterGames.Tick.Jobs.Structs {
+
+    public readonly struct Job : IEquatable<Job> {
 
         public bool IsCompleted => _system?.IsJobCompleted(_id) ?? true;
 
@@ -18,6 +20,26 @@
 
         public void Stop() {
             _system?.StopJob(_id);
+        }
+
+        public bool Equals(Job other) {
+            return _id == other._id;
+        }
+
+        public override bool Equals(object obj) {
+            return obj is Job other && Equals(other);
+        }
+
+        public override int GetHashCode() {
+            return _id;
+        }
+
+        public static bool operator ==(Job left, Job right) {
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(Job left, Job right) {
+            return !left.Equals(right);
         }
     }
 

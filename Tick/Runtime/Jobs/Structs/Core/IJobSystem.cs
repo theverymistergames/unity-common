@@ -11,6 +11,10 @@ namespace MisterGames.Tick.Jobs.Structs {
         void StopJob(int jobId);
     }
 
+    public interface IJobSystem : IJobSystemBase {
+        int CreateJob();
+    }
+
     public interface IJobSystem<in T> : IJobSystemBase {
         int CreateJob(T data);
     }

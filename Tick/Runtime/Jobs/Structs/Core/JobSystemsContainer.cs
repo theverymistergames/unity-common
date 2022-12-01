@@ -37,6 +37,11 @@ namespace MisterGames.Tick.Jobs.Structs {
             int index = _jobSystemsTypes.IndexOf(typeof(S));
             return index < 0 ? null : _jobSystems[index] as S;
         }
+
+        public S GetJobSystem<S>() where S : class, IJobSystem {
+            int index = _jobSystemsTypes.IndexOf(typeof(S));
+            return index < 0 ? null : _jobSystems[index] as S;
+        }
     }
 
 }
