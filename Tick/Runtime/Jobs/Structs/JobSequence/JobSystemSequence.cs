@@ -4,9 +4,9 @@ using MisterGames.Tick.Core;
 namespace MisterGames.Tick.Jobs.Structs {
 
     [Serializable]
-    public sealed class JobSystemSequence : IJobSystem<float>, IUpdate {
+    internal sealed class JobSystemSequence : IJobSystem, IUpdate {
 
-        private readonly JobsDataContainer<JobData> _jobsData = new JobsDataContainer<JobData>();
+        private readonly JobsDataContainer<JobSequenceNode> _jobSequenceNodes = new JobsDataContainer<JobSequenceNode>();
 
         private ITimeSource _timeSource;
         private IJobIdFactory _jobIdFactory;
@@ -18,30 +18,45 @@ namespace MisterGames.Tick.Jobs.Structs {
         }
 
         public void DeInitialize() {
-            _jobsData.Clear();
+            _jobSequenceNodes.Clear();
             _timeSource.Unsubscribe(this);
         }
 
-        public int CreateJob(float data) {
-            var jobData = new JobData(data);
-            if (jobData.IsCompleted()) return -1;
+        public int CreateJob() {
+            return _jobIdFactory.CreateNewJobId();
+        }
 
-            int jobId = _jobIdFactory.CreateNewJobId();
-            _jobsData.Add(jobId, jobData);
-
-            return jobId;
+        public void AddJobIntoSequence(int sequenceJobId, Job job) {
+            int lastIndex = _jobSequenceNodes.LastIndexOf(sequenceJobId);
+            var waitJob = lastIndex < 0 ? Jobs.Completed : _jobSequenceNodes[lastIndex].nextJob;
+            _jobSequenceNodes.Add(sequenceJobId, JobSequenceNode.Create(waitJob, job));
         }
 
         public bool IsJobCompleted(int jobId) {
-            int index = _jobsData.IndexOf(jobId);
-            return index < 0 || _jobsData[index].IsCompleted();
+            int lastIndex = _jobSequenceNodes.LastIndexOf(jobId);
+            return lastIndex < 0 || _jobSequenceNodes[lastIndex].isCompleted;
         }
 
         public void StartJob(int jobId) {
-            int index = _jobsData.IndexOf(jobId);
-            if (index < 0) return;
+            int firstIndex = _jobSequenceNodes.IndexOf(jobId);
+            if (firstIndex < 0) return;
 
-            _jobsData[index] = _jobsData[index].Start();
+            int lastIndex = _jobSequenceNodes.LastIndexOf(jobId);
+            for (int i = firstIndex; i <= lastIndex; i++) {
+                if (jobId != _jobSequenceNodes.Keys[i]) continue;
+
+                var node = _jobSequenceNodes[i];
+                if (node.isCompleted) continue;
+
+                if (node.waitJob.IsCompleted) {
+                    node.nextJob.Start();
+                    _jobSequenceNodes[i] = JobSequenceNode.Completed;
+                    continue;
+                }
+
+                _jobSequenceNodes[i] = node.Start();
+                break;
+            }
 
             if (!_isUpdating) {
                 _isUpdating = true;
@@ -50,70 +65,79 @@ namespace MisterGames.Tick.Jobs.Structs {
         }
 
         public void StopJob(int jobId) {
-            int index = _jobsData.IndexOf(jobId);
-            if (index < 0) return;
+            int firstIndex = _jobSequenceNodes.IndexOf(jobId);
+            if (firstIndex < 0) return;
 
-            _jobsData[index] = _jobsData[index].Stop();
+            int lastIndex = _jobSequenceNodes.LastIndexOf(jobId);
+            for (int i = firstIndex; i <= lastIndex; i++) {
+                if (jobId != _jobSequenceNodes.Keys[i]) continue;
 
-            if (_isUpdating && _jobsData.Count == 1) {
+                var node = _jobSequenceNodes[i];
+                
+                if (node.waitJob.IsCompleted) {
+                    if (node.nextJob.IsCompleted) continue;
+                    node.nextJob.Stop();
+                }
+                else node.waitJob.Stop();
+
+                _jobSequenceNodes[i] = node.Stop();
+                break;
+            }
+
+            if (_isUpdating && _jobSequenceNodes.Count == 1) {
                 _timeSource.Unsubscribe(this);
                 _isUpdating = false;
             }
         }
 
         public void OnUpdate(float dt) {
-            for (int i = _jobsData.Count - 1; i >= 0; i--) {
-                var data = _jobsData[i];
+            for (int i = _jobSequenceNodes.Count - 1; i >= 0; i--) {
+                var node = _jobSequenceNodes[i];
 
-                if (data.IsCompleted()) {
-                    _jobsData.RemoveAt(i);
+                if (node.isCompleted) {
+                    _jobSequenceNodes.RemoveAt(i);
                     continue;
                 }
 
-                if (!data.isUpdating) continue;
+                if (!node.isUpdating || !node.waitJob.IsCompleted) continue;
 
-                data = data.AddToTimer(dt);
-
-                if (data.IsCompleted()) {
-                    _jobsData.RemoveAt(i);
-                    continue;
-                }
-
-                _jobsData[i] = data;
+                node.nextJob.Start();
+                _jobSequenceNodes.RemoveAt(i);
             }
 
-            if (_jobsData.Count == 0) {
+            if (_jobSequenceNodes.Count == 0) {
                 _timeSource.Unsubscribe(this);
                 _isUpdating = false;
             }
         }
 
-        private readonly struct JobData {
+        private readonly struct JobSequenceNode {
+
+            public readonly Job waitJob;
+            public readonly Job nextJob;
 
             public readonly bool isUpdating;
-            private readonly float _delay;
-            private readonly float _timer;
+            public readonly bool isCompleted;
 
-            public JobData(float delay, float timer = 0f, bool isUpdating = false) {
-                _delay = delay;
-                _timer = timer;
+            public static readonly JobSequenceNode Completed =
+                new JobSequenceNode(default, default, false, true);
+
+            public static JobSequenceNode Create(Job waitJob, Job nextJob) =>
+                new JobSequenceNode(waitJob, nextJob, false, false);
+
+            private JobSequenceNode(Job waitJob, Job nextJob, bool isUpdating, bool isCompleted) {
+                this.waitJob = waitJob;
+                this.nextJob = nextJob;
                 this.isUpdating = isUpdating;
+                this.isCompleted = isCompleted;
             }
 
-            public bool IsCompleted() {
-                return _timer >= _delay;
+            public JobSequenceNode Start() {
+                return new JobSequenceNode(waitJob, nextJob, !isCompleted, isCompleted);
             }
 
-            public JobData Start() {
-                return new JobData(_delay, _timer, _timer < _delay);
-            }
-
-            public JobData Stop() {
-                return new JobData(_delay, _timer, false);
-            }
-
-            public JobData AddToTimer(float value) {
-                return new JobData(_delay, _timer + value, isUpdating);
+            public JobSequenceNode Stop() {
+                return new JobSequenceNode(waitJob, nextJob, false, isCompleted);
             }
         }
     }
