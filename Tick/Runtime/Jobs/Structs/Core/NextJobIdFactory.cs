@@ -2,10 +2,10 @@
 
     public sealed class NextJobIdFactory : IJobIdFactory {
 
-        private int _lastId;
+        private int _currentId;
 
         public int CreateNewJobId() {
-            return _lastId++;
+            return _currentId++;
         }
     }
 
