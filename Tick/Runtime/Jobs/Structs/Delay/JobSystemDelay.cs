@@ -7,24 +7,19 @@ namespace MisterGames.Tick.Jobs.Structs {
     internal sealed class JobSystemDelay : IJobSystem<float>, IUpdate {
 
         private readonly JobsDataContainer<DelayJobData> _delayJobs = new JobsDataContainer<DelayJobData>();
-
-        private ITimeSource _timeSource;
         private IJobIdFactory _jobIdFactory;
-        private bool _isUpdating;
 
-        public void Initialize(ITimeSource timeSource, IJobIdFactory jobIdFactory) {
-            _timeSource = timeSource;
+        public void Initialize(IJobIdFactory jobIdFactory) {
             _jobIdFactory = jobIdFactory;
         }
 
         public void DeInitialize() {
             _delayJobs.Clear();
-            _timeSource.Unsubscribe(this);
         }
 
         public int CreateJob(float data) {
             var jobData = DelayJobData.Create(data);
-            if (jobData.IsCompleted()) return -1;
+            if (jobData.IsCompleted) return -1;
 
             int jobId = _jobIdFactory.CreateNewJobId();
             _delayJobs.Add(jobId, jobData);
@@ -34,7 +29,7 @@ namespace MisterGames.Tick.Jobs.Structs {
 
         public bool IsJobCompleted(int jobId) {
             int index = _delayJobs.IndexOf(jobId);
-            return index < 0 || _delayJobs[index].IsCompleted();
+            return index < 0 || _delayJobs[index].IsCompleted;
         }
 
         public void StartJob(int jobId) {
@@ -42,11 +37,6 @@ namespace MisterGames.Tick.Jobs.Structs {
             if (index < 0) return;
 
             _delayJobs[index] = _delayJobs[index].Start();
-
-            if (!_isUpdating) {
-                _isUpdating = true;
-                _timeSource.Subscribe(this);
-            }
         }
 
         public void StopJob(int jobId) {
@@ -54,18 +44,13 @@ namespace MisterGames.Tick.Jobs.Structs {
             if (index < 0) return;
 
             _delayJobs[index] = _delayJobs[index].Stop();
-
-            if (_isUpdating && _delayJobs.Count == 1) {
-                _timeSource.Unsubscribe(this);
-                _isUpdating = false;
-            }
         }
 
         public void OnUpdate(float dt) {
             for (int i = _delayJobs.Count - 1; i >= 0; i--) {
                 var delayJob = _delayJobs[i];
 
-                if (delayJob.IsCompleted()) {
+                if (delayJob.IsCompleted) {
                     _delayJobs.RemoveAt(i);
                     continue;
                 }
@@ -74,23 +59,20 @@ namespace MisterGames.Tick.Jobs.Structs {
 
                 delayJob = delayJob.AddToTimer(dt);
 
-                if (delayJob.IsCompleted()) {
+                if (delayJob.IsCompleted) {
                     _delayJobs.RemoveAt(i);
                     continue;
                 }
 
                 _delayJobs[i] = delayJob;
             }
-
-            if (_delayJobs.Count == 0) {
-                _timeSource.Unsubscribe(this);
-                _isUpdating = false;
-            }
         }
 
         private readonly struct DelayJobData {
 
+            public bool IsCompleted => _timer >= _delay;
             public readonly bool isUpdating;
+
             private readonly float _delay;
             private readonly float _timer;
 
@@ -104,8 +86,8 @@ namespace MisterGames.Tick.Jobs.Structs {
                 this.isUpdating = isUpdating;
             }
 
-            public bool IsCompleted() {
-                return _timer >= _delay;
+            public DelayJobData AddToTimer(float value) {
+                return new DelayJobData(_delay, _timer + value, isUpdating);
             }
 
             public DelayJobData Start() {
@@ -114,10 +96,6 @@ namespace MisterGames.Tick.Jobs.Structs {
 
             public DelayJobData Stop() {
                 return new DelayJobData(_delay, _timer, false);
-            }
-
-            public DelayJobData AddToTimer(float value) {
-                return new DelayJobData(_delay, _timer + value, isUpdating);
             }
         }
     }

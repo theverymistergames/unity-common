@@ -11,13 +11,11 @@ namespace MisterGames.Tick.Jobs.Structs {
         [SerializeField]
         private TimeDomain[] _timeDomains;
 
-        [SerializeReference] [SubclassSelector] [BeginReadOnlyGroup]
-        private IJobSystemBase[] _defaultJobSystems = {
+        [SerializeReference] [SubclassSelector]
+        private IJobSystemBase[] _jobSystems = {
             new JobSystemDelay(),
+            new JobSystemSequence(),
         };
-
-        [SerializeReference] [SubclassSelector] [EndReadOnlyGroup]
-        private IJobSystemBase[] _customJobSystems;
 
         private readonly Dictionary<ITimeSource, JobSystemsContainer> _jobSystemProviders = new Dictionary<ITimeSource, JobSystemsContainer>();
         private readonly IJobIdFactory _jobIdFactory = new NextJobIdFactory();
@@ -28,17 +26,19 @@ namespace MisterGames.Tick.Jobs.Structs {
             for (int i = 0; i < _timeDomains.Length; i++) {
                 var timeSource = _timeDomains[i].Source;
 
-                var provider = new JobSystemsContainer(CreateNewJobSystems());
-                provider.Initialize(timeSource, _jobIdFactory);
+                var provider = new JobSystemsContainer(timeSource, CreateNewJobSystems());
+                provider.Initialize(_jobIdFactory);
 
                 _jobSystemProviders.Add(timeSource, provider);
             }
         }
 
         private void OnDestroy() {
-            foreach (var provider in _jobSystemProviders.Values) {
-                provider.DeInitialize();
+            for (int i = 0; i < _timeDomains.Length; i++) {
+                var timeSource = _timeDomains[i].Source;
+                _jobSystemProviders[timeSource].DeInitialize();
             }
+
             _jobSystemProviders.Clear();
         }
 
@@ -47,16 +47,10 @@ namespace MisterGames.Tick.Jobs.Structs {
         }
 
         private List<IJobSystemBase> CreateNewJobSystems() {
-            var jobSystems = new List<IJobSystemBase>(_defaultJobSystems.Length + _customJobSystems.Length);
-
-            for (int i = 0; i < _defaultJobSystems.Length; i++) {
-                jobSystems.Add(CreateInstanceOf(_defaultJobSystems[i]));
+            var jobSystems = new List<IJobSystemBase>(_jobSystems.Length);
+            for (int i = 0; i < _jobSystems.Length; i++) {
+                jobSystems.Add(CreateInstanceOf(_jobSystems[i]));
             }
-
-            for (int i = 0; i < _customJobSystems.Length; i++) {
-                jobSystems.Add(CreateInstanceOf(_customJobSystems[i]));
-            }
-
             return jobSystems;
         }
 

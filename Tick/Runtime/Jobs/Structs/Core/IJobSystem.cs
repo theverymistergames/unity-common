@@ -1,9 +1,7 @@
-﻿using MisterGames.Tick.Core;
-
-namespace MisterGames.Tick.Jobs.Structs {
+﻿namespace MisterGames.Tick.Jobs.Structs {
 
     public interface IJobSystemBase {
-        void Initialize(ITimeSource timeSource, IJobIdFactory jobIdFactory);
+        void Initialize(IJobIdFactory jobIdFactory);
         void DeInitialize();
 
         bool IsJobCompleted(int jobId);

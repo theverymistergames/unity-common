@@ -6,27 +6,33 @@ namespace MisterGames.Tick.Jobs.Structs {
 
     public sealed class JobSystemsContainer : IJobSystemProvider {
 
+        private readonly ITimeSource _timeSource;
         private readonly List<IJobSystemBase> _jobSystems;
-        private readonly List<Type> _jobSystemsTypes;
+        private readonly Dictionary<Type, IJobSystemBase> _jobSystemsTypes;
 
-        public JobSystemsContainer(List<IJobSystemBase> jobSystems) {
+        public JobSystemsContainer(ITimeSource timeSource, List<IJobSystemBase> jobSystems) {
+            _timeSource = timeSource;
             _jobSystems = jobSystems;
-            _jobSystemsTypes = new List<Type>(jobSystems.Count);
-
-            for (int i = 0; i < jobSystems.Count; i++) {
-                _jobSystemsTypes[i] = jobSystems[i].GetType();
-            }
+            _jobSystemsTypes = new Dictionary<Type, IJobSystemBase>(jobSystems.Count);
         }
 
-        public void Initialize(ITimeSource timeSource, IJobIdFactory jobIdFactory) {
+        public void Initialize(IJobIdFactory jobIdFactory) {
             for (int i = 0; i < _jobSystems.Count; i++) {
-                _jobSystems[i].Initialize(timeSource, jobIdFactory);
+                var jobSystem = _jobSystems[i];
+                jobSystem.Initialize(jobIdFactory);
+
+                _jobSystemsTypes[jobSystem.GetType()] = jobSystem;
+                if (jobSystem is IUpdate update) _timeSource.Subscribe(update);
+
             }
         }
 
         public void DeInitialize() {
-            for (int i = 0; i < _jobSystems.Count; i++) {
-                _jobSystems[i].DeInitialize();
+            for (int i = _jobSystems.Count - 1; i >= 0; i--) {
+                var jobSystem = _jobSystems[i];
+                jobSystem.DeInitialize();
+
+                if (jobSystem is IUpdate update) _timeSource.Unsubscribe(update);
             }
 
             _jobSystems.Clear();
@@ -34,13 +40,11 @@ namespace MisterGames.Tick.Jobs.Structs {
         }
 
         public S GetJobSystem<S, T>() where S : class, IJobSystem<T> {
-            int index = _jobSystemsTypes.IndexOf(typeof(S));
-            return index < 0 ? null : _jobSystems[index] as S;
+            return _jobSystemsTypes[typeof(S)] as S;
         }
 
         public S GetJobSystem<S>() where S : class, IJobSystem {
-            int index = _jobSystemsTypes.IndexOf(typeof(S));
-            return index < 0 ? null : _jobSystems[index] as S;
+            return _jobSystemsTypes[typeof(S)] as S;
         }
     }
 
