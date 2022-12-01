@@ -1,21 +1,12 @@
-﻿using System.Buffers;
-using MisterGames.Tick.Core;
+﻿using MisterGames.Tick.Core;
 
 namespace MisterGames.Tick.Jobs.Structs {
 
-    public ref struct JobSequence {
-
-        private const int INITIAL_JOB_ARRAY_LENGTH = 10;
-        private const int MAX_JOBS_IN_SEQUENCE = 20;
-        private const int MAX_JOB_ARRAYS_PER_BUCKET = 100;
-
-        private static readonly ArrayPool<Job> JobArrayPool = ArrayPool<Job>
-            .Create(MAX_JOBS_IN_SEQUENCE, MAX_JOB_ARRAYS_PER_BUCKET);
+    public readonly ref struct JobSequence {
 
         public readonly ITimeSource timeSource;
-
-        private readonly Job[] _jobs;
-        private int _jobsCount;
+        private readonly JobSystemSequence _jobSystemSequence;
+        private readonly int _sequenceJobId;
 
         public static JobSequence Create(ITimeSource timeSource) {
             return new JobSequence(timeSource);
@@ -24,17 +15,18 @@ namespace MisterGames.Tick.Jobs.Structs {
         private JobSequence(ITimeSource timeSource) {
             this.timeSource = timeSource;
 
-            _jobs = JobArrayPool.Rent(INITIAL_JOB_ARRAY_LENGTH);
-            _jobsCount = 0;
+            _jobSystemSequence = Jobs.GetJobSystem<JobSystemSequence>(timeSource);
+            _sequenceJobId = _jobSystemSequence.CreateJob();
         }
 
         public JobSequence Add(Job job) {
-            _jobs[_jobsCount++] = job;
+            _jobSystemSequence.AddJobIntoSequence(_sequenceJobId, job);
             return this;
         }
 
         public Job Start() {
-            return Jobs.Completed;
+            _jobSystemSequence.StartJob(_sequenceJobId);
+            return new Job(_sequenceJobId, _jobSystemSequence);
         }
     }
 
