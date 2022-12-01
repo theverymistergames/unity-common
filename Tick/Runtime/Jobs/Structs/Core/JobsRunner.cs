@@ -13,6 +13,7 @@ namespace MisterGames.Tick.Jobs.Structs {
 
         [SerializeReference] [SubclassSelector]
         private IJobSystemBase[] _jobSystems = {
+            new JobSystemAction(),
             new JobSystemDelay(),
             new JobSystemSequence(),
         };
