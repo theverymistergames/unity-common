@@ -28,6 +28,10 @@ namespace MisterGames.Tick.Jobs.Structs {
             return _jobIds.IndexOf(jobId);
         }
 
+        public int LastIndexOf(int jobId) {
+            return _jobIds.LastIndexOf(jobId);
+        }
+
         public void Clear() {
             _jobIds.Clear();
             _jobsData.Clear();
