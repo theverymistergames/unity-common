@@ -63,23 +63,23 @@ namespace MisterGames.Tick.Jobs.Structs {
 
         public void OnUpdate(float dt) {
             for (int i = _delayJobs.Count - 1; i >= 0; i--) {
-                var data = _delayJobs[i];
+                var delayJob = _delayJobs[i];
 
-                if (data.IsCompleted()) {
+                if (delayJob.IsCompleted()) {
                     _delayJobs.RemoveAt(i);
                     continue;
                 }
 
-                if (!data.isUpdating) continue;
+                if (!delayJob.isUpdating) continue;
 
-                data = data.AddToTimer(dt);
+                delayJob = delayJob.AddToTimer(dt);
 
-                if (data.IsCompleted()) {
+                if (delayJob.IsCompleted()) {
                     _delayJobs.RemoveAt(i);
                     continue;
                 }
 
-                _delayJobs[i] = data;
+                _delayJobs[i] = delayJob;
             }
 
             if (_delayJobs.Count == 0) {
