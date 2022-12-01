@@ -1,4 +1,5 @@
 ﻿using System;
+using MisterGames.Common.Data;
 using MisterGames.Tick.Core;
 
 namespace MisterGames.Tick.Jobs.Structs {
@@ -6,7 +7,7 @@ namespace MisterGames.Tick.Jobs.Structs {
     [Serializable]
     internal sealed class JobSystemSequence : IJobSystem, IUpdate {
 
-        private readonly JobsDataContainer<JobSequenceNode> _nodes = new JobsDataContainer<JobSequenceNode>();
+        private readonly DictionaryList<int, JobSequenceNode> _nodes = new DictionaryList<int, JobSequenceNode>();
         private IJobIdFactory _jobIdFactory;
 
         public void Initialize(IJobIdFactory jobIdFactory) {
