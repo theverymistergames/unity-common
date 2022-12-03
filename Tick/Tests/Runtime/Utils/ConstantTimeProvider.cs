@@ -1,13 +1,14 @@
-﻿using MisterGames.Tick.TimeProviders;
+﻿using MisterGames.Tick.Core;
 
 namespace Utils {
 
-    public readonly struct ConstantTimeProvider : ITimeProvider {
+    public class ConstantTimeProvider : ITimeProvider {
 
-        public float UnscaledDeltaTime { get; }
+        public float DeltaTime { get; }
+        public float TimeScale { get; set; } = 1f;
 
         public ConstantTimeProvider(float value) {
-            UnscaledDeltaTime = value;
+            DeltaTime = value;
         }
     }
 
