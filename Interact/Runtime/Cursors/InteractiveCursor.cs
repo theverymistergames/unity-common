@@ -11,6 +11,7 @@ namespace MisterGames.Interact.Cursors {
     public class InteractiveCursor : MonoBehaviour, IUpdate {
 
         [Header("General")]
+        [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
         [SerializeField] private InteractiveUser _interactiveUser;
 
         [Header("Cursor Settings")]
@@ -23,6 +24,7 @@ namespace MisterGames.Interact.Cursors {
         [SerializeField] private float _maxDistance;
         [SerializeField] private CollisionDetector _transparencyRaycaster;
 
+        private ITimeSource _timeSource => TimeSources.Get(_timeSourceStage);
         private Interactive _interactive;
         private CollisionFilter _transparencyRaycastFilter;
         private CollisionInfo _lastCollisionInfo;
@@ -38,11 +40,11 @@ namespace MisterGames.Interact.Cursors {
             _interactiveUser.OnInteractiveDetected += OnInteractiveDetected;
             _interactiveUser.OnInteractiveLost += OnInteractiveLost;
 
-            TimeSources.Update.Subscribe(this);
+            _timeSource.Subscribe(this);
         }
 
         private void OnDisable() {
-            TimeSources.Update.Unsubscribe(this);
+            _timeSource.Unsubscribe(this);
 
             _interactiveUser.OnInteractiveDetected -= OnInteractiveDetected;
             _interactiveUser.OnInteractiveLost -= OnInteractiveLost;

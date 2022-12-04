@@ -8,6 +8,8 @@ namespace MisterGames.Interact.Objects {
     [RequireComponent(typeof(InteractiveGrab))]
     public sealed class InteractiveDrawer : MonoBehaviour, IUpdate {
 
+        [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
+
         [Header("Positions")]
         [SerializeField] private Vector3 _positionClosed;
         [SerializeField] private Vector3 _positionOpened;
@@ -15,7 +17,8 @@ namespace MisterGames.Interact.Objects {
         [SerializeField] private InteractiveDrawerConfig _config;
         
         public event Action<float, float> OnMove = delegate {  };
-        
+
+        private ITimeSource _timeSource => TimeSources.Get(_timeSourceStage);
         private InteractiveGrab _grab;
         private Transform _transform;
         
@@ -64,14 +67,14 @@ namespace MisterGames.Interact.Objects {
             _grab.OnGrab += OnGrab;
             _grab.OnStartGrab += OnStartGrab;
             _grab.OnStopGrab += OnStopGrab;
-            TimeSources.Update.Subscribe(this);
+            _timeSource.Subscribe(this);
         }
 
         private void OnDisable() {
             _grab.OnGrab -= OnGrab;
             _grab.OnStartGrab -= OnStartGrab;
             _grab.OnStopGrab -= OnStopGrab;
-            TimeSources.Update.Unsubscribe(this);
+            _timeSource.Unsubscribe(this);
         }
 
         void IUpdate.OnUpdate(float dt) {
@@ -93,7 +96,7 @@ namespace MisterGames.Interact.Objects {
             var prevPosition = _transform.position;
             ConsumeGrab(to - from);
             ApplyPosition();
-            ProcessEvents(prevPosition, _targetPosition, TimeSources.Update.DeltaTime);
+            ProcessEvents(prevPosition, _targetPosition, _timeSource.DeltaTime);
         }
 
         private void OnStartGrab() {
@@ -104,7 +107,7 @@ namespace MisterGames.Interact.Objects {
         private void OnStopGrab() {
             _isGrabbing = false;
 
-            _intertiaMagnitude = Math.Min(_config.maxSpeed, _intertiaVector.magnitude / TimeSources.Update.DeltaTime);
+            _intertiaMagnitude = Math.Min(_config.maxSpeed, _intertiaVector.magnitude / _timeSource.DeltaTime);
 
             float prevTargetToClosedSqrMag = (_targetPosition - _intertiaVector - _positionClosed).sqrMagnitude;
             float targetToClosedSqrMag = (_targetPosition - _positionClosed).sqrMagnitude;

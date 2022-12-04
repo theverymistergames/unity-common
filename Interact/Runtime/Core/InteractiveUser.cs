@@ -9,6 +9,7 @@ namespace MisterGames.Interact.Core {
 
     public sealed class InteractiveUser : MonoBehaviour, IUpdate {
 
+        [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
         [SerializeField] private CollisionFilter _collisionFilter = new CollisionFilter { maxDistance = 3f };
         [SerializeField] private CollisionDetector _collisionDetector;
 
@@ -18,15 +19,16 @@ namespace MisterGames.Interact.Core {
         public Interactive PossibleInteractive { get; private set; }
         public CollisionInfo CurrentCollisionInfo => _currentCollisionInfo;
 
+        private ITimeSource _timeSource => TimeSources.Get(_timeSourceStage);
         private CollisionInfo _currentCollisionInfo;
         private bool _hasPossibleInteractive;
 
         private void OnEnable() {
-            TimeSources.Update.Subscribe(this);
+            _timeSource.Subscribe(this);
         }
 
         private void OnDisable() {
-            TimeSources.Update.Unsubscribe(this);
+            _timeSource.Unsubscribe(this);
         }
 
         public bool IsDetectedTarget(Interactive interactive) {

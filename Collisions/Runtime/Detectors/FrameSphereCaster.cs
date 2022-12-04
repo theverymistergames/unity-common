@@ -7,7 +7,7 @@ namespace MisterGames.Collisions.Detectors {
 
     public class FrameSphereCaster : CollisionDetector, IUpdate {
 
-        [SerializeField] private TimeDomain _timeDomain;
+        [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
 
         [Header("Spherecast Settings")]
         [SerializeField] [Min(1)] private int _maxHits = 6;
@@ -16,6 +16,7 @@ namespace MisterGames.Collisions.Detectors {
         [SerializeField] private LayerMask _layerMask;
         [SerializeField] private QueryTriggerInteraction _triggerInteraction = QueryTriggerInteraction.Ignore;
 
+        private ITimeSource _timeSource => TimeSources.Get(_timeSourceStage);
         private Transform _transform;
         private RaycastHit[] _hits;
         private int _hitCount;
@@ -27,11 +28,11 @@ namespace MisterGames.Collisions.Detectors {
         }
 
         private void OnEnable() {
-            _timeDomain.Source.Subscribe(this);
+            _timeSource.Subscribe(this);
         }
 
         private void OnDisable() {
-            _timeDomain.Source.Unsubscribe(this);
+            _timeSource.Unsubscribe(this);
         }
 
         private void Start() {

@@ -7,6 +7,7 @@ namespace MisterGames.Interact.Core {
 
     public sealed class Interactive : MonoBehaviour, IUpdate {
 
+        [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
         [SerializeField] private InteractStrategy _strategy;
 
         public event Action<InteractiveUser> OnStartInteract = delegate {  };
@@ -15,6 +16,7 @@ namespace MisterGames.Interact.Core {
         public InteractStrategy Strategy => _strategy;
         public bool IsInteracting { get; private set; }
 
+        private ITimeSource _timeSource => TimeSources.Get(_timeSourceStage);
         private Transform _transform;
 
         private InteractiveUser _lastDetectedUser;
@@ -32,7 +34,7 @@ namespace MisterGames.Interact.Core {
         }
 
         private void OnDisable() {
-            TimeSources.Update.Unsubscribe(this);
+            TimeSources.Get(_timeSourceStage).Unsubscribe(this);
         }
 
         void IUpdate.OnUpdate(float dt) {
@@ -71,7 +73,7 @@ namespace MisterGames.Interact.Core {
             }
 
             _strategy.filter.Apply();
-            TimeSources.Update.Subscribe(this);
+            _timeSource.Subscribe(this);
 
             OnStartInteract.Invoke(_interactiveUser);
         }
@@ -79,7 +81,7 @@ namespace MisterGames.Interact.Core {
         public void StopInteractByUser(InteractiveUser user) {
             if (!IsInteracting || user != _interactiveUser) return;
 
-            TimeSources.Update.Unsubscribe(this);
+            _timeSource.Unsubscribe(this);
             _strategy.filter.Release();
             ResetInteractionUser();
 
