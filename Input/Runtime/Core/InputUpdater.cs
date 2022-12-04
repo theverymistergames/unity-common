@@ -6,7 +6,6 @@ namespace MisterGames.Input.Core {
 
     internal sealed class InputUpdater : MonoBehaviour, IUpdate {
 
-        [SerializeField] private TimeDomain _timeDomain;
         [SerializeField] private InputChannel _inputChannel;
 
         private void Awake() {
@@ -22,13 +21,13 @@ namespace MisterGames.Input.Core {
         private void OnEnable() {
             GlobalInput.Enable();
             _inputChannel.Activate();
-            _timeDomain.Source.Subscribe(this);
+            TimeSources.PreUpdate.Subscribe(this);
         }
 
         private void OnDisable() {
             GlobalInput.Disable();
             _inputChannel.Deactivate();
-            _timeDomain.Source.Unsubscribe(this);
+            TimeSources.PreUpdate.Unsubscribe(this);
         }
 
         void IUpdate.OnUpdate(float dt) {
