@@ -61,6 +61,11 @@ namespace MisterGames.Interact.Cursors {
         private static void OnApplicationFocusChanged(bool isFocused) {
             Cursor.visible = !isFocused;
             Cursor.lockState = isFocused ? CursorLockMode.Locked : CursorLockMode.None;
+
+            Debug.Log($"<color=yellow>{Time.realtimeSinceStartup} : {Time.frameCount}</color> :: " +
+                      "InteractiveCursor.OnApplicationFocusChanged: " +
+                      $"isFocused = {isFocused}, Application.isFocused {Application.isFocused}, " +
+                      $"Cursor.visible = {Cursor.visible}, Cursor.lockState = {Cursor.lockState}");
         }
 
         void IUpdate.OnUpdate(float deltaTime) {
