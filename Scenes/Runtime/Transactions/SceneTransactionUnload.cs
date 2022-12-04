@@ -1,6 +1,6 @@
 ﻿using System;
+using Cysharp.Threading.Tasks;
 using MisterGames.Scenes.Core;
-using MisterGames.Tick.Jobs;
 
 namespace MisterGames.Scenes.Transactions {
 
@@ -9,8 +9,8 @@ namespace MisterGames.Scenes.Transactions {
 
         public SceneReference scene;
 
-        public IJobReadOnly Perform(SceneLoader sceneLoader) {
-            return sceneLoader.UnloadScene(scene.scene);
+        public async UniTask Perform(SceneLoader sceneLoader) {
+            await sceneLoader.UnloadScene(scene.scene);
         }
     }
 

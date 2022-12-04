@@ -1,16 +1,14 @@
-﻿using MisterGames.Common.Layers;
+﻿using System;
+using Cysharp.Threading.Tasks;
+using MisterGames.Common.Layers;
 using MisterGames.Scenes.Core;
-using MisterGames.Tick.Core;
-using MisterGames.Tick.Jobs;
 using UnityEngine;
 
 namespace MisterGames.Scenes.Transactions {
 
     public sealed class SceneTransactionTrigger : MonoBehaviour {
 
-        [SerializeField] private TimeDomain _timeDomain;
         [SerializeField] private LayerMask _layerMask;
-
         [SerializeField] [Min(0f)] private float _ignoreTriggerAfterSceneStartDelay = 1f;
         [SerializeField] [Min(0f)] private float _loadDelay = 0f;
 
@@ -18,16 +16,6 @@ namespace MisterGames.Scenes.Transactions {
 
         private float _startTime;
         private bool _exitedOnce;
-
-        private IJob _loadJob;
-
-        private void OnDestroy() {
-            _loadJob?.Stop();
-        }
-
-        private void OnDisable() {
-            _loadJob?.Stop();
-        }
 
         private void Start() {
             _startTime = Time.realtimeSinceStartup;
@@ -37,7 +25,7 @@ namespace MisterGames.Scenes.Transactions {
             if (!enabled) return;
             if (!CanTriggerByStartTime() || !CanTriggerByFilter(other.gameObject)) return;
             
-            RestartLoadJob();
+            CommitSceneTransaction().Forget();
         }
 
         private void OnTriggerExit(Collider other) {
@@ -47,13 +35,9 @@ namespace MisterGames.Scenes.Transactions {
             _exitedOnce = true;
         }
 
-        private void RestartLoadJob() {
-            _loadJob?.Stop();
-
-            _loadJob = JobSequence.Create()
-                .Delay(_loadDelay)
-                .Wait(SceneLoader.Instance.CommitTransaction(_sceneTransactions))
-                .RunFrom(_timeDomain.Source);
+        private async UniTaskVoid CommitSceneTransaction() {
+            await UniTask.Delay(TimeSpan.FromSeconds(_loadDelay));
+            SceneLoader.Instance.CommitTransaction(_sceneTransactions).Forget();
         }
 
         private bool CanTriggerByFilter(GameObject go) {

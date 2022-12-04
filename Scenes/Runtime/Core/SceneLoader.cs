@@ -1,7 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System.Threading;
+using Cysharp.Threading.Tasks;
 using MisterGames.Scenes.Transactions;
-using MisterGames.Tick.Core;
-using MisterGames.Tick.Jobs;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -9,137 +8,35 @@ namespace MisterGames.Scenes.Core {
     
     public class SceneLoader : MonoBehaviour {
 
-        [SerializeField] private TimeDomain _timeDomain;
-
         public static SceneLoader Instance { get; private set; }
 
-        public IJobReadOnly TotalLoading => _totalLoadingJobs;
-
-        private readonly JobObserver _totalLoadingJobs = new JobObserver();
-        private readonly Dictionary<string, Scene> _loadedScenes = new Dictionary<string, Scene>();
-        private readonly Dictionary<string, LoadingJob> _sceneLoadingJobMap = new Dictionary<string, LoadingJob>();
-
-        private struct LoadingJob {
-            public IJob job;
-            public SceneTransactionType transactionType;
-        }
-
-        private enum SceneTransactionType {
-            Load,
-            Unload,
-        }
-
         private void Awake() {
-            ValidateFirstLoadedScene();
-
             Instance = this;
-            
-            SceneManager.sceneLoaded -= OnSceneLoaded;
-            SceneManager.sceneLoaded += OnSceneLoaded;
-
-            SceneManager.sceneUnloaded -= OnSceneUnloaded;
-            SceneManager.sceneUnloaded += OnSceneUnloaded;
-
-            var rootScene = SceneManager.GetActiveScene();
-            _loadedScenes[rootScene.name] = rootScene;
-
-            LoadScene(ScenesStorage.Instance.SceneStart, true);
+            ValidateFirstLoadedScene();
+            LoadScene(ScenesStorage.Instance.SceneStart, true).Forget();
         }
 
         private void OnDestroy() {
-            SceneManager.sceneLoaded -= OnSceneLoaded;
-            SceneManager.sceneUnloaded -= OnSceneUnloaded;
-
-            foreach (var loading in _sceneLoadingJobMap.Values) {
-                loading.job.Stop();
-            }
-
-            _loadedScenes.Clear();
-            _totalLoadingJobs.Clear();
+            Instance = null;
         }
 
-        public IJobReadOnly CommitTransaction(ISceneTransaction transaction) {
-            return transaction.Perform(this);
+        public async UniTaskVoid CommitTransaction(ISceneTransaction transaction) {
+            await transaction.Perform(this);
         }
 
-        public IJobReadOnly LoadScene(string sceneName, bool makeActive = false) {
+        public async UniTask LoadScene(string sceneName, bool makeActive = false) {
             string rootScene = ScenesStorage.Instance.SceneRoot;
-            if (sceneName == rootScene) return Jobs.Completed;
+            if (sceneName == rootScene) return;
 
-            if (_loadedScenes.TryGetValue(sceneName, out var scene)) {
-                if (_sceneLoadingJobMap.TryGetValue(sceneName, out var invalidLoadingJob)) {
-                    invalidLoadingJob.job.Stop();
-                    _sceneLoadingJobMap.Remove(sceneName);
-                }
-
-                if (makeActive) SceneManager.SetActiveScene(scene);
-                return Jobs.Completed;
-            }
-
-            if (_sceneLoadingJobMap.TryGetValue(sceneName, out var loadingJob)) {
-                if (loadingJob.transactionType == SceneTransactionType.Load) return loadingJob.job;
-
-                loadingJob.job.Stop();
-                _sceneLoadingJobMap.Remove(sceneName);
-            }
-
-            var job = JobSequence.Create()
-                .Wait(SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive).AsReadOnlyJob())
-                .Action(() => {
-                    if (makeActive) SceneManager.SetActiveScene(_loadedScenes[sceneName]);
-                    _sceneLoadingJobMap.Remove(sceneName);
-                });
-
-            _sceneLoadingJobMap[sceneName] = new LoadingJob {
-                job = job,
-                transactionType = SceneTransactionType.Load,
-            };
-
-            return job
-                .RunFrom(_timeDomain.Source)
-                .ObserveBy(_totalLoadingJobs);
+            await SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+            if (makeActive) SceneManager.SetActiveScene(SceneManager.GetSceneByName(sceneName));
         }
 
-        public IJobReadOnly UnloadScene(string sceneName) {
+        public async UniTask UnloadScene(string sceneName) {
             string rootScene = ScenesStorage.Instance.SceneRoot;
-            if (sceneName == rootScene) return Jobs.Completed;
+            if (sceneName == rootScene) return;
 
-            if (!_loadedScenes.TryGetValue(sceneName, out var scene)) {
-                if (_sceneLoadingJobMap.TryGetValue(sceneName, out var invalidLoadingJob)) {
-                    invalidLoadingJob.job.Stop();
-                    _sceneLoadingJobMap.Remove(sceneName);
-                }
-
-                return Jobs.Completed;
-            }
-
-            if (_sceneLoadingJobMap.TryGetValue(sceneName, out var loadingJob)) {
-                if (loadingJob.transactionType == SceneTransactionType.Unload) return loadingJob.job;
-
-                loadingJob.job.Stop();
-                _sceneLoadingJobMap.Remove(sceneName);
-            }
-
-            var job = JobSequence.Create()
-                .Wait(SceneManager.UnloadSceneAsync(scene).AsReadOnlyJob())
-                .Action(() => _sceneLoadingJobMap.Remove(sceneName));
-
-            _sceneLoadingJobMap[sceneName] = new LoadingJob {
-                job = job,
-                transactionType = SceneTransactionType.Unload,
-            };
-
-            return job
-                .RunFrom(_timeDomain.Source)
-                .ObserveBy(_totalLoadingJobs);
-        }
-
-        private void OnSceneLoaded(Scene scene, LoadSceneMode mode) {
-            _loadedScenes[scene.name] = scene;
-        }
-
-        private void OnSceneUnloaded(Scene scene) {
-            _loadedScenes.Remove(scene.name);
+            await SceneManager.UnloadSceneAsync(sceneName);
         }
 
         private static void ValidateFirstLoadedScene() {
