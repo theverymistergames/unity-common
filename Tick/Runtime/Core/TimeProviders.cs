@@ -24,8 +24,8 @@ namespace MisterGames.Tick.Core {
         }
 
         private sealed class FixedUpdateProvider : ITimeProvider {
-            public float DeltaTime => Time.fixedUnscaledDeltaTime * TimeScale;
-            public float TimeScale { get; set; } = 1f;
+            public float DeltaTime => Time.fixedDeltaTime;
+            public float TimeScale { get => Time.timeScale; set => Time.timeScale = value; }
         }
     }
 }
