@@ -29,9 +29,6 @@ namespace MisterGames.Interact.Cursors {
         private CollisionInfo _lastCollisionInfo;
 
         private void Awake() {
-            Cursor.visible = false;
-            Cursor.lockState = CursorLockMode.Locked;
-
             _transparencyRaycastFilter = new CollisionFilter { maxDistance = _maxDistance };
         }
 
@@ -40,9 +37,14 @@ namespace MisterGames.Interact.Cursors {
             _interactiveUser.OnInteractiveLost += OnInteractiveLost;
 
             _timeDomain.Source.Subscribe(this);
+
+            Application.focusChanged -= OnApplicationFocusChanged;
+            Application.focusChanged += OnApplicationFocusChanged;
         }
 
         private void OnDisable() {
+            Application.focusChanged -= OnApplicationFocusChanged;
+
             _timeDomain.Source.Unsubscribe(this);
 
             _interactiveUser.OnInteractiveDetected -= OnInteractiveDetected;
@@ -52,7 +54,13 @@ namespace MisterGames.Interact.Cursors {
         }
 
         private void Start() {
+            OnApplicationFocusChanged(true);
             SetCursorIcon(_initialCursorIcon);
+        }
+
+        private static void OnApplicationFocusChanged(bool isFocused) {
+            Cursor.visible = !isFocused;
+            Cursor.lockState = isFocused ? CursorLockMode.Locked : CursorLockMode.None;
         }
 
         void IUpdate.OnUpdate(float deltaTime) {
