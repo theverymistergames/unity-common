@@ -1,10 +1,9 @@
-﻿using Cysharp.Threading.Tasks;
-using MisterGames.Scenes.Core;
+﻿using MisterGames.Scenes.Core;
 
 namespace MisterGames.Scenes.Transactions {
 
     public interface ISceneTransaction {
-        UniTask Perform(SceneLoader sceneLoader);
+        void Perform(SceneLoader sceneLoader);
     }
 
 }

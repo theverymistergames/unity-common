@@ -1,5 +1,4 @@
 ﻿using System;
-using Cysharp.Threading.Tasks;
 using MisterGames.Scenes.Core;
 
 namespace MisterGames.Scenes.Transactions {
@@ -9,8 +8,8 @@ namespace MisterGames.Scenes.Transactions {
 
         public SceneReference scene;
 
-        public async UniTask Perform(SceneLoader sceneLoader) {
-            await sceneLoader.UnloadScene(scene.scene);
+        public void Perform(SceneLoader sceneLoader) {
+            sceneLoader.UnloadScene(scene.scene);
         }
     }
 

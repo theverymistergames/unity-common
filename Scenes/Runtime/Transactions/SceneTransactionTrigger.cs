@@ -37,7 +37,7 @@ namespace MisterGames.Scenes.Transactions {
 
         private async UniTaskVoid CommitSceneTransaction() {
             await UniTask.Delay(TimeSpan.FromSeconds(_loadDelay));
-            SceneLoader.Instance.CommitTransaction(_sceneTransactions).Forget();
+            SceneLoader.Instance.CommitTransaction(_sceneTransactions);
         }
 
         private bool CanTriggerByFilter(GameObject go) {

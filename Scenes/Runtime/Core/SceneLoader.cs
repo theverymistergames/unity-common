@@ -1,30 +1,37 @@
-﻿using System.Threading;
-using Cysharp.Threading.Tasks;
+﻿using Cysharp.Threading.Tasks;
 using MisterGames.Scenes.Transactions;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 namespace MisterGames.Scenes.Core {
     
-    public class SceneLoader : MonoBehaviour {
+    public sealed class SceneLoader : MonoBehaviour {
 
         public static SceneLoader Instance { get; private set; }
 
         private void Awake() {
             Instance = this;
             ValidateFirstLoadedScene();
-            LoadScene(ScenesStorage.Instance.SceneStart, true).Forget();
+            LoadScene(ScenesStorage.Instance.SceneStart, true);
         }
 
         private void OnDestroy() {
             Instance = null;
         }
 
-        public async UniTaskVoid CommitTransaction(ISceneTransaction transaction) {
-            await transaction.Perform(this);
+        public void CommitTransaction(ISceneTransaction transaction) {
+            transaction.Perform(this);
         }
 
-        public async UniTask LoadScene(string sceneName, bool makeActive = false) {
+        public void LoadScene(string sceneName, bool makeActive = false) {
+            LoadSceneAsync(sceneName, makeActive).Forget();
+        }
+
+        public void UnloadScene(string sceneName) {
+            UnloadSceneAsync(sceneName).Forget();
+        }
+
+        private async UniTaskVoid LoadSceneAsync(string sceneName, bool makeActive) {
             string rootScene = ScenesStorage.Instance.SceneRoot;
             if (sceneName == rootScene) return;
 
@@ -32,7 +39,7 @@ namespace MisterGames.Scenes.Core {
             if (makeActive) SceneManager.SetActiveScene(SceneManager.GetSceneByName(sceneName));
         }
 
-        public async UniTask UnloadScene(string sceneName) {
+        private async UniTaskVoid UnloadSceneAsync(string sceneName) {
             string rootScene = ScenesStorage.Instance.SceneRoot;
             if (sceneName == rootScene) return;
 
