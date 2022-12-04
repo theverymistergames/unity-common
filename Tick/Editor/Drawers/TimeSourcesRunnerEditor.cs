@@ -1,4 +1,6 @@
-﻿using MisterGames.Tick.Core;
+﻿using System;
+using System.Linq;
+using MisterGames.Tick.Core;
 using UnityEditor;
 using UnityEngine;
 
@@ -33,20 +35,11 @@ namespace MisterGames.Tick.Editor.Drawers {
             EditorApplication.update -= OnEditorUpdate;
             EditorApplication.update += OnEditorUpdate;
 
-            DrawTimeSource(provider.PreUpdate, $"{nameof(provider.Update)}");
-            GUILayout.Space(4);
-
-            DrawTimeSource(provider.Update, $"{nameof(provider.Update)}");
-            GUILayout.Space(4);
-
-            DrawTimeSource(provider.UnscaledUpdate, $"{nameof(provider.UnscaledUpdate)}");
-            GUILayout.Space(4);
-
-            DrawTimeSource(provider.LateUpdate, $"{nameof(provider.LateUpdate)}");
-            GUILayout.Space(4);
-
-            DrawTimeSource(provider.FixedUpdate, $"{nameof(provider.FixedUpdate)}");
-            GUILayout.Space(4);
+            var playerLoopStages = typeof(PlayerLoopStage).GetEnumValues().Cast<PlayerLoopStage>();
+            foreach (var stage in playerLoopStages) {
+                DrawTimeSource(provider.Get(stage), $"{stage}");
+                GUILayout.Space(4);
+            }
         }
 
         private void OnEditorUpdate() {
