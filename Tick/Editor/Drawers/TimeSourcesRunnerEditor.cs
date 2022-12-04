@@ -2,7 +2,7 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace MisterGames.Tick.Editor.TimeDomains {
+namespace MisterGames.Tick.Editor.Drawers {
     
     [CustomEditor(typeof(TimeSourcesRunner))]
     public class TimeSourcesRunnerEditor : UnityEditor.Editor {
@@ -33,16 +33,19 @@ namespace MisterGames.Tick.Editor.TimeDomains {
             EditorApplication.update -= OnEditorUpdate;
             EditorApplication.update += OnEditorUpdate;
 
-            DrawTimeSource(provider.MainUpdate, $"{nameof(provider.MainUpdate)}");
+            DrawTimeSource(provider.PreUpdate, $"{nameof(provider.Update)}");
+            GUILayout.Space(4);
+
+            DrawTimeSource(provider.Update, $"{nameof(provider.Update)}");
+            GUILayout.Space(4);
+
+            DrawTimeSource(provider.UnscaledUpdate, $"{nameof(provider.UnscaledUpdate)}");
             GUILayout.Space(4);
 
             DrawTimeSource(provider.LateUpdate, $"{nameof(provider.LateUpdate)}");
             GUILayout.Space(4);
 
             DrawTimeSource(provider.FixedUpdate, $"{nameof(provider.FixedUpdate)}");
-            GUILayout.Space(4);
-
-            DrawTimeSource(provider.UnscaledUpdate, $"{nameof(provider.UnscaledUpdate)}");
             GUILayout.Space(4);
         }
 

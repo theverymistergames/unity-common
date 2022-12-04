@@ -4,50 +4,57 @@ namespace MisterGames.Tick.Core {
     
     public class TimeSourcesRunner : MonoBehaviour, ITimeSourceProvider {
 
-        ITimeSource ITimeSourceProvider.MainUpdate => _mainUpdateTimeSource;
+        ITimeSource ITimeSourceProvider.PreUpdate => _preUpdateTimeSource;
+        ITimeSource ITimeSourceProvider.Update => _updateTimeSource;
         ITimeSource ITimeSourceProvider.LateUpdate => _lateUpdateTimeSource;
         ITimeSource ITimeSourceProvider.FixedUpdate => _fixedUpdateTimeSource;
         ITimeSource ITimeSourceProvider.UnscaledUpdate => _unscaledUpdateTimeSource;
 
-        private readonly TimeSource _mainUpdateTimeSource = new TimeSource(TimeProviders.Main);
+        private readonly TimeSource _preUpdateTimeSource = new TimeSource(TimeProviders.Main);
+        private readonly TimeSource _updateTimeSource = new TimeSource(TimeProviders.Main);
+        private readonly TimeSource _unscaledUpdateTimeSource = new TimeSource(TimeProviders.Unscaled);
         private readonly TimeSource _lateUpdateTimeSource = new TimeSource(TimeProviders.Main);
         private readonly TimeSource _fixedUpdateTimeSource = new TimeSource(TimeProviders.Fixed);
-        private readonly TimeSource _unscaledUpdateTimeSource = new TimeSource(TimeProviders.Unscaled);
 
         private void Awake() {
             TimeSources.InjectProvider(this);
         }
 
         private void OnEnable() {
-            _mainUpdateTimeSource.IsPaused = false;
+            _preUpdateTimeSource.IsPaused = false;
+            _updateTimeSource.IsPaused = false;
+            _unscaledUpdateTimeSource.IsPaused = false;
             _lateUpdateTimeSource.IsPaused = false;
             _fixedUpdateTimeSource.IsPaused = false;
-            _unscaledUpdateTimeSource.IsPaused = false;
         }
 
         private void OnDisable() {
-            _mainUpdateTimeSource.IsPaused = true;
+            _preUpdateTimeSource.IsPaused = true;
+            _updateTimeSource.IsPaused = true;
+            _unscaledUpdateTimeSource.IsPaused = true;
             _lateUpdateTimeSource.IsPaused = true;
             _fixedUpdateTimeSource.IsPaused = true;
-            _unscaledUpdateTimeSource.IsPaused = true;
         }
 
         private void OnDestroy() {
-            _mainUpdateTimeSource.Reset();
+            _preUpdateTimeSource.Reset();
+            _updateTimeSource.Reset();
+            _unscaledUpdateTimeSource.Reset();
             _lateUpdateTimeSource.Reset();
             _fixedUpdateTimeSource.Reset();
-            _unscaledUpdateTimeSource.Reset();
         }
 
         private void Start() {
-            _mainUpdateTimeSource.Tick();
+            _preUpdateTimeSource.Tick();
+            _updateTimeSource.Tick();
+            _unscaledUpdateTimeSource.Tick();
             _lateUpdateTimeSource.Tick();
             _fixedUpdateTimeSource.Tick();
-            _unscaledUpdateTimeSource.Tick();
         }
 
         private void Update() {
-            _mainUpdateTimeSource.Tick();
+            _preUpdateTimeSource.Tick();
+            _updateTimeSource.Tick();
             _unscaledUpdateTimeSource.Tick();
         }
         
