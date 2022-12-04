@@ -1,10 +1,9 @@
 ﻿using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using MisterGames.Blueprints;
 using MisterGames.Blueprints.Core;
 using MisterGames.Scenes.Core;
 using MisterGames.Scenes.Transactions;
-using MisterGames.Tick.Core;
-using MisterGames.Tick.Jobs;
 using UnityEngine;
 
 namespace MisterGames.BlueprintLib {
@@ -14,34 +13,27 @@ namespace MisterGames.BlueprintLib {
         
         [SerializeField] private SceneTransactions _sceneTransactions;
 
-        private IJob _loadSceneJob;
-        
         protected override IReadOnlyList<Port> CreatePorts() => new List<Port> {
             Port.Enter(),
             Port.Exit(),
         };
 
-        protected override void OnInit() {
-            _loadSceneJob?.Stop();
-        }
+        protected override void OnInit() { }
 
-        protected override void OnTerminate() {
-            _loadSceneJob?.Stop();
-        }
+        protected override void OnTerminate() { }
 
         void IBlueprintEnter.Enter(int port) {
             if (port != 0) return;
 
-            _loadSceneJob?.Stop();
-
-            _loadSceneJob = JobSequence.Create()
-                .Wait(SceneLoader.Instance.CommitTransaction(_sceneTransactions))
-                .Action(OnFinish)
-                .RunFrom(runner.TimeSource);
+            SceneLoader.Instance.CommitTransaction(_sceneTransactions);
         }
 
         private void OnFinish() {
             Call(1);
+        }
+
+        private async UniTaskVoid CommitTransaction() {
+
         }
     }
 
