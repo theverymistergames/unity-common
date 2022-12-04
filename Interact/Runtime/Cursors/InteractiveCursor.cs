@@ -11,7 +11,6 @@ namespace MisterGames.Interact.Cursors {
     public class InteractiveCursor : MonoBehaviour, IUpdate {
 
         [Header("General")]
-        [SerializeField] private TimeDomain _timeDomain;
         [SerializeField] private InteractiveUser _interactiveUser;
 
         [Header("Cursor Settings")]
@@ -39,11 +38,11 @@ namespace MisterGames.Interact.Cursors {
             _interactiveUser.OnInteractiveDetected += OnInteractiveDetected;
             _interactiveUser.OnInteractiveLost += OnInteractiveLost;
 
-            _timeDomain.Source.Subscribe(this);
+            TimeSources.Update.Subscribe(this);
         }
 
         private void OnDisable() {
-            _timeDomain.Source.Unsubscribe(this);
+            TimeSources.Update.Unsubscribe(this);
 
             _interactiveUser.OnInteractiveDetected -= OnInteractiveDetected;
             _interactiveUser.OnInteractiveLost -= OnInteractiveLost;

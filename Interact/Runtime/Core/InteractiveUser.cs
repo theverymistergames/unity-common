@@ -9,7 +9,6 @@ namespace MisterGames.Interact.Core {
 
     public sealed class InteractiveUser : MonoBehaviour, IUpdate {
 
-        [SerializeField] private TimeDomain _timeDomain;
         [SerializeField] private CollisionFilter _collisionFilter = new CollisionFilter { maxDistance = 3f };
         [SerializeField] private CollisionDetector _collisionDetector;
 
@@ -23,11 +22,11 @@ namespace MisterGames.Interact.Core {
         private bool _hasPossibleInteractive;
 
         private void OnEnable() {
-            _timeDomain.Source.Subscribe(this);
+            TimeSources.Update.Subscribe(this);
         }
 
         private void OnDisable() {
-            _timeDomain.Source.Unsubscribe(this);
+            TimeSources.Update.Unsubscribe(this);
         }
 
         public bool IsDetectedTarget(Interactive interactive) {

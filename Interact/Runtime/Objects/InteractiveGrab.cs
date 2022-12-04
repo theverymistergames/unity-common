@@ -10,8 +10,6 @@ namespace MisterGames.Interact.Objects {
     [RequireComponent(typeof(Interactive))]
     public sealed class InteractiveGrab : MonoBehaviour, IUpdate {
 
-        [SerializeField] private TimeDomain _timeDomain;
-        
         [Header("Input")]
         [SerializeField] private InputActionVector2 _inputAxis;
         [SerializeField] private float _handSensitivity = 0.4f;
@@ -46,13 +44,13 @@ namespace MisterGames.Interact.Objects {
         private void OnEnable() {
             _interactive.OnStartInteract += OnStartInteract;
             _interactive.OnStopInteract += OnStopInteract;
-            _timeDomain.Source.Subscribe(this);
+            TimeSources.Update.Subscribe(this);
         }
 
         private void OnDisable() {
             _interactive.OnStartInteract -= OnStartInteract;
             _interactive.OnStopInteract -= OnStopInteract;
-            _timeDomain.Source.Unsubscribe(this);
+            TimeSources.Update.Unsubscribe(this);
         }
 
         void IUpdate.OnUpdate(float dt) {

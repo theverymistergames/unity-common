@@ -8,8 +8,6 @@ namespace MisterGames.Interact.Objects {
     [RequireComponent(typeof(InteractiveGrab))]
     public sealed class InteractiveDrawer : MonoBehaviour, IUpdate {
 
-        [SerializeField] private TimeDomain _timeDomain;
-        
         [Header("Positions")]
         [SerializeField] private Vector3 _positionClosed;
         [SerializeField] private Vector3 _positionOpened;
@@ -66,14 +64,14 @@ namespace MisterGames.Interact.Objects {
             _grab.OnGrab += OnGrab;
             _grab.OnStartGrab += OnStartGrab;
             _grab.OnStopGrab += OnStopGrab;
-            _timeDomain.Source.Subscribe(this);
+            TimeSources.Update.Subscribe(this);
         }
 
         private void OnDisable() {
             _grab.OnGrab -= OnGrab;
             _grab.OnStartGrab -= OnStartGrab;
             _grab.OnStopGrab -= OnStopGrab;
-            _timeDomain.Source.Unsubscribe(this);
+            TimeSources.Update.Unsubscribe(this);
         }
 
         void IUpdate.OnUpdate(float dt) {
@@ -95,7 +93,7 @@ namespace MisterGames.Interact.Objects {
             var prevPosition = _transform.position;
             ConsumeGrab(to - from);
             ApplyPosition();
-            ProcessEvents(prevPosition, _targetPosition, _timeDomain.Source.DeltaTime);
+            ProcessEvents(prevPosition, _targetPosition, TimeSources.Update.DeltaTime);
         }
 
         private void OnStartGrab() {
@@ -106,7 +104,7 @@ namespace MisterGames.Interact.Objects {
         private void OnStopGrab() {
             _isGrabbing = false;
 
-            _intertiaMagnitude = Math.Min(_config.maxSpeed, _intertiaVector.magnitude / _timeDomain.Source.DeltaTime);
+            _intertiaMagnitude = Math.Min(_config.maxSpeed, _intertiaVector.magnitude / TimeSources.Update.DeltaTime);
 
             float prevTargetToClosedSqrMag = (_targetPosition - _intertiaVector - _positionClosed).sqrMagnitude;
             float targetToClosedSqrMag = (_targetPosition - _positionClosed).sqrMagnitude;
