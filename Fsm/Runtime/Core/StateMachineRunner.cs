@@ -15,7 +15,7 @@ namespace MisterGames.Fsm.Core {
     /// </summary>
     public sealed class StateMachineRunner : MonoBehaviour {
 
-        [SerializeField] private TimeDomain timeDomain;
+        [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
         [SerializeField] private StateMachine _stateMachine;
 
         public event Action<FsmState> OnEnterState = delegate {  }; 
@@ -23,7 +23,7 @@ namespace MisterGames.Fsm.Core {
         
         public StateMachine Source => _stateMachine;
         public StateMachine Instance { get; private set; }
-        public ITimeSource TimeSource => timeDomain.Source;
+        public ITimeSource TimeSource => TimeSources.Get(_timeSourceStage);
 
         private void Awake() {
             Instance = CloneInstance(_stateMachine);

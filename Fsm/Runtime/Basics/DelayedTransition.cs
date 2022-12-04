@@ -1,6 +1,8 @@
-﻿using MisterGames.Fsm.Core;
+﻿using System;
+using System.Threading;
+using Cysharp.Threading.Tasks;
+using MisterGames.Fsm.Core;
 using MisterGames.Tick.Core;
-using MisterGames.Tick.Jobs;
 using UnityEngine;
 
 namespace MisterGames.Fsm.Basics {
@@ -9,28 +11,34 @@ namespace MisterGames.Fsm.Basics {
         
         [SerializeField] private float _delay;
 
-        private IJob _delayJob;
+        private CancellationTokenSource _delayCts;
         private ITimeSource _timeSource;
 
         protected override void OnAttach(StateMachineRunner runner) {
             _timeSource = runner.TimeSource;
+
+            _delayCts?.Dispose();
+            _delayCts = new CancellationTokenSource();
         }
 
         protected override void OnDetach() {
-            _delayJob?.Stop();
+            _delayCts.Cancel();
         }
 
         protected override void OnEnterSourceState() {
-            _delayJob?.Stop();
-
-            _delayJob = JobSequence.Create()
-                .Delay(_delay)
-                .Action(Transit)
-                .RunFrom(_timeSource);
+            StartDelay(_delayCts.Token).Forget();
         }
 
-        protected override void OnExitSourceState() {
-            _delayJob?.Stop();
+        protected override void OnExitSourceState() { }
+
+        private async UniTaskVoid StartDelay(CancellationToken token) {
+            bool isCanceled = await UniTask
+                .Delay(TimeSpan.FromSeconds(_delay), cancellationToken: token)
+                .SuppressCancellationThrow();
+
+            if (isCanceled) return;
+
+            Transit();
         }
     }
 
