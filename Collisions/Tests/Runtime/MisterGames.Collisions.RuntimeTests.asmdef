@@ -1,0 +1,25 @@
+{
+    "name": "MisterGames.Collisions.RuntimeTests",
+    "rootNamespace": "MisterGames.Collisions.RuntimeTests",
+    "references": [
+        "GUID:0acc523941302664db1f4e527237feb3",
+        "GUID:27619889b8ba8c24980f49ee34dbb44a",
+        "GUID:0175294ec022c624cbe537915e3c9e71",
+        "GUID:3d6f9ec8b442ef04b866c9a2d92fad40"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
