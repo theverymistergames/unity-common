@@ -58,11 +58,11 @@ namespace MisterGames.BlueprintLib {
         }
 
         private async UniTaskVoid StartSchedule(float startDelay, float period, int times, bool isInfinite, CancellationToken token) {
-            bool isCanceled = await UniTask
+            bool isCancelled = await UniTask
                 .Delay(TimeSpan.FromSeconds(startDelay), cancellationToken: token)
                 .SuppressCancellationThrow();
 
-            if (isCanceled) return;
+            if (isCancelled) return;
 
             int counter = 0;
             while (!token.IsCancellationRequested) {
@@ -71,11 +71,11 @@ namespace MisterGames.BlueprintLib {
                 Call(port: 5);
                 counter++;
 
-                isCanceled = await UniTask
+                isCancelled = await UniTask
                     .Delay(TimeSpan.FromSeconds(period), cancellationToken: token)
                     .SuppressCancellationThrow();
 
-                if (isCanceled) break;
+                if (isCancelled) break;
             }
         }
     }

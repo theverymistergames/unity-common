@@ -51,11 +51,11 @@ namespace MisterGames.BlueprintLib {
         }
 
         private async UniTaskVoid StartDelay(float duration, CancellationToken token) {
-            bool isCanceled = await UniTask
+            bool isCancelled = await UniTask
                 .Delay(TimeSpan.FromSeconds(duration), cancellationToken: token)
                 .SuppressCancellationThrow();
 
-            if (isCanceled) return;
+            if (isCancelled) return;
 
             Call(port: 3);
         }
