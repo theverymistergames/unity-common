@@ -1,7 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using MisterGames.Blueprints;
 using MisterGames.Blueprints.Core;
-using MisterGames.Tick.Jobs;
 using UnityEngine;
 
 namespace MisterGames.BlueprintLib {
@@ -11,7 +13,7 @@ namespace MisterGames.BlueprintLib {
         
         [SerializeField] private float _defaultDuration;
 
-        private IJob _delayJob;
+        private CancellationTokenSource _delayCts;
         
         protected override IReadOnlyList<Port> CreatePorts() => new List<Port> {
             Port.Enter("Start"),
@@ -21,33 +23,40 @@ namespace MisterGames.BlueprintLib {
         };
 
         protected override void OnInit() {
-            _delayJob?.Stop();
+            _delayCts?.Cancel();
+            _delayCts?.Dispose();
         }
 
         protected override void OnTerminate() {
-            _delayJob?.Stop();
+            _delayCts?.Cancel();
+            _delayCts?.Dispose();
         }
 
         void IBlueprintEnter.Enter(int port) {
             if (port == 0) {
-                _delayJob?.Stop();
+                _delayCts?.Cancel();
+                _delayCts?.Dispose();
+                _delayCts = new CancellationTokenSource();
 
                 float duration = Read(2, _defaultDuration);
-
-                _delayJob = JobSequence.Create()
-                    .Delay(duration)
-                    .Action(OnDelayFinished)
-                    .RunFrom(runner.TimeSource);
+                StartDelay(duration, _delayCts.Token).Forget();
 
                 return;
             }
 
             if (port == 1) {
-                _delayJob?.Stop();
+                _delayCts?.Cancel();
+                _delayCts?.Dispose();
             }
         }
 
-        private void OnDelayFinished() {
+        private async UniTaskVoid StartDelay(float duration, CancellationToken token) {
+            bool isCanceled = await UniTask
+                .Delay(TimeSpan.FromSeconds(duration), cancellationToken: token)
+                .SuppressCancellationThrow();
+
+            if (isCanceled) return;
+
             Call(port: 3);
         }
     }
