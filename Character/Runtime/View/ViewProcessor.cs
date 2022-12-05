@@ -8,7 +8,7 @@ namespace MisterGames.Character.View {
 
     public class ViewProcessor : MonoBehaviour, IUpdate {
         
-        [SerializeField] private TimeDomain _timeDomain;
+        [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
         
         [Header("Input")]
         [SerializeField] private CharacterInput _input;
@@ -16,18 +16,19 @@ namespace MisterGames.Character.View {
         [Header("Output")]
         [SerializeField] private CharacterAdapter _adapter;
         [SerializeField] private ViewSettings _viewSettings;
-        
+
+        private ITimeSource _timeSource => TimeSources.Get(_timeSourceStage);
         private Vector2 _targetView;
         private Vector2 _currentView;
 
         private void OnEnable() {
             _input.View += HandleView;
-            _timeDomain.Source.Subscribe(this);
+            _timeSource.Subscribe(this);
         }
 
         private void OnDisable() {
             _input.View -= HandleView;
-            _timeDomain.Source.Unsubscribe(this);
+            _timeSource.Unsubscribe(this);
         }
 
         void IUpdate.OnUpdate(float dt) {

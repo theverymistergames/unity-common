@@ -1,4 +1,4 @@
-﻿﻿using System;
+﻿using System;
  using MisterGames.Character.Configs;
  using MisterGames.Collisions.Core;
  using MisterGames.Common.Data;
@@ -12,7 +12,8 @@
 
     public class MassProcessor : MonoBehaviour, IUpdate {
 
-        [SerializeField] private TimeDomain _timeDomain;
+        [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
+
         [SerializeField] private CollisionDetector _groundDetector;
         [SerializeField] private CollisionDetector _ceilingDetector;
         [SerializeField] private CollisionDetector _hitDetector;
@@ -31,6 +32,7 @@
         private Vector3 _targetInertia;
 
         private readonly ObjectDataMap<Vector3> _forces = new ObjectDataMap<Vector3>();
+        private ITimeSource _timeSource => TimeSources.Get(_timeSourceStage);
 
         public void RegisterForceSource(Object source) {
             _forces.Register(source, Vector3.zero);
@@ -73,7 +75,7 @@
             _groundDetector.OnContact += HandleLanded;
             _ceilingDetector.OnContact += HandleCeilingAppeared;
             _hitDetector.OnContact += HandleColliderHit;
-            _timeDomain.Source.Subscribe(this);
+            _timeSource.Subscribe(this);
         }
 
         private void OnDisable() {
@@ -82,7 +84,7 @@
             _groundDetector.OnContact -= HandleLanded;
             _ceilingDetector.OnContact -= HandleCeilingAppeared;
             _hitDetector.OnContact -= HandleColliderHit;
-            _timeDomain.Source.Unsubscribe(this);
+            _timeSource.Unsubscribe(this);
         }
 
         void IUpdate.OnUpdate(float dt) {

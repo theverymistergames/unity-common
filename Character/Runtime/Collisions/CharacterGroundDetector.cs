@@ -9,7 +9,7 @@ namespace MisterGames.Character.Collisions {
 
     public class CharacterGroundDetector : CollisionDetector, IUpdate {
 
-        [SerializeField] private TimeDomain _timeDomain;
+        [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
 
         [Header("Sphere cast settings")]
         [SerializeField] [Min(1)] private int _maxHits = 6;
@@ -24,7 +24,8 @@ namespace MisterGames.Character.Collisions {
 
         public Vector3 OriginOffset { get; set; } = Vector3.zero;
         public float Distance { get; set; }
-        
+
+        private ITimeSource _timeSource => TimeSources.Get(_timeSourceStage);
         private readonly Vector3 _groundDetectionDirection = Vector3.down;
         private Transform _transform;
         private RaycastHit[] _hitsMain;
@@ -39,11 +40,11 @@ namespace MisterGames.Character.Collisions {
         }
 
         private void OnEnable() {
-            _timeDomain.Source.Subscribe(this);
+            _timeSource.Subscribe(this);
         }
 
         private void OnDisable() {
-            _timeDomain.Source.Unsubscribe(this);
+            _timeSource.Unsubscribe(this);
         }
 
         private void Start() {

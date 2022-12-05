@@ -12,7 +12,8 @@ namespace MisterGames.Character.Systems {
 
     public class StepProcessor : MonoBehaviour, IUpdate {
 
-        [SerializeField] private TimeDomain _timeDomain;
+        [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
+
         [SerializeField] private CharacterAdapter _adapter;
         [SerializeField] private MotionInputProcessor _motionInputProcessor;
         [SerializeField] private CharacterGroundDetector _groundDetector;
@@ -20,15 +21,17 @@ namespace MisterGames.Character.Systems {
 
         public event Action<float> OnStep = delegate {  };
 
+        private ITimeSource _timeSource => TimeSources.Get(_timeSourceStage);
+
         private float _stepLength;
         private float _stepDistance;
 
         private void OnEnable() {
-            _timeDomain.Source.Subscribe(this);
+            _timeSource.Subscribe(this);
         }
 
         private void OnDisable() {
-            _timeDomain.Source.Unsubscribe(this);
+            _timeSource.Unsubscribe(this);
         }
 
         void IUpdate.OnUpdate(float dt) {

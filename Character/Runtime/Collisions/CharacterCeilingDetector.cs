@@ -9,7 +9,7 @@ namespace MisterGames.Character.Collisions {
 
     public class CharacterCeilingDetector : CollisionDetector, IUpdate {
 
-        [SerializeField] private TimeDomain _timeDomain;
+        [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
         
         [Header("Sphere cast settings")]
         [SerializeField] [Min(1)] private int _maxHits = 2;
@@ -18,6 +18,7 @@ namespace MisterGames.Character.Collisions {
         [SerializeField] private LayerMask _layerMask;
         [SerializeField] private QueryTriggerInteraction _triggerInteraction = QueryTriggerInteraction.Ignore;
 
+        private ITimeSource _timeSource => TimeSources.Get(_timeSourceStage);
         private readonly Vector3 _ceilingDetectionDirection = Vector3.up;
         private Transform _transform;
         private RaycastHit[] _hits;
@@ -34,11 +35,11 @@ namespace MisterGames.Character.Collisions {
         }
 
         private void OnEnable() {
-            _timeDomain.Source.Subscribe(this);
+            _timeSource.Subscribe(this);
         }
 
         private void OnDisable() {
-            _timeDomain.Source.Unsubscribe(this);
+            _timeSource.Unsubscribe(this);
         }
 
         void IUpdate.OnUpdate(float dt) {
