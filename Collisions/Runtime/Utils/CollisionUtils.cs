@@ -119,11 +119,11 @@ namespace MisterGames.Collisions.Utils {
         public static RaycastHit[] SortByDistance(
             this RaycastHit[] hits,
             int hitCount,
-            bool isAscendingOrder = true)
+            bool ascending = true)
         {
             hitCount = Math.Min(hitCount, hits.Length);
 
-            var comparer = isAscendingOrder ? RaycastHitDistanceComparerAsc : RaycastHitDistanceComparerDesc;
+            var comparer = ascending ? RaycastHitDistanceComparerAsc : RaycastHitDistanceComparerDesc;
             Array.Sort(hits, 0, hitCount, comparer);
 
             return hits;
@@ -132,11 +132,11 @@ namespace MisterGames.Collisions.Utils {
         public static List<RaycastResult> SortByDistance(
             this List<RaycastResult> hits,
             int hitCount,
-            bool isAscendingOrder = true)
+            bool ascending = true)
         {
             hitCount = Math.Min(hitCount, hits.Count);
 
-            var comparer = isAscendingOrder ? RaycastResultDistanceComparerAsc : RaycastResultDistanceComparerDesc;
+            var comparer = ascending ? RaycastResultDistanceComparerAsc : RaycastResultDistanceComparerDesc;
             hits.Sort(0, hitCount, comparer);
 
             return hits;
