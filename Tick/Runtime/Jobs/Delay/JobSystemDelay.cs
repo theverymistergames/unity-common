@@ -29,32 +29,32 @@ namespace MisterGames.Tick.Jobs {
         }
 
         public bool IsJobCompleted(int jobId) {
-            int index = _jobs.IndexOf(jobId);
-            return index < 0 || _jobs[index].IsCompleted;
+            int index = _jobs.Keys.IndexOf(jobId);
+            return index < 0 || _jobs.Values[index].IsCompleted;
         }
 
         public void StartJob(int jobId) {
-            int index = _jobs.IndexOf(jobId);
-            if (index >= 0) _jobs[index] = _jobs[index].Start();
+            int index = _jobs.Keys.IndexOf(jobId);
+            if (index >= 0) _jobs.Values[index] = _jobs.Values[index].Start();
         }
 
         public void StopJob(int jobId) {
-            int index = _jobs.IndexOf(jobId);
-            if (index >= 0) _jobs[index] = _jobs[index].Stop();
+            int index = _jobs.Keys.IndexOf(jobId);
+            if (index >= 0) _jobs.Values[index] = _jobs.Values[index].Stop();
         }
 
         public void OnUpdate(float dt) {
             for (int i = _jobs.Count - 1; i >= 0; i--) {
-                var delayJob = _jobs[i];
+                var job = _jobs.Values[i];
 
-                if (delayJob.IsCompleted) {
+                if (job.IsCompleted) {
                     _jobs.RemoveAt(i);
                     continue;
                 }
 
-                if (!delayJob.isUpdating) continue;
+                if (!job.isUpdating) continue;
 
-                _jobs[i] = delayJob.AddToTimer(dt);
+                _jobs.Values[i] = job.AddToTimer(dt);
             }
         }
 
