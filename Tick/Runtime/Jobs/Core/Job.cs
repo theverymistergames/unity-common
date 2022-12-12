@@ -6,10 +6,10 @@ namespace MisterGames.Tick.Jobs {
 
         public bool IsCompleted => _system?.IsJobCompleted(id) ?? true;
 
-        private readonly IJobSystemBase _system;
+        private readonly IJobSystem _system;
         internal readonly int id;
 
-        public Job(int id, IJobSystemBase system) {
+        public Job(int id, IJobSystem system) {
             _system = system;
             this.id = id;
         }
@@ -31,8 +31,11 @@ namespace MisterGames.Tick.Jobs {
         }
 
         public override bool Equals(object obj) {
-            return obj is Job job && Equals(job) ||
-                   obj is ReadOnlyJob readOnlyJob && Equals(readOnlyJob);
+            return obj switch {
+                Job job => Equals(job),
+                ReadOnlyJob readOnlyJob => Equals(readOnlyJob),
+                _ => false
+            };
         }
 
         public override int GetHashCode() {
@@ -64,10 +67,10 @@ namespace MisterGames.Tick.Jobs {
 
         public bool IsCompleted => _system?.IsJobCompleted(id) ?? true;
 
-        private readonly IJobSystemBase _system;
+        private readonly IJobSystem _system;
         internal readonly int id;
 
-        public ReadOnlyJob(int id, IJobSystemBase system) {
+        public ReadOnlyJob(int id, IJobSystem system) {
             _system = system;
             this.id = id;
         }

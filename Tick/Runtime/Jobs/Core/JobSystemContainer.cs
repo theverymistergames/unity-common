@@ -5,14 +5,14 @@ using MisterGames.Tick.Core;
 
 namespace MisterGames.Tick.Jobs {
 
-    public sealed class JobSystemsContainer : IJobSystemProvider {
+    public sealed class JobSystemContainer : IJobSystemProvider {
 
         private readonly ITimeSource _timeSource;
-        private readonly DictionaryList<Type, IJobSystemBase> _jobSystems;
+        private readonly DictionaryList<Type, IJobSystem> _jobSystems;
 
-        public JobSystemsContainer(ITimeSource timeSource, IReadOnlyList<IJobSystemBase> jobSystems) {
+        public JobSystemContainer(ITimeSource timeSource, IReadOnlyList<IJobSystem> jobSystems) {
             _timeSource = timeSource;
-            _jobSystems = new DictionaryList<Type, IJobSystemBase>(jobSystems.Count);
+            _jobSystems = new DictionaryList<Type, IJobSystem>(jobSystems.Count);
 
             for (int i = 0; i < jobSystems.Count; i++) {
                 var jobSystem = jobSystems[i];
@@ -40,7 +40,7 @@ namespace MisterGames.Tick.Jobs {
             _jobSystems.Clear();
         }
 
-        public S GetJobSystem<S>() where S : class, IJobSystemBase {
+        public S GetJobSystem<S>() where S : class, IJobSystem {
             int index = _jobSystems.IndexOf(typeof(S));
             if (index < 0) return null;
 

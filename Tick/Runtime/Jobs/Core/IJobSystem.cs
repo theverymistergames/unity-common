@@ -1,6 +1,6 @@
 ﻿namespace MisterGames.Tick.Jobs {
 
-    public interface IJobSystemBase {
+    public interface IJobSystem {
         void Initialize(IJobIdFactory jobIdFactory);
         void DeInitialize();
 
