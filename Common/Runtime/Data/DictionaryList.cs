@@ -1,47 +1,79 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace MisterGames.Common.Data {
 
     public sealed class DictionaryList<K, V> { // todo implement collection interfaces
 
-        public int Count => _keys.Count;
-        public IReadOnlyList<K> Keys => _keys;
-        public IReadOnlyList<V> Values => _values;
+        public int Count => _entries.Count;
 
         public V this[int index] {
-            get => _values[index];
-            set => _values[index] = value;
+            get => _entries[index].value;
+            set => _entries[index] = _entries[index].WithValue(value);
         }
 
-        private readonly List<K> _keys;
-        private readonly List<V> _values;
+        private readonly List<Entry> _entries;
 
         public DictionaryList(int capacity = 0) {
-            _keys = new List<K>(capacity);
-            _values = new List<V>(capacity);
+            _entries = new List<Entry>(capacity);
         }
 
-        public void Add(K key, V data) {
-            _keys.Add(key);
-            _values.Add(data);
+        public void Add(K key, V value) {
+            _entries.Add(new Entry(key, value));
         }
 
         public void RemoveAt(int index) {
-            _keys.RemoveAt(index);
-            _values.RemoveAt(index);
+            _entries.RemoveAt(index);
         }
 
         public int IndexOf(K key) {
-            return _keys.IndexOf(key);
+            var keyEntry = new Entry(key);
+            return _entries.IndexOf(keyEntry);
         }
 
         public int LastIndexOf(K key) {
-            return _keys.LastIndexOf(key);
+            var keyEntry = new Entry(key);
+            return _entries.LastIndexOf(keyEntry);
         }
 
         public void Clear() {
-            _keys.Clear();
-            _values.Clear();
+            _entries.Clear();
+        }
+
+        private readonly struct Entry : IEquatable<Entry> {
+
+            public readonly K key;
+            public readonly V value;
+
+            public Entry(K key, V value = default) {
+                this.key = key;
+                this.value = value;
+            }
+
+            public Entry WithValue(V v) {
+                return new Entry(key, v);
+            }
+
+            public bool Equals(Entry other) {
+                return EqualityComparer<K>.Default.Equals(key, other.key);
+            }
+
+            public override bool Equals(object obj) {
+                return obj is Entry other && Equals(other);
+            }
+
+            public override int GetHashCode() {
+                return EqualityComparer<K>.Default.GetHashCode(key);
+            }
+
+            public static bool operator ==(Entry left, Entry right) {
+                return left.Equals(right);
+            }
+
+            public static bool operator !=(Entry left, Entry right) {
+                return !left.Equals(right);
+            }
         }
     }
+
 }
