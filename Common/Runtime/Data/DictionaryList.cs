@@ -1,18 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace MisterGames.Common.Data {
 
-    public sealed class DictionaryList<K, V> { // todo implement collection interfaces
+    [Serializable]
+    public sealed class DictionaryList<K, V> {
 
         public int Count => _entries.Count;
 
         public V this[int index] {
             get => _entries[index].value;
-            set => _entries[index] = _entries[index].WithValue(value);
+            set => _entries[index] = new Entry(_entries[index].key, value);
         }
 
-        private readonly List<Entry> _entries;
+        [SerializeField]
+        private List<Entry> _entries;
 
         public DictionaryList(int capacity = 0) {
             _entries = new List<Entry>(capacity);
@@ -40,18 +43,15 @@ namespace MisterGames.Common.Data {
             _entries.Clear();
         }
 
-        private readonly struct Entry : IEquatable<Entry> {
+        [Serializable]
+        private struct Entry : IEquatable<Entry> {
 
-            public readonly K key;
-            public readonly V value;
+            public K key;
+            public V value;
 
             public Entry(K key, V value = default) {
                 this.key = key;
                 this.value = value;
-            }
-
-            public Entry WithValue(V v) {
-                return new Entry(key, v);
             }
 
             public bool Equals(Entry other) {
