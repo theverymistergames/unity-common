@@ -4,22 +4,25 @@ namespace MisterGames.Tick.Jobs {
 
     public readonly struct Job : IEquatable<Job>, IEquatable<ReadOnlyJob> {
 
-        public bool IsCompleted => _system?.IsJobCompleted(id) ?? true;
+        public bool IsCompleted => !_hasSystem || _system.IsJobCompleted(id);
 
-        private readonly IJobSystem _system;
         internal readonly int id;
+        private readonly IJobSystem _system;
+        private readonly bool _hasSystem;
 
         public Job(int id, IJobSystem system) {
-            _system = system;
             this.id = id;
+
+            _system = system;
+            _hasSystem = _system is not null;
         }
 
         public void Start() {
-            _system?.StartJob(id);
+            if (_hasSystem) _system.StartJob(id);
         }
 
         public void Stop() {
-            _system?.StopJob(id);
+            if (_hasSystem) _system.StopJob(id);
         }
 
         public bool Equals(Job other) {
@@ -65,14 +68,17 @@ namespace MisterGames.Tick.Jobs {
 
     public readonly struct ReadOnlyJob : IEquatable<Job>, IEquatable<ReadOnlyJob> {
 
-        public bool IsCompleted => _system?.IsJobCompleted(id) ?? true;
+        public bool IsCompleted => !_hasSystem || _system.IsJobCompleted(id);
 
-        private readonly IJobSystem _system;
         internal readonly int id;
+        private readonly IJobSystem _system;
+        private readonly bool _hasSystem;
 
         public ReadOnlyJob(int id, IJobSystem system) {
-            _system = system;
             this.id = id;
+
+            _system = system;
+            _hasSystem = _system is not null;
         }
 
         public bool Equals(Job other) {
