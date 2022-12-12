@@ -5,11 +5,11 @@ namespace MisterGames.Tick.Core {
     
     public class TimeSourcesRunner : MonoBehaviour, ITimeSourceProvider {
 
-        private readonly TimeSource _preUpdateTimeSource = new TimeSource(TimeProviders.Main);
-        private readonly TimeSource _updateTimeSource = new TimeSource(TimeProviders.Main);
-        private readonly TimeSource _unscaledUpdateTimeSource = new TimeSource(TimeProviders.Unscaled);
-        private readonly TimeSource _lateUpdateTimeSource = new TimeSource(TimeProviders.Main);
-        private readonly TimeSource _fixedUpdateTimeSource = new TimeSource(TimeProviders.Fixed);
+        private readonly TimeSource _preUpdateTimeSource = new TimeSource(DeltaTimeProviders.Main, TimeScaleProviders.Global);
+        private readonly TimeSource _updateTimeSource = new TimeSource(DeltaTimeProviders.Main, TimeScaleProviders.Global);
+        private readonly TimeSource _unscaledUpdateTimeSource = new TimeSource(DeltaTimeProviders.Unscaled, TimeScaleProviders.Create());
+        private readonly TimeSource _lateUpdateTimeSource = new TimeSource(DeltaTimeProviders.Main, TimeScaleProviders.Global);
+        private readonly TimeSource _fixedUpdateTimeSource = new TimeSource(DeltaTimeProviders.Fixed, TimeScaleProviders.Global);
 
         public ITimeSource Get(PlayerLoopStage stage) {
             return stage switch {

@@ -8,8 +8,9 @@ namespace Core {
 
         [Test]
         public void Test_ApiCalls_Sequentially() {
-            var timeProvider = new ConstantTimeProvider(1f);
-            var timeSource = new TimeSource(timeProvider);
+            var deltaTimeProvider = new ConstantDeltaTimeProvider(1f);
+            var timeSource = new TimeSource(deltaTimeProvider, TimeScaleProviders.Create());
+
             Assert.AreEqual(0f, timeSource.DeltaTime);
 
             timeSource.Tick();
