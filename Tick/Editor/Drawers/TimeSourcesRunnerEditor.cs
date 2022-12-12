@@ -35,8 +35,10 @@ namespace MisterGames.Tick.Editor.Drawers {
             EditorApplication.update -= OnEditorUpdate;
             EditorApplication.update += OnEditorUpdate;
 
-            var playerLoopStages = typeof(PlayerLoopStage).GetEnumValues().Cast<PlayerLoopStage>();
-            foreach (var stage in playerLoopStages) {
+            var playerLoopStages = PlayerLoopStages.All;
+            for (int i = 0; i < playerLoopStages.Length; i++) {
+                var stage = playerLoopStages[i];
+
                 DrawTimeSource(provider.Get(stage), $"{stage}");
                 GUILayout.Space(4);
             }
