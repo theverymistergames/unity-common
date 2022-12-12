@@ -15,9 +15,9 @@ namespace MisterGames.Tick.Jobs {
 
         [SerializeReference] [SubclassSelector]
         private IJobSystem[] _jobSystems = {
-            //new JobSystemAction(),
+            new JobSystemAction(),
             new JobSystemDelay(),
-            //new JobSystemSequence(),
+            new JobSystemSequence(),
         };
 
         private readonly Dictionary<PlayerLoopStage, JobSystemContainer> _jobSystemContainers = new Dictionary<PlayerLoopStage, JobSystemContainer>();
