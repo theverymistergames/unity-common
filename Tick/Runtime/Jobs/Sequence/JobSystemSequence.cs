@@ -23,9 +23,17 @@ namespace MisterGames.Tick.Jobs {
         }
 
         public void AddJobIntoSequence(int sequenceJobId, Job job) {
+            if (job.IsCompleted) return;
+
             int lastIndex = _nodes.Keys.LastIndexOf(sequenceJobId);
-            var waitJob = lastIndex < 0 ? Jobs.Completed : _nodes.Values[lastIndex].nextJob;
-            _nodes.Add(sequenceJobId, new JobSequenceNode(waitJob, job));
+            if (lastIndex < 0) {
+                _nodes.Add(sequenceJobId, new JobSequenceNode(Jobs.Completed, job));
+                _nodes.Add(sequenceJobId, new JobSequenceNode(job, default));
+                return;
+            }
+
+            _nodes.Values[lastIndex] = new JobSequenceNode(_nodes.Values[lastIndex].waitJob, job);
+            _nodes.Add(sequenceJobId, new JobSequenceNode(job, default));
         }
 
         public bool IsJobCompleted(int jobId) {
@@ -50,6 +58,7 @@ namespace MisterGames.Tick.Jobs {
                     continue;
                 }
 
+                node.waitJob.Start();
                 _nodes.Values[i] = node.Start();
                 return;
             }
@@ -90,7 +99,6 @@ namespace MisterGames.Tick.Jobs {
         public void OnUpdate(float dt) {
             for (int i = _nodes.Count - 1; i >= 0; i--) {
                 var node = _nodes.Values[i];
-
                 if (node.isCompleted) {
                     _nodes.RemoveAt(i);
                     continue;
@@ -98,8 +106,14 @@ namespace MisterGames.Tick.Jobs {
 
                 if (!node.isUpdating || !node.waitJob.IsCompleted) continue;
 
+                int sequenceJobId = _nodes.Keys[i];
                 node.nextJob.Start();
                 _nodes.RemoveAt(i);
+
+                int nextNodeIndex = _nodes.Keys.IndexOf(sequenceJobId, i);
+                if (nextNodeIndex < 0) continue;
+
+                _nodes.Values[nextNodeIndex] = _nodes.Values[nextNodeIndex].Start();
             }
         }
 
