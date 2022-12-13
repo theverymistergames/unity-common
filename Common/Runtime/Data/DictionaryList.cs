@@ -39,7 +39,7 @@ namespace MisterGames.Common.Data {
 
         public readonly struct KeyAccessor {
             public K this[int index] => _owner._entries[index].key;
-            public int IndexOf(K key) => _owner._entries.IndexOf(new Entry(key));
+            public int IndexOf(K key, int index = 0) => _owner._entries.IndexOf(new Entry(key), index);
             public int LastIndexOf(K key) => _owner._entries.LastIndexOf(new Entry(key));
 
             private readonly DictionaryList<K, V> _owner;
