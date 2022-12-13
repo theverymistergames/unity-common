@@ -46,7 +46,7 @@ namespace MisterGames.Tick.Core {
 
         public void Tick() {
             UpdateDeltaTime();
-            _isInUpdateLoop = _deltaTime > 0f && !_isPaused;
+            _isInUpdateLoop = _deltaTime > 0f;
 
             if (_isInUpdateLoop) {
                 int count = _updateList.Count;
@@ -83,7 +83,7 @@ namespace MisterGames.Tick.Core {
         }
 
         private void UpdateDeltaTime() {
-            _deltaTime = _deltaTimeProvider.DeltaTime * _timeScaleProvider.TimeScale;
+            _deltaTime = _isPaused ? 0f : _deltaTimeProvider.DeltaTime * _timeScaleProvider.TimeScale;
         }
     }
 
