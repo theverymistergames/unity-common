@@ -25,14 +25,14 @@ namespace Utils {
 
     public class JobSystemProvider : IJobSystemProvider {
 
-        private readonly Func<IJobSystemReadOnly> _getJobSystem;
+        private readonly Func<Type, IJobSystemReadOnly> _getJobSystem;
 
-        public JobSystemProvider(Func<IJobSystemReadOnly> getJobSystem) {
+        public JobSystemProvider(Func<Type, IJobSystemReadOnly> getJobSystem) {
             _getJobSystem = getJobSystem;
         }
 
         public S GetJobSystem<S>() where S : class, IJobSystemReadOnly {
-            return _getJobSystem.Invoke() as S;
+            return _getJobSystem.Invoke(typeof(S)) as S;
         }
     }
 

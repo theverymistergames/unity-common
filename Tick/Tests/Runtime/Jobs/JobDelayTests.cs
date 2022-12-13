@@ -18,7 +18,7 @@ namespace JobTests {
             jobSystem.Initialize(jobIdFactory);
             timeSource.Subscribe(jobSystem);
 
-            var jobSystemProvider = new JobSystemProvider(getJobSystem: () => jobSystem);
+            var jobSystemProvider = new JobSystemProvider(getJobSystem: type => jobSystem);
             var jobSystemProviders = new JobSystemProviders(stage => jobSystemProvider, () => jobSystemProvider);
 
             TimeSources.InjectProvider(timeSourceProvider);
