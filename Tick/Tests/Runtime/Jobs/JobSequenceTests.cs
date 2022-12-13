@@ -1,7 +1,6 @@
 ﻿using MisterGames.Tick.Core;
 using MisterGames.Tick.Jobs;
 using NUnit.Framework;
-using UnityEngine;
 using Utils;
 
 namespace JobTests {
@@ -23,8 +22,8 @@ namespace JobTests {
             jobSystemDelay.Initialize(jobIdFactory);
             jobSystemSequence.Initialize(jobIdFactory);
 
-            timeSource.Subscribe(jobSystemSequence);
             timeSource.Subscribe(jobSystemDelay);
+            timeSource.Subscribe(jobSystemSequence);
 
             var jobSystemProvider = new JobSystemProvider(getJobSystem: type => {
                 if (type == typeof(JobSystemDelay)) return jobSystemDelay;

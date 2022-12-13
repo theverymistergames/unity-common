@@ -71,10 +71,10 @@ namespace Core {
             timeSource.Subscribe(frameCounter);
 
             timeSource.Tick();
-            Assert.AreEqual(1, frameCounter.Count);
+            Assert.AreEqual(0, frameCounter.Count);
 
             timeSource.Tick();
-            Assert.AreEqual(1, frameCounter.Count);
+            Assert.AreEqual(0, frameCounter.Count);
         }
 
         [Test]
@@ -85,8 +85,12 @@ namespace Core {
 
             timeSource.Subscribe(frameCounter);
             timeSource.Subscribe(unsubscribeOnUpdate);
+
             timeSource.Tick();
-            Assert.AreEqual(0, frameCounter.Count);
+            Assert.AreEqual(1, frameCounter.Count);
+
+            timeSource.Tick();
+            Assert.AreEqual(1, frameCounter.Count);
         }
 
         [Test]
