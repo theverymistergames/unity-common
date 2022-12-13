@@ -1,6 +1,4 @@
-﻿using System;
-using System.Linq;
-using MisterGames.Tick.Core;
+﻿using MisterGames.Tick.Core;
 using UnityEditor;
 using UnityEngine;
 
@@ -9,14 +7,14 @@ namespace MisterGames.Tick.Editor.Drawers {
     [CustomEditor(typeof(TimeSourcesRunner))]
     public class TimeSourcesRunnerEditor : UnityEditor.Editor {
 
-        private static readonly GUIStyle StyleLabelTimeSourceHeader = new GUIStyle(EditorStyles.label);
+        private static GUIStyle StyleLabelTimeSourceHeader => new GUIStyle(EditorStyles.label);
 
-        private static readonly GUIStyle StyleLabelPause = new GUIStyle(EditorStyles.label) {
+        private static GUIStyle StyleLabelPause => new GUIStyle(EditorStyles.label) {
             normal = { textColor = Color.yellow },
             alignment = TextAnchor.MiddleCenter
         };
 
-        private static readonly GUIStyle StyleLabelRunning = new GUIStyle(EditorStyles.label) {
+        private static GUIStyle StyleLabelRunning => new GUIStyle(EditorStyles.label) {
             normal = { textColor = Color.green },
             alignment = TextAnchor.MiddleCenter
         };
@@ -29,6 +27,8 @@ namespace MisterGames.Tick.Editor.Drawers {
 
         public override void OnInspectorGUI() {
             base.OnInspectorGUI();
+
+            if (!Application.isPlaying) return;
 
             if (target is not ITimeSourceProvider provider) return;
 
