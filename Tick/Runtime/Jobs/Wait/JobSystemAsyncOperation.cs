@@ -5,7 +5,7 @@ using UnityEngine;
 namespace MisterGames.Tick.Jobs {
 
     [Serializable]
-    internal sealed class JobSystemAsyncOperation : IJobSystemReadOnly {
+    internal sealed class JobSystemAsyncOperation : IJobSystem {
 
         private readonly DictionaryList<int, AsyncOperation> _jobs = new DictionaryList<int, AsyncOperation>();
         private IJobIdFactory _jobIdFactory;
@@ -18,19 +18,23 @@ namespace MisterGames.Tick.Jobs {
             _jobs.Clear();
         }
 
-        public ReadOnlyJob CreateJob(AsyncOperation asyncOperation) {
+        public Job CreateJob(AsyncOperation asyncOperation) {
             if (asyncOperation.isDone) return Jobs.Completed;
 
             int jobId = _jobIdFactory.CreateNewJobId();
             _jobs.Add(jobId, asyncOperation);
 
-            return new ReadOnlyJob(jobId, this);
+            return new Job(jobId, this);
         }
 
         public void DisposeJob(int jobId) {
             int index = _jobs.Keys.IndexOf(jobId);
             if (index >= 0) _jobs.RemoveAt(index);
         }
+
+        public void StartJob(int jobId) { }
+
+        public void StopJob(int jobId) { }
 
         public bool IsJobCompleted(int jobId) {
             int index = _jobs.Keys.IndexOf(jobId);

@@ -4,7 +4,7 @@ using MisterGames.Common.Data;
 namespace MisterGames.Tick.Jobs {
 
     [Serializable]
-    internal sealed class JobSystemWait : IJobSystemReadOnly {
+    internal sealed class JobSystemWait : IJobSystem {
 
         private readonly DictionaryList<int, ReadOnlyJob> _jobs = new DictionaryList<int, ReadOnlyJob>();
         private IJobIdFactory _jobIdFactory;
@@ -17,19 +17,23 @@ namespace MisterGames.Tick.Jobs {
             _jobs.Clear();
         }
 
-        public ReadOnlyJob CreateJob(ReadOnlyJob waitFor) {
+        public Job CreateJob(ReadOnlyJob waitFor) {
             if (waitFor.IsCompleted) return Jobs.Completed;
 
             int jobId = _jobIdFactory.CreateNewJobId();
             _jobs.Add(jobId, waitFor);
 
-            return new ReadOnlyJob(jobId, this);
+            return new Job(jobId, this);
         }
 
         public void DisposeJob(int jobId) {
             int index = _jobs.Keys.IndexOf(jobId);
             if (index >= 0) _jobs.RemoveAt(index);
         }
+
+        public void StartJob(int jobId) { }
+
+        public void StopJob(int jobId) { }
 
         public bool IsJobCompleted(int jobId) {
             int index = _jobs.Keys.IndexOf(jobId);
