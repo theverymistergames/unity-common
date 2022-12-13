@@ -26,7 +26,7 @@ namespace MisterGames.Tick.Jobs {
         }
 
         public void DeInitialize() {
-            for (int i = _jobSystems.Count - 1; i >= 0; i--) {
+            for (int i = 0; i < _jobSystems.Count; i++) {
                 var jobSystem = _jobSystems.Values[i];
                 jobSystem.DeInitialize();
             }
@@ -35,13 +35,13 @@ namespace MisterGames.Tick.Jobs {
         }
 
         public void SubscribeToTimeSource(ITimeSource timeSource) {
-            for (int i = 0; i < _jobSystems.Count; i++) {
+            for (int i = _jobSystems.Count - 1; i >= 0; i--) {
                 if (_jobSystems.Values[i] is IUpdate update) timeSource.Subscribe(update);
             }
         }
 
         public void UnsubscribeFromTimeSource(ITimeSource timeSource) {
-            for (int i = 0; i < _jobSystems.Count; i++) {
+            for (int i = _jobSystems.Count - 1; i >= 0; i--) {
                 if (_jobSystems.Values[i] is IUpdate update) timeSource.Unsubscribe(update);
             }
         }
