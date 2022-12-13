@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 
 namespace MisterGames.Tick.Core {
-    
+
+    [DefaultExecutionOrder(-10000)]
     public class TimeSourcesRunner : MonoBehaviour, ITimeSourceProvider {
 
         private readonly TimeSource _preUpdateTimeSource = new TimeSource(DeltaTimeProviders.Main, TimeScaleProviders.Global);

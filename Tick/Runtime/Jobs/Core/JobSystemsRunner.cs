@@ -6,6 +6,7 @@ using UnityEngine;
 
 namespace MisterGames.Tick.Jobs {
 
+    [DefaultExecutionOrder(-9999)]
     internal sealed class JobSystemsRunner : MonoBehaviour, IJobSystemProviders {
 
         [SerializeField]
