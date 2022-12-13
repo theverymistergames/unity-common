@@ -10,7 +10,7 @@
 
         private static ITimeSourceProvider _provider;
 
-        internal static void InjectProvider(ITimeSourceProvider provider) {
+        public static void InjectProvider(ITimeSourceProvider provider) {
             _provider = provider;
         }
     }
