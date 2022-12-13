@@ -89,11 +89,14 @@ namespace MisterGames.Tick.Jobs {
             int firstIndex = _nodes.Keys.IndexOf(jobId);
             if (firstIndex < 0) return;
 
-            // todo cancel jobs
-
             int lastIndex = _nodes.Keys.LastIndexOf(jobId);
             for (int i = firstIndex; i <= lastIndex; i++) {
                 if (jobId != _nodes.Keys[i]) continue;
+
+                var node = _nodes.Values[i];
+                node.waitJob.Dispose();
+                node.nextJob.Dispose();
+
                 _nodes.Values[i] = JobSequenceNode.Completed;
             }
         }
