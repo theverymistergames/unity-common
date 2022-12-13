@@ -16,12 +16,14 @@ namespace MisterGames.Tick.Jobs {
             _hasSystem = _system is not null;
         }
 
-        public void Start() {
+        public Job Start() {
             if (_hasSystem) _system.StartJob(_id);
+            return this;
         }
 
-        public void Stop() {
+        public Job Stop() {
             if (_hasSystem) _system.StopJob(_id);
+            return this;
         }
 
         public void Dispose() {
