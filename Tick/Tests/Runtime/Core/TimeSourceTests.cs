@@ -6,10 +6,23 @@ namespace Core {
 
     public class TimeSourceTests {
 
-        [Test]
-        public void TimeScale_Changes_AtEndOfTick() {
+        [SetUp]
+        public void BeforeEachTest() {
             var deltaTimeProvider = new ConstantDeltaTimeProvider(1f);
             var timeSource = new TimeSource(deltaTimeProvider, TimeScaleProviders.Create());
+            var timeSourceProvider = new TimeSourceProvider(stage => timeSource);
+            
+            TimeSources.InjectProvider(timeSourceProvider);
+        }
+
+        [TearDown]
+        public void AfterEachTest() {
+            TimeSources.InjectProvider(null);
+        }
+        
+        [Test]
+        public void TimeScale_Changes_AtEndOfTick() {
+            var timeSource = (TimeSource) TimeSources.Get(PlayerLoopStage.Update);
 
             timeSource.Tick();
             Assert.AreEqual(1f, timeSource.DeltaTime);
@@ -23,8 +36,7 @@ namespace Core {
 
         [Test]
         public void Can_ChangeTimeScale_InUpdateLoop_And_WillBeChanged_AtEndOfTick() {
-            var deltaTimeProvider = new ConstantDeltaTimeProvider(1f);
-            var timeSource = new TimeSource(deltaTimeProvider, TimeScaleProviders.Create());
+            var timeSource = (TimeSource) TimeSources.Get(PlayerLoopStage.Update);
             var changeTimeScaleOnUpdate = new ActionOnUpdate(update => timeSource.TimeScale = 2f);
 
             timeSource.Tick();
@@ -37,8 +49,7 @@ namespace Core {
 
         [Test]
         public void Subscribers_AreNotUpdating_IfPaused() {
-            var deltaTimeProvider = new ConstantDeltaTimeProvider(1f);
-            var timeSource = new TimeSource(deltaTimeProvider, TimeScaleProviders.Create());
+            var timeSource = (TimeSource) TimeSources.Get(PlayerLoopStage.Update);
             var frameCounter = new CountOnUpdate();
 
             timeSource.Subscribe(frameCounter);
@@ -52,8 +63,7 @@ namespace Core {
 
         [Test]
         public void Subscribers_AreUpdating_After_DisablePause() {
-            var deltaTimeProvider = new ConstantDeltaTimeProvider(1f);
-            var timeSource = new TimeSource(deltaTimeProvider, TimeScaleProviders.Create());
+            var timeSource = (TimeSource) TimeSources.Get(PlayerLoopStage.Update);
             var frameCounter = new CountOnUpdate();
 
             timeSource.Subscribe(frameCounter);
@@ -71,8 +81,7 @@ namespace Core {
 
         [Test]
         public void Can_Pause_InUpdateLoop_And_WillBePaused_OnNextTick() {
-            var deltaTimeProvider = new ConstantDeltaTimeProvider(1f);
-            var timeSource = new TimeSource(deltaTimeProvider, TimeScaleProviders.Create());
+            var timeSource = (TimeSource) TimeSources.Get(PlayerLoopStage.Update);
             var frameCounter = new CountOnUpdate();
             var pauseOnUpdate = new ActionOnUpdate(update => timeSource.IsPaused = true);
 
