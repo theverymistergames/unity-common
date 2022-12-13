@@ -1,4 +1,5 @@
-﻿using MisterGames.Tick.Core;
+﻿using System.Collections.Generic;
+using MisterGames.Tick.Core;
 using UnityEditor;
 using UnityEngine;
 
@@ -6,6 +7,8 @@ namespace MisterGames.Tick.Editor.Drawers {
     
     [CustomEditor(typeof(TimeSourcesRunner))]
     public class TimeSourcesRunnerEditor : UnityEditor.Editor {
+
+        private const int DELTA_TIME_BUFFER_SIZE = 30;
 
         private static GUIStyle StyleLabelTimeSourceHeader => new GUIStyle(EditorStyles.label);
 
@@ -19,16 +22,10 @@ namespace MisterGames.Tick.Editor.Drawers {
             alignment = TextAnchor.MiddleCenter
         };
 
-        private const int DELTA_TIME_BUFFER_SIZE = 30;
-
-        private readonly float[] _deltaTimeBuffer = new float[DELTA_TIME_BUFFER_SIZE];
-        private float _averageDeltaTime;
-        private int _deltaTimeBufferPointer;
+        private readonly Dictionary<PlayerLoopStage, AverageBuffer> _bufferMap = new Dictionary<PlayerLoopStage, AverageBuffer>();
 
         public override void OnInspectorGUI() {
             base.OnInspectorGUI();
-
-            if (!Application.isPlaying) return;
 
             if (target is not ITimeSourceProvider provider) return;
 
@@ -39,7 +36,9 @@ namespace MisterGames.Tick.Editor.Drawers {
             for (int i = 0; i < playerLoopStages.Length; i++) {
                 var stage = playerLoopStages[i];
 
-                DrawTimeSource(provider.Get(stage), $"{stage}");
+                if (!_bufferMap.ContainsKey(stage)) _bufferMap.Add(stage, new AverageBuffer(DELTA_TIME_BUFFER_SIZE));
+
+                DrawTimeSource(stage, provider.Get(stage));
                 GUILayout.Space(4);
             }
         }
@@ -48,13 +47,13 @@ namespace MisterGames.Tick.Editor.Drawers {
             Repaint();
         }
 
-        private void DrawTimeSource(ITimeSource timeSource, string label) {
-            GUILayout.Label(label, StyleLabelTimeSourceHeader);
+        private void DrawTimeSource(PlayerLoopStage stage, ITimeSource timeSource) {
+            GUILayout.Label($"{stage}", StyleLabelTimeSourceHeader);
             GUILayout.Space(4);
 
             if (!Application.isPlaying) return;
 
-            DrawTimeSourceFrameInfo(timeSource);
+            DrawTimeSourceFrameInfo(timeSource, _bufferMap[stage]);
             GUILayout.Space(4);
             DrawTimeSourceRunningState(timeSource);
             GUILayout.Space(4);
@@ -62,28 +61,16 @@ namespace MisterGames.Tick.Editor.Drawers {
             GUILayout.Space(4);
         }
 
-        private void DrawTimeSourceFrameInfo(ITimeSource timeSource) {
-            int bufferSize = _deltaTimeBuffer.Length;
-            for (int i = 0; i < bufferSize; i++) {
-                _deltaTimeBuffer[i] = i < bufferSize - 1 ? _deltaTimeBuffer[i + 1] : timeSource.DeltaTime;
-            }
+        private static void DrawTimeSourceFrameInfo(ITimeSource timeSource, AverageBuffer buffer) {
+            buffer.AddValue(timeSource.DeltaTime);
 
-            if (_deltaTimeBufferPointer++ > bufferSize - 1) {
-                _deltaTimeBufferPointer = 0;
-
-                float sum = 0f;
-                for (int i = 0; i < bufferSize; i++) {
-                    sum += _deltaTimeBuffer[i];
-                }
-                _averageDeltaTime = bufferSize > 0 ? sum / bufferSize : 0f;
-            }
-
-            int fps = _averageDeltaTime > 0f ? Mathf.FloorToInt(1f / _averageDeltaTime) : 0;
+            float averageDeltaTime = buffer.Result;
+            int fps = averageDeltaTime > 0f ? Mathf.FloorToInt(1f / averageDeltaTime) : 0;
 
             bool lastGuiState = GUI.enabled;
             GUI.enabled = false;
 
-            EditorGUILayout.FloatField("Delta Time", _averageDeltaTime);
+            EditorGUILayout.FloatField("Delta Time", averageDeltaTime);
             EditorGUILayout.IntField("FPS", fps);
 
             GUI.enabled = lastGuiState;
@@ -99,10 +86,12 @@ namespace MisterGames.Tick.Editor.Drawers {
         }
         
         private static void DrawTimeSourceControls(ITimeSource timeSource) {
-            if (timeSource.IsPaused && GUILayout.Button("Resume")) {
-                timeSource.IsPaused = false;
+            if (timeSource.IsPaused) {
+                if (GUILayout.Button("Resume")) timeSource.IsPaused = false;
+                return;
             }
-            else if (GUILayout.Button("Pause")) {
+
+            if (GUILayout.Button("Pause")) {
                 timeSource.IsPaused = true;
             }
         }
