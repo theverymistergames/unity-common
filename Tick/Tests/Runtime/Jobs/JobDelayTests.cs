@@ -7,24 +7,32 @@ namespace JobTests {
 
     public class JobDelayTests {
 
-        private TimeSource _timeSource;
-
         [SetUp]
         public void BeforeEachTest() {
-            var jobSystem = new JobSystemDelay();
-            var jobSystemProvider = new JobSystemProvider(getJobSystem: () => jobSystem);
-            var jobSystemProviders = new JobSystemProviders(stage => jobSystemProvider, () => jobSystemProvider);
-
             var deltaTimeProvider = new ConstantDeltaTimeProvider(1f);
             var timeSource = new TimeSource(deltaTimeProvider, TimeScaleProviders.Create());
             var timeSourceProvider = new TimeSourceProvider(stage => timeSource);
 
-            JobSystems.InjectProvider(jobSystemProviders);
+            var jobSystem = new JobSystemDelay();
+            var jobIdFactory = new NextJobIdFactory();
+            jobSystem.Initialize(jobIdFactory);
+            timeSource.Subscribe(jobSystem);
+
+            var jobSystemProvider = new JobSystemProvider(getJobSystem: () => jobSystem);
+            var jobSystemProviders = new JobSystemProviders(stage => jobSystemProvider, () => jobSystemProvider);
+
             TimeSources.InjectProvider(timeSourceProvider);
+            JobSystems.InjectProvider(jobSystemProviders);
         }
 
         [TearDown]
         public void AfterEachTest() {
+            var jobSystem = JobSystems.Get<JobSystemDelay>();
+            var timeSource = TimeSources.Get(PlayerLoopStage.Update);
+
+            jobSystem.DeInitialize();
+            timeSource.Unsubscribe(jobSystem);
+
             JobSystems.InjectProvider(null);
             TimeSources.InjectProvider(null);
         }
