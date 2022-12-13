@@ -35,13 +35,13 @@ namespace MisterGames.Tick.Jobs {
         }
 
         public void SubscribeToTimeSource(ITimeSource timeSource) {
-            for (int i = _jobSystems.Count - 1; i >= 0; i--) {
+            for (int i = 0; i < _jobSystems.Count; i++) {
                 if (_jobSystems.Values[i] is IUpdate update) timeSource.Subscribe(update);
             }
         }
 
         public void UnsubscribeFromTimeSource(ITimeSource timeSource) {
-            for (int i = _jobSystems.Count - 1; i >= 0; i--) {
+            for (int i = 0; i < _jobSystems.Count; i++) {
                 if (_jobSystems.Values[i] is IUpdate update) timeSource.Unsubscribe(update);
             }
         }
