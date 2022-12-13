@@ -19,6 +19,7 @@ namespace MisterGames.Tick.Jobs {
             new JobSystemAsyncOperation(),
             new JobSystemWait(),
             new JobSystemDelay(),
+            new JobSystemWaitFrames(),
             new JobSystemSequence(),
         };
 
