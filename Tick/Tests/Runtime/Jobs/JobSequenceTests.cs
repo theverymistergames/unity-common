@@ -236,6 +236,50 @@ namespace JobTests {
             Assert.IsTrue(job.IsCompleted);
             Assert.IsTrue(sequence.IsCompleted);
         }
+
+        [Test]
+        public void SeveralSequences_CanBeCreated_InParallel() {
+            var timeSource = (TimeSource) TimeSources.Get(PlayerLoopStage.Update);
+
+            var sequenceBuilder0 = JobSequence.Create();
+            var sequenceBuilder1 = JobSequence.Create();
+
+            var job0 = Jobs.Delay(1f);
+            sequenceBuilder0.Add(job0);
+
+            var job1 = Jobs.Delay(1f);
+            sequenceBuilder1.Add(job1);
+
+            var job2 = Jobs.Delay(1f);
+            sequenceBuilder0.Add(job2);
+
+            var job3 = Jobs.Delay(1f);
+            sequenceBuilder1.Add(job3);
+
+            var sequence0 = sequenceBuilder0.Start();
+            var sequence1 = sequenceBuilder1.Start();
+
+            Assert.IsTrue(!job0.IsCompleted);
+            Assert.IsTrue(!job1.IsCompleted);
+            Assert.IsTrue(!job2.IsCompleted);
+            Assert.IsTrue(!job3.IsCompleted);
+            Assert.IsTrue(!sequence0.IsCompleted);
+            Assert.IsTrue(!sequence1.IsCompleted);
+
+            timeSource.Tick();
+            Assert.IsTrue(job0.IsCompleted);
+            Assert.IsTrue(job1.IsCompleted);
+            Assert.IsTrue(!job2.IsCompleted);
+            Assert.IsTrue(!job3.IsCompleted);
+            Assert.IsTrue(!sequence0.IsCompleted);
+            Assert.IsTrue(!sequence1.IsCompleted);
+
+            timeSource.Tick();
+            Assert.IsTrue(job2.IsCompleted);
+            Assert.IsTrue(job3.IsCompleted);
+            Assert.IsTrue(sequence0.IsCompleted);
+            Assert.IsTrue(sequence1.IsCompleted);
+        }
     }
 
 }
