@@ -1,6 +1,7 @@
 ﻿using System;
 using MisterGames.Common.Data;
 using MisterGames.Tick.Core;
+using UnityEngine;
 
 namespace MisterGames.Tick.Jobs {
 
@@ -25,28 +26,28 @@ namespace MisterGames.Tick.Jobs {
         public void AddJobIntoSequence(int sequenceJobId, Job job) {
             if (job.IsCompleted) return;
 
-            int lastIndex = _nodes.Keys.LastIndexOf(sequenceJobId);
-            if (lastIndex < 0) {
-                _nodes.Add(sequenceJobId, new JobSequenceNode(Jobs.Completed, job));
+            int lastJobIndex = _nodes.Keys.IndexOf(sequenceJobId);
+            if (lastJobIndex < 0) {
                 _nodes.Add(sequenceJobId, new JobSequenceNode(job, default));
+                _nodes.Add(sequenceJobId, new JobSequenceNode(Jobs.Completed, job));
                 return;
             }
 
-            _nodes.Values[lastIndex] = new JobSequenceNode(_nodes.Values[lastIndex].waitJob, job);
-            _nodes.Add(sequenceJobId, new JobSequenceNode(job, default));
+            _nodes.Values[lastJobIndex] = new JobSequenceNode(_nodes.Values[lastJobIndex].waitJob, job);
+            _nodes.Insert(lastJobIndex, sequenceJobId, new JobSequenceNode(job, default));
         }
 
         public bool IsJobCompleted(int jobId) {
-            int lastIndex = _nodes.Keys.LastIndexOf(jobId);
-            return lastIndex < 0 || _nodes.Values[lastIndex].isCompleted;
+            int lastJobIndex = _nodes.Keys.IndexOf(jobId);
+            return lastJobIndex < 0 || _nodes.Values[lastJobIndex].isCompleted;
         }
 
         public void StartJob(int jobId) {
-            int firstIndex = _nodes.Keys.IndexOf(jobId);
-            if (firstIndex < 0) return;
+            int firstJobIndex = _nodes.Keys.LastIndexOf(jobId);
+            if (firstJobIndex < 0) return;
 
-            int lastIndex = _nodes.Keys.LastIndexOf(jobId);
-            for (int i = firstIndex; i <= lastIndex; i++) {
+            int lastJobIndex = _nodes.Keys.IndexOf(jobId);
+            for (int i = firstJobIndex; i >= lastJobIndex; i--) {
                 if (jobId != _nodes.Keys[i]) continue;
 
                 var node = _nodes.Values[i];
@@ -65,11 +66,11 @@ namespace MisterGames.Tick.Jobs {
         }
 
         public void StopJob(int jobId) {
-            int firstIndex = _nodes.Keys.IndexOf(jobId);
-            if (firstIndex < 0) return;
+            int firstJobIndex = _nodes.Keys.LastIndexOf(jobId);
+            if (firstJobIndex < 0) return;
 
-            int lastIndex = _nodes.Keys.LastIndexOf(jobId);
-            for (int i = firstIndex; i <= lastIndex; i++) {
+            int lastJobIndex = _nodes.Keys.IndexOf(jobId);
+            for (int i = firstJobIndex; i >= lastJobIndex; i--) {
                 if (jobId != _nodes.Keys[i]) continue;
 
                 var node = _nodes.Values[i];
@@ -89,6 +90,8 @@ namespace MisterGames.Tick.Jobs {
             int firstIndex = _nodes.Keys.IndexOf(jobId);
             if (firstIndex < 0) return;
 
+            // todo cancel jobs
+
             int lastIndex = _nodes.Keys.LastIndexOf(jobId);
             for (int i = firstIndex; i <= lastIndex; i++) {
                 if (jobId != _nodes.Keys[i]) continue;
@@ -99,6 +102,7 @@ namespace MisterGames.Tick.Jobs {
         public void OnUpdate(float dt) {
             for (int i = _nodes.Count - 1; i >= 0; i--) {
                 var node = _nodes.Values[i];
+
                 if (node.isCompleted) {
                     _nodes.RemoveAt(i);
                     continue;
@@ -107,13 +111,13 @@ namespace MisterGames.Tick.Jobs {
                 if (!node.isUpdating || !node.waitJob.IsCompleted) continue;
 
                 int sequenceJobId = _nodes.Keys[i];
-                node.nextJob.Start();
                 _nodes.RemoveAt(i);
+                node.nextJob.Start();
 
-                int nextNodeIndex = _nodes.Keys.IndexOf(sequenceJobId, i);
-                if (nextNodeIndex < 0) continue;
+                if (i < 1) break;
 
-                _nodes.Values[nextNodeIndex] = _nodes.Values[nextNodeIndex].Start();
+                int nextNodeIndex = _nodes.Keys.LastIndexOf(sequenceJobId, i - 1);
+                if (nextNodeIndex >= 0) _nodes.Values[nextNodeIndex] = _nodes.Values[nextNodeIndex].Start();
             }
         }
 
