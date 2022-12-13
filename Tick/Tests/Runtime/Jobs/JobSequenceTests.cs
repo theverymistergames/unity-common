@@ -91,20 +91,42 @@ namespace JobTests {
                 .Add(job2)
                 .Start();
 
-            Assert.IsTrue(sequence.IsCompleted);
-
             Assert.IsTrue(job0.IsCompleted);
             Assert.IsTrue(job1.IsCompleted);
             Assert.IsTrue(job2.IsCompleted);
+            Assert.IsTrue(sequence.IsCompleted);
         }
 
         [Test]
         public void IsCompleting_Jobs_Till_UnableToComplete_AtStart() {
             var job0 = Jobs.Action(() => { });
             var job1 = Jobs.Action(() => { });
-            var job2 = Jobs.Delay(0f);
+            var job2 = Jobs.Delay(1f);
             var job3 = Jobs.Delay(1f);
-            var job4 = Jobs.Delay(1f);
+
+            var sequence = JobSequence.Create()
+                .Add(job0)
+                .Add(job1)
+                .Add(job2)
+                .Add(job3)
+                .Start();
+
+            Assert.IsTrue(job0.IsCompleted);
+            Assert.IsTrue(job1.IsCompleted);
+            Assert.IsTrue(!job2.IsCompleted);
+            Assert.IsTrue(!job3.IsCompleted);
+            Assert.IsTrue(!sequence.IsCompleted);
+        }
+
+        [Test]
+        public void IsCompleting_Jobs_Till_UnableToComplete_InUpdateLoop() {
+            var timeSource = (TimeSource) TimeSources.Get(PlayerLoopStage.Update);
+
+            var job0 = Jobs.Action(() => { });
+            var job1 = Jobs.Action(() => { });
+            var job2 = Jobs.Delay(1f);
+            var job3 = Jobs.Action(() => { });
+            var job4 = Jobs.Action(() => { });
 
             var sequence = JobSequence.Create()
                 .Add(job0)
@@ -114,13 +136,18 @@ namespace JobTests {
                 .Add(job4)
                 .Start();
 
-            Assert.IsTrue(!sequence.IsCompleted);
-
             Assert.IsTrue(job0.IsCompleted);
             Assert.IsTrue(job1.IsCompleted);
-            Assert.IsTrue(job2.IsCompleted);
+            Assert.IsTrue(!job2.IsCompleted);
             Assert.IsTrue(!job3.IsCompleted);
             Assert.IsTrue(!job4.IsCompleted);
+            Assert.IsTrue(!sequence.IsCompleted);
+
+            timeSource.Tick();
+            Assert.IsTrue(job2.IsCompleted);
+            Assert.IsTrue(job3.IsCompleted);
+            Assert.IsTrue(job4.IsCompleted);
+            Assert.IsTrue(sequence.IsCompleted);
         }
 
         [Test]
@@ -131,37 +158,27 @@ namespace JobTests {
             var job1 = Jobs.Delay(1f);
             var job2 = Jobs.Delay(1f);
 
-            Debug.Log($"Creating sequence");
-
             var sequence = JobSequence.Create()
                 .Add(job0)
                 .Add(job1)
                 .Add(job2)
                 .Start();
 
-            Debug.Log($"Sequence created and started");
-
-            //Assert.IsTrue(!job0.IsCompleted);
-            //Assert.IsTrue(!job1.IsCompleted);
-            //Assert.IsTrue(!job2.IsCompleted);
-            //Assert.IsTrue(!sequence.IsCompleted);
-
-            Debug.Log($"Starting Tick#1");
+            Assert.IsTrue(!job0.IsCompleted);
+            Assert.IsTrue(!job1.IsCompleted);
+            Assert.IsTrue(!job2.IsCompleted);
+            Assert.IsTrue(!sequence.IsCompleted);
 
             timeSource.Tick();
-            //Assert.IsTrue(job0.IsCompleted);
-            //Assert.IsTrue(!job1.IsCompleted);
-            //Assert.IsTrue(!job2.IsCompleted);
-            //Assert.IsTrue(!sequence.IsCompleted);
-
-            Debug.Log($"Starting Tick#2");
+            Assert.IsTrue(job0.IsCompleted);
+            Assert.IsTrue(!job1.IsCompleted);
+            Assert.IsTrue(!job2.IsCompleted);
+            Assert.IsTrue(!sequence.IsCompleted);
 
             timeSource.Tick();
-            //Assert.IsTrue(job1.IsCompleted);
-            //Assert.IsTrue(!job2.IsCompleted);
-            //Assert.IsTrue(!sequence.IsCompleted);
-
-            Debug.Log($"Starting Tick#3");
+            Assert.IsTrue(job1.IsCompleted);
+            Assert.IsTrue(!job2.IsCompleted);
+            Assert.IsTrue(!sequence.IsCompleted);
 
             timeSource.Tick();
             Assert.IsTrue(job2.IsCompleted);
