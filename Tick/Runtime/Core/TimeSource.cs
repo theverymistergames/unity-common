@@ -49,11 +49,13 @@ namespace MisterGames.Tick.Core {
             _isInUpdateLoop = _deltaTime > 0f && !_isPaused;
 
             if (_isInUpdateLoop) {
-                for (int i = _updateList.Count - 1; i >= 0; i--) {
+                int count = _updateList.Count;
+                for (int i = 0; i < count; i++) {
                     var update = _updateList[i];
 
                     if (update is null) {
-                        _updateList.RemoveAt(i);
+                        _updateList.RemoveAt(i--);
+                        count--;
                         continue;
                     }
 
@@ -82,14 +84,6 @@ namespace MisterGames.Tick.Core {
 
         private void UpdateDeltaTime() {
             _deltaTime = _deltaTimeProvider.DeltaTime * _timeScaleProvider.TimeScale;
-        }
-
-        public override string ToString() {
-            return $"{nameof(TimeSource)}(\n" +
-                   $"timeProvider {_deltaTimeProvider}, \n" +
-                   $"timeScale {TimeScale}, dt {DeltaTime}, \n" +
-                   $"subscribers ({_updateList.Count}): [{(_updateList.Count == 0 ? "]\n" : $"\n- {string.Join("\n- ", _updateList)}\n]")}" +
-                   ")";
         }
     }
 
