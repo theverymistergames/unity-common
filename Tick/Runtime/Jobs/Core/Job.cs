@@ -24,6 +24,10 @@ namespace MisterGames.Tick.Jobs {
             if (_hasSystem) _system.StopJob(_id);
         }
 
+        public void Dispose() {
+            if (_hasSystem) _system.DisposeJob(_id);
+        }
+
         public bool Equals(Job other) {
             return _id == other._id;
         }
@@ -54,13 +58,17 @@ namespace MisterGames.Tick.Jobs {
         public bool IsCompleted => !_hasSystem || _system.IsJobCompleted(_id);
 
         private readonly int _id;
-        private readonly IJobSystem _system;
+        private readonly IJobSystemReadOnly _system;
         private readonly bool _hasSystem;
 
-        public ReadOnlyJob(int id, IJobSystem system) {
+        public ReadOnlyJob(int id, IJobSystemReadOnly system) {
             _id = id;
             _system = system;
             _hasSystem = _system is not null;
+        }
+
+        public void Dispose() {
+            if (_hasSystem) _system.DisposeJob(_id);
         }
 
         public bool Equals(ReadOnlyJob other) {

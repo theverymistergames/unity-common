@@ -76,6 +76,17 @@ namespace MisterGames.Tick.Jobs {
             }
         }
 
+        public void DisposeJob(int jobId) {
+            int firstIndex = _nodes.Keys.IndexOf(jobId);
+            if (firstIndex < 0) return;
+
+            int lastIndex = _nodes.Keys.LastIndexOf(jobId);
+            for (int i = firstIndex; i <= lastIndex; i++) {
+                if (jobId != _nodes.Keys[i]) continue;
+                _nodes.Values[i] = JobSequenceNode.Completed;
+            }
+        }
+
         public void OnUpdate(float dt) {
             for (int i = _nodes.Count - 1; i >= 0; i--) {
                 var node = _nodes.Values[i];

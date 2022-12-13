@@ -3,11 +3,12 @@
 namespace MisterGames.Tick.Jobs {
 
     public interface IJobSystemProvider {
-        S GetJobSystem<S>() where S : class, IJobSystem;
+        S GetJobSystem<S>() where S : class, IJobSystemReadOnly;
     }
 
     public interface IJobSystemProviders {
-        IJobSystemProvider GetProvider(PlayerLoopStage stage);
+        IJobSystemProvider GetStagedProvider(PlayerLoopStage stage);
+        IJobSystemProvider GetProvider();
     }
 
     public static class JobSystems {
@@ -18,8 +19,12 @@ namespace MisterGames.Tick.Jobs {
             _jobSystemProviders = providers;
         }
 
-        public static S Get<S>(PlayerLoopStage stage) where S : class, IJobSystem {
-            return _jobSystemProviders.GetProvider(stage).GetJobSystem<S>();
+        public static S Get<S>(PlayerLoopStage stage) where S : class, IJobSystemReadOnly {
+            return _jobSystemProviders.GetStagedProvider(stage).GetJobSystem<S>();
+        }
+
+        public static S Get<S>() where S : class, IJobSystemReadOnly {
+            return _jobSystemProviders.GetProvider().GetJobSystem<S>();
         }
     }
 

@@ -7,12 +7,10 @@ namespace MisterGames.Tick.Jobs {
 
     public sealed class JobSystemContainer : IJobSystemProvider {
 
-        private readonly ITimeSource _timeSource;
-        private readonly DictionaryList<Type, IJobSystem> _jobSystems;
+        private readonly DictionaryList<Type, IJobSystemReadOnly> _jobSystems;
 
-        public JobSystemContainer(ITimeSource timeSource, IReadOnlyList<IJobSystem> jobSystems) {
-            _timeSource = timeSource;
-            _jobSystems = new DictionaryList<Type, IJobSystem>(jobSystems.Count);
+        public JobSystemContainer(IReadOnlyList<IJobSystemReadOnly> jobSystems) {
+            _jobSystems = new DictionaryList<Type, IJobSystemReadOnly>(jobSystems.Count);
 
             for (int i = 0; i < jobSystems.Count; i++) {
                 var jobSystem = jobSystems[i];
@@ -24,8 +22,6 @@ namespace MisterGames.Tick.Jobs {
             for (int i = 0; i < _jobSystems.Count; i++) {
                 var jobSystem = _jobSystems.Values[i];
                 jobSystem.Initialize(jobIdFactory);
-
-                if (jobSystem is IUpdate update) _timeSource.Subscribe(update);
             }
         }
 
@@ -33,18 +29,29 @@ namespace MisterGames.Tick.Jobs {
             for (int i = _jobSystems.Count - 1; i >= 0; i--) {
                 var jobSystem = _jobSystems.Values[i];
                 jobSystem.DeInitialize();
-
-                if (jobSystem is IUpdate update) _timeSource.Unsubscribe(update);
             }
 
             _jobSystems.Clear();
         }
 
-        public S GetJobSystem<S>() where S : class, IJobSystem {
+        public void SubscribeToTimeSource(ITimeSource timeSource) {
+            for (int i = 0; i < _jobSystems.Count; i++) {
+                if (_jobSystems.Values[i] is IUpdate update) timeSource.Subscribe(update);
+            }
+        }
+
+        public void UnsubscribeFromTimeSource(ITimeSource timeSource) {
+            for (int i = 0; i < _jobSystems.Count; i++) {
+                if (_jobSystems.Values[i] is IUpdate update) timeSource.Unsubscribe(update);
+            }
+        }
+
+        public S GetJobSystem<S>() where S : class, IJobSystemReadOnly {
             int index = _jobSystems.Keys.IndexOf(typeof(S));
             if (index < 0) return null;
 
             return _jobSystems.Values[index] as S;
         }
     }
+
 }

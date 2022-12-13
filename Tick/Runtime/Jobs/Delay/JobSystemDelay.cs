@@ -43,6 +43,11 @@ namespace MisterGames.Tick.Jobs {
             if (index >= 0) _jobs.Values[index] = _jobs.Values[index].Stop();
         }
 
+        public void DisposeJob(int jobId) {
+            int index = _jobs.Keys.IndexOf(jobId);
+            if (index >= 0) _jobs.Values[index] = default;
+        }
+
         public void OnUpdate(float dt) {
             for (int i = _jobs.Count - 1; i >= 0; i--) {
                 var job = _jobs.Values[i];
