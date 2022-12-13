@@ -15,7 +15,7 @@ namespace MisterGames.Tick.Jobs {
 
         private static IJobSystemProviders _jobSystemProviders;
 
-        internal static void InjectProvider(IJobSystemProviders providers) {
+        public static void InjectProvider(IJobSystemProviders providers) {
             _jobSystemProviders = providers;
         }
 

@@ -5,7 +5,7 @@ using MisterGames.Tick.Core;
 namespace MisterGames.Tick.Jobs {
 
     [Serializable]
-    internal sealed class JobSystemWaitFrames : IJobSystem, IUpdate {
+    public sealed class JobSystemWaitFrames : IJobSystem, IUpdate {
 
         private readonly DictionaryList<int, JobData> _jobs = new DictionaryList<int, JobData>();
         private IJobIdFactory _jobIdFactory;

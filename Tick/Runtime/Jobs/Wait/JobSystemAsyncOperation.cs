@@ -5,7 +5,7 @@ using UnityEngine;
 namespace MisterGames.Tick.Jobs {
 
     [Serializable]
-    internal sealed class JobSystemAsyncOperation : IJobSystem {
+    public sealed class JobSystemAsyncOperation : IJobSystem {
 
         private readonly DictionaryList<int, AsyncOperation> _jobs = new DictionaryList<int, AsyncOperation>();
         private IJobIdFactory _jobIdFactory;

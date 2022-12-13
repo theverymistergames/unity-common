@@ -4,7 +4,7 @@ using MisterGames.Common.Data;
 namespace MisterGames.Tick.Jobs {
 
     [Serializable]
-    internal sealed class JobSystemAction : IJobSystem {
+    public sealed class JobSystemAction : IJobSystem {
 
         private readonly DictionaryList<int, Action> _jobs = new DictionaryList<int, Action>();
         private IJobIdFactory _jobIdFactory;
