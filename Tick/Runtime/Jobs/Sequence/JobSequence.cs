@@ -23,7 +23,7 @@ namespace MisterGames.Tick.Jobs {
         }
 
         public Job Push() {
-            return new Job(_sequenceJobId, _jobSystem);;
+            return new Job(_sequenceJobId, _jobSystem);
         }
     }
 
