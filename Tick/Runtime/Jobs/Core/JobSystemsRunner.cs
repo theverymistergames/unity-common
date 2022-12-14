@@ -14,12 +14,14 @@ namespace MisterGames.Tick.Jobs {
             PlayerLoopStage.Update,
         };
 
-        [SerializeReference] [SubclassSelector]
-        private IJobSystem[] _jobSystems = {
+        private readonly IJobSystem[] _jobSystems = {
             new JobSystemAction(),
+            new JobSystemDelay(),
+            new JobSystemEachFrame(),
+            new JobSystemEachFrameWhile(),
+            new JobSystemSchedule(),
             new JobSystemAsyncOperation(),
             new JobSystemWait(),
-            new JobSystemDelay(),
             new JobSystemWaitFrames(),
             new JobSystemSequence(),
         };
