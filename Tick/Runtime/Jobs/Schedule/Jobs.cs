@@ -9,8 +9,8 @@ namespace MisterGames.Tick.Jobs {
             return JobSystems.Get<JobSystemSchedule>(stage).CreateJob(action, period, maxTimes);
         }
 
-        public static JobSequence Schedule(this JobSequence jobSequence, Action action, float period, int maxTimes = -1, PlayerLoopStage stage = PlayerLoopStage.Update) {
-            var job = Schedule(action, period, maxTimes, stage);
+        public static JobSequence Schedule(this JobSequence jobSequence, Action action, float period, int maxTimes = -1) {
+            var job = Schedule(action, period, maxTimes, jobSequence.PlayerLoopStage);
             return jobSequence.Add(job);
         }
     }

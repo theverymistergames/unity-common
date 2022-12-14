@@ -8,8 +8,8 @@ namespace MisterGames.Tick.Jobs {
             return JobSystems.Get<JobSystemWaitFrames>(stage).CreateJob(frames);
         }
 
-        public static JobSequence WaitFrames(this JobSequence jobSequence, int frames, PlayerLoopStage stage = PlayerLoopStage.Update) {
-            var job = WaitFrames(frames, stage);
+        public static JobSequence WaitFrames(this JobSequence jobSequence, int frames) {
+            var job = WaitFrames(frames, jobSequence.PlayerLoopStage);
             return jobSequence.Add(job);
         }
     }

@@ -13,13 +13,13 @@ namespace MisterGames.Tick.Jobs {
             return JobSystems.Get<JobSystemEachFrameWhile>(stage).CreateJob(actionWhile, maxFrames);
         }
 
-        public static JobSequence EachFrame(this JobSequence jobSequence, Action<float> action, int maxFrames = -1, PlayerLoopStage stage = PlayerLoopStage.Update) {
-            var job = EachFrame(action, maxFrames, stage);
+        public static JobSequence EachFrame(this JobSequence jobSequence, Action<float> action, int maxFrames = -1) {
+            var job = EachFrame(action, maxFrames, jobSequence.PlayerLoopStage);
             return jobSequence.Add(job);
         }
 
-        public static JobSequence EachFrameWhile(this JobSequence jobSequence, Func<float, bool> actionWhile, int maxFrames = -1, PlayerLoopStage stage = PlayerLoopStage.Update) {
-            var job = EachFrameWhile(actionWhile, maxFrames, stage);
+        public static JobSequence EachFrameWhile(this JobSequence jobSequence, Func<float, bool> actionWhile, int maxFrames = -1) {
+            var job = EachFrameWhile(actionWhile, maxFrames, jobSequence.PlayerLoopStage);
             return jobSequence.Add(job);
         }
     }
