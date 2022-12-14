@@ -37,8 +37,6 @@ namespace MisterGames.Tick.Core {
         }
 
         private void OnDestroy() {
-            TimeSources.InjectProvider(null);
-
             for (int i = 0; i < _timeSources.Count; i++) {
                 _timeSources[i].Reset();
             }
