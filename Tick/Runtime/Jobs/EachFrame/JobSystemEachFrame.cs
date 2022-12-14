@@ -46,15 +46,19 @@ namespace MisterGames.Tick.Jobs {
         }
 
         public void OnUpdate(float dt) {
-            for (int i = _jobs.Count - 1; i >= 0; i--) {
+            int count = _jobs.Count;
+            for (int i = 0; i < count; i++) {
                 var job = _jobs.Values[i];
 
                 if (job.isCompleted) {
-                    _jobs.RemoveAt(i);
+                    _jobs.RemoveAt(i--);
+                    count--;
                     continue;
                 }
 
-                if (job.isUpdating) job.action.Invoke(dt);
+                if (!job.isUpdating) continue;
+
+                job.action.Invoke(dt);
             }
         }
 

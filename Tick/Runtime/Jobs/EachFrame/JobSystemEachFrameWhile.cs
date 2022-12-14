@@ -5,7 +5,7 @@ using MisterGames.Tick.Core;
 namespace MisterGames.Tick.Jobs {
 
     [Serializable]
-    public sealed class JobSystemEachFrameProcess : IJobSystem, IUpdate {
+    public sealed class JobSystemEachFrameWhile : IJobSystem, IUpdate {
 
         private readonly DictionaryList<int, JobData> _jobs = new DictionaryList<int, JobData>();
         private IJobIdFactory _jobIdFactory;
@@ -18,7 +18,7 @@ namespace MisterGames.Tick.Jobs {
             _jobs.Clear();
         }
 
-        public Job CreateJob(Action action) {
+        public Job CreateJob(Func<float, bool> action) {
             int jobId = _jobIdFactory.CreateNewJobId();
             _jobs.Add(jobId, new JobData(action));
 
@@ -46,15 +46,20 @@ namespace MisterGames.Tick.Jobs {
         }
 
         public void OnUpdate(float dt) {
-            for (int i = _jobs.Count - 1; i >= 0; i--) {
+            int count = _jobs.Count;
+            for (int i = 0; i < count; i++) {
                 var job = _jobs.Values[i];
 
                 if (job.isCompleted) {
-                    _jobs.RemoveAt(i);
+                    _jobs.RemoveAt(i--);
+                    count--;
                     continue;
                 }
 
-                if (job.isUpdating) job.action.Invoke();
+                if (!job.isUpdating || job.actionWhile.Invoke(dt)) continue;
+
+                _jobs.RemoveAt(i--);
+                count--;
             }
         }
 
@@ -64,20 +69,20 @@ namespace MisterGames.Tick.Jobs {
 
             public readonly bool isUpdating;
             public readonly bool isCompleted;
-            public readonly Action action;
+            public readonly Func<float, bool> actionWhile;
 
-            public JobData(Action action, bool isUpdating = false, bool isCompleted = false) {
-                this.action = action;
+            public JobData(Func<float, bool> actionWhile, bool isUpdating = false, bool isCompleted = false) {
+                this.actionWhile = actionWhile;
                 this.isUpdating = isUpdating;
                 this.isCompleted = isCompleted;
             }
 
             public JobData Start() {
-                return new JobData(action, !isCompleted, isCompleted);
+                return new JobData(actionWhile, !isCompleted, isCompleted);
             }
 
             public JobData Stop() {
-                return new JobData(action, false, isCompleted);
+                return new JobData(actionWhile, false, isCompleted);
             }
         }
     }
