@@ -63,6 +63,42 @@ namespace JobTests {
         }
 
         [Test]
+        public void EachFrameWhile_IsCompleting_AtStart_IfMaxFramesIsZero() {
+            int count = 0;
+            var job = Jobs.EachFrameWhile(dt => count++ < 5, 0);
+
+            Assert.AreEqual(0, count);
+            Assert.IsTrue(job.IsCompleted);
+
+            job.Start();
+            Assert.AreEqual(0, count);
+            Assert.IsTrue(job.IsCompleted);
+        }
+
+        [Test]
+        public void EachFrameWhile_IsCompleting_InUpdateLoop_IfExceededMaxFrames() {
+            var timeSource = (TimeSource) TimeSources.Get(PlayerLoopStage.Update);
+
+            int count = 0;
+            var job = Jobs.EachFrameWhile(dt => count++ < 5, 3).Start();
+
+            timeSource.Tick();
+            Assert.AreEqual(1, count);
+            Assert.IsTrue(!job.IsCompleted);
+
+            timeSource.Tick();
+            Assert.AreEqual(2, count);
+            Assert.IsTrue(!job.IsCompleted);
+
+            timeSource.Tick();
+            Assert.AreEqual(3, count);
+            Assert.IsTrue(job.IsCompleted);
+
+            timeSource.Tick();
+            Assert.AreEqual(3, count);
+        }
+
+        [Test]
         public void EachFrameWhile_IsCalled_InUpdateLoop_UntilWhileReturnsFalse() {
             var timeSource = (TimeSource) TimeSources.Get(PlayerLoopStage.Update);
 
@@ -103,7 +139,7 @@ namespace JobTests {
         }
 
         [Test]
-        public void EachFrame_CanBeStopped_ThenCanBeContinued() {
+        public void EachFrameWhile_CanBeStopped_ThenCanBeContinued() {
             var timeSource = (TimeSource) TimeSources.Get(PlayerLoopStage.Update);
 
             int count = 0;
