@@ -22,6 +22,7 @@ namespace MisterGames.Tick.Jobs {
             new JobSystemAsyncOperation(),
             new JobSystemWait(),
             new JobSystemWaitFrames(),
+            new JobSystemObserver(),
             new JobSystemSequence(),
         };
 
@@ -41,6 +42,8 @@ namespace MisterGames.Tick.Jobs {
         }
 
         private void OnDestroy() {
+            JobSystems.InjectProvider(null);
+
             _nonUpdatableJobSystemContainer.DeInitialize();
 
             foreach (var (stage, container) in _stagedJobSystemContainers) {
