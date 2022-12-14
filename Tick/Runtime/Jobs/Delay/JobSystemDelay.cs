@@ -19,11 +19,10 @@ namespace MisterGames.Tick.Jobs {
         }
 
         public Job CreateJob(float delay) {
-            var jobData = new JobData(delay);
-            if (jobData.IsCompleted) return Jobs.Completed;
+            if (delay <= 0f) return Jobs.Completed;
 
             int jobId = _jobIdFactory.CreateNewJobId();
-            _jobs.Add(jobId, jobData);
+            _jobs.Add(jobId, new JobData(delay));
 
             return new Job(jobId, this);
         }

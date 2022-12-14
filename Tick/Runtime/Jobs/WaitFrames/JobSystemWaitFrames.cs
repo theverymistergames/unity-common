@@ -19,11 +19,10 @@ namespace MisterGames.Tick.Jobs {
         }
 
         public Job CreateJob(int frames) {
-            var jobData = new JobData(frames);
-            if (jobData.IsCompleted) return Jobs.Completed;
+            if (frames <= 0) return Jobs.Completed;
 
             int jobId = _jobIdFactory.CreateNewJobId();
-            _jobs.Add(jobId, jobData);
+            _jobs.Add(jobId, new JobData(frames));
 
             return new Job(jobId, this);
         }
