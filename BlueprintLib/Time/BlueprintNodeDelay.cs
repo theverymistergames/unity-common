@@ -1,9 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading;
-using Cysharp.Threading.Tasks;
+﻿using System.Collections.Generic;
 using MisterGames.Blueprints;
 using MisterGames.Blueprints.Core;
+using MisterGames.Tick.Jobs;
 using UnityEngine;
 
 namespace MisterGames.BlueprintLib {
@@ -13,7 +11,7 @@ namespace MisterGames.BlueprintLib {
         
         [SerializeField] private float _defaultDuration;
 
-        private CancellationTokenSource _delayCts;
+        private Job _delayJob;
         
         protected override IReadOnlyList<Port> CreatePorts() => new List<Port> {
             Port.Enter("Start"),
@@ -22,41 +20,33 @@ namespace MisterGames.BlueprintLib {
             Port.Exit(),
         };
 
-        protected override void OnInit() {
-            _delayCts?.Cancel();
-            _delayCts?.Dispose();
-        }
+        protected override void OnInit() { }
 
         protected override void OnTerminate() {
-            _delayCts?.Cancel();
-            _delayCts?.Dispose();
+            _delayJob.Dispose();
         }
 
         void IBlueprintEnter.Enter(int port) {
             if (port == 0) {
-                _delayCts?.Cancel();
-                _delayCts?.Dispose();
-                _delayCts = new CancellationTokenSource();
+                _delayJob.Dispose();
 
                 float duration = Read(2, _defaultDuration);
-                StartDelay(duration, _delayCts.Token).Forget();
+
+                _delayJob = JobSequence.Create(runner.TimeSourceStage)
+                    .Delay(duration)
+                    .Action(OnFinish)
+                    .Push()
+                    .Start();
 
                 return;
             }
 
             if (port == 1) {
-                _delayCts?.Cancel();
-                _delayCts?.Dispose();
+                _delayJob.Dispose();
             }
         }
 
-        private async UniTaskVoid StartDelay(float duration, CancellationToken token) {
-            bool isCancelled = await UniTask
-                .Delay(TimeSpan.FromSeconds(duration), cancellationToken: token)
-                .SuppressCancellationThrow();
-
-            if (isCancelled) return;
-
+        private void OnFinish() {
             Call(port: 3);
         }
     }
