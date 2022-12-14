@@ -15,7 +15,7 @@ namespace MisterGames.Tick.Jobs {
         };
 
         [SerializeReference] [SubclassSelector]
-        private IJobSystemReadOnly[] _jobSystems = {
+        private IJobSystem[] _jobSystems = {
             new JobSystemAction(),
             new JobSystemAsyncOperation(),
             new JobSystemWait(),
@@ -76,8 +76,8 @@ namespace MisterGames.Tick.Jobs {
             return container;
         }
 
-        private List<IJobSystemReadOnly> CreateUpdatableJobSystems() {
-            var jobSystems = new List<IJobSystemReadOnly>(_jobSystems.Length);
+        private List<IJobSystem> CreateUpdatableJobSystems() {
+            var jobSystems = new List<IJobSystem>(_jobSystems.Length);
             for (int i = 0; i < _jobSystems.Length; i++) {
                 var jobSystemSample = _jobSystems[i];
                 if (jobSystemSample is not IUpdate) continue;
@@ -87,8 +87,8 @@ namespace MisterGames.Tick.Jobs {
             return jobSystems;
         }
 
-        private List<IJobSystemReadOnly> CreateNonUpdatableJobSystems() {
-            var jobSystems = new List<IJobSystemReadOnly>(_jobSystems.Length);
+        private List<IJobSystem> CreateNonUpdatableJobSystems() {
+            var jobSystems = new List<IJobSystem>(_jobSystems.Length);
             for (int i = 0; i < _jobSystems.Length; i++) {
                 var jobSystemSample = _jobSystems[i];
                 if (jobSystemSample is IUpdate) continue;

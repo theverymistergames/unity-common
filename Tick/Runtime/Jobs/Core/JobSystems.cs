@@ -3,7 +3,7 @@
 namespace MisterGames.Tick.Jobs {
 
     public interface IJobSystemProvider {
-        S GetJobSystem<S>() where S : class, IJobSystemReadOnly;
+        S GetJobSystem<S>() where S : class, IJobSystem;
     }
 
     public interface IJobSystemProviders {
@@ -19,11 +19,11 @@ namespace MisterGames.Tick.Jobs {
             _jobSystemProviders = providers;
         }
 
-        public static S Get<S>(PlayerLoopStage stage) where S : class, IJobSystemReadOnly {
+        public static S Get<S>(PlayerLoopStage stage) where S : class, IJobSystem {
             return _jobSystemProviders.GetStagedProvider(stage).GetJobSystem<S>();
         }
 
-        public static S Get<S>() where S : class, IJobSystemReadOnly {
+        public static S Get<S>() where S : class, IJobSystem {
             return _jobSystemProviders.GetProvider().GetJobSystem<S>();
         }
     }

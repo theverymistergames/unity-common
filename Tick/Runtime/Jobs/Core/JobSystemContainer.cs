@@ -7,10 +7,10 @@ namespace MisterGames.Tick.Jobs {
 
     public sealed class JobSystemContainer : IJobSystemProvider {
 
-        private readonly DictionaryList<Type, IJobSystemReadOnly> _jobSystems;
+        private readonly DictionaryList<Type, IJobSystem> _jobSystems;
 
-        public JobSystemContainer(IReadOnlyList<IJobSystemReadOnly> jobSystems) {
-            _jobSystems = new DictionaryList<Type, IJobSystemReadOnly>(jobSystems.Count);
+        public JobSystemContainer(IReadOnlyList<IJobSystem> jobSystems) {
+            _jobSystems = new DictionaryList<Type, IJobSystem>(jobSystems.Count);
 
             for (int i = 0; i < jobSystems.Count; i++) {
                 var jobSystem = jobSystems[i];
@@ -46,7 +46,7 @@ namespace MisterGames.Tick.Jobs {
             }
         }
 
-        public S GetJobSystem<S>() where S : class, IJobSystemReadOnly {
+        public S GetJobSystem<S>() where S : class, IJobSystem {
             int index = _jobSystems.Keys.IndexOf(typeof(S));
             if (index < 0) return null;
 
