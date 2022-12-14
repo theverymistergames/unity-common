@@ -1,12 +1,11 @@
 ﻿using System;
-using System.Threading;
-using Cysharp.Threading.Tasks;
 using MisterGames.Character.Collisions;
 using MisterGames.Character.Configs;
 using MisterGames.Character.View;
 using MisterGames.Common.Maths;
 using MisterGames.Fsm.Core;
 using MisterGames.Tick.Core;
+using MisterGames.Tick.Jobs;
 using UnityEngine;
 
 namespace MisterGames.Character.Pose {
@@ -25,24 +24,29 @@ namespace MisterGames.Character.Pose {
 
         public bool IsCrouching { get; private set;  }
 
-        private ITimeSource _timeSource => TimeSources.Get(_timeSourceStage);
-        private CancellationTokenSource _changePoseCts;
+        private Job _changePoseJob;
+
         private PoseStateData _initialPoseData;
         private PoseStateData _prevPoseData;
 
         private void OnEnable() {
             _cameraController.RegisterInteractor(this);
             _poseFsm.OnEnterState += HandleStateChanged;
+
+            _changePoseJob.Start();
         }
 
         private void OnDisable() {
+            _changePoseJob.Stop();
+
             _cameraController.UnregisterInteractor(this);
             _poseFsm.OnEnterState -= HandleStateChanged;
 
-            _changePoseCts?.Cancel();
-            _changePoseCts?.Dispose();
-
             SetInitialParameters(_initialPoseData);
+        }
+
+        private void OnDestroy() {
+            _changePoseJob.Dispose();
         }
 
         private void Start() {
@@ -82,12 +86,8 @@ namespace MisterGames.Character.Pose {
             
             _prevPoseData = poseData;
 
-            _changePoseCts?.Cancel();
-            _changePoseCts?.Dispose();
-            _changePoseCts = new CancellationTokenSource();
-
             float duration = transitionData.duration * currentToTarget / targetsDiff;
-            ChangeHeight(targetHeight, duration, transitionData.curve, _changePoseCts.Token).Forget();
+            ChangeHeight(targetHeight, duration, transitionData.curve);
             
             CheckCrouchStateChanged(poseData.isCrouchState);
         }
@@ -106,25 +106,31 @@ namespace MisterGames.Character.Pose {
             }
         }
 
-        private async UniTaskVoid ChangeHeight(float targetHeight, float duration, AnimationCurve curve, CancellationToken token) {
+        private void ChangeHeight(float targetHeight, float duration, AnimationCurve curve) {
             float prevHeight = _characterController.height;
             float diffHeight = targetHeight - prevHeight;
             float tempHeight = prevHeight;
 
             float time = 0f;
-            while (!token.IsCancellationRequested) {
-                time += _timeSource.DeltaTime;
-                float process = Mathf.Clamp01(duration.IsNearlyZero() ? 1f : time / duration);
 
-                float height = prevHeight + curve.Evaluate(process) * diffHeight;
-                ApplyHeight(tempHeight, height);
-                tempHeight = height;
+            _changePoseJob.Stop();
+            _changePoseJob.Dispose();
 
-                if (process >= 1f) break;
+            _changePoseJob = Jobs
+                .EachFrameWhile(
+                    dt => {
+                        time += dt;
+                        float process = Mathf.Clamp01(duration.IsNearlyZero() ? 1f : time / duration);
 
-                bool isCancelled = await UniTask.NextFrame(token).SuppressCancellationThrow();
-                if (isCancelled) break;
-            }
+                        float height = prevHeight + curve.Evaluate(process) * diffHeight;
+                        ApplyHeight(tempHeight, height);
+                        tempHeight = height;
+
+                        return process < 1f;
+                    },
+                    stage: _timeSourceStage
+                )
+                .Start();
         }
 
         private void ApplyHeight(float current, float target) {
