@@ -18,16 +18,18 @@ namespace MisterGames.Tick.Jobs {
             _jobs.Clear();
         }
 
-        public Job CreateJob(Action<float> action) {
+        public Job CreateJob(Action<float> action, int maxFrames) {
+            if (maxFrames == 0) return Jobs.Completed;
+
             int jobId = _jobIdFactory.CreateNewJobId();
-            _jobs.Add(jobId, new JobData(action));
+            _jobs.Add(jobId, new JobData(action, maxFrames));
 
             return new Job(jobId, this);
         }
 
         public bool IsJobCompleted(int jobId) {
             int index = _jobs.Keys.IndexOf(jobId);
-            return index < 0;
+            return index < 0 || _jobs.Values[index].isCompleted;
         }
 
         public void StartJob(int jobId) {
@@ -58,30 +60,48 @@ namespace MisterGames.Tick.Jobs {
 
                 if (!job.isUpdating) continue;
 
-                job.action.Invoke(dt);
+                _jobs.Values[i] = job.TryInvokeNextFrameAction(dt);
             }
         }
 
         private readonly struct JobData {
 
-            public static readonly JobData Completed = new JobData(null, false, true);
+            public static readonly JobData Completed
+                = new JobData(null, 0, 0, false, true);
 
             public readonly bool isUpdating;
             public readonly bool isCompleted;
-            public readonly Action<float> action;
 
-            public JobData(Action<float> action, bool isUpdating = false, bool isCompleted = false) {
-                this.action = action;
+            private readonly int _maxFrames;
+            private readonly int _frameCount;
+            private readonly Action<float> _action;
+
+            public JobData(Action<float> action, int maxFrames, int frameCount = 0, bool isUpdating = false, bool isCompleted = false) {
+                _action = action;
+                _maxFrames = maxFrames;
+                _frameCount = frameCount;
+
                 this.isUpdating = isUpdating;
                 this.isCompleted = isCompleted;
             }
 
+            public JobData TryInvokeNextFrameAction(float dt) {
+                int nextFrameCount = _frameCount + 1;
+
+                bool canContinue = _maxFrames < 0 || _frameCount < _maxFrames;
+                if (canContinue) _action.Invoke(dt);
+
+                canContinue = _maxFrames < 0 || nextFrameCount < _maxFrames;
+
+                return new JobData(_action, _maxFrames, nextFrameCount, canContinue, !canContinue);
+            }
+
             public JobData Start() {
-                return new JobData(action, !isCompleted, isCompleted);
+                return new JobData(_action, _maxFrames, _frameCount, !isCompleted, isCompleted);
             }
 
             public JobData Stop() {
-                return new JobData(action, false, isCompleted);
+                return new JobData(_action, _maxFrames, _frameCount, false, isCompleted);
             }
         }
     }
