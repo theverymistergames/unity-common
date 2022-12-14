@@ -5,7 +5,7 @@ using MisterGames.Tick.Core;
 namespace MisterGames.Tick.Jobs {
 
     [Serializable]
-    public sealed class JobSystemEachFrame : IJobSystem, IUpdate {
+    public sealed class JobSystemEachFrameProcess : IJobSystem, IUpdate {
 
         private readonly DictionaryList<int, JobData> _jobs = new DictionaryList<int, JobData>();
         private IJobIdFactory _jobIdFactory;
@@ -18,7 +18,7 @@ namespace MisterGames.Tick.Jobs {
             _jobs.Clear();
         }
 
-        public Job CreateJob(Action<float> action) {
+        public Job CreateJob(Action action) {
             int jobId = _jobIdFactory.CreateNewJobId();
             _jobs.Add(jobId, new JobData(action));
 
@@ -54,7 +54,7 @@ namespace MisterGames.Tick.Jobs {
                     continue;
                 }
 
-                if (job.isUpdating) job.action.Invoke(dt);
+                if (job.isUpdating) job.action.Invoke();
             }
         }
 
@@ -64,9 +64,9 @@ namespace MisterGames.Tick.Jobs {
 
             public readonly bool isUpdating;
             public readonly bool isCompleted;
-            public readonly Action<float> action;
+            public readonly Action action;
 
-            public JobData(Action<float> action, bool isUpdating = false, bool isCompleted = false) {
+            public JobData(Action action, bool isUpdating = false, bool isCompleted = false) {
                 this.action = action;
                 this.isUpdating = isUpdating;
                 this.isCompleted = isCompleted;

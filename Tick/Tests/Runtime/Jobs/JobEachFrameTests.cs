@@ -41,7 +41,7 @@ namespace JobTests {
         public void EachFrame_IsNotCalled_AtStart() {
             int count = 0;
 
-            var job = Jobs.EachFrame(() => count++);
+            var job = Jobs.EachFrame(dt => count++);
             Assert.AreEqual(0, count);
 
             job.Start();
@@ -53,7 +53,7 @@ namespace JobTests {
             var timeSource = (TimeSource) TimeSources.Get(PlayerLoopStage.Update);
 
             int count = 0;
-            Jobs.EachFrame(() => count++).Start();
+            Jobs.EachFrame(dt => count++).Start();
 
             timeSource.Tick();
             Assert.AreEqual(1, count);
@@ -67,7 +67,7 @@ namespace JobTests {
             var timeSource = (TimeSource) TimeSources.Get(PlayerLoopStage.Update);
 
             int count = 0;
-            var job = Jobs.EachFrame(() => count++).Start();
+            var job = Jobs.EachFrame(dt => count++).Start();
 
             timeSource.Tick();
             Assert.AreEqual(1, count);
@@ -85,7 +85,7 @@ namespace JobTests {
             var timeSource = (TimeSource) TimeSources.Get(PlayerLoopStage.Update);
 
             int count = 0;
-            var job = Jobs.EachFrame(() => count++).Start();
+            var job = Jobs.EachFrame(dt => count++).Start();
 
             timeSource.Tick();
             Assert.AreEqual(1, count);
