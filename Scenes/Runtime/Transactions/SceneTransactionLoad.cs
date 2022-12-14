@@ -1,5 +1,6 @@
 ﻿using System;
 using MisterGames.Scenes.Core;
+using MisterGames.Tick.Jobs;
 
 namespace MisterGames.Scenes.Transactions {
 
@@ -9,8 +10,8 @@ namespace MisterGames.Scenes.Transactions {
         public SceneReference scene;
         public bool makeActive;
 
-        public void Perform(SceneLoader sceneLoader) {
-            sceneLoader.LoadScene(scene.scene, makeActive);
+        public ReadOnlyJob Perform(SceneLoader sceneLoader) {
+            return sceneLoader.LoadScene(scene.scene, makeActive);
         }
     }
 

@@ -1,6 +1,7 @@
 ﻿using System;
 using MisterGames.Common.Attributes;
 using MisterGames.Scenes.Core;
+using MisterGames.Tick.Jobs;
 using UnityEngine;
 
 namespace MisterGames.Scenes.Transactions {
@@ -11,10 +12,14 @@ namespace MisterGames.Scenes.Transactions {
         [SerializeReference] [SubclassSelector]
         public ISceneTransaction[] operations;
 
-        public void Perform(SceneLoader sceneLoader) {
+        public ReadOnlyJob Perform(SceneLoader sceneLoader) {
+            var jobObserver = JobObserver.Create();
+
             for (int i = 0; i < operations.Length; i++) {
-                operations[i].Perform(sceneLoader);
+                jobObserver.Observe(operations[i].Perform(sceneLoader));
             }
+
+            return jobObserver.Push();
         }
     }
 

@@ -1,7 +1,7 @@
 ﻿using System;
-using Cysharp.Threading.Tasks;
 using MisterGames.Common.Layers;
 using MisterGames.Scenes.Core;
+using MisterGames.Tick.Jobs;
 using UnityEngine;
 
 namespace MisterGames.Scenes.Transactions {
@@ -14,8 +14,14 @@ namespace MisterGames.Scenes.Transactions {
 
         [SerializeField] private SceneTransactions _sceneTransactions;
 
+        private Job _loadJob;
+
         private float _startTime;
         private bool _exitedOnce;
+
+        private void OnDestroy() {
+            _loadJob.Dispose();
+        }
 
         private void Start() {
             _startTime = Time.realtimeSinceStartup;
@@ -25,7 +31,7 @@ namespace MisterGames.Scenes.Transactions {
             if (!enabled) return;
             if (!CanTriggerByStartTime() || !CanTriggerByFilter(other.gameObject)) return;
             
-            CommitSceneTransaction().Forget();
+            CommitSceneTransaction();
         }
 
         private void OnTriggerExit(Collider other) {
@@ -35,9 +41,14 @@ namespace MisterGames.Scenes.Transactions {
             _exitedOnce = true;
         }
 
-        private async UniTaskVoid CommitSceneTransaction() {
-            await UniTask.Delay(TimeSpan.FromSeconds(_loadDelay));
-            SceneLoader.Instance.CommitTransaction(_sceneTransactions);
+        private void CommitSceneTransaction() {
+            _loadJob.Dispose();
+
+            _loadJob = JobSequence.Create()
+                .Delay(_loadDelay)
+                .Wait(SceneLoader.Instance.CommitTransaction(_sceneTransactions))
+                .Push()
+                .Start();
         }
 
         private bool CanTriggerByFilter(GameObject go) {

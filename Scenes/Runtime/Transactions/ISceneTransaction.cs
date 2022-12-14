@@ -1,9 +1,10 @@
 ﻿using MisterGames.Scenes.Core;
+using MisterGames.Tick.Jobs;
 
 namespace MisterGames.Scenes.Transactions {
 
     public interface ISceneTransaction {
-        void Perform(SceneLoader sceneLoader);
+        ReadOnlyJob Perform(SceneLoader sceneLoader);
     }
 
 }
