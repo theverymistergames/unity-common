@@ -1,5 +1,4 @@
-﻿using System;
-using MisterGames.Common.Layers;
+﻿using MisterGames.Common.Layers;
 using MisterGames.Scenes.Core;
 using MisterGames.Tick.Jobs;
 using UnityEngine;
