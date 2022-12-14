@@ -58,7 +58,7 @@ namespace JobTests {
 
         [Test]
         public void EmptySequence_IsCompleted() {
-            var sequence = JobSequence.Create().Start();
+            var sequence = JobSequence.Create().Push();
             Assert.IsTrue(sequence.IsCompleted);
         }
 
@@ -68,14 +68,16 @@ namespace JobTests {
             var job1 = Jobs.Action(() => { });
             var job2 = Jobs.Action(() => { });
 
-            JobSequence.Create()
+            var sequence = JobSequence.Create()
                 .Add(job0)
                 .Add(job1)
-                .Add(job2);
+                .Add(job2)
+                .Push();
 
             Assert.IsTrue(!job0.IsCompleted);
             Assert.IsTrue(!job1.IsCompleted);
             Assert.IsTrue(!job2.IsCompleted);
+            Assert.IsTrue(!sequence.IsCompleted);
         }
 
         [Test]
@@ -88,6 +90,7 @@ namespace JobTests {
                 .Add(job0)
                 .Add(job1)
                 .Add(job2)
+                .Push()
                 .Start();
 
             Assert.IsTrue(job0.IsCompleted);
@@ -108,6 +111,7 @@ namespace JobTests {
                 .Add(job1)
                 .Add(job2)
                 .Add(job3)
+                .Push()
                 .Start();
 
             Assert.IsTrue(job0.IsCompleted);
@@ -133,6 +137,7 @@ namespace JobTests {
                 .Add(job2)
                 .Add(job3)
                 .Add(job4)
+                .Push()
                 .Start();
 
             Assert.IsTrue(job0.IsCompleted);
@@ -161,6 +166,7 @@ namespace JobTests {
                 .Add(job0)
                 .Add(job1)
                 .Add(job2)
+                .Push()
                 .Start();
 
             Assert.IsTrue(!job0.IsCompleted);
@@ -191,6 +197,7 @@ namespace JobTests {
 
             var sequence = JobSequence.Create()
                 .Add(job)
+                .Push()
                 .Start();
 
             Assert.IsTrue(!job.IsCompleted);
@@ -217,6 +224,7 @@ namespace JobTests {
 
             var sequence = JobSequence.Create()
                 .Add(job)
+                .Push()
                 .Start();
 
             Assert.IsTrue(!job.IsCompleted);
@@ -256,8 +264,8 @@ namespace JobTests {
             var job3 = Jobs.Delay(1f);
             sequenceBuilder1.Add(job3);
 
-            var sequence0 = sequenceBuilder0.Start();
-            var sequence1 = sequenceBuilder1.Start();
+            var sequence0 = sequenceBuilder0.Push().Start();
+            var sequence1 = sequenceBuilder1.Push().Start();
 
             Assert.IsTrue(!job0.IsCompleted);
             Assert.IsTrue(!job1.IsCompleted);
@@ -279,6 +287,50 @@ namespace JobTests {
             Assert.IsTrue(job3.IsCompleted);
             Assert.IsTrue(sequence0.IsCompleted);
             Assert.IsTrue(sequence1.IsCompleted);
+        }
+
+        [Test]
+        public void CanPutSequence_IntoAnotherSequence() {
+            var timeSource = (TimeSource) TimeSources.Get(PlayerLoopStage.Update);
+
+            var job0 = Jobs.Action(() => { });
+            var job1 = Jobs.Delay(1f);
+            var job2 = Jobs.Action(() => { });
+
+            var sequence0 = JobSequence.Create()
+                .Add(job0)
+                .Push();
+
+            var sequence1 = JobSequence.Create()
+                .Add(job1)
+                .Add(job2)
+                .Push();
+
+            var superSequence = JobSequence.Create()
+                .Add(sequence0)
+                .Add(sequence1)
+                .Push();
+
+            Assert.IsTrue(!job0.IsCompleted);
+            Assert.IsTrue(!sequence0.IsCompleted);
+            Assert.IsTrue(!job1.IsCompleted);
+            Assert.IsTrue(!job2.IsCompleted);
+            Assert.IsTrue(!sequence1.IsCompleted);
+            Assert.IsTrue(!superSequence.IsCompleted);
+
+            superSequence.Start();
+            Assert.IsTrue(job0.IsCompleted);
+            Assert.IsTrue(sequence0.IsCompleted);
+            Assert.IsTrue(!job1.IsCompleted);
+            Assert.IsTrue(!job2.IsCompleted);
+            Assert.IsTrue(!sequence1.IsCompleted);
+            Assert.IsTrue(!superSequence.IsCompleted);
+
+            timeSource.Tick();
+            Assert.IsTrue(job1.IsCompleted);
+            Assert.IsTrue(job2.IsCompleted);
+            Assert.IsTrue(sequence1.IsCompleted);
+            Assert.IsTrue(superSequence.IsCompleted);
         }
     }
 
