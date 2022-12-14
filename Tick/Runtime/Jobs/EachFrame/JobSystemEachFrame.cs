@@ -18,7 +18,7 @@ namespace MisterGames.Tick.Jobs {
             _jobs.Clear();
         }
 
-        public Job CreateJob(Action<float> action, int maxFrames) {
+        public Job CreateJob(Action<float> action, int maxFrames = -1) {
             if (maxFrames == 0) return Jobs.Completed;
 
             int jobId = _jobIdFactory.CreateNewJobId();
