@@ -18,11 +18,11 @@ namespace MisterGames.Tick.Jobs {
             _jobs.Clear();
         }
 
-        public Job CreateJob(Action action, float period, int maxTimes = -1) {
-            if (maxTimes == 0) return Jobs.Completed;
+        public Job CreateJob(Action action, float period, int times = -1) {
+            if (times == 0) return Jobs.Completed;
 
             int jobId = _jobIdFactory.CreateNewJobId();
-            _jobs.Add(jobId, new JobData(action, period, maxTimes));
+            _jobs.Add(jobId, new JobData(action, period, times));
 
             return new Job(jobId, this);
         }
@@ -72,7 +72,7 @@ namespace MisterGames.Tick.Jobs {
             public readonly bool isUpdating;
             public readonly bool isCompleted;
 
-            private readonly int _maxTimes;
+            private readonly int _times;
             private readonly int _timesCount;
 
             private readonly float _period;
@@ -83,7 +83,7 @@ namespace MisterGames.Tick.Jobs {
             public JobData(
                 Action action,
                 float period,
-                int maxTimes,
+                int times,
                 float timer = 0f,
                 int timesCount = 0,
                 bool isUpdating = false,
@@ -91,7 +91,7 @@ namespace MisterGames.Tick.Jobs {
             ) {
                 _action = action;
 
-                _maxTimes = maxTimes;
+                _times = times;
                 _timesCount = timesCount;
 
                 _period = period;
@@ -104,7 +104,7 @@ namespace MisterGames.Tick.Jobs {
             public JobData AddToTimerAndTryInvokeScheduleAction(float dt) {
                 int nextTimesCount = _timesCount;
                 float nextTimer = _periodTimer + dt;
-                bool canContinue = _maxTimes < 0 || _timesCount < _maxTimes;
+                bool canContinue = _times < 0 || _timesCount < _times;
 
                 if (canContinue && nextTimer >= _period) {
                     nextTimer = 0f;
@@ -112,17 +112,17 @@ namespace MisterGames.Tick.Jobs {
                     _action.Invoke();
                 }
 
-                canContinue = _maxTimes < 0 || nextTimesCount < _maxTimes;
+                canContinue = _times < 0 || nextTimesCount < _times;
 
-                return new JobData(_action, _period, _maxTimes, nextTimer, nextTimesCount, canContinue, !canContinue);
+                return new JobData(_action, _period, _times, nextTimer, nextTimesCount, canContinue, !canContinue);
             }
 
             public JobData Start() {
-                return new JobData(_action, _period, _maxTimes, _periodTimer, _timesCount, !isCompleted, isCompleted);
+                return new JobData(_action, _period, _times, _periodTimer, _timesCount, !isCompleted, isCompleted);
             }
 
             public JobData Stop() {
-                return new JobData(_action, _period, _maxTimes, _periodTimer, _timesCount, false, isCompleted);
+                return new JobData(_action, _period, _times, _periodTimer, _timesCount, false, isCompleted);
             }
         }
     }
