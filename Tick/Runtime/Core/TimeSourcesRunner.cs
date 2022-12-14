@@ -27,16 +27,18 @@ namespace MisterGames.Tick.Core {
         }
 
         private void Awake() {
-            TimeSources.InjectProvider(this);
-
             _timeSources.Add(_preUpdateTimeSource);
             _timeSources.Add(_updateTimeSource);
             _timeSources.Add(_unscaledUpdateTimeSource);
             _timeSources.Add(_lateUpdateTimeSource);
             _timeSources.Add(_fixedUpdateTimeSource);
+
+            TimeSources.InjectProvider(this);
         }
 
         private void OnDestroy() {
+            TimeSources.InjectProvider(null);
+
             for (int i = 0; i < _timeSources.Count; i++) {
                 _timeSources[i].Reset();
             }
