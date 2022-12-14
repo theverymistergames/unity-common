@@ -22,9 +22,8 @@ namespace MisterGames.Tick.Jobs {
             return this;
         }
 
-        public Job Start() {
-            _jobSystem.StartJob(_sequenceJobId);
-            return new Job(_sequenceJobId, _jobSystem);
+        public Job Push() {
+            return new Job(_sequenceJobId, _jobSystem);;
         }
     }
 
