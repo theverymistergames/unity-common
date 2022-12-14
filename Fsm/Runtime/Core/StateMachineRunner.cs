@@ -23,7 +23,7 @@ namespace MisterGames.Fsm.Core {
         
         public StateMachine Source => _stateMachine;
         public StateMachine Instance { get; private set; }
-        public ITimeSource TimeSource => TimeSources.Get(_timeSourceStage);
+        public PlayerLoopStage TimeSourceStage => _timeSourceStage;
 
         private void Awake() {
             Instance = CloneInstance(_stateMachine);
