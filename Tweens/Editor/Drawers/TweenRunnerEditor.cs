@@ -10,6 +10,7 @@ namespace MisterGames.Tweens.Editor.Drawers {
         public override void OnInspectorGUI() {
             base.OnInspectorGUI();
 
+            if (!Application.isPlaying) return;
             if (target is not TweenRunner runner) return;
 
             GUILayout.Label("Controls");
