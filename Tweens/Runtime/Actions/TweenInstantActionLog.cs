@@ -5,7 +5,7 @@ using UnityEngine;
 namespace MisterGames.Tweens.Actions {
 
     [Serializable]
-    public class TweenInstantActionLog : ITweenInstantAction {
+    public sealed class TweenInstantActionLog : ITweenInstantAction {
 
         [SerializeField] private string _text;
 

@@ -5,7 +5,7 @@ using UnityEngine;
 namespace MisterGames.Tweens.Actions {
     
     [Serializable]
-    public class TweenProgressActionLog : ITweenProgressAction {
+    public sealed class TweenProgressActionLog : ITweenProgressAction {
 
         [SerializeField] private string _text;
 
