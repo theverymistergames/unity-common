@@ -33,12 +33,16 @@ namespace MisterGames.Tweens.Core {
         }
 
         public void Play() {
+            Play(_destroyCts.Token).Forget();
+        }
+
+        public async UniTask Play(CancellationToken token) {
             _pauseCts?.Dispose();
             _pauseCts = new CancellationTokenSource();
 
-            var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_pauseCts.Token, _destroyCts.Token);
+            var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_pauseCts.Token, token);
 
-            _tween.Play(linkedCts.Token).Forget();
+            await _tween.Play(linkedCts.Token);
         }
 
         public void Pause() {
