@@ -82,9 +82,9 @@ namespace MisterGames.Tweens {
             if (_tweensCount == 0) return;
 
             for (int i = _currentTweenIndex; i < _tweensCount; i++) {
-                var tween = _tweens[i];
-                tween.Wind();
+                _tweens[i].Wind();
             }
+
             _currentTweenIndex = _tweensCount - 1;
         }
 
@@ -92,9 +92,9 @@ namespace MisterGames.Tweens {
             if (_tweensCount == 0) return;
 
             for (int i = _currentTweenIndex; i >= 0; i--) {
-                var tween = _tweens[i];
-                tween.Rewind();
+                _tweens[i].Rewind();
             }
+
             _currentTweenIndex = 0;
         }
 
