@@ -1,0 +1,19 @@
+{
+    "name": "MisterGames.Tweens.Editor",
+    "rootNamespace": "MisterGames.Tweens.Editor",
+    "references": [
+        "GUID:0175294ec022c624cbe537915e3c9e71",
+        "GUID:567f537c4baeee944b9857671ea49405"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
