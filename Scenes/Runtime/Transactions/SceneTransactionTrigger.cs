@@ -38,7 +38,7 @@ namespace MisterGames.Scenes.Transactions {
             if (!enabled) return;
             if (!CanTriggerByStartTime() || !CanTriggerByFilter(other.gameObject)) return;
             
-            CommitSceneTransaction(_destroyCts.Token).Forget();
+            DelayAndCommitSceneTransaction(_loadDelay, _destroyCts.Token).Forget();
         }
 
         private void OnTriggerExit(Collider other) {
@@ -48,9 +48,9 @@ namespace MisterGames.Scenes.Transactions {
             _exitedOnce = true;
         }
 
-        private async UniTaskVoid CommitSceneTransaction(CancellationToken token) {
+        private async UniTaskVoid DelayAndCommitSceneTransaction(float delay, CancellationToken token) {
             bool isCancelled = await UniTask
-                .Delay(TimeSpan.FromSeconds(_loadDelay), cancellationToken: token)
+                .Delay(TimeSpan.FromSeconds(delay), cancellationToken: token)
                 .SuppressCancellationThrow();
 
             if (isCancelled) return;
