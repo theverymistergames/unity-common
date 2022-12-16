@@ -1,10 +1,9 @@
-﻿using MisterGames.Scenes.Core;
-using MisterGames.Tick.Jobs;
+﻿using Cysharp.Threading.Tasks;
 
 namespace MisterGames.Scenes.Transactions {
 
     public interface ISceneTransaction {
-        ReadOnlyJob Perform(SceneLoader sceneLoader);
+        UniTask Commit();
     }
 
 }

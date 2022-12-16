@@ -1,6 +1,8 @@
-﻿using MisterGames.Common.Layers;
-using MisterGames.Scenes.Core;
-using MisterGames.Tick.Jobs;
+﻿using System;
+using System.Threading;
+using Cysharp.Threading.Tasks;
+using MisterGames.Common.Attributes;
+using MisterGames.Common.Layers;
 using UnityEngine;
 
 namespace MisterGames.Scenes.Transactions {
@@ -11,15 +13,21 @@ namespace MisterGames.Scenes.Transactions {
         [SerializeField] [Min(0f)] private float _ignoreTriggerAfterSceneStartDelay = 1f;
         [SerializeField] [Min(0f)] private float _loadDelay = 0f;
 
-        [SerializeField] private SceneTransactions _sceneTransactions;
+        [SerializeReference] [SubclassSelector]
+        private ISceneTransaction _sceneTransaction;
 
-        private Job _loadJob;
+        private CancellationTokenSource _destroyCts;
 
         private float _startTime;
         private bool _exitedOnce;
 
+        private void Awake() {
+            _destroyCts = new CancellationTokenSource();
+        }
+
         private void OnDestroy() {
-            _loadJob.Dispose();
+            _destroyCts.Cancel();
+            _destroyCts.Dispose();
         }
 
         private void Start() {
@@ -30,7 +38,7 @@ namespace MisterGames.Scenes.Transactions {
             if (!enabled) return;
             if (!CanTriggerByStartTime() || !CanTriggerByFilter(other.gameObject)) return;
             
-            CommitSceneTransaction();
+            CommitSceneTransaction(_destroyCts.Token).Forget();
         }
 
         private void OnTriggerExit(Collider other) {
@@ -40,14 +48,14 @@ namespace MisterGames.Scenes.Transactions {
             _exitedOnce = true;
         }
 
-        private void CommitSceneTransaction() {
-            _loadJob.Dispose();
+        private async UniTaskVoid CommitSceneTransaction(CancellationToken token) {
+            bool isCancelled = await UniTask
+                .Delay(TimeSpan.FromSeconds(_loadDelay), cancellationToken: token)
+                .SuppressCancellationThrow();
 
-            _loadJob = JobSequence.Create()
-                .Delay(_loadDelay)
-                .Wait(SceneLoader.Instance.CommitTransaction(_sceneTransactions))
-                .Push()
-                .Start();
+            if (isCancelled) return;
+
+            await _sceneTransaction.Commit();
         }
 
         private bool CanTriggerByFilter(GameObject go) {

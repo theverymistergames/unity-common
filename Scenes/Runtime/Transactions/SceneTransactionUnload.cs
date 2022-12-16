@@ -1,16 +1,16 @@
 ﻿using System;
+using Cysharp.Threading.Tasks;
 using MisterGames.Scenes.Core;
-using MisterGames.Tick.Jobs;
 
 namespace MisterGames.Scenes.Transactions {
 
     [Serializable]
-    public struct SceneTransactionUnload : ISceneTransaction {
+    public sealed class SceneTransactionUnload : ISceneTransaction {
 
         public SceneReference scene;
 
-        public ReadOnlyJob Perform(SceneLoader sceneLoader) {
-            return sceneLoader.UnloadScene(scene.scene);
+        public async UniTask Commit() {
+            await SceneLoader.UnloadSceneAsync(scene.scene);
         }
     }
 
