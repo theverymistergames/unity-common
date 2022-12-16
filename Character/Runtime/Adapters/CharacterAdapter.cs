@@ -7,8 +7,8 @@ namespace MisterGames.Character.Motion {
 
     public class CharacterAdapter : MonoBehaviour, IUpdate {
 
-        [SerializeField] private TimeDomain _timeDomain;
-        
+        [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
+
         [SerializeField] private Transform _body;
         [SerializeField] private CharacterController _characterController;
         [SerializeField] private MassProcessor _massProcessor;
@@ -18,6 +18,7 @@ namespace MisterGames.Character.Motion {
         public Quaternion BodyRotation => _body.rotation;
         public Vector3 Velocity => _characterController.velocity;
 
+        private ITimeSource _timeSource => TimeSources.Get(_timeSourceStage);
         private float _stepOffset;
 
         public void RotateHead(float angle) {
@@ -50,11 +51,11 @@ namespace MisterGames.Character.Motion {
             _cameraController.RegisterInteractor(this);
             _massProcessor.RegisterForceSource(this);
 
-            _timeDomain.Source.Subscribe(this);
+            _timeSource.Subscribe(this);
         }
 
         private void OnDisable() {
-            _timeDomain.Source.Unsubscribe(this);
+            _timeSource.Unsubscribe(this);
 
             _cameraController.UnregisterInteractor(this);
             _massProcessor.UnregisterForceSource(this);

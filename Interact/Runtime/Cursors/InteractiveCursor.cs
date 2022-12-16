@@ -11,7 +11,7 @@ namespace MisterGames.Interact.Cursors {
     public class InteractiveCursor : MonoBehaviour, IUpdate {
 
         [Header("General")]
-        [SerializeField] private TimeDomain _timeDomain;
+        [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
         [SerializeField] private InteractiveUser _interactiveUser;
 
         [Header("Cursor Settings")]
@@ -24,6 +24,7 @@ namespace MisterGames.Interact.Cursors {
         [SerializeField] private float _maxDistance;
         [SerializeField] private CollisionDetector _transparencyRaycaster;
 
+        private ITimeSource _timeSource => TimeSources.Get(_timeSourceStage);
         private Interactive _interactive;
         private CollisionFilter _transparencyRaycastFilter;
         private CollisionInfo _lastCollisionInfo;
@@ -36,7 +37,7 @@ namespace MisterGames.Interact.Cursors {
             _interactiveUser.OnInteractiveDetected += OnInteractiveDetected;
             _interactiveUser.OnInteractiveLost += OnInteractiveLost;
 
-            _timeDomain.Source.Subscribe(this);
+            _timeSource.Subscribe(this);
 
             Application.focusChanged -= OnApplicationFocusChanged;
             Application.focusChanged += OnApplicationFocusChanged;
@@ -45,7 +46,7 @@ namespace MisterGames.Interact.Cursors {
         private void OnDisable() {
             Application.focusChanged -= OnApplicationFocusChanged;
 
-            _timeDomain.Source.Unsubscribe(this);
+            _timeSource.Unsubscribe(this);
 
             _interactiveUser.OnInteractiveDetected -= OnInteractiveDetected;
             _interactiveUser.OnInteractiveLost -= OnInteractiveLost;

@@ -9,9 +9,10 @@ namespace MisterGames.Collisions.Detectors {
 
     public class FrameUiRaycaster : CollisionDetector, IUpdate {
 
-        [SerializeField] private TimeDomain _timeDomain;
+        [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
         [SerializeField] private CollisionFilter _collisionFilter;
 
+        private ITimeSource _timeSource => TimeSources.Get(_timeSourceStage);
         private readonly List<RaycastResult> _hits = new List<RaycastResult>();
         private EventSystem _eventSystem;
         private int _hitCount;
@@ -22,11 +23,11 @@ namespace MisterGames.Collisions.Detectors {
         }
 
         private void OnEnable() {
-            _timeDomain.Source.Subscribe(this);
+            _timeSource.Subscribe(this);
         }
 
         private void OnDisable() {
-            _timeDomain.Source.Unsubscribe(this);
+            _timeSource.Unsubscribe(this);
         }
 
         private void Start() {

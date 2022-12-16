@@ -6,7 +6,7 @@ namespace MisterGames.UI.Initialization {
 
         [SerializeField] private Canvas _canvas;
 
-        private void Start() {
+        private void Awake() {
             CanvasRegistry.Instance.AddCanvas(_canvas);
         }
 

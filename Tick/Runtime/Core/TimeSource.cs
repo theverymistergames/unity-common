@@ -1,33 +1,27 @@
 ﻿using System.Collections.Generic;
-using MisterGames.Tick.Jobs;
-using MisterGames.Tick.TimeProviders;
+using MisterGames.Common.Maths;
 
 namespace MisterGames.Tick.Core {
 
     public sealed class TimeSource : ITimeSource, ITimeSourceApi {
 
         public float DeltaTime => _deltaTime;
+        public float TimeScale { get => _timeScaleProvider.TimeScale; set => _timeScaleProvider.TimeScale = value; }
+        public bool IsPaused { get => _isPaused; set => _isPaused = value; }
 
-        public float TimeScale {
-            get => _timeScale;
-            set => _timeScale = value;
-        }
-
-        public bool IsPaused {
-            get => _isPaused;
-            set => _isPaused = value;
-        }
-
+        private readonly IDeltaTimeProvider _deltaTimeProvider;
+        private readonly ITimeScaleProvider _timeScaleProvider;
         private readonly List<IUpdate> _updateList = new List<IUpdate>();
-        private ITimeProvider _timeProvider;
 
-        private float _timeScale = 1f;
         private float _deltaTime;
-
         private bool _isPaused;
-        private bool _isEnabled;
-        private bool _isInitialized;
+        private bool _isPendingReset;
         private bool _isInUpdateLoop;
+
+        public TimeSource(IDeltaTimeProvider deltaTimeProvider, ITimeScaleProvider timeScaleProvider) {
+            _deltaTimeProvider = deltaTimeProvider;
+            _timeScaleProvider = timeScaleProvider;
+        }
 
         public bool Subscribe(IUpdate sub) {
             int index = _updateList.IndexOf(sub);
@@ -50,81 +44,46 @@ namespace MisterGames.Tick.Core {
             return true;
         }
 
-        public void Initialize(ITimeProvider timeProvider) {
-            _timeProvider = timeProvider;
-            _isInitialized = true;
-            UpdateDeltaTime();
-        }
-
-        public void DeInitialize() {
-            _isInitialized = false;
-            if (!_isInUpdateLoop) Reset();
-        }
-
-        public void Enable() {
-            _isEnabled = true;
-            UpdateDeltaTime();
-        }
-
-        public void Disable() {
-            _isEnabled = false;
-            UpdateDeltaTime();
-        }
-
         public void Tick() {
             UpdateDeltaTime();
+            _isInUpdateLoop = _deltaTime > 0f;
 
-            _isInUpdateLoop = CanTick();
-            if (!_isInUpdateLoop) return;
+            if (_isInUpdateLoop) {
+                int count = _updateList.Count;
+                for (int i = 0; i < count; i++) {
+                    var update = _updateList[i];
 
-            for (int i = _updateList.Count - 1; i >= 0; i--) {
-                var update = _updateList[i];
+                    if (update is null) {
+                        _updateList.RemoveAt(i--);
+                        count--;
+                        continue;
+                    }
 
-                if (update == null) {
-                    _updateList.RemoveAt(i);
-                    continue;
+                    update.OnUpdate(_deltaTime);
                 }
 
-                update.OnUpdate(_deltaTime);
-
-                if (update is null or IJob { IsCompleted: true }) {
-                    _updateList.RemoveAt(i);
-                }
+                _isInUpdateLoop = false;
+                UpdateDeltaTime();
             }
 
-            _isInUpdateLoop = false;
-
-            UpdateDeltaTime();
-            if (!_isInitialized && _timeProvider != null) Reset();
+            if (_isPendingReset) ResetImmediately();
         }
 
-        public void UpdateDeltaTime() {
-            if (_isInUpdateLoop) return;
-            _deltaTime = CanTick() ? _timeProvider.UnscaledDeltaTime * _timeScale : 0f;
+        public void Reset() {
+            _isPendingReset = true;
+            if (!_isInUpdateLoop) ResetImmediately();
         }
 
-        private bool CanTick() {
-            return !_isPaused && _isEnabled && _isInitialized;
-        }
+        private void ResetImmediately() {
+            _isPendingReset = false;
 
-        private void Reset() {
-            _deltaTime = 0f;
-            _timeScale = 1f;
-
-            _isEnabled = false;
             _isPaused = false;
-
-            _timeProvider = null;
+            _deltaTime = 0f;
             _updateList.Clear();
         }
 
-        public override string ToString() {
-            return $"{nameof(TimeSource)}(\n" +
-                   $"timeProvider {_timeProvider}, \n" +
-                   $"enabled {_isEnabled}, paused {_isPaused}, \n" +
-                   $"timeScale {_timeScale}, dt {_deltaTime}, \n" +
-                   $"subscribers ({_updateList.Count}): [{(_updateList.Count == 0 ? "]\n" : $"\n- {string.Join("\n- ", _updateList)}\n]")}" +
-                   ")";
+        private void UpdateDeltaTime() {
+            _deltaTime = _isPaused ? 0f : _deltaTimeProvider.DeltaTime * _timeScaleProvider.TimeScale;
         }
     }
 

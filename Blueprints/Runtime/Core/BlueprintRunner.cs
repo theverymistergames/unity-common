@@ -17,8 +17,8 @@ namespace MisterGames.Blueprints.Core {
     
     public sealed class BlueprintRunner : MonoBehaviour, IBlueprintHost {
 
-        [SerializeField] private TimeDomain _timeDomain;
-        public ITimeSource TimeSource => _timeDomain.Source;
+        [SerializeField] private PlayerLoopStage _timeSourceStage;
+        public PlayerLoopStage TimeSourceStage => _timeSourceStage;
 
         [SerializeField] private Blueprint _blueprint;
         Blueprint IBlueprintHost.Source => _blueprint;

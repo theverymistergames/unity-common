@@ -12,7 +12,7 @@ namespace MisterGames.Interact.Objects {
         private Interactive _interactive;
 
         private void Awake() {
-            Debug.LogWarning($"Using {nameof(InteractiveUnityEvent)} on game object `{gameObject.name}`. " +
+            Debug.LogError($"Using {nameof(InteractiveUnityEvent)} on game object `{gameObject.name}`. " +
                              $"It must be replaced later!");
 
             _interactive = GetComponent<Interactive>();

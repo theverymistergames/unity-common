@@ -6,20 +6,21 @@ namespace MisterGames.Collisions.Detectors {
 
     public class FrameCollisionDetectorGroup : CollisionDetector, IUpdate {
 
-        [SerializeField] private TimeDomain _timeDomain;
+        [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
         [SerializeField] private CollisionDetector[] _detectorGroup;
         [SerializeField] private CollisionFilter _collisionFilter;
 
+        private ITimeSource _timeSource => TimeSources.Get(_timeSourceStage);
         private bool _lastHasContact;
         private float _lastDetectionDistance;
         private int _lastDetectionFrame = -1;
 
         private void OnEnable() {
-            _timeDomain.Source.Subscribe(this);
+            _timeSource.Subscribe(this);
         }
 
         private void OnDisable() {
-            _timeDomain.Source.Unsubscribe(this);
+            _timeSource.Unsubscribe(this);
         }
 
         private void Start() {

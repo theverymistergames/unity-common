@@ -1,10 +1,10 @@
 ﻿using System.Collections.Generic;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using MisterGames.Blueprints;
 using MisterGames.Blueprints.Core;
-using MisterGames.Scenes.Core;
+using MisterGames.Common.Attributes;
 using MisterGames.Scenes.Transactions;
-using MisterGames.Tick.Core;
-using MisterGames.Tick.Jobs;
 using UnityEngine;
 
 namespace MisterGames.BlueprintLib {
@@ -12,35 +12,34 @@ namespace MisterGames.BlueprintLib {
     [BlueprintNode(Name = "Scene Transaction", Category = "Scenes", Color = BlueprintLibColors.Node.Scenes)]
     public sealed class BlueprintNodeSceneTransaction : BlueprintNode, IBlueprintEnter {
         
-        [SerializeField] private SceneTransactions _sceneTransactions;
+        [SerializeReference] [SubclassSelector]
+        private ISceneTransaction _sceneTransaction;
 
-        private IJob _loadSceneJob;
-        
+        private CancellationTokenSource _terminateCts;
+
         protected override IReadOnlyList<Port> CreatePorts() => new List<Port> {
             Port.Enter(),
             Port.Exit(),
         };
 
         protected override void OnInit() {
-            _loadSceneJob?.Stop();
+            _terminateCts = new CancellationTokenSource();
         }
 
         protected override void OnTerminate() {
-            _loadSceneJob?.Stop();
+            _terminateCts.Cancel();
+            _terminateCts.Dispose();
         }
 
         void IBlueprintEnter.Enter(int port) {
             if (port != 0) return;
 
-            _loadSceneJob?.Stop();
-
-            _loadSceneJob = JobSequence.Create()
-                .Wait(SceneLoader.Instance.CommitTransaction(_sceneTransactions))
-                .Action(OnFinish)
-                .RunFrom(runner.TimeSource);
+            CommitTransactionAndExitAsync(_terminateCts.Token).Forget();
         }
 
-        private void OnFinish() {
+        private async UniTaskVoid CommitTransactionAndExitAsync(CancellationToken token) {
+            await _sceneTransaction.Commit();
+            if (token.IsCancellationRequested) return;
             Call(1);
         }
     }

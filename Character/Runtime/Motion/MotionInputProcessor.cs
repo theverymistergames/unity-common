@@ -12,7 +12,7 @@ namespace MisterGames.Character.Motion {
 
     public class MotionInputProcessor : MonoBehaviour, IUpdate {
 
-        [SerializeField] private TimeDomain _timeDomain;
+        [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
         
         [Header("Controls")]
         [SerializeField] private CharacterInput _input;
@@ -34,7 +34,8 @@ namespace MisterGames.Character.Motion {
         public float TargetSpeed => _speedProcessor.Speed;
         
         private readonly SpeedProcessor _speedProcessor = new SpeedProcessor();
-        
+        private ITimeSource _timeSource => TimeSources.Get(_timeSourceStage);
+
         private Vector2 _inputDirection;
         private Vector3 _targetDirection;
         private Vector3 _currentDirection;
@@ -45,13 +46,13 @@ namespace MisterGames.Character.Motion {
         private void OnEnable() {
             _input.Move += HandleMoveInput;
             _motionFsm.OnEnterState += HandleMotionStateChanged;
-            _timeDomain.Source.Subscribe(this);
+            _timeSource.Subscribe(this);
         }
 
         private void OnDisable() {
             _input.Move -= HandleMoveInput;
             _motionFsm.OnEnterState -= HandleMotionStateChanged;
-            _timeDomain.Source.Unsubscribe(this);
+            _timeSource.Unsubscribe(this);
         }
 
         private void Start() {
