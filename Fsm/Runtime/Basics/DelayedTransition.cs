@@ -1,6 +1,7 @@
-﻿using MisterGames.Fsm.Core;
-using MisterGames.Tick.Core;
-using MisterGames.Tick.Jobs;
+﻿using System;
+using System.Threading;
+using Cysharp.Threading.Tasks;
+using MisterGames.Fsm.Core;
 using UnityEngine;
 
 namespace MisterGames.Fsm.Basics {
@@ -9,25 +10,31 @@ namespace MisterGames.Fsm.Basics {
         
         [SerializeField] private float _delay;
 
-        private Job _delayJob;
-        private PlayerLoopStage _timeSourceStage;
+        private CancellationTokenSource _cts;
 
-        protected override void OnAttach(StateMachineRunner runner) {
-            _timeSourceStage = runner.TimeSourceStage;
-        }
+        protected override void OnAttach(StateMachineRunner runner) { }
 
         protected override void OnDetach() {
-            _delayJob.Dispose();
+            _cts?.Cancel();
+            _cts?.Dispose();
         }
 
         protected override void OnEnterSourceState() {
-            _delayJob.Dispose();
+            _cts?.Cancel();
+            _cts?.Dispose();
+            _cts = new CancellationTokenSource();
 
-            _delayJob = JobSequence.Create(_timeSourceStage)
-                .Delay(_delay)
-                .Action(Transit)
-                .Push()
-                .Start();
+            DelayAndTransit(_delay, _cts.Token).Forget();
+        }
+
+        private async UniTaskVoid DelayAndTransit(float delay, CancellationToken token) {
+            bool isCancelled = await UniTask
+                .Delay(TimeSpan.FromSeconds(delay), cancellationToken: token)
+                .SuppressCancellationThrow();
+
+            if (isCancelled) return;
+
+            Transit();
         }
 
         protected override void OnExitSourceState() { }
