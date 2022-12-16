@@ -19,7 +19,8 @@ Root scene can be set in `ScenesStorage` (singleton scriptable object, auto-crea
 
 ## Scene shortcut
 
-Allows to select scene from popup near main toolbar.
+Allows to select scene from a drowdown popup menu near the main toolbar. To display new created scene in this menu, `ScenesStorage` needs to be refreshed. 
+Refresh can be performed via menu `MisterGames/Tools/Refresh Scenes Storage` or `Refresh Scenes` button in the `ScenesStorage.asset` inspector. 
 
 https://user-images.githubusercontent.com/109593086/208106228-cf0a1c8c-96b6-4f9c-8481-041bee44b29e.mp4
 
