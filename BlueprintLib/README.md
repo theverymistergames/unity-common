@@ -1,7 +1,7 @@
-﻿﻿﻿# MisterGames BlueprintLib v0.1.0
+﻿# MisterGames BlueprintLib v0.1.1
 
-## Features
-- todo
+A set of different blueprint nodes to create blueprints.
+See Blueprints core: [MisterGames.Blueprints](https://github.com/theverymistergames/unity-common/tree/master/Blueprints).
 
 ## Assembly definitions
 - MisterGames.BlueprintLib
@@ -12,12 +12,5 @@
 - MisterGames.Scenario
 - MisterGames.Input
 - MisterGames.Scenes
-
-## Installation 
-- Add [MisterGames Common](https://gitlab.com/theverymistergames/common) package
-- Top menu MisterGames -> Packages, add packages: 
-  - [Blueprints](https://gitlab.com/theverymistergames/blueprints/)
-  - [Input](https://gitlab.com/theverymistergames/input/)
-  - [Scenario](https://gitlab.com/theverymistergames/scenario/)
-  - [Scenes](https://gitlab.com/theverymistergames/scenes/)
-  - [BlueprintLib](https://gitlab.com/theverymistergames/blueprintlib/)
+- MisterGames.Tick
+- UniTask
