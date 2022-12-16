@@ -7,7 +7,7 @@ Scenes package offers loading scheme without `DontDestroyOnLoad`:
 - `SceneLoader` script: at first loads root scene, then start scene (last opened scene in the Unity Editor)
 - Scene shortcut script for fast scene selection
 
-![Scene shortcut demo](https://raw.githubusercontent.com/theverymistergames/readmedata/master/unity-common/Scenes/scene-shortcut.mp4)
+![Scene shortcut demo](https://raw.githubusercontent.com/theverymistergames/readmedata/master/unity-common/Scenes/scene-shortcut.mov)
 
 ## Usage
 - SceneStorage - a singleton, that
