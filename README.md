@@ -9,7 +9,7 @@
 - [`MisterGames.Blueprints`](https://github.com/theverymistergames/unity-common/tree/master/Blueprints)
 - [`MisterGames.Character`](https://github.com/theverymistergames/unity-common/tree/master/Character)
 - [`MisterGames.Collisions`](https://github.com/theverymistergames/unity-common/tree/master/Collisions)
-- [`MisterGames.Common`](https://github.com/theverymistergames/unity-common/tree/master/BlueprintLib)
+- [`MisterGames.Common`](https://github.com/theverymistergames/unity-common/tree/master/Common)
 - [`MisterGames.ConsoleCommandsLib`](https://github.com/theverymistergames/unity-common/tree/master/ConsoleCommandsLib)
 - [`MisterGames.Dbg`](https://github.com/theverymistergames/unity-common/tree/master/Dbg)
 - [`MisterGames.Fsm`](https://github.com/theverymistergames/unity-common/tree/master/Fsm)
