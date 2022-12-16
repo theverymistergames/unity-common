@@ -23,15 +23,11 @@ Allows to select scene from popup near main toolbar.
 
 https://user-images.githubusercontent.com/109593086/208106228-cf0a1c8c-96b6-4f9c-8481-041bee44b29e.mp4
 
-## Usage
-
-
 ## Assembly definitions
 - `MisterGames.Scenes`
 - `MisterGames.Scenes.Editor`
 
 ## Dependencies
-- `MisterGames.Common`
-- `MisterGames.Common.Editor`
-- `MisterGames.Tick`
-- `UniTask`
+- [`MisterGames.Common`](https://github.com/theverymistergames/unity-common/tree/master/Common)
+- [`MisterGames.Tick`](https://github.com/theverymistergames/unity-common/tree/master/Tick)
+- [`Cysharp.UniTask`](https://github.com/Cysharp/UniTask)
