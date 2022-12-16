@@ -1,18 +1,19 @@
 ﻿using System;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using MisterGames.Character.Collisions;
 using MisterGames.Character.Configs;
 using MisterGames.Character.View;
 using MisterGames.Common.Maths;
 using MisterGames.Fsm.Core;
 using MisterGames.Tick.Core;
-using MisterGames.Tick.Jobs;
 using UnityEngine;
 
 namespace MisterGames.Character.Pose {
 
     public class PoseProcessor : MonoBehaviour {
 
-        [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
+        [SerializeField] private PlayerLoopStage _playerLoopStage = PlayerLoopStage.Update;
 
         [SerializeField] private StateMachineRunner _poseFsm;
         [SerializeField] private CharacterGroundDetector _groundDetector;
@@ -24,29 +25,29 @@ namespace MisterGames.Character.Pose {
 
         public bool IsCrouching { get; private set;  }
 
-        private Job _changePoseJob;
-
+        private ITimeSource _timeSource;
         private PoseStateData _initialPoseData;
         private PoseStateData _prevPoseData;
+
+        private CancellationTokenSource _cts;
+
+        private void Awake() {
+            _timeSource = TimeSources.Get(_playerLoopStage);
+        }
 
         private void OnEnable() {
             _cameraController.RegisterInteractor(this);
             _poseFsm.OnEnterState += HandleStateChanged;
-
-            _changePoseJob.Start();
         }
 
         private void OnDisable() {
-            _changePoseJob.Stop();
+            _cts?.Cancel();
+            _cts?.Dispose();
 
             _cameraController.UnregisterInteractor(this);
             _poseFsm.OnEnterState -= HandleStateChanged;
 
             SetInitialParameters(_initialPoseData);
-        }
-
-        private void OnDestroy() {
-            _changePoseJob.Dispose();
         }
 
         private void Start() {
@@ -86,8 +87,12 @@ namespace MisterGames.Character.Pose {
             
             _prevPoseData = poseData;
 
+            _cts?.Cancel();
+            _cts?.Dispose();
+            _cts = new CancellationTokenSource();
+
             float duration = transitionData.duration * currentToTarget / targetsDiff;
-            ChangeHeight(targetHeight, duration, transitionData.curve);
+            ChangeHeight(targetHeight, duration, transitionData.curve, _cts.Token).Forget();
             
             CheckCrouchStateChanged(poseData.isCrouchState);
         }
@@ -106,31 +111,29 @@ namespace MisterGames.Character.Pose {
             }
         }
 
-        private void ChangeHeight(float targetHeight, float duration, AnimationCurve curve) {
+        private async UniTaskVoid ChangeHeight(float targetHeight, float duration, AnimationCurve curve, CancellationToken token) {
             float prevHeight = _characterController.height;
             float diffHeight = targetHeight - prevHeight;
             float tempHeight = prevHeight;
 
             float time = 0f;
 
-            _changePoseJob.Stop();
-            _changePoseJob.Dispose();
+            while (!token.IsCancellationRequested) {
+                time += _timeSource.DeltaTime;
+                float process = Mathf.Clamp01(duration.IsNearlyZero() ? 1f : time / duration);
 
-            _changePoseJob = Jobs
-                .EachFrameWhile(
-                    dt => {
-                        time += dt;
-                        float process = Mathf.Clamp01(duration.IsNearlyZero() ? 1f : time / duration);
+                float height = prevHeight + curve.Evaluate(process) * diffHeight;
+                ApplyHeight(tempHeight, height);
+                tempHeight = height;
 
-                        float height = prevHeight + curve.Evaluate(process) * diffHeight;
-                        ApplyHeight(tempHeight, height);
-                        tempHeight = height;
+                if (process >= 1f) break;
 
-                        return process < 1f;
-                    },
-                    stage: _timeSourceStage
-                )
-                .Start();
+                bool isCancelled = await UniTask
+                    .NextFrame(token)
+                    .SuppressCancellationThrow();
+
+                if (isCancelled) break;
+            }
         }
 
         private void ApplyHeight(float current, float target) {
