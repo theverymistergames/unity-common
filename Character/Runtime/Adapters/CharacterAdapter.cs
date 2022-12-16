@@ -37,9 +37,9 @@ namespace MisterGames.Character.Motion {
             _massProcessor.ApplyImpulse(impulse);
         }
 
-        public void TryTeleportTo(Vector3 targetPosition) {
+        public void SetPosition(Vector3 position) {
             _characterController.gameObject.SetActive(false);
-            _characterController.transform.position = targetPosition;
+            _characterController.transform.position = position;
             _characterController.gameObject.SetActive(true);
         }
         

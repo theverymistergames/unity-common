@@ -22,13 +22,16 @@ namespace MisterGames.Character.View {
         private Vector2 _currentView;
 
         private void OnEnable() {
-            _input.View += HandleView;
+            _input.View += HandleViewInput;
             _timeSource.Subscribe(this);
         }
 
         private void OnDisable() {
-            _input.View -= HandleView;
+            _input.View -= HandleViewInput;
             _timeSource.Unsubscribe(this);
+
+            _targetView = default;
+            _currentView = default;
         }
 
         void IUpdate.OnUpdate(float dt) {
@@ -44,13 +47,13 @@ namespace MisterGames.Character.View {
             return Vector2.Lerp(_currentView, target, dt * _viewSettings.viewSmoothFactor);
         }
 
-        private void HandleView(Vector2 delta) {
+        private void HandleViewInput(Vector2 delta) {
             var local = ToLocalSpace(delta);
             local.x *= _viewSettings.sensitivityVertical;
             local.y *= _viewSettings.sensitivityHorizontal;
             
             _targetView += local;
-            _targetView.x = Mathf.Clamp(_targetView.x, -90, 90);
+            _targetView.x = Mathf.Clamp(_targetView.x, -90f, 90f);
         }
 
         private static Vector2 ToLocalSpace(Vector2 vector) {
