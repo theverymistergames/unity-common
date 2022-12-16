@@ -1,7 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using MisterGames.Blueprints;
 using MisterGames.Blueprints.Core;
-using MisterGames.Tick.Jobs;
 using UnityEngine;
 
 namespace MisterGames.BlueprintLib {
@@ -13,7 +15,8 @@ namespace MisterGames.BlueprintLib {
         [SerializeField] [Min(1)] private int _times;
         [SerializeField] private bool _isInfinite;
 
-        private Job _scheduleJob;
+        private CancellationTokenSource _terminateCts;
+        private CancellationTokenSource _cancelCts;
         
         protected override IReadOnlyList<Port> CreatePorts() => new List<Port> {
             Port.Enter("Start"),
@@ -23,36 +26,52 @@ namespace MisterGames.BlueprintLib {
             Port.Exit(),
         };
 
-        protected override void OnInit() { }
+        protected override void OnInit() {
+            _terminateCts = new CancellationTokenSource();
+        }
 
         protected override void OnTerminate() {
-            _scheduleJob.Dispose();
+            _terminateCts.Cancel();
+            _terminateCts.Dispose();
+
+            _cancelCts?.Cancel();
+            _cancelCts?.Dispose();
         }
 
         void IBlueprintEnter.Enter(int port) {
             if (port == 0) {
-                _scheduleJob.Dispose();
+                _cancelCts ??= new CancellationTokenSource();
+                var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_cancelCts.Token, _terminateCts.Token);
 
                 float period = Read(2, _period);
-                int times = _isInfinite ? -1 : Read(3, _times);
+                int times = Read(3, _times);
 
-                _scheduleJob = JobSequence.Create(runner.TimeSourceStage)
-                    .Schedule(ScheduleAction, period, times)
-                    .Push()
-                    .Start();
-
+                ScheduleAsync(period, times, _isInfinite, linkedCts.Token).Forget();
                 return;
             }
 
             if (port == 1) {
-                _scheduleJob.Dispose();
+                _cancelCts?.Cancel();
+                _cancelCts?.Dispose();
+                _cancelCts = null;
             }
         }
 
-        private void ScheduleAction() {
-            Call(port: 5);
-        }
+        private async UniTaskVoid ScheduleAsync(float period, int times, bool isInfinite, CancellationToken token) {
+            int timesCounter = 0;
+            while (!token.IsCancellationRequested) {
+                if (!isInfinite && timesCounter >= times) return;
 
+                bool isCancelled = await UniTask
+                    .Delay(TimeSpan.FromSeconds(period), cancellationToken: token)
+                    .SuppressCancellationThrow();
+
+                if (isCancelled) return;
+
+                timesCounter++;
+                Call(port: 5);
+            }
+        }
     }
 
 }

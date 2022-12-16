@@ -1,9 +1,10 @@
 ﻿using System.Collections.Generic;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using MisterGames.Blueprints;
 using MisterGames.Blueprints.Core;
-using MisterGames.Scenes.Core;
+using MisterGames.Common.Attributes;
 using MisterGames.Scenes.Transactions;
-using MisterGames.Tick.Jobs;
 using UnityEngine;
 
 namespace MisterGames.BlueprintLib {
@@ -11,34 +12,34 @@ namespace MisterGames.BlueprintLib {
     [BlueprintNode(Name = "Scene Transaction", Category = "Scenes", Color = BlueprintLibColors.Node.Scenes)]
     public sealed class BlueprintNodeSceneTransaction : BlueprintNode, IBlueprintEnter {
         
-        [SerializeField] private SceneTransactions _sceneTransactions;
+        [SerializeReference] [SubclassSelector]
+        private ISceneTransaction _sceneTransaction;
 
-        private Job _loadJob;
+        private CancellationTokenSource _terminateCts;
 
         protected override IReadOnlyList<Port> CreatePorts() => new List<Port> {
             Port.Enter(),
             Port.Exit(),
         };
 
-        protected override void OnInit() { }
+        protected override void OnInit() {
+            _terminateCts = new CancellationTokenSource();
+        }
 
         protected override void OnTerminate() {
-            _loadJob.Dispose();
+            _terminateCts.Cancel();
+            _terminateCts.Dispose();
         }
 
         void IBlueprintEnter.Enter(int port) {
             if (port != 0) return;
 
-            _loadJob.Dispose();
-
-            _loadJob = JobSequence.Create(runner.TimeSourceStage)
-                .Wait(SceneLoader.Instance.CommitTransaction(_sceneTransactions))
-                .Action(OnFinish)
-                .Push()
-                .Start();
+            CommitTransactionAndExitAsync(_terminateCts.Token).Forget();
         }
 
-        private void OnFinish() {
+        private async UniTaskVoid CommitTransactionAndExitAsync(CancellationToken token) {
+            await _sceneTransaction.Commit();
+            if (token.IsCancellationRequested) return;
             Call(1);
         }
     }
