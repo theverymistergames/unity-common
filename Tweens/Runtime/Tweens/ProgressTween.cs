@@ -61,6 +61,8 @@ namespace MisterGames.Tweens {
             }
 
             TimeSources.Get(_playerLoopStage).Subscribe(this);
+
+            _completionSource.TrySetResult();
             await _completionSource.Task;
         }
 
