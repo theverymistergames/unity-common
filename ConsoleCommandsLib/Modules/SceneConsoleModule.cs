@@ -16,7 +16,7 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
         public void LoadSceneByName(string sceneName) {
             if (!ValidateSceneName(sceneName)) return;
 
-            SceneLoader.Instance.LoadScene(sceneName);
+            SceneLoader.LoadScene(sceneName);
             ConsoleRunner.AppendLine($"Loading scene {sceneName}");
         }
 
@@ -26,7 +26,7 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
             if (!ValidateSceneIndex(index)) return;
 
             string sceneName = ScenesStorage.Instance.SceneNames[index];
-            SceneLoader.Instance.LoadScene(sceneName);
+            SceneLoader.LoadScene(sceneName);
             ConsoleRunner.AppendLine($"Loading scene {sceneName}");
         }
 
@@ -35,7 +35,7 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
         public void UnloadSceneByName(string sceneName) {
             if (!ValidateSceneName(sceneName)) return;
 
-            SceneLoader.Instance.UnloadScene(sceneName);
+            SceneLoader.UnloadScene(sceneName);
             ConsoleRunner.AppendLine($"Loading scene {sceneName}");
         }
 
@@ -45,7 +45,7 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
             if (!ValidateSceneIndex(index)) return;
 
             string sceneName = ScenesStorage.Instance.SceneNames[index];
-            SceneLoader.Instance.UnloadScene(sceneName);
+            SceneLoader.UnloadScene(sceneName);
             ConsoleRunner.AppendLine($"Loading scene {sceneName}");
         }
 
