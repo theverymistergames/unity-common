@@ -1,17 +1,17 @@
-﻿# MisterGames Scenes v0.1.0
+# MisterGames Scenes v0.1.1
 
-Scenes package offers loading scheme without `DontDestroyOnLoad`:
+## Scene loading
 
-- `ScenesStorage` script (singleton SO): created automatically in `Data/Resources/` folder.
-`ScenesStorage` contains root scene, start scene, and all scenes read-only list.SceneStorage
-- `SceneLoader` script: at first loads root scene, then start scene (last opened scene in the Unity Editor)
-- Scene shortcut script for fast scene selection
+Package offers loading scheme without `DontDestroyOnLoad` usage by creating root scene and starting it first before Unity Editor's start scene.
+Root scene can be set in `ScenesStorage` (singleton scriptable object, auto-created at `Data/Resources` folder). 
 
-![Scene shortcut demo](https://raw.githubusercontent.com/theverymistergames/readmedata/master/unity-common/Scenes/scene-shortcut.mov)
+## Scene shortcut
+
+Allows to select scene from popup near main toolbar.
+
+https://user-images.githubusercontent.com/109593086/208106228-cf0a1c8c-96b6-4f9c-8481-041bee44b29e.mp4
 
 ## Usage
-- SceneStorage - a singleton, that
-- SceneLoader - a facade for SceneManager API. Also
 ```
     string sceneName = "SomeScene";
     bool makeActive = true;
@@ -19,7 +19,7 @@ Scenes package offers loading scheme without `DontDestroyOnLoad`:
     SceneLoader.LoadScene(sceneName, makeActive);
     SceneLoader.UnloadScene(sceneName);
 
-    // or using UniTask
+    // using UniTask
     await SceneLoader.LoadSceneAsync(sceneName, makeActive);
     await SceneLoader.UnloadSceneAsync(sceneName);
 ```
@@ -31,3 +31,5 @@ Scenes package offers loading scheme without `DontDestroyOnLoad`:
 ## Dependencies
 - MisterGames.Common
 - MisterGames.Common.Editor
+- MisterGames.Tick
+- UniTask
