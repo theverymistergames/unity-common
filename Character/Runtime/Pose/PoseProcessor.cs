@@ -43,6 +43,7 @@ namespace MisterGames.Character.Pose {
         private void OnDisable() {
             _cts?.Cancel();
             _cts?.Dispose();
+            _cts = null;
 
             _cameraController.UnregisterInteractor(this);
             _poseFsm.OnEnterState -= HandleStateChanged;
