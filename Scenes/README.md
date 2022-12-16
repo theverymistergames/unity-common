@@ -1,7 +1,28 @@
-﻿﻿# MisterGames Scenes v0.1.0
+﻿# MisterGames Scenes v0.1.0
+
+Scenes package offers loading scheme without `DontDestroyOnLoad`:
+
+- `ScenesStorage` script (singleton SO): created automatically in `Data/Resources/` folder.
+`ScenesStorage` contains root scene, start scene, and all scenes read-only list.SceneStorage
+- `SceneLoader` script: at first loads root scene, then start scene (last opened scene in the Unity Editor)
+- Scene shortcut script for fast scene selection
+
+![Scene shortcut demo](https://github.com/theverymistergames/readmedata/blob/master/unity-common/Scenes/scene-shortcut.mp4?raw=true)
 
 ## Usage
-- todo
+- SceneStorage - a singleton, that
+- SceneLoader - a facade for SceneManager API. Also
+```
+    string sceneName = "SomeScene";
+    bool makeActive = true;
+
+    SceneLoader.LoadScene(sceneName, makeActive);
+    SceneLoader.UnloadScene(sceneName);
+
+    // or using UniTask
+    await SceneLoader.LoadSceneAsync(sceneName, makeActive);
+    await SceneLoader.UnloadSceneAsync(sceneName);
+```
 
 ## Assembly definitions
 - MisterGames.Scenes
@@ -10,8 +31,3 @@
 ## Dependencies
 - MisterGames.Common
 - MisterGames.Common.Editor
-
-## Installation
-- Add [MisterGames Common](https://gitlab.com/theverymistergames/common/) package
-- Top menu MisterGames -> Packages, add packages: 
-  - [Scenes](https://gitlab.com/theverymistergames/scenes/)
