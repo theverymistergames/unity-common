@@ -20,3 +20,8 @@
 - [`MisterGames.Tick`](https://github.com/theverymistergames/unity-common/tree/master/Tick)
 - [`MisterGames.Tweens`](https://github.com/theverymistergames/unity-common/tree/master/Tweens)
 - [`MisterGames.UI`](https://github.com/theverymistergames/unity-common/tree/master/UI)
+
+## External dependencies
+- [`Unity.InputSystem`](https://docs.unity3d.com/Packages/com.unity.inputsystem@1.0/manual/index.html)
+- [`Unity.EditorCoroutines.Editor`](https://docs.unity3d.com/Manual/com.unity.editorcoroutines.html)
+- [`UniTask`](https://github.com/Cysharp/UniTask)
