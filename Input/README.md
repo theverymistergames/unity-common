@@ -1,18 +1,20 @@
 # MisterGames Input v0.5.0
 
+Package is a wrapper around `Unity.InputSystem`, that allows to add new input action or scheme (map) by creating corresponding scriptable objects. 
+
 ## Input actions
 - `InputActionKey` - single action with `OnPress`, `OnRelease` and `OnUse` events.
   `OnUse` event is called by key activation strategy in the input action.
 - `InputActionVector2` and `InputActionAxis` - continuous actions with `OnChanged` event.  
 
 ## Bindings
-- `enum KeyBinding`, `enum AxisBinding`
-- Static class `GlobalInput` methods can be used as extension:
+- Key/axis bindings are listed in `enum KeyBinding` and `enum AxisBinding`
+- Static class `GlobalInput` with extension-style methods for bindings:
   - `bool GlobalInput.IsActive(this KeyBinding key)` to get if `KeyBinding` is active during current frame   
   - `Vector2 GlobalInput.GetValue(this AxisBinding axis)` to get an `AxisBinding` value during current frame   
-- `Key`/`KeyCombo` - for `InputActionKey` actions
-- `Vector2`/`Vector2Key` - for `InputActionVector2` actions
-- `AxisKey` - for `InputActionAxis` actions
+- `InputBindingKey`/`InputBindingKeyCombo` for key input actions
+- `InputBindingVector2Axis`/`InputBindingVector2Key` for vector2 input actions
+- `InputBindingAxisKey` for axis input actions
 
 ## Key activation
 - To resolve key overlaps some of the key activation strategies can be selected
