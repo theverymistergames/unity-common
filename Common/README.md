@@ -16,7 +16,7 @@
 - `[Serializable] Optional<TData>` - optional field with custom editor 
 - `[Serializable] Pair<TDataA, TDataB>` - pair of types with custom editor
 - `ObjectDataMap<TData>` - runtime dictionary for `UnityEngine.Object` as keys
-- Pool `ObjectPool<T>`, runtime prefab pool 'PrefabPool : MonoBehaviour'
+- Pool `ObjectPool<T>`, runtime prefab pool `PrefabPool : MonoBehaviour`
 
 ### Editor-only related
 - Toolbar extender - a tool to place custom contols around main toolbar
