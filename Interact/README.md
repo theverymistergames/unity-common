@@ -1,8 +1,11 @@
 # MisterGames Interact v0.1.1
 
-Package provides scripts to create interactive game objects.  
+Package provides scripts to create interactive game objects.
+
 - `Interactive` component: marks game object as interactive, has detection settings, provides API to subscribe to events for detection of the interactive object by interactive user
 - `InteractiveUser` component: raycasts in the given direction with purpose of interactive object detection, provides API to subscribe to events related with detection of interactive objects
+- `InteractStrategy` with input and distance settings determines detection settings
+- Contains some interactive object implementations, eg. `InteractiveGrab`, `InteractiveDrawer`
 
 ## Assembly definitions
 - `MisterGames.Interact`
