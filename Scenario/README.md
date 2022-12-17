@@ -1,15 +1,25 @@
-﻿# MisterGames Scenario v0.2.0
+# MisterGames Scenario v0.1.0
 
 ## Usage
-- todo
+- `ScenarioEvent` - scriptable object that represents event. Event can be emitted and listened.
+```
+[SerializedField] ScenarioEvent scenarioEvent;
+
+void OnEnable() {
+  scenarioEvent.OnEmit += OnScenarioEventEmitted;
+}
+
+void OnDisable() {
+  scenarioEvent.OnEmit -= OnScenarioEventEmitted;
+}
+
+void OnScenarioEventEmitted() {
+  // ...
+}
+```
 
 ## Assembly definitions
-- MisterGames.Scenario
+- `MisterGames.Scenario`
 
 ## Dependencies
-- MisterGames.Common
-
-## Installation
-- Add [MisterGames Common](https://gitlab.com/theverymistergames/common/) package
-- Top menu MisterGames -> Packages, add packages: 
-  - [Scenario](https://gitlab.com/theverymistergames/scenario/)
+- [`MisterGames.Common`](https://github.com/theverymistergames/unity-common/tree/master/Common)
