@@ -3,7 +3,7 @@
 ## Usage
 - `ScenarioEvent` - scriptable object that represents event. Event can be emitted and listened.
 ```
-[SerializedField] ScenarioEvent scenarioEvent;
+[SerializeField] ScenarioEvent scenarioEvent;
 
 void OnEnable() {
   scenarioEvent.OnEmit += OnScenarioEventEmitted;
