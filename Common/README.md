@@ -19,8 +19,8 @@
 - Pool `ObjectPool<T>`, runtime prefab pool `PrefabPool : MonoBehaviour`
 
 ### Editor-only related
-- Toolbar extender - a tool to place custom contols around main toolbar
-- Editor coroutines extensions
+- `ToolbarExtender` - a tool to place custom contols around main toolbar. Setup by calling `ToolbarExtender.OnLeftToolbarGUI(Action)`/`ToolbarExtender.OnRightToolbarGUI(Action)`
+- Editor coroutines extensions (`EachFrame`, `Delay`, `Schedule`, etc.)
 
 ## Assembly definitions
 - `MisterGames.Common`
