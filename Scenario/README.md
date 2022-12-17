@@ -1,6 +1,6 @@
 # MisterGames Scenario v0.1.0
 
-## Usage
+## Features
 - `ScenarioEvent` - scriptable object that represents event. Event can be emitted and listened.
 ```
 class ScenarioEventEmitterOnStart : MonoBehaviour {
