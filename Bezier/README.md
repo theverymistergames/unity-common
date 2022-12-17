@@ -1,4 +1,4 @@
-﻿# MisterGames Bezier v0.1.2
+# MisterGames Bezier v0.1.2
 
 Adapted from [SebLague's Path-Creator tool](https://github.com/SebLague/Path-Creator)
 
@@ -9,5 +9,5 @@ Adapted from [SebLague's Path-Creator tool](https://github.com/SebLague/Path-Cre
 - `SplineMeshGenerator` to generate mesh along spline
 
 ## Assembly definitions
-- MisterGames.Bezier
-- MisterGames.Bezier.Editor
+- `MisterGames.Bezier`
+- `MisterGames.Bezier.Editor`
