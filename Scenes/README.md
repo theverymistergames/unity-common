@@ -19,7 +19,7 @@ Root scene purpose is to hold initializers and global services. Root scene can b
 
 ## Scene shortcut
 
-Allows to select a scene from a drowdown popup menu near the main toolbar. To display new created scene in this menu, `ScenesStorage` needs to be refreshed. 
+Allows to select a scene from a drowdown menu near the main toolbar. To display new created scene in this menu, `ScenesStorage` needs to be refreshed. 
 Refresh can be performed via menu `MisterGames/Tools/Refresh Scenes Storage` or `Refresh Scenes` button in the inspector of `Data/Resources/ScenesStorage.asset`. 
 
 https://user-images.githubusercontent.com/109593086/208106228-cf0a1c8c-96b6-4f9c-8481-041bee44b29e.mp4
