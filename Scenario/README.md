@@ -3,18 +3,29 @@
 ## Usage
 - `ScenarioEvent` - scriptable object that represents event. Event can be emitted and listened.
 ```
-[SerializeField] ScenarioEvent scenarioEvent;
+class ScenarioEventEmitterOnStart : MonoBehaviour {
+  [SerializeField] ScenarioEvent scenarioEvent;
 
-void OnEnable() {
-  scenarioEvent.OnEmit += OnScenarioEventEmitted;
+  void Start() {
+    scenarioEvent.Emit();
+  }
 }
 
-void OnDisable() {
-  scenarioEvent.OnEmit -= OnScenarioEventEmitted;
-}
+class ScenarioEventListener : MonoBehaviour {
+  
+  [SerializeField] ScenarioEvent scenarioEvent;
 
-void OnScenarioEventEmitted() {
-  // ...
+  void OnEnable() {
+    scenarioEvent.OnEmit += OnScenarioEventEmitted;
+  }
+
+  void OnDisable() {
+    scenarioEvent.OnEmit -= OnScenarioEventEmitted;
+  }
+
+  void OnScenarioEventEmitted() {
+    // ...
+  }
 }
 ```
 
