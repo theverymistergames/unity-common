@@ -1,19 +1,16 @@
-﻿﻿# MisterGames Interact v0.1.0
+# MisterGames Interact v0.1.1
 
-## Features
-- todo
+Package provides scripts to create interactive game objects.  
+- `Interactive` component: marks game object as interactive, has detection settings, provides API to subscribe to events for detection of the interactive object by interactive user
+- `InteractiveUser` component: raycasts in the given direction with purpose of interactive object detection, provides API to subscribe to events related with detection of interactive objects
 
 ## Assembly definitions
-- MisterGames.Interact
-- MisterGames.Interact.Editor
+- `MisterGames.Interact`
+- `MisterGames.Interact.Editor`
 
 ## Dependencies
-- MisterGames.Common
-- MisterGames.Common.Editor
-- MisterGames.Input
-
-## Installation
-- Add [MisterGames Common](https://gitlab.com/theverymistergames/common/) package
-- Top menu MisterGames -> Packages, add packages: 
-  - [Input](https://gitlab.com/theverymistergames/input/)
-  - [Interact](https://gitlab.com/theverymistergames/interact/)
+- [`MisterGames.Common`](https://github.com/theverymistergames/unity-common/tree/master/Common)
+- [`MisterGames.Input`](https://github.com/theverymistergames/unity-common/tree/master/Input)
+- [`MisterGames.Dbg`](https://github.com/theverymistergames/unity-common/tree/master/Dbg)
+- [`MisterGames.Tick`](https://github.com/theverymistergames/unity-common/tree/master/Tick)
+- [`MisterGames.Collisions`](https://github.com/theverymistergames/unity-common/tree/master/Collisions)
