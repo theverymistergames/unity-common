@@ -29,9 +29,9 @@
     during this time, then activate `Action`
 
 ## Setup
-- Create scriptable object `InputAction` via `Create menu -> MisterGames -> Input -> Action`, setup its bindings, activation strategy if needed.
-- Create scriptable object `InputScheme` with input actions. Input scheme is a group of input actions, that can be activated and deactivated together.
-- Create scriptable object `InputChannel` with input schemes. Input channel manages a list of input schemes. 
+- Create scriptable object `InputAction` (`Create menu -> MisterGames/Input/Action/...`), setup its bindings, activation strategy (`Create menu -> MisterGames/Input/Activation/...`) if needed.
+- Create scriptable object `InputScheme` (`Create menu -> MisterGames/Input/InputScheme`) with input actions. Input scheme is a group of input actions, that can be activated and deactivated together.
+- Create scriptable object `InputChannel` (`Create menu -> MisterGames/Input/InputChannel`) with input schemes. Input channel manages a list of input schemes. 
 - Setup `InputUpdater` component on any game object in the scene and select input channel to update. It considered that there is only one `InputChannel`, but it is not a singleton.
 
 ## Assembly definitions
