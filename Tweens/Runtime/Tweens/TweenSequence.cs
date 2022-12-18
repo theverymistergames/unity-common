@@ -41,6 +41,8 @@ namespace MisterGames.Tweens {
                 var tween = _tweens[_currentTweenIndex];
                 tween.Invert(_isInverted);
 
+                if (_loop && !_isInverted) tween.ResetProgress();
+
                 await tween.Play(token);
 
                 if (token.IsCancellationRequested) break;
@@ -103,6 +105,12 @@ namespace MisterGames.Tweens {
 
             _tweens[_currentTweenIndex].Invert(isInverted);
             _isInverted = isInverted;
+        }
+
+        public void ResetProgress() {
+            for (int i = 0; i < _tweensCount; i++) {
+                _tweens[i].ResetProgress();
+            }
         }
     }
 

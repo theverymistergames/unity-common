@@ -1,46 +1,39 @@
 ﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using MisterGames.Tick.Core;
 using MisterGames.Tweens.Core;
 using UnityEngine;
 
 namespace MisterGames.Tweens {
 
     [Serializable]
-    public sealed class DelayTween : ITween, IUpdate {
+    public sealed class DelayTween : ITween {
 
-        [SerializeField] private PlayerLoopStage _playerLoopStage = PlayerLoopStage.Update;
         [SerializeField] [Min(0f)] private float _duration;
 
         private float _progress;
         private float _progressDirection = 1f;
 
-        private readonly AutoResetUniTaskCompletionSource _completionSource = AutoResetUniTaskCompletionSource.Create();
-        private CancellationToken _token;
-
         public void Initialize(MonoBehaviour owner) { }
 
-        public void DeInitialize() {
-            TimeSources.Get(_playerLoopStage).Unsubscribe(this);
-            _completionSource.TrySetCanceled(_token);
-        }
+        public void DeInitialize() { }
 
         public async UniTask Play(CancellationToken token) {
-            _token = token;
-
-            if (HasReachedTargetProgress()) {
-                return;
-            }
+            if (HasReachedTargetProgress()) return;
 
             if (_duration <= 0f) {
                 _progress = Mathf.Clamp01(_progressDirection);
                 return;
             }
 
+            while (!token.IsCancellationRequested) {
+                float progressDelta = _progressDirection * Time.deltaTime / _duration;
+                _progress = Mathf.Clamp01(_progress + progressDelta);
 
-            TimeSources.Get(_playerLoopStage).Subscribe(this);
-            await _completionSource.Task;
+                if (HasReachedTargetProgress()) break;
+
+                await UniTask.Yield();
+            }
         }
 
         public void Wind() {
@@ -55,22 +48,8 @@ namespace MisterGames.Tweens {
             _progressDirection = isInverted ? -1f : 1f;
         }
 
-        public void OnUpdate(float dt) {
-            if (_token.IsCancellationRequested) {
-                OnFinish();
-                return;
-            }
-
-            _progress = Mathf.Clamp01(_progress + _progressDirection * dt / _duration);
-
-            if (HasReachedTargetProgress()) {
-                OnFinish();
-            }
-        }
-
-        private void OnFinish() {
-            TimeSources.Get(_playerLoopStage).Unsubscribe(this);
-            _completionSource.TrySetResult();
+        public void ResetProgress() {
+            _progress = 0f;
         }
 
         private bool HasReachedTargetProgress() {

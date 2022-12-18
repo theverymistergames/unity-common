@@ -58,6 +58,12 @@ namespace MisterGames.Tweens {
                 _tweens[i].Invert(isInverted);
             }
         }
+
+        public void ResetProgress() {
+            for (int i = 0; i < _tweensCount; i++) {
+                _tweens[i].ResetProgress();
+            }
+        }
     }
 
 }

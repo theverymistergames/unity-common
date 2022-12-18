@@ -50,6 +50,10 @@ namespace MisterGames.Tweens {
             _progress = 0;
         }
 
+        public void ResetProgress() {
+            _progress = 0;
+        }
+
         public void Invert(bool isInverted) {
             _progressDirection = isInverted ? -1 : 1;
         }

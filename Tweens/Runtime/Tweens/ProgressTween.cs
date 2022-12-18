@@ -2,7 +2,6 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Attributes;
-using MisterGames.Tick.Core;
 using MisterGames.Tweens.Core;
 using Tweens.Easing;
 using UnityEngine;
@@ -10,9 +9,8 @@ using UnityEngine;
 namespace MisterGames.Tweens {
 
     [Serializable]
-    public sealed class ProgressTween : ITween, IUpdate {
+    public sealed class ProgressTween : ITween {
 
-        [SerializeField] private PlayerLoopStage _playerLoopStage = PlayerLoopStage.Update;
         [SerializeField] [Min(0f)] private float _duration;
 
         [Header("Easing")]
@@ -27,9 +25,6 @@ namespace MisterGames.Tweens {
         private float _progress;
         private float _progressDirection = 1f;
 
-        private readonly AutoResetUniTaskCompletionSource _completionSource = AutoResetUniTaskCompletionSource.Create();
-        private CancellationToken _token;
-
         public void Initialize(MonoBehaviour owner) {
             _easingCurve = _useCustomEasingCurve ? _customEasingCurve : _easingType.ToAnimationCurve();
 
@@ -42,17 +37,10 @@ namespace MisterGames.Tweens {
             for (int i = 0; i < _actions.Length; i++) {
                 _actions[i].DeInitialize();
             }
-
-            TimeSources.Get(_playerLoopStage).Unsubscribe(this);
-            _completionSource.TrySetCanceled(_token);
         }
 
         public async UniTask Play(CancellationToken token) {
-            _token = token;
-
-            if (HasReachedTargetProgress()) {
-                return;
-            }
+            if (HasReachedTargetProgress()) return;
 
             if (_duration <= 0f) {
                 _progress = Mathf.Clamp01(_progressDirection);
@@ -60,10 +48,16 @@ namespace MisterGames.Tweens {
                 return;
             }
 
-            TimeSources.Get(_playerLoopStage).Subscribe(this);
+            while (!token.IsCancellationRequested) {
+                float progressDelta = _progressDirection * Time.deltaTime / _duration;
+                _progress = Mathf.Clamp01(_progress + progressDelta);
 
-            _completionSource.TrySetResult();
-            await _completionSource.Task;
+                ReportProgress();
+
+                if (HasReachedTargetProgress()) break;
+
+                await UniTask.Yield();
+            }
         }
 
         public void Wind() {
@@ -80,23 +74,8 @@ namespace MisterGames.Tweens {
             _progressDirection = isInverted ? -1f : 1f;
         }
 
-        public void OnUpdate(float dt) {
-            if (_token.IsCancellationRequested) {
-                OnFinish();
-                return;
-            }
-
-            float progressDelta = _duration <= 0f ? _progressDirection : _progressDirection * dt / _duration;
-            _progress = Mathf.Clamp01(_progress + progressDelta);
-
-            ReportProgress();
-
-            if (HasReachedTargetProgress()) OnFinish();
-        }
-
-        private void OnFinish() {
-            TimeSources.Get(_playerLoopStage).Unsubscribe(this);
-            _completionSource.TrySetResult();
+        public void ResetProgress() {
+            _progress = 0f;
         }
 
         private void ReportProgress() {

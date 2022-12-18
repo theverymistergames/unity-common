@@ -13,6 +13,7 @@ namespace MisterGames.Tweens.Core {
         void Wind();
         void Rewind();
         void Invert(bool isInverted);
+        void ResetProgress();
     }
 
 }
