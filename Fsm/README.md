@@ -1,5 +1,9 @@
 # MisterGames Fsm v0.1.3
 
+```diff
+- Package is deprecated and needs to be reworked
+```
+
 ## Usage
 1. Create `StateMachine` asset: right click menu: MisterGames/State Machine
 
