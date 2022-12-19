@@ -24,4 +24,5 @@
 ## External dependencies
 - [`Unity.InputSystem`](https://docs.unity3d.com/Packages/com.unity.inputsystem@1.0/manual/index.html)
 - [`Unity.EditorCoroutines.Editor`](https://docs.unity3d.com/Manual/com.unity.editorcoroutines.html)
+- [`Unity.TextMeshPro`](https://docs.unity3d.com/Manual/com.unity.textmeshpro.html)
 - [`Cysharp.UniTask`](https://github.com/Cysharp/UniTask)
