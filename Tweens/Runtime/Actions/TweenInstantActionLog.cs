@@ -9,12 +9,16 @@ namespace MisterGames.Tweens.Actions {
 
         [SerializeField] private string _text;
 
-        public void Initialize(MonoBehaviour owner) { }
+        private MonoBehaviour _owner;
+
+        public void Initialize(MonoBehaviour owner) {
+            _owner = owner;
+        }
 
         public void DeInitialize() { }
 
         public void InvokeAction() {
-            Debug.Log(_text);
+            Debug.LogWarning($"Using {nameof(TweenInstantActionLog)} on game object {_owner.name}, text: {_text}");
         }
     }
 

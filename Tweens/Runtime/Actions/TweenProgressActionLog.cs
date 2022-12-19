@@ -9,12 +9,16 @@ namespace MisterGames.Tweens.Actions {
 
         [SerializeField] private string _text;
 
-        public void Initialize(MonoBehaviour owner) { }
+        private MonoBehaviour _owner;
+
+        public void Initialize(MonoBehaviour owner) {
+            _owner = owner;
+        }
 
         public void DeInitialize() { }
 
         public void OnProgressUpdate(float progress) {
-            Debug.Log($"{_text}. Progress: {progress}");
+            Debug.LogWarning($"Using {nameof(TweenProgressActionLog)} on game object {_owner.name}, text: {_text}, progress: {progress}");
         }
     }
     

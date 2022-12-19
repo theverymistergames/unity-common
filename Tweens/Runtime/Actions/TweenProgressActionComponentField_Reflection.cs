@@ -21,7 +21,7 @@ namespace MisterGames.Tweens.Actions {
         private BindingFlags _flags = BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public | BindingFlags.Static;
 
         public void Initialize(MonoBehaviour owner) {
-            Debug.LogError("Using TweenProgressActionComponentField_Reflection, must be replaced later!");
+            Debug.LogWarning($"Using {nameof(TweenProgressActionComponentField_Reflection)} on game object {owner.name}, must be replaced later!");
 
             _field = _component.GetType().GetField(_fieldName, _flags);
             if (_field == null) _property = _component.GetType().GetProperty(_fieldName, _flags);
