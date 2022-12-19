@@ -3,6 +3,8 @@
 Package contains component `TweenRunner`, that has options to create tween-like actions with the inspector.
 Tween here represents an instant or lasting action, eg. delay or smooth material color change with specific easing.
 
+Easing functions adapted from [cjddmut/EasingFunctions.cs](https://gist.github.com/cjddmut/d789b9eb78216998e95c).
+
 Each tween is implemented to match these rules of execution:
 - A tween can be played forwards and backwards, depending on the value of the last set playing direction
 - Each tween has progress - a value between 0 and 1 inclusive
