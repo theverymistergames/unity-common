@@ -7,7 +7,7 @@ Package for debug and prototyping.
 ### Developer Console
 
 Developer console allows to create console commands as methods with help of the attribute `[ConsoleCommand]`. Method has to be `void` and 
-can have arguments of type that be represented by string to be able to be parsed when typing the console command into the console. 
+can have arguments of type that can be represented by a string, to be able to be parsed when typing the console command into the console. 
 
 https://user-images.githubusercontent.com/109593086/208451435-8582d3a8-2f01-4e42-81dd-8c66635b2252.mp4
 
