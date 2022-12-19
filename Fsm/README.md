@@ -56,12 +56,12 @@ Let's implement pose behaviour for character movement controller. But first, we 
   
 Okay, next step is to create state machine asset. Go to creation menu -> MisterGames -> State Machine:
 
-![Create State Machine](https://gitlab.com/theverymistergames/readme-data/-/blob/master/fsm/1_create_fsm.gif)
+![1_create_fsm](https://user-images.githubusercontent.com/109593086/208444536-a24e982a-c91c-4b58-9d7c-2d44d12e861d.gif)
 
 To create state, RMB -> Create node -> Choose ```Simple State```, because we don't need logic in our states for now,
 they will be just data containers. Create Stand and Crouch states. 
 
-![Create Node](https://gitlab.com/theverymistergames/readme-data/-/blob/master/fsm/2_create_node.gif)
+![2_create_node](https://user-images.githubusercontent.com/109593086/208444612-55622825-406d-49af-84fd-57c8c1809f4e.gif)
 
 Note, that first state that you created is red, but second is green: red color indicates that state is initial. 
 You can reassign initial state later by clicking RMB -> Select as initial state.
@@ -79,9 +79,9 @@ public class PoseData : ScriptableObject {
 Then we can create two objects of ```PoseData``` for each state:
 Assign collider height into data and set both objects to corresponding states:
 
-![Pose Data](https://gitlab.com/theverymistergames/readme-data/-/blob/master/fsm/pose_data.png)
+![pose_data](https://user-images.githubusercontent.com/109593086/208444665-9982bdf9-26cb-4b9d-845b-64dd4d5e6acc.png)
 
-![Pose Data Assign](https://gitlab.com/theverymistergames/readme-data/-/blob/master/fsm/3_pose_data_assign.gif)
+![3_pose_data_assign](https://user-images.githubusercontent.com/109593086/208444684-15afd0f3-34fd-4f64-9d58-cfc5cb9276b9.gif)
 
 Now we need to implement transitions. To perform transition from stand to crouch state,
 several conditions must be satisfied:
@@ -113,11 +113,11 @@ state machine asset.
 
 Create transition of type ```PoseTransition``` for our state machine:
 
-![Create Transitions](https://gitlab.com/theverymistergames/readme-data/-/blob/master/fsm/4_create_transitions.gif)
+![4_create_transitions](https://user-images.githubusercontent.com/109593086/208444716-8b1c4e6d-2117-4bf0-96c5-045c366b58b3.gif)
 
 And set needed conditions:
 
-![Set Conditions](https://gitlab.com/theverymistergames/readme-data/-/blob/master/fsm/5_set_conditions.gif)
+![5_set_conditions](https://user-images.githubusercontent.com/109593086/208444738-8a5da324-4b0a-48b6-9ba9-910c17463cc3.gif)
 
 Next step is to create transition data, that will be used to perform animated transition between states. 
 Let's create scriptable object and its instances, and set them into state machine transitions:
@@ -129,9 +129,9 @@ public class PoseTransitionData : ScriptableObject {
 }
 ``` 
 
-![Transition Data](https://gitlab.com/theverymistergames/readme-data/-/blob/master/fsm/transition_data.png)
+![transition_data](https://user-images.githubusercontent.com/109593086/208444767-c02eb1fa-63f1-471b-be26-13656d945b6c.png)
 
-![Set Transitions](https://gitlab.com/theverymistergames/readme-data/-/blob/master/fsm/6_set_transitions.gif)
+![6_set_transitions](https://user-images.githubusercontent.com/109593086/208444785-cd2fbdc8-d6cf-48f6-aeb7-f4af2cb4cdc3.gif)
 
 Now we need to make script that propagates conditions to state machine transitions:
 
@@ -197,9 +197,7 @@ Add components to your character gameobject:
 - ```PoseProcessor```
 
 Now we can do stand and crouch with state machine, and if we need to debug, we can watch our states in runtime. 
-Start play mode, open State Machine Editor and click on the gameobject with ```StateMachineRunner``` component on it:
-
-![Set Transitions](https://gitlab.com/theverymistergames/readme-data/-/blob/master/fsm/7_runtime.gif)
+Start play mode, open State Machine Editor and click on the gameobject with ```StateMachineRunner``` component on it.
 
 ## Assembly definitions
 - `MisterGames.Fsm`
