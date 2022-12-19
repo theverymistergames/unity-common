@@ -1,4 +1,4 @@
-﻿﻿# MisterGames Fsm v1.0.3
+# MisterGames Fsm v0.1.3
 
 ## Usage
 1. Create `StateMachine` asset: right click menu: MisterGames/State Machine
@@ -202,15 +202,10 @@ Start play mode, open State Machine Editor and click on the gameobject with ```S
 ![Set Transitions](https://gitlab.com/theverymistergames/readme-data/-/blob/master/fsm/7_runtime.gif)
 
 ## Assembly definitions
-- MisterGames.Fsm
-- MisterGames.Fsm.Editor
+- `MisterGames.Fsm`
+- `MisterGames.Fsm.Editor`
 
 ## Dependencies
-- MisterGames.Common
-- MisterGames.Common.Editor
-
-## Installation
-- Add [MisterGames Common](https://gitlab.com/theverymistergames/common) package
-- Open Unity Editor
-- Top menu MisterGames -> Packages, add packages: 
-  - [Fsm](https://gitlab.com/theverymistergames/fsm/)
+- [`MisterGames.Common`](https://github.com/theverymistergames/unity-common/tree/master/Common)
+- [`MisterGames.Tick`](https://github.com/theverymistergames/unity-common/tree/master/Tick)
+- [`Cysharp.UniTask`](https://github.com/Cysharp/UniTask)
