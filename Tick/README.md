@@ -94,6 +94,7 @@ class SomeUpdatable : IUpdate {
 ## Assembly definitions
 - `MisterGames.Tick`
 - `MisterGames.Tick.Editor`
+- `MisterGames.Tick.RuntimeTests`
 
 ## Dependencies
 - [`MisterGames.Common`](https://github.com/theverymistergames/unity-common/tree/master/Common)
