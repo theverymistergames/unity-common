@@ -1,17 +1,31 @@
-﻿# MisterGames Blueprints v1.0.0
+# MisterGames Blueprints v0.1.1
 
-## Usage
-- todo
+> :warning: Package needs refactoring to reduce heap allocations
+
+A tool for visual scripting without using reflection or code generation. 
+
+## Core
+
+`BlueprintNode` is basic abstract class to implement node. It has one abstract member: method `CreatePorts`, which needs to be overrided in any blueprint node.
+
+```
+class BlueprintNodeImplementation : BlueprintNode {
+
+  protected override IReadOnlyList<Port> CreatePorts() => new List<Port> {
+    Port.Input<float>("A"),
+    Port.Input<float>("A"),
+    Port.Input<float>("B"),
+    Port.Output<float>()
+  };
+  
+  // ...
+}
+```
 
 ## Assembly definitions
-- MisterGames.Blueprints
-- MisterGames.Blueprints.Editor
+- `MisterGames.Blueprints`
+- `MisterGames.Blueprints.Editor`
 
 ## Dependencies
-- MisterGames.Common
-- MisterGames.Common.Editor
-
-## Installation 
-- Add [MisterGames Common](https://gitlab.com/theverymistergames/common) package
-- Top menu MisterGames -> Packages, add packages: 
-  - [Blueprints](https://gitlab.com/theverymistergames/blueprints/)
+- [`MisterGames.Common`](https://github.com/theverymistergames/unity-common/tree/master/Common)
+- [`MisterGames.Tick`](https://github.com/theverymistergames/unity-common/tree/master/Tick)
