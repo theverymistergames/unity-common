@@ -1,7 +1,7 @@
 # MisterGames BlueprintLib v0.1.1
 
 A set of different blueprint nodes to create blueprints.
-See Blueprints core: [MisterGames.Blueprints](https://github.com/theverymistergames/unity-common/tree/master/Blueprints).
+See Blueprints core: [`MisterGames.Blueprints`](https://github.com/theverymistergames/unity-common/tree/master/Blueprints).
 
 ## Assembly definitions
 - `MisterGames.BlueprintLib`
