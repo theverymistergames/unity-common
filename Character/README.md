@@ -1,29 +1,20 @@
-﻿﻿# MisterGames Character v0.3.4
+# MisterGames Character v0.3.4
 
-## Features
-- Uses state machines for speed and pose
-- Simulates ```Rigidbody``` physics with ```CharacterController```
-- Advanced ground normal detection (for cases when standing on several surfaces)
-- Crouch in jump to climb high shelves
+A bunch of scripts to control the playable character.
+- Uses `UnityEngine.CharacterController` as motion core
 - Based on my previous controller: [Asset store link](https://assetstore.unity.com/packages/templates/systems/mv-fps-controller-181699)
 
-[Demo](https://gitlab.com/theverymistergames/readme-data/-/blob/master/character/character.mp4)
+https://user-images.githubusercontent.com/109593086/208634260-5344fc2b-0010-4e43-9992-5ab2f311d496.mp4
 
 ## Assembly definitions
-- MisterGames.Character
+- `MisterGames.Character`
 
 ## Dependencies
-- MisterGames.Common
-- MisterGames.Input
-- MisterGames.Fsm
-- MisterGames.Dbg
-- MisterGames.View
-
-## Installation
-- Add [MisterGames Common](https://gitlab.com/theverymistergames/common/) package
-- Top menu MisterGames -> Packages, add packages: 
-  - [Input](https://gitlab.com/theverymistergames/input/)
-  - [Fsm](https://gitlab.com/theverymistergames/fsm/)
-  - [Dbg](https://gitlab.com/theverymistergames/dbg/)
-  - [View](https://gitlab.com/theverymistergames/view/)
-  - [Character](https://gitlab.com/theverymistergames/character/)
+- [`MisterGames.Common`](https://github.com/theverymistergames/unity-common/tree/master/Common)
+- [`MisterGames.Input`](https://github.com/theverymistergames/unity-common/tree/master/Input)
+- [`MisterGames.Fsm`](https://github.com/theverymistergames/unity-common/tree/master/Fsm)
+- [`MisterGames.Tick`](https://github.com/theverymistergames/unity-common/tree/master/Tick)
+- [`MisterGames.UI`](https://github.com/theverymistergames/unity-common/tree/master/UI)
+- [`MisterGames.Collisions`](https://github.com/theverymistergames/unity-common/tree/master/Collisions)
+- [`MisterGames.Dbg`](https://github.com/theverymistergames/unity-common/tree/master/Dbg)
+- [`Cysharp.UniTask`](https://github.com/Cysharp/UniTask)
