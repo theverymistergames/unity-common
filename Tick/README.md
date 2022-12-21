@@ -10,7 +10,7 @@ calls update methods for its subscribers - objects of type that implements `IUpd
 
 Player loop stage represents 1) order of update during frame and 2) time scale mode.
 
-```
+```csharp
 public enum PlayerLoopStage {
   PreUpdate,
   Update,
@@ -26,7 +26,7 @@ public enum PlayerLoopStage {
 
 `TimeSource` is a container for storing and updating `IUpdate` subscribers, implements interface `ITimeSource`:
 
-```
+```csharp
 public interface ITimeSource {
   float DeltaTime { get; }
   float TimeScale { get; set; }
@@ -43,7 +43,7 @@ that returns object of type `ITimeSource`.
 
 ## Implementing alternative of `MonoBehaviour.Update`
 
-```
+```csharp
 class SomeUpdatableMonoBehaviour : MonoBehaviour, IUpdate {
   
   [SerializeField] PlayerLoopStage stage;
@@ -62,7 +62,7 @@ class SomeUpdatableMonoBehaviour : MonoBehaviour, IUpdate {
 }
 ```
 
-```
+```csharp
 class SomeMonoBehaviourWithUpdatableFields : MonoBehaviour {
   
   [SerializeField] PlayerLoopStage stage;
@@ -82,7 +82,7 @@ class SomeMonoBehaviourWithUpdatableFields : MonoBehaviour {
 }
 ```
 
-```
+```csharp
 class SomeUpdatable : IUpdate {
   
   void IUpdate.OnUpdate(float dt) {
