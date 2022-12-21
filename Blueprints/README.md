@@ -17,7 +17,7 @@ Data is presented by:
 
 <img width="833" alt="image" src="https://user-images.githubusercontent.com/109593086/208853464-567ce757-d215-46b5-ba61-3cddb0b17db1.png">
 
-`Blueprint` can be started with `BlueprintRunner : MonoBehaviour`:
+`Blueprint` can be started with `BlueprintRunner : MonoBehaviour` or from subgraph node (see [Built-in nodes](https://github.com/theverymistergames/unity-common/edit/master/Blueprints/README.md#built-in-nodes) section).
 
 <img width="356" alt="image" src="https://user-images.githubusercontent.com/109593086/208853990-3cd43a0a-fd8e-478f-aca2-3eb0de86c549.png">
 
@@ -28,7 +28,7 @@ To create new type of node, create a class that implements abstract class `Bluep
 `BlueprintNode` is also a scriptable object with data about in and out ports and action or data access implementation. 
  It is basic abstract class to implement node with one abstract member: method `CreatePorts`. 
  
- `[BlueprintNode]` attribute can be used to add meta data to the created blueprint node, like name, category for Node finder, colors.
+ `[BlueprintNode]` attribute can be used to add meta data to the created blueprint node, like name, category for the node finder, colors.
 
 ```
 [BlueprintNode(Name = "Implementation")]
@@ -40,11 +40,13 @@ class BlueprintNodeImplementation : BlueprintNode {
 }
 ```
 
-<img width="98" alt="image" src="https://user-images.githubusercontent.com/109593086/208855574-46b0187e-324b-4c63-9250-c807640d3e51.png">
+After compilation the node appears in the node finder and it can be added to the blueprint.
+
+<img width="403" alt="image" src="https://user-images.githubusercontent.com/109593086/208870731-df527c9c-cc73-4608-87c6-5486f1c4a8ed.png">
 
 #### Ports
 
-Ports are to create connections between nodes. There are two types of ports:
+To add connection between nodes, each node needs ports. There are two types of ports:
 
 1. Flow port (enter and exit)
 
@@ -185,9 +187,11 @@ There is a category called `Exposed` in the node finder, these are built-in node
 Here is an example of a subgraph blueprint usage for moving specific object into position A if condition is met, or otherwise into position B:
 
 Blueprint:
+
 <img width="730" alt="image" src="https://user-images.githubusercontent.com/109593086/208869031-b75e6456-ade5-4202-a45f-8f7adf82a5f2.png">
 
 Usage of the blueprint as a parameter in a subgraph node:
+
 <img width="389" alt="image" src="https://user-images.githubusercontent.com/109593086/208869559-0e993aa5-20b2-48e9-a21c-90c8a602f152.png">
 
 ## Assembly definitions
