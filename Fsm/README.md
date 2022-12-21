@@ -13,7 +13,7 @@
    Transitions and states can be of any type that derives from their base type, so to perform transition you
    need some access function, e.g:
    
-   ```
+   ```csharp
    class MyTransition : FsmTransition {
        
        [SerializeField] float dataWhenNeedTransit;
@@ -26,7 +26,7 @@
    
    Now we need to call that `CheckNeedTransit` method:
    
-   ```
+   ```csharp
    class MyStateMachineBehaviour : MonoBehaviour {
        
        [SerializeField] StateMachineRunner runner;
@@ -71,14 +71,14 @@ You can reassign initial state later by clicking RMB -> Select as initial state.
 Pick Stand state, you will see variable Data, that must be a ```ScriptableObject```, in the state machine inspector.
 Here we can store height of the character for each state. To do so, let's create a script:
 
-```
+```csharp
 [CreateAssetMenu]
 public class PoseData : ScriptableObject {
     public float colliderHeight;
 }
 ```
 
-Then we can create two objects of ```PoseData``` for each state:
+Then we can create two objects of `PoseData` for each state:
 Assign collider height into data and set both objects to corresponding states:
 
 ![pose_data](https://user-images.githubusercontent.com/109593086/208444665-9982bdf9-26cb-4b9d-845b-64dd4d5e6acc.png)
@@ -98,7 +98,7 @@ The same way for crouch to stand state transition:
 
 Create script for transitions:
 
-```
+```csharp
 public class PoseTransition : SimpleTransition {
     public bool crouchInputActive;
         
@@ -110,10 +110,10 @@ public class PoseTransition : SimpleTransition {
 }
 ```
 
-```SimpleTransition``` is transition that has no interaction with ```StateMachineRunner``` - ```MonoBehaviour``` that runs 
+`SimpleTransition` is transition that has no interaction with `StateMachineRunner` - `MonoBehaviour` that runs 
 state machine asset.
 
-Create transition of type ```PoseTransition``` for our state machine:
+Create transition of type `PoseTransition` for our state machine:
 
 ![4_create_transitions](https://user-images.githubusercontent.com/109593086/208444716-8b1c4e6d-2117-4bf0-96c5-045c366b58b3.gif)
 
@@ -124,7 +124,7 @@ And set needed conditions:
 Next step is to create transition data, that will be used to perform animated transition between states. 
 Let's create scriptable object and its instances, and set them into state machine transitions:
 
-```
+```csharp
 [CreateAssetMenu]
 public class PoseTransitionData : ScriptableObject {
     public float duration;
@@ -137,7 +137,7 @@ public class PoseTransitionData : ScriptableObject {
 
 Now we need to make script that propagates conditions to state machine transitions:
 
-```
+```csharp
 public class PoseConditions : MonoBehaviour {
     public StateMachineRunner fsm;
     
@@ -152,12 +152,12 @@ public class PoseConditions : MonoBehaviour {
 }
 ``` 
 
-Suppose that ```SetCrouchInput``` method is called from some input script.
+Suppose that `SetCrouchInput` method is called from some input script.
 
 Okay, that was the last script for out state machine. To finish the task, there is last thing to do:
 pose logic script, let's implement it:
 
-``` 
+``` csharp
 public class PoseProcessor : MonoBehaviour {
     public StateMachineRunner fsm;
     PoseData lastData;
@@ -191,15 +191,13 @@ public class PoseProcessor : MonoBehaviour {
 }
 ```
 
-I skipped the implementation of ```ChangeColliderHeight``` method, because that is not the topic.
-
 Add components to your character gameobject:
-- ```StateMachineRunner``` with our ```PoseStateMachine``` asset
-- ```PoseConditions```
-- ```PoseProcessor```
+- `StateMachineRunner` with our `PoseStateMachine` asset
+- `PoseConditions`
+- `PoseProcessor`
 
 Now we can do stand and crouch with state machine, and if we need to debug, we can watch our states in runtime. 
-Start play mode, open State Machine Editor and click on the gameobject with ```StateMachineRunner``` component on it.
+Start play mode, open State Machine Editor and click on the gameobject with `StateMachineRunner` component on it.
 
 ## Assembly definitions
 - `MisterGames.Fsm`
