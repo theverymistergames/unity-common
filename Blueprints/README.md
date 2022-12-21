@@ -17,7 +17,8 @@ Data is presented by:
 
 ### Blueprint node
 
-Blueprint node has in and out ports. `BlueprintNode` is basic abstract class to implement node, it has one abstract member: method `CreatePorts`.
+`BlueprintNode` is also a scriptable object with data about in and out ports and action or data access implementation. 
+ It is basic abstract class to implement node with one abstract member: method `CreatePorts`.
 
 ```
 class BlueprintNodeImplementation : BlueprintNode {
@@ -27,6 +28,8 @@ class BlueprintNodeImplementation : BlueprintNode {
   }
 }
 ```
+
+### Ports
 
 Ports are to create connections between nodes. There are two types of ports:
 
@@ -95,8 +98,8 @@ class BlueprintNodeImplementation : BlueprintNode, IBlueprintEnter {
 }
 ```
 
-To has an output port, node must implement interface `IBlueprintGetter<out T>`. Node can has multiple output ports, 
-so the method `T IBlueprintGetter<out T>.Get(int port)` has argument `int port` to check if the output port index is correct.
+To have an output port, the node must implement interface `IBlueprintGetter<out T>`. Node can have multiple output ports, 
+so method `T IBlueprintGetter<out T>.Get(int port)` has argument `int port` to check if the output port index is correct.
 
 ```
 class BlueprintNodeImplementation : BlueprintNode, IBlueprintEnter, IBlueprintGetter<bool> {
