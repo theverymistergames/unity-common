@@ -1,7 +1,7 @@
 # MisterGames scripts for Unity
 
 - A bunch of different packages to use in a Unity project
-- Unity Editor 2021.3.8f1
+- Current Unity Editor version is `2021.3.16f1`
 
 ## Packages
 - [`MisterGames.Bezier`](https://github.com/theverymistergames/unity-common/tree/master/Bezier)
