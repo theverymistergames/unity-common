@@ -30,7 +30,7 @@ To create new type of node, create a class that implements abstract class `Bluep
  
  `[BlueprintNode]` attribute can be used to add meta data to the created blueprint node, like name, category for the node finder, colors.
 
-```
+```csharp
 [BlueprintNode(Name = "Implementation")]
 class BlueprintNodeImplementation : BlueprintNode {
 
@@ -55,7 +55,7 @@ When flow port called from inside the node by protected method `void BlueprintNo
 - to have a port created by `Port.Enter(...)` call
 - to implement interface `IBlueprintEnter`
 
-```
+```csharp
 [BlueprintNode(Name = "Implementation")]
 class BlueprintNodeImplementation : BlueprintNode, IBlueprintEnter {
   
@@ -75,7 +75,7 @@ class BlueprintNodeImplementation : BlueprintNode, IBlueprintEnter {
 
 To create and call exit port the node needs to have port created by `Port.Exit(...)` call:
 
-```
+```csharp
 [BlueprintNode(Name = "Implementation")]
 class BlueprintNodeImplementation : BlueprintNode, IBlueprintEnter {
   
@@ -99,7 +99,7 @@ class BlueprintNodeImplementation : BlueprintNode, IBlueprintEnter {
 
 Input can be read by calling protected method `T BlueprintNode.Read<T>(int port, T default)`, this call invokes method `T IBlueprintGetter<out T>.Get(int port)` from a linked port of another node (a port must be an output of the same type to create a link). 
 
-```
+```csharp
 [BlueprintNode(Name = "Implementation")]
 class BlueprintNodeImplementation : BlueprintNode, IBlueprintEnter {
   
@@ -127,7 +127,7 @@ class BlueprintNodeImplementation : BlueprintNode, IBlueprintEnter {
 To have an output port, the node must implement interface `IBlueprintGetter<out T>`. Node can have multiple output ports, 
 so method `T IBlueprintGetter<out T>.Get(int port)` has argument `int port` to check if the output port index is correct.
 
-```
+```csharp
 [BlueprintNode(Name = "Implementation")]
 class BlueprintNodeImplementation : BlueprintNode, IBlueprintEnter, IBlueprintGetter<bool> {
   
