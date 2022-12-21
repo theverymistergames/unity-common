@@ -9,7 +9,7 @@ Package offers loading scheme without `DontDestroyOnLoad` usage by creating root
 - To disable root scene loading turn off the field `Enable Play Mode Start Scene Override` in the `ScenesStorage`.
 - `SceneLoader` is a facade for `SceneManager` API that knows about root scene.
 
-```
+```csharp
     string sceneName = "SomeScene";
     bool makeActive = true;
 
