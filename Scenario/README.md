@@ -2,7 +2,7 @@
 
 ## Features
 - `ScenarioEvent` - scriptable object that represents event. Event can be emitted and listened.
-```
+```csharp
 class ScenarioEventEmitterOnStart : MonoBehaviour {
   [SerializeField] ScenarioEvent scenarioEvent;
 
