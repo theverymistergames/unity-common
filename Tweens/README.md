@@ -15,7 +15,7 @@ Each tween is implemented to match these rules of execution:
 `ITween` is an interface for tween imlementations. Note that this package uses [`Cysharp.UniTask`](https://github.com/Cysharp/UniTask): 
 play and pause are implemented as awaitable method `Play` with passed `CancellationToken` to be able to pause at the current progress of the tween. 
 
-```
+```csharp
 public interface ITween {
   void Initialize(MonoBehaviour owner);
   void DeInitialize();
@@ -39,7 +39,7 @@ public interface ITween {
 ## Tween actions
 1. `ITweenInstantAction` is invoked from tween instances of type `InstanceTween`
 
-```
+```csharp
 public interface ITweenInstantAction {
   void Initialize(MonoBehaviour owner);
   void DeInitialize();
@@ -50,7 +50,7 @@ public interface ITweenInstantAction {
 
 2. `ITweenProgressAction` is invoked on each frame from tween instances of type `ProgressTween`
 
-```
+```csharp
 public interface ITweenProgressAction {
   void Initialize(MonoBehaviour owner);
   void DeInitialize();
