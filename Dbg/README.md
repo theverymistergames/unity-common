@@ -13,7 +13,7 @@ https://user-images.githubusercontent.com/109593086/208451435-8582d3a8-2f01-4e42
 
 Console command methods must be a part of a serializable class that implements `IConsoleModule` interface:
 
-```
+```csharp
 [Serializable]
 class SomeConsoleModule : IConsoleModule {
 
@@ -32,18 +32,18 @@ on some other persistent game object.
 
 `ConsoleRunner` has some methods to control or display something when executing commands:
 
-```
+```csharp
 // prints line in the end of the console
-ConsoleRunner.AppendLine(string) 
+ConsoleRunner.AppendLine("some text");
 
 // sets input in the input field of the console
-ConsoleRunner.TypeIn(string)     
+ConsoleRunner.TypeIn("some input text");
 
 // runs console command presented as string
-ConsoleRunner.RunCommand(string)
+ConsoleRunner.RunCommand("some command")
 
 // current text of the input field of the console
-string ConsoleRunner.CurrentInput
+string input = ConsoleRunner.CurrentInput;
 ```
 
 Built-in console modules:
@@ -58,13 +58,10 @@ Built-in plugins:
 ### Debug draw
 - line, ray, line array, circle, sphere, cylinder, capsule, text
 
-```
+```csharp
 DbgRay.Create().From(start).Dir(dir).Color(Color.blue).Arrow(0.1f).Time(1f).Draw();
-
 DbgPointer.Create().Position(start).Size(0.3f).Color(Color.yellow).Draw();
-
 DbgCapsule.Create().From(start).To(end).Radius(radius).Color(Color.cyan).Draw();
-
 DbgText.Create().Text(text).Position(start).Draw();
 ```
 
