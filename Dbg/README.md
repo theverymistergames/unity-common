@@ -40,7 +40,7 @@ ConsoleRunner.AppendLine("some text");
 ConsoleRunner.TypeIn("some input text");
 
 // runs console command presented as string
-ConsoleRunner.RunCommand("some command")
+ConsoleRunner.RunCommand("some command");
 
 // current text of the input field of the console
 string input = ConsoleRunner.CurrentInput;
