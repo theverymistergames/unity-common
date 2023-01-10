@@ -60,14 +60,13 @@ namespace MisterGames.Blueprints.Core {
         private void InitBlackboard() {
             _instance.Blackboard.Init();
             
-            var properties = _sceneReferences.GetKeys();
-            for (int i = 0; i < properties.Count; i++) {
-                string property = properties[i];
-                var data = _sceneReferences.Get(property);
-                if (!data.HasValue) continue;
+            for (int i = 0; i < _sceneReferences.Count; i++) {
+                var property = _sceneReferences.GetKeyAt(i);
+                var data = _sceneReferences[property];
+                if (data == null) continue;
                 
                 int hash = Blackboard.StringToHash(property);
-                _instance.Blackboard.Set(hash, data.Value);
+                _instance.Blackboard.Set(hash, data);
             }
         }
 

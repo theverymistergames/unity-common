@@ -30,7 +30,7 @@ namespace MisterGames.Blueprints.Core {
             runtimeNodes[runtimeNode.Guid] = runtimeNode;
         }
 
-        BlueprintNode IBlueprintResolver.Resolve(BlueprintNode original) {
+        public BlueprintNode Resolve(BlueprintNode original) {
             if (original == null) return null;
 
             if (runtimeNodes.ContainsKey(original.Guid)) {
