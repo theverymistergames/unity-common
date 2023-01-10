@@ -1,57 +1,92 @@
 ﻿using System;
 using System.Collections.Generic;
-using MisterGames.Common.Data;
 using UnityEngine;
 
 namespace MisterGames.Common.Data {
 
     [Serializable]
-    public class Map<K, V> {
-        
-        [Serializable]
-        private struct Tuple {
-            public K Key;
-            public V Value;
-        }
-        
+    public sealed class Map<K, V> {
+
         [SerializeField] private List<Tuple> _tuples = new List<Tuple>();
 
-        public Optional<V> Get(K key) {
-            for (int i = 0; i < _tuples.Count; i++) {
-                var tuple = _tuples[i];
-                if (tuple.Key.GetHashCode() == key.GetHashCode()) {
-                    return Optional<V>.WithValue(tuple.Value);
-                }
+        public int Count => _tuples.Count;
+
+        public V this[K key] {
+            get {
+                int index = IndexOf(key);
+                if (index < 0) return default;
+
+                return _tuples[index].value;
             }
-            return Optional<V>.Empty();
+            set {
+                int index = IndexOf(key);
+                if (index < 0) return;
+
+                _tuples[index] = new Tuple(key, value);
+            }
         }
 
-        public void Set(K key, V value) {
-            for (int i = 0; i < _tuples.Count; i++) {
-                var tuple = _tuples[i];
-                if (tuple.Key.GetHashCode() != key.GetHashCode()) continue;
-                
-                tuple.Value = value;
-                _tuples[i] = tuple;
-                return;
-            }
-            
-            _tuples.Add(new Tuple { Key = key, Value = value });
+        public void Remove(K key) {
+            int index = IndexOf(key);
+            if (index < 0) return;
+
+            _tuples.RemoveAt(index);
         }
 
-        public IReadOnlyList<K> GetKeys() {
-            int count = _tuples.Count;
-            var keys = new K[count];
-            
-            for (int i = 0; i < count; i++) {
-                keys[i] = _tuples[i].Key;
-            }
+        public K GetKeyAt(int index) {
+            return _tuples[index].key;
+        }
 
-            return keys;
+        public V GetValueAt(int index) {
+            return _tuples[index].value;
+        }
+
+        public void RemoveAt(int index) {
+            _tuples.RemoveAt(index);
+        }
+
+        public int IndexOf(K key) {
+            return _tuples.IndexOf(new Tuple(key));
+        }
+
+        public int LastIndexOf(K key) {
+            return _tuples.LastIndexOf(new Tuple(key));
         }
 
         public void Clear() {
             _tuples.Clear();
+        }
+
+        [Serializable]
+        private struct Tuple : IEquatable<Tuple> {
+
+            public K key;
+            public V value;
+
+            public Tuple(K key, V value = default) {
+                this.key = key;
+                this.value = value;
+            }
+
+            public bool Equals(Tuple other) {
+                return EqualityComparer<K>.Default.Equals(key, other.key);
+            }
+
+            public override bool Equals(object obj) {
+                return obj is Tuple other && Equals(other);
+            }
+
+            public override int GetHashCode() {
+                return EqualityComparer<K>.Default.GetHashCode(key);
+            }
+
+            public static bool operator ==(Tuple left, Tuple right) {
+                return left.Equals(right);
+            }
+
+            public static bool operator !=(Tuple left, Tuple right) {
+                return !left.Equals(right);
+            }
         }
     }
 
