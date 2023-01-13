@@ -1,4 +1,6 @@
-﻿using System;
+﻿#if DEBUG || UNITY_EDITOR
+
+using System;
 using UnityEngine;
 
 namespace MisterGames.Blueprints.Core2 {
@@ -6,13 +8,13 @@ namespace MisterGames.Blueprints.Core2 {
     internal static class BlueprintValidationUtils {
 
         public static bool ValidatePort(BlueprintNodeMeta nodeMeta, int portIndex) {
-            if (portIndex < 0 || portIndex > nodeMeta.ports.Length - 1) {
+            if (portIndex < 0 || portIndex > nodeMeta.Ports.Count - 1) {
                 Debug.LogError($"Validation failed for port {portIndex} of node {nodeMeta}: " +
                                $"{nodeMeta} has no port with index {portIndex}.");
                 return false;
             }
 
-            var port = nodeMeta.ports[portIndex];
+            var port = nodeMeta.Ports[portIndex];
 
             // Enter port
             if (!port.isDataPort && !port.isExitPort) {
@@ -38,13 +40,13 @@ namespace MisterGames.Blueprints.Core2 {
         }
 
         public static bool ValidateLink(BlueprintNodeMeta nodeMeta, int portIndex, BlueprintNodeMeta toNodeMeta, int toPortIndex) {
-            if (portIndex < 0 || portIndex > nodeMeta.ports.Length - 1) {
+            if (portIndex < 0 || portIndex > nodeMeta.Ports.Count - 1) {
                 Debug.LogError($"Validation failed for port link [node {nodeMeta}, port {portIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
                                $"{nodeMeta} has no port with index {portIndex}.");
                 return false;
             }
 
-            var port = nodeMeta.ports[portIndex];
+            var port = nodeMeta.Ports[portIndex];
 
             // Enter port
             if (!port.isDataPort && !port.isExitPort) {
@@ -72,22 +74,22 @@ namespace MisterGames.Blueprints.Core2 {
         }
 
         private static bool ValidateEnterPort(BlueprintNodeMeta nodeMeta, int portIndex) {
-            if (portIndex < 0 || portIndex > nodeMeta.ports.Length - 1) {
+            if (portIndex < 0 || portIndex > nodeMeta.Ports.Count - 1) {
                 Debug.LogError($"Validation failed for enter port {portIndex} of node {nodeMeta}: " +
                                $"{nodeMeta} has no port with index {portIndex}.");
                 return false;
             }
 
-            var port = nodeMeta.ports[portIndex];
+            var port = nodeMeta.Ports[portIndex];
             if (port.isExitPort || port.isDataPort) {
                 Debug.LogError($"Validation failed for enter port {portIndex} of node {nodeMeta}: " +
                                $"this port is not an enter port.");
                 return false;
             }
 
-            if (!HasInterface(nodeMeta.node.GetType(), typeof(IBlueprintEnter))) {
+            if (!HasInterface(nodeMeta.NodeType, typeof(IBlueprintEnter))) {
                 Debug.LogError($"Validation failed for enter port {portIndex} of node {nodeMeta}: " +
-                               $"node class {nodeMeta.node.GetType().Name} does not implement interface {nameof(IBlueprintEnter)}.");
+                               $"node class {nodeMeta.NodeType.Name} does not implement interface {nameof(IBlueprintEnter)}.");
                 return false;
             }
 
@@ -95,13 +97,13 @@ namespace MisterGames.Blueprints.Core2 {
         }
 
         private static bool ValidateExitPort(BlueprintNodeMeta nodeMeta, int portIndex) {
-            if (portIndex < 0 || portIndex > nodeMeta.ports.Length - 1) {
+            if (portIndex < 0 || portIndex > nodeMeta.Ports.Count - 1) {
                 Debug.LogError($"Validation failed for exit port {portIndex} of node {nodeMeta}: " +
                                $"{nodeMeta} has no port with index {portIndex}.");
                 return false;
             }
 
-            var port = nodeMeta.ports[portIndex];
+            var port = nodeMeta.Ports[portIndex];
             if (!port.isExitPort || port.isDataPort) {
                 Debug.LogError($"Validation failed for exit port {portIndex} of node {nodeMeta}: " +
                                $"this port is not an exit port.");
@@ -112,13 +114,13 @@ namespace MisterGames.Blueprints.Core2 {
         }
 
         private static bool ValidateInputPort(BlueprintNodeMeta nodeMeta, int portIndex) {
-            if (portIndex < 0 || portIndex > nodeMeta.ports.Length - 1) {
+            if (portIndex < 0 || portIndex > nodeMeta.Ports.Count - 1) {
                 Debug.LogError($"Validation failed for input port {portIndex} of node {nodeMeta}: " +
                                $"{nodeMeta} has no port with index {portIndex}.");
                 return false;
             }
 
-            var port = nodeMeta.ports[portIndex];
+            var port = nodeMeta.Ports[portIndex];
             if (port.isExitPort || !port.isDataPort) {
                 Debug.LogError($"Validation failed for input port {portIndex} of node {nodeMeta}: " +
                                $"this port is not an input port.");
@@ -129,13 +131,13 @@ namespace MisterGames.Blueprints.Core2 {
         }
 
         private static bool ValidateInputPort(Type dataType, BlueprintNodeMeta nodeMeta, int portIndex) {
-            if (portIndex < 0 || portIndex > nodeMeta.ports.Length - 1) {
+            if (portIndex < 0 || portIndex > nodeMeta.Ports.Count - 1) {
                 Debug.LogError($"Validation failed for input port {portIndex} of node {nodeMeta}: " +
                                $"{nodeMeta} has no port with index {portIndex}.");
                 return false;
             }
 
-            var port = nodeMeta.ports[portIndex];
+            var port = nodeMeta.Ports[portIndex];
             if (port.isExitPort || !port.isDataPort) {
                 Debug.LogError($"Validation failed for input port {portIndex} of node {nodeMeta}: " +
                                $"this port is not an input port.");
@@ -152,13 +154,13 @@ namespace MisterGames.Blueprints.Core2 {
         }
 
         private static bool ValidateOutputPort(BlueprintNodeMeta nodeMeta, int portIndex) {
-            if (portIndex < 0 || portIndex > nodeMeta.ports.Length - 1) {
+            if (portIndex < 0 || portIndex > nodeMeta.Ports.Count - 1) {
                 Debug.LogError($"Validation failed for output port {portIndex} of node {nodeMeta}: " +
                                $"{nodeMeta} has no port with index {portIndex}.");
                 return false;
             }
 
-            var port = nodeMeta.ports[portIndex];
+            var port = nodeMeta.Ports[portIndex];
             if (!port.isExitPort || !port.isDataPort) {
                 Debug.LogError($"Validation failed for output port {portIndex} of node {nodeMeta}: " +
                                $"this port is not an output port.");
@@ -166,18 +168,18 @@ namespace MisterGames.Blueprints.Core2 {
             }
 
             if (!port.hasDataType &&
-                !HasInterface(nodeMeta.node.GetType(), typeof(IBlueprintOutput))
+                !HasInterface(nodeMeta.NodeType, typeof(IBlueprintOutput))
             ) {
                 Debug.LogError($"Validation failed for non-typed output port {portIndex} of node {nodeMeta}: " +
-                               $"node class {nodeMeta.node.GetType().Name} does not implement interface {nameof(IBlueprintOutput)}.");
+                               $"node class {nodeMeta.NodeType.Name} does not implement interface {nameof(IBlueprintOutput)}.");
                 return false;
             }
             
             if (port.hasDataType &&
-                !HasGenericInterface(nodeMeta.node.GetType(), typeof(IBlueprintOutput<>), port.DataType)
+                !HasGenericInterface(nodeMeta.NodeType, typeof(IBlueprintOutput<>), port.DataType)
             ) {
                 Debug.LogError($"Validation failed for output port {portIndex} of node {nodeMeta}: " +
-                               $"node class {nodeMeta.node.GetType().Name} does not implement " +
+                               $"node class {nodeMeta.NodeType.Name} does not implement " +
                                $"interface {typeof(IBlueprintOutput<>).Name}<{port.DataType.Name}>.");
                 return false;
             }
@@ -186,13 +188,13 @@ namespace MisterGames.Blueprints.Core2 {
         }
 
         private static bool ValidateOutputPort(Type dataType, BlueprintNodeMeta nodeMeta, int portIndex) {
-            if (portIndex < 0 || portIndex > nodeMeta.ports.Length - 1) {
+            if (portIndex < 0 || portIndex > nodeMeta.Ports.Count - 1) {
                 Debug.LogError($"Validation failed for output port {portIndex} of node {nodeMeta}: " +
                                $"{nodeMeta} has no port with index {portIndex}.");
                 return false;
             }
 
-            var port = nodeMeta.ports[portIndex];
+            var port = nodeMeta.Ports[portIndex];
             if (!port.isExitPort || !port.isDataPort) {
                 Debug.LogError($"Validation failed for output port {portIndex} of node {nodeMeta}: " +
                                $"this port is not an output port.");
@@ -211,9 +213,9 @@ namespace MisterGames.Blueprints.Core2 {
                 return false;
             }
 
-            if (!HasGenericInterface(nodeMeta.node.GetType(), typeof(IBlueprintOutput<>), dataType)) {
+            if (!HasGenericInterface(nodeMeta.NodeType, typeof(IBlueprintOutput<>), dataType)) {
                 Debug.LogError($"Validation failed for output port {portIndex} of node {nodeMeta}: " +
-                               $"node class {nodeMeta.node.GetType().Name} does not implement " +
+                               $"node class {nodeMeta.NodeType.Name} does not implement " +
                                $"interface {typeof(IBlueprintOutput<>).Name}<{dataType.Name}>.");
                 return false;
             }
@@ -257,3 +259,5 @@ namespace MisterGames.Blueprints.Core2 {
     }
 
 }
+
+#endif

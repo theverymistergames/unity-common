@@ -25,36 +25,92 @@ namespace MisterGames.Blueprints.Core2 {
                 int nodeId = _nodeIds[n];
                 var nodeMeta = nodes[nodeId];
 
-                var ports = nodeMeta.ports;
-                int portsLength = ports.Length;
-
-                var portCompileDataArray = portsLength > 0
-                    ? new BlueprintPortCompileData[portsLength]
+                int portsCount = nodeMeta.Ports.Count;
+                var ports = portsCount > 0
+                    ? new BlueprintPortCompileData[portsCount]
                     : Array.Empty<BlueprintPortCompileData>();
 
-                for (int p = 0; p < portsLength; p++) {
-#if DEBUG
+                for (int p = 0; p < portsCount; p++) {
+#if DEBUG || UNITY_EDITOR
                     if (!BlueprintValidationUtils.ValidatePort(nodeMeta, p)) continue;
 #endif
+
                     int linksCount = meta.GetNodePortConnectionsCount(nodeId, p);
-                    var linkCompileDataArray = linksCount > 0
+                    var links = linksCount > 0
                         ? new BlueprintLinkCompileData[linksCount]
                         : Array.Empty<BlueprintLinkCompileData>();
 
                     for (int l = 0; l < linksCount; l++) {
                         int connectionId = meta.GetNodePortConnectionId(nodeId, p, l);
                         var connection = connections[connectionId];
-#if DEBUG
+
+#if DEBUG || UNITY_EDITOR
                         if (!BlueprintValidationUtils.ValidateLink(nodeMeta, p, nodes[connection.toNodeId], connection.toPortIndex)) continue;
 #endif
-                        linkCompileDataArray[l] = new BlueprintLinkCompileData(connection.toNodeId, connection.toPortIndex);
+
+                        links[l] = new BlueprintLinkCompileData(connection.toNodeId, connection.toPortIndex);
                     }
 
-                    portCompileDataArray[p] = new BlueprintPortCompileData(linkCompileDataArray);
+                    ports[p] = new BlueprintPortCompileData(links);
                 }
 
-                _nodeCompileDataMap[nodeId] = new BlueprintNodeCompileData(nodeMeta, portCompileDataArray);
+                _nodeCompileDataMap[nodeId] = new BlueprintNodeCompileData(nodeMeta, ports);
             }
+        }
+
+        public RuntimeBlueprint Compile() {
+            var runtimeNodes = _nodesCount > 0
+                ? new BlueprintNode[_nodesCount]
+                : Array.Empty<BlueprintNode>();
+
+            _runtimeNodesMap.Clear();
+
+            for (int i = 0; i < _nodesCount; i++) {
+                int nodeId = _nodeIds[i];
+                var nodeCompileData = _nodeCompileDataMap[nodeId];
+
+                if (!_runtimeNodesMap.TryGetValue(nodeId, out var runtimeNode)) {
+                    runtimeNode = CreateBlueprintNodeInstance(nodeCompileData.nodeMeta);
+                    _runtimeNodesMap[nodeId] = runtimeNode;
+                }
+
+                var ports = nodeCompileData.ports;
+                int portsCount = ports.Length;
+
+                var runtimePorts = portsCount > 0
+                    ? new RuntimePort[portsCount]
+                    : Array.Empty<RuntimePort>();
+
+                for (int p = 0; p < portsCount; p++) {
+                    var links = ports[p].links;
+                    int linksCount = links.Length;
+
+                    var runtimeLinks = linksCount > 0
+                        ? new RuntimeLink[linksCount]
+                        : Array.Empty<RuntimeLink>();
+
+                    for (int l = 0; l < links.Length; l++) {
+                        var link = links[l];
+
+                        if (!_runtimeNodesMap.TryGetValue(link.nodeId, out var linkedRuntimeNode)) {
+                            var linkedNodeMeta = _nodeCompileDataMap[link.nodeId].nodeMeta;
+                            linkedRuntimeNode = CreateBlueprintNodeInstance(linkedNodeMeta);
+                            _runtimeNodesMap[link.nodeId] = linkedRuntimeNode;
+                        }
+
+                        runtimeLinks[l] = new RuntimeLink(linkedRuntimeNode, link.portIndex);
+                    }
+
+                    runtimePorts[p] = new RuntimePort(runtimeLinks);
+                }
+
+                runtimeNode.InjectRuntimePorts(runtimePorts);
+                runtimeNodes[i] = runtimeNode;
+            }
+
+            _runtimeNodesMap.Clear();
+
+            return new RuntimeBlueprint(runtimeNodes);
         }
 
         public void Clear() {
@@ -66,59 +122,8 @@ namespace MisterGames.Blueprints.Core2 {
             _runtimeNodesMap.Clear();
         }
 
-        public RuntimeBlueprint Compile() {
-            var runtimeNodesArray = _nodesCount > 0 ? new BlueprintNode[_nodesCount] : Array.Empty<BlueprintNode>();
-
-            _runtimeNodesMap.Clear();
-
-            for (int i = 0; i < _nodesCount; i++) {
-                int nodeId = _nodeIds[i];
-                var nodeCompileData = _nodeCompileDataMap[nodeId];
-
-                // Get or create current node instance
-                if (!_runtimeNodesMap.TryGetValue(nodeId, out var runtimeNode)) {
-                    runtimeNode = CreateBlueprintNodeInstance(nodeCompileData.nodeMeta);
-                    _runtimeNodesMap[nodeId] = runtimeNode;
-                }
-
-                runtimeNode.InjectRuntimePorts(CompileNodePorts(nodeCompileData.ports));
-                runtimeNodesArray[i] = runtimeNode;
-            }
-
-            _runtimeNodesMap.Clear();
-
-            return new RuntimeBlueprint(runtimeNodesArray);
-        }
-
-        private RuntimePort[] CompileNodePorts(BlueprintPortCompileData[] ports) {
-            var runtimePorts = ports.Length > 0 ? new RuntimePort[ports.Length] : Array.Empty<RuntimePort>();
-
-            for (int p = 0; p < ports.Length; p++) {
-                runtimePorts[p] = new RuntimePort(CompilePortLinks(ports[p].links));
-            }
-
-            return runtimePorts;
-        }
-
-        private RuntimeLink[] CompilePortLinks(BlueprintLinkCompileData[] links) {
-            var runtimeLinks = links.Length > 0 ? new RuntimeLink[links.Length] : Array.Empty<RuntimeLink>();
-
-            for (int l = 0; l < links.Length; l++) {
-                var link = links[l];
-
-                if (!_runtimeNodesMap.TryGetValue(link.nodeId, out var runtimeNode)) {
-                    runtimeNode = CreateBlueprintNodeInstance(_nodeCompileDataMap[link.nodeId].nodeMeta);
-                    _runtimeNodesMap[link.nodeId] = runtimeNode;
-                }
-
-                runtimeLinks[l] = new RuntimeLink(runtimeNode, link.portIndex);
-            }
-
-            return runtimeLinks;
-        }
-
-        private BlueprintNode CreateBlueprintNodeInstance(BlueprintNodeMeta nodeMeta) {
-            return (BlueprintNode) Activator.CreateInstance(nodeMeta.node.GetType());
+        private static BlueprintNode CreateBlueprintNodeInstance(BlueprintNodeMeta nodeMeta) {
+            return (BlueprintNode) Activator.CreateInstance(nodeMeta.NodeType);
         }
 
         private readonly struct BlueprintNodeCompileData {

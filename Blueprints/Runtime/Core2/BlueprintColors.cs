@@ -5,6 +5,7 @@ namespace MisterGames.Blueprints.Core2 {
     public static class BlueprintColors {
         
         public static class Node {
+
             public const string Flow = "#38697A";
             public const string Data = "#375D3B";
             public const string Time = "#37595D";
@@ -13,11 +14,12 @@ namespace MisterGames.Blueprints.Core2 {
             public const string Default = "#646464";
             public const string Blackboard = "#866B2B";
             public const string Exposed = "#5F436A";
+
         }
 
         public static class Port {
 
-            public static class Names {
+            public static class Header {
                     
                 public const string Flow = "#68C2E1";
                 public const string Data = "#80DD8A";
@@ -43,7 +45,7 @@ namespace MisterGames.Blueprints.Core2 {
                 }
             }
 
-            public static class Links {
+            public static class Connection {
                     
                 public static readonly Color Flow = new Color(0.53f, 0.8f, 0.95f);
                 public static readonly Color Data = new Color(0.45f, 0.87f, 0.49f);
@@ -68,9 +70,7 @@ namespace MisterGames.Blueprints.Core2 {
                     return Data;
                 }
             }
-            
         }
-        
     }
 
 }

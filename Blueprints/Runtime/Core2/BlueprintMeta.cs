@@ -24,16 +24,10 @@ namespace MisterGames.Blueprints.Core2 {
         public IReadOnlyDictionary<int, BlueprintNodeMeta> Nodes => _nodes;
         public IReadOnlyDictionary<int, BlueprintConnection> Connections => _connections;
 
-        public int AddNode<T>(Vector2 position) where T : BlueprintNode {
+        public int AddNode(BlueprintNodeMeta nodeMeta) {
             int nodeId = _addedNodesTotalCount++;
 
-            var node = (BlueprintNode) Activator.CreateInstance<T>();
-
-            _nodes.Add(nodeId, new BlueprintNodeMeta {
-                node = node,
-                position = position,
-                ports = node.CreatePorts(),
-            });
+            _nodes.Add(nodeId, nodeMeta);
 
             return nodeId;
         }
@@ -59,11 +53,11 @@ namespace MisterGames.Blueprints.Core2 {
             if (!_nodes.TryGetValue(fromNodeId, out var fromNode)) return false;
             if (!_nodes.TryGetValue(toNodeId, out var toNode)) return false;
 
-            if (fromPortIndex < 0 || fromPortIndex > fromNode.ports.Length - 1) return false;
-            if (toPortIndex < 0 || toPortIndex > toNode.ports.Length - 1) return false;
+            if (fromPortIndex < 0 || fromPortIndex > fromNode.Ports.Count - 1) return false;
+            if (toPortIndex < 0 || toPortIndex > toNode.Ports.Count - 1) return false;
 
-            var fromPort = fromNode.ports[fromPortIndex];
-            var toPort = toNode.ports[toPortIndex];
+            var fromPort = fromNode.Ports[fromPortIndex];
+            var toPort = toNode.Ports[toPortIndex];
 
             // fromPort is an enter port
             if (!fromPort.isDataPort && !fromPort.isExitPort) {
@@ -172,6 +166,10 @@ namespace MisterGames.Blueprints.Core2 {
 
             _addedNodesTotalCount = 0;
             _addedConnectionsTotalCount = 0;
+        }
+
+        public void Invalidate() {
+
         }
 
         private bool TryCreateConnection(
