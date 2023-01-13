@@ -1,9 +1,11 @@
 ﻿using System;
+using MisterGames.Blueprints.Core2;
 
-namespace MisterGames.Blueprints.Core2 {
+namespace MisterGames.BlueprintLib.Core2 {
 
     [Serializable]
-    public sealed class BlueprintNodeLog2 : BlueprintNode, IBlueprintEnter, IBlueprintOutput<string> {
+    [BlueprintNodeMeta(Name = "Core2.Log", Category = "Core2.Test", Color = BlueprintColors.Node.Actions)]
+    public sealed class BlueprintNodeLog : BlueprintNode, IBlueprintEnter, IBlueprintOutput<string> {
 
         public override Port[] CreatePorts() => new[] {
             Ports.Enter("Enter"),
