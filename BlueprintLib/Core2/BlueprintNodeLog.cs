@@ -8,10 +8,10 @@ namespace MisterGames.BlueprintLib.Core2 {
     public sealed class BlueprintNodeLog : BlueprintNode, IBlueprintEnter, IBlueprintOutput<string> {
 
         public override Port[] CreatePorts() => new[] {
-            Ports.Enter("Enter"),
-            Ports.Exit("Exit"),
-            Ports.Input<string>("Input string"),
-            Ports.Output<string>("Output string"),
+            Port.Enter("Enter"),
+            Port.Exit("Exit"),
+            Port.Input<string>("Input string"),
+            Port.Output<string>("Output string"),
         };
 
         public void OnEnterPort(int port) {

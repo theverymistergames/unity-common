@@ -1,6 +1,4 @@
-﻿#if DEBUG || UNITY_EDITOR
-
-using System;
+﻿using System;
 using UnityEngine;
 
 namespace MisterGames.Blueprints.Core2 {
@@ -259,5 +257,3 @@ namespace MisterGames.Blueprints.Core2 {
     }
 
 }
-
-#endif

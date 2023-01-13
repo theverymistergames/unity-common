@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace MisterGames.Blueprints.Core2 {
 
@@ -11,7 +12,7 @@ namespace MisterGames.Blueprints.Core2 {
         [SerializeField] [HideInInspector]
         private BlueprintMeta _blueprintMeta;
 
-        public BlueprintMeta Meta => _blueprintMeta;
+        public BlueprintMeta BlueprintMeta => _blueprintMeta;
 
         private readonly BlueprintCompiler _blueprintCompiler = new BlueprintCompiler();
         private bool _isCompilerPrepared;
@@ -23,6 +24,10 @@ namespace MisterGames.Blueprints.Core2 {
             _isCompilerPrepared = true;
 
             return _blueprintCompiler.Compile();
+        }
+
+        private void OnValidate() {
+            _blueprintMeta.OnValidate(this);
         }
     }
 

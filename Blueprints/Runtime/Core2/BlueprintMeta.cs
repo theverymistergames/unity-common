@@ -14,8 +14,8 @@ namespace MisterGames.Blueprints.Core2 {
         [SerializeField] private IntToBlueprintNodeMetaMap _nodes;
         [SerializeField] private IntToBlueprintConnectionMap _connections;
 
-        [SerializeField] private IntToListIntMap _fromNodeConnectionIds;
-        [SerializeField] private IntToListIntMap _toNodeConnectionIds;
+        [SerializeField] private IntToListIntMap _fromNodeConnectionIdsMap;
+        [SerializeField] private IntToListIntMap _toNodeConnectionIdsMap;
 
         [Serializable] private sealed class IntToBlueprintNodeMetaMap : SerializedDictionary<int, BlueprintNodeMeta> {}
         [Serializable] private sealed class IntToBlueprintConnectionMap : SerializedDictionary<int, BlueprintConnection> {}
@@ -130,7 +130,7 @@ namespace MisterGames.Blueprints.Core2 {
         }
 
         public int GetNodePortConnectionsCount(int nodeId, int portIndex) {
-            if (!_fromNodeConnectionIds.TryGetValue(nodeId, out var connectionIds)) return 0;
+            if (!_fromNodeConnectionIdsMap.TryGetValue(nodeId, out var connectionIds)) return 0;
 
             int count = 0;
             for (int i = 0; i < connectionIds.Count; i++) {
@@ -142,7 +142,7 @@ namespace MisterGames.Blueprints.Core2 {
         }
 
         public int GetNodePortConnectionId(int nodeId, int portIndex, int linkIndex) {
-            if (!_fromNodeConnectionIds.TryGetValue(nodeId, out var connectionIds)) return -1;
+            if (!_fromNodeConnectionIdsMap.TryGetValue(nodeId, out var connectionIds)) return -1;
 
             int count = 0;
             for (int i = 0; i < connectionIds.Count; i++) {
@@ -161,15 +161,42 @@ namespace MisterGames.Blueprints.Core2 {
             _nodes.Clear();
             _connections.Clear();
 
-            _fromNodeConnectionIds.Clear();
-            _toNodeConnectionIds.Clear();
+            _fromNodeConnectionIdsMap.Clear();
+            _toNodeConnectionIdsMap.Clear();
 
             _addedNodesTotalCount = 0;
             _addedConnectionsTotalCount = 0;
         }
 
         public void Invalidate() {
+            foreach ((int nodeId, var nodeMeta) in _nodes) {
+                nodeMeta.RecreatePorts();
+            }
 
+            foreach ((int connectionId, var connection) in _connections) {
+                connection.fromNodeId
+            }
+        }
+
+        public void InvalidateNode(int nodeId) {
+            if (!_nodes.TryGetValue(nodeId, out var nodeMeta)) return;
+
+            nodeMeta.RecreatePorts();
+
+            if (_fromNodeConnectionIdsMap.TryGetValue(nodeId, out var fromNodeConnectionIds)) {
+                for (int i = 0; i < fromNodeConnectionIds.Count; i++) {
+                    int connectionId = fromNodeConnectionIds[i];
+                    var connection = _connections[connectionId];
+
+
+                }
+            }
+        }
+
+        public void OnValidate(BlueprintAsset owner) {
+            foreach ((int nodeId, var nodeMeta) in _nodes) {
+                nodeMeta.OnValidate(nodeId, owner);
+            }
         }
 
         private bool TryCreateConnection(
@@ -201,7 +228,7 @@ namespace MisterGames.Blueprints.Core2 {
             int fromNodeId, int fromPortIndex,
             int toNodeId, int toPortIndex
         ) {
-            if (!_fromNodeConnectionIds.TryGetValue(fromNodeId, out var connectionIds)) return false;
+            if (!_fromNodeConnectionIdsMap.TryGetValue(fromNodeId, out var connectionIds)) return false;
 
             for (int i = 0; i < connectionIds.Count; i++) {
                 int id = connectionIds[i];
@@ -219,25 +246,25 @@ namespace MisterGames.Blueprints.Core2 {
         }
 
         private void AddConnectionFromNode(int fromNodeId, int connectionId) {
-            if (_fromNodeConnectionIds.TryGetValue(fromNodeId, out var ids)) {
+            if (_fromNodeConnectionIdsMap.TryGetValue(fromNodeId, out var ids)) {
                 ids.Add(connectionId);
                 return;
             }
 
-            _fromNodeConnectionIds[fromNodeId] = new List<int>(connectionId);
+            _fromNodeConnectionIdsMap[fromNodeId] = new List<int>(connectionId);
         }
 
         private void AddConnectionToNode(int toNodeId, int connectionId) {
-            if (_toNodeConnectionIds.TryGetValue(toNodeId, out var ids)) {
+            if (_toNodeConnectionIdsMap.TryGetValue(toNodeId, out var ids)) {
                 ids.Add(connectionId);
                 return;
             }
 
-            _toNodeConnectionIds[toNodeId] = new List<int>(connectionId);
+            _toNodeConnectionIdsMap[toNodeId] = new List<int>(connectionId);
         }
 
         private void RemoveConnectionsFromNodePort(int nodeId, int portIndex) {
-            if (!_fromNodeConnectionIds.TryGetValue(nodeId, out var ids)) return;
+            if (!_fromNodeConnectionIdsMap.TryGetValue(nodeId, out var ids)) return;
 
             for (int i = ids.Count - 1; i >= 0; i--) {
                 int id = ids[i];
@@ -255,11 +282,11 @@ namespace MisterGames.Blueprints.Core2 {
                 ids.RemoveAt(i);
             }
 
-            if (ids.Count == 0) _fromNodeConnectionIds.Remove(nodeId);
+            if (ids.Count == 0) _fromNodeConnectionIdsMap.Remove(nodeId);
         }
 
         private void RemoveConnectionsToNodePort(int nodeId, int portIndex) {
-            if (!_toNodeConnectionIds.TryGetValue(nodeId, out var ids)) return;
+            if (!_toNodeConnectionIdsMap.TryGetValue(nodeId, out var ids)) return;
 
             for (int i = ids.Count - 1; i >= 0; i--) {
                 int id = ids[i];
@@ -277,27 +304,27 @@ namespace MisterGames.Blueprints.Core2 {
                 ids.RemoveAt(i);
             }
 
-            if (ids.Count == 0) _toNodeConnectionIds.Remove(nodeId);
+            if (ids.Count == 0) _toNodeConnectionIdsMap.Remove(nodeId);
         }
 
         private void RemoveConnectionsFromNode(int nodeId) {
-            if (!_fromNodeConnectionIds.TryGetValue(nodeId, out var ids)) return;
+            if (!_fromNodeConnectionIdsMap.TryGetValue(nodeId, out var ids)) return;
 
             for (int i = 0; i < ids.Count; i++) {
                 _connections.Remove(ids[i]);
             }
 
-            _fromNodeConnectionIds.Remove(nodeId);
+            _fromNodeConnectionIdsMap.Remove(nodeId);
         }
 
         private void RemoveConnectionsToNode(int nodeId) {
-            if (!_toNodeConnectionIds.TryGetValue(nodeId, out var ids)) return;
+            if (!_toNodeConnectionIdsMap.TryGetValue(nodeId, out var ids)) return;
 
             for (int i = 0; i < ids.Count; i++) {
                 _connections.Remove(ids[i]);
             }
 
-            _toNodeConnectionIds.Remove(nodeId);
+            _toNodeConnectionIdsMap.Remove(nodeId);
         }
     }
 

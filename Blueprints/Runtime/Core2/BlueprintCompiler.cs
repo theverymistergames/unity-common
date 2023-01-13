@@ -67,14 +67,9 @@ namespace MisterGames.Blueprints.Core2 {
 
             for (int i = 0; i < _nodesCount; i++) {
                 int nodeId = _nodeIds[i];
-                var nodeCompileData = _nodeCompileDataMap[nodeId];
+                var runtimeNode = GetOrCreateRuntimeInstance(nodeId);
 
-                if (!_runtimeNodesMap.TryGetValue(nodeId, out var runtimeNode)) {
-                    runtimeNode = CreateBlueprintNodeInstance(nodeCompileData.nodeMeta);
-                    _runtimeNodesMap[nodeId] = runtimeNode;
-                }
-
-                var ports = nodeCompileData.ports;
+                var ports = _nodeCompileDataMap[nodeId].ports;
                 int portsCount = ports.Length;
 
                 var runtimePorts = portsCount > 0
@@ -91,12 +86,7 @@ namespace MisterGames.Blueprints.Core2 {
 
                     for (int l = 0; l < links.Length; l++) {
                         var link = links[l];
-
-                        if (!_runtimeNodesMap.TryGetValue(link.nodeId, out var linkedRuntimeNode)) {
-                            var linkedNodeMeta = _nodeCompileDataMap[link.nodeId].nodeMeta;
-                            linkedRuntimeNode = CreateBlueprintNodeInstance(linkedNodeMeta);
-                            _runtimeNodesMap[link.nodeId] = linkedRuntimeNode;
-                        }
+                        var linkedRuntimeNode = GetOrCreateRuntimeInstance(link.nodeId);
 
                         runtimeLinks[l] = new RuntimeLink(linkedRuntimeNode, link.portIndex);
                     }
@@ -122,8 +112,18 @@ namespace MisterGames.Blueprints.Core2 {
             _runtimeNodesMap.Clear();
         }
 
-        private static BlueprintNode CreateBlueprintNodeInstance(BlueprintNodeMeta nodeMeta) {
-            return (BlueprintNode) Activator.CreateInstance(nodeMeta.NodeType);
+        private BlueprintNode GetOrCreateRuntimeInstance(int nodeId) {
+            if (_runtimeNodesMap.TryGetValue(nodeId, out var nodeInstance)) return nodeInstance;
+
+            var nodeMeta = _nodeCompileDataMap[nodeId].nodeMeta;
+            nodeInstance = (BlueprintNode) Activator.CreateInstance(nodeMeta.NodeType);
+            if (nodeInstance is IBlueprintCompiledNode compiledNode) compiledNode.Compile();
+
+
+            _runtimeNodesMap[nodeId] = nodeInstance;
+
+            return nodeInstance;
+
         }
 
         private readonly struct BlueprintNodeCompileData {
