@@ -1,8 +1,7 @@
 ﻿using System;
-using MisterGames.Blueprints.Core2;
 using UnityEngine;
 
-namespace MisterGames.Blueprints.Utils2 {
+namespace MisterGames.Blueprints.Core2 {
 
     internal static class BlueprintValidationUtils {
 
