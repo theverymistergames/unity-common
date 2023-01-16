@@ -23,7 +23,7 @@ namespace MisterGames.Blueprints.Core2 {
         [Serializable]
         private sealed class IntIntToListOfBlueprintLinkMap : SerializedDictionary<int, IntToListOfBlueprintLinkMap> {}
 
-        public IReadOnlyDictionary<int, BlueprintNodeMeta> Nodes => _nodes;
+        public Dictionary<int, BlueprintNodeMeta> Nodes => _nodes;
 
         public void OnValidate(BlueprintAsset owner) {
             foreach ((int nodeId, var nodeMeta) in _nodes) {

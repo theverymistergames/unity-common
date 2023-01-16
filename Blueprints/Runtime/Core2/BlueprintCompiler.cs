@@ -7,86 +7,45 @@ namespace MisterGames.Blueprints.Core2 {
 
         private readonly Dictionary<int, BlueprintNode> _runtimeNodesMap = new Dictionary<int, BlueprintNode>();
 
-        private int _nodesCount;
-        private List<int> _nodeIds;
-        private Dictionary<int, BlueprintNodeCompileData> _nodeCompileDataMap;
+        public RuntimeBlueprint Compile(BlueprintMeta blueprintMeta) {
+            var nodesMeta = blueprintMeta.Nodes;
+            int nodesCount = nodesMeta.Count;
+            int nodeIndex = 0;
 
-        public void Prepare(BlueprintMeta meta) {
-            Clear();
-
-            var nodes = meta.Nodes;
-            var connections = meta.Connections;
-
-            _nodesCount = nodes.Count;
-            _nodeIds = new List<int>(nodes.Keys);
-            _nodeCompileDataMap = new Dictionary<int, BlueprintNodeCompileData>(_nodesCount);
-
-            for (int n = 0; n < nodes.Count; n++) {
-                int nodeId = _nodeIds[n];
-                var nodeMeta = nodes[nodeId];
-
-                int portsCount = nodeMeta.Ports.Count;
-                var ports = portsCount > 0
-                    ? new BlueprintPortCompileData[portsCount]
-                    : Array.Empty<BlueprintPortCompileData>();
-
-                for (int p = 0; p < portsCount; p++) {
-#if DEBUG || UNITY_EDITOR
-                    if (!BlueprintValidationUtils.ValidatePort(nodeMeta, p)) continue;
-#endif
-
-                    int linksCount = meta.GetNodePortConnectionsCount(nodeId, p);
-                    var links = linksCount > 0
-                        ? new BlueprintLinkCompileData[linksCount]
-                        : Array.Empty<BlueprintLinkCompileData>();
-
-                    for (int l = 0; l < linksCount; l++) {
-                        int connectionId = meta.GetNodePortConnectionId(nodeId, p, l);
-                        var connection = connections[connectionId];
-
-#if DEBUG || UNITY_EDITOR
-                        if (!BlueprintValidationUtils.ValidateLink(nodeMeta, p, nodes[connection.toNodeId], connection.toPortIndex)) continue;
-#endif
-
-                        links[l] = new BlueprintLinkCompileData(connection.toNodeId, connection.toPortIndex);
-                    }
-
-                    ports[p] = new BlueprintPortCompileData(links);
-                }
-
-                _nodeCompileDataMap[nodeId] = new BlueprintNodeCompileData(nodeMeta, ports);
-            }
-        }
-
-        public RuntimeBlueprint Compile() {
-            var runtimeNodes = _nodesCount > 0
-                ? new BlueprintNode[_nodesCount]
+            var runtimeNodes = nodesCount > 0
+                ? new BlueprintNode[nodesCount]
                 : Array.Empty<BlueprintNode>();
 
             _runtimeNodesMap.Clear();
 
-            for (int i = 0; i < _nodesCount; i++) {
-                int nodeId = _nodeIds[i];
-                var runtimeNode = GetOrCreateRuntimeInstance(nodeId);
+            foreach ((int nodeId, var nodeMeta) in nodesMeta) {
+                var runtimeNode = GetOrCreateNodeInstance(nodeId, nodeMeta);
 
-                var ports = _nodeCompileDataMap[nodeId].ports;
-                int portsCount = ports.Length;
+                var ports = nodeMeta.Ports;
+                int portsCount = ports.Count;
 
                 var runtimePorts = portsCount > 0
                     ? new RuntimePort[portsCount]
                     : Array.Empty<RuntimePort>();
 
                 for (int p = 0; p < portsCount; p++) {
-                    var links = ports[p].links;
-                    int linksCount = links.Length;
+#if DEBUG || UNITY_EDITOR
+                    if (!BlueprintValidation.ValidatePort(nodeMeta, p)) continue;
+#endif
+                    var links = blueprintMeta.GetLinksFromNodePort(nodeId, p);
+                    int linksCount = links.Count;
 
                     var runtimeLinks = linksCount > 0
                         ? new RuntimeLink[linksCount]
                         : Array.Empty<RuntimeLink>();
 
-                    for (int l = 0; l < links.Length; l++) {
+                    for (int l = 0; l < linksCount; l++) {
                         var link = links[l];
-                        var linkedRuntimeNode = GetOrCreateRuntimeInstance(link.nodeId);
+                        var linkedNodeMeta = nodesMeta[link.nodeId];
+#if DEBUG || UNITY_EDITOR
+                        if (!BlueprintValidation.ValidateLink(nodeMeta, p, linkedNodeMeta, link.portIndex)) continue;
+#endif
+                        var linkedRuntimeNode = GetOrCreateNodeInstance(link.nodeId, linkedNodeMeta);
 
                         runtimeLinks[l] = new RuntimeLink(linkedRuntimeNode, link.portIndex);
                     }
@@ -95,7 +54,7 @@ namespace MisterGames.Blueprints.Core2 {
                 }
 
                 runtimeNode.InjectRuntimePorts(runtimePorts);
-                runtimeNodes[i] = runtimeNode;
+                runtimeNodes[nodeIndex++] = runtimeNode;
             }
 
             _runtimeNodesMap.Clear();
@@ -103,58 +62,13 @@ namespace MisterGames.Blueprints.Core2 {
             return new RuntimeBlueprint(runtimeNodes);
         }
 
-        public void Clear() {
-            _nodesCount = 0;
-
-            _nodeCompileDataMap?.Clear();
-            _nodeIds?.Clear();
-
-            _runtimeNodesMap.Clear();
-        }
-
-        private BlueprintNode GetOrCreateRuntimeInstance(int nodeId) {
+        private BlueprintNode GetOrCreateNodeInstance(int nodeId, BlueprintNodeMeta nodeMeta) {
             if (_runtimeNodesMap.TryGetValue(nodeId, out var nodeInstance)) return nodeInstance;
 
-            var nodeMeta = _nodeCompileDataMap[nodeId].nodeMeta;
-            nodeInstance = (BlueprintNode) Activator.CreateInstance(nodeMeta.NodeType);
-            if (nodeInstance is IBlueprintCompiledNode compiledNode) compiledNode.Compile();
-
-
+            nodeInstance = (BlueprintNode) Activator.CreateInstance(nodeMeta.Node.GetType());
             _runtimeNodesMap[nodeId] = nodeInstance;
 
             return nodeInstance;
-
-        }
-
-        private readonly struct BlueprintNodeCompileData {
-
-            public readonly BlueprintNodeMeta nodeMeta;
-            public readonly BlueprintPortCompileData[] ports;
-
-            public BlueprintNodeCompileData(BlueprintNodeMeta nodeMeta, BlueprintPortCompileData[] ports) {
-                this.nodeMeta = nodeMeta;
-                this.ports = ports;
-            }
-        }
-
-        private readonly struct BlueprintPortCompileData {
-
-            public readonly BlueprintLinkCompileData[] links;
-
-            public BlueprintPortCompileData(BlueprintLinkCompileData[] links) {
-                this.links = links;
-            }
-        }
-
-        private readonly struct BlueprintLinkCompileData {
-
-            public readonly int nodeId;
-            public readonly int portIndex;
-
-            public BlueprintLinkCompileData(int nodeId, int portIndex) {
-                this.nodeId = nodeId;
-                this.portIndex = portIndex;
-            }
         }
     }
 

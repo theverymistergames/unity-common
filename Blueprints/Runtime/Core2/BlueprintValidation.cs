@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace MisterGames.Blueprints.Core2 {
 
-    internal static class BlueprintValidationUtils {
+    internal static class BlueprintValidation {
 
         public static bool ValidatePort(BlueprintNodeMeta nodeMeta, int portIndex) {
             if (portIndex < 0 || portIndex > nodeMeta.Ports.Count - 1) {
@@ -85,9 +85,9 @@ namespace MisterGames.Blueprints.Core2 {
                 return false;
             }
 
-            if (!HasInterface(nodeMeta.NodeType, typeof(IBlueprintEnter))) {
+            if (nodeMeta.Node is not IBlueprintEnter) {
                 Debug.LogError($"Validation failed for enter port {portIndex} of node {nodeMeta}: " +
-                               $"node class {nodeMeta.NodeType.Name} does not implement interface {nameof(IBlueprintEnter)}.");
+                               $"node class {nodeMeta.Node.GetType().Name} does not implement interface {nameof(IBlueprintEnter)}.");
                 return false;
             }
 
@@ -165,19 +165,17 @@ namespace MisterGames.Blueprints.Core2 {
                 return false;
             }
 
-            if (!port.hasDataType &&
-                !HasInterface(nodeMeta.NodeType, typeof(IBlueprintOutput))
-            ) {
+            if (!port.hasDataType && nodeMeta.Node is not IBlueprintOutput) {
                 Debug.LogError($"Validation failed for non-typed output port {portIndex} of node {nodeMeta}: " +
-                               $"node class {nodeMeta.NodeType.Name} does not implement interface {nameof(IBlueprintOutput)}.");
+                               $"node class {nodeMeta.Node.GetType().Name} does not implement interface {nameof(IBlueprintOutput)}.");
                 return false;
             }
             
             if (port.hasDataType &&
-                !HasGenericInterface(nodeMeta.NodeType, typeof(IBlueprintOutput<>), port.DataType)
+                !HasGenericInterface(nodeMeta.Node.GetType(), typeof(IBlueprintOutput<>), port.DataType)
             ) {
                 Debug.LogError($"Validation failed for output port {portIndex} of node {nodeMeta}: " +
-                               $"node class {nodeMeta.NodeType.Name} does not implement " +
+                               $"node class {nodeMeta.Node.GetType().Name} does not implement " +
                                $"interface {typeof(IBlueprintOutput<>).Name}<{port.DataType.Name}>.");
                 return false;
             }
@@ -211,9 +209,9 @@ namespace MisterGames.Blueprints.Core2 {
                 return false;
             }
 
-            if (!HasGenericInterface(nodeMeta.NodeType, typeof(IBlueprintOutput<>), dataType)) {
+            if (!HasGenericInterface(nodeMeta.Node.GetType(), typeof(IBlueprintOutput<>), dataType)) {
                 Debug.LogError($"Validation failed for output port {portIndex} of node {nodeMeta}: " +
-                               $"node class {nodeMeta.NodeType.Name} does not implement " +
+                               $"node class {nodeMeta.Node.GetType().Name} does not implement " +
                                $"interface {typeof(IBlueprintOutput<>).Name}<{dataType.Name}>.");
                 return false;
             }

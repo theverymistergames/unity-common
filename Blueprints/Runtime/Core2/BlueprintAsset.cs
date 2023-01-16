@@ -15,15 +15,9 @@ namespace MisterGames.Blueprints.Core2 {
         public BlueprintMeta BlueprintMeta => _blueprintMeta;
 
         private readonly BlueprintCompiler _blueprintCompiler = new BlueprintCompiler();
-        private bool _isCompilerPrepared;
 
         public RuntimeBlueprint Compile() {
-            if (_isCompilerPrepared) return _blueprintCompiler.Compile();
-
-            _blueprintCompiler.Prepare(_blueprintMeta);
-            _isCompilerPrepared = true;
-
-            return _blueprintCompiler.Compile();
+            return _blueprintCompiler.Compile(_blueprintMeta);
         }
 
         private void OnValidate() {
