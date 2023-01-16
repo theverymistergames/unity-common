@@ -17,7 +17,7 @@ namespace MisterGames.Blueprints.Core2 {
         /// to be able to store serialized data inside node.
         /// </summary>
         [SerializeReference] private BlueprintNode _node;
-        public Type NodeType => _node.GetType();
+        public BlueprintNode Node => _node;
 
         /// <summary>
         /// Position of the blueprint node in the Blueprint Editor window.
@@ -36,16 +36,14 @@ namespace MisterGames.Blueprints.Core2 {
 
         public static BlueprintNodeMeta FromType(Type nodeType) {
             var node = (BlueprintNode) Activator.CreateInstance(nodeType);
-            var ports = node.CreatePorts();
-
-            return new BlueprintNodeMeta(node, ports);
+            return new BlueprintNodeMeta(node);
         }
 
         private BlueprintNodeMeta() { }
 
-        private BlueprintNodeMeta(BlueprintNode node, Port[] ports) {
+        private BlueprintNodeMeta(BlueprintNode node) {
             _node = node;
-            _ports = ports;
+            RecreatePorts();
         }
 
         public void OnValidate(int nodeId, BlueprintAsset owner) {
@@ -56,5 +54,4 @@ namespace MisterGames.Blueprints.Core2 {
             _ports = _node.CreatePorts();
         }
     }
-
 }

@@ -9,20 +9,73 @@ namespace MisterGames.Blueprints.Core2 {
     public sealed class BlueprintMeta {
 
         [SerializeField] private int _addedNodesTotalCount;
-        [SerializeField] private int _addedConnectionsTotalCount;
 
         [SerializeField] private IntToBlueprintNodeMetaMap _nodes;
-        [SerializeField] private IntToBlueprintConnectionMap _connections;
+        [SerializeField] private IntIntToListOfBlueprintLinkMap _fromNodePortLinksMap;
+        [SerializeField] private IntIntToListOfBlueprintLinkMap _toNodePortLinksMap;
 
-        [SerializeField] private IntToListIntMap _fromNodeConnectionIdsMap;
-        [SerializeField] private IntToListIntMap _toNodeConnectionIdsMap;
+        [Serializable]
+        private sealed class IntToBlueprintNodeMetaMap : SerializedDictionary<int, BlueprintNodeMeta> {}
 
-        [Serializable] private sealed class IntToBlueprintNodeMetaMap : SerializedDictionary<int, BlueprintNodeMeta> {}
-        [Serializable] private sealed class IntToBlueprintConnectionMap : SerializedDictionary<int, BlueprintConnection> {}
-        [Serializable] private sealed class IntToListIntMap : SerializedDictionary<int, List<int>> {}
+        [Serializable]
+        private sealed class IntToListOfBlueprintLinkMap : SerializedDictionary<int, List<BlueprintLink>> {}
+
+        [Serializable]
+        private sealed class IntIntToListOfBlueprintLinkMap : SerializedDictionary<int, IntToListOfBlueprintLinkMap> {}
 
         public IReadOnlyDictionary<int, BlueprintNodeMeta> Nodes => _nodes;
-        public IReadOnlyDictionary<int, BlueprintConnection> Connections => _connections;
+
+        public void OnValidate(BlueprintAsset owner) {
+            foreach ((int nodeId, var nodeMeta) in _nodes) {
+                nodeMeta.OnValidate(nodeId, owner);
+            }
+        }
+
+        public void Invalidate() {
+            foreach (int nodeId in _nodes.Keys) {
+                InvalidateNode(nodeId);
+            }
+        }
+
+        public void InvalidateNode(int nodeId) {
+            if (!_nodes.TryGetValue(nodeId, out var nodeMeta)) return;
+
+            var oldPorts = nodeMeta.Ports;
+            int oldPortsCount = oldPorts.Count;
+
+            nodeMeta.RecreatePorts();
+            var newPorts = nodeMeta.Ports;
+            int newPortsCount = newPorts.Count;
+
+            if (newPortsCount < oldPortsCount) {
+                for (int p = newPortsCount; p < oldPortsCount; p++) {
+                    RemoveLinksFromNodePort(nodeId, p);
+                    RemoveLinksToNodePort(nodeId, p);
+                }
+            }
+
+            for (int p = 0; p < newPortsCount; p++) {
+                if (p >= oldPortsCount) break;
+
+                var newPort = newPorts[p];
+                var oldPort = oldPorts[p];
+
+                if (newPort.GetSignatureHashCode() == oldPort.GetSignatureHashCode()) continue;
+
+                RemoveLinksFromNodePort(nodeId, p);
+                RemoveLinksToNodePort(nodeId, p);
+            }
+        }
+
+        public IReadOnlyList<BlueprintLink> GetLinksFromNodePort(int nodeId, int portIndex) {
+            if (!_fromNodePortLinksMap.TryGetValue(nodeId, out var fromNodePortLinksMap) ||
+                !fromNodePortLinksMap.TryGetValue(portIndex, out var fromNodePortLinks)
+            ) {
+                return Array.Empty<BlueprintLink>();
+            }
+
+            return fromNodePortLinks;
+        }
 
         public int AddNode(BlueprintNodeMeta nodeMeta) {
             int nodeId = _addedNodesTotalCount++;
@@ -35,19 +88,13 @@ namespace MisterGames.Blueprints.Core2 {
         public void RemoveNode(int nodeId) {
             if (!_nodes.ContainsKey(nodeId)) return;
 
-            RemoveConnectionsFromNode(nodeId);
-            RemoveConnectionsToNode(nodeId);
+            RemoveLinksFromNode(nodeId);
+            RemoveLinksToNode(nodeId);
 
             _nodes.Remove(nodeId);
         }
 
-        public bool TryConnectNodes(
-            int fromNodeId, int fromPortIndex,
-            int toNodeId, int toPortIndex,
-            out int connectionId
-        ) {
-            connectionId = -1;
-
+        public bool TryCreateConnection(int fromNodeId, int fromPortIndex, int toNodeId, int toPortIndex) {
             if (fromNodeId == toNodeId) return false;
 
             if (!_nodes.TryGetValue(fromNodeId, out var fromNode)) return false;
@@ -55,6 +102,9 @@ namespace MisterGames.Blueprints.Core2 {
 
             if (fromPortIndex < 0 || fromPortIndex > fromNode.Ports.Count - 1) return false;
             if (toPortIndex < 0 || toPortIndex > toNode.Ports.Count - 1) return false;
+
+            if (HasLinkFromNodePort(fromNodeId, fromPortIndex, toNodeId, toPortIndex)) return false;
+            if (HasLinkToNodePort(fromNodeId, fromPortIndex, toNodeId, toPortIndex)) return false;
 
             var fromPort = fromNode.Ports[fromPortIndex];
             var toPort = toNode.Ports[toPortIndex];
@@ -65,11 +115,11 @@ namespace MisterGames.Blueprints.Core2 {
                 if (toPort.isDataPort || !toPort.isExitPort) return false;
 
                 // adding connection from the exit port toPort to the enter port fromPort
-                return TryCreateConnection(
-                    toNodeId, toPortIndex, fromPort.GetHashCode(),
-                    fromNodeId, fromPortIndex, toPort.GetHashCode(),
-                    out connectionId
+                CreateConnection(
+                    toNodeId, toPortIndex, fromPort.GetSignatureHashCode(),
+                    fromNodeId, fromPortIndex, toPort.GetSignatureHashCode()
                 );
+                return true;
             }
 
             // fromPort is an exit port
@@ -78,11 +128,11 @@ namespace MisterGames.Blueprints.Core2 {
                 if (toPort.isDataPort || toPort.isExitPort) return false;
 
                 // adding connection from the exit port fromPort to the enter port toPort
-                return TryCreateConnection(
-                    fromNodeId, fromPortIndex, toPort.GetHashCode(),
-                    toNodeId, toPortIndex, fromPort.GetHashCode(),
-                    out connectionId
+                CreateConnection(
+                    fromNodeId, fromPortIndex, toPort.GetSignatureHashCode(),
+                    toNodeId, toPortIndex, fromPort.GetSignatureHashCode()
                 );
+                return true;
             }
 
             // fromPort is an input port
@@ -95,12 +145,12 @@ namespace MisterGames.Blueprints.Core2 {
                     fromPort.dataTypeHash != toPort.dataTypeHash) return false;
 
                 // replacing connections from the input port fromPort to the output port toPort with new connection
-                RemoveConnectionsFromNodePort(fromNodeId, fromPortIndex);
-                return TryCreateConnection(
-                    fromNodeId, fromPortIndex, toPort.GetHashCode(),
-                    toNodeId, toPortIndex, fromPort.GetHashCode(),
-                    out connectionId
+                RemoveLinksFromNodePort(fromNodeId, fromPortIndex);
+                CreateConnection(
+                    fromNodeId, fromPortIndex, toPort.GetSignatureHashCode(),
+                    toNodeId, toPortIndex, fromPort.GetSignatureHashCode()
                 );
+                return true;
             }
 
             // fromPort is an output port
@@ -112,219 +162,217 @@ namespace MisterGames.Blueprints.Core2 {
                 fromPort.dataTypeHash != toPort.dataTypeHash) return false;
 
             // replacing connections from the input port toPort to the output port fromPort with new connection
-            RemoveConnectionsFromNodePort(toNodeId, toPortIndex);
-            return TryCreateConnection(
-                toNodeId, toPortIndex, fromPort.GetHashCode(),
-                fromNodeId, fromPortIndex, toPort.GetHashCode(),
-                out connectionId
+            RemoveLinksFromNodePort(toNodeId, toPortIndex);
+            CreateConnection(
+                toNodeId, toPortIndex, fromPort.GetSignatureHashCode(),
+                fromNodeId, fromPortIndex, toPort.GetSignatureHashCode()
             );
+            return true;
         }
 
-        public void RemoveConnection(int connectionId) {
-            if (!_connections.TryGetValue(connectionId, out var connection)) return;
-
-            _connections.Remove(connectionId);
-
-            RemoveConnectionsFromNodePort(connection.fromNodeId, connection.fromPortIndex);
-            RemoveConnectionsToNodePort(connection.toNodeId, connection.toPortIndex);
-        }
-
-        public int GetNodePortConnectionsCount(int nodeId, int portIndex) {
-            if (!_fromNodeConnectionIdsMap.TryGetValue(nodeId, out var connectionIds)) return 0;
-
-            int count = 0;
-            for (int i = 0; i < connectionIds.Count; i++) {
-                var c = _connections[connectionIds[i]];
-                if (c.fromNodeId == nodeId && c.fromPortIndex == portIndex) count++;
-            }
-
-            return count;
-        }
-
-        public int GetNodePortConnectionId(int nodeId, int portIndex, int linkIndex) {
-            if (!_fromNodeConnectionIdsMap.TryGetValue(nodeId, out var connectionIds)) return -1;
-
-            int count = 0;
-            for (int i = 0; i < connectionIds.Count; i++) {
-                int connectionId = connectionIds[i];
-
-                var c = _connections[connectionId];
-                if (c.fromNodeId != nodeId || c.fromPortIndex != portIndex || linkIndex != count++) continue;
-
-                return connectionId;
-            }
-
-            return -1;
+        public void RemoveConnection(int fromNodeId, int fromPortIndex, int toNodeId, int toPortIndex) {
+            RemoveLinkFromNodePort(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
+            RemoveLinkToNodePort(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
         }
 
         public void Clear() {
             _nodes.Clear();
-            _connections.Clear();
-
-            _fromNodeConnectionIdsMap.Clear();
-            _toNodeConnectionIdsMap.Clear();
-
             _addedNodesTotalCount = 0;
-            _addedConnectionsTotalCount = 0;
+
+            _fromNodePortLinksMap.Clear();
+            _toNodePortLinksMap.Clear();
         }
 
-        public void Invalidate() {
-            foreach ((int nodeId, var nodeMeta) in _nodes) {
-                nodeMeta.RecreatePorts();
-            }
-
-            foreach ((int connectionId, var connection) in _connections) {
-                connection.fromNodeId
-            }
-        }
-
-        public void InvalidateNode(int nodeId) {
-            if (!_nodes.TryGetValue(nodeId, out var nodeMeta)) return;
-
-            nodeMeta.RecreatePorts();
-
-            if (_fromNodeConnectionIdsMap.TryGetValue(nodeId, out var fromNodeConnectionIds)) {
-                for (int i = 0; i < fromNodeConnectionIds.Count; i++) {
-                    int connectionId = fromNodeConnectionIds[i];
-                    var connection = _connections[connectionId];
-
-
-                }
-            }
-        }
-
-        public void OnValidate(BlueprintAsset owner) {
-            foreach ((int nodeId, var nodeMeta) in _nodes) {
-                nodeMeta.OnValidate(nodeId, owner);
-            }
-        }
-
-        private bool TryCreateConnection(
-            int fromNodeId, int fromPortIndex, int fromPortHash,
-            int toNodeId, int toPortIndex, int toPortHash,
-            out int connectionId
+        private void CreateConnection(
+            int fromNodeId, int fromPortIndex, int fromPortSignature,
+            int toNodeId, int toPortIndex, int toPortSignature
         ) {
-            connectionId = -1;
-            if (HasConnection(fromNodeId, fromPortIndex, toNodeId, toPortIndex)) return false;
-
-            connectionId = _addedConnectionsTotalCount++;
-
-            _connections.Add(connectionId, new BlueprintConnection {
-                fromNodeId = fromNodeId,
-                fromPortIndex = fromPortIndex,
-                fromPortHash = fromPortHash,
-                toNodeId = toNodeId,
-                toPortIndex = toPortIndex,
-                toPortHash = toPortHash,
-            });
-
-            AddConnectionFromNode(fromNodeId, connectionId);
-            AddConnectionToNode(toNodeId, connectionId);
-
-            return true;
+            AddLinkFromNodePort(fromNodeId, fromPortIndex, toNodeId, toPortIndex, toPortSignature);
+            AddLinkToNodePort(fromNodeId, fromPortIndex, fromPortSignature, toNodeId, toPortIndex);
         }
 
-        private bool HasConnection(
-            int fromNodeId, int fromPortIndex,
-            int toNodeId, int toPortIndex
-        ) {
-            if (!_fromNodeConnectionIdsMap.TryGetValue(fromNodeId, out var connectionIds)) return false;
+        private bool HasLinkFromNodePort(int fromNodeId, int fromPortIndex, int toNodeId, int toPortIndex) {
+            if (!_fromNodePortLinksMap.TryGetValue(fromNodeId, out var fromNodePortLinksMap)) return false;
+            if (!fromNodePortLinksMap.TryGetValue(fromPortIndex, out var fromNodePortLinks)) return false;
 
-            for (int i = 0; i < connectionIds.Count; i++) {
-                int id = connectionIds[i];
-                if (_connections.TryGetValue(id, out var connection) &&
-                    connection.fromNodeId == fromNodeId &&
-                    connection.fromPortIndex == fromPortIndex &&
-                    connection.toNodeId == toNodeId &&
-                    connection.toPortIndex == toPortIndex
-                ) {
-                    return true;
-                }
+            for (int i = 0; i < fromNodePortLinks.Count; i++) {
+                var link = fromNodePortLinks[i];
+                if (link.nodeId == toNodeId && link.portIndex == toPortIndex) return true;
             }
 
             return false;
         }
 
-        private void AddConnectionFromNode(int fromNodeId, int connectionId) {
-            if (_fromNodeConnectionIdsMap.TryGetValue(fromNodeId, out var ids)) {
-                ids.Add(connectionId);
-                return;
+        private bool HasLinkToNodePort(int fromNodeId, int fromPortIndex, int toNodeId, int toPortIndex) {
+            if (!_toNodePortLinksMap.TryGetValue(toNodeId, out var toNodePortLinksMap)) return false;
+            if (!toNodePortLinksMap.TryGetValue(toPortIndex, out var toNodePortLinks)) return false;
+
+            for (int i = 0; i < toNodePortLinks.Count; i++) {
+                var link = toNodePortLinks[i];
+                if (link.nodeId == fromNodeId && link.portIndex == fromPortIndex) return true;
             }
 
-            _fromNodeConnectionIdsMap[fromNodeId] = new List<int>(connectionId);
+            return false;
         }
 
-        private void AddConnectionToNode(int toNodeId, int connectionId) {
-            if (_toNodeConnectionIdsMap.TryGetValue(toNodeId, out var ids)) {
-                ids.Add(connectionId);
-                return;
+        private void AddLinkFromNodePort(int fromNodeId, int fromPortIndex, int toNodeId, int toPortIndex, int toPortSignature) {
+            if (!_fromNodePortLinksMap.TryGetValue(fromNodeId, out var fromNodePortLinksMap)) {
+                fromNodePortLinksMap = new IntToListOfBlueprintLinkMap();
+                _fromNodePortLinksMap[fromNodeId] = fromNodePortLinksMap;
             }
 
-            _toNodeConnectionIdsMap[toNodeId] = new List<int>(connectionId);
+            if (!fromNodePortLinksMap.TryGetValue(fromPortIndex, out var fromNodePortLinks)) {
+                fromNodePortLinks = new List<BlueprintLink>();
+                fromNodePortLinksMap[fromPortIndex] = fromNodePortLinks;
+            }
+
+            var link = new BlueprintLink { nodeId = toNodeId, portIndex = toPortIndex, portSignature = toPortSignature };
+            fromNodePortLinks.Add(link);
         }
 
-        private void RemoveConnectionsFromNodePort(int nodeId, int portIndex) {
-            if (!_fromNodeConnectionIdsMap.TryGetValue(nodeId, out var ids)) return;
+        private void AddLinkToNodePort(int fromNodeId, int fromPortIndex, int fromPortSignature, int toNodeId, int toPortIndex) {
+            if (!_toNodePortLinksMap.TryGetValue(toNodeId, out var toNodePortLinksMap)) {
+                toNodePortLinksMap = new IntToListOfBlueprintLinkMap();
+                _toNodePortLinksMap[toNodeId] = toNodePortLinksMap;
+            }
 
-            for (int i = ids.Count - 1; i >= 0; i--) {
-                int id = ids[i];
+            if (!toNodePortLinksMap.TryGetValue(toPortIndex, out var toNodePortLinks)) {
+                toNodePortLinks = new List<BlueprintLink>();
+                toNodePortLinksMap[toPortIndex] = toNodePortLinks;
+            }
 
-                if (!_connections.TryGetValue(id, out var connection)) {
-                    ids.RemoveAt(i);
-                    continue;
+            var link = new BlueprintLink { nodeId = fromNodeId, portIndex = fromPortIndex, portSignature = fromPortSignature };
+            toNodePortLinks.Add(link);
+        }
+
+        public void RemoveLinkFromNodePort(int fromNodeId, int fromPortIndex, int toNodeId, int toPortIndex) {
+            if (!_fromNodePortLinksMap.TryGetValue(fromNodeId, out var portLinksMap)) return;
+            if (!portLinksMap.TryGetValue(fromPortIndex, out var portLinks)) return;
+
+            for (int i = 0; i < portLinks.Count; i++) {
+                var link = portLinks[i];
+                if (link.nodeId != toNodeId || link.portIndex != toPortIndex) continue;
+
+                portLinks.RemoveAt(i);
+            }
+
+            if (portLinks.Count == 0) portLinksMap.Remove(fromPortIndex);
+            if (portLinksMap.Count == 0) _fromNodePortLinksMap.Remove(fromNodeId);
+        }
+
+        public void RemoveLinkToNodePort(int fromNodeId, int fromPortIndex, int toNodeId, int toPortIndex) {
+            if (!_toNodePortLinksMap.TryGetValue(toNodeId, out var portLinksMap)) return;
+            if (!portLinksMap.TryGetValue(toPortIndex, out var portLinks)) return;
+
+            for (int i = 0; i < portLinks.Count; i++) {
+                var link = portLinks[i];
+                if (link.nodeId != fromNodeId || link.portIndex != fromPortIndex) continue;
+
+                portLinks.RemoveAt(i);
+            }
+
+            if (portLinks.Count == 0) portLinksMap.Remove(toPortIndex);
+            if (portLinksMap.Count == 0) _toNodePortLinksMap.Remove(toNodeId);
+        }
+
+        private void RemoveLinksToNodePort(int nodeId, int portIndex) {
+            if (!_toNodePortLinksMap.TryGetValue(nodeId, out var portLinksMap)) return;
+            if (!portLinksMap.TryGetValue(portIndex, out var links)) return;
+
+            for (int i = 0; i < links.Count; i++) {
+                var link = links[i];
+
+                if (!_fromNodePortLinksMap.TryGetValue(link.nodeId, out var linkedNodePortLinksMap)) continue;
+                if (!linkedNodePortLinksMap.TryGetValue(link.portIndex, out var linkedPortLinks)) continue;
+
+                for (int j = 0; j < linkedPortLinks.Count; j++) {
+                    var linkedPortLink = linkedPortLinks[j];
+                    if (linkedPortLink.nodeId != nodeId || linkedPortLink.portIndex != portIndex) continue;
+
+                    linkedPortLinks.RemoveAt(j);
                 }
 
-                if (connection.fromNodeId != nodeId || connection.fromPortIndex != portIndex) {
-                    continue;
-                }
-
-                _connections.Remove(id);
-                ids.RemoveAt(i);
+                if (linkedPortLinks.Count == 0) linkedNodePortLinksMap.Remove(link.portIndex);
+                if (linkedNodePortLinksMap.Count == 0) _fromNodePortLinksMap.Remove(link.nodeId);
             }
 
-            if (ids.Count == 0) _fromNodeConnectionIdsMap.Remove(nodeId);
+            portLinksMap.Remove(portIndex);
+            if (portLinksMap.Count == 0) _toNodePortLinksMap.Remove(nodeId);
         }
 
-        private void RemoveConnectionsToNodePort(int nodeId, int portIndex) {
-            if (!_toNodeConnectionIdsMap.TryGetValue(nodeId, out var ids)) return;
+        private void RemoveLinksFromNodePort(int nodeId, int portIndex) {
+            if (!_fromNodePortLinksMap.TryGetValue(nodeId, out var portLinksMap)) return;
+            if (!portLinksMap.TryGetValue(portIndex, out var links)) return;
 
-            for (int i = ids.Count - 1; i >= 0; i--) {
-                int id = ids[i];
+            for (int i = 0; i < links.Count; i++) {
+                var link = links[i];
 
-                if (!_connections.TryGetValue(id, out var connection)) {
-                    ids.RemoveAt(i);
-                    continue;
+                if (!_toNodePortLinksMap.TryGetValue(link.nodeId, out var linkedNodePortLinksMap)) continue;
+                if (!linkedNodePortLinksMap.TryGetValue(link.portIndex, out var linkedPortLinks)) continue;
+
+                for (int j = 0; j < linkedPortLinks.Count; j++) {
+                    var linkedPortLink = linkedPortLinks[j];
+                    if (linkedPortLink.nodeId != nodeId || linkedPortLink.portIndex != portIndex) continue;
+
+                    linkedPortLinks.RemoveAt(j);
                 }
 
-                if (connection.toNodeId != nodeId || connection.toPortIndex != portIndex) {
-                    continue;
+                if (linkedPortLinks.Count == 0) linkedNodePortLinksMap.Remove(link.portIndex);
+                if (linkedNodePortLinksMap.Count == 0) _toNodePortLinksMap.Remove(link.nodeId);
+            }
+
+            portLinksMap.Remove(portIndex);
+            if (portLinksMap.Count == 0) _fromNodePortLinksMap.Remove(nodeId);
+        }
+
+        private void RemoveLinksFromNode(int nodeId) {
+            if (!_fromNodePortLinksMap.TryGetValue(nodeId, out var portLinksMap)) return;
+
+            foreach ((int _, var links) in portLinksMap) {
+                for (int i = 0; i < links.Count; i++) {
+                    var link = links[i];
+
+                    if (!_toNodePortLinksMap.TryGetValue(link.nodeId, out var linkedNodePortLinksMap)) continue;
+                    if (!linkedNodePortLinksMap.TryGetValue(link.portIndex, out var linkedPortLinks)) continue;
+
+                    for (int j = 0; j < linkedPortLinks.Count; j++) {
+                        var linkedPortLink = linkedPortLinks[j];
+                        if (linkedPortLink.nodeId != nodeId) continue;
+
+                        linkedPortLinks.RemoveAt(j);
+                    }
+
+                    if (linkedPortLinks.Count == 0) linkedNodePortLinksMap.Remove(link.portIndex);
+                    if (linkedNodePortLinksMap.Count == 0) _toNodePortLinksMap.Remove(link.nodeId);
                 }
-
-                _connections.Remove(id);
-                ids.RemoveAt(i);
             }
 
-            if (ids.Count == 0) _toNodeConnectionIdsMap.Remove(nodeId);
+            _fromNodePortLinksMap.Remove(nodeId);
         }
 
-        private void RemoveConnectionsFromNode(int nodeId) {
-            if (!_fromNodeConnectionIdsMap.TryGetValue(nodeId, out var ids)) return;
+        private void RemoveLinksToNode(int nodeId) {
+            if (!_toNodePortLinksMap.TryGetValue(nodeId, out var portLinksMap)) return;
 
-            for (int i = 0; i < ids.Count; i++) {
-                _connections.Remove(ids[i]);
+            foreach ((int _, var links) in portLinksMap) {
+                for (int i = 0; i < links.Count; i++) {
+                    var link = links[i];
+
+                    if (!_fromNodePortLinksMap.TryGetValue(link.nodeId, out var linkedNodePortLinksMap)) continue;
+                    if (!linkedNodePortLinksMap.TryGetValue(link.portIndex, out var linkedPortLinks)) continue;
+
+                    for (int j = 0; j < linkedPortLinks.Count; j++) {
+                        var linkedPortLink = linkedPortLinks[j];
+                        if (linkedPortLink.nodeId != nodeId) continue;
+
+                        linkedPortLinks.RemoveAt(j);
+                    }
+
+                    if (linkedPortLinks.Count == 0) linkedNodePortLinksMap.Remove(link.portIndex);
+                    if (linkedNodePortLinksMap.Count == 0) _fromNodePortLinksMap.Remove(link.nodeId);
+                }
             }
 
-            _fromNodeConnectionIdsMap.Remove(nodeId);
-        }
-
-        private void RemoveConnectionsToNode(int nodeId) {
-            if (!_toNodeConnectionIdsMap.TryGetValue(nodeId, out var ids)) return;
-
-            for (int i = 0; i < ids.Count; i++) {
-                _connections.Remove(ids[i]);
-            }
-
-            _toNodeConnectionIdsMap.Remove(nodeId);
+            _toNodePortLinksMap.Remove(nodeId);
         }
     }
 

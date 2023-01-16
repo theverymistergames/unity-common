@@ -23,6 +23,10 @@ namespace MisterGames.Blueprints.Core2 {
             }
         }
 
+        public int GetSignatureHashCode() {
+            return HashCode.Combine(isDataPort, isExitPort, hasDataType, dataTypeHash, _serializedDataType);
+        }
+
         public bool Equals(Port other) {
             return name == other.name &&
                    isDataPort == other.isDataPort &&
