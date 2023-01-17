@@ -1,6 +1,6 @@
 ﻿namespace MisterGames.Blueprints.Core2 {
 
-    internal readonly struct RuntimePort {
+    public readonly struct RuntimePort {
 
         public readonly RuntimeLink[] links;
 

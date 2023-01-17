@@ -9,8 +9,7 @@ namespace MisterGames.Blueprints.Core2 {
     /// - Blueprint Editor operations;
     /// - Compilation of the runtime blueprint node instance with links to other runtime node instances.
     /// </summary>
-    [Serializable]
-    public sealed class BlueprintNodeMeta {
+    public sealed class BlueprintNodeMeta : ScriptableObject {
 
         /// <summary>
         /// Reference to the serializable blueprint node implementation,
@@ -34,24 +33,34 @@ namespace MisterGames.Blueprints.Core2 {
         [SerializeField] private Port[] _ports;
         public IReadOnlyList<Port> Ports => _ports;
 
-        public static BlueprintNodeMeta FromType(Type nodeType) {
-            var node = (BlueprintNode) Activator.CreateInstance(nodeType);
-            return new BlueprintNodeMeta(node);
-        }
+        [SerializeField] private int _nodeId = -1;
+        public int NodeId => _nodeId;
 
-        private BlueprintNodeMeta() { }
+        [SerializeField] private BlueprintAsset _ownerAsset;
 
-        private BlueprintNodeMeta(BlueprintNode node) {
-            _node = node;
-            RecreatePorts();
-        }
+        public static BlueprintNodeMeta Create(BlueprintAsset ownerAsset, Type nodeType) {
+            var nodeMeta = CreateInstance<BlueprintNodeMeta>();
 
-        public void OnValidate(int nodeId, BlueprintAsset owner) {
-            if (_node is IBlueprintValidatedNode callback) callback.OnValidate(nodeId, owner);
+            var nodeInstance = (BlueprintNode) Activator.CreateInstance(nodeType);
+
+            nodeMeta._node = nodeInstance;
+            nodeMeta.RecreatePorts();
+
+            nodeMeta._ownerAsset = ownerAsset;
+            nodeMeta._nodeId = ownerAsset.BlueprintMeta.AddNode(nodeMeta);
+
+            return nodeMeta;
         }
 
         public void RecreatePorts() {
             _ports = _node.CreatePorts();
         }
+
+        private void OnValidate() {
+            if (_node is IBlueprintValidatedNode validatedNode && _ownerAsset != null && _nodeId >= 0) {
+                validatedNode.OnValidate(_nodeId, _ownerAsset);
+            }
+        }
     }
+
 }

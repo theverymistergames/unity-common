@@ -5,16 +5,12 @@ namespace MisterGames.Blueprints.Core2 {
     [Serializable]
     public abstract class BlueprintNode {
 
-        private RuntimePort[] _runtimePorts;
+        internal RuntimePort[] RuntimePorts;
 
         public abstract Port[] CreatePorts();
 
-        internal void InjectRuntimePorts(RuntimePort[] runtimePorts) {
-            _runtimePorts = runtimePorts;
-        }
-
         protected void CallPort(int portIndex) {
-            var links = _runtimePorts[portIndex].links;
+            var links = RuntimePorts[portIndex].links;
             for (int i = 0; i < links.Length; i++) {
                 var link = links[i];
                 if (link.node is IBlueprintEnter enter) enter.OnEnterPort(link.port);
@@ -22,7 +18,7 @@ namespace MisterGames.Blueprints.Core2 {
         }
 
         protected T ReadPort<T>(int portIndex, T defaultValue = default) {
-            var links = _runtimePorts[portIndex].links;
+            var links = RuntimePorts[portIndex].links;
             if (links.Length == 0) return defaultValue;
 
             var link = links[0];

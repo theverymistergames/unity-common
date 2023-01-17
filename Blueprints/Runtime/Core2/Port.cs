@@ -10,6 +10,7 @@ namespace MisterGames.Blueprints.Core2 {
         public string name;
         public bool isDataPort;
         public bool isExitPort;
+        public bool isExternalPort;
         public bool hasDataType;
         public int dataTypeHash;
 
@@ -24,13 +25,14 @@ namespace MisterGames.Blueprints.Core2 {
         }
 
         public int GetSignatureHashCode() {
-            return HashCode.Combine(isDataPort, isExitPort, hasDataType, dataTypeHash, _serializedDataType);
+            return HashCode.Combine(isDataPort, isExitPort, isExitPort, hasDataType, dataTypeHash, _serializedDataType);
         }
 
         public bool Equals(Port other) {
             return name == other.name &&
                    isDataPort == other.isDataPort &&
                    isExitPort == other.isExitPort &&
+                   isExternalPort == other.isExternalPort &&
                    hasDataType == other.hasDataType &&
                    dataTypeHash == other.dataTypeHash &&
                    _serializedDataType == other._serializedDataType;
@@ -41,7 +43,7 @@ namespace MisterGames.Blueprints.Core2 {
         }
 
         public override int GetHashCode() {
-            return HashCode.Combine(name, isDataPort, isExitPort, hasDataType, dataTypeHash, _serializedDataType);
+            return HashCode.Combine(name, isDataPort, isExitPort, isExternalPort, hasDataType, dataTypeHash, _serializedDataType);
         }
 
         public static bool operator ==(Port left, Port right) {
@@ -116,6 +118,11 @@ namespace MisterGames.Blueprints.Core2 {
                 isExitPort = true,
                 hasDataType = false,
             };
+        }
+
+        internal Port SetExternal(bool isExternal) {
+            isExternalPort = isExternal;
+            return this;
         }
     }
 }

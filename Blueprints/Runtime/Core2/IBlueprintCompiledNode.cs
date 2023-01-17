@@ -1,7 +1,7 @@
 ﻿namespace MisterGames.Blueprints.Core2 {
 
     internal interface IBlueprintCompiledNode {
-        void Compile();
-
+        void Compile(BlueprintNodeMeta nodeMeta);
     }
+
 }

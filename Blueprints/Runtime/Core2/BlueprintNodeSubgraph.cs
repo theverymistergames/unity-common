@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace MisterGames.Blueprints.Core2 {
@@ -21,15 +20,17 @@ namespace MisterGames.Blueprints.Core2 {
         public override Port[] CreatePorts() {
             if (_blueprintAsset == null) return Array.Empty<Port>();
 
-            
-            var subgraphPorts = subgraph.Ports;
-            var ports = new List<Port>();
-            
-            for (int i = 0; i < subgraphPorts.Length; i++) {
-                var subgraphPort = subgraphPorts[i];
-                if (!subgraphPort.IsExposed) continue;
-                
-                ports.Add(subgraphPort.NotExposed());
+            var blueprintMeta = _blueprintAsset.BlueprintMeta;
+            var nodesMap = blueprintMeta.Nodes;
+
+            var externalPortLinks = blueprintMeta.ExternalPortLinks;
+            int portsCount = externalPortLinks.Count;
+
+            var ports = portsCount > 0 ? new Port[portsCount] : Array.Empty<Port>();
+
+            for (int p = 0; p < portsCount; p++) {
+                var link = externalPortLinks[p];
+                ports[p] = nodesMap[link.nodeId].Ports[link.portIndex].SetExternal(false);
             }
             
             return ports;
@@ -43,8 +44,8 @@ namespace MisterGames.Blueprints.Core2 {
             return ReadPort<T>(port);
         }
 
-        public void Compile() {
-            _runtimeBlueprint = _blueprintAsset.Compile();
+        public void Compile(BlueprintNodeMeta nodeMeta) {
+            _runtimeBlueprint = _blueprintAsset.CompileSubgraph(this, nodeMeta);
         }
 
         public void OnValidate(int nodeId, BlueprintAsset owner) {
@@ -54,10 +55,6 @@ namespace MisterGames.Blueprints.Core2 {
             }
 
             owner.BlueprintMeta.InvalidateNode(nodeId);
-        }
-
-        public BlueprintNode Compile(int port) {
-
         }
     }
 

@@ -11,11 +11,20 @@ namespace MisterGames.Blueprints.Core2 {
         [SerializeField] private int _addedNodesTotalCount;
 
         [SerializeField] private IntToBlueprintNodeMetaMap _nodes;
+
         [SerializeField] private IntIntToListOfBlueprintLinkMap _fromNodePortLinksMap;
         [SerializeField] private IntIntToListOfBlueprintLinkMap _toNodePortLinksMap;
 
+        [SerializeField] private List<BlueprintLink> _externalPortLinks;
+
+        [Serializable]
+        private sealed class IntToIntMap : SerializedDictionary<int, int> {}
+
         [Serializable]
         private sealed class IntToBlueprintNodeMetaMap : SerializedDictionary<int, BlueprintNodeMeta> {}
+
+        [Serializable]
+        private sealed class IntToBlueprintLinkMap : SerializedDictionary<int, BlueprintLink> {}
 
         [Serializable]
         private sealed class IntToListOfBlueprintLinkMap : SerializedDictionary<int, List<BlueprintLink>> {}
@@ -24,12 +33,7 @@ namespace MisterGames.Blueprints.Core2 {
         private sealed class IntIntToListOfBlueprintLinkMap : SerializedDictionary<int, IntToListOfBlueprintLinkMap> {}
 
         public Dictionary<int, BlueprintNodeMeta> Nodes => _nodes;
-
-        public void OnValidate(BlueprintAsset owner) {
-            foreach ((int nodeId, var nodeMeta) in _nodes) {
-                nodeMeta.OnValidate(nodeId, owner);
-            }
-        }
+        public List<BlueprintLink> ExternalPortLinks => _externalPortLinks;
 
         public void Invalidate() {
             foreach (int nodeId in _nodes.Keys) {
@@ -81,6 +85,7 @@ namespace MisterGames.Blueprints.Core2 {
             int nodeId = _addedNodesTotalCount++;
 
             _nodes.Add(nodeId, nodeMeta);
+            FetchExternalPorts(nodeId, nodeMeta);
 
             return nodeId;
         }
@@ -90,6 +95,8 @@ namespace MisterGames.Blueprints.Core2 {
 
             RemoveLinksFromNode(nodeId);
             RemoveLinksToNode(nodeId);
+
+            RemoveRelatedExternalPorts(nodeId);
 
             _nodes.Remove(nodeId);
         }
@@ -181,6 +188,26 @@ namespace MisterGames.Blueprints.Core2 {
 
             _fromNodePortLinksMap.Clear();
             _toNodePortLinksMap.Clear();
+        }
+
+        private void FetchExternalPorts(int nodeId, BlueprintNodeMeta nodeMeta) {
+            var ports = nodeMeta.Ports;
+            for (int p = 0; p < ports.Count; p++) {
+                var port = ports[p];
+                if (!port.isExternalPort) continue;
+
+                _externalPortLinks.Add(new BlueprintLink {
+                    nodeId = nodeId,
+                    portIndex = p,
+                    portSignature = port.GetSignatureHashCode()
+                });
+            }
+        }
+
+        private void RemoveRelatedExternalPorts(int nodeId) {
+            for (int i = _externalPortLinks.Count - 1; i >= 0; i--) {
+                if (_externalPortLinks[i].nodeId == nodeId) _externalPortLinks.RemoveAt(i);
+            }
         }
 
         private void CreateConnection(
