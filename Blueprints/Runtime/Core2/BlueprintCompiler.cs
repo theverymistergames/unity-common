@@ -29,6 +29,10 @@ namespace MisterGames.Blueprints.Core2 {
                     : Array.Empty<RuntimePort>();
 
                 for (int p = 0; p < portsCount; p++) {
+#if DEBUG || UNITY_EDITOR
+                    BlueprintValidation.ValidatePort(nodeMeta, p);
+#endif
+
                     var links = blueprintMeta.GetLinksFromNodePort(nodeId, p);
                     int linksCount = links.Count;
 
@@ -39,6 +43,10 @@ namespace MisterGames.Blueprints.Core2 {
                     for (int l = 0; l < linksCount; l++) {
                         var link = links[l];
                         var linkedNodeMeta = nodesMeta[link.nodeId];
+
+#if DEBUG || UNITY_EDITOR
+                        BlueprintValidation.ValidateLink(nodeMeta, p, linkedNodeMeta, link.portIndex);
+#endif
 
                         var linkedRuntimeNode = GetOrCreateNodeInstance(link.nodeId, linkedNodeMeta);
                         runtimeLinks[l] = new RuntimeLink(linkedRuntimeNode, link.portIndex);

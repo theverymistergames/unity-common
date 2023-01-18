@@ -219,21 +219,6 @@ namespace MisterGames.Blueprints.Core2 {
             return true;
         }
 
-        private static bool HasInterface(Type subjectType, Type interfaceType) {
-            var interfaces = subjectType.GetInterfaces();
-            bool hasInterface = false;
-
-            for (int i = 0; i < interfaces.Length; i++) {
-                var x = interfaces[i];
-                if (x == interfaceType) {
-                    hasInterface = true;
-                    break;
-                }
-            }
-
-            return hasInterface;
-        }
-
         private static bool HasGenericInterface(Type subjectType, Type interfaceType, Type genericArgumentType) {
             var interfaces = subjectType.GetInterfaces();
             bool hasInterface = false;
