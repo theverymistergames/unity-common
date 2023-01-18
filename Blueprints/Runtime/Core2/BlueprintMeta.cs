@@ -277,7 +277,7 @@ namespace MisterGames.Blueprints.Core2 {
             toNodePortLinks.Add(link);
         }
 
-        public void RemoveLinkFromNodePort(int fromNodeId, int fromPortIndex, int toNodeId, int toPortIndex) {
+        private void RemoveLinkFromNodePort(int fromNodeId, int fromPortIndex, int toNodeId, int toPortIndex) {
             if (!_fromNodePortLinksMap.TryGetValue(fromNodeId, out var portLinksMap)) return;
             if (!portLinksMap.TryGetValue(fromPortIndex, out var portLinks)) return;
 
@@ -292,7 +292,7 @@ namespace MisterGames.Blueprints.Core2 {
             if (portLinksMap.Count == 0) _fromNodePortLinksMap.Remove(fromNodeId);
         }
 
-        public void RemoveLinkToNodePort(int fromNodeId, int fromPortIndex, int toNodeId, int toPortIndex) {
+        private void RemoveLinkToNodePort(int fromNodeId, int fromPortIndex, int toNodeId, int toPortIndex) {
             if (!_toNodePortLinksMap.TryGetValue(toNodeId, out var portLinksMap)) return;
             if (!portLinksMap.TryGetValue(toPortIndex, out var portLinks)) return;
 

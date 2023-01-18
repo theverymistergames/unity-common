@@ -5,6 +5,25 @@ namespace MisterGames.Blueprints.Core2 {
 
     internal static class BlueprintValidation {
 
+        public static bool ArePortsCompatible(Port a, Port b) {
+            // Must have different port direction
+            if (a.isExitPort == b.isExitPort) return false;
+
+            // Must be same mode (flow/data)
+            if (a.isDataPort != b.isDataPort) return false;
+
+            // Both ports are flow ports
+            if (!a.isDataPort) return true;
+
+            // Both ports are data ports, at least one port has no serialized type
+            if (!a.hasDataType || !b.hasDataType) return true;
+
+            // Must have same data type
+            if (a.DataType != b.DataType) return false;
+
+            return true;
+        }
+
         public static bool ValidatePort(BlueprintNodeMeta nodeMeta, int portIndex) {
             if (portIndex < 0 || portIndex > nodeMeta.Ports.Count - 1) {
                 Debug.LogError($"Validation failed for port {portIndex} of node {nodeMeta}: " +

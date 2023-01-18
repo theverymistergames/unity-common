@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace MisterGames.Blueprints.Core2 {
 
@@ -31,15 +32,13 @@ namespace MisterGames.Blueprints.Core2 {
                 public const string ScriptableObject = "#ECC3B5";
                 public const string GameObject = "#F592A5";
                     
-                public static string GetColorForType<T>() {
-                    var t = typeof(T);
-                
-                    if (t == typeof(bool)) return Bool;
-                    if (t == typeof(float) || t == typeof(int)) return Number;
-                    if (t == typeof(string)) return String;
-                    if (t == typeof(Vector2) || t == typeof(Vector3) || t == typeof(Vector4)) return Vector;
-                    if (t == typeof(ScriptableObject)) return ScriptableObject;
-                    if (t == typeof(GameObject)) return GameObject;
+                public static string GetColorForType(Type type) {
+                    if (type == typeof(bool)) return Bool;
+                    if (type == typeof(float) || type == typeof(int)) return Number;
+                    if (type == typeof(string)) return String;
+                    if (type == typeof(Vector2) || type == typeof(Vector3) || type == typeof(Vector4)) return Vector;
+                    if (type == typeof(ScriptableObject)) return ScriptableObject;
+                    if (type == typeof(GameObject)) return GameObject;
 
                     return Data;
                 }
@@ -57,15 +56,13 @@ namespace MisterGames.Blueprints.Core2 {
                 public static readonly Color ScriptableObject = new Color(0.98f, 0.45f, 0.33f);
                 public static readonly Color GameObject = new Color(0.8f, 0.3f, 0.4f);
 
-                public static Color GetColorForType<T>() {
-                    var t = typeof(T);
-                
-                    if (t == typeof(bool)) return Bool;
-                    if (t == typeof(float) || t == typeof(int)) return Number;
-                    if (t == typeof(string)) return String;
-                    if (t == typeof(Vector2) || t == typeof(Vector3) || t == typeof(Vector4)) return Vector;
-                    if (t == typeof(ScriptableObject)) return ScriptableObject;
-                    if (t == typeof(GameObject)) return GameObject;
+                public static Color GetColorForType(Type type) {
+                    if (type == typeof(bool)) return Bool;
+                    if (type == typeof(float) || type == typeof(int)) return Number;
+                    if (type == typeof(string)) return String;
+                    if (type == typeof(Vector2) || type == typeof(Vector3) || type == typeof(Vector4)) return Vector;
+                    if (type == typeof(ScriptableObject)) return ScriptableObject;
+                    if (type == typeof(GameObject)) return GameObject;
 
                     return Data;
                 }
