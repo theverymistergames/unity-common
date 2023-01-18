@@ -81,13 +81,18 @@ namespace MisterGames.Blueprints.Core2 {
             return fromNodePortLinks;
         }
 
-        public int AddNode(BlueprintNodeMeta nodeMeta) {
+        public BlueprintNodeMeta AddNode(BlueprintAsset ownerAsset, Type nodeType) {
             int nodeId = _addedNodesTotalCount++;
+            var nodeInstance = (BlueprintNode) Activator.CreateInstance(nodeType);
+
+            var nodeMeta = ScriptableObject.CreateInstance<BlueprintNodeMeta>();
+            nodeMeta.InjectNode(nodeInstance, nodeId, ownerAsset);
+            nodeMeta.RecreatePorts();
 
             _nodes.Add(nodeId, nodeMeta);
             FetchExternalPorts(nodeId, nodeMeta);
 
-            return nodeId;
+            return nodeMeta;
         }
 
         public void RemoveNode(int nodeId) {

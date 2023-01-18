@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 namespace MisterGames.Blueprints.Core2 {
@@ -38,18 +37,10 @@ namespace MisterGames.Blueprints.Core2 {
 
         [SerializeField] private BlueprintAsset _ownerAsset;
 
-        public static BlueprintNodeMeta Create(BlueprintAsset ownerAsset, Type nodeType) {
-            var nodeMeta = CreateInstance<BlueprintNodeMeta>();
-
-            var nodeInstance = (BlueprintNode) Activator.CreateInstance(nodeType);
-
-            nodeMeta._node = nodeInstance;
-            nodeMeta.RecreatePorts();
-
-            nodeMeta._ownerAsset = ownerAsset;
-            nodeMeta._nodeId = ownerAsset.BlueprintMeta.AddNode(nodeMeta);
-
-            return nodeMeta;
+        public void InjectNode(BlueprintNode node, int nodeId, BlueprintAsset ownerAsset) {
+            _node = node;
+            _nodeId = nodeId;
+            _ownerAsset = ownerAsset;
         }
 
         public void RecreatePorts() {
@@ -57,7 +48,7 @@ namespace MisterGames.Blueprints.Core2 {
         }
 
         private void OnValidate() {
-            if (_node is IBlueprintValidatedNode validatedNode && _ownerAsset != null && _nodeId >= 0) {
+            if (_node is IBlueprintValidatedNode validatedNode && _nodeId >= 0 && _ownerAsset != null) {
                 validatedNode.OnValidate(_nodeId, _ownerAsset);
             }
         }
