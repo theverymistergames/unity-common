@@ -1,4 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Reflection;
+using MisterGames.Common.Color;
 using UnityEngine;
 
 namespace MisterGames.Blueprints.Core2 {
@@ -8,7 +11,8 @@ namespace MisterGames.Blueprints.Core2 {
     /// - Blueprint Editor operations;
     /// - Compilation of the runtime blueprint node instance with links to other runtime node instances.
     /// </summary>
-    public sealed class BlueprintNodeMeta : ScriptableObject {
+    [Serializable]
+    public sealed class BlueprintNodeMeta {
 
         /// <summary>
         /// Reference to the serializable blueprint node implementation,
@@ -37,10 +41,24 @@ namespace MisterGames.Blueprints.Core2 {
 
         [SerializeField] private BlueprintAsset _ownerAsset;
 
-        public void InjectNode(BlueprintNode node, int nodeId, BlueprintAsset ownerAsset) {
+        [SerializeField] private string _nodeName;
+        public string NodeName => _nodeName;
+
+        [SerializeField] private string _nodeColor;
+        public Color NodeColor => ColorUtils.HexToColor(_nodeColor);
+
+        private BlueprintNodeMeta() { }
+
+        public BlueprintNodeMeta(BlueprintNode node, int nodeId, BlueprintAsset ownerAsset) {
             _node = node;
             _nodeId = nodeId;
             _ownerAsset = ownerAsset;
+
+            var nodeType = node.GetType();
+            var nodeMetaAttr = GetBlueprintNodeMetaAttribute(nodeType);
+
+            _nodeName = string.IsNullOrEmpty(nodeMetaAttr.Name) ? nodeType.Name : nodeMetaAttr.Name;
+            _nodeColor = string.IsNullOrEmpty(nodeMetaAttr.Color) ? BlueprintColors.Node.Default : nodeMetaAttr.Color;
         }
 
         public void RecreatePorts() {
@@ -51,6 +69,10 @@ namespace MisterGames.Blueprints.Core2 {
             if (_node is IBlueprintValidatedNode validatedNode && _nodeId >= 0 && _ownerAsset != null) {
                 validatedNode.OnValidate(_nodeId, _ownerAsset);
             }
+        }
+
+        private static BlueprintNodeMetaAttribute GetBlueprintNodeMetaAttribute(Type type) {
+            return type.GetCustomAttribute<BlueprintNodeMetaAttribute>(false);
         }
     }
 

@@ -4,7 +4,7 @@ using UnityEngine;
 namespace MisterGames.Blueprints.Core2 {
 
     [Serializable]
-    [BlueprintNode(Name = "Core2.Input", Category = "Core2.External", Color = BlueprintColors.Node.External)]
+    [BlueprintNodeMeta(Name = "Core2.Input", Category = "Core2.External", Color = BlueprintColors.Node.External)]
     public sealed class BlueprintNodeInput : BlueprintNode, IBlueprintOutput {
 
         [SerializeField] private string _parameter;
