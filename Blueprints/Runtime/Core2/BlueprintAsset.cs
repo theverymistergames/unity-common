@@ -22,10 +22,6 @@ namespace MisterGames.Blueprints.Core2 {
         public RuntimeBlueprint CompileSubgraph(BlueprintNode subgraph, BlueprintNodeMeta subgraphMeta) {
             return _blueprintCompiler.CompileSubgraph(_blueprintMeta, subgraph, subgraphMeta);
         }
-
-        private void OnValidate() {
-            _blueprintMeta.OnValidate(this);
-        }
     }
 
 }

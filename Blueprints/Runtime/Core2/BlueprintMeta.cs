@@ -15,7 +15,7 @@ namespace MisterGames.Blueprints.Core2 {
         [SerializeField] private IntIntToListOfBlueprintLinkMap _fromNodePortLinksMap;
         [SerializeField] private IntIntToListOfBlueprintLinkMap _toNodePortLinksMap;
 
-        [SerializeField] private List<BlueprintLink> _externalPortLinks;
+        [SerializeField] private List<BlueprintLink> _externalPortLinks = new List<BlueprintLink>();
 
         [Serializable]
         private sealed class IntToIntMap : SerializedDictionary<int, int> {}
@@ -36,12 +36,6 @@ namespace MisterGames.Blueprints.Core2 {
 
         public Dictionary<int, BlueprintNodeMeta> Nodes => _nodes;
         public List<BlueprintLink> ExternalPortLinks => _externalPortLinks;
-
-        public void OnValidate(BlueprintAsset ownerAsset) {
-            foreach (var nodeMeta in _nodes.Values) {
-                nodeMeta.Validate(ownerAsset);
-            }
-        }
 
         public bool Invalidate() {
             bool changed = false;
@@ -137,17 +131,13 @@ namespace MisterGames.Blueprints.Core2 {
             toNodePortLinksMap[portIndex] = new List<BlueprintLink>(links);
         }
 
-        public BlueprintNodeMeta AddNode(Type nodeType) {
+        public void AddNode(BlueprintNodeMeta nodeMeta) {
             int nodeId = _addedNodesTotalCount++;
-            var nodeInstance = (BlueprintNode) Activator.CreateInstance(nodeType);
 
-            var nodeMeta = new BlueprintNodeMeta(nodeId, nodeInstance);
-            nodeMeta.RecreatePorts();
+            nodeMeta.NodeId = nodeId;
 
             _nodes.Add(nodeId, nodeMeta);
             FetchExternalPorts(nodeId, nodeMeta);
-
-            return nodeMeta;
         }
 
         public void RemoveNode(int nodeId) {

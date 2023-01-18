@@ -6,6 +6,7 @@ using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.UIElements;
+using Object = UnityEngine.Object;
 using Port = MisterGames.Blueprints.Core2.Port;
 using PortView = UnityEditor.Experimental.GraphView.Port;
 
@@ -15,7 +16,7 @@ namespace MisterGames.Blueprints.Editor.Core2 {
 
         public Func<Vector2, Vector2> OnRequestWorldPosition = _ => Vector2.zero;
 
-        private BlueprintAsset _currentBlueprintAsset;
+        private BlueprintAsset _blueprintAsset;
         private BlueprintSearchWindow _nodeSearchWindow;
         //private BlackboardSearchWindow _blackboardSearchWindow;
         
@@ -60,8 +61,7 @@ namespace MisterGames.Blueprints.Editor.Core2 {
         }
 
         private void OnUndoRedo() {
-            if (_currentBlueprintAsset == null) return;
-            _currentBlueprintAsset.BlueprintMeta.Invalidate();
+            InvalidateAsset();
         }
         /*
         private void InitCopyPaste() {
@@ -119,29 +119,29 @@ namespace MisterGames.Blueprints.Editor.Core2 {
         // ---------------- ---------------- Population ---------------- ----------------
         
         public void PopulateViewFromAsset(BlueprintAsset blueprintAsset) {
-            if (blueprintAsset == _currentBlueprintAsset) return;
+            if (blueprintAsset == _blueprintAsset) return;
 
-            _currentBlueprintAsset = blueprintAsset;
+            _blueprintAsset = blueprintAsset;
 
-            if (_currentBlueprintAsset.BlueprintMeta.Invalidate()) EditorUtility.SetDirty(_currentBlueprintAsset);
+            if (InvalidateAsset()) EditorUtility.SetDirty(_blueprintAsset);
 
             RepopulateView();
 
-            _currentBlueprintAsset.BlueprintMeta.OnInvalidate = () => {
-                EditorUtility.SetDirty(_currentBlueprintAsset);
+            _blueprintAsset.BlueprintMeta.OnInvalidate = () => {
+                EditorUtility.SetDirty(_blueprintAsset);
                 RepopulateView();
             };
         }
 
         private void RepopulateView() {
-            if (_currentBlueprintAsset == null) return;
+            if (_blueprintAsset == null) return;
 
             // ReSharper disable once DelegateSubtraction
             graphViewChanged -= OnGraphViewChanged;
             DeleteElements(graphElements);
             graphViewChanged += OnGraphViewChanged;
 
-            var nodesMeta = _currentBlueprintAsset.BlueprintMeta.Nodes.Values;
+            var nodesMeta = _blueprintAsset.BlueprintMeta.Nodes.Values;
             foreach (var nodeMeta in nodesMeta) {
                 CreateNodeView(nodeMeta);
             }
@@ -164,7 +164,7 @@ namespace MisterGames.Blueprints.Editor.Core2 {
         }
 
         public void ClearView() {
-            _currentBlueprintAsset = null;
+            _blueprintAsset = null;
             DeleteElements(graphElements);
             ClearSelection();
         }
@@ -235,7 +235,7 @@ namespace MisterGames.Blueprints.Editor.Core2 {
         // ---------------- ---------------- Menu ---------------- ----------------
 
         public override void BuildContextualMenu(ContextualMenuPopulateEvent evt) {
-            if (_currentBlueprintAsset != null) base.BuildContextualMenu(evt);
+            if (_blueprintAsset != null) base.BuildContextualMenu(evt);
         }
 
         private void OpenSearchWindow<T>(T window, Vector2 position) where T : ScriptableObject, ISearchWindowProvider {
@@ -264,12 +264,17 @@ namespace MisterGames.Blueprints.Editor.Core2 {
         }
         
         private void CreateNode(NodeCreationData data) {
-            Undo.RecordObject(_currentBlueprintAsset, "Blueprint Add Node");
-
-            var nodeMeta = _currentBlueprintAsset.BlueprintMeta.AddNode(data.type);
+            var nodeMeta = BlueprintNodeMeta.Create(data.type);
             nodeMeta.Position = data.position;
+            nodeMeta.OwnerAsset = _blueprintAsset;
+            Undo.RegisterCreatedObjectUndo(nodeMeta, "Blueprint Add Node Meta");
 
-            EditorUtility.SetDirty(_currentBlueprintAsset);
+            Undo.RecordObject(_blueprintAsset, "Blueprint Add Node");
+            _blueprintAsset.BlueprintMeta.AddNode(nodeMeta);
+
+            AddToAsset(nodeMeta);
+            EditorUtility.SetDirty(nodeMeta);
+            EditorUtility.SetDirty(_blueprintAsset);
 
             CreateNodeView(nodeMeta);
         }
@@ -277,25 +282,29 @@ namespace MisterGames.Blueprints.Editor.Core2 {
         private void RemoveNode(BlueprintNodeView view) {
             var nodeMeta = view.NodeMeta;
 
-            Undo.RecordObject(_currentBlueprintAsset, "Blueprint Removed Node");
+            Undo.RecordObject(_blueprintAsset, "Blueprint Removed Node");
 
-            _currentBlueprintAsset.BlueprintMeta.RemoveNode(nodeMeta.NodeId);
+            _blueprintAsset.BlueprintMeta.RemoveNode(nodeMeta.NodeId);
+            RemoveFromAsset(nodeMeta);
+            Undo.DestroyObjectImmediate(nodeMeta);
 
-            EditorUtility.SetDirty(_currentBlueprintAsset);
+            EditorUtility.SetDirty(_blueprintAsset);
         }
         
         private void CreateConnection(int fromNodeId, int fromPortIndex, int toNodeId, int toPortIndex) {
-            Undo.RecordObject(_currentBlueprintAsset, "Blueprint Added Link");
+            Undo.RecordObject(_blueprintAsset, "Blueprint Added Link");
 
-            _currentBlueprintAsset.BlueprintMeta.TryCreateConnection(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
-            EditorUtility.SetDirty(_currentBlueprintAsset);
+            _blueprintAsset.BlueprintMeta.TryCreateConnection(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
+
+            EditorUtility.SetDirty(_blueprintAsset);
         }
         
         private void RemoveConnection(int fromNodeId, int fromPortIndex, int toNodeId, int toPortIndex) {
-            Undo.RecordObject(_currentBlueprintAsset, "Blueprint Added Link");
+            Undo.RecordObject(_blueprintAsset, "Blueprint Added Link");
 
-            _currentBlueprintAsset.BlueprintMeta.RemoveConnection(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
-            EditorUtility.SetDirty(_currentBlueprintAsset);
+            _blueprintAsset.BlueprintMeta.RemoveConnection(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
+
+            EditorUtility.SetDirty(_blueprintAsset);
         }
 
         // ---------------- ---------------- View creation ---------------- ----------------
@@ -305,17 +314,17 @@ namespace MisterGames.Blueprints.Editor.Core2 {
         }
 
         private void OnPositionChanged(BlueprintNodeMeta nodeMeta, Vector2 position) {
-            if (_currentBlueprintAsset == null) return;
+            if (_blueprintAsset == null) return;
 
-            Undo.RecordObject(_currentBlueprintAsset, "Blueprint Node Position Changed");
+            Undo.RecordObject(_blueprintAsset, "Blueprint Node Position Changed");
 
             nodeMeta.Position = position;
 
-            EditorUtility.SetDirty(_currentBlueprintAsset);
+            EditorUtility.SetDirty(nodeMeta);
         }
 
         private void CreateLinkViews(BlueprintNodeMeta nodeMeta) {
-            var blueprintMeta = _currentBlueprintAsset.BlueprintMeta;
+            var blueprintMeta = _blueprintAsset.BlueprintMeta;
 
             var nodeView = FindNodeViewByGuid(nodeMeta.NodeId.ToString());
             var nodePorts = nodeMeta.Ports;
@@ -344,7 +353,7 @@ namespace MisterGames.Blueprints.Editor.Core2 {
         }
 
         private GraphViewChange OnGraphViewChanged(GraphViewChange change) {
-            if (_currentBlueprintAsset == null) return change;
+            if (_blueprintAsset == null) return change;
             
             change.edgesToCreate?.ForEach(edge => {
                 if (edge.input.node is BlueprintNodeView toView && edge.output.node is BlueprintNodeView fromView) {
@@ -392,8 +401,8 @@ namespace MisterGames.Blueprints.Editor.Core2 {
             }
             
             if (hasMovedElements || hasElementsToRemove || hasEdgesToCreate) {
-                Undo.RecordObject(_currentBlueprintAsset, "Blueprint Changed");
-                EditorUtility.SetDirty(_currentBlueprintAsset);
+                Undo.RecordObject(_blueprintAsset, "Blueprint Changed");
+                EditorUtility.SetDirty(_blueprintAsset);
             }
 
             return change;
@@ -535,6 +544,25 @@ namespace MisterGames.Blueprints.Editor.Core2 {
             return _currentBlueprintAsset != null;
         }
         */
+
+        // ---------------- ---------------- Assets ---------------- ----------------
+
+        private bool CanOpenAsset() {
+            return _blueprintAsset != null && AssetDatabase.CanOpenAssetInEditor(_blueprintAsset.GetInstanceID());
+        }
+
+        private bool InvalidateAsset() {
+            return CanOpenAsset() && _blueprintAsset.BlueprintMeta.Invalidate();
+        }
+
+        private void AddToAsset(Object obj) {
+            if (CanOpenAsset() && obj != null) AssetDatabase.AddObjectToAsset(obj, _blueprintAsset);
+        }
+
+        private void RemoveFromAsset(Object obj) {
+            if (CanOpenAsset() && obj != null) AssetDatabase.RemoveObjectFromAsset(obj);
+        }
+
         // ---------------- ---------------- Nested classes ---------------- ----------------
         
         public new class UxmlFactory : UxmlFactory<BlueprintsView, UxmlTraits> { }

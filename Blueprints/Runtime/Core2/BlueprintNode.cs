@@ -11,6 +11,7 @@ namespace MisterGames.Blueprints.Core2 {
 
         public virtual void OnInitialize(BlueprintRunner runner) {}
         public virtual void OnDeInitialize() {}
+        public virtual void OnValidate() {}
 
         protected void CallPort(int portIndex) {
             var links = RuntimePorts[portIndex].links;

@@ -26,25 +26,12 @@ namespace MisterGames.Blueprints.Editor.Core2 {
 
             titleLabel.text = nodeMeta.NodeName;
             container.style.backgroundColor = nodeMeta.NodeColor;
-            inspector.UpdateSelection(VirtualInspector.Create(nodeMeta.Node, OnNodeGUI));
+            inspector.UpdateSelection(nodeMeta);
 
             style.left = nodeMeta.Position.x;
             style.top = nodeMeta.Position.y;
 
             InitPorts();
-        }
-
-        private static void OnNodeGUI(SerializedProperty serializedProperty) {
-            float labelWidth = EditorGUIUtility.labelWidth;
-            float fieldWidth = EditorGUIUtility.fieldWidth;
-
-            EditorGUIUtility.labelWidth = 110;
-            EditorGUIUtility.fieldWidth = 160;
-
-            SerializedPropertyExtensions.DrawInline(serializedProperty);
-
-            EditorGUIUtility.labelWidth = labelWidth;
-            EditorGUIUtility.fieldWidth = fieldWidth;
         }
 
         private static string GetUxmlPath() {

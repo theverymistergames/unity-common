@@ -11,8 +11,7 @@ namespace MisterGames.Blueprints.Core2 {
     /// - Blueprint Editor operations;
     /// - Compilation of the runtime blueprint node instance with links to other runtime node instances.
     /// </summary>
-    [Serializable]
-    public sealed class BlueprintNodeMeta {
+    public sealed class BlueprintNodeMeta : ScriptableObject {
 
         /// <summary>
         /// Reference to the serializable blueprint node implementation,
@@ -37,7 +36,16 @@ namespace MisterGames.Blueprints.Core2 {
         public IReadOnlyList<Port> Ports => _ports;
 
         [SerializeField] private int _nodeId = -1;
-        public int NodeId => _nodeId;
+        public int NodeId {
+            get => _nodeId;
+            set => _nodeId = value;
+        }
+
+        [SerializeField] private BlueprintAsset _ownerAsset;
+        public BlueprintAsset OwnerAsset {
+            get => _ownerAsset;
+            set => _ownerAsset = value;
+        }
 
         [SerializeField] private string _nodeName;
         public string NodeName => _nodeName;
@@ -45,31 +53,37 @@ namespace MisterGames.Blueprints.Core2 {
         [SerializeField] private string _nodeColor;
         public Color NodeColor => ColorUtils.HexToColor(_nodeColor);
 
-        private BlueprintNodeMeta() { }
+        public static BlueprintNodeMeta Create(Type nodeType) {
+            var nodeMeta = CreateInstance<BlueprintNodeMeta>();
 
-        public BlueprintNodeMeta(int nodeId, BlueprintNode node) {
-            _node = node;
-            _nodeId = nodeId;
+            nodeMeta._node = (BlueprintNode) Activator.CreateInstance(nodeType);
+            nodeMeta.RecreatePorts();
 
-            var nodeType = node.GetType();
             var nodeMetaAttr = GetBlueprintNodeMetaAttribute(nodeType);
+            nodeMeta._nodeName = string.IsNullOrWhiteSpace(nodeMetaAttr.Name) ? nodeType.Name : nodeMetaAttr.Name.Trim();
+            nodeMeta._nodeColor = string.IsNullOrEmpty(nodeMetaAttr.Color) ? BlueprintColors.Node.Default : nodeMetaAttr.Color;
 
-            _nodeName = string.IsNullOrEmpty(nodeMetaAttr.Name) ? nodeType.Name : nodeMetaAttr.Name;
-            _nodeColor = string.IsNullOrEmpty(nodeMetaAttr.Color) ? BlueprintColors.Node.Default : nodeMetaAttr.Color;
+            nodeMeta.name = nodeMeta._nodeName;
+
+            return nodeMeta;
         }
 
         public void RecreatePorts() {
             _ports = _node.CreatePorts();
         }
 
-        public void Validate(BlueprintAsset ownerAsset) {
-            if (_node is IBlueprintValidatedNode validatedNode && _nodeId >= 0) {
-                validatedNode.OnValidate(_nodeId, ownerAsset);
-            }
-        }
-
         private static BlueprintNodeMetaAttribute GetBlueprintNodeMetaAttribute(Type type) {
             return type.GetCustomAttribute<BlueprintNodeMetaAttribute>(false);
+        }
+
+        private void OnValidate() {
+            if (_node == null) return;
+
+            if (_node is IBlueprintValidatedNode validatedNode && _nodeId >= 0 && _ownerAsset != null) {
+                validatedNode.OnValidate(_nodeId, _ownerAsset);
+            }
+
+            _node.OnValidate();
         }
     }
 

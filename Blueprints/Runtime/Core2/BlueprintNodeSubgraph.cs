@@ -36,6 +36,14 @@ namespace MisterGames.Blueprints.Core2 {
             return ports;
         }
 
+        public override void OnInitialize(BlueprintRunner runner) {
+            _runtimeBlueprint.Initialize(runner);
+        }
+
+        public override void OnDeInitialize() {
+            _runtimeBlueprint.DeInitialize();
+        }
+
         public void OnEnterPort(int port) {
             CallPort(port);
         }
