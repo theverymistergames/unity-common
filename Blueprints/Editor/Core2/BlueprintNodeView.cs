@@ -1,5 +1,6 @@
 ﻿using System;
 using MisterGames.Blueprints.Core2;
+using MisterGames.Common.Editor.Drawers;
 using MisterGames.Common.Editor.Views;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
@@ -23,16 +24,27 @@ namespace MisterGames.Blueprints.Editor.Core2 {
             var container = this.Q<VisualElement>("title-container");
             var inspector = this.Q<InspectorView>("inspector");
 
-            var meta = Editor.NodeMeta.From(nodeMeta.GetType());
-            
-            titleLabel.text = meta.name;
-            container.style.backgroundColor = meta.color;
-            inspector.UpdateSelection(nodeMeta);
+            titleLabel.text = nodeMeta.NodeName;
+            container.style.backgroundColor = nodeMeta.NodeColor;
+            inspector.UpdateSelection(VirtualInspector.Create(nodeMeta.Node, OnNodeGUI));
 
             style.left = nodeMeta.Position.x;
             style.top = nodeMeta.Position.y;
 
             InitPorts();
+        }
+
+        private static void OnNodeGUI(SerializedProperty serializedProperty) {
+            float labelWidth = EditorGUIUtility.labelWidth;
+            float fieldWidth = EditorGUIUtility.fieldWidth;
+
+            EditorGUIUtility.labelWidth = 110;
+            EditorGUIUtility.fieldWidth = 160;
+
+            SerializedPropertyExtensions.DrawInline(serializedProperty);
+
+            EditorGUIUtility.labelWidth = labelWidth;
+            EditorGUIUtility.fieldWidth = fieldWidth;
         }
 
         private static string GetUxmlPath() {
@@ -83,11 +95,12 @@ namespace MisterGames.Blueprints.Editor.Core2 {
                     : MisterGames.Blueprints.Core2.BlueprintColors.Port.Header.Data
                 : MisterGames.Blueprints.Core2.BlueprintColors.Port.Header.Flow;
 
-            return $"<color={nameColor}>{port.name.Trim()}</color>";
+            string name = string.IsNullOrEmpty(port.name) ? string.Empty : port.name.Trim();
+
+            return $"<color={nameColor}>{name}</color>";
         }
 
         public new class UxmlFactory : UxmlFactory<BlueprintsView, UxmlTraits> { }
-        
     }
 
 }

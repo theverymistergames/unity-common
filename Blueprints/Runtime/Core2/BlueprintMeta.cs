@@ -32,17 +32,35 @@ namespace MisterGames.Blueprints.Core2 {
         [Serializable]
         private sealed class IntIntToListOfBlueprintLinkMap : SerializedDictionary<int, IntToListOfBlueprintLinkMap> {}
 
+        public Action OnInvalidate;
+
         public Dictionary<int, BlueprintNodeMeta> Nodes => _nodes;
         public List<BlueprintLink> ExternalPortLinks => _externalPortLinks;
 
-        public void Invalidate() {
-            foreach (int nodeId in _nodes.Keys) {
-                InvalidateNode(nodeId);
+        public void OnValidate(BlueprintAsset ownerAsset) {
+            foreach (var nodeMeta in _nodes.Values) {
+                nodeMeta.Validate(ownerAsset);
             }
         }
 
-        public void InvalidateNode(int nodeId) {
-            if (!_nodes.TryGetValue(nodeId, out var nodeMeta)) return;
+        public bool Invalidate() {
+            bool changed = false;
+
+            foreach (int nodeId in _nodes.Keys) {
+                changed |= InvalidateNode(nodeId);
+            }
+
+            if (changed) OnInvalidate?.Invoke();
+
+            return changed;
+        }
+
+        public void Invalidate(int nodeId) {
+            if (InvalidateNode(nodeId)) OnInvalidate?.Invoke();
+        }
+
+        private bool InvalidateNode(int nodeId) {
+            if (!_nodes.TryGetValue(nodeId, out var nodeMeta)) return false;
 
             var oldPorts = nodeMeta.Ports;
             int oldPortsCount = oldPorts.Count;
@@ -51,24 +69,34 @@ namespace MisterGames.Blueprints.Core2 {
             var newPorts = nodeMeta.Ports;
             int newPortsCount = newPorts.Count;
 
-            if (newPortsCount < oldPortsCount) {
-                for (int p = newPortsCount; p < oldPortsCount; p++) {
-                    RemoveLinksFromNodePort(nodeId, p);
-                    RemoveLinksToNodePort(nodeId, p);
+            bool portsChanged = oldPortsCount != newPortsCount;
+
+            for (int oldPortIndex = 0; oldPortIndex < oldPortsCount; oldPortIndex++) {
+                int oldPortSignature = oldPorts[oldPortIndex].GetSignature();
+                int newPortIndex = -1;
+
+                for (int np = 0; np < newPortsCount; np++) {
+                    int newPortSignature = newPorts[np].GetSignature();
+                    if (oldPortSignature != newPortSignature) continue;
+
+                    newPortIndex = np;
+                    break;
                 }
+
+                if (oldPortIndex == newPortIndex) continue;
+
+                if (newPortIndex >= 0) {
+                    SetLinksFromNodePort(nodeId, newPortIndex, GetLinksFromNodePort(nodeId, oldPortIndex));
+                    SetLinksToNodePort(nodeId, newPortIndex, GetLinksToNodePort(nodeId, oldPortIndex));
+                }
+
+                RemoveLinksFromNodePort(nodeId, oldPortIndex);
+                RemoveLinksToNodePort(nodeId, oldPortIndex);
+
+                portsChanged = true;
             }
 
-            for (int p = 0; p < newPortsCount; p++) {
-                if (p >= oldPortsCount) break;
-
-                var newPort = newPorts[p];
-                var oldPort = oldPorts[p];
-
-                if (newPort.GetSignatureHashCode() == oldPort.GetSignatureHashCode()) continue;
-
-                RemoveLinksFromNodePort(nodeId, p);
-                RemoveLinksToNodePort(nodeId, p);
-            }
+            return portsChanged;
         }
 
         public IReadOnlyList<BlueprintLink> GetLinksFromNodePort(int nodeId, int portIndex) {
@@ -81,11 +109,39 @@ namespace MisterGames.Blueprints.Core2 {
             return fromNodePortLinks;
         }
 
-        public BlueprintNodeMeta AddNode(BlueprintAsset ownerAsset, Type nodeType) {
+        public IReadOnlyList<BlueprintLink> GetLinksToNodePort(int nodeId, int portIndex) {
+            if (!_toNodePortLinksMap.TryGetValue(nodeId, out var toNodePortLinksMap) ||
+                !toNodePortLinksMap.TryGetValue(portIndex, out var toNodePortLinks)
+               ) {
+                return Array.Empty<BlueprintLink>();
+            }
+
+            return toNodePortLinks;
+        }
+
+        private void SetLinksFromNodePort(int nodeId, int portIndex, IReadOnlyList<BlueprintLink> links) {
+            if (!_fromNodePortLinksMap.TryGetValue(nodeId, out var fromNodePortLinksMap)) {
+                fromNodePortLinksMap = new IntToListOfBlueprintLinkMap();
+                _fromNodePortLinksMap[nodeId] = fromNodePortLinksMap;
+            }
+
+            fromNodePortLinksMap[portIndex] = new List<BlueprintLink>(links);
+        }
+
+        private void SetLinksToNodePort(int nodeId, int portIndex, IReadOnlyList<BlueprintLink> links) {
+            if (!_toNodePortLinksMap.TryGetValue(nodeId, out var toNodePortLinksMap)) {
+                toNodePortLinksMap = new IntToListOfBlueprintLinkMap();
+                _toNodePortLinksMap[nodeId] = toNodePortLinksMap;
+            }
+
+            toNodePortLinksMap[portIndex] = new List<BlueprintLink>(links);
+        }
+
+        public BlueprintNodeMeta AddNode(Type nodeType) {
             int nodeId = _addedNodesTotalCount++;
             var nodeInstance = (BlueprintNode) Activator.CreateInstance(nodeType);
 
-            var nodeMeta = new BlueprintNodeMeta(nodeInstance, nodeId, ownerAsset);
+            var nodeMeta = new BlueprintNodeMeta(nodeId, nodeInstance);
             nodeMeta.RecreatePorts();
 
             _nodes.Add(nodeId, nodeMeta);
@@ -127,8 +183,8 @@ namespace MisterGames.Blueprints.Core2 {
 
                 // adding connection from the exit port toPort to the enter port fromPort
                 CreateConnection(
-                    toNodeId, toPortIndex, fromPort.GetSignatureHashCode(),
-                    fromNodeId, fromPortIndex, toPort.GetSignatureHashCode()
+                    toNodeId, toPortIndex, toPort.GetSignature(),
+                    fromNodeId, fromPortIndex, fromPort.GetSignature()
                 );
                 return true;
             }
@@ -140,8 +196,8 @@ namespace MisterGames.Blueprints.Core2 {
 
                 // adding connection from the exit port fromPort to the enter port toPort
                 CreateConnection(
-                    fromNodeId, fromPortIndex, toPort.GetSignatureHashCode(),
-                    toNodeId, toPortIndex, fromPort.GetSignatureHashCode()
+                    fromNodeId, fromPortIndex, fromPort.GetSignature(),
+                    toNodeId, toPortIndex, toPort.GetSignature()
                 );
                 return true;
             }
@@ -153,13 +209,13 @@ namespace MisterGames.Blueprints.Core2 {
 
                 // input and output must have same data type
                 if (fromPort.hasDataType && toPort.hasDataType &&
-                    fromPort.dataTypeHash != toPort.dataTypeHash) return false;
+                    fromPort.DataType != toPort.DataType) return false;
 
                 // replacing connections from the input port fromPort to the output port toPort with new connection
                 RemoveLinksFromNodePort(fromNodeId, fromPortIndex);
                 CreateConnection(
-                    fromNodeId, fromPortIndex, toPort.GetSignatureHashCode(),
-                    toNodeId, toPortIndex, fromPort.GetSignatureHashCode()
+                    fromNodeId, fromPortIndex, fromPort.GetSignature(),
+                    toNodeId, toPortIndex, toPort.GetSignature()
                 );
                 return true;
             }
@@ -170,13 +226,13 @@ namespace MisterGames.Blueprints.Core2 {
 
             // input and output must have same data type
             if (fromPort.hasDataType && toPort.hasDataType &&
-                fromPort.dataTypeHash != toPort.dataTypeHash) return false;
+                fromPort.DataType != toPort.DataType) return false;
 
             // replacing connections from the input port toPort to the output port fromPort with new connection
             RemoveLinksFromNodePort(toNodeId, toPortIndex);
             CreateConnection(
-                toNodeId, toPortIndex, fromPort.GetSignatureHashCode(),
-                fromNodeId, fromPortIndex, toPort.GetSignatureHashCode()
+                toNodeId, toPortIndex, toPort.GetSignature(),
+                fromNodeId, fromPortIndex, fromPort.GetSignature()
             );
             return true;
         }
@@ -200,11 +256,7 @@ namespace MisterGames.Blueprints.Core2 {
                 var port = ports[p];
                 if (!port.isExternalPort) continue;
 
-                _externalPortLinks.Add(new BlueprintLink {
-                    nodeId = nodeId,
-                    portIndex = p,
-                    portSignature = port.GetSignatureHashCode()
-                });
+                _externalPortLinks.Add(new BlueprintLink { nodeId = nodeId, portIndex = p });
             }
         }
 

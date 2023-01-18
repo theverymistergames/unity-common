@@ -54,7 +54,7 @@ namespace MisterGames.Blueprints.Core2 {
                 _blueprintAsset = null;
             }
 
-            owner.BlueprintMeta.InvalidateNode(nodeId);
+            owner.BlueprintMeta.Invalidate(nodeId);
         }
     }
 

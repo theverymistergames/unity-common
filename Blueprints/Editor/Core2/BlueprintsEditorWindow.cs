@@ -52,6 +52,7 @@ namespace MisterGames.Blueprints.Editor.Core2 {
 
             _blueprintsView = root.Q<BlueprintsView>();
             _blueprintsView.OnRequestWorldPosition = GetWorldPosition;
+
             var blackboardToggle = root.Q<ToolbarToggle>("blackboard-toggle");
             var miniMapToggle = root.Q<ToolbarToggle>("minimap-toggle");
             

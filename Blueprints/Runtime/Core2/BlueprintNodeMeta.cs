@@ -39,8 +39,6 @@ namespace MisterGames.Blueprints.Core2 {
         [SerializeField] private int _nodeId = -1;
         public int NodeId => _nodeId;
 
-        [SerializeField] private BlueprintAsset _ownerAsset;
-
         [SerializeField] private string _nodeName;
         public string NodeName => _nodeName;
 
@@ -49,10 +47,9 @@ namespace MisterGames.Blueprints.Core2 {
 
         private BlueprintNodeMeta() { }
 
-        public BlueprintNodeMeta(BlueprintNode node, int nodeId, BlueprintAsset ownerAsset) {
+        public BlueprintNodeMeta(int nodeId, BlueprintNode node) {
             _node = node;
             _nodeId = nodeId;
-            _ownerAsset = ownerAsset;
 
             var nodeType = node.GetType();
             var nodeMetaAttr = GetBlueprintNodeMetaAttribute(nodeType);
@@ -65,9 +62,9 @@ namespace MisterGames.Blueprints.Core2 {
             _ports = _node.CreatePorts();
         }
 
-        private void OnValidate() {
-            if (_node is IBlueprintValidatedNode validatedNode && _nodeId >= 0 && _ownerAsset != null) {
-                validatedNode.OnValidate(_nodeId, _ownerAsset);
+        public void Validate(BlueprintAsset ownerAsset) {
+            if (_node is IBlueprintValidatedNode validatedNode && _nodeId >= 0) {
+                validatedNode.OnValidate(_nodeId, ownerAsset);
             }
         }
 

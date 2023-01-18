@@ -6,7 +6,6 @@ using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.UIElements;
-using Object = UnityEngine.Object;
 using Port = MisterGames.Blueprints.Core2.Port;
 using PortView = UnityEditor.Experimental.GraphView.Port;
 
@@ -62,12 +61,7 @@ namespace MisterGames.Blueprints.Editor.Core2 {
 
         private void OnUndoRedo() {
             if (_currentBlueprintAsset == null) return;
-
-            InvalidateAsset();
-            EditorUtility.SetDirty(_currentBlueprintAsset);
-
-            RepopulateView();
-            ClearSelection();
+            _currentBlueprintAsset.BlueprintMeta.Invalidate();
         }
         /*
         private void InitCopyPaste() {
@@ -129,10 +123,14 @@ namespace MisterGames.Blueprints.Editor.Core2 {
 
             _currentBlueprintAsset = blueprintAsset;
 
-            InvalidateAsset();
-            EditorUtility.SetDirty(_currentBlueprintAsset);
+            if (_currentBlueprintAsset.BlueprintMeta.Invalidate()) EditorUtility.SetDirty(_currentBlueprintAsset);
 
             RepopulateView();
+
+            _currentBlueprintAsset.BlueprintMeta.OnInvalidate = () => {
+                EditorUtility.SetDirty(_currentBlueprintAsset);
+                RepopulateView();
+            };
         }
 
         private void RepopulateView() {
@@ -236,6 +234,10 @@ namespace MisterGames.Blueprints.Editor.Core2 {
         */
         // ---------------- ---------------- Menu ---------------- ----------------
 
+        public override void BuildContextualMenu(ContextualMenuPopulateEvent evt) {
+            if (_currentBlueprintAsset != null) base.BuildContextualMenu(evt);
+        }
+
         private void OpenSearchWindow<T>(T window, Vector2 position) where T : ScriptableObject, ISearchWindowProvider {
             SearchWindow.Open(new SearchWindowContext(position), window);
         }
@@ -261,28 +263,24 @@ namespace MisterGames.Blueprints.Editor.Core2 {
             return contentViewContainer.WorldToLocal(worldPosition);
         }
         
-        private BlueprintNodeMeta CreateNode(NodeCreationData data) {
+        private void CreateNode(NodeCreationData data) {
             Undo.RecordObject(_currentBlueprintAsset, "Blueprint Add Node");
-            var nodeMeta = _currentBlueprintAsset.BlueprintMeta.AddNode(_currentBlueprintAsset, data.type);
 
-            Undo.RecordObject(nodeMeta, "Blueprint Created Node");
+            var nodeMeta = _currentBlueprintAsset.BlueprintMeta.AddNode(data.type);
             nodeMeta.Position = data.position;
 
-            AddToAsset(nodeMeta);
             EditorUtility.SetDirty(_currentBlueprintAsset);
 
-            return nodeMeta;
+            CreateNodeView(nodeMeta);
         }
 
         private void RemoveNode(BlueprintNodeView view) {
             var nodeMeta = view.NodeMeta;
 
             Undo.RecordObject(_currentBlueprintAsset, "Blueprint Removed Node");
-            Undo.RecordObject(nodeMeta, "Blueprint Deleted Node");
 
             _currentBlueprintAsset.BlueprintMeta.RemoveNode(nodeMeta.NodeId);
 
-            RemoveFromAsset(nodeMeta);
             EditorUtility.SetDirty(_currentBlueprintAsset);
         }
         
@@ -303,20 +301,17 @@ namespace MisterGames.Blueprints.Editor.Core2 {
         // ---------------- ---------------- View creation ---------------- ----------------
 
         private void CreateNodeView(BlueprintNodeMeta nodeMeta) {
-            var view = new BlueprintNodeView(nodeMeta) { OnPositionChanged = OnPositionChanged };
-            AddElement(view);
+            AddElement(new BlueprintNodeView(nodeMeta) { OnPositionChanged = OnPositionChanged });
         }
 
         private void OnPositionChanged(BlueprintNodeMeta nodeMeta, Vector2 position) {
             if (_currentBlueprintAsset == null) return;
 
-            Undo.RecordObject(nodeMeta, "Blueprint Node Position Changed Node");
             Undo.RecordObject(_currentBlueprintAsset, "Blueprint Node Position Changed");
 
             nodeMeta.Position = position;
 
             EditorUtility.SetDirty(_currentBlueprintAsset);
-            EditorUtility.SetDirty(nodeMeta);
         }
 
         private void CreateLinkViews(BlueprintNodeMeta nodeMeta) {
@@ -538,37 +533,6 @@ namespace MisterGames.Blueprints.Editor.Core2 {
 
         private bool CanPaste(string data) {
             return _currentBlueprintAsset != null;
-        }
-        */
-        // ---------------- ---------------- Assets ---------------- ----------------
-
-        private bool CanOpenAsset() {
-            return _currentBlueprintAsset != null && AssetDatabase.CanOpenAssetInEditor(_currentBlueprintAsset.GetInstanceID());
-        }
-        
-        private void InvalidateAsset() {
-            if (!CanOpenAsset()) return;
-            
-            _currentBlueprintAsset.BlueprintMeta.Invalidate();
-        }
-
-        private void AddToAsset(Object obj) {
-            if (!CanOpenAsset() || obj == null) return;
-
-            AssetDatabase.AddObjectToAsset(obj, _currentBlueprintAsset);
-        }
-
-        private void RemoveFromAsset(Object obj) {
-            if (!CanOpenAsset() || obj == null) return;
-
-            AssetDatabase.RemoveObjectFromAsset(obj);
-        }
-        /*
-        private void SaveAsset() {
-            if (!CanOpenAsset()) return;
-
-            EditorUtility.SetDirty(_currentBlueprintAsset);
-            AssetDatabase.SaveAssets();
         }
         */
         // ---------------- ---------------- Nested classes ---------------- ----------------

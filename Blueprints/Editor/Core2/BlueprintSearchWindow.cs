@@ -49,7 +49,7 @@ namespace MisterGames.Blueprints.Editor.Core2 {
             var nodeMetaAttr = GetBlueprintNodeMetaAttribute(type);
 
             string name = string.IsNullOrEmpty(nodeMetaAttr.Name) ? type.Name : nodeMetaAttr.Name;
-            string category = nodeMetaAttr.Category;
+            string category = string.IsNullOrEmpty(nodeMetaAttr.Category) ? "" : nodeMetaAttr.Category;
 
             return new CategoryTree.Meta { name = name, category = category };
         }
