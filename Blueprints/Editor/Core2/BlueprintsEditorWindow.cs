@@ -26,11 +26,11 @@ namespace MisterGames.Blueprints.Editor.Core2 {
             return false;
         }
 
-        private static BlueprintsEditorWindow GetWindow() {
+        public static BlueprintsEditorWindow GetWindow() {
             return GetWindow<BlueprintsEditorWindow>("Blueprints Editor 2");
         }
 
-        private void PopulateFromAsset(BlueprintAsset blueprintAsset) {
+        public void PopulateFromAsset(BlueprintAsset blueprintAsset) {
             if (_blueprintsView == null) return;
 
             _assetPicker.value = blueprintAsset;

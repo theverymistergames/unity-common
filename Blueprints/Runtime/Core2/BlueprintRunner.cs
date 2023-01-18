@@ -6,6 +6,8 @@ namespace MisterGames.Blueprints.Core2 {
 
         [SerializeField] private BlueprintAsset _blueprintAsset;
 
+        public BlueprintAsset BlueprintAsset => _blueprintAsset;
+
         private RuntimeBlueprint _runtimeBlueprint;
 
         private void Awake() {
