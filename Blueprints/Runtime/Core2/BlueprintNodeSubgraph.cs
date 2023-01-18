@@ -4,7 +4,7 @@ using UnityEngine;
 namespace MisterGames.Blueprints.Core2 {
 
     [Serializable]
-    [BlueprintNodeMeta(Name = "Core2.Subgraph", Category = "Core2.Exposed", Color = BlueprintColors.Node.Flow)]
+    [BlueprintNodeMeta(Name = "Core2.Subgraph", Category = "Core2.External", Color = BlueprintColors.Node.External)]
     public sealed class BlueprintNodeSubgraph :
         BlueprintNode,
         IBlueprintEnter,

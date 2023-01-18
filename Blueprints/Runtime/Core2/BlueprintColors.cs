@@ -13,7 +13,7 @@ namespace MisterGames.Blueprints.Core2 {
                 
             public const string Default = "#646464";
             public const string Blackboard = "#866B2B";
-            public const string Exposed = "#5F436A";
+            public const string External = "#5F436A";
 
         }
 

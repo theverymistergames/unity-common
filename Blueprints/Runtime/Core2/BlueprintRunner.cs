@@ -10,7 +10,7 @@ namespace MisterGames.Blueprints.Core2 {
 
         private void Awake() {
             _runtimeBlueprint = _blueprintAsset.Compile();
-            _runtimeBlueprint.Initialize();
+            _runtimeBlueprint.Initialize(this);
         }
 
         private void OnDestroy() {

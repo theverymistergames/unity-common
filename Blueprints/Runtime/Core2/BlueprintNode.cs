@@ -9,6 +9,9 @@ namespace MisterGames.Blueprints.Core2 {
 
         public abstract Port[] CreatePorts();
 
+        public virtual void OnInitialize(BlueprintRunner runner) {}
+        public virtual void OnDeInitialize() {}
+
         protected void CallPort(int portIndex) {
             var links = RuntimePorts[portIndex].links;
             for (int i = 0; i < links.Length; i++) {
