@@ -85,8 +85,7 @@ namespace MisterGames.Blueprints.Core2 {
             int nodeId = _addedNodesTotalCount++;
             var nodeInstance = (BlueprintNode) Activator.CreateInstance(nodeType);
 
-            var nodeMeta = ScriptableObject.CreateInstance<BlueprintNodeMeta>();
-            nodeMeta.InjectNode(nodeInstance, nodeId, ownerAsset);
+            var nodeMeta = new BlueprintNodeMeta(nodeInstance, nodeId, ownerAsset);
             nodeMeta.RecreatePorts();
 
             _nodes.Add(nodeId, nodeMeta);
