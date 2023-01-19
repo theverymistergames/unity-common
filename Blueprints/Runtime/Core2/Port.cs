@@ -17,7 +17,7 @@ namespace MisterGames.Blueprints.Core2 {
 
         public Type DataType {
             get => SerializedType.FromString(_serializedDataType);
-            set => _serializedDataType = SerializedType.ToString(value);
+            private set => _serializedDataType = SerializedType.ToString(value);
         }
 
         internal Port SetExternal(bool isExternal) {
@@ -88,6 +88,16 @@ namespace MisterGames.Blueprints.Core2 {
                 isExitPort = true,
                 hasDataType = false,
             };
+        }
+
+        public override string ToString() {
+            string externalText = isExternalPort ? "external " : "";
+
+            string modeText = isDataPort
+                ? isExitPort ? "exit" : "enter"
+                : $"{(isExitPort ? "output" : "input")}{(hasDataType ? $"<{DataType.Name}>" : "")}";
+
+            return $"{nameof(Port)}(name = {name}, mode = {externalText}{modeText})";
         }
     }
 }
