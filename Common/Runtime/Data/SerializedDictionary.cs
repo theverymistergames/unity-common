@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
-using UnityEditor;
 using UnityEngine;
 
 namespace MisterGames.Common.Data {
@@ -26,82 +25,63 @@ namespace MisterGames.Common.Data {
         }
 
         void ISerializationCallbackReceiver.OnAfterDeserialize() {
+            Clear();
+
             for (int i = 0; i < _entries.Count; i++) {
                 var entry = _entries[i];
                 Add(entry.key, entry.value);
             }
-
-            _entries.Clear();
-        }
-
-        public SerializedDictionary() : base() {
-#if UNITY_EDITOR
-            InitUndoRedo();
-#endif
-        }
-
-        public SerializedDictionary(IDictionary<TKey, TValue> dictionary) : base(dictionary) {
-#if UNITY_EDITOR
-            InitUndoRedo();
-#endif
-        }
-
-        public SerializedDictionary(IDictionary<TKey, TValue> dictionary, IEqualityComparer<TKey> comparer) : base(comparer){
-#if UNITY_EDITOR
-            InitUndoRedo();
-#endif
-        }
-
-        public SerializedDictionary(IEnumerable<KeyValuePair<TKey, TValue>> collection) : base(collection) {
-#if UNITY_EDITOR
-            InitUndoRedo();
-#endif
-        }
-
-        public SerializedDictionary(IEnumerable<KeyValuePair<TKey, TValue>> collection, IEqualityComparer<TKey> comparer) : base(collection, comparer) {
-#if UNITY_EDITOR
-            InitUndoRedo();
-#endif
-        }
-
-        public SerializedDictionary(IEqualityComparer<TKey> comparer) : base(comparer) {
-#if UNITY_EDITOR
-            InitUndoRedo();
-#endif
-        }
-
-        public SerializedDictionary(int capacity) : base(capacity) {
-#if UNITY_EDITOR
-            InitUndoRedo();
-#endif
-        }
-
-        public SerializedDictionary(int capacity, IEqualityComparer<TKey> comparer) : base(capacity, comparer) {
-#if UNITY_EDITOR
-            InitUndoRedo();
-#endif
-        }
-
-        protected SerializedDictionary(SerializationInfo info, StreamingContext context) : base(info, context) {
-#if UNITY_EDITOR
-            InitUndoRedo();
-#endif
         }
 
 #if UNITY_EDITOR
         private void InitUndoRedo() {
-            Debug.Log("SerializedDictionary.InitUndoRedo");
-
-            Undo.undoRedoPerformed -= OnUndoRedo;
-            Undo.undoRedoPerformed += OnUndoRedo;
+            UnityEditor.Undo.undoRedoPerformed -= OnUndoRedo;
+            UnityEditor.Undo.undoRedoPerformed += OnUndoRedo;
         }
 
         private void OnUndoRedo() {
             Clear();
+
             for (int i = 0; i < _entries.Count; i++) {
                 var entry = _entries[i];
                 Add(entry.key, entry.value);
             }
+        }
+
+        public SerializedDictionary() : base() {
+            InitUndoRedo();
+        }
+
+        public SerializedDictionary(IDictionary<TKey, TValue> dictionary) : base(dictionary) {
+            InitUndoRedo();
+        }
+
+        public SerializedDictionary(IDictionary<TKey, TValue> dictionary, IEqualityComparer<TKey> comparer) : base(dictionary, comparer){
+            InitUndoRedo();
+        }
+
+        public SerializedDictionary(IEnumerable<KeyValuePair<TKey, TValue>> collection) : base(collection) {
+            InitUndoRedo();
+        }
+
+        public SerializedDictionary(IEnumerable<KeyValuePair<TKey, TValue>> collection, IEqualityComparer<TKey> comparer) : base(collection, comparer) {
+            InitUndoRedo();
+        }
+
+        public SerializedDictionary(IEqualityComparer<TKey> comparer) : base(comparer) {
+            InitUndoRedo();
+        }
+
+        public SerializedDictionary(int capacity) : base(capacity) {
+            InitUndoRedo();
+        }
+
+        public SerializedDictionary(int capacity, IEqualityComparer<TKey> comparer) : base(capacity, comparer) {
+            InitUndoRedo();
+        }
+
+        protected SerializedDictionary(SerializationInfo info, StreamingContext context) : base(info, context) {
+            InitUndoRedo();
         }
 #endif
     }
