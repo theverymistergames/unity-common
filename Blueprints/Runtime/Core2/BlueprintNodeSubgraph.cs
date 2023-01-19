@@ -5,13 +5,7 @@ namespace MisterGames.Blueprints.Core2 {
 
     [Serializable]
     [BlueprintNodeMeta(Name = "Core2.Subgraph", Category = "Core2.External", Color = BlueprintColors.Node.External)]
-    public sealed class BlueprintNodeSubgraph :
-        BlueprintNode,
-        IBlueprintEnter,
-        IBlueprintOutput,
-        IBlueprintCompiledNode,
-        IBlueprintValidatedNode
-    {
+    public sealed class BlueprintNodeSubgraph : BlueprintNode, IBlueprintEnter, IBlueprintOutput {
 
         [SerializeField] private BlueprintAsset _blueprintAsset;
 
@@ -56,13 +50,13 @@ namespace MisterGames.Blueprints.Core2 {
             _runtimeBlueprint = _blueprintAsset.CompileSubgraph(this, nodeMeta);
         }
 
-        public void OnValidate(int nodeId, BlueprintAsset owner) {
-            if (_blueprintAsset == owner) {
-                Debug.LogWarning($"Subgraph node can not execute its owner BlueprintAsset {owner.name}");
+        public void OnValidate(int nodeId, BlueprintAsset ownerAsset) {
+            if (_blueprintAsset == ownerAsset) {
+                Debug.LogWarning($"Subgraph node can not execute its owner BlueprintAsset {ownerAsset.name}");
                 _blueprintAsset = null;
             }
 
-            owner.BlueprintMeta.Invalidate(nodeId);
+            ownerAsset.BlueprintMeta.Invalidate(nodeId);
         }
     }
 

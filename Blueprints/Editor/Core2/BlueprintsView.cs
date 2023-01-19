@@ -33,7 +33,7 @@ namespace MisterGames.Blueprints.Editor.Core2 {
             InitStyle();
             InitUndoRedo();
             //InitCopyPaste();
-            InitSearchWindows();
+            InitNodeSearchWindow();
             //InitBlackboard();
             InitMiniMap();
             InitMouse();
@@ -61,7 +61,7 @@ namespace MisterGames.Blueprints.Editor.Core2 {
         }
 
         private void OnUndoRedo() {
-            InvalidateAsset();
+            //InvalidateAsset();
         }
         /*
         private void InitCopyPaste() {
@@ -70,10 +70,7 @@ namespace MisterGames.Blueprints.Editor.Core2 {
             unserializeAndPaste = OnUnserializeAndPaste;
         }
         */
-        private void InitSearchWindows() {
-            //_blackboardSearchWindow = ScriptableObject.CreateInstance<BlackboardSearchWindow>();
-            //_blackboardSearchWindow.onSelectType = OnAddBlackboardProperty;
-            
+        private void InitNodeSearchWindow() {
             _nodeSearchWindow = ScriptableObject.CreateInstance<BlueprintSearchWindow>();
             _nodeSearchWindow.onNodeCreationRequest = data => {
                 data.position = ConvertPosition(data.position);
@@ -84,23 +81,7 @@ namespace MisterGames.Blueprints.Editor.Core2 {
                 OpenSearchWindow(_nodeSearchWindow, ctx.screenMousePosition);
             };
         }
-        /*
-        private void InitBlackboard() {
-            _blackboard = new Blackboard(this) {
-                windowed = false,
-                addItemRequested = _ => { OnAddBlackboardPropertyRequest(); },
-                moveItemRequested = (_, index, element) => {
-                    OnBlackboardPropertyPositionChanged((BlackboardField) element, index);
-                },
-                editTextRequested = (_, element, newName) => {
-                    OnBlackboardPropertyNameChanged((BlackboardField) element, newName);
-                }
-            };
-            _blackboard.SetPosition(new Rect(0, 0, 300, 300));
-            Add(_blackboard);
-            _blackboard.visible = false;
-        }
-        */
+
         private void InitMiniMap() {
             _miniMap = new MiniMap { windowed = false };
             _miniMap.SetPosition(new Rect(600, 0, 400, 250));
@@ -123,12 +104,17 @@ namespace MisterGames.Blueprints.Editor.Core2 {
 
             _blueprintAsset = blueprintAsset;
 
-            if (InvalidateAsset()) EditorUtility.SetDirty(_blueprintAsset);
+            if (InvalidateAsset()) {
+                EditorUtility.SetDirty(_blueprintAsset);
+                //SaveAsset();
+            }
 
             RepopulateView();
 
             _blueprintAsset.BlueprintMeta.OnInvalidate = () => {
                 EditorUtility.SetDirty(_blueprintAsset);
+                //SaveAsset();
+
                 RepopulateView();
             };
         }
@@ -159,10 +145,6 @@ namespace MisterGames.Blueprints.Editor.Core2 {
             ClearSelection();
         }
 
-        private void FreezeGraphElements() {
-            graphElements.ForEach(element => element.capabilities = 0);
-        }
-
         public void ClearView() {
             _blueprintAsset = null;
             DeleteElements(graphElements);
@@ -171,6 +153,25 @@ namespace MisterGames.Blueprints.Editor.Core2 {
 
         // ---------------- ---------------- Blackboard ---------------- ----------------
         /*
+        private void InitBlackboard() {
+            //_blackboardSearchWindow = ScriptableObject.CreateInstance<BlackboardSearchWindow>();
+            //_blackboardSearchWindow.onSelectType = OnAddBlackboardProperty;
+
+            _blackboard = new Blackboard(this) {
+                windowed = false,
+                addItemRequested = _ => { OnAddBlackboardPropertyRequest(); },
+                moveItemRequested = (_, index, element) => {
+                    OnBlackboardPropertyPositionChanged((BlackboardField) element, index);
+                },
+                editTextRequested = (_, element, newName) => {
+                    OnBlackboardPropertyNameChanged((BlackboardField) element, newName);
+                }
+            };
+            _blackboard.SetPosition(new Rect(0, 0, 300, 300));
+            Add(_blackboard);
+            _blackboard.visible = false;
+        }
+
         private void OnAddBlackboardPropertyRequest() {
             if (_currentBlueprintAsset == null) return;
             
@@ -235,7 +236,7 @@ namespace MisterGames.Blueprints.Editor.Core2 {
         // ---------------- ---------------- Menu ---------------- ----------------
 
         public override void BuildContextualMenu(ContextualMenuPopulateEvent evt) {
-            if (_blueprintAsset != null) base.BuildContextualMenu(evt);
+            if (CanOpenAsset()) base.BuildContextualMenu(evt);
         }
 
         private void OpenSearchWindow<T>(T window, Vector2 position) where T : ScriptableObject, ISearchWindowProvider {
@@ -266,33 +267,27 @@ namespace MisterGames.Blueprints.Editor.Core2 {
         private void CreateNode(NodeCreationData data) {
             var nodeMeta = BlueprintNodeMeta.Create(data.type);
             nodeMeta.Position = data.position;
-            nodeMeta.OwnerAsset = _blueprintAsset;
-            Undo.RegisterCreatedObjectUndo(nodeMeta, "Blueprint Add Node Meta");
 
             Undo.RecordObject(_blueprintAsset, "Blueprint Add Node");
+
             _blueprintAsset.BlueprintMeta.AddNode(nodeMeta);
 
-            AddToAsset(nodeMeta);
-            EditorUtility.SetDirty(nodeMeta);
             EditorUtility.SetDirty(_blueprintAsset);
+            //SaveAsset();
 
             CreateNodeView(nodeMeta);
         }
 
-        private void RemoveNode(BlueprintNodeView view) {
-            var nodeMeta = view.NodeMeta;
-
-            Undo.RecordObject(_blueprintAsset, "Blueprint Removed Node");
+        private void RemoveNode(BlueprintNodeMeta nodeMeta) {
+            Undo.RecordObject(_blueprintAsset, "Blueprint Remove Node");
 
             _blueprintAsset.BlueprintMeta.RemoveNode(nodeMeta.NodeId);
-            RemoveFromAsset(nodeMeta);
-            Undo.DestroyObjectImmediate(nodeMeta);
 
             EditorUtility.SetDirty(_blueprintAsset);
         }
         
         private void CreateConnection(int fromNodeId, int fromPortIndex, int toNodeId, int toPortIndex) {
-            Undo.RecordObject(_blueprintAsset, "Blueprint Added Link");
+            Undo.RecordObject(_blueprintAsset, "Blueprint Create Connection");
 
             _blueprintAsset.BlueprintMeta.TryCreateConnection(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
 
@@ -300,7 +295,7 @@ namespace MisterGames.Blueprints.Editor.Core2 {
         }
         
         private void RemoveConnection(int fromNodeId, int fromPortIndex, int toNodeId, int toPortIndex) {
-            Undo.RecordObject(_blueprintAsset, "Blueprint Added Link");
+            Undo.RecordObject(_blueprintAsset, "Blueprint Remove Connection");
 
             _blueprintAsset.BlueprintMeta.RemoveConnection(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
 
@@ -310,7 +305,18 @@ namespace MisterGames.Blueprints.Editor.Core2 {
         // ---------------- ---------------- View creation ---------------- ----------------
 
         private void CreateNodeView(BlueprintNodeMeta nodeMeta) {
-            AddElement(new BlueprintNodeView(nodeMeta) { OnPositionChanged = OnPositionChanged });
+            var nodeView = new BlueprintNodeView(nodeMeta, _blueprintAsset) {
+                OnPositionChanged = OnPositionChanged,
+                OnValidate = OnValidateNode
+            };
+
+            AddElement(nodeView);
+        }
+
+        private void OnValidateNode(BlueprintNodeMeta nodeMeta) {
+            if (_blueprintAsset == null) return;
+
+            EditorUtility.SetDirty(_blueprintAsset);
         }
 
         private void OnPositionChanged(BlueprintNodeMeta nodeMeta, Vector2 position) {
@@ -320,7 +326,7 @@ namespace MisterGames.Blueprints.Editor.Core2 {
 
             nodeMeta.Position = position;
 
-            EditorUtility.SetDirty(nodeMeta);
+            EditorUtility.SetDirty(_blueprintAsset);
         }
 
         private void CreateLinkViews(BlueprintNodeMeta nodeMeta) {
@@ -341,7 +347,7 @@ namespace MisterGames.Blueprints.Editor.Core2 {
                     var remoteView = FindNodeViewByGuid(link.nodeId.ToString());
                     if (remoteView == null) continue;
 
-                    var remotePort = remoteView.NodeMeta.Ports[link.portIndex];
+                    var remotePort = remoteView.nodeMeta.Ports[link.portIndex];
                     
                     var sourcePortView = GetPortView(nodeView, p, port.isExitPort);
                     var remotePortView = GetPortView(remoteView, link.portIndex, remotePort.isExitPort);
@@ -357,8 +363,8 @@ namespace MisterGames.Blueprints.Editor.Core2 {
             
             change.edgesToCreate?.ForEach(edge => {
                 if (edge.input.node is BlueprintNodeView toView && edge.output.node is BlueprintNodeView fromView) {
-                    int fromNodeId = fromView.NodeMeta.NodeId;
-                    int toNodeId = toView.NodeMeta.NodeId;
+                    int fromNodeId = fromView.nodeMeta.NodeId;
+                    int toNodeId = toView.nodeMeta.NodeId;
 
                     int fromPort = GetPortIndex(edge.output);
                     int toPort = GetPortIndex(edge.input);
@@ -370,7 +376,7 @@ namespace MisterGames.Blueprints.Editor.Core2 {
             change.elementsToRemove?.ForEach(e => {
                 switch (e) {
                     case BlueprintNodeView view:
-                        RemoveNode(view);
+                        RemoveNode(view.nodeMeta);
                         break;
                     /*
                     case BlackboardField field:
@@ -380,8 +386,8 @@ namespace MisterGames.Blueprints.Editor.Core2 {
                     */
                     case Edge edge:
                         if (edge.input.node is BlueprintNodeView toView && edge.output.node is BlueprintNodeView fromView) {
-                            int fromNodeId = fromView.NodeMeta.NodeId;
-                            int toNodeId = toView.NodeMeta.NodeId;
+                            int fromNodeId = fromView.nodeMeta.NodeId;
+                            int toNodeId = toView.nodeMeta.NodeId;
 
                             int fromPort = GetPortIndex(edge.output);
                             int toPort = GetPortIndex(edge.input);
@@ -403,6 +409,7 @@ namespace MisterGames.Blueprints.Editor.Core2 {
             if (hasMovedElements || hasElementsToRemove || hasEdgesToCreate) {
                 Undo.RecordObject(_blueprintAsset, "Blueprint Changed");
                 EditorUtility.SetDirty(_blueprintAsset);
+                //SaveAsset();
             }
 
             return change;
@@ -413,16 +420,25 @@ namespace MisterGames.Blueprints.Editor.Core2 {
         }
 
         public override List<PortView> GetCompatiblePorts(PortView startPortView, NodeAdapter nodeAdapter) {
+            int startNodeId = GetNode(startPortView).nodeMeta.NodeId;
             var startPort = GetPort(startPortView);
-            return ports.Where(portView => BlueprintValidation.ArePortsCompatible(startPort, GetPort(portView))).ToList();
+
+            return ports
+                .Where(portView => GetNode(portView).nodeMeta.NodeId != startNodeId &&
+                                   BlueprintValidation.ArePortsCompatible(startPort, GetPort(portView)))
+                .ToList();
+        }
+
+        private static BlueprintNodeView GetNode(PortView portView) {
+            return (BlueprintNodeView) portView.node;
         }
 
         private static Port GetPort(PortView view) {
-            return ((BlueprintNodeView) view.node).NodeMeta.Ports[GetPortIndex(view)];
+            return ((BlueprintNodeView) view.node).nodeMeta.Ports[GetPortIndex(view)];
         }
 
         private static PortView GetPortView(BlueprintNodeView view, int index, bool isExit) {
-            var ports = view.NodeMeta.Ports;
+            var ports = view.nodeMeta.Ports;
             int portIndex = -1;
             
             for (int i = 0; i < ports.Count; i++) {
@@ -445,7 +461,7 @@ namespace MisterGames.Blueprints.Editor.Core2 {
             var portContainer = isExit ? node.outputContainer : node.inputContainer;
             
             int portIndex = portContainer.IndexOf(portView);
-            var ports = ((BlueprintNodeView) node).NodeMeta.Ports;
+            var ports = ((BlueprintNodeView) node).nodeMeta.Ports;
 
             int count = -1;
             for (int i = 0; i < ports.Count; i++) {
@@ -555,12 +571,8 @@ namespace MisterGames.Blueprints.Editor.Core2 {
             return CanOpenAsset() && _blueprintAsset.BlueprintMeta.Invalidate();
         }
 
-        private void AddToAsset(Object obj) {
-            if (CanOpenAsset() && obj != null) AssetDatabase.AddObjectToAsset(obj, _blueprintAsset);
-        }
-
-        private void RemoveFromAsset(Object obj) {
-            if (CanOpenAsset() && obj != null) AssetDatabase.RemoveObjectFromAsset(obj);
+        private void SaveAsset() {
+            if (CanOpenAsset()) AssetDatabase.SaveAssets();
         }
 
         // ---------------- ---------------- Nested classes ---------------- ----------------

@@ -33,7 +33,6 @@ namespace MisterGames.Blueprints.Core2 {
         private sealed class IntIntToListOfBlueprintLinkMap : SerializedDictionary<int, IntToListOfBlueprintLinkMap> {}
 
         public Action OnInvalidate;
-
         public Dictionary<int, BlueprintNodeMeta> Nodes => _nodes;
         public List<BlueprintLink> ExternalPortLinks => _externalPortLinks;
 
@@ -172,10 +171,7 @@ namespace MisterGames.Blueprints.Core2 {
                 if (toPort.isDataPort || !toPort.isExitPort) return false;
 
                 // adding connection from the exit port toPort to the enter port fromPort
-                CreateConnection(
-                    toNodeId, toPortIndex, toPort.GetSignature(),
-                    fromNodeId, fromPortIndex, fromPort.GetSignature()
-                );
+                CreateConnection(toNodeId, toPortIndex, fromNodeId, fromPortIndex);
                 return true;
             }
 
@@ -185,10 +181,7 @@ namespace MisterGames.Blueprints.Core2 {
                 if (toPort.isDataPort || toPort.isExitPort) return false;
 
                 // adding connection from the exit port fromPort to the enter port toPort
-                CreateConnection(
-                    fromNodeId, fromPortIndex, fromPort.GetSignature(),
-                    toNodeId, toPortIndex, toPort.GetSignature()
-                );
+                CreateConnection(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
                 return true;
             }
 
@@ -203,10 +196,7 @@ namespace MisterGames.Blueprints.Core2 {
 
                 // replacing connections from the input port fromPort to the output port toPort with new connection
                 RemoveLinksFromNodePort(fromNodeId, fromPortIndex);
-                CreateConnection(
-                    fromNodeId, fromPortIndex, fromPort.GetSignature(),
-                    toNodeId, toPortIndex, toPort.GetSignature()
-                );
+                CreateConnection(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
                 return true;
             }
 
@@ -220,10 +210,7 @@ namespace MisterGames.Blueprints.Core2 {
 
             // replacing connections from the input port toPort to the output port fromPort with new connection
             RemoveLinksFromNodePort(toNodeId, toPortIndex);
-            CreateConnection(
-                toNodeId, toPortIndex, toPort.GetSignature(),
-                fromNodeId, fromPortIndex, fromPort.GetSignature()
-            );
+            CreateConnection(toNodeId, toPortIndex, fromNodeId, fromPortIndex);
             return true;
         }
 
@@ -256,12 +243,9 @@ namespace MisterGames.Blueprints.Core2 {
             }
         }
 
-        private void CreateConnection(
-            int fromNodeId, int fromPortIndex, int fromPortSignature,
-            int toNodeId, int toPortIndex, int toPortSignature
-        ) {
-            AddLinkFromNodePort(fromNodeId, fromPortIndex, toNodeId, toPortIndex, toPortSignature);
-            AddLinkToNodePort(fromNodeId, fromPortIndex, fromPortSignature, toNodeId, toPortIndex);
+        private void CreateConnection(int fromNodeId, int fromPortIndex, int toNodeId, int toPortIndex) {
+            AddLinkFromNodePort(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
+            AddLinkToNodePort(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
         }
 
         private bool HasLinkFromNodePort(int fromNodeId, int fromPortIndex, int toNodeId, int toPortIndex) {
@@ -288,7 +272,7 @@ namespace MisterGames.Blueprints.Core2 {
             return false;
         }
 
-        private void AddLinkFromNodePort(int fromNodeId, int fromPortIndex, int toNodeId, int toPortIndex, int toPortSignature) {
+        private void AddLinkFromNodePort(int fromNodeId, int fromPortIndex, int toNodeId, int toPortIndex) {
             if (!_fromNodePortLinksMap.TryGetValue(fromNodeId, out var fromNodePortLinksMap)) {
                 fromNodePortLinksMap = new IntToListOfBlueprintLinkMap();
                 _fromNodePortLinksMap[fromNodeId] = fromNodePortLinksMap;
@@ -299,11 +283,11 @@ namespace MisterGames.Blueprints.Core2 {
                 fromNodePortLinksMap[fromPortIndex] = fromNodePortLinks;
             }
 
-            var link = new BlueprintLink { nodeId = toNodeId, portIndex = toPortIndex, portSignature = toPortSignature };
+            var link = new BlueprintLink { nodeId = toNodeId, portIndex = toPortIndex };
             fromNodePortLinks.Add(link);
         }
 
-        private void AddLinkToNodePort(int fromNodeId, int fromPortIndex, int fromPortSignature, int toNodeId, int toPortIndex) {
+        private void AddLinkToNodePort(int fromNodeId, int fromPortIndex, int toNodeId, int toPortIndex) {
             if (!_toNodePortLinksMap.TryGetValue(toNodeId, out var toNodePortLinksMap)) {
                 toNodePortLinksMap = new IntToListOfBlueprintLinkMap();
                 _toNodePortLinksMap[toNodeId] = toNodePortLinksMap;
@@ -314,7 +298,7 @@ namespace MisterGames.Blueprints.Core2 {
                 toNodePortLinksMap[toPortIndex] = toNodePortLinks;
             }
 
-            var link = new BlueprintLink { nodeId = fromNodeId, portIndex = fromPortIndex, portSignature = fromPortSignature };
+            var link = new BlueprintLink { nodeId = fromNodeId, portIndex = fromPortIndex };
             toNodePortLinks.Add(link);
         }
 

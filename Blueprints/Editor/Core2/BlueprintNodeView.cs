@@ -1,7 +1,8 @@
 ﻿using System;
 using MisterGames.Blueprints.Core2;
-using MisterGames.Common.Editor.Drawers;
+using MisterGames.Common.Editor.Utils;
 using MisterGames.Common.Editor.Views;
+using MisterGames.Common.Editor.VirtualInspector;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
@@ -13,11 +14,16 @@ namespace MisterGames.Blueprints.Editor.Core2 {
 
     public sealed class BlueprintNodeView : Node {
 
-        public Action<BlueprintNodeMeta, Vector2> OnPositionChanged = delegate {  };
-        public BlueprintNodeMeta NodeMeta { get; }
+        public readonly BlueprintNodeMeta nodeMeta;
+        private readonly BlueprintAsset _ownerAsset;
 
-        public BlueprintNodeView(BlueprintNodeMeta nodeMeta) : base(GetUxmlPath()) {
-            NodeMeta = nodeMeta;
+        public Action<BlueprintNodeMeta, Vector2> OnPositionChanged = delegate {  };
+        public Action<BlueprintNodeMeta> OnValidate = delegate {  };
+
+        public BlueprintNodeView(BlueprintNodeMeta nodeMeta, BlueprintAsset ownerAsset) : base(GetUxmlPath()) {
+            this.nodeMeta = nodeMeta;
+            _ownerAsset = ownerAsset;
+
             viewDataKey = nodeMeta.NodeId.ToString();
             
             var titleLabel = this.Q<Label>("title");
@@ -26,12 +32,41 @@ namespace MisterGames.Blueprints.Editor.Core2 {
 
             titleLabel.text = nodeMeta.NodeName;
             container.style.backgroundColor = nodeMeta.NodeColor;
-            inspector.UpdateSelection(nodeMeta);
+            inspector.UpdateSelection(VirtualInspector.Create(nodeMeta.Node, OnNodeGUI, OnNodeValidate));
 
             style.left = nodeMeta.Position.x;
             style.top = nodeMeta.Position.y;
 
             InitPorts();
+        }
+
+        private void OnNodeValidate(object obj) {
+            if (obj is not BlueprintNode node) return;
+
+            if (node is BlueprintNodeSubgraph subgraph) subgraph.OnValidate(nodeMeta.NodeId, _ownerAsset);
+            node.OnValidate();
+
+            OnValidate.Invoke(nodeMeta);
+        }
+
+        private static void OnNodeGUI(SerializedProperty serializedProperty) {
+            float labelWidth = EditorGUIUtility.labelWidth;
+            float fieldWidth = EditorGUIUtility.fieldWidth;
+
+            EditorGUIUtility.labelWidth = 110;
+            EditorGUIUtility.fieldWidth = 160;
+
+            foreach (object child in serializedProperty) {
+                var childProperty = (SerializedProperty) child;
+                EditorGUILayout.PropertyField(childProperty, true);
+
+                if (childProperty.GetValue() is BlueprintAsset blueprintAsset && GUILayout.Button("Edit")) {
+                    BlueprintsEditorWindow.GetWindow().PopulateFromAsset(blueprintAsset);
+                }
+            }
+
+            EditorGUIUtility.labelWidth = labelWidth;
+            EditorGUIUtility.fieldWidth = fieldWidth;
         }
 
         private static string GetUxmlPath() {
@@ -41,11 +76,11 @@ namespace MisterGames.Blueprints.Editor.Core2 {
 
         public override void SetPosition(Rect newPos) {
             base.SetPosition(newPos);
-            OnPositionChanged.Invoke(NodeMeta, new Vector2(newPos.xMin, newPos.yMin));
+            OnPositionChanged.Invoke(nodeMeta, new Vector2(newPos.xMin, newPos.yMin));
         }
         
         private void InitPorts() {
-            var ports = NodeMeta.Ports;
+            var ports = nodeMeta.Ports;
             for (int i = 0; i < ports.Count; i++) {
                 CreatePort(ports[i]);
             }

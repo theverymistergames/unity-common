@@ -155,7 +155,7 @@ namespace MisterGames.Blueprints.Core2 {
             nodeInstance = nodeMeta.Node;
             _runtimeNodesMap[nodeId] = nodeInstance;
 
-            if (nodeInstance is IBlueprintCompiledNode compiledNode) compiledNode.Compile(nodeMeta);
+            if (nodeInstance is BlueprintNodeSubgraph subgraph) subgraph.Compile(nodeMeta);
 
             return nodeInstance;
         }

@@ -6,7 +6,6 @@ namespace MisterGames.Blueprints.Core2 {
     public struct BlueprintLink {
         public int nodeId;
         public int portIndex;
-        public int portSignature;
     }
 
 }
