@@ -43,7 +43,7 @@ namespace MisterGames.Blueprints.Editor.Core2 {
         private void OnNodeValidate(object obj) {
             if (obj is not BlueprintNode node) return;
 
-            if (node is BlueprintNodeSubgraph subgraph) subgraph.OnValidate(nodeMeta.NodeId, _ownerAsset);
+            if (node is IBlueprintValidatedNode validatedNode) validatedNode.OnValidate(nodeMeta.NodeId, _ownerAsset);
             node.OnValidate();
 
             OnValidate.Invoke(nodeMeta);

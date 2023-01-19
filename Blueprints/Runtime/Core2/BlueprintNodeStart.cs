@@ -7,7 +7,7 @@ namespace MisterGames.Blueprints.Core2 {
     public sealed class BlueprintNodeStart : BlueprintNode, IBlueprintEnter, IBlueprintStart {
 
         public override Port[] CreatePorts() => new[] {
-            Port.Enter("Start").SetExternal(true),
+            Port.Enter("On Start").SetExternal(true),
             Port.Exit(),
         };
 

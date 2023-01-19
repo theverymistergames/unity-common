@@ -117,6 +117,13 @@ namespace MisterGames.Blueprints.Editor.Core2 {
 
                 RepopulateView();
             };
+
+            _blueprintAsset.BlueprintMeta.OnInvalidateNode = nodeId => {
+                EditorUtility.SetDirty(_blueprintAsset);
+                //SaveAsset();
+
+                RepopulateView();
+            };
         }
 
         private void RepopulateView() {

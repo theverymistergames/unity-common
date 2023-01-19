@@ -5,7 +5,7 @@ namespace MisterGames.Blueprints.Core2 {
 
     [Serializable]
     [BlueprintNodeMeta(Name = "Core2.Subgraph", Category = "Core2.External", Color = BlueprintColors.Node.External)]
-    public sealed class BlueprintNodeSubgraph : BlueprintNode, IBlueprintEnter, IBlueprintOutput {
+    public sealed class BlueprintNodeSubgraph : BlueprintNode, IBlueprintEnter, IBlueprintOutput, IBlueprintValidatedNode {
 
         [SerializeField] private BlueprintAsset _blueprintAsset;
 
@@ -56,7 +56,7 @@ namespace MisterGames.Blueprints.Core2 {
                 _blueprintAsset = null;
             }
 
-            ownerAsset.BlueprintMeta.Invalidate(nodeId);
+            ownerAsset.BlueprintMeta.InvalidateNode(nodeId);
         }
     }
 
