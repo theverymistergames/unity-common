@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using MisterGames.Blueprints.Core2;
+using MisterGames.Common.Data;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.UIElements;
+using Blackboard = UnityEditor.Experimental.GraphView.Blackboard;
 using Object = UnityEngine.Object;
 using Port = MisterGames.Blueprints.Core2.Port;
 using PortView = UnityEditor.Experimental.GraphView.Port;
@@ -25,6 +27,34 @@ namespace MisterGames.Blueprints.Editor.Core2 {
         private MiniMap _miniMap;
         private Vector2 _mousePosition;
 
+        public struct NodeCreationData {
+            public BlueprintNode node;
+            public Vector2 position;
+        }
+
+        [Serializable]
+        public struct CopyPasteData {
+
+            public List<NodeData> nodes;
+            public List<LinkData> links;
+            public Vector2 position;
+
+            [Serializable]
+            public struct NodeData {
+                public int nodeId;
+                public Vector2 position;
+                public string serializedNodeType;
+            }
+
+            [Serializable]
+            public struct LinkData {
+                public int fromNodeId;
+                public int fromPortIndex;
+                public int toNodeId;
+                public int toPortIndex;
+            }
+        }
+
         // ---------------- ---------------- Initialization ---------------- ----------------
         
         public BlueprintsView() {
@@ -32,7 +62,7 @@ namespace MisterGames.Blueprints.Editor.Core2 {
             InitManipulators();
             InitStyle();
             InitUndoRedo();
-            //InitCopyPaste();
+            InitCopyPaste();
             InitNodeSearchWindow();
             //InitBlackboard();
             InitMiniMap();
@@ -66,13 +96,7 @@ namespace MisterGames.Blueprints.Editor.Core2 {
             EditorUtility.SetDirty(_blueprintAsset);
             RepopulateView();
         }
-        /*
-        private void InitCopyPaste() {
-            canPasteSerializedData = CanPaste;
-            serializeGraphElements = OnSerializeGraphElements;
-            unserializeAndPaste = OnUnserializeAndPaste;
-        }
-        */
+
         private void InitNodeSearchWindow() {
             _nodeSearchWindow = ScriptableObject.CreateInstance<BlueprintSearchWindow>();
             _nodeSearchWindow.onNodeCreationRequest = data => {
@@ -270,8 +294,8 @@ namespace MisterGames.Blueprints.Editor.Core2 {
             return contentViewContainer.WorldToLocal(worldPosition);
         }
         
-        private void CreateNode(NodeCreationData data) {
-            var nodeMeta = BlueprintNodeMeta.Create(data.type);
+        private BlueprintNodeView CreateNode(NodeCreationData data) {
+            var nodeMeta = BlueprintNodeMeta.Create(data.node);
             nodeMeta.Position = data.position;
 
             Undo.RecordObject(_blueprintAsset, "Blueprint Add Node");
@@ -280,7 +304,7 @@ namespace MisterGames.Blueprints.Editor.Core2 {
 
             EditorUtility.SetDirty(_blueprintAsset);
 
-            CreateNodeView(nodeMeta);
+            return CreateNodeView(nodeMeta);
         }
 
         private void RemoveNode(BlueprintNodeMeta nodeMeta) {
@@ -309,13 +333,15 @@ namespace MisterGames.Blueprints.Editor.Core2 {
 
         // ---------------- ---------------- View creation ---------------- ----------------
 
-        private void CreateNodeView(BlueprintNodeMeta nodeMeta) {
+        private BlueprintNodeView CreateNodeView(BlueprintNodeMeta nodeMeta) {
             var nodeView = new BlueprintNodeView(nodeMeta, _blueprintAsset) {
                 OnPositionChanged = OnPositionChanged,
                 OnValidate = OnValidateNode
             };
 
             AddElement(nodeView);
+
+            return nodeView;
         }
 
         private void OnValidateNode(BlueprintNodeMeta nodeMeta) {
@@ -357,6 +383,21 @@ namespace MisterGames.Blueprints.Editor.Core2 {
                     AddElement(fromPortView.ConnectTo(toPortView));
                 }
             }
+        }
+
+        private Edge CreateConnectionView(int fromNodeId, int fromPortIndex, int toNodeId, int toPortIndex) {
+            var fromNodeView = FindNodeViewByNodeId(fromNodeId);
+            var fromPort = fromNodeView.nodeMeta.Ports[fromPortIndex];
+            var fromPortView = GetPortView(fromNodeView, fromPortIndex, fromPort.isExitPort);
+
+            var toNodeView = FindNodeViewByNodeId(toNodeId);
+            var toPort = toNodeView.nodeMeta.Ports[toPortIndex];
+            var toPortView = GetPortView(toNodeView, toPortIndex, toPort.isExitPort);
+
+            var edge = fromPortView.ConnectTo(toPortView);
+            AddElement(edge);
+
+            return edge;
         }
 
         private GraphViewChange OnGraphViewChanged(GraphViewChange change) {
@@ -403,10 +444,6 @@ namespace MisterGames.Blueprints.Editor.Core2 {
             bool hasMovedElements = change.movedElements is { Count: > 0 };
             bool hasEdgesToCreate = change.edgesToCreate is { Count: > 0 };
 
-            if (hasElementsToRemove || hasEdgesToCreate) {
-               //RepopulateView();
-            }
-            
             if (hasMovedElements || hasElementsToRemove || hasEdgesToCreate) {
                 Undo.RecordObject(_blueprintAsset, "Blueprint Changed");
                 EditorUtility.SetDirty(_blueprintAsset);
@@ -482,84 +519,99 @@ namespace MisterGames.Blueprints.Editor.Core2 {
         public void OnDrop(GraphView graphView, Edge edge) { }
         
         // ---------------- ---------------- Copy paste ---------------- ----------------
-        /*
+
+        private void InitCopyPaste() {
+            canPasteSerializedData = CanPaste;
+            serializeGraphElements = OnSerializeGraphElements;
+            unserializeAndPaste = OnUnserializeAndPaste;
+        }
+
         private static string OnSerializeGraphElements(IEnumerable<GraphElement> elements) {
-            var copiedNodes = new List<BlueprintNode>();
-            var copiedLinks = new List<CopyPasteLink>();
-            
-            foreach (var element in elements) {
+            var copyData = new CopyPasteData {
+                nodes = new List<CopyPasteData.NodeData>(),
+                links = new List<CopyPasteData.LinkData>(),
+                position = Vector2.zero,
+            };
+
+            var elementArray = elements.ToArray();
+            for (int i = 0; i < elementArray.Length; i++) {
+                var element = elementArray[i];
+
                 if (element is BlueprintNodeView nodeView) {
-                    var original = nodeView.NodeMeta;
-                    var clone = Object.Instantiate(original);
-                    
-                    clone.name = original.name;
-                    clone.AsIBlueprintNode().DisconnectAllPorts();
-                    
-                    copiedNodes.Add(clone);
+                    var nodeMeta = nodeView.nodeMeta;
+
+                    copyData.position += nodeMeta.Position;
+
+                    copyData.nodes.Add(new CopyPasteData.NodeData {
+                        nodeId = nodeMeta.NodeId,
+                        position = nodeMeta.Position,
+                        serializedNodeType = SerializedType.ToString(nodeMeta.Node.GetType())
+                    });
                     continue;
                 }
 
-                if (element is Edge edge && 
-                    edge.input.node is BlueprintNodeView toNodeView && 
+                if (element is Edge edge &&
+                    edge.input.node is BlueprintNodeView toNodeView &&
                     edge.output.node is BlueprintNodeView fromNodeView) {
-                    
-                    copiedLinks.Add(new CopyPasteLink {
-                        fromNodeGuid = fromNodeView.NodeMeta.Guid,
-                        toNodeGuid = toNodeView.NodeMeta.Guid,
-                        fromPort = GetPortIndex(edge.output),
-                        toPort = GetPortIndex(edge.input)
+
+                    copyData.links.Add(new CopyPasteData.LinkData {
+                        fromNodeId = fromNodeView.nodeMeta.NodeId,
+                        fromPortIndex = GetPortIndex(edge.output),
+                        toNodeId = toNodeView.nodeMeta.NodeId,
+                        toPortIndex = GetPortIndex(edge.input),
                     });
                 }
             }
-            
-            return CopyData.Serialize(copiedNodes, copiedLinks);
+
+            if (elementArray.Length > 0) copyData.position /= elementArray.Length;
+
+            return JsonUtility.ToJson(copyData);
         }
 
         private void OnUnserializeAndPaste(string operationName, string data) {
-            var pasteData = PasteData.Deserialize(data);
+            var pasteData = JsonUtility.FromJson<CopyPasteData>(data);
 
-            if (pasteData.nodes.Count == 0) return;
+            if (pasteData.nodes == null || pasteData.nodes.Count == 0) return;
 
             var positionDiff = _mousePosition - pasteData.position;
-            var guidMap = new Dictionary<string, string>();
-            
-            foreach (var nodeData in pasteData.nodes) {
-                var creationData = new NodeCreationData {
-                    name = nodeData.name,
+            var nodeIdMap = new Dictionary<int, int>();
+
+            for (int i = 0; i < pasteData.nodes.Count; i++) {
+                var nodeData = pasteData.nodes[i];
+
+                var nodeCreationData = new NodeCreationData {
+                    node = (BlueprintNode) Activator.CreateInstance(SerializedType.FromString(nodeData.serializedNodeType)),
                     position = nodeData.position + positionDiff,
-                    type = nodeData.type
                 };
 
-                var node = CreateNode(creationData);
-                guidMap[nodeData.guid] = node.Guid;
-            }
-            
-            RepopulateView();
-            
-            foreach (var link in pasteData.links) {
-                if (!guidMap.ContainsKey(link.fromNodeGuid) || !guidMap.ContainsKey(link.toNodeGuid)) {
-                    continue;
-                }
-                
-                string fromNodeGuid = guidMap[link.fromNodeGuid];
-                string toNodeGuid = guidMap[link.toNodeGuid];
-                
-                var fromNode = FindNodeViewByGuid(fromNodeGuid).NodeMeta;
-                var toNode = FindNodeViewByGuid(toNodeGuid).NodeMeta;
+                var nodeView = CreateNode(nodeCreationData);
+                nodeIdMap[nodeData.nodeId] = nodeView.nodeMeta.NodeId;
 
-                int fromPort = link.fromPort;
-                int toPort = link.toPort;
-                
-                CreateConnection(fromNode, fromPort, toNode, toPort);
+                AddToSelection(nodeView);
             }
-            
-            ScheduleRepopulate();
+
+            if (pasteData.links != null) {
+                for (int i = 0; i < pasteData.links.Count; i++) {
+                    var link = pasteData.links[i];
+                    if (!nodeIdMap.TryGetValue(link.fromNodeId, out int fromNodeId) ||
+                        !nodeIdMap.TryGetValue(link.toNodeId, out int toNodeId)
+                    ) {
+                        continue;
+                    }
+
+                    CreateConnection(fromNodeId, link.fromPortIndex, toNodeId, link.toPortIndex);
+
+                    var edge = CreateConnectionView(fromNodeId, link.fromPortIndex, toNodeId, link.toPortIndex);
+                    AddToSelection(edge);
+                }
+            }
+
+            nodeIdMap.Clear();
         }
 
         private bool CanPaste(string data) {
-            return _currentBlueprintAsset != null;
+            return _blueprintAsset != null;
         }
-        */
 
         // ---------------- ---------------- Nested classes ---------------- ----------------
         

@@ -8,14 +8,9 @@ using UnityEngine;
 
 namespace MisterGames.Blueprints.Editor.Core2 {
 
-    public struct NodeCreationData {
-        public Vector2 position;
-        public Type type;
-    }
-
     public sealed class BlueprintSearchWindow : ScriptableObject, ISearchWindowProvider {
 
-        public Action<NodeCreationData> onNodeCreationRequest = delegate {  };
+        public Action<BlueprintsView.NodeCreationData> onNodeCreationRequest = delegate {  };
 
         public List<SearchTreeEntry> CreateSearchTree(SearchWindowContext context) {
             return SearchTree.Create()
@@ -26,8 +21,8 @@ namespace MisterGames.Blueprints.Editor.Core2 {
 
         public bool OnSelectEntry(SearchTreeEntry searchTreeEntry, SearchWindowContext context) {
             if (searchTreeEntry.userData is Type type) {
-                var data = new NodeCreationData {
-                    type = type,
+                var data = new BlueprintsView.NodeCreationData {
+                    node = Activator.CreateInstance(type) as BlueprintNode,
                     position = context.screenMousePosition,
                 };
 

@@ -50,11 +50,12 @@ namespace MisterGames.Blueprints.Core2 {
 
         private BlueprintNodeMeta() { }
 
-        public static BlueprintNodeMeta Create(Type nodeType) {
+        public static BlueprintNodeMeta Create(BlueprintNode node) {
+            var nodeType = node.GetType();
             var nodeMetaAttr = nodeType.GetCustomAttribute<BlueprintNodeMetaAttribute>(false);
 
             var nodeMeta = new BlueprintNodeMeta {
-                _node = (BlueprintNode) Activator.CreateInstance(nodeType),
+                _node = node,
                 _nodeName = string.IsNullOrWhiteSpace(nodeMetaAttr.Name) ? nodeType.Name : nodeMetaAttr.Name.Trim(),
                 _nodeColor = string.IsNullOrEmpty(nodeMetaAttr.Color) ? BlueprintColors.Node.Default : nodeMetaAttr.Color,
             };
