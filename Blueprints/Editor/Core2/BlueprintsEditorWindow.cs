@@ -19,11 +19,9 @@ namespace MisterGames.Blueprints.Editor.Core2 {
 
         [OnOpenAsset]
         private static bool OnOpenAsset(int instanceId, int line) {
-            if (Selection.activeObject is BlueprintAsset blueprintAsset) {
-                GetWindow().PopulateFromAsset(blueprintAsset);
-                return true;
-            }
-            return false;
+            if (Selection.activeObject is not BlueprintAsset blueprintAsset) return false;
+            GetWindow().PopulateFromAsset(blueprintAsset);
+            return true;
         }
 
         public static BlueprintsEditorWindow GetWindow() {
