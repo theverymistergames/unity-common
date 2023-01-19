@@ -15,18 +15,18 @@ namespace MisterGames.Blueprints.Core2 {
             if (_blueprintAsset == null) return Array.Empty<Port>();
 
             var blueprintMeta = _blueprintAsset.BlueprintMeta;
-            var nodesMap = blueprintMeta.Nodes;
+            var nodesMap = blueprintMeta.NodesMap;
+            var externalPortLinksMap = blueprintMeta.ExternalPortLinksMap;
 
-            var externalPortLinks = blueprintMeta.ExternalPortLinks;
-            int portsCount = externalPortLinks.Count;
-
+            int portIndex = 0;
+            int portsCount = externalPortLinksMap.Count;
             var ports = portsCount > 0 ? new Port[portsCount] : Array.Empty<Port>();
 
-            for (int p = 0; p < portsCount; p++) {
-                var link = externalPortLinks[p];
-                ports[p] = nodesMap[link.nodeId].Ports[link.portIndex].SetExternal(false);
+            foreach (var links in externalPortLinksMap.Values) {
+                var link = links[0];
+                ports[portIndex++] = nodesMap[link.nodeId].Ports[link.portIndex].SetExternal(false);
             }
-            
+
             return ports;
         }
 
