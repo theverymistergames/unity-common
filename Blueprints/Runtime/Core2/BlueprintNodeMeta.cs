@@ -67,6 +67,10 @@ namespace MisterGames.Blueprints.Core2 {
         public void RecreatePorts() {
             _ports = _node.CreatePorts();
         }
+
+        public override string ToString() {
+            return $"{nameof(BlueprintNodeMeta)}(nodeId = {_nodeId}, nodeType = {_node.GetType().Name}, ports = [{string.Join(", ", _ports)}])";
+        }
     }
 
 }
