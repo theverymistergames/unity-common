@@ -61,7 +61,10 @@ namespace MisterGames.Blueprints.Editor.Core2 {
         }
 
         private void OnUndoRedo() {
-            //InvalidateAsset();
+            if (_blueprintAsset == null) return;
+
+            EditorUtility.SetDirty(_blueprintAsset);
+            RepopulateView();
         }
         /*
         private void InitCopyPaste() {
@@ -104,24 +107,17 @@ namespace MisterGames.Blueprints.Editor.Core2 {
 
             _blueprintAsset = blueprintAsset;
 
-            if (InvalidateAsset()) {
-                EditorUtility.SetDirty(_blueprintAsset);
-                //SaveAsset();
-            }
+            if (_blueprintAsset.BlueprintMeta.Invalidate()) EditorUtility.SetDirty(_blueprintAsset);
 
             RepopulateView();
 
             _blueprintAsset.BlueprintMeta.OnInvalidate = () => {
                 EditorUtility.SetDirty(_blueprintAsset);
-                //SaveAsset();
-
                 RepopulateView();
             };
 
             _blueprintAsset.BlueprintMeta.OnInvalidateNode = nodeId => {
                 EditorUtility.SetDirty(_blueprintAsset);
-                //SaveAsset();
-
                 RepopulateView();
             };
         }
@@ -134,13 +130,14 @@ namespace MisterGames.Blueprints.Editor.Core2 {
             DeleteElements(graphElements);
             graphViewChanged += OnGraphViewChanged;
 
-            var nodesMeta = _blueprintAsset.BlueprintMeta.Nodes.Values;
+            var nodesMeta = _blueprintAsset.BlueprintMeta.NodesMap.Values;
             foreach (var nodeMeta in nodesMeta) {
                 CreateNodeView(nodeMeta);
             }
             foreach (var nodeMeta in nodesMeta) {
-                CreateLinkViews(nodeMeta);
+                CreateNodeConnectionViews(nodeMeta);
             }
+
             /*
             _blackboard.Clear();
             var blackboard = _blueprint.Blackboard as IBlackboardEditor;
@@ -243,7 +240,9 @@ namespace MisterGames.Blueprints.Editor.Core2 {
         // ---------------- ---------------- Menu ---------------- ----------------
 
         public override void BuildContextualMenu(ContextualMenuPopulateEvent evt) {
-            if (CanOpenAsset()) base.BuildContextualMenu(evt);
+            if (_blueprintAsset == null) return;
+
+            base.BuildContextualMenu(evt);
         }
 
         private void OpenSearchWindow<T>(T window, Vector2 position) where T : ScriptableObject, ISearchWindowProvider {
@@ -280,7 +279,6 @@ namespace MisterGames.Blueprints.Editor.Core2 {
             _blueprintAsset.BlueprintMeta.AddNode(nodeMeta);
 
             EditorUtility.SetDirty(_blueprintAsset);
-            //SaveAsset();
 
             CreateNodeView(nodeMeta);
         }
@@ -336,31 +334,27 @@ namespace MisterGames.Blueprints.Editor.Core2 {
             EditorUtility.SetDirty(_blueprintAsset);
         }
 
-        private void CreateLinkViews(BlueprintNodeMeta nodeMeta) {
+        private void CreateNodeConnectionViews(BlueprintNodeMeta nodeMeta) {
             var blueprintMeta = _blueprintAsset.BlueprintMeta;
 
-            var nodeView = FindNodeViewByGuid(nodeMeta.NodeId.ToString());
-            var nodePorts = nodeMeta.Ports;
+            var fromNodeView = FindNodeViewByNodeId(nodeMeta.NodeId);
+            var fromNodePorts = nodeMeta.Ports;
 
-            for (int p = 0; p < nodePorts.Count; p++) {
-                var port = nodePorts[p];
+            for (int p = 0; p < fromNodePorts.Count; p++) {
+                var port = fromNodePorts[p];
                 if (port.isExternalPort) continue;
 
+                var fromPortView = GetPortView(fromNodeView, p, port.isExitPort);
                 var links = blueprintMeta.GetLinksFromNodePort(nodeMeta.NodeId, p);
 
                 for (int l = 0; l < links.Count; l++) {
                     var link = links[l];
 
-                    var remoteView = FindNodeViewByGuid(link.nodeId.ToString());
-                    if (remoteView == null) continue;
+                    var toNodeView = FindNodeViewByNodeId(link.nodeId);
+                    var toPort = toNodeView.nodeMeta.Ports[link.portIndex];
+                    var toPortView = GetPortView(toNodeView, link.portIndex, toPort.isExitPort);
 
-                    var remotePort = remoteView.nodeMeta.Ports[link.portIndex];
-                    
-                    var sourcePortView = GetPortView(nodeView, p, port.isExitPort);
-                    var remotePortView = GetPortView(remoteView, link.portIndex, remotePort.isExitPort);
-                    
-                    var edge = sourcePortView.ConnectTo(remotePortView);
-                    AddElement(edge);
+                    AddElement(fromPortView.ConnectTo(toPortView));
                 }
             }
         }
@@ -410,20 +404,19 @@ namespace MisterGames.Blueprints.Editor.Core2 {
             bool hasEdgesToCreate = change.edgesToCreate is { Count: > 0 };
 
             if (hasElementsToRemove || hasEdgesToCreate) {
-               RepopulateView();
+               //RepopulateView();
             }
             
             if (hasMovedElements || hasElementsToRemove || hasEdgesToCreate) {
                 Undo.RecordObject(_blueprintAsset, "Blueprint Changed");
                 EditorUtility.SetDirty(_blueprintAsset);
-                //SaveAsset();
             }
 
             return change;
         }
 
-        private BlueprintNodeView FindNodeViewByGuid(string guid) {
-            return GetNodeByGuid(guid) as BlueprintNodeView;
+        private BlueprintNodeView FindNodeViewByNodeId(int nodeId) {
+            return GetNodeByGuid(nodeId.ToString()) as BlueprintNodeView;
         }
 
         public override List<PortView> GetCompatiblePorts(PortView startPortView, NodeAdapter nodeAdapter) {
@@ -567,20 +560,6 @@ namespace MisterGames.Blueprints.Editor.Core2 {
             return _currentBlueprintAsset != null;
         }
         */
-
-        // ---------------- ---------------- Assets ---------------- ----------------
-
-        private bool CanOpenAsset() {
-            return _blueprintAsset != null && AssetDatabase.CanOpenAssetInEditor(_blueprintAsset.GetInstanceID());
-        }
-
-        private bool InvalidateAsset() {
-            return CanOpenAsset() && _blueprintAsset.BlueprintMeta.Invalidate();
-        }
-
-        private void SaveAsset() {
-            if (CanOpenAsset()) AssetDatabase.SaveAssets();
-        }
 
         // ---------------- ---------------- Nested classes ---------------- ----------------
         

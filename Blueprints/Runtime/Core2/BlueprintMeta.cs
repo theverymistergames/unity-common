@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
 using MisterGames.Common.Data;
 using UnityEngine;
 
@@ -9,60 +10,46 @@ namespace MisterGames.Blueprints.Core2 {
     public sealed class BlueprintMeta {
 
         [SerializeField] private int _addedNodesTotalCount;
-
-        [SerializeField] private IntToBlueprintNodeMetaMap _nodes;
-
+        [SerializeField] private IntToBlueprintNodeMetaMap _nodesMap;
         [SerializeField] private IntIntToListOfBlueprintLinkMap _fromNodePortLinksMap;
         [SerializeField] private IntIntToListOfBlueprintLinkMap _toNodePortLinksMap;
+        [SerializeField] private IntToListOfBlueprintLinkMap _externalPortLinksMap;
 
-        [SerializeField] private List<BlueprintLink> _externalPortLinks = new List<BlueprintLink>();
-
-        [Serializable]
-        private sealed class IntToIntMap : SerializedDictionary<int, int> {}
-
-        [Serializable]
-        private sealed class IntToBlueprintNodeMetaMap : SerializedDictionary<int, BlueprintNodeMeta> {}
-
-        [Serializable]
-        private sealed class IntToBlueprintLinkMap : SerializedDictionary<int, BlueprintLink> {}
-
-        [Serializable]
-        private sealed class IntToListOfBlueprintLinkMap : SerializedDictionary<int, List<BlueprintLink>> {}
-
-        [Serializable]
-        private sealed class IntIntToListOfBlueprintLinkMap : SerializedDictionary<int, IntToListOfBlueprintLinkMap> {}
+        [Serializable] private sealed class IntToBlueprintNodeMetaMap : SerializedDictionary<int, BlueprintNodeMeta> {}
+        [Serializable] private sealed class IntToListOfBlueprintLinkMap : SerializedDictionary<int, List<BlueprintLink>> {}
+        [Serializable] private sealed class IntIntToListOfBlueprintLinkMap : SerializedDictionary<int, IntToListOfBlueprintLinkMap> {}
 
         public Action OnInvalidate;
         public Action<int> OnInvalidateNode;
 
-        public Dictionary<int, BlueprintNodeMeta> Nodes => _nodes;
-        public List<BlueprintLink> ExternalPortLinks => _externalPortLinks;
+        public Dictionary<int, BlueprintNodeMeta> NodesMap => _nodesMap;
+        public Dictionary<int, List<BlueprintLink>> ExternalPortLinksMap => _externalPortLinksMap;
 
         public void AddNode(BlueprintNodeMeta nodeMeta) {
             int nodeId = _addedNodesTotalCount++;
-
             nodeMeta.NodeId = nodeId;
 
-            _nodes.Add(nodeId, nodeMeta);
+            _nodesMap.Add(nodeId, nodeMeta);
+
             FetchExternalPorts(nodeId, nodeMeta.Ports);
         }
 
         public void RemoveNode(int nodeId) {
-            if (!_nodes.ContainsKey(nodeId)) return;
+            if (!_nodesMap.ContainsKey(nodeId)) return;
 
             RemoveLinksFromNode(nodeId);
             RemoveLinksToNode(nodeId);
 
             RemoveRelatedExternalPorts(nodeId);
 
-            _nodes.Remove(nodeId);
+            _nodesMap.Remove(nodeId);
         }
 
         public bool TryCreateConnection(int fromNodeId, int fromPortIndex, int toNodeId, int toPortIndex) {
             if (fromNodeId == toNodeId) return false;
 
-            if (!_nodes.TryGetValue(fromNodeId, out var fromNode)) return false;
-            if (!_nodes.TryGetValue(toNodeId, out var toNode)) return false;
+            if (!_nodesMap.TryGetValue(fromNodeId, out var fromNode)) return false;
+            if (!_nodesMap.TryGetValue(toNodeId, out var toNode)) return false;
 
             if (fromPortIndex < 0 || fromPortIndex > fromNode.Ports.Count - 1) return false;
             if (toPortIndex < 0 || toPortIndex > toNode.Ports.Count - 1) return false;
@@ -130,7 +117,7 @@ namespace MisterGames.Blueprints.Core2 {
         public IReadOnlyList<BlueprintLink> GetLinksFromNodePort(int nodeId, int portIndex) {
             if (!_fromNodePortLinksMap.TryGetValue(nodeId, out var fromNodePortLinksMap) ||
                 !fromNodePortLinksMap.TryGetValue(portIndex, out var fromNodePortLinks)
-               ) {
+            ) {
                 return Array.Empty<BlueprintLink>();
             }
 
@@ -140,7 +127,7 @@ namespace MisterGames.Blueprints.Core2 {
         public IReadOnlyList<BlueprintLink> GetLinksToNodePort(int nodeId, int portIndex) {
             if (!_toNodePortLinksMap.TryGetValue(nodeId, out var toNodePortLinksMap) ||
                 !toNodePortLinksMap.TryGetValue(portIndex, out var toNodePortLinks)
-               ) {
+            ) {
                 return Array.Empty<BlueprintLink>();
             }
 
@@ -148,18 +135,18 @@ namespace MisterGames.Blueprints.Core2 {
         }
 
         public void Clear() {
-            _nodes.Clear();
             _addedNodesTotalCount = 0;
 
+            _nodesMap.Clear();
             _fromNodePortLinksMap.Clear();
             _toNodePortLinksMap.Clear();
-            _externalPortLinks.Clear();
+            _externalPortLinksMap.Clear();
         }
 
         public bool Invalidate() {
             bool changed = false;
 
-            foreach (int nodeId in _nodes.Keys) {
+            foreach (int nodeId in _nodesMap.Keys) {
                 changed |= InvalidateNode(nodeId, false);
             }
 
@@ -169,7 +156,7 @@ namespace MisterGames.Blueprints.Core2 {
         }
 
         public bool InvalidateNode(int nodeId, bool notify = true) {
-            if (!_nodes.TryGetValue(nodeId, out var nodeMeta)) return false;
+            if (!_nodesMap.TryGetValue(nodeId, out var nodeMeta)) return false;
 
             RemoveRelatedExternalPorts(nodeId);
 
@@ -219,13 +206,31 @@ namespace MisterGames.Blueprints.Core2 {
                 var port = ports[p];
                 if (!port.isExternalPort) continue;
 
-                _externalPortLinks.Add(new BlueprintLink { nodeId = nodeId, portIndex = p });
+                if (!_externalPortLinksMap.TryGetValue(port.GetSignature(), out var links)) {
+                    links = new List<BlueprintLink>(1);
+                    _externalPortLinksMap[nodeId] = links;
+                }
+
+                links.Add(new BlueprintLink { nodeId = nodeId, portIndex = p });
             }
         }
 
         private void RemoveRelatedExternalPorts(int nodeId) {
-            for (int i = _externalPortLinks.Count - 1; i >= 0; i--) {
-                if (_externalPortLinks[i].nodeId == nodeId) _externalPortLinks.RemoveAt(i);
+            if (!_nodesMap.TryGetValue(nodeId, out var nodeMeta)) return;
+
+            var ports = nodeMeta.Ports;
+            for (int p = 0; p < ports.Count; p++) {
+                var port = ports[p];
+                if (!port.isExternalPort) continue;
+
+                int portSignature = port.GetSignature();
+                if (!_externalPortLinksMap.TryGetValue(portSignature, out var links)) continue;
+
+                for (int l = links.Count - 1; l >= 0; l--) {
+                    if (links[l].nodeId == nodeId) links.RemoveAt(l);
+                }
+
+                if (links.Count == 0) _externalPortLinksMap.Remove(portSignature);
             }
         }
 
@@ -434,6 +439,22 @@ namespace MisterGames.Blueprints.Core2 {
             }
 
             _toNodePortLinksMap.Remove(nodeId);
+        }
+
+        public override string ToString() {
+            var nodesSb = new StringBuilder();
+
+            foreach ((int nodeId, var nodeMeta) in _nodesMap) {
+                nodesSb.AppendLine($"- {nodeMeta}");
+
+                var ports = nodeMeta.Ports;
+                for (int p = 0; p < ports.Count; p++) {
+                    var portLinks = GetLinksFromNodePort(nodeId, p);
+                    nodesSb.AppendLine($"-- port#{p} links: [{string.Join(", ", portLinks)}]");
+                }
+            }
+
+            return $"{nameof(BlueprintMeta)}(nodes = [\n{nodesSb}\n])";
         }
     }
 
