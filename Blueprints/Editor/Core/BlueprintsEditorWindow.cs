@@ -11,7 +11,7 @@ namespace MisterGames.Blueprints.Editor.Core {
         private BlueprintsView _blueprintsView;
         private ObjectField _assetPicker;
 
-        [MenuItem("MisterGames/Blueprints Editor 2")]
+        [MenuItem("MisterGames/Blueprints Editor")]
         private static void OpenWindow() {
             GetWindow();
         }
@@ -24,7 +24,7 @@ namespace MisterGames.Blueprints.Editor.Core {
         }
 
         public static BlueprintsEditorWindow GetWindow() {
-            return GetWindow<BlueprintsEditorWindow>("Blueprints Editor 2");
+            return GetWindow<BlueprintsEditorWindow>("Blueprints Editor");
         }
 
         public void PopulateFromAsset(BlueprintAsset blueprintAsset) {
