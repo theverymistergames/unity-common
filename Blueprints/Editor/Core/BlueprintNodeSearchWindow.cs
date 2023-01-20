@@ -2,12 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using MisterGames.Blueprints.Core2;
+using MisterGames.Blueprints.Validation;
 using MisterGames.Common.Editor.Tree;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
-using Port = MisterGames.Blueprints.Core2.Port;
 
 namespace MisterGames.Blueprints.Editor.Core {
 

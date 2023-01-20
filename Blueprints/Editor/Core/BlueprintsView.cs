@@ -1,14 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using MisterGames.Blueprints.Core2;
+using MisterGames.Blueprints.Meta;
+using MisterGames.Blueprints.Validation;
 using MisterGames.Common.Data;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.UIElements;
 using Blackboard = UnityEditor.Experimental.GraphView.Blackboard;
-using Port = MisterGames.Blueprints.Core2.Port;
 using PortView = UnityEditor.Experimental.GraphView.Port;
 
 namespace MisterGames.Blueprints.Editor.Core {

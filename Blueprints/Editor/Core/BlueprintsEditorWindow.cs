@@ -1,4 +1,3 @@
-using MisterGames.Blueprints.Core2;
 using UnityEditor;
 using UnityEditor.Callbacks;
 using UnityEditor.UIElements;

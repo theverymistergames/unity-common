@@ -1,5 +1,5 @@
 ﻿using System;
-using MisterGames.Blueprints.Core2;
+using MisterGames.Blueprints.Meta;
 using MisterGames.Common.Editor.Utils;
 using MisterGames.Common.Editor.Views;
 using MisterGames.Common.Editor.VirtualInspector;
@@ -7,7 +7,6 @@ using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.UIElements;
-using Port = MisterGames.Blueprints.Core2.Port;
 using PortView = UnityEditor.Experimental.GraphView.Port;
 
 namespace MisterGames.Blueprints.Editor.Core {
@@ -99,17 +98,17 @@ namespace MisterGames.Blueprints.Editor.Core {
         private static Color GetPortColor(Port port) {
             return port.isDataPort
                 ? port.hasDataType
-                    ? MisterGames.Blueprints.Core2.BlueprintColors.Port.Connection.GetColorForType(port.DataType)
-                    : MisterGames.Blueprints.Core2.BlueprintColors.Port.Connection.Data
-                : MisterGames.Blueprints.Core2.BlueprintColors.Port.Connection.Flow;
+                    ? BlueprintColors.Port.Connection.GetColorForType(port.DataType)
+                    : BlueprintColors.Port.Connection.Data
+                : BlueprintColors.Port.Connection.Flow;
         }
 
         private static string FormatPortName(Port port) {
             string nameColor = port.isDataPort
                 ? port.hasDataType
-                    ? MisterGames.Blueprints.Core2.BlueprintColors.Port.Header.GetColorForType(port.DataType)
-                    : MisterGames.Blueprints.Core2.BlueprintColors.Port.Header.Data
-                : MisterGames.Blueprints.Core2.BlueprintColors.Port.Header.Flow;
+                    ? BlueprintColors.Port.Header.GetColorForType(port.DataType)
+                    : BlueprintColors.Port.Header.Data
+                : BlueprintColors.Port.Header.Flow;
 
             string name = string.IsNullOrEmpty(port.name) ? string.Empty : port.name.Trim();
 

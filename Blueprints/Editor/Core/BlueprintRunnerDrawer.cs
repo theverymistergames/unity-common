@@ -1,5 +1,4 @@
-﻿using MisterGames.Blueprints.Core2;
-using UnityEditor;
+﻿using UnityEditor;
 using UnityEngine;
 
 namespace MisterGames.Blueprints.Editor.Core {
