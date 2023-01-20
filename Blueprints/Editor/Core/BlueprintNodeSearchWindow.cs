@@ -166,7 +166,7 @@ namespace MisterGames.Blueprints.Editor.Core {
         private static IEnumerable<Type> GetBlueprintNodeTypes() {
             return TypeCache
                 .GetTypesDerivedFrom<BlueprintNode>()
-                .Where(t => !t.IsAbstract && t.IsVisible && HasBlueprintNodeMetaAttribute(t));
+                .Where(t => !t.IsAbstract && t.IsVisible && HasBlueprintNodeMetaAttribute(t) && HasSerializableAttribute(t));
         }
 
         private static string GetNodeTypePath(Type nodeType) {
@@ -180,6 +180,10 @@ namespace MisterGames.Blueprints.Editor.Core {
 
         private static bool HasBlueprintNodeMetaAttribute(Type type) {
             return GetBlueprintNodeMetaAttribute(type) != null;
+        }
+
+        private static bool HasSerializableAttribute(Type type) {
+            return type.GetCustomAttribute<SerializableAttribute>(false) != null;
         }
 
         private static BlueprintNodeMetaAttribute GetBlueprintNodeMetaAttribute(Type type) {
