@@ -2,7 +2,7 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace MisterGames.Blueprints.Editor.Core2 {
+namespace MisterGames.Blueprints.Editor.Core {
 
     [CustomEditor(typeof(BlueprintRunner), true)]
     public class BlueprintRunnerDrawer : UnityEditor.Editor {

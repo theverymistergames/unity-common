@@ -8,11 +8,10 @@ using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.UIElements;
 using Blackboard = UnityEditor.Experimental.GraphView.Blackboard;
-using Object = UnityEngine.Object;
 using Port = MisterGames.Blueprints.Core2.Port;
 using PortView = UnityEditor.Experimental.GraphView.Port;
 
-namespace MisterGames.Blueprints.Editor.Core2 {
+namespace MisterGames.Blueprints.Editor.Core {
 
     public sealed class BlueprintsView : GraphView, IEdgeConnectorListener {
 
@@ -26,11 +25,6 @@ namespace MisterGames.Blueprints.Editor.Core2 {
         private Blackboard _blackboard;
         private MiniMap _miniMap;
         private Vector2 _mousePosition;
-
-        public struct NodeCreationData {
-            public BlueprintNode node;
-            public Vector2 position;
-        }
 
         [Serializable]
         public struct CopyPasteData {
@@ -100,16 +94,25 @@ namespace MisterGames.Blueprints.Editor.Core2 {
             _nodeSearchWindow = ScriptableObject.CreateInstance<BlueprintNodeSearchWindow>();
 
             _nodeSearchWindow.onNodeCreationRequest = data => {
-                var worldPosition = OnRequestWorldPosition.Invoke(data.position);
-                data.position = contentViewContainer.WorldToLocal(worldPosition);
+                if (_blueprintAsset == null) return;
 
-                var nodeMeta = CreateNode(data);
-                var nodeView = CreateNodeView(nodeMeta);
+                var nodeMeta = CreateNode(data.node, ConvertScreenPositionToLocal(data.position));
+                CreateNodeView(nodeMeta);
+            };
 
-                AddToSelection(nodeView);
+            _nodeSearchWindow.onNodeAndLinkCreationRequest = data => {
+                if (_blueprintAsset == null) return;
+
+                var nodeMeta = CreateNode(data.node, ConvertScreenPositionToLocal(data.position));
+                CreateConnection(data.fromNodeId, data.fromPortIndex, nodeMeta.NodeId, data.toPortIndex);
+
+                RepopulateView();
             };
 
             nodeCreationRequest = ctx => {
+                if (_blueprintAsset == null) return;
+
+                _nodeSearchWindow.SwitchToNodeSearch();
                 OpenSearchWindow(_nodeSearchWindow, ctx.screenMousePosition);
             };
         }
@@ -212,7 +215,7 @@ namespace MisterGames.Blueprints.Editor.Core2 {
         private void OnAddBlackboardPropertyRequest() {
             if (_currentBlueprintAsset == null) return;
             
-            var position = GUIUtility.GUIToScreenPoint(Event.current.mousePosition);
+            var position = GetCurrentScreenMousePosition();
             OpenSearchWindow(_blackboardSearchWindow, position);
         }
 
@@ -294,9 +297,9 @@ namespace MisterGames.Blueprints.Editor.Core2 {
         
         // ---------------- ---------------- Node creation ---------------- ----------------
 
-        private BlueprintNodeMeta CreateNode(NodeCreationData data) {
-            var nodeMeta = BlueprintNodeMeta.Create(data.node);
-            nodeMeta.Position = data.position;
+        private BlueprintNodeMeta CreateNode(BlueprintNode node, Vector2 position) {
+            var nodeMeta = BlueprintNodeMeta.Create(node);
+            nodeMeta.Position = position;
 
             Undo.RecordObject(_blueprintAsset, "Blueprint Add Node");
 
@@ -334,7 +337,7 @@ namespace MisterGames.Blueprints.Editor.Core2 {
         // ---------------- ---------------- View creation ---------------- ----------------
 
         private BlueprintNodeView CreateNodeView(BlueprintNodeMeta nodeMeta) {
-            var nodeView = new BlueprintNodeView(nodeMeta) {
+            var nodeView = new BlueprintNodeView(nodeMeta, this) {
                 OnPositionChanged = OnNodePositionChanged,
                 OnValidate = OnValidateNode,
             };
@@ -443,8 +446,8 @@ namespace MisterGames.Blueprints.Editor.Core2 {
             bool hasEdgesToCreate = change.edgesToCreate is { Count: > 0 };
 
             if (hasMovedElements || hasElementsToRemove || hasEdgesToCreate) {
-                Undo.RecordObject(_blueprintAsset, "Blueprint Changed");
                 EditorUtility.SetDirty(_blueprintAsset);
+                RepopulateView();
             }
 
             return change;
@@ -511,10 +514,32 @@ namespace MisterGames.Blueprints.Editor.Core2 {
 
             return portIndex;
         }
-        
-        public void OnDropOutsidePort(Edge edge, Vector2 position) { }
+
+        public void OnDropOutsidePort(Edge edge, Vector2 position) {
+            var portView = edge.input ?? edge.output;
+            var nodeMeta = GetNode(portView).nodeMeta;
+            var port = GetPort(portView);
+            int portIndex = GetPortIndex(portView);
+
+            _nodeSearchWindow.SwitchToNodePortSearch(new BlueprintNodeSearchWindow.PortSearchData {
+                fromNodeId = nodeMeta.NodeId,
+                fromPort = port,
+                fromPortIndex = portIndex,
+            });
+
+            OpenSearchWindow(_nodeSearchWindow, GetCurrentScreenMousePosition());
+        }
 
         public void OnDrop(GraphView graphView, Edge edge) { }
+
+        private static Vector2 GetCurrentScreenMousePosition() {
+            return GUIUtility.GUIToScreenPoint(Event.current.mousePosition);
+        }
+
+        private Vector2 ConvertScreenPositionToLocal(Vector2 screenPosition) {
+            var worldPosition = OnRequestWorldPosition.Invoke(screenPosition);
+            return contentViewContainer.WorldToLocal(worldPosition);
+        }
         
         // ---------------- ---------------- Copy paste ---------------- ----------------
 
@@ -571,18 +596,18 @@ namespace MisterGames.Blueprints.Editor.Core2 {
 
             if (pasteData.nodes == null || pasteData.nodes.Count == 0) return;
 
+            ClearSelection();
+
             var positionDiff = _mousePosition - pasteData.position;
             var nodeIdMap = new Dictionary<int, int>();
 
             for (int i = 0; i < pasteData.nodes.Count; i++) {
                 var nodeData = pasteData.nodes[i];
 
-                var nodeCreationData = new NodeCreationData {
-                    node = (BlueprintNode) Activator.CreateInstance(SerializedType.FromString(nodeData.serializedNodeType)),
-                    position = nodeData.position + positionDiff,
-                };
+                var node = (BlueprintNode) Activator.CreateInstance(SerializedType.FromString(nodeData.serializedNodeType));
+                var position = nodeData.position + positionDiff;
 
-                var nodeMeta = CreateNode(nodeCreationData);
+                var nodeMeta = CreateNode(node, position);
                 var nodeView = CreateNodeView(nodeMeta);
 
                 nodeIdMap[nodeData.nodeId] = nodeMeta.NodeId;

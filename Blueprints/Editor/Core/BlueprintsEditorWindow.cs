@@ -5,7 +5,7 @@ using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace MisterGames.Blueprints.Editor.Core2 {
+namespace MisterGames.Blueprints.Editor.Core {
 
     public sealed class BlueprintsEditorWindow : EditorWindow {
 

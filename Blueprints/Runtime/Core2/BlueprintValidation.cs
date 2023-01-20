@@ -6,6 +6,9 @@ namespace MisterGames.Blueprints.Core2 {
     internal static class BlueprintValidation {
 
         public static bool ArePortsCompatible(Port a, Port b) {
+            // External ports are not compatible in editor
+            if (a.isExternalPort || b.isExternalPort) return false;
+
             // Must have different port direction
             if (a.isExitPort == b.isExitPort) return false;
 

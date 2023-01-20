@@ -10,7 +10,7 @@ using UnityEngine.UIElements;
 using Port = MisterGames.Blueprints.Core2.Port;
 using PortView = UnityEditor.Experimental.GraphView.Port;
 
-namespace MisterGames.Blueprints.Editor.Core2 {
+namespace MisterGames.Blueprints.Editor.Core {
 
     public sealed class BlueprintNodeView : Node {
 
@@ -19,7 +19,7 @@ namespace MisterGames.Blueprints.Editor.Core2 {
         public Action<BlueprintNodeMeta, Vector2> OnPositionChanged = delegate {  };
         public Action<BlueprintNodeMeta, BlueprintNode> OnValidate = delegate {  };
 
-        public BlueprintNodeView(BlueprintNodeMeta nodeMeta) : base(GetUxmlPath()) {
+        public BlueprintNodeView(BlueprintNodeMeta nodeMeta, IEdgeConnectorListener connectorListener) : base(GetUxmlPath()) {
             this.nodeMeta = nodeMeta;
 
             viewDataKey = nodeMeta.NodeId.ToString();
@@ -35,7 +35,7 @@ namespace MisterGames.Blueprints.Editor.Core2 {
             style.left = nodeMeta.Position.x;
             style.top = nodeMeta.Position.y;
 
-            InitPorts();
+            InitPorts(connectorListener);
         }
 
         private void OnNodeValidate(object obj) {
@@ -72,22 +72,23 @@ namespace MisterGames.Blueprints.Editor.Core2 {
             OnPositionChanged.Invoke(nodeMeta, new Vector2(newPos.xMin, newPos.yMin));
         }
         
-        private void InitPorts() {
+        private void InitPorts(IEdgeConnectorListener connectorListener) {
             var ports = nodeMeta.Ports;
             for (int i = 0; i < ports.Count; i++) {
-                CreatePort(ports[i]);
+                CreatePort(ports[i], connectorListener);
             }
             RefreshPorts();
         }
 
-        private void CreatePort(Port port) {
+        private void CreatePort(Port port, IEdgeConnectorListener connectorListener) {
             if (port.isExternalPort) return;
             
             var direction = port.isExitPort ? Direction.Output : Direction.Input;
             var capacity = !port.isExitPort && port.isDataPort ? PortView.Capacity.Single : PortView.Capacity.Multi;
             
             var portView = InstantiatePort(Orientation.Horizontal, direction, capacity, typeof(bool));
-            
+            portView.AddManipulator(new EdgeConnector<Edge>(connectorListener));
+
             portView.portName = FormatPortName(port);
             portView.portColor = GetPortColor(port);
 
