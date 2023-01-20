@@ -8,28 +8,24 @@ using UnityEngine;
 
 namespace MisterGames.Blueprints.Editor.Core2 {
 
-    public sealed class BlueprintSearchWindow : ScriptableObject, ISearchWindowProvider {
+    public sealed class BlueprintNodeSearchWindow : ScriptableObject, ISearchWindowProvider {
 
         public Action<BlueprintsView.NodeCreationData> onNodeCreationRequest = delegate {  };
 
         public List<SearchTreeEntry> CreateSearchTree(SearchWindowContext context) {
-            return SearchTree.Create()
-                .Add(SearchTree.Header("Create node"))
-                .Add(CategoryTree.CreateSearchTree<BlueprintNode>(GetCategoryNodeMeta, HasBlueprintNodeMetaAttribute))
-                .Build();
+
         }
 
         public bool OnSelectEntry(SearchTreeEntry searchTreeEntry, SearchWindowContext context) {
-            if (searchTreeEntry.userData is Type type) {
-                var data = new BlueprintsView.NodeCreationData {
-                    node = Activator.CreateInstance(type) as BlueprintNode,
-                    position = context.screenMousePosition,
-                };
+            if (searchTreeEntry.userData is not Type type) return false;
 
-                onNodeCreationRequest.Invoke(data);
-                return true;
-            }
-            return false;
+            var data = new BlueprintsView.NodeCreationData {
+                node = Activator.CreateInstance(type) as BlueprintNode,
+                position = context.screenMousePosition,
+            };
+
+            onNodeCreationRequest.Invoke(data);
+            return true;
         }
 
         private static bool HasBlueprintNodeMetaAttribute(Type type) {

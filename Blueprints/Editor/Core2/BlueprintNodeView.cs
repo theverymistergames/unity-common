@@ -15,14 +15,12 @@ namespace MisterGames.Blueprints.Editor.Core2 {
     public sealed class BlueprintNodeView : Node {
 
         public readonly BlueprintNodeMeta nodeMeta;
-        private readonly BlueprintAsset _ownerAsset;
 
         public Action<BlueprintNodeMeta, Vector2> OnPositionChanged = delegate {  };
-        public Action<BlueprintNodeMeta> OnValidate = delegate {  };
+        public Action<BlueprintNodeMeta, BlueprintNode> OnValidate = delegate {  };
 
-        public BlueprintNodeView(BlueprintNodeMeta nodeMeta, BlueprintAsset ownerAsset) : base(GetUxmlPath()) {
+        public BlueprintNodeView(BlueprintNodeMeta nodeMeta) : base(GetUxmlPath()) {
             this.nodeMeta = nodeMeta;
-            _ownerAsset = ownerAsset;
 
             viewDataKey = nodeMeta.NodeId.ToString();
             
@@ -41,12 +39,7 @@ namespace MisterGames.Blueprints.Editor.Core2 {
         }
 
         private void OnNodeValidate(object obj) {
-            if (obj is not BlueprintNode node) return;
-
-            if (node is IBlueprintValidatedNode validatedNode) validatedNode.OnValidate(nodeMeta.NodeId, _ownerAsset);
-            node.OnValidate();
-
-            OnValidate.Invoke(nodeMeta);
+            if (obj is BlueprintNode node) OnValidate.Invoke(nodeMeta, node);
         }
 
         private static void OnNodeGUI(SerializedProperty serializedProperty) {

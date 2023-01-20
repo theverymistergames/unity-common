@@ -19,7 +19,7 @@ namespace MisterGames.Blueprints.Editor.Core2 {
         public Func<Vector2, Vector2> OnRequestWorldPosition = _ => Vector2.zero;
 
         private BlueprintAsset _blueprintAsset;
-        private BlueprintSearchWindow _nodeSearchWindow;
+        private BlueprintNodeSearchWindow _nodeSearchWindow;
         //private BlackboardSearchWindow _blackboardSearchWindow;
         
         private Action _editBlackboardPropertyAction;
@@ -81,8 +81,7 @@ namespace MisterGames.Blueprints.Editor.Core2 {
         }
         
         private void InitStyle() {
-            var styleSheet = Resources.Load<StyleSheet>("BlueprintsEditorViewStyle");
-            styleSheets.Add(styleSheet);
+            styleSheets.Add(Resources.Load<StyleSheet>("BlueprintsEditorViewStyle"));
         }
 
         private void InitUndoRedo() {
@@ -98,15 +97,25 @@ namespace MisterGames.Blueprints.Editor.Core2 {
         }
 
         private void InitNodeSearchWindow() {
-            _nodeSearchWindow = ScriptableObject.CreateInstance<BlueprintSearchWindow>();
+            _nodeSearchWindow = ScriptableObject.CreateInstance<BlueprintNodeSearchWindow>();
+
             _nodeSearchWindow.onNodeCreationRequest = data => {
-                data.position = ConvertPosition(data.position);
-                CreateNode(data);
+                var worldPosition = OnRequestWorldPosition.Invoke(data.position);
+                data.position = contentViewContainer.WorldToLocal(worldPosition);
+
+                var nodeMeta = CreateNode(data);
+                var nodeView = CreateNodeView(nodeMeta);
+
+                AddToSelection(nodeView);
             };
 
             nodeCreationRequest = ctx => {
                 OpenSearchWindow(_nodeSearchWindow, ctx.screenMousePosition);
             };
+        }
+
+        private void OpenSearchWindow<T>(T window, Vector2 position) where T : ScriptableObject, ISearchWindowProvider {
+            SearchWindow.Open(new SearchWindowContext(position), window);
         }
 
         private void InitMiniMap() {
@@ -269,10 +278,6 @@ namespace MisterGames.Blueprints.Editor.Core2 {
             base.BuildContextualMenu(evt);
         }
 
-        private void OpenSearchWindow<T>(T window, Vector2 position) where T : ScriptableObject, ISearchWindowProvider {
-            SearchWindow.Open(new SearchWindowContext(position), window);
-        }
-
         public void ToggleMiniMap(bool show) {
             _miniMap.visible = show;
         }
@@ -289,12 +294,7 @@ namespace MisterGames.Blueprints.Editor.Core2 {
         
         // ---------------- ---------------- Node creation ---------------- ----------------
 
-        private Vector2 ConvertPosition(Vector2 position) {
-            var worldPosition = OnRequestWorldPosition.Invoke(position);
-            return contentViewContainer.WorldToLocal(worldPosition);
-        }
-        
-        private BlueprintNodeView CreateNode(NodeCreationData data) {
+        private BlueprintNodeMeta CreateNode(NodeCreationData data) {
             var nodeMeta = BlueprintNodeMeta.Create(data.node);
             nodeMeta.Position = data.position;
 
@@ -304,7 +304,7 @@ namespace MisterGames.Blueprints.Editor.Core2 {
 
             EditorUtility.SetDirty(_blueprintAsset);
 
-            return CreateNodeView(nodeMeta);
+            return nodeMeta;
         }
 
         private void RemoveNode(BlueprintNodeMeta nodeMeta) {
@@ -334,9 +334,9 @@ namespace MisterGames.Blueprints.Editor.Core2 {
         // ---------------- ---------------- View creation ---------------- ----------------
 
         private BlueprintNodeView CreateNodeView(BlueprintNodeMeta nodeMeta) {
-            var nodeView = new BlueprintNodeView(nodeMeta, _blueprintAsset) {
-                OnPositionChanged = OnPositionChanged,
-                OnValidate = OnValidateNode
+            var nodeView = new BlueprintNodeView(nodeMeta) {
+                OnPositionChanged = OnNodePositionChanged,
+                OnValidate = OnValidateNode,
             };
 
             AddElement(nodeView);
@@ -344,19 +344,17 @@ namespace MisterGames.Blueprints.Editor.Core2 {
             return nodeView;
         }
 
-        private void OnValidateNode(BlueprintNodeMeta nodeMeta) {
-            if (_blueprintAsset == null) return;
-
+        private void OnValidateNode(BlueprintNodeMeta nodeMeta, BlueprintNode node) {
+            if (node is IBlueprintValidatedNode validatedNode) {
+                validatedNode.OnValidate(nodeMeta.NodeId, _blueprintAsset);
+            }
+            node.OnValidate();
             EditorUtility.SetDirty(_blueprintAsset);
         }
 
-        private void OnPositionChanged(BlueprintNodeMeta nodeMeta, Vector2 position) {
-            if (_blueprintAsset == null) return;
-
+        private void OnNodePositionChanged(BlueprintNodeMeta nodeMeta, Vector2 position) {
             Undo.RecordObject(_blueprintAsset, "Blueprint Node Position Changed");
-
             nodeMeta.Position = position;
-
             EditorUtility.SetDirty(_blueprintAsset);
         }
 
@@ -584,8 +582,10 @@ namespace MisterGames.Blueprints.Editor.Core2 {
                     position = nodeData.position + positionDiff,
                 };
 
-                var nodeView = CreateNode(nodeCreationData);
-                nodeIdMap[nodeData.nodeId] = nodeView.nodeMeta.NodeId;
+                var nodeMeta = CreateNode(nodeCreationData);
+                var nodeView = CreateNodeView(nodeMeta);
+
+                nodeIdMap[nodeData.nodeId] = nodeMeta.NodeId;
 
                 AddToSelection(nodeView);
             }
