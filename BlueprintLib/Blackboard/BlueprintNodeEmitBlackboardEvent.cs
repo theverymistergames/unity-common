@@ -9,7 +9,7 @@ namespace MisterGames.BlueprintLib {
     [BlueprintNodeMeta(Name = "Emit Blackboard Event", Category = "Blackboard", Color = BlueprintColors.Node.Blackboard)]
     public sealed class BlueprintNodeEmitBlackboardEvent : BlueprintNode, IBlueprintEnter {
 
-        [SerializeField] private string _property = "";
+        [SerializeField] private string _property;
 
         private BlackboardEvent _event;
 
@@ -20,7 +20,7 @@ namespace MisterGames.BlueprintLib {
 
         public override void OnInitialize(BlueprintRunner runner) {
             int propertyId = Blackboard.StringToHash(_property);
-            //_event = blackboard.Get<BlackboardEvent>(propertyId);
+            _event = runner.Blackboard.Get<BlackboardEvent>(propertyId);
         }
 
         public void OnEnterPort(int port) {

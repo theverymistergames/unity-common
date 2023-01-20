@@ -9,8 +9,9 @@ namespace MisterGames.BlueprintLib {
     [BlueprintNodeMeta(Name = "Get GameObject", Category = "Blackboard", Color = BlueprintColors.Node.Blackboard)]
     public sealed class BlueprintNodeGetGameObject : BlueprintNode, IBlueprintOutput<GameObject> {
 
-        [SerializeField] private string _property = "";
+        [SerializeField] private string _property;
 
+        private RuntimeBlackboard _blackboard;
         private int _propertyId;
 
         public override Port[] CreatePorts() => new[] {
@@ -18,11 +19,12 @@ namespace MisterGames.BlueprintLib {
         };
 
         public override void OnInitialize(BlueprintRunner runner) {
+            _blackboard = runner.Blackboard;
             _propertyId = Blackboard.StringToHash(_property);
         }
 
         public GameObject GetPortValue(int port) => port switch {
-            0 => null,//blackboard.Get<GameObject>(_propertyId),
+            0 => _blackboard.Get<GameObject>(_propertyId),
             _ => null
         };
     }

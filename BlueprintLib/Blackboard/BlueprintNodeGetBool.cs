@@ -9,8 +9,9 @@ namespace MisterGames.BlueprintLib {
     [BlueprintNodeMeta(Name = "Get Bool", Category = "Blackboard", Color = BlueprintColors.Node.Blackboard)]
     public sealed class BlueprintNodeGetBool : BlueprintNode, IBlueprintOutput<bool> {
 
-        [SerializeField] private string _property = "";
+        [SerializeField] private string _property;
 
+        private RuntimeBlackboard _blackboard;
         private int _propertyId;
 
         public override Port[] CreatePorts() => new[] {
@@ -18,11 +19,12 @@ namespace MisterGames.BlueprintLib {
         };
 
         public override void OnInitialize(BlueprintRunner runner) {
+            _blackboard = runner.Blackboard;
             _propertyId = Blackboard.StringToHash(_property);
         }
 
         public bool GetPortValue(int port) => port switch {
-            0 => false,//blackboard.Get<bool>(_propertyId),
+            0 => _blackboard.Get<bool>(_propertyId),
             _ => false
         };
     }
