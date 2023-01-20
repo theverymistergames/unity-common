@@ -17,10 +17,10 @@ namespace MisterGames.Blueprints.External {
         IBlueprintValidatedNode,
         IBlueprintCompiledNode
     {
-
         [SerializeField] private BlueprintAsset _blueprintAsset;
 
         public MonoBehaviour Runner => _runner;
+        public BlueprintAsset BlueprintAsset => _blueprintAsset;
         public RuntimeBlackboard Blackboard => _runtimeBlackboard;
 
         private RuntimeBlueprint _runtimeBlueprint;
@@ -69,10 +69,10 @@ namespace MisterGames.Blueprints.External {
         }
 
         public void OnValidate(int nodeId, BlueprintAsset ownerAsset) {
-            if (_blueprintAsset == ownerAsset) {
-                Debug.LogWarning($"Subgraph node can not execute its owner BlueprintAsset {ownerAsset.name}");
-                _blueprintAsset = null;
-            }
+            _blueprintAsset = BlueprintValidation.ValidateBlueprintAssetForSubgraph(ownerAsset, _blueprintAsset);
+
+            if (_blueprintAsset == null) ownerAsset.BlueprintMeta.RemoveSubgraphReference(nodeId);
+            else ownerAsset.BlueprintMeta.SetSubgraphReference(nodeId, _blueprintAsset);
 
             ownerAsset.BlueprintMeta.InvalidateNode(nodeId);
         }

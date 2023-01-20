@@ -12,11 +12,8 @@ namespace MisterGames.Blueprints {
     [CreateAssetMenu(fileName = nameof(BlueprintAsset), menuName = "MisterGames/" + nameof(BlueprintAsset))]
     public sealed class BlueprintAsset : ScriptableObject {
 
-        [SerializeField] [HideInInspector]
-        private BlueprintMeta _blueprintMeta;
-
-        [SerializeField] [HideInInspector]
-        private Blackboard _blackboard;
+        [SerializeField] [HideInInspector] private BlueprintMeta _blueprintMeta;
+        [SerializeField] [HideInInspector] private Blackboard _blackboard;
 
         private readonly BlueprintCompiler _blueprintCompiler = new BlueprintCompiler();
 

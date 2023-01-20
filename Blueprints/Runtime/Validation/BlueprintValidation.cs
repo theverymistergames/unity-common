@@ -6,6 +6,37 @@ namespace MisterGames.Blueprints.Validation {
 
     internal static class BlueprintValidation {
 
+        private const int MAX_SUBGRAPH_LEVELS = 100;
+
+        public static BlueprintAsset ValidateBlueprintAssetForSubgraph(BlueprintAsset ownerAsset, BlueprintAsset subgraphAsset) {
+            return IsValidBlueprintAssetForSubgraph(ownerAsset, subgraphAsset, 1) ? subgraphAsset : null;
+        }
+
+        private static bool IsValidBlueprintAssetForSubgraph(BlueprintAsset ownerAsset, BlueprintAsset subgraphAsset, int level) {
+            if (subgraphAsset == null) return true;
+
+            if (level >= MAX_SUBGRAPH_LEVELS) {
+                Debug.LogWarning($"Subgraph node of BlueprintAsset {ownerAsset.name} " +
+                                 $"cannot accept BlueprintAsset {subgraphAsset.name} as parameter " +
+                                 $"because subgraph depth is reached max level {MAX_SUBGRAPH_LEVELS}.");
+                return false;
+            }
+
+            if (subgraphAsset == ownerAsset) {
+                Debug.LogWarning($"Subgraph node of BlueprintAsset {ownerAsset.name} " +
+                                 $"cannot accept BlueprintAsset {subgraphAsset.name} as parameter " +
+                                 $"because this will produce cyclic references.");
+                return false;
+            }
+
+            var references = subgraphAsset.BlueprintMeta.SubgraphReferencesMap.Values;
+            foreach (var asset in references) {
+                if (!IsValidBlueprintAssetForSubgraph(ownerAsset, asset, level + 1)) return false;
+            }
+
+            return true;
+        }
+
         public static bool ArePortsCompatible(Port a, Port b) {
             // External ports are not compatible in editor
             if (a.isExternalPort || b.isExternalPort) return false;
