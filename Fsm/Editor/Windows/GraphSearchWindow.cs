@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using MisterGames.Common.Editor.Reflect;
-using MisterGames.Common.Trees;
+using MisterGames.Common.Editor.Tree;
 using MisterGames.Fsm.Core;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
@@ -19,32 +18,28 @@ namespace MisterGames.Fsm.Editor.Windows {
         internal Filter filter = Filter.NewState;
 
         public List<SearchTreeEntry> CreateSearchTree(SearchWindowContext context) {
-            var builder = SearchTree.Create();
+            var tree = new List<SearchTreeEntry>();
             
             switch (filter) {
                 case Filter.NewState:
-                    builder
-                        .Add(SearchTree.Header("Create state"))
-                        .Add(TypeTree.CreateSearchTree<FsmState>(NewStateInfo));
+                    tree.Add(SearchTreeEntryUtils.Header("Create state"));
+                    tree.AddRange(TypeTree.CreateSearchTree<FsmState>(NewStateInfo));
                     break;
                 
                 case Filter.TargetState:
-                    builder
-                        .Add(SearchTree.Header("Add target state"))
-                        .Add(onStatesRequest
-                            .Invoke()
-                            .Select(s => SearchTree.Entry(s.name, TargetStateInfo(s), 1))
-                        );
+                    tree.Add(SearchTreeEntryUtils.Header("Add target state"));
+                    tree.AddRange(onStatesRequest.Invoke()
+                        .Select(s => SearchTreeEntryUtils.Entry(s.name, TargetStateInfo(s), 1))
+                    );
                     break;
                 
                 case Filter.Transition:
-                    builder
-                        .Add(SearchTree.Header("Create transition"))
-                        .Add(TypeTree.CreateSearchTree<FsmTransition>(TransitionInfo));
+                    tree.Add(SearchTreeEntryUtils.Header("Create transition"));
+                    tree.AddRange(TypeTree.CreateSearchTree<FsmTransition>(TransitionInfo));
                     break;
             }
             
-            return builder.Build();
+            return tree;
         }
 
         public bool OnSelectEntry(SearchTreeEntry searchTreeEntry, SearchWindowContext context) {
