@@ -6,12 +6,10 @@ namespace MisterGames.Common.Trees {
         
         public T data;
         public int level;
-        public bool isLeaf;
-        
         public List<TreeEntry<T>> children;
 
         public override string ToString() {
-            return $"[{level}: {data}, isLeaf {isLeaf}]";
+            return $"[{level}: {data}]";
         }
         
     }

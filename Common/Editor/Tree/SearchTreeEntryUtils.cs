@@ -4,9 +4,9 @@ using MisterGames.Common.Trees;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 
-namespace MisterGames.Common.Editor.Reflect {
+namespace MisterGames.Common.Editor.Tree {
 
-    public static class SearchTree {
+    public static class SearchTreeEntryUtils {
 
         public static SearchTreeEntry ToSearchEntry<T>(
             this TreeEntry<T> entry, 
@@ -14,7 +14,7 @@ namespace MisterGames.Common.Editor.Reflect {
             Func<T, object> getData,
             int levelOffset = 0
         ) {
-            return entry.isLeaf
+            return entry.children.Count == 0
                 ? Entry(getName.Invoke(entry.data), getData.Invoke(entry.data), entry.level + levelOffset)
                 : Header(getName.Invoke(entry.data), entry.level + levelOffset);
         }
@@ -31,31 +31,6 @@ namespace MisterGames.Common.Editor.Reflect {
             
             return new SearchTreeEntry(new GUIContent(title, ident)) { userData = data, level = level };
         }
-
-        public static Builder Create() {
-            return new Builder();
-        }
-        
-        public class Builder {
-
-            private readonly List<SearchTreeEntry> _tree = new List<SearchTreeEntry>();
-
-            public Builder Add(SearchTreeEntry entry) {
-                _tree.Add(entry);
-                return this;
-            }
-            
-            public Builder Add(IEnumerable<SearchTreeEntry> entries) {
-                _tree.AddRange(entries);
-                return this;
-            }
-
-            public List<SearchTreeEntry> Build() {
-                return _tree;
-            }
-            
-        }
-
     }
 
 }

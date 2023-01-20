@@ -6,7 +6,7 @@ using MisterGames.Common.Trees;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 
-namespace MisterGames.Common.Editor.Reflect {
+namespace MisterGames.Common.Editor.Tree {
 
     public static class TypeTree {
 
@@ -37,13 +37,12 @@ namespace MisterGames.Common.Editor.Reflect {
         }
         
         public static TreeEntry<Type> SelfChildNonAbstractBranches(this TreeEntry<Type> entry) {
-            if (entry.isLeaf) return entry;
+            if (entry.children.Count == 0) return entry;
             entry.children = entry.children.Select(SelfChildNonAbstractBranches).ToList();
             
             var selfChild = new TreeEntry<Type> {
                 data = entry.data,
                 level = entry.level + 1,
-                isLeaf = true,
                 children = new List<TreeEntry<Type>>()
             };
 
@@ -59,7 +58,7 @@ namespace MisterGames.Common.Editor.Reflect {
         }
 
         public static TreeEntry<Type> RemoveAbstractLeafs(this TreeEntry<Type> entry) {
-            return entry.RemoveLeafsIf(e => !e.IsAbstract() || !e.isLeaf);
+            return entry.RemoveLeafsIf(e => !e.IsAbstract() || e.children.Count > 0);
         }
 
         public static TreeEntry<Type> RemoveAbstractBranches(this TreeEntry<Type> entry) {
@@ -70,7 +69,7 @@ namespace MisterGames.Common.Editor.Reflect {
         }
 
         public static IEnumerable<TreeEntry<Type>> AbstractLeafs(this TreeEntry<Type> entry) {
-            return entry.LevelOrder().Where(e => e.isLeaf && e.IsAbstract());
+            return entry.LevelOrder().Where(e => e.children.Count == 0 && e.IsAbstract());
         }
 
         private static TreeEntry<Type> CreateEntry(Type type, TypeCache.TypeCollection types, int level) {
@@ -78,7 +77,6 @@ namespace MisterGames.Common.Editor.Reflect {
             return new TreeEntry<Type> {
                 data = type,
                 children = children,
-                isLeaf = children.Count == 0,
                 level = level
             };
         }

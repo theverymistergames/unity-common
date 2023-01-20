@@ -1,4 +1,4 @@
-﻿﻿using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using MisterGames.Common.Lists;
@@ -16,16 +16,16 @@ namespace MisterGames.Common.Trees {
         }
         
         public static TreeEntry<T> SortBranchesInChildrenFirst<T>(this TreeEntry<T> entry) {
-            if (entry.isLeaf) return entry;
+            if (entry.children.Count == 0) return entry;
             
             var children = new List<TreeEntry<T>>();
             foreach (var child in entry.children) {
-                if (child.isLeaf || children.Count == 0 || !children.Last().isLeaf) {
+                if (child.children.Count == 0 || children.Count == 0 || children.Last().children.Count > 0) {
                     children.Add(child);
                     continue;
                 }
                 
-                int insertionIndex = children.FindIndex(e => e.isLeaf);
+                int insertionIndex = children.FindIndex(e => e.children.Count == 0);
                 children.Insert(insertionIndex, child);
             }
             
@@ -38,7 +38,7 @@ namespace MisterGames.Common.Trees {
                 .Where(predicate.Invoke)
                 .Select(e => RemoveLeafsIf(e, predicate))
                 .ToList();
-            entry.isLeaf = entry.children.Count == 0;
+
             return entry;
         }
 
@@ -77,7 +77,6 @@ namespace MisterGames.Common.Trees {
 
             return list;
         }
-
     }
 
 }

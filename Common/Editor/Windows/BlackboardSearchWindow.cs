@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using MisterGames.Common.Data;
-using MisterGames.Common.Editor.Reflect;
+using MisterGames.Common.Editor.Tree;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using Blackboard = MisterGames.Common.Data.Blackboard;
@@ -14,10 +13,9 @@ namespace MisterGames.Fsm.Editor.Windows {
         public Action<Type> onSelectType = delegate {  };
 
         public List<SearchTreeEntry> CreateSearchTree(SearchWindowContext context) {
-            return SearchTree.Create()
-                .Add(SearchTree.Header("Select type"))
-                .Add(Blackboard.SupportedTypes.Select(CreateEntry))
-                .Build();
+            var tree = new List<SearchTreeEntry> { SearchTreeEntryUtils.Header("Select type") };
+            tree.AddRange(Blackboard.SupportedTypes.Select(CreateSearchTreeEntry));
+            return tree;
         }
 
         public bool OnSelectEntry(SearchTreeEntry searchTreeEntry, SearchWindowContext context) {
@@ -28,10 +26,9 @@ namespace MisterGames.Fsm.Editor.Windows {
             return false;
         }
 
-        private static SearchTreeEntry CreateEntry(Type type) {
-            return SearchTree.Entry(Blackboard.GetTypeName(type), type, 1);
+        private static SearchTreeEntry CreateSearchTreeEntry(Type type) {
+            return SearchTreeEntryUtils.Entry(Blackboard.GetTypeName(type), type, 1);
         }
-        
     }
 
 }
