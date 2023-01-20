@@ -4,11 +4,14 @@ using System.Linq;
 using MisterGames.Blueprints.Meta;
 using MisterGames.Blueprints.Validation;
 using MisterGames.Common.Data;
+using MisterGames.Common.Editor.Utils;
+using MisterGames.Fsm.Editor.Windows;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.UIElements;
-using Blackboard = UnityEditor.Experimental.GraphView.Blackboard;
+using Blackboard = MisterGames.Common.Data.Blackboard;
+using BlackboardView = UnityEditor.Experimental.GraphView.Blackboard;
 using PortView = UnityEditor.Experimental.GraphView.Port;
 
 namespace MisterGames.Blueprints.Editor.Core {
@@ -19,10 +22,10 @@ namespace MisterGames.Blueprints.Editor.Core {
 
         private BlueprintAsset _blueprintAsset;
         private BlueprintNodeSearchWindow _nodeSearchWindow;
-        //private BlackboardSearchWindow _blackboardSearchWindow;
-        
+        private BlackboardSearchWindow _blackboardSearchWindow;
+
         private Action _editBlackboardPropertyAction;
-        private Blackboard _blackboard;
+        private BlackboardView _blackboardView;
         private MiniMap _miniMap;
         private Vector2 _mousePosition;
 
@@ -50,7 +53,7 @@ namespace MisterGames.Blueprints.Editor.Core {
         }
 
         // ---------------- ---------------- Initialization ---------------- ----------------
-        
+
         public BlueprintsView() {
             InitGrid();
             InitManipulators();
@@ -58,7 +61,7 @@ namespace MisterGames.Blueprints.Editor.Core {
             InitUndoRedo();
             InitCopyPaste();
             InitNodeSearchWindow();
-            //InitBlackboard();
+            InitBlackboard();
             InitMiniMap();
             InitMouse();
         }
@@ -66,14 +69,14 @@ namespace MisterGames.Blueprints.Editor.Core {
         private void InitGrid() {
             Insert(0, new GridBackground());
         }
-        
+
         private void InitManipulators() {
             this.AddManipulator(new ContentZoomer());
             this.AddManipulator(new ContentDragger());
             this.AddManipulator(new SelectionDragger());
             this.AddManipulator(new RectangleSelector());
         }
-        
+
         private void InitStyle() {
             styleSheets.Add(Resources.Load<StyleSheet>("BlueprintsEditorViewStyle"));
         }
@@ -137,7 +140,7 @@ namespace MisterGames.Blueprints.Editor.Core {
         }
 
         // ---------------- ---------------- Population ---------------- ----------------
-        
+
         public void PopulateViewFromAsset(BlueprintAsset blueprintAsset) {
             if (blueprintAsset == _blueprintAsset) return;
 
@@ -174,14 +177,8 @@ namespace MisterGames.Blueprints.Editor.Core {
                 CreateNodeConnectionViews(nodeMeta);
             }
 
-            /*
-            _blackboard.Clear();
-            var blackboard = _blueprint.Blackboard as IBlackboardEditor;
-            foreach (var property in blackboard.Properties) {
-                var view = BlackboardUtils.CreateBlackboardPropertyView(property, OnBlackboardPropertyValueChanged);
-                _blackboard.Add(view);
-            }
-            */
+            FillBlackboardView();
+
             ClearSelection();
         }
 
@@ -192,87 +189,99 @@ namespace MisterGames.Blueprints.Editor.Core {
         }
 
         // ---------------- ---------------- Blackboard ---------------- ----------------
-        /*
-        private void InitBlackboard() {
-            //_blackboardSearchWindow = ScriptableObject.CreateInstance<BlackboardSearchWindow>();
-            //_blackboardSearchWindow.onSelectType = OnAddBlackboardProperty;
 
-            _blackboard = new Blackboard(this) {
+        private void InitBlackboard() {
+            _blackboardSearchWindow = ScriptableObject.CreateInstance<BlackboardSearchWindow>();
+            _blackboardSearchWindow.onSelectType = CreateBlackboardProperty;
+
+            _blackboardView = new BlackboardView(this) {
                 windowed = false,
                 addItemRequested = _ => { OnAddBlackboardPropertyRequest(); },
-                moveItemRequested = (_, index, element) => {
-                    OnBlackboardPropertyPositionChanged((BlackboardField) element, index);
-                },
-                editTextRequested = (_, element, newName) => {
-                    OnBlackboardPropertyNameChanged((BlackboardField) element, newName);
-                }
+                moveItemRequested = (_, i, element) => OnBlackboardPropertyPositionChanged((BlackboardField) element, i),
+                editTextRequested = (_, element, newName) => OnBlackboardPropertyNameChanged((BlackboardField) element, newName)
             };
-            _blackboard.SetPosition(new Rect(0, 0, 300, 300));
-            Add(_blackboard);
-            _blackboard.visible = false;
+
+            _blackboardView.SetPosition(new Rect(0, 0, 300, 300));
+
+            Add(_blackboardView);
+            _blackboardView.visible = false;
         }
 
-        private void OnAddBlackboardPropertyRequest() {
-            if (_currentBlueprintAsset == null) return;
-            
-            var position = GetCurrentScreenMousePosition();
-            OpenSearchWindow(_blackboardSearchWindow, position);
-        }
+        private void FillBlackboardView() {
+            if (_blueprintAsset == null) return;
 
-        private void OnAddBlackboardProperty(Type type) {
-            if (_currentBlueprintAsset == null) return;
+            _blackboardView.Clear();
 
-            var blackboard = _blueprint.Blackboard as IBlackboardEditor;
-            if (!blackboard.ValidateType(type)) return;
+            var properties = new List<BlackboardProperty>(_blueprintAsset.Blackboard.PropertiesMap.Values)
+                .OrderBy(p => p.index)
+                .ToList();
 
-            Undo.RecordObject(_blueprint, "Blueprint Add Blackboard Property");
-            
-            string typeName = Common.Data.Blackboard.GetTypeName(type);
-            var property = blackboard.AddProperty($"New {typeName}", type);
-            SaveAsset();
-            
-            var view = BlackboardUtils.CreateBlackboardPropertyView(property, OnBlackboardPropertyValueChanged);
-            _blackboard.Add(view);
-        }
-
-        private void OnBlackboardPropertyPositionChanged(BlackboardField field, int newIndex) {
-            if (_blueprint == null) return;
-            
-            Undo.RecordObject(_blueprint, "Blueprint Blackboard Property Position Changed");
-            
-            var blackboard = _blueprint.Blackboard as IBlackboardEditor;
-            blackboard.SetPropertyIndex(field.text, newIndex);
-            SaveAsset();
-        }
-
-        private void OnBlackboardPropertyNameChanged(BlackboardField field, string newName) {
-            if (_blueprint == null) return;
-            var blackboard = _blueprint.Blackboard as IBlackboardEditor;
-            string oldName = field.text;
-            if (blackboard.SetPropertyName(oldName, newName, out string propertyName)) {
-                Undo.RecordObject(_blueprint, "Blueprint Blackboard Property Name Changed");
-                field.text = propertyName;
-                SaveAsset();
+            for (int i = 0; i < properties.Count; i++) {
+                var property = properties[i];
+                var view = BlackboardUtils.CreateBlackboardPropertyView(property, OnBlackboardPropertyValueChanged);
+                _blackboardView.Add(view);
             }
         }
 
-        private void OnBlackboardPropertyValueChanged(string property, object value) {
-            _editBlackboardPropertyViewTask?.Cancel();
-            _editBlackboardPropertyAction = () => { ChangeBlackboardPropertyValue(property, value); };
-            var routine = EditorCoroutines.Delay(EditBlackboardPropertyDelaySec, _editBlackboardPropertyAction);
-            _editBlackboardPropertyViewTask = EditorCoroutines.StartCoroutine(this, routine);
+        private void OnAddBlackboardPropertyRequest() {
+            if (_blueprintAsset == null) return;
+
+            OpenSearchWindow(_blackboardSearchWindow, GetCurrentScreenMousePosition());
         }
 
-        private void ChangeBlackboardPropertyValue(string property, object value) {
-            _editBlackboardPropertyAction = null;
+        private void CreateBlackboardProperty(Type type) {
+            if (_blueprintAsset == null) return;
+
+            if (!Blackboard.ValidateType(type)) return;
+
+            Undo.RecordObject(_blueprintAsset, "Blueprint Add Blackboard Property");
             
-            Undo.RecordObject(_blueprint, "Blueprint Blackboard Property Value Changed");
-            
-            var blackboard = _blueprint.Blackboard as IBlackboardEditor;
-            blackboard.SetPropertyValue(property, value);
-            SaveAsset();
+            string typeName = Blackboard.GetTypeName(type);
+            if (!_blueprintAsset.Blackboard.TryAddProperty($"New {typeName}", type, default, out var property)) return;
+
+            var view = BlackboardUtils.CreateBlackboardPropertyView(property, OnBlackboardPropertyValueChanged);
+            _blackboardView.Add(view);
         }
-        */
+
+        private void RemoveBlackboardProperty(string propertyName) {
+            Undo.RecordObject(_blueprintAsset, "Blueprint Remove Blackboard Property");
+
+            _blueprintAsset.Blackboard.RemoveProperty(propertyName);
+
+            EditorUtility.SetDirty(_blueprintAsset);
+        }
+
+        private void OnBlackboardPropertyPositionChanged(BlackboardField field, int newIndex) {
+            if (_blueprintAsset == null) return;
+
+            Undo.RecordObject(_blueprintAsset, "Blueprint Blackboard Property Position Changed");
+
+            if (!_blueprintAsset.Blackboard.TrySetPropertyIndex(field.text, newIndex)) return;
+
+            EditorUtility.SetDirty(_blueprintAsset);
+        }
+
+        private void OnBlackboardPropertyNameChanged(BlackboardField field, string newName) {
+            if (_blueprintAsset == null) return;
+
+            Undo.RecordObject(_blueprintAsset, "Blueprint Blackboard Property Name Changed");
+
+            if (!_blueprintAsset.Blackboard.TrySetPropertyName(field.text, newName)) return;
+
+            field.text = newName;
+            EditorUtility.SetDirty(_blueprintAsset);
+        }
+
+        private void OnBlackboardPropertyValueChanged(string property, object value) {
+            if (_blueprintAsset == null) return;
+
+            Undo.RecordObject(_blueprintAsset, "Blueprint Blackboard Property Value Changed");
+
+            if (!_blueprintAsset.Blackboard.TrySetPropertyValue(property, value)) return;
+
+            EditorUtility.SetDirty(_blueprintAsset);
+        }
+
         // ---------------- ---------------- Menu ---------------- ----------------
 
         public override void BuildContextualMenu(ContextualMenuPopulateEvent evt) {
@@ -286,13 +295,11 @@ namespace MisterGames.Blueprints.Editor.Core {
         }
         
         public void ToggleBlackboard(bool show) {
-            /*
-            _blackboard.visible = show;
-            var children = _blackboard.contentContainer.Children();
+            _blackboardView.visible = show;
+            var children = _blackboardView.contentContainer.Children();
             foreach (var child in children) {
                 child.visible = show;
             }
-            */
         }
         
         // ---------------- ---------------- Node creation ---------------- ----------------
@@ -421,12 +428,11 @@ namespace MisterGames.Blueprints.Editor.Core {
                     case BlueprintNodeView view:
                         RemoveNode(view.nodeMeta);
                         break;
-                    /*
+
                     case BlackboardField field:
-                        var blackboard = _blueprint.Blackboard as IBlackboardEditor;
-                        blackboard.RemoveProperty(field.text);
+                        RemoveBlackboardProperty(field.text);
                         break;
-                    */
+
                     case Edge edge:
                         if (edge.input.node is BlueprintNodeView toView && edge.output.node is BlueprintNodeView fromView) {
                             int fromNodeId = fromView.nodeMeta.NodeId;

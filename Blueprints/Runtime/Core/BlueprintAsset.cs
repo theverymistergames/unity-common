@@ -1,5 +1,6 @@
 ﻿using MisterGames.Blueprints.Compile;
 using MisterGames.Blueprints.Meta;
+using MisterGames.Common.Data;
 using UnityEngine;
 
 namespace MisterGames.Blueprints {
@@ -14,9 +15,13 @@ namespace MisterGames.Blueprints {
         [SerializeField] [HideInInspector]
         private BlueprintMeta _blueprintMeta;
 
+        [SerializeField] [HideInInspector]
+        private Blackboard _blackboard;
+
         private readonly BlueprintCompiler _blueprintCompiler = new BlueprintCompiler();
 
         public BlueprintMeta BlueprintMeta => _blueprintMeta;
+        public Blackboard Blackboard => _blackboard;
 
         public RuntimeBlueprint Compile() {
             return _blueprintCompiler.Compile(_blueprintMeta);

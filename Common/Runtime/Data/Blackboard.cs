@@ -1,45 +1,26 @@
 ﻿using System;
 using System.Collections.Generic;
-using MisterGames.Common.Lists;
+using System.Linq;
 using MisterGames.Common.Strings;
 using UnityEngine;
 
 namespace MisterGames.Common.Data {
-
-    public interface IBlackboardEditor {
-        
-        IReadOnlyList<BlackboardProperty> Properties { get; }
-        
-        bool ValidateType(Type type);
-
-        BlackboardProperty AddProperty(string name, Type type, object value = default);
-
-        bool SetPropertyName(string oldName, string newName, out string name);
-
-        void SetPropertyValue(string name, object value);
-
-        void SetPropertyIndex(string name, int newIndex);
-
-        void RemoveProperty(string name);
-        
-    }
     
     [Serializable]
     public struct BlackboardProperty {
-        public int hash;
+        public int index;
         public string name;
-        public string value;
-        public string type;
+        public string serializedValue;
+        public string serializedType;
     }
 
-    [Serializable]
-    public class BlackboardEvent {
+    public sealed class BlackboardEvent {
         public event Action OnEmit = delegate {  };
         public void Emit() => OnEmit.Invoke();
     }
 
     [Serializable]
-    public sealed class Blackboard : IBlackboardEditor {
+    public sealed class Blackboard  {
 
         public static readonly List<Type> SupportedTypes = new List<Type> {
             typeof(bool),
@@ -52,17 +33,16 @@ namespace MisterGames.Common.Data {
             typeof(GameObject),
             typeof(BlackboardEvent),
         };
-        
-        private static readonly Dictionary<Type, string> NameOverrides = new Dictionary<Type, string> {
-            [typeof(bool)] = "Boolean",
-            [typeof(float)] = "Float",
-            [typeof(int)] = "Int",
-            [typeof(string)] = "String",
-        };
 
-        [SerializeField] private List<BlackboardProperty> _properties = new List<BlackboardProperty>();
-        IReadOnlyList<BlackboardProperty> IBlackboardEditor.Properties => _properties;
-        
+        [SerializeField] private IntToBlackboardPropertyMap _propertiesMap;
+        public Dictionary<int, BlackboardProperty> PropertiesMap => _propertiesMap;
+
+        [Serializable] private sealed class IntToBlackboardPropertyMap : SerializedDictionary<int, BlackboardProperty> {}
+
+        [Serializable] private struct Bool { public bool value; }
+        [Serializable] private struct Float { public float value; }
+        [Serializable] private struct Integer { public int value; }
+
         private readonly Dictionary<int, bool> _bools = new Dictionary<int, bool>();
         private readonly Dictionary<int, float> _floats = new Dictionary<int, float>();
         private readonly Dictionary<int, int> _ints = new Dictionary<int, int>();
@@ -73,170 +53,173 @@ namespace MisterGames.Common.Data {
         private readonly Dictionary<int, ScriptableObject> _scriptableObjects = new Dictionary<int, ScriptableObject>();
         private readonly Dictionary<int, BlackboardEvent> _events = new Dictionary<int, BlackboardEvent>();
 
+        private static readonly Dictionary<Type, string> NameOverrides = new Dictionary<Type, string> {
+            [typeof(bool)] = "Boolean",
+            [typeof(float)] = "Float",
+            [typeof(int)] = "Int",
+            [typeof(string)] = "String",
+        };
+        
         public static int StringToHash(string name) {
             return name.GetHashCode();
         }
 
         public static string GetTypeName(Type type) {
-            return NameOverrides.ContainsKey(type) ? NameOverrides[type] : type.Name;
+            return NameOverrides.TryGetValue(type, out string typeName) ? typeName : type.Name;
         }
         
-        public static Type GetPropertyType(BlackboardProperty data) {
-            return SerializedType.FromString(data.type);
+        public static Type GetPropertyType(BlackboardProperty property) {
+            return SerializedType.FromString(property.serializedType);
         }
 
         public static T GetPropertyValue<T>(BlackboardProperty property) {
             var type = GetPropertyType(property);
-            
+
             if (Is<bool>(type)) {
-                bool value = JsonUtility.FromJson<Bool>(property.value).value;
+                bool value = JsonUtility.FromJson<Bool>(property.serializedValue).value;
                 return As<T, bool>(value);
             }
                 
             if (Is<float>(type)) {
-                float value = JsonUtility.FromJson<Float>(property.value).value;
+                float value = JsonUtility.FromJson<Float>(property.serializedValue).value;
                 return As<T, float>(value);
             }
                 
             if (Is<int>(type)) {
-                int value = JsonUtility.FromJson<Integer>(property.value).value;
+                int value = JsonUtility.FromJson<Integer>(property.serializedValue).value;
                 return As<T, int>(value);
             }
                 
             if (Is<string>(type)) {
-                string value = JsonUtility.FromJson<String>(property.value).value;
+                string value = property.serializedValue;
                 return As<T, string>(value);
             }
                 
             if (Is<Vector2>(type)) {
-                var value = JsonUtility.FromJson<Vector2>(property.value);
+                var value = JsonUtility.FromJson<Vector2>(property.serializedValue);
                 return As<T, Vector2>(value);
             }
                 
             if (Is<Vector3>(type)) {
-                var value = JsonUtility.FromJson<Vector3>(property.value);
+                var value = JsonUtility.FromJson<Vector3>(property.serializedValue);
                 return As<T, Vector3>(value);
             }
 
             if (Is<ScriptableObject>(type)) {
-                string name = property.value;
+                string name = property.serializedValue;
                 var assets = ScriptableObjectsStorage.FindAssetsByName<ScriptableObject>(name);
                 var value = assets.Length == 0 ? null : assets[0];
                 return As<T, ScriptableObject>(value);
             }
-            
-            if (Is<GameObject>(type)) return As<T, GameObject>(null);
-            if (Is<BlackboardEvent>(type)) return As<T, BlackboardEvent>(null);
 
             return default;
         }
 
-        bool IBlackboardEditor.ValidateType(Type type) {
-            return ValidateType(type);
-        }
-        
-        BlackboardProperty IBlackboardEditor.AddProperty(string name, Type type, object value) {
-            if (!ValidateType(type)) return default;
+        public bool TryAddProperty(string name, Type type, object value, out BlackboardProperty property) {
+            property = default;
+            if (!ValidateType(type)) return false;
             
             name = ValidateName(name);
+            int hash = StringToHash(name);
+            if (_propertiesMap.ContainsKey(hash)) return false;
 
-            var property = new BlackboardProperty {
-                hash = StringToHash(name),
+            property = new BlackboardProperty {
                 name = name,
-                type = SerializeType(type),
-                value = SerializeValue(type, value),
+                serializedType = SerializedType.ToString(type),
+                serializedValue = SerializeValue(type, value),
+                index = _propertiesMap.Count,
             };
 
-            _properties.Add(property);
-
-            return property;
+            _propertiesMap[hash] = property;
+            return true;
         }
 
-        bool IBlackboardEditor.SetPropertyName(string oldName, string newName, out string name) {
-            int hash = StringToHash(oldName);
-            for (int i = 0; i < _properties.Count; i++) {
-                var property = _properties[i];
-                if (property.hash != hash) continue;
+        public bool TrySetPropertyName(string oldName, string newName) {
+            int oldHash = StringToHash(oldName);
+            if (!_propertiesMap.TryGetValue(oldHash, out var property)) return false;
 
-                name = ValidateName(newName);
-                property.hash = StringToHash(name);
-                property.name = name;
-                _properties[i] = property;
-                
-                return true;
-            }
+            newName = ValidateName(newName);
+            int newHash = StringToHash(newName);
+            if (_propertiesMap.ContainsKey(newHash)) return false;
 
-            name = null;
-            return false;
+            property.name = newName;
+
+            _propertiesMap.Remove(oldHash);
+            _propertiesMap[newHash] = property;
+
+            return true;
         }
 
-        void IBlackboardEditor.SetPropertyValue(string name, object value) {
+        public bool TrySetPropertyValue(string name, object value) {
             int hash = StringToHash(name);
-            for (int i = 0; i < _properties.Count; i++) {
-                var property = _properties[i];
-                if (property.hash != hash) continue;
+            if (!_propertiesMap.TryGetValue(hash, out var property)) return false;
 
-                property.value = SerializeValue(GetPropertyType(property), value);
-                _properties[i] = property;
-                return;
-            }
+            property.serializedValue = SerializeValue(GetPropertyType(property), value);
+            _propertiesMap[hash] = property;
+
+            return true;
         }
 
-        void IBlackboardEditor.SetPropertyIndex(string name, int newIndex) {
-            int count = _properties.Count;
-            if (newIndex >= count) return;
-            
+        public bool TrySetPropertyIndex(string name, int newIndex) {
             int hash = StringToHash(name);
-            int oldIndex = -1;
-            
-            for (int i = 0; i < count; i++) {
-                var swapProperty = _properties[i];
-                if (swapProperty.hash != hash) continue;
-                
-                if (i == newIndex) return;
-                oldIndex = i;
+            if (!_propertiesMap.TryGetValue(hash, out var property)) return false;
+
+            int oldIndex = property.index;
+
+            property.index = newIndex;
+            _propertiesMap[hash] = property;
+
+            bool hasPropertyWithNewIndex = false;
+            int newIndexPropertyHash = 0;
+
+            foreach ((int h, var p) in _propertiesMap) {
+                if (p.index != newIndex) continue;
+
+                newIndexPropertyHash = h;
+                hasPropertyWithNewIndex = true;
                 break;
             }
-            
-            if (oldIndex < 0) return;
-            (_properties[newIndex], _properties[oldIndex]) = (_properties[oldIndex], _properties[newIndex]);
-        }
 
-        void IBlackboardEditor.RemoveProperty(string name) {
-            int hash = StringToHash(name);
-            for (int i = 0; i < _properties.Count; i++) {
-                if (_properties[i].hash != hash) continue;
-                _properties.RemoveAt(i);
-                return;
+            if (hasPropertyWithNewIndex) {
+                var p = _propertiesMap[newIndexPropertyHash];
+                p.index = oldIndex;
+                _propertiesMap[newIndexPropertyHash] = p;
             }
+
+            return true;
         }
 
-        public void Init() {
-            for (int i = 0; i < _properties.Count; i++) {
-                InitProperty(_properties[i]);
+        public void RemoveProperty(string name) {
+            int hash = StringToHash(name);
+            if (!_propertiesMap.ContainsKey(hash)) return;
+
+            _propertiesMap.Remove(hash);
+        }
+
+        public void Compile() {
+            foreach ((int hash, var property) in _propertiesMap) {
+                InitProperty(hash, property);
             }
         }
         
         public T Get<T>(int hash) {
-            if (!ValidateType<T>()) return default;
             var type = typeof(T);
 
-            if (Is<bool>(type) && _bools.ContainsKey(hash)) return As<T, bool>(_bools[hash]);
-            if (Is<float>(type) && _floats.ContainsKey(hash)) return As<T, float>(_floats[hash]);
-            if (Is<int>(type) && _ints.ContainsKey(hash)) return As<T, int>(_ints[hash]);
-            if (Is<string>(type) && _strings.ContainsKey(hash)) return As<T, string>(_strings[hash]);
-            if (Is<Vector2>(type) && _vectors2.ContainsKey(hash)) return As<T, Vector2>(_vectors2[hash]);
-            if (Is<Vector3>(type) && _vectors3.ContainsKey(hash)) return As<T, Vector3>(_vectors3[hash]);
-            if (Is<ScriptableObject>(type) && _scriptableObjects.ContainsKey(hash)) return As<T, ScriptableObject>(_scriptableObjects[hash]);
-            if (Is<GameObject>(type) && _gameObjects.ContainsKey(hash)) return As<T, GameObject>(_gameObjects[hash]);
-            if (Is<BlackboardEvent>(type) && _events.ContainsKey(hash)) return As<T, BlackboardEvent>(_events[hash]);
+            if (Is<bool>(type) && _bools.TryGetValue(hash, out bool b)) return As<T, bool>(b);
+            if (Is<float>(type) && _floats.TryGetValue(hash, out float f)) return As<T, float>(f);
+            if (Is<int>(type) && _ints.TryGetValue(hash, out int i)) return As<T, int>(i);
+            if (Is<string>(type) && _strings.TryGetValue(hash, out string s)) return As<T, string>(s);
+            if (Is<Vector2>(type) && _vectors2.TryGetValue(hash, out var v2)) return As<T, Vector2>(v2);
+            if (Is<Vector3>(type) && _vectors3.TryGetValue(hash, out var v3)) return As<T, Vector3>(v3);
+            if (Is<ScriptableObject>(type) && _scriptableObjects.TryGetValue(hash, out var so)) return As<T, ScriptableObject>(so);
+            if (Is<GameObject>(type) && _gameObjects.TryGetValue(hash, out var go)) return As<T, GameObject>(go);
+            if (Is<BlackboardEvent>(type) && _events.TryGetValue(hash, out var evt)) return As<T, BlackboardEvent>(evt);
 
             Debug.LogError($"Blackboard: trying to get not existing value of type {type.Name}");
             return default;
         }
         
         public void Set<T>(int hash, T value) {
-            if (!ValidateType<T>()) return;
             var type = typeof(T);
 
             if (Is<bool>(type) && _bools.ContainsKey(hash)) {
@@ -253,8 +236,8 @@ namespace MisterGames.Common.Data {
                 return;
             }
             
-            if (Is<string>(type) && _strings.ContainsKey(hash)) {
-                _strings[hash] = As<string, T>(value);
+            if (value is string s && _strings.ContainsKey(hash)) {
+                _strings[hash] = s;
                 return;
             }
             
@@ -268,17 +251,18 @@ namespace MisterGames.Common.Data {
                 return;
             }
             
-            if (Is<ScriptableObject>(type) && _scriptableObjects.ContainsKey(hash)) {
-                _scriptableObjects[hash] = As<ScriptableObject, T>(value);
+            if (value is ScriptableObject so && _scriptableObjects.ContainsKey(hash)) {
+                _scriptableObjects[hash] = so;
                 return;
             }
             
-            if (Is<GameObject>(type) && _gameObjects.ContainsKey(hash)) {
-                _gameObjects[hash] = As<GameObject, T>(value);
+            if (value is GameObject go && _gameObjects.ContainsKey(hash)) {
+                _gameObjects[hash] = go;
                 return;
             }
             
-            if (Is<BlackboardEvent>(type) && _events.ContainsKey(hash)) {
+            if (value is BlackboardEvent && _events.ContainsKey(hash)) {
+                Debug.LogWarning($"Blackboard: cannot set new value to {nameof(BlackboardEvent)}");
                 return;
             }
             
@@ -286,7 +270,6 @@ namespace MisterGames.Common.Data {
         }
 
         public bool Contains<T>(int hash) {
-            if (!ValidateType<T>()) return false;
             var type = typeof(T);
             
             if (Is<bool>(type)) return _bools.ContainsKey(hash);
@@ -302,8 +285,7 @@ namespace MisterGames.Common.Data {
             return false;
         }
 
-        private void InitProperty(BlackboardProperty property) {
-            int hash = property.hash;
+        private void InitProperty(int hash, BlackboardProperty property) {
             var type = GetPropertyType(property);
 
             if (Is<bool>(type)) {
@@ -352,15 +334,11 @@ namespace MisterGames.Common.Data {
             }
         }
 
-        private static string SerializeType(Type type) {
-            return SerializedType.ToString(type);
-        }
-        
         private static string SerializeValue(Type type, object value) {
             if (Is<bool>(type)) return JsonUtility.ToJson(new Bool { value = As<bool, object>(value) });
             if (Is<float>(type)) return JsonUtility.ToJson(new Float { value = As<float, object>(value) });
             if (Is<int>(type)) return JsonUtility.ToJson(new Integer { value = As<int, object>(value) });
-            if (Is<string>(type)) return JsonUtility.ToJson(new String { value = As<string, object>(value) });
+            if (Is<string>(type)) return As<string, object>(value);
             if (Is<Vector2>(type)) return JsonUtility.ToJson(As<Vector2, object>(value));
             if (Is<Vector3>(type)) return JsonUtility.ToJson(As<Vector3, object>(value));
 
@@ -374,28 +352,19 @@ namespace MisterGames.Common.Data {
 
         private string ValidateName(string name) {
             int hash = StringToHash(name);
-            for (int i = 0; i < _properties.Count; i++) {
-                var property = _properties[i];
-                if (property.hash != hash) continue;
+            if (!_propertiesMap.ContainsKey(hash)) return name;
 
-                int count = 1;
-                string pattern = $@"{name} \([0-9]+\)";
-                
-                for (int j = 0; j < _properties.Count; j++) {
-                    var p = _properties[j];
-                    if (p.name.IsValidForPattern(pattern)) count++;
-                }
+            int count = 1;
+            string pattern = $@"{name} \([0-9]+\)";
 
-                return $"{name} ({count})";
+            foreach (var property in _propertiesMap.Values) {
+                if (property.name.IsValidForPattern(pattern)) count++;
             }
-            return name;
+
+            return $"{name} ({count})";
         }
 
-        private static bool ValidateType<T>() {
-            return ValidateType(typeof(T));
-        }
-        
-        private static bool ValidateType(Type type) {
+        public static bool ValidateType(Type type) {
             if (SupportedTypes.Contains(type)) return true;
             Debug.LogError($"Blackboard does not support type {type.Name}");
             return false;
@@ -409,12 +378,6 @@ namespace MisterGames.Common.Data {
         private static bool Is<T>(Type type) {
             return typeof(T) == type;
         }
-
-        private struct Bool { public bool value; }
-        private struct Float { public float value; }
-        private struct Integer { public int value; }
-        private struct String { public string value; }
-
     }
 
 }
