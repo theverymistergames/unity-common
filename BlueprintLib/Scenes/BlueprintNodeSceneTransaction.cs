@@ -1,15 +1,15 @@
-﻿using System.Collections.Generic;
+﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Blueprints;
-using MisterGames.Blueprints.Core;
 using MisterGames.Common.Attributes;
 using MisterGames.Scenes.Transactions;
 using UnityEngine;
 
 namespace MisterGames.BlueprintLib {
 
-    [BlueprintNode(Name = "Scene Transaction", Category = "Scenes", Color = BlueprintLibColors.Node.Scenes)]
+    [Serializable]
+    [BlueprintNodeMeta(Name = "Scene Transaction", Category = "Scenes", Color = BlueprintLibColors.Node.Scenes)]
     public sealed class BlueprintNodeSceneTransaction : BlueprintNode, IBlueprintEnter {
         
         [SerializeReference] [SubclassSelector]
@@ -17,21 +17,21 @@ namespace MisterGames.BlueprintLib {
 
         private CancellationTokenSource _terminateCts;
 
-        protected override IReadOnlyList<Port> CreatePorts() => new List<Port> {
+        public override Port[] CreatePorts() => new[] {
             Port.Enter(),
             Port.Exit(),
         };
 
-        protected override void OnInit() {
+        public override void OnInitialize(BlueprintRunner runner) {
             _terminateCts = new CancellationTokenSource();
         }
 
-        protected override void OnTerminate() {
+        public override void OnDeInitialize() {
             _terminateCts.Cancel();
             _terminateCts.Dispose();
         }
 
-        void IBlueprintEnter.Enter(int port) {
+        public void OnEnterPort(int port) {
             if (port != 0) return;
 
             CommitTransactionAndExitAsync(_terminateCts.Token).Forget();
@@ -40,7 +40,7 @@ namespace MisterGames.BlueprintLib {
         private async UniTaskVoid CommitTransactionAndExitAsync(CancellationToken token) {
             await _sceneTransaction.Commit();
             if (token.IsCancellationRequested) return;
-            Call(1);
+            CallPort(1);
         }
     }
 

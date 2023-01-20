@@ -1,14 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Blueprints;
-using MisterGames.Blueprints.Core;
 using UnityEngine;
 
 namespace MisterGames.BlueprintLib {
 
-    [BlueprintNode(Name = "Schedule", Category = "Time", Color = BlueprintColors.Node.Time)]
+    [Serializable]
+    [BlueprintNodeMeta(Name = "Schedule", Category = "Time", Color = BlueprintColors.Node.Time)]
     public sealed class BlueprintNodeSchedule : BlueprintNode, IBlueprintEnter {
 
         [SerializeField] [Min(0f)] private float _period;
@@ -18,7 +17,7 @@ namespace MisterGames.BlueprintLib {
         private CancellationTokenSource _terminateCts;
         private CancellationTokenSource _cancelCts;
         
-        protected override IReadOnlyList<Port> CreatePorts() => new List<Port> {
+        public override Port[] CreatePorts() => new[] {
             Port.Enter("Start"),
             Port.Enter("Cancel"),
             Port.Input<float>("Period"),
@@ -26,11 +25,11 @@ namespace MisterGames.BlueprintLib {
             Port.Exit(),
         };
 
-        protected override void OnInit() {
+        public override void OnInitialize(BlueprintRunner runner) {
             _terminateCts = new CancellationTokenSource();
         }
 
-        protected override void OnTerminate() {
+        public override void OnDeInitialize() {
             _terminateCts.Cancel();
             _terminateCts.Dispose();
 
@@ -38,13 +37,13 @@ namespace MisterGames.BlueprintLib {
             _cancelCts?.Dispose();
         }
 
-        void IBlueprintEnter.Enter(int port) {
+        public void OnEnterPort(int port) {
             if (port == 0) {
                 _cancelCts ??= new CancellationTokenSource();
                 var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_cancelCts.Token, _terminateCts.Token);
 
-                float period = Read(2, _period);
-                int times = Read(3, _times);
+                float period = ReadPort(2, _period);
+                int times = ReadPort(3, _times);
 
                 ScheduleAsync(period, times, _isInfinite, linkedCts.Token).Forget();
                 return;
@@ -69,7 +68,7 @@ namespace MisterGames.BlueprintLib {
                 if (isCancelled) return;
 
                 timesCounter++;
-                Call(port: 5);
+                CallPort(5);
             }
         }
     }

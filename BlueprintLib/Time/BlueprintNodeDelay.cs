@@ -1,14 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Blueprints;
-using MisterGames.Blueprints.Core;
 using UnityEngine;
 
 namespace MisterGames.BlueprintLib {
 
-    [BlueprintNode(Name = "Delay", Category = "Time", Color = BlueprintColors.Node.Time)]
+    [Serializable]
+    [BlueprintNodeMeta(Name = "Delay", Category = "Time", Color = BlueprintColors.Node.Time)]
     public sealed class BlueprintNodeDelay : BlueprintNode, IBlueprintEnter {
         
         [SerializeField] private float _defaultDuration;
@@ -16,18 +15,18 @@ namespace MisterGames.BlueprintLib {
         private CancellationTokenSource _terminateCts;
         private CancellationTokenSource _cancelCts;
 
-        protected override IReadOnlyList<Port> CreatePorts() => new List<Port> {
+        public override Port[] CreatePorts() => new[] {
             Port.Enter("Start"),
             Port.Enter("Cancel"),
             Port.Input<float>("Duration"),
             Port.Exit(),
         };
 
-        protected override void OnInit() {
+        public override void OnInitialize(BlueprintRunner runner) {
             _terminateCts = new CancellationTokenSource();
         }
 
-        protected override void OnTerminate() {
+        public override void OnDeInitialize() {
             _terminateCts.Cancel();
             _terminateCts.Dispose();
 
@@ -35,12 +34,12 @@ namespace MisterGames.BlueprintLib {
             _cancelCts?.Dispose();
         }
 
-        void IBlueprintEnter.Enter(int port) {
+        public void OnEnterPort(int port) {
             if (port == 0) {
                 _cancelCts ??= new CancellationTokenSource();
                 var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_cancelCts.Token, _terminateCts.Token);
 
-                float duration = Read(2, _defaultDuration);
+                float duration = ReadPort(2, _defaultDuration);
                 DelayAndExitAsync(duration, linkedCts.Token).Forget();
                 return;
             }
@@ -59,7 +58,7 @@ namespace MisterGames.BlueprintLib {
 
             if (isCancelled) return;
 
-            Call(port: 3);
+            CallPort(3);
         }
     }
 

@@ -1,34 +1,34 @@
-﻿using System.Collections.Generic;
+﻿using System;
 using MisterGames.Blueprints;
-using MisterGames.Blueprints.Core;
 using MisterGames.Common.Data;
 using UnityEngine;
 
 namespace MisterGames.BlueprintLib {
 
-    [BlueprintNode(Name = "On Blackboard Event", Category = "Blackboard", Color = BlueprintColors.Node.Blackboard)]
+    [Serializable]
+    [BlueprintNodeMeta(Name = "On Blackboard Event", Category = "Blackboard", Color = BlueprintColors.Node.Blackboard)]
     public sealed class BlueprintNodeOnBlackboardEvent : BlueprintNode {
 
         [SerializeField] private string _property = "";
 
         private BlackboardEvent _event;
-        
-        protected override IReadOnlyList<Port> CreatePorts() => new List<Port> {
+
+        public override Port[] CreatePorts() => new[] {
             Port.Exit()
         };
 
-        protected override void OnInit() {
+        public override void OnInitialize(BlueprintRunner runner) {
             int propertyId = Blackboard.StringToHash(_property);
-            _event = blackboard.Get<BlackboardEvent>(propertyId);
-            _event.OnEmit += OnEmit;
+            //_event = blackboard.Get<BlackboardEvent>(propertyId);
+            //_event.OnEmit += OnEmit;
         }
 
-        protected override void OnTerminate() {
+        public override void OnDeInitialize() {
             if (_event != null) _event.OnEmit -= OnEmit;
         }
 
         private void OnEmit() {
-            Call(port: 0);
+            CallPort(0);
         }
     }
 

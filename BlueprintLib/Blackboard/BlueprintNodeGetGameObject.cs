@@ -1,35 +1,30 @@
-﻿using System.Collections.Generic;
+﻿using System;
 using MisterGames.Blueprints;
-using MisterGames.Blueprints.Core;
 using MisterGames.Common.Data;
 using UnityEngine;
 
 namespace MisterGames.BlueprintLib {
 
-    [BlueprintNode(Name = "Get GameObject", Category = "Blackboard", Color = BlueprintColors.Node.Blackboard)]
-    public sealed class BlueprintNodeGetGameObject : BlueprintNode, IBlueprintGetter<GameObject>, IBlueprintGetter<string> {
+    [Serializable]
+    [BlueprintNodeMeta(Name = "Get GameObject", Category = "Blackboard", Color = BlueprintColors.Node.Blackboard)]
+    public sealed class BlueprintNodeGetGameObject : BlueprintNode, IBlueprintOutput<GameObject> {
 
         [SerializeField] private string _property = "";
 
         private int _propertyId;
-        
-        protected override IReadOnlyList<Port> CreatePorts() => new List<Port> {
+
+        public override Port[] CreatePorts() => new[] {
             Port.Output<GameObject>()
         };
 
-        protected override void OnInit() {
+        public override void OnInitialize(BlueprintRunner runner) {
             _propertyId = Blackboard.StringToHash(_property);
         }
 
-        GameObject IBlueprintGetter<GameObject>.Get(int port) => GetResult(port);
-
-        string IBlueprintGetter<string>.Get(int port) => $"{GetResult(port)}";
-
-        private GameObject GetResult(int port) => port switch {
-            0 => blackboard.Get<GameObject>(_propertyId),
+        public GameObject GetPortValue(int port) => port switch {
+            0 => null,//blackboard.Get<GameObject>(_propertyId),
             _ => null
         };
-        
     }
 
 }
