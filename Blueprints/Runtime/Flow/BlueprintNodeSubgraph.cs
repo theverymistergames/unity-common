@@ -2,6 +2,7 @@
 using MisterGames.Blueprints.Compile;
 using MisterGames.Blueprints.Meta;
 using MisterGames.Blueprints.Validation;
+using MisterGames.Common.Data;
 using UnityEngine;
 
 namespace MisterGames.Blueprints.External {
@@ -10,6 +11,7 @@ namespace MisterGames.Blueprints.External {
     [BlueprintNodeMeta(Name = "Subgraph", Category = "Flow", Color = BlueprintColors.Node.Flow)]
     public sealed class BlueprintNodeSubgraph :
         BlueprintNode,
+        IBlueprintHost,
         IBlueprintEnter,
         IBlueprintOutput,
         IBlueprintValidatedNode,
@@ -18,7 +20,12 @@ namespace MisterGames.Blueprints.External {
 
         [SerializeField] private BlueprintAsset _blueprintAsset;
 
+        public MonoBehaviour Runner => _runner;
+        public RuntimeBlackboard Blackboard => _runtimeBlackboard;
+
         private RuntimeBlueprint _runtimeBlueprint;
+        private RuntimeBlackboard _runtimeBlackboard;
+        private MonoBehaviour _runner;
 
         public override Port[] CreatePorts() {
             if (_blueprintAsset == null) return Array.Empty<Port>();
@@ -39,8 +46,9 @@ namespace MisterGames.Blueprints.External {
             return ports;
         }
 
-        public override void OnInitialize(BlueprintRunner runner) {
-            _runtimeBlueprint.Initialize(runner);
+        public override void OnInitialize(IBlueprintHost host) {
+            _runner = host.Runner;
+            _runtimeBlueprint.Initialize(this);
         }
 
         public override void OnDeInitialize() {
@@ -56,6 +64,7 @@ namespace MisterGames.Blueprints.External {
         }
 
         public void Compile(BlueprintNodeMeta nodeMeta) {
+            _runtimeBlackboard = _blueprintAsset.Blackboard.Compile();
             _runtimeBlueprint = _blueprintAsset.CompileSubgraph(this, nodeMeta);
         }
 

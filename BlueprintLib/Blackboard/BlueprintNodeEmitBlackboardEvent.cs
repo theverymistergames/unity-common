@@ -18,9 +18,9 @@ namespace MisterGames.BlueprintLib {
             Port.Exit()
         };
 
-        public override void OnInitialize(BlueprintRunner runner) {
+        public override void OnInitialize(IBlueprintHost host) {
             int propertyId = Blackboard.StringToHash(_property);
-            _event = runner.Blackboard.Get<BlackboardEvent>(propertyId);
+            _event = host.Blackboard.Get<BlackboardEvent>(propertyId);
         }
 
         public void OnEnterPort(int port) {

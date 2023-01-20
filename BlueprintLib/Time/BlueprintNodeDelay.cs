@@ -22,7 +22,7 @@ namespace MisterGames.BlueprintLib {
             Port.Exit(),
         };
 
-        public override void OnInitialize(BlueprintRunner runner) {
+        public override void OnInitialize(IBlueprintHost host) {
             _terminateCts = new CancellationTokenSource();
         }
 

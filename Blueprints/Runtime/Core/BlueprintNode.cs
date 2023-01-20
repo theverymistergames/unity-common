@@ -10,7 +10,7 @@ namespace MisterGames.Blueprints {
 
         public abstract Port[] CreatePorts();
 
-        public virtual void OnInitialize(BlueprintRunner runner) {}
+        public virtual void OnInitialize(IBlueprintHost host) {}
         public virtual void OnDeInitialize() {}
         public virtual void OnValidate() {}
 

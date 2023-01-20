@@ -18,8 +18,8 @@ namespace MisterGames.BlueprintLib {
             Port.Output<GameObject>()
         };
 
-        public override void OnInitialize(BlueprintRunner runner) {
-            _blackboard = runner.Blackboard;
+        public override void OnInitialize(IBlueprintHost host) {
+            _blackboard = host.Blackboard;
             _propertyId = Blackboard.StringToHash(_property);
         }
 

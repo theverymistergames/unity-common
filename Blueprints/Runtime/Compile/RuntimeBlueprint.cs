@@ -8,9 +8,9 @@
             _nodes = nodes;
         }
 
-        public void Initialize(BlueprintRunner runner) {
+        public void Initialize(IBlueprintHost host) {
             for (int i = 0; i < _nodes.Length; i++) {
-                _nodes[i].OnInitialize(runner);
+                _nodes[i].OnInitialize(host);
             }
         }
 
