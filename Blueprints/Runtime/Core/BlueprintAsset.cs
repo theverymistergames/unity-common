@@ -6,6 +6,7 @@ namespace MisterGames.Blueprints {
 
     /// <summary>
     /// Asset to store blueprint meta data that can be compiled into runtime blueprint instance.
+    /// Blueprint meta data is edited from Blueprint Editor.
     /// </summary>
     [CreateAssetMenu(fileName = nameof(BlueprintAsset), menuName = "MisterGames/" + nameof(BlueprintAsset))]
     public sealed class BlueprintAsset : ScriptableObject {

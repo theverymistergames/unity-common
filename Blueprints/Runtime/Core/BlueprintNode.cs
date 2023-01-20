@@ -14,16 +14,16 @@ namespace MisterGames.Blueprints {
         public virtual void OnDeInitialize() {}
         public virtual void OnValidate() {}
 
-        protected void CallPort(int portIndex) {
-            var links = RuntimePorts[portIndex].links;
+        protected void CallPort(int port) {
+            var links = RuntimePorts[port].links;
             for (int i = 0; i < links.Length; i++) {
                 var link = links[i];
                 if (link.node is IBlueprintEnter enter) enter.OnEnterPort(link.port);
             }
         }
 
-        protected T ReadPort<T>(int portIndex, T defaultValue = default) {
-            var links = RuntimePorts[portIndex].links;
+        protected T ReadPort<T>(int port, T defaultValue = default) {
+            var links = RuntimePorts[port].links;
             if (links.Length == 0) return defaultValue;
 
             var link = links[0];
