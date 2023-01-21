@@ -12,10 +12,10 @@ namespace MisterGames.Common.Editor.Drawers {
             var secondProperty = property.FindPropertyRelative("_second");
             
             position.width /= 2f;
-            EditorGUI.PropertyField(position, firstProperty, label, true);
+            EditorGUI.PropertyField(position, firstProperty, GUIContent.none, true);
             
             position.x += position.width;
-            EditorGUI.PropertyField(position, secondProperty, label, true);
+            EditorGUI.PropertyField(position, secondProperty, GUIContent.none,true);
         }
  
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label) {
