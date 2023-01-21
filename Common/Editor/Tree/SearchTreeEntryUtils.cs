@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using MisterGames.Common.Trees;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 
@@ -25,11 +23,11 @@ namespace MisterGames.Common.Editor.Tree {
 
         public static SearchTreeEntry Entry(string title, object data, int level = 0) {
             // Search tree entry ident hack
-            var ident = new Texture2D(1, 1);
-            ident.SetPixel(0, 0, new UnityEngine.Color(0, 0, 0, 0));
-            ident.Apply();
-            
-            return new SearchTreeEntry(new GUIContent(title, ident)) { userData = data, level = level };
+            var indent = new Texture2D(1, 1);
+            indent.SetPixel(0, 0, new UnityEngine.Color(0, 0, 0, 0));
+            indent.Apply();
+
+            return new SearchTreeEntry(new GUIContent(title, indent)) { userData = data, level = level };
         }
     }
 

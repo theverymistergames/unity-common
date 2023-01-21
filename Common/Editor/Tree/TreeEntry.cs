@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace MisterGames.Common.Trees {
+namespace MisterGames.Common.Editor.Tree {
 
     public struct TreeEntry<T> {
         

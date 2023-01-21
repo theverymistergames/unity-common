@@ -37,14 +37,6 @@ namespace MisterGames.Common.Lists {
         public static IEnumerable<T> RemoveIf<T>(this IEnumerable<T> enumerable, Func<T, bool> predicate) {
             return enumerable.Where(e => !predicate.Invoke(e));
         }
-        
-        public static IEnumerable<T> DistinctBy<T, P>(this IEnumerable<T> enumerable, Func<T, P> selector) {
-            return enumerable.GroupBy(selector).Select(groups => groups.First());
-        }
-
-        public static void AddTo<T>(this IEnumerable<T> enumerable, List<T> other) {
-            other.AddRange(enumerable);
-        }
 
         public static T[] Slice<T>(this T[] array, int start, int end) {
             int length = end - start + 1;
@@ -53,26 +45,6 @@ namespace MisterGames.Common.Lists {
                 result[i] = array[i];
             }
             return result;
-        }
-        
-        public static List<T> Plus<T>(this IEnumerable<T> list, IEnumerable<T> other) {
-            var result = new List<T>(list);
-            result.AddRange(other);
-            return result;
-        }
-        
-        public static List<T> Plus<T>(this List<T> list, IEnumerable<T> other) {
-            var result = new List<T>(list);
-            result.AddRange(other);
-            return result;
-        }
-        
-        public static List<T> Plus<T>(this IEnumerable<T> list, T element) {
-            return new List<T>(list) { element };
-        }
-        
-        public static List<T> Plus<T>(this List<T> list, T element) {
-            return new List<T>(list) { element };
         }
 
         public static T GetRandom<T>(this IReadOnlyList<T> list) {

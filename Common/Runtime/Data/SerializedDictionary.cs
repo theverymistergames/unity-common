@@ -19,8 +19,8 @@ namespace MisterGames.Common.Data {
         void ISerializationCallbackReceiver.OnBeforeSerialize() {
             _entries.Clear();
 
-            foreach (var kvp in this) {
-                _entries.Add(new Entry { key = kvp.Key, value = kvp.Value });
+            foreach (var (key, value) in this) {
+                _entries.Add(new Entry { key = key, value = value });
             }
         }
 
@@ -29,7 +29,7 @@ namespace MisterGames.Common.Data {
 
             for (int i = 0; i < _entries.Count; i++) {
                 var entry = _entries[i];
-                Add(entry.key, entry.value);
+                this[entry.key] = entry.value;
             }
         }
 
@@ -44,7 +44,7 @@ namespace MisterGames.Common.Data {
 
             for (int i = 0; i < _entries.Count; i++) {
                 var entry = _entries[i];
-                Add(entry.key, entry.value);
+                this[entry.key] = entry.value;
             }
         }
 
