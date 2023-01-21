@@ -8,7 +8,7 @@ namespace MisterGames.Common.Editor.VirtualInspector {
 
         [SerializeReference] private object _data;
 
-        public Action<SerializedProperty> OnGUI { get; private set; }
+        private Action<SerializedProperty> _onGUI;
         private Action<object> _onValidate;
 
         public static VirtualInspector Create(
@@ -18,16 +18,22 @@ namespace MisterGames.Common.Editor.VirtualInspector {
         ) {
             var instance = CreateInstance<VirtualInspector>();
 
-            instance.OnGUI = onGUI ?? DrawInline;
+            instance._onGUI = onGUI ?? DrawInline;
             instance._onValidate = onValidate;
             instance._data = data;
 
             return instance;
         }
 
+        public void Draw(SerializedProperty serializedProperty) {
+            _onGUI.Invoke(serializedProperty);
+        }
+
         private static void DrawInline(SerializedProperty serializedProperty) {
-            foreach (object child in serializedProperty) {
-                EditorGUILayout.PropertyField((SerializedProperty) child, true);
+            bool enterChildren = true;
+            while (serializedProperty.NextVisible(enterChildren)) {
+                enterChildren = false;
+                EditorGUILayout.PropertyField(serializedProperty, true);
             }
         }
 

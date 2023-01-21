@@ -10,10 +10,8 @@ namespace MisterGames.Common.Editor.VirtualInspector {
 
             serializedObject.Update();
 
-            var onGUI = ((VirtualInspector) serializedObject.targetObject).OnGUI;
             var dataProperty = serializedObject.FindProperty("_data");
-
-            onGUI.Invoke(dataProperty);
+            ((VirtualInspector) serializedObject.targetObject).Draw(dataProperty);
 
             serializedObject.ApplyModifiedProperties();
         }
