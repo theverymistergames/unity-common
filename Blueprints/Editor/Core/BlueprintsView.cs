@@ -19,7 +19,7 @@ namespace MisterGames.Blueprints.Editor.Core {
     public sealed class BlueprintsView : GraphView, IEdgeConnectorListener {
 
         public Func<Vector2, Vector2> OnRequestWorldPosition = _ => Vector2.zero;
-        public Action OnBlueprintAssetSetDirty = delegate {  };
+        public Action<BlueprintAsset> OnBlueprintAssetSetDirty = delegate {  };
 
         private BlueprintAsset _blueprintAsset;
         private BlueprintNodeSearchWindow _nodeSearchWindow;
@@ -174,7 +174,7 @@ namespace MisterGames.Blueprints.Editor.Core {
 
             _blueprintAsset.Blackboard.RemoveProperty(propertyName);
 
-            EditorUtility.SetDirty(_blueprintAsset);
+            SetBlueprintAssetDirtyAndNotify();
         }
 
         private void OnBlackboardPropertyPositionChanged(BlackboardField field, int newIndex) {
@@ -184,7 +184,7 @@ namespace MisterGames.Blueprints.Editor.Core {
 
             if (!_blueprintAsset.Blackboard.TrySetPropertyIndex(field.text, newIndex)) return;
 
-            EditorUtility.SetDirty(_blueprintAsset);
+            SetBlueprintAssetDirtyAndNotify();
         }
 
         private void OnBlackboardPropertyNameChanged(BlackboardField field, string newName) {
@@ -195,7 +195,7 @@ namespace MisterGames.Blueprints.Editor.Core {
             if (!_blueprintAsset.Blackboard.TrySetPropertyName(field.text, newName)) return;
 
             field.text = newName;
-            EditorUtility.SetDirty(_blueprintAsset);
+            SetBlueprintAssetDirtyAndNotify();
         }
 
         private void OnBlackboardPropertyValueChanged(string property, object value) {
@@ -205,7 +205,7 @@ namespace MisterGames.Blueprints.Editor.Core {
 
             if (!_blueprintAsset.Blackboard.TrySetPropertyValue(property, value)) return;
 
-            EditorUtility.SetDirty(_blueprintAsset);
+            SetBlueprintAssetDirtyAndNotify();
         }
 
         // ---------------- ---------------- Minimap ---------------- ----------------
@@ -228,17 +228,17 @@ namespace MisterGames.Blueprints.Editor.Core {
 
             _blueprintAsset = blueprintAsset;
 
-            if (_blueprintAsset.BlueprintMeta.Invalidate()) EditorUtility.SetDirty(_blueprintAsset);
+            if (_blueprintAsset.BlueprintMeta.Invalidate()) SetBlueprintAssetDirtyAndNotify();
 
             RepopulateView();
 
             _blueprintAsset.BlueprintMeta.OnInvalidate = () => {
-                EditorUtility.SetDirty(_blueprintAsset);
+                SetBlueprintAssetDirtyAndNotify();
                 RepopulateView();
             };
 
-            _blueprintAsset.BlueprintMeta.OnInvalidateNode = nodeId => {
-                EditorUtility.SetDirty(_blueprintAsset);
+            _blueprintAsset.BlueprintMeta.OnInvalidateNode = _ => {
+                SetBlueprintAssetDirtyAndNotify();
                 RepopulateView();
             };
         }
@@ -280,6 +280,13 @@ namespace MisterGames.Blueprints.Editor.Core {
             base.BuildContextualMenu(evt);
         }
 
+        private void SetBlueprintAssetDirtyAndNotify() {
+            if (_blueprintAsset == null) return;
+
+            EditorUtility.SetDirty(_blueprintAsset);
+            OnBlueprintAssetSetDirty?.Invoke(_blueprintAsset);
+        }
+
         // ---------------- ---------------- Node and connection creation ---------------- ----------------
 
         private BlueprintNodeMeta CreateNode(BlueprintNode node, Vector2 position) {
@@ -290,7 +297,7 @@ namespace MisterGames.Blueprints.Editor.Core {
 
             _blueprintAsset.BlueprintMeta.AddNode(nodeMeta);
 
-            EditorUtility.SetDirty(_blueprintAsset);
+            SetBlueprintAssetDirtyAndNotify();
 
             return nodeMeta;
         }
@@ -300,7 +307,7 @@ namespace MisterGames.Blueprints.Editor.Core {
 
             _blueprintAsset.BlueprintMeta.RemoveNode(nodeMeta.NodeId);
 
-            EditorUtility.SetDirty(_blueprintAsset);
+            SetBlueprintAssetDirtyAndNotify();
         }
         
         private void CreateConnection(int fromNodeId, int fromPortIndex, int toNodeId, int toPortIndex) {
@@ -308,7 +315,7 @@ namespace MisterGames.Blueprints.Editor.Core {
 
             _blueprintAsset.BlueprintMeta.TryCreateConnection(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
 
-            EditorUtility.SetDirty(_blueprintAsset);
+            SetBlueprintAssetDirtyAndNotify();
         }
         
         private void RemoveConnection(int fromNodeId, int fromPortIndex, int toNodeId, int toPortIndex) {
@@ -316,7 +323,7 @@ namespace MisterGames.Blueprints.Editor.Core {
 
             _blueprintAsset.BlueprintMeta.RemoveConnection(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
 
-            EditorUtility.SetDirty(_blueprintAsset);
+            SetBlueprintAssetDirtyAndNotify();
         }
 
         // ---------------- ---------------- View creation ---------------- ----------------
@@ -365,7 +372,7 @@ namespace MisterGames.Blueprints.Editor.Core {
             bool hasEdgesToCreate = change.edgesToCreate is { Count: > 0 };
 
             if (hasMovedElements || hasElementsToRemove || hasEdgesToCreate) {
-                EditorUtility.SetDirty(_blueprintAsset);
+                SetBlueprintAssetDirtyAndNotify();
                 RepopulateView();
             }
 
@@ -388,13 +395,13 @@ namespace MisterGames.Blueprints.Editor.Core {
                 validatedNode.OnValidate(nodeMeta.NodeId, _blueprintAsset);
             }
             node.OnValidate();
-            EditorUtility.SetDirty(_blueprintAsset);
+            SetBlueprintAssetDirtyAndNotify();
         }
 
         private void OnNodePositionChanged(BlueprintNodeMeta nodeMeta, Vector2 position) {
             Undo.RecordObject(_blueprintAsset, "Blueprint Node Position Changed");
             nodeMeta.Position = position;
-            EditorUtility.SetDirty(_blueprintAsset);
+            SetBlueprintAssetDirtyAndNotify();
         }
 
         private void CreateNodeConnectionViews(BlueprintNodeMeta nodeMeta) {
@@ -526,7 +533,7 @@ namespace MisterGames.Blueprints.Editor.Core {
         private void OnUndoRedo() {
             if (_blueprintAsset == null) return;
 
-            EditorUtility.SetDirty(_blueprintAsset);
+            SetBlueprintAssetDirtyAndNotify();
             RepopulateView();
         }
         
