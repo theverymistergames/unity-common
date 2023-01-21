@@ -48,13 +48,10 @@ namespace MisterGames.Blueprints.Editor.Core {
             EditorGUIUtility.labelWidth = 110;
             EditorGUIUtility.fieldWidth = 160;
 
-            foreach (object child in serializedProperty) {
-                var childProperty = (SerializedProperty) child;
-                EditorGUILayout.PropertyField(childProperty, true);
-
-                if (childProperty.GetValue() is BlueprintAsset blueprintAsset && GUILayout.Button("Edit")) {
-                    BlueprintsEditorWindow.GetWindow().PopulateFromAsset(blueprintAsset);
-                }
+            bool enterChildren = true;
+            while (serializedProperty.NextVisible(enterChildren)) {
+                enterChildren = false;
+                EditorGUILayout.PropertyField(serializedProperty, true);
             }
 
             EditorGUIUtility.labelWidth = labelWidth;
