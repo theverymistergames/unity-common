@@ -11,21 +11,29 @@ namespace MisterGames.Blueprints.Editor.Core {
 
             var blueprintAsset = runner.BlueprintAsset;
 
+            serializedObject.Update();
+            EditorGUI.BeginChangeCheck();
+
             var blueprintAssetProperty = serializedObject.FindProperty("_blueprintAsset");
             EditorGUILayout.PropertyField(blueprintAssetProperty);
 
-            if (blueprintAsset != null && GUILayout.Button("Edit")) {
-                BlueprintsEditorWindow.GetWindow().PopulateFromAsset(blueprintAsset);
+            if (blueprintAsset != null) {
+                if (GUILayout.Button("Edit")) {
+                    BlueprintsEditorWindow.GetWindow().PopulateFromAsset(blueprintAsset);
+                }
+
+                GUILayout.Space(10);
+
+                var blackboardPropertiesProperty = serializedObject.FindProperty("_blackboardProperties");
+                EditorGUILayout.PropertyField(blackboardPropertiesProperty);
+
+                if (blueprintAsset != null && GUILayout.Button("Fetch blackboard properties")) {
+                    runner.FetchBlackboardGameObjectProperties();
+                }
             }
 
-            GUILayout.Space(10);
-
-            var blackboardPropertiesProperty = serializedObject.FindProperty("_blackboardProperties");
-            EditorGUILayout.PropertyField(blackboardPropertiesProperty);
-
-            if (GUILayout.Button("Fetch blackboard properties")) {
-                runner.FetchBlackboardGameObjectProperties();
-            }
+            EditorGUI.EndChangeCheck();
+            serializedObject.ApplyModifiedProperties();
         }
     }
 
