@@ -10,7 +10,7 @@ namespace MisterGames.Blueprints {
     public sealed class BlueprintRunner : MonoBehaviour, IBlueprintHost {
 
         [SerializeField] private BlueprintAsset _blueprintAsset;
-        [SerializeField] private List<BlueprintAssetReferences> _blackboardReferences;
+        [SerializeField] private List<BlueprintAssetReferences> _blackboardProperties;
 
         [Serializable]
         private struct BlueprintAssetReferences {
@@ -56,8 +56,8 @@ namespace MisterGames.Blueprints {
         public RuntimeBlackboard CompileBlackboardOf(BlueprintAsset blueprintAsset) {
             var runtimeBlackboard = blueprintAsset.Blackboard.Compile();
 
-            for (int i = 0; i < _blackboardReferences.Count; i++) {
-                var entry = _blackboardReferences[i];
+            for (int i = 0; i < _blackboardProperties.Count; i++) {
+                var entry = _blackboardProperties[i];
                 var asset = entry.blueprint;
                 if (asset != blueprintAsset) continue;
 
@@ -82,17 +82,17 @@ namespace MisterGames.Blueprints {
 
         internal void FetchBlackboardGameObjectProperties() {
             if (_blueprintAsset == null) {
-                _blackboardReferences.Clear();
+                _blackboardProperties.Clear();
                 return;
             }
 
             var blueprintAssets = new List<BlueprintAsset>();
             AddBlueprintAssetAndItsSubgraphAssetsTo(_blueprintAsset, blueprintAssets);
 
-            var assetReferencesMap = new Dictionary<BlueprintAsset, Dictionary<int, GameObject>>(_blackboardReferences.Count);
+            var assetReferencesMap = new Dictionary<BlueprintAsset, Dictionary<int, GameObject>>(_blackboardProperties.Count);
 
-            for (int i = 0; i < _blackboardReferences.Count; i++) {
-                var entry = _blackboardReferences[i];
+            for (int i = 0; i < _blackboardProperties.Count; i++) {
+                var entry = _blackboardProperties[i];
                 var blueprint = entry.blueprint;
 
                 var references = entry.references;
@@ -106,7 +106,7 @@ namespace MisterGames.Blueprints {
                 assetReferencesMap[blueprint] = referencesMap;
             }
 
-            _blackboardReferences.Clear();
+            _blackboardProperties.Clear();
 
             for (int i = 0; i < blueprintAssets.Count; i++) {
                 var blueprintAsset = blueprintAssets[i];
@@ -148,7 +148,7 @@ namespace MisterGames.Blueprints {
 
                 if (references.Count == 0) continue;
 
-                _blackboardReferences.Add(new BlueprintAssetReferences {
+                _blackboardProperties.Add(new BlueprintAssetReferences {
                     blueprint = blueprintAsset,
                     references = references
                 });
