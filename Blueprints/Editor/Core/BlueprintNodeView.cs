@@ -1,6 +1,5 @@
 ﻿using System;
 using MisterGames.Blueprints.Meta;
-using MisterGames.Common.Editor.Utils;
 using MisterGames.Common.Editor.Views;
 using MisterGames.Common.Editor.VirtualInspector;
 using UnityEditor;
