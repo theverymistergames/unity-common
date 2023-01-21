@@ -14,8 +14,14 @@ namespace MisterGames.Blueprints.Editor.Core {
             var blueprintAsset = runner.BlueprintAsset;
             if (blueprintAsset == null) return;
 
+            GUILayout.Space(10);
             if (GUILayout.Button("Edit")) {
                 BlueprintsEditorWindow.GetWindow().PopulateFromAsset(blueprintAsset);
+            }
+
+            GUILayout.Space(10);
+            if (GUILayout.Button("Fetch blackboard properties")) {
+                runner.FetchBlackboardGameObjectProperties();
             }
         }
     }

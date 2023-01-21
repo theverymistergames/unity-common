@@ -19,13 +19,12 @@ namespace MisterGames.Blueprints.External {
     {
         [SerializeField] private BlueprintAsset _blueprintAsset;
 
-        public MonoBehaviour Runner => _runner;
-        public BlueprintAsset BlueprintAsset => _blueprintAsset;
+        public BlueprintRunner Runner => _host.Runner;
         public RuntimeBlackboard Blackboard => _runtimeBlackboard;
 
         private RuntimeBlueprint _runtimeBlueprint;
         private RuntimeBlackboard _runtimeBlackboard;
-        private MonoBehaviour _runner;
+        private IBlueprintHost _host;
 
         public override Port[] CreatePorts() {
             if (_blueprintAsset == null) return Array.Empty<Port>();
@@ -47,7 +46,9 @@ namespace MisterGames.Blueprints.External {
         }
 
         public override void OnInitialize(IBlueprintHost host) {
-            _runner = host.Runner;
+            _host = host;
+
+            _runtimeBlackboard = host.Runner.CompileBlackboardOf(_blueprintAsset);
             _runtimeBlueprint.Initialize(this);
         }
 
@@ -64,7 +65,6 @@ namespace MisterGames.Blueprints.External {
         }
 
         public void Compile(BlueprintNodeMeta nodeMeta) {
-            _runtimeBlackboard = _blueprintAsset.Blackboard.Compile();
             _runtimeBlueprint = _blueprintAsset.CompileSubgraph(this, nodeMeta);
         }
 
