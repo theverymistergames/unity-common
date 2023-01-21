@@ -6,6 +6,7 @@ using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.UIElements;
+using Object = UnityEngine.Object;
 using PortView = UnityEditor.Experimental.GraphView.Port;
 
 namespace MisterGames.Blueprints.Editor.Core {
@@ -16,6 +17,8 @@ namespace MisterGames.Blueprints.Editor.Core {
 
         public Action<BlueprintNodeMeta, Vector2> OnPositionChanged = delegate {  };
         public Action<BlueprintNodeMeta, BlueprintNode> OnValidate = delegate {  };
+
+        private VirtualInspector _nodeInspector;
 
         public BlueprintNodeView(BlueprintNodeMeta nodeMeta, IEdgeConnectorListener connectorListener) : base(GetUxmlPath()) {
             this.nodeMeta = nodeMeta;
@@ -28,12 +31,20 @@ namespace MisterGames.Blueprints.Editor.Core {
 
             titleLabel.text = nodeMeta.NodeName;
             container.style.backgroundColor = nodeMeta.NodeColor;
-            inspector.UpdateSelection(VirtualInspector.Create(nodeMeta.Node, OnNodeGUI, OnNodeValidate));
+
+            _nodeInspector = VirtualInspector.Create(nodeMeta.Node, OnNodeGUI, OnNodeValidate);
+
+            inspector.UpdateSelection(_nodeInspector);
 
             style.left = nodeMeta.Position.x;
             style.top = nodeMeta.Position.y;
 
             InitPorts(connectorListener);
+        }
+
+        public void DeInitialize() {
+            Object.Destroy(_nodeInspector);
+            Clear();
         }
 
         private void OnNodeValidate(object obj) {

@@ -183,6 +183,10 @@ namespace MisterGames.Blueprints.Editor.Core {
         }
 
         public void ClearView() {
+            foreach (var element in graphElements) {
+                if (element is BlueprintNodeView nodeView) nodeView.DeInitialize();
+            }
+
             _blueprintAsset = null;
             DeleteElements(graphElements);
             ClearSelection();

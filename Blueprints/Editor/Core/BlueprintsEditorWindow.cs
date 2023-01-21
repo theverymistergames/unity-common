@@ -1,8 +1,10 @@
+using System;
 using UnityEditor;
 using UnityEditor.Callbacks;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
+using Object = UnityEngine.Object;
 
 namespace MisterGames.Blueprints.Editor.Core {
 
@@ -25,6 +27,14 @@ namespace MisterGames.Blueprints.Editor.Core {
 
         public static BlueprintsEditorWindow GetWindow() {
             return GetWindow<BlueprintsEditorWindow>("Blueprints Editor");
+        }
+
+        private void OnDisable() {
+            _blueprintsView?.ClearView();
+        }
+
+        private void OnDestroy() {
+            _blueprintsView?.ClearView();
         }
 
         public void PopulateFromAsset(BlueprintAsset blueprintAsset) {
