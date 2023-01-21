@@ -49,7 +49,7 @@ namespace MisterGames.Common.Data {
 #if UNITY_EDITOR
         private static readonly string[] SearchScriptableObjectsInFolders = {
             "Assets/Data",
-            "Assets/Temp",
+            //"Assets/Temp",
         };
 
         public void Refresh() {
