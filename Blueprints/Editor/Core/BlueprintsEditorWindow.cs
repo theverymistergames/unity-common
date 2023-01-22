@@ -46,7 +46,8 @@ namespace MisterGames.Blueprints.Editor.Core {
         }
 
         private void OnEnable() {
-            _blueprintsView?.RepopulateView();
+            var asset = _assetPicker?.value as BlueprintAsset;
+            if (asset == null) SetWindowTitle(WINDOW_TITLE);
         }
 
         private void OnDisable() {
@@ -82,17 +83,13 @@ namespace MisterGames.Blueprints.Editor.Core {
         }
 
         private void OnSaveCallback() {
-            if (_assetPicker == null) return;
-
-            var currentAsset = _assetPicker.value;
-            SetWindowTitle(currentAsset == null ? WINDOW_TITLE : currentAsset.name);
+            var asset = _assetPicker?.value as BlueprintAsset;
+            SetWindowTitle(asset == null ? WINDOW_TITLE : asset.name);
         }
 
         private void OnBlueprintAssetSetDirty() {
-            if (_assetPicker == null) return;
-
-            var currentAsset = _assetPicker.value;
-            SetWindowTitle(currentAsset == null ? WINDOW_TITLE : $"{currentAsset.name}*");
+            var asset = _assetPicker?.value as BlueprintAsset;
+            SetWindowTitle(asset == null ? WINDOW_TITLE : $"{asset.name}*");
         }
 
         private void OnToggleBlackboardButton(ChangeEvent<bool> evt) {
@@ -109,25 +106,25 @@ namespace MisterGames.Blueprints.Editor.Core {
                 return;
             }
 
-            var asset = evt.newValue;
-            if (asset is not BlueprintAsset blueprintAsset) {
-                _blueprintsView.ClearView();
+            var asset = evt.newValue as BlueprintAsset;
+            if (asset == null) {
                 SetWindowTitle(WINDOW_TITLE);
+                _blueprintsView.ClearView();
                 return;
             }
 
-            _blueprintsView.PopulateViewFromAsset(blueprintAsset);
-            SetWindowTitle(blueprintAsset.name);
+            SetWindowTitle(asset.name);
+            _blueprintsView.PopulateViewFromAsset(asset);
+        }
+
+        private void SetWindowTitle(string text) {
+            titleContent.text = text;
         }
 
         private Vector2 GetWorldPosition(Vector2 mousePosition) {
             var local = mousePosition - position.position;
             var world = rootVisualElement.LocalToWorld(local);
             return rootVisualElement.parent.WorldToLocal(world);
-        }
-
-        private void SetWindowTitle(string text) {
-            titleContent.text = text;
         }
     }
     
