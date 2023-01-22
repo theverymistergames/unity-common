@@ -1,6 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
-using MisterGames.Common.Data;
 using UnityEditor;
 using UnityEngine;
 
@@ -8,36 +8,24 @@ namespace MisterGames.Common.Data {
     
     public sealed class ScriptableObjectsStorage : ScriptableSingleton<ScriptableObjectsStorage> {
 
-        [SerializeField] private ScriptableObject[] _scriptableObjects;
+        [SerializeField] private SerializedDictionary<int, List<ScriptableObject>> _nameHashToListOfScriptableObjectMap;
 
-        public static T[] FindAssetsByName<T>(string objectName) where T : ScriptableObject {
-            return Instance.FindByName<T>(objectName);
-        }
-        
-        public static T[] FindAssetsByType<T>() where T : ScriptableObject {
-            return Instance.FindByType<T>();
+        public static IReadOnlyList<T> FindAssetsByName<T>(string assetName) where T : ScriptableObject {
+            return Instance.FindAssetsByNameHash<T>(assetName.GetHashCode());
         }
 
-        private T[] FindByName<T>(string objectName) where T : ScriptableObject {
-            var result = new List<T>();
-            
-            for (int i = 0; i < _scriptableObjects.Length; i++) {
-                var asset = _scriptableObjects[i];
-                if (asset.name == objectName && asset is T t) result.Add(t);
+        private IReadOnlyList<T> FindAssetsByNameHash<T>(int nameHash) where T : ScriptableObject {
+            if (!_nameHashToListOfScriptableObjectMap.TryGetValue(nameHash, out var scriptableObjects)) {
+                return Array.Empty<T>();
             }
 
-            return result.ToArray();
-        }
-        
-        private T[] FindByType<T>() where T : ScriptableObject {
             var result = new List<T>();
-            
-            for (int i = 0; i < _scriptableObjects.Length; i++) {
-                var asset = _scriptableObjects[i];
-                if (asset is T t) result.Add(t);
+
+            for (int i = 0; i < scriptableObjects.Count; i++) {
+                if (scriptableObjects[i] is T t) result.Add(t);
             }
 
-            return result.ToArray();
+            return result;
         }
 
         protected override void OnSingletonInstanceLoaded() {
@@ -53,7 +41,20 @@ namespace MisterGames.Common.Data {
         };
 
         public void Refresh() {
-            _scriptableObjects = GetAllScriptableObjectsExceptSingletons().ToArray();
+            var scriptableObjects = GetAllScriptableObjectsExceptSingletons().ToArray();
+
+            for (int i = 0; i < scriptableObjects.Length; i++) {
+                var scriptableObject = scriptableObjects[i];
+                int nameHash = scriptableObject.name.GetHashCode();
+
+                if (_nameHashToListOfScriptableObjectMap.TryGetValue(nameHash, out var nameIndices)) {
+                    nameIndices.Add(scriptableObject);
+                    continue;
+                }
+
+                _nameHashToListOfScriptableObjectMap[nameHash] = new List<ScriptableObject> { scriptableObject };
+            }
+
             EditorUtility.SetDirty(this);
         }
 

@@ -97,7 +97,7 @@ namespace MisterGames.Common.Data {
             if (Is<ScriptableObject>(type)) {
                 string name = property.serializedValue;
                 var assets = ScriptableObjectsStorage.FindAssetsByName<ScriptableObject>(name);
-                var value = assets.Length == 0 ? null : assets[0];
+                var value = assets.Count == 0 ? null : assets[0];
                 return As<T, ScriptableObject>(value);
             }
 
