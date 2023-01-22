@@ -26,7 +26,7 @@ namespace MisterGames.Common.Editor.VirtualInspector {
             return instance;
         }
 
-        public void Draw(SerializedProperty serializedProperty) {
+        internal void Draw(SerializedProperty serializedProperty) {
             _onGUI.Invoke(serializedProperty);
         }
 
