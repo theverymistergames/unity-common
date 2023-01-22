@@ -43,7 +43,7 @@ namespace MisterGames.Blueprints.Editor.Core {
         }
 
         public void DeInitialize() {
-            Object.Destroy(_nodeInspector);
+            Object.DestroyImmediate(_nodeInspector);
             Clear();
         }
 
