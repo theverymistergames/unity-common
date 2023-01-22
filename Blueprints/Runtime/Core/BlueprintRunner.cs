@@ -33,27 +33,21 @@ namespace MisterGames.Blueprints {
         private RuntimeBlackboard _runtimeBlackboard;
 
         private void Awake() {
-            if (_blueprintAsset == null) return;
-
             _runtimeBlueprint = _blueprintAsset.Compile();
 
-            _runtimeBlackboard = CompileBlackboardOf(_blueprintAsset);
+            _runtimeBlackboard = CompileBlackboard(_blueprintAsset);
             _runtimeBlueprint.Initialize(this);
         }
 
         private void OnDestroy() {
-            if (_blueprintAsset == null) return;
-
             _runtimeBlueprint.DeInitialize();
         }
 
         private void Start() {
-            if (_blueprintAsset == null) return;
-
             _runtimeBlueprint.Start();
         }
 
-        public RuntimeBlackboard CompileBlackboardOf(BlueprintAsset blueprintAsset) {
+        public RuntimeBlackboard CompileBlackboard(BlueprintAsset blueprintAsset) {
             var runtimeBlackboard = blueprintAsset.Blackboard.Compile();
 
             for (int i = 0; i < _blackboardProperties.Count; i++) {
@@ -71,15 +65,7 @@ namespace MisterGames.Blueprints {
             return runtimeBlackboard;
         }
 
-        private static void AddBlueprintAssetAndItsSubgraphAssetsTo(BlueprintAsset asset, List<BlueprintAsset> destination) {
-            if (asset == null) return;
-
-            destination.Add(asset);
-            foreach (var subgraphAsset in asset.BlueprintMeta.SubgraphReferencesMap.Values) {
-                AddBlueprintAssetAndItsSubgraphAssetsTo(subgraphAsset, destination);
-            }
-        }
-
+#if UNITY_EDITOR
         internal void FetchBlackboardGameObjectProperties() {
             if (_blueprintAsset == null) {
                 _blackboardProperties.Clear();
@@ -155,9 +141,19 @@ namespace MisterGames.Blueprints {
             }
         }
 
+        private static void AddBlueprintAssetAndItsSubgraphAssetsTo(BlueprintAsset asset, List<BlueprintAsset> destination) {
+            if (asset == null) return;
+
+            destination.Add(asset);
+            foreach (var subgraphAsset in asset.BlueprintMeta.SubgraphReferencesMap.Values) {
+                AddBlueprintAssetAndItsSubgraphAssetsTo(subgraphAsset, destination);
+            }
+        }
+
         private void OnValidate() {
             FetchBlackboardGameObjectProperties();
         }
+#endif
     }
 
 }

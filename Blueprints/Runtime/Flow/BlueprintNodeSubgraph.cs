@@ -48,7 +48,7 @@ namespace MisterGames.Blueprints.External {
         public override void OnInitialize(IBlueprintHost host) {
             _host = host;
 
-            _runtimeBlackboard = host.Runner.CompileBlackboardOf(_blueprintAsset);
+            _runtimeBlackboard = host.Runner.CompileBlackboard(_blueprintAsset);
             _runtimeBlueprint.Initialize(this);
         }
 
