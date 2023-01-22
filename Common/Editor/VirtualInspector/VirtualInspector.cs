@@ -21,6 +21,7 @@ namespace MisterGames.Common.Editor.VirtualInspector {
             instance._onGUI = onGUI ?? DrawInline;
             instance._onValidate = onValidate;
             instance._data = data;
+            instance.hideFlags = HideFlags.DontSave;
 
             return instance;
         }
