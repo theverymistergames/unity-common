@@ -19,7 +19,7 @@ namespace MisterGames.Blueprints.External {
     {
         [SerializeField] private BlueprintAsset _blueprintAsset;
 
-        public BlueprintRunner Runner => _host.Runner;
+        public MonoBehaviour Runner => _host.Runner;
         public RuntimeBlackboard Blackboard => _runtimeBlackboard;
 
         private RuntimeBlueprint _runtimeBlueprint;
@@ -48,7 +48,7 @@ namespace MisterGames.Blueprints.External {
         public override void OnInitialize(IBlueprintHost host) {
             _host = host;
 
-            _runtimeBlackboard = host.Runner.CompileBlackboard(_blueprintAsset);
+            _runtimeBlackboard = host.CompileBlackboard(_blueprintAsset);
             _runtimeBlueprint.Initialize(this);
         }
 
@@ -66,6 +66,10 @@ namespace MisterGames.Blueprints.External {
 
         public void Compile(BlueprintNodeMeta nodeMeta) {
             _runtimeBlueprint = _blueprintAsset.CompileSubgraph(this, nodeMeta);
+        }
+
+        public RuntimeBlackboard CompileBlackboard(BlueprintAsset blueprintAsset) {
+            return _host.CompileBlackboard(blueprintAsset);
         }
 
         public void OnValidate(int nodeId, BlueprintAsset ownerAsset) {

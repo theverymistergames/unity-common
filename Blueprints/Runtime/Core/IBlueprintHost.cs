@@ -1,10 +1,13 @@
 ﻿using MisterGames.Common.Data;
+using UnityEngine;
 
 namespace MisterGames.Blueprints {
 
     public interface IBlueprintHost {
-        BlueprintRunner Runner { get; }
+        MonoBehaviour Runner { get; }
         RuntimeBlackboard Blackboard { get; }
+
+        RuntimeBlackboard CompileBlackboard(BlueprintAsset blueprintAsset);
     }
 
 }

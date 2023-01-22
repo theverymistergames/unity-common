@@ -27,7 +27,7 @@ namespace MisterGames.Blueprints {
 
         public BlueprintAsset BlueprintAsset => _blueprintAsset;
         public RuntimeBlackboard Blackboard => _runtimeBlackboard;
-        public BlueprintRunner Runner => this;
+        public MonoBehaviour Runner => this;
 
         private RuntimeBlueprint _runtimeBlueprint;
         private RuntimeBlackboard _runtimeBlackboard;
@@ -58,7 +58,7 @@ namespace MisterGames.Blueprints {
                 var references = entry.references;
                 for (int r = 0; r < references.Count; r++) {
                     var reference = references[r];
-                    runtimeBlackboard.Set(reference.hash, reference.gameObject);
+                    runtimeBlackboard.SetGameObject(reference.hash, reference.gameObject);
                 }
             }
 
@@ -102,7 +102,7 @@ namespace MisterGames.Blueprints {
 
                 if (assetReferencesMap.TryGetValue(blueprintAsset, out var referencesMap)) {
                     foreach ((int hash, var property) in blackboardPropertiesMap) {
-                        var propertyType = MisterGames.Common.Data.Blackboard.GetPropertyType(property);
+                        var propertyType = Common.Data.Blackboard.GetPropertyType(property);
                         if (propertyType != typeof(GameObject)) continue;
 
                         if (referencesMap.TryGetValue(hash, out var go)) {
@@ -122,7 +122,7 @@ namespace MisterGames.Blueprints {
                 }
                 else {
                     foreach ((int hash, var property) in blackboardPropertiesMap) {
-                        var propertyType = MisterGames.Common.Data.Blackboard.GetPropertyType(property);
+                        var propertyType = Common.Data.Blackboard.GetPropertyType(property);
                         if (propertyType != typeof(GameObject)) continue;
 
                         references.Add(new SceneReference {
