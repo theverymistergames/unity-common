@@ -199,47 +199,46 @@ namespace MisterGames.Common.Data {
             var type = GetPropertyType(property);
 
             if (Is<bool>(type)) {
-                runtimeBlackboard._bools[hash] = GetPropertyValue<bool>(property);
+                runtimeBlackboard.SetBool(hash, GetPropertyValue<bool>(property));
                 return;
             }
             
             if (Is<float>(type)) {
-                runtimeBlackboard._floats[hash] = GetPropertyValue<float>(property);
+                runtimeBlackboard.SetFloat(hash, GetPropertyValue<float>(property));
                 return;
             }
             
             if (Is<int>(type)) {
-                runtimeBlackboard._ints[hash] = GetPropertyValue<int>(property);
+                runtimeBlackboard.SetInt(hash, GetPropertyValue<int>(property));
                 return;
             }
             
             if (Is<string>(type)) {
-                runtimeBlackboard._strings[hash] = GetPropertyValue<string>(property);
+                runtimeBlackboard.SetString(hash, GetPropertyValue<string>(property));
                 return;
             }
             
             if (Is<Vector2>(type)) {
-                runtimeBlackboard._vectors2[hash] = GetPropertyValue<Vector2>(property);
+                runtimeBlackboard.SetVector2(hash, GetPropertyValue<Vector2>(property));
                 return;
             }
             
             if (Is<Vector3>(type)) {
-                runtimeBlackboard._vectors3[hash] = GetPropertyValue<Vector3>(property);
+                runtimeBlackboard.SetVector3(hash, GetPropertyValue<Vector3>(property));
                 return;
             }
 
             if (Is<ScriptableObject>(type)) {
-                runtimeBlackboard._scriptableObjects[hash] = GetPropertyValue<ScriptableObject>(property);
+                runtimeBlackboard.SetScriptableObject(hash, GetPropertyValue<ScriptableObject>(property));
                 return;
             }
             
             if (Is<GameObject>(type)) {
-                runtimeBlackboard._gameObjects[hash] = null;
                 return;
             }
             
             if (Is<BlackboardEvent>(type)) {
-                runtimeBlackboard._events[hash] = new BlackboardEvent();
+                runtimeBlackboard.SetBlackboardEvent(hash, new BlackboardEvent());
             }
         }
 

@@ -5,98 +5,150 @@ namespace MisterGames.Common.Data {
 
     public sealed class RuntimeBlackboard {
 
-        internal readonly Dictionary<int, bool> _bools = new Dictionary<int, bool>();
-        internal readonly Dictionary<int, float> _floats = new Dictionary<int, float>();
-        internal readonly Dictionary<int, int> _ints = new Dictionary<int, int>();
-        internal readonly Dictionary<int, string> _strings = new Dictionary<int, string>();
-        internal readonly Dictionary<int, Vector3> _vectors3 = new Dictionary<int, Vector3>();
-        internal readonly Dictionary<int, Vector2> _vectors2 = new Dictionary<int, Vector2>();
-        internal readonly Dictionary<int, GameObject> _gameObjects = new Dictionary<int, GameObject>();
-        internal readonly Dictionary<int, ScriptableObject> _scriptableObjects = new Dictionary<int, ScriptableObject>();
-        internal readonly Dictionary<int, BlackboardEvent> _events = new Dictionary<int, BlackboardEvent>();
+        private readonly Dictionary<int, bool> _bools = new Dictionary<int, bool>();
+        private readonly Dictionary<int, float> _floats = new Dictionary<int, float>();
+        private readonly Dictionary<int, int> _ints = new Dictionary<int, int>();
+        private readonly Dictionary<int, string> _strings = new Dictionary<int, string>();
+        private readonly Dictionary<int, Vector3> _vectors3 = new Dictionary<int, Vector3>();
+        private readonly Dictionary<int, Vector2> _vectors2 = new Dictionary<int, Vector2>();
+        private readonly Dictionary<int, GameObject> _gameObjects = new Dictionary<int, GameObject>();
+        private readonly Dictionary<int, ScriptableObject> _scriptableObjects = new Dictionary<int, ScriptableObject>();
+        private readonly Dictionary<int, BlackboardEvent> _blackboardEvents = new Dictionary<int, BlackboardEvent>();
 
-        public T Get<T>(int hash) {
-            var type = typeof(T);
+        public bool GetBool(int hash) {
+            if (_bools.TryGetValue(hash, out bool value)) return value;
 
-            if (Blackboard.Is<bool>(type) && _bools.TryGetValue(hash, out bool b)) return Blackboard.As<T, bool>(b);
-            if (Blackboard.Is<float>(type) && _floats.TryGetValue(hash, out float f)) return Blackboard.As<T, float>(f);
-            if (Blackboard.Is<int>(type) && _ints.TryGetValue(hash, out int i)) return Blackboard.As<T, int>(i);
-            if (Blackboard.Is<string>(type) && _strings.TryGetValue(hash, out string s)) return Blackboard.As<T, string>(s);
-            if (Blackboard.Is<Vector2>(type) && _vectors2.TryGetValue(hash, out var v2)) return Blackboard.As<T, Vector2>(v2);
-            if (Blackboard.Is<Vector3>(type) && _vectors3.TryGetValue(hash, out var v3)) return Blackboard.As<T, Vector3>(v3);
-            if (Blackboard.Is<ScriptableObject>(type) && _scriptableObjects.TryGetValue(hash, out var so)) return Blackboard.As<T, ScriptableObject>(so);
-            if (Blackboard.Is<GameObject>(type) && _gameObjects.TryGetValue(hash, out var go)) return Blackboard.As<T, GameObject>(go);
-            if (Blackboard.Is<BlackboardEvent>(type) && _events.TryGetValue(hash, out var evt)) return Blackboard.As<T, BlackboardEvent>(evt);
-
-            Debug.LogError($"Blackboard: trying to get not existing value of type {type.Name}");
+            Debug.LogWarning($"Blackboard: trying to get not existing bool value for hash {hash} ]");
             return default;
         }
 
-        public void Set<T>(int hash, T value) {
-            var type = typeof(T);
+        public float GetFloat(int hash) {
+            if (_floats.TryGetValue(hash, out float value)) return value;
 
-            if (Blackboard.Is<bool>(type) && _bools.ContainsKey(hash)) {
-                _bools[hash] = Blackboard.As<bool, T>(value);
-                return;
-            }
-
-            if (Blackboard.Is<float>(type) && _floats.ContainsKey(hash)) {
-                _floats[hash] = Blackboard.As<float, T>(value);
-                return;
-            }
-            if (Blackboard.Is<int>(type) && _ints.ContainsKey(hash)) {
-                _ints[hash] = Blackboard.As<int, T>(value);
-                return;
-            }
-
-            if (value is string s && _strings.ContainsKey(hash)) {
-                _strings[hash] = s;
-                return;
-            }
-
-            if (Blackboard.Is<Vector2>(type) && _vectors2.ContainsKey(hash)) {
-                _vectors2[hash] = Blackboard.As<Vector2, T>(value);
-                return;
-            }
-
-            if (Blackboard.Is<Vector3>(type) && _vectors3.ContainsKey(hash)) {
-                _vectors3[hash] = Blackboard.As<Vector3, T>(value);
-                return;
-            }
-
-            if (value is ScriptableObject so && _scriptableObjects.ContainsKey(hash)) {
-                _scriptableObjects[hash] = so;
-                return;
-            }
-
-            if (value is GameObject go && _gameObjects.ContainsKey(hash)) {
-                _gameObjects[hash] = go;
-                return;
-            }
-
-            if (value is BlackboardEvent && _events.ContainsKey(hash)) {
-                Debug.LogWarning($"Blackboard: cannot set new value to {nameof(BlackboardEvent)}");
-                return;
-            }
-
-            Debug.LogError($"Blackboard: trying to set not existing value {value} of type {type.Name}");
+            Debug.LogWarning($"Blackboard: trying to get not existing float value for hash {hash} ]");
+            return default;
         }
 
-        public bool Contains<T>(int hash) {
-            var type = typeof(T);
+        public int GetInt(int hash) {
+            if (_ints.TryGetValue(hash, out int value)) return value;
 
-            if (Blackboard.Is<bool>(type)) return _bools.ContainsKey(hash);
-            if (Blackboard.Is<float>(type)) return _floats.ContainsKey(hash);
-            if (Blackboard.Is<int>(type)) return _ints.ContainsKey(hash);
-            if (Blackboard.Is<string>(type)) return _strings.ContainsKey(hash);
-            if (Blackboard.Is<Vector2>(type)) return _vectors2.ContainsKey(hash);
-            if (Blackboard.Is<Vector3>(type)) return _vectors3.ContainsKey(hash);
-            if (Blackboard.Is<ScriptableObject>(type)) return _scriptableObjects.ContainsKey(hash);
-            if (Blackboard.Is<GameObject>(type)) return _gameObjects.ContainsKey(hash);
-            if (Blackboard.Is<BlackboardEvent>(type)) return _events.ContainsKey(hash);
-
-            return false;
+            Debug.LogWarning($"Blackboard: trying to get not existing int value for hash {hash} ]");
+            return default;
         }
 
+        public string GetString(int hash) {
+            if (_strings.TryGetValue(hash, out string value)) return value;
+
+            Debug.LogWarning($"Blackboard: trying to get not existing string value for hash {hash} ]");
+            return default;
+        }
+
+        public Vector2 GetVector2(int hash) {
+            if (_vectors2.TryGetValue(hash, out var value)) return value;
+
+            Debug.LogWarning($"Blackboard: trying to get not existing Vector2 value for hash {hash} ]");
+            return default;
+        }
+
+        public Vector3 GetVector3(int hash) {
+            if (_vectors3.TryGetValue(hash, out var value)) return value;
+
+            Debug.LogWarning($"Blackboard: trying to get not existing Vector3 value for hash {hash} ]");
+            return default;
+        }
+
+        public ScriptableObject GetScriptableObject(int hash) {
+            if (_scriptableObjects.TryGetValue(hash, out var value)) return value;
+
+            Debug.LogWarning($"Blackboard: trying to get not existing ScriptableObject value for hash {hash} ]");
+            return default;
+        }
+
+        public GameObject GetGameObject(int hash) {
+            if (_gameObjects.TryGetValue(hash, out var value)) return value;
+
+            Debug.LogWarning($"Blackboard: trying to get not existing GameObject value for hash {hash} ]");
+            return default;
+        }
+
+        public BlackboardEvent GetBlackboardEvent(int hash) {
+            if (_blackboardEvents.TryGetValue(hash, out var value)) return value;
+
+            Debug.LogWarning($"Blackboard: trying to get not existing BlackboardEvent value for hash {hash}]");
+            return default;
+        }
+
+        public void SetBool(int hash, bool value) {
+            _bools[hash] = value;
+        }
+
+        public void SetFloat(int hash, float value) {
+            _floats[hash] = value;
+        }
+
+        public void SetInt(int hash, int value) {
+            _ints[hash] = value;
+        }
+
+        public void SetString(int hash, string value) {
+            _strings[hash] = value;
+        }
+
+        public void SetVector2(int hash, Vector2 value) {
+            _vectors2[hash] = value;
+        }
+
+        public void SetVector3(int hash, Vector3 value) {
+            _vectors3[hash] = value;
+        }
+
+        public void SetScriptableObject(int hash, ScriptableObject value) {
+            _scriptableObjects[hash] = value;
+        }
+
+        public void SetGameObject(int hash, GameObject value) {
+            _gameObjects[hash] = value;
+        }
+
+        public void SetBlackboardEvent(int hash, BlackboardEvent value) {
+            _blackboardEvents[hash] = value;
+        }
+
+        public bool HasBool(int hash) {
+            return _bools.ContainsKey(hash);
+        }
+
+        public bool HasFloat(int hash) {
+            return _floats.ContainsKey(hash);
+        }
+
+        public bool HasInt(int hash) {
+            return _ints.ContainsKey(hash);
+        }
+
+        public bool HasString(int hash) {
+            return _strings.ContainsKey(hash);
+        }
+
+        public bool HasVector2(int hash) {
+            return _vectors2.ContainsKey(hash);
+        }
+
+        public bool HasVector3(int hash) {
+            return _vectors3.ContainsKey(hash);
+        }
+
+        public bool HasScriptableObject(int hash) {
+            return _scriptableObjects.ContainsKey(hash);
+        }
+
+        public bool HasGameObject(int hash) {
+            return _gameObjects.ContainsKey(hash);
+        }
+
+        public bool HasBlackboardEvent(int hash) {
+            return _blackboardEvents.ContainsKey(hash);
+        }
     }
+
 }
