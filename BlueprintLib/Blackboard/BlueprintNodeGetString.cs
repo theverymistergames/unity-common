@@ -24,7 +24,7 @@ namespace MisterGames.BlueprintLib {
         }
 
         public string GetPortValue(int port) => port switch {
-            0 => _blackboard.Get<string>(_propertyId),
+            0 => _blackboard.GetString(_propertyId),
             _ => string.Empty
         };
     }

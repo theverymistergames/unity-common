@@ -19,7 +19,7 @@ namespace MisterGames.BlueprintLib {
 
         public override void OnInitialize(IBlueprintHost host) {
             int propertyId = Blackboard.StringToHash(_property);
-            _event = host.Blackboard.Get<BlackboardEvent>(propertyId);
+            _event = host.Blackboard.GetBlackboardEvent(propertyId);
             _event.OnEmit += OnEmit;
         }
 
