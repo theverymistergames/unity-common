@@ -19,7 +19,7 @@ namespace MisterGames.Blueprints.Editor.Core {
     public sealed class BlueprintsView : GraphView, IEdgeConnectorListener {
 
         public Func<Vector2, Vector2> OnRequestWorldPosition = _ => Vector2.zero;
-        public Action<BlueprintAsset> OnBlueprintAssetSetDirty = delegate {  };
+        public Action OnBlueprintAssetSetDirty = delegate {  };
 
         private BlueprintAsset _blueprintAsset;
         private BlueprintNodeSearchWindow _nodeSearchWindow;
@@ -110,10 +110,9 @@ namespace MisterGames.Blueprints.Editor.Core {
 
         public void ToggleBlackboard(bool show) {
             _blackboardView.visible = show;
-            var children = _blackboardView.contentContainer.Children();
-            foreach (var child in children) {
-                child.visible = show;
-            }
+
+            if (show) FillBlackboardView();
+            else _blackboardView.Clear();
         }
 
         private void InitBlackboard() {
@@ -243,7 +242,7 @@ namespace MisterGames.Blueprints.Editor.Core {
             };
         }
 
-        private void RepopulateView() {
+        public void RepopulateView() {
             if (_blueprintAsset == null) return;
 
             // ReSharper disable once DelegateSubtraction
@@ -260,7 +259,6 @@ namespace MisterGames.Blueprints.Editor.Core {
             }
 
             FillBlackboardView();
-
             ClearSelection();
         }
 
@@ -284,7 +282,7 @@ namespace MisterGames.Blueprints.Editor.Core {
             if (_blueprintAsset == null) return;
 
             EditorUtility.SetDirty(_blueprintAsset);
-            OnBlueprintAssetSetDirty?.Invoke(_blueprintAsset);
+            OnBlueprintAssetSetDirty?.Invoke();
         }
 
         // ---------------- ---------------- Node and connection creation ---------------- ----------------

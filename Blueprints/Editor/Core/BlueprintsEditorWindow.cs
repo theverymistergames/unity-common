@@ -8,48 +8,53 @@ namespace MisterGames.Blueprints.Editor.Core {
 
     public sealed class BlueprintsEditorWindow : EditorWindow {
 
-        private const string WINDOW_TITLE = "BLueprint Editor";
+        private const string WINDOW_TITLE = "Blueprint Editor";
 
         private BlueprintsView _blueprintsView;
         private ObjectField _assetPicker;
 
-        public class SaveHelper : AssetModificationProcessor {
+        private class SaveHelper : AssetModificationProcessor {
             public static string[] OnWillSaveAssets(string[] paths) {
-                if (HasOpenInstances<BlueprintsEditorWindow>()) GetWindow().OnSaveCallback();
+                if (!HasOpenInstances<BlueprintsEditorWindow>()) return paths;
+                GetWindow<BlueprintsEditorWindow>(WINDOW_TITLE, focus: false).OnSaveCallback();
                 return paths;
             }
         }
 
         [MenuItem("MisterGames/Blueprint Editor")]
         private static void OpenWindow() {
-            GetWindow();
+            GetWindow<BlueprintsEditorWindow>(WINDOW_TITLE, focus: true, desiredDockNextTo: typeof(SceneView));
         }
 
         [OnOpenAsset]
         private static bool OnOpenAsset(int instanceId, int line) {
             if (Selection.activeObject is not BlueprintAsset blueprintAsset) return false;
-            GetWindow().PopulateFromAsset(blueprintAsset);
+            OpenAsset(blueprintAsset);
             return true;
         }
 
-        public static BlueprintsEditorWindow GetWindow() {
-            return GetWindow<BlueprintsEditorWindow>(WINDOW_TITLE);
+        public static void OpenAsset(BlueprintAsset blueprintAsset) {
+            var window = GetWindow<BlueprintsEditorWindow>(WINDOW_TITLE, focus: true, desiredDockNextTo: typeof(SceneView));
+            window.SetAssetPickerValue(blueprintAsset);
+        }
+
+        private void SetAssetPickerValue(BlueprintAsset blueprintAsset) {
+            if (_assetPicker == null) return;
+
+            _assetPicker.value = blueprintAsset;
+            _assetPicker.label = "Asset";
+        }
+
+        private void OnEnable() {
+            _blueprintsView?.RepopulateView();
         }
 
         private void OnDisable() {
             _blueprintsView?.ClearView();
-            SetWindowTitle(WINDOW_TITLE);
         }
 
         private void OnDestroy() {
             _blueprintsView?.ClearView();
-        }
-
-        public void PopulateFromAsset(BlueprintAsset blueprintAsset) {
-            if (_blueprintsView == null) return;
-
-            _assetPicker.value = blueprintAsset;
-            _assetPicker.label = "Asset";
         }
 
         private void CreateGUI() {
@@ -72,45 +77,30 @@ namespace MisterGames.Blueprints.Editor.Core {
             var blackboardToggle = root.Q<ToolbarToggle>("blackboard-toggle");
             var miniMapToggle = root.Q<ToolbarToggle>("minimap-toggle");
 
-            blackboardToggle.RegisterValueChangedCallback(ToggleBlackboard);
-            miniMapToggle.RegisterValueChangedCallback(ToggleMiniMap);
+            blackboardToggle.RegisterValueChangedCallback(OnToggleBlackboardButton);
+            miniMapToggle.RegisterValueChangedCallback(OnToggleMiniMapButton);
         }
 
         private void OnSaveCallback() {
             if (_assetPicker == null) return;
 
             var currentAsset = _assetPicker.value;
-            if (currentAsset == null) return;
-
-            SetWindowTitle(currentAsset.name);
+            SetWindowTitle(currentAsset == null ? WINDOW_TITLE : currentAsset.name);
         }
 
-        private void OnBlueprintAssetSetDirty(BlueprintAsset blueprintAsset) {
-            SetWindowTitle($"{blueprintAsset.name}*");
+        private void OnBlueprintAssetSetDirty() {
+            if (_assetPicker == null) return;
+
+            var currentAsset = _assetPicker.value;
+            SetWindowTitle(currentAsset == null ? WINDOW_TITLE : $"{currentAsset.name}*");
         }
 
-        private void SetWindowTitle(string text) {
-            titleContent = new GUIContent(text);
-        }
-
-        private void ToggleBlackboard(ChangeEvent<bool> evt) {
+        private void OnToggleBlackboardButton(ChangeEvent<bool> evt) {
             _blueprintsView?.ToggleBlackboard(evt.newValue);
         }
 
-        private void ToggleMiniMap(ChangeEvent<bool> evt) {
+        private void OnToggleMiniMapButton(ChangeEvent<bool> evt) {
             _blueprintsView?.ToggleMiniMap(evt.newValue);
-        }
-
-        public override void SaveChanges() {
-            Debug.Log($"BlueprintsEditorWindow.SaveChanges: ");
-
-            base.SaveChanges();
-        }
-
-        public override void DiscardChanges() {
-            Debug.Log($"BlueprintsEditorWindow.DiscardChanges: ");
-
-            base.DiscardChanges();
         }
 
         private void OnAssetChanged(ChangeEvent<Object> evt) {
@@ -120,14 +110,8 @@ namespace MisterGames.Blueprints.Editor.Core {
             }
 
             var asset = evt.newValue;
-
-            if (asset == null) {
-                _blueprintsView.ClearView();
-                SetWindowTitle(WINDOW_TITLE);
-                return;
-            }
-
             if (asset is not BlueprintAsset blueprintAsset) {
+                _blueprintsView.ClearView();
                 SetWindowTitle(WINDOW_TITLE);
                 return;
             }
@@ -140,6 +124,10 @@ namespace MisterGames.Blueprints.Editor.Core {
             var local = mousePosition - position.position;
             var world = rootVisualElement.LocalToWorld(local);
             return rootVisualElement.parent.WorldToLocal(world);
+        }
+
+        private void SetWindowTitle(string text) {
+            titleContent.text = text;
         }
     }
     

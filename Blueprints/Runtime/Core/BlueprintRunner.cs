@@ -68,7 +68,7 @@ namespace MisterGames.Blueprints {
 #if UNITY_EDITOR
         internal void FetchBlackboardGameObjectProperties() {
             if (_blueprintAsset == null) {
-                _blackboardProperties.Clear();
+                _blackboardProperties?.Clear();
                 return;
             }
 

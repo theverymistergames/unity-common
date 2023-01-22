@@ -9,17 +9,16 @@ namespace MisterGames.Blueprints.Editor.Core {
         public override void OnInspectorGUI() {
             if (target is not BlueprintRunner runner) return;
 
-            var blueprintAsset = runner.BlueprintAsset;
-
             serializedObject.Update();
             EditorGUI.BeginChangeCheck();
 
             var blueprintAssetProperty = serializedObject.FindProperty("_blueprintAsset");
             EditorGUILayout.PropertyField(blueprintAssetProperty);
 
+            var blueprintAsset = runner.BlueprintAsset;
             if (blueprintAsset != null) {
                 if (GUILayout.Button("Edit")) {
-                    BlueprintsEditorWindow.GetWindow().PopulateFromAsset(blueprintAsset);
+                    BlueprintsEditorWindow.OpenAsset(blueprintAsset);
                 }
 
                 GUILayout.Space(10);
@@ -27,7 +26,7 @@ namespace MisterGames.Blueprints.Editor.Core {
                 var blackboardPropertiesProperty = serializedObject.FindProperty("_blackboardProperties");
                 EditorGUILayout.PropertyField(blackboardPropertiesProperty);
 
-                if (blueprintAsset != null && GUILayout.Button("Fetch blackboard properties")) {
+                if (GUILayout.Button("Fetch blackboard properties")) {
                     runner.FetchBlackboardGameObjectProperties();
                 }
             }
