@@ -21,11 +21,11 @@ namespace MisterGames.Blueprints {
         public Blackboard Blackboard => _blackboard;
 
         public RuntimeBlueprint Compile() {
-            return _blueprintCompiler.Compile(_blueprintMeta);
+            return _blueprintCompiler.Compile(this);
         }
 
         public RuntimeBlueprint CompileSubgraph(BlueprintNode subgraph, BlueprintNodeMeta subgraphMeta) {
-            return _blueprintCompiler.CompileSubgraph(_blueprintMeta, subgraph, subgraphMeta);
+            return _blueprintCompiler.CompileSubgraph(this, subgraph, subgraphMeta);
         }
     }
 

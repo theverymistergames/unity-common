@@ -9,7 +9,8 @@ namespace MisterGames.Blueprints.Compile {
 
         private readonly Dictionary<int, BlueprintNode> _runtimeNodesMap = new Dictionary<int, BlueprintNode>();
 
-        public RuntimeBlueprint Compile(BlueprintMeta blueprintMeta) {
+        public RuntimeBlueprint Compile(BlueprintAsset blueprintAsset) {
+            var blueprintMeta = blueprintAsset.BlueprintMeta;
             var nodesMetaMap = blueprintMeta.NodesMap;
             int nodesCount = nodesMetaMap.Count;
 
@@ -32,7 +33,7 @@ namespace MisterGames.Blueprints.Compile {
 
                 for (int p = 0; p < portsCount; p++) {
 #if DEBUG || UNITY_EDITOR
-                    BlueprintValidation.ValidatePort(nodeMeta, p);
+                    BlueprintValidation.ValidatePort(blueprintAsset, nodeMeta, p);
 #endif
 
                     var links = blueprintMeta.GetLinksFromNodePort(nodeId, p);
@@ -47,7 +48,7 @@ namespace MisterGames.Blueprints.Compile {
                         var linkedNodeMeta = nodesMetaMap[link.nodeId];
 
 #if DEBUG || UNITY_EDITOR
-                        BlueprintValidation.ValidateLink(nodeMeta, p, linkedNodeMeta, link.portIndex);
+                        BlueprintValidation.ValidateLink(blueprintAsset, nodeMeta, p, linkedNodeMeta, link.portIndex);
 #endif
 
                         var linkedRuntimeNode = GetOrCreateNodeInstance(link.nodeId, linkedNodeMeta);
@@ -66,7 +67,8 @@ namespace MisterGames.Blueprints.Compile {
             return new RuntimeBlueprint(runtimeNodes);
         }
 
-        public RuntimeBlueprint CompileSubgraph(BlueprintMeta blueprintMeta, BlueprintNode subgraph, BlueprintNodeMeta subgraphMeta) {
+        public RuntimeBlueprint CompileSubgraph(BlueprintAsset blueprintAsset, BlueprintNode subgraph, BlueprintNodeMeta subgraphMeta) {
+            var blueprintMeta = blueprintAsset.BlueprintMeta;
             var nodesMetaMap = blueprintMeta.NodesMap;
             int nodesCount = nodesMetaMap.Count;
 
@@ -114,7 +116,7 @@ namespace MisterGames.Blueprints.Compile {
 
                 for (int p = 0; p < portsCount; p++) {
 #if DEBUG || UNITY_EDITOR
-                    BlueprintValidation.ValidatePort(nodeMeta, p);
+                    BlueprintValidation.ValidatePort(blueprintAsset, nodeMeta, p);
 #endif
 
                     var port = ports[p];
@@ -147,7 +149,7 @@ namespace MisterGames.Blueprints.Compile {
                         var linkedNodeMeta = nodesMetaMap[link.nodeId];
 
 #if DEBUG || UNITY_EDITOR
-                        BlueprintValidation.ValidateLink(nodeMeta, p, linkedNodeMeta, link.portIndex);
+                        BlueprintValidation.ValidateLink(blueprintAsset, nodeMeta, p, linkedNodeMeta, link.portIndex);
 #endif
 
                         var linkedRuntimeNode = GetOrCreateNodeInstance(link.nodeId, linkedNodeMeta);
