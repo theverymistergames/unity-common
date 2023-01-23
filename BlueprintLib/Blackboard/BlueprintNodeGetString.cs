@@ -11,7 +11,7 @@ namespace MisterGames.BlueprintLib {
 
         [SerializeField] private string _property;
 
-        private RuntimeBlackboard _blackboard;
+        private Blackboard _blackboard;
         private int _propertyId;
 
         public override Port[] CreatePorts() => new[] {

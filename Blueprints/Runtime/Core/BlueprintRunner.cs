@@ -26,16 +26,18 @@ namespace MisterGames.Blueprints {
         }
 
         public BlueprintAsset BlueprintAsset => _blueprintAsset;
-        public RuntimeBlackboard Blackboard => _runtimeBlackboard;
+        public Blackboard Blackboard => _blackboard;
         public MonoBehaviour Runner => this;
 
+        private Blackboard _blackboard;
         private RuntimeBlueprint _runtimeBlueprint;
-        private RuntimeBlackboard _runtimeBlackboard;
 
         private void Awake() {
             _runtimeBlueprint = _blueprintAsset.Compile();
 
-            _runtimeBlackboard = CompileBlackboard(_blueprintAsset);
+            _blackboard = _blueprintAsset.Blackboard.Clone();
+            ResolveBlackboardSceneReferences(_blueprintAsset, _blackboard);
+
             _runtimeBlueprint.Initialize(this);
         }
 
@@ -47,22 +49,20 @@ namespace MisterGames.Blueprints {
             _runtimeBlueprint.Start();
         }
 
-        public RuntimeBlackboard CompileBlackboard(BlueprintAsset blueprintAsset) {
-            var runtimeBlackboard = blueprintAsset.Blackboard.Compile();
-
+        public void ResolveBlackboardSceneReferences(BlueprintAsset blueprint, Blackboard blackboard) {
             for (int i = 0; i < _blackboardProperties.Count; i++) {
                 var entry = _blackboardProperties[i];
                 var asset = entry.blueprint;
-                if (asset != blueprintAsset) continue;
+                if (asset != blueprint) continue;
 
                 var references = entry.references;
                 for (int r = 0; r < references.Count; r++) {
                     var reference = references[r];
-                    runtimeBlackboard.SetGameObject(reference.hash, reference.gameObject);
+                    if (reference.gameObject == null) continue;
+
+                    blackboard.SetGameObject(reference.hash, reference.gameObject);
                 }
             }
-
-            return runtimeBlackboard;
         }
 
 #if UNITY_EDITOR
@@ -102,7 +102,7 @@ namespace MisterGames.Blueprints {
 
                 if (assetReferencesMap.TryGetValue(blueprintAsset, out var referencesMap)) {
                     foreach ((int hash, var property) in blackboardPropertiesMap) {
-                        var propertyType = Common.Data.Blackboard.GetPropertyType(property);
+                        var propertyType = Blackboard.GetPropertyType(property);
                         if (propertyType != typeof(GameObject)) continue;
 
                         if (referencesMap.TryGetValue(hash, out var go)) {
@@ -122,7 +122,7 @@ namespace MisterGames.Blueprints {
                 }
                 else {
                     foreach ((int hash, var property) in blackboardPropertiesMap) {
-                        var propertyType = Common.Data.Blackboard.GetPropertyType(property);
+                        var propertyType = Blackboard.GetPropertyType(property);
                         if (propertyType != typeof(GameObject)) continue;
 
                         references.Add(new SceneReference {

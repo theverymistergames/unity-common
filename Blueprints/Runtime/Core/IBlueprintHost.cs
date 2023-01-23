@@ -5,9 +5,9 @@ namespace MisterGames.Blueprints {
 
     public interface IBlueprintHost {
         MonoBehaviour Runner { get; }
-        RuntimeBlackboard Blackboard { get; }
+        Blackboard Blackboard { get; }
 
-        RuntimeBlackboard CompileBlackboard(BlueprintAsset blueprintAsset);
+        void ResolveBlackboardSceneReferences(BlueprintAsset blueprint, Blackboard blackboard);
     }
 
 }

@@ -136,15 +136,16 @@ namespace MisterGames.Blueprints.Editor.Core {
         private void FillBlackboardView() {
             if (_blueprintAsset == null) return;
 
+            var blackboard = _blueprintAsset.Blackboard;
             _blackboardView.Clear();
 
-            var properties = new List<BlackboardProperty>(_blueprintAsset.Blackboard.PropertiesMap.Values)
+            var properties = new List<BlackboardProperty>(blackboard.PropertiesMap.Values)
                 .OrderBy(p => p.index)
                 .ToList();
 
             for (int i = 0; i < properties.Count; i++) {
                 var property = properties[i];
-                var view = BlackboardUtils.CreateBlackboardPropertyView(property, OnBlackboardPropertyValueChanged);
+                var view = BlackboardUtils.CreateBlackboardPropertyView(blackboard, property, OnBlackboardPropertyValueChanged);
                 _blackboardView.Add(view);
             }
         }
@@ -158,21 +159,21 @@ namespace MisterGames.Blueprints.Editor.Core {
         private void CreateBlackboardProperty(Type type) {
             if (_blueprintAsset == null) return;
 
-            if (!Blackboard.ValidateType(type)) return;
+            var blackboard = _blueprintAsset.Blackboard;
 
             Undo.RecordObject(_blueprintAsset, "Blueprint Add Blackboard Property");
 
             string typeName = Blackboard.GetTypeName(type);
-            if (!_blueprintAsset.Blackboard.TryAddProperty($"New {typeName}", type, default, out var property)) return;
+            if (!blackboard.TryAddProperty($"New {typeName}", type, default, out var property)) return;
 
-            var view = BlackboardUtils.CreateBlackboardPropertyView(property, OnBlackboardPropertyValueChanged);
+            var view = BlackboardUtils.CreateBlackboardPropertyView(blackboard, property, OnBlackboardPropertyValueChanged);
             _blackboardView.Add(view);
         }
 
         private void RemoveBlackboardProperty(string propertyName) {
             Undo.RecordObject(_blueprintAsset, "Blueprint Remove Blackboard Property");
 
-            _blueprintAsset.Blackboard.RemoveProperty(propertyName);
+            _blueprintAsset.Blackboard.RemoveProperty(Blackboard.StringToHash(propertyName));
 
             SetBlueprintAssetDirtyAndNotify();
         }
@@ -182,7 +183,7 @@ namespace MisterGames.Blueprints.Editor.Core {
 
             Undo.RecordObject(_blueprintAsset, "Blueprint Blackboard Property Position Changed");
 
-            if (!_blueprintAsset.Blackboard.TrySetPropertyIndex(field.text, newIndex)) return;
+            if (!_blueprintAsset.Blackboard.TrySetPropertyIndex(Blackboard.StringToHash(field.text), newIndex)) return;
 
             SetBlueprintAssetDirtyAndNotify();
         }
@@ -192,7 +193,7 @@ namespace MisterGames.Blueprints.Editor.Core {
 
             Undo.RecordObject(_blueprintAsset, "Blueprint Blackboard Property Name Changed");
 
-            if (!_blueprintAsset.Blackboard.TrySetPropertyName(field.text, newName)) return;
+            if (!_blueprintAsset.Blackboard.TrySetPropertyName(Blackboard.StringToHash(field.text), newName)) return;
 
             field.text = newName;
             SetBlueprintAssetDirtyAndNotify();
@@ -203,7 +204,7 @@ namespace MisterGames.Blueprints.Editor.Core {
 
             Undo.RecordObject(_blueprintAsset, "Blueprint Blackboard Property Value Changed");
 
-            if (!_blueprintAsset.Blackboard.TrySetPropertyValue(property, value)) return;
+            if (!_blueprintAsset.Blackboard.TrySetPropertyValue(Blackboard.StringToHash(property), value)) return;
 
             SetBlueprintAssetDirtyAndNotify();
         }
