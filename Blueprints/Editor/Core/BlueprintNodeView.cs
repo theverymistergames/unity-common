@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Reflection;
 using MisterGames.Blueprints.Meta;
+using MisterGames.Common.Color;
 using MisterGames.Common.Editor.Utils;
 using MisterGames.Common.Editor.Views;
 using MisterGames.Common.Editor.VirtualInspector;
@@ -30,10 +32,17 @@ namespace MisterGames.Blueprints.Editor.Core {
             var container = this.Q<VisualElement>("title-container");
             var inspector = this.Q<InspectorView>("inspector");
 
-            titleLabel.text = nodeMeta.NodeName;
-            container.style.backgroundColor = nodeMeta.NodeColor;
+            var node = nodeMeta.CreateNodeInstance();
+            var nodeType = node.GetType();
+            var nodeMetaAttr = nodeType.GetCustomAttribute<BlueprintNodeMetaAttribute>(false);
 
-            _nodeInspector = VirtualInspector.Create(nodeMeta.CreateNodeInstance(), OnNodeGUI, OnNodeValidate);
+            string nodeName = string.IsNullOrWhiteSpace(nodeMetaAttr.Name) ? nodeType.Name : nodeMetaAttr.Name.Trim();
+            string nodeColor = string.IsNullOrEmpty(nodeMetaAttr.Color) ? BlueprintColors.Node.Default : nodeMetaAttr.Color;
+
+            titleLabel.text = nodeName;
+            container.style.backgroundColor = ColorUtils.HexToColor(nodeColor);
+
+            _nodeInspector = VirtualInspector.Create(node, OnNodeGUI, OnNodeValidate);
 
             inspector.UpdateSelection(_nodeInspector);
 
