@@ -425,10 +425,6 @@ namespace MisterGames.Blueprints.Editor.Core {
                     bool isToPortInExitContainer = toPort.mode is Port.Mode.Exit or Port.Mode.Output or Port.Mode.NonTypedOutput;
                     var toPortView = GetPortView(toNodeView, link.portIndex, isToPortInExitContainer);
 
-                    Debug.Log($"BlueprintsView.CreateNodeConnectionViews: " +
-                              $"creating connection from [node {nodeMeta.NodeId} port {p}] " +
-                              $"to [node {link.nodeId} port {link.portIndex}]");
-
                     var edge = fromPortView.ConnectTo(toPortView);
                     AddElement(edge);
                 }
