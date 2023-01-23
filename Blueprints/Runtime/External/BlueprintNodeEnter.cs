@@ -20,7 +20,7 @@ namespace MisterGames.Blueprints.External {
         }
 
         public void OnValidate(int nodeId, BlueprintAsset ownerAsset) {
-            ownerAsset.BlueprintMeta.InvalidateNode(nodeId);
+            ownerAsset.BlueprintMeta.InvalidateNodePortsAndLinks(nodeId, this);
         }
     }
 

@@ -16,7 +16,6 @@ namespace MisterGames.Blueprints.Meta {
         [SerializeField] private SerializedDictionary<int, List<BlueprintLink>> _externalPortLinksMap;
         [SerializeField] private SerializedDictionary<int, BlueprintAsset> _subgraphReferencesMap;
 
-        public Action OnInvalidate;
         public Action<int> OnInvalidateNode;
 
         public Dictionary<int, BlueprintNodeMeta> NodesMap => _nodesMap;
@@ -139,19 +138,7 @@ namespace MisterGames.Blueprints.Meta {
             _externalPortLinksMap.Clear();
         }
 
-        public bool Invalidate() {
-            bool changed = false;
-
-            foreach (int nodeId in _nodesMap.Keys) {
-                changed |= InvalidateNode(nodeId, false);
-            }
-
-            if (changed) OnInvalidate?.Invoke();
-
-            return changed;
-        }
-
-        public bool InvalidateNode(int nodeId, bool notify = true) {
+        public bool InvalidateNodePortsAndLinks(int nodeId, BlueprintNode nodeInstance, bool notify = true) {
             if (!_nodesMap.TryGetValue(nodeId, out var nodeMeta)) return false;
 
             RemoveRelatedExternalPorts(nodeId);
@@ -159,7 +146,7 @@ namespace MisterGames.Blueprints.Meta {
             var oldPorts = nodeMeta.Ports;
             int oldPortsCount = oldPorts.Count;
 
-            nodeMeta.RecreatePorts();
+            nodeMeta.RecreatePorts(nodeInstance);
             var newPorts = nodeMeta.Ports;
             int newPortsCount = newPorts.Count;
 

@@ -57,11 +57,10 @@ namespace MisterGames.Blueprints.Meta {
         public void SerializeNode(BlueprintNode node) {
             _nodeJson = JsonUtility.ToJson(node);
             _serializedNodeType = SerializedType.ToString(node.GetType());
-            _ports = node.CreatePorts();
         }
 
-        public void RecreatePorts() {
-            _ports = CreateNodeInstance().CreatePorts();
+        public void RecreatePorts(BlueprintNode node) {
+            _ports = node.CreatePorts();
         }
 
         public override string ToString() {

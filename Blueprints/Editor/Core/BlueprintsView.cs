@@ -5,7 +5,7 @@ using MisterGames.Blueprints.Meta;
 using MisterGames.Blueprints.Validation;
 using MisterGames.Common.Data;
 using MisterGames.Common.Editor.Utils;
-using MisterGames.Fsm.Editor.Windows;
+using MisterGames.Common.Editor.Windows;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
@@ -227,14 +227,8 @@ namespace MisterGames.Blueprints.Editor.Core {
             if (blueprintAsset == _blueprintAsset) return;
 
             _blueprintAsset = blueprintAsset;
-            if (_blueprintAsset.BlueprintMeta.Invalidate()) SetBlueprintAssetDirtyAndNotify();
-
+            InvalidateNodesPortsAndConnections();
             RepopulateView();
-
-            _blueprintAsset.BlueprintMeta.OnInvalidate = () => {
-                SetBlueprintAssetDirtyAndNotify();
-                RepopulateView();
-            };
 
             _blueprintAsset.BlueprintMeta.OnInvalidateNode = _ => {
                 SetBlueprintAssetDirtyAndNotify();
@@ -242,7 +236,7 @@ namespace MisterGames.Blueprints.Editor.Core {
             };
         }
 
-        public void RepopulateView() {
+        private void RepopulateView() {
             if (_blueprintAsset == null) return;
 
             // ReSharper disable once DelegateSubtraction
@@ -285,12 +279,27 @@ namespace MisterGames.Blueprints.Editor.Core {
             OnBlueprintAssetSetDirty?.Invoke();
         }
 
+        private void InvalidateNodesPortsAndConnections() {
+            if (_blueprintAsset == null) return;
+
+            bool changed = false;
+
+            var blueprintMeta = _blueprintAsset.BlueprintMeta;
+            var nodesMap = blueprintMeta.NodesMap;
+
+            foreach ((int nodeId, var nodeMeta) in nodesMap) {
+                changed |= blueprintMeta.InvalidateNodePortsAndLinks(nodeId, nodeMeta.CreateNodeInstance(), false);
+            }
+
+            if (changed) SetBlueprintAssetDirtyAndNotify();
+        }
+
         // ---------------- ---------------- Node and connection creation ---------------- ----------------
 
         private BlueprintNodeMeta CreateNode(BlueprintNode node, Vector2 position) {
-            var nodeMeta = new BlueprintNodeMeta();
+            var nodeMeta = new BlueprintNodeMeta { Position = position };
             nodeMeta.SerializeNode(node);
-            nodeMeta.Position = position;
+            nodeMeta.RecreatePorts(node);
 
             Undo.RecordObject(_blueprintAsset, "Blueprint Add Node");
 
