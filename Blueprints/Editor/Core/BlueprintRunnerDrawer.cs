@@ -23,10 +23,10 @@ namespace MisterGames.Blueprints.Editor.Core {
 
                 GUILayout.Space(10);
 
-                var blackboardPropertiesProperty = serializedObject.FindProperty("_blackboardProperties");
-                EditorGUILayout.PropertyField(blackboardPropertiesProperty);
+                var blackboardSceneReferencesProperty = serializedObject.FindProperty("_blackboardSceneObjectReferences");
+                EditorGUILayout.PropertyField(blackboardSceneReferencesProperty);
 
-                if (GUILayout.Button("Fetch blackboard properties")) {
+                if (GUILayout.Button("Fetch blackboard GameObject properties")) {
                     runner.FetchBlackboardGameObjectProperties();
                 }
             }

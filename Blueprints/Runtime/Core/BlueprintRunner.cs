@@ -10,16 +10,16 @@ namespace MisterGames.Blueprints {
     public sealed class BlueprintRunner : MonoBehaviour, IBlueprintHost {
 
         [SerializeField] private BlueprintAsset _blueprintAsset;
-        [SerializeField] private List<BlueprintAssetReferences> _blackboardProperties;
+        [SerializeField] private List<BlueprintAssetBlackboardSceneObjectReferences> _blackboardSceneObjectReferences;
 
         [Serializable]
-        private struct BlueprintAssetReferences {
+        private struct BlueprintAssetBlackboardSceneObjectReferences {
             [ReadOnly] public BlueprintAsset blueprint;
-            public List<SceneReference> references;
+            public List<SceneObjectReference> references;
         }
 
         [Serializable]
-        private struct SceneReference {
+        private struct SceneObjectReference {
             [ReadOnly] public string property;
             [HideInInspector] public int hash;
             public GameObject gameObject;
@@ -50,8 +50,8 @@ namespace MisterGames.Blueprints {
         }
 
         public void ResolveBlackboardSceneReferences(BlueprintAsset blueprint, Blackboard blackboard) {
-            for (int i = 0; i < _blackboardProperties.Count; i++) {
-                var entry = _blackboardProperties[i];
+            for (int i = 0; i < _blackboardSceneObjectReferences.Count; i++) {
+                var entry = _blackboardSceneObjectReferences[i];
                 var asset = entry.blueprint;
                 if (asset != blueprint) continue;
 
@@ -68,17 +68,17 @@ namespace MisterGames.Blueprints {
 #if UNITY_EDITOR
         internal void FetchBlackboardGameObjectProperties() {
             if (_blueprintAsset == null) {
-                _blackboardProperties?.Clear();
+                _blackboardSceneObjectReferences?.Clear();
                 return;
             }
 
             var blueprintAssets = new List<BlueprintAsset>();
             AddBlueprintAssetAndItsSubgraphAssetsTo(_blueprintAsset, blueprintAssets);
 
-            var assetReferencesMap = new Dictionary<BlueprintAsset, Dictionary<int, GameObject>>(_blackboardProperties.Count);
+            var assetReferencesMap = new Dictionary<BlueprintAsset, Dictionary<int, GameObject>>(_blackboardSceneObjectReferences.Count);
 
-            for (int i = 0; i < _blackboardProperties.Count; i++) {
-                var entry = _blackboardProperties[i];
+            for (int i = 0; i < _blackboardSceneObjectReferences.Count; i++) {
+                var entry = _blackboardSceneObjectReferences[i];
                 var blueprint = entry.blueprint;
 
                 var references = entry.references;
@@ -92,13 +92,13 @@ namespace MisterGames.Blueprints {
                 assetReferencesMap[blueprint] = referencesMap;
             }
 
-            _blackboardProperties.Clear();
+            _blackboardSceneObjectReferences.Clear();
 
             for (int i = 0; i < blueprintAssets.Count; i++) {
                 var blueprintAsset = blueprintAssets[i];
                 var blackboardPropertiesMap = blueprintAsset.Blackboard.PropertiesMap;
 
-                var references = new List<SceneReference>();
+                var references = new List<SceneObjectReference>();
 
                 if (assetReferencesMap.TryGetValue(blueprintAsset, out var referencesMap)) {
                     foreach ((int hash, var property) in blackboardPropertiesMap) {
@@ -106,14 +106,14 @@ namespace MisterGames.Blueprints {
                         if (propertyType != typeof(GameObject)) continue;
 
                         if (referencesMap.TryGetValue(hash, out var go)) {
-                            references.Add(new SceneReference {
+                            references.Add(new SceneObjectReference {
                                 hash = hash,
                                 property = property.name,
                                 gameObject = go,
                             });
                         }
                         else {
-                            references.Add(new SceneReference {
+                            references.Add(new SceneObjectReference {
                                 hash = hash,
                                 property = property.name
                             });
@@ -125,7 +125,7 @@ namespace MisterGames.Blueprints {
                         var propertyType = Blackboard.GetPropertyType(property);
                         if (propertyType != typeof(GameObject)) continue;
 
-                        references.Add(new SceneReference {
+                        references.Add(new SceneObjectReference {
                             hash = hash,
                             property = property.name
                         });
@@ -134,7 +134,7 @@ namespace MisterGames.Blueprints {
 
                 if (references.Count == 0) continue;
 
-                _blackboardProperties.Add(new BlueprintAssetReferences {
+                _blackboardSceneObjectReferences.Add(new BlueprintAssetBlackboardSceneObjectReferences {
                     blueprint = blueprintAsset,
                     references = references
                 });
