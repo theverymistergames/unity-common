@@ -171,7 +171,7 @@ namespace MisterGames.Blueprints.Compile {
         private BlueprintNode GetOrCreateNodeInstance(int nodeId, BlueprintNodeMeta nodeMeta) {
             if (_runtimeNodesMap.TryGetValue(nodeId, out var nodeInstance)) return nodeInstance;
 
-            nodeInstance = nodeMeta.Node;
+            nodeInstance = nodeMeta.CreateNodeInstance();
             _runtimeNodesMap[nodeId] = nodeInstance;
 
             if (nodeInstance is IBlueprintCompiledNode compiledNode) compiledNode.Compile(nodeMeta);

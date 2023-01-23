@@ -33,7 +33,7 @@ namespace MisterGames.Blueprints.Editor.Core {
             titleLabel.text = nodeMeta.NodeName;
             container.style.backgroundColor = nodeMeta.NodeColor;
 
-            _nodeInspector = VirtualInspector.Create(nodeMeta.Node, OnNodeGUI, OnNodeValidate);
+            _nodeInspector = VirtualInspector.Create(nodeMeta.CreateNodeInstance(), OnNodeGUI, OnNodeValidate);
 
             inspector.UpdateSelection(_nodeInspector);
 

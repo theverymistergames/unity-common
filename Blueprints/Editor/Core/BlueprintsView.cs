@@ -42,6 +42,7 @@ namespace MisterGames.Blueprints.Editor.Core {
                 public int nodeId;
                 public Vector2 position;
                 public string serializedNodeType;
+                public string nodeJson;
             }
 
             [Serializable]
@@ -287,7 +288,8 @@ namespace MisterGames.Blueprints.Editor.Core {
         // ---------------- ---------------- Node and connection creation ---------------- ----------------
 
         private BlueprintNodeMeta CreateNode(BlueprintNode node, Vector2 position) {
-            var nodeMeta = BlueprintNodeMeta.Create(node);
+            var nodeMeta = new BlueprintNodeMeta();
+            nodeMeta.SerializeNode(node);
             nodeMeta.Position = position;
 
             Undo.RecordObject(_blueprintAsset, "Blueprint Add Node");
@@ -389,10 +391,11 @@ namespace MisterGames.Blueprints.Editor.Core {
         }
 
         private void OnValidateNode(BlueprintNodeMeta nodeMeta, BlueprintNode node) {
-            if (node is IBlueprintValidatedNode validatedNode) {
-                validatedNode.OnValidate(nodeMeta.NodeId, _blueprintAsset);
-            }
+            if (node is IBlueprintValidatedNode validatedNode) validatedNode.OnValidate(nodeMeta.NodeId, _blueprintAsset);
             node.OnValidate();
+
+            nodeMeta.SerializeNode(node);
+
             SetBlueprintAssetDirtyAndNotify();
         }
 
@@ -572,7 +575,8 @@ namespace MisterGames.Blueprints.Editor.Core {
                     copyData.nodes.Add(new CopyPasteData.NodeData {
                         nodeId = nodeMeta.NodeId,
                         position = nodeMeta.Position,
-                        serializedNodeType = SerializedType.ToString(nodeMeta.Node.GetType())
+                        serializedNodeType = nodeMeta.SerializedNodeType,
+                        nodeJson = nodeMeta.NodeJson,
                     });
                     continue;
                 }
@@ -615,7 +619,7 @@ namespace MisterGames.Blueprints.Editor.Core {
             for (int i = 0; i < pasteData.nodes.Count; i++) {
                 var nodeData = pasteData.nodes[i];
 
-                var node = (BlueprintNode) Activator.CreateInstance(SerializedType.FromString(nodeData.serializedNodeType));
+                var node = JsonUtility.FromJson(nodeData.nodeJson, SerializedType.FromString(nodeData.serializedNodeType)) as BlueprintNode;
                 var position = nodeData.position + positionDiff;
 
                 var nodeMeta = CreateNode(node, position);

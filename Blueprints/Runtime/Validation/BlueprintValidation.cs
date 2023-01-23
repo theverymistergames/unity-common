@@ -142,10 +142,11 @@ namespace MisterGames.Blueprints.Validation {
                 return false;
             }
 
-            if (nodeMeta.Node is not IBlueprintEnter) {
+            var node = nodeMeta.CreateNodeInstance();
+            if (node is not IBlueprintEnter) {
                 Debug.LogError($"Blueprint asset {asset.name}: " +
                                $"Validation failed for enter port {portIndex} of node {nodeMeta}: " +
-                               $"node class {nodeMeta.Node.GetType().Name} does not implement interface {nameof(IBlueprintEnter)}.");
+                               $"node class {node.GetType().Name} does not implement interface {nameof(IBlueprintEnter)}.");
                 return false;
             }
 
@@ -232,19 +233,20 @@ namespace MisterGames.Blueprints.Validation {
                 return false;
             }
 
-            if (port.mode == Port.Mode.NonTypedOutput && nodeMeta.Node is not IBlueprintOutput) {
+            var node = nodeMeta.CreateNodeInstance();
+            if (port.mode == Port.Mode.NonTypedOutput && node is not IBlueprintOutput) {
                 Debug.LogError($"Blueprint asset {asset.name}: " +
                                $"Validation failed for non-typed output port {portIndex} of node {nodeMeta}: " +
-                               $"node class {nodeMeta.Node.GetType().Name} does not implement interface {nameof(IBlueprintOutput)}.");
+                               $"node class {node.GetType().Name} does not implement interface {nameof(IBlueprintOutput)}.");
                 return false;
             }
-            
+
             if (port.mode == Port.Mode.Output &&
-                !HasGenericInterface(nodeMeta.Node.GetType(), typeof(IBlueprintOutput<>), port.DataType)
+                !HasGenericInterface(node.GetType(), typeof(IBlueprintOutput<>), port.DataType)
             ) {
                 Debug.LogError($"Blueprint asset {asset.name}: " +
                                $"Validation failed for output port {portIndex} of node {nodeMeta}: " +
-                               $"node class {nodeMeta.Node.GetType().Name} does not implement " +
+                               $"node class {node.GetType().Name} does not implement " +
                                $"interface {typeof(IBlueprintOutput<>).Name}<{port.DataType.Name}>.");
                 return false;
             }
@@ -268,10 +270,11 @@ namespace MisterGames.Blueprints.Validation {
                 return false;
             }
 
-            if (port.mode == Port.Mode.NonTypedOutput && nodeMeta.Node is not IBlueprintOutput) {
+            var node = nodeMeta.CreateNodeInstance();
+            if (port.mode == Port.Mode.NonTypedOutput && node is not IBlueprintOutput) {
                 Debug.LogError($"Blueprint asset {asset.name}: " +
                                $"Validation failed for non-typed output port {portIndex} of node {nodeMeta}: " +
-                               $"node class {nodeMeta.Node.GetType().Name} does not implement interface {nameof(IBlueprintOutput)}.");
+                               $"node class {node.GetType().Name} does not implement interface {nameof(IBlueprintOutput)}.");
                 return false;
             }
 
@@ -283,11 +286,11 @@ namespace MisterGames.Blueprints.Validation {
             }
 
             if (port.mode == Port.Mode.Output &&
-                !HasGenericInterface(nodeMeta.Node.GetType(), typeof(IBlueprintOutput<>), port.DataType)
+                !HasGenericInterface(node.GetType(), typeof(IBlueprintOutput<>), port.DataType)
             ) {
                 Debug.LogError($"Blueprint asset {asset.name}: " +
                                $"Validation failed for output port {portIndex} of node {nodeMeta}: " +
-                               $"node class {nodeMeta.Node.GetType().Name} does not implement " +
+                               $"node class {node.GetType().Name} does not implement " +
                                $"interface {typeof(IBlueprintOutput<>).Name}<{port.DataType.Name}>.");
                 return false;
             }

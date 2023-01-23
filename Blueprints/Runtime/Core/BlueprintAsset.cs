@@ -6,10 +6,9 @@ using UnityEngine;
 namespace MisterGames.Blueprints {
 
     /// <summary>
-    /// Asset to store blueprint meta data that can be compiled into runtime blueprint instance.
-    /// Blueprint meta data is edited from Blueprint Editor.
+    /// Asset to store blueprint meta data, that can be compiled into runtime blueprint instance.
     /// </summary>
-    [CreateAssetMenu(fileName = nameof(BlueprintAsset), menuName = "MisterGames/" + nameof(BlueprintAsset))]
+    [CreateAssetMenu(fileName = "Blueprint", menuName = "MisterGames/Blueprint")]
     public sealed class BlueprintAsset : ScriptableObject {
 
         [SerializeField] [HideInInspector] private BlueprintMeta _blueprintMeta;
