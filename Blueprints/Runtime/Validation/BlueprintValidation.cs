@@ -56,22 +56,15 @@ namespace MisterGames.Blueprints.Validation {
             // External ports are not compatible in editor
             if (a.isExternalPort || b.isExternalPort) return false;
 
-            // Must have different port direction
-            if (a.isExitPort == b.isExitPort) return false;
-
-            // Must be same mode (flow/data)
-            if (a.isDataPort != b.isDataPort) return false;
-
-            // Both ports are flow ports
-            if (!a.isDataPort) return true;
-
-            // Both ports are data ports, at least one port has no serialized type
-            if (!a.hasDataType || !b.hasDataType) return true;
-
-            // Must have same data type
-            if (a.DataType != b.DataType) return false;
-
-            return true;
+            return a.mode switch {
+                Port.Mode.Enter => b.mode == Port.Mode.Exit,
+                Port.Mode.Exit => b.mode == Port.Mode.Enter,
+                Port.Mode.Input => b.mode is Port.Mode.Output or Port.Mode.NonTypedOutput,
+                Port.Mode.Output => b.mode is Port.Mode.Input or Port.Mode.NonTypedInput,
+                Port.Mode.NonTypedInput => b.mode is Port.Mode.Output or Port.Mode.NonTypedOutput,
+                Port.Mode.NonTypedOutput => b.mode is Port.Mode.Input or Port.Mode.NonTypedInput,
+                _ => throw new NotSupportedException($"Port mode {a.mode} is not supported")
+            };
         }
 
         public static bool ValidatePort(BlueprintAsset asset, BlueprintNodeMeta nodeMeta, int portIndex) {
@@ -84,27 +77,15 @@ namespace MisterGames.Blueprints.Validation {
 
             var port = nodeMeta.Ports[portIndex];
 
-            // Enter port
-            if (!port.isDataPort && !port.isExitPort) {
-                return ValidateEnterPort(asset, nodeMeta, portIndex);
-            }
-
-            // Exit port
-            if (!port.isDataPort) {
-                return ValidateExitPort(asset, nodeMeta, portIndex);
-            }
-
-            // Input port
-            if (!port.isExitPort) {
-                return port.hasDataType
-                    ? ValidateInputPort(asset, port.DataType, nodeMeta, portIndex)
-                    : ValidateInputPort(asset, nodeMeta, portIndex);
-            }
-
-            // Output port
-            return port.hasDataType
-                ? ValidateOutputPort(asset, port.DataType, nodeMeta, portIndex)
-                : ValidateOutputPort(asset, nodeMeta, portIndex);
+            return port.mode switch {
+                Port.Mode.Enter => ValidateEnterPort(asset, nodeMeta, portIndex),
+                Port.Mode.Exit => ValidateExitPort(asset, nodeMeta, portIndex),
+                Port.Mode.Input => ValidateInputPort(asset, port.DataType, nodeMeta, portIndex),
+                Port.Mode.Output => ValidateOutputPort(asset, port.DataType, nodeMeta, portIndex),
+                Port.Mode.NonTypedInput => ValidateInputPort(asset, nodeMeta, portIndex),
+                Port.Mode.NonTypedOutput => ValidateOutputPort(asset, nodeMeta, portIndex),
+                _ => throw new NotSupportedException($"Port mode {port.mode} is not supported")
+            };
         }
 
         public static bool ValidateLink(BlueprintAsset asset, BlueprintNodeMeta nodeMeta, int portIndex, BlueprintNodeMeta toNodeMeta, int toPortIndex) {
@@ -117,31 +98,32 @@ namespace MisterGames.Blueprints.Validation {
 
             var port = nodeMeta.Ports[portIndex];
 
-            // Enter port
-            if (!port.isDataPort && !port.isExitPort) {
-                Debug.LogError($"Blueprint asset {asset.name}: " +
-                               $"Validation failed for port link [node {nodeMeta}, port {portIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
-                               $"port {portIndex} of node {nodeMeta} is enter port and it cannot have links.");
-                return false;
-            }
+            switch (port.mode) {
+                case Port.Mode.Enter:
+                    Debug.LogError($"Blueprint asset {asset.name}: " +
+                                   $"Validation failed for port link [node {nodeMeta}, port {portIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                                   $"port {portIndex} of node {nodeMeta} is enter port and it cannot have links.");
+                    return false;
 
-            // Exit port
-            if (!port.isDataPort) {
-                return ValidateEnterPort(asset, toNodeMeta, toPortIndex);
-            }
+                case Port.Mode.Exit:
+                    return ValidateEnterPort(asset, toNodeMeta, toPortIndex);
 
-            // Input port
-            if (!port.isExitPort) {
-                return port.hasDataType
-                    ? ValidateOutputPort(asset, port.DataType, toNodeMeta, toPortIndex)
-                    : ValidateOutputPort(asset, toNodeMeta, toPortIndex);
-            }
+                case Port.Mode.Input:
+                    return ValidateOutputPort(asset, port.DataType, toNodeMeta, toPortIndex);
 
-            // Output port
-            Debug.LogError($"Blueprint asset {asset.name}: " +
-                           $"Validation failed for port link [node {nodeMeta}, port {portIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
-                           $"port {portIndex} of node {nodeMeta} is output port and it cannot have links.");
-            return false;
+                case Port.Mode.NonTypedInput:
+                    return ValidateOutputPort(asset, toNodeMeta, toPortIndex);
+
+                case Port.Mode.Output:
+                case Port.Mode.NonTypedOutput:
+                    Debug.LogError($"Blueprint asset {asset.name}: " +
+                                   $"Validation failed for port link [node {nodeMeta}, port {portIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                                   $"port {portIndex} of node {nodeMeta} is output port and it cannot have links.");
+                    return false;
+
+                default:
+                    throw new NotSupportedException($"Port mode {port.mode} is not supported");
+            }
         }
 
         private static bool ValidateEnterPort(BlueprintAsset asset, BlueprintNodeMeta nodeMeta, int portIndex) {
@@ -153,7 +135,7 @@ namespace MisterGames.Blueprints.Validation {
             }
 
             var port = nodeMeta.Ports[portIndex];
-            if (port.isExitPort || port.isDataPort) {
+            if (port.mode != Port.Mode.Enter) {
                 Debug.LogError($"Blueprint asset {asset.name}: " +
                                $"Validation failed for enter port {portIndex} of node {nodeMeta}: " +
                                $"this port is not an enter port.");
@@ -179,7 +161,7 @@ namespace MisterGames.Blueprints.Validation {
             }
 
             var port = nodeMeta.Ports[portIndex];
-            if (!port.isExitPort || port.isDataPort) {
+            if (port.mode != Port.Mode.Exit) {
                 Debug.LogError($"Blueprint asset {asset.name}: " +
                                $"Validation failed for exit port {portIndex} of node {nodeMeta}: " +
                                $"this port is not an exit port.");
@@ -198,7 +180,7 @@ namespace MisterGames.Blueprints.Validation {
             }
 
             var port = nodeMeta.Ports[portIndex];
-            if (port.isExitPort || !port.isDataPort) {
+            if (port.mode is not (Port.Mode.Input or Port.Mode.NonTypedInput)) {
                 Debug.LogError($"Blueprint asset {asset.name}: " +
                                $"Validation failed for input port {portIndex} of node {nodeMeta}: " +
                                $"this port is not an input port.");
@@ -217,14 +199,14 @@ namespace MisterGames.Blueprints.Validation {
             }
 
             var port = nodeMeta.Ports[portIndex];
-            if (port.isExitPort || !port.isDataPort) {
+            if (port.mode is not (Port.Mode.Input or Port.Mode.NonTypedInput)) {
                 Debug.LogError($"Blueprint asset {asset.name}: " +
                                $"Validation failed for input port {portIndex} of node {nodeMeta}: " +
                                $"this port is not an input port.");
                 return false;
             }
 
-            if (port.hasDataType && port.DataType != dataType) {
+            if (port.mode == Port.Mode.Input && port.DataType != dataType) {
                 Debug.LogError($"Blueprint asset {asset.name}: " +
                                $"Validation failed for input port {portIndex} of node {nodeMeta}: " +
                                $"this input port type is not {dataType.Name}.");
@@ -243,21 +225,21 @@ namespace MisterGames.Blueprints.Validation {
             }
 
             var port = nodeMeta.Ports[portIndex];
-            if (!port.isExitPort || !port.isDataPort) {
+            if (port.mode is not (Port.Mode.Output or Port.Mode.NonTypedOutput)) {
                 Debug.LogError($"Blueprint asset {asset.name}: " +
                                $"Validation failed for output port {portIndex} of node {nodeMeta}: " +
                                $"this port is not an output port.");
                 return false;
             }
 
-            if (!port.hasDataType && nodeMeta.Node is not IBlueprintOutput) {
+            if (port.mode == Port.Mode.NonTypedOutput && nodeMeta.Node is not IBlueprintOutput) {
                 Debug.LogError($"Blueprint asset {asset.name}: " +
                                $"Validation failed for non-typed output port {portIndex} of node {nodeMeta}: " +
                                $"node class {nodeMeta.Node.GetType().Name} does not implement interface {nameof(IBlueprintOutput)}.");
                 return false;
             }
             
-            if (port.hasDataType &&
+            if (port.mode == Port.Mode.Output &&
                 !HasGenericInterface(nodeMeta.Node.GetType(), typeof(IBlueprintOutput<>), port.DataType)
             ) {
                 Debug.LogError($"Blueprint asset {asset.name}: " +
@@ -279,32 +261,34 @@ namespace MisterGames.Blueprints.Validation {
             }
 
             var port = nodeMeta.Ports[portIndex];
-            if (!port.isExitPort || !port.isDataPort) {
+            if (port.mode is not (Port.Mode.Output or Port.Mode.NonTypedOutput)) {
                 Debug.LogError($"Blueprint asset {asset.name}: " +
                                $"Validation failed for output port {portIndex} of node {nodeMeta}: " +
                                $"this port is not an output port.");
                 return false;
             }
 
-            if (!port.hasDataType) {
+            if (port.mode == Port.Mode.NonTypedOutput && nodeMeta.Node is not IBlueprintOutput) {
                 Debug.LogError($"Blueprint asset {asset.name}: " +
-                               $"Validation failed for output port {portIndex} of node {nodeMeta}: " +
-                               $"port has no type, but needs to have type {dataType.Name}.");
+                               $"Validation failed for non-typed output port {portIndex} of node {nodeMeta}: " +
+                               $"node class {nodeMeta.Node.GetType().Name} does not implement interface {nameof(IBlueprintOutput)}.");
                 return false;
             }
-            
-            if (port.DataType != dataType) {
+
+            if (port.mode == Port.Mode.Output && port.DataType != dataType) {
                 Debug.LogError($"Blueprint asset {asset.name}: " +
                                $"Validation failed for output port {portIndex} of node {nodeMeta}: " +
                                $"port type is not {dataType.Name}.");
                 return false;
             }
 
-            if (!HasGenericInterface(nodeMeta.Node.GetType(), typeof(IBlueprintOutput<>), dataType)) {
+            if (port.mode == Port.Mode.Output &&
+                !HasGenericInterface(nodeMeta.Node.GetType(), typeof(IBlueprintOutput<>), port.DataType)
+            ) {
                 Debug.LogError($"Blueprint asset {asset.name}: " +
                                $"Validation failed for output port {portIndex} of node {nodeMeta}: " +
                                $"node class {nodeMeta.Node.GetType().Name} does not implement " +
-                               $"interface {typeof(IBlueprintOutput<>).Name}<{dataType.Name}>.");
+                               $"interface {typeof(IBlueprintOutput<>).Name}<{port.DataType.Name}>.");
                 return false;
             }
 

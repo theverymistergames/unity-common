@@ -8,10 +8,8 @@ namespace MisterGames.Blueprints {
     public struct Port {
 
         public string name;
-        public bool isDataPort;
-        public bool isExitPort;
         public bool isExternalPort;
-        public bool hasDataType;
+        public Mode mode;
 
         [SerializeField] private string _serializedDataType;
 
@@ -20,44 +18,45 @@ namespace MisterGames.Blueprints {
             private set => _serializedDataType = SerializedType.ToString(value);
         }
 
+        public enum Mode {
+            Enter,
+            Exit,
+            Input,
+            Output,
+            NonTypedInput,
+            NonTypedOutput,
+        }
+
         internal Port SetExternal(bool isExternal) {
             isExternalPort = isExternal;
             return this;
         }
 
         public int GetSignature() => HashCode.Combine(
-            string.IsNullOrWhiteSpace(name) ? string.Empty : name ,
-            isDataPort,
-            isExitPort,
+            string.IsNullOrWhiteSpace(name) ? string.Empty : name,
+            mode,
             isExternalPort,
-            hasDataType,
             string.IsNullOrEmpty(_serializedDataType) ? string.Empty : _serializedDataType
         );
 
         public static Port Enter(string name = null) {
             return new Port {
                 name = name,
-                isDataPort = false,
-                isExitPort = false,
-                hasDataType = false,
+                mode = Mode.Enter,
             };
         }
 
         public static Port Exit(string name = null) {
             return new Port {
                 name = name,
-                isDataPort = false,
-                isExitPort = true,
-                hasDataType = false,
+                mode = Mode.Exit,
             };
         }
 
         public static Port Input<T>(string name = null) {
             return new Port {
                 name = name,
-                isDataPort = true,
-                isExitPort = false,
-                hasDataType = true,
+                mode = Mode.Input,
                 DataType = typeof(T),
             };
         }
@@ -65,9 +64,7 @@ namespace MisterGames.Blueprints {
         public static Port Output<T>(string name = null) {
             return new Port {
                 name = name,
-                isDataPort = true,
-                isExitPort = true,
-                hasDataType = true,
+                mode = Mode.Output,
                 DataType = typeof(T),
             };
         }
@@ -75,27 +72,29 @@ namespace MisterGames.Blueprints {
         internal static Port Input(string name = null) {
             return new Port {
                 name = name,
-                isDataPort = true,
-                isExitPort = false,
-                hasDataType = false,
+                mode = Mode.NonTypedInput,
             };
         }
 
         internal static Port Output(string name = null) {
             return new Port {
                 name = name,
-                isDataPort = true,
-                isExitPort = true,
-                hasDataType = false,
+                mode = Mode.NonTypedOutput,
             };
         }
 
         public override string ToString() {
-            string externalText = isExternalPort ? "external " : "";
+            string externalText = isExternalPort ? "external " : string.Empty;
 
-            string modeText = isDataPort
-                ? isExitPort ? "exit" : "enter"
-                : $"{(isExitPort ? "output" : "input")}{(hasDataType ? $"<{DataType.Name}>" : "")}";
+            string modeText = mode switch {
+                    Mode.Enter => "enter",
+                    Mode.Exit => "exit",
+                    Mode.Input => $"input<{DataType.Name}>",
+                    Mode.Output => $"output<{DataType.Name}>",
+                    Mode.NonTypedInput => "input",
+                    Mode.NonTypedOutput => "output",
+                    _ => throw new NotSupportedException($"Port mode {mode} is not supported")
+            };
 
             return $"{nameof(Port)}(name = {name}, mode = {externalText}{modeText})";
         }

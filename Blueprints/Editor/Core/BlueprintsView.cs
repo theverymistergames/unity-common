@@ -226,7 +226,6 @@ namespace MisterGames.Blueprints.Editor.Core {
             if (blueprintAsset == _blueprintAsset) return;
 
             _blueprintAsset = blueprintAsset;
-
             if (_blueprintAsset.BlueprintMeta.Invalidate()) SetBlueprintAssetDirtyAndNotify();
 
             RepopulateView();
@@ -412,7 +411,8 @@ namespace MisterGames.Blueprints.Editor.Core {
                 var port = fromNodePorts[p];
                 if (port.isExternalPort) continue;
 
-                var fromPortView = GetPortView(fromNodeView, p, port.isExitPort);
+                bool isPortInExitContainer = port.mode is Port.Mode.Exit or Port.Mode.Output or Port.Mode.NonTypedOutput;
+                var fromPortView = GetPortView(fromNodeView, p, isPortInExitContainer);
                 var links = blueprintMeta.GetLinksFromNodePort(nodeMeta.NodeId, p);
 
                 for (int l = 0; l < links.Count; l++) {
@@ -420,7 +420,9 @@ namespace MisterGames.Blueprints.Editor.Core {
 
                     var toNodeView = FindNodeViewByNodeId(link.nodeId);
                     var toPort = toNodeView.nodeMeta.Ports[link.portIndex];
-                    var toPortView = GetPortView(toNodeView, link.portIndex, toPort.isExitPort);
+
+                    bool isToPortInExitContainer = toPort.mode is Port.Mode.Exit or Port.Mode.Output or Port.Mode.NonTypedOutput;
+                    var toPortView = GetPortView(toNodeView, link.portIndex, isToPortInExitContainer);
 
                     AddElement(fromPortView.ConnectTo(toPortView));
                 }
@@ -430,11 +432,15 @@ namespace MisterGames.Blueprints.Editor.Core {
         private Edge CreateConnectionView(int fromNodeId, int fromPortIndex, int toNodeId, int toPortIndex) {
             var fromNodeView = FindNodeViewByNodeId(fromNodeId);
             var fromPort = fromNodeView.nodeMeta.Ports[fromPortIndex];
-            var fromPortView = GetPortView(fromNodeView, fromPortIndex, fromPort.isExitPort);
+
+            bool isFromPortInExitContainer = fromPort.mode is Port.Mode.Exit or Port.Mode.Output or Port.Mode.NonTypedOutput;
+            var fromPortView = GetPortView(fromNodeView, fromPortIndex, isFromPortInExitContainer);
 
             var toNodeView = FindNodeViewByNodeId(toNodeId);
             var toPort = toNodeView.nodeMeta.Ports[toPortIndex];
-            var toPortView = GetPortView(toNodeView, toPortIndex, toPort.isExitPort);
+
+            bool isToPortInExitContainer = toPort.mode is Port.Mode.Exit or Port.Mode.Output or Port.Mode.NonTypedOutput;
+            var toPortView = GetPortView(toNodeView, toPortIndex, isToPortInExitContainer);
 
             var edge = fromPortView.ConnectTo(toPortView);
             AddElement(edge);
@@ -470,7 +476,8 @@ namespace MisterGames.Blueprints.Editor.Core {
             
             for (int i = 0; i < ports.Count; i++) {
                 var port = ports[i];
-                if (port.isExitPort != isExit) continue;
+                bool isPortInExitContainer = port.mode is Port.Mode.Exit or Port.Mode.Output or Port.Mode.NonTypedOutput;
+                if (isPortInExitContainer != isExit) continue;
                 
                 portIndex++;
                 
@@ -493,7 +500,8 @@ namespace MisterGames.Blueprints.Editor.Core {
             int count = -1;
             for (int i = 0; i < ports.Count; i++) {
                 var port = ports[i];
-                if (port.isExitPort != isExit) continue;
+                bool isPortInExitContainer = port.mode is Port.Mode.Exit or Port.Mode.Output or Port.Mode.NonTypedOutput;
+                if (isPortInExitContainer != isExit) continue;
 
                 if (++count == portIndex) {
                     portIndex = i;
@@ -586,7 +594,13 @@ namespace MisterGames.Blueprints.Editor.Core {
         }
 
         private void OnUnserializeAndPaste(string operationName, string data) {
-            var pasteData = JsonUtility.FromJson<CopyPasteData>(data);
+            CopyPasteData pasteData;
+            try {
+                pasteData = JsonUtility.FromJson<CopyPasteData>(data);
+            }
+            catch (ArgumentException) {
+                return;
+            }
 
             if (pasteData.nodes == null || pasteData.nodes.Count == 0) return;
 

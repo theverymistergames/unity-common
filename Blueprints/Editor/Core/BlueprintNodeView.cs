@@ -1,5 +1,6 @@
 ﻿using System;
 using MisterGames.Blueprints.Meta;
+using MisterGames.Common.Editor.Utils;
 using MisterGames.Common.Editor.Views;
 using MisterGames.Common.Editor.VirtualInspector;
 using UnityEditor;
@@ -18,7 +19,7 @@ namespace MisterGames.Blueprints.Editor.Core {
         public Action<BlueprintNodeMeta, Vector2> OnPositionChanged = delegate {  };
         public Action<BlueprintNodeMeta, BlueprintNode> OnValidate = delegate {  };
 
-        private VirtualInspector _nodeInspector;
+        private readonly VirtualInspector _nodeInspector;
 
         public BlueprintNodeView(BlueprintNodeMeta nodeMeta, IEdgeConnectorListener connectorListener) : base(GetUxmlPath()) {
             this.nodeMeta = nodeMeta;
@@ -56,12 +57,16 @@ namespace MisterGames.Blueprints.Editor.Core {
             float fieldWidth = EditorGUIUtility.fieldWidth;
 
             EditorGUIUtility.labelWidth = 110;
-            EditorGUIUtility.fieldWidth = 160;
+            EditorGUIUtility.fieldWidth = 240;
 
             bool enterChildren = true;
             while (serializedProperty.NextVisible(enterChildren)) {
                 enterChildren = false;
                 EditorGUILayout.PropertyField(serializedProperty, true);
+
+                if (serializedProperty.GetValue() is BlueprintAsset blueprintAsset && GUILayout.Button("Edit")) {
+                    BlueprintsEditorWindow.OpenAsset(blueprintAsset);
+                }
             }
 
             EditorGUIUtility.labelWidth = labelWidth;
@@ -88,34 +93,83 @@ namespace MisterGames.Blueprints.Editor.Core {
 
         private void CreatePort(Port port, IEdgeConnectorListener connectorListener) {
             if (port.isExternalPort) return;
-            
-            var direction = port.isExitPort ? Direction.Output : Direction.Input;
-            var capacity = !port.isExitPort && port.isDataPort ? PortView.Capacity.Single : PortView.Capacity.Multi;
-            
+
+            Direction direction;
+            PortView.Capacity capacity;
+            VisualElement container;
+
+            switch (port.mode) {
+                case Port.Mode.Enter:
+                    direction = Direction.Input;
+                    capacity = PortView.Capacity.Multi;
+                    container = inputContainer;
+                    break;
+
+                case Port.Mode.Exit:
+                    direction = Direction.Output;
+                    capacity = PortView.Capacity.Multi;
+                    container = outputContainer;
+                    break;
+
+                case Port.Mode.Input:
+                    direction = Direction.Input;
+                    capacity = PortView.Capacity.Single;
+                    container = inputContainer;
+                    break;
+
+                case Port.Mode.Output:
+                    direction = Direction.Output;
+                    capacity = PortView.Capacity.Multi;
+                    container = outputContainer;
+                    break;
+
+                case Port.Mode.NonTypedInput:
+                    direction = Direction.Input;
+                    capacity = PortView.Capacity.Single;
+                    container = inputContainer;
+                    break;
+
+                case Port.Mode.NonTypedOutput:
+                    direction = Direction.Output;
+                    capacity = PortView.Capacity.Multi;
+                    container = outputContainer;
+                    break;
+
+                default:
+                    throw new NotSupportedException($"Port mode {port.mode} is not supported");
+            }
+
             var portView = InstantiatePort(Orientation.Horizontal, direction, capacity, typeof(bool));
             portView.AddManipulator(new EdgeConnector<Edge>(connectorListener));
 
             portView.portName = FormatPortName(port);
             portView.portColor = GetPortColor(port);
 
-            var container = port.isExitPort ? outputContainer : inputContainer;
             container.Add(portView);
         }
 
         private static Color GetPortColor(Port port) {
-            return port.isDataPort
-                ? port.hasDataType
-                    ? BlueprintColors.Port.Connection.GetColorForType(port.DataType)
-                    : BlueprintColors.Port.Connection.Data
-                : BlueprintColors.Port.Connection.Flow;
+            return port.mode switch {
+                Port.Mode.Enter => BlueprintColors.Port.Connection.Flow,
+                Port.Mode.Exit => BlueprintColors.Port.Connection.Flow,
+                Port.Mode.Input => BlueprintColors.Port.Connection.GetColorForType(port.DataType),
+                Port.Mode.Output => BlueprintColors.Port.Connection.GetColorForType(port.DataType),
+                Port.Mode.NonTypedInput => BlueprintColors.Port.Connection.Data,
+                Port.Mode.NonTypedOutput => BlueprintColors.Port.Connection.Data,
+                _ => throw new NotSupportedException($"Port mode {port.mode} is not supported"),
+            };
         }
 
         private static string FormatPortName(Port port) {
-            string nameColor = port.isDataPort
-                ? port.hasDataType
-                    ? BlueprintColors.Port.Header.GetColorForType(port.DataType)
-                    : BlueprintColors.Port.Header.Data
-                : BlueprintColors.Port.Header.Flow;
+            string nameColor = port.mode switch {
+                Port.Mode.Enter => BlueprintColors.Port.Header.Flow,
+                Port.Mode.Exit => BlueprintColors.Port.Header.Flow,
+                Port.Mode.Input => BlueprintColors.Port.Header.GetColorForType(port.DataType),
+                Port.Mode.Output => BlueprintColors.Port.Header.GetColorForType(port.DataType),
+                Port.Mode.NonTypedInput => BlueprintColors.Port.Header.Data,
+                Port.Mode.NonTypedOutput => BlueprintColors.Port.Header.Data,
+                _ => throw new NotSupportedException($"Port mode {port.mode} is not supported"),
+            };
 
             string name = string.IsNullOrEmpty(port.name) ? string.Empty : port.name.Trim();
 

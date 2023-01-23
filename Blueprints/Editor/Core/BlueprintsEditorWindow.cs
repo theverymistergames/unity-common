@@ -113,7 +113,7 @@ namespace MisterGames.Blueprints.Editor.Core {
                 return;
             }
 
-            SetWindowTitle(asset.name);
+            SetWindowTitle($"{asset.name}{(EditorUtility.IsDirty(asset) ? "*" : string.Empty)}");
             _blueprintsView.PopulateViewFromAsset(asset);
         }
 

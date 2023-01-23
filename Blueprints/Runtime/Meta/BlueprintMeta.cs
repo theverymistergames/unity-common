@@ -58,33 +58,28 @@ namespace MisterGames.Blueprints.Meta {
             var fromPort = fromNode.Ports[fromPortIndex];
             var toPort = toNode.Ports[toPortIndex];
 
-            // fromPort is an enter port
-            if (!fromPort.isDataPort && !fromPort.isExitPort) {
-                // toPort must be an exit port
-                if (toPort.isDataPort || !toPort.isExitPort) return false;
+            if (fromPort.mode == Port.Mode.Enter) {
+                if (toPort.mode != Port.Mode.Exit) return false;
 
                 // adding connection from the exit port toPort to the enter port fromPort
                 CreateConnection(toNodeId, toPortIndex, fromNodeId, fromPortIndex);
                 return true;
             }
 
-            // fromPort is an exit port
-            if (!fromPort.isDataPort) {
-                // toPort must be an enter port
-                if (toPort.isDataPort || toPort.isExitPort) return false;
+            if (fromPort.mode == Port.Mode.Exit) {
+                if (toPort.mode != Port.Mode.Enter) return false;
 
                 // adding connection from the exit port fromPort to the enter port toPort
                 CreateConnection(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
                 return true;
             }
 
-            // fromPort is an input port
-            if (!fromPort.isExitPort) {
-                // toPort must be an output port
-                if (!toPort.isDataPort || !toPort.isExitPort) return false;
+            if (fromPort.mode is Port.Mode.Input or Port.Mode.NonTypedInput) {
+                if (toPort.mode is Port.Mode.Output or Port.Mode.NonTypedOutput) return false;
 
                 // input and output must have same data type
-                if (fromPort.hasDataType && toPort.hasDataType &&
+                if (fromPort.mode == Port.Mode.Input &&
+                    toPort.mode == Port.Mode.Output &&
                     fromPort.DataType != toPort.DataType) return false;
 
                 // replacing connections from the input port fromPort to the output port toPort with new connection
@@ -93,18 +88,21 @@ namespace MisterGames.Blueprints.Meta {
                 return true;
             }
 
-            // fromPort is an output port
-            // toPort must be an input port
-            if (!toPort.isDataPort || toPort.isExitPort) return false;
+            if (fromPort.mode is Port.Mode.Output or Port.Mode.NonTypedOutput) {
+                if (toPort.mode is Port.Mode.Input or Port.Mode.NonTypedInput) return false;
 
-            // input and output must have same data type
-            if (fromPort.hasDataType && toPort.hasDataType &&
-                fromPort.DataType != toPort.DataType) return false;
+                // input and output must have same data type
+                if (fromPort.mode == Port.Mode.Output &&
+                    toPort.mode == Port.Mode.Input &&
+                    fromPort.DataType != toPort.DataType) return false;
 
-            // replacing connections from the input port toPort to the output port fromPort with new connection
-            RemoveLinksFromNodePort(toNodeId, toPortIndex);
-            CreateConnection(toNodeId, toPortIndex, fromNodeId, fromPortIndex);
-            return true;
+                // replacing connections from the input port fromPort to the output port toPort with new connection
+                RemoveLinksFromNodePort(fromNodeId, fromPortIndex);
+                CreateConnection(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
+                return true;
+            }
+
+            return false;
         }
 
         public void RemoveConnection(int fromNodeId, int fromPortIndex, int toNodeId, int toPortIndex) {

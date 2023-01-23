@@ -7,6 +7,7 @@ using MisterGames.Common.Editor.Tree;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
+using NotSupportedException = System.NotSupportedException;
 
 namespace MisterGames.Blueprints.Editor.Core {
 
@@ -136,9 +137,15 @@ namespace MisterGames.Blueprints.Editor.Core {
                         var port = ports[p];
                         if (!BlueprintValidation.ArePortsCompatible(fromPort, port)) continue;
 
-                        string mode = port.isDataPort
-                            ? $"{(port.isExitPort ? "Output" : "Input")}{(port.hasDataType ? $"<{port.DataType.Name}>" : "")}"
-                            : port.isExitPort ? "Exit" : "Enter";
+                        string mode = port.mode switch {
+                            Port.Mode.Enter => "Enter",
+                            Port.Mode.Exit => "Exit",
+                            Port.Mode.Input => $"Input<{port.DataType.Name}>",
+                            Port.Mode.Output => $"Output<{port.DataType.Name}>",
+                            Port.Mode.NonTypedInput => "Input",
+                            Port.Mode.NonTypedOutput => "Output",
+                            _ => throw new NotSupportedException($"Port mode {port.mode} is not supported")
+                        };
 
                         string portName = string.IsNullOrEmpty(port.name)
                             ? mode

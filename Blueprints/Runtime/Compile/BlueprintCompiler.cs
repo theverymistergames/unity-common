@@ -87,7 +87,7 @@ namespace MisterGames.Blueprints.Compile {
             // Create links from owner subgraph node ports to external nodes inside subgraph, if port is enter or output
             for (int p = 0; p < subgraphPortsCount; p++) {
                 var port = subgraphPorts[p];
-                if (port.isExitPort && !port.isDataPort || !port.isExitPort && port.isDataPort) continue;
+                if (port.mode is not (Port.Mode.Enter or Port.Mode.Output or Port.Mode.NonTypedOutput)) continue;
 
                 var links = externalPortLinksMap[port.GetSignature()];
                 var runtimeLinks = new RuntimeLink[links.Count];
@@ -122,7 +122,7 @@ namespace MisterGames.Blueprints.Compile {
                     var port = ports[p];
 
                     // Create link to owner subgraph node, if port is external and exit or input
-                    if (port.isExternalPort && (port.isExitPort && !port.isDataPort || !port.isExitPort && port.isDataPort)) {
+                    if (port.isExternalPort && port.mode is Port.Mode.Exit or Port.Mode.Output or Port.Mode.NonTypedOutput) {
                         int portSignature = port.GetSignature();
                         int subgraphPortIndex = -1;
 
