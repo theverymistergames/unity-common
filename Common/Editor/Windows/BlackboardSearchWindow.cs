@@ -6,7 +6,7 @@ using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using Blackboard = MisterGames.Common.Data.Blackboard;
 
-namespace MisterGames.Fsm.Editor.Windows {
+namespace MisterGames.Common.Editor.Windows {
 
     public class BlackboardSearchWindow : ScriptableObject, ISearchWindowProvider {
 
