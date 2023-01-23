@@ -267,8 +267,8 @@ namespace MisterGames.Blueprints.Editor.Core {
             }
 
             _blueprintAsset = null;
+            graphViewChanged -= OnGraphViewChanged;
             DeleteElements(graphElements);
-            ClearSelection();
         }
 
         public override void BuildContextualMenu(ContextualMenuPopulateEvent evt) {
@@ -351,7 +351,7 @@ namespace MisterGames.Blueprints.Editor.Core {
                         break;
 
                     case Edge edge:
-                        if (edge.input.node is BlueprintNodeView toView && edge.output.node is BlueprintNodeView fromView) {
+                        if (edge.input?.node is BlueprintNodeView toView && edge.output?.node is BlueprintNodeView fromView) {
                             int fromNodeId = fromView.nodeMeta.NodeId;
                             int toNodeId = toView.nodeMeta.NodeId;
 
@@ -368,10 +368,11 @@ namespace MisterGames.Blueprints.Editor.Core {
             bool hasMovedElements = change.movedElements is { Count: > 0 };
             bool hasEdgesToCreate = change.edgesToCreate is { Count: > 0 };
 
-            if (hasMovedElements || hasElementsToRemove || hasEdgesToCreate) {
-                SetBlueprintAssetDirtyAndNotify();
-                RepopulateView();
-            }
+            // Edge views are to be created in the next RepopulateView() call
+            if (hasEdgesToCreate) change.edgesToCreate.Clear();
+
+            if (hasMovedElements || hasElementsToRemove || hasEdgesToCreate) SetBlueprintAssetDirtyAndNotify();
+            if (hasElementsToRemove || hasEdgesToCreate) RepopulateView();
 
             return change;
         }
@@ -424,7 +425,12 @@ namespace MisterGames.Blueprints.Editor.Core {
                     bool isToPortInExitContainer = toPort.mode is Port.Mode.Exit or Port.Mode.Output or Port.Mode.NonTypedOutput;
                     var toPortView = GetPortView(toNodeView, link.portIndex, isToPortInExitContainer);
 
-                    AddElement(fromPortView.ConnectTo(toPortView));
+                    Debug.Log($"BlueprintsView.CreateNodeConnectionViews: " +
+                              $"creating connection from [node {nodeMeta.NodeId} port {p}] " +
+                              $"to [node {link.nodeId} port {link.portIndex}]");
+
+                    var edge = fromPortView.ConnectTo(toPortView);
+                    AddElement(edge);
                 }
             }
         }
@@ -575,10 +581,11 @@ namespace MisterGames.Blueprints.Editor.Core {
                     continue;
                 }
 
-                if (element is Edge edge &&
-                    edge.input.node is BlueprintNodeView toNodeView &&
-                    edge.output.node is BlueprintNodeView fromNodeView) {
-
+                if (element is Edge {
+                        input: { node: BlueprintNodeView toNodeView },
+                        output: { node: BlueprintNodeView fromNodeView },
+                    } edge
+                ) {
                     copyData.links.Add(new CopyPasteData.LinkData {
                         fromNodeId = fromNodeView.nodeMeta.NodeId,
                         fromPortIndex = GetPortIndex(edge.output),
