@@ -137,24 +137,10 @@ namespace MisterGames.Blueprints.Editor.Core {
                         var port = ports[p];
                         if (!BlueprintValidation.ArePortsCompatible(fromPort, port)) continue;
 
-                        string mode = port.mode switch {
-                            Port.Mode.Enter => "Enter",
-                            Port.Mode.Exit => "Exit",
-                            Port.Mode.Input => $"Input<{port.DataType.Name}>",
-                            Port.Mode.Output => $"Output<{port.DataType.Name}>",
-                            Port.Mode.NonTypedInput => "Input",
-                            Port.Mode.NonTypedOutput => "Output",
-                            _ => throw new NotSupportedException($"Port mode {port.mode} is not supported")
-                        };
-
-                        string portName = string.IsNullOrEmpty(port.name)
-                            ? mode
-                            : $"{port.name} ({mode})";
-
                         portEntries.Add(new NodePortSearchEntry {
                             nodeType = t,
                             portIndex = p,
-                            portName = $"[{p}] {portName}"
+                            portName = GetPortName(p, port),
                         });
                     }
 
@@ -167,7 +153,29 @@ namespace MisterGames.Blueprints.Editor.Core {
         }
 
         private static string GetNodePortPath(NodePortSearchEntry nodePortSearchEntry) {
-            return $"{GetNodeTypePath(nodePortSearchEntry.nodeType)} :: {nodePortSearchEntry.portName}";
+            return $"{GetNodeTypePath(nodePortSearchEntry.nodeType)}: {nodePortSearchEntry.portName}";
+        }
+
+        private static string GetPortName(int index, Port port) {
+            return string.IsNullOrEmpty(port.name)
+                ? port.mode switch {
+                    Port.Mode.Enter => $"[{index}] Enter",
+                    Port.Mode.Exit => $"[{index}] Exit",
+                    Port.Mode.Input => $"[{index}] In ({port.DataType.Name})",
+                    Port.Mode.Output => $"[{index}] Out ({port.DataType.Name})",
+                    Port.Mode.NonTypedInput => $"[{index}] In",
+                    Port.Mode.NonTypedOutput => $"[{index}] Out",
+                    _ => throw new NotSupportedException($"Port mode {port.mode} is not supported")
+                }
+                : port.mode switch {
+                    Port.Mode.Enter => $"[{index}] {port.name}",
+                    Port.Mode.Exit => $"[{index}] {port.name}",
+                    Port.Mode.Input => $"[{index}] {port.name} ({port.DataType.Name})",
+                    Port.Mode.Output => $"[{index}] {port.name} ({port.DataType.Name})",
+                    Port.Mode.NonTypedInput => $"[{index}] {port.name}",
+                    Port.Mode.NonTypedOutput => $"[{index}] {port.name}",
+                    _ => throw new NotSupportedException($"Port mode {port.mode} is not supported")
+                };
         }
 
         private static IEnumerable<Type> GetBlueprintNodeTypes() {

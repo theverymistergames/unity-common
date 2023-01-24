@@ -77,7 +77,7 @@ namespace MisterGames.Blueprints.Editor.Core {
         // ---------------- ---------------- Node Search Window ---------------- ----------------
 
         private static void OpenSearchWindow<T>(T window, Vector2 position) where T : ScriptableObject, ISearchWindowProvider {
-            SearchWindow.Open(new SearchWindowContext(position), window);
+            SearchWindow.Open(new SearchWindowContext(position, 280f), window);
         }
 
         private void InitNodeSearchWindow() {
