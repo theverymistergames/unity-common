@@ -32,12 +32,12 @@ namespace MisterGames.Blueprints.Meta {
         }
 
         public void RemoveNode(int nodeId) {
-            if (!_nodesMap.ContainsKey(nodeId)) return;
+            if (!_nodesMap.TryGetValue(nodeId, out var nodeMeta)) return;
 
             RemoveLinksFromNode(nodeId);
             RemoveLinksToNode(nodeId);
 
-            RemoveRelatedExternalPorts(nodeId);
+            RemoveRelatedExternalPorts(nodeId, nodeMeta.Ports);
 
             _nodesMap.Remove(nodeId);
         }
@@ -141,10 +141,10 @@ namespace MisterGames.Blueprints.Meta {
         public bool InvalidateNodePortsAndLinks(int nodeId, BlueprintNode nodeInstance, bool notify = true) {
             if (!_nodesMap.TryGetValue(nodeId, out var nodeMeta)) return false;
 
-            RemoveRelatedExternalPorts(nodeId);
-
             var oldPorts = nodeMeta.Ports;
             int oldPortsCount = oldPorts.Count;
+
+            RemoveRelatedExternalPorts(nodeId, oldPorts);
 
             nodeMeta.RecreatePorts(nodeInstance);
             var newPorts = nodeMeta.Ports;
@@ -199,19 +199,18 @@ namespace MisterGames.Blueprints.Meta {
                 var port = ports[p];
                 if (!port.isExternalPort) continue;
 
-                if (!_externalPortLinksMap.TryGetValue(port.GetSignature(), out var links)) {
+                int portSignature = port.GetSignature();
+
+                if (!_externalPortLinksMap.TryGetValue(portSignature, out var links)) {
                     links = new List<BlueprintLink>(1);
-                    _externalPortLinksMap[nodeId] = links;
+                    _externalPortLinksMap[portSignature] = links;
                 }
 
                 links.Add(new BlueprintLink { nodeId = nodeId, portIndex = p });
             }
         }
 
-        private void RemoveRelatedExternalPorts(int nodeId) {
-            if (!_nodesMap.TryGetValue(nodeId, out var nodeMeta)) return;
-
-            var ports = nodeMeta.Ports;
+        private void RemoveRelatedExternalPorts(int nodeId, IReadOnlyList<Port> ports) {
             for (int p = 0; p < ports.Count; p++) {
                 var port = ports[p];
                 if (!port.isExternalPort) continue;
