@@ -2,17 +2,17 @@
 using MisterGames.Blueprints.Validation;
 using UnityEngine;
 
-namespace MisterGames.Blueprints.External {
+namespace MisterGames.Blueprints.Nodes {
 
     [Serializable]
-    [BlueprintNodeMeta(Name = "Output", Category = "External", Color = BlueprintColors.Node.External)]
-    public sealed class BlueprintNodeOutput : BlueprintNode, IBlueprintOutput, IBlueprintValidatedNode {
+    [BlueprintNodeMeta(Name = "Input", Category = "External", Color = BlueprintColors.Node.External)]
+    public sealed class BlueprintNodeInput : BlueprintNode, IBlueprintOutput, IBlueprintValidatedNode {
 
         [SerializeField] private string _parameter;
-        
+
         public override Port[] CreatePorts() => new[] {
-            Port.Input(),
-            Port.Output(_parameter).SetExternal(true)
+            Port.Input(_parameter).SetExternal(true),
+            Port.Output()
         };
 
         public T GetPortValue<T>(int port) {

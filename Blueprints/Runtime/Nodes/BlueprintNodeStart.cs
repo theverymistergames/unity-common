@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace MisterGames.Blueprints.External {
+namespace MisterGames.Blueprints.Nodes {
 
     [Serializable]
     [BlueprintNodeMeta(Name = "Start", Category = "Flow", Color = BlueprintColors.Node.Flow)]

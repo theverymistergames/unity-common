@@ -5,7 +5,7 @@ using MisterGames.Blueprints.Validation;
 using MisterGames.Common.Data;
 using UnityEngine;
 
-namespace MisterGames.Blueprints.External {
+namespace MisterGames.Blueprints.Nodes {
 
     [Serializable]
     [BlueprintNodeMeta(Name = "Subgraph", Category = "Flow", Color = BlueprintColors.Node.Flow)]
