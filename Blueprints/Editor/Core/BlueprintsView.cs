@@ -164,7 +164,7 @@ namespace MisterGames.Blueprints.Editor.Core {
             Undo.RecordObject(_blueprintAsset, "Blueprint Add Blackboard Property");
 
             string typeName = Blackboard.GetTypeName(type);
-            if (!blackboard.TryAddProperty($"New {typeName}", type, default, out var property)) return;
+            if (!blackboard.TryAddProperty($"New {typeName}", type, out var property)) return;
 
             var view = BlackboardUtils.CreateBlackboardPropertyView(blackboard, property, OnBlackboardPropertyValueChanged);
             _blackboardView.Add(view);
