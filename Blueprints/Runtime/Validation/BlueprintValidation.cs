@@ -59,8 +59,8 @@ namespace MisterGames.Blueprints.Validation {
             return a.mode switch {
                 Port.Mode.Enter => b.mode == Port.Mode.Exit,
                 Port.Mode.Exit => b.mode == Port.Mode.Enter,
-                Port.Mode.Input => b.mode is Port.Mode.Output or Port.Mode.NonTypedOutput,
-                Port.Mode.Output => b.mode is Port.Mode.Input or Port.Mode.NonTypedInput,
+                Port.Mode.Input => b.mode == Port.Mode.Output && a.DataType == b.DataType || b.mode == Port.Mode.NonTypedOutput,
+                Port.Mode.Output => b.mode == Port.Mode.Input && a.DataType == b.DataType || b.mode == Port.Mode.NonTypedInput,
                 Port.Mode.NonTypedInput => b.mode is Port.Mode.Output or Port.Mode.NonTypedOutput,
                 Port.Mode.NonTypedOutput => b.mode is Port.Mode.Input or Port.Mode.NonTypedInput,
                 _ => throw new NotSupportedException($"Port mode {a.mode} is not supported")

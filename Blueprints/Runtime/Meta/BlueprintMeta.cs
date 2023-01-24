@@ -74,7 +74,7 @@ namespace MisterGames.Blueprints.Meta {
             }
 
             if (fromPort.mode is Port.Mode.Input or Port.Mode.NonTypedInput) {
-                if (toPort.mode is Port.Mode.Output or Port.Mode.NonTypedOutput) return false;
+                if (toPort.mode is not (Port.Mode.Output or Port.Mode.NonTypedOutput)) return false;
 
                 // input and output must have same data type
                 if (fromPort.mode == Port.Mode.Input &&
@@ -88,7 +88,7 @@ namespace MisterGames.Blueprints.Meta {
             }
 
             if (fromPort.mode is Port.Mode.Output or Port.Mode.NonTypedOutput) {
-                if (toPort.mode is Port.Mode.Input or Port.Mode.NonTypedInput) return false;
+                if (toPort.mode is not (Port.Mode.Input or Port.Mode.NonTypedInput)) return false;
 
                 // input and output must have same data type
                 if (fromPort.mode == Port.Mode.Output &&
