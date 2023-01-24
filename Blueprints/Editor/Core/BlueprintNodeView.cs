@@ -23,7 +23,7 @@ namespace MisterGames.Blueprints.Editor.Core {
 
         private readonly VirtualInspector _nodeInspector;
 
-        public BlueprintNodeView(BlueprintNodeMeta nodeMeta, IEdgeConnectorListener connectorListener) : base(GetUxmlPath()) {
+        public BlueprintNodeView(BlueprintNodeMeta nodeMeta) : base(GetUxmlPath()) {
             this.nodeMeta = nodeMeta;
 
             viewDataKey = nodeMeta.NodeId.ToString();
@@ -48,8 +48,6 @@ namespace MisterGames.Blueprints.Editor.Core {
 
             style.left = nodeMeta.Position.x;
             style.top = nodeMeta.Position.y;
-
-            InitPorts(connectorListener);
         }
 
         public void DeInitialize() {
@@ -92,15 +90,21 @@ namespace MisterGames.Blueprints.Editor.Core {
             OnPositionChanged.Invoke(nodeMeta, new Vector2(newPos.xMin, newPos.yMin));
         }
         
-        private void InitPorts(IEdgeConnectorListener connectorListener) {
+        public void CreatePortViews(IEdgeConnectorListener connectorListener) {
             var ports = nodeMeta.Ports;
             for (int i = 0; i < ports.Count; i++) {
-                CreatePort(ports[i], connectorListener);
+                CreatePortView(ports[i], connectorListener);
             }
+
             RefreshPorts();
         }
 
-        private void CreatePort(Port port, IEdgeConnectorListener connectorListener) {
+        public void ClearPortViews() {
+            inputContainer.Clear();
+            outputContainer.Clear();
+        }
+
+        private void CreatePortView(Port port, IEdgeConnectorListener connectorListener) {
             if (port.isExternalPort) return;
 
             Direction direction;

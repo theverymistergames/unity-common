@@ -16,7 +16,7 @@ namespace MisterGames.Blueprints.Meta {
         [SerializeField] private SerializedDictionary<int, List<BlueprintLink>> _externalPortLinksMap;
         [SerializeField] private SerializedDictionary<int, BlueprintAsset> _subgraphReferencesMap;
 
-        public Action<int> OnInvalidateNode;
+        public Action<int> OnInvalidateNodePortsAndLinks;
 
         public Dictionary<int, BlueprintNodeMeta> NodesMap => _nodesMap;
         public Dictionary<int, List<BlueprintLink>> ExternalPortLinksMap => _externalPortLinksMap;
@@ -179,7 +179,7 @@ namespace MisterGames.Blueprints.Meta {
                 portsChanged = true;
             }
 
-            if (portsChanged && notify) OnInvalidateNode?.Invoke(nodeId);
+            if (portsChanged && notify) OnInvalidateNodePortsAndLinks?.Invoke(nodeId);
 
             return portsChanged;
         }

@@ -231,10 +231,19 @@ namespace MisterGames.Blueprints.Editor.Core {
             InvalidateNodesPortsAndConnections();
             RepopulateView();
 
-            _blueprintAsset.BlueprintMeta.OnInvalidateNode = _ => {
-                SetBlueprintAssetDirtyAndNotify();
-                RepopulateView();
-            };
+            _blueprintAsset.BlueprintMeta.OnInvalidateNodePortsAndLinks = RepaintNodePortsAndLinks;
+        }
+
+        private void RepaintNodePortsAndLinks(int nodeId) {
+            var nodeView = FindNodeViewByNodeId(nodeId);
+
+            RemoveNodeConnectionViews(nodeView);
+
+            nodeView.ClearPortViews();
+            nodeView.CreatePortViews(this);
+
+            CreateFromNodeConnectionViews(nodeView.nodeMeta);
+            CreateToNodeConnectionViews(nodeView.nodeMeta);
         }
 
         private void RepopulateView() {
@@ -250,7 +259,7 @@ namespace MisterGames.Blueprints.Editor.Core {
                 CreateNodeView(nodeMeta);
             }
             foreach (var nodeMeta in nodesMeta) {
-                CreateNodeConnectionViews(nodeMeta);
+                CreateFromNodeConnectionViews(nodeMeta);
             }
 
             FillBlackboardView();
@@ -390,11 +399,12 @@ namespace MisterGames.Blueprints.Editor.Core {
         }
 
         private BlueprintNodeView CreateNodeView(BlueprintNodeMeta nodeMeta) {
-            var nodeView = new BlueprintNodeView(nodeMeta, this) {
+            var nodeView = new BlueprintNodeView(nodeMeta) {
                 OnPositionChanged = OnNodePositionChanged,
                 OnValidate = OnValidateNode,
             };
 
+            nodeView.CreatePortViews(this);
             AddElement(nodeView);
 
             return nodeView;
@@ -415,18 +425,18 @@ namespace MisterGames.Blueprints.Editor.Core {
             SetBlueprintAssetDirtyAndNotify();
         }
 
-        private void CreateNodeConnectionViews(BlueprintNodeMeta nodeMeta) {
+        private void CreateFromNodeConnectionViews(BlueprintNodeMeta nodeMeta) {
             var blueprintMeta = _blueprintAsset.BlueprintMeta;
 
             var fromNodeView = FindNodeViewByNodeId(nodeMeta.NodeId);
             var fromNodePorts = nodeMeta.Ports;
 
             for (int p = 0; p < fromNodePorts.Count; p++) {
-                var port = fromNodePorts[p];
-                if (port.isExternalPort) continue;
+                var fromPort = fromNodePorts[p];
+                if (fromPort.isExternalPort) continue;
 
-                bool isPortInExitContainer = port.mode is Port.Mode.Exit or Port.Mode.Output or Port.Mode.NonTypedOutput;
-                var fromPortView = GetPortView(fromNodeView, p, isPortInExitContainer);
+                bool isFromPortInExitContainer = fromPort.mode is Port.Mode.Exit or Port.Mode.Output or Port.Mode.NonTypedOutput;
+                var fromPortView = GetPortView(fromNodeView, p, isFromPortInExitContainer);
                 var links = blueprintMeta.GetLinksFromNodePort(nodeMeta.NodeId, p);
 
                 for (int l = 0; l < links.Count; l++) {
@@ -437,6 +447,35 @@ namespace MisterGames.Blueprints.Editor.Core {
 
                     bool isToPortInExitContainer = toPort.mode is Port.Mode.Exit or Port.Mode.Output or Port.Mode.NonTypedOutput;
                     var toPortView = GetPortView(toNodeView, link.portIndex, isToPortInExitContainer);
+
+                    var edge = fromPortView.ConnectTo(toPortView);
+                    AddElement(edge);
+                }
+            }
+        }
+
+        private void CreateToNodeConnectionViews(BlueprintNodeMeta nodeMeta) {
+            var blueprintMeta = _blueprintAsset.BlueprintMeta;
+
+            var toNodeView = FindNodeViewByNodeId(nodeMeta.NodeId);
+            var toNodePorts = nodeMeta.Ports;
+
+            for (int p = 0; p < toNodePorts.Count; p++) {
+                var toPort = toNodePorts[p];
+                if (toPort.isExternalPort) continue;
+
+                bool isToPortInExitContainer = toPort.mode is Port.Mode.Exit or Port.Mode.Output or Port.Mode.NonTypedOutput;
+                var toPortView = GetPortView(toNodeView, p, isToPortInExitContainer);
+                var links = blueprintMeta.GetLinksToNodePort(nodeMeta.NodeId, p);
+
+                for (int l = 0; l < links.Count; l++) {
+                    var link = links[l];
+
+                    var fromNodeView = FindNodeViewByNodeId(link.nodeId);
+                    var fromPort = fromNodeView.nodeMeta.Ports[link.portIndex];
+
+                    bool isFromPortInExitContainer = fromPort.mode is Port.Mode.Exit or Port.Mode.Output or Port.Mode.NonTypedOutput;
+                    var fromPortView = GetPortView(fromNodeView, link.portIndex, isFromPortInExitContainer);
 
                     var edge = fromPortView.ConnectTo(toPortView);
                     AddElement(edge);
@@ -461,6 +500,28 @@ namespace MisterGames.Blueprints.Editor.Core {
             AddElement(edge);
 
             return edge;
+        }
+
+        private void RemoveNodeConnectionViews(BlueprintNodeView nodeView) {
+            graphViewChanged -= OnGraphViewChanged;
+
+            int inputPortViewsCount = nodeView.inputContainer.hierarchy.childCount;
+            for (int i = 0; i < inputPortViewsCount; i++) {
+                var portView = nodeView.inputContainer[i] as PortView;
+                if (portView == null) continue;
+
+                DeleteElements(portView.connections);
+            }
+
+            int outputPortViewsCount = nodeView.outputContainer.hierarchy.childCount;
+            for (int i = 0; i < outputPortViewsCount; i++) {
+                var portView = nodeView.outputContainer[i] as PortView;
+                if (portView == null) continue;
+
+                DeleteElements(portView.connections);
+            }
+
+            graphViewChanged += OnGraphViewChanged;
         }
 
         private BlueprintNodeView FindNodeViewByNodeId(int nodeId) {
