@@ -529,39 +529,43 @@ namespace MisterGames.Blueprints.Editor.Core {
         }
 
         public override List<PortView> GetCompatiblePorts(PortView startPortView, NodeAdapter nodeAdapter) {
-            int startNodeId = GetNode(startPortView).nodeMeta.NodeId;
-            var startPort = GetPort(startPortView);
+            var startNodeMeta = GetNodeView(startPortView).nodeMeta;
+            int startPortIndex = GetPortIndex(startPortView);
+            var startPort = startNodeMeta.Ports[startPortIndex];
 
             return ports
-                .Where(portView => GetNode(portView).nodeMeta.NodeId != startNodeId &&
-                                   BlueprintValidation.ArePortsCompatible(startPort, GetPort(portView)))
+                .Where(portView => {
+                    var nodeMeta = GetNodeView(portView).nodeMeta;
+                    if (nodeMeta.NodeId == startNodeMeta.NodeId) return false;
+
+                    int portIndex = GetPortIndex(portView);
+                    var port = nodeMeta.Ports[portIndex];
+
+                    return BlueprintValidation.ArePortsCompatible(startPort, port);
+                })
                 .ToList();
         }
 
-        private static BlueprintNodeView GetNode(PortView portView) {
+        private static BlueprintNodeView GetNodeView(PortView portView) {
             return (BlueprintNodeView) portView.node;
         }
 
-        private static Port GetPort(PortView view) {
-            return ((BlueprintNodeView) view.node).nodeMeta.Ports[GetPortIndex(view)];
-        }
+        private static PortView GetPortView(BlueprintNodeView nodeView, int portIndex, bool isExit) {
+            var ports = nodeView.nodeMeta.Ports;
+            int portViewIndex = -1;
 
-        private static PortView GetPortView(BlueprintNodeView view, int index, bool isExit) {
-            var ports = view.nodeMeta.Ports;
-            int portIndex = -1;
-            
             for (int i = 0; i < ports.Count; i++) {
                 var port = ports[i];
+
                 bool isPortInExitContainer = port.mode is Port.Mode.Exit or Port.Mode.Output or Port.Mode.NonTypedOutput;
                 if (isPortInExitContainer != isExit) continue;
-                
-                portIndex++;
-                
-                if (i == index) break;
+
+                portViewIndex++;
+                if (i == portIndex) break;
             }
 
-            var container = isExit ? view.outputContainer : view.inputContainer;
-            return container[portIndex] as PortView;
+            var container = isExit ? nodeView.outputContainer : nodeView.inputContainer;
+            return container[portViewIndex] as PortView;
         }
         
         private static int GetPortIndex(PortView portView) {
@@ -590,9 +594,9 @@ namespace MisterGames.Blueprints.Editor.Core {
 
         public void OnDropOutsidePort(Edge edge, Vector2 position) {
             var portView = edge.input ?? edge.output;
-            var nodeMeta = GetNode(portView).nodeMeta;
-            var port = GetPort(portView);
+            var nodeMeta = GetNodeView(portView).nodeMeta;
             int portIndex = GetPortIndex(portView);
+            var port = nodeMeta.Ports[portIndex];
 
             _nodeSearchWindow.SwitchToNodePortSearch(new BlueprintNodeSearchWindow.PortSearchData {
                 fromNodeId = nodeMeta.NodeId,
