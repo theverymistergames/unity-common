@@ -523,13 +523,13 @@ namespace MisterGames.Blueprints.Editor.Core {
         }
 
         public override List<PortView> GetCompatiblePorts(PortView startPortView, NodeAdapter nodeAdapter) {
-            var startNodeView = GetNodeView(startPortView);
+            var startNodeView = (BlueprintNodeView) startPortView.node;
             var startNodeMeta = startNodeView.nodeMeta;
             var startPort = startNodeMeta.Ports[startNodeView.GetPortIndex(startPortView)];
 
             return ports
                 .Where(portView => {
-                    var nodeView = GetNodeView(portView);
+                    var nodeView = (BlueprintNodeView) portView.node;
                     if (nodeView.nodeMeta.NodeId == startNodeMeta.NodeId) return false;
 
                     var port = nodeView.nodeMeta.Ports[nodeView.GetPortIndex(portView)];
@@ -538,13 +538,9 @@ namespace MisterGames.Blueprints.Editor.Core {
                 .ToList();
         }
 
-        private static BlueprintNodeView GetNodeView(PortView portView) {
-            return (BlueprintNodeView) portView.node;
-        }
-
         public void OnDropOutsidePort(Edge edge, Vector2 position) {
             var portView = edge.input ?? edge.output;
-            var nodeView = GetNodeView(portView);
+            var nodeView = (BlueprintNodeView) portView.node;
             var nodeMeta = nodeView.nodeMeta;
 
             int portIndex = nodeView.GetPortIndex(portView);
