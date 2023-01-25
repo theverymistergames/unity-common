@@ -64,7 +64,7 @@ namespace MisterGames.Blueprints.Meta {
         }
 
         public override string ToString() {
-            return $"{nameof(BlueprintNodeMeta)}(nodeId = {_nodeId}, nodeType = {_serializedNodeType}, ports = [{string.Join(", ", _ports)}])";
+            return $"BlueprintNode#{_nodeId}({_serializedNodeType})";
         }
     }
 
