@@ -14,11 +14,9 @@ namespace MisterGames.Blueprints.Editor.Core {
             if (target is not BlueprintRunner runner) return;
 
             serializedObject.Update();
-
             EditorGUI.BeginChangeCheck();
             DrawBlueprintRunner(runner);
             EditorGUI.EndChangeCheck();
-
             serializedObject.ApplyModifiedProperties();
         }
 
@@ -38,7 +36,7 @@ namespace MisterGames.Blueprints.Editor.Core {
 
             GUILayout.Space(10);
 
-            GUILayout.Label("Blackboard scene objects", EditorStyles.boldLabel);
+            GUILayout.Label("Blackboard scene references", EditorStyles.boldLabel);
 
             _visitedBlueprintAssets.Clear();
 
