@@ -47,7 +47,7 @@ namespace MisterGames.Blueprints.Editor.Core {
 
         private void OnEnable() {
             var asset = _assetPicker?.value as BlueprintAsset;
-            if (asset == null) SetWindowTitle(WINDOW_TITLE);
+            SetWindowTitle(asset == null ? WINDOW_TITLE : EditorUtility.IsDirty(asset) ? $"{asset.name}*" : asset.name);
         }
 
         private void OnDisable() {
@@ -113,7 +113,7 @@ namespace MisterGames.Blueprints.Editor.Core {
                 return;
             }
 
-            SetWindowTitle($"{asset.name}{(EditorUtility.IsDirty(asset) ? "*" : string.Empty)}");
+            SetWindowTitle(EditorUtility.IsDirty(asset) ? $"{asset.name}*" : asset.name);
             _blueprintsView.PopulateViewFromAsset(asset);
         }
 
