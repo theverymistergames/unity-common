@@ -33,7 +33,7 @@ namespace MisterGames.Blueprints.Compile {
                     : Array.Empty<RuntimePort>();
 
                 for (int p = 0; p < portsCount; p++) {
-#if DEBUG || UNITY_EDITOR
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
                     BlueprintValidation.ValidatePort(blueprintAsset, nodeMeta, p);
 #endif
 
@@ -48,7 +48,7 @@ namespace MisterGames.Blueprints.Compile {
                         var link = links[l];
                         var linkedNodeMeta = nodesMetaMap[link.nodeId];
 
-#if DEBUG || UNITY_EDITOR
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
                         BlueprintValidation.ValidateLink(blueprintAsset, nodeMeta, p, linkedNodeMeta, link.portIndex);
 #endif
 
@@ -97,7 +97,7 @@ namespace MisterGames.Blueprints.Compile {
                 for (int p = 0; p < portsCount; p++) {
                     var port = ports[p];
 
-#if DEBUG || UNITY_EDITOR
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
                     BlueprintValidation.ValidatePort(blueprintAsset, nodeMeta, p);
 #endif
                     if (port.isExternalPort) {
@@ -142,7 +142,7 @@ namespace MisterGames.Blueprints.Compile {
                         var link = links[l];
                         var linkedNodeMeta = nodesMetaMap[link.nodeId];
 
-#if DEBUG || UNITY_EDITOR
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
                         BlueprintValidation.ValidateLink(blueprintAsset, nodeMeta, p, linkedNodeMeta, link.portIndex);
 #endif
 
