@@ -9,7 +9,7 @@ using UnityEngine;
 namespace MisterGames.Blueprints.Nodes {
 
     [Serializable]
-    [BlueprintNodeMeta(Name = "Subgraph", Category = "Flow", Color = BlueprintColors.Node.Flow)]
+    [BlueprintNodeMeta(Name = "Subgraph", Category = "External", Color = BlueprintColors.Node.External)]
     public sealed class BlueprintNodeSubgraph :
         BlueprintNode,
         IBlueprintHost,
