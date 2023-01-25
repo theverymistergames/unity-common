@@ -27,17 +27,14 @@ namespace MisterGames.Blueprints.Nodes {
         private Blackboard _blackboard;
         private IBlueprintHost _host;
 
-        private readonly HashSet<int> _portSignatureSet = new HashSet<int>();
-        private readonly List<Port> _ports = new List<Port>();
-
         public override Port[] CreatePorts() {
             if (_blueprintAsset == null) return Array.Empty<Port>();
 
             var blueprintMeta = _blueprintAsset.BlueprintMeta;
             var nodesMap = blueprintMeta.NodesMap;
 
-            _portSignatureSet.Clear();
-            _ports.Clear();
+            var portSignatureSet = new HashSet<int>();
+            var ports = new List<Port>();
 
             foreach (var nodeMeta in nodesMap.Values) {
                 var nodePorts = nodeMeta.Ports;
@@ -46,19 +43,17 @@ namespace MisterGames.Blueprints.Nodes {
                     if (!nodePort.isExternalPort) continue;
 
                     int portSignature = nodePort.GetSignature();
-                    if (_portSignatureSet.Contains(portSignature)) continue;
+                    if (portSignatureSet.Contains(portSignature)) {
+                        BlueprintValidation.ValidateExternalPortWithExistingSignature(_blueprintAsset, nodePort);
+                        continue;
+                    }
 
-                    _portSignatureSet.Add(portSignature);
-                    _ports.Add(nodePort.SetExternal(false));
+                    portSignatureSet.Add(portSignature);
+                    ports.Add(nodePort.SetExternal(false));
                 }
             }
 
-            var ports = _ports.ToArray();
-
-            _portSignatureSet.Clear();
-            _ports.Clear();
-
-            return ports;
+            return ports.ToArray();
         }
 
         public override void OnInitialize(IBlueprintHost host) {

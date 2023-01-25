@@ -88,6 +88,18 @@ namespace MisterGames.Blueprints.Validation {
             };
         }
 
+        public static bool ValidateExternalPortWithExistingSignature(BlueprintAsset asset, Port port) {
+            if (port.mode is Port.Mode.Output or Port.Mode.NonTypedOutput) {
+                Debug.LogWarning($"Subgraph node has blueprint `{asset.name}`, " +
+                                 $"which contains multiple external outputs with same name `{port.name}`: " +
+                                 $"this can cause incorrect output values. " +
+                                 $"Blueprint `{asset.name}` has to be refactored in order to be used as subgraph.");
+                return false;
+            }
+
+            return true;
+        }
+
         public static bool ValidateLink(BlueprintAsset asset, BlueprintNodeMeta nodeMeta, int portIndex, BlueprintNodeMeta toNodeMeta, int toPortIndex) {
             if (portIndex < 0 || portIndex > nodeMeta.Ports.Length - 1) {
                 Debug.LogError($"Blueprint `{asset.name}`: " +
