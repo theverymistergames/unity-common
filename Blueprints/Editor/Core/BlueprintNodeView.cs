@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
 using MisterGames.Blueprints.Meta;
 using MisterGames.Common.Color;
@@ -22,6 +23,8 @@ namespace MisterGames.Blueprints.Editor.Core {
         public Action<BlueprintNodeMeta, BlueprintNode> OnValidate = delegate {  };
 
         private readonly VirtualInspector _nodeInspector;
+        private readonly Dictionary<PortView, int> _portViewToPortIndexMap = new Dictionary<PortView, int>();
+        private readonly Dictionary<int, PortView> _portIndexToPortViewMap = new Dictionary<int, PortView>();
 
         public BlueprintNodeView(BlueprintNodeMeta nodeMeta) : base(GetUxmlPath()) {
             this.nodeMeta = nodeMeta;
@@ -52,7 +55,40 @@ namespace MisterGames.Blueprints.Editor.Core {
 
         public void DeInitialize() {
             Object.DestroyImmediate(_nodeInspector);
+
+            _portViewToPortIndexMap.Clear();
+            _portIndexToPortViewMap.Clear();
+
             Clear();
+        }
+
+        public void CreatePortViews(IEdgeConnectorListener connectorListener) {
+            var ports = nodeMeta.Ports;
+            for (int i = 0; i < ports.Count; i++) {
+                CreatePortView(i, ports[i], connectorListener);
+            }
+            RefreshPorts();
+        }
+
+        public void ClearPortViews() {
+            _portViewToPortIndexMap.Clear();
+            _portIndexToPortViewMap.Clear();
+
+            inputContainer.Clear();
+            outputContainer.Clear();
+        }
+
+        public PortView GetPortView(int portIndex) {
+            return _portIndexToPortViewMap[portIndex];
+        }
+
+        public int GetPortIndex(PortView portView) {
+            return _portViewToPortIndexMap[portView];
+        }
+
+        public override void SetPosition(Rect newPos) {
+            base.SetPosition(newPos);
+            OnPositionChanged.Invoke(nodeMeta, new Vector2(newPos.xMin, newPos.yMin));
         }
 
         private void OnNodeValidate(object obj) {
@@ -80,31 +116,7 @@ namespace MisterGames.Blueprints.Editor.Core {
             EditorGUIUtility.fieldWidth = fieldWidth;
         }
 
-        private static string GetUxmlPath() {
-            var asset = Resources.Load<VisualTreeAsset>("BlueprintNodeView");
-            return AssetDatabase.GetAssetPath(asset);
-        }
-
-        public override void SetPosition(Rect newPos) {
-            base.SetPosition(newPos);
-            OnPositionChanged.Invoke(nodeMeta, new Vector2(newPos.xMin, newPos.yMin));
-        }
-        
-        public void CreatePortViews(IEdgeConnectorListener connectorListener) {
-            var ports = nodeMeta.Ports;
-            for (int i = 0; i < ports.Count; i++) {
-                CreatePortView(ports[i], connectorListener);
-            }
-
-            RefreshPorts();
-        }
-
-        public void ClearPortViews() {
-            inputContainer.Clear();
-            outputContainer.Clear();
-        }
-
-        private void CreatePortView(Port port, IEdgeConnectorListener connectorListener) {
+        private void CreatePortView(int portIndex, Port port, IEdgeConnectorListener connectorListener) {
             if (port.isExternalPort) return;
 
             Direction direction;
@@ -159,6 +171,9 @@ namespace MisterGames.Blueprints.Editor.Core {
             portView.portColor = GetPortColor(port);
 
             container.Add(portView);
+
+            _portViewToPortIndexMap[portView] = portIndex;
+            _portIndexToPortViewMap[portIndex] = portView;
         }
 
         private static Color GetPortColor(Port port) {
@@ -187,6 +202,11 @@ namespace MisterGames.Blueprints.Editor.Core {
             string name = string.IsNullOrEmpty(port.name) ? string.Empty : port.name.Trim();
 
             return $"<color={nameColor}>{name}</color>";
+        }
+
+        private static string GetUxmlPath() {
+            var asset = Resources.Load<VisualTreeAsset>("BlueprintNodeView");
+            return AssetDatabase.GetAssetPath(asset);
         }
 
         public new class UxmlFactory : UxmlFactory<BlueprintsView, UxmlTraits> { }
