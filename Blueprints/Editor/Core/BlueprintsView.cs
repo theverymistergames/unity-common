@@ -311,7 +311,7 @@ namespace MisterGames.Blueprints.Editor.Core {
             var nodesMap = blueprintMeta.NodesMap;
 
             foreach ((int nodeId, var nodeMeta) in nodesMap) {
-                changed |= blueprintMeta.InvalidateNodePortsAndLinks(nodeId, nodeMeta.CreateNodeInstance(), false);
+                changed |= blueprintMeta.InvalidateNodePorts(nodeId, nodeMeta.CreateNodeInstance(), invalidateLinks: true, notify: false);
             }
 
             if (changed) SetBlueprintAssetDirtyAndNotify();

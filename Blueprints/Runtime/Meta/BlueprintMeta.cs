@@ -131,7 +131,7 @@ namespace MisterGames.Blueprints.Meta {
             _toNodePortLinksMap.Clear();
         }
 
-        public bool InvalidateNodePortsAndLinks(int nodeId, BlueprintNode nodeInstance, bool notify = true) {
+        public bool InvalidateNodePorts(int nodeId, BlueprintNode nodeInstance, bool invalidateLinks, bool notify = true) {
             if (!_nodesMap.TryGetValue(nodeId, out var nodeMeta)) return false;
 
             var oldPorts = nodeMeta.Ports;
@@ -157,13 +157,15 @@ namespace MisterGames.Blueprints.Meta {
 
                 if (oldPortIndex == newPortIndex) continue;
 
-                if (newPortIndex >= 0) {
-                    SetLinksFromNodePort(nodeId, newPortIndex, GetLinksFromNodePort(nodeId, oldPortIndex));
-                    SetLinksToNodePort(nodeId, newPortIndex, GetLinksToNodePort(nodeId, oldPortIndex));
-                }
+                if (invalidateLinks) {
+                    if (newPortIndex >= 0) {
+                        SetLinksFromNodePort(nodeId, newPortIndex, GetLinksFromNodePort(nodeId, oldPortIndex));
+                        SetLinksToNodePort(nodeId, newPortIndex, GetLinksToNodePort(nodeId, oldPortIndex));
+                    }
 
-                RemoveLinksFromNodePort(nodeId, oldPortIndex);
-                RemoveLinksToNodePort(nodeId, oldPortIndex);
+                    RemoveLinksFromNodePort(nodeId, oldPortIndex);
+                    RemoveLinksToNodePort(nodeId, oldPortIndex);
+                }
 
                 portsChanged = true;
             }

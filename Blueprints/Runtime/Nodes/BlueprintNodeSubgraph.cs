@@ -96,7 +96,7 @@ namespace MisterGames.Blueprints.Nodes {
             if (_blueprintAsset == null) ownerAsset.BlueprintMeta.RemoveSubgraphReference(nodeId);
             else ownerAsset.BlueprintMeta.SetSubgraphReference(nodeId, _blueprintAsset);
 
-            ownerAsset.BlueprintMeta.InvalidateNodePortsAndLinks(nodeId, this);
+            ownerAsset.BlueprintMeta.InvalidateNodePorts(nodeId, nodeInstance: this, invalidateLinks: true);
         }
     }
 
