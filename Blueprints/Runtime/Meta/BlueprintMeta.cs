@@ -90,8 +90,8 @@ namespace MisterGames.Blueprints.Meta {
                     fromPort.DataType != toPort.DataType) return false;
 
                 // replacing connections from the input port fromPort to the output port toPort with new connection
-                RemoveLinksFromNodePort(fromNodeId, fromPortIndex);
-                CreateConnection(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
+                RemoveLinksFromNodePort(toNodeId, toPortIndex);
+                CreateConnection(toNodeId, toPortIndex, fromNodeId, fromPortIndex);
                 return true;
             }
 
