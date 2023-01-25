@@ -15,7 +15,9 @@ namespace MisterGames.Blueprints.Editor.Core {
 
             serializedObject.Update();
             EditorGUI.BeginChangeCheck();
+
             DrawBlueprintRunner(runner);
+
             EditorGUI.EndChangeCheck();
             serializedObject.ApplyModifiedProperties();
         }
@@ -58,6 +60,8 @@ namespace MisterGames.Blueprints.Editor.Core {
             BlueprintAsset blueprint,
             SerializedDictionary<BlueprintAsset, SerializedDictionary<int, GameObject>> sceneReferencesMap
         ) {
+            if (blueprint == null) return;
+
             _visitedBlueprintAssets.Add(blueprint);
 
             DrawBlackboardGameObjectProperties(blueprint, sceneReferencesMap);
