@@ -33,9 +33,8 @@ namespace MisterGames.Blueprints {
         }
 
         public int GetSignature() => HashCode.Combine(
-            string.IsNullOrWhiteSpace(name) ? string.Empty : name,
             mode,
-            isExternalPort,
+            string.IsNullOrWhiteSpace(name) ? string.Empty : name,
             string.IsNullOrEmpty(_serializedDataType) ? string.Empty : _serializedDataType
         );
 
