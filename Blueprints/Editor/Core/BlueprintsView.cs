@@ -174,6 +174,8 @@ namespace MisterGames.Blueprints.Editor.Core {
 
             var view = BlackboardUtils.CreateBlackboardPropertyView(blackboard, property, OnBlackboardPropertyValueChanged);
             _blackboardView.Add(view);
+
+            SetBlueprintAssetDirtyAndNotify();
         }
 
         private void RemoveBlackboardProperty(string propertyName) {
