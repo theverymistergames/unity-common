@@ -18,8 +18,9 @@ namespace MisterGames.Blueprints.Nodes {
         };
 
         public override void OnInitialize(IBlueprintHost host) {
-            UnityEngine.Debug.LogWarning($"Using {nameof(BlueprintNodeToString)}: " +
-                                         $"node is for debug purposes and uses reflection.");
+            UnityEngine.Debug.LogWarning($"Using {nameof(BlueprintNodeToString)} in blueprint runner `{host.Runner.name}`: " +
+                                         $"this node uses reflection and is for debug purposes only, " +
+                                         $"it must be removed in the release build.");
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             // Search for first linked node that implements IBlueprintOutput<T> in order to catch real value.
