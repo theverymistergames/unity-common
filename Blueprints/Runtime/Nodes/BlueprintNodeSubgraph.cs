@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using MisterGames.Blueprints.Compile;
 using MisterGames.Blueprints.Meta;
 using MisterGames.Blueprints.Validation;
@@ -26,21 +27,36 @@ namespace MisterGames.Blueprints.Nodes {
         private Blackboard _blackboard;
         private IBlueprintHost _host;
 
+        private readonly HashSet<int> _portSignatureSet = new HashSet<int>();
+        private readonly List<Port> _ports = new List<Port>();
+
         public override Port[] CreatePorts() {
             if (_blueprintAsset == null) return Array.Empty<Port>();
 
             var blueprintMeta = _blueprintAsset.BlueprintMeta;
             var nodesMap = blueprintMeta.NodesMap;
-            var externalPortLinksMap = blueprintMeta.ExternalPortLinksMap;
 
-            int portIndex = 0;
-            int portsCount = externalPortLinksMap.Count;
-            var ports = portsCount > 0 ? new Port[portsCount] : Array.Empty<Port>();
+            _portSignatureSet.Clear();
+            _ports.Clear();
 
-            foreach (var links in externalPortLinksMap.Values) {
-                var link = links[0];
-                ports[portIndex++] = nodesMap[link.nodeId].Ports[link.portIndex].SetExternal(false);
+            foreach (var nodeMeta in nodesMap.Values) {
+                var nodePorts = nodeMeta.Ports;
+                for (int p = 0; p < nodePorts.Count; p++) {
+                    var nodePort = nodePorts[p];
+                    if (!nodePort.isExternalPort) continue;
+
+                    int portSignature = nodePort.GetSignature();
+                    if (_portSignatureSet.Contains(portSignature)) continue;
+
+                    _portSignatureSet.Add(portSignature);
+                    _ports.Add(nodePort.SetExternal(false));
+                }
             }
+
+            var ports = _ports.ToArray();
+
+            _portSignatureSet.Clear();
+            _ports.Clear();
 
             return ports;
         }
@@ -66,12 +82,12 @@ namespace MisterGames.Blueprints.Nodes {
             return ReadPort<T>(port);
         }
 
-        public void Compile(BlueprintNodeMeta nodeMeta) {
-            _runtimeBlueprint = _blueprintAsset.CompileSubgraph(this, nodeMeta);
-        }
-
         public void ResolveBlackboardSceneReferences(BlueprintAsset blueprint, Blackboard blackboard) {
             _host.ResolveBlackboardSceneReferences(blueprint, blackboard);
+        }
+
+        public void Compile(BlueprintNodeMeta nodeMeta) {
+            _runtimeBlueprint = _blueprintAsset.CompileSubgraph(this, nodeMeta);
         }
 
         public void OnValidate(int nodeId, BlueprintAsset ownerAsset) {

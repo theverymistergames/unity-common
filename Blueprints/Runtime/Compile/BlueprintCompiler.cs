@@ -8,6 +8,7 @@ namespace MisterGames.Blueprints.Compile {
     public sealed class BlueprintCompiler {
 
         private readonly Dictionary<int, BlueprintNode> _runtimeNodesMap = new Dictionary<int, BlueprintNode>();
+        private readonly Dictionary<int, List<BlueprintLink>> _externalPortLinksMap = new Dictionary<int, List<BlueprintLink>>();
 
         public RuntimeBlueprint Compile(BlueprintAsset blueprintAsset) {
             var blueprintMeta = blueprintAsset.BlueprintMeta;
@@ -78,31 +79,10 @@ namespace MisterGames.Blueprints.Compile {
                 : Array.Empty<BlueprintNode>();
 
             _runtimeNodesMap.Clear();
+            _externalPortLinksMap.Clear();
 
-            var externalPortLinksMap = blueprintMeta.ExternalPortLinksMap;
             var subgraphPorts = subgraphMeta.Ports;
-            var subgraphRuntimePorts = subgraph.RuntimePorts;
             int subgraphPortsCount = subgraphPorts.Count;
-
-            // Create links from owner subgraph node ports to external nodes inside subgraph, if port is enter or output
-            for (int p = 0; p < subgraphPortsCount; p++) {
-                var port = subgraphPorts[p];
-                if (port.mode is not (Port.Mode.Enter or Port.Mode.Output or Port.Mode.NonTypedOutput)) continue;
-
-                var links = externalPortLinksMap[port.GetSignature()];
-                var runtimeLinks = new RuntimeLink[links.Count];
-
-                for (int l = 0; l < links.Count; l++) {
-                    var link = links[l];
-                    var linkedRuntimeNode = GetOrCreateNodeInstance(link.nodeId, nodesMetaMap[link.nodeId]);
-
-                    runtimeLinks[l] = new RuntimeLink(linkedRuntimeNode, link.portIndex);
-                }
-
-                subgraphRuntimePorts[p] = new RuntimePort(runtimeLinks);
-            }
-
-            subgraph.RuntimePorts = subgraphRuntimePorts;
 
             foreach ((int nodeId, var nodeMeta) in nodesMetaMap) {
                 var runtimeNode = GetOrCreateNodeInstance(nodeId, nodeMeta);
@@ -115,17 +95,31 @@ namespace MisterGames.Blueprints.Compile {
                     : Array.Empty<RuntimePort>();
 
                 for (int p = 0; p < portsCount; p++) {
+                    var port = ports[p];
+
 #if DEBUG || UNITY_EDITOR
                     BlueprintValidation.ValidatePort(blueprintAsset, nodeMeta, p);
 #endif
-
-                    var port = ports[p];
-
-                    // Create link to owner subgraph node, if port is external and exit or input
-                    if (port.isExternalPort && port.mode is Port.Mode.Exit or Port.Mode.Output or Port.Mode.NonTypedOutput) {
+                    if (port.isExternalPort) {
                         int portSignature = port.GetSignature();
-                        int subgraphPortIndex = -1;
 
+                        // External port is enter or output: add port address as link into external ports map
+                        // to create links from matched subgraph node port to this external port.
+                        if (port.mode is Port.Mode.Enter or Port.Mode.Output or Port.Mode.NonTypedOutput) {
+                            var link = new BlueprintLink { nodeId = nodeId, portIndex = p };
+
+                            if (_externalPortLinksMap.TryGetValue(portSignature, out var externalPortLinks)) {
+                                externalPortLinks.Add(link);
+                            }
+                            else {
+                                _externalPortLinksMap[portSignature] = new List<BlueprintLink> { link };
+                            }
+
+                            continue;
+                        }
+
+                        // External port is exit or input: create link from external port to matched subgraph node port.
+                        int subgraphPortIndex = -1;
                         for (int i = 0; i < subgraphPortsCount; i++) {
                             if (subgraphPorts[i].GetSignature() != portSignature) continue;
 
@@ -163,6 +157,29 @@ namespace MisterGames.Blueprints.Compile {
                 runtimeNodes[nodeIndex++] = runtimeNode;
             }
 
+            var subgraphRuntimePorts = subgraph.RuntimePorts;
+
+            // Create links from owner subgraph node ports to external nodes inside subgraph, if port is enter or output
+            for (int p = 0; p < subgraphPortsCount; p++) {
+                var port = subgraphPorts[p];
+                if (port.mode is not (Port.Mode.Enter or Port.Mode.Output or Port.Mode.NonTypedOutput)) continue;
+
+                var links = _externalPortLinksMap[port.GetSignature()];
+                var runtimeLinks = new RuntimeLink[links.Count];
+
+                for (int l = 0; l < links.Count; l++) {
+                    var link = links[l];
+                    var linkedRuntimeNode = GetOrCreateNodeInstance(link.nodeId, nodesMetaMap[link.nodeId]);
+
+                    runtimeLinks[l] = new RuntimeLink(linkedRuntimeNode, link.portIndex);
+                }
+
+                subgraphRuntimePorts[p] = new RuntimePort(runtimeLinks);
+            }
+
+            subgraph.RuntimePorts = subgraphRuntimePorts;
+
+            _externalPortLinksMap.Clear();
             _runtimeNodesMap.Clear();
 
             return new RuntimeBlueprint(runtimeNodes);

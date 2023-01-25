@@ -13,31 +13,25 @@ namespace MisterGames.Blueprints.Meta {
         [SerializeField] private SerializedDictionary<int, BlueprintNodeMeta> _nodesMap;
         [SerializeField] private SerializedDictionary<int, SerializedDictionary<int, List<BlueprintLink>>> _fromNodePortLinksMap;
         [SerializeField] private SerializedDictionary<int, SerializedDictionary<int, List<BlueprintLink>>> _toNodePortLinksMap;
-        [SerializeField] private SerializedDictionary<int, List<BlueprintLink>> _externalPortLinksMap;
         [SerializeField] private SerializedDictionary<int, BlueprintAsset> _subgraphReferencesMap;
 
         public Action<int> OnInvalidateNodePortsAndLinks;
 
         public Dictionary<int, BlueprintNodeMeta> NodesMap => _nodesMap;
-        public Dictionary<int, List<BlueprintLink>> ExternalPortLinksMap => _externalPortLinksMap;
         public Dictionary<int, BlueprintAsset> SubgraphReferencesMap => _subgraphReferencesMap;
 
-        public void AddNode(BlueprintNodeMeta nodeMeta) {
+        public void AddNode(BlueprintNodeMeta  nodeMeta) {
             int nodeId = _addedNodesTotalCount++;
             nodeMeta.NodeId = nodeId;
 
             _nodesMap.Add(nodeId, nodeMeta);
-
-            FetchExternalPorts(nodeId, nodeMeta.Ports);
         }
 
         public void RemoveNode(int nodeId) {
-            if (!_nodesMap.TryGetValue(nodeId, out var nodeMeta)) return;
+            if (!_nodesMap.ContainsKey(nodeId)) return;
 
             RemoveLinksFromNode(nodeId);
             RemoveLinksToNode(nodeId);
-
-            RemoveRelatedExternalPorts(nodeId, nodeMeta.Ports);
 
             _nodesMap.Remove(nodeId);
         }
@@ -135,7 +129,6 @@ namespace MisterGames.Blueprints.Meta {
             _nodesMap.Clear();
             _fromNodePortLinksMap.Clear();
             _toNodePortLinksMap.Clear();
-            _externalPortLinksMap.Clear();
         }
 
         public bool InvalidateNodePortsAndLinks(int nodeId, BlueprintNode nodeInstance, bool notify = true) {
@@ -144,13 +137,9 @@ namespace MisterGames.Blueprints.Meta {
             var oldPorts = nodeMeta.Ports;
             int oldPortsCount = oldPorts.Count;
 
-            RemoveRelatedExternalPorts(nodeId, oldPorts);
-
             nodeMeta.RecreatePorts(nodeInstance);
             var newPorts = nodeMeta.Ports;
             int newPortsCount = newPorts.Count;
-
-            FetchExternalPorts(nodeId, newPorts);
 
             bool portsChanged = oldPortsCount != newPortsCount;
 
@@ -192,38 +181,6 @@ namespace MisterGames.Blueprints.Meta {
             if (!_subgraphReferencesMap.ContainsKey(nodeId)) return;
 
             _subgraphReferencesMap.Remove(nodeId);
-        }
-
-        private void FetchExternalPorts(int nodeId, IReadOnlyList<Port> ports) {
-            for (int p = 0; p < ports.Count; p++) {
-                var port = ports[p];
-                if (!port.isExternalPort) continue;
-
-                int portSignature = port.GetSignature();
-
-                if (!_externalPortLinksMap.TryGetValue(portSignature, out var links)) {
-                    links = new List<BlueprintLink>(1);
-                    _externalPortLinksMap[portSignature] = links;
-                }
-
-                links.Add(new BlueprintLink { nodeId = nodeId, portIndex = p });
-            }
-        }
-
-        private void RemoveRelatedExternalPorts(int nodeId, IReadOnlyList<Port> ports) {
-            for (int p = 0; p < ports.Count; p++) {
-                var port = ports[p];
-                if (!port.isExternalPort) continue;
-
-                int portSignature = port.GetSignature();
-                if (!_externalPortLinksMap.TryGetValue(portSignature, out var links)) continue;
-
-                for (int l = links.Count - 1; l >= 0; l--) {
-                    if (links[l].nodeId == nodeId) links.RemoveAt(l);
-                }
-
-                if (links.Count == 0) _externalPortLinksMap.Remove(portSignature);
-            }
         }
 
         private void CreateConnection(int fromNodeId, int fromPortIndex, int toNodeId, int toPortIndex) {
