@@ -13,30 +13,11 @@ namespace MisterGames.Blueprints.Editor.Core {
 
     public sealed class BlueprintNodeSearchWindow : ScriptableObject, ISearchWindowProvider {
 
-        public Action<NodeCreationData> onNodeCreationRequest = delegate {  };
-        public Action<NodeAndLinkCreationData> onNodeAndLinkCreationRequest = delegate {  };
+        public Action<BlueprintNode, Vector2> onNodeCreationRequest = delegate {  };
+        public Action<BlueprintNode, Vector2, int> onNodeAndLinkCreationRequest = delegate {  };
 
         private SearchMode _searchMode;
-        private PortSearchData _portSearchData;
-
-        public struct PortSearchData {
-            public int fromNodeId;
-            public int fromPortIndex;
-            public Port fromPort;
-        }
-
-        public struct NodeCreationData {
-            public BlueprintNode node;
-            public Vector2 position;
-        }
-
-        public struct NodeAndLinkCreationData {
-            public BlueprintNode node;
-            public Vector2 position;
-            public int fromNodeId;
-            public int fromPortIndex;
-            public int toPortIndex;
-        }
+        private Port _searchPortsCompatibleWith;
 
         private enum SearchMode {
             Nodes,
@@ -57,15 +38,15 @@ namespace MisterGames.Blueprints.Editor.Core {
             _searchMode = SearchMode.Nodes;
         }
 
-        public void SwitchToNodePortSearch(PortSearchData portSearchData) {
+        public void SwitchToNodePortSearch(Port compatiblePort) {
             _searchMode = SearchMode.NodePorts;
-            _portSearchData = portSearchData;
+            _searchPortsCompatibleWith = compatiblePort;
         }
 
         public List<SearchTreeEntry> CreateSearchTree(SearchWindowContext context) {
             return _searchMode switch {
                 SearchMode.Nodes => CreateSearchTreeForNodes(),
-                SearchMode.NodePorts => CreateSearchTreeForNodePortsCompatibleWith(_portSearchData.fromPort),
+                SearchMode.NodePorts => CreateSearchTreeForNodePortsCompatibleWith(_searchPortsCompatibleWith),
                 _ => new List<SearchTreeEntry> {
                     new SearchTreeGroupEntry(new GUIContent("Unsupported search mode"), level: 0)
                 }
@@ -75,26 +56,15 @@ namespace MisterGames.Blueprints.Editor.Core {
         public bool OnSelectEntry(SearchTreeEntry searchTreeEntry, SearchWindowContext context) {
             switch (searchTreeEntry.userData) {
                 case NodeSearchEntry nodeSearchEntry: {
-                    var nodeCreationData = new NodeCreationData {
-                        node = Activator.CreateInstance(nodeSearchEntry.nodeType) as BlueprintNode,
-                        position = context.screenMousePosition,
-                    };
-                    onNodeCreationRequest.Invoke(nodeCreationData);
+                    var node = Activator.CreateInstance(nodeSearchEntry.nodeType) as BlueprintNode;
+                    onNodeCreationRequest.Invoke(node, context.screenMousePosition);
                     return true;
                 }
-
                 case NodePortSearchEntry nodePortSearchEntry: {
-                    var nodeAndLinkCreationData = new NodeAndLinkCreationData {
-                        node = Activator.CreateInstance(nodePortSearchEntry.nodeType) as BlueprintNode,
-                        position = context.screenMousePosition,
-                        fromNodeId = _portSearchData.fromNodeId,
-                        fromPortIndex = _portSearchData.fromPortIndex,
-                        toPortIndex = nodePortSearchEntry.portIndex,
-                    };
-                    onNodeAndLinkCreationRequest.Invoke(nodeAndLinkCreationData);
+                    var node = Activator.CreateInstance(nodePortSearchEntry.nodeType) as BlueprintNode;
+                    onNodeAndLinkCreationRequest.Invoke(node, context.screenMousePosition, nodePortSearchEntry.portIndex);
                     return true;
                 }
-
                 default:
                     return false;
             }

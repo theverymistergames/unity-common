@@ -25,10 +25,16 @@ namespace MisterGames.Blueprints.Editor.Core {
         private BlueprintNodeSearchWindow _nodeSearchWindow;
         private BlackboardSearchWindow _blackboardSearchWindow;
 
-        private Action _editBlackboardPropertyAction;
         private BlackboardView _blackboardView;
         private MiniMap _miniMap;
         private Vector2 _mousePosition;
+
+        private DropEdgeData _lastDropEdgeData;
+
+        private struct DropEdgeData {
+            public int nodeId;
+            public int portIndex;
+        }
 
         [Serializable]
         public struct CopyPasteData {
@@ -83,18 +89,18 @@ namespace MisterGames.Blueprints.Editor.Core {
         private void InitNodeSearchWindow() {
             _nodeSearchWindow = ScriptableObject.CreateInstance<BlueprintNodeSearchWindow>();
 
-            _nodeSearchWindow.onNodeCreationRequest = data => {
+            _nodeSearchWindow.onNodeCreationRequest = (node, position) => {
                 if (_blueprintAsset == null) return;
 
-                var nodeMeta = CreateNode(data.node, ConvertScreenPositionToLocal(data.position));
+                var nodeMeta = CreateNode(node, ConvertScreenPositionToLocal(position));
                 CreateNodeView(nodeMeta);
             };
 
-            _nodeSearchWindow.onNodeAndLinkCreationRequest = data => {
+            _nodeSearchWindow.onNodeAndLinkCreationRequest = (node, position, portIndex) => {
                 if (_blueprintAsset == null) return;
 
-                var nodeMeta = CreateNode(data.node, ConvertScreenPositionToLocal(data.position));
-                CreateConnection(data.fromNodeId, data.fromPortIndex, nodeMeta.NodeId, data.toPortIndex);
+                var nodeMeta = CreateNode(node, ConvertScreenPositionToLocal(position));
+                CreateConnection(_lastDropEdgeData.nodeId, _lastDropEdgeData.portIndex, nodeMeta.NodeId, portIndex);
 
                 RepopulateView();
             };
@@ -227,7 +233,10 @@ namespace MisterGames.Blueprints.Editor.Core {
         public void PopulateViewFromAsset(BlueprintAsset blueprintAsset) {
             if (blueprintAsset == _blueprintAsset) return;
 
+            ClearView();
+
             _blueprintAsset = blueprintAsset;
+
             InvalidateNodesPortsAndConnections();
             RepopulateView();
 
@@ -267,13 +276,18 @@ namespace MisterGames.Blueprints.Editor.Core {
         }
 
         public void ClearView() {
+            graphViewChanged -= OnGraphViewChanged;
+
             foreach (var element in graphElements) {
                 if (element is BlueprintNodeView nodeView) nodeView.DeInitialize();
             }
 
-            _blueprintAsset = null;
-            graphViewChanged -= OnGraphViewChanged;
             DeleteElements(graphElements);
+
+            if (_blueprintAsset == null) return;
+
+            _blueprintAsset.BlueprintMeta.OnInvalidateNodePortsAndLinks = null;
+            _blueprintAsset = null;
         }
 
         public override void BuildContextualMenu(ContextualMenuPopulateEvent evt) {
@@ -598,12 +612,10 @@ namespace MisterGames.Blueprints.Editor.Core {
             int portIndex = GetPortIndex(portView);
             var port = nodeMeta.Ports[portIndex];
 
-            _nodeSearchWindow.SwitchToNodePortSearch(new BlueprintNodeSearchWindow.PortSearchData {
-                fromNodeId = nodeMeta.NodeId,
-                fromPort = port,
-                fromPortIndex = portIndex,
-            });
+            _lastDropEdgeData.nodeId = nodeMeta.NodeId;
+            _lastDropEdgeData.portIndex = portIndex;
 
+            _nodeSearchWindow.SwitchToNodePortSearch(port);
             OpenSearchWindow(_nodeSearchWindow, GetCurrentScreenMousePosition());
         }
 
