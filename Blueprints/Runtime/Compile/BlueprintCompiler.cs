@@ -26,7 +26,7 @@ namespace MisterGames.Blueprints.Compile {
                 var runtimeNode = GetOrCreateNodeInstance(nodeId, nodeMeta);
 
                 var ports = nodeMeta.Ports;
-                int portsCount = ports.Count;
+                int portsCount = ports.Length;
 
                 var runtimePorts = portsCount > 0
                     ? new RuntimePort[portsCount]
@@ -82,13 +82,13 @@ namespace MisterGames.Blueprints.Compile {
             _externalPortLinksMap.Clear();
 
             var subgraphPorts = subgraphMeta.Ports;
-            int subgraphPortsCount = subgraphPorts.Count;
+            int subgraphPortsCount = subgraphPorts.Length;
 
             foreach ((int nodeId, var nodeMeta) in nodesMetaMap) {
                 var runtimeNode = GetOrCreateNodeInstance(nodeId, nodeMeta);
 
                 var ports = nodeMeta.Ports;
-                int portsCount = ports.Count;
+                int portsCount = ports.Length;
 
                 var runtimePorts = portsCount > 0
                     ? new RuntimePort[portsCount]

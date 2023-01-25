@@ -41,7 +41,7 @@ namespace MisterGames.Blueprints.Nodes {
 
             foreach (var nodeMeta in nodesMap.Values) {
                 var nodePorts = nodeMeta.Ports;
-                for (int p = 0; p < nodePorts.Count; p++) {
+                for (int p = 0; p < nodePorts.Length; p++) {
                     var nodePort = nodePorts[p];
                     if (!nodePort.isExternalPort) continue;
 

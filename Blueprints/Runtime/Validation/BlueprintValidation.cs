@@ -68,7 +68,7 @@ namespace MisterGames.Blueprints.Validation {
         }
 
         public static bool ValidatePort(BlueprintAsset asset, BlueprintNodeMeta nodeMeta, int portIndex) {
-            if (portIndex < 0 || portIndex > nodeMeta.Ports.Count - 1) {
+            if (portIndex < 0 || portIndex > nodeMeta.Ports.Length - 1) {
                 Debug.LogError($"Blueprint `{asset.name}`: " +
                                $"Validation failed for port {portIndex} of node {nodeMeta}: " +
                                $"{nodeMeta} has no port with index {portIndex}.");
@@ -89,7 +89,7 @@ namespace MisterGames.Blueprints.Validation {
         }
 
         public static bool ValidateLink(BlueprintAsset asset, BlueprintNodeMeta nodeMeta, int portIndex, BlueprintNodeMeta toNodeMeta, int toPortIndex) {
-            if (portIndex < 0 || portIndex > nodeMeta.Ports.Count - 1) {
+            if (portIndex < 0 || portIndex > nodeMeta.Ports.Length - 1) {
                 Debug.LogError($"Blueprint `{asset.name}`: " +
                                $"Validation failed for port link [node {nodeMeta}, port {portIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
                                $"{nodeMeta} has no port with index {portIndex}.");
@@ -127,7 +127,7 @@ namespace MisterGames.Blueprints.Validation {
         }
 
         private static bool ValidateEnterPort(BlueprintAsset asset, BlueprintNodeMeta nodeMeta, int portIndex) {
-            if (portIndex < 0 || portIndex > nodeMeta.Ports.Count - 1) {
+            if (portIndex < 0 || portIndex > nodeMeta.Ports.Length - 1) {
                 Debug.LogError($"Blueprint `{asset.name}`: " +
                                $"Validation failed for enter port {portIndex} of node {nodeMeta}: " +
                                $"{nodeMeta} has no port with index {portIndex}.");
@@ -154,7 +154,7 @@ namespace MisterGames.Blueprints.Validation {
         }
 
         private static bool ValidateExitPort(BlueprintAsset asset, BlueprintNodeMeta nodeMeta, int portIndex) {
-            if (portIndex < 0 || portIndex > nodeMeta.Ports.Count - 1) {
+            if (portIndex < 0 || portIndex > nodeMeta.Ports.Length - 1) {
                 Debug.LogError($"Blueprint `{asset.name}`: " +
                                $"Validation failed for exit port {portIndex} of node {nodeMeta}: " +
                                $"{nodeMeta} has no port with index {portIndex}.");
@@ -173,7 +173,7 @@ namespace MisterGames.Blueprints.Validation {
         }
 
         private static bool ValidateInputPort(BlueprintAsset asset, BlueprintNodeMeta nodeMeta, int portIndex) {
-            if (portIndex < 0 || portIndex > nodeMeta.Ports.Count - 1) {
+            if (portIndex < 0 || portIndex > nodeMeta.Ports.Length - 1) {
                 Debug.LogError($"Blueprint `{asset.name}`: " +
                                $"Validation failed for input port {portIndex} of node {nodeMeta}: " +
                                $"{nodeMeta} has no port with index {portIndex}.");
@@ -192,7 +192,7 @@ namespace MisterGames.Blueprints.Validation {
         }
 
         private static bool ValidateInputPort(BlueprintAsset asset, Type dataType, BlueprintNodeMeta nodeMeta, int portIndex) {
-            if (portIndex < 0 || portIndex > nodeMeta.Ports.Count - 1) {
+            if (portIndex < 0 || portIndex > nodeMeta.Ports.Length - 1) {
                 Debug.LogError($"Blueprint `{asset.name}`: " +
                                $"Validation failed for input port {portIndex} of node {nodeMeta}: " +
                                $"{nodeMeta} has no port with index {portIndex}.");
@@ -218,7 +218,7 @@ namespace MisterGames.Blueprints.Validation {
         }
 
         private static bool ValidateOutputPort(BlueprintAsset asset, BlueprintNodeMeta nodeMeta, int portIndex) {
-            if (portIndex < 0 || portIndex > nodeMeta.Ports.Count - 1) {
+            if (portIndex < 0 || portIndex > nodeMeta.Ports.Length - 1) {
                 Debug.LogError($"Blueprint `{asset.name}`: " +
                                $"Validation failed for output port {portIndex} of node {nodeMeta}: " +
                                $"{nodeMeta} has no port with index {portIndex}.");
@@ -255,7 +255,7 @@ namespace MisterGames.Blueprints.Validation {
         }
 
         private static bool ValidateOutputPort(BlueprintAsset asset, Type dataType, BlueprintNodeMeta nodeMeta, int portIndex) {
-            if (portIndex < 0 || portIndex > nodeMeta.Ports.Count - 1) {
+            if (portIndex < 0 || portIndex > nodeMeta.Ports.Length - 1) {
                 Debug.LogError($"Blueprint `{asset.name}`: " +
                                $"Validation failed for output port {portIndex} of node {nodeMeta}: " +
                                $"{nodeMeta} has no port with index {portIndex}.");

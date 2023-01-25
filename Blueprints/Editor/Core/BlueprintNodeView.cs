@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using MisterGames.Blueprints.Meta;
 using MisterGames.Common.Color;
@@ -62,11 +63,32 @@ namespace MisterGames.Blueprints.Editor.Core {
             Clear();
         }
 
+        public override void SetPosition(Rect newPos) {
+            base.SetPosition(newPos);
+            OnPositionChanged.Invoke(nodeMeta, new Vector2(newPos.xMin, newPos.yMin));
+        }
+
+        private void OnNodeValidate(object obj) {
+            if (obj is BlueprintNode node) OnValidate.Invoke(nodeMeta, node);
+        }
+
+        private struct PortViewCreationData {
+            public int portIndex;
+            public Port port;
+        }
+
         public void CreatePortViews(IEdgeConnectorListener connectorListener) {
-            var ports = nodeMeta.Ports;
-            for (int i = 0; i < ports.Count; i++) {
-                CreatePortView(i, ports[i], connectorListener);
+            var portViewsCreationData = nodeMeta.Ports
+                .Select((port, index) => new PortViewCreationData { portIndex = index, port = port })
+                .Where(data => !data.port.isExternalPort)
+                .OrderBy(d => d.port.mode)
+                .ThenBy(d => d.port.name)
+                .ToArray();
+
+            for (int i = 0; i < portViewsCreationData.Length; i++) {
+                CreatePortView(portViewsCreationData[i], connectorListener);
             }
+
             RefreshPorts();
         }
 
@@ -86,44 +108,14 @@ namespace MisterGames.Blueprints.Editor.Core {
             return _portViewToPortIndexMap[portView];
         }
 
-        public override void SetPosition(Rect newPos) {
-            base.SetPosition(newPos);
-            OnPositionChanged.Invoke(nodeMeta, new Vector2(newPos.xMin, newPos.yMin));
-        }
-
-        private void OnNodeValidate(object obj) {
-            if (obj is BlueprintNode node) OnValidate.Invoke(nodeMeta, node);
-        }
-
-        private static void OnNodeGUI(SerializedProperty serializedProperty) {
-            float labelWidth = EditorGUIUtility.labelWidth;
-            float fieldWidth = EditorGUIUtility.fieldWidth;
-
-            EditorGUIUtility.labelWidth = 110;
-            EditorGUIUtility.fieldWidth = 240;
-
-            bool enterChildren = true;
-            while (serializedProperty.NextVisible(enterChildren)) {
-                enterChildren = false;
-                EditorGUILayout.PropertyField(serializedProperty, true);
-
-                if (serializedProperty.GetValue() is BlueprintAsset blueprintAsset && GUILayout.Button("Edit")) {
-                    BlueprintsEditorWindow.OpenAsset(blueprintAsset);
-                }
-            }
-
-            EditorGUIUtility.labelWidth = labelWidth;
-            EditorGUIUtility.fieldWidth = fieldWidth;
-        }
-
-        private void CreatePortView(int portIndex, Port port, IEdgeConnectorListener connectorListener) {
-            if (port.isExternalPort) return;
+        private void CreatePortView(PortViewCreationData data, IEdgeConnectorListener connectorListener) {
+            if (data.port.isExternalPort) return;
 
             Direction direction;
             PortView.Capacity capacity;
             VisualElement container;
 
-            switch (port.mode) {
+            switch (data.port.mode) {
                 case Port.Mode.Enter:
                     direction = Direction.Input;
                     capacity = PortView.Capacity.Multi;
@@ -161,19 +153,19 @@ namespace MisterGames.Blueprints.Editor.Core {
                     break;
 
                 default:
-                    throw new NotSupportedException($"Port mode {port.mode} is not supported");
+                    throw new NotSupportedException($"Port mode {data.port.mode} is not supported");
             }
 
             var portView = InstantiatePort(Orientation.Horizontal, direction, capacity, typeof(bool));
             portView.AddManipulator(new EdgeConnector<Edge>(connectorListener));
 
-            portView.portName = FormatPortName(port);
-            portView.portColor = GetPortColor(port);
+            portView.portName = FormatPortName(data.port);
+            portView.portColor = GetPortColor(data.port);
 
             container.Add(portView);
 
-            _portViewToPortIndexMap[portView] = portIndex;
-            _portIndexToPortViewMap[portIndex] = portView;
+            _portViewToPortIndexMap[portView] = data.portIndex;
+            _portIndexToPortViewMap[data.portIndex] = portView;
         }
 
         private static Color GetPortColor(Port port) {
@@ -189,19 +181,38 @@ namespace MisterGames.Blueprints.Editor.Core {
         }
 
         private static string FormatPortName(Port port) {
-            string nameColor = port.mode switch {
-                Port.Mode.Enter => BlueprintColors.Port.Header.Flow,
-                Port.Mode.Exit => BlueprintColors.Port.Header.Flow,
-                Port.Mode.Input => BlueprintColors.Port.Header.GetColorForType(port.DataType),
-                Port.Mode.Output => BlueprintColors.Port.Header.GetColorForType(port.DataType),
-                Port.Mode.NonTypedInput => BlueprintColors.Port.Header.Data,
-                Port.Mode.NonTypedOutput => BlueprintColors.Port.Header.Data,
-                _ => throw new NotSupportedException($"Port mode {port.mode} is not supported"),
-            };
-
             string name = string.IsNullOrEmpty(port.name) ? string.Empty : port.name.Trim();
 
-            return $"<color={nameColor}>{name}</color>";
+            return port.mode switch {
+                Port.Mode.Enter => $"<color={BlueprintColors.Port.Header.Flow}>{name}</color>",
+                Port.Mode.Exit => $"<color={BlueprintColors.Port.Header.Flow}>{name}</color>",
+                Port.Mode.Input => $"<color={BlueprintColors.Port.Header.GetColorForType(port.DataType)}>{name}</color>",
+                Port.Mode.Output => $"<color={BlueprintColors.Port.Header.GetColorForType(port.DataType)}>{name}</color>",
+                Port.Mode.NonTypedInput => $"<color={BlueprintColors.Port.Header.Data}>{name}</color>",
+                Port.Mode.NonTypedOutput => $"<color={BlueprintColors.Port.Header.Data}>{name}</color>",
+                _ => throw new NotSupportedException($"Port mode {port.mode} is not supported"),
+            };
+        }
+
+        private static void OnNodeGUI(SerializedProperty serializedProperty) {
+            float labelWidth = EditorGUIUtility.labelWidth;
+            float fieldWidth = EditorGUIUtility.fieldWidth;
+
+            EditorGUIUtility.labelWidth = 110;
+            EditorGUIUtility.fieldWidth = 240;
+
+            bool enterChildren = true;
+            while (serializedProperty.NextVisible(enterChildren)) {
+                enterChildren = false;
+                EditorGUILayout.PropertyField(serializedProperty, true);
+
+                if (serializedProperty.GetValue() is BlueprintAsset blueprintAsset && GUILayout.Button("Edit")) {
+                    BlueprintsEditorWindow.OpenAsset(blueprintAsset);
+                }
+            }
+
+            EditorGUIUtility.labelWidth = labelWidth;
+            EditorGUIUtility.fieldWidth = fieldWidth;
         }
 
         private static string GetUxmlPath() {

@@ -48,7 +48,7 @@ namespace MisterGames.Blueprints.Meta {
         /// Ports array created by the given node in method BlueprintNode.CreatePorts().
         /// </summary>
         [SerializeField] private Port[] _ports;
-        public IReadOnlyList<Port> Ports => _ports;
+        public Port[] Ports => _ports;
 
         public BlueprintNode CreateNodeInstance() {
             return JsonUtility.FromJson(_nodeJson, SerializedType.FromString(_serializedNodeType)) as BlueprintNode;

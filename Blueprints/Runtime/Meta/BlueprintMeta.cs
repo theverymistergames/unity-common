@@ -42,8 +42,8 @@ namespace MisterGames.Blueprints.Meta {
             if (!_nodesMap.TryGetValue(fromNodeId, out var fromNode)) return false;
             if (!_nodesMap.TryGetValue(toNodeId, out var toNode)) return false;
 
-            if (fromPortIndex < 0 || fromPortIndex > fromNode.Ports.Count - 1) return false;
-            if (toPortIndex < 0 || toPortIndex > toNode.Ports.Count - 1) return false;
+            if (fromPortIndex < 0 || fromPortIndex > fromNode.Ports.Length - 1) return false;
+            if (toPortIndex < 0 || toPortIndex > toNode.Ports.Length - 1) return false;
 
             if (HasLinkFromNodePort(fromNodeId, fromPortIndex, toNodeId, toPortIndex)) return false;
             if (HasLinkToNodePort(fromNodeId, fromPortIndex, toNodeId, toPortIndex)) return false;
@@ -135,11 +135,11 @@ namespace MisterGames.Blueprints.Meta {
             if (!_nodesMap.TryGetValue(nodeId, out var nodeMeta)) return false;
 
             var oldPorts = nodeMeta.Ports;
-            int oldPortsCount = oldPorts.Count;
+            int oldPortsCount = oldPorts.Length;
 
             nodeMeta.RecreatePorts(nodeInstance);
             var newPorts = nodeMeta.Ports;
-            int newPortsCount = newPorts.Count;
+            int newPortsCount = newPorts.Length;
 
             bool portsChanged = oldPortsCount != newPortsCount;
 
@@ -397,7 +397,7 @@ namespace MisterGames.Blueprints.Meta {
                 nodesSb.AppendLine($"- {nodeMeta}");
 
                 var ports = nodeMeta.Ports;
-                for (int p = 0; p < ports.Count; p++) {
+                for (int p = 0; p < ports.Length; p++) {
                     var portLinks = GetLinksFromNodePort(nodeId, p);
                     nodesSb.AppendLine($"-- port#{p} links: [{string.Join(", ", portLinks)}]");
                 }

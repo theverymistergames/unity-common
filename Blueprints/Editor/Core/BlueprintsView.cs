@@ -444,7 +444,7 @@ namespace MisterGames.Blueprints.Editor.Core {
             var fromNodeView = FindNodeViewByNodeId(nodeMeta.NodeId);
             var fromNodePorts = nodeMeta.Ports;
 
-            for (int p = 0; p < fromNodePorts.Count; p++) {
+            for (int p = 0; p < fromNodePorts.Length; p++) {
                 var fromPort = fromNodePorts[p];
                 if (fromPort.isExternalPort) continue;
 
@@ -468,7 +468,7 @@ namespace MisterGames.Blueprints.Editor.Core {
             var toNodeView = FindNodeViewByNodeId(nodeMeta.NodeId);
             var toNodePorts = nodeMeta.Ports;
 
-            for (int p = 0; p < toNodePorts.Count; p++) {
+            for (int p = 0; p < toNodePorts.Length; p++) {
                 var toPort = toNodePorts[p];
                 if (toPort.isExternalPort) continue;
 
