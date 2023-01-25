@@ -1,12 +1,11 @@
 ﻿using System;
-using MisterGames.Blueprints.Validation;
 using UnityEngine;
 
 namespace MisterGames.Blueprints.Nodes {
 
     [Serializable]
-    [BlueprintNodeMeta(Name = "Input", Category = "External", Color = BlueprintColors.Node.External)]
-    public sealed class BlueprintNodeInput : BlueprintNode, IBlueprintOutput, IBlueprintValidatedNode {
+    [BlueprintNodeMeta(Name = "Input", Category = "Flow", Color = BlueprintColors.Node.External)]
+    public sealed class BlueprintNodeInput : BlueprintNode, IBlueprintOutput {
 
         [SerializeField] private string _parameter;
 
@@ -17,10 +16,6 @@ namespace MisterGames.Blueprints.Nodes {
 
         public T GetPortValue<T>(int port) {
             return port == 1 ? ReadPort<T>(0) : default;
-        }
-
-        public void OnValidate(int nodeId, BlueprintAsset ownerAsset) {
-            ownerAsset.BlueprintMeta.InvalidateNodePortsAndLinks(nodeId, this);
         }
     }
 
