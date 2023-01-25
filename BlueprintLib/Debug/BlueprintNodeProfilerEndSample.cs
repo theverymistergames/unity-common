@@ -6,7 +6,7 @@ using UnityEngine.Profiling;
 namespace MisterGames.BlueprintLib {
 
     [Serializable]
-    [BlueprintNodeMeta(Name = "Profiler.EndSample", Category = "Debug", Color = BlueprintColors.Node.Actions)]
+    [BlueprintNodeMeta(Name = "Profiler.EndSample", Category = "Debug", Color = BlueprintColors.Node.Debug)]
     public sealed class BlueprintNodeProfilerEndSample : BlueprintNode, IBlueprintEnter {
 
         public override Port[] CreatePorts() => new[] {

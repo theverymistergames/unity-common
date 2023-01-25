@@ -7,15 +7,16 @@ namespace MisterGames.Blueprints {
         
         public static class Node {
 
+            public const string Default = "#646464";
+
+            public const string Debug = "#575757";
             public const string Flow = "#38697A";
             public const string Data = "#375D3B";
             public const string Time = "#37595D";
             public const string Actions = "#7E2D19";
-                
-            public const string Default = "#646464";
             public const string Blackboard = "#866B2B";
-            public const string External = "#5F436A";
 
+            internal const string External = "#5F436A";
         }
 
         public static class Port {

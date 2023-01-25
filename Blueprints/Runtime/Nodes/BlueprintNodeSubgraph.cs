@@ -43,6 +43,7 @@ namespace MisterGames.Blueprints.Nodes {
                     if (!nodePort.isExternalPort) continue;
 
                     int portSignature = nodePort.GetSignature();
+
                     if (portSignatureSet.Contains(portSignature)) {
                         BlueprintValidation.ValidateExternalPortWithExistingSignature(_blueprintAsset, nodePort);
                         continue;

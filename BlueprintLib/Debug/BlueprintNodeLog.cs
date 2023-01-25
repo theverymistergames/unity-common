@@ -5,7 +5,7 @@ using UnityEngine;
 namespace MisterGames.BlueprintLib {
 
     [Serializable]
-    [BlueprintNodeMeta(Name = "Log", Category = "Debug", Color = BlueprintColors.Node.Actions)]
+    [BlueprintNodeMeta(Name = "Log", Category = "Debug", Color = BlueprintColors.Node.Debug)]
     public sealed class BlueprintNodeLog : BlueprintNode, IBlueprintEnter {
         
         [SerializeField] private Level _level = Level.Log;

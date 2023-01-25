@@ -7,7 +7,7 @@ using System.Linq;
 namespace MisterGames.Blueprints.Nodes {
 
     [Serializable]
-    [BlueprintNodeMeta(Name = "ToString", Category = "Debug", Color = BlueprintColors.Node.Data)]
+    [BlueprintNodeMeta(Name = "ToString", Category = "Debug", Color = BlueprintColors.Node.Debug)]
     public sealed class BlueprintNodeToString : BlueprintNode, IBlueprintOutput<string> {
 
         private Func<string> _getString = () => string.Empty;
