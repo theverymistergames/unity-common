@@ -2,7 +2,7 @@
 
     public sealed class RuntimeBlueprint {
 
-        private readonly BlueprintNode[] _nodes;
+        internal readonly BlueprintNode[] _nodes;
 
         public RuntimeBlueprint(BlueprintNode[] nodes) {
             _nodes = nodes;

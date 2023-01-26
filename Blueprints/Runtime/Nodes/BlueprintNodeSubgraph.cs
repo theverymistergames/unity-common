@@ -13,8 +13,7 @@ namespace MisterGames.Blueprints.Nodes {
     public sealed class BlueprintNodeSubgraph :
         BlueprintNode,
         IBlueprintHost,
-        IBlueprintEnter,
-        IBlueprintOutput,
+        IBlueprintLinker,
         IBlueprintValidatedNode,
         IBlueprintCompiledNode
     {
@@ -70,13 +69,7 @@ namespace MisterGames.Blueprints.Nodes {
             _runtimeBlueprint.DeInitialize();
         }
 
-        public void OnEnterPort(int port) {
-            CallPort(port);
-        }
-
-        public T GetPortValue<T>(int port) {
-            return ReadPort<T>(port);
-        }
+        public int GetLinkedPort(int port) => port;
 
         public void ResolveBlackboardSceneReferences(BlueprintAsset blueprint, Blackboard blackboard) {
             _host.ResolveBlackboardSceneReferences(blueprint, blackboard);

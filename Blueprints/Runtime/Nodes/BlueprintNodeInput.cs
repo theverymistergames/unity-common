@@ -6,7 +6,7 @@ namespace MisterGames.Blueprints.Nodes {
 
     [Serializable]
     [BlueprintNodeMeta(Name = "Input", Category = "External", Color = BlueprintColors.Node.External)]
-    public sealed class BlueprintNodeInput : BlueprintNode, IBlueprintOutput, IBlueprintValidatedNode {
+    public sealed class BlueprintNodeInput : BlueprintNode, IBlueprintLinker, IBlueprintValidatedNode {
 
         [SerializeField] private string _parameter;
 
@@ -15,9 +15,11 @@ namespace MisterGames.Blueprints.Nodes {
             Port.Output()
         };
 
-        public T GetPortValue<T>(int port) {
-            return port == 1 ? ReadPort<T>(0) : default;
-        }
+        public int GetLinkedPort(int port) => port switch {
+            0 => 1,
+            1 => 0,
+            _ => -1,
+        };
 
         public void OnValidate(int nodeId, BlueprintAsset ownerAsset) {
             ownerAsset.BlueprintMeta.InvalidateNodePorts(nodeId, nodeInstance: this, invalidateLinks: false);

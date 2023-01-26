@@ -1,10 +1,12 @@
-﻿namespace MisterGames.Blueprints.Compile {
+﻿using System.Collections.Generic;
+
+namespace MisterGames.Blueprints.Compile {
 
     internal readonly struct RuntimePort {
 
-        public readonly RuntimeLink[] links;
+        public readonly List<RuntimeLink> links;
 
-        public RuntimePort(RuntimeLink[] links) {
+        public RuntimePort(List<RuntimeLink> links) {
             this.links = links;
         }
     }
