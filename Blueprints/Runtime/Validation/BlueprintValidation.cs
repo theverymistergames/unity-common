@@ -154,7 +154,7 @@ namespace MisterGames.Blueprints.Validation {
                 return false;
             }
 
-            var node = nodeMeta.CreateNodeInstance();
+            var node = nodeMeta.Node;
             if (node is not (IBlueprintEnter or IBlueprintLinker)) {
                 Debug.LogError($"Blueprint `{asset.name}`: " +
                                $"Validation failed for enter port {portIndex} of node {nodeMeta}: " +
@@ -246,7 +246,7 @@ namespace MisterGames.Blueprints.Validation {
                 return false;
             }
 
-            var node = nodeMeta.CreateNodeInstance();
+            var node = nodeMeta.Node;
             if (port.mode == Port.Mode.NonTypedOutput && node is not IBlueprintLinker) {
                 Debug.LogError($"Blueprint `{asset.name}`: " +
                                $"Validation failed for non-typed output port {portIndex} of node {nodeMeta}: " +
@@ -283,7 +283,7 @@ namespace MisterGames.Blueprints.Validation {
                 return false;
             }
 
-            var node = nodeMeta.CreateNodeInstance();
+            var node = nodeMeta.Node;
             if (port.mode == Port.Mode.NonTypedOutput && node is not IBlueprintLinker) {
                 Debug.LogError($"Blueprint `{asset.name}`: " +
                                $"Validation failed for non-typed output port {portIndex} of node {nodeMeta}: " +

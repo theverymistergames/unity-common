@@ -131,13 +131,13 @@ namespace MisterGames.Blueprints.Meta {
             _toNodePortLinksMap.Clear();
         }
 
-        public bool InvalidateNodePorts(int nodeId, BlueprintNode nodeInstance, bool invalidateLinks, bool notify = true) {
+        public bool InvalidateNodePorts(int nodeId, bool invalidateLinks, bool notify = true) {
             if (!_nodesMap.TryGetValue(nodeId, out var nodeMeta)) return false;
 
             var oldPorts = nodeMeta.Ports;
             int oldPortsCount = oldPorts.Length;
 
-            nodeMeta.RecreatePorts(nodeInstance);
+            nodeMeta.RecreatePorts();
             var newPorts = nodeMeta.Ports;
             int newPortsCount = newPorts.Length;
 

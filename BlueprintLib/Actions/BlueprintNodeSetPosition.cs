@@ -8,6 +8,9 @@ namespace MisterGames.BlueprintLib {
     [BlueprintNodeMeta(Name = "Set Position", Category = "Actions", Color = BlueprintColors.Node.Actions)]
     public sealed class BlueprintNodeSetPosition : BlueprintNode, IBlueprintEnter {
 
+        [SerializeField] private GameObject _somePrefab;
+        [SerializeField] private ScriptableObject _someScriptableObject;
+
         [SerializeField] private Vector3 _defaultPosition;
 
         public override Port[] CreatePorts() => new[] {

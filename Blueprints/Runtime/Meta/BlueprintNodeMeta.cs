@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using MisterGames.Common.Data;
 using UnityEngine;
 
 namespace MisterGames.Blueprints.Meta {
@@ -24,16 +22,11 @@ namespace MisterGames.Blueprints.Meta {
         }
 
         /// <summary>
-        /// String representation of the given node type.
+        /// Node instance that is serialized by reference,
+        /// used to store data of the concrete BlueprintNode implementation.
         /// </summary>
-        [SerializeField] private string _serializedNodeType;
-        public string SerializedNodeType => _serializedNodeType;
-
-        /// <summary>
-        /// String representation of the given node.
-        /// </summary>
-        [SerializeField] private string _nodeJson;
-        public string NodeJson => _nodeJson;
+        [SerializeReference] private BlueprintNode _node;
+        public BlueprintNode Node => _node;
 
         /// <summary>
         /// Position of the blueprint node in the Blueprint Editor window.
@@ -50,21 +43,25 @@ namespace MisterGames.Blueprints.Meta {
         [SerializeField] private Port[] _ports;
         public Port[] Ports => _ports;
 
+        private string _cachedNodeJson;
+
+        private BlueprintNodeMeta() { }
+
+        public BlueprintNodeMeta(BlueprintNode node) {
+            _node = node;
+        }
+
         public BlueprintNode CreateNodeInstance() {
-            return JsonUtility.FromJson(_nodeJson, SerializedType.FromString(_serializedNodeType)) as BlueprintNode;
+            _cachedNodeJson ??= JsonUtility.ToJson(_node);
+            return JsonUtility.FromJson(_cachedNodeJson, _node.GetType()) as BlueprintNode;
         }
 
-        public void SerializeNode(BlueprintNode node) {
-            _nodeJson = JsonUtility.ToJson(node);
-            _serializedNodeType = SerializedType.ToString(node.GetType());
-        }
-
-        public void RecreatePorts(BlueprintNode node) {
-            _ports = node.CreatePorts();
+        public void RecreatePorts() {
+            _ports = _node.CreatePorts();
         }
 
         public override string ToString() {
-            return $"BlueprintNode#{_nodeId}({_serializedNodeType})";
+            return $"BlueprintNode#{_nodeId}({_node})";
         }
     }
 

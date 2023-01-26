@@ -36,7 +36,7 @@ namespace MisterGames.Blueprints.Editor.Core {
             var container = this.Q<VisualElement>("title-container");
             var inspector = this.Q<InspectorView>("inspector");
 
-            var node = nodeMeta.CreateNodeInstance();
+            var node = nodeMeta.Node;
             var nodeType = node.GetType();
             var nodeMetaAttr = nodeType.GetCustomAttribute<BlueprintNodeMetaAttribute>(false);
 

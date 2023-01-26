@@ -312,8 +312,8 @@ namespace MisterGames.Blueprints.Editor.Core {
             var blueprintMeta = _blueprintAsset.BlueprintMeta;
             var nodesMap = blueprintMeta.NodesMap;
 
-            foreach ((int nodeId, var nodeMeta) in nodesMap) {
-                changed |= blueprintMeta.InvalidateNodePorts(nodeId, nodeMeta.CreateNodeInstance(), invalidateLinks: true, notify: false);
+            foreach (int nodeId in nodesMap.Keys) {
+                changed |= blueprintMeta.InvalidateNodePorts(nodeId, invalidateLinks: true, notify: false);
             }
 
             if (changed) SetBlueprintAssetDirtyAndNotify();
@@ -322,9 +322,8 @@ namespace MisterGames.Blueprints.Editor.Core {
         // ---------------- ---------------- Node and connection creation ---------------- ----------------
 
         private BlueprintNodeMeta CreateNode(BlueprintNode node, Vector2 position) {
-            var nodeMeta = new BlueprintNodeMeta { Position = position };
-            nodeMeta.SerializeNode(node);
-            nodeMeta.RecreatePorts(node);
+            var nodeMeta = new BlueprintNodeMeta(node) { Position = position };
+            nodeMeta.RecreatePorts();
 
             Undo.RecordObject(_blueprintAsset, "Blueprint Add Node");
 
@@ -428,8 +427,6 @@ namespace MisterGames.Blueprints.Editor.Core {
         private void OnValidateNode(BlueprintNodeMeta nodeMeta, BlueprintNode node) {
             if (node is IBlueprintValidatedNode validatedNode) validatedNode.OnValidate(nodeMeta.NodeId, _blueprintAsset);
             node.OnValidate();
-
-            nodeMeta.SerializeNode(node);
 
             SetBlueprintAssetDirtyAndNotify();
         }
@@ -598,8 +595,8 @@ namespace MisterGames.Blueprints.Editor.Core {
                     copyData.nodes.Add(new CopyPasteData.NodeData {
                         nodeId = nodeMeta.NodeId,
                         position = nodeMeta.Position,
-                        serializedNodeType = nodeMeta.SerializedNodeType,
-                        nodeJson = nodeMeta.NodeJson,
+                        serializedNodeType = SerializedType.ToString(nodeMeta.Node.GetType()),
+                        nodeJson = JsonUtility.ToJson(nodeMeta.Node),
                     });
                     continue;
                 }
@@ -638,7 +635,8 @@ namespace MisterGames.Blueprints.Editor.Core {
             for (int i = 0; i < pasteData.nodes.Count; i++) {
                 var nodeData = pasteData.nodes[i];
 
-                var node = JsonUtility.FromJson(nodeData.nodeJson, SerializedType.FromString(nodeData.serializedNodeType)) as BlueprintNode;
+                var nodeType = SerializedType.FromString(nodeData.serializedNodeType);
+                var node = JsonUtility.FromJson(nodeData.nodeJson, nodeType) as BlueprintNode;
                 var position = nodeData.position + positionDiff;
 
                 var nodeMeta = CreateNode(node, position);
