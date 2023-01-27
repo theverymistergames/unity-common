@@ -14,7 +14,7 @@ namespace MisterGames.Blueprints.Nodes {
         BlueprintNode,
         IBlueprintHost,
         IBlueprintLinker,
-        IBlueprintValidatedNode,
+        IBlueprintAssetValidator,
         IBlueprintCompiledNode
     {
         [SerializeField] private BlueprintAsset _blueprintAsset;
@@ -79,7 +79,7 @@ namespace MisterGames.Blueprints.Nodes {
             _runtimeBlueprint = _blueprintAsset.CompileSubgraph(this, nodeMeta);
         }
 
-        public void OnValidate(int nodeId, BlueprintAsset ownerAsset) {
+        public void ValidateBlueprint(BlueprintAsset ownerAsset, int nodeId) {
             _blueprintAsset = BlueprintValidation.ValidateBlueprintAssetForSubgraph(ownerAsset, _blueprintAsset);
 
             if (_blueprintAsset == null) ownerAsset.BlueprintMeta.RemoveSubgraphReference(nodeId);
