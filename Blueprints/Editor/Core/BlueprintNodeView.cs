@@ -4,7 +4,6 @@ using System.Linq;
 using System.Reflection;
 using MisterGames.Blueprints.Meta;
 using MisterGames.Common.Color;
-using MisterGames.Common.Editor.Utils;
 using MisterGames.Common.Editor.Views;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
@@ -22,8 +21,6 @@ namespace MisterGames.Blueprints.Editor.Core {
         private readonly Dictionary<PortView, int> _portViewToPortIndexMap = new Dictionary<PortView, int>();
         private readonly Dictionary<int, PortView> _portIndexToPortViewMap = new Dictionary<int, PortView>();
         private readonly InspectorView _inspector;
-
-        private BlueprintAssetEditor _blueprintAssetEditor;
 
         private struct PortViewCreationData {
             public int portIndex;
@@ -53,20 +50,11 @@ namespace MisterGames.Blueprints.Editor.Core {
             style.top = nodeMeta.Position.y;
         }
 
-        public void InjectBlueprintAssetEditor(BlueprintAssetEditor blueprintAssetEditor) {
-            _blueprintAssetEditor = blueprintAssetEditor;
-
-            _blueprintAssetEditor.OnNodeGUI -= OnNodeGUI;
-            _blueprintAssetEditor.OnNodeGUI += OnNodeGUI;
-
-            _inspector.Inject(onInspectorGUI: () => {
-                _blueprintAssetEditor.FilterNode(nodeMeta.NodeId);
-                _blueprintAssetEditor.OnInspectorGUI();
-            });
+        public void InitializeNodeInspector(Action onInspectorGUI) {
+            _inspector.Inject(onInspectorGUI);
         }
 
         public void DeInitialize() {
-            _blueprintAssetEditor.OnNodeGUI -= OnNodeGUI;
             _portViewToPortIndexMap.Clear();
             _portIndexToPortViewMap.Clear();
             _inspector.ClearInspector();
@@ -193,28 +181,6 @@ namespace MisterGames.Blueprints.Editor.Core {
                 Port.Mode.NonTypedOutput => $"<color={BlueprintColors.Port.Header.Data}>{name}</color>",
                 _ => throw new NotSupportedException($"Port mode {port.mode} is not supported"),
             };
-        }
-
-        private static void OnNodeGUI(SerializedProperty nodeSerializedProperty) {
-            float labelWidth = EditorGUIUtility.labelWidth;
-            float fieldWidth = EditorGUIUtility.fieldWidth;
-
-            EditorGUIUtility.labelWidth = 140;
-            EditorGUIUtility.fieldWidth = 240;
-
-            bool enterChildren = true;
-            while (nodeSerializedProperty.NextVisible(enterChildren)) {
-                enterChildren = false;
-
-                EditorGUILayout.PropertyField(nodeSerializedProperty, true);
-
-                if (nodeSerializedProperty.GetValue() is BlueprintAsset blueprintAsset && GUILayout.Button("Edit")) {
-                    BlueprintsEditorWindow.OpenAsset(blueprintAsset);
-                }
-            }
-
-            EditorGUIUtility.labelWidth = labelWidth;
-            EditorGUIUtility.fieldWidth = fieldWidth;
         }
 
         private static string GetUxmlPath() {

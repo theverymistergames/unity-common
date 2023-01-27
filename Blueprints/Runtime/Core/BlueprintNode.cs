@@ -12,7 +12,6 @@ namespace MisterGames.Blueprints {
 
         public virtual void OnInitialize(IBlueprintHost host) {}
         public virtual void OnDeInitialize() {}
-        public virtual void OnValidate() {}
 
         protected void CallPort(int port) {
             var links = RuntimePorts[port].links;
@@ -31,6 +30,10 @@ namespace MisterGames.Blueprints {
 
             return defaultValue;
         }
+
+#if UNITY_EDITOR
+        public virtual void OnValidate() {}
+#endif
     }
 
 }

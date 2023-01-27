@@ -1,39 +1,55 @@
-﻿using System;
+﻿using MisterGames.Blueprints.Validation;
+using MisterGames.Common.Editor.Utils;
 using UnityEditor;
+using UnityEngine;
 
 namespace MisterGames.Blueprints.Editor.Core {
 
     [CustomEditor(typeof(BlueprintAsset))]
     public sealed class BlueprintAssetEditor : UnityEditor.Editor {
 
-        public event Action<SerializedProperty> OnNodeGUI = delegate {  };
+        private bool _isAllowedToShowEditedNode;
 
-        private int _filterNodeId = -1;
-
-        public void FilterNode(int nodeId) {
-            _filterNodeId = nodeId;
+        public void AllowShowEditedBlueprintNode() {
+            _isAllowedToShowEditedNode = true;
         }
 
         public override void OnInspectorGUI() {
+            if (!_isAllowedToShowEditedNode) return;
+            if (target is not BlueprintAsset blueprint) return;
+            if (serializedObject.targetObject == null) return;
+
             serializedObject.Update();
 
-            var nodesProperty = serializedObject
-                .FindProperty("_blueprintMeta")
-                .FindPropertyRelative("_nodesMap")
-                .FindPropertyRelative("_entries");
+            var nodeProperty = serializedObject.FindProperty("editedNode");
 
-            for (int i = 0; i < nodesProperty.arraySize; i++) {
-                var entryProperty = nodesProperty.GetArrayElementAtIndex(i);
+            float labelWidth = EditorGUIUtility.labelWidth;
+            float fieldWidth = EditorGUIUtility.fieldWidth;
 
-                int nodeId = entryProperty.FindPropertyRelative("key").intValue;
-                if (_filterNodeId != nodeId) continue;
+            EditorGUIUtility.labelWidth = 140;
+            EditorGUIUtility.fieldWidth = 240;
 
-                var nodeProperty = entryProperty
-                    .FindPropertyRelative("value")
-                    .FindPropertyRelative("_node");
+            EditorGUI.BeginChangeCheck();
 
-                OnNodeGUI.Invoke(nodeProperty);
+            var endProperty = nodeProperty.GetEndProperty();
+            bool enterChildren = true;
+            while (nodeProperty.NextVisible(enterChildren) && !SerializedProperty.EqualContents(nodeProperty, endProperty)) {
+                enterChildren = false;
+                EditorGUILayout.PropertyField(nodeProperty, true);
+
+                if (nodeProperty.GetValue() is BlueprintAsset blueprintAsset && GUILayout.Button("Edit")) {
+                    BlueprintsEditorWindow.OpenAsset(blueprintAsset);
+                }
             }
+
+            if (EditorGUI.EndChangeCheck()) {
+                var node = blueprint.editedNode;
+                node.OnValidate();
+                if (node is IBlueprintAssetValidator validator) validator.ValidateBlueprint(blueprint, blueprint.editedNodeId);
+            }
+
+            EditorGUIUtility.labelWidth = labelWidth;
+            EditorGUIUtility.fieldWidth = fieldWidth;
 
             serializedObject.ApplyModifiedProperties();
         }

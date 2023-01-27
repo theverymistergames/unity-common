@@ -9,6 +9,7 @@ using MisterGames.Common.Editor.Windows;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
+using UnityEngine.Networking.Types;
 using UnityEngine.UIElements;
 using Blackboard = MisterGames.Common.Data.Blackboard;
 using BlackboardView = UnityEditor.Experimental.GraphView.Blackboard;
@@ -241,9 +242,9 @@ namespace MisterGames.Blueprints.Editor.Core {
             ClearView();
 
             _blueprintAsset = blueprintAsset;
-            _blueprintAssetEditor = UnityEditor.Editor.CreateEditor(blueprintAsset, typeof(BlueprintAssetEditor)) as BlueprintAssetEditor;
+            InvalidateBlueprintAsset(_blueprintAsset);
 
-            InvalidateNodesPortsAndConnections();
+            _blueprintAssetEditor = (BlueprintAssetEditor) UnityEditor.Editor.CreateEditor(_blueprintAsset, typeof(BlueprintAssetEditor));
             RepopulateView();
 
             _blueprintAsset.BlueprintMeta.OnInvalidateNodePortsAndLinks = RepaintNodePortsAndLinks;
@@ -265,6 +266,9 @@ namespace MisterGames.Blueprints.Editor.Core {
             if (_blueprintAsset == null) return;
 
             graphViewChanged -= OnGraphViewChanged;
+            foreach (var element in graphElements) {
+                if (element is BlueprintNodeView nodeView) nodeView.DeInitialize();
+            }
             DeleteElements(graphElements);
             graphViewChanged += OnGraphViewChanged;
 
@@ -286,16 +290,17 @@ namespace MisterGames.Blueprints.Editor.Core {
             foreach (var element in graphElements) {
                 if (element is BlueprintNodeView nodeView) nodeView.DeInitialize();
             }
-
             DeleteElements(graphElements);
 
-            if (_blueprintAsset == null) return;
+            if (_blueprintAsset != null) {
+                _blueprintAsset.BlueprintMeta.OnInvalidateNodePortsAndLinks = null;
+                _blueprintAsset = null;
+            }
 
-            Object.DestroyImmediate(_blueprintAssetEditor);
-            _blueprintAssetEditor = null;
-
-            _blueprintAsset.BlueprintMeta.OnInvalidateNodePortsAndLinks = null;
-            _blueprintAsset = null;
+            if (_blueprintAssetEditor != null) {
+                Object.DestroyImmediate(_blueprintAssetEditor);
+                _blueprintAssetEditor = null;
+            }
         }
 
         public override void BuildContextualMenu(ContextualMenuPopulateEvent evt) {
@@ -311,19 +316,38 @@ namespace MisterGames.Blueprints.Editor.Core {
             OnBlueprintAssetSetDirty?.Invoke();
         }
 
-        private void InvalidateNodesPortsAndConnections() {
-            if (_blueprintAsset == null) return;
+        private void InvalidateBlueprintAsset(BlueprintAsset blueprintAsset) {
+            SerializationUtility.ClearAllManagedReferencesWithMissingTypes(blueprintAsset);
 
-            bool changed = false;
-
-            var blueprintMeta = _blueprintAsset.BlueprintMeta;
+            var blueprintMeta = blueprintAsset.BlueprintMeta;
             var nodesMap = blueprintMeta.NodesMap;
 
-            foreach (int nodeId in nodesMap.Keys) {
-                changed |= blueprintMeta.InvalidateNodePorts(nodeId, invalidateLinks: true, notify: false);
+            int[] nodeIds = new int[nodesMap.Count];
+            nodesMap.Keys.CopyTo(nodeIds, 0);
+
+            bool isNodesDataChanged = false;
+
+            for (int n = 0; n < nodeIds.Length; n++) {
+                int nodeId = nodeIds[n];
+                var nodeMeta = nodesMap[nodeId];
+
+                if (nodeMeta.Node == null) {
+                    blueprintMeta.RemoveNode(nodeId);
+                    isNodesDataChanged = true;
+                    continue;
+                }
+
+                long refId = SerializationUtility.GetManagedReferenceIdForObject(blueprintAsset, nodeMeta.Node);
+                if (refId is SerializationUtility.RefIdNull or SerializationUtility.RefIdUnknown) {
+                    blueprintMeta.RemoveNode(nodeId);
+                    isNodesDataChanged = true;
+                    continue;
+                }
+
+                isNodesDataChanged |= blueprintMeta.InvalidateNodePorts(nodeId, invalidateLinks: true, notify: false);
             }
 
-            if (changed) SetBlueprintAssetDirtyAndNotify();
+            if (isNodesDataChanged) SetBlueprintAssetDirtyAndNotify();
         }
 
         // ---------------- ---------------- Node and connection creation ---------------- ----------------
@@ -421,20 +445,19 @@ namespace MisterGames.Blueprints.Editor.Core {
 
         private BlueprintNodeView CreateNodeView(BlueprintNodeMeta nodeMeta) {
             var nodeView = new BlueprintNodeView(nodeMeta) { OnPositionChanged = OnNodePositionChanged };
-
-            nodeView.InjectBlueprintAssetEditor(_blueprintAssetEditor);
             nodeView.CreatePortViews(this);
+
+            nodeView.InitializeNodeInspector(() => {
+                _blueprintAsset.editedNodeId = nodeMeta.NodeId;
+                _blueprintAsset.editedNode = nodeMeta.Node;
+
+                _blueprintAssetEditor.AllowShowEditedBlueprintNode();
+                _blueprintAssetEditor.OnInspectorGUI();
+            });
 
             AddElement(nodeView);
 
             return nodeView;
-        }
-
-        private void OnValidateNode(BlueprintNodeMeta nodeMeta, BlueprintNode node) {
-            if (node is IBlueprintValidatedNode validatedNode) validatedNode.OnValidate(nodeMeta.NodeId, _blueprintAsset);
-            node.OnValidate();
-
-            SetBlueprintAssetDirtyAndNotify();
         }
 
         private void OnNodePositionChanged(BlueprintNodeMeta nodeMeta, Vector2 position) {
