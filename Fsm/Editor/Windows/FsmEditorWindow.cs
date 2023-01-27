@@ -84,7 +84,9 @@ namespace MisterGames.Fsm.Editor.Windows {
         }
 
         private void OnObjectSelected(Object obj) {
-            _inspectorView.UpdateSelection(obj);
+            var objEditor = UnityEditor.Editor.CreateEditor(obj);
+            _inspectorView.Inject(objEditor.OnInspectorGUI, () => DestroyImmediate(objEditor));
+
             if (_inspectorObject != null) {
                 _inspectorObject.text = $"{obj.name} ({obj.GetType().Name})";
             }

@@ -1,29 +1,26 @@
-﻿using UnityEngine;
+﻿using System;
 using UnityEngine.UIElements;
 
 namespace MisterGames.Common.Editor.Views {
 
     public class InspectorView : VisualElement {
 
-        private UnityEditor.Editor _editor;
-        
+        private Action _onClear;
+
         public InspectorView() { }
 
-        public void UpdateSelection(Object obj) {
+        public void Inject(Action onInspectorGUI, Action onClear = null) {
             ClearInspector();
-
-            _editor = UnityEditor.Editor.CreateEditor(obj);
-            var container = new IMGUIContainer(_editor.OnInspectorGUI);
-            Add(container);
+            _onClear = onClear;
+            Add(new IMGUIContainer(onInspectorGUI));
         }
 
         public void ClearInspector() {
             Clear();
-            Object.DestroyImmediate(_editor);
+            _onClear?.Invoke();
         }
 
         public new class UxmlFactory : UxmlFactory<InspectorView, UxmlTraits> { }
-        
     }
 
 }
