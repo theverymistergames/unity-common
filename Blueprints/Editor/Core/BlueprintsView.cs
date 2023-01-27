@@ -450,9 +450,7 @@ namespace MisterGames.Blueprints.Editor.Core {
             nodeView.InitializeNodeInspector(() => {
                 _blueprintAsset.editedNodeId = nodeMeta.NodeId;
                 _blueprintAsset.editedNode = nodeMeta.Node;
-
-                _blueprintAssetEditor.AllowShowEditedBlueprintNode();
-                _blueprintAssetEditor.OnInspectorGUI();
+                _blueprintAssetEditor.DoOnInspectorGUI();
             });
 
             AddElement(nodeView);
@@ -646,6 +644,8 @@ namespace MisterGames.Blueprints.Editor.Core {
         }
 
         private void OnUnserializeAndPaste(string operationName, string data) {
+            if (data == null) return;
+
             CopyPasteData pasteData;
             try {
                 pasteData = JsonUtility.FromJson<CopyPasteData>(data);

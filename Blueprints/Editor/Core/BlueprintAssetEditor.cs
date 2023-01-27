@@ -5,19 +5,23 @@ using UnityEngine;
 
 namespace MisterGames.Blueprints.Editor.Core {
 
+    /// <summary>
+    /// This editor is not for default Unity Inspector with BlueprintAsset.asset as serialized object.
+    /// BlueprintAsset default inspector is made empty by overriding UnityEditor.Editor.OnInspectorGUI() method.
+    /// </summary>
     [CustomEditor(typeof(BlueprintAsset))]
     public sealed class BlueprintAssetEditor : UnityEditor.Editor {
 
-        private bool _isAllowedToShowEditedNode;
+        /// <summary>
+        /// Empty method override to make BlueprintAsset default inspector empty.
+        /// </summary>
+        public override void OnInspectorGUI() { }
 
-        public void AllowShowEditedBlueprintNode() {
-            _isAllowedToShowEditedNode = true;
-        }
-
-        public override void OnInspectorGUI() {
-            if (!_isAllowedToShowEditedNode) return;
+        public void DoOnInspectorGUI() {
             if (target is not BlueprintAsset blueprint) return;
             if (serializedObject.targetObject == null) return;
+
+            int editedNodeId = blueprint.editedNodeId;
 
             serializedObject.Update();
 
@@ -31,9 +35,10 @@ namespace MisterGames.Blueprints.Editor.Core {
 
             EditorGUI.BeginChangeCheck();
 
-            var endProperty = nodeProperty.GetEndProperty();
+            Debug.Log($"BlueprintAssetEditor.OnInspectorGUI: paint Node#{editedNodeId} {blueprint.editedNode}");
+
             bool enterChildren = true;
-            while (nodeProperty.NextVisible(enterChildren) && !SerializedProperty.EqualContents(nodeProperty, endProperty)) {
+            while (nodeProperty.NextVisible(enterChildren)) {
                 enterChildren = false;
                 EditorGUILayout.PropertyField(nodeProperty, true);
 
@@ -43,9 +48,11 @@ namespace MisterGames.Blueprints.Editor.Core {
             }
 
             if (EditorGUI.EndChangeCheck()) {
+                Debug.Log($"BlueprintAssetEditor.OnInspectorGUI: validate Node#{editedNodeId} {blueprint.editedNode}");
+
                 var node = blueprint.editedNode;
                 node.OnValidate();
-                if (node is IBlueprintAssetValidator validator) validator.ValidateBlueprint(blueprint, blueprint.editedNodeId);
+                if (node is IBlueprintAssetValidator validator) validator.ValidateBlueprint(blueprint, editedNodeId);
             }
 
             EditorGUIUtility.labelWidth = labelWidth;

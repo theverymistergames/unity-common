@@ -26,10 +26,6 @@ namespace MisterGames.BlueprintLib {
 
             CallPort(3);
         }
-
-        public override string ToString() {
-            return $"{nameof(BlueprintNodeSetPosition)}(_defaultPosition = {_defaultPosition})";
-        }
     }
 
 }
