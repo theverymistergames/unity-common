@@ -1,4 +1,5 @@
-﻿using MisterGames.Blueprints.Compile;
+﻿using System;
+using MisterGames.Blueprints.Compile;
 using MisterGames.Blueprints.Meta;
 using MisterGames.Common.Data;
 using UnityEngine;
@@ -11,8 +12,8 @@ namespace MisterGames.Blueprints {
     [CreateAssetMenu(fileName = "Blueprint", menuName = "MisterGames/Blueprint")]
     public sealed class BlueprintAsset : ScriptableObject {
 
-        [SerializeField] [HideInInspector] private BlueprintMeta _blueprintMeta;
-        [SerializeField] [HideInInspector] private Blackboard _blackboard;
+        [SerializeField] private BlueprintMeta _blueprintMeta;
+        [SerializeField] private Blackboard _blackboard;
 
         private readonly BlueprintCompiler _blueprintCompiler = new BlueprintCompiler();
 

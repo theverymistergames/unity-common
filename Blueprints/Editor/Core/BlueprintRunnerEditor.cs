@@ -14,11 +14,9 @@ namespace MisterGames.Blueprints.Editor.Core {
             if (target is not BlueprintRunner runner) return;
 
             serializedObject.Update();
-            EditorGUI.BeginChangeCheck();
 
             DrawBlueprintRunner(runner);
 
-            EditorGUI.EndChangeCheck();
             serializedObject.ApplyModifiedProperties();
         }
 

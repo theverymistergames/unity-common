@@ -12,6 +12,7 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using Blackboard = MisterGames.Common.Data.Blackboard;
 using BlackboardView = UnityEditor.Experimental.GraphView.Blackboard;
+using Object = UnityEngine.Object;
 using PortView = UnityEditor.Experimental.GraphView.Port;
 
 namespace MisterGames.Blueprints.Editor.Core {
@@ -22,6 +23,8 @@ namespace MisterGames.Blueprints.Editor.Core {
         public Action OnBlueprintAssetSetDirty = delegate {  };
 
         private BlueprintAsset _blueprintAsset;
+        private BlueprintAssetEditor _blueprintAssetEditor;
+
         private BlueprintNodeSearchWindow _nodeSearchWindow;
         private BlackboardSearchWindow _blackboardSearchWindow;
 
@@ -238,6 +241,7 @@ namespace MisterGames.Blueprints.Editor.Core {
             ClearView();
 
             _blueprintAsset = blueprintAsset;
+            _blueprintAssetEditor = UnityEditor.Editor.CreateEditor(blueprintAsset, typeof(BlueprintAssetEditor)) as BlueprintAssetEditor;
 
             InvalidateNodesPortsAndConnections();
             RepopulateView();
@@ -286,6 +290,9 @@ namespace MisterGames.Blueprints.Editor.Core {
             DeleteElements(graphElements);
 
             if (_blueprintAsset == null) return;
+
+            Object.DestroyImmediate(_blueprintAssetEditor);
+            _blueprintAssetEditor = null;
 
             _blueprintAsset.BlueprintMeta.OnInvalidateNodePortsAndLinks = null;
             _blueprintAsset = null;
@@ -413,12 +420,11 @@ namespace MisterGames.Blueprints.Editor.Core {
         }
 
         private BlueprintNodeView CreateNodeView(BlueprintNodeMeta nodeMeta) {
-            var nodeView = new BlueprintNodeView(nodeMeta) {
-                OnPositionChanged = OnNodePositionChanged,
-                OnValidate = OnValidateNode,
-            };
+            var nodeView = new BlueprintNodeView(nodeMeta) { OnPositionChanged = OnNodePositionChanged };
 
+            nodeView.InjectBlueprintAssetEditor(_blueprintAssetEditor);
             nodeView.CreatePortViews(this);
+
             AddElement(nodeView);
 
             return nodeView;

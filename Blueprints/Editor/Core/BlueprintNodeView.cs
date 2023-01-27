@@ -6,12 +6,10 @@ using MisterGames.Blueprints.Meta;
 using MisterGames.Common.Color;
 using MisterGames.Common.Editor.Utils;
 using MisterGames.Common.Editor.Views;
-using MisterGames.Common.Editor.VirtualInspector;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.UIElements;
-using Object = UnityEngine.Object;
 using PortView = UnityEditor.Experimental.GraphView.Port;
 
 namespace MisterGames.Blueprints.Editor.Core {
@@ -19,13 +17,18 @@ namespace MisterGames.Blueprints.Editor.Core {
     public sealed class BlueprintNodeView : Node {
 
         public readonly BlueprintNodeMeta nodeMeta;
-
         public Action<BlueprintNodeMeta, Vector2> OnPositionChanged = delegate {  };
-        public Action<BlueprintNodeMeta, BlueprintNode> OnValidate = delegate {  };
 
-        private readonly VirtualInspector _nodeInspector;
         private readonly Dictionary<PortView, int> _portViewToPortIndexMap = new Dictionary<PortView, int>();
         private readonly Dictionary<int, PortView> _portIndexToPortViewMap = new Dictionary<int, PortView>();
+        private readonly InspectorView _inspector;
+
+        private BlueprintAssetEditor _blueprintAssetEditor;
+
+        private struct PortViewCreationData {
+            public int portIndex;
+            public Port port;
+        }
 
         public BlueprintNodeView(BlueprintNodeMeta nodeMeta) : base(GetUxmlPath()) {
             this.nodeMeta = nodeMeta;
@@ -34,7 +37,7 @@ namespace MisterGames.Blueprints.Editor.Core {
             
             var titleLabel = this.Q<Label>("title");
             var container = this.Q<VisualElement>("title-container");
-            var inspector = this.Q<InspectorView>("inspector");
+            _inspector = this.Q<InspectorView>("inspector");
 
             var node = nodeMeta.Node;
             var nodeType = node.GetType();
@@ -46,35 +49,33 @@ namespace MisterGames.Blueprints.Editor.Core {
             titleLabel.text = nodeName;
             container.style.backgroundColor = ColorUtils.HexToColor(nodeColor);
 
-            _nodeInspector = VirtualInspector.Create(node, OnNodeGUI, OnNodeValidate);
-
-            inspector.UpdateSelection(_nodeInspector);
-
             style.left = nodeMeta.Position.x;
             style.top = nodeMeta.Position.y;
         }
 
-        public void DeInitialize() {
-            Object.DestroyImmediate(_nodeInspector);
+        public void InjectBlueprintAssetEditor(BlueprintAssetEditor blueprintAssetEditor) {
+            _blueprintAssetEditor = blueprintAssetEditor;
 
+            _blueprintAssetEditor.OnNodeGUI -= OnNodeGUI;
+            _blueprintAssetEditor.OnNodeGUI += OnNodeGUI;
+
+            _inspector.Inject(onInspectorGUI: () => {
+                _blueprintAssetEditor.FilterNode(nodeMeta.NodeId);
+                _blueprintAssetEditor.OnInspectorGUI();
+            });
+        }
+
+        public void DeInitialize() {
+            _blueprintAssetEditor.OnNodeGUI -= OnNodeGUI;
             _portViewToPortIndexMap.Clear();
             _portIndexToPortViewMap.Clear();
-
+            _inspector.ClearInspector();
             Clear();
         }
 
         public override void SetPosition(Rect newPos) {
             base.SetPosition(newPos);
             OnPositionChanged.Invoke(nodeMeta, new Vector2(newPos.xMin, newPos.yMin));
-        }
-
-        private void OnNodeValidate(object obj) {
-            if (obj is BlueprintNode node) OnValidate.Invoke(nodeMeta, node);
-        }
-
-        private struct PortViewCreationData {
-            public int portIndex;
-            public Port port;
         }
 
         public void CreatePortViews(IEdgeConnectorListener connectorListener) {
@@ -194,19 +195,20 @@ namespace MisterGames.Blueprints.Editor.Core {
             };
         }
 
-        private static void OnNodeGUI(SerializedProperty serializedProperty) {
+        private static void OnNodeGUI(SerializedProperty nodeSerializedProperty) {
             float labelWidth = EditorGUIUtility.labelWidth;
             float fieldWidth = EditorGUIUtility.fieldWidth;
 
-            EditorGUIUtility.labelWidth = 110;
+            EditorGUIUtility.labelWidth = 140;
             EditorGUIUtility.fieldWidth = 240;
 
             bool enterChildren = true;
-            while (serializedProperty.NextVisible(enterChildren)) {
+            while (nodeSerializedProperty.NextVisible(enterChildren)) {
                 enterChildren = false;
-                EditorGUILayout.PropertyField(serializedProperty, true);
 
-                if (serializedProperty.GetValue() is BlueprintAsset blueprintAsset && GUILayout.Button("Edit")) {
+                EditorGUILayout.PropertyField(nodeSerializedProperty, true);
+
+                if (nodeSerializedProperty.GetValue() is BlueprintAsset blueprintAsset && GUILayout.Button("Edit")) {
                     BlueprintsEditorWindow.OpenAsset(blueprintAsset);
                 }
             }
