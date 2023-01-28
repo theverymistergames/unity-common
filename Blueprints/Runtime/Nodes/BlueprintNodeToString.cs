@@ -18,9 +18,12 @@ namespace MisterGames.Blueprints.Nodes {
         };
 
         public override void OnInitialize(IBlueprintHost host) {
-            UnityEngine.Debug.LogWarning($"Using {nameof(BlueprintNodeToString)} in blueprint runner `{host.Runner.name}`: " +
+            UnityEngine.Debug.LogWarning($"Using {nameof(BlueprintNodeToString)} " +
+                                         $"in blueprint `{((BlueprintRunner) host.Runner).BlueprintAsset.name}` or in its subgraphs " +
+                                         $"in blueprint runner `{host.Runner.name}`: " +
                                          $"this node uses reflection and is for debug purposes only, " +
                                          $"it must be removed in the release build.");
+
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             var inputPortLinks = RuntimePorts[0].links;
             if (inputPortLinks.Count == 0) return;
