@@ -100,7 +100,9 @@ namespace MisterGames.Blueprints.Meta {
 
         public void RemoveConnection(int fromNodeId, int fromPortIndex, int toNodeId, int toPortIndex) {
             RemoveLinkFromNodePort(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
+            RemoveLinkFromNodePort(toNodeId, toPortIndex, fromNodeId, fromPortIndex);
             RemoveLinkToNodePort(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
+            RemoveLinkToNodePort(toNodeId, toPortIndex, fromNodeId, fromPortIndex);
         }
 
         public IReadOnlyList<BlueprintLink> GetLinksFromNodePort(int nodeId, int portIndex) {
