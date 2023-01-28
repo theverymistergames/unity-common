@@ -5,19 +5,11 @@ namespace MisterGames.Common.Editor.Views {
 
     public class InspectorView : VisualElement {
 
-        private Action _onClear;
-
         public InspectorView() { }
 
-        public void Inject(Action onInspectorGUI, Action onClear = null) {
-            ClearInspector();
-            _onClear = onClear;
-            Add(new IMGUIContainer(onInspectorGUI));
-        }
-
-        public void ClearInspector() {
+        public void Inject(Action onInspectorGUI) {
             Clear();
-            _onClear?.Invoke();
+            Add(new IMGUIContainer(onInspectorGUI));
         }
 
         public new class UxmlFactory : UxmlFactory<InspectorView, UxmlTraits> { }

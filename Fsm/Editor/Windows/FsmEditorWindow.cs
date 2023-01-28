@@ -1,5 +1,4 @@
 using MisterGames.Common.Editor.Views;
-using MisterGames.Fsm;
 using MisterGames.Fsm.Core;
 using MisterGames.Fsm.Editor.Views;
 using UnityEditor;
@@ -20,7 +19,8 @@ namespace MisterGames.Fsm.Editor.Windows {
 
         private ObjectField _assetPicker;
         private Object _asset;
-        
+        private UnityEditor.Editor _currentSelectionEditor;
+
         [MenuItem("MisterGames/State Machine Editor")]
         private static FsmEditorWindow OpenWindow() {
             var window = GetWindow<FsmEditorWindow>();
@@ -84,8 +84,8 @@ namespace MisterGames.Fsm.Editor.Windows {
         }
 
         private void OnObjectSelected(Object obj) {
-            var objEditor = UnityEditor.Editor.CreateEditor(obj);
-            _inspectorView.Inject(objEditor.OnInspectorGUI, () => DestroyImmediate(objEditor));
+            _currentSelectionEditor = UnityEditor.Editor.CreateEditor(obj);
+            _inspectorView.Inject(_currentSelectionEditor.OnInspectorGUI);
 
             if (_inspectorObject != null) {
                 _inspectorObject.text = $"{obj.name} ({obj.GetType().Name})";
@@ -93,7 +93,9 @@ namespace MisterGames.Fsm.Editor.Windows {
         }
         
         private void OnNothingSelected() {
-            _inspectorView.ClearInspector();
+            DestroyImmediate(_currentSelectionEditor);
+            _inspectorView.Clear();
+
             if (_inspectorObject != null) {
                 _inspectorObject.text = "";
             }
