@@ -3,6 +3,7 @@ using UnityEditor.Callbacks;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
+using Object = UnityEngine.Object;
 
 namespace MisterGames.Blueprints.Editor.Core {
 
@@ -47,7 +48,14 @@ namespace MisterGames.Blueprints.Editor.Core {
 
         private void OnEnable() {
             var asset = _assetPicker?.value as BlueprintAsset;
-            SetWindowTitle(asset == null ? WINDOW_TITLE : EditorUtility.IsDirty(asset) ? $"{asset.name}*" : asset.name);
+
+            if (asset == null) {
+                _blueprintsView?.ClearView();
+                SetWindowTitle(WINDOW_TITLE);
+                return;
+            }
+
+            SetWindowTitle(EditorUtility.IsDirty(asset) ? $"{asset.name}*" : asset.name);
         }
 
         private void OnDisable() {
@@ -98,6 +106,17 @@ namespace MisterGames.Blueprints.Editor.Core {
 
         private void OnToggleMiniMapButton(ChangeEvent<bool> evt) {
             _blueprintsView?.ToggleMiniMap(evt.newValue);
+        }
+
+        private void OnSelectionChange() {
+            if (_assetPicker == null) return;
+
+            var asset = _assetPicker.value as BlueprintAsset;
+            if (asset != null) return;
+
+            _assetPicker.value = null;
+            _blueprintsView?.ClearView();
+            SetWindowTitle(WINDOW_TITLE);
         }
 
         private void OnAssetChanged(ChangeEvent<Object> evt) {
