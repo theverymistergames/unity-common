@@ -20,20 +20,20 @@ namespace MisterGames.Blueprints.Editor.Core {
                 GUILayout.Label("Subgraph blueprints", EditorStyles.boldLabel);
 
                 foreach (var subgraph in subgraphBlueprints) {
-                    DrawSubgraphBlueprintsRecursively(subgraph);
+                    DrawSubgraphBlueprintsRecursively(subgraph, 0);
                 }
             }
 
             EditorGUI.EndDisabledGroup();
         }
 
-        private static void DrawSubgraphBlueprintsRecursively(BlueprintAsset blueprint) {
+        private static void DrawSubgraphBlueprintsRecursively(BlueprintAsset blueprint, int depth) {
             if (blueprint == null) return;
 
-            EditorGUILayout.ObjectField($"Subgraph", blueprint, typeof(BlueprintAsset), false);
+            EditorGUILayout.ObjectField($"Subgraph (depth {depth})", blueprint, typeof(BlueprintAsset), false);
 
             foreach (var subgraph in blueprint.BlueprintMeta.SubgraphReferencesMap.Values) {
-                DrawSubgraphBlueprintsRecursively(subgraph);
+                DrawSubgraphBlueprintsRecursively(subgraph, depth + 1);
             }
         }
     }
