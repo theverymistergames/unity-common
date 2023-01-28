@@ -50,7 +50,7 @@ namespace MisterGames.Blueprints.Editor.Core {
             var container = this.Q<VisualElement>("title-container");
             var nodeMetaAttr = node.GetType().GetCustomAttribute<BlueprintNodeMetaAttribute>(false);
 
-            titleLabel.text = FormatNodeName(nodeMeta, nodeMetaAttr);
+            titleLabel.text = GetFormattedNodeName(nodeMeta, nodeMetaAttr);
             container.style.backgroundColor = GetNodeColor(nodeMetaAttr);
 
             style.left = nodeMeta.Position.x;
@@ -160,13 +160,37 @@ namespace MisterGames.Blueprints.Editor.Core {
             var portView = InstantiatePort(Orientation.Horizontal, direction, capacity, typeof(bool));
             portView.AddManipulator(new EdgeConnector<Edge>(connectorListener));
 
-            portView.portName = FormatPortName(data.portIndex, data.port);
+            portView.portName = GetFormattedPortName(data.portIndex, data.port);
             portView.portColor = GetPortColor(data.port);
 
             container.Add(portView);
 
             _portViewToPortIndexMap[portView] = data.portIndex;
             _portIndexToPortViewMap[data.portIndex] = portView;
+        }
+
+        private static string GetFormattedNodeName(BlueprintNodeMeta nodeMeta, BlueprintNodeMetaAttribute nodeMetaAttr) {
+            string nodeName = string.IsNullOrWhiteSpace(nodeMetaAttr.Name) ? nodeMeta.Node.GetType().Name : nodeMetaAttr.Name.Trim();
+            return $"#{nodeMeta.NodeId} {nodeName}";
+        }
+
+        private static Color GetNodeColor(BlueprintNodeMetaAttribute nodeMetaAttr) {
+            string nodeColor = string.IsNullOrEmpty(nodeMetaAttr.Color) ? BlueprintColors.Node.Default : nodeMetaAttr.Color;
+            return ColorUtils.HexToColor(nodeColor);
+        }
+
+        private static string GetFormattedPortName(int portIndex, Port port) {
+            string name = string.IsNullOrEmpty(port.name) ? string.Empty : port.name.Trim();
+
+            return port.mode switch {
+                Port.Mode.Enter => $"<color={BlueprintColors.Port.Header.Flow}>[{portIndex}] {name}</color>",
+                Port.Mode.Exit => $"<color={BlueprintColors.Port.Header.Flow}>{name} [{portIndex}]</color>",
+                Port.Mode.Input => $"<color={BlueprintColors.Port.Header.GetColorForType(port.DataType)}>[{portIndex}] {name}</color>",
+                Port.Mode.Output => $"<color={BlueprintColors.Port.Header.GetColorForType(port.DataType)}>{name} [{portIndex}]</color>",
+                Port.Mode.NonTypedInput => $"<color={BlueprintColors.Port.Header.Data}>[{portIndex}] {name}</color>",
+                Port.Mode.NonTypedOutput => $"<color={BlueprintColors.Port.Header.Data}>{name} [{portIndex}]</color>",
+                _ => throw new NotSupportedException($"Port mode {port.mode} is not supported"),
+            };
         }
 
         private static Color GetPortColor(Port port) {
@@ -177,30 +201,6 @@ namespace MisterGames.Blueprints.Editor.Core {
                 Port.Mode.Output => BlueprintColors.Port.Connection.GetColorForType(port.DataType),
                 Port.Mode.NonTypedInput => BlueprintColors.Port.Connection.Data,
                 Port.Mode.NonTypedOutput => BlueprintColors.Port.Connection.Data,
-                _ => throw new NotSupportedException($"Port mode {port.mode} is not supported"),
-            };
-        }
-
-        private static Color GetNodeColor(BlueprintNodeMetaAttribute nodeMetaAttr) {
-            string nodeColor = string.IsNullOrEmpty(nodeMetaAttr.Color) ? BlueprintColors.Node.Default : nodeMetaAttr.Color;
-            return ColorUtils.HexToColor(nodeColor);
-        }
-
-        private static string FormatNodeName(BlueprintNodeMeta nodeMeta, BlueprintNodeMetaAttribute nodeMetaAttr) {
-            string nodeName = string.IsNullOrWhiteSpace(nodeMetaAttr.Name) ? nodeMeta.Node.GetType().Name : nodeMetaAttr.Name.Trim();
-            return $"#{nodeMeta.NodeId} {nodeName}";
-        }
-
-        private static string FormatPortName(int portIndex, Port port) {
-            string name = string.IsNullOrEmpty(port.name) ? string.Empty : port.name.Trim();
-
-            return port.mode switch {
-                Port.Mode.Enter => $"<color={BlueprintColors.Port.Header.Flow}>[{portIndex}] {name}</color>",
-                Port.Mode.Exit => $"<color={BlueprintColors.Port.Header.Flow}>[{portIndex}] {name}</color>",
-                Port.Mode.Input => $"<color={BlueprintColors.Port.Header.GetColorForType(port.DataType)}>[{portIndex}] {name}</color>",
-                Port.Mode.Output => $"<color={BlueprintColors.Port.Header.GetColorForType(port.DataType)}>[{portIndex}] {name}</color>",
-                Port.Mode.NonTypedInput => $"<color={BlueprintColors.Port.Header.Data}>[{portIndex}] {name}</color>",
-                Port.Mode.NonTypedOutput => $"<color={BlueprintColors.Port.Header.Data}>[{portIndex}] {name}</color>",
                 _ => throw new NotSupportedException($"Port mode {port.mode} is not supported"),
             };
         }
