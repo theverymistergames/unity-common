@@ -1,64 +1,40 @@
-﻿using MisterGames.Blueprints.Validation;
-using MisterGames.Common.Editor.Utils;
-using UnityEditor;
+﻿using UnityEditor;
 using UnityEngine;
 
 namespace MisterGames.Blueprints.Editor.Core {
 
-    /// <summary>
-    /// This editor is not for default Unity Inspector with BlueprintAsset.asset as serialized object.
-    /// BlueprintAsset default inspector is made empty by overriding UnityEditor.Editor.OnInspectorGUI() method.
-    /// </summary>
     [CustomEditor(typeof(BlueprintAsset))]
     public sealed class BlueprintAssetEditor : UnityEditor.Editor {
 
-        /// <summary>
-        /// Empty method override to make BlueprintAsset default inspector empty.
-        /// </summary>
-        public override void OnInspectorGUI() { }
-
-        public void DoOnInspectorGUI() {
+        public override void OnInspectorGUI() {
             if (target is not BlueprintAsset blueprint) return;
-            if (serializedObject.targetObject == null) return;
 
-            int editedNodeId = blueprint.editedNodeId;
+            EditorGUI.BeginDisabledGroup(true);
 
-            serializedObject.Update();
+            EditorGUILayout.IntField("Nodes count", blueprint.BlueprintMeta.NodesMap.Count);
 
-            var nodeProperty = serializedObject.FindProperty("editedNode");
+            var subgraphBlueprints = blueprint.BlueprintMeta.SubgraphReferencesMap.Values;
+            if (subgraphBlueprints.Count > 0) {
+                GUILayout.Space(10);
 
-            float labelWidth = EditorGUIUtility.labelWidth;
-            float fieldWidth = EditorGUIUtility.fieldWidth;
+                GUILayout.Label("Subgraph blueprints", EditorStyles.boldLabel);
 
-            EditorGUIUtility.labelWidth = 140;
-            EditorGUIUtility.fieldWidth = 240;
-
-            EditorGUI.BeginChangeCheck();
-
-            Debug.Log($"BlueprintAssetEditor.OnInspectorGUI: paint Node#{editedNodeId} {blueprint.editedNode}");
-
-            bool enterChildren = true;
-            while (nodeProperty.NextVisible(enterChildren)) {
-                enterChildren = false;
-                EditorGUILayout.PropertyField(nodeProperty, true);
-
-                if (nodeProperty.GetValue() is BlueprintAsset blueprintAsset && GUILayout.Button("Edit")) {
-                    BlueprintsEditorWindow.OpenAsset(blueprintAsset);
+                foreach (var subgraph in subgraphBlueprints) {
+                    DrawSubgraphBlueprintsRecursively(subgraph);
                 }
             }
 
-            if (EditorGUI.EndChangeCheck()) {
-                Debug.Log($"BlueprintAssetEditor.OnInspectorGUI: validate Node#{editedNodeId} {blueprint.editedNode}");
+            EditorGUI.EndDisabledGroup();
+        }
 
-                var node = blueprint.editedNode;
-                node.OnValidate();
-                if (node is IBlueprintAssetValidator validator) validator.ValidateBlueprint(blueprint, editedNodeId);
+        private static void DrawSubgraphBlueprintsRecursively(BlueprintAsset blueprint) {
+            if (blueprint == null) return;
+
+            EditorGUILayout.ObjectField($"Subgraph", blueprint, typeof(BlueprintAsset), false);
+
+            foreach (var subgraph in blueprint.BlueprintMeta.SubgraphReferencesMap.Values) {
+                DrawSubgraphBlueprintsRecursively(subgraph);
             }
-
-            EditorGUIUtility.labelWidth = labelWidth;
-            EditorGUIUtility.fieldWidth = fieldWidth;
-
-            serializedObject.ApplyModifiedProperties();
         }
     }
 

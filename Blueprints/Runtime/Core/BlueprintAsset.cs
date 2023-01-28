@@ -1,5 +1,4 @@
-﻿using System;
-using MisterGames.Blueprints.Compile;
+﻿using MisterGames.Blueprints.Compile;
 using MisterGames.Blueprints.Meta;
 using MisterGames.Common.Data;
 using UnityEngine;
@@ -14,11 +13,6 @@ namespace MisterGames.Blueprints {
 
         [SerializeField] private BlueprintMeta _blueprintMeta;
         [SerializeField] private Blackboard _blackboard;
-
-#if UNITY_EDITOR
-        [SerializeReference] internal int editedNodeId;
-        [SerializeReference] internal BlueprintNode editedNode;
-#endif
 
         private readonly BlueprintCompiler _blueprintCompiler = new BlueprintCompiler();
 

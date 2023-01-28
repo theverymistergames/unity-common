@@ -4,11 +4,14 @@ using System.Linq;
 using System.Reflection;
 using MisterGames.Blueprints.Meta;
 using MisterGames.Common.Color;
+using MisterGames.Common.Editor.Utils;
 using MisterGames.Common.Editor.Views;
+using MisterGames.Common.Editor.VirtualInspector;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.UIElements;
+using Object = UnityEngine.Object;
 using PortView = UnityEditor.Experimental.GraphView.Port;
 
 namespace MisterGames.Blueprints.Editor.Core {
@@ -17,10 +20,14 @@ namespace MisterGames.Blueprints.Editor.Core {
 
         public readonly BlueprintNodeMeta nodeMeta;
         public Action<BlueprintNodeMeta, Vector2> OnPositionChanged = delegate {  };
+        public Action<BlueprintNodeMeta, BlueprintNode> OnValidate = delegate {  };
 
         private readonly Dictionary<PortView, int> _portViewToPortIndexMap = new Dictionary<PortView, int>();
         private readonly Dictionary<int, PortView> _portIndexToPortViewMap = new Dictionary<int, PortView>();
+
         private readonly InspectorView _inspector;
+        private readonly VirtualInspector _virtualInspector;
+        private readonly UnityEditor.Editor _virtualInspectorEditor;
 
         private struct PortViewCreationData {
             public int portIndex;
@@ -29,14 +36,19 @@ namespace MisterGames.Blueprints.Editor.Core {
 
         public BlueprintNodeView(BlueprintNodeMeta nodeMeta) : base(GetUxmlPath()) {
             this.nodeMeta = nodeMeta;
+            var node = nodeMeta.Node;
 
             viewDataKey = nodeMeta.NodeId.ToString();
-            
+
+            _inspector = this.Q<InspectorView>("inspector");
+            _virtualInspector = VirtualInspector.Create(node, OnNodeGUI, OnNodeValidate);
+            _virtualInspectorEditor = UnityEditor.Editor.CreateEditor(_virtualInspector, typeof(VirtualInspectorEditor));
+
+            _inspector.Inject(_virtualInspectorEditor.OnInspectorGUI);
+
             var titleLabel = this.Q<Label>("title");
             var container = this.Q<VisualElement>("title-container");
-            _inspector = this.Q<InspectorView>("inspector");
 
-            var node = nodeMeta.Node;
             var nodeType = node.GetType();
             var nodeMetaAttr = nodeType.GetCustomAttribute<BlueprintNodeMetaAttribute>(false);
 
@@ -50,14 +62,19 @@ namespace MisterGames.Blueprints.Editor.Core {
             style.top = nodeMeta.Position.y;
         }
 
-        public void InitializeNodeInspector(Action onInspectorGUI) {
-            _inspector.Inject(onInspectorGUI);
+        private void OnNodeValidate(object obj) {
+            if (obj is not BlueprintNode node) return;
+            OnValidate?.Invoke(nodeMeta, node);
         }
 
         public void DeInitialize() {
+            _inspector.Clear();
+            Object.DestroyImmediate(_virtualInspector);
+            Object.DestroyImmediate(_virtualInspectorEditor);
+
             _portViewToPortIndexMap.Clear();
             _portIndexToPortViewMap.Clear();
-            _inspector.ClearInspector();
+
             Clear();
         }
 
@@ -181,6 +198,27 @@ namespace MisterGames.Blueprints.Editor.Core {
                 Port.Mode.NonTypedOutput => $"<color={BlueprintColors.Port.Header.Data}>{name}</color>",
                 _ => throw new NotSupportedException($"Port mode {port.mode} is not supported"),
             };
+        }
+
+        private static void OnNodeGUI(SerializedProperty nodeProperty) {
+            float labelWidth = EditorGUIUtility.labelWidth;
+            float fieldWidth = EditorGUIUtility.fieldWidth;
+
+            EditorGUIUtility.labelWidth = 140;
+            EditorGUIUtility.fieldWidth = 240;
+
+            bool enterChildren = true;
+            while (nodeProperty.NextVisible(enterChildren)) {
+                enterChildren = false;
+                EditorGUILayout.PropertyField(nodeProperty, true);
+
+                if (nodeProperty.GetValue() is BlueprintAsset blueprintAsset && GUILayout.Button("Edit")) {
+                    BlueprintsEditorWindow.OpenAsset(blueprintAsset);
+                }
+            }
+
+            EditorGUIUtility.labelWidth = labelWidth;
+            EditorGUIUtility.fieldWidth = fieldWidth;
         }
 
         private static string GetUxmlPath() {
