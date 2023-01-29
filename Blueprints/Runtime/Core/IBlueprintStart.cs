@@ -1,9 +1,9 @@
-﻿namespace MisterGames.Blueprints {
+﻿namespace MisterGames.Blueprints.Core {
 
     /// <summary>
     /// Used by Start built-in blueprint node to provide start call from Blueprint runner.
     /// </summary>
-    internal interface IBlueprintStart {
+    public interface IBlueprintStart {
 
         /// <summary>
         /// Called when BlueprintRunner receives MonoBehaviour.Start call.

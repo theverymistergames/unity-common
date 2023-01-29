@@ -14,6 +14,7 @@ namespace MisterGames.Blueprints {
             public const string Data = "#375D3B";
             public const string Time = "#37595D";
             public const string Actions = "#7E2D19";
+            public const string Events = "#3570BD";
             public const string Blackboard = "#866B2B";
 
             internal const string External = "#5F436A";

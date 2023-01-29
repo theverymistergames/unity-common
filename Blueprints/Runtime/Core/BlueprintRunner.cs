@@ -1,4 +1,5 @@
-﻿using MisterGames.Blueprints.Compile;
+﻿using System;
+using MisterGames.Blueprints.Compile;
 using MisterGames.Common.Data;
 using UnityEngine;
 
@@ -32,6 +33,14 @@ namespace MisterGames.Blueprints {
 
         private void OnDestroy() {
             _runtimeBlueprint.DeInitialize();
+        }
+
+        private void OnEnable() {
+            _runtimeBlueprint.OnEnable();
+        }
+
+        private void OnDisable() {
+            _runtimeBlueprint.OnDisable();
         }
 
         private void Start() {
