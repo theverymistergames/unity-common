@@ -6,7 +6,7 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using Blackboard = MisterGames.Common.Data.Blackboard;
 
-namespace MisterGames.Common.Editor.Utils {
+namespace MisterGames.Common.Editor {
 
     public static class BlackboardUtils {
 
