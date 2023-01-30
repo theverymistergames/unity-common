@@ -17,21 +17,24 @@ namespace MisterGames.Common.Editor.Windows
 		private static int _toolCount;
 		private static GUIStyle _commandStyle;
 
-		private static Action _leftToolbarGUI = delegate {  };
-		private static Action _rightToolbarGUI = delegate {  };
+		private static Action<Rect> _leftToolbarGUI = delegate {  };
+		private static Action<Rect> _rightToolbarGUI = delegate {  };
 
 		private static Action OnToolbarGUI;
 		private static Action OnToolbarGUILeft;
 		private static Action OnToolbarGUIRight;
-		
+
+		private static Rect _leftRect;
+		private static Rect _rightRect;
+
 		private static readonly Type _toolbarType = typeof(UnityEditor.Editor).Assembly.GetType("UnityEditor.Toolbar");
 		private static ScriptableObject _currentToolbar;
 
-		public static void OnLeftToolbarGUI(Action action) {
+		public static void OnLeftToolbarGUI(Action<Rect> action) {
 			_leftToolbarGUI = action;
 		}
 		
-		public static void OnRightToolbarGUI(Action action) {
+		public static void OnRightToolbarGUI(Action<Rect> action) {
 			_rightToolbarGUI = action;
 		}
 		
@@ -58,46 +61,46 @@ namespace MisterGames.Common.Editor.Windows
 			float screenWidth = EditorGUIUtility.currentViewWidth;
 			float playButtonsPosition = Mathf.RoundToInt ((screenWidth - playPauseStopWidth) / 2);
 
-			var leftRect = new Rect(0, 0, screenWidth, Screen.height);
-			
-			leftRect.xMin += space; // Spacing left
-			leftRect.xMin += buttonWidth * _toolCount; // Tool buttons
-			leftRect.xMin += space; // Spacing between tools and pivot
-			leftRect.xMin += 64 * 2; // Pivot buttons
-			leftRect.xMax = playButtonsPosition;
+			_leftRect = new Rect(0, 0, screenWidth, Screen.height);
 
-			var rightRect = new Rect(0, 0, screenWidth, Screen.height) { xMin = playButtonsPosition };
-			rightRect.xMin += _commandStyle.fixedWidth * 3; // Play buttons
-			rightRect.xMax = screenWidth;
-			rightRect.xMax -= space; // Spacing right
-			rightRect.xMax -= dropdownWidth; // Layout
-			rightRect.xMax -= space; // Spacing between layout and layers
-			rightRect.xMax -= dropdownWidth; // Layers
-			rightRect.xMax -= space; // Spacing between layers and account
-			rightRect.xMax -= dropdownWidth; // Account
-			rightRect.xMax -= space; // Spacing between account and cloud
-			rightRect.xMax -= buttonWidth; // Cloud
-			rightRect.xMax -= space; // Spacing between cloud and collab
-			rightRect.xMax -= 78; // Colab
+			_leftRect.xMin += space; // Spacing left
+			_leftRect.xMin += buttonWidth * _toolCount; // Tool buttons
+			_leftRect.xMin += space; // Spacing between tools and pivot
+			_leftRect.xMin += 64 * 2; // Pivot buttons
+			_leftRect.xMax = playButtonsPosition;
 
-			leftRect.xMin += space;
-			leftRect.xMax -= space;
-			rightRect.xMin += space;
-			rightRect.xMax -= space;
+			_rightRect = new Rect(0, 0, screenWidth, Screen.height) { xMin = playButtonsPosition };
+			_rightRect.xMin += _commandStyle.fixedWidth * 3; // Play buttons
+			_rightRect.xMax = screenWidth;
+			_rightRect.xMax -= space; // Spacing right
+			_rightRect.xMax -= dropdownWidth; // Layout
+			_rightRect.xMax -= space; // Spacing between layout and layers
+			_rightRect.xMax -= dropdownWidth; // Layers
+			_rightRect.xMax -= space; // Spacing between layers and account
+			_rightRect.xMax -= dropdownWidth; // Account
+			_rightRect.xMax -= space; // Spacing between account and cloud
+			_rightRect.xMax -= buttonWidth; // Cloud
+			_rightRect.xMax -= space; // Spacing between cloud and collab
+			_rightRect.xMax -= 78; // Colab
 
-			leftRect.y = 0;
-			leftRect.height = 22;
-			rightRect.y = 0;
-			rightRect.height = 22;
+			_leftRect.xMin += space;
+			_leftRect.xMax -= space;
+			_rightRect.xMin += space;
+			_rightRect.xMax -= space;
 
-			if (leftRect.width > 0) {
-				GUILayout.BeginArea(leftRect);
+			_leftRect.y = 0;
+			_leftRect.height = 22;
+			_rightRect.y = 0;
+			_rightRect.height = 22;
+
+			if (_leftRect.width > 0) {
+				GUILayout.BeginArea(_leftRect);
 				GUILeft();
 				GUILayout.EndArea();
 			}
 
-			if (rightRect.width > 0) {
-				GUILayout.BeginArea(rightRect);
+			if (_rightRect.width > 0) {
+				GUILayout.BeginArea(_rightRect);
 				GUIRight();
 				GUILayout.EndArea();
 			}
@@ -105,13 +108,13 @@ namespace MisterGames.Common.Editor.Windows
 
 		private static void GUILeft() {
 			GUILayout.BeginHorizontal();
-			_leftToolbarGUI.Invoke();
+			_leftToolbarGUI.Invoke(_leftRect);
 			GUILayout.EndHorizontal();
 		}
 
 		private static void GUIRight() {
 			GUILayout.BeginHorizontal();
-			_rightToolbarGUI.Invoke();
+			_rightToolbarGUI.Invoke(_rightRect);
 			GUILayout.EndHorizontal();
 		}
 		
