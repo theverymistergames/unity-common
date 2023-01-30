@@ -1,5 +1,4 @@
-﻿using System;
-using MisterGames.Common.Attributes;
+﻿using MisterGames.Common.Attributes;
 using UnityEngine;
 
 #if UNITY_EDITOR
@@ -16,45 +15,51 @@ namespace MisterGames.Scenes.Core {
 
 #if UNITY_EDITOR
         [SerializeField] private bool _enablePlayModeStartSceneOverride = true;
+        [SerializeField] private string[] _searchScenesInFolders = {
+            "Assets/Scenes",
+        };
 #endif
 
         [SerializeField] private SceneReference _sceneRoot;
-        [SerializeField] [ReadOnly] private string _sceneStart;
-        [SerializeField] [BeginReadOnlyGroup] private string[] _sceneNames;
+        internal string SceneRoot => _sceneRoot.scene;
 
-        public string[] SceneNames => _sceneNames;
-        public string SceneRoot => _sceneRoot.scene;
-        public string SceneStart {
-            get => _sceneStart; 
+        [SerializeField] [ReadOnly] private string _sceneStart;
+        internal string SceneStart {
+            get => _sceneStart;
             set => _sceneStart = value;
         }
+
+        [SerializeField] [HideInInspector] private string[] _sceneNames;
+        public string[] SceneNames => _sceneNames;
 
         protected override void OnSingletonInstanceLoaded() {
 #if UNITY_EDITOR
             RefreshSceneNames();
             SetActiveSceneAsStartSceneIfNotSet();
             TrySetSceneRootIfNotSet();
-            SaveAsset();
+
+            EditorUtility.SetDirty(this);
 
             TrySetPlaymodeStartScene(_sceneRoot.scene);
 #endif
         }
 
 #if UNITY_EDITOR
+        internal void RefreshSceneNames() {
+            _sceneNames = GetAllSceneAssets().Select(sceneAsset => sceneAsset.name).ToArray();
+        }
+
+        internal IEnumerable<SceneAsset> GetAllSceneAssets() => AssetDatabase
+            .FindAssets($"a:assets t:{nameof(SceneAsset)}")
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .Where(IsValidPath)
+            .Select(AssetDatabase.LoadAssetAtPath<SceneAsset>)
+            .Where(asset => asset != null);
+
         private void OnValidate() {
             TrySetPlaymodeStartScene(_sceneRoot.scene);
         }
 
-        public void Refresh() {
-            RefreshSceneNames();
-            SaveAsset();
-        }
-
-        private void RefreshSceneNames() {
-            var assets = GetAllSceneAssets();
-            _sceneNames = assets.Select(asset => asset.name).ToArray();
-        }
-        
         private void SetActiveSceneAsStartSceneIfNotSet() {
             if (!string.IsNullOrEmpty(_sceneStart)) return;
             _sceneStart = SceneManager.GetActiveScene().name;
@@ -62,20 +67,6 @@ namespace MisterGames.Scenes.Core {
 
         private void TrySetSceneRootIfNotSet() {
             if (!string.IsNullOrEmpty(_sceneRoot.scene)) return;
-
-            for (int i = 0; i < _sceneNames.Length; i++) {
-                string sceneName = _sceneNames[i];
-                
-                bool hasWordRoot = sceneName.IndexOf("root", StringComparison.OrdinalIgnoreCase) >= 0;
-                bool hasWordGlobal = sceneName.IndexOf("global", StringComparison.OrdinalIgnoreCase) >= 0;
-                bool hasWordSetup  = sceneName.IndexOf("setup", StringComparison.OrdinalIgnoreCase) >= 0;
-
-                if (!hasWordRoot && !hasWordGlobal && !hasWordSetup) continue;
-                
-                _sceneRoot.scene = sceneName;
-                return;
-            } 
-            
             _sceneRoot.scene = SceneManager.GetActiveScene().name;
         }
         
@@ -96,15 +87,21 @@ namespace MisterGames.Scenes.Core {
             EditorSceneManager.playModeStartScene = sceneRootAsset;
         }
 
-        private static IEnumerable<SceneAsset> GetAllSceneAssets() => AssetDatabase
-            .FindAssets($"a:assets t:{nameof(SceneAsset)}")
-            .Select(AssetDatabase.GUIDToAssetPath)
-            .Where(path => !string.IsNullOrEmpty(path))
-            .Select(AssetDatabase.LoadAssetAtPath<SceneAsset>)
-            .Where(asset => asset != null);
+        private bool IsValidPath(string path) {
+            if (string.IsNullOrEmpty(path)) return false;
 
-        private void SaveAsset() {
-            EditorUtility.SetDirty(this);
+            int pathLength = path.Length;
+
+            for (int i = 0; i < _searchScenesInFolders.Length; i++) {
+                string folderPath = _searchScenesInFolders[i];
+                int folderPathLength = folderPath.Length;
+
+                if (folderPathLength > pathLength || folderPath != path[..folderPathLength]) continue;
+
+                return true;
+            }
+
+            return false;
         }
 #endif
     }
