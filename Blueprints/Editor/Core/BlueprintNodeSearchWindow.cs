@@ -73,10 +73,13 @@ namespace MisterGames.Blueprints.Editor.Core {
         private static List<SearchTreeEntry> CreateSearchTreeForNodes() {
             var tree = new List<SearchTreeEntry> { SearchTreeEntryUtils.Header("Select node") };
 
-            tree.AddRange(PathTree
+            var treeContent = PathTree
                 .CreateTree(GetBlueprintNodeSearchEntries(), GetNodePath)
-                .Select(ToSearchEntry)
-            );
+                .PreOrder()
+                .RemoveRoot()
+                .Select(ToSearchEntry);
+
+            tree.AddRange(treeContent);
 
             return tree;
         }
@@ -84,10 +87,13 @@ namespace MisterGames.Blueprints.Editor.Core {
         private static List<SearchTreeEntry> CreateSearchTreeForNodePortsCompatibleWith(Port fromPort) {
             var tree = new List<SearchTreeEntry> { SearchTreeEntryUtils.Header("Select node and port") };
 
-            tree.AddRange(PathTree
+            var treeContent = PathTree
                 .CreateTree(GetBlueprintNodePortsSearchEntries(fromPort), GetNodePortPath)
-                .Select(ToSearchEntry)
-            );
+                .PreOrder()
+                .RemoveRoot()
+                .Select(ToSearchEntry);
+
+            tree.AddRange(treeContent);
 
             return tree;
         }
@@ -175,10 +181,10 @@ namespace MisterGames.Blueprints.Editor.Core {
             return type.GetCustomAttribute<BlueprintNodeMetaAttribute>(false);
         }
 
-        private static SearchTreeEntry ToSearchEntry<T>(PathTree.Node<T> node) {
-            return node.isLeaf
-                ? SearchTreeEntryUtils.Entry(node.name, node.data, node.level)
-                : SearchTreeEntryUtils.Header(node.name, node.level);
+        private static SearchTreeEntry ToSearchEntry<T>(TreeEntry<PathTree.Node<T>> treeEntry) {
+            return treeEntry.children.Count == 0
+                ? SearchTreeEntryUtils.Entry(treeEntry.data.name, treeEntry.data.data, treeEntry.level)
+                : SearchTreeEntryUtils.Header(treeEntry.data.name, treeEntry.level);
         }
     }
 
