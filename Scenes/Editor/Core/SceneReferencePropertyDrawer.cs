@@ -2,6 +2,7 @@
 using MisterGames.Scenes.Core;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace MisterGames.Scenes.Editor.Core {
 
@@ -15,6 +16,12 @@ namespace MisterGames.Scenes.Editor.Core {
             EditorGUI.BeginProperty(position, label, property);
 
             var sceneProperty = property.FindPropertyRelative("scene");
+            string sceneName = sceneProperty.stringValue;
+
+            if (string.IsNullOrEmpty(sceneName)) {
+                sceneName = SceneManager.GetActiveScene().name;
+                sceneProperty.stringValue = sceneName;
+            }
 
             EditorGUI.LabelField(position, label);
 
