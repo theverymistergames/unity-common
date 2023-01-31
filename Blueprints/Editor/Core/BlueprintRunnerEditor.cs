@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using MisterGames.Common.Data;
 using UnityEditor;
 using UnityEngine;
@@ -27,11 +28,26 @@ namespace MisterGames.Blueprints.Editor.Core {
             var blueprint = runner.BlueprintAsset;
             if (blueprint == null) {
                 runner.SceneReferencesMap.Clear();
+
+                if (runner.IsRunningRuntimeBlueprint && GUILayout.Button("Interrupt Blueprint")) {
+                    runner.InterruptRuntimeBlueprint();
+                }
                 return;
             }
 
             if (GUILayout.Button("Edit")) {
                 BlueprintsEditorWindow.OpenAsset(blueprint);
+            }
+
+            if (runner.IsRunningRuntimeBlueprint) {
+                if (GUILayout.Button("Interrupt Blueprint")) {
+                    runner.InterruptRuntimeBlueprint();
+                }
+            }
+            else {
+                if (GUILayout.Button("Compile & Start Blueprint")) {
+                    runner.CompileAndStartRuntimeBlueprint();
+                }
             }
 
             GUILayout.Space(10);

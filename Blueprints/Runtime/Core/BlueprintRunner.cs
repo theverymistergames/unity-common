@@ -1,5 +1,4 @@
-﻿using System;
-using MisterGames.Blueprints.Compile;
+﻿using MisterGames.Blueprints.Compile;
 using MisterGames.Common.Data;
 using UnityEngine;
 
@@ -10,19 +9,17 @@ namespace MisterGames.Blueprints {
         [SerializeField] private BlueprintAsset _blueprintAsset;
         [SerializeField] private SerializedDictionary<BlueprintAsset, SerializedDictionary<int, GameObject>> _sceneReferencesMap;
 
-#if UNITY_EDITOR
-        internal SerializedDictionary<BlueprintAsset, SerializedDictionary<int, GameObject>> SceneReferencesMap =>
-            _sceneReferencesMap ??= new SerializedDictionary<BlueprintAsset, SerializedDictionary<int, GameObject>>();
-#endif
-
         public BlueprintAsset BlueprintAsset => _blueprintAsset;
         public Blackboard Blackboard => _blackboard;
         public MonoBehaviour Runner => this;
 
         private Blackboard _blackboard;
         private RuntimeBlueprint _runtimeBlueprint;
+        private bool _isRunningRuntimeBlueprint;
 
         private void Awake() {
+            _isRunningRuntimeBlueprint = true;
+
             _runtimeBlueprint = _blueprintAsset.Compile();
 
             _blackboard = _blueprintAsset.Blackboard.Clone();
@@ -32,7 +29,10 @@ namespace MisterGames.Blueprints {
         }
 
         private void OnDestroy() {
-            _runtimeBlueprint.DeInitialize();
+            _runtimeBlueprint?.DeInitialize();
+            _runtimeBlueprint = null;
+
+            _isRunningRuntimeBlueprint = false;
         }
 
         private void OnEnable() {
@@ -54,6 +54,32 @@ namespace MisterGames.Blueprints {
                 blackboard.SetGameObject(hash, gameObjectRef);
             }
         }
+
+#if UNITY_EDITOR
+        internal bool IsRunningRuntimeBlueprint => _isRunningRuntimeBlueprint;
+
+        internal SerializedDictionary<BlueprintAsset, SerializedDictionary<int, GameObject>> SceneReferencesMap =>
+            _sceneReferencesMap ??= new SerializedDictionary<BlueprintAsset, SerializedDictionary<int, GameObject>>();
+
+        internal void CompileAndStartRuntimeBlueprint() {
+            _isRunningRuntimeBlueprint = true;
+
+            _runtimeBlueprint = _blueprintAsset.Compile();
+
+            _blackboard = _blueprintAsset.Blackboard.Clone();
+            ResolveBlackboardSceneReferences(_blueprintAsset, _blackboard);
+
+            _runtimeBlueprint.Initialize(this);
+            _runtimeBlueprint.Start();
+        }
+
+        internal void InterruptRuntimeBlueprint() {
+            _runtimeBlueprint?.DeInitialize();
+            _runtimeBlueprint = null;
+
+            _isRunningRuntimeBlueprint = false;
+        }
+#endif
     }
 
 }
