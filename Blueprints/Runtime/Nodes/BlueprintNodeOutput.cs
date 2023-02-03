@@ -6,7 +6,7 @@ namespace MisterGames.Blueprints.Nodes {
 
     [Serializable]
     [BlueprintNodeMeta(Name = "Output", Category = "External", Color = BlueprintColors.Node.External)]
-    public sealed class BlueprintNodeOutput : BlueprintNode, IBlueprintLinker, IBlueprintAssetValidator {
+    public sealed class BlueprintNodeOutput : BlueprintNode, IBlueprintPortLinker, IBlueprintAssetValidator {
 
         [SerializeField] private string _parameter;
         

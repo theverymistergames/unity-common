@@ -11,45 +11,44 @@ namespace MisterGames.Tweens {
     [Serializable]
     public sealed class ProgressTween : ITween {
 
-        [SerializeField] [Min(0f)] private float _duration;
+        [Min(0f)] public float duration;
 
         [Header("Easing")]
-        [SerializeField] private EasingType _easingType = EasingType.Linear;
-        [SerializeField] private bool _useCustomEasingCurve;
-        [SerializeField] private AnimationCurve _customEasingCurve = AnimationCurve.Linear(0f, 0f, 1f, 1f);
+        public EasingType easingType = EasingType.Linear;
+        public bool useCustomEasingCurve;
+        public AnimationCurve customEasingCurve = AnimationCurve.Linear(0f, 0f, 1f, 1f);
 
-        [SerializeReference] [SubclassSelector]
-        private ITweenProgressAction[] _actions;
+        [SerializeReference] [SubclassSelector] public ITweenProgressAction[] actions;
 
         private AnimationCurve _easingCurve;
         private float _progress;
         private float _progressDirection = 1f;
 
         public void Initialize(MonoBehaviour owner) {
-            _easingCurve = _useCustomEasingCurve ? _customEasingCurve : _easingType.ToAnimationCurve();
+            _easingCurve = useCustomEasingCurve ? customEasingCurve : easingType.ToAnimationCurve();
 
-            for (int i = 0; i < _actions.Length; i++) {
-                _actions[i].Initialize(owner);
+            for (int i = 0; i < actions.Length; i++) {
+                actions[i].Initialize(owner);
             }
         }
 
         public void DeInitialize() {
-            for (int i = 0; i < _actions.Length; i++) {
-                _actions[i].DeInitialize();
+            for (int i = 0; i < actions.Length; i++) {
+                actions[i].DeInitialize();
             }
         }
 
         public async UniTask Play(CancellationToken token) {
             if (HasReachedTargetProgress()) return;
 
-            if (_duration <= 0f) {
+            if (duration <= 0f) {
                 _progress = Mathf.Clamp01(_progressDirection);
                 ReportProgress();
                 return;
             }
 
             while (!token.IsCancellationRequested) {
-                float progressDelta = _progressDirection * Time.deltaTime / _duration;
+                float progressDelta = _progressDirection * Time.deltaTime / duration;
                 _progress = Mathf.Clamp01(_progress + progressDelta);
 
                 ReportProgress();
@@ -81,8 +80,8 @@ namespace MisterGames.Tweens {
         private void ReportProgress() {
             float value = Mathf.Clamp01(_easingCurve.Evaluate(_progress));
 
-            for (int i = 0; i < _actions.Length; i++) {
-                _actions[i].OnProgressUpdate(value);
+            for (int i = 0; i < actions.Length; i++) {
+                actions[i].OnProgressUpdate(value);
             }
         }
 

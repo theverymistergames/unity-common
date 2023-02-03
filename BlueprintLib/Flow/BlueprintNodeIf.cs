@@ -20,8 +20,8 @@ namespace MisterGames.BlueprintLib {
         public void OnEnterPort(int port) {
             if (port != 0) return;
 
-            bool condition = ReadPort(1, _defaultCondition);
-            CallPort(condition ? 2 : 3);
+            bool condition = ReadInputPort(1, _defaultCondition);
+            CallExitPort(condition ? 2 : 3);
         }
     }
 

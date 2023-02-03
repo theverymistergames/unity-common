@@ -42,8 +42,8 @@ namespace MisterGames.BlueprintLib {
                 _cancelCts ??= new CancellationTokenSource();
                 var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_cancelCts.Token, _terminateCts.Token);
 
-                float period = ReadPort(2, _period);
-                int times = ReadPort(3, _times);
+                float period = ReadInputPort(2, _period);
+                int times = ReadInputPort(3, _times);
 
                 ScheduleAsync(period, times, _isInfinite, linkedCts.Token).Forget();
                 return;
@@ -68,7 +68,7 @@ namespace MisterGames.BlueprintLib {
                 if (isCancelled) return;
 
                 timesCounter++;
-                CallPort(5);
+                CallExitPort(5);
             }
         }
     }

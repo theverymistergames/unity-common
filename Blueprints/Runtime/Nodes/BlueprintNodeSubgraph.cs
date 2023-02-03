@@ -13,7 +13,7 @@ namespace MisterGames.Blueprints.Nodes {
     public sealed class BlueprintNodeSubgraph :
         BlueprintNode,
         IBlueprintHost,
-        IBlueprintLinker,
+        IBlueprintPortLinker,
         IBlueprintAssetValidator,
         IBlueprintCompiledNode
     {

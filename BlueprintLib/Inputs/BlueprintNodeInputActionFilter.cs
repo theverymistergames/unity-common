@@ -21,12 +21,12 @@ namespace MisterGames.BlueprintLib {
             switch (port) {
                 case 0:
                     _filter.Apply();
-                    CallPort(2);
+                    CallExitPort(2);
                     break;
 
                 case 1:
                     _filter.Release();
-                    CallPort(2);
+                    CallExitPort(2);
                     break;
             }
         }

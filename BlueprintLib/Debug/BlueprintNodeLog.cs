@@ -28,7 +28,7 @@ namespace MisterGames.BlueprintLib {
         public void OnEnterPort(int port) {
             if (port != 0) return;
 
-            string text = ReadPort(1, _defaultText);
+            string text = ReadInputPort(1, _defaultText);
             string formatText = $"<color=#{ColorUtility.ToHtmlStringRGB(_color)}>{text}</color>";
 
             switch (_level) {
@@ -46,7 +46,7 @@ namespace MisterGames.BlueprintLib {
                     break;
             }
 
-            CallPort(2);
+            CallExitPort(2);
         }
     }
 

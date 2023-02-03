@@ -17,8 +17,8 @@ namespace MisterGames.BlueprintLib {
             Port.Output<string>()
         };
 
-        public string GetPortValue(int port) => port switch {
-            2 => $"{ReadPort(0, _a)}{ReadPort(1, _b)}",
+        public string GetOutputPortValue(int port) => port switch {
+            2 => $"{ReadInputPort(0, _a)}{ReadInputPort(1, _b)}",
             _ => ""
         };
     }

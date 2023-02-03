@@ -16,7 +16,7 @@ namespace MisterGames.BlueprintLib {
             Port.Output<bool>()
         };
 
-        public bool GetPortValue(int port) {
+        public bool GetOutputPortValue(int port) {
             if (port != 0) return false;
 
             for (int i = 0; i < _events.Length; i++) {

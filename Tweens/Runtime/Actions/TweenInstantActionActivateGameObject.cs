@@ -10,7 +10,10 @@ namespace MisterGames.Tweens.Actions {
         [SerializeField] private GameObject _gameObject;
         [SerializeField] private OperationType _operation;
 
-        private enum OperationType {
+        public GameObject GameObject { get => _gameObject; set => _gameObject = value; }
+        public OperationType Operation { get => _operation; set => _operation = value; }
+
+        public enum OperationType {
             Enable,
             Disable,
             Toggle,

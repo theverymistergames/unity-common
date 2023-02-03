@@ -341,7 +341,7 @@ namespace MisterGames.Blueprints.Editor.Core {
         // ---------------- ---------------- Node and connection creation ---------------- ----------------
 
         private BlueprintNodeMeta CreateNode(BlueprintNode node, Vector2 position) {
-            var nodeMeta = new BlueprintNodeMeta(node) { Position = position };
+            var nodeMeta = new BlueprintNodeMeta(node, _blueprintAsset) { Position = position };
             nodeMeta.RecreatePorts();
 
             Undo.RecordObject(_blueprintAsset, "Blueprint Add Node");

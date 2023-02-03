@@ -56,16 +56,16 @@ namespace MisterGames.Blueprints.Compile {
             }
 
             _runtimeNodesMap.Clear();
-
+/*
             for (int n = 0; n < runtimeNodes.Length; n++) {
                 OptimizeLinkedNodes(runtimeNodes[n]);
             }
-
+*/
             return new RuntimeBlueprint(runtimeNodes);
         }
 
         private static void OptimizeLinkedNodes(BlueprintNode node) {
-            if (node is IBlueprintLinker) return;
+            if (node is IBlueprintPortLinker) return;
 
             var runtimePorts = node.RuntimePorts;
             for (int p = 0; p < runtimePorts.Length; p++) {
@@ -77,7 +77,7 @@ namespace MisterGames.Blueprints.Compile {
                 for (int l = runtimeLinks.Count - 1; l >= 0; l--) {
                     var link = runtimeLinks[l];
 
-                    if (link.node is not IBlueprintLinker linker) {
+                    if (link.node is not IBlueprintPortLinker linker) {
                         OptimizeLinkedNodes(link.node);
                         continue;
                     }

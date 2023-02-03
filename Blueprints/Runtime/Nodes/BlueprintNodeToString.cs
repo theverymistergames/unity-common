@@ -45,7 +45,7 @@ namespace MisterGames.Blueprints.Nodes {
 #endif
         }
 
-        public string GetPortValue(int port) {
+        public string GetOutputPortValue(int port) {
             if (port != 1) return default;
 
             return _getString.Invoke();

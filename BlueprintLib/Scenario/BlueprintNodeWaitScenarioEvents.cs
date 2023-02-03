@@ -51,7 +51,7 @@ namespace MisterGames.Scenario.BlueprintLib {
 
         private void Finish() {
             UnsubscribeAll();
-            CallPort(1);
+            CallExitPort(1);
         }
 
         private bool AllEventsDone() {

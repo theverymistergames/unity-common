@@ -39,7 +39,7 @@ namespace MisterGames.BlueprintLib {
                 _cancelCts ??= new CancellationTokenSource();
                 var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_cancelCts.Token, _terminateCts.Token);
 
-                float duration = ReadPort(2, _defaultDuration);
+                float duration = ReadInputPort(2, _defaultDuration);
                 DelayAndExitAsync(duration, linkedCts.Token).Forget();
                 return;
             }
@@ -58,7 +58,7 @@ namespace MisterGames.BlueprintLib {
 
             if (isCancelled) return;
 
-            CallPort(3);
+            CallExitPort(3);
         }
     }
 

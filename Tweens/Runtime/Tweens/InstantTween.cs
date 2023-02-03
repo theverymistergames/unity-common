@@ -10,21 +10,20 @@ namespace MisterGames.Tweens {
     [Serializable]
     public sealed class InstantTween : ITween {
 
-        [SerializeReference] [SubclassSelector]
-        private ITweenInstantAction[] _actions;
+        [SerializeReference] [SubclassSelector] public ITweenInstantAction[] actions;
 
         private int _progress;
         private int _progressDirection = 1;
 
         public void Initialize(MonoBehaviour owner) {
-            for (int i = 0; i < _actions.Length; i++) {
-                _actions[i].Initialize(owner);
+            for (int i = 0; i < actions.Length; i++) {
+                actions[i].Initialize(owner);
             }
         }
 
         public void DeInitialize() {
-            for (int i = 0; i < _actions.Length; i++) {
-                _actions[i].DeInitialize();
+            for (int i = 0; i < actions.Length; i++) {
+                actions[i].DeInitialize();
             }
         }
 
@@ -33,8 +32,8 @@ namespace MisterGames.Tweens {
                 return default;
             }
 
-            for (int i = 0; i < _actions.Length; i++) {
-                _actions[i].InvokeAction();
+            for (int i = 0; i < actions.Length; i++) {
+                actions[i].InvokeAction();
             }
 
             _progress = Math.Clamp(_progress + _progressDirection, 0, 1);

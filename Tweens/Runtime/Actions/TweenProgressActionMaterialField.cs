@@ -13,6 +13,12 @@ namespace MisterGames.Tweens.Actions {
         [SerializeField] private float _endValue;
         [SerializeField] private bool _useColor;
 
+        public Renderer Renderer { get => _renderer; set => _renderer = value; }
+        public string FieldName { get => _fieldName ; set => _fieldName = value; }
+        public float StartValue { get => _startValue; set => _startValue = value; }
+        public float EndValue { get => _endValue; set => _endValue = value; }
+        public bool UseColor { get => _useColor; set => _useColor = value; }
+
         private Material _material;
         private Color _color;
 

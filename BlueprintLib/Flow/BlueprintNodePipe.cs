@@ -13,7 +13,7 @@ namespace MisterGames.BlueprintLib {
         };
 
         public void OnEnterPort(int port) {
-            if (port == 0) CallPort(1);
+            if (port == 0) CallExitPort(1);
         }
     }
 

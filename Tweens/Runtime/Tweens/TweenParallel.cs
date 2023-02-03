@@ -10,8 +10,7 @@ namespace MisterGames.Tweens {
     [Serializable]
     public sealed class TweenParallel : ITween {
 
-        [SerializeReference] [SubclassSelector]
-        private ITween[] _tweens;
+        [SerializeReference] [SubclassSelector] private ITween[] _tweens;
 
         private UniTask[] _tasks;
         private int _tweensCount;

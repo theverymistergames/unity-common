@@ -8,7 +8,7 @@
         /// <summary>
         /// Called when linked node is trying to read value of type T.
         /// </summary>
-        T GetPortValue(int port);
+        T GetOutputPortValue(int port);
     }
 
 }

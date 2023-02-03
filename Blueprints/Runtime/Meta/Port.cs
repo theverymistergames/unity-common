@@ -23,12 +23,19 @@ namespace MisterGames.Blueprints {
             Exit,
             Input,
             Output,
+            InputArray,
+            OutputArray,
             NonTypedInput,
             NonTypedOutput,
         }
 
         internal Port SetExternal(bool isExternal) {
             isExternalPort = isExternal;
+            return this;
+        }
+
+        internal Port SetType(Type type) {
+            DataType = type;
             return this;
         }
 
@@ -67,7 +74,23 @@ namespace MisterGames.Blueprints {
                 DataType = typeof(T),
             };
         }
+/*
+        public static Port InputArray<T>(string name = null) {
+            return new Port {
+                name = name,
+                mode = Mode.InputArray,
+                DataType = typeof(T),
+            };
+        }
 
+        public static Port OutputArray<T>(string name = null) {
+            return new Port {
+                name = name,
+                mode = Mode.OutputArray,
+                DataType = typeof(T),
+            };
+        }
+*/
         internal static Port Input(string name = null) {
             return new Port {
                 name = name,
@@ -89,6 +112,7 @@ namespace MisterGames.Blueprints {
                     Mode.Enter => "enter",
                     Mode.Exit => "exit",
                     Mode.Input => $"input<{DataType.Name}>",
+                    Mode.InputArray => $"inputArray<{DataType.Name}>",
                     Mode.Output => $"output<{DataType.Name}>",
                     Mode.NonTypedInput => "input",
                     Mode.NonTypedOutput => "output",

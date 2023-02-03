@@ -21,7 +21,7 @@ namespace MisterGames.BlueprintLib {
         private InteractiveUser _currentUser;
 
         public override void OnInitialize(IBlueprintHost host) {
-            _interactive = ReadPort<GameObject>(0).GetComponent<Interactive>();
+            _interactive = ReadInputPort<GameObject>(0).GetComponent<Interactive>();
 
             _interactive.OnStartInteract += OnStartInteract;
             _interactive.OnStopInteract += OnStopInteract;
@@ -40,12 +40,12 @@ namespace MisterGames.BlueprintLib {
             _currentUser = null;
         }
 
-        bool IBlueprintOutput<bool>.GetPortValue(int port) => port switch {
+        bool IBlueprintOutput<bool>.GetOutputPortValue(int port) => port switch {
             3 => _interactive.IsInteracting,
             _ => false,
         };
 
-        InteractiveUser IBlueprintOutput<InteractiveUser>.GetPortValue(int port) => port switch {
+        InteractiveUser IBlueprintOutput<InteractiveUser>.GetOutputPortValue(int port) => port switch {
             4 => _currentUser,
             _ => null,
         };

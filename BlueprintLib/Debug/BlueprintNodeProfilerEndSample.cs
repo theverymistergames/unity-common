@@ -18,7 +18,7 @@ namespace MisterGames.BlueprintLib {
             if (port != 0) return;
 
             Profiler.EndSample();
-            CallPort(1);
+            CallExitPort(1);
         }
     }
 

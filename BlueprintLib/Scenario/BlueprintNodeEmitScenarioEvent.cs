@@ -20,7 +20,7 @@ namespace MisterGames.BlueprintLib {
             if (port != 0) return;
 
             _event.Emit();
-            CallPort(1);
+            CallExitPort(1);
         }
     }
 

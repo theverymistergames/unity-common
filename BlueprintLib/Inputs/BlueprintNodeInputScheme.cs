@@ -22,12 +22,12 @@ namespace MisterGames.BlueprintLib {
             switch (port) {
                 case 0:
                     _channel.ActivateInputScheme(_scheme);
-                    CallPort(2);
+                    CallExitPort(2);
                     break;
 
                 case 1:
                     _channel.DeactivateInputScheme(_scheme);
-                    CallPort(2);
+                    CallExitPort(2);
                     break;
             }
         }

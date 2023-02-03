@@ -20,11 +20,11 @@ namespace MisterGames.BlueprintLib {
         public void OnEnterPort(int port) {
             if (port != 0) return;
 
-            var gameObject = ReadPort<GameObject>(1);
-            var position = ReadPort(2, _defaultPosition);
+            var gameObject = ReadInputPort<GameObject>(1);
+            var position = ReadInputPort(2, _defaultPosition);
             gameObject.transform.position = position;
 
-            CallPort(3);
+            CallExitPort(3);
         }
     }
 

@@ -14,10 +14,10 @@ namespace MisterGames.BlueprintLib {
             Port.Output<Interactive>("Interactive"),
         };
 
-        public Interactive GetPortValue(int port) {
+        public Interactive GetOutputPortValue(int port) {
             if (port != 1) return null;
 
-            var gameObject = ReadPort<GameObject>(0);
+            var gameObject = ReadInputPort<GameObject>(0);
             return gameObject == null ? null : gameObject.GetComponent<Interactive>();
         }
     }

@@ -23,7 +23,7 @@ namespace MisterGames.BlueprintLib {
             _propertyId = Blackboard.StringToHash(_property);
         }
 
-        public bool GetPortValue(int port) => port switch {
+        public bool GetOutputPortValue(int port) => port switch {
             0 => _blackboard.GetBool(_propertyId),
             _ => false
         };

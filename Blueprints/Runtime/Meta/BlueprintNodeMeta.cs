@@ -1,4 +1,5 @@
 ﻿using System;
+using MisterGames.Blueprints.Runtime.Core;
 using UnityEngine;
 
 namespace MisterGames.Blueprints.Meta {
@@ -10,6 +11,11 @@ namespace MisterGames.Blueprints.Meta {
     /// </summary>
     [Serializable]
     public sealed class BlueprintNodeMeta {
+
+        /// <summary>
+        /// A reference to owner BlueprintAsset, used to provide some edit-mode validation.
+        /// </summary>
+        [SerializeField] private BlueprintAsset _ownerBlueprint;
 
         /// <summary>
         /// NodeId is a key of BlueprintNodeMeta data in the BlueprintAsset nodes storage.
@@ -47,8 +53,9 @@ namespace MisterGames.Blueprints.Meta {
 
         private BlueprintNodeMeta() { }
 
-        public BlueprintNodeMeta(BlueprintNode node) {
+        public BlueprintNodeMeta(BlueprintNode node, BlueprintAsset ownerBlueprint) {
             _node = node;
+            _ownerBlueprint = ownerBlueprint;
         }
 
         public BlueprintNode CreateNodeInstance() {
@@ -57,7 +64,9 @@ namespace MisterGames.Blueprints.Meta {
         }
 
         public void RecreatePorts() {
-            _ports = _node.CreatePorts();
+            var ports = _node.CreatePorts();
+            if (_node is IBlueprintPortDecorator decorator) decorator.DecoratePorts(_ownerBlueprint, _nodeId, ports);
+            _ports = ports;
         }
 
         public override string ToString() {

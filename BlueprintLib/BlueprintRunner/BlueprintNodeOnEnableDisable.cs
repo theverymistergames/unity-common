@@ -18,15 +18,15 @@ namespace MisterGames.BlueprintLib {
 
         public void OnEnable() {
             _isEnabled = true;
-            CallPort(0);
+            CallExitPort(0);
         }
 
         public void OnDisable() {
             _isEnabled = false;
-            CallPort(1);
+            CallExitPort(1);
         }
 
-        public bool GetPortValue(int port) => port switch {
+        public bool GetOutputPortValue(int port) => port switch {
             2 => _isEnabled,
             _ => false,
         };

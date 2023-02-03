@@ -9,7 +9,7 @@ namespace MisterGames.Tweens {
     [Serializable]
     public sealed class DelayTween : ITween {
 
-        [SerializeField] [Min(0f)] private float _duration;
+        [Min(0f)] public float duration;
 
         private float _progress;
         private float _progressDirection = 1f;
@@ -21,13 +21,13 @@ namespace MisterGames.Tweens {
         public async UniTask Play(CancellationToken token) {
             if (HasReachedTargetProgress()) return;
 
-            if (_duration <= 0f) {
+            if (duration <= 0f) {
                 _progress = Mathf.Clamp01(_progressDirection);
                 return;
             }
 
             while (!token.IsCancellationRequested) {
-                float progressDelta = _progressDirection * Time.deltaTime / _duration;
+                float progressDelta = _progressDirection * Time.deltaTime / duration;
                 _progress = Mathf.Clamp01(_progress + progressDelta);
 
                 if (HasReachedTargetProgress()) break;

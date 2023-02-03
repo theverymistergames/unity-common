@@ -22,7 +22,7 @@ namespace MisterGames.BlueprintLib {
             _runnerGameObject = null;
         }
 
-        public GameObject GetPortValue(int port) => port switch {
+        public GameObject GetOutputPortValue(int port) => port switch {
             0 => _runnerGameObject,
             _ => null,
         };

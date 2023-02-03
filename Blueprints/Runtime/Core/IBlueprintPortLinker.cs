@@ -1,6 +1,6 @@
 ﻿namespace MisterGames.Blueprints {
 
-    internal interface IBlueprintLinker {
+    internal interface IBlueprintPortLinker {
         int GetLinkedPort(int port);
     }
 

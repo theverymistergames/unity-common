@@ -10,10 +10,14 @@ namespace MisterGames.Tweens.Actions {
     public sealed class TweenProgressActionComponentField_Reflection : ITweenProgressAction {
 
         [SerializeField] private Component _component;
-
         [SerializeField] private string _fieldName;
         [SerializeField] private float _startValue = 0;
         [SerializeField] private float _endValue = 1;
+
+        public Component Component { get => _component; set => _component = value; }
+        public string FieldName { get => _fieldName ; set => _fieldName = value; }
+        public float StartValue { get => _startValue; set => _startValue = value; }
+        public float EndValue { get => _endValue; set => _endValue = value; }
 
         private FieldInfo _field;
         private PropertyInfo _property;

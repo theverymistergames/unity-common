@@ -17,8 +17,8 @@ namespace MisterGames.BlueprintLib {
             Port.Output<float>()
         };
 
-        public float GetPortValue(int port) => port switch {
-            2 => ReadPort(0, _a) * ReadPort(1, _b),
+        public float GetOutputPortValue(int port) => port switch {
+            2 => ReadInputPort(0, _a) * ReadInputPort(1, _b),
             _ => 0f
         };
     }

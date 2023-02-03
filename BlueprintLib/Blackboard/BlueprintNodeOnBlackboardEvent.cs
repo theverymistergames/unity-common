@@ -28,7 +28,7 @@ namespace MisterGames.BlueprintLib {
         }
 
         private void OnEmit() {
-            CallPort(0);
+            CallExitPort(0);
         }
     }
 

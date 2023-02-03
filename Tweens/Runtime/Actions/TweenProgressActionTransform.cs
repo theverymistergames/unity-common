@@ -8,14 +8,20 @@ namespace MisterGames.Tweens.Actions {
     public sealed class TweenProgressActionTransform : ITweenProgressAction {
 
         [SerializeField] private Transform _transform;
-        [SerializeField] private OperationTargetType _type = OperationTargetType.Position;
+        [SerializeField] private OperationType _operation = OperationType.Move;
         [SerializeField] private Vector3 _startValue;
         [SerializeField] private Vector3 _endValue;
         [SerializeField] private bool _useLocal = true;
 
-        public enum OperationTargetType {
-            Position,
-            Rotation,
+        public Transform Transform { get => _transform; set => _transform = value; }
+        public OperationType Operation { get => _operation ; set => _operation = value; }
+        public Vector3 StartValue { get => _startValue; set => _startValue = value; }
+        public Vector3 EndValue { get => _endValue; set => _endValue = value; }
+        public bool UseLocal { get => _useLocal; set => _useLocal = value; }
+
+        public enum OperationType {
+            Move,
+            Rotate,
             Scale,
         }
 
@@ -26,23 +32,23 @@ namespace MisterGames.Tweens.Actions {
         public void OnProgressUpdate(float progress) {
             var value = Vector3.Lerp(_startValue, _endValue, progress);
 
-            switch (_type) {
-                case OperationTargetType.Position:
+            switch (_operation) {
+                case OperationType.Move:
                     if (_useLocal) _transform.localPosition = value;
                     else _transform.position = value;
                     break;
 
-                case OperationTargetType.Rotation:
+                case OperationType.Rotate:
                     if (_useLocal) _transform.localEulerAngles = value;
                     else _transform.eulerAngles = value;
                     break;
 
-                case OperationTargetType.Scale:
+                case OperationType.Scale:
                     _transform.localScale = value;
                     break;
 
                 default:
-                    throw new NotImplementedException($"Operation type {_type} is not implemented for {nameof(TweenProgressActionTransform)}");
+                    throw new NotImplementedException($"Operation type {_operation} is not implemented for {nameof(TweenProgressActionTransform)}");
             }
         }
 
@@ -61,11 +67,11 @@ namespace MisterGames.Tweens.Actions {
                 return false;
             }
 
-            value = _type switch {
-                OperationTargetType.Position => _useLocal ? _transform.localPosition : _transform.position,
-                OperationTargetType.Rotation => _useLocal ? _transform.localEulerAngles : _transform.eulerAngles,
-                OperationTargetType.Scale => _transform.localScale,
-                _ => throw new NotImplementedException($"Operation type {_type} is not implemented for {nameof(TweenProgressActionTransform)}"),
+            value = _operation switch {
+                OperationType.Move => _useLocal ? _transform.localPosition : _transform.position,
+                OperationType.Rotate => _useLocal ? _transform.localEulerAngles : _transform.eulerAngles,
+                OperationType.Scale => _transform.localScale,
+                _ => throw new NotImplementedException($"Operation type {_operation} is not implemented for {nameof(TweenProgressActionTransform)}"),
             };
 
             return true;

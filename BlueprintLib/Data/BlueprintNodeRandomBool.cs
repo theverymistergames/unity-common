@@ -12,7 +12,7 @@ namespace MisterGames.BlueprintLib {
             Port.Output<bool>()
         };
 
-        public bool GetPortValue(int port) => port switch {
+        public bool GetOutputPortValue(int port) => port switch {
             0 => Random.value > 0.5f,
             _ => false
         };
