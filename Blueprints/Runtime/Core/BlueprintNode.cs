@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using MisterGames.Blueprints.Compile;
 
 namespace MisterGames.Blueprints {
@@ -31,7 +30,7 @@ namespace MisterGames.Blueprints {
 
             return defaultValue;
         }
-
+/*
         protected IReadOnlyList<T> ReadInputArrayPort<T>(int port) {
             var links = RuntimePorts[port].links;
             if (links.Count == 0) return Array.Empty<T>();
@@ -67,7 +66,7 @@ namespace MisterGames.Blueprints {
 
             return values;
         }
-
+*/
 #if UNITY_EDITOR
         public virtual void OnValidate() {}
 #endif

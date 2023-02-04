@@ -56,11 +56,11 @@ namespace MisterGames.Blueprints.Compile {
             }
 
             _runtimeNodesMap.Clear();
-/*
+
             for (int n = 0; n < runtimeNodes.Length; n++) {
                 OptimizeLinkedNodes(runtimeNodes[n]);
             }
-*/
+
             return new RuntimeBlueprint(runtimeNodes);
         }
 
