@@ -79,32 +79,22 @@ namespace MisterGames.Blueprints.Meta {
                 return true;
             }
 
-            if (fromPort.mode is Port.Mode.InputArray) {
-                if (toPort.mode is not (Port.Mode.Output or Port.Mode.OutputArray or Port.Mode.NonTypedOutput)) return false;
-
-                // input and output must have same data type
-                if (toPort.mode is (Port.Mode.Output or Port.Mode.OutputArray) && fromPort.DataType != toPort.DataType) return false;
-
-                // adding connection from the input array port fromPort to the output port toPort
-                CreateConnection(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
-                return true;
-            }
-
             if (fromPort.mode is Port.Mode.NonTypedInput) {
-                if (toPort.mode is not (Port.Mode.Output or Port.Mode.OutputArray or Port.Mode.NonTypedOutput)) return false;
+                if (toPort.mode is not (Port.Mode.Output or Port.Mode.NonTypedOutput)) return false;
 
-                // adding connection from the non-typed input port fromPort to the output port toPort
+                // replacing connections from the input port fromPort to the output port toPort with new connection
+                RemoveLinksFromNodePort(fromNodeId, fromPortIndex);
                 CreateConnection(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
                 return true;
             }
 
             if (fromPort.mode is Port.Mode.Output) {
-                if (toPort.mode is not (Port.Mode.Input or Port.Mode.InputArray or Port.Mode.NonTypedInput)) return false;
+                if (toPort.mode is not (Port.Mode.Input or Port.Mode.NonTypedInput)) return false;
 
                 // input and output must have same data type
-                if (toPort.mode is (Port.Mode.Input or Port.Mode.InputArray) && fromPort.DataType != toPort.DataType) return false;
+                if (toPort.mode is Port.Mode.Input && fromPort.DataType != toPort.DataType) return false;
 
-                // replacing connections from the input port fromPort to the output port toPort with new connection
+                // replacing connections from the input port toPort to the output port fromPort with new connection
                 if (toPort.mode is Port.Mode.Input) RemoveLinksFromNodePort(toNodeId, toPortIndex);
 
                 // adding connection from the input port toPort to the output port fromPort
@@ -112,24 +102,10 @@ namespace MisterGames.Blueprints.Meta {
                 return true;
             }
 
-            if (fromPort.mode is Port.Mode.OutputArray) {
-                if (toPort.mode is not (Port.Mode.InputArray or Port.Mode.NonTypedInput)) return false;
-
-                // input and output must have same data type
-                if (toPort.mode is Port.Mode.InputArray && fromPort.DataType != toPort.DataType) return false;
-
-                // adding connection from the input port toPort to the output port fromPort
-                CreateConnection(toNodeId, toPortIndex, fromNodeId, fromPortIndex);
-                return true;
-            }
-
             if (fromPort.mode is Port.Mode.NonTypedOutput) {
-                if (toPort.mode is not (Port.Mode.Input or Port.Mode.InputArray or Port.Mode.NonTypedInput)) return false;
+                if (toPort.mode is not (Port.Mode.Input or Port.Mode.NonTypedInput)) return false;
 
-                // input and output must have same data type
-                if (toPort.mode is (Port.Mode.Input or Port.Mode.InputArray) && fromPort.DataType != toPort.DataType) return false;
-
-                // replacing connections from the input port fromPort to the output port toPort with new connection
+                // replacing connections from the input port toPort to the output port fromPort with new connection
                 if (toPort.mode is Port.Mode.Input) RemoveLinksFromNodePort(toNodeId, toPortIndex);
 
                 // adding connection from the input port toPort to the output port fromPort
