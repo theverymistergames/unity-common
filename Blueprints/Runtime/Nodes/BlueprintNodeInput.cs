@@ -9,7 +9,6 @@ namespace MisterGames.Blueprints.Nodes {
     [BlueprintNodeMeta(Name = "Input", Category = "External", Color = BlueprintColors.Node.External)]
     public sealed class BlueprintNodeInput :
         BlueprintNode,
-        IBlueprintPortDecorator,
         IBlueprintPortLinker,
         IBlueprintAssetValidator
     {
@@ -19,11 +18,6 @@ namespace MisterGames.Blueprints.Nodes {
             Port.Input(_parameter).SetExternal(true),
             Port.Output()
         };
-
-        public void DecoratePorts(BlueprintAsset blueprint, int nodeId, Port[] ports) {
-            var linksToOutput = blueprint.BlueprintMeta.GetLinksToNodePort(nodeId, 1);
-
-        }
 
         public int GetLinkedPort(int port) => port switch {
             0 => 1,
