@@ -83,7 +83,7 @@ namespace MisterGames.Blueprints.Validation {
                 Port.Mode.Input => ValidateInputPort(asset, port.DataType, nodeMeta, portIndex),
                 Port.Mode.Output => ValidateOutputPort(asset, port.DataType, nodeMeta, portIndex),
                 Port.Mode.NonTypedInput => ValidateNonTypedInputPort(asset, nodeMeta, portIndex),
-                Port.Mode.NonTypedOutput => ValidateNotTypedOutputPort(asset, nodeMeta, portIndex),
+                Port.Mode.NonTypedOutput => ValidateNonTypedOutputPort(asset, nodeMeta, portIndex),
                 _ => throw new NotSupportedException($"Port mode {port.mode} is not supported")
             };
         }
@@ -257,11 +257,21 @@ namespace MisterGames.Blueprints.Validation {
             }
 
             var node = nodeMeta.Node;
-            if (node is not (IBlueprintEnter or IBlueprintPortLinker)) {
+            var port = nodeMeta.Ports[portIndex];
+
+            if (port.isExternalPort && node is not IBlueprintPortLinker) {
+                Debug.LogError($"Blueprint `{asset.name}`: " +
+                               $"Validation failed for external enter port {portIndex} of node {nodeMeta}: " +
+                               $"node class {node.GetType().Name} " +
+                               $"does not implement interface {nameof(IBlueprintPortLinker)}.");
+                return false;
+            }
+
+            if (node is not IBlueprintEnter) {
                 Debug.LogError($"Blueprint `{asset.name}`: " +
                                $"Validation failed for enter port {portIndex} of node {nodeMeta}: " +
                                $"node class {node.GetType().Name} " +
-                               $"does not implement interface {nameof(IBlueprintEnter)} or {nameof(IBlueprintPortLinker)}.");
+                               $"does not implement interface {nameof(IBlueprintEnter)}.");
                 return false;
             }
 
@@ -307,9 +317,11 @@ namespace MisterGames.Blueprints.Validation {
             }
 
             var node = nodeMeta.Node;
-            if (node is not IBlueprintPortLinker) {
+            var port = nodeMeta.Ports[portIndex];
+
+            if (port.isExternalPort && node is not IBlueprintPortLinker) {
                 Debug.LogError($"Blueprint `{asset.name}`: " +
-                               $"Validation failed for non-typed input port {portIndex} of node {nodeMeta}: " +
+                               $"Validation failed for external non-typed input port {portIndex} of node {nodeMeta}: " +
                                $"node class {node.GetType().Name} does not implement interface {nameof(IBlueprintPortLinker)}.");
                 return false;
             }
@@ -346,7 +358,7 @@ namespace MisterGames.Blueprints.Validation {
             return true;
         }
 
-        private static bool ValidateNotTypedOutputPort(BlueprintAsset asset, BlueprintNodeMeta nodeMeta, int portIndex) {
+        private static bool ValidateNonTypedOutputPort(BlueprintAsset asset, BlueprintNodeMeta nodeMeta, int portIndex) {
             if (portIndex < 0 || portIndex > nodeMeta.Ports.Length - 1) {
                 Debug.LogError($"Blueprint `{asset.name}`: " +
                                $"Validation failed for output port {portIndex} of node {nodeMeta}: " +
@@ -355,9 +367,11 @@ namespace MisterGames.Blueprints.Validation {
             }
 
             var node = nodeMeta.Node;
-            if (node is not IBlueprintPortLinker) {
+            var port = nodeMeta.Ports[portIndex];
+
+            if (port.isExternalPort && node is not IBlueprintPortLinker) {
                 Debug.LogError($"Blueprint `{asset.name}`: " +
-                               $"Validation failed for non-typed output port {portIndex} of node {nodeMeta}: " +
+                               $"Validation failed for external non-typed output port {portIndex} of node {nodeMeta}: " +
                                $"node class {node.GetType().Name} does not implement interface {nameof(IBlueprintPortLinker)}.");
                 return false;
             }

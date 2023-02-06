@@ -35,11 +35,28 @@ namespace MisterGames.Blueprints.Nodes {
             var portSignatureSet = new HashSet<int>();
             var ports = new List<Port>();
 
-            foreach (var nodeMeta in nodesMap.Values) {
+            foreach ((int nodeId, var nodeMeta) in nodesMap) {
+                var node = nodeMeta.Node;
                 var nodePorts = nodeMeta.Ports;
+
                 for (int p = 0; p < nodePorts.Length; p++) {
                     var nodePort = nodePorts[p];
                     if (!nodePort.isExternalPort) continue;
+
+                    // Drop external port if its linked port has no links
+                    if (node is IBlueprintPortLinker linker) {
+                        int linkedPortIndex = linker.GetLinkedPort(p);
+
+                        switch (nodePorts[linkedPortIndex].mode) {
+                            case Port.Mode.Input or Port.Mode.NonTypedInput or Port.Mode.Exit:
+                                if (blueprintMeta.GetLinksFromNodePort(nodeId, linkedPortIndex).Count == 0) continue;
+                                break;
+
+                            case Port.Mode.Output or Port.Mode.NonTypedOutput or Port.Mode.Enter:
+                                if (blueprintMeta.GetLinksToNodePort(nodeId, linkedPortIndex).Count == 0) continue;
+                                break;
+                        }
+                    }
 
                     int portSignature = nodePort.GetSignature();
 
@@ -69,7 +86,9 @@ namespace MisterGames.Blueprints.Nodes {
             _runtimeBlueprint.DeInitialize();
         }
 
-        public int GetLinkedPort(int port) => port;
+        public int GetLinkedPort(int port) {
+            return port;
+        }
 
         public void ResolveBlackboardSceneReferences(BlueprintAsset blueprint, Blackboard blackboard) {
             _host.ResolveBlackboardSceneReferences(blueprint, blackboard);
