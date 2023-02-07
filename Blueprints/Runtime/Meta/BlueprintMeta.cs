@@ -1,14 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
-using MisterGames.Blueprints.Runtime.Core;
 using MisterGames.Common.Data;
 using UnityEngine;
 
 namespace MisterGames.Blueprints.Meta {
 
     [Serializable]
-    public sealed class BlueprintMeta {
+    public sealed class BlueprintMeta : IComparer<BlueprintLink> {
 
         [SerializeField] private int _addedNodesTotalCount;
         [SerializeField] private SerializedDictionary<int, BlueprintNodeMeta> _nodesMap;
@@ -80,8 +78,19 @@ namespace MisterGames.Blueprints.Meta {
                 return true;
             }
 
-            if (fromPort.mode is Port.Mode.NonTypedInput) {
+            if (fromPort.mode is Port.Mode.InputArray) {
                 if (toPort.mode is not (Port.Mode.Output or Port.Mode.NonTypedOutput)) return false;
+
+                // input and output must have same data type
+                if (toPort.mode == Port.Mode.Output && fromPort.DataType != toPort.DataType) return false;
+
+                // add connection from the input port fromPort to the output port toPort
+                CreateConnection(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
+                return true;
+            }
+
+            if (fromPort.mode is Port.Mode.NonTypedInput) {
+                if (toPort.mode is not Port.Mode.Output) return false;
 
                 // replacing connections from the input port fromPort to the output port toPort with new connection
                 RemoveAllLinksFromNodePort(fromNodeId, fromPortIndex);
@@ -90,13 +99,13 @@ namespace MisterGames.Blueprints.Meta {
             }
 
             if (fromPort.mode is Port.Mode.Output) {
-                if (toPort.mode is not (Port.Mode.Input or Port.Mode.NonTypedInput)) return false;
+                if (toPort.mode is not (Port.Mode.Input or Port.Mode.InputArray or Port.Mode.NonTypedInput)) return false;
 
                 // input and output must have same data type
-                if (toPort.mode is Port.Mode.Input && fromPort.DataType != toPort.DataType) return false;
+                if (toPort.mode is (Port.Mode.Input or Port.Mode.InputArray) && fromPort.DataType != toPort.DataType) return false;
 
                 // replacing connections from the input port toPort to the output port fromPort with new connection
-                if (toPort.mode is Port.Mode.Input) RemoveAllLinksFromNodePort(toNodeId, toPortIndex);
+                if (toPort.mode is Port.Mode.Input or Port.Mode.NonTypedInput) RemoveAllLinksFromNodePort(toNodeId, toPortIndex);
 
                 // adding connection from the input port toPort to the output port fromPort
                 CreateConnection(toNodeId, toPortIndex, fromNodeId, fromPortIndex);
@@ -104,7 +113,7 @@ namespace MisterGames.Blueprints.Meta {
             }
 
             if (fromPort.mode is Port.Mode.NonTypedOutput) {
-                if (toPort.mode is not (Port.Mode.Input or Port.Mode.NonTypedInput)) return false;
+                if (toPort.mode is not (Port.Mode.Input or Port.Mode.InputArray)) return false;
 
                 // replacing connections from the input port toPort to the output port fromPort with new connection
                 if (toPort.mode is Port.Mode.Input) RemoveAllLinksFromNodePort(toNodeId, toPortIndex);
@@ -131,6 +140,8 @@ namespace MisterGames.Blueprints.Meta {
                 return Array.Empty<BlueprintLink>();
             }
 
+            fromNodePortLinks.Sort(this);
+
             return fromNodePortLinks;
         }
 
@@ -140,6 +151,8 @@ namespace MisterGames.Blueprints.Meta {
             ) {
                 return Array.Empty<BlueprintLink>();
             }
+
+            toNodePortLinks.Sort(this);
 
             return toNodePortLinks;
         }
@@ -463,20 +476,8 @@ namespace MisterGames.Blueprints.Meta {
             _toNodePortLinksMap.Remove(nodeId);
         }
 
-        public override string ToString() {
-            var nodesSb = new StringBuilder();
-
-            foreach ((int nodeId, var nodeMeta) in _nodesMap) {
-                nodesSb.AppendLine($"- {nodeMeta}");
-
-                var ports = nodeMeta.Ports;
-                for (int p = 0; p < ports.Length; p++) {
-                    var portLinks = GetLinksFromNodePort(nodeId, p);
-                    nodesSb.AppendLine($"-- port#{p} links: [{string.Join(", ", portLinks)}]");
-                }
-            }
-
-            return $"{nameof(BlueprintMeta)}(nodes = [\n{nodesSb}\n])";
+        int IComparer<BlueprintLink>.Compare(BlueprintLink x, BlueprintLink y) {
+            return _nodesMap[x.nodeId].Position.y.CompareTo(_nodesMap[y.nodeId].Position.y);
         }
     }
 
