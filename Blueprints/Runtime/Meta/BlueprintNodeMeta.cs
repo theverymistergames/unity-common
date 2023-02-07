@@ -74,6 +74,10 @@ namespace MisterGames.Blueprints.Meta {
             _ports = ports;
         }
 
+        public void OnNodeValidated() {
+            _hasCachedNodeJson = false;
+        }
+
         public override string ToString() {
             return $"BlueprintNode#{_nodeId}({_node})";
         }

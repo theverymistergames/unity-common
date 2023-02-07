@@ -456,6 +456,8 @@ namespace MisterGames.Blueprints.Editor.Core {
             node.OnValidate();
             if (node is IBlueprintAssetValidator validator) validator.ValidateBlueprint(_blueprintAsset, nodeMeta.NodeId);
 
+            nodeMeta.OnNodeValidated();
+
             SetBlueprintAssetDirtyAndNotify();
         }
 
