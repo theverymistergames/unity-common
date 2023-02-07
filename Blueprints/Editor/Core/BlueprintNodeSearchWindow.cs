@@ -139,6 +139,7 @@ namespace MisterGames.Blueprints.Editor.Core {
                     Port.Mode.Exit => $"[{index}] Exit",
                     Port.Mode.Input => $"[{index}] In ({port.DataType.Name})",
                     Port.Mode.Output => $"[{index}] Out ({port.DataType.Name})",
+                    Port.Mode.InputArray => $"[{index}] In ({port.DataType.Name}[])",
                     Port.Mode.NonTypedInput => $"[{index}] In",
                     Port.Mode.NonTypedOutput => $"[{index}] Out",
                     _ => throw new NotSupportedException($"Port mode {port.mode} is not supported")
@@ -148,6 +149,7 @@ namespace MisterGames.Blueprints.Editor.Core {
                     Port.Mode.Exit => $"[{index}] {port.name}",
                     Port.Mode.Input => $"[{index}] {port.name} ({port.DataType.Name})",
                     Port.Mode.Output => $"[{index}] {port.name} ({port.DataType.Name})",
+                    Port.Mode.InputArray => $"[{index}] {port.name} ({port.DataType.Name}[])",
                     Port.Mode.NonTypedInput => $"[{index}] {port.name}",
                     Port.Mode.NonTypedOutput => $"[{index}] {port.name}",
                     _ => throw new NotSupportedException($"Port mode {port.mode} is not supported")
