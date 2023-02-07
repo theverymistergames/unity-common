@@ -21,8 +21,9 @@ namespace MisterGames.Blueprints.Nodes {
             UnityEngine.Debug.LogWarning($"Using {nameof(BlueprintNodeToString)} " +
                                          $"in blueprint `{((BlueprintRunner) host.Runner).BlueprintAsset.name}` or in its subgraphs " +
                                          $"in blueprint runner `{host.Runner.name}`: " +
-                                         $"this node uses reflection and is for debug purposes only, " +
-                                         $"it must be removed in the release build.");
+                                         $"this node uses reflection and it is for debug purposes only, " +
+                                         $"it must be removed in the release build.\n" +
+                                         $"Note that in the non-development build it returns empty string.");
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             var inputPortLinks = RuntimePorts[0].links;
@@ -45,9 +46,7 @@ namespace MisterGames.Blueprints.Nodes {
         }
 
         public string GetOutputPortValue(int port) {
-            if (port != 1) return default;
-
-            return _getString.Invoke();
+            return port == 1 ? _getString.Invoke() : default;
         }
     }
 

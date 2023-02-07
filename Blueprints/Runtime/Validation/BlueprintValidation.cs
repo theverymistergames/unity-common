@@ -61,8 +61,8 @@ namespace MisterGames.Blueprints.Validation {
                 Port.Mode.Exit => b.mode == Port.Mode.Enter,
                 Port.Mode.Input => b.mode == Port.Mode.Output && a.DataType == b.DataType || b.mode == Port.Mode.NonTypedOutput,
                 Port.Mode.Output => b.mode is Port.Mode.Input && a.DataType == b.DataType || b.mode == Port.Mode.NonTypedInput,
-                Port.Mode.NonTypedInput => b.mode is Port.Mode.Output or Port.Mode.NonTypedOutput,
-                Port.Mode.NonTypedOutput => b.mode is Port.Mode.Input or Port.Mode.NonTypedInput,
+                Port.Mode.NonTypedInput => b.mode is Port.Mode.Output,
+                Port.Mode.NonTypedOutput => b.mode is Port.Mode.Input,
                 _ => throw new NotSupportedException($"Port mode {a.mode} is not supported")
             };
         }
@@ -231,22 +231,11 @@ namespace MisterGames.Blueprints.Validation {
             var node = nodeMeta.Node;
             var port = nodeMeta.Ports[portIndex];
 
-            if (port.mode is not (Port.Mode.Output or Port.Mode.NonTypedOutput)) {
+            if (port.mode is not Port.Mode.Output) {
                 Debug.LogError($"Blueprint `{asset.name}`: " +
                                $"Validation failed for output port {portIndex} of node {nodeMeta}: " +
                                $"this port is not an output port.");
                 return false;
-            }
-
-            if (port.mode == Port.Mode.NonTypedOutput) {
-                if (node is not IBlueprintPortLinker) {
-                    Debug.LogError($"Blueprint `{asset.name}`: " +
-                                   $"Validation failed for non-typed output port {portIndex} of node {nodeMeta}: " +
-                                   $"node class {node.GetType().Name} does not implement interface {nameof(IBlueprintPortLinker)}.");
-                    return false;
-                }
-
-                return true;
             }
 
             bool implementsIBlueprintOutputInterface = HasGenericInterface(

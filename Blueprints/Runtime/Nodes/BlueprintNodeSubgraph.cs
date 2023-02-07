@@ -99,13 +99,13 @@ namespace MisterGames.Blueprints.Nodes {
             _runtimeBlueprint = _blueprintAsset.CompileSubgraph(this, nodeMeta);
         }
 
-        public void ValidateBlueprint(BlueprintAsset ownerAsset, int nodeId) {
-            _blueprintAsset = BlueprintValidation.ValidateBlueprintAssetForSubgraph(ownerAsset, _blueprintAsset);
+        public void ValidateBlueprint(BlueprintAsset blueprint, int nodeId) {
+            _blueprintAsset = BlueprintValidation.ValidateBlueprintAssetForSubgraph(blueprint, _blueprintAsset);
 
-            if (_blueprintAsset == null) ownerAsset.BlueprintMeta.RemoveSubgraphReference(nodeId);
-            else ownerAsset.BlueprintMeta.SetSubgraphReference(nodeId, _blueprintAsset);
+            if (_blueprintAsset == null) blueprint.BlueprintMeta.RemoveSubgraphReference(nodeId);
+            else blueprint.BlueprintMeta.SetSubgraphReference(nodeId, _blueprintAsset);
 
-            ownerAsset.BlueprintMeta.InvalidateNodePorts(nodeId, invalidateLinks: true);
+            blueprint.BlueprintMeta.InvalidateNodePorts(nodeId, invalidateLinks: true);
         }
     }
 

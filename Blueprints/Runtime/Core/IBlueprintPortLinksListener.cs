@@ -1,11 +1,9 @@
-﻿namespace MisterGames.Blueprints.Runtime.Core {
+﻿using MisterGames.Blueprints.Meta;
 
-    internal interface IBlueprintConnectionListener {
-        void OnAddLinkToPort(BlueprintAsset blueprint, int nodeId, int portIndex);
-        void OnRemoveLinkToPort(BlueprintAsset blueprint, int nodeId, int portIndex);
+namespace MisterGames.Blueprints.Runtime.Core {
 
-        void OnAddLinkFromPort(BlueprintAsset blueprint, int nodeId, int portIndex);
-        void OnRemoveLinkFromPort(BlueprintAsset blueprint, int nodeId, int portIndex);
+    internal interface IBlueprintPortLinksListener {
+        void OnPortLinksChanged(BlueprintMeta blueprintMeta, int nodeId, int portIndex);
     }
 
 }

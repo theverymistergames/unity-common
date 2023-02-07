@@ -9,7 +9,7 @@
         /// <summary>
         /// Called when node serialized data is being edited.
         /// </summary>
-        void ValidateBlueprint(BlueprintAsset ownerAsset, int nodeId);
+        void ValidateBlueprint(BlueprintAsset blueprint, int nodeId);
     }
 
 }

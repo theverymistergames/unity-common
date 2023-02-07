@@ -341,8 +341,8 @@ namespace MisterGames.Blueprints.Editor.Core {
         // ---------------- ---------------- Node and connection creation ---------------- ----------------
 
         private BlueprintNodeMeta CreateNode(BlueprintNode node, Vector2 position) {
-            var nodeMeta = new BlueprintNodeMeta(node, _blueprintAsset) { Position = position };
-            nodeMeta.RecreatePorts();
+            var nodeMeta = new BlueprintNodeMeta(node) { Position = position };
+            nodeMeta.RecreatePorts(_blueprintAsset.BlueprintMeta);
 
             Undo.RecordObject(_blueprintAsset, "Blueprint Add Node");
 
@@ -382,7 +382,13 @@ namespace MisterGames.Blueprints.Editor.Core {
         private GraphViewChange OnGraphViewChanged(GraphViewChange change) {
             if (_blueprintAsset == null) return change;
 
-            change.edgesToCreate?.ForEach(edge => {
+            bool hasElementsToRemove = change.elementsToRemove is { Count: > 0 };
+            bool hasMovedElements = change.movedElements is { Count: > 0 };
+            bool hasEdgesToCreate = change.edgesToCreate is { Count: > 0 };
+
+            if (hasEdgesToCreate) for (int i = 0; i < change.edgesToCreate.Count; i++) {
+                var edge = change.edgesToCreate[i];
+
                 if (edge.input.node is BlueprintNodeView toNodeView && edge.output.node is BlueprintNodeView fromNodeView) {
                     int fromNodeId = fromNodeView.nodeMeta.NodeId;
                     int toNodeId = toNodeView.nodeMeta.NodeId;
@@ -392,10 +398,12 @@ namespace MisterGames.Blueprints.Editor.Core {
 
                     CreateConnection(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
                 }
-            });
+            }
 
-            change.elementsToRemove?.ForEach(e => {
-                switch (e) {
+            if (hasElementsToRemove) for (int i = 0; i < change.elementsToRemove.Count; i++) {
+                var element = change.elementsToRemove[i];
+
+                switch (element) {
                     case BlueprintNodeView view:
                         RemoveNode(view.nodeMeta);
                         break;
@@ -414,17 +422,13 @@ namespace MisterGames.Blueprints.Editor.Core {
 
                             RemoveConnection(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
                         }
+
                         break;
                 }
-            });
-
-            bool hasElementsToRemove = change.elementsToRemove is { Count: > 0 };
-            bool hasMovedElements = change.movedElements is { Count: > 0 };
-            bool hasEdgesToCreate = change.edgesToCreate is { Count: > 0 };
+            }
 
             // Edge views are to be created in the next RepopulateView() call
             if (hasEdgesToCreate) change.edgesToCreate.Clear();
-
             if (hasMovedElements || hasElementsToRemove || hasEdgesToCreate) SetBlueprintAssetDirtyAndNotify();
             if (hasElementsToRemove || hasEdgesToCreate) RepopulateView();
 

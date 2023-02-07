@@ -73,17 +73,19 @@ namespace MisterGames.Blueprints {
             };
         }
 
-        internal static Port Input(string name = null) {
+        internal static Port Input(string name = null, Type type = null) {
             return new Port {
                 name = name,
-                mode = Mode.NonTypedInput,
+                mode = type == null ? Mode.NonTypedInput : Mode.Input,
+                DataType = type,
             };
         }
 
-        internal static Port Output(string name = null) {
+        internal static Port Output(string name = null, Type type = null) {
             return new Port {
                 name = name,
-                mode = Mode.NonTypedOutput,
+                mode = type == null ? Mode.NonTypedOutput : Mode.Output,
+                DataType = type,
             };
         }
 

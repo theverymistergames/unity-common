@@ -13,11 +13,6 @@ namespace MisterGames.Blueprints.Meta {
     public sealed class BlueprintNodeMeta {
 
         /// <summary>
-        /// A reference to owner BlueprintAsset, used to provide some edit-mode validation.
-        /// </summary>
-        [SerializeField] private BlueprintAsset _ownerBlueprint;
-
-        /// <summary>
         /// NodeId is a key of BlueprintNodeMeta data in the BlueprintAsset nodes storage.
         /// NodeId is provided by BlueprintAsset when BlueprintNodeMeta is added to it.
         /// </summary>
@@ -54,9 +49,8 @@ namespace MisterGames.Blueprints.Meta {
 
         private BlueprintNodeMeta() { }
 
-        public BlueprintNodeMeta(BlueprintNode node, BlueprintAsset ownerBlueprint) {
+        public BlueprintNodeMeta(BlueprintNode node) {
             _node = node;
-            _ownerBlueprint = ownerBlueprint;
         }
 
         public BlueprintNode CreateNodeInstance() {
@@ -68,9 +62,9 @@ namespace MisterGames.Blueprints.Meta {
             return (BlueprintNode) JsonUtility.FromJson(_cachedNodeJson, _node.GetType());
         }
 
-        public void RecreatePorts() {
+        public void RecreatePorts(BlueprintMeta blueprintMeta) {
             var ports = _node.CreatePorts();
-            if (_node is IBlueprintPortDecorator decorator) decorator.DecoratePorts(_ownerBlueprint, _nodeId, ports);
+            if (_node is IBlueprintPortDecorator decorator) decorator.DecoratePorts(blueprintMeta, _nodeId, ports);
             _ports = ports;
         }
 

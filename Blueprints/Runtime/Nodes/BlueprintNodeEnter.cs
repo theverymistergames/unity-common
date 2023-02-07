@@ -8,10 +8,10 @@ namespace MisterGames.Blueprints.Nodes {
     [BlueprintNodeMeta(Name = "Enter", Category = "External", Color = BlueprintColors.Node.External)]
     public sealed class BlueprintNodeEnter : BlueprintNode, IBlueprintPortLinker, IBlueprintAssetValidator {
 
-        [SerializeField] private string _parameter;
+        [SerializeField] private string _port;
 
         public override Port[] CreatePorts() => new[] {
-            Port.Enter(_parameter).SetExternal(true),
+            Port.Enter(_port).SetExternal(true),
             Port.Exit()
         };
 
@@ -21,8 +21,8 @@ namespace MisterGames.Blueprints.Nodes {
             _ => -1,
         };
 
-        public void ValidateBlueprint(BlueprintAsset ownerAsset, int nodeId) {
-            ownerAsset.BlueprintMeta.InvalidateNodePorts(nodeId, invalidateLinks: false);
+        public void ValidateBlueprint(BlueprintAsset blueprint, int nodeId) {
+            blueprint.BlueprintMeta.InvalidateNodePorts(nodeId, invalidateLinks: false, notify: false);
         }
     }
 

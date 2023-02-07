@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using MisterGames.Blueprints.Runtime.Core;
 using MisterGames.Common.Data;
 using UnityEngine;
 
@@ -74,7 +75,7 @@ namespace MisterGames.Blueprints.Meta {
                 if (toPort.mode == Port.Mode.Output && fromPort.DataType != toPort.DataType) return false;
 
                 // replacing connections from the input port fromPort to the output port toPort with new connection
-                RemoveLinksFromNodePort(fromNodeId, fromPortIndex);
+                RemoveAllLinksFromNodePort(fromNodeId, fromPortIndex);
                 CreateConnection(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
                 return true;
             }
@@ -83,7 +84,7 @@ namespace MisterGames.Blueprints.Meta {
                 if (toPort.mode is not (Port.Mode.Output or Port.Mode.NonTypedOutput)) return false;
 
                 // replacing connections from the input port fromPort to the output port toPort with new connection
-                RemoveLinksFromNodePort(fromNodeId, fromPortIndex);
+                RemoveAllLinksFromNodePort(fromNodeId, fromPortIndex);
                 CreateConnection(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
                 return true;
             }
@@ -95,7 +96,7 @@ namespace MisterGames.Blueprints.Meta {
                 if (toPort.mode is Port.Mode.Input && fromPort.DataType != toPort.DataType) return false;
 
                 // replacing connections from the input port toPort to the output port fromPort with new connection
-                if (toPort.mode is Port.Mode.Input) RemoveLinksFromNodePort(toNodeId, toPortIndex);
+                if (toPort.mode is Port.Mode.Input) RemoveAllLinksFromNodePort(toNodeId, toPortIndex);
 
                 // adding connection from the input port toPort to the output port fromPort
                 CreateConnection(toNodeId, toPortIndex, fromNodeId, fromPortIndex);
@@ -106,7 +107,7 @@ namespace MisterGames.Blueprints.Meta {
                 if (toPort.mode is not (Port.Mode.Input or Port.Mode.NonTypedInput)) return false;
 
                 // replacing connections from the input port toPort to the output port fromPort with new connection
-                if (toPort.mode is Port.Mode.Input) RemoveLinksFromNodePort(toNodeId, toPortIndex);
+                if (toPort.mode is Port.Mode.Input) RemoveAllLinksFromNodePort(toNodeId, toPortIndex);
 
                 // adding connection from the input port toPort to the output port fromPort
                 CreateConnection(toNodeId, toPortIndex, fromNodeId, fromPortIndex);
@@ -157,7 +158,7 @@ namespace MisterGames.Blueprints.Meta {
             var oldPorts = nodeMeta.Ports;
             int oldPortsCount = oldPorts.Length;
 
-            nodeMeta.RecreatePorts();
+            nodeMeta.RecreatePorts(this);
             var newPorts = nodeMeta.Ports;
             int newPortsCount = newPorts.Length;
 
@@ -183,8 +184,8 @@ namespace MisterGames.Blueprints.Meta {
                         SetLinksToNodePort(nodeId, newPortIndex, GetLinksToNodePort(nodeId, oldPortIndex));
                     }
 
-                    RemoveLinksFromNodePort(nodeId, oldPortIndex);
-                    RemoveLinksToNodePort(nodeId, oldPortIndex);
+                    RemoveAllLinksFromNodePort(nodeId, oldPortIndex);
+                    RemoveAllLinksToNodePort(nodeId, oldPortIndex);
                 }
 
                 portsChanged = true;
@@ -265,6 +266,10 @@ namespace MisterGames.Blueprints.Meta {
 
             var link = new BlueprintLink { nodeId = toNodeId, portIndex = toPortIndex };
             fromNodePortLinks.Add(link);
+
+            if (_nodesMap.TryGetValue(fromNodeId, out var fromNodeMeta) && fromNodeMeta.Node is IBlueprintPortLinksListener fromNodeListener) {
+                fromNodeListener.OnPortLinksChanged(this, fromNodeId, fromPortIndex);
+            }
         }
 
         private void AddLinkToNodePort(int fromNodeId, int fromPortIndex, int toNodeId, int toPortIndex) {
@@ -280,17 +285,28 @@ namespace MisterGames.Blueprints.Meta {
 
             var link = new BlueprintLink { nodeId = fromNodeId, portIndex = fromPortIndex };
             toNodePortLinks.Add(link);
+
+            if (_nodesMap.TryGetValue(toNodeId, out var toNodeMeta) && toNodeMeta.Node is IBlueprintPortLinksListener toNodeListener) {
+                toNodeListener.OnPortLinksChanged(this, toNodeId, toPortIndex);
+            }
         }
 
         private void RemoveLinkFromNodePort(int fromNodeId, int fromPortIndex, int toNodeId, int toPortIndex) {
             if (!_fromNodePortLinksMap.TryGetValue(fromNodeId, out var portLinksMap)) return;
             if (!portLinksMap.TryGetValue(fromPortIndex, out var portLinks)) return;
 
+            bool removed = false;
+
             for (int i = 0; i < portLinks.Count; i++) {
                 var link = portLinks[i];
                 if (link.nodeId != toNodeId || link.portIndex != toPortIndex) continue;
 
                 portLinks.RemoveAt(i);
+                removed = true;
+            }
+
+            if (removed && _nodesMap.TryGetValue(fromNodeId, out var fromNodeMeta) && fromNodeMeta.Node is IBlueprintPortLinksListener fromNodeListener) {
+                fromNodeListener.OnPortLinksChanged(this, fromNodeId, fromPortIndex);
             }
 
             if (portLinks.Count == 0) portLinksMap.Remove(fromPortIndex);
@@ -301,18 +317,25 @@ namespace MisterGames.Blueprints.Meta {
             if (!_toNodePortLinksMap.TryGetValue(toNodeId, out var portLinksMap)) return;
             if (!portLinksMap.TryGetValue(toPortIndex, out var portLinks)) return;
 
+            bool removed = false;
+
             for (int i = 0; i < portLinks.Count; i++) {
                 var link = portLinks[i];
                 if (link.nodeId != fromNodeId || link.portIndex != fromPortIndex) continue;
 
                 portLinks.RemoveAt(i);
+                removed = true;
+            }
+
+            if (removed && _nodesMap.TryGetValue(toNodeId, out var toNodeMeta) && toNodeMeta.Node is IBlueprintPortLinksListener toNodeListener) {
+                toNodeListener.OnPortLinksChanged(this, toNodeId, toPortIndex);
             }
 
             if (portLinks.Count == 0) portLinksMap.Remove(toPortIndex);
             if (portLinksMap.Count == 0) _toNodePortLinksMap.Remove(toNodeId);
         }
 
-        private void RemoveLinksFromNodePort(int nodeId, int portIndex) {
+        private void RemoveAllLinksFromNodePort(int nodeId, int portIndex) {
             if (!_fromNodePortLinksMap.TryGetValue(nodeId, out var portLinksMap)) return;
             if (!portLinksMap.TryGetValue(portIndex, out var links)) return;
 
@@ -322,11 +345,18 @@ namespace MisterGames.Blueprints.Meta {
                 if (!_toNodePortLinksMap.TryGetValue(link.nodeId, out var linkedNodePortLinksMap)) continue;
                 if (!linkedNodePortLinksMap.TryGetValue(link.portIndex, out var linkedPortLinks)) continue;
 
+                bool removed = false;
+
                 for (int j = 0; j < linkedPortLinks.Count; j++) {
                     var linkedPortLink = linkedPortLinks[j];
                     if (linkedPortLink.nodeId != nodeId || linkedPortLink.portIndex != portIndex) continue;
 
                     linkedPortLinks.RemoveAt(j);
+                    removed = true;
+                }
+
+                if (removed && _nodesMap.TryGetValue(nodeId, out var fromNodeMeta) && fromNodeMeta.Node is IBlueprintPortLinksListener fromNodeListener) {
+                    fromNodeListener.OnPortLinksChanged(this, nodeId, portIndex);
                 }
 
                 if (linkedPortLinks.Count == 0) linkedNodePortLinksMap.Remove(link.portIndex);
@@ -337,7 +367,7 @@ namespace MisterGames.Blueprints.Meta {
             if (portLinksMap.Count == 0) _fromNodePortLinksMap.Remove(nodeId);
         }
 
-        private void RemoveLinksToNodePort(int nodeId, int portIndex) {
+        private void RemoveAllLinksToNodePort(int nodeId, int portIndex) {
             if (!_toNodePortLinksMap.TryGetValue(nodeId, out var portLinksMap)) return;
             if (!portLinksMap.TryGetValue(portIndex, out var links)) return;
 
@@ -347,11 +377,18 @@ namespace MisterGames.Blueprints.Meta {
                 if (!_fromNodePortLinksMap.TryGetValue(link.nodeId, out var linkedNodePortLinksMap)) continue;
                 if (!linkedNodePortLinksMap.TryGetValue(link.portIndex, out var linkedPortLinks)) continue;
 
+                bool removed = false;
+
                 for (int j = 0; j < linkedPortLinks.Count; j++) {
                     var linkedPortLink = linkedPortLinks[j];
                     if (linkedPortLink.nodeId != nodeId || linkedPortLink.portIndex != portIndex) continue;
 
                     linkedPortLinks.RemoveAt(j);
+                    removed = true;
+                }
+
+                if (removed && _nodesMap.TryGetValue(nodeId, out var toNodeMeta) && toNodeMeta.Node is IBlueprintPortLinksListener toNodeListener) {
+                    toNodeListener.OnPortLinksChanged(this, nodeId, portIndex);
                 }
 
                 if (linkedPortLinks.Count == 0) linkedNodePortLinksMap.Remove(link.portIndex);
@@ -365,18 +402,25 @@ namespace MisterGames.Blueprints.Meta {
         private void RemoveLinksFromNode(int nodeId) {
             if (!_fromNodePortLinksMap.TryGetValue(nodeId, out var portLinksMap)) return;
 
-            foreach ((int _, var links) in portLinksMap) {
+            foreach ((int portIndex, var links) in portLinksMap) {
                 for (int i = 0; i < links.Count; i++) {
                     var link = links[i];
 
                     if (!_toNodePortLinksMap.TryGetValue(link.nodeId, out var linkedNodePortLinksMap)) continue;
                     if (!linkedNodePortLinksMap.TryGetValue(link.portIndex, out var linkedPortLinks)) continue;
 
+                    bool removed = false;
+
                     for (int j = 0; j < linkedPortLinks.Count; j++) {
                         var linkedPortLink = linkedPortLinks[j];
                         if (linkedPortLink.nodeId != nodeId) continue;
 
                         linkedPortLinks.RemoveAt(j);
+                        removed = true;
+                    }
+
+                    if (removed && _nodesMap.TryGetValue(nodeId, out var fromNodeMeta) && fromNodeMeta.Node is IBlueprintPortLinksListener fromNodeListener) {
+                        fromNodeListener.OnPortLinksChanged(this, nodeId, portIndex);
                     }
 
                     if (linkedPortLinks.Count == 0) linkedNodePortLinksMap.Remove(link.portIndex);
@@ -390,18 +434,25 @@ namespace MisterGames.Blueprints.Meta {
         private void RemoveLinksToNode(int nodeId) {
             if (!_toNodePortLinksMap.TryGetValue(nodeId, out var portLinksMap)) return;
 
-            foreach ((int _, var links) in portLinksMap) {
+            foreach ((int portIndex, var links) in portLinksMap) {
                 for (int i = 0; i < links.Count; i++) {
                     var link = links[i];
 
                     if (!_fromNodePortLinksMap.TryGetValue(link.nodeId, out var linkedNodePortLinksMap)) continue;
                     if (!linkedNodePortLinksMap.TryGetValue(link.portIndex, out var linkedPortLinks)) continue;
 
+                    bool removed = false;
+
                     for (int j = 0; j < linkedPortLinks.Count; j++) {
                         var linkedPortLink = linkedPortLinks[j];
                         if (linkedPortLink.nodeId != nodeId) continue;
 
                         linkedPortLinks.RemoveAt(j);
+                        removed = true;
+                    }
+
+                    if (removed && _nodesMap.TryGetValue(nodeId, out var toNodeMeta) && toNodeMeta.Node is IBlueprintPortLinksListener toNodeListener) {
+                        toNodeListener.OnPortLinksChanged(this, nodeId, portIndex);
                     }
 
                     if (linkedPortLinks.Count == 0) linkedNodePortLinksMap.Remove(link.portIndex);
