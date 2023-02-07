@@ -9,6 +9,7 @@ using System.Reflection;
 namespace MisterGames.Blueprints.Nodes {
 
     [Serializable]
+    [Obsolete("Using BlueprintNodeToString, it must be removed in the release build!")]
     [BlueprintNodeMeta(Name = "ToString", Category = "Debug", Color = BlueprintColors.Node.Debug)]
     public sealed class BlueprintNodeToString : BlueprintNode, IBlueprintOutput<string> {
 
