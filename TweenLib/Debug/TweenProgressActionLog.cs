@@ -2,14 +2,12 @@
 using MisterGames.Tweens.Core;
 using UnityEngine;
 
-namespace MisterGames.Tweens.Actions {
+namespace MisterGames.TweenLib {
     
     [Serializable]
     public sealed class TweenProgressActionLog : ITweenProgressAction {
 
-        [SerializeField] private string _text;
-
-        public string Text { get => _text; set => _text = value; }
+        public string text;
 
         private MonoBehaviour _owner;
 
@@ -20,7 +18,7 @@ namespace MisterGames.Tweens.Actions {
         public void DeInitialize() { }
 
         public void OnProgressUpdate(float progress) {
-            Debug.LogWarning($"Using {nameof(TweenProgressActionLog)} on game object {_owner.name}, text: {_text}, progress: {progress}");
+            Debug.LogWarning($"Using {nameof(TweenProgressActionLog)} on game object {_owner.name}, text: {text}, progress: {progress}");
         }
     }
     

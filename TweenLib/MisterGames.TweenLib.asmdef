@@ -1,0 +1,18 @@
+{
+    "name": "MisterGames.TweenLib",
+    "rootNamespace": "MisterGames.TweenLib",
+    "references": [
+        "GUID:0175294ec022c624cbe537915e3c9e71",
+        "GUID:567f537c4baeee944b9857671ea49405",
+        "GUID:f51ebe6a0ceec4240a699833d6309b23"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -2,14 +2,12 @@
 using MisterGames.Tweens.Core;
 using UnityEngine;
 
-namespace MisterGames.Tweens.Actions {
+namespace MisterGames.TweenLib {
 
     [Serializable]
     public sealed class TweenInstantActionLog : ITweenInstantAction {
 
-        [SerializeField] private string _text;
-
-        public string Text { get => _text; set => _text = value; }
+        public string text;
 
         private MonoBehaviour _owner;
 
@@ -19,12 +17,8 @@ namespace MisterGames.Tweens.Actions {
 
         public void DeInitialize() { }
 
-        public void SetText(string text) {
-            _text = text;
-        }
-
         public void InvokeAction() {
-            Debug.LogWarning($"Using {nameof(TweenInstantActionLog)} on game object {_owner.name}, text: {_text}");
+            Debug.LogWarning($"Using {nameof(TweenInstantActionLog)} on game object {_owner.name}, text: {text}");
         }
     }
 
