@@ -49,6 +49,7 @@ namespace MisterGames.Blueprints.Meta {
         [SerializeField] private Port[] _ports;
         public Port[] Ports => _ports;
 
+        private bool _hasCachedNodeJson;
         private string _cachedNodeJson;
 
         private BlueprintNodeMeta() { }
@@ -59,8 +60,12 @@ namespace MisterGames.Blueprints.Meta {
         }
 
         public BlueprintNode CreateNodeInstance() {
-            _cachedNodeJson ??= JsonUtility.ToJson(_node);
-            return JsonUtility.FromJson(_cachedNodeJson, _node.GetType()) as BlueprintNode;
+            if (!_hasCachedNodeJson) {
+                _cachedNodeJson = JsonUtility.ToJson(_node);
+                _hasCachedNodeJson = true;
+            }
+
+            return (BlueprintNode) JsonUtility.FromJson(_cachedNodeJson, _node.GetType());
         }
 
         public void RecreatePorts() {
