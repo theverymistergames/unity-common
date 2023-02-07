@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 using MisterGames.Blueprints.Meta;
 using MisterGames.Blueprints.Validation;
 
@@ -210,53 +209,6 @@ namespace MisterGames.Blueprints.Compile {
             if (nodeInstance is IBlueprintCompiledNode compiledNode) compiledNode.Compile(nodeMeta);
 
             return nodeInstance;
-        }
-
-        private static string RuntimeNodesToString(string prefix, BlueprintNode[] nodes) {
-            var sb = new StringBuilder();
-
-            sb.AppendLine(prefix);
-
-            for (int n = 0; n < nodes.Length; n++) {
-                var node = nodes[n];
-
-                sb.AppendLine(RuntimeNodeToString(node));
-            }
-
-            return sb.ToString();
-        }
-
-        private static string RuntimeNodeToString(BlueprintNode node) {
-            var sb = new StringBuilder();
-
-            sb.AppendLine($"-- Node {node} (hash {node.GetHashCode()})");
-
-            var ports = node.RuntimePorts;
-
-            for (int p = 0; p < ports.Length; p++) {
-                var port = ports[p];
-                var links = port.links;
-
-                if (links == null) {
-                    sb.AppendLine($"---- Port#{p}: links: <null>");
-                    continue;
-                }
-
-                if (links.Count == 0) {
-                    sb.AppendLine($"---- Port#{p}: links: <empty>");
-                    continue;
-                }
-
-                sb.AppendLine($"---- Port#{p}: links:");
-
-                for (int l = 0; l < links.Count; l++) {
-                    var link = links[l];
-
-                    sb.AppendLine($"-------- Link#{l}: {link.node} (hash {link.node.GetHashCode()}) :: {link.port}");
-                }
-            }
-
-            return sb.ToString();
         }
     }
 
