@@ -155,11 +155,24 @@ namespace MisterGames.Blueprints.Validation {
             }
 
             var node = nodeMeta.Node;
-            if (node is not (IBlueprintEnter or IBlueprintPortLinker)) {
+
+            if (port.isExternalPort) {
+                if (node is not IBlueprintPortLinker) {
+                    Debug.LogError($"Blueprint `{asset.name}`: " +
+                                   $"Validation failed for external enter port {portIndex} of node {nodeMeta}: " +
+                                   $"node class {node.GetType().Name} " +
+                                   $"does not implement interface {nameof(IBlueprintPortLinker)}.");
+                    return false;
+                }
+
+                return true;
+            }
+
+            if (node is not IBlueprintEnter) {
                 Debug.LogError($"Blueprint `{asset.name}`: " +
                                $"Validation failed for enter port {portIndex} of node {nodeMeta}: " +
                                $"node class {node.GetType().Name} " +
-                               $"does not implement interface {nameof(IBlueprintEnter)} or {nameof(IBlueprintPortLinker)}.");
+                               $"does not implement interface {nameof(IBlueprintEnter)}.");
                 return false;
             }
 
@@ -183,11 +196,15 @@ namespace MisterGames.Blueprints.Validation {
             }
 
             var node = nodeMeta.Node;
-            if (port.mode == Port.Mode.NonTypedOutput && node is not IBlueprintPortLinker) {
-                Debug.LogError($"Blueprint `{asset.name}`: " +
-                               $"Validation failed for non-typed output port {portIndex} of node {nodeMeta}: " +
-                               $"node class {node.GetType().Name} does not implement interface {nameof(IBlueprintPortLinker)}.");
-                return false;
+            if (port.isExternalPort) {
+                if (node is not IBlueprintPortLinker) {
+                    Debug.LogError($"Blueprint `{asset.name}`: " +
+                                   $"Validation failed for external output port {portIndex} of node {nodeMeta}: " +
+                                   $"node class {node.GetType().Name} does not implement interface {nameof(IBlueprintPortLinker)}.");
+                    return false;
+                }
+
+                return true;
             }
 
             if (port.mode == Port.Mode.Output && port.DataType != dataType) {
@@ -228,20 +245,24 @@ namespace MisterGames.Blueprints.Validation {
 
             var node = nodeMeta.Node;
 
+            if (port.isExternalPort) {
+                if (node is not IBlueprintPortLinker) {
+                    Debug.LogError($"Blueprint `{asset.name}`: " +
+                                   $"Validation failed for external output port {portIndex} of node {nodeMeta}: " +
+                                   $"node class {node.GetType().Name} does not implement interface {nameof(IBlueprintPortLinker)}.");
+                    return false;
+                }
+
+                return true;
+            }
+
             if (port.mode == Port.Mode.Output &&
                 !HasGenericInterface(node.GetType(), typeof(IBlueprintOutput<>), port.DataType)
-               ) {
+            ) {
                 Debug.LogError($"Blueprint `{asset.name}`: " +
                                $"Validation failed for output port {portIndex} of node {nodeMeta}: " +
                                $"node class {node.GetType().Name} does not implement " +
                                $"interface {typeof(IBlueprintOutput<>).Name}<{port.DataType.Name}>.");
-                return false;
-            }
-
-            if (port.mode == Port.Mode.NonTypedOutput && node is not IBlueprintPortLinker) {
-                Debug.LogError($"Blueprint `{asset.name}`: " +
-                               $"Validation failed for non-typed output port {portIndex} of node {nodeMeta}: " +
-                               $"node class {node.GetType().Name} does not implement interface {nameof(IBlueprintPortLinker)}.");
                 return false;
             }
 
@@ -259,12 +280,16 @@ namespace MisterGames.Blueprints.Validation {
             var node = nodeMeta.Node;
             var port = nodeMeta.Ports[portIndex];
 
-            if (port.isExternalPort && node is not IBlueprintPortLinker) {
-                Debug.LogError($"Blueprint `{asset.name}`: " +
-                               $"Validation failed for external enter port {portIndex} of node {nodeMeta}: " +
-                               $"node class {node.GetType().Name} " +
-                               $"does not implement interface {nameof(IBlueprintPortLinker)}.");
-                return false;
+            if (port.isExternalPort) {
+                if (node is not IBlueprintPortLinker) {
+                    Debug.LogError($"Blueprint `{asset.name}`: " +
+                                   $"Validation failed for external enter port {portIndex} of node {nodeMeta}: " +
+                                   $"node class {node.GetType().Name} " +
+                                   $"does not implement interface {nameof(IBlueprintPortLinker)}.");
+                    return false;
+                }
+
+                return true;
             }
 
             if (node is not IBlueprintEnter) {
@@ -286,6 +311,21 @@ namespace MisterGames.Blueprints.Validation {
                 return false;
             }
 
+            var node = nodeMeta.Node;
+            var port = nodeMeta.Ports[portIndex];
+
+            if (port.isExternalPort) {
+                if (node is not IBlueprintPortLinker) {
+                    Debug.LogError($"Blueprint `{asset.name}`: " +
+                                   $"Validation failed for external exit port {portIndex} of node {nodeMeta}: " +
+                                   $"node class {node.GetType().Name} " +
+                                   $"does not implement interface {nameof(IBlueprintPortLinker)}.");
+                    return false;
+                }
+
+                return true;
+            }
+
             return true;
         }
 
@@ -297,7 +337,20 @@ namespace MisterGames.Blueprints.Validation {
                 return false;
             }
 
+            var node = nodeMeta.Node;
             var port = nodeMeta.Ports[portIndex];
+
+            if (port.isExternalPort) {
+                if (node is not IBlueprintPortLinker) {
+                    Debug.LogError($"Blueprint `{asset.name}`: " +
+                                   $"Validation failed for external input port {portIndex} of node {nodeMeta}: " +
+                                   $"node class {node.GetType().Name} does not implement interface {nameof(IBlueprintPortLinker)}.");
+                    return false;
+                }
+
+                return true;
+            }
+
             if (port.DataType != dataType) {
                 Debug.LogError($"Blueprint `{asset.name}`: " +
                                $"Validation failed for input port {portIndex} of node {nodeMeta}: " +
@@ -319,11 +372,15 @@ namespace MisterGames.Blueprints.Validation {
             var node = nodeMeta.Node;
             var port = nodeMeta.Ports[portIndex];
 
-            if (port.isExternalPort && node is not IBlueprintPortLinker) {
-                Debug.LogError($"Blueprint `{asset.name}`: " +
-                               $"Validation failed for external non-typed input port {portIndex} of node {nodeMeta}: " +
-                               $"node class {node.GetType().Name} does not implement interface {nameof(IBlueprintPortLinker)}.");
-                return false;
+            if (port.isExternalPort) {
+                if (node is not IBlueprintPortLinker) {
+                    Debug.LogError($"Blueprint `{asset.name}`: " +
+                                   $"Validation failed for external input port {portIndex} of node {nodeMeta}: " +
+                                   $"node class {node.GetType().Name} does not implement interface {nameof(IBlueprintPortLinker)}.");
+                    return false;
+                }
+
+                return true;
             }
 
             return true;
@@ -337,7 +394,20 @@ namespace MisterGames.Blueprints.Validation {
                 return false;
             }
 
+            var node = nodeMeta.Node;
             var port = nodeMeta.Ports[portIndex];
+
+            if (port.isExternalPort) {
+                if (node is not IBlueprintPortLinker) {
+                    Debug.LogError($"Blueprint `{asset.name}`: " +
+                                   $"Validation failed for external output port {portIndex} of node {nodeMeta}: " +
+                                   $"node class {node.GetType().Name} does not implement interface {nameof(IBlueprintPortLinker)}.");
+                    return false;
+                }
+
+                return true;
+            }
+
             if (port.DataType != dataType) {
                 Debug.LogError($"Blueprint `{asset.name}`: " +
                                $"Validation failed for output port {portIndex} of node {nodeMeta}: " +
@@ -345,9 +415,7 @@ namespace MisterGames.Blueprints.Validation {
                 return false;
             }
 
-            var node = nodeMeta.Node;
-            if (!HasGenericInterface(node.GetType(), typeof(IBlueprintOutput<>), port.DataType)
-            ) {
+            if (!HasGenericInterface(node.GetType(), typeof(IBlueprintOutput<>), port.DataType)) {
                 Debug.LogError($"Blueprint `{asset.name}`: " +
                                $"Validation failed for output port {portIndex} of node {nodeMeta}: " +
                                $"node class {node.GetType().Name} does not implement " +
@@ -369,11 +437,15 @@ namespace MisterGames.Blueprints.Validation {
             var node = nodeMeta.Node;
             var port = nodeMeta.Ports[portIndex];
 
-            if (port.isExternalPort && node is not IBlueprintPortLinker) {
-                Debug.LogError($"Blueprint `{asset.name}`: " +
-                               $"Validation failed for external non-typed output port {portIndex} of node {nodeMeta}: " +
-                               $"node class {node.GetType().Name} does not implement interface {nameof(IBlueprintPortLinker)}.");
-                return false;
+            if (port.isExternalPort) {
+                if (node is not IBlueprintPortLinker) {
+                    Debug.LogError($"Blueprint `{asset.name}`: " +
+                                   $"Validation failed for external output port {portIndex} of node {nodeMeta}: " +
+                                   $"node class {node.GetType().Name} does not implement interface {nameof(IBlueprintPortLinker)}.");
+                    return false;
+                }
+
+                return true;
             }
 
             return true;
