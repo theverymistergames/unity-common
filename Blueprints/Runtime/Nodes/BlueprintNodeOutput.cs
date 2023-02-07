@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using MisterGames.Blueprints.Core;
 using MisterGames.Blueprints.Meta;
 using MisterGames.Blueprints.Runtime.Core;
@@ -26,21 +27,12 @@ namespace MisterGames.Blueprints.Nodes {
             var linksFromInput = blueprintMeta.GetLinksFromNodePort(nodeId, 0);
             if (linksFromInput.Count == 0) return;
 
-            var nodesMap = blueprintMeta.NodesMap;
+            var link = linksFromInput[0];
+            var linkedPort = blueprintMeta.NodesMap[link.nodeId].Ports[link.portIndex];
+            var dataType = linkedPort.DataType;
 
-            for (int l = 0; l < linksFromInput.Count; l++) {
-                var link = linksFromInput[l];
-
-                var linkedPort = nodesMap[link.nodeId].Ports[link.portIndex];
-                if (linkedPort.mode != Port.Mode.Output) continue;
-
-                var dataType = linkedPort.DataType;
-
-                ports[0] = Port.Input(dataType.Name, dataType);
-                ports[1] = Port.Output(_port, dataType).SetExternal(true);
-
-                break;
-            }
+            ports[0] = Port.Input(dataType.Name, dataType);
+            ports[1] = Port.Output(_port, dataType).SetExternal(true);
         }
 
         public void OnPortLinksChanged(BlueprintMeta blueprintMeta, int nodeId, int portIndex) {
