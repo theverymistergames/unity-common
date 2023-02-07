@@ -30,43 +30,23 @@ namespace MisterGames.Blueprints {
 
             return defaultValue;
         }
-/*
-        protected IReadOnlyList<T> ReadInputArrayPort<T>(int port) {
+
+        protected T[] ReadInputArrayPort<T>(int port) {
             var links = RuntimePorts[port].links;
             if (links.Count == 0) return Array.Empty<T>();
 
-            if (links.Count == 1) {
-                var link = links[0];
-
-                if (link.node is IBlueprintOutput<T> output) {
-                    return new []{ output.GetOutputPortValue(link.port) };
-                }
-
-                if (link.node is IBlueprintOutputArray<T> outputArray) {
-                    return outputArray.GetOutputArrayPortValues(link.port);
-                }
-
-                return Array.Empty<T>();
-            }
-
-            var values = new List<T>();
+            var array = new T[links.Count];
 
             for (int i = 0; i < links.Count; i++) {
                 var link = links[i];
+                if (link.node is not IBlueprintOutput<T> output) continue;
 
-                if (link.node is IBlueprintOutput<T> output) {
-                    values.Add(output.GetOutputPortValue(link.port));
-                    continue;
-                }
-
-                if (link.node is IBlueprintOutputArray<T> outputArray) {
-                    values.AddRange(outputArray.GetOutputArrayPortValues(link.port));
-                }
+                array[i] = output.GetOutputPortValue(link.port);
             }
 
-            return values;
+            return array;
         }
-*/
+
 #if UNITY_EDITOR
         public virtual void OnValidate() {}
 #endif
