@@ -3,7 +3,7 @@
     /// <summary>
     /// Used by Start built-in blueprint node to provide start call from Blueprint runner.
     /// </summary>
-    public interface IBlueprintStart {
+    public interface IBlueprintStartListener {
 
         /// <summary>
         /// Called when BlueprintRunner receives MonoBehaviour.Start call.

@@ -24,19 +24,19 @@ namespace MisterGames.Blueprints.Compile {
 
         public void OnEnable() {
             for (int i = 0; i < _nodes.Length; i++) {
-                if (_nodes[i] is IBlueprintEnableDisable enableDisable) enableDisable.OnEnable();
+                if (_nodes[i] is IBlueprintEnableDisableListener enableDisable) enableDisable.OnEnable();
             }
         }
 
         public void OnDisable() {
             for (int i = 0; i < _nodes.Length; i++) {
-                if (_nodes[i] is IBlueprintEnableDisable enableDisable) enableDisable.OnDisable();
+                if (_nodes[i] is IBlueprintEnableDisableListener enableDisable) enableDisable.OnDisable();
             }
         }
 
         public void Start() {
             for (int i = 0; i < _nodes.Length; i++) {
-                if (_nodes[i] is IBlueprintStart start) start.OnStart();
+                if (_nodes[i] is IBlueprintStartListener start) start.OnStart();
             }
         }
     }

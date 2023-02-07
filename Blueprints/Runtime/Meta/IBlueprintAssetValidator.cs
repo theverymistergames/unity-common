@@ -1,4 +1,4 @@
-﻿namespace MisterGames.Blueprints.Core {
+﻿namespace MisterGames.Blueprints.Meta {
 
     /// <summary>
     /// Used by node to receive validation call with info about owner asset and node id

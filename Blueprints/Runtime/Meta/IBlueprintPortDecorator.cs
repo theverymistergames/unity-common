@@ -1,8 +1,9 @@
-﻿using MisterGames.Blueprints.Meta;
-
-namespace MisterGames.Blueprints.Runtime.Core {
+﻿namespace MisterGames.Blueprints.Meta {
 
     internal interface IBlueprintPortDecorator {
+
+
         void DecoratePorts(BlueprintMeta blueprintMeta, int nodeId, Port[] ports);
     }
+
 }
