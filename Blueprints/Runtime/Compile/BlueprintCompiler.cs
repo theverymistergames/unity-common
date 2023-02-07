@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
 using MisterGames.Blueprints.Meta;
 using MisterGames.Blueprints.Validation;
 
@@ -10,8 +11,8 @@ namespace MisterGames.Blueprints.Compile {
         private readonly Dictionary<int, BlueprintNode> _runtimeNodesMap = new Dictionary<int, BlueprintNode>();
         private readonly Dictionary<int, List<BlueprintLink>> _externalPortLinksMap = new Dictionary<int, List<BlueprintLink>>();
 
-        public RuntimeBlueprint Compile(BlueprintAsset blueprintAsset) {
-            var blueprintMeta = blueprintAsset.BlueprintMeta;
+        public RuntimeBlueprint Compile(BlueprintAsset blueprint) {
+            var blueprintMeta = blueprint.BlueprintMeta;
             var nodesMetaMap = blueprintMeta.NodesMap;
 
             int nodesCount = nodesMetaMap.Count;
@@ -29,7 +30,7 @@ namespace MisterGames.Blueprints.Compile {
 
                 for (int p = 0; p < portsCount; p++) {
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
-                    BlueprintValidation.ValidatePort(blueprintAsset, nodeMeta, p);
+                    BlueprintValidation.ValidatePort(blueprint, nodeMeta, p);
 #endif
 
                     var port = ports[p];
@@ -43,7 +44,7 @@ namespace MisterGames.Blueprints.Compile {
                         var link = links[l];
 
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
-                        BlueprintValidation.ValidateLink(blueprintAsset, nodeMeta, p, nodesMetaMap[link.nodeId], link.portIndex);
+                        BlueprintValidation.ValidateLink(blueprint, nodeMeta, p, nodesMetaMap[link.nodeId], link.portIndex);
 #endif
 
                         runtimeLinks.Add(new RuntimeLink(GetOrCreateNodeInstance(link.nodeId, nodesMetaMap[link.nodeId]), link.portIndex));
@@ -58,41 +59,18 @@ namespace MisterGames.Blueprints.Compile {
             _runtimeNodesMap.Clear();
 
             for (int n = 0; n < runtimeNodes.Length; n++) {
-                OptimizeLinkedNodes(runtimeNodes[n]);
+                InlineLinks(runtimeNodes[n]);
             }
 
             return new RuntimeBlueprint(runtimeNodes);
         }
 
-        private static void OptimizeLinkedNodes(BlueprintNode node) {
-            if (node is IBlueprintPortLinker) return;
-
-            var runtimePorts = node.RuntimePorts;
-            for (int p = 0; p < runtimePorts.Length; p++) {
-                var runtimePort = runtimePorts[p];
-                var runtimeLinks = runtimePort.links;
-
-                if (runtimeLinks == null) continue;
-
-                for (int l = runtimeLinks.Count - 1; l >= 0; l--) {
-                    var link = runtimeLinks[l];
-
-                    if (link.node is not IBlueprintPortLinker linker) {
-                        OptimizeLinkedNodes(link.node);
-                        continue;
-                    }
-
-                    var linkedPortLinks = link.node.RuntimePorts[linker.GetLinkedPort(link.port)].links;
-                    runtimeLinks.InsertRange(l, linkedPortLinks);
-
-                    l += linkedPortLinks.Count;
-                    runtimeLinks.RemoveAt(l);
-                }
-            }
-        }
-
-        public RuntimeBlueprint CompileSubgraph(BlueprintAsset blueprintAsset, BlueprintNode subgraph, BlueprintNodeMeta subgraphMeta) {
-            var blueprintMeta = blueprintAsset.BlueprintMeta;
+        public RuntimeBlueprint CompileSubgraph(
+            BlueprintAsset subgraphBlueprint,
+            BlueprintNode subgraphNode,
+            BlueprintNodeMeta subgraphNodeMeta
+        ) {
+            var blueprintMeta = subgraphBlueprint.BlueprintMeta;
             var nodesMetaMap = blueprintMeta.NodesMap;
 
             int nodesCount = nodesMetaMap.Count;
@@ -102,7 +80,7 @@ namespace MisterGames.Blueprints.Compile {
             _runtimeNodesMap.Clear();
             _externalPortLinksMap.Clear();
 
-            var subgraphPorts = subgraphMeta.Ports;
+            var subgraphPorts = subgraphNodeMeta.Ports;
             int subgraphPortsCount = subgraphPorts.Length;
 
             foreach ((int nodeId, var nodeMeta) in nodesMetaMap) {
@@ -114,7 +92,7 @@ namespace MisterGames.Blueprints.Compile {
 
                 for (int p = 0; p < portsCount; p++) {
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
-                    BlueprintValidation.ValidatePort(blueprintAsset, nodeMeta, p);
+                    BlueprintValidation.ValidatePort(subgraphBlueprint, nodeMeta, p);
 #endif
 
                     var port = ports[p];
@@ -144,7 +122,7 @@ namespace MisterGames.Blueprints.Compile {
                             break;
                         }
 
-                        runtimeNode.RuntimePorts[p] = new RuntimePort(new List<RuntimeLink>(1) { new RuntimeLink(subgraph, subgraphPortIndex) });
+                        runtimeNode.RuntimePorts[p] = new RuntimePort(new List<RuntimeLink>(1) { new RuntimeLink(subgraphNode, subgraphPortIndex) });
                         continue;
                     }
 
@@ -158,7 +136,7 @@ namespace MisterGames.Blueprints.Compile {
                         var link = links[l];
 
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
-                        BlueprintValidation.ValidateLink(blueprintAsset, nodeMeta, p, nodesMetaMap[link.nodeId], link.portIndex);
+                        BlueprintValidation.ValidateLink(subgraphBlueprint, nodeMeta, p, nodesMetaMap[link.nodeId], link.portIndex);
 #endif
 
                         runtimeLinks.Add(new RuntimeLink(GetOrCreateNodeInstance(link.nodeId, nodesMetaMap[link.nodeId]), link.portIndex));
@@ -170,7 +148,7 @@ namespace MisterGames.Blueprints.Compile {
                 runtimeNodes[nodeIndex++] = runtimeNode;
             }
 
-            subgraph.RuntimePorts ??= subgraphPortsCount > 0 ? new RuntimePort[subgraphPortsCount] : Array.Empty<RuntimePort>();
+            subgraphNode.RuntimePorts ??= subgraphPortsCount > 0 ? new RuntimePort[subgraphPortsCount] : Array.Empty<RuntimePort>();
 
             // Create links from owner subgraph node ports to external nodes inside subgraph, if port is enter or output
             for (int p = 0; p < subgraphPortsCount; p++) {
@@ -187,13 +165,40 @@ namespace MisterGames.Blueprints.Compile {
                     runtimeLinks.Add(new RuntimeLink(GetOrCreateNodeInstance(link.nodeId, nodesMetaMap[link.nodeId]), link.portIndex));
                 }
 
-                subgraph.RuntimePorts[p] = new RuntimePort(runtimeLinks);
+                subgraphNode.RuntimePorts[p] = new RuntimePort(runtimeLinks);
             }
 
             _externalPortLinksMap.Clear();
             _runtimeNodesMap.Clear();
 
             return new RuntimeBlueprint(runtimeNodes);
+        }
+
+        private static void InlineLinks(BlueprintNode node) {
+            var runtimePorts = node.RuntimePorts;
+
+            for (int p = 0; p < runtimePorts.Length; p++) {
+                var runtimePort = runtimePorts[p];
+                var runtimeLinks = runtimePort.links;
+
+                if (runtimeLinks == null) continue;
+
+                for (int l = runtimeLinks.Count - 1; l >= 0; l--) {
+                    var link = runtimeLinks[l];
+
+                    if (link.node is not IBlueprintPortLinker linker) {
+                        InlineLinks(link.node);
+                        continue;
+                    }
+
+                    int linkedPortIndex = linker.GetLinkedPort(link.port);
+                    var linkedPortLinks = link.node.RuntimePorts[linkedPortIndex].links;
+                    runtimeLinks.InsertRange(l, linkedPortLinks);
+
+                    l += linkedPortLinks.Count;
+                    runtimeLinks.RemoveAt(l);
+                }
+            }
         }
 
         private BlueprintNode GetOrCreateNodeInstance(int nodeId, BlueprintNodeMeta nodeMeta) {
@@ -205,6 +210,53 @@ namespace MisterGames.Blueprints.Compile {
             if (nodeInstance is IBlueprintCompiledNode compiledNode) compiledNode.Compile(nodeMeta);
 
             return nodeInstance;
+        }
+
+        private static string RuntimeNodesToString(string prefix, BlueprintNode[] nodes) {
+            var sb = new StringBuilder();
+
+            sb.AppendLine(prefix);
+
+            for (int n = 0; n < nodes.Length; n++) {
+                var node = nodes[n];
+
+                sb.AppendLine(RuntimeNodeToString(node));
+            }
+
+            return sb.ToString();
+        }
+
+        private static string RuntimeNodeToString(BlueprintNode node) {
+            var sb = new StringBuilder();
+
+            sb.AppendLine($"-- Node {node} (hash {node.GetHashCode()})");
+
+            var ports = node.RuntimePorts;
+
+            for (int p = 0; p < ports.Length; p++) {
+                var port = ports[p];
+                var links = port.links;
+
+                if (links == null) {
+                    sb.AppendLine($"---- Port#{p}: links: <null>");
+                    continue;
+                }
+
+                if (links.Count == 0) {
+                    sb.AppendLine($"---- Port#{p}: links: <empty>");
+                    continue;
+                }
+
+                sb.AppendLine($"---- Port#{p}: links:");
+
+                for (int l = 0; l < links.Count; l++) {
+                    var link = links[l];
+
+                    sb.AppendLine($"-------- Link#{l}: {link.node} (hash {link.node.GetHashCode()}) :: {link.port}");
+                }
+            }
+
+            return sb.ToString();
         }
     }
 
