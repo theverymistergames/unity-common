@@ -1,13 +1,16 @@
 ﻿using System;
-using MisterGames.Blueprints.Core;
+using MisterGames.Blueprints.Meta;
 using UnityEngine;
 
 namespace MisterGames.Blueprints.Nodes {
 
     [Serializable]
     [BlueprintNodeMeta(Name = "Exit", Category = "External", Color = BlueprintColors.Node.External)]
-    public sealed class BlueprintNodeExit : BlueprintNode, IBlueprintPortLinker, IBlueprintAssetValidator {
-        
+    public sealed class BlueprintNodeExit :
+        BlueprintNode,
+        IBlueprintPortLinker,
+        IBlueprintAssetValidator
+    {
         [SerializeField] private string _port;
 
         public override Port[] CreatePorts() => new[] {

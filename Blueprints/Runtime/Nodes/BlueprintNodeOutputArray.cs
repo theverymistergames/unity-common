@@ -1,7 +1,5 @@
 ﻿using System;
-using MisterGames.Blueprints.Core;
 using MisterGames.Blueprints.Meta;
-using MisterGames.Blueprints.Runtime.Core;
 using UnityEngine;
 
 namespace MisterGames.Blueprints.Nodes {
@@ -10,9 +8,9 @@ namespace MisterGames.Blueprints.Nodes {
     [BlueprintNodeMeta(Name = "Output Array", Category = "External", Color = BlueprintColors.Node.External)]
     public sealed class BlueprintNodeOutputArray :
         BlueprintNode,
+        IBlueprintPortLinker,
         IBlueprintPortDecorator,
         IBlueprintPortLinksListener,
-        IBlueprintPortLinker,
         IBlueprintAssetValidator
     {
         [SerializeField] private string _port;
@@ -20,6 +18,12 @@ namespace MisterGames.Blueprints.Nodes {
         public override Port[] CreatePorts() => new[] {
             Port.InputArray(),
             Port.Output(_port).SetExternal(true)
+        };
+
+        public int GetLinkedPort(int port) => port switch {
+            0 => 1,
+            1 => 0,
+            _ => -1,
         };
 
         public void DecoratePorts(BlueprintMeta blueprintMeta, int nodeId, Port[] ports) {
@@ -39,12 +43,6 @@ namespace MisterGames.Blueprints.Nodes {
         public void OnPortLinksChanged(BlueprintMeta blueprintMeta, int nodeId, int portIndex) {
             if (portIndex == 0) blueprintMeta.InvalidateNodePorts(nodeId, invalidateLinks: false, notify: false);
         }
-
-        public int GetLinkedPort(int port) => port switch {
-            0 => 1,
-            1 => 0,
-            _ => -1,
-        };
 
         public void ValidateBlueprint(BlueprintAsset blueprint, int nodeId) {
             blueprint.BlueprintMeta.InvalidateNodePorts(nodeId, invalidateLinks: false, notify: false);

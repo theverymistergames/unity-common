@@ -5,8 +5,11 @@ namespace MisterGames.Blueprints.Nodes {
 
     [Serializable]
     [BlueprintNodeMeta(Name = "Start", Category = "External", Color = BlueprintColors.Node.External)]
-    public sealed class BlueprintNodeStart : BlueprintNode, IBlueprintStart, IBlueprintPortLinker {
-
+    public sealed class BlueprintNodeStart :
+        BlueprintNode,
+        IBlueprintStartListener,
+        IBlueprintPortLinker
+    {
         public override Port[] CreatePorts() => new[] {
             Port.Enter("On Start").SetExternal(true),
             Port.Exit(),

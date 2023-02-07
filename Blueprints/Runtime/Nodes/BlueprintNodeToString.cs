@@ -1,7 +1,9 @@
 ﻿using System;
+using UnityEngine;
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-using System.Linq;
+using System.Text;
+using System.Reflection;
 #endif
 
 namespace MisterGames.Blueprints.Nodes {
@@ -18,29 +20,35 @@ namespace MisterGames.Blueprints.Nodes {
         };
 
         public override void OnInitialize(IBlueprintHost host) {
-            UnityEngine.Debug.LogWarning($"Using {nameof(BlueprintNodeToString)} " +
-                                         $"in blueprint `{((BlueprintRunner) host.Runner).BlueprintAsset.name}` or in its subgraphs " +
-                                         $"in blueprint runner `{host.Runner.name}`: " +
-                                         $"this node uses reflection and it is for debug purposes only, " +
-                                         $"it must be removed in the release build.\n" +
-                                         $"Note that in the non-development build it returns empty string.");
+            Debug.LogWarning($"Using {nameof(BlueprintNodeToString)} " +
+                             $"in blueprint `{((BlueprintRunner) host.Runner).BlueprintAsset.name}` or in its subgraphs " +
+                             $"in blueprint runner `{host.Runner.name}`: " +
+                             $"this node uses reflection and it is for debug purposes only, " +
+                             $"it must be removed in the release build.\n" +
+                             $"Note that in the non-development build it returns empty string.");
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-            var inputPortLinks = RuntimePorts[0].links;
-            if (inputPortLinks.Count == 0) return;
+            var links = RuntimePorts[0].links;
+            int linksCount = links.Count;
+            if (linksCount == 0) return;
 
-            var link = inputPortLinks[0];
+            var methods = new MethodInfo[linksCount];
+            for (int l = 0; l < linksCount; l++) {
+                methods[l] = links[l].node.GetType().GetMethod("GetOutputPortValue");
+            }
 
-            var interfaceTypeIBlueprintOutputT = link.node.GetType()
-                .GetInterfaces()
-                .FirstOrDefault(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(IBlueprintOutput<>));
-
-            if (interfaceTypeIBlueprintOutputT == null) return;
-
-            var methodInfo = link.node.GetType().GetMethod("GetOutputPortValue");
             _getString = () => {
-                object result = methodInfo!.Invoke(link.node, new object[] { link.port });
-                return result == null ? string.Empty : result.ToString();
+                var sb = new StringBuilder();
+
+                for (int l = 0; l < linksCount; l++) {
+                    var link = links[l];
+                    object output = methods[l].Invoke(link.node, new object[] { link.port });
+                    string text = output == null ? "<null>" : output.ToString();
+
+                    sb.Append($"{text}{(l < linksCount - 1 ? ", " : string.Empty)}");
+                }
+
+                return sb.ToString();
             };
 #endif
         }

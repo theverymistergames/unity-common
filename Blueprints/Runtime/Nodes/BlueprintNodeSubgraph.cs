@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using MisterGames.Blueprints.Compile;
-using MisterGames.Blueprints.Core;
 using MisterGames.Blueprints.Meta;
 using MisterGames.Blueprints.Validation;
 using MisterGames.Common.Data;
@@ -50,7 +49,7 @@ namespace MisterGames.Blueprints.Nodes {
                         var linkedPort = nodePorts[linkedPortIndex];
 
                         switch (linkedPort.mode) {
-                            case Port.Mode.Input or Port.Mode.NonTypedInput or Port.Mode.Exit:
+                            case Port.Mode.Input or Port.Mode.InputArray or Port.Mode.NonTypedInput or Port.Mode.Exit:
                                 if (blueprintMeta.GetLinksFromNodePort(nodeId, linkedPortIndex).Count == 0) continue;
                                 break;
 
@@ -75,6 +74,10 @@ namespace MisterGames.Blueprints.Nodes {
             return ports.ToArray();
         }
 
+        public int GetLinkedPort(int port) {
+            return port;
+        }
+
         public override void OnInitialize(IBlueprintHost host) {
             _host = host;
 
@@ -86,10 +89,6 @@ namespace MisterGames.Blueprints.Nodes {
 
         public override void OnDeInitialize() {
             _runtimeBlueprint.DeInitialize();
-        }
-
-        public int GetLinkedPort(int port) {
-            return port;
         }
 
         public void ResolveBlackboardSceneReferences(BlueprintAsset blueprint, Blackboard blackboard) {
