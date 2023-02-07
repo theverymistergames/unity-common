@@ -135,6 +135,12 @@ namespace MisterGames.Blueprints.Editor.Core {
                     container = inputContainer;
                     break;
 
+                case Port.Mode.InputArray:
+                    direction = Direction.Input;
+                    capacity = PortView.Capacity.Multi;
+                    container = inputContainer;
+                    break;
+
                 case Port.Mode.Output:
                     direction = Direction.Output;
                     capacity = PortView.Capacity.Multi;
@@ -187,6 +193,7 @@ namespace MisterGames.Blueprints.Editor.Core {
                 Port.Mode.Exit => $"<color={BlueprintColors.Port.Header.Flow}>{name} [{portIndex}]</color>",
                 Port.Mode.Input => $"<color={BlueprintColors.Port.Header.GetColorForType(port.DataType)}>[{portIndex}] {name}</color>",
                 Port.Mode.Output => $"<color={BlueprintColors.Port.Header.GetColorForType(port.DataType)}>{name} [{portIndex}]</color>",
+                Port.Mode.InputArray => $"<color={BlueprintColors.Port.Header.GetColorForType(port.DataType)}>[{portIndex}] {name}[]</color>",
                 Port.Mode.NonTypedInput => $"<color={BlueprintColors.Port.Header.Data}>[{portIndex}] {name}</color>",
                 Port.Mode.NonTypedOutput => $"<color={BlueprintColors.Port.Header.Data}>{name} [{portIndex}]</color>",
                 _ => throw new NotSupportedException($"Port mode {port.mode} is not supported"),
@@ -199,6 +206,7 @@ namespace MisterGames.Blueprints.Editor.Core {
                 Port.Mode.Exit => BlueprintColors.Port.Connection.Flow,
                 Port.Mode.Input => BlueprintColors.Port.Connection.GetColorForType(port.DataType),
                 Port.Mode.Output => BlueprintColors.Port.Connection.GetColorForType(port.DataType),
+                Port.Mode.InputArray => BlueprintColors.Port.Connection.GetColorForType(port.DataType),
                 Port.Mode.NonTypedInput => BlueprintColors.Port.Connection.Data,
                 Port.Mode.NonTypedOutput => BlueprintColors.Port.Connection.Data,
                 _ => throw new NotSupportedException($"Port mode {port.mode} is not supported"),
