@@ -36,8 +36,7 @@ namespace MisterGames.Blueprints.Nodes {
 
             if (interfaceTypeIBlueprintOutputT == null) return;
 
-
-            var methodInfo = link.node.GetType().GetMethod("GetPortValue");
+            var methodInfo = link.node.GetType().GetMethod("GetOutputPortValue");
             _getString = () => {
                 object result = methodInfo!.Invoke(link.node, new object[] { link.port });
                 return result == null ? string.Empty : result.ToString();
