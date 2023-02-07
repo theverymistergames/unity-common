@@ -30,7 +30,7 @@ namespace MisterGames.Blueprints.Compile {
 
                 for (int p = 0; p < portsCount; p++) {
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
-                    BlueprintValidation.ValidatePort(blueprint, nodeMeta, p);
+                    PortValidator.ValidatePort(blueprint, nodeMeta, p);
 #endif
 
                     var port = ports[p];
@@ -44,7 +44,7 @@ namespace MisterGames.Blueprints.Compile {
                         var link = links[l];
 
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
-                        BlueprintValidation.ValidateLink(blueprint, nodeMeta, p, nodesMetaMap[link.nodeId], link.portIndex);
+                        LinkValidator.ValidateLink(blueprint, nodeMeta, p, nodesMetaMap[link.nodeId], link.portIndex);
 #endif
 
                         runtimeLinks.Add(new RuntimeLink(GetOrCreateNodeInstance(link.nodeId, nodesMetaMap[link.nodeId]), link.portIndex));
@@ -92,7 +92,7 @@ namespace MisterGames.Blueprints.Compile {
 
                 for (int p = 0; p < portsCount; p++) {
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
-                    BlueprintValidation.ValidatePort(subgraphBlueprint, nodeMeta, p);
+                    PortValidator.ValidatePort(subgraphBlueprint, nodeMeta, p);
 #endif
 
                     var port = ports[p];
@@ -136,7 +136,7 @@ namespace MisterGames.Blueprints.Compile {
                         var link = links[l];
 
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
-                        BlueprintValidation.ValidateLink(subgraphBlueprint, nodeMeta, p, nodesMetaMap[link.nodeId], link.portIndex);
+                        LinkValidator.ValidateLink(subgraphBlueprint, nodeMeta, p, nodesMetaMap[link.nodeId], link.portIndex);
 #endif
 
                         runtimeLinks.Add(new RuntimeLink(GetOrCreateNodeInstance(link.nodeId, nodesMetaMap[link.nodeId]), link.portIndex));

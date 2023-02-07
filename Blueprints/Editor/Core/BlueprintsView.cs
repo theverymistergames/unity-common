@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using MisterGames.Blueprints.Core;
 using MisterGames.Blueprints.Meta;
 using MisterGames.Blueprints.Validation;
 using MisterGames.Common.Data;
@@ -560,7 +561,7 @@ namespace MisterGames.Blueprints.Editor.Core {
                     if (nodeView.nodeMeta.NodeId == startNodeMeta.NodeId) return false;
 
                     var port = nodeView.nodeMeta.Ports[nodeView.GetPortIndex(portView)];
-                    return BlueprintValidation.ArePortsCompatible(startPort, port);
+                    return PortValidator.ArePortsCompatible(startPort, port);
                 })
                 .ToList();
         }

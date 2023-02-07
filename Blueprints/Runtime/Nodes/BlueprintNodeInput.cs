@@ -1,7 +1,7 @@
 ﻿using System;
+using MisterGames.Blueprints.Core;
 using MisterGames.Blueprints.Meta;
 using MisterGames.Blueprints.Runtime.Core;
-using MisterGames.Blueprints.Validation;
 using UnityEngine;
 
 namespace MisterGames.Blueprints.Nodes {

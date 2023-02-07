@@ -1,5 +1,5 @@
 ﻿using System;
-using MisterGames.Blueprints.Validation;
+using MisterGames.Blueprints.Core;
 using UnityEngine;
 
 namespace MisterGames.Blueprints.Nodes {

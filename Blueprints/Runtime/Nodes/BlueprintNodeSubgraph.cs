@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using MisterGames.Blueprints.Compile;
+using MisterGames.Blueprints.Core;
 using MisterGames.Blueprints.Meta;
 using MisterGames.Blueprints.Validation;
 using MisterGames.Common.Data;
@@ -62,7 +63,7 @@ namespace MisterGames.Blueprints.Nodes {
                     int portSignature = nodePort.GetSignature();
 
                     if (portSignatureSet.Contains(portSignature)) {
-                        BlueprintValidation.ValidateExternalPortWithExistingSignature(_blueprintAsset, nodePort);
+                        PortValidator.ValidateExternalPortWithExistingSignature(_blueprintAsset, nodePort);
                         continue;
                     }
 
@@ -100,7 +101,7 @@ namespace MisterGames.Blueprints.Nodes {
         }
 
         public void ValidateBlueprint(BlueprintAsset blueprint, int nodeId) {
-            _blueprintAsset = BlueprintValidation.ValidateBlueprintAssetForSubgraph(blueprint, _blueprintAsset);
+            _blueprintAsset = SubgraphValidator.ValidateBlueprintAssetForSubgraph(blueprint, _blueprintAsset);
 
             if (_blueprintAsset == null) blueprint.BlueprintMeta.RemoveSubgraphReference(nodeId);
             else blueprint.BlueprintMeta.SetSubgraphReference(nodeId, _blueprintAsset);

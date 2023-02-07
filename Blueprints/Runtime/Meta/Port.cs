@@ -23,6 +23,7 @@ namespace MisterGames.Blueprints {
             Exit,
             Input,
             Output,
+            InputArray,
             NonTypedInput,
             NonTypedOutput,
         }
@@ -73,6 +74,14 @@ namespace MisterGames.Blueprints {
             };
         }
 
+        public static Port InputArray<T>(string name = null) {
+            return new Port {
+                name = name,
+                mode = Mode.InputArray,
+                DataType = typeof(T),
+            };
+        }
+
         internal static Port Input(string name = null, Type type = null) {
             return new Port {
                 name = name,
@@ -89,6 +98,14 @@ namespace MisterGames.Blueprints {
             };
         }
 
+        internal static Port InputArray(string name = null, Type type = null) {
+            return new Port {
+                name = name,
+                mode = type == null ? Mode.NonTypedInput : Mode.InputArray,
+                DataType = type,
+            };
+        }
+
         public override string ToString() {
             string externalText = isExternalPort ? "external " : string.Empty;
 
@@ -97,6 +114,7 @@ namespace MisterGames.Blueprints {
                     Mode.Exit => "exit",
                     Mode.Input => $"input<{DataType.Name}>",
                     Mode.Output => $"output<{DataType.Name}>",
+                    Mode.InputArray => $"inputArray<{DataType.Name}>",
                     Mode.NonTypedInput => "input",
                     Mode.NonTypedOutput => "output",
                     _ => throw new NotSupportedException($"Port mode {mode} is not supported")

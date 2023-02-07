@@ -111,7 +111,7 @@ namespace MisterGames.Blueprints.Editor.Core {
 
                     for (int p = 0; p < ports.Length; p++) {
                         var port = ports[p];
-                        if (!BlueprintValidation.ArePortsCompatible(fromPort, port)) continue;
+                        if (!PortValidator.ArePortsCompatible(fromPort, port)) continue;
 
                         portEntries.Add(new NodePortSearchEntry {
                             nodeType = t,
