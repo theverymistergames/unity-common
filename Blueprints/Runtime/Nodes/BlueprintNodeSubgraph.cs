@@ -46,8 +46,9 @@ namespace MisterGames.Blueprints.Nodes {
                     // Drop external port if its linked port has no links
                     if (node is IBlueprintPortLinker linker) {
                         int linkedPortIndex = linker.GetLinkedPort(p);
+                        var linkedPort = nodePorts[linkedPortIndex];
 
-                        switch (nodePorts[linkedPortIndex].mode) {
+                        switch (linkedPort.mode) {
                             case Port.Mode.Input or Port.Mode.NonTypedInput or Port.Mode.Exit:
                                 if (blueprintMeta.GetLinksFromNodePort(nodeId, linkedPortIndex).Count == 0) continue;
                                 break;
