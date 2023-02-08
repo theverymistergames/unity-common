@@ -3,17 +3,21 @@ using MisterGames.Blueprints.Core;
 
 namespace MisterGames.Blueprints.Nodes {
 
-    [Serializable]
+#if UNITY_EDITOR
     [BlueprintNodeMeta(Name = "Start", Category = "External", Color = BlueprintColors.Node.External)]
-    public sealed class BlueprintNodeStart :
-        BlueprintNode,
-        IBlueprintStartListener,
-        IBlueprintPortLinker
-    {
+#endif
+
+    [Serializable]
+    public sealed class BlueprintNodeStart : BlueprintNode, IBlueprintStartListener, IBlueprintPortLinker {
+
+#if UNITY_EDITOR
         public override Port[] CreatePorts() => new[] {
-            Port.Enter("On Start").SetExternal(true),
             Port.Exit(),
+            Port.Enter("On Start").SetExternal(true),
         };
+#else
+        public override Port[] CreatePorts() => null;
+#endif
 
         public void OnStart() {
             CallExitPort(1);

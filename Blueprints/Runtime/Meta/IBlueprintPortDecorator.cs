@@ -1,4 +1,6 @@
-﻿namespace MisterGames.Blueprints.Meta {
+﻿#if UNITY_EDITOR
+
+namespace MisterGames.Blueprints.Meta {
 
     internal interface IBlueprintPortDecorator {
 
@@ -7,3 +9,5 @@
     }
 
 }
+
+#endif

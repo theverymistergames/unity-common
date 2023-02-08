@@ -1,9 +1,7 @@
-﻿using MisterGames.Blueprints.Meta;
-
-namespace MisterGames.Blueprints.Compile {
+﻿namespace MisterGames.Blueprints.Compile {
 
     internal interface IBlueprintCompiledNode {
-        void Compile(BlueprintNodeMeta nodeMeta);
+        void Compile(Port[] ports);
     }
 
 }

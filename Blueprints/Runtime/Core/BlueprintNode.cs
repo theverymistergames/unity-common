@@ -14,6 +14,8 @@ namespace MisterGames.Blueprints {
         public virtual void OnInitialize(IBlueprintHost host) {}
         public virtual void OnDeInitialize() {}
 
+        public virtual void OnValidate() {}
+
         protected void CallExitPort(int port) {
             var links = RuntimePorts[port].links;
             for (int i = 0; i < links.Count; i++) {
@@ -47,10 +49,6 @@ namespace MisterGames.Blueprints {
 
             return array;
         }
-
-#if UNITY_EDITOR
-        public virtual void OnValidate() {}
-#endif
     }
 
 }

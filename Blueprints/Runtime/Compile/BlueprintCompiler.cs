@@ -1,7 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using MisterGames.Blueprints.Core;
 using MisterGames.Blueprints.Meta;
+
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
 using MisterGames.Blueprints.Validation;
+#endif
 
 namespace MisterGames.Blueprints.Compile {
 
@@ -67,7 +71,7 @@ namespace MisterGames.Blueprints.Compile {
         public RuntimeBlueprint CompileSubgraph(
             BlueprintAsset subgraphBlueprint,
             BlueprintNode subgraphNode,
-            BlueprintNodeMeta subgraphNodeMeta
+            Port[] subgraphPorts
         ) {
             var blueprintMeta = subgraphBlueprint.BlueprintMeta;
             var nodesMetaMap = blueprintMeta.NodesMap;
@@ -79,7 +83,6 @@ namespace MisterGames.Blueprints.Compile {
             _runtimeNodesMap.Clear();
             _externalPortLinksMap.Clear();
 
-            var subgraphPorts = subgraphNodeMeta.Ports;
             int subgraphPortsCount = subgraphPorts.Length;
 
             foreach ((int nodeId, var nodeMeta) in nodesMetaMap) {
@@ -206,7 +209,7 @@ namespace MisterGames.Blueprints.Compile {
             nodeInstance = nodeMeta.CreateNodeInstance();
             _runtimeNodesMap[nodeId] = nodeInstance;
 
-            if (nodeInstance is IBlueprintCompiledNode compiledNode) compiledNode.Compile(nodeMeta);
+            if (nodeInstance is IBlueprintCompiledNode compiledNode) compiledNode.Compile(nodeMeta.Ports);
 
             return nodeInstance;
         }

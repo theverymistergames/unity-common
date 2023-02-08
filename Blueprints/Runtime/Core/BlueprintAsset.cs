@@ -23,8 +23,8 @@ namespace MisterGames.Blueprints {
             return _blueprintCompiler.Compile(this);
         }
 
-        public RuntimeBlueprint CompileSubgraph(BlueprintNode subgraph, BlueprintNodeMeta subgraphMeta) {
-            return _blueprintCompiler.CompileSubgraph(this, subgraph, subgraphMeta);
+        public RuntimeBlueprint CompileSubgraph(BlueprintNode subgraphNode, Port[] ports) {
+            return _blueprintCompiler.CompileSubgraph(this, subgraphNode, ports);
         }
     }
 

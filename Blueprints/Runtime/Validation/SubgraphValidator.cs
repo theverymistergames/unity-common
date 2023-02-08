@@ -1,4 +1,6 @@
-﻿using UnityEngine;
+﻿#if DEVELOPMENT_BUILD || UNITY_EDITOR
+
+using UnityEngine;
 
 namespace MisterGames.Blueprints.Validation {
 
@@ -49,3 +51,5 @@ namespace MisterGames.Blueprints.Validation {
     }
 
 }
+
+#endif

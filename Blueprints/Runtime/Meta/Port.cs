@@ -33,11 +33,6 @@ namespace MisterGames.Blueprints {
             return this;
         }
 
-        internal Port SetType(Type type) {
-            DataType = type;
-            return this;
-        }
-
         public int GetSignature() => HashCode.Combine(
             mode,
             string.IsNullOrWhiteSpace(name) ? string.Empty : name,

@@ -1,4 +1,7 @@
-﻿using System;
+﻿#if DEVELOPMENT_BUILD || UNITY_EDITOR
+
+using System;
+using MisterGames.Blueprints.Core;
 using MisterGames.Blueprints.Meta;
 using UnityEngine;
 
@@ -195,3 +198,5 @@ namespace MisterGames.Blueprints.Validation {
     }
 
 }
+
+#endif

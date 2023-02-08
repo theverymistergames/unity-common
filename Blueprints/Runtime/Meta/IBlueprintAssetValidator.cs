@@ -1,4 +1,6 @@
-﻿namespace MisterGames.Blueprints.Meta {
+﻿#if UNITY_EDITOR
+
+namespace MisterGames.Blueprints.Meta {
 
     /// <summary>
     /// Used by node to receive validation call with info about owner asset and node id
@@ -13,3 +15,5 @@
     }
 
 }
+
+#endif

@@ -8,17 +8,24 @@ using System.Reflection;
 
 namespace MisterGames.Blueprints.Nodes {
 
+#if UNITY_EDITOR
+    [BlueprintNodeMeta(Name = "ToString", Category = "Debug", Color = BlueprintColors.Node.Debug)]
+#endif
+
     [Serializable]
     [Obsolete("Using BlueprintNodeToString, it must be removed in the release build!")]
-    [BlueprintNodeMeta(Name = "ToString", Category = "Debug", Color = BlueprintColors.Node.Debug)]
     public sealed class BlueprintNodeToString : BlueprintNode, IBlueprintOutput<string> {
 
         private Func<string> _getString = () => string.Empty;
 
+#if UNITY_EDITOR
         public override Port[] CreatePorts() => new[] {
             Port.Input(),
             Port.Output<string>()
         };
+#else
+        public override Port[] CreatePorts() => null;
+#endif
 
         public override void OnInitialize(IBlueprintHost host) {
             Debug.LogWarning($"Using {nameof(BlueprintNodeToString)} " +

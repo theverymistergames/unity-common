@@ -1,21 +1,28 @@
 ﻿using System;
 using System.Collections.Generic;
 using MisterGames.Blueprints.Compile;
-using MisterGames.Blueprints.Meta;
-using MisterGames.Blueprints.Validation;
+using MisterGames.Blueprints.Core;
 using MisterGames.Common.Data;
 using UnityEngine;
 
+#if UNITY_EDITOR
+using MisterGames.Blueprints.Meta;
+using MisterGames.Blueprints.Validation;
+#endif
+
 namespace MisterGames.Blueprints.Nodes {
 
-    [Serializable]
+#if UNITY_EDITOR
     [BlueprintNodeMeta(Name = "Subgraph", Category = "External", Color = BlueprintColors.Node.External)]
-    public sealed class BlueprintNodeSubgraph :
-        BlueprintNode,
-        IBlueprintHost,
-        IBlueprintPortLinker,
-        IBlueprintAssetValidator,
-        IBlueprintCompiledNode
+#endif
+
+    [Serializable]
+    public sealed class BlueprintNodeSubgraph : BlueprintNode, IBlueprintPortLinker, IBlueprintHost, IBlueprintCompiledNode
+
+#if UNITY_EDITOR
+        , IBlueprintAssetValidator
+#endif
+
     {
         [SerializeField] private BlueprintAsset _blueprintAsset;
 
@@ -26,6 +33,7 @@ namespace MisterGames.Blueprints.Nodes {
         private Blackboard _blackboard;
         private IBlueprintHost _host;
 
+#if UNITY_EDITOR
         public override Port[] CreatePorts() {
             if (_blueprintAsset == null) return Array.Empty<Port>();
 
@@ -74,6 +82,18 @@ namespace MisterGames.Blueprints.Nodes {
             return ports.ToArray();
         }
 
+        public void ValidateBlueprint(BlueprintAsset blueprint, int nodeId) {
+            _blueprintAsset = SubgraphValidator.ValidateBlueprintAssetForSubgraph(blueprint, _blueprintAsset);
+
+            if (_blueprintAsset == null) blueprint.BlueprintMeta.RemoveSubgraphReference(nodeId);
+            else blueprint.BlueprintMeta.SetSubgraphReference(nodeId, _blueprintAsset);
+
+            blueprint.BlueprintMeta.InvalidateNodePorts(nodeId, invalidateLinks: true);
+        }
+#else
+        public override Port[] CreatePorts() => null;
+#endif
+
         public int GetLinkedPort(int port) {
             return port;
         }
@@ -95,17 +115,8 @@ namespace MisterGames.Blueprints.Nodes {
             _host.ResolveBlackboardSceneReferences(blueprint, blackboard);
         }
 
-        public void Compile(BlueprintNodeMeta nodeMeta) {
-            _runtimeBlueprint = _blueprintAsset.CompileSubgraph(this, nodeMeta);
-        }
-
-        public void ValidateBlueprint(BlueprintAsset blueprint, int nodeId) {
-            _blueprintAsset = SubgraphValidator.ValidateBlueprintAssetForSubgraph(blueprint, _blueprintAsset);
-
-            if (_blueprintAsset == null) blueprint.BlueprintMeta.RemoveSubgraphReference(nodeId);
-            else blueprint.BlueprintMeta.SetSubgraphReference(nodeId, _blueprintAsset);
-
-            blueprint.BlueprintMeta.InvalidateNodePorts(nodeId, invalidateLinks: true);
+        public void Compile(Port[] ports) {
+            _runtimeBlueprint = _blueprintAsset.CompileSubgraph(this, ports);
         }
     }
 

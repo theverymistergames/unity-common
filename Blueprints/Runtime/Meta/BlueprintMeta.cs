@@ -8,15 +8,33 @@ namespace MisterGames.Blueprints.Meta {
     [Serializable]
     public sealed class BlueprintMeta : IComparer<BlueprintLink> {
 
-        [SerializeField] private int _addedNodesTotalCount;
         [SerializeField] private SerializedDictionary<int, BlueprintNodeMeta> _nodesMap;
         [SerializeField] private SerializedDictionary<int, SerializedDictionary<int, List<BlueprintLink>>> _fromNodePortLinksMap;
+
+        public Dictionary<int, BlueprintNodeMeta> NodesMap => _nodesMap;
+
+        public IReadOnlyList<BlueprintLink> GetLinksFromNodePort(int nodeId, int portIndex) {
+            if (!_fromNodePortLinksMap.TryGetValue(nodeId, out var fromNodePortLinksMap) ||
+                !fromNodePortLinksMap.TryGetValue(portIndex, out var fromNodePortLinks)
+            ) {
+                return Array.Empty<BlueprintLink>();
+            }
+
+            fromNodePortLinks.Sort(this);
+
+            return fromNodePortLinks;
+        }
+
+        int IComparer<BlueprintLink>.Compare(BlueprintLink x, BlueprintLink y) {
+            return _nodesMap[x.nodeId].Position.y.CompareTo(_nodesMap[y.nodeId].Position.y);
+        }
+
+#if UNITY_EDITOR
+        [SerializeField] private int _addedNodesTotalCount;
         [SerializeField] private SerializedDictionary<int, SerializedDictionary<int, List<BlueprintLink>>> _toNodePortLinksMap;
         [SerializeField] private SerializedDictionary<int, BlueprintAsset> _subgraphReferencesMap;
 
         public Action<int> OnInvalidateNodePortsAndLinks;
-
-        public Dictionary<int, BlueprintNodeMeta> NodesMap => _nodesMap;
         public Dictionary<int, BlueprintAsset> SubgraphReferencesMap => _subgraphReferencesMap;
 
         public void AddNode(BlueprintNodeMeta  nodeMeta) {
@@ -133,36 +151,25 @@ namespace MisterGames.Blueprints.Meta {
             RemoveLinkToNodePort(toNodeId, toPortIndex, fromNodeId, fromPortIndex);
         }
 
-        public IReadOnlyList<BlueprintLink> GetLinksFromNodePort(int nodeId, int portIndex) {
-            if (!_fromNodePortLinksMap.TryGetValue(nodeId, out var fromNodePortLinksMap) ||
-                !fromNodePortLinksMap.TryGetValue(portIndex, out var fromNodePortLinks)
-            ) {
-                return Array.Empty<BlueprintLink>();
-            }
-
-            fromNodePortLinks.Sort(this);
-
-            return fromNodePortLinks;
-        }
-
-        public IReadOnlyList<BlueprintLink> GetLinksToNodePort(int nodeId, int portIndex) {
-            if (!_toNodePortLinksMap.TryGetValue(nodeId, out var toNodePortLinksMap) ||
-                !toNodePortLinksMap.TryGetValue(portIndex, out var toNodePortLinks)
-            ) {
-                return Array.Empty<BlueprintLink>();
-            }
-
-            toNodePortLinks.Sort(this);
-
-            return toNodePortLinks;
-        }
-
         public void Clear() {
             _addedNodesTotalCount = 0;
 
             _nodesMap.Clear();
             _fromNodePortLinksMap.Clear();
             _toNodePortLinksMap.Clear();
+            _subgraphReferencesMap.Clear();
+        }
+
+        public IReadOnlyList<BlueprintLink> GetLinksToNodePort(int nodeId, int portIndex) {
+            if (!_toNodePortLinksMap.TryGetValue(nodeId, out var toNodePortLinksMap) ||
+                !toNodePortLinksMap.TryGetValue(portIndex, out var toNodePortLinks)
+               ) {
+                return Array.Empty<BlueprintLink>();
+            }
+
+            toNodePortLinks.Sort(this);
+
+            return toNodePortLinks;
         }
 
         public bool InvalidateNodePorts(int nodeId, bool invalidateLinks, bool notify = true) {
@@ -541,10 +548,7 @@ namespace MisterGames.Blueprints.Meta {
 
             _toNodePortLinksMap.Remove(nodeId);
         }
-
-        int IComparer<BlueprintLink>.Compare(BlueprintLink x, BlueprintLink y) {
-            return _nodesMap[x.nodeId].Position.y.CompareTo(_nodesMap[y.nodeId].Position.y);
-        }
+#endif
     }
 
 }
