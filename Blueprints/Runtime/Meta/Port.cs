@@ -120,7 +120,7 @@ namespace MisterGames.Blueprints {
                     _ => throw new NotSupportedException($"Port mode {mode} is not supported")
             };
 
-            return $"{nameof(Port)}(name = {name}, mode = {externalText}{modeText})";
+            return $"{nameof(Port)}(name = {name}, mode = {externalText}{modeText}, signature = {GetSignature()})";
         }
     }
 

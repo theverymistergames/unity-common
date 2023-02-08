@@ -177,6 +177,10 @@ namespace MisterGames.Blueprints.Meta {
 
             bool portsChanged = oldPortsCount != newPortsCount;
 
+            Dictionary<int, List<BlueprintLink>> fromPortLinksMapCache = null;
+            Dictionary<int, List<BlueprintLink>> toPortLinksMapCache = null;
+            bool hasInstantiatedPortLinksMapsCache = false;
+
             for (int oldPortIndex = 0; oldPortIndex < oldPortsCount; oldPortIndex++) {
                 int oldPortSignature = oldPorts[oldPortIndex].GetSignature();
                 int newPortIndex = -1;
@@ -192,9 +196,33 @@ namespace MisterGames.Blueprints.Meta {
                 if (oldPortIndex == newPortIndex) continue;
 
                 if (invalidateLinks) {
+                    if (!hasInstantiatedPortLinksMapsCache) {
+                        if (_fromNodePortLinksMap.TryGetValue(nodeId, out var fromNodePortLinksMap)) {
+                            fromPortLinksMapCache = new Dictionary<int, List<BlueprintLink>>(fromNodePortLinksMap);
+                        }
+
+                        if (_toNodePortLinksMap.TryGetValue(nodeId, out var toNodePortLinksMap)) {
+                            toPortLinksMapCache = new Dictionary<int, List<BlueprintLink>>(toNodePortLinksMap);
+                        }
+
+                        hasInstantiatedPortLinksMapsCache = true;
+                    }
+
                     if (newPortIndex >= 0) {
-                        SetLinksFromNodePort(nodeId, newPortIndex, GetLinksFromNodePort(nodeId, oldPortIndex));
-                        SetLinksToNodePort(nodeId, newPortIndex, GetLinksToNodePort(nodeId, oldPortIndex));
+                        IReadOnlyList<BlueprintLink> fromPortLinks =
+                            fromPortLinksMapCache != null &&
+                            fromPortLinksMapCache.TryGetValue(oldPortIndex, out var fromPortLinksCache)
+                                ? fromPortLinksCache
+                                : Array.Empty<BlueprintLink>();
+
+                        IReadOnlyList<BlueprintLink> toPortLinks =
+                            toPortLinksMapCache != null &&
+                            toPortLinksMapCache.TryGetValue(oldPortIndex, out var toPortLinksCache)
+                                ? toPortLinksCache
+                                : Array.Empty<BlueprintLink>();
+
+                        SetLinksFromNodePort(nodeId, newPortIndex, fromPortLinks);
+                        SetLinksToNodePort(nodeId, newPortIndex, toPortLinks);
                     }
 
                     RemoveAllLinksFromNodePort(nodeId, oldPortIndex);
@@ -248,22 +276,60 @@ namespace MisterGames.Blueprints.Meta {
             return false;
         }
 
-        private void SetLinksFromNodePort(int nodeId, int portIndex, IEnumerable<BlueprintLink> links) {
+        private void SetLinksFromNodePort(int nodeId, int portIndex, IReadOnlyList<BlueprintLink> links) {
             if (!_fromNodePortLinksMap.TryGetValue(nodeId, out var fromNodePortLinksMap)) {
                 fromNodePortLinksMap = new SerializedDictionary<int, List<BlueprintLink>>();
                 _fromNodePortLinksMap[nodeId] = fromNodePortLinksMap;
             }
 
             fromNodePortLinksMap[portIndex] = new List<BlueprintLink>(links);
+
+            for (int l = 0; l < links.Count; l++) {
+                var link = links[l];
+
+                if (!_toNodePortLinksMap.TryGetValue(link.nodeId, out var toNodePortLinksMap)) {
+                    toNodePortLinksMap = new SerializedDictionary<int, List<BlueprintLink>>();
+                    _toNodePortLinksMap[link.nodeId] = toNodePortLinksMap;
+                }
+
+                if (!toNodePortLinksMap.TryGetValue(link.portIndex, out var toNodePortLinks)) {
+                    toNodePortLinks = new List<BlueprintLink>(1);
+                    toNodePortLinksMap[link.portIndex] = toNodePortLinks;
+                }
+
+                toNodePortLinks.Add(new BlueprintLink { nodeId = nodeId, portIndex = portIndex });
+            }
+
+            if (links.Count == 0) fromNodePortLinksMap.Remove(portIndex);
+            if (fromNodePortLinksMap.Count == 0) _fromNodePortLinksMap.Remove(nodeId);
         }
 
-        private void SetLinksToNodePort(int nodeId, int portIndex, IEnumerable<BlueprintLink> links) {
+        private void SetLinksToNodePort(int nodeId, int portIndex, IReadOnlyList<BlueprintLink> links) {
             if (!_toNodePortLinksMap.TryGetValue(nodeId, out var toNodePortLinksMap)) {
                 toNodePortLinksMap = new SerializedDictionary<int, List<BlueprintLink>>();
                 _toNodePortLinksMap[nodeId] = toNodePortLinksMap;
             }
 
             toNodePortLinksMap[portIndex] = new List<BlueprintLink>(links);
+
+            for (int l = 0; l < links.Count; l++) {
+                var link = links[l];
+
+                if (!_fromNodePortLinksMap.TryGetValue(link.nodeId, out var fromNodePortLinksMap)) {
+                    fromNodePortLinksMap = new SerializedDictionary<int, List<BlueprintLink>>();
+                    _fromNodePortLinksMap[link.nodeId] = fromNodePortLinksMap;
+                }
+
+                if (!fromNodePortLinksMap.TryGetValue(link.portIndex, out var fromNodePortLinks)) {
+                    fromNodePortLinks = new List<BlueprintLink>(1);
+                    fromNodePortLinksMap[link.portIndex] = fromNodePortLinks;
+                }
+
+                fromNodePortLinks.Add(new BlueprintLink { nodeId = nodeId, portIndex = portIndex });
+            }
+
+            if (links.Count == 0) toNodePortLinksMap.Remove(portIndex);
+            if (toNodePortLinksMap.Count == 0) _toNodePortLinksMap.Remove(nodeId);
         }
 
         private void AddLinkFromNodePort(int fromNodeId, int fromPortIndex, int toNodeId, int toPortIndex) {
@@ -273,7 +339,7 @@ namespace MisterGames.Blueprints.Meta {
             }
 
             if (!fromNodePortLinksMap.TryGetValue(fromPortIndex, out var fromNodePortLinks)) {
-                fromNodePortLinks = new List<BlueprintLink>();
+                fromNodePortLinks = new List<BlueprintLink>(1);
                 fromNodePortLinksMap[fromPortIndex] = fromNodePortLinks;
             }
 
@@ -292,7 +358,7 @@ namespace MisterGames.Blueprints.Meta {
             }
 
             if (!toNodePortLinksMap.TryGetValue(toPortIndex, out var toNodePortLinks)) {
-                toNodePortLinks = new List<BlueprintLink>();
+                toNodePortLinks = new List<BlueprintLink>(1);
                 toNodePortLinksMap[toPortIndex] = toNodePortLinks;
             }
 
