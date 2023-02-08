@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using MisterGames.Blueprints.Compile;
 
 namespace MisterGames.Blueprints {
@@ -31,9 +32,9 @@ namespace MisterGames.Blueprints {
             return defaultValue;
         }
 
-        protected T[] ReadInputArrayPort<T>(int port) {
+        protected IReadOnlyList<T> ReadInputArrayPort<T>(int port, IReadOnlyList<T> defaultArray = null) {
             var links = RuntimePorts[port].links;
-            if (links.Count == 0) return Array.Empty<T>();
+            if (links.Count == 0) return defaultArray ?? Array.Empty<T>();
 
             var array = new T[links.Count];
 
