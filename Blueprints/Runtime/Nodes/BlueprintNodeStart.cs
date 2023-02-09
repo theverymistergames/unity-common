@@ -20,7 +20,7 @@ namespace MisterGames.Blueprints.Nodes {
 #endif
 
         public void OnStart() {
-            CallExitPort(1);
+            CallExitPort(0);
         }
 
         public int GetLinkedPort(int port) => port switch {
