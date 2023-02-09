@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using MisterGames.Blueprints.Core;
 using MisterGames.Blueprints.Meta;
 using MisterGames.Blueprints.Validation;
 using MisterGames.Common.Data;
@@ -17,6 +16,8 @@ using PortView = UnityEditor.Experimental.GraphView.Port;
 namespace MisterGames.Blueprints.Editor.Core {
 
     public sealed class BlueprintsView : GraphView, IEdgeConnectorListener {
+
+        private const float POPULATE_SCROLL_TO_NODES_CENTER_TOLERANCE_DISTANCE = 70f;
 
         public Func<Vector2, Vector2> OnRequestWorldPosition = _ => Vector2.zero;
         public Action OnBlueprintAssetSetDirty = delegate {  };
@@ -79,6 +80,140 @@ namespace MisterGames.Blueprints.Editor.Core {
             InitUndoRedo();
             InitCopyPaste();
             InitMouse();
+        }
+
+        // ---------------- ---------------- Population and views ---------------- ----------------
+
+        public void PopulateViewFromAsset(BlueprintAsset blueprintAsset) {
+            if (blueprintAsset == _blueprintAsset) return;
+
+            ClearView();
+
+            _blueprintAsset = blueprintAsset;
+            InvalidateBlueprintAsset(_blueprintAsset);
+            RepopulateView();
+            MoveToBlueprintNodesCenterPosition();
+
+            _blueprintAsset.BlueprintMeta.OnInvalidateNodePortsAndLinks = RepaintNodePortsAndLinks;
+        }
+
+        private void RepopulateView() {
+            if (_blueprintAsset == null) return;
+
+            graphViewChanged -= OnGraphViewChanged;
+            foreach (var element in graphElements) {
+                if (element is BlueprintNodeView nodeView) nodeView.DeInitialize();
+            }
+            DeleteElements(graphElements);
+            graphViewChanged += OnGraphViewChanged;
+
+            var nodesMeta = _blueprintAsset.BlueprintMeta.NodesMap.Values;
+            foreach (var nodeMeta in nodesMeta) {
+                CreateNodeView(nodeMeta);
+            }
+            foreach (var nodeMeta in nodesMeta) {
+                CreateFromNodeConnectionViews(nodeMeta);
+            }
+
+            FillBlackboardView();
+            ClearSelection();
+        }
+
+        public void ClearView() {
+            graphViewChanged -= OnGraphViewChanged;
+            foreach (var element in graphElements) {
+                if (element is BlueprintNodeView nodeView) nodeView.DeInitialize();
+            }
+            DeleteElements(graphElements);
+
+            if (_blueprintAsset != null) {
+                _blueprintAsset.BlueprintMeta.OnInvalidateNodePortsAndLinks = null;
+                _blueprintAsset = null;
+            }
+        }
+
+        private void RepaintNodePortsAndLinks(int nodeId) {
+            var nodeView = FindNodeViewByNodeId(nodeId);
+
+            RemoveNodeConnectionViews(nodeView);
+
+            nodeView.ClearPortViews();
+            nodeView.CreatePortViews(this);
+
+            CreateFromNodeConnectionViews(nodeView.nodeMeta);
+            CreateToNodeConnectionViews(nodeView.nodeMeta);
+        }
+
+        private void MoveToBlueprintNodesCenterPosition() {
+            if (_blueprintAsset == null) return;
+
+            var position = Vector2.zero;
+
+            var nodeMetas = _blueprintAsset.BlueprintMeta.NodesMap.Values;
+            foreach (var nodeMeta in nodeMetas) {
+                position += nodeMeta.Position;
+            }
+
+            if (nodeMetas.Count > 0) position /= nodeMetas.Count;
+
+            var s = contentViewContainer.transform.scale;
+            var targetPosition = Vector3.Scale(-position, s);
+
+            var currentPosition = contentViewContainer.transform.position;
+
+            if (Vector3.Distance(targetPosition, currentPosition) < POPULATE_SCROLL_TO_NODES_CENTER_TOLERANCE_DISTANCE) {
+                return;
+            }
+
+            viewTransform.position = targetPosition;
+            UpdateViewTransform(contentViewContainer.transform.position, s);
+        }
+
+        public override void BuildContextualMenu(ContextualMenuPopulateEvent evt) {
+            if (_blueprintAsset == null) return;
+
+            base.BuildContextualMenu(evt);
+        }
+
+        private void SetBlueprintAssetDirtyAndNotify() {
+            if (_blueprintAsset == null) return;
+
+            EditorUtility.SetDirty(_blueprintAsset);
+            OnBlueprintAssetSetDirty?.Invoke();
+        }
+
+        private void InvalidateBlueprintAsset(BlueprintAsset blueprintAsset) {
+            SerializationUtility.ClearAllManagedReferencesWithMissingTypes(blueprintAsset);
+
+            var blueprintMeta = blueprintAsset.BlueprintMeta;
+            var nodesMap = blueprintMeta.NodesMap;
+
+            int[] nodeIds = new int[nodesMap.Count];
+            nodesMap.Keys.CopyTo(nodeIds, 0);
+
+            bool isNodesDataChanged = false;
+
+            for (int n = 0; n < nodeIds.Length; n++) {
+                int nodeId = nodeIds[n];
+                var nodeMeta = nodesMap[nodeId];
+
+                if (nodeMeta.Node == null) {
+                    blueprintMeta.RemoveNode(nodeId);
+                    isNodesDataChanged = true;
+                    continue;
+                }
+
+                long refId = SerializationUtility.GetManagedReferenceIdForObject(blueprintAsset, nodeMeta.Node);
+                if (refId is SerializationUtility.RefIdNull or SerializationUtility.RefIdUnknown) {
+                    blueprintMeta.RemoveNode(nodeId);
+                    isNodesDataChanged = true;
+                    continue;
+                }
+
+                isNodesDataChanged |= blueprintMeta.InvalidateNodePorts(nodeId, invalidateLinks: true, notify: false);
+            }
+
+            if (isNodesDataChanged) SetBlueprintAssetDirtyAndNotify();
         }
 
         // ---------------- ---------------- Node Search Window ---------------- ----------------
@@ -229,114 +364,6 @@ namespace MisterGames.Blueprints.Editor.Core {
             _miniMap.SetPosition(new Rect(600, 0, 400, 250));
             Add(_miniMap);
             _miniMap.visible = false;
-        }
-
-        // ---------------- ---------------- Population and views ---------------- ----------------
-
-        public void PopulateViewFromAsset(BlueprintAsset blueprintAsset) {
-            if (blueprintAsset == _blueprintAsset) return;
-
-            ClearView();
-
-            _blueprintAsset = blueprintAsset;
-            InvalidateBlueprintAsset(_blueprintAsset);
-            RepopulateView();
-
-            _blueprintAsset.BlueprintMeta.OnInvalidateNodePortsAndLinks = RepaintNodePortsAndLinks;
-        }
-
-        private void RepaintNodePortsAndLinks(int nodeId) {
-            var nodeView = FindNodeViewByNodeId(nodeId);
-
-            RemoveNodeConnectionViews(nodeView);
-
-            nodeView.ClearPortViews();
-            nodeView.CreatePortViews(this);
-
-            CreateFromNodeConnectionViews(nodeView.nodeMeta);
-            CreateToNodeConnectionViews(nodeView.nodeMeta);
-        }
-
-        private void RepopulateView() {
-            if (_blueprintAsset == null) return;
-
-            graphViewChanged -= OnGraphViewChanged;
-            foreach (var element in graphElements) {
-                if (element is BlueprintNodeView nodeView) nodeView.DeInitialize();
-            }
-            DeleteElements(graphElements);
-            graphViewChanged += OnGraphViewChanged;
-
-            var nodesMeta = _blueprintAsset.BlueprintMeta.NodesMap.Values;
-            foreach (var nodeMeta in nodesMeta) {
-                CreateNodeView(nodeMeta);
-            }
-            foreach (var nodeMeta in nodesMeta) {
-                CreateFromNodeConnectionViews(nodeMeta);
-            }
-
-            FillBlackboardView();
-            ClearSelection();
-        }
-
-        public void ClearView() {
-            graphViewChanged -= OnGraphViewChanged;
-            foreach (var element in graphElements) {
-                if (element is BlueprintNodeView nodeView) nodeView.DeInitialize();
-            }
-            DeleteElements(graphElements);
-
-            if (_blueprintAsset != null) {
-                _blueprintAsset.BlueprintMeta.OnInvalidateNodePortsAndLinks = null;
-                _blueprintAsset = null;
-            }
-        }
-
-        public override void BuildContextualMenu(ContextualMenuPopulateEvent evt) {
-            if (_blueprintAsset == null) return;
-
-            base.BuildContextualMenu(evt);
-        }
-
-        private void SetBlueprintAssetDirtyAndNotify() {
-            if (_blueprintAsset == null) return;
-
-            EditorUtility.SetDirty(_blueprintAsset);
-            OnBlueprintAssetSetDirty?.Invoke();
-        }
-
-        private void InvalidateBlueprintAsset(BlueprintAsset blueprintAsset) {
-            SerializationUtility.ClearAllManagedReferencesWithMissingTypes(blueprintAsset);
-
-            var blueprintMeta = blueprintAsset.BlueprintMeta;
-            var nodesMap = blueprintMeta.NodesMap;
-
-            int[] nodeIds = new int[nodesMap.Count];
-            nodesMap.Keys.CopyTo(nodeIds, 0);
-
-            bool isNodesDataChanged = false;
-
-            for (int n = 0; n < nodeIds.Length; n++) {
-                int nodeId = nodeIds[n];
-                var nodeMeta = nodesMap[nodeId];
-
-                if (nodeMeta.Node == null) {
-                    blueprintMeta.RemoveNode(nodeId);
-                    isNodesDataChanged = true;
-                    continue;
-                }
-
-                long refId = SerializationUtility.GetManagedReferenceIdForObject(blueprintAsset, nodeMeta.Node);
-                if (refId is SerializationUtility.RefIdNull or SerializationUtility.RefIdUnknown) {
-                    blueprintMeta.RemoveNode(nodeId);
-                    isNodesDataChanged = true;
-                    continue;
-                }
-
-                isNodesDataChanged |= blueprintMeta.InvalidateNodePorts(nodeId, invalidateLinks: true, notify: false);
-            }
-
-            if (isNodesDataChanged) SetBlueprintAssetDirtyAndNotify();
         }
 
         // ---------------- ---------------- Node and connection creation ---------------- ----------------
