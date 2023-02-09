@@ -34,7 +34,7 @@ namespace MisterGames.Blueprints {
             return defaultValue;
         }
 
-        protected IReadOnlyList<T> ReadInputArrayPort<T>(int port, IReadOnlyList<T> defaultArray = null) {
+        protected T[] ReadInputArrayPort<T>(int port, T[] defaultArray = null) {
             var links = RuntimePorts[port].links;
             if (links.Count == 0) return defaultArray ?? Array.Empty<T>();
 
