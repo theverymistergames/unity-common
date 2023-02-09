@@ -70,7 +70,7 @@ namespace MisterGames.Blueprints.Compile {
                     LinkValidator.ValidateLink(blueprint, nodeMeta, p, nodesMetaMap[links[l].nodeId], links[l].portIndex);
 #endif
 
-                    var link = links[l++];
+                    var link = links[l];
                     runtimeLinks.Add(new RuntimeLink(GetOrCompileNode(blueprint, link.nodeId), link.portIndex));
                 }
 
