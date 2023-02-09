@@ -2,6 +2,7 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Attributes;
+using MisterGames.Tick.Core;
 using MisterGames.Tweens.Core;
 using Tweens.Easing;
 using UnityEngine;
@@ -20,11 +21,15 @@ namespace MisterGames.Tweens {
 
         [SerializeReference] [SubclassSelector] public ITweenProgressAction[] actions;
 
+        private ITimeSource _timeSource;
+
         private AnimationCurve _easingCurve;
         private float _progress;
         private float _progressDirection = 1f;
 
         public void Initialize(MonoBehaviour owner) {
+            _timeSource = TimeSources.Get(PlayerLoopStage.Update);
+
             _easingCurve = useCustomEasingCurve ? customEasingCurve : easingType.ToAnimationCurve();
 
             for (int i = 0; i < actions.Length; i++) {
@@ -48,7 +53,7 @@ namespace MisterGames.Tweens {
             }
 
             while (!token.IsCancellationRequested) {
-                float progressDelta = _progressDirection * Time.deltaTime / duration;
+                float progressDelta = _progressDirection * _timeSource.DeltaTime / duration;
                 _progress = Mathf.Clamp01(_progress + progressDelta);
 
                 ReportProgress();

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using MisterGames.Tick.Core;
 using MisterGames.Tweens.Core;
 using UnityEngine;
 
@@ -11,10 +12,14 @@ namespace MisterGames.Tweens {
 
         [Min(0f)] public float duration;
 
+        private ITimeSource _timeSource;
+
         private float _progress;
         private float _progressDirection = 1f;
 
-        public void Initialize(MonoBehaviour owner) { }
+        public void Initialize(MonoBehaviour owner) {
+            _timeSource = TimeSources.Get(PlayerLoopStage.Update);
+        }
 
         public void DeInitialize() { }
 
@@ -27,7 +32,7 @@ namespace MisterGames.Tweens {
             }
 
             while (!token.IsCancellationRequested) {
-                float progressDelta = _progressDirection * Time.deltaTime / duration;
+                float progressDelta = _progressDirection * _timeSource.DeltaTime / duration;
                 _progress = Mathf.Clamp01(_progress + progressDelta);
 
                 if (HasReachedTargetProgress()) break;

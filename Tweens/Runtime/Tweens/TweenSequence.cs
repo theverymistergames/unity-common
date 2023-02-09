@@ -10,38 +10,33 @@ namespace MisterGames.Tweens {
     [Serializable]
     public sealed class TweenSequence : ITween {
 
-        [SerializeField] private bool _loop;
-        [SerializeField] private bool _yoyo;
-
-        [SerializeReference] [SubclassSelector]
-        private ITween[] _tweens;
+        public bool loop;
+        public bool yoyo;
+        [SerializeReference] [SubclassSelector] public ITween[] tweens;
 
         private bool _isInverted;
-        private int _tweensCount;
         private int _currentTweenIndex;
 
         public void Initialize(MonoBehaviour owner) {
-            _tweensCount = _tweens.Length;
-
-            for (int i = 0; i < _tweensCount; i++) {
-                _tweens[i].Initialize(owner);
+            for (int i = 0; i < tweens.Length; i++) {
+                tweens[i].Initialize(owner);
             }
         }
 
         public void DeInitialize() {
-            for (int i = 0; i < _tweensCount; i++) {
-                _tweens[i].DeInitialize();
+            for (int i = 0; i < tweens.Length; i++) {
+                tweens[i].DeInitialize();
             }
         }
 
         public async UniTask Play(CancellationToken token) {
-            if (_tweensCount == 0) return;
+            if (tweens.Length == 0) return;
 
             while (!token.IsCancellationRequested) {
-                var tween = _tweens[_currentTweenIndex];
+                var tween = tweens[_currentTweenIndex];
                 tween.Invert(_isInverted);
 
-                if (_loop && !_isInverted) tween.ResetProgress();
+                if (loop && !_isInverted) tween.ResetProgress();
 
                 await tween.Play(token);
 
@@ -53,7 +48,7 @@ namespace MisterGames.Tweens {
                         continue;
                     }
 
-                    if (_loop) {
+                    if (loop) {
                         _isInverted = false;
                         continue;
                     }
@@ -61,17 +56,17 @@ namespace MisterGames.Tweens {
                     break;
                 }
 
-                if (_currentTweenIndex + 1 < _tweensCount) {
+                if (_currentTweenIndex + 1 < tweens.Length) {
                     _currentTweenIndex++;
                     continue;
                 }
 
-                if (_yoyo) {
+                if (yoyo) {
                     _isInverted = true;
                     continue;
                 }
 
-                if (_loop) {
+                if (loop) {
                     _currentTweenIndex = 0;
                     continue;
                 }
@@ -81,35 +76,35 @@ namespace MisterGames.Tweens {
         }
 
         public void Wind() {
-            if (_tweensCount == 0) return;
+            if (tweens.Length == 0) return;
 
-            for (int i = _currentTweenIndex; i < _tweensCount; i++) {
-                _tweens[i].Wind();
+            for (int i = _currentTweenIndex; i < tweens.Length; i++) {
+                tweens[i].Wind();
             }
 
-            _currentTweenIndex = _tweensCount - 1;
+            _currentTweenIndex = tweens.Length - 1;
         }
 
         public void Rewind() {
-            if (_tweensCount == 0) return;
+            if (tweens.Length == 0) return;
 
             for (int i = _currentTweenIndex; i >= 0; i--) {
-                _tweens[i].Rewind();
+                tweens[i].Rewind();
             }
 
             _currentTweenIndex = 0;
         }
 
         public void Invert(bool isInverted) {
-            if (_tweensCount == 0) return;
+            if (tweens.Length == 0) return;
 
-            _tweens[_currentTweenIndex].Invert(isInverted);
+            tweens[_currentTweenIndex].Invert(isInverted);
             _isInverted = isInverted;
         }
 
         public void ResetProgress() {
-            for (int i = 0; i < _tweensCount; i++) {
-                _tweens[i].ResetProgress();
+            for (int i = 0; i < tweens.Length; i++) {
+                tweens[i].ResetProgress();
             }
         }
     }
