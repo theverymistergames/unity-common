@@ -83,7 +83,7 @@ namespace MisterGames.Blueprints.Editor.Core {
                 .Select((port, index) => new PortViewCreationData { portIndex = index, port = port })
                 .Where(data => !data.port.isExternalPort)
                 .OrderBy(d => d.port.mode)
-                .ThenBy(d => d.port.name)
+                .ThenBy(d => d.portIndex)
                 .ToArray();
 
             for (int i = 0; i < portViewsCreationData.Length; i++) {
