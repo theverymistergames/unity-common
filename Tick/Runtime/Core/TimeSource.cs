@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using MisterGames.Common.Maths;
 
 namespace MisterGames.Tick.Core {
 
