@@ -103,11 +103,11 @@ namespace MisterGames.Blueprints.Validation {
                 return false;
             }
 
-            bool implementsIBlueprintOutputInterface = ValidationUtils.HasGenericInterface(
+            bool implementsIBlueprintOutputInterface = ValidationUtils.GetGenericInterface(
                 node.GetType(),
                 typeof(IBlueprintOutput<>),
                 port.DataType
-            );
+            ) != null;
 
             if (!implementsIBlueprintOutputInterface && node is not IBlueprintPortLinker) {
                 Debug.LogError($"Blueprint `{asset.name}`: " +
@@ -163,11 +163,11 @@ namespace MisterGames.Blueprints.Validation {
                 return false;
             }
 
-            bool implementsIBlueprintOutputInterface = ValidationUtils.HasGenericInterface(
+            bool implementsIBlueprintOutputInterface = ValidationUtils.GetGenericInterface(
                 node.GetType(),
                 typeof(IBlueprintOutput<>),
                 port.DataType
-            );
+            ) != null;
 
             if (!implementsIBlueprintOutputInterface && node is not IBlueprintPortLinker) {
                 Debug.LogError($"Blueprint `{asset.name}`: " +
@@ -198,11 +198,11 @@ namespace MisterGames.Blueprints.Validation {
                 return false;
             }
 
-            bool implementsIBlueprintOutputInterface = ValidationUtils.HasGenericInterface(
+            bool implementsIBlueprintOutputInterface = ValidationUtils.GetGenericInterface(
                 node.GetType(),
                 typeof(IBlueprintOutput<>),
                 port.DataType
-            );
+            ) != null;
 
             if (!implementsIBlueprintOutputInterface && node is not IBlueprintPortLinker) {
                 Debug.LogError($"Blueprint `{asset.name}`: " +
