@@ -4,6 +4,7 @@ using UnityEngine;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
 using System.Text;
 using System.Reflection;
+using MisterGames.Blueprints.Validation;
 #endif
 
 namespace MisterGames.Blueprints.Nodes {
@@ -42,7 +43,21 @@ namespace MisterGames.Blueprints.Nodes {
 
             var methods = new MethodInfo[linksCount];
             for (int l = 0; l < linksCount; l++) {
-                methods[l] = links[l].node.GetType().GetMethod("GetOutputPortValue");
+                var link = links[l];
+                var method = link.node.GetType().GetMethod("GetOutputPortValue");
+
+                if (method == null) {
+                    var dataType = link.node.CreatePorts()[link.port].DataType;
+                    var interfaceType = ValidationUtils.GetGenericInterface(
+                        link.node.GetType(),
+                        typeof(IBlueprintOutput<>),
+                        dataType
+                    );
+
+                    method = interfaceType.GetMethod("GetOutputPortValue");
+                }
+
+                methods[l] = method;
             }
 
             _getString = () => {
@@ -50,6 +65,7 @@ namespace MisterGames.Blueprints.Nodes {
 
                 for (int l = 0; l < linksCount; l++) {
                     var link = links[l];
+
                     object output = methods[l].Invoke(link.node, new object[] { link.port });
                     string text = output == null ? "<null>" : output.ToString();
 
