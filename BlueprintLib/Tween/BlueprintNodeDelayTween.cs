@@ -9,16 +9,15 @@ using UnityEngine;
 namespace MisterGames.BlueprintLib {
 
     [Serializable]
-    [BlueprintNodeMeta(Name = "InstantTween", Category = "Tweens", Color = BlueprintColors.Node.Actions)]
-    public sealed class BlueprintNodeInstantTween :
-        BlueprintNode,
+    [BlueprintNodeMeta(Name = "DelayTween", Category = "Tweens", Color = BlueprintColors.Node.Actions)]
+    public sealed class BlueprintNodeDelayTween :
+        BlueprintNode, 
         IBlueprintEnter,
-        IBlueprintOutput<ITween>,
-        ITweenInstantAction
+        IBlueprintOutput<ITween>
     {
-        [SerializeField] private bool _isInverted;
+        [SerializeField] [Min(0f)] private float _duration;
 
-        private readonly InstantTween _tween = new InstantTween();
+        private readonly DelayTween _tween = new DelayTween();
 
         private CancellationTokenSource _destroyCts;
         private CancellationTokenSource _pauseCts;
@@ -33,14 +32,14 @@ namespace MisterGames.BlueprintLib {
             Port.Enter("Reset Progress"),
             Port.Enter("Set Inverted"),
             Port.Exit("On Finish"),
+            Port.Input<float>("Duration"),
             Port.Input<bool>("Is Inverted"),
-            Port.Input<ITweenInstantAction>("Tween Instant Action"),
             Port.Output<ITween>("Tween"),
         };
 
         public override void OnInitialize(IBlueprintHost host) {
-            _destroyCts = new CancellationTokenSource();
             _runner = host.Runner;
+            _destroyCts = new CancellationTokenSource();
         }
 
         public override void OnDeInitialize() {
@@ -53,32 +52,32 @@ namespace MisterGames.BlueprintLib {
         public void OnEnterPort(int port) {
             switch (port) {
                 case 0:
-                    _tween.action = ReadInputPort(8, this);
+                    _tween.duration = Mathf.Max(0, ReadInputPort(7, _duration));
                     _tween.Initialize(_runner);
 
                     Play(_destroyCts.Token).Forget();
                     break;
-
+                
                 case 1:
                     _pauseCts?.Cancel();
                     break;
-
+                
                 case 2:
                     _pauseCts?.Cancel();
                     _tween.Wind();
                     break;
-
+                
                 case 3:
                     _pauseCts?.Cancel();
                     _tween.Rewind();
                     break;
-
-                case 4:
+                
+                case 4: 
                     _tween.ResetProgress();
                     break;
-
+                
                 case 5:
-                    bool isInverted = ReadInputPort(7, _isInverted);
+                    bool isInverted = ReadInputPort<bool>(8);
                     _tween.Invert(isInverted);
                     break;
             }
@@ -87,7 +86,7 @@ namespace MisterGames.BlueprintLib {
         public ITween GetOutputPortValue(int port) {
             if (port != 9) return null;
 
-            _tween.action = ReadInputPort(8, this);
+            _tween.duration = Mathf.Max(0, ReadInputPort(7, _duration));
             _tween.Initialize(_runner);
 
             return _tween;
@@ -100,15 +99,11 @@ namespace MisterGames.BlueprintLib {
 
             var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_pauseCts.Token, token);
             await _tween.Play(linkedCts.Token);
-
+            
             if (linkedCts.IsCancellationRequested) return;
 
             CallExitPort(6);
         }
-
-        void ITweenInstantAction.Initialize(MonoBehaviour owner) { }
-        void ITweenInstantAction.DeInitialize() { }
-        void ITweenInstantAction.InvokeAction() { }
     }
 
 }

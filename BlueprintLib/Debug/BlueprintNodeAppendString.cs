@@ -5,7 +5,7 @@ using UnityEngine;
 namespace MisterGames.BlueprintLib {
 
     [Serializable]
-    [BlueprintNodeMeta(Name = "Append String", Category = "Data", Color = BlueprintColors.Node.Data)]
+    [BlueprintNodeMeta(Name = "Append String", Category = "Debug", Color = BlueprintColors.Node.Data)]
     public sealed class BlueprintNodeAppendString : BlueprintNode, IBlueprintOutput<string> {
 
         [SerializeField] private string _a;

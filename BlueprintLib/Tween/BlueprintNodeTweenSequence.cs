@@ -9,21 +9,16 @@ using UnityEngine;
 namespace MisterGames.BlueprintLib {
 
     [Serializable]
-    [BlueprintNodeMeta(Name = "InstantTween", Category = "Tweens", Color = BlueprintColors.Node.Actions)]
-    public sealed class BlueprintNodeInstantTween :
-        BlueprintNode,
-        IBlueprintEnter,
-        IBlueprintOutput<ITween>,
-        ITweenInstantAction
-    {
-        [SerializeField] private bool _isInverted;
+    [BlueprintNodeMeta(Name = "TweenSequence", Category = "Tweens", Color = BlueprintColors.Node.Actions)]
+    public sealed class BlueprintNodeTweenSequence : BlueprintNode, IBlueprintEnter, IBlueprintOutput<ITween> {
 
-        private readonly InstantTween _tween = new InstantTween();
+        [SerializeField] private bool _loop;
+        [SerializeField] private bool _yoyo;
+        
+        private readonly TweenSequence _tweenSequence = new TweenSequence();
 
         private CancellationTokenSource _destroyCts;
         private CancellationTokenSource _pauseCts;
-
-        private MonoBehaviour _runner;
 
         public override Port[] CreatePorts() => new[] {
             Port.Enter("Play"),
@@ -33,53 +28,51 @@ namespace MisterGames.BlueprintLib {
             Port.Enter("Reset Progress"),
             Port.Enter("Set Inverted"),
             Port.Exit("On Finish"),
+            Port.InputArray<ITween>("Tweens"),
             Port.Input<bool>("Is Inverted"),
-            Port.Input<ITweenInstantAction>("Tween Instant Action"),
             Port.Output<ITween>("Tween"),
         };
 
         public override void OnInitialize(IBlueprintHost host) {
             _destroyCts = new CancellationTokenSource();
-            _runner = host.Runner;
         }
 
         public override void OnDeInitialize() {
             _destroyCts.Cancel();
             _destroyCts.Dispose();
-
-            _tween.DeInitialize();
         }
 
         public void OnEnterPort(int port) {
             switch (port) {
                 case 0:
-                    _tween.action = ReadInputPort(8, this);
-                    _tween.Initialize(_runner);
+                    _tweenSequence.loop = _loop;
+                    _tweenSequence.yoyo = _yoyo;
+                    _tweenSequence.tweens = ReadInputArrayPort<ITween>(7);
 
                     Play(_destroyCts.Token).Forget();
                     break;
-
+                
                 case 1:
                     _pauseCts?.Cancel();
                     break;
-
+                
                 case 2:
                     _pauseCts?.Cancel();
-                    _tween.Wind();
+                    _tweenSequence.Wind();
                     break;
-
+                
                 case 3:
                     _pauseCts?.Cancel();
-                    _tween.Rewind();
+                    _tweenSequence.Rewind();
                     break;
-
-                case 4:
-                    _tween.ResetProgress();
+                
+                case 4: 
+                    _tweenSequence.ResetProgress();
                     break;
-
+                
                 case 5:
-                    bool isInverted = ReadInputPort(7, _isInverted);
-                    _tween.Invert(isInverted);
+                    bool isInverted = ReadInputPort<bool>(8);
+                    _tweenSequence.Invert(isInverted);
                     break;
             }
         }
@@ -87,10 +80,11 @@ namespace MisterGames.BlueprintLib {
         public ITween GetOutputPortValue(int port) {
             if (port != 9) return null;
 
-            _tween.action = ReadInputPort(8, this);
-            _tween.Initialize(_runner);
+            _tweenSequence.loop = _loop;
+            _tweenSequence.yoyo = _yoyo;
+            _tweenSequence.tweens = ReadInputArrayPort<ITween>(7);
 
-            return _tween;
+            return _tweenSequence;
         }
 
         private async UniTask Play(CancellationToken token) {
@@ -99,16 +93,12 @@ namespace MisterGames.BlueprintLib {
             _pauseCts = new CancellationTokenSource();
 
             var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_pauseCts.Token, token);
-            await _tween.Play(linkedCts.Token);
-
+            await _tweenSequence.Play(linkedCts.Token);
+            
             if (linkedCts.IsCancellationRequested) return;
-
+            
             CallExitPort(6);
         }
-
-        void ITweenInstantAction.Initialize(MonoBehaviour owner) { }
-        void ITweenInstantAction.DeInitialize() { }
-        void ITweenInstantAction.InvokeAction() { }
     }
 
 }

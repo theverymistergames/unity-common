@@ -6,7 +6,7 @@ using Random = UnityEngine.Random;
 namespace MisterGames.BlueprintLib {
 
     [Serializable]
-    [BlueprintNodeMeta(Name = "Random Float", Category = "Data", Color = BlueprintColors.Node.Data)]
+    [BlueprintNodeMeta(Name = "Random Float", Category = "Math", Color = BlueprintColors.Node.Data)]
     public sealed class BlueprintNodeRandomFloat : BlueprintNode, IBlueprintOutput<float> {
 
         [SerializeField] private float _from;

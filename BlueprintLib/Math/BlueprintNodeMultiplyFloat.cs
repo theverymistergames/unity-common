@@ -5,7 +5,7 @@ using UnityEngine;
 namespace MisterGames.BlueprintLib {
 
     [Serializable]
-    [BlueprintNodeMeta(Name = "Multiply Float", Category = "Maths", Color = BlueprintColors.Node.Data)]
+    [BlueprintNodeMeta(Name = "Multiply Float", Category = "Math", Color = BlueprintColors.Node.Data)]
     public sealed class BlueprintNodeMultiplyFloat : BlueprintNode, IBlueprintOutput<float> {
 
         [SerializeField] private float _a;

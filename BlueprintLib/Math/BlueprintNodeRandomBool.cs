@@ -5,7 +5,7 @@ using Random = UnityEngine.Random;
 namespace MisterGames.BlueprintLib {
 
     [Serializable]
-    [BlueprintNodeMeta(Name = "Random Bool", Category = "Data", Color = BlueprintColors.Node.Data)]
+    [BlueprintNodeMeta(Name = "Random Bool", Category = "Math", Color = BlueprintColors.Node.Data)]
     public sealed class BlueprintNodeRandomBool : BlueprintNode, IBlueprintOutput<bool> {
 
         public override Port[] CreatePorts() => new[] {

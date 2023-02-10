@@ -26,7 +26,7 @@ namespace MisterGames.BlueprintLib {
         public void OnEnterPort(int port) {
             if (port != 0) return;
 
-            _event?.Emit();
+            _event.Emit();
             CallExitPort(1);
         }
     }
