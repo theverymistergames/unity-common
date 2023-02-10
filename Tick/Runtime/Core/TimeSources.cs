@@ -1,4 +1,6 @@
-﻿#if UNITY_EDITOR
+﻿using System.Collections.Generic;
+
+#if UNITY_EDITOR
 using UnityEditor;
 using UnityEngine;
 #endif
@@ -13,7 +15,7 @@ namespace MisterGames.Tick.Core {
 
         public static ITimeSource Get(PlayerLoopStage stage) {
 #if UNITY_EDITOR
-            return Application.isPlaying ? _provider.Get(stage) : GetOrCreateEditorTimeSource();
+            return Application.isPlaying ? _provider.Get(stage) : GetOrCreateEditorTimeSource(stage);
 #endif
             return _provider.Get(stage);
         }
@@ -25,24 +27,28 @@ namespace MisterGames.Tick.Core {
         }
 
 #if UNITY_EDITOR
-        private static TimeSource _editorTimeSource;
+        private static readonly Dictionary<PlayerLoopStage, TimeSource> _editorTimeSourcesMap = new Dictionary<PlayerLoopStage, TimeSource>();
         private static EditorDeltaTimeProvider _editorDeltaTimeProvider;
 
-        private static ITimeSource GetOrCreateEditorTimeSource() {
-            if (_editorTimeSource != null) return _editorTimeSource;
+        private static ITimeSource GetOrCreateEditorTimeSource(PlayerLoopStage stage) {
+            if (_editorTimeSourcesMap.TryGetValue(stage, out var timeSource)) return timeSource;
 
-            _editorDeltaTimeProvider = new EditorDeltaTimeProvider();
-            _editorTimeSource = new TimeSource(_editorDeltaTimeProvider, TimeScaleProviders.Create());
+            _editorDeltaTimeProvider ??= new EditorDeltaTimeProvider();
+
+            timeSource = new TimeSource(_editorDeltaTimeProvider, TimeScaleProviders.Create());
+            _editorTimeSourcesMap[stage] = timeSource;
 
             EditorApplication.update -= OnEditorUpdate;
             EditorApplication.update += OnEditorUpdate;
 
-            return _editorTimeSource;
+            return timeSource;
         }
 
         private static void OnEditorUpdate() {
             _editorDeltaTimeProvider.UpdateDeltaTime();
-            _editorTimeSource.Tick();
+            foreach (var timeSource in _editorTimeSourcesMap.Values) {
+                timeSource.Tick();
+            }
         }
 
         private sealed class EditorDeltaTimeProvider : IDeltaTimeProvider {
