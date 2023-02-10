@@ -8,7 +8,7 @@ namespace MisterGames.BlueprintLib {
 
     [Serializable]
     [BlueprintNodeMeta(Name = "InputActionKey", Category = "Input", Color = BlueprintLibColors.Node.Input)]
-    public sealed class BlueprintNodeInputActionKey : BlueprintNode, IBlueprintStart {
+    public sealed class BlueprintNodeInputActionKey : BlueprintNode, IBlueprintEnableDisable {
         
         [SerializeField] private InputActionKey _inputActionKey;
 
@@ -19,18 +19,18 @@ namespace MisterGames.BlueprintLib {
             Port.Exit("On Release"),
         };
 
-        public override void OnDeInitialize() {
-            _inputActionKey.OnUse -= OnUse;
-            _inputActionKey.OnPress -= OnPress;
-            _inputActionKey.OnRelease -= OnRelease;
-        }
-
-        public void OnStart() {
+        public void OnEnable() {
             _inputActionKey = ReadInputPort(0, _inputActionKey);
 
             _inputActionKey.OnUse += OnUse;
             _inputActionKey.OnPress += OnPress;
             _inputActionKey.OnRelease += OnRelease;
+        }
+
+        public void OnDisable() {
+            _inputActionKey.OnUse -= OnUse;
+            _inputActionKey.OnPress -= OnPress;
+            _inputActionKey.OnRelease -= OnRelease;
         }
 
         private void OnUse() {
