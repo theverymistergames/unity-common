@@ -8,15 +8,15 @@ namespace MisterGames.TweenLib {
     public sealed class TweenProgressActionScaleTransform : ITweenProgressAction {
 
         public Transform transform;
-        public Vector3 startScale;
-        public Vector3 endScale;
+        public Vector3 startLocalScale;
+        public Vector3 endLocalScale;
 
         public void Initialize(MonoBehaviour owner) { }
 
         public void DeInitialize() { }
 
         public void OnProgressUpdate(float progress) {
-            var value = Vector3.Lerp(startScale, endScale, progress);
+            var value = Vector3.Lerp(startLocalScale, endLocalScale, progress);
             
             transform.localScale = value;
         }
