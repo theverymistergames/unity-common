@@ -10,21 +10,17 @@ namespace MisterGames.Tweens {
     [Serializable]
     public sealed class InstantTween : ITween {
 
-        [SerializeReference] [SubclassSelector] public ITweenInstantAction[] actions;
+        [SerializeReference] [SubclassSelector] public ITweenInstantAction action;
 
         private int _progress;
         private int _progressDirection = 1;
 
         public void Initialize(MonoBehaviour owner) {
-            for (int i = 0; i < actions.Length; i++) {
-                actions[i].Initialize(owner);
-            }
+            action.Initialize(owner);
         }
 
         public void DeInitialize() {
-            for (int i = 0; i < actions.Length; i++) {
-                actions[i].DeInitialize();
-            }
+            action.DeInitialize();
         }
 
         public UniTask Play(CancellationToken token) {
@@ -32,9 +28,7 @@ namespace MisterGames.Tweens {
                 return default;
             }
 
-            for (int i = 0; i < actions.Length; i++) {
-                actions[i].InvokeAction();
-            }
+            action.InvokeAction();
 
             _progress = Math.Clamp(_progress + _progressDirection, 0, 1);
 

@@ -19,7 +19,7 @@ namespace MisterGames.Tweens {
         public bool useCustomEasingCurve;
         public AnimationCurve customEasingCurve = AnimationCurve.Linear(0f, 0f, 1f, 1f);
 
-        [SerializeReference] [SubclassSelector] public ITweenProgressAction[] actions;
+        [SerializeReference] [SubclassSelector] public ITweenProgressAction action;
 
         private ITimeSource _timeSource;
 
@@ -32,15 +32,11 @@ namespace MisterGames.Tweens {
 
             _easingCurve = useCustomEasingCurve ? customEasingCurve : easingType.ToAnimationCurve();
 
-            for (int i = 0; i < actions.Length; i++) {
-                actions[i].Initialize(owner);
-            }
+            action.Initialize(owner);
         }
 
         public void DeInitialize() {
-            for (int i = 0; i < actions.Length; i++) {
-                actions[i].DeInitialize();
-            }
+            action.DeInitialize();
         }
 
         public async UniTask Play(CancellationToken token) {
@@ -84,10 +80,7 @@ namespace MisterGames.Tweens {
 
         private void ReportProgress() {
             float value = Mathf.Clamp01(_easingCurve.Evaluate(_progress));
-
-            for (int i = 0; i < actions.Length; i++) {
-                actions[i].OnProgressUpdate(value);
-            }
+            action.OnProgressUpdate(value);
         }
 
         private bool HasReachedTargetProgress() {
