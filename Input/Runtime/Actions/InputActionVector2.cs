@@ -10,11 +10,13 @@ namespace MisterGames.Input.Actions {
 
     [CreateAssetMenu(fileName = nameof(InputActionVector2), menuName = "MisterGames/Input/Action/" + nameof(InputActionVector2))]
     public sealed class InputActionVector2 : InputAction {
-        
-        [SerializeReference] [SubclassSelector] private IInputBindingVector2[] _bindings;
-        [SerializeField] private NormalizeMode _normalize = NormalizeMode.None;
+
+        [SerializeField] private NormalizeMode _normalize;
+        [SerializeField] private float _sensitivity = 1f;
         [SerializeField] private bool _ignoreNewValueIfNotChanged;
         [SerializeField] private bool _ignoreZero;
+
+        [SerializeReference] [SubclassSelector] private IVector2Binding[] _bindings;
 
         private enum NormalizeMode {
             None,
@@ -26,17 +28,9 @@ namespace MisterGames.Input.Actions {
         
         private Vector2 _vector = Vector2.zero;
 
-        protected override void OnInit() {
-            foreach (var binding in _bindings) {
-                binding.Init();   
-            }
-        }
+        protected override void OnInit() { }
 
         protected override void OnTerminate() {
-            foreach (var binding in _bindings) {
-                binding.Terminate();   
-            }
-            
             ResetVectorAndNotify();
         }
 
@@ -72,14 +66,14 @@ namespace MisterGames.Input.Actions {
 
             int count = 0;
             for (int i = 0; i < _bindings.Length; i++) {
-                var value = _bindings[i].GetValue();
+                var value = _bindings[i].Value;
                 if (value.IsNearlyZero()) continue;
                 
                 result += value;
                 count++;
             }
 
-            return count == 0 ? result : result / count;
+            return (count == 0 ? result : result / count) * _sensitivity;
         }
         
         private void ResetVectorAndNotify() {

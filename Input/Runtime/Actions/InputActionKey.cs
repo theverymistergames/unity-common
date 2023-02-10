@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using MisterGames.Common.Attributes;
-using MisterGames.Common.Lists;
 using MisterGames.Input.Activation;
 using MisterGames.Input.Bindings;
 using MisterGames.Input.Core;
@@ -13,28 +10,24 @@ namespace MisterGames.Input.Actions {
     [CreateAssetMenu(fileName = nameof(InputActionKey), menuName = "MisterGames/Input/Action/" + nameof(InputActionKey))]
     public sealed class InputActionKey : InputAction {
 
-        [SerializeReference] [SubclassSelector] private IInputBindingKey[] _bindings;
-        [SerializeField] private KeyActivationStrategy _strategy;
+        [SerializeReference] [SubclassSelector] private IKeyActivationStrategy _strategy;
+        [SerializeReference] [SubclassSelector] private IKeyBinding[] _bindings;
 
         public event Action OnUse = delegate {  };
         public event Action OnPress = delegate {  };
         public event Action OnRelease = delegate {  };
         
         public bool IsPressed { get; private set; }
+
+        internal IKeyBinding[] Bindings => _bindings;
+
         private bool _hasStrategy;
 
         protected override void OnInit() {
-            foreach (var binding in _bindings) {
-                binding.Init();   
-            }
-
             _hasStrategy = _strategy != null;
         }
 
         protected override void OnTerminate() {
-            foreach (var binding in _bindings) {
-                binding.Terminate();   
-            }
             if (_hasStrategy) _strategy.Interrupt();
         }
 
@@ -60,21 +53,22 @@ namespace MisterGames.Input.Actions {
             if (_hasStrategy) _strategy.Interrupt();
         }
 
-        internal bool IsBindingActive() {
-            return IsPressed;
-        }
-        
-        internal IInputBindingKey[] GetBindings() {
-            return _bindings;
-        }
-
         private void HandleUse() {
             OnUse.Invoke();
         }
         
         private void CheckPressState() {
             bool wasPressed = IsPressed;
-            IsPressed = _bindings.Some(binding => binding.IsActive());
+
+            bool hasAtLeastOneActiveBinding = false;
+            for (int i = 0; i < _bindings.Length; i++) {
+                if (!_bindings[i].IsActive) continue;
+
+                hasAtLeastOneActiveBinding = true;
+                break;
+            }
+
+            IsPressed = hasAtLeastOneActiveBinding;
 
             if (!wasPressed && IsPressed) {
                 OnPress.Invoke();

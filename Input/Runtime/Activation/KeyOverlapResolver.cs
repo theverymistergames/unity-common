@@ -6,27 +6,37 @@ using MisterGames.Input.Core;
 
 namespace MisterGames.Input.Activation {
     
-    internal class KeyOverlapResolver {
+    internal sealed class KeyOverlapResolver {
         
         private readonly List<List<InputActionKey>> _groups = new List<List<InputActionKey>>();
         private readonly List<InputActionKey> _keyedActions = new List<InputActionKey>();
         private readonly Dictionary<KeyBinding, List<OverlapInfo>> _overlapMap = new Dictionary<KeyBinding, List<OverlapInfo>>();
         private Dictionary<KeyBinding, List<OverlapInfo>>.Enumerator _overlapEnumerator;
-        
-        internal void RefillOverlapGroups(List<InputAction> actions) {
+
+        private readonly struct OverlapInfo {
+            public readonly int index;
+            public readonly int keyCount;
+
+            public OverlapInfo(int index, int keyCount) {
+                this.index = index;
+                this.keyCount = keyCount;
+            }
+        }
+
+        public void RefillOverlapGroups(List<InputAction> actions) {
             Clear();
             FillKeyedActions(actions);
             FillOverlapMap();
             FillGroups();
         }
 
-        internal void Clear() {
+        public void Clear() {
             _keyedActions.Clear();
             _overlapMap.Clear();
             _groups.Clear();
         }
         
-        internal void ResolveOverlap() {
+        public void ResolveOverlap() {
             for (int i = 0; i < _groups.Count; i++) {
                 var group = _groups[i];
                 bool needInterrupt = false;
@@ -39,7 +49,7 @@ namespace MisterGames.Input.Activation {
                         continue;
                     }
 
-                    needInterrupt = action.IsBindingActive();
+                    needInterrupt = action.IsPressed;
                 }
             }
         }
@@ -51,20 +61,33 @@ namespace MisterGames.Input.Activation {
         }
         
         private void FillOverlapMap() {
-            int count = _keyedActions.Count;
-            for (int i = 0; i < count; i++) {
-                var keyedAction = _keyedActions[i];
-                var bindings = keyedAction.GetBindings();
-                
-                foreach (var binding in bindings) {
-                    var keys = binding.GetBindings();
-                    int keyCount = keys.Length;
+            for (int a = 0; a < _keyedActions.Count; a++) {
+                var action = _keyedActions[a];
+                var bindings = action.Bindings;
 
-                    foreach (var key in keys) {
-                        var info = new OverlapInfo { index = i, keyCount = keyCount };
+                for (int b = 0; b < bindings.Length; b++) {
+                    var binding = bindings[b];
 
-                        if (_overlapMap.ContainsKey(key)) _overlapMap[key].Add(info);
-                        else _overlapMap[key] = new List<OverlapInfo> {info};
+                    if (binding is Key key) {
+                        var info = new OverlapInfo(a, 1);
+
+                        if (_overlapMap.ContainsKey(key.key)) _overlapMap[key.key].Add(info);
+                        else _overlapMap[key.key] = new List<OverlapInfo> {info};
+
+                        continue;
+                    }
+
+                    if (binding is KeyCombo keyCombo) {
+                        var keys = keyCombo.keys;
+                        int keyCount = keys.Length;
+
+                        for (int k = 0; k < keys.Length; k++) {
+                            var comboKey = keys[k];
+                            var info = new OverlapInfo(a, keyCount);
+
+                            if (_overlapMap.ContainsKey(comboKey)) _overlapMap[comboKey].Add(info);
+                            else _overlapMap[comboKey] = new List<OverlapInfo> {info};
+                        }
                     }
                 }
             }
@@ -85,11 +108,6 @@ namespace MisterGames.Input.Activation {
 
                 _groups.Add(sortedActions);
             }
-        }
-        
-        private struct OverlapInfo {
-            public int index;
-            public int keyCount;
         }
     }
 

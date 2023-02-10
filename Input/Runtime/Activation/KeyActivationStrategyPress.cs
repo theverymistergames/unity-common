@@ -1,20 +1,21 @@
-﻿using UnityEngine;
+﻿using System;
 
 namespace MisterGames.Input.Activation {
 
-    [CreateAssetMenu(fileName = nameof(KeyActivationStrategyPress), menuName = "MisterGames/Input/Activation/" + nameof(KeyActivationStrategyPress))]
-    internal class KeyActivationStrategyPress : KeyActivationStrategy {
-        
-        internal override void OnPressed() {
-            FireOnUse();
+    [Serializable]
+    public sealed class KeyActivationStrategyPress : IKeyActivationStrategy {
+
+        public Action OnUse { set => _onUse = value; }
+        private Action _onUse = delegate {  };
+
+        public void OnPressed() {
+            _onUse.Invoke();
         }
 
-        internal override void OnReleased() { }
+        public void OnReleased() { }
 
-        internal override void Interrupt() { }
-
-        internal override void OnUpdate(float dt) { }
-        
+        public void Interrupt() { }
+        public void OnUpdate(float dt) { }
     }
 
 }

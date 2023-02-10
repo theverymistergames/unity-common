@@ -1,34 +1,38 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace MisterGames.Input.Activation {
 
-    [CreateAssetMenu(fileName = nameof(KeyActivationStrategyTap), menuName = "MisterGames/Input/Activation/" + nameof(KeyActivationStrategyTap))]
-    internal class KeyActivationStrategyTap : KeyActivationStrategy {
+    [Serializable]
+    public sealed class KeyActivationStrategyTap : IKeyActivationStrategy {
 
         [SerializeField] private float _activationTime;
-        
+
+        public Action OnUse { set => _onUse = value; }
+        private Action _onUse = delegate {  };
+
         private bool _isProcessing;
         private float _timer;
 
-        internal override void OnPressed() {
+        public void OnPressed() {
             _isProcessing = true;
             _timer = 0f;
         }
 
-        internal override void OnReleased() { }
+        public void OnReleased() { }
 
-        internal override void Interrupt() {
+        public void Interrupt() {
             _isProcessing = false;
             _timer = 0f;
         }
 
-        internal override void OnUpdate(float dt) {
+        public void OnUpdate(float dt) {
             if (!_isProcessing) return;
             
             if (_timer > _activationTime) {
                 _timer = 0f;
                 _isProcessing = false;
-                FireOnUse();
+                _onUse.Invoke();
                 return;
             }
             
