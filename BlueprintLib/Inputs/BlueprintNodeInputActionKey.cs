@@ -1,6 +1,7 @@
 ﻿using System;
 using MisterGames.Blueprints;
 using MisterGames.Input.Actions;
+using MisterGames.Input.Core;
 using UnityEngine;
 
 namespace MisterGames.BlueprintLib {
@@ -18,6 +19,10 @@ namespace MisterGames.BlueprintLib {
         };
 
         public override void OnInitialize(IBlueprintHost host) {
+#if UNITY_EDITOR
+            InputUpdater.CheckEditorInputUpdaterIsCreated();
+#endif
+
             _inputActionKey.OnUse += OnUse;
             _inputActionKey.OnPress += OnPress;
             _inputActionKey.OnRelease += OnRelease;
