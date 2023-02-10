@@ -8,7 +8,7 @@ namespace MisterGames.BlueprintLib {
 
     [Serializable]
     [BlueprintNodeMeta(Name = "InputActionKey", Category = "Input", Color = BlueprintLibColors.Node.Input)]
-    public sealed class BlueprintNodeInputActionKey : BlueprintNode, IBlueprintStartListener {
+    public sealed class BlueprintNodeInputActionKey : BlueprintNode, IBlueprintStart {
         
         [SerializeField] private InputActionKey _inputActionKey;
 

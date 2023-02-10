@@ -6,7 +6,7 @@ namespace MisterGames.BlueprintLib {
 
     [Serializable]
     [BlueprintNodeMeta(Name = "On Enable Disable", Category = "Blueprint Runner", Color = BlueprintColors.Node.Events)]
-    public sealed class BlueprintNodeOnEnableDisable : BlueprintNode, IBlueprintEnableDisableListener, IBlueprintOutput<bool> {
+    public sealed class BlueprintNodeOnEnableDisable : BlueprintNode, IBlueprintEnableDisable, IBlueprintOutput<bool> {
         
         public override Port[] CreatePorts() => new[] {
             Port.Exit("On Enable"),

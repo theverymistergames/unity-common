@@ -8,7 +8,7 @@ namespace MisterGames.Blueprints.Nodes {
 #endif
 
     [Serializable]
-    public sealed class BlueprintNodeStart : BlueprintNode, IBlueprintStartListener, IBlueprintPortLinker {
+    public sealed class BlueprintNodeStart : BlueprintNode, IBlueprintStart, IBlueprintPortLinker {
 
 #if UNITY_EDITOR
         public override Port[] CreatePorts() => new[] {

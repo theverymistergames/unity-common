@@ -1,6 +1,6 @@
 ﻿namespace MisterGames.Blueprints.Core {
 
-    public interface IBlueprintEnableDisableListener {
+    public interface IBlueprintEnableDisable {
         void OnEnable();
         void OnDisable();
     }
