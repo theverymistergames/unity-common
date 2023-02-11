@@ -2,7 +2,6 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Blueprints;
-using MisterGames.Tweens;
 using MisterGames.Tweens.Core;
 using UnityEngine;
 
@@ -15,6 +14,7 @@ namespace MisterGames.BlueprintLib {
         private CancellationTokenSource _destroyCts;
         private CancellationTokenSource _pauseCts;
 
+        private bool _isInverted;
         private ITween _tween;
         private MonoBehaviour _runner;
 
@@ -23,6 +23,7 @@ namespace MisterGames.BlueprintLib {
             Port.Enter("Pause"),
             Port.Enter("Wind"),
             Port.Enter("Rewind"),
+            Port.Enter("Invert"),
             Port.Enter("Set Tween"),
             Port.Input<ITween>("Tween"),
             Port.Exit("On Finish"),
@@ -60,10 +61,17 @@ namespace MisterGames.BlueprintLib {
                     _tween?.Rewind();
                     break;
 
-                case 6:
+                case 4:
+                    if (_tween != null) {
+                        _isInverted = !_isInverted;
+                        _tween.Invert(_isInverted);
+                    }
+                    break;
+
+                case 5:
                     _tween?.DeInitialize();
 
-                    _tween = ReadInputPort<ITween>(7);
+                    _tween = ReadInputPort<ITween>(6);
                     _tween.Initialize(_runner);
                     break;
             }
@@ -79,7 +87,7 @@ namespace MisterGames.BlueprintLib {
             
             if (linkedCts.IsCancellationRequested) return;
 
-            CallExitPort(8);
+            CallExitPort(7);
         }
     }
 
