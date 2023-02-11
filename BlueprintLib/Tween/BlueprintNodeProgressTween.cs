@@ -34,7 +34,7 @@ namespace MisterGames.BlueprintLib {
             if (port != 2) return null;
 
             _tween.duration = Mathf.Max(0f, ReadInputPort(0, _duration));
-            _tween.action = ReadInputPort(1, this);
+            _tween.action = ReadInputPort<ITweenProgressAction>(1, this);
 
             return _tween;
         }

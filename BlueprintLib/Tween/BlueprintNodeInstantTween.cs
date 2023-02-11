@@ -20,7 +20,7 @@ namespace MisterGames.BlueprintLib {
         public ITween GetOutputPortValue(int port) {
             if (port != 1) return null;
 
-            _tween.action = ReadInputPort(0, this);
+            _tween.action = ReadInputPort<ITweenInstantAction>(0, this);
 
             return _tween;
         }
