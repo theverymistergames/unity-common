@@ -78,19 +78,27 @@ namespace MisterGames.Input.Core {
             return true;
         }
 
-        public static void CheckEditorInputUpdaterIsStopped(object source) {
+        public static bool CheckEditorInputUpdaterIsStopped(object source, out InputChannel inputChannel) {
+            inputChannel = null;
+
             if (Application.isPlaying) {
                 Debug.LogWarning($"Cannot stop editor InputUpdater while application is playing");
-                return;
+                return false;
             }
 
             _sources.Remove(source.GetHashCode());
-            if (_sources.Count > 0 || _editorInputUpdater == null) return;
+
+            if (_editorInputUpdater == null) return false;
+
+            inputChannel = _editorInputChannel;
+            if (_sources.Count > 0) return true;
 
             _editorInputUpdater.OnDisable();
             _editorInputUpdater.OnDestroy();
             _editorInputUpdater = null;
             _editorInputChannel = null;
+
+            return true;
         }
 #endif
     }

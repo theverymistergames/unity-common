@@ -52,9 +52,9 @@ namespace MisterGames.BlueprintLib {
 
         public override void OnDeInitialize() {
 #if UNITY_EDITOR
-            if (!Application.isPlaying) InputUpdater.CheckEditorInputUpdaterIsStopped(this);
+            if (!Application.isPlaying && InputUpdater.CheckEditorInputUpdaterIsStopped(this, out var inputChannel)) {
+                inputChannel.RemoveInputAction(_inputAction);
 
-            if (_inputAction != null) {
                 _inputAction.OnPress -= OnPress;
                 _inputAction.OnRelease -= OnRelease;
             }
