@@ -19,7 +19,10 @@ namespace MisterGames.Input.Actions {
         
         public bool IsPressed { get; private set; }
 
-        internal IKeyBinding[] Bindings => _bindings;
+        public IKeyBinding[] Bindings {
+            get => _bindings;
+            set => _bindings = value;
+        }
 
         private bool _hasStrategy;
 

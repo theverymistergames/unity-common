@@ -3,10 +3,7 @@ using System.Collections.Generic;
 using MisterGames.Input.Global;
 using MisterGames.Tick.Core;
 using UnityEngine;
-
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
+using UnityEngine.InputSystem;
 
 namespace MisterGames.Input.Core {
 
@@ -19,6 +16,7 @@ namespace MisterGames.Input.Core {
         private ITimeSource _timeSource => TimeSources.Get(_timeSourceStage);
 
         public void Awake() {
+            InputSystem.settings.updateMode = InputSettings.UpdateMode.ProcessEventsManually;
             GlobalInput.Init();
             _inputChannel.Init();
         }
@@ -41,38 +39,58 @@ namespace MisterGames.Input.Core {
         }
 
         void IUpdate.OnUpdate(float dt) {
+            InputSystem.Update();
             _inputChannel.DoUpdate(dt);
         }
 
 #if UNITY_EDITOR
         private static InputUpdater _editorInputUpdater;
+        private static InputChannel _editorInputChannel;
+        private static readonly HashSet<int> _sources = new HashSet<int>();
 
-        public static void CheckEditorInputUpdaterIsCreated() {
-            if (Application.isPlaying) return;
-            if (_editorInputUpdater != null) return;
+        public static bool CheckEditorInputUpdaterIsStarted(object source, out InputChannel inputChannel) {
+            inputChannel = null;
 
-            var inputChannels = new List<InputChannel>();
-
-            string[] guids = AssetDatabase.FindAssets($"a:assets t:{nameof(InputChannel)}");
-            for (int i = 0; i < guids.Length; i++) {
-                string path = AssetDatabase.GUIDToAssetPath(guids[i]);
-
-                if (string.IsNullOrEmpty(path)) continue;
-
-                var inputChannel = AssetDatabase.LoadAssetAtPath<InputChannel>(path);
-                if (inputChannel == null) continue;
-
-                inputChannels.Add(inputChannel);
+            if (Application.isPlaying) {
+                Debug.LogWarning($"Cannot start editor InputUpdater while application is playing");
+                return false;
             }
 
-            if (inputChannels.Count > 0) {
-                _editorInputUpdater = new InputUpdater();
-                _editorInputUpdater._timeSourceStage = PlayerLoopStage.PreUpdate;
+            _sources.Add(source.GetHashCode());
 
-                _editorInputUpdater._inputChannel = inputChannels[0];
-                _editorInputUpdater.Awake();
-                _editorInputUpdater.OnEnable();
+            if (_editorInputUpdater != null) {
+                inputChannel = _editorInputChannel;
+                return true;
             }
+
+            _editorInputChannel = ScriptableObject.CreateInstance<InputChannel>();
+            inputChannel = _editorInputChannel;
+
+            _editorInputUpdater = new InputUpdater();
+            _editorInputUpdater._timeSourceStage = PlayerLoopStage.PreUpdate;
+            _editorInputUpdater._inputChannel = _editorInputChannel;
+
+            InputSystem.settings.SetInternalFeatureFlag("RUN_PLAYER_UPDATES_IN_EDIT_MODE", true);
+
+            _editorInputUpdater.Awake();
+            _editorInputUpdater.OnEnable();
+
+            return true;
+        }
+
+        public static void CheckEditorInputUpdaterIsStopped(object source) {
+            if (Application.isPlaying) {
+                Debug.LogWarning($"Cannot stop editor InputUpdater while application is playing");
+                return;
+            }
+
+            _sources.Remove(source.GetHashCode());
+            if (_sources.Count > 0 || _editorInputUpdater == null) return;
+
+            _editorInputUpdater.OnDisable();
+            _editorInputUpdater.OnDestroy();
+            _editorInputUpdater = null;
+            _editorInputChannel = null;
         }
 #endif
     }

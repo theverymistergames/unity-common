@@ -18,7 +18,7 @@ namespace MisterGames.Input.Core {
         public void ActivateInputScheme(InputScheme scheme) {
             if (_schemes.Contains(scheme)) return;
             _schemes.Add(scheme);
-            
+
             var schemeInputActions = scheme.InputActions;
             for (int i = 0; i < schemeInputActions.Length; i++) {
                 var action = schemeInputActions[i];
@@ -39,7 +39,7 @@ namespace MisterGames.Input.Core {
         
         public void AddInputAction(InputAction action) {
             if (_actionsToAdd.Contains(action)) return;
-            
+
             if (_actionsToRemove.Contains(action)) {
                 _actionsToRemove.Remove(action);
                 return;

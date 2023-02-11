@@ -1,4 +1,4 @@
-﻿﻿using UnityEngine;
+﻿using UnityEngine;
 
 namespace MisterGames.Input.Core {
 
@@ -7,7 +7,6 @@ namespace MisterGames.Input.Core {
 
         [SerializeField] private InputAction[] _inputActions;
         public InputAction[] InputActions => _inputActions;
-
     }
 
 }
