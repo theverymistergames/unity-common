@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using MisterGames.Input.Activation;
 using UnityEngine;
 
@@ -7,7 +8,7 @@ namespace MisterGames.Input.Core {
     [CreateAssetMenu(fileName = nameof(InputChannel), menuName = "MisterGames/Input/" + nameof(InputChannel))]
     public sealed class InputChannel : InputBase {
 
-        [SerializeField] private InputScheme[] _initialInputSchemes;
+        [SerializeField] private InputScheme[] _initialInputSchemes = Array.Empty<InputScheme>();
         
         private readonly List<InputScheme> _schemes = new List<InputScheme>();
         private readonly List<InputAction> _actions = new List<InputAction>();

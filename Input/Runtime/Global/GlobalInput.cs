@@ -34,7 +34,15 @@ namespace MisterGames.Input.Global {
         }
         
         internal static void Terminate() {
+#if UNITY_EDITOR
+            if (Application.isPlaying) _globalInputs?.Dispose();
+            else if (_globalInputs != null) {
+                Object.DestroyImmediate(_globalInputs.asset);
+            }
+#else
             _globalInputs?.Dispose();
+#endif
+
             _globalInputs = null;
             keys.Clear();
             axes.Clear();
