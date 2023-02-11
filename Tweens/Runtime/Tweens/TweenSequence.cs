@@ -34,9 +34,9 @@ namespace MisterGames.Tweens {
 
             while (!token.IsCancellationRequested) {
                 var tween = tweens[_currentTweenIndex];
-                tween.Invert(_isInverted);
 
-                if (loop && !_isInverted) tween.ResetProgress();
+                if (loop && !_isInverted) tween.Rewind(reportProgress: false);
+                tween.Invert(_isInverted);
 
                 await tween.Play(token);
 
@@ -75,21 +75,21 @@ namespace MisterGames.Tweens {
             }
         }
 
-        public void Wind() {
+        public void Wind(bool reportProgress = true) {
             if (tweens.Length == 0) return;
 
             for (int i = _currentTweenIndex; i < tweens.Length; i++) {
-                tweens[i].Wind();
+                tweens[i].Wind(reportProgress);
             }
 
             _currentTweenIndex = tweens.Length - 1;
         }
 
-        public void Rewind() {
+        public void Rewind(bool reportProgress = true) {
             if (tweens.Length == 0) return;
 
             for (int i = _currentTweenIndex; i >= 0; i--) {
-                tweens[i].Rewind();
+                tweens[i].Rewind(reportProgress);
             }
 
             _currentTweenIndex = 0;
@@ -100,12 +100,6 @@ namespace MisterGames.Tweens {
 
             tweens[_currentTweenIndex].Invert(isInverted);
             _isInverted = isInverted;
-        }
-
-        public void ResetProgress() {
-            for (int i = 0; i < tweens.Length; i++) {
-                tweens[i].ResetProgress();
-            }
         }
     }
 

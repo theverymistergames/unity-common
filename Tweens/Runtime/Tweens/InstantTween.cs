@@ -24,9 +24,7 @@ namespace MisterGames.Tweens {
         }
 
         public UniTask Play(CancellationToken token) {
-            if (HasReachedTargetProgress()) {
-                return default;
-            }
+            if (HasReachedTargetProgress()) return default;
 
             action.InvokeAction();
 
@@ -35,15 +33,11 @@ namespace MisterGames.Tweens {
             return default;
         }
 
-        public void Wind() {
+        public void Wind(bool reportProgress = true) {
             _progress = 1;
         }
 
-        public void Rewind() {
-            _progress = 0;
-        }
-
-        public void ResetProgress() {
+        public void Rewind(bool reportProgress = true) {
             _progress = 0;
         }
 

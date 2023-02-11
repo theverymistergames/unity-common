@@ -13,54 +13,46 @@ namespace MisterGames.Tweens {
         [SerializeReference] [SubclassSelector] private ITween[] _tweens;
 
         private UniTask[] _tasks;
-        private int _tweensCount;
 
         public void Initialize(MonoBehaviour owner) {
-            _tweensCount = _tweens.Length;
-            _tasks = new UniTask[_tweensCount];
+            _tasks = new UniTask[_tweens.Length];
 
-            for (int i = 0; i < _tweensCount; i++) {
+            for (int i = 0; i < _tweens.Length; i++) {
                 _tweens[i].Initialize(owner);
             }
         }
 
         public void DeInitialize() {
-            for (int i = 0; i < _tweensCount; i++) {
+            for (int i = 0; i < _tweens.Length; i++) {
                 _tweens[i].DeInitialize();
             }
         }
 
         public async UniTask Play(CancellationToken token) {
-            if (_tweensCount == 0) return;
+            if (_tweens.Length == 0) return;
 
-            for (int i = 0; i < _tweensCount; i++) {
+            for (int i = 0; i < _tweens.Length; i++) {
                 _tasks[i] = _tweens[i].Play(token);
             }
 
             await UniTask.WhenAll(_tasks);
         }
 
-        public void Wind() {
-            for (int i = 0; i < _tweensCount; i++) {
-                _tweens[i].Wind();
+        public void Wind(bool reportProgress = true) {
+            for (int i = 0; i < _tweens.Length; i++) {
+                _tweens[i].Wind(reportProgress);
             }
         }
 
-        public void Rewind() {
-            for (int i = 0; i < _tweensCount; i++) {
-                _tweens[i].Rewind();
+        public void Rewind(bool reportProgress = true) {
+            for (int i = 0; i < _tweens.Length; i++) {
+                _tweens[i].Rewind(reportProgress);
             }
         }
 
         public void Invert(bool isInverted) {
-            for (int i = 0; i < _tweensCount; i++) {
+            for (int i = 0; i < _tweens.Length; i++) {
                 _tweens[i].Invert(isInverted);
-            }
-        }
-
-        public void ResetProgress() {
-            for (int i = 0; i < _tweensCount; i++) {
-                _tweens[i].ResetProgress();
             }
         }
     }

@@ -10,10 +10,9 @@ namespace MisterGames.Tweens.Core {
 
         UniTask Play(CancellationToken token);
 
-        void Wind();
-        void Rewind();
+        void Wind(bool reportProgress = true);
+        void Rewind(bool reportProgress = true);
         void Invert(bool isInverted);
-        void ResetProgress();
     }
 
 }

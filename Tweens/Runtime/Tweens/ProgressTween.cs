@@ -60,22 +60,18 @@ namespace MisterGames.Tweens {
             }
         }
 
-        public void Wind() {
+        public void Wind(bool reportProgress = true) {
             _progress = 1f;
-            ReportProgress();
+            if (reportProgress) ReportProgress();
         }
 
-        public void Rewind() {
+        public void Rewind(bool reportProgress = true) {
             _progress = 0f;
-            ReportProgress();
+            if (reportProgress) ReportProgress();
         }
 
         public void Invert(bool isInverted) {
             _progressDirection = isInverted ? -1f : 1f;
-        }
-
-        public void ResetProgress() {
-            _progress = 0f;
         }
 
         private void ReportProgress() {
