@@ -236,9 +236,10 @@ namespace MisterGames.Blueprints.Compile {
                     }
 
                     int linkedPortIndex = linker.GetLinkedPorts(link.port, out int count);
-                    for (int i = linkedPortIndex; i < count; i++) {
-                        var linkedPortLinks = link.node.RuntimePorts[i].links;
+                    var linkedNodePorts = link.node.RuntimePorts;
 
+                    for (int i = 0; i < count; i++) {
+                        var linkedPortLinks = linkedNodePorts[linkedPortIndex + i].links;
                         runtimeLinks.InsertRange(l, linkedPortLinks);
                         l += linkedPortLinks.Count;
                     }

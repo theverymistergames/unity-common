@@ -192,12 +192,30 @@ namespace MisterGames.Blueprints.Meta {
                 int oldPortSignature = oldPorts[oldPortIndex].GetSignature();
                 int newPortIndex = -1;
 
-                for (int np = 0; np < newPortsCount; np++) {
-                    int newPortSignature = newPorts[np].GetSignature();
-                    if (oldPortSignature != newPortSignature) continue;
+                if (oldPortIndex > newPortsCount - 1) {
+                    for (int np = 0; np < newPortsCount; np++) {
+                        if (oldPortSignature == newPorts[np].GetSignature()) {
+                            newPortIndex = np;
+                            break;
+                        }
+                    }
+                }
+                else {
+                    for (int np = oldPortIndex; np < newPortsCount; np++) {
+                        if (oldPortSignature == newPorts[np].GetSignature()) {
+                            newPortIndex = np;
+                            break;
+                        }
+                    }
 
-                    newPortIndex = np;
-                    break;
+                    if (newPortIndex < 0) {
+                        for (int np = oldPortIndex - 1; np >= 0; np--) {
+                            if (oldPortSignature == newPorts[np].GetSignature()) {
+                                newPortIndex = np;
+                                break;
+                            }
+                        }
+                    }
                 }
 
                 if (oldPortIndex == newPortIndex) continue;
