@@ -8,7 +8,7 @@ namespace MisterGames.BlueprintLib {
     [BlueprintNodeMeta(Name = "If", Category = "Flow", Color = BlueprintColors.Node.Flow)]
     public sealed class BlueprintNodeIf : BlueprintNode, IBlueprintEnter {
         
-        [SerializeField] private bool _defaultCondition;
+        [SerializeField] private bool _condition;
 
         public override Port[] CreatePorts() => new[] {
             Port.Enter(),
@@ -20,7 +20,7 @@ namespace MisterGames.BlueprintLib {
         public void OnEnterPort(int port) {
             if (port != 0) return;
 
-            bool condition = ReadInputPort(1, _defaultCondition);
+            bool condition = ReadInputPort(1, _condition);
             CallExitPort(condition ? 2 : 3);
         }
     }
