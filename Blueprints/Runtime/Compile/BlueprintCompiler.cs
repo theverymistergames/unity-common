@@ -235,11 +235,14 @@ namespace MisterGames.Blueprints.Compile {
                         continue;
                     }
 
-                    int linkedPortIndex = linker.GetLinkedPort(link.port);
-                    var linkedPortLinks = link.node.RuntimePorts[linkedPortIndex].links;
-                    runtimeLinks.InsertRange(l, linkedPortLinks);
+                    int linkedPortIndex = linker.GetLinkedPorts(link.port, out int count);
+                    for (int i = linkedPortIndex; i < count; i++) {
+                        var linkedPortLinks = link.node.RuntimePorts[i].links;
 
-                    l += linkedPortLinks.Count;
+                        runtimeLinks.InsertRange(l, linkedPortLinks);
+                        l += linkedPortLinks.Count;
+                    }
+
                     runtimeLinks.RemoveAt(l);
                 }
             }

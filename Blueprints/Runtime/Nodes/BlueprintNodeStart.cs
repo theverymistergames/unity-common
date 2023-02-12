@@ -23,11 +23,20 @@ namespace MisterGames.Blueprints.Nodes {
             CallExitPort(0);
         }
 
-        public int GetLinkedPort(int port) => port switch {
-            0 => 1,
-            1 => 0,
-            _ => -1,
-        };
+        public int GetLinkedPorts(int port, out int count) {
+            if (port == 0) {
+                count = 1;
+                return 1;
+            }
+
+            if (port == 1) {
+                count = 1;
+                return 0;
+            }
+
+            count = 0;
+            return -1;
+        }
     }
 
 }

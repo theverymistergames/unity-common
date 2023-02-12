@@ -53,18 +53,28 @@ namespace MisterGames.Blueprints.Nodes {
 
                     // Drop external port if its linked port has no links
                     if (node is IBlueprintPortLinker linker) {
-                        int linkedPortIndex = linker.GetLinkedPort(p);
-                        var linkedPort = nodePorts[linkedPortIndex];
+                        bool hasLinks = false;
+                        int linkedPortIndex = linker.GetLinkedPorts(p, out int count);
 
-                        switch (linkedPort.mode) {
-                            case Port.Mode.Input or Port.Mode.InputArray or Port.Mode.NonTypedInput or Port.Mode.Exit:
-                                if (blueprintMeta.GetLinksFromNodePort(nodeId, linkedPortIndex).Count == 0) continue;
-                                break;
+                        for (int i = linkedPortIndex; i < count; i++) {
+                            var linkedPort = nodePorts[i];
 
-                            case Port.Mode.Output or Port.Mode.NonTypedOutput or Port.Mode.Enter:
-                                if (blueprintMeta.GetLinksToNodePort(nodeId, linkedPortIndex).Count == 0) continue;
-                                break;
+                            if (linkedPort.mode is Port.Mode.Input or Port.Mode.InputArray or Port.Mode.NonTypedInput or Port.Mode.Exit) {
+                                if (blueprintMeta.GetLinksFromNodePort(nodeId, i).Count > 0) {
+                                    hasLinks = true;
+                                    break;
+                                }
+                            }
+
+                            if (linkedPort.mode is Port.Mode.Output or Port.Mode.NonTypedOutput or Port.Mode.Enter) {
+                                if (blueprintMeta.GetLinksToNodePort(nodeId, i).Count > 0) {
+                                    hasLinks = true;
+                                    break;
+                                }
+                            }
                         }
+
+                        if (!hasLinks) continue;
                     }
 
                     int portSignature = nodePort.GetSignature();
@@ -94,7 +104,8 @@ namespace MisterGames.Blueprints.Nodes {
         public override Port[] CreatePorts() => null;
 #endif
 
-        public int GetLinkedPort(int port) {
+        public int GetLinkedPorts(int port, out int count) {
+            count = 1;
             return port;
         }
 

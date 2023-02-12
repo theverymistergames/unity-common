@@ -1,6 +1,4 @@
-﻿#if UNITY_EDITOR
-
-namespace MisterGames.Blueprints.Meta {
+﻿namespace MisterGames.Blueprints.Meta {
 
     internal interface IBlueprintPortLinksListener {
 
@@ -9,5 +7,3 @@ namespace MisterGames.Blueprints.Meta {
     }
 
 }
-
-#endif

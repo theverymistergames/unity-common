@@ -1,12 +1,10 @@
-﻿#if UNITY_EDITOR
-
-namespace MisterGames.Blueprints.Meta {
+﻿namespace MisterGames.Blueprints.Meta {
 
     /// <summary>
     /// Used by node to receive validation call with info about owner asset and node id
     /// to perform required validation.
     /// </summary>
-    internal interface IBlueprintAssetValidator {
+    public interface IBlueprintAssetValidator {
 
         /// <summary>
         /// Called when node serialized data is being edited.
@@ -15,5 +13,3 @@ namespace MisterGames.Blueprints.Meta {
     }
 
 }
-
-#endif
