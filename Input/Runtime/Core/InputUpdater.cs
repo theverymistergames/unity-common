@@ -48,7 +48,7 @@ namespace MisterGames.Input.Core {
         private static InputChannel _editorInputChannel;
         private static readonly HashSet<int> _sources = new HashSet<int>();
 
-        public static bool CheckEditorInputUpdaterIsStarted(object source, out InputChannel inputChannel) {
+        public static bool TryStartEditorInputUpdater(object source, out InputChannel inputChannel) {
             inputChannel = null;
 
             if (Application.isPlaying) {
@@ -78,12 +78,11 @@ namespace MisterGames.Input.Core {
             return true;
         }
 
-        public static bool CheckEditorInputUpdaterIsStopped(object source, out InputChannel inputChannel) {
+        public static bool TryStopInputUpdater(object source, out InputChannel inputChannel) {
             inputChannel = null;
 
             if (Application.isPlaying) {
-                Debug.LogWarning($"Cannot stop editor InputUpdater while application is playing");
-                return false;
+                Debug.LogWarning($"InputUpdater.TryStopInputUpdater call is not allowed while application is playing");
             }
 
             _sources.Remove(source.GetHashCode());
