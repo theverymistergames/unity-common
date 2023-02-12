@@ -1,6 +1,7 @@
 ﻿using System;
 using MisterGames.Blueprints;
 using MisterGames.Input.Actions;
+using MisterGames.Input.Core;
 using UnityEngine;
 
 namespace MisterGames.BlueprintLib {
@@ -18,12 +19,24 @@ namespace MisterGames.BlueprintLib {
         };
 
         public override void OnInitialize(IBlueprintHost host) {
+#if UNITY_EDITOR
+            if (!Application.isPlaying && InputUpdater.TryStartEditorInputUpdater(this, out var inputChannel)) {
+                inputChannel.AddInputAction(_inputActionKey);
+            }
+#endif
+
             _inputActionKey.OnUse += OnUse;
             _inputActionKey.OnPress += OnPress;
             _inputActionKey.OnRelease += OnRelease;
         }
 
         public override void OnDeInitialize() {
+#if UNITY_EDITOR
+            if (!Application.isPlaying && InputUpdater.TryStopInputUpdater(this, out var inputChannel)) {
+                inputChannel.RemoveInputAction(_inputActionKey);
+            }
+#endif
+
             _inputActionKey.OnUse -= OnUse;
             _inputActionKey.OnPress -= OnPress;
             _inputActionKey.OnRelease -= OnRelease;
