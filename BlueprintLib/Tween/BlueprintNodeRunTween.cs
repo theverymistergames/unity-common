@@ -11,10 +11,13 @@ namespace MisterGames.BlueprintLib {
     [BlueprintNodeMeta(Name = "Run Tween", Category = "Tweens", Color = BlueprintColors.Node.Actions)]
     public sealed class BlueprintNodeRunTween : BlueprintNode, IBlueprintEnter {
 
+        [SerializeField] private bool _autoInvertNextPlay;
+
         private CancellationTokenSource _destroyCts;
         private CancellationTokenSource _pauseCts;
 
         private bool _isInverted;
+        private bool _isPlayCalledOnce;
         private ITween _tween;
         private MonoBehaviour _runner;
 
@@ -44,7 +47,15 @@ namespace MisterGames.BlueprintLib {
         public void OnEnterPort(int port) {
             switch (port) {
                 case 0:
-                    if (_tween != null) Play(_destroyCts.Token).Forget();
+                    if (_tween != null) {
+                        if (_autoInvertNextPlay && _isPlayCalledOnce) {
+                            _isInverted = !_isInverted;
+                            _tween.Invert(_isInverted);
+                        }
+
+                        _isPlayCalledOnce = true;
+                        Play(_destroyCts.Token).Forget();
+                    }
                     break;
                 
                 case 1:
@@ -69,6 +80,7 @@ namespace MisterGames.BlueprintLib {
                     break;
 
                 case 5:
+                    _pauseCts?.Cancel();
                     _tween?.DeInitialize();
 
                     _tween = ReadInputPort<ITween>(6);
