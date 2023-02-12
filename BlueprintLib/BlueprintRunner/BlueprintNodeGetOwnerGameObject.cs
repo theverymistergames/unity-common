@@ -12,18 +12,18 @@ namespace MisterGames.BlueprintLib {
             Port.Output<GameObject>("GameObject"),
         };
 
-        private GameObject _runnerGameObject;
+        private MonoBehaviour _runner;
 
         public override void OnInitialize(IBlueprintHost host) {
-            _runnerGameObject = host.Runner.gameObject;
+            _runner = host.Runner;
         }
 
         public override void OnDeInitialize() {
-            _runnerGameObject = null;
+            _runner = null;
         }
 
         public GameObject GetOutputPortValue(int port) => port switch {
-            0 => _runnerGameObject,
+            0 => _runner.gameObject,
             _ => null,
         };
     }

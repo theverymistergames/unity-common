@@ -19,7 +19,7 @@ namespace MisterGames.BlueprintLib {
             Port.Enter("Start"),
             Port.Enter("Cancel"),
             Port.Input<float>("Duration"),
-            Port.Exit(),
+            Port.Exit("On Finish"),
         };
 
         public override void OnInitialize(IBlueprintHost host) {

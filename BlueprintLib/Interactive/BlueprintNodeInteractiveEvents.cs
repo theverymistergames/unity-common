@@ -7,9 +7,15 @@ namespace MisterGames.BlueprintLib {
 
     [Serializable]
     [BlueprintNodeMeta(Name = "Interactive Events", Category = "Interactive", Color = BlueprintColors.Node.Events)]
-    public sealed class BlueprintNodeInteractiveEvents : BlueprintNode, IBlueprintOutput<bool>, IBlueprintOutput<InteractiveUser> {
+    public sealed class BlueprintNodeInteractiveEvents :
+        BlueprintNode,
+        IBlueprintEnter,
+        IBlueprintOutput<bool>,
+        IBlueprintOutput<InteractiveUser>
+    {
 
         public override Port[] CreatePorts() => new[] {
+            Port.Enter("Set Interactive"),
             Port.Input<Interactive>("Interactive"),
             Port.Exit("On Start Interact"),
             Port.Exit("On Stop Interact"),
@@ -20,33 +26,44 @@ namespace MisterGames.BlueprintLib {
         private Interactive _interactive;
         private InteractiveUser _currentUser;
 
-        public override void OnInitialize(IBlueprintHost host) {
-            _interactive = ReadInputPort<GameObject>(0).GetComponent<Interactive>();
+        public override void OnDeInitialize() {
+            if (_interactive != null) {
+                _interactive.OnStartInteract -= OnStartInteract;
+                _interactive.OnStopInteract -= OnStopInteract;
+            }
+        }
+
+        public void OnEnterPort(int port) {
+            if (port != 0) return;
+
+            if (_interactive != null) {
+                _interactive.OnStartInteract -= OnStartInteract;
+                _interactive.OnStopInteract -= OnStopInteract;
+            }
+
+            _interactive = ReadInputPort<GameObject>(1).GetComponent<Interactive>();
 
             _interactive.OnStartInteract += OnStartInteract;
             _interactive.OnStopInteract += OnStopInteract;
         }
 
-        public override void OnDeInitialize() {
-            _interactive.OnStartInteract -= OnStartInteract;
-            _interactive.OnStopInteract -= OnStopInteract;
-        }
-
         private void OnStartInteract(InteractiveUser obj) {
             _currentUser = obj;
+            CallExitPort(2);
         }
 
         private void OnStopInteract() {
             _currentUser = null;
+            CallExitPort(3);
         }
 
         bool IBlueprintOutput<bool>.GetOutputPortValue(int port) => port switch {
-            3 => _interactive.IsInteracting,
+            4 => _interactive.IsInteracting,
             _ => false,
         };
 
         InteractiveUser IBlueprintOutput<InteractiveUser>.GetOutputPortValue(int port) => port switch {
-            4 => _currentUser,
+            5 => _currentUser,
             _ => null,
         };
     }
