@@ -6,8 +6,8 @@ using UnityEngine;
 namespace MisterGames.BlueprintLib {
 
     [Serializable]
-    [BlueprintNodeMeta(Name = "Get GameObject", Category = "Blackboard", Color = BlueprintColors.Node.Blackboard)]
-    public sealed class BlueprintNodeGetGameObject : BlueprintNode, IBlueprintOutput<GameObject> {
+    [BlueprintNodeMeta(Name = "Blackboard String", Category = "Blackboard", Color = BlueprintColors.Node.Blackboard)]
+    public sealed class BlueprintNodeBlackboardString : BlueprintNode, IBlueprintOutput<string> {
 
         [SerializeField] private string _property;
 
@@ -15,7 +15,7 @@ namespace MisterGames.BlueprintLib {
         private int _propertyId;
 
         public override Port[] CreatePorts() => new[] {
-            Port.Output<GameObject>()
+            Port.Output<string>()
         };
 
         public override void OnInitialize(IBlueprintHost host) {
@@ -23,9 +23,9 @@ namespace MisterGames.BlueprintLib {
             _propertyId = Blackboard.StringToHash(_property);
         }
 
-        public GameObject GetOutputPortValue(int port) => port switch {
-            0 => _blackboard.GetGameObject(_propertyId),
-            _ => null
+        public string GetOutputPortValue(int port) => port switch {
+            0 => _blackboard.GetString(_propertyId),
+            _ => string.Empty
         };
     }
 

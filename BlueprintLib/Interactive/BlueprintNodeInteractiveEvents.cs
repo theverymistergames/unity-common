@@ -1,7 +1,6 @@
 ﻿using System;
 using MisterGames.Blueprints;
 using MisterGames.Interact.Core;
-using UnityEngine;
 
 namespace MisterGames.BlueprintLib {
 
@@ -13,7 +12,6 @@ namespace MisterGames.BlueprintLib {
         IBlueprintOutput<bool>,
         IBlueprintOutput<InteractiveUser>
     {
-
         public override Port[] CreatePorts() => new[] {
             Port.Enter("Set Interactive"),
             Port.Input<Interactive>("Interactive"),
@@ -41,7 +39,7 @@ namespace MisterGames.BlueprintLib {
                 _interactive.OnStopInteract -= OnStopInteract;
             }
 
-            _interactive = ReadInputPort<GameObject>(1).GetComponent<Interactive>();
+            _interactive = ReadInputPort<Interactive>(1);
 
             _interactive.OnStartInteract += OnStartInteract;
             _interactive.OnStopInteract += OnStopInteract;
