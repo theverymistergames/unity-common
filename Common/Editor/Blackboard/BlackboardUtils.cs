@@ -1,6 +1,9 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using MisterGames.Common.Data;
 using MisterGames.Common.Editor.Utils;
+using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEditor.UIElements;
 using UnityEngine;
@@ -10,6 +13,32 @@ using Blackboard = MisterGames.Common.Data.Blackboard;
 namespace MisterGames.Common.Editor {
 
     public static class BlackboardUtils {
+
+        public static IEqualityComparer GetEqualityComparer(Type type) {
+            if (type == typeof(bool)) return EqualityComparer<bool>.Default;
+            if (type == typeof(float)) return EqualityComparer<float>.Default;
+            if (type == typeof(int)) return EqualityComparer<int>.Default;
+            if (type == typeof(string)) return EqualityComparer<string>.Default;
+            if (type == typeof(Vector2)) return EqualityComparer<Vector2>.Default;
+            if (type == typeof(Vector3)) return EqualityComparer<Vector3>.Default;
+            if (type == typeof(ScriptableObject)) return EqualityComparer<ScriptableObject>.Default;
+            if (type == typeof(GameObject)) return EqualityComparer<GameObject>.Default;
+
+            throw new NotSupportedException($"Blackboard field of type {type.Name} is not supported");
+        }
+
+        public static object BlackboardField(Type type, object value, string name) {
+            if (type == typeof(bool)) return EditorGUILayout.Toggle(name, (bool) value);
+            if (type == typeof(float)) return EditorGUILayout.FloatField(name, (float) value);
+            if (type == typeof(int)) return EditorGUILayout.IntField(name, (int) value);
+            if (type == typeof(string)) return EditorGUILayout.TextField(name, (string) value);
+            if (type == typeof(Vector2)) return EditorGUILayout.Vector2Field(name, (Vector2) value);
+            if (type == typeof(Vector3)) return EditorGUILayout.Vector3Field(name, (Vector3) value);
+            if (type == typeof(ScriptableObject)) return EditorGUILayout.ObjectField(name, (ScriptableObject) value, typeof(ScriptableObject), false);
+            if (type == typeof(GameObject)) return EditorGUILayout.ObjectField(name, (GameObject) value, typeof(GameObject), true);
+
+            throw new NotSupportedException($"Blackboard field of type {type.Name} is not supported");
+        }
 
         public static VisualElement CreateBlackboardPropertyView(
             Blackboard blackboard,
