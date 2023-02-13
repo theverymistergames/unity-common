@@ -7,7 +7,7 @@ namespace MisterGames.Blueprints {
     public sealed class BlueprintRunner : MonoBehaviour, IBlueprintHost {
 
         [SerializeField] private BlueprintAsset _blueprintAsset;
-        [SerializeField] private SerializedDictionary<BlueprintAsset, SerializedDictionary<int, GameObject>> _sceneReferencesMap;
+        [SerializeField] private SerializedDictionary<BlueprintAsset, Blackboard> _blackboardOverridesMap;
 
         public BlueprintAsset BlueprintAsset => _blueprintAsset;
         public Blackboard Blackboard => _blackboard;
@@ -48,18 +48,16 @@ namespace MisterGames.Blueprints {
         }
 
         public void ResolveBlackboardSceneReferences(BlueprintAsset blueprint, Blackboard blackboard) {
-            if (!_sceneReferencesMap.TryGetValue(blueprint, out var references)) return;
+            if (!_blackboardOverridesMap.TryGetValue(blueprint, out var blackboardOverride)) return;
 
-            foreach ((int hash, var gameObjectRef) in references) {
-                blackboard.SetGameObject(hash, gameObjectRef);
-            }
+            blackboard.OverrideValues(blackboardOverride);
         }
 
 #if UNITY_EDITOR
         internal bool IsRunningRuntimeBlueprint => _isRunningRuntimeBlueprint;
 
-        internal SerializedDictionary<BlueprintAsset, SerializedDictionary<int, GameObject>> SceneReferencesMap =>
-            _sceneReferencesMap ??= new SerializedDictionary<BlueprintAsset, SerializedDictionary<int, GameObject>>();
+        internal SerializedDictionary<BlueprintAsset, Blackboard> BlackboardOverridesMap =>
+            _blackboardOverridesMap ??= new SerializedDictionary<BlueprintAsset, Blackboard>();
 
         internal void CompileAndStartRuntimeBlueprint() {
             _isRunningRuntimeBlueprint = true;

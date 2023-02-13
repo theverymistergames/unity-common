@@ -19,16 +19,16 @@ namespace MisterGames.Common.Data {
             typeof(GameObject),
         };
 
-        public SerializedDictionary<int, BlackboardProperty> PropertiesMap;
+        public SerializedDictionary<int, BlackboardProperty> PropertiesMap = new SerializedDictionary<int, BlackboardProperty>();
 
-        public SerializedDictionary<int, bool> Bools;
-        public SerializedDictionary<int, float> Floats;
-        public SerializedDictionary<int, int> Ints;
-        public SerializedDictionary<int, string> Strings;
-        public SerializedDictionary<int, Vector2> Vectors2;
-        public SerializedDictionary<int, Vector3> Vectors3;
-        public SerializedDictionary<int, ScriptableObject> ScriptableObjects;
-        public SerializedDictionary<int, GameObject> GameObjects;
+        public SerializedDictionary<int, bool> Bools = new SerializedDictionary<int, bool>();
+        public SerializedDictionary<int, float> Floats = new SerializedDictionary<int, float>();
+        public SerializedDictionary<int, int> Ints = new SerializedDictionary<int, int>();
+        public SerializedDictionary<int, string> Strings = new SerializedDictionary<int, string>();
+        public SerializedDictionary<int, Vector2> Vectors2 = new SerializedDictionary<int, Vector2>();
+        public SerializedDictionary<int, Vector3> Vectors3 = new SerializedDictionary<int, Vector3>();
+        public SerializedDictionary<int, ScriptableObject> ScriptableObjects = new SerializedDictionary<int, ScriptableObject>();
+        public SerializedDictionary<int, GameObject> GameObjects = new SerializedDictionary<int, GameObject>();
 
         public static int StringToHash(string name) {
             return name.GetHashCode();

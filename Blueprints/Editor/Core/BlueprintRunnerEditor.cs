@@ -1,4 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 using MisterGames.Common.Data;
 using UnityEditor;
 using UnityEngine;
@@ -26,7 +29,7 @@ namespace MisterGames.Blueprints.Editor.Core {
 
             var blueprint = runner.BlueprintAsset;
             if (blueprint == null) {
-                runner.SceneReferencesMap.Clear();
+                runner.BlackboardOverridesMap.Clear();
 
                 if (runner.IsRunningRuntimeBlueprint && GUILayout.Button("Interrupt Blueprint")) {
                     runner.InterruptRuntimeBlueprint();
@@ -51,100 +54,139 @@ namespace MisterGames.Blueprints.Editor.Core {
 
             GUILayout.Space(10);
 
-            GUILayout.Label("Blackboard scene references", EditorStyles.boldLabel);
+            GUILayout.Label("Blackboards", EditorStyles.boldLabel);
 
             _visitedBlueprintAssets.Clear();
 
-            var sceneReferencesMap = runner.SceneReferencesMap;
-            DrawBlackboardGameObjectPropertiesRecursively(blueprint, sceneReferencesMap);
+            var blackboardOverridesMap = runner.BlackboardOverridesMap;
+            DrawBlackboardPropertiesRecursively(blueprint, blackboardOverridesMap);
 
-            var keys = new BlueprintAsset[sceneReferencesMap.Keys.Count];
-            sceneReferencesMap.Keys.CopyTo(keys, 0);
+            var keys = new BlueprintAsset[blackboardOverridesMap.Keys.Count];
+            blackboardOverridesMap.Keys.CopyTo(keys, 0);
 
             for (int i = 0; i < keys.Length; i++) {
                 var blueprintAsset = keys[i];
-                if (!_visitedBlueprintAssets.Contains(blueprintAsset)) sceneReferencesMap.Remove(blueprintAsset);
+                if (!_visitedBlueprintAssets.Contains(blueprintAsset)) blackboardOverridesMap.Remove(blueprintAsset);
             }
 
             _visitedBlueprintAssets.Clear();
         }
 
-        private void DrawBlackboardGameObjectPropertiesRecursively(
+        private void DrawBlackboardPropertiesRecursively(
             BlueprintAsset blueprint,
-            SerializedDictionary<BlueprintAsset, SerializedDictionary<int, GameObject>> sceneReferencesMap
+            SerializedDictionary<BlueprintAsset, Blackboard> blackboardOverridesMap
         ) {
             if (blueprint == null) return;
 
             _visitedBlueprintAssets.Add(blueprint);
 
-            DrawBlackboardGameObjectProperties(blueprint, sceneReferencesMap);
+            DrawBlackboardProperties(blueprint, blackboardOverridesMap);
 
             GUILayout.Space(10);
 
             foreach (var subgraphAsset in blueprint.BlueprintMeta.SubgraphReferencesMap.Values) {
-                DrawBlackboardGameObjectPropertiesRecursively(subgraphAsset, sceneReferencesMap);
+                DrawBlackboardPropertiesRecursively(subgraphAsset, blackboardOverridesMap);
             }
         }
 
-        private static void DrawBlackboardGameObjectProperties(
+        private static void DrawBlackboardProperties(
             BlueprintAsset blueprint,
-            SerializedDictionary<BlueprintAsset, SerializedDictionary<int, GameObject>> sceneReferencesMap
+            SerializedDictionary<BlueprintAsset, Blackboard> blackboardOverridesMap
         ) {
             var blackboard = blueprint.Blackboard;
-            var blackboardGameObjectsMap = blackboard.GameObjects;
+            var propertiesMap = blackboard.PropertiesMap;
 
-            if (blackboardGameObjectsMap.Count == 0) {
-                if (sceneReferencesMap.ContainsKey(blueprint)) sceneReferencesMap.Remove(blueprint);
+            if (propertiesMap.Count == 0) {
+                if (blackboardOverridesMap.ContainsKey(blueprint)) blackboardOverridesMap.Remove(blueprint);
                 return;
             }
 
             EditorGUI.BeginDisabledGroup(true);
-            EditorGUILayout.ObjectField("Blackboard of Blueprint", blueprint, typeof(BlueprintAsset), false);
+            EditorGUILayout.ObjectField("Blueprint Asset", blueprint, typeof(BlueprintAsset), false);
             EditorGUI.EndDisabledGroup();
 
-            if (sceneReferencesMap.TryGetValue(blueprint, out var gameObjectsMap)) {
-                int[] keys = new int[gameObjectsMap.Keys.Count];
-                gameObjectsMap.Keys.CopyTo(keys, 0);
+            if (blackboardOverridesMap.TryGetValue(blueprint, out var blackboardOverride)) {
+                var overridePropertiesMap = blackboardOverride.PropertiesMap;
 
-                for (int i = 0; i < keys.Length; i++) {
-                    int hash = keys[i];
-                    if (!blackboardGameObjectsMap.ContainsKey(hash)) gameObjectsMap.Remove(hash);
+                int[] hashes = new int[overridePropertiesMap.Count];
+                overridePropertiesMap.Keys.CopyTo(hashes, 0);
+
+                for (int i = 0; i < hashes.Length; i++) {
+                    int hash = hashes[i];
+                    if (!propertiesMap.ContainsKey(hash)) blackboardOverride.RemoveProperty(hash);
                 }
             }
 
-            var blackboardPropertiesMap = blackboard.PropertiesMap;
+            var properties = propertiesMap.OrderBy(p => p.Value.index).ToList();
 
-            foreach ((int hash, var gameObject) in blackboardGameObjectsMap) {
-                string propertyName = blackboardPropertiesMap[hash].name;
+            for (int i = 0; i < properties.Count; i++) {
+                (int hash, var property) = properties[i];
+                var type = Blackboard.GetPropertyType(property);
 
-                if (gameObject != null) {
-                    EditorGUI.BeginDisabledGroup(true);
-                    EditorGUILayout.ObjectField(propertyName, gameObject, typeof(GameObject), true);
-                    EditorGUI.EndDisabledGroup();
+                bool hasOverride = blackboardOverride != null && blackboardOverride.PropertiesMap.ContainsKey(hash);
 
-                    if (gameObjectsMap != null && gameObjectsMap.ContainsKey(hash)) gameObjectsMap.Remove(hash);
+                blackboard.TryGetPropertyValue(hash, out object blackboardValue);
+                object value = hasOverride && blackboardOverride.TryGetPropertyValue(hash, out object blackboardOverrideValue)
+                    ? blackboardOverrideValue
+                    : blackboardValue;
+
+                var currentFontStyle = EditorStyles.label.fontStyle;
+                if (hasOverride) EditorStyles.label.fontStyle = FontStyle.Bold;
+
+                object result = BlackboardField(type, value, property.name);
+
+                if (hasOverride) EditorStyles.label.fontStyle = currentFontStyle;
+
+                var comparer = GetEqualityComparer(type);
+
+                if (hasOverride && comparer.Equals(result, blackboardValue)) {
+                    blackboardOverride.RemoveProperty(hash);
                     continue;
                 }
 
-                var gameObjectRef = gameObjectsMap != null && gameObjectsMap.TryGetValue(hash, out var go) ? go : null;
-                var obj = EditorGUILayout.ObjectField(propertyName, gameObjectRef, typeof(GameObject), true) as GameObject;
+                if (comparer.Equals(result, value)) continue;
 
-                if (obj == null) {
-                    if (gameObjectsMap != null && gameObjectsMap.ContainsKey(hash)) gameObjectsMap.Remove(hash);
-                    continue;
+                if (blackboardOverride == null) {
+                    blackboardOverride = new Blackboard();
+                    blackboardOverridesMap[blueprint] = blackboardOverride;
                 }
 
-                if (gameObjectsMap == null) {
-                    gameObjectsMap = new SerializedDictionary<int, GameObject>();
-                    sceneReferencesMap[blueprint] = gameObjectsMap;
+                if (!blackboardOverride.PropertiesMap.ContainsKey(hash)) {
+                    blackboardOverride.TryAddProperty(property.name, type, out _);
                 }
 
-                gameObjectsMap[hash] = obj;
+                blackboardOverride.TrySetPropertyValue(hash, result);
             }
 
-            if (sceneReferencesMap.ContainsKey(blueprint) && (gameObjectsMap == null || gameObjectsMap.Count == 0)) {
-                sceneReferencesMap.Remove(blueprint);
+            if (blackboardOverridesMap.ContainsKey(blueprint) && (blackboardOverride == null || blackboardOverride.PropertiesMap.Count == 0)) {
+                blackboardOverridesMap.Remove(blueprint);
             }
+        }
+
+        private static object BlackboardField(Type type, object value, string name) {
+            if (type == typeof(bool)) return EditorGUILayout.Toggle(name, (bool) value);
+            if (type == typeof(float)) return EditorGUILayout.FloatField(name, (float) value);
+            if (type == typeof(int)) return EditorGUILayout.IntField(name, (int) value);
+            if (type == typeof(string)) return EditorGUILayout.TextField(name, (string) value);
+            if (type == typeof(Vector2)) return EditorGUILayout.Vector2Field(name, (Vector2) value);
+            if (type == typeof(Vector3)) return EditorGUILayout.Vector3Field(name, (Vector3) value);
+            if (type == typeof(ScriptableObject)) return EditorGUILayout.ObjectField(name, (ScriptableObject) value, typeof(ScriptableObject), false);
+            if (type == typeof(GameObject)) return EditorGUILayout.ObjectField(name, (GameObject) value, typeof(GameObject), true);
+
+            throw new NotSupportedException($"Blackboard field of type {type.Name} is not supported for {nameof(BlueprintRunnerEditor)}");
+        }
+
+        private static IEqualityComparer GetEqualityComparer(Type type) {
+            if (type == typeof(bool)) return EqualityComparer<bool>.Default;
+            if (type == typeof(float)) return EqualityComparer<float>.Default;
+            if (type == typeof(int)) return EqualityComparer<int>.Default;
+            if (type == typeof(string)) return EqualityComparer<string>.Default;
+            if (type == typeof(Vector2)) return EqualityComparer<Vector2>.Default;
+            if (type == typeof(Vector3)) return EqualityComparer<Vector3>.Default;
+            if (type == typeof(ScriptableObject)) return EqualityComparer<ScriptableObject>.Default;
+            if (type == typeof(GameObject)) return EqualityComparer<GameObject>.Default;
+
+            throw new NotSupportedException($"Blackboard field of type {type.Name} is not supported for {nameof(BlueprintRunnerEditor)}");
         }
     }
 
