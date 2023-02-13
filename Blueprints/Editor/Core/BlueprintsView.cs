@@ -5,6 +5,7 @@ using MisterGames.Blueprints.Meta;
 using MisterGames.Blueprints.Validation;
 using MisterGames.Common.Data;
 using MisterGames.Common.Editor;
+using MisterGames.Common.Editor.Utils;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
@@ -281,7 +282,7 @@ namespace MisterGames.Blueprints.Editor.Core {
             var blackboard = _blueprintAsset.Blackboard;
             _blackboardView.Clear();
 
-            var properties = new List<BlackboardProperty>(blackboard.PropertiesMap.Values)
+            var properties = blackboard.PropertiesMap.Values
                 .OrderBy(p => p.index)
                 .ToList();
 
@@ -305,7 +306,7 @@ namespace MisterGames.Blueprints.Editor.Core {
 
             Undo.RecordObject(_blueprintAsset, "Blueprint Add Blackboard Property");
 
-            string typeName = Blackboard.GetTypeName(type);
+            string typeName = TypeNameFormatter.GetTypeName(type);
             if (!blackboard.TryAddProperty($"New {typeName}", type, out var property)) return;
 
             var view = BlackboardUtils.CreateBlackboardPropertyView(blackboard, property, OnBlackboardPropertyValueChanged);

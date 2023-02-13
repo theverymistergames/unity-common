@@ -185,19 +185,28 @@ namespace MisterGames.Blueprints.Editor.Core {
             return ColorUtils.HexToColor(nodeColor);
         }
 
-        private static string GetFormattedPortName(int portIndex, Port port) {
-            string name = string.IsNullOrEmpty(port.name) ? string.Empty : port.name.Trim();
-
-            return port.mode switch {
-                Port.Mode.Enter => $"<color={BlueprintColors.Port.Header.Flow}>[{portIndex}] {name}</color>",
-                Port.Mode.Exit => $"<color={BlueprintColors.Port.Header.Flow}>{name} [{portIndex}]</color>",
-                Port.Mode.Input => $"<color={BlueprintColors.Port.Header.GetColorForType(port.DataType)}>[{portIndex}] {name}</color>",
-                Port.Mode.Output => $"<color={BlueprintColors.Port.Header.GetColorForType(port.DataType)}>{name} [{portIndex}]</color>",
-                Port.Mode.InputArray => $"<color={BlueprintColors.Port.Header.GetColorForType(port.DataType)}>[{portIndex}] {name}[]</color>",
-                Port.Mode.NonTypedInput => $"<color={BlueprintColors.Port.Header.Data}>[{portIndex}] {name}</color>",
-                Port.Mode.NonTypedOutput => $"<color={BlueprintColors.Port.Header.Data}>{name} [{portIndex}]</color>",
-                _ => throw new NotSupportedException($"Port mode {port.mode} is not supported"),
-            };
+        private static string GetFormattedPortName(int index, Port port) {
+            return string.IsNullOrEmpty(port.name)
+                ? port.mode switch {
+                    Port.Mode.Enter => $"<color={BlueprintColors.Port.Header.Flow}>[{index}]</color>",
+                    Port.Mode.Exit => $"<color={BlueprintColors.Port.Header.Flow}>[{index}]</color>",
+                    Port.Mode.Input => $"<color={BlueprintColors.Port.Header.GetColorForType(port.DataType)}>[{index}] {TypeNameFormatter.GetTypeName(port.DataType)}</color>",
+                    Port.Mode.Output => $"<color={BlueprintColors.Port.Header.GetColorForType(port.DataType)}>{TypeNameFormatter.GetTypeName(port.DataType)} [{index}]</color>",
+                    Port.Mode.InputArray => $"<color={BlueprintColors.Port.Header.GetColorForType(port.DataType)}>[{index}] {TypeNameFormatter.GetTypeName(port.DataType)}[]</color>",
+                    Port.Mode.NonTypedInput => $"<color={BlueprintColors.Port.Header.Data}>[{index}]</color>",
+                    Port.Mode.NonTypedOutput => $"<color={BlueprintColors.Port.Header.Data}>[{index}]</color>",
+                    _ => throw new NotSupportedException($"Port mode {port.mode} is not supported")
+                }
+                : port.mode switch {
+                    Port.Mode.Enter => $"<color={BlueprintColors.Port.Header.Flow}>[{index}] {port.name.Trim()}</color>",
+                    Port.Mode.Exit => $"<color={BlueprintColors.Port.Header.Flow}>{port.name.Trim()} [{index}]</color>",
+                    Port.Mode.Input => $"<color={BlueprintColors.Port.Header.GetColorForType(port.DataType)}>[{index}] {port.name.Trim()}</color>",
+                    Port.Mode.Output => $"<color={BlueprintColors.Port.Header.GetColorForType(port.DataType)}>{port.name.Trim()} [{index}]</color>",
+                    Port.Mode.InputArray => $"<color={BlueprintColors.Port.Header.GetColorForType(port.DataType)}>[{index}] {port.name.Trim()}</color>",
+                    Port.Mode.NonTypedInput => $"<color={BlueprintColors.Port.Header.Data}>[{index}] {port.name.Trim()}</color>",
+                    Port.Mode.NonTypedOutput => $"<color={BlueprintColors.Port.Header.Data}>{port.name.Trim()} [{index}]</color>",
+                    _ => throw new NotSupportedException($"Port mode {port.mode} is not supported")
+                };
         }
 
         private static Color GetPortColor(Port port) {

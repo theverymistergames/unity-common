@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using MisterGames.Common.Editor.Tree;
+using MisterGames.Common.Editor.Utils;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using Blackboard = MisterGames.Common.Data.Blackboard;
@@ -27,7 +28,7 @@ namespace MisterGames.Common.Editor {
         }
 
         private static SearchTreeEntry CreateSearchTreeEntry(Type type) {
-            return SearchTreeEntryUtils.Entry(Blackboard.GetTypeName(type), type, 1);
+            return SearchTreeEntryUtils.Entry(TypeNameFormatter.GetTypeName(type), type, 1);
         }
     }
 

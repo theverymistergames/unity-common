@@ -15,16 +15,8 @@ namespace MisterGames.Common.Data {
             typeof(string),
             typeof(Vector2),
             typeof(Vector3),
-            typeof(BlackboardEvent),
             typeof(ScriptableObject),
             typeof(GameObject),
-        };
-
-        private static readonly Dictionary<Type, string> NameOverrides = new Dictionary<Type, string> {
-            [typeof(bool)] = "Boolean",
-            [typeof(float)] = "Float",
-            [typeof(int)] = "Int",
-            [typeof(string)] = "String",
         };
 
         public SerializedDictionary<int, BlackboardProperty> PropertiesMap;
@@ -35,7 +27,6 @@ namespace MisterGames.Common.Data {
         public SerializedDictionary<int, string> Strings;
         public SerializedDictionary<int, Vector2> Vectors2;
         public SerializedDictionary<int, Vector3> Vectors3;
-        public SerializedDictionary<int, BlackboardEvent> BlackboardEvents;
         public SerializedDictionary<int, ScriptableObject> ScriptableObjects;
         public SerializedDictionary<int, GameObject> GameObjects;
 
@@ -43,10 +34,6 @@ namespace MisterGames.Common.Data {
             return name.GetHashCode();
         }
 
-        public static string GetTypeName(Type type) {
-            return NameOverrides.TryGetValue(type, out string typeName) ? typeName : type.Name;
-        }
-        
         public static Type GetPropertyType(BlackboardProperty property) {
             return SerializedType.FromString(property.serializedType);
         }
@@ -90,13 +77,6 @@ namespace MisterGames.Common.Data {
             if (Vectors3.TryGetValue(hash, out var value)) return value;
 
             Debug.LogWarning($"Blackboard: trying to get not existing Vector3 value for hash {hash}");
-            return default;
-        }
-
-        public BlackboardEvent GetBlackboardEvent(int hash) {
-            if (BlackboardEvents.TryGetValue(hash, out var value)) return value;
-
-            Debug.LogWarning($"Blackboard: trying to get not existing BlackboardEvent value for hash {hash}");
             return default;
         }
 
@@ -168,15 +148,6 @@ namespace MisterGames.Common.Data {
             Vectors3[hash] = value;
         }
 
-        public void SetBlackboardEvent(int hash, BlackboardEvent value) {
-            if (!BlackboardEvents.ContainsKey(hash)) {
-                Debug.LogWarning($"Blackboard: trying to set not existing BlackboardEvent value for hash {hash}");
-                return;
-            }
-
-            BlackboardEvents[hash] = value;
-        }
-
         public void SetScriptableObject(int hash, ScriptableObject value) {
             if (!ScriptableObjects.ContainsKey(hash)) {
                 Debug.LogWarning($"Blackboard: trying to set not existing ScriptableObject value for hash {hash}");
@@ -215,9 +186,23 @@ namespace MisterGames.Common.Data {
             return true;
         }
 
-        public bool TrySetPropertyName(int hash, string newName) {
+        public bool TryGetPropertyValue(int hash, out object value) {
+            value = default;
             if (!PropertiesMap.TryGetValue(hash, out var property)) return false;
 
+            value = GetValue(GetPropertyType(property), hash);
+            return true;
+        }
+
+        public bool TrySetPropertyValue(int hash, object value) {
+            if (!PropertiesMap.TryGetValue(hash, out var property)) return false;
+
+            SetValue(GetPropertyType(property), hash, value);
+            return true;
+        }
+
+        public bool TrySetPropertyName(int hash, string newName) {
+            if (!PropertiesMap.TryGetValue(hash, out var property)) return false;
 
             newName = ValidateName(newName);
             int newHash = StringToHash(newName);
@@ -234,13 +219,6 @@ namespace MisterGames.Common.Data {
             RemoveValue(type, hash);
             SetValue(type, newHash, value);
 
-            return true;
-        }
-
-        public bool TrySetPropertyValue(int hash, object value) {
-            if (!PropertiesMap.TryGetValue(hash, out var property)) return false;
-
-            SetValue(GetPropertyType(property), hash, value);
             return true;
         }
 
@@ -290,10 +268,43 @@ namespace MisterGames.Common.Data {
                 Strings = new SerializedDictionary<int, string>(Strings),
                 Vectors2 = new SerializedDictionary<int, Vector2>(Vectors2),
                 Vectors3 = new SerializedDictionary<int, Vector3>(Vectors3),
-                BlackboardEvents = new SerializedDictionary<int, BlackboardEvent>(BlackboardEvents),
                 ScriptableObjects = new SerializedDictionary<int, ScriptableObject>(ScriptableObjects),
                 GameObjects = new SerializedDictionary<int, GameObject>(GameObjects)
             };
+        }
+
+        public void OverrideValues(Blackboard blackboardOverride) {
+            foreach ((int hash, bool value) in blackboardOverride.Bools) {
+                SetBool(hash, value);
+            }
+
+            foreach ((int hash, float value) in blackboardOverride.Floats) {
+                SetFloat(hash, value);
+            }
+
+            foreach ((int hash, int value) in blackboardOverride.Ints) {
+                SetInt(hash, value);
+            }
+
+            foreach ((int hash, string value) in blackboardOverride.Strings) {
+                SetString(hash, value);
+            }
+
+            foreach ((int hash, var value) in blackboardOverride.Vectors2) {
+                SetVector2(hash, value);
+            }
+
+            foreach ((int hash, var value) in blackboardOverride.Vectors3) {
+                SetVector3(hash, value);
+            }
+
+            foreach ((int hash, var value) in blackboardOverride.ScriptableObjects) {
+                SetScriptableObject(hash, value);
+            }
+
+            foreach ((int hash, var value) in blackboardOverride.GameObjects) {
+                SetGameObject(hash, value);
+            }
         }
 
         private object GetValue(Type type, int hash) {
@@ -319,10 +330,6 @@ namespace MisterGames.Common.Data {
 
             if (type == typeof(Vector3)) {
                 return Vectors3[hash];
-            }
-
-            if (type == typeof(BlackboardEvent)) {
-                return BlackboardEvents[hash];
             }
 
             if (type == typeof(ScriptableObject)) {
@@ -367,11 +374,6 @@ namespace MisterGames.Common.Data {
                 return;
             }
 
-            if (type == typeof(BlackboardEvent)) {
-                BlackboardEvents[hash] = value as BlackboardEvent;
-                return;
-            }
-
             if (type == typeof(ScriptableObject)) {
                 ScriptableObjects[hash] = value as ScriptableObject;
                 return;
@@ -410,11 +412,6 @@ namespace MisterGames.Common.Data {
 
             if (type == typeof(Vector3)) {
                 Vectors3.Remove(hash);
-                return;
-            }
-
-            if (type == typeof(BlackboardEvent)) {
-                BlackboardEvents.Remove(hash);
                 return;
             }
 

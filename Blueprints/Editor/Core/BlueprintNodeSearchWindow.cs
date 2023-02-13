@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using MisterGames.Blueprints.Validation;
 using MisterGames.Common.Editor.Tree;
+using MisterGames.Common.Editor.Utils;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
@@ -137,21 +138,21 @@ namespace MisterGames.Blueprints.Editor.Core {
                 ? port.mode switch {
                     Port.Mode.Enter => $"[{index}] Enter",
                     Port.Mode.Exit => $"[{index}] Exit",
-                    Port.Mode.Input => $"[{index}] In ({port.DataType.Name})",
-                    Port.Mode.Output => $"[{index}] Out ({port.DataType.Name})",
-                    Port.Mode.InputArray => $"[{index}] In ({port.DataType.Name}[])",
+                    Port.Mode.Input => $"[{index}] In ({TypeNameFormatter.GetTypeName(port.DataType)})",
+                    Port.Mode.Output => $"[{index}] Out ({TypeNameFormatter.GetTypeName(port.DataType)})",
+                    Port.Mode.InputArray => $"[{index}] In ({TypeNameFormatter.GetTypeName(port.DataType)}[])",
                     Port.Mode.NonTypedInput => $"[{index}] In",
                     Port.Mode.NonTypedOutput => $"[{index}] Out",
                     _ => throw new NotSupportedException($"Port mode {port.mode} is not supported")
                 }
                 : port.mode switch {
-                    Port.Mode.Enter => $"[{index}] {port.name}",
-                    Port.Mode.Exit => $"[{index}] {port.name}",
-                    Port.Mode.Input => $"[{index}] {port.name} ({port.DataType.Name})",
-                    Port.Mode.Output => $"[{index}] {port.name} ({port.DataType.Name})",
-                    Port.Mode.InputArray => $"[{index}] {port.name} ({port.DataType.Name}[])",
-                    Port.Mode.NonTypedInput => $"[{index}] {port.name}",
-                    Port.Mode.NonTypedOutput => $"[{index}] {port.name}",
+                    Port.Mode.Enter => $"[{index}] {port.name.Trim()}",
+                    Port.Mode.Exit => $"[{index}] {port.name.Trim()}",
+                    Port.Mode.Input => $"[{index}] {port.name.Trim()} ({TypeNameFormatter.GetTypeName(port.DataType)})",
+                    Port.Mode.Output => $"[{index}] {port.name.Trim()} ({TypeNameFormatter.GetTypeName(port.DataType)})",
+                    Port.Mode.InputArray => $"[{index}] {port.name.Trim()} ({TypeNameFormatter.GetTypeName(port.DataType)}[])",
+                    Port.Mode.NonTypedInput => $"[{index}] {port.name.Trim()}",
+                    Port.Mode.NonTypedOutput => $"[{index}] {port.name.Trim()}",
                     _ => throw new NotSupportedException($"Port mode {port.mode} is not supported")
                 };
         }

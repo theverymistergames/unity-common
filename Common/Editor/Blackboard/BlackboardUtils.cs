@@ -1,5 +1,6 @@
 ﻿using System;
 using MisterGames.Common.Data;
+using MisterGames.Common.Editor.Utils;
 using UnityEditor.Experimental.GraphView;
 using UnityEditor.UIElements;
 using UnityEngine;
@@ -17,7 +18,7 @@ namespace MisterGames.Common.Editor {
         ) {
             int hash = Blackboard.StringToHash(property.name);
             var type = Blackboard.GetPropertyType(property);
-            string typeName = Blackboard.GetTypeName(type);
+            string typeName = TypeNameFormatter.GetTypeName(type);
 
             var nameField = new BlackboardField { text = property.name, typeText = typeName };
             VisualElement valueField = null;
@@ -58,10 +59,6 @@ namespace MisterGames.Common.Editor {
                 valueField = vector3Field;
             }
 
-            if (type == typeof(BlackboardEvent)) {
-                // nothing
-            }
-            
             if (type == typeof(ScriptableObject)) {
                 var scriptableObjectField = new ObjectField {
                     value = blackboard.GetScriptableObject(hash),
