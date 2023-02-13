@@ -8,11 +8,8 @@ using UnityEngine;
 
 namespace MisterGames.Blueprints.Nodes {
 
-#if UNITY_EDITOR
-    [BlueprintNodeMeta(Name = "Exit", Category = "External", Color = BlueprintColors.Node.External)]
-#endif
-
     [Serializable]
+    [BlueprintNodeMeta(Name = "Exit", Category = "External", Color = BlueprintColors.Node.External)]
     public sealed class BlueprintNodeExit : BlueprintNode, IBlueprintPortLinker
 
 #if UNITY_EDITOR

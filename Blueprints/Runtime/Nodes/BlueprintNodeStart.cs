@@ -3,11 +3,8 @@ using MisterGames.Blueprints.Core;
 
 namespace MisterGames.Blueprints.Nodes {
 
-#if UNITY_EDITOR
-    [BlueprintNodeMeta(Name = "Start", Category = "External", Color = BlueprintColors.Node.External)]
-#endif
-
     [Serializable]
+    [BlueprintNodeMeta(Name = "Start", Category = "External", Color = BlueprintColors.Node.External)]
     public sealed class BlueprintNodeStart : BlueprintNode, IBlueprintStart, IBlueprintPortLinker {
 
 #if UNITY_EDITOR

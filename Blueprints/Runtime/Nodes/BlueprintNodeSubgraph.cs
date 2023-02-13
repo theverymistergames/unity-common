@@ -12,11 +12,8 @@ using MisterGames.Blueprints.Validation;
 
 namespace MisterGames.Blueprints.Nodes {
 
-#if UNITY_EDITOR
-    [BlueprintNodeMeta(Name = "Subgraph", Category = "External", Color = BlueprintColors.Node.External)]
-#endif
-
     [Serializable]
+    [BlueprintNodeMeta(Name = "Subgraph", Category = "External", Color = BlueprintColors.Node.External)]
     public sealed class BlueprintNodeSubgraph : BlueprintNode, IBlueprintPortLinker, IBlueprintHost, IBlueprintCompiledNode
 
 #if UNITY_EDITOR

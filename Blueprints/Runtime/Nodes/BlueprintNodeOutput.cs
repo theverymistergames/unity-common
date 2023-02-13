@@ -8,11 +8,8 @@ using UnityEngine;
 
 namespace MisterGames.Blueprints.Nodes {
 
-#if UNITY_EDITOR
-    [BlueprintNodeMeta(Name = "Output", Category = "External", Color = BlueprintColors.Node.External)]
-#endif
-
     [Serializable]
+    [BlueprintNodeMeta(Name = "Output", Category = "External", Color = BlueprintColors.Node.External)]
     public sealed class BlueprintNodeOutput : BlueprintNode, IBlueprintPortLinker
 
 #if UNITY_EDITOR
@@ -39,7 +36,7 @@ namespace MisterGames.Blueprints.Nodes {
             var linkedPort = blueprintMeta.NodesMap[link.nodeId].Ports[link.portIndex];
             var dataType = linkedPort.DataType;
 
-            ports[0] = Port.Input(dataType.Name, dataType);
+            ports[0] = Port.Input(null, dataType);
             ports[1] = Port.Output(_port, dataType).SetExternal(true);
         }
 

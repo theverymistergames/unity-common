@@ -9,12 +9,9 @@ using MisterGames.Blueprints.Validation;
 
 namespace MisterGames.Blueprints.Nodes {
 
-#if UNITY_EDITOR
-    [BlueprintNodeMeta(Name = "ToString", Category = "Debug", Color = BlueprintColors.Node.Debug)]
-#endif
-
-    [Serializable]
     [Obsolete("Using BlueprintNodeToString, it must be removed in the release build!")]
+    [Serializable]
+    [BlueprintNodeMeta(Name = "ToString", Category = "Debug", Color = BlueprintColors.Node.Debug)]
     public sealed class BlueprintNodeToString : BlueprintNode, IBlueprintOutput<string> {
 
         private Func<string> _getString = () => string.Empty;
