@@ -39,11 +39,13 @@ namespace MisterGames.Common.Editor.Drawers {
             for (int i = 0; i < properties.Count; i++) {
                 var propertyData = properties[i];
                 var elementProperty = propertyData.property;
-                if (elementProperty == null) continue;
+                if (elementProperty == null) {
+                    y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
+                    continue;
+                }
 
                 float propertyHeight = EditorGUI.GetPropertyHeight(elementProperty);
                 var rect = new Rect(position.x, y, position.width, propertyHeight);
-
                 EditorGUI.PropertyField(rect, elementProperty, new GUIContent(propertyData.name));
 
                 y += propertyHeight + EditorGUIUtility.standardVerticalSpacing;
@@ -61,9 +63,12 @@ namespace MisterGames.Common.Editor.Drawers {
 
             for (int i = 0; i < properties.Count; i++) {
                 var elementProperty = properties[i].property;
-                if (elementProperty == null) continue;
 
-                height += EditorGUI.GetPropertyHeight(elementProperty) + EditorGUIUtility.standardVerticalSpacing;
+                float propertyHeight = elementProperty == null
+                    ? EditorGUIUtility.singleLineHeight
+                    : EditorGUI.GetPropertyHeight(elementProperty);
+
+                height += propertyHeight + EditorGUIUtility.standardVerticalSpacing;
             }
 
             return height;
@@ -73,14 +78,14 @@ namespace MisterGames.Common.Editor.Drawers {
             var propertiesMap = new Dictionary<int, BlackboardProperty>(((Blackboard) property.GetValue()).PropertiesMap);
             var properties = new List<PropertyData>(propertiesMap.Count);
 
-            FetchBlackboardDictionary(property.FindPropertyRelative("Bools"), propertiesMap, properties);
-            FetchBlackboardDictionary(property.FindPropertyRelative("Floats"), propertiesMap, properties);
-            FetchBlackboardDictionary(property.FindPropertyRelative("Ints"), propertiesMap, properties);
-            FetchBlackboardDictionary(property.FindPropertyRelative("Strings"), propertiesMap, properties);
-            FetchBlackboardDictionary(property.FindPropertyRelative("Vectors2"), propertiesMap, properties);
-            FetchBlackboardDictionary(property.FindPropertyRelative("Vectors3"), propertiesMap, properties);
-            FetchBlackboardDictionary(property.FindPropertyRelative("ScriptableObjects"), propertiesMap, properties);
-            FetchBlackboardDictionary(property.FindPropertyRelative("GameObjects"), propertiesMap, properties);
+            FetchBlackboardDictionary(property.FindPropertyRelative("_bools"), propertiesMap, properties);
+            FetchBlackboardDictionary(property.FindPropertyRelative("_floats"), propertiesMap, properties);
+            FetchBlackboardDictionary(property.FindPropertyRelative("_ints"), propertiesMap, properties);
+            FetchBlackboardDictionary(property.FindPropertyRelative("_strings"), propertiesMap, properties);
+            FetchBlackboardDictionary(property.FindPropertyRelative("_vectors2"), propertiesMap, properties);
+            FetchBlackboardDictionary(property.FindPropertyRelative("_vectors3"), propertiesMap, properties);
+            FetchBlackboardDictionary(property.FindPropertyRelative("_scriptableObjects"), propertiesMap, properties);
+            FetchBlackboardDictionary(property.FindPropertyRelative("_gameObjects"), propertiesMap, properties);
 
             return properties;
         }

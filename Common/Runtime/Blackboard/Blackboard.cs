@@ -8,6 +8,144 @@ namespace MisterGames.Common.Data {
     [Serializable]
     public sealed class Blackboard {
 
+        [SerializeField] private SerializedDictionary<int, bool> _bools = new SerializedDictionary<int, bool>();
+        [SerializeField] private SerializedDictionary<int, float> _floats = new SerializedDictionary<int, float>();
+        [SerializeField] private SerializedDictionary<int, int> _ints = new SerializedDictionary<int, int>();
+        [SerializeField] private SerializedDictionary<int, string> _strings = new SerializedDictionary<int, string>();
+        [SerializeField] private SerializedDictionary<int, Vector2> _vectors2 = new SerializedDictionary<int, Vector2>();
+        [SerializeField] private SerializedDictionary<int, Vector3> _vectors3 = new SerializedDictionary<int, Vector3>();
+        [SerializeField] private SerializedDictionary<int, ScriptableObject> _scriptableObjects = new SerializedDictionary<int, ScriptableObject>();
+        [SerializeField] private SerializedDictionary<int, GameObject> _gameObjects = new SerializedDictionary<int, GameObject>();
+
+        public bool GetBool(int hash) {
+            if (_bools.TryGetValue(hash, out bool value)) return value;
+
+            Debug.LogWarning($"Blackboard: trying to get not existing bool value for hash {hash}");
+            return default;
+        }
+
+        public float GetFloat(int hash) {
+            if (_floats.TryGetValue(hash, out float value)) return value;
+
+            Debug.LogWarning($"Blackboard: trying to get not existing float value for hash {hash}");
+            return default;
+        }
+
+        public int GetInt(int hash) {
+            if (_ints.TryGetValue(hash, out int value)) return value;
+
+            Debug.LogWarning($"Blackboard: trying to get not existing int value for hash {hash}");
+            return default;
+        }
+
+        public string GetString(int hash) {
+            if (_strings.TryGetValue(hash, out string value)) return value;
+
+            Debug.LogWarning($"Blackboard: trying to get not existing string value for hash {hash}");
+            return default;
+        }
+
+        public Vector2 GetVector2(int hash) {
+            if (_vectors2.TryGetValue(hash, out var value)) return value;
+
+            Debug.LogWarning($"Blackboard: trying to get not existing Vector2 value for hash {hash}");
+            return default;
+        }
+
+        public Vector3 GetVector3(int hash) {
+            if (_vectors3.TryGetValue(hash, out var value)) return value;
+
+            Debug.LogWarning($"Blackboard: trying to get not existing Vector3 value for hash {hash}");
+            return default;
+        }
+
+        public ScriptableObject GetScriptableObject(int hash) {
+            if (_scriptableObjects.TryGetValue(hash, out var value)) return value;
+
+            Debug.LogWarning($"Blackboard: trying to get not existing ScriptableObject value for hash {hash}");
+            return default;
+        }
+
+        public GameObject GetGameObject(int hash) {
+            if (_gameObjects.TryGetValue(hash, out var value)) return value;
+
+            Debug.LogWarning($"Blackboard: trying to get not existing GameObject value for hash {hash}");
+            return default;
+        }
+
+        public void SetBool(int hash, bool value) {
+            if (!_bools.ContainsKey(hash)) {
+                Debug.LogWarning($"Blackboard: trying to set not existing bool value for hash {hash}");
+                return;
+            }
+
+            _bools[hash] = value;
+        }
+
+        public void SetFloat(int hash, float value) {
+            if (!_floats.ContainsKey(hash)) {
+                Debug.LogWarning($"Blackboard: trying to set not existing float value for hash {hash}");
+                return;
+            }
+
+            _floats[hash] = value;
+        }
+
+        public void SetInt(int hash, int value) {
+            if (!_ints.ContainsKey(hash)) {
+                Debug.LogWarning($"Blackboard: trying to set not existing int value for hash {hash}");
+                return;
+            }
+
+            _ints[hash] = value;
+        }
+
+        public void SetString(int hash, string value) {
+            if (!_strings.ContainsKey(hash)) {
+                Debug.LogWarning($"Blackboard: trying to set not existing string value for hash {hash}");
+                return;
+            }
+
+            _strings[hash] = value;
+        }
+
+        public void SetVector2(int hash, Vector2 value) {
+            if (!_vectors2.ContainsKey(hash)) {
+                Debug.LogWarning($"Blackboard: trying to set not existing Vector2 value for hash {hash}");
+                return;
+            }
+
+            _vectors2[hash] = value;
+        }
+
+        public void SetVector3(int hash, Vector3 value) {
+            if (!_vectors3.ContainsKey(hash)) {
+                Debug.LogWarning($"Blackboard: trying to set not existing Vector3 value for hash {hash}");
+                return;
+            }
+
+            _vectors3[hash] = value;
+        }
+
+        public void SetScriptableObject(int hash, ScriptableObject value) {
+            if (!_scriptableObjects.ContainsKey(hash)) {
+                Debug.LogWarning($"Blackboard: trying to set not existing ScriptableObject value for hash {hash}");
+                return;
+            }
+
+            _scriptableObjects[hash] = value;
+        }
+
+        public void SetGameObject(int hash, GameObject value) {
+            if (!_gameObjects.ContainsKey(hash)) {
+                Debug.LogWarning($"Blackboard: trying to set not existing GameObject value for hash {hash}");
+                return;
+            }
+
+            _gameObjects[hash] = value;
+        }
+
+#if UNITY_EDITOR
         public static readonly List<Type> SupportedTypes = new List<Type> {
             typeof(bool),
             typeof(float),
@@ -20,15 +158,7 @@ namespace MisterGames.Common.Data {
         };
 
         public SerializedDictionary<int, BlackboardProperty> PropertiesMap = new SerializedDictionary<int, BlackboardProperty>();
-
-        public SerializedDictionary<int, bool> Bools = new SerializedDictionary<int, bool>();
-        public SerializedDictionary<int, float> Floats = new SerializedDictionary<int, float>();
-        public SerializedDictionary<int, int> Ints = new SerializedDictionary<int, int>();
-        public SerializedDictionary<int, string> Strings = new SerializedDictionary<int, string>();
-        public SerializedDictionary<int, Vector2> Vectors2 = new SerializedDictionary<int, Vector2>();
-        public SerializedDictionary<int, Vector3> Vectors3 = new SerializedDictionary<int, Vector3>();
-        public SerializedDictionary<int, ScriptableObject> ScriptableObjects = new SerializedDictionary<int, ScriptableObject>();
-        public SerializedDictionary<int, GameObject> GameObjects = new SerializedDictionary<int, GameObject>();
+        [SerializeField] private int _addedPropertiesTotalCount;
 
         public static int StringToHash(string name) {
             return name.GetHashCode();
@@ -36,134 +166,6 @@ namespace MisterGames.Common.Data {
 
         public static Type GetPropertyType(BlackboardProperty property) {
             return SerializedType.FromString(property.serializedType);
-        }
-
-        public bool GetBool(int hash) {
-            if (Bools.TryGetValue(hash, out bool value)) return value;
-
-            Debug.LogWarning($"Blackboard: trying to get not existing bool value for hash {hash}");
-            return default;
-        }
-
-        public float GetFloat(int hash) {
-            if (Floats.TryGetValue(hash, out float value)) return value;
-
-            Debug.LogWarning($"Blackboard: trying to get not existing float value for hash {hash}");
-            return default;
-        }
-
-        public int GetInt(int hash) {
-            if (Ints.TryGetValue(hash, out int value)) return value;
-
-            Debug.LogWarning($"Blackboard: trying to get not existing int value for hash {hash}");
-            return default;
-        }
-
-        public string GetString(int hash) {
-            if (Strings.TryGetValue(hash, out string value)) return value;
-
-            Debug.LogWarning($"Blackboard: trying to get not existing string value for hash {hash}");
-            return default;
-        }
-
-        public Vector2 GetVector2(int hash) {
-            if (Vectors2.TryGetValue(hash, out var value)) return value;
-
-            Debug.LogWarning($"Blackboard: trying to get not existing Vector2 value for hash {hash}");
-            return default;
-        }
-
-        public Vector3 GetVector3(int hash) {
-            if (Vectors3.TryGetValue(hash, out var value)) return value;
-
-            Debug.LogWarning($"Blackboard: trying to get not existing Vector3 value for hash {hash}");
-            return default;
-        }
-
-        public ScriptableObject GetScriptableObject(int hash) {
-            if (ScriptableObjects.TryGetValue(hash, out var value)) return value;
-
-            Debug.LogWarning($"Blackboard: trying to get not existing ScriptableObject value for hash {hash}");
-            return default;
-        }
-
-        public GameObject GetGameObject(int hash) {
-            if (GameObjects.TryGetValue(hash, out var value)) return value;
-
-            Debug.LogWarning($"Blackboard: trying to get not existing GameObject value for hash {hash}");
-            return default;
-        }
-
-        public void SetBool(int hash, bool value) {
-            if (!Bools.ContainsKey(hash)) {
-                Debug.LogWarning($"Blackboard: trying to set not existing bool value for hash {hash}");
-                return;
-            }
-
-            Bools[hash] = value;
-        }
-
-        public void SetFloat(int hash, float value) {
-            if (!Floats.ContainsKey(hash)) {
-                Debug.LogWarning($"Blackboard: trying to set not existing float value for hash {hash}");
-                return;
-            }
-
-            Floats[hash] = value;
-        }
-
-        public void SetInt(int hash, int value) {
-            if (!Ints.ContainsKey(hash)) {
-                Debug.LogWarning($"Blackboard: trying to set not existing int value for hash {hash}");
-                return;
-            }
-
-            Ints[hash] = value;
-        }
-
-        public void SetString(int hash, string value) {
-            if (!Strings.ContainsKey(hash)) {
-                Debug.LogWarning($"Blackboard: trying to set not existing string value for hash {hash}");
-                return;
-            }
-
-            Strings[hash] = value;
-        }
-
-        public void SetVector2(int hash, Vector2 value) {
-            if (!Vectors2.ContainsKey(hash)) {
-                Debug.LogWarning($"Blackboard: trying to set not existing Vector2 value for hash {hash}");
-                return;
-            }
-
-            Vectors2[hash] = value;
-        }
-
-        public void SetVector3(int hash, Vector3 value) {
-            if (!Vectors3.ContainsKey(hash)) {
-                Debug.LogWarning($"Blackboard: trying to set not existing Vector3 value for hash {hash}");
-                return;
-            }
-
-            Vectors3[hash] = value;
-        }
-
-        public void SetScriptableObject(int hash, ScriptableObject value) {
-            if (!ScriptableObjects.ContainsKey(hash)) {
-                Debug.LogWarning($"Blackboard: trying to set not existing ScriptableObject value for hash {hash}");
-                return;
-            }
-
-            ScriptableObjects[hash] = value;
-        }
-
-        public void SetGameObject(int hash, GameObject value) {
-            if (!GameObjects.ContainsKey(hash)) {
-                Debug.LogWarning($"Blackboard: trying to set not existing GameObject value for hash {hash}");
-                return;
-            }
-
-            GameObjects[hash] = value;
         }
 
         public bool TryAddProperty(string name, Type type, out BlackboardProperty property) {
@@ -177,7 +179,7 @@ namespace MisterGames.Common.Data {
             property = new BlackboardProperty {
                 name = name,
                 serializedType = SerializedType.ToString(type),
-                index = PropertiesMap.Count,
+                index = _addedPropertiesTotalCount++,
             };
 
             SetValue(type, hash, default);
@@ -214,8 +216,8 @@ namespace MisterGames.Common.Data {
             PropertiesMap[newHash] = property;
 
             var type = GetPropertyType(property);
-
             object value = GetValue(type, hash);
+
             RemoveValue(type, hash);
             SetValue(type, newHash, value);
 
@@ -259,85 +261,37 @@ namespace MisterGames.Common.Data {
             return true;
         }
 
-        public Blackboard Clone() {
-            return new Blackboard {
-                PropertiesMap = new SerializedDictionary<int, BlackboardProperty>(PropertiesMap),
-                Bools = new SerializedDictionary<int, bool>(Bools),
-                Floats = new SerializedDictionary<int, float>(Floats),
-                Ints = new SerializedDictionary<int, int>(Ints),
-                Strings = new SerializedDictionary<int, string>(Strings),
-                Vectors2 = new SerializedDictionary<int, Vector2>(Vectors2),
-                Vectors3 = new SerializedDictionary<int, Vector3>(Vectors3),
-                ScriptableObjects = new SerializedDictionary<int, ScriptableObject>(ScriptableObjects),
-                GameObjects = new SerializedDictionary<int, GameObject>(GameObjects)
-            };
-        }
-
-        public void OverrideValues(Blackboard blackboardOverride) {
-            foreach ((int hash, bool value) in blackboardOverride.Bools) {
-                SetBool(hash, value);
-            }
-
-            foreach ((int hash, float value) in blackboardOverride.Floats) {
-                SetFloat(hash, value);
-            }
-
-            foreach ((int hash, int value) in blackboardOverride.Ints) {
-                SetInt(hash, value);
-            }
-
-            foreach ((int hash, string value) in blackboardOverride.Strings) {
-                SetString(hash, value);
-            }
-
-            foreach ((int hash, var value) in blackboardOverride.Vectors2) {
-                SetVector2(hash, value);
-            }
-
-            foreach ((int hash, var value) in blackboardOverride.Vectors3) {
-                SetVector3(hash, value);
-            }
-
-            foreach ((int hash, var value) in blackboardOverride.ScriptableObjects) {
-                SetScriptableObject(hash, value);
-            }
-
-            foreach ((int hash, var value) in blackboardOverride.GameObjects) {
-                SetGameObject(hash, value);
-            }
-        }
-
         private object GetValue(Type type, int hash) {
             if (type == typeof(bool)) {
-                return Bools[hash];
+                return _bools[hash];
             }
 
             if (type == typeof(float)) {
-                return Floats[hash];
+                return _floats[hash];
             }
 
             if (type == typeof(int)) {
-                return Ints[hash];
+                return _ints[hash];
             }
 
             if (type == typeof(string)) {
-                return Strings[hash];
+                return _strings[hash];
             }
 
             if (type == typeof(Vector2)) {
-                return Vectors2[hash];
+                return _vectors2[hash];
             }
 
             if (type == typeof(Vector3)) {
-                return Vectors3[hash];
+                return _vectors3[hash];
             }
 
             if (type == typeof(ScriptableObject)) {
-                return ScriptableObjects[hash];
+                return _scriptableObjects[hash];
             }
 
             if (type == typeof(GameObject)) {
-                return GameObjects[hash];
+                return _gameObjects[hash];
             }
 
             return default;
@@ -345,83 +299,83 @@ namespace MisterGames.Common.Data {
 
         private void SetValue(Type type, int hash, object value) {
             if (type == typeof(bool)) {
-                Bools[hash] = value is bool b ? b : default;
+                _bools[hash] = value is bool b ? b : default;
                 return;
             }
 
             if (type == typeof(float)) {
-                Floats[hash] = value is float f ? f : default;
+                _floats[hash] = value is float f ? f : default;
                 return;
             }
 
             if (type == typeof(int)) {
-                Ints[hash] = value is int i ? i : default;
+                _ints[hash] = value is int i ? i : default;
                 return;
             }
 
             if (type == typeof(string)) {
-                Strings[hash] = value as string;
+                _strings[hash] = value as string;
                 return;
             }
 
             if (type == typeof(Vector2)) {
-                Vectors2[hash] = value is Vector2 v2 ? v2 : default;
+                _vectors2[hash] = value is Vector2 v2 ? v2 : default;
                 return;
             }
 
             if (type == typeof(Vector3)) {
-                Vectors3[hash] = value is Vector3 v3 ? v3 : default;
+                _vectors3[hash] = value is Vector3 v3 ? v3 : default;
                 return;
             }
 
             if (type == typeof(ScriptableObject)) {
-                ScriptableObjects[hash] = value as ScriptableObject;
+                _scriptableObjects[hash] = value as ScriptableObject;
                 return;
             }
 
             if (type == typeof(GameObject)) {
-                GameObjects[hash] = value as GameObject;
+                _gameObjects[hash] = value as GameObject;
             }
         }
 
         private void RemoveValue(Type type, int hash) {
             if (type == typeof(bool)) {
-                Bools.Remove(hash);
+                _bools.Remove(hash);
                 return;
             }
 
             if (type == typeof(float)) {
-                Floats.Remove(hash);
+                _floats.Remove(hash);
                 return;
             }
 
             if (type == typeof(int)) {
-                Ints.Remove(hash);
+                _ints.Remove(hash);
                 return;
             }
 
             if (type == typeof(string)) {
-                Strings.Remove(hash);
+                _strings.Remove(hash);
                 return;
             }
 
             if (type == typeof(Vector2)) {
-                Vectors2.Remove(hash);
+                _vectors2.Remove(hash);
                 return;
             }
 
             if (type == typeof(Vector3)) {
-                Vectors3.Remove(hash);
+                _vectors3.Remove(hash);
                 return;
             }
 
             if (type == typeof(ScriptableObject)) {
-                ScriptableObjects.Remove(hash);
+                _scriptableObjects.Remove(hash);
                 return;
             }
 
             if (type == typeof(GameObject)) {
-                GameObjects.Remove(hash);
+                _gameObjects.Remove(hash);
             }
         }
 
@@ -445,6 +399,7 @@ namespace MisterGames.Common.Data {
             Debug.LogError($"Blackboard does not support type {type.Name}");
             return false;
         }
+#endif
     }
 
 }
