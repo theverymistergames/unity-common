@@ -1,6 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using MisterGames.Common.Data;
+using MisterGames.Common.Editor.Drawers;
+using MisterGames.Common.Editor.Utils;
 using UnityEditor;
 using UnityEngine;
 
@@ -60,10 +61,10 @@ namespace MisterGames.Blueprints.Editor.Core {
             for (int i = 0; i < count; i++) {
                 var entry = blackboardOverrides.GetArrayElementAtIndex(i);
 
-                var ownerBlueprint = entry.FindPropertyRelative("key");
-                var blackboard = entry.FindPropertyRelative("value");
+                var ownerBlueprintProperty = entry.FindPropertyRelative("key");
+                var blackboardProperty = entry.FindPropertyRelative("value");
 
-                EditorGUILayout.PropertyField(blackboard, new GUIContent("Blackboard Of Blueprint"));
+                EditorGUILayout.PropertyField(blackboardProperty, new GUIContent("Blackboard of Blueprint"));
 
                 var blackboardRect = GUILayoutUtility.GetLastRect();
                 var headerRect = new Rect(
@@ -74,7 +75,7 @@ namespace MisterGames.Blueprints.Editor.Core {
                 );
 
                 EditorGUI.BeginDisabledGroup(true);
-                EditorGUI.PropertyField(headerRect, ownerBlueprint, GUIContent.none);
+                EditorGUI.PropertyField(headerRect, ownerBlueprintProperty, GUIContent.none);
                 EditorGUI.EndDisabledGroup();
 
                 if (i < count - 1) GUILayout.Space(EditorGUIUtility.standardVerticalSpacing);
@@ -113,57 +114,24 @@ namespace MisterGames.Blueprints.Editor.Core {
 
             _visitedBlueprintAssets.Add(blueprint);
 
-            FetchBlackboard(blueprint, blackboardOverridesMap);
+            FetchBlackboardOfBlueprint(blueprint, blackboardOverridesMap);
 
             foreach (var subgraphAsset in blueprint.BlueprintMeta.SubgraphReferencesMap.Values) {
                 FetchBlackboardOfBlueprintAndItsSubgraphsRecursively(subgraphAsset, blackboardOverridesMap);
             }
         }
 
-        private static void FetchBlackboard(
+        private static void FetchBlackboardOfBlueprint(
             BlueprintAsset blueprint,
             SerializedDictionary<BlueprintAsset, Blackboard> blackboardOverridesMap
         ) {
-            var blackboard = blueprint.Blackboard;
-            var propertiesMap = blackboard.PropertiesMap;
-
-            if (propertiesMap.Count == 0) {
-                if (blackboardOverridesMap.ContainsKey(blueprint)) blackboardOverridesMap.Remove(blueprint);
+            if (!blackboardOverridesMap.TryGetValue(blueprint, out var blackboardOverride)) {
+                blackboardOverride = new Blackboard(blueprint.Blackboard);
+                blackboardOverridesMap[blueprint] = blackboardOverride;
                 return;
             }
 
-            if (!blackboardOverridesMap.TryGetValue(blueprint, out var blackboardOverride)) {
-                blackboardOverride = new Blackboard();
-                blackboardOverridesMap[blueprint] = blackboardOverride;
-            }
-
-            var overridenPropertiesMap = blackboardOverride.PropertiesMap;
-            int overridenPropertiesCount = overridenPropertiesMap.Count;
-
-            int[] hashes = overridenPropertiesCount > 0 ? new int[overridenPropertiesCount] : Array.Empty<int>();
-            overridenPropertiesMap.Keys.CopyTo(hashes, 0);
-
-            for (int i = 0; i < hashes.Length; i++) {
-                int hash = hashes[i];
-
-                if (propertiesMap.TryGetValue(hash, out var property) &&
-                    overridenPropertiesMap.TryGetValue(hash, out var overridenProperty) &&
-                    Blackboard.GetPropertyType(property) == Blackboard.GetPropertyType(overridenProperty)
-                ) {
-                    continue;
-                }
-
-                blackboardOverride.RemoveProperty(hash);
-            }
-
-            foreach ((int hash, var property) in propertiesMap) {
-                if (!overridenPropertiesMap.ContainsKey(hash) && blackboard.TryGetPropertyValue(hash, out object blackboardValue)) {
-                    blackboardOverride.TryAddProperty(property.name, Blackboard.GetPropertyType(property), out _);
-                    blackboardOverride.TrySetPropertyValue(hash, blackboardValue);
-                }
-
-                blackboardOverride.TrySetPropertyIndex(hash, property.index);
-            }
+            blackboardOverride.OverrideBlackboard(blueprint.Blackboard);
         }
     }
 

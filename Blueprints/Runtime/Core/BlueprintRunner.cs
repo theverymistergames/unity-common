@@ -46,9 +46,7 @@ namespace MisterGames.Blueprints {
         }
 
         public Blackboard GetBlackboard(BlueprintAsset blueprint) {
-            return _blackboardOverridesMap.TryGetValue(blueprint, out var blackboardOverride)
-                ? blackboardOverride
-                : new Blackboard();
+            return _blackboardOverridesMap[blueprint];
         }
 
 #if UNITY_EDITOR
