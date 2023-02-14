@@ -1,30 +1,76 @@
 ﻿using System;
+using UnityEngine;
+using Type = System.Type;
 
 namespace MisterGames.Common.Data {
-    
-    public static class SerializedType {
-        
+
+    [Serializable]
+    public sealed class SerializedType : IEquatable<SerializedType>, IEquatable<Type> {
+
+        [SerializeField] private string _type;
+
         private struct SerializedTypeData
         {
             public string typeName;
             public string genericTypeName;
             public bool isGeneric;
         }
-     
-        public static Type FromString(string serializedTypeString) {
-            return string.IsNullOrEmpty(serializedTypeString) || IsGeneric(serializedTypeString) 
-                ? null 
-                : Type.GetType(SplitTypeString(serializedTypeString).typeName, true);
+
+        private SerializedType() { }
+
+        public SerializedType(Type type) {
+            _type = ToString(type);
         }
-        
-        public static string ToString(Type type)
+
+        public static implicit operator Type(SerializedType serializedType) {
+            return string.IsNullOrEmpty(serializedType._type) || IsGeneric(serializedType._type)
+                ? null
+                : Type.GetType(SplitTypeString(serializedType._type).typeName, true);
+        }
+
+        public bool Equals(Type other) {
+            return other != null && (Type) this == other;
+        }
+
+        public bool Equals(SerializedType other) {
+            return other != null && (Type) this == (Type) other;
+        }
+
+        public override bool Equals(object obj) {
+            return ReferenceEquals(this, obj) ||
+                   obj is SerializedType otherSerializedType && Equals(otherSerializedType) ||
+                   obj is Type otherType && Equals(otherType);
+        }
+
+        public override int GetHashCode() {
+            var type = (Type) this;
+            return type != null ? type.GetHashCode() : 0;
+        }
+
+        public static bool operator ==(SerializedType serializedType, Type type) {
+            return (Type) serializedType == type;
+        }
+
+        public static bool operator !=(SerializedType serializedType, Type type) {
+            return !(serializedType == type);
+        }
+
+        public static bool operator ==(SerializedType serializedType0, SerializedType serializedType1) {
+            return (Type) serializedType0 == (Type) serializedType1;
+        }
+
+        public static bool operator !=(SerializedType serializedType0, SerializedType serializedType1) {
+            return !(serializedType0 == serializedType1);
+        }
+
+        private static string ToString(Type type)
         {
             var data = new SerializedTypeData();
             if (type == null) return string.Empty;
-            
+
             data.typeName = string.Empty;
             data.isGeneric = type.ContainsGenericParameters;
-            
+
             if (data.isGeneric && type.IsGenericType) {
                 data.typeName = ToShortTypeName(type.GetGenericTypeDefinition());
             }
@@ -32,10 +78,10 @@ namespace MisterGames.Common.Data {
                 int num = data.isGeneric ? type.IsArray ? 1 : 0 : 0;
                 data.typeName = num == 0 ? !data.isGeneric ? ToShortTypeName(type) : "T" : "T[]";
             }
-            
+
             return ToString(data);
         }
-        
+
         private static string ToString(SerializedTypeData data) {
             return data.typeName + "#" + data.genericTypeName + "#" + (data.isGeneric ? "1" : "0");
         }
