@@ -25,7 +25,7 @@ namespace MisterGames.Common.Editor.Drawers {
             var headerRect = new Rect(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
 
             EditorGUI.LabelField(headerRect, label);
-            property.isExpanded = EditorGUI.Foldout(headerRect, property.isExpanded, GUIContent.none, toggleOnLabelClick: true);
+            property.isExpanded = EditorGUI.Foldout(headerRect, property.isExpanded, GUIContent.none, toggleOnLabelClick: false);
 
             if (!property.isExpanded) return;
 
