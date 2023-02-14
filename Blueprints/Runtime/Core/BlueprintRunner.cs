@@ -21,9 +21,7 @@ namespace MisterGames.Blueprints {
             _isRunningRuntimeBlueprint = true;
 
             _runtimeBlueprint = _blueprintAsset.Compile();
-
-            _blackboard = _blueprintAsset.Blackboard.Clone();
-            ResolveBlackboardSceneReferences(_blueprintAsset, _blackboard);
+            _blackboard = GetBlackboard(_blueprintAsset);
 
             _runtimeBlueprint.Initialize(this);
         }
@@ -47,10 +45,10 @@ namespace MisterGames.Blueprints {
             _runtimeBlueprint.Start();
         }
 
-        public void ResolveBlackboardSceneReferences(BlueprintAsset blueprint, Blackboard blackboard) {
-            if (!_blackboardOverridesMap.TryGetValue(blueprint, out var blackboardOverride)) return;
-
-            blackboard.OverrideValues(blackboardOverride);
+        public Blackboard GetBlackboard(BlueprintAsset blueprint) {
+            return _blackboardOverridesMap.TryGetValue(blueprint, out var blackboardOverride)
+                ? blackboardOverride
+                : new Blackboard();
         }
 
 #if UNITY_EDITOR
@@ -63,9 +61,7 @@ namespace MisterGames.Blueprints {
             _isRunningRuntimeBlueprint = true;
 
             _runtimeBlueprint = _blueprintAsset.Compile();
-
-            _blackboard = _blueprintAsset.Blackboard.Clone();
-            ResolveBlackboardSceneReferences(_blueprintAsset, _blackboard);
+            _blackboard = GetBlackboard(_blueprintAsset);
 
             _runtimeBlueprint.Initialize(this);
             _runtimeBlueprint.Start();

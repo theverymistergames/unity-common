@@ -108,9 +108,7 @@ namespace MisterGames.Blueprints.Nodes {
 
         public override void OnInitialize(IBlueprintHost host) {
             _host = host;
-
-            _blackboard = _blueprintAsset.Blackboard.Clone();
-            ResolveBlackboardSceneReferences(_blueprintAsset, _blackboard);
+            _blackboard = GetBlackboard(_blueprintAsset);
 
             _runtimeBlueprint.Initialize(this);
         }
@@ -119,8 +117,8 @@ namespace MisterGames.Blueprints.Nodes {
             _runtimeBlueprint.DeInitialize();
         }
 
-        public void ResolveBlackboardSceneReferences(BlueprintAsset blueprint, Blackboard blackboard) {
-            _host.ResolveBlackboardSceneReferences(blueprint, blackboard);
+        public Blackboard GetBlackboard(BlueprintAsset blueprint) {
+            return _host.GetBlackboard(blueprint);
         }
 
         public void Compile(Port[] ports) {

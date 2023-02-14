@@ -7,7 +7,7 @@ namespace MisterGames.Blueprints {
         MonoBehaviour Runner { get; }
         Blackboard Blackboard { get; }
 
-        void ResolveBlackboardSceneReferences(BlueprintAsset blueprint, Blackboard blackboard);
+        Blackboard GetBlackboard(BlueprintAsset blueprint);
     }
 
 }
