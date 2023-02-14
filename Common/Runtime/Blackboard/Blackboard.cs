@@ -164,9 +164,10 @@ namespace MisterGames.Common.Data {
 
 #if UNITY_EDITOR
         [SerializeField] private List<BlackboardProperty> _properties = new List<BlackboardProperty>();
+        [SerializeField] private Blackboard _overridenBlackboard;
 
-        public Blackboard overridenBlackboard;
         public IReadOnlyList<BlackboardProperty> Properties => _properties;
+        public Blackboard OverridenBlackboard => _overridenBlackboard;
 
         public static readonly List<Type> SupportedTypes = new List<Type> {
             typeof(bool),
@@ -183,13 +184,36 @@ namespace MisterGames.Common.Data {
             return name.GetHashCode();
         }
 
+        public void OverrideBlackboard(Blackboard blackboard, bool removeNotExistentProperties = true) {
+            _overridenBlackboard = blackboard;
+
+            if (removeNotExistentProperties) {
+                for (int i = 0; i < _properties.Count; i++) {
+                    var property = _properties[i];
+                    if (!blackboard.HasProperty(property.hash)) RemoveProperty(property.hash);
+                }
+            }
+
+            for (int i = 0; i < blackboard.Properties.Count; i++) {
+                var property = blackboard.Properties[i];
+
+                if (!HasProperty(property.hash)) {
+                    object value = blackboard.GetValue(property.type, property.hash);
+                    TryAddProperty(property.name, property.type, value, out _);
+                    continue;
+                }
+
+                TrySetPropertyIndex(property.hash, i);
+            }
+        }
+
         public bool TryAddProperty(string name, Type type, object value, out BlackboardProperty property) {
             property = default;
             if (!ValidateType(type)) return false;
             
             name = ValidateName(name);
             int hash = StringToHash(name);
-            if (TryGetProperty(hash, out _)) return false;
+            if (HasProperty(hash)) return false;
 
             property = new BlackboardProperty {
                 hash = hash,
@@ -200,6 +224,16 @@ namespace MisterGames.Common.Data {
             SetValue(type, hash, value);
 
             _properties.Add(property);
+            return true;
+        }
+
+        public bool TryGetPropertyValue(int hash, out object value) {
+            if (!TryGetProperty(hash, out var property)) {
+                value = default;
+                return false;
+            }
+
+            value = GetValue(property.type, hash);
             return true;
         }
 
@@ -216,12 +250,22 @@ namespace MisterGames.Common.Data {
             return true;
         }
 
+        public bool TrySetPropertyValueAtIndex(int index, object value) {
+            if (index < 0 || index > _properties.Count - 1) return false;
+
+            var property = _properties[index];
+            if (value.GetType() != property.type) return false;
+
+            SetValue(property.type, property.hash, value);
+            return true;
+        }
+
         public bool TrySetPropertyName(int hash, string newName) {
             if (!TryGetProperty(hash, out int index, out var property)) return false;
 
             newName = ValidateName(newName);
             int newHash = StringToHash(newName);
-            if (TryGetProperty(newHash, out _)) return false;
+            if (HasProperty(newHash)) return false;
 
             property.name = newName;
             property.hash = newHash;
@@ -251,11 +295,28 @@ namespace MisterGames.Common.Data {
             return true;
         }
 
+        public bool HasProperty(int hash) {
+            return
+                _bools.ContainsKey(hash) ||
+                _floats.ContainsKey(hash) ||
+                _ints.ContainsKey(hash) ||
+                _strings.ContainsKey(hash) ||
+                _vectors2.ContainsKey(hash) ||
+                _vectors3.ContainsKey(hash) ||
+                _scriptableObjects.ContainsKey(hash) ||
+                _gameObjects.ContainsKey(hash);
+        }
+
         public void RemoveProperty(int hash) {
             if (!TryGetProperty(hash, out int index, out var property)) return;
 
             _properties.RemoveAt(index);
             RemoveValue(property.type, hash);
+        }
+
+        public void RemovePropertyAt(int index) {
+            if (index < 0 || index > _properties.Count - 1) return;
+            _properties.RemoveAt(index);
         }
 
         private bool TryGetProperty(int hash, out int index, out BlackboardProperty property) {
@@ -394,7 +455,7 @@ namespace MisterGames.Common.Data {
 
         private string ValidateName(string name) {
             int hash = StringToHash(name);
-            if (!TryGetProperty(hash, out _)) return name;
+            if (!HasProperty(hash)) return name;
 
             int count = 1;
             string pattern = $@"{name} \([0-9]+\)";

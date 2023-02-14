@@ -17,49 +17,48 @@ namespace MisterGames.Common.Editor {
             Action<string, object> onValueChanged
         ) {
             int hash = Blackboard.StringToHash(property.name);
-            var type = Blackboard.GetPropertyType(property);
-            string typeName = TypeNameFormatter.GetTypeName(type);
+            string typeName = TypeNameFormatter.GetTypeName(property.type);
 
             var nameField = new BlackboardField { text = property.name, typeText = typeName };
             VisualElement valueField = null;
 
-            if (type == typeof(bool)) {
+            if (property.type == typeof(bool)) {
                 var boolField = new Toggle { value = blackboard.GetBool(hash) };
                 boolField.RegisterValueChangedCallback(evt => onValueChanged.Invoke(nameField.text, evt.newValue));
                 valueField = boolField;
             }
 
-            if (type == typeof(float)) {
+            if (property.type == typeof(float)) {
                 var floatField = new FloatField { value = blackboard.GetFloat(hash) };
                 floatField.RegisterValueChangedCallback(evt => onValueChanged.Invoke(nameField.text, evt.newValue));
                 valueField = floatField;
             }
 
-            if (type == typeof(int)) {
+            if (property.type == typeof(int)) {
                 var intField = new IntegerField { value = blackboard.GetInt(hash) };
                 intField.RegisterValueChangedCallback(evt => onValueChanged.Invoke(nameField.text, evt.newValue));
                 valueField = intField;
             }
 
-            if (type == typeof(string)) {
+            if (property.type == typeof(string)) {
                 var textField = new TextField { value = blackboard.GetString(hash) };
                 textField.RegisterValueChangedCallback(evt => onValueChanged.Invoke(nameField.text, evt.newValue));
                 valueField = textField;
             }
 
-            if (type == typeof(Vector2)) {
+            if (property.type == typeof(Vector2)) {
                 var vector2Field = new Vector2Field { value = blackboard.GetVector2(hash) };
                 vector2Field.RegisterValueChangedCallback(evt => onValueChanged.Invoke(nameField.text, evt.newValue));
                 valueField = vector2Field;
             }
 
-            if (type == typeof(Vector3)) {
+            if (property.type == typeof(Vector3)) {
                 var vector3Field = new Vector3Field { value = blackboard.GetVector3(hash) };
                 vector3Field.RegisterValueChangedCallback(evt => onValueChanged.Invoke(nameField.text, evt.newValue));
                 valueField = vector3Field;
             }
 
-            if (type == typeof(ScriptableObject)) {
+            if (property.type == typeof(ScriptableObject)) {
                 var scriptableObjectField = new ObjectField {
                     value = blackboard.GetScriptableObject(hash),
                     objectType = typeof(ScriptableObject),
@@ -69,7 +68,7 @@ namespace MisterGames.Common.Editor {
                 valueField = scriptableObjectField;
             }
 
-            if (type == typeof(GameObject)) {
+            if (property.type == typeof(GameObject)) {
                 var gameObjectField = new ObjectField {
                     value = blackboard.GetGameObject(hash),
                     objectType = typeof(GameObject),
