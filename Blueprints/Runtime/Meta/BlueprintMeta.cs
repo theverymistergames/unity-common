@@ -88,7 +88,7 @@ namespace MisterGames.Blueprints.Meta {
                 if (toPort.mode is not (Port.Mode.Output or Port.Mode.NonTypedOutput)) return false;
 
                 // input and output must have same data type
-                if (toPort.mode == Port.Mode.Output && fromPort.DataType != toPort.DataType) return false;
+                if (toPort.mode == Port.Mode.Output && fromPort.dataType != toPort.dataType) return false;
 
                 // replacing connections from the input port fromPort to the output port toPort with new connection
                 RemoveAllLinksFromNodePort(fromNodeId, fromPortIndex);
@@ -100,7 +100,7 @@ namespace MisterGames.Blueprints.Meta {
                 if (toPort.mode is not (Port.Mode.Output or Port.Mode.NonTypedOutput)) return false;
 
                 // input and output must have same data type
-                if (toPort.mode == Port.Mode.Output && fromPort.DataType != toPort.DataType) return false;
+                if (toPort.mode == Port.Mode.Output && fromPort.dataType != toPort.dataType) return false;
 
                 // add connection from the input port fromPort to the output port toPort
                 CreateConnection(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
@@ -120,7 +120,7 @@ namespace MisterGames.Blueprints.Meta {
                 if (toPort.mode is not (Port.Mode.Input or Port.Mode.InputArray or Port.Mode.NonTypedInput)) return false;
 
                 // input and output must have same data type
-                if (toPort.mode is (Port.Mode.Input or Port.Mode.InputArray) && fromPort.DataType != toPort.DataType) return false;
+                if (toPort.mode is (Port.Mode.Input or Port.Mode.InputArray) && fromPort.dataType != toPort.dataType) return false;
 
                 // replacing connections from the input port toPort to the output port fromPort with new connection
                 if (toPort.mode is Port.Mode.Input or Port.Mode.NonTypedInput) RemoveAllLinksFromNodePort(toNodeId, toPortIndex);
@@ -163,7 +163,7 @@ namespace MisterGames.Blueprints.Meta {
         public IReadOnlyList<BlueprintLink> GetLinksToNodePort(int nodeId, int portIndex) {
             if (!_toNodePortLinksMap.TryGetValue(nodeId, out var toNodePortLinksMap) ||
                 !toNodePortLinksMap.TryGetValue(portIndex, out var toNodePortLinks)
-               ) {
+            ) {
                 return Array.Empty<BlueprintLink>();
             }
 

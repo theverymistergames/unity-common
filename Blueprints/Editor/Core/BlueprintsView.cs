@@ -50,7 +50,7 @@ namespace MisterGames.Blueprints.Editor.Core {
             public struct NodeData {
                 public int nodeId;
                 public Vector2 position;
-                public string serializedNodeType;
+                public SerializedType nodeType;
                 public string nodeJson;
             }
 
@@ -282,12 +282,8 @@ namespace MisterGames.Blueprints.Editor.Core {
             var blackboard = _blueprintAsset.Blackboard;
             _blackboardView.Clear();
 
-            var properties = blackboard.PropertiesMap.Values
-                .OrderBy(p => p.index)
-                .ToList();
-
-            for (int i = 0; i < properties.Count; i++) {
-                var property = properties[i];
+            for (int i = 0; i < blackboard.Properties.Count; i++) {
+                var property = blackboard.Properties[i];
                 var view = BlackboardUtils.CreateBlackboardPropertyView(blackboard, property, OnBlackboardPropertyValueChanged);
                 _blackboardView.Add(view);
             }
@@ -307,7 +303,7 @@ namespace MisterGames.Blueprints.Editor.Core {
             Undo.RecordObject(_blueprintAsset, "Blueprint Add Blackboard Property");
 
             string typeName = TypeNameFormatter.GetTypeName(type);
-            if (!blackboard.TryAddProperty($"New {typeName}", type, out var property)) return;
+            if (!blackboard.TryAddProperty($"New {typeName}", type, default, out var property)) return;
 
             var view = BlackboardUtils.CreateBlackboardPropertyView(blackboard, property, OnBlackboardPropertyValueChanged);
             _blackboardView.Add(view);
@@ -652,7 +648,7 @@ namespace MisterGames.Blueprints.Editor.Core {
                     copyData.nodes.Add(new CopyPasteData.NodeData {
                         nodeId = nodeMeta.NodeId,
                         position = nodeMeta.Position,
-                        serializedNodeType = SerializedType.ToString(nodeMeta.Node.GetType()),
+                        nodeType = new SerializedType(nodeMeta.Node.GetType()),
                         nodeJson = JsonUtility.ToJson(nodeMeta.Node),
                     });
                     continue;
@@ -694,7 +690,7 @@ namespace MisterGames.Blueprints.Editor.Core {
             for (int i = 0; i < pasteData.nodes.Count; i++) {
                 var nodeData = pasteData.nodes[i];
 
-                var nodeType = SerializedType.FromString(nodeData.serializedNodeType);
+                var nodeType = (Type) nodeData.nodeType;
                 var node = JsonUtility.FromJson(nodeData.nodeJson, nodeType) as BlueprintNode;
                 var position = nodeData.position + positionDiff;
 

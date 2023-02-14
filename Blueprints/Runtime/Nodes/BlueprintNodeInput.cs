@@ -34,7 +34,7 @@ namespace MisterGames.Blueprints.Nodes {
 
             var link = linksToOutput[0];
             var linkedPort = blueprintMeta.NodesMap[link.nodeId].Ports[link.portIndex];
-            var dataType = linkedPort.DataType;
+            var dataType = linkedPort.dataType;
 
             ports[0] = Port.Output(null, dataType);
             ports[1] = Port.Input(_port, dataType).SetExternal(true);

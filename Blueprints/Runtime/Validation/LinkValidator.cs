@@ -22,9 +22,9 @@ namespace MisterGames.Blueprints.Validation {
             return port.mode switch {
                 Port.Mode.Enter => ValidateLinkToEnterPort(asset, toNodeMeta, toPortIndex),
                 Port.Mode.Exit => ValidateLinkToExitPort(asset, toNodeMeta, toPortIndex),
-                Port.Mode.Input => ValidateLinkToInputPort(asset, port.DataType, toNodeMeta, toPortIndex),
-                Port.Mode.Output => ValidateLinkToOutputPort(asset, port.DataType, toNodeMeta, toPortIndex),
-                Port.Mode.InputArray => ValidateLinkToInputArrayPort(asset, port.DataType, toNodeMeta, toPortIndex),
+                Port.Mode.Input => ValidateLinkToInputPort(asset, port.dataType, toNodeMeta, toPortIndex),
+                Port.Mode.Output => ValidateLinkToOutputPort(asset, port.dataType, toNodeMeta, toPortIndex),
+                Port.Mode.InputArray => ValidateLinkToInputArrayPort(asset, port.dataType, toNodeMeta, toPortIndex),
                 Port.Mode.NonTypedInput => ValidateLinkToNonTypedInputPort(asset, toNodeMeta, toPortIndex),
                 Port.Mode.NonTypedOutput => ValidateLinkToNonTypedOutputPort(asset, toNodeMeta, toPortIndex),
                 _ => throw new NotSupportedException($"Port mode {port.mode} is not supported")
@@ -96,7 +96,7 @@ namespace MisterGames.Blueprints.Validation {
                 return true;
             }
 
-            if (port.DataType != dataType) {
+            if (port.dataType != dataType) {
                 Debug.LogError($"Blueprint `{asset.name}`: " +
                                $"Validation failed for output port {portIndex} of node {nodeMeta}: " +
                                $"port type is not {dataType.Name}.");
@@ -106,14 +106,14 @@ namespace MisterGames.Blueprints.Validation {
             bool implementsIBlueprintOutputInterface = ValidationUtils.GetGenericInterface(
                 node.GetType(),
                 typeof(IBlueprintOutput<>),
-                port.DataType
+                port.dataType
             ) != null;
 
             if (!implementsIBlueprintOutputInterface && node is not IBlueprintPortLinker) {
                 Debug.LogError($"Blueprint `{asset.name}`: " +
                                $"Validation failed for output port {portIndex} of node {nodeMeta}: " +
                                $"node class {node.GetType().Name} does not implement interface " +
-                               $"{typeof(IBlueprintOutput<>).Name}<{port.DataType.Name}> or {typeof(IBlueprintPortLinker)}.");
+                               $"{typeof(IBlueprintOutput<>).Name}<{port.dataType.Name}> or {typeof(IBlueprintPortLinker)}.");
                 return false;
             }
 
@@ -156,7 +156,7 @@ namespace MisterGames.Blueprints.Validation {
                 return true;
             }
 
-            if (port.DataType != dataType) {
+            if (port.dataType != dataType) {
                 Debug.LogError($"Blueprint `{asset.name}`: " +
                                $"Validation failed for output port {portIndex} of node {nodeMeta}: " +
                                $"port type is not {dataType.Name}.");
@@ -166,14 +166,14 @@ namespace MisterGames.Blueprints.Validation {
             bool implementsIBlueprintOutputInterface = ValidationUtils.GetGenericInterface(
                 node.GetType(),
                 typeof(IBlueprintOutput<>),
-                port.DataType
+                port.dataType
             ) != null;
 
             if (!implementsIBlueprintOutputInterface && node is not IBlueprintPortLinker) {
                 Debug.LogError($"Blueprint `{asset.name}`: " +
                                $"Validation failed for output port {portIndex} of node {nodeMeta}: " +
                                $"node class {node.GetType().Name} does not implement interface " +
-                               $"{typeof(IBlueprintOutput<>).Name}<{port.DataType.Name}> or {typeof(IBlueprintPortLinker)}.");
+                               $"{typeof(IBlueprintOutput<>).Name}<{port.dataType.Name}> or {typeof(IBlueprintPortLinker)}.");
                 return false;
             }
 
@@ -201,14 +201,14 @@ namespace MisterGames.Blueprints.Validation {
             bool implementsIBlueprintOutputInterface = ValidationUtils.GetGenericInterface(
                 node.GetType(),
                 typeof(IBlueprintOutput<>),
-                port.DataType
+                port.dataType
             ) != null;
 
             if (!implementsIBlueprintOutputInterface && node is not IBlueprintPortLinker) {
                 Debug.LogError($"Blueprint `{asset.name}`: " +
                                $"Validation failed for output port {portIndex} of node {nodeMeta}: " +
                                $"node class {node.GetType().Name} does not implement interface " +
-                               $"{typeof(IBlueprintOutput<>).Name}<{port.DataType.Name}> or {typeof(IBlueprintPortLinker)}.");
+                               $"{typeof(IBlueprintOutput<>).Name}<{port.dataType.Name}> or {typeof(IBlueprintPortLinker)}.");
                 return false;
             }
 

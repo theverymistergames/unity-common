@@ -44,7 +44,7 @@ namespace MisterGames.Blueprints.Nodes {
                 var method = link.node.GetType().GetMethod("GetOutputPortValue");
 
                 if (method == null) {
-                    var dataType = link.node.CreatePorts()[link.port].DataType;
+                    var dataType = link.node.CreatePorts()[link.port].dataType;
                     var interfaceType = ValidationUtils.GetGenericInterface(
                         link.node.GetType(),
                         typeof(IBlueprintOutput<>),

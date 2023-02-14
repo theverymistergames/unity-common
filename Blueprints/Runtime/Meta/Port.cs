@@ -10,13 +10,9 @@ namespace MisterGames.Blueprints {
         public string name;
         public bool isExternalPort;
         public Mode mode;
+        public Type dataType => _serializedType;
 
-        [SerializeField] private string _serializedDataType;
-
-        public Type DataType {
-            get => SerializedType.FromString(_serializedDataType);
-            private set => _serializedDataType = SerializedType.ToString(value);
-        }
+        [SerializeField] private SerializedType _serializedType;
 
         public enum Mode {
             Enter,
@@ -36,7 +32,7 @@ namespace MisterGames.Blueprints {
         public int GetSignature() => HashCode.Combine(
             mode,
             string.IsNullOrWhiteSpace(name) ? string.Empty : name,
-            string.IsNullOrEmpty(_serializedDataType) ? string.Empty : _serializedDataType
+            _serializedType == null ? typeof(int) : dataType
         );
 
         public static Port Enter(string name = null) {
@@ -57,7 +53,7 @@ namespace MisterGames.Blueprints {
             return new Port {
                 name = name,
                 mode = Mode.Input,
-                DataType = typeof(T),
+                _serializedType = new SerializedType(typeof(T)),
             };
         }
 
@@ -65,7 +61,7 @@ namespace MisterGames.Blueprints {
             return new Port {
                 name = name,
                 mode = Mode.Output,
-                DataType = typeof(T),
+                _serializedType = new SerializedType(typeof(T)),
             };
         }
 
@@ -73,7 +69,7 @@ namespace MisterGames.Blueprints {
             return new Port {
                 name = name,
                 mode = Mode.InputArray,
-                DataType = typeof(T),
+                _serializedType = new SerializedType(typeof(T)),
             };
         }
 
@@ -81,7 +77,7 @@ namespace MisterGames.Blueprints {
             return new Port {
                 name = name,
                 mode = type == null ? Mode.NonTypedInput : Mode.Input,
-                DataType = type,
+                _serializedType = new SerializedType(type),
             };
         }
 
@@ -89,7 +85,7 @@ namespace MisterGames.Blueprints {
             return new Port {
                 name = name,
                 mode = type == null ? Mode.NonTypedOutput : Mode.Output,
-                DataType = type,
+                _serializedType = new SerializedType(type),
             };
         }
 
@@ -97,7 +93,7 @@ namespace MisterGames.Blueprints {
             return new Port {
                 name = name,
                 mode = type == null ? Mode.NonTypedInput : Mode.InputArray,
-                DataType = type,
+                _serializedType = new SerializedType(type),
             };
         }
 
@@ -107,9 +103,9 @@ namespace MisterGames.Blueprints {
             string modeText = mode switch {
                     Mode.Enter => "enter",
                     Mode.Exit => "exit",
-                    Mode.Input => $"input<{DataType.Name}>",
-                    Mode.Output => $"output<{DataType.Name}>",
-                    Mode.InputArray => $"inputArray<{DataType.Name}>",
+                    Mode.Input => $"input<{dataType.Name}>",
+                    Mode.Output => $"output<{dataType.Name}>",
+                    Mode.InputArray => $"inputArray<{dataType.Name}>",
                     Mode.NonTypedInput => "input",
                     Mode.NonTypedOutput => "output",
                     _ => throw new NotSupportedException($"Port mode {mode} is not supported")

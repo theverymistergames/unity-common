@@ -138,9 +138,9 @@ namespace MisterGames.Blueprints.Editor.Core {
                 ? port.mode switch {
                     Port.Mode.Enter => $"[{index}] Enter",
                     Port.Mode.Exit => $"[{index}] Exit",
-                    Port.Mode.Input => $"[{index}] In ({TypeNameFormatter.GetTypeName(port.DataType)})",
-                    Port.Mode.Output => $"[{index}] Out ({TypeNameFormatter.GetTypeName(port.DataType)})",
-                    Port.Mode.InputArray => $"[{index}] In ({TypeNameFormatter.GetTypeName(port.DataType)}[])",
+                    Port.Mode.Input => $"[{index}] In ({TypeNameFormatter.GetTypeName(port.dataType)})",
+                    Port.Mode.Output => $"[{index}] Out ({TypeNameFormatter.GetTypeName(port.dataType)})",
+                    Port.Mode.InputArray => $"[{index}] In ({TypeNameFormatter.GetTypeName(port.dataType)}[])",
                     Port.Mode.NonTypedInput => $"[{index}] In",
                     Port.Mode.NonTypedOutput => $"[{index}] Out",
                     _ => throw new NotSupportedException($"Port mode {port.mode} is not supported")
@@ -148,9 +148,9 @@ namespace MisterGames.Blueprints.Editor.Core {
                 : port.mode switch {
                     Port.Mode.Enter => $"[{index}] {port.name.Trim()}",
                     Port.Mode.Exit => $"[{index}] {port.name.Trim()}",
-                    Port.Mode.Input => $"[{index}] {port.name.Trim()} ({TypeNameFormatter.GetTypeName(port.DataType)})",
-                    Port.Mode.Output => $"[{index}] {port.name.Trim()} ({TypeNameFormatter.GetTypeName(port.DataType)})",
-                    Port.Mode.InputArray => $"[{index}] {port.name.Trim()} ({TypeNameFormatter.GetTypeName(port.DataType)}[])",
+                    Port.Mode.Input => $"[{index}] {port.name.Trim()} ({TypeNameFormatter.GetTypeName(port.dataType)})",
+                    Port.Mode.Output => $"[{index}] {port.name.Trim()} ({TypeNameFormatter.GetTypeName(port.dataType)})",
+                    Port.Mode.InputArray => $"[{index}] {port.name.Trim()} ({TypeNameFormatter.GetTypeName(port.dataType)}[])",
                     Port.Mode.NonTypedInput => $"[{index}] {port.name.Trim()}",
                     Port.Mode.NonTypedOutput => $"[{index}] {port.name.Trim()}",
                     _ => throw new NotSupportedException($"Port mode {port.mode} is not supported")
