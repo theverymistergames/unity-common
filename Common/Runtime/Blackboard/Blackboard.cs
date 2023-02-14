@@ -17,6 +17,23 @@ namespace MisterGames.Common.Data {
         [SerializeField] private SerializedDictionary<int, ScriptableObject> _scriptableObjects = new SerializedDictionary<int, ScriptableObject>();
         [SerializeField] private SerializedDictionary<int, GameObject> _gameObjects = new SerializedDictionary<int, GameObject>();
 
+        public Blackboard() { }
+
+        public Blackboard(Blackboard source) {
+            _bools = new SerializedDictionary<int, bool>(source._bools);
+            _floats = new SerializedDictionary<int, float>(source._floats);
+            _ints = new SerializedDictionary<int, int>(source._ints);
+            _strings = new SerializedDictionary<int, string>(source._strings);
+            _vectors2 = new SerializedDictionary<int, Vector2>(source._vectors2);
+            _vectors3 = new SerializedDictionary<int, Vector3>(source._vectors3);
+            _scriptableObjects = new SerializedDictionary<int, ScriptableObject>(source._scriptableObjects);
+            _gameObjects = new SerializedDictionary<int, GameObject>(source._gameObjects);
+
+#if UNITY_EDITOR
+            _properties = new List<BlackboardProperty>(source._properties);
+#endif
+        }
+
         public bool GetBool(int hash) {
             if (_bools.TryGetValue(hash, out bool value)) return value;
 
@@ -146,6 +163,11 @@ namespace MisterGames.Common.Data {
         }
 
 #if UNITY_EDITOR
+        [SerializeField] private List<BlackboardProperty> _properties = new List<BlackboardProperty>();
+
+        public Blackboard overridenBlackboard;
+        public IReadOnlyList<BlackboardProperty> Properties => _properties;
+
         public static readonly List<Type> SupportedTypes = new List<Type> {
             typeof(bool),
             typeof(float),
@@ -157,108 +179,99 @@ namespace MisterGames.Common.Data {
             typeof(GameObject),
         };
 
-        public SerializedDictionary<int, BlackboardProperty> PropertiesMap = new SerializedDictionary<int, BlackboardProperty>();
-        [SerializeField] private int _addedPropertiesTotalCount;
-
         public static int StringToHash(string name) {
             return name.GetHashCode();
         }
 
-        public static Type GetPropertyType(BlackboardProperty property) {
-            return SerializedType.FromString(property.serializedType);
-        }
-
-        public bool TryAddProperty(string name, Type type, out BlackboardProperty property) {
+        public bool TryAddProperty(string name, Type type, object value, out BlackboardProperty property) {
             property = default;
             if (!ValidateType(type)) return false;
             
             name = ValidateName(name);
             int hash = StringToHash(name);
-            if (PropertiesMap.ContainsKey(hash)) return false;
+            if (TryGetProperty(hash, out _)) return false;
 
             property = new BlackboardProperty {
+                hash = hash,
                 name = name,
-                serializedType = SerializedType.ToString(type),
-                index = _addedPropertiesTotalCount++,
+                type = new SerializedType(type),
             };
 
-            SetValue(type, hash, default);
+            SetValue(type, hash, value);
 
-            PropertiesMap[hash] = property;
+            _properties.Add(property);
             return true;
         }
 
-        public bool TryGetPropertyValue(int hash, out object value) {
-            value = default;
-            if (!PropertiesMap.TryGetValue(hash, out var property)) return false;
-
-            value = GetValue(GetPropertyType(property), hash);
-            return true;
+        public bool TryGetProperty(int hash, out BlackboardProperty property) {
+            return TryGetProperty(hash, out int _, out property);
         }
 
         public bool TrySetPropertyValue(int hash, object value) {
-            if (!PropertiesMap.TryGetValue(hash, out var property)) return false;
+            if (!TryGetProperty(hash, out var property)) return false;
 
-            SetValue(GetPropertyType(property), hash, value);
+            if (value.GetType() != property.type) return false;
+
+            SetValue(property.type, hash, value);
             return true;
         }
 
         public bool TrySetPropertyName(int hash, string newName) {
-            if (!PropertiesMap.TryGetValue(hash, out var property)) return false;
+            if (!TryGetProperty(hash, out int index, out var property)) return false;
 
             newName = ValidateName(newName);
             int newHash = StringToHash(newName);
-            if (PropertiesMap.ContainsKey(newHash)) return false;
+            if (TryGetProperty(newHash, out _)) return false;
 
             property.name = newName;
+            property.hash = newHash;
+            _properties[index] = property;
 
-            PropertiesMap.Remove(hash);
-            PropertiesMap[newHash] = property;
+            object value = GetValue(property.type, hash);
 
-            var type = GetPropertyType(property);
-            object value = GetValue(type, hash);
-
-            RemoveValue(type, hash);
-            SetValue(type, newHash, value);
+            RemoveValue(property.type, hash);
+            SetValue(property.type, newHash, value);
 
             return true;
         }
 
         public bool TrySetPropertyIndex(int hash, int newIndex) {
-            if (!PropertiesMap.TryGetValue(hash, out var property)) return false;
+            if (newIndex < 0) return false;
+            if (!TryGetProperty(hash, out int oldIndex, out var property)) return false;
 
-            int oldIndex = property.index;
-
-            property.index = newIndex;
-            PropertiesMap[hash] = property;
-
-            bool hasPropertyWithNewIndex = false;
-            int newIndexPropertyHash = 0;
-
-            foreach ((int h, var p) in PropertiesMap) {
-                if (p.index != newIndex) continue;
-
-                newIndexPropertyHash = h;
-                hasPropertyWithNewIndex = true;
-                break;
+            if (newIndex >= _properties.Count) {
+                _properties.RemoveAt(oldIndex);
+                _properties.Add(property);
+                return true;
             }
 
-            if (hasPropertyWithNewIndex) {
-                var p = PropertiesMap[newIndexPropertyHash];
-                p.index = oldIndex;
-                PropertiesMap[newIndexPropertyHash] = p;
-            }
+            _properties[oldIndex] = _properties[newIndex];
+            _properties[newIndex] = property;
 
             return true;
         }
 
-        public bool RemoveProperty(int hash) {
-            if (!PropertiesMap.TryGetValue(hash, out var property)) return false;
+        public void RemoveProperty(int hash) {
+            if (!TryGetProperty(hash, out int index, out var property)) return;
 
-            PropertiesMap.Remove(hash);
-            RemoveValue(GetPropertyType(property), hash);
+            _properties.RemoveAt(index);
+            RemoveValue(property.type, hash);
+        }
 
-            return true;
+        private bool TryGetProperty(int hash, out int index, out BlackboardProperty property) {
+            for (int i = 0; i < _properties.Count; i++) {
+                var p = _properties[i];
+                if (p.hash != hash) continue;
+
+                property = p;
+                index = i;
+                return true;
+            }
+
+            property = default;
+            index = -1;
+
+            return false;
         }
 
         private object GetValue(Type type, int hash) {
@@ -381,12 +394,13 @@ namespace MisterGames.Common.Data {
 
         private string ValidateName(string name) {
             int hash = StringToHash(name);
-            if (!PropertiesMap.ContainsKey(hash)) return name;
+            if (!TryGetProperty(hash, out _)) return name;
 
             int count = 1;
             string pattern = $@"{name} \([0-9]+\)";
 
-            foreach (var property in PropertiesMap.Values) {
+            for (int i = 0; i < _properties.Count; i++) {
+                var property = _properties[i];
                 if (property.name.IsValidForPattern(pattern)) count++;
             }
 

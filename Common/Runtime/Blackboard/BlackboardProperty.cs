@@ -4,9 +4,9 @@ namespace MisterGames.Common.Data {
 
     [Serializable]
     public struct BlackboardProperty {
-        public int index;
+        public int hash;
         public string name;
-        public string serializedType;
+        public SerializedType type;
     }
 
 }
