@@ -218,8 +218,8 @@ namespace MisterGames.Common.Data {
                 var property = blackboard.Properties[i];
 
                 if (!HasProperty(property.hash)) {
-                    object value = blackboard.GetValue(property.type, property.hash);
-                    TryAddProperty(property.name, property.type, value, out _);
+                    _properties.Add(property);
+                    SetValue(property.type, property.hash, blackboard.GetValue(property.type, property.hash));
                     continue;
                 }
 
