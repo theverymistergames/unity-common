@@ -1,4 +1,5 @@
 ﻿using MisterGames.Common.Easing;
+using MisterGames.Common.Editor.Utils;
 using UnityEditor;
 using UnityEngine;
 
@@ -18,9 +19,14 @@ namespace MisterGames.Common.Editor.Drawers {
             var curveRect = new Rect(position.x, position.y, easingPropertyX - EASING_PROPERTY_PADDING, position.height);
             EditorGUI.PropertyField(curveRect, curveProperty, label);
 
-            var easingProperty = property.FindPropertyRelative("_easingType");
+            var currentType = (EasingType) property.FindPropertyRelative("easingType").enumValueIndex;
             var easingRect = new Rect(easingPropertyX, position.y, easingPropertyWidth, position.height);
-            EditorGUI.PropertyField(easingRect, easingProperty, GUIContent.none);
+            var selectedType = (EasingType) EditorGUI.EnumPopup(easingRect, GUIContent.none, currentType);
+
+            if (selectedType != currentType && property.GetValue() is EasingCurve easingCurve) {
+                easingCurve.easingType = selectedType;
+                easingCurve.SetCurveFromEasingType();
+            }
         }
 
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label) {

@@ -63,12 +63,17 @@ namespace MisterGames.Common.Editor {
                 var curve = blackboard.GetCurve(hash);
 
                 var easingField = new EnumField(curve.easingType);
+                var curveField = new CurveField { value = curve.curve };
+
                 easingField.RegisterValueChangedCallback(evt => {
                     var value = new EasingCurve { easingType = (EasingType) evt.newValue };
+                    value.SetCurveFromEasingType();
+
+                    curveField.value = value.curve;
+
                     onValueChanged.Invoke(nameField.text, value);
                 });
 
-                var curveField = new CurveField { value = curve.curve };
                 curveField.RegisterValueChangedCallback(evt => {
                     var value = new EasingCurve();
                     if (Enum.TryParse<EasingType>(easingField.text, out var easingType)) value.easingType = easingType;
