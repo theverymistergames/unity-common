@@ -189,38 +189,39 @@ namespace MisterGames.Blueprints.Meta {
             bool hasInstantiatedPortLinksMapsCache = false;
 
             for (int oldPortIndex = 0; oldPortIndex < oldPortsCount; oldPortIndex++) {
-                int oldPortSignature = oldPorts[oldPortIndex].GetSignature();
+                var oldPort = oldPorts[oldPortIndex];
                 int newPortIndex = -1;
 
-                if (oldPortIndex > newPortsCount - 1) {
-                    for (int np = 0; np < newPortsCount; np++) {
-                        if (oldPortSignature == newPorts[np].GetSignature()) {
-                            newPortIndex = np;
-                            break;
-                        }
-                    }
-                }
-                else {
-                    for (int np = oldPortIndex; np < newPortsCount; np++) {
-                        if (oldPortSignature == newPorts[np].GetSignature()) {
-                            newPortIndex = np;
-                            break;
-                        }
-                    }
+                // Try find port with same signature in range from old port index to the last port in new ports.
+                for (int np = oldPortIndex; np < newPortsCount; np++) {
+                    if (oldPort != newPorts[np]) continue;
 
-                    if (newPortIndex < 0) {
-                        for (int np = oldPortIndex - 1; np >= 0; np--) {
-                            if (oldPortSignature == newPorts[np].GetSignature()) {
-                                newPortIndex = np;
-                                break;
-                            }
-                        }
-                    }
+                    newPortIndex = np;
+                    break;
                 }
 
-                if (oldPortIndex == newPortIndex) continue;
+                // Port with same signature is found at same index as an old port, old links are valid.
+                if (newPortIndex == oldPortIndex) continue;
 
-                if (invalidateLinks) {
+                portsChanged = true;
+
+                if (!invalidateLinks) continue;
+
+                // If new port index is not found at first attempt,
+                // try find port with same signature in range from 0 to old port index - 1
+                // or to the last port in new ports if old port index exceeds new ports range.
+                if (newPortIndex < 0) {
+                    int count = Math.Min(oldPortIndex, newPortsCount);
+                    for (int np = 0; np < count; np++) {
+                        if (oldPort != newPorts[np]) continue;
+
+                        newPortIndex = np;
+                        break;
+                    }
+                }
+
+                // Found port with same signature on new index, adding old links at new port index
+                if (newPortIndex >= 0) {
                     if (!hasInstantiatedPortLinksMapsCache) {
                         if (_fromNodePortLinksMap.TryGetValue(nodeId, out var fromNodePortLinksMap)) {
                             fromPortLinksMapCache = new Dictionary<int, List<BlueprintLink>>(fromNodePortLinksMap);
@@ -233,28 +234,24 @@ namespace MisterGames.Blueprints.Meta {
                         hasInstantiatedPortLinksMapsCache = true;
                     }
 
-                    if (newPortIndex >= 0) {
-                        IReadOnlyList<BlueprintLink> fromPortLinks =
-                            fromPortLinksMapCache != null &&
-                            fromPortLinksMapCache.TryGetValue(oldPortIndex, out var fromPortLinksCache)
-                                ? fromPortLinksCache
-                                : Array.Empty<BlueprintLink>();
+                    var fromPortLinks =
+                        fromPortLinksMapCache != null &&
+                        fromPortLinksMapCache.TryGetValue(oldPortIndex, out var fromPortLinksCache)
+                            ? fromPortLinksCache
+                            : (IReadOnlyList<BlueprintLink>) Array.Empty<BlueprintLink>();
 
-                        IReadOnlyList<BlueprintLink> toPortLinks =
-                            toPortLinksMapCache != null &&
-                            toPortLinksMapCache.TryGetValue(oldPortIndex, out var toPortLinksCache)
-                                ? toPortLinksCache
-                                : Array.Empty<BlueprintLink>();
+                    var toPortLinks =
+                        toPortLinksMapCache != null &&
+                        toPortLinksMapCache.TryGetValue(oldPortIndex, out var toPortLinksCache)
+                            ? toPortLinksCache
+                            : (IReadOnlyList<BlueprintLink>) Array.Empty<BlueprintLink>();
 
-                        SetLinksFromNodePort(nodeId, newPortIndex, fromPortLinks);
-                        SetLinksToNodePort(nodeId, newPortIndex, toPortLinks);
-                    }
-
-                    RemoveAllLinksFromNodePort(nodeId, oldPortIndex);
-                    RemoveAllLinksToNodePort(nodeId, oldPortIndex);
+                    SetLinksFromNodePort(nodeId, newPortIndex, fromPortLinks);
+                    SetLinksToNodePort(nodeId, newPortIndex, toPortLinks);
                 }
 
-                portsChanged = true;
+                RemoveAllLinksFromNodePort(nodeId, oldPortIndex);
+                RemoveAllLinksToNodePort(nodeId, oldPortIndex);
             }
 
             if (portsChanged && notify) OnInvalidateNodePortsAndLinks?.Invoke(nodeId);

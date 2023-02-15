@@ -5,7 +5,7 @@ using UnityEngine;
 namespace MisterGames.Blueprints {
 
     [Serializable]
-    public struct Port {
+    public struct Port : IEquatable<Port> {
 
         public string name;
         public bool isExternalPort;
@@ -28,12 +28,6 @@ namespace MisterGames.Blueprints {
             isExternalPort = isExternal;
             return this;
         }
-
-        public int GetSignature() => HashCode.Combine(
-            mode,
-            string.IsNullOrWhiteSpace(name) ? string.Empty : name,
-            _serializedType == null ? typeof(int) : dataType
-        );
 
         public static Port Enter(string name = null) {
             return new Port {
@@ -95,6 +89,35 @@ namespace MisterGames.Blueprints {
                 mode = type == null ? Mode.NonTypedInput : Mode.InputArray,
                 _serializedType = new SerializedType(type),
             };
+        }
+
+        public int GetSignature() => HashCode.Combine(
+            (int) mode,
+            string.IsNullOrWhiteSpace(name) ? string.Empty : name,
+            _serializedType == null ? typeof(int) : dataType
+        );
+
+        public bool Equals(Port other) {
+            return mode == other.mode &&
+                   isExternalPort == other.isExternalPort &&
+                   (string.IsNullOrEmpty(name) ? string.IsNullOrEmpty(other.name) : name == other.name) &&
+                   (mode is not (Mode.Input or Mode.Output or Mode.InputArray) || _serializedType == other._serializedType);
+        }
+
+        public override bool Equals(object obj) {
+            return obj is Port other && Equals(other);
+        }
+
+        public override int GetHashCode() {
+            return HashCode.Combine(name, isExternalPort, (int) mode, _serializedType);
+        }
+
+        public static bool operator ==(Port left, Port right) {
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(Port left, Port right) {
+            return !left.Equals(right);
         }
 
         public override string ToString() {
