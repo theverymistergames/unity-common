@@ -1,4 +1,4 @@
-﻿namespace Tweens.Easing {
+﻿namespace MisterGames.Common.Easing {
 
     public enum EasingType {
         EaseInQuad = 0,

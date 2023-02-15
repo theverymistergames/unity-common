@@ -2,44 +2,44 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Tweens.Easing {
+namespace MisterGames.Common.Easing {
 
 	public static class EasingAnimationCurves {
 
 		public static AnimationCurve ToAnimationCurve(this EasingType ease) {
 			return ease switch {
-				EasingType.EaseInQuad => BezierToAnimationCurve(EaseInQuad),
-				EasingType.EaseOutQuad => BezierToAnimationCurve(EaseOutQuad),
-				EasingType.EaseInOutQuad => BezierToAnimationCurve(EaseInOutQuad),
-				EasingType.EaseInCubic => BezierToAnimationCurve(EaseInCubic),
-				EasingType.EaseOutCubic => BezierToAnimationCurve(EaseOutCubic),
-				EasingType.EaseInOutCubic => BezierToAnimationCurve(EaseInOutCubic),
-				EasingType.EaseInQuart => BezierToAnimationCurve(EaseInQuart),
-				EasingType.EaseOutQuart => BezierToAnimationCurve(EaseOutQuart),
-				EasingType.EaseInOutQuart => BezierToAnimationCurve(EaseInOutQuart),
-				EasingType.EaseInQuint => BezierToAnimationCurve(EaseInQuint),
-				EasingType.EaseOutQuint => BezierToAnimationCurve(EaseOutQuint),
-				EasingType.EaseInOutQuint => BezierToAnimationCurve(EaseInOutQuint),
-				EasingType.EaseInSine => BezierToAnimationCurve(EaseInSine),
-				EasingType.EaseOutSine => BezierToAnimationCurve(EaseOutSine),
-				EasingType.EaseInOutSine => BezierToAnimationCurve(EaseInOutSine),
-				EasingType.EaseInExpo => BezierToAnimationCurve(EaseInExpo),
-				EasingType.EaseOutExpo => BezierToAnimationCurve(EaseOutExpo),
-				EasingType.EaseInOutExpo => BezierToAnimationCurve(EaseInOutExpo),
-				EasingType.EaseInCirc => BezierToAnimationCurve(EaseInCirc),
-				EasingType.EaseOutCirc => BezierToAnimationCurve(EaseOutCirc),
-				EasingType.EaseInOutCirc => BezierToAnimationCurve(EaseInOutCirc),
-				EasingType.Linear => AnimationCurve.Linear(0, 0, 1, 1),
-				EasingType.Spring => BezierToAnimationCurve(Spring),
-				EasingType.EaseInBounce => BezierToAnimationCurve(EaseInBounce),
-				EasingType.EaseOutBounce => BezierToAnimationCurve(EaseOutBounce),
-				EasingType.EaseInOutBounce => BezierToAnimationCurve(EaseInOutBounce),
-				EasingType.EaseInBack => BezierToAnimationCurve(EaseInBack),
-				EasingType.EaseOutBack => BezierToAnimationCurve(EaseOutBack),
-				EasingType.EaseInOutBack => BezierToAnimationCurve(EaseInOutBack),
-				EasingType.EaseInElastic => BezierToAnimationCurve(EaseInElastic),
-				EasingType.EaseOutElastic => BezierToAnimationCurve(EaseOutElastic),
-				EasingType.EaseInOutElastic => BezierToAnimationCurve(EaseInOutElastic),
+				EasingType.EaseInQuad => new AnimationCurve { keys = EaseInQuad.keys },
+				EasingType.EaseOutQuad => new AnimationCurve { keys = EaseOutQuad.keys },
+				EasingType.EaseInOutQuad => new AnimationCurve { keys = EaseInOutQuad.keys },
+				EasingType.EaseInCubic => new AnimationCurve { keys = EaseInCubic.keys },
+				EasingType.EaseOutCubic => new AnimationCurve { keys = EaseOutCubic.keys },
+				EasingType.EaseInOutCubic => new AnimationCurve { keys = EaseInOutCubic.keys },
+				EasingType.EaseInQuart => new AnimationCurve { keys = EaseInQuart.keys },
+				EasingType.EaseOutQuart => new AnimationCurve { keys = EaseOutQuart.keys },
+				EasingType.EaseInOutQuart => new AnimationCurve { keys = EaseInOutQuart.keys },
+				EasingType.EaseInQuint => new AnimationCurve { keys = EaseInQuint.keys },
+				EasingType.EaseOutQuint => new AnimationCurve { keys = EaseOutQuint.keys },
+				EasingType.EaseInOutQuint => new AnimationCurve { keys = EaseInOutQuint.keys },
+				EasingType.EaseInSine => new AnimationCurve { keys = EaseInSine.keys },
+				EasingType.EaseOutSine => new AnimationCurve { keys = EaseOutSine.keys },
+				EasingType.EaseInOutSine => new AnimationCurve { keys = EaseInOutSine.keys },
+				EasingType.EaseInExpo => new AnimationCurve { keys = EaseInExpo.keys },
+				EasingType.EaseOutExpo => new AnimationCurve { keys = EaseOutExpo.keys },
+				EasingType.EaseInOutExpo => new AnimationCurve { keys = EaseInOutExpo.keys },
+				EasingType.EaseInCirc => new AnimationCurve { keys = EaseInCirc.keys },
+				EasingType.EaseOutCirc => new AnimationCurve { keys = EaseOutCirc.keys },
+				EasingType.EaseInOutCirc => new AnimationCurve { keys = EaseInOutCirc.keys },
+				EasingType.Linear => AnimationCurve.Linear(0f, 0f, 1f, 1f),
+				EasingType.Spring => new AnimationCurve { keys = Spring.keys },
+				EasingType.EaseInBounce => new AnimationCurve { keys = EaseInBounce.keys },
+				EasingType.EaseOutBounce => new AnimationCurve { keys = EaseOutBounce.keys },
+				EasingType.EaseInOutBounce => new AnimationCurve { keys = EaseInOutBounce.keys },
+				EasingType.EaseInBack => new AnimationCurve { keys = EaseInBack.keys },
+				EasingType.EaseOutBack => new AnimationCurve { keys = EaseOutBack.keys },
+				EasingType.EaseInOutBack => new AnimationCurve { keys = EaseInOutBack.keys },
+				EasingType.EaseInElastic => new AnimationCurve { keys = EaseInElastic.keys },
+				EasingType.EaseOutElastic => new AnimationCurve { keys = EaseOutElastic.keys },
+				EasingType.EaseInOutElastic => new AnimationCurve { keys = EaseInOutElastic.keys },
 				_ => throw new NotImplementedException($"Easing animation curve is not implemented for easing function {ease}")
 			};
 		}
@@ -94,21 +94,24 @@ namespace Tweens.Easing {
 			return (to.x - from.x) / length;
 		}
 
-		private static readonly Vector2[] EaseInQuad = new Vector2[] {
+		private static AnimationCurve _easeInQuad;
+		private static AnimationCurve EaseInQuad => _easeInQuad ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
 			new Vector2(0.333333f, 0.0f),
 			new Vector2(0.666667f, 0.333333f),
 			new Vector2(1.0f, 1.0f)
-		};
+		});
 
-		private static readonly Vector2[] EaseOutQuad = new Vector2[] {
+		private static AnimationCurve _easeOutQuad;
+		private static AnimationCurve EaseOutQuad => _easeOutQuad ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
 			new Vector2(0.333333f, 0.666667f),
 			new Vector2(0.666667f, 1.0f),
 			new Vector2(1.0f, 1.0f)
-		};
+		});
 
-		private static readonly Vector2[] EaseInOutQuad = new Vector2[] {
+		private static AnimationCurve _easeInOutQuad;
+		private static AnimationCurve EaseInOutQuad => _easeInOutQuad ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
 			new Vector2(0.166667f, 0.0f),
 			new Vector2(0.333333f, 0.166667f),
@@ -116,23 +119,26 @@ namespace Tweens.Easing {
 			new Vector2(0.666667f, 0.833333f),
 			new Vector2(0.833333f, 1.0f),
 			new Vector2(1.0f, 1.0f)
-		};
+		});
 
-		private static readonly Vector2[] EaseInCubic = new Vector2[] {
+		private static AnimationCurve _easeInCubic;
+		private static AnimationCurve EaseInCubic => _easeInCubic ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
 			new Vector2(0.333333f, 0.0f),
 			new Vector2(0.666667f, 0.0f),
 			new Vector2(1.0f, 1.0f)
-		};
+		});
 
-		private static readonly Vector2[] EaseOutCubic = new Vector2[] {
+		private static AnimationCurve _easeOutCubic;
+		private static AnimationCurve EaseOutCubic => _easeOutCubic ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
 			new Vector2(0.333333f, 1.0f),
 			new Vector2(0.666667f, 1.0f),
 			new Vector2(1.0f, 1.0f)
-		};
+		});
 
-		private static readonly Vector2[] EaseInOutCubic = new Vector2[] {
+		private static AnimationCurve _easeInOutCubic;
+		private static AnimationCurve EaseInOutCubic => _easeInOutCubic ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
 			new Vector2(0.166667f, 0.0f),
 			new Vector2(0.333333f, 0.0f),
@@ -140,23 +146,26 @@ namespace Tweens.Easing {
 			new Vector2(0.666667f, 1.0f),
 			new Vector2(0.833333f, 1.0f),
 			new Vector2(1.0f, 1.0f)
-		};
+		});
 
-		private static readonly Vector2[] EaseInQuart = new Vector2[] {
+		private static AnimationCurve _easeInQuart;
+		private static AnimationCurve EaseInQuart => _easeInQuart ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
 			new Vector2(0.434789f, 0.006062f),
 			new Vector2(0.730901f, -0.07258f),
 			new Vector2(1.0f, 1.0f)
-		};
+		});
 
-		private static readonly Vector2[] EaseOutQuart = new Vector2[] {
+		private static AnimationCurve _easeOutQuart;
+		private static AnimationCurve EaseOutQuart => _easeOutQuart ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
 			new Vector2(0.269099f, 1.072581f),
 			new Vector2(0.565211f, 0.993938f),
 			new Vector2(1.0f, 1.0f)
-		};
+		});
 
-		private static readonly Vector2[] EaseInOutQuart = new Vector2[] {
+		private static AnimationCurve _easeInOutQuart;
+		private static AnimationCurve EaseInOutQuart => _easeInOutQuart ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
 			new Vector2(0.217394f, 0.003031f),
 			new Vector2(0.365451f, -0.036291f),
@@ -164,23 +173,26 @@ namespace Tweens.Easing {
 			new Vector2(0.634549f, 1.036290f),
 			new Vector2(0.782606f, 0.996969f),
 			new Vector2(1.0f, 1.0f)
-		};
+		});
 
-		private static readonly Vector2[] EaseInQuint = new Vector2[] {
+		private static AnimationCurve _easeInQuint;
+		private static AnimationCurve EaseInQuint => _easeInQuint ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
 			new Vector2(0.519568f, 0.012531f),
 			new Vector2(0.774037f, -0.118927f),
 			new Vector2(1.0f, 1.0f)
-		};
+		});
 
-		private static readonly Vector2[] EaseOutQuint = new Vector2[] {
+		private static AnimationCurve _easeOutQuint;
+		private static AnimationCurve EaseOutQuint => _easeOutQuint ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
 			new Vector2(0.225963f, 1.11926f),
 			new Vector2(0.481099f, 0.987469f),
 			new Vector2(1.0f, 1.0f)
-		};
+		});
 
-		private static readonly Vector2[] EaseInOutQuint = new Vector2[] {
+		private static AnimationCurve _easeInOutQuint;
+		private static AnimationCurve EaseInOutQuint => _easeInOutQuint ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
 			new Vector2(0.259784f, 0.006266f),
 			new Vector2(0.387018f, -0.059463f),
@@ -188,23 +200,26 @@ namespace Tweens.Easing {
 			new Vector2(0.612982f, 1.059630f),
 			new Vector2(0.740549f, 0.993734f),
 			new Vector2(1.0f, 1.0f)
-		};
+		});
 
-		private static readonly Vector2[] EaseInSine = new Vector2[] {
+		private static AnimationCurve _easeInSine;
+		private static AnimationCurve EaseInSine => _easeInSine ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
 			new Vector2(0.360780f, -0.000436f),
 			new Vector2(0.673486f, 0.486554f),
 			new Vector2(1.0f, 1.0f)
-		};
+		});
 
-		private static readonly Vector2[] EaseOutSine = new Vector2[] {
+		private static AnimationCurve _easeOutSine;
+		private static AnimationCurve EaseOutSine => _easeOutSine ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
 			new Vector2(0.330931f, 0.520737f),
 			new Vector2(0.641311f, 1.000333f),
 			new Vector2(1.0f, 1.0f)
-		};
+		});
 
-		private static readonly Vector2[] EaseInOutSine = new Vector2[] {
+		private static AnimationCurve _easeInOutSine;
+		private static AnimationCurve EaseInOutSine => _easeInOutSine ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
 			new Vector2(0.180390f, -0.000217f),
 			new Vector2(0.336743f, 0.243277f),
@@ -212,23 +227,26 @@ namespace Tweens.Easing {
 			new Vector2(0.665465f, 0.760338f),
 			new Vector2(0.820656f, 1.000167f),
 			new Vector2(1.0f, 1.0f)
-		};
+		});
 
-		private static readonly Vector2[] EaseInExpo = new Vector2[] {
+		private static AnimationCurve _easeInExpo;
+		private static AnimationCurve EaseInExpo => _easeInExpo ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
 			new Vector2(0.636963f, 0.0199012f),
 			new Vector2(0.844333f, -0.0609379f),
 			new Vector2(1.0f, 1.0f),
-		};
+		});
 
-		private static readonly Vector2[] EaseOutExpo = new Vector2[] {
+		private static AnimationCurve _easeOutExpo;
+		private static AnimationCurve EaseOutExpo => _easeOutExpo ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
 			new Vector2(0.155667f, 1.060938f),
 			new Vector2(0.363037f, 0.980099f),
 			new Vector2(1.0f, 1.0f)
-		};
+		});
 
-		private static readonly Vector2[] EaseInOutExpo = new Vector2[] {
+		private static AnimationCurve _easeInOutExpo;
+		private static AnimationCurve EaseInOutExpo => _easeInOutExpo ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
 			new Vector2(0.318482f, 0.009951f),
 			new Vector2(0.422167f, -0.030469f),
@@ -236,23 +254,26 @@ namespace Tweens.Easing {
 			new Vector2(0.577833f, 1.0304689f),
 			new Vector2(0.681518f, 0.9900494f),
 			new Vector2(1.0f, 1.0f)
-		};
+		});
 
-		private static readonly Vector2[] EaseInCirc = new Vector2[] {
+		private static AnimationCurve _easeInCirc;
+		private static AnimationCurve EaseInCirc => _easeInCirc ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
 			new Vector2(0.55403f, 0.001198f),
 			new Vector2(0.998802f, 0.449801f),
 			new Vector2(1.0f, 1.0f)
-		};
+		});
 
-		private static readonly Vector2[] EaseOutCirc = new Vector2[] {
+		private static AnimationCurve _easeOutCirc;
+		private static AnimationCurve EaseOutCirc => _easeOutCirc ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
 			new Vector2(0.001198f, 0.553198f),
 			new Vector2(0.445976f, 0.998802f),
 			new Vector2(1.0f, 1.0f)
-		};
+		});
 
-		private static readonly Vector2[] EaseInOutCirc = new Vector2[] {
+		private static AnimationCurve _easeInOutCirc;
+		private static AnimationCurve EaseInOutCirc => _easeInOutCirc ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
 			new Vector2(0.277013f, 0.000599f),
 			new Vector2(0.499401f, 0.223401f),
@@ -260,9 +281,10 @@ namespace Tweens.Easing {
 			new Vector2(0.500599f, 0.776599f),
 			new Vector2(0.722987f, 0.999401f),
 			new Vector2(1.0f, 1.0f)
-		};
+		});
 
-		private static readonly Vector2[] Spring = new Vector2[] {
+		private static AnimationCurve _spring;
+		private static AnimationCurve Spring => _spring ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.000000f, 0.000000f),
 			new Vector2(0.080285f, 0.287602f),
 			new Vector2(0.189354f, 0.568038f),
@@ -279,9 +301,10 @@ namespace Tweens.Easing {
 			new Vector2(0.931730f, 1.013104f),
 			new Vector2(0.966372f, 1.006806f),
 			new Vector2(1.000000f, 1.000000f)
-		};
+		});
 
-		private static readonly Vector2[] EaseInBounce = new Vector2[] {
+		private static AnimationCurve _easeInBounce;
+		private static AnimationCurve EaseInBounce => _easeInBounce ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
 			new Vector2(0.030303f, 0.020833f),
 			new Vector2(0.060606f, 0.020833f),
@@ -298,9 +321,10 @@ namespace Tweens.Easing {
 			new Vector2(0.757576f, 0.666667f),
 			new Vector2(0.878788f, 1.0f),
 			new Vector2(1.0f, 1.0f),
-		};
+		});
 
-		private static readonly Vector2[] EaseOutBounce = new Vector2[] {
+		private static AnimationCurve _easeOutBounce;
+		private static AnimationCurve EaseOutBounce => _easeOutBounce ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
 			new Vector2(0.121212f, 0.0f),
 			new Vector2(0.242424f, 0.333333f),
@@ -317,9 +341,10 @@ namespace Tweens.Easing {
 			new Vector2(0.939394f, 0.9791667f),
 			new Vector2(0.969697f, 0.9791667f),
 			new Vector2(1.0f, 1.0f),
-		};
+		});
 
-		private static readonly Vector2[] EaseInOutBounce = new Vector2[] {
+		private static AnimationCurve _easeInOutBounce;
+		private static AnimationCurve EaseInOutBounce => _easeInOutBounce ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
 			new Vector2(0.015152f, 0.010417f),
 			new Vector2(0.030303f, 0.010417f),
@@ -352,23 +377,26 @@ namespace Tweens.Easing {
 			new Vector2(0.969697f, 0.989583f),
 			new Vector2(0.984848f, 0.989583f),
 			new Vector2(1.0f, 1.0f),
-		};
+		});
 
-		private static readonly Vector2[] EaseInBack = new Vector2[] {
+		private static AnimationCurve _easeInBack;
+		private static AnimationCurve EaseInBack => _easeInBack ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
 			new Vector2(0.333333f, 0.0f),
 			new Vector2(0.666667f, -0.567193f),
 			new Vector2(1.0f, 1.0f),
-		};
+		});
 
-		private static readonly Vector2[] EaseOutBack = new Vector2[] {
+		private static AnimationCurve _easeOutBack;
+		private static AnimationCurve EaseOutBack => _easeOutBack ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
 			new Vector2(0.333333f, 1.567193f),
 			new Vector2(0.666667f, 1.0f),
 			new Vector2(1.0f, 1.0f),
-		};
+		});
 
-		private static readonly Vector2[] EaseInOutBack = new Vector2[] {
+		private static AnimationCurve _easeInOutBack;
+		private static AnimationCurve EaseInOutBack => _easeInOutBack ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
 			new Vector2(0.166667f, 0.0f),
 			new Vector2(0.333333f, -0.432485f),
@@ -377,9 +405,10 @@ namespace Tweens.Easing {
 			new Vector2(0.666667f, 1.432485f),
 			new Vector2(0.833333f, 1.0f),
 			new Vector2(1.0f, 1.0f)
-		};
+		});
 
-		private static readonly Vector2[] EaseInElastic = new Vector2[] {
+		private static AnimationCurve _easeInElastic;
+		private static AnimationCurve EaseInElastic => _easeInElastic ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
 			new Vector2(0.175f, 0.00250747f),
 			new Vector2(0.173542f, 0.0f),
@@ -396,9 +425,10 @@ namespace Tweens.Easing {
 			new Vector2(0.908125f, -0.586139f),
 			new Vector2(0.866875f, -0.666667f),
 			new Vector2(1.0f, 1.0f),
-		};
+		});
 
-		private static readonly Vector2[] EaseOutElastic = new Vector2[] {
+		private static AnimationCurve _easeOutElastic;
+		private static AnimationCurve EaseOutElastic => _easeOutElastic ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
 			new Vector2(0.133125f, 1.666667f),
 			new Vector2(0.091875f, 1.586139f),
@@ -415,9 +445,10 @@ namespace Tweens.Easing {
 			new Vector2(0.826458f, 1.0f),
 			new Vector2(0.825f, 0.9974925f),
 			new Vector2(1.0f, 1.0f),
-		};
+		});
 
-		private static readonly Vector2[] EaseInOutElastic = new Vector2[] {
+		private static AnimationCurve _easeInOutElastic;
+		private static AnimationCurve EaseInOutElastic => _easeInOutElastic ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
 			new Vector2(0.0875f, 0.001254f),
 			new Vector2(0.086771f, 0.0f),
@@ -450,7 +481,7 @@ namespace Tweens.Easing {
 			new Vector2(0.913229f, 1.0f),
 			new Vector2(0.9125f, 0.9987463f),
 			new Vector2(1.0f, 1.0f),
-		};
+		});
 	}
 
 }

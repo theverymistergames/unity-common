@@ -64,7 +64,7 @@
 using System;
 using UnityEngine;
 
-namespace Tweens.Easing {
+namespace MisterGames.Common.Easing {
 
 	public static class EasingFunctions {
 

@@ -2,9 +2,9 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Attributes;
+using MisterGames.Common.Easing;
 using MisterGames.Tick.Core;
 using MisterGames.Tweens.Core;
-using Tweens.Easing;
 using UnityEngine;
 
 namespace MisterGames.Tweens {
