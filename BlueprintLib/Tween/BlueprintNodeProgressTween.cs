@@ -1,5 +1,6 @@
 ﻿using System;
 using MisterGames.Blueprints;
+using MisterGames.Common.Easing;
 using MisterGames.Tweens;
 using MisterGames.Tweens.Core;
 using UnityEngine;
@@ -11,6 +12,7 @@ namespace MisterGames.BlueprintLib {
     public sealed class BlueprintNodeProgressTween : BlueprintNode, IBlueprintOutput<ITween>, ITweenProgressAction {
 
         [SerializeField] [Min(0f)] private float _duration;
+        [SerializeField] private EasingCurve _curve;
 
         private readonly ProgressTween _tween = new ProgressTween();
 
@@ -27,7 +29,7 @@ namespace MisterGames.BlueprintLib {
             _tween.duration = Mathf.Max(0f, ReadInputPort(0, _duration));
 
             _tween.useCustomEasingCurve = true;
-            _tween.customEasingCurve = ReadInputPort(1, AnimationCurve.Linear(0f, 0f, 1f, 1f));
+            _tween.customEasingCurve = ReadInputPort(1, _curve.curve);
 
             _tween.action = ReadInputPort<ITweenProgressAction>(2, this);
 
