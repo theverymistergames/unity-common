@@ -23,17 +23,17 @@ namespace MisterGames.Common.Data {
         }
 
         public static implicit operator Type(SerializedType serializedType) {
-            return string.IsNullOrEmpty(serializedType._type) || IsGeneric(serializedType._type)
+            return serializedType is null || string.IsNullOrEmpty(serializedType._type) || IsGeneric(serializedType._type)
                 ? null
                 : Type.GetType(SplitTypeString(serializedType._type).typeName, true);
         }
 
         public bool Equals(Type other) {
-            return other != null && (Type) this == other;
+            return other is not null && (Type) this == other;
         }
 
         public bool Equals(SerializedType other) {
-            return other != null && (Type) this == (Type) other;
+            return other is not null && (Type) this == (Type) other;
         }
 
         public override bool Equals(object obj) {
@@ -44,7 +44,7 @@ namespace MisterGames.Common.Data {
 
         public override int GetHashCode() {
             var type = (Type) this;
-            return type != null ? type.GetHashCode() : 0;
+            return type is not null ? type.GetHashCode() : 0;
         }
 
         public static bool operator ==(SerializedType serializedType, Type type) {
@@ -63,8 +63,7 @@ namespace MisterGames.Common.Data {
             return !(serializedType0 == serializedType1);
         }
 
-        private static string ToString(Type type)
-        {
+        private static string ToString(Type type) {
             var data = new SerializedTypeData();
             if (type == null) return string.Empty;
 
@@ -86,8 +85,7 @@ namespace MisterGames.Common.Data {
             return data.typeName + "#" + data.genericTypeName + "#" + (data.isGeneric ? "1" : "0");
         }
 
-        private static string ToShortTypeName(Type type)
-        {
+        private static string ToShortTypeName(Type type) {
             string assemblyQualifiedName = type.AssemblyQualifiedName;
             return string.IsNullOrEmpty(assemblyQualifiedName) 
                 ? string.Empty 
@@ -100,16 +98,14 @@ namespace MisterGames.Common.Data {
                 );
         }
         
-        private static string StripAllFromTypeNameString(string str, string toStrip)
-        {
+        private static string StripAllFromTypeNameString(string str, string toStrip) {
             for (int index = str.IndexOf(toStrip); index != -1; index = str.IndexOf(toStrip, index)) {
                 str = StripTypeNameString(str, index);
             }
             return str;
         }
 
-        private static string StripTypeNameString(string str, int index)
-        {
+        private static string StripTypeNameString(string str, int index) {
             int index1 = index + 1;
             while (index1 < str.Length && str[index1] != ',' && str[index1] != ']') {
                 ++index1;
@@ -141,4 +137,5 @@ namespace MisterGames.Common.Data {
             };
         }
     }
+
 }
