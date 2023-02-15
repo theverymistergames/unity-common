@@ -14,6 +14,7 @@ namespace MisterGames.Common.Data {
         [SerializeField] private SerializedDictionary<int, string> _strings = new SerializedDictionary<int, string>();
         [SerializeField] private SerializedDictionary<int, Vector2> _vectors2 = new SerializedDictionary<int, Vector2>();
         [SerializeField] private SerializedDictionary<int, Vector3> _vectors3 = new SerializedDictionary<int, Vector3>();
+        [SerializeField] private SerializedDictionary<int, AnimationCurve> _curves = new SerializedDictionary<int, AnimationCurve>();
         [SerializeField] private SerializedDictionary<int, ScriptableObject> _scriptableObjects = new SerializedDictionary<int, ScriptableObject>();
         [SerializeField] private SerializedDictionary<int, GameObject> _gameObjects = new SerializedDictionary<int, GameObject>();
 
@@ -26,6 +27,7 @@ namespace MisterGames.Common.Data {
             _strings = new SerializedDictionary<int, string>(source._strings);
             _vectors2 = new SerializedDictionary<int, Vector2>(source._vectors2);
             _vectors3 = new SerializedDictionary<int, Vector3>(source._vectors3);
+            _curves = new SerializedDictionary<int, AnimationCurve>(source._curves);
             _scriptableObjects = new SerializedDictionary<int, ScriptableObject>(source._scriptableObjects);
             _gameObjects = new SerializedDictionary<int, GameObject>(source._gameObjects);
 
@@ -73,6 +75,13 @@ namespace MisterGames.Common.Data {
             if (_vectors3.TryGetValue(hash, out var value)) return value;
 
             Debug.LogWarning($"Blackboard: trying to get not existing Vector3 value for hash {hash}");
+            return default;
+        }
+
+        public AnimationCurve GetCurve(int hash) {
+            if (_curves.TryGetValue(hash, out var value)) return value;
+
+            Debug.LogWarning($"Blackboard: trying to get not existing AnimationCurve value for hash {hash}");
             return default;
         }
 
@@ -144,6 +153,15 @@ namespace MisterGames.Common.Data {
             _vectors3[hash] = value;
         }
 
+        public void SetCurve(int hash, AnimationCurve value) {
+            if (!_curves.ContainsKey(hash)) {
+                Debug.LogWarning($"Blackboard: trying to set not existing AnimationCurve value for hash {hash}");
+                return;
+            }
+
+            _curves[hash] = value;
+        }
+
         public void SetScriptableObject(int hash, ScriptableObject value) {
             if (!_scriptableObjects.ContainsKey(hash)) {
                 Debug.LogWarning($"Blackboard: trying to set not existing ScriptableObject value for hash {hash}");
@@ -176,6 +194,7 @@ namespace MisterGames.Common.Data {
             typeof(string),
             typeof(Vector2),
             typeof(Vector3),
+            typeof(AnimationCurve),
             typeof(ScriptableObject),
             typeof(GameObject),
         };
@@ -303,6 +322,7 @@ namespace MisterGames.Common.Data {
                 _strings.ContainsKey(hash) ||
                 _vectors2.ContainsKey(hash) ||
                 _vectors3.ContainsKey(hash) ||
+                _curves.ContainsKey(hash) ||
                 _scriptableObjects.ContainsKey(hash) ||
                 _gameObjects.ContainsKey(hash);
         }
@@ -360,6 +380,10 @@ namespace MisterGames.Common.Data {
                 return _vectors3[hash];
             }
 
+            if (type == typeof(AnimationCurve)) {
+                return _curves[hash];
+            }
+
             if (type == typeof(ScriptableObject)) {
                 return _scriptableObjects[hash];
             }
@@ -402,6 +426,11 @@ namespace MisterGames.Common.Data {
                 return;
             }
 
+            if (type == typeof(AnimationCurve)) {
+                _curves[hash] = value as AnimationCurve ?? AnimationCurve.Linear(0f, 0f, 1f, 0f);
+                return;
+            }
+
             if (type == typeof(ScriptableObject)) {
                 _scriptableObjects[hash] = value as ScriptableObject;
                 return;
@@ -440,6 +469,11 @@ namespace MisterGames.Common.Data {
 
             if (type == typeof(Vector3)) {
                 _vectors3.Remove(hash);
+                return;
+            }
+
+            if (type == typeof(AnimationCurve)) {
+                _curves.Remove(hash);
                 return;
             }
 

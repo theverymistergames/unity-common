@@ -58,6 +58,12 @@ namespace MisterGames.Common.Editor {
                 valueField = vector3Field;
             }
 
+            if (property.type == typeof(AnimationCurve)) {
+                var curveField = new CurveField { value = blackboard.GetCurve(hash) };
+                curveField.RegisterValueChangedCallback(evt => onValueChanged.Invoke(nameField.text, evt.newValue));
+                valueField = curveField;
+            }
+
             if (property.type == typeof(ScriptableObject)) {
                 var scriptableObjectField = new ObjectField {
                     value = blackboard.GetScriptableObject(hash),

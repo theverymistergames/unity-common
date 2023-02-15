@@ -127,6 +127,7 @@ namespace MisterGames.Common.Editor.Drawers {
             FetchBlackboardDictionary(property.FindPropertyRelative("_strings"), propertiesMap, properties);
             FetchBlackboardDictionary(property.FindPropertyRelative("_vectors2"), propertiesMap, properties);
             FetchBlackboardDictionary(property.FindPropertyRelative("_vectors3"), propertiesMap, properties);
+            FetchBlackboardDictionary(property.FindPropertyRelative("_curves"), propertiesMap, properties);
             FetchBlackboardDictionary(property.FindPropertyRelative("_scriptableObjects"), propertiesMap, properties);
             FetchBlackboardDictionary(property.FindPropertyRelative("_gameObjects"), propertiesMap, properties);
 
@@ -157,6 +158,7 @@ namespace MisterGames.Common.Editor.Drawers {
             if (type == typeof(string)) return EqualityComparer<string>.Default;
             if (type == typeof(Vector2)) return EqualityComparer<Vector2>.Default;
             if (type == typeof(Vector3)) return EqualityComparer<Vector3>.Default;
+            if (type == typeof(AnimationCurve)) return EqualityComparer<AnimationCurve>.Default;
             if (type == typeof(ScriptableObject)) return EqualityComparer<ScriptableObject>.Default;
             if (type == typeof(GameObject)) return EqualityComparer<GameObject>.Default;
 
