@@ -1,5 +1,6 @@
 ﻿using System;
 using MisterGames.Common.Data;
+using MisterGames.Common.Easing;
 using MisterGames.Common.Editor.Utils;
 using UnityEditor.Experimental.GraphView;
 using UnityEditor.UIElements;
@@ -58,10 +59,29 @@ namespace MisterGames.Common.Editor {
                 valueField = vector3Field;
             }
 
-            if (property.type == typeof(AnimationCurve)) {
-                var curveField = new CurveField { value = blackboard.GetCurve(hash) };
-                curveField.RegisterValueChangedCallback(evt => onValueChanged.Invoke(nameField.text, evt.newValue));
-                valueField = curveField;
+            if (property.type == typeof(EasingCurve)) {
+                var curve = blackboard.GetCurve(hash);
+
+                var easingField = new EnumField(curve.easingType);
+                easingField.RegisterValueChangedCallback(evt => {
+                    var value = new EasingCurve { easingType = (EasingType) evt.newValue };
+                    onValueChanged.Invoke(nameField.text, value);
+                });
+
+                var curveField = new CurveField { value = curve.curve };
+                curveField.RegisterValueChangedCallback(evt => {
+                    var value = new EasingCurve();
+                    if (Enum.TryParse<EasingType>(easingField.text, out var easingType)) value.easingType = easingType;
+                    value.curve = evt.newValue;
+
+                    onValueChanged.Invoke(nameField.text, value);
+                });
+
+                var easingCurveContainer = new VisualElement();
+                easingCurveContainer.Add(easingField);
+                easingCurveContainer.Add(curveField);
+
+                valueField = easingCurveContainer;
             }
 
             if (property.type == typeof(ScriptableObject)) {

@@ -13,7 +13,7 @@ namespace MisterGames.Common.Editor.Utils {
         };
 
         public static string GetTypeName(Type type) {
-            return NameOverrides.TryGetValue(type, out string typeName) ? typeName : type.Name;
+            return type == null ? "<null>" : NameOverrides.TryGetValue(type, out string typeName) ? typeName : type.Name;
         }
     }
 

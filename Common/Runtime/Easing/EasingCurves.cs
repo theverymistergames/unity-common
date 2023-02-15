@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace MisterGames.Common.Easing {
 
-	public static class EasingAnimationCurves {
+	public static class EasingCurves {
 
 		public static AnimationCurve ToAnimationCurve(this EasingType ease) {
 			return ease switch {

@@ -23,9 +23,19 @@ namespace MisterGames.Common.Data {
         }
 
         public static implicit operator Type(SerializedType serializedType) {
-            return serializedType is null || string.IsNullOrEmpty(serializedType._type) || IsGeneric(serializedType._type)
-                ? null
-                : Type.GetType(SplitTypeString(serializedType._type).typeName, true);
+            if (serializedType is null || 
+                string.IsNullOrEmpty(serializedType._type) || 
+                IsGeneric(serializedType._type)
+            ) {
+                return null;
+            }
+
+            try {
+                return Type.GetType(SplitTypeString(serializedType._type).typeName, true);
+            }
+            catch (TypeLoadException) {
+                return null;
+            }
         }
 
         public bool Equals(Type other) {

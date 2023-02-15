@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using MisterGames.Common.Easing;
 using MisterGames.Common.Strings;
 using UnityEngine;
 
@@ -14,7 +15,7 @@ namespace MisterGames.Common.Data {
         [SerializeField] private SerializedDictionary<int, string> _strings = new SerializedDictionary<int, string>();
         [SerializeField] private SerializedDictionary<int, Vector2> _vectors2 = new SerializedDictionary<int, Vector2>();
         [SerializeField] private SerializedDictionary<int, Vector3> _vectors3 = new SerializedDictionary<int, Vector3>();
-        [SerializeField] private SerializedDictionary<int, AnimationCurve> _curves = new SerializedDictionary<int, AnimationCurve>();
+        [SerializeField] private SerializedDictionary<int, EasingCurve> _curves = new SerializedDictionary<int, EasingCurve>();
         [SerializeField] private SerializedDictionary<int, ScriptableObject> _scriptableObjects = new SerializedDictionary<int, ScriptableObject>();
         [SerializeField] private SerializedDictionary<int, GameObject> _gameObjects = new SerializedDictionary<int, GameObject>();
 
@@ -27,7 +28,7 @@ namespace MisterGames.Common.Data {
             _strings = new SerializedDictionary<int, string>(source._strings);
             _vectors2 = new SerializedDictionary<int, Vector2>(source._vectors2);
             _vectors3 = new SerializedDictionary<int, Vector3>(source._vectors3);
-            _curves = new SerializedDictionary<int, AnimationCurve>(source._curves);
+            _curves = new SerializedDictionary<int, EasingCurve>(source._curves);
             _scriptableObjects = new SerializedDictionary<int, ScriptableObject>(source._scriptableObjects);
             _gameObjects = new SerializedDictionary<int, GameObject>(source._gameObjects);
 
@@ -78,10 +79,10 @@ namespace MisterGames.Common.Data {
             return default;
         }
 
-        public AnimationCurve GetCurve(int hash) {
+        public EasingCurve GetCurve(int hash) {
             if (_curves.TryGetValue(hash, out var value)) return value;
 
-            Debug.LogWarning($"Blackboard: trying to get not existing AnimationCurve value for hash {hash}");
+            Debug.LogWarning($"Blackboard: trying to get not existing EasingAnimationCurve value for hash {hash}");
             return default;
         }
 
@@ -153,9 +154,9 @@ namespace MisterGames.Common.Data {
             _vectors3[hash] = value;
         }
 
-        public void SetCurve(int hash, AnimationCurve value) {
+        public void SetCurve(int hash, EasingCurve value) {
             if (!_curves.ContainsKey(hash)) {
-                Debug.LogWarning($"Blackboard: trying to set not existing AnimationCurve value for hash {hash}");
+                Debug.LogWarning($"Blackboard: trying to set not existing EasingAnimationCurve value for hash {hash}");
                 return;
             }
 
@@ -194,7 +195,7 @@ namespace MisterGames.Common.Data {
             typeof(string),
             typeof(Vector2),
             typeof(Vector3),
-            typeof(AnimationCurve),
+            typeof(EasingCurve),
             typeof(ScriptableObject),
             typeof(GameObject),
         };
@@ -380,7 +381,7 @@ namespace MisterGames.Common.Data {
                 return _vectors3[hash];
             }
 
-            if (type == typeof(AnimationCurve)) {
+            if (type == typeof(EasingCurve)) {
                 return _curves[hash];
             }
 
@@ -412,7 +413,7 @@ namespace MisterGames.Common.Data {
             }
 
             if (type == typeof(string)) {
-                _strings[hash] = value as string;
+                _strings[hash] = value as string ?? string.Empty;
                 return;
             }
 
@@ -426,8 +427,8 @@ namespace MisterGames.Common.Data {
                 return;
             }
 
-            if (type == typeof(AnimationCurve)) {
-                _curves[hash] = value as AnimationCurve ?? AnimationCurve.Linear(0f, 0f, 1f, 0f);
+            if (type == typeof(EasingCurve)) {
+                _curves[hash] = value as EasingCurve ?? new EasingCurve();
                 return;
             }
 
@@ -472,7 +473,7 @@ namespace MisterGames.Common.Data {
                 return;
             }
 
-            if (type == typeof(AnimationCurve)) {
+            if (type == typeof(EasingCurve)) {
                 _curves.Remove(hash);
                 return;
             }

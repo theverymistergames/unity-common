@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using MisterGames.Common.Data;
+using MisterGames.Common.Easing;
 using MisterGames.Common.Editor.Utils;
 using UnityEditor;
 using UnityEngine;
@@ -158,7 +159,7 @@ namespace MisterGames.Common.Editor.Drawers {
             if (type == typeof(string)) return EqualityComparer<string>.Default;
             if (type == typeof(Vector2)) return EqualityComparer<Vector2>.Default;
             if (type == typeof(Vector3)) return EqualityComparer<Vector3>.Default;
-            if (type == typeof(AnimationCurve)) return EqualityComparer<AnimationCurve>.Default;
+            if (type == typeof(EasingCurve)) return EqualityComparer<EasingCurve>.Default;
             if (type == typeof(ScriptableObject)) return EqualityComparer<ScriptableObject>.Default;
             if (type == typeof(GameObject)) return EqualityComparer<GameObject>.Default;
 
