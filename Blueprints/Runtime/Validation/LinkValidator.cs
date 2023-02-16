@@ -86,10 +86,11 @@ namespace MisterGames.Blueprints.Validation {
             }
 
             if (port.mode == Port.Mode.NonTypedOutput) {
-                if (node is not IBlueprintPortLinker) {
+                if (node is not (IBlueprintPortLinker or IBlueprintOutput)) {
                     Debug.LogError($"Blueprint `{asset.name}`: " +
                                    $"Validation failed for non-typed output port {portIndex} of node {nodeMeta}: " +
-                                   $"node class {node.GetType().Name} does not implement interface {nameof(IBlueprintPortLinker)}.");
+                                   $"node class {node.GetType().Name} does not implement " +
+                                   $"interface {nameof(IBlueprintPortLinker)} or {nameof(IBlueprintOutput)}.");
                     return false;
                 }
 
@@ -109,11 +110,11 @@ namespace MisterGames.Blueprints.Validation {
                 port.dataType
             ) != null;
 
-            if (!implementsIBlueprintOutputInterface && node is not IBlueprintPortLinker) {
+            if (!implementsIBlueprintOutputInterface && node is not (IBlueprintPortLinker or IBlueprintOutput)) {
                 Debug.LogError($"Blueprint `{asset.name}`: " +
                                $"Validation failed for output port {portIndex} of node {nodeMeta}: " +
                                $"node class {node.GetType().Name} does not implement interface " +
-                               $"{typeof(IBlueprintOutput<>).Name}<{port.dataType.Name}> or {typeof(IBlueprintPortLinker)}.");
+                               $"{typeof(IBlueprintOutput<>).Name}<{port.dataType.Name}> or {nameof(IBlueprintPortLinker)} or {nameof(IBlueprintOutput)}.");
                 return false;
             }
 
@@ -146,10 +147,11 @@ namespace MisterGames.Blueprints.Validation {
             }
 
             if (port.mode == Port.Mode.NonTypedOutput) {
-                if (node is not IBlueprintPortLinker) {
+                if (node is not (IBlueprintPortLinker or IBlueprintOutput)) {
                     Debug.LogError($"Blueprint `{asset.name}`: " +
                                    $"Validation failed for non-typed output port {portIndex} of node {nodeMeta}: " +
-                                   $"node class {node.GetType().Name} does not implement interface {nameof(IBlueprintPortLinker)}.");
+                                   $"node class {node.GetType().Name} does not implement " +
+                                   $"interface {nameof(IBlueprintPortLinker)} or {nameof(IBlueprintOutput)}.");
                     return false;
                 }
 
@@ -169,11 +171,11 @@ namespace MisterGames.Blueprints.Validation {
                 port.dataType
             ) != null;
 
-            if (!implementsIBlueprintOutputInterface && node is not IBlueprintPortLinker) {
+            if (!implementsIBlueprintOutputInterface && node is not (IBlueprintPortLinker or IBlueprintOutput)) {
                 Debug.LogError($"Blueprint `{asset.name}`: " +
                                $"Validation failed for output port {portIndex} of node {nodeMeta}: " +
                                $"node class {node.GetType().Name} does not implement interface " +
-                               $"{typeof(IBlueprintOutput<>).Name}<{port.dataType.Name}> or {typeof(IBlueprintPortLinker)}.");
+                               $"{typeof(IBlueprintOutput<>).Name}<{port.dataType.Name}> or {nameof(IBlueprintPortLinker)} or {nameof(IBlueprintOutput)}.");
                 return false;
             }
 
@@ -204,11 +206,11 @@ namespace MisterGames.Blueprints.Validation {
                 port.dataType
             ) != null;
 
-            if (!implementsIBlueprintOutputInterface && node is not IBlueprintPortLinker) {
+            if (!implementsIBlueprintOutputInterface && node is not (IBlueprintPortLinker or IBlueprintOutput)) {
                 Debug.LogError($"Blueprint `{asset.name}`: " +
                                $"Validation failed for output port {portIndex} of node {nodeMeta}: " +
                                $"node class {node.GetType().Name} does not implement interface " +
-                               $"{typeof(IBlueprintOutput<>).Name}<{port.dataType.Name}> or {typeof(IBlueprintPortLinker)}.");
+                               $"{typeof(IBlueprintOutput<>).Name}<{port.dataType.Name}> or {nameof(IBlueprintPortLinker)} or {nameof(IBlueprintOutput)}.");
                 return false;
             }
 

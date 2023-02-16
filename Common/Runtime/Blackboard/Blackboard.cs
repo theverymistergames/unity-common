@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using MisterGames.Common.Easing;
 using MisterGames.Common.Strings;
+using UnityEditor;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace MisterGames.Common.Data {
 
@@ -15,9 +16,14 @@ namespace MisterGames.Common.Data {
         [SerializeField] private SerializedDictionary<int, string> _strings = new SerializedDictionary<int, string>();
         [SerializeField] private SerializedDictionary<int, Vector2> _vectors2 = new SerializedDictionary<int, Vector2>();
         [SerializeField] private SerializedDictionary<int, Vector3> _vectors3 = new SerializedDictionary<int, Vector3>();
-        [SerializeField] private SerializedDictionary<int, EasingCurve> _curves = new SerializedDictionary<int, EasingCurve>();
+        [SerializeField] private SerializedDictionary<int, Object> _objects = new SerializedDictionary<int, Object>();
         [SerializeField] private SerializedDictionary<int, ScriptableObject> _scriptableObjects = new SerializedDictionary<int, ScriptableObject>();
-        [SerializeField] private SerializedDictionary<int, GameObject> _gameObjects = new SerializedDictionary<int, GameObject>();
+        [SerializeField] private SerializedDictionary<int, ReferenceContainer> _references = new SerializedDictionary<int, ReferenceContainer>();
+
+        [Serializable]
+        private struct ReferenceContainer {
+            [SerializeReference] public object data;
+        }
 
         public Blackboard() { }
 
@@ -28,177 +34,111 @@ namespace MisterGames.Common.Data {
             _strings = new SerializedDictionary<int, string>(source._strings);
             _vectors2 = new SerializedDictionary<int, Vector2>(source._vectors2);
             _vectors3 = new SerializedDictionary<int, Vector3>(source._vectors3);
-            _curves = new SerializedDictionary<int, EasingCurve>(source._curves);
+            _objects = new SerializedDictionary<int, Object>(source._objects);
             _scriptableObjects = new SerializedDictionary<int, ScriptableObject>(source._scriptableObjects);
-            _gameObjects = new SerializedDictionary<int, GameObject>(source._gameObjects);
+            _references = new SerializedDictionary<int, ReferenceContainer>(source._references);
 
 #if UNITY_EDITOR
             _properties = new List<BlackboardProperty>(source._properties);
 #endif
         }
 
-        public bool GetBool(int hash) {
-            if (_bools.TryGetValue(hash, out bool value)) return value;
+        public T Get<T>(int hash) {
+            var type = typeof(T);
 
-            Debug.LogWarning($"Blackboard: trying to get not existing bool value for hash {hash}");
-            return default;
-        }
-
-        public float GetFloat(int hash) {
-            if (_floats.TryGetValue(hash, out float value)) return value;
-
-            Debug.LogWarning($"Blackboard: trying to get not existing float value for hash {hash}");
-            return default;
-        }
-
-        public int GetInt(int hash) {
-            if (_ints.TryGetValue(hash, out int value)) return value;
-
-            Debug.LogWarning($"Blackboard: trying to get not existing int value for hash {hash}");
-            return default;
-        }
-
-        public string GetString(int hash) {
-            if (_strings.TryGetValue(hash, out string value)) return value;
-
-            Debug.LogWarning($"Blackboard: trying to get not existing string value for hash {hash}");
-            return default;
-        }
-
-        public Vector2 GetVector2(int hash) {
-            if (_vectors2.TryGetValue(hash, out var value)) return value;
-
-            Debug.LogWarning($"Blackboard: trying to get not existing Vector2 value for hash {hash}");
-            return default;
-        }
-
-        public Vector3 GetVector3(int hash) {
-            if (_vectors3.TryGetValue(hash, out var value)) return value;
-
-            Debug.LogWarning($"Blackboard: trying to get not existing Vector3 value for hash {hash}");
-            return default;
-        }
-
-        public EasingCurve GetCurve(int hash) {
-            if (_curves.TryGetValue(hash, out var value)) return value;
-
-            Debug.LogWarning($"Blackboard: trying to get not existing EasingAnimationCurve value for hash {hash}");
-            return default;
-        }
-
-        public ScriptableObject GetScriptableObject(int hash) {
-            if (_scriptableObjects.TryGetValue(hash, out var value)) return value;
-
-            Debug.LogWarning($"Blackboard: trying to get not existing ScriptableObject value for hash {hash}");
-            return default;
-        }
-
-        public GameObject GetGameObject(int hash) {
-            if (_gameObjects.TryGetValue(hash, out var value)) return value;
-
-            Debug.LogWarning($"Blackboard: trying to get not existing GameObject value for hash {hash}");
-            return default;
-        }
-
-        public void SetBool(int hash, bool value) {
-            if (!_bools.ContainsKey(hash)) {
-                Debug.LogWarning($"Blackboard: trying to set not existing bool value for hash {hash}");
-                return;
+            if (type == typeof(bool)) {
+                return _bools[hash] is T t ? t : default;
             }
 
-            _bools[hash] = value;
-        }
-
-        public void SetFloat(int hash, float value) {
-            if (!_floats.ContainsKey(hash)) {
-                Debug.LogWarning($"Blackboard: trying to set not existing float value for hash {hash}");
-                return;
+            if (type == typeof(float)) {
+                return _floats[hash] is T t ? t : default;
             }
 
-            _floats[hash] = value;
-        }
-
-        public void SetInt(int hash, int value) {
-            if (!_ints.ContainsKey(hash)) {
-                Debug.LogWarning($"Blackboard: trying to set not existing int value for hash {hash}");
-                return;
+            if (type == typeof(int)) {
+                return _ints[hash] is T t ? t : default;
             }
 
-            _ints[hash] = value;
-        }
-
-        public void SetString(int hash, string value) {
-            if (!_strings.ContainsKey(hash)) {
-                Debug.LogWarning($"Blackboard: trying to set not existing string value for hash {hash}");
-                return;
+            if (type == typeof(string)) {
+                return _strings[hash] is T t ? t : default;
             }
 
-            _strings[hash] = value;
-        }
-
-        public void SetVector2(int hash, Vector2 value) {
-            if (!_vectors2.ContainsKey(hash)) {
-                Debug.LogWarning($"Blackboard: trying to set not existing Vector2 value for hash {hash}");
-                return;
+            if (type == typeof(Vector2)) {
+                return _vectors2[hash] is T t ? t : default;
             }
 
-            _vectors2[hash] = value;
-        }
-
-        public void SetVector3(int hash, Vector3 value) {
-            if (!_vectors3.ContainsKey(hash)) {
-                Debug.LogWarning($"Blackboard: trying to set not existing Vector3 value for hash {hash}");
-                return;
+            if (type == typeof(Vector3)) {
+                return _vectors3[hash] is T t ? t : default;
             }
 
-            _vectors3[hash] = value;
-        }
-
-        public void SetCurve(int hash, EasingCurve value) {
-            if (!_curves.ContainsKey(hash)) {
-                Debug.LogWarning($"Blackboard: trying to set not existing EasingAnimationCurve value for hash {hash}");
-                return;
+            if (typeof(ScriptableObject).IsAssignableFrom(type)) {
+                return _scriptableObjects.TryGetValue(hash, out var obj) && obj is T t ? t : default;
             }
 
-            _curves[hash] = value;
-        }
-
-        public void SetScriptableObject(int hash, ScriptableObject value) {
-            if (!_scriptableObjects.ContainsKey(hash)) {
-                Debug.LogWarning($"Blackboard: trying to set not existing ScriptableObject value for hash {hash}");
-                return;
+            if (typeof(Object).IsAssignableFrom(type)) {
+                return _objects.TryGetValue(hash, out var obj) && obj is T t ? t : default;
             }
 
-            _scriptableObjects[hash] = value;
-        }
-
-        public void SetGameObject(int hash, GameObject value) {
-            if (!_gameObjects.ContainsKey(hash)) {
-                Debug.LogWarning($"Blackboard: trying to set not existing GameObject value for hash {hash}");
-                return;
+            if (typeof(object).IsAssignableFrom(type)) {
+                return _references.TryGetValue(hash, out var container) && container.data is T t ? t : default;
             }
 
-            _gameObjects[hash] = value;
+            Debug.LogError($"Trying to get blackboard property of unsupported type {type.Name} for hash {hash}");
+            return default;
         }
 
 #if UNITY_EDITOR
+        private const string EDITOR = "editor";
+
         [SerializeField] private List<BlackboardProperty> _properties = new List<BlackboardProperty>();
         [SerializeField] private Blackboard _overridenBlackboard;
 
         public IReadOnlyList<BlackboardProperty> Properties => _properties;
         public Blackboard OverridenBlackboard => _overridenBlackboard;
 
-        public static readonly List<Type> SupportedTypes = new List<Type> {
+        public static readonly Type[] SupportedConcreteTypes = new[] {
+            typeof(GameObject),
             typeof(bool),
             typeof(float),
             typeof(int),
             typeof(string),
             typeof(Vector2),
             typeof(Vector3),
-            typeof(EasingCurve),
-            typeof(ScriptableObject),
-            typeof(GameObject),
         };
+
+        public static readonly Type[] SupportedDerivedTypes = new[] {
+            typeof(ScriptableObject),
+            typeof(Component),
+            //typeof(object),
+        };
+
+        [CustomPropertyDrawer(typeof(ReferenceContainer))]
+        private sealed class ReferenceContainerPropertyDrawer : PropertyDrawer {
+            public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
+                EditorGUI.PropertyField(position, property.FindPropertyRelative("data"), label);
+            }
+            public override float GetPropertyHeight(SerializedProperty property, GUIContent label) {
+                return EditorGUI.GetPropertyHeight(property.FindPropertyRelative("data"));
+            }
+        }
+
+        public static bool IsSupportedType(Type t) {
+            for (int i = 0; i < SupportedConcreteTypes.Length; i++) {
+                if (t == SupportedConcreteTypes[i]) return true;
+            }
+
+            for (int i = 0; i < SupportedDerivedTypes.Length; i++) {
+                if (SupportedDerivedTypes[i].IsAssignableFrom(t)) return IsSupportedDerivedType(t);
+            }
+
+            return false;
+        }
+
+        public static bool IsSupportedDerivedType(Type t) {
+            return
+                t.IsVisible && (t.IsPublic || t.IsNestedPublic) && !t.IsGenericType &&
+                t.FullName is not null && !t.FullName.Contains(EDITOR, StringComparison.OrdinalIgnoreCase) &&
+                (typeof(Object).IsAssignableFrom(t) || Attribute.IsDefined(t, typeof(SerializableAttribute)));
+        }
 
         public static int StringToHash(string name) {
             return name.GetHashCode();
@@ -227,7 +167,7 @@ namespace MisterGames.Common.Data {
             }
         }
 
-        public bool TryAddProperty(string name, Type type, object value, out BlackboardProperty property) {
+        public bool TryAddProperty(string name, Type type, out BlackboardProperty property) {
             property = default;
             if (!ValidateType(type)) return false;
             
@@ -241,7 +181,7 @@ namespace MisterGames.Common.Data {
                 type = new SerializedType(type),
             };
 
-            SetValue(type, hash, value);
+            SetValue(type, hash, default);
 
             _properties.Add(property);
             return true;
@@ -323,9 +263,9 @@ namespace MisterGames.Common.Data {
                 _strings.ContainsKey(hash) ||
                 _vectors2.ContainsKey(hash) ||
                 _vectors3.ContainsKey(hash) ||
-                _curves.ContainsKey(hash) ||
                 _scriptableObjects.ContainsKey(hash) ||
-                _gameObjects.ContainsKey(hash);
+                _objects.ContainsKey(hash) ||
+                _references.ContainsKey(hash);
         }
 
         public void RemoveProperty(int hash) {
@@ -381,16 +321,16 @@ namespace MisterGames.Common.Data {
                 return _vectors3[hash];
             }
 
-            if (type == typeof(EasingCurve)) {
-                return _curves[hash];
-            }
-
-            if (type == typeof(ScriptableObject)) {
+            if (typeof(ScriptableObject).IsAssignableFrom(type)) {
                 return _scriptableObjects[hash];
             }
 
-            if (type == typeof(GameObject)) {
-                return _gameObjects[hash];
+            if (typeof(Object).IsAssignableFrom(type)) {
+                return _objects[hash];
+            }
+
+            if (typeof(object).IsAssignableFrom(type)) {
+                return _references[hash].data;
             }
 
             return default;
@@ -413,7 +353,7 @@ namespace MisterGames.Common.Data {
             }
 
             if (type == typeof(string)) {
-                _strings[hash] = value as string ?? string.Empty;
+                _strings[hash] = value as string;
                 return;
             }
 
@@ -427,18 +367,19 @@ namespace MisterGames.Common.Data {
                 return;
             }
 
-            if (type == typeof(EasingCurve)) {
-                _curves[hash] = value as EasingCurve ?? new EasingCurve();
-                return;
-            }
-
-            if (type == typeof(ScriptableObject)) {
+            if (typeof(ScriptableObject).IsAssignableFrom(type)) {
                 _scriptableObjects[hash] = value as ScriptableObject;
                 return;
             }
 
-            if (type == typeof(GameObject)) {
-                _gameObjects[hash] = value as GameObject;
+            if (typeof(Object).IsAssignableFrom(type)) {
+                _objects[hash] = value as Object;
+                return;
+            }
+
+            if (typeof(object).IsAssignableFrom(type)) {
+                _references[hash] = new ReferenceContainer { data = value };
+                return;
             }
         }
 
@@ -473,18 +414,19 @@ namespace MisterGames.Common.Data {
                 return;
             }
 
-            if (type == typeof(EasingCurve)) {
-                _curves.Remove(hash);
-                return;
-            }
-
-            if (type == typeof(ScriptableObject)) {
+            if (typeof(ScriptableObject).IsAssignableFrom(type)) {
                 _scriptableObjects.Remove(hash);
                 return;
             }
 
-            if (type == typeof(GameObject)) {
-                _gameObjects.Remove(hash);
+            if (typeof(Object).IsAssignableFrom(type)) {
+                _objects.Remove(hash);
+                return;
+            }
+
+            if (typeof(object).IsAssignableFrom(type)) {
+                _references.Remove(hash);
+                return;
             }
         }
 
@@ -504,7 +446,7 @@ namespace MisterGames.Common.Data {
         }
 
         private static bool ValidateType(Type type) {
-            if (SupportedTypes.Contains(type)) return true;
+            if (IsSupportedType(type)) return true;
 
             Debug.LogError($"Blackboard does not support type {type.Name}");
             return false;

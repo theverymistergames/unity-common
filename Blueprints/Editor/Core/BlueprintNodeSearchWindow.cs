@@ -77,7 +77,7 @@ namespace MisterGames.Blueprints.Editor.Core {
             var treeContent = PathTree
                 .CreateTree(GetBlueprintNodeSearchEntries(), GetNodePath)
                 .PreOrder()
-                .RemoveRoot()
+                .Where(e => e.level > 0)
                 .Select(ToSearchEntry);
 
             tree.AddRange(treeContent);
@@ -91,7 +91,7 @@ namespace MisterGames.Blueprints.Editor.Core {
             var treeContent = PathTree
                 .CreateTree(GetBlueprintNodePortsSearchEntries(fromPort), GetNodePortPath)
                 .PreOrder()
-                .RemoveRoot()
+                .Where(e => e.level > 0)
                 .Select(ToSearchEntry);
 
             tree.AddRange(treeContent);
@@ -160,7 +160,14 @@ namespace MisterGames.Blueprints.Editor.Core {
         private static IEnumerable<Type> GetBlueprintNodeTypes() {
             return TypeCache
                 .GetTypesDerivedFrom<BlueprintNode>()
-                .Where(t => !t.IsAbstract && t.IsVisible && HasBlueprintNodeMetaAttribute(t) && HasSerializableAttribute(t));
+                .Where(t =>
+                    (t.IsPublic || t.IsNestedPublic) &&
+                    t.IsVisible &&
+                    !t.IsAbstract &&
+                    !t.IsGenericType &&
+                    Attribute.IsDefined(t, typeof(BlueprintNodeMetaAttribute)) &&
+                    Attribute.IsDefined(t, typeof(SerializableAttribute))
+                );
         }
 
         private static string GetNodeTypePath(Type nodeType) {

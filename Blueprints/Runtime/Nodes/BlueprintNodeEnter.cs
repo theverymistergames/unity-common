@@ -17,21 +17,12 @@ namespace MisterGames.Blueprints.Nodes {
 #endif
 
     {
-
-#if UNITY_EDITOR
         [SerializeField] private string _port;
 
         public override Port[] CreatePorts() => new[] {
             Port.Exit(),
             Port.Enter(_port).SetExternal(true),
         };
-
-        public void ValidateBlueprint(BlueprintAsset blueprint, int nodeId) {
-            blueprint.BlueprintMeta.InvalidateNodePorts(nodeId, invalidateLinks: false, notify: false);
-        }
-#else
-        public override Port[] CreatePorts() => null;
-#endif
 
         public int GetLinkedPorts(int port, out int count) {
             if (port == 0) {
@@ -47,6 +38,12 @@ namespace MisterGames.Blueprints.Nodes {
             count = 0;
             return -1;
         }
+
+#if UNITY_EDITOR
+        public void ValidateBlueprint(BlueprintAsset blueprint, int nodeId) {
+            blueprint.BlueprintMeta.InvalidateNodePorts(nodeId, invalidateLinks: false, notify: false);
+        }
+#endif
     }
 
 }

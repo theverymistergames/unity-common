@@ -4,7 +4,7 @@ using System.Linq;
 using MisterGames.Blueprints.Meta;
 using MisterGames.Blueprints.Validation;
 using MisterGames.Common.Data;
-using MisterGames.Common.Editor;
+using MisterGames.Common.Editor.Blackboards;
 using MisterGames.Common.Editor.Utils;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
@@ -91,6 +91,7 @@ namespace MisterGames.Blueprints.Editor.Core {
             ClearView();
 
             _blueprintAsset = blueprintAsset;
+
             InvalidateBlueprintAsset(_blueprintAsset);
             RepopulateView();
             MoveToBlueprintNodesCenterPosition();
@@ -116,7 +117,7 @@ namespace MisterGames.Blueprints.Editor.Core {
                 CreateFromNodeConnectionViews(nodeMeta);
             }
 
-            FillBlackboardView();
+            RepopulateBlackboardView();
             ClearSelection();
         }
 
@@ -255,7 +256,7 @@ namespace MisterGames.Blueprints.Editor.Core {
         public void ToggleBlackboard(bool show) {
             _blackboardView.visible = show;
 
-            if (show) FillBlackboardView();
+            if (show) RepopulateBlackboardView();
             else _blackboardView.Clear();
         }
 
@@ -276,16 +277,16 @@ namespace MisterGames.Blueprints.Editor.Core {
             _blackboardView.visible = false;
         }
 
-        private void FillBlackboardView() {
+        private void RepopulateBlackboardView() {
             if (_blueprintAsset == null) return;
 
-            var blackboard = _blueprintAsset.Blackboard;
             _blackboardView.Clear();
 
-            for (int i = 0; i < blackboard.Properties.Count; i++) {
-                var property = blackboard.Properties[i];
-                var view = BlackboardUtils.CreateBlackboardPropertyView(blackboard, property, OnBlackboardPropertyValueChanged);
-                _blackboardView.Add(view);
+            var blackboardSerializedProperty = new SerializedObject(_blueprintAsset).FindProperty("_blackboard");
+            var properties = BlackboardUtils.GetSerializedBlackboardProperties(blackboardSerializedProperty);
+
+            for (int i = 0; i < properties.Count; i++) {
+                _blackboardView.Add(BlackboardUtils.CreateBlackboardPropertyView(properties[i], OnBlackboardPropertyValueChanged));
             }
         }
 
@@ -298,17 +299,13 @@ namespace MisterGames.Blueprints.Editor.Core {
         private void CreateBlackboardProperty(Type type) {
             if (_blueprintAsset == null) return;
 
-            var blackboard = _blueprintAsset.Blackboard;
-
             Undo.RecordObject(_blueprintAsset, "Blueprint Add Blackboard Property");
 
             string typeName = TypeNameFormatter.GetTypeName(type);
-            if (!blackboard.TryAddProperty($"New {typeName}", type, default, out var property)) return;
-
-            var view = BlackboardUtils.CreateBlackboardPropertyView(blackboard, property, OnBlackboardPropertyValueChanged);
-            _blackboardView.Add(view);
+            if (!_blueprintAsset.Blackboard.TryAddProperty($"New {typeName}", type, out var property)) return;
 
             SetBlueprintAssetDirtyAndNotify();
+            RepopulateBlackboardView();
         }
 
         private void RemoveBlackboardProperty(string propertyName) {
@@ -340,12 +337,8 @@ namespace MisterGames.Blueprints.Editor.Core {
             SetBlueprintAssetDirtyAndNotify();
         }
 
-        private void OnBlackboardPropertyValueChanged(string property, object value) {
+        private void OnBlackboardPropertyValueChanged() {
             if (_blueprintAsset == null) return;
-
-            Undo.RecordObject(_blueprintAsset, "Blueprint Blackboard Property Value Changed");
-
-            if (!_blueprintAsset.Blackboard.TrySetPropertyValue(Blackboard.StringToHash(property), value)) return;
 
             SetBlueprintAssetDirtyAndNotify();
         }

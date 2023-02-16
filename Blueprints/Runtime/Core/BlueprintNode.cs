@@ -28,7 +28,8 @@ namespace MisterGames.Blueprints {
             if (links.Count == 0) return defaultValue;
 
             var link = links[0];
-            if (link.node is IBlueprintOutput<T> output) return output.GetOutputPortValue(link.port);
+            if (link.node is IBlueprintOutput<T> outputT) return outputT.GetOutputPortValue(link.port);
+            if (link.node is IBlueprintOutput output) return output.GetOutputPortValue<T>(link.port);
 
             return defaultValue;
         }
@@ -41,9 +42,15 @@ namespace MisterGames.Blueprints {
 
             for (int i = 0; i < links.Count; i++) {
                 var link = links[i];
-                if (link.node is not IBlueprintOutput<T> output) continue;
 
-                array[i] = output.GetOutputPortValue(link.port);
+                if (link.node is IBlueprintOutput<T> outputT) {
+                    array[i] = outputT.GetOutputPortValue(link.port);
+                    continue;
+                }
+
+                if (link.node is IBlueprintOutput output) {
+                    array[i] = output.GetOutputPortValue<T>(link.port);
+                }
             }
 
             return array;
