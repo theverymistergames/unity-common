@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using MisterGames.Common.Editor.Tree;
 using UnityEditor;
 using UnityEditor.IMGUI.Controls;
@@ -40,8 +41,8 @@ namespace MisterGames.Common.Editor {
 		}
 
 		protected override AdvancedDropdownItem BuildRoot() {
+			var root = new AdvancedDropdownItem(_title);
 			var pathTreeRoot = PathTree.CreateTree(_items, _getItemPath);
-			var root = new AdvancedDropdownItem($"{_title} {pathTreeRoot.data.name}");
 
 			for (int i = 0; i < pathTreeRoot.children.Count; i++) {
 				root.AddChild(CreateItem(pathTreeRoot.children[i]));

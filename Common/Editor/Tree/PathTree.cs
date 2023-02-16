@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using MisterGames.Common.Lists;
-using UnityEngine;
 
 namespace MisterGames.Common.Editor.Tree {
 
@@ -23,53 +22,57 @@ namespace MisterGames.Common.Editor.Tree {
             }
         }
 
-        public static TreeEntry<Node<T>> CreateTree<T>(IEnumerable<T> collection, Func<T, string> getPath) {
+        public static TreeEntry<Node<T>> CreateTree<T>(
+            IEnumerable<T> collection,
+            Func<T, string> getPath,
+            char separator = '/'
+        ) {
             var elements = collection.ToArray();
-            var root = new TreeEntry<Node<T>> {
-                level = 0,
-                children = GetChildren("", elements, getPath, 0)
-            };
-
-            return root.SquashParentsWithSingleChild();
+            return
+                new TreeEntry<Node<T>> { children = GetChildren("", elements, getPath, 1, separator) }
+                .SquashParentsWithSingleChild();
         }
 
         private static List<TreeEntry<Node<T>>> GetChildren<T>(
             string parent,
             IReadOnlyList<T> elements,
             Func<T, string> getPath,
-            int level
+            int level,
+            char separator
         ) {
             var leafNodes = new List<TreeEntry<Node<T>>>();
             var folderNodes = new List<TreeEntry<Node<T>>>();
 
-            for (int i = elements.Count - 1; i >= 0; i--) {
+            for (int i = 0; i < elements.Count; i++) {
                 var element = elements[i];
-
                 string path = getPath.Invoke(element);
-                if (!path.IsSubPathOf(parent)) continue;
 
-                string[] pathParts = path.Split('/');
+                if (!IsSubPathOf(path, parent)) continue;
+
+                string[] pathParts = path.Split(separator);
                 int pathDepth = pathParts.Length;
 
-                if (pathDepth <= level + 1) {
+                if (pathDepth <= level) {
                     string name = pathDepth == 0 ? string.Empty : pathParts[pathDepth - 1];
+
                     leafNodes.Add(new TreeEntry<Node<T>> {
                         data = new Node<T>(name, element),
-                        level = level + 1,
+                        level = level,
                         children = new List<TreeEntry<Node<T>>>(),
                     });
+
                     continue;
                 }
 
-                string folderName = pathParts[level];
+                string folderName = pathParts[level - 1];
                 if (folderNodes.Any(f => f.data.name == folderName)) continue;
 
-                string folderPath = string.Join("/", pathParts.Slice(0, level));
+                string folderPath = string.Join(separator, pathParts.Slice(0, level - 1));
 
                 folderNodes.Add(new TreeEntry<Node<T>> {
                     data = new Node<T>(folderName),
-                    level = level + 1,
-                    children = GetChildren(folderPath, elements, getPath, level + 1)
+                    level = level,
+                    children = GetChildren(folderPath, elements, getPath, level + 1, separator)
                 });
             }
 
@@ -103,7 +106,7 @@ namespace MisterGames.Common.Editor.Tree {
             return entry;
         }
 
-        private static bool IsSubPathOf(this string sub, string parent) {
+        private static bool IsSubPathOf(string sub, string parent) {
             int parentLength = parent.Length;
             if (parentLength > sub.Length) return false;
             return parent == sub[..parentLength];

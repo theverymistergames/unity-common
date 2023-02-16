@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using MisterGames.Common.Editor.Tree;
+using MisterGames.Common.Editor.Utils;
 using MisterGames.Fsm.Core;
+using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 
@@ -23,7 +25,7 @@ namespace MisterGames.Fsm.Editor.Windows {
             switch (filter) {
                 case Filter.NewState:
                     tree.Add(SearchTreeEntryUtils.Header("Create state"));
-                    tree.AddRange(TypeTree.CreateSearchTree<FsmState>(NewStateInfo));
+                    tree.AddRange(CreateSearchTree<FsmState>(NewStateInfo, 1));
                     break;
                 
                 case Filter.TargetState:
@@ -35,11 +37,27 @@ namespace MisterGames.Fsm.Editor.Windows {
                 
                 case Filter.Transition:
                     tree.Add(SearchTreeEntryUtils.Header("Create transition"));
-                    tree.AddRange(TypeTree.CreateSearchTree<FsmTransition>(TransitionInfo));
+                    tree.AddRange(CreateSearchTree<FsmTransition>(TransitionInfo, 1));
                     break;
             }
             
             return tree;
+        }
+
+        private List<SearchTreeEntry> CreateSearchTree<T>(Func<Type, object> getData, int level) {
+            var getName = new Func<Type, string>(TypeNameFormatter.GetTypeName);
+
+            var type = typeof(T);
+            var types = TypeCache.GetTypesDerivedFrom(type).Where(t => t.IsVisible).ToArray();
+
+            return TypeTree.CreateEntry(type, types, level)
+                .RemoveAbstractBranches()
+                .SelfChildNonAbstractBranches()
+                .SortBranchesInChildrenFirst()
+                .PreOrder()
+                .RemoveRoot()
+                .Select(e => e.ToSearchEntry(getName, getData, level))
+                .ToList();
         }
 
         public bool OnSelectEntry(SearchTreeEntry searchTreeEntry, SearchWindowContext context) {

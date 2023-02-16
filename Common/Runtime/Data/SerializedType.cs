@@ -73,6 +73,11 @@ namespace MisterGames.Common.Data {
             return !(serializedType0 == serializedType1);
         }
 
+        public override string ToString() {
+            var type = (Type) this;
+            return type is not null ? type.ToString() : "<null>";
+        }
+
         private static string ToString(Type type) {
             var data = new SerializedTypeData();
             if (type == null) return string.Empty;

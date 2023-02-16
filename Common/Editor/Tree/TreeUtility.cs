@@ -12,7 +12,10 @@ namespace MisterGames.Common.Editor.Tree {
         }
 
         public static IEnumerable<TreeEntry<T>> RemoveRoot<T>(this IEnumerable<TreeEntry<T>> tree) {
-            return tree.RemoveIf(e => e.level == 0);
+            var treeList = tree.ToList();
+            int minLevel = treeList.Min(e => e.level);
+
+            return treeList.Where(e => e.level > minLevel);
         }
         
         public static TreeEntry<T> SortBranchesInChildrenFirst<T>(this TreeEntry<T> entry) {

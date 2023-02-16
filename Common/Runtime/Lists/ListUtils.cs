@@ -7,16 +7,6 @@ namespace MisterGames.Common.Lists {
 
     public static class ListUtils {
 
-        public static bool Some<T>(this IReadOnlyList<T> list, Func<T, bool> predicate) {
-            for (int i = 0; i < list.Count; i++) {
-                if (predicate.Invoke(list[i])) {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-        
         public static bool Contains<T>(this IReadOnlyList<T> list, T value) {
             for (int i = 0; i < list.Count; i++) {
                 if (Equals(list[i], value)) return true;

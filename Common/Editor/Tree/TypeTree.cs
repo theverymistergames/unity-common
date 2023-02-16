@@ -2,37 +2,17 @@
 using System.Collections.Generic;
 using System.Linq;
 using MisterGames.Common.Lists;
-using UnityEditor;
-using UnityEditor.Experimental.GraphView;
 
 namespace MisterGames.Common.Editor.Tree {
 
     public static class TypeTree {
 
-        public static TreeEntry<Type> From(Type type) {
-            var types = TypeCache.GetTypesDerivedFrom(type);
-            return CreateEntry(type, types, 0);
-        }
-        
-        public static TreeEntry<Type> From<T>() {
-            return From(typeof(T));
-        }
-
-        public static IEnumerable<SearchTreeEntry> CreateSearchTree<T>(Func<Type, object> getData = null, int levelOffset = 0) {
-            return CreateSearchTree(typeof(T), getData, levelOffset);
-        }
-        
-        public static IEnumerable<SearchTreeEntry> CreateSearchTree(Type type, Func<Type, object> getData = null, int levelOffset = 0) {
-            if (getData == null) getData = t => t;
-            var getName = new Func<Type, string>(t => t.Name);
-            return From(type)
-                .RemoveNonVisibleLeafs()
-                .RemoveAbstractBranches()
-                .SelfChildNonAbstractBranches()
-                .SortBranchesInChildrenFirst()
-                .PreOrder()
-                .RemoveRoot()
-                .Select(e => e.ToSearchEntry(getName, getData, levelOffset));
+        public static TreeEntry<Type> CreateEntry(Type type, Type[] types, int level) {
+            return new TreeEntry<Type> {
+                data = type,
+                children = GetEntriesFor(type, types, level + 1),
+                level = level
+            };
         }
         
         public static TreeEntry<Type> SelfChildNonAbstractBranches(this TreeEntry<Type> entry) {
@@ -51,10 +31,6 @@ namespace MisterGames.Common.Editor.Tree {
             }
             return entry;
         }
-        
-        public static TreeEntry<Type> RemoveNonVisibleLeafs(this TreeEntry<Type> entry) {
-            return entry.RemoveLeafsIf(e => e.data.IsVisible);
-        }
 
         public static TreeEntry<Type> RemoveAbstractLeafs(this TreeEntry<Type> entry) {
             return entry.RemoveLeafsIf(e => !e.IsAbstract() || e.children.Count > 0);
@@ -71,22 +47,13 @@ namespace MisterGames.Common.Editor.Tree {
             return entry.LevelOrder().Where(e => e.children.Count == 0 && e.IsAbstract());
         }
 
-        private static TreeEntry<Type> CreateEntry(Type type, TypeCache.TypeCollection types, int level) {
-            var children = GetEntriesFor(type, types, level + 1);
-            return new TreeEntry<Type> {
-                data = type,
-                children = children,
-                level = level
-            };
-        }
-
-        private static List<TreeEntry<Type>> GetEntriesFor(Type type, TypeCache.TypeCollection types, int level) {
+        private static List<TreeEntry<Type>> GetEntriesFor(Type type, Type[] types, int level) {
             return GetDerivedTypes(type, types)
                     .Select(t => CreateEntry(t, types, level))
                     .ToList();
         }
 
-        private static IEnumerable<Type> GetDerivedTypes(Type type, TypeCache.TypeCollection types) {
+        private static IEnumerable<Type> GetDerivedTypes(Type type, IEnumerable<Type> types) {
             return types.Where(t => {
                 var tBase = t.BaseType;
                 if (tBase == null) return type == null;
