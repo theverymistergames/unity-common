@@ -5,7 +5,6 @@ using MisterGames.Common.Editor.Utils;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEditor.UIElements;
-using UnityEngine;
 using UnityEngine.UIElements;
 using Blackboard = MisterGames.Common.Data.Blackboard;
 using Object = UnityEngine.Object;
@@ -50,7 +49,11 @@ namespace MisterGames.Common.Editor.Blackboards {
                 propertyField.Bind(property.serializedProperty.serializedObject);
                 propertyField.RegisterValueChangeCallback(e => {
                     object value = e.changedProperty.GetValue();
-                    if (Equals(value, currentValue)) return;
+
+                    var type = value?.GetType();
+                    if (type == null) return;
+
+                    if (type.IsValueType && Equals(value, currentValue)) return;
 
                     currentValue = value;
                     onChanged.Invoke();
@@ -64,6 +67,21 @@ namespace MisterGames.Common.Editor.Blackboards {
             container.Add(new BlackboardRow(nameField, valueField) { expanded = true });
             return container;
         }
+
+        private const string BOOLS = "_bools";
+        private const string FLOATS = "_floats";
+        private const string INTS = "_ints";
+        private const string STRINGS = "_strings";
+        private const string VECTORS2 = "_vectors2";
+        private const string VECTORS3 = "_vectors3";
+        private const string OBJECTS = "_objects";
+        private const string REFERENCES = "_references";
+
+        private const string VALUE = "value";
+        private const string VALUE_DATA = "value.data";
+
+        private const string ENTRIES = "_entries";
+        private const string KEY = "key";
 
         public static List<SerializedBlackboardProperty> GetSerializedBlackboardProperties(SerializedProperty blackboardSerializedProperty) {
             var blackboard = (Blackboard) blackboardSerializedProperty.GetValue();
@@ -79,32 +97,33 @@ namespace MisterGames.Common.Editor.Blackboards {
                 properties.Add(default);
             }
 
-            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative("_bools"), propertiesMap, properties);
-            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative("_floats"), propertiesMap, properties);
-            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative("_ints"), propertiesMap, properties);
-            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative("_strings"), propertiesMap, properties);
-            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative("_vectors2"), propertiesMap, properties);
-            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative("_vectors3"), propertiesMap, properties);
-            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative("_objects"), propertiesMap, properties);
-            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative("_references"), propertiesMap, properties);
+            FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(BOOLS), propertiesMap, properties);
+            FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(FLOATS), propertiesMap, properties);
+            FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(INTS), propertiesMap, properties);
+            FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(STRINGS), propertiesMap, properties);
+            FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(VECTORS2), propertiesMap, properties);
+            FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(VECTORS3), propertiesMap, properties);
+            FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(OBJECTS), propertiesMap, properties);
+            FetchBlackboardDictionary(VALUE_DATA, blackboardSerializedProperty.FindPropertyRelative(REFERENCES), propertiesMap, properties);
 
             return properties;
         }
 
         private static void FetchBlackboardDictionary(
+            string valuePropertyPath,
             SerializedProperty dictionary,
             IReadOnlyDictionary<int, (int index, BlackboardProperty property)> propertiesMap,
             IList<SerializedBlackboardProperty> dest
         ) {
-            var entries = dictionary.FindPropertyRelative("_entries");
+            var entries = dictionary.FindPropertyRelative(ENTRIES);
 
             for (int e = 0; e < entries.arraySize; e++) {
                 var entry = entries.GetArrayElementAtIndex(e);
-                int hash = entry.FindPropertyRelative("key").intValue;
+                int hash = entry.FindPropertyRelative(KEY).intValue;
 
                 if (!propertiesMap.TryGetValue(hash, out var p)) continue;
 
-                dest[p.index] = new SerializedBlackboardProperty(p.property, entry.FindPropertyRelative("value"));
+                dest[p.index] = new SerializedBlackboardProperty(p.property, entry.FindPropertyRelative(valuePropertyPath));
             }
         }
     }

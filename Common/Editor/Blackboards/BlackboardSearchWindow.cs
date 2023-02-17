@@ -30,17 +30,17 @@ namespace MisterGames.Common.Editor.Blackboards {
         }
 
         private static IEnumerable<SearchTreeEntry> GetSupportedConcreteTypesTree(int level) {
-            return Blackboard.SupportedConcreteTypes.Select(t => CreateSearchTreeEntryForType(t, level));
+            return Blackboard.SupportedTypes.Select(t => CreateSearchTreeEntryForType(t, level));
         }
 
         private static IEnumerable<SearchTreeEntry> GetSupportedDerivedTypesTree(int level) {
-            return Blackboard.SupportedDerivedTypes.SelectMany(t => GetSupportedBaseTypeTree(t, level));
+            return Blackboard.SupportedBaseTypes.SelectMany(t => GetSupportedBaseTypeTree(t, level));
         }
 
-        private static IEnumerable<SearchTreeEntry> GetSupportedBaseTypeTree(Type type, int level) {
+        private static IEnumerable<SearchTreeEntry> GetSupportedBaseTypeTree(Type baseType, int level) {
             var types = new List<Type>();
-            if (Blackboard.IsSupportedDerivedType(type)) types.Add(type);
-            types.AddRange(TypeCache.GetTypesDerivedFrom(type).Where(Blackboard.IsSupportedDerivedType));
+            if (Blackboard.IsSupportedDerivedType(baseType, baseType)) types.Add(baseType);
+            types.AddRange(TypeCache.GetTypesDerivedFrom(baseType).Where(t => Blackboard.IsSupportedDerivedType(baseType, t)));
 
             var pathTree = PathTree
                 .CreateTree(types, t => t.FullName, '.')
@@ -48,7 +48,7 @@ namespace MisterGames.Common.Editor.Blackboards {
                 .Where(e => e.level > 0)
                 .Select(e => ToSearchEntry(e, level));
 
-            var tree = new List<SearchTreeEntry> { SearchTreeEntryUtils.Header(type.Name, level) };
+            var tree = new List<SearchTreeEntry> { SearchTreeEntryUtils.Header(baseType.Name, level) };
             tree.AddRange(pathTree);
             return tree;
         }

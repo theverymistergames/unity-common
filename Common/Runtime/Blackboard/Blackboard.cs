@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using MisterGames.Common.Strings;
-using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -17,12 +16,7 @@ namespace MisterGames.Common.Data {
         [SerializeField] private SerializedDictionary<int, Vector2> _vectors2 = new SerializedDictionary<int, Vector2>();
         [SerializeField] private SerializedDictionary<int, Vector3> _vectors3 = new SerializedDictionary<int, Vector3>();
         [SerializeField] private SerializedDictionary<int, Object> _objects = new SerializedDictionary<int, Object>();
-        [SerializeField] private SerializedDictionary<int, ReferenceContainer> _references = new SerializedDictionary<int, ReferenceContainer>();
-
-        [Serializable]
-        private struct ReferenceContainer {
-            [SerializeReference] public object data;
-        }
+        [SerializeField] private SerializedDictionary<int, BlackboardReference> _references = new SerializedDictionary<int, BlackboardReference>();
 
         public Blackboard() { }
 
@@ -34,7 +28,7 @@ namespace MisterGames.Common.Data {
             _vectors2 = new SerializedDictionary<int, Vector2>(source._vectors2);
             _vectors3 = new SerializedDictionary<int, Vector3>(source._vectors3);
             _objects = new SerializedDictionary<int, Object>(source._objects);
-            _references = new SerializedDictionary<int, ReferenceContainer>(source._references);
+            _references = new SerializedDictionary<int, BlackboardReference>(source._references);
 
 #if UNITY_EDITOR
             _properties = new List<BlackboardProperty>(source._properties);
@@ -73,7 +67,7 @@ namespace MisterGames.Common.Data {
             }
 
             if (typeof(object).IsAssignableFrom(type)) {
-                return _references.TryGetValue(hash, out var container) && container.data is T t ? t : default;
+                return _references.TryGetValue(hash, out var reference) && reference.data is T t ? t : default;
             }
 
             Debug.LogError($"Trying to get blackboard property of unsupported type {type.Name} for hash {hash}");
@@ -81,23 +75,13 @@ namespace MisterGames.Common.Data {
         }
 
 #if UNITY_EDITOR
-        [CustomPropertyDrawer(typeof(ReferenceContainer))]
-        private sealed class ReferenceContainerPropertyDrawer : PropertyDrawer {
-            public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
-                EditorGUI.PropertyField(position, property.FindPropertyRelative("data"), label);
-            }
-            public override float GetPropertyHeight(SerializedProperty property, GUIContent label) {
-                return EditorGUI.GetPropertyHeight(property.FindPropertyRelative("data"));
-            }
-        }
-
         [SerializeField] private List<BlackboardProperty> _properties = new List<BlackboardProperty>();
         [SerializeField] private Blackboard _overridenBlackboard;
 
         public IReadOnlyList<BlackboardProperty> Properties => _properties;
         public Blackboard OverridenBlackboard => _overridenBlackboard;
 
-        public static readonly Type[] SupportedConcreteTypes = new[] {
+        public static readonly Type[] SupportedTypes = new[] {
             typeof(GameObject),
             typeof(bool),
             typeof(float),
@@ -107,30 +91,32 @@ namespace MisterGames.Common.Data {
             typeof(Vector3),
         };
 
-        public static readonly Type[] SupportedDerivedTypes = new[] {
+        public static readonly Type[] SupportedBaseTypes = new[] {
             typeof(ScriptableObject),
             typeof(Component),
-            //typeof(object),
+            typeof(object),
         };
 
         public static bool IsSupportedType(Type t) {
-            for (int i = 0; i < SupportedConcreteTypes.Length; i++) {
-                if (t == SupportedConcreteTypes[i]) return true;
+            for (int i = 0; i < SupportedTypes.Length; i++) {
+                if (t == SupportedTypes[i]) return true;
             }
 
-            for (int i = 0; i < SupportedDerivedTypes.Length; i++) {
-                if (SupportedDerivedTypes[i].IsAssignableFrom(t)) return IsSupportedDerivedType(t);
+            for (int i = 0; i < SupportedBaseTypes.Length; i++) {
+                if (IsSupportedDerivedType(SupportedBaseTypes[i], t)) return true;
             }
 
             return false;
         }
 
         private const string EDITOR = "editor";
-        public static bool IsSupportedDerivedType(Type t) {
+        public static bool IsSupportedDerivedType(Type baseType, Type type) {
             return
-                t.IsVisible && (t.IsPublic || t.IsNestedPublic) && !t.IsGenericType &&
-                t.FullName is not null && !t.FullName.Contains(EDITOR, StringComparison.OrdinalIgnoreCase) &&
-                (typeof(Object).IsAssignableFrom(t) || Attribute.IsDefined(t, typeof(SerializableAttribute)));
+                baseType.IsAssignableFrom(type) &&
+                type.IsVisible && (type.IsPublic || type.IsNestedPublic) && !type.IsGenericType &&
+                type.FullName is not null && !type.FullName.Contains(EDITOR, StringComparison.OrdinalIgnoreCase) &&
+                (typeof(Object).IsAssignableFrom(baseType) ||
+                 !typeof(Object).IsAssignableFrom(type) && Attribute.IsDefined(type, typeof(SerializableAttribute)));
         }
 
         public static int StringToHash(string name) {
@@ -152,7 +138,9 @@ namespace MisterGames.Common.Data {
 
                 if (!HasProperty(property.hash)) {
                     _properties.Add(property);
-                    SetValue(property.type, property.hash, blackboard.GetValue(property.type, property.hash));
+
+                    object value = blackboard.GetValue(property.type, property.hash);
+                    SetValue(property.type, property.hash, value);
                     continue;
                 }
 
@@ -210,6 +198,19 @@ namespace MisterGames.Common.Data {
             if (value.GetType() != property.type) return false;
 
             SetValue(property.type, property.hash, value);
+            return true;
+        }
+
+        public bool TryResetPropertyValue(int hash) {
+            if (!TryGetProperty(hash, out var property)) return false;
+
+            object value = _overridenBlackboard != null && _overridenBlackboard.TryGetPropertyValue(hash, out object v)
+                ? v == null
+                    ? default
+                    : v.GetType() == property.type ? v : default
+                : default;
+
+            SetValue(property.type, hash, value);
             return true;
         }
 
@@ -361,7 +362,8 @@ namespace MisterGames.Common.Data {
             }
 
             if (typeof(object).IsAssignableFrom(type)) {
-                _references[hash] = new ReferenceContainer { data = value };
+                value = JsonUtility.FromJson(JsonUtility.ToJson(value), type);
+                _references[hash] = new BlackboardReference { data = value ?? Activator.CreateInstance(type) };
                 return;
             }
         }

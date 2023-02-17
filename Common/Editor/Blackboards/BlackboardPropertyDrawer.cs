@@ -2,11 +2,12 @@
 using MisterGames.Common.Editor.Utils;
 using UnityEditor;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace MisterGames.Common.Editor.Blackboards {
 
     [CustomPropertyDrawer(typeof(Blackboard))]
-    public class BlackboardPropertyDrawer : PropertyDrawer {
+    public sealed class BlackboardPropertyDrawer : PropertyDrawer {
 
         private FontStyle _editorLabelFontStyleCache;
         private bool _canCacheEditorLabelFontStyle = true;
