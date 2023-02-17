@@ -5,6 +5,7 @@ using MisterGames.Common.Editor.Utils;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEditor.UIElements;
+using UnityEngine;
 using UnityEngine.UIElements;
 using Blackboard = MisterGames.Common.Data.Blackboard;
 using Object = UnityEngine.Object;
@@ -15,41 +16,52 @@ namespace MisterGames.Common.Editor.Blackboards {
 
         public static VisualElement CreateBlackboardPropertyView(SerializedBlackboardProperty property, Action onChanged) {
             string typeName = TypeNameFormatter.GetTypeName(property.blackboardProperty.type);
-
-            var nameField = new BlackboardField { text = property.blackboardProperty.name, typeText = typeName };
+            string propertyName = property.blackboardProperty.name;
+            var nameField = new BlackboardField { text = propertyName, typeText = typeName };
 
             VisualElement valueField;
             if (typeof(Object).IsAssignableFrom(property.blackboardProperty.type)) {
-                var objectField = new ObjectField();
+                var currentValue = property.serializedProperty.objectReferenceValue;
 
-                objectField.bindingPath = property.serializedProperty.propertyPath;
-                objectField.allowSceneObjects = false;
-                objectField.objectType = property.blackboardProperty.type;
-                objectField.label = string.Empty;
+                var objectField = new ObjectField {
+                    value = currentValue,
+                    bindingPath = property.serializedProperty.propertyPath,
+                    allowSceneObjects = false,
+                    objectType = property.blackboardProperty.type,
+                    label = string.Empty
+                };
 
                 objectField.Bind(property.serializedProperty.serializedObject);
-                objectField.RegisterValueChangedCallback(_ => onChanged.Invoke());
+                objectField.RegisterValueChangedCallback(e => {
+                    if (e.newValue == e.previousValue) return;
+                    onChanged.Invoke();
+                });
 
                 valueField = objectField;
             }
             else {
-                var propertyField = new PropertyField();
+                object currentValue = property.serializedProperty.GetValue();
 
-                propertyField.bindingPath = property.serializedProperty.propertyPath;
-                propertyField.label = string.Empty;
+                var propertyField = new PropertyField {
+                    bindingPath = property.serializedProperty.propertyPath,
+                    label = string.Empty
+                };
 
                 propertyField.Bind(property.serializedProperty.serializedObject);
-                propertyField.RegisterValueChangeCallback(_ => onChanged.Invoke());
+                propertyField.RegisterValueChangeCallback(e => {
+                    object value = e.changedProperty.GetValue();
+                    if (Equals(value, currentValue)) return;
+
+                    currentValue = value;
+                    onChanged.Invoke();
+                });
 
                 valueField = propertyField;
             }
 
-            var row = new BlackboardRow(nameField, valueField);
-
             var container = new VisualElement();
             container.Add(nameField);
-            container.Add(row);
-
+            container.Add(new BlackboardRow(nameField, valueField) { expanded = true });
             return container;
         }
 
