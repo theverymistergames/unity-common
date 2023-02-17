@@ -7,13 +7,10 @@ using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using Blackboard = MisterGames.Common.Data.Blackboard;
-using Object = UnityEngine.Object;
 
 namespace MisterGames.Common.Editor.Blackboards {
 
     public class BlackboardSearchWindow : ScriptableObject, ISearchWindowProvider {
-
-
 
         public Action<Type> onSelectType = delegate {  };
 

@@ -109,7 +109,7 @@ namespace MisterGames.Common.Data {
 
         public static readonly Type[] SupportedDerivedTypes = new[] {
             typeof(ScriptableObject),
-            //typeof(Component),
+            typeof(Component),
             //typeof(object),
         };
 

@@ -1,7 +1,5 @@
 ﻿using System.Collections.Generic;
 using MisterGames.Common.Data;
-using MisterGames.Common.Editor.Drawers;
-using MisterGames.Common.Editor.Utils;
 using UnityEditor;
 using UnityEngine;
 
