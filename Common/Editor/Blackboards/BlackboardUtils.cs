@@ -5,7 +5,6 @@ using MisterGames.Common.Editor.Utils;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEditor.UIElements;
-using UnityEngine;
 using UnityEngine.UIElements;
 using Blackboard = MisterGames.Common.Data.Blackboard;
 using Object = UnityEngine.Object;
@@ -18,10 +17,9 @@ namespace MisterGames.Common.Editor.Blackboards {
             string typeName = TypeNameFormatter.GetTypeName(property.blackboardProperty.type);
 
             var nameField = new BlackboardField { text = property.blackboardProperty.name, typeText = typeName };
-            nameField.capabilities |= Capabilities.Movable;
 
             VisualElement valueField;
-            if (typeof(ScriptableObject).IsAssignableFrom(property.blackboardProperty.type)) {
+            if (typeof(Object).IsAssignableFrom(property.blackboardProperty.type)) {
                 var objectField = new ObjectField();
 
                 objectField.bindingPath = property.serializedProperty.propertyPath;
@@ -94,7 +92,7 @@ namespace MisterGames.Common.Editor.Blackboards {
 
                 if (!propertiesMap.TryGetValue(hash, out var p)) continue;
 
-                dest[p.index] = new SerializedBlackboardProperty(hash, p.property, entry.FindPropertyRelative("value"));
+                dest[p.index] = new SerializedBlackboardProperty(p.property, entry.FindPropertyRelative("value"));
             }
         }
     }

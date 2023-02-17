@@ -54,7 +54,7 @@ namespace MisterGames.Blueprints.Editor.Core {
             int count = blackboardOverrides.arraySize;
             if (count == 0) return;
 
-            GUILayout.Space(EditorGUIUtility.standardVerticalSpacing);
+            GUILayout.Space(EditorGUIUtility.standardVerticalSpacing * 2f);
 
             GUILayout.Label("Blackboards", EditorStyles.boldLabel);
 

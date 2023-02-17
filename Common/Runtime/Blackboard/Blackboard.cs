@@ -17,7 +17,6 @@ namespace MisterGames.Common.Data {
         [SerializeField] private SerializedDictionary<int, Vector2> _vectors2 = new SerializedDictionary<int, Vector2>();
         [SerializeField] private SerializedDictionary<int, Vector3> _vectors3 = new SerializedDictionary<int, Vector3>();
         [SerializeField] private SerializedDictionary<int, Object> _objects = new SerializedDictionary<int, Object>();
-        [SerializeField] private SerializedDictionary<int, ScriptableObject> _scriptableObjects = new SerializedDictionary<int, ScriptableObject>();
         [SerializeField] private SerializedDictionary<int, ReferenceContainer> _references = new SerializedDictionary<int, ReferenceContainer>();
 
         [Serializable]
@@ -35,7 +34,6 @@ namespace MisterGames.Common.Data {
             _vectors2 = new SerializedDictionary<int, Vector2>(source._vectors2);
             _vectors3 = new SerializedDictionary<int, Vector3>(source._vectors3);
             _objects = new SerializedDictionary<int, Object>(source._objects);
-            _scriptableObjects = new SerializedDictionary<int, ScriptableObject>(source._scriptableObjects);
             _references = new SerializedDictionary<int, ReferenceContainer>(source._references);
 
 #if UNITY_EDITOR
@@ -70,10 +68,6 @@ namespace MisterGames.Common.Data {
                 return _vectors3[hash] is T t ? t : default;
             }
 
-            if (typeof(ScriptableObject).IsAssignableFrom(type)) {
-                return _scriptableObjects.TryGetValue(hash, out var obj) && obj is T t ? t : default;
-            }
-
             if (typeof(Object).IsAssignableFrom(type)) {
                 return _objects.TryGetValue(hash, out var obj) && obj is T t ? t : default;
             }
@@ -87,7 +81,15 @@ namespace MisterGames.Common.Data {
         }
 
 #if UNITY_EDITOR
-        private const string EDITOR = "editor";
+        [CustomPropertyDrawer(typeof(ReferenceContainer))]
+        private sealed class ReferenceContainerPropertyDrawer : PropertyDrawer {
+            public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
+                EditorGUI.PropertyField(position, property.FindPropertyRelative("data"), label);
+            }
+            public override float GetPropertyHeight(SerializedProperty property, GUIContent label) {
+                return EditorGUI.GetPropertyHeight(property.FindPropertyRelative("data"));
+            }
+        }
 
         [SerializeField] private List<BlackboardProperty> _properties = new List<BlackboardProperty>();
         [SerializeField] private Blackboard _overridenBlackboard;
@@ -107,19 +109,9 @@ namespace MisterGames.Common.Data {
 
         public static readonly Type[] SupportedDerivedTypes = new[] {
             typeof(ScriptableObject),
-            typeof(Component),
+            //typeof(Component),
             //typeof(object),
         };
-
-        [CustomPropertyDrawer(typeof(ReferenceContainer))]
-        private sealed class ReferenceContainerPropertyDrawer : PropertyDrawer {
-            public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
-                EditorGUI.PropertyField(position, property.FindPropertyRelative("data"), label);
-            }
-            public override float GetPropertyHeight(SerializedProperty property, GUIContent label) {
-                return EditorGUI.GetPropertyHeight(property.FindPropertyRelative("data"));
-            }
-        }
 
         public static bool IsSupportedType(Type t) {
             for (int i = 0; i < SupportedConcreteTypes.Length; i++) {
@@ -133,6 +125,7 @@ namespace MisterGames.Common.Data {
             return false;
         }
 
+        private const string EDITOR = "editor";
         public static bool IsSupportedDerivedType(Type t) {
             return
                 t.IsVisible && (t.IsPublic || t.IsNestedPublic) && !t.IsGenericType &&
@@ -263,7 +256,6 @@ namespace MisterGames.Common.Data {
                 _strings.ContainsKey(hash) ||
                 _vectors2.ContainsKey(hash) ||
                 _vectors3.ContainsKey(hash) ||
-                _scriptableObjects.ContainsKey(hash) ||
                 _objects.ContainsKey(hash) ||
                 _references.ContainsKey(hash);
         }
@@ -321,10 +313,6 @@ namespace MisterGames.Common.Data {
                 return _vectors3[hash];
             }
 
-            if (typeof(ScriptableObject).IsAssignableFrom(type)) {
-                return _scriptableObjects[hash];
-            }
-
             if (typeof(Object).IsAssignableFrom(type)) {
                 return _objects[hash];
             }
@@ -367,11 +355,6 @@ namespace MisterGames.Common.Data {
                 return;
             }
 
-            if (typeof(ScriptableObject).IsAssignableFrom(type)) {
-                _scriptableObjects[hash] = value as ScriptableObject;
-                return;
-            }
-
             if (typeof(Object).IsAssignableFrom(type)) {
                 _objects[hash] = value as Object;
                 return;
@@ -411,11 +394,6 @@ namespace MisterGames.Common.Data {
 
             if (type == typeof(Vector3)) {
                 _vectors3.Remove(hash);
-                return;
-            }
-
-            if (typeof(ScriptableObject).IsAssignableFrom(type)) {
-                _scriptableObjects.Remove(hash);
                 return;
             }
 

@@ -8,6 +8,9 @@ namespace MisterGames.Common.Editor.Blackboards {
     [CustomPropertyDrawer(typeof(Blackboard))]
     public class BlackboardPropertyDrawer : PropertyDrawer {
 
+        private FontStyle _editorLabelFontStyleCache;
+        private bool _canCacheEditorLabelFontStyle = true;
+
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
             var headerRect = new Rect(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
 
@@ -31,41 +34,48 @@ namespace MisterGames.Common.Editor.Blackboards {
 
             for (int i = 0; i < properties.Count; i++) {
                 var propertyData = properties[i];
-                var elementProperty = propertyData.serializedProperty;
+                int hash = propertyData.blackboardProperty.hash;
+                var serializedProperty = propertyData.serializedProperty;
 
-                if (elementProperty == null) {
+                if (serializedProperty == null) {
                     y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
                     continue;
                 }
 
-                float propertyHeight = EditorGUI.GetPropertyHeight(elementProperty);
+                float propertyHeight = EditorGUI.GetPropertyHeight(serializedProperty);
                 var rect = new Rect(position.x, y, position.width, propertyHeight);
+                y += propertyHeight + EditorGUIUtility.standardVerticalSpacing;
+
+                object overridenValue = null;
+                object value = null;
 
                 bool hasOverride =
                     overridenBlackboard != null &&
-                    overridenBlackboard.TryGetPropertyValue(propertyData.hash, out object overridenValue) &&
-                    blackboard.TryGetPropertyValue(propertyData.hash, out object value) &&
-                    (
-                        value != null &&
-                        overridenValue != null &&
-                        value.GetType() == overridenValue.GetType() &&
-                        !Equals(value, overridenValue) ||
-                        (value == null) != (overridenValue == null)
-                    );
+                    overridenBlackboard.TryGetProperty(hash, out var overridenProperty) &&
+                    overridenProperty.type == propertyData.blackboardProperty.type &&
+                    overridenBlackboard.TryGetPropertyValue(hash, out overridenValue) &&
+                    blackboard.TryGetPropertyValue(hash, out value);
 
-                var currentFontStyle = EditorStyles.label.fontStyle;
-                if (hasOverride) EditorStyles.label.fontStyle = FontStyle.Bold;
+                if (_canCacheEditorLabelFontStyle) {
+                    _editorLabelFontStyleCache = EditorStyles.label.fontStyle;
+                    _canCacheEditorLabelFontStyle = false;
+                }
 
                 if (typeof(Object).IsAssignableFrom(propertyData.blackboardProperty.type)) {
-                    EditorGUI.ObjectField(rect, elementProperty, propertyData.blackboardProperty.type, new GUIContent(propertyData.blackboardProperty.name));
+                    if (hasOverride) hasOverride = value as Object != overridenValue as Object;
+                    if (hasOverride) EditorStyles.label.fontStyle = FontStyle.Bold;
+
+                    EditorGUI.ObjectField(rect, serializedProperty, propertyData.blackboardProperty.type, new GUIContent(propertyData.blackboardProperty.name));
                 }
                 else {
-                    EditorGUI.PropertyField(rect, elementProperty, new GUIContent(propertyData.blackboardProperty.name));
+                    if (hasOverride) hasOverride = !Equals(value, overridenValue);
+                    if (hasOverride) EditorStyles.label.fontStyle = FontStyle.Bold;
+
+                    EditorGUI.PropertyField(rect, serializedProperty, new GUIContent(propertyData.blackboardProperty.name));
                 }
 
-                if (hasOverride) EditorStyles.label.fontStyle = currentFontStyle;
-
-                y += propertyHeight + EditorGUIUtility.standardVerticalSpacing;
+                EditorStyles.label.fontStyle = _editorLabelFontStyleCache;
+                _canCacheEditorLabelFontStyle = true;
             }
 
             EditorGUI.indentLevel--;
