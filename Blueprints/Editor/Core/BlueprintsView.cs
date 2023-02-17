@@ -272,15 +272,17 @@ namespace MisterGames.Blueprints.Editor.Core {
             };
 
             _blackboardView.SetPosition(new Rect(0, 0, 300, 300));
+            _blackboardView.visible = false;
 
             Add(_blackboardView);
-            _blackboardView.visible = false;
         }
 
         private void RepopulateBlackboardView() {
             if (_blueprintAsset == null) return;
 
             _blackboardView.Clear();
+
+            if (!_blackboardView.visible) return;
 
             var blackboardSerializedProperty = new SerializedObject(_blueprintAsset).FindProperty("_blackboard");
             var properties = BlackboardUtils.GetSerializedBlackboardProperties(blackboardSerializedProperty);
