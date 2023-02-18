@@ -126,7 +126,7 @@ namespace MisterGames.Common.Data {
                         type.IsEnum && SupportedEnumUnderlyingTypes.Contains(type.GetEnumUnderlyingType()) ||
                         SupportedValueTypes.Contains(type)
                     ) ||
-                    !type.IsValueType && (
+                    !type.IsValueType && type != typeof(Blackboard) && (
                         typeof(Object).IsAssignableFrom(type) ||
                         Attribute.IsDefined(type, typeof(SerializableAttribute))
                     )
