@@ -11,7 +11,7 @@ namespace MisterGames.Common.Data {
 
         [SerializeField] private SerializedDictionary<int, bool> _bools = new SerializedDictionary<int, bool>();
         [SerializeField] private SerializedDictionary<int, float> _floats = new SerializedDictionary<int, float>();
-        [SerializeField] private SerializedDictionary<int, int> _ints = new SerializedDictionary<int, int>();
+        [SerializeField] private SerializedDictionary<int, long> _longs = new SerializedDictionary<int, long>();
         [SerializeField] private SerializedDictionary<int, string> _strings = new SerializedDictionary<int, string>();
         [SerializeField] private SerializedDictionary<int, Vector2> _vectors2 = new SerializedDictionary<int, Vector2>();
         [SerializeField] private SerializedDictionary<int, Vector3> _vectors3 = new SerializedDictionary<int, Vector3>();
@@ -23,7 +23,7 @@ namespace MisterGames.Common.Data {
         public Blackboard(Blackboard source) {
             _bools = new SerializedDictionary<int, bool>(source._bools);
             _floats = new SerializedDictionary<int, float>(source._floats);
-            _ints = new SerializedDictionary<int, int>(source._ints);
+            _longs = new SerializedDictionary<int, long>(source._longs);
             _strings = new SerializedDictionary<int, string>(source._strings);
             _vectors2 = new SerializedDictionary<int, Vector2>(source._vectors2);
             _vectors3 = new SerializedDictionary<int, Vector3>(source._vectors3);
@@ -39,32 +39,23 @@ namespace MisterGames.Common.Data {
             var type = typeof(T);
 
             if (type.IsValueType) {
-                if (type == typeof(bool)) {
-                    return _bools[hash] is T t ? t : default;
-                }
-
-                if (type == typeof(float)) {
-                    return _floats[hash] is T t ? t : default;
-                }
-
-                if (type == typeof(int)) {
-                    return _ints[hash] is T t ? t : default;
-                }
-
-                if (type == typeof(Vector2)) {
-                    return _vectors2[hash] is T t ? t : default;
-                }
-
-                if (type == typeof(Vector3)) {
-                    return _vectors3[hash] is T t ? t : default;
-                }
+                if (type == typeof(bool)) return _bools[hash] is T t ? t : default;
+                if (type == typeof(float)) return _floats[hash] is T t ? t : default;
+                if (type == typeof(int)) return (int) _longs[hash] is T t ? t : default;
+                if (type == typeof(long)) return _longs[hash] is T t ? t : default;
+                if (type == typeof(Vector2)) return _vectors2[hash] is T t ? t : default;
+                if (type == typeof(Vector3)) return _vectors3[hash] is T t ? t : default;
 
                 if (type.IsEnum) {
                     var enumUnderlyingType = type.GetEnumUnderlyingType();
 
-                    if (enumUnderlyingType == typeof(int)) {
-                        return Enum.ToObject(type, _ints[hash]) is T t ? t : default;
-                    }
+                    if (enumUnderlyingType == typeof(int)) return Enum.ToObject(type, (int) _longs[hash]) is T t ? t : default;
+                    if (enumUnderlyingType == typeof(short)) return Enum.ToObject(type, (short) _longs[hash]) is T t ? t : default;
+                    if (enumUnderlyingType == typeof(byte)) return Enum.ToObject(type, (byte) _longs[hash]) is T t ? t : default;
+                    if (enumUnderlyingType == typeof(long)) return Enum.ToObject(type, _longs[hash]) is T t ? t : default;
+                    if (enumUnderlyingType == typeof(sbyte)) return Enum.ToObject(type, (sbyte) _longs[hash]) is T t ? t : default;
+                    if (enumUnderlyingType == typeof(ushort)) return Enum.ToObject(type, (ushort) _longs[hash]) is T t ? t : default;
+                    if (enumUnderlyingType == typeof(uint)) return Enum.ToObject(type, (uint) _longs[hash]) is T t ? t : default;
 
                     return default;
                 }
@@ -99,6 +90,7 @@ namespace MisterGames.Common.Data {
             typeof(bool),
             typeof(float),
             typeof(int),
+            typeof(long),
             typeof(string),
             typeof(Vector2),
             typeof(Vector3),
@@ -108,9 +100,20 @@ namespace MisterGames.Common.Data {
             typeof(bool),
             typeof(float),
             typeof(int),
+            typeof(long),
             typeof(string),
             typeof(Vector2),
             typeof(Vector3)
+        };
+
+        private static readonly HashSet<Type> SupportedEnumUnderlyingTypes = new HashSet<Type> {
+            typeof(int),
+            typeof(short),
+            typeof(byte),
+            typeof(long),
+            typeof(sbyte),
+            typeof(ushort),
+            typeof(uint)
         };
 
         private const string EDITOR = "editor";
@@ -119,8 +122,14 @@ namespace MisterGames.Common.Data {
                 type.IsVisible && (type.IsPublic || type.IsNestedPublic) && !type.IsGenericType &&
                 type.FullName is not null && !type.FullName.Contains(EDITOR, StringComparison.OrdinalIgnoreCase) &&
                 (
-                    type.IsValueType && (type.IsEnum && type.GetEnumUnderlyingType() == typeof(int) || SupportedValueTypes.Contains(type)) ||
-                    !type.IsValueType && (typeof(Object).IsAssignableFrom(type) || Attribute.IsDefined(type, typeof(SerializableAttribute)))
+                    type.IsValueType && (
+                        type.IsEnum && SupportedEnumUnderlyingTypes.Contains(type.GetEnumUnderlyingType()) ||
+                        SupportedValueTypes.Contains(type)
+                    ) ||
+                    !type.IsValueType && (
+                        typeof(Object).IsAssignableFrom(type) ||
+                        Attribute.IsDefined(type, typeof(SerializableAttribute))
+                    )
                 );
         }
 
@@ -300,7 +309,7 @@ namespace MisterGames.Common.Data {
             return
                 _bools.ContainsKey(hash) ||
                 _floats.ContainsKey(hash) ||
-                _ints.ContainsKey(hash) ||
+                _longs.ContainsKey(hash) ||
                 _strings.ContainsKey(hash) ||
                 _vectors2.ContainsKey(hash) ||
                 _vectors3.ContainsKey(hash) ||
@@ -312,32 +321,23 @@ namespace MisterGames.Common.Data {
             if (type == null) return default;
 
             if (type.IsValueType) {
-                if (type == typeof(bool)) {
-                    return _bools[hash];
-                }
-
-                if (type == typeof(float)) {
-                    return _floats[hash];
-                }
-
-                if (type == typeof(int)) {
-                    return _ints[hash];
-                }
-
-                if (type == typeof(Vector2)) {
-                    return _vectors2[hash];
-                }
-
-                if (type == typeof(Vector3)) {
-                    return _vectors3[hash];
-                }
+                if (type == typeof(bool)) return _bools[hash];
+                if (type == typeof(float)) return _floats[hash];
+                if (type == typeof(int)) return (int) _longs[hash];
+                if (type == typeof(long)) return _longs[hash];
+                if (type == typeof(Vector2)) return _vectors2[hash];
+                if (type == typeof(Vector3)) return _vectors3[hash];
 
                 if (type.IsEnum) {
                     var enumUnderlyingType = type.GetEnumUnderlyingType();
 
-                    if (enumUnderlyingType == typeof(int)) {
-                        return Enum.ToObject(type, _ints[hash]);
-                    }
+                    if (enumUnderlyingType == typeof(int)) return Enum.ToObject(type, (int) _longs[hash]);
+                    if (enumUnderlyingType == typeof(short)) return Enum.ToObject(type, (short) _longs[hash]);
+                    if (enumUnderlyingType == typeof(byte)) return Enum.ToObject(type, (byte) _longs[hash]);
+                    if (enumUnderlyingType == typeof(long)) return Enum.ToObject(type, _longs[hash]);
+                    if (enumUnderlyingType == typeof(sbyte)) return Enum.ToObject(type, (sbyte) _longs[hash]);
+                    if (enumUnderlyingType == typeof(ushort)) return Enum.ToObject(type, (ushort) _longs[hash]);
+                    if (enumUnderlyingType == typeof(uint)) return Enum.ToObject(type, (uint) _longs[hash]);
 
                     return default;
                 }
@@ -375,7 +375,12 @@ namespace MisterGames.Common.Data {
                 }
 
                 if (type == typeof(int)) {
-                    _ints[hash] = value is int i ? i : default;
+                    _longs[hash] = value is int i ? i : default;
+                    return;
+                }
+
+                if (type == typeof(long)) {
+                    _longs[hash] = value is long l ? l : default;
                     return;
                 }
 
@@ -390,10 +395,45 @@ namespace MisterGames.Common.Data {
                 }
 
                 if (type.IsEnum) {
+                    if (value == null) {
+                        _longs[hash] = 0;
+                        return;
+                    }
+
                     var enumUnderlyingType = type.GetEnumUnderlyingType();
 
                     if (enumUnderlyingType == typeof(int)) {
-                        _ints[hash] = value == null ? 0 : (int) Enum.ToObject(type, value);
+                        _longs[hash] = (int) Enum.ToObject(type, value);
+                        return;
+                    }
+
+                    if (enumUnderlyingType == typeof(short)) {
+                        _longs[hash] = (short) Enum.ToObject(type, value);
+                        return;
+                    }
+
+                    if (enumUnderlyingType == typeof(byte)) {
+                        _longs[hash] = (byte) Enum.ToObject(type, value);
+                        return;
+                    }
+
+                    if (enumUnderlyingType == typeof(long)) {
+                        _longs[hash] = (long) Enum.ToObject(type, value);
+                        return;
+                    }
+
+                    if (enumUnderlyingType == typeof(sbyte)) {
+                        _longs[hash] = (sbyte) Enum.ToObject(type, value);
+                        return;
+                    }
+
+                    if (enumUnderlyingType == typeof(ushort)) {
+                        _longs[hash] = (ushort) Enum.ToObject(type, value);
+                        return;
+                    }
+
+                    if (enumUnderlyingType == typeof(uint)) {
+                        _longs[hash] = (uint) Enum.ToObject(type, value);
                         return;
                     }
 
@@ -433,12 +473,12 @@ namespace MisterGames.Common.Data {
                 }
 
                 if (type == typeof(int)) {
-                    _ints.Remove(hash);
+                    _longs.Remove(hash);
                     return;
                 }
 
-                if (type == typeof(string)) {
-                    _strings.Remove(hash);
+                if (type == typeof(long)) {
+                    _longs.Remove(hash);
                     return;
                 }
 
@@ -453,15 +493,14 @@ namespace MisterGames.Common.Data {
                 }
 
                 if (type.IsEnum) {
-                    var enumUnderlyingType = type.GetEnumUnderlyingType();
-
-                    if (enumUnderlyingType == typeof(int)) {
-                        _ints.Remove(hash);
-                        return;
-                    }
-
+                    _longs.Remove(hash);
                     return;
                 }
+            }
+
+            if (type == typeof(string)) {
+                _strings.Remove(hash);
+                return;
             }
 
             if (typeof(Object).IsAssignableFrom(type)) {
@@ -486,8 +525,8 @@ namespace MisterGames.Common.Data {
                 return;
             }
 
-            if (_ints.ContainsKey(hash)) {
-                _ints.Remove(hash);
+            if (_longs.ContainsKey(hash)) {
+                _longs.Remove(hash);
                 return;
             }
 
