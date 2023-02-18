@@ -38,39 +38,52 @@ namespace MisterGames.Common.Data {
         public T Get<T>(int hash) {
             var type = typeof(T);
 
-            if (type == typeof(bool)) {
-                return _bools[hash] is T t ? t : default;
-            }
+            if (type.IsValueType) {
+                if (type == typeof(bool)) {
+                    return _bools[hash] is T t ? t : default;
+                }
 
-            if (type == typeof(float)) {
-                return _floats[hash] is T t ? t : default;
-            }
+                if (type == typeof(float)) {
+                    return _floats[hash] is T t ? t : default;
+                }
 
-            if (type == typeof(int)) {
-                return _ints[hash] is T t ? t : default;
+                if (type == typeof(int)) {
+                    return _ints[hash] is T t ? t : default;
+                }
+
+                if (type == typeof(Vector2)) {
+                    return _vectors2[hash] is T t ? t : default;
+                }
+
+                if (type == typeof(Vector3)) {
+                    return _vectors3[hash] is T t ? t : default;
+                }
+
+                if (type.IsEnum) {
+                    var enumUnderlyingType = type.GetEnumUnderlyingType();
+
+                    if (enumUnderlyingType == typeof(int)) {
+                        return Enum.ToObject(type, _ints[hash]) is T t ? t : default;
+                    }
+
+                    return default;
+                }
+
+                return default;
             }
 
             if (type == typeof(string)) {
                 return _strings[hash] is T t ? t : default;
             }
 
-            if (type == typeof(Vector2)) {
-                return _vectors2[hash] is T t ? t : default;
-            }
-
-            if (type == typeof(Vector3)) {
-                return _vectors3[hash] is T t ? t : default;
-            }
-
             if (typeof(Object).IsAssignableFrom(type)) {
                 return _objects.TryGetValue(hash, out var obj) && obj is T t ? t : default;
             }
 
-            if (typeof(object).IsAssignableFrom(type)) {
+            if (type.IsSubclassOf(typeof(object))) {
                 return _references.TryGetValue(hash, out var reference) && reference.data is T t ? t : default;
             }
 
-            Debug.LogError($"Trying to get blackboard property of unsupported type {type.Name} for hash {hash}");
             return default;
         }
 
@@ -81,7 +94,7 @@ namespace MisterGames.Common.Data {
         public IReadOnlyList<BlackboardProperty> Properties => _properties;
         public Blackboard OverridenBlackboard => _overridenBlackboard;
 
-        public static readonly Type[] SupportedTypes = new[] {
+        public static readonly Type[] RootSearchFolderTypes = new[] {
             typeof(GameObject),
             typeof(bool),
             typeof(float),
@@ -91,61 +104,74 @@ namespace MisterGames.Common.Data {
             typeof(Vector3),
         };
 
-        public static readonly Type[] SupportedBaseTypes = new[] {
-            typeof(ScriptableObject),
-            typeof(Component),
-            typeof(object),
+        private static readonly HashSet<Type> SupportedValueTypes = new HashSet<Type> {
+            typeof(bool),
+            typeof(float),
+            typeof(int),
+            typeof(string),
+            typeof(Vector2),
+            typeof(Vector3)
         };
 
-        public static bool IsSupportedType(Type t) {
-            for (int i = 0; i < SupportedTypes.Length; i++) {
-                if (t == SupportedTypes[i]) return true;
-            }
-
-            for (int i = 0; i < SupportedBaseTypes.Length; i++) {
-                if (IsSupportedDerivedType(SupportedBaseTypes[i], t)) return true;
-            }
-
-            return false;
-        }
-
         private const string EDITOR = "editor";
-        public static bool IsSupportedDerivedType(Type baseType, Type type) {
+        public static bool IsSupportedType(Type type) {
             return
-                baseType.IsAssignableFrom(type) &&
                 type.IsVisible && (type.IsPublic || type.IsNestedPublic) && !type.IsGenericType &&
                 type.FullName is not null && !type.FullName.Contains(EDITOR, StringComparison.OrdinalIgnoreCase) &&
-                (typeof(Object).IsAssignableFrom(baseType) ||
-                 !typeof(Object).IsAssignableFrom(type) && Attribute.IsDefined(type, typeof(SerializableAttribute)));
+                (
+                    type.IsValueType && (type.IsEnum && type.GetEnumUnderlyingType() == typeof(int) || SupportedValueTypes.Contains(type)) ||
+                    !type.IsValueType && (typeof(Object).IsAssignableFrom(type) || Attribute.IsDefined(type, typeof(SerializableAttribute)))
+                );
         }
 
         public static int StringToHash(string name) {
             return name.GetHashCode();
         }
 
-        public void OverrideBlackboard(Blackboard blackboard, bool removeNotExistentProperties = true) {
+        public bool OverrideBlackboard(Blackboard blackboard) {
             _overridenBlackboard = blackboard;
 
-            if (removeNotExistentProperties) {
-                for (int i = 0; i < _properties.Count; i++) {
-                    var property = _properties[i];
-                    if (!blackboard.HasProperty(property.hash)) RemoveProperty(property.hash);
+            bool changed = false;
+
+            for (int i = _properties.Count - 1; i >= 0; i--) {
+                var property = _properties[i];
+
+                if (!blackboard.HasProperty(property.hash) || !blackboard.TryGetProperty(property.hash, out var p) || p.type == null) {
+                    _properties.RemoveAt(i);
+
+                    if (property.type == null) RemoveValueByHash(property.hash);
+                    else RemoveValue(property.type, property.hash);
+
+                    changed = true;
+                    continue;
                 }
+
+                if (p.type == property.type) continue;
+
+                if (property.type == null) RemoveValueByHash(property.hash);
+                else RemoveValue(property.type, property.hash);
+
+                property.type = p.type;
+                _properties[i] = property;
+                SetValue(property.type, property.hash, blackboard.GetValue(property.type, property.hash));
+
+                changed = true;
             }
 
             for (int i = 0; i < blackboard.Properties.Count; i++) {
                 var property = blackboard.Properties[i];
+                if (property.type == null) continue;
 
                 if (!HasProperty(property.hash)) {
                     _properties.Add(property);
-
-                    object value = blackboard.GetValue(property.type, property.hash);
-                    SetValue(property.type, property.hash, value);
-                    continue;
+                    SetValue(property.type, property.hash, blackboard.GetValue(property.type, property.hash));
+                    changed = true;
                 }
 
-                TrySetPropertyIndex(property.hash, i);
+                changed |= TrySetPropertyIndex(property.hash, i);
             }
+
+            return changed;
         }
 
         public bool TryAddProperty(string name, Type type, out BlackboardProperty property) {
@@ -169,7 +195,7 @@ namespace MisterGames.Common.Data {
         }
 
         public bool TryGetPropertyValue(int hash, out object value) {
-            if (!TryGetProperty(hash, out var property)) {
+            if (!TryGetProperty(hash, out var property) || property.type == null) {
                 value = default;
                 return false;
             }
@@ -183,9 +209,7 @@ namespace MisterGames.Common.Data {
         }
 
         public bool TrySetPropertyValue(int hash, object value) {
-            if (!TryGetProperty(hash, out var property)) return false;
-
-            if (value.GetType() != property.type) return false;
+            if (!TryGetProperty(hash, out var property) || property.type == null) return false;
 
             SetValue(property.type, hash, value);
             return true;
@@ -195,19 +219,17 @@ namespace MisterGames.Common.Data {
             if (index < 0 || index > _properties.Count - 1) return false;
 
             var property = _properties[index];
-            if (value.GetType() != property.type) return false;
+            if (property.type == null) return false;
 
             SetValue(property.type, property.hash, value);
             return true;
         }
 
         public bool TryResetPropertyValue(int hash) {
-            if (!TryGetProperty(hash, out var property)) return false;
+            if (!TryGetProperty(hash, out var property) || property.type == null) return false;
 
             object value = _overridenBlackboard != null && _overridenBlackboard.TryGetPropertyValue(hash, out object v)
-                ? v == null
-                    ? default
-                    : v.GetType() == property.type ? v : default
+                ? property.type == v?.GetType() ? v : default
                 : default;
 
             SetValue(property.type, hash, value);
@@ -215,7 +237,7 @@ namespace MisterGames.Common.Data {
         }
 
         public bool TrySetPropertyName(int hash, string newName) {
-            if (!TryGetProperty(hash, out int index, out var property)) return false;
+            if (!TryGetProperty(hash, out int index, out var property) || property.type == null) return false;
 
             newName = ValidateName(newName);
             int newHash = StringToHash(newName);
@@ -235,7 +257,7 @@ namespace MisterGames.Common.Data {
 
         public bool TrySetPropertyIndex(int hash, int newIndex) {
             if (newIndex < 0) return false;
-            if (!TryGetProperty(hash, out int oldIndex, out var property)) return false;
+            if (!TryGetProperty(hash, out int oldIndex, out var property) || oldIndex == newIndex) return false;
 
             if (newIndex >= _properties.Count) {
                 _properties.RemoveAt(oldIndex);
@@ -249,28 +271,13 @@ namespace MisterGames.Common.Data {
             return true;
         }
 
-        public bool HasProperty(int hash) {
-            return
-                _bools.ContainsKey(hash) ||
-                _floats.ContainsKey(hash) ||
-                _ints.ContainsKey(hash) ||
-                _strings.ContainsKey(hash) ||
-                _vectors2.ContainsKey(hash) ||
-                _vectors3.ContainsKey(hash) ||
-                _objects.ContainsKey(hash) ||
-                _references.ContainsKey(hash);
-        }
-
         public void RemoveProperty(int hash) {
             if (!TryGetProperty(hash, out int index, out var property)) return;
 
             _properties.RemoveAt(index);
-            RemoveValue(property.type, hash);
-        }
 
-        public void RemovePropertyAt(int index) {
-            if (index < 0 || index > _properties.Count - 1) return;
-            _properties.RemoveAt(index);
+            if (property.type == null) RemoveValueByHash(hash);
+            else RemoveValue(property.type, hash);
         }
 
         private bool TryGetProperty(int hash, out int index, out BlackboardProperty property) {
@@ -289,36 +296,64 @@ namespace MisterGames.Common.Data {
             return false;
         }
 
+        private bool HasProperty(int hash) {
+            return
+                _bools.ContainsKey(hash) ||
+                _floats.ContainsKey(hash) ||
+                _ints.ContainsKey(hash) ||
+                _strings.ContainsKey(hash) ||
+                _vectors2.ContainsKey(hash) ||
+                _vectors3.ContainsKey(hash) ||
+                _objects.ContainsKey(hash) ||
+                _references.ContainsKey(hash);
+        }
+
         private object GetValue(Type type, int hash) {
-            if (type == typeof(bool)) {
-                return _bools[hash];
-            }
+            if (type == null) return default;
 
-            if (type == typeof(float)) {
-                return _floats[hash];
-            }
+            if (type.IsValueType) {
+                if (type == typeof(bool)) {
+                    return _bools[hash];
+                }
 
-            if (type == typeof(int)) {
-                return _ints[hash];
+                if (type == typeof(float)) {
+                    return _floats[hash];
+                }
+
+                if (type == typeof(int)) {
+                    return _ints[hash];
+                }
+
+                if (type == typeof(Vector2)) {
+                    return _vectors2[hash];
+                }
+
+                if (type == typeof(Vector3)) {
+                    return _vectors3[hash];
+                }
+
+                if (type.IsEnum) {
+                    var enumUnderlyingType = type.GetEnumUnderlyingType();
+
+                    if (enumUnderlyingType == typeof(int)) {
+                        return Enum.ToObject(type, _ints[hash]);
+                    }
+
+                    return default;
+                }
+
+                return default;
             }
 
             if (type == typeof(string)) {
                 return _strings[hash];
             }
 
-            if (type == typeof(Vector2)) {
-                return _vectors2[hash];
-            }
-
-            if (type == typeof(Vector3)) {
-                return _vectors3[hash];
-            }
-
             if (typeof(Object).IsAssignableFrom(type)) {
                 return _objects[hash];
             }
 
-            if (typeof(object).IsAssignableFrom(type)) {
+            if (type.IsSubclassOf(typeof(object))) {
                 return _references[hash].data;
             }
 
@@ -326,18 +361,45 @@ namespace MisterGames.Common.Data {
         }
 
         private void SetValue(Type type, int hash, object value) {
-            if (type == typeof(bool)) {
-                _bools[hash] = value is bool b ? b : default;
-                return;
-            }
+            if (type == null) return;
 
-            if (type == typeof(float)) {
-                _floats[hash] = value is float f ? f : default;
-                return;
-            }
+            if (type.IsValueType) {
+                if (type == typeof(bool)) {
+                    _bools[hash] = value is bool b ? b : default;
+                    return;
+                }
 
-            if (type == typeof(int)) {
-                _ints[hash] = value is int i ? i : default;
+                if (type == typeof(float)) {
+                    _floats[hash] = value is float f ? f : default;
+                    return;
+                }
+
+                if (type == typeof(int)) {
+                    _ints[hash] = value is int i ? i : default;
+                    return;
+                }
+
+                if (type == typeof(Vector2)) {
+                    _vectors2[hash] = value is Vector2 v2 ? v2 : default;
+                    return;
+                }
+
+                if (type == typeof(Vector3)) {
+                    _vectors3[hash] = value is Vector3 v3 ? v3 : default;
+                    return;
+                }
+
+                if (type.IsEnum) {
+                    var enumUnderlyingType = type.GetEnumUnderlyingType();
+
+                    if (enumUnderlyingType == typeof(int)) {
+                        _ints[hash] = value == null ? 0 : (int) Enum.ToObject(type, value);
+                        return;
+                    }
+
+                    return;
+                }
+
                 return;
             }
 
@@ -346,22 +408,12 @@ namespace MisterGames.Common.Data {
                 return;
             }
 
-            if (type == typeof(Vector2)) {
-                _vectors2[hash] = value is Vector2 v2 ? v2 : default;
-                return;
-            }
-
-            if (type == typeof(Vector3)) {
-                _vectors3[hash] = value is Vector3 v3 ? v3 : default;
-                return;
-            }
-
             if (typeof(Object).IsAssignableFrom(type)) {
                 _objects[hash] = value as Object;
                 return;
             }
 
-            if (typeof(object).IsAssignableFrom(type)) {
+            if (type.IsSubclassOf(typeof(object))) {
                 value = JsonUtility.FromJson(JsonUtility.ToJson(value), type);
                 _references[hash] = new BlackboardReference { data = value ?? Activator.CreateInstance(type) };
                 return;
@@ -369,34 +421,47 @@ namespace MisterGames.Common.Data {
         }
 
         private void RemoveValue(Type type, int hash) {
-            if (type == typeof(bool)) {
-                _bools.Remove(hash);
-                return;
-            }
+            if (type.IsValueType) {
+                if (type == typeof(bool)) {
+                    _bools.Remove(hash);
+                    return;
+                }
 
-            if (type == typeof(float)) {
-                _floats.Remove(hash);
-                return;
-            }
+                if (type == typeof(float)) {
+                    _floats.Remove(hash);
+                    return;
+                }
 
-            if (type == typeof(int)) {
-                _ints.Remove(hash);
-                return;
-            }
+                if (type == typeof(int)) {
+                    _ints.Remove(hash);
+                    return;
+                }
 
-            if (type == typeof(string)) {
-                _strings.Remove(hash);
-                return;
-            }
+                if (type == typeof(string)) {
+                    _strings.Remove(hash);
+                    return;
+                }
 
-            if (type == typeof(Vector2)) {
-                _vectors2.Remove(hash);
-                return;
-            }
+                if (type == typeof(Vector2)) {
+                    _vectors2.Remove(hash);
+                    return;
+                }
 
-            if (type == typeof(Vector3)) {
-                _vectors3.Remove(hash);
-                return;
+                if (type == typeof(Vector3)) {
+                    _vectors3.Remove(hash);
+                    return;
+                }
+
+                if (type.IsEnum) {
+                    var enumUnderlyingType = type.GetEnumUnderlyingType();
+
+                    if (enumUnderlyingType == typeof(int)) {
+                        _ints.Remove(hash);
+                        return;
+                    }
+
+                    return;
+                }
             }
 
             if (typeof(Object).IsAssignableFrom(type)) {
@@ -404,7 +469,49 @@ namespace MisterGames.Common.Data {
                 return;
             }
 
-            if (typeof(object).IsAssignableFrom(type)) {
+            if (type.IsSubclassOf(typeof(object))) {
+                _references.Remove(hash);
+                return;
+            }
+        }
+
+        private void RemoveValueByHash(int hash) {
+            if (_bools.ContainsKey(hash)) {
+                _bools.Remove(hash);
+                return;
+            }
+
+            if (_floats.ContainsKey(hash)) {
+                _floats.Remove(hash);
+                return;
+            }
+
+            if (_ints.ContainsKey(hash)) {
+                _ints.Remove(hash);
+                return;
+            }
+
+            if (_strings.ContainsKey(hash)) {
+                _strings.Remove(hash);
+                return;
+            }
+
+            if (_vectors2.ContainsKey(hash)) {
+                _vectors2.Remove(hash);
+                return;
+            }
+
+            if (_vectors3.ContainsKey(hash)) {
+                _vectors3.Remove(hash);
+                return;
+            }
+
+            if (_objects.ContainsKey(hash)) {
+                _objects.Remove(hash);
+                return;
+            }
+
+            if (_references.ContainsKey(hash)) {
                 _references.Remove(hash);
                 return;
             }

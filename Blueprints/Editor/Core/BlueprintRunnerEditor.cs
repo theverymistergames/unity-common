@@ -91,7 +91,7 @@ namespace MisterGames.Blueprints.Editor.Core {
             _visitedBlueprintAssets.Clear();
 
             var blackboardOverridesMap = runner.BlackboardOverridesMap;
-            FetchBlackboardOfBlueprintAndItsSubgraphsRecursively(blueprint, blackboardOverridesMap);
+            FetchBlackboardOfBlueprintAndItsSubgraphsRecursively(runner, blueprint, blackboardOverridesMap);
 
             var keys = new BlueprintAsset[blackboardOverridesMap.Keys.Count];
             blackboardOverridesMap.Keys.CopyTo(keys, 0);
@@ -105,6 +105,7 @@ namespace MisterGames.Blueprints.Editor.Core {
         }
 
         private void FetchBlackboardOfBlueprintAndItsSubgraphsRecursively(
+            BlueprintRunner runner,
             BlueprintAsset blueprint,
             SerializedDictionary<BlueprintAsset, Blackboard> blackboardOverridesMap
         ) {
@@ -112,24 +113,28 @@ namespace MisterGames.Blueprints.Editor.Core {
 
             _visitedBlueprintAssets.Add(blueprint);
 
-            FetchBlackboardOfBlueprint(blueprint, blackboardOverridesMap);
+            FetchBlackboardOfBlueprint(runner, blueprint, blackboardOverridesMap);
 
             foreach (var subgraphAsset in blueprint.BlueprintMeta.SubgraphReferencesMap.Values) {
-                FetchBlackboardOfBlueprintAndItsSubgraphsRecursively(subgraphAsset, blackboardOverridesMap);
+                FetchBlackboardOfBlueprintAndItsSubgraphsRecursively(runner, subgraphAsset, blackboardOverridesMap);
             }
         }
 
         private static void FetchBlackboardOfBlueprint(
+            BlueprintRunner runner,
             BlueprintAsset blueprint,
             SerializedDictionary<BlueprintAsset, Blackboard> blackboardOverridesMap
         ) {
             if (!blackboardOverridesMap.TryGetValue(blueprint, out var blackboardOverride)) {
                 blackboardOverride = new Blackboard(blueprint.Blackboard);
                 blackboardOverridesMap[blueprint] = blackboardOverride;
+                EditorUtility.SetDirty(runner);
                 return;
             }
 
-            blackboardOverride.OverrideBlackboard(blueprint.Blackboard);
+            if (!blackboardOverride.OverrideBlackboard(blueprint.Blackboard)) return;
+
+            EditorUtility.SetDirty(runner.gameObject);
         }
     }
 

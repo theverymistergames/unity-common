@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection;
 using MisterGames.Common.Data;
 using MisterGames.Common.Editor.Utils;
 using UnityEditor;
@@ -13,59 +14,97 @@ namespace MisterGames.Common.Editor.Blackboards {
 
     public static class BlackboardUtils {
 
-        public static VisualElement CreateBlackboardPropertyView(SerializedBlackboardProperty property, Action onChanged) {
-            string typeName = TypeNameFormatter.GetTypeName(property.blackboardProperty.type);
+        public static VisualElement CreateBlackboardPropertyView(
+            SerializedBlackboardProperty property,
+            Action<BlackboardProperty, object> onSetPropertyValue,
+            Action onPropertyValueChanged
+        ) {
+            var type = (Type) property.blackboardProperty.type;
+            string typeName = TypeNameFormatter.GetTypeName(type);
             string propertyName = property.blackboardProperty.name;
             var nameField = new BlackboardField { text = propertyName, typeText = typeName };
 
-            VisualElement valueField;
-            if (typeof(Object).IsAssignableFrom(property.blackboardProperty.type)) {
-                var currentValue = property.serializedProperty.objectReferenceValue;
-
-                var objectField = new ObjectField {
-                    value = currentValue,
-                    bindingPath = property.serializedProperty.propertyPath,
-                    allowSceneObjects = false,
-                    objectType = property.blackboardProperty.type,
-                    label = string.Empty
-                };
-
-                objectField.Bind(property.serializedProperty.serializedObject);
-                objectField.RegisterValueChangedCallback(e => {
-                    if (e.newValue == e.previousValue) return;
-                    onChanged.Invoke();
-                });
-
-                valueField = objectField;
-            }
-            else {
-                object currentValue = property.serializedProperty.GetValue();
-
-                var propertyField = new PropertyField {
-                    bindingPath = property.serializedProperty.propertyPath,
-                    label = string.Empty
-                };
-
-                propertyField.Bind(property.serializedProperty.serializedObject);
-                propertyField.RegisterValueChangeCallback(e => {
-                    object value = e.changedProperty.GetValue();
-
-                    var type = value?.GetType();
-                    if (type == null) return;
-
-                    if (type.IsValueType && Equals(value, currentValue)) return;
-
-                    currentValue = value;
-                    onChanged.Invoke();
-                });
-
-                valueField = propertyField;
-            }
+            var valueField = type == null
+                ? new VisualElement()
+                : typeof(Object).IsAssignableFrom(type) ? CreateObjectField(property, onPropertyValueChanged)
+                : type.IsEnum ? CreateEnumField(property, onSetPropertyValue)
+                : CreatePropertyField(property, onPropertyValueChanged);
 
             var container = new VisualElement();
             container.Add(nameField);
             container.Add(new BlackboardRow(nameField, valueField) { expanded = true });
             return container;
+        }
+
+        private static VisualElement CreateObjectField(SerializedBlackboardProperty property, Action onPropertyValueChanged) {
+            var currentValue = property.serializedProperty.objectReferenceValue;
+
+            var objectField = new ObjectField {
+                value = currentValue,
+                bindingPath = property.serializedProperty.propertyPath,
+                allowSceneObjects = false,
+                objectType = property.blackboardProperty.type,
+                label = string.Empty
+            };
+
+            objectField.Bind(property.serializedProperty.serializedObject);
+            objectField.RegisterValueChangedCallback(e => {
+                if (e.newValue == e.previousValue) return;
+
+                onPropertyValueChanged.Invoke();
+            });
+
+            return objectField;
+        }
+
+        private static VisualElement CreateEnumField(SerializedBlackboardProperty property, Action<BlackboardProperty, object> onSetPropertyValue) {
+            var type = (Type) property.blackboardProperty.type;
+
+            if (type.GetCustomAttribute<FlagsAttribute>(false) != null) {
+                var currentEnumFlagsValue = Enum.ToObject(type, property.serializedProperty.intValue) as Enum;
+                var enumFlagsField = new EnumFlagsField(currentEnumFlagsValue) { label = string.Empty };
+
+                enumFlagsField.RegisterValueChangedCallback(e => {
+                    if (Equals(e.newValue, e.previousValue)) return;
+
+                    onSetPropertyValue.Invoke(property.blackboardProperty, Enum.ToObject(type, e.newValue));
+                });
+
+                return enumFlagsField;
+            }
+
+            var currentEnumValue = Enum.ToObject(type, property.serializedProperty.intValue) as Enum;
+            var enumField = new EnumField(currentEnumValue) { label = string.Empty };
+
+            enumField.RegisterValueChangedCallback(e => {
+                if (Equals(e.newValue, e.previousValue)) return;
+
+                onSetPropertyValue.Invoke(property.blackboardProperty, Enum.ToObject(type, e.newValue));
+            });
+
+            return enumField;
+        }
+
+        private static VisualElement CreatePropertyField(SerializedBlackboardProperty property, Action onPropertyValueChanged) {
+            var type = (Type) property.blackboardProperty.type;
+
+            object currentValue = property.serializedProperty.GetValue();
+
+            var propertyField = new PropertyField {
+                bindingPath = property.serializedProperty.propertyPath,
+                label = string.Empty
+            };
+
+            propertyField.Bind(property.serializedProperty.serializedObject);
+            propertyField.RegisterValueChangeCallback(e => {
+                object value = e.changedProperty.GetValue();
+                if (type.IsValueType && Equals(value, currentValue)) return;
+
+                currentValue = value;
+                onPropertyValueChanged.Invoke();
+            });
+
+            return propertyField;
         }
 
         private const string BOOLS = "_bools";

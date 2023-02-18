@@ -128,6 +128,8 @@ namespace MisterGames.Blueprints.Editor.Core {
             }
             DeleteElements(graphElements);
 
+            _blackboardView?.Clear();
+
             if (_blueprintAsset != null) {
                 _blueprintAsset.BlueprintMeta.OnInvalidateNodePortsAndLinks = null;
                 _blueprintAsset = null;
@@ -288,7 +290,13 @@ namespace MisterGames.Blueprints.Editor.Core {
             var properties = BlackboardUtils.GetSerializedBlackboardProperties(blackboardSerializedProperty);
 
             for (int i = 0; i < properties.Count; i++) {
-                _blackboardView.Add(BlackboardUtils.CreateBlackboardPropertyView(properties[i], OnBlackboardPropertyValueChanged));
+                var view = BlackboardUtils.CreateBlackboardPropertyView(
+                    properties[i],
+                    OnSetBlackboardPropertyValue,
+                    OnBlackboardPropertyValueChanged
+                );
+
+                _blackboardView.Add(view);
             }
         }
 
@@ -336,6 +344,16 @@ namespace MisterGames.Blueprints.Editor.Core {
             if (!_blueprintAsset.Blackboard.TrySetPropertyName(Blackboard.StringToHash(field.text), newName)) return;
 
             field.text = newName;
+            SetBlueprintAssetDirtyAndNotify();
+
+            RepopulateBlackboardView();
+        }
+
+        private void OnSetBlackboardPropertyValue(BlackboardProperty property, object value) {
+            if (_blueprintAsset == null) return;
+
+            if (!_blueprintAsset.Blackboard.TrySetPropertyValue(property.hash, value)) return;
+
             SetBlueprintAssetDirtyAndNotify();
         }
 

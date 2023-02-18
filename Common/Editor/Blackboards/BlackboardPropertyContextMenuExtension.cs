@@ -59,7 +59,11 @@ namespace MisterGames.Common.Editor.Blackboards {
 
             if (blackboard == null) return;
 
-            menu.AddItem(new GUIContent("Reset"), false, () => blackboard.TryResetPropertyValue(blackboardPropertyHash));
+            menu.AddItem(new GUIContent("Reset"), false, () => {
+                if (blackboard.TryResetPropertyValue(blackboardPropertyHash)) {
+                    EditorUtility.SetDirty(property.serializedObject.targetObject);
+                }
+            });
         }
     }
 

@@ -1,4 +1,6 @@
-﻿using MisterGames.Common.Data;
+﻿using System;
+using System.Reflection;
+using MisterGames.Common.Data;
 using MisterGames.Common.Editor.Utils;
 using UnityEditor;
 using UnityEngine;
@@ -26,7 +28,8 @@ namespace MisterGames.Common.Editor.Blackboards {
 
             var properties = BlackboardUtils.GetSerializedBlackboardProperties(property);
             if (properties.Count == 0) {
-                EditorGUI.HelpBox(new Rect(position.x, y, position.width, EditorGUIUtility.singleLineHeight), "Blackboard has no properties", MessageType.None);
+                var rect = new Rect(position.x, y, position.width, EditorGUIUtility.singleLineHeight);
+                EditorGUI.HelpBox(rect, "Blackboard has no properties", MessageType.None);
                 return;
             }
 
@@ -47,6 +50,16 @@ namespace MisterGames.Common.Editor.Blackboards {
                 var rect = new Rect(position.x, y, position.width, propertyHeight);
                 y += propertyHeight + EditorGUIUtility.standardVerticalSpacing;
 
+                var type = (Type) propertyData.blackboardProperty.type;
+                if (type == null) {
+                    var labelRect = new Rect(rect.x, rect.y, EditorGUIUtility.labelWidth, propertyHeight);
+                    EditorGUI.LabelField(labelRect, propertyData.blackboardProperty.name);
+
+                    var valueRect = new Rect(rect.x + EditorGUIUtility.labelWidth + 2f, rect.y, rect.width - EditorGUIUtility.labelWidth - 2f, propertyHeight);
+                    EditorGUI.HelpBox(valueRect, $"Property type is null", MessageType.Warning);
+                    continue;
+                }
+
                 object overridenValue = null;
                 object value = null;
 
@@ -62,11 +75,25 @@ namespace MisterGames.Common.Editor.Blackboards {
                     _canCacheEditorLabelFontStyle = false;
                 }
 
-                if (typeof(Object).IsAssignableFrom(propertyData.blackboardProperty.type)) {
+                if (typeof(Object).IsAssignableFrom(type)) {
                     if (hasOverride) hasOverride = value as Object != overridenValue as Object;
                     if (hasOverride) EditorStyles.label.fontStyle = FontStyle.Bold;
 
                     EditorGUI.ObjectField(rect, serializedProperty, propertyData.blackboardProperty.type, new GUIContent(propertyData.blackboardProperty.name));
+                }
+                else if (type.IsEnum) {
+                    if (hasOverride) hasOverride = !Equals(value, overridenValue);
+                    if (hasOverride) EditorStyles.label.fontStyle = FontStyle.Bold;
+
+                    var currentEnumValue = value as Enum;
+
+                    var result = type.GetCustomAttribute<FlagsAttribute>(false) != null
+                        ? EditorGUI.EnumFlagsField(rect, new GUIContent(propertyData.blackboardProperty.name), currentEnumValue)
+                        : EditorGUI.EnumPopup(rect, new GUIContent(propertyData.blackboardProperty.name), currentEnumValue);
+
+                    if (!Equals(result, currentEnumValue)) {
+                        if (blackboard.TrySetPropertyValue(hash, result)) EditorUtility.SetDirty(property.serializedObject.targetObject);
+                    }
                 }
                 else {
                     if (hasOverride) hasOverride = !Equals(value, overridenValue);
