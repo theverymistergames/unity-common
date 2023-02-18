@@ -109,7 +109,7 @@ namespace MisterGames.Common.Editor.Blackboards {
 
         private const string BOOLS = "_bools";
         private const string FLOATS = "_floats";
-        private const string INTS = "_ints";
+        private const string LONGS = "_longs";
         private const string STRINGS = "_strings";
         private const string VECTORS2 = "_vectors2";
         private const string VECTORS3 = "_vectors3";
@@ -138,7 +138,7 @@ namespace MisterGames.Common.Editor.Blackboards {
 
             FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(BOOLS), propertiesMap, properties);
             FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(FLOATS), propertiesMap, properties);
-            FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(INTS), propertiesMap, properties);
+            FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(LONGS), propertiesMap, properties);
             FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(STRINGS), propertiesMap, properties);
             FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(VECTORS2), propertiesMap, properties);
             FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(VECTORS3), propertiesMap, properties);

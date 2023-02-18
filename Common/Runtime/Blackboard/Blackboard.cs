@@ -9,6 +9,8 @@ namespace MisterGames.Common.Data {
     [Serializable]
     public sealed class Blackboard {
 
+        [SerializeField] private List<BlackboardProperty> _properties = new List<BlackboardProperty>();
+
         [SerializeField] private SerializedDictionary<int, bool> _bools = new SerializedDictionary<int, bool>();
         [SerializeField] private SerializedDictionary<int, float> _floats = new SerializedDictionary<int, float>();
         [SerializeField] private SerializedDictionary<int, long> _longs = new SerializedDictionary<int, long>();
@@ -18,9 +20,15 @@ namespace MisterGames.Common.Data {
         [SerializeField] private SerializedDictionary<int, Object> _objects = new SerializedDictionary<int, Object>();
         [SerializeField] private SerializedDictionary<int, BlackboardReference> _references = new SerializedDictionary<int, BlackboardReference>();
 
+        public IReadOnlyList<BlackboardProperty> Properties => _properties;
+
         public Blackboard() { }
 
         public Blackboard(Blackboard source) {
+#if UNITY_EDITOR
+            _properties = new List<BlackboardProperty>(source._properties);
+#endif
+
             _bools = new SerializedDictionary<int, bool>(source._bools);
             _floats = new SerializedDictionary<int, float>(source._floats);
             _longs = new SerializedDictionary<int, long>(source._longs);
@@ -29,10 +37,6 @@ namespace MisterGames.Common.Data {
             _vectors3 = new SerializedDictionary<int, Vector3>(source._vectors3);
             _objects = new SerializedDictionary<int, Object>(source._objects);
             _references = new SerializedDictionary<int, BlackboardReference>(source._references);
-
-#if UNITY_EDITOR
-            _properties = new List<BlackboardProperty>(source._properties);
-#endif
         }
 
         public T Get<T>(int hash) {
@@ -79,11 +83,7 @@ namespace MisterGames.Common.Data {
         }
 
 #if UNITY_EDITOR
-        [SerializeField] private List<BlackboardProperty> _properties = new List<BlackboardProperty>();
-        [SerializeField] private Blackboard _overridenBlackboard;
-
-        public IReadOnlyList<BlackboardProperty> Properties => _properties;
-        public Blackboard OverridenBlackboard => _overridenBlackboard;
+        public Blackboard OverridenBlackboard { get; private set; }
 
         public static readonly Type[] RootSearchFolderTypes = new[] {
             typeof(GameObject),
@@ -138,7 +138,7 @@ namespace MisterGames.Common.Data {
         }
 
         public bool OverrideBlackboard(Blackboard blackboard) {
-            _overridenBlackboard = blackboard;
+            OverridenBlackboard = blackboard;
 
             bool changed = false;
 
@@ -234,10 +234,28 @@ namespace MisterGames.Common.Data {
             return true;
         }
 
+        public bool TryResetPropertyValues() {
+            bool changed = false;
+
+            for (int i = 0; i < _properties.Count; i++) {
+                var property = _properties[i];
+                if (property.type == null) continue;
+
+                object value = OverridenBlackboard != null && OverridenBlackboard.TryGetPropertyValue(property.hash, out object v)
+                    ? property.type == v?.GetType() ? v : default
+                    : default;
+
+                SetValue(property.type, property.hash, value);
+                changed = true;
+            }
+
+            return changed;
+        }
+
         public bool TryResetPropertyValue(int hash) {
             if (!TryGetProperty(hash, out var property) || property.type == null) return false;
 
-            object value = _overridenBlackboard != null && _overridenBlackboard.TryGetPropertyValue(hash, out object v)
+            object value = OverridenBlackboard != null && OverridenBlackboard.TryGetPropertyValue(hash, out object v)
                 ? property.type == v?.GetType() ? v : default
                 : default;
 

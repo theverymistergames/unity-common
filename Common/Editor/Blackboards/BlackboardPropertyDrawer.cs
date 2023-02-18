@@ -18,6 +18,14 @@ namespace MisterGames.Common.Editor.Blackboards {
             var headerRect = new Rect(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
 
             EditorGUI.LabelField(headerRect, label);
+
+            var e = Event.current;
+            if (e.type == EventType.MouseDown && e.isMouse && e.button == 1 && headerRect.Contains(e.mousePosition)) {
+                var menu = new GenericMenu();
+                menu.AddItem(new GUIContent("Reset"), false, () => (property.GetValue() as Blackboard)?.TryResetPropertyValues());
+                menu.ShowAsContext();
+            }
+
             property.isExpanded = EditorGUI.Foldout(headerRect, property.isExpanded, GUIContent.none, toggleOnLabelClick: false);
 
             if (!property.isExpanded) return;
