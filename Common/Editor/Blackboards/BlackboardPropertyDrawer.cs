@@ -15,8 +15,9 @@ namespace MisterGames.Common.Editor.Blackboards {
         private bool _canCacheEditorLabelFontStyle = true;
 
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
-            var headerRect = new Rect(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
+            EditorGUI.BeginProperty(position, label, property);
 
+            var headerRect = new Rect(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
             EditorGUI.LabelField(headerRect, label);
 
             var e = Event.current;
@@ -28,7 +29,10 @@ namespace MisterGames.Common.Editor.Blackboards {
 
             property.isExpanded = EditorGUI.Foldout(headerRect, property.isExpanded, GUIContent.none, toggleOnLabelClick: false);
 
-            if (!property.isExpanded) return;
+            if (!property.isExpanded) {
+                EditorGUI.EndProperty();
+                return;
+            }
 
             EditorGUI.indentLevel++;
 
@@ -38,6 +42,8 @@ namespace MisterGames.Common.Editor.Blackboards {
             if (properties.Count == 0) {
                 var rect = new Rect(position.x, y, position.width, EditorGUIUtility.singleLineHeight);
                 EditorGUI.HelpBox(rect, "Blackboard has no properties", MessageType.None);
+
+                EditorGUI.EndProperty();
                 return;
             }
 
@@ -54,7 +60,7 @@ namespace MisterGames.Common.Editor.Blackboards {
                     continue;
                 }
 
-                float propertyHeight = EditorGUI.GetPropertyHeight(serializedProperty);
+                float propertyHeight = EditorGUI.GetPropertyHeight(serializedProperty, true);
                 var rect = new Rect(position.x, y, position.width, propertyHeight);
                 y += propertyHeight + EditorGUIUtility.standardVerticalSpacing;
 
@@ -89,7 +95,7 @@ namespace MisterGames.Common.Editor.Blackboards {
 
                     EditorGUI.ObjectField(rect, serializedProperty, propertyData.blackboardProperty.type, new GUIContent(propertyData.blackboardProperty.name));
                 }
-                else if (type.IsEnum) {
+                if (type.IsEnum) {
                     if (hasOverride) hasOverride = !Equals(value, overridenValue);
                     if (hasOverride) EditorStyles.label.fontStyle = FontStyle.Bold;
 
@@ -107,7 +113,7 @@ namespace MisterGames.Common.Editor.Blackboards {
                     if (hasOverride) hasOverride = !Equals(value, overridenValue);
                     if (hasOverride) EditorStyles.label.fontStyle = FontStyle.Bold;
 
-                    EditorGUI.PropertyField(rect, serializedProperty, new GUIContent(propertyData.blackboardProperty.name));
+                    EditorGUI.PropertyField(rect, serializedProperty, new GUIContent(propertyData.blackboardProperty.name), true);
                 }
 
                 EditorStyles.label.fontStyle = _editorLabelFontStyleCache;
@@ -115,6 +121,8 @@ namespace MisterGames.Common.Editor.Blackboards {
             }
 
             EditorGUI.indentLevel--;
+
+            EditorGUI.EndProperty();
         }
 
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label) {
@@ -135,7 +143,7 @@ namespace MisterGames.Common.Editor.Blackboards {
 
                 float propertyHeight = elementProperty == null
                     ? EditorGUIUtility.singleLineHeight
-                    : EditorGUI.GetPropertyHeight(elementProperty);
+                    : EditorGUI.GetPropertyHeight(elementProperty, true);
 
                 height += propertyHeight + EditorGUIUtility.standardVerticalSpacing;
             }

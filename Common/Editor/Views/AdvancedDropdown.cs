@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using MisterGames.Common.Editor.Tree;
 using UnityEditor;
 using UnityEditor.IMGUI.Controls;
@@ -16,6 +15,8 @@ namespace MisterGames.Common.Editor {
 		private readonly IEnumerable<T> _items;
 		private readonly Func<T, string> _getItemPath;
 		private readonly Action<T> _onItemSelected;
+		private readonly char _separator;
+		private readonly Func<IEnumerable<TreeEntry<PathTree.Node<T>>>, IEnumerable<TreeEntry<PathTree.Node<T>>>> _sort;
 
 		private sealed class Item : AdvancedDropdownItem {
 
@@ -31,18 +32,22 @@ namespace MisterGames.Common.Editor {
 			IEnumerable<T> items,
 			Func<T, string> getItemPath,
 			Action<T> onItemSelected,
-			int linesCount = DEFAULT_LINES_COUNT
+			char separator = '/',
+			int linesCount = DEFAULT_LINES_COUNT,
+			Func<IEnumerable<TreeEntry<PathTree.Node<T>>>, IEnumerable<TreeEntry<PathTree.Node<T>>>> sort = null
 		) : base(new AdvancedDropdownState()) {
 			_title = title;
 			_items = items;
 			_getItemPath = getItemPath;
 			_onItemSelected = onItemSelected;
+			_separator = separator;
+			_sort = sort;
 			minimumSize = new Vector2(minimumSize.x, (2 + linesCount) * EditorGUIUtility.singleLineHeight);
 		}
 
 		protected override AdvancedDropdownItem BuildRoot() {
 			var root = new AdvancedDropdownItem(_title);
-			var pathTreeRoot = PathTree.CreateTree(_items, _getItemPath);
+			var pathTreeRoot = PathTree.CreateTree(_items, _getItemPath, _separator, _sort);
 
 			for (int i = 0; i < pathTreeRoot.children.Count; i++) {
 				root.AddChild(CreateItem(pathTreeRoot.children[i]));

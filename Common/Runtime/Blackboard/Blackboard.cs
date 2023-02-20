@@ -75,7 +75,7 @@ namespace MisterGames.Common.Data {
                 return _objects.TryGetValue(hash, out var obj) && obj is T t ? t : default;
             }
 
-            if (type.IsSubclassOf(typeof(object))) {
+            if (type.IsSubclassOf(typeof(object)) || type.IsInterface) {
                 return _references.TryGetValue(hash, out var reference) && reference.data is T t ? t : default;
             }
 
@@ -128,7 +128,8 @@ namespace MisterGames.Common.Data {
                     ) ||
                     !type.IsValueType && type != typeof(Blackboard) && (
                         typeof(Object).IsAssignableFrom(type) ||
-                        Attribute.IsDefined(type, typeof(SerializableAttribute))
+                        Attribute.IsDefined(type, typeof(SerializableAttribute)) ||
+                        type.IsInterface
                     )
                 );
         }
@@ -255,11 +256,12 @@ namespace MisterGames.Common.Data {
         public bool TryResetPropertyValue(int hash) {
             if (!TryGetProperty(hash, out var property) || property.type == null) return false;
 
+            var type = (Type) property.type;
             object value = OverridenBlackboard != null && OverridenBlackboard.TryGetPropertyValue(hash, out object v)
-                ? property.type == v?.GetType() ? v : default
+                ? v != null && type.IsInstanceOfType(v) ? v : default
                 : default;
 
-            SetValue(property.type, hash, value);
+            SetValue(type, hash, value);
             return true;
         }
 
@@ -371,7 +373,7 @@ namespace MisterGames.Common.Data {
                 return _objects[hash];
             }
 
-            if (type.IsSubclassOf(typeof(object))) {
+            if (type.IsSubclassOf(typeof(object)) || type.IsInterface) {
                 return _references[hash].data;
             }
 
@@ -471,9 +473,11 @@ namespace MisterGames.Common.Data {
                 return;
             }
 
-            if (type.IsSubclassOf(typeof(object))) {
-                value = JsonUtility.FromJson(JsonUtility.ToJson(value), type);
-                _references[hash] = new BlackboardReference { data = value ?? Activator.CreateInstance(type) };
+            if (type.IsSubclassOf(typeof(object)) || type.IsInterface) {
+                _references[hash] = new BlackboardReference {
+                    data = value == null ? null : JsonUtility.FromJson(JsonUtility.ToJson(value), value.GetType()),
+                    type = new SerializedType(type),
+                };
                 return;
             }
         }
@@ -526,7 +530,7 @@ namespace MisterGames.Common.Data {
                 return;
             }
 
-            if (type.IsSubclassOf(typeof(object))) {
+            if (type.IsSubclassOf(typeof(object)) || type.IsInterface) {
                 _references.Remove(hash);
                 return;
             }

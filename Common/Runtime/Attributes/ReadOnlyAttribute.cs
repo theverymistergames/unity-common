@@ -8,23 +8,31 @@ namespace MisterGames.Common.Attributes {
     }
 
     public class ReadOnlyAttribute : PropertyAttribute {
+
         public readonly ReadOnlyMode mode;
 
-        public ReadOnlyAttribute(ReadOnlyMode mode = ReadOnlyMode.Always) {
+        public ReadOnlyAttribute(ReadOnlyMode mode) {
             this.mode = mode;
+        }
+
+        public ReadOnlyAttribute() {
+            mode = ReadOnlyMode.Always;
         }
     }
 
     public class BeginReadOnlyGroupAttribute : PropertyAttribute {
+
         public readonly ReadOnlyMode mode;
 
-        public BeginReadOnlyGroupAttribute(ReadOnlyMode mode = ReadOnlyMode.Always) {
+        public BeginReadOnlyGroupAttribute(ReadOnlyMode mode) {
             this.mode = mode;
+        }
+
+        public BeginReadOnlyGroupAttribute() {
+            mode = ReadOnlyMode.Always;
         }
     }
 
-    public class EndReadOnlyGroupAttribute : PropertyAttribute {
-        private readonly ReadOnlyMode _mode;
-    }
+    public class EndReadOnlyGroupAttribute : PropertyAttribute { }
     
 }

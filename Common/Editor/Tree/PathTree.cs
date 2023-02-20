@@ -25,12 +25,19 @@ namespace MisterGames.Common.Editor.Tree {
         public static TreeEntry<Node<T>> CreateTree<T>(
             IEnumerable<T> collection,
             Func<T, string> getPath,
-            char separator = '/'
+            char separator = '/',
+            Func<IEnumerable<TreeEntry<Node<T>>>, IEnumerable<TreeEntry<Node<T>>>> sort = null
         ) {
+            sort ??= SortChildren;
             var elements = collection.ToArray();
-            return
-                new TreeEntry<Node<T>> { children = GetChildren("", elements, getPath, 1, separator) }
-                .SquashParentsWithSingleChild();
+            var root = new TreeEntry<Node<T>> { children = GetChildren("", elements, getPath, 1, separator, sort) };
+            return SquashParentsWithSingleChild(root, sort, 0);
+        }
+
+        private static IEnumerable<TreeEntry<Node<T>>> SortChildren<T>(IEnumerable<TreeEntry<Node<T>>> children) {
+            return children
+                .OrderBy(e => e.children.Count == 0)
+                .ThenBy(e => e.data.name);
         }
 
         private static List<TreeEntry<Node<T>>> GetChildren<T>(
@@ -38,10 +45,11 @@ namespace MisterGames.Common.Editor.Tree {
             IReadOnlyList<T> elements,
             Func<T, string> getPath,
             int level,
-            char separator
+            char separator,
+            Func<IEnumerable<TreeEntry<Node<T>>>, IEnumerable<TreeEntry<Node<T>>>> sort
         ) {
-            var leafNodes = new List<TreeEntry<Node<T>>>();
-            var folderNodes = new List<TreeEntry<Node<T>>>();
+            var nodes = new List<TreeEntry<Node<T>>>();
+            var folderNameHashesSet = new HashSet<int>();
 
             for (int i = 0; i < elements.Count; i++) {
                 var element = elements[i];
@@ -55,7 +63,7 @@ namespace MisterGames.Common.Editor.Tree {
                 if (pathDepth <= level) {
                     string name = pathDepth == 0 ? string.Empty : pathParts[pathDepth - 1];
 
-                    leafNodes.Add(new TreeEntry<Node<T>> {
+                    nodes.Add(new TreeEntry<Node<T>> {
                         data = new Node<T>(name, element),
                         level = level,
                         children = new List<TreeEntry<Node<T>>>(),
@@ -65,26 +73,28 @@ namespace MisterGames.Common.Editor.Tree {
                 }
 
                 string folderName = pathParts[level - 1];
-                if (folderNodes.Any(f => f.data.name == folderName)) continue;
+                int folderNameHash = folderName.GetHashCode();
+
+                if (folderNameHashesSet.Contains(folderNameHash)) continue;
 
                 string folderPath = string.Join(separator, pathParts.Slice(0, level - 1));
 
-                folderNodes.Add(new TreeEntry<Node<T>> {
+                folderNameHashesSet.Add(folderNameHash);
+                nodes.Add(new TreeEntry<Node<T>> {
                     data = new Node<T>(folderName),
                     level = level,
-                    children = GetChildren(folderPath, elements, getPath, level + 1, separator)
+                    children = GetChildren(folderPath, elements, getPath, level + 1, separator, sort)
                 });
             }
 
-            var nodes = new List<TreeEntry<Node<T>>>();
-
-            nodes.AddRange(folderNodes.OrderBy(e => e.data.name));
-            nodes.AddRange(leafNodes.OrderBy(e => e.data.name));
-
-            return nodes;
+            return sort.Invoke(nodes).ToList();
         }
 
-        private static TreeEntry<Node<T>> SquashParentsWithSingleChild<T>(this TreeEntry<Node<T>> entry, int levelOffset = 0) {
+        private static TreeEntry<Node<T>> SquashParentsWithSingleChild<T>(
+            TreeEntry<Node<T>> entry,
+            Func<IEnumerable<TreeEntry<Node<T>>>, IEnumerable<TreeEntry<Node<T>>>> sort,
+            int levelOffset
+        ) {
             entry.level += levelOffset;
 
             var children = entry.children;
@@ -100,8 +110,10 @@ namespace MisterGames.Common.Editor.Tree {
             }
 
             for (int i = 0; i < children.Count; i++) {
-                children[i] = SquashParentsWithSingleChild(children[i], levelOffset);
+                children[i] = SquashParentsWithSingleChild(children[i], sort, levelOffset);
             }
+
+            entry.children = sort.Invoke(entry.children).ToList();
 
             return entry;
         }

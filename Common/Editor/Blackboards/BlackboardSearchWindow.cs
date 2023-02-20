@@ -15,37 +15,49 @@ namespace MisterGames.Common.Editor.Blackboards {
 
         public Action<Type> onSelectType = delegate {  };
 
+        private List<SearchTreeEntry> _treeCache;
+
         public List<SearchTreeEntry> CreateSearchTree(SearchWindowContext context) {
+            if (_treeCache != null) return _treeCache;
+
             var tree = new List<SearchTreeEntry> { SearchTreeEntryUtils.Header("Select type") };
 
             var types = TypeCache
                 .GetTypesDerivedFrom<ScriptableObject>()
+                .Append(typeof(ScriptableObject))
                 .Where(Blackboard.IsSupportedType)
-                .ToList();
-            types.Add(typeof(ScriptableObject));
-            tree.AddRange(GetTypeTree(typeof(ScriptableObject).FullName, types, 1));
+                .ToArray();
+
+            tree.AddRange(GetTypeTree("Scriptable Objects", types, 1));
 
             types = TypeCache
                 .GetTypesDerivedFrom<Component>()
+                .Append(typeof(Component))
                 .Where(Blackboard.IsSupportedType)
-                .ToList();
-            types.Add(typeof(Component));
-            tree.AddRange(GetTypeTree(typeof(Component).FullName, types, 1));
+                .ToArray();
+            tree.AddRange(GetTypeTree("Components", types, 1));
 
             types = TypeCache
                 .GetTypesDerivedFrom<object>()
                 .Where(t => !typeof(Object).IsAssignableFrom(t) && Blackboard.IsSupportedType(t))
-                .ToList();
-            tree.AddRange(GetTypeTree(typeof(object).FullName, types, 1));
+                .ToArray();
+            tree.AddRange(GetTypeTree("Classes", types, 1));
+
+            types = AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(assembly => assembly.GetTypes())
+                .Where(t => t.IsInterface && Blackboard.IsSupportedType(t))
+                .ToArray();
+            tree.AddRange(GetTypeTree("Interfaces", types, 1));
 
             types = AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(assembly => assembly.GetTypes())
                 .Where(t => t.IsEnum && Blackboard.IsSupportedType(t))
-                .ToList();
-            tree.AddRange(GetTypeTree(typeof(Enum).FullName, types, 1));
+                .ToArray();
+            tree.AddRange(GetTypeTree("Enums", types, 1));
 
             tree.AddRange(Blackboard.RootSearchFolderTypes.Select(t => CreateSearchTreeEntryForType(t, 1)));
 
+            _treeCache = tree;
             return tree;
         }
 

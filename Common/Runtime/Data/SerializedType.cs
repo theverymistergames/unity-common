@@ -19,7 +19,7 @@ namespace MisterGames.Common.Data {
         private SerializedType() { }
 
         public SerializedType(Type type) {
-            _type = ToString(type);
+            _type = SerializeType(type);
         }
 
         public static implicit operator Type(SerializedType serializedType) {
@@ -30,12 +30,7 @@ namespace MisterGames.Common.Data {
                 return null;
             }
 
-            try {
-                return Type.GetType(SplitTypeString(serializedType._type).typeName, true);
-            }
-            catch (TypeLoadException) {
-                return null;
-            }
+            return DeserializeType(serializedType._type);
         }
 
         public bool Equals(Type other) {
@@ -78,7 +73,7 @@ namespace MisterGames.Common.Data {
             return type is not null ? type.ToString() : "<null>";
         }
 
-        private static string ToString(Type type) {
+        public static string SerializeType(Type type) {
             var data = new SerializedTypeData();
             if (type == null) return string.Empty;
 
@@ -94,6 +89,15 @@ namespace MisterGames.Common.Data {
             }
 
             return ToString(data);
+        }
+
+        public static Type DeserializeType(string type) {
+            try {
+                return Type.GetType(SplitTypeString(type).typeName, true);
+            }
+            catch (TypeLoadException) {
+                return null;
+            }
         }
 
         private static string ToString(SerializedTypeData data) {
