@@ -18,7 +18,7 @@ namespace MisterGames.BlueprintLib {
 
         public override Port[] CreatePorts() => new[] {
             Port.Input<float>("Duration"),
-            Port.Input<AnimationCurve>("Curve"),
+            Port.Input<EasingCurve>("Curve"),
             Port.Input<ITweenProgressAction>("Tween Progress Action"),
             Port.Output<ITween>("Tween"),
         };
@@ -27,10 +27,7 @@ namespace MisterGames.BlueprintLib {
             if (port != 3) return null;
 
             _tween.duration = Mathf.Max(0f, ReadInputPort(0, _duration));
-
-            _tween.useCustomEasingCurve = true;
-            _tween.customEasingCurve = ReadInputPort(1, _curve.curve);
-
+            _tween.easingCurve = ReadInputPort(1, _curve);
             _tween.action = ReadInputPort<ITweenProgressAction>(2);
 
             return _tween;
