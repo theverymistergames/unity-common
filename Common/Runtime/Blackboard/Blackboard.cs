@@ -242,9 +242,12 @@ namespace MisterGames.Common.Data {
                 var property = _properties[i];
                 if (property.type == null) continue;
 
-                object value = OverridenBlackboard != null && OverridenBlackboard.TryGetPropertyValue(property.hash, out object v)
-                    ? property.type == v?.GetType() ? v : default
-                    : default;
+                var type = (Type) property.type;
+                object value = OverridenBlackboard != null &&
+                               OverridenBlackboard.TryGetPropertyValue(property.hash, out object v) &&
+                               v != null &&
+                               type.IsInstanceOfType(v)
+                    ? v : default;
 
                 SetValue(property.type, property.hash, value);
                 changed = true;
@@ -257,9 +260,11 @@ namespace MisterGames.Common.Data {
             if (!TryGetProperty(hash, out var property) || property.type == null) return false;
 
             var type = (Type) property.type;
-            object value = OverridenBlackboard != null && OverridenBlackboard.TryGetPropertyValue(hash, out object v)
-                ? v != null && type.IsInstanceOfType(v) ? v : default
-                : default;
+            object value = OverridenBlackboard != null &&
+                           OverridenBlackboard.TryGetPropertyValue(hash, out object v) &&
+                           v != null &&
+                           type.IsInstanceOfType(v)
+                ? v : default;
 
             SetValue(type, hash, value);
             return true;
