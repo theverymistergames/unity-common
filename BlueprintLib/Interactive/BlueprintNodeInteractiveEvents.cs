@@ -1,6 +1,8 @@
 ﻿using System;
 using MisterGames.Blueprints;
+using MisterGames.Blueprints.Core;
 using MisterGames.Interact.Core;
+using UnityEngine;
 
 namespace MisterGames.BlueprintLib {
 
@@ -10,8 +12,11 @@ namespace MisterGames.BlueprintLib {
         BlueprintNode,
         IBlueprintEnter,
         IBlueprintOutput<bool>,
-        IBlueprintOutput<InteractiveUser>
+        IBlueprintOutput<InteractiveUser>,
+        IBlueprintStart
     {
+        [SerializeField] private bool _autoSetInteractiveOnStart = true;
+
         public override Port[] CreatePorts() => new[] {
             Port.Enter("Set Interactive"),
             Port.Input<Interactive>("Interactive"),
@@ -23,6 +28,15 @@ namespace MisterGames.BlueprintLib {
 
         private Interactive _interactive;
         private InteractiveUser _currentUser;
+
+        public void OnStart() {
+            if (!_autoSetInteractiveOnStart) return;
+
+            _interactive = ReadInputPort<Interactive>(1);
+
+            _interactive.OnStartInteract += OnStartInteract;
+            _interactive.OnStopInteract += OnStopInteract;
+        }
 
         public override void OnDeInitialize() {
             if (_interactive != null) {

@@ -1,6 +1,6 @@
-﻿using MisterGames.Blueprints.Compile;
+﻿using MisterGames.Blackboards.Core;
+using MisterGames.Blueprints.Compile;
 using MisterGames.Blueprints.Meta;
-using MisterGames.Common.Data;
 using UnityEngine;
 
 namespace MisterGames.Blueprints {

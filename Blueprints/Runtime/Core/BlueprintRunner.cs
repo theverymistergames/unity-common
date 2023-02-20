@@ -1,4 +1,5 @@
-﻿using MisterGames.Blueprints.Compile;
+﻿using MisterGames.Blackboards.Core;
+using MisterGames.Blueprints.Compile;
 using MisterGames.Common.Data;
 using UnityEngine;
 

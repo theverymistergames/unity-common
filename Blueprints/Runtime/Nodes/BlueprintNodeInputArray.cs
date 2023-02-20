@@ -19,8 +19,6 @@ namespace MisterGames.Blueprints.Nodes {
 #endif
 
     {
-
-
         [SerializeField] private string _port;
         
         public override Port[] CreatePorts() => new[] {

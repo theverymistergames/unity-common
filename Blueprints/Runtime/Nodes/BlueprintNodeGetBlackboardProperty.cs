@@ -1,6 +1,6 @@
 ﻿using System;
+using MisterGames.Blackboards.Core;
 using MisterGames.Blueprints.Meta;
-using MisterGames.Common.Data;
 using UnityEngine;
 
 namespace MisterGames.Blueprints.Nodes {

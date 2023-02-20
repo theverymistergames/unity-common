@@ -1,4 +1,4 @@
-﻿using MisterGames.Common.Data;
+﻿using MisterGames.Blackboards.Core;
 using UnityEngine;
 
 namespace MisterGames.Blueprints {

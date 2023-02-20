@@ -1,8 +1,9 @@
 ﻿using System;
 using MisterGames.Common.Attributes;
+using MisterGames.Common.Data;
 using UnityEngine;
 
-namespace MisterGames.Common.Data {
+namespace MisterGames.Blackboards.Core {
 
     [Serializable]
     public struct BlackboardReference {

@@ -1,10 +1,8 @@
 {
-    "name": "MisterGames.Blueprints",
-    "rootNamespace": "",
+    "name": "MisterGames.Blackboards",
+    "rootNamespace": "MisterGames.Blackboards",
     "references": [
-        "GUID:0175294ec022c624cbe537915e3c9e71",
-        "GUID:b887f5744765cba4b9c25a5554ce71b3",
-        "GUID:63005e8f2dd59ce45b4c7ab35005896f"
+        "GUID:0175294ec022c624cbe537915e3c9e71"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

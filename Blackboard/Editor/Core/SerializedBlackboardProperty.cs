@@ -1,7 +1,7 @@
-﻿using MisterGames.Common.Data;
+﻿using MisterGames.Blackboards.Core;
 using UnityEditor;
 
-namespace MisterGames.Common.Editor.Blackboards {
+namespace MisterGames.Blackboards.Editor {
 
     public readonly struct SerializedBlackboardProperty {
 

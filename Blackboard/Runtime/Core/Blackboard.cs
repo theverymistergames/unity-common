@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using MisterGames.Common.Data;
 using MisterGames.Common.Strings;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-namespace MisterGames.Common.Data {
+namespace MisterGames.Blackboards.Core {
 
     [Serializable]
     public sealed class Blackboard {

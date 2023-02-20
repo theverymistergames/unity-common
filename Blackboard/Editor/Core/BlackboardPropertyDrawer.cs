@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Reflection;
-using MisterGames.Common.Data;
+using MisterGames.Blackboards.Core;
 using MisterGames.Common.Editor.Utils;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-namespace MisterGames.Common.Editor.Blackboards {
+namespace MisterGames.Blackboards.Editor {
 
     [CustomPropertyDrawer(typeof(Blackboard))]
     public sealed class BlackboardPropertyDrawer : PropertyDrawer {

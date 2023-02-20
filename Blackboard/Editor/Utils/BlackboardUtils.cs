@@ -1,16 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
-using MisterGames.Common.Data;
+using MisterGames.Blackboards.Core;
 using MisterGames.Common.Editor.Utils;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEditor.UIElements;
 using UnityEngine.UIElements;
-using Blackboard = MisterGames.Common.Data.Blackboard;
+using Blackboard = MisterGames.Blackboards.Core.Blackboard;
 using Object = UnityEngine.Object;
 
-namespace MisterGames.Common.Editor.Blackboards {
+namespace MisterGames.Blackboards.Editor {
 
     public static class BlackboardUtils {
 

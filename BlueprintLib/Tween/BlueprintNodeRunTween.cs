@@ -2,6 +2,7 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Blueprints;
+using MisterGames.Blueprints.Core;
 using MisterGames.Tweens.Core;
 using UnityEngine;
 
@@ -9,9 +10,10 @@ namespace MisterGames.BlueprintLib {
 
     [Serializable]
     [BlueprintNodeMeta(Name = "Run Tween", Category = "Tweens", Color = BlueprintColors.Node.Actions)]
-    public sealed class BlueprintNodeRunTween : BlueprintNode, IBlueprintEnter {
+    public sealed class BlueprintNodeRunTween : BlueprintNode, IBlueprintEnter, IBlueprintStart {
 
-        [SerializeField] private bool _autoInvertNextPlay;
+        [SerializeField] private bool _autoInvertNextPlay = true;
+        [SerializeField] private bool _autoSetTweenOnStart = true;
 
         private CancellationTokenSource _destroyCts;
         private CancellationTokenSource _pauseCts;
@@ -42,6 +44,13 @@ namespace MisterGames.BlueprintLib {
             _destroyCts.Dispose();
 
             _tween?.DeInitialize();
+        }
+
+        public void OnStart() {
+            if (!_autoSetTweenOnStart) return;
+
+            _tween = ReadInputPort<ITween>(6);
+            _tween.Initialize(_runner);
         }
 
         public void OnEnterPort(int port) {

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using MisterGames.Blackboards.Core;
 using MisterGames.Common.Data;
 using UnityEditor;
 using UnityEngine;

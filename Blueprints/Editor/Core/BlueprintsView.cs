@@ -1,16 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using MisterGames.Blackboards.Core;
+using MisterGames.Blackboards.Editor;
 using MisterGames.Blueprints.Meta;
 using MisterGames.Blueprints.Validation;
 using MisterGames.Common.Data;
-using MisterGames.Common.Editor.Blackboards;
 using MisterGames.Common.Editor.Utils;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.UIElements;
-using Blackboard = MisterGames.Common.Data.Blackboard;
+using Blackboard = MisterGames.Blackboards.Core.Blackboard;
 using BlackboardView = UnityEditor.Experimental.GraphView.Blackboard;
 using PortView = UnityEditor.Experimental.GraphView.Port;
 
@@ -312,7 +313,7 @@ namespace MisterGames.Blueprints.Editor.Core {
             Undo.RecordObject(_blueprintAsset, "Blueprint Add Blackboard Property");
 
             string typeName = TypeNameFormatter.GetTypeName(type);
-            if (!_blueprintAsset.Blackboard.TryAddProperty($"New {typeName}", type, out var property)) return;
+            if (!_blueprintAsset.Blackboard.TryAddProperty($"New {typeName}", type, out _)) return;
 
             SetBlueprintAssetDirtyAndNotify();
             RepopulateBlackboardView();

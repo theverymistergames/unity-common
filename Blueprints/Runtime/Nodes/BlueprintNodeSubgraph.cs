@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using MisterGames.Blackboards.Core;
 using MisterGames.Blueprints.Compile;
 using MisterGames.Blueprints.Core;
 using MisterGames.Common.Data;

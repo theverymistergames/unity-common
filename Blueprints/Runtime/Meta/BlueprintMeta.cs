@@ -11,6 +11,10 @@ namespace MisterGames.Blueprints.Meta {
         [SerializeField] private SerializedDictionary<int, BlueprintNodeMeta> _nodesMap;
         [SerializeField] private SerializedDictionary<int, SerializedDictionary<int, List<BlueprintLink>>> _fromNodePortLinksMap;
 
+        [SerializeField] private int _addedNodesTotalCount;
+        [SerializeField] private SerializedDictionary<int, SerializedDictionary<int, List<BlueprintLink>>> _toNodePortLinksMap;
+        [SerializeField] private SerializedDictionary<int, BlueprintAsset> _subgraphReferencesMap;
+
         public Dictionary<int, BlueprintNodeMeta> NodesMap => _nodesMap;
 
         public IReadOnlyList<BlueprintLink> GetLinksFromNodePort(int nodeId, int portIndex) {
@@ -30,10 +34,6 @@ namespace MisterGames.Blueprints.Meta {
         }
 
 #if UNITY_EDITOR
-        [SerializeField] private int _addedNodesTotalCount;
-        [SerializeField] private SerializedDictionary<int, SerializedDictionary<int, List<BlueprintLink>>> _toNodePortLinksMap;
-        [SerializeField] private SerializedDictionary<int, BlueprintAsset> _subgraphReferencesMap;
-
         public Action<int> OnInvalidateNodePortsAndLinks;
         public Dictionary<int, BlueprintAsset> SubgraphReferencesMap => _subgraphReferencesMap;
 
