@@ -1,4 +1,5 @@
 ﻿using System;
+using MisterGames.Common.Attributes;
 using MisterGames.Tweens.Core;
 using UnityEngine;
 
@@ -7,7 +8,7 @@ namespace MisterGames.Tweens.Actions {
     [Serializable]
     public class TweenInstantActions : ITweenInstantAction {
 
-        public ITweenInstantAction[] actions;
+        [SerializeReference] [SubclassSelector] public ITweenInstantAction[] actions;
 
         public void Initialize(MonoBehaviour owner) {
             for (int i = 0; i < actions.Length; i++) {
