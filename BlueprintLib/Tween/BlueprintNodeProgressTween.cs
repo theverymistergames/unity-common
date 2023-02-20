@@ -9,7 +9,7 @@ namespace MisterGames.BlueprintLib {
 
     [Serializable]
     [BlueprintNodeMeta(Name = "ProgressTween", Category = "Tweens", Color = BlueprintColors.Node.Actions)]
-    public sealed class BlueprintNodeProgressTween : BlueprintNode, IBlueprintOutput<ITween>, ITweenProgressAction {
+    public sealed class BlueprintNodeProgressTween : BlueprintNode, IBlueprintOutput<ITween> {
 
         [SerializeField] [Min(0f)] private float _duration;
         [SerializeField] private EasingCurve _curve;
@@ -31,16 +31,10 @@ namespace MisterGames.BlueprintLib {
             _tween.useCustomEasingCurve = true;
             _tween.customEasingCurve = ReadInputPort(1, _curve.curve);
 
-            _tween.action = ReadInputPort<ITweenProgressAction>(2, this);
+            _tween.action = ReadInputPort<ITweenProgressAction>(2);
 
             return _tween;
         }
-
-        void ITweenProgressAction.Initialize(MonoBehaviour owner) { }
-
-        void ITweenProgressAction.DeInitialize() { }
-
-        void ITweenProgressAction.OnProgressUpdate(float progress) { }
     }
 
 }
