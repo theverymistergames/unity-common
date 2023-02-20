@@ -9,6 +9,7 @@ namespace MisterGames.Common.Editor.Utils {
             [typeof(bool)] = "Boolean",
             [typeof(float)] = "Float",
             [typeof(int)] = "Int",
+            [typeof(long)] = "Long",
             [typeof(string)] = "String",
         };
 
