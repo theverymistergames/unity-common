@@ -13,12 +13,7 @@ namespace MisterGames.Tweens {
     public sealed class ProgressTween : ITween {
 
         [Min(0f)] public float duration;
-
-        [Header("Easing")]
-        public EasingType easingType = EasingType.Linear;
-        public bool useCustomEasingCurve;
-        public AnimationCurve customEasingCurve = AnimationCurve.Linear(0f, 0f, 1f, 1f);
-
+        public EasingCurve easingCurve;
         [SerializeReference] [SubclassSelector] public ITweenProgressAction action;
 
         private ITimeSource _timeSource;
@@ -29,8 +24,7 @@ namespace MisterGames.Tweens {
 
         public void Initialize(MonoBehaviour owner) {
             _timeSource = TimeSources.Get(PlayerLoopStage.Update);
-
-            _easingCurve = useCustomEasingCurve ? customEasingCurve : easingType.ToAnimationCurve();
+            _easingCurve = easingCurve.curve;
 
             action.Initialize(owner);
         }
