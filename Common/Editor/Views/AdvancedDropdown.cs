@@ -9,14 +9,10 @@ namespace MisterGames.Common.Editor {
 
 	public sealed class AdvancedDropdown<T> : AdvancedDropdown {
 
-		private const int DEFAULT_LINES_COUNT = 10;
-
 		private readonly string _title;
-		private readonly IEnumerable<T> _items;
-		private readonly Func<T, string> _getItemPath;
 		private readonly Action<T> _onItemSelected;
-		private readonly char _separator;
 		private readonly Func<IEnumerable<TreeEntry<PathTree.Node<T>>>, IEnumerable<TreeEntry<PathTree.Node<T>>>> _sort;
+		private readonly TreeEntry<PathTree.Node<T>> _pathTreeRoot;
 
 		private sealed class Item : AdvancedDropdownItem {
 
@@ -33,24 +29,23 @@ namespace MisterGames.Common.Editor {
 			Func<T, string> getItemPath,
 			Action<T> onItemSelected,
 			char separator = '/',
-			int linesCount = DEFAULT_LINES_COUNT,
 			Func<IEnumerable<TreeEntry<PathTree.Node<T>>>, IEnumerable<TreeEntry<PathTree.Node<T>>>> sort = null
 		) : base(new AdvancedDropdownState()) {
 			_title = title;
-			_items = items;
-			_getItemPath = getItemPath;
 			_onItemSelected = onItemSelected;
-			_separator = separator;
-			_sort = sort;
-			minimumSize = new Vector2(minimumSize.x, (2 + linesCount) * EditorGUIUtility.singleLineHeight);
+			_pathTreeRoot = PathTree.CreateTree(items, getItemPath, separator, sort);
+
+			float width = Mathf.Max(minimumSize.x, 200f);
+			float height = 10 * EditorGUIUtility.singleLineHeight;
+
+			minimumSize = new Vector2(width, height);
 		}
 
 		protected override AdvancedDropdownItem BuildRoot() {
 			var root = new AdvancedDropdownItem(_title);
-			var pathTreeRoot = PathTree.CreateTree(_items, _getItemPath, _separator, _sort);
 
-			for (int i = 0; i < pathTreeRoot.children.Count; i++) {
-				root.AddChild(CreateItem(pathTreeRoot.children[i]));
+			for (int i = 0; i < _pathTreeRoot.children.Count; i++) {
+				root.AddChild(CreateItem(_pathTreeRoot.children[i]));
 			}
 
 			return root;

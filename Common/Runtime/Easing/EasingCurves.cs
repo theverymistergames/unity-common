@@ -7,39 +7,80 @@ namespace MisterGames.Common.Easing {
 	public static class EasingCurves {
 
 		public static AnimationCurve ToAnimationCurve(this EasingType ease) {
+			return new AnimationCurve { keys = GetEasingTypeKeys(ease) };
+		}
+
+		public static bool TryGetEasingType(this AnimationCurve animationCurve, out EasingType easingType) {
+			var keys = animationCurve.keys;
+			var types = Enum.GetValues(typeof(EasingType));
+
+			foreach (EasingType type in types) {
+				var easingTypeKeys = GetEasingTypeKeys(type);
+				if (easingTypeKeys.Length != keys.Length) continue;
+
+				bool hasSameKeys = true;
+
+				for (int i = 0; i < keys.Length; i++) {
+					var key = keys[i];
+					var easingTypeKey = easingTypeKeys[i];
+
+					if (key.weightedMode != easingTypeKey.weightedMode ||
+					    Math.Abs(key.time - easingTypeKey.time) > Mathf.Epsilon ||
+					    Math.Abs(key.value - easingTypeKey.value) > Mathf.Epsilon ||
+					    Math.Abs(key.inTangent - easingTypeKey.inTangent) > Mathf.Epsilon ||
+					    Math.Abs(key.outTangent - easingTypeKey.outTangent) > Mathf.Epsilon ||
+					    Math.Abs(key.inWeight - easingTypeKey.inWeight) > Mathf.Epsilon ||
+					    Math.Abs(key.outWeight - easingTypeKey.outWeight) > Mathf.Epsilon
+					) {
+						hasSameKeys = false;
+						break;
+					}
+				}
+
+				if (!hasSameKeys) continue;
+
+				easingType = type;
+				return true;
+			}
+
+			easingType = default;
+			return false;
+		}
+
+		private static Keyframe[] GetEasingTypeKeys(EasingType ease) {
 			return ease switch {
-				EasingType.EaseInQuad => new AnimationCurve { keys = EaseInQuad.keys },
-				EasingType.EaseOutQuad => new AnimationCurve { keys = EaseOutQuad.keys },
-				EasingType.EaseInOutQuad => new AnimationCurve { keys = EaseInOutQuad.keys },
-				EasingType.EaseInCubic => new AnimationCurve { keys = EaseInCubic.keys },
-				EasingType.EaseOutCubic => new AnimationCurve { keys = EaseOutCubic.keys },
-				EasingType.EaseInOutCubic => new AnimationCurve { keys = EaseInOutCubic.keys },
-				EasingType.EaseInQuart => new AnimationCurve { keys = EaseInQuart.keys },
-				EasingType.EaseOutQuart => new AnimationCurve { keys = EaseOutQuart.keys },
-				EasingType.EaseInOutQuart => new AnimationCurve { keys = EaseInOutQuart.keys },
-				EasingType.EaseInQuint => new AnimationCurve { keys = EaseInQuint.keys },
-				EasingType.EaseOutQuint => new AnimationCurve { keys = EaseOutQuint.keys },
-				EasingType.EaseInOutQuint => new AnimationCurve { keys = EaseInOutQuint.keys },
-				EasingType.EaseInSine => new AnimationCurve { keys = EaseInSine.keys },
-				EasingType.EaseOutSine => new AnimationCurve { keys = EaseOutSine.keys },
-				EasingType.EaseInOutSine => new AnimationCurve { keys = EaseInOutSine.keys },
-				EasingType.EaseInExpo => new AnimationCurve { keys = EaseInExpo.keys },
-				EasingType.EaseOutExpo => new AnimationCurve { keys = EaseOutExpo.keys },
-				EasingType.EaseInOutExpo => new AnimationCurve { keys = EaseInOutExpo.keys },
-				EasingType.EaseInCirc => new AnimationCurve { keys = EaseInCirc.keys },
-				EasingType.EaseOutCirc => new AnimationCurve { keys = EaseOutCirc.keys },
-				EasingType.EaseInOutCirc => new AnimationCurve { keys = EaseInOutCirc.keys },
-				EasingType.Linear => AnimationCurve.Linear(0f, 0f, 1f, 1f),
-				EasingType.Spring => new AnimationCurve { keys = Spring.keys },
-				EasingType.EaseInBounce => new AnimationCurve { keys = EaseInBounce.keys },
-				EasingType.EaseOutBounce => new AnimationCurve { keys = EaseOutBounce.keys },
-				EasingType.EaseInOutBounce => new AnimationCurve { keys = EaseInOutBounce.keys },
-				EasingType.EaseInBack => new AnimationCurve { keys = EaseInBack.keys },
-				EasingType.EaseOutBack => new AnimationCurve { keys = EaseOutBack.keys },
-				EasingType.EaseInOutBack => new AnimationCurve { keys = EaseInOutBack.keys },
-				EasingType.EaseInElastic => new AnimationCurve { keys = EaseInElastic.keys },
-				EasingType.EaseOutElastic => new AnimationCurve { keys = EaseOutElastic.keys },
-				EasingType.EaseInOutElastic => new AnimationCurve { keys = EaseInOutElastic.keys },
+				EasingType.EaseInQuad => EaseInQuad.keys,
+				EasingType.EaseOutQuad => EaseOutQuad.keys,
+				EasingType.EaseInOutQuad => EaseInOutQuad.keys,
+				EasingType.EaseInCubic => EaseInCubic.keys,
+				EasingType.EaseOutCubic => EaseOutCubic.keys,
+				EasingType.EaseInOutCubic => EaseInOutCubic.keys,
+				EasingType.EaseInQuart => EaseInQuart.keys,
+				EasingType.EaseOutQuart => EaseOutQuart.keys,
+				EasingType.EaseInOutQuart => EaseInOutQuart.keys,
+				EasingType.EaseInQuint => EaseInQuint.keys,
+				EasingType.EaseOutQuint => EaseOutQuint.keys,
+				EasingType.EaseInOutQuint => EaseInOutQuint.keys,
+				EasingType.EaseInSine => EaseInSine.keys,
+				EasingType.EaseOutSine => EaseOutSine.keys,
+				EasingType.EaseInOutSine => EaseInOutSine.keys,
+				EasingType.EaseInExpo => EaseInExpo.keys,
+				EasingType.EaseOutExpo => EaseOutExpo.keys,
+				EasingType.EaseInOutExpo => EaseInOutExpo.keys,
+				EasingType.EaseInCirc => EaseInCirc.keys,
+				EasingType.EaseOutCirc => EaseOutCirc.keys,
+				EasingType.EaseInOutCirc => EaseInOutCirc.keys,
+				EasingType.Linear => Linear.keys,
+				EasingType.Spring => Spring.keys,
+				EasingType.EaseInBounce => EaseInBounce.keys,
+				EasingType.EaseOutBounce => EaseOutBounce.keys,
+				EasingType.EaseInOutBounce => EaseInOutBounce.keys,
+				EasingType.EaseInBack => EaseInBack.keys,
+				EasingType.EaseOutBack => EaseOutBack.keys,
+				EasingType.EaseInOutBack => EaseInOutBack.keys,
+				EasingType.EaseInElastic => EaseInElastic.keys,
+				EasingType.EaseOutElastic => EaseOutElastic.keys,
+				EasingType.EaseInOutElastic => EaseInOutElastic.keys,
 				_ => throw new NotImplementedException($"Easing animation curve is not implemented for easing function {ease}")
 			};
 		}
@@ -282,6 +323,9 @@ namespace MisterGames.Common.Easing {
 			new Vector2(0.722987f, 0.999401f),
 			new Vector2(1.0f, 1.0f)
 		});
+
+		private static AnimationCurve _linear;
+		private static AnimationCurve Linear => _linear ?? AnimationCurve.Linear(0f, 0f, 1f, 1f);
 
 		private static AnimationCurve _spring;
 		private static AnimationCurve Spring => _spring ?? BezierToAnimationCurve(new Vector2[] {

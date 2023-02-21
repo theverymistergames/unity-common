@@ -15,7 +15,8 @@ namespace MisterGames.Common.Editor.Drawers {
 
         private static GUIContent NullLabel => new GUIContent("null");
         private static GUIContent IsNotManagedReferenceLabel => new GUIContent("Property type is not a managed reference");
-        private static GUIContent PropertyTypeIsNullLabel => new GUIContent("Property type is null");
+        private static GUIContent PropertyTypeNullLabel => new GUIContent("Property type is null");
+        private static GUIContent PropertyTypeUnsupportedLabel => new GUIContent("Property type is unsupported");
 
         public static void PropertyField(Rect position, SerializedProperty property, Type baseType, Type type, GUIContent label) {
             if (property.propertyType != SerializedPropertyType.ManagedReference) {
@@ -24,7 +25,12 @@ namespace MisterGames.Common.Editor.Drawers {
             }
 
             if (baseType == null) {
-                EditorGUI.LabelField(position, label, PropertyTypeIsNullLabel);
+                EditorGUI.LabelField(position, label, PropertyTypeNullLabel);
+                return;
+            }
+
+            if (!IsSupportedBaseType(baseType)) {
+                EditorGUI.LabelField(position, label, PropertyTypeUnsupportedLabel);
                 return;
             }
 
@@ -75,6 +81,12 @@ namespace MisterGames.Common.Editor.Drawers {
             return (t.IsPublic || t.IsNestedPublic) && !t.IsAbstract && !t.IsGenericType && !t.IsValueType &&
                    t.FullName is not null && !t.FullName.Contains(EDITOR, StringComparison.OrdinalIgnoreCase) &&
                    !UnityObjectType.IsAssignableFrom(t) && Attribute.IsDefined(t, typeof(SerializableAttribute));
+        }
+
+        private static bool IsSupportedBaseType(Type t) {
+            return (t.IsPublic || t.IsNestedPublic) && !t.IsGenericType && !t.IsValueType &&
+                   t.FullName is not null && !t.FullName.Contains(EDITOR, StringComparison.OrdinalIgnoreCase) &&
+                   !UnityObjectType.IsAssignableFrom(t) && (t.IsInterface || t.IsAbstract || Attribute.IsDefined(t, typeof(SerializableAttribute)));
         }
     }
 
