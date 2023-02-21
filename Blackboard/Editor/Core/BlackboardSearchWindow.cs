@@ -22,7 +22,30 @@ namespace MisterGames.Blackboards.Editor {
 
             var tree = new List<SearchTreeEntry> { SearchTreeEntryUtils.Header("Select type") };
 
-            var types = TypeCache
+            var types = new[] {
+                typeof(bool),
+
+                typeof(float),
+                typeof(double),
+
+                typeof(int),
+                typeof(long),
+
+                typeof(string),
+
+                typeof(Vector2),
+                typeof(Vector3),
+                typeof(Vector4),
+
+                typeof(Vector2Int),
+                typeof(Vector3Int),
+
+                typeof(Quaternion),
+            };
+            tree.Add(SearchTreeEntryUtils.Header("Primitives", 1));
+            tree.AddRange(types.Select(t => CreateSearchTreeEntryForType(t, 2)));
+
+            types = TypeCache
                 .GetTypesDerivedFrom<ScriptableObject>()
                 .Append(typeof(ScriptableObject))
                 .Where(Blackboard.IsSupportedType)
@@ -40,8 +63,11 @@ namespace MisterGames.Blackboards.Editor {
             types = TypeCache
                 .GetTypesDerivedFrom<object>()
                 .Where(t => !typeof(Object).IsAssignableFrom(t) && Blackboard.IsSupportedType(t))
+                .Append(typeof(AnimationCurve))
+                .Append(typeof(Color))
+                .Append(typeof(LayerMask))
                 .ToArray();
-            tree.AddRange(GetTypeTree("Classes", types, 1));
+            tree.AddRange(GetTypeTree("Objects", types, 1));
 
             types = AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(assembly => assembly.GetTypes())
@@ -55,7 +81,7 @@ namespace MisterGames.Blackboards.Editor {
                 .ToArray();
             tree.AddRange(GetTypeTree("Enums", types, 1));
 
-            tree.AddRange(Blackboard.RootSearchFolderTypes.Select(t => CreateSearchTreeEntryForType(t, 1)));
+            tree.Add(CreateSearchTreeEntryForType(typeof(GameObject), 1));
 
             _treeCache = tree;
             return tree;

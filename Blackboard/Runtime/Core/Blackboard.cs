@@ -12,13 +12,30 @@ namespace MisterGames.Blackboards.Core {
 
         [SerializeField] private List<BlackboardProperty> _properties = new List<BlackboardProperty>();
 
+        // Primitives
         [SerializeField] private SerializedDictionary<int, bool> _bools = new SerializedDictionary<int, bool>();
-        [SerializeField] private SerializedDictionary<int, float> _floats = new SerializedDictionary<int, float>();
         [SerializeField] private SerializedDictionary<int, long> _longs = new SerializedDictionary<int, long>();
+        [SerializeField] private SerializedDictionary<int, double> _doubles = new SerializedDictionary<int, double>();
         [SerializeField] private SerializedDictionary<int, string> _strings = new SerializedDictionary<int, string>();
+
+        // Unity native types
+        [SerializeField] private SerializedDictionary<int, Vector2Int> _vectors2Int = new SerializedDictionary<int, Vector2Int>();
+        [SerializeField] private SerializedDictionary<int, Vector3Int> _vectors3Int = new SerializedDictionary<int, Vector3Int>();
+
         [SerializeField] private SerializedDictionary<int, Vector2> _vectors2 = new SerializedDictionary<int, Vector2>();
         [SerializeField] private SerializedDictionary<int, Vector3> _vectors3 = new SerializedDictionary<int, Vector3>();
+        [SerializeField] private SerializedDictionary<int, Vector4> _vectors4 = new SerializedDictionary<int, Vector4>();
+
+        [SerializeField] private SerializedDictionary<int, Quaternion> _quaternions = new SerializedDictionary<int, Quaternion>();
+
+        [SerializeField] private SerializedDictionary<int, Color> _colors = new SerializedDictionary<int, Color>();
+        [SerializeField] private SerializedDictionary<int, LayerMask> _layerMasks = new SerializedDictionary<int, LayerMask>();
+        [SerializeField] private SerializedDictionary<int, AnimationCurve> _curves = new SerializedDictionary<int, AnimationCurve>();
+
+        // Unity Objects
         [SerializeField] private SerializedDictionary<int, Object> _objects = new SerializedDictionary<int, Object>();
+
+        // References
         [SerializeField] private SerializedDictionary<int, BlackboardReference> _references = new SerializedDictionary<int, BlackboardReference>();
 
         public IReadOnlyList<BlackboardProperty> Properties => _properties;
@@ -31,11 +48,23 @@ namespace MisterGames.Blackboards.Core {
 #endif
 
             _bools = new SerializedDictionary<int, bool>(source._bools);
-            _floats = new SerializedDictionary<int, float>(source._floats);
             _longs = new SerializedDictionary<int, long>(source._longs);
+            _doubles = new SerializedDictionary<int, double>(source._doubles);
             _strings = new SerializedDictionary<int, string>(source._strings);
+
+            _vectors2Int = new SerializedDictionary<int, Vector2Int>(source._vectors2Int);
+            _vectors3Int = new SerializedDictionary<int, Vector3Int>(source._vectors3Int);
+
             _vectors2 = new SerializedDictionary<int, Vector2>(source._vectors2);
             _vectors3 = new SerializedDictionary<int, Vector3>(source._vectors3);
+            _vectors4 = new SerializedDictionary<int, Vector4>(source._vectors4);
+
+            _quaternions = new SerializedDictionary<int, Quaternion>(source._quaternions);
+
+            _colors = new SerializedDictionary<int, Color>(source._colors);
+            _layerMasks = new SerializedDictionary<int, LayerMask>(source._layerMasks);
+            _curves = new SerializedDictionary<int, AnimationCurve>(source._curves);
+
             _objects = new SerializedDictionary<int, Object>(source._objects);
             _references = new SerializedDictionary<int, BlackboardReference>(source._references);
         }
@@ -45,11 +74,24 @@ namespace MisterGames.Blackboards.Core {
 
             if (type.IsValueType) {
                 if (type == typeof(bool)) return _bools[hash] is T t ? t : default;
-                if (type == typeof(float)) return _floats[hash] is T t ? t : default;
+
+                if (type == typeof(float)) return (float) _doubles[hash] is T t ? t : default;
+                if (type == typeof(double)) return _doubles[hash] is T t ? t : default;
+
                 if (type == typeof(int)) return (int) _longs[hash] is T t ? t : default;
                 if (type == typeof(long)) return _longs[hash] is T t ? t : default;
+
                 if (type == typeof(Vector2)) return _vectors2[hash] is T t ? t : default;
                 if (type == typeof(Vector3)) return _vectors3[hash] is T t ? t : default;
+                if (type == typeof(Vector4)) return _vectors4[hash] is T t ? t : default;
+
+                if (type == typeof(Quaternion)) return _quaternions[hash] is T t ? t : default;
+
+                if (type == typeof(Vector2Int)) return _vectors2Int[hash] is T t ? t : default;
+                if (type == typeof(Vector3Int)) return _vectors3Int[hash] is T t ? t : default;
+
+                if (type == typeof(LayerMask)) return _layerMasks[hash] is T t ? t : default;
+                if (type == typeof(Color)) return _colors[hash] is T t ? t : default;
 
                 if (type.IsEnum) {
                     var enumUnderlyingType = type.GetEnumUnderlyingType();
@@ -68,9 +110,8 @@ namespace MisterGames.Blackboards.Core {
                 return default;
             }
 
-            if (type == typeof(string)) {
-                return _strings[hash] is T t ? t : default;
-            }
+            if (type == typeof(string)) return _strings[hash] is T t ? t : default;
+            if (type == typeof(AnimationCurve)) return _curves[hash] is T t ? t : default;
 
             if (typeof(Object).IsAssignableFrom(type)) {
                 return _objects.TryGetValue(hash, out var obj) && obj is T t ? t : default;
@@ -86,25 +127,26 @@ namespace MisterGames.Blackboards.Core {
 #if UNITY_EDITOR
         public Blackboard OverridenBlackboard { get; private set; }
 
-        public static readonly Type[] RootSearchFolderTypes = new[] {
-            typeof(GameObject),
-            typeof(bool),
-            typeof(float),
-            typeof(int),
-            typeof(long),
-            typeof(string),
-            typeof(Vector2),
-            typeof(Vector3),
-        };
-
         private static readonly HashSet<Type> SupportedValueTypes = new HashSet<Type> {
             typeof(bool),
+
             typeof(float),
+            typeof(double),
+
             typeof(int),
             typeof(long),
-            typeof(string),
+
             typeof(Vector2),
-            typeof(Vector3)
+            typeof(Vector3),
+            typeof(Vector4),
+
+            typeof(Vector2Int),
+            typeof(Vector3Int),
+
+            typeof(Quaternion),
+
+            typeof(LayerMask),
+            typeof(Color),
         };
 
         private static readonly HashSet<Type> SupportedEnumUnderlyingTypes = new HashSet<Type> {
@@ -114,7 +156,7 @@ namespace MisterGames.Blackboards.Core {
             typeof(long),
             typeof(sbyte),
             typeof(ushort),
-            typeof(uint)
+            typeof(uint),
         };
 
         private const string EDITOR = "editor";
@@ -125,7 +167,7 @@ namespace MisterGames.Blackboards.Core {
                 (
                     type.IsValueType && (
                         type.IsEnum && SupportedEnumUnderlyingTypes.Contains(type.GetEnumUnderlyingType()) ||
-                        SupportedValueTypes.Contains(type)
+                        !type.IsEnum && SupportedValueTypes.Contains(type)
                     ) ||
                     !type.IsValueType && type != typeof(Blackboard) && (
                         typeof(Object).IsAssignableFrom(type) ||
@@ -334,11 +376,23 @@ namespace MisterGames.Blackboards.Core {
         private bool HasProperty(int hash) {
             return
                 _bools.ContainsKey(hash) ||
-                _floats.ContainsKey(hash) ||
                 _longs.ContainsKey(hash) ||
+                _doubles.ContainsKey(hash) ||
                 _strings.ContainsKey(hash) ||
+
                 _vectors2.ContainsKey(hash) ||
                 _vectors3.ContainsKey(hash) ||
+                _vectors4.ContainsKey(hash) ||
+
+                _vectors2Int.ContainsKey(hash) ||
+                _vectors3Int.ContainsKey(hash) ||
+
+                _quaternions.ContainsKey(hash) ||
+
+                _colors.ContainsKey(hash) ||
+                _layerMasks.ContainsKey(hash) ||
+                _curves.ContainsKey(hash) ||
+
                 _objects.ContainsKey(hash) ||
                 _references.ContainsKey(hash);
         }
@@ -348,11 +402,24 @@ namespace MisterGames.Blackboards.Core {
 
             if (type.IsValueType) {
                 if (type == typeof(bool)) return _bools[hash];
-                if (type == typeof(float)) return _floats[hash];
+
+                if (type == typeof(float)) return (float) _doubles[hash];
+                if (type == typeof(double)) return _doubles[hash];
+
                 if (type == typeof(int)) return (int) _longs[hash];
                 if (type == typeof(long)) return _longs[hash];
+
                 if (type == typeof(Vector2)) return _vectors2[hash];
                 if (type == typeof(Vector3)) return _vectors3[hash];
+                if (type == typeof(Vector4)) return _vectors4[hash];
+
+                if (type == typeof(Quaternion)) return _quaternions[hash];
+
+                if (type == typeof(Vector2Int)) return _vectors2Int[hash];
+                if (type == typeof(Vector3Int)) return _vectors3Int[hash];
+
+                if (type == typeof(LayerMask)) return _layerMasks[hash];
+                if (type == typeof(Color)) return _colors[hash];
 
                 if (type.IsEnum) {
                     var enumUnderlyingType = type.GetEnumUnderlyingType();
@@ -371,17 +438,11 @@ namespace MisterGames.Blackboards.Core {
                 return default;
             }
 
-            if (type == typeof(string)) {
-                return _strings[hash];
-            }
+            if (type == typeof(string)) return _strings[hash];
+            if (type == typeof(AnimationCurve)) return _curves[hash];
 
-            if (typeof(Object).IsAssignableFrom(type)) {
-                return _objects[hash];
-            }
-
-            if (type.IsSubclassOf(typeof(object)) || type.IsInterface) {
-                return _references[hash].data;
-            }
+            if (typeof(Object).IsAssignableFrom(type)) return _objects[hash];
+            if (type.IsSubclassOf(typeof(object)) || type.IsInterface) return _references[hash].data;
 
             return default;
         }
@@ -396,7 +457,12 @@ namespace MisterGames.Blackboards.Core {
                 }
 
                 if (type == typeof(float)) {
-                    _floats[hash] = value is float f ? f : default;
+                    _doubles[hash] = value is float f ? f : default;
+                    return;
+                }
+
+                if (type == typeof(double)) {
+                    _doubles[hash] = value is double d ? d : default;
                     return;
                 }
 
@@ -417,6 +483,36 @@ namespace MisterGames.Blackboards.Core {
 
                 if (type == typeof(Vector3)) {
                     _vectors3[hash] = value is Vector3 v3 ? v3 : default;
+                    return;
+                }
+
+                if (type == typeof(Vector4)) {
+                    _vectors4[hash] = value is Vector4 v4 ? v4 : default;
+                    return;
+                }
+
+                if (type == typeof(Vector2Int)) {
+                    _vectors2Int[hash] = value is Vector2Int v2 ? v2 : default;
+                    return;
+                }
+
+                if (type == typeof(Vector3Int)) {
+                    _vectors3Int[hash] = value is Vector3Int v3 ? v3 : default;
+                    return;
+                }
+
+                if (type == typeof(Quaternion)) {
+                    _quaternions[hash] = value is Quaternion q ? q : default;
+                    return;
+                }
+
+                if (type == typeof(Color)) {
+                    _colors[hash] = value is Color c ? c : default;
+                    return;
+                }
+
+                if (type == typeof(LayerMask)) {
+                    _layerMasks[hash] = value is LayerMask m ? m : default;
                     return;
                 }
 
@@ -474,6 +570,11 @@ namespace MisterGames.Blackboards.Core {
                 return;
             }
 
+            if (type == typeof(AnimationCurve)) {
+                _curves[hash] = value as AnimationCurve;
+                return;
+            }
+
             if (typeof(Object).IsAssignableFrom(type)) {
                 _objects[hash] = value as Object;
                 return;
@@ -496,7 +597,12 @@ namespace MisterGames.Blackboards.Core {
                 }
 
                 if (type == typeof(float)) {
-                    _floats.Remove(hash);
+                    _doubles.Remove(hash);
+                    return;
+                }
+
+                if (type == typeof(double)) {
+                    _doubles.Remove(hash);
                     return;
                 }
 
@@ -520,6 +626,36 @@ namespace MisterGames.Blackboards.Core {
                     return;
                 }
 
+                if (type == typeof(Vector4)) {
+                    _vectors4.Remove(hash);
+                    return;
+                }
+
+                if (type == typeof(Vector2Int)) {
+                    _vectors2Int.Remove(hash);
+                    return;
+                }
+
+                if (type == typeof(Vector3Int)) {
+                    _vectors3Int.Remove(hash);
+                    return;
+                }
+
+                if (type == typeof(Quaternion)) {
+                    _quaternions.Remove(hash);
+                    return;
+                }
+
+                if (type == typeof(Color)) {
+                    _colors.Remove(hash);
+                    return;
+                }
+
+                if (type == typeof(LayerMask)) {
+                    _layerMasks.Remove(hash);
+                    return;
+                }
+
                 if (type.IsEnum) {
                     _longs.Remove(hash);
                     return;
@@ -528,6 +664,11 @@ namespace MisterGames.Blackboards.Core {
 
             if (type == typeof(string)) {
                 _strings.Remove(hash);
+                return;
+            }
+
+            if (type == typeof(AnimationCurve)) {
+                _curves.Remove(hash);
                 return;
             }
 
@@ -548,18 +689,13 @@ namespace MisterGames.Blackboards.Core {
                 return;
             }
 
-            if (_floats.ContainsKey(hash)) {
-                _floats.Remove(hash);
+            if (_doubles.ContainsKey(hash)) {
+                _doubles.Remove(hash);
                 return;
             }
 
             if (_longs.ContainsKey(hash)) {
                 _longs.Remove(hash);
-                return;
-            }
-
-            if (_strings.ContainsKey(hash)) {
-                _strings.Remove(hash);
                 return;
             }
 
@@ -570,6 +706,46 @@ namespace MisterGames.Blackboards.Core {
 
             if (_vectors3.ContainsKey(hash)) {
                 _vectors3.Remove(hash);
+                return;
+            }
+
+            if (_vectors4.ContainsKey(hash)) {
+                _vectors4.Remove(hash);
+                return;
+            }
+
+            if (_vectors2Int.ContainsKey(hash)) {
+                _vectors2.Remove(hash);
+                return;
+            }
+
+            if (_vectors3Int.ContainsKey(hash)) {
+                _vectors3.Remove(hash);
+                return;
+            }
+
+            if (_quaternions.ContainsKey(hash)) {
+                _quaternions.Remove(hash);
+                return;
+            }
+
+            if (_colors.ContainsKey(hash)) {
+                _colors.Remove(hash);
+                return;
+            }
+
+            if (_layerMasks.ContainsKey(hash)) {
+                _layerMasks.Remove(hash);
+                return;
+            }
+
+            if (_strings.ContainsKey(hash)) {
+                _strings.Remove(hash);
+                return;
+            }
+
+            if (_curves.ContainsKey(hash)) {
+                _curves.Remove(hash);
                 return;
             }
 
