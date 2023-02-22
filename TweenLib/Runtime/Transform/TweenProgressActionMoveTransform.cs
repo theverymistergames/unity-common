@@ -8,9 +8,9 @@ namespace MisterGames.TweenLib {
     public sealed class TweenProgressActionMoveTransform : ITweenProgressAction {
 
         public Transform transform;
+        public bool useLocal = true;
         public Vector3 startPosition;
         public Vector3 endPosition;
-        public bool useLocal = true;
 
         public void Initialize(MonoBehaviour owner) { }
 
