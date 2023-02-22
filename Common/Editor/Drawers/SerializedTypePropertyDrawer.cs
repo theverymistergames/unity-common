@@ -1,4 +1,5 @@
 ﻿using System;
+using MisterGames.Common.Data;
 using MisterGames.Common.Editor.Utils;
 using UnityEditor;
 using UnityEngine;
@@ -9,10 +10,10 @@ namespace MisterGames.Common.Editor.Drawers {
     public class SerializedTypePropertyDrawer : PropertyDrawer {
 
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
-            string typeText = ((Type) property.GetValue()).Name;
+            string typeText = property.GetValue() is SerializedType t ? ((Type) t).Name : "null";
 
             EditorGUI.BeginDisabledGroup(true);
-            EditorGUI.TextField(position, label, typeText);
+            EditorGUI.LabelField(position, label, new GUIContent(typeText));
             EditorGUI.EndDisabledGroup();
         }
 
