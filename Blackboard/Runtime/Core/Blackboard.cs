@@ -125,7 +125,7 @@ namespace MisterGames.Blackboards.Core {
         }
 
 #if UNITY_EDITOR
-        public Blackboard OverridenBlackboard { get; private set; }
+        private const string EDITOR = "editor";
 
         private static readonly HashSet<Type> SupportedValueTypes = new HashSet<Type> {
             typeof(bool),
@@ -149,6 +149,10 @@ namespace MisterGames.Blackboards.Core {
             typeof(Color),
         };
 
+        private static readonly HashSet<Type> SupportedUnityManagedTypes = new HashSet<Type> {
+            typeof(AnimationCurve),
+        };
+
         private static readonly HashSet<Type> SupportedEnumUnderlyingTypes = new HashSet<Type> {
             typeof(int),
             typeof(short),
@@ -159,7 +163,8 @@ namespace MisterGames.Blackboards.Core {
             typeof(uint),
         };
 
-        private const string EDITOR = "editor";
+        private Blackboard _overridenBlackboard;
+
         public static bool IsSupportedType(Type type) {
             return
                 type.IsVisible && (type.IsPublic || type.IsNestedPublic) && !type.IsGenericType &&
@@ -172,7 +177,7 @@ namespace MisterGames.Blackboards.Core {
                     !type.IsValueType && type != typeof(Blackboard) && (
                         typeof(Object).IsAssignableFrom(type) ||
                         Attribute.IsDefined(type, typeof(SerializableAttribute)) ||
-                        type.IsInterface
+                        type.IsInterface || SupportedUnityManagedTypes.Contains(type)
                     )
                 );
         }
@@ -182,7 +187,7 @@ namespace MisterGames.Blackboards.Core {
         }
 
         public bool OverrideBlackboard(Blackboard blackboard) {
-            OverridenBlackboard = blackboard;
+            _overridenBlackboard = blackboard;
 
             bool changed = false;
 
@@ -286,8 +291,8 @@ namespace MisterGames.Blackboards.Core {
                 if (property.type == null) continue;
 
                 var type = (Type) property.type;
-                object value = OverridenBlackboard != null &&
-                               OverridenBlackboard.TryGetPropertyValue(property.hash, out object v) &&
+                object value = _overridenBlackboard != null &&
+                               _overridenBlackboard.TryGetPropertyValue(property.hash, out object v) &&
                                v != null &&
                                type.IsInstanceOfType(v)
                     ? v : default;
@@ -303,8 +308,8 @@ namespace MisterGames.Blackboards.Core {
             if (!TryGetProperty(hash, out var property) || property.type == null) return false;
 
             var type = (Type) property.type;
-            object value = OverridenBlackboard != null &&
-                           OverridenBlackboard.TryGetPropertyValue(hash, out object v) &&
+            object value = _overridenBlackboard != null &&
+                           _overridenBlackboard.TryGetPropertyValue(hash, out object v) &&
                            v != null &&
                            type.IsInstanceOfType(v)
                 ? v : default;

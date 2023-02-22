@@ -108,11 +108,18 @@ namespace MisterGames.Blackboards.Editor {
         }
 
         private const string BOOLS = "_bools";
-        private const string FLOATS = "_floats";
         private const string LONGS = "_longs";
+        private const string DOUBLES = "_doubles";
         private const string STRINGS = "_strings";
         private const string VECTORS2 = "_vectors2";
         private const string VECTORS3 = "_vectors3";
+        private const string VECTORS4 = "_vectors4";
+        private const string VECTORS2_INT = "_vectors2Int";
+        private const string VECTORS3_INT = "_vectors3Int";
+        private const string QUATERNIONS = "_quaternions";
+        private const string COLORS = "_colors";
+        private const string LAYER_MASKS = "_layerMasks";
+        private const string CURVES = "_curves";
         private const string OBJECTS = "_objects";
         private const string REFERENCES = "_references";
 
@@ -137,11 +144,18 @@ namespace MisterGames.Blackboards.Editor {
             }
 
             FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(BOOLS), propertiesMap, properties);
-            FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(FLOATS), propertiesMap, properties);
             FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(LONGS), propertiesMap, properties);
+            FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(DOUBLES), propertiesMap, properties);
             FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(STRINGS), propertiesMap, properties);
             FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(VECTORS2), propertiesMap, properties);
             FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(VECTORS3), propertiesMap, properties);
+            FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(VECTORS4), propertiesMap, properties);
+            FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(VECTORS2_INT), propertiesMap, properties);
+            FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(VECTORS3_INT), propertiesMap, properties);
+            FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(QUATERNIONS), propertiesMap, properties);
+            FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(COLORS), propertiesMap, properties);
+            FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(LAYER_MASKS), propertiesMap, properties);
+            FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(CURVES), propertiesMap, properties);
             FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(OBJECTS), propertiesMap, properties);
             FetchBlackboardDictionary(VALUE_DATA, blackboardSerializedProperty.FindPropertyRelative(REFERENCES), propertiesMap, properties);
 

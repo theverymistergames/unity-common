@@ -11,9 +11,6 @@ namespace MisterGames.Blackboards.Editor {
     [CustomPropertyDrawer(typeof(Blackboard))]
     public sealed class BlackboardPropertyDrawer : PropertyDrawer {
 
-        private FontStyle _editorLabelFontStyleCache;
-        private bool _canCacheEditorLabelFontStyle = true;
-
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
             EditorGUI.BeginProperty(position, label, property);
 
@@ -48,7 +45,6 @@ namespace MisterGames.Blackboards.Editor {
             }
 
             var blackboard = (Blackboard) property.GetValue();
-            var overridenBlackboard = blackboard.OverridenBlackboard;
 
             for (int i = 0; i < properties.Count; i++) {
                 var propertyData = properties[i];
@@ -74,50 +70,26 @@ namespace MisterGames.Blackboards.Editor {
                     continue;
                 }
 
-                object overridenValue = null;
-                object value = null;
-
-                bool hasOverride =
-                    overridenBlackboard != null &&
-                    overridenBlackboard.TryGetProperty(hash, out var overridenProperty) &&
-                    overridenProperty.type == propertyData.blackboardProperty.type &&
-                    overridenBlackboard.TryGetPropertyValue(hash, out overridenValue) &&
-                    blackboard.TryGetPropertyValue(hash, out value);
-
-                if (_canCacheEditorLabelFontStyle) {
-                    _editorLabelFontStyleCache = EditorStyles.label.fontStyle;
-                    _canCacheEditorLabelFontStyle = false;
-                }
+                blackboard.TryGetPropertyValue(hash, out object value);
 
                 if (typeof(Object).IsAssignableFrom(type)) {
-                    if (hasOverride) hasOverride = value as Object != overridenValue as Object;
-                    if (hasOverride) EditorStyles.label.fontStyle = FontStyle.Bold;
-
                     EditorGUI.ObjectField(rect, serializedProperty, propertyData.blackboardProperty.type, new GUIContent(propertyData.blackboardProperty.name));
                 }
                 if (type.IsEnum) {
-                    if (hasOverride) hasOverride = !Equals(value, overridenValue);
-                    if (hasOverride) EditorStyles.label.fontStyle = FontStyle.Bold;
-
                     var currentEnumValue = value as Enum;
 
                     var result = type.GetCustomAttribute<FlagsAttribute>(false) != null
                         ? EditorGUI.EnumFlagsField(rect, new GUIContent(propertyData.blackboardProperty.name), currentEnumValue)
                         : EditorGUI.EnumPopup(rect, new GUIContent(propertyData.blackboardProperty.name), currentEnumValue);
 
-                    if (!Equals(result, currentEnumValue)) {
-                        if (blackboard.TrySetPropertyValue(hash, result)) EditorUtility.SetDirty(property.serializedObject.targetObject);
-                    }
+                    if (Equals(result, currentEnumValue) || !blackboard.TrySetPropertyValue(hash, result)) continue;
+
+                    property.serializedObject.ApplyModifiedProperties();
+                    property.serializedObject.Update();
                 }
                 else {
-                    if (hasOverride) hasOverride = !Equals(value, overridenValue);
-                    if (hasOverride) EditorStyles.label.fontStyle = FontStyle.Bold;
-
                     EditorGUI.PropertyField(rect, serializedProperty, new GUIContent(propertyData.blackboardProperty.name), true);
                 }
-
-                EditorStyles.label.fontStyle = _editorLabelFontStyleCache;
-                _canCacheEditorLabelFontStyle = true;
             }
 
             EditorGUI.indentLevel--;

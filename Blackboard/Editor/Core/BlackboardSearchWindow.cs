@@ -41,6 +41,9 @@ namespace MisterGames.Blackboards.Editor {
                 typeof(Vector3Int),
 
                 typeof(Quaternion),
+
+                typeof(Color),
+                typeof(LayerMask),
             };
             tree.Add(SearchTreeEntryUtils.Header("Primitives", 1));
             tree.AddRange(types.Select(t => CreateSearchTreeEntryForType(t, 2)));
@@ -63,9 +66,6 @@ namespace MisterGames.Blackboards.Editor {
             types = TypeCache
                 .GetTypesDerivedFrom<object>()
                 .Where(t => !typeof(Object).IsAssignableFrom(t) && Blackboard.IsSupportedType(t))
-                .Append(typeof(AnimationCurve))
-                .Append(typeof(Color))
-                .Append(typeof(LayerMask))
                 .ToArray();
             tree.AddRange(GetTypeTree("Objects", types, 1));
 
