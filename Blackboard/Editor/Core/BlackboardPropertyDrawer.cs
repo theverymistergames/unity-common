@@ -20,7 +20,12 @@ namespace MisterGames.Blackboards.Editor {
             var e = Event.current;
             if (e.type == EventType.MouseDown && e.isMouse && e.button == 1 && headerRect.Contains(e.mousePosition)) {
                 var menu = new GenericMenu();
-                menu.AddItem(new GUIContent("Reset"), false, () => (property.GetValue() as Blackboard)?.TryResetPropertyValues());
+                menu.AddItem(new GUIContent("Reset"), false, () => {
+                    (property.GetValue() as Blackboard)?.TryResetPropertyValues();
+
+                    property.serializedObject.ApplyModifiedProperties();
+                    property.serializedObject.Update();
+                });
                 menu.ShowAsContext();
             }
 
