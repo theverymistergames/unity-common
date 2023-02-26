@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -18,7 +19,7 @@ namespace MisterGames.Common.Editor.Drawers {
         private static GUIContent PropertyTypeNullLabel => new GUIContent("Property type is null");
         private static GUIContent PropertyTypeUnsupportedLabel => new GUIContent("Property type is unsupported");
 
-        public static void PropertyField(Rect position, SerializedProperty property, Type baseType, Type type, GUIContent label) {
+        public static void PropertyField(Rect position, SerializedProperty property, Type baseType, GUIContent label) {
             if (property.propertyType != SerializedPropertyType.ManagedReference) {
                 EditorGUI.LabelField(position, label, IsNotManagedReferenceLabel);
                 return;
@@ -34,6 +35,7 @@ namespace MisterGames.Common.Editor.Drawers {
                 return;
             }
 
+            var type = GetManagedReferenceValueType(property);
             var typeLabel = type == null ? NullLabel : new GUIContent(type.Name);
 
             float popupWidth = label == GUIContent.none || string.IsNullOrEmpty(label.text)
@@ -47,6 +49,10 @@ namespace MisterGames.Common.Editor.Drawers {
             }
 
             EditorGUI.PropertyField(position, property, label, true);
+        }
+
+        public static float GetPropertyHeight(SerializedProperty property, bool includeChildren = false) {
+            return EditorGUI.GetPropertyHeight(property, includeChildren);
         }
 
         private static AdvancedDropdown<Type> CreateTypeDropdown(Type baseType, SerializedProperty property) {
@@ -87,6 +93,14 @@ namespace MisterGames.Common.Editor.Drawers {
             return (t.IsPublic || t.IsNestedPublic) && !t.IsGenericType && !t.IsValueType &&
                    t.FullName is not null && !t.FullName.Contains(EDITOR, StringComparison.OrdinalIgnoreCase) &&
                    !UnityObjectType.IsAssignableFrom(t) && (t.IsInterface || t.IsAbstract || Attribute.IsDefined(t, typeof(SerializableAttribute)));
+        }
+
+        private static Type GetManagedReferenceValueType(SerializedProperty property) {
+            string typeName = property.managedReferenceFullTypename;
+            if (string.IsNullOrEmpty(typeName)) return null;
+
+            int splitIndex = typeName.IndexOf(' ');
+            return Assembly.Load(typeName[..splitIndex]).GetType(typeName[(splitIndex + 1)..]);
         }
     }
 
