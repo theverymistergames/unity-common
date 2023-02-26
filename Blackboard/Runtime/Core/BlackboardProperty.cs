@@ -7,9 +7,6 @@ namespace MisterGames.Blackboards.Core {
     public struct BlackboardProperty {
 
 
-        public int hash;
-
-
         public string name;
 
 

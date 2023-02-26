@@ -10,45 +10,76 @@ namespace MisterGames.Blackboards.Core {
     [Serializable]
     public sealed class Blackboard {
 
-        [SerializeField] private List<BlackboardProperty> _properties = new List<BlackboardProperty>();
+        [SerializeField] private List<int> _properties;
+        [SerializeField] private SerializedDictionary<int, BlackboardProperty> _propertiesMap;
 
-        // Primitives
-        [SerializeField] private SerializedDictionary<int, bool> _bools = new SerializedDictionary<int, bool>();
-        [SerializeField] private SerializedDictionary<int, long> _longs = new SerializedDictionary<int, long>();
-        [SerializeField] private SerializedDictionary<int, double> _doubles = new SerializedDictionary<int, double>();
-        [SerializeField] private SerializedDictionary<int, string> _strings = new SerializedDictionary<int, string>();
+        [SerializeField] private SerializedDictionary<int, bool> _bools;
+        [SerializeField] private SerializedDictionary<int, int> _ints;
+        [SerializeField] private SerializedDictionary<int, long> _longs;
+        [SerializeField] private SerializedDictionary<int, float> _floats;
+        [SerializeField] private SerializedDictionary<int, double> _doubles;
+        [SerializeField] private SerializedDictionary<int, string> _strings;
 
-        // Unity native types
-        [SerializeField] private SerializedDictionary<int, Vector2Int> _vectors2Int = new SerializedDictionary<int, Vector2Int>();
-        [SerializeField] private SerializedDictionary<int, Vector3Int> _vectors3Int = new SerializedDictionary<int, Vector3Int>();
+        [SerializeField] private SerializedDictionary<int, Vector2Int> _vectors2Int;
+        [SerializeField] private SerializedDictionary<int, Vector3Int> _vectors3Int;
 
-        [SerializeField] private SerializedDictionary<int, Vector2> _vectors2 = new SerializedDictionary<int, Vector2>();
-        [SerializeField] private SerializedDictionary<int, Vector3> _vectors3 = new SerializedDictionary<int, Vector3>();
-        [SerializeField] private SerializedDictionary<int, Vector4> _vectors4 = new SerializedDictionary<int, Vector4>();
+        [SerializeField] private SerializedDictionary<int, Vector2> _vectors2;
+        [SerializeField] private SerializedDictionary<int, Vector3> _vectors3;
+        [SerializeField] private SerializedDictionary<int, Vector4> _vectors4;
 
-        [SerializeField] private SerializedDictionary<int, Quaternion> _quaternions = new SerializedDictionary<int, Quaternion>();
+        [SerializeField] private SerializedDictionary<int, Quaternion> _quaternions;
 
-        [SerializeField] private SerializedDictionary<int, Color> _colors = new SerializedDictionary<int, Color>();
-        [SerializeField] private SerializedDictionary<int, LayerMask> _layerMasks = new SerializedDictionary<int, LayerMask>();
-        [SerializeField] private SerializedDictionary<int, AnimationCurve> _curves = new SerializedDictionary<int, AnimationCurve>();
+        [SerializeField] private SerializedDictionary<int, Color> _colors;
+        [SerializeField] private SerializedDictionary<int, LayerMask> _layerMasks;
+        [SerializeField] private SerializedDictionary<int, AnimationCurve> _curves;
 
-        // Unity Objects
-        [SerializeField] private SerializedDictionary<int, Object> _objects = new SerializedDictionary<int, Object>();
+        [SerializeField] private SerializedDictionary<int, BlackboardValue<Object>> _objects;
+        [SerializeField] private SerializedDictionary<int, BlackboardValue<long>> _enums;
+        [SerializeField] private SerializedDictionary<int, BlackboardReference> _references;
 
-        // References
-        [SerializeField] private SerializedDictionary<int, BlackboardReference> _references = new SerializedDictionary<int, BlackboardReference>();
+        public IReadOnlyList<int> Properties => _properties;
 
-        public IReadOnlyList<BlackboardProperty> Properties => _properties;
+        public Blackboard() {
+#if UNITY_EDITOR
+            _properties = new List<int>();
+            _propertiesMap = new SerializedDictionary<int, BlackboardProperty>();
+#endif
 
-        public Blackboard() { }
+            _bools = new SerializedDictionary<int, bool>();
+            _ints = new SerializedDictionary<int, int>();
+            _longs = new SerializedDictionary<int, long>();
+            _floats = new SerializedDictionary<int, float>();
+            _doubles = new SerializedDictionary<int, double>();
+            _strings = new SerializedDictionary<int, string>();
+
+            _vectors2Int = new SerializedDictionary<int, Vector2Int>();
+            _vectors3Int = new SerializedDictionary<int, Vector3Int>();
+
+            _vectors2 = new SerializedDictionary<int, Vector2>();
+            _vectors3 = new SerializedDictionary<int, Vector3>();
+            _vectors4 = new SerializedDictionary<int, Vector4>();
+
+            _quaternions = new SerializedDictionary<int, Quaternion>();
+
+            _colors = new SerializedDictionary<int, Color>();
+            _layerMasks = new SerializedDictionary<int, LayerMask>();
+            _curves = new SerializedDictionary<int, AnimationCurve>();
+
+            _objects = new SerializedDictionary<int, BlackboardValue<Object>>();
+            _enums = new SerializedDictionary<int, BlackboardValue<long>>();
+            _references = new SerializedDictionary<int, BlackboardReference>();
+        }
 
         public Blackboard(Blackboard source) {
 #if UNITY_EDITOR
-            _properties = new List<BlackboardProperty>(source._properties);
+            _properties = new List<int>(source._properties);
+            _propertiesMap = new SerializedDictionary<int, BlackboardProperty>(source._propertiesMap);
 #endif
 
             _bools = new SerializedDictionary<int, bool>(source._bools);
+            _ints = new SerializedDictionary<int, int>(source._ints);
             _longs = new SerializedDictionary<int, long>(source._longs);
+            _floats = new SerializedDictionary<int, float>(source._floats);
             _doubles = new SerializedDictionary<int, double>(source._doubles);
             _strings = new SerializedDictionary<int, string>(source._strings);
 
@@ -65,7 +96,8 @@ namespace MisterGames.Blackboards.Core {
             _layerMasks = new SerializedDictionary<int, LayerMask>(source._layerMasks);
             _curves = new SerializedDictionary<int, AnimationCurve>(source._curves);
 
-            _objects = new SerializedDictionary<int, Object>(source._objects);
+            _objects = new SerializedDictionary<int, BlackboardValue<Object>>(source._objects);
+            _enums = new SerializedDictionary<int, BlackboardValue<long>>(source._enums);
             _references = new SerializedDictionary<int, BlackboardReference>(source._references);
         }
 
@@ -75,10 +107,10 @@ namespace MisterGames.Blackboards.Core {
             if (type.IsValueType) {
                 if (type == typeof(bool)) return _bools[hash] is T t ? t : default;
 
-                if (type == typeof(float)) return (float) _doubles[hash] is T t ? t : default;
+                if (type == typeof(float)) return _floats[hash] is T t ? t : default;
                 if (type == typeof(double)) return _doubles[hash] is T t ? t : default;
 
-                if (type == typeof(int)) return (int) _longs[hash] is T t ? t : default;
+                if (type == typeof(int)) return _ints[hash] is T t ? t : default;
                 if (type == typeof(long)) return _longs[hash] is T t ? t : default;
 
                 if (type == typeof(Vector2)) return _vectors2[hash] is T t ? t : default;
@@ -96,13 +128,13 @@ namespace MisterGames.Blackboards.Core {
                 if (type.IsEnum) {
                     var enumUnderlyingType = type.GetEnumUnderlyingType();
 
-                    if (enumUnderlyingType == typeof(int)) return Enum.ToObject(type, (int) _longs[hash]) is T t ? t : default;
-                    if (enumUnderlyingType == typeof(short)) return Enum.ToObject(type, (short) _longs[hash]) is T t ? t : default;
-                    if (enumUnderlyingType == typeof(byte)) return Enum.ToObject(type, (byte) _longs[hash]) is T t ? t : default;
-                    if (enumUnderlyingType == typeof(long)) return Enum.ToObject(type, _longs[hash]) is T t ? t : default;
-                    if (enumUnderlyingType == typeof(sbyte)) return Enum.ToObject(type, (sbyte) _longs[hash]) is T t ? t : default;
-                    if (enumUnderlyingType == typeof(ushort)) return Enum.ToObject(type, (ushort) _longs[hash]) is T t ? t : default;
-                    if (enumUnderlyingType == typeof(uint)) return Enum.ToObject(type, (uint) _longs[hash]) is T t ? t : default;
+                    if (enumUnderlyingType == typeof(int)) return Enum.ToObject(type, (int) _enums[hash].value) is T t ? t : default;
+                    if (enumUnderlyingType == typeof(short)) return Enum.ToObject(type, (short) _enums[hash].value) is T t ? t : default;
+                    if (enumUnderlyingType == typeof(byte)) return Enum.ToObject(type, (byte) _enums[hash].value) is T t ? t : default;
+                    if (enumUnderlyingType == typeof(long)) return Enum.ToObject(type, _enums[hash].value) is T t ? t : default;
+                    if (enumUnderlyingType == typeof(sbyte)) return Enum.ToObject(type, (sbyte) _enums[hash].value) is T t ? t : default;
+                    if (enumUnderlyingType == typeof(ushort)) return Enum.ToObject(type, (ushort) _enums[hash].value) is T t ? t : default;
+                    if (enumUnderlyingType == typeof(uint)) return Enum.ToObject(type, (uint) _enums[hash].value) is T t ? t : default;
 
                     return default;
                 }
@@ -114,11 +146,11 @@ namespace MisterGames.Blackboards.Core {
             if (type == typeof(AnimationCurve)) return _curves[hash] is T t ? t : default;
 
             if (typeof(Object).IsAssignableFrom(type)) {
-                return _objects.TryGetValue(hash, out var obj) && obj is T t ? t : default;
+                return _objects.TryGetValue(hash, out var value) && value.value is T t ? t : default;
             }
 
             if (type.IsSubclassOf(typeof(object)) || type.IsInterface) {
-                return _references.TryGetValue(hash, out var reference) && reference.data is T t ? t : default;
+                return _references.TryGetValue(hash, out var reference) && reference.value is T t ? t : default;
             }
 
             return default;
@@ -190,70 +222,79 @@ namespace MisterGames.Blackboards.Core {
             _overridenBlackboard = blackboard;
 
             bool changed = false;
-
             for (int i = _properties.Count - 1; i >= 0; i--) {
-                var property = _properties[i];
+                int hash = _properties[i];
 
-                if (!blackboard.HasProperty(property.hash) || !blackboard.TryGetProperty(property.hash, out var p) || p.type == null) {
+                if (!blackboard._propertiesMap.TryGetValue(hash, out var p) || p.type == null) {
                     _properties.RemoveAt(i);
+                    _propertiesMap.Remove(hash);
 
-                    if (property.type == null) RemoveValueByHash(property.hash);
-                    else RemoveValue(property.type, property.hash);
+                    RemoveValue(hash);
 
                     changed = true;
                     continue;
                 }
 
+                var property = _propertiesMap[hash];
+
                 if (p.type == property.type) continue;
 
-                if (property.type == null) RemoveValueByHash(property.hash);
-                else RemoveValue(property.type, property.hash);
+                RemoveValue(hash);
 
                 property.type = p.type;
-                _properties[i] = property;
-                SetValue(property.type, property.hash, blackboard.GetValue(property.type, property.hash));
+                _propertiesMap[hash] = property;
+
+                SetValue(property.type, hash, blackboard.GetValue(property.type, hash));
 
                 changed = true;
             }
 
-            for (int i = 0; i < blackboard.Properties.Count; i++) {
-                var property = blackboard.Properties[i];
+            for (int i = 0; i < blackboard._properties.Count; i++) {
+                int hash = blackboard._properties[i];
+                var property = blackboard._propertiesMap[hash];
+
                 if (property.type == null) continue;
 
-                if (!HasProperty(property.hash)) {
-                    _properties.Add(property);
-                    SetValue(property.type, property.hash, blackboard.GetValue(property.type, property.hash));
+                if (!_propertiesMap.ContainsKey(hash)) {
+                    _propertiesMap.Add(hash, property);
+                    _properties.Add(hash);
+
+                    SetValue(property.type, hash, blackboard.GetValue(property.type, hash));
                     changed = true;
                 }
 
-                changed |= TrySetPropertyIndex(property.hash, i);
+                changed |= TrySetPropertyIndex(hash, i);
             }
 
             return changed;
         }
 
-        public bool TryAddProperty(string name, Type type, out BlackboardProperty property) {
-            property = default;
+        public bool TryAddProperty(string name, Type type) {
             if (!ValidateType(type)) return false;
             
             name = ValidateName(name);
             int hash = StringToHash(name);
-            if (HasProperty(hash)) return false;
+            if (_propertiesMap.ContainsKey(hash)) return false;
 
-            property = new BlackboardProperty {
-                hash = hash,
+            var property = new BlackboardProperty {
                 name = name,
                 type = new SerializedType(type),
             };
 
             SetValue(type, hash, default);
 
-            _properties.Add(property);
+            _propertiesMap.Add(hash, property);
+            _properties.Add(hash);
+
             return true;
         }
 
+        public bool TryGetProperty(int hash, out BlackboardProperty property) {
+            return _propertiesMap.TryGetValue(hash, out property);
+        }
+
         public bool TryGetPropertyValue(int hash, out object value) {
-            if (!TryGetProperty(hash, out var property) || property.type == null) {
+            if (!_propertiesMap.TryGetValue(hash, out var property) || property.type == null) {
                 value = default;
                 return false;
             }
@@ -262,24 +303,10 @@ namespace MisterGames.Blackboards.Core {
             return true;
         }
 
-        public bool TryGetProperty(int hash, out BlackboardProperty property) {
-            return TryGetProperty(hash, out int _, out property);
-        }
-
         public bool TrySetPropertyValue(int hash, object value) {
-            if (!TryGetProperty(hash, out var property) || property.type == null) return false;
+            if (!_propertiesMap.TryGetValue(hash, out var property) || property.type == null) return false;
 
             SetValue(property.type, hash, value);
-            return true;
-        }
-
-        public bool TrySetPropertyValueAtIndex(int index, object value) {
-            if (index < 0 || index > _properties.Count - 1) return false;
-
-            var property = _properties[index];
-            if (property.type == null) return false;
-
-            SetValue(property.type, property.hash, value);
             return true;
         }
 
@@ -287,17 +314,19 @@ namespace MisterGames.Blackboards.Core {
             bool changed = false;
 
             for (int i = 0; i < _properties.Count; i++) {
-                var property = _properties[i];
+                int hash = _properties[i];
+                var property = _propertiesMap[hash];
+
                 if (property.type == null) continue;
 
                 var type = (Type) property.type;
                 object value = _overridenBlackboard != null &&
-                               _overridenBlackboard.TryGetPropertyValue(property.hash, out object v) &&
+                               _overridenBlackboard.TryGetPropertyValue(hash, out object v) &&
                                v != null &&
                                type.IsInstanceOfType(v)
                     ? v : default;
 
-                SetValue(property.type, property.hash, value);
+                SetValue(property.type, hash, value);
                 changed = true;
             }
 
@@ -305,7 +334,7 @@ namespace MisterGames.Blackboards.Core {
         }
 
         public bool TryResetPropertyValue(int hash) {
-            if (!TryGetProperty(hash, out var property) || property.type == null) return false;
+            if (!_propertiesMap.TryGetValue(hash, out var property) || property.type == null) return false;
 
             var type = (Type) property.type;
             object value = _overridenBlackboard != null &&
@@ -319,19 +348,25 @@ namespace MisterGames.Blackboards.Core {
         }
 
         public bool TrySetPropertyName(int hash, string newName) {
-            if (!TryGetProperty(hash, out int index, out var property) || property.type == null) return false;
+            if (!_propertiesMap.TryGetValue(hash, out var property) || property.type == null) return false;
 
             newName = ValidateName(newName);
             int newHash = StringToHash(newName);
-            if (HasProperty(newHash)) return false;
+            if (_propertiesMap.ContainsKey(newHash)) return false;
 
             property.name = newName;
-            property.hash = newHash;
-            _properties[index] = property;
+            _propertiesMap[hash] = property;
+
+            for (int i = 0; i < _properties.Count; i++) {
+                if (_properties[i] != hash) continue;
+
+                _properties[i] = newHash;
+                break;
+            }
 
             object value = GetValue(property.type, hash);
 
-            RemoveValue(property.type, hash);
+            RemoveValue(hash);
             SetValue(property.type, newHash, value);
 
             return true;
@@ -339,67 +374,42 @@ namespace MisterGames.Blackboards.Core {
 
         public bool TrySetPropertyIndex(int hash, int newIndex) {
             if (newIndex < 0) return false;
-            if (!TryGetProperty(hash, out int oldIndex, out var property) || oldIndex == newIndex) return false;
+
+            int oldIndex = -1;
+            for (int i = 0; i < _properties.Count; i++) {
+                if (_properties[i] != hash) continue;
+
+                oldIndex = i;
+                break;
+            }
+
+            if (oldIndex < 0 || oldIndex == newIndex) return false;
 
             if (newIndex >= _properties.Count) {
                 _properties.RemoveAt(oldIndex);
-                _properties.Add(property);
+                _properties.Add(hash);
                 return true;
             }
 
             _properties[oldIndex] = _properties[newIndex];
-            _properties[newIndex] = property;
+            _properties[newIndex] = hash;
 
             return true;
         }
 
         public void RemoveProperty(int hash) {
-            if (!TryGetProperty(hash, out int index, out var property)) return;
-
-            _properties.RemoveAt(index);
-
-            if (property.type == null) RemoveValueByHash(hash);
-            else RemoveValue(property.type, hash);
-        }
-
-        private bool TryGetProperty(int hash, out int index, out BlackboardProperty property) {
-            for (int i = 0; i < _properties.Count; i++) {
-                var p = _properties[i];
-                if (p.hash != hash) continue;
-
-                property = p;
-                index = i;
-                return true;
+            if (_propertiesMap.ContainsKey(hash)) {
+                _propertiesMap.Remove(hash);
             }
 
-            property = default;
-            index = -1;
+            for (int i = _properties.Count - 1; i >= 0; i--) {
+                if (_properties[i] != hash) continue;
 
-            return false;
-        }
+                _properties.RemoveAt(i);
+                break;
+            }
 
-        private bool HasProperty(int hash) {
-            return
-                _bools.ContainsKey(hash) ||
-                _longs.ContainsKey(hash) ||
-                _doubles.ContainsKey(hash) ||
-                _strings.ContainsKey(hash) ||
-
-                _vectors2.ContainsKey(hash) ||
-                _vectors3.ContainsKey(hash) ||
-                _vectors4.ContainsKey(hash) ||
-
-                _vectors2Int.ContainsKey(hash) ||
-                _vectors3Int.ContainsKey(hash) ||
-
-                _quaternions.ContainsKey(hash) ||
-
-                _colors.ContainsKey(hash) ||
-                _layerMasks.ContainsKey(hash) ||
-                _curves.ContainsKey(hash) ||
-
-                _objects.ContainsKey(hash) ||
-                _references.ContainsKey(hash);
+            RemoveValue(hash);
         }
 
         private object GetValue(Type type, int hash) {
@@ -408,10 +418,10 @@ namespace MisterGames.Blackboards.Core {
             if (type.IsValueType) {
                 if (type == typeof(bool)) return _bools[hash];
 
-                if (type == typeof(float)) return (float) _doubles[hash];
+                if (type == typeof(float)) return _floats[hash];
                 if (type == typeof(double)) return _doubles[hash];
 
-                if (type == typeof(int)) return (int) _longs[hash];
+                if (type == typeof(int)) return _ints[hash];
                 if (type == typeof(long)) return _longs[hash];
 
                 if (type == typeof(Vector2)) return _vectors2[hash];
@@ -429,13 +439,13 @@ namespace MisterGames.Blackboards.Core {
                 if (type.IsEnum) {
                     var enumUnderlyingType = type.GetEnumUnderlyingType();
 
-                    if (enumUnderlyingType == typeof(int)) return Enum.ToObject(type, (int) _longs[hash]);
-                    if (enumUnderlyingType == typeof(short)) return Enum.ToObject(type, (short) _longs[hash]);
-                    if (enumUnderlyingType == typeof(byte)) return Enum.ToObject(type, (byte) _longs[hash]);
-                    if (enumUnderlyingType == typeof(long)) return Enum.ToObject(type, _longs[hash]);
-                    if (enumUnderlyingType == typeof(sbyte)) return Enum.ToObject(type, (sbyte) _longs[hash]);
-                    if (enumUnderlyingType == typeof(ushort)) return Enum.ToObject(type, (ushort) _longs[hash]);
-                    if (enumUnderlyingType == typeof(uint)) return Enum.ToObject(type, (uint) _longs[hash]);
+                    if (enumUnderlyingType == typeof(int)) return Enum.ToObject(type, (int) _enums[hash].value);
+                    if (enumUnderlyingType == typeof(short)) return Enum.ToObject(type, (short) _enums[hash].value);
+                    if (enumUnderlyingType == typeof(byte)) return Enum.ToObject(type, (byte) _enums[hash].value);
+                    if (enumUnderlyingType == typeof(long)) return Enum.ToObject(type, _enums[hash].value);
+                    if (enumUnderlyingType == typeof(sbyte)) return Enum.ToObject(type, (sbyte) _enums[hash].value);
+                    if (enumUnderlyingType == typeof(ushort)) return Enum.ToObject(type, (ushort) _enums[hash].value);
+                    if (enumUnderlyingType == typeof(uint)) return Enum.ToObject(type, (uint) _enums[hash].value);
 
                     return default;
                 }
@@ -446,8 +456,8 @@ namespace MisterGames.Blackboards.Core {
             if (type == typeof(string)) return _strings[hash];
             if (type == typeof(AnimationCurve)) return _curves[hash];
 
-            if (typeof(Object).IsAssignableFrom(type)) return _objects[hash];
-            if (type.IsSubclassOf(typeof(object)) || type.IsInterface) return _references[hash].data;
+            if (typeof(Object).IsAssignableFrom(type)) return _objects[hash].value;
+            if (type.IsSubclassOf(typeof(object)) || type.IsInterface) return _references[hash].value;
 
             return default;
         }
@@ -462,7 +472,7 @@ namespace MisterGames.Blackboards.Core {
                 }
 
                 if (type == typeof(float)) {
-                    _doubles[hash] = value is float f ? f : default;
+                    _floats[hash] = value is float f ? f : default;
                     return;
                 }
 
@@ -472,7 +482,7 @@ namespace MisterGames.Blackboards.Core {
                 }
 
                 if (type == typeof(int)) {
-                    _longs[hash] = value is int i ? i : default;
+                    _ints[hash] = value is int i ? i : default;
                     return;
                 }
 
@@ -523,44 +533,44 @@ namespace MisterGames.Blackboards.Core {
 
                 if (type.IsEnum) {
                     if (value == null) {
-                        _longs[hash] = 0;
+                        _enums[hash] = default;
                         return;
                     }
 
                     var enumUnderlyingType = type.GetEnumUnderlyingType();
 
                     if (enumUnderlyingType == typeof(int)) {
-                        _longs[hash] = (int) Enum.ToObject(type, value);
+                        _enums[hash] = new BlackboardValue<long> { value = (int) Enum.ToObject(type, value) };
                         return;
                     }
 
                     if (enumUnderlyingType == typeof(short)) {
-                        _longs[hash] = (short) Enum.ToObject(type, value);
+                        _enums[hash] = new BlackboardValue<long> { value = (short) Enum.ToObject(type, value) };
                         return;
                     }
 
                     if (enumUnderlyingType == typeof(byte)) {
-                        _longs[hash] = (byte) Enum.ToObject(type, value);
+                        _enums[hash] = new BlackboardValue<long> { value = (byte) Enum.ToObject(type, value) };
                         return;
                     }
 
                     if (enumUnderlyingType == typeof(long)) {
-                        _longs[hash] = (long) Enum.ToObject(type, value);
+                        _enums[hash] = new BlackboardValue<long> { value = (long) Enum.ToObject(type, value) };
                         return;
                     }
 
                     if (enumUnderlyingType == typeof(sbyte)) {
-                        _longs[hash] = (sbyte) Enum.ToObject(type, value);
+                        _enums[hash] = new BlackboardValue<long> { value = (sbyte) Enum.ToObject(type, value) };
                         return;
                     }
 
                     if (enumUnderlyingType == typeof(ushort)) {
-                        _longs[hash] = (ushort) Enum.ToObject(type, value);
+                        _enums[hash] = new BlackboardValue<long> { value = (ushort) Enum.ToObject(type, value) };
                         return;
                     }
 
                     if (enumUnderlyingType == typeof(uint)) {
-                        _longs[hash] = (uint) Enum.ToObject(type, value);
+                        _enums[hash] = new BlackboardValue<long> { value = (uint) Enum.ToObject(type, value) };
                         return;
                     }
 
@@ -581,126 +591,41 @@ namespace MisterGames.Blackboards.Core {
             }
 
             if (typeof(Object).IsAssignableFrom(type)) {
-                _objects[hash] = value as Object;
+                _objects[hash] = new BlackboardValue<Object> { value = value as Object };
                 return;
             }
 
             if (type.IsSubclassOf(typeof(object)) || type.IsInterface) {
                 _references[hash] = new BlackboardReference {
-                    data = value == null ? null : JsonUtility.FromJson(JsonUtility.ToJson(value), value.GetType()),
-                    type = new SerializedType(type),
+                    value = value == null ? null : JsonUtility.FromJson(JsonUtility.ToJson(value), value.GetType()),
                 };
                 return;
             }
         }
 
-        private void RemoveValue(Type type, int hash) {
-            if (type.IsValueType) {
-                if (type == typeof(bool)) {
-                    _bools.Remove(hash);
-                    return;
-                }
-
-                if (type == typeof(float)) {
-                    _doubles.Remove(hash);
-                    return;
-                }
-
-                if (type == typeof(double)) {
-                    _doubles.Remove(hash);
-                    return;
-                }
-
-                if (type == typeof(int)) {
-                    _longs.Remove(hash);
-                    return;
-                }
-
-                if (type == typeof(long)) {
-                    _longs.Remove(hash);
-                    return;
-                }
-
-                if (type == typeof(Vector2)) {
-                    _vectors2.Remove(hash);
-                    return;
-                }
-
-                if (type == typeof(Vector3)) {
-                    _vectors3.Remove(hash);
-                    return;
-                }
-
-                if (type == typeof(Vector4)) {
-                    _vectors4.Remove(hash);
-                    return;
-                }
-
-                if (type == typeof(Vector2Int)) {
-                    _vectors2Int.Remove(hash);
-                    return;
-                }
-
-                if (type == typeof(Vector3Int)) {
-                    _vectors3Int.Remove(hash);
-                    return;
-                }
-
-                if (type == typeof(Quaternion)) {
-                    _quaternions.Remove(hash);
-                    return;
-                }
-
-                if (type == typeof(Color)) {
-                    _colors.Remove(hash);
-                    return;
-                }
-
-                if (type == typeof(LayerMask)) {
-                    _layerMasks.Remove(hash);
-                    return;
-                }
-
-                if (type.IsEnum) {
-                    _longs.Remove(hash);
-                    return;
-                }
-            }
-
-            if (type == typeof(string)) {
-                _strings.Remove(hash);
-                return;
-            }
-
-            if (type == typeof(AnimationCurve)) {
-                _curves.Remove(hash);
-                return;
-            }
-
-            if (typeof(Object).IsAssignableFrom(type)) {
-                _objects.Remove(hash);
-                return;
-            }
-
-            if (type.IsSubclassOf(typeof(object)) || type.IsInterface) {
-                _references.Remove(hash);
-                return;
-            }
-        }
-
-        private void RemoveValueByHash(int hash) {
+        private void RemoveValue(int hash) {
             if (_bools.ContainsKey(hash)) {
                 _bools.Remove(hash);
                 return;
             }
 
-            if (_doubles.ContainsKey(hash)) {
-                _doubles.Remove(hash);
+            if (_ints.ContainsKey(hash)) {
+                _ints.Remove(hash);
                 return;
             }
 
             if (_longs.ContainsKey(hash)) {
                 _longs.Remove(hash);
+                return;
+            }
+
+            if (_floats.ContainsKey(hash)) {
+                _floats.Remove(hash);
+                return;
+            }
+
+            if (_doubles.ContainsKey(hash)) {
+                _doubles.Remove(hash);
                 return;
             }
 
@@ -767,14 +692,13 @@ namespace MisterGames.Blackboards.Core {
 
         private string ValidateName(string name) {
             int hash = StringToHash(name);
-            if (!HasProperty(hash)) return name;
+            if (!_propertiesMap.ContainsKey(hash)) return name;
 
             int count = 1;
             string pattern = $@"{name} \([0-9]+\)";
 
             for (int i = 0; i < _properties.Count; i++) {
-                var property = _properties[i];
-                if (property.name.IsValidForPattern(pattern)) count++;
+                if (_propertiesMap[_properties[i]].name.IsValidForPattern(pattern)) count++;
             }
 
             return $"{name} ({count})";

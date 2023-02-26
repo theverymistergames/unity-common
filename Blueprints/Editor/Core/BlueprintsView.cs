@@ -293,7 +293,6 @@ namespace MisterGames.Blueprints.Editor.Core {
             for (int i = 0; i < properties.Count; i++) {
                 var view = BlackboardUtils.CreateBlackboardPropertyView(
                     properties[i],
-                    OnSetBlackboardPropertyValue,
                     OnBlackboardPropertyValueChanged
                 );
 
@@ -313,7 +312,7 @@ namespace MisterGames.Blueprints.Editor.Core {
             Undo.RecordObject(_blueprintAsset, "Blueprint Add Blackboard Property");
 
             string typeName = TypeNameFormatter.GetTypeName(type);
-            if (!_blueprintAsset.Blackboard.TryAddProperty($"New {typeName}", type, out _)) return;
+            if (!_blueprintAsset.Blackboard.TryAddProperty($"New {typeName}", type)) return;
 
             SetBlueprintAssetDirtyAndNotify();
             RepopulateBlackboardView();
@@ -348,14 +347,6 @@ namespace MisterGames.Blueprints.Editor.Core {
             SetBlueprintAssetDirtyAndNotify();
 
             RepopulateBlackboardView();
-        }
-
-        private void OnSetBlackboardPropertyValue(BlackboardProperty property, object value) {
-            if (_blueprintAsset == null) return;
-
-            if (!_blueprintAsset.Blackboard.TrySetPropertyValue(property.hash, value)) return;
-
-            SetBlueprintAssetDirtyAndNotify();
         }
 
         private void OnBlackboardPropertyValueChanged() {

@@ -1,10 +1,7 @@
-﻿using System;
-using System.Reflection;
-using MisterGames.Blackboards.Core;
+﻿using MisterGames.Blackboards.Core;
 using MisterGames.Common.Editor.Utils;
 using UnityEditor;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 namespace MisterGames.Blackboards.Editor {
 
@@ -49,11 +46,8 @@ namespace MisterGames.Blackboards.Editor {
                 return;
             }
 
-            var blackboard = (Blackboard) property.GetValue();
-
             for (int i = 0; i < properties.Count; i++) {
                 var propertyData = properties[i];
-                int hash = propertyData.blackboardProperty.hash;
                 var serializedProperty = propertyData.serializedProperty;
 
                 if (serializedProperty == null) {
@@ -65,36 +59,7 @@ namespace MisterGames.Blackboards.Editor {
                 var rect = new Rect(position.x, y, position.width, propertyHeight);
                 y += propertyHeight + EditorGUIUtility.standardVerticalSpacing;
 
-                var type = (Type) propertyData.blackboardProperty.type;
-                if (type == null) {
-                    var labelRect = new Rect(rect.x, rect.y, EditorGUIUtility.labelWidth, propertyHeight);
-                    EditorGUI.LabelField(labelRect, propertyData.blackboardProperty.name);
-
-                    var valueRect = new Rect(rect.x + EditorGUIUtility.labelWidth + 2f, rect.y, rect.width - EditorGUIUtility.labelWidth - 2f, propertyHeight);
-                    EditorGUI.HelpBox(valueRect, $"Property type is null", MessageType.Warning);
-                    continue;
-                }
-
-                blackboard.TryGetPropertyValue(hash, out object value);
-
-                if (typeof(Object).IsAssignableFrom(type)) {
-                    EditorGUI.ObjectField(rect, serializedProperty, propertyData.blackboardProperty.type, new GUIContent(propertyData.blackboardProperty.name));
-                }
-                if (type.IsEnum) {
-                    var currentEnumValue = value as Enum;
-
-                    var result = type.GetCustomAttribute<FlagsAttribute>(false) != null
-                        ? EditorGUI.EnumFlagsField(rect, new GUIContent(propertyData.blackboardProperty.name), currentEnumValue)
-                        : EditorGUI.EnumPopup(rect, new GUIContent(propertyData.blackboardProperty.name), currentEnumValue);
-
-                    if (Equals(result, currentEnumValue) || !blackboard.TrySetPropertyValue(hash, result)) continue;
-
-                    property.serializedObject.ApplyModifiedProperties();
-                    property.serializedObject.Update();
-                }
-                else {
-                    EditorGUI.PropertyField(rect, serializedProperty, new GUIContent(propertyData.blackboardProperty.name), true);
-                }
+                EditorGUI.PropertyField(rect, serializedProperty, new GUIContent(propertyData.blackboardProperty.name), true);
             }
 
             EditorGUI.indentLevel--;

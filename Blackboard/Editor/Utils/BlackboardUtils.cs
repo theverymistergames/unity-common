@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Reflection;
 using MisterGames.Blackboards.Core;
 using MisterGames.Common.Editor.Utils;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEditor.UIElements;
+using UnityEngine;
 using UnityEngine.UIElements;
 using Blackboard = MisterGames.Blackboards.Core.Blackboard;
 using Object = UnityEngine.Object;
@@ -14,9 +14,58 @@ namespace MisterGames.Blackboards.Editor {
 
     public static class BlackboardUtils {
 
+        public static bool TryGetBlackboardProperty(SerializedProperty p, out BlackboardProperty blackboardProperty) {
+            string path = p.propertyPath;
+            int lastDot = path.LastIndexOf('.');
+            path = path.Remove(lastDot, path.Length - lastDot);
+
+            var hashProperty = p.serializedObject.FindProperty($"{path}.key");
+            if (hashProperty == null) {
+                blackboardProperty = default;
+                return false;
+            }
+
+            int hash = hashProperty.intValue;
+
+            for (int i = 0; i < 4; i++) {
+                lastDot = path.LastIndexOf('.');
+                path = path.Remove(lastDot, path.Length - lastDot);
+            }
+
+            if (p.serializedObject.FindProperty(path)?.GetValue() is not Blackboard blackboard ||
+                !blackboard.TryGetProperty(hash, out blackboardProperty)
+            ) {
+                blackboardProperty = default;
+                return false;
+            }
+
+            return true;
+        }
+
+        public static void NullPropertyField(Rect position, GUIContent label) {
+            var labelRect = new Rect(
+                position.x,
+                position.y,
+                EditorGUIUtility.labelWidth,
+                EditorGUIUtility.singleLineHeight
+            );
+            EditorGUI.LabelField(labelRect, label);
+
+            var valueRect = new Rect(
+                position.x + EditorGUIUtility.labelWidth + 2f,
+                position.y,
+                position.width - EditorGUIUtility.labelWidth - 2f,
+                EditorGUIUtility.singleLineHeight
+            );
+            EditorGUI.HelpBox(valueRect, $"Property type is null", MessageType.Warning);
+        }
+
+        public static float GetNullPropertyHeight() {
+            return EditorGUIUtility.singleLineHeight;
+        }
+
         public static VisualElement CreateBlackboardPropertyView(
             SerializedBlackboardProperty property,
-            Action<BlackboardProperty, object> onSetPropertyValue,
             Action onPropertyValueChanged
         ) {
             var type = (Type) property.blackboardProperty.type;
@@ -26,9 +75,7 @@ namespace MisterGames.Blackboards.Editor {
 
             var valueField = type == null
                 ? new VisualElement()
-                : typeof(Object).IsAssignableFrom(type) ? CreateObjectField(property, onPropertyValueChanged)
-                : type.IsEnum ? CreateEnumField(property, onSetPropertyValue)
-                : CreatePropertyField(property, onPropertyValueChanged);
+                : CreateBlackboardPropertyField(property, onPropertyValueChanged);
 
             var container = new VisualElement();
             container.Add(nameField);
@@ -36,58 +83,8 @@ namespace MisterGames.Blackboards.Editor {
             return container;
         }
 
-        private static VisualElement CreateObjectField(SerializedBlackboardProperty property, Action onPropertyValueChanged) {
-            var currentValue = property.serializedProperty.objectReferenceValue;
-
-            var objectField = new ObjectField {
-                value = currentValue,
-                bindingPath = property.serializedProperty.propertyPath,
-                allowSceneObjects = false,
-                objectType = property.blackboardProperty.type,
-                label = string.Empty
-            };
-
-            objectField.Bind(property.serializedProperty.serializedObject);
-            objectField.RegisterValueChangedCallback(e => {
-                if (e.newValue == e.previousValue) return;
-
-                onPropertyValueChanged.Invoke();
-            });
-
-            return objectField;
-        }
-
-        private static VisualElement CreateEnumField(SerializedBlackboardProperty property, Action<BlackboardProperty, object> onSetPropertyValue) {
+        private static VisualElement CreateBlackboardPropertyField(SerializedBlackboardProperty property, Action onPropertyValueChanged) {
             var type = (Type) property.blackboardProperty.type;
-
-            if (type.GetCustomAttribute<FlagsAttribute>(false) != null) {
-                var currentEnumFlagsValue = Enum.ToObject(type, property.serializedProperty.intValue) as Enum;
-                var enumFlagsField = new EnumFlagsField(currentEnumFlagsValue) { label = string.Empty };
-
-                enumFlagsField.RegisterValueChangedCallback(e => {
-                    if (Equals(e.newValue, e.previousValue)) return;
-
-                    onSetPropertyValue.Invoke(property.blackboardProperty, Enum.ToObject(type, e.newValue));
-                });
-
-                return enumFlagsField;
-            }
-
-            var currentEnumValue = Enum.ToObject(type, property.serializedProperty.intValue) as Enum;
-            var enumField = new EnumField(currentEnumValue) { label = string.Empty };
-
-            enumField.RegisterValueChangedCallback(e => {
-                if (Equals(e.newValue, e.previousValue)) return;
-
-                onSetPropertyValue.Invoke(property.blackboardProperty, Enum.ToObject(type, e.newValue));
-            });
-
-            return enumField;
-        }
-
-        private static VisualElement CreatePropertyField(SerializedBlackboardProperty property, Action onPropertyValueChanged) {
-            var type = (Type) property.blackboardProperty.type;
-
             object currentValue = property.serializedProperty.GetValue();
 
             var propertyField = new PropertyField {
@@ -98,7 +95,26 @@ namespace MisterGames.Blackboards.Editor {
             propertyField.Bind(property.serializedProperty.serializedObject);
             propertyField.RegisterValueChangeCallback(e => {
                 object value = e.changedProperty.GetValue();
+
+                if (type.IsEnum &&
+                    value is BlackboardValue<long> longValue &&
+                    currentValue is BlackboardValue<long> longCurrentValue &&
+                    longValue == longCurrentValue
+                ) {
+                    return;
+                }
+
                 if (type.IsValueType && Equals(value, currentValue)) return;
+
+                if (type.IsAssignableFrom(typeof(Object)) &&
+                    value is BlackboardValue<Object> objectValue &&
+                    currentValue is BlackboardValue<Object> objectCurrentValue &&
+                    objectValue == objectCurrentValue
+                ) {
+                    return;
+                }
+
+                if (type.IsInterface || type.IsSubclassOf(typeof(object)) && Equals(value, currentValue)) return;
 
                 currentValue = value;
                 onPropertyValueChanged.Invoke();
@@ -108,7 +124,9 @@ namespace MisterGames.Blackboards.Editor {
         }
 
         private const string BOOLS = "_bools";
+        private const string INTS = "_ints";
         private const string LONGS = "_longs";
+        private const string FLOATS = "_floats";
         private const string DOUBLES = "_doubles";
         private const string STRINGS = "_strings";
         private const string VECTORS2 = "_vectors2";
@@ -121,10 +139,10 @@ namespace MisterGames.Blackboards.Editor {
         private const string LAYER_MASKS = "_layerMasks";
         private const string CURVES = "_curves";
         private const string OBJECTS = "_objects";
+        private const string ENUMS = "_enums";
         private const string REFERENCES = "_references";
 
         private const string VALUE = "value";
-        private const string VALUE_DATA = "value.data";
 
         private const string ENTRIES = "_entries";
         private const string KEY = "key";
@@ -134,36 +152,39 @@ namespace MisterGames.Blackboards.Editor {
             int propertiesCount = blackboard.Properties.Count;
 
             var propertiesMap = new Dictionary<int, (int index, BlackboardProperty property)>(propertiesCount);
-            var properties = new List<SerializedBlackboardProperty>(propertiesMap.Count);
+            var properties = new List<SerializedBlackboardProperty>(propertiesCount);
 
             for (int i = 0; i < propertiesCount; i++) {
-                var blackboardProperty = blackboard.Properties[i];
+                int hash = blackboard.Properties[i];
+                blackboard.TryGetProperty(hash, out var property);
 
-                propertiesMap[blackboardProperty.hash] = (i, blackboardProperty);
+                propertiesMap[hash] = (i, property);
                 properties.Add(default);
             }
 
-            FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(BOOLS), propertiesMap, properties);
-            FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(LONGS), propertiesMap, properties);
-            FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(DOUBLES), propertiesMap, properties);
-            FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(STRINGS), propertiesMap, properties);
-            FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(VECTORS2), propertiesMap, properties);
-            FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(VECTORS3), propertiesMap, properties);
-            FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(VECTORS4), propertiesMap, properties);
-            FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(VECTORS2_INT), propertiesMap, properties);
-            FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(VECTORS3_INT), propertiesMap, properties);
-            FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(QUATERNIONS), propertiesMap, properties);
-            FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(COLORS), propertiesMap, properties);
-            FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(LAYER_MASKS), propertiesMap, properties);
-            FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(CURVES), propertiesMap, properties);
-            FetchBlackboardDictionary(VALUE, blackboardSerializedProperty.FindPropertyRelative(OBJECTS), propertiesMap, properties);
-            FetchBlackboardDictionary(VALUE_DATA, blackboardSerializedProperty.FindPropertyRelative(REFERENCES), propertiesMap, properties);
+            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative(BOOLS), propertiesMap, properties);
+            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative(INTS), propertiesMap, properties);
+            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative(LONGS), propertiesMap, properties);
+            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative(FLOATS), propertiesMap, properties);
+            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative(DOUBLES), propertiesMap, properties);
+            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative(STRINGS), propertiesMap, properties);
+            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative(VECTORS2), propertiesMap, properties);
+            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative(VECTORS3), propertiesMap, properties);
+            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative(VECTORS4), propertiesMap, properties);
+            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative(VECTORS2_INT), propertiesMap, properties);
+            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative(VECTORS3_INT), propertiesMap, properties);
+            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative(QUATERNIONS), propertiesMap, properties);
+            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative(COLORS), propertiesMap, properties);
+            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative(LAYER_MASKS), propertiesMap, properties);
+            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative(CURVES), propertiesMap, properties);
+            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative(OBJECTS), propertiesMap, properties);
+            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative(ENUMS), propertiesMap, properties);
+            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative(REFERENCES), propertiesMap, properties);
 
             return properties;
         }
 
         private static void FetchBlackboardDictionary(
-            string valuePropertyPath,
             SerializedProperty dictionary,
             IReadOnlyDictionary<int, (int index, BlackboardProperty property)> propertiesMap,
             IList<SerializedBlackboardProperty> dest
@@ -176,7 +197,7 @@ namespace MisterGames.Blackboards.Editor {
 
                 if (!propertiesMap.TryGetValue(hash, out var p)) continue;
 
-                dest[p.index] = new SerializedBlackboardProperty(p.property, entry.FindPropertyRelative(valuePropertyPath));
+                dest[p.index] = new SerializedBlackboardProperty(p.property, entry.FindPropertyRelative(VALUE));
             }
         }
     }
