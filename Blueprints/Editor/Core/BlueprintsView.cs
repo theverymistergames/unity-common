@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Cysharp.Threading.Tasks;
 using MisterGames.Blackboards.Core;
 using MisterGames.Blackboards.Editor;
 using MisterGames.Blueprints.Meta;
@@ -266,6 +267,7 @@ namespace MisterGames.Blueprints.Editor.Core {
         private void InitBlackboard() {
             _blackboardSearchWindow = ScriptableObject.CreateInstance<BlackboardSearchWindow>();
             _blackboardSearchWindow.onSelectType = CreateBlackboardProperty;
+            _blackboardSearchWindow.onSelectedArray = OnBlackboardSearchWindowSelectedArrayType;
 
             _blackboardView = new BlackboardView(this) {
                 windowed = false,
@@ -280,6 +282,11 @@ namespace MisterGames.Blueprints.Editor.Core {
             Add(_blackboardView);
         }
 
+        private async void OnBlackboardSearchWindowSelectedArrayType(SearchWindowContext ctx) {
+            await UniTask.DelayFrame(10);
+            OpenSearchWindow(_blackboardSearchWindow, ctx.screenMousePosition);
+        }
+
         private void RepopulateBlackboardView() {
             if (_blueprintAsset == null) return;
 
@@ -291,12 +298,7 @@ namespace MisterGames.Blueprints.Editor.Core {
             var properties = BlackboardUtils.GetSerializedBlackboardProperties(blackboardSerializedProperty);
 
             for (int i = 0; i < properties.Count; i++) {
-                var view = BlackboardUtils.CreateBlackboardPropertyView(
-                    properties[i],
-                    OnBlackboardPropertyValueChanged
-                );
-
-                _blackboardView.Add(view);
+                _blackboardView.Add(BlackboardUtils.CreateBlackboardPropertyView(properties[i]));
             }
         }
 
@@ -347,12 +349,6 @@ namespace MisterGames.Blueprints.Editor.Core {
             SetBlueprintAssetDirtyAndNotify();
 
             RepopulateBlackboardView();
-        }
-
-        private void OnBlackboardPropertyValueChanged() {
-            if (_blueprintAsset == null) return;
-
-            SetBlueprintAssetDirtyAndNotify();
         }
 
         // ---------------- ---------------- Minimap ---------------- ----------------
