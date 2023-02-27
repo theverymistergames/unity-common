@@ -273,7 +273,7 @@ namespace MisterGames.Blueprints.Editor.Core {
         private void InitBlackboard() {
             _blackboardSearchWindow = ScriptableObject.CreateInstance<BlackboardSearchWindow>();
             _blackboardSearchWindow.onSelectType = CreateBlackboardProperty;
-            _blackboardSearchWindow.onSelectedArray = OnBlackboardSearchWindowSelectedArrayType;
+            _blackboardSearchWindow.onPendingArrayElementTypeSelection = OnBlackboardSearchWindowSelectedArrayType;
 
             _blackboardView = new BlackboardView(this) {
                 windowed = false,

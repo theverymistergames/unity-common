@@ -13,19 +13,19 @@ namespace MisterGames.Blackboards.Editor {
 
     public class BlackboardSearchWindow : ScriptableObject, ISearchWindowProvider {
 
-        public Action<SearchWindowContext> onSelectedArray = delegate {  };
         public Action<Type> onSelectType = delegate {  };
+        public Action<SearchWindowContext> onPendingArrayElementTypeSelection = delegate {  };
 
         private List<SearchTreeEntry> _typeTree;
-        private bool _isPendingArrayType;
+        private bool _isPendingArrayElementTypeSelection;
 
         public List<SearchTreeEntry> CreateSearchTree(SearchWindowContext context) {
             _typeTree ??= CreateTypeTree();
 
-            string title = _isPendingArrayType ? "Select element type" : "Select type";
+            string title = _isPendingArrayElementTypeSelection ? "Select element type" : "Select type";
             var tree = new List<SearchTreeEntry> { SearchTreeEntryUtils.Header(title) };
 
-            if (!_isPendingArrayType) tree.Add(SearchTreeEntryUtils.Entry("Array", "array", 1));
+            if (!_isPendingArrayElementTypeSelection) tree.Add(SearchTreeEntryUtils.Entry("Array", "array", 1));
             tree.AddRange(_typeTree);
 
             return tree;
@@ -102,8 +102,8 @@ namespace MisterGames.Blackboards.Editor {
         public bool OnSelectEntry(SearchTreeEntry searchTreeEntry, SearchWindowContext context) {
             if (searchTreeEntry.userData is string s) {
                 if (s == "array") {
-                    _isPendingArrayType = true;
-                    onSelectedArray.Invoke(context);
+                    _isPendingArrayElementTypeSelection = true;
+                    onPendingArrayElementTypeSelection.Invoke(context);
                     return true;
                 }
 
@@ -111,8 +111,8 @@ namespace MisterGames.Blackboards.Editor {
             }
 
             if (searchTreeEntry.userData is Type type) {
-                if (_isPendingArrayType) {
-                    _isPendingArrayType = false;
+                if (_isPendingArrayElementTypeSelection) {
+                    _isPendingArrayElementTypeSelection = false;
                     type = type.MakeArrayType();
                 }
 
