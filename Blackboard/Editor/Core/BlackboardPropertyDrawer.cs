@@ -64,6 +64,9 @@ namespace MisterGames.Blackboards.Editor {
 
             EditorGUI.indentLevel--;
 
+            property.serializedObject.ApplyModifiedProperties();
+            property.serializedObject.Update();
+
             EditorGUI.EndProperty();
         }
 

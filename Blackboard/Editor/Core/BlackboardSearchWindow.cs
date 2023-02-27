@@ -13,14 +13,26 @@ namespace MisterGames.Blackboards.Editor {
 
     public class BlackboardSearchWindow : ScriptableObject, ISearchWindowProvider {
 
+        public Action<SearchWindowContext> onSelectedArray = delegate {  };
         public Action<Type> onSelectType = delegate {  };
 
-        private List<SearchTreeEntry> _treeCache;
+        private List<SearchTreeEntry> _typeTree;
+        private bool _isPendingArrayType;
 
         public List<SearchTreeEntry> CreateSearchTree(SearchWindowContext context) {
-            if (_treeCache != null) return _treeCache;
+            _typeTree ??= CreateTypeTree();
 
-            var tree = new List<SearchTreeEntry> { SearchTreeEntryUtils.Header("Select type") };
+            string title = _isPendingArrayType ? "Select element type" : "Select type";
+            var tree = new List<SearchTreeEntry> { SearchTreeEntryUtils.Header(title) };
+
+            tree.AddRange(_typeTree);
+            if (!_isPendingArrayType) tree.Add(SearchTreeEntryUtils.Entry("Array of ...", "array", 1));
+
+            return tree;
+        }
+
+        private static List<SearchTreeEntry> CreateTypeTree() {
+            var tree = new List<SearchTreeEntry>();
 
             var types = new[] {
                 typeof(bool),
@@ -46,7 +58,7 @@ namespace MisterGames.Blackboards.Editor {
                 typeof(LayerMask),
             };
             tree.Add(SearchTreeEntryUtils.Header("Primitives", 1));
-            tree.AddRange(types.Select(t => CreateSearchTreeEntryForType(t, 2)));
+            tree.AddRange(types.Select(t => SearchTreeEntryUtils.Entry(TypeNameFormatter.GetTypeName(t), t, 2)));
 
             types = TypeCache
                 .GetTypesDerivedFrom<ScriptableObject>()
@@ -62,6 +74,9 @@ namespace MisterGames.Blackboards.Editor {
                 .Where(Blackboard.IsSupportedType)
                 .ToArray();
             tree.AddRange(GetTypeTree("Components", types, 1));
+
+            var type = typeof(GameObject);
+            tree.Add(SearchTreeEntryUtils.Entry(TypeNameFormatter.GetTypeName(type), type, 1));
 
             types = TypeCache
                 .GetTypesDerivedFrom<object>()
@@ -81,17 +96,30 @@ namespace MisterGames.Blackboards.Editor {
                 .ToArray();
             tree.AddRange(GetTypeTree("Enums", types, 1));
 
-            tree.Add(CreateSearchTreeEntryForType(typeof(GameObject), 1));
-
-            _treeCache = tree;
             return tree;
         }
 
         public bool OnSelectEntry(SearchTreeEntry searchTreeEntry, SearchWindowContext context) {
+            if (searchTreeEntry.userData is string s) {
+                if (s == "array") {
+                    _isPendingArrayType = true;
+                    onSelectedArray.Invoke(context);
+                    return true;
+                }
+
+                return false;
+            }
+
             if (searchTreeEntry.userData is Type type) {
+                if (_isPendingArrayType) {
+                    _isPendingArrayType = false;
+                    type = type.MakeArrayType();
+                }
+
                 onSelectType.Invoke(type);
                 return true;
             }
+
             return false;
         }
 
@@ -112,10 +140,6 @@ namespace MisterGames.Blackboards.Editor {
             var tree = new List<SearchTreeEntry> { SearchTreeEntryUtils.Header(rootName, level) };
             tree.AddRange(pathTree);
             return tree;
-        }
-
-        private static SearchTreeEntry CreateSearchTreeEntryForType(Type type, int level) {
-            return SearchTreeEntryUtils.Entry(TypeNameFormatter.GetTypeName(type), type, level);
         }
 
         private static SearchTreeEntry ToSearchEntry<T>(TreeEntry<PathTree.Node<T>> treeEntry, int levelOffset) {
