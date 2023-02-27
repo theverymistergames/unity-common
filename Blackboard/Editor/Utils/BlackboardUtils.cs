@@ -94,7 +94,6 @@ namespace MisterGames.Blackboards.Editor {
             return new BlackboardField { text = propertyName, typeText = typeName };
         }
 
-
         public static void NullPropertyField(Rect position, GUIContent label) {
             var labelRect = new Rect(
                 position.x,
