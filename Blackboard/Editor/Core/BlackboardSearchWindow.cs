@@ -25,8 +25,8 @@ namespace MisterGames.Blackboards.Editor {
             string title = _isPendingArrayType ? "Select element type" : "Select type";
             var tree = new List<SearchTreeEntry> { SearchTreeEntryUtils.Header(title) };
 
+            if (!_isPendingArrayType) tree.Add(SearchTreeEntryUtils.Entry("Array", "array", 1));
             tree.AddRange(_typeTree);
-            if (!_isPendingArrayType) tree.Add(SearchTreeEntryUtils.Entry("Array of ...", "array", 1));
 
             return tree;
         }
@@ -34,7 +34,35 @@ namespace MisterGames.Blackboards.Editor {
         private static List<SearchTreeEntry> CreateTypeTree() {
             var tree = new List<SearchTreeEntry>();
 
-            var types = new[] {
+            var types = TypeCache
+                .GetTypesDerivedFrom<Component>()
+                .Append(typeof(Component))
+                .Where(Blackboard.IsSupportedType)
+                .ToArray();
+            tree.AddRange(GetTypeTree("Components", types, 1));
+
+            types = AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(assembly => assembly.GetTypes())
+                .Where(t => t.IsEnum && Blackboard.IsSupportedType(t))
+                .ToArray();
+            tree.AddRange(GetTypeTree("Enums", types, 1));
+
+            var type = typeof(GameObject);
+            tree.Add(SearchTreeEntryUtils.Entry(TypeNameFormatter.GetTypeName(type), type, 1));
+
+            types = AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(assembly => assembly.GetTypes())
+                .Where(t => t.IsInterface && Blackboard.IsSupportedType(t))
+                .ToArray();
+            tree.AddRange(GetTypeTree("Interfaces", types, 1));
+
+            types = TypeCache
+                .GetTypesDerivedFrom<object>()
+                .Where(t => !typeof(Object).IsAssignableFrom(t) && Blackboard.IsSupportedType(t))
+                .ToArray();
+            tree.AddRange(GetTypeTree("Objects", types, 1));
+
+            types = new[] {
                 typeof(bool),
 
                 typeof(float),
@@ -67,34 +95,6 @@ namespace MisterGames.Blackboards.Editor {
                 .ToArray();
 
             tree.AddRange(GetTypeTree("Scriptable Objects", types, 1));
-
-            types = TypeCache
-                .GetTypesDerivedFrom<Component>()
-                .Append(typeof(Component))
-                .Where(Blackboard.IsSupportedType)
-                .ToArray();
-            tree.AddRange(GetTypeTree("Components", types, 1));
-
-            var type = typeof(GameObject);
-            tree.Add(SearchTreeEntryUtils.Entry(TypeNameFormatter.GetTypeName(type), type, 1));
-
-            types = TypeCache
-                .GetTypesDerivedFrom<object>()
-                .Where(t => !typeof(Object).IsAssignableFrom(t) && Blackboard.IsSupportedType(t))
-                .ToArray();
-            tree.AddRange(GetTypeTree("Objects", types, 1));
-
-            types = AppDomain.CurrentDomain.GetAssemblies()
-                .SelectMany(assembly => assembly.GetTypes())
-                .Where(t => t.IsInterface && Blackboard.IsSupportedType(t))
-                .ToArray();
-            tree.AddRange(GetTypeTree("Interfaces", types, 1));
-
-            types = AppDomain.CurrentDomain.GetAssemblies()
-                .SelectMany(assembly => assembly.GetTypes())
-                .Where(t => t.IsEnum && Blackboard.IsSupportedType(t))
-                .ToArray();
-            tree.AddRange(GetTypeTree("Enums", types, 1));
 
             return tree;
         }
