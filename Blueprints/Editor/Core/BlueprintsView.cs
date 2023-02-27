@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Blackboards.Core;
 using MisterGames.Blackboards.Editor;
@@ -29,6 +30,8 @@ namespace MisterGames.Blueprints.Editor.Core {
 
         private BlueprintNodeSearchWindow _nodeSearchWindow;
         private BlackboardSearchWindow _blackboardSearchWindow;
+
+        private CancellationTokenSource _blackboardOpenSearchWindowCts;
 
         private BlackboardView _blackboardView;
         private MiniMap _miniMap;
@@ -130,6 +133,9 @@ namespace MisterGames.Blueprints.Editor.Core {
             }
             DeleteElements(graphElements);
 
+            _blackboardOpenSearchWindowCts?.Cancel();
+            _blackboardOpenSearchWindowCts?.Dispose();
+
             _blackboardView?.Clear();
 
             if (_blueprintAsset != null) {
@@ -224,8 +230,8 @@ namespace MisterGames.Blueprints.Editor.Core {
 
         // ---------------- ---------------- Node Search Window ---------------- ----------------
 
-        private static void OpenSearchWindow<T>(T window, Vector2 position) where T : ScriptableObject, ISearchWindowProvider {
-            SearchWindow.Open(new SearchWindowContext(position, 280f), window);
+        private static bool OpenSearchWindow<T>(T window, Vector2 position) where T : ScriptableObject, ISearchWindowProvider {
+            return SearchWindow.Open(new SearchWindowContext(position, 280f), window);
         }
 
         private void InitNodeSearchWindow() {
@@ -282,9 +288,23 @@ namespace MisterGames.Blueprints.Editor.Core {
             Add(_blackboardView);
         }
 
-        private async void OnBlackboardSearchWindowSelectedArrayType(SearchWindowContext ctx) {
-            await UniTask.DelayFrame(10);
-            OpenSearchWindow(_blackboardSearchWindow, ctx.screenMousePosition);
+        private void OnBlackboardSearchWindowSelectedArrayType(SearchWindowContext ctx) {
+            _blackboardOpenSearchWindowCts?.Cancel();
+            _blackboardOpenSearchWindowCts?.Dispose();
+            _blackboardOpenSearchWindowCts = new CancellationTokenSource();
+
+            TryOpenBlackboardSearchWindow(ctx, _blackboardOpenSearchWindowCts.Token).Forget();
+        }
+
+        private async UniTaskVoid TryOpenBlackboardSearchWindow(SearchWindowContext ctx, CancellationToken token) {
+            bool isCancelled = await UniTask.DelayFrame(1, cancellationToken: token).SuppressCancellationThrow();
+            if (isCancelled || OpenSearchWindow(_blackboardSearchWindow, ctx.screenMousePosition)) return;
+
+            isCancelled = await UniTask.DelayFrame(10, cancellationToken: token).SuppressCancellationThrow();
+            if (isCancelled || OpenSearchWindow(_blackboardSearchWindow, ctx.screenMousePosition)) return;
+
+            isCancelled = await UniTask.DelayFrame(100, cancellationToken: token).SuppressCancellationThrow();
+            if (isCancelled || OpenSearchWindow(_blackboardSearchWindow, ctx.screenMousePosition)) return;
         }
 
         private void RepopulateBlackboardView() {
