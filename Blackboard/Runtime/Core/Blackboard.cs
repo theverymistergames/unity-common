@@ -22,11 +22,9 @@ namespace MisterGames.Blackboards.Core {
 
         [SerializeField] private SerializedDictionary<int, Vector2Int> _vectors2Int;
         [SerializeField] private SerializedDictionary<int, Vector3Int> _vectors3Int;
-
         [SerializeField] private SerializedDictionary<int, Vector2> _vectors2;
         [SerializeField] private SerializedDictionary<int, Vector3> _vectors3;
         [SerializeField] private SerializedDictionary<int, Vector4> _vectors4;
-
         [SerializeField] private SerializedDictionary<int, Quaternion> _quaternions;
 
         [SerializeField] private SerializedDictionary<int, Color> _colors;
@@ -38,6 +36,26 @@ namespace MisterGames.Blackboards.Core {
         [SerializeField] private SerializedDictionary<int, BlackboardReference> _references;
 
         [SerializeField] private SerializedDictionary<int, bool[]> _boolArrays;
+        [SerializeField] private SerializedDictionary<int, int[]> _intArrays;
+        [SerializeField] private SerializedDictionary<int, long[]> _longArrays;
+        [SerializeField] private SerializedDictionary<int, float[]> _floatArrays;
+        [SerializeField] private SerializedDictionary<int, double[]> _doubleArrays;
+        [SerializeField] private SerializedDictionary<int, string[]> _stringArrays;
+
+        [SerializeField] private SerializedDictionary<int, Vector2Int[]> _vectors2IntArrays;
+        [SerializeField] private SerializedDictionary<int, Vector3Int[]> _vectors3IntArrays;
+        [SerializeField] private SerializedDictionary<int, Vector2[]> _vectors2Arrays;
+        [SerializeField] private SerializedDictionary<int, Vector3[]> _vectors3Arrays;
+        [SerializeField] private SerializedDictionary<int, Vector4[]> _vectors4Arrays;
+        [SerializeField] private SerializedDictionary<int, Quaternion[]> _quaternionArrays;
+
+        [SerializeField] private SerializedDictionary<int, Color[]> _colorArrays;
+        [SerializeField] private SerializedDictionary<int, LayerMask[]> _layerMaskArrays;
+        [SerializeField] private SerializedDictionary<int, AnimationCurve[]> _curveArrays;
+
+        [SerializeField] private SerializedDictionary<int, BlackboardValue<Object>[]> _objectArrays;
+        [SerializeField] private SerializedDictionary<int, BlackboardValue<long>[]> _enumArrays;
+        [SerializeField] private SerializedDictionary<int, BlackboardReference[]> _referenceArrays;
 
         public IReadOnlyList<int> Properties => _properties;
 
@@ -56,11 +74,9 @@ namespace MisterGames.Blackboards.Core {
 
             _vectors2Int = new SerializedDictionary<int, Vector2Int>();
             _vectors3Int = new SerializedDictionary<int, Vector3Int>();
-
             _vectors2 = new SerializedDictionary<int, Vector2>();
             _vectors3 = new SerializedDictionary<int, Vector3>();
             _vectors4 = new SerializedDictionary<int, Vector4>();
-
             _quaternions = new SerializedDictionary<int, Quaternion>();
 
             _colors = new SerializedDictionary<int, Color>();
@@ -72,6 +88,26 @@ namespace MisterGames.Blackboards.Core {
             _references = new SerializedDictionary<int, BlackboardReference>();
 
             _boolArrays = new SerializedDictionary<int, bool[]>();
+            _intArrays = new SerializedDictionary<int, int[]>();
+            _longArrays = new SerializedDictionary<int, long[]>();
+            _floatArrays = new SerializedDictionary<int, float[]>();
+            _doubleArrays = new SerializedDictionary<int, double[]>();
+            _stringArrays = new SerializedDictionary<int, string[]>();
+
+            _vectors2IntArrays = new SerializedDictionary<int, Vector2Int[]>();
+            _vectors3IntArrays = new SerializedDictionary<int, Vector3Int[]>();
+            _vectors2Arrays = new SerializedDictionary<int, Vector2[]>();
+            _vectors3Arrays = new SerializedDictionary<int, Vector3[]>();
+            _vectors4Arrays = new SerializedDictionary<int, Vector4[]>();
+            _quaternionArrays = new SerializedDictionary<int, Quaternion[]>();
+
+            _colorArrays = new SerializedDictionary<int, Color[]>();
+            _layerMaskArrays = new SerializedDictionary<int, LayerMask[]>();
+            _curveArrays = new SerializedDictionary<int, AnimationCurve[]>();
+
+            _objectArrays = new SerializedDictionary<int, BlackboardValue<Object>[]>();
+            _enumArrays = new SerializedDictionary<int, BlackboardValue<long>[]>();
+            _referenceArrays = new SerializedDictionary<int, BlackboardReference[]>();
         }
 
         public Blackboard(Blackboard source) {
@@ -89,11 +125,9 @@ namespace MisterGames.Blackboards.Core {
 
             _vectors2Int = new SerializedDictionary<int, Vector2Int>(source._vectors2Int);
             _vectors3Int = new SerializedDictionary<int, Vector3Int>(source._vectors3Int);
-
             _vectors2 = new SerializedDictionary<int, Vector2>(source._vectors2);
             _vectors3 = new SerializedDictionary<int, Vector3>(source._vectors3);
             _vectors4 = new SerializedDictionary<int, Vector4>(source._vectors4);
-
             _quaternions = new SerializedDictionary<int, Quaternion>(source._quaternions);
 
             _colors = new SerializedDictionary<int, Color>(source._colors);
@@ -105,62 +139,93 @@ namespace MisterGames.Blackboards.Core {
             _references = new SerializedDictionary<int, BlackboardReference>(source._references);
 
             _boolArrays = new SerializedDictionary<int, bool[]>(source._boolArrays);
+            _intArrays = new SerializedDictionary<int, int[]>(source._intArrays);
+            _longArrays = new SerializedDictionary<int, long[]>(source._longArrays);
+            _floatArrays = new SerializedDictionary<int, float[]>(source._floatArrays);
+            _doubleArrays = new SerializedDictionary<int, double[]>(source._doubleArrays);
+            _stringArrays = new SerializedDictionary<int, string[]>(source._stringArrays);
+
+            _vectors2IntArrays = new SerializedDictionary<int, Vector2Int[]>(source._vectors2IntArrays);
+            _vectors3IntArrays = new SerializedDictionary<int, Vector3Int[]>(source._vectors3IntArrays);
+            _vectors2Arrays = new SerializedDictionary<int, Vector2[]>(source._vectors2Arrays);
+            _vectors3Arrays = new SerializedDictionary<int, Vector3[]>(source._vectors3Arrays);
+            _vectors4Arrays = new SerializedDictionary<int, Vector4[]>(source._vectors4Arrays);
+            _quaternionArrays = new SerializedDictionary<int, Quaternion[]>(source._quaternionArrays);
+
+            _colorArrays = new SerializedDictionary<int, Color[]>(source._colorArrays);
+            _layerMaskArrays = new SerializedDictionary<int, LayerMask[]>(source._layerMaskArrays);
+            _curveArrays = new SerializedDictionary<int, AnimationCurve[]>(source._curveArrays);
+
+            _objectArrays = new SerializedDictionary<int, BlackboardValue<Object>[]>(source._objectArrays);
+            _enumArrays = new SerializedDictionary<int, BlackboardValue<long>[]>(source._enumArrays);
+            _referenceArrays = new SerializedDictionary<int, BlackboardReference[]>(source._referenceArrays);
         }
 
         public T Get<T>(int hash) {
             var type = typeof(T);
 
             if (type.IsArray) {
-                var elementType = type.GetElementType()!;
-                if (elementType.IsValueType) {
-                    if (elementType == typeof(bool)) return _boolArrays[hash] is T t ? t : default;
-/*
-                    if (elementType == typeof(float)) return _floats[hash] is T t ? t : default;
-                    if (elementType == typeof(double)) return _doubles[hash] is T t ? t : default;
+                type = type.GetElementType()!;
 
-                    if (elementType == typeof(int)) return _ints[hash] is T t ? t : default;
-                    if (elementType == typeof(long)) return _longs[hash] is T t ? t : default;
+                if (type.IsValueType) {
+                    if (type == typeof(bool)) return _boolArrays[hash] is T t ? t : default;
+                    if (type == typeof(float)) return _floatArrays[hash] is T t ? t : default;
+                    if (type == typeof(double)) return _doubleArrays[hash] is T t ? t : default;
+                    if (type == typeof(int)) return _intArrays[hash] is T t ? t : default;
+                    if (type == typeof(long)) return _longArrays[hash] is T t ? t : default;
 
-                    if (elementType == typeof(Vector2)) return _vectors2[hash] is T t ? t : default;
-                    if (elementType == typeof(Vector3)) return _vectors3[hash] is T t ? t : default;
-                    if (elementType == typeof(Vector4)) return _vectors4[hash] is T t ? t : default;
+                    if (type == typeof(Vector2)) return _vectors2Arrays[hash] is T t ? t : default;
+                    if (type == typeof(Vector3)) return _vectors3Arrays[hash] is T t ? t : default;
+                    if (type == typeof(Vector4)) return _vectors4Arrays[hash] is T t ? t : default;
+                    if (type == typeof(Vector2Int)) return _vectors2IntArrays[hash] is T t ? t : default;
+                    if (type == typeof(Vector3Int)) return _vectors3IntArrays[hash] is T t ? t : default;
+                    if (type == typeof(Quaternion)) return _quaternionArrays[hash] is T t ? t : default;
 
-                    if (elementType == typeof(Quaternion)) return _quaternions[hash] is T t ? t : default;
+                    if (type == typeof(LayerMask)) return _layerMaskArrays[hash] is T t ? t : default;
+                    if (type == typeof(Color)) return _colorArrays[hash] is T t ? t : default;
 
-                    if (elementType == typeof(Vector2Int)) return _vectors2Int[hash] is T t ? t : default;
-                    if (elementType == typeof(Vector3Int)) return _vectors3Int[hash] is T t ? t : default;
+                    if (type.IsEnum) {
+                        var array = _enumArrays[hash];
+                        if (array == null) return default;
 
-                    if (elementType == typeof(LayerMask)) return _layerMasks[hash] is T t ? t : default;
-                    if (elementType == typeof(Color)) return _colors[hash] is T t ? t : default;
-
-                    if (elementType.IsEnum) {
-                        var enumUnderlyingType = elementType.GetEnumUnderlyingType();
-
-                        if (enumUnderlyingType == typeof(int)) return Enum.ToObject(elementType, (int) _enums[hash].value) is T t ? t : default;
-                        if (enumUnderlyingType == typeof(short)) return Enum.ToObject(elementType, (short) _enums[hash].value) is T t ? t : default;
-                        if (enumUnderlyingType == typeof(byte)) return Enum.ToObject(elementType, (byte) _enums[hash].value) is T t ? t : default;
-                        if (enumUnderlyingType == typeof(long)) return Enum.ToObject(elementType, _enums[hash].value) is T t ? t : default;
-                        if (enumUnderlyingType == typeof(sbyte)) return Enum.ToObject(elementType, (sbyte) _enums[hash].value) is T t ? t : default;
-                        if (enumUnderlyingType == typeof(ushort)) return Enum.ToObject(elementType, (ushort) _enums[hash].value) is T t ? t : default;
-                        if (enumUnderlyingType == typeof(uint)) return Enum.ToObject(elementType, (uint) _enums[hash].value) is T t ? t : default;
-
-                        return default;
+                        var res = Array.CreateInstance(type, array.Length);
+                        for (int i = 0; i < array.Length; i++) {
+                            res.SetValue(Enum.ToObject(type, array[i].value), i);
+                        }
+                        return res is T t ? t : default;
                     }
-*/
+
                     return default;
                 }
-/*
-                if (elementType == typeof(string)) return _strings[hash] is T t ? t : default;
-                if (elementType == typeof(AnimationCurve)) return _curves[hash] is T t ? t : default;
 
-                if (typeof(Object).IsAssignableFrom(elementType)) {
-                    return _objects.TryGetValue(hash, out var value) && value.value is T t ? t : default;
+                if (type == typeof(string)) return _stringArrays[hash] is T t ? t : default;
+                if (type == typeof(AnimationCurve)) return _curveArrays[hash] is T t ? t : default;
+
+                if (typeof(Object).IsAssignableFrom(type)) {
+                    var array = _objectArrays[hash];
+                    if (array == null) return default;
+
+                    var result = Array.CreateInstance(type, array.Length);
+                    for (int i = 0; i < array.Length; i++) {
+                        var value = array[i].value;
+                        if (value != null) result.SetValue(value, i);
+                    }
+                    return result is T t ? t : default;
                 }
 
-                if (elementType.IsSubclassOf(typeof(object)) || elementType.IsInterface) {
-                    return _references.TryGetValue(hash, out var reference) && reference.value is T t ? t : default;
+                if (type.IsSubclassOf(typeof(object)) || type.IsInterface) {
+                    var array = _referenceArrays[hash];
+                    if (array == null) return default;
+
+                    var result = Array.CreateInstance(type, array.Length);
+                    for (int i = 0; i < array.Length; i++) {
+                        object value = array[i].value;
+                        if (value != null) result.SetValue(value, i);
+                    }
+                    return result is T t ? t : default;
                 }
-*/
+
+                return default;
             }
 
             if (type.IsValueType) {
@@ -184,19 +249,7 @@ namespace MisterGames.Blackboards.Core {
                 if (type == typeof(LayerMask)) return _layerMasks[hash] is T t ? t : default;
                 if (type == typeof(Color)) return _colors[hash] is T t ? t : default;
 
-                if (type.IsEnum) {
-                    var enumUnderlyingType = type.GetEnumUnderlyingType();
-
-                    if (enumUnderlyingType == typeof(int)) return Enum.ToObject(type, (int) _enums[hash].value) is T t ? t : default;
-                    if (enumUnderlyingType == typeof(short)) return Enum.ToObject(type, (short) _enums[hash].value) is T t ? t : default;
-                    if (enumUnderlyingType == typeof(byte)) return Enum.ToObject(type, (byte) _enums[hash].value) is T t ? t : default;
-                    if (enumUnderlyingType == typeof(long)) return Enum.ToObject(type, _enums[hash].value) is T t ? t : default;
-                    if (enumUnderlyingType == typeof(sbyte)) return Enum.ToObject(type, (sbyte) _enums[hash].value) is T t ? t : default;
-                    if (enumUnderlyingType == typeof(ushort)) return Enum.ToObject(type, (ushort) _enums[hash].value) is T t ? t : default;
-                    if (enumUnderlyingType == typeof(uint)) return Enum.ToObject(type, (uint) _enums[hash].value) is T t ? t : default;
-
-                    return default;
-                }
+                if (type.IsEnum) return Enum.ToObject(type, _enums[hash].value) is T t ? t : default;
 
                 return default;
             }
@@ -204,13 +257,8 @@ namespace MisterGames.Blackboards.Core {
             if (type == typeof(string)) return _strings[hash] is T t ? t : default;
             if (type == typeof(AnimationCurve)) return _curves[hash] is T t ? t : default;
 
-            if (typeof(Object).IsAssignableFrom(type)) {
-                return _objects.TryGetValue(hash, out var value) && value.value is T t ? t : default;
-            }
-
-            if (type.IsSubclassOf(typeof(object)) || type.IsInterface) {
-                return _references.TryGetValue(hash, out var reference) && reference.value is T t ? t : default;
-            }
+            if (typeof(Object).IsAssignableFrom(type)) return _objects[hash].value is T t ? t : default;
+            if (type.IsSubclassOf(typeof(object)) || type.IsInterface) return _references[hash].value is T t ? t : default;
 
             return default;
         }
@@ -351,16 +399,6 @@ namespace MisterGames.Blackboards.Core {
             return _propertiesMap.TryGetValue(hash, out property);
         }
 
-        public bool TryGetPropertyValue(int hash, out object value) {
-            if (!_propertiesMap.TryGetValue(hash, out var property) || property.type == null) {
-                value = default;
-                return false;
-            }
-
-            value = GetValue(property.type, hash);
-            return true;
-        }
-
         public bool TrySetPropertyValue(int hash, object value) {
             if (!_propertiesMap.TryGetValue(hash, out var property) || property.type == null) return false;
 
@@ -473,6 +511,16 @@ namespace MisterGames.Blackboards.Core {
             RemoveValue(hash);
         }
 
+        private bool TryGetPropertyValue(int hash, out object value) {
+            if (!_propertiesMap.TryGetValue(hash, out var property) || property.type == null) {
+                value = default;
+                return false;
+            }
+
+            value = GetValue(property.type, hash);
+            return true;
+        }
+
         private object GetValue(Type type, int hash) {
             if (type == null) return default;
 
@@ -481,85 +529,83 @@ namespace MisterGames.Blackboards.Core {
 
                 if (elementType.IsValueType) {
                     if (elementType == typeof(bool)) return _boolArrays[hash];
+                    if (elementType == typeof(float)) return _floatArrays[hash];
+                    if (elementType == typeof(double)) return _doubleArrays[hash];
+                    if (elementType == typeof(int)) return _intArrays[hash];
+                    if (elementType == typeof(long)) return _longArrays[hash];
 
-                    if (elementType == typeof(float)) return _floats[hash];
-                    if (elementType == typeof(double)) return _doubles[hash];
+                    if (elementType == typeof(Vector2)) return _vectors2Arrays[hash];
+                    if (elementType == typeof(Vector3)) return _vectors3Arrays[hash];
+                    if (elementType == typeof(Vector4)) return _vectors4Arrays[hash];
+                    if (elementType == typeof(Vector2Int)) return _vectors2IntArrays[hash];
+                    if (elementType == typeof(Vector3Int)) return _vectors3IntArrays[hash];
+                    if (elementType == typeof(Quaternion)) return _quaternionArrays[hash];
 
-                    if (elementType == typeof(int)) return _ints[hash];
-                    if (elementType == typeof(long)) return _longs[hash];
-
-                    if (elementType == typeof(Vector2)) return _vectors2[hash];
-                    if (elementType == typeof(Vector3)) return _vectors3[hash];
-                    if (elementType == typeof(Vector4)) return _vectors4[hash];
-
-                    if (elementType == typeof(Quaternion)) return _quaternions[hash];
-
-                    if (elementType == typeof(Vector2Int)) return _vectors2Int[hash];
-                    if (elementType == typeof(Vector3Int)) return _vectors3Int[hash];
-
-                    if (elementType == typeof(LayerMask)) return _layerMasks[hash];
-                    if (elementType == typeof(Color)) return _colors[hash];
+                    if (elementType == typeof(LayerMask)) return _layerMaskArrays[hash];
+                    if (elementType == typeof(Color)) return _colorArrays[hash];
 
                     if (elementType.IsEnum) {
-                        var enumUnderlyingType = elementType.GetEnumUnderlyingType();
+                        var array = _enumArrays[hash];
+                        if (array == null) return default;
 
-                        if (enumUnderlyingType == typeof(int)) return Enum.ToObject(elementType, (int) _enums[hash].value);
-                        if (enumUnderlyingType == typeof(short)) return Enum.ToObject(elementType, (short) _enums[hash].value);
-                        if (enumUnderlyingType == typeof(byte)) return Enum.ToObject(elementType, (byte) _enums[hash].value);
-                        if (enumUnderlyingType == typeof(long)) return Enum.ToObject(elementType, _enums[hash].value);
-                        if (enumUnderlyingType == typeof(sbyte)) return Enum.ToObject(elementType, (sbyte) _enums[hash].value);
-                        if (enumUnderlyingType == typeof(ushort)) return Enum.ToObject(elementType, (ushort) _enums[hash].value);
-                        if (enumUnderlyingType == typeof(uint)) return Enum.ToObject(elementType, (uint) _enums[hash].value);
-
-                        return default;
+                        var result = Array.CreateInstance(elementType, array.Length);
+                        for (int i = 0; i < array.Length; i++) {
+                            result.SetValue(Enum.ToObject(elementType, array[i].value), i);
+                        }
+                        return result;
                     }
 
                     return default;
                 }
 
-                if (elementType == typeof(string)) return _strings[hash];
-                if (elementType == typeof(AnimationCurve)) return _curves[hash];
+                if (elementType == typeof(string)) return _stringArrays[hash];
+                if (elementType == typeof(AnimationCurve)) return _curveArrays[hash];
 
-                if (typeof(Object).IsAssignableFrom(elementType)) return _objects[hash].value;
-                if (elementType.IsSubclassOf(typeof(object)) || elementType.IsInterface) return _references[hash].value;
+                if (typeof(Object).IsAssignableFrom(elementType)) {
+                    var array = _objectArrays[hash];
+                    if (array == null) return default;
+
+                    var result = Array.CreateInstance(elementType, array.Length);
+                    for (int i = 0; i < array.Length; i++) {
+                        var value = array[i].value;
+                        if (value != null) result.SetValue(value, i);
+                    }
+                    return result;
+                }
+
+                if (elementType.IsSubclassOf(typeof(object)) || elementType.IsInterface) {
+                    var array = _referenceArrays[hash];
+                    if (array == null) return default;
+
+                    var result = Array.CreateInstance(elementType, array.Length);
+                    for (int i = 0; i < array.Length; i++) {
+                        object value = array[i].value;
+                        if (value != null) result.SetValue(value, i);
+                    }
+                    return result;
+                }
 
                 return default;
             }
 
             if (type.IsValueType) {
                 if (type == typeof(bool)) return _bools[hash];
-
                 if (type == typeof(float)) return _floats[hash];
                 if (type == typeof(double)) return _doubles[hash];
-
                 if (type == typeof(int)) return _ints[hash];
                 if (type == typeof(long)) return _longs[hash];
 
                 if (type == typeof(Vector2)) return _vectors2[hash];
                 if (type == typeof(Vector3)) return _vectors3[hash];
                 if (type == typeof(Vector4)) return _vectors4[hash];
-
-                if (type == typeof(Quaternion)) return _quaternions[hash];
-
                 if (type == typeof(Vector2Int)) return _vectors2Int[hash];
                 if (type == typeof(Vector3Int)) return _vectors3Int[hash];
+                if (type == typeof(Quaternion)) return _quaternions[hash];
 
                 if (type == typeof(LayerMask)) return _layerMasks[hash];
                 if (type == typeof(Color)) return _colors[hash];
 
-                if (type.IsEnum) {
-                    var enumUnderlyingType = type.GetEnumUnderlyingType();
-
-                    if (enumUnderlyingType == typeof(int)) return Enum.ToObject(type, (int) _enums[hash].value);
-                    if (enumUnderlyingType == typeof(short)) return Enum.ToObject(type, (short) _enums[hash].value);
-                    if (enumUnderlyingType == typeof(byte)) return Enum.ToObject(type, (byte) _enums[hash].value);
-                    if (enumUnderlyingType == typeof(long)) return Enum.ToObject(type, _enums[hash].value);
-                    if (enumUnderlyingType == typeof(sbyte)) return Enum.ToObject(type, (sbyte) _enums[hash].value);
-                    if (enumUnderlyingType == typeof(ushort)) return Enum.ToObject(type, (ushort) _enums[hash].value);
-                    if (enumUnderlyingType == typeof(uint)) return Enum.ToObject(type, (uint) _enums[hash].value);
-
-                    return default;
-                }
+                if (type.IsEnum) return Enum.ToObject(type, _enums[hash].value);
 
                 return default;
             }
@@ -581,121 +627,75 @@ namespace MisterGames.Blackboards.Core {
 
                 if (elementType.IsValueType) {
                     if (elementType == typeof(bool)) {
-                        bool[] source = value as bool[];
-                        bool[] dest = Array.Empty<bool>();
-
-                        if (source != null) {
-                            dest = new bool[source.Length];
-                            Array.Copy(source, dest, source.Length);
-                        }
-
-                        _boolArrays[hash] = dest;
+                        _boolArrays[hash] = value as bool[];
                         return;
                     }
 
                     if (elementType == typeof(float)) {
-                        _floats[hash] = value is float f ? f : default;
+                        _floatArrays[hash] = value as float[];
                         return;
                     }
 
                     if (elementType == typeof(double)) {
-                        _doubles[hash] = value is double d ? d : default;
+                        _doubleArrays[hash] = value as double[];
                         return;
                     }
 
                     if (elementType == typeof(int)) {
-                        _ints[hash] = value is int i ? i : default;
+                        _intArrays[hash] = value as int[];
                         return;
                     }
 
                     if (elementType == typeof(long)) {
-                        _longs[hash] = value is long l ? l : default;
+                        _longArrays[hash] = value as long[];
                         return;
                     }
 
                     if (elementType == typeof(Vector2)) {
-                        _vectors2[hash] = value is Vector2 v2 ? v2 : default;
+                        _vectors2Arrays[hash] = value as Vector2[];
                         return;
                     }
 
                     if (elementType == typeof(Vector3)) {
-                        _vectors3[hash] = value is Vector3 v3 ? v3 : default;
+                        _vectors3Arrays[hash] = value as Vector3[];
                         return;
                     }
 
                     if (elementType == typeof(Vector4)) {
-                        _vectors4[hash] = value is Vector4 v4 ? v4 : default;
+                        _vectors4Arrays[hash] = value as Vector4[];
                         return;
                     }
 
                     if (elementType == typeof(Vector2Int)) {
-                        _vectors2Int[hash] = value is Vector2Int v2 ? v2 : default;
+                        _vectors2IntArrays[hash] = value as Vector2Int[];
                         return;
                     }
 
                     if (elementType == typeof(Vector3Int)) {
-                        _vectors3Int[hash] = value is Vector3Int v3 ? v3 : default;
+                        _vectors3IntArrays[hash] = value as Vector3Int[];
                         return;
                     }
 
                     if (elementType == typeof(Quaternion)) {
-                        _quaternions[hash] = value is Quaternion q ? q : default;
+                        _quaternionArrays[hash] = value as Quaternion[];
                         return;
                     }
 
                     if (elementType == typeof(Color)) {
-                        _colors[hash] = value is Color c ? c : default;
+                        _colorArrays[hash] = value as Color[];
                         return;
                     }
 
                     if (elementType == typeof(LayerMask)) {
-                        _layerMasks[hash] = value is LayerMask m ? m : default;
+                        _layerMaskArrays[hash] = value as LayerMask[];
                         return;
                     }
 
                     if (elementType.IsEnum) {
-                        if (value == null) {
-                            _enums[hash] = default;
-                            return;
-                        }
-
-                        var enumUnderlyingType = elementType.GetEnumUnderlyingType();
-
-                        if (enumUnderlyingType == typeof(int)) {
-                            _enums[hash] = new BlackboardValue<long> { value = (int) Enum.ToObject(elementType, value) };
-                            return;
-                        }
-
-                        if (enumUnderlyingType == typeof(short)) {
-                            _enums[hash] = new BlackboardValue<long> { value = (short) Enum.ToObject(elementType, value) };
-                            return;
-                        }
-
-                        if (enumUnderlyingType == typeof(byte)) {
-                            _enums[hash] = new BlackboardValue<long> { value = (byte) Enum.ToObject(elementType, value) };
-                            return;
-                        }
-
-                        if (enumUnderlyingType == typeof(long)) {
-                            _enums[hash] = new BlackboardValue<long> { value = (long) Enum.ToObject(elementType, value) };
-                            return;
-                        }
-
-                        if (enumUnderlyingType == typeof(sbyte)) {
-                            _enums[hash] = new BlackboardValue<long> { value = (sbyte) Enum.ToObject(elementType, value) };
-                            return;
-                        }
-
-                        if (enumUnderlyingType == typeof(ushort)) {
-                            _enums[hash] = new BlackboardValue<long> { value = (ushort) Enum.ToObject(elementType, value) };
-                            return;
-                        }
-
-                        if (enumUnderlyingType == typeof(uint)) {
-                            _enums[hash] = new BlackboardValue<long> { value = (uint) Enum.ToObject(elementType, value) };
-                            return;
-                        }
-
+                        object[] array = value as object[];
+                        _enumArrays[hash] = array == null ? null : array.Length > 0
+                            ? Array.ConvertAll(array, e => new BlackboardValue<long> { value = Convert.ToInt64(e) })
+                            : Array.Empty<BlackboardValue<long>>();
                         return;
                     }
 
@@ -703,24 +703,28 @@ namespace MisterGames.Blackboards.Core {
                 }
 
                 if (elementType == typeof(string)) {
-                    _strings[hash] = value as string;
+                    _stringArrays[hash] = value as string[];
                     return;
                 }
 
                 if (elementType == typeof(AnimationCurve)) {
-                    _curves[hash] = value as AnimationCurve;
+                    _curveArrays[hash] = value as AnimationCurve[];
                     return;
                 }
 
                 if (typeof(Object).IsAssignableFrom(elementType)) {
-                    _objects[hash] = new BlackboardValue<Object> { value = value as Object };
+                    var array = value as Object[];
+                    _objectArrays[hash] = array == null ? null : array.Length > 0
+                        ? Array.ConvertAll(array, e => new BlackboardValue<Object> { value = e })
+                        : Array.Empty<BlackboardValue<Object>>();
                     return;
                 }
 
                 if (elementType.IsSubclassOf(typeof(object)) || elementType.IsInterface) {
-                    _references[hash] = new BlackboardReference {
-                        value = value == null ? null : JsonUtility.FromJson(JsonUtility.ToJson(value), value.GetType()),
-                    };
+                    object[] array = value as object[];
+                    _referenceArrays[hash] = array == null ? null : array.Length > 0
+                        ? Array.ConvertAll(array, obj => new BlackboardReference { value = obj == null ? default : JsonUtility.FromJson(JsonUtility.ToJson(obj), obj.GetType()) })
+                        : Array.Empty<BlackboardReference>();
                     return;
                 }
             }
@@ -792,48 +796,7 @@ namespace MisterGames.Blackboards.Core {
                 }
 
                 if (type.IsEnum) {
-                    if (value == null) {
-                        _enums[hash] = default;
-                        return;
-                    }
-
-                    var enumUnderlyingType = type.GetEnumUnderlyingType();
-
-                    if (enumUnderlyingType == typeof(int)) {
-                        _enums[hash] = new BlackboardValue<long> { value = (int) Enum.ToObject(type, value) };
-                        return;
-                    }
-
-                    if (enumUnderlyingType == typeof(short)) {
-                        _enums[hash] = new BlackboardValue<long> { value = (short) Enum.ToObject(type, value) };
-                        return;
-                    }
-
-                    if (enumUnderlyingType == typeof(byte)) {
-                        _enums[hash] = new BlackboardValue<long> { value = (byte) Enum.ToObject(type, value) };
-                        return;
-                    }
-
-                    if (enumUnderlyingType == typeof(long)) {
-                        _enums[hash] = new BlackboardValue<long> { value = (long) Enum.ToObject(type, value) };
-                        return;
-                    }
-
-                    if (enumUnderlyingType == typeof(sbyte)) {
-                        _enums[hash] = new BlackboardValue<long> { value = (sbyte) Enum.ToObject(type, value) };
-                        return;
-                    }
-
-                    if (enumUnderlyingType == typeof(ushort)) {
-                        _enums[hash] = new BlackboardValue<long> { value = (ushort) Enum.ToObject(type, value) };
-                        return;
-                    }
-
-                    if (enumUnderlyingType == typeof(uint)) {
-                        _enums[hash] = new BlackboardValue<long> { value = (uint) Enum.ToObject(type, value) };
-                        return;
-                    }
-
+                    _enums[hash] = new BlackboardValue<long> { value = value == null ? default : Convert.ToInt64(value) };
                     return;
                 }
 
@@ -857,7 +820,7 @@ namespace MisterGames.Blackboards.Core {
 
             if (type.IsSubclassOf(typeof(object)) || type.IsInterface) {
                 _references[hash] = new BlackboardReference {
-                    value = value == null ? null : JsonUtility.FromJson(JsonUtility.ToJson(value), value.GetType()),
+                    value = value == null ? default : JsonUtility.FromJson(JsonUtility.ToJson(value), value.GetType()),
                 };
                 return;
             }
@@ -866,11 +829,6 @@ namespace MisterGames.Blackboards.Core {
         private void RemoveValue(int hash) {
             if (_bools.ContainsKey(hash)) {
                 _bools.Remove(hash);
-                return;
-            }
-
-            if (_boolArrays.ContainsKey(hash)) {
-                _boolArrays.Remove(hash);
                 return;
             }
 
@@ -949,8 +907,103 @@ namespace MisterGames.Blackboards.Core {
                 return;
             }
 
+            if (_enums.ContainsKey(hash)) {
+                _enums.Remove(hash);
+                return;
+            }
+
             if (_references.ContainsKey(hash)) {
                 _references.Remove(hash);
+                return;
+            }
+
+            if (_boolArrays.ContainsKey(hash)) {
+                _boolArrays.Remove(hash);
+                return;
+            }
+
+            if (_intArrays.ContainsKey(hash)) {
+                _intArrays.Remove(hash);
+                return;
+            }
+
+            if (_longArrays.ContainsKey(hash)) {
+                _longArrays.Remove(hash);
+                return;
+            }
+
+            if (_floatArrays.ContainsKey(hash)) {
+                _floatArrays.Remove(hash);
+                return;
+            }
+
+            if (_doubleArrays.ContainsKey(hash)) {
+                _doubleArrays.Remove(hash);
+                return;
+            }
+
+            if (_vectors2Arrays.ContainsKey(hash)) {
+                _vectors2Arrays.Remove(hash);
+                return;
+            }
+
+            if (_vectors3Arrays.ContainsKey(hash)) {
+                _vectors3Arrays.Remove(hash);
+                return;
+            }
+
+            if (_vectors4Arrays.ContainsKey(hash)) {
+                _vectors4Arrays.Remove(hash);
+                return;
+            }
+
+            if (_vectors2IntArrays.ContainsKey(hash)) {
+                _vectors2Arrays.Remove(hash);
+                return;
+            }
+
+            if (_vectors3IntArrays.ContainsKey(hash)) {
+                _vectors3Arrays.Remove(hash);
+                return;
+            }
+
+            if (_quaternionArrays.ContainsKey(hash)) {
+                _quaternionArrays.Remove(hash);
+                return;
+            }
+
+            if (_colorArrays.ContainsKey(hash)) {
+                _colorArrays.Remove(hash);
+                return;
+            }
+
+            if (_layerMaskArrays.ContainsKey(hash)) {
+                _layerMaskArrays.Remove(hash);
+                return;
+            }
+
+            if (_stringArrays.ContainsKey(hash)) {
+                _stringArrays.Remove(hash);
+                return;
+            }
+
+            if (_curveArrays.ContainsKey(hash)) {
+                _curveArrays.Remove(hash);
+                return;
+            }
+
+            if (_objectArrays.ContainsKey(hash)) {
+                _objectArrays.Remove(hash);
+                return;
+            }
+
+            if (_enumArrays.ContainsKey(hash)) {
+                _enumArrays.Remove(hash);
+                return;
+            }
+
+            if (_referenceArrays.ContainsKey(hash)) {
+                _referenceArrays.Remove(hash);
                 return;
             }
         }

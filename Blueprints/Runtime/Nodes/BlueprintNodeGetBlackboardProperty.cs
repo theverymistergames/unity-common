@@ -6,7 +6,7 @@ using UnityEngine;
 namespace MisterGames.Blueprints.Nodes {
 
     [Serializable]
-    [BlueprintNodeMeta(Name = "Get Blackboard Property", Category = "External", Color = BlueprintColors.Node.Blackboard)]
+    [BlueprintNodeMeta(Name = "Get Blackboard Property", Category = "Blackboard", Color = BlueprintColors.Node.Blackboard)]
     public sealed class BlueprintNodeGetBlackboardProperty : BlueprintNode, IBlueprintOutput
 
 #if UNITY_EDITOR

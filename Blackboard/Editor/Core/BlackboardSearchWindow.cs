@@ -56,9 +56,9 @@ namespace MisterGames.Blackboards.Editor {
                 .ToArray();
             tree.AddRange(GetTypeTree("Interfaces", types, 1));
 
-            types = TypeCache
-                .GetTypesDerivedFrom<object>()
-                .Where(t => !typeof(Object).IsAssignableFrom(t) && Blackboard.IsSupportedType(t))
+            types = AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(assembly => assembly.GetTypes())
+                .Where(t => t.IsClass && !typeof(Object).IsAssignableFrom(t) && Blackboard.IsSupportedType(t))
                 .ToArray();
             tree.AddRange(GetTypeTree("Objects", types, 1));
 

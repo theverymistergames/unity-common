@@ -14,7 +14,10 @@ namespace MisterGames.Blackboards.Editor {
             EditorGUI.BeginProperty(position, label, property);
 
             if (BlackboardUtils.TryGetBlackboardProperty(property, out var blackboardProperty, out _, out _)) {
-                TypedField(position, property.FindPropertyRelative("value"), blackboardProperty.type, label);
+                var type = (Type) blackboardProperty.type;
+                if (type.IsArray) type = type.GetElementType();
+
+                TypedField(position, property.FindPropertyRelative("value"), type, label);
             }
             else {
                 BlackboardUtils.NullPropertyField(position, label);

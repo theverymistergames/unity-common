@@ -1,4 +1,5 @@
-﻿using MisterGames.Blackboards.Core;
+﻿using System;
+using MisterGames.Blackboards.Core;
 using MisterGames.Common.Editor.Drawers;
 using UnityEditor;
 using UnityEngine;
@@ -12,7 +13,10 @@ namespace MisterGames.Blackboards.Editor {
             EditorGUI.BeginProperty(position, label, property);
 
             if (BlackboardUtils.TryGetBlackboardProperty(property, out var blackboardProperty, out _, out _)) {
-                SubclassSelectorGUI.PropertyField(position, property.FindPropertyRelative("value"), blackboardProperty.type, label);
+                var baseType = (Type) blackboardProperty.type;
+                if (baseType.IsArray) baseType = baseType.GetElementType();
+
+                SubclassSelectorGUI.PropertyField(position, property.FindPropertyRelative("value"), baseType, label);
             }
             else {
                 BlackboardUtils.NullPropertyField(position, label);

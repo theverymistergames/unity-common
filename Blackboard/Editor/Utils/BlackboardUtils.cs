@@ -32,6 +32,23 @@ namespace MisterGames.Blackboards.Editor {
         private const string REFERENCES = "_references";
 
         private const string BOOL_ARRAYS = "_boolArrays";
+        private const string INT_ARRAYS = "_intArrays";
+        private const string LONG_ARRAYS = "_longArrays";
+        private const string FLOAT_ARRAYS = "_floatArrays";
+        private const string DOUBLE_ARRAYS = "_doubleArrays";
+        private const string STRING_ARRAYS = "_stringArrays";
+        private const string VECTORS2_ARRAYS = "_vectors2Arrays";
+        private const string VECTORS3_ARRAYS = "_vectors3Arrays";
+        private const string VECTORS4_ARRAYS = "_vectors4Arrays";
+        private const string VECTORS2_INT_ARRAYS = "_vectors2IntArrays";
+        private const string VECTORS3_INT_ARRAYS = "_vectors3IntArrays";
+        private const string QUATERNION_ARRAYS = "_quaternionArrays";
+        private const string COLOR_ARRAYS = "_colorArrays";
+        private const string LAYER_MASK_ARRAYS = "_layerMaskArrays";
+        private const string CURVE_ARRAYS = "_curveArrays";
+        private const string OBJECT_ARRAYS = "_objectArrays";
+        private const string ENUM_ARRAYS = "_enumArrays";
+        private const string REFERENCE_ARRAYS = "_referenceArrays";
 
         private const string ENTRIES = "_entries";
         private const string KEY = "key";
@@ -151,6 +168,23 @@ namespace MisterGames.Blackboards.Editor {
             FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative(REFERENCES), propertiesMap, properties);
 
             FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative(BOOL_ARRAYS), propertiesMap, properties);
+            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative(INT_ARRAYS), propertiesMap, properties);
+            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative(LONG_ARRAYS), propertiesMap, properties);
+            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative(FLOAT_ARRAYS), propertiesMap, properties);
+            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative(DOUBLE_ARRAYS), propertiesMap, properties);
+            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative(STRING_ARRAYS), propertiesMap, properties);
+            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative(VECTORS2_ARRAYS), propertiesMap, properties);
+            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative(VECTORS3_ARRAYS), propertiesMap, properties);
+            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative(VECTORS4_ARRAYS), propertiesMap, properties);
+            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative(VECTORS2_INT_ARRAYS), propertiesMap, properties);
+            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative(VECTORS3_INT_ARRAYS), propertiesMap, properties);
+            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative(QUATERNION_ARRAYS), propertiesMap, properties);
+            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative(COLOR_ARRAYS), propertiesMap, properties);
+            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative(LAYER_MASK_ARRAYS), propertiesMap, properties);
+            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative(CURVE_ARRAYS), propertiesMap, properties);
+            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative(OBJECT_ARRAYS), propertiesMap, properties);
+            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative(ENUM_ARRAYS), propertiesMap, properties);
+            FetchBlackboardDictionary(blackboardSerializedProperty.FindPropertyRelative(REFERENCE_ARRAYS), propertiesMap, properties);
 
             return properties;
         }
