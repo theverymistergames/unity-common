@@ -67,7 +67,10 @@ namespace MisterGames.Blueprints.Meta {
             _ports = ports;
         }
 
-        public void OnNodeValidated() {
+        public void OnValidateNode(BlueprintAsset blueprint) {
+            _node.OnValidate();
+            if (_node is IBlueprintAssetValidator validator) validator.ValidateBlueprint(blueprint, _nodeId);
+
             _hasCachedNodeJson = false;
         }
 

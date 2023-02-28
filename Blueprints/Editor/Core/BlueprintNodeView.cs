@@ -6,12 +6,10 @@ using MisterGames.Blueprints.Meta;
 using MisterGames.Common.Color;
 using MisterGames.Common.Editor.Utils;
 using MisterGames.Common.Editor.Views;
-using MisterGames.Common.Editor.VirtualInspector;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.UIElements;
-using Object = UnityEngine.Object;
 using PortView = UnityEditor.Experimental.GraphView.Port;
 
 namespace MisterGames.Blueprints.Editor.Core {
@@ -19,32 +17,31 @@ namespace MisterGames.Blueprints.Editor.Core {
     public sealed class BlueprintNodeView : Node {
 
         public readonly BlueprintNodeMeta nodeMeta;
+
         public Action<BlueprintNodeMeta, Vector2> OnPositionChanged = delegate {  };
-        public Action<BlueprintNodeMeta, BlueprintNode> OnValidate = delegate {  };
+        public Action<BlueprintNodeMeta> OnValidate = delegate {  };
+
+        private readonly SerializedProperty _nodeProperty;
 
         private readonly Dictionary<PortView, int> _portViewToPortIndexMap = new Dictionary<PortView, int>();
         private readonly Dictionary<int, PortView> _portIndexToPortViewMap = new Dictionary<int, PortView>();
 
         private readonly InspectorView _inspector;
-        private readonly VirtualInspector _virtualInspector;
-        private readonly UnityEditor.Editor _virtualInspectorEditor;
 
         private struct PortViewCreationData {
             public int portIndex;
             public Port port;
         }
 
-        public BlueprintNodeView(BlueprintNodeMeta nodeMeta) : base(GetUxmlPath()) {
+        public BlueprintNodeView(BlueprintNodeMeta nodeMeta, SerializedProperty nodeProperty) : base(GetUxmlPath()) {
             this.nodeMeta = nodeMeta;
+            _nodeProperty = nodeProperty;
             var node = nodeMeta.Node;
 
             viewDataKey = nodeMeta.NodeId.ToString();
 
             _inspector = this.Q<InspectorView>("inspector");
-            _virtualInspector = VirtualInspector.Create(node, OnNodeGUI, OnNodeValidate);
-            _virtualInspectorEditor = UnityEditor.Editor.CreateEditor(_virtualInspector, typeof(VirtualInspectorEditor));
-
-            _inspector.Inject(_virtualInspectorEditor.OnInspectorGUI);
+            _inspector.Inject(OnNodeGUI);
 
             var titleLabel = this.Q<Label>("title");
             var container = this.Q<VisualElement>("title-container");
@@ -57,15 +54,8 @@ namespace MisterGames.Blueprints.Editor.Core {
             style.top = nodeMeta.Position.y;
         }
 
-        private void OnNodeValidate(object obj) {
-            if (obj is not BlueprintNode node) return;
-            OnValidate?.Invoke(nodeMeta, node);
-        }
-
         public void DeInitialize() {
             _inspector.Clear();
-            Object.DestroyImmediate(_virtualInspector);
-            Object.DestroyImmediate(_virtualInspectorEditor);
 
             _portViewToPortIndexMap.Clear();
             _portIndexToPortViewMap.Clear();
@@ -222,7 +212,7 @@ namespace MisterGames.Blueprints.Editor.Core {
             };
         }
 
-        private static void OnNodeGUI(SerializedProperty nodeProperty) {
+        private void OnNodeGUI() {
             float labelWidthCache = EditorGUIUtility.labelWidth;
             float fieldWidthCache = EditorGUIUtility.fieldWidth;
 
@@ -230,13 +220,14 @@ namespace MisterGames.Blueprints.Editor.Core {
             float floorLabelWidth = 0;
             float floorFieldWidth = 0;
 
-            var nodePropertyCopy = nodeProperty.Copy();
+            var nodePropertyCopy = _nodeProperty.Copy();
+            var endProperty = nodePropertyCopy.GetEndProperty();
             bool enterChildren = true;
-            while (nodePropertyCopy.NextVisible(enterChildren)) {
+            while (nodePropertyCopy.NextVisible(enterChildren) && !SerializedProperty.DataEquals(nodePropertyCopy, endProperty)) {
                 float labelTextWidth = EditorStyles.label.CalcSize(new GUIContent(nodePropertyCopy.displayName)).x;
 
-                floorLabelWidth = Mathf.Max(floorLabelWidth, Mathf.Max(labelTextWidth, 100));
-                floorFieldWidth = Mathf.Max(floorFieldWidth, Mathf.Max(totalWidth - floorLabelWidth, 140));
+                floorLabelWidth = Mathf.Max(floorLabelWidth, Mathf.Max(labelTextWidth + 6f, 40f));
+                floorFieldWidth = Mathf.Max(floorFieldWidth, Mathf.Max(totalWidth - floorLabelWidth, 140f));
 
                 enterChildren = false;
             }
@@ -244,15 +235,23 @@ namespace MisterGames.Blueprints.Editor.Core {
             EditorGUIUtility.labelWidth = floorLabelWidth;
             EditorGUIUtility.fieldWidth = floorFieldWidth;
 
-            enterChildren = true;
-            while (nodeProperty.NextVisible(enterChildren)) {
-                enterChildren = false;
-                EditorGUILayout.PropertyField(nodeProperty, true);
+            nodePropertyCopy = _nodeProperty.Copy();
 
-                if (nodeProperty.GetValue() is BlueprintAsset blueprint && GUILayout.Button("Edit")) {
+            endProperty = nodePropertyCopy.GetEndProperty();
+            enterChildren = true;
+
+            EditorGUI.BeginChangeCheck();
+
+            while (nodePropertyCopy.NextVisible(enterChildren) && !SerializedProperty.DataEquals(nodePropertyCopy, endProperty)) {
+                enterChildren = false;
+                EditorGUILayout.PropertyField(nodePropertyCopy, true);
+
+                if (nodePropertyCopy.GetValue() is BlueprintAsset blueprint && GUILayout.Button("Edit")) {
                     BlueprintsEditorWindow.OpenAsset(blueprint);
                 }
             }
+
+            if (EditorGUI.EndChangeCheck()) OnValidate?.Invoke(nodeMeta);
 
             EditorGUIUtility.labelWidth = labelWidthCache;
             EditorGUIUtility.fieldWidth = fieldWidthCache;
