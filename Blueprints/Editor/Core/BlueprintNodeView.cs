@@ -223,24 +223,39 @@ namespace MisterGames.Blueprints.Editor.Core {
         }
 
         private static void OnNodeGUI(SerializedProperty nodeProperty) {
-            float labelWidth = EditorGUIUtility.labelWidth;
-            float fieldWidth = EditorGUIUtility.fieldWidth;
+            float labelWidthCache = EditorGUIUtility.labelWidth;
+            float fieldWidthCache = EditorGUIUtility.fieldWidth;
 
-            EditorGUIUtility.labelWidth = 140;
-            EditorGUIUtility.fieldWidth = 240;
+            float totalWidth = labelWidthCache + fieldWidthCache;
+            float floorLabelWidth = 0;
+            float floorFieldWidth = 0;
 
+            var nodePropertyCopy = nodeProperty.Copy();
             bool enterChildren = true;
+            while (nodePropertyCopy.NextVisible(enterChildren)) {
+                float labelTextWidth = EditorStyles.label.CalcSize(new GUIContent(nodePropertyCopy.displayName)).x;
+
+                floorLabelWidth = Mathf.Max(floorLabelWidth, Mathf.Max(labelTextWidth, 100));
+                floorFieldWidth = Mathf.Max(floorFieldWidth, Mathf.Max(totalWidth - floorLabelWidth, 140));
+
+                enterChildren = false;
+            }
+
+            EditorGUIUtility.labelWidth = floorLabelWidth;
+            EditorGUIUtility.fieldWidth = floorFieldWidth;
+
+            enterChildren = true;
             while (nodeProperty.NextVisible(enterChildren)) {
                 enterChildren = false;
                 EditorGUILayout.PropertyField(nodeProperty, true);
 
-                if (nodeProperty.GetValue() is BlueprintAsset blueprintAsset && GUILayout.Button("Edit")) {
-                    BlueprintsEditorWindow.OpenAsset(blueprintAsset);
+                if (nodeProperty.GetValue() is BlueprintAsset blueprint && GUILayout.Button("Edit")) {
+                    BlueprintsEditorWindow.OpenAsset(blueprint);
                 }
             }
 
-            EditorGUIUtility.labelWidth = labelWidth;
-            EditorGUIUtility.fieldWidth = fieldWidth;
+            EditorGUIUtility.labelWidth = labelWidthCache;
+            EditorGUIUtility.fieldWidth = fieldWidthCache;
         }
 
         private static string GetUxmlPath() {
