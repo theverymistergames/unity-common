@@ -7,7 +7,7 @@ using UnityEngine;
 namespace MisterGames.BlueprintLib {
 
     [Serializable]
-    [BlueprintNodeMeta(Name = "TweenProgressAction Move Transform", Category = "Tweens/Actions", Color = BlueprintColors.Node.Actions)]
+    [BlueprintNodeMeta(Name = "Tween Progress Action Move Transform", Category = "Tweens/Actions", Color = BlueprintColors.Node.Actions)]
     public sealed class BlueprintNodeTweenProgressActionMoveTransform : BlueprintNode, IBlueprintOutput<ITweenProgressAction>  {
 
         [SerializeField] private Transform _transform;

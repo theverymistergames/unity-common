@@ -7,7 +7,7 @@ using UnityEngine;
 namespace MisterGames.BlueprintLib {
 
     [Serializable]
-    [BlueprintNodeMeta(Name = "TweenInstantAction Log", Category = "Tweens/Actions", Color = BlueprintColors.Node.Actions)]
+    [BlueprintNodeMeta(Name = "Tween Instant Action Log", Category = "Tweens/Actions", Color = BlueprintColors.Node.Actions)]
     public sealed class BlueprintNodeTweenInstantActionLog : BlueprintNode, IBlueprintOutput<ITweenInstantAction> {
 
         [SerializeField] private string _text;

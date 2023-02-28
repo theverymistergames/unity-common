@@ -6,7 +6,7 @@ using MisterGames.Tweens.Core;
 namespace MisterGames.BlueprintLib {
 
     [Serializable]
-    [BlueprintNodeMeta(Name = "TweenInstantActions Combine", Category = "Tweens/Actions", Color = BlueprintColors.Node.Actions)]
+    [BlueprintNodeMeta(Name = "Combine Tween Progress Actions", Category = "Tweens/Actions", Color = BlueprintColors.Node.Actions)]
     public sealed class BlueprintNodeTweenProgressActionsCombine : BlueprintNode, IBlueprintOutput<ITweenProgressAction> {
 
         private readonly TweenProgressActions _actions = new TweenProgressActions();
