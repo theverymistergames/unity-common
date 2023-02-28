@@ -31,7 +31,13 @@ namespace MisterGames.Common.Editor.Tree {
             sort ??= SortChildren;
             var elements = collection.ToArray();
             var root = new TreeEntry<Node<T>> { children = GetChildren("", elements, getPath, 1, separator, sort) };
-            return SquashParentsWithSingleChild(root, sort, 0);
+
+            for (int i = 0; i < root.children.Count; i++) {
+                root.children[i] = SquashParentsWithSingleChild(root.children[i], sort, 0);
+            }
+
+            root.children = sort.Invoke(root.children).ToList();
+            return root;
         }
 
         private static IEnumerable<TreeEntry<Node<T>>> SortChildren<T>(IEnumerable<TreeEntry<Node<T>>> children) {
