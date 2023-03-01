@@ -23,7 +23,7 @@ namespace MisterGames.TweenLib {
         public void DeInitialize() { }
 
         public void OnProgressUpdate(float progress) {
-            var value = Quaternion.Lerp(_startRotation, _endRotation, progress);
+            var value = Quaternion.Slerp(_startRotation, _endRotation, progress);
 
             if (useLocal) transform.localRotation = value;
             else transform.rotation = value;

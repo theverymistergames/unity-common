@@ -33,12 +33,24 @@ namespace MisterGames.Tweens.Core {
         }
 
         public void Play() {
+#if UNITY_EDITOR
+            if (!Application.isPlaying && _destroyCts == null) {
+                _tween.Initialize(this);
+                _destroyCts = new CancellationTokenSource();
+            }
+#endif
             Play(_destroyCts.Token).Forget();
         }
 
         public async UniTask Play(CancellationToken token) {
-            Pause();
+#if UNITY_EDITOR
+            if (!Application.isPlaying && _destroyCts == null) {
+                _tween.Initialize(this);
+                _destroyCts = new CancellationTokenSource();
+            }
+#endif
 
+            _pauseCts?.Cancel();
             _pauseCts?.Dispose();
             _pauseCts = new CancellationTokenSource();
 
@@ -48,15 +60,28 @@ namespace MisterGames.Tweens.Core {
 
         public void Pause() {
             _pauseCts?.Cancel();
+
+#if UNITY_EDITOR
+            if (!Application.isPlaying) {
+                _pauseCts?.Dispose();
+                _pauseCts = null;
+
+                _destroyCts?.Cancel();
+                _destroyCts?.Dispose();
+                _destroyCts = null;
+
+                _tween.DeInitialize();
+            }
+#endif
         }
 
         public void Wind() {
-            Pause();
+            _pauseCts?.Cancel();
             _tween.Wind();
         }
 
         public void Rewind() {
-            Pause();
+            _pauseCts?.Cancel();
             _tween.Rewind();
         }
 
