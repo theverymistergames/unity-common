@@ -16,14 +16,10 @@ namespace MisterGames.Blueprints.Nodes {
 
         private Func<string> _getString = () => string.Empty;
 
-#if UNITY_EDITOR
         public override Port[] CreatePorts() => new[] {
             Port.Input(),
             Port.Output<string>()
         };
-#else
-        public override Port[] CreatePorts() => null;
-#endif
 
         public override void OnInitialize(IBlueprintHost host) {
             Debug.LogWarning($"Using {nameof(BlueprintNodeToString)} " +

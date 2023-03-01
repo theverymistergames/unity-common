@@ -1,6 +1,6 @@
 ﻿namespace MisterGames.Blueprints.Meta {
 
-    internal interface IBlueprintPortDecorator {
+    public interface IBlueprintPortDecorator {
 
 
         void DecoratePorts(BlueprintMeta blueprintMeta, int nodeId, Port[] ports);

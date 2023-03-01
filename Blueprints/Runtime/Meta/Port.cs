@@ -44,30 +44,18 @@ namespace MisterGames.Blueprints {
         }
 
         public static Port Input<T>(string name = null) {
-            return new Port {
-                name = name,
-                mode = Mode.Input,
-                _serializedType = new SerializedType(typeof(T)),
-            };
+            return Input(name, typeof(T));
         }
 
         public static Port Output<T>(string name = null) {
-            return new Port {
-                name = name,
-                mode = Mode.Output,
-                _serializedType = new SerializedType(typeof(T)),
-            };
+            return Output(name, typeof(T));
         }
 
         public static Port InputArray<T>(string name = null) {
-            return new Port {
-                name = name,
-                mode = Mode.InputArray,
-                _serializedType = new SerializedType(typeof(T)),
-            };
+            return InputArray(name, typeof(T));
         }
 
-        internal static Port Input(string name = null, Type type = null) {
+        public static Port Input(string name = null, Type type = null) {
             return new Port {
                 name = name,
                 mode = type == null ? Mode.NonTypedInput : Mode.Input,
@@ -75,7 +63,7 @@ namespace MisterGames.Blueprints {
             };
         }
 
-        internal static Port Output(string name = null, Type type = null) {
+        public static Port Output(string name = null, Type type = null) {
             return new Port {
                 name = name,
                 mode = type == null ? Mode.NonTypedOutput : Mode.Output,
@@ -83,7 +71,7 @@ namespace MisterGames.Blueprints {
             };
         }
 
-        internal static Port InputArray(string name = null, Type type = null) {
+        public static Port InputArray(string name = null, Type type = null) {
             return new Port {
                 name = name,
                 mode = type == null ? Mode.NonTypedInput : Mode.InputArray,
