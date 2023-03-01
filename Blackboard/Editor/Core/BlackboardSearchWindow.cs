@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using MisterGames.Common.Editor.Tree;
 using MisterGames.Common.Editor.Utils;
-using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using Blackboard = MisterGames.Blackboards.Core.Blackboard;
@@ -34,33 +33,20 @@ namespace MisterGames.Blackboards.Editor {
         private static List<SearchTreeEntry> CreateTypeTree() {
             var tree = new List<SearchTreeEntry>();
 
-            var types = TypeCache
-                .GetTypesDerivedFrom<Component>()
-                .Append(typeof(Component))
-                .Where(Blackboard.IsSupportedType)
-                .ToArray();
-            tree.AddRange(GetTypeTree("Components", types, 1));
-
-            types = AppDomain.CurrentDomain.GetAssemblies()
+            var assemblyTypes = AppDomain.CurrentDomain
+                .GetAssemblies()
                 .SelectMany(assembly => assembly.GetTypes())
+                .ToArray();
+
+            var types = assemblyTypes
                 .Where(t => t.IsEnum && Blackboard.IsSupportedType(t))
                 .ToArray();
-            tree.AddRange(GetTypeTree("Enums", types, 1));
+            tree.AddRange(GetTypeTree("Enum", types, 1));
 
-            var type = typeof(GameObject);
-            tree.Add(SearchTreeEntryUtils.Entry(TypeNameFormatter.GetTypeName(type), type, 1));
-
-            types = AppDomain.CurrentDomain.GetAssemblies()
-                .SelectMany(assembly => assembly.GetTypes())
+            types = assemblyTypes
                 .Where(t => t.IsInterface && Blackboard.IsSupportedType(t))
                 .ToArray();
             tree.AddRange(GetTypeTree("Interfaces", types, 1));
-
-            types = AppDomain.CurrentDomain.GetAssemblies()
-                .SelectMany(assembly => assembly.GetTypes())
-                .Where(t => t.IsClass && !typeof(Object).IsAssignableFrom(t) && Blackboard.IsSupportedType(t))
-                .ToArray();
-            tree.AddRange(GetTypeTree("Objects", types, 1));
 
             types = new[] {
                 typeof(bool),
@@ -88,13 +74,15 @@ namespace MisterGames.Blackboards.Editor {
             tree.Add(SearchTreeEntryUtils.Header("Primitives", 1));
             tree.AddRange(types.Select(t => SearchTreeEntryUtils.Entry(TypeNameFormatter.GetTypeName(t), t, 2)));
 
-            types = TypeCache
-                .GetTypesDerivedFrom<ScriptableObject>()
-                .Append(typeof(ScriptableObject))
-                .Where(Blackboard.IsSupportedType)
+            types = assemblyTypes
+                .Where(t => t.IsClass && !typeof(Object).IsAssignableFrom(t) && Blackboard.IsSupportedType(t))
                 .ToArray();
+            tree.AddRange(GetTypeTree("System.Object", types, 1));
 
-            tree.AddRange(GetTypeTree("Scriptable Objects", types, 1));
+            types = assemblyTypes
+                .Where(t => t.IsClass && typeof(Object).IsAssignableFrom(t) && Blackboard.IsSupportedType(t))
+                .ToArray();
+            tree.AddRange(GetTypeTree("UnityEngine.Object", types, 1));
 
             return tree;
         }
