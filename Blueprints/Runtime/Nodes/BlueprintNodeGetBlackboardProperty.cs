@@ -1,8 +1,11 @@
 ﻿using System;
 using MisterGames.Blackboards.Core;
-using MisterGames.Blueprints.Meta;
 using MisterGames.Common.Data;
 using UnityEngine;
+
+#if UNITY_EDITOR
+using MisterGames.Blueprints.Meta;
+#endif
 
 namespace MisterGames.Blueprints.Nodes {
 
