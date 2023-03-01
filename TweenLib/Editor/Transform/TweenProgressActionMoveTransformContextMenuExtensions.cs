@@ -17,6 +17,8 @@ namespace MisterGames.TweenLib.Editor.Transform {
 
             string path = property.propertyPath;
             int lastDot = path.LastIndexOf('.');
+            if (lastDot < 0) return;
+
             path = path.Remove(lastDot, path.Length - lastDot);
 
             if (property.serializedObject.FindProperty(path).GetValue() is not TweenProgressActionMoveTransform t ||

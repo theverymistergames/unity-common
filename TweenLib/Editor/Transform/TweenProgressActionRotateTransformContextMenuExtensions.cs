@@ -17,6 +17,8 @@ namespace MisterGames.TweenLib.Editor.Transform {
             
             string path = property.propertyPath;
             int lastDot = path.LastIndexOf('.');
+            if (lastDot < 0) return;
+
             path = path.Remove(lastDot, path.Length - lastDot);
 
             if (property.serializedObject.FindProperty(path).GetValue() is not TweenProgressActionRotateTransform t ||
@@ -27,14 +29,14 @@ namespace MisterGames.TweenLib.Editor.Transform {
 
             var propertyCopy = property.Copy();
 
-            menu.AddItem(new GUIContent("Copy from Transform"), false, () => {
+            menu.AddItem(new GUIContent("Write from Transform"), false, () => {
                 propertyCopy.vector3Value = t.useLocal ? t.transform.localEulerAngles : t.transform.eulerAngles;
                 
                 propertyCopy.serializedObject.ApplyModifiedProperties();
                 propertyCopy.serializedObject.Update();
             });
             
-            menu.AddItem(new GUIContent("Paste to Transform"), false, () => {
+            menu.AddItem(new GUIContent("Set to Transform"), false, () => {
                 if (t.useLocal) t.transform.localEulerAngles = propertyCopy.vector3Value;
                 else t.transform.eulerAngles = propertyCopy.vector3Value;
                 
