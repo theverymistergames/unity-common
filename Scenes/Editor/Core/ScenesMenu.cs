@@ -9,20 +9,14 @@ namespace MisterGames.Scenes.Editor.Core {
     [InitializeOnLoad]
     public static class ScenesMenu {
 
-        [MenuItem("MisterGames/Tools/Include ScenesStorage scenes in build settings")]
-        internal static void IncludeAllScenesInBuildSettings() {
-            EditorBuildSettings.scenes = ScenesStorage.Instance.GetAllSceneAssets()
-                .Select(sceneAsset => new EditorBuildSettingsScene(AssetDatabase.GetAssetPath(sceneAsset), true))
-                .ToArray();
-        }
-
-
-        internal static string RemoveSceneAssetFileFormat(string sceneAssetPath) {
-            return sceneAssetPath.Substring(0, sceneAssetPath.Length - 6);
-        }
-
         static ScenesMenu() {
-            ScenesStorage.Instance.SceneStart = SceneManager.GetActiveScene().name;
+            string sceneName = SceneManager.GetActiveScene().name;
+
+            if (!string.IsNullOrEmpty(sceneName)) {
+                var scenesStorage = ScenesStorage.Instance;
+                scenesStorage.SceneStart = sceneName;
+                EditorUtility.SetDirty(scenesStorage);
+            }
 
             EditorSceneManager.sceneOpened -= OnSceneOpened;
             EditorSceneManager.sceneOpened += OnSceneOpened;
@@ -31,9 +25,21 @@ namespace MisterGames.Scenes.Editor.Core {
             EditorSceneManager.newSceneCreated += OnNewSceneCreated;
         }
 
+        [MenuItem("MisterGames/Tools/Include ScenesStorage scenes in build settings")]
+        internal static void IncludeAllScenesInBuildSettings() {
+            EditorBuildSettings.scenes = ScenesStorage.Instance.GetAllSceneAssets()
+                .Select(sceneAsset => new EditorBuildSettingsScene(AssetDatabase.GetAssetPath(sceneAsset), true))
+                .ToArray();
+        }
+
+        internal static string RemoveSceneAssetFileFormat(string sceneAssetPath) {
+            return sceneAssetPath.Substring(0, sceneAssetPath.Length - 6);
+        }
+
         private static void OnSceneOpened(Scene scene, OpenSceneMode mode) {
-            ScenesStorage.Instance.SceneStart = scene.name;
-            EditorUtility.SetDirty(ScenesStorage.Instance);
+            var scenesStorage = ScenesStorage.Instance;
+            scenesStorage.SceneStart = scene.name;
+            EditorUtility.SetDirty(scenesStorage);
         }
 
         private static void OnNewSceneCreated(Scene scene, NewSceneSetup setup, NewSceneMode mode) {
