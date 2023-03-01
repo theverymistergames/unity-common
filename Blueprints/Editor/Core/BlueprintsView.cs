@@ -404,6 +404,8 @@ namespace MisterGames.Blueprints.Editor.Core {
 
         private BlueprintNodeMeta CreateNode(BlueprintNode node, Vector2 position) {
             var nodeMeta = new BlueprintNodeMeta(node) { Position = position };
+
+            nodeMeta.OnValidateNode(_blueprintAsset);
             nodeMeta.RecreatePorts(_blueprintAsset.BlueprintMeta);
 
             Undo.RecordObject(_blueprintAsset, "Blueprint Add Node");
