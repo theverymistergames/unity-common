@@ -518,6 +518,9 @@ namespace MisterGames.Blueprints.Editor.Core {
         }
 
         private void OnNodeValidate(BlueprintNodeMeta nodeMeta) {
+            _blueprintAssetSerializedObject.ApplyModifiedProperties();
+            _blueprintAssetSerializedObject.Update();
+
             nodeMeta.OnValidateNode(_blueprintAsset);
 
             SetBlueprintAssetDirtyAndNotify();
