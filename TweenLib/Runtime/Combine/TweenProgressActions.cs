@@ -3,13 +3,13 @@ using MisterGames.Common.Attributes;
 using MisterGames.Tweens.Core;
 using UnityEngine;
 
-namespace MisterGames.Tweens.Actions {
-
+namespace MisterGames.TweenLib {
+    
     [Serializable]
-    public class TweenInstantActions : ITweenInstantAction {
+    public class TweenProgressActions : ITweenProgressAction {
 
-        [SerializeReference] [SubclassSelector] public ITweenInstantAction[] actions;
-
+        [SerializeReference] [SubclassSelector] public ITweenProgressAction[] actions;
+        
         public void Initialize(MonoBehaviour owner) {
             for (int i = 0; i < actions.Length; i++) {
                 actions[i].Initialize(owner);
@@ -22,11 +22,11 @@ namespace MisterGames.Tweens.Actions {
             }
         }
 
-        public void InvokeAction() {
+        public void OnProgressUpdate(float progress) {
             for (int i = 0; i < actions.Length; i++) {
-                actions[i].InvokeAction();
+                actions[i].OnProgressUpdate(progress);
             }
         }
     }
-
+    
 }
