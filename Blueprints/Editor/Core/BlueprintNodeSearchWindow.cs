@@ -77,7 +77,7 @@ namespace MisterGames.Blueprints.Editor.Core {
             var treeContent = PathTree
                 .CreateTree(GetBlueprintNodeSearchEntries(), GetNodePath)
                 .PreOrder()
-                .Where(e => e.level > 0)
+                .Where(e => !string.IsNullOrEmpty(e.data.name))
                 .Select(ToSearchEntry);
 
             tree.AddRange(treeContent);
@@ -91,7 +91,7 @@ namespace MisterGames.Blueprints.Editor.Core {
             var treeContent = PathTree
                 .CreateTree(GetBlueprintNodePortsSearchEntries(fromPort), GetNodePortPath)
                 .PreOrder()
-                .Where(e => e.level > 0)
+                .Where(e => !string.IsNullOrEmpty(e.data.name))
                 .Select(ToSearchEntry);
 
             tree.AddRange(treeContent);

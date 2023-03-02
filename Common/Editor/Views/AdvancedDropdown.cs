@@ -35,14 +35,14 @@ namespace MisterGames.Common.Editor {
 			_onItemSelected = onItemSelected;
 			_pathTreeRoot = PathTree.CreateTree(items, getItemPath, separator, sort);
 
-			float width = Mathf.Max(minimumSize.x, 200f);
-			float height = 10 * EditorGUIUtility.singleLineHeight;
+			float width = Mathf.Max(minimumSize.x, 120f);
+			float height = 14 * EditorGUIUtility.singleLineHeight;
 
 			minimumSize = new Vector2(width, height);
 		}
 
 		protected override AdvancedDropdownItem BuildRoot() {
-			var root = new AdvancedDropdownItem(_title);
+			var root = new AdvancedDropdownItem($"{_title} {_pathTreeRoot.data.name}");
 
 			for (int i = 0; i < _pathTreeRoot.children.Count; i++) {
 				root.AddChild(CreateItem(_pathTreeRoot.children[i]));

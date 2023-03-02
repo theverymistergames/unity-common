@@ -30,14 +30,12 @@ namespace MisterGames.Common.Editor.Tree {
         ) {
             sort ??= SortChildren;
             var elements = collection.ToArray();
-            var root = new TreeEntry<Node<T>> { children = GetChildren("", elements, getPath, 1, separator, sort) };
 
-            for (int i = 0; i < root.children.Count; i++) {
-                root.children[i] = SquashParentsWithSingleChild(root.children[i], sort, 0);
-            }
+            var root = new TreeEntry<Node<T>> {
+                children = GetChildren("", elements, getPath, 1, separator, sort)
+            };
 
-            root.children = sort.Invoke(root.children).ToList();
-            return root;
+            return SquashParentsWithSingleChild(root, 0);
         }
 
         private static IEnumerable<TreeEntry<Node<T>>> SortChildren<T>(IEnumerable<TreeEntry<Node<T>>> children) {
@@ -96,11 +94,7 @@ namespace MisterGames.Common.Editor.Tree {
             return sort.Invoke(nodes).ToList();
         }
 
-        private static TreeEntry<Node<T>> SquashParentsWithSingleChild<T>(
-            TreeEntry<Node<T>> entry,
-            Func<IEnumerable<TreeEntry<Node<T>>>, IEnumerable<TreeEntry<Node<T>>>> sort,
-            int levelOffset
-        ) {
+        private static TreeEntry<Node<T>> SquashParentsWithSingleChild<T>(TreeEntry<Node<T>> entry, int levelOffset) {
             entry.level += levelOffset;
 
             var children = entry.children;
@@ -116,10 +110,8 @@ namespace MisterGames.Common.Editor.Tree {
             }
 
             for (int i = 0; i < children.Count; i++) {
-                children[i] = SquashParentsWithSingleChild(children[i], sort, levelOffset);
+                children[i] = SquashParentsWithSingleChild(children[i], levelOffset);
             }
-
-            entry.children = sort.Invoke(entry.children).ToList();
 
             return entry;
         }

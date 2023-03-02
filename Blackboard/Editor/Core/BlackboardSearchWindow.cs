@@ -119,14 +119,16 @@ namespace MisterGames.Blackboards.Editor {
                 return new List<SearchTreeEntry> { SearchTreeEntryUtils.Entry(type.Name, type, level) };
             }
 
+            var tree = new List<SearchTreeEntry> { SearchTreeEntryUtils.Header(rootName, level) };
+
             var pathTree = PathTree
                 .CreateTree(types, t => t.FullName, '.')
                 .PreOrder()
-                .Where(e => e.level > 0)
+                .Where(e => !string.IsNullOrEmpty(e.data.name))
                 .Select(e => ToSearchEntry(e, level));
 
-            var tree = new List<SearchTreeEntry> { SearchTreeEntryUtils.Header(rootName, level) };
             tree.AddRange(pathTree);
+
             return tree;
         }
 
