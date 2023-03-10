@@ -2,13 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using MisterGames.Blueprints.Editor.Utils;
 using MisterGames.Blueprints.Validation;
 using MisterGames.Common.Editor.Tree;
-using MisterGames.Common.Editor.Utils;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
-using NotSupportedException = System.NotSupportedException;
 
 namespace MisterGames.Blueprints.Editor.Core {
 
@@ -117,7 +116,7 @@ namespace MisterGames.Blueprints.Editor.Core {
                         portEntries.Add(new NodePortSearchEntry {
                             nodeType = t,
                             portIndex = p,
-                            portName = GetPortName(p, port),
+                            portName = BlueprintNodeMetaUtils.GetFormattedPortName(p, port, richText: false),
                         });
                     }
 
@@ -131,30 +130,6 @@ namespace MisterGames.Blueprints.Editor.Core {
 
         private static string GetNodePortPath(NodePortSearchEntry nodePortSearchEntry) {
             return $"{GetNodeTypePath(nodePortSearchEntry.nodeType)}: {nodePortSearchEntry.portName}";
-        }
-
-        private static string GetPortName(int index, Port port) {
-            return string.IsNullOrEmpty(port.name)
-                ? port.mode switch {
-                    Port.Mode.Enter => $"[{index}] Enter",
-                    Port.Mode.Exit => $"[{index}] Exit",
-                    Port.Mode.Input => $"[{index}] In ({TypeNameFormatter.GetTypeName(port.dataType)})",
-                    Port.Mode.Output => $"[{index}] Out ({TypeNameFormatter.GetTypeName(port.dataType)})",
-                    Port.Mode.InputArray => $"[{index}] In ({TypeNameFormatter.GetTypeName(port.dataType)}[])",
-                    Port.Mode.NonTypedInput => $"[{index}] In",
-                    Port.Mode.NonTypedOutput => $"[{index}] Out",
-                    _ => throw new NotSupportedException($"Port mode {port.mode} is not supported")
-                }
-                : port.mode switch {
-                    Port.Mode.Enter => $"[{index}] {port.name.Trim()}",
-                    Port.Mode.Exit => $"[{index}] {port.name.Trim()}",
-                    Port.Mode.Input => $"[{index}] {port.name.Trim()} ({TypeNameFormatter.GetTypeName(port.dataType)})",
-                    Port.Mode.Output => $"[{index}] {port.name.Trim()} ({TypeNameFormatter.GetTypeName(port.dataType)})",
-                    Port.Mode.InputArray => $"[{index}] {port.name.Trim()} ({TypeNameFormatter.GetTypeName(port.dataType)}[])",
-                    Port.Mode.NonTypedInput => $"[{index}] {port.name.Trim()}",
-                    Port.Mode.NonTypedOutput => $"[{index}] {port.name.Trim()}",
-                    _ => throw new NotSupportedException($"Port mode {port.mode} is not supported")
-                };
         }
 
         private static IEnumerable<Type> GetBlueprintNodeTypes() {
@@ -177,14 +152,6 @@ namespace MisterGames.Blueprints.Editor.Core {
             string category = string.IsNullOrEmpty(nodeMetaAttr.Category) ? "Other" : nodeMetaAttr.Category;
 
             return $"{category}/{name}";
-        }
-
-        private static bool HasBlueprintNodeMetaAttribute(Type type) {
-            return GetBlueprintNodeMetaAttribute(type) != null;
-        }
-
-        private static bool HasSerializableAttribute(Type type) {
-            return type.GetCustomAttribute<SerializableAttribute>(false) != null;
         }
 
         private static BlueprintNodeMetaAttribute GetBlueprintNodeMetaAttribute(Type type) {

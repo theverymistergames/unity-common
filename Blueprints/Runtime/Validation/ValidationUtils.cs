@@ -8,15 +8,26 @@ namespace MisterGames.Blueprints.Validation {
 
     internal static class ValidationUtils {
 
-        public static Type GetGenericInterface(Type subjectType, Type interfaceType, Type genericArgumentType) {
+        public static Type GetGenericInterface(Type subjectType, Type interfaceType, params Type[] genericArguments) {
+            if (subjectType == null || interfaceType == null) return null;
+
             return subjectType
                 .GetInterfaces()
                 .FirstOrDefault(x =>
                     x.IsGenericType &&
                     x.GetGenericTypeDefinition() == interfaceType &&
-                    x.GenericTypeArguments.Length == 1 &&
-                    x.GenericTypeArguments[0] == genericArgumentType
+                    Equals(x.GenericTypeArguments, genericArguments)
                 );
+        }
+
+        private static bool Equals(Type[] a, Type[] b) {
+            if (a.Length != b.Length) return false;
+
+            for (int i = 0; i < a.Length; i++) {
+                if (a[i] != b[i]) return false;
+            }
+
+            return true;
         }
 
         public static string RuntimeNodesToString(string prefix, BlueprintNode[] nodes) {
@@ -38,7 +49,7 @@ namespace MisterGames.Blueprints.Validation {
 
             sb.AppendLine($"-- Node {node} (hash {node.GetHashCode()})");
 
-            var ports = node.RuntimePorts;
+            var ports = node.Ports;
 
             for (int p = 0; p < ports.Length; p++) {
                 var port = ports[p];

@@ -1,6 +1,5 @@
 ﻿#if DEVELOPMENT_BUILD || UNITY_EDITOR
 
-using System;
 using MisterGames.Blueprints.Core;
 using MisterGames.Blueprints.Meta;
 using UnityEngine;
@@ -9,218 +8,490 @@ namespace MisterGames.Blueprints.Validation {
 
     internal static class LinkValidator {
 
-        public static bool ValidateLink(BlueprintAsset asset, BlueprintNodeMeta nodeMeta, int portIndex, BlueprintNodeMeta toNodeMeta, int toPortIndex) {
-            if (portIndex < 0 || portIndex > nodeMeta.Ports.Length - 1) {
-                Debug.LogError($"Blueprint `{asset.name}`: " +
-                               $"Validation failed for port link [node {nodeMeta}, port {portIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
-                               $"{nodeMeta} has no port with index {portIndex}.");
+        public static bool ValidateLink(
+            BlueprintAsset blueprint,
+            BlueprintNodeMeta fromNodeMeta,
+            int fromPortIndex,
+            BlueprintNodeMeta toNodeMeta,
+            int toPortIndex
+        ) {
+            if (fromPortIndex < 0 || fromPortIndex > fromNodeMeta.Ports.Length - 1) {
+                Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                               $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                               $"{fromNodeMeta} has no port with index {fromPortIndex}.");
                 return false;
             }
 
-            var port = nodeMeta.Ports[portIndex];
+            var fromPort = fromNodeMeta.Ports[fromPortIndex];
 
-            return port.mode switch {
-                Port.Mode.Enter => ValidateLinkToEnterPort(asset, toNodeMeta, toPortIndex),
-                Port.Mode.Exit => ValidateLinkToExitPort(asset, toNodeMeta, toPortIndex),
-                Port.Mode.Input => ValidateLinkToInputPort(asset, port.dataType, toNodeMeta, toPortIndex),
-                Port.Mode.Output => ValidateLinkToOutputPort(asset, port.dataType, toNodeMeta, toPortIndex),
-                Port.Mode.InputArray => ValidateLinkToInputArrayPort(asset, port.dataType, toNodeMeta, toPortIndex),
-                Port.Mode.NonTypedInput => ValidateLinkToNonTypedInputPort(asset, toNodeMeta, toPortIndex),
-                Port.Mode.NonTypedOutput => ValidateLinkToNonTypedOutputPort(asset, toNodeMeta, toPortIndex),
-                _ => throw new NotSupportedException($"Port mode {port.mode} is not supported")
-            };
+            if (fromPort.Signature == null) {
+                return fromPort.IsInput
+                    ? ValidateLinkFromAnyInputPort(blueprint, fromNodeMeta, fromPortIndex, toNodeMeta, toPortIndex)
+                    : ValidateLinkFromAnyOutputPort(blueprint, fromNodeMeta, fromPortIndex, toNodeMeta, toPortIndex);
+            }
+
+            if (fromPort.IsAction) {
+                if (fromPort.IsAnyAction) {
+                    return fromPort.IsInput
+                        ? ValidateLinkFromAnyActionInputPort(blueprint, fromNodeMeta, fromPortIndex, toNodeMeta, toPortIndex)
+                        : ValidateLinkFromAnyActionOutputPort(blueprint, fromNodeMeta, fromPortIndex, toNodeMeta, toPortIndex);
+                }
+
+                return fromPort.IsInput
+                    ? ValidateLinkFromActionInputPort(blueprint, fromNodeMeta, fromPortIndex, toNodeMeta, toPortIndex)
+                    : ValidateLinkFromActionOutputPort(blueprint, fromNodeMeta, fromPortIndex, toNodeMeta, toPortIndex);
+            }
+
+            if (fromPort.IsFunc) {
+                if (fromPort.IsAnyFunc) {
+                    return fromPort.IsInput
+                        ? ValidateLinkFromAnyFuncInputPort(blueprint, fromNodeMeta, fromPortIndex, toNodeMeta, toPortIndex)
+                        : ValidateLinkFromAnyFuncOutputPort(blueprint, fromNodeMeta, fromPortIndex, toNodeMeta, toPortIndex);
+                }
+
+                if (fromPort.IsDynamicFunc) {
+                    return fromPort.IsInput
+                        ? ValidateLinkFromDynamicFuncInputPort(blueprint, fromNodeMeta, fromPortIndex, toNodeMeta, toPortIndex)
+                        : ValidateLinkFromDynamicFuncOutputPort(blueprint, fromNodeMeta, fromPortIndex, toNodeMeta, toPortIndex);
+                }
+
+                return fromPort.IsInput
+                    ? ValidateLinkFromFuncInputPort(blueprint, fromNodeMeta, fromPortIndex, toNodeMeta, toPortIndex)
+                    : ValidateLinkFromFuncOutputPort(blueprint, fromNodeMeta, fromPortIndex, toNodeMeta, toPortIndex);
+            }
+
+            return fromPort.IsInput
+                ? ValidateLinkFromCustomInputPort(blueprint, fromNodeMeta, fromPortIndex, toNodeMeta, toPortIndex)
+                : ValidateLinkFromCustomOutputPort(blueprint, fromNodeMeta, fromPortIndex, toNodeMeta, toPortIndex);
         }
 
-        private static bool ValidateLinkToEnterPort(BlueprintAsset asset, BlueprintNodeMeta nodeMeta, int portIndex) {
-            Debug.LogError($"Blueprint `{asset.name}`: " +
-                           $"Validation failed for port link [node {nodeMeta}, port {portIndex} :: node {nodeMeta}, port {portIndex}]: " +
-                           $"port {portIndex} of node {nodeMeta} is enter port and it cannot have links.");
-            return false;
-        }
-
-        private static bool ValidateLinkToExitPort(BlueprintAsset asset, BlueprintNodeMeta nodeMeta, int portIndex) {
-            if (portIndex < 0 || portIndex > nodeMeta.Ports.Length - 1) {
-                Debug.LogError($"Blueprint `{asset.name}`: " +
-                               $"Validation failed for enter port {portIndex} of node {nodeMeta}: " +
-                               $"{nodeMeta} has no port with index {portIndex}.");
+        private static bool ValidateLinkFromAnyInputPort(
+            BlueprintAsset blueprint,
+            BlueprintNodeMeta fromNodeMeta,
+            int fromPortIndex,
+            BlueprintNodeMeta toNodeMeta,
+            int toPortIndex
+        ) {
+            if (toPortIndex < 0 || toPortIndex > toNodeMeta.Ports.Length - 1) {
+                Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                               $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                               $"{toNodeMeta} has no port with index {toPortIndex}.");
                 return false;
             }
 
-            var node = nodeMeta.Node;
-            var port = nodeMeta.Ports[portIndex];
+            var toPort = toNodeMeta.Ports[toPortIndex];
 
-            if (port.mode != Port.Mode.Enter) {
-                Debug.LogError($"Blueprint `{asset.name}`: " +
-                               $"Validation failed for enter port {portIndex} of node {nodeMeta}: " +
-                               $"this port is not an enter port.");
+            if (toPort.IsInput) {
+                Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                               $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                               $"ports have same direction.");
                 return false;
             }
 
-            if (node is not (IBlueprintEnter or IBlueprintPortLinker)) {
-                Debug.LogError($"Blueprint `{asset.name}`: " +
-                               $"Validation failed for enter port {portIndex} of node {nodeMeta}: " +
-                               $"node class {node.GetType().Name} " +
-                               $"does not implement interface {nameof(IBlueprintEnter)} or {nameof(IBlueprintPortLinker)}.");
+            if (toPort.Signature == null || toPort.IsAnyAction || toPort.IsAnyFunc || toPort.IsDynamicFunc) {
+                Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                               $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                               $"any-input port cannot have links to " +
+                               $"any-output ports, " +
+                               $"any-action output ports, " +
+                               $"any-func output ports or " +
+                               $"dynamic-func output ports.");
                 return false;
             }
 
             return true;
         }
 
-        private static bool ValidateLinkToInputPort(BlueprintAsset asset, Type dataType, BlueprintNodeMeta nodeMeta, int portIndex) {
-            if (portIndex < 0 || portIndex > nodeMeta.Ports.Length - 1) {
-                Debug.LogError($"Blueprint `{asset.name}`: " +
-                               $"Validation failed for output port {portIndex} of node {nodeMeta}: " +
-                               $"{nodeMeta} has no port with index {portIndex}.");
+        private static bool ValidateLinkFromAnyOutputPort(
+            BlueprintAsset blueprint,
+            BlueprintNodeMeta fromNodeMeta,
+            int fromPortIndex,
+            BlueprintNodeMeta toNodeMeta,
+            int toPortIndex
+        ) {
+            Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                           $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                           $"port {fromPortIndex} of node {fromNodeMeta} is any-output port and it cannot have links.");
+            return false;
+        }
+
+        private static bool ValidateLinkFromAnyActionInputPort(
+            BlueprintAsset blueprint,
+            BlueprintNodeMeta fromNodeMeta,
+            int fromPortIndex,
+            BlueprintNodeMeta toNodeMeta,
+            int toPortIndex
+        ) {
+            Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                           $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                           $"port {fromPortIndex} of node {fromNodeMeta} is any-action input port and it cannot have links.");
+            return false;
+        }
+
+        private static bool ValidateLinkFromAnyActionOutputPort(
+            BlueprintAsset blueprint,
+            BlueprintNodeMeta fromNodeMeta,
+            int fromPortIndex,
+            BlueprintNodeMeta toNodeMeta,
+            int toPortIndex
+        ) {
+            if (toPortIndex < 0 || toPortIndex > toNodeMeta.Ports.Length - 1) {
+                Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                               $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                               $"{toNodeMeta} has no port with index {toPortIndex}.");
                 return false;
             }
 
-            var node = nodeMeta.Node;
-            var port = nodeMeta.Ports[portIndex];
+            var toPort = toNodeMeta.Ports[toPortIndex];
 
-            if (port.mode is not (Port.Mode.Output or Port.Mode.NonTypedOutput)) {
-                Debug.LogError($"Blueprint `{asset.name}`: " +
-                               $"Validation failed for output port {portIndex} of node {nodeMeta}: " +
-                               $"this port is not an output port.");
+            if (!toPort.IsInput) {
+                Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                               $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                               $"ports have same direction.");
                 return false;
             }
 
-            if (port.mode == Port.Mode.NonTypedOutput) {
-                if (node is not (IBlueprintPortLinker or IBlueprintOutput)) {
-                    Debug.LogError($"Blueprint `{asset.name}`: " +
-                                   $"Validation failed for non-typed output port {portIndex} of node {nodeMeta}: " +
-                                   $"node class {node.GetType().Name} does not implement " +
-                                   $"interface {nameof(IBlueprintPortLinker)} or {nameof(IBlueprintOutput)}.");
+            if (toPort.Signature == null) {
+                Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                               $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                               $"source any-action output port cannot have link to the any-input port.");
+                return false;
+            }
+
+            if (!toPort.IsAction) {
+                Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                               $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                               $"source any-action output port cannot have link to the non-action input port.");
+                return false;
+            }
+
+            if (toPort.IsAnyAction) {
+                Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                               $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                               $"source any-action output port cannot have link to the any-action input port.");
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool ValidateLinkFromActionInputPort(
+            BlueprintAsset blueprint,
+            BlueprintNodeMeta fromNodeMeta,
+            int fromPortIndex,
+            BlueprintNodeMeta toNodeMeta,
+            int toPortIndex
+        ) {
+            Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                           $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                           $"port {fromPortIndex} of node {fromNodeMeta} is action input port and it cannot have links.");
+            return false;
+        }
+
+        private static bool ValidateLinkFromActionOutputPort(
+            BlueprintAsset blueprint,
+            BlueprintNodeMeta fromNodeMeta,
+            int fromPortIndex,
+            BlueprintNodeMeta toNodeMeta,
+            int toPortIndex
+        ) {
+            if (toPortIndex < 0 || toPortIndex > toNodeMeta.Ports.Length - 1) {
+                Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                               $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                               $"{toNodeMeta} has no port with index {toPortIndex}.");
+                return false;
+            }
+
+            var fromPort = fromNodeMeta.Ports[fromPortIndex];
+            var toPort = toNodeMeta.Ports[toPortIndex];
+
+            if (!toPort.IsInput) {
+                Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                               $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                               $"ports have same direction.");
+                return false;
+            }
+
+            if (toPort.Signature == null) return true;
+
+            if (!toPort.IsAction) {
+                Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                               $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                               $"source action output port cannot have link to the non-action input port.");
+                return false;
+            }
+
+            if (toPort.IsAnyAction) return true;
+
+            if (fromPort.Signature != toPort.Signature) {
+                Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                               $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                               $"sports have different signature.");
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool ValidateLinkFromAnyFuncInputPort(
+            BlueprintAsset blueprint,
+            BlueprintNodeMeta fromNodeMeta,
+            int fromPortIndex,
+            BlueprintNodeMeta toNodeMeta,
+            int toPortIndex
+        ) {
+            if (toPortIndex < 0 || toPortIndex > toNodeMeta.Ports.Length - 1) {
+                Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                               $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                               $"{toNodeMeta} has no port with index {toPortIndex}.");
+                return false;
+            }
+
+            var toPort = toNodeMeta.Ports[toPortIndex];
+
+            if (toPort.IsInput) {
+                Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                               $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                               $"ports have same direction.");
+                return false;
+            }
+
+            if (toPort.Signature == null) {
+                Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                               $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                               $"source any-func input port cannot have link to the any-output port.");
+                return false;
+            }
+
+            if (!toPort.IsFunc) {
+                Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                               $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                               $"source any-func input port cannot have link to the non-func output port.");
+                return false;
+            }
+
+            if (toPort.IsAnyFunc) {
+                Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                               $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                               $"source any-func input port cannot have link to the any-func output port.");
+                return false;
+            }
+
+            if (toPort.IsDynamicFunc) {
+                Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                               $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                               $"source any-func input port cannot have link to the dynamic-func output port.");
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool ValidateLinkFromAnyFuncOutputPort(
+            BlueprintAsset blueprint,
+            BlueprintNodeMeta fromNodeMeta,
+            int fromPortIndex,
+            BlueprintNodeMeta toNodeMeta,
+            int toPortIndex
+        ) {
+            Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                           $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                           $"port {fromPortIndex} of node {fromNodeMeta} is any-func output port and it cannot have links.");
+            return false;
+        }
+
+        private static bool ValidateLinkFromDynamicFuncInputPort(
+            BlueprintAsset blueprint,
+            BlueprintNodeMeta fromNodeMeta,
+            int fromPortIndex,
+            BlueprintNodeMeta toNodeMeta,
+            int toPortIndex
+        ) {
+            if (toPortIndex < 0 || toPortIndex > toNodeMeta.Ports.Length - 1) {
+                Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                               $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                               $"{toNodeMeta} has no port with index {toPortIndex}.");
+                return false;
+            }
+
+            var toPort = toNodeMeta.Ports[toPortIndex];
+
+            if (toPort.IsInput) {
+                Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                               $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                               $"ports have same direction.");
+                return false;
+            }
+
+            if (toPort.Signature == null) {
+                Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                               $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                               $"source dynamic-func input port cannot have link to the any-output port.");
+                return false;
+            }
+
+            if (!toPort.IsFunc) {
+                Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                               $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                               $"source dynamic-func input port cannot have link to the non-func output port.");
+                return false;
+            }
+
+            if (toPort.IsAnyFunc) {
+                Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                               $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                               $"source dynamic-func input port cannot have link to the any-func output port.");
+                return false;
+            }
+
+            if (toPort.IsDynamicFunc) {
+                Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                               $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                               $"source dynamic-func input port cannot have link to the dynamic-func output port.");
+                return false;
+            }
+
+            var genericArguments = toPort.Signature.GetGenericArguments();
+            if (genericArguments.Length > 1) {
+                Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                               $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                               $"source dynamic-func input port cannot have link to the func output port with more than 1 generic parameter.");
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool ValidateLinkFromDynamicFuncOutputPort(
+            BlueprintAsset blueprint,
+            BlueprintNodeMeta fromNodeMeta,
+            int fromPortIndex,
+            BlueprintNodeMeta toNodeMeta,
+            int toPortIndex
+        ) {
+            Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                           $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                           $"port {fromPortIndex} of node {fromNodeMeta} is dynamic-func output port and it cannot have links.");
+            return false;
+        }
+
+        private static bool ValidateLinkFromFuncInputPort(
+            BlueprintAsset blueprint,
+            BlueprintNodeMeta fromNodeMeta,
+            int fromPortIndex,
+            BlueprintNodeMeta toNodeMeta,
+            int toPortIndex
+        ) {
+            if (toPortIndex < 0 || toPortIndex > toNodeMeta.Ports.Length - 1) {
+                Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                               $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                               $"{toNodeMeta} has no port with index {toPortIndex}.");
+                return false;
+            }
+
+            var fromPort = fromNodeMeta.Ports[fromPortIndex];
+            var toPort = toNodeMeta.Ports[toPortIndex];
+
+            if (toPort.IsInput) {
+                Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                               $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                               $"ports have same direction.");
+                return false;
+            }
+
+            if (toPort.Signature == null) return true;
+
+            if (!toPort.IsFunc) {
+                Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                               $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                               $"source func input port cannot have link to the non-func output port.");
+                return false;
+            }
+
+            if (toPort.IsAnyFunc) return true;
+
+            var fromPortGenericArguments = fromPort.Signature.GetGenericArguments();
+
+            if (toPort.IsDynamicFunc) {
+                if (fromPortGenericArguments.Length > 1) {
+                    Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                                   $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                                   $"source func input port with more than 1 generic parameter cannot have link to the dynamic-func output port.");
                     return false;
                 }
 
                 return true;
             }
 
-            if (port.dataType != dataType) {
-                Debug.LogError($"Blueprint `{asset.name}`: " +
-                               $"Validation failed for output port {portIndex} of node {nodeMeta}: " +
-                               $"port type is not {dataType.Name}.");
-                return false;
-            }
-
-            bool implementsIBlueprintOutputInterface = ValidationUtils.GetGenericInterface(
-                node.GetType(),
-                typeof(IBlueprintOutput<>),
-                port.dataType
-            ) != null;
-
-            if (!implementsIBlueprintOutputInterface && node is not (IBlueprintPortLinker or IBlueprintOutput)) {
-                Debug.LogError($"Blueprint `{asset.name}`: " +
-                               $"Validation failed for output port {portIndex} of node {nodeMeta}: " +
-                               $"node class {node.GetType().Name} does not implement interface " +
-                               $"{typeof(IBlueprintOutput<>).Name}<{port.dataType.Name}> or {nameof(IBlueprintPortLinker)} or {nameof(IBlueprintOutput)}.");
+            if (fromPort.Signature != toPort.Signature) {
+                Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                               $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                               $"ports have different signature.");
                 return false;
             }
 
             return true;
         }
 
-        private static bool ValidateLinkToOutputPort(BlueprintAsset asset, Type dataType, BlueprintNodeMeta nodeMeta, int portIndex) {
-            Debug.LogError($"Blueprint `{asset.name}`: " +
-                           $"Validation failed for port link [node {nodeMeta}, port {portIndex} :: node {nodeMeta}, port {portIndex}]: " +
-                           $"port {portIndex} of node {nodeMeta} is output port and it cannot have links.");
+        private static bool ValidateLinkFromFuncOutputPort(
+            BlueprintAsset blueprint,
+            BlueprintNodeMeta fromNodeMeta,
+            int fromPortIndex,
+            BlueprintNodeMeta toNodeMeta,
+            int toPortIndex
+        ) {
+            Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                           $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                           $"port {fromPortIndex} of node {fromNodeMeta} is func output port and it cannot have links.");
             return false;
         }
 
-        private static bool ValidateLinkToInputArrayPort(BlueprintAsset asset, Type dataType, BlueprintNodeMeta nodeMeta, int portIndex) {
-            if (portIndex < 0 || portIndex > nodeMeta.Ports.Length - 1) {
-                Debug.LogError($"Blueprint `{asset.name}`: " +
-                               $"Validation failed for output port {portIndex} of node {nodeMeta}: " +
-                               $"{nodeMeta} has no port with index {portIndex}.");
+        private static bool ValidateLinkFromCustomInputPort(
+            BlueprintAsset blueprint,
+            BlueprintNodeMeta fromNodeMeta,
+            int fromPortIndex,
+            BlueprintNodeMeta toNodeMeta,
+            int toPortIndex
+        ) {
+            if (toPortIndex < 0 || toPortIndex > toNodeMeta.Ports.Length - 1) {
+                Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                               $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                               $"{toNodeMeta} has no port with index {toPortIndex}.");
                 return false;
             }
 
-            var node = nodeMeta.Node;
-            var port = nodeMeta.Ports[portIndex];
+            var toPort = toNodeMeta.Ports[toPortIndex];
+            var fromPort = fromNodeMeta.Ports[fromPortIndex];
 
-            if (port.mode is not (Port.Mode.Output or Port.Mode.NonTypedOutput)) {
-                Debug.LogError($"Blueprint `{asset.name}`: " +
-                               $"Validation failed for output port {portIndex} of node {nodeMeta}: " +
-                               $"this port is not an output port.");
+            if (!toPort.IsInput) {
+                Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                               $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                               $"ports have same direction.");
                 return false;
             }
 
-            if (port.mode == Port.Mode.NonTypedOutput) {
-                if (node is not (IBlueprintPortLinker or IBlueprintOutput)) {
-                    Debug.LogError($"Blueprint `{asset.name}`: " +
-                                   $"Validation failed for non-typed output port {portIndex} of node {nodeMeta}: " +
-                                   $"node class {node.GetType().Name} does not implement " +
-                                   $"interface {nameof(IBlueprintPortLinker)} or {nameof(IBlueprintOutput)}.");
-                    return false;
-                }
+            if (toPort.Signature == null) return true;
 
-                return true;
-            }
-
-            if (port.dataType != dataType) {
-                Debug.LogError($"Blueprint `{asset.name}`: " +
-                               $"Validation failed for output port {portIndex} of node {nodeMeta}: " +
-                               $"port type is not {dataType.Name}.");
-                return false;
-            }
-
-            bool implementsIBlueprintOutputInterface = ValidationUtils.GetGenericInterface(
-                node.GetType(),
-                typeof(IBlueprintOutput<>),
-                port.dataType
-            ) != null;
-
-            if (!implementsIBlueprintOutputInterface && node is not (IBlueprintPortLinker or IBlueprintOutput)) {
-                Debug.LogError($"Blueprint `{asset.name}`: " +
-                               $"Validation failed for output port {portIndex} of node {nodeMeta}: " +
-                               $"node class {node.GetType().Name} does not implement interface " +
-                               $"{typeof(IBlueprintOutput<>).Name}<{port.dataType.Name}> or {nameof(IBlueprintPortLinker)} or {nameof(IBlueprintOutput)}.");
+            if (fromPort.Signature != toPort.Signature) {
+                Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                               $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                               $"ports have different signature.");
                 return false;
             }
 
             return true;
         }
 
-        private static bool ValidateLinkToNonTypedInputPort(BlueprintAsset asset, BlueprintNodeMeta nodeMeta, int portIndex) {
-            if (portIndex < 0 || portIndex > nodeMeta.Ports.Length - 1) {
-                Debug.LogError($"Blueprint `{asset.name}`: " +
-                               $"Validation failed for output port {portIndex} of node {nodeMeta}: " +
-                               $"{nodeMeta} has no port with index {portIndex}.");
-                return false;
-            }
-
-            var node = nodeMeta.Node;
-            var port = nodeMeta.Ports[portIndex];
-
-            if (port.mode is not Port.Mode.Output) {
-                Debug.LogError($"Blueprint `{asset.name}`: " +
-                               $"Validation failed for output port {portIndex} of node {nodeMeta}: " +
-                               $"this port is not an output port.");
-                return false;
-            }
-
-            bool implementsIBlueprintOutputInterface = ValidationUtils.GetGenericInterface(
-                node.GetType(),
-                typeof(IBlueprintOutput<>),
-                port.dataType
-            ) != null;
-
-            if (!implementsIBlueprintOutputInterface && node is not (IBlueprintPortLinker or IBlueprintOutput)) {
-                Debug.LogError($"Blueprint `{asset.name}`: " +
-                               $"Validation failed for output port {portIndex} of node {nodeMeta}: " +
-                               $"node class {node.GetType().Name} does not implement interface " +
-                               $"{typeof(IBlueprintOutput<>).Name}<{port.dataType.Name}> or {nameof(IBlueprintPortLinker)} or {nameof(IBlueprintOutput)}.");
-                return false;
-            }
-
-            return true;
-        }
-
-        private static bool ValidateLinkToNonTypedOutputPort(BlueprintAsset asset, BlueprintNodeMeta nodeMeta, int portIndex) {
-            Debug.LogError($"Blueprint `{asset.name}`: " +
-                           $"Validation failed for port link [node {nodeMeta}, port {portIndex} :: node {nodeMeta}, port {portIndex}]: " +
-                           $"port {portIndex} of node {nodeMeta} is non-typed output port and it cannot have links.");
+        private static bool ValidateLinkFromCustomOutputPort(
+            BlueprintAsset blueprint,
+            BlueprintNodeMeta fromNodeMeta,
+            int fromPortIndex,
+            BlueprintNodeMeta toNodeMeta,
+            int toPortIndex
+        ) {
+            Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                           $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                           $"port {fromPortIndex} of node {fromNodeMeta} is custom output port and it cannot have links.");
             return false;
         }
     }

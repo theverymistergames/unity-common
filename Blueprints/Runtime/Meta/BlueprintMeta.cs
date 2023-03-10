@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using MisterGames.Blueprints.Validation;
 using MisterGames.Common.Data;
 using UnityEngine;
 
@@ -62,86 +63,42 @@ namespace MisterGames.Blueprints.Meta {
             if (fromPortIndex < 0 || fromPortIndex > fromNode.Ports.Length - 1) return false;
             if (toPortIndex < 0 || toPortIndex > toNode.Ports.Length - 1) return false;
 
-            if (HasLinkFromNodePort(fromNodeId, fromPortIndex, toNodeId, toPortIndex)) return false;
-            if (HasLinkToNodePort(fromNodeId, fromPortIndex, toNodeId, toPortIndex)) return false;
-
             var fromPort = fromNode.Ports[fromPortIndex];
             var toPort = toNode.Ports[toPortIndex];
 
-            if (fromPort.mode == Port.Mode.Enter) {
-                if (toPort.mode != Port.Mode.Exit) return false;
+            if (!PortValidator.ArePortsCompatible(fromPort, toPort)) return false;
 
-                // adding connection from the exit port toPort to the enter port fromPort
-                CreateConnection(toNodeId, toPortIndex, fromNodeId, fromPortIndex);
-                return true;
+            if (HasLinkFromNodePort(fromNodeId, fromPortIndex, toNodeId, toPortIndex)) return false;
+            if (HasLinkToNodePort(fromNodeId, fromPortIndex, toNodeId, toPortIndex)) return false;
+
+            // Switch fromPort to toPort if:
+            // 1) fromPort is input action port
+            // 2) fromPort is non-action output port
+            if (fromPort.IsAction == fromPort.IsInput) {
+                var tempPort = fromPort;
+                int tempPortIndex = fromPortIndex;
+                int tempNodeId = fromNodeId;
+
+                fromPort = toPort;
+                fromPortIndex = toPortIndex;
+                fromNodeId = toNodeId;
+
+                toPort = tempPort;
+                toPortIndex = tempPortIndex;
+                toNodeId = tempNodeId;
             }
 
-            if (fromPort.mode == Port.Mode.Exit) {
-                if (toPort.mode != Port.Mode.Enter) return false;
-
-                // adding connection from the exit port fromPort to the enter port toPort
-                CreateConnection(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
-                return true;
+            if (!fromPort.IsMultiple &&
+                _fromNodePortLinksMap.TryGetValue(fromNodeId, out var fromNodePortLinksMap) &&
+                fromNodePortLinksMap != null && fromNodePortLinksMap.TryGetValue(fromPortIndex, out var fromPortLinks) &&
+                fromPortLinks is { Count: > 0 }
+            ) {
+                return false;
             }
 
-            if (fromPort.mode is Port.Mode.Input) {
-                if (toPort.mode is not (Port.Mode.Output or Port.Mode.NonTypedOutput)) return false;
-
-                // input and output must have same data type
-                if (toPort.mode == Port.Mode.Output && fromPort.dataType != toPort.dataType) return false;
-
-                // replacing connections from the input port fromPort to the output port toPort with new connection
-                RemoveAllLinksFromNodePort(fromNodeId, fromPortIndex);
-                CreateConnection(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
-                return true;
-            }
-
-            if (fromPort.mode is Port.Mode.InputArray) {
-                if (toPort.mode is not (Port.Mode.Output or Port.Mode.NonTypedOutput)) return false;
-
-                // input and output must have same data type
-                if (toPort.mode == Port.Mode.Output && fromPort.dataType != toPort.dataType) return false;
-
-                // add connection from the input port fromPort to the output port toPort
-                CreateConnection(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
-                return true;
-            }
-
-            if (fromPort.mode is Port.Mode.NonTypedInput) {
-                if (toPort.mode is not Port.Mode.Output) return false;
-
-                // replacing connections from the input port fromPort to the output port toPort with new connection
-                RemoveAllLinksFromNodePort(fromNodeId, fromPortIndex);
-                CreateConnection(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
-                return true;
-            }
-
-            if (fromPort.mode is Port.Mode.Output) {
-                if (toPort.mode is not (Port.Mode.Input or Port.Mode.InputArray or Port.Mode.NonTypedInput)) return false;
-
-                // input and output must have same data type
-                if (toPort.mode is (Port.Mode.Input or Port.Mode.InputArray) && fromPort.dataType != toPort.dataType) return false;
-
-                // replacing connections from the input port toPort to the output port fromPort with new connection
-                if (toPort.mode is Port.Mode.Input or Port.Mode.NonTypedInput) RemoveAllLinksFromNodePort(toNodeId, toPortIndex);
-
-                // adding connection from the input port toPort to the output port fromPort
-                CreateConnection(toNodeId, toPortIndex, fromNodeId, fromPortIndex);
-                return true;
-            }
-
-            if (fromPort.mode is Port.Mode.NonTypedOutput) {
-                if (toPort.mode is not (Port.Mode.Input or Port.Mode.InputArray)) return false;
-
-                // replacing connections from the input port toPort to the output port fromPort with new connection
-                if (toPort.mode is Port.Mode.Input) RemoveAllLinksFromNodePort(toNodeId, toPortIndex);
-
-                // adding connection from the input port toPort to the output port fromPort
-                CreateConnection(toNodeId, toPortIndex, fromNodeId, fromPortIndex);
-                return true;
-            }
-
-            return false;
+            AddLinkFromNodePort(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
+            AddLinkToNodePort(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
+            return true;
         }
 
         public void RemoveConnection(int fromNodeId, int fromPortIndex, int toNodeId, int toPortIndex) {
@@ -267,11 +224,6 @@ namespace MisterGames.Blueprints.Meta {
             if (!_subgraphReferencesMap.ContainsKey(nodeId)) return;
 
             _subgraphReferencesMap.Remove(nodeId);
-        }
-
-        private void CreateConnection(int fromNodeId, int fromPortIndex, int toNodeId, int toPortIndex) {
-            AddLinkFromNodePort(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
-            AddLinkToNodePort(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
         }
 
         private bool HasLinkFromNodePort(int fromNodeId, int fromPortIndex, int toNodeId, int toPortIndex) {
