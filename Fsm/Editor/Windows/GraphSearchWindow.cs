@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using MisterGames.Common.Data;
 using MisterGames.Common.Editor.Tree;
-using MisterGames.Common.Editor.Utils;
 using MisterGames.Fsm.Core;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
@@ -25,26 +25,26 @@ namespace MisterGames.Fsm.Editor.Windows {
             switch (filter) {
                 case Filter.NewState:
                     tree.Add(SearchTreeEntryUtils.Header("Create state"));
-                    tree.AddRange(CreateSearchTree<FsmState>(NewStateInfo, 1));
+                    tree.AddRange(CreateSearchTree<FsmState>(CreateNewStateInfo, 1));
                     break;
                 
                 case Filter.TargetState:
                     tree.Add(SearchTreeEntryUtils.Header("Add target state"));
                     tree.AddRange(onStatesRequest.Invoke()
-                        .Select(s => SearchTreeEntryUtils.Entry(s.name, TargetStateInfo(s), 1))
+                        .Select(s => SearchTreeEntryUtils.Entry(s.name, CreateTargetStateInfo(s), 1))
                     );
                     break;
                 
                 case Filter.Transition:
                     tree.Add(SearchTreeEntryUtils.Header("Create transition"));
-                    tree.AddRange(CreateSearchTree<FsmTransition>(TransitionInfo, 1));
+                    tree.AddRange(CreateSearchTree<FsmTransition>(CreateTransitionInfo, 1));
                     break;
             }
             
             return tree;
         }
 
-        private List<SearchTreeEntry> CreateSearchTree<T>(Func<Type, object> getData, int level) {
+        private static IEnumerable<SearchTreeEntry> CreateSearchTree<T>(Func<Type, object> getData, int level) {
             var getName = new Func<Type, string>(TypeNameFormatter.GetTypeName);
 
             var type = typeof(T);
@@ -84,15 +84,15 @@ namespace MisterGames.Fsm.Editor.Windows {
             return false;
         }
 
-        private object NewStateInfo(Type type) {
+        private object CreateNewStateInfo(Type type) {
             return new Info { filter = Filter.NewState, data = type };
         }
 
-        private object TargetStateInfo(FsmState state) {
+        private object CreateTargetStateInfo(FsmState state) {
             return new Info { filter = Filter.TargetState, data = state };
         }
         
-        private object TransitionInfo(Type type) {
+        private object CreateTransitionInfo(Type type) {
             return new Info { filter = Filter.Transition, data = type };
         }
         
