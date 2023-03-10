@@ -13,6 +13,8 @@ namespace MisterGames.Blueprints.Nodes {
     public sealed class BlueprintNodeExit : BlueprintNode, IBlueprintPortLinker
 
 #if UNITY_EDITOR
+        , IBlueprintPortLinksListener
+        , IBlueprintPortDecorator
         , IBlueprintAssetValidator
 #endif
 
@@ -20,8 +22,8 @@ namespace MisterGames.Blueprints.Nodes {
         [SerializeField] private string _port;
 
         public override Port[] CreatePorts() => new[] {
-            Port.Enter(),
-            Port.Exit(_port).SetExternal(true),
+            Port.AnyAction(PortMode.Input),
+            Port.AnyAction(PortMode.Output, _port).External(true),
         };
 
         public int GetLinkedPorts(int port, out int count) {
@@ -40,6 +42,21 @@ namespace MisterGames.Blueprints.Nodes {
         }
 
 #if UNITY_EDITOR
+        public void DecoratePorts(BlueprintMeta blueprintMeta, int nodeId, Port[] ports) {
+            var linksToInput = blueprintMeta.GetLinksToNodePort(nodeId, 0);
+            if (linksToInput.Count == 0) return;
+
+            var link = linksToInput[0];
+            var linkedPort = blueprintMeta.NodesMap[link.nodeId].Ports[link.portIndex];
+
+            ports[0] = Port.Create(PortMode.Input, signature: linkedPort.Signature);
+            ports[1] = Port.Create(PortMode.Output, _port, linkedPort.Signature).External(true);
+        }
+
+        public void OnPortLinksChanged(BlueprintMeta blueprintMeta, int nodeId, int portIndex) {
+            if (portIndex == 0) blueprintMeta.InvalidateNodePorts(nodeId, invalidateLinks: false, notify: false);
+        }
+
         public void ValidateBlueprint(BlueprintAsset blueprint, int nodeId) {
             blueprint.BlueprintMeta.InvalidateNodePorts(nodeId, invalidateLinks: false, notify: false);
         }

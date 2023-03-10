@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using MisterGames.Blackboards.Core;
 using MisterGames.Blueprints.Compile;
 using MisterGames.Blueprints.Core;
-using MisterGames.Common.Data;
 using UnityEngine;
 
 #if UNITY_EDITOR
@@ -47,7 +46,7 @@ namespace MisterGames.Blueprints.Nodes {
 
                 for (int p = 0; p < nodePorts.Length; p++) {
                     var nodePort = nodePorts[p];
-                    if (!nodePort.isExternalPort) continue;
+                    if (!nodePort.IsExternal) continue;
 
                     // Drop external port if its linked port has no links
                     if (node is IBlueprintPortLinker linker) {
@@ -57,14 +56,14 @@ namespace MisterGames.Blueprints.Nodes {
                         for (int i = linkedPortIndex; i < count; i++) {
                             var linkedPort = nodePorts[i];
 
-                            if (linkedPort.mode is Port.Mode.Input or Port.Mode.InputArray or Port.Mode.NonTypedInput or Port.Mode.Exit) {
+                            if (linkedPort.IsInput || linkedPort.IsAction) {
                                 if (blueprintMeta.GetLinksFromNodePort(nodeId, i).Count > 0) {
                                     hasLinks = true;
                                     break;
                                 }
                             }
 
-                            if (linkedPort.mode is Port.Mode.Output or Port.Mode.NonTypedOutput or Port.Mode.Enter) {
+                            if (!linkedPort.IsInput || linkedPort.IsAction) {
                                 if (blueprintMeta.GetLinksToNodePort(nodeId, i).Count > 0) {
                                     hasLinks = true;
                                     break;
@@ -75,7 +74,7 @@ namespace MisterGames.Blueprints.Nodes {
                         if (!hasLinks) continue;
                     }
 
-                    int portSignature = nodePort.GetSignature();
+                    int portSignature = nodePort.GetSignatureHashCode();
 
                     if (portSignatureSet.Contains(portSignature)) {
                         PortValidator.ValidateExternalPortWithExistingSignature(_blueprintAsset, nodePort);
@@ -83,7 +82,7 @@ namespace MisterGames.Blueprints.Nodes {
                     }
 
                     portSignatureSet.Add(portSignature);
-                    ports.Add(nodePort.SetExternal(false));
+                    ports.Add(nodePort.External(false));
                 }
             }
 

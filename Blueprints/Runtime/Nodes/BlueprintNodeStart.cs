@@ -8,12 +8,12 @@ namespace MisterGames.Blueprints.Nodes {
     public sealed class BlueprintNodeStart : BlueprintNode, IBlueprintStart, IBlueprintPortLinker {
 
         public override Port[] CreatePorts() => new[] {
-            Port.Exit(),
-            Port.Enter("On Start").SetExternal(true),
+            Port.Action(PortMode.Output),
+            Port.Action(PortMode.Input, "On Start").External(true),
         };
 
         public void OnStart() {
-            CallExitPort(0);
+            Ports[0].Call();
         }
 
         public int GetLinkedPorts(int port, out int count) {
