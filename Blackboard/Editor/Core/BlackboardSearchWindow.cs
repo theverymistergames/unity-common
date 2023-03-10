@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using MisterGames.Common.Data;
 using MisterGames.Common.Editor.Tree;
-using MisterGames.Common.Editor.Utils;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using Blackboard = MisterGames.Blackboards.Core.Blackboard;
