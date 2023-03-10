@@ -13,11 +13,7 @@ namespace MisterGames.Blueprints.Editor.Utils {
             string portName = port.Name?.Trim();
             string colorHex;
 
-            if (port.Signature == null) {
-                colorHex = BlueprintColors.Port.Header.Default;
-                if (string.IsNullOrEmpty(portName)) portName = "?";
-            }
-            else if (port.IsAction) {
+            if (port.IsAction) {
                 colorHex = BlueprintColors.Port.Header.Flow;
                 if (string.IsNullOrEmpty(portName)) {
                     portName = $"({string.Join(", ", port.Signature.GetGenericArguments().Select(TypeNameFormatter.GetTypeName))})";
@@ -29,7 +25,7 @@ namespace MisterGames.Blueprints.Editor.Utils {
 
                 if (returnType.IsGenericTypeParameter) {
                     colorHex = BlueprintColors.Port.Header.Data;
-                    if (string.IsNullOrEmpty(portName)) portName = "<T>";
+                    if (string.IsNullOrEmpty(portName)) portName = "?";
                 }
                 else {
                     colorHex = BlueprintColors.Port.Header.GetColorForType(returnType);
@@ -46,6 +42,8 @@ namespace MisterGames.Blueprints.Editor.Utils {
                 colorHex = BlueprintColors.Port.Header.Default;
                 if (string.IsNullOrEmpty(portName)) portName = TypeNameFormatter.GetTypeName(port.Signature);
             }
+
+            if (port.IsDisabled) colorHex = BlueprintColors.Port.Header.Disabled;
 
             string fullPortName = string.IsNullOrEmpty(portName)
                 ? $"[{index}]"
@@ -67,7 +65,7 @@ namespace MisterGames.Blueprints.Editor.Utils {
         }
 
         public static Color GetPortColor(Port port) {
-            if (port.Signature == null) return BlueprintColors.Port.Connection.Default;
+            if (port.IsDisabled) return BlueprintColors.Port.Connection.Disabled;
 
             if (port.IsAction) return BlueprintColors.Port.Connection.Flow;
 

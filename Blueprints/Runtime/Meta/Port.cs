@@ -24,7 +24,11 @@ namespace MisterGames.Blueprints {
             LayoutRight = 16,
 
             External = 32,
+
+            Disabled = 64,
         }
+
+        private sealed class Null {}
 
         public string Name => _name;
 
@@ -35,6 +39,7 @@ namespace MisterGames.Blueprints {
 
         internal bool IsInput => _settings.HasFlag(PortSettings.Input);
         internal bool IsExternal => _settings.HasFlag(PortSettings.External);
+        internal bool IsDisabled => _settings.HasFlag(PortSettings.Disabled);
 
         internal bool IsMultiple =>
             !_settings.HasFlag(PortSettings.CapacitySingle) && !_settings.HasFlag(PortSettings.CapacityMultiple)
@@ -145,12 +150,19 @@ namespace MisterGames.Blueprints {
         internal int GetSignatureHashCode() => HashCode.Combine(
             _settings,
             string.IsNullOrWhiteSpace(_name) ? string.Empty : _name.Trim(),
-            _signature ?? typeof(PortSettings)
+            _signature ?? typeof(Null)
         );
 
-        internal Port External(bool external) {
-            if (external) _settings |= PortSettings.External;
+        internal Port External(bool isExternal) {
+            if (isExternal) _settings |= PortSettings.External;
             else _settings &= ~PortSettings.External;
+
+            return this;
+        }
+
+        public Port Enable(bool isEnabled) {
+            if (isEnabled) _settings &= ~PortSettings.Disabled;
+            else _settings |= PortSettings.Disabled;
 
             return this;
         }
@@ -208,6 +220,10 @@ namespace MisterGames.Blueprints {
             return Create(mode, name, typeof(Func<,,,,,,,,,,,,,,,,>));
         }
 
+        public static Port DynamicFunc(PortMode mode, string name = null, Type returnType = null) {
+            return Create(mode, name, returnType == null ? typeof(Func<>) : typeof(Func<>).MakeGenericType(returnType));
+        }
+
         public static Port Action(PortMode mode, string name = null) {
             return Create(mode, name, typeof(Action));
         }
@@ -260,9 +276,6 @@ namespace MisterGames.Blueprints {
             return Create(mode, name, typeof(Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>));
         }
 
-        public static Port Func(PortMode mode, string name = null, Type returnType = null) {
-            return Create(mode, name, returnType == null ? typeof(Func<>) : typeof(Func<>).MakeGenericType(returnType));
-        }
         public static Port Func<R>(PortMode mode, string name = null) {
             return Create(mode, name, typeof(Func<R>));
         }

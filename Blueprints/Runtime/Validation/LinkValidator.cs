@@ -1,6 +1,5 @@
 ﻿#if DEVELOPMENT_BUILD || UNITY_EDITOR
 
-using MisterGames.Blueprints.Core;
 using MisterGames.Blueprints.Meta;
 using UnityEngine;
 
@@ -26,8 +25,8 @@ namespace MisterGames.Blueprints.Validation {
 
             if (fromPort.Signature == null) {
                 return fromPort.IsInput
-                    ? ValidateLinkFromAnyInputPort(blueprint, fromNodeMeta, fromPortIndex, toNodeMeta, toPortIndex)
-                    : ValidateLinkFromAnyOutputPort(blueprint, fromNodeMeta, fromPortIndex, toNodeMeta, toPortIndex);
+                    ? ValidateLinkFromNullSignatureInputPort(blueprint, fromNodeMeta, fromPortIndex, toNodeMeta, toPortIndex)
+                    : ValidateLinkFromNullSignatureOutputPort(blueprint, fromNodeMeta, fromPortIndex, toNodeMeta, toPortIndex);
             }
 
             if (fromPort.IsAction) {
@@ -65,44 +64,7 @@ namespace MisterGames.Blueprints.Validation {
                 : ValidateLinkFromCustomOutputPort(blueprint, fromNodeMeta, fromPortIndex, toNodeMeta, toPortIndex);
         }
 
-        private static bool ValidateLinkFromAnyInputPort(
-            BlueprintAsset blueprint,
-            BlueprintNodeMeta fromNodeMeta,
-            int fromPortIndex,
-            BlueprintNodeMeta toNodeMeta,
-            int toPortIndex
-        ) {
-            if (toPortIndex < 0 || toPortIndex > toNodeMeta.Ports.Length - 1) {
-                Debug.LogError($"Blueprint `{blueprint.name}`: " +
-                               $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
-                               $"{toNodeMeta} has no port with index {toPortIndex}.");
-                return false;
-            }
-
-            var toPort = toNodeMeta.Ports[toPortIndex];
-
-            if (toPort.IsInput) {
-                Debug.LogError($"Blueprint `{blueprint.name}`: " +
-                               $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
-                               $"ports have same direction.");
-                return false;
-            }
-
-            if (toPort.Signature == null || toPort.IsAnyAction || toPort.IsAnyFunc || toPort.IsDynamicFunc) {
-                Debug.LogError($"Blueprint `{blueprint.name}`: " +
-                               $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
-                               $"any-input port cannot have links to " +
-                               $"any-output ports, " +
-                               $"any-action output ports, " +
-                               $"any-func output ports or " +
-                               $"dynamic-func output ports.");
-                return false;
-            }
-
-            return true;
-        }
-
-        private static bool ValidateLinkFromAnyOutputPort(
+        private static bool ValidateLinkFromNullSignatureInputPort(
             BlueprintAsset blueprint,
             BlueprintNodeMeta fromNodeMeta,
             int fromPortIndex,
@@ -111,7 +73,20 @@ namespace MisterGames.Blueprints.Validation {
         ) {
             Debug.LogError($"Blueprint `{blueprint.name}`: " +
                            $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
-                           $"port {fromPortIndex} of node {fromNodeMeta} is any-output port and it cannot have links.");
+                           $"port {fromPortIndex} of node {fromNodeMeta} is null-signature input port and it cannot have links.");
+            return false;
+        }
+
+        private static bool ValidateLinkFromNullSignatureOutputPort(
+            BlueprintAsset blueprint,
+            BlueprintNodeMeta fromNodeMeta,
+            int fromPortIndex,
+            BlueprintNodeMeta toNodeMeta,
+            int toPortIndex
+        ) {
+            Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                           $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                           $"port {fromPortIndex} of node {fromNodeMeta} is null-signature output port and it cannot have links.");
             return false;
         }
 
@@ -148,13 +123,6 @@ namespace MisterGames.Blueprints.Validation {
                 Debug.LogError($"Blueprint `{blueprint.name}`: " +
                                $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
                                $"ports have same direction.");
-                return false;
-            }
-
-            if (toPort.Signature == null) {
-                Debug.LogError($"Blueprint `{blueprint.name}`: " +
-                               $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
-                               $"source any-action output port cannot have link to the any-input port.");
                 return false;
             }
 
@@ -212,8 +180,6 @@ namespace MisterGames.Blueprints.Validation {
                 return false;
             }
 
-            if (toPort.Signature == null) return true;
-
             if (!toPort.IsAction) {
                 Debug.LogError($"Blueprint `{blueprint.name}`: " +
                                $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
@@ -253,13 +219,6 @@ namespace MisterGames.Blueprints.Validation {
                 Debug.LogError($"Blueprint `{blueprint.name}`: " +
                                $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
                                $"ports have same direction.");
-                return false;
-            }
-
-            if (toPort.Signature == null) {
-                Debug.LogError($"Blueprint `{blueprint.name}`: " +
-                               $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
-                               $"source any-func input port cannot have link to the any-output port.");
                 return false;
             }
 
@@ -320,13 +279,6 @@ namespace MisterGames.Blueprints.Validation {
                 Debug.LogError($"Blueprint `{blueprint.name}`: " +
                                $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
                                $"ports have same direction.");
-                return false;
-            }
-
-            if (toPort.Signature == null) {
-                Debug.LogError($"Blueprint `{blueprint.name}`: " +
-                               $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
-                               $"source dynamic-func input port cannot have link to the any-output port.");
                 return false;
             }
 
@@ -399,8 +351,6 @@ namespace MisterGames.Blueprints.Validation {
                 return false;
             }
 
-            if (toPort.Signature == null) return true;
-
             if (!toPort.IsFunc) {
                 Debug.LogError($"Blueprint `{blueprint.name}`: " +
                                $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
@@ -469,8 +419,6 @@ namespace MisterGames.Blueprints.Validation {
                                $"ports have same direction.");
                 return false;
             }
-
-            if (toPort.Signature == null) return true;
 
             if (fromPort.Signature != toPort.Signature) {
                 Debug.LogError($"Blueprint `{blueprint.name}`: " +

@@ -26,7 +26,6 @@ namespace MisterGames.Blueprints.Nodes {
             Port.AnyFunc(PortMode.Input, _port).External(true),
         };
 
-
         public int GetLinkedPorts(int port, out int count) {
             if (port == 0) {
                 count = 1;
@@ -55,7 +54,7 @@ namespace MisterGames.Blueprints.Nodes {
         }
 
         public void OnPortLinksChanged(BlueprintMeta blueprintMeta, int nodeId, int portIndex) {
-            if (portIndex == 0) blueprintMeta.InvalidateNodePorts(nodeId, invalidateLinks: false, notify: false);
+            if (portIndex == 0) blueprintMeta.InvalidateNodePorts(nodeId, invalidateLinks: true, notify: false);
         }
 
         public void ValidateBlueprint(BlueprintAsset blueprint, int nodeId) {

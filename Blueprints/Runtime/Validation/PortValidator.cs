@@ -12,16 +12,18 @@ namespace MisterGames.Blueprints.Validation {
             // External ports are hidden and cannot have connections
             if (a.IsExternal || b.IsExternal) return false;
 
+            // Disabled ports cannot have connections
+            if (a.IsDisabled || b.IsDisabled) return false;
+
+            // Ports with null signature are hidden and cannot have connections
+            if (a.Signature == null || b.Signature == null) return false;
+
             // In a blueprint graph port views are compatible to create connections
             // only if they have different directions, which is defined by layout
             if (a.IsLeftLayout == b.IsLeftLayout) return false;
 
             // Ports with same PortMode (Input/Output) are not compatible
             if (a.IsInput == b.IsInput) return false;
-
-            // Port with null signature is compatible with any other port that has concrete signature
-            if (a.Signature == null) return b.Signature != null && !b.IsAnyAction && !b.IsAnyFunc && !b.IsDynamicFunc;
-            if (b.Signature == null) return a.Signature != null && !a.IsAnyAction && !a.IsAnyFunc && !a.IsDynamicFunc;
 
             if (a.IsAction) {
                 if (!b.IsAction) return false;
@@ -103,8 +105,8 @@ namespace MisterGames.Blueprints.Validation {
 
             if (port.Signature == null) {
                 return port.IsInput
-                    ? ValidateAnyInputPort(blueprint, nodeMeta, portIndex)
-                    : ValidateAnyOutputPort(blueprint, nodeMeta, portIndex);
+                    ? ValidateNullSignatureInputPort(blueprint, nodeMeta, portIndex)
+                    : ValidateNullSignatureOutputPort(blueprint, nodeMeta, portIndex);
             }
 
             if (port.IsAction) {
@@ -142,42 +144,22 @@ namespace MisterGames.Blueprints.Validation {
                 : ValidateCustomOutputPort(blueprint, nodeMeta, portIndex);
         }
 
-        private static bool ValidateAnyInputPort(BlueprintAsset blueprint, BlueprintNodeMeta nodeMeta, int portIndex) {
+        private static bool ValidateNullSignatureInputPort(BlueprintAsset blueprint, BlueprintNodeMeta nodeMeta, int portIndex) {
             if (portIndex < 0 || portIndex > nodeMeta.Ports.Length - 1) {
                 Debug.LogError($"Blueprint `{blueprint.name}`: " +
                                $"Validation failed for any-input port {portIndex} of node {nodeMeta}: " +
                                $"{nodeMeta} has no port with index {portIndex}.");
-                return false;
-            }
-
-            var node = nodeMeta.Node;
-
-            if (node is not IBlueprintPortLinker) {
-                Debug.LogError($"Blueprint `{blueprint.name}`: " +
-                               $"Validation failed for any-input port {portIndex} of node {nodeMeta}: " +
-                               $"node class {node.GetType().Name} does not implement interface " +
-                               $"{nameof(IBlueprintPortLinker)}.");
                 return false;
             }
 
             return true;
         }
 
-        private static bool ValidateAnyOutputPort(BlueprintAsset blueprint, BlueprintNodeMeta nodeMeta, int portIndex) {
+        private static bool ValidateNullSignatureOutputPort(BlueprintAsset blueprint, BlueprintNodeMeta nodeMeta, int portIndex) {
             if (portIndex < 0 || portIndex > nodeMeta.Ports.Length - 1) {
                 Debug.LogError($"Blueprint `{blueprint.name}`: " +
                                $"Validation failed for any-output port {portIndex} of node {nodeMeta}: " +
                                $"{nodeMeta} has no port with index {portIndex}.");
-                return false;
-            }
-
-            var node = nodeMeta.Node;
-
-            if (node is not IBlueprintPortLinker) {
-                Debug.LogError($"Blueprint `{blueprint.name}`: " +
-                               $"Validation failed for any-output port {portIndex} of node {nodeMeta}: " +
-                               $"node class {node.GetType().Name} does not implement interface " +
-                               $"{nameof(IBlueprintPortLinker)}.");
                 return false;
             }
 

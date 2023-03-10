@@ -69,7 +69,7 @@ namespace MisterGames.Blueprints.Editor.Core {
         public void CreatePortViews(IEdgeConnectorListener connectorListener) {
             var portViewsCreationData = nodeMeta.Ports
                 .Select((port, index) => new PortViewCreationData { portIndex = index, port = port })
-                .Where(data => !data.port.IsExternal)
+                .Where(data => !data.port.IsExternal && data.port.Signature != null)
                 .OrderByDescending(d => d.port.IsInput)
                 .ThenBy(d => d.portIndex)
                 .ToArray();
@@ -98,8 +98,6 @@ namespace MisterGames.Blueprints.Editor.Core {
         }
 
         private void CreatePortView(PortViewCreationData data, IEdgeConnectorListener connectorListener) {
-            if (data.port.IsExternal) return;
-
             var direction = data.port.IsLeftLayout ? Direction.Input : Direction.Output;
             var capacity = data.port.IsMultiple ? PortView.Capacity.Multi : PortView.Capacity.Single;
             var container = direction == Direction.Input ? inputContainer : outputContainer;
@@ -109,6 +107,8 @@ namespace MisterGames.Blueprints.Editor.Core {
 
             portView.portName = BlueprintNodeMetaUtils.GetFormattedPortName(data.portIndex, data.port, richText: true);
             portView.portColor = BlueprintNodeMetaUtils.GetPortColor(data.port);
+
+            if (data.port.IsDisabled) portView.capabilities &= ~Capabilities.Selectable;
 
             container.Add(portView);
 
