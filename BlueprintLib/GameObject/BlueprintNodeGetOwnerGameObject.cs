@@ -5,11 +5,11 @@ using UnityEngine;
 namespace MisterGames.BlueprintLib {
 
     [Serializable]
-    [BlueprintNodeMeta(Name = "Get Owner GameObject", Category = "Blueprint Runner", Color = BlueprintColors.Node.Data)]
+    [BlueprintNodeMeta(Name = "Get Owner GameObject", Category = "GameObject", Color = BlueprintColors.Node.Data)]
     public sealed class BlueprintNodeGetOwnerGameObject : BlueprintNode, IBlueprintOutput<GameObject> {
         
         public override Port[] CreatePorts() => new[] {
-            Port.Output<GameObject>("GameObject"),
+            Port.Func<GameObject>(PortDirection.Output, "GameObject"),
         };
 
         private MonoBehaviour _runner;

@@ -10,16 +10,16 @@ namespace MisterGames.BlueprintLib {
     [BlueprintNodeMeta(Name = "Delay", Category = "Time", Color = BlueprintColors.Node.Time)]
     public sealed class BlueprintNodeDelay : BlueprintNode, IBlueprintEnter {
         
-        [SerializeField] private float _defaultDuration;
+        [SerializeField] private float _duration;
 
         private CancellationTokenSource _terminateCts;
         private CancellationTokenSource _cancelCts;
 
         public override Port[] CreatePorts() => new[] {
-            Port.Enter("Start"),
-            Port.Enter("Cancel"),
-            Port.Input<float>("Duration"),
-            Port.Exit("On Finish"),
+            Port.Action(PortDirection.Input, "Start"),
+            Port.Action(PortDirection.Input, "Cancel"),
+            Port.Func<float>(PortDirection.Input, "Duration"),
+            Port.Action(PortDirection.Output, "On Finish"),
         };
 
         public override void OnInitialize(IBlueprintHost host) {
@@ -36,10 +36,12 @@ namespace MisterGames.BlueprintLib {
 
         public void OnEnterPort(int port) {
             if (port == 0) {
+                _cancelCts?.Cancel();
+                _cancelCts?.Dispose();
                 _cancelCts ??= new CancellationTokenSource();
                 var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_cancelCts.Token, _terminateCts.Token);
 
-                float duration = ReadInputPort(2, _defaultDuration);
+                float duration = Ports[2].Get(_duration);
                 DelayAndExitAsync(duration, linkedCts.Token).Forget();
                 return;
             }
@@ -58,7 +60,7 @@ namespace MisterGames.BlueprintLib {
 
             if (isCancelled) return;
 
-            CallExitPort(3);
+            Ports[3].Call();
         }
     }
 

@@ -12,13 +12,13 @@ namespace MisterGames.BlueprintLib {
         [SerializeField] private string _b;
 
         public override Port[] CreatePorts() => new[] {
-            Port.Input<string>("A"),
-            Port.Input<string>("B"),
-            Port.Output<string>()
+            Port.Func<string>(PortDirection.Input, "A"),
+            Port.Func<string>(PortDirection.Input, "B"),
+            Port.Func<string>(PortDirection.Output)
         };
 
         public string GetOutputPortValue(int port) => port switch {
-            2 => $"{ReadInputPort(0, _a)}{ReadInputPort(1, _b)}",
+            2 => $"{Ports[0].Get(_a)}{Ports[1].Get(_b)}",
             _ => ""
         };
     }

@@ -8,23 +8,24 @@ namespace MisterGames.BlueprintLib {
     [BlueprintNodeMeta(Name = "Set Position", Category = "Actions", Color = BlueprintColors.Node.Actions)]
     public sealed class BlueprintNodeSetPosition : BlueprintNode, IBlueprintEnter {
 
-        [SerializeField] private Vector3 _defaultPosition;
+        [SerializeField] private Vector3 _position;
 
         public override Port[] CreatePorts() => new[] {
-            Port.Enter(),
-            Port.Input<GameObject>("GameObject"),
-            Port.Input<Vector3>("Position"),
-            Port.Exit(),
+            Port.Action(PortDirection.Input),
+            Port.Func<Transform>(PortDirection.Input, "Transform"),
+            Port.Func<Vector3>(PortDirection.Input, "Position"),
+            Port.Action(PortDirection.Output),
         };
 
         public void OnEnterPort(int port) {
             if (port != 0) return;
 
-            var gameObject = ReadInputPort<GameObject>(1);
-            var position = ReadInputPort(2, _defaultPosition);
-            gameObject.transform.position = position;
+            var transform = Ports[1].Get<Transform>();
+            var position = Ports[2].Get(_position);
 
-            CallExitPort(3);
+            if (transform != null) transform.position = position;
+
+            Ports[3].Call();
         }
     }
 

@@ -1,6 +1,5 @@
 ﻿using System;
 using MisterGames.Blueprints;
-using UnityEngine;
 using UnityEngine.Profiling;
 
 namespace MisterGames.BlueprintLib {
@@ -10,15 +9,15 @@ namespace MisterGames.BlueprintLib {
     public sealed class BlueprintNodeProfilerEndSample : BlueprintNode, IBlueprintEnter {
 
         public override Port[] CreatePorts() => new[] {
-            Port.Enter(),
-            Port.Exit(),
+            Port.Action(PortDirection.Input),
+            Port.Action(PortDirection.Output),
         };
 
         public void OnEnterPort(int port) {
             if (port != 0) return;
 
             Profiler.EndSample();
-            CallExitPort(1);
+            Ports[1].Call();
         }
     }
 

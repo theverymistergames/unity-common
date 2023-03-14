@@ -18,11 +18,12 @@ namespace MisterGames.BlueprintLib {
         private CancellationTokenSource _cancelCts;
         
         public override Port[] CreatePorts() => new[] {
-            Port.Enter("Start"),
-            Port.Enter("Cancel"),
-            Port.Input<float>("Period"),
-            Port.Input<int>("Times"),
-            Port.Exit("On Period"),
+            Port.Action(PortDirection.Input, "Start"),
+            Port.Action(PortDirection.Input, "Cancel"),
+            Port.Func<float>(PortDirection.Input, "Period"),
+            Port.Func<int>(PortDirection.Input, "Times"),
+            Port.Action(PortDirection.Output, "On Period"),
+            Port.Action(PortDirection.Output, "On Finish"),
         };
 
         public override void OnInitialize(IBlueprintHost host) {
@@ -39,11 +40,13 @@ namespace MisterGames.BlueprintLib {
 
         public void OnEnterPort(int port) {
             if (port == 0) {
+                _cancelCts?.Cancel();
+                _cancelCts?.Dispose();
                 _cancelCts ??= new CancellationTokenSource();
                 var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_cancelCts.Token, _terminateCts.Token);
 
-                float period = ReadInputPort(2, _period);
-                int times = ReadInputPort(3, _times);
+                float period = Ports[2].Get(_period);
+                int times = Ports[3].Get(_times);
 
                 ScheduleAsync(period, times, _isInfinite, linkedCts.Token).Forget();
                 return;
@@ -58,8 +61,9 @@ namespace MisterGames.BlueprintLib {
 
         private async UniTaskVoid ScheduleAsync(float period, int times, bool isInfinite, CancellationToken token) {
             int timesCounter = 0;
+
             while (!token.IsCancellationRequested) {
-                if (!isInfinite && timesCounter >= times) return;
+                if (!isInfinite && timesCounter >= times) break;
 
                 bool isCancelled = await UniTask
                     .Delay(TimeSpan.FromSeconds(period), cancellationToken: token)
@@ -68,8 +72,12 @@ namespace MisterGames.BlueprintLib {
                 if (isCancelled) return;
 
                 timesCounter++;
-                CallExitPort(5);
+                Ports[4].Call();
             }
+
+            if (token.IsCancellationRequested) return;
+
+            Ports[5].Call();
         }
     }
 

@@ -12,14 +12,13 @@ namespace MisterGames.BlueprintLib {
     [BlueprintNodeMeta(Name = "Scene Transaction", Category = "Scenes", Color = BlueprintLibColors.Node.Scenes)]
     public sealed class BlueprintNodeSceneTransaction : BlueprintNode, IBlueprintEnter {
         
-        [SerializeReference] [SubclassSelector]
-        private ISceneTransaction _sceneTransaction;
+        [SerializeReference] [SubclassSelector] private ISceneTransaction _sceneTransaction;
 
         private CancellationTokenSource _terminateCts;
 
         public override Port[] CreatePorts() => new[] {
-            Port.Enter("Perform"),
-            Port.Exit("On Finish"),
+            Port.Action(PortDirection.Input, "Perform"),
+            Port.Action(PortDirection.Output, "On Finish"),
         };
 
         public override void OnInitialize(IBlueprintHost host) {
@@ -40,7 +39,8 @@ namespace MisterGames.BlueprintLib {
         private async UniTaskVoid CommitTransactionAndExitAsync(CancellationToken token) {
             await _sceneTransaction.Commit();
             if (token.IsCancellationRequested) return;
-            CallExitPort(1);
+
+            Ports[1].Call();
         }
     }
 

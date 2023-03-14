@@ -20,15 +20,15 @@ namespace MisterGames.BlueprintLib {
         }
 
         public override Port[] CreatePorts() => new[] {
-            Port.Enter(),
-            Port.Input<string>("Text"),
-            Port.Exit(),
+            Port.Action(PortDirection.Input),
+            Port.Func<string>(PortDirection.Input, "Text"),
+            Port.Action(PortDirection.Output),
         };
 
         public void OnEnterPort(int port) {
             if (port != 0) return;
 
-            string text = ReadInputPort(1, _defaultText);
+            string text = Ports[1].Get(_defaultText);
             string formatText = $"<color=#{ColorUtility.ToHtmlStringRGB(_color)}>{text}</color>";
 
             switch (_level) {
@@ -46,7 +46,7 @@ namespace MisterGames.BlueprintLib {
                     break;
             }
 
-            CallExitPort(2);
+            Ports[2].Call();
         }
     }
 

@@ -13,7 +13,7 @@ namespace MisterGames.BlueprintLib {
         [SerializeField] private Pair<ScenarioEvent, bool>[] _events;
 
         public override Port[] CreatePorts() => new[] {
-            Port.Output<bool>()
+            Port.Func<bool>(PortDirection.Output)
         };
 
         public bool GetOutputPortValue(int port) {

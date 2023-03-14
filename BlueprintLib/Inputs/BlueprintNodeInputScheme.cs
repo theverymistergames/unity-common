@@ -13,23 +13,23 @@ namespace MisterGames.BlueprintLib {
         [SerializeField] private InputScheme _scheme;
 
         public override Port[] CreatePorts() => new[] {
-            Port.Enter("Activate"),
-            Port.Enter("Deactivate"),
-            Port.Exit(),
+            Port.Action(PortDirection.Input, "Activate"),
+            Port.Action(PortDirection.Input, "Deactivate"),
+            Port.Action(PortDirection.Output),
         };
 
         public void OnEnterPort(int port) {
             switch (port) {
                 case 0:
                     _channel.ActivateInputScheme(_scheme);
-                    CallExitPort(2);
                     break;
 
                 case 1:
                     _channel.DeactivateInputScheme(_scheme);
-                    CallExitPort(2);
                     break;
             }
+
+            Ports[2].Call();
         }
     }
 

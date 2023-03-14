@@ -12,15 +12,15 @@ namespace MisterGames.BlueprintLib {
         [SerializeField] private string _sampleName;
 
         public override Port[] CreatePorts() => new[] {
-            Port.Enter(),
-            Port.Exit(),
+            Port.Action(PortDirection.Input),
+            Port.Action(PortDirection.Output),
         };
 
         public void OnEnterPort(int port) {
             if (port != 0) return;
 
             Profiler.BeginSample(_sampleName);
-            CallExitPort(1);
+            Ports[1].Call();
         }
     }
 

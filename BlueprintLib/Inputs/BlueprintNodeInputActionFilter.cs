@@ -12,23 +12,23 @@ namespace MisterGames.BlueprintLib {
         [SerializeField] private InputActionFilter _filter;
 
         public override Port[] CreatePorts() => new[] {
-            Port.Enter("Apply"),
-            Port.Enter("Release"),
-            Port.Exit(),
+            Port.Action(PortDirection.Input, "Apply"),
+            Port.Action(PortDirection.Input, "Release"),
+            Port.Action(PortDirection.Output),
         };
 
         public void OnEnterPort(int port) {
             switch (port) {
                 case 0:
                     _filter.Apply();
-                    CallExitPort(2);
                     break;
 
                 case 1:
                     _filter.Release();
-                    CallExitPort(2);
                     break;
             }
+
+            Ports[2].Call();
         }
     }
 

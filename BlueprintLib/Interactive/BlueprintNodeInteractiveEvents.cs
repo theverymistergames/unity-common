@@ -18,12 +18,12 @@ namespace MisterGames.BlueprintLib {
         [SerializeField] private bool _autoSetInteractiveOnStart = true;
 
         public override Port[] CreatePorts() => new[] {
-            Port.Enter("Set Interactive"),
-            Port.Input<Interactive>("Interactive"),
-            Port.Exit("On Start Interact"),
-            Port.Exit("On Stop Interact"),
-            Port.Output<bool>("Is Interacting"),
-            Port.Output<InteractiveUser>("User"),
+            Port.Action(PortDirection.Input, "Set Interactive"),
+            Port.Func<Interactive>(PortDirection.Input, "Interactive"),
+            Port.Action(PortDirection.Output, "On Start Interact"),
+            Port.Action(PortDirection.Output, "On Stop Interact"),
+            Port.Func<bool>(PortDirection.Output, "Is Interacting"),
+            Port.Func<InteractiveUser>(PortDirection.Output, "User"),
         };
 
         private Interactive _interactive;
@@ -32,7 +32,7 @@ namespace MisterGames.BlueprintLib {
         public void OnStart() {
             if (!_autoSetInteractiveOnStart) return;
 
-            _interactive = ReadInputPort<Interactive>(1);
+            _interactive = Ports[1].Get<Interactive>();
 
             _interactive.OnStartInteract += OnStartInteract;
             _interactive.OnStopInteract += OnStopInteract;
@@ -53,7 +53,7 @@ namespace MisterGames.BlueprintLib {
                 _interactive.OnStopInteract -= OnStopInteract;
             }
 
-            _interactive = ReadInputPort<Interactive>(1);
+            _interactive = Ports[1].Get<Interactive>();
 
             _interactive.OnStartInteract += OnStartInteract;
             _interactive.OnStopInteract += OnStopInteract;
@@ -61,12 +61,12 @@ namespace MisterGames.BlueprintLib {
 
         private void OnStartInteract(InteractiveUser obj) {
             _currentUser = obj;
-            CallExitPort(2);
+            Ports[2].Call();
         }
 
         private void OnStopInteract() {
             _currentUser = null;
-            CallExitPort(3);
+            Ports[3].Call();
         }
 
         bool IBlueprintOutput<bool>.GetOutputPortValue(int port) => port switch {
