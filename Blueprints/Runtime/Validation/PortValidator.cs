@@ -67,6 +67,15 @@ namespace MisterGames.Blueprints.Validation {
                     // Func<> is not compatible with Func<>
                     if (a.IsDynamicFunc) return !b.IsDynamicFunc;
                     if (b.IsDynamicFunc) return true;
+
+                    var aReturnType = a.Signature.GetGenericArguments()[0];
+                    var bReturnType = b.Signature.GetGenericArguments()[0];
+
+                    if (aReturnType.IsSubclassOf(typeof(object)) || aReturnType.IsInterface) {
+                        return a.IsInput ? aReturnType.IsAssignableFrom(bReturnType) : bReturnType.IsAssignableFrom(aReturnType);
+                    }
+
+                    return aReturnType == bReturnType;
                 }
 
                 // Port a signature: System.Func<...>, compatible with same signature Func<...> ports
