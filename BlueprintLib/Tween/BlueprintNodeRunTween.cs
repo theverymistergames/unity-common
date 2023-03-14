@@ -12,8 +12,8 @@ namespace MisterGames.BlueprintLib {
     [BlueprintNodeMeta(Name = "Run Tween", Category = "Tweens", Color = BlueprintColors.Node.Actions)]
     public sealed class BlueprintNodeRunTween : BlueprintNode, IBlueprintEnter, IBlueprintStart {
 
+        [SerializeField] private bool _autoInitOnStart = true;
         [SerializeField] private bool _autoInvertNextPlay = true;
-        [SerializeField] private bool _autoSetTweenOnStart = true;
 
         private CancellationTokenSource _destroyCts;
         private CancellationTokenSource _pauseCts;
@@ -24,14 +24,14 @@ namespace MisterGames.BlueprintLib {
         private MonoBehaviour _runner;
 
         public override Port[] CreatePorts() => new[] {
-            Port.Enter("Play"),
-            Port.Enter("Pause"),
-            Port.Enter("Wind"),
-            Port.Enter("Rewind"),
-            Port.Enter("Invert"),
-            Port.Enter("Set Tween"),
-            Port.Input<ITween>("Tween"),
-            Port.Exit("On Finish"),
+            Port.Action(PortDirection.Input, "Init"),
+            Port.Action(PortDirection.Input, "Play"),
+            Port.Action(PortDirection.Input, "Pause"),
+            Port.Action(PortDirection.Input, "Wind"),
+            Port.Action(PortDirection.Input, "Rewind"),
+            Port.Action(PortDirection.Input, "Invert"),
+            Port.Create(PortDirection.Input, "Tweens", typeof(IBlueprintNodeTween)).Layout(PortLayout.Right).Capacity(PortCapacity.Multiple),
+            Port.Action(PortDirection.Output, "On Finish"),
         };
 
         public override void OnInitialize(IBlueprintHost host) {
@@ -42,20 +42,35 @@ namespace MisterGames.BlueprintLib {
         public override void OnDeInitialize() {
             _destroyCts.Cancel();
             _destroyCts.Dispose();
-
-            _tween?.DeInitialize();
         }
 
         public void OnStart() {
-            if (!_autoSetTweenOnStart) return;
+            if (!_autoInitOnStart) return;
 
-            _tween = ReadInputPort<ITween>(6);
-            _tween.Initialize(_runner);
+            var links = Ports[6].links;
+            for (int i = 0; i < links.Count; i++) {
+                if (links[i].node is IBlueprintNodeTween t) t.SetupTween();
+            }
+
+            _tween = BlueprintTweenConverter.AsTween(links);
+            _tween?.Initialize(_runner);
         }
 
         public void OnEnterPort(int port) {
             switch (port) {
                 case 0:
+                    _tween?.DeInitialize();
+
+                    var links = Ports[6].links;
+                    for (int i = 0; i < links.Count; i++) {
+                        if (links[i].node is IBlueprintNodeTween t) t.SetupTween();
+                    }
+
+                    _tween = BlueprintTweenConverter.AsTween(links);
+                    _tween?.Initialize(_runner);
+                    break;
+
+                case 1:
                     if (_tween != null) {
                         if (_autoInvertNextPlay && _isPlayCalledOnce) {
                             _isInverted = !_isInverted;
@@ -67,33 +82,25 @@ namespace MisterGames.BlueprintLib {
                     }
                     break;
                 
-                case 1:
-                    _pauseCts?.Cancel();
-                    break;
-                
                 case 2:
                     _pauseCts?.Cancel();
-                    _tween?.Wind();
                     break;
                 
                 case 3:
                     _pauseCts?.Cancel();
+                    _tween?.Wind();
+                    break;
+                
+                case 4:
+                    _pauseCts?.Cancel();
                     _tween?.Rewind();
                     break;
 
-                case 4:
+                case 5:
                     if (_tween != null) {
                         _isInverted = !_isInverted;
                         _tween.Invert(_isInverted);
                     }
-                    break;
-
-                case 5:
-                    _pauseCts?.Cancel();
-                    _tween?.DeInitialize();
-
-                    _tween = ReadInputPort<ITween>(6);
-                    _tween.Initialize(_runner);
                     break;
             }
         }
@@ -105,10 +112,10 @@ namespace MisterGames.BlueprintLib {
 
             var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_pauseCts.Token, token);
             await _tween.Play(linkedCts.Token);
-            
+
             if (linkedCts.IsCancellationRequested) return;
 
-            CallExitPort(7);
+            Ports[7].Call();
         }
     }
 

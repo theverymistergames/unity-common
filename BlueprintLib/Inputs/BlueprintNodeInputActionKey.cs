@@ -14,14 +14,14 @@ namespace MisterGames.BlueprintLib {
         [SerializeField] private InputActionKey _inputActionKey;
 
         public override Port[] CreatePorts() => new[] {
-            Port.Input<InputActionKey>(),
-            Port.Exit("On Use"),
-            Port.Exit("On Press"),
-            Port.Exit("On Release"),
+            Port.Func<InputActionKey>(PortDirection.Input),
+            Port.Action(PortDirection.Output, "On Use"),
+            Port.Action(PortDirection.Output, "On Press"),
+            Port.Action(PortDirection.Output, "On Release"),
         };
 
         public void OnStart() {
-            _inputActionKey = ReadInputPort(0, _inputActionKey);
+            _inputActionKey = Ports[0].Get(_inputActionKey);
 
 #if UNITY_EDITOR
             if (!Application.isPlaying && InputUpdater.TryStartEditorInputUpdater(this, out var inputChannel)) {
@@ -47,15 +47,15 @@ namespace MisterGames.BlueprintLib {
         }
 
         private void OnUse() {
-            CallExitPort(1);
+            Ports[1].Call();
         }
 
         private void OnPress() {
-            CallExitPort(2);
+            Ports[2].Call();
         }
 
         private void OnRelease() {
-            CallExitPort(3);
+            Ports[3].Call();
         }
     }
 

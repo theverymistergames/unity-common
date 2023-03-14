@@ -4,30 +4,23 @@ using MisterGames.Blueprints;
 using MisterGames.Blueprints.Compile;
 using MisterGames.Tweens;
 using MisterGames.Tweens.Core;
-using UnityEngine;
 
 namespace MisterGames.BlueprintLib {
 
     [Serializable]
-    [BlueprintNodeMeta(Name = "Delay Tween", Category = "Tweens", Color = BlueprintColors.Node.Actions)]
-    public sealed class BlueprintNodeDelayTween : BlueprintNode, IBlueprintNodeTween {
+    [BlueprintNodeMeta(Name = "Custom Tween", Category = "Tweens", Color = BlueprintColors.Node.Actions)]
+    public sealed class BlueprintNodeCustomTween : BlueprintNode, IBlueprintNodeTween {
 
-        [SerializeField] [Min(0f)] private float _duration;
-
-        public ITween Tween => _tween;
+        public ITween Tween => Ports[2].Get<ITween>();
         public List<RuntimeLink> NextLinks => Ports[1].links;
-
-        private readonly DelayTween _tween = new DelayTween();
 
         public override Port[] CreatePorts() => new[] {
             Port.Create(PortDirection.Output, "Self", typeof(IBlueprintNodeTween)).Layout(PortLayout.Left).Capacity(PortCapacity.Single),
             Port.Create(PortDirection.Input, "Next Tweens", typeof(IBlueprintNodeTween)).Layout(PortLayout.Right).Capacity(PortCapacity.Multiple),
-            Port.Func<float>(PortDirection.Input, "Duration"),
+            Port.Func<ITweenInstantAction>(PortDirection.Input),
         };
 
-        public void SetupTween() {
-            _tween.duration = Mathf.Max(0f, Ports[2].Get(_duration));
-        }
+        public void SetupTween() { }
     }
 
 }
