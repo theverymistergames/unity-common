@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Attributes;
@@ -10,27 +11,27 @@ namespace MisterGames.Tweens {
     [Serializable]
     public sealed class TweenSequence : ITween {
 
+        [SerializeReference] [SubclassSelector] public List<ITween> tweens;
         public bool loop;
         public bool yoyo;
-        [SerializeReference] [SubclassSelector] public ITween[] tweens;
 
         private bool _isInverted;
         private int _currentTweenIndex;
 
         public void Initialize(MonoBehaviour owner) {
-            for (int i = 0; i < tweens.Length; i++) {
+            for (int i = 0; i < tweens.Count; i++) {
                 tweens[i].Initialize(owner);
             }
         }
 
         public void DeInitialize() {
-            for (int i = 0; i < tweens.Length; i++) {
+            for (int i = 0; i < tweens.Count; i++) {
                 tweens[i].DeInitialize();
             }
         }
 
         public async UniTask Play(CancellationToken token) {
-            if (tweens.Length == 0) return;
+            if (tweens.Count == 0) return;
 
             while (!token.IsCancellationRequested) {
                 var tween = tweens[_currentTweenIndex];
@@ -56,7 +57,7 @@ namespace MisterGames.Tweens {
                     break;
                 }
 
-                if (_currentTweenIndex + 1 < tweens.Length) {
+                if (_currentTweenIndex + 1 < tweens.Count) {
                     _currentTweenIndex++;
                     continue;
                 }
@@ -76,17 +77,17 @@ namespace MisterGames.Tweens {
         }
 
         public void Wind(bool reportProgress = true) {
-            if (tweens.Length == 0) return;
+            if (tweens.Count == 0) return;
 
-            for (int i = _currentTweenIndex; i < tweens.Length; i++) {
+            for (int i = _currentTweenIndex; i < tweens.Count; i++) {
                 tweens[i].Wind(reportProgress);
             }
 
-            _currentTweenIndex = tweens.Length - 1;
+            _currentTweenIndex = tweens.Count - 1;
         }
 
         public void Rewind(bool reportProgress = true) {
-            if (tweens.Length == 0) return;
+            if (tweens.Count == 0) return;
 
             for (int i = _currentTweenIndex; i >= 0; i--) {
                 tweens[i].Rewind(reportProgress);
@@ -96,7 +97,7 @@ namespace MisterGames.Tweens {
         }
 
         public void Invert(bool isInverted) {
-            if (tweens.Length == 0) return;
+            if (tweens.Count == 0) return;
 
             tweens[_currentTweenIndex].Invert(isInverted);
             _isInverted = isInverted;

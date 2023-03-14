@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Attributes;
@@ -10,49 +11,57 @@ namespace MisterGames.Tweens {
     [Serializable]
     public sealed class TweenParallel : ITween {
 
-        [SerializeReference] [SubclassSelector] private ITween[] _tweens;
+        [SerializeReference] [SubclassSelector] public List<ITween> tweens;
 
         private UniTask[] _tasks;
 
         public void Initialize(MonoBehaviour owner) {
-            _tasks = new UniTask[_tweens.Length];
+            int count = tweens.Count;
 
-            for (int i = 0; i < _tweens.Length; i++) {
-                _tweens[i].Initialize(owner);
+            for (int i = 0; i < count; i++) {
+                tweens[i].Initialize(owner);
             }
+
+            if (count > 1) _tasks = new UniTask[count];
         }
 
         public void DeInitialize() {
-            for (int i = 0; i < _tweens.Length; i++) {
-                _tweens[i].DeInitialize();
+            for (int i = 0; i < tweens.Count; i++) {
+                tweens[i].DeInitialize();
             }
         }
 
         public async UniTask Play(CancellationToken token) {
-            if (_tweens.Length == 0) return;
+            int count = tweens.Count;
+            if (count == 0) return;
 
-            for (int i = 0; i < _tweens.Length; i++) {
-                _tasks[i] = _tweens[i].Play(token);
+            if (count == 1) {
+                await tweens[0].Play(token);
+                return;
+            }
+
+            for (int i = 0; i < count; i++) {
+                _tasks[i] = tweens[i].Play(token);
             }
 
             await UniTask.WhenAll(_tasks);
         }
 
         public void Wind(bool reportProgress = true) {
-            for (int i = 0; i < _tweens.Length; i++) {
-                _tweens[i].Wind(reportProgress);
+            for (int i = 0; i < tweens.Count; i++) {
+                tweens[i].Wind(reportProgress);
             }
         }
 
         public void Rewind(bool reportProgress = true) {
-            for (int i = 0; i < _tweens.Length; i++) {
-                _tweens[i].Rewind(reportProgress);
+            for (int i = 0; i < tweens.Count; i++) {
+                tweens[i].Rewind(reportProgress);
             }
         }
 
         public void Invert(bool isInverted) {
-            for (int i = 0; i < _tweens.Length; i++) {
-                _tweens[i].Invert(isInverted);
+            for (int i = 0; i < tweens.Count; i++) {
+                tweens[i].Invert(isInverted);
             }
         }
     }
