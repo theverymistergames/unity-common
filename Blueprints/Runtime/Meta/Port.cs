@@ -1,4 +1,5 @@
 ﻿using System;
+using MisterGames.Blueprints.Meta;
 using MisterGames.Common.Data;
 using UnityEngine;
 
@@ -9,24 +10,7 @@ namespace MisterGames.Blueprints {
 
         [SerializeField] private string _name;
         [SerializeField] private SerializedType _signature;
-        [SerializeField] private PortSettings _settings;
-
-        [Flags]
-        private enum PortSettings {
-            None = 0,
-
-            Input = 1,
-
-            CapacitySingle = 2,
-            CapacityMultiple = 4,
-
-            LayoutLeft = 8,
-            LayoutRight = 16,
-
-            External = 32,
-
-            Disabled = 64,
-        }
+        [SerializeField] private PortMode _mode;
 
         private sealed class Null {}
 
@@ -37,19 +21,19 @@ namespace MisterGames.Blueprints {
             private set => _signature = new SerializedType(value);
         }
 
-        internal bool IsInput => _settings.HasFlag(PortSettings.Input);
-        internal bool IsExternal => _settings.HasFlag(PortSettings.External);
-        internal bool IsDisabled => _settings.HasFlag(PortSettings.Disabled);
+        internal bool IsInput => _mode.HasFlag(PortMode.Input);
+        internal bool IsExternal => _mode.HasFlag(PortMode.External);
+        internal bool IsDisabled => _mode.HasFlag(PortMode.Disabled);
 
         internal bool IsMultiple =>
-            !_settings.HasFlag(PortSettings.CapacitySingle) && !_settings.HasFlag(PortSettings.CapacityMultiple)
+            !_mode.HasFlag(PortMode.CapacitySingle) && !_mode.HasFlag(PortMode.CapacityMultiple)
                 ? _signature == null || !IsInput || IsAction
-                : _settings.HasFlag(PortSettings.CapacityMultiple);
+                : _mode.HasFlag(PortMode.CapacityMultiple);
 
         internal bool IsLeftLayout =>
-            !_settings.HasFlag(PortSettings.LayoutLeft) && !_settings.HasFlag(PortSettings.LayoutRight)
-                ? _settings.HasFlag(PortSettings.Input)
-                : _settings.HasFlag(PortSettings.LayoutLeft);
+            !_mode.HasFlag(PortMode.LayoutLeft) && !_mode.HasFlag(PortMode.LayoutRight)
+                ? _mode.HasFlag(PortMode.Input)
+                : _mode.HasFlag(PortMode.LayoutLeft);
 
         internal bool IsAction {
             get {
@@ -148,21 +132,21 @@ namespace MisterGames.Blueprints {
         }
 
         internal int GetSignatureHashCode() => HashCode.Combine(
-            _settings,
+            _mode,
             string.IsNullOrWhiteSpace(_name) ? string.Empty : _name.Trim(),
             _signature ?? typeof(Null)
         );
 
         internal Port External(bool isExternal) {
-            if (isExternal) _settings |= PortSettings.External;
-            else _settings &= ~PortSettings.External;
+            if (isExternal) _mode |= PortMode.External;
+            else _mode &= ~PortMode.External;
 
             return this;
         }
 
         public Port Enable(bool isEnabled) {
-            if (isEnabled) _settings &= ~PortSettings.Disabled;
-            else _settings |= PortSettings.Disabled;
+            if (isEnabled) _mode &= ~PortMode.Disabled;
+            else _mode |= PortMode.Disabled;
 
             return this;
         }
@@ -170,17 +154,17 @@ namespace MisterGames.Blueprints {
         public Port Layout(PortLayout layout) {
             switch (layout) {
                 case PortLayout.Default:
-                    _settings &= ~(PortSettings.LayoutLeft | PortSettings.LayoutRight);
+                    _mode &= ~(PortMode.LayoutLeft | PortMode.LayoutRight);
                     break;
 
                 case PortLayout.Left:
-                    _settings &= ~PortSettings.LayoutRight;
-                    _settings |= PortSettings.LayoutLeft;
+                    _mode &= ~PortMode.LayoutRight;
+                    _mode |= PortMode.LayoutLeft;
                     break;
 
                 case PortLayout.Right:
-                    _settings &= ~PortSettings.LayoutLeft;
-                    _settings |= PortSettings.LayoutRight;
+                    _mode &= ~PortMode.LayoutLeft;
+                    _mode |= PortMode.LayoutRight;
                     break;
             }
 
@@ -190,146 +174,147 @@ namespace MisterGames.Blueprints {
         public Port Capacity(PortCapacity capacity) {
             switch (capacity) {
                 case PortCapacity.Default:
-                    _settings &= ~(PortSettings.CapacitySingle | PortSettings.CapacityMultiple);
+                    _mode &= ~(PortMode.CapacitySingle | PortMode.CapacityMultiple);
                     break;
 
                 case PortCapacity.Single:
-                    _settings &= ~PortSettings.CapacityMultiple;
-                    _settings |= PortSettings.CapacitySingle;
+                    _mode &= ~PortMode.CapacityMultiple;
+                    _mode |= PortMode.CapacitySingle;
                     break;
 
                 case PortCapacity.Multiple:
-                    _settings &= ~PortSettings.CapacitySingle;
-                    _settings |= PortSettings.CapacityMultiple;
+                    _mode &= ~PortMode.CapacitySingle;
+                    _mode |= PortMode.CapacityMultiple;
                     break;
             }
 
             return this;
         }
 
-        public static Port Create(PortMode mode, string name = null, Type signature = null) {
-            var settings = mode == PortMode.Input ? PortSettings.Input : PortSettings.None;
-            return new Port { _name = name, _settings = settings, Signature = signature };
+        public static Port Create(PortDirection direction, string name = null, Type signature = null) {
+            var settings = direction == PortDirection.Input ? PortMode.Input : PortMode.None;
+            return new Port { _name = name, _mode = settings, Signature = signature };
         }
 
-        public static Port AnyAction(PortMode mode, string name = null) {
-            return Create(mode, name, typeof(Action<,,,,,,,,,,,,,,,>));
+        public static Port AnyAction(PortDirection direction, string name = null) {
+            return Create(direction, name, typeof(Action<,,,,,,,,,,,,,,,>));
         }
 
-        public static Port AnyFunc(PortMode mode, string name = null) {
-            return Create(mode, name, typeof(Func<,,,,,,,,,,,,,,,,>));
+        public static Port AnyFunc(PortDirection direction, string name = null) {
+            return Create(direction, name, typeof(Func<,,,,,,,,,,,,,,,,>));
         }
 
-        public static Port DynamicFunc(PortMode mode, string name = null, Type returnType = null) {
-            return Create(mode, name, returnType == null ? typeof(Func<>) : typeof(Func<>).MakeGenericType(returnType));
+        public static Port DynamicFunc(PortDirection direction, string name = null, Type returnType = null) {
+            var signature = returnType == null ? typeof(Func<>) : typeof(Func<>).MakeGenericType(returnType);
+            return Create(direction, name, signature);
         }
 
-        public static Port Action(PortMode mode, string name = null) {
-            return Create(mode, name, typeof(Action));
+        public static Port Action(PortDirection direction, string name = null) {
+            return Create(direction, name, typeof(Action));
         }
-        public static Port Action<T>(PortMode mode, string name = null) {
-            return Create(mode, name, typeof(Action<T>));
+        public static Port Action<T>(PortDirection direction, string name = null) {
+            return Create(direction, name, typeof(Action<T>));
         }
-        public static Port Action<T1, T2>(PortMode mode, string name = null) {
-            return Create(mode, name, typeof(Action<T1, T2>));
+        public static Port Action<T1, T2>(PortDirection direction, string name = null) {
+            return Create(direction, name, typeof(Action<T1, T2>));
         }
-        public static Port Action<T1, T2, T3>(PortMode mode, string name = null) {
-            return Create(mode, name, typeof(Action<T1, T2, T3>));
+        public static Port Action<T1, T2, T3>(PortDirection direction, string name = null) {
+            return Create(direction, name, typeof(Action<T1, T2, T3>));
         }
-        public static Port Action<T1, T2, T3, T4>(PortMode mode, string name = null) {
-            return Create(mode, name, typeof(Action<T1, T2, T3, T4>));
+        public static Port Action<T1, T2, T3, T4>(PortDirection direction, string name = null) {
+            return Create(direction, name, typeof(Action<T1, T2, T3, T4>));
         }
-        public static Port Action<T1, T2, T3, T4, T5>(PortMode mode, string name = null) {
-            return Create(mode, name, typeof(Action<T1, T2, T3, T4, T5>));
+        public static Port Action<T1, T2, T3, T4, T5>(PortDirection direction, string name = null) {
+            return Create(direction, name, typeof(Action<T1, T2, T3, T4, T5>));
         }
-        public static Port Action<T1, T2, T3, T4, T5, T6>(PortMode mode, string name = null) {
-            return Create(mode, name, typeof(Action<T1, T2, T3, T4, T5, T6>));
+        public static Port Action<T1, T2, T3, T4, T5, T6>(PortDirection direction, string name = null) {
+            return Create(direction, name, typeof(Action<T1, T2, T3, T4, T5, T6>));
         }
-        public static Port Action<T1, T2, T3, T4, T5, T6, T7>(PortMode mode, string name = null) {
-            return Create(mode, name, typeof(Action<T1, T2, T3, T4, T5, T6, T7>));
+        public static Port Action<T1, T2, T3, T4, T5, T6, T7>(PortDirection direction, string name = null) {
+            return Create(direction, name, typeof(Action<T1, T2, T3, T4, T5, T6, T7>));
         }
-        public static Port Action<T1, T2, T3, T4, T5, T6, T7, T8>(PortMode mode, string name = null) {
-            return Create(mode, name, typeof(Action<T1, T2, T3, T4, T5, T6, T7, T8>));
+        public static Port Action<T1, T2, T3, T4, T5, T6, T7, T8>(PortDirection direction, string name = null) {
+            return Create(direction, name, typeof(Action<T1, T2, T3, T4, T5, T6, T7, T8>));
         }
-        public static Port Action<T1, T2, T3, T4, T5, T6, T7, T8, T9>(PortMode mode, string name = null) {
-            return Create(mode, name, typeof(Action<T1, T2, T3, T4, T5, T6, T7, T8, T9>));
+        public static Port Action<T1, T2, T3, T4, T5, T6, T7, T8, T9>(PortDirection direction, string name = null) {
+            return Create(direction, name, typeof(Action<T1, T2, T3, T4, T5, T6, T7, T8, T9>));
         }
-        public static Port Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(PortMode mode, string name = null) {
-            return Create(mode, name, typeof(Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>));
+        public static Port Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(PortDirection direction, string name = null) {
+            return Create(direction, name, typeof(Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>));
         }
-        public static Port Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(PortMode mode, string name = null) {
-            return Create(mode, name, typeof(Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>));
+        public static Port Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(PortDirection direction, string name = null) {
+            return Create(direction, name, typeof(Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>));
         }
-        public static Port Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(PortMode mode, string name = null) {
-            return Create(mode, name, typeof(Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>));
+        public static Port Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(PortDirection direction, string name = null) {
+            return Create(direction, name, typeof(Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>));
         }
-        public static Port Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(PortMode mode, string name = null) {
-            return Create(mode, name, typeof(Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>));
+        public static Port Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(PortDirection direction, string name = null) {
+            return Create(direction, name, typeof(Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>));
         }
-        public static Port Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(PortMode mode, string name = null) {
-            return Create(mode, name, typeof(Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>));
+        public static Port Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(PortDirection direction, string name = null) {
+            return Create(direction, name, typeof(Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>));
         }
-        public static Port Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>(PortMode mode, string name = null) {
-            return Create(mode, name, typeof(Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>));
+        public static Port Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>(PortDirection direction, string name = null) {
+            return Create(direction, name, typeof(Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>));
         }
-        public static Port Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>(PortMode mode, string name = null) {
-            return Create(mode, name, typeof(Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>));
+        public static Port Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>(PortDirection direction, string name = null) {
+            return Create(direction, name, typeof(Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>));
         }
 
-        public static Port Func<R>(PortMode mode, string name = null) {
-            return Create(mode, name, typeof(Func<R>));
+        public static Port Func<R>(PortDirection direction, string name = null) {
+            return Create(direction, name, typeof(Func<R>));
         }
-        public static Port Func<T, R>(PortMode mode, string name = null) {
-            return Create(mode, name, typeof(Func<T, R>));
+        public static Port Func<T, R>(PortDirection direction, string name = null) {
+            return Create(direction, name, typeof(Func<T, R>));
         }
-        public static Port Func<T1, T2, R>(PortMode mode, string name = null) {
-            return Create(mode, name, typeof(Func<T1, T2, R>));
+        public static Port Func<T1, T2, R>(PortDirection direction, string name = null) {
+            return Create(direction, name, typeof(Func<T1, T2, R>));
         }
-        public static Port Func<T1, T2, T3, R>(PortMode mode, string name = null) {
-            return Create(mode, name, typeof(Func<T1, T2, T3, R>));
+        public static Port Func<T1, T2, T3, R>(PortDirection direction, string name = null) {
+            return Create(direction, name, typeof(Func<T1, T2, T3, R>));
         }
-        public static Port Func<T1, T2, T3, T4, R>(PortMode mode, string name = null) {
-            return Create(mode, name, typeof(Func<T1, T2, T3, T4, R>));
+        public static Port Func<T1, T2, T3, T4, R>(PortDirection direction, string name = null) {
+            return Create(direction, name, typeof(Func<T1, T2, T3, T4, R>));
         }
-        public static Port Func<T1, T2, T3, T4, T5, R>(PortMode mode, string name = null) {
-            return Create(mode, name, typeof(Func<T1, T2, T3, T4, T5, R>));
+        public static Port Func<T1, T2, T3, T4, T5, R>(PortDirection direction, string name = null) {
+            return Create(direction, name, typeof(Func<T1, T2, T3, T4, T5, R>));
         }
-        public static Port Func<T1, T2, T3, T4, T5, T6, R>(PortMode mode, string name = null) {
-            return Create(mode, name, typeof(Func<T1, T2, T3, T4, T5, T6, R>));
+        public static Port Func<T1, T2, T3, T4, T5, T6, R>(PortDirection direction, string name = null) {
+            return Create(direction, name, typeof(Func<T1, T2, T3, T4, T5, T6, R>));
         }
-        public static Port Func<T1, T2, T3, T4, T5, T6, T7, R>(PortMode mode, string name = null) {
-            return Create(mode, name, typeof(Func<T1, T2, T3, T4, T5, T6, T7, R>));
+        public static Port Func<T1, T2, T3, T4, T5, T6, T7, R>(PortDirection direction, string name = null) {
+            return Create(direction, name, typeof(Func<T1, T2, T3, T4, T5, T6, T7, R>));
         }
-        public static Port Func<T1, T2, T3, T4, T5, T6, T7, T8, R>(PortMode mode, string name = null) {
-            return Create(mode, name, typeof(Func<T1, T2, T3, T4, T5, T6, T7, T8, R>));
+        public static Port Func<T1, T2, T3, T4, T5, T6, T7, T8, R>(PortDirection direction, string name = null) {
+            return Create(direction, name, typeof(Func<T1, T2, T3, T4, T5, T6, T7, T8, R>));
         }
-        public static Port Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, R>(PortMode mode, string name = null) {
-            return Create(mode, name, typeof(Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, R>));
+        public static Port Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, R>(PortDirection direction, string name = null) {
+            return Create(direction, name, typeof(Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, R>));
         }
-        public static Port Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, R>(PortMode mode, string name = null) {
-            return Create(mode, name, typeof(Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, R>));
+        public static Port Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, R>(PortDirection direction, string name = null) {
+            return Create(direction, name, typeof(Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, R>));
         }
-        public static Port Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, R>(PortMode mode, string name = null) {
-            return Create(mode, name, typeof(Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, R>));
+        public static Port Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, R>(PortDirection direction, string name = null) {
+            return Create(direction, name, typeof(Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, R>));
         }
-        public static Port Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, R>(PortMode mode, string name = null) {
-            return Create(mode, name, typeof(Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, R>));
+        public static Port Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, R>(PortDirection direction, string name = null) {
+            return Create(direction, name, typeof(Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, R>));
         }
-        public static Port Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, R>(PortMode mode, string name = null) {
-            return Create(mode, name, typeof(Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, R>));
+        public static Port Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, R>(PortDirection direction, string name = null) {
+            return Create(direction, name, typeof(Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, R>));
         }
-        public static Port Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, R>(PortMode mode, string name = null) {
-            return Create(mode, name, typeof(Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, R>));
+        public static Port Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, R>(PortDirection direction, string name = null) {
+            return Create(direction, name, typeof(Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, R>));
         }
-        public static Port Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, R>(PortMode mode, string name = null) {
-            return Create(mode, name, typeof(Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, R>));
+        public static Port Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, R>(PortDirection direction, string name = null) {
+            return Create(direction, name, typeof(Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, R>));
         }
-        public static Port Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, R>(PortMode mode, string name = null) {
-            return Create(mode, name, typeof(Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, R>));
+        public static Port Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, R>(PortDirection direction, string name = null) {
+            return Create(direction, name, typeof(Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, R>));
         }
 
         public bool Equals(Port other) {
-            return _settings == other._settings &&
+            return _mode == other._mode &&
                    (string.IsNullOrWhiteSpace(_name) ? string.IsNullOrWhiteSpace(other._name) : _name == other._name) &&
                    (_signature == null && other._signature == null || _signature == other._signature);
         }
@@ -339,7 +324,7 @@ namespace MisterGames.Blueprints {
         }
 
         public override int GetHashCode() {
-            return HashCode.Combine(_name, _settings, _signature);
+            return HashCode.Combine(_name, _mode, _signature);
         }
 
         public static bool operator ==(Port left, Port right) {

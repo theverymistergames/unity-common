@@ -22,8 +22,8 @@ namespace MisterGames.Blueprints.Nodes {
         [SerializeField] private string _port;
 
         public override Port[] CreatePorts() => new[] {
-            Port.AnyAction(PortMode.Output),
-            Port.AnyAction(PortMode.Input, _port).External(true),
+            Port.AnyAction(PortDirection.Output),
+            Port.AnyAction(PortDirection.Input, _port).External(true),
         };
 
         public int GetLinkedPorts(int port, out int count) {
@@ -49,8 +49,8 @@ namespace MisterGames.Blueprints.Nodes {
             var link = linksFromOutput[0];
             var linkedPort = blueprintMeta.NodesMap[link.nodeId].Ports[link.portIndex];
 
-            ports[0] = Port.Create(PortMode.Output, signature: linkedPort.Signature);
-            ports[1] = Port.Create(PortMode.Input, _port, linkedPort.Signature).External(true);
+            ports[0] = Port.Create(PortDirection.Output, signature: linkedPort.Signature);
+            ports[1] = Port.Create(PortDirection.Input, _port, linkedPort.Signature).External(true);
         }
 
         public void OnPortLinksChanged(BlueprintMeta blueprintMeta, int nodeId, int portIndex) {

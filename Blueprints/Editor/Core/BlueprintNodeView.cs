@@ -70,8 +70,7 @@ namespace MisterGames.Blueprints.Editor.Core {
             var portViewsCreationData = nodeMeta.Ports
                 .Select((port, index) => new PortViewCreationData { portIndex = index, port = port })
                 .Where(data => !data.port.IsExternal && data.port.Signature != null)
-                .OrderByDescending(d => d.port.IsInput)
-                .ThenBy(d => d.portIndex)
+                .OrderBy(d => d.portIndex)
                 .ToArray();
 
             for (int i = 0; i < portViewsCreationData.Length; i++) {
