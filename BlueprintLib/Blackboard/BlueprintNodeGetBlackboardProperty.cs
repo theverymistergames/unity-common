@@ -46,7 +46,7 @@ namespace MisterGames.BlueprintLib {
 
         public void DecoratePorts(BlueprintMeta blueprintMeta, int nodeId, Port[] ports) {
             ports[0] = Port.DynamicFunc(PortDirection.Output, returnType: _dataType).Enable(_dataType != null).Layout(PortLayout.Left);
-            ports[0] = Port.DynamicFunc(PortDirection.Output, returnType: _dataType).Enable(_dataType != null);
+            ports[1] = Port.DynamicFunc(PortDirection.Output, returnType: _dataType).Enable(_dataType != null);
         }
 #endif
     }
