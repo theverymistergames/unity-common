@@ -35,7 +35,6 @@ namespace MisterGames.Blueprints.Editor.Core {
         public BlueprintNodeView(BlueprintNodeMeta nodeMeta, SerializedProperty nodeProperty) : base(GetUxmlPath()) {
             this.nodeMeta = nodeMeta;
             _nodeProperty = nodeProperty;
-            var node = nodeMeta.Node;
 
             viewDataKey = nodeMeta.NodeId.ToString();
 
@@ -50,6 +49,8 @@ namespace MisterGames.Blueprints.Editor.Core {
 
             style.left = nodeMeta.Position.x;
             style.top = nodeMeta.Position.y;
+
+            capabilities &= ~Capabilities.Snappable;
         }
 
         public void DeInitialize() {
@@ -106,8 +107,6 @@ namespace MisterGames.Blueprints.Editor.Core {
 
             portView.portName = BlueprintNodeMetaUtils.GetFormattedPortName(data.portIndex, data.port, richText: true);
             portView.portColor = BlueprintNodeMetaUtils.GetPortColor(data.port);
-
-            if (data.port.IsDisabled) portView.capabilities &= ~Capabilities.Selectable;
 
             container.Add(portView);
 
