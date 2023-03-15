@@ -1,6 +1,5 @@
 ﻿using System;
 using UnityEngine;
-using Type = System.Type;
 
 namespace MisterGames.Common.Data {
 
@@ -9,13 +8,6 @@ namespace MisterGames.Common.Data {
 
         [SerializeField] private string _type;
 
-        private struct SerializedTypeData
-        {
-            public string typeName;
-            public string genericTypeName;
-            public bool isGeneric;
-        }
-
         private SerializedType() { }
 
         public SerializedType(Type type) {
@@ -23,14 +15,7 @@ namespace MisterGames.Common.Data {
         }
 
         public static implicit operator Type(SerializedType serializedType) {
-            if (serializedType is null || 
-                string.IsNullOrEmpty(serializedType._type) || 
-                IsGeneric(serializedType._type)
-            ) {
-                return null;
-            }
-
-            return DeserializeType(serializedType._type);
+            return DeserializeType(serializedType?._type);
         }
 
         public bool Equals(Type other) {
@@ -42,9 +27,7 @@ namespace MisterGames.Common.Data {
         }
 
         public override bool Equals(object obj) {
-            return ReferenceEquals(this, obj) ||
-                   obj is SerializedType otherSerializedType && Equals(otherSerializedType) ||
-                   obj is Type otherType && Equals(otherType);
+            return ReferenceEquals(this, obj) || obj is SerializedType s && Equals(s) || obj is Type t && Equals(t);
         }
 
         public override int GetHashCode() {
@@ -69,91 +52,67 @@ namespace MisterGames.Common.Data {
         }
 
         public override string ToString() {
-            var type = (Type) this;
-            return type is not null ? type.ToString() : "<null>";
+            return ((Type) this)?.ToString();
         }
 
-        public static string SerializeType(Type type) {
-            var data = new SerializedTypeData();
-            if (type == null) return string.Empty;
+        private const string TO_STRIP_START = ", Version";
 
-            data.typeName = string.Empty;
-            data.isGeneric = type.ContainsGenericParameters;
+        private static string SerializeType(Type type) {
+            string typeName = type.AssemblyQualifiedName;
+            if (string.IsNullOrEmpty(typeName)) return null;
 
-            if (data.isGeneric && type.IsGenericType) {
-                data.typeName = ToShortTypeName(type.GetGenericTypeDefinition());
-            }
-            else {
-                int num = data.isGeneric ? type.IsArray ? 1 : 0 : 0;
-                data.typeName = num == 0 ? !data.isGeneric ? ToShortTypeName(type) : "T" : "T[]";
+            for (
+                int i = typeName.IndexOf(TO_STRIP_START, StringComparison.Ordinal);
+                i >= 0;
+                i = typeName.IndexOf(TO_STRIP_START, i, StringComparison.Ordinal)
+            ) {
+                typeName = StripTypeNameString(typeName, i);
             }
 
-            return ToString(data);
+            return typeName;
         }
 
-        public static Type DeserializeType(string type) {
-            try {
-                return Type.GetType(SplitTypeString(type).typeName, true);
+        private static string StripTypeNameString(string str, int startIndex) {
+            int endIndex = startIndex;
+            int commaCounter = 0;
+
+            while (++endIndex < str.Length) {
+                char c = str[endIndex];
+                if (c is ']' || c is ',' && ++commaCounter >= 3) break;
             }
-            catch (TypeLoadException) {
-                return null;
+
+            return startIndex >= endIndex ? str : str.Remove(startIndex, endIndex - startIndex);
+        }
+
+        private static Type DeserializeType(string serializedType) {
+            if (string.IsNullOrEmpty(serializedType)) return null;
+            if (!serializedType.Contains('\n')) return DeserializeTypeDefinition(serializedType);
+
+            ReadOnlySpan<string> serializedTypes = serializedType.Split('\n');
+            if (serializedTypes.Length == 0) return DeserializeTypeDefinition(serializedType);
+
+            var t = DeserializeTypeDefinition(serializedTypes[0]);
+            if (serializedTypes.Length == 1) return t;
+
+            int pointer = 1;
+            return DeserializeGenericTypeRecursively(t, serializedTypes, ref pointer);
+        }
+
+        private static Type DeserializeTypeDefinition(string serializedTypeDefinition) {
+            return string.IsNullOrEmpty(serializedTypeDefinition) ? null : Type.GetType(serializedTypeDefinition, false);
+        }
+
+        private static Type DeserializeGenericTypeRecursively(Type def, ReadOnlySpan<string> serializedTypes, ref int pointer) {
+            var types = def.GetGenericArguments();
+
+            for (int i = 0; i < types.Length; i++) {
+                var t = DeserializeTypeDefinition(serializedTypes[pointer++]);
+                if (t == null) continue;
+
+                types[i] = t.IsGenericType ? DeserializeGenericTypeRecursively(t, serializedTypes, ref pointer) : t;
             }
-        }
 
-        private static string ToString(SerializedTypeData data) {
-            return data.typeName + "#" + data.genericTypeName + "#" + (data.isGeneric ? "1" : "0");
-        }
-
-        private static string ToShortTypeName(Type type) {
-            string assemblyQualifiedName = type.AssemblyQualifiedName;
-            return string.IsNullOrEmpty(assemblyQualifiedName) 
-                ? string.Empty 
-                : StripAllFromTypeNameString(
-                    StripAllFromTypeNameString(
-                        StripAllFromTypeNameString(assemblyQualifiedName, ", Version"), 
-                        ", Culture"
-                    ), 
-                    ", PublicKeyToken"
-                );
-        }
-        
-        private static string StripAllFromTypeNameString(string str, string toStrip) {
-            for (int index = str.IndexOf(toStrip); index != -1; index = str.IndexOf(toStrip, index)) {
-                str = StripTypeNameString(str, index);
-            }
-            return str;
-        }
-
-        private static string StripTypeNameString(string str, int index) {
-            int index1 = index + 1;
-            while (index1 < str.Length && str[index1] != ',' && str[index1] != ']') {
-                ++index1;
-            }
-            return str.Remove(index, index1 - index);
-        }
-        
-        private static bool IsGeneric(string serializedTypeString) {
-            return !string.IsNullOrEmpty(serializedTypeString) && 
-                   serializedTypeString[serializedTypeString.Length - 1] == '1';
-        }
-        
-        private static SerializedTypeData SplitTypeString(string serializedTypeString) {
-            bool isGeneric = !string.IsNullOrEmpty(serializedTypeString) 
-                ? IsGeneric(serializedTypeString) 
-                : throw new ArgumentException("Cannot parse serialized type string, it is empty.");
-            
-            string typeName = serializedTypeString.Substring(0, serializedTypeString.IndexOf('#'));
-            int typeNameLength = typeName.Length;
-
-            int genericTypeNameStartIndex = typeNameLength + 1;
-            int genericTypeNameLength = serializedTypeString.IndexOf('#', typeNameLength + 1) - typeNameLength - 1;
-            string genericTypeName = serializedTypeString.Substring(genericTypeNameStartIndex, genericTypeNameLength);
-            
-            return new SerializedTypeData {
-                isGeneric = isGeneric,
-                typeName = typeName,
-                genericTypeName = genericTypeName
-            };
+            return def.MakeGenericType(types);
         }
     }
 
