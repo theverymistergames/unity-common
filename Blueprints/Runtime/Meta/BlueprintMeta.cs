@@ -68,9 +68,6 @@ namespace MisterGames.Blueprints.Meta {
 
             if (!PortValidator.ArePortsCompatible(fromPort, toPort)) return false;
 
-            if (HasLinkFromNodePort(fromNodeId, fromPortIndex, toNodeId, toPortIndex)) return false;
-            if (HasLinkToNodePort(fromNodeId, fromPortIndex, toNodeId, toPortIndex)) return false;
-
             // Switch fromPort to toPort if:
             // 1) fromPort is input action port
             // 2) fromPort is non-action output port
@@ -88,12 +85,15 @@ namespace MisterGames.Blueprints.Meta {
                 toNodeId = tempNodeId;
             }
 
+            if (HasLinkFromNodePort(fromNodeId, fromPortIndex, toNodeId, toPortIndex)) return false;
+            if (HasLinkToNodePort(fromNodeId, fromPortIndex, toNodeId, toPortIndex)) return false;
+
             if (!fromPort.IsMultiple &&
                 _fromNodePortLinksMap.TryGetValue(fromNodeId, out var fromNodePortLinksMap) &&
                 fromNodePortLinksMap != null && fromNodePortLinksMap.TryGetValue(fromPortIndex, out var fromPortLinks) &&
                 fromPortLinks is { Count: > 0 }
             ) {
-                return false;
+                RemoveAllLinksFromNodePort(fromNodeId, fromPortIndex);
             }
 
             AddLinkFromNodePort(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
