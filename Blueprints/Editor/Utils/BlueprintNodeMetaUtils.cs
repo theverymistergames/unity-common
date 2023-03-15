@@ -13,46 +13,20 @@ namespace MisterGames.Blueprints.Editor.Utils {
             string portName = port.Name?.Trim();
             string colorHex;
 
-            if (port.IsAction) {
-                colorHex = BlueprintColors.Port.Header.Flow;
-
-                if (port.IsAnyAction) {
-                    if (string.IsNullOrEmpty(portName)) {
-                        portName = "Any Action";
-                    }
-                }
-                else if (port.Signature.IsGenericType) {
-                    if (string.IsNullOrEmpty(portName)) {
-                        portName = $"({string.Join(", ", port.Signature.GetGenericArguments().Select(TypeNameFormatter.GetTypeName))})";
-                    }
-                }
-            }
-            else if (port.IsFunc) {
-                colorHex = BlueprintColors.Port.Header.Data;
-
-                if (port.IsDynamicFunc) {
-                    if (string.IsNullOrEmpty(portName)) portName = "?";
-                }
-                else if (port.IsAnyFunc) {
-                    if (string.IsNullOrEmpty(portName)) portName = "Any Func";
+            if (port.IsData) {
+                if (port.DataType == null) {
+                    colorHex = BlueprintColors.Port.Header.Data;
+                    portName ??= "?";
                 }
                 else {
-                    var genericArguments = port.Signature.GetGenericArguments();
-                    var returnType = genericArguments[^1];
+                    var dataType = port.DataType;
 
-                    colorHex = BlueprintColors.Port.Header.GetColorForType(returnType);
-                    string returnTypeName = TypeNameFormatter.GetTypeName(returnType);
-
-                    if (string.IsNullOrEmpty(portName)) {
-                        portName = genericArguments.Length == 1
-                            ? returnTypeName
-                            : $"({string.Join(", ", genericArguments[..^2].Select(TypeNameFormatter.GetTypeName))}) => {returnTypeName}";
-                    }
+                    colorHex = BlueprintColors.Port.Header.GetColorForType(dataType);
+                    portName ??= TypeNameFormatter.GetTypeName(dataType);
                 }
             }
             else {
-                colorHex = BlueprintColors.Port.Header.Default;
-                if (string.IsNullOrEmpty(portName)) portName = TypeNameFormatter.GetTypeName(port.Signature);
+                colorHex = BlueprintColors.Port.Header.Flow;
             }
 
             if (port.IsDisabled) colorHex = BlueprintColors.Port.Header.Disabled;
@@ -77,18 +51,9 @@ namespace MisterGames.Blueprints.Editor.Utils {
         }
 
         public static Color GetPortColor(Port port) {
-            if (port.IsDisabled) return BlueprintColors.Port.Connection.Disabled;
-
-            if (port.IsAction) return BlueprintColors.Port.Connection.Flow;
-
-            if (port.IsFunc) {
-                var genericArguments = port.Signature.GetGenericArguments();
-                if (genericArguments.Length == 0) return BlueprintColors.Port.Connection.Data;
-
-                return BlueprintColors.Port.Connection.GetColorForType(genericArguments[^1]);
-            }
-
-            return BlueprintColors.Port.Connection.GetColorForType(port.Signature);
+            return port.IsDisabled ? BlueprintColors.Port.Connection.Disabled
+                : port.IsData ? BlueprintColors.Port.Connection.GetColorForType(port.DataType)
+                : BlueprintColors.Port.Connection.Flow;
         }
     }
 

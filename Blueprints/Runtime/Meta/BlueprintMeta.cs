@@ -71,7 +71,7 @@ namespace MisterGames.Blueprints.Meta {
             // Switch fromPort to toPort if:
             // 1) fromPort is input action port
             // 2) fromPort is non-action output port
-            if (fromPort.IsAction == fromPort.IsInput) {
+            if (fromPort.IsData != fromPort.IsInput) {
                 var tempPort = fromPort;
                 int tempPortIndex = fromPortIndex;
                 int tempNodeId = fromNodeId;

@@ -8,15 +8,16 @@ namespace MisterGames.Blueprints.Meta {
 
         Input = 1,
 
-        CapacitySingle = 2,
-        CapacityMultiple = 4,
+        Data = 2,
 
-        LayoutLeft = 8,
-        LayoutRight = 16,
+        CapacitySingle = 4,
+        CapacityMultiple = 8,
 
-        External = 32,
+        LayoutLeft = 16,
+        LayoutRight = 32,
 
-        Disabled = 64,
+        External = 64,
+        Disabled = 128,
     }
 
 }

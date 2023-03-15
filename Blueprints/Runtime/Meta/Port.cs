@@ -9,25 +9,26 @@ namespace MisterGames.Blueprints {
     public struct Port : IEquatable<Port> {
 
         [SerializeField] private string _name;
-        [SerializeField] private SerializedType _signature;
         [SerializeField] private PortMode _mode;
+        [SerializeField] private SerializedType _dataType;
 
         private sealed class Null {}
 
         public string Name => _name;
 
-        public Type Signature {
-            get => _signature;
-            private set => _signature = new SerializedType(value);
+        public Type DataType {
+            get => _dataType;
+            private set => _dataType = new SerializedType(value);
         }
 
         internal bool IsInput => _mode.HasFlag(PortMode.Input);
+        internal bool IsData => _mode.HasFlag(PortMode.Data);
         internal bool IsExternal => _mode.HasFlag(PortMode.External);
         internal bool IsDisabled => _mode.HasFlag(PortMode.Disabled);
 
         internal bool IsMultiple =>
             !_mode.HasFlag(PortMode.CapacitySingle) && !_mode.HasFlag(PortMode.CapacityMultiple)
-                ? _signature == null || !IsInput || IsAction
+                ? !IsInput || !IsData
                 : _mode.HasFlag(PortMode.CapacityMultiple);
 
         internal bool IsLeftLayout =>
@@ -35,106 +36,10 @@ namespace MisterGames.Blueprints {
                 ? _mode.HasFlag(PortMode.Input)
                 : _mode.HasFlag(PortMode.LayoutLeft);
 
-        internal bool IsAction {
-            get {
-                var t = Signature;
-                if (t == null) return false;
-                if (!t.IsGenericType) return t == typeof(Action);
-
-                var def = t.GetGenericTypeDefinition();
-                return
-                    def == typeof(Action<>) ||
-                    def == typeof(Action<,>) ||
-                    def == typeof(Action<,,>) ||
-                    def == typeof(Action<,,,>) ||
-                    def == typeof(Action<,,,,>) ||
-                    def == typeof(Action<,,,,,>) ||
-                    def == typeof(Action<,,,,,,>) ||
-                    def == typeof(Action<,,,,,,,>) ||
-                    def == typeof(Action<,,,,,,,,>) ||
-                    def == typeof(Action<,,,,,,,,,>) ||
-                    def == typeof(Action<,,,,,,,,,,>) ||
-                    def == typeof(Action<,,,,,,,,,,,>) ||
-                    def == typeof(Action<,,,,,,,,,,,,>) ||
-                    def == typeof(Action<,,,,,,,,,,,,,>) ||
-                    def == typeof(Action<,,,,,,,,,,,,,,>) ||
-                    def == typeof(Action<,,,,,,,,,,,,,,,>);
-            }
-        }
-
-        internal bool IsFunc {
-            get {
-                var t = Signature;
-                if (t is not { IsGenericType: true }) return false;
-
-                var def = t.GetGenericTypeDefinition();
-                return
-                    def == typeof(Func<>) ||
-                    def == typeof(Func<,>) ||
-                    def == typeof(Func<,,>) ||
-                    def == typeof(Func<,,,>) ||
-                    def == typeof(Func<,,,,>) ||
-                    def == typeof(Func<,,,,,>) ||
-                    def == typeof(Func<,,,,,,>) ||
-                    def == typeof(Func<,,,,,,,>) ||
-                    def == typeof(Func<,,,,,,,,>) ||
-                    def == typeof(Func<,,,,,,,,,>) ||
-                    def == typeof(Func<,,,,,,,,,,>) ||
-                    def == typeof(Func<,,,,,,,,,,,>) ||
-                    def == typeof(Func<,,,,,,,,,,,,>) ||
-                    def == typeof(Func<,,,,,,,,,,,,,>) ||
-                    def == typeof(Func<,,,,,,,,,,,,,,>) ||
-                    def == typeof(Func<,,,,,,,,,,,,,,,>) ||
-                    def == typeof(Func<,,,,,,,,,,,,,,,,>);
-            }
-        }
-
-        internal bool IsAnyAction {
-            get {
-                if (!IsAction) return false;
-
-                var t = Signature;
-                if (!t.IsGenericType) return false;
-
-                var args = t.GetGenericArguments();
-                if (args.Length != 16) return false;
-
-                for (int i = 0; i < args.Length; i++) {
-                    if (!args[i].IsGenericTypeParameter) return false;
-                }
-
-                return true;
-            }
-        }
-
-        internal bool IsAnyFunc {
-            get {
-                if (!IsFunc) return false;
-
-                var args = Signature.GetGenericArguments();
-                if (args.Length != 17) return false;
-
-                for (int i = 0; i < args.Length; i++) {
-                    if (!args[i].IsGenericTypeParameter) return false;
-                }
-
-                return true;
-            }
-        }
-
-        internal bool IsDynamicFunc {
-            get {
-                if (!IsFunc) return false;
-
-                var args = Signature.GetGenericArguments();
-                return args.Length == 1 && args[0].IsGenericTypeParameter;
-            }
-        }
-
         internal int GetSignatureHashCode() => HashCode.Combine(
             _mode,
             string.IsNullOrWhiteSpace(_name) ? string.Empty : _name.Trim(),
-            _signature ?? typeof(Null)
+            _dataType ?? typeof(Null)
         );
 
         internal Port External(bool isExternal) {
@@ -191,132 +96,31 @@ namespace MisterGames.Blueprints {
             return this;
         }
 
-        public static Port Create(PortDirection direction, string name = null, Type signature = null) {
-            var settings = direction == PortDirection.Input ? PortMode.Input : PortMode.None;
-            return new Port { _name = name, _mode = settings, Signature = signature };
+        public static Port Enter(string name = null) {
+            return new Port { _name = name, _mode = PortMode.Input };
+        }
+        public static Port Exit(string name = null) {
+            return new Port { _name = name, _mode = PortMode.None };
         }
 
-        public static Port AnyAction(PortDirection direction, string name = null) {
-            return Create(direction, name, typeof(Action<,,,,,,,,,,,,,,,>));
+        public static Port Input<T>(string name = null) {
+            return new Port { _name = name, _mode = PortMode.Data | PortMode.Input, DataType = typeof(T) };
+        }
+        public static Port Output<T>(string name = null) {
+            return new Port { _name = name, _mode = PortMode.Data, DataType = typeof(T) };
         }
 
-        public static Port AnyFunc(PortDirection direction, string name = null) {
-            return Create(direction, name, typeof(Func<,,,,,,,,,,,,,,,,>));
+        public static Port DynamicInput(string name = null, Type type = null) {
+            return new Port { _name = name, _mode = PortMode.Data | PortMode.Input, DataType = type };
         }
-
-        public static Port DynamicFunc(PortDirection direction, string name = null, Type returnType = null) {
-            var signature = returnType == null ? typeof(Func<>) : typeof(Func<>).MakeGenericType(returnType);
-            return Create(direction, name, signature);
-        }
-
-        public static Port Action(PortDirection direction, string name = null) {
-            return Create(direction, name, typeof(Action));
-        }
-        public static Port Action<T>(PortDirection direction, string name = null) {
-            return Create(direction, name, typeof(Action<T>));
-        }
-        public static Port Action<T1, T2>(PortDirection direction, string name = null) {
-            return Create(direction, name, typeof(Action<T1, T2>));
-        }
-        public static Port Action<T1, T2, T3>(PortDirection direction, string name = null) {
-            return Create(direction, name, typeof(Action<T1, T2, T3>));
-        }
-        public static Port Action<T1, T2, T3, T4>(PortDirection direction, string name = null) {
-            return Create(direction, name, typeof(Action<T1, T2, T3, T4>));
-        }
-        public static Port Action<T1, T2, T3, T4, T5>(PortDirection direction, string name = null) {
-            return Create(direction, name, typeof(Action<T1, T2, T3, T4, T5>));
-        }
-        public static Port Action<T1, T2, T3, T4, T5, T6>(PortDirection direction, string name = null) {
-            return Create(direction, name, typeof(Action<T1, T2, T3, T4, T5, T6>));
-        }
-        public static Port Action<T1, T2, T3, T4, T5, T6, T7>(PortDirection direction, string name = null) {
-            return Create(direction, name, typeof(Action<T1, T2, T3, T4, T5, T6, T7>));
-        }
-        public static Port Action<T1, T2, T3, T4, T5, T6, T7, T8>(PortDirection direction, string name = null) {
-            return Create(direction, name, typeof(Action<T1, T2, T3, T4, T5, T6, T7, T8>));
-        }
-        public static Port Action<T1, T2, T3, T4, T5, T6, T7, T8, T9>(PortDirection direction, string name = null) {
-            return Create(direction, name, typeof(Action<T1, T2, T3, T4, T5, T6, T7, T8, T9>));
-        }
-        public static Port Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(PortDirection direction, string name = null) {
-            return Create(direction, name, typeof(Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>));
-        }
-        public static Port Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(PortDirection direction, string name = null) {
-            return Create(direction, name, typeof(Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>));
-        }
-        public static Port Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(PortDirection direction, string name = null) {
-            return Create(direction, name, typeof(Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>));
-        }
-        public static Port Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(PortDirection direction, string name = null) {
-            return Create(direction, name, typeof(Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>));
-        }
-        public static Port Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(PortDirection direction, string name = null) {
-            return Create(direction, name, typeof(Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>));
-        }
-        public static Port Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>(PortDirection direction, string name = null) {
-            return Create(direction, name, typeof(Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>));
-        }
-        public static Port Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>(PortDirection direction, string name = null) {
-            return Create(direction, name, typeof(Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>));
-        }
-
-        public static Port Func<R>(PortDirection direction, string name = null) {
-            return Create(direction, name, typeof(Func<R>));
-        }
-        public static Port Func<T, R>(PortDirection direction, string name = null) {
-            return Create(direction, name, typeof(Func<T, R>));
-        }
-        public static Port Func<T1, T2, R>(PortDirection direction, string name = null) {
-            return Create(direction, name, typeof(Func<T1, T2, R>));
-        }
-        public static Port Func<T1, T2, T3, R>(PortDirection direction, string name = null) {
-            return Create(direction, name, typeof(Func<T1, T2, T3, R>));
-        }
-        public static Port Func<T1, T2, T3, T4, R>(PortDirection direction, string name = null) {
-            return Create(direction, name, typeof(Func<T1, T2, T3, T4, R>));
-        }
-        public static Port Func<T1, T2, T3, T4, T5, R>(PortDirection direction, string name = null) {
-            return Create(direction, name, typeof(Func<T1, T2, T3, T4, T5, R>));
-        }
-        public static Port Func<T1, T2, T3, T4, T5, T6, R>(PortDirection direction, string name = null) {
-            return Create(direction, name, typeof(Func<T1, T2, T3, T4, T5, T6, R>));
-        }
-        public static Port Func<T1, T2, T3, T4, T5, T6, T7, R>(PortDirection direction, string name = null) {
-            return Create(direction, name, typeof(Func<T1, T2, T3, T4, T5, T6, T7, R>));
-        }
-        public static Port Func<T1, T2, T3, T4, T5, T6, T7, T8, R>(PortDirection direction, string name = null) {
-            return Create(direction, name, typeof(Func<T1, T2, T3, T4, T5, T6, T7, T8, R>));
-        }
-        public static Port Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, R>(PortDirection direction, string name = null) {
-            return Create(direction, name, typeof(Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, R>));
-        }
-        public static Port Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, R>(PortDirection direction, string name = null) {
-            return Create(direction, name, typeof(Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, R>));
-        }
-        public static Port Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, R>(PortDirection direction, string name = null) {
-            return Create(direction, name, typeof(Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, R>));
-        }
-        public static Port Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, R>(PortDirection direction, string name = null) {
-            return Create(direction, name, typeof(Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, R>));
-        }
-        public static Port Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, R>(PortDirection direction, string name = null) {
-            return Create(direction, name, typeof(Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, R>));
-        }
-        public static Port Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, R>(PortDirection direction, string name = null) {
-            return Create(direction, name, typeof(Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, R>));
-        }
-        public static Port Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, R>(PortDirection direction, string name = null) {
-            return Create(direction, name, typeof(Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, R>));
-        }
-        public static Port Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, R>(PortDirection direction, string name = null) {
-            return Create(direction, name, typeof(Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, R>));
+        public static Port DynamicOutput(string name = null, Type type = null) {
+            return new Port { _name = name, _mode = PortMode.Data, DataType = type };
         }
 
         public bool Equals(Port other) {
             return _mode == other._mode &&
                    (string.IsNullOrWhiteSpace(_name) ? string.IsNullOrWhiteSpace(other._name) : _name == other._name) &&
-                   (_signature == null && other._signature == null || _signature == other._signature);
+                   (_dataType == null && other._dataType == null || _dataType == other._dataType);
         }
 
         public override bool Equals(object obj) {
@@ -324,7 +128,7 @@ namespace MisterGames.Blueprints {
         }
 
         public override int GetHashCode() {
-            return HashCode.Combine(_name, _mode, _signature);
+            return HashCode.Combine(_name, _mode, _dataType);
         }
 
         public static bool operator ==(Port left, Port right) {
@@ -336,13 +140,15 @@ namespace MisterGames.Blueprints {
         }
 
         public override string ToString() {
-            return $"{nameof(Port)}(" +
-                   $"name = {_name}, " +
-                   $"{(IsExternal ? "external " : string.Empty)}" +
-                   $"{(IsMultiple ? "multiple" : "single")} " +
-                   $"{(IsInput ? "input" : "output")} " +
-                   $"{(_signature == null ? string.Empty : $" {TypeNameFormatter.GetTypeName(_signature)}")}" +
-                   $")";
+            string config = IsData
+                ? IsInput
+                    ? _dataType == null ? "dynamic input" : $"input<{TypeNameFormatter.GetTypeName(_dataType)}>"
+                    : _dataType == null ? "dynamic output" : $"output<{TypeNameFormatter.GetTypeName(_dataType)}>"
+                : IsInput
+                    ? "enter"
+                    : "exit";
+
+            return $"{nameof(Port)}(name = {_name}, {(IsExternal ? "external " : string.Empty)}{(IsMultiple ? "multiple" : "single")} {config})";
         }
     }
 

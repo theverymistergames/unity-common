@@ -56,14 +56,14 @@ namespace MisterGames.Blueprints.Nodes {
                         for (int i = linkedPortIndex; i < count; i++) {
                             var linkedPort = nodePorts[i];
 
-                            if (linkedPort.IsInput || linkedPort.IsAction) {
+                            if (linkedPort.IsInput || !linkedPort.IsData) {
                                 if (blueprintMeta.GetLinksFromNodePort(nodeId, i).Count > 0) {
                                     hasLinks = true;
                                     break;
                                 }
                             }
 
-                            if (!linkedPort.IsInput || linkedPort.IsAction) {
+                            if (!linkedPort.IsInput || !linkedPort.IsData) {
                                 if (blueprintMeta.GetLinksToNodePort(nodeId, i).Count > 0) {
                                     hasLinks = true;
                                     break;

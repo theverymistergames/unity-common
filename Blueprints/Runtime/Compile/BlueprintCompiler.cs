@@ -59,7 +59,7 @@ namespace MisterGames.Blueprints.Compile {
 #endif
 
                 var port = ports[p];
-                if (!port.IsInput || port.IsAction) continue;
+                if (!port.IsInput || !port.IsData) continue;
 
                 var links = blueprintMeta.GetLinksFromNodePort(nodeId, p);
                 int linksCount = links.Count;
@@ -105,7 +105,7 @@ namespace MisterGames.Blueprints.Compile {
             // Create links from owner subgraph node ports to external nodes inside subgraph, if port is enter or output
             for (int p = 0; p < subgraphPortsCount; p++) {
                 var port = subgraphPorts[p];
-                if (port.IsInput || port.IsAction) continue;
+                if (port.IsInput || !port.IsData) continue;
 
                 var links = _externalPortLinksMap[port.GetSignatureHashCode()];
                 int linksCount = links.Count;
@@ -161,7 +161,7 @@ namespace MisterGames.Blueprints.Compile {
 
                     // External port is enter or output: add port address as link into external ports map
                     // to create links from matched subgraph node port to this external port.
-                    if (!port.IsInput || port.IsAction) {
+                    if (!port.IsInput || !port.IsData) {
                         var link = new BlueprintLink { nodeId = nodeId, portIndex = p };
 
                         if (_externalPortLinksMap.TryGetValue(portSignature, out var externalPortLinks)) {
@@ -189,7 +189,7 @@ namespace MisterGames.Blueprints.Compile {
                     continue;
                 }
 
-                if (!port.IsInput || port.IsAction) continue;
+                if (!port.IsInput || !port.IsData) continue;
 
                 var links = blueprintMeta.GetLinksFromNodePort(nodeId, p);
                 int linksCount = links.Count;
