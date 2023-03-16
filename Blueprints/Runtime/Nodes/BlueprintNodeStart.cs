@@ -9,7 +9,7 @@ namespace MisterGames.Blueprints.Nodes {
 
         public override Port[] CreatePorts() => new[] {
             Port.Exit(),
-            Port.Enter("On Start").External(true),
+            Port.Enter("On Start").External(true).Hidden(true),
         };
 
         public void OnStart() {

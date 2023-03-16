@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using System.Reflection;
+﻿using System.Reflection;
 using MisterGames.Blueprints.Meta;
 using MisterGames.Common.Color;
 using MisterGames.Common.Data;
@@ -29,8 +28,6 @@ namespace MisterGames.Blueprints.Editor.Utils {
                 colorHex = BlueprintColors.Port.Header.Flow;
             }
 
-            if (port.IsDisabled) colorHex = BlueprintColors.Port.Header.Disabled;
-
             string fullPortName = string.IsNullOrEmpty(portName)
                 ? $"[{index}]"
                 : port.IsLeftLayout ? $"[{index}] {portName}" : $"{portName} [{index}]";
@@ -51,8 +48,8 @@ namespace MisterGames.Blueprints.Editor.Utils {
         }
 
         public static Color GetPortColor(Port port) {
-            return port.IsDisabled ? BlueprintColors.Port.Connection.Disabled
-                : port.IsData ? BlueprintColors.Port.Connection.GetColorForType(port.DataType)
+            return port.IsData
+                ? BlueprintColors.Port.Connection.GetColorForType(port.DataType)
                 : BlueprintColors.Port.Connection.Flow;
         }
     }

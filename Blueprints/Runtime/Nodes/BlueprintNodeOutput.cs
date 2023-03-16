@@ -23,7 +23,7 @@ namespace MisterGames.Blueprints.Nodes {
         
         public override Port[] CreatePorts() => new[] {
             Port.DynamicInput(),
-            Port.DynamicOutput(_port).External(true),
+            Port.DynamicOutput(_port).External(true).Hidden(true),
         };
 
         public int GetLinkedPorts(int port, out int count) {
@@ -50,7 +50,7 @@ namespace MisterGames.Blueprints.Nodes {
             var linkedPort = blueprintMeta.NodesMap[link.nodeId].Ports[link.portIndex];
 
             ports[0] = Port.DynamicInput(type: linkedPort.DataType);
-            ports[1] = Port.DynamicOutput(_port, linkedPort.DataType).External(true);
+            ports[1] = Port.DynamicOutput(_port, linkedPort.DataType).External(true).Hidden(true);
         }
 
         public void OnPortLinksChanged(BlueprintMeta blueprintMeta, int nodeId, int portIndex) {

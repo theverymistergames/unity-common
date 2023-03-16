@@ -17,7 +17,7 @@ namespace MisterGames.Blueprints.Meta {
         LayoutRight = 32,
 
         External = 64,
-        Disabled = 128,
+        Hidden = 128,
     }
 
 }

@@ -9,11 +9,11 @@ namespace MisterGames.Blueprints.Validation {
     internal static class PortValidator {
 
         public static bool ArePortsCompatible(Port a, Port b) {
-            // External ports are hidden and cannot have connections
+            // External ports cannot have connections
             if (a.IsExternal || b.IsExternal) return false;
 
-            // Disabled ports cannot have connections
-            if (a.IsDisabled || b.IsDisabled) return false;
+            // Hidden ports cannot have connections
+            if (a.IsHidden || b.IsHidden) return false;
 
             // In a blueprint graph port views are compatible to create connections
             // only if they have different directions, which is defined by layout

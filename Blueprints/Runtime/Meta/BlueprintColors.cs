@@ -25,7 +25,6 @@ namespace MisterGames.Blueprints {
             public static class Header {
 
                 public const string Default = "#646464";
-                public const string Disabled = "#646464";
 
                 public const string Flow = "#68C2E1";
                 public const string Data = "#80DD8A";
@@ -54,7 +53,6 @@ namespace MisterGames.Blueprints {
             public static class Connection {
 
                 public static readonly Color Default = new Color(0.53f, 0.8f, 0.95f);
-                public static readonly Color Disabled = new Color(0.53f, 0.8f, 0.95f);
 
                 public static readonly Color Flow = new Color(0.53f, 0.8f, 0.95f);
                 public static readonly Color Data = new Color(0.45f, 0.87f, 0.49f);

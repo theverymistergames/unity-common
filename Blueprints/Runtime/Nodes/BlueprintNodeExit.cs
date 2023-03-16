@@ -21,7 +21,7 @@ namespace MisterGames.Blueprints.Nodes {
 
         public override Port[] CreatePorts() => new[] {
             Port.Enter(),
-            Port.Exit(_port).External(true),
+            Port.Exit(_port).External(true).Hidden(true),
         };
 
         public int GetLinkedPorts(int port, out int count) {

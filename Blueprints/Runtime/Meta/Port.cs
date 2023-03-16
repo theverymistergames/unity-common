@@ -24,7 +24,7 @@ namespace MisterGames.Blueprints {
         internal bool IsInput => _mode.HasFlag(PortMode.Input);
         internal bool IsData => _mode.HasFlag(PortMode.Data);
         internal bool IsExternal => _mode.HasFlag(PortMode.External);
-        internal bool IsDisabled => _mode.HasFlag(PortMode.Disabled);
+        internal bool IsHidden => _mode.HasFlag(PortMode.Hidden);
 
         internal bool IsMultiple =>
             !_mode.HasFlag(PortMode.CapacitySingle) && !_mode.HasFlag(PortMode.CapacityMultiple)
@@ -49,9 +49,9 @@ namespace MisterGames.Blueprints {
             return this;
         }
 
-        public Port Enable(bool isEnabled) {
-            if (isEnabled) _mode &= ~PortMode.Disabled;
-            else _mode |= PortMode.Disabled;
+        public Port Hidden(bool isHidden) {
+            if (isHidden) _mode |= PortMode.Hidden;
+            else _mode &= ~PortMode.Hidden;
 
             return this;
         }
@@ -148,7 +148,11 @@ namespace MisterGames.Blueprints {
                     ? "enter"
                     : "exit";
 
-            return $"{nameof(Port)}(name = {_name}, {(IsExternal ? "external " : string.Empty)}{(IsMultiple ? "multiple" : "single")} {config})";
+            return $"{nameof(Port)}(name = {_name}, " +
+                   $"{(IsHidden ? "hidden " : string.Empty)}" +
+                   $"{(IsExternal ? "external " : string.Empty)}" +
+                   $"{(IsMultiple ? "multiple" : "single")} " +
+                   $"{config})";
         }
     }
 
