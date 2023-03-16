@@ -68,9 +68,10 @@ namespace MisterGames.Blueprints.Meta {
 
             if (!PortValidator.ArePortsCompatible(fromPort, toPort)) return false;
 
-            // Switch fromPort to toPort if:
-            // 1) fromPort is input action port
-            // 2) fromPort is non-action output port
+            // FromPort is port that owns links to toPort (fromPort must be exit or data-based input port).
+            // So ports have to be swapped, if:
+            // 1) fromPort is enter port (IsData = false, IsInput = true)
+            // 2) fromPort is data-based output port (IsData = true, IsInput = false)
             if (fromPort.IsData != fromPort.IsInput) {
                 var tempPort = fromPort;
                 int tempPortIndex = fromPortIndex;
@@ -94,6 +95,14 @@ namespace MisterGames.Blueprints.Meta {
                 fromPortLinks is { Count: > 0 }
             ) {
                 RemoveAllLinksFromNodePort(fromNodeId, fromPortIndex);
+            }
+
+            if (!toPort.IsMultiple &&
+                _toNodePortLinksMap.TryGetValue(toNodeId, out var toNodePortLinksMap) &&
+                toNodePortLinksMap != null && toNodePortLinksMap.TryGetValue(toPortIndex, out var toPortLinks) &&
+                toPortLinks is { Count: > 0 }
+            ) {
+                RemoveAllLinksToNodePort(toNodeId, toPortIndex);
             }
 
             AddLinkFromNodePort(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
