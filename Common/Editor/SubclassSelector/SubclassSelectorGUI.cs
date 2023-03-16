@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Reflection;
+using MisterGames.Common.Attributes;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -85,6 +86,7 @@ namespace MisterGames.Common.Editor.Drawers {
 
         private static bool IsSupportedType(Type t) {
             return (t.IsPublic || t.IsNestedPublic) && !t.IsAbstract && !t.IsGenericType && !t.IsValueType &&
+                   !Attribute.IsDefined(t, typeof(SubclassSelectorIgnoreAttribute)) &&
                    t.FullName is not null && !t.FullName.Contains(EDITOR, StringComparison.OrdinalIgnoreCase) &&
                    !UnityObjectType.IsAssignableFrom(t) && Attribute.IsDefined(t, typeof(SerializableAttribute));
         }
