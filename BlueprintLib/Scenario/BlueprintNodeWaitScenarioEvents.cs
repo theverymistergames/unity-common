@@ -13,8 +13,8 @@ namespace MisterGames.Scenario.BlueprintLib {
         [SerializeField] private ScenarioEvent[] _events;
 
         public override Port[] CreatePorts() => new[] {
-            Port.Action(PortDirection.Input, "Start"),
-            Port.Action(PortDirection.Output, "On Emit All"),
+            Port.Enter("Start"),
+            Port.Exit("On Emit All"),
         };
 
         public void OnEnterPort(int port) {

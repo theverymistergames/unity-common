@@ -12,9 +12,9 @@ namespace MisterGames.BlueprintLib {
         [SerializeField] private float _b;
 
         public override Port[] CreatePorts() => new[] {
-            Port.Func<float>(PortDirection.Input, "A"),
-            Port.Func<float>(PortDirection.Input, "B"),
-            Port.Func<float>(PortDirection.Output)
+            Port.Input<float>("A"),
+            Port.Input<float>("B"),
+            Port.Output<float>()
         };
 
         public float GetOutputPortValue(int port) => port switch {

@@ -24,14 +24,14 @@ namespace MisterGames.BlueprintLib {
         private MonoBehaviour _runner;
 
         public override Port[] CreatePorts() => new[] {
-            Port.Action(PortDirection.Input, "Init"),
-            Port.Action(PortDirection.Input, "Play"),
-            Port.Action(PortDirection.Input, "Pause"),
-            Port.Action(PortDirection.Input, "Wind"),
-            Port.Action(PortDirection.Input, "Rewind"),
-            Port.Action(PortDirection.Input, "Invert"),
-            Port.Create(PortDirection.Input, "Tweens", typeof(IBlueprintNodeTween)).Layout(PortLayout.Right).Capacity(PortCapacity.Multiple),
-            Port.Action(PortDirection.Output, "On Finish"),
+            Port.Enter("Init"),
+            Port.Enter("Play"),
+            Port.Enter("Pause"),
+            Port.Enter("Wind"),
+            Port.Enter("Rewind"),
+            Port.Enter("Invert"),
+            Port.Input<IBlueprintNodeTween>("Tweens").Layout(PortLayout.Right).Capacity(PortCapacity.Multiple),
+            Port.Exit("On Finish"),
         };
 
         public override void OnInitialize(IBlueprintHost host) {
@@ -49,7 +49,7 @@ namespace MisterGames.BlueprintLib {
 
             var links = Ports[6].links;
             for (int i = 0; i < links.Count; i++) {
-                if (links[i].node is IBlueprintNodeTween t) t.SetupTween();
+                links[i].Get<IBlueprintNodeTween>()?.SetupTween();
             }
 
             _tween = BlueprintTweenConverter.AsTween(links);
@@ -63,7 +63,7 @@ namespace MisterGames.BlueprintLib {
 
                     var links = Ports[6].links;
                     for (int i = 0; i < links.Count; i++) {
-                        if (links[i].node is IBlueprintNodeTween t) t.SetupTween();
+                        links[i].Get<IBlueprintNodeTween>()?.SetupTween();
                     }
 
                     _tween = BlueprintTweenConverter.AsTween(links);

@@ -11,10 +11,10 @@ namespace MisterGames.BlueprintLib {
         [SerializeField] private bool _condition;
 
         public override Port[] CreatePorts() => new[] {
-            Port.Action(PortDirection.Input),
-            Port.Func<bool>(PortDirection.Input, "Condition"),
-            Port.Action(PortDirection.Output, "On True"),
-            Port.Action(PortDirection.Output, "On False"),
+            Port.Enter(),
+            Port.Input<bool>("Condition"),
+            Port.Exit("On True"),
+            Port.Exit("On False"),
         };
 
         public void OnEnterPort(int port) {

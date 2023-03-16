@@ -9,7 +9,7 @@ namespace MisterGames.BlueprintLib {
     public sealed class BlueprintNodeRandomBool : BlueprintNode, IBlueprintOutput<bool> {
 
         public override Port[] CreatePorts() => new[] {
-            Port.Func<bool>(PortDirection.Output)
+            Port.Output<bool>()
         };
 
         public bool GetOutputPortValue(int port) => port switch {

@@ -9,7 +9,7 @@ namespace MisterGames.BlueprintLib {
     public sealed class BlueprintNodeGetOwnerGameObject : BlueprintNode, IBlueprintOutput<GameObject> {
         
         public override Port[] CreatePorts() => new[] {
-            Port.Func<GameObject>(PortDirection.Output, "GameObject"),
+            Port.Output<GameObject>(),
         };
 
         private MonoBehaviour _runner;

@@ -10,10 +10,10 @@ namespace MisterGames.BlueprintLib {
     public sealed class BlueprintNodeImageSetMaterial : BlueprintNode, IBlueprintEnter {
 
         public override Port[] CreatePorts() => new[] {
-            Port.Action(PortDirection.Input),
-            Port.Func<Image>(PortDirection.Input, "Image"),
-            Port.Func<Material>(PortDirection.Input, "Material"),
-            Port.Action(PortDirection.Output),
+            Port.Enter(),
+            Port.Input<Image>("Image"),
+            Port.Input<Material>("Material"),
+            Port.Exit(),
         };
 
         public void OnEnterPort(int port) {
@@ -22,7 +22,7 @@ namespace MisterGames.BlueprintLib {
             var image = Ports[1].Get<Image>();
             var material = Ports[2].Get<Material>();
 
-            if (image != null) image.material = material;
+            image.material = material;
 
             Ports[3].Call();
         }

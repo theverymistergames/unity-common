@@ -12,9 +12,9 @@ namespace MisterGames.BlueprintLib {
         [SerializeField] private InputActionFilter _filter;
 
         public override Port[] CreatePorts() => new[] {
-            Port.Action(PortDirection.Input, "Apply"),
-            Port.Action(PortDirection.Input, "Release"),
-            Port.Action(PortDirection.Output),
+            Port.Enter("Apply"),
+            Port.Enter("Release"),
+            Port.Exit(),
         };
 
         public void OnEnterPort(int port) {

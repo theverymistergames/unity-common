@@ -18,12 +18,12 @@ namespace MisterGames.BlueprintLib {
         [SerializeField] private bool _autoSetInteractiveOnStart = true;
 
         public override Port[] CreatePorts() => new[] {
-            Port.Action(PortDirection.Input, "Set Interactive"),
-            Port.Func<Interactive>(PortDirection.Input, "Interactive"),
-            Port.Action(PortDirection.Output, "On Start Interact"),
-            Port.Action(PortDirection.Output, "On Stop Interact"),
-            Port.Func<bool>(PortDirection.Output, "Is Interacting"),
-            Port.Func<InteractiveUser>(PortDirection.Output, "User"),
+            Port.Enter("Set Interactive"),
+            Port.Input<Interactive>("Interactive"),
+            Port.Exit("On Start Interact"),
+            Port.Exit("On Stop Interact"),
+            Port.Output<bool>("Is Interacting"),
+            Port.Output<InteractiveUser>("User"),
         };
 
         private Interactive _interactive;

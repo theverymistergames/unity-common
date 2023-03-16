@@ -10,8 +10,8 @@ using MisterGames.Blueprints.Meta;
 namespace MisterGames.BlueprintLib {
 
     [Serializable]
-    [BlueprintNodeMeta(Name = "Get Blackboard Property", Category = "Blackboard", Color = BlueprintColors.Node.Blackboard)]
-    public sealed class BlueprintNodeGetBlackboardProperty : BlueprintNode, IBlueprintOutput
+    [BlueprintNodeMeta(Name = "Get Blackboard Property (left)", Category = "Blackboard", Color = BlueprintColors.Node.Blackboard)]
+    public sealed class BlueprintNodeGetBlackboardPropertyLeft : BlueprintNode, IBlueprintOutput
 
 #if UNITY_EDITOR
         , IBlueprintAssetValidator
@@ -23,7 +23,7 @@ namespace MisterGames.BlueprintLib {
         private Blackboard _blackboard;
 
         public override Port[] CreatePorts() => new[] {
-            Port.DynamicOutput().Enable(false),
+            Port.DynamicOutput().Enable(false).Layout(PortLayout.Left),
         };
 
         public override void OnInitialize(IBlueprintHost host) {
@@ -44,7 +44,7 @@ namespace MisterGames.BlueprintLib {
         }
 
         public void DecoratePorts(BlueprintMeta blueprintMeta, int nodeId, Port[] ports) {
-            ports[0] = Port.DynamicOutput(type: _dataType).Enable(_dataType != null);
+            ports[0] = Port.DynamicOutput(type: _dataType).Enable(_dataType != null).Layout(PortLayout.Left);
         }
 #endif
     }

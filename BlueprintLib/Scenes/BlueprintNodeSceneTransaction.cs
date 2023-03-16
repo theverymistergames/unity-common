@@ -17,8 +17,8 @@ namespace MisterGames.BlueprintLib {
         private CancellationTokenSource _terminateCts;
 
         public override Port[] CreatePorts() => new[] {
-            Port.Action(PortDirection.Input, "Perform"),
-            Port.Action(PortDirection.Output, "On Finish"),
+            Port.Enter("Perform"),
+            Port.Exit("On Finish"),
         };
 
         public override void OnInitialize(IBlueprintHost host) {

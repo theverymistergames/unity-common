@@ -13,9 +13,9 @@ namespace MisterGames.BlueprintLib {
         [SerializeField] private InputScheme _scheme;
 
         public override Port[] CreatePorts() => new[] {
-            Port.Action(PortDirection.Input, "Activate"),
-            Port.Action(PortDirection.Input, "Deactivate"),
-            Port.Action(PortDirection.Output),
+            Port.Enter("Activate"),
+            Port.Enter("Deactivate"),
+            Port.Exit(),
         };
 
         public void OnEnterPort(int port) {

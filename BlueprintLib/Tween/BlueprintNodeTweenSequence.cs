@@ -10,7 +10,7 @@ namespace MisterGames.BlueprintLib {
 
     [Serializable]
     [BlueprintNodeMeta(Name = "Tween Sequence", Category = "Tweens", Color = BlueprintColors.Node.Actions)]
-    public sealed class BlueprintNodeTweenSequence : BlueprintNode, IBlueprintNodeTween {
+    public sealed class BlueprintNodeTweenSequence : BlueprintNode, IBlueprintNodeTween, IBlueprintOutput<IBlueprintNodeTween> {
 
         [SerializeField] private bool _loop;
         [SerializeField] private bool _yoyo;
@@ -21,9 +21,9 @@ namespace MisterGames.BlueprintLib {
         private TweenSequence _tweenSequence;
 
         public override Port[] CreatePorts() => new[] {
-            Port.Create(PortDirection.Output, "Self", typeof(IBlueprintNodeTween)).Layout(PortLayout.Left).Capacity(PortCapacity.Single),
-            Port.Create(PortDirection.Input, "Next Tweens", typeof(IBlueprintNodeTween)).Layout(PortLayout.Right).Capacity(PortCapacity.Multiple),
-            Port.Create(PortDirection.Input, "Sequence Tweens", typeof(IBlueprintNodeTween)).Layout(PortLayout.Right).Capacity(PortCapacity.Multiple),
+            Port.Output<IBlueprintNodeTween>("Self").Layout(PortLayout.Left).Capacity(PortCapacity.Single),
+            Port.Input<IBlueprintNodeTween>("Next Tweens").Layout(PortLayout.Right).Capacity(PortCapacity.Multiple),
+            Port.Input<IBlueprintNodeTween>("Sequence Tweens").Layout(PortLayout.Right).Capacity(PortCapacity.Multiple),
         };
 
         public void SetupTween() {
@@ -34,6 +34,10 @@ namespace MisterGames.BlueprintLib {
 
             _tweenSequence.loop = _loop;
             _tweenSequence.yoyo = _yoyo;
+        }
+
+        public IBlueprintNodeTween GetOutputPortValue(int port) {
+            return port == 0 ? this : default;
         }
     }
 }

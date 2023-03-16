@@ -14,10 +14,10 @@ namespace MisterGames.BlueprintLib {
         [SerializeField] private InputActionKey _inputActionKey;
 
         public override Port[] CreatePorts() => new[] {
-            Port.Func<InputActionKey>(PortDirection.Input),
-            Port.Action(PortDirection.Output, "On Use"),
-            Port.Action(PortDirection.Output, "On Press"),
-            Port.Action(PortDirection.Output, "On Release"),
+            Port.Input<InputActionKey>(),
+            Port.Exit("On Use"),
+            Port.Exit("On Press"),
+            Port.Exit("On Release"),
         };
 
         public void OnStart() {

@@ -18,8 +18,8 @@ namespace MisterGames.BlueprintLib {
         private Func<string> _getString = () => string.Empty;
 
         public override Port[] CreatePorts() => new[] {
-            Port.DynamicFunc(PortDirection.Input),
-            Port.Func<string>(PortDirection.Output),
+            Port.DynamicInput(),
+            Port.Output<string>(),
         };
 
         public override void OnInitialize(IBlueprintHost host) {
@@ -63,7 +63,7 @@ namespace MisterGames.BlueprintLib {
                 var t = link.node.GetType();
                 var interfaceType =
                     t.GetInterfaces().FirstOrDefault(x => x == typeof(IBlueprintOutput))
-                    ?? GetGenericInterface(t, typeof(IBlueprintOutput<>), port.Signature.GetGenericArguments());
+                    ?? GetGenericInterface(t, typeof(IBlueprintOutput<>), port.DataType);
 
                 methods[l] = interfaceType?.GetMethod("GetOutputPortValue");
             }

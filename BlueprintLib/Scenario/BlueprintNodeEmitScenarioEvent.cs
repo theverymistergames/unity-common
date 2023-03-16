@@ -12,8 +12,8 @@ namespace MisterGames.BlueprintLib {
         [SerializeField] private ScenarioEvent _event;
 
         public override Port[] CreatePorts() => new[] {
-            Port.Action(PortDirection.Input),
-            Port.Action(PortDirection.Output),
+            Port.Enter(),
+            Port.Exit(),
         };
 
         public void OnEnterPort(int port) {

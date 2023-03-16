@@ -11,10 +11,10 @@ namespace MisterGames.BlueprintLib {
         [SerializeField] private Vector3 _position;
 
         public override Port[] CreatePorts() => new[] {
-            Port.Action(PortDirection.Input),
-            Port.Func<Transform>(PortDirection.Input, "Transform"),
-            Port.Func<Vector3>(PortDirection.Input, "Position"),
-            Port.Action(PortDirection.Output),
+            Port.Enter(),
+            Port.Input<Transform>("Transform"),
+            Port.Input<Vector3>("Position"),
+            Port.Exit(),
         };
 
         public void OnEnterPort(int port) {
@@ -23,7 +23,7 @@ namespace MisterGames.BlueprintLib {
             var transform = Ports[1].Get<Transform>();
             var position = Ports[2].Get(_position);
 
-            if (transform != null) transform.position = position;
+            transform.position = position;
 
             Ports[3].Call();
         }

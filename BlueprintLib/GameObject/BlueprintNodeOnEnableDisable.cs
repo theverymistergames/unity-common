@@ -9,9 +9,9 @@ namespace MisterGames.BlueprintLib {
     public sealed class BlueprintNodeOnEnableDisable : BlueprintNode, IBlueprintEnableDisable, IBlueprintOutput<bool> {
         
         public override Port[] CreatePorts() => new[] {
-            Port.Action(PortDirection.Output, "On Enable"),
-            Port.Action(PortDirection.Output, "On Disable"),
-            Port.Func<bool>(PortDirection.Output, "Is Enabled"),
+            Port.Exit("On Enable"),
+            Port.Exit("On Disable"),
+            Port.Output<bool>("Is Enabled"),
         };
 
         private bool _isEnabled;

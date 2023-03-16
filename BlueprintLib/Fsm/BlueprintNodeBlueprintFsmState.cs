@@ -11,12 +11,10 @@ namespace MisterGames.BlueprintLib {
         private bool _isEnteredState;
 
         public override Port[] CreatePorts() => new[] {
-            Port.Action(PortDirection.Input, "Enter"),
-            Port.Action(PortDirection.Output, "On Enter"),
-            Port.Action(PortDirection.Output, "On Exit"),
-            Port.Create(PortDirection.Input, "Transitions", typeof(IBlueprintNodeFsmTransition))
-                .Layout(PortLayout.Right)
-                .Capacity(PortCapacity.Multiple)
+            Port.Enter("Enter"),
+            Port.Exit("On Enter"),
+            Port.Exit("On Exit"),
+            Port.Input<IFsmTransitionBase>("Transitions").Layout(PortLayout.Right).Capacity(PortCapacity.Multiple)
         };
 
         public void OnEnterPort(int port) {
@@ -28,14 +26,14 @@ namespace MisterGames.BlueprintLib {
 
             var links = Ports[3].links;
             for (int i = 0; i < links.Count; i++) {
-                if (links[i].node is IBlueprintNodeFsmTransition t) t.Arm(this);
+                links[i].Get<IFsmTransitionBase>()?.Arm(this);
             }
         }
 
         public void OnTransitionRequested() {
             var links = Ports[3].links;
             for (int i = 0; i < links.Count; i++) {
-                if (links[i].node is IBlueprintNodeFsmTransition t) t.Disarm();
+                links[i].Get<IFsmTransitionBase>()?.Disarm();
             }
 
             Ports[2].Call();

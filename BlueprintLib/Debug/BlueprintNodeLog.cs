@@ -20,9 +20,9 @@ namespace MisterGames.BlueprintLib {
         }
 
         public override Port[] CreatePorts() => new[] {
-            Port.Action(PortDirection.Input),
-            Port.Func<string>(PortDirection.Input, "Text"),
-            Port.Action(PortDirection.Output),
+            Port.Enter(),
+            Port.Input<string>("Text"),
+            Port.Exit(),
         };
 
         public void OnEnterPort(int port) {

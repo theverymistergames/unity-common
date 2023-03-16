@@ -8,11 +8,13 @@ using UnityEngine;
 
 namespace MisterGames.BlueprintLib {
 
+    [SubclassSelectorIgnore]
     [Serializable]
     [BlueprintNodeMeta(Name = "Fsm Transition", Category = "Fsm", Color = BlueprintColors.Node.Flow)]
-    public sealed class BlueprintNodeNodeFsmTransition :
+    public sealed class BlueprintNodeFsmTransition :
         BlueprintNode,
-        IBlueprintNodeFsmTransition,
+        IBlueprintOutput<IFsmTransitionBase>,
+        IFsmTransitionBase,
         IFsmTransitionCallback,
         IBlueprintAssetValidator
     {
@@ -22,21 +24,19 @@ namespace MisterGames.BlueprintLib {
 
         public override Port[] CreatePorts() {
             var ports = new List<Port> {
-                Port.Create(PortDirection.Output, "Self", typeof(IBlueprintNodeFsmTransition))
-                    .Layout(PortLayout.Left)
-                    .Capacity(PortCapacity.Single),
-                Port.Action(PortDirection.Output, "On Transit"),
+                Port.Output<IFsmTransitionBase>("Self").Layout(PortLayout.Left).Capacity(PortCapacity.Single),
+                Port.Exit("On Transit"),
             };
 
             if (_transition is not IFsmTransition t) return ports.ToArray();
 
-            ports.Add(Port.DynamicFunc(PortDirection.Input, returnType: t.DataType));
+            ports.Add(Port.DynamicInput(type: t.DataType));
 
             return ports.ToArray();
         }
 
-        public void ValidateBlueprint(BlueprintAsset blueprint, int nodeId) {
-            blueprint.BlueprintMeta.InvalidateNodePorts(nodeId, invalidateLinks: true);
+        public IFsmTransitionBase GetOutputPortValue(int port) {
+            return port == 0 ? this : default;
         }
 
         public void Arm(IFsmTransitionCallback callback) {
@@ -56,6 +56,10 @@ namespace MisterGames.BlueprintLib {
         public void OnTransitionRequested() {
             _stateCallback?.OnTransitionRequested();
             Ports[1].Call();
+        }
+
+        public void ValidateBlueprint(BlueprintAsset blueprint, int nodeId) {
+            blueprint.BlueprintMeta.InvalidateNodePorts(nodeId, invalidateLinks: true);
         }
     }
 

@@ -18,10 +18,10 @@ namespace MisterGames.BlueprintLib {
         [SerializeField] private bool _condition;
 
         public override Port[] CreatePorts() => new[] {
-            Port.Func<bool>(PortDirection.Input, "Condition"),
-            Port.DynamicFunc(PortDirection.Input, "On True"),
-            Port.DynamicFunc(PortDirection.Input, "On False"),
-            Port.DynamicFunc(PortDirection.Output),
+            Port.Input<bool>("Condition"),
+            Port.DynamicInput("On True"),
+            Port.DynamicInput("On False"),
+            Port.DynamicOutput(),
         };
 
         public T GetOutputPortValue<T>(int port) {
@@ -40,11 +40,11 @@ namespace MisterGames.BlueprintLib {
 
             var link = links[0];
             var linkedPort = blueprintMeta.NodesMap[link.nodeId].Ports[link.portIndex];
-            var dataType = linkedPort.Signature;
+            var dataType = linkedPort.DataType;
 
-            ports[1] = Port.DynamicFunc(PortDirection.Input, "On True", dataType);
-            ports[2] = Port.DynamicFunc(PortDirection.Input, "On False", dataType);
-            ports[3] = Port.DynamicFunc(PortDirection.Output, returnType: dataType);
+            ports[1] = Port.DynamicInput("On True", dataType);
+            ports[2] = Port.DynamicInput("On False", dataType);
+            ports[3] = Port.DynamicOutput(type: dataType);
         }
 
         public void OnPortLinksChanged(BlueprintMeta blueprintMeta, int nodeId, int portIndex) {
