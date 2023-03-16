@@ -13,6 +13,7 @@ namespace MisterGames.Blueprints.Compile {
 
         private readonly Dictionary<int, BlueprintNode> _runtimeNodesMap = new Dictionary<int, BlueprintNode>();
         private readonly Dictionary<int, List<BlueprintLink>> _externalPortLinksMap = new Dictionary<int, List<BlueprintLink>>();
+        private readonly Dictionary<int, List<BlueprintLink>> _nodeLinkerGroupsMap = new Dictionary<int, List<BlueprintLink>>();
 
         public RuntimeBlueprint Compile(BlueprintAsset blueprint) {
             var nodeIds = blueprint.BlueprintMeta.NodesMap.Keys;
@@ -20,13 +21,17 @@ namespace MisterGames.Blueprints.Compile {
             var runtimeNodes = nodesCount > 0 ? new BlueprintNode[nodesCount] : Array.Empty<BlueprintNode>();
 
             _runtimeNodesMap.Clear();
+            _nodeLinkerGroupsMap.Clear();
 
             int nodeIndex = 0;
             foreach (int nodeId in nodeIds) {
                 runtimeNodes[nodeIndex++] = GetOrCompileNode(blueprint, nodeId);
             }
 
+            CreateConnectionsBetweenNodeLinkers(blueprint);
+
             _runtimeNodesMap.Clear();
+            _nodeLinkerGroupsMap.Clear();
 
             for (int n = 0; n < runtimeNodes.Length; n++) {
                 InlineLinks(runtimeNodes[n]);
@@ -47,6 +52,7 @@ namespace MisterGames.Blueprints.Compile {
             runtimeNode = nodeMeta.CreateNodeInstance();
             _runtimeNodesMap[nodeId] = runtimeNode;
 
+            if (runtimeNode is IBlueprintNodeLinker linker) AddNodeLinker(nodeId, linker);
             if (runtimeNode is IBlueprintCompiledNode compiledNode) compiledNode.Compile(nodeMeta.Ports);
 
             var ports = nodeMeta.Ports;
@@ -93,6 +99,7 @@ namespace MisterGames.Blueprints.Compile {
 
             _runtimeNodesMap.Clear();
             _externalPortLinksMap.Clear();
+            _nodeLinkerGroupsMap.Clear();
 
             int nodeIndex = 0;
             foreach (int nodeId in nodeIds) {
@@ -121,8 +128,11 @@ namespace MisterGames.Blueprints.Compile {
                 subgraphNode.Ports[p] = new RuntimePort(runtimeLinks);
             }
 
+            CreateConnectionsBetweenNodeLinkers(subgraphBlueprint);
+
             _externalPortLinksMap.Clear();
             _runtimeNodesMap.Clear();
+            _nodeLinkerGroupsMap.Clear();
 
             return new RuntimeBlueprint(runtimeNodes);
         }
@@ -142,6 +152,7 @@ namespace MisterGames.Blueprints.Compile {
             runtimeNode = nodeMeta.CreateNodeInstance();
             _runtimeNodesMap[nodeId] = runtimeNode;
 
+            if (runtimeNode is IBlueprintNodeLinker linker) AddNodeLinker(nodeId, linker);
             if (runtimeNode is IBlueprintCompiledNode compiledNode) compiledNode.Compile(nodeMeta.Ports);
 
             var ports = nodeMeta.Ports;
@@ -210,6 +221,48 @@ namespace MisterGames.Blueprints.Compile {
             }
 
             return runtimeNode;
+        }
+
+        private void AddNodeLinker(int nodeId, IBlueprintNodeLinker linker) {
+            int hash = linker.LinkerNodeHash;
+            var link = new BlueprintLink { nodeId = nodeId, portIndex = linker.LinkerNodePort };
+
+            if (_nodeLinkerGroupsMap.TryGetValue(linker.LinkerNodeHash, out var links)) links.Add(link);
+            else _nodeLinkerGroupsMap.Add(hash, new List<BlueprintLink> { link });
+        }
+
+        private void CreateConnectionsBetweenNodeLinkers(BlueprintAsset blueprint) {
+            var nodesMap = blueprint.BlueprintMeta.NodesMap;
+            var nodeLinkerGroups = _nodeLinkerGroupsMap.Values;
+
+            if (nodeLinkerGroups.Count <= 0) return;
+
+            foreach (var group in nodeLinkerGroups) {
+                if (group == null || group.Count == 0) continue;
+
+                var runtimeLinks = new List<RuntimeLink>(group.Count);
+
+                for (int i = 0; i < group.Count; i++) {
+                    var link = group[i];
+                    if (!nodesMap.TryGetValue(link.nodeId, out var nodeMeta)) continue;
+
+                    var ports = nodeMeta.Ports;
+                    if (link.portIndex < 0 || link.portIndex > ports.Length - 1) continue;
+
+                    var port = ports[link.portIndex];
+                    var node = _runtimeNodesMap[link.nodeId];
+
+                    // Exit or data-based input port: link owners
+                    if (port.IsInput == port.IsData) {
+                        node.Ports ??= new RuntimePort[ports.Length];
+                        node.Ports[link.portIndex] = new RuntimePort(runtimeLinks);
+                        continue;
+                    }
+
+                    // Enter or data-based output port: link targets
+                    runtimeLinks.Add(new RuntimeLink(node, link.portIndex));
+                }
+            }
         }
 
         private void InlineLinks(BlueprintNode node) {

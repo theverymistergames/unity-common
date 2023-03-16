@@ -15,7 +15,7 @@ namespace MisterGames.Blueprints.Validation {
             // Hidden ports cannot have connections
             if (a.IsHidden || b.IsHidden) return false;
 
-            // In a blueprint graph port views are compatible to create connections
+            // In a blueprint graph port views are able to hold connections
             // only if they have different directions, which is defined by layout
             if (a.IsLeftLayout == b.IsLeftLayout) return false;
 
