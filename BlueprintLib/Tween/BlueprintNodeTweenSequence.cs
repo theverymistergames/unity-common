@@ -55,6 +55,7 @@ namespace MisterGames.BlueprintLib {
 
         public void DeInitialize() {
             _tweenSequence?.DeInitialize();
+            _tweenSequence = null;
         }
 
         public async UniTask Play(CancellationToken token) {

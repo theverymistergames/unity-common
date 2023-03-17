@@ -99,11 +99,6 @@ namespace MisterGames.BlueprintLib {
             }
         }
 
-        private void InitializeTween() {
-            _tween = BlueprintTweenConverter.AsTween(Ports[6].links);
-            _tween?.Initialize(_runner);
-        }
-
         private async UniTask Play(CancellationToken token) {
             _pauseCts?.Cancel();
             _pauseCts?.Dispose();
