@@ -104,14 +104,14 @@ namespace MisterGames.Blueprints {
         }
 
         public static Port Input<T>(string name = null) {
-            return new Port { _name = name, _mode = PortMode.Data | PortMode.Input, DataType = typeof(T) };
+            return new Port { _name = name, _mode = PortMode.Input | PortMode.Data, DataType = typeof(T) };
         }
         public static Port Output<T>(string name = null) {
             return new Port { _name = name, _mode = PortMode.Data, DataType = typeof(T) };
         }
 
         public static Port DynamicInput(string name = null, Type type = null) {
-            return new Port { _name = name, _mode = PortMode.Data | PortMode.Input, DataType = type };
+            return new Port { _name = name, _mode = PortMode.Input | PortMode.Data, DataType = type };
         }
         public static Port DynamicOutput(string name = null, Type type = null) {
             return new Port { _name = name, _mode = PortMode.Data, DataType = type };

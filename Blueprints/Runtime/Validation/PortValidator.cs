@@ -22,23 +22,20 @@ namespace MisterGames.Blueprints.Validation {
             // Ports with same PortMode (Input/Output) are not compatible
             if (a.IsInput == b.IsInput) return false;
 
-            if (a.IsData) {
-                if (!b.IsData) return false;
+            if (!a.IsData) return !b.IsData;
+            if (!b.IsData) return false;
 
-                var aDataType = a.DataType;
-                var bDataType = b.DataType;
+            var aDataType = a.DataType;
+            var bDataType = b.DataType;
 
-                // Dynamic data ports are not compatible with each other
-                if (aDataType == null) return bDataType != null;
-                if (bDataType == null) return true;
+            // Dynamic data ports are not compatible with each other
+            if (aDataType == null) return bDataType != null;
+            if (bDataType == null) return true;
 
-                if (aDataType.IsValueType) return aDataType == bDataType;
-                if (bDataType.IsValueType) return aDataType == bDataType;
+            if (aDataType.IsValueType) return aDataType == bDataType;
+            if (bDataType.IsValueType) return aDataType == bDataType;
 
-                return a.IsInput ? aDataType.IsAssignableFrom(bDataType) : bDataType.IsAssignableFrom(aDataType);
-            }
-
-            return true;
+            return a.IsInput ? aDataType.IsAssignableFrom(bDataType) : bDataType.IsAssignableFrom(aDataType);
         }
 
         public static bool ValidateExternalPortWithExistingSignature(BlueprintAsset asset, Port port) {
