@@ -11,7 +11,7 @@ namespace MisterGames.BlueprintLib {
         
         [SerializeField] private string _label;
 
-        public int LinkerNodeHash => _label.GetHashCode();
+        public int LinkerNodeHash => string.IsNullOrWhiteSpace(_label) ? 0 : _label.GetHashCode();
         public int LinkerNodePort => 1;
 
         public override Port[] CreatePorts() => new[] {
