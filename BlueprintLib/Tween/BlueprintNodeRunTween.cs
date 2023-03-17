@@ -31,7 +31,9 @@ namespace MisterGames.BlueprintLib {
             Port.Enter("Rewind"),
             Port.Enter("Invert"),
             Port.Input<IBlueprintNodeTween>("Tweens").Layout(PortLayout.Right).Capacity(PortCapacity.Multiple),
-            Port.Exit("On Finish"),
+            Port.Exit("On Start"),
+            Port.Exit("On Cancelled"),
+            Port.Exit("On Finished"),
         };
 
         public override void OnInitialize(IBlueprintHost host) {
@@ -47,14 +49,19 @@ namespace MisterGames.BlueprintLib {
         }
 
         public void OnStart() {
-            if (_autoInitOnStart) InitializeTween();
+            if (!_autoInitOnStart) return;
+
+            _tween = BlueprintTweenConverter.AsTween(Ports[6].links);
+            _tween?.Initialize(_runner);
         }
 
         public void OnEnterPort(int port) {
             switch (port) {
                 case 0:
                     _tween?.DeInitialize();
-                    InitializeTween();
+
+                    _tween = BlueprintTweenConverter.AsTween(Ports[6].links);
+                    _tween?.Initialize(_runner);
                     break;
 
                 case 1:
@@ -93,12 +100,7 @@ namespace MisterGames.BlueprintLib {
         }
 
         private void InitializeTween() {
-            var links = Ports[6].links;
-            for (int i = 0; i < links.Count; i++) {
-                links[i].Get<IBlueprintNodeTween>()?.SetupTween();
-            }
-
-            _tween = BlueprintTweenConverter.AsTween(links);
+            _tween = BlueprintTweenConverter.AsTween(Ports[6].links);
             _tween?.Initialize(_runner);
         }
 
@@ -107,12 +109,12 @@ namespace MisterGames.BlueprintLib {
             _pauseCts?.Dispose();
             _pauseCts = new CancellationTokenSource();
 
+            Ports[7].Call();
+
             var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_pauseCts.Token, token);
             await _tween.Play(linkedCts.Token);
 
-            if (linkedCts.IsCancellationRequested) return;
-
-            Ports[7].Call();
+            Ports[linkedCts.IsCancellationRequested ? 8 : 9].Call();
         }
     }
 

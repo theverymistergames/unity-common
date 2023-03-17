@@ -1,33 +1,70 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using MisterGames.Blueprints;
 using MisterGames.Blueprints.Compile;
+using MisterGames.Common.Attributes;
 using MisterGames.Tweens.Core;
+using UnityEngine;
 
 namespace MisterGames.BlueprintLib {
 
     [Serializable]
+    [SubclassSelectorIgnore]
     [BlueprintNodeMeta(Name = "Custom Tween", Category = "Tweens", Color = BlueprintColors.Node.Actions)]
-    public sealed class BlueprintNodeCustomTween : BlueprintNode, IBlueprintNodeTween, IBlueprintOutput<IBlueprintNodeTween> {
-
-        public ITween Tween => Ports[2].Get<ITween>();
+    public sealed class BlueprintNodeCustomTween :
+        BlueprintNode,
+        IBlueprintNodeTween,
+        IBlueprintOutput<IBlueprintNodeTween>,
+        ITween
+    {
+        public ITween Tween => this;
         public List<RuntimeLink> NextLinks => Ports[1].links;
+
+        private ITween _tween;
 
         public override Port[] CreatePorts() => new[] {
             Port.Output<IBlueprintNodeTween>("Self").Layout(PortLayout.Left).Capacity(PortCapacity.Single),
             Port.Input<IBlueprintNodeTween>("Next Tweens").Layout(PortLayout.Right).Capacity(PortCapacity.Multiple),
             Port.Input<ITween>(),
+            Port.Exit("On Start"),
+            Port.Exit("On Cancelled"),
+            Port.Exit("On Finished"),
         };
-
-        public void SetupTween() {
-            var links = Ports[1].links;
-            for (int i = 0; i < links.Count; i++) {
-                links[i].Get<IBlueprintNodeTween>()?.SetupTween();
-            }
-        }
 
         public IBlueprintNodeTween GetOutputPortValue(int port) {
             return port == 0 ? this : default;
+        }
+
+        public void Initialize(MonoBehaviour owner) {
+            _tween = Ports[2].Get<ITween>();
+            _tween?.Initialize(owner);
+        }
+
+        public void DeInitialize() {
+            _tween?.DeInitialize();
+            _tween = null;
+        }
+
+        public async UniTask Play(CancellationToken token) {
+            if (_tween == null) return;
+
+            Ports[3].Call();
+            await _tween.Play(token);
+            Ports[token.IsCancellationRequested ? 4 : 5].Call();
+        }
+
+        public void Wind(bool reportProgress = true) {
+            _tween?.Wind(reportProgress);
+        }
+
+        public void Rewind(bool reportProgress = true) {
+            _tween?.Rewind(reportProgress);
+        }
+
+        public void Invert(bool isInverted) {
+            _tween?.Invert(isInverted);
         }
     }
 

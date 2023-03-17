@@ -7,8 +7,6 @@ namespace MisterGames.BlueprintLib {
     public interface IBlueprintNodeTween {
         ITween Tween { get; }
         List<RuntimeLink> NextLinks { get; }
-
-        void SetupTween();
     }
 
 }

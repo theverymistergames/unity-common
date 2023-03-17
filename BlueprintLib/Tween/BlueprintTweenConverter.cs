@@ -10,30 +10,31 @@ namespace MisterGames.BlueprintLib {
         public static ITween AsTween(List<RuntimeLink> links) {
             int count = links.Count;
             if (count == 0) return null;
-            if (count == 1) return links[0].node is IBlueprintNodeTween n ? AsTween(n) : null;
+            if (count == 1) return AsTween(links[0].Get<IBlueprintNodeTween>());
 
             var parallelTween = new TweenParallel { tweens = new List<ITween>(count) };
             for (int i = 0; i < count; i++) {
-                if (links[i].node is IBlueprintNodeTween n && AsTween(n) is {} t) parallelTween.tweens.Add(t);
+                if (AsTween(links[i].Get<IBlueprintNodeTween>()) is {} t) parallelTween.tweens.Add(t);
             }
 
             return parallelTween;
         }
 
         private static ITween AsTween(IBlueprintNodeTween node) {
+            if (node == null) return null;
+
             while (true) {
                 var links = node.NextLinks;
                 int count = links.Count;
+
                 if (count == 0) return node.Tween;
 
                 if (count == 1) {
-                    if (links[0].node is IBlueprintNodeTween n) {
-                        if (node.Tween == null) {
-                            node = n;
-                            continue;
-                        }
+                    if (links[0].Get<IBlueprintNodeTween>() is {} n) {
+                        if (node.Tween != null) return AsTween(n, new List<ITween> { node.Tween });
 
-                        return AsTween(n, new List<ITween> { node.Tween });
+                        node = n;
+                        continue;
                     }
 
                     return node.Tween;
@@ -42,7 +43,7 @@ namespace MisterGames.BlueprintLib {
                 int firstValidLinkIndex = -1;
                 var parallelTween = new TweenParallel {tweens = new List<ITween>(count)};
                 for (int i = 0; i < count; i++) {
-                    if (links[i].node is IBlueprintNodeTween n && AsTween(n) is { } t) {
+                    if (AsTween(links[i].Get<IBlueprintNodeTween>()) is { } t) {
                         parallelTween.tweens.Add(t);
                         if (firstValidLinkIndex < 0) firstValidLinkIndex = i;
                     }
@@ -52,7 +53,7 @@ namespace MisterGames.BlueprintLib {
                 if (count == 0) return node.Tween;
 
                 if (count == 1) {
-                    if (firstValidLinkIndex > 0 && links[firstValidLinkIndex].node is IBlueprintNodeTween n) {
+                    if (firstValidLinkIndex > 0 && links[firstValidLinkIndex].Get<IBlueprintNodeTween>() is {} n) {
                         if (node.Tween == null) {
                             node = n;
                             continue;
@@ -77,7 +78,7 @@ namespace MisterGames.BlueprintLib {
                 if (count == 0) return AsTween(tweens);
 
                 if (count == 1) {
-                    if (links[0].node is IBlueprintNodeTween n) {
+                    if (links[0].Get<IBlueprintNodeTween>() is {} n) {
                         node = n;
                         continue;
                     }
@@ -88,7 +89,7 @@ namespace MisterGames.BlueprintLib {
                 int firstValidLinkIndex = -1;
                 var parallelTween = new TweenParallel { tweens = new List<ITween>(count) };
                 for (int i = 0; i < count; i++) {
-                    if (links[i].node is IBlueprintNodeTween n && AsTween(n) is { } t) {
+                    if (AsTween(links[i].Get<IBlueprintNodeTween>()) is { } t) {
                         parallelTween.tweens.Add(t);
                         if (firstValidLinkIndex < 0) firstValidLinkIndex = i;
                     }
@@ -98,7 +99,7 @@ namespace MisterGames.BlueprintLib {
                 if (count == 0) return AsTween(tweens);
 
                 if (count == 1) {
-                    if (firstValidLinkIndex > 0 && links[firstValidLinkIndex].node is IBlueprintNodeTween n) {
+                    if (firstValidLinkIndex > 0 && links[firstValidLinkIndex].Get<IBlueprintNodeTween>() is {} n) {
                         node = n;
                         continue;
                     }
