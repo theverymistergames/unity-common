@@ -47,29 +47,14 @@ namespace MisterGames.BlueprintLib {
         }
 
         public void OnStart() {
-            if (!_autoInitOnStart) return;
-
-            var links = Ports[6].links;
-            for (int i = 0; i < links.Count; i++) {
-                links[i].Get<IBlueprintNodeTween>()?.SetupTween();
-            }
-
-            _tween = BlueprintTweenConverter.AsTween(links);
-            _tween?.Initialize(_runner);
+            if (_autoInitOnStart) InitializeTween();
         }
 
         public void OnEnterPort(int port) {
             switch (port) {
                 case 0:
                     _tween?.DeInitialize();
-
-                    var links = Ports[6].links;
-                    for (int i = 0; i < links.Count; i++) {
-                        links[i].Get<IBlueprintNodeTween>()?.SetupTween();
-                    }
-
-                    _tween = BlueprintTweenConverter.AsTween(links);
-                    _tween?.Initialize(_runner);
+                    InitializeTween();
                     break;
 
                 case 1:
@@ -105,6 +90,16 @@ namespace MisterGames.BlueprintLib {
                     }
                     break;
             }
+        }
+
+        private void InitializeTween() {
+            var links = Ports[6].links;
+            for (int i = 0; i < links.Count; i++) {
+                links[i].Get<IBlueprintNodeTween>()?.SetupTween();
+            }
+
+            _tween = BlueprintTweenConverter.AsTween(links);
+            _tween?.Initialize(_runner);
         }
 
         private async UniTask Play(CancellationToken token) {
