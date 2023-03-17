@@ -12,9 +12,9 @@ namespace MisterGames.BlueprintLib {
 
         public override Port[] CreatePorts() => new[] {
             Port.Enter("Enter"),
+            Port.Input<IFsmTransitionBase>("Transitions").Layout(PortLayout.Right).Capacity(PortCapacity.Multiple),
             Port.Exit("On Enter"),
             Port.Exit("On Exit"),
-            Port.Input<IFsmTransitionBase>("Transitions").Layout(PortLayout.Right).Capacity(PortCapacity.Multiple)
         };
 
         public void OnEnterPort(int port) {
