@@ -33,7 +33,7 @@ namespace MisterGames.Blueprints.Validation {
             if (bDataType == null) return true;
 
             if (aDataType.IsValueType) return aDataType == bDataType;
-            if (bDataType.IsValueType) return aDataType == bDataType;
+            if (bDataType.IsValueType) return false;
 
             return a.IsInput ? aDataType.IsAssignableFrom(bDataType) : bDataType.IsAssignableFrom(aDataType);
         }

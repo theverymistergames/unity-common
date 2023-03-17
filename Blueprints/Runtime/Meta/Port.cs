@@ -148,11 +148,14 @@ namespace MisterGames.Blueprints {
                     ? "enter"
                     : "exit";
 
-            return $"{nameof(Port)}(name = {_name}, " +
+            return $"{nameof(Port)}(" +
+                   $"name = {_name}, " +
                    $"{(IsHidden ? "hidden " : string.Empty)}" +
                    $"{(IsExternal ? "external " : string.Empty)}" +
                    $"{(IsMultiple ? "multiple" : "single")} " +
-                   $"{config})";
+                   $"{config}" +
+                   $"{(IsInput != IsLeftLayout ? IsLeftLayout ? " (left layout)" : " (right layout)" : string.Empty)}" +
+                   $")";
         }
     }
 
