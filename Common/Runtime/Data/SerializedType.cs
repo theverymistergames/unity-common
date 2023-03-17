@@ -58,6 +58,8 @@ namespace MisterGames.Common.Data {
         private const string TO_STRIP_START = ", Version";
 
         private static string SerializeType(Type type) {
+            if (type == null) return null;
+
             string typeName = type.AssemblyQualifiedName;
             if (string.IsNullOrEmpty(typeName)) return null;
 
