@@ -72,19 +72,7 @@ namespace MisterGames.Blueprints.Meta {
             // So ports have to be swapped, if:
             // 1) fromPort is enter port (IsData = false, IsInput = true)
             // 2) fromPort is data-based output port (IsData = true, IsInput = false)
-            if (fromPort.IsData != fromPort.IsInput) {
-                var tempPort = fromPort;
-                int tempPortIndex = fromPortIndex;
-                int tempNodeId = fromNodeId;
-
-                fromPort = toPort;
-                fromPortIndex = toPortIndex;
-                fromNodeId = toNodeId;
-
-                toPort = tempPort;
-                toPortIndex = tempPortIndex;
-                toNodeId = tempNodeId;
-            }
+            if (fromPort.IsData != fromPort.IsInput) (fromNodeId, fromPort, fromPortIndex) = (toNodeId, toPort, toPortIndex);
 
             if (HasLinkFromNodePort(fromNodeId, fromPortIndex, toNodeId, toPortIndex)) return false;
             if (HasLinkToNodePort(fromNodeId, fromPortIndex, toNodeId, toPortIndex)) return false;

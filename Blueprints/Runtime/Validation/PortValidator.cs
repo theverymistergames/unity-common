@@ -28,15 +28,14 @@ namespace MisterGames.Blueprints.Validation {
                 var aDataType = a.DataType;
                 var bDataType = b.DataType;
 
-                // Dynamic data ports are not compatible with dynamic data ports
+                // Dynamic data ports are not compatible with each other
                 if (aDataType == null) return bDataType != null;
                 if (bDataType == null) return true;
 
-                if (aDataType.IsSubclassOf(typeof(object)) || aDataType.IsInterface) {
-                    return a.IsInput ? aDataType.IsAssignableFrom(bDataType) : bDataType.IsAssignableFrom(aDataType);
-                }
+                if (aDataType.IsValueType) return aDataType == bDataType;
+                if (bDataType.IsValueType) return aDataType == bDataType;
 
-                return aDataType == bDataType;
+                return a.IsInput ? aDataType.IsAssignableFrom(bDataType) : bDataType.IsAssignableFrom(aDataType);
             }
 
             return true;
