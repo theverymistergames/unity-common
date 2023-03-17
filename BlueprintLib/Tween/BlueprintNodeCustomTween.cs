@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using MisterGames.Blueprints;
 using MisterGames.Blueprints.Compile;
-using MisterGames.Tweens;
 using MisterGames.Tweens.Core;
 
 namespace MisterGames.BlueprintLib {
@@ -20,7 +19,12 @@ namespace MisterGames.BlueprintLib {
             Port.Input<ITween>(),
         };
 
-        public void SetupTween() { }
+        public void SetupTween() {
+            var links = Ports[1].links;
+            for (int i = 0; i < links.Count; i++) {
+                links[i].Get<IBlueprintNodeTween>()?.SetupTween();
+            }
+        }
 
         public IBlueprintNodeTween GetOutputPortValue(int port) {
             return port == 0 ? this : default;

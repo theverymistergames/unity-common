@@ -27,13 +27,23 @@ namespace MisterGames.BlueprintLib {
         };
 
         public void SetupTween() {
-            var t = BlueprintTweenConverter.AsTween(Ports[2].links);
+            var links = Ports[2].links;
+            for (int i = 0; i < links.Count; i++) {
+                links[i].Get<IBlueprintNodeTween>()?.SetupTween();
+            }
+
+            var t = BlueprintTweenConverter.AsTween(links);
             _tweenSequence = t == null ? null : t as TweenSequence ?? new TweenSequence { tweens = new List<ITween> { t } };
 
-            if (_tweenSequence == null) return;
+            if (_tweenSequence != null) {
+                _tweenSequence.loop = _loop;
+                _tweenSequence.yoyo = _yoyo;
+            }
 
-            _tweenSequence.loop = _loop;
-            _tweenSequence.yoyo = _yoyo;
+            links = Ports[1].links;
+            for (int i = 0; i < links.Count; i++) {
+                links[i].Get<IBlueprintNodeTween>()?.SetupTween();
+            }
         }
 
         public IBlueprintNodeTween GetOutputPortValue(int port) {

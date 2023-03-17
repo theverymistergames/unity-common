@@ -24,6 +24,11 @@ namespace MisterGames.BlueprintLib {
 
         public void SetupTween() {
             _tween.action = Ports[2].Get<ITweenInstantAction>();
+
+            var links = Ports[1].links;
+            for (int i = 0; i < links.Count; i++) {
+                links[i].Get<IBlueprintNodeTween>()?.SetupTween();
+            }
         }
 
         public IBlueprintNodeTween GetOutputPortValue(int port) {

@@ -42,6 +42,8 @@ namespace MisterGames.BlueprintLib {
         public override void OnDeInitialize() {
             _destroyCts.Cancel();
             _destroyCts.Dispose();
+
+            _tween?.DeInitialize();
         }
 
         public void OnStart() {
