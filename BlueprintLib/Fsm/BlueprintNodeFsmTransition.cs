@@ -8,8 +8,8 @@ using UnityEngine;
 
 namespace MisterGames.BlueprintLib {
 
-    [SubclassSelectorIgnore]
     [Serializable]
+    [SubclassSelectorIgnore]
     [BlueprintNodeMeta(Name = "Fsm Transition", Category = "Fsm", Color = BlueprintColors.Node.Flow)]
     public sealed class BlueprintNodeFsmTransition :
         BlueprintNode,
@@ -28,9 +28,7 @@ namespace MisterGames.BlueprintLib {
                 Port.Exit("On Transit"),
             };
 
-            if (_transition is not IFsmTransition t) return ports.ToArray();
-
-            ports.Add(Port.DynamicInput(type: t.DataType));
+            if (_transition is IFsmTransition t) ports.Add(Port.DynamicInput(type: t.DataType));
 
             return ports.ToArray();
         }
