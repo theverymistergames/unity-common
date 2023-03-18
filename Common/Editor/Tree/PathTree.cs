@@ -102,6 +102,13 @@ namespace MisterGames.Common.Editor.Tree {
             while (children.Count == 1) {
                 var singleChild = children[0];
 
+                if (singleChild.children.Count == 0) {
+                    singleChild.level += levelOffset;
+                    entry.children[0] = singleChild;
+
+                    return entry;
+                }
+
                 entry.data = new Node<T>($"{entry.data.name}/{singleChild.data.name}", singleChild.data.data);
                 entry.children = singleChild.children;
 

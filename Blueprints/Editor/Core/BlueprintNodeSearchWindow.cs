@@ -32,6 +32,10 @@ namespace MisterGames.Blueprints.Editor.Core {
             public Type nodeType;
             public int portIndex;
             public string portName;
+
+            public override string ToString() {
+                return $"NodePortSearchEntry(nodeType {nodeType}, port#{portIndex} {portName})";
+            }
         }
 
         public void SwitchToNodeSearch() {
@@ -71,13 +75,15 @@ namespace MisterGames.Blueprints.Editor.Core {
         }
 
         private static List<SearchTreeEntry> CreateSearchTreeForNodes() {
-            var tree = new List<SearchTreeEntry> { SearchTreeEntryUtils.Header("Select node") };
+            var root = PathTree
+                .CreateTree(GetBlueprintNodeSearchEntries(), GetNodePath);
 
-            var treeContent = PathTree
-                .CreateTree(GetBlueprintNodeSearchEntries(), GetNodePath)
+            var treeContent = root
                 .PreOrder()
-                .Where(e => !string.IsNullOrEmpty(e.data.name))
+                .Where(e => e.level > 0)
                 .Select(ToSearchEntry);
+
+            var tree = new List<SearchTreeEntry> { SearchTreeEntryUtils.Header($"Select node {root.data.name}") };
 
             tree.AddRange(treeContent);
 
@@ -85,13 +91,15 @@ namespace MisterGames.Blueprints.Editor.Core {
         }
 
         private static List<SearchTreeEntry> CreateSearchTreeForNodePortsCompatibleWith(Port fromPort) {
-            var tree = new List<SearchTreeEntry> { SearchTreeEntryUtils.Header("Select node and port") };
+            var root = PathTree
+                .CreateTree(GetBlueprintNodePortsSearchEntries(fromPort), GetNodePortPath);
 
-            var treeContent = PathTree
-                .CreateTree(GetBlueprintNodePortsSearchEntries(fromPort), GetNodePortPath)
+             var treeContent = root
                 .PreOrder()
-                .Where(e => !string.IsNullOrEmpty(e.data.name))
+                .Where(e => e.level > 0)
                 .Select(ToSearchEntry);
+
+            var tree = new List<SearchTreeEntry> { SearchTreeEntryUtils.Header($"Select node and port {root.data.name}") };
 
             tree.AddRange(treeContent);
 
