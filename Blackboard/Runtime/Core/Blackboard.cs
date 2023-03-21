@@ -168,25 +168,24 @@ namespace MisterGames.Blackboards.Core {
                 type = type.GetElementType()!;
 
                 if (type.IsValueType) {
-                    if (type == typeof(bool)) return _boolArrays[hash] is T t ? t : default;
-                    if (type == typeof(float)) return _floatArrays[hash] is T t ? t : default;
-                    if (type == typeof(double)) return _doubleArrays[hash] is T t ? t : default;
-                    if (type == typeof(int)) return _intArrays[hash] is T t ? t : default;
-                    if (type == typeof(long)) return _longArrays[hash] is T t ? t : default;
+                    if (type == typeof(bool)) return _boolArrays.TryGetValue(hash, out bool[] a) && a is T t ? t : default;
+                    if (type == typeof(float)) return _floatArrays.TryGetValue(hash, out float[] a) && a is T t ? t : default;
+                    if (type == typeof(double)) return _doubleArrays.TryGetValue(hash, out double[] a) && a is T t ? t : default;
+                    if (type == typeof(int)) return _intArrays.TryGetValue(hash, out int[] a) && a is T t ? t : default;
+                    if (type == typeof(long)) return _longArrays.TryGetValue(hash, out long[] a) && a is T t ? t : default;
 
-                    if (type == typeof(Vector2)) return _vectors2Arrays[hash] is T t ? t : default;
-                    if (type == typeof(Vector3)) return _vectors3Arrays[hash] is T t ? t : default;
-                    if (type == typeof(Vector4)) return _vectors4Arrays[hash] is T t ? t : default;
-                    if (type == typeof(Vector2Int)) return _vectors2IntArrays[hash] is T t ? t : default;
-                    if (type == typeof(Vector3Int)) return _vectors3IntArrays[hash] is T t ? t : default;
-                    if (type == typeof(Quaternion)) return _quaternionArrays[hash] is T t ? t : default;
+                    if (type == typeof(Vector2)) return _vectors2Arrays.TryGetValue(hash, out var a) && a is T t ? t : default;
+                    if (type == typeof(Vector3)) return _vectors3Arrays.TryGetValue(hash, out var a) && a is T t ? t : default;
+                    if (type == typeof(Vector4)) return _vectors4Arrays.TryGetValue(hash, out var a) && a is T t ? t : default;
+                    if (type == typeof(Vector2Int)) return _vectors2IntArrays.TryGetValue(hash, out var a) && a is T t ? t : default;
+                    if (type == typeof(Vector3Int)) return _vectors3IntArrays.TryGetValue(hash, out var a) && a is T t ? t : default;
+                    if (type == typeof(Quaternion)) return _quaternionArrays.TryGetValue(hash, out var a) && a is T t ? t : default;
 
-                    if (type == typeof(LayerMask)) return _layerMaskArrays[hash] is T t ? t : default;
-                    if (type == typeof(Color)) return _colorArrays[hash] is T t ? t : default;
+                    if (type == typeof(LayerMask)) return _layerMaskArrays.TryGetValue(hash, out var a) && a is T t ? t : default;
+                    if (type == typeof(Color)) return _colorArrays.TryGetValue(hash, out var a) && a is T t ? t : default;
 
                     if (type.IsEnum) {
-                        var array = _enumArrays[hash];
-                        if (array == null) return default;
+                        if (!_enumArrays.TryGetValue(hash, out var array) || array == null) return default;
 
                         var res = Array.CreateInstance(type, array.Length);
                         for (int i = 0; i < array.Length; i++) {
@@ -198,12 +197,11 @@ namespace MisterGames.Blackboards.Core {
                     return default;
                 }
 
-                if (type == typeof(string)) return _stringArrays[hash] is T t ? t : default;
-                if (type == typeof(AnimationCurve)) return _curveArrays[hash] is T t ? t : default;
+                if (type == typeof(string)) return _stringArrays.TryGetValue(hash, out string[] a) && a is T t ? t : default;
+                if (type == typeof(AnimationCurve)) return _curveArrays.TryGetValue(hash, out var a) && a is T t ? t : default;
 
                 if (typeof(Object).IsAssignableFrom(type)) {
-                    var array = _objectArrays[hash];
-                    if (array == null) return default;
+                    if (!_objectArrays.TryGetValue(hash, out var array) || array == null) return default;
 
                     var result = Array.CreateInstance(type, array.Length);
                     for (int i = 0; i < array.Length; i++) {
@@ -214,8 +212,7 @@ namespace MisterGames.Blackboards.Core {
                 }
 
                 if (type.IsSubclassOf(typeof(object)) || type.IsInterface) {
-                    var array = _referenceArrays[hash];
-                    if (array == null) return default;
+                    if (!_referenceArrays.TryGetValue(hash, out var array) || array == null) return default;
 
                     var result = Array.CreateInstance(type, array.Length);
                     for (int i = 0; i < array.Length; i++) {
@@ -229,36 +226,36 @@ namespace MisterGames.Blackboards.Core {
             }
 
             if (type.IsValueType) {
-                if (type == typeof(bool)) return _bools[hash] is T t ? t : default;
+                if (type == typeof(bool)) return _bools.TryGetValue(hash, out bool b) && b is T t ? t : default;
 
-                if (type == typeof(float)) return _floats[hash] is T t ? t : default;
-                if (type == typeof(double)) return _doubles[hash] is T t ? t : default;
+                if (type == typeof(float)) return _floats.TryGetValue(hash, out float f) && f is T t ? t : default;
+                if (type == typeof(double)) return _doubles.TryGetValue(hash, out double d) && d is T t ? t : default;
 
-                if (type == typeof(int)) return _ints[hash] is T t ? t : default;
-                if (type == typeof(long)) return _longs[hash] is T t ? t : default;
+                if (type == typeof(int)) return _ints.TryGetValue(hash, out int i) && i is T t ? t : default;
+                if (type == typeof(long)) return _longs.TryGetValue(hash, out long l) && l is T t ? t : default;
 
-                if (type == typeof(Vector2)) return _vectors2[hash] is T t ? t : default;
-                if (type == typeof(Vector3)) return _vectors3[hash] is T t ? t : default;
-                if (type == typeof(Vector4)) return _vectors4[hash] is T t ? t : default;
+                if (type == typeof(Vector2)) return _vectors2.TryGetValue(hash, out var v) && v is T t ? t : default;
+                if (type == typeof(Vector3)) return _vectors3.TryGetValue(hash, out var v) && v is T t ? t : default;
+                if (type == typeof(Vector4)) return _vectors4.TryGetValue(hash, out var v) && v is T t ? t : default;
 
-                if (type == typeof(Quaternion)) return _quaternions[hash] is T t ? t : default;
+                if (type == typeof(Quaternion)) return _quaternions.TryGetValue(hash, out var v) && v is T t ? t : default;
 
-                if (type == typeof(Vector2Int)) return _vectors2Int[hash] is T t ? t : default;
-                if (type == typeof(Vector3Int)) return _vectors3Int[hash] is T t ? t : default;
+                if (type == typeof(Vector2Int)) return _vectors2Int.TryGetValue(hash, out var v) && v is T t ? t : default;
+                if (type == typeof(Vector3Int)) return _vectors3Int.TryGetValue(hash, out var v) && v is T t ? t : default;
 
-                if (type == typeof(LayerMask)) return _layerMasks[hash] is T t ? t : default;
-                if (type == typeof(Color)) return _colors[hash] is T t ? t : default;
+                if (type == typeof(LayerMask)) return _layerMasks.TryGetValue(hash, out var v) && v is T t ? t : default;
+                if (type == typeof(Color)) return _colors.TryGetValue(hash, out var v) && v is T t ? t : default;
 
-                if (type.IsEnum) return Enum.ToObject(type, _enums[hash].value) is T t ? t : default;
+                if (type.IsEnum) return _enums.TryGetValue(hash, out var v) && Enum.ToObject(type, v.value) is T t ? t : default;
 
                 return default;
             }
 
-            if (type == typeof(string)) return _strings[hash] is T t ? t : default;
-            if (type == typeof(AnimationCurve)) return _curves[hash] is T t ? t : default;
+            if (type == typeof(string)) return _strings.TryGetValue(hash, out string s) && s is T t ? t : default;
+            if (type == typeof(AnimationCurve)) return _curves.TryGetValue(hash, out var v) && v is T t ? t : default;
 
-            if (typeof(Object).IsAssignableFrom(type)) return _objects[hash].value is T t ? t : default;
-            if (type.IsSubclassOf(typeof(object)) || type.IsInterface) return _references[hash].value is T t ? t : default;
+            if (typeof(Object).IsAssignableFrom(type)) return _objects.TryGetValue(hash, out var v) && v.value is T t ? t : default;
+            if (type.IsSubclassOf(typeof(object)) || type.IsInterface) return _references.TryGetValue(hash, out var v) && v.value is T t ? t : default;
 
             return default;
         }
