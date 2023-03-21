@@ -35,7 +35,15 @@ namespace MisterGames.Blueprints.Validation {
             if (aDataType.IsValueType) return aDataType == bDataType;
             if (bDataType.IsValueType) return false;
 
-            return a.IsInput ? aDataType.IsAssignableFrom(bDataType) : bDataType.IsAssignableFrom(aDataType);
+            if (a.IsInput) {
+                if (a.IsMultiple && bDataType.IsArray && bDataType.GetElementType() == aDataType) return true;
+
+                return aDataType.IsAssignableFrom(bDataType);
+            }
+
+            if (b.IsMultiple && aDataType.IsArray && aDataType.GetElementType() == bDataType) return true;
+
+            return bDataType.IsAssignableFrom(aDataType);
         }
 
         public static bool ValidateExternalPortWithExistingSignature(BlueprintAsset asset, Port port) {
