@@ -11,7 +11,7 @@ namespace MisterGames.BlueprintLib {
 
         public override Port[] CreatePorts() => new[] {
             Port.Enter(),
-            Port.Input<Image>("Image"),
+            Port.Input<Image>("Images").Capacity(PortCapacity.Multiple),
             Port.Input<Material>("Material"),
             Port.Exit(),
         };
@@ -19,10 +19,23 @@ namespace MisterGames.BlueprintLib {
         public void OnEnterPort(int port) {
             if (port != 0) return;
 
-            var image = Ports[1].Get<Image>();
             var material = Ports[2].Get<Material>();
 
-            image.material = material;
+            var links = Ports[1].links;
+            for (int l = 0; l < links.Count; l++) {
+                var link = links[l];
+
+                if (link.Get<Image>() is { } image) {
+                    image.material = material;
+                    continue;
+                }
+
+                if (link.Get<Image[]>() is { } images) {
+                    for (int i = 0; i < images.Length; i++) {
+                        if (images[i] is { } im) im.material = material;
+                    }
+                }
+            }
 
             Ports[3].Call();
         }
