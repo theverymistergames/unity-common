@@ -34,8 +34,10 @@ namespace MisterGames.BlueprintLib {
 
             _interactive = Ports[1].Get<Interactive>();
 
-            _interactive.OnStartInteract += OnStartInteract;
-            _interactive.OnStopInteract += OnStopInteract;
+            if (_interactive != null) {
+                _interactive.OnStartInteract += OnStartInteract;
+                _interactive.OnStopInteract += OnStopInteract;
+            }
         }
 
         public override void OnDeInitialize() {
@@ -55,8 +57,10 @@ namespace MisterGames.BlueprintLib {
 
             _interactive = Ports[1].Get<Interactive>();
 
-            _interactive.OnStartInteract += OnStartInteract;
-            _interactive.OnStopInteract += OnStopInteract;
+            if (_interactive != null) {
+                _interactive.OnStartInteract += OnStartInteract;
+                _interactive.OnStopInteract += OnStopInteract;
+            }
         }
 
         private void OnStartInteract(InteractiveUser obj) {
@@ -70,7 +74,7 @@ namespace MisterGames.BlueprintLib {
         }
 
         bool IBlueprintOutput<bool>.GetOutputPortValue(int port) => port switch {
-            4 => _interactive.IsInteracting,
+            4 => _interactive != null && _interactive.IsInteracting,
             _ => false,
         };
 
