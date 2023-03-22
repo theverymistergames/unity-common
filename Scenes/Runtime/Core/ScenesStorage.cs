@@ -13,12 +13,8 @@ namespace MisterGames.Scenes.Core {
 
     public sealed class ScenesStorage : MisterGames.Common.Data.ScriptableSingleton<ScenesStorage> {
 
-#if UNITY_EDITOR
         [SerializeField] private bool _enablePlayModeStartSceneOverride = true;
-        [SerializeField] private string[] _searchScenesInFolders = {
-            "Assets/Scenes",
-        };
-#endif
+        [SerializeField] private string[] _searchScenesInFolders = { "Assets" };
 
         [SerializeField] private SceneReference _sceneRoot;
         internal string SceneRoot => _sceneRoot.scene;
