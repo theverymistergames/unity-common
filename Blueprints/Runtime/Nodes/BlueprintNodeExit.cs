@@ -41,7 +41,7 @@ namespace MisterGames.Blueprints.Nodes {
 
 #if UNITY_EDITOR
         public void ValidateBlueprint(BlueprintAsset blueprint, int nodeId) {
-            blueprint.BlueprintMeta.InvalidateNodePorts(nodeId, invalidateLinks: false, notify: false);
+            blueprint.BlueprintMeta.InvalidateNodePorts(blueprint, nodeId, invalidateLinks: false, notify: false);
         }
 #endif
     }

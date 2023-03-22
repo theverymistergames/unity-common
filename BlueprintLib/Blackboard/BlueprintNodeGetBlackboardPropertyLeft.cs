@@ -20,6 +20,7 @@ namespace MisterGames.BlueprintLib {
 
     {
         [SerializeField] [BlackboardProperty("_blackboard")] private int _property;
+
         private Blackboard _blackboard;
 
         public override Port[] CreatePorts() => new[] {
@@ -36,15 +37,13 @@ namespace MisterGames.BlueprintLib {
         };
 
 #if UNITY_EDITOR
-        private Type _dataType;
-
-        public void ValidateBlueprint(BlueprintAsset blueprint, int nodeId) {
-            _dataType = blueprint.Blackboard.TryGetProperty(_property, out var property) ? property.type : null;
-            blueprint.BlueprintMeta.InvalidateNodePorts(nodeId, invalidateLinks: true);
+        public void DecoratePorts(BlueprintAsset blueprint, int nodeId, Port[] ports) {
+            var dataType = blueprint.Blackboard.TryGetProperty(_property, out var property) ? property.type : null;
+            ports[0] = Port.DynamicOutput(type: dataType).Hidden(dataType == null).Layout(PortLayout.Left);
         }
 
-        public void DecoratePorts(BlueprintMeta blueprintMeta, int nodeId, Port[] ports) {
-            ports[0] = Port.DynamicOutput(type: _dataType).Hidden(_dataType == null).Layout(PortLayout.Left);
+        public void ValidateBlueprint(BlueprintAsset blueprint, int nodeId) {
+            blueprint.BlueprintMeta.InvalidateNodePorts(blueprint, nodeId, invalidateLinks: true);
         }
 #endif
     }
