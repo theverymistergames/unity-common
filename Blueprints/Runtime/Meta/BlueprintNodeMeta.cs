@@ -61,9 +61,9 @@ namespace MisterGames.Blueprints.Meta {
             return (BlueprintNode) JsonUtility.FromJson(_cachedNodeJson, _node.GetType());
         }
 
-        public void RecreatePorts(BlueprintMeta blueprintMeta) {
+        public void RecreatePorts(BlueprintAsset blueprint) {
             var ports = _node.CreatePorts();
-            if (_node is IBlueprintPortDecorator decorator) decorator.DecoratePorts(blueprintMeta, _nodeId, ports);
+            if (_node is IBlueprintPortDecorator decorator) decorator.DecoratePorts(blueprint, _nodeId, ports);
             _ports = ports;
         }
 

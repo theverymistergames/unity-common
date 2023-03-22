@@ -3,7 +3,7 @@
     public interface IBlueprintPortLinksListener {
 
 
-        void OnPortLinksChanged(BlueprintMeta blueprintMeta, int nodeId, int portIndex);
+        void OnPortLinksChanged(BlueprintAsset blueprint, int nodeId, int portIndex);
     }
 
 }

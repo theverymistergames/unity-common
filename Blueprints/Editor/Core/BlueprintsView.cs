@@ -223,20 +223,20 @@ namespace MisterGames.Blueprints.Editor.Core {
                 var nodeMeta = nodesMap[nodeId];
 
                 if (nodeMeta.Node == null) {
-                    blueprintMeta.RemoveNode(nodeId);
+                    blueprintMeta.RemoveNode(blueprintAsset, nodeId);
                     isNodesDataChanged = true;
                     continue;
                 }
 
                 long refId = SerializationUtility.GetManagedReferenceIdForObject(blueprintAsset, nodeMeta.Node);
                 if (refId is SerializationUtility.RefIdNull or SerializationUtility.RefIdUnknown) {
-                    blueprintMeta.RemoveNode(nodeId);
+                    blueprintMeta.RemoveNode(blueprintAsset, nodeId);
                     isNodesDataChanged = true;
                     continue;
                 }
 
                 nodeMeta.OnValidateNode(blueprintAsset);
-                isNodesDataChanged |= blueprintMeta.InvalidateNodePorts(nodeId, invalidateLinks: true, notify: false);
+                isNodesDataChanged |= blueprintMeta.InvalidateNodePorts(blueprintAsset, nodeId, invalidateLinks: true, notify: false);
             }
 
             if (isNodesDataChanged) SetBlueprintAssetDirtyAndNotify();
@@ -406,7 +406,7 @@ namespace MisterGames.Blueprints.Editor.Core {
             var nodeMeta = new BlueprintNodeMeta(node) { Position = position };
 
             nodeMeta.OnValidateNode(_blueprintAsset);
-            nodeMeta.RecreatePorts(_blueprintAsset.BlueprintMeta);
+            nodeMeta.RecreatePorts(_blueprintAsset);
 
             Undo.RecordObject(_blueprintAsset, "Blueprint Add Node");
 
@@ -420,7 +420,7 @@ namespace MisterGames.Blueprints.Editor.Core {
         private void RemoveNode(BlueprintNodeMeta nodeMeta) {
             Undo.RecordObject(_blueprintAsset, "Blueprint Remove Node");
 
-            _blueprintAsset.BlueprintMeta.RemoveNode(nodeMeta.NodeId);
+            _blueprintAsset.BlueprintMeta.RemoveNode(_blueprintAsset, nodeMeta.NodeId);
 
             SetBlueprintAssetDirtyAndNotify();
         }
@@ -428,7 +428,7 @@ namespace MisterGames.Blueprints.Editor.Core {
         private void CreateConnection(int fromNodeId, int fromPortIndex, int toNodeId, int toPortIndex) {
             Undo.RecordObject(_blueprintAsset, "Blueprint Create Connection");
 
-            _blueprintAsset.BlueprintMeta.TryCreateConnection(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
+            _blueprintAsset.BlueprintMeta.TryCreateConnection(_blueprintAsset, fromNodeId, fromPortIndex, toNodeId, toPortIndex);
 
             SetBlueprintAssetDirtyAndNotify();
         }
@@ -436,7 +436,7 @@ namespace MisterGames.Blueprints.Editor.Core {
         private void RemoveConnection(int fromNodeId, int fromPortIndex, int toNodeId, int toPortIndex) {
             Undo.RecordObject(_blueprintAsset, "Blueprint Remove Connection");
 
-            _blueprintAsset.BlueprintMeta.RemoveConnection(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
+            _blueprintAsset.BlueprintMeta.RemoveConnection(_blueprintAsset, fromNodeId, fromPortIndex, toNodeId, toPortIndex);
 
             SetBlueprintAssetDirtyAndNotify();
         }

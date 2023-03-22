@@ -3,7 +3,7 @@
     public interface IBlueprintPortDecorator {
 
 
-        void DecoratePorts(BlueprintMeta blueprintMeta, int nodeId, Port[] ports);
+        void DecoratePorts(BlueprintAsset blueprint, int nodeId, Port[] ports);
     }
 
 }
