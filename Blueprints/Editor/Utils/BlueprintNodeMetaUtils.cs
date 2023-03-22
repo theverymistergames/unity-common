@@ -15,13 +15,13 @@ namespace MisterGames.Blueprints.Editor.Utils {
             if (port.IsData) {
                 if (port.DataType == null) {
                     colorHex = BlueprintColors.Port.Header.Data;
-                    portName ??= "?";
+                    if (string.IsNullOrEmpty(portName)) portName = "?";
                 }
                 else {
                     var dataType = port.DataType;
 
                     colorHex = BlueprintColors.Port.Header.GetColorForType(dataType);
-                    portName ??= $"{TypeNameFormatter.GetTypeName(dataType)}{(port.IsInput && port.IsMultiple ? " (multi)" : string.Empty)}";
+                    if (string.IsNullOrEmpty(portName)) portName = $"{TypeNameFormatter.GetTypeName(dataType)}{(port.IsInput && port.IsMultiple ? " (multi)" : string.Empty)}";
                 }
             }
             else {
