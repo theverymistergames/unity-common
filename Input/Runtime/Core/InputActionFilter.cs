@@ -31,12 +31,16 @@ namespace MisterGames.Input.Core {
         }
 
         private void Activate(InputAction[] actions) {
+            if (actions is not { Length: >0 }) return;
+
             for (int i = 0; i < actions.Length; i++) {
                 _inputChannel.AddInputAction(actions[i]);
             }
         }
         
         private void Deactivate(InputAction[] actions) {
+            if (actions is not { Length: >0 }) return;
+
             for (int i = 0; i < actions.Length; i++) {
                 _inputChannel.RemoveInputAction(actions[i]);
             }
