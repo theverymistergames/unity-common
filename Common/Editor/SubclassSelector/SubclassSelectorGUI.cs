@@ -49,7 +49,7 @@ namespace MisterGames.Common.Editor.Drawers {
                 CreateTypeDropdown(baseType, property).Show(popupPosition);
             }
 
-            EditorGUI.PropertyField(position, property, label, true);
+            EditorGUI.PropertyField(position, property, label.text == typeLabel.text ? GUIContent.none : label, true);
         }
 
         public static float GetPropertyHeight(SerializedProperty property, bool includeChildren = false) {
