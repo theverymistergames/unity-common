@@ -59,18 +59,16 @@ namespace MisterGames.Dbg.Draw {
         public void Draw() {
             _color.a = _opacity;
             Debug.DrawLine(_from, _to, _color, _time, _occluded);
-            
-            var arrowOffset = (_from - _to).normalized * _arrowSize;
-            var arrowDir = new Vector3(0, 1, 0.6f);
-            var arrowRot = Quaternion.FromToRotation(Vector3.up, arrowDir);
-            
-            var arrowLeft = _to + arrowOffset.Rotate(arrowRot);
-            var arrowRight = _to + arrowOffset.Rotate(arrowRot.Inverted());
-            
-            Debug.DrawLine(_to, arrowLeft, _color, _time, _occluded);
-            Debug.DrawLine(_to, arrowRight, _color, _time, _occluded);
-        }
 
+            var dir = _to - _from;
+
+            if (Vector3.SqrMagnitude(dir).IsNearlyZero() || _arrowSize.IsNearlyZero()) return;
+
+            DbgPointer.Create()
+                .Position(_to).Orientation(Quaternion.LookRotation(dir, Quaternion.Euler(90f, 0f, 0f) * dir))
+                .Color(_color).Occlusion(_occluded).Time(_time).Size(_arrowSize).Opacity(_opacity)
+                .Draw();
+        }
     }
 
 }
