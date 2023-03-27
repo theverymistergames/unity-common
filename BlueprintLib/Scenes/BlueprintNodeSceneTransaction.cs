@@ -12,7 +12,7 @@ namespace MisterGames.BlueprintLib {
     [BlueprintNodeMeta(Name = "Scene Transaction", Category = "Scenes", Color = BlueprintLibColors.Node.Scenes)]
     public sealed class BlueprintNodeSceneTransaction : BlueprintNode, IBlueprintEnter {
         
-        [SerializeReference] [SubclassSelector] private ISceneTransaction _sceneTransaction;
+        [SerializeField] private SceneTransaction _sceneTransaction;
 
         private CancellationTokenSource _terminateCts;
 

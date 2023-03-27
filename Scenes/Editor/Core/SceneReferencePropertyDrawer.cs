@@ -15,20 +15,28 @@ namespace MisterGames.Scenes.Editor.Core {
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
             EditorGUI.BeginProperty(position, label, property);
 
-            var sceneProperty = property.FindPropertyRelative("scene");
+            var sceneProperty = property.FindPropertyRelative("scene").Copy();
+            property = property.Copy();
+
             string sceneName = sceneProperty.stringValue;
 
             if (string.IsNullOrEmpty(sceneName)) {
                 sceneName = SceneManager.GetActiveScene().name;
                 sceneProperty.stringValue = sceneName;
+
+                property.serializedObject.ApplyModifiedProperties();
+                property.serializedObject.Update();
             }
 
-            EditorGUI.LabelField(position, label);
-
             var dropdownPosition = new Rect(position);
-            dropdownPosition.width -= EditorGUIUtility.labelWidth;
-            dropdownPosition.x += EditorGUIUtility.labelWidth;
-            dropdownPosition.height = EditorGUIUtility.singleLineHeight;
+
+            if (label.text != sceneName) {
+                EditorGUI.LabelField(position, label);
+
+                dropdownPosition.width -= EditorGUIUtility.labelWidth;
+                dropdownPosition.x += EditorGUIUtility.labelWidth;
+                dropdownPosition.height = EditorGUIUtility.singleLineHeight;
+            }
 
             if (EditorGUI.DropdownButton(dropdownPosition, new GUIContent(sceneProperty.stringValue), FocusType.Keyboard)) {
                 var scenesDropdown = new AdvancedDropdown<SceneAsset>(
@@ -36,16 +44,13 @@ namespace MisterGames.Scenes.Editor.Core {
                     ScenesStorage.Instance.GetAllSceneAssets(),
                     sceneAsset => ScenesMenu.RemoveSceneAssetFileFormat(AssetDatabase.GetAssetPath(sceneAsset)),
                     sceneAsset => {
-                        _isPendingToWriteSelectedScene = true;
-                        _selectedScene = sceneAsset.name;
+                        sceneProperty.stringValue = sceneAsset.name;
+
+                        property.serializedObject.ApplyModifiedProperties();
+                        property.serializedObject.Update();
                     });
 
                 scenesDropdown.Show(dropdownPosition);
-            }
-
-            if (_isPendingToWriteSelectedScene) {
-                _isPendingToWriteSelectedScene = false;
-                sceneProperty.stringValue = _selectedScene;
             }
 
             EditorGUI.EndProperty();

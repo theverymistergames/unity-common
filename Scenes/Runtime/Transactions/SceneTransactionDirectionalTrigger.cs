@@ -6,11 +6,12 @@ using UnityEngine;
 
 namespace MisterGames.Scenes.Transactions {
 
-    public sealed class SceneTransactionTrigger : MonoBehaviour {
+    public sealed class SceneTransactionDirectionalTrigger : MonoBehaviour {
 
-        [SerializeField] private Trigger _trigger;
+        [SerializeField] private DirectionalTrigger _directionalTrigger;
         [SerializeField] [Min(0f)] private float _loadDelay;
-        [SerializeField] private SceneTransaction _transaction;
+        [SerializeField] private SceneTransaction _forwardSceneTransaction;
+        [SerializeField] private SceneTransaction _backwardSceneTransaction;
 
         private CancellationTokenSource _destroyCts;
 
@@ -24,15 +25,21 @@ namespace MisterGames.Scenes.Transactions {
         }
 
         private void OnEnable() {
-            _trigger.OnTriggered += OnTriggered;
+            _directionalTrigger.OnTriggeredForward += OnTriggeredForward;
+            _directionalTrigger.OnTriggeredBackward += OnTriggeredBackward;
         }
 
         private void OnDisable() {
-            _trigger.OnTriggered -= OnTriggered;
+            _directionalTrigger.OnTriggeredForward -= OnTriggeredForward;
+            _directionalTrigger.OnTriggeredBackward -= OnTriggeredBackward;
         }
 
-        private void OnTriggered() {
-            CommitSceneTransaction(_transaction, _loadDelay, _destroyCts.Token).Forget();
+        private void OnTriggeredForward() {
+            CommitSceneTransaction(_forwardSceneTransaction, _loadDelay, _destroyCts.Token).Forget();
+        }
+
+        private void OnTriggeredBackward() {
+            CommitSceneTransaction(_backwardSceneTransaction, _loadDelay, _destroyCts.Token).Forget();
         }
 
         private static async UniTaskVoid CommitSceneTransaction(SceneTransaction transaction, float delay, CancellationToken token) {
