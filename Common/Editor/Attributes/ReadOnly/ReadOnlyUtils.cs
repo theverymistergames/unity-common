@@ -2,7 +2,7 @@
 using MisterGames.Common.Attributes;
 using UnityEngine;
 
-namespace MisterGames.Common.Editor.Drawers {
+namespace MisterGames.Common.Editor.Attributes.ReadOnly {
 
     internal static class ReadOnlyUtils {
 

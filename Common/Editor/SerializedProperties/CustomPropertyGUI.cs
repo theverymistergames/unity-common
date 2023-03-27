@@ -5,44 +5,23 @@ using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 
-namespace MisterGames.Common.Editor.Drawers {
+namespace MisterGames.Common.Editor.SerializedProperties {
 
-    public static class PropertyDrawerUtils {
+	public static class CustomPropertyGUI {
 
-	    private static Dictionary<Type, Type> TargetTypeToPropertyDrawerTypeMap;
+		private static Dictionary<Type, Type> TargetTypeToPropertyDrawerTypeMap;
 		private static Dictionary<Type, PropertyDrawer> FieldTypeToPropertyDrawerInstanceMap;
 		private static readonly string IgnoreScope = typeof(int).Module.ScopeName;
 
-		public static void DrawPropertyField(
+		public static void PropertyField(
 			Rect position,
 			SerializedProperty property,
 			GUIContent label,
 			FieldInfo fieldInfo,
+			Attribute previousAttribute = null,
 			bool includeChildren = false
 		) {
-			var startAttribute = fieldInfo
-				.GetCustomAttributes(typeof(PropertyAttribute), inherit: false)
-				.FirstOrDefault(a => a is not (SerializeField or SerializeReference)) as Attribute;
-
-			var propertyDrawer = GetCustomPropertyDrawerForProperty(fieldInfo, startAttribute);
-
-			if (propertyDrawer == null) {
-				EditorGUI.PropertyField(position, property, label, includeChildren);
-				return;
-			}
-
-			propertyDrawer.OnGUI(position, property, label);
-		}
-
-		public static void DrawPropertyField(
-			Rect position,
-			SerializedProperty property,
-			GUIContent label,
-			FieldInfo fieldInfo,
-			Attribute excludeAttribute,
-			bool includeChildren = false
-		) {
-			var nextAttr = GetNextAttribute(fieldInfo, excludeAttribute);
+			var nextAttr = GetNextAttribute(fieldInfo, previousAttribute);
 			var propertyDrawer = GetCustomPropertyDrawerForProperty(fieldInfo, nextAttr);
 
 			if (propertyDrawer == null) {
@@ -57,24 +36,10 @@ namespace MisterGames.Common.Editor.Drawers {
 			SerializedProperty property,
 			GUIContent label,
 			FieldInfo fieldInfo,
+			Attribute previousAttribute = null,
 			bool includeChildren = false
 		) {
-			var startAttribute = fieldInfo
-				.GetCustomAttributes(typeof(PropertyAttribute), inherit: false)
-				.FirstOrDefault(a => a is not (SerializeField or SerializeReference)) as Attribute;
-
-			return GetCustomPropertyDrawerForProperty(fieldInfo, startAttribute)?.GetPropertyHeight(property, label)
-			       ?? EditorGUI.GetPropertyHeight(property, label, includeChildren);
-		}
-
-		public static float GetPropertyHeight(
-			SerializedProperty property,
-			GUIContent label,
-			FieldInfo fieldInfo,
-			Attribute excludeAttribute,
-			bool includeChildren = false
-		) {
-			var nextAttr = GetNextAttribute(fieldInfo, excludeAttribute);
+			var nextAttr = GetNextAttribute(fieldInfo, previousAttribute);
 			return GetCustomPropertyDrawerForProperty(fieldInfo, nextAttr)?.GetPropertyHeight(property, label)
 			       ?? EditorGUI.GetPropertyHeight(property, label, includeChildren);
 		}
@@ -83,7 +48,9 @@ namespace MisterGames.Common.Editor.Drawers {
 			FieldTypeToPropertyDrawerInstanceMap ??= new Dictionary<Type, PropertyDrawer>();
 
 			while (true) {
-				var drawerTargetType = attr?.GetType() ?? fieldInfo.FieldType;
+				var drawerTargetType = attr?.GetType() ?? fieldInfo?.FieldType;
+				if (drawerTargetType == null) return null;
+
 				if (FieldTypeToPropertyDrawerInstanceMap.TryGetValue(drawerTargetType, out var drawer)) return drawer;
 
 				var propertyDrawerType = GetPropertyDrawerTypeByFieldType(drawerTargetType);
@@ -127,7 +94,11 @@ namespace MisterGames.Common.Editor.Drawers {
 				: null;
 		}
 
-		private static PropertyDrawer InstantiatePropertyDrawer(Type drawerType, FieldInfo fieldInfo, Attribute insertAttribute) {
+		private static PropertyDrawer InstantiatePropertyDrawer(
+			Type drawerType,
+			FieldInfo fieldInfo,
+			Attribute insertAttribute
+		) {
 			if (drawerType == null) return null;
 
 			try {

@@ -2,7 +2,7 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace MisterGames.Common.Editor.Drawers {
+namespace MisterGames.Common.Editor.Attributes {
 
     [CustomPropertyDrawer(typeof(EmbeddedInspectorAttribute))]
     public class EmbeddedInspectorDrawer : PropertyDrawer {

@@ -5,8 +5,8 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace MisterGames.Common.Editor.Windows
-{
+namespace MisterGames.Common.Editor.Menu {
+
 	public static class ToolbarExtender {
 		
 		private const float space = 8;

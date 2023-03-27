@@ -1,8 +1,9 @@
 ﻿using MisterGames.Common.Attributes;
+using MisterGames.Common.Editor.SerializedProperties;
 using UnityEditor;
 using UnityEngine;
 
-namespace MisterGames.Common.Editor.Drawers {
+namespace MisterGames.Common.Editor.Attributes.ReadOnly {
 
     [CustomPropertyDrawer(typeof(ReadOnlyAttribute))]
     public class ReadOnlyDrawer : PropertyDrawer {
@@ -12,12 +13,12 @@ namespace MisterGames.Common.Editor.Drawers {
             bool disableGui = ReadOnlyUtils.IsDisabledGui(readOnlyAttribute.mode);
 
             EditorGUI.BeginDisabledGroup(disableGui);
-            PropertyDrawerUtils.DrawPropertyField(position, property, label, fieldInfo, attribute, includeChildren: true);
+            CustomPropertyGUI.PropertyField(position, property, label, fieldInfo, attribute, includeChildren: true);
             EditorGUI.EndDisabledGroup();
         }
 
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label) {
-            return PropertyDrawerUtils.GetPropertyHeight(property, label, fieldInfo, attribute, includeChildren: true);
+            return CustomPropertyGUI.GetPropertyHeight(property, label, fieldInfo, attribute, includeChildren: true);
         }
     }
 

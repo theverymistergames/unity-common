@@ -2,12 +2,13 @@
 using System.Linq;
 using System.Reflection;
 using MisterGames.Common.Attributes;
-using MisterGames.Common.Editor.Utils;
+using MisterGames.Common.Editor.SerializedProperties;
+using MisterGames.Common.Editor.Views;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-namespace MisterGames.Common.Editor.Drawers {
+namespace MisterGames.Common.Editor.Attributes.SubclassSelector {
 
     public static class SubclassSelectorGUI {
 
@@ -43,9 +44,6 @@ namespace MisterGames.Common.Editor.Drawers {
                 return;
             }
 
-            property = property.Copy();
-            var fieldInfo = SerializedPropertyExtensions.GetPropertyFieldInfo(property);
-
             if (baseType.IsAbstract || baseType.IsInterface) {
                 var type = GetManagedReferenceValueType(property);
                 var typeLabel = type == null ? NullLabel : new GUIContent(type.Name);
@@ -71,12 +69,11 @@ namespace MisterGames.Common.Editor.Drawers {
                 property.serializedObject.Update();
             }
 
-            PropertyDrawerUtils.DrawPropertyField(position, property, label, fieldInfo, includeChildren);
+            CustomPropertyGUI.PropertyField(position, property, label, property.GetFieldInfo(), includeChildren: includeChildren);
         }
 
         public static float GetPropertyHeight(SerializedProperty property, GUIContent label, bool includeChildren = false) {
-            var fieldInfo = SerializedPropertyExtensions.GetPropertyFieldInfo(property);
-            return PropertyDrawerUtils.GetPropertyHeight(property, label, fieldInfo, includeChildren);
+            return CustomPropertyGUI.GetPropertyHeight(property, label, property.GetFieldInfo(), includeChildren: includeChildren);
         }
 
         private static AdvancedDropdown<Type> CreateTypeDropdown(Type baseType, SerializedProperty property) {
@@ -85,6 +82,8 @@ namespace MisterGames.Common.Editor.Drawers {
                 .Append(baseType)
                 .Where(IsSupportedType)
                 .Append(null);
+
+            property = property.Copy();
 
             return new AdvancedDropdown<Type>(
                 "Select type",

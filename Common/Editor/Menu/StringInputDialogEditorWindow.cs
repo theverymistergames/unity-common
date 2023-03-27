@@ -3,7 +3,7 @@ using MisterGames.Common.Lists;
 using UnityEditor;
 using UnityEngine;
 
-namespace MisterGames.Common.Editor.Windows {
+namespace MisterGames.Common.Editor.Menu {
 
     public class StringInputDialogEditorWindow : EditorWindow {
 

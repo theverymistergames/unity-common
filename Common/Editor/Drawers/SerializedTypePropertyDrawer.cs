@@ -1,19 +1,18 @@
-﻿using System;
-using MisterGames.Common.Data;
-using MisterGames.Common.Editor.Utils;
+﻿using MisterGames.Common.Data;
 using UnityEditor;
 using UnityEngine;
 
 namespace MisterGames.Common.Editor.Drawers {
 
-    [CustomPropertyDrawer(typeof(SerializedTypePropertyDrawer))]
+    [CustomPropertyDrawer(typeof(SerializedType))]
     public class SerializedTypePropertyDrawer : PropertyDrawer {
 
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
-            string typeText = property.GetValue() is SerializedType t ? ((Type) t).Name : "null";
+            string typeAsString = property.FindPropertyRelative("_type").stringValue;
+            var type = SerializedType.DeserializeType(typeAsString);
 
             EditorGUI.BeginDisabledGroup(true);
-            EditorGUI.LabelField(position, label, new GUIContent(typeText));
+            EditorGUI.LabelField(position, label, new GUIContent(type == null ? "null" : type.Name));
             EditorGUI.EndDisabledGroup();
         }
 

@@ -2,7 +2,7 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace MisterGames.Common.Editor.Drawers {
+namespace MisterGames.Common.Editor.Attributes.ReadOnly {
 
     [CustomPropertyDrawer(typeof(BeginReadOnlyGroupAttribute))]
     public class BeginReadOnlyGroupDrawer : DecoratorDrawer {

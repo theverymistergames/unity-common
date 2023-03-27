@@ -5,7 +5,7 @@ using UnityEditor;
 using UnityEditor.IMGUI.Controls;
 using UnityEngine;
 
-namespace MisterGames.Common.Editor {
+namespace MisterGames.Common.Editor.Views {
 
 	public sealed class AdvancedDropdown<T> : AdvancedDropdown {
 

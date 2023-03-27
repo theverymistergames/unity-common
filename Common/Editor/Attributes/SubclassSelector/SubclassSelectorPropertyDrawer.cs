@@ -4,7 +4,7 @@ using MisterGames.Common.Attributes;
 using UnityEditor;
 using UnityEngine;
 
-namespace MisterGames.Common.Editor.Drawers {
+namespace MisterGames.Common.Editor.Attributes.SubclassSelector {
 
 	[CustomPropertyDrawer(typeof(SubclassSelectorAttribute))]
 	public class SubclassSelectorPropertyDrawer : PropertyDrawer {
