@@ -6,6 +6,9 @@ namespace MisterGames.Tweens.Core {
         void Initialize(MonoBehaviour owner);
         void DeInitialize();
 
+        void Start();
+        void Finish();
+
         void OnProgressUpdate(float progress);
     }
 

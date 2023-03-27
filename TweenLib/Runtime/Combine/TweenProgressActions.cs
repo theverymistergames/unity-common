@@ -22,6 +22,18 @@ namespace MisterGames.TweenLib {
             }
         }
 
+        public void Start() {
+            for (int i = 0; i < actions.Length; i++) {
+                actions[i].Start();
+            }
+        }
+
+        public void Finish() {
+            for (int i = 0; i < actions.Length; i++) {
+                actions[i].Finish();
+            }
+        }
+
         public void OnProgressUpdate(float progress) {
             for (int i = 0; i < actions.Length; i++) {
                 actions[i].OnProgressUpdate(progress);

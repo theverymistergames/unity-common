@@ -15,12 +15,15 @@ namespace MisterGames.TweenLib {
         private Quaternion _startRotation;
         private Quaternion _endRotation;
 
-        public void Initialize(MonoBehaviour owner) {
+        public void Initialize(MonoBehaviour owner) { }
+        public void DeInitialize() { }
+
+        public void Start() {
             _startRotation = Quaternion.Euler(startEulerAngles);
             _endRotation = Quaternion.Euler(endEulerAngles);
         }
 
-        public void DeInitialize() { }
+        public void Finish() { }
 
         public void OnProgressUpdate(float progress) {
             var value = Quaternion.Slerp(_startRotation, _endRotation, progress);

@@ -33,9 +33,12 @@ namespace MisterGames.Tweens {
         public async UniTask Play(CancellationToken token) {
             if (HasReachedTargetProgress()) return;
 
+            action.Start();
+
             if (duration <= 0f) {
                 _progress = Mathf.Clamp01(_progressDirection);
                 ReportProgress();
+                action.Finish();
                 return;
             }
 
@@ -49,6 +52,8 @@ namespace MisterGames.Tweens {
 
                 await UniTask.Yield();
             }
+
+            action.Finish();
         }
 
         public void Wind(bool reportProgress = true) {
@@ -66,8 +71,7 @@ namespace MisterGames.Tweens {
         }
 
         private void ReportProgress() {
-            float value = Mathf.Clamp01(curve.Evaluate(_progress));
-            action.OnProgressUpdate(value);
+            action.OnProgressUpdate(Mathf.Clamp01(curve.Evaluate(_progress)));
         }
 
         private bool HasReachedTargetProgress() {

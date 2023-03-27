@@ -9,16 +9,16 @@ namespace MisterGames.TweenLib {
 
         public string text;
 
-        private MonoBehaviour _owner;
-
         public void Initialize(MonoBehaviour owner) {
-            _owner = owner;
+            Debug.LogWarning($"Using {nameof(TweenInstantActionLog)} on GameObject {owner.name}. " +
+                             $"This class is for debug purposes only, " +
+                             $"don`t forget to remove it in release mode.");
         }
 
         public void DeInitialize() { }
 
         public void InvokeAction() {
-            Debug.LogWarning($"Using {nameof(TweenInstantActionLog)} on game object {_owner.name}, text: {text}");
+            Debug.Log(text);
         }
     }
 

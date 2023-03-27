@@ -20,13 +20,18 @@ namespace MisterGames.TweenLib {
         private BindingFlags _flags = BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public | BindingFlags.Static;
 
         public void Initialize(MonoBehaviour owner) {
-            Debug.LogWarning($"Using {nameof(TweenProgressActionComponentField_Reflection)} on game object {owner.name}, must be replaced later!");
+            Debug.LogWarning($"Using {nameof(TweenProgressActionComponentField_Reflection)} on GameObject {owner.name}. " +
+                             $"This class is for debug purposes only, " +
+                             $"don`t forget to remove it in release mode.");
 
             _field = component.GetType().GetField(fieldName, _flags);
             if (_field == null) _property = component.GetType().GetProperty(fieldName, _flags);
         }
 
         public void DeInitialize() { }
+
+        public void Start() { }
+        public void Finish() { }
 
         public void OnProgressUpdate(float progress) {
             float value = Mathf.Lerp(startValue, endValue, progress);

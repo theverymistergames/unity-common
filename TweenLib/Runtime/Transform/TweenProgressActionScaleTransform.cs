@@ -12,13 +12,13 @@ namespace MisterGames.TweenLib {
         public Vector3 endLocalScale;
 
         public void Initialize(MonoBehaviour owner) { }
-
         public void DeInitialize() { }
 
+        public void Start() { }
+        public void Finish() { }
+
         public void OnProgressUpdate(float progress) {
-            var value = Vector3.Lerp(startLocalScale, endLocalScale, progress);
-            
-            transform.localScale = value;
+            transform.localScale = Vector3.Lerp(startLocalScale, endLocalScale, progress);
         }
     }
 
