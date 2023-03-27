@@ -11,6 +11,7 @@ using MisterGames.Common.Editor.SerializedProperties;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UIElements;
 using Blackboard = MisterGames.Blackboards.Core.Blackboard;
 using BlackboardView = UnityEditor.Experimental.GraphView.Blackboard;
@@ -228,8 +229,8 @@ namespace MisterGames.Blueprints.Editor.Core {
                     continue;
                 }
 
-                long refId = SerializationUtility.GetManagedReferenceIdForObject(blueprintAsset, nodeMeta.Node);
-                if (refId is SerializationUtility.RefIdNull or SerializationUtility.RefIdUnknown) {
+                long refId = ManagedReferenceUtility.GetManagedReferenceIdForObject(blueprintAsset, nodeMeta.Node);
+                if (refId is ManagedReferenceUtility.RefIdNull or ManagedReferenceUtility.RefIdUnknown) {
                     blueprintMeta.RemoveNode(blueprintAsset, nodeId);
                     isNodesDataChanged = true;
                     continue;
