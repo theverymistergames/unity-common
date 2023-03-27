@@ -1,15 +1,90 @@
 ﻿using System.Collections;
-using System.Diagnostics;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using UnityEditor;
+using UnityEngine;
 
 namespace MisterGames.Common.Editor.Utils {
     
     public static class SerializedPropertyExtensions {
         
         private static readonly Regex ArrayElementRegex = new Regex(@"\GArray\.data\[(\d+)\]", RegexOptions.Compiled);
-        
+        private const BindingFlags BINDING_FLAGS = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
+
+        private const string PROPERTY_PATH_ARRAY_ELEMENT_PREFIX = "data";
+        private const string PROPERTY_PATH_ARRAY = "Array";
+
+        public static FieldInfo GetPropertyFieldInfo(SerializedProperty property) {
+            var serializedObject = property.serializedObject;
+            var parentType = serializedObject.targetObject.GetType();
+            var fieldInfo = parentType.GetField(property.propertyPath, BINDING_FLAGS);
+
+            Debug.Log($"SerializedPropertyExtensions.GetPropertyFieldInfo: start {property.name}\n" +
+                      $"property path {property.propertyPath}\n" +
+                      $"parentType {parentType}\n" +
+                      $"fieldInfo {fieldInfo}");
+
+            var pathParts = SplitPropertyPath(property.propertyPath);
+            SerializedProperty parentProperty = null;
+
+            for (int i = 0; i < pathParts.Count; i++) {
+                string pathPart = pathParts[i];
+                fieldInfo = parentType?.GetField(pathPart, BINDING_FLAGS);
+
+                Debug.Log($"SerializedPropertyExtensions.GetPropertyFieldInfo: start iter {i}\n" +
+                          $"parentProperty path {parentProperty?.propertyPath}\n" +
+                          $"parentType {parentType}\n" +
+                          $"fieldInfo {fieldInfo}");
+
+                if (fieldInfo == null) return null;
+
+                var fieldType = fieldInfo.FieldType;
+
+                if (fieldType.IsArray || fieldType.IsGenericType && fieldType.GetGenericTypeDefinition() == typeof(List<>)) {
+                    if (++i > pathParts.Count - 1) break;
+
+                    pathPart = $"{pathPart}.{pathParts[i]}";
+
+                    parentProperty = i == 0
+                        ? serializedObject.FindProperty(pathPart)
+                        : parentProperty?.FindPropertyRelative(pathPart);
+
+                    parentType = fieldType.IsArray
+                        ? fieldType.GetElementType()
+                        : fieldType.GetGenericArguments()[0];
+
+                    Debug.Log($"SerializedPropertyExtensions.GetPropertyFieldInfo: end iter {i - 1}\n" +
+                              $"next parentProperty path {parentProperty?.propertyPath}\n" +
+                              $"next parentType {parentType}\n" +
+                              $"fieldType {fieldType}\n" +
+                              $"fieldInfo {fieldInfo}\n" +
+                              $"is array or list, so skip next iteration");
+
+                    continue;
+                }
+
+                parentProperty = i == 0
+                    ? serializedObject.FindProperty(pathPart)
+                    : parentProperty?.FindPropertyRelative(pathPart);
+
+                parentType = parentProperty?.GetValue()?.GetType() ?? fieldType;
+
+                Debug.Log($"SerializedPropertyExtensions.GetPropertyFieldInfo: end iter {i}\n" +
+                          $"next parentProperty path {parentProperty?.propertyPath}\n" +
+                          $"next parentType {parentType}\n" +
+                          $"fieldType {fieldType}\n" +
+                          $"fieldInfo {fieldInfo}");
+            }
+
+            Debug.Log($"SerializedPropertyExtensions.GetPropertyFieldInfo: end {property.name}\n" +
+                      $"property path {property.propertyPath}\n" +
+                      $"parentType {parentType}\n" +
+                      $"fieldInfo {fieldInfo}");
+
+            return fieldInfo;
+        }
+
         public static object GetValue(this SerializedProperty property) {
             var propertyPath = property.propertyPath;
             object value = property.serializedObject.targetObject;
@@ -29,6 +104,27 @@ namespace MisterGames.Common.Editor.Utils {
             property.serializedObject.ApplyModifiedProperties(); 
         }
 
+        private static List<string> SplitPropertyPath(string path) {
+            var pathParts = new List<string>(path.Split('.'));
+
+            for (int i = pathParts.Count - 1; i >= 0; i--) {
+                string pathPart = pathParts[i];
+
+                if (i == 0 ||
+                    pathParts[i - 1] != PROPERTY_PATH_ARRAY ||
+                    !pathPart.StartsWith(PROPERTY_PATH_ARRAY_ELEMENT_PREFIX)
+                ) {
+                    continue;
+                }
+
+                pathParts.RemoveAt(i);
+                pathParts[i - 1] = $"{PROPERTY_PATH_ARRAY}.{pathPart}";
+                i--;
+            }
+
+            return pathParts;
+        }
+
         private static void SetValueNoRecord(this SerializedProperty property, object value) {
             var propertyPath = property.propertyPath;
             object container = property.serializedObject.targetObject;
@@ -40,7 +136,7 @@ namespace MisterGames.Common.Editor.Utils {
                 deferredToken = token;
             }
             
-            Debug.Assert(!container.GetType().IsValueType, $"Cannot use SerializedObject.SetValue on a struct object, as the result will be set on a temporary. Either change {container.GetType().Name} to a class, or use SetValue with a parent member.");
+            System.Diagnostics.Debug.Assert(!container.GetType().IsValueType, $"Cannot use SerializedObject.SetValue on a struct object, as the result will be set on a temporary. Either change {container.GetType().Name} to a class, or use SetValue with a parent member.");
             SetPathComponentValue(container, deferredToken, value);
         }
 
@@ -109,7 +205,7 @@ namespace MisterGames.Common.Editor.Utils {
                 }
             }
             
-            Debug.Assert(false, $"Failed to set member {container}.{name} via reflection");
+            System.Diagnostics.Debug.Assert(false, $"Failed to set member {container}.{name} via reflection");
         }
         
         private struct PropertyPathComponent {

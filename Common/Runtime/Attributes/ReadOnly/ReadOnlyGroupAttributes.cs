@@ -2,24 +2,6 @@
 
 namespace MisterGames.Common.Attributes {
 
-    public enum ReadOnlyMode {
-        Always,
-        PlayModeOnly,
-    }
-
-    public class ReadOnlyAttribute : PropertyAttribute {
-
-        public readonly ReadOnlyMode mode;
-
-        public ReadOnlyAttribute(ReadOnlyMode mode) {
-            this.mode = mode;
-        }
-
-        public ReadOnlyAttribute() {
-            mode = ReadOnlyMode.Always;
-        }
-    }
-
     public class BeginReadOnlyGroupAttribute : PropertyAttribute {
 
         public readonly ReadOnlyMode mode;
@@ -34,5 +16,4 @@ namespace MisterGames.Common.Attributes {
     }
 
     public class EndReadOnlyGroupAttribute : PropertyAttribute { }
-    
 }

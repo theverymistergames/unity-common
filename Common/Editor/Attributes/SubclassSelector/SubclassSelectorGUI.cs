@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Reflection;
 using MisterGames.Common.Attributes;
+using MisterGames.Common.Editor.Utils;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -20,7 +21,13 @@ namespace MisterGames.Common.Editor.Drawers {
         private static GUIContent PropertyTypeNullLabel => new GUIContent("Property type is null");
         private static GUIContent PropertyTypeUnsupportedLabel => new GUIContent("Property type is unsupported");
 
-        public static void PropertyField(Rect position, SerializedProperty property, Type baseType, GUIContent label) {
+        public static void PropertyField(
+            Rect position,
+            SerializedProperty property,
+            Type baseType,
+            GUIContent label,
+            bool includeChildren = false
+        ) {
             if (property.propertyType != SerializedPropertyType.ManagedReference) {
                 EditorGUI.LabelField(position, label, IsNotManagedReferenceLabel);
                 return;
@@ -36,24 +43,40 @@ namespace MisterGames.Common.Editor.Drawers {
                 return;
             }
 
-            var type = GetManagedReferenceValueType(property);
-            var typeLabel = type == null ? NullLabel : new GUIContent(type.Name);
+            property = property.Copy();
+            var fieldInfo = SerializedPropertyExtensions.GetPropertyFieldInfo(property);
 
-            float popupWidth = label == GUIContent.none || string.IsNullOrEmpty(label.text)
-                ? position.width - 14f
-                : position.width - EditorGUIUtility.labelWidth;
+            if (baseType.IsAbstract || baseType.IsInterface) {
+                var type = GetManagedReferenceValueType(property);
+                var typeLabel = type == null ? NullLabel : new GUIContent(type.Name);
+                label = label.text == typeLabel.text ? GUIContent.none : label;
 
-            var popupPosition = new Rect(position.x + position.width - popupWidth, position.y, popupWidth, EditorGUIUtility.singleLineHeight);
+                float popupWidth = label == GUIContent.none || string.IsNullOrEmpty(label.text)
+                    ? position.width - 14f
+                    : position.width - EditorGUIUtility.labelWidth;
 
-            if (EditorGUI.DropdownButton(popupPosition, typeLabel, FocusType.Keyboard)) {
-                CreateTypeDropdown(baseType, property).Show(popupPosition);
+                var popupPosition = new Rect(position.x + position.width - popupWidth, position.y, popupWidth, EditorGUIUtility.singleLineHeight);
+
+                if (EditorGUI.DropdownButton(popupPosition, typeLabel, FocusType.Keyboard)) {
+                    CreateTypeDropdown(baseType, property).Show(popupPosition);
+                }
+            }
+            else if (property.managedReferenceValue == null) {
+                object value = Activator.CreateInstance(baseType);
+
+                property.managedReferenceValue = value;
+                property.isExpanded = value != null;
+
+                property.serializedObject.ApplyModifiedProperties();
+                property.serializedObject.Update();
             }
 
-            EditorGUI.PropertyField(position, property, label.text == typeLabel.text ? GUIContent.none : label, true);
+            PropertyDrawerUtils.DrawPropertyField(position, property, label, fieldInfo, includeChildren);
         }
 
-        public static float GetPropertyHeight(SerializedProperty property, bool includeChildren = false) {
-            return EditorGUI.GetPropertyHeight(property, includeChildren);
+        public static float GetPropertyHeight(SerializedProperty property, GUIContent label, bool includeChildren = false) {
+            var fieldInfo = SerializedPropertyExtensions.GetPropertyFieldInfo(property);
+            return PropertyDrawerUtils.GetPropertyHeight(property, label, fieldInfo, includeChildren);
         }
 
         private static AdvancedDropdown<Type> CreateTypeDropdown(Type baseType, SerializedProperty property) {

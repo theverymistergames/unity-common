@@ -11,12 +11,12 @@ namespace MisterGames.Common.Editor.Drawers {
 
 		public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
 			EditorGUI.BeginProperty(position, label, property);
-			SubclassSelectorGUI.PropertyField(position, property, GetFieldType(property), label);
+			SubclassSelectorGUI.PropertyField(position, property, GetFieldType(property), label, includeChildren: true);
 			EditorGUI.EndProperty();
 		}
 
 		public override float GetPropertyHeight(SerializedProperty property, GUIContent label) {
-			return SubclassSelectorGUI.GetPropertyHeight(property, true);
+			return SubclassSelectorGUI.GetPropertyHeight(property, label, includeChildren: true);
 		}
 
 		private static Type GetFieldType(SerializedProperty property) {

@@ -7,7 +7,7 @@ namespace MisterGames.Common.Editor.Drawers {
     [CustomPropertyDrawer(typeof(VisibleIfAttribute))]
     public class VisibleIfDrawer : PropertyDrawer {
 
-        private UnityEditor.Editor _embeddedEditor;
+        private bool _hasCachedPropertyDrawer;
 
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
             var visibleIf = (VisibleIfAttribute) attribute;
@@ -19,7 +19,7 @@ namespace MisterGames.Common.Editor.Drawers {
                 return;
             }
 
-            EditorGUI.PropertyField(position, property, label, true);
+            PropertyDrawerUtils.DrawPropertyField(position, property, label, fieldInfo, attribute, includeChildren: true);
         }
 
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label) {
@@ -32,7 +32,7 @@ namespace MisterGames.Common.Editor.Drawers {
                 return 0f;
             }
 
-            return EditorGUI.GetPropertyHeight(property, label);
+            return PropertyDrawerUtils.GetPropertyHeight(property, label, fieldInfo, attribute, includeChildren: true);
         }
 
         private static string GetNeighbourPropertyPath(SerializedProperty property, string propertyName) {
