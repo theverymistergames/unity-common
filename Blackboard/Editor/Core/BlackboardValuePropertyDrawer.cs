@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Reflection;
 using MisterGames.Blackboards.Core;
+using MisterGames.Common.Editor.Drawers;
+using MisterGames.Common.Editor.Utils;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -27,11 +29,9 @@ namespace MisterGames.Blackboards.Editor {
         }
 
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label) {
-            if (BlackboardUtils.TryGetBlackboardProperty(property, out var blackboardProperty, out _, out _)) {
-                return GetTypedFieldHeight(property, blackboardProperty.type);
-            }
-
-            return BlackboardUtils.GetNullPropertyHeight();
+            return BlackboardUtils.TryGetBlackboardProperty(property, out var blackboardProperty, out _, out _)
+                ? GetTypedFieldHeight(property, label, blackboardProperty.type)
+                : BlackboardUtils.GetNullPropertyHeight();
         }
 
         private static void TypedField(Rect position, SerializedProperty property, Type type, GUIContent label) {
@@ -57,10 +57,16 @@ namespace MisterGames.Blackboards.Editor {
                 return;
             }
 
-            EditorGUI.PropertyField(position, property, label, true);
+            PropertyDrawerUtils.DrawPropertyField(
+                position,
+                property,
+                label,
+                SerializedPropertyExtensions.GetPropertyFieldInfo(property),
+                includeChildren: true
+            );
         }
 
-        private static float GetTypedFieldHeight(SerializedProperty property, Type type) {
+        private static float GetTypedFieldHeight(SerializedProperty property, GUIContent label, Type type) {
             if (typeof(Object).IsAssignableFrom(type)) {
                 return EditorGUI.GetPropertyHeight(property);
             }
@@ -69,7 +75,12 @@ namespace MisterGames.Blackboards.Editor {
                 return EditorGUIUtility.singleLineHeight;
             }
 
-            return EditorGUI.GetPropertyHeight(property, true);
+            return PropertyDrawerUtils.GetPropertyHeight(
+                property,
+                label,
+                SerializedPropertyExtensions.GetPropertyFieldInfo(property),
+                includeChildren: true
+            );
         }
     }
 

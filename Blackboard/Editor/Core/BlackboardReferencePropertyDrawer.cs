@@ -16,7 +16,7 @@ namespace MisterGames.Blackboards.Editor {
                 var baseType = (Type) blackboardProperty.type;
                 if (baseType.IsArray) baseType = baseType.GetElementType();
 
-                SubclassSelectorGUI.PropertyField(position, property.FindPropertyRelative("value"), baseType, label);
+                SubclassSelectorGUI.PropertyField(position, property.FindPropertyRelative("value"), baseType, label, includeChildren: true);
             }
             else {
                 BlackboardUtils.NullPropertyField(position, label);
@@ -26,11 +26,9 @@ namespace MisterGames.Blackboards.Editor {
         }
 
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label) {
-            if (BlackboardUtils.TryGetBlackboardProperty(property, out _, out _, out _)) {
-                return SubclassSelectorGUI.GetPropertyHeight(property.FindPropertyRelative("value"), true);
-            }
-
-            return BlackboardUtils.GetNullPropertyHeight();
+            return BlackboardUtils.TryGetBlackboardProperty(property, out _, out _, out _)
+                ? SubclassSelectorGUI.GetPropertyHeight(property.FindPropertyRelative("value"), label, includeChildren: true)
+                : BlackboardUtils.GetNullPropertyHeight();
         }
     }
 

@@ -1,4 +1,5 @@
 ﻿using MisterGames.Blackboards.Core;
+using MisterGames.Common.Editor.Drawers;
 using MisterGames.Common.Editor.Utils;
 using UnityEditor;
 using UnityEngine;
@@ -59,7 +60,13 @@ namespace MisterGames.Blackboards.Editor {
                 var rect = new Rect(position.x, y, position.width, propertyHeight);
                 y += propertyHeight + EditorGUIUtility.standardVerticalSpacing;
 
-                EditorGUI.PropertyField(rect, serializedProperty, new GUIContent(propertyData.blackboardProperty.name), true);
+                PropertyDrawerUtils.DrawPropertyField(
+                    rect,
+                    serializedProperty,
+                    new GUIContent(propertyData.blackboardProperty.name),
+                    SerializedPropertyExtensions.GetPropertyFieldInfo(serializedProperty),
+                    includeChildren: true
+                );
             }
 
             EditorGUI.indentLevel--;
@@ -88,7 +95,12 @@ namespace MisterGames.Blackboards.Editor {
 
                 float propertyHeight = elementProperty == null
                     ? EditorGUIUtility.singleLineHeight
-                    : EditorGUI.GetPropertyHeight(elementProperty, true);
+                    : PropertyDrawerUtils.GetPropertyHeight(
+                        elementProperty,
+                        label,
+                        SerializedPropertyExtensions.GetPropertyFieldInfo(elementProperty),
+                        includeChildren: true
+                    );
 
                 height += propertyHeight + EditorGUIUtility.standardVerticalSpacing;
             }
