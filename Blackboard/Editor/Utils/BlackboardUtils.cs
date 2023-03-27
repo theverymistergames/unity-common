@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using MisterGames.Blackboards.Core;
 using MisterGames.Common.Data;
-using MisterGames.Common.Editor.Utils;
+using MisterGames.Common.Editor.SerializedProperties;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;

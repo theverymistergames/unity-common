@@ -1,5 +1,5 @@
-﻿using MisterGames.Common.Editor;
-using MisterGames.Common.Editor.Windows;
+﻿using MisterGames.Common.Editor.Menu;
+using MisterGames.Common.Editor.Views;
 using MisterGames.Scenes.Core;
 using UnityEditor;
 using UnityEditor.SceneManagement;

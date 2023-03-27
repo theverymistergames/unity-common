@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Reflection;
 using MisterGames.Blackboards.Core;
-using MisterGames.Common.Editor.Drawers;
-using MisterGames.Common.Editor.Utils;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -57,30 +55,13 @@ namespace MisterGames.Blackboards.Editor {
                 return;
             }
 
-            PropertyDrawerUtils.DrawPropertyField(
-                position,
-                property,
-                label,
-                SerializedPropertyExtensions.GetPropertyFieldInfo(property),
-                includeChildren: true
-            );
+            EditorGUI.PropertyField(position, property, label, includeChildren: true);
         }
 
         private static float GetTypedFieldHeight(SerializedProperty property, GUIContent label, Type type) {
-            if (typeof(Object).IsAssignableFrom(type)) {
-                return EditorGUI.GetPropertyHeight(property);
-            }
-
-            if (type.IsEnum) {
-                return EditorGUIUtility.singleLineHeight;
-            }
-
-            return PropertyDrawerUtils.GetPropertyHeight(
-                property,
-                label,
-                SerializedPropertyExtensions.GetPropertyFieldInfo(property),
-                includeChildren: true
-            );
+            return typeof(Object).IsAssignableFrom(type) ? EditorGUI.GetPropertyHeight(property)
+                : type.IsEnum ? EditorGUIUtility.singleLineHeight
+                : EditorGUI.GetPropertyHeight(property, label, includeChildren: true);
         }
     }
 

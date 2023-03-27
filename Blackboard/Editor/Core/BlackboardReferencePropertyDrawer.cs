@@ -1,6 +1,6 @@
 ﻿using System;
 using MisterGames.Blackboards.Core;
-using MisterGames.Common.Editor.Drawers;
+using MisterGames.Common.Editor.Attributes.SubclassSelector;
 using UnityEditor;
 using UnityEngine;
 

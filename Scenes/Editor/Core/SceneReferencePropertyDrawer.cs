@@ -1,4 +1,4 @@
-﻿using MisterGames.Common.Editor;
+﻿using MisterGames.Common.Editor.Views;
 using MisterGames.Scenes.Core;
 using UnityEditor;
 using UnityEngine;

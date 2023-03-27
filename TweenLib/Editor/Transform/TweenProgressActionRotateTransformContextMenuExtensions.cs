@@ -1,4 +1,4 @@
-﻿using MisterGames.Common.Editor.Utils;
+﻿using MisterGames.Common.Editor.SerializedProperties;
 using UnityEditor;
 using UnityEngine;
 

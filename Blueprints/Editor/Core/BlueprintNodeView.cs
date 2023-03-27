@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using MisterGames.Blueprints.Editor.Utils;
 using MisterGames.Blueprints.Meta;
-using MisterGames.Common.Editor.Utils;
+using MisterGames.Common.Editor.SerializedProperties;
 using MisterGames.Common.Editor.Views;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
@@ -148,7 +148,7 @@ namespace MisterGames.Blueprints.Editor.Core {
                 enterChildren = false;
                 EditorGUILayout.PropertyField(nodePropertyCopy, true);
 
-                if (nodePropertyCopy.GetValue() is BlueprintAsset blueprint && GUILayout.Button("Edit")) {
+                if (nodePropertyCopy.objectReferenceValue is BlueprintAsset blueprint && GUILayout.Button("Edit")) {
                     BlueprintsEditorWindow.OpenAsset(blueprint);
                 }
             }

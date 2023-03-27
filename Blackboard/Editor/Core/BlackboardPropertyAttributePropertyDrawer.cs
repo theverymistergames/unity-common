@@ -1,6 +1,5 @@
 ﻿using MisterGames.Blackboards.Core;
-using MisterGames.Common.Editor.Drawers;
-using MisterGames.Common.Editor.Utils;
+using MisterGames.Common.Editor.SerializedProperties;
 using UnityEditor;
 using UnityEngine;
 
@@ -16,13 +15,7 @@ namespace MisterGames.Blackboards.Editor {
             if (property.propertyType != SerializedPropertyType.Integer ||
                 property.serializedObject.FindProperty(attr.pathToBlackboard)?.GetValue() is not Blackboard blackboard
             ) {
-                PropertyDrawerUtils.DrawPropertyField(
-                    position,
-                    property,
-                    label,
-                    SerializedPropertyExtensions.GetPropertyFieldInfo(property),
-                    includeChildren: true
-                );
+                CustomPropertyGUI.PropertyField(position, property, label, property.GetFieldInfo(), includeChildren: true);
                 EditorGUI.EndProperty();
                 return;
             }
@@ -69,12 +62,7 @@ namespace MisterGames.Blackboards.Editor {
             return property.propertyType == SerializedPropertyType.Integer &&
                    property.serializedObject.FindProperty(attr.pathToBlackboard)?.GetValue() is Blackboard
                 ? EditorGUIUtility.singleLineHeight
-                : PropertyDrawerUtils.GetPropertyHeight(
-                    property,
-                    label,
-                    SerializedPropertyExtensions.GetPropertyFieldInfo(property),
-                    includeChildren: true
-                );
+                : CustomPropertyGUI.GetPropertyHeight(property, label, property.GetFieldInfo(), includeChildren: true);
         }
     }
 
