@@ -148,7 +148,10 @@ namespace MisterGames.Blueprints.Editor.Core {
                 enterChildren = false;
                 EditorGUILayout.PropertyField(nodePropertyCopy, true);
 
-                if (nodePropertyCopy.objectReferenceValue is BlueprintAsset blueprint && GUILayout.Button("Edit")) {
+                if (nodePropertyCopy.propertyType == SerializedPropertyType.ObjectReference &&
+                    nodePropertyCopy.objectReferenceValue is BlueprintAsset blueprint &&
+                    GUILayout.Button("Edit")
+                ) {
                     BlueprintsEditorWindow.OpenAsset(blueprint);
                 }
             }
