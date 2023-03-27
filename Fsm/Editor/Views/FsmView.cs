@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using MisterGames.Common.Editor.Coroutines;
-using MisterGames.Common.Editor.Windows;
+using MisterGames.Common.Editor.Menu;
 using MisterGames.Common.Lists;
 using MisterGames.Common.Strings;
 using MisterGames.Fsm.Core;
@@ -267,9 +267,9 @@ namespace MisterGames.Fsm.Editor.Views {
                 }
             });
 
-            bool hasElementsToRemove = change.elementsToRemove != null && change.elementsToRemove.Count > 0;
-            bool hasMovedElements = change.movedElements != null && change.movedElements.Count > 0;
-            bool hasEdgesToCreate = change.edgesToCreate != null && change.edgesToCreate.Count > 0;
+            bool hasElementsToRemove = change.elementsToRemove is { Count: > 0 };
+            bool hasMovedElements = change.movedElements is { Count: > 0 };
+            bool hasEdgesToCreate = change.edgesToCreate is { Count: > 0 };
 
             if (hasMovedElements || hasElementsToRemove) {
                 SaveAsset();
