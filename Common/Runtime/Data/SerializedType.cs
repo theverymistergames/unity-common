@@ -57,7 +57,7 @@ namespace MisterGames.Common.Data {
 
         private const string TO_STRIP_START = ", Version";
 
-        private static string SerializeType(Type type) {
+        public static string SerializeType(Type type) {
             if (type == null) return null;
 
             string typeName = type.AssemblyQualifiedName;
@@ -74,19 +74,7 @@ namespace MisterGames.Common.Data {
             return typeName;
         }
 
-        private static string StripTypeNameString(string str, int startIndex) {
-            int endIndex = startIndex;
-            int commaCounter = 0;
-
-            while (++endIndex < str.Length) {
-                char c = str[endIndex];
-                if (c is ']' || c is ',' && ++commaCounter >= 3) break;
-            }
-
-            return startIndex >= endIndex ? str : str.Remove(startIndex, endIndex - startIndex);
-        }
-
-        private static Type DeserializeType(string serializedType) {
+        public static Type DeserializeType(string serializedType) {
             if (string.IsNullOrEmpty(serializedType)) return null;
             if (!serializedType.Contains('\n')) return DeserializeTypeDefinition(serializedType);
 
@@ -98,6 +86,18 @@ namespace MisterGames.Common.Data {
 
             int pointer = 1;
             return DeserializeGenericTypeRecursively(t, serializedTypes, ref pointer);
+        }
+
+        private static string StripTypeNameString(string str, int startIndex) {
+            int endIndex = startIndex;
+            int commaCounter = 0;
+
+            while (++endIndex < str.Length) {
+                char c = str[endIndex];
+                if (c is ']' || c is ',' && ++commaCounter >= 3) break;
+            }
+
+            return startIndex >= endIndex ? str : str.Remove(startIndex, endIndex - startIndex);
         }
 
         private static Type DeserializeTypeDefinition(string serializedTypeDefinition) {
