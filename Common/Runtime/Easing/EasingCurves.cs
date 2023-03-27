@@ -11,6 +11,11 @@ namespace MisterGames.Common.Easing {
 		}
 
 		public static bool TryGetEasingType(this AnimationCurve animationCurve, out EasingType easingType) {
+			if (animationCurve == null) {
+				easingType = default;
+				return false;
+			}
+
 			var keys = animationCurve.keys;
 			var types = Enum.GetValues(typeof(EasingType));
 
