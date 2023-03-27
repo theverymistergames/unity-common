@@ -17,6 +17,10 @@ namespace MisterGames.TweenLib {
 
         public void InvokeAction() {
             target.SetParent(newParent, worldPositionStays);
+
+#if UNITY_EDITOR
+            UnityEditor.EditorUtility.SetDirty(target);
+#endif
         }
     }
 

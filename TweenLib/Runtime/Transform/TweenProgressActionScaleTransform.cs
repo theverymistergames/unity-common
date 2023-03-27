@@ -15,7 +15,12 @@ namespace MisterGames.TweenLib {
         public void DeInitialize() { }
 
         public void Start() { }
-        public void Finish() { }
+
+        public void Finish() {
+#if UNITY_EDITOR
+            UnityEditor.EditorUtility.SetDirty(transform);
+#endif
+        }
 
         public void OnProgressUpdate(float progress) {
             transform.localScale = Vector3.Lerp(startLocalScale, endLocalScale, progress);

@@ -37,6 +37,10 @@ namespace MisterGames.TweenLib {
                 default:
                     throw new NotImplementedException($"Operation type {operation} is not supported for {nameof(TweenInstantActionActivateGameObject)}");
             }
+
+#if UNITY_EDITOR
+            UnityEditor.EditorUtility.SetDirty(gameObject);
+#endif
         }
     }
 

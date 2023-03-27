@@ -23,7 +23,11 @@ namespace MisterGames.TweenLib {
             _endRotation = Quaternion.Euler(endEulerAngles);
         }
 
-        public void Finish() { }
+        public void Finish() {
+#if UNITY_EDITOR
+            UnityEditor.EditorUtility.SetDirty(transform);
+#endif
+        }
 
         public void OnProgressUpdate(float progress) {
             var value = Quaternion.Slerp(_startRotation, _endRotation, progress);

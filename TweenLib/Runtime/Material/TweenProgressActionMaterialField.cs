@@ -26,7 +26,12 @@ namespace MisterGames.TweenLib {
         public void DeInitialize() { }
 
         public void Start() { }
-        public void Finish() { }
+
+        public void Finish() {
+#if UNITY_EDITOR
+            UnityEditor.EditorUtility.SetDirty(renderer);
+#endif
+        }
 
         public void OnProgressUpdate(float progress) {
             float value = Mathf.Lerp(startValue, endValue, progress);
