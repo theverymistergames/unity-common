@@ -23,7 +23,9 @@ namespace MisterGames.Scenes.Core {
             string rootScene = ScenesStorage.Instance.SceneRoot;
             if (sceneName == rootScene) return;
 
-            await SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+            if (SceneManager.GetSceneByName(sceneName) is not { isLoaded: true }) {
+                await SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+            }
 
             if (makeActive) SceneManager.SetActiveScene(SceneManager.GetSceneByName(sceneName));
         }
@@ -32,7 +34,9 @@ namespace MisterGames.Scenes.Core {
             string rootScene = ScenesStorage.Instance.SceneRoot;
             if (sceneName == rootScene) return;
 
-            await SceneManager.UnloadSceneAsync(sceneName);
+            if (SceneManager.GetSceneByName(sceneName) is { isLoaded: true }) {
+                await SceneManager.UnloadSceneAsync(sceneName);
+            }
         }
 
         private static void ValidateFirstLoadedScene() {
