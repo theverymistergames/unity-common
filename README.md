@@ -4,7 +4,7 @@
 - Current Unity Editor version is `2021.3.16f1`
 
 ## Packages
-- [`MisterGames.Bezier`](https://github.com/theverymistergames/unity-common/tree/master/Bezier)
+- [`MisterGames.Blackboards`](https://github.com/theverymistergames/unity-common/tree/master/Blackboards)
 - [`MisterGames.BlueprintLib`](https://github.com/theverymistergames/unity-common/tree/master/BlueprintLib)
 - [`MisterGames.Blueprints`](https://github.com/theverymistergames/unity-common/tree/master/Blueprints)
 - [`MisterGames.Character`](https://github.com/theverymistergames/unity-common/tree/master/Character)
@@ -17,8 +17,10 @@
 - [`MisterGames.Interact`](https://github.com/theverymistergames/unity-common/tree/master/Interact)
 - [`MisterGames.Scenario`](https://github.com/theverymistergames/unity-common/tree/master/Scenario)
 - [`MisterGames.Scenes`](https://github.com/theverymistergames/unity-common/tree/master/Scenes)
+- [`MisterGames.Splines`](https://github.com/theverymistergames/unity-common/tree/master/Splines)
 - [`MisterGames.Tick`](https://github.com/theverymistergames/unity-common/tree/master/Tick)
 - [`MisterGames.Tweens`](https://github.com/theverymistergames/unity-common/tree/master/Tweens)
+- [`MisterGames.TweenLib`](https://github.com/theverymistergames/unity-common/tree/master/TweenLib)
 - [`MisterGames.UI`](https://github.com/theverymistergames/unity-common/tree/master/UI)
 
 ## External dependencies

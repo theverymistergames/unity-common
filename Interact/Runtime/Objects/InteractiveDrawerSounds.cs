@@ -98,7 +98,7 @@ namespace MisterGames.Interact.Objects {
 
             _lastClickTime = timeSinceStartup;
             _clickProcessDelta = 0f;
-            
+
             _source.PlayOneShot(_config.clickSounds.GetRandom(), volume * _config.clickSoundsVolumeMultiplier);
         }
 
