@@ -4,8 +4,7 @@
     "references": [
         "GUID:2912c28a747838d47bc00f648f33424d",
         "GUID:21d1eb854b91ade49bc69a263d12bee2",
-        "GUID:e43142fc3fec6554980dde6126631f1d",
-        "MisterGames.Splines"
+        "GUID:e43142fc3fec6554980dde6126631f1d"
     ],
     "includePlatforms": [
         "Editor"
