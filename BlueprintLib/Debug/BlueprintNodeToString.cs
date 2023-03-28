@@ -1,5 +1,6 @@
 ﻿using System;
 using MisterGames.Blueprints;
+using MisterGames.Blueprints.Meta;
 using UnityEngine;
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
@@ -13,8 +14,12 @@ namespace MisterGames.BlueprintLib {
     [Obsolete("Using BlueprintNodeToString, it must be removed in the release build!")]
     [Serializable]
     [BlueprintNodeMeta(Name = "ToString", Category = "Debug", Color = BlueprintColors.Node.Debug)]
-    public sealed class BlueprintNodeToString : BlueprintNode, IBlueprintOutput<string> {
-
+    public sealed class BlueprintNodeToString :
+        BlueprintNode,
+        IBlueprintOutput<string>,
+        IBlueprintPortLinksListener,
+        IBlueprintPortDecorator
+    {
         private Func<string> _getString = () => string.Empty;
 
         public override Port[] CreatePorts() => new[] {
@@ -61,11 +66,18 @@ namespace MisterGames.BlueprintLib {
                 var port = link.node.CreatePorts()[link.port];
 
                 var t = link.node.GetType();
-                var interfaceType =
-                    t.GetInterfaces().FirstOrDefault(x => x == typeof(IBlueprintOutput))
-                    ?? GetGenericInterface(t, typeof(IBlueprintOutput<>), port.DataType);
+                var interfaceType = t.GetInterfaces().FirstOrDefault(x => x == typeof(IBlueprintOutput));
 
-                methods[l] = interfaceType?.GetMethod("GetOutputPortValue");
+                if (interfaceType != null) {
+                    methods[l] = interfaceType.GetMethod("GetOutputPortValue")?.MakeGenericMethod(port.DataType);
+                    continue;
+                }
+
+                interfaceType = GetGenericInterface(t, typeof(IBlueprintOutput<>), port.DataType);
+                if (interfaceType != null) {
+                    methods[l] = interfaceType.GetMethod("GetOutputPortValue");
+                    continue;
+                }
             }
 
             _getString = () => {
@@ -90,6 +102,22 @@ namespace MisterGames.BlueprintLib {
         public string GetOutputPortValue(int port) {
             return port == 1 ? _getString.Invoke() : default;
         }
+
+#if UNITY_EDITOR
+        public void DecoratePorts(BlueprintAsset blueprint, int nodeId, Port[] ports) {
+            var linksFromInput = blueprint.BlueprintMeta.GetLinksFromNodePort(nodeId, 0);
+            if (linksFromInput.Count == 0) return;
+
+            var link = linksFromInput[0];
+            var linkedPort = blueprint.BlueprintMeta.NodesMap[link.nodeId].Ports[link.portIndex];
+
+            ports[0] = Port.DynamicInput(type: linkedPort.DataType);
+        }
+
+        public void OnPortLinksChanged(BlueprintAsset blueprint, int nodeId, int portIndex) {
+            if (portIndex == 0) blueprint.BlueprintMeta.InvalidateNodePorts(blueprint, nodeId, invalidateLinks: false, notify: false);
+        }
+#endif
     }
 
 }
