@@ -1,7 +1,7 @@
 ﻿using System;
 
 #if UNITY_EDITOR
-using UnityEditor;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 #endif
 
@@ -36,11 +36,12 @@ namespace MisterGames.Tick.Core {
         private static TimeSource _editorUnscaledUpdateTimeSource;
         private static TimeSource _editorLateUpdateTimeSource;
 
+        private static bool _isRunningEditorUpdates;
+
         private static ITimeSource GetOrCreateEditorTimeSource(PlayerLoopStage stage) {
             _editorDeltaTimeProvider ??= new EditorDeltaTimeProvider();
 
-            EditorApplication.update -= OnEditorUpdate;
-            EditorApplication.update += OnEditorUpdate;
+            CheckEditorUpdatesAreStarted().Forget();
 
             switch (stage) {
                 case PlayerLoopStage.PreUpdate:
@@ -80,13 +81,34 @@ namespace MisterGames.Tick.Core {
             }
         }
 
-        private static void OnEditorUpdate() {
-            _editorDeltaTimeProvider.UpdateDeltaTime();
+        private static async UniTaskVoid CheckEditorUpdatesAreStarted() {
+            if (_isRunningEditorUpdates) return;
+            _isRunningEditorUpdates = true;
 
-            _editorPreUpdateTimeSource?.Tick();
-            _editorUpdateTimeSource?.Tick();
-            _editorUnscaledUpdateTimeSource?.Tick();
-            _editorLateUpdateTimeSource?.Tick();
+            while (true) {
+                _editorDeltaTimeProvider.UpdateDeltaTime();
+
+                _editorPreUpdateTimeSource?.Tick();
+                _editorUpdateTimeSource?.Tick();
+                _editorUnscaledUpdateTimeSource?.Tick();
+                _editorLateUpdateTimeSource?.Tick();
+
+                await UniTask.Yield();
+
+                bool canStopEditorUpdates =
+                    CheckTimeSourceCanBeStopped(_editorPreUpdateTimeSource) &&
+                    CheckTimeSourceCanBeStopped(_editorUpdateTimeSource) &&
+                    CheckTimeSourceCanBeStopped(_editorUnscaledUpdateTimeSource) &&
+                    CheckTimeSourceCanBeStopped(_editorLateUpdateTimeSource);
+
+                if (canStopEditorUpdates) break;
+            }
+
+            _isRunningEditorUpdates = false;
+        }
+
+        private static bool CheckTimeSourceCanBeStopped(ITimeSourceApi timeSource) {
+            return timeSource == null || timeSource.SubscribersCount == 0;
         }
 
         private sealed class EditorDeltaTimeProvider : IDeltaTimeProvider {

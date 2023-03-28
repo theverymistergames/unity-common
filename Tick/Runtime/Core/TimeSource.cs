@@ -8,6 +8,8 @@ namespace MisterGames.Tick.Core {
         public float TimeScale { get => _timeScaleProvider.TimeScale; set => _timeScaleProvider.TimeScale = value; }
         public bool IsPaused { get => _isPaused; set => _isPaused = value; }
 
+        public int SubscribersCount => _updateList.Count;
+
         private readonly IDeltaTimeProvider _deltaTimeProvider;
         private readonly ITimeScaleProvider _timeScaleProvider;
         private readonly List<IUpdate> _updateList = new List<IUpdate>();

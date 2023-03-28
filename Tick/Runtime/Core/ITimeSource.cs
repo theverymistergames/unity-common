@@ -9,9 +9,4 @@
         bool Unsubscribe(IUpdate sub);
     }
 
-    public interface ITimeSourceApi {
-        void Tick();
-        void Reset();
-    }
-
 }
