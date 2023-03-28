@@ -38,12 +38,12 @@ namespace MisterGames.Blueprints.Validation {
             if (a.IsInput) {
                 if (a.IsMultiple && bDataType.IsArray && bDataType.GetElementType() == aDataType) return true;
 
-                return aDataType.IsAssignableFrom(bDataType);
+                return b.AcceptSubclass ? bDataType.IsAssignableFrom(aDataType) : aDataType.IsAssignableFrom(bDataType);
             }
 
             if (b.IsMultiple && aDataType.IsArray && aDataType.GetElementType() == bDataType) return true;
 
-            return bDataType.IsAssignableFrom(aDataType);
+            return a.AcceptSubclass ? aDataType.IsAssignableFrom(bDataType) : bDataType.IsAssignableFrom(aDataType);
         }
 
         public static bool ValidateExternalPortWithExistingSignature(BlueprintAsset asset, Port port) {

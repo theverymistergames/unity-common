@@ -25,6 +25,7 @@ namespace MisterGames.Blueprints {
         internal bool IsData => _mode.HasFlag(PortMode.Data);
         internal bool IsExternal => _mode.HasFlag(PortMode.External);
         internal bool IsHidden => _mode.HasFlag(PortMode.Hidden);
+        internal bool AcceptSubclass => _mode.HasFlag(PortMode.AcceptSubclass);
 
         internal bool IsMultiple =>
             !_mode.HasFlag(PortMode.CapacitySingle) && !_mode.HasFlag(PortMode.CapacityMultiple)
@@ -99,6 +100,7 @@ namespace MisterGames.Blueprints {
         public static Port Enter(string name = null) {
             return new Port { _name = name, _mode = PortMode.Input };
         }
+
         public static Port Exit(string name = null) {
             return new Port { _name = name, _mode = PortMode.None };
         }
@@ -106,6 +108,7 @@ namespace MisterGames.Blueprints {
         public static Port Input<T>(string name = null) {
             return new Port { _name = name, _mode = PortMode.Input | PortMode.Data, DataType = typeof(T) };
         }
+
         public static Port Output<T>(string name = null) {
             return new Port { _name = name, _mode = PortMode.Data, DataType = typeof(T) };
         }
@@ -113,8 +116,10 @@ namespace MisterGames.Blueprints {
         public static Port DynamicInput(string name = null, Type type = null) {
             return new Port { _name = name, _mode = PortMode.Input | PortMode.Data, DataType = type };
         }
-        public static Port DynamicOutput(string name = null, Type type = null) {
-            return new Port { _name = name, _mode = PortMode.Data, DataType = type };
+
+        public static Port DynamicOutput(string name = null, Type type = null, bool acceptSubclass = false) {
+            var mode = PortMode.Data | (acceptSubclass ? PortMode.AcceptSubclass : PortMode.None);
+            return new Port { _name = name, _mode = mode, DataType = type };
         }
 
         public bool Equals(Port other) {

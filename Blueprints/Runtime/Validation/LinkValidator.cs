@@ -186,7 +186,14 @@ namespace MisterGames.Blueprints.Validation {
                 return true;
             }
 
-            if (fromPortDataType != toPortDataType) {
+            if (toPort.AcceptSubclass && !toPortDataType.IsAssignableFrom(fromPortDataType)) {
+                Debug.LogError($"Blueprint `{blueprint.name}`: " +
+                               $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
+                               $"ports have different signature.");
+                return false;
+            }
+
+            if (!fromPortDataType.IsAssignableFrom(toPortDataType)) {
                 Debug.LogError($"Blueprint `{blueprint.name}`: " +
                                $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
                                $"ports have different signature.");
