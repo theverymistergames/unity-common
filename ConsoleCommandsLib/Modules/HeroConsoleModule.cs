@@ -1,5 +1,5 @@
 ﻿using System;
-using MisterGames.Character.Access;
+using MisterGames.Character.Adapters;
 using MisterGames.Character.Spawn;
 using MisterGames.Common.Pooling;
 using MisterGames.Dbg.Console.Attributes;
@@ -95,7 +95,7 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
                 return;
             }
 
-            access.SetPosition(position);
+            access.CharacterAdapter.TeleportTo(position);
             ConsoleRunner.AppendLine($"Character {access.name} was respawned at point [{spawnPointName} :: {position}]");
         }
     }

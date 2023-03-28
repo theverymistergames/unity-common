@@ -38,11 +38,19 @@ namespace MisterGames.Character.Motion {
         }
 
         public void SetPosition(Vector3 position) {
-            _characterController.gameObject.SetActive(false);
             _characterController.transform.position = position;
-            _characterController.gameObject.SetActive(true);
         }
-        
+
+        public void EnableCharacterController(bool isEnabled) {
+            _characterController.gameObject.SetActive(isEnabled);
+        }
+
+        public void TeleportTo(Vector3 position) {
+            EnableCharacterController(false);
+            SetPosition(position);
+            EnableCharacterController(true);
+        }
+
         private void Awake() {
             _stepOffset = _characterController.stepOffset;
         }
