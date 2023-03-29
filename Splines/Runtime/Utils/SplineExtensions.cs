@@ -20,6 +20,7 @@ namespace MisterGames.Splines.Utils {
         }
 
         public static float MoveAlongSpline(this SplineContainer splineContainer, Vector3 delta, float t) {
+            delta = splineContainer.transform.InverseTransformDirection(delta);
             return MoveAlongSpline(splineContainer.Spline, delta, t);
         }
 
