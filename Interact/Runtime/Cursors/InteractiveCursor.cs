@@ -56,7 +56,7 @@ namespace MisterGames.Interact.Cursors {
 
         private void Start() {
             OnApplicationFocusChanged(true);
-            SetCursorIcon(_initialCursorIcon);
+            RefreshCursorIcon();
         }
 
         private static void OnApplicationFocusChanged(bool isFocused) {
@@ -79,37 +79,40 @@ namespace MisterGames.Interact.Cursors {
         private void OnInteractiveDetected(Interactive interactive) {
             if (_interactive != null && _interactive.IsInteracting) return;
 
-            _interactive = interactive;
-
-            _interactive.OnStartInteract -= OnStartInteract;
-            _interactive.OnStartInteract += OnStartInteract;
-
-            _interactive.OnStopInteract -= OnStopInteract;
-            _interactive.OnStopInteract += OnStopInteract;
-
-            SetCursorIconFromInteractive(_interactive);
+            SetInteractive(interactive);
+            RefreshCursorIcon();
         }
 
         private void OnInteractiveLost() {
-            if (_interactive != null) {
-                if (_interactive.IsInteracting) return;
-                ResetInteractive();
-            }
+            if (_interactive != null && _interactive.IsInteracting) return;
 
-            SetCursorIcon(_initialCursorIcon);
+            ResetInteractive();
+            RefreshCursorIcon();
         }
 
         private void OnStartInteract(InteractiveUser user) {
             _interactive.OnStopInteract -= OnStopInteract;
             _interactive.OnStopInteract += OnStopInteract;
 
-            SetCursorIconFromInteractive(_interactive);
+            RefreshCursorIcon();
         }
 
         private void OnStopInteract() {
-            _interactive.OnStopInteract -= OnStopInteract;
+            ResetInteractive();
+            SetInteractive(_interactiveUser.PossibleInteractive);
 
-            SetCursorIconFromInteractive(_interactive);
+            RefreshCursorIcon();
+        }
+
+        private void SetInteractive(Interactive interactive) {
+            _interactive = interactive;
+            if (_interactive == null) return;
+
+            _interactive.OnStartInteract -= OnStartInteract;
+            _interactive.OnStartInteract += OnStartInteract;
+
+            _interactive.OnStopInteract -= OnStopInteract;
+            _interactive.OnStopInteract += OnStopInteract;
         }
 
         private void ResetInteractive() {
@@ -118,12 +121,14 @@ namespace MisterGames.Interact.Cursors {
             _interactive = null;
         }
 
-        private void SetCursorIconFromInteractive(Interactive interactive) {
-            var cursorIcon = interactive == null
+        private void RefreshCursorIcon() {
+            var possibleInteractive = _interactiveUser.PossibleInteractive;
+
+            var cursorIcon = possibleInteractive == null
                 ? _initialCursorIcon
-                : interactive.IsInteracting
-                    ? interactive.Strategy.cursorIconInteract
-                    : interactive.Strategy.cursorIconHover;
+                : possibleInteractive.IsInteracting
+                    ? possibleInteractive.Strategy.cursorIconInteract
+                    : possibleInteractive.Strategy.cursorIconHover;
 
             SetCursorIcon(cursorIcon);
         }

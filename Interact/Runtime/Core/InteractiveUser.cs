@@ -49,6 +49,7 @@ namespace MisterGames.Interact.Core {
         private void CheckNewPossibleInteractive(CollisionInfo info) {
             if (_hasPossibleInteractive) {
                 PossibleInteractive.OnLostByUser(this);
+                PossibleInteractive = null;
                 OnInteractiveLost.Invoke();
             }
 
