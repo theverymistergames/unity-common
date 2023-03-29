@@ -48,7 +48,7 @@ namespace MisterGames.Character.Motion {
         }
 
         public void EnableCharacterController(bool isEnabled) {
-            _characterController.gameObject.SetActive(isEnabled);
+            _characterController.enabled = isEnabled;
         }
 
         public void EnableGravity(bool isEnabled) {
@@ -89,10 +89,16 @@ namespace MisterGames.Character.Motion {
         }
 
         void IUpdate.OnUpdate(float dt) {
-            _characterController.stepOffset = _massProcessor.IsGrounded ? _stepOffset : 0f;
-
             var delta = _convert?.Invoke(_massProcessor.Velocity * dt) ?? _massProcessor.Velocity * dt;
-            _characterController.Move(delta);
+
+            if (_characterController.enabled) {
+                _characterController.stepOffset = _massProcessor.IsGrounded ? _stepOffset : 0f;
+                _characterController.Move(delta);
+
+                return;
+            }
+
+            _characterController.transform.Translate(delta, Space.World);
         }
     }
 
