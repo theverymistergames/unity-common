@@ -6,6 +6,23 @@ namespace MisterGames.Splines.Utils {
 
     public static class SplineExtensions {
 
+        public static Vector3 GetNearestPoint(this SplineContainer splineContainer, Vector3 point, out float t, int splineIndex = 0) {
+            var localPoint = splineContainer.transform.InverseTransformPoint(point);
+
+            SplineUtility.GetNearestPoint(
+                splineContainer[splineIndex],
+                localPoint,
+                out var nearestPoint,
+                out t
+            );
+
+            return splineContainer.transform.TransformPoint(nearestPoint);
+        }
+
+        public static float MoveAlongSpline(this SplineContainer splineContainer, Vector3 delta, float t) {
+            return MoveAlongSpline(splineContainer.Spline, delta, t);
+        }
+
         public static float MoveAlongSpline(this ISpline spline, Vector3 delta, float t) {
             float splineLength = spline.GetLength();
             t = math.clamp(t, 0f, 1f);
