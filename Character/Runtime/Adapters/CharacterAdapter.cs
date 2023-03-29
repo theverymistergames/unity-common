@@ -61,9 +61,9 @@ namespace MisterGames.Character.Motion {
         }
 
         public void TeleportTo(Vector3 position) {
-            EnableCharacterController(false);
-            Position = position;
-            EnableCharacterController(true);
+            _characterController.gameObject.SetActive(false);
+            _characterController.transform.position = position;
+            _characterController.gameObject.SetActive(true);
         }
 
         private void Awake() {
