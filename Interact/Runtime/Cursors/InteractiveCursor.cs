@@ -51,7 +51,7 @@ namespace MisterGames.Interact.Cursors {
             _interactiveUser.OnInteractiveDetected -= OnInteractiveDetected;
             _interactiveUser.OnInteractiveLost -= OnInteractiveLost;
 
-            if (_interactive != null) ResetInteractive();
+            ResetInteractive();
         }
 
         private void Start() {
@@ -116,6 +116,8 @@ namespace MisterGames.Interact.Cursors {
         }
 
         private void ResetInteractive() {
+            if (_interactive == null) return;
+
             _interactive.OnStartInteract -= OnStartInteract;
             _interactive.OnStopInteract -= OnStopInteract;
             _interactive = null;
