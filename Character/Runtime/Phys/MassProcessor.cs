@@ -31,8 +31,19 @@
         private Vector3 _forceComp;
         private Vector3 _targetInertia;
 
+        private bool _isGravityEnabled;
+
         private readonly ObjectDataMap<Vector3> _forces = new ObjectDataMap<Vector3>();
         private ITimeSource _timeSource => TimeSources.Get(_timeSourceStage);
+
+        public void EnableGravity(bool isEnabled) {
+            _isGravityEnabled = isEnabled;
+            if (_isGravityEnabled) return;
+
+            _gravityComp = Vector3.zero;
+            _inertiaComp = Vector3.zero;
+            _targetInertia = Vector3.zero;
+        }
 
         public void RegisterForceSource(Object source) {
             _forces.Register(source, Vector3.zero);
@@ -50,6 +61,8 @@
         }
         
         public void ApplyImpulse(Vector3 impulse) {
+            if (!_isGravityEnabled) return;
+
             _targetInertia += impulse.WithY(0);
             if (impulse.y > 0 && !_ceilingDetector.CollisionInfo.hasContact || impulse.y < 0 && !IsGrounded) {
                 _gravityComp.y += impulse.y;    
@@ -57,6 +70,8 @@
         }
         
         public void ApplyVelocityChange(Vector3 impulse) {
+            if (!_isGravityEnabled) return;
+
             _targetInertia = impulse.WithY(0);
             if (impulse.y > 0 && !_ceilingDetector.CollisionInfo.hasContact || impulse.y < 0 && !IsGrounded) {
                 _gravityComp.y = impulse.y;    
@@ -112,26 +127,31 @@
 
         private void HandleFell() {
             if (_groundDetector.CollisionInfo.hasContact) return;
-            
-            _gravityComp.y += Velocity.y;
-            _targetInertia = Velocity.WithY(0);
-            
+
+            if (_isGravityEnabled) {
+                _gravityComp.y += Velocity.y;
+                _targetInertia = Velocity.WithY(0);
+            }
+
             OnFell.Invoke();
         }
 
         private void HandleLanded() {
             _gravityComp = Vector3.zero;
+
             OnLanded.Invoke(Velocity);
         }
         
         private void HandleCeilingAppeared() {
-            if (IsGrounded) return;
+            if (IsGrounded || !_isGravityEnabled) return;
+
             _gravityComp.y = Mathf.Min(0f, _gravityComp.y);
             _targetInertia.y = Mathf.Min(0f, _targetInertia.y);
         }
         
         private void HandleColliderHit() {
-            if (IsGrounded) return;
+            if (IsGrounded || !_isGravityEnabled) return;
+
             _inertiaComp = Vector3.ProjectOnPlane(_inertiaComp, _hitDetector.CollisionInfo.lastNormal);
             _targetInertia = _inertiaComp;
         }
@@ -146,11 +166,15 @@
         }
 
         private void UpdateInertia(float factor) {
+            if (!_isGravityEnabled) return;
+
             _targetInertia = Vector3.Lerp(_targetInertia, Vector3.zero, factor);
             _inertiaComp = _targetInertia.RotateFromTo(Vector3.up, _groundDetector.CollisionInfo.lastNormal);
         }
 
         private void UpdateGravity(float dt) {
+            if (!_isGravityEnabled) return;
+
             _gravityComp += _gravityDirection * (_massSettings.gravityForce * dt);
         }
 

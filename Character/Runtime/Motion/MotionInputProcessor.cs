@@ -108,7 +108,7 @@ namespace MisterGames.Character.Motion {
 
         private Vector3 GetDirectionToLocalSpace(Vector2 direction) {
             var worldSpaceDirection = new Vector3(direction.x, 0f, direction.y);
-            return _adapter.BodyRotation * worldSpaceDirection;
+            return _adapter.MotionInputRotation * worldSpaceDirection;
         }
         
 #if UNITY_EDITOR        
