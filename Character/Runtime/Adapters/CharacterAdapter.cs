@@ -29,7 +29,7 @@ namespace MisterGames.Character.Motion {
 
         private ITimeSource _timeSource => TimeSources.Get(_timeSourceStage);
         private float _stepOffset;
-        private Func<Vector3,Vector3> _convert;
+        private Action<Vector3> _motionOverride;
 
         public void RotateHead(float angle) {
             _cameraController.Rotate(this, Quaternion.Euler(angle, 0, 0));
@@ -56,8 +56,8 @@ namespace MisterGames.Character.Motion {
             _massProcessor.EnableGravity(isEnabled);
         }
 
-        public void SetMotionConverter(Func<Vector3, Vector3> convert) {
-            _convert = convert;
+        public void SetMotionOverride(Action<Vector3> motionOverride) {
+            _motionOverride = motionOverride;
         }
 
         public void TeleportTo(Vector3 position) {
@@ -89,12 +89,16 @@ namespace MisterGames.Character.Motion {
         }
 
         void IUpdate.OnUpdate(float dt) {
-            var delta = _convert?.Invoke(_massProcessor.Velocity * dt) ?? _massProcessor.Velocity * dt;
+            var delta = _massProcessor.Velocity * dt;
+
+            if (_motionOverride != null) {
+                _motionOverride.Invoke(delta);
+                return;
+            }
 
             if (_characterController.enabled) {
                 _characterController.stepOffset = _massProcessor.IsGrounded ? _stepOffset : 0f;
                 _characterController.Move(delta);
-
                 return;
             }
 
