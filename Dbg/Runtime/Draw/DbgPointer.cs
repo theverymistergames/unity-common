@@ -69,10 +69,10 @@ namespace MisterGames.Dbg.Draw {
             var points = new[] {
                 _position,
                 _position + _orientation * (rotF * offset),
-                _position + _orientation * (rotF.Inverted() * offset),
+                _position + _orientation * (Quaternion.Inverse(rotF) * offset),
                 _position,
                 _position + _orientation * (rotR * offset),
-                _position + _orientation * (rotR.Inverted() * offset)
+                _position + _orientation * (Quaternion.Inverse(rotR) * offset)
             };
             
             DbgLineArray.Create().Points(points).Loop(true).Color(_color).Opacity(_opacity).Occlusion(_occluded).Time(_time).Draw();

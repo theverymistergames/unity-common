@@ -11,7 +11,7 @@ namespace MisterGames.Input.Bindings {
         [SerializeField] private KeyBinding _positive;
         [SerializeField] private KeyBinding _negative;
 
-        public float Value => _positive.IsActive().ToInt() - _negative.IsActive().ToInt();
+        public float Value => _positive.IsActive().AsInt() - _negative.IsActive().AsInt();
     }
 
 }

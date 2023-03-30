@@ -54,7 +54,7 @@ namespace MisterGames.Input.Actions {
                     break;
             }
             
-            if (_ignoreNewValueIfNotChanged && prevVector.IsEqual(_vector)) return;
+            if (_ignoreNewValueIfNotChanged && prevVector.IsNearlyEqual(_vector)) return;
             if (_ignoreZero && _vector.IsNearlyZero()) return;
             
             OnChanged.Invoke(_vector);

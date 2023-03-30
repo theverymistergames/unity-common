@@ -70,7 +70,7 @@ namespace MisterGames.Interact.Cursors {
             _transparencyRaycaster.FetchResults();
             _transparencyRaycaster.FilterLastResults(_transparencyRaycastFilter, out _lastCollisionInfo);
 
-            float alpha = _lastCollisionInfo.hasContact.ToInt();
+            float alpha = _lastCollisionInfo.hasContact.AsInt();
             alpha *= _alphaByDistance.Evaluate(_lastCollisionInfo.lastDistance / _maxDistance);
 
             SetImageAlpha(alpha);

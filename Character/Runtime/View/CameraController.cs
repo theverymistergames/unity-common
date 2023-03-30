@@ -1,4 +1,5 @@
-﻿using MisterGames.Common.Data;
+﻿using System.Collections.Generic;
+using MisterGames.Common.Data;
 using UnityEngine;
 
 namespace MisterGames.Character.View {
@@ -19,8 +20,21 @@ namespace MisterGames.Character.View {
         private Quaternion _cameraResultRotation = Quaternion.identity;
         private float _cameraResultFovOffset = 0f;
         
-        private readonly ObjectDataMap<CameraInteractorData> _interactors = new ObjectDataMap<CameraInteractorData>();
-        
+        private readonly Dictionary<Object, CameraInteractorData> _interactors = new Dictionary<Object, CameraInteractorData>();
+
+        private struct CameraInteractorData {
+
+            public Vector3 offset;
+            public Quaternion rotation;
+            public float fovOffset;
+
+            public static readonly CameraInteractorData Default = new CameraInteractorData {
+                offset = Vector3.zero,
+                rotation = Quaternion.identity,
+                fovOffset = 0f
+            };
+        }
+
         private void Awake() {
             _cameraTransform = _camera.transform;
             _cameraBaseOffset = _cameraTransform.localPosition;
@@ -32,90 +46,112 @@ namespace MisterGames.Character.View {
             _interactors.Clear();
         }
 
-        public void RegisterInteractor(Object source) {
-            _interactors.Register(source, CameraInteractorData.Default);
+        public void RegisterInteractor(Object interactor) {
+            if (_interactors.ContainsKey(interactor)) return;
+
+            _interactors.Add(interactor, CameraInteractorData.Default);
         }
 
-        public void UnregisterInteractor(Object source) {
-            _interactors.Unregister(source);
+        public void UnregisterInteractor(Object interactor) {
+            if (!_interactors.ContainsKey(interactor)) return;
+
+            _interactors.Remove(interactor);
         }
 
-        public void AddOffset(Object source, Vector3 motion) {
-            var data = _interactors.Get(source);
+        public void AddOffset(Object interactor, Vector3 motion) {
+            if (!CheckInteractorIsRegistered(interactor)) return;
+
+            var data = _interactors[interactor];
             data.offset += motion;
-            _interactors.Set(source, data);
+            _interactors[interactor] = data;
             
             InvalidateResultOffset();
             ApplyCameraParameters();
         }
 
-        public void SetOffset(Object source, Vector3 offset) {
-            var data = _interactors.Get(source);
+        public void SetOffset(Object interactor, Vector3 offset) {
+            if (!CheckInteractorIsRegistered(interactor)) return;
+
+            var data = _interactors[interactor];
             data.offset = offset;
-            _interactors.Set(source, data);
+            _interactors[interactor] = data;
             
             InvalidateResultOffset();
             ApplyCameraParameters();
         }
 
-        public void ResetOffset(Object source) {
-            var data = _interactors.Get(source);
+        public void ResetOffset(Object interactor) {
+            if (!CheckInteractorIsRegistered(interactor)) return;
+
+            var data = _interactors[interactor];
             data.offset = Vector3.zero;
-            _interactors.Set(source, data);
+            _interactors[interactor] = data;
             
             InvalidateResultOffset();
             ApplyCameraParameters();
         }
 
-        public void Rotate(Object source, Quaternion rotation) {
-            var data = _interactors.Get(source);
+        public void Rotate(Object interactor, Quaternion rotation) {
+            if (!CheckInteractorIsRegistered(interactor)) return;
+
+            var data = _interactors[interactor];
             data.rotation *= rotation;
-            _interactors.Set(source, data);
+            _interactors[interactor] = data;
             
             InvalidateResultRotation();
             ApplyCameraParameters();
         }
 
-        public void SetRotation(Object source, Quaternion rotation) {
-            var data = _interactors.Get(source);
+        public void SetRotation(Object interactor, Quaternion rotation) {
+            if (!CheckInteractorIsRegistered(interactor)) return;
+
+            var data = _interactors[interactor];
             data.rotation = rotation;
-            _interactors.Set(source, data);
+            _interactors[interactor] = data;
             
             InvalidateResultRotation();
             ApplyCameraParameters();
         }
         
-        public void ResetRotation(Object source) {
-            var data = _interactors.Get(source);
+        public void ResetRotation(Object interactor) {
+            if (!CheckInteractorIsRegistered(interactor)) return;
+
+            var data = _interactors[interactor];
             data.rotation = Quaternion.identity;
-            _interactors.Set(source, data);
+            _interactors[interactor] = data;
             
             InvalidateResultRotation();
             ApplyCameraParameters();
         }
         
-        public void SetFovOffset(Object source, float fov) {
-            var data = _interactors.Get(source);
+        public void SetFovOffset(Object interactor, float fov) {
+            if (!CheckInteractorIsRegistered(interactor)) return;
+
+            var data = _interactors[interactor];
             data.fovOffset = fov;
-            _interactors.Set(source, data);
+            _interactors[interactor] = data;
             
             InvalidateResultFovOffset();
             ApplyCameraParameters();
         }
         
-        public void AddFovOffset(Object source, float fov) {
-            var data = _interactors.Get(source);
+        public void AddFovOffset(Object interactor, float fov) {
+            if (!CheckInteractorIsRegistered(interactor)) return;
+
+            var data = _interactors[interactor];
             data.fovOffset += fov;
-            _interactors.Set(source, data);
+            _interactors[interactor] = data;
             
             InvalidateResultFovOffset();
             ApplyCameraParameters();
         }
         
-        public void ResetFovOffset(Object source) {
-            var data = _interactors.Get(source);
+        public void ResetFovOffset(Object interactor) {
+            if (!CheckInteractorIsRegistered(interactor)) return;
+
+            var data = _interactors[interactor];
             data.fovOffset = 0f;
-            _interactors.Set(source, data);
+            _interactors[interactor] = data;
             
             InvalidateResultFovOffset();
             ApplyCameraParameters();
@@ -123,22 +159,22 @@ namespace MisterGames.Character.View {
 
         private void InvalidateResultOffset() {
             _cameraResultOffset = Vector3.zero;
-            for (int i = 0; i < _interactors.Count; i++) {
-                _cameraResultOffset += _interactors[i].offset;
+            foreach (var data in _interactors.Values) {
+                _cameraResultOffset += data.offset;
             }
         }
         
         private void InvalidateResultRotation() {
             _cameraResultRotation = Quaternion.identity;
-            for (int i = 0; i < _interactors.Count; i++) {
-                _cameraResultRotation *= _interactors[i].rotation;
+            foreach (var data in _interactors.Values) {
+                _cameraResultRotation *= data.rotation;
             }
         }
         
         private void InvalidateResultFovOffset() {
             _cameraResultFovOffset = 0f;
-            for (int i = 0; i < _interactors.Count; i++) {
-                _cameraResultFovOffset += _interactors[i].fovOffset;
+            foreach (var data in _interactors.Values) {
+                _cameraResultFovOffset += data.fovOffset;
             }
         }
         
@@ -148,20 +184,12 @@ namespace MisterGames.Character.View {
             _camera.fieldOfView = _cameraBaseFov + _cameraResultFovOffset;
         }
 
-        private struct CameraInteractorData {
-            
-            public static readonly CameraInteractorData Default = new CameraInteractorData {
-                offset = Vector3.zero,
-                rotation = Quaternion.identity,
-                fovOffset = 0f
-            };
-            
-            public Vector3 offset;
-            public Quaternion rotation;
-            public float fovOffset;
-            
+        private bool CheckInteractorIsRegistered(Object interactor) {
+            if (_interactors.ContainsKey(interactor)) return true;
+
+            Debug.LogWarning($"{nameof(CameraController)}: Not registered interactor {interactor} is trying to interact.");
+            return false;
         }
-        
     }
 
 }

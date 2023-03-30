@@ -56,8 +56,19 @@ namespace MisterGames.Fsm.Editor.Windows {
                 .SortBranchesInChildrenFirst()
                 .PreOrder()
                 .RemoveRoot()
-                .Select(e => e.ToSearchEntry(getName, getData, level))
+                .Select(e => ToSearchEntry(e, getName, getData, level))
                 .ToList();
+        }
+
+        private static SearchTreeEntry ToSearchEntry<T>(
+            TreeEntry<T> entry,
+            Func<T, string> getName,
+            Func<T, object> getData,
+            int levelOffset = 0
+        ) {
+            return entry.children.Count == 0
+                ? SearchTreeEntryUtils.Entry(getName.Invoke(entry.data), getData.Invoke(entry.data), entry.level + levelOffset)
+                : SearchTreeEntryUtils.Header(getName.Invoke(entry.data), entry.level + levelOffset);
         }
 
         public bool OnSelectEntry(SearchTreeEntry searchTreeEntry, SearchWindowContext context) {

@@ -21,8 +21,8 @@ namespace MisterGames.BlueprintLib {
 
             for (int i = 0; i < _events.Length; i++) {
                 var entry = _events[i];
-                var evt = entry.First;
-                bool expectedEmitState = entry.Second;
+                var evt = entry.A;
+                bool expectedEmitState = entry.B;
 
                 if (evt.IsEmitted != expectedEmitState) return false;
             }

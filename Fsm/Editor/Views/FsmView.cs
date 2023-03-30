@@ -544,7 +544,7 @@ namespace MisterGames.Fsm.Editor.Views {
 
         private List<FsmState> GetTransitableStatesForPendingTransition() {
             var source = _transitionData.source;
-            return _stateMachine.states.RemoveIf(s => s == source).ToList();
+            return _stateMachine.states.Where(s => s != source).ToList();
         }
         
         // ---------------- ---------------- Save operations ---------------- ----------------

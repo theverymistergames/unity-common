@@ -110,7 +110,7 @@ namespace MisterGames.Character.Collisions {
 
                 normal = normal.normalized;
                 hitPoint /= _hitCount;
-                hitDistance = origin.DistanceTo(hitPoint);
+                hitDistance = Vector3.Distance(origin, hitPoint);
             }
             else {
                 normal = _groundDetectionDirection.Inverted().normalized;

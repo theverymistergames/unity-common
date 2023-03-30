@@ -23,8 +23,8 @@ namespace MisterGames.Input.Bindings {
         public Vector2 Value {
             get {
                 var vector = new Vector2(
-                    _positiveX.IsActive().ToInt() - _negativeX.IsActive().ToInt(),
-                    _positiveY.IsActive().ToInt() - _negativeY.IsActive().ToInt()
+                    _positiveX.IsActive().AsInt() - _negativeX.IsActive().AsInt(),
+                    _positiveY.IsActive().AsInt() - _negativeY.IsActive().AsInt()
                 );
 
                 if (_normalize && !vector.IsNearlyZero()) vector.Normalize();

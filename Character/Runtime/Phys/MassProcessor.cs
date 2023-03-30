@@ -1,5 +1,6 @@
 ﻿using System;
- using MisterGames.Character.Configs;
+using System.Collections.Generic;
+using MisterGames.Character.Configs;
  using MisterGames.Collisions.Core;
  using MisterGames.Common.Data;
  using MisterGames.Common.Maths;
@@ -33,7 +34,7 @@
 
         private bool _isGravityEnabled;
 
-        private readonly ObjectDataMap<Vector3> _forces = new ObjectDataMap<Vector3>();
+        private readonly Dictionary<Object, Vector3> _forces = new Dictionary<Object, Vector3>();
         private ITimeSource _timeSource => TimeSources.Get(_timeSourceStage);
 
         public void EnableGravity(bool isEnabled) {
@@ -46,17 +47,26 @@
         }
 
         public void RegisterForceSource(Object source) {
-            _forces.Register(source, Vector3.zero);
+            if (_forces.ContainsKey(source)) return;
+
+            _forces.Add(source, Vector3.zero);
         }
         
         public void UnregisterForceSource(Object source) {
-            _forceComp -= _forces.Get(source);
-            _forces.Unregister(source);
+            if (!_forces.ContainsKey(source)) return;
+
+            _forceComp -= _forces[source];
+            _forces.Remove(source);
         }
         
         public void SetForce(Object source, Vector3 force) {
-            _forceComp -= _forces.Get(source);
-            _forces.Set(source, force);
+            if (!_forces.ContainsKey(source)) {
+                Debug.LogWarning($"{nameof(MassProcessor)}: Not registered force source {source} is trying to set force.");
+                return;
+            }
+
+            _forceComp -= _forces[source];
+            _forces[source] = force;
             _forceComp += force;
         }
         

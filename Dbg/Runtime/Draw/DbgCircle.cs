@@ -73,8 +73,8 @@ namespace MisterGames.Dbg.Draw {
         }
 
         public void Draw() {
-            var normal = Vector3.up.Rotate(_orientation);
-            var start = Vector3.forward.Rotate(_orientation) * _radius;
+            var normal = _orientation * Vector3.up;
+            var start = _orientation * Vector3.forward * _radius;
             var inc = _step * 360f;
             var count = Mathf.CeilToInt(_angle / inc) + 1;
             
@@ -82,7 +82,7 @@ namespace MisterGames.Dbg.Draw {
             for (var i = 0; i < count; i++) {
                 var angle = Mathf.Clamp(i * inc, 0, _angle);
                 var rot = Quaternion.AngleAxis(angle, normal);
-                points[i] = start.Rotate(rot) + _position;
+                points[i] = rot * start + _position;
             }
             
             DbgLineArray.Create()

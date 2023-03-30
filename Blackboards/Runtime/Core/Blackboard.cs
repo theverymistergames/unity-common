@@ -1013,7 +1013,7 @@ namespace MisterGames.Blackboards.Core {
             string pattern = $@"{name} \([0-9]+\)";
 
             for (int i = 0; i < _properties.Count; i++) {
-                if (_propertiesMap[_properties[i]].name.IsValidForPattern(pattern)) count++;
+                if (_propertiesMap[_properties[i]].name.HasRegexPattern(pattern)) count++;
             }
 
             return $"{name} ({count})";

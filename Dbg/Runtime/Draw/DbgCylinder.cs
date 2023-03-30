@@ -67,8 +67,8 @@ namespace MisterGames.Dbg.Draw {
         public void Draw() {
             var normal = (_to - _from).normalized;
             var rot = Quaternion.FromToRotation(Vector3.up, normal);
-            var forward = Vector3.forward.Rotate(rot);
-            var right = Vector3.right.Rotate(rot);
+            var forward = rot * Vector3.forward;
+            var right = rot * Vector3.right;
 
             var fr = forward * _radius;
             var rr = right * _radius;

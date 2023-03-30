@@ -138,7 +138,7 @@ namespace MisterGames.Interact.Core {
         private bool IsValidDistance() {
             if (!_strategy.stopInteractWhenExceededMaxDistance) return true;
             
-            float sqrDistance = _transform.position.SqrDistanceTo(_interactionUserTransform.position);
+            float sqrDistance = Vector3.SqrMagnitude(_interactionUserTransform.position - _transform.position);
             return sqrDistance < _maxInteractionSqrDistance;
         }
 
