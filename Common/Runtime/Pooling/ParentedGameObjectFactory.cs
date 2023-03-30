@@ -2,7 +2,7 @@
 
 namespace MisterGames.Common.Pooling {
 
-    public class ParentedGameObjectFactory : IPoolFactory<GameObject> {
+    public sealed class ParentedGameObjectFactory : IPoolFactory<GameObject> {
 
         private readonly Transform _parent;
 

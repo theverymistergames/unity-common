@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace MisterGames.Common.Pooling {
 
-    public class PrefabPool : MonoBehaviour {
+    public sealed class PrefabPool : MonoBehaviour {
 
         [Header("Default pool settings")]
         [SerializeField] [Min(0)] private int _initialCapacity = 0;

@@ -54,7 +54,8 @@ namespace MisterGames.Common.Editor.Tree {
             while (stack.Count > 0) {
                 var current = stack.Pop();
                 list.Add(current);
-                current.children.Reversed().ForEach(stack.Push);
+                current.children.Reverse();
+                current.children.ForEach(stack.Push);
             }
 
             return list;

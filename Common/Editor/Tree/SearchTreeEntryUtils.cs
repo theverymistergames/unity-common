@@ -1,22 +1,10 @@
-﻿using System;
-using UnityEditor.Experimental.GraphView;
+﻿using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 
 namespace MisterGames.Common.Editor.Tree {
 
     public static class SearchTreeEntryUtils {
 
-        public static SearchTreeEntry ToSearchEntry<T>(
-            this TreeEntry<T> entry, 
-            Func<T, string> getName,
-            Func<T, object> getData,
-            int levelOffset = 0
-        ) {
-            return entry.children.Count == 0
-                ? Entry(getName.Invoke(entry.data), getData.Invoke(entry.data), entry.level + levelOffset)
-                : Header(getName.Invoke(entry.data), entry.level + levelOffset);
-        }
-        
         public static SearchTreeEntry Header(string title, int level = 0) {
             return new SearchTreeGroupEntry(new GUIContent(title), level);
         }

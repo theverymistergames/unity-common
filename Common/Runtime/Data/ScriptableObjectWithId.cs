@@ -1,5 +1,4 @@
-﻿using MisterGames.Common.Lists;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace MisterGames.Common.Data {
 
@@ -9,10 +8,9 @@ namespace MisterGames.Common.Data {
         
         public string Guid => _guid;
 
-        protected virtual void Awake() {
-            if (_guid.IsEmpty()) _guid = System.Guid.NewGuid().ToString();
+        private void Awake() {
+            if (string.IsNullOrEmpty(_guid)) _guid = System.Guid.NewGuid().ToString();
         }
-        
     }
 
 }

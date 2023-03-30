@@ -6,7 +6,7 @@ using UnityEngine;
 namespace MisterGames.Common.Data {
 
     [Serializable]
-    public class SerializedDictionary<TKey, TValue> : Dictionary<TKey, TValue>, ISerializationCallbackReceiver {
+    public sealed class SerializedDictionary<TKey, TValue> : Dictionary<TKey, TValue>, ISerializationCallbackReceiver {
 
         [SerializeField] private List<Entry> _entries = new List<Entry>();
 

@@ -37,7 +37,7 @@ namespace MisterGames.Common.Editor.Tree {
         }
 
         public static TreeEntry<Type> RemoveAbstractBranches(this TreeEntry<Type> entry) {
-            while (!entry.AbstractLeafs().IsEmpty()) {
+            while (entry.AbstractLeafs().Any()) {
                 entry = entry.RemoveAbstractLeafs();
             }
             return entry;

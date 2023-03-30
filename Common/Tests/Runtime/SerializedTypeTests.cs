@@ -29,7 +29,7 @@ namespace Data {
         [Test]
         [TestCase(typeof(List<int>))]
         [TestCase(typeof(Func<SerializedType>))]
-        [TestCase(typeof(Pair<Vector2, string>))]
+        [TestCase(typeof(Dictionary<Vector2, string>))]
         public void CheckSimpleGenericTypes(Type t) {
             AssertTypeCanBeSerialized(t);
         }
@@ -37,7 +37,7 @@ namespace Data {
         [Test]
         [TestCase(typeof(List<int>[]))]
         [TestCase(typeof(Func<SerializedType>[]))]
-        [TestCase(typeof(Pair<Vector2, string>[]))]
+        [TestCase(typeof(Dictionary<Vector2, string>[]))]
         public void CheckArrayOfSimpleGenericTypes(Type t) {
             AssertTypeCanBeSerialized(t);
         }
@@ -45,14 +45,14 @@ namespace Data {
         [Test]
         [TestCase(typeof(List<int[]>))]
         [TestCase(typeof(Func<SerializedType[]>))]
-        [TestCase(typeof(Pair<Vector2[], string[]>))]
+        [TestCase(typeof(Dictionary<Vector2[], string[]>))]
         public void CheckSimpleGenericOfArrayTypes(Type t) {
             AssertTypeCanBeSerialized(t);
         }
 
         [Test]
         [TestCase(typeof(List<Func<SerializedType[]>[]>))]
-        [TestCase(typeof(Func<Pair<int, bool[]>>[]))]
+        [TestCase(typeof(Func<Dictionary<int, bool[]>>[]))]
         public void CheckComplexGenericTypes(Type t) {
             AssertTypeCanBeSerialized(t);
         }

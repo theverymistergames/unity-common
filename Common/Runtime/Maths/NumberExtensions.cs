@@ -12,10 +12,13 @@ namespace MisterGames.Common.Maths {
             return IsNearlyZero(value - other);
         }
 
-        public static int ToInt(this bool value) {
+        public static int AsInt(this bool value) {
             return value ? 1 : 0;
         }
-        
+
+        public static float AsFloat(this bool value) {
+            return value ? 1f : 0f;
+        }
     }
 
 }

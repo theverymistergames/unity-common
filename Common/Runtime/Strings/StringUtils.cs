@@ -1,6 +1,4 @@
-﻿using System.Linq;
-using System.Text.RegularExpressions;
-using MisterGames.Common.Lists;
+﻿using System.Text.RegularExpressions;
 using UnityEngine;
 
 namespace MisterGames.Common.Strings {
@@ -14,23 +12,16 @@ namespace MisterGames.Common.Strings {
         /// Validate string as field name: can contain [a-z][A-Z][0-9] and underscore. Must not start with digit.
         /// </summary>
         public static bool IsValidFieldName(this string input) {
-            return input != null && input.IsValidForPattern(PatternFieldName);
+            return !string.IsNullOrEmpty(input) && input.HasRegexPattern(PatternFieldName);
         }
 
-        public static bool IsValidForPattern(this string input, string pattern) {
+        public static bool HasRegexPattern(this string input, string pattern) {
             return input != null && Regex.Match(input, pattern).Success;
         }
 
         public static string ToStringNullSafe(this Object obj) {
             return obj == null ? "<null>" : obj.ToString();
         }
-
-        public static string UpperFirstLetter(this string str) {
-            if (str.IsEmpty()) return str;
-            var firstLetter = char.ToUpper(str[0]).ToString();
-            return str.Count() == 1 ? firstLetter : $"{firstLetter}{str.Substring(1)}";
-        }
-        
     }
 
 }

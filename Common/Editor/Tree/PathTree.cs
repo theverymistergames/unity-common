@@ -61,7 +61,7 @@ namespace MisterGames.Common.Editor.Tree {
 
                 if (!IsSubPathOf(path, parent)) continue;
 
-                string[] pathParts = path.Split(separator);
+                Span<string> pathParts = path.Split(separator);
                 int pathDepth = pathParts.Length;
 
                 if (pathDepth <= level) {
@@ -81,7 +81,7 @@ namespace MisterGames.Common.Editor.Tree {
 
                 if (folderNameHashesSet.Contains(folderNameHash)) continue;
 
-                string folderPath = string.Join(separator, pathParts.Slice(0, level - 1));
+                string folderPath = string.Join(separator, pathParts[..(level - 1)].ToArray());
 
                 folderNameHashesSet.Add(folderNameHash);
                 nodes.Add(new TreeEntry<Node<T>> {

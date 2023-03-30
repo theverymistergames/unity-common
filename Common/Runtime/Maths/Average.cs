@@ -1,4 +1,0 @@
-﻿namespace MisterGames.Common.Maths {
-
-
-}

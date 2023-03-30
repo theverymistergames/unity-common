@@ -11,9 +11,7 @@ namespace MisterGames.Common.Editor.Drawers {
             string typeAsString = property.FindPropertyRelative("_type").stringValue;
             var type = SerializedType.DeserializeType(typeAsString);
 
-            EditorGUI.BeginDisabledGroup(true);
-            EditorGUI.LabelField(position, label, new GUIContent(type == null ? "null" : type.Name));
-            EditorGUI.EndDisabledGroup();
+            EditorGUI.LabelField(position, label, new GUIContent(type?.Name ?? "null"));
         }
 
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label) {

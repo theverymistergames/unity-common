@@ -1,13 +1,12 @@
 ﻿using UnityEngine;
 
-namespace MisterGames.Common.Color {
+namespace MisterGames.Common.Colors {
 
     public static class ColorUtils {
 
-        public static UnityEngine.Color HexToColor(string hex, UnityEngine.Color defaultValue = default) {
+        public static Color HexToColor(string hex, Color defaultValue = default) {
             return ColorUtility.TryParseHtmlString(hex, out var color) ? color : defaultValue;
         }
-
     }
 
 }

@@ -8,26 +8,27 @@ namespace MisterGames.Common.Editor.Drawers {
     public class OptionalPropertyDrawer : PropertyDrawer {
 
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
-            var valueProperty = property.FindPropertyRelative("_value");
-            var enabledProperty = property.FindPropertyRelative("_hasValue");
-            
-            position.width -= 24;
-            EditorGUI.BeginDisabledGroup(!enabledProperty.boolValue);
-            EditorGUI.PropertyField(position, valueProperty, label, true);
-            EditorGUI.EndDisabledGroup();
-            
-            position.x += position.width + 24;
-            position.width = position.height = EditorGUI.GetPropertyHeight(enabledProperty);
-            position.x -= position.width;
+            EditorGUI.BeginProperty(position, label, property);
 
-            EditorGUI.PropertyField(position, enabledProperty, GUIContent.none);
+            var hasValueProperty = property.FindPropertyRelative("_hasValue");
+            float hasValueSize = EditorGUIUtility.singleLineHeight;
+
+            EditorGUI.BeginDisabledGroup(!hasValueProperty.boolValue);
+
+            var valueRect = new Rect(position.x, position.y, position.width - hasValueSize, position.height);
+            EditorGUI.PropertyField(valueRect, property.FindPropertyRelative("_value"), label, true);
+
+            EditorGUI.EndDisabledGroup();
+
+            var hasValueRect = new Rect(position.x + position.width - hasValueSize, position.y, hasValueSize, hasValueSize);
+            EditorGUI.PropertyField(hasValueRect, hasValueProperty, GUIContent.none);
+
+            EditorGUI.EndProperty();
         }
 
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label) {
-            var valueProperty = property.FindPropertyRelative("_value");
-            return EditorGUI.GetPropertyHeight(valueProperty);
+            return EditorGUI.GetPropertyHeight(property.FindPropertyRelative("_value"));
         }
-        
     }
 
 }

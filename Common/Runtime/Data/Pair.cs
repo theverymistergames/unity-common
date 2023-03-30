@@ -1,30 +1,54 @@
 ﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace MisterGames.Common.Data {
 
     [Serializable]
-    public struct Pair<A, B> {
+    public struct Pair<Ta, Tb> : IEquatable<Pair<Ta, Tb>> {
 
-        [SerializeField] private A _first;
-        [SerializeField] private B _second;
+        [SerializeField] private Ta _a;
+        [SerializeField] private Tb _b;
 
-        public A First => _first;
-        public B Second => _second;
+        public Ta A => _a;
+        public Tb B => _b;
 
-        private Pair(A first, B second) {
-            _first = first;
-            _second = second;
+        public static Pair<Ta, Tb> Of(Ta a = default, Tb b = default) => new Pair<Ta, Tb>(a, b);
+
+        public Pair(Ta a = default, Tb b = default) {
+            _a = a;
+            _b = b;
         }
-        
-        public static Pair<A, B> Of(A first, B second) {
-            return new Pair<A, B>(first, second);
-        } 
-        
+
+        public void Deconstruct(out Ta a, out Tb b) {
+            a = _a;
+            b = _b;
+        }
+
+        public bool Equals(Pair<Ta, Tb> other) {
+            return EqualityComparer<Ta>.Default.Equals(_a, other._a) &&
+                   EqualityComparer<Tb>.Default.Equals(_b, other._b);
+        }
+
+        public override bool Equals(object obj) {
+            return obj is Pair<Ta, Tb> other && Equals(other);
+        }
+
+        public override int GetHashCode() {
+            return HashCode.Combine(_a, _b);
+        }
+
+        public static bool operator ==(Pair<Ta, Tb> left, Pair<Ta, Tb> right) {
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(Pair<Ta, Tb> left, Pair<Ta, Tb> right) {
+            return !left.Equals(right);
+        }
+
         public override string ToString() {
-            return $"[{_first}, {_second}]";
+            return $"Pair(a = {_a}, b = {_b})";
         }
-
     }
 
 }

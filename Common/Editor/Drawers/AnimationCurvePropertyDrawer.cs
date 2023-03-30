@@ -40,6 +40,8 @@ namespace MisterGames.Common.Editor.Drawers {
         }
 
         private static AdvancedDropdown<int> CreateEasingTypeDropdown(SerializedProperty property) {
+            property = property.Copy();
+
             var easingTypes = new List<int> { -1 };
             easingTypes.AddRange(Enum.GetValues(typeof(EasingType)).Cast<int>());
 
