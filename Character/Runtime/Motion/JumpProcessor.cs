@@ -18,7 +18,7 @@
         [SerializeField] private StateMachineRunner _poseFsm;
 
         [Header("Collision")]
-        [SerializeField] private CollisionDetector _groundDetector;
+        [SerializeField] private CollisionDetectorBase _groundDetector;
 
         public event Action<Vector3> OnJump = delegate {  };
         

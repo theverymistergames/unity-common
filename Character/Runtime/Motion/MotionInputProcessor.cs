@@ -69,7 +69,7 @@ namespace MisterGames.Character.Motion {
                 ? _targetDirection 
                 : GetSmoothedDirection(_targetDirection, dt);
             
-            _motion = _currentDirection.RotateFromTo(Vector3.up, _groundDetector.CollisionInfo.lastNormal);
+            _motion = Quaternion.FromToRotation(Vector3.up, _groundDetector.CollisionInfo.lastNormal) * _currentDirection;
             _adapter.Move(_motion);
         }
         

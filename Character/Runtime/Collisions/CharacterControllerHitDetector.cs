@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace MisterGames.Character.Collisions {
 
-    public class CharacterControllerHitDetector : CollisionDetector {
+    public class CharacterControllerHitDetector : CollisionDetectorBase {
 
         public override void FetchResults() { }
 

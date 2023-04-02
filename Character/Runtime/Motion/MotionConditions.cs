@@ -11,7 +11,7 @@ namespace MisterGames.Character.Motion {
 
         [SerializeField] private CharacterInput _input;
         [SerializeField] private PoseProcessor _poseProcessor;
-        [SerializeField] private CollisionDetector _groundDetector;
+        [SerializeField] private CollisionDetectorBase _groundDetector;
         [SerializeField] private StateMachineRunner _motionFsm;
         
         private MotionStateCondition _currentCondition;

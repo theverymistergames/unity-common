@@ -15,9 +15,9 @@ using MisterGames.Character.Configs;
 
         [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
 
-        [SerializeField] private CollisionDetector _groundDetector;
-        [SerializeField] private CollisionDetector _ceilingDetector;
-        [SerializeField] private CollisionDetector _hitDetector;
+        [SerializeField] private CollisionDetectorBase _groundDetector;
+        [SerializeField] private CollisionDetectorBase _ceilingDetector;
+        [SerializeField] private CollisionDetectorBase _hitDetector;
         [SerializeField] private MassSettings _massSettings;
 
         public event Action OnFell = delegate {  };
@@ -179,7 +179,7 @@ using MisterGames.Character.Configs;
             if (!_isGravityEnabled) return;
 
             _targetInertia = Vector3.Lerp(_targetInertia, Vector3.zero, factor);
-            _inertiaComp = _targetInertia.RotateFromTo(Vector3.up, _groundDetector.CollisionInfo.lastNormal);
+            _inertiaComp = Quaternion.FromToRotation(Vector3.up, _groundDetector.CollisionInfo.lastNormal) * _targetInertia;
         }
 
         private void UpdateGravity(float dt) {

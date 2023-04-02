@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace MisterGames.Character.Collisions {
 
-    public class CharacterGroundDetector : CollisionDetector, IUpdate {
+    public class CharacterGroundDetector : CollisionDetectorBase, IUpdate {
 
         [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
 
