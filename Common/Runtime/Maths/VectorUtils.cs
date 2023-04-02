@@ -21,17 +21,7 @@ namespace MisterGames.Common.Maths {
         public static bool IsNearlyEqual(this Vector2 vector, Vector2 other) {
             return vector.x.IsNearlyEqual(other.x) && vector.y.IsNearlyEqual(other.y);
         }
-        
-        // ---------------- ---------------- Rotation ---------------- ----------------
 
-        public static Vector3 RotateFromTo(this Vector3 vector, Vector3 from, Vector3 to) {
-            return Quaternion.FromToRotation(from, to) * vector;
-        }
-        
-        public static Vector2 RotateFromTo(this Vector2 vector, Vector2 from, Vector2 to) {
-            return Quaternion.FromToRotation(from, to) * vector;
-        }
-        
         // ---------------- ---------------- Modification ---------------- ----------------
         
         public static Vector3 Inverted(this Vector3 vector) {
