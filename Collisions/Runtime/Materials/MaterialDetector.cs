@@ -7,7 +7,7 @@ namespace MisterGames.Collisions.Materials {
 
     public class MaterialDetector : MonoBehaviour {
 
-        [SerializeField] private CollisionDetector _collisionDetector;
+        [SerializeField] private CollisionDetectorBase _collisionDetector;
         [SerializeField] private MaterialData _defaultMaterialData;
 
         public event Action OnMaterialChanged = delegate {  };

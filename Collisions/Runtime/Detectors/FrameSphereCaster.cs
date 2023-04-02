@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace MisterGames.Collisions.Detectors {
 
-    public class FrameSphereCaster : CollisionDetector, IUpdate {
+    public class FrameSphereCaster : CollisionDetectorBase, IUpdate {
 
         [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
 

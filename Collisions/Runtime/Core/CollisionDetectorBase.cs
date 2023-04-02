@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace MisterGames.Collisions.Core {
 
-    public abstract class CollisionDetector : MonoBehaviour {
+    public abstract class CollisionDetectorBase : MonoBehaviour, ICollisionDetector {
 
         public event Action OnContact = delegate {  };
         public event Action OnLostContact = delegate {  };
@@ -13,7 +13,6 @@ namespace MisterGames.Collisions.Core {
         public CollisionInfo CollisionInfo { get; private set; }
 
         public abstract void FilterLastResults(CollisionFilter filter, out CollisionInfo info);
-
         public abstract void FetchResults();
 
         protected void SetCollisionInfo(CollisionInfo newInfo, bool forceNotify = false) {
@@ -39,9 +38,7 @@ namespace MisterGames.Collisions.Core {
         }
 
         private void CheckTransformChanged(CollisionInfo lastInfo, CollisionInfo newInfo, bool forceNotify) {
-            if (forceNotify || newInfo.IsTransformChanged(lastInfo)) {
-                OnTransformChanged.Invoke();
-            }
+            if (forceNotify || newInfo.IsTransformChanged(lastInfo)) OnTransformChanged.Invoke();
         }
     }
 

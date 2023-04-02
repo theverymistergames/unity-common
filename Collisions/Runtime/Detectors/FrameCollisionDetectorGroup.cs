@@ -4,10 +4,10 @@ using UnityEngine;
 
 namespace MisterGames.Collisions.Detectors {
 
-    public class FrameCollisionDetectorGroup : CollisionDetector, IUpdate {
+    public class FrameCollisionDetectorGroup : CollisionDetectorBase, IUpdate {
 
         [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
-        [SerializeField] private CollisionDetector[] _detectorGroup;
+        [SerializeField] private CollisionDetectorBase[] _detectorGroup;
         [SerializeField] private CollisionFilter _collisionFilter;
 
         private ITimeSource _timeSource => TimeSources.Get(_timeSourceStage);
