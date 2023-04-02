@@ -2,7 +2,7 @@
 
 namespace MisterGames.Tick.Core {
 
-    public sealed class TimeSource : ITimeSource, ITimeSourceApi {
+    internal sealed class TimeSource : ITimeSource, ITimeSourceApi {
 
         public float DeltaTime => _deltaTime;
         public float TimeScale { get => _timeScaleProvider.TimeScale; set => _timeScaleProvider.TimeScale = value; }
