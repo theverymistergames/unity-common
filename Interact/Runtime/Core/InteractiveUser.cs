@@ -11,7 +11,7 @@ namespace MisterGames.Interact.Core {
 
         [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
         [SerializeField] private CollisionFilter _collisionFilter = new CollisionFilter { maxDistance = 3f };
-        [SerializeField] private CollisionDetector _collisionDetector;
+        [SerializeField] private CollisionDetectorBase _collisionDetector;
 
         public event Action<Interactive> OnInteractiveDetected = delegate {  };
         public event Action OnInteractiveLost = delegate {  };

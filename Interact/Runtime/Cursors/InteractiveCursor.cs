@@ -22,7 +22,7 @@ namespace MisterGames.Interact.Cursors {
         [SerializeField] private bool _isAlphaControlledByDistance = true;
         [SerializeField] private AnimationCurve _alphaByDistance = AnimationCurve.Linear(0f, 1f, 1f, 0f);
         [SerializeField] private float _maxDistance;
-        [SerializeField] private CollisionDetector _transparencyRaycaster;
+        [SerializeField] private CollisionDetectorBase _transparencyRaycaster;
 
         private ITimeSource _timeSource => TimeSources.Get(_timeSourceStage);
         private Interactive _interactive;
