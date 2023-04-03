@@ -26,6 +26,7 @@ namespace MisterGames.Character.Core2 {
 
         private ITimeSource _timeSource;
         private ITransformAdapter _viewAdapter;
+        private ITransformAdapter _motionAdapter;
 
         private Vector2 _input;
         private Quaternion _currentView;
@@ -50,7 +51,9 @@ namespace MisterGames.Character.Core2 {
         }
 
         private void Awake() {
-            _viewAdapter = _characterAccess.MotionAdapter;
+            _viewAdapter = _characterAccess.ViewAdapter;
+            _motionAdapter = _characterAccess.MotionAdapter;
+
             _timeSource = TimeSources.Get(_playerLoopStage);
 
             for (int i = 0; i < _inputProcessors.Length; i++) {
@@ -85,15 +88,16 @@ namespace MisterGames.Character.Core2 {
 
         public void OnUpdate(float dt) {
             var inputQuaternion = Quaternion.Euler(_input.x, _input.y, 0f);
-
             for (int i = 0; i < _viewProcessors.Length; i++) {
                 inputQuaternion = _viewProcessors[i].Process(inputQuaternion, dt);
             }
 
             var lastView = _currentView;
             _currentView = inputQuaternion;
+            var diffEulers = _currentView.eulerAngles - lastView.eulerAngles;
 
-            _viewAdapter.Rotate(_currentView * Quaternion.Inverse(lastView));
+            _viewAdapter.Rotate(Quaternion.Euler(diffEulers.x, 0f, 0f));
+            _motionAdapter.Rotate(Quaternion.Euler(0f, diffEulers.y, 0f));
         }
     }
 
