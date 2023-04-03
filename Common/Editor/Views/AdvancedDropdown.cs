@@ -35,7 +35,7 @@ namespace MisterGames.Common.Editor.Views {
 			_onItemSelected = onItemSelected;
 			_pathTreeRoot = PathTree.CreateTree(items, getItemPath, separator, sort);
 
-			float width = Mathf.Max(minimumSize.x, 120f);
+			float width = Mathf.Max(minimumSize.x, 240f);
 			float height = 14 * EditorGUIUtility.singleLineHeight;
 
 			minimumSize = new Vector2(width, height);
