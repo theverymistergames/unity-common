@@ -6,16 +6,14 @@ namespace MisterGames.Character.Core2 {
     [Serializable]
     public sealed class CharacterProcessorVector3Smoothing : ICharacterProcessorVector3 {
 
-        [SerializeField] private float _smoothFactor = 20f;
-
-        public float SmoothFactor { get => _smoothFactor; set => _smoothFactor = value; }
+        public float smoothFactor = 1f;
 
         private Vector3 _currentInput;
         private Vector3 _targetInput;
 
         public Vector3 Process(Vector3 input, float dt) {
             _targetInput = input;
-            _currentInput = Vector2.Lerp(_currentInput, _targetInput, dt * SmoothFactor);
+            _currentInput = Vector3.Lerp(_currentInput, _targetInput, dt * smoothFactor);
             
             return _currentInput;
         }

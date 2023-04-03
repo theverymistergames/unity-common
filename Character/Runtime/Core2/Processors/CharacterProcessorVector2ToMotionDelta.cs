@@ -4,7 +4,7 @@ using UnityEngine;
 namespace MisterGames.Character.Core2 {
 
     [Serializable]
-    public sealed class CharacterProcessorInputToMotion : ICharacterProcessorVector2ToVector3, ICharacterProcessorInitializable {
+    public sealed class CharacterProcessorVector2ToMotionDelta : ICharacterProcessorVector2ToVector3, ICharacterProcessorInitializable {
 
         private ICharacterAccess _characterAccess;
 

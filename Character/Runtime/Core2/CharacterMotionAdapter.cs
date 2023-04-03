@@ -4,13 +4,20 @@ using UnityEngine;
 
 namespace MisterGames.Character.Core2 {
 
-    public class CharacterMotionAdapter : MonoBehaviour, ICharacterMotionAdapter {
+    public class CharacterMotionAdapter : MonoBehaviour, ITransformAdapter {
 
         [SerializeField] private CharacterAccess _characterAccess;
         [SerializeField] private CharacterController _characterController;
 
-        public Vector3 Position => _motionTransform.position;
-        public Quaternion Rotation => _motionTransform.rotation;
+        public Vector3 Position {
+            get => _motionTransform.position;
+            set => _motionTransform.position = value;
+        }
+
+        public Quaternion Rotation {
+            get => _motionTransform.rotation;
+            set => _motionTransform.rotation = value;
+        }
 
         private ICollisionDetector _groundDetector;
         private Transform _motionTransform;

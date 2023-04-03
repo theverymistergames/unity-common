@@ -4,26 +4,26 @@ using UnityEngine;
 
 namespace MisterGames.Character.Core2 {
 
-    public sealed class CharacterMotionPipeline : MonoBehaviour, ICharacterMotionPipeline, IUpdate {
+    public sealed class CharacterMotionPipeline : MonoBehaviour, ICharacterPipeline, IUpdate {
 
         [SerializeField] private CharacterAccess _characterAccess;
-        [SerializeField] private PlayerLoopStage _playerLoopStage;
+        [SerializeField] private PlayerLoopStage _playerLoopStage = PlayerLoopStage.Update;
 
         [SerializeReference] [SubclassSelector] private ICharacterProcessorVector2[] _inputProcessors = {
-            new CharacterBackSideSpeedCorrectionProcessor(),
-            new CharacterProcessorSpeed(),
-            new CharacterProcessorVector2Smoothing(),
+            new CharacterBackSideSpeedCorrectionProcessor { speedCorrectionBack = 0.6f, speedCorrectionSide = 0.8f },
+            new CharacterProcessorVector2Multiplier { multiplier = 5f },
+            new CharacterProcessorVector2Smoothing { smoothFactor = 20f },
         };
 
         [SerializeReference] [SubclassSelector] private ICharacterProcessorVector2ToVector3 _inputToMotionProcessor =
-            new CharacterProcessorInputToMotion();
+            new CharacterProcessorVector2ToMotionDelta();
 
         [SerializeReference] [SubclassSelector] private ICharacterProcessorVector3[] _motionProcessors = {
             new CharacterProcessorMass(),
         };
 
         private ITimeSource _timeSource;
-        private ICharacterMotionAdapter _motionAdapter;
+        private ITransformAdapter _motionAdapter;
         private Vector2 _input;
 
         public void SetEnabled(bool isEnabled) {
@@ -38,22 +38,18 @@ namespace MisterGames.Character.Core2 {
             _characterAccess.Input.Move -= HandleMotionInput;
         }
 
-        public T GetInputProcessor<T>() where T : class, ICharacterProcessorVector2 {
+        public T GetProcessor<T>() where T : class {
+            if (_inputToMotionProcessor is T imp) return imp;
+
             for (int i = 0; i < _inputProcessors.Length; i++) {
-                if (_inputProcessors[i] is T t) return t;
+                if (_inputProcessors[i] is T ip) return ip;
             }
-            return null;
-        }
 
-        public T GetMotionProcessor<T>() where T : class, ICharacterProcessorVector3 {
             for (int i = 0; i < _motionProcessors.Length; i++) {
-                if (_motionProcessors[i] is T t) return t;
+                if (_motionProcessors[i] is T mp) return mp;
             }
-            return null;
-        }
 
-        public T GetInputToMotionConverter<T>() where T : class, ICharacterProcessorVector2ToVector3 {
-            return _inputToMotionProcessor as T;
+            return null;
         }
 
         private void Awake() {

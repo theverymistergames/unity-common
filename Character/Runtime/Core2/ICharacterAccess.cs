@@ -4,9 +4,13 @@ namespace MisterGames.Character.Core2 {
 
     public interface ICharacterAccess {
         ICharacterInput Input { get; }
+        CameraController CameraController { get; }
 
-        ICharacterMotionAdapter MotionAdapter { get; }
-        ICharacterMotionPipeline MotionPipeline { get; }
+        ITransformAdapter ViewAdapter { get; }
+        ITransformAdapter MotionAdapter { get; }
+
+        ICharacterPipeline ViewPipeline { get; }
+        ICharacterPipeline MotionPipeline { get; }
 
         ICollisionDetector HitDetector { get; }
         ICollisionDetector CeilingDetector { get; }

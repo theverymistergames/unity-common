@@ -36,15 +36,11 @@ namespace MisterGames.Character.View {
 
         void IUpdate.OnUpdate(float dt) {
             var prevView = _currentView;
-            _currentView = GetSmoothedView(_targetView, dt);
+            _currentView = Vector2.Lerp(_currentView, _targetView, dt * _viewSettings.viewSmoothFactor);
 
             var diff = _currentView - prevView;
             _adapter.RotateHead(diff.x);
             _adapter.RotateBody(diff.y);
-        }
-
-        private Vector2 GetSmoothedView(Vector2 target, float dt) {
-            return Vector2.Lerp(_currentView, target, dt * _viewSettings.viewSmoothFactor);
         }
 
         private void HandleViewInput(Vector2 delta) {

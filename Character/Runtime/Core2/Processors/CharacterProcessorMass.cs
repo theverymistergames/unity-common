@@ -8,16 +8,21 @@ namespace MisterGames.Character.Core2 {
     [Serializable]
     public sealed class CharacterProcessorMass : ICharacterProcessorVector3, ICharacterProcessorInitializable {
 
-        [SerializeField] private float _airInertialFactor = 1f;
-        [SerializeField] private float _groundInertialFactor = 1f;
-        [SerializeField] private float _gravityForce = -9.8f;
+        public float airInertialFactor = 1f;
+        public float groundInertialFactor = 1f;
+        public float gravityForce = -9.8f;
+
         [SerializeField] private bool _isGravityEnabled = true;
 
-        public float AirInertialFactor { get => _airInertialFactor; set => _airInertialFactor = value; }
-        public float GroundInertialFactor { get => _groundInertialFactor; set => _groundInertialFactor = value; }
-        public float GravityForce { get => _gravityForce; set => _gravityForce = value; }
+        public bool isGravityEnabled {
+            get => isGravityEnabled;
+            set {
+                _isGravityEnabled = value;
+                if (!_isGravityEnabled) _inertialComp.y = 0f;
+            }
+        }
 
-        private ICharacterMotionPipeline _motionPipeline;
+        private ICharacterPipeline _motionPipeline;
         private ICollisionDetector _groundDetector;
         private ICollisionDetector _ceilingDetector;
         private ICollisionDetector _hitDetector;
@@ -55,11 +60,6 @@ namespace MisterGames.Character.Core2 {
             _inertialComp = impulse;
         }
 
-        public void EnableGravity(bool isEnabled) {
-            _isGravityEnabled = isEnabled;
-            if (!_isGravityEnabled) _inertialComp.y = 0f;
-        }
-
         public Vector3 Process(Vector3 input, float dt) {
             _lastInput = input;
 
@@ -69,16 +69,13 @@ namespace MisterGames.Character.Core2 {
 
             UpdateInertia(dt);
 
-            _lastVelocity = _inertialComp + input;
+            _lastVelocity = _inertialComp + _lastInput;
             return _lastVelocity;
         }
 
         private void HandleFell() {
             _inertialComp += _lastInput;
-
-            _motionPipeline
-                .GetInputProcessor<CharacterProcessorVector2Smoothing>()
-                ?.SetValueImmediate(Vector2.zero);
+            _motionPipeline.GetProcessor<CharacterProcessorVector2Smoothing>()?.SetValueImmediate(Vector2.zero);
         }
 
         private void HandleHit() {
@@ -94,7 +91,7 @@ namespace MisterGames.Character.Core2 {
             var groundInfo = _groundDetector.CollisionInfo;
             var ceilingInfo = _ceilingDetector.CollisionInfo;
 
-            float factor = groundInfo.hasContact ? GroundInertialFactor : AirInertialFactor;
+            float factor = groundInfo.hasContact ? groundInertialFactor : airInertialFactor;
 
             if (!_isGravityEnabled) {
                 _inertialComp = Vector3.Lerp(_inertialComp, Vector3.zero, factor * dt);
@@ -105,7 +102,7 @@ namespace MisterGames.Character.Core2 {
             var xz = _inertialComp.WithY(0f);
 
             xz = Vector3.Lerp(xz, Vector3.zero, factor * dt);
-            y += GravityForce * dt;
+            y += gravityForce * dt;
 
             if (groundInfo.hasContact) y = Mathf.Max(0f, y);
             if (ceilingInfo.hasContact) y = Mathf.Min(0f, y);
