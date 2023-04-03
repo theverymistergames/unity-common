@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using MisterGames.Common.Lists;
+using System.Text;
 
 namespace MisterGames.Common.Editor.Tree {
 
@@ -52,6 +52,7 @@ namespace MisterGames.Common.Editor.Tree {
             char separator,
             Func<IEnumerable<TreeEntry<Node<T>>>, IEnumerable<TreeEntry<Node<T>>>> sort
         ) {
+            var sb = new StringBuilder();
             var nodes = new List<TreeEntry<Node<T>>>();
             var folderNameHashesSet = new HashSet<int>();
 
@@ -61,7 +62,7 @@ namespace MisterGames.Common.Editor.Tree {
 
                 if (!IsSubPathOf(path, parent)) continue;
 
-                Span<string> pathParts = path.Split(separator);
+                string[] pathParts = path.Split(separator);
                 int pathDepth = pathParts.Length;
 
                 if (pathDepth <= level) {
@@ -72,16 +73,19 @@ namespace MisterGames.Common.Editor.Tree {
                         level = level,
                         children = new List<TreeEntry<Node<T>>>(),
                     });
-
                     continue;
                 }
 
                 string folderName = pathParts[level - 1];
                 int folderNameHash = folderName.GetHashCode();
-
                 if (folderNameHashesSet.Contains(folderNameHash)) continue;
 
-                string folderPath = string.Join(separator, pathParts[..(level - 1)].ToArray());
+                sb.Clear();
+                for (int p = 0; p < level; p++) {
+                    sb.Append(pathParts[p]);
+                    if (p < level - 1) sb.Append(separator);
+                }
+                string folderPath = sb.ToString();
 
                 folderNameHashesSet.Add(folderNameHash);
                 nodes.Add(new TreeEntry<Node<T>> {
