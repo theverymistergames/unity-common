@@ -57,7 +57,6 @@ namespace MisterGames.BlueprintLib {
         }
 
         public void ValidateBlueprint(BlueprintAsset blueprint, int nodeId) {
-            Debug.Log($"BlueprintNodeFsmTransition.ValidateBlueprint: ");
             blueprint.BlueprintMeta.InvalidateNodePorts(blueprint, nodeId, invalidateLinks: true);
         }
     }
