@@ -128,8 +128,8 @@ namespace MisterGames.Blueprints.Editor.Core {
             while (nodePropertyCopy.NextVisible(enterChildren) && !SerializedProperty.DataEquals(nodePropertyCopy, endProperty)) {
                 float labelTextWidth = EditorStyles.label.CalcSize(new GUIContent(nodePropertyCopy.displayName)).x;
 
-                floorLabelWidth = Mathf.Max(floorLabelWidth, Mathf.Max(labelTextWidth + 6f, 40f));
-                floorFieldWidth = Mathf.Max(floorFieldWidth, Mathf.Max(totalWidth - floorLabelWidth, 140f));
+                floorLabelWidth = Mathf.Max(floorLabelWidth, Mathf.Max(labelTextWidth + 6f, 50f));
+                floorFieldWidth = Mathf.Max(floorFieldWidth, Mathf.Max(totalWidth - floorLabelWidth, 150f));
 
                 enterChildren = false;
             }
