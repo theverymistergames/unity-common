@@ -8,9 +8,10 @@ namespace MisterGames.Character.Core2 {
         [SerializeField] private Camera _camera;
         [SerializeField] private Transform _transform;
 
+        public Camera Camera => _camera;
+
         public Vector3 PositionOffset => _transform.localPosition;
         public Quaternion Rotation => _transform.localRotation;
-        public float FieldOfView => _camera.fieldOfView;
 
         private CameraValues _baseCameraValues;
         private CameraValues _resultCameraValues;

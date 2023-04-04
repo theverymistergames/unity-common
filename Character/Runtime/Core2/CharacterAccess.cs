@@ -1,4 +1,5 @@
 ﻿using MisterGames.Collisions.Core;
+using MisterGames.UI.Initialization;
 using UnityEngine;
 
 namespace MisterGames.Character.Core2 {
@@ -30,6 +31,14 @@ namespace MisterGames.Character.Core2 {
         public ICollisionDetector HitDetector => _hitDetector;
         public ICollisionDetector CeilingDetector => _ceilingDetector;
         public ICollisionDetector GroundDetector => _groundDetector;
+
+        private void Awake() {
+            CanvasRegistry.Instance.SetCanvasEventCamera(_cameraController.Camera);
+        }
+
+        private void OnDestroy() {
+            CanvasRegistry.Instance.SetCanvasEventCamera(null);
+        }
     }
 
 }
