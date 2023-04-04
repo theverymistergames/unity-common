@@ -19,7 +19,7 @@ namespace MisterGames.Character.Core2 {
             new CharacterProcessorVector2ToMotionDelta();
 
         [SerializeReference] [SubclassSelector] private ICharacterProcessorVector3[] _motionProcessors = {
-            new CharacterProcessorMass(),
+            new CharacterProcessorMass { gravityForce = -15f, airInertialFactor = 0.001f, groundInertialFactor = 20f },
         };
 
         private ITimeSource _timeSource;
