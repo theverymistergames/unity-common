@@ -13,6 +13,7 @@ namespace MisterGames.Character.Collisions {
 
         [Header("Sphere cast settings")]
         [SerializeField] [Min(1)] private int _maxHits = 6;
+        [SerializeField] private float _initialDistance = 0.5f;
         [SerializeField] private float _distanceAddition = 0.02f;
         [SerializeField] private float _radius = 0.5f;
         [SerializeField] private LayerMask _layerMask;
@@ -37,6 +38,8 @@ namespace MisterGames.Character.Collisions {
             _transform = transform;
             _hitsMain = new RaycastHit[_maxHits];
             _hitsNormal = new RaycastHit[1];
+
+            Distance = _initialDistance;
         }
 
         private void OnEnable() {
@@ -56,7 +59,7 @@ namespace MisterGames.Character.Collisions {
         }
 
         public override void FetchResults() {
-
+            RequestGround();
         }
 
         public override void FilterLastResults(CollisionFilter filter, out CollisionInfo info) {
@@ -81,7 +84,7 @@ namespace MisterGames.Character.Collisions {
             int frame = Time.frameCount;
             if (frame == _lastUpdateFrame) return;
 
-            var origin = GetOrigin();
+            var origin = OriginOffset + _transform.position;
             _hitCount = PerformSphereCast(origin, _radius, GetDistance(), _hitsMain);
             
             bool hasHits = _hitCount > 0;
@@ -147,10 +150,6 @@ namespace MisterGames.Character.Collisions {
             );
         }
 
-        private Vector3 GetOrigin() {
-            return OriginOffset + _transform.position;
-        }
-
         private float GetDistance() {
             return Distance + _distanceAddition;
         }
@@ -163,11 +162,11 @@ namespace MisterGames.Character.Collisions {
         [SerializeField] private bool _debugDrawIsGroundedText;
         [SerializeField] private Vector3 _debugDrawIsGroundedTextOffset;
         
-        private void OnDrawGizmos() {
+        private void OnDrawGizmosSelected() {
             if (!Application.isPlaying) return;
             
             if (_debugDrawNormal) {
-                var start = CollisionInfo.hasContact ? CollisionInfo.lastHitPoint : GetOrigin() + _groundDetectionDirection * (GetDistance() + _radius);
+                var start = CollisionInfo.hasContact ? CollisionInfo.lastHitPoint : OriginOffset + transform.position + _groundDetectionDirection * (GetDistance() + _radius);
                 DbgRay.Create().From(start).Dir(CollisionInfo.lastNormal).Color(Color.blue).Arrow(0.1f).Draw();
             }
 
@@ -178,18 +177,17 @@ namespace MisterGames.Character.Collisions {
             }
             
             if (_debugDrawCast) {
-                var start = GetOrigin();
+                var start = OriginOffset + transform.position;
                 var end = start + _groundDetectionDirection * GetDistance();
                 DbgCapsule.Create().From(start).To(end).Radius(_radius).Color(Color.cyan).Draw();
             }
             
             if (_debugDrawIsGroundedText) {
                 string text = CollisionInfo.hasContact ? "grounded" : "in air";
-                DbgText.Create().Text(text).Position(GetOrigin() + _debugDrawIsGroundedTextOffset).Draw();
+                DbgText.Create().Text(text).Position(OriginOffset + transform.position + _debugDrawIsGroundedTextOffset).Draw();
             }
         }
 #endif
-        
     }
 
 }

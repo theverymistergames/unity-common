@@ -47,7 +47,7 @@ namespace MisterGames.Character.Collisions {
         }
 
         public override void FetchResults() {
-
+            RequestCeiling();
         }
 
         public override void FilterLastResults(CollisionFilter filter, out CollisionInfo info) {
@@ -145,7 +145,6 @@ namespace MisterGames.Character.Collisions {
             }
         }
 #endif
-
     }
 
 }

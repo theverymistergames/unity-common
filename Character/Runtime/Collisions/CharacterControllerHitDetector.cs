@@ -37,7 +37,6 @@ namespace MisterGames.Character.Collisions {
             }
         }
 #endif
-        
     }
 
 }
