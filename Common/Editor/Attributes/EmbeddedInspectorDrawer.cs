@@ -13,21 +13,19 @@ namespace MisterGames.Common.Editor.Attributes {
             EditorGUI.PropertyField(position, property, label, true);
 
             var value = property.objectReferenceValue;
-
             if (value == null) {
                 property.isExpanded = false;
                 return;
             }
 
-            property.isExpanded = EditorGUI.Foldout(position, property.isExpanded, GUIContent.none);
+            var foldoutRect = new Rect(position.x - 16f, position.y, position.width + 16f, position.height);
+            property.isExpanded = EditorGUI.Foldout(foldoutRect, property.isExpanded, GUIContent.none, toggleOnLabelClick: true);
+
             if (!property.isExpanded) return;
 
             EditorGUI.indentLevel++;
 
-            if (_embeddedEditor == null) {
-                UnityEditor.Editor.CreateCachedEditor(value, null, ref _embeddedEditor);
-            }
-
+            if (_embeddedEditor == null) UnityEditor.Editor.CreateCachedEditor(value, null, ref _embeddedEditor);
             _embeddedEditor.OnInspectorGUI();
 
             EditorGUI.indentLevel--;
