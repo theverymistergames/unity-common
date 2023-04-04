@@ -4,7 +4,7 @@ using UnityEngine;
 namespace MisterGames.Character.Core2 {
 
     [Serializable]
-    public sealed class CharacterBackSideSpeedCorrectionProcessor : ICharacterProcessorVector2 {
+    public sealed class CharacterProcessorBackSideSpeedCorrection : ICharacterProcessorVector2 {
 
         public float speedCorrectionSide = 1f;
         public float speedCorrectionBack = 1f;

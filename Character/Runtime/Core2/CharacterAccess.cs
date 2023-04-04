@@ -19,6 +19,8 @@ namespace MisterGames.Character.Core2 {
         [SerializeField] private CollisionDetectorBase _ceilingDetector;
         [SerializeField] private CollisionDetectorBase _groundDetector;
 
+        [SerializeField] private CharacterJumpProcessor _jumpProcessor;
+
         public ICharacterInput Input => _input;
         public CameraController CameraController => _cameraController;
 
@@ -31,6 +33,8 @@ namespace MisterGames.Character.Core2 {
         public ICollisionDetector HitDetector => _hitDetector;
         public ICollisionDetector CeilingDetector => _ceilingDetector;
         public ICollisionDetector GroundDetector => _groundDetector;
+
+        public ICharacterJumpProcessor JumpProcessor => _jumpProcessor;
 
         private void Awake() {
             CanvasRegistry.Instance.SetCanvasEventCamera(_cameraController.Camera);

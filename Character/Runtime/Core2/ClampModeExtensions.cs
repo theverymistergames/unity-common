@@ -3,14 +3,7 @@ using UnityEngine;
 
 namespace MisterGames.Character.Core2 {
 
-    public enum ClampMode {
-        None,
-        Lower,
-        Upper,
-        Both
-    }
-
-    public static class AxisClampModeExtensions {
+    public static class ClampModeExtensions {
 
         public static float ApplyClamp(this float value, ClampMode mode, float a, float b) => mode switch {
             ClampMode.None => value,

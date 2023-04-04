@@ -15,5 +15,7 @@ namespace MisterGames.Character.Core2 {
         ICollisionDetector HitDetector { get; }
         ICollisionDetector CeilingDetector { get; }
         ICollisionDetector GroundDetector { get; }
+
+        ICharacterJumpProcessor JumpProcessor { get; }
     }
 }

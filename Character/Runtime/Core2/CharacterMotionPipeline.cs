@@ -10,7 +10,7 @@ namespace MisterGames.Character.Core2 {
         [SerializeField] private PlayerLoopStage _playerLoopStage = PlayerLoopStage.Update;
 
         [SerializeReference] [SubclassSelector] private ICharacterProcessorVector2[] _inputProcessors = {
-            new CharacterBackSideSpeedCorrectionProcessor { speedCorrectionBack = 0.6f, speedCorrectionSide = 0.8f },
+            new CharacterProcessorBackSideSpeedCorrection { speedCorrectionBack = 0.6f, speedCorrectionSide = 0.8f },
             new CharacterProcessorVector2Multiplier { multiplier = 5f },
             new CharacterProcessorVector2Smoothing { smoothFactor = 20f },
         };
