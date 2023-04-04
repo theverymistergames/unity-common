@@ -1,18 +1,18 @@
 ﻿using System;
+using MisterGames.BlueprintLib.Fsm;
 using MisterGames.Blueprints;
-using MisterGames.Fsm.Core;
 
 namespace MisterGames.BlueprintLib {
 
     [Serializable]
     [BlueprintNodeMeta(Name = "Fsm State", Category = "Fsm", Color = BlueprintColors.Node.Flow)]
-    public sealed class BlueprintNodeBlueprintFsmState : BlueprintNode, IBlueprintEnter, IFsmTransitionCallback {
+    public sealed class BlueprintNodeFsmState : BlueprintNode, IBlueprintEnter, IBlueprintFsmTransitionCallback {
 
         private bool _isEnteredState;
 
         public override Port[] CreatePorts() => new[] {
             Port.Enter("Enter"),
-            Port.Input<IFsmTransitionBase>("Transitions").Layout(PortLayout.Right).Capacity(PortCapacity.Multiple),
+            Port.Input<IBlueprintFsmTransition>("Transitions").Layout(PortLayout.Right).Capacity(PortCapacity.Multiple),
             Port.Exit("On Enter"),
             Port.Exit("On Exit"),
         };
@@ -26,14 +26,14 @@ namespace MisterGames.BlueprintLib {
 
             var links = Ports[3].links;
             for (int i = 0; i < links.Count; i++) {
-                links[i].Get<IFsmTransitionBase>()?.Arm(this);
+                links[i].Get<IBlueprintFsmTransition>()?.Arm(this);
             }
         }
 
         public void OnTransitionRequested() {
             var links = Ports[3].links;
             for (int i = 0; i < links.Count; i++) {
-                links[i].Get<IFsmTransitionBase>()?.Disarm();
+                links[i].Get<IBlueprintFsmTransition>()?.Disarm();
             }
 
             Ports[2].Call();
