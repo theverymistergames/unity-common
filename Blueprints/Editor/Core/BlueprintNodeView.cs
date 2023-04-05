@@ -119,34 +119,20 @@ namespace MisterGames.Blueprints.Editor.Core {
         }
 
         private void OnNodeGUI() {
-            float labelWidthCache = EditorGUIUtility.labelWidth;
-            float fieldWidthCache = EditorGUIUtility.fieldWidth;
-
-            float totalWidth = labelWidthCache + fieldWidthCache;
-            float floorLabelWidth = 0;
-            float floorFieldWidth = 0;
-
             var nodePropertyCopy = _nodeProperty.Copy();
             var endProperty = nodePropertyCopy.GetEndProperty();
             bool enterChildren = true;
-            while (nodePropertyCopy.NextVisible(enterChildren) && !SerializedProperty.DataEquals(nodePropertyCopy, endProperty)) {
-                float labelTextWidth = EditorStyles.label.CalcSize(new GUIContent(nodePropertyCopy.displayName)).x;
-
-                floorLabelWidth = Mathf.Max(floorLabelWidth, Mathf.Max(labelTextWidth + 6f, 50f));
-                floorFieldWidth = Mathf.Max(floorFieldWidth, Mathf.Max(totalWidth - floorLabelWidth, 150f));
-
-                enterChildren = false;
-            }
-
-            EditorGUIUtility.labelWidth = floorLabelWidth;
-            EditorGUIUtility.fieldWidth = floorFieldWidth;
-
-            nodePropertyCopy = _nodeProperty.Copy();
-            endProperty = nodePropertyCopy.GetEndProperty();
-            enterChildren = true;
 
             bool changed = false;
             EditorGUI.BeginChangeCheck();
+
+            float labelWidthCache = EditorGUIUtility.labelWidth;
+            float fieldWidthCache = EditorGUIUtility.fieldWidth;
+
+            (float labelWidth, float fieldWidth) = CalculateLabelAndFieldWidth(_nodeProperty);
+
+            EditorGUIUtility.labelWidth = labelWidth;
+            EditorGUIUtility.fieldWidth = fieldWidth;
 
             while (nodePropertyCopy.NextVisible(enterChildren) && !SerializedProperty.DataEquals(nodePropertyCopy, endProperty)) {
                 enterChildren = false;
@@ -160,6 +146,9 @@ namespace MisterGames.Blueprints.Editor.Core {
                 }
             }
 
+            EditorGUIUtility.labelWidth = labelWidthCache;
+            EditorGUIUtility.fieldWidth = fieldWidthCache;
+
             changed |= EditorGUI.EndChangeCheck();
 
             string nodeJson = JsonUtility.ToJson(nodeMeta.Node);
@@ -168,9 +157,24 @@ namespace MisterGames.Blueprints.Editor.Core {
             _lastNodeJson = nodeJson;
 
             if (changed) OnValidate?.Invoke(nodeMeta);
+        }
 
-            EditorGUIUtility.labelWidth = labelWidthCache;
-            EditorGUIUtility.fieldWidth = fieldWidthCache;
+        private static (float, float) CalculateLabelAndFieldWidth(SerializedProperty property) {
+            float totalWidth = EditorGUIUtility.labelWidth + EditorGUIUtility.fieldWidth;
+            float labelWidth = 0;
+            float fieldWidth = 0;
+
+            property = property.Copy();
+            var endProperty = property.GetEndProperty();
+
+            while (property.NextVisible(true) && !SerializedProperty.DataEquals(property, endProperty)) {
+                float labelTextWidth = EditorStyles.label.CalcSize(new GUIContent(property.displayName)).x;
+
+                labelWidth = Mathf.Max(labelWidth, Mathf.Max(labelTextWidth + 6f, 50f));
+                fieldWidth = Mathf.Max(fieldWidth, Mathf.Max(totalWidth - labelWidth, 150f));
+            }
+
+            return (labelWidth, fieldWidth);
         }
 
         private static string GetUxmlPath() {
