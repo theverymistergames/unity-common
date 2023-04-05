@@ -114,6 +114,8 @@ namespace MisterGames.Blueprints.Editor.Core {
             _portIndexToPortViewMap[data.portIndex] = portView;
         }
 
+        private string _lastNodeJson;
+
         private void OnNodeGUI() {
             float labelWidthCache = EditorGUIUtility.labelWidth;
             float fieldWidthCache = EditorGUIUtility.fieldWidth;
@@ -138,10 +140,10 @@ namespace MisterGames.Blueprints.Editor.Core {
             EditorGUIUtility.fieldWidth = floorFieldWidth;
 
             nodePropertyCopy = _nodeProperty.Copy();
-
             endProperty = nodePropertyCopy.GetEndProperty();
             enterChildren = true;
 
+            bool changed = false;
             EditorGUI.BeginChangeCheck();
 
             while (nodePropertyCopy.NextVisible(enterChildren) && !SerializedProperty.DataEquals(nodePropertyCopy, endProperty)) {
@@ -156,7 +158,14 @@ namespace MisterGames.Blueprints.Editor.Core {
                 }
             }
 
-            if (EditorGUI.EndChangeCheck()) OnValidate?.Invoke(nodeMeta);
+            changed |= EditorGUI.EndChangeCheck();
+
+            string nodeJson = JsonUtility.ToJson(nodeMeta.Node);
+            changed |= nodeJson != _lastNodeJson;
+
+            _lastNodeJson = nodeJson;
+
+            if (changed) OnValidate?.Invoke(nodeMeta);
 
             EditorGUIUtility.labelWidth = labelWidthCache;
             EditorGUIUtility.fieldWidth = fieldWidthCache;
