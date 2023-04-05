@@ -4,7 +4,7 @@ namespace MisterGames.Character.Core2 {
     public class CharacterJumpProcessor : MonoBehaviour, ICharacterJumpProcessor {
 
         [SerializeField] private CharacterAccess _characterAccess;
-        [SerializeField] private Vector3 _direction;
+        [SerializeField] private Vector3 _direction = Vector3.up;
         [SerializeField] private float _force;
 
         public Vector3 Direction {
