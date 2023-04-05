@@ -27,6 +27,8 @@ namespace MisterGames.Blueprints.Editor.Core {
 
         private readonly InspectorView _inspector;
 
+        private string _lastNodeJson;
+
         private struct PortViewCreationData {
             public int portIndex;
             public Port port;
@@ -51,6 +53,8 @@ namespace MisterGames.Blueprints.Editor.Core {
             style.top = nodeMeta.Position.y;
 
             capabilities &= ~Capabilities.Snappable;
+
+            _lastNodeJson = JsonUtility.ToJson(nodeMeta.Node);
         }
 
         public void DeInitialize() {
@@ -113,8 +117,6 @@ namespace MisterGames.Blueprints.Editor.Core {
             _portViewToPortIndexMap[portView] = data.portIndex;
             _portIndexToPortViewMap[data.portIndex] = portView;
         }
-
-        private string _lastNodeJson;
 
         private void OnNodeGUI() {
             float labelWidthCache = EditorGUIUtility.labelWidth;
