@@ -4,6 +4,7 @@
         None,
         Lower,
         Upper,
-        Both
+        Full
     }
+
 }
