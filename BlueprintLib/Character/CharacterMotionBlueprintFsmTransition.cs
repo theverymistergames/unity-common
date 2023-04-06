@@ -26,8 +26,6 @@ namespace MisterGames.BlueprintLib.Character {
         private ICharacterAccess _characterAccess;
         private IBlueprintFsmTransitionCallback _callback;
 
-        private bool _isCrouchInputActive;
-
         public void Arm(IBlueprintFsmTransitionCallback callback) {
             if (Data is not CharacterMotionBlueprintFsmTransitionData data) return;
 
@@ -76,12 +74,10 @@ namespace MisterGames.BlueprintLib.Character {
         }
 
         private void HandleCrouchPressedInput() {
-            _isCrouchInputActive = true;
             TryTransit();
         }
 
         private void HandleCrouchReleasedInput() {
-            _isCrouchInputActive = false;
             TryTransit();
         }
 
@@ -100,7 +96,7 @@ namespace MisterGames.BlueprintLib.Character {
         private bool CanTransit() {
             return _isMotionActive.IsEmptyOrEquals(!_characterAccess.MotionPipeline.MotionInput.IsNearlyZero()) &&
                    _isRunActive.IsEmptyOrEquals(_characterAccess.RunPipeline.IsRunActive) &&
-                   _isCrouchActive.IsEmptyOrEquals(_isCrouchInputActive) &&
+                   _isCrouchActive.IsEmptyOrEquals(_characterAccess.Input.IsCrouchPressed) &&
                    _isGrounded.IsEmptyOrEquals(_characterAccess.GroundDetector.CollisionInfo.hasContact);
         }
     }

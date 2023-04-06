@@ -8,10 +8,10 @@ using UnityEngine;
 namespace MisterGames.BlueprintLib {
 
     [Serializable]
-    [BlueprintNodeMeta(Name = "Apply Character Motion Settings", Category = "Character", Color = BlueprintColors.Node.Actions)]
-    public sealed class BlueprintNodeApplyCharacterMotionSettings : BlueprintNode, IBlueprintEnter {
+    [BlueprintNodeMeta(Name = "Apply Character Motion State Settings", Category = "Character", Color = BlueprintColors.Node.Actions)]
+    public sealed class BlueprintNodeApplyCharacterMotionStateSettings : BlueprintNode, IBlueprintEnter {
 
-        [SerializeField] private CharacterMotionSettings _motionSettings;
+        [SerializeField] private CharacterMotionStateSettings motionStateSettings;
 
         public override Port[] CreatePorts() => new[] {
             Port.Enter("Apply"),
@@ -21,19 +21,21 @@ namespace MisterGames.BlueprintLib {
         public void OnEnterPort(int port) {
             if (port != 0) return;
 
+            Debug.Log($"BlueprintNodeApplyCharacterMotionStateSettings.OnEnterPort: apply settings {motionStateSettings.name}");
+
             var characterAccess = Ports[1].Get<CharacterAccess>();
             var motionPipeline = characterAccess.MotionPipeline;
 
             if (motionPipeline.GetProcessor<CharacterProcessorVector2Multiplier>() is { } m) {
-                m.multiplier = _motionSettings.speed;
+                m.multiplier = motionStateSettings.speed;
             }
 
             if (motionPipeline.GetProcessor<CharacterProcessorBackSideSpeedCorrection>() is { } c) {
-                c.speedCorrectionBack = _motionSettings.backCorrection;
-                c.speedCorrectionSide = _motionSettings.sideCorrection;
+                c.speedCorrectionBack = motionStateSettings.backCorrection;
+                c.speedCorrectionSide = motionStateSettings.sideCorrection;
             }
 
-            characterAccess.JumpPipeline.Force = _motionSettings.jumpForce;
+            characterAccess.JumpPipeline.ForceMultiplier = motionStateSettings.jumpForceMultiplier;
         }
     }
 

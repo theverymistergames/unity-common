@@ -15,7 +15,7 @@ namespace MisterGames.Character.Core2 {
         [SerializeField] private CameraController _cameraController;
 
         [SerializeField] private CharacterHeadAdapter headAdapter;
-        [SerializeField] private CharacterBodyAdapter _motionAdapter;
+        [SerializeField] private CharacterBodyAdapter _bodyAdapter;
 
         [SerializeField] private CharacterViewPipeline _viewPipeline;
         [SerializeField] private CharacterMotionPipeline _motionPipeline;
@@ -30,7 +30,7 @@ namespace MisterGames.Character.Core2 {
         public CameraController CameraController => _cameraController;
 
         public ITransformAdapter HeadAdapter => headAdapter;
-        public ITransformAdapter BodyAdapter => _motionAdapter;
+        public ITransformAdapter BodyAdapter => _bodyAdapter;
 
         public ICharacterViewPipeline ViewPipeline => _viewPipeline;
         public ICharacterMotionPipeline MotionPipeline => _motionPipeline;

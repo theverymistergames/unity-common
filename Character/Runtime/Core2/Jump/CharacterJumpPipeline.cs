@@ -7,17 +7,11 @@ namespace MisterGames.Character.Core2.Jump {
 
         [SerializeField] private CharacterAccess _characterAccess;
         [SerializeField] private Vector3 _direction = Vector3.up;
-        [SerializeField] private float _force;
+        [SerializeField] private float _force = 1f;
 
-        public Vector3 Direction {
-            get => _direction;
-            set => _direction = value;
-        }
-
-        public float Force {
-            get => _force;
-            set => _force = value;
-        }
+        public Vector3 Direction { get => _direction; set => _direction = value; }
+        public float Force { get => _force; set => _force = value; }
+        public float ForceMultiplier { get; set; } = 1f;
 
         public void SetEnabled(bool isEnabled) {
             if (isEnabled) {
@@ -38,7 +32,8 @@ namespace MisterGames.Character.Core2.Jump {
         }
 
         private void HandleJumpPressedInput() {
-            _characterAccess.MotionPipeline.GetProcessor<CharacterProcessorMass>()?.ApplyImpulse(Direction * Force);
+            var impulse = ForceMultiplier * _force * _direction;
+            _characterAccess.MotionPipeline.GetProcessor<CharacterProcessorMass>()?.ApplyImpulse(impulse);
         }
     }
 

@@ -10,7 +10,7 @@ namespace MisterGames.Character.Core2 {
 
         [EmbeddedInspector] public CharacterMassSettings mass;
         [EmbeddedInspector] public CharacterViewSettings view;
-        [EmbeddedInspector] public CharacterMotionSettings[] motionStates;
+        [EmbeddedInspector] public CharacterMotionStateSettings[] motionStates;
 
     }
 }

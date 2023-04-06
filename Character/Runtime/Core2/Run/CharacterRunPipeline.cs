@@ -35,12 +35,6 @@ namespace MisterGames.Character.Core2.Run {
 
                 _characterAccess.Input.CrouchReleased -= HandleCrouchReleasedInput;
                 _characterAccess.Input.CrouchReleased += HandleCrouchReleasedInput;
-
-                // _characterAccess.PosePipeline.OnStartCrouch -= HandleCharacterStartCrouch;
-                // _characterAccess.PosePipeline.OnStartCrouch += HandleCharacterStartCrouch;
-
-                // _characterAccess.PosePipeline.OnStopCrouch -= HandleCharacterStopCrouch;
-                // _characterAccess.PosePipeline.OnStopCrouch += HandleCharacterStopCrouch;
                 return;
             }
 
@@ -51,9 +45,6 @@ namespace MisterGames.Character.Core2.Run {
 
             _characterAccess.Input.CrouchPressed -= HandleCrouchPressedInput;
             _characterAccess.Input.CrouchReleased -= HandleCrouchReleasedInput;
-
-            // _characterAccess.PosePipeline.OnStartCrouch -= HandleCharacterStartCrouch;
-            // _characterAccess.PosePipeline.OnStopCrouch -= HandleCharacterStopCrouch;
         }
 
         private void OnEnable() {
@@ -77,23 +68,21 @@ namespace MisterGames.Character.Core2.Run {
         }
 
         private void HandleCrouchPressedInput() {
-            _isCrouchInputActive = true;
+            UpdateState();
         }
 
         private void HandleCrouchReleasedInput() {
-            _isCrouchInputActive = false;
+            UpdateState();
         }
 
         private void UpdateState() {
             var motionInput = _characterAccess.MotionPipeline.MotionInput;
-            bool isRunInputActive = _characterAccess.Input.IsRunPressed;
-            bool isCrouchActive = _isCrouchInputActive; // _characterAccess.PosePipeline.IsCrouchActive;
 
             bool wasRunActive = IsRunActive;
             IsRunActive =
                 _isEnabled &&
-                isRunInputActive &&
-                !isCrouchActive &&
+                _characterAccess.Input.IsRunPressed &&
+                !_characterAccess.Input.IsCrouchPressed &&
                 (motionInput.y > Mathf.Epsilon || motionInput.y >= 0f && !motionInput.x.IsNearlyZero());
 
             if (wasRunActive && !IsRunActive) {
