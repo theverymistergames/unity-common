@@ -38,7 +38,7 @@ namespace MisterGames.BlueprintLib {
         }
 
         public void Arm(IBlueprintFsmTransitionCallback callback) {
-            if (_transition is IBlueprintFsmTransitionDynamicData t) t.Data = Ports[2].Get<object>();
+            if (_transition is IBlueprintFsmTransitionDynamicData t) t.Data = Ports[2].Get<IDynamicData>();
 
             _stateCallback = callback;
             _transition?.Arm(this);
@@ -46,13 +46,13 @@ namespace MisterGames.BlueprintLib {
 
         public void Disarm() {
             _transition?.Disarm();
-
-            _transition = null;
             _stateCallback = null;
         }
 
         public void OnTransitionRequested() {
-            _stateCallback?.OnTransitionRequested();
+            if (_stateCallback == null) return;
+
+            _stateCallback.OnTransitionRequested();
             Ports[1].Call();
         }
 

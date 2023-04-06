@@ -2,9 +2,11 @@
 
 namespace MisterGames.BlueprintLib.Fsm {
 
+    public interface IDynamicData {}
+
     public interface IBlueprintFsmTransitionDynamicData {
         Type DataType { get; }
-        object Data { set; }
+        IDynamicData Data { set; }
     }
 
 }

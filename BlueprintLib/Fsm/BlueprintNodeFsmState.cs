@@ -22,21 +22,21 @@ namespace MisterGames.BlueprintLib {
 
             _isEnteredState = true;
 
-            Ports[1].Call();
+            Ports[2].Call();
 
-            var links = Ports[3].links;
+            var links = Ports[1].links;
             for (int i = 0; i < links.Count; i++) {
                 links[i].Get<IBlueprintFsmTransition>()?.Arm(this);
             }
         }
 
         public void OnTransitionRequested() {
-            var links = Ports[3].links;
+            var links = Ports[1].links;
             for (int i = 0; i < links.Count; i++) {
                 links[i].Get<IBlueprintFsmTransition>()?.Disarm();
             }
 
-            Ports[2].Call();
+            Ports[3].Call();
 
             _isEnteredState = false;
         }
