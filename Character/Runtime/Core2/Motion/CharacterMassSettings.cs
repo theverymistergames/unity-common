@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace MisterGames.Character.Core2 {
+namespace MisterGames.Character.Core2.Motion {
 
     [CreateAssetMenu(fileName = nameof(CharacterMassSettings), menuName = "MisterGames/Character/" + nameof(CharacterMassSettings))]
     public class CharacterMassSettings : ScriptableObject {

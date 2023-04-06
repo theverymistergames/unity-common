@@ -1,7 +1,8 @@
 ﻿using System;
+using MisterGames.Character.Core2.Processors;
 using UnityEngine;
 
-namespace MisterGames.Character.Core2 {
+namespace MisterGames.Character.Core2.Motion {
 
     [Serializable]
     public sealed class CharacterProcessorBackSideSpeedCorrection : ICharacterProcessorVector2 {

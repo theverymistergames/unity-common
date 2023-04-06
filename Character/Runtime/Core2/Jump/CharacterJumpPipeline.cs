@@ -1,7 +1,9 @@
-﻿using UnityEngine;
+﻿using MisterGames.Character.Core2.Motion;
+using UnityEngine;
 
-namespace MisterGames.Character.Core2 {
-    public class CharacterJumpProcessor : MonoBehaviour, ICharacterJumpProcessor {
+namespace MisterGames.Character.Core2.Jump {
+
+    public class CharacterJumpPipeline : MonoBehaviour, ICharacterJumpPipeline {
 
         [SerializeField] private CharacterAccess _characterAccess;
         [SerializeField] private Vector3 _direction = Vector3.up;
@@ -19,12 +21,12 @@ namespace MisterGames.Character.Core2 {
 
         public void SetEnabled(bool isEnabled) {
             if (isEnabled) {
-                _characterAccess.Input.Jump -= HandleJumpInput;
-                _characterAccess.Input.Jump += HandleJumpInput;
+                _characterAccess.Input.JumpPressed -= HandleJumpPressedInput;
+                _characterAccess.Input.JumpPressed += HandleJumpPressedInput;
                 return;
             }
 
-            _characterAccess.Input.Jump -= HandleJumpInput;
+            _characterAccess.Input.JumpPressed -= HandleJumpPressedInput;
         }
 
         private void OnEnable() {
@@ -35,7 +37,7 @@ namespace MisterGames.Character.Core2 {
             SetEnabled(false);
         }
 
-        private void HandleJumpInput() {
+        private void HandleJumpPressedInput() {
             _characterAccess.MotionPipeline.GetProcessor<CharacterProcessorMass>()?.ApplyImpulse(Direction * Force);
         }
     }

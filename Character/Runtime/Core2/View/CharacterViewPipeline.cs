@@ -1,10 +1,11 @@
-﻿using MisterGames.Common.Attributes;
+﻿using MisterGames.Character.Core2.Processors;
+using MisterGames.Common.Attributes;
 using MisterGames.Tick.Core;
 using UnityEngine;
 
-namespace MisterGames.Character.Core2 {
+namespace MisterGames.Character.Core2.View {
 
-    public sealed class CharacterViewPipeline : MonoBehaviour, ICharacterPipeline, IUpdate {
+    public sealed class CharacterViewPipeline : MonoBehaviour, ICharacterViewPipeline, IUpdate {
 
         [SerializeField] private CharacterAccess _characterAccess;
         [SerializeField] private PlayerLoopStage _playerLoopStage = PlayerLoopStage.Update;
@@ -15,7 +16,7 @@ namespace MisterGames.Character.Core2 {
 
         [SerializeReference] [SubclassSelector] private ICharacterProcessorVector2 _inputToViewProcessor =
             new CharacterProcessorVector2Clamp {
-                xMode = ClampMode.Both,
+                xMode = ClampMode.Full,
                 lowerBounds = new Vector2(-90f, 0f),
                 upperBounds = new Vector2(90f, 0f),
             };
@@ -28,19 +29,20 @@ namespace MisterGames.Character.Core2 {
         private ITransformAdapter _headAdapter;
         private ITransformAdapter _bodyAdapter;
 
+        private Vector2 _lastViewVector;
         private Vector2 _input;
         private Quaternion _currentView;
 
         public void SetEnabled(bool isEnabled) {
             if (isEnabled) {
-                _characterAccess.Input.View -= HandleViewInput;
-                _characterAccess.Input.View += HandleViewInput;
+                _characterAccess.Input.OnViewVectorChanged -= HandleViewVectorChanged;
+                _characterAccess.Input.OnViewVectorChanged += HandleViewVectorChanged;
                 _timeSource.Subscribe(this);
                 return;
             }
 
             _timeSource.Unsubscribe(this);
-            _characterAccess.Input.View -= HandleViewInput;
+            _characterAccess.Input.OnViewVectorChanged -= HandleViewVectorChanged;
         }
 
         public T GetProcessor<T>() where T : class {
@@ -75,18 +77,20 @@ namespace MisterGames.Character.Core2 {
             SetEnabled(false);
         }
 
-        private void HandleViewInput(Vector2 input) {
-            float dt = 0f;
-
-            input = new Vector2(-input.y, input.x);
-            for (int i = 0; i < _inputProcessors.Length; i++) {
-                input = _inputProcessors[i].Process(input, dt);
-            }
-
-            _input = _inputToViewProcessor.Process(_input + input, dt);
+        private void HandleViewVectorChanged(Vector2 input) {
+            _lastViewVector += new Vector2(-input.y, input.x);
         }
 
         public void OnUpdate(float dt) {
+            var viewVector = _lastViewVector;
+            _lastViewVector = Vector2.zero;
+
+            for (int i = 0; i < _inputProcessors.Length; i++) {
+                viewVector = _inputProcessors[i].Process(viewVector, dt);
+            }
+
+            _input = _inputToViewProcessor.Process(_input + viewVector, dt);
+
             var inputQuaternion = Quaternion.Euler(_input.x, _input.y, 0f);
             for (int i = 0; i < _viewProcessors.Length; i++) {
                 inputQuaternion = _viewProcessors[i].Process(inputQuaternion, dt);

@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace MisterGames.Character.Configs {
+namespace MisterGames.Character.Core2.Motion {
 
     [CreateAssetMenu(fileName = nameof(CharacterMotionSettings), menuName = "MisterGames/Character/" + nameof(CharacterMotionSettings))]
     public class CharacterMotionSettings : ScriptableObject {
@@ -12,6 +12,9 @@ namespace MisterGames.Character.Configs {
 
         [Header("Jump")]
         [Min(0f)] public float jumpForce;
+
+        [Header("Run")]
+        public bool isCharacterRunning;
     }
 
 }

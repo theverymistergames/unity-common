@@ -2,31 +2,31 @@
 using MisterGames.Common.Maths;
 using UnityEngine;
 
-namespace MisterGames.Character.Core2 {
+namespace MisterGames.Character.Core2.Motion {
 
-    public class CharacterMotionAdapter : MonoBehaviour, ITransformAdapter {
+    public class CharacterBodyAdapter : MonoBehaviour, ITransformAdapter {
 
         [SerializeField] private CharacterAccess _characterAccess;
         [SerializeField] private CharacterController _characterController;
 
         public Vector3 Position {
-            get => _motionTransform.position;
-            set => _motionTransform.position = value;
+            get => _body.position;
+            set => _body.position = value;
         }
 
         public Quaternion Rotation {
-            get => _motionTransform.rotation;
-            set => _motionTransform.rotation = value;
+            get => _body.rotation;
+            set => _body.rotation = value;
         }
 
         private ICollisionDetector _groundDetector;
-        private Transform _motionTransform;
+        private Transform _body;
         private float _stepOffset;
 
         private void Awake() {
-            _groundDetector = _characterAccess.GroundDetector;
-            _motionTransform = _characterController.transform;
+            _body = _characterController.transform;
             _stepOffset = _characterController.stepOffset;
+            _groundDetector = _characterAccess.GroundDetector;
         }
 
         public void Move(Vector3 delta) {
@@ -36,11 +36,11 @@ namespace MisterGames.Character.Core2 {
                 return;
             }
 
-            _motionTransform.Translate(delta, Space.World);
+            _body.Translate(delta, Space.World);
         }
 
         public void Rotate(Quaternion delta) {
-            _motionTransform.rotation *= delta;
+            _body.rotation *= delta;
         }
     }
 

@@ -1,4 +1,5 @@
-﻿using MisterGames.Character.Configs;
+﻿using MisterGames.Character.Core2.Motion;
+using MisterGames.Character.Core2.View;
 using MisterGames.Common.Attributes;
 using UnityEngine;
 

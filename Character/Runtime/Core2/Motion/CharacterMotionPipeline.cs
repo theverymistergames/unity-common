@@ -1,10 +1,11 @@
-﻿using MisterGames.Common.Attributes;
+﻿using MisterGames.Character.Core2.Processors;
+using MisterGames.Common.Attributes;
 using MisterGames.Tick.Core;
 using UnityEngine;
 
-namespace MisterGames.Character.Core2 {
+namespace MisterGames.Character.Core2.Motion {
 
-    public sealed class CharacterMotionPipeline : MonoBehaviour, ICharacterPipeline, IUpdate {
+    public sealed class CharacterMotionPipeline : MonoBehaviour, ICharacterMotionPipeline, IUpdate {
 
         [SerializeField] private CharacterAccess _characterAccess;
         [SerializeField] private PlayerLoopStage _playerLoopStage = PlayerLoopStage.Update;
@@ -16,26 +17,29 @@ namespace MisterGames.Character.Core2 {
         };
 
         [SerializeReference] [SubclassSelector] private ICharacterProcessorVector2ToVector3 _inputToMotionProcessor =
-            new CharacterProcessorVector2ToMotionDelta();
+            new CharacterProcessorVector2ToCharacterForward();
 
         [SerializeReference] [SubclassSelector] private ICharacterProcessorVector3[] _motionProcessors = {
             new CharacterProcessorMass { gravityForce = 15f, airInertialFactor = 1f, groundInertialFactor = 20f },
         };
 
+        public Vector2 MotionInput => _input;
+
         private ITimeSource _timeSource;
         private ITransformAdapter _bodyAdapter;
+
         private Vector2 _input;
 
         public void SetEnabled(bool isEnabled) {
             if (isEnabled) {
-                _characterAccess.Input.Move -= HandleMotionInput;
-                _characterAccess.Input.Move += HandleMotionInput;
+                _characterAccess.Input.OnMotionVectorChanged -= HandleMotionInput;
+                _characterAccess.Input.OnMotionVectorChanged += HandleMotionInput;
                 _timeSource.Subscribe(this);
                 return;
             }
 
             _timeSource.Unsubscribe(this);
-            _characterAccess.Input.Move -= HandleMotionInput;
+            _characterAccess.Input.OnMotionVectorChanged -= HandleMotionInput;
         }
 
         public T GetProcessor<T>() where T : class {

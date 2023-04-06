@@ -1,9 +1,10 @@
 ﻿using System;
+using MisterGames.Character.Core2.Processors;
 using MisterGames.Collisions.Core;
 using MisterGames.Common.Maths;
 using UnityEngine;
 
-namespace MisterGames.Character.Core2 {
+namespace MisterGames.Character.Core2.Motion {
 
     [Serializable]
     public sealed class CharacterProcessorMass : ICharacterProcessorVector3, ICharacterProcessorInitializable {

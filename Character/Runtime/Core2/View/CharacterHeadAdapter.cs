@@ -1,8 +1,8 @@
 ﻿using UnityEngine;
 
-namespace MisterGames.Character.Core2 {
+namespace MisterGames.Character.Core2.View {
 
-    public class CharacterViewAdapter : MonoBehaviour, ITransformAdapter {
+    public class CharacterHeadAdapter : MonoBehaviour, ITransformAdapter {
 
         [SerializeField] private CharacterAccess _characterAccess;
         [SerializeField] private CameraController _cameraController;

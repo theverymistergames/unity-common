@@ -2,62 +2,55 @@
 using MisterGames.Input.Actions;
 using UnityEngine;
 
-namespace MisterGames.Character.Core2 {
+namespace MisterGames.Character.Core2.Input {
 
     public sealed class CharacterInput : MonoBehaviour, ICharacterInput {
 
         [SerializeField] private InputActionVector2 _view;
         [SerializeField] private InputActionVector2 _move;
         [SerializeField] private InputActionKey _run;
-        [SerializeField] private InputActionKey _runToggle;
         [SerializeField] private InputActionKey _crouch;
         [SerializeField] private InputActionKey _crouchToggle;
         [SerializeField] private InputActionKey _jump;
 
-        public event Action<Vector2> View {
+        public event Action<Vector2> OnViewVectorChanged {
             add => _view.OnChanged += value;
             remove => _view.OnChanged -= value;
         }
-        
-        public event Action<Vector2> Move {
+        public event Action<Vector2> OnMotionVectorChanged {
             add => _move.OnChanged += value;
             remove => _move.OnChanged -= value;
         }
 
-        public event Action StartRun {
+        public event Action RunPressed {
             add => _run.OnPress += value;
             remove => _run.OnPress -= value;
         }
-        
-        public event Action StopRun {
+        public event Action RunReleased {
             add => _run.OnRelease += value;
             remove => _run.OnRelease -= value;
         }
-         
-        public event Action ToggleRun {
-            add => _runToggle.OnPress += value;
-            remove => _runToggle.OnPress -= value;
-        }
-        
-        public event Action StartCrouch {
+        public bool IsRunPressed => _run.IsPressed;
+
+        public event Action CrouchPressed {
             add => _crouch.OnPress += value;
             remove => _crouch.OnPress -= value;
         }
-        
-        public event Action StopCrouch {
+        public event Action CrouchReleased {
             add => _crouch.OnRelease += value;
             remove => _crouch.OnRelease -= value;
         }
-        
-        public event Action ToggleCrouch {
+        public event Action CrouchToggled {
             add => _crouchToggle.OnPress += value;
             remove => _crouchToggle.OnPress -= value;
         }
-        
-        public event Action Jump {
+        public bool IsCrouchPressed => _crouch.IsPressed;
+
+        public event Action JumpPressed {
             add => _jump.OnPress += value;
             remove => _jump.OnPress -= value;
         }
+        public bool IsJumpPressed => _jump.IsPressed;
     }
 
 }

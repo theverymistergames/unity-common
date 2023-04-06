@@ -1,7 +1,7 @@
 ﻿using System;
 using UnityEngine;
 
-namespace MisterGames.Character.Core2 {
+namespace MisterGames.Character.Core2.Processors {
 
     [Serializable]
     public sealed class CharacterProcessorVector2Clamp : ICharacterProcessorVector2 {
@@ -13,7 +13,7 @@ namespace MisterGames.Character.Core2 {
         public Vector2 upperBounds;
 
         public Vector2 Process(Vector2 input, float dt) {
-            return input.ApplyClamp(xMode, yMode, lowerBounds, upperBounds);
+            return input.Clamp(xMode, yMode, lowerBounds, upperBounds);
         }
     }
 

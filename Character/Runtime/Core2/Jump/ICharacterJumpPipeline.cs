@@ -1,8 +1,8 @@
 ﻿using UnityEngine;
 
-namespace MisterGames.Character.Core2 {
+namespace MisterGames.Character.Core2.Jump {
 
-    public interface ICharacterJumpProcessor {
+    public interface ICharacterJumpPipeline {
         Vector3 Direction { get; set; }
         float Force { get; set; }
 

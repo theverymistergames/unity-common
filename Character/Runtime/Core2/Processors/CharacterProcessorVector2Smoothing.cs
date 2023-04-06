@@ -1,7 +1,7 @@
 ﻿using System;
 using UnityEngine;
 
-namespace MisterGames.Character.Core2 {
+namespace MisterGames.Character.Core2.Processors {
 
     [Serializable]
     public sealed class CharacterProcessorVector2Smoothing : ICharacterProcessorVector2 {

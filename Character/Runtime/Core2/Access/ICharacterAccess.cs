@@ -1,4 +1,8 @@
-﻿using MisterGames.Collisions.Core;
+﻿using MisterGames.Character.Core2.Input;
+using MisterGames.Character.Core2.Jump;
+using MisterGames.Character.Core2.Run;
+using MisterGames.Character.Core2.View;
+using MisterGames.Collisions.Core;
 
 namespace MisterGames.Character.Core2 {
 
@@ -9,13 +13,13 @@ namespace MisterGames.Character.Core2 {
         ITransformAdapter HeadAdapter { get; }
         ITransformAdapter BodyAdapter { get; }
 
-        ICharacterPipeline ViewPipeline { get; }
-        ICharacterPipeline MotionPipeline { get; }
+        ICharacterViewPipeline ViewPipeline { get; }
+        ICharacterMotionPipeline MotionPipeline { get; }
+        ICharacterJumpPipeline JumpPipeline { get; }
+        ICharacterRunPipeline RunPipeline { get; }
 
         ICollisionDetector HitDetector { get; }
         ICollisionDetector CeilingDetector { get; }
         ICollisionDetector GroundDetector { get; }
-
-        ICharacterJumpProcessor JumpProcessor { get; }
     }
 }

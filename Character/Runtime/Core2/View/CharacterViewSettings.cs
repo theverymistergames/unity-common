@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace MisterGames.Character.Configs {
+namespace MisterGames.Character.Core2.View {
 
     [CreateAssetMenu(fileName = nameof(CharacterViewSettings), menuName = "MisterGames/Character/" + nameof(CharacterViewSettings))]
     public class CharacterViewSettings : ScriptableObject {
