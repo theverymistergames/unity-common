@@ -17,11 +17,6 @@ namespace MisterGames.Character.Core2 {
 
             return _currentInput;
         }
-
-        public void SetValueImmediate(Vector2 value) {
-            _targetInput = value;
-            _currentInput = _targetInput;
-        }
     }
 
 }

@@ -17,11 +17,6 @@ namespace MisterGames.Character.Core2 {
             
             return _currentInput;
         }
-
-        public void SetValueImmediate(Quaternion value) {
-            _targetInput = value;
-            _currentInput = _targetInput;
-        }
     }
 
 }
