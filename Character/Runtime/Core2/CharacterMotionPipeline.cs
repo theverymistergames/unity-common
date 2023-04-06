@@ -19,11 +19,11 @@ namespace MisterGames.Character.Core2 {
             new CharacterProcessorVector2ToMotionDelta();
 
         [SerializeReference] [SubclassSelector] private ICharacterProcessorVector3[] _motionProcessors = {
-            new CharacterProcessorMass { gravityForce = -15f, airInertialFactor = 0.001f, groundInertialFactor = 20f },
+            new CharacterProcessorMass { gravityForce = 15f, airInertialFactor = 1f, groundInertialFactor = 20f },
         };
 
         private ITimeSource _timeSource;
-        private ITransformAdapter _motionAdapter;
+        private ITransformAdapter _bodyAdapter;
         private Vector2 _input;
 
         public void SetEnabled(bool isEnabled) {
@@ -53,7 +53,7 @@ namespace MisterGames.Character.Core2 {
         }
 
         private void Awake() {
-            _motionAdapter = _characterAccess.MotionAdapter;
+            _bodyAdapter = _characterAccess.BodyAdapter;
             _timeSource = TimeSources.Get(_playerLoopStage);
 
             for (int i = 0; i < _inputProcessors.Length; i++) {
@@ -102,7 +102,7 @@ namespace MisterGames.Character.Core2 {
                 motion = _motionProcessors[i].Process(motion, dt);
             }
 
-            _motionAdapter.Move(motion * dt);
+            _bodyAdapter.Move(motion * dt);
         }
     }
 

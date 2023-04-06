@@ -6,8 +6,8 @@ namespace MisterGames.Character.Core2 {
         ICharacterInput Input { get; }
         CameraController CameraController { get; }
 
-        ITransformAdapter ViewAdapter { get; }
-        ITransformAdapter MotionAdapter { get; }
+        ITransformAdapter HeadAdapter { get; }
+        ITransformAdapter BodyAdapter { get; }
 
         ICharacterPipeline ViewPipeline { get; }
         ICharacterPipeline MotionPipeline { get; }

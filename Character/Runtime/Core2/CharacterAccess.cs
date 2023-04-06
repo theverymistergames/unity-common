@@ -24,8 +24,8 @@ namespace MisterGames.Character.Core2 {
         public ICharacterInput Input => _input;
         public CameraController CameraController => _cameraController;
 
-        public ITransformAdapter ViewAdapter => _viewAdapter;
-        public ITransformAdapter MotionAdapter => _motionAdapter;
+        public ITransformAdapter HeadAdapter => _viewAdapter;
+        public ITransformAdapter BodyAdapter => _motionAdapter;
 
         public ICharacterPipeline ViewPipeline => _viewPipeline;
         public ICharacterPipeline MotionPipeline => _motionPipeline;
