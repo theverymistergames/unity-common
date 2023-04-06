@@ -18,7 +18,7 @@ namespace MisterGames.Character.Core2 {
             var dir = new Vector3(input.x, 0f, input.y);
 
             // Consider body rotation
-            dir = _characterAccess.MotionAdapter.Rotation * dir;
+            dir = _characterAccess.BodyAdapter.Rotation * dir;
 
             // Consider ground normal
             var groundDetector = _characterAccess.GroundDetector;
