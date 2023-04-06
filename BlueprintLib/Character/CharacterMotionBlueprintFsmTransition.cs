@@ -8,15 +8,20 @@ using UnityEngine;
 namespace MisterGames.BlueprintLib.Character {
 
     [Serializable]
-    public sealed class CharacterMotionFsmTransition : IBlueprintFsmTransition, IBlueprintFsmTransitionDynamicData {
+    public sealed class CharacterMotionBlueprintFsmTransitionData : IDynamicData {
+        public CharacterAccess characterAccess;
+    }
+
+    [Serializable]
+    public sealed class CharacterMotionBlueprintFsmTransition : IBlueprintFsmTransition, IBlueprintFsmTransitionDynamicData {
 
         [SerializeField] private Optional<bool> _isMotionActive;
         [SerializeField] private Optional<bool> _isRunActive;
         [SerializeField] private Optional<bool> _isCrouchActive;
         [SerializeField] private Optional<bool> _isGrounded;
 
-        public Type DataType => typeof(CharacterAccess);
-        public object Data { private get; set; }
+        public Type DataType => typeof(CharacterMotionBlueprintFsmTransitionData);
+        public IDynamicData Data { private get; set; }
 
         private ICharacterAccess _characterAccess;
         private IBlueprintFsmTransitionCallback _callback;
@@ -27,9 +32,9 @@ namespace MisterGames.BlueprintLib.Character {
         private bool _groundedState;
 
         public void Arm(IBlueprintFsmTransitionCallback callback) {
-            if (Data is not CharacterAccess characterAccess) return;
+            if (Data is not CharacterMotionBlueprintFsmTransitionData data) return;
 
-            _characterAccess = characterAccess;
+            _characterAccess = data.characterAccess;
             _callback = callback;
 
             Disarm();
