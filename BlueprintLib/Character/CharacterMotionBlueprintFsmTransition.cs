@@ -26,10 +26,7 @@ namespace MisterGames.BlueprintLib.Character {
         private ICharacterAccess _characterAccess;
         private IBlueprintFsmTransitionCallback _callback;
 
-        private bool _motionState;
-        private bool _runState;
-        private bool _crouchState;
-        private bool _groundedState;
+        private bool _isCrouchInputActive;
 
         public void Arm(IBlueprintFsmTransitionCallback callback) {
             if (Data is not CharacterMotionBlueprintFsmTransitionData data) return;
@@ -39,11 +36,13 @@ namespace MisterGames.BlueprintLib.Character {
 
             Disarm();
 
-            _characterAccess.Input.Move += HandleMotionInput;
-            _characterAccess.Input.StartCrouch += HandleStartCrouchInput;
-            _characterAccess.Input.StopCrouch += HandleStopCrouchInput;
-            _characterAccess.Input.StartRun += HandleStartRunInput;
-            _characterAccess.Input.StopRun += HandleStopRunInput;
+            _characterAccess.Input.OnMotionVectorChanged += HandleMotionInput;
+
+            _characterAccess.Input.CrouchPressed += HandleCrouchPressedInput;
+            _characterAccess.Input.CrouchReleased += HandleCrouchReleasedInput;
+
+            _characterAccess.RunPipeline.OnStartRun += HandleCharacterStartRun;
+            _characterAccess.RunPipeline.OnStopRun += HandleCharacterStopRun;
 
             _characterAccess.GroundDetector.OnContact += OnLanded;
             _characterAccess.GroundDetector.OnLostContact += OnFell;
@@ -52,45 +51,45 @@ namespace MisterGames.BlueprintLib.Character {
         public void Disarm() {
             if (_characterAccess == null) return;
 
-            _characterAccess.Input.Move -= HandleMotionInput;
-            _characterAccess.Input.StartCrouch -= HandleStartCrouchInput;
-            _characterAccess.Input.StopCrouch -= HandleStopCrouchInput;
-            _characterAccess.Input.StartRun -= HandleStartRunInput;
-            _characterAccess.Input.StopRun -= HandleStopRunInput;
+            _characterAccess.Input.OnMotionVectorChanged -= HandleMotionInput;
+
+            _characterAccess.Input.CrouchPressed -= HandleCrouchPressedInput;
+            _characterAccess.Input.CrouchReleased -= HandleCrouchReleasedInput;
+
+            _characterAccess.RunPipeline.OnStartRun -= HandleCharacterStartRun;
+            _characterAccess.RunPipeline.OnStopRun -= HandleCharacterStopRun;
+
+            _characterAccess.GroundDetector.OnContact -= OnLanded;
+            _characterAccess.GroundDetector.OnLostContact -= OnFell;
         }
 
         private void HandleMotionInput(Vector2 input) {
-            _motionState = !input.IsNearlyZero();
             TryTransit();
         }
 
-        private void HandleStartRunInput() {
-            _runState = true;
+        private void HandleCharacterStartRun() {
             TryTransit();
         }
 
-        private void HandleStopRunInput() {
-            _runState = false;
+        private void HandleCharacterStopRun() {
             TryTransit();
         }
 
-        private void HandleStartCrouchInput() {
-            _crouchState = true;
+        private void HandleCrouchPressedInput() {
+            _isCrouchInputActive = true;
             TryTransit();
         }
 
-        private void HandleStopCrouchInput() {
-            _crouchState = false;
+        private void HandleCrouchReleasedInput() {
+            _isCrouchInputActive = false;
             TryTransit();
         }
 
         private void OnLanded() {
-            _groundedState = true;
             TryTransit();
         }
 
         private void OnFell() {
-            _groundedState = false;
             TryTransit();
         }
 
@@ -99,10 +98,10 @@ namespace MisterGames.BlueprintLib.Character {
         }
 
         private bool CanTransit() {
-            return _isMotionActive.IsEmptyOrEquals(_motionState) &&
-                   _isRunActive.IsEmptyOrEquals(_runState) &&
-                   _isCrouchActive.IsEmptyOrEquals(_crouchState) &&
-                   _isGrounded.IsEmptyOrEquals(_groundedState);
+            return _isMotionActive.IsEmptyOrEquals(!_characterAccess.MotionPipeline.MotionInput.IsNearlyZero()) &&
+                   _isRunActive.IsEmptyOrEquals(_characterAccess.RunPipeline.IsRunActive) &&
+                   _isCrouchActive.IsEmptyOrEquals(_isCrouchInputActive) &&
+                   _isGrounded.IsEmptyOrEquals(_characterAccess.GroundDetector.CollisionInfo.hasContact);
         }
     }
 

@@ -1,7 +1,8 @@
 ﻿using System;
 using MisterGames.Blueprints;
-using MisterGames.Character.Configs;
 using MisterGames.Character.Core2;
+using MisterGames.Character.Core2.Motion;
+using MisterGames.Character.Core2.Processors;
 using UnityEngine;
 
 namespace MisterGames.BlueprintLib {
@@ -32,7 +33,7 @@ namespace MisterGames.BlueprintLib {
                 c.speedCorrectionSide = _motionSettings.sideCorrection;
             }
 
-            characterAccess.JumpProcessor.Force = _motionSettings.jumpForce;
+            characterAccess.JumpPipeline.Force = _motionSettings.jumpForce;
         }
     }
 
