@@ -17,6 +17,13 @@ namespace MisterGames.BlueprintLib {
             Port.Exit("On Exit"),
         };
 
+        public override void OnDeInitialize() {
+            var links = Ports[1].links;
+            for (int i = 0; i < links.Count; i++) {
+                links[i].Get<IBlueprintFsmTransition>()?.Disarm();
+            }
+        }
+
         public void OnEnterPort(int port) {
             if (port != 0 || _isEnteredState) return;
 
