@@ -1,4 +1,5 @@
-﻿using MisterGames.Common.Attributes;
+﻿using System;
+using MisterGames.Common.Attributes;
 using UnityEngine;
 
 #if UNITY_EDITOR
@@ -19,30 +20,33 @@ namespace MisterGames.Scenes.Core {
         [SerializeField] private SceneReference _sceneRoot;
         internal string SceneRoot => _sceneRoot.scene;
 
-        [SerializeField] [ReadOnly] private string _sceneStart;
-        internal string SceneStart {
-            get => _sceneStart;
-            set => _sceneStart = value;
-        }
+        [SerializeField] [ReadOnly] private SceneReference _sceneStart;
+        internal string SceneStart => _sceneStart.scene;
 
         [SerializeField] [HideInInspector] private string[] _sceneNames;
         public string[] SceneNames => _sceneNames;
 
         protected override void OnSingletonInstanceLoaded() {
 #if UNITY_EDITOR
-            RefreshSceneNames();
-            SetActiveSceneAsStartSceneIfNotSet();
-            TrySetSceneRootIfNotSet();
-
-            EditorUtility.SetDirty(this);
-
-            TrySetPlaymodeStartScene(_sceneRoot.scene);
+            Validate();
 #endif
         }
 
 #if UNITY_EDITOR
-        internal void RefreshSceneNames() {
-            _sceneNames = GetAllSceneAssets().Select(sceneAsset => sceneAsset.name).ToArray();
+        private void OnValidate() {
+            TrySetSceneStartIfNotSet();
+            TrySetSceneRootIfNotSet();
+            TrySetPlaymodeStartScene(_sceneRoot.scene);
+        }
+
+        internal void Validate() {
+            RefreshSceneNames();
+
+            TrySetSceneStartIfNotSet();
+            TrySetSceneRootIfNotSet();
+            TrySetPlaymodeStartScene(_sceneRoot.scene);
+
+            EditorUtility.SetDirty(this);
         }
 
         internal IEnumerable<SceneAsset> GetAllSceneAssets() => AssetDatabase
@@ -52,18 +56,25 @@ namespace MisterGames.Scenes.Core {
             .Select(AssetDatabase.LoadAssetAtPath<SceneAsset>)
             .Where(asset => asset != null);
 
-        private void OnValidate() {
-            TrySetPlaymodeStartScene(_sceneRoot.scene);
+        private void RefreshSceneNames() {
+            _sceneNames = GetAllSceneAssets().Select(sceneAsset => sceneAsset.name).ToArray();
         }
 
-        private void SetActiveSceneAsStartSceneIfNotSet() {
-            if (!string.IsNullOrEmpty(_sceneStart)) return;
-            _sceneStart = SceneManager.GetActiveScene().name;
+        private void TrySetSceneStartIfNotSet() {
+            if (!string.IsNullOrEmpty(_sceneStart.scene)) return;
+
+            _sceneStart.scene = SceneManager.GetActiveScene().name;
         }
 
         private void TrySetSceneRootIfNotSet() {
             if (!string.IsNullOrEmpty(_sceneRoot.scene)) return;
-            _sceneRoot.scene = SceneManager.GetActiveScene().name;
+
+            _sceneRoot.scene = GetAllSceneAssets()
+                .FirstOrDefault(s =>
+                    s.name.Contains("global", StringComparison.InvariantCultureIgnoreCase) ||
+                    s.name.Contains("root", StringComparison.InvariantCultureIgnoreCase)
+                )
+                ?.name;
         }
         
         private void TrySetPlaymodeStartScene(string sceneName) {
@@ -77,10 +88,10 @@ namespace MisterGames.Scenes.Core {
                 return;
             }
             
-            var sceneRootAsset = GetAllSceneAssets().FirstOrDefault(asset => asset.name == sceneName);
-            if (sceneRootAsset == null) return;
+            var playModeStartScene = GetAllSceneAssets().FirstOrDefault(asset => asset.name == sceneName);
+            if (playModeStartScene == null) return;
 
-            EditorSceneManager.playModeStartScene = sceneRootAsset;
+            EditorSceneManager.playModeStartScene = playModeStartScene;
         }
 
         private bool IsValidPath(string path) {

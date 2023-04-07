@@ -2,6 +2,7 @@
 using MisterGames.Scenes.Core;
 using UnityEditor;
 using UnityEditor.SceneManagement;
+using UnityEngine;
 using UnityEngine.SceneManagement;
 
 namespace MisterGames.Scenes.Editor.Core {
@@ -10,13 +11,7 @@ namespace MisterGames.Scenes.Editor.Core {
     public static class ScenesMenu {
 
         static ScenesMenu() {
-            string sceneName = SceneManager.GetActiveScene().name;
-
-            if (!string.IsNullOrEmpty(sceneName)) {
-                var scenesStorage = ScenesStorage.Instance;
-                scenesStorage.SceneStart = sceneName;
-                EditorUtility.SetDirty(scenesStorage);
-            }
+            ScenesStorage.Instance.Validate();
 
             EditorSceneManager.sceneOpened -= OnSceneOpened;
             EditorSceneManager.sceneOpened += OnSceneOpened;
@@ -32,19 +27,19 @@ namespace MisterGames.Scenes.Editor.Core {
                 .ToArray();
         }
 
+        /// <summary>
+        /// Removes .unity from SceneAsset file path.
+        /// </summary>
         internal static string RemoveSceneAssetFileFormat(string sceneAssetPath) {
-            return sceneAssetPath.Substring(0, sceneAssetPath.Length - 6);
+            return sceneAssetPath[..^6];
         }
 
         private static void OnSceneOpened(Scene scene, OpenSceneMode mode) {
-            var scenesStorage = ScenesStorage.Instance;
-            scenesStorage.SceneStart = scene.name;
-            EditorUtility.SetDirty(scenesStorage);
+            ScenesStorage.Instance.Validate();
         }
 
         private static void OnNewSceneCreated(Scene scene, NewSceneSetup setup, NewSceneMode mode) {
-            ScenesStorage.Instance.RefreshSceneNames();
-            EditorUtility.SetDirty(ScenesStorage.Instance);
+            ScenesStorage.Instance.Validate();
         }
     }
     
