@@ -82,11 +82,6 @@ namespace MisterGames.Character.Core2.Motion {
             _inertialComponent = Vector3.Lerp(_inertialComponent, force, factor * dt);
         }
 
-        /// <summary>
-        ///
-        ///
-        /// </summary>
-        /// <param name="dt"></param>
         private void UpdateGravitationalComponent(float dt) {
             if (isGravityEnabled) {
                 _gravitationalComponent += Vector3.down * (gravityForce * dt);
@@ -101,25 +96,18 @@ namespace MisterGames.Character.Core2.Motion {
         }
 
         /// <summary>
-        /// Force influence allows to save the bigger amount of the inertial energy,
-        /// the greater the inertial component value compared to force value
-        /// while not grounded.
+        /// Force influence allows to save the bigger amount of the inertial energy while not grounded,
+        /// the greater the inertial component value compared to force value:
         ///
-        /// 1) Value is in range [0f to 1f):
-        ///  - If force is weaker than inertial component and inertial component is not zero.
-        ///    Force influence is a relation of force magnitude to inertial component magnitude.
+        /// 1) Value is a relation of force magnitude to inertial component magnitude, if inertial component is not zero.
         ///
-        /// 2) Value is 1f:
-        ///  - If force is stronger than inertial component or inertial component is zero.
+        /// 2) Value is 1f (no influence), if inertial component is zero.
         ///
         /// </summary>
         private static float GetForceInfluence(Vector3 force, Vector3 inertialComponent) {
             float inertialSqrMagnitude = inertialComponent.sqrMagnitude;
             float forceSqrMagnitude = force.sqrMagnitude;
-
-            return inertialSqrMagnitude > NumberExtensions.SqrEpsilon && inertialSqrMagnitude > forceSqrMagnitude
-                ? forceSqrMagnitude / inertialSqrMagnitude
-                : 1f;
+            return inertialSqrMagnitude > NumberExtensions.SqrEpsilon ? forceSqrMagnitude / inertialSqrMagnitude : 1f;
         }
     }
 
