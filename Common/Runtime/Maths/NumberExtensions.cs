@@ -9,9 +9,17 @@ namespace MisterGames.Common.Maths {
         public static bool IsNearlyZero(this float value) {
             return Mathf.Abs(value) < Mathf.Epsilon;
         }
-        
+
+        public static bool IsNearlyZero(this float value, float tolerance) {
+            return Mathf.Abs(value) <= tolerance;
+        }
+
         public static bool IsNearlyEqual(this float value, float other) {
             return IsNearlyZero(value - other);
+        }
+
+        public static bool IsNearlyEqual(this float value, float other, float tolerance) {
+            return IsNearlyZero(value - other, tolerance);
         }
 
         public static int AsInt(this bool value) {
