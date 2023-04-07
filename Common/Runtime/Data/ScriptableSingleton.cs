@@ -3,6 +3,7 @@ using MisterGames.Common.Lists;
 using UnityEngine;
 
 #if UNITY_EDITOR
+using System.Collections.Generic;
 using UnityEditor;
 #endif
 
@@ -22,7 +23,7 @@ namespace MisterGames.Common.Data {
                     if (Application.isPlaying) {
                         throw new Exception(
                             $"ScriptableSingleton instance of type [{typeof(T).Name}] is not found. " +
-                            $"Can not instantiate new instance at runtime, it should be created in Unity Editor."
+                            $"Cannot instantiate new instance at runtime, it should be created in Unity Editor."
                         );
                     }
 #if UNITY_EDITOR
@@ -49,23 +50,57 @@ namespace MisterGames.Common.Data {
 #if UNITY_EDITOR
         private const string DataFolderPath = "Assets/Data";
 
+        private static readonly Queue<T> _pendingCreateAssetInstances = new Queue<T>();
+
         private static T CreateNewSingleton() {
             var singleton = CreateInstance<T>();
-                
+            singleton.hideFlags = HideFlags.DontUnloadUnusedAsset;
+
             if (!AssetDatabase.IsValidFolder($"{DataFolderPath}/Resources")) {
                 AssetDatabase.CreateFolder(DataFolderPath, "Resources");
             }
 
-            string path = GetDefaultAssetPath();
-            
-            AssetDatabase.CreateAsset(singleton, path);
-            AssetDatabase.SaveAssets();
+            try {
+                string path = GetDefaultAssetPath();
 
-            singleton.hideFlags = HideFlags.DontUnloadUnusedAsset;
-            
-            Debug.Log($"Created new ScriptableSingleton instance of type [{typeof(T).Name}] at [{path}]");
-            
-            return singleton;
+                AssetDatabase.CreateAsset(singleton, path);
+                AssetDatabase.SaveAssets();
+
+                Debug.Log($"Created new ScriptableSingleton instance of type [{typeof(T).Name}] at [{path}]");
+
+                return singleton;
+            }
+            catch (Exception) {
+                Debug.LogWarning($"Failed to create asset for ScriptableSingleton<{typeof(T).Name}> at first attempt. " +
+                                 $"Asset will be created after delay.");
+
+                _pendingCreateAssetInstances.Enqueue(singleton);
+
+                EditorApplication.update -= TryCreateAsset;
+                EditorApplication.update += TryCreateAsset;
+
+                return singleton;
+            }
+        }
+
+        private static void TryCreateAsset() {
+            if (_pendingCreateAssetInstances.Count == 0) {
+                EditorApplication.update -= TryCreateAsset;
+                return;
+            }
+
+            try {
+                string path = GetDefaultAssetPath();
+                var nextInstance = _pendingCreateAssetInstances.Dequeue();
+
+                AssetDatabase.CreateAsset(nextInstance, path);
+                AssetDatabase.SaveAssets();
+
+                Debug.Log($"Created new ScriptableSingleton instance of type [{typeof(T).Name}] at [{path}]");
+            }
+            catch (Exception) {
+                // ignored
+            }
         }
 
         private static string GetDefaultAssetPath() {
