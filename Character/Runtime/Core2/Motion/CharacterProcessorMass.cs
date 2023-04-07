@@ -36,12 +36,20 @@ namespace MisterGames.Character.Core2.Motion {
             _ceilingDetector = characterAccess.CeilingDetector;
             _groundDetector = characterAccess.GroundDetector;
 
-            _hitDetector.OnContact -= HandleHit;
-            _hitDetector.OnContact += HandleHit;
+            _hitDetector.OnTransformChanged -= OnHitDetectorTransformChanged;
+            _hitDetector.OnTransformChanged += OnHitDetectorTransformChanged;
+
+            _groundDetector.OnTransformChanged -= OnGroundDetectorTransformChanged;
+            _groundDetector.OnTransformChanged += OnGroundDetectorTransformChanged;
+
+            _ceilingDetector.OnTransformChanged -= OnCeilingDetectorTransformChanged;
+            _ceilingDetector.OnTransformChanged += OnCeilingDetectorTransformChanged;
         }
 
         public void DeInitialize() {
-            _hitDetector.OnContact -= HandleHit;
+            _hitDetector.OnTransformChanged -= OnHitDetectorTransformChanged;
+            _groundDetector.OnTransformChanged -= OnGroundDetectorTransformChanged;
+            _ceilingDetector.OnTransformChanged -= OnCeilingDetectorTransformChanged;
         }
 
         public void ApplyImpulse(Vector3 impulse) {
@@ -70,10 +78,34 @@ namespace MisterGames.Character.Core2.Motion {
             return _currentVelocity;
         }
 
-        private void HandleHit() {
-            _inertialComponent = Vector3.ProjectOnPlane(_inertialComponent, _hitDetector.CollisionInfo.lastNormal);
+        private void OnGroundDetectorTransformChanged() {
+            var info = _groundDetector.CollisionInfo;
+            if (!info.hasContact) return;
+
+            _inertialComponent = Vector3.ProjectOnPlane(_inertialComponent, info.lastNormal);
+            _gravitationalComponent = Vector3.ProjectOnPlane(_gravitationalComponent, info.lastNormal);
         }
 
+        private void OnCeilingDetectorTransformChanged() {
+            var info = _ceilingDetector.CollisionInfo;
+            if (!info.hasContact) return;
+
+            _inertialComponent = Vector3.ProjectOnPlane(_inertialComponent, info.lastNormal);
+            _gravitationalComponent = Vector3.ProjectOnPlane(_gravitationalComponent, info.lastNormal);
+        }
+
+        private void OnHitDetectorTransformChanged() {
+            var info = _hitDetector.CollisionInfo;
+            if (!info.hasContact) return;
+
+            _inertialComponent = Vector3.ProjectOnPlane(_inertialComponent, info.lastNormal);
+            _gravitationalComponent = Vector3.ProjectOnPlane(_gravitationalComponent, info.lastNormal);
+        }
+
+        /// <summary>
+        /// Interpolates value of the inertial component towards current force vector
+        /// with ground or in-air inertial factor.
+        /// </summary>
         private void UpdateInertialComponent(Vector3 force, float dt) {
             float factor = _groundDetector.CollisionInfo.hasContact
                 ? groundInertialFactor
@@ -82,17 +114,27 @@ namespace MisterGames.Character.Core2.Motion {
             _inertialComponent = Vector3.Lerp(_inertialComponent, force, factor * dt);
         }
 
+        /// <summary>
+        /// Interpolates value of the gravitational component:
+        ///
+        /// 1) If gravity is enabled and character is not grounded (i.e. is falling down) -
+        ///    gravitational component is increased by gravity force per frame.
+        ///
+        /// 2) If gravity is not enabled or character is grounded -
+        ///    gravitational component is interpolated towards Vector3.zero with ground or in-air inertial factor.
+        ///
+        /// </summary>
         private void UpdateGravitationalComponent(float dt) {
-            if (isGravityEnabled) {
-                _gravitationalComponent += Vector3.down * (gravityForce * dt);
-            }
-            else {
-                float factor = _groundDetector.CollisionInfo.hasContact ? groundInertialFactor : airInertialFactor;
-                _gravitationalComponent = Vector3.Lerp(_gravitationalComponent, Vector3.zero, factor * dt);
+            if (isGravityEnabled && !_groundDetector.CollisionInfo.hasContact) {
+                _gravitationalComponent += gravityForce * dt * Vector3.down;
+                return;
             }
 
-            if (_groundDetector.CollisionInfo.hasContact) _gravitationalComponent.y = Mathf.Max(0f, _gravitationalComponent.y);
-            if (_ceilingDetector.CollisionInfo.hasContact) _gravitationalComponent.y = Mathf.Min(0f, _gravitationalComponent.y);
+            float factor = _groundDetector.CollisionInfo.hasContact
+                ? groundInertialFactor
+                : airInertialFactor;
+
+            _gravitationalComponent = Vector3.Lerp(_gravitationalComponent, Vector3.zero, factor * dt);
         }
 
         /// <summary>
