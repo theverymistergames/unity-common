@@ -1,4 +1,6 @@
-﻿using MisterGames.Character.Core2.Input;
+﻿using MisterGames.Character.Core2.Collisions;
+using MisterGames.Character.Core2.Height;
+using MisterGames.Character.Core2.Input;
 using MisterGames.Character.Core2.Jump;
 using MisterGames.Character.Core2.Motion;
 using MisterGames.Character.Core2.Run;
@@ -13,6 +15,7 @@ namespace MisterGames.Character.Core2 {
 
         [SerializeField] private CharacterInput _input;
         [SerializeField] private CameraController _cameraController;
+        [SerializeField] private CharacterController _characterController;
 
         [SerializeField] private CharacterHeadAdapter headAdapter;
         [SerializeField] private CharacterBodyAdapter _bodyAdapter;
@@ -21,13 +24,15 @@ namespace MisterGames.Character.Core2 {
         [SerializeField] private CharacterMotionPipeline _motionPipeline;
         [SerializeField] private CharacterJumpPipeline _jumpPipeline;
         [SerializeField] private CharacterRunPipeline _runPipeline;
+        [SerializeField] private CharacterHeightPipeline _heightPipeline;
 
         [SerializeField] private CollisionDetectorBase _hitDetector;
         [SerializeField] private CollisionDetectorBase _ceilingDetector;
-        [SerializeField] private CollisionDetectorBase _groundDetector;
+        [SerializeField] private CharacterGroundDetector _groundDetector;
 
         public ICharacterInput Input => _input;
         public CameraController CameraController => _cameraController;
+        public CharacterController CharacterController => _characterController;
 
         public ITransformAdapter HeadAdapter => headAdapter;
         public ITransformAdapter BodyAdapter => _bodyAdapter;
@@ -36,10 +41,11 @@ namespace MisterGames.Character.Core2 {
         public ICharacterMotionPipeline MotionPipeline => _motionPipeline;
         public ICharacterJumpPipeline JumpPipeline => _jumpPipeline;
         public ICharacterRunPipeline RunPipeline => _runPipeline;
+        public ICharacterHeightPipeline HeightPipeline => _heightPipeline;
 
         public ICollisionDetector HitDetector => _hitDetector;
         public ICollisionDetector CeilingDetector => _ceilingDetector;
-        public ICollisionDetector GroundDetector => _groundDetector;
+        public CharacterGroundDetector GroundDetector => _groundDetector;
 
         private void Awake() {
             CanvasRegistry.Instance.SetCanvasEventCamera(_cameraController.Camera);

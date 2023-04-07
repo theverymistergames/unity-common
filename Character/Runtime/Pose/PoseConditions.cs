@@ -1,5 +1,5 @@
-﻿using MisterGames.Character.Collisions;
-using MisterGames.Character.Configs;
+﻿using MisterGames.Character.Configs;
+using MisterGames.Character.Core2.Collisions;
 using MisterGames.Character.Input;
 using MisterGames.Fsm.Core;
 using UnityEngine;

@@ -7,7 +7,6 @@ namespace MisterGames.Character.Core2.Motion {
     public class CharacterBodyAdapter : MonoBehaviour, ITransformAdapter {
 
         [SerializeField] private CharacterAccess _characterAccess;
-        [SerializeField] private CharacterController _characterController;
 
         public Vector3 Position {
             get => _body.position;
@@ -20,13 +19,17 @@ namespace MisterGames.Character.Core2.Motion {
         }
 
         private ICollisionDetector _groundDetector;
+        private CharacterController _characterController;
+
         private Transform _body;
         private float _stepOffset;
 
         private void Awake() {
+            _groundDetector = _characterAccess.GroundDetector;
+            _characterController = _characterAccess.CharacterController;
+
             _body = _characterController.transform;
             _stepOffset = _characterController.stepOffset;
-            _groundDetector = _characterAccess.GroundDetector;
         }
 
         public void Move(Vector3 delta) {

@@ -2,7 +2,7 @@
 using MisterGames.Dbg.Draw;
 using UnityEngine;
 
-namespace MisterGames.Character.Collisions {
+namespace MisterGames.Character.Core2.Collisions {
 
     public class CharacterControllerHitDetector : CollisionDetectorBase {
 

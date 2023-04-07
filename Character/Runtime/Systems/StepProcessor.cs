@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Diagnostics;
-using MisterGames.Character.Collisions;
 using MisterGames.Character.Configs;
+using MisterGames.Character.Core2.Collisions;
 using MisterGames.Character.Motion;
 using MisterGames.Common.Maths;
-using MisterGames.Tick.Core;
 using MisterGames.Dbg.Draw;
+using MisterGames.Tick.Core;
 using UnityEngine;
 
 namespace MisterGames.Character.Systems {

@@ -1,8 +1,7 @@
 ﻿using System;
-using MisterGames.Character.Collisions;
 using MisterGames.Character.Configs;
+using MisterGames.Character.Core2.Collisions;
 using MisterGames.Character.Input;
-using MisterGames.Common.Maths;
 using MisterGames.Dbg.Draw;
 using MisterGames.Fsm.Core;
 using MisterGames.Tick.Core;

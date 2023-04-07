@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using MisterGames.Character.Collisions;
 using MisterGames.Character.Configs;
+using MisterGames.Character.Core2.Collisions;
 using MisterGames.Character.View;
 using MisterGames.Common.Maths;
 using MisterGames.Fsm.Core;
