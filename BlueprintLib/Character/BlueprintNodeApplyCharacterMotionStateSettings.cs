@@ -21,8 +21,6 @@ namespace MisterGames.BlueprintLib {
         public void OnEnterPort(int port) {
             if (port != 0) return;
 
-            Debug.Log($"BlueprintNodeApplyCharacterMotionStateSettings.OnEnterPort: apply settings {motionStateSettings.name}");
-
             var characterAccess = Ports[1].Get<CharacterAccess>();
             var motionPipeline = characterAccess.MotionPipeline;
 
