@@ -2,7 +2,9 @@
 
 namespace MisterGames.Common.Maths {
 
-    public static class NumberUtils {
+    public static class NumberExtensions {
+
+        public static readonly float SqrEpsilon = Mathf.Epsilon * Mathf.Epsilon;
 
         public static bool IsNearlyZero(this float value) {
             return Mathf.Abs(value) < Mathf.Epsilon;
