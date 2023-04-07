@@ -74,11 +74,19 @@ namespace MisterGames.Character.Core2.Motion {
             _inertialComponent = Vector3.ProjectOnPlane(_inertialComponent, _hitDetector.CollisionInfo.lastNormal);
         }
 
-        private void UpdateInertialComponent(Vector3 target, float dt) {
-            float factor = _groundDetector.CollisionInfo.hasContact ? groundInertialFactor : airInertialFactor;
-            _inertialComponent = Vector3.Lerp(_inertialComponent, target, factor * dt);
+        private void UpdateInertialComponent(Vector3 force, float dt) {
+            float factor = _groundDetector.CollisionInfo.hasContact
+                ? groundInertialFactor
+                : airInertialFactor * GetForceInfluence(force, _inertialComponent);
+
+            _inertialComponent = Vector3.Lerp(_inertialComponent, force, factor * dt);
         }
 
+        /// <summary>
+        ///
+        ///
+        /// </summary>
+        /// <param name="dt"></param>
         private void UpdateGravitationalComponent(float dt) {
             if (isGravityEnabled) {
                 _gravitationalComponent += Vector3.down * (gravityForce * dt);
@@ -90,6 +98,28 @@ namespace MisterGames.Character.Core2.Motion {
 
             if (_groundDetector.CollisionInfo.hasContact) _gravitationalComponent.y = Mathf.Max(0f, _gravitationalComponent.y);
             if (_ceilingDetector.CollisionInfo.hasContact) _gravitationalComponent.y = Mathf.Min(0f, _gravitationalComponent.y);
+        }
+
+        /// <summary>
+        /// Force influence allows to save the bigger amount of the inertial energy,
+        /// the greater the inertial component value compared to force value
+        /// while not grounded.
+        ///
+        /// 1) Value is in range [0f to 1f):
+        ///  - If force is weaker than inertial component and inertial component is not zero.
+        ///    Force influence is a relation of force magnitude to inertial component magnitude.
+        ///
+        /// 2) Value is 1f:
+        ///  - If force is stronger than inertial component or inertial component is zero.
+        ///
+        /// </summary>
+        private static float GetForceInfluence(Vector3 force, Vector3 inertialComponent) {
+            float inertialSqrMagnitude = inertialComponent.sqrMagnitude;
+            float forceSqrMagnitude = force.sqrMagnitude;
+
+            return inertialSqrMagnitude > NumberExtensions.SqrEpsilon && inertialSqrMagnitude > forceSqrMagnitude
+                ? forceSqrMagnitude / inertialSqrMagnitude
+                : 1f;
         }
     }
 
