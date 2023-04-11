@@ -3,7 +3,6 @@ using MisterGames.Character.Core2.Height;
 using MisterGames.Character.Core2.Input;
 using MisterGames.Character.Core2.Jump;
 using MisterGames.Character.Core2.Motion;
-using MisterGames.Character.Core2.Run;
 using MisterGames.Character.Core2.View;
 using MisterGames.Collisions.Core;
 using MisterGames.UI.Initialization;
@@ -23,7 +22,6 @@ namespace MisterGames.Character.Core2 {
         [SerializeField] private CharacterViewPipeline _viewPipeline;
         [SerializeField] private CharacterMotionPipeline _motionPipeline;
         [SerializeField] private CharacterJumpPipeline _jumpPipeline;
-        [SerializeField] private CharacterRunPipeline _runPipeline;
         [SerializeField] private CharacterHeightPipeline _heightPipeline;
 
         [SerializeField] private CollisionDetectorBase _hitDetector;
@@ -40,7 +38,6 @@ namespace MisterGames.Character.Core2 {
         public ICharacterViewPipeline ViewPipeline => _viewPipeline;
         public ICharacterMotionPipeline MotionPipeline => _motionPipeline;
         public ICharacterJumpPipeline JumpPipeline => _jumpPipeline;
-        public ICharacterRunPipeline RunPipeline => _runPipeline;
         public ICharacterHeightPipeline HeightPipeline => _heightPipeline;
 
         public ICollisionDetector HitDetector => _hitDetector;
