@@ -1,10 +1,12 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 
 namespace MisterGames.Character.Core2 {
 
     public static class ClampExtensions {
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Clamp(this float value, ClampMode mode, float a, float b) => mode switch {
             ClampMode.None => value,
             ClampMode.Lower => Mathf.Max(a, value),
@@ -13,6 +15,7 @@ namespace MisterGames.Character.Core2 {
             _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
         };
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Clamp(this int value, ClampMode mode, int a, int b) => mode switch {
             ClampMode.None => value,
             ClampMode.Lower => Math.Max(a, value),
@@ -21,12 +24,14 @@ namespace MisterGames.Character.Core2 {
             _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
         };
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector2 Clamp(this Vector2 value, ClampMode xMode, ClampMode yMode, Vector2 a, Vector2 b) =>
             new Vector2(
                 value.x.Clamp(xMode, a.x, b.x),
                 value.y.Clamp(yMode, a.y, b.y)
             );
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector3 Clamp(this Vector3 value, ClampMode xMode, ClampMode yMode, ClampMode zMode, Vector3 a, Vector3 b) =>
             new Vector3(
                 value.x.Clamp(xMode, a.x, b.x),
@@ -34,6 +39,7 @@ namespace MisterGames.Character.Core2 {
                 value.z.Clamp(zMode, a.z, b.z)
             );
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Quaternion Clamp(this Quaternion value, ClampMode xMode, ClampMode yMode, ClampMode zMode, Vector3 aEuler, Vector3 bEuler) =>
             Quaternion.Euler(
                 value.x.Clamp(xMode, aEuler.x, bEuler.x),
