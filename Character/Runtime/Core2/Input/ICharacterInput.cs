@@ -7,9 +7,7 @@ namespace MisterGames.Character.Core2.Input {
         event Action<Vector2> OnViewVectorChanged;
         event Action<Vector2> OnMotionVectorChanged;
 
-        event Action RunPressed;
-        event Action RunReleased;
-        bool IsRunPressed { get; }
+        event Action RunToggled;
 
         event Action CrouchPressed;
         event Action CrouchReleased;

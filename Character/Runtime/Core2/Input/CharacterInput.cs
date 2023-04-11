@@ -8,7 +8,7 @@ namespace MisterGames.Character.Core2.Input {
 
         [SerializeField] private InputActionVector2 _view;
         [SerializeField] private InputActionVector2 _move;
-        [SerializeField] private InputActionKey _run;
+        [SerializeField] private InputActionKey _runToggle;
         [SerializeField] private InputActionKey _crouch;
         [SerializeField] private InputActionKey _crouchToggle;
         [SerializeField] private InputActionKey _jump;
@@ -22,15 +22,10 @@ namespace MisterGames.Character.Core2.Input {
             remove => _move.OnChanged -= value;
         }
 
-        public event Action RunPressed {
-            add => _run.OnPress += value;
-            remove => _run.OnPress -= value;
+        public event Action RunToggled {
+            add => _runToggle.OnPress += value;
+            remove => _runToggle.OnPress -= value;
         }
-        public event Action RunReleased {
-            add => _run.OnRelease += value;
-            remove => _run.OnRelease -= value;
-        }
-        public bool IsRunPressed => _run.IsPressed;
 
         public event Action CrouchPressed {
             add => _crouch.OnPress += value;
