@@ -56,6 +56,12 @@ namespace MisterGames.Character.Core2.View {
             if (!_data.ContainsKey(interactor)) return;
 
             _data.Remove(interactor);
+
+            InvalidateResultOffset();
+            InvalidateResultRotation();
+            InvalidateResultFovOffset();
+
+            ApplyCameraParameters();
         }
 
         public void AddPositionOffset(object interactor, Vector3 offsetDelta) {
