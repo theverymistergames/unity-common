@@ -1,42 +1,103 @@
 ﻿using System;
 using MisterGames.Character.Core2.Collisions;
+using MisterGames.Character.Core2.View;
 using MisterGames.Common.Maths;
 using MisterGames.Tick.Core;
 using UnityEngine;
 
 namespace MisterGames.Character.Core2.Height {
-
     public class CharacterHeightPipeline : MonoBehaviour, ICharacterHeightPipeline, IUpdate {
 
         [SerializeField] private CharacterAccess _characterAccess;
         [SerializeField] private PlayerLoopStage _playerLoopStage = PlayerLoopStage.Update;
+        [SerializeField] [Range(0f, 1f)] private float _edgeInterpolationWeight = 0.1f;
 
-        [Header("Height")]
-        [SerializeField] private float _initialHeight = 1.8f;
-        [SerializeField] private AnimationCurve _heightByRatio = AnimationCurve.Linear(0f, 0f, 1f, 1f);
+        public event Action<float, float> OnHeightChanged = delegate {  };
 
-        [Header("Height change up")]
-        [SerializeField] private float _heightChangeUpSpeed = 1f;
-        [SerializeField] private AnimationCurve _heightChangeUpSpeedMultiplierByHeight = AnimationCurve.Constant(0f, 1f, 1f);
+        public float Height { get => _characterController.height; set => SetHeight(value); }
+        public float TargetHeight => _targetHeight;
 
-        [Header("Height change down")]
-        [SerializeField] private float _heightChangeDownSpeed = 1f;
-        [SerializeField] private AnimationCurve _heightChangeDownSpeedMultiplierByHeight = AnimationCurve.Constant(0f, 1f, 1f);
-
-        public event Action<float> OnHeightChange = delegate {  };
-
-        public float CurrentHeight => _characterController.height;
-        public float TargetHeight => _initialHeight * _targetRatio;
-
+        private CameraController _cameraController;
         private CharacterController _characterController;
+        private ITransformAdapter _bodyAdapter;
         private CharacterGroundDetector _groundDetector;
         private ITimeSource _timeSource;
 
-        private float _sourceRatio;
-        private float _targetRatio;
+        private float _initialHeight;
+        private float _initialHeightCoeff;
 
-        private float _speedMultiplier = 1f;
-        private float _progress;
+        private float _sourceHeight;
+        private float _targetHeight;
+
+        private float _heightChangeDuration;
+        private float _heightChangeProgress;
+
+        private ICharacterHeightChangePattern _heightChangePattern;
+        private Action _onFinish;
+
+        public void ApplyHeightChange(
+            float targetHeight,
+            float duration,
+            bool scaleDuration = true,
+            ICharacterHeightChangePattern pattern = null,
+            Action onFinish = null
+        ) {
+            _targetHeight = Mathf.Max(0f, targetHeight);
+            _sourceHeight = _characterController.height;
+            _onFinish = onFinish;
+
+            _heightChangePattern = pattern ?? CharacterHeightChangePatternLinear.Instance;
+            _heightChangeDuration = Mathf.Max(0f, duration);
+
+            if (scaleDuration) _heightChangeDuration *= Mathf.Abs(_targetHeight - _sourceHeight) * _initialHeightCoeff;
+
+            if (_sourceHeight.IsNearlyEqual(_targetHeight, tolerance: 0f)) {
+                _heightChangeProgress = 1f;
+
+                _onFinish?.Invoke();
+                _onFinish = null;
+                return;
+            }
+
+            // Start height change
+            _heightChangeProgress = 0f;
+            OnHeightChanged.Invoke(_heightChangeProgress, _heightChangeDuration);
+        }
+
+        private void SetHeight(float height) {
+            height = Mathf.Max(0f, height);
+
+            _sourceHeight = _characterController.height;
+
+            if (_sourceHeight.IsNearlyEqual(_targetHeight, tolerance: 0f)) {
+                _onFinish?.Invoke();
+                _onFinish = null;
+            }
+
+            _heightChangePattern = CharacterHeightChangePatternLinear.Instance;
+            _heightChangeDuration = 0f;
+
+            _targetHeight = height;
+
+            if (_sourceHeight.IsNearlyEqual(_targetHeight, tolerance: 0f)) {
+                _heightChangeProgress = 1f;
+                return;
+            }
+
+            // Start height change
+            _heightChangeProgress = 0f;
+            OnHeightChanged.Invoke(_heightChangeProgress, _heightChangeDuration);
+
+            ApplyHeight(_targetHeight);
+            ApplyHeadOffset(_targetHeight);
+
+            // Finish height change
+            _heightChangeProgress = 1f;
+            OnHeightChanged.Invoke(_heightChangeProgress, _heightChangeDuration);
+
+            _onFinish?.Invoke();
+            _onFinish = null;
+        }
 
         public void SetEnabled(bool isEnabled) {
             if (isEnabled) {
@@ -49,57 +110,19 @@ namespace MisterGames.Character.Core2.Height {
             _timeSource.Unsubscribe(this);
         }
 
-        public void SetHeight(float height) {
-            float ratio = _initialHeight <= 0f
-                ? height
-                : height / _initialHeight;
-
-            SetHeightRatio(ratio);
-        }
-
-        public void SetHeightRatio(float targetRatio) {
-            _sourceRatio = _initialHeight <= 0f
-                ? _characterController.height
-                : _characterController.height / _initialHeight;
-
-            _targetRatio = Mathf.Max(0f, targetRatio);
-
-            if (_sourceRatio.IsNearlyEqual(_targetRatio, tolerance: 0f)) return;
-
-            // Start height change
-            _progress = 0f;
-            OnHeightChange.Invoke(_progress);
-
-            // Finish height change immediate
-            _progress = 1f;
-            ApplyHeightRatio(_targetRatio);
-        }
-
-        public void MoveToHeightRatio(float targetRatio, float speedMultiplier) {
-            _speedMultiplier = Mathf.Max(0f, speedMultiplier);
-
-            targetRatio = Mathf.Max(0f, targetRatio);
-            if (targetRatio.IsNearlyEqual(_targetRatio, tolerance: 0f)) return;
-
-            _sourceRatio = _initialHeight <= 0f
-                ? _characterController.height
-                : _characterController.height / _initialHeight;
-
-            _targetRatio = Mathf.Max(0f, targetRatio);
-
-            if (_sourceRatio.IsNearlyEqual(_targetRatio, tolerance: 0f)) return;
-
-            // Start height change
-            _progress = 0f;
-            OnHeightChange.Invoke(_progress);
-        }
-
         private void Awake() {
+            _cameraController = _characterAccess.CameraController;
+            _bodyAdapter = _characterAccess.BodyAdapter;
             _groundDetector = _characterAccess.GroundDetector;
             _characterController = _characterAccess.CharacterController;
             _timeSource = TimeSources.Get(_playerLoopStage);
 
-            SetHeight(_initialHeight);
+            _initialHeight = _characterController.height;
+            _initialHeightCoeff = _initialHeight <= 0f ? 1f : 1f / _initialHeight;
+
+            _sourceHeight = _initialHeight;
+            _targetHeight = _initialHeight;
+            _heightChangeProgress = 1f;
         }
 
         private void OnEnable() {
@@ -111,53 +134,58 @@ namespace MisterGames.Character.Core2.Height {
         }
 
         public void OnUpdate(float dt) {
-            float height = _characterController.height;
-            float delta = _speedMultiplier * dt;
-
-            if (_sourceRatio < _targetRatio) {
-                delta *= _heightChangeUpSpeed * _heightChangeUpSpeedMultiplierByHeight.Evaluate(height);
-            }
-            else if (_sourceRatio > _targetRatio) {
-                delta *= _heightChangeDownSpeed * _heightChangeDownSpeedMultiplierByHeight.Evaluate(height);
-            }
-            else {
-                delta = 1f;
-            }
-
-            _progress = Mathf.Clamp01(_progress + delta);
-            ApplyHeightRatio(Mathf.Lerp(_sourceRatio, _targetRatio, _progress));
+            HeightChangeStep(dt);
         }
 
-        private void ApplyHeightRatio(float ratio) {
-            if (_sourceRatio < _targetRatio) {
-                if (ratio >= _targetRatio - Mathf.Epsilon) ratio = _targetRatio;
-            }
-            else if (_sourceRatio > _targetRatio) {
-                if (ratio <= _targetRatio + Mathf.Epsilon) ratio = _targetRatio;
-            }
-            else {
-                ratio = _targetRatio;
-            }
+        private void HeightChangeStep(float dt) {
+            float lastProgress = _heightChangeProgress;
+            float progressDelta = _heightChangeDuration <= 0f ? 1f : dt / _heightChangeDuration;
+            _heightChangeProgress = Mathf.Clamp01(_heightChangeProgress + progressDelta);
 
-            ApplyHeight(_initialHeight * _heightByRatio.Evaluate(ratio));
+            if (lastProgress >= 1f && _heightChangeProgress >= 1f) return;
+
+            float linearHeight = Mathf.Lerp(_sourceHeight, _targetHeight, _heightChangeProgress);
+            float mappedHeight = _heightChangePattern.MapHeight(linearHeight);
+
+            float edgeInterpolationFactor = CharacterHeightUtils.GetEdgeInterpolation(_edgeInterpolationWeight, _heightChangeProgress);
+            float interpolatedHeight = Mathf.Lerp(linearHeight, mappedHeight, edgeInterpolationFactor);
+
+            ApplyHeight(interpolatedHeight);
+            ApplyHeadOffset(linearHeight);
+
+            OnHeightChanged.Invoke(_heightChangeProgress, _heightChangeDuration);
+
+            if (_heightChangeProgress >= 1f) {
+                _onFinish?.Invoke();
+                _onFinish = null;
+            }
         }
 
         private void ApplyHeight(float height) {
+            var halfOffset = 0.5f * (height - _initialHeight) * Vector3.up;
             float previousHeight = _characterController.height;
-            if (previousHeight.IsNearlyEqual(height, tolerance: 0f)) return;
-
-            var diffToInitialHeightVector = (height - _initialHeight) * Vector3.up;
 
             _characterController.height = height;
-            _characterController.center = diffToInitialHeightVector * 0.5f;
-            _characterAccess.CameraController.SetPositionOffset(this, diffToInitialHeightVector);
+            _characterController.center = halfOffset;
+
+            _groundDetector.OriginOffset = halfOffset;
             _groundDetector.Distance = height * 0.5f - _characterController.radius;
 
-            if (!_groundDetector.CollisionInfo.hasContact) {
-                _characterAccess.BodyAdapter.Move(Vector3.up * (previousHeight - height));
-            }
+            _groundDetector.FetchResults();
 
-            OnHeightChange.Invoke(_progress);
+            if (!_groundDetector.CollisionInfo.hasContact) {
+                _bodyAdapter.Move(Vector3.up * (previousHeight - height));
+            }
+        }
+
+        private void ApplyHeadOffset(float height) {
+            var offset = (height - _initialHeight) * Vector3.up;
+
+            var positionOffset = _heightChangePattern.MapHeadPositionOffset(height);
+            var rotationOffset = _heightChangePattern.MapHeadRotationOffset(height);
+
+            _cameraController.SetPositionOffset(this, offset + positionOffset);
+            _cameraController.SetRotation(this, rotationOffset);
         }
     }
 
