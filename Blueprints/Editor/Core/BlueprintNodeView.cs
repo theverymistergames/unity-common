@@ -126,9 +126,6 @@ namespace MisterGames.Blueprints.Editor.Core {
             var endProperty = nodePropertyCopy.GetEndProperty();
             bool enterChildren = true;
 
-            bool changed = false;
-            EditorGUI.BeginChangeCheck();
-
             float labelWidthCache = EditorGUIUtility.labelWidth;
             float fieldWidthCache = EditorGUIUtility.fieldWidth;
 
@@ -138,6 +135,9 @@ namespace MisterGames.Blueprints.Editor.Core {
 
             EditorGUIUtility.labelWidth = _labelWidth;
             EditorGUIUtility.fieldWidth = _fieldWidth;
+
+            bool changed = false;
+            EditorGUI.BeginChangeCheck();
 
             while (nodePropertyCopy.NextVisible(enterChildren) && !SerializedProperty.DataEquals(nodePropertyCopy, endProperty)) {
                 enterChildren = false;
@@ -151,10 +151,10 @@ namespace MisterGames.Blueprints.Editor.Core {
                 }
             }
 
+            changed |= EditorGUI.EndChangeCheck();
+
             EditorGUIUtility.labelWidth = labelWidthCache;
             EditorGUIUtility.fieldWidth = fieldWidthCache;
-
-            changed |= EditorGUI.EndChangeCheck();
 
             string nodeJson = JsonUtility.ToJson(nodeMeta.Node);
             changed |= nodeJson != _lastNodeJson;
