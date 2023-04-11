@@ -1,7 +1,8 @@
-﻿using MisterGames.Common.Attributes;
+﻿using MisterGames.Character.Core2.Access;
+using MisterGames.Common.Attributes;
 using UnityEngine;
 
-namespace MisterGames.Character.Core2.Modifiers {
+namespace MisterGames.Character.Core2.Actions {
 
     [CreateAssetMenu(fileName = nameof(CharacterChangeSet), menuName = "MisterGames/Character/" + nameof(CharacterChangeSet))]
     public class CharacterChangeSet : ScriptableObject, ICharacterAction {

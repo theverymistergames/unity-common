@@ -8,7 +8,7 @@ using MisterGames.Collisions.Core;
 using MisterGames.UI.Initialization;
 using UnityEngine;
 
-namespace MisterGames.Character.Core2 {
+namespace MisterGames.Character.Core2.Access {
 
     public sealed class CharacterAccess : MonoBehaviour, ICharacterAccess {
 
@@ -45,6 +45,8 @@ namespace MisterGames.Character.Core2 {
         public CharacterGroundDetector GroundDetector => _groundDetector;
 
         private void Awake() {
+            CharacterAccessProvider.CharacterAccess = this;
+
             CanvasRegistry.Instance.SetCanvasEventCamera(_cameraController.Camera);
         }
 

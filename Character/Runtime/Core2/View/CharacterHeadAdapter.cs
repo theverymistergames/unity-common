@@ -1,4 +1,6 @@
-﻿using UnityEngine;
+﻿using MisterGames.Character.Core2.Access;
+using MisterGames.Character.Core2.Motion;
+using UnityEngine;
 
 namespace MisterGames.Character.Core2.View {
 

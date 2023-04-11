@@ -2,11 +2,12 @@
 using MisterGames.Character.Core2.Height;
 using MisterGames.Character.Core2.Input;
 using MisterGames.Character.Core2.Jump;
+using MisterGames.Character.Core2.Motion;
 using MisterGames.Character.Core2.View;
 using MisterGames.Collisions.Core;
 using UnityEngine;
 
-namespace MisterGames.Character.Core2 {
+namespace MisterGames.Character.Core2.Access {
 
     public interface ICharacterAccess {
         ICharacterInput Input { get; }
