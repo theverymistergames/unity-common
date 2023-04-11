@@ -23,16 +23,39 @@ namespace MisterGames.Character.Core2.Collisions {
         [SerializeField] private float _hitPointElevation = 0.2f;
         [SerializeField] private float _normalSphereCastRadius = 0.05f;
 
-        public Vector3 OriginOffset { get; set; } = Vector3.zero;
-        public float Distance { get; set; }
+        public Vector3 OriginOffset {
+            get => _originOffset;
+            set {
+                if (_originOffset.IsNearlyEqual(value, tolerance: 0f)) return;
+
+                _originOffset = value;
+                _invalidateFlag = true;
+            }
+        }
+
+        public float Distance {
+            get => _distance;
+            set {
+                if (_distance.IsNearlyEqual(value, tolerance: 0f)) return;
+
+                _distance = value;
+                _invalidateFlag = true;
+            }
+        }
 
         private ITimeSource _timeSource => TimeSources.Get(_timeSourceStage);
         private readonly Vector3 _groundDetectionDirection = Vector3.down;
         private Transform _transform;
+
         private RaycastHit[] _hitsMain;
         private RaycastHit[] _hitsNormal;
         private int _hitCount;
+
+        private Vector3 _originOffset;
+        private float _distance;
+
         private int _lastUpdateFrame = -1;
+        private bool _invalidateFlag;
 
         private void Awake() {
             _transform = transform;
@@ -82,11 +105,11 @@ namespace MisterGames.Character.Core2.Collisions {
 
         private void RequestGround(bool forceNotify = false) {
             int frame = Time.frameCount;
-            if (frame == _lastUpdateFrame) return;
+            if (frame == _lastUpdateFrame && !_invalidateFlag) return;
 
             var origin = OriginOffset + _transform.position;
             _hitCount = PerformSphereCast(origin, _radius, GetDistance(), _hitsMain);
-            
+
             bool hasHits = _hitCount > 0;
             var normal = Vector3.zero;
             var hitPoint = Vector3.zero;
@@ -128,11 +151,11 @@ namespace MisterGames.Character.Core2.Collisions {
                 lastHitPoint = hitPoint,
                 transform = surface
             };
-            
+
             SetCollisionInfo(info, forceNotify);
             _lastUpdateFrame = frame;
         }
-        
+
         private bool ClarifyNormalAtPoint(Vector3 point) {
             var origin = point - _groundDetectionDirection * _hitPointElevation;
             return PerformSphereCast(origin, _normalSphereCastRadius, _hitPointElevation, _hitsNormal) > 0;
@@ -140,10 +163,10 @@ namespace MisterGames.Character.Core2.Collisions {
 
         private int PerformSphereCast(Vector3 origin, float radius, float distance, RaycastHit[] hits) {
             return Physics.SphereCastNonAlloc(
-                origin, 
+                origin,
                 radius,
                 _groundDetectionDirection,
-                hits, 
+                hits,
                 distance,
                 _layerMask,
                 _triggerInteraction
@@ -161,8 +184,8 @@ namespace MisterGames.Character.Core2.Collisions {
         [SerializeField] private bool _debugDrawHitPoint;
         [SerializeField] private bool _debugDrawIsGroundedText;
         [SerializeField] private Vector3 _debugDrawIsGroundedTextOffset;
-        
-        private void OnDrawGizmosSelected() {
+
+        private void OnDrawGizmos() {
             if (!Application.isPlaying) return;
             
             if (_debugDrawNormal) {
