@@ -10,7 +10,7 @@ namespace MisterGames.Character.Core2.Jump {
         [Min(0f)] public float jumpForceMultiplier = 1f;
 
         public void Apply(object source, ICharacterAccess characterAccess) {
-            characterAccess.JumpPipeline.SetForceMultiplier(source, jumpForceMultiplier);
+            characterAccess.JumpPipeline.ForceMultiplier = jumpForceMultiplier;
         }
     }
 

@@ -16,9 +16,7 @@ namespace MisterGames.Character.Core2.Jump {
 
         public Vector3 Direction { get => _direction; set => _direction = value; }
         public float Force { get => _force; set => _force = value; }
-        public float ForceMultiplier { get; private set; } = 1f;
-
-        private readonly Dictionary<object, float> _forceMultipliers = new Dictionary<object, float>();
+        public float ForceMultiplier { get; set; } = 1f;
 
         public void SetEnabled(bool isEnabled) {
             if (isEnabled) {
@@ -28,18 +26,6 @@ namespace MisterGames.Character.Core2.Jump {
             }
 
             _characterAccess.Input.JumpPressed -= HandleJumpPressedInput;
-        }
-
-        public void SetForceMultiplier(object source, float multiplier) {
-            _forceMultipliers[source] = Mathf.Max(0f, multiplier);
-            InvalidateForceMultiplier();
-        }
-
-        public void ResetForceMultiplier(object source) {
-            if (!_forceMultipliers.ContainsKey(source)) return;
-
-            _forceMultipliers.Remove(source);
-            InvalidateForceMultiplier();
         }
 
         private void OnEnable() {
@@ -56,15 +42,6 @@ namespace MisterGames.Character.Core2.Jump {
 
             _characterAccess.MotionPipeline.GetProcessor<CharacterProcessorMass>()?.ApplyImpulse(impulse);
             OnJump.Invoke(impulse);
-        }
-
-        private void InvalidateForceMultiplier() {
-            float forceMultiplier = 1f;
-            foreach (float m in _forceMultipliers.Values) {
-                forceMultiplier *= m;
-            }
-
-            ForceMultiplier = forceMultiplier;
         }
     }
 

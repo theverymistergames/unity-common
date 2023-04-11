@@ -8,10 +8,7 @@ namespace MisterGames.Character.Core2.Jump {
 
         Vector3 Direction { get; set; }
         float Force { get; set; }
-        float ForceMultiplier { get; }
-
-        void SetForceMultiplier(object source, float multiplier);
-        void ResetForceMultiplier(object source);
+        float ForceMultiplier { get; set; }
 
         void SetEnabled(bool isEnabled);
     }
