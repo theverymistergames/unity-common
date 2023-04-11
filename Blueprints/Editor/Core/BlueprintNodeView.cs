@@ -15,6 +15,15 @@ namespace MisterGames.Blueprints.Editor.Core {
 
     public sealed class BlueprintNodeView : Node {
 
+        private const float NODE_VIEW_MIN_LABEL_WIDTH = 50f;
+        private const float NODE_VIEW_MIN_FIELD_WIDTH = 150f;
+
+        private const float NODE_VIEW_MIN_MANAGED_REFERENCE_LABEL_WIDTH = 100f;
+        private const float NODE_VIEW_MIN_MANAGED_REFERENCE_FIELD_WIDTH = 150f;
+
+        private const float NODE_VIEW_MIN_ARRAY_LABEL_WIDTH = 150f;
+        private const float NODE_VIEW_MIN_ARRAY_FIELD_WIDTH = 250f;
+
         public readonly BlueprintNodeMeta nodeMeta;
 
         public Action<BlueprintNodeMeta, Vector2> OnPositionChanged = delegate {  };
@@ -170,17 +179,34 @@ namespace MisterGames.Blueprints.Editor.Core {
 
         private static (float, float) CalculateLabelAndFieldWidth(SerializedProperty property) {
             float totalWidth = EditorGUIUtility.labelWidth + EditorGUIUtility.fieldWidth;
+
             float labelWidth = 0;
             float fieldWidth = 0;
 
             property = property.Copy();
             var endProperty = property.GetEndProperty();
 
+            bool hasManagedReferenceFields = false;
+            bool hasArrayFields = false;
+
             while (property.NextVisible(true) && !SerializedProperty.DataEquals(property, endProperty)) {
                 float labelTextWidth = EditorStyles.label.CalcSize(new GUIContent(property.displayName)).x;
 
-                labelWidth = Mathf.Max(labelWidth, Mathf.Max(labelTextWidth + 6f, 50f));
-                fieldWidth = Mathf.Max(fieldWidth, Mathf.Max(totalWidth - labelWidth, 150f));
+                labelWidth = Mathf.Max(labelWidth, Mathf.Max(labelTextWidth + 20f, NODE_VIEW_MIN_LABEL_WIDTH));
+                fieldWidth = Mathf.Max(fieldWidth, Mathf.Max(totalWidth - labelWidth, NODE_VIEW_MIN_FIELD_WIDTH));
+
+                hasManagedReferenceFields |= property.propertyType == SerializedPropertyType.ManagedReference;
+                hasArrayFields |= property.propertyType == SerializedPropertyType.ArraySize;
+            }
+
+            if (hasManagedReferenceFields) {
+                labelWidth = Mathf.Max(labelWidth, NODE_VIEW_MIN_MANAGED_REFERENCE_LABEL_WIDTH);
+                fieldWidth = Mathf.Max(fieldWidth, NODE_VIEW_MIN_MANAGED_REFERENCE_FIELD_WIDTH);
+            }
+
+            if (hasArrayFields) {
+                labelWidth = Mathf.Max(labelWidth, NODE_VIEW_MIN_ARRAY_LABEL_WIDTH);
+                fieldWidth = Mathf.Max(fieldWidth, NODE_VIEW_MIN_ARRAY_FIELD_WIDTH);
             }
 
             return (labelWidth, fieldWidth);
