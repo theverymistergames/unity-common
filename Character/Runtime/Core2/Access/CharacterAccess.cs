@@ -45,8 +45,6 @@ namespace MisterGames.Character.Core2.Access {
         public CharacterGroundDetector GroundDetector => _groundDetector;
 
         private void Awake() {
-            CharacterAccessProvider.CharacterAccess = this;
-
             CanvasRegistry.Instance.SetCanvasEventCamera(_cameraController.Camera);
         }
 
