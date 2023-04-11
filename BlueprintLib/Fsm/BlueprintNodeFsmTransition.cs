@@ -40,7 +40,7 @@ namespace MisterGames.BlueprintLib {
             return port == 0 ? this : default;
         }
 
-        public T GetData<T>() where T : IDynamicData {
+        public T GetData<T>() {
             return Ports[2].Get<T>();
         }
 
