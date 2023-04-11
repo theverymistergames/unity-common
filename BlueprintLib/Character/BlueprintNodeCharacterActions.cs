@@ -1,6 +1,5 @@
 ﻿using System;
 using MisterGames.Blueprints;
-using MisterGames.Blueprints.Core;
 using MisterGames.Character.Core2;
 using MisterGames.Character.Core2.Modifiers;
 using UnityEngine;
@@ -9,7 +8,7 @@ namespace MisterGames.BlueprintLib {
 
     [Serializable]
     [BlueprintNodeMeta(Name = "Character Actions", Category = "Character", Color = BlueprintColors.Node.Actions)]
-    public sealed class BlueprintNodeCharacterActions : BlueprintNode, IBlueprintEnter, IBlueprintStart {
+    public sealed class BlueprintNodeCharacterActions : BlueprintNode, IBlueprintEnter {
 
         [SerializeField] private CharacterChangeSet[] _applyActions;
         [SerializeField] private CharacterChangeSet[] _releaseActions;
@@ -26,13 +25,11 @@ namespace MisterGames.BlueprintLib {
             Port.Exit("On Release"),
         };
 
-        public void OnStart() {
-            _characterAccess = Ports[2].Get<CharacterAccess>();
-        }
-
         public void OnEnterPort(int port) {
             switch (port) {
                 case 0: {
+                    _characterAccess ??= Ports[2].Get<CharacterAccess>();
+
                     for (int i = 0; i < _applyActions.Length; i++) {
                         _applyActions[i].Apply(this, _characterAccess);
                     }
@@ -47,6 +44,8 @@ namespace MisterGames.BlueprintLib {
                 }
 
                 case 1: {
+                    _characterAccess ??= Ports[2].Get<CharacterAccess>();
+
                     for (int i = 0; i < _releaseActions.Length; i++) {
                         _releaseActions[i].Apply(this, _characterAccess);
                     }
