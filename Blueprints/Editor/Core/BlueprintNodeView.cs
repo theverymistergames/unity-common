@@ -161,7 +161,11 @@ namespace MisterGames.Blueprints.Editor.Core {
 
             _lastNodeJson = nodeJson;
 
-            if (changed) OnValidate?.Invoke(nodeMeta);
+            if (changed) {
+                _labelWidth = -1f;
+                _fieldWidth = -1f;
+                OnValidate?.Invoke(nodeMeta);
+            }
         }
 
         private static (float, float) CalculateLabelAndFieldWidth(SerializedProperty property) {
