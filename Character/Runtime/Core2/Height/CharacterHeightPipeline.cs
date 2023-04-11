@@ -1,5 +1,7 @@
 ﻿using System;
+using MisterGames.Character.Core2.Access;
 using MisterGames.Character.Core2.Collisions;
+using MisterGames.Character.Core2.Motion;
 using MisterGames.Character.Core2.View;
 using MisterGames.Common.Maths;
 using MisterGames.Tick.Core;
@@ -51,6 +53,11 @@ namespace MisterGames.Character.Core2.Height {
             _heightChangeDuration = Mathf.Max(0f, duration);
 
             if (scaleDuration) _heightChangeDuration *= Mathf.Abs(_targetHeight - _sourceHeight) * _initialHeightCoeff;
+
+            if (_heightChangeDuration <= 0f) {
+                SetHeight(targetHeight);
+                return;
+            }
 
             if (_sourceHeight.IsNearlyEqual(_targetHeight, tolerance: 0f)) {
                 _heightChangeProgress = 1f;
