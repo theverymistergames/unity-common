@@ -1,6 +1,6 @@
 ﻿using System;
 using MisterGames.Blueprints.Meta;
-using MisterGames.Common.Data;
+using MisterGames.Common.Types;
 using UnityEngine;
 
 namespace MisterGames.Blueprints {

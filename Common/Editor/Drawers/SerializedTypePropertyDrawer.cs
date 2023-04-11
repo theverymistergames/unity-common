@@ -1,4 +1,4 @@
-﻿using MisterGames.Common.Data;
+﻿using MisterGames.Common.Types;
 using UnityEditor;
 using UnityEngine;
 

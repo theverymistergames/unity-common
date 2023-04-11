@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using MisterGames.Common.Data;
 using MisterGames.Common.Strings;
+using MisterGames.Common.Types;
 using UnityEngine;
 using Object = UnityEngine.Object;
 

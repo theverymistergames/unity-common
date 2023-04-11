@@ -1,7 +1,7 @@
 ﻿using System;
 using UnityEngine;
 
-namespace MisterGames.Common.Data {
+namespace MisterGames.Common.Types {
 
     [Serializable]
     public sealed class SerializedType : IEquatable<SerializedType>, IEquatable<Type> {

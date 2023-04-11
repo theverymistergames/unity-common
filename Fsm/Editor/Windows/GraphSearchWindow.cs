@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using MisterGames.Common.Data;
 using MisterGames.Common.Editor.Tree;
+using MisterGames.Common.Types;
 using MisterGames.Fsm.Core;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;

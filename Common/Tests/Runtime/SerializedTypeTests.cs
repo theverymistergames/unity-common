@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using MisterGames.Common.Data;
+using MisterGames.Common.Types;
 using NUnit.Framework;
 using UnityEngine;
 

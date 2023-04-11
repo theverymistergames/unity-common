@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace MisterGames.Common.Data {
+namespace MisterGames.Common.Types {
 
     public static class TypeNameFormatter {
 
