@@ -1,18 +1,18 @@
 ﻿using System;
-using MisterGames.BlueprintLib.Fsm;
 using MisterGames.Blueprints;
+using MisterGames.Common.Conditions;
 
 namespace MisterGames.BlueprintLib {
 
     [Serializable]
     [BlueprintNodeMeta(Name = "Fsm State", Category = "Fsm", Color = BlueprintColors.Node.Flow)]
-    public sealed class BlueprintNodeFsmState : BlueprintNode, IBlueprintEnter, IBlueprintFsmTransitionCallback {
+    public sealed class BlueprintNodeFsmState : BlueprintNode, IBlueprintEnter, IConditionCallback {
 
         private bool _isEnteredState;
 
         public override Port[] CreatePorts() => new[] {
             Port.Enter("Enter"),
-            Port.Input<IBlueprintFsmTransition>("Transitions").Layout(PortLayout.Right).Capacity(PortCapacity.Multiple),
+            Port.Input<ICondition>("Transitions").Layout(PortLayout.Right).Capacity(PortCapacity.Multiple),
             Port.Exit("On Enter"),
             Port.Exit("On Exit"),
         };
@@ -20,7 +20,7 @@ namespace MisterGames.BlueprintLib {
         public override void OnDeInitialize() {
             var links = Ports[1].links;
             for (int i = 0; i < links.Count; i++) {
-                links[i].Get<IBlueprintFsmTransition>()?.Disarm();
+                links[i].Get<ICondition>()?.Disarm();
             }
         }
 
@@ -33,14 +33,14 @@ namespace MisterGames.BlueprintLib {
 
             var links = Ports[1].links;
             for (int i = 0; i < links.Count; i++) {
-                links[i].Get<IBlueprintFsmTransition>()?.Arm(this);
+                links[i].Get<ICondition>()?.Arm(this);
             }
         }
 
-        public void OnTransitionRequested() {
+        public void OnConditionMatch() {
             var links = Ports[1].links;
             for (int i = 0; i < links.Count; i++) {
-                links[i].Get<IBlueprintFsmTransition>()?.Disarm();
+                links[i].Get<ICondition>()?.Disarm();
             }
 
             Ports[3].Call();

@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using MisterGames.BlueprintLib.Fsm;
 using MisterGames.Blueprints;
 using MisterGames.Blueprints.Meta;
 using MisterGames.Common.Attributes;
+using MisterGames.Common.Conditions;
 using UnityEngine;
 
 namespace MisterGames.BlueprintLib {
@@ -13,46 +13,53 @@ namespace MisterGames.BlueprintLib {
     [BlueprintNodeMeta(Name = "Fsm Transition", Category = "Fsm", Color = BlueprintColors.Node.Flow)]
     public sealed class BlueprintNodeFsmTransition :
         BlueprintNode,
-        IBlueprintOutput<IBlueprintFsmTransition>,
-        IBlueprintFsmTransition,
-        IBlueprintFsmTransitionCallback,
-        IBlueprintAssetValidator
+        IBlueprintOutput<ICondition>,
+        ICondition,
+        IConditionCallback,
+        IBlueprintAssetValidator,
+        IDynamicDataProvider
     {
-        [SerializeReference] [SubclassSelector] private IBlueprintFsmTransition _transition;
+        [SerializeReference] [SubclassSelector] private ICondition _condition;
 
-        private IBlueprintFsmTransitionCallback _stateCallback;
+        public bool IsMatched => _condition.IsMatched;
+
+        private IConditionCallback _stateCallback;
 
         public override Port[] CreatePorts() {
             var ports = new List<Port> {
-                Port.Output<IBlueprintFsmTransition>("Self").Layout(PortLayout.Left).Capacity(PortCapacity.Single),
+                Port.Output<ICondition>("Self").Layout(PortLayout.Left).Capacity(PortCapacity.Single),
                 Port.Exit("On Transit"),
             };
 
-            if (_transition is IBlueprintFsmTransitionDynamicData t) ports.Add(Port.DynamicInput(type: t.DataType));
+            if (_condition is IDynamicDataHost host) ports.Add(Port.DynamicInput(type: host.DataType));
 
             return ports.ToArray();
         }
 
-        public IBlueprintFsmTransition GetOutputPortValue(int port) {
+        public ICondition GetOutputPortValue(int port) {
             return port == 0 ? this : default;
         }
 
-        public void Arm(IBlueprintFsmTransitionCallback callback) {
-            if (_transition is IBlueprintFsmTransitionDynamicData t) t.Data = Ports[2].Get<IDynamicData>();
+        public T GetData<T>() where T : IDynamicData {
+            return Ports[2].Get<T>();
+        }
+
+        public void Arm(IConditionCallback callback) {
+            if (_condition is IDynamicDataHost host) host.OnSetData(this);
 
             _stateCallback = callback;
-            _transition?.Arm(this);
+            _condition?.Arm(this);
         }
 
         public void Disarm() {
-            _transition?.Disarm();
+            _condition?.Disarm();
             _stateCallback = null;
         }
 
-        public void OnTransitionRequested() {
+        public void OnConditionMatch() {
             if (_stateCallback == null) return;
 
-            _stateCallback.OnTransitionRequested();
+            _stateCallback.OnConditionMatch();
             Ports[1].Call();
         }
 
