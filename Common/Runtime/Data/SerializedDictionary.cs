@@ -29,6 +29,12 @@ namespace MisterGames.Common.Data {
 
             for (int i = 0; i < _entries.Count; i++) {
                 var entry = _entries[i];
+
+                if (entry.key == null) {
+                    Debug.LogWarning($"SerializedDictionary<{typeof(TKey).Name}, {typeof(TValue).Name}>: key is null after deserialize, value {entry.value}");
+                    continue;
+                }
+
                 this[entry.key] = entry.value;
             }
         }
