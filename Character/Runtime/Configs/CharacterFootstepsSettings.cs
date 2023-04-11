@@ -2,7 +2,7 @@
 
 namespace MisterGames.Character.Configs {
 
-    [CreateAssetMenu(fileName = nameof(CharacterFootstepsSettings), menuName = "MisterGames/Character/" + nameof(CharacterFootstepsSettings))]
+    //[CreateAssetMenu(fileName = nameof(CharacterFootstepsSettings), menuName = "MisterGames/Character/" + nameof(CharacterFootstepsSettings))]
     public class CharacterFootstepsSettings : ScriptableObject {
 
         [Min(0.001f)] public float maxCharacterSpeed = 0.001f;

@@ -2,7 +2,7 @@
 
 namespace MisterGames.Character.Configs {
 
-    [CreateAssetMenu(fileName = nameof(MassSettings), menuName = "MisterGames/Character/" + nameof(MassSettings))]
+    //[CreateAssetMenu(fileName = nameof(MassSettings), menuName = "MisterGames/Character/" + nameof(MassSettings))]
     public class MassSettings : ScriptableObject {
 
         [Header("Gravity")]

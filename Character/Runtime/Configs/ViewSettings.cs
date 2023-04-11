@@ -2,7 +2,7 @@
 
 namespace MisterGames.Character.Configs {
 
-    [CreateAssetMenu(fileName = nameof(ViewSettings), menuName = "MisterGames/Character/" + nameof(ViewSettings))]
+    //[CreateAssetMenu(fileName = nameof(ViewSettings), menuName = "MisterGames/Character/" + nameof(ViewSettings))]
     public class ViewSettings : ScriptableObject {
 
         [Min(0.001f)] public float sensitivityHorizontal;

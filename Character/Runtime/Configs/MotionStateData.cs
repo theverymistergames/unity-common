@@ -2,7 +2,7 @@
 
 namespace MisterGames.Character.Configs {
 
-    [CreateAssetMenu(fileName = nameof(MotionStateData), menuName = "MisterGames/Character/" + nameof(MotionStateData))]
+    //[CreateAssetMenu(fileName = nameof(MotionStateData), menuName = "MisterGames/Character/" + nameof(MotionStateData))]
     public class MotionStateData : ScriptableObject {
 
         [Header("Speed")]
