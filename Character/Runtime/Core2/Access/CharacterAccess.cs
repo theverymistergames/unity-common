@@ -25,7 +25,7 @@ namespace MisterGames.Character.Core2 {
         [SerializeField] private CharacterHeightPipeline _heightPipeline;
 
         [SerializeField] private CollisionDetectorBase _hitDetector;
-        [SerializeField] private CollisionDetectorBase _ceilingDetector;
+        [SerializeField] private CharacterCeilingDetector _ceilingDetector;
         [SerializeField] private CharacterGroundDetector _groundDetector;
 
         public ICharacterInput Input => _input;
@@ -41,7 +41,7 @@ namespace MisterGames.Character.Core2 {
         public ICharacterHeightPipeline HeightPipeline => _heightPipeline;
 
         public ICollisionDetector HitDetector => _hitDetector;
-        public ICollisionDetector CeilingDetector => _ceilingDetector;
+        public CharacterCeilingDetector CeilingDetector => _ceilingDetector;
         public CharacterGroundDetector GroundDetector => _groundDetector;
 
         private void Awake() {

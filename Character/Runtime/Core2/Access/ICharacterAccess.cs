@@ -22,7 +22,7 @@ namespace MisterGames.Character.Core2 {
         ICharacterHeightPipeline HeightPipeline { get; }
 
         ICollisionDetector HitDetector { get; }
-        ICollisionDetector CeilingDetector { get; }
+        CharacterCeilingDetector CeilingDetector { get; }
         CharacterGroundDetector GroundDetector { get; }
     }
 }

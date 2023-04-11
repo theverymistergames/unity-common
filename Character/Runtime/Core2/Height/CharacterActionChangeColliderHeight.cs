@@ -6,7 +6,7 @@ using UnityEngine;
 namespace MisterGames.Character.Core2.Height {
 
     [Serializable]
-    public sealed class CharacterActionSetChangeColliderHeight : ICharacterAction {
+    public sealed class CharacterActionChangeColliderHeight : ICharacterAction {
 
         [Min(0f)] public float targetHeight;
         [Min(0f)] public float duration;

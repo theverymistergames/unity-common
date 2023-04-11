@@ -13,17 +13,44 @@ namespace MisterGames.Character.Core2.Collisions {
         
         [Header("Sphere cast settings")]
         [SerializeField] [Min(1)] private int _maxHits = 2;
-        [SerializeField] private float _distance = 1f;
-        [SerializeField] private float _radius = 0.5f;
+
+        [SerializeField] private float _distance = 0.55f;
+        [SerializeField] private float _distanceAddition = 0.15f;
+        [SerializeField] private float _radius = 0.3f;
+
         [SerializeField] private LayerMask _layerMask;
         [SerializeField] private QueryTriggerInteraction _triggerInteraction = QueryTriggerInteraction.Ignore;
 
-        private ITimeSource _timeSource => TimeSources.Get(_timeSourceStage);
+        public Vector3 OriginOffset {
+            get => _originOffset;
+            set {
+                if (_originOffset.IsNearlyEqual(value, tolerance: 0f)) return;
+
+                _originOffset = value;
+                _invalidateFlag = true;
+            }
+        }
+
+        public float Distance {
+            get => _distance;
+            set {
+                if (_distance.IsNearlyEqual(value, tolerance: 0f)) return;
+
+                _distance = value;
+                _invalidateFlag = true;
+            }
+        }
+
         private readonly Vector3 _ceilingDetectionDirection = Vector3.up;
+
+        private ITimeSource _timeSource => TimeSources.Get(_timeSourceStage);
         private Transform _transform;
         private RaycastHit[] _hits;
         private int _hitCount;
+
+        private Vector3 _originOffset;
         private int _lastUpdateFrame = -1;
+        private bool _invalidateFlag;
 
         private void Awake() {
             _transform = transform;
@@ -70,9 +97,12 @@ namespace MisterGames.Character.Core2.Collisions {
 
         private void RequestCeiling(bool forceNotify = false) {
             int frame = Time.frameCount;
-            if (frame == _lastUpdateFrame) return;
+            if (frame == _lastUpdateFrame && !_invalidateFlag) return;
 
-            _hitCount = PerformSphereCast(_transform.position, _radius, _distance, _hits);
+            var origin = OriginOffset + _transform.position;
+            float distance = _distance + _distanceAddition;
+
+            _hitCount = PerformSphereCast(origin, _radius, distance, _hits);
             bool hasHits = _hitCount > 0;
 
             Vector3 normal;
@@ -140,7 +170,7 @@ namespace MisterGames.Character.Core2.Collisions {
             }
             
             if (_debugDrawHasCeilingText) {
-                string text = CollisionInfo.hasContact ? "has ceiling" : "";
+                string text = CollisionInfo.hasContact ? "has ceiling" : "no ceiling";
                 DbgText.Create().Text(text).Position(_transform.position + _debugDrawHasCeilingTextOffset).Draw();
             }
         }

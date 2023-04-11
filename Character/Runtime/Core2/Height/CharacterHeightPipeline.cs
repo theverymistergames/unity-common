@@ -21,6 +21,7 @@ namespace MisterGames.Character.Core2.Height {
         private CharacterController _characterController;
         private ITransformAdapter _bodyAdapter;
         private CharacterGroundDetector _groundDetector;
+        private CharacterCeilingDetector _ceilingDetector;
         private ITimeSource _timeSource;
 
         private float _initialHeight;
@@ -114,6 +115,7 @@ namespace MisterGames.Character.Core2.Height {
             _cameraController = _characterAccess.CameraController;
             _bodyAdapter = _characterAccess.BodyAdapter;
             _groundDetector = _characterAccess.GroundDetector;
+            _ceilingDetector = _characterAccess.CeilingDetector;
             _characterController = _characterAccess.CharacterController;
             _timeSource = TimeSources.Get(_playerLoopStage);
 
@@ -162,16 +164,20 @@ namespace MisterGames.Character.Core2.Height {
         }
 
         private void ApplyHeight(float height) {
-            var halfOffset = 0.5f * (height - _initialHeight) * Vector3.up;
+            var center = 0.5f * (height - _initialHeight) * Vector3.up;
+            float detectorDistance = height * 0.5f - _characterController.radius;
             float previousHeight = _characterController.height;
 
             _characterController.height = height;
-            _characterController.center = halfOffset;
+            _characterController.center = center;
 
-            _groundDetector.OriginOffset = halfOffset;
-            _groundDetector.Distance = height * 0.5f - _characterController.radius;
-
+            _groundDetector.OriginOffset = center;
+            _groundDetector.Distance = detectorDistance;
             _groundDetector.FetchResults();
+
+            _ceilingDetector.OriginOffset = center;
+            _ceilingDetector.Distance = detectorDistance;
+            _ceilingDetector.FetchResults();
 
             if (!_groundDetector.CollisionInfo.hasContact) {
                 _bodyAdapter.Move(Vector3.up * (previousHeight - height));

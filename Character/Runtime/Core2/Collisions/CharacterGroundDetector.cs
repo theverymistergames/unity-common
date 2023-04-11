@@ -13,9 +13,9 @@ namespace MisterGames.Character.Core2.Collisions {
 
         [Header("Sphere cast settings")]
         [SerializeField] [Min(1)] private int _maxHits = 6;
-        [SerializeField] private float _initialDistance = 0.5f;
-        [SerializeField] private float _distanceAddition = 0.02f;
-        [SerializeField] private float _radius = 0.5f;
+        [SerializeField] private float _distance = 0.55f;
+        [SerializeField] private float _distanceAddition = 0.15f;
+        [SerializeField] private float _radius = 0.3f;
         [SerializeField] private LayerMask _layerMask;
         [SerializeField] private QueryTriggerInteraction _triggerInteraction = QueryTriggerInteraction.Ignore;
 
@@ -52,8 +52,6 @@ namespace MisterGames.Character.Core2.Collisions {
         private int _hitCount;
 
         private Vector3 _originOffset;
-        private float _distance;
-
         private int _lastUpdateFrame = -1;
         private bool _invalidateFlag;
 
@@ -61,8 +59,6 @@ namespace MisterGames.Character.Core2.Collisions {
             _transform = transform;
             _hitsMain = new RaycastHit[_maxHits];
             _hitsNormal = new RaycastHit[1];
-
-            Distance = _initialDistance;
         }
 
         private void OnEnable() {
@@ -107,8 +103,9 @@ namespace MisterGames.Character.Core2.Collisions {
             int frame = Time.frameCount;
             if (frame == _lastUpdateFrame && !_invalidateFlag) return;
 
-            var origin = OriginOffset + _transform.position;
-            _hitCount = PerformSphereCast(origin, _radius, GetDistance(), _hitsMain);
+            var origin = _originOffset + _transform.position;
+            float distance = _distance + _distanceAddition;
+            _hitCount = PerformSphereCast(origin, _radius, distance, _hitsMain);
 
             bool hasHits = _hitCount > 0;
             var normal = Vector3.zero;
@@ -173,10 +170,6 @@ namespace MisterGames.Character.Core2.Collisions {
             );
         }
 
-        private float GetDistance() {
-            return Distance + _distanceAddition;
-        }
-
 #if UNITY_EDITOR
         [Header("Debug")]
         [SerializeField] private bool _debugDrawNormal;
@@ -189,7 +182,10 @@ namespace MisterGames.Character.Core2.Collisions {
             if (!Application.isPlaying) return;
             
             if (_debugDrawNormal) {
-                var start = CollisionInfo.hasContact ? CollisionInfo.lastHitPoint : OriginOffset + transform.position + _groundDetectionDirection * (GetDistance() + _radius);
+                var start = CollisionInfo.hasContact ?
+                    CollisionInfo.lastHitPoint :
+                    _originOffset + transform.position + _groundDetectionDirection * (_distance + _distanceAddition + _radius);
+
                 DbgRay.Create().From(start).Dir(CollisionInfo.lastNormal).Color(Color.blue).Arrow(0.1f).Draw();
             }
 
@@ -200,14 +196,14 @@ namespace MisterGames.Character.Core2.Collisions {
             }
             
             if (_debugDrawCast) {
-                var start = OriginOffset + transform.position;
-                var end = start + _groundDetectionDirection * GetDistance();
+                var start = _originOffset + transform.position;
+                var end = start + _groundDetectionDirection * (_distance + _distanceAddition);
                 DbgCapsule.Create().From(start).To(end).Radius(_radius).Color(Color.cyan).Draw();
             }
             
             if (_debugDrawIsGroundedText) {
                 string text = CollisionInfo.hasContact ? "grounded" : "in air";
-                DbgText.Create().Text(text).Position(OriginOffset + transform.position + _debugDrawIsGroundedTextOffset).Draw();
+                DbgText.Create().Text(text).Position(_originOffset + transform.position + _debugDrawIsGroundedTextOffset).Draw();
             }
         }
 #endif
