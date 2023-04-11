@@ -27,6 +27,9 @@ namespace MisterGames.Blueprints.Editor.Core {
 
         private readonly InspectorView _inspector;
 
+        private float _labelWidth = -1f;
+        private float _fieldWidth = -1f;
+
         private string _lastNodeJson;
 
         private struct PortViewCreationData {
@@ -129,10 +132,12 @@ namespace MisterGames.Blueprints.Editor.Core {
             float labelWidthCache = EditorGUIUtility.labelWidth;
             float fieldWidthCache = EditorGUIUtility.fieldWidth;
 
-            (float labelWidth, float fieldWidth) = CalculateLabelAndFieldWidth(_nodeProperty);
+            if (_labelWidth < 0f || _fieldWidth < 0f) {
+                (_labelWidth, _fieldWidth) = CalculateLabelAndFieldWidth(_nodeProperty);
+            }
 
-            EditorGUIUtility.labelWidth = labelWidth;
-            EditorGUIUtility.fieldWidth = fieldWidth;
+            EditorGUIUtility.labelWidth = _labelWidth;
+            EditorGUIUtility.fieldWidth = _fieldWidth;
 
             while (nodePropertyCopy.NextVisible(enterChildren) && !SerializedProperty.DataEquals(nodePropertyCopy, endProperty)) {
                 enterChildren = false;
