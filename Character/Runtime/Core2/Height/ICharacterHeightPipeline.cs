@@ -14,6 +14,9 @@ namespace MisterGames.Character.Core2.Height {
         float Height { get; set; }
         float TargetHeight { get; }
 
+        float Radius { get; set; }
+        float TargetRadius { get; }
+
         /// <summary>
         /// Starts each frame height changes from current height towards target height.
         /// A height change pattern can be passed to customize height and camera path.
@@ -22,6 +25,7 @@ namespace MisterGames.Character.Core2.Height {
         /// </summary>
         void ApplyHeightChange(
             float targetHeight,
+            float targetRadius,
             float duration,
             bool scaleDuration = true,
             ICharacterHeightChangePattern pattern = null,

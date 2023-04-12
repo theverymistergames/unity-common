@@ -19,6 +19,9 @@ namespace MisterGames.Character.Core2.Height {
         public float Height { get => _characterController.height; set => SetHeight(value); }
         public float TargetHeight => _targetHeight;
 
+        public float Radius { get => _characterController.radius; set => SetRadius(value); }
+        public float TargetRadius => _targetRadius;
+
         private CameraController _cameraController;
         private CharacterController _characterController;
         private ITransformAdapter _bodyAdapter;
@@ -32,6 +35,9 @@ namespace MisterGames.Character.Core2.Height {
         private float _sourceHeight;
         private float _targetHeight;
 
+        private float _sourceRadius;
+        private float _targetRadius;
+
         private float _heightChangeDuration;
         private float _heightChangeProgress;
 
@@ -40,6 +46,7 @@ namespace MisterGames.Character.Core2.Height {
 
         public void ApplyHeightChange(
             float targetHeight,
+            float targetRadius,
             float duration,
             bool scaleDuration = true,
             ICharacterHeightChangePattern pattern = null,
@@ -47,6 +54,10 @@ namespace MisterGames.Character.Core2.Height {
         ) {
             _targetHeight = Mathf.Max(0f, targetHeight);
             _sourceHeight = _characterController.height;
+
+            _targetRadius = Mathf.Max(0f, targetRadius);
+            _sourceRadius = _characterController.radius;
+
             _onFinish = onFinish;
 
             _heightChangePattern = pattern ?? CharacterHeightChangePatternLinear.Instance;
@@ -55,15 +66,18 @@ namespace MisterGames.Character.Core2.Height {
             if (scaleDuration) _heightChangeDuration *= Mathf.Abs(_targetHeight - _sourceHeight) * _initialHeightCoeff;
 
             if (_heightChangeDuration <= 0f) {
-                SetHeight(targetHeight);
+                SetRadius(_targetRadius);
+                SetHeight(_targetHeight);
                 return;
             }
 
             if (_sourceHeight.IsNearlyEqual(_targetHeight, tolerance: 0f)) {
-                _heightChangeProgress = 1f;
+                SetRadius(_targetRadius);
 
+                _heightChangeProgress = 1f;
                 _onFinish?.Invoke();
                 _onFinish = null;
+
                 return;
             }
 
@@ -107,6 +121,15 @@ namespace MisterGames.Character.Core2.Height {
             _onFinish = null;
         }
 
+        private void SetRadius(float radius) {
+            radius = Mathf.Max(0f, radius);
+
+            _sourceRadius = _characterController.radius;
+            _targetHeight = radius;
+
+            ApplyRadius(radius);
+        }
+
         public void SetEnabled(bool isEnabled) {
             if (isEnabled) {
                 _timeSource.Subscribe(this);
@@ -132,6 +155,9 @@ namespace MisterGames.Character.Core2.Height {
             _sourceHeight = _initialHeight;
             _targetHeight = _initialHeight;
             _heightChangeProgress = 1f;
+
+            _sourceRadius = _characterController.radius;
+            _targetRadius = _sourceRadius;
         }
 
         private void OnEnable() {
@@ -152,6 +178,9 @@ namespace MisterGames.Character.Core2.Height {
             _heightChangeProgress = Mathf.Clamp01(_heightChangeProgress + progressDelta);
 
             if (lastProgress >= 1f && _heightChangeProgress >= 1f) return;
+
+            float linearRadius = Mathf.Lerp(_sourceRadius, _targetRadius, _heightChangeProgress);
+            ApplyRadius(linearRadius);
 
             float linearHeight = Mathf.Lerp(_sourceHeight, _targetHeight, _heightChangeProgress);
             float mappedHeight = _heightChangePattern.MapHeight(linearHeight);
@@ -199,6 +228,10 @@ namespace MisterGames.Character.Core2.Height {
 
             _cameraController.SetPositionOffset(this, offset + positionOffset);
             _cameraController.SetRotation(this, rotationOffset);
+        }
+
+        private void ApplyRadius(float radius) {
+            _characterController.radius = radius;
         }
     }
 
