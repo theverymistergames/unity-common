@@ -31,7 +31,24 @@ namespace MisterGames.BlueprintLib {
                 Port.Exit("On Transit"),
             };
 
-            if (_condition is IDynamicDataHost host) ports.Add(Port.DynamicInput(type: host.DataType));
+            if (_condition is IDynamicDataHost host) {
+                var types = new HashSet<Type>();
+                host.OnSetDataTypes(types);
+
+                var typesArray = new Type[types.Count];
+                types.CopyTo(typesArray);
+
+                if (typesArray.Length == 0) return ports.ToArray();
+
+                if (typesArray.Length > 1) {
+                    Debug.LogWarning($"{nameof(BlueprintNodeFsmTransition)}: " +
+                                     $"more than 1 {nameof(IDynamicDataHost)} data type is not supported");
+
+                    return ports.ToArray();
+                }
+
+                ports.Add(Port.DynamicInput(type: typesArray[0]));
+            }
 
             return ports.ToArray();
         }
