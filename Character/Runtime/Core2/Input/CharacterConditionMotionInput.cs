@@ -6,7 +6,7 @@ using MisterGames.Common.Data;
 using MisterGames.Common.Maths;
 using UnityEngine;
 
-namespace MisterGames.Character.Core2.Motion {
+namespace MisterGames.Character.Core2.Input {
 
     [Serializable]
     public sealed class CharacterConditionMotionInput : ICondition, IDynamicDataHost {
