@@ -21,7 +21,7 @@ namespace MisterGames.Blueprints.Editor.Core {
         private const float NODE_VIEW_MIN_ARRAY_LABEL_WIDTH = 100f;
         private const float NODE_VIEW_MIN_ARRAY_FIELD_WIDTH = 200f;
 
-        private const float NODE_VIEW_LABEL_WIDTH_INCREMENT_BY_DEPTH = 30f;
+        private const float NODE_VIEW_LABEL_WIDTH_INCREMENT_BY_DEPTH = 40f;
 
         public readonly BlueprintNodeMeta nodeMeta;
 
