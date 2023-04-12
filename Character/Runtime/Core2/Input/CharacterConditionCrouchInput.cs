@@ -10,16 +10,14 @@ namespace MisterGames.Character.Core2.Input {
     public sealed class CharacterConditionCrouchInput : ICondition, IDynamicDataHost {
 
         public Optional<bool> _isCrouchInputActive;
+        public Optional<bool> _isCrouchInputPressed;
+        public Optional<bool> _isCrouchInputReleased;
         public Optional<bool> _isCrouchInputToggled;
 
-        public bool IsMatched => CheckCondition(
-            _characterAccess.Input.IsCrouchPressed,
-            _wasCrouchInputToggled
-        );
+        public bool IsMatched => CheckCondition();
 
         private ICharacterAccess _characterAccess;
         private IConditionCallback _callback;
-        private bool _wasCrouchInputToggled;
 
         public void OnSetDataTypes(HashSet<Type> types) {
             types.Add(typeof(CharacterAccess));
@@ -31,21 +29,28 @@ namespace MisterGames.Character.Core2.Input {
 
         public void Arm(IConditionCallback callback) {
             _callback = callback;
-            if (IsMatched) _callback?.OnConditionMatch();
 
-            if (_isCrouchInputActive.HasValue) {
+            if (_isCrouchInputActive.HasValue || _isCrouchInputPressed.HasValue) {
                 _characterAccess.Input.CrouchPressed += OnCrouchPressed;
+            }
+
+            if (_isCrouchInputActive.HasValue || _isCrouchInputReleased.HasValue) {
                 _characterAccess.Input.CrouchReleased += OnCrouchReleased;
             }
 
             if (_isCrouchInputToggled.HasValue) {
                 _characterAccess.Input.CrouchToggled += OnCrouchToggled;
             }
+
+            if (IsMatched) _callback?.OnConditionMatch();
         }
 
         public void Disarm() {
-            if (_isCrouchInputActive.HasValue) {
+            if (_isCrouchInputActive.HasValue || _isCrouchInputPressed.HasValue) {
                 _characterAccess.Input.CrouchPressed -= OnCrouchPressed;
+            }
+
+            if (_isCrouchInputActive.HasValue || _isCrouchInputReleased.HasValue) {
                 _characterAccess.Input.CrouchReleased -= OnCrouchReleased;
             }
 
@@ -65,14 +70,14 @@ namespace MisterGames.Character.Core2.Input {
         }
 
         private void OnCrouchToggled() {
-            _wasCrouchInputToggled = true;
             if (IsMatched) _callback?.OnConditionMatch();
-            _wasCrouchInputToggled = false;
         }
 
-        private bool CheckCondition(bool isCrouchInputActive, bool isCrouchInputToggled) {
-            return _isCrouchInputActive.IsEmptyOrEquals(isCrouchInputActive) &&
-                   _isCrouchInputToggled.IsEmptyOrEquals(isCrouchInputToggled);
+        private bool CheckCondition() {
+            return _isCrouchInputActive.IsEmptyOrEquals(_characterAccess.Input.IsCrouchInputActive) &&
+                   _isCrouchInputPressed.IsEmptyOrEquals(_characterAccess.Input.WasCrouchPressed) &&
+                   _isCrouchInputReleased.IsEmptyOrEquals(_characterAccess.Input.WasCrouchReleased) &&
+                   _isCrouchInputToggled.IsEmptyOrEquals(_characterAccess.Input.WasCrouchToggled);
         }
     }
 
