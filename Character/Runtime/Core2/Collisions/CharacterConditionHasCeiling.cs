@@ -25,6 +25,7 @@ namespace MisterGames.Character.Core2.Collisions {
 
         public void Arm(IConditionCallback callback) {
             _callback = callback;
+            if (IsMatched) _callback?.OnConditionMatch();
 
             _characterAccess.CeilingDetector.OnContact += OnContact;
             _characterAccess.CeilingDetector.OnLostContact += OnLostContact;

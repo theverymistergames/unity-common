@@ -26,6 +26,8 @@ namespace MisterGames.Character.Core2.Height {
 
         public void Arm(IConditionCallback callback) {
             _callback = callback;
+            if (IsMatched) _callback?.OnConditionMatch();
+
             _characterAccess.HeightPipeline.OnHeightChanged += OnHeightChanged;
         }
 

@@ -26,7 +26,8 @@ namespace MisterGames.Character.Core2.Input {
 
         public void Arm(IConditionCallback callback) {
             _callback = callback;
-            
+            if (IsMatched) _callback?.OnConditionMatch();
+
             _characterAccess.Input.RunToggled += OnRunToggled;
         }
         

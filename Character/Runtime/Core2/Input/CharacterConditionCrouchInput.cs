@@ -31,6 +31,7 @@ namespace MisterGames.Character.Core2.Input {
 
         public void Arm(IConditionCallback callback) {
             _callback = callback;
+            if (IsMatched) _callback?.OnConditionMatch();
 
             if (_isCrouchInputActive.HasValue) {
                 _characterAccess.Input.CrouchPressed += OnCrouchPressed;

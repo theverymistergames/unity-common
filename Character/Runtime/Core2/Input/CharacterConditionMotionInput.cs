@@ -29,11 +29,18 @@ namespace MisterGames.Character.Core2.Input {
 
         public void Arm(IConditionCallback callback) {
             _callback = callback;
-            _characterAccess.Input.OnMotionVectorChanged += OnMotionVectorChanged;
+            if (IsMatched) _callback?.OnConditionMatch();
+
+            if (_isMotionInputActive.HasValue || _isMovingForward.HasValue) {
+                _characterAccess.Input.OnMotionVectorChanged += OnMotionVectorChanged;
+            }
         }
 
         public void Disarm() {
-            _characterAccess.Input.OnMotionVectorChanged -= OnMotionVectorChanged;
+            if (_isMotionInputActive.HasValue || _isMovingForward.HasValue) {
+                _characterAccess.Input.OnMotionVectorChanged -= OnMotionVectorChanged;
+            }
+
             _callback = null;
         }
 
