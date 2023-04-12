@@ -1,9 +1,10 @@
 using System;
+using System.Collections.Generic;
 
 namespace MisterGames.Common.Conditions {
     
     public interface IDynamicDataHost {
-        Type DataType { get; }
+        void OnSetDataTypes(HashSet<Type> types);
 
         void OnSetData(IDynamicDataProvider provider);
     }
