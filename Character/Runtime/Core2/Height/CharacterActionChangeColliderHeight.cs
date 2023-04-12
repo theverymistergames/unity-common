@@ -11,8 +11,8 @@ namespace MisterGames.Character.Core2.Height {
     public sealed class CharacterActionChangeColliderHeight : ICharacterAction {
 
         [Header("Parameters to change")]
-        [Min(0f)] public Optional<float> targetHeight;
-        [Min(0f)] public Optional<float> targetRadius;
+        public Optional<float> targetHeight;
+        public Optional<float> targetRadius;
 
         [Header("Change pattern")]
         [Min(0f)] public float duration;
