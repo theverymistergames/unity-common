@@ -164,14 +164,14 @@ namespace MisterGames.Character.Core2.Collisions {
             }
             
             if (_debugDrawCast) {
-                var start = _transform.position;
+                var start = transform.position;
                 var end = start + _ceilingDetectionDirection * _distance;
                 DbgCapsule.Create().From(start).To(end).Radius(_radius).Color(Color.cyan).Draw();
             }
             
             if (_debugDrawHasCeilingText) {
                 string text = CollisionInfo.hasContact ? "has ceiling" : "no ceiling";
-                DbgText.Create().Text(text).Position(_transform.position + _debugDrawHasCeilingTextOffset).Draw();
+                DbgText.Create().Text(text).Position(transform.position + _debugDrawHasCeilingTextOffset).Draw();
             }
         }
 #endif
