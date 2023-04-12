@@ -18,11 +18,10 @@ namespace MisterGames.Blueprints.Editor.Core {
         private const float NODE_VIEW_MIN_LABEL_WIDTH = 50f;
         private const float NODE_VIEW_MIN_FIELD_WIDTH = 150f;
 
-        private const float NODE_VIEW_MIN_MANAGED_REFERENCE_LABEL_WIDTH = 100f;
-        private const float NODE_VIEW_MIN_MANAGED_REFERENCE_FIELD_WIDTH = 150f;
+        private const float NODE_VIEW_MIN_ARRAY_LABEL_WIDTH = 100f;
+        private const float NODE_VIEW_MIN_ARRAY_FIELD_WIDTH = 200f;
 
-        private const float NODE_VIEW_MIN_ARRAY_LABEL_WIDTH = 150f;
-        private const float NODE_VIEW_MIN_ARRAY_FIELD_WIDTH = 250f;
+        private const float NODE_VIEW_LABEL_WIDTH_INCREMENT_BY_DEPTH = 30f;
 
         public readonly BlueprintNodeMeta nodeMeta;
 
@@ -186,8 +185,10 @@ namespace MisterGames.Blueprints.Editor.Core {
             property = property.Copy();
             var endProperty = property.GetEndProperty();
 
-            bool hasManagedReferenceFields = false;
             bool hasArrayFields = false;
+
+            int basePropertyDepth = property.depth;
+            int maxPropertyDepth = basePropertyDepth;
 
             while (property.NextVisible(true) && !SerializedProperty.DataEquals(property, endProperty)) {
                 float labelTextWidth = EditorStyles.label.CalcSize(new GUIContent(property.displayName)).x;
@@ -195,19 +196,18 @@ namespace MisterGames.Blueprints.Editor.Core {
                 labelWidth = Mathf.Max(labelWidth, Mathf.Max(labelTextWidth + 20f, NODE_VIEW_MIN_LABEL_WIDTH));
                 fieldWidth = Mathf.Max(fieldWidth, Mathf.Max(totalWidth - labelWidth, NODE_VIEW_MIN_FIELD_WIDTH));
 
-                hasManagedReferenceFields |= property.propertyType == SerializedPropertyType.ManagedReference;
                 hasArrayFields |= property.propertyType == SerializedPropertyType.ArraySize;
-            }
 
-            if (hasManagedReferenceFields) {
-                labelWidth = Mathf.Max(labelWidth, NODE_VIEW_MIN_MANAGED_REFERENCE_LABEL_WIDTH);
-                fieldWidth = Mathf.Max(fieldWidth, NODE_VIEW_MIN_MANAGED_REFERENCE_FIELD_WIDTH);
+                if (property.depth > maxPropertyDepth) maxPropertyDepth = property.depth;
             }
 
             if (hasArrayFields) {
                 labelWidth = Mathf.Max(labelWidth, NODE_VIEW_MIN_ARRAY_LABEL_WIDTH);
                 fieldWidth = Mathf.Max(fieldWidth, NODE_VIEW_MIN_ARRAY_FIELD_WIDTH);
             }
+
+            int maxDepthDiff = maxPropertyDepth - basePropertyDepth;
+            if (maxDepthDiff > 1) labelWidth += maxDepthDiff * NODE_VIEW_LABEL_WIDTH_INCREMENT_BY_DEPTH;
 
             return (labelWidth, fieldWidth);
         }
