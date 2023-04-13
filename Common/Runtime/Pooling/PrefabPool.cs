@@ -108,11 +108,11 @@ namespace MisterGames.Common.Pooling {
             return prefab.name.GetHashCode();
         }
 
-#if UNITY_EDITOR
         [Header("Editor")]
         [SerializeField] private string[] _searchPrefabsInFolders;
         public string[] SearchPrefabsInFolders => _searchPrefabsInFolders;
 
+#if UNITY_EDITOR
         public void Refresh(GameObject[] newPrefabs)
         {
             var lastItems = _poolLaunchers;
