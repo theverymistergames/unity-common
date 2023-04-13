@@ -40,9 +40,11 @@ namespace MisterGames.Blackboards.Editor {
             var properties = BlackboardUtils.GetSerializedBlackboardProperties(property);
             if (properties.Count == 0) {
                 var rect = new Rect(position.x, y, position.width, EditorGUIUtility.singleLineHeight);
-                EditorGUI.HelpBox(rect, "Blackboard has no properties", MessageType.None);
 
+                EditorGUI.HelpBox(rect, "Blackboard has no properties", MessageType.None);
                 EditorGUI.EndProperty();
+
+                EditorGUI.indentLevel--;
                 return;
             }
 
