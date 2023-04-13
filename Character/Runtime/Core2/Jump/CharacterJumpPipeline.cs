@@ -37,6 +37,8 @@ namespace MisterGames.Character.Core2.Jump {
         }
 
         private void HandleJumpPressedInput() {
+            if (_characterAccess.CeilingDetector.CollisionInfo.hasContact) return;
+
             var impulse = ForceMultiplier * _force * _direction;
             if (impulse.IsNearlyZero()) return;
 
