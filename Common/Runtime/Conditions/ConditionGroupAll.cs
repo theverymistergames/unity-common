@@ -13,7 +13,6 @@ namespace MisterGames.Common.Conditions {
         public bool IsMatched => CheckCondition();
 
         private IConditionCallback _externalCallback;
-        private bool _isArmed;
 
         public void OnSetDataTypes(HashSet<Type> types) {
             for (int i = 0; i < conditions.Length; i++) {
@@ -28,27 +27,21 @@ namespace MisterGames.Common.Conditions {
         }
 
         public void Arm(IConditionCallback callback) {
-            if (_isArmed) return;
-
             _externalCallback = callback;
 
             for (int i = 0; i < conditions.Length; i++) {
                 conditions[i].Arm(this);
             }
 
-            _isArmed = true;
-
             if (IsMatched) _externalCallback?.OnConditionMatch();
         }
 
         public void Disarm() {
-            if (!_isArmed) return;
-
             for (int i = 0; i < conditions.Length; i++) {
                 conditions[i].Disarm();
             }
 
-            _isArmed = false;
+            _externalCallback = null;
         }
 
         public void OnConditionMatch() {
