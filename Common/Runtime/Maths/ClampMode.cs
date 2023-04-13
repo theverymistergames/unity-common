@@ -1,4 +1,4 @@
-﻿namespace MisterGames.Character.Core2 {
+﻿namespace MisterGames.Common.Maths {
 
     public enum ClampMode {
         None,

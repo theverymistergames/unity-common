@@ -2,7 +2,7 @@
 using System.Runtime.CompilerServices;
 using UnityEngine;
 
-namespace MisterGames.Character.Core2 {
+namespace MisterGames.Common.Maths {
 
     public static class ClampExtensions {
 
