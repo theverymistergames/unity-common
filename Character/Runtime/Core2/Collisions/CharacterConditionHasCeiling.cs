@@ -32,8 +32,6 @@ namespace MisterGames.Character.Core2.Collisions {
 
             _ceilingDetector.OnLostContact -= OnLostContact;
             _ceilingDetector.OnLostContact += OnLostContact;
-
-            if (IsMatched) _callback?.OnConditionMatch();
         }
         
         public void Disarm() {

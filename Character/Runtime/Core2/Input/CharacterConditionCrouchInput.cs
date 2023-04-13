@@ -44,8 +44,6 @@ namespace MisterGames.Character.Core2.Input {
                 _input.CrouchToggled -= OnCrouchToggled;
                 _input.CrouchToggled += OnCrouchToggled;
             }
-
-            if (IsMatched) _callback?.OnConditionMatch();
         }
 
         public void Disarm() {

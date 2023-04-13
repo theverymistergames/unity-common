@@ -32,8 +32,6 @@ namespace MisterGames.Character.Core2.Collisions {
 
             _groundDetector.OnLostContact -= OnLostContact;
             _groundDetector.OnLostContact += OnLostContact;
-
-            if (IsMatched) _callback?.OnConditionMatch();
         }
         
         public void Disarm() {

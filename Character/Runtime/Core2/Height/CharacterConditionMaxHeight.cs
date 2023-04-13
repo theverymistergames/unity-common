@@ -29,8 +29,6 @@ namespace MisterGames.Character.Core2.Height {
 
             _heightPipeline.OnHeightChanged -= OnHeightChanged;
             _heightPipeline.OnHeightChanged += OnHeightChanged;
-
-            if (IsMatched) _callback?.OnConditionMatch();
         }
 
         public void Disarm() {

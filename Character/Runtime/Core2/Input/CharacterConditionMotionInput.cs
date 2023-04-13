@@ -36,8 +36,6 @@ namespace MisterGames.Character.Core2.Input {
                 input.OnMotionVectorChanged -= OnMotionVectorChanged;
                 input.OnMotionVectorChanged += OnMotionVectorChanged;
             }
-
-            if (IsMatched) _callback?.OnConditionMatch();
         }
 
         public void Disarm() {

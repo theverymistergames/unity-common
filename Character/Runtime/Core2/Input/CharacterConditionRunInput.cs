@@ -28,8 +28,6 @@ namespace MisterGames.Character.Core2.Input {
 
             _input.RunToggled -= OnRunToggled;
             _input.RunToggled += OnRunToggled;
-
-            if (IsMatched) _callback?.OnConditionMatch();
         }
         
         public void Disarm() {

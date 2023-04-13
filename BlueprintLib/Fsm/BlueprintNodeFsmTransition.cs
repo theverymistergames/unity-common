@@ -19,6 +19,7 @@ namespace MisterGames.BlueprintLib {
         IBlueprintAssetValidator,
         IDynamicDataProvider
     {
+        [SerializeField] private bool _checkImmediatelyAfterArmed;
         [SerializeReference] [SubclassSelector] private ICondition _condition;
 
         public bool IsMatched => _condition.IsMatched;
@@ -75,6 +76,8 @@ namespace MisterGames.BlueprintLib {
 
             _stateCallback = callback;
             _condition?.Arm(this);
+
+            if (_checkImmediatelyAfterArmed && IsMatched) OnConditionMatch();
         }
 
         public void Disarm() {

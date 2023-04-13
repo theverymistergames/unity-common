@@ -32,8 +32,6 @@ namespace MisterGames.Common.Conditions {
             for (int i = 0; i < conditions.Length; i++) {
                 conditions[i].Arm(this);
             }
-
-            if (IsMatched) _externalCallback?.OnConditionMatch();
         }
 
         public void Disarm() {
