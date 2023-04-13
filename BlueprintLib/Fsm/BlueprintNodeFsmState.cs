@@ -18,6 +18,8 @@ namespace MisterGames.BlueprintLib {
         };
 
         public override void OnDeInitialize() {
+            _isEnteredState = false;
+
             var links = Ports[1].links;
             for (int i = 0; i < links.Count; i++) {
                 links[i].Get<ICondition>()?.Disarm();
@@ -38,6 +40,8 @@ namespace MisterGames.BlueprintLib {
         }
 
         public void OnConditionMatch() {
+            if (!_isEnteredState) return;
+
             var links = Ports[1].links;
             for (int i = 0; i < links.Count; i++) {
                 links[i].Get<ICondition>()?.Disarm();
