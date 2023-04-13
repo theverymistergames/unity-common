@@ -10,25 +10,16 @@ namespace MisterGames.Common.Editor.Drawers {
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
             EditorGUI.BeginProperty(position, label, property);
 
-            EditorGUI.LabelField(position, label);
-
             var hasValueProperty = property.FindPropertyRelative("_hasValue");
-            float hasValueSize = EditorGUIUtility.singleLineHeight;
 
-            var hasValueRect = new Rect(
-                position.x + EditorGUIUtility.labelWidth + 2f,
-                position.y,
-                hasValueSize,
-                hasValueSize
-            );
-            EditorGUI.PropertyField(hasValueRect, hasValueProperty, GUIContent.none);
+            EditorGUI.PropertyField(position, hasValueProperty, label);
 
             EditorGUI.BeginDisabledGroup(!hasValueProperty.boolValue);
 
             var valueRect = new Rect(
-                position.x + EditorGUIUtility.labelWidth + hasValueSize + 2f,
+                position.x + EditorGUIUtility.labelWidth + 7f,
                 position.y,
-                position.width - EditorGUIUtility.labelWidth - hasValueSize - 2f,
+                position.width - EditorGUIUtility.labelWidth - 7f,
                 position.height
             );
             EditorGUI.PropertyField(valueRect, property.FindPropertyRelative("_value"), GUIContent.none, true);
