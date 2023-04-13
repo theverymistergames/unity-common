@@ -88,7 +88,6 @@ namespace MisterGames.Character.Core2.Height {
 
         private void SetHeight(float height) {
             height = Mathf.Max(0f, height);
-
             _sourceHeight = _characterController.height;
 
             if (_sourceHeight.IsNearlyEqual(_targetHeight, tolerance: 0f)) {
@@ -125,7 +124,7 @@ namespace MisterGames.Character.Core2.Height {
             radius = Mathf.Max(0f, radius);
 
             _sourceRadius = _characterController.radius;
-            _targetHeight = radius;
+            _targetRadius = radius;
 
             ApplyRadius(radius);
         }
