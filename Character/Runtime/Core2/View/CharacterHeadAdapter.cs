@@ -7,7 +7,6 @@ namespace MisterGames.Character.Core2.View {
     public class CharacterHeadAdapter : MonoBehaviour, ITransformAdapter {
 
         [SerializeField] private CharacterAccess _characterAccess;
-        [SerializeField] private CameraController _cameraController;
 
         public Vector3 Position {
             get => _cameraController.PositionOffset;
@@ -17,6 +16,12 @@ namespace MisterGames.Character.Core2.View {
         public Quaternion Rotation {
             get => _cameraController.Rotation;
             set => _cameraController.SetRotation(this, value);
+        }
+
+        private CameraController _cameraController;
+
+        private void Awake() {
+            _cameraController = _characterAccess.CameraController;
         }
 
         private void OnEnable() {
