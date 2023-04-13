@@ -1,5 +1,5 @@
 ﻿using System;
-using MisterGames.Character.Adapters;
+using MisterGames.Character.Access;
 using MisterGames.Character.Spawn;
 using MisterGames.Common.Pooling;
 using MisterGames.Dbg.Console.Attributes;
@@ -87,7 +87,7 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
             var access = Object.FindObjectOfType<CharacterAccess>();
             if (access == null) {
                 var newHeroInstance = PrefabPool.Instance.TakeActive(_heroPrefab);
-                access = newHeroInstance.GetComponent<CharacterAccess>();
+                access = newHeroInstance.GetComponentInChildren<CharacterAccess>();
             }
 
             if (access == null) {
@@ -95,7 +95,10 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
                 return;
             }
 
-            access.CharacterAdapter.TeleportTo(position);
+            access.CharacterController.enabled = false;
+            access.BodyAdapter.Position = position;
+            access.CharacterController.enabled = true;
+
             ConsoleRunner.AppendLine($"Character {access.name} was respawned at point [{spawnPointName} :: {position}]");
         }
     }
