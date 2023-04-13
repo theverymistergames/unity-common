@@ -210,10 +210,6 @@ namespace MisterGames.Character.Core2.Height {
             _groundDetector.Distance = detectorDistance;
             _groundDetector.FetchResults();
 
-            //_ceilingDetector.OriginOffset = center;
-            //_ceilingDetector.Distance = detectorDistance;
-            //_ceilingDetector.FetchResults();
-
             if (!_groundDetector.CollisionInfo.hasContact) {
                 _bodyAdapter.Move(Vector3.up * (previousHeight - height));
             }
@@ -231,6 +227,8 @@ namespace MisterGames.Character.Core2.Height {
 
         private void ApplyRadius(float radius) {
             _characterController.radius = radius;
+            _groundDetector.Radius = radius;
+            _ceilingDetector.Radius = radius;
         }
     }
 

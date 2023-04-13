@@ -43,6 +43,16 @@ namespace MisterGames.Character.Core2.Collisions {
             }
         }
 
+        public float Radius {
+            get => _radius;
+            set {
+                if (_radius.IsNearlyEqual(value, tolerance: 0f)) return;
+
+                _radius = value;
+                _invalidateFlag = true;
+            }
+        }
+
         private ITimeSource _timeSource => TimeSources.Get(_timeSourceStage);
         private readonly Vector3 _groundDetectionDirection = Vector3.down;
         private Transform _transform;
