@@ -18,8 +18,6 @@ namespace MisterGames.Character.Core2.Motion {
         public float gravityForce = 9.8f;
         public bool isGravityEnabled = true;
 
-        private ICharacterAccess _characterAccess;
-
         private ICollisionDetector _groundDetector;
         private ICollisionDetector _ceilingDetector;
         private ICollisionDetector _hitDetector;
@@ -31,8 +29,6 @@ namespace MisterGames.Character.Core2.Motion {
         private Vector3 _currentVelocity;
 
         public void Initialize(ICharacterAccess characterAccess) {
-            _characterAccess = characterAccess;
-
             _hitDetector = characterAccess.HitDetector;
             _ceilingDetector = characterAccess.CeilingDetector;
             _groundDetector = characterAccess.GroundDetector;
@@ -73,8 +69,6 @@ namespace MisterGames.Character.Core2.Motion {
 
             _previousVelocity = _currentVelocity;
             _currentVelocity = _gravitationalComponent + _inertialComponent;
-
-            Debug.DrawRay(_characterAccess.BodyAdapter.Position, _currentVelocity, Color.blue);
 
             return _currentVelocity;
         }
