@@ -21,7 +21,12 @@ namespace MisterGames.Character.Motion {
             new CharacterProcessorVector2ToCharacterForward();
 
         [SerializeReference] [SubclassSelector] private ICharacterProcessorVector3[] _motionProcessors = {
-            new CharacterProcessorMass { gravityForce = 15f, airInertialFactor = 10f, groundInertialFactor = 20f },
+            new CharacterProcessorMass {
+                gravityForce = 15f,
+                airInertialFactor = 10f,
+                groundInertialFactor = 20f,
+                forceInfluenceFactor = 0.5f,
+            },
         };
 
         public Vector2 MotionInput => _input;

@@ -13,6 +13,7 @@ namespace MisterGames.Character.Motion {
         [Header("Inertia")]
         public float airInertialFactor = 1f;
         public float groundInertialFactor = 1f;
+        public float forceInfluenceFactor = 1f;
 
         [Header("Gravity")]
         public float gravityForce = 9.8f;
@@ -104,7 +105,7 @@ namespace MisterGames.Character.Motion {
         private void UpdateInertialComponent(Vector3 force, float dt) {
             float factor = _groundDetector.CollisionInfo.hasContact
                 ? groundInertialFactor
-                : airInertialFactor * GetForceInfluence(force, _inertialComponent);
+                : airInertialFactor * GetForceInfluence(force, _inertialComponent, forceInfluenceFactor);
 
             _inertialComponent = Vector3.Lerp(_inertialComponent, force, factor * dt);
         }
@@ -136,15 +137,20 @@ namespace MisterGames.Character.Motion {
         /// Force influence allows to save the bigger amount of the inertial energy while not grounded,
         /// the greater the inertial component value compared to force value:
         ///
-        /// 1) Value is a relation of force magnitude to inertial component magnitude, if inertial component is not zero.
+        /// 1) Value is a relation of force magnitude to inertial component magnitude,
+        ///    if inertial component is bigger than force component.
         ///
-        /// 2) Value is 1f (no influence), if inertial component is zero.
+        /// 2) Value is 1f (no influence),
+        ///    if inertial component is equal or less than force component.
         ///
         /// </summary>
-        private static float GetForceInfluence(Vector3 force, Vector3 inertialComponent) {
+        private static float GetForceInfluence(Vector3 force, Vector3 inertialComponent, float multiplier) {
             float inertialSqrMagnitude = inertialComponent.sqrMagnitude;
             float forceSqrMagnitude = force.sqrMagnitude;
-            return inertialSqrMagnitude > NumberExtensions.SqrEpsilon ? forceSqrMagnitude / inertialSqrMagnitude : 1f;
+
+            return inertialSqrMagnitude > forceSqrMagnitude
+                ? multiplier * forceSqrMagnitude / inertialSqrMagnitude
+                : 1f;
         }
     }
 
