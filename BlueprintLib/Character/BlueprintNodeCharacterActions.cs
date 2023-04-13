@@ -1,7 +1,7 @@
 ﻿using System;
 using MisterGames.Blueprints;
-using MisterGames.Character.Core2.Access;
-using MisterGames.Character.Core2.Actions;
+using MisterGames.Character.Access;
+using MisterGames.Character.Actions;
 using UnityEngine;
 
 namespace MisterGames.BlueprintLib {

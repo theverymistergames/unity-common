@@ -4,102 +4,118 @@ using UnityEngine;
 
 namespace MisterGames.Character.Input {
 
-    public class CharacterInput : MonoBehaviour {
+    public sealed class CharacterInput : MonoBehaviour, ICharacterInput {
 
-        [SerializeField] private InputActionVector2 _inputActionView;
-        [SerializeField] private InputActionVector2 _inputActionMove;
-        [SerializeField] private InputActionKey _inputActionRun;
-        [SerializeField] private InputActionKey _inputActionRunToggle;
-        [SerializeField] private InputActionKey _inputActionJump;
-        [SerializeField] private InputActionKey _inputActionCrouch;
-        [SerializeField] private InputActionKey _inputActionCrouchToggle;
-        [SerializeField] private InputActionKey _inputActionTorch;
+        [SerializeField] private InputActionVector2 _view;
+        [SerializeField] private InputActionVector2 _move;
+        [SerializeField] private InputActionKey _crouch;
+        [SerializeField] private InputActionKey _crouchToggle;
+        [SerializeField] private InputActionKey _runToggle;
+        [SerializeField] private InputActionKey _jump;
 
-        public event Action<Vector2> View = delegate {  }; 
-        public event Action<Vector2> Move = delegate {  }; 
-        public event Action StartRun = delegate {  }; 
-        public event Action StopRun = delegate {  }; 
-        public event Action ToggleRun = delegate {  }; 
-        public event Action StartCrouch = delegate {  }; 
-        public event Action StopCrouch = delegate {  }; 
-        public event Action ToggleCrouch = delegate {  };
-        public event Action Jump = delegate {  }; 
-        public event Action Torch = delegate {  }; 
-        
+        public event Action<Vector2> OnViewVectorChanged = delegate {  };
+        public event Action<Vector2> OnMotionVectorChanged = delegate {  };
+
+        public event Action RunToggled = delegate {  };
+        public bool WasRunToggled { get; private set; }
+
+        public event Action CrouchPressed = delegate {  };
+        public event Action CrouchReleased = delegate {  };
+        public event Action CrouchToggled = delegate {  };
+
+        public bool IsCrouchInputActive => _crouch.IsPressed;
+        public bool WasCrouchPressed { get; private set; }
+        public bool WasCrouchReleased { get; private set; }
+        public bool WasCrouchToggled { get; private set; }
+
+        public event Action JumpPressed = delegate {  };
+        public bool IsJumpPressed => _jump.IsPressed;
+
+        public void SetEnabled(bool isEnabled) {
+            if (isEnabled) {
+                _view.OnChanged -= OnViewChanged;
+                _view.OnChanged += OnViewChanged;
+
+                _move.OnChanged -= OnMoveChanged;
+                _move.OnChanged += OnMoveChanged;
+
+                _crouch.OnPress -= OnCrouchPressed;
+                _crouch.OnPress += OnCrouchPressed;
+
+                _crouch.OnRelease -= OnCrouchReleased;
+                _crouch.OnRelease += OnCrouchReleased;
+
+                _crouchToggle.OnPress -= OnCrouchToggled;
+                _crouchToggle.OnPress += OnCrouchToggled;
+
+                _runToggle.OnPress -= OnRunToggled;
+                _runToggle.OnPress += OnRunToggled;
+
+                _jump.OnPress -= OnJumpPressed;
+                _jump.OnPress += OnJumpPressed;
+                return;
+            }
+
+            _view.OnChanged -= OnViewChanged;
+            _move.OnChanged -= OnMoveChanged;
+
+            _crouch.OnPress -= OnCrouchPressed;
+            _crouch.OnRelease -= OnCrouchReleased;
+            _crouchToggle.OnPress -= OnCrouchToggled;
+
+            _runToggle.OnPress -= OnRunToggled;
+
+            _jump.OnPress -= OnJumpPressed;
+
+            OnViewVectorChanged.Invoke(Vector2.zero);
+            OnMotionVectorChanged.Invoke(Vector2.zero);
+
+            CrouchReleased.Invoke();
+        }
+
         private void OnEnable() {
-            _inputActionMove.OnChanged += HandleInputMove;
-            _inputActionView.OnChanged += HandleInputView;
-            
-            _inputActionRun.OnPress += HandleInputStartRun;
-            _inputActionRun.OnRelease += HandleInputStopRun;
-            _inputActionRunToggle.OnPress += HandleInputToggleRun;
-            
-            _inputActionCrouch.OnPress += HandleInputStartCrouch;
-            _inputActionCrouch.OnRelease += HandleInputStopCrouch;
-            _inputActionCrouchToggle.OnPress += HandleInputToggleCrouch;
-            
-            _inputActionJump.OnPress += HandleInputStartJump;
-            
-            _inputActionTorch.OnPress += HandleInputTorch;
+            SetEnabled(true);
         }
 
         private void OnDisable() {
-            _inputActionMove.OnChanged -= HandleInputMove;
-            _inputActionView.OnChanged -= HandleInputView;
-            
-            _inputActionRun.OnPress -= HandleInputStartRun;
-            _inputActionRun.OnRelease -= HandleInputStopRun;
-            _inputActionRunToggle.OnPress -= HandleInputToggleRun;
-            
-            _inputActionCrouch.OnPress -= HandleInputStartCrouch;
-            _inputActionCrouch.OnRelease -= HandleInputStopCrouch;
-            _inputActionCrouchToggle.OnPress -= HandleInputToggleCrouch;
-            
-            _inputActionJump.OnPress -= HandleInputStartJump;
-            
-            _inputActionTorch.OnPress -= HandleInputTorch;
+            SetEnabled(false);
         }
 
-        private void HandleInputView(Vector2 delta) {
-            View.Invoke(delta);
-        }
-        
-        private void HandleInputMove(Vector2 direction) {
-            Move.Invoke(direction);
+        private void OnViewChanged(Vector2 delta) {
+            OnViewVectorChanged.Invoke(delta);
         }
 
-        private void HandleInputStartRun() {
-            StartRun.Invoke();
+        private void OnMoveChanged(Vector2 motion) {
+            OnMotionVectorChanged.Invoke(motion);
         }
-        
-        private void HandleInputStopRun() {
-            StopRun.Invoke();
+
+        private void OnCrouchPressed() {
+            WasCrouchPressed = true;
+            CrouchPressed.Invoke();
+            WasCrouchPressed = false;
         }
-        
-        private void HandleInputToggleRun() {
-            ToggleRun.Invoke();
+
+        private void OnCrouchReleased() {
+            WasCrouchReleased = true;
+            CrouchReleased.Invoke();
+            WasCrouchReleased = false;
         }
-        
-        private void HandleInputStartCrouch() {
-            StartCrouch.Invoke();
+
+        private void OnCrouchToggled() {
+            WasCrouchToggled = true;
+            CrouchToggled.Invoke();
+            WasCrouchToggled = false;
         }
-        
-        private void HandleInputStopCrouch() {
-            StopCrouch.Invoke();
+
+        private void OnRunToggled() {
+            WasRunToggled = true;
+            RunToggled.Invoke();
+            WasRunToggled = false;
         }
-        
-        private void HandleInputToggleCrouch() {
-            ToggleCrouch.Invoke();
+
+        private void OnJumpPressed() {
+            JumpPressed.Invoke();
         }
-        
-        private void HandleInputStartJump() {
-            Jump.Invoke();
-        }
-        
-        private void HandleInputTorch() {
-            Torch.Invoke();
-        }
-        
     }
 
 }
