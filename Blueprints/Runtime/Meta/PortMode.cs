@@ -12,7 +12,7 @@ namespace MisterGames.Blueprints.Meta {
         Input = 1,
 
         /// <summary>
-        /// Port mode: data if flag is set, otherwise flow.
+        /// Port type: data-based port if flag is set, otherwise flow-based port.
         /// </summary>
         Data = 2,
 
@@ -21,14 +21,5 @@ namespace MisterGames.Blueprints.Meta {
 
         LayoutLeft = 16,
         LayoutRight = 32,
-
-        External = 64,
-        Hidden = 128,
-
-        /// <summary>
-        /// Used only for dynamic output data port to allow connections to input data ports with subclass data type.
-        /// </summary>
-        AcceptSubclass = 256,
     }
-
 }

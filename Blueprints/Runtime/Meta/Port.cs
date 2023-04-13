@@ -10,6 +10,7 @@ namespace MisterGames.Blueprints {
 
         [SerializeField] private string _name;
         [SerializeField] private PortMode _mode;
+        [SerializeField] private PortOptions _options;
         [SerializeField] private SerializedType _dataType;
 
         private sealed class Null {}
@@ -23,9 +24,10 @@ namespace MisterGames.Blueprints {
 
         internal bool IsInput => _mode.HasFlag(PortMode.Input);
         internal bool IsData => _mode.HasFlag(PortMode.Data);
-        internal bool IsExternal => _mode.HasFlag(PortMode.External);
-        internal bool IsHidden => _mode.HasFlag(PortMode.Hidden);
-        internal bool AcceptSubclass => _mode.HasFlag(PortMode.AcceptSubclass);
+
+        internal bool IsExternal => _options.HasFlag(PortOptions.External);
+        internal bool IsHidden => _options.HasFlag(PortOptions.Hidden);
+        internal bool AcceptSubclass => _options.HasFlag(PortOptions.AcceptSubclass);
 
         internal bool IsMultiple =>
             !_mode.HasFlag(PortMode.CapacitySingle) && !_mode.HasFlag(PortMode.CapacityMultiple)
@@ -44,15 +46,15 @@ namespace MisterGames.Blueprints {
         );
 
         internal Port External(bool isExternal) {
-            if (isExternal) _mode |= PortMode.External;
-            else _mode &= ~PortMode.External;
+            if (isExternal) _options |= PortOptions.External;
+            else _options &= ~PortOptions.External;
 
             return this;
         }
 
         public Port Hidden(bool isHidden) {
-            if (isHidden) _mode |= PortMode.Hidden;
-            else _mode &= ~PortMode.Hidden;
+            if (isHidden) _options |= PortOptions.Hidden;
+            else _options &= ~PortOptions.Hidden;
 
             return this;
         }
@@ -118,8 +120,8 @@ namespace MisterGames.Blueprints {
         }
 
         public static Port DynamicOutput(string name = null, Type type = null, bool acceptSubclass = false) {
-            var mode = PortMode.Data | (acceptSubclass ? PortMode.AcceptSubclass : PortMode.None);
-            return new Port { _name = name, _mode = mode, DataType = type };
+            var options = acceptSubclass ? PortOptions.AcceptSubclass : PortOptions.None;
+            return new Port { _name = name, _mode = PortMode.Data, _options = options, DataType = type };
         }
 
         public bool Equals(Port other) {
