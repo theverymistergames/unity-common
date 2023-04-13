@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using MisterGames.Character.Core2.Access;
+using MisterGames.Collisions.Core;
 using MisterGames.Common.Conditions;
 
 namespace MisterGames.Character.Core2.Collisions {
@@ -12,7 +13,7 @@ namespace MisterGames.Character.Core2.Collisions {
 
         public bool IsMatched => CheckCondition();
 
-        private ICharacterAccess _characterAccess;
+        private ICollisionDetector _groundDetector;
         private IConditionCallback _callback;
 
         public void OnSetDataTypes(HashSet<Type> types) {
@@ -20,25 +21,24 @@ namespace MisterGames.Character.Core2.Collisions {
         }
 
         public void OnSetData(IDynamicDataProvider provider) {
-            _characterAccess = provider.GetData<CharacterAccess>();
+            _groundDetector = provider.GetData<CharacterAccess>().GroundDetector;
         }
 
         public void Arm(IConditionCallback callback) {
             _callback = callback;
 
-            if (_characterAccess != null) {
-                _characterAccess.GroundDetector.OnContact += OnContact;
-                _characterAccess.GroundDetector.OnLostContact += OnLostContact;
-            }
+            _groundDetector.OnContact -= OnContact;
+            _groundDetector.OnContact += OnContact;
+
+            _groundDetector.OnLostContact -= OnLostContact;
+            _groundDetector.OnLostContact += OnLostContact;
 
             if (IsMatched) _callback?.OnConditionMatch();
         }
         
         public void Disarm() {
-            if (_characterAccess != null) {
-                _characterAccess.GroundDetector.OnContact -= OnContact;
-                _characterAccess.GroundDetector.OnLostContact -= OnLostContact;
-            }
+            _groundDetector.OnContact -= OnContact;
+            _groundDetector.OnLostContact -= OnLostContact;
 
             _callback = null;
         }
@@ -52,9 +52,7 @@ namespace MisterGames.Character.Core2.Collisions {
         }
 
         private bool CheckCondition() {
-            if (_characterAccess == null) return !isGrounded;
-
-            return isGrounded == _characterAccess.GroundDetector.CollisionInfo.hasContact;
+            return isGrounded == _groundDetector.CollisionInfo.hasContact;
         }
     }
 

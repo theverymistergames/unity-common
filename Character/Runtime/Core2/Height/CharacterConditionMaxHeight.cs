@@ -13,7 +13,7 @@ namespace MisterGames.Character.Core2.Height {
 
         public bool IsMatched => CheckCondition();
 
-        private ICharacterAccess _characterAccess;
+        private ICharacterHeightPipeline _heightPipeline;
         private IConditionCallback _callback;
         
         public void OnSetDataTypes(HashSet<Type> types) {
@@ -21,19 +21,20 @@ namespace MisterGames.Character.Core2.Height {
         }
 
         public void OnSetData(IDynamicDataProvider provider) {
-            _characterAccess = provider.GetData<CharacterAccess>();
+            _heightPipeline = provider.GetData<CharacterAccess>().HeightPipeline;
         }
 
         public void Arm(IConditionCallback callback) {
             _callback = callback;
 
-            if (_characterAccess != null) _characterAccess.HeightPipeline.OnHeightChanged += OnHeightChanged;
+            _heightPipeline.OnHeightChanged -= OnHeightChanged;
+            _heightPipeline.OnHeightChanged += OnHeightChanged;
 
             if (IsMatched) _callback?.OnConditionMatch();
         }
 
         public void Disarm() {
-            if (_characterAccess != null) _characterAccess.HeightPipeline.OnHeightChanged -= OnHeightChanged;
+            _heightPipeline.OnHeightChanged -= OnHeightChanged;
 
             _callback = null;
         }
@@ -43,9 +44,7 @@ namespace MisterGames.Character.Core2.Height {
         }
 
         private bool CheckCondition() {
-            if (_characterAccess == null) return true;
-
-            return _characterAccess.HeightPipeline.Height <= maxHeight;
+            return _heightPipeline.Height <= maxHeight;
         }
     }
 

@@ -12,7 +12,7 @@ namespace MisterGames.Character.Core2.Input {
 
         public bool IsMatched => CheckCondition();
 
-        private ICharacterAccess _characterAccess;
+        private ICharacterInput _input;
         private IConditionCallback _callback;
 
         public void OnSetDataTypes(HashSet<Type> types) {
@@ -20,18 +20,20 @@ namespace MisterGames.Character.Core2.Input {
         }
 
         public void OnSetData(IDynamicDataProvider provider) {
-            _characterAccess = provider.GetData<CharacterAccess>();
+            _input = provider.GetData<CharacterAccess>().Input;
         }
 
         public void Arm(IConditionCallback callback) {
             _callback = callback;
-            if (_characterAccess != null) _characterAccess.Input.RunToggled += OnRunToggled;
+
+            _input.RunToggled -= OnRunToggled;
+            _input.RunToggled += OnRunToggled;
 
             if (IsMatched) _callback?.OnConditionMatch();
         }
         
         public void Disarm() {
-            if (_characterAccess != null) _characterAccess.Input.RunToggled -= OnRunToggled;
+            _input.RunToggled -= OnRunToggled;
 
             _callback = null;
         }
@@ -41,9 +43,7 @@ namespace MisterGames.Character.Core2.Input {
         }
 
         private bool CheckCondition() {
-            if (_characterAccess == null) return false;
-
-            return _isRunInputToggled == _characterAccess.Input.WasRunToggled;
+            return _isRunInputToggled == _input.WasRunToggled;
         }
     }
 

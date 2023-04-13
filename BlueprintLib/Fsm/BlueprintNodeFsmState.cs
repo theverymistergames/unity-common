@@ -18,12 +18,14 @@ namespace MisterGames.BlueprintLib {
         };
 
         public override void OnDeInitialize() {
-            _isEnteredState = false;
+            if (!_isEnteredState) return;
 
             var links = Ports[1].links;
             for (int i = 0; i < links.Count; i++) {
                 links[i].Get<ICondition>()?.Disarm();
             }
+
+            _isEnteredState = false;
         }
 
         public void OnEnterPort(int port) {
@@ -47,9 +49,9 @@ namespace MisterGames.BlueprintLib {
                 links[i].Get<ICondition>()?.Disarm();
             }
 
-            Ports[3].Call();
-
             _isEnteredState = false;
+
+            Ports[3].Call();
         }
     }
 

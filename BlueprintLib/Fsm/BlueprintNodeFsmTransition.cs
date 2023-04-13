@@ -53,6 +53,13 @@ namespace MisterGames.BlueprintLib {
             return ports.ToArray();
         }
 
+        public override void OnDeInitialize() {
+            if (_stateCallback == null) return;
+
+            _condition?.Disarm();
+            _stateCallback = null;
+        }
+
         public ICondition GetOutputPortValue(int port) {
             return port == 0 ? this : default;
         }
@@ -62,6 +69,8 @@ namespace MisterGames.BlueprintLib {
         }
 
         public void Arm(IConditionCallback callback) {
+            if (_stateCallback != null) return;
+
             if (_condition is IDynamicDataHost host) host.OnSetData(this);
 
             _stateCallback = callback;
@@ -69,6 +78,8 @@ namespace MisterGames.BlueprintLib {
         }
 
         public void Disarm() {
+            if (_stateCallback == null) return;
+
             _condition?.Disarm();
             _stateCallback = null;
         }
