@@ -170,7 +170,6 @@ namespace MisterGames.Character.Core2.Collisions {
             );
         }
 
-#if UNITY_EDITOR
         [Header("Debug")]
         [SerializeField] private bool _debugDrawNormal;
         [SerializeField] private bool _debugDrawCast;
@@ -178,6 +177,7 @@ namespace MisterGames.Character.Core2.Collisions {
         [SerializeField] private bool _debugDrawIsGroundedText;
         [SerializeField] private Vector3 _debugDrawIsGroundedTextOffset;
 
+#if UNITY_EDITOR
         private void OnDrawGizmos() {
             if (!Application.isPlaying) return;
             

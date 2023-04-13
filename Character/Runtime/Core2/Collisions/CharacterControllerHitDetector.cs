@@ -22,11 +22,11 @@ namespace MisterGames.Character.Core2.Collisions {
             };
             SetCollisionInfo(info, forceNotify: true);
         }
-        
-#if UNITY_EDITOR
+
         [Header("Debug")]
         [SerializeField] private bool _debugDrawHitPoint;
 
+#if UNITY_EDITOR
         private void OnDrawGizmos() {
             if (!Application.isPlaying) return;
             
