@@ -10,7 +10,7 @@ namespace MisterGames.Character.Core2.Input {
 
         public bool _isRunInputToggled;
 
-        public bool IsMatched => _isRunInputToggled == _characterAccess.Input.WasRunToggled;
+        public bool IsMatched => CheckCondition();
 
         private ICharacterAccess _characterAccess;
         private IConditionCallback _callback;
@@ -25,19 +25,25 @@ namespace MisterGames.Character.Core2.Input {
 
         public void Arm(IConditionCallback callback) {
             _callback = callback;
-            _characterAccess.Input.RunToggled += OnRunToggled;
+            if (_characterAccess != null) _characterAccess.Input.RunToggled += OnRunToggled;
 
             if (IsMatched) _callback?.OnConditionMatch();
         }
         
         public void Disarm() {
-            _characterAccess.Input.RunToggled -= OnRunToggled;
-            
+            if (_characterAccess != null) _characterAccess.Input.RunToggled -= OnRunToggled;
+
             _callback = null;
         }
 
         private void OnRunToggled() {
             if (IsMatched) _callback?.OnConditionMatch();
+        }
+
+        private bool CheckCondition() {
+            if (_characterAccess == null) return false;
+
+            return _isRunInputToggled == _characterAccess.Input.WasRunToggled;
         }
     }
 

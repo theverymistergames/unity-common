@@ -30,16 +30,20 @@ namespace MisterGames.Character.Core2.Input {
         public void Arm(IConditionCallback callback) {
             _callback = callback;
 
-            if (_isMotionInputActive.HasValue || _isMovingForward.HasValue) {
-                _characterAccess.Input.OnMotionVectorChanged += OnMotionVectorChanged;
+            if (_characterAccess != null) {
+                if (_isMotionInputActive.HasValue || _isMovingForward.HasValue) {
+                    _characterAccess.Input.OnMotionVectorChanged += OnMotionVectorChanged;
+                }
             }
 
             if (IsMatched) _callback?.OnConditionMatch();
         }
 
         public void Disarm() {
-            if (_isMotionInputActive.HasValue || _isMovingForward.HasValue) {
-                _characterAccess.Input.OnMotionVectorChanged -= OnMotionVectorChanged;
+            if (_characterAccess != null) {
+                if (_isMotionInputActive.HasValue || _isMovingForward.HasValue) {
+                    _characterAccess.Input.OnMotionVectorChanged -= OnMotionVectorChanged;
+                }
             }
 
             _callback = null;
@@ -50,7 +54,7 @@ namespace MisterGames.Character.Core2.Input {
         }
 
         private bool CheckCondition() {
-            var motionInput = _characterAccess.MotionPipeline.MotionInput;
+            var motionInput = _characterAccess == null ? Vector2.zero : _characterAccess.MotionPipeline.MotionInput;
 
             return _isMotionInputActive.IsEmptyOrEquals(!motionInput.IsNearlyZero()) &&
                    _isMovingForward.IsEmptyOrEquals(motionInput.y > 0f);

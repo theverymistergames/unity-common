@@ -30,32 +30,36 @@ namespace MisterGames.Character.Core2.Input {
         public void Arm(IConditionCallback callback) {
             _callback = callback;
 
-            if (_isCrouchInputActive.HasValue || _isCrouchInputPressed.HasValue) {
-                _characterAccess.Input.CrouchPressed += OnCrouchPressed;
-            }
+            if (_characterAccess != null) {
+                if (_isCrouchInputActive.HasValue || _isCrouchInputPressed.HasValue) {
+                    _characterAccess.Input.CrouchPressed += OnCrouchPressed;
+                }
 
-            if (_isCrouchInputActive.HasValue || _isCrouchInputReleased.HasValue) {
-                _characterAccess.Input.CrouchReleased += OnCrouchReleased;
-            }
+                if (_isCrouchInputActive.HasValue || _isCrouchInputReleased.HasValue) {
+                    _characterAccess.Input.CrouchReleased += OnCrouchReleased;
+                }
 
-            if (_isCrouchInputToggled.HasValue) {
-                _characterAccess.Input.CrouchToggled += OnCrouchToggled;
+                if (_isCrouchInputToggled.HasValue) {
+                    _characterAccess.Input.CrouchToggled += OnCrouchToggled;
+                }
             }
 
             if (IsMatched) _callback?.OnConditionMatch();
         }
 
         public void Disarm() {
-            if (_isCrouchInputActive.HasValue || _isCrouchInputPressed.HasValue) {
-                _characterAccess.Input.CrouchPressed -= OnCrouchPressed;
-            }
+            if (_characterAccess != null) {
+                if (_isCrouchInputActive.HasValue || _isCrouchInputPressed.HasValue) {
+                    _characterAccess.Input.CrouchPressed -= OnCrouchPressed;
+                }
 
-            if (_isCrouchInputActive.HasValue || _isCrouchInputReleased.HasValue) {
-                _characterAccess.Input.CrouchReleased -= OnCrouchReleased;
-            }
+                if (_isCrouchInputActive.HasValue || _isCrouchInputReleased.HasValue) {
+                    _characterAccess.Input.CrouchReleased -= OnCrouchReleased;
+                }
 
-            if (_isCrouchInputToggled.HasValue) {
-                _characterAccess.Input.CrouchToggled -= OnCrouchToggled;
+                if (_isCrouchInputToggled.HasValue) {
+                    _characterAccess.Input.CrouchToggled -= OnCrouchToggled;
+                }
             }
 
             _callback = null;
@@ -74,6 +78,13 @@ namespace MisterGames.Character.Core2.Input {
         }
 
         private bool CheckCondition() {
+            if (_characterAccess == null) {
+                return _isCrouchInputActive.IsEmptyOrEquals(false) &&
+                       _isCrouchInputPressed.IsEmptyOrEquals(false) &&
+                       _isCrouchInputReleased.IsEmptyOrEquals(false) &&
+                       _isCrouchInputToggled.IsEmptyOrEquals(false);
+            }
+
             return _isCrouchInputActive.IsEmptyOrEquals(_characterAccess.Input.IsCrouchInputActive) &&
                    _isCrouchInputPressed.IsEmptyOrEquals(_characterAccess.Input.WasCrouchPressed) &&
                    _isCrouchInputReleased.IsEmptyOrEquals(_characterAccess.Input.WasCrouchReleased) &&

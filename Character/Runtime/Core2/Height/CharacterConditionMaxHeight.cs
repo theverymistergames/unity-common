@@ -10,8 +10,8 @@ namespace MisterGames.Character.Core2.Height {
     public sealed class CharacterConditionMaxHeight : ICondition, IDynamicDataHost {
 
         [Min(0f)] public float maxHeight;
-        
-        public bool IsMatched => _characterAccess.HeightPipeline.Height <= maxHeight;
+
+        public bool IsMatched => CheckCondition();
 
         private ICharacterAccess _characterAccess;
         private IConditionCallback _callback;
@@ -26,18 +26,26 @@ namespace MisterGames.Character.Core2.Height {
 
         public void Arm(IConditionCallback callback) {
             _callback = callback;
-            _characterAccess.HeightPipeline.OnHeightChanged += OnHeightChanged;
+
+            if (_characterAccess != null) _characterAccess.HeightPipeline.OnHeightChanged += OnHeightChanged;
 
             if (IsMatched) _callback?.OnConditionMatch();
         }
 
         public void Disarm() {
-            _characterAccess.HeightPipeline.OnHeightChanged -= OnHeightChanged;
+            if (_characterAccess != null) _characterAccess.HeightPipeline.OnHeightChanged -= OnHeightChanged;
+
             _callback = null;
         }
 
         private void OnHeightChanged(float arg1, float arg2) {
             if (IsMatched) _callback?.OnConditionMatch();
+        }
+
+        private bool CheckCondition() {
+            if (_characterAccess == null) return true;
+
+            return _characterAccess.HeightPipeline.Height <= maxHeight;
         }
     }
 

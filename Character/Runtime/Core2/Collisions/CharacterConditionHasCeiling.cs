@@ -10,7 +10,7 @@ namespace MisterGames.Character.Core2.Collisions {
 
         public bool hasCeiling;
 
-        public bool IsMatched => hasCeiling == _characterAccess.CeilingDetector.CollisionInfo.hasContact;
+        public bool IsMatched => CheckCondition();
 
         private ICharacterAccess _characterAccess;
         private IConditionCallback _callback;
@@ -26,16 +26,20 @@ namespace MisterGames.Character.Core2.Collisions {
         public void Arm(IConditionCallback callback) {
             _callback = callback;
 
-            _characterAccess.CeilingDetector.OnContact += OnContact;
-            _characterAccess.CeilingDetector.OnLostContact += OnLostContact;
+            if (_characterAccess != null) {
+                _characterAccess.CeilingDetector.OnContact += OnContact;
+                _characterAccess.CeilingDetector.OnLostContact += OnLostContact;
+            }
 
             if (IsMatched) _callback?.OnConditionMatch();
         }
         
         public void Disarm() {
-            _characterAccess.CeilingDetector.OnContact -= OnContact;
-            _characterAccess.CeilingDetector.OnLostContact -= OnLostContact;
-            
+            if (_characterAccess != null) {
+                _characterAccess.CeilingDetector.OnContact -= OnContact;
+                _characterAccess.CeilingDetector.OnLostContact -= OnLostContact;
+            }
+
             _callback = null;
         }
 
@@ -45,6 +49,12 @@ namespace MisterGames.Character.Core2.Collisions {
 
         private void OnLostContact() {
             if (IsMatched) _callback?.OnConditionMatch();
+        }
+
+        private bool CheckCondition() {
+            if (_characterAccess == null) return !hasCeiling;
+
+            return hasCeiling == _characterAccess.CeilingDetector.CollisionInfo.hasContact;
         }
     }
 

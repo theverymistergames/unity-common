@@ -8,9 +8,9 @@ namespace MisterGames.Character.Core2.Collisions {
     [Serializable]
     public sealed class CharacterConditionIsGrounded : ICondition, IDynamicDataHost {
 
-        public bool _isGrounded;
+        public bool isGrounded;
 
-        public bool IsMatched => _isGrounded == _characterAccess.GroundDetector.CollisionInfo.hasContact;
+        public bool IsMatched => CheckCondition();
 
         private ICharacterAccess _characterAccess;
         private IConditionCallback _callback;
@@ -26,15 +26,19 @@ namespace MisterGames.Character.Core2.Collisions {
         public void Arm(IConditionCallback callback) {
             _callback = callback;
 
-            _characterAccess.GroundDetector.OnContact += OnContact;
-            _characterAccess.GroundDetector.OnLostContact += OnLostContact;
+            if (_characterAccess != null) {
+                _characterAccess.GroundDetector.OnContact += OnContact;
+                _characterAccess.GroundDetector.OnLostContact += OnLostContact;
+            }
 
             if (IsMatched) _callback?.OnConditionMatch();
         }
         
         public void Disarm() {
-            _characterAccess.GroundDetector.OnContact -= OnContact;
-            _characterAccess.GroundDetector.OnLostContact -= OnLostContact;
+            if (_characterAccess != null) {
+                _characterAccess.GroundDetector.OnContact -= OnContact;
+                _characterAccess.GroundDetector.OnLostContact -= OnLostContact;
+            }
 
             _callback = null;
         }
@@ -45,6 +49,12 @@ namespace MisterGames.Character.Core2.Collisions {
 
         private void OnLostContact() {
             if (IsMatched) _callback?.OnConditionMatch();
+        }
+
+        private bool CheckCondition() {
+            if (_characterAccess == null) return !isGrounded;
+
+            return isGrounded == _characterAccess.GroundDetector.CollisionInfo.hasContact;
         }
     }
 
