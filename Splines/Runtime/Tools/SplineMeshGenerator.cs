@@ -1,10 +1,8 @@
-﻿using System;
-using System.Collections;
-using MisterGames.Bezier.Objects;
-using MisterGames.Bezier.Utility;
+﻿using System.Collections;
 using UnityEngine;
+using UnityEngine.Splines;
 
-namespace MisterGames.Bezier.Generation {
+namespace MisterGames.Splines.Tools {
     
     /// <summary>
     /// Deform a mesh and place it along a spline, given various parameters.
@@ -44,76 +42,66 @@ namespace MisterGames.Bezier.Generation {
         [SerializeField]
         private bool _generateCollider = true;
         
-        [Tooltip("The mode to use to fill the choosen interval with the bent mesh.")]
+        [Tooltip("The mode to use to fill the chosen interval with the bent mesh.")]
         [SerializeField]
-        private SplineMeshBender.FillingMode _mode = SplineMeshBender.FillingMode.Repeat;
+        private MeshFillingMode _mode = MeshFillingMode.Repeat;
 
-        private SplineCreator _splineCreator;
+        internal SplineContainer splineContainer;
 
         private void OnEnable() { 
-            _splineCreator = GetComponent<SplineCreator>();
-            _splineCreator.pathUpdated += Generate; 
-
-            Generate();
+            splineContainer = GetComponent<SplineContainer>();
+            TryGenerateMesh(splineContainer);
         }
 
-        private void OnDisable() {
-            _splineCreator.pathUpdated -= Generate; 
-        }
-
-        private void OnValidate() {
-            StartCoroutine(ExecuteInNextFrame(() => {
-                if (enabled) Generate();
-            }));
-        }
-
-        private static IEnumerator ExecuteInNextFrame(Action action) {
-            yield return null;
-            action.Invoke();
-        }
-
-        private void Generate() {
+        // TODO test with UnityEngine.Splines
+        public void TryGenerateMesh(SplineContainer spline) {
             if (_mesh == null || _material == null) return;
             
-            var go = FindOrCreate("GeneratedMesh");
-            go.GetComponent<SplineMeshBender>().SetInterval(_splineCreator.path); 
-            go.GetComponent<MeshCollider>().enabled = _generateCollider;
+            var meshGameObject = FindOrCreateMesh($"{name}_GeneratedMesh");
+
+            meshGameObject.GetComponent<SplineMeshBender>().SetSpline(spline);
+            meshGameObject.GetComponent<MeshCollider>().enabled = _generateCollider;
         }
 
-        private GameObject FindOrCreate(string objectName) {
+        private GameObject FindOrCreateMesh(string objectName) {
             var childTransform = transform.Find(objectName);
-            GameObject res;
-            
-            if (childTransform == null) {
-                res = UoUtility.Create(objectName,
-                    gameObject,
+            var res = childTransform == null
+                ? new GameObject(
+                    name,
                     typeof(MeshFilter),
                     typeof(MeshRenderer),
                     typeof(SplineMeshBender),
-                    typeof(MeshCollider));
-                
-                res.isStatic = true;
-            } 
-            else {
-                res = childTransform.gameObject;
-            }
-            
+                    typeof(MeshCollider)
+                ) {
+                    transform = {
+                        parent = transform,
+                        localPosition = Vector3.zero,
+                        localScale = Vector3.one,
+                        localRotation = Quaternion.identity
+                    },
+                    isStatic = true
+                }
+                : childTransform.gameObject;
+
             res.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
             res.GetComponent<MeshRenderer>().material = _material;
             res.GetComponent<MeshCollider>().material = _physicMaterial;
             
-            var mb = res.GetComponent<SplineMeshBender>();
-            var sourceMesh = new MeshInfo {
-                mesh = _mesh,
-                translation = _translation,
-                rotation = Quaternion.Euler(_rotation),
-                scale = _scale
-            }.Create();
-            
-            mb.SetSourceMesh(sourceMesh, _mode);
+            var splineMeshBender = res.GetComponent<SplineMeshBender>();
+            var sourceMesh = new MeshInfo(_mesh, _translation, Quaternion.Euler(_rotation), _scale);
+            splineMeshBender.SetSourceMesh(sourceMesh, _mode);
+
             return res;
         }
-        
+
+        private void OnValidate() {
+            StartCoroutine(WaitFrameAndTryGenerate());
+        }
+
+        private IEnumerator WaitFrameAndTryGenerate() {
+            yield return null;
+            if (enabled) TryGenerateMesh(splineContainer);
+        }
     }
     
 }

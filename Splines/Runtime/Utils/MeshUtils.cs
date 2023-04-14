@@ -1,30 +1,32 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace MisterGames.Bezier.Utility {
+namespace MisterGames.Splines.Utils {
     
-    public static class MeshUtility {
+    public static class MeshUtils {
 
         /// <summary>
         /// Returns a mesh with reserved triangles to turn back the face culling.
-        /// This is usefull when a mesh needs to have a negative scale.
+        /// This is useful when a mesh needs to have a negative scale.
         /// </summary>
         public static int[] GetReversedTriangles(Mesh mesh) {
-            var res = mesh.triangles.ToArray();
-            var triangleCount = res.Length / 3;
-            for (var i = 0; i < triangleCount; i++) {
-                var tmp = res[i * 3];
-                res[i * 3] = res[i * 3 + 1];
-                res[i * 3 + 1] = tmp;
+            int[] triangles = mesh.triangles.ToArray();
+            int triangleCount = triangles.Length / 3;
+
+            for (int i = 0; i < triangleCount; i++) {
+                (triangles[i * 3], triangles[i * 3 + 1]) = (triangles[i * 3 + 1], triangles[i * 3]);
             }
-            return res;
+
+            return triangles;
         }
 
         /// <summary>
-        /// Returns a mesh similar to the given source plus given optionnal parameters.
+        /// Returns a mesh similar to the given source plus given optional parameters.
         /// </summary>
-        public static void Update(Mesh mesh,
+        public static void Update(
+            Mesh mesh,
             Mesh source,
             IEnumerable<int> triangles = null,
             IEnumerable<Vector3> vertices = null,
@@ -40,7 +42,7 @@ namespace MisterGames.Bezier.Utility {
         ) {
             mesh.hideFlags = source.hideFlags;
             mesh.indexFormat = source.indexFormat;
-            mesh.triangles = new int[0];
+            mesh.triangles = Array.Empty<int>();
             mesh.vertices = vertices == null ? source.vertices : vertices.ToArray();
             mesh.normals = normals == null ? source.normals : normals.ToArray();
             mesh.uv = uv == null? source.uv : uv.ToArray();
@@ -52,6 +54,7 @@ namespace MisterGames.Bezier.Utility {
             mesh.uv7 = uv7 == null ? source.uv7 : uv7.ToArray();
             mesh.uv8 = uv8 == null ? source.uv8 : uv8.ToArray();
             mesh.triangles = triangles == null ? source.triangles : triangles.ToArray();
+
             mesh.RecalculateBounds();
             mesh.RecalculateTangents();
         }
