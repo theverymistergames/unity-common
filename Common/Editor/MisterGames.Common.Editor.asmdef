@@ -2,8 +2,7 @@
     "name": "MisterGames.Common.Editor",
     "rootNamespace": "MisterGames.Common.Editor",
     "references": [
-        "GUID:0175294ec022c624cbe537915e3c9e71",
-        "GUID:478a2357cc57436488a56e564b08d223"
+        "GUID:0175294ec022c624cbe537915e3c9e71"
     ],
     "includePlatforms": [
         "Editor"

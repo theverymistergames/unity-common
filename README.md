@@ -12,7 +12,6 @@
 - [`MisterGames.Common`](https://github.com/theverymistergames/unity-common/tree/master/Common)
 - [`MisterGames.ConsoleCommandsLib`](https://github.com/theverymistergames/unity-common/tree/master/ConsoleCommandsLib)
 - [`MisterGames.Dbg`](https://github.com/theverymistergames/unity-common/tree/master/Dbg)
-- [`MisterGames.Fsm`](https://github.com/theverymistergames/unity-common/tree/master/Fsm)
 - [`MisterGames.Input`](https://github.com/theverymistergames/unity-common/tree/master/Input)
 - [`MisterGames.Interact`](https://github.com/theverymistergames/unity-common/tree/master/Interact)
 - [`MisterGames.Scenario`](https://github.com/theverymistergames/unity-common/tree/master/Scenario)
@@ -25,6 +24,5 @@
 
 ## External dependencies
 - [`Unity.InputSystem`](https://docs.unity3d.com/Packages/com.unity.inputsystem@1.0/manual/index.html)
-- [`Unity.EditorCoroutines.Editor`](https://docs.unity3d.com/Manual/com.unity.editorcoroutines.html)
 - [`Unity.TextMeshPro`](https://docs.unity3d.com/Manual/com.unity.textmeshpro.html)
 - [`Cysharp.UniTask`](https://github.com/Cysharp/UniTask)
