@@ -12,7 +12,7 @@ namespace MisterGames.BlueprintLib {
         BlueprintNode,
         IBlueprintEnter,
         IBlueprintOutput<bool>,
-        IBlueprintOutput<InteractiveUser>,
+        IBlueprintOutput<IInteractiveUser>,
         IBlueprintStart
     {
         [SerializeField] private bool _autoSetInteractiveOnStart = true;
@@ -23,11 +23,11 @@ namespace MisterGames.BlueprintLib {
             Port.Exit("On Start Interact"),
             Port.Exit("On Stop Interact"),
             Port.Output<bool>("Is Interacting"),
-            Port.Output<InteractiveUser>("User"),
+            Port.Output<IInteractiveUser>(),
         };
 
         private Interactive _interactive;
-        private InteractiveUser _currentUser;
+        private IInteractiveUser _currentUser;
 
         public void OnStart() {
             if (!_autoSetInteractiveOnStart) return;
@@ -63,12 +63,12 @@ namespace MisterGames.BlueprintLib {
             }
         }
 
-        private void OnStartInteract(InteractiveUser obj) {
-            _currentUser = obj;
+        private void OnStartInteract(IInteractiveUser user, Vector3 hitPoint) {
+            _currentUser = user;
             Ports[2].Call();
         }
 
-        private void OnStopInteract() {
+        private void OnStopInteract(IInteractiveUser user) {
             _currentUser = null;
             Ports[3].Call();
         }
@@ -78,7 +78,7 @@ namespace MisterGames.BlueprintLib {
             _ => false,
         };
 
-        InteractiveUser IBlueprintOutput<InteractiveUser>.GetOutputPortValue(int port) => port switch {
+        IInteractiveUser IBlueprintOutput<IInteractiveUser>.GetOutputPortValue(int port) => port switch {
             5 => _currentUser,
             _ => null,
         };

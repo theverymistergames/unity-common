@@ -1,86 +1,99 @@
 ﻿using System;
 using MisterGames.Collisions.Core;
 using MisterGames.Collisions.Utils;
+using MisterGames.Common.GameObjects;
 using MisterGames.Dbg.Draw;
 using MisterGames.Tick.Core;
 using UnityEngine;
 
 namespace MisterGames.Interact.Core {
 
-    public sealed class InteractiveUser : MonoBehaviour, IUpdate {
+    public sealed class InteractiveUser : MonoBehaviour, IInteractiveUser, IUpdate {
 
+        [Header("Settings")]
         [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
-        [SerializeField] private CollisionFilter _collisionFilter = new CollisionFilter { maxDistance = 3f };
+        [SerializeField] private TransformAdapterBase _transformAdapter;
+
+        [Header("Collision detection")]
         [SerializeField] private CollisionDetectorBase _collisionDetector;
+        [SerializeField] private CollisionFilter _collisionFilter = new CollisionFilter { maxDistance = 3f };
 
-        public event Action<Interactive> OnInteractiveDetected = delegate {  };
-        public event Action OnInteractiveLost = delegate {  };
+        public event Action<IInteractive> OnInteractiveDetected = delegate {  };
+        public event Action<IInteractive> OnInteractiveLost = delegate {  };
 
-        public Interactive PossibleInteractive { get; private set; }
-        public CollisionInfo CurrentCollisionInfo => _currentCollisionInfo;
+        public event Action<IInteractive, Vector3> OnStartInteract = delegate {  };
+        public event Action<IInteractive> OnStopInteract = delegate {  };
 
-        private ITimeSource _timeSource => TimeSources.Get(_timeSourceStage);
-        private CollisionInfo _currentCollisionInfo;
-        private bool _hasPossibleInteractive;
+        public GameObject GameObject => gameObject;
+        public ITransformAdapter TransformAdapter => _transformAdapter;
+        public IInteractive PossibleInteractive { get; private set; }
+        public bool IsInteracting => ReferenceEquals(PossibleInteractive?.User, this);
+
+        private CollisionInfo _collisionInfo;
 
         private void OnEnable() {
-            _timeSource.Subscribe(this);
+            TimeSources.Get(_timeSourceStage).Subscribe(this);
         }
 
         private void OnDisable() {
-            _timeSource.Unsubscribe(this);
+            TimeSources.Get(_timeSourceStage).Unsubscribe(this);
         }
 
-        public bool IsDetectedTarget(Interactive interactive) {
-            return _hasPossibleInteractive && PossibleInteractive == interactive;
+        public void StartInteract() {
+            if (PossibleInteractive == null || IsInteracting) return;
+
+            var hitPoint = _collisionInfo.lastHitPoint;
+            PossibleInteractive.StartInteractWithUser(this, hitPoint);
+            OnStartInteract.Invoke(PossibleInteractive, hitPoint);
+        }
+
+        public void StopInteract() {
+            if (PossibleInteractive == null || !IsInteracting) return;
+
+            PossibleInteractive.StopInteractWithUser(this);
+            OnStopInteract.Invoke(PossibleInteractive);
         }
 
         public void OnUpdate(float dt) {
-            var lastInfo = _currentCollisionInfo;
+            var lastInfo = _collisionInfo;
 
             _collisionDetector.FetchResults();
-            _collisionDetector.FilterLastResults(_collisionFilter, out _currentCollisionInfo);
+            _collisionDetector.FilterLastResults(_collisionFilter, out _collisionInfo);
 
-            if (_currentCollisionInfo.IsTransformChanged(lastInfo)) {
-                CheckNewPossibleInteractive(_currentCollisionInfo);
+            if (_collisionInfo.IsTransformChanged(lastInfo)) {
+                CheckNewPossibleInteractive(_collisionInfo);
             }
         }
 
         private void CheckNewPossibleInteractive(CollisionInfo info) {
-            if (_hasPossibleInteractive) {
-                PossibleInteractive.OnLostByUser(this);
+            if (IsInteracting) return;
+
+            if (PossibleInteractive != null) {
+                OnInteractiveLost.Invoke(PossibleInteractive);
+                PossibleInteractive.LoseByUser(this);
                 PossibleInteractive = null;
-                OnInteractiveLost.Invoke();
             }
 
-            if (!info.hasContact) {
-                PossibleInteractive = null;
-                _hasPossibleInteractive = false;
-                return;
-            }
+            if (!info.hasContact) return;
 
-            PossibleInteractive = info.transform.GetComponent<Interactive>();
-            _hasPossibleInteractive = PossibleInteractive != null;
-            if (!_hasPossibleInteractive) return;
+            PossibleInteractive = info.transform.GetComponent<IInteractive>();
+            if (PossibleInteractive == null) return;
 
-            PossibleInteractive.OnDetectedByUser(this);
             OnInteractiveDetected.Invoke(PossibleInteractive);
+            PossibleInteractive.DetectByUser(this);
         }
 
         public override string ToString() {
-            return $"{nameof(InteractiveUser)}(" +
-                   $"{name}" +
-                   $", possibleInteractive = {(PossibleInteractive == null ? "null" : $"{PossibleInteractive.name}")}" +
-                   ")";
+            return $"{nameof(InteractiveUser)}({name}, possibleInteractive = {PossibleInteractive})";
         }
 
-#if UNITY_EDITOR
         [Header("Debug")]
         [SerializeField] private bool _debugDrawRaycastHit;
 
-        private void Update() {
+#if UNITY_EDITOR
+        private void OnDrawGizmos() {
             if (_debugDrawRaycastHit) {
-                DbgPointer.Create().Color(Color.green).Position(_currentCollisionInfo.lastHitPoint).Size(0.5f).Draw();
+                DbgPointer.Create().Color(Color.green).Position(_collisionInfo.lastHitPoint).Size(0.5f).Draw();
             }
         }
 #endif

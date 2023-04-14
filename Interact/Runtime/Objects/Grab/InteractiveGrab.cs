@@ -24,20 +24,25 @@ namespace MisterGames.Interact.Objects {
         
         public event Action OnStartGrab = delegate {  }; 
         public event Action OnStopGrab = delegate {  }; 
-        public event Action<Vector3, Vector3> OnGrab = delegate {  }; 
+        public event Action<Vector3, Vector3> OnGrab = delegate {  };
 
-        private ITimeSource _timeSource => TimeSources.Get(_timeSourceStage);
+        private IInteractiveUser _user;
         private Interactive _interactive;
-        
+
         private Transform _transform;
-        private Transform _userTransform;
-        
+
         private Vector3 _smoothedGrabPoint;
         private Vector3 _grabPoint;
-        private Vector3 _userPosition;
         private Vector3 _inputDelta;
-        
+        private Vector3 _lastUserPosition;
+
         private bool _isGrabbed;
+
+        private enum NormalMode {
+            Up,
+            Forward,
+            Right
+        }
 
         private void Awake() {
             _interactive = GetComponent<Interactive>();
@@ -47,24 +52,24 @@ namespace MisterGames.Interact.Objects {
         private void OnEnable() {
             _interactive.OnStartInteract += OnStartInteract;
             _interactive.OnStopInteract += OnStopInteract;
-            _timeSource.Subscribe(this);
+            TimeSources.Get(_timeSourceStage).Subscribe(this);
         }
 
         private void OnDisable() {
             _interactive.OnStartInteract -= OnStartInteract;
             _interactive.OnStopInteract -= OnStopInteract;
-            _timeSource.Unsubscribe(this);
+            TimeSources.Get(_timeSourceStage).Unsubscribe(this);
         }
 
-        void IUpdate.OnUpdate(float dt) {
+        public void OnUpdate(float dt) {
             if (!_isGrabbed) return;
             
-            var prevPosition = _userPosition;
-            _userPosition = _userTransform.position;
-            var userPositionDelta = _walkSensitivity * (_userPosition - prevPosition);
+            var prevPosition = _lastUserPosition;
+            _lastUserPosition = _user.TransformAdapter.Position;
+
+            var userPositionDelta = _walkSensitivity * (_lastUserPosition - prevPosition);
             
             _grabPoint += userPositionDelta + _inputDelta;
-            
             _inputDelta = Vector3.zero;
 
             var prevSmoothedGrabPoint = _smoothedGrabPoint;
@@ -73,11 +78,11 @@ namespace MisterGames.Interact.Objects {
             OnGrab.Invoke(prevSmoothedGrabPoint, _smoothedGrabPoint);
         }
 
-        private void OnStartInteract(InteractiveUser user) {
-            _userTransform = user.transform;
-            _userPosition = _userTransform.position;
+        private void OnStartInteract(IInteractiveUser user, Vector3 hitPoint) {
+            _user = user;
+            _lastUserPosition = _user.TransformAdapter.Position;
             
-            _grabPoint = user.CurrentCollisionInfo.lastHitPoint;
+            _grabPoint = hitPoint;
             _smoothedGrabPoint = _grabPoint;
             
             _inputAxis.OnChanged -= OnInputAxisChanged;
@@ -88,10 +93,8 @@ namespace MisterGames.Interact.Objects {
             OnStartGrab.Invoke();
         }
 
-        private void OnStopInteract() {
+        private void OnStopInteract(IInteractiveUser user) {
             _inputAxis.OnChanged -= OnInputAxisChanged;
-            _userTransform = null;
-            
             _isGrabbed = false;
             
             OnStopGrab.Invoke();
@@ -109,17 +112,9 @@ namespace MisterGames.Interact.Objects {
 
             if (_invertNormal) normal *= -1;
             
-            var userRotationPlain = Quaternion.Euler(_userTransform.rotation.eulerAngles.WithX(0f));
-            
+            var userRotationPlain = Quaternion.Euler(_user.TransformAdapter.Rotation.eulerAngles.WithX(0f));
             _inputDelta += Quaternion.FromToRotation(Vector3.up, normal) * userRotationPlain * delta3;
         }
-
-        private enum NormalMode {
-            Up,
-            Forward,
-            Right
-        }
-        
     }
 
 }

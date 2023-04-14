@@ -1,152 +1,81 @@
 ﻿using System;
-using MisterGames.Common.Maths;
 using MisterGames.Tick.Core;
+using Unity.Mathematics;
 using UnityEngine;
 
 namespace MisterGames.Interact.Core {
 
-    public sealed class Interactive : MonoBehaviour, IUpdate {
+    public sealed class Interactive : MonoBehaviour, IInteractive, IUpdate {
 
         [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
-        [SerializeField] private InteractStrategy _strategy;
+        [SerializeField] private InteractiveStrategy _strategy;
 
-        public event Action<InteractiveUser> OnStartInteract = delegate {  };
-        public event Action OnStopInteract = delegate {  };
+        public event Action<IInteractiveUser> OnDetectedByUser = delegate {  };
+        public event Action<IInteractiveUser> OnLostByUser = delegate {  };
 
-        public InteractStrategy Strategy => _strategy;
-        public bool IsInteracting { get; private set; }
+        public event Action<IInteractiveUser, Vector3> OnStartInteract = delegate {  };
+        public event Action<IInteractiveUser> OnStopInteract = delegate {  };
 
-        private ITimeSource _timeSource => TimeSources.Get(_timeSourceStage);
+        public IInteractiveUser User => _currentUser;
+        public Vector3 Position => _transform.position;
+
+        public bool IsInteracting => _currentUser != null && ReferenceEquals(_currentUser.PossibleInteractive, this);
+        public bool IsDetected => _detectedByUsersCount > 0;
+
         private Transform _transform;
-
-        private InteractiveUser _lastDetectedUser;
-        private InteractiveUser _interactiveUser;
-        private Transform _interactionUserTransform;
-        private IInteractiveMode _strategyMode;
-
-        private bool _isDetectedByInteractionUser;
-        private float _maxInteractionSqrDistance;
+        private IInteractiveUser _currentUser;
+        private int _detectedByUsersCount;
 
         private void Awake() {
             _transform = transform;
-            _maxInteractionSqrDistance = _strategy.maxInteractDistance * _strategy.maxInteractDistance;
-            _strategyMode = _strategy.mode.Build();
+        }
+
+        private void OnEnable() {
+            if (IsInteracting || IsDetected) TimeSources.Get(_timeSourceStage).Subscribe(this);
         }
 
         private void OnDisable() {
             TimeSources.Get(_timeSourceStage).Unsubscribe(this);
         }
 
-        void IUpdate.OnUpdate(float dt) {
-            if (!IsInteracting) return;
-            if (IsValidDistance() && IsValidViewDirection()) return;
-            
-            StopInteractByUser(_interactiveUser);
+        public void OnUpdate(float dt) {
+            if (IsInteracting) _strategy.UpdateInteractionState(_currentUser, this);
         }
 
-        public void OnDetectedByUser(InteractiveUser user) {
-            if (user == null) return;
+        public void DetectByUser(IInteractiveUser user) {
+            _detectedByUsersCount++;
+            OnDetectedByUser.Invoke(user);
 
-            _lastDetectedUser = user;
-            _isDetectedByInteractionUser = IsInteracting && _interactiveUser.IsDetectedTarget(this);
-
-            SubscribeOnInputAction();
+            TimeSources.Get(_timeSourceStage).Subscribe(this);
         }
 
-        public void OnLostByUser(InteractiveUser user) {
-            _isDetectedByInteractionUser = IsInteracting && _interactiveUser.IsDetectedTarget(this);
-            _lastDetectedUser = null;
+        public void LoseByUser(IInteractiveUser user) {
+            _detectedByUsersCount = math.max(0, _detectedByUsersCount - 1);
+            OnLostByUser.Invoke(user);
 
-            if (IsInteracting) return;
-
-            UnsubscribeFromInputAction();
+            if (!IsInteracting && !IsDetected) TimeSources.Get(_timeSourceStage).Unsubscribe(this);
         }
 
-        public void StartInteractByUser(InteractiveUser user) {
-            if (IsInteracting || user == null) return;
+        public void StartInteractWithUser(IInteractiveUser user, Vector3 hitPoint) {
+            if (IsInteracting) StopInteractWithUser(_currentUser);
 
-            SetInteractionUser(user);
+            _currentUser = user;
+            OnStartInteract.Invoke(_currentUser, hitPoint);
 
-            if (!IsValidDistance() || !IsValidViewDirection()) {
-                ResetInteractionUser();
-                return;
-            }
-
-            _strategy.filter.Apply();
-            _timeSource.Subscribe(this);
-
-            OnStartInteract.Invoke(_interactiveUser);
+            TimeSources.Get(_timeSourceStage).Subscribe(this);
         }
 
-        public void StopInteractByUser(InteractiveUser user) {
-            if (!IsInteracting || user != _interactiveUser) return;
+        public void StopInteractWithUser(IInteractiveUser user) {
+            if (!IsInteracting || _currentUser != user) return;
 
-            _timeSource.Unsubscribe(this);
-            _strategy.filter.Release();
-            ResetInteractionUser();
+            OnStopInteract.Invoke(_currentUser);
+            _currentUser = null;
 
-            OnStopInteract.Invoke();
-        }
-
-        private void OnInteractInputPressed() {
-            if (IsInteracting) {
-                _strategyMode.OnInputPressedWhileIsInteracting(_interactiveUser, this);
-                return;
-            }
-
-            if (_lastDetectedUser == null) return;
-            _strategyMode.OnInputPressedWhileIsNotInteracting(_lastDetectedUser, this);
-        }
-
-        private void OnInteractInputReleased() {
-            if (IsInteracting) {
-                _strategyMode.OnInputReleasedWhileIsInteracting(_interactiveUser, this);
-            }
-        }
-
-        private void SubscribeOnInputAction() {
-            _strategy.inputAction.OnPress -= OnInteractInputPressed;
-            _strategy.inputAction.OnRelease -= OnInteractInputReleased;
-
-            _strategy.inputAction.OnPress += OnInteractInputPressed;
-            _strategy.inputAction.OnRelease += OnInteractInputReleased;
-        }
-
-        private void UnsubscribeFromInputAction() {
-            _strategy.inputAction.OnPress -= OnInteractInputPressed;
-            _strategy.inputAction.OnRelease -= OnInteractInputReleased;
-        }
-
-        private void SetInteractionUser(InteractiveUser user) {
-            _interactiveUser = user;
-            _interactionUserTransform = _interactiveUser.transform;
-            IsInteracting = true;
-            _isDetectedByInteractionUser = _interactiveUser.IsDetectedTarget(this);
-        }
-
-        private void ResetInteractionUser() {
-            _interactiveUser = null;
-            _interactionUserTransform = null;
-            IsInteracting = false;
-            _isDetectedByInteractionUser = false;
-        }
-
-        private bool IsValidViewDirection() {
-            return !_strategy.stopInteractWhenNotInView || !_isDetectedByInteractionUser;
-        }
-
-        private bool IsValidDistance() {
-            if (!_strategy.stopInteractWhenExceededMaxDistance) return true;
-            
-            float sqrDistance = Vector3.SqrMagnitude(_interactionUserTransform.position - _transform.position);
-            return sqrDistance < _maxInteractionSqrDistance;
+            if (!IsInteracting && !IsDetected) TimeSources.Get(_timeSourceStage).Unsubscribe(this);
         }
 
         public override string ToString() {
-            return $"{nameof(Interactive)}(" +
-                   $"{name}" +
-                   $", user = {(_interactiveUser == null ? "null" : $"{_interactiveUser.name}")}" +
-                   ")";
+            return $"{nameof(Interactive)}({name}, user = {_currentUser})";
         }
     }
 

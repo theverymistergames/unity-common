@@ -21,6 +21,7 @@ namespace MisterGames.Interact.Objects {
         }
 
         private void OnEnable() {
+            _interactive.OnStartInteract -= OnStartInteract;
             _interactive.OnStartInteract += OnStartInteract;
         }
 
@@ -28,7 +29,7 @@ namespace MisterGames.Interact.Objects {
             _interactive.OnStartInteract -= OnStartInteract;
         }
 
-        private void OnStartInteract(InteractiveUser user) {
+        private void OnStartInteract(IInteractiveUser user, Vector3 hitPoint) {
             _event.Invoke();
         }
     }
