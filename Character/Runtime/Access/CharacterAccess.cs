@@ -5,6 +5,7 @@ using MisterGames.Character.Jump;
 using MisterGames.Character.Motion;
 using MisterGames.Character.View;
 using MisterGames.Collisions.Core;
+using MisterGames.Common.GameObjects;
 using MisterGames.UI.Initialization;
 using UnityEngine;
 

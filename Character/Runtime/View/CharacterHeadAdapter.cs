@@ -1,5 +1,5 @@
 ﻿using MisterGames.Character.Access;
-using MisterGames.Character.Motion;
+using MisterGames.Common.GameObjects;
 using UnityEngine;
 
 namespace MisterGames.Character.View {

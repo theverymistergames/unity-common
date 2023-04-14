@@ -1,8 +1,8 @@
 ﻿using System;
 using MisterGames.Character.Access;
 using MisterGames.Character.Collisions;
-using MisterGames.Character.Motion;
 using MisterGames.Character.View;
+using MisterGames.Common.GameObjects;
 using MisterGames.Common.Maths;
 using MisterGames.Tick.Core;
 using UnityEngine;

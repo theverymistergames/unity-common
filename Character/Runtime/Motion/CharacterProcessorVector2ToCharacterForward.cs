@@ -2,6 +2,7 @@
 using MisterGames.Character.Access;
 using MisterGames.Character.Processors;
 using MisterGames.Collisions.Core;
+using MisterGames.Common.GameObjects;
 using UnityEngine;
 
 namespace MisterGames.Character.Motion {

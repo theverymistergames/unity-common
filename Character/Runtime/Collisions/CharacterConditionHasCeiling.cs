@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using MisterGames.Character.Access;
-using MisterGames.Character.Motion;
 using MisterGames.Collisions.Core;
 using MisterGames.Common.Conditions;
 using MisterGames.Common.Data;
+using MisterGames.Common.GameObjects;
 using UnityEngine;
 
 namespace MisterGames.Character.Collisions {

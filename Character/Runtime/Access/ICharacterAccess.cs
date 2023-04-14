@@ -2,9 +2,9 @@
 using MisterGames.Character.Height;
 using MisterGames.Character.Input;
 using MisterGames.Character.Jump;
-using MisterGames.Character.Motion;
 using MisterGames.Character.View;
 using MisterGames.Collisions.Core;
+using MisterGames.Common.GameObjects;
 using UnityEngine;
 
 namespace MisterGames.Character.Access {

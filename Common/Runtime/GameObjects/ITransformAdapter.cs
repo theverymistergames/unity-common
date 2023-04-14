@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace MisterGames.Character.Motion {
+namespace MisterGames.Common.GameObjects {
 
     public interface ITransformAdapter {
         Vector3 Position { get; set; }

@@ -1,6 +1,7 @@
 ﻿using MisterGames.Character.Access;
 using MisterGames.Character.Processors;
 using MisterGames.Common.Attributes;
+using MisterGames.Common.GameObjects;
 using MisterGames.Tick.Core;
 using UnityEngine;
 
