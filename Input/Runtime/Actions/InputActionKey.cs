@@ -3,6 +3,7 @@ using MisterGames.Common.Attributes;
 using MisterGames.Input.Activation;
 using MisterGames.Input.Bindings;
 using MisterGames.Input.Core;
+using MisterGames.Tick.Core;
 using UnityEngine;
 
 namespace MisterGames.Input.Actions {
@@ -19,44 +20,53 @@ namespace MisterGames.Input.Actions {
         
         public bool IsPressed { get; private set; }
 
+        public bool WasPressed => _lastPressFrame == TimeSources.FrameCount;
+        public bool WasReleased => _lastReleaseFrame == TimeSources.FrameCount;
+        public bool WasUsed => _lastUseFrame == TimeSources.FrameCount;
+
         public IKeyBinding[] Bindings {
             get => _bindings;
             set => _bindings = value;
         }
 
-        private bool _hasStrategy;
+        private int _lastUseFrame;
+        private int _lastPressFrame;
+        private int _lastReleaseFrame;
 
-        protected override void OnInit() {
-            _hasStrategy = _strategy != null;
-        }
+        protected override void OnInit() { }
 
         protected override void OnTerminate() {
-            if (_hasStrategy) _strategy.Interrupt();
+            _strategy?.Interrupt();
         }
 
         protected override void OnActivated() {
             IsPressed = false;
-            if (_hasStrategy) _strategy.OnUse = HandleUse;
+
+            if (_strategy == null) return;
+
+            _strategy.OnUse = HandleUse;
         }
 
         protected override void OnDeactivated() {
             IsPressed = false;
-            if (_hasStrategy) {
-                _strategy.Interrupt();
-                _strategy.OnUse = delegate {  };
-            }
+
+            if (_strategy == null) return;
+
+            _strategy.Interrupt();
+            _strategy.OnUse = delegate {  };
         }
 
         protected override void OnUpdate(float dt) {
             CheckPressState();
-            if (_hasStrategy) _strategy.OnUpdate(dt);
+            _strategy?.OnUpdate(dt);
         }
 
         internal void Interrupt() {
-            if (_hasStrategy) _strategy.Interrupt();
+            _strategy?.Interrupt();
         }
 
         private void HandleUse() {
+            _lastUseFrame = TimeSources.FrameCount;
             OnUse.Invoke();
         }
         
@@ -74,14 +84,16 @@ namespace MisterGames.Input.Actions {
             IsPressed = hasAtLeastOneActiveBinding;
 
             if (!wasPressed && IsPressed) {
+                _lastPressFrame = TimeSources.FrameCount;
                 OnPress.Invoke();
-                if (_hasStrategy) _strategy.OnPressed();
+                _strategy?.OnPressed();
                 return;
             }
 
             if (wasPressed && !IsPressed) {
+                _lastReleaseFrame = TimeSources.FrameCount;
                 OnRelease.Invoke();
-                if (_hasStrategy) _strategy.OnReleased();
+                _strategy?.OnReleased();
             }
         }
         
