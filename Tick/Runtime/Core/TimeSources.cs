@@ -13,6 +13,15 @@ namespace MisterGames.Tick.Core {
 
     public static class TimeSources {
 
+        public static int FrameCount =>
+#if UNITY_EDITOR
+            Application.isPlaying ? Time.frameCount
+            : _isRunningEditorUpdates ? _editorUpdatesFrameCount
+            : 0;
+#else
+        Time.frameCount;
+#endif
+
         public static ITimeSource Get(PlayerLoopStage stage) {
 #if UNITY_EDITOR
             return Application.isPlaying ? _provider.Get(stage) : GetOrCreateEditorTimeSource(stage);
@@ -37,6 +46,7 @@ namespace MisterGames.Tick.Core {
         private static TimeSource _editorLateUpdateTimeSource;
 
         private static bool _isRunningEditorUpdates;
+        private static int _editorUpdatesFrameCount;
 
         private static ITimeSource GetOrCreateEditorTimeSource(PlayerLoopStage stage) {
             _editorDeltaTimeProvider ??= new EditorDeltaTimeProvider();
@@ -95,6 +105,8 @@ namespace MisterGames.Tick.Core {
 
                 await UniTask.Yield();
 
+                _editorUpdatesFrameCount++;
+
                 bool canStopEditorUpdates =
                     CheckTimeSourceCanBeStopped(_editorPreUpdateTimeSource) &&
                     CheckTimeSourceCanBeStopped(_editorUpdateTimeSource) &&
@@ -104,6 +116,7 @@ namespace MisterGames.Tick.Core {
                 if (canStopEditorUpdates) break;
             }
 
+            _editorUpdatesFrameCount = 0;
             _isRunningEditorUpdates = false;
         }
 
