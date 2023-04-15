@@ -11,7 +11,6 @@ namespace MisterGames.Interact.Core {
 
         [Header("Settings")]
         [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
-        [SerializeField] private Transform _userTransform;
 
         [Header("Collision detection")]
         [SerializeField] private CollisionDetectorBase _collisionDetector;
@@ -28,7 +27,12 @@ namespace MisterGames.Interact.Core {
         public IInteractive PossibleInteractive { get; private set; }
         public bool IsInteracting => ReferenceEquals(PossibleInteractive?.User, this);
 
+        private Transform _userTransform;
         private CollisionInfo _collisionInfo;
+
+        private void Awake() {
+            _userTransform = transform;
+        }
 
         private void OnEnable() {
             TimeSources.Get(_timeSourceStage).Subscribe(this);
