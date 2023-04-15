@@ -10,8 +10,6 @@ namespace MisterGames.Interact.Core {
         event Action<IInteractiveUser, Vector3> OnStartInteract;
         event Action<IInteractiveUser> OnStopInteract;
 
-
-
         IInteractiveUser User { get; }
         Vector3 Position { get; }
         bool IsInteracting { get; }

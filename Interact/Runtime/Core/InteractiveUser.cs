@@ -1,7 +1,6 @@
 ﻿using System;
 using MisterGames.Collisions.Core;
 using MisterGames.Collisions.Utils;
-using MisterGames.Common.GameObjects;
 using MisterGames.Dbg.Draw;
 using MisterGames.Tick.Core;
 using UnityEngine;
@@ -12,7 +11,7 @@ namespace MisterGames.Interact.Core {
 
         [Header("Settings")]
         [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
-        [SerializeField] private TransformAdapterBase _transformAdapter;
+        [SerializeField] private Transform _userTransform;
 
         [Header("Collision detection")]
         [SerializeField] private CollisionDetectorBase _collisionDetector;
@@ -24,8 +23,8 @@ namespace MisterGames.Interact.Core {
         public event Action<IInteractive, Vector3> OnStartInteract = delegate {  };
         public event Action<IInteractive> OnStopInteract = delegate {  };
 
-        public GameObject GameObject => gameObject;
-        public ITransformAdapter TransformAdapter => _transformAdapter;
+        public GameObject GameObject => _userTransform.gameObject;
+        public Vector3 Position => _userTransform.position;
         public IInteractive PossibleInteractive { get; private set; }
         public bool IsInteracting => ReferenceEquals(PossibleInteractive?.User, this);
 

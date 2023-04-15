@@ -1,5 +1,4 @@
 ﻿using System;
-using MisterGames.Common.GameObjects;
 using UnityEngine;
 
 namespace MisterGames.Interact.Core {
@@ -12,7 +11,7 @@ namespace MisterGames.Interact.Core {
         event Action<IInteractive> OnStopInteract;
 
         GameObject GameObject { get; }
-        ITransformAdapter TransformAdapter { get; }
+        Vector3 Position { get; }
         IInteractive PossibleInteractive { get; }
         bool IsInteracting { get; }
 

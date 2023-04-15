@@ -39,7 +39,7 @@ namespace MisterGames.Interact.Core {
         }
 
         public void OnUpdate(float dt) {
-            if (IsInteracting) _strategy.UpdateInteractionState(_currentUser, this);
+            _strategy.UpdateInteractionState(_currentUser, this);
         }
 
         public void DetectByUser(IInteractiveUser user) {

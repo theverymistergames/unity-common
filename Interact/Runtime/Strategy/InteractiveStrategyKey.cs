@@ -17,8 +17,10 @@ namespace MisterGames.Interact.Core {
         [SerializeField] private Optional<float> _maxInteractDistance;
 
         public void UpdateInteractionState(IInteractiveUser user, IInteractive interactive) {
+            if (user == null || interactive == null) return;
+
             if (_inputStart.WasFired) TryStartInteract(user, interactive);
-            if (_inputStop.WasFired) TryStopInteract(user, interactive);
+            if (_inputStop.WasFired || !CanContinueInteract(user, interactive)) TryStopInteract(user, interactive);
         }
 
         private void TryStartInteract(IInteractiveUser user, IInteractive interactive) {
@@ -57,7 +59,7 @@ namespace MisterGames.Interact.Core {
             if (_stopInteractWhenNotInView && user.PossibleInteractive != interactive) return false;
 
             if (_maxInteractDistance.HasValue) {
-                float sqrDistance = Vector3.SqrMagnitude(user.TransformAdapter.Position - interactive.Position);
+                float sqrDistance = Vector3.SqrMagnitude(user.Position - interactive.Position);
                 if (sqrDistance > _maxInteractDistance.Value * _maxInteractDistance.Value) return false;
             }
 
