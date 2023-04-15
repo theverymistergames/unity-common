@@ -9,7 +9,7 @@ namespace MisterGames.Input.Actions {
         [SerializeField] private InputActionKeyEvents _mode;
         [SerializeField] private InputActionKey _key;
 
-        public bool WasFired => _mode switch {
+        public bool WasFired => _key != null && _mode switch {
             InputActionKeyEvents.OnPressed => _key.WasPressed,
             InputActionKeyEvents.OnReleased => _key.WasReleased,
             InputActionKeyEvents.OnUsed => _key.WasUsed,
