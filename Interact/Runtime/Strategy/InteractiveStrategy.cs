@@ -1,7 +1,8 @@
 ﻿using MisterGames.Common.Attributes;
+using MisterGames.Interact.Core;
 using UnityEngine;
 
-namespace MisterGames.Interact.Core {
+namespace MisterGames.Interact.Strategy {
 
     [CreateAssetMenu(fileName = nameof(InteractiveStrategy), menuName = "MisterGames/Interactives/" + nameof(InteractiveStrategy))]
     public sealed class InteractiveStrategy : ScriptableObject, IInteractiveStrategy {

@@ -25,10 +25,11 @@ namespace MisterGames.Interact.Core {
         public GameObject GameObject => _userTransform.gameObject;
         public Vector3 Position => _userTransform.position;
         public IInteractive PossibleInteractive { get; private set; }
-        public bool IsInteracting => ReferenceEquals(PossibleInteractive?.User, this);
+        public bool IsInteracting => _isInteracting && ReferenceEquals(this, PossibleInteractive?.User);
 
         private Transform _userTransform;
         private CollisionInfo _collisionInfo;
+        private bool _isInteracting;
 
         private void Awake() {
             _userTransform = transform;
@@ -45,6 +46,8 @@ namespace MisterGames.Interact.Core {
         public void StartInteract() {
             if (PossibleInteractive == null || IsInteracting) return;
 
+            _isInteracting = true;
+
             var hitPoint = _collisionInfo.lastHitPoint;
             PossibleInteractive.StartInteractWithUser(this, hitPoint);
             OnStartInteract.Invoke(PossibleInteractive, hitPoint);
@@ -55,6 +58,8 @@ namespace MisterGames.Interact.Core {
 
             PossibleInteractive.StopInteractWithUser(this);
             OnStopInteract.Invoke(PossibleInteractive);
+
+            _isInteracting = false;
         }
 
         public void OnUpdate(float dt) {
@@ -73,6 +78,7 @@ namespace MisterGames.Interact.Core {
 
             if (PossibleInteractive != null) {
                 OnInteractiveLost.Invoke(PossibleInteractive);
+
                 PossibleInteractive.LoseByUser(this);
                 PossibleInteractive = null;
             }

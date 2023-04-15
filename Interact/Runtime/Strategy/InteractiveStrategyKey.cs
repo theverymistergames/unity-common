@@ -1,9 +1,10 @@
 ﻿using System;
 using MisterGames.Common.Data;
 using MisterGames.Input.Actions;
+using MisterGames.Interact.Core;
 using UnityEngine;
 
-namespace MisterGames.Interact.Core {
+namespace MisterGames.Interact.Strategy {
 
     [Serializable]
     public sealed class InteractiveStrategyKey : IInteractiveStrategy {
@@ -11,6 +12,7 @@ namespace MisterGames.Interact.Core {
         [Header("Input Settings")]
         [SerializeField] private InputActionKeyEvent _inputStart;
         [SerializeField] private InputActionKeyEvent _inputStop;
+        [SerializeField] private bool _isInstantInteraction;
 
         [Header("Conditions")]
         [SerializeField] private bool _stopInteractWhenNotInView;
@@ -19,8 +21,16 @@ namespace MisterGames.Interact.Core {
         public void UpdateInteractionState(IInteractiveUser user, IInteractive interactive) {
             if (user == null || interactive == null) return;
 
-            if (_inputStart.WasFired) TryStartInteract(user, interactive);
-            if (_inputStop.WasFired || !CanContinueInteract(user, interactive)) TryStopInteract(user, interactive);
+            if (_inputStart.WasFired) {
+                TryStartInteract(user, interactive);
+            }
+
+            if (_inputStart.WasFired && _isInstantInteraction ||
+                _inputStop.WasFired ||
+                !CanContinueInteract(user, interactive)
+            ) {
+                TryStopInteract(user, interactive);
+            }
         }
 
         private void TryStartInteract(IInteractiveUser user, IInteractive interactive) {

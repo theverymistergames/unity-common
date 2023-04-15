@@ -1,6 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
+using MisterGames.Interact.Strategy;
 using MisterGames.Tick.Core;
-using Unity.Mathematics;
 using UnityEngine;
 
 namespace MisterGames.Interact.Core {
@@ -16,15 +17,18 @@ namespace MisterGames.Interact.Core {
         public event Action<IInteractiveUser, Vector3> OnStartInteract = delegate {  };
         public event Action<IInteractiveUser> OnStopInteract = delegate {  };
 
-        public IInteractiveUser User => _currentUser;
+        public IInteractiveUser User => _interactUser;
         public Vector3 Position => _transform.position;
 
-        public bool IsInteracting => _currentUser != null && ReferenceEquals(_currentUser.PossibleInteractive, this);
-        public bool IsDetected => _detectedByUsersCount > 0;
+        public bool IsInteracting => _interactUser != null &&
+                                     ReferenceEquals(_interactUser.PossibleInteractive, this) &&
+                                     _interactUser.IsInteracting;
 
+        public bool IsDetected => _detectedUsers.Count > 0;
+
+        private readonly List<IInteractiveUser> _detectedUsers = new List<IInteractiveUser>();
+        private IInteractiveUser _interactUser;
         private Transform _transform;
-        private IInteractiveUser _currentUser;
-        private int _detectedByUsersCount;
 
         private void Awake() {
             _transform = transform;
@@ -39,43 +43,49 @@ namespace MisterGames.Interact.Core {
         }
 
         public void OnUpdate(float dt) {
-            _strategy.UpdateInteractionState(_currentUser, this);
+            _strategy.UpdateInteractionState(_interactUser, this);
+
+            for (int i = 0; i < _detectedUsers.Count; i++) {
+                _strategy.UpdateInteractionState(_detectedUsers[i], this);
+            }
         }
 
         public void DetectByUser(IInteractiveUser user) {
-            _detectedByUsersCount++;
-            OnDetectedByUser.Invoke(user);
+            if (!_detectedUsers.Contains(user)) {
+                _detectedUsers.Add(user);
+                OnDetectedByUser.Invoke(user);
+            }
 
             TimeSources.Get(_timeSourceStage).Subscribe(this);
         }
 
         public void LoseByUser(IInteractiveUser user) {
-            _detectedByUsersCount = math.max(0, _detectedByUsersCount - 1);
+            _detectedUsers.Remove(user);
             OnLostByUser.Invoke(user);
 
             if (!IsInteracting && !IsDetected) TimeSources.Get(_timeSourceStage).Unsubscribe(this);
         }
 
         public void StartInteractWithUser(IInteractiveUser user, Vector3 hitPoint) {
-            if (IsInteracting) StopInteractWithUser(_currentUser);
+            if (IsInteracting) StopInteractWithUser(_interactUser);
 
-            _currentUser = user;
-            OnStartInteract.Invoke(_currentUser, hitPoint);
+            _interactUser = user;
+            OnStartInteract.Invoke(_interactUser, hitPoint);
 
             TimeSources.Get(_timeSourceStage).Subscribe(this);
         }
 
         public void StopInteractWithUser(IInteractiveUser user) {
-            if (!IsInteracting || _currentUser != user) return;
+            if (!IsInteracting || _interactUser != user) return;
 
-            OnStopInteract.Invoke(_currentUser);
-            _currentUser = null;
+            OnStopInteract.Invoke(_interactUser);
+            _interactUser = null;
 
             if (!IsInteracting && !IsDetected) TimeSources.Get(_timeSourceStage).Unsubscribe(this);
         }
 
         public override string ToString() {
-            return $"{nameof(Interactive)}({name}, user = {_currentUser})";
+            return $"{nameof(Interactive)}({name}, {(_interactUser == null ? $"no user" : $"user {_interactUser.GameObject.name}")})";
         }
     }
 
