@@ -31,21 +31,29 @@ namespace MisterGames.Interact.Cursors {
         }
 
         private void OnDetectedByUser(IInteractiveUser user) {
+            if (_cursorIconOnHover == null) return;
+
             var host = user.GameObject.GetComponent<IInteractiveCursorHost>();
             host?.StartOverrideCursorIcon(this, _cursorIconOnHover);
         }
 
         private void OnLostByUser(IInteractiveUser user) {
+            if (_cursorIconOnHover == null) return;
+
             var host = user.GameObject.GetComponent<IInteractiveCursorHost>();
             host?.StopOverrideCursorIcon(this, _cursorIconOnHover);
         }
 
         private void OnStartInteract(IInteractiveUser user, Vector3 hitPoint) {
+            if (_cursorIconWhileInteracting == null) return;
+
             var host = user.GameObject.GetComponent<IInteractiveCursorHost>();
             host?.StartOverrideCursorIcon(this, _cursorIconWhileInteracting);
         }
 
         private void OnStopInteract(IInteractiveUser user) {
+            if (_cursorIconWhileInteracting == null) return;
+
             var host = user.GameObject.GetComponent<IInteractiveCursorHost>();
             host?.StopOverrideCursorIcon(this, _cursorIconWhileInteracting);
         }
