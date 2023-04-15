@@ -13,8 +13,8 @@ namespace MisterGames.Interact.Path {
         [SerializeField] private Interactive _interactive;
 
         [Header("Bounds")]
-        [SerializeField] [Min(0f)] private float _startReserveBoundLength;
-        [SerializeField] [Min(0f)] private float _endReserveBoundLength;
+        [SerializeField] [Range(0f, 0.5f)] private float _startReserveBound = 0f;
+        [SerializeField] [Range(0.5f, 1f)] private float _endReserveBound = 1f;
 
         public void Evaluate(float t, out Vector3 position, out Vector3 tangent, out Vector3 normal) {
             _splineContainer.Evaluate(t, out var pos, out var tang, out var norm);
@@ -52,8 +52,10 @@ namespace MisterGames.Interact.Path {
                 return;
             }
 
-            float tStart = GetClosestSplineInterpolation(hitPoint);
-            interactivePathUser.OnAttachedToPath(this, tStart);
+            _splineContainer.GetNearestPoint(hitPoint, out float t);
+            t = math.clamp(t, _startReserveBound, _endReserveBound);
+
+            interactivePathUser.OnAttachedToPath(this, t);
         }
 
         private void OnStopInteract(IInteractiveUser user) {
@@ -69,35 +71,17 @@ namespace MisterGames.Interact.Path {
             interactivePathUser.OnDetachedFromPath();
         }
 
-        private float GetClosestSplineInterpolation(Vector3 position) {
-            float splineLength = _splineContainer.CalculateLength();
-            if (splineLength <= 0f) return 0f;
-
-            _splineContainer.GetNearestPoint(position, out float t);
-
-            float inverseSplineLength = 1f / splineLength;
-            float startReserveT = math.clamp(_startReserveBoundLength * inverseSplineLength, 0f, 0.5f);
-            float endReserveT = math.clamp((splineLength - _endReserveBoundLength) * inverseSplineLength, 0.5f, 1f);
-
-            return math.clamp(t, startReserveT, endReserveT);
-        }
-
+#if UNITY_EDITOR
         private void OnDrawGizmosSelected() {
             if (_splineContainer == null) return;
 
-            float splineLength = _splineContainer.CalculateLength();
-            if (splineLength <= 0f) return;
-
-            float inverseSplineLength = 1f / splineLength;
-            float startReserveT = math.clamp(_startReserveBoundLength * inverseSplineLength, 0f, 0.5f);
-            float endReserveT = math.clamp((splineLength - _endReserveBoundLength) * inverseSplineLength, 0.5f, 1f);
-
-            var startBoundPosition = _splineContainer.EvaluatePosition(startReserveT);
-            var endBoundPosition = _splineContainer.EvaluatePosition(endReserveT);
+            var startBoundPosition = _splineContainer.EvaluatePosition(_startReserveBound);
+            var endBoundPosition = _splineContainer.EvaluatePosition(_endReserveBound);
 
             DbgSphere.Create().Radius(0.1f).Color(Color.white).Position(startBoundPosition).Draw();
             DbgSphere.Create().Radius(0.1f).Color(Color.white).Position(endBoundPosition).Draw();
         }
+#endif
     }
 
 }
