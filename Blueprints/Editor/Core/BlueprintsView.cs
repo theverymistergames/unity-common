@@ -74,7 +74,7 @@ namespace MisterGames.Blueprints.Editor.Core {
         public BlueprintsView() {
             Insert(0, new GridBackground());
 
-            this.AddManipulator(new ContentZoomer());
+            this.AddManipulator(new ContentZoomer { minScale = 0.01f, maxScale = 10f });
             this.AddManipulator(new ContentDragger());
             this.AddManipulator(new SelectionDragger());
             this.AddManipulator(new RectangleSelector());
