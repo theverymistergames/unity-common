@@ -19,7 +19,7 @@ namespace MisterGames.TweenLib {
             target.SetParent(newParent, worldPositionStays);
 
 #if UNITY_EDITOR
-            UnityEditor.EditorUtility.SetDirty(target);
+            if (!Application.isPlaying && target != null) UnityEditor.EditorUtility.SetDirty(target);
 #endif
         }
     }

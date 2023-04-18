@@ -19,7 +19,7 @@ namespace MisterGames.TweenLib {
 
         public void Finish() {
 #if UNITY_EDITOR
-            UnityEditor.EditorUtility.SetDirty(transform);
+            if (!Application.isPlaying && transform != null) UnityEditor.EditorUtility.SetDirty(transform);
 #endif
         }
 

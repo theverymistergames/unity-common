@@ -39,7 +39,7 @@ namespace MisterGames.TweenLib {
             }
 
 #if UNITY_EDITOR
-            UnityEditor.EditorUtility.SetDirty(gameObject);
+            if (!Application.isPlaying && gameObject != null) UnityEditor.EditorUtility.SetDirty(gameObject);
 #endif
         }
     }

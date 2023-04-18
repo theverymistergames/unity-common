@@ -29,7 +29,7 @@ namespace MisterGames.TweenLib {
 
         public void Finish() {
 #if UNITY_EDITOR
-            UnityEditor.EditorUtility.SetDirty(renderer);
+            if (!Application.isPlaying && renderer != null) UnityEditor.EditorUtility.SetDirty(renderer);
 #endif
         }
 

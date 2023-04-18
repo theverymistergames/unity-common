@@ -34,7 +34,7 @@ namespace MisterGames.TweenLib {
 
         public void Finish() {
 #if UNITY_EDITOR
-            UnityEditor.EditorUtility.SetDirty(component);
+            if (!Application.isPlaying && component != null) UnityEditor.EditorUtility.SetDirty(component);
 #endif
         }
 
