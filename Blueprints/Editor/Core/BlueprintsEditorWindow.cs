@@ -13,7 +13,7 @@ namespace MisterGames.Blueprints.Editor.Core {
 
         private BlueprintsView _blueprintsView;
         private ObjectField _assetPicker;
-        private ToolbarToggle _saveToggle;
+        private Button _saveButton;
 
         private class SaveHelper : AssetModificationProcessor {
             public static string[] OnWillSaveAssets(string[] paths) {
@@ -62,13 +62,13 @@ namespace MisterGames.Blueprints.Editor.Core {
         private void OnDisable() {
             _blueprintsView?.ClearView();
 
-            rootVisualElement.Q<Button>("save-button").clicked -= OnClickSaveButton;
+            if (_saveButton != null) _saveButton.clicked -= OnClickSaveButton;
         }
 
         private void OnDestroy() {
             _blueprintsView?.ClearView();
 
-            rootVisualElement.Q<Button>("save-button").clicked -= OnClickSaveButton;
+            if (_saveButton != null) _saveButton.clicked -= OnClickSaveButton;
         }
 
         private void CreateGUI() {
@@ -88,9 +88,9 @@ namespace MisterGames.Blueprints.Editor.Core {
             _blueprintsView.OnRequestWorldPosition = GetWorldPosition;
             _blueprintsView.OnBlueprintAssetSetDirty = OnBlueprintAssetSetDirty;
 
-            var saveButton = root.Q<Button>("save-button");
-            saveButton.clicked -= OnClickSaveButton;
-            saveButton.clicked += OnClickSaveButton;
+            _saveButton = root.Q<Button>("save-button");
+            _saveButton.clicked -= OnClickSaveButton;
+            _saveButton.clicked += OnClickSaveButton;
 
             var blackboardToggle = root.Q<ToolbarToggle>("blackboard-toggle");
             blackboardToggle.RegisterValueChangedCallback(OnToggleBlackboardButton);
