@@ -9,7 +9,7 @@ namespace MisterGames.Interact.Cursors {
         [SerializeField] private CursorIcon _cursorIconOnHover;
         [SerializeField] private CursorIcon _cursorIconWhileInteracting;
 
-        private void OnEnable() {
+        private void Awake() {
             _interactive.OnDetectedByUser -= OnDetectedByUser;
             _interactive.OnDetectedByUser += OnDetectedByUser;
 
@@ -23,7 +23,7 @@ namespace MisterGames.Interact.Cursors {
             _interactive.OnStopInteract += OnStopInteract;
         }
 
-        private void OnDisable() {
+        private void OnDestroy() {
             _interactive.OnDetectedByUser -= OnDetectedByUser;
             _interactive.OnLostByUser -= OnLostByUser;
             _interactive.OnStartInteract -= OnStartInteract;

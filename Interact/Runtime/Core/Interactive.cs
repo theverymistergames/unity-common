@@ -60,8 +60,10 @@ namespace MisterGames.Interact.Core {
         }
 
         public void LoseByUser(IInteractiveUser user) {
-            _detectedUsers.Remove(user);
-            OnLostByUser.Invoke(user);
+            if (_detectedUsers.Contains(user)) {
+                _detectedUsers.Remove(user);
+                OnLostByUser.Invoke(user);
+            }
 
             if (!IsInteracting && !IsDetected) TimeSources.Get(_timeSourceStage).Unsubscribe(this);
         }
