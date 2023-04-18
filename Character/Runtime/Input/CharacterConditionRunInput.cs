@@ -37,11 +37,17 @@ namespace MisterGames.Character.Input {
         }
 
         private void OnRunToggled() {
-            if (IsMatched) _callback?.OnConditionMatch();
+            if (IsMatched) _callback?.OnConditionMatch(this);
         }
+
+        public void OnFired() { }
 
         private bool CheckCondition() {
             return _isRunInputToggled == _input.WasRunToggled;
+        }
+
+        public override string ToString() {
+            return $"{nameof(CharacterConditionRunInput)}(toggled {_isRunInputToggled})";
         }
     }
 

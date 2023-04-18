@@ -41,16 +41,22 @@ namespace MisterGames.Character.Collisions {
             _callback = null;
         }
 
+        public void OnFired() { }
+
         private void OnContact() {
-            if (IsMatched) _callback?.OnConditionMatch();
+            if (IsMatched) _callback?.OnConditionMatch(this);
         }
 
         private void OnLostContact() {
-            if (IsMatched) _callback?.OnConditionMatch();
+            if (IsMatched) _callback?.OnConditionMatch(this);
         }
 
         private bool CheckCondition() {
             return isGrounded == _groundDetector.CollisionInfo.hasContact;
+        }
+
+        public override string ToString() {
+            return $"{nameof(CharacterConditionIsGrounded)}(isGrounded {isGrounded})";
         }
     }
 

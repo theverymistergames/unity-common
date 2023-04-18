@@ -25,6 +25,7 @@ namespace MisterGames.BlueprintLib {
         public bool IsMatched => _condition.IsMatched;
 
         private IConditionCallback _stateCallback;
+        private bool _isConditionArmed;
 
         public override Port[] CreatePorts() {
             var ports = new List<Port> {
@@ -75,22 +76,36 @@ namespace MisterGames.BlueprintLib {
             if (_condition is IDynamicDataHost host) host.OnSetData(this);
 
             _stateCallback = callback;
-            _condition?.Arm(this);
 
-            if (_checkImmediatelyAfterArmed && IsMatched) OnConditionMatch();
+            if (!_isConditionArmed) {
+                _condition?.Arm(this);
+                _isConditionArmed = true;
+            }
+
+            if (_checkImmediatelyAfterArmed && IsMatched) _stateCallback.OnConditionMatch(this);
         }
 
         public void Disarm() {
-            if (_stateCallback == null) return;
+            if (_isConditionArmed) {
+                _condition?.Disarm();
+                _isConditionArmed = false;
+            }
 
-            _condition?.Disarm();
             _stateCallback = null;
         }
 
-        public void OnConditionMatch() {
+        public void OnConditionMatch(ICondition match) {
             if (_stateCallback == null) return;
 
-            _stateCallback.OnConditionMatch();
+            if (!_isConditionArmed) {
+                _stateCallback = null;
+                return;
+            }
+
+            _stateCallback.OnConditionMatch(this);
+        }
+
+        public void OnFired() {
             Ports[1].Call();
         }
 

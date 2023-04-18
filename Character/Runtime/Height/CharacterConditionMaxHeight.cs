@@ -37,12 +37,18 @@ namespace MisterGames.Character.Height {
             _callback = null;
         }
 
+        public void OnFired() { }
+
         private void OnHeightChanged(float arg1, float arg2) {
-            if (IsMatched) _callback?.OnConditionMatch();
+            if (IsMatched) _callback?.OnConditionMatch(this);
         }
 
         private bool CheckCondition() {
             return _heightPipeline.Height <= maxHeight;
+        }
+
+        public override string ToString() {
+            return $"{nameof(CharacterConditionMaxHeight)}({maxHeight})";
         }
     }
 

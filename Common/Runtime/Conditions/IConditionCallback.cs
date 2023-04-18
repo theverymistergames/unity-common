@@ -1,7 +1,7 @@
 ﻿namespace MisterGames.Common.Conditions {
 
     public interface IConditionCallback {
-        void OnConditionMatch();
+        void OnConditionMatch(ICondition match);
     }
 
 }

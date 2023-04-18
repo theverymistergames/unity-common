@@ -34,10 +34,6 @@ namespace MisterGames.BlueprintLib {
             }
         }
 
-        public void OnConditionMatch() {
-            TryExit();
-        }
-
         private void TryEnter(bool notify = true) {
             if (_isEnteredState) return;
 
@@ -47,12 +43,16 @@ namespace MisterGames.BlueprintLib {
 
             var links = Ports[4].links;
             for (int i = 0; i < links.Count; i++) {
-                links[i].Get<ICondition>()?.Arm(this);
+                var condition = links[i].Get<ICondition>();
+                if (condition == null) continue;
+
+                condition.Arm(this);
+                if (condition.IsMatched) return;
             }
         }
 
-        private void TryExit(bool notify = true) {
-            if (!_isEnteredState) return;
+        private bool TryExit(bool notify = true) {
+            if (!_isEnteredState) return false;
 
             var links = Ports[4].links;
             for (int i = 0; i < links.Count; i++) {
@@ -62,6 +62,12 @@ namespace MisterGames.BlueprintLib {
             _isEnteredState = false;
 
             if (notify) Ports[3].Call();
+
+            return true;
+        }
+
+        public void OnConditionMatch(ICondition match) {
+            if (TryExit()) match.OnFired();
         }
     }
 

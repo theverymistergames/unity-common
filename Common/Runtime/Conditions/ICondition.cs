@@ -5,6 +5,8 @@
 
         void Arm(IConditionCallback callback);
         void Disarm();
+
+        void OnFired();
     }
 
 }

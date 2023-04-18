@@ -52,12 +52,14 @@ namespace MisterGames.Character.Collisions {
             _callback = null;
         }
 
+        public void OnFired() { }
+
         private void OnContact() {
-            if (IsMatched) _callback?.OnConditionMatch();
+            if (IsMatched) _callback?.OnConditionMatch(this);
         }
 
         private void OnLostContact() {
-            if (IsMatched) _callback?.OnConditionMatch();
+            if (IsMatched) _callback?.OnConditionMatch(this);
         }
 
         private bool CheckCondition() {
@@ -85,6 +87,10 @@ namespace MisterGames.Character.Collisions {
             // Has contact, current ceiling height is below min limit (considering has contact):
             // return true if contact is expected (hasCeiling == true)
             return hasCeiling;
+        }
+
+        public override string ToString() {
+            return $"{nameof(CharacterConditionHasCeiling)}(hasCeiling {hasCeiling}, minHeight {minCeilingHeight})";
         }
     }
 

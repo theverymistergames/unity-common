@@ -47,14 +47,20 @@ namespace MisterGames.Character.Input {
         }
 
         private void OnMotionVectorChanged(Vector2 motion) {
-            if (IsMatched) _callback?.OnConditionMatch();
+            if (IsMatched) _callback?.OnConditionMatch(this);
         }
+
+        public void OnFired() { }
 
         private bool CheckCondition() {
             var motionInput = _characterAccess.MotionPipeline.MotionInput;
 
             return _isMotionInputActive.IsEmptyOrEquals(!motionInput.IsNearlyZero()) &&
                    _isMovingForward.IsEmptyOrEquals(motionInput.y > 0f);
+        }
+
+        public override string ToString() {
+            return $"{nameof(CharacterConditionMotionInput)}(active {_isMotionInputActive}, moving forward {_isMovingForward})";
         }
     }
 

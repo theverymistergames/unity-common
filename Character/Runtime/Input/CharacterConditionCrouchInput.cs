@@ -54,16 +54,18 @@ namespace MisterGames.Character.Input {
             _callback = null;
         }
 
+        public void OnFired() { }
+
         private void OnCrouchPressed() {
-            if (IsMatched) _callback?.OnConditionMatch();
+            if (IsMatched) _callback?.OnConditionMatch(this);
         }
 
         private void OnCrouchReleased() {
-            if (IsMatched) _callback?.OnConditionMatch();
+            if (IsMatched) _callback?.OnConditionMatch(this);
         }
 
         private void OnCrouchToggled() {
-            if (IsMatched) _callback?.OnConditionMatch();
+            if (IsMatched) _callback?.OnConditionMatch(this);
         }
 
         private bool CheckCondition() {
@@ -71,6 +73,14 @@ namespace MisterGames.Character.Input {
                    _isCrouchInputPressed.IsEmptyOrEquals(_input.WasCrouchPressed) &&
                    _isCrouchInputReleased.IsEmptyOrEquals(_input.WasCrouchReleased) &&
                    _isCrouchInputToggled.IsEmptyOrEquals(_input.WasCrouchToggled);
+        }
+
+        public override string ToString() {
+            return $"{nameof(CharacterConditionCrouchInput)}(" +
+                   $"active {_isCrouchInputActive}, " +
+                   $"pressed {_isCrouchInputPressed}, " +
+                   $"released {_isCrouchInputReleased}, " +
+                   $"toggled {_isCrouchInputToggled})";
         }
     }
 

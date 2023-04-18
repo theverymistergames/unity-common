@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
 using MisterGames.Common.Attributes;
 using UnityEngine;
 
@@ -42,9 +43,11 @@ namespace MisterGames.Common.Conditions {
             _externalCallback = null;
         }
 
-        public void OnConditionMatch() {
-            if (IsMatched) _externalCallback?.OnConditionMatch();
+        public void OnConditionMatch(ICondition match) {
+            if (IsMatched) _externalCallback?.OnConditionMatch(this);
         }
+
+        public void OnFired() { }
 
         private bool CheckCondition() {
             for (int i = 0; i < conditions.Length; i++) {
@@ -52,6 +55,18 @@ namespace MisterGames.Common.Conditions {
             }
 
             return true;
+        }
+
+        public override string ToString() {
+            var sb = new StringBuilder();
+            sb.AppendLine($"{nameof(ConditionGroupAll)} {GetHashCode()}, conditions: --->>");
+
+            for (int i = 0; i < conditions.Length; i++) {
+                sb.AppendLine($"- {conditions[i]}");
+            }
+
+            sb.AppendLine($"{nameof(ConditionGroupAll)} {GetHashCode()} <<---");
+            return sb.ToString();
         }
     }
 
