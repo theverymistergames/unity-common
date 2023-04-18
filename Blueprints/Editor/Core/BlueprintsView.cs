@@ -35,7 +35,6 @@ namespace MisterGames.Blueprints.Editor.Core {
         private CancellationTokenSource _blackboardOpenSearchWindowCts;
 
         private BlackboardView _blackboardView;
-        private MiniMap _miniMap;
         private Vector2 _mousePosition;
 
         private DropEdgeData _lastDropEdgeData;
@@ -83,7 +82,6 @@ namespace MisterGames.Blueprints.Editor.Core {
 
             InitNodeSearchWindow();
             InitBlackboard();
-            InitMiniMap();
             InitUndoRedo();
             InitCopyPaste();
             InitMouse();
@@ -386,19 +384,6 @@ namespace MisterGames.Blueprints.Editor.Core {
             SetBlueprintAssetDirtyAndNotify();
 
             RepopulateBlackboardView();
-        }
-
-        // ---------------- ---------------- Minimap ---------------- ----------------
-
-        public void ToggleMiniMap(bool show) {
-            _miniMap.visible = show;
-        }
-
-        private void InitMiniMap() {
-            _miniMap = new MiniMap { windowed = false };
-            _miniMap.SetPosition(new Rect(600, 0, 400, 250));
-            Add(_miniMap);
-            _miniMap.visible = false;
         }
 
         // ---------------- ---------------- Node and connection creation ---------------- ----------------
