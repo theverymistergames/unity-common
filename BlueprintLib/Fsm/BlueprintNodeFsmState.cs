@@ -12,46 +12,56 @@ namespace MisterGames.BlueprintLib {
 
         public override Port[] CreatePorts() => new[] {
             Port.Enter("Enter"),
-            Port.Input<ICondition>("Transitions").Layout(PortLayout.Right).Capacity(PortCapacity.Multiple),
+            Port.Enter("Exit"),
             Port.Exit("On Enter"),
             Port.Exit("On Exit"),
+            Port.Input<ICondition>("Transitions").Layout(PortLayout.Right).Capacity(PortCapacity.Multiple),
         };
 
         public override void OnDeInitialize() {
-            if (!_isEnteredState) return;
-
-            var links = Ports[1].links;
-            for (int i = 0; i < links.Count; i++) {
-                links[i].Get<ICondition>()?.Disarm();
-            }
-
-            _isEnteredState = false;
+            TryExit(notify: false);
         }
 
         public void OnEnterPort(int port) {
-            if (port != 0 || _isEnteredState) return;
+            switch (port) {
+                case 0:
+                    TryEnter();
+                    break;
+
+                case 1:
+                    TryExit();
+                    break;
+            }
+        }
+
+        public void OnConditionMatch() {
+            TryExit();
+        }
+
+        private void TryEnter(bool notify = true) {
+            if (_isEnteredState) return;
 
             _isEnteredState = true;
 
-            Ports[2].Call();
+            if (notify) Ports[2].Call();
 
-            var links = Ports[1].links;
+            var links = Ports[4].links;
             for (int i = 0; i < links.Count; i++) {
                 links[i].Get<ICondition>()?.Arm(this);
             }
         }
 
-        public void OnConditionMatch() {
+        private void TryExit(bool notify = true) {
             if (!_isEnteredState) return;
 
-            var links = Ports[1].links;
+            var links = Ports[4].links;
             for (int i = 0; i < links.Count; i++) {
                 links[i].Get<ICondition>()?.Disarm();
             }
 
             _isEnteredState = false;
 
-            Ports[3].Call();
+            if (notify) Ports[3].Call();
         }
     }
 
