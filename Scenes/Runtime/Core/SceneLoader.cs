@@ -6,9 +6,25 @@ namespace MisterGames.Scenes.Core {
     
     public sealed class SceneLoader : MonoBehaviour {
 
+        [SerializeField] private bool _useStartSceneFromSceneStorage = true;
+        [SerializeField] private SceneReference _startScene;
+
         private void Awake() {
-            ValidateFirstLoadedScene();
-            LoadScene(ScenesStorage.Instance.SceneStart, true);
+#if UNITY_EDITOR
+            string firstScene = SceneManager.GetActiveScene().name;
+            string rootScene = SceneStorage.Instance.RootScene;
+
+            if (firstScene != rootScene) {
+                Debug.LogWarning($"First loaded scene [{firstScene}] is not root scene [{rootScene}]. " +
+                                 $"Move {nameof(SceneLoader)} prefab to root scene.");
+            }
+
+            string startScene = _useStartSceneFromSceneStorage ? SceneStorage.Instance.EditorStartScene : _startScene.scene;
+#else
+            string startScene = _startScene.scene;
+#endif
+
+            LoadScene(startScene, true);
         }
 
         public static void LoadScene(string sceneName, bool makeActive = false) {
@@ -20,7 +36,7 @@ namespace MisterGames.Scenes.Core {
         }
 
         public static async UniTask LoadSceneAsync(string sceneName, bool makeActive) {
-            string rootScene = ScenesStorage.Instance.SceneRoot;
+            string rootScene = SceneStorage.Instance.RootScene;
             if (sceneName == rootScene) return;
 
             if (SceneManager.GetSceneByName(sceneName) is not { isLoaded: true }) {
@@ -31,21 +47,11 @@ namespace MisterGames.Scenes.Core {
         }
 
         public static async UniTask UnloadSceneAsync(string sceneName) {
-            string rootScene = ScenesStorage.Instance.SceneRoot;
+            string rootScene = SceneStorage.Instance.RootScene;
             if (sceneName == rootScene) return;
 
             if (SceneManager.GetSceneByName(sceneName) is { isLoaded: true }) {
                 await SceneManager.UnloadSceneAsync(sceneName);
-            }
-        }
-
-        private static void ValidateFirstLoadedScene() {
-            string firstScene = SceneManager.GetActiveScene().name;
-            string rootScene = ScenesStorage.Instance.SceneRoot;
-
-            if (firstScene != rootScene) {
-                Debug.LogWarning($"First loaded scene [{firstScene}] is not root scene [{rootScene}]. " +
-                                 $"Move {nameof(SceneLoader)} prefab to root scene.");
             }
         }
     }

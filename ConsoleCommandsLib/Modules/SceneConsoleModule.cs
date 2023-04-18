@@ -25,7 +25,7 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
         public void LoadSceneByIndex(int index) {
             if (!ValidateSceneIndex(index)) return;
 
-            string sceneName = ScenesStorage.Instance.SceneNames[index];
+            string sceneName = SceneStorage.Instance.SceneNames[index];
             SceneLoader.LoadScene(sceneName);
             ConsoleRunner.AppendLine($"Loading scene {sceneName}");
         }
@@ -44,7 +44,7 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
         public void UnloadSceneByIndex(int index) {
             if (!ValidateSceneIndex(index)) return;
 
-            string sceneName = ScenesStorage.Instance.SceneNames[index];
+            string sceneName = SceneStorage.Instance.SceneNames[index];
             SceneLoader.UnloadScene(sceneName);
             ConsoleRunner.AppendLine($"Loading scene {sceneName}");
         }
@@ -52,7 +52,7 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
         [ConsoleCommand("scenes/list")]
         [ConsoleCommandHelp("list all scenes")]
         public void PrintAllScenes() {
-            string[] sceneNames = ScenesStorage.Instance.SceneNames;
+            string[] sceneNames = SceneStorage.Instance.SceneNames;
             ConsoleRunner.AppendLine("Scenes:");
 
             for (int i = 0; i < sceneNames.Length; i++) {
@@ -61,7 +61,7 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
         }
 
         private bool ValidateSceneName(string sceneName) {
-            string[] sceneNames = ScenesStorage.Instance.SceneNames;
+            string[] sceneNames = SceneStorage.Instance.SceneNames;
             if (!sceneNames.Contains(sceneName)) {
                 ConsoleRunner.AppendLine($"Scene with name {sceneName} is not found. Type scenes/list to see all scenes.");
                 return false;
@@ -71,7 +71,7 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
         }
 
         private bool ValidateSceneIndex(int sceneIndex) {
-            string[] sceneNames = ScenesStorage.Instance.SceneNames;
+            string[] sceneNames = SceneStorage.Instance.SceneNames;
             if (sceneIndex < 0 || sceneIndex >= sceneNames.Length) {
                 ConsoleRunner.AppendLine($"Scene with index {sceneIndex} is not found. Type scenes/list to see all scenes.");
                 return false;

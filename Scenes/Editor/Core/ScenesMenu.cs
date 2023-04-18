@@ -2,7 +2,6 @@
 using MisterGames.Scenes.Core;
 using UnityEditor;
 using UnityEditor.SceneManagement;
-using UnityEngine;
 using UnityEngine.SceneManagement;
 
 namespace MisterGames.Scenes.Editor.Core {
@@ -11,7 +10,12 @@ namespace MisterGames.Scenes.Editor.Core {
     public static class ScenesMenu {
 
         static ScenesMenu() {
-            ScenesStorage.Instance.Validate();
+            EditorSceneManager.activeSceneChangedInEditMode -= OnActiveSceneChangedInEditMode;
+            EditorSceneManager.activeSceneChangedInEditMode += OnActiveSceneChangedInEditMode;
+        }
+
+        private static void OnActiveSceneChangedInEditMode(Scene arg0, Scene arg1) {
+            SceneStorage.Instance.Validate();
 
             EditorSceneManager.sceneOpened -= OnSceneOpened;
             EditorSceneManager.sceneOpened += OnSceneOpened;
@@ -22,7 +26,7 @@ namespace MisterGames.Scenes.Editor.Core {
 
         [MenuItem("MisterGames/Tools/Include ScenesStorage scenes in build settings")]
         internal static void IncludeAllScenesInBuildSettings() {
-            EditorBuildSettings.scenes = ScenesStorage.Instance.GetAllSceneAssets()
+            EditorBuildSettings.scenes = SceneStorage.Instance.GetAllSceneAssets()
                 .Select(sceneAsset => new EditorBuildSettingsScene(AssetDatabase.GetAssetPath(sceneAsset), true))
                 .ToArray();
         }
@@ -35,11 +39,11 @@ namespace MisterGames.Scenes.Editor.Core {
         }
 
         private static void OnSceneOpened(Scene scene, OpenSceneMode mode) {
-            ScenesStorage.Instance.Validate();
+            SceneStorage.Instance.Validate();
         }
 
         private static void OnNewSceneCreated(Scene scene, NewSceneSetup setup, NewSceneMode mode) {
-            ScenesStorage.Instance.Validate();
+            SceneStorage.Instance.Validate();
         }
     }
     

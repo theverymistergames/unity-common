@@ -23,7 +23,7 @@ namespace MisterGames.Scenes.Editor.Core {
 			if (EditorGUILayout.DropdownButton(new GUIContent(activeSceneName), FocusType.Keyboard, GUILayout.MinWidth(222))) {
 				var scenesDropdown = new AdvancedDropdown<SceneAsset>(
 					"Select scene",
-					ScenesStorage.Instance.GetAllSceneAssets(),
+					SceneStorage.Instance.GetAllSceneAssets(),
 					sceneAsset => ScenesMenu.RemoveSceneAssetFileFormat(AssetDatabase.GetAssetPath(sceneAsset)),
 					OnSceneSelected
 				);

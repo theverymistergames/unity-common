@@ -12,16 +12,16 @@ using System.Collections.Generic;
 
 namespace MisterGames.Scenes.Core {
 
-    public sealed class ScenesStorage : MisterGames.Common.Data.ScriptableSingleton<ScenesStorage> {
+    public sealed class SceneStorage : MisterGames.Common.Data.ScriptableSingleton<SceneStorage> {
 
         [SerializeField] private bool _enablePlayModeStartSceneOverride = true;
         [SerializeField] private string[] _searchScenesInFolders = { "Assets" };
 
-        [SerializeField] private SceneReference _sceneRoot;
-        internal string SceneRoot => _sceneRoot.scene;
+        [SerializeField] private SceneReference _rootScene;
+        internal string RootScene => _rootScene.scene;
 
-        [SerializeField] [ReadOnly] private SceneReference _sceneStart;
-        internal string SceneStart => _sceneStart.scene;
+        [SerializeField] [ReadOnly] private SceneReference _editorStartScene;
+        internal string EditorStartScene => _editorStartScene.scene;
 
         [SerializeField] [HideInInspector] private string[] _sceneNames;
         public string[] SceneNames => _sceneNames;
@@ -36,14 +36,14 @@ namespace MisterGames.Scenes.Core {
         private void OnValidate() {
             SetupSceneStart();
             TrySetupSceneRootIfNotSet();
-            TrySetPlaymodeStartScene(_sceneRoot.scene);
+            TrySetPlaymodeStartScene(_rootScene.scene);
         }
 
         internal void Validate() {
             RefreshSceneNames();
 
             TrySetupSceneRootIfNotSet();
-            TrySetPlaymodeStartScene(_sceneRoot.scene);
+            TrySetPlaymodeStartScene(_rootScene.scene);
             SetupSceneStart();
 
             EditorUtility.SetDirty(this);
@@ -61,13 +61,16 @@ namespace MisterGames.Scenes.Core {
         }
 
         private void SetupSceneStart() {
-            _sceneStart.scene = SceneManager.GetActiveScene().name;
+            string activeScene = SceneManager.GetActiveScene().name;
+            if (string.IsNullOrEmpty(activeScene)) return;
+
+            _editorStartScene.scene = activeScene;
         }
 
         private void TrySetupSceneRootIfNotSet() {
-            if (!string.IsNullOrEmpty(_sceneRoot.scene)) return;
+            if (!string.IsNullOrEmpty(_rootScene.scene)) return;
 
-            _sceneRoot.scene = GetAllSceneAssets()
+            _rootScene.scene = GetAllSceneAssets()
                 .FirstOrDefault(s =>
                     s.name.Contains("global", StringComparison.InvariantCultureIgnoreCase) ||
                     s.name.Contains("root", StringComparison.InvariantCultureIgnoreCase)

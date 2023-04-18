@@ -9,9 +9,6 @@ namespace MisterGames.Scenes.Editor.Core {
     [CustomPropertyDrawer(typeof(SceneReference))]
     public class SceneReferencePropertyDrawer : PropertyDrawer {
 
-        private bool _isPendingToWriteSelectedScene;
-        private string _selectedScene;
-
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
             EditorGUI.BeginProperty(position, label, property);
 
@@ -41,7 +38,7 @@ namespace MisterGames.Scenes.Editor.Core {
             if (EditorGUI.DropdownButton(dropdownPosition, new GUIContent(sceneProperty.stringValue), FocusType.Keyboard)) {
                 var scenesDropdown = new AdvancedDropdown<SceneAsset>(
                     "Select scene",
-                    ScenesStorage.Instance.GetAllSceneAssets(),
+                    SceneStorage.Instance.GetAllSceneAssets(),
                     sceneAsset => ScenesMenu.RemoveSceneAssetFileFormat(AssetDatabase.GetAssetPath(sceneAsset)),
                     sceneAsset => {
                         sceneProperty.stringValue = sceneAsset.name;

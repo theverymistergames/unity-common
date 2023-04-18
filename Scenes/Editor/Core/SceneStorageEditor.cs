@@ -8,7 +8,7 @@ using UnityEngine.SceneManagement;
 
 namespace MisterGames.Scenes.Editor.Core {
     
-    [CustomEditor(typeof(ScenesStorage))]
+    [CustomEditor(typeof(SceneStorage))]
     public class SceneStorageEditor : UnityEditor.Editor {
 
         private SceneAsset[] _sceneAssetsCache;
@@ -26,7 +26,7 @@ namespace MisterGames.Scenes.Editor.Core {
         public override void OnInspectorGUI() {
             base.OnInspectorGUI();
 
-            if (target is not ScenesStorage scenesStorage) return;
+            if (target is not SceneStorage scenesStorage) return;
 
             GUILayout.Space(10);
 
@@ -54,7 +54,7 @@ namespace MisterGames.Scenes.Editor.Core {
         }
 
         private void OnNewSceneCreated(Scene scene, NewSceneSetup setup, NewSceneMode mode) {
-            _sceneAssetsCache = ScenesStorage.Instance.GetAllSceneAssets().ToArray();
+            _sceneAssetsCache = SceneStorage.Instance.GetAllSceneAssets().ToArray();
         }
     }
     
