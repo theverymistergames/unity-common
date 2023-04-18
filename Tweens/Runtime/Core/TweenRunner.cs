@@ -8,9 +8,7 @@ namespace MisterGames.Tweens.Core {
     public class TweenRunner : MonoBehaviour {
 
         [SerializeField] private bool _playAtStart;
-
-        [SerializeReference] [SubclassSelector]
-        private ITween _tween;
+        [SerializeReference] [SubclassSelector] private ITween _tween;
 
         private CancellationTokenSource _destroyCts;
         private CancellationTokenSource _pauseCts;
