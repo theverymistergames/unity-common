@@ -34,17 +34,17 @@ namespace MisterGames.Scenes.Core {
 
 #if UNITY_EDITOR
         private void OnValidate() {
-            TrySetSceneStartIfNotSet();
-            TrySetSceneRootIfNotSet();
+            SetupSceneStart();
+            TrySetupSceneRootIfNotSet();
             TrySetPlaymodeStartScene(_sceneRoot.scene);
         }
 
         internal void Validate() {
             RefreshSceneNames();
 
-            TrySetSceneStartIfNotSet();
-            TrySetSceneRootIfNotSet();
+            TrySetupSceneRootIfNotSet();
             TrySetPlaymodeStartScene(_sceneRoot.scene);
+            SetupSceneStart();
 
             EditorUtility.SetDirty(this);
         }
@@ -60,13 +60,11 @@ namespace MisterGames.Scenes.Core {
             _sceneNames = GetAllSceneAssets().Select(sceneAsset => sceneAsset.name).ToArray();
         }
 
-        private void TrySetSceneStartIfNotSet() {
-            if (!string.IsNullOrEmpty(_sceneStart.scene)) return;
-
+        private void SetupSceneStart() {
             _sceneStart.scene = SceneManager.GetActiveScene().name;
         }
 
-        private void TrySetSceneRootIfNotSet() {
+        private void TrySetupSceneRootIfNotSet() {
             if (!string.IsNullOrEmpty(_sceneRoot.scene)) return;
 
             _sceneRoot.scene = GetAllSceneAssets()
