@@ -53,9 +53,11 @@ namespace MisterGames.Interact.Interactives {
             ForceStopInteractAll();
         }
 
-        public bool IsInDirectView(IInteractive interactive) {
+        public bool IsInDirectView(IInteractive interactive, out float distance) {
             _directViewDetector.FetchResults();
             var info = _directViewDetector.CollisionInfo;
+
+            distance = info.hasContact ? info.distance : 0f;
 
             return info.hasContact &&
                    info.transform.GetHashCode() == interactive.Transform.GetHashCode();

@@ -8,7 +8,7 @@ namespace MisterGames.Interact.Detectables {
         public bool shouldBeInDirectView;
 
         public bool IsAllowedDetection(IDetector detector, IDetectable detectable) {
-            return shouldBeInDirectView == detector.IsInDirectView(detectable);
+            return shouldBeInDirectView == detector.IsInDirectView(detectable, out _);
         }
     }
 

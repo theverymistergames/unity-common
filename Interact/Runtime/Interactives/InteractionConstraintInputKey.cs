@@ -5,7 +5,7 @@ using MisterGames.Input.Actions;
 namespace MisterGames.Interact.Interactives {
 
     [Serializable]
-    public sealed class InteractiveConstraintInputKey : IInteractionConstraint {
+    public sealed class InteractionConstraintInputKey : IInteractionConstraint {
 
         public InputActionKeyEvent keyEvent;
         public Optional<bool> shouldBeFired;

@@ -4,13 +4,12 @@ using UnityEngine;
 namespace MisterGames.Interact.Interactives {
 
     [Serializable]
-    public sealed class InteractiveConstraintMaxDistance : IInteractionConstraint {
+    public sealed class InteractionConstraintMaxDirectViewDistance : IInteractionConstraint {
 
         [Min(0f)] public float maxDistance;
 
         public bool IsAllowedInteraction(IInteractiveUser user, IInteractive interactive) {
-            float sqrDistance = Vector3.SqrMagnitude(user.Transform.position - interactive.Transform.position);
-            return sqrDistance <= maxDistance * maxDistance;
+            return user.IsInDirectView(interactive, out float distance) && distance <= maxDistance * maxDistance;
         }
     }
 

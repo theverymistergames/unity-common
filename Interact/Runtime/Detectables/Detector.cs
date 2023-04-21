@@ -49,9 +49,11 @@ namespace MisterGames.Interact.Detectables {
             _detectedTransformHashesBuffer.Clear();
         }
 
-        public bool IsInDirectView(IDetectable detectable) {
+        public bool IsInDirectView(IDetectable detectable, out float distance) {
             _directViewDetector.FetchResults();
             var info = _directViewDetector.CollisionInfo;
+
+            distance = info.hasContact ? info.distance : 0f;
 
             return info.hasContact &&
                    info.transform.GetHashCode() == detectable.Transform.GetHashCode();

@@ -3,7 +3,7 @@
 namespace MisterGames.Interact.Interactives {
 
     [Serializable]
-    public sealed class InteractiveConstraintIsDetected : IInteractionConstraint {
+    public sealed class InteractionConstraintIsDetected : IInteractionConstraint {
 
         public bool shouldBeDetected;
 

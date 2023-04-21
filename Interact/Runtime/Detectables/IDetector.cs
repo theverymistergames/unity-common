@@ -12,7 +12,7 @@ namespace MisterGames.Interact.Detectables {
         IReadOnlyCollection<IDetectable> Targets { get; }
         Transform Transform { get; }
 
-        bool IsInDirectView(IDetectable detectable);
+        bool IsInDirectView(IDetectable detectable, out float distance);
         bool IsDetected(IDetectable detectable);
 
         void ForceDetect(IDetectable detectable);
