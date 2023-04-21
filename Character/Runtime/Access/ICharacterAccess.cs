@@ -6,6 +6,7 @@ using MisterGames.Character.Jump;
 using MisterGames.Character.View;
 using MisterGames.Collisions.Core;
 using MisterGames.Common.GameObjects;
+using MisterGames.Interact.Interactives;
 using UnityEngine;
 
 namespace MisterGames.Character.Access {
@@ -14,6 +15,7 @@ namespace MisterGames.Character.Access {
         ICharacterInput Input { get; }
         CameraController CameraController { get; }
         CharacterController CharacterController { get; }
+        IInteractiveUser InteractiveUser { get; }
 
         ITransformAdapter HeadAdapter { get; }
         ITransformAdapter BodyAdapter { get; }

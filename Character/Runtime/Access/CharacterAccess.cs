@@ -7,6 +7,7 @@ using MisterGames.Character.Motion;
 using MisterGames.Character.View;
 using MisterGames.Collisions.Core;
 using MisterGames.Common.GameObjects;
+using MisterGames.Interact.Interactives;
 using MisterGames.UI.Initialization;
 using UnityEngine;
 
@@ -17,6 +18,7 @@ namespace MisterGames.Character.Access {
         [SerializeField] private CharacterInput _input;
         [SerializeField] private CameraController _cameraController;
         [SerializeField] private CharacterController _characterController;
+        [SerializeField] private InteractiveUser _interactiveUser;
 
         [SerializeField] private CharacterHeadAdapter headAdapter;
         [SerializeField] private CharacterBodyAdapter _bodyAdapter;
@@ -34,6 +36,7 @@ namespace MisterGames.Character.Access {
         public ICharacterInput Input => _input;
         public CameraController CameraController => _cameraController;
         public CharacterController CharacterController => _characterController;
+        public IInteractiveUser InteractiveUser => _interactiveUser;
 
         public ITransformAdapter HeadAdapter => headAdapter;
         public ITransformAdapter BodyAdapter => _bodyAdapter;
