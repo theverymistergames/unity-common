@@ -1,5 +1,5 @@
 ﻿using MisterGames.Dbg.Draw;
-using MisterGames.Interact.Core;
+using MisterGames.Interact.Interactives;
 using MisterGames.Splines.Utils;
 using Unity.Mathematics;
 using UnityEngine;
@@ -40,35 +40,35 @@ namespace MisterGames.Interact.Path {
             _interactive.OnStopInteract -= OnStopInteract;
         }
 
-        private void OnStartInteract(IInteractiveUser user, Vector3 hitPoint) {
-            var interactivePathUser = user.GameObject.GetComponent<IInteractivePathUser>();
+        private void OnStartInteract(IInteractiveUser user) {
+            var interactivePathUser = user.Transform.GetComponent<IInteractivePathUser>();
 
             if (interactivePathUser == null) {
-                Debug.LogWarning($"{nameof(InteractivePath)}: interactive user GameObject {user.GameObject.name} " +
+                Debug.LogWarning($"{nameof(InteractivePath)}: interactive user GameObject {user.Transform.name} " +
                                  $"should have component that implements {nameof(IInteractivePathUser)} interface " +
                                  $"in order to interact with {nameof(InteractivePath)}. Interaction was cancelled.");
 
-                user.StopInteract();
+                user.TryStopInteract(_interactive);
                 return;
             }
 
-            _splineContainer.GetNearestPoint(hitPoint, out float t);
+            _splineContainer.GetNearestPoint(user.Transform.position, out float t);
             t = math.clamp(t, _startReserveBound, _endReserveBound);
 
-            interactivePathUser.OnAttachedToPath(this, t);
+            interactivePathUser.OnAttachedToPath(user, this, t);
         }
 
         private void OnStopInteract(IInteractiveUser user) {
-            var interactivePathUser = user.GameObject.GetComponent<IInteractivePathUser>();
+            var interactivePathUser = user.Transform.GetComponent<IInteractivePathUser>();
 
             if (interactivePathUser == null) {
-                Debug.LogWarning($"{nameof(InteractivePath)}: interactive user GameObject {user.GameObject.name} " +
+                Debug.LogWarning($"{nameof(InteractivePath)}: interactive user GameObject {user.Transform.name} " +
                                  $"should have component that implements {nameof(IInteractivePathUser)} interface " +
                                  $"in order to interact with {nameof(InteractivePath)}.");
                 return;
             }
 
-            interactivePathUser.OnDetachedFromPath();
+            interactivePathUser.OnDetachedFromPath(user, this);
         }
 
 #if UNITY_EDITOR

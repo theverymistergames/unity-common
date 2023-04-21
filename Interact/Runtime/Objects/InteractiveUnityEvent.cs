@@ -1,5 +1,5 @@
 ﻿using System;
-using MisterGames.Interact.Core;
+using MisterGames.Interact.Interactives;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -11,13 +11,13 @@ namespace MisterGames.Interact.Objects {
 
         [SerializeField] private UnityEvent _event;
 
-        private Interactive _interactive;
+        private IInteractive _interactive;
 
         private void Awake() {
             Debug.LogWarning($"Using {nameof(InteractiveUnityEvent)} on game object `{gameObject.name}`. " +
                              $"It must be replaced later!");
 
-            _interactive = GetComponent<Interactive>();
+            _interactive = GetComponent<IInteractive>();
         }
 
         private void OnEnable() {
@@ -29,7 +29,7 @@ namespace MisterGames.Interact.Objects {
             _interactive.OnStartInteract -= OnStartInteract;
         }
 
-        private void OnStartInteract(IInteractiveUser user, Vector3 hitPoint) {
+        private void OnStartInteract(IInteractiveUser user) {
             _event.Invoke();
         }
     }

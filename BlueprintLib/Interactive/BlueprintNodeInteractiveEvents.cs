@@ -1,7 +1,7 @@
 ﻿using System;
 using MisterGames.Blueprints;
 using MisterGames.Blueprints.Core;
-using MisterGames.Interact.Core;
+using MisterGames.Interact.Interactives;
 using UnityEngine;
 
 namespace MisterGames.BlueprintLib {
@@ -23,11 +23,11 @@ namespace MisterGames.BlueprintLib {
             Port.Exit("On Start Interact"),
             Port.Exit("On Stop Interact"),
             Port.Output<bool>("Is Interacting"),
-            Port.Output<IInteractiveUser>(),
+            Port.Output<IInteractiveUser>("Last User"),
         };
 
         private Interactive _interactive;
-        private IInteractiveUser _currentUser;
+        private IInteractiveUser _lastUser;
 
         public void OnStart() {
             if (!_autoSetInteractiveOnStart) return;
@@ -63,23 +63,22 @@ namespace MisterGames.BlueprintLib {
             }
         }
 
-        private void OnStartInteract(IInteractiveUser user, Vector3 hitPoint) {
-            _currentUser = user;
+        private void OnStartInteract(IInteractiveUser user) {
+            _lastUser = user;
             Ports[2].Call();
         }
 
         private void OnStopInteract(IInteractiveUser user) {
-            _currentUser = null;
             Ports[3].Call();
         }
 
         bool IBlueprintOutput<bool>.GetOutputPortValue(int port) => port switch {
-            4 => _interactive != null && _interactive.IsInteracting,
+            4 => _interactive != null && _interactive.IsInteractingWith(_lastUser),
             _ => false,
         };
 
         IInteractiveUser IBlueprintOutput<IInteractiveUser>.GetOutputPortValue(int port) => port switch {
-            5 => _currentUser,
+            5 => _lastUser,
             _ => null,
         };
     }

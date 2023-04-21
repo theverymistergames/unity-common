@@ -1,8 +1,10 @@
-﻿namespace MisterGames.Interact.Path {
+﻿using MisterGames.Interact.Interactives;
+
+namespace MisterGames.Interact.Path {
 
     public interface IInteractivePathUser {
-        void OnAttachedToPath(IInteractivePath path, float t);
-        void OnDetachedFromPath();
+        void OnAttachedToPath(IInteractiveUser user, IInteractivePath path, float t);
+        void OnDetachedFromPath(IInteractiveUser user, IInteractivePath path);
     }
 
 }
