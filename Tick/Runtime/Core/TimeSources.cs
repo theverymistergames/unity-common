@@ -31,7 +31,7 @@ namespace MisterGames.Tick.Core {
 
         private static ITimeSourceProvider _provider;
 
-        public static void InjectProvider(ITimeSourceProvider provider) {
+        internal static void InjectProvider(ITimeSourceProvider provider) {
             _provider = provider;
         }
 
