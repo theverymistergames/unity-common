@@ -1,4 +1,5 @@
 ﻿using MisterGames.Character.Collisions;
+using MisterGames.Character.Fsm;
 using MisterGames.Character.Height;
 using MisterGames.Character.Input;
 using MisterGames.Character.Jump;
@@ -19,6 +20,7 @@ namespace MisterGames.Character.Access {
 
         ICharacterViewPipeline ViewPipeline { get; }
         ICharacterMotionPipeline MotionPipeline { get; }
+        ICharacterMotionFsmPipeline MotionFsmPipeline { get; }
         ICharacterJumpPipeline JumpPipeline { get; }
         ICharacterHeightPipeline HeightPipeline { get; }
 

@@ -1,4 +1,5 @@
 ﻿using MisterGames.Character.Collisions;
+using MisterGames.Character.Fsm;
 using MisterGames.Character.Height;
 using MisterGames.Character.Input;
 using MisterGames.Character.Jump;
@@ -22,6 +23,7 @@ namespace MisterGames.Character.Access {
 
         [SerializeField] private CharacterViewPipeline _viewPipeline;
         [SerializeField] private CharacterMotionPipeline _motionPipeline;
+        [SerializeField] private CharacterMotionFsmPipeline _motionFsmPipeline;
         [SerializeField] private CharacterJumpPipeline _jumpPipeline;
         [SerializeField] private CharacterHeightPipeline _heightPipeline;
 
@@ -38,6 +40,7 @@ namespace MisterGames.Character.Access {
 
         public ICharacterViewPipeline ViewPipeline => _viewPipeline;
         public ICharacterMotionPipeline MotionPipeline => _motionPipeline;
+        public ICharacterMotionFsmPipeline MotionFsmPipeline => _motionFsmPipeline;
         public ICharacterJumpPipeline JumpPipeline => _jumpPipeline;
         public ICharacterHeightPipeline HeightPipeline => _heightPipeline;
 
