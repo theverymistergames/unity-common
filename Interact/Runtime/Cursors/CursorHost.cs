@@ -1,20 +1,20 @@
 ﻿using System.Collections.Generic;
 using MisterGames.Collisions.Core;
+using MisterGames.Collisions.Utils;
 using MisterGames.Common.Maths;
-using MisterGames.Dbg.Draw;
-using MisterGames.Interact.Core;
 using MisterGames.Tick.Core;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace MisterGames.Interact.Cursors {
 
-    public class InteractiveCursorHost : MonoBehaviour, IInteractiveCursorHost, IUpdate {
+    public class CursorHost : MonoBehaviour, ICursorHost, IUpdate {
 
         [Header("General")]
         [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
 
         [Header("Cursor Settings")]
+        [SerializeField] private bool _enableCursorOverride = true;
         [SerializeField] private Image _cursorImage;
         [SerializeField] private CursorIcon _initialCursorIcon;
 
@@ -24,32 +24,28 @@ namespace MisterGames.Interact.Cursors {
         [SerializeField] private CollisionFilter _collisionFilter = new CollisionFilter { maxDistance = 3f };
         [SerializeField] private CollisionDetectorBase _transparencyRaycaster;
 
-        private ITimeSource _timeSource => TimeSources.Get(_timeSourceStage);
-        private Interactive _interactive;
-        private CollisionInfo _lastCollisionInfo;
-
-        private readonly List<CursorIconQueueItem> _iconQueue = new List<CursorIconQueueItem>(1);
+        private readonly Dictionary<object, CursorIconQueueItem> _iconOverridesMap = new Dictionary<object, CursorIconQueueItem>();
 
         private readonly struct CursorIconQueueItem {
-            public readonly object source;
+
+            public static readonly CursorIconQueueItem Empty = new CursorIconQueueItem(-1);
+
+            public readonly int creationFrame;
             public readonly CursorIcon cursorIcon;
 
-            public CursorIconQueueItem(object source, CursorIcon cursorIcon) {
-                this.source = source;
+            public CursorIconQueueItem(int creationFrame, CursorIcon cursorIcon = null) {
+                this.creationFrame = creationFrame;
                 this.cursorIcon = cursorIcon;
             }
         }
 
-        private void Awake() {
-            StartOverrideCursorIcon(this, _initialCursorIcon);
-        }
-
-        private void OnDestroy() {
-            StopOverrideCursorIcon(this, _initialCursorIcon);
-        }
-
         private void OnEnable() {
-            _timeSource.Subscribe(this);
+            Register(this);
+            ApplyCursorIcon(this, _initialCursorIcon);
+
+            if (!_enableCursorOverride) SetCursorIcon(_initialCursorIcon);
+
+            TimeSources.Get(_timeSourceStage).Subscribe(this);
 
             Application.focusChanged -= OnApplicationFocusChanged;
             Application.focusChanged += OnApplicationFocusChanged;
@@ -58,25 +54,35 @@ namespace MisterGames.Interact.Cursors {
         private void OnDisable() {
             Application.focusChanged -= OnApplicationFocusChanged;
 
-            _timeSource.Unsubscribe(this);
+            TimeSources.Get(_timeSourceStage).Unsubscribe(this);
+
+            Unregister(this);
+            SetCursorIcon(null);
         }
 
         private void Start() {
             OnApplicationFocusChanged(true);
         }
 
-        public void StartOverrideCursorIcon(object source, CursorIcon icon) {
-            _iconQueue.Add(new CursorIconQueueItem(source, icon));
+        public void Register(object source) {
+            if (_iconOverridesMap.ContainsKey(source)) return;
+
+            _iconOverridesMap.Add(source, CursorIconQueueItem.Empty);
+        }
+
+        public void Unregister(object source) {
+            if (_iconOverridesMap.ContainsKey(source)) _iconOverridesMap.Remove(source);
 
             RefreshCursorIcon();
         }
 
-        public void StopOverrideCursorIcon(object source, CursorIcon icon) {
-            for (int i = _iconQueue.Count - 1; i >= 0; i--) {
-                var item = _iconQueue[i];
-                if (item.source == source && item.cursorIcon == icon) _iconQueue.RemoveAt(i);
+        public void ApplyCursorIcon(object source, CursorIcon icon) {
+            if (!_iconOverridesMap.ContainsKey(source)) {
+                Debug.LogWarning($"{nameof(CursorHost)}: not registered source {source} is trying to apply icon {icon}");
+                return;
             }
 
+            _iconOverridesMap[source] = new CursorIconQueueItem(TimeSources.FrameCount, icon);
             RefreshCursorIcon();
         }
 
@@ -84,11 +90,13 @@ namespace MisterGames.Interact.Cursors {
             if (!_isAlphaControlledByDistance) return;
 
             _transparencyRaycaster.FetchResults();
-            _transparencyRaycaster.FilterLastResults(_collisionFilter, out _lastCollisionInfo);
+            var hits = _transparencyRaycaster.FilterLastResults(_collisionFilter);
+            bool hasHit = hits.TryGetMinimumDistanceHit(hits.Length, out var hit);
 
-            float alpha = _lastCollisionInfo.hasContact.AsInt();
+            float alpha = (hasHit && hit.hasContact).AsInt();
+
             float t = _collisionFilter.maxDistance > 0f
-                ? _lastCollisionInfo.lastDistance / _collisionFilter.maxDistance
+                ? hit.distance / _collisionFilter.maxDistance
                 : 0f;
 
             alpha *= _alphaByDistance.Evaluate(t);
@@ -105,18 +113,25 @@ namespace MisterGames.Interact.Cursors {
         }
 
         private void RefreshCursorIcon() {
-            if (_iconQueue.Count == 0) {
-                SetCursorIcon(null);
-                return;
+            if (!_enableCursorOverride) return;
+
+            int lastCreationFrame = -1;
+            CursorIconQueueItem lastCreatedItem = default;
+
+            foreach (var item in _iconOverridesMap.Values) {
+                if (lastCreationFrame >= 0 && item.creationFrame <= lastCreationFrame) continue;
+
+                lastCreationFrame = item.creationFrame;
+                lastCreatedItem = item;
             }
 
-            SetCursorIcon(_iconQueue[^1].cursorIcon);
+            SetCursorIcon(lastCreatedItem.cursorIcon);
         }
 
         private void SetCursorIcon(CursorIcon icon) {
             if (_cursorImage == null) return;
 
-            if (icon == null) {
+            if (!enabled || icon == null) {
                 _cursorImage.sprite = null;
                 return;
             }
@@ -132,21 +147,6 @@ namespace MisterGames.Interact.Cursors {
             Cursor.visible = !isFocused;
             Cursor.lockState = isFocused ? CursorLockMode.Locked : CursorLockMode.None;
         }
-
-#if UNITY_EDITOR
-        [Header("Debug")]
-        [SerializeField] private bool _debugDrawRaycastHit;
-
-        private void Update() {
-            DbgDraw();
-        }
-
-        private void DbgDraw() {
-            if (_debugDrawRaycastHit) {
-                DbgPointer.Create().Color(Color.cyan).Position(_lastCollisionInfo.lastHitPoint).Size(0.5f).Draw();
-            }
-        }
-#endif
     }
 
 }

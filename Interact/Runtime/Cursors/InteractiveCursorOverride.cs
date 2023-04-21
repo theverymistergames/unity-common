@@ -1,4 +1,4 @@
-﻿using MisterGames.Interact.Core;
+﻿using MisterGames.Interact.Interactives;
 using UnityEngine;
 
 namespace MisterGames.Interact.Cursors {
@@ -6,15 +6,14 @@ namespace MisterGames.Interact.Cursors {
     public class InteractiveCursorOverride : MonoBehaviour {
 
         [SerializeField] private Interactive _interactive;
-        [SerializeField] private CursorIcon _cursorIconOnHover;
-        [SerializeField] private CursorIcon _cursorIconWhileInteracting;
+        [SerializeField] private InteractiveCursorStrategy _strategy;
 
         private void Awake() {
-            _interactive.OnDetectedByUser -= OnDetectedByUser;
-            _interactive.OnDetectedByUser += OnDetectedByUser;
+            _interactive.OnDetectedBy -= OnDetectedByUser;
+            _interactive.OnDetectedBy += OnDetectedByUser;
 
-            _interactive.OnLostByUser -= OnLostByUser;
-            _interactive.OnLostByUser += OnLostByUser;
+            _interactive.OnLostBy -= OnLostByUser;
+            _interactive.OnLostBy += OnLostByUser;
 
             _interactive.OnStartInteract -= OnStartInteract;
             _interactive.OnStartInteract += OnStartInteract;
@@ -24,38 +23,41 @@ namespace MisterGames.Interact.Cursors {
         }
 
         private void OnDestroy() {
-            _interactive.OnDetectedByUser -= OnDetectedByUser;
-            _interactive.OnLostByUser -= OnLostByUser;
+            _interactive.OnDetectedBy -= OnDetectedByUser;
+            _interactive.OnLostBy -= OnLostByUser;
             _interactive.OnStartInteract -= OnStartInteract;
             _interactive.OnStopInteract -= OnStopInteract;
         }
 
         private void OnDetectedByUser(IInteractiveUser user) {
-            if (_cursorIconOnHover == null) return;
-
-            var host = user.GameObject.GetComponent<IInteractiveCursorHost>();
-            host?.StartOverrideCursorIcon(this, _cursorIconOnHover);
+            TryApplyCursorIcon(user);
         }
 
         private void OnLostByUser(IInteractiveUser user) {
-            if (_cursorIconOnHover == null) return;
-
-            var host = user.GameObject.GetComponent<IInteractiveCursorHost>();
-            host?.StopOverrideCursorIcon(this, _cursorIconOnHover);
+            TryApplyCursorIcon(user);
         }
 
-        private void OnStartInteract(IInteractiveUser user, Vector3 hitPoint) {
-            if (_cursorIconWhileInteracting == null) return;
-
-            var host = user.GameObject.GetComponent<IInteractiveCursorHost>();
-            host?.StartOverrideCursorIcon(this, _cursorIconWhileInteracting);
+        private void OnStartInteract(IInteractiveUser user) {
+            TryApplyCursorIcon(user);
         }
 
         private void OnStopInteract(IInteractiveUser user) {
-            if (_cursorIconWhileInteracting == null) return;
+            TryApplyCursorIcon(user);
+        }
 
-            var host = user.GameObject.GetComponent<IInteractiveCursorHost>();
-            host?.StopOverrideCursorIcon(this, _cursorIconWhileInteracting);
+        private void TryApplyCursorIcon(IInteractiveUser user) {
+            var host = user.Transform.GetComponent<ICursorHost>();
+            if (host == null) return;
+
+            if (!user.IsInteractingWith(_interactive) && !user.IsDetected(_interactive) ||
+                !_strategy.TryGetCursorIcon(user, _interactive, out var icon)
+            ) {
+                host.Unregister(this);
+                return;
+            }
+
+            host.Register(this);
+            host.ApplyCursorIcon(this, icon);
         }
     }
 
