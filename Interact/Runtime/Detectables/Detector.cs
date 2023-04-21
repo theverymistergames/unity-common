@@ -10,6 +10,7 @@ namespace MisterGames.Interact.Detectables {
     public sealed class Detector : MonoBehaviour, IDetector, IUpdate {
 
         [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
+        [SerializeField] private CollisionDetectorBase _directViewDetector;
         [SerializeField] private CollisionDetectorBase _collisionDetector;
         [SerializeField] private CollisionFilter _collisionFilter;
 
@@ -46,6 +47,14 @@ namespace MisterGames.Interact.Detectables {
 
             _detectedTransformHashesSet.Clear();
             _detectedTransformHashesBuffer.Clear();
+        }
+
+        public bool IsInDirectView(IDetectable detectable) {
+            _directViewDetector.FetchResults();
+            var info = _directViewDetector.CollisionInfo;
+
+            return info.hasContact &&
+                   info.transform.GetHashCode() == detectable.Transform.GetHashCode();
         }
 
         public bool IsDetected(IDetectable detectable) {
