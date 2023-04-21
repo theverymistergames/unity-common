@@ -9,8 +9,8 @@ namespace MisterGames.Character.View {
         [SerializeField] private CharacterAccess _characterAccess;
 
         public Vector3 Position {
-            get => _cameraController.PositionOffset;
-            set => _cameraController.SetPositionOffset(this, value);
+            get => _cameraController.Position;
+            set => _cameraController.SetPositionOffset(this, value - _cameraController.Position);
         }
 
         public Quaternion Rotation {

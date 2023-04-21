@@ -31,11 +31,8 @@ namespace MisterGames.Character.Motion {
             _groundDetector.FetchResults();
             var groundInfo = _groundDetector.CollisionInfo;
 
-            // Consider rotation depending on gravity enable state
-            dir = _bodyAdapter.Rotation * dir;
-
             // Move direction is same as view direction while gravity is not enabled
-            if (!groundInfo.hasContact && !_mass.isGravityEnabled) dir = _headAdapter.Rotation * dir;
+            dir = (groundInfo.hasContact || _mass.isGravityEnabled ? _bodyAdapter.Rotation : _headAdapter.Rotation) * dir;
 
             // Consider ground normal
             if (groundInfo.hasContact) dir = Vector3.ProjectOnPlane(dir, groundInfo.normal);

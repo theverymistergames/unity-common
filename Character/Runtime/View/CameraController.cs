@@ -10,8 +10,8 @@ namespace MisterGames.Character.View {
 
         public Camera Camera => _camera;
 
-        public Vector3 PositionOffset => _transform.localPosition;
-        public Quaternion Rotation => _transform.localRotation;
+        public Vector3 Position => _transform.position;
+        public Quaternion Rotation => _transform.rotation;
 
         private CameraValues _baseCameraValues;
         private CameraValues _resultCameraValues;

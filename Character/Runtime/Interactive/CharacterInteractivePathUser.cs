@@ -25,9 +25,10 @@ namespace MisterGames.Character.Interactive {
             _characterAccess.MotionFsmPipeline.SetEnabled(this, false);
 
             var mass = _characterAccess.MotionPipeline.GetProcessor<CharacterProcessorMass>();
-            if (mass == null) return;
-
-            mass.isGravityEnabled = false;
+            if (mass != null) {
+                mass.isGravityEnabled = false;
+                mass.ApplyVelocityChange(Vector3.zero);
+            }
         }
 
         public void OnDetachedFromPath(IInteractiveUser user, IInteractivePath path) {
@@ -36,9 +37,7 @@ namespace MisterGames.Character.Interactive {
             _characterAccess.MotionFsmPipeline.SetEnabled(this, true);
 
             var mass = _characterAccess.MotionPipeline.GetProcessor<CharacterProcessorMass>();
-            if (mass == null) return;
-
-            mass.isGravityEnabled = true;
+            if (mass != null) mass.isGravityEnabled = true;
         }
     }
 
