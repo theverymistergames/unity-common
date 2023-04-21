@@ -78,24 +78,24 @@ namespace MisterGames.Character.Motion {
             var info = _groundDetector.CollisionInfo;
             if (!info.hasContact) return;
 
-            _inertialComponent = Vector3.ProjectOnPlane(_inertialComponent, info.lastNormal);
-            _gravitationalComponent = Vector3.ProjectOnPlane(_gravitationalComponent, info.lastNormal);
+            _inertialComponent = Vector3.ProjectOnPlane(_inertialComponent, info.normal);
+            _gravitationalComponent = Vector3.ProjectOnPlane(_gravitationalComponent, info.normal);
         }
 
         private void OnCeilingDetectorTransformChanged() {
             var info = _ceilingDetector.CollisionInfo;
             if (!info.hasContact) return;
 
-            _inertialComponent = Vector3.ProjectOnPlane(_inertialComponent, info.lastNormal);
-            _gravitationalComponent = Vector3.ProjectOnPlane(_gravitationalComponent, info.lastNormal);
+            _inertialComponent = Vector3.ProjectOnPlane(_inertialComponent, info.normal);
+            _gravitationalComponent = Vector3.ProjectOnPlane(_gravitationalComponent, info.normal);
         }
 
         private void OnHitDetectorTransformChanged() {
             var info = _hitDetector.CollisionInfo;
             if (!info.hasContact) return;
 
-            _inertialComponent = Vector3.ProjectOnPlane(_inertialComponent, info.lastNormal);
-            _gravitationalComponent = Vector3.ProjectOnPlane(_gravitationalComponent, info.lastNormal);
+            _inertialComponent = Vector3.ProjectOnPlane(_inertialComponent, info.normal);
+            _gravitationalComponent = Vector3.ProjectOnPlane(_gravitationalComponent, info.normal);
         }
 
         /// <summary>

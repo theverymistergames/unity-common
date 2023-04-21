@@ -1,4 +1,5 @@
-﻿using MisterGames.Collisions.Core;
+﻿using System;
+using MisterGames.Collisions.Core;
 using MisterGames.Collisions.Utils;
 using MisterGames.Common.Maths;
 using MisterGames.Dbg.Draw;
@@ -22,6 +23,8 @@ namespace MisterGames.Character.Collisions {
         [Header("Normal calculation")]
         [SerializeField] private float _hitPointElevation = 0.2f;
         [SerializeField] private float _normalSphereCastRadius = 0.05f;
+
+        public override int Capacity => _maxHits;
 
         public Vector3 OriginOffset {
             get => _originOffset;
@@ -57,8 +60,11 @@ namespace MisterGames.Character.Collisions {
         private readonly Vector3 _groundDetectionDirection = Vector3.down;
         private Transform _transform;
 
-        private RaycastHit[] _hitsMain;
-        private RaycastHit[] _hitsNormal;
+        private RaycastHit[] _raycastHitsMain;
+        private CollisionInfo[] _hitsMain;
+
+        private RaycastHit[] _raycastHitsNormal;
+
         private int _hitCount;
 
         private Vector3 _originOffset;
@@ -67,8 +73,8 @@ namespace MisterGames.Character.Collisions {
 
         private void Awake() {
             _transform = transform;
-            _hitsMain = new RaycastHit[_maxHits];
-            _hitsNormal = new RaycastHit[1];
+            _raycastHitsMain = new RaycastHit[_maxHits];
+            _raycastHitsNormal = new RaycastHit[1];
         }
 
         private void OnEnable() {
@@ -91,22 +97,18 @@ namespace MisterGames.Character.Collisions {
             RequestGround();
         }
 
-        public override void FilterLastResults(CollisionFilter filter, out CollisionInfo info) {
-            info = default;
+        public override ReadOnlySpan<CollisionInfo> FilterLastResults(CollisionFilter filter) {
+            _raycastHitsMain
+                .RemoveInvalidHits(_hitCount, out int hitCount)
+                .Filter(hitCount, filter, out int filterCount);
 
-            if (!CollisionInfo.hasContact) return;
+            if (filterCount <= 0) return ReadOnlySpan<CollisionInfo>.Empty;
 
-            bool hasHit = _hitsMain
-                .Filter(_hitCount, filter, out int filterCount)
-                .TryGetMinimumDistanceHit(filterCount, out var hit);
+            for (int i = 0; i < filterCount; i++) {
+                _hitsMain[i] = CollisionInfo.FromRaycastHit(_raycastHitsMain[i]);
+            }
 
-            info = new CollisionInfo {
-                hasContact = hasHit,
-                lastDistance = hit.distance,
-                lastNormal = hit.normal,
-                lastHitPoint = hit.point,
-                transform = hit.transform
-            };
+            return ((ReadOnlySpan<CollisionInfo>) _hitsMain)[..filterCount];
         }
 
         private void RequestGround(bool forceNotify = false) {
@@ -115,7 +117,7 @@ namespace MisterGames.Character.Collisions {
 
             var origin = _originOffset + _transform.position;
             float distance = _distance + _distanceAddition;
-            _hitCount = PerformSphereCast(origin, _radius, distance, _hitsMain);
+            _hitCount = PerformSphereCast(origin, _radius, distance, _raycastHitsMain);
 
             bool hasHits = _hitCount > 0;
             var normal = Vector3.zero;
@@ -127,7 +129,7 @@ namespace MisterGames.Character.Collisions {
                 float minSqrMagnitude = -1f;
 
                 for (int i = 0; i < _hitCount; i++) {
-                    var hit = _hitsMain[i];
+                    var hit = _raycastHitsMain[i];
 
                     var point = hit.point;
                     hitPoint += point;
@@ -138,7 +140,7 @@ namespace MisterGames.Character.Collisions {
                         surface = hit.transform;
                     }
 
-                    if (ClarifyNormalAtPoint(point)) normal += _hitsNormal[0].normal;
+                    if (ClarifyNormalAtPoint(point)) normal += _raycastHitsNormal[0].normal;
                 }
 
                 normal = normal.normalized;
@@ -147,17 +149,11 @@ namespace MisterGames.Character.Collisions {
             }
             else {
                 normal = _groundDetectionDirection.Inverted().normalized;
-                hitPoint = CollisionInfo.lastHitPoint;
-                hitDistance = CollisionInfo.lastDistance;
+                hitPoint = CollisionInfo.point;
+                hitDistance = CollisionInfo.distance;
             }
 
-            var info = new CollisionInfo {
-                hasContact = hasHits,
-                lastDistance = hitDistance,
-                lastNormal = normal,
-                lastHitPoint = hitPoint,
-                transform = surface
-            };
+            var info = new CollisionInfo(hasHits, hitDistance, normal, hitPoint, surface);
 
             SetCollisionInfo(info, forceNotify);
             _lastUpdateFrame = frame;
@@ -165,7 +161,7 @@ namespace MisterGames.Character.Collisions {
 
         private bool ClarifyNormalAtPoint(Vector3 point) {
             var origin = point - _groundDetectionDirection * _hitPointElevation;
-            return PerformSphereCast(origin, _normalSphereCastRadius, _hitPointElevation, _hitsNormal) > 0;
+            return PerformSphereCast(origin, _normalSphereCastRadius, _hitPointElevation, _raycastHitsNormal) > 0;
         }
 
         private int PerformSphereCast(Vector3 origin, float radius, float distance, RaycastHit[] hits) {
@@ -193,15 +189,15 @@ namespace MisterGames.Character.Collisions {
             
             if (_debugDrawNormal) {
                 var start = CollisionInfo.hasContact ?
-                    CollisionInfo.lastHitPoint :
+                    CollisionInfo.point :
                     _originOffset + transform.position + _groundDetectionDirection * (_distance + _distanceAddition + _radius);
 
-                DbgRay.Create().From(start).Dir(CollisionInfo.lastNormal).Color(Color.blue).Arrow(0.1f).Draw();
+                DbgRay.Create().From(start).Dir(CollisionInfo.normal).Color(Color.blue).Arrow(0.1f).Draw();
             }
 
             if (_debugDrawHitPoint) {
                 if (CollisionInfo.hasContact) {
-                    DbgPointer.Create().Position(CollisionInfo.lastHitPoint).Size(0.3f).Color(Color.yellow).Draw();    
+                    DbgPointer.Create().Position(CollisionInfo.point).Size(0.3f).Color(Color.yellow).Draw();
                 }
             }
             

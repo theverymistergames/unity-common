@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using MisterGames.Collisions.Core;
 using MisterGames.Collisions.Utils;
 using MisterGames.Tick.Core;
@@ -10,15 +11,22 @@ namespace MisterGames.Collisions.Detectors {
     public class FrameUiRaycaster : CollisionDetectorBase, IUpdate {
 
         [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
+        [SerializeField] [Min(1)] private int _maxHits = 6;
         [SerializeField] private CollisionFilter _collisionFilter;
 
+        public override int Capacity => _maxHits;
+
         private ITimeSource _timeSource => TimeSources.Get(_timeSourceStage);
-        private readonly List<RaycastResult> _hits = new List<RaycastResult>();
+
+        private readonly List<RaycastResult> _raycastResults = new List<RaycastResult>();
+        private CollisionInfo[] _hits;
+
         private EventSystem _eventSystem;
         private int _hitCount;
         private int _lastUpdateFrame = -1;
 
         private void Awake() {
+            _hits = new CollisionInfo[_maxHits];
             _eventSystem = EventSystem.current;
         }
 
@@ -34,7 +42,7 @@ namespace MisterGames.Collisions.Detectors {
             UpdateContacts(forceNotify: true);
         }
 
-        void IUpdate.OnUpdate(float dt) {
+        public void OnUpdate(float dt) {
             UpdateContacts();
         }
 
@@ -42,50 +50,34 @@ namespace MisterGames.Collisions.Detectors {
             UpdateContacts();
         }
 
-        public override void FilterLastResults(CollisionFilter filter, out CollisionInfo info) {
-            info = default;
+        public override ReadOnlySpan<CollisionInfo> FilterLastResults(CollisionFilter filter) {
+            _raycastResults
+                .RemoveInvalidHits(_hitCount, out int hitCount)
+                .Filter(hitCount, filter, out int filterCount);
 
-            if (!CollisionInfo.hasContact) return;
+            if (filterCount <= 0) return ReadOnlySpan<CollisionInfo>.Empty;
 
-            bool hasHit = _hits
-                .Filter(_hitCount, filter, out int filterCount)
-                .TryGetMinimumDistanceHit(filterCount, out var hit);
+            for (int i = 0; i < filterCount; i++) {
+                _hits[i] = CollisionInfo.FromRaycastResult(_raycastResults[i]);
+            }
 
-            info = new CollisionInfo {
-                hasContact = hasHit,
-                lastDistance = hit.distance,
-                lastNormal = hit.worldNormal,
-                lastHitPoint = hit.worldPosition,
-                transform = hasHit ? hit.gameObject.transform : null
-            };
+            return ((ReadOnlySpan<CollisionInfo>) _hits)[..filterCount];
         }
 
         private void UpdateContacts(bool forceNotify = false) {
-            int frame = Time.frameCount;
+            int frame = TimeSources.FrameCount;
             if (frame == _lastUpdateFrame) return;
 
             var origin = new PointerEventData(_eventSystem) { position = Input.mousePosition };
-            _eventSystem.RaycastAll(origin, _hits);
-            _hitCount = _hits.Count;
+            _eventSystem.RaycastAll(origin, _raycastResults);
+            _hitCount = Math.Min(_raycastResults.Count, _maxHits);
 
-            bool hasContact = _hits
+            bool hasContact = _raycastResults
                 .RemoveInvalidHits(_hitCount, out _hitCount)
                 .Filter(_hitCount, _collisionFilter, out _hitCount)
-                .TryGetMinimumDistanceHit(_hitCount, out var hit);
+                .TryGetMinimumDistanceHit(_hitCount, out var raycastResult);
 
-            var info = new CollisionInfo {
-                hasContact = hasContact,
-                lastDistance = CollisionInfo.lastDistance,
-                lastNormal = CollisionInfo.lastNormal,
-                lastHitPoint = CollisionInfo.lastHitPoint,
-                transform = hasContact ? hit.gameObject.transform : null
-            };
-
-            if (info.hasContact) {
-                info.lastDistance = hit.distance;
-                info.lastNormal = hit.worldNormal;
-                info.lastHitPoint = hit.worldPosition;
-            }
+            var info = hasContact ? CollisionInfo.FromRaycastResult(raycastResult) : CollisionInfo.Empty;
 
             SetCollisionInfo(info, forceNotify);
             _lastUpdateFrame = frame;

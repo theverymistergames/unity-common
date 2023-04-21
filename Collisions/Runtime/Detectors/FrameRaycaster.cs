@@ -1,4 +1,5 @@
-﻿using MisterGames.Collisions.Core;
+﻿using System;
+using MisterGames.Collisions.Core;
 using MisterGames.Collisions.Utils;
 using MisterGames.Tick.Core;
 using UnityEngine;
@@ -15,15 +16,21 @@ namespace MisterGames.Collisions.Detectors {
         [SerializeField] private LayerMask _layerMask;
         [SerializeField] private QueryTriggerInteraction _triggerInteraction = QueryTriggerInteraction.Ignore;
 
+        public override int Capacity => _maxHits;
+
         private ITimeSource _timeSource => TimeSources.Get(_timeSourceStage);
         private Transform _transform;
-        private RaycastHit[] _hits;
+
+        private RaycastHit[] _raycastHits;
+        private CollisionInfo[] _hits;
+
         private int _hitCount;
         private int _lastUpdateFrame = -1;
 
         private void Awake() {
             _transform = transform;
-            _hits = new RaycastHit[_maxHits];
+            _raycastHits = new RaycastHit[_maxHits];
+            _hits = new CollisionInfo[_maxHits];
         }
 
         private void OnEnable() {
@@ -38,7 +45,7 @@ namespace MisterGames.Collisions.Detectors {
             UpdateContacts(forceNotify: true);
         }
 
-        void IUpdate.OnUpdate(float dt) {
+        public void OnUpdate(float dt) {
             UpdateContacts();
         }
 
@@ -46,59 +53,42 @@ namespace MisterGames.Collisions.Detectors {
             UpdateContacts();
         }
 
-        public override void FilterLastResults(CollisionFilter filter, out CollisionInfo info) {
-            info = default;
+        public override ReadOnlySpan<CollisionInfo> FilterLastResults(CollisionFilter filter) {
+            _raycastHits
+                .RemoveInvalidHits(_hitCount, out int hitCount)
+                .Filter(hitCount, filter, out int filterCount);
 
-            if (!CollisionInfo.hasContact) return;
+            if (filterCount <= 0) return ReadOnlySpan<CollisionInfo>.Empty;
 
-            bool hasHit = _hits
-                .Filter(_hitCount, filter, out int filterCount)
-                .TryGetMinimumDistanceHit(filterCount, out var hit);
+            for (int i = 0; i < filterCount; i++) {
+                _hits[i] = CollisionInfo.FromRaycastHit(_raycastHits[i]);
+            }
 
-            info = new CollisionInfo {
-                hasContact = hasHit,
-                lastDistance = hit.distance,
-                lastNormal = hit.normal,
-                lastHitPoint = hit.point,
-                transform = hit.transform
-            };
+            return ((ReadOnlySpan<CollisionInfo>) _hits)[..filterCount];
         }
 
         private void UpdateContacts(bool forceNotify = false) {
-            int frame = Time.frameCount;
+            int frame = TimeSources.FrameCount;
             if (frame == _lastUpdateFrame) return;
 
             bool hasContact = PerformRaycast(out var hit);
-
-            var info = new CollisionInfo {
-                hasContact = hasContact,
-                lastDistance = CollisionInfo.lastDistance,
-                lastNormal = CollisionInfo.lastNormal,
-                lastHitPoint = CollisionInfo.lastHitPoint,
-                transform = hit.transform
-            };
-
-            if (info.hasContact) {
-                info.lastDistance = hit.distance;
-                info.lastNormal = hit.normal;
-                info.lastHitPoint = hit.point;
-            }
+            var info = hasContact ? CollisionInfo.FromRaycastHit(hit) : CollisionInfo.Empty;
 
             SetCollisionInfo(info, forceNotify);
-            _lastUpdateFrame = Time.frameCount;
+            _lastUpdateFrame = frame;
         }
 
         private bool PerformRaycast(out RaycastHit hit) {
             _hitCount = Physics.RaycastNonAlloc(
                 _transform.position,
                 _transform.forward,
-                _hits,
+                _raycastHits,
                 _maxDistance,
                 _layerMask,
                 _triggerInteraction
             );
 
-            return _hits
+            return _raycastHits
                 .RemoveInvalidHits(_hitCount, out _hitCount)
                 .TryGetMinimumDistanceHit(_hitCount, out hit);
         }

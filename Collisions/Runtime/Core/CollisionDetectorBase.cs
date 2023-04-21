@@ -10,9 +10,10 @@ namespace MisterGames.Collisions.Core {
         public event Action OnLostContact = delegate {  };
         public event Action OnTransformChanged = delegate {  };
 
+        public abstract int Capacity { get; }
         public CollisionInfo CollisionInfo { get; private set; }
 
-        public abstract void FilterLastResults(CollisionFilter filter, out CollisionInfo info);
+        public abstract ReadOnlySpan<CollisionInfo> FilterLastResults(CollisionFilter filter);
         public abstract void FetchResults();
 
         protected void SetCollisionInfo(CollisionInfo newInfo, bool forceNotify = false) {

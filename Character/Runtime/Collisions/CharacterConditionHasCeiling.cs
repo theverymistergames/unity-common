@@ -78,7 +78,7 @@ namespace MisterGames.Character.Collisions {
                               _characterController.center +
                               ((_characterController.height - radius) * 0.5f + radius) * Vector3.down;
 
-            float sqrCeilingHeight = (info.lastHitPoint - bottomPoint).sqrMagnitude;
+            float sqrCeilingHeight = (info.point - bottomPoint).sqrMagnitude;
 
             // Has contact, current ceiling height is above or equal min limit (considering has no contact):
             // return true if no contact is expected (hasCeiling == false)

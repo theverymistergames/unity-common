@@ -29,7 +29,7 @@ namespace MisterGames.Character.Motion {
             // Consider ground normal
             _groundDetector.FetchResults();
             var groundInfo = _groundDetector.CollisionInfo;
-            if (groundInfo.hasContact) dir = Vector3.ProjectOnPlane(dir, groundInfo.lastNormal);
+            if (groundInfo.hasContact) dir = Vector3.ProjectOnPlane(dir, groundInfo.normal);
 
             return dir;
         }
