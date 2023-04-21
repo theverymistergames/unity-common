@@ -4,12 +4,14 @@ using UnityEngine;
 namespace MisterGames.Input.Actions {
 
     [Serializable]
-    public struct InputActionKeyEvent {
+    public struct InputActionKeyEvent : IEquatable<InputActionKeyEvent> {
 
         [SerializeField] private InputActionKeyEvents _mode;
         [SerializeField] private InputActionKey _key;
 
-        public bool WasFired => _key != null && _mode switch {
+        public bool IsPressed => _key.IsPressed;
+
+        public bool WasFired => _mode switch {
             InputActionKeyEvents.OnPressed => _key.WasPressed,
             InputActionKeyEvents.OnReleased => _key.WasReleased,
             InputActionKeyEvents.OnUsed => _key.WasUsed,
@@ -56,6 +58,26 @@ namespace MisterGames.Input.Actions {
                         throw new NotImplementedException($"{nameof(InputActionKeyEvent)}: mode {_mode} is not supported");
                 }
             }
+        }
+
+        public bool Equals(InputActionKeyEvent other) {
+            return _mode == other._mode && _key == other._key;
+        }
+
+        public override bool Equals(object obj) {
+            return obj is InputActionKeyEvent other && Equals(other);
+        }
+
+        public override int GetHashCode() {
+            return HashCode.Combine((int) _mode, _key);
+        }
+
+        public static bool operator ==(InputActionKeyEvent left, InputActionKeyEvent right) {
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(InputActionKeyEvent left, InputActionKeyEvent right) {
+            return !left.Equals(right);
         }
     }
 
