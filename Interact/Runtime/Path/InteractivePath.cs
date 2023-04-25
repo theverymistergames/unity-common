@@ -1,7 +1,6 @@
-﻿using MisterGames.Dbg.Draw;
-using MisterGames.Interact.Interactives;
+﻿using System;
+using MisterGames.Dbg.Draw;
 using MisterGames.Splines.Utils;
-using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Splines;
 
@@ -10,76 +9,151 @@ namespace MisterGames.Interact.Path {
     public sealed class InteractivePath : MonoBehaviour, IInteractivePath {
 
         [SerializeField] private SplineContainer _splineContainer;
-        [SerializeField] private Interactive _interactive;
 
-        [Header("Bounds")]
+        [Header("Path Settings")]
         [SerializeField] [Range(0f, 0.5f)] private float _startReserveBound = 0f;
         [SerializeField] [Range(0.5f, 1f)] private float _endReserveBound = 1f;
+        [SerializeField] private InteractivePathSectionSettings[] _sections;
 
-        public void Evaluate(float t, out Vector3 position, out Vector3 tangent, out Vector3 normal) {
-            _splineContainer.Evaluate(t, out var pos, out var tang, out var norm);
-            position = pos;
-            tangent = tang;
-            normal = norm;
+        [Serializable]
+        private struct InteractivePathSectionSettings {
+
+            [Header("Bounds")]
+            [Range(0f, 1f)] public float start;
+            [Range(0f, 1f)] public float stop;
+
+            [Header("Orientation")]
+            public Vector3 orientationWeights;
+            public Vector3 orientationOffset;
+
+            [Header("Forward")]
+            public Vector3 forwardWeights;
+            public Vector3 forwardOffset;
+        }
+
+        public float GetStart(Vector3 position) {
+            _splineContainer.GetNearestPoint(position, out float t);
+            return Mathf.Clamp(t, _startReserveBound, _endReserveBound);
         }
 
         public float MoveAlongPath(float t, Vector3 motion) {
             return _splineContainer.MoveAlongSpline(motion, t);
         }
 
-        private  void OnEnable() {
-            _interactive.OnStartInteract -= OnStartInteract;
-            _interactive.OnStartInteract += OnStartInteract;
+        public void Evaluate(float t, out Vector3 position, out Vector3 forward, out Quaternion orientation) {
+            _splineContainer.Evaluate(t, out var pos, out var tangent, out var normal);
+            position = pos;
 
-            _interactive.OnStopInteract -= OnStopInteract;
-            _interactive.OnStopInteract += OnStopInteract;
-        }
-
-        private void OnDisable() {
-            _interactive.OnStartInteract -= OnStartInteract;
-            _interactive.OnStopInteract -= OnStopInteract;
-        }
-
-        private void OnStartInteract(IInteractiveUser user) {
-            var interactivePathUser = user.Transform.GetComponent<IInteractivePathUser>();
-
-            if (interactivePathUser == null) {
-                Debug.LogWarning($"{nameof(InteractivePath)}: interactive user GameObject {user.Transform.name} " +
-                                 $"should have component that implements {nameof(IInteractivePathUser)} interface " +
-                                 $"in order to interact with {nameof(InteractivePath)}. Interaction was cancelled.");
-
-                user.TryStopInteract(_interactive);
+            if (TryGetSection(t, out var section)) {
+                forward = GetForward(section, tangent, normal);
+                orientation = GetOrientation(section, tangent, normal);
                 return;
             }
 
-            _splineContainer.GetNearestPoint(user.Transform.position, out float t);
-            t = math.clamp(t, _startReserveBound, _endReserveBound);
-
-            interactivePathUser.OnAttachedToPath(user, this, t);
+            forward = GetForwardDefault(tangent, normal);
+            orientation = GetOrientationDefault(tangent, normal);
         }
 
-        private void OnStopInteract(IInteractiveUser user) {
-            var interactivePathUser = user.Transform.GetComponent<IInteractivePathUser>();
+        private bool TryGetSection(float t, out InteractivePathSectionSettings section) {
+            for (int i = 0; i < _sections.Length; i++) {
+                var s = _sections[i];
 
-            if (interactivePathUser == null) {
-                Debug.LogWarning($"{nameof(InteractivePath)}: interactive user GameObject {user.Transform.name} " +
-                                 $"should have component that implements {nameof(IInteractivePathUser)} interface " +
-                                 $"in order to interact with {nameof(InteractivePath)}.");
-                return;
+                if (t < s.start) continue;
+                if (t > s.stop) continue;
+
+                section = s;
+                return true;
             }
 
-            interactivePathUser.OnDetachedFromPath(user, this);
+            section = default;
+            return false;
+        }
+
+        private static Vector3 GetForward(InteractivePathSectionSettings section, Vector3 tangent, Vector3 normal) {
+            var euler = Quaternion.LookRotation(tangent, normal).eulerAngles;
+
+            euler.x = euler.x * section.forwardWeights.x + section.forwardOffset.x;
+            euler.y = euler.y * section.forwardWeights.y + section.forwardOffset.y;
+            euler.z = euler.z * section.forwardWeights.z + section.forwardOffset.z;
+
+            return Quaternion.Euler(euler) * Vector3.forward;
+        }
+
+        private static Vector3 GetForwardDefault(Vector3 tangent, Vector3 normal) {
+            return Quaternion.LookRotation(tangent, normal) * Vector3.forward;
+        }
+
+        private static Quaternion GetOrientation(InteractivePathSectionSettings section, Vector3 tangent, Vector3 normal) {
+            var euler = Quaternion.LookRotation(tangent, normal).eulerAngles;
+
+            euler.x = euler.x * section.orientationWeights.x + section.orientationOffset.x;
+            euler.y = euler.y * section.orientationWeights.y + section.orientationOffset.y;
+            euler.z = euler.z * section.orientationWeights.z + section.orientationOffset.z;
+
+            return Quaternion.Euler(euler);
+        }
+
+        private static Quaternion GetOrientationDefault(Vector3 tangent, Vector3 normal) {
+            return Quaternion.LookRotation(tangent, normal);
         }
 
 #if UNITY_EDITOR
+        private void OnValidate() {
+            if (_sections == null) return;
+
+            float t = 0f;
+
+            for (int i = 0; i < _sections.Length; i++) {
+                var section = _sections[i];
+
+                if (section.start < t) {
+                    section.start = t;
+                    _sections[i] = section;
+                }
+
+                if (section.stop < section.start) {
+                    section.stop = section.start;
+                    _sections[i] = section;
+                }
+
+                t = section.stop;
+            }
+        }
+
         private void OnDrawGizmosSelected() {
             if (_splineContainer == null) return;
 
             var startBoundPosition = _splineContainer.EvaluatePosition(_startReserveBound);
             var endBoundPosition = _splineContainer.EvaluatePosition(_endReserveBound);
 
-            DbgSphere.Create().Radius(0.1f).Color(Color.white).Position(startBoundPosition).Draw();
-            DbgSphere.Create().Radius(0.1f).Color(Color.white).Position(endBoundPosition).Draw();
+            DbgSphere.Create().Radius(0.05f).Color(Color.white).Position(startBoundPosition).Draw();
+            DbgSphere.Create().Radius(0.05f).Color(Color.white).Position(endBoundPosition).Draw();
+
+            const float step = 0.04f;
+            const float dirLength = 0.4f;
+
+            for (float t = 0; t <= 1f; t += step) {
+                if (t > 1f) t = 1f;
+
+                _splineContainer.Evaluate(t, out var position, out var tangent, out var normal);
+
+                Vector3 forward;
+                Quaternion orientation;
+
+                if (TryGetSection(t, out var section)) {
+                    forward = GetForward(section, tangent, normal);
+                    orientation = GetOrientation(section, tangent, normal);
+                }
+                else {
+                    forward = GetForwardDefault(tangent, normal);
+                    orientation = GetOrientationDefault(tangent, normal);
+                }
+
+                DbgSphere.Create().Radius(0.03f).Color(Color.red).Position(position).Draw();
+
+                DbgRay.Create().From(position).Dir(orientation * (dirLength * Vector3.forward)).Color(Color.red).Draw();
+                DbgRay.Create().From(position).Dir(dirLength * forward).Color(Color.green).Draw();
+            }
         }
 #endif
     }
