@@ -1,12 +1,11 @@
-﻿using MisterGames.Character.Access;
-using MisterGames.Common.GameObjects;
+﻿using MisterGames.Common.GameObjects;
 using UnityEngine;
 
 namespace MisterGames.Character.View {
 
     public class CharacterHeadAdapter : MonoBehaviour, ITransformAdapter {
 
-        [SerializeField] private CharacterAccess _characterAccess;
+        [SerializeField] private CameraController _cameraController;
 
         public Vector3 Position {
             get => _cameraController.Position;
@@ -15,13 +14,7 @@ namespace MisterGames.Character.View {
 
         public Quaternion Rotation {
             get => _cameraController.Rotation;
-            set => _cameraController.SetRotation(this, value);
-        }
-
-        private CameraController _cameraController;
-
-        private void Awake() {
-            _cameraController = _characterAccess.CameraController;
+            set => _cameraController.SetRotationOffset(this, value * Quaternion.Inverse(_cameraController.Rotation));
         }
 
         private void OnEnable() {
@@ -37,7 +30,7 @@ namespace MisterGames.Character.View {
         }
 
         public void Rotate(Quaternion delta) {
-            _cameraController.Rotate(this, delta);
+            _cameraController.AddRotationOffset(this, delta);
         }
     }
 

@@ -1,8 +1,10 @@
-﻿namespace MisterGames.Character.View {
+﻿using MisterGames.Character.Core;
+using MisterGames.Character.Processors;
 
-    public interface ICharacterViewPipeline {
-        P GetProcessor<P>() where P : class;
-        void SetEnabled(bool isEnabled);
+namespace MisterGames.Character.View {
+
+    public interface ICharacterViewPipeline : ICharacterPipeline {
+        T GetProcessor<T>() where T : ICharacterProcessor;
     }
 
 }

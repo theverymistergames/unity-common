@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using MisterGames.Character.Access;
+using MisterGames.Character.Core;
 using MisterGames.Common.Conditions;
 using UnityEngine;
 
@@ -21,7 +21,7 @@ namespace MisterGames.Character.Height {
         }
 
         public void OnSetData(IDynamicDataProvider provider) {
-            _heightPipeline = provider.GetData<CharacterAccess>().HeightPipeline;
+            _heightPipeline = provider.GetData<CharacterAccess>().GetPipeline<ICharacterHeightPipeline>();
         }
 
         public void Arm(IConditionCallback callback) {

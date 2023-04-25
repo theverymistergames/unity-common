@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using MisterGames.Character.Access;
+using MisterGames.Character.Core;
 using MisterGames.Common.Conditions;
 using MisterGames.Common.Data;
 using MisterGames.Common.Maths;
@@ -11,36 +11,38 @@ namespace MisterGames.Character.Input {
     [Serializable]
     public sealed class CharacterConditionMotionInput : ICondition, IDynamicDataHost {
 
-        public Optional<bool> _isMotionInputActive;
-        public Optional<bool> _isMovingForward;
+        public Optional<bool> isMotionInputActive;
+        public Optional<bool> isMovingForward;
 
         public bool IsMatched => CheckCondition();
 
         private IConditionCallback _callback;
-        private ICharacterAccess _characterAccess;
-        
+        private ICharacterInputPipeline _input;
+        private ICharacterMotionPipeline _motion;
+
         public void OnSetDataTypes(HashSet<Type> types) {
             types.Add(typeof(CharacterAccess));
         }
 
         public void OnSetData(IDynamicDataProvider provider) {
-            _characterAccess = provider.GetData<CharacterAccess>();
+            var characterAccess = provider.GetData<CharacterAccess>();
+
+            _input = characterAccess.GetPipeline<ICharacterInputPipeline>();
+            _motion = characterAccess.GetPipeline<ICharacterMotionPipeline>();
         }
 
         public void Arm(IConditionCallback callback) {
             _callback = callback;
 
-            if (_isMotionInputActive.HasValue || _isMovingForward.HasValue) {
-                var input = _characterAccess.Input;
-
-                input.OnMotionVectorChanged -= OnMotionVectorChanged;
-                input.OnMotionVectorChanged += OnMotionVectorChanged;
+            if (isMotionInputActive.HasValue || isMovingForward.HasValue) {
+                _input.OnMotionVectorChanged -= OnMotionVectorChanged;
+                _input.OnMotionVectorChanged += OnMotionVectorChanged;
             }
         }
 
         public void Disarm() {
-            if (_isMotionInputActive.HasValue || _isMovingForward.HasValue) {
-                _characterAccess.Input.OnMotionVectorChanged -= OnMotionVectorChanged;
+            if (isMotionInputActive.HasValue || isMovingForward.HasValue) {
+                _input.OnMotionVectorChanged -= OnMotionVectorChanged;
             }
 
             _callback = null;
@@ -53,14 +55,14 @@ namespace MisterGames.Character.Input {
         public void OnFired() { }
 
         private bool CheckCondition() {
-            var motionInput = _characterAccess.MotionPipeline.MotionInput;
+            var motionInput = _motion.MotionInput;
 
-            return _isMotionInputActive.IsEmptyOrEquals(!motionInput.IsNearlyZero()) &&
-                   _isMovingForward.IsEmptyOrEquals(motionInput.y > 0f);
+            return isMotionInputActive.IsEmptyOrEquals(!motionInput.IsNearlyZero()) &&
+                   isMovingForward.IsEmptyOrEquals(motionInput.y > 0f);
         }
 
         public override string ToString() {
-            return $"{nameof(CharacterConditionMotionInput)}(active {_isMotionInputActive}, moving forward {_isMovingForward})";
+            return $"{nameof(CharacterConditionMotionInput)}(active {isMotionInputActive}, moving forward {isMovingForward})";
         }
     }
 

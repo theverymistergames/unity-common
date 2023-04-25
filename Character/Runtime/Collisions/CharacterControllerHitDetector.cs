@@ -16,6 +16,8 @@ namespace MisterGames.Character.Collisions {
         }
 
         private void OnControllerColliderHit(ControllerColliderHit hit) {
+            if (!enabled) return;
+
             var info = new CollisionInfo(hasContact: true, distance: 0f, hit.normal, hit.point, hit.transform);
             SetCollisionInfo(info, forceNotify: true);
         }

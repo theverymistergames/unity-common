@@ -1,5 +1,6 @@
 ﻿using System;
-using MisterGames.Character.Access;
+using MisterGames.Character.Collisions;
+using MisterGames.Character.Core;
 using MisterGames.Character.Processors;
 using MisterGames.Collisions.Core;
 using MisterGames.Common.Maths;
@@ -8,7 +9,7 @@ using UnityEngine;
 namespace MisterGames.Character.Motion {
 
     [Serializable]
-    public sealed class CharacterProcessorMass : ICharacterProcessorVector3, ICharacterProcessorInitializable {
+    public sealed class CharacterProcessorMass : ICharacterProcessorVector3, ICharacterAccessInitializable {
 
         [Header("Inertia")]
         public float airInertialFactor = 1f;
@@ -30,9 +31,11 @@ namespace MisterGames.Character.Motion {
         private Vector3 _currentVelocity;
 
         public void Initialize(ICharacterAccess characterAccess) {
-            _hitDetector = characterAccess.HitDetector;
-            _ceilingDetector = characterAccess.CeilingDetector;
-            _groundDetector = characterAccess.GroundDetector;
+            var collisionPipeline = characterAccess.GetPipeline<ICharacterCollisionPipeline>();
+
+            _hitDetector = collisionPipeline.HitDetector;
+            _ceilingDetector = collisionPipeline.CeilingDetector;
+            _groundDetector = collisionPipeline.GroundDetector;
 
             _hitDetector.OnTransformChanged -= OnHitDetectorTransformChanged;
             _hitDetector.OnTransformChanged += OnHitDetectorTransformChanged;

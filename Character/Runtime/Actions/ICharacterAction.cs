@@ -1,4 +1,4 @@
-﻿using MisterGames.Character.Access;
+﻿using MisterGames.Character.Core;
 
 namespace MisterGames.Character.Actions {
 

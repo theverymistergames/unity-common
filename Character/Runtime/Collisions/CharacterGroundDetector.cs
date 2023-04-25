@@ -89,7 +89,7 @@ namespace MisterGames.Character.Collisions {
             RequestGround(forceNotify: true);
         }
 
-        void IUpdate.OnUpdate(float dt) {
+        public void OnUpdate(float dt) {
             RequestGround();
         }
 
@@ -112,6 +112,8 @@ namespace MisterGames.Character.Collisions {
         }
 
         private void RequestGround(bool forceNotify = false) {
+            if (!enabled) return;
+
             int frame = Time.frameCount;
             if (frame == _lastUpdateFrame && !_invalidateFlag) return;
 

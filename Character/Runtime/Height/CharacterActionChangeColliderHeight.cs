@@ -1,29 +1,36 @@
 ﻿using System;
-using MisterGames.Character.Access;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using MisterGames.Character.Actions;
-using MisterGames.Common.Attributes;
+using MisterGames.Character.Core;
 using MisterGames.Common.Data;
+using MisterGames.Common.Maths;
 using UnityEngine;
 
 namespace MisterGames.Character.Height {
 
     [Serializable]
-    public sealed class CharacterActionChangeColliderHeight : ICharacterAction {
+    public sealed class CharacterActionChangeColliderHeight : ICharacterAsyncAction {
 
-        [Header("Parameters to change")]
+        public Optional<float> sourceHeight;
         public Optional<float> targetHeight;
         public Optional<float> targetRadius;
 
-        [Header("Change pattern")]
-        [Min(0f)] public float duration;
-        public bool scaleDuration;
-        [SerializeReference] [SubclassSelector] public ICharacterHeightChangePattern pattern;
+        [Min(0f)] public float metersPerSecond;
 
-        public void Apply(object source, ICharacterAccess characterAccess) {
-            float height = targetHeight.HasValue ? targetHeight.Value : characterAccess.HeightPipeline.TargetHeight;
-            float radius = targetRadius.HasValue ? targetRadius.Value : characterAccess.HeightPipeline.TargetRadius;
+        public UniTask ApplyAsync(object source, ICharacterAccess characterAccess, CancellationToken cancellationToken = default) {
+            var heightPipeline = characterAccess.GetPipeline<ICharacterHeightPipeline>();
 
-            characterAccess.HeightPipeline.ApplyHeightChange(height, radius, duration, scaleDuration, pattern);
+            if (targetRadius.HasValue) heightPipeline.Radius = targetRadius.Value;
+
+            float currentHeight = heightPipeline.Height;
+
+            float fromHeight = sourceHeight.GetOrDefault(currentHeight);
+            float toHeight = targetHeight.GetOrDefault(currentHeight);
+
+            float duration = metersPerSecond <= 0f ? 0f : Mathf.Abs(toHeight - fromHeight) / metersPerSecond;
+
+            return heightPipeline.ApplyHeightChange(fromHeight, toHeight, duration, cancellationToken);
         }
     }
 

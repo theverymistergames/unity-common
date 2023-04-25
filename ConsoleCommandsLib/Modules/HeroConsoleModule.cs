@@ -1,5 +1,6 @@
 ﻿using System;
-using MisterGames.Character.Access;
+using MisterGames.Character.Collisions;
+using MisterGames.Character.Core;
 using MisterGames.Character.Spawn;
 using MisterGames.Common.Pooling;
 using MisterGames.Dbg.Console.Attributes;
@@ -95,9 +96,11 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
                 return;
             }
 
-            access.CharacterController.enabled = false;
+            var collisionPipeline = access.GetPipeline<ICharacterCollisionPipeline>();
+
+            collisionPipeline.SetEnabled(false);
             access.BodyAdapter.Position = position;
-            access.CharacterController.enabled = true;
+            collisionPipeline.SetEnabled(true);
 
             ConsoleRunner.AppendLine($"Character {access.name} was respawned at point [{spawnPointName} :: {position}]");
         }

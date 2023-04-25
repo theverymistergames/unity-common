@@ -1,5 +1,6 @@
 ﻿using System;
-using MisterGames.Character.Access;
+using Cysharp.Threading.Tasks;
+using MisterGames.Character.Core;
 using MisterGames.Character.Actions;
 using UnityEngine;
 
@@ -17,8 +18,9 @@ namespace MisterGames.Character.Motion {
         [Min(0f)] public float forceInfluenceFactor = 1f;
 
         public void Apply(object source, ICharacterAccess characterAccess) {
-            var mass = characterAccess.MotionPipeline.GetProcessor<CharacterProcessorMass>();
-            if (mass == null) return;
+            var mass = characterAccess
+                .GetPipeline<ICharacterMotionPipeline>()
+                .GetProcessor<CharacterProcessorMass>();
 
             mass.gravityForce = gravityForce;
             mass.airInertialFactor = airInertialFactor;

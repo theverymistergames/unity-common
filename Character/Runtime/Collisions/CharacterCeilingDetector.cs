@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace MisterGames.Character.Collisions {
 
-    public class CharacterCeilingDetector : CollisionDetectorBase, IUpdate {
+    public sealed class CharacterCeilingDetector : CollisionDetectorBase, IUpdate {
 
         [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
         
@@ -109,6 +109,8 @@ namespace MisterGames.Character.Collisions {
         }
 
         private void RequestCeiling(bool forceNotify = false) {
+            if (!enabled) return;
+
             int frame = Time.frameCount;
             if (frame == _lastUpdateFrame && !_invalidateFlag) return;
 
@@ -153,7 +155,6 @@ namespace MisterGames.Character.Collisions {
                 _triggerInteraction
             );
         }
-
 
         [Header("Debug")]
         [SerializeField] private bool _debugDrawHitPoint;

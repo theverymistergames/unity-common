@@ -2,7 +2,7 @@
 
 namespace MisterGames.Character.Processors {
 
-    public interface ICharacterProcessorQuaternion {
+    public interface ICharacterProcessorQuaternion : ICharacterProcessor {
         Quaternion Process(Quaternion input, float dt);
     }
 

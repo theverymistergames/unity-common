@@ -1,16 +1,19 @@
-﻿using MisterGames.Character.Access;
+﻿using MisterGames.Character.Core;
+using MisterGames.Character.Input;
 using MisterGames.Character.Processors;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.GameObjects;
 using MisterGames.Common.Maths;
 using MisterGames.Tick.Core;
+using MisterGames.UI.Initialization;
 using UnityEngine;
 
 namespace MisterGames.Character.View {
 
-    public sealed class CharacterViewPipeline : MonoBehaviour, ICharacterViewPipeline, IUpdate {
+    public sealed class CharacterViewPipeline : CharacterPipelineBase, ICharacterViewPipeline, IUpdate {
 
         [SerializeField] private CharacterAccess _characterAccess;
+        [SerializeField] private Camera _camera;
         [SerializeField] private PlayerLoopStage _playerLoopStage = PlayerLoopStage.Update;
 
         [SerializeReference] [SubclassSelector] private ICharacterProcessorVector2[] _inputProcessors = {
@@ -36,25 +39,6 @@ namespace MisterGames.Character.View {
         private Vector2 _input;
         private Quaternion _currentView;
 
-        public void SetEnabled(bool isEnabled) {
-            if (isEnabled) {
-                _characterAccess.Input.OnViewVectorChanged -= HandleViewVectorChanged;
-                _characterAccess.Input.OnViewVectorChanged += HandleViewVectorChanged;
-                _timeSource.Subscribe(this);
-                return;
-            }
-
-            _timeSource.Unsubscribe(this);
-            _characterAccess.Input.OnViewVectorChanged -= HandleViewVectorChanged;
-        }
-
-        public T GetProcessor<T>() where T : class {
-            for (int i = 0; i < _inputProcessors.Length; i++) {
-                if (_inputProcessors[i] is T t) return t;
-            }
-            return null;
-        }
-
         private void Awake() {
             _headAdapter = _characterAccess.HeadAdapter;
             _bodyAdapter = _characterAccess.BodyAdapter;
@@ -62,13 +46,13 @@ namespace MisterGames.Character.View {
             _timeSource = TimeSources.Get(_playerLoopStage);
 
             for (int i = 0; i < _inputProcessors.Length; i++) {
-                if (_inputProcessors[i] is ICharacterProcessorInitializable ip) ip.Initialize(_characterAccess);
+                if (_inputProcessors[i] is ICharacterAccessInitializable ip) ip.Initialize(_characterAccess);
             }
         }
 
         private void OnDestroy() {
             for (int i = 0; i < _inputProcessors.Length; i++) {
-                if (_inputProcessors[i] is ICharacterProcessorInitializable ip) ip.DeInitialize();
+                if (_inputProcessors[i] is ICharacterAccessInitializable ip) ip.DeInitialize();
             }
         }
 
@@ -78,6 +62,33 @@ namespace MisterGames.Character.View {
 
         private void OnDisable() {
             SetEnabled(false);
+        }
+
+        public override void SetEnabled(bool isEnabled) {
+            var input = _characterAccess.GetPipeline<ICharacterInputPipeline>();
+
+            if (isEnabled) {
+                CanvasRegistry.Instance.SetCanvasEventCamera(_camera);
+
+                input.OnViewVectorChanged -= HandleViewVectorChanged;
+                input.OnViewVectorChanged += HandleViewVectorChanged;
+
+                _timeSource.Subscribe(this);
+                return;
+            }
+
+            CanvasRegistry.Instance.SetCanvasEventCamera(null);
+
+            _timeSource.Unsubscribe(this);
+            input.OnViewVectorChanged -= HandleViewVectorChanged;
+        }
+
+        public T GetProcessor<T>() where T : ICharacterProcessor {
+            for (int i = 0; i < _inputProcessors.Length; i++) {
+                if (_inputProcessors[i] is T t) return t;
+            }
+
+            return default;
         }
 
         private void HandleViewVectorChanged(Vector2 input) {

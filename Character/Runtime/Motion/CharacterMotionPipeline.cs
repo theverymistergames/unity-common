@@ -1,4 +1,5 @@
-﻿using MisterGames.Character.Access;
+﻿using MisterGames.Character.Core;
+using MisterGames.Character.Input;
 using MisterGames.Character.Processors;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.GameObjects;
@@ -7,7 +8,7 @@ using UnityEngine;
 
 namespace MisterGames.Character.Motion {
 
-    public sealed class CharacterMotionPipeline : MonoBehaviour, ICharacterMotionPipeline, IUpdate {
+    public sealed class CharacterMotionPipeline : CharacterPipelineBase, ICharacterMotionPipeline, IUpdate {
 
         [SerializeField] private CharacterAccess _characterAccess;
         [SerializeField] private PlayerLoopStage _playerLoopStage = PlayerLoopStage.Update;
@@ -37,19 +38,58 @@ namespace MisterGames.Character.Motion {
 
         private Vector2 _input;
 
-        public void SetEnabled(bool isEnabled) {
+        private void Awake() {
+            _bodyAdapter = _characterAccess.BodyAdapter;
+            _timeSource = TimeSources.Get(_playerLoopStage);
+
+            for (int i = 0; i < _inputProcessors.Length; i++) {
+                if (_inputProcessors[i] is ICharacterAccessInitializable ip) ip.Initialize(_characterAccess);
+            }
+
+            if (_inputToMotionProcessor is ICharacterAccessInitializable imp) imp.Initialize(_characterAccess);
+
+            for (int i = 0; i < _motionProcessors.Length; i++) {
+                if (_motionProcessors[i] is ICharacterAccessInitializable mp) mp.Initialize(_characterAccess);
+            }
+        }
+
+        private void OnDestroy() {
+            for (int i = 0; i < _inputProcessors.Length; i++) {
+                if (_inputProcessors[i] is ICharacterAccessInitializable ip) ip.DeInitialize();
+            }
+
+            if (_inputToMotionProcessor is ICharacterAccessInitializable imp) imp.DeInitialize();
+
+            for (int i = 0; i < _motionProcessors.Length; i++) {
+                if (_motionProcessors[i] is ICharacterAccessInitializable mp) mp.DeInitialize();
+            }
+        }
+
+        private void OnEnable() {
+            SetEnabled(true);
+        }
+
+        private void OnDisable() {
+            SetEnabled(false);
+        }
+
+        public override void SetEnabled(bool isEnabled) {
+            var input = _characterAccess.GetPipeline<ICharacterInputPipeline>();
+
             if (isEnabled) {
-                _characterAccess.Input.OnMotionVectorChanged -= HandleMotionInput;
-                _characterAccess.Input.OnMotionVectorChanged += HandleMotionInput;
+                input.OnMotionVectorChanged -= HandleMotionInput;
+                input.OnMotionVectorChanged += HandleMotionInput;
+
                 _timeSource.Subscribe(this);
                 return;
             }
 
+            input.OnMotionVectorChanged -= HandleMotionInput;
+
             _timeSource.Unsubscribe(this);
-            _characterAccess.Input.OnMotionVectorChanged -= HandleMotionInput;
         }
 
-        public T GetProcessor<T>() where T : class {
+        public T GetProcessor<T>() where T : ICharacterProcessor {
             if (_inputToMotionProcessor is T imp) return imp;
 
             for (int i = 0; i < _inputProcessors.Length; i++) {
@@ -60,42 +100,7 @@ namespace MisterGames.Character.Motion {
                 if (_motionProcessors[i] is T mp) return mp;
             }
 
-            return null;
-        }
-
-        private void Awake() {
-            _bodyAdapter = _characterAccess.BodyAdapter;
-            _timeSource = TimeSources.Get(_playerLoopStage);
-
-            for (int i = 0; i < _inputProcessors.Length; i++) {
-                if (_inputProcessors[i] is ICharacterProcessorInitializable ip) ip.Initialize(_characterAccess);
-            }
-
-            if (_inputToMotionProcessor is ICharacterProcessorInitializable imp) imp.Initialize(_characterAccess);
-
-            for (int i = 0; i < _motionProcessors.Length; i++) {
-                if (_motionProcessors[i] is ICharacterProcessorInitializable mp) mp.Initialize(_characterAccess);
-            }
-        }
-
-        private void OnDestroy() {
-            for (int i = 0; i < _inputProcessors.Length; i++) {
-                if (_inputProcessors[i] is ICharacterProcessorInitializable ip) ip.DeInitialize();
-            }
-
-            if (_inputToMotionProcessor is ICharacterProcessorInitializable imp) imp.DeInitialize();
-
-            for (int i = 0; i < _motionProcessors.Length; i++) {
-                if (_motionProcessors[i] is ICharacterProcessorInitializable mp) mp.DeInitialize();
-            }
-        }
-
-        private void OnEnable() {
-            SetEnabled(true);
-        }
-
-        private void OnDisable() {
-            SetEnabled(false);
+            return default;
         }
 
         private void HandleMotionInput(Vector2 input) {

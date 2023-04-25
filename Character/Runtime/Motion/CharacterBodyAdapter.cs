@@ -1,4 +1,5 @@
-﻿using MisterGames.Character.Access;
+﻿using MisterGames.Character.Collisions;
+using MisterGames.Character.Core;
 using MisterGames.Collisions.Core;
 using MisterGames.Common.GameObjects;
 using MisterGames.Common.Maths;
@@ -9,6 +10,7 @@ namespace MisterGames.Character.Motion {
     public class CharacterBodyAdapter : MonoBehaviour, ITransformAdapter {
 
         [SerializeField] private CharacterAccess _characterAccess;
+        [SerializeField] private CharacterController _characterController;
 
         public Vector3 Position {
             get => _body.position;
@@ -21,14 +23,11 @@ namespace MisterGames.Character.Motion {
         }
 
         private ICollisionDetector _groundDetector;
-        private CharacterController _characterController;
-
         private Transform _body;
         private float _stepOffset;
 
         private void Awake() {
-            _groundDetector = _characterAccess.GroundDetector;
-            _characterController = _characterAccess.CharacterController;
+            _groundDetector = _characterAccess.GetPipeline<ICharacterCollisionPipeline>().GroundDetector;
 
             _body = _characterController.transform;
             _stepOffset = _characterController.stepOffset;

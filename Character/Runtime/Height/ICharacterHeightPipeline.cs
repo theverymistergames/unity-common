@@ -1,8 +1,12 @@
 ﻿using System;
+using System.Threading;
+using Cysharp.Threading.Tasks;
+using MisterGames.Character.Core;
+using UnityEngine;
 
 namespace MisterGames.Character.Height {
 
-    public interface ICharacterHeightPipeline {
+    public interface ICharacterHeightPipeline : ICharacterPipeline {
 
         /// <summary>
         /// Called when character height is being changed once per frame.
@@ -15,23 +19,17 @@ namespace MisterGames.Character.Height {
         float TargetHeight { get; }
 
         float Radius { get; set; }
-        float TargetRadius { get; }
+        Vector3 CenterOffset { get; }
 
         /// <summary>
         /// Starts each frame height changes from current height towards target height.
-        /// A height change pattern can be passed to customize height and camera path.
-        /// By default pattern is null, which means height is being changed linearly.
-        /// OnFinish callback returns true if target height is reached.
         /// </summary>
-        void ApplyHeightChange(
+        UniTask ApplyHeightChange(
+            float sourceHeight,
             float targetHeight,
-            float targetRadius,
             float duration,
-            bool scaleDuration = true,
-            ICharacterHeightChangePattern pattern = null,
-            Action onFinish = null
+            CancellationToken cancellationToken = default
         );
-
-        void SetEnabled(bool isEnabled);
     }
+
 }

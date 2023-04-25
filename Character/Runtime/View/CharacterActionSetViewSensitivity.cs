@@ -1,5 +1,6 @@
 ﻿using System;
-using MisterGames.Character.Access;
+using Cysharp.Threading.Tasks;
+using MisterGames.Character.Core;
 using MisterGames.Character.Actions;
 using MisterGames.Character.Processors;
 using UnityEngine;
@@ -13,8 +14,9 @@ namespace MisterGames.Character.View {
         [Min(0.001f)] public float sensitivityVertical = 0.15f;
 
         public void Apply(object source, ICharacterAccess characterAccess) {
-            var sensitivity = characterAccess.ViewPipeline.GetProcessor<CharacterProcessorVector2Sensitivity>();
-            if (sensitivity == null) return;
+            var sensitivity = characterAccess
+                .GetPipeline<ICharacterViewPipeline>()
+                .GetProcessor<CharacterProcessorVector2Sensitivity>();
 
             sensitivity.sensitivity = new Vector2(sensitivityHorizontal, sensitivityVertical);
         }

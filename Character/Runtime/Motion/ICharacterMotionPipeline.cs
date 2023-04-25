@@ -1,12 +1,14 @@
-﻿using UnityEngine;
+﻿using MisterGames.Character.Core;
+using MisterGames.Character.Processors;
+using UnityEngine;
 
 namespace MisterGames.Character {
 
-    public interface ICharacterMotionPipeline {
+    public interface ICharacterMotionPipeline : ICharacterPipeline {
+
         Vector2 MotionInput { get; }
 
-        P GetProcessor<P>() where P : class;
-        void SetEnabled(bool isEnabled);
+        T GetProcessor<T>() where T : ICharacterProcessor;
     }
 
 }

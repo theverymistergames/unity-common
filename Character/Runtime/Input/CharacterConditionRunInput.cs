@@ -1,18 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
-using MisterGames.Character.Access;
+using MisterGames.Character.Core;
 using MisterGames.Common.Conditions;
+using MisterGames.Common.Data;
 
 namespace MisterGames.Character.Input {
 
     [Serializable]
     public sealed class CharacterConditionRunInput : ICondition, IDynamicDataHost {
 
-        public bool _isRunInputToggled;
+        public Optional<bool> isRunInputActive;
+        public Optional<bool> isRunInputPressed;
+        public Optional<bool> isRunInputReleased;
 
         public bool IsMatched => CheckCondition();
 
-        private ICharacterInput _input;
+        private ICharacterInputPipeline _input;
         private IConditionCallback _callback;
 
         public void OnSetDataTypes(HashSet<Type> types) {
@@ -20,34 +23,47 @@ namespace MisterGames.Character.Input {
         }
 
         public void OnSetData(IDynamicDataProvider provider) {
-            _input = provider.GetData<CharacterAccess>().Input;
+            _input = provider.GetData<CharacterAccess>().GetPipeline<ICharacterInputPipeline>();
         }
 
         public void Arm(IConditionCallback callback) {
             _callback = callback;
 
-            _input.RunToggled -= OnRunToggled;
-            _input.RunToggled += OnRunToggled;
+            _input.RunPressed -= OnRunPressed;
+            _input.RunPressed += OnRunPressed;
+
+            _input.RunReleased -= OnRunReleased;
+            _input.RunReleased += OnRunReleased;
         }
-        
+
         public void Disarm() {
-            _input.RunToggled -= OnRunToggled;
+            _input.RunPressed -= OnRunPressed;
+            _input.RunReleased -= OnRunReleased;
 
             _callback = null;
         }
 
-        private void OnRunToggled() {
+        public void OnFired() { }
+
+        private void OnRunPressed() {
             if (IsMatched) _callback?.OnConditionMatch(this);
         }
 
-        public void OnFired() { }
+        private void OnRunReleased() {
+            if (IsMatched) _callback?.OnConditionMatch(this);
+        }
 
         private bool CheckCondition() {
-            return _isRunInputToggled == _input.WasRunToggled;
+            return isRunInputActive.IsEmptyOrEquals(_input.IsRunPressed) &&
+                   isRunInputPressed.IsEmptyOrEquals(_input.WasRunPressed) &&
+                   isRunInputReleased.IsEmptyOrEquals(_input.WasRunReleased);
         }
 
         public override string ToString() {
-            return $"{nameof(CharacterConditionRunInput)}(toggled {_isRunInputToggled})";
+            return $"{nameof(CharacterConditionRunInput)}(" +
+                   $"active {isRunInputActive}, " +
+                   $"pressed {isRunInputPressed}, " +
+                   $"released {isRunInputReleased})";
         }
     }
 

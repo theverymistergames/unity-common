@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using MisterGames.Character.Access;
+using MisterGames.Character.Core;
 using MisterGames.Collisions.Core;
 using MisterGames.Common.Conditions;
 
@@ -21,7 +21,7 @@ namespace MisterGames.Character.Collisions {
         }
 
         public void OnSetData(IDynamicDataProvider provider) {
-            _groundDetector = provider.GetData<CharacterAccess>().GroundDetector;
+            _groundDetector = provider.GetData<CharacterAccess>().GetPipeline<ICharacterCollisionPipeline>().GroundDetector;
         }
 
         public void Arm(IConditionCallback callback) {

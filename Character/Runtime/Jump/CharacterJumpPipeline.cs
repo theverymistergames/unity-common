@@ -1,12 +1,15 @@
 ﻿using System;
-using MisterGames.Character.Access;
+using MisterGames.Character.Collisions;
+using MisterGames.Character.Core;
+using MisterGames.Character.Input;
 using MisterGames.Character.Motion;
+using MisterGames.Collisions.Core;
 using MisterGames.Common.Maths;
 using UnityEngine;
 
 namespace MisterGames.Character.Jump {
 
-    public class CharacterJumpPipeline : MonoBehaviour, ICharacterJumpPipeline {
+    public class CharacterJumpPipeline : CharacterPipelineBase, ICharacterJumpPipeline {
 
         [SerializeField] private CharacterAccess _characterAccess;
         [SerializeField] private Vector3 _direction = Vector3.up;
@@ -18,14 +21,24 @@ namespace MisterGames.Character.Jump {
         public float Force { get => _force; set => _force = value; }
         public float ForceMultiplier { get; set; } = 1f;
 
-        public void SetEnabled(bool isEnabled) {
+        private ICollisionDetector _ceilingDetector;
+        private CharacterProcessorMass _mass;
+
+        private void Awake() {
+            _ceilingDetector = _characterAccess.GetPipeline<ICharacterCollisionPipeline>().CeilingDetector;
+            _mass = _characterAccess.GetPipeline<ICharacterMotionPipeline>().GetProcessor<CharacterProcessorMass>();
+        }
+
+        public override void SetEnabled(bool isEnabled) {
+            var input = _characterAccess.GetPipeline<ICharacterInputPipeline>();
+
             if (isEnabled) {
-                _characterAccess.Input.JumpPressed -= HandleJumpPressedInput;
-                _characterAccess.Input.JumpPressed += HandleJumpPressedInput;
+                input.JumpPressed -= HandleJumpPressedInput;
+                input.JumpPressed += HandleJumpPressedInput;
                 return;
             }
 
-            _characterAccess.Input.JumpPressed -= HandleJumpPressedInput;
+            input.JumpPressed -= HandleJumpPressedInput;
         }
 
         private void OnEnable() {
@@ -37,12 +50,12 @@ namespace MisterGames.Character.Jump {
         }
 
         private void HandleJumpPressedInput() {
-            if (_characterAccess.CeilingDetector.CollisionInfo.hasContact) return;
+            if (_ceilingDetector.CollisionInfo.hasContact) return;
 
             var impulse = ForceMultiplier * _force * _direction;
             if (impulse.IsNearlyZero()) return;
 
-            _characterAccess.MotionPipeline.GetProcessor<CharacterProcessorMass>()?.ApplyImpulse(impulse);
+            _mass.ApplyImpulse(impulse);
             OnJump.Invoke(impulse);
         }
     }
