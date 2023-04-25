@@ -9,9 +9,9 @@ namespace MisterGames.Interact.Interactives {
 
         [SerializeReference] [SubclassSelector] public IInteractionConstraint[] constraints;
         
-        public bool IsAllowedInteraction(IInteractiveUser user, IInteractive interactive) {
+        public bool IsSatisfied(IInteractiveUser user, IInteractive interactive) {
             for (int i = 0; i < constraints.Length; i++) {
-                if (constraints[i].IsAllowedInteraction(user, interactive)) return true;
+                if (constraints[i].IsSatisfied(user, interactive)) return true;
             }
 
             return false;

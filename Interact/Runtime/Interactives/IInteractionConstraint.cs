@@ -1,7 +1,7 @@
 ﻿namespace MisterGames.Interact.Interactives {
 
     public interface IInteractionConstraint {
-        bool IsAllowedInteraction(IInteractiveUser user, IInteractive interactive);
+        bool IsSatisfied(IInteractiveUser user, IInteractive interactive);
     }
 
 }

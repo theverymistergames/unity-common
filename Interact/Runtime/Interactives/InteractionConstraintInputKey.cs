@@ -11,7 +11,7 @@ namespace MisterGames.Interact.Interactives {
         public Optional<bool> shouldBeFired;
         public Optional<bool> shouldBePressed;
 
-        public bool IsAllowedInteraction(IInteractiveUser user, IInteractive interactive) {
+        public bool IsSatisfied(IInteractiveUser user, IInteractive interactive) {
             return shouldBeFired.IsEmptyOrEquals(keyEvent.WasFired) &&
                    shouldBePressed.IsEmptyOrEquals(keyEvent.IsPressed);
         }

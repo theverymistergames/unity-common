@@ -8,7 +8,7 @@ namespace MisterGames.Interact.Interactives {
 
         [Min(0f)] public float maxDistance;
 
-        public bool IsAllowedInteraction(IInteractiveUser user, IInteractive interactive) {
+        public bool IsSatisfied(IInteractiveUser user, IInteractive interactive) {
             float sqrDistance = Vector3.SqrMagnitude(user.Transform.position - interactive.Transform.position);
             return sqrDistance <= maxDistance * maxDistance;
         }

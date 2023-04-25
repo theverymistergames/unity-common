@@ -7,7 +7,7 @@ namespace MisterGames.Interact.Interactives {
 
         public bool shouldBeDetected;
 
-        public bool IsAllowedInteraction(IInteractiveUser user, IInteractive interactive) {
+        public bool IsSatisfied(IInteractiveUser user, IInteractive interactive) {
             return shouldBeDetected == user.IsDetected(interactive);
         }
     }

@@ -7,7 +7,7 @@ namespace MisterGames.Interact.Interactives {
 
         public bool shouldBeInDirectView;
 
-        public bool IsAllowedInteraction(IInteractiveUser user, IInteractive interactive) {
+        public bool IsSatisfied(IInteractiveUser user, IInteractive interactive) {
             return shouldBeInDirectView == user.IsInDirectView(interactive, out _);
         }
     }

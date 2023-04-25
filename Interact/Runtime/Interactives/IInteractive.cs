@@ -16,8 +16,9 @@ namespace MisterGames.Interact.Interactives {
         Transform Transform { get; }
 
         bool IsInteractingWith(IInteractiveUser user);
-        bool TryGetInteractionStartTime(IInteractiveUser user, out int time);
+        bool TryGetInteractionStartTime(IInteractiveUser user, out int startTime);
 
+        bool IsReadyToStartInteractWith(IInteractiveUser user);
         bool IsAllowedToStartInteractWith(IInteractiveUser user);
         bool IsAllowedToContinueInteractWith(IInteractiveUser user);
 
