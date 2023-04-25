@@ -12,10 +12,11 @@ namespace MisterGames.Interact.Detectables {
         public event Action<IDetector> OnDetectedBy = delegate {  };
         public event Action<IDetector> OnLostBy = delegate {  };
 
-        public IReadOnlyCollection<IDetector> Observers => _observers;
+        public IReadOnlyCollection<IDetector> Observers => _observersSet;
         public Transform Transform { get; private set; }
 
-        private readonly HashSet<IDetector> _observers = new HashSet<IDetector>();
+        private readonly HashSet<IDetector> _observersSet = new HashSet<IDetector>();
+        private readonly List<IDetector> _observers = new List<IDetector>();
 
         private void Awake() {
             Transform = transform;
@@ -26,7 +27,7 @@ namespace MisterGames.Interact.Detectables {
         }
 
         public bool IsDetectedBy(IDetector detector) {
-            return _observers.Contains(detector);
+            return _observersSet.Contains(detector);
         }
 
         public bool IsAllowedToStartDetectBy(IDetector detector) {
@@ -38,31 +39,35 @@ namespace MisterGames.Interact.Detectables {
         }
 
         public void NotifyDetectedBy(IDetector detector) {
-            if (_observers.Contains(detector)) return;
+            if (_observersSet.Contains(detector)) return;
 
+            _observersSet.Add(detector);
             _observers.Add(detector);
+
             OnDetectedBy.Invoke(detector);
         }
 
         public void NotifyLostBy(IDetector detector) {
-            if (!_observers.Contains(detector)) return;
+            if (!_observersSet.Contains(detector)) return;
 
+            _observersSet.Remove(detector);
             _observers.Remove(detector);
+
             OnLostBy.Invoke(detector);
         }
 
         public void ForceRemoveAllObservers() {
-            var observers = new IDetector[_observers.Count];
-            _observers.CopyTo(observers);
-            _observers.Clear();
+            _observersSet.Clear();
 
-            for (int i = 0; i < observers.Length; i++) {
-                OnLostBy.Invoke(observers[i]);
+            for (int i = 0; i < _observers.Count; i++) {
+                OnLostBy.Invoke(_observers[i]);
             }
+
+            _observers.Clear();
         }
 
         public override string ToString() {
-            return $"{nameof(Detectable)}({name}, observers count = {_observers.Count})";
+            return $"{nameof(Detectable)}({name}, observers count = {_observersSet.Count})";
         }
 
         [Header("Debug")]

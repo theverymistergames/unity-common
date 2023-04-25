@@ -137,7 +137,8 @@ namespace MisterGames.Interact.Detectables {
         }
 
         private void NotifyNewDetectedOrAllowedTargets(ICollection<int> detectedTransformHashes) {
-            foreach (var detectable in _detectedCandidatesSet) {
+            for (int i = 0; i < _detectedCandidates.Count; i++) {
+                var detectable = _detectedCandidates[i];
                 if (_detectedTargetsSet.Contains(detectable)) continue;
 
                 if (!detectedTransformHashes.Contains(detectable.Transform.GetHashCode()) ||
@@ -168,7 +169,10 @@ namespace MisterGames.Interact.Detectables {
         }
 
         public override string ToString() {
-            return $"{nameof(Detector)}({name}, detected targets/candidates count = {_detectedTargetsSet.Count}/{_detectedCandidatesSet.Count})";
+            return $"{nameof(Detector)}(" +
+                   $"{name}, " +
+                   $"detected targets/candidates count = {_detectedTargetsSet.Count}/{_detectedCandidatesSet.Count}" +
+                   $")";
         }
 
         [Header("Debug")]
