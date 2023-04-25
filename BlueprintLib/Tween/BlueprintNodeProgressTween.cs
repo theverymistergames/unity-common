@@ -44,9 +44,9 @@ namespace MisterGames.BlueprintLib {
         }
 
         public void Initialize(MonoBehaviour owner) {
-            _tween.duration = Mathf.Max(0f, Ports[0].Get(_duration));
-            _tween.curve = Ports[1].Get(_curve);
-            _tween.action = Ports[2].Get<ITweenProgressAction>();
+            _tween.duration = Mathf.Max(0f, Ports[2].Get(_duration));
+            _tween.curve = Ports[3].Get(_curve);
+            _tween.action = Ports[4].Get<ITweenProgressAction>();
 
             _tween.Initialize(owner);
         }
