@@ -49,15 +49,12 @@ namespace MisterGames.Interact.Cursors {
             var host = user.Transform.GetComponent<ICursorHost>();
             if (host == null) return;
 
-            if (!user.IsInteractingWith(_interactive) && !user.IsDetected(_interactive) ||
-                !_strategy.TryGetCursorIcon(user, _interactive, out var icon)
-            ) {
-                host.Unregister(this);
+            if (_strategy.TryGetCursorIcon(user, _interactive, out var icon)) {
+                host.ApplyCursorIconOverride(this, icon);
                 return;
             }
 
-            host.Register(this);
-            host.ApplyCursorIcon(this, icon);
+            host.ResetCursorIconOverride(this);
         }
     }
 

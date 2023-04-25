@@ -28,8 +28,6 @@ namespace MisterGames.Interact.Cursors {
 
         private readonly struct CursorIconQueueItem {
 
-            public static readonly CursorIconQueueItem Empty = new CursorIconQueueItem(-1);
-
             public readonly int creationFrame;
             public readonly CursorIcon cursorIcon;
 
@@ -40,8 +38,7 @@ namespace MisterGames.Interact.Cursors {
         }
 
         private void OnEnable() {
-            Register(this);
-            ApplyCursorIcon(this, _initialCursorIcon);
+            ApplyCursorIconOverride(this, _initialCursorIcon);
 
             if (!_enableCursorOverride) SetCursorIcon(_initialCursorIcon);
 
@@ -56,7 +53,7 @@ namespace MisterGames.Interact.Cursors {
 
             TimeSources.Get(_timeSourceStage).Unsubscribe(this);
 
-            Unregister(this);
+            ResetCursorIconOverride(this);
             SetCursorIcon(null);
         }
 
@@ -64,25 +61,15 @@ namespace MisterGames.Interact.Cursors {
             OnApplicationFocusChanged(true);
         }
 
-        public void Register(object source) {
-            if (_iconOverridesMap.ContainsKey(source)) return;
-
-            _iconOverridesMap.Add(source, CursorIconQueueItem.Empty);
-        }
-
-        public void Unregister(object source) {
-            if (_iconOverridesMap.ContainsKey(source)) _iconOverridesMap.Remove(source);
+        public void ApplyCursorIconOverride(object source, CursorIcon icon) {
+            _iconOverridesMap[source] = new CursorIconQueueItem(TimeSources.FrameCount, icon);
 
             RefreshCursorIcon();
         }
 
-        public void ApplyCursorIcon(object source, CursorIcon icon) {
-            if (!_iconOverridesMap.ContainsKey(source)) {
-                Debug.LogWarning($"{nameof(CursorHost)}: not registered source {source} is trying to apply icon {icon}");
-                return;
-            }
+        public void ResetCursorIconOverride(object source) {
+            if (_iconOverridesMap.ContainsKey(source)) _iconOverridesMap.Remove(source);
 
-            _iconOverridesMap[source] = new CursorIconQueueItem(TimeSources.FrameCount, icon);
             RefreshCursorIcon();
         }
 
