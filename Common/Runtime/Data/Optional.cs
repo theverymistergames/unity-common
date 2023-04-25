@@ -27,6 +27,10 @@ namespace MisterGames.Common.Data {
             _hasValue = hasValue;
         }
 
+        public T GetOrDefault(T defaultValue) {
+            return _hasValue ? _value : defaultValue;
+        }
+
         public bool IsEmptyOrEquals(T value) {
             return !_hasValue || EqualityComparer<T>.Default.Equals(_value, value);
         }
