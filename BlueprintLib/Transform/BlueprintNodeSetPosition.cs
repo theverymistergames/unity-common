@@ -5,7 +5,7 @@ using UnityEngine;
 namespace MisterGames.BlueprintLib {
 
     [Serializable]
-    [BlueprintNodeMeta(Name = "Set Position", Category = "Transform2", Color = BlueprintColors.Node.Actions)]
+    [BlueprintNodeMeta(Name = "Set Position", Category = "Transform", Color = BlueprintColors.Node.Actions)]
     public sealed class BlueprintNodeSetPosition : BlueprintNode, IBlueprintEnter {
 
         [SerializeField] private Vector3 _position;
