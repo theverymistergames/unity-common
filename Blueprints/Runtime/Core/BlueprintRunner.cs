@@ -21,8 +21,8 @@ namespace MisterGames.Blueprints {
         private void Awake() {
             _isRunningRuntimeBlueprint = true;
 
-            _runtimeBlueprint = _blueprintAsset.Compile();
             _blackboard = GetBlackboard(_blueprintAsset);
+            _runtimeBlueprint = _blueprintAsset.Compile();
 
             _runtimeBlueprint.Initialize(this);
         }
