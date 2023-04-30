@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace MisterGames.Blueprints {
@@ -35,18 +36,32 @@ namespace MisterGames.Blueprints {
                 public const string String = "#EBA467";
                 public const string ScriptableObject = "#ECC3B5";
                 public const string GameObject = "#F592A5";
-                    
+                public const string Component = "#a289ab";
+
                 public static string GetColorForType(Type type) {
-                    if (type == null) return Default;
+                    while (true) {
+                        if (type == null) return Default;
 
-                    if (type == typeof(bool)) return Bool;
-                    if (type == typeof(float) || type == typeof(double) || type == typeof(int) || type == typeof(long)) return Number;
-                    if (type == typeof(string)) return String;
-                    if (type == typeof(Vector2) || type == typeof(Vector3) || type == typeof(Vector4) || type == typeof(Vector2Int) || type == typeof(Vector3Int)) return Vector;
-                    if (typeof(ScriptableObject).IsAssignableFrom(type)) return ScriptableObject;
-                    if (type == typeof(GameObject)) return GameObject;
+                        if (type.IsArray) {
+                            type = type.GetElementType();
+                            continue;
+                        }
 
-                    return Data;
+                        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>)) {
+                            type = type.GetGenericArguments()[0];
+                            continue;
+                        }
+
+                        if (type == typeof(bool)) return Bool;
+                        if (type == typeof(float) || type == typeof(double) || type == typeof(int) || type == typeof(long)) return Number;
+                        if (type == typeof(string)) return String;
+                        if (type == typeof(Vector2) || type == typeof(Vector3) || type == typeof(Vector4) || type == typeof(Vector2Int) || type == typeof(Vector3Int)) return Vector;
+                        if (typeof(ScriptableObject).IsAssignableFrom(type)) return ScriptableObject;
+                        if (type == typeof(GameObject)) return GameObject;
+                        if (typeof(Component).IsAssignableFrom(type)) return Component;
+
+                        return Data;
+                    }
                 }
             }
 
@@ -63,18 +78,32 @@ namespace MisterGames.Blueprints {
                 public static readonly Color String = new Color(0.98f, 0.6f, 0.28f);
                 public static readonly Color ScriptableObject = new Color(0.98f, 0.45f, 0.33f);
                 public static readonly Color GameObject = new Color(0.8f, 0.3f, 0.4f);
+                public static readonly Color Component = new Color(0.64f, 0.54f, 0.67f);
 
                 public static Color GetColorForType(Type type) {
-                    if (type == null) return Default;
+                    while (true) {
+                        if (type == null) return Default;
 
-                    if (type == typeof(bool)) return Bool;
-                    if (type == typeof(float) || type == typeof(double) || type == typeof(int) || type == typeof(long)) return Number;
-                    if (type == typeof(string)) return String;
-                    if (type == typeof(Vector2) || type == typeof(Vector3) || type == typeof(Vector4) || type == typeof(Vector2Int) || type == typeof(Vector3Int)) return Vector;
-                    if (typeof(ScriptableObject).IsAssignableFrom(type)) return ScriptableObject;
-                    if (type == typeof(GameObject)) return GameObject;
+                        if (type.IsArray) {
+                            type = type.GetElementType();
+                            continue;
+                        }
 
-                    return Data;
+                        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>)) {
+                            type = type.GetGenericArguments()[0];
+                            continue;
+                        }
+
+                        if (type == typeof(bool)) return Bool;
+                        if (type == typeof(float) || type == typeof(double) || type == typeof(int) || type == typeof(long)) return Number;
+                        if (type == typeof(string)) return String;
+                        if (type == typeof(Vector2) || type == typeof(Vector3) || type == typeof(Vector4) || type == typeof(Vector2Int) || type == typeof(Vector3Int)) return Vector;
+                        if (typeof(ScriptableObject).IsAssignableFrom(type)) return ScriptableObject;
+                        if (type == typeof(GameObject)) return GameObject;
+                        if (typeof(Component).IsAssignableFrom(type)) return Component;
+
+                        return Data;
+                    }
                 }
             }
         }
