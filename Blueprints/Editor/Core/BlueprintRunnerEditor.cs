@@ -110,8 +110,12 @@ namespace MisterGames.Blueprints.Editor.Core {
             BlueprintAsset blueprint,
             SerializedDictionary<BlueprintAsset, Blackboard> blackboardOverridesMap
         ) {
-            if (blueprint == null || _visitedBlueprintAssets.Contains(blueprint)) return;
+            if (blueprint == null) {
+                if (blackboardOverridesMap.ContainsKey(blueprint)) blackboardOverridesMap.Remove(blueprint);
+                return;
+            }
 
+            if (_visitedBlueprintAssets.Contains(blueprint)) return;
             _visitedBlueprintAssets.Add(blueprint);
 
             FetchBlackboardOfBlueprint(runner, blueprint, blackboardOverridesMap);
