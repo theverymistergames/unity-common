@@ -165,6 +165,12 @@ namespace MisterGames.Blackboards.Core {
         public T Get<T>(int hash) {
             var type = typeof(T);
 
+            // Hack to get arrays by blackboard.Get<Array>(hash)
+            if (type == typeof(Array)) {
+                if (!_propertiesMap.TryGetValue(hash, out var property)) return default;
+                type = property.type;
+            }
+
             if (type.IsArray) {
                 type = type.GetElementType()!;
 
@@ -206,9 +212,9 @@ namespace MisterGames.Blackboards.Core {
 
                     var result = Array.CreateInstance(type, array.Length);
                     for (int i = 0; i < array.Length; i++) {
-                        var value = array[i].value;
-                        if (value != null) result.SetValue(value, i);
+                        result.SetValue(array[i].value, i);
                     }
+
                     return result is T t ? t : default;
                 }
 
@@ -217,8 +223,7 @@ namespace MisterGames.Blackboards.Core {
 
                     var result = Array.CreateInstance(type, array.Length);
                     for (int i = 0; i < array.Length; i++) {
-                        object value = array[i].value;
-                        if (value != null) result.SetValue(value, i);
+                        result.SetValue(array[i].value, i);
                     }
                     return result is T t ? t : default;
                 }
