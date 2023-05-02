@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using MisterGames.Blueprints.Editor.Utils;
 using MisterGames.Blueprints.Meta;
-using MisterGames.Common.Editor.SerializedProperties;
 using MisterGames.Common.Editor.Views;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;

@@ -156,9 +156,6 @@ namespace MisterGames.Blueprints.Editor.Core {
                 _blueprintAsset.BlueprintMeta.OnInvalidateNodePortsAndLinks = null;
                 _blueprintAsset = null;
             }
-
-            _blueprintAssetSerializedObject?.Dispose();
-            _blueprintAssetSerializedObject = null;
         }
 
         private void RepaintNodePortsAndLinks(int nodeId) {
