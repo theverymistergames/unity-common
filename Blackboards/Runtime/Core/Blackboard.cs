@@ -198,6 +198,7 @@ namespace MisterGames.Blackboards.Core {
                         for (int i = 0; i < array.Length; i++) {
                             res.SetValue(Enum.ToObject(type, array[i].value), i);
                         }
+
                         return res is T t ? t : default;
                     }
 
@@ -212,7 +213,8 @@ namespace MisterGames.Blackboards.Core {
 
                     var result = Array.CreateInstance(type, array.Length);
                     for (int i = 0; i < array.Length; i++) {
-                        result.SetValue(array[i].value, i);
+                        var value = array[i].value;
+                        if (value != null) result.SetValue(value, i);
                     }
 
                     return result is T t ? t : default;
@@ -223,8 +225,10 @@ namespace MisterGames.Blackboards.Core {
 
                     var result = Array.CreateInstance(type, array.Length);
                     for (int i = 0; i < array.Length; i++) {
-                        result.SetValue(array[i].value, i);
+                        object value = array[i].value;
+                        if (value != null) result.SetValue(value, i);
                     }
+
                     return result is T t ? t : default;
                 }
 
