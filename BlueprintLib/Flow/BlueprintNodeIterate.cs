@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using MisterGames.Blueprints;
-using MisterGames.Blueprints.Compile;
 using MisterGames.Blueprints.Meta;
 
 namespace MisterGames.BlueprintLib {
@@ -16,23 +14,9 @@ namespace MisterGames.BlueprintLib {
 #endif
 
     {
-        private int _iterationLinkIndex;
-        private int _iterationLinkSubIndex;
-
-        private readonly struct CallPortOnDispose : IDisposable {
-
-            private readonly RuntimePort _port;
-            private readonly bool _isAllowed;
-
-            public CallPortOnDispose(RuntimePort port, bool isAllowed) {
-                _port = port;
-                _isAllowed = isAllowed;
-            }
-
-            public void Dispose() {
-                if (_isAllowed) _port.Call();
-            }
-        }
+        private int _index;
+        private int _subIndex;
+        private Array _arrayCache;
 
         public override Port[] CreatePorts() => new[] {
             Port.Enter("Start"),
@@ -44,121 +28,71 @@ namespace MisterGames.BlueprintLib {
         public void OnEnterPort(int port) {
             if (port != 0) return;
 
-            var links = Ports[1].links;
-            if (links.Count == 0) return;
+            _index = 0;
+            _subIndex = 0;
+            _arrayCache = null;
 
-            _iterationLinkIndex = 0;
-            _iterationLinkSubIndex = 0;
-
-            Ports[2].Call();
-        }
-
-        public R GetOutputPortValue<R>(int port) {
-            var links = Ports[1].links;
-
-            while (true) {
-                if (_iterationLinkIndex > links.Count - 1) return default;
-
-                var link = links[_iterationLinkIndex];
-
-                if (link.node is IBlueprintOutput<R[]> outputRs && outputRs.GetOutputPortValue(link.port) is {} rs) {
-                    if (_iterationLinkSubIndex > rs.Length - 1) {
-                        _iterationLinkIndex++;
-                        _iterationLinkSubIndex = 0;
-                        continue;
-                    }
-
-                    return ReturnNextArrayElementAndContinue(rs);
-                }
-
-                if (link.node is IBlueprintOutput<R> outputR) {
-                    return ReturnNextElementAndContinue(outputR.GetOutputPortValue(link.port));
-                }
-
-                if (link.node is IBlueprintOutput output) {
-                    if (output.GetOutputPortValue<R[]>(link.port) is {} dynamicRs) {
-                        if (_iterationLinkSubIndex > dynamicRs.Length - 1) {
-                            _iterationLinkIndex++;
-                            _iterationLinkSubIndex = 0;
-                            continue;
-                        }
-
-                        return ReturnNextArrayElementAndContinue(dynamicRs);
-                    }
-
-                    return ReturnNextElementAndContinue(output.GetOutputPortValue<R>(link.port));
-                }
-
-                _iterationLinkIndex++;
-                _iterationLinkSubIndex = 0;
+            while (MoveNext()) {
+                Ports[2].Call();
             }
         }
 
-        private R ReturnNextElementAndContinue<R>(R element) {
-            bool hasNext = HasNext<R>(
-                nextIndex: _iterationLinkIndex + 1, nextSubIndex: 0,
-                out _iterationLinkIndex, out _iterationLinkSubIndex
-            );
+        public R GetOutputPortValue<R>(int port) {
+            if (_arrayCache is R[] array && _subIndex < array.Length) return array[_subIndex++];
 
-            using var iterateCall = new CallPortOnDispose(Ports[2], hasNext);
-            return element;
+            var links = Ports[1].links;
+            return _index < links.Count ? links[_index++].Get<R>() : default;
         }
 
-        private R ReturnNextArrayElementAndContinue<R>(IReadOnlyList<R> elements) {
-            var element = elements[_iterationLinkSubIndex];
-
-            bool hasNext = HasNext<R>(
-                nextIndex: _iterationLinkIndex, nextSubIndex: _iterationLinkSubIndex + 1,
-                out _iterationLinkIndex, out _iterationLinkSubIndex
-            );
-
-            using var iterateCall = new CallPortOnDispose(Ports[2], hasNext);
-            return element;
-        }
-
-        private bool HasNext<R>(int nextIndex, int nextSubIndex, out int index, out int subIndex) {
+        private bool MoveNext() {
             var links = Ports[1].links;
 
-            index = nextIndex;
-            subIndex = nextSubIndex;
-
             while (true) {
-                if (index > links.Count - 1) return false;
-
-                var link = links[index];
-
-                if (link.node is IBlueprintOutput<R[]> outputRs && outputRs.GetOutputPortValue(link.port) is {} rs) {
-                    if (subIndex > rs.Length - 1) {
-                        index++;
-                        subIndex = 0;
-                        continue;
-                    }
-
-                    return true;
+                if (_index > links.Count - 1) {
+                    _arrayCache = null;
+                    return false;
                 }
 
-                if (link.node is IBlueprintOutput<R>) {
-                    subIndex = 0;
-                    return true;
+                if (_arrayCache != null) {
+                    if (_subIndex < _arrayCache.Length) return true;
+
+                    _index++;
+                    _subIndex = 0;
+                    _arrayCache = null;
+                    continue;
                 }
 
-                if (link.node is IBlueprintOutput output) {
-                    if (output.GetOutputPortValue<R[]>(link.port) is {} dynamicRs) {
-                        if (subIndex > dynamicRs.Length - 1) {
-                            index++;
-                            subIndex = 0;
-                            continue;
-                        }
+                var link = links[_index];
 
+                if (link.node is IBlueprintOutput<Array> outputRs) {
+                    if (outputRs.GetOutputPortValue(link.port) is {} array && _subIndex < array.Length) {
+                        _arrayCache = array;
                         return true;
                     }
 
-                    subIndex = 0;
-                    return true;
+                    _index++;
+                    _subIndex = 0;
+                    _arrayCache = null;
+                    continue;
                 }
 
-                index++;
-                subIndex = 0;
+                if (link.node is IBlueprintOutput output &&
+                    output.GetOutputPortValue<Array>(link.port) is {} dynamicArray
+                ) {
+                    if (_subIndex < dynamicArray.Length) {
+                        _arrayCache = dynamicArray;
+                        return true;
+                    }
+
+                    _index++;
+                    _subIndex = 0;
+                    _arrayCache = null;
+                    continue;
+                }
+
+                _subIndex = 0;
+                _arrayCache = null;
+                return true;
             }
         }
 
