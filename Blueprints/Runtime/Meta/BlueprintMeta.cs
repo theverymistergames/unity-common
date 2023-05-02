@@ -31,7 +31,7 @@ namespace MisterGames.Blueprints.Meta {
         }
 
         int IComparer<BlueprintLink>.Compare(BlueprintLink x, BlueprintLink y) {
-            return _nodesMap[y.nodeId].Position.y.CompareTo(_nodesMap[x.nodeId].Position.y);
+            return _nodesMap[x.nodeId].Position.y.CompareTo(_nodesMap[y.nodeId].Position.y);
         }
 
 #if UNITY_EDITOR
