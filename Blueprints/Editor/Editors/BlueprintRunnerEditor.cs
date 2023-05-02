@@ -1,10 +1,11 @@
 ﻿using System.Collections.Generic;
 using MisterGames.Blackboards.Core;
+using MisterGames.Blueprints.Editor.Core;
 using MisterGames.Common.Data;
 using UnityEditor;
 using UnityEngine;
 
-namespace MisterGames.Blueprints.Editor.Core {
+namespace MisterGames.Blueprints.Editor.Editors {
 
     [CustomEditor(typeof(BlueprintRunner))]
     public sealed class BlueprintRunnerEditor : UnityEditor.Editor {
@@ -34,7 +35,7 @@ namespace MisterGames.Blueprints.Editor.Core {
             }
 
             if (GUILayout.Button("Edit")) {
-                BlueprintsEditorWindow.OpenAsset(blueprint);
+                BlueprintEditorWindow.OpenAsset(blueprint);
             }
 
             if (runner.IsRunningRuntimeBlueprint) {

@@ -99,9 +99,17 @@ namespace MisterGames.Blueprints.Editor.Core {
 
             InvalidateBlueprintAsset(_blueprintAsset);
             RepopulateView();
-            MoveToBlueprintNodesCenterPosition();
+
+            GetBlueprintNodesCenter(out var position, out var scale);
 
             _blueprintAsset.BlueprintMeta.OnInvalidateNodePortsAndLinks = RepaintNodePortsAndLinks;
+
+            var currentPosition = contentViewContainer.transform.position;
+            if (Vector3.Distance(position, currentPosition) < POPULATE_SCROLL_TO_NODES_CENTER_TOLERANCE_DISTANCE) {
+                return;
+            }
+
+            UpdateViewTransform(position, scale);
         }
 
         private void RepopulateView() {
@@ -165,29 +173,23 @@ namespace MisterGames.Blueprints.Editor.Core {
             CreateToNodeConnectionViews(nodeView.nodeMeta);
         }
 
-        private void MoveToBlueprintNodesCenterPosition() {
+        private void GetBlueprintNodesCenter(out Vector3 position, out Vector3 scale) {
+            position = Vector3.zero;
+            scale = Vector3.one;
+
             if (_blueprintAsset == null) return;
 
-            var position = Vector2.zero;
+            var positionAccumulator = Vector2.zero;
 
             var nodeMetas = _blueprintAsset.BlueprintMeta.NodesMap.Values;
             foreach (var nodeMeta in nodeMetas) {
-                position += nodeMeta.Position;
+                positionAccumulator += nodeMeta.Position;
             }
 
-            if (nodeMetas.Count > 0) position /= nodeMetas.Count;
+            if (nodeMetas.Count > 0) positionAccumulator /= nodeMetas.Count;
 
-            var s = contentViewContainer.transform.scale;
-            var targetPosition = Vector3.Scale(-position, s);
-
-            var currentPosition = contentViewContainer.transform.position;
-
-            if (Vector3.Distance(targetPosition, currentPosition) < POPULATE_SCROLL_TO_NODES_CENTER_TOLERANCE_DISTANCE) {
-                return;
-            }
-
-            viewTransform.position = targetPosition;
-            UpdateViewTransform(contentViewContainer.transform.position, s);
+            scale = contentViewContainer.transform.scale;
+            position = Vector3.Scale(-positionAccumulator, scale);
         }
 
         public override void BuildContextualMenu(ContextualMenuPopulateEvent evt) {

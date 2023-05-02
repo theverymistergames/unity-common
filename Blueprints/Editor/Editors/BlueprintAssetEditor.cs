@@ -1,7 +1,7 @@
 ﻿using UnityEditor;
 using UnityEngine;
 
-namespace MisterGames.Blueprints.Editor.Core {
+namespace MisterGames.Blueprints.Editor.Editors {
 
     [CustomEditor(typeof(BlueprintAsset))]
     public sealed class BlueprintAssetEditor : UnityEditor.Editor {

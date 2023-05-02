@@ -7,7 +7,7 @@ using Object = UnityEngine.Object;
 
 namespace MisterGames.Blueprints.Editor.Core {
 
-    public sealed class BlueprintsEditorWindow : EditorWindow {
+    public sealed class BlueprintEditorWindow : EditorWindow {
 
         private const string WINDOW_TITLE = "Blueprint Editor";
 
@@ -17,58 +17,43 @@ namespace MisterGames.Blueprints.Editor.Core {
 
         private class SaveHelper : AssetModificationProcessor {
             public static string[] OnWillSaveAssets(string[] paths) {
-                if (!HasOpenInstances<BlueprintsEditorWindow>()) return paths;
-                GetWindow<BlueprintsEditorWindow>(WINDOW_TITLE, focus: false).OnSaveCalled();
+                if (!HasOpenInstances<BlueprintEditorWindow>()) return paths;
+                GetWindow<BlueprintEditorWindow>(WINDOW_TITLE, focus: false).TrySaveCurrentBlueprintAsset();
                 return paths;
             }
         }
 
         [MenuItem("MisterGames/Blueprint Editor")]
         private static void OpenWindow() {
-            GetWindow<BlueprintsEditorWindow>(WINDOW_TITLE, focus: true, desiredDockNextTo: typeof(SceneView));
+            GetWindow<BlueprintEditorWindow>(WINDOW_TITLE, focus: true, desiredDockNextTo: typeof(SceneView));
         }
 
         [OnOpenAsset]
         private static bool OnOpenAsset(int instanceId, int line) {
             if (Selection.activeObject is not BlueprintAsset blueprintAsset) return false;
+
             OpenAsset(blueprintAsset);
             return true;
         }
 
         public static void OpenAsset(BlueprintAsset blueprintAsset) {
-            var window = GetWindow<BlueprintsEditorWindow>(WINDOW_TITLE, focus: true, desiredDockNextTo: typeof(SceneView));
-            window.SetAssetPickerValue(blueprintAsset);
-        }
+            var window = GetWindow<BlueprintEditorWindow>(WINDOW_TITLE, focus: true, desiredDockNextTo: typeof(SceneView));
 
-        private void SetAssetPickerValue(BlueprintAsset blueprintAsset) {
-            if (_assetPicker == null) return;
+            var assetPicker = window._assetPicker;
+            if (assetPicker == null) return;
 
-            _assetPicker.value = blueprintAsset;
-            _assetPicker.label = "Asset";
-        }
-
-        private void OnEnable() {
-            var asset = _assetPicker?.value as BlueprintAsset;
-
-            if (asset == null) {
-                _blueprintsView?.ClearView();
-                SetWindowTitle(WINDOW_TITLE);
-                return;
-            }
-
-            SetWindowTitle(EditorUtility.IsDirty(asset) ? $"{asset.name}*" : asset.name);
+            assetPicker.value = blueprintAsset;
+            assetPicker.label = "Asset";
         }
 
         private void OnDisable() {
             _blueprintsView?.ClearView();
-
-            if (_saveButton != null) _saveButton.clicked -= OnClickSaveButton;
+            if (_saveButton != null) _saveButton.clicked -= TrySaveCurrentBlueprintAsset;
         }
 
         private void OnDestroy() {
             _blueprintsView?.ClearView();
-
-            if (_saveButton != null) _saveButton.clicked -= OnClickSaveButton;
+            if (_saveButton != null) _saveButton.clicked -= TrySaveCurrentBlueprintAsset;
         }
 
         private void CreateGUI() {
@@ -89,11 +74,13 @@ namespace MisterGames.Blueprints.Editor.Core {
             _blueprintsView.OnBlueprintAssetSetDirty = OnBlueprintAssetSetDirty;
 
             _saveButton = root.Q<Button>("save-button");
-            _saveButton.clicked -= OnClickSaveButton;
-            _saveButton.clicked += OnClickSaveButton;
+            _saveButton.clicked -= TrySaveCurrentBlueprintAsset;
+            _saveButton.clicked += TrySaveCurrentBlueprintAsset;
 
             var blackboardToggle = root.Q<ToolbarToggle>("blackboard-toggle");
             blackboardToggle.RegisterValueChangedCallback(OnToggleBlackboardButton);
+
+            OpenAsset(BlueprintEditorStorage.Instance.LastEditedBlueprintAsset);
         }
 
         private void OnBlueprintAssetSetDirty() {
@@ -101,44 +88,32 @@ namespace MisterGames.Blueprints.Editor.Core {
             SetWindowTitle(asset == null ? WINDOW_TITLE : $"{asset.name}*");
         }
 
-        private void OnSaveCalled() {
+        private void TrySaveCurrentBlueprintAsset() {
             var asset = _assetPicker?.value as BlueprintAsset;
+            if (asset != null) AssetDatabase.SaveAssetIfDirty(asset);
             SetWindowTitle(asset == null ? WINDOW_TITLE : asset.name);
-        }
-
-        private void OnClickSaveButton() {
-            AssetDatabase.SaveAssets();
-            OnSaveCalled();
         }
 
         private void OnToggleBlackboardButton(ChangeEvent<bool> evt) {
             _blueprintsView?.ToggleBlackboard(evt.newValue);
         }
 
-        private void OnSelectionChange() {
-            if (_assetPicker == null) return;
-
-            var asset = _assetPicker.value as BlueprintAsset;
-            if (asset != null) return;
-
-            _assetPicker.value = null;
-            _blueprintsView?.ClearView();
-            SetWindowTitle(WINDOW_TITLE);
-        }
-
         private void OnAssetChanged(ChangeEvent<Object> evt) {
             if (_blueprintsView == null) {
+                BlueprintEditorStorage.Instance.NotifyOpenedBlueprintAsset(null);
                 SetWindowTitle(WINDOW_TITLE);
                 return;
             }
 
             var asset = evt.newValue as BlueprintAsset;
             if (asset == null) {
+                BlueprintEditorStorage.Instance.NotifyOpenedBlueprintAsset(null);
                 SetWindowTitle(WINDOW_TITLE);
                 _blueprintsView.ClearView();
                 return;
             }
 
+            BlueprintEditorStorage.Instance.NotifyOpenedBlueprintAsset(asset);
             SetWindowTitle(EditorUtility.IsDirty(asset) ? $"{asset.name}*" : asset.name);
             _blueprintsView.PopulateViewFromAsset(asset);
         }

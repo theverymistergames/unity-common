@@ -155,7 +155,7 @@ namespace MisterGames.Blueprints.Editor.Core {
                     nodePropertyCopy.objectReferenceValue is BlueprintAsset blueprint &&
                     GUILayout.Button("Edit")
                 ) {
-                    BlueprintsEditorWindow.OpenAsset(blueprint);
+                    BlueprintEditorWindow.OpenAsset(blueprint);
                 }
             }
 
