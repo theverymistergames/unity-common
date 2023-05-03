@@ -38,7 +38,7 @@ namespace MisterGames.BlueprintLib {
             if (port == 0) {
                 _cancelCts?.Cancel();
                 _cancelCts?.Dispose();
-                _cancelCts ??= new CancellationTokenSource();
+                _cancelCts = new CancellationTokenSource();
                 var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_cancelCts.Token, _terminateCts.Token);
 
                 float duration = Ports[2].Get(_duration);

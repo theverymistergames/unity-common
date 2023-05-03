@@ -13,13 +13,20 @@ namespace MisterGames.BlueprintLib {
         [SerializeField] private float _to;
 
         public override Port[] CreatePorts() => new[] {
+            Port.Input<float>("From"),
+            Port.Input<float>("To"),
             Port.Output<float>()
         };
 
-        public float GetOutputPortValue(int port) => port switch {
-            0 => Random.Range(_from, _to),
-            _ => 0f
-        };
+        public float GetOutputPortValue(int port) {
+            var from = Ports[0].Get(defaultValue: _from);
+            var to = Ports[1].Get(defaultValue: _to);
+            
+            return port switch {
+                2 => Random.Range(from, to),
+                _ => 0f
+            };
+        }
     }
 
 }
