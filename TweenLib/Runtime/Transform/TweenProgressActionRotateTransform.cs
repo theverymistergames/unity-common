@@ -11,17 +11,12 @@ namespace MisterGames.TweenLib {
         public Vector3 startEulerAngles;
         public Vector3 endEulerAngles;
         public bool useLocal = true;
-
-        private Quaternion _startRotation;
-        private Quaternion _endRotation;
+        public bool useEulerInterpolation;
 
         public void Initialize(MonoBehaviour owner) { }
         public void DeInitialize() { }
 
-        public void Start() {
-            _startRotation = Quaternion.Euler(startEulerAngles);
-            _endRotation = Quaternion.Euler(endEulerAngles);
-        }
+        public void Start() { }
 
         public void Finish() {
 #if UNITY_EDITOR
@@ -30,7 +25,9 @@ namespace MisterGames.TweenLib {
         }
 
         public void OnProgressUpdate(float progress) {
-            var value = Quaternion.Slerp(_startRotation, _endRotation, progress);
+            var value = useEulerInterpolation
+                ? Quaternion.Slerp(Quaternion.Euler(startEulerAngles), Quaternion.Euler(endEulerAngles), progress)
+                : Quaternion.Euler(Vector3.Lerp(startEulerAngles, endEulerAngles, progress));
 
             if (useLocal) transform.localRotation = value;
             else transform.rotation = value;
