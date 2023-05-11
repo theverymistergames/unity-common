@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using MisterGames.Collisions.Core;
 using MisterGames.Collisions.Utils;
+using MisterGames.Common.Maths;
 using MisterGames.Tick.Core;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -12,7 +13,20 @@ namespace MisterGames.Collisions.Detectors {
 
         [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
         [SerializeField] [Min(1)] private int _maxHits = 6;
-        [SerializeField] private CollisionFilter _collisionFilter;
+        [SerializeField] [Min(0f)] private float _maxDistance = 3f;
+        [SerializeField] private LayerMask _layerMask;
+
+        public override Vector3 OriginOffset { get => Vector3.zero; set { } }
+
+        public override float Distance {
+            get => _maxDistance;
+            set {
+                if (_maxDistance.IsNearlyEqual(value, tolerance: 0f)) return;
+
+                _maxDistance = value;
+                _invalidateFlag = true;
+            }
+        }
 
         public override int Capacity => _maxHits;
 
@@ -22,6 +36,10 @@ namespace MisterGames.Collisions.Detectors {
         private CollisionInfo[] _hits;
 
         private EventSystem _eventSystem;
+
+        private Vector3 _originOffset;
+        private bool _invalidateFlag;
+
         private int _hitCount;
         private int _lastUpdateFrame = -1;
 
@@ -65,22 +83,31 @@ namespace MisterGames.Collisions.Detectors {
         }
 
         private void UpdateContacts(bool forceNotify = false) {
-            int frame = TimeSources.FrameCount;
-            if (frame == _lastUpdateFrame) return;
+            if (!enabled) return;
 
-            var origin = new PointerEventData(_eventSystem) { position = Input.mousePosition };
-            _eventSystem.RaycastAll(origin, _raycastResults);
-            _hitCount = Math.Min(_raycastResults.Count, _maxHits);
+            int frame = Time.frameCount;
+            if (frame == _lastUpdateFrame && !_invalidateFlag) return;
 
-            bool hasContact = _raycastResults
-                .RemoveInvalidHits(_hitCount, out _hitCount)
-                .Filter(_hitCount, _collisionFilter, out _hitCount)
-                .TryGetMinimumDistanceHit(_hitCount, out var raycastResult);
+            _invalidateFlag = false;
 
-            var info = hasContact ? CollisionInfo.FromRaycastResult(raycastResult) : CollisionInfo.Empty;
+            bool hasContact = PerformRaycast(out var hit);
+            var info = hasContact ? CollisionInfo.FromRaycastResult(hit) : CollisionInfo.Empty;
 
             SetCollisionInfo(info, forceNotify);
             _lastUpdateFrame = frame;
+        }
+
+        private bool PerformRaycast(out RaycastResult hit) {
+            var origin = new PointerEventData(_eventSystem) { position = Input.mousePosition };
+
+            _eventSystem.RaycastAll(origin, _raycastResults);
+            _hitCount = Math.Min(_raycastResults.Count, _maxHits);
+            var filter = new CollisionFilter { maxDistance = _maxDistance, layerMask = _layerMask };
+
+            return _raycastResults
+                .RemoveInvalidHits(_hitCount, out _hitCount)
+                .Filter(_hitCount, filter, out _hitCount)
+                .TryGetMinimumDistanceHit(_hitCount, out hit);
         }
     }
 

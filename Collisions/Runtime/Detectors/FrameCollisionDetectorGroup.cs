@@ -9,8 +9,15 @@ namespace MisterGames.Collisions.Detectors {
     public class FrameCollisionDetectorGroup : CollisionDetectorBase, IUpdate {
 
         [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
+
+        [Header("Filter")]
+        [SerializeField] [Min(0f)] private float _maxDistance = 3f;
+        [SerializeField] private LayerMask _layerMask;
+
         [SerializeField] private CollisionDetectorBase[] _detectors;
-        [SerializeField] private CollisionFilter _collisionFilter;
+
+        public override Vector3 OriginOffset { get => Vector3.zero; set { } }
+        public override float Distance { get => 0f; set { } }
 
         public override int Capacity {
             get {
@@ -25,9 +32,10 @@ namespace MisterGames.Collisions.Detectors {
         private ITimeSource _timeSource => TimeSources.Get(_timeSourceStage);
 
         private CollisionInfo[] _hits;
-        private bool _lastHasContact;
-        private float _lastDetectionDistance;
-        private int _lastDetectionFrame = -1;
+        private CollisionInfo[] _obstacleHits;
+
+        private bool _invalidateFlag;
+        private int _lastUpdateFrame = -1;
 
         private void Awake() {
             _hits = new CollisionInfo[Capacity];
@@ -69,31 +77,43 @@ namespace MisterGames.Collisions.Detectors {
         }
 
         private void UpdateContacts(bool forceNotify = false) {
-            int frame = TimeSources.FrameCount;
-            for (int i = 0; i < _detectors.Length; i++) {
-                var detector = _detectors[i];
+            if (!enabled) return;
 
-                detector.FetchResults();
+            int frame = Time.frameCount;
+            if (frame == _lastUpdateFrame && !_invalidateFlag) return;
 
-                var hits = detector.FilterLastResults(_collisionFilter);
-                if (!hits.TryGetMinimumDistanceHit(hits.Length, out var hit)) continue;
+            _invalidateFlag = false;
 
-                OnNewCollision(hit, frame, forceNotify);
-            }
+            PerformCast(out var info);
+            SetCollisionInfo(info, forceNotify);
+
+            _lastUpdateFrame = frame;
         }
 
-        private void OnNewCollision(CollisionInfo info, int frame, bool forceNotify) {
-            if (frame > _lastDetectionFrame ||
-                !_lastHasContact && info.hasContact ||
-                info.hasContact && info.distance < _lastDetectionDistance
-            ) {
-                _lastHasContact = info.hasContact;
-                _lastDetectionDistance = info.distance;
+        private int PerformCast(out CollisionInfo info) {
+            var filter = new CollisionFilter { maxDistance = _maxDistance, layerMask = _layerMask };
+            int hitCount = 0;
+            float minDistance = -1f;
+            info = CollisionInfo.Empty;
 
-                if (info.hasContact) _lastDetectionFrame = frame;
+            for (int i = 0; i < _detectors.Length; i++) {
+                var detector = _detectors[i];
+                detector.FetchResults();
 
-                SetCollisionInfo(info, forceNotify);
+                var hits = detector.FilterLastResults(filter);
+                for (int h = 0; h < hits.Length; h++) {
+                    _hits[hitCount++] = hits[h];
+                }
+
+                if (!hits.TryGetMinimumDistanceHit(hits.Length, out var nearestHit)) continue;
+
+                if (minDistance < 0f || nearestHit.distance < minDistance) {
+                    minDistance = nearestHit.distance;
+                    info = nearestHit;
+                }
             }
+
+            return hitCount;
         }
     }
 

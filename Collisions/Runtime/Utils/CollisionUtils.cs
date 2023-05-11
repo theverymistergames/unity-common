@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Text;
 using MisterGames.Collisions.Core;
 using MisterGames.Common.Layers;
@@ -34,18 +35,22 @@ namespace MisterGames.Collisions.Utils {
             public int Compare(RaycastResult x, RaycastResult y) => x.distance.CompareTo(y.distance) * _orderSign;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool HasLostContact(CollisionInfo lastInfo, CollisionInfo newInfo) {
             return lastInfo.hasContact && !newInfo.hasContact;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool HasNewContact(CollisionInfo lastInfo, CollisionInfo newInfo) {
             return !lastInfo.hasContact && newInfo.hasContact;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool HasContactWithTransform(this CollisionInfo info, Transform transform) {
             return info.hasContact && info.transform.GetHashCode() == transform.GetHashCode();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsTransformChanged(this CollisionInfo newInfo, CollisionInfo lastInfo) {
             return
                 !lastInfo.hasContact && newInfo.hasContact ||
@@ -53,6 +58,7 @@ namespace MisterGames.Collisions.Utils {
                 lastInfo.hasContact && lastInfo.transform.GetHashCode() != newInfo.transform.GetHashCode();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static RaycastHit[] RemoveInvalidHits(
             this RaycastHit[] hits,
             int hitCount,
@@ -73,6 +79,7 @@ namespace MisterGames.Collisions.Utils {
             return hits;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Span<RaycastHit> RemoveInvalidHits(
             this Span<RaycastHit> hits,
             int hitCount,
@@ -93,6 +100,7 @@ namespace MisterGames.Collisions.Utils {
             return hits;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T RemoveInvalidHits<T>(
             this T hits,
             int hitCount,
@@ -113,6 +121,7 @@ namespace MisterGames.Collisions.Utils {
             return hits;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static RaycastHit[] Filter(
             this RaycastHit[] hits,
             int hitCount,
@@ -123,18 +132,24 @@ namespace MisterGames.Collisions.Utils {
             resultHitCount = hitCount;
 
             for (int i = hitCount - 1; i >= 0; i--) {
-                var currentHit = hits[i];
-                if (currentHit.distance <= filter.maxDistance) continue;
-                if (!filter.layerMask.Contains(currentHit.transform.gameObject.layer)) continue;
+                var hit = hits[i];
+                int layer = hit.transform.gameObject.layer;
+
+                if (hit.distance <= filter.maxDistance &&
+                    filter.layerMask.Contains(layer)
+                ) {
+                    continue;
+                }
 
                 int lastValidHitIndex = --resultHitCount;
                 hits[i] = hits[lastValidHitIndex];
-                hits[lastValidHitIndex] = currentHit;
+                hits[lastValidHitIndex] = hit;
             }
 
             return hits;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Span<RaycastHit> Filter(
             this Span<RaycastHit> hits,
             int hitCount,
@@ -145,18 +160,24 @@ namespace MisterGames.Collisions.Utils {
             resultHitCount = hitCount;
 
             for (int i = hitCount - 1; i >= 0; i--) {
-                var currentHit = hits[i];
-                if (currentHit.distance <= filter.maxDistance) continue;
-                if (!filter.layerMask.Contains(currentHit.transform.gameObject.layer)) continue;
+                var hit = hits[i];
+                int layer = hit.transform.gameObject.layer;
+
+                if (hit.distance <= filter.maxDistance &&
+                    filter.layerMask.Contains(layer)
+                ) {
+                    continue;
+                }
 
                 int lastValidHitIndex = --resultHitCount;
                 hits[i] = hits[lastValidHitIndex];
-                hits[lastValidHitIndex] = currentHit;
+                hits[lastValidHitIndex] = hit;
             }
 
             return hits;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T Filter<T>(
             this T hits,
             int hitCount,
@@ -167,18 +188,24 @@ namespace MisterGames.Collisions.Utils {
             resultHitCount = hitCount;
 
             for (int i = hitCount - 1; i >= 0; i--) {
-                var currentHit = hits[i];
-                if (currentHit.distance <= filter.maxDistance) continue;
-                if (!filter.layerMask.Contains(currentHit.gameObject.layer)) continue;
+                var hit = hits[i];
+                int layer = hit.gameObject.layer;
+
+                if (hit.distance <= filter.maxDistance &&
+                    filter.layerMask.Contains(layer)
+                ) {
+                    continue;
+                }
 
                 int lastValidHitIndex = --resultHitCount;
                 hits[i] = hits[lastValidHitIndex];
-                hits[lastValidHitIndex] = currentHit;
+                hits[lastValidHitIndex] = hit;
             }
 
             return hits;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static RaycastHit[] SortByDistance(
             this RaycastHit[] hits,
             int hitCount,
@@ -192,6 +219,7 @@ namespace MisterGames.Collisions.Utils {
             return hits;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static List<RaycastResult> SortByDistance(
             this List<RaycastResult> hits,
             int hitCount,
@@ -205,6 +233,7 @@ namespace MisterGames.Collisions.Utils {
             return hits;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool TryGetMinimumDistanceHit(
             this ReadOnlySpan<CollisionInfo> hits,
             int hitCount,
@@ -222,16 +251,10 @@ namespace MisterGames.Collisions.Utils {
                 var nextHit = hits[i];
                 float distance = nextHit.distance;
 
-                if (distance < minDistance) {
+                if (minDistance < 0f || distance < minDistance) {
                     hitIndex = i;
                     minDistance = distance;
-                    continue;
                 }
-
-                if (minDistance >= 0) continue;
-
-                hitIndex = i;
-                minDistance = distance;
             }
 
             if (hitIndex < 0) return false;
@@ -240,6 +263,7 @@ namespace MisterGames.Collisions.Utils {
             return true;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool TryGetMinimumDistanceHit(
             this IReadOnlyList<CollisionInfo> hits,
             int hitCount,
@@ -257,16 +281,10 @@ namespace MisterGames.Collisions.Utils {
                 var nextHit = hits[i];
                 float distance = nextHit.distance;
 
-                if (distance < minDistance) {
+                if (minDistance < 0f || distance < minDistance) {
                     hitIndex = i;
                     minDistance = distance;
-                    continue;
                 }
-
-                if (minDistance >= 0) continue;
-
-                hitIndex = i;
-                minDistance = distance;
             }
 
             if (hitIndex < 0) return false;
@@ -275,6 +293,7 @@ namespace MisterGames.Collisions.Utils {
             return true;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool TryGetMinimumDistanceHit(
             this ReadOnlySpan<RaycastHit> hits,
             int hitCount,
@@ -292,16 +311,10 @@ namespace MisterGames.Collisions.Utils {
                 var nextHit = hits[i];
                 float distance = nextHit.distance;
 
-                if (distance < minDistance) {
+                if (minDistance < 0f || distance < minDistance) {
                     hitIndex = i;
                     minDistance = distance;
-                    continue;
                 }
-
-                if (minDistance >= 0) continue;
-
-                hitIndex = i;
-                minDistance = distance;
             }
 
             if (hitIndex < 0) return false;
@@ -310,6 +323,7 @@ namespace MisterGames.Collisions.Utils {
             return true;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool TryGetMinimumDistanceHit(
             this IReadOnlyList<RaycastHit> hits,
             int hitCount,
@@ -327,16 +341,10 @@ namespace MisterGames.Collisions.Utils {
                 var nextHit = hits[i];
                 float distance = nextHit.distance;
 
-                if (distance < minDistance) {
+                if (minDistance < 0 || distance < minDistance) {
                     hitIndex = i;
                     minDistance = distance;
-                    continue;
                 }
-
-                if (minDistance >= 0) continue;
-
-                hitIndex = i;
-                minDistance = distance;
             }
 
             if (hitIndex < 0) return false;
@@ -345,6 +353,7 @@ namespace MisterGames.Collisions.Utils {
             return true;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool TryGetMinimumDistanceHit(
             this IReadOnlyList<RaycastResult> hits,
             int hitCount,
@@ -362,16 +371,10 @@ namespace MisterGames.Collisions.Utils {
                 var nextHit = hits[i];
                 float distance = nextHit.distance;
 
-                if (distance < minDistance) {
+                if (minDistance < 0f || distance < minDistance) {
                     hitIndex = i;
                     minDistance = distance;
-                    continue;
                 }
-
-                if (minDistance >= 0) continue;
-
-                hitIndex = i;
-                minDistance = distance;
             }
 
             if (hitIndex < 0) return false;
@@ -381,6 +384,24 @@ namespace MisterGames.Collisions.Utils {
         }
 
         public static string AsText(this ReadOnlySpan<RaycastHit> hits, int hitCount) {
+            var sb = new StringBuilder();
+
+            sb.AppendLine($"Hits({hitCount})" + " {");
+
+            hitCount = Math.Min(hitCount, hits.Length);
+            for (int i = 0; i < hitCount; i++) {
+                var hit = hits[i];
+                bool hasContact = hit.transform != null;
+
+                sb.AppendLine($" - Hit[{i}] : {(hasContact ? $"{hit.transform.name}::{hit.distance}" : "none")}");
+            }
+
+            sb.AppendLine("}");
+
+            return sb.ToString();
+        }
+
+        public static string AsText(this CollisionInfo[] hits, int hitCount) {
             var sb = new StringBuilder();
 
             sb.AppendLine($"Hits({hitCount})" + " {");

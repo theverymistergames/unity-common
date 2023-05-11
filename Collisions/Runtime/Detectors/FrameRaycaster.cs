@@ -1,6 +1,7 @@
 ﻿using System;
 using MisterGames.Collisions.Core;
 using MisterGames.Collisions.Utils;
+using MisterGames.Common.Maths;
 using MisterGames.Tick.Core;
 using UnityEngine;
 
@@ -16,6 +17,26 @@ namespace MisterGames.Collisions.Detectors {
         [SerializeField] private LayerMask _layerMask;
         [SerializeField] private QueryTriggerInteraction _triggerInteraction = QueryTriggerInteraction.Ignore;
 
+        public override Vector3 OriginOffset {
+            get => _originOffset;
+            set {
+                if (_originOffset.IsNearlyEqual(value, tolerance: 0f)) return;
+
+                _originOffset = value;
+                _invalidateFlag = true;
+            }
+        }
+
+        public override float Distance {
+            get => _maxDistance;
+            set {
+                if (_maxDistance.IsNearlyEqual(value, tolerance: 0f)) return;
+
+                _maxDistance = value;
+                _invalidateFlag = true;
+            }
+        }
+
         public override int Capacity => _maxHits;
 
         private ITimeSource _timeSource => TimeSources.Get(_timeSourceStage);
@@ -23,6 +44,9 @@ namespace MisterGames.Collisions.Detectors {
 
         private RaycastHit[] _raycastHits;
         private CollisionInfo[] _hits;
+
+        private Vector3 _originOffset;
+        private bool _invalidateFlag;
 
         private int _hitCount;
         private int _lastUpdateFrame = -1;
@@ -68,8 +92,12 @@ namespace MisterGames.Collisions.Detectors {
         }
 
         private void UpdateContacts(bool forceNotify = false) {
-            int frame = TimeSources.FrameCount;
-            if (frame == _lastUpdateFrame) return;
+            if (!enabled) return;
+
+            int frame = Time.frameCount;
+            if (frame == _lastUpdateFrame && !_invalidateFlag) return;
+
+            _invalidateFlag = false;
 
             bool hasContact = PerformRaycast(out var hit);
             var info = hasContact ? CollisionInfo.FromRaycastHit(hit) : CollisionInfo.Empty;
@@ -80,7 +108,7 @@ namespace MisterGames.Collisions.Detectors {
 
         private bool PerformRaycast(out RaycastHit hit) {
             _hitCount = Physics.RaycastNonAlloc(
-                _transform.position,
+                _transform.position + _originOffset,
                 _transform.forward,
                 _raycastHits,
                 _maxDistance,
