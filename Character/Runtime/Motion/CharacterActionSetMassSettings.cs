@@ -15,7 +15,7 @@ namespace MisterGames.Character.Motion {
         [Header("Inertia")]
         [Min(0.001f)] public float airInertialFactor = 10f;
         [Min(0.001f)] public float groundInertialFactor = 20f;
-        [Min(0f)] public float forceInfluenceFactor = 1f;
+        [Min(0f)] public float inputInfluenceFactor = 1f;
 
         public void Apply(object source, ICharacterAccess characterAccess) {
             var mass = characterAccess
@@ -25,7 +25,7 @@ namespace MisterGames.Character.Motion {
             mass.gravityForce = gravityForce;
             mass.airInertialFactor = airInertialFactor;
             mass.groundInertialFactor = groundInertialFactor;
-            mass.forceInfluenceFactor = forceInfluenceFactor;
+            mass.inputInfluenceFactor = inputInfluenceFactor;
         }
     }
     

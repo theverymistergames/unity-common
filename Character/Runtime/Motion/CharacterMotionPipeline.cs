@@ -27,7 +27,7 @@ namespace MisterGames.Character.Motion {
                 gravityForce = 15f,
                 airInertialFactor = 10f,
                 groundInertialFactor = 20f,
-                forceInfluenceFactor = 0.5f,
+                inputInfluenceFactor = 0.5f,
             },
         };
 
