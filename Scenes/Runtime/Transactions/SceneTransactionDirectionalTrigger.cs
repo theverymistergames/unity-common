@@ -34,11 +34,11 @@ namespace MisterGames.Scenes.Transactions {
             _directionalTrigger.OnTriggeredBackward -= OnTriggeredBackward;
         }
 
-        private void OnTriggeredForward() {
+        private void OnTriggeredForward(GameObject go) {
             CommitSceneTransaction(_forwardSceneTransaction, _loadDelay, _destroyCts.Token).Forget();
         }
 
-        private void OnTriggeredBackward() {
+        private void OnTriggeredBackward(GameObject go) {
             CommitSceneTransaction(_backwardSceneTransaction, _loadDelay, _destroyCts.Token).Forget();
         }
 

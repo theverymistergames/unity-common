@@ -31,7 +31,7 @@ namespace MisterGames.Scenes.Transactions {
             _trigger.OnTriggered -= OnTriggered;
         }
 
-        private void OnTriggered() {
+        private void OnTriggered(GameObject go) {
             CommitSceneTransaction(_transaction, _loadDelay, _destroyCts.Token).Forget();
         }
 
