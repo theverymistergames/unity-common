@@ -88,7 +88,7 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
             var access = Object.FindObjectOfType<CharacterAccess>();
             if (access == null) {
                 var newHeroInstance = PrefabPool.Instance.TakeActive(_heroPrefab);
-                access = newHeroInstance.GetComponentInChildren<CharacterAccess>();
+                access = newHeroInstance.GetComponent<CharacterAccess>();
             }
 
             if (access == null) {
