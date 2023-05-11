@@ -8,12 +8,13 @@ namespace MisterGames.Collisions.Triggers {
 
         [SerializeField] private LayerMask _layerMask;
 
-        public override event Action OnTriggered = delegate {  };
+        public override event Action<GameObject> OnTriggered = delegate {  };
 
         private void OnTriggerEnter(Collider other) {
-            if (!enabled || !_layerMask.Contains(other.gameObject.layer)) return;
-            
-            OnTriggered.Invoke();
+            if (!enabled) return;
+
+            var go = other.gameObject;
+            if (_layerMask.Contains(go.layer)) OnTriggered.Invoke(go);
         }
     }
     

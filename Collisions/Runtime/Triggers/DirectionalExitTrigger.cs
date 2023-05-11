@@ -13,8 +13,8 @@ namespace MisterGames.Collisions.Triggers {
         [VisibleIf(nameof(_useExplicitDirection))]
         [SerializeField] private Transform _explicitDirection;
 
-        public override event Action OnTriggeredForward = delegate {  };
-        public override event Action OnTriggeredBackward = delegate {  };
+        public override event Action<GameObject> OnTriggeredForward = delegate {  };
+        public override event Action<GameObject> OnTriggeredBackward = delegate {  };
 
         private Transform _transform;
 
@@ -35,7 +35,9 @@ namespace MisterGames.Collisions.Triggers {
 
         private void OnTriggerExit(Collider other) {
             if (!enabled) return;
-            if (!_isTrackingCollider || !_layerMask.Contains(other.gameObject.layer)) return;
+
+            var go = other.gameObject;
+            if (!_isTrackingCollider || !_layerMask.Contains(go.layer)) return;
 
             var t = other.transform;
             if (t.GetHashCode() != _trackedTransformHash) return;
@@ -45,8 +47,8 @@ namespace MisterGames.Collisions.Triggers {
             var orientation = _useExplicitDirection ? _explicitDirection.forward : _transform.forward;
             float angle = Vector3.Angle(t.position - _transform.position, orientation);
 
-            if (angle <= 90f) OnTriggeredForward.Invoke();
-            else OnTriggeredBackward.Invoke();
+            if (angle <= 90f) OnTriggeredForward.Invoke(go);
+            else OnTriggeredBackward.Invoke(go);
         }
     }
     

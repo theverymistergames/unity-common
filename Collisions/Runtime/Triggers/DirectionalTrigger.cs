@@ -5,8 +5,8 @@ namespace MisterGames.Collisions.Triggers {
 
     public abstract class DirectionalTrigger : MonoBehaviour {
 
-        public abstract event Action OnTriggeredForward;
-        public abstract event Action OnTriggeredBackward;
+        public abstract event Action<GameObject> OnTriggeredForward;
+        public abstract event Action<GameObject> OnTriggeredBackward;
     }
 
 }
