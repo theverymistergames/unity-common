@@ -12,8 +12,8 @@ namespace MisterGames.Character.Collisions {
         [SerializeField] private CharacterGroundDetector _groundDetector;
 
         public ICollisionDetector HitDetector => _hitDetector;
-        public CharacterCeilingDetector CeilingDetector => _ceilingDetector;
-        public CharacterGroundDetector GroundDetector => _groundDetector;
+        public IRadiusCollisionDetector CeilingDetector => _ceilingDetector;
+        public IRadiusCollisionDetector GroundDetector => _groundDetector;
 
         private void OnEnable() {
             SetEnabled(true);

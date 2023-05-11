@@ -7,6 +7,8 @@ namespace MisterGames.Character.Collisions {
 
     public class CharacterControllerHitDetector : CollisionDetectorBase {
 
+        public override Vector3 OriginOffset { get => Vector3.zero; set {} }
+        public override float Distance { get => 0f; set {} }
         public override int Capacity => 0;
 
         public override void FetchResults() { }

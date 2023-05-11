@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace MisterGames.Character.Collisions {
 
-    public class CharacterGroundDetector : CollisionDetectorBase, IUpdate {
+    public class CharacterGroundDetector : CollisionDetectorBase, IRadiusCollisionDetector, IUpdate {
 
         [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
 
@@ -26,7 +26,7 @@ namespace MisterGames.Character.Collisions {
 
         public override int Capacity => _maxHits;
 
-        public Vector3 OriginOffset {
+        public override Vector3 OriginOffset {
             get => _originOffset;
             set {
                 if (_originOffset.IsNearlyEqual(value, tolerance: 0f)) return;
@@ -36,7 +36,7 @@ namespace MisterGames.Character.Collisions {
             }
         }
 
-        public float Distance {
+        public override float Distance {
             get => _distance;
             set {
                 if (_distance.IsNearlyEqual(value, tolerance: 0f)) return;

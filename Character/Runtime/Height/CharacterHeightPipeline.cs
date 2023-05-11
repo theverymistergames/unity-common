@@ -4,6 +4,7 @@ using Cysharp.Threading.Tasks;
 using MisterGames.Character.Core;
 using MisterGames.Character.Collisions;
 using MisterGames.Character.View;
+using MisterGames.Collisions.Core;
 using MisterGames.Common.GameObjects;
 using MisterGames.Common.Maths;
 using MisterGames.Tick.Core;
@@ -26,8 +27,8 @@ namespace MisterGames.Character.Height {
         public Vector3 CenterOffset => _characterController.center;
 
         private ITransformAdapter _bodyAdapter;
-        private CharacterGroundDetector _groundDetector;
-        private CharacterCeilingDetector _ceilingDetector;
+        private IRadiusCollisionDetector _groundDetector;
+        private IRadiusCollisionDetector _ceilingDetector;
         private ITimeSource _timeSource;
 
         private float _initialHeight;

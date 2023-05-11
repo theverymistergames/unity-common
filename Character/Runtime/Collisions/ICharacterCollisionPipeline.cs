@@ -6,8 +6,8 @@ namespace MisterGames.Character.Collisions {
     public interface ICharacterCollisionPipeline : ICharacterPipeline {
 
         ICollisionDetector HitDetector { get; }
-        CharacterCeilingDetector CeilingDetector { get; }
-        CharacterGroundDetector GroundDetector { get; }
+        IRadiusCollisionDetector CeilingDetector { get; }
+        IRadiusCollisionDetector GroundDetector { get; }
     }
 
 }

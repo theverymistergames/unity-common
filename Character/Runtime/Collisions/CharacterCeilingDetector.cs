@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace MisterGames.Character.Collisions {
 
-    public sealed class CharacterCeilingDetector : CollisionDetectorBase, IUpdate {
+    public sealed class CharacterCeilingDetector : CollisionDetectorBase, IRadiusCollisionDetector, IUpdate {
 
         [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
         
@@ -24,7 +24,7 @@ namespace MisterGames.Character.Collisions {
 
         public override int Capacity => _maxHits;
 
-        public Vector3 OriginOffset {
+        public override Vector3 OriginOffset {
             get => _originOffset;
             set {
                 if (_originOffset.IsNearlyEqual(value, tolerance: 0f)) return;
@@ -34,7 +34,7 @@ namespace MisterGames.Character.Collisions {
             }
         }
 
-        public float Distance {
+        public override float Distance {
             get => _distance;
             set {
                 if (_distance.IsNearlyEqual(value, tolerance: 0f)) return;
@@ -114,7 +114,7 @@ namespace MisterGames.Character.Collisions {
             int frame = Time.frameCount;
             if (frame == _lastUpdateFrame && !_invalidateFlag) return;
 
-            var origin = OriginOffset + _transform.position;
+            var origin = _originOffset + _transform.position;
             float distance = _distance + _distanceAddition;
 
             _hitCount = PerformSphereCast(origin, _radius, distance, _raycastHits);
