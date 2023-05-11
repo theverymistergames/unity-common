@@ -10,6 +10,8 @@ namespace MisterGames.Collisions.Core {
         public event Action OnLostContact = delegate {  };
         public event Action OnTransformChanged = delegate {  };
 
+        public abstract Vector3 OriginOffset { get; set; }
+        public abstract float Distance { get; set; }
         public abstract int Capacity { get; }
         public CollisionInfo CollisionInfo { get; private set; }
 

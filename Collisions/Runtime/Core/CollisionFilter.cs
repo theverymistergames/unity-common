@@ -6,7 +6,7 @@ namespace MisterGames.Collisions.Core {
     [Serializable]
     public struct CollisionFilter {
 
-        public float maxDistance;
+        [Min(0f)] public float maxDistance;
         public LayerMask layerMask;
 
         public override string ToString() {

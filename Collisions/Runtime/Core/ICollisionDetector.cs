@@ -1,4 +1,5 @@
 ﻿using System;
+using UnityEngine;
 
 namespace MisterGames.Collisions.Core {
 
@@ -8,6 +9,8 @@ namespace MisterGames.Collisions.Core {
         event Action OnLostContact;
         event Action OnTransformChanged;
 
+        Vector3 OriginOffset { get; set; }
+        float Distance { get; set; }
         int Capacity { get; }
 
         CollisionInfo CollisionInfo { get; }

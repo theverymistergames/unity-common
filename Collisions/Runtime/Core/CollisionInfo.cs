@@ -42,8 +42,7 @@ namespace MisterGames.Collisions.Core {
         }
 
         public override string ToString() {
-            string content = hasContact ? $"{distance} to {transform.name} [{point}]" : "None";
-            return $"CollisionInfo({content})";
+            return $"CollisionInfo({(hasContact ? $"{distance} to {transform.name} [{point}]" : "None")})";
         }
     }
 
