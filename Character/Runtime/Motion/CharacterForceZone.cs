@@ -46,6 +46,10 @@ namespace MisterGames.Character.Motion {
         public event Action<CharacterAccess> OnExitedZone = delegate {  };
         public event Action<Vector3> OnForceUpdate = delegate {  };
 
+        public float forceMultiplier {
+            set => _forceMultiplier = value;
+        }
+
         private Transform _characterTransform;
         private Transform _obstacleDetectorTransform;
         private CharacterProcessorMass _characterMass;
