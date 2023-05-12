@@ -47,9 +47,7 @@ namespace MisterGames.Character.Motion {
         public event Action<CharacterAccess> OnExitedZone = delegate {  };
         public event Action<Vector3> OnForceUpdate = delegate {  };
 
-        public float forceMultiplier {
-            set => _forceMultiplier = value;
-        }
+        public float ForceMultiplier { get; set; } = 1f;
 
         private Transform _characterTransform;
         private Transform _obstacleDetectorTransform;
@@ -149,7 +147,11 @@ namespace MisterGames.Character.Motion {
                 }
             }
 
-            float targetForce = (distance <= _maxDistance).AsFloat() * obstacleForceMultiplier * (forceBase + _random);
+            float targetForce = (distance <= _maxDistance).AsFloat() *
+                                obstacleForceMultiplier *
+                                ForceMultiplier *
+                                (forceBase + _random);
+
             _force = _forceSmoothFactor > 0f
                 ? Mathf.Lerp(_force, targetForce, _forceSmoothFactor * dt)
                 : targetForce;
