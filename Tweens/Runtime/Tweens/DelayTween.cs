@@ -12,10 +12,12 @@ namespace MisterGames.Tweens {
 
         [Min(0f)] public float duration;
 
+        public float Progress => _progress;
+
         private ITimeSource _timeSource;
 
-        private float _progress;
         private float _progressDirection = 1f;
+        private float _progress;
 
         public void Initialize(MonoBehaviour owner) {
             _timeSource = TimeSources.Get(PlayerLoopStage.Update);

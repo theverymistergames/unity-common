@@ -15,10 +15,14 @@ namespace MisterGames.Tweens {
         public AnimationCurve curve;
         [SerializeReference] [SubclassSelector] public ITweenProgressAction action;
 
+        public float Progress => _progress;
+        public float T => _progressT;
+
         private ITimeSource _timeSource;
 
-        private float _progress;
         private float _progressDirection = 1f;
+        private float _progress;
+        private float _progressT;
 
         public void Initialize(MonoBehaviour owner) {
             _timeSource = TimeSources.Get(PlayerLoopStage.Update);
@@ -37,16 +41,21 @@ namespace MisterGames.Tweens {
 
             if (duration <= 0f) {
                 _progress = Mathf.Clamp01(_progressDirection);
-                ReportProgress();
+                _progressT = Mathf.Clamp01(curve.Evaluate(_progress));
+
+                action.OnProgressUpdate(_progressT);
                 action.Finish();
+
                 return;
             }
 
             while (!token.IsCancellationRequested) {
                 float progressDelta = _progressDirection * _timeSource.DeltaTime / duration;
-                _progress = Mathf.Clamp01(_progress + progressDelta);
 
-                ReportProgress();
+                _progress = Mathf.Clamp01(_progress + progressDelta);
+                _progressT = Mathf.Clamp01(curve.Evaluate(_progress));
+
+                action.OnProgressUpdate(_progressT);
 
                 if (HasReachedTargetProgress()) break;
 
@@ -58,28 +67,28 @@ namespace MisterGames.Tweens {
 
         public void Wind(bool reportProgress = true) {
             _progress = 1f;
+            _progressT = Mathf.Clamp01(curve.Evaluate(_progress));
+
             if (!reportProgress) return;
 
             action.Start();
-            ReportProgress();
+            action.OnProgressUpdate(_progressT);
             action.Finish();
         }
 
         public void Rewind(bool reportProgress = true) {
             _progress = 0f;
+            _progressT = Mathf.Clamp01(curve.Evaluate(_progress));
+
             if (!reportProgress) return;
 
             action.Start();
-            ReportProgress();
+            action.OnProgressUpdate(_progressT);
             action.Finish();
         }
 
         public void Invert(bool isInverted) {
             _progressDirection = isInverted ? -1f : 1f;
-        }
-
-        private void ReportProgress() {
-            action.OnProgressUpdate(Mathf.Clamp01(curve.Evaluate(_progress)));
         }
 
         private bool HasReachedTargetProgress() {

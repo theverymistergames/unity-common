@@ -18,10 +18,13 @@ namespace MisterGames.BlueprintLib {
         BlueprintNode,
         IBlueprintNodeTween,
         IBlueprintOutput<IBlueprintNodeTween>,
+        IBlueprintOutput<float>,
         ITween
     {
         public ITween Tween => this;
         public List<RuntimeLink> NextLinks => Ports[1].links;
+
+        public float Progress => _tween.Progress;
 
         private readonly InstantTween _tween = new InstantTween();
 
@@ -32,10 +35,15 @@ namespace MisterGames.BlueprintLib {
             Port.Exit("On Start"),
             Port.Exit("On Cancelled"),
             Port.Exit("On Finished"),
+            Port.Output<float>("Progress"),
         };
 
-        public IBlueprintNodeTween GetOutputPortValue(int port) {
+        IBlueprintNodeTween IBlueprintOutput<IBlueprintNodeTween>.GetOutputPortValue(int port) {
             return port == 0 ? this : default;
+        }
+
+        float IBlueprintOutput<float>.GetOutputPortValue(int port) {
+            return port == 6 ? _tween.Progress : default;
         }
 
         public void Initialize(MonoBehaviour owner) {
