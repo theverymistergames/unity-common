@@ -75,7 +75,7 @@ namespace MisterGames.Interact.Interactives {
         public void NotifyStartedInteractWith(IInteractiveUser user) {
             if (IsInteractingWith(user)) return;
 
-            _userInteractionMap.Add(user, new InteractionData(TimeSources.FrameCount));
+            _userInteractionMap.Add(user, new InteractionData(TimeSources.frameCount));
             _users.Add(user);
 
             OnStartInteract.Invoke(user);

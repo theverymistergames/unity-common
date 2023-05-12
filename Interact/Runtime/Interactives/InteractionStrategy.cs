@@ -25,7 +25,7 @@ namespace MisterGames.Interact.Interactives {
                 return _continueConstraint != null && _continueConstraint.IsSatisfied(user, interactive);
             }
 
-            if (interactive.TryGetInteractionStartTime(user, out int startTime) && startTime >= TimeSources.FrameCount) {
+            if (interactive.TryGetInteractionStartTime(user, out int startTime) && startTime >= TimeSources.frameCount) {
                 return true;
             }
 

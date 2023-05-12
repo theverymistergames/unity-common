@@ -62,7 +62,7 @@ namespace MisterGames.Interact.Cursors {
         }
 
         public void ApplyCursorIconOverride(object source, CursorIcon icon) {
-            _iconOverridesMap[source] = new CursorIconQueueItem(TimeSources.FrameCount, icon);
+            _iconOverridesMap[source] = new CursorIconQueueItem(TimeSources.frameCount, icon);
 
             RefreshCursorIcon();
         }

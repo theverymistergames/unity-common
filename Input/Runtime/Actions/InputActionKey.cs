@@ -20,9 +20,9 @@ namespace MisterGames.Input.Actions {
         
         public bool IsPressed { get; private set; }
 
-        public bool WasPressed => _lastPressFrame == TimeSources.FrameCount;
-        public bool WasReleased => _lastReleaseFrame == TimeSources.FrameCount;
-        public bool WasUsed => _lastUseFrame == TimeSources.FrameCount;
+        public bool WasPressed => _lastPressFrame == TimeSources.frameCount;
+        public bool WasReleased => _lastReleaseFrame == TimeSources.frameCount;
+        public bool WasUsed => _lastUseFrame == TimeSources.frameCount;
 
         public IKeyBinding[] Bindings {
             get => _bindings;
@@ -66,7 +66,7 @@ namespace MisterGames.Input.Actions {
         }
 
         private void HandleUse() {
-            _lastUseFrame = TimeSources.FrameCount;
+            _lastUseFrame = TimeSources.frameCount;
             OnUse.Invoke();
         }
         
@@ -84,14 +84,14 @@ namespace MisterGames.Input.Actions {
             IsPressed = hasAtLeastOneActiveBinding;
 
             if (!wasPressed && IsPressed) {
-                _lastPressFrame = TimeSources.FrameCount;
+                _lastPressFrame = TimeSources.frameCount;
                 OnPress.Invoke();
                 _strategy?.OnPressed();
                 return;
             }
 
             if (wasPressed && !IsPressed) {
-                _lastReleaseFrame = TimeSources.FrameCount;
+                _lastReleaseFrame = TimeSources.frameCount;
                 OnRelease.Invoke();
                 _strategy?.OnReleased();
             }
