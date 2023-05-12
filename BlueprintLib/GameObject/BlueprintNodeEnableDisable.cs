@@ -15,7 +15,7 @@ namespace MisterGames.BlueprintLib {
 
     {
         [SerializeField] private InputType _input;
-        [SerializeField] private bool _isEnabled = true;
+        [SerializeField] private bool _isEnabled;
 
         private enum InputType {
             GameObject,
