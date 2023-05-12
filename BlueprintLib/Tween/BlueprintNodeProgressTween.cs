@@ -18,6 +18,7 @@ namespace MisterGames.BlueprintLib {
         BlueprintNode,
         IBlueprintNodeTween,
         IBlueprintOutput<IBlueprintNodeTween>,
+        IBlueprintOutput<float>,
         ITween
     {
         [SerializeField] [Min(0f)] private float _duration;
@@ -25,6 +26,8 @@ namespace MisterGames.BlueprintLib {
 
         public ITween Tween => this;
         public List<RuntimeLink> NextLinks => Ports[1].links;
+
+        public float Progress => _tween.Progress;
 
         private readonly ProgressTween _tween = new ProgressTween();
 
@@ -37,11 +40,19 @@ namespace MisterGames.BlueprintLib {
             Port.Exit("On Start"),
             Port.Exit("On Cancelled"),
             Port.Exit("On Finished"),
+            Port.Output<float>("Progress"),
+            Port.Output<float>("Curve T"),
         };
 
-        public IBlueprintNodeTween GetOutputPortValue(int port) {
+        IBlueprintNodeTween IBlueprintOutput<IBlueprintNodeTween>.GetOutputPortValue(int port) {
             return port == 0 ? this : default;
         }
+
+        float IBlueprintOutput<float>.GetOutputPortValue(int port) => port switch {
+            8 => _tween.Progress,
+            9 => _tween.T,
+            _ => default,
+        };
 
         public void Initialize(MonoBehaviour owner) {
             _tween.duration = Mathf.Max(0f, Ports[2].Get(_duration));

@@ -10,7 +10,7 @@ namespace MisterGames.BlueprintLib {
 
     [Serializable]
     [BlueprintNodeMeta(Name = "Run Tween", Category = "Tweens", Color = BlueprintColors.Node.Actions)]
-    public sealed class BlueprintNodeRunTween : BlueprintNode, IBlueprintEnter, IBlueprintStart {
+    public sealed class BlueprintNodeRunTween : BlueprintNode, IBlueprintEnter, IBlueprintStart, IBlueprintOutput<float> {
 
         [SerializeField] private bool _autoInitOnStart = true;
         [SerializeField] private bool _autoInvertNextPlay = true;
@@ -34,6 +34,7 @@ namespace MisterGames.BlueprintLib {
             Port.Exit("On Start"),
             Port.Exit("On Cancelled"),
             Port.Exit("On Finished"),
+            Port.Output<float>("Progress"),
         };
 
         public override void OnInitialize(IBlueprintHost host) {
@@ -53,6 +54,10 @@ namespace MisterGames.BlueprintLib {
 
             _tween = BlueprintTweenConverter.AsTween(Ports[6].links);
             _tween?.Initialize(_runner);
+        }
+
+        public float GetOutputPortValue(int port) {
+            return port == 10 && _tween != null ? _tween.Progress : default;
         }
 
         public void OnEnterPort(int port) {

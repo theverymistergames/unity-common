@@ -15,6 +15,19 @@ namespace MisterGames.Tweens {
         public bool loop;
         public bool yoyo;
 
+        public float Progress {
+            get {
+                int count = tweens.Count;
+                if (count == 0) return 1f;
+
+                float sum = 0f;
+                for (int i = 0; i < count; i++) {
+                    sum += tweens[i].Progress;
+                }
+                return sum / count;
+            }
+        }
+
         private bool _isInverted;
         private int _currentTweenIndex;
 

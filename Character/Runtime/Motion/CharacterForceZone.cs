@@ -4,6 +4,7 @@ using MisterGames.Collisions.Core;
 using MisterGames.Collisions.Triggers;
 using MisterGames.Collisions.Utils;
 using MisterGames.Common.Attributes;
+using MisterGames.Common.Maths;
 using MisterGames.Dbg.Draw;
 using MisterGames.Tick.Core;
 using UnityEngine;
@@ -148,7 +149,7 @@ namespace MisterGames.Character.Motion {
                 }
             }
 
-            float targetForce = (forceBase + _random) * obstacleForceMultiplier;
+            float targetForce = (distance <= _maxDistance).AsFloat() * obstacleForceMultiplier * (forceBase + _random);
             _force = _forceSmoothFactor > 0f
                 ? Mathf.Lerp(_force, targetForce, _forceSmoothFactor * dt)
                 : targetForce;

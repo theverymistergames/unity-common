@@ -13,6 +13,19 @@ namespace MisterGames.Tweens {
 
         [SerializeReference] [SubclassSelector] public List<ITween> tweens;
 
+        public float Progress {
+            get {
+                int count = tweens.Count;
+                if (count == 0) return 1f;
+
+                float sum = 0f;
+                for (int i = 0; i < count; i++) {
+                    sum += tweens[i].Progress;
+                }
+                return sum / count;
+            }
+        }
+
         private UniTask[] _tasks;
 
         public void Initialize(MonoBehaviour owner) {

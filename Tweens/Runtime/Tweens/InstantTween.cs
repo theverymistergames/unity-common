@@ -12,6 +12,8 @@ namespace MisterGames.Tweens {
 
         [SerializeReference] [SubclassSelector] public ITweenInstantAction action;
 
+        public float Progress => _progress;
+
         private int _progress;
         private int _progressDirection = 1;
 
