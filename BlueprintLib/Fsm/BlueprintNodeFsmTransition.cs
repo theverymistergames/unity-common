@@ -4,6 +4,7 @@ using MisterGames.Blueprints;
 using MisterGames.Blueprints.Meta;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Conditions;
+using MisterGames.Common.Dependencies;
 using UnityEngine;
 
 namespace MisterGames.BlueprintLib {
@@ -13,43 +14,37 @@ namespace MisterGames.BlueprintLib {
     [BlueprintNodeMeta(Name = "Fsm Transition", Category = "Fsm", Color = BlueprintColors.Node.Flow)]
     public sealed class BlueprintNodeFsmTransition :
         BlueprintNode,
-        IBlueprintOutput<ICondition>,
-        ICondition,
-        IConditionCallback,
+        IBlueprintOutput<ITransition>,
+        ITransition,
+        ITransitionCallback,
+        IBlueprintFsmTransitionCallbacks,
         IBlueprintAssetValidator,
-        IDynamicDataProvider
+        IDependencyResolver
     {
         [SerializeField] private bool _checkImmediatelyAfterArmed;
-        [SerializeReference] [SubclassSelector] private ICondition _condition;
+        [SerializeReference] [SubclassSelector] private ITransition _transition;
 
-        public bool IsMatched => _condition.IsMatched;
+        public bool IsMatched => _transition.IsMatched;
 
-        private IConditionCallback _stateCallback;
+        private ITransitionCallback _stateCallback;
         private bool _isConditionArmed;
+
+        private readonly List<Type> _deps = new List<Type>();
+        private int _dependencyPortIterator;
 
         public override Port[] CreatePorts() {
             var ports = new List<Port> {
-                Port.Output<ICondition>("Self").Layout(PortLayout.Left).Capacity(PortCapacity.Single),
+                Port.Output<ITransition>("Self").Layout(PortLayout.Left).Capacity(PortCapacity.Single),
                 Port.Exit("On Transit"),
             };
 
-            if (_condition is IDynamicDataHost host) {
-                var types = new HashSet<Type>();
-                host.OnSetDataTypes(types);
+            if (_transition is IDependency dep) {
+                _deps.Clear();
+                dep.OnAddDependencies(this);
 
-                var typesArray = new Type[types.Count];
-                types.CopyTo(typesArray);
-
-                if (typesArray.Length == 0) return ports.ToArray();
-
-                if (typesArray.Length > 1) {
-                    Debug.LogWarning($"{nameof(BlueprintNodeFsmTransition)}: " +
-                                     $"more than 1 {nameof(IDynamicDataHost)} data type is not supported");
-
-                    return ports.ToArray();
+                for (int i = 0; i < _deps.Count; i++) {
+                    ports.Add(Port.DynamicInput(type: _deps[i]));
                 }
-
-                ports.Add(Port.DynamicInput(type: typesArray[0]));
             }
 
             return ports.ToArray();
@@ -58,54 +53,54 @@ namespace MisterGames.BlueprintLib {
         public override void OnDeInitialize() {
             if (_stateCallback == null) return;
 
-            _condition?.Disarm();
+            _transition?.Disarm();
             _stateCallback = null;
         }
 
-        public ICondition GetOutputPortValue(int port) {
+        public ITransition GetOutputPortValue(int port) {
             return port == 0 ? this : default;
         }
 
-        public T GetData<T>() {
-            return Ports[2].Get<T>();
+        public void AddDependency<T>() {
+            _deps.Add(typeof(T));
         }
 
-        public void Arm(IConditionCallback callback) {
+        public T ResolveDependency<T>() {
+            return Ports[_dependencyPortIterator++].Get<T>();
+        }
+
+        public void Arm(ITransitionCallback callback) {
             if (_stateCallback != null) return;
 
-            if (_condition is IDynamicDataHost host) host.OnSetData(this);
+            if (_transition is IDependency dep) {
+                _dependencyPortIterator = 2;
+                dep.OnResolveDependencies(this);
+            }
 
             _stateCallback = callback;
 
             if (!_isConditionArmed) {
-                _condition?.Arm(this);
+                _transition?.Arm(this);
                 _isConditionArmed = true;
             }
 
-            if (_checkImmediatelyAfterArmed && IsMatched) _stateCallback.OnConditionMatch(this);
+            if (_checkImmediatelyAfterArmed && IsMatched) _stateCallback.OnTransitionMatch(this);
         }
 
         public void Disarm() {
             if (_isConditionArmed) {
-                _condition?.Disarm();
+                _transition?.Disarm();
                 _isConditionArmed = false;
             }
 
             _stateCallback = null;
         }
 
-        public void OnConditionMatch(ICondition match) {
-            if (_stateCallback == null) return;
-
-            if (!_isConditionArmed) {
-                _stateCallback = null;
-                return;
-            }
-
-            _stateCallback.OnConditionMatch(this);
+        public void OnTransitionMatch(ITransition match) {
+            _stateCallback?.OnTransitionMatch(this);
         }
 
-        public void OnFired() {
+        public void OnTransitionFired() {
             Ports[1].Call();
         }
 

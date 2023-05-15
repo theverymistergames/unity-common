@@ -5,13 +5,14 @@ using MisterGames.Character.Height;
 using MisterGames.Collisions.Core;
 using MisterGames.Common.Conditions;
 using MisterGames.Common.Data;
+using MisterGames.Common.Dependencies;
 using MisterGames.Common.GameObjects;
 using UnityEngine;
 
 namespace MisterGames.Character.Collisions {
 
     [Serializable]
-    public sealed class CharacterConditionHasCeiling : ICondition, IDynamicDataHost {
+    public sealed class CharacterConditionHasCeiling : ITransition, IDependency {
 
         public bool hasCeiling;
         public Optional<float> minCeilingHeight;
@@ -22,21 +23,21 @@ namespace MisterGames.Character.Collisions {
         private ITransformAdapter _bodyAdapter;
         private ICharacterHeightPipeline _height;
 
-        private IConditionCallback _callback;
+        private ITransitionCallback _callback;
 
-        public void OnSetDataTypes(HashSet<Type> types) {
-            types.Add(typeof(CharacterAccess));
+        public void OnAddDependencies(IDependencyResolver resolver) {
+            resolver.AddDependency<CharacterAccess>();
         }
 
-        public void OnSetData(IDynamicDataProvider provider) {
-            var characterAccess = provider.GetData<CharacterAccess>();
+        public void OnResolveDependencies(IDependencyResolver resolver) {
+            var characterAccess = resolver.ResolveDependency<CharacterAccess>();
 
             _ceilingDetector = characterAccess.GetPipeline<ICharacterCollisionPipeline>().CeilingDetector;
             _bodyAdapter = characterAccess.BodyAdapter;
             _height = characterAccess.GetPipeline<ICharacterHeightPipeline>();
         }
 
-        public void Arm(IConditionCallback callback) {
+        public void Arm(ITransitionCallback callback) {
             _callback = callback;
 
             _ceilingDetector.OnContact -= OnContact;
@@ -56,11 +57,11 @@ namespace MisterGames.Character.Collisions {
         public void OnFired() { }
 
         private void OnContact() {
-            if (IsMatched) _callback?.OnConditionMatch(this);
+            if (IsMatched) _callback?.OnTransitionMatch(this);
         }
 
         private void OnLostContact() {
-            if (IsMatched) _callback?.OnConditionMatch(this);
+            if (IsMatched) _callback?.OnTransitionMatch(this);
         }
 
         private bool CheckCondition() {

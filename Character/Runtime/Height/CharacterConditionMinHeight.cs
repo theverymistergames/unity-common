@@ -1,30 +1,32 @@
 ﻿using System;
-using System.Collections.Generic;
 using MisterGames.Character.Core;
 using MisterGames.Common.Conditions;
+using MisterGames.Common.Dependencies;
 using UnityEngine;
 
 namespace MisterGames.Character.Height {
 
     [Serializable]
-    public sealed class CharacterConditionMinHeight : ICondition, IDynamicDataHost {
+    public sealed class CharacterConditionMinHeight : ITransition, IDependency {
 
         [Min(0f)] public float minHeight;
 
         public bool IsMatched => CheckCondition();
 
         private ICharacterHeightPipeline _heightPipeline;
-        private IConditionCallback _callback;
+        private ITransitionCallback _callback;
 
-        public void OnSetDataTypes(HashSet<Type> types) {
-            types.Add(typeof(CharacterAccess));
+        public void OnAddDependencies(IDependencyResolver resolver) {
+            resolver.AddDependency<CharacterAccess>();
         }
 
-        public void OnSetData(IDynamicDataProvider provider) {
-            _heightPipeline = provider.GetData<CharacterAccess>().GetPipeline<ICharacterHeightPipeline>();
+        public void OnResolveDependencies(IDependencyResolver resolver) {
+            _heightPipeline = resolver
+                .ResolveDependency<CharacterAccess>()
+                .GetPipeline<ICharacterHeightPipeline>();
         }
 
-        public void Arm(IConditionCallback callback) {
+        public void Arm(ITransitionCallback callback) {
             _callback = callback;
 
             _heightPipeline.OnHeightChanged -= OnHeightChanged;
@@ -40,7 +42,7 @@ namespace MisterGames.Character.Height {
         public void OnFired() { }
 
         private void OnHeightChanged(float arg1, float arg2) {
-            if (IsMatched) _callback?.OnConditionMatch(this);
+            if (IsMatched) _callback?.OnTransitionMatch(this);
         }
 
         private bool CheckCondition() {

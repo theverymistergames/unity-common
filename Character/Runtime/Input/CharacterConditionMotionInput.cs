@@ -1,37 +1,37 @@
 ﻿using System;
-using System.Collections.Generic;
 using MisterGames.Character.Core;
 using MisterGames.Common.Conditions;
 using MisterGames.Common.Data;
+using MisterGames.Common.Dependencies;
 using MisterGames.Common.Maths;
 using UnityEngine;
 
 namespace MisterGames.Character.Input {
 
     [Serializable]
-    public sealed class CharacterConditionMotionInput : ICondition, IDynamicDataHost {
+    public sealed class CharacterConditionMotionInput : ITransition, IDependency {
 
         public Optional<bool> isMotionInputActive;
         public Optional<bool> isMovingForward;
 
         public bool IsMatched => CheckCondition();
 
-        private IConditionCallback _callback;
+        private ITransitionCallback _callback;
         private ICharacterInputPipeline _input;
         private ICharacterMotionPipeline _motion;
 
-        public void OnSetDataTypes(HashSet<Type> types) {
-            types.Add(typeof(CharacterAccess));
+        public void OnAddDependencies(IDependencyResolver resolver) {
+            resolver.AddDependency<CharacterAccess>();
         }
 
-        public void OnSetData(IDynamicDataProvider provider) {
-            var characterAccess = provider.GetData<CharacterAccess>();
+        public void OnResolveDependencies(IDependencyResolver resolver) {
+            var characterAccess = resolver.ResolveDependency<CharacterAccess>();
 
             _input = characterAccess.GetPipeline<ICharacterInputPipeline>();
             _motion = characterAccess.GetPipeline<ICharacterMotionPipeline>();
         }
 
-        public void Arm(IConditionCallback callback) {
+        public void Arm(ITransitionCallback callback) {
             _callback = callback;
 
             if (isMotionInputActive.HasValue || isMovingForward.HasValue) {
@@ -49,7 +49,7 @@ namespace MisterGames.Character.Input {
         }
 
         private void OnMotionVectorChanged(Vector2 motion) {
-            if (IsMatched) _callback?.OnConditionMatch(this);
+            if (IsMatched) _callback?.OnTransitionMatch(this);
         }
 
         public void OnFired() { }

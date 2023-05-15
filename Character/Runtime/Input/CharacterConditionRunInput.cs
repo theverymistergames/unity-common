@@ -1,13 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
 using MisterGames.Character.Core;
 using MisterGames.Common.Conditions;
 using MisterGames.Common.Data;
+using MisterGames.Common.Dependencies;
 
 namespace MisterGames.Character.Input {
 
     [Serializable]
-    public sealed class CharacterConditionRunInput : ICondition, IDynamicDataHost {
+    public sealed class CharacterConditionRunInput : ITransition, IDependency {
 
         public Optional<bool> isRunInputActive;
         public Optional<bool> isRunInputPressed;
@@ -16,17 +16,17 @@ namespace MisterGames.Character.Input {
         public bool IsMatched => CheckCondition();
 
         private ICharacterInputPipeline _input;
-        private IConditionCallback _callback;
+        private ITransitionCallback _callback;
 
-        public void OnSetDataTypes(HashSet<Type> types) {
-            types.Add(typeof(CharacterAccess));
+        public void OnAddDependencies(IDependencyResolver resolver) {
+            resolver.AddDependency<CharacterAccess>();
         }
 
-        public void OnSetData(IDynamicDataProvider provider) {
-            _input = provider.GetData<CharacterAccess>().GetPipeline<ICharacterInputPipeline>();
+        public void OnResolveDependencies(IDependencyResolver resolver) {
+            _input = resolver.ResolveDependency<CharacterAccess>().GetPipeline<ICharacterInputPipeline>();
         }
 
-        public void Arm(IConditionCallback callback) {
+        public void Arm(ITransitionCallback callback) {
             _callback = callback;
 
             _input.RunPressed -= OnRunPressed;
@@ -46,11 +46,11 @@ namespace MisterGames.Character.Input {
         public void OnFired() { }
 
         private void OnRunPressed() {
-            if (IsMatched) _callback?.OnConditionMatch(this);
+            if (IsMatched) _callback?.OnTransitionMatch(this);
         }
 
         private void OnRunReleased() {
-            if (IsMatched) _callback?.OnConditionMatch(this);
+            if (IsMatched) _callback?.OnTransitionMatch(this);
         }
 
         private bool CheckCondition() {

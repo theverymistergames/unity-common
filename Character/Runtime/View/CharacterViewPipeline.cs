@@ -85,7 +85,13 @@ namespace MisterGames.Character.View {
 
         public T GetProcessor<T>() where T : ICharacterProcessor {
             for (int i = 0; i < _inputProcessors.Length; i++) {
-                if (_inputProcessors[i] is T t) return t;
+                if (_inputProcessors[i] is T ip) return ip;
+            }
+
+            if (_inputToViewProcessor is T ivp) return ivp;
+
+            for (int i = 0; i < _viewProcessors.Length; i++) {
+                if (_viewProcessors[i] is T vp) return vp;
             }
 
             return default;

@@ -6,7 +6,7 @@ namespace MisterGames.BlueprintLib {
 
     [Serializable]
     [BlueprintNodeMeta(Name = "Fsm State", Category = "Fsm", Color = BlueprintColors.Node.Flow)]
-    public sealed class BlueprintNodeFsmState : BlueprintNode, IBlueprintEnter, IConditionCallback {
+    public sealed class BlueprintNodeFsmState : BlueprintNode, IBlueprintEnter, ITransitionCallback {
 
         private bool _isEnteredState;
 
@@ -15,7 +15,7 @@ namespace MisterGames.BlueprintLib {
             Port.Enter("Exit"),
             Port.Exit("On Enter"),
             Port.Exit("On Exit"),
-            Port.Input<ICondition>("Transitions").Layout(PortLayout.Right).Capacity(PortCapacity.Multiple),
+            Port.Input<ITransition>("Transitions").Layout(PortLayout.Right).Capacity(PortCapacity.Multiple),
         };
 
         public override void OnDeInitialize() {
@@ -43,11 +43,11 @@ namespace MisterGames.BlueprintLib {
 
             var links = Ports[4].links;
             for (int i = 0; i < links.Count; i++) {
-                var condition = links[i].Get<ICondition>();
-                if (condition == null) continue;
+                var transition = links[i].Get<ITransition>();
+                if (transition == null) continue;
 
-                condition.Arm(this);
-                if (condition.IsMatched) return;
+                transition.Arm(this);
+                if (transition.IsMatched) return;
             }
         }
 
@@ -56,7 +56,7 @@ namespace MisterGames.BlueprintLib {
 
             var links = Ports[4].links;
             for (int i = 0; i < links.Count; i++) {
-                links[i].Get<ICondition>()?.Disarm();
+                links[i].Get<ITransition>()?.Disarm();
             }
 
             _isEnteredState = false;
@@ -66,8 +66,8 @@ namespace MisterGames.BlueprintLib {
             return true;
         }
 
-        public void OnConditionMatch(ICondition match) {
-            if (TryExit()) match.OnFired();
+        public void OnTransitionMatch(ITransition match) {
+            if (TryExit() && match is IBlueprintFsmTransitionCallbacks callbacks) callbacks.OnTransitionFired();
         }
     }
 

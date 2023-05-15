@@ -90,11 +90,11 @@ namespace MisterGames.Character.Motion {
         }
 
         public T GetProcessor<T>() where T : ICharacterProcessor {
-            if (_inputToMotionProcessor is T imp) return imp;
-
             for (int i = 0; i < _inputProcessors.Length; i++) {
                 if (_inputProcessors[i] is T ip) return ip;
             }
+
+            if (_inputToMotionProcessor is T imp) return imp;
 
             for (int i = 0; i < _motionProcessors.Length; i++) {
                 if (_motionProcessors[i] is T mp) return mp;
