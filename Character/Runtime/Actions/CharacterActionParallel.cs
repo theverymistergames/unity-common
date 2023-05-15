@@ -8,10 +8,10 @@ using UnityEngine;
 namespace MisterGames.Character.Actions {
 
     [Serializable]
-    public sealed class CharacterAsyncActionParallel : ICharacterAsyncAction, ICharacterAccessInitializable {
+    public sealed class CharacterActionParallel : ICharacterAction, ICharacterAccessInitializable {
 
-        [SerializeReference] [SubclassSelector] public ICharacterAsyncAction actionA;
-        [SerializeReference] [SubclassSelector] public ICharacterAsyncAction actionB;
+        [SerializeReference] [SubclassSelector] public ICharacterAction actionA;
+        [SerializeReference] [SubclassSelector] public ICharacterAction actionB;
 
         public void Initialize(ICharacterAccess characterAccess) {
             if (actionA is ICharacterAccessInitializable a) a.Initialize(characterAccess);
@@ -23,10 +23,10 @@ namespace MisterGames.Character.Actions {
             if (actionB is ICharacterAccessInitializable b) b.DeInitialize();
         }
 
-        public UniTask ApplyAsync(object source, ICharacterAccess characterAccess, CancellationToken cancellationToken = default) {
+        public UniTask Apply(object source, ICharacterAccess characterAccess, CancellationToken cancellationToken = default) {
             return UniTask.WhenAll(
-                actionA.ApplyAsync(source, characterAccess, cancellationToken),
-                actionB.ApplyAsync(source, characterAccess, cancellationToken)
+                actionA.Apply(source, characterAccess, cancellationToken),
+                actionB.Apply(source, characterAccess, cancellationToken)
             );
         }
     }

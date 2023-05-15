@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Character.Core;
 using MisterGames.Character.Actions;
@@ -17,7 +18,7 @@ namespace MisterGames.Character.Motion {
         [Min(0.001f)] public float groundInertialFactor = 20f;
         [Min(0f)] public float inputInfluenceFactor = 1f;
 
-        public void Apply(object source, ICharacterAccess characterAccess) {
+        public UniTask Apply(object source, ICharacterAccess characterAccess, CancellationToken cancellationToken = default) {
             var mass = characterAccess
                 .GetPipeline<ICharacterMotionPipeline>()
                 .GetProcessor<CharacterProcessorMass>();
@@ -26,6 +27,8 @@ namespace MisterGames.Character.Motion {
             mass.airInertialFactor = airInertialFactor;
             mass.groundInertialFactor = groundInertialFactor;
             mass.inputInfluenceFactor = inputInfluenceFactor;
+
+            return default;
         }
     }
     

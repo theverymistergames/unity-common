@@ -10,7 +10,7 @@ using UnityEngine;
 namespace MisterGames.Character.Height {
 
     [Serializable]
-    public sealed class CharacterActionChangeColliderHeight : ICharacterAsyncAction {
+    public sealed class CharacterActionChangeColliderHeight : ICharacterAction {
 
         public Optional<float> sourceHeight;
         public Optional<float> targetHeight;
@@ -18,7 +18,7 @@ namespace MisterGames.Character.Height {
 
         [Min(0f)] public float metersPerSecond;
 
-        public UniTask ApplyAsync(object source, ICharacterAccess characterAccess, CancellationToken cancellationToken = default) {
+        public UniTask Apply(object source, ICharacterAccess characterAccess, CancellationToken cancellationToken = default) {
             var heightPipeline = characterAccess.GetPipeline<ICharacterHeightPipeline>();
 
             if (targetRadius.HasValue) heightPipeline.Radius = targetRadius.Value;

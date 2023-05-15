@@ -1,12 +1,14 @@
 ﻿using System;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using MisterGames.Character.Core;
 using MisterGames.Common.Attributes;
 using UnityEngine;
 
 namespace MisterGames.Character.Actions {
-
+    
     [Serializable]
-    public sealed class CharacterActions : ICharacterAction, ICharacterAccessInitializable {
+    public sealed class CharacterActionSequence : ICharacterAction, ICharacterAccessInitializable {
 
         [SerializeReference] [SubclassSelector] public ICharacterAction[] actions;
 
@@ -22,11 +24,11 @@ namespace MisterGames.Character.Actions {
             }
         }
 
-        public void Apply(object source, ICharacterAccess characterAccess) {
+        public async UniTask Apply(object source, ICharacterAccess characterAccess, CancellationToken cancellationToken = default) {
             for (int i = 0; i < actions.Length; i++) {
-                actions[i].Apply(source, characterAccess);
+                await actions[i].Apply(source, characterAccess, cancellationToken);
             }
         }
     }
-
+    
 }

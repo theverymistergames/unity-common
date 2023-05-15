@@ -1,7 +1,8 @@
 ﻿using System;
+using System.Threading;
 using Cysharp.Threading.Tasks;
-using MisterGames.Character.Core;
 using MisterGames.Character.Actions;
+using MisterGames.Character.Core;
 using UnityEngine;
 
 namespace MisterGames.Character.Motion {
@@ -12,13 +13,15 @@ namespace MisterGames.Character.Motion {
         [Range(0f, 1f)] public float sideCorrection = 1f;
         [Range(0f, 1f)] public float backCorrection = 1f;
 
-        public void Apply(object source, ICharacterAccess characterAccess) {
+        public UniTask Apply(object source, ICharacterAccess characterAccess, CancellationToken cancellationToken = default) {
             var correction = characterAccess
                 .GetPipeline<ICharacterMotionPipeline>()
                 .GetProcessor<CharacterProcessorBackSideSpeedCorrection>();
 
             correction.speedCorrectionBack = backCorrection;
             correction.speedCorrectionSide = sideCorrection;
+
+            return default;
         }
     }
     

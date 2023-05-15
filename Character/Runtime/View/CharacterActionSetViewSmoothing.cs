@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Character.Core;
 using MisterGames.Character.Actions;
@@ -12,12 +13,14 @@ namespace MisterGames.Character.View {
 
         [Min(0.001f)] public float viewSmoothFactor = 20f;
 
-        public void Apply(object source, ICharacterAccess characterAccess) {
+        public UniTask Apply(object source, ICharacterAccess characterAccess, CancellationToken cancellationToken = default) {
             var smoothing = characterAccess
                 .GetPipeline<ICharacterViewPipeline>()
                 .GetProcessor<CharacterProcessorQuaternionSmoothing>();
 
             smoothing.smoothFactor = viewSmoothFactor;
+
+            return default;
         }
     }
     

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Character.Actions;
 using MisterGames.Character.Core;
@@ -12,12 +13,14 @@ namespace MisterGames.Character.Motion {
 
         [Min(0f)] public float speed;
 
-        public void Apply(object source, ICharacterAccess characterAccess) {
+        public UniTask Apply(object source, ICharacterAccess characterAccess, CancellationToken cancellationToken = default) {
             var multiplier = characterAccess
                 .GetPipeline<ICharacterMotionPipeline>()
                 .GetProcessor<CharacterProcessorVector2Multiplier>();
 
             multiplier.multiplier = speed;
+
+            return default;
         }
     }
     

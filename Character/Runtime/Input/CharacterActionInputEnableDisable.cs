@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Character.Core;
 using MisterGames.Character.Actions;
@@ -11,8 +12,9 @@ namespace MisterGames.Character.Motion {
 
         public bool isEnabled;
 
-        public void Apply(object source, ICharacterAccess characterAccess) {
+        public UniTask Apply(object source, ICharacterAccess characterAccess, CancellationToken cancellationToken = default) {
             characterAccess.GetPipeline<ICharacterInputPipeline>().SetEnabled(isEnabled);
+            return default;
         }
     }
     
