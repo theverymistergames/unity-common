@@ -2,7 +2,7 @@
 
 namespace MisterGames.Common.Attributes {
     
-    public class ReadOnlyAttribute : PropertyAttribute {
+    public sealed class ReadOnlyAttribute : PropertyAttribute {
 
         public readonly ReadOnlyMode mode;
 

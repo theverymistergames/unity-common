@@ -2,7 +2,7 @@
 
 namespace MisterGames.Common.Attributes {
 
-    public class BeginReadOnlyGroupAttribute : PropertyAttribute {
+    public sealed class BeginReadOnlyGroupAttribute : PropertyAttribute {
 
         public readonly ReadOnlyMode mode;
 
@@ -15,5 +15,5 @@ namespace MisterGames.Common.Attributes {
         }
     }
 
-    public class EndReadOnlyGroupAttribute : PropertyAttribute { }
+    public sealed class EndReadOnlyGroupAttribute : PropertyAttribute { }
 }
