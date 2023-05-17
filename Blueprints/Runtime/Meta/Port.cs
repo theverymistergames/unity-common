@@ -126,8 +126,8 @@ namespace MisterGames.Blueprints {
 
         public bool Equals(Port other) {
             return _mode == other._mode &&
-                   (string.IsNullOrWhiteSpace(_name) ? string.IsNullOrWhiteSpace(other._name) : _name == other._name) &&
-                   (_dataType == null && other._dataType == null || _dataType == other._dataType);
+                   (string.IsNullOrWhiteSpace(_name) && string.IsNullOrWhiteSpace(other._name) || _name == other._name) &&
+                   _dataType == other._dataType;
         }
 
         public override bool Equals(object obj) {
