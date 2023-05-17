@@ -11,8 +11,7 @@ namespace MisterGames.Blackboards.Editor {
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
             EditorGUI.BeginProperty(position, label, property);
 
-            var headerRect = new Rect(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
-            EditorGUI.LabelField(headerRect, label);
+            var headerRect = new Rect(position.x, position.y, EditorGUIUtility.labelWidth, EditorGUIUtility.singleLineHeight);
 
             var e = Event.current;
             if (e.type == EventType.MouseDown && e.isMouse && e.button == 1 && headerRect.Contains(e.mousePosition)) {
@@ -26,7 +25,7 @@ namespace MisterGames.Blackboards.Editor {
                 menu.ShowAsContext();
             }
 
-            property.isExpanded = EditorGUI.Foldout(headerRect, property.isExpanded, GUIContent.none, toggleOnLabelClick: false);
+            property.isExpanded = EditorGUI.Foldout(headerRect, property.isExpanded, label, toggleOnLabelClick: true);
 
             if (!property.isExpanded) {
                 EditorGUI.EndProperty();
