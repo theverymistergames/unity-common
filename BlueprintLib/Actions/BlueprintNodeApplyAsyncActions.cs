@@ -33,6 +33,8 @@ namespace MisterGames.BlueprintLib {
 
             _dependencies.Clear();
 
+            if (_applyActions == null || _releaseActions == null) return ports.ToArray();
+
             for (int i = 0; i < _applyActions.Length; i++) {
                 if (_applyActions[i] is IDependency dep) dep.OnAddDependencies(this);
             }
