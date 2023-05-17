@@ -44,7 +44,8 @@ namespace MisterGames.Common.Types {
         }
 
         public static bool operator ==(SerializedType serializedType0, SerializedType serializedType1) {
-            return (Type) serializedType0 == (Type) serializedType1;
+            return serializedType0 is null && serializedType1 is null ||
+                   serializedType0 is not null && serializedType1 is not null && serializedType0._type == serializedType1._type;
         }
 
         public static bool operator !=(SerializedType serializedType0, SerializedType serializedType1) {
