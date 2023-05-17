@@ -19,15 +19,19 @@ namespace MisterGames.Common.Types {
         }
 
         public bool Equals(Type other) {
-            return other is not null && (Type) this == other;
+            return this == other;
         }
 
         public bool Equals(SerializedType other) {
-            return other is not null && (Type) this == (Type) other;
+            return this == other;
         }
 
         public override bool Equals(object obj) {
-            return ReferenceEquals(this, obj) || obj is SerializedType s && Equals(s) || obj is Type t && Equals(t);
+            if (obj == null) return string.IsNullOrWhiteSpace(_type);
+
+            return ReferenceEquals(this, obj) ||
+                   obj is SerializedType s && this == s ||
+                   obj is Type t && this == t;
         }
 
         public override int GetHashCode() {
@@ -36,7 +40,7 @@ namespace MisterGames.Common.Types {
         }
 
         public static bool operator ==(SerializedType serializedType, Type type) {
-            return (Type) serializedType == type;
+            return string.IsNullOrWhiteSpace(serializedType?._type) ? type is null : serializedType._type == SerializeType(type);
         }
 
         public static bool operator !=(SerializedType serializedType, Type type) {
@@ -44,8 +48,9 @@ namespace MisterGames.Common.Types {
         }
 
         public static bool operator ==(SerializedType serializedType0, SerializedType serializedType1) {
-            return serializedType0 is null && serializedType1 is null ||
-                   serializedType0 is not null && serializedType1 is not null && serializedType0._type == serializedType1._type;
+            string t0 = serializedType0?._type;
+            string t1 = serializedType1?._type;
+            return string.IsNullOrWhiteSpace(t0) && string.IsNullOrWhiteSpace(t1) || t0 == t1;
         }
 
         public static bool operator !=(SerializedType serializedType0, SerializedType serializedType1) {
