@@ -2,24 +2,37 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Character.Core;
-using MisterGames.Character.Actions;
 using MisterGames.Character.Processors;
+using MisterGames.Common.Actions;
+using MisterGames.Common.Dependencies;
 using UnityEngine;
 
 namespace MisterGames.Character.View {
     
     [Serializable]
-    public sealed class CharacterActionSetViewSmoothing : ICharacterAction {
+    public sealed class CharacterActionSetViewSmoothing : IAsyncAction, IDependency {
 
         [Min(0.001f)] public float viewSmoothFactor = 20f;
 
-        public UniTask Apply(object source, ICharacterAccess characterAccess, CancellationToken cancellationToken = default) {
-            var smoothing = characterAccess
+        private CharacterProcessorQuaternionSmoothing _smoothing;
+
+        public void OnAddDependencies(IDependencyResolver resolver) {
+            resolver.AddDependency<CharacterAccess>(this);
+        }
+
+        public void OnResolveDependencies(IDependencyResolver resolver) {
+            _smoothing = resolver
+                .ResolveDependency<CharacterAccess>()
                 .GetPipeline<ICharacterViewPipeline>()
                 .GetProcessor<CharacterProcessorQuaternionSmoothing>();
+        }
 
-            smoothing.smoothFactor = viewSmoothFactor;
+        public void Initialize() { }
 
+        public void DeInitialize() { }
+
+        public UniTask Apply(object source, CancellationToken cancellationToken = default) {
+            _smoothing.smoothFactor = viewSmoothFactor;
             return default;
         }
     }

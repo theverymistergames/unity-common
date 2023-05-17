@@ -2,22 +2,35 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Character.Core;
-using MisterGames.Character.Actions;
-using UnityEngine;
+using MisterGames.Common.Actions;
+using MisterGames.Common.Dependencies;
 
 namespace MisterGames.Character.Motion {
     
     [Serializable]
-    public sealed class CharacterActionGravityEnableDisable : ICharacterAction {
+    public sealed class CharacterActionGravityEnableDisable : IAsyncAction, IDependency {
 
         public bool isEnabled;
 
-        public UniTask Apply(object source, ICharacterAccess characterAccess, CancellationToken cancellationToken = default) {
-            var mass = characterAccess
+        private CharacterProcessorMass _mass;
+
+        public void OnAddDependencies(IDependencyResolver resolver) {
+            resolver.AddDependency<CharacterAccess>(this);
+        }
+
+        public void OnResolveDependencies(IDependencyResolver resolver) {
+            _mass = resolver
+                .ResolveDependency<CharacterAccess>()
                 .GetPipeline<ICharacterMotionPipeline>()
                 .GetProcessor<CharacterProcessorMass>();
+        }
 
-            mass.isGravityEnabled = isEnabled;
+        public void Initialize() { }
+
+        public void DeInitialize() { }
+
+        public UniTask Apply(object source, CancellationToken cancellationToken = default) {
+            _mass.isGravityEnabled = isEnabled;
             return default;
         }
     }

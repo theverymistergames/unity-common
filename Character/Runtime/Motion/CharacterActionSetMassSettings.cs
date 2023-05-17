@@ -2,13 +2,14 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Character.Core;
-using MisterGames.Character.Actions;
+using MisterGames.Common.Actions;
+using MisterGames.Common.Dependencies;
 using UnityEngine;
 
 namespace MisterGames.Character.Motion {
     
     [Serializable]
-    public sealed class CharacterActionSetMassSettings : ICharacterAction {
+    public sealed class CharacterActionSetMassSettings : IAsyncAction, IDependency {
 
         [Header("Gravity")]
         [Min(0f)] public float gravityForce = 15f;
@@ -18,15 +19,28 @@ namespace MisterGames.Character.Motion {
         [Min(0.001f)] public float groundInertialFactor = 20f;
         [Min(0f)] public float inputInfluenceFactor = 1f;
 
-        public UniTask Apply(object source, ICharacterAccess characterAccess, CancellationToken cancellationToken = default) {
-            var mass = characterAccess
+        private CharacterProcessorMass _mass;
+        
+        public void OnAddDependencies(IDependencyResolver resolver) {
+            resolver.AddDependency<CharacterAccess>(this);
+        }
+
+        public void OnResolveDependencies(IDependencyResolver resolver) {
+            _mass = resolver
+                .ResolveDependency<CharacterAccess>()
                 .GetPipeline<ICharacterMotionPipeline>()
                 .GetProcessor<CharacterProcessorMass>();
+        }
 
-            mass.gravityForce = gravityForce;
-            mass.airInertialFactor = airInertialFactor;
-            mass.groundInertialFactor = groundInertialFactor;
-            mass.inputInfluenceFactor = inputInfluenceFactor;
+        public void Initialize() { }
+
+        public void DeInitialize() { }
+
+        public UniTask Apply(object source, CancellationToken cancellationToken = default) {
+            _mass.gravityForce = gravityForce;
+            _mass.airInertialFactor = airInertialFactor;
+            _mass.groundInertialFactor = groundInertialFactor;
+            _mass.inputInfluenceFactor = inputInfluenceFactor;
 
             return default;
         }

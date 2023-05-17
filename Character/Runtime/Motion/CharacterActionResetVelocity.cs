@@ -2,20 +2,34 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Character.Core;
-using MisterGames.Character.Actions;
+using MisterGames.Common.Actions;
+using MisterGames.Common.Dependencies;
 using UnityEngine;
 
 namespace MisterGames.Character.Motion {
     
     [Serializable]
-    public sealed class CharacterActionResetVelocity : ICharacterAction {
+    public sealed class CharacterActionResetVelocity : IAsyncAction, IDependency {
 
-        public UniTask Apply(object source, ICharacterAccess characterAccess, CancellationToken cancellationToken = default) {
-            characterAccess
+        private CharacterProcessorMass _mass;
+
+        public void OnAddDependencies(IDependencyResolver resolver) {
+            resolver.AddDependency<CharacterAccess>(this);
+        }
+
+        public void OnResolveDependencies(IDependencyResolver resolver) {
+            _mass = resolver
+                .ResolveDependency<CharacterAccess>()
                 .GetPipeline<ICharacterMotionPipeline>()
-                .GetProcessor<CharacterProcessorMass>()
-                .ApplyVelocityChange(Vector3.zero);
+                .GetProcessor<CharacterProcessorMass>();
+        }
 
+        public void Initialize() { }
+
+        public void DeInitialize() { }
+
+        public UniTask Apply(object source, CancellationToken cancellationToken = default) {
+            _mass.ApplyVelocityChange(Vector3.zero);
             return default;
         }
     }

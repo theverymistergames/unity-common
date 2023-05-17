@@ -26,7 +26,7 @@ namespace MisterGames.Character.Collisions {
         private ITransitionCallback _callback;
 
         public void OnAddDependencies(IDependencyResolver resolver) {
-            resolver.AddDependency<CharacterAccess>();
+            resolver.AddDependency<CharacterAccess>(this);
         }
 
         public void OnResolveDependencies(IDependencyResolver resolver) {

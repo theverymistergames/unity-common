@@ -1,16 +1,16 @@
 ﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using MisterGames.Character.Actions;
 using MisterGames.Character.Core;
+using MisterGames.Common.Actions;
 using MisterGames.Common.Data;
-using MisterGames.Common.Maths;
+using MisterGames.Common.Dependencies;
 using UnityEngine;
 
 namespace MisterGames.Character.Height {
 
     [Serializable]
-    public sealed class CharacterActionChangeColliderHeight : ICharacterAction {
+    public sealed class CharacterActionChangeColliderHeight : IAsyncAction, IDependency {
 
         public Optional<float> sourceHeight;
         public Optional<float> targetHeight;
@@ -18,19 +18,33 @@ namespace MisterGames.Character.Height {
 
         [Min(0f)] public float metersPerSecond;
 
-        public UniTask Apply(object source, ICharacterAccess characterAccess, CancellationToken cancellationToken = default) {
-            var heightPipeline = characterAccess.GetPipeline<ICharacterHeightPipeline>();
+        private ICharacterHeightPipeline _height;
 
-            if (targetRadius.HasValue) heightPipeline.Radius = targetRadius.Value;
+        public void OnAddDependencies(IDependencyResolver resolver) {
+            resolver.AddDependency<CharacterAccess>(this);
+        }
 
-            float currentHeight = heightPipeline.Height;
+        public void OnResolveDependencies(IDependencyResolver resolver) {
+            _height = resolver
+                .ResolveDependency<CharacterAccess>()
+                .GetPipeline<ICharacterHeightPipeline>();
+        }
+
+        public void Initialize() { }
+
+        public void DeInitialize() { }
+
+        public UniTask Apply(object source, CancellationToken cancellationToken = default) {
+            if (targetRadius.HasValue) _height.Radius = targetRadius.Value;
+
+            float currentHeight = _height.Height;
 
             float fromHeight = sourceHeight.GetOrDefault(currentHeight);
             float toHeight = targetHeight.GetOrDefault(currentHeight);
 
             float duration = metersPerSecond <= 0f ? 0f : Mathf.Abs(toHeight - fromHeight) / metersPerSecond;
 
-            return heightPipeline.ApplyHeightChange(fromHeight, toHeight, duration, cancellationToken);
+            return _height.ApplyHeightChange(fromHeight, toHeight, duration, cancellationToken);
         }
     }
 

@@ -21,7 +21,7 @@ namespace MisterGames.Character.Input {
         private ICharacterMotionPipeline _motion;
 
         public void OnAddDependencies(IDependencyResolver resolver) {
-            resolver.AddDependency<CharacterAccess>();
+            resolver.AddDependency<CharacterAccess>(this);
         }
 
         public void OnResolveDependencies(IDependencyResolver resolver) {
@@ -51,8 +51,6 @@ namespace MisterGames.Character.Input {
         private void OnMotionVectorChanged(Vector2 motion) {
             if (IsMatched) _callback?.OnTransitionMatch(this);
         }
-
-        public void OnFired() { }
 
         private bool CheckCondition() {
             var motionInput = _motion.MotionInput;

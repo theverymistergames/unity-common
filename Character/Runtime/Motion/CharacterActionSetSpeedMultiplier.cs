@@ -1,25 +1,38 @@
 ﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using MisterGames.Character.Actions;
 using MisterGames.Character.Core;
 using MisterGames.Character.Processors;
+using MisterGames.Common.Actions;
+using MisterGames.Common.Dependencies;
 using UnityEngine;
 
 namespace MisterGames.Character.Motion {
     
     [Serializable]
-    public sealed class CharacterActionSetSpeedMultiplier : ICharacterAction {
+    public sealed class CharacterActionSetSpeedMultiplier : IAsyncAction, IDependency {
 
         [Min(0f)] public float speed;
 
-        public UniTask Apply(object source, ICharacterAccess characterAccess, CancellationToken cancellationToken = default) {
-            var multiplier = characterAccess
+        private CharacterProcessorVector2Multiplier _multiplier;
+
+        public void OnAddDependencies(IDependencyResolver resolver) {
+            resolver.AddDependency<CharacterAccess>(this);
+        }
+
+        public void OnResolveDependencies(IDependencyResolver resolver) {
+            _multiplier = resolver
+                .ResolveDependency<CharacterAccess>()
                 .GetPipeline<ICharacterMotionPipeline>()
                 .GetProcessor<CharacterProcessorVector2Multiplier>();
+        }
 
-            multiplier.multiplier = speed;
+        public void Initialize() { }
 
+        public void DeInitialize() { }
+
+        public UniTask Apply(object source, CancellationToken cancellationToken = default) {
+            _multiplier.multiplier = speed;
             return default;
         }
     }

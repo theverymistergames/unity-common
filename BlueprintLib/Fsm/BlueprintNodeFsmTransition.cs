@@ -29,7 +29,7 @@ namespace MisterGames.BlueprintLib {
         private ITransitionCallback _stateCallback;
         private bool _isConditionArmed;
 
-        private readonly List<Type> _deps = new List<Type>();
+        private readonly List<Type> _dependencies = new List<Type>();
         private int _dependencyPortIterator;
 
         public override Port[] CreatePorts() {
@@ -39,12 +39,14 @@ namespace MisterGames.BlueprintLib {
             };
 
             if (_transition is IDependency dep) {
-                _deps.Clear();
+                _dependencies.Clear();
                 dep.OnAddDependencies(this);
 
-                for (int i = 0; i < _deps.Count; i++) {
-                    ports.Add(Port.DynamicInput(type: _deps[i]));
+                for (int i = 0; i < _dependencies.Count; i++) {
+                    ports.Add(Port.DynamicInput(type: _dependencies[i]));
                 }
+
+                _dependencies.Clear();
             }
 
             return ports.ToArray();
@@ -61,8 +63,8 @@ namespace MisterGames.BlueprintLib {
             return port == 0 ? this : default;
         }
 
-        public void AddDependency<T>() {
-            _deps.Add(typeof(T));
+        public void AddDependency<T>(object source) {
+            _dependencies.Add(typeof(T));
         }
 
         public T ResolveDependency<T>() {

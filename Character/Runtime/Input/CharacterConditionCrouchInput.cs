@@ -20,11 +20,13 @@ namespace MisterGames.Character.Input {
         private ITransitionCallback _callback;
 
         public void OnAddDependencies(IDependencyResolver resolver) {
-            resolver.AddDependency<CharacterAccess>();
+            resolver.AddDependency<CharacterAccess>(this);
         }
 
         public void OnResolveDependencies(IDependencyResolver resolver) {
-            _input = resolver.ResolveDependency<CharacterAccess>().GetPipeline<ICharacterInputPipeline>();
+            _input = resolver
+                .ResolveDependency<CharacterAccess>()
+                .GetPipeline<ICharacterInputPipeline>();
         }
 
         public void Arm(ITransitionCallback callback) {
