@@ -1,5 +1,4 @@
 ﻿using System.Threading;
-using Cysharp.Threading.Tasks;
 using MisterGames.Common.Actions;
 using MisterGames.Common.Dependencies;
 using UnityEngine;
@@ -14,15 +13,9 @@ namespace MisterGames.Character.Startup {
         [SerializeField] private DependencyResolver _dependencies;
 
         private CancellationTokenSource _enableCts;
-        private UniTask[] _tasks;
 
         private void Awake() {
-            _tasks = new UniTask[_startupActions.Length];
             _dependencies.Resolve(_startupActions);
-
-            for (int i = 0; i < _startupActions.Length; i++) {
-                _startupActions[i].Initialize();
-            }
         }
 
         private void OnEnable() {
@@ -39,13 +32,11 @@ namespace MisterGames.Character.Startup {
 
         private async void Start() {
             for (int i = 0; i < _startupActions.Length; i++) {
-                _tasks[i] = _startupActions[i].Apply(this, _enableCts.Token);
-            }
+                var action = _startupActions[i];
 
-            await UniTask.WhenAll(_tasks);
-
-            for (int i = 0; i < _startupActions.Length; i++) {
-                _startupActions[i].DeInitialize();
+                action.Initialize();
+                await action.Apply(this, _enableCts.Token);
+                action.DeInitialize();
             }
         }
     }

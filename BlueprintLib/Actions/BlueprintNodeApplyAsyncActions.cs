@@ -16,8 +16,6 @@ namespace MisterGames.BlueprintLib {
         [SerializeField] private AsyncActionAsset[] _applyActions;
         [SerializeField] private AsyncActionAsset[] _releaseActions;
 
-        private UniTask[] _applyTasks;
-        private UniTask[] _releaseTasks;
         private CancellationTokenSource _terminateCts;
 
         private readonly List<Type> _dependencies = new List<Type>();
@@ -54,9 +52,6 @@ namespace MisterGames.BlueprintLib {
             _terminateCts?.Cancel();
             _terminateCts?.Dispose();
             _terminateCts = new CancellationTokenSource();
-
-            _applyTasks = new UniTask[_applyActions.Length];
-            _releaseTasks = new UniTask[_releaseActions.Length];
         }
 
         public override void OnDeInitialize() {
@@ -81,18 +76,13 @@ namespace MisterGames.BlueprintLib {
                     for (int i = 0; i < _applyActions.Length; i++) {
                         var action = _applyActions[i];
                         if (action is IDependency dep) dep.OnResolveDependencies(this);
+
                         action.Initialize();
-
-                        _applyTasks[i] = action.Apply(this, _terminateCts.Token);
+                        await action.Apply(this, _terminateCts.Token);
+                        action.DeInitialize();
                     }
-
-                    await UniTask.WhenAll(_applyTasks);
 
                     Ports[2].Call();
-
-                    for (int i = 0; i < _applyActions.Length; i++) {
-                        _applyActions[i].DeInitialize();
-                    }
 
                     break;
                 }
@@ -103,18 +93,13 @@ namespace MisterGames.BlueprintLib {
                     for (int i = 0; i < _releaseActions.Length; i++) {
                         var action = _releaseActions[i];
                         if (action is IDependency dep) dep.OnResolveDependencies(this);
+
                         action.Initialize();
-
-                        _releaseTasks[i] = action.Apply(this, _terminateCts.Token);
+                        await action.Apply(this, _terminateCts.Token);
+                        action.DeInitialize();
                     }
-
-                    await UniTask.WhenAll(_releaseTasks);
 
                     Ports[3].Call();
-
-                    for (int i = 0; i < _releaseActions.Length; i++) {
-                        _releaseActions[i].DeInitialize();
-                    }
 
                     break;
                 }
