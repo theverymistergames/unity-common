@@ -27,9 +27,10 @@ namespace MisterGames.Common.Actions {
         }
 
         public void Initialize() {
-            _tasks = new UniTask[actions.Length];
+            int actionsCount = actions.Length;
+            _tasks = actionsCount > 0 ? new UniTask[actionsCount] : Array.Empty<UniTask>();
 
-            for (int i = 0; i < actions.Length; i++) {
+            for (int i = 0; i < actionsCount; i++) {
                 actions[i].Initialize();
             }
         }
