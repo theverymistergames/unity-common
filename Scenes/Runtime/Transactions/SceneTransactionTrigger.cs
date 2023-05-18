@@ -2,6 +2,7 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Collisions.Triggers;
+using MisterGames.Common.Actions;
 using UnityEngine;
 
 namespace MisterGames.Scenes.Transactions {
@@ -32,17 +33,17 @@ namespace MisterGames.Scenes.Transactions {
         }
 
         private void OnTriggered(GameObject go) {
-            CommitSceneTransaction(_transaction, _loadDelay, _destroyCts.Token).Forget();
+            ApplyDelayed(_transaction, _loadDelay, _destroyCts.Token).Forget();
         }
 
-        private static async UniTaskVoid CommitSceneTransaction(SceneTransaction transaction, float delay, CancellationToken token) {
+        private async UniTaskVoid ApplyDelayed(IAsyncAction action, float delay, CancellationToken token) {
             bool isCancelled = await UniTask
                 .Delay(TimeSpan.FromSeconds(delay), cancellationToken: token)
                 .SuppressCancellationThrow();
 
             if (isCancelled) return;
 
-            await transaction.Commit();
+            await action.Apply(this, token);
         }
     }
     

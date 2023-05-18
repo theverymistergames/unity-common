@@ -37,7 +37,7 @@ namespace MisterGames.BlueprintLib {
         }
 
         private async UniTaskVoid CommitTransactionAndExitAsync(CancellationToken token) {
-            await _sceneTransaction.Commit();
+            await _sceneTransaction.Apply(this, token);
             if (token.IsCancellationRequested) return;
 
             Ports[1].Call();

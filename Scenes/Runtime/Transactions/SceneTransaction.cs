@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Threading;
 using Cysharp.Threading.Tasks;
+using MisterGames.Common.Actions;
 using MisterGames.Common.Attributes;
 using MisterGames.Scenes.Core;
 using UnityEngine;
@@ -7,7 +9,7 @@ using UnityEngine;
 namespace MisterGames.Scenes.Transactions {
 
     [Serializable]
-    public sealed class SceneTransaction {
+    public sealed class SceneTransaction : IAsyncAction {
 
         [SerializeField] private SceneReference[] _load;
         [SerializeField] private SceneReference[] _unload;
@@ -17,22 +19,26 @@ namespace MisterGames.Scenes.Transactions {
         [VisibleIf(nameof(_activateSceneAfterLoad))]
         [SerializeField] private SceneReference _targetActiveScene;
 
-        [VisibleIf(nameof(_activateSceneAfterLoad))]
-        //[ReadOnly]
-        [SerializeField] private AnimationCurve _c;
+        private UniTask[] _tasks;
 
-        public async UniTask Commit() {
+        public void Initialize() {
+            int operationsCount = _load.Length + _unload.Length;
+            _tasks = operationsCount > 0 ? new UniTask[operationsCount] : Array.Empty<UniTask>();
+        }
+
+        public void DeInitialize() { }
+
+        public async UniTask Apply(object source, CancellationToken cancellationToken = default) {
             int loadLength = _load.Length;
             int operationsCount = loadLength + _unload.Length;
-            var tasks = operationsCount > 0 ? new UniTask[operationsCount] : Array.Empty<UniTask>();
 
             for (int i = 0; i < operationsCount; i++) {
-                tasks[i] = i < loadLength
+                _tasks[i] = i < loadLength
                     ? SceneLoader.LoadSceneAsync(_load[i].scene, false)
                     : SceneLoader.UnloadSceneAsync(_unload[i - loadLength].scene);
             }
 
-            await UniTask.WhenAll(tasks);
+            await UniTask.WhenAll(_tasks);
 
             if (_activateSceneAfterLoad) await SceneLoader.LoadSceneAsync(_targetActiveScene.scene, true);
         }
