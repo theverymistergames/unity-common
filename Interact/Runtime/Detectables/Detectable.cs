@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using MisterGames.Common.Dependencies;
 using MisterGames.Dbg.Draw;
 using UnityEngine;
 
@@ -8,6 +9,11 @@ namespace MisterGames.Interact.Detectables {
     public sealed class Detectable : MonoBehaviour, IDetectable {
 
         [SerializeField] private DetectionStrategy _strategy;
+
+        [RuntimeDependency(typeof(IDetectable))]
+        [RuntimeDependency(typeof(IDetector))]
+        [FetchDependencies(nameof(_strategy))]
+        [SerializeField] private DependencyResolver _dependencies;
 
         public event Action<IDetector> OnDetectedBy = delegate {  };
         public event Action<IDetector> OnLostBy = delegate {  };
@@ -19,6 +25,7 @@ namespace MisterGames.Interact.Detectables {
         private readonly List<IDetector> _observers = new List<IDetector>();
 
         private void Awake() {
+            _dependencies.SetDependenciesOfType<IDetectable>(this);
             Transform = transform;
         }
 
@@ -31,11 +38,17 @@ namespace MisterGames.Interact.Detectables {
         }
 
         public bool IsAllowedToStartDetectBy(IDetector detector) {
-            return enabled && _strategy.IsAllowedToStartDetection(detector, this);
+            _dependencies.SetDependenciesOfType(detector);
+            _dependencies.Resolve(_strategy);
+
+            return enabled && _strategy.IsAllowedToStartDetection();
         }
 
         public bool IsAllowedToContinueDetectBy(IDetector detector) {
-            return enabled && _strategy.IsAllowedToContinueDetection(detector, this);
+            _dependencies.SetDependenciesOfType(detector);
+            _dependencies.Resolve(_strategy);
+
+            return enabled && _strategy.IsAllowedToContinueDetection();
         }
 
         public void NotifyDetectedBy(IDetector detector) {

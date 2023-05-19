@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using MisterGames.Common.Dependencies;
 using MisterGames.Tick.Core;
 using UnityEngine;
 
@@ -8,6 +9,11 @@ namespace MisterGames.Interact.Interactives {
     public sealed class Interactive : MonoBehaviour, IInteractive {
 
         [SerializeField] private InteractionStrategy _strategy;
+
+        [RuntimeDependency(typeof(IInteractive))]
+        [RuntimeDependency(typeof(IInteractiveUser))]
+        [FetchDependencies(nameof(_strategy))]
+        [SerializeField] private DependencyResolver _dependencies;
 
         public event Action<IInteractiveUser> OnDetectedBy = delegate {  };
         public event Action<IInteractiveUser> OnLostBy = delegate {  };
@@ -32,6 +38,7 @@ namespace MisterGames.Interact.Interactives {
 
         private void Awake() {
             Transform = transform;
+            _dependencies.SetDependenciesOfType<IInteractive>(this);
         }
 
         private void OnDisable() {
@@ -53,15 +60,24 @@ namespace MisterGames.Interact.Interactives {
         }
 
         public bool IsReadyToStartInteractWith(IInteractiveUser user) {
-            return enabled && _strategy.IsReadyToStartInteraction(user, this);
+            _dependencies.SetDependenciesOfType(user);
+            _dependencies.Resolve(_strategy);
+
+            return enabled && _strategy.IsReadyToStartInteraction();
         }
 
         public bool IsAllowedToStartInteractWith(IInteractiveUser user) {
-            return enabled && _strategy.IsAllowedToStartInteraction(user, this);
+            _dependencies.SetDependenciesOfType(user);
+            _dependencies.Resolve(_strategy);
+
+            return enabled && _strategy.IsAllowedToStartInteraction();
         }
 
         public bool IsAllowedToContinueInteractWith(IInteractiveUser user) {
-            return enabled && _strategy.IsAllowedToContinueInteraction(user, this);
+            _dependencies.SetDependenciesOfType(user);
+            _dependencies.Resolve(_strategy);
+
+            return enabled && _strategy.IsAllowedToContinueInteraction();
         }
 
         public void NotifyDetectedBy(IInteractiveUser user) {

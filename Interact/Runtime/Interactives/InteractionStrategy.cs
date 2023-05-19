@@ -1,35 +1,60 @@
 ﻿using MisterGames.Common.Attributes;
+using MisterGames.Common.Conditions;
+using MisterGames.Common.Dependencies;
 using MisterGames.Tick.Core;
 using UnityEngine;
 
 namespace MisterGames.Interact.Interactives {
 
     [CreateAssetMenu(fileName = nameof(InteractionStrategy), menuName = "MisterGames/Interactives/" + nameof(InteractionStrategy))]
-    public sealed class InteractionStrategy : ScriptableObject {
+    public sealed class InteractionStrategy : ScriptableObject, IDependency {
 
         [SerializeField] private bool _allowStopImmediatelyAfterStart;
-        [SerializeReference] [SubclassSelector] private IInteractionConstraint _readyConstraint;
-        [SerializeReference] [SubclassSelector] private IInteractionConstraint _startConstraint;
-        [SerializeReference] [SubclassSelector] private IInteractionConstraint _continueConstraint;
+        [SerializeReference] [SubclassSelector] private ICondition _readyConstraint;
+        [SerializeReference] [SubclassSelector] private ICondition _startConstraint;
+        [SerializeReference] [SubclassSelector] private ICondition _continueConstraint;
 
-        public bool IsReadyToStartInteraction(IInteractiveUser user, IInteractive interactive) {
-            return _readyConstraint != null && _readyConstraint.IsSatisfied(user, interactive);
+        private IInteractive _interactive;
+        private IInteractiveUser _userDependency;
+
+        public void OnAddDependencies(IDependencyContainer container) {
+            container.AddDependency<IInteractive>(this);
+            container.AddDependency<IInteractiveUser>(this);
+
+            if (_readyConstraint is IDependency r) r.OnAddDependencies(container);
+            if (_startConstraint is IDependency s) s.OnAddDependencies(container);
+            if (_continueConstraint is IDependency c) c.OnAddDependencies(container);
         }
 
-        public bool IsAllowedToStartInteraction(IInteractiveUser user, IInteractive interactive) {
-            return _startConstraint != null && _startConstraint.IsSatisfied(user, interactive);
+        public void OnResolveDependencies(IDependencyResolver resolver) {
+            _interactive = resolver.ResolveDependency<IInteractive>();
+            _userDependency = resolver.ResolveDependency<IInteractiveUser>();
+
+            if (_readyConstraint is IDependency r) r.OnResolveDependencies(resolver);
+            if (_startConstraint is IDependency s) s.OnResolveDependencies(resolver);
+            if (_continueConstraint is IDependency c) c.OnResolveDependencies(resolver);
         }
 
-        public bool IsAllowedToContinueInteraction(IInteractiveUser user, IInteractive interactive) {
+        public bool IsReadyToStartInteraction() {
+            return _readyConstraint is { IsMatched: true };
+        }
+
+        public bool IsAllowedToStartInteraction() {
+            return _startConstraint is { IsMatched: true };
+        }
+
+        public bool IsAllowedToContinueInteraction() {
             if (_allowStopImmediatelyAfterStart) {
-                return _continueConstraint != null && _continueConstraint.IsSatisfied(user, interactive);
+                return _continueConstraint is { IsMatched: true };
             }
 
-            if (interactive.TryGetInteractionStartTime(user, out int startTime) && startTime >= TimeSources.frameCount) {
+            if (_interactive.TryGetInteractionStartTime(_userDependency, out int startTime) &&
+                startTime >= TimeSources.frameCount
+            ) {
                 return true;
             }
 
-            return _continueConstraint != null && _continueConstraint.IsSatisfied(user, interactive);
+            return _continueConstraint is { IsMatched: true };
         }
     }
 
