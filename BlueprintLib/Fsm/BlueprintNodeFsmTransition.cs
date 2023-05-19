@@ -19,7 +19,8 @@ namespace MisterGames.BlueprintLib {
         ITransitionCallback,
         IBlueprintFsmTransitionCallbacks,
         IBlueprintAssetValidator,
-        IDependencyResolver
+        IDependencyResolver,
+        IDependencyContainer
     {
         [SerializeField] private bool _checkImmediatelyAfterArmed;
         [SerializeReference] [SubclassSelector] private ITransition _transition;

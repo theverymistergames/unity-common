@@ -11,8 +11,12 @@ namespace MisterGames.BlueprintLib {
 
     [Serializable]
     [BlueprintNodeMeta(Name = "Apply Async Actions", Category = "Actions", Color = BlueprintColors.Node.Actions)]
-    public sealed class BlueprintNodeApplyAsyncActions : BlueprintNode, IBlueprintEnter, IDependencyResolver {
-
+    public sealed class BlueprintNodeApplyAsyncActions :
+        BlueprintNode,
+        IBlueprintEnter,
+        IDependencyResolver,
+        IDependencyContainer
+    {
         [SerializeField] private AsyncActionAsset[] _applyActions;
         [SerializeField] private AsyncActionAsset[] _releaseActions;
 
