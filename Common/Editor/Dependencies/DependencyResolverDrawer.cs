@@ -127,7 +127,7 @@ namespace MisterGames.Common.Editor.Attributes.ReadOnly {
             var properties = GetProperties(property);
             if (properties.Count > 0) {
                 // Space between Runtime Resolve and Serialized Resolve sections
-                y += EditorGUIUtility.standardVerticalSpacing * 3f;
+                y += EditorGUIUtility.standardVerticalSpacing * 6f;
 
                 // Serialized Resolve: header
                 rect = new Rect(position.x, y, position.width, EditorGUIUtility.singleLineHeight);
@@ -166,11 +166,12 @@ namespace MisterGames.Common.Editor.Attributes.ReadOnly {
                 }
 
                 bool isOverriden = (allRuntimeOverridenTypes ?? internalRuntimeOverridenTypes).Contains(propertyData.type);
+                var propertyLabel = new GUIContent(propertyData.name);
 
                 float propertyHeight = GetDependencyPropertyHeight(
                     serializedProperty,
                     propertyData.type,
-                    label,
+                    propertyLabel,
                     isOverriden,
                     includeChildren: true
                 );
@@ -182,7 +183,7 @@ namespace MisterGames.Common.Editor.Attributes.ReadOnly {
                     rect,
                     serializedProperty,
                     propertyData.type,
-                    new GUIContent(propertyData.name),
+                    propertyLabel,
                     isOverriden,
                     includeChildren: true
                 );
@@ -211,7 +212,7 @@ namespace MisterGames.Common.Editor.Attributes.ReadOnly {
                     position.width - EditorGUIUtility.labelWidth,
                     EditorGUIUtility.singleLineHeight
                 );
-                EditorGUI.LabelField(rect, LabelResolvedAtRuntime, EditorStyles.whiteMiniLabel);
+                EditorGUI.LabelField(rect, LabelResolvedAtRuntime, EditorStyles.miniLabel);
 
                 return;
             }
@@ -302,7 +303,7 @@ namespace MisterGames.Common.Editor.Attributes.ReadOnly {
             var properties = GetProperties(property);
             if (properties.Count > 0) {
                 // Space between Runtime Resolve and Serialized Resolve sections
-                height += EditorGUIUtility.standardVerticalSpacing * 3f;
+                height += EditorGUIUtility.standardVerticalSpacing * 6f;
 
                 // Serialized Resolve: header
                 height += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;

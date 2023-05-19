@@ -37,7 +37,7 @@ namespace MisterGames.Common.Dependencies {
             _unityObjects ??= new List<Object>();
             _objects ??= new List<object>();
 
-            dependency.OnAddDependencies(this);
+            dependency?.OnAddDependencies(this);
 
             for (int i = _dependencyMetaList.Count - 1; i >= _iteratorMeta; i--) {
                 _dependencyMetaList.RemoveAt(i);
@@ -61,8 +61,10 @@ namespace MisterGames.Common.Dependencies {
             _unityObjects ??= new List<Object>();
             _objects ??= new List<object>();
 
-            for (int i = 0; i < dependencies.Count; i++) {
-                dependencies[i].OnAddDependencies(this);
+            if (dependencies != null) {
+                for (int i = 0; i < dependencies.Count; i++) {
+                    dependencies[i].OnAddDependencies(this);
+                }
             }
 
             for (int i = _dependencyMetaList.Count - 1; i >= _iteratorMeta; i--) {
@@ -80,13 +82,11 @@ namespace MisterGames.Common.Dependencies {
 
         public void Resolve(IDependency dependency) {
             _iteratorMeta = 0;
-
             dependency.OnResolveDependencies(this);
         }
 
         public void Resolve(IReadOnlyList<IDependency> dependencies) {
             _iteratorMeta = 0;
-
             for (int i = 0; i < dependencies.Count; i++) {
                 dependencies[i].OnResolveDependencies(this);
             }

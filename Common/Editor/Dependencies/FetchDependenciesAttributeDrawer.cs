@@ -21,7 +21,12 @@ namespace MisterGames.Common.Editor.Attributes.ReadOnly {
                 : attr.dependencyPropertyName;
 
             if (string.IsNullOrEmpty(path)) {
-                if (property.serializedObject.targetObject is IDependency dependency) resolver.Fetch(dependency);
+                if (property.serializedObject.targetObject is IDependency dep) {
+                    resolver.Fetch(dep);
+                }
+                else {
+                    resolver.Fetch((IDependency) null);
+                }
             }
             else {
                 var dependencyProperty = property.serializedObject.FindProperty(path);
@@ -32,9 +37,19 @@ namespace MisterGames.Common.Editor.Attributes.ReadOnly {
                 else if (dependencyProperty.GetValue() is IDependency[] deps) {
                     resolver.Fetch(deps);
                 }
+                else {
+                    resolver.Fetch((IDependency) null);
+                }
             }
 
+            EditorGUI.BeginChangeCheck();
+
+            property.serializedObject.ApplyModifiedProperties();
+            property.serializedObject.Update();
+
             CustomPropertyGUI.PropertyField(position, property, label, fieldInfo, attribute, includeChildren: true);
+
+            if (EditorGUI.EndChangeCheck()) EditorUtility.SetDirty(property.serializedObject.targetObject);
         }
 
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label) {
