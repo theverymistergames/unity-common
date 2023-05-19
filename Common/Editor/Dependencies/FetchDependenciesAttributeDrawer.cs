@@ -6,7 +6,7 @@ using UnityEngine;
 namespace MisterGames.Common.Editor.Attributes.ReadOnly {
 
     [CustomPropertyDrawer(typeof(FetchDependenciesAttribute))]
-    public class DependencyResolverAttributeDrawer : PropertyDrawer {
+    public class FetchDependenciesAttributeDrawer : PropertyDrawer {
 
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
             if (property.GetValue() is not DependencyResolver resolver) return;

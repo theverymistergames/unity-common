@@ -11,8 +11,8 @@ namespace MisterGames.Common.Actions {
 
         [SerializeReference] [SubclassSelector] private IAsyncAction _action;
 
-        public void OnAddDependencies(IDependencyResolver resolver) {
-            if (_action is IDependency dep) dep.OnAddDependencies(resolver);
+        public void OnAddDependencies(IDependencyContainer container) {
+            if (_action is IDependency dep) dep.OnAddDependencies(container);
         }
 
         public void OnResolveDependencies(IDependencyResolver resolver) {

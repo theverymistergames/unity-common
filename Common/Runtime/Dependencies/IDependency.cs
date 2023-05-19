@@ -1,7 +1,7 @@
 namespace MisterGames.Common.Dependencies {
     
     public interface IDependency {
-        void OnAddDependencies(IDependencyResolver resolver);
+        void OnAddDependencies(IDependencyContainer container);
 
         void OnResolveDependencies(IDependencyResolver resolver);
     }

@@ -8,12 +8,19 @@ using Object = UnityEngine.Object;
 namespace MisterGames.Common.Dependencies {
 
     [Serializable]
-    public sealed class DependencyResolver : IDependencyResolver {
+    public sealed class DependencyResolver : IDependencyResolver, IDependencyContainer, IDependencyOverride {
+
+        [SerializeField] private RuntimeResolveMode _mode;
+        [SerializeField] private RuntimeDependencyResolver _sharedDependencies;
 
         [SerializeField] private List<DependencyMeta> _dependencyMetaList;
-
         [SerializeField] private List<Object> _unityObjects;
         [SerializeReference] private List<object> _objects;
+
+        private enum RuntimeResolveMode {
+            Internal,
+            Shared,
+        }
 
         private readonly Dictionary<Type, object> _dependenciesByType = new Dictionary<Type, object>();
 
@@ -85,8 +92,38 @@ namespace MisterGames.Common.Dependencies {
             }
         }
 
+        public bool TryResolveDependencyOverride<T>(out T value) {
+            switch (_mode) {
+                case RuntimeResolveMode.Internal:
+                    if (_dependenciesByType.TryGetValue(typeof(T), out object v)) {
+                        value = v is T t ? t : default;
+                        return true;
+                    }
+
+                    value = default;
+                    return false;
+
+                case RuntimeResolveMode.Shared:
+                    return _sharedDependencies.TryResolveDependencyOverride(out value);
+
+                default:
+                    throw new NotSupportedException();
+            }
+        }
+
         public void SetDependenciesOfType<T>(T value) where T : class {
-            _dependenciesByType[typeof(T)] = value;
+            switch (_mode) {
+                case RuntimeResolveMode.Internal:
+                    _dependenciesByType[typeof(T)] = value;
+                    break;
+
+                case RuntimeResolveMode.Shared:
+                    _sharedDependencies.SetDependenciesOfType(value);
+                    break;
+
+                default:
+                    throw new NotSupportedException();
+            }
         }
 
         public void AddDependency<T>(object source) {
@@ -161,9 +198,9 @@ namespace MisterGames.Common.Dependencies {
             if (!ValidateRequestedDependencyMetaByIndex<T>(_iteratorMeta)) return default;
 #endif
 
-            if (_dependenciesByType.TryGetValue(typeof(T), out object value) && value is T v) {
+            if (TryResolveDependencyOverride<T>(out var overridenValue)) {
                 _iteratorMeta++;
-                return v;
+                return overridenValue;
             }
 
             var meta = _dependencyMetaList[_iteratorMeta++];

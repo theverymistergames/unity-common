@@ -51,10 +51,16 @@ namespace MisterGames.Common.Editor.SerializedProperties {
 				var drawerTargetType = attr?.GetType() ?? fieldInfo?.FieldType;
 				if (drawerTargetType == null) return null;
 
-				if (FieldTypeToPropertyDrawerInstanceMap.TryGetValue(drawerTargetType, out var drawer)) return drawer;
-
 				var propertyDrawerType = GetPropertyDrawerTypeByFieldType(drawerTargetType);
-				drawer = InstantiatePropertyDrawer(propertyDrawerType, fieldInfo, attr);
+
+				if (FieldTypeToPropertyDrawerInstanceMap.TryGetValue(drawerTargetType, out var drawer)) {
+					ActualizeFieldInfo(propertyDrawerType, drawer, fieldInfo, attr);
+					return drawer;
+				}
+
+
+				drawer = InstantiatePropertyDrawer(propertyDrawerType);
+				ActualizeFieldInfo(propertyDrawerType, drawer, fieldInfo, attr);
 
 				// Failed to instantiate drawer at first attempt and attribute is not null:
 				// trying to instantiate drawer with next attribute
@@ -94,27 +100,33 @@ namespace MisterGames.Common.Editor.SerializedProperties {
 				: null;
 		}
 
-		private static PropertyDrawer InstantiatePropertyDrawer(
-			Type drawerType,
-			FieldInfo fieldInfo,
-			Attribute insertAttribute
-		) {
+		private static PropertyDrawer InstantiatePropertyDrawer(Type drawerType) {
 			if (drawerType == null) return null;
 
 			try {
-				var drawerInstance = (PropertyDrawer) Activator.CreateInstance(drawerType);
-
-				// Reassign the attribute and fieldInfo fields in the drawer so it can access the argument values
-				var fieldInfoField = drawerType.GetField("m_FieldInfo", BindingFlags.Instance | BindingFlags.NonPublic);
-				if (fieldInfoField != null) fieldInfoField.SetValue(drawerInstance, fieldInfo);
-
-				var attributeField = drawerType.GetField("m_Attribute", BindingFlags.Instance | BindingFlags.NonPublic);
-				if (attributeField != null) attributeField.SetValue(drawerInstance, insertAttribute);
-
-				return drawerInstance;
+				return (PropertyDrawer) Activator.CreateInstance(drawerType);
 			}
 			catch (Exception) {
 				return null;
+			}
+		}
+
+		private static void ActualizeFieldInfo(
+			Type drawerType,
+			PropertyDrawer drawer,
+			FieldInfo fieldInfo,
+			Attribute insertAttribute
+		) {
+			try {
+				// Reassign the attribute and fieldInfo fields in the drawer so it can access the argument values
+				var fieldInfoField = drawerType.GetField("m_FieldInfo", BindingFlags.Instance | BindingFlags.NonPublic);
+				fieldInfoField?.SetValue(drawer, fieldInfo);
+
+				var attributeField = drawerType.GetField("m_Attribute", BindingFlags.Instance | BindingFlags.NonPublic);
+				attributeField?.SetValue(drawer, insertAttribute);
+			}
+			catch (Exception) {
+				// ignored
 			}
 		}
 

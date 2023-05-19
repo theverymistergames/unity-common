@@ -15,9 +15,9 @@ namespace MisterGames.Common.Conditions {
 
         private ITransitionCallback _externalCallback;
 
-        public void OnAddDependencies(IDependencyResolver resolver) {
+        public void OnAddDependencies(IDependencyContainer container) {
             for (int i = 0; i < conditions.Length; i++) {
-                if (conditions[i] is IDependency dep) dep.OnAddDependencies(resolver);
+                if (conditions[i] is IDependency dep) dep.OnAddDependencies(container);
             }
         }
 
