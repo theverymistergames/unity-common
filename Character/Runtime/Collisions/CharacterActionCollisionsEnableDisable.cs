@@ -14,8 +14,8 @@ namespace MisterGames.Character.Collisions {
 
         private ICharacterCollisionPipeline _collisions;
 
-        public void OnAddDependencies(IDependencyResolver resolver) {
-            resolver.AddDependency<CharacterAccess>(this);
+        public void OnAddDependencies(IDependencyContainer container) {
+            container.AddDependency<CharacterAccess>(this);
         }
 
         public void OnResolveDependencies(IDependencyResolver resolver) {

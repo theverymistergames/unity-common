@@ -1,4 +1,5 @@
 ﻿using System.Threading;
+using MisterGames.Character.Core;
 using MisterGames.Common.Actions;
 using MisterGames.Common.Dependencies;
 using UnityEngine;
@@ -7,14 +8,17 @@ namespace MisterGames.Character.Startup {
 
     public sealed class CharacterStartup : MonoBehaviour {
 
+        [SerializeField] private CharacterAccess _characterAccess;
         [SerializeField] private AsyncActionAsset[] _startupActions;
 
+        [RuntimeDependency(typeof(CharacterAccess))]
         [FetchDependencies(nameof(_startupActions))]
         [SerializeField] private DependencyResolver _dependencies;
 
         private CancellationTokenSource _enableCts;
 
         private void Awake() {
+            _dependencies.SetDependenciesOfType(_characterAccess);
             _dependencies.Resolve(_startupActions);
         }
 

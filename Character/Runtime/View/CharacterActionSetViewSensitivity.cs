@@ -17,8 +17,8 @@ namespace MisterGames.Character.View {
 
         private CharacterProcessorVector2Sensitivity _sensitivity;
 
-        public void OnAddDependencies(IDependencyResolver resolver) {
-            resolver.AddDependency<CharacterAccess>(this);
+        public void OnAddDependencies(IDependencyContainer container) {
+            container.AddDependency<CharacterAccess>(this);
         }
 
         public void OnResolveDependencies(IDependencyResolver resolver) {
