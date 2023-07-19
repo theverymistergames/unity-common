@@ -8,10 +8,10 @@ using Object = UnityEngine.Object;
 namespace MisterGames.Common.Dependencies {
 
     [Serializable]
-    public sealed class DependencyResolver :
-        IDependencyResolver,
-        IDependencyContainer,
-        IDependencyOverride
+    public sealed class DependencyResolver : 
+        IDependencyResolver, 
+        IDependencyContainer, 
+        IDependencyOverride 
     {
         [SerializeField] private RuntimeResolveMode _mode;
         [SerializeField] private RuntimeDependencyResolver _sharedDependencies;
@@ -152,14 +152,14 @@ namespace MisterGames.Common.Dependencies {
             }
         }
 
-        public void OverrideDependenciesOfType<T>(T value) where T : class {
+        public void SetValue<T>(T value) where T : class {
             switch (_mode) {
                 case RuntimeResolveMode.Internal:
                     _typeOverrides[typeof(T)] = value;
                     break;
 
                 case RuntimeResolveMode.Shared:
-                    _sharedDependencies.OverrideDependenciesOfType(value);
+                    _sharedDependencies.SetValue(value);
                     break;
 
                 default:
@@ -241,7 +241,7 @@ namespace MisterGames.Common.Dependencies {
 
         public IDependencyResolver Resolve<T>(out T dependency) where T : class {
             int index = _dependenciesCount++;
-
+            
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (!ValidateResolvedDependency<T>(index)) {
                 dependency = default;
@@ -256,7 +256,7 @@ namespace MisterGames.Common.Dependencies {
                 var pointer = _dependencyPointers[index];
                 dependency = GetElement<T>(pointer.list, pointer.index);
             }
-
+            
             return this;
         }
 

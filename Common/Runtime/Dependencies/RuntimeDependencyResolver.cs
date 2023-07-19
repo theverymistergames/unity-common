@@ -12,7 +12,7 @@ namespace MisterGames.Common.Dependencies {
         internal readonly HashSet<Type> overridenTypes = new HashSet<Type>();
 #endif
 
-        public void OverrideDependenciesOfType<T>(T value) where T : class {
+        public void SetValue<T>(T value) where T : class {
             _typeOverrides[typeof(T)] = value;
         }
 
