@@ -239,25 +239,17 @@ namespace MisterGames.Common.Dependencies {
             return this;
         }
 
-        public IDependencyResolver Resolve<T>(out T dependency) where T : class {
+        public T Resolve<T>() where T : class {
             int index = _dependenciesCount++;
-            
+
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (!ValidateResolvedDependency<T>(index)) {
-                dependency = default;
-                return this;
-            }
+            if (!ValidateResolvedDependency<T>(index)) return default;
 #endif
 
-            if (TryResolve<T>(out var overridenValue)) {
-                dependency = overridenValue;
-            }
-            else {
-                var pointer = _dependencyPointers[index];
-                dependency = GetElement<T>(pointer.list, pointer.index);
-            }
-            
-            return this;
+            if (TryResolve<T>(out var overridenValue)) return overridenValue;
+
+            var pointer = _dependencyPointers[index];
+            return GetElement<T>(pointer.list, pointer.index);
         }
 
         private T GetElement<T>(int list, int index) where T : class {

@@ -1,6 +1,6 @@
 namespace MisterGames.Common.Dependencies {
     
     public interface IDependencyResolver {
-        IDependencyResolver Resolve<T>(out T dependency) where T : class;
+        T Resolve<T>() where T : class;
     }
 }
