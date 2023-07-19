@@ -15,7 +15,7 @@ namespace MisterGames.Interact.Cursors {
         [SerializeField] private DependencyResolver _dependencies;
 
         private void Awake() {
-            _dependencies.SetDependenciesOfType<IInteractive>(_interactive);
+            _dependencies.SetValue<IInteractive>(_interactive);
 
             _interactive.OnDetectedBy -= OnDetectedByUser;
             _interactive.OnDetectedBy += OnDetectedByUser;
@@ -57,7 +57,7 @@ namespace MisterGames.Interact.Cursors {
             var host = user.Transform.GetComponent<ICursorHost>();
             if (host == null) return;
 
-            _dependencies.SetDependenciesOfType(user);
+            _dependencies.SetValue(user);
             _dependencies.Resolve(_strategy);
 
             if (_strategy.TryGetCursorIcon(out var icon)) {

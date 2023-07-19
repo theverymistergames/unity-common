@@ -14,12 +14,14 @@ namespace MisterGames.Interact.Interactives {
 
         private IInteractive _interactive;
 
-        public void OnAddDependencies(IDependencyContainer container) {
-            container.AddDependency<IInteractive>(this);
+        public void OnSetupDependencies(IDependencyContainer container) {
+            container.CreateBucket(this)
+                .Add<IInteractive>();
         }
 
         public void OnResolveDependencies(IDependencyResolver resolver) {
-            _interactive = resolver.ResolveDependency<IInteractive>();
+            resolver
+                .Resolve(out _interactive);
         }
     }
 

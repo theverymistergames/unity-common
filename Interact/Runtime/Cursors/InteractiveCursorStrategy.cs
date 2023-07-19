@@ -18,9 +18,9 @@ namespace MisterGames.Interact.Cursors {
             [SerializeReference] [SubclassSelector] public ICondition constraint;
         }
 
-        public void OnAddDependencies(IDependencyContainer container) {
+        public void OnSetupDependencies(IDependencyContainer container) {
             for (int i = 0; i < _cases.Length; i++) {
-                if (_cases[i].constraint is IDependency dep) dep.OnAddDependencies(container);
+                if (_cases[i].constraint is IDependency dep) dep.OnSetupDependencies(container);
             }
         }
 

@@ -15,20 +15,22 @@ namespace MisterGames.Interact.Interactives {
         [SerializeReference] [SubclassSelector] private ICondition _continueConstraint;
 
         private IInteractive _interactive;
-        private IInteractiveUser _userDependency;
+        private IInteractiveUser _user;
 
-        public void OnAddDependencies(IDependencyContainer container) {
-            container.AddDependency<IInteractive>(this);
-            container.AddDependency<IInteractiveUser>(this);
+        public void OnSetupDependencies(IDependencyContainer container) {
+            container.CreateBucket(this)
+                .Add<IInteractive>()
+                .Add<IInteractiveUser>();
 
-            if (_readyConstraint is IDependency r) r.OnAddDependencies(container);
-            if (_startConstraint is IDependency s) s.OnAddDependencies(container);
-            if (_continueConstraint is IDependency c) c.OnAddDependencies(container);
+            if (_readyConstraint is IDependency r) r.OnSetupDependencies(container);
+            if (_startConstraint is IDependency s) s.OnSetupDependencies(container);
+            if (_continueConstraint is IDependency c) c.OnSetupDependencies(container);
         }
 
         public void OnResolveDependencies(IDependencyResolver resolver) {
-            _interactive = resolver.ResolveDependency<IInteractive>();
-            _userDependency = resolver.ResolveDependency<IInteractiveUser>();
+            resolver
+                .Resolve(out _interactive)
+                .Resolve(out _user);
 
             if (_readyConstraint is IDependency r) r.OnResolveDependencies(resolver);
             if (_startConstraint is IDependency s) s.OnResolveDependencies(resolver);
@@ -48,7 +50,7 @@ namespace MisterGames.Interact.Interactives {
                 return _continueConstraint is { IsMatched: true };
             }
 
-            if (_interactive.TryGetInteractionStartTime(_userDependency, out int startTime) &&
+            if (_interactive.TryGetInteractionStartTime(_user, out int startTime) &&
                 startTime >= TimeSources.frameCount
             ) {
                 return true;

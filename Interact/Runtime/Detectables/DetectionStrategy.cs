@@ -11,9 +11,9 @@ namespace MisterGames.Interact.Detectables {
         [SerializeReference] [SubclassSelector] private ICondition _startConstraint;
         [SerializeReference] [SubclassSelector] private ICondition _continueConstraint;
 
-        public void OnAddDependencies(IDependencyContainer container) {
-            if (_startConstraint is IDependency s) s.OnAddDependencies(container);
-            if (_continueConstraint is IDependency c) c.OnAddDependencies(container);
+        public void OnSetupDependencies(IDependencyContainer container) {
+            if (_startConstraint is IDependency s) s.OnSetupDependencies(container);
+            if (_continueConstraint is IDependency c) c.OnSetupDependencies(container);
         }
 
         public void OnResolveDependencies(IDependencyResolver resolver) {

@@ -16,14 +16,16 @@ namespace MisterGames.Interact.Detectables {
         private IDetector _detector;
         private IDetectable _detectable;
 
-        public void OnAddDependencies(IDependencyContainer container) {
-            container.AddDependency<IDetector>(this);
-            container.AddDependency<IDetectable>(this);
+        public void OnSetupDependencies(IDependencyContainer container) {
+            container.CreateBucket(this)
+                .Add<IDetector>()
+                .Add<IDetectable>();
         }
 
         public void OnResolveDependencies(IDependencyResolver resolver) {
-            _detector = resolver.ResolveDependency<IDetector>();
-            _detectable = resolver.ResolveDependency<IDetectable>();
+            resolver
+                .Resolve(out _detector)
+                .Resolve(out _detectable);
         }
     }
 

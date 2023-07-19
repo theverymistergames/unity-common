@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using MisterGames.Common.Attributes;
 using MisterGames.Common.Dependencies;
 using MisterGames.Dbg.Draw;
 using UnityEngine;
@@ -8,6 +9,7 @@ namespace MisterGames.Interact.Detectables {
 
     public sealed class Detectable : MonoBehaviour, IDetectable {
 
+        [EmbeddedInspector]
         [SerializeField] private DetectionStrategy _strategy;
 
         [RuntimeDependency(typeof(IDetectable))]
@@ -25,7 +27,7 @@ namespace MisterGames.Interact.Detectables {
         private readonly List<IDetector> _observers = new List<IDetector>();
 
         private void Awake() {
-            _dependencies.SetDependenciesOfType<IDetectable>(this);
+            _dependencies.SetValue<IDetectable>(this);
             Transform = transform;
         }
 
@@ -38,14 +40,14 @@ namespace MisterGames.Interact.Detectables {
         }
 
         public bool IsAllowedToStartDetectBy(IDetector detector) {
-            _dependencies.SetDependenciesOfType(detector);
+            _dependencies.SetValue(detector);
             _dependencies.Resolve(_strategy);
 
             return enabled && _strategy.IsAllowedToStartDetection();
         }
 
         public bool IsAllowedToContinueDetectBy(IDetector detector) {
-            _dependencies.SetDependenciesOfType(detector);
+            _dependencies.SetValue(detector);
             _dependencies.Resolve(_strategy);
 
             return enabled && _strategy.IsAllowedToContinueDetection();

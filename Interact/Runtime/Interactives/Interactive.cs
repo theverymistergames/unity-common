@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using MisterGames.Common.Attributes;
 using MisterGames.Common.Dependencies;
 using MisterGames.Tick.Core;
 using UnityEngine;
@@ -8,6 +9,7 @@ namespace MisterGames.Interact.Interactives {
 
     public sealed class Interactive : MonoBehaviour, IInteractive {
 
+        [EmbeddedInspector]
         [SerializeField] private InteractionStrategy _strategy;
 
         [RuntimeDependency(typeof(IInteractive))]
@@ -38,7 +40,7 @@ namespace MisterGames.Interact.Interactives {
 
         private void Awake() {
             Transform = transform;
-            _dependencies.SetDependenciesOfType<IInteractive>(this);
+            _dependencies.SetValue<IInteractive>(this);
         }
 
         private void OnDisable() {
@@ -60,21 +62,21 @@ namespace MisterGames.Interact.Interactives {
         }
 
         public bool IsReadyToStartInteractWith(IInteractiveUser user) {
-            _dependencies.SetDependenciesOfType(user);
+            _dependencies.SetValue(user);
             _dependencies.Resolve(_strategy);
 
             return enabled && _strategy.IsReadyToStartInteraction();
         }
 
         public bool IsAllowedToStartInteractWith(IInteractiveUser user) {
-            _dependencies.SetDependenciesOfType(user);
+            _dependencies.SetValue(user);
             _dependencies.Resolve(_strategy);
 
             return enabled && _strategy.IsAllowedToStartInteraction();
         }
 
         public bool IsAllowedToContinueInteractWith(IInteractiveUser user) {
-            _dependencies.SetDependenciesOfType(user);
+            _dependencies.SetValue(user);
             _dependencies.Resolve(_strategy);
 
             return enabled && _strategy.IsAllowedToContinueInteraction();
