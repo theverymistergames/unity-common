@@ -16,13 +16,14 @@ namespace MisterGames.Character.View {
 
         private CharacterProcessorQuaternionSmoothing _smoothing;
 
-        public void OnAddDependencies(IDependencyContainer container) {
-            container.AddDependency<CharacterAccess>(this);
+        public void OnSetupDependencies(IDependencyContainer container) {
+            container.CreateBucket(this)
+                .Add<ICharacterAccess>();
         }
 
         public void OnResolveDependencies(IDependencyResolver resolver) {
             _smoothing = resolver
-                .ResolveDependency<CharacterAccess>()
+                .Resolve<ICharacterAccess>()
                 .GetPipeline<ICharacterViewPipeline>()
                 .GetProcessor<CharacterProcessorQuaternionSmoothing>();
         }

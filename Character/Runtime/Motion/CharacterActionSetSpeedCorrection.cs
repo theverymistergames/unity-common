@@ -16,13 +16,14 @@ namespace MisterGames.Character.Motion {
 
         private CharacterProcessorBackSideSpeedCorrection _correction;
 
-        public void OnAddDependencies(IDependencyContainer container) {
-            container.AddDependency<CharacterAccess>(this);
+        public void OnSetupDependencies(IDependencyContainer container) {
+            container.CreateBucket(this)
+                .Add<ICharacterAccess>();
         }
 
         public void OnResolveDependencies(IDependencyResolver resolver) {
             _correction = resolver
-                .ResolveDependency<CharacterAccess>()
+                .Resolve<ICharacterAccess>()
                 .GetPipeline<ICharacterMotionPipeline>()
                 .GetProcessor<CharacterProcessorBackSideSpeedCorrection>();
         }

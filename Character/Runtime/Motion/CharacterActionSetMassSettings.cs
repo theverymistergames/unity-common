@@ -21,13 +21,14 @@ namespace MisterGames.Character.Motion {
 
         private CharacterProcessorMass _mass;
         
-        public void OnAddDependencies(IDependencyContainer container) {
-            container.AddDependency<CharacterAccess>(this);
+        public void OnSetupDependencies(IDependencyContainer container) {
+            container.CreateBucket(this)
+                .Add<ICharacterAccess>();
         }
 
         public void OnResolveDependencies(IDependencyResolver resolver) {
             _mass = resolver
-                .ResolveDependency<CharacterAccess>()
+                .Resolve<ICharacterAccess>()
                 .GetPipeline<ICharacterMotionPipeline>()
                 .GetProcessor<CharacterProcessorMass>();
         }

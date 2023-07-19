@@ -18,7 +18,7 @@ namespace MisterGames.Character.Startup {
         private CancellationTokenSource _enableCts;
 
         private void Awake() {
-            _dependencies.SetDependenciesOfType(_characterAccess);
+            _dependencies.SetValue(_characterAccess);
             _dependencies.Resolve(_startupActions);
         }
 
@@ -36,11 +36,7 @@ namespace MisterGames.Character.Startup {
 
         private async void Start() {
             for (int i = 0; i < _startupActions.Length; i++) {
-                var action = _startupActions[i];
-
-                action.Initialize();
-                await action.Apply(this, _enableCts.Token);
-                action.DeInitialize();
+                await _startupActions[i].Apply(this, _enableCts.Token);
             }
         }
     }

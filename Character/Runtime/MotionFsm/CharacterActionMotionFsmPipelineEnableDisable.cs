@@ -14,13 +14,14 @@ namespace MisterGames.Character.MotionFsm {
 
         private ICharacterMotionFsmPipeline _motionFsm;
 
-        public void OnAddDependencies(IDependencyContainer container) {
-            container.AddDependency<CharacterAccess>(this);
+        public void OnSetupDependencies(IDependencyContainer container) {
+            container.CreateBucket(this)
+                .Add<ICharacterAccess>();
         }
 
         public void OnResolveDependencies(IDependencyResolver resolver) {
             _motionFsm = resolver
-                .ResolveDependency<CharacterAccess>()
+                .Resolve<ICharacterAccess>()
                 .GetPipeline<ICharacterMotionFsmPipeline>();
         }
 

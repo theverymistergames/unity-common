@@ -20,12 +20,13 @@ namespace MisterGames.Character.Input {
         private ICharacterInputPipeline _input;
         private ICharacterMotionPipeline _motion;
 
-        public void OnAddDependencies(IDependencyContainer container) {
-            container.AddDependency<CharacterAccess>(this);
+        public void OnSetupDependencies(IDependencyContainer container) {
+            container.CreateBucket(this)
+                .Add<ICharacterAccess>();
         }
 
         public void OnResolveDependencies(IDependencyResolver resolver) {
-            var characterAccess = resolver.ResolveDependency<CharacterAccess>();
+            var characterAccess = resolver.Resolve<ICharacterAccess>();
 
             _input = characterAccess.GetPipeline<ICharacterInputPipeline>();
             _motion = characterAccess.GetPipeline<ICharacterMotionPipeline>();

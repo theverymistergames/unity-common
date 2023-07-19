@@ -17,13 +17,14 @@ namespace MisterGames.Character.View {
 
         private CharacterProcessorVector2Sensitivity _sensitivity;
 
-        public void OnAddDependencies(IDependencyContainer container) {
-            container.AddDependency<CharacterAccess>(this);
+        public void OnSetupDependencies(IDependencyContainer container) {
+            container.CreateBucket(this)
+                .Add<ICharacterAccess>();
         }
 
         public void OnResolveDependencies(IDependencyResolver resolver) {
             _sensitivity = resolver
-                .ResolveDependency<CharacterAccess>()
+                .Resolve<ICharacterAccess>()
                 .GetPipeline<ICharacterViewPipeline>()
                 .GetProcessor<CharacterProcessorVector2Sensitivity>();
         }

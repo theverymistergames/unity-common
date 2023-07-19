@@ -16,13 +16,14 @@ namespace MisterGames.Character.Height {
         private ICharacterHeightPipeline _heightPipeline;
         private ITransitionCallback _callback;
 
-        public void OnAddDependencies(IDependencyContainer container) {
-            container.AddDependency<CharacterAccess>(this);
+        public void OnSetupDependencies(IDependencyContainer container) {
+            container.CreateBucket(this)
+                .Add<ICharacterAccess>();
         }
 
         public void OnResolveDependencies(IDependencyResolver resolver) {
             _heightPipeline = resolver
-                .ResolveDependency<CharacterAccess>()
+                .Resolve<ICharacterAccess>()
                 .GetPipeline<ICharacterHeightPipeline>();
         }
 
