@@ -8,8 +8,11 @@ using Object = UnityEngine.Object;
 namespace MisterGames.Common.Dependencies {
 
     [Serializable]
-    public sealed class DependencyResolver : IDependencyResolver, IDependencyContainer, IDependencyOverride {
-
+    public sealed class DependencyResolver :
+        IDependencyResolver,
+        IDependencyContainer,
+        IDependencyOverride
+    {
         [SerializeField] private RuntimeResolveMode _mode;
         [SerializeField] private RuntimeDependencyResolver _sharedDependencies;
 
@@ -164,7 +167,7 @@ namespace MisterGames.Common.Dependencies {
             }
         }
 
-        public IDependencyContainer Register(object source) {
+        public IDependencyContainer CreateBucket(object source) {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (!ValidateDependencyBucketSource(source)) return this;
 #endif
@@ -236,18 +239,25 @@ namespace MisterGames.Common.Dependencies {
             return this;
         }
 
-        public T Resolve<T>() where T : class {
+        public IDependencyResolver Resolve<T>(out T dependency) where T : class {
+            int index = _dependenciesCount++;
+
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (!ValidateResolvedDependency<T>(_dependenciesCount)) return default;
+            if (!ValidateResolvedDependency<T>(index)) {
+                dependency = default;
+                return this;
+            }
 #endif
 
             if (TryResolve<T>(out var overridenValue)) {
-                _dependenciesCount++;
-                return overridenValue;
+                dependency = overridenValue;
+            }
+            else {
+                var pointer = _dependencyPointers[index];
+                dependency = GetElement<T>(pointer.list, pointer.index);
             }
 
-            var pointer = _dependencyPointers[_dependenciesCount++];
-            return GetElement<T>(pointer.list, pointer.index);
+            return this;
         }
 
         private T GetElement<T>(int list, int index) where T : class {
