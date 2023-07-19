@@ -11,13 +11,13 @@ namespace MisterGames.Common.Conditions {
 
         [SerializeReference] [SubclassSelector] public ICondition[] conditions;
 
-        public bool IsMatched => CheckCondition();
+        public bool IsMatched => CheckMatch();
 
         private ITransitionCallback _externalCallback;
 
-        public void OnAddDependencies(IDependencyContainer container) {
+        public void OnSetupDependencies(IDependencyContainer container) {
             for (int i = 0; i < conditions.Length; i++) {
-                if (conditions[i] is IDependency dep) dep.OnAddDependencies(container);
+                if (conditions[i] is IDependency dep) dep.OnSetupDependencies(container);
             }
         }
 
@@ -47,7 +47,7 @@ namespace MisterGames.Common.Conditions {
             if (IsMatched) _externalCallback?.OnTransitionMatch(this);
         }
 
-        private bool CheckCondition() {
+        private bool CheckMatch() {
             for (int i = 0; i < conditions.Length; i++) {
                 if (!conditions[i].IsMatched) return false;
             }

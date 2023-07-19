@@ -14,9 +14,9 @@ namespace MisterGames.Common.Actions {
 
         private UniTask[] _tasks;
 
-        public void OnAddDependencies(IDependencyContainer container) {
+        public void OnSetupDependencies(IDependencyContainer container) {
             for (int i = 0; i < actions.Length; i++) {
-                if (actions[i] is IDependency dep) dep.OnAddDependencies(container);
+                if (actions[i] is IDependency dep) dep.OnSetupDependencies(container);
             }
         }
 
@@ -26,22 +26,12 @@ namespace MisterGames.Common.Actions {
             }
         }
 
-        public void Initialize() {
-            int actionsCount = actions.Length;
-            _tasks = actionsCount > 0 ? new UniTask[actionsCount] : Array.Empty<UniTask>();
-
-            for (int i = 0; i < actionsCount; i++) {
-                actions[i].Initialize();
-            }
-        }
-
-        public void DeInitialize() {
-            for (int i = 0; i < actions.Length; i++) {
-                actions[i].DeInitialize();
-            }
-        }
-
         public UniTask Apply(object source, CancellationToken cancellationToken = default) {
+            if (_tasks == null) {
+                int actionsCount = actions.Length;
+                _tasks = actionsCount > 0 ? new UniTask[actionsCount] : Array.Empty<UniTask>();
+            }
+
             for (int i = 0; i < _tasks.Length; i++) {
                 _tasks[i] = actions[i].Apply(source, cancellationToken);
             }

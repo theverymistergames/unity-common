@@ -21,6 +21,8 @@ namespace MisterGames.Common.Editor.Attributes.ReadOnly {
         private static readonly GUIContent LabelSharedResolve = new GUIContent("Resolved in shared dependencies");
         private static readonly GUIContent LabelHeaderSerializedResolve = new GUIContent("Serialized Resolve");
 
+        private readonly HashSet<Type> _internalRuntimeOverridenTypesCache = new HashSet<Type>();
+
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
             EditorGUI.BeginProperty(position, label, property);
 
@@ -55,13 +57,14 @@ namespace MisterGames.Common.Editor.Attributes.ReadOnly {
             EditorGUI.PropertyField(rect, modeProperty);
 
             HashSet<Type> allRuntimeOverridenTypes = null;
-            var internalRuntimeOverridenTypes = new HashSet<Type>();
+            _internalRuntimeOverridenTypesCache.Clear();
+
             var attrs = fieldInfo.GetCustomAttributes<RuntimeDependencyAttribute>().ToArray();
             for (int i = 0; i < attrs.Length; i++) {
-                internalRuntimeOverridenTypes.Add(attrs[i].type);
+                _internalRuntimeOverridenTypesCache.Add(attrs[i].type);
             }
 
-            // Runtime Resolve: check if mode is shared, if true - draw shared dependencies property
+            // Runtime Resolve: check if mode is shared (enum == 1), if true - draw shared dependencies property
             if (modeProperty.enumValueIndex == 1) {
                 rect = new Rect(position.x, y, position.width, EditorGUIUtility.singleLineHeight);
                 y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
@@ -70,7 +73,7 @@ namespace MisterGames.Common.Editor.Attributes.ReadOnly {
                 EditorGUI.PropertyField(rect, sharedDependenciesProperty);
 
                 if (sharedDependenciesProperty.objectReferenceValue is RuntimeDependencyResolver runtimeDependencies) {
-                    foreach (var type in internalRuntimeOverridenTypes) {
+                    foreach (var type in _internalRuntimeOverridenTypesCache) {
                         runtimeDependencies.overridenTypes.Add(type);
                     }
                     allRuntimeOverridenTypes = runtimeDependencies.overridenTypes;
@@ -78,18 +81,18 @@ namespace MisterGames.Common.Editor.Attributes.ReadOnly {
             }
 
             // Runtime Resolve: if has internally resolved dependencies - draw label and list in help box
-            if (internalRuntimeOverridenTypes.Count > 0) {
+            if (_internalRuntimeOverridenTypesCache.Count > 0) {
                 rect = new Rect(position.x - 1f, y, position.width, EditorGUIUtility.singleLineHeight);
                 y += EditorGUIUtility.singleLineHeight;
 
                 EditorGUI.LabelField(rect, LabelInternalResolve);
 
                 var sb = new StringBuilder();
-                foreach (var type in internalRuntimeOverridenTypes) {
+                foreach (var type in _internalRuntimeOverridenTypesCache) {
                     sb.AppendLine($"- {TypeNameFormatter.GetTypeName(type)}");
                 }
 
-                float h = Mathf.Max(EditorGUIUtility.singleLineHeight, internalRuntimeOverridenTypes.Count * EditorGUIUtility.singleLineHeight * 0.8f);
+                float h = Mathf.Max(EditorGUIUtility.singleLineHeight, _internalRuntimeOverridenTypesCache.Count * EditorGUIUtility.singleLineHeight * 0.8f);
                 rect = new Rect(position.x, y, position.width, h);
                 y += h + EditorGUIUtility.standardVerticalSpacing;
 
@@ -102,7 +105,7 @@ namespace MisterGames.Common.Editor.Attributes.ReadOnly {
                 int addExternalRuntimeOverridenTypesCount = 0;
 
                 foreach (var type in allRuntimeOverridenTypes) {
-                    if (internalRuntimeOverridenTypes.Contains(type)) continue;
+                    if (_internalRuntimeOverridenTypesCache.Contains(type)) continue;
 
                     sb ??= new StringBuilder();
                     sb.AppendLine($"- {TypeNameFormatter.GetTypeName(type)}");
@@ -124,8 +127,11 @@ namespace MisterGames.Common.Editor.Attributes.ReadOnly {
                 }
             }
 
-            var properties = GetProperties(property);
-            if (properties.Count > 0) {
+            // Buckets
+            var bucketsProperty = property.FindPropertyRelative("_buckets");
+            int bucketsCount = bucketsProperty.arraySize;
+
+            if (bucketsCount > 0) {
                 // Space between Runtime Resolve and Serialized Resolve sections
                 y += EditorGUIUtility.standardVerticalSpacing * 6f;
 
@@ -136,57 +142,66 @@ namespace MisterGames.Common.Editor.Attributes.ReadOnly {
                 EditorGUI.LabelField(rect, LabelHeaderSerializedResolve, EditorStyles.boldLabel);
             }
 
-            // Serialized Resolve: dependencies in categories
-            bool hasAtLeastOneCategory = false;
-            string category = null;
+            var unityObjectsProperty = property.FindPropertyRelative("_unityObjects");
+            var objectsProperty = property.FindPropertyRelative("_objects");
 
-            for (int i = 0; i < properties.Count; i++) {
-                var propertyData = properties[i];
+            var depMetasProperty = property.FindPropertyRelative("_dependencyMetas");
+            var depPointersProperty = property.FindPropertyRelative("_dependencyPointers");
 
-                var serializedProperty = propertyData.property;
-                if (serializedProperty == null) {
-                    y += EditorGUIUtility.singleLineHeight;
-                    continue;
+            for (int i = 0; i < bucketsCount; i++) {
+                var bucketProperty = bucketsProperty.GetArrayElementAtIndex(i);
+
+                int count = bucketProperty.FindPropertyRelative("count").intValue;
+                int offset = bucketProperty.FindPropertyRelative("offset").intValue;
+                string name = bucketProperty.FindPropertyRelative("name").stringValue;
+
+                // Bucket header
+                rect = new Rect(position.x - 1f, y, position.width, EditorGUIUtility.singleLineHeight);
+                y += EditorGUIUtility.singleLineHeight;
+                EditorGUI.LabelField(rect, name, EditorStyles.miniLabel);
+
+                // Bucket deps
+                for (int d = offset; d < count; d++) {
+                    var depMetaProperty = depMetasProperty.GetArrayElementAtIndex(d);
+                    var depPointerProperty = depPointersProperty.GetArrayElementAtIndex(d);
+
+                    var type = SerializedType.DeserializeType(depMetaProperty.FindPropertyRelative("type._type").stringValue);
+
+                    bool isOverriden = (allRuntimeOverridenTypes ?? _internalRuntimeOverridenTypesCache).Contains(type);
+                    var depLabel = new GUIContent(TypeNameFormatter.GetTypeName(type));
+
+                    int list = depPointerProperty.FindPropertyRelative("list").intValue;
+                    int index = depPointerProperty.FindPropertyRelative("index").intValue;
+
+                    var serializedProperty = list switch {
+                        0 => unityObjectsProperty.GetArrayElementAtIndex(index),
+                        1 => objectsProperty.GetArrayElementAtIndex(index),
+                        _ => default,
+                    };
+
+                    float propertyHeight = GetDependencyPropertyHeight(
+                        serializedProperty,
+                        type,
+                        depLabel,
+                        isOverriden,
+                        includeChildren: true
+                    );
+
+                    rect = new Rect(position.x, y, position.width, propertyHeight);
+                    y += propertyHeight;
+
+                    DrawDependencyProperty(
+                        rect,
+                        serializedProperty,
+                        type,
+                        depLabel,
+                        isOverriden,
+                        includeChildren: true
+                    );
                 }
 
-                if (propertyData.category != category || !hasAtLeastOneCategory) {
-                    if (hasAtLeastOneCategory) {
-                        y += EditorGUIUtility.standardVerticalSpacing * 2f;
-                    }
-                    else {
-                        hasAtLeastOneCategory = true;
-                    }
-
-                    category = propertyData.category;
-
-                    rect = new Rect(position.x - 1f, y, position.width, EditorGUIUtility.singleLineHeight);
-                    y += EditorGUIUtility.singleLineHeight;
-
-                    EditorGUI.LabelField(rect, category, EditorStyles.miniLabel);
-                }
-
-                bool isOverriden = (allRuntimeOverridenTypes ?? internalRuntimeOverridenTypes).Contains(propertyData.type);
-                var propertyLabel = new GUIContent(propertyData.name);
-
-                float propertyHeight = GetDependencyPropertyHeight(
-                    serializedProperty,
-                    propertyData.type,
-                    propertyLabel,
-                    isOverriden,
-                    includeChildren: true
-                );
-
-                rect = new Rect(position.x, y, position.width, propertyHeight);
-                y += propertyHeight;
-
-                DrawDependencyProperty(
-                    rect,
-                    serializedProperty,
-                    propertyData.type,
-                    propertyLabel,
-                    isOverriden,
-                    includeChildren: true
-                );
+                // Bucket bottom space
+                y += EditorGUIUtility.standardVerticalSpacing * 2f;
             }
 
             property.serializedObject.ApplyModifiedProperties();
@@ -261,10 +276,11 @@ namespace MisterGames.Common.Editor.Attributes.ReadOnly {
             height += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
 
             HashSet<Type> allRuntimeOverridenTypes = null;
-            var internalRuntimeOverridenTypes = new HashSet<Type>();
+            _internalRuntimeOverridenTypesCache.Clear();
+
             var attrs = fieldInfo.GetCustomAttributes<RuntimeDependencyAttribute>().ToArray();
             for (int i = 0; i < attrs.Length; i++) {
-                internalRuntimeOverridenTypes.Add(attrs[i].type);
+                _internalRuntimeOverridenTypesCache.Add(attrs[i].type);
             }
 
             // Runtime Resolve: check if mode is shared, if true - draw shared dependencies property
@@ -278,9 +294,9 @@ namespace MisterGames.Common.Editor.Attributes.ReadOnly {
             }
 
             // Runtime Resolve: if has internally resolved dependencies - draw label and list in help box
-            if (internalRuntimeOverridenTypes.Count > 0) {
+            if (_internalRuntimeOverridenTypesCache.Count > 0) {
                 height += EditorGUIUtility.singleLineHeight;
-                height += Mathf.Max(EditorGUIUtility.singleLineHeight, internalRuntimeOverridenTypes.Count * EditorGUIUtility.singleLineHeight * 0.8f);
+                height += Mathf.Max(EditorGUIUtility.singleLineHeight, _internalRuntimeOverridenTypesCache.Count * EditorGUIUtility.singleLineHeight * 0.8f);
                 height += EditorGUIUtility.standardVerticalSpacing;
             }
 
@@ -289,7 +305,7 @@ namespace MisterGames.Common.Editor.Attributes.ReadOnly {
                 int addExternalRuntimeOverridenTypesCount = 0;
 
                 foreach (var type in allRuntimeOverridenTypes) {
-                    if (internalRuntimeOverridenTypes.Contains(type)) continue;
+                    if (_internalRuntimeOverridenTypesCache.Contains(type)) continue;
                     addExternalRuntimeOverridenTypesCount++;
                 }
 
@@ -300,8 +316,11 @@ namespace MisterGames.Common.Editor.Attributes.ReadOnly {
                 }
             }
 
-            var properties = GetProperties(property);
-            if (properties.Count > 0) {
+            // Buckets
+            var bucketsProperty = property.FindPropertyRelative("_buckets");
+            int bucketsCount = bucketsProperty.arraySize;
+
+            if (bucketsCount > 0) {
                 // Space between Runtime Resolve and Serialized Resolve sections
                 height += EditorGUIUtility.standardVerticalSpacing * 6f;
 
@@ -309,81 +328,56 @@ namespace MisterGames.Common.Editor.Attributes.ReadOnly {
                 height += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
             }
 
-            // Serialized Resolve: dependencies in categories
-            bool hasAtLeastOneCategory = false;
-            string category = null;
+            var unityObjectsProperty = property.FindPropertyRelative("_unityObjects");
+            var objectsProperty = property.FindPropertyRelative("_objects");
 
-            for (int i = 0; i < properties.Count; i++) {
-                var propertyData = properties[i];
+            var depMetasProperty = property.FindPropertyRelative("_dependencyMetas");
+            var depPointersProperty = property.FindPropertyRelative("_dependencyPointers");
 
-                var serializedProperty = propertyData.property;
-                if (serializedProperty == null) {
-                    height += EditorGUIUtility.singleLineHeight;
-                    continue;
+            for (int i = 0; i < bucketsCount; i++) {
+                var bucketProperty = bucketsProperty.GetArrayElementAtIndex(i);
+
+                int count = bucketProperty.FindPropertyRelative("count").intValue;
+                int offset = bucketProperty.FindPropertyRelative("offset").intValue;
+
+                // Bucket header
+                height += EditorGUIUtility.singleLineHeight;
+
+                // Bucket deps
+                for (int d = offset; d < count; d++) {
+                    var depMetaProperty = depMetasProperty.GetArrayElementAtIndex(d);
+                    var depPointerProperty = depPointersProperty.GetArrayElementAtIndex(d);
+
+                    var type = SerializedType.DeserializeType(depMetaProperty.FindPropertyRelative("type._type").stringValue);
+
+                    bool isOverriden = (allRuntimeOverridenTypes ?? _internalRuntimeOverridenTypesCache).Contains(type);
+                    var depLabel = new GUIContent(TypeNameFormatter.GetTypeName(type));
+
+                    int list = depPointerProperty.FindPropertyRelative("list").intValue;
+                    int index = depPointerProperty.FindPropertyRelative("index").intValue;
+
+                    var serializedProperty = list switch {
+                        0 => unityObjectsProperty.GetArrayElementAtIndex(index),
+                        1 => objectsProperty.GetArrayElementAtIndex(index),
+                        _ => default,
+                    };
+
+                    float propertyHeight = GetDependencyPropertyHeight(
+                        serializedProperty,
+                        type,
+                        depLabel,
+                        isOverriden,
+                        includeChildren: true
+                    );
+
+                    height += propertyHeight;
                 }
 
-                if (propertyData.category != category || !hasAtLeastOneCategory) {
-                    if (hasAtLeastOneCategory) {
-                        height += EditorGUIUtility.standardVerticalSpacing * 2f;
-                    }
-                    else {
-                        hasAtLeastOneCategory = true;
-                    }
-
-                    category = propertyData.category;
-                    height += EditorGUIUtility.singleLineHeight;
-                }
-
-                float propertyHeight = GetDependencyPropertyHeight(
-                    serializedProperty,
-                    propertyData.type,
-                    label,
-                    isOverriden: (allRuntimeOverridenTypes ?? internalRuntimeOverridenTypes).Contains(propertyData.type),
-                    includeChildren: true
-                );
-
-                height += propertyHeight;
+                // Bucket bottom space
+                height += EditorGUIUtility.standardVerticalSpacing * 2f;
             }
-
-            height += EditorGUIUtility.standardVerticalSpacing * 2f;
 
             return height;
-        }
-
-        private static List<SerializedDependencyProperty> GetProperties(SerializedProperty dependencyResolverProperty) {
-            var metaList = dependencyResolverProperty.FindPropertyRelative("_dependencyMetaList");
-            int count = metaList.arraySize;
-
-            var result = new List<SerializedDependencyProperty>(count);
-
-            for (int i = 0; i < count; i++) {
-                var meta = metaList.GetArrayElementAtIndex(i);
-                var serializedDependencyProperty = CreateSerializedDependencyProperty(dependencyResolverProperty, meta);
-
-                result.Add(serializedDependencyProperty);
-            }
-
-            return result;
-        }
-
-        private static SerializedDependencyProperty CreateSerializedDependencyProperty(
-            SerializedProperty dependencyResolver,
-            SerializedProperty dependencyMeta
-        ) {
-            string name = dependencyMeta.FindPropertyRelative("name").stringValue;
-            string category = dependencyMeta.FindPropertyRelative("category").stringValue;
-            var type = SerializedType.DeserializeType(dependencyMeta.FindPropertyRelative("type._type").stringValue);
-
-            int listIndex = dependencyMeta.FindPropertyRelative("listIndex").intValue;
-            int elementIndex = dependencyMeta.FindPropertyRelative("elementIndex").intValue;
-
-            var property = listIndex switch {
-                0 => dependencyResolver.FindPropertyRelative("_unityObjects").GetArrayElementAtIndex(elementIndex),
-                1 => dependencyResolver.FindPropertyRelative("_objects").GetArrayElementAtIndex(elementIndex),
-                _ => default,
-            };
-
-            return new SerializedDependencyProperty(property, name, category, type);
         }
     }
 

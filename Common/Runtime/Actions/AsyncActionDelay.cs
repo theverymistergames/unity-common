@@ -12,10 +12,6 @@ namespace MisterGames.Common.Actions {
         [Min(0f)] public float duration;
         [Min(0f)] public float randomAdditionMax;
 
-        public void Initialize() { }
-
-        public void DeInitialize() { }
-
         public async UniTask Apply(object source, CancellationToken cancellationToken = default) {
             float d = Mathf.Max(0f, duration + Random.Range(-randomAdditionMax, randomAdditionMax));
             await UniTask

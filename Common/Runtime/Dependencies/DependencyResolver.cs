@@ -13,89 +13,127 @@ namespace MisterGames.Common.Dependencies {
         [SerializeField] private RuntimeResolveMode _mode;
         [SerializeField] private RuntimeDependencyResolver _sharedDependencies;
 
-        [SerializeField] private List<DependencyMeta> _dependencyMetaList;
-        [SerializeField] private List<Object> _unityObjects;
+        [SerializeField] private List<DependencyBucket> _buckets;
+        [SerializeField] private List<DependencyPointer> _dependencyPointers;
+        [SerializeField] private List<DependencyMeta> _dependencyMetas;
+
         [SerializeReference] private List<object> _objects;
+        [SerializeField] private List<Object> _unityObjects;
+
+        private readonly Dictionary<Type, object> _typeOverrides = new Dictionary<Type, object>();
+
+        private int _bucketsCount;
+        private int _dependenciesCount;
+        private int _unityObjectsCount;
+        private int _objectsCount;
 
         private enum RuntimeResolveMode {
             Internal,
             Shared,
         }
 
-        private readonly Dictionary<Type, object> _dependenciesByType = new Dictionary<Type, object>();
+        [Serializable]
+        private struct DependencyMeta {
+            public SerializedType type;
+        }
 
-        private int _iteratorMeta;
-        private int _iteratorUnityObjects;
-        private int _iteratorObjects;
+        [Serializable]
+        private struct DependencyPointer {
+            public int list;
+            public int index;
+        }
+
+        [Serializable]
+        private struct DependencyBucket {
+            public string name;
+            public int offset;
+            public int count;
+        }
 
         public void Fetch(IDependency dependency) {
-            _iteratorMeta = 0;
-            _iteratorUnityObjects = 0;
-            _iteratorObjects = 0;
+            _bucketsCount = 0;
+            _dependenciesCount = 0;
+            _unityObjectsCount = 0;
+            _objectsCount = 0;
 
-            _dependencyMetaList ??= new List<DependencyMeta>();
+            _buckets ??= new List<DependencyBucket>();
+            _dependencyMetas ??= new List<DependencyMeta>();
+            _dependencyPointers ??= new List<DependencyPointer>();
             _unityObjects ??= new List<Object>();
             _objects ??= new List<object>();
 
-            dependency?.OnAddDependencies(this);
+            dependency?.OnSetupDependencies(this);
 
-            for (int i = _dependencyMetaList.Count - 1; i >= _iteratorMeta; i--) {
-                _dependencyMetaList.RemoveAt(i);
+            for (int i = _dependencyMetas.Count - 1; i >= _dependenciesCount; i--) {
+                _dependencyMetas.RemoveAt(i);
+                _dependencyPointers.RemoveAt(i);
             }
 
-            for (int i = _unityObjects.Count - 1; i >= _iteratorUnityObjects; i--) {
+            for (int i = _unityObjects.Count - 1; i >= _unityObjectsCount; i--) {
                 _unityObjects.RemoveAt(i);
             }
 
-            for (int i = _objects.Count - 1; i >= _iteratorObjects; i--) {
+            for (int i = _objects.Count - 1; i >= _objectsCount; i--) {
                 _objects.RemoveAt(i);
+            }
+
+            for (int i = _buckets.Count - 1; i >= _bucketsCount; i--) {
+                _buckets.RemoveAt(i);
             }
         }
 
         public void Fetch(IReadOnlyList<IDependency> dependencies) {
-            _iteratorMeta = 0;
-            _iteratorUnityObjects = 0;
-            _iteratorObjects = 0;
+            _bucketsCount = 0;
+            _dependenciesCount = 0;
+            _unityObjectsCount = 0;
+            _objectsCount = 0;
 
-            _dependencyMetaList ??= new List<DependencyMeta>();
+            _buckets ??= new List<DependencyBucket>();
+            _dependencyMetas ??= new List<DependencyMeta>();
+            _dependencyPointers ??= new List<DependencyPointer>();
             _unityObjects ??= new List<Object>();
             _objects ??= new List<object>();
 
             if (dependencies != null) {
                 for (int i = 0; i < dependencies.Count; i++) {
-                    dependencies[i].OnAddDependencies(this);
+                    dependencies[i].OnSetupDependencies(this);
                 }
             }
 
-            for (int i = _dependencyMetaList.Count - 1; i >= _iteratorMeta; i--) {
-                _dependencyMetaList.RemoveAt(i);
+            for (int i = _dependencyMetas.Count - 1; i >= _dependenciesCount; i--) {
+                _dependencyMetas.RemoveAt(i);
+                _dependencyPointers.RemoveAt(i);
             }
 
-            for (int i = _unityObjects.Count - 1; i >= _iteratorUnityObjects; i--) {
+            for (int i = _unityObjects.Count - 1; i >= _unityObjectsCount; i--) {
                 _unityObjects.RemoveAt(i);
             }
 
-            for (int i = _objects.Count - 1; i >= _iteratorObjects; i--) {
+            for (int i = _objects.Count - 1; i >= _objectsCount; i--) {
                 _objects.RemoveAt(i);
+            }
+
+            for (int i = _buckets.Count - 1; i >= _bucketsCount; i--) {
+                _buckets.RemoveAt(i);
             }
         }
 
         public void Resolve(IDependency dependency) {
-            _iteratorMeta = 0;
+            _dependenciesCount = 0;
             dependency.OnResolveDependencies(this);
         }
 
         public void Resolve(IReadOnlyList<IDependency> dependencies) {
-            _iteratorMeta = 0;
+            _dependenciesCount = 0;
             for (int i = 0; i < dependencies.Count; i++) {
                 dependencies[i].OnResolveDependencies(this);
             }
         }
 
-        public bool TryResolveDependencyOverride<T>(out T value) {
+        public bool TryResolve<T>(out T value) where T : class {
             switch (_mode) {
                 case RuntimeResolveMode.Internal:
-                    if (_dependenciesByType.TryGetValue(typeof(T), out object v)) {
+                    if (_typeOverrides.TryGetValue(typeof(T), out object v)) {
                         value = v is T t ? t : default;
                         return true;
                     }
@@ -104,21 +142,21 @@ namespace MisterGames.Common.Dependencies {
                     return false;
 
                 case RuntimeResolveMode.Shared:
-                    return _sharedDependencies.TryResolveDependencyOverride(out value);
+                    return _sharedDependencies.TryResolve(out value);
 
                 default:
                     throw new NotSupportedException();
             }
         }
 
-        public void SetDependenciesOfType<T>(T value) where T : class {
+        public void OverrideDependenciesOfType<T>(T value) where T : class {
             switch (_mode) {
                 case RuntimeResolveMode.Internal:
-                    _dependenciesByType[typeof(T)] = value;
+                    _typeOverrides[typeof(T)] = value;
                     break;
 
                 case RuntimeResolveMode.Shared:
-                    _sharedDependencies.SetDependenciesOfType(value);
+                    _sharedDependencies.OverrideDependenciesOfType(value);
                     break;
 
                 default:
@@ -126,147 +164,199 @@ namespace MisterGames.Common.Dependencies {
             }
         }
 
-        public void AddDependency<T>(object source) {
+        public IDependencyContainer Register(object source) {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (!ValidateNewDependency(source, typeof(T))) return;
+            if (!ValidateDependencyBucketSource(source)) return this;
+#endif
+
+            var bucket = new DependencyBucket {
+                name = TypeNameFormatter.GetTypeName(source.GetType()),
+                offset = _dependenciesCount,
+                count = 0,
+            };
+
+            if (_buckets.Count > _bucketsCount) _buckets[_bucketsCount] = bucket;
+            else _buckets.Add(bucket);
+
+            _bucketsCount++;
+
+            return this;
+        }
+
+        public IDependencyContainer Add<T>() where T : class {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (!ValidateDependencyBucketCreated()) return this;
+            if (!ValidateDependencyType(typeof(T))) return this;
 #endif
 
             var type = typeof(T);
-            var meta = new DependencyMeta {
-                name = TypeNameFormatter.GetTypeName(type),
-                category = TypeNameFormatter.GetTypeName(source.GetType()),
-                type = new SerializedType(type)
-            };
+            var meta = new DependencyMeta { type = new SerializedType(type) };
+            var pointer = new DependencyPointer();
 
             if (typeof(Object).IsAssignableFrom(type)) {
-                if (_iteratorUnityObjects >= _unityObjects.Count) {
-                    for (int i = _unityObjects.Count; i <= _iteratorUnityObjects; i++) {
-                        _unityObjects.Add(default);
-                    }
+                for (int i = _unityObjects.Count; i <= _unityObjectsCount; i++) {
+                    _unityObjects.Add(default);
                 }
 
-                meta.listIndex = 0;
-                meta.elementIndex = _iteratorUnityObjects++;
+                pointer.list = 0;
+                pointer.index = _unityObjectsCount++;
             }
             else if (type.IsSubclassOf(typeof(object)) || type.IsInterface) {
-                if (_iteratorObjects >= _objects.Count) {
-                    for (int i = _objects.Count; i <= _iteratorObjects; i++) {
-                        _objects.Add(default);
-                    }
+                for (int i = _objects.Count; i <= _objectsCount; i++) {
+                    _objects.Add(default);
                 }
 
-                meta.listIndex = 1;
-                meta.elementIndex = _iteratorObjects++;
+                pointer.list = 1;
+                pointer.index = _objectsCount++;
             }
-            else return;
 
-            if (_iteratorMeta < _dependencyMetaList.Count) {
-                var existingMeta = _dependencyMetaList[_iteratorMeta];
-
-                if (existingMeta.name == meta.name &&
-                    existingMeta.category == meta.category &&
-                    existingMeta.listIndex == meta.listIndex
+            if (_dependencyPointers.Count > _dependenciesCount) {
+                var existentPointer = _dependencyPointers[_dependenciesCount];
+                if (existentPointer.list == pointer.list &&
+                    GetElement<T>(existentPointer.list, existentPointer.index) is { } t
                 ) {
-                    switch (existingMeta.listIndex) {
-                        case 0:
-                            if (existingMeta.elementIndex < _unityObjects.Count) {
-                                var value = _unityObjects[existingMeta.elementIndex];
-                                if (value is T) _unityObjects[meta.elementIndex] = value;
-                            }
-                            break;
-
-                        case 1:
-                            if (existingMeta.elementIndex < _objects.Count) {
-                                object value = _objects[existingMeta.elementIndex];
-                                if (value is T) _objects[meta.elementIndex] = value;
-                            }
-                            break;
-                    }
+                    InsertElement(t, pointer.list, pointer.index);
+                    RemoveElement(existentPointer.list, existentPointer.index);
                 }
+
+                _dependencyPointers[_dependenciesCount] = pointer;
+                _dependencyMetas[_dependenciesCount] = meta;
             }
             else {
-                for (int i = _dependencyMetaList.Count; i <= _iteratorMeta; i++) {
-                    _dependencyMetaList.Add(default);
-                }
+                _dependencyPointers.Add(pointer);
+                _dependencyMetas.Add(meta);
             }
 
-            _dependencyMetaList[_iteratorMeta++] = meta;
+            var bucket = _buckets[_bucketsCount - 1];
+            bucket.count++;
+            _buckets[_bucketsCount - 1] = bucket;
+
+            _dependenciesCount++;
+
+            return this;
         }
 
-        public T ResolveDependency<T>() {
+        public T Resolve<T>() where T : class {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (!ValidateRequestedDependencyMetaByIndex<T>(_iteratorMeta)) return default;
+            if (!ValidateResolvedDependency<T>(_dependenciesCount)) return default;
 #endif
 
-            if (TryResolveDependencyOverride<T>(out var overridenValue)) {
-                _iteratorMeta++;
+            if (TryResolve<T>(out var overridenValue)) {
+                _dependenciesCount++;
                 return overridenValue;
             }
 
-            var meta = _dependencyMetaList[_iteratorMeta++];
+            var pointer = _dependencyPointers[_dependenciesCount++];
+            return GetElement<T>(pointer.list, pointer.index);
+        }
 
-            int listIndex = meta.listIndex;
-            int elementIndex = meta.elementIndex;
-
-            return listIndex switch {
-                0 => elementIndex < _unityObjects.Count && _unityObjects[elementIndex] is T t ? t : default,
-                1 => elementIndex < _objects.Count && _objects[elementIndex] is T t ? t : default,
-                _ => default,
+        private T GetElement<T>(int list, int index) where T : class {
+            return list switch {
+                0 => _unityObjects[index] is T t ? t : default,
+                1 => _objects[index] is T t ? t : default,
+                _ => throw new NotSupportedException(),
             };
+        }
+
+        private void InsertElement<T>(T element, int list, int index) where T : class {
+            switch (list) {
+                case 0:
+                    if (element is Object u) _unityObjects[index] = u;
+                    break;
+
+                case 1:
+                    if (element is object o) _objects[index] = o;
+                    break;
+
+                default:
+                    throw new NotSupportedException();
+            }
+        }
+
+        private void RemoveElement(int list, int index) {
+            switch (list) {
+                case 0:
+                    _unityObjects.RemoveAt(index);
+                    break;
+
+                case 1:
+                    _objects.RemoveAt(index);
+                    break;
+
+                default:
+                    throw new NotSupportedException();
+            }
         }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         [AssertionMethod]
-        private bool ValidateNewDependency(object source, Type type) {
-            if (typeof(Object).IsAssignableFrom(type)) return true;
-            if (type.IsSubclassOf(typeof(object)) || type.IsInterface) return true;
+        private bool ValidateDependencyBucketSource(object source) {
+            if (source != null) return true;
 
-            Debug.LogError($"New dependency {source.GetType().Name}/{type.Name} of type {type.Name} cannot be added: " +
-                           $"dependency has unsupported type {type}.");
+            Debug.LogError($"Cannot register dependency: source is null.");
             return false;
         }
 
         [AssertionMethod]
-        private bool ValidateRequestedDependencyMetaByIndex<T>(int index) {
+        private bool ValidateDependencyBucketCreated() {
+            if (_buckets.Count > 0) return true;
+
+            Debug.LogError($"Cannot add dependency: no bucket was created.");
+            return false;
+        }
+
+        [AssertionMethod]
+        private bool ValidateDependencyType(Type type) {
+            if (typeof(Object).IsAssignableFrom(type)) return true;
+            if (type.IsSubclassOf(typeof(object)) || type.IsInterface) return true;
+
+            Debug.LogError($"Dependency of type {type.Name} cannot be added: " +
+                           $"type is not supported.");
+            return false;
+        }
+
+        [AssertionMethod]
+        private bool ValidateResolvedDependency<T>(int index) where T : class {
             var type = typeof(T);
 
-            if (index > _dependencyMetaList.Count - 1) {
+            if (index > _dependencyMetas.Count - 1 || index > _dependencyPointers.Count - 1) {
                 Debug.LogError($"Requested dependency of type {type.Name} is not found: " +
-                               $"dependency index {index} exceeds total dependencies count: {_dependencyMetaList.Count}.");
+                               $"dependency index {index} exceeds total dependencies count: {_dependencyMetas.Count}.");
                 return default;
             }
 
-            var meta = _dependencyMetaList[index];
-
+            var meta = _dependencyMetas[index];
             if (meta.type != type) {
                 Debug.LogError($"Requested dependency of type {type.Name} is not found: " +
                                $"dependency type {type.Name} is not the same as added type {meta.type}.");
                 return false;
             }
 
-            switch (meta.listIndex) {
+            var pointer = _dependencyPointers[index];
+            switch (pointer.list) {
                 case 0:
-                    if (meta.elementIndex > _unityObjects.Count - 1) {
+                    if (pointer.index > _unityObjects.Count - 1) {
                         Debug.LogError($"Requested dependency of type {type.Name} is not found: " +
-                                       $"dependency has incorrect element index {meta.elementIndex}.");
+                                       $"dependency has incorrect element index {pointer.index}.");
                         return false;
                     }
 
                     return true;
 
                 case 1:
-                    if (meta.elementIndex > _objects.Count - 1) {
+                    if (pointer.index > _objects.Count - 1) {
                         Debug.LogError($"Requested dependency of type {type.Name} is not found: " +
-                                       $"dependency has incorrect element index {meta.elementIndex}.");
+                                       $"dependency has incorrect element index {pointer.index}.");
                         return false;
                     }
 
                     return true;
-            }
 
-            Debug.LogError($"Dependency of type {type.Name} is not found: " +
-                           $"dependency has incorrect list index {meta.listIndex}.");
-            return false;
+                default:
+                    Debug.LogError($"Requested dependency of type {type.Name} is not found: " +
+                                   $"dependency has incorrect list index {pointer.list}.");
+                    return false;
+            }
         }
 #endif
     }

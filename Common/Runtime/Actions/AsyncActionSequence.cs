@@ -12,27 +12,15 @@ namespace MisterGames.Common.Actions {
 
         [SerializeReference] [SubclassSelector] public IAsyncAction[] actions;
 
-        public void OnAddDependencies(IDependencyContainer container) {
+        public void OnSetupDependencies(IDependencyContainer container) {
             for (int i = 0; i < actions.Length; i++) {
-                if (actions[i] is IDependency dep) dep.OnAddDependencies(container);
+                if (actions[i] is IDependency dep) dep.OnSetupDependencies(container);
             }
         }
 
         public void OnResolveDependencies(IDependencyResolver resolver) {
             for (int i = 0; i < actions.Length; i++) {
                 if (actions[i] is IDependency dep) dep.OnResolveDependencies(resolver);
-            }
-        }
-
-        public void Initialize() {
-            for (int i = 0; i < actions.Length; i++) {
-                actions[i].Initialize();
-            }
-        }
-
-        public void DeInitialize() {
-            for (int i = 0; i < actions.Length; i++) {
-                actions[i].DeInitialize();
             }
         }
 

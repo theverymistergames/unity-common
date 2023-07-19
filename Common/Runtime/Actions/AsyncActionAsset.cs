@@ -11,20 +11,12 @@ namespace MisterGames.Common.Actions {
 
         [SerializeReference] [SubclassSelector] private IAsyncAction _action;
 
-        public void OnAddDependencies(IDependencyContainer container) {
-            if (_action is IDependency dep) dep.OnAddDependencies(container);
+        public void OnSetupDependencies(IDependencyContainer container) {
+            if (_action is IDependency dep) dep.OnSetupDependencies(container);
         }
 
         public void OnResolveDependencies(IDependencyResolver resolver) {
             if (_action is IDependency dep) dep.OnResolveDependencies(resolver);
-        }
-
-        public void Initialize() {
-            _action.Initialize();
-        }
-
-        public void DeInitialize() {
-            _action.DeInitialize();
         }
 
         public UniTask Apply(object source, CancellationToken cancellationToken = default) {

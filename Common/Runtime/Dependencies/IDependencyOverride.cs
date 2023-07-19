@@ -1,8 +1,8 @@
 ﻿namespace MisterGames.Common.Dependencies {
 
     public interface IDependencyOverride {
-        void SetDependenciesOfType<T>(T value) where T : class;
-        bool TryResolveDependencyOverride<T>(out T value);
+        void OverrideDependenciesOfType<T>(T value) where T : class;
+        bool TryResolve<T>(out T value) where T : class;
     }
 
 }
