@@ -41,7 +41,7 @@ namespace MisterGames.BlueprintLib {
 
             if (_transition is IDependency dep) {
                 _dependencies.Clear();
-                dep.OnAddDependencies(this);
+                dep.OnSetupDependencies(this);
 
                 for (int i = 0; i < _dependencies.Count; i++) {
                     ports.Add(Port.DynamicInput(type: _dependencies[i]));
@@ -64,11 +64,16 @@ namespace MisterGames.BlueprintLib {
             return port == 0 ? this : default;
         }
 
-        public void AddDependency<T>(object source) {
-            _dependencies.Add(typeof(T));
+        public IDependencyContainer CreateBucket(object source) {
+            return this;
         }
 
-        public T ResolveDependency<T>() {
+        public IDependencyContainer Add<T>() where T : class {
+            _dependencies.Add(typeof(T));
+            return this;
+        }
+
+        public T Resolve<T>() where T : class {
             return Ports[_dependencyPortIterator++].Get<T>();
         }
 

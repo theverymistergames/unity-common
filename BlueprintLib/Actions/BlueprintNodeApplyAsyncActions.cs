@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading;
-using Cysharp.Threading.Tasks;
 using MisterGames.Blueprints;
 using MisterGames.Common.Actions;
 using MisterGames.Common.Dependencies;
@@ -38,11 +37,11 @@ namespace MisterGames.BlueprintLib {
             if (_applyActions == null || _releaseActions == null) return ports.ToArray();
 
             for (int i = 0; i < _applyActions.Length; i++) {
-                if (_applyActions[i] is IDependency dep) dep.OnAddDependencies(this);
+                if (_applyActions[i] is IDependency dep) dep.OnSetupDependencies(this);
             }
 
             for (int i = 0; i < _releaseActions.Length; i++) {
-                if (_releaseActions[i] is IDependency dep) dep.OnAddDependencies(this);
+                if (_releaseActions[i] is IDependency dep) dep.OnSetupDependencies(this);
             }
 
             for (int i = 0; i < _dependencies.Count; i++) {
@@ -64,11 +63,16 @@ namespace MisterGames.BlueprintLib {
             _terminateCts = null;
         }
 
-        public void AddDependency<T>(object source) {
-            _dependencies.Add(typeof(T));
+        public IDependencyContainer CreateBucket(object source) {
+            return this;
         }
 
-        public T ResolveDependency<T>() {
+        public IDependencyContainer Add<T>() where T : class {
+            _dependencies.Add(typeof(T));
+            return this;
+        }
+
+        public T Resolve<T>() where T : class {
             return Ports[_dependencyPortIterator++].Get<T>();
         }
 
@@ -81,9 +85,7 @@ namespace MisterGames.BlueprintLib {
                         var action = _applyActions[i];
                         if (action is IDependency dep) dep.OnResolveDependencies(this);
 
-                        action.Initialize();
                         await action.Apply(this, _terminateCts.Token);
-                        action.DeInitialize();
                     }
 
                     Ports[2].Call();
@@ -98,9 +100,7 @@ namespace MisterGames.BlueprintLib {
                         var action = _releaseActions[i];
                         if (action is IDependency dep) dep.OnResolveDependencies(this);
 
-                        action.Initialize();
                         await action.Apply(this, _terminateCts.Token);
-                        action.DeInitialize();
                     }
 
                     Ports[3].Call();
