@@ -28,10 +28,6 @@ namespace MisterGames.Character.Motion {
                 .GetProcessor<CharacterProcessorBackSideSpeedCorrection>();
         }
 
-        public void Initialize() { }
-
-        public void DeInitialize() { }
-
         public UniTask Apply(object source, CancellationToken cancellationToken = default) {
             _correction.speedCorrectionBack = backCorrection;
             _correction.speedCorrectionSide = sideCorrection;

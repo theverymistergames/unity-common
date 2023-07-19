@@ -28,10 +28,6 @@ namespace MisterGames.Character.View {
                 .GetProcessor<CharacterProcessorQuaternionSmoothing>();
         }
 
-        public void Initialize() { }
-
-        public void DeInitialize() { }
-
         public UniTask Apply(object source, CancellationToken cancellationToken = default) {
             _smoothing.smoothFactor = viewSmoothFactor;
             return default;

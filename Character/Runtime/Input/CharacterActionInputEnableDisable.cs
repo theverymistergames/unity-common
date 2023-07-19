@@ -26,10 +26,6 @@ namespace MisterGames.Character.Motion {
                 .GetPipeline<ICharacterInputPipeline>();
         }
 
-        public void Initialize() { }
-
-        public void DeInitialize() { }
-
         public UniTask Apply(object source, CancellationToken cancellationToken = default) {
             _input.SetEnabled(isEnabled);
             return default;

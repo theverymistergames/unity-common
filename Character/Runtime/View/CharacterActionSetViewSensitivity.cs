@@ -29,10 +29,6 @@ namespace MisterGames.Character.View {
                 .GetProcessor<CharacterProcessorVector2Sensitivity>();
         }
 
-        public void Initialize() { }
-
-        public void DeInitialize() { }
-
         public UniTask Apply(object source, CancellationToken cancellationToken = default) {
             _sensitivity.sensitivity = new Vector2(sensitivityHorizontal, sensitivityVertical);
             return default;

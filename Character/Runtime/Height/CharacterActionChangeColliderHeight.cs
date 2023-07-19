@@ -31,10 +31,6 @@ namespace MisterGames.Character.Height {
                 .GetPipeline<ICharacterHeightPipeline>();
         }
 
-        public void Initialize() { }
-
-        public void DeInitialize() { }
-
         public UniTask Apply(object source, CancellationToken cancellationToken = default) {
             if (targetRadius.HasValue) _height.Radius = targetRadius.Value;
 

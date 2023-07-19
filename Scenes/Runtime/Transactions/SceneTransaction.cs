@@ -21,16 +21,11 @@ namespace MisterGames.Scenes.Transactions {
 
         private UniTask[] _tasks;
 
-        public void Initialize() {
-            int operationsCount = _load.Length + _unload.Length;
-            _tasks = operationsCount > 0 ? new UniTask[operationsCount] : Array.Empty<UniTask>();
-        }
-
-        public void DeInitialize() { }
-
         public async UniTask Apply(object source, CancellationToken cancellationToken = default) {
             int loadLength = _load.Length;
             int operationsCount = loadLength + _unload.Length;
+
+            _tasks ??= operationsCount > 0 ? new UniTask[operationsCount] : Array.Empty<UniTask>();
 
             for (int i = 0; i < operationsCount; i++) {
                 _tasks[i] = i < loadLength

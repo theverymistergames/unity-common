@@ -25,10 +25,6 @@ namespace MisterGames.Character.Collisions {
                 .GetPipeline<ICharacterCollisionPipeline>();
         }
 
-        public void Initialize() { }
-
-        public void DeInitialize() { }
-
         public UniTask Apply(object source, CancellationToken cancellationToken = default) {
             _collisions.SetEnabled(isEnabled);
             return default;

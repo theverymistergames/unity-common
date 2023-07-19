@@ -26,10 +26,6 @@ namespace MisterGames.Character.Motion {
                 .GetProcessor<CharacterProcessorMass>();
         }
 
-        public void Initialize() { }
-
-        public void DeInitialize() { }
-
         public UniTask Apply(object source, CancellationToken cancellationToken = default) {
             _mass.isGravityEnabled = isEnabled;
             return default;

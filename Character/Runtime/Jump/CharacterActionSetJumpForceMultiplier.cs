@@ -26,10 +26,6 @@ namespace MisterGames.Character.Jump {
                 .GetPipeline<ICharacterJumpPipeline>();
         }
 
-        public void Initialize() { }
-
-        public void DeInitialize() { }
-
         public UniTask Apply(object source, CancellationToken cancellationToken = default) {
             _jump.ForceMultiplier = jumpForceMultiplier;
             return default;

@@ -28,10 +28,6 @@ namespace MisterGames.Character.Motion {
                 .GetProcessor<CharacterProcessorVector2Multiplier>();
         }
 
-        public void Initialize() { }
-
-        public void DeInitialize() { }
-
         public UniTask Apply(object source, CancellationToken cancellationToken = default) {
             _multiplier.multiplier = speed;
             return default;
