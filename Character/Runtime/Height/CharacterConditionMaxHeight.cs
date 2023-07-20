@@ -18,7 +18,7 @@ namespace MisterGames.Character.Height {
         
         public void OnSetupDependencies(IDependencyContainer container) {
             container.CreateBucket(this)
-                .Add<ICharacterAccess>();
+                .Add<CharacterAccess>();
         }
 
         public void OnResolveDependencies(IDependencyResolver resolver) {

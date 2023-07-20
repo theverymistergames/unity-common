@@ -20,7 +20,8 @@ namespace MisterGames.BlueprintLib {
         IBlueprintFsmTransitionCallbacks,
         IBlueprintAssetValidator,
         IDependencyResolver,
-        IDependencyContainer
+        IDependencyContainer,
+        IDependencyBucket
     {
         [SerializeField] private bool _checkImmediatelyAfterArmed;
         [SerializeReference] [SubclassSelector] private ITransition _transition;
@@ -64,11 +65,11 @@ namespace MisterGames.BlueprintLib {
             return port == 0 ? this : default;
         }
 
-        public IDependencyContainer CreateBucket(object source) {
+        public IDependencyBucket CreateBucket(object source) {
             return this;
         }
 
-        public IDependencyContainer Add<T>() where T : class {
+        public IDependencyBucket Add<T>() where T : class {
             _dependencies.Add(typeof(T));
             return this;
         }

@@ -19,8 +19,8 @@ namespace MisterGames.Interact.Interactives {
 
         public void OnSetupDependencies(IDependencyContainer container) {
             container.CreateBucket(this)
-                .Add<IInteractive>()
-                .Add<IInteractiveUser>();
+                .Add<Interactive>()
+                .Add<InteractiveUser>();
 
             if (_readyConstraint is IDependency r) r.OnSetupDependencies(container);
             if (_startConstraint is IDependency s) s.OnSetupDependencies(container);
@@ -28,9 +28,8 @@ namespace MisterGames.Interact.Interactives {
         }
 
         public void OnResolveDependencies(IDependencyResolver resolver) {
-            resolver
-                .Resolve(out _interactive)
-                .Resolve(out _user);
+            _interactive = resolver.Resolve<IInteractive>();
+            _user = resolver.Resolve<IInteractiveUser>();
 
             if (_readyConstraint is IDependency r) r.OnResolveDependencies(resolver);
             if (_startConstraint is IDependency s) s.OnResolveDependencies(resolver);

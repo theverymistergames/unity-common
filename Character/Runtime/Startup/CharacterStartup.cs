@@ -14,14 +14,14 @@ namespace MisterGames.Character.Startup {
         [EmbeddedInspector]
         [SerializeField] private AsyncActionAsset[] _startupActions;
 
-        [RuntimeDependency(typeof(CharacterAccess))]
+        [RuntimeDependency(typeof(ICharacterAccess))]
         [FetchDependencies(nameof(_startupActions))]
         [SerializeField] private DependencyResolver _dependencies;
 
         private CancellationTokenSource _enableCts;
 
         private void Awake() {
-            _dependencies.SetValue(_characterAccess);
+            _dependencies.SetValue<ICharacterAccess>(_characterAccess);
             _dependencies.Resolve(_startupActions);
         }
 

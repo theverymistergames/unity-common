@@ -14,7 +14,8 @@ namespace MisterGames.BlueprintLib {
         BlueprintNode,
         IBlueprintEnter,
         IDependencyResolver,
-        IDependencyContainer
+        IDependencyContainer,
+        IDependencyBucket
     {
         [SerializeField] private AsyncActionAsset[] _applyActions;
         [SerializeField] private AsyncActionAsset[] _releaseActions;
@@ -63,11 +64,11 @@ namespace MisterGames.BlueprintLib {
             _terminateCts = null;
         }
 
-        public IDependencyContainer CreateBucket(object source) {
+        public IDependencyBucket CreateBucket(object source) {
             return this;
         }
 
-        public IDependencyContainer Add<T>() where T : class {
+        public IDependencyBucket Add<T>() where T : class {
             _dependencies.Add(typeof(T));
             return this;
         }
