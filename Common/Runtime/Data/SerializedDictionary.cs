@@ -86,7 +86,7 @@ namespace MisterGames.Common.Data {
             InitUndoRedo();
         }
 
-        protected SerializedDictionary(SerializationInfo info, StreamingContext context) : base(info, context) {
+        public SerializedDictionary(SerializationInfo info, StreamingContext context) : base(info, context) {
             InitUndoRedo();
         }
 #endif
