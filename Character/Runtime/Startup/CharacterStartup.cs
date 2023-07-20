@@ -1,6 +1,7 @@
 ﻿using System.Threading;
 using MisterGames.Character.Core;
 using MisterGames.Common.Actions;
+using MisterGames.Common.Attributes;
 using MisterGames.Common.Dependencies;
 using UnityEngine;
 
@@ -9,6 +10,8 @@ namespace MisterGames.Character.Startup {
     public sealed class CharacterStartup : MonoBehaviour {
 
         [SerializeField] private CharacterAccess _characterAccess;
+
+        [EmbeddedInspector]
         [SerializeField] private AsyncActionAsset[] _startupActions;
 
         [RuntimeDependency(typeof(CharacterAccess))]
