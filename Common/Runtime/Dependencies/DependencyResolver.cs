@@ -99,7 +99,7 @@ namespace MisterGames.Common.Dependencies {
 
             if (dependencies != null) {
                 for (int i = 0; i < dependencies.Count; i++) {
-                    dependencies[i].OnSetupDependencies(this);
+                    dependencies[i]?.OnSetupDependencies(this);
                 }
             }
 

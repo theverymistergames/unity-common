@@ -161,7 +161,7 @@ namespace MisterGames.Common.Editor.Attributes.ReadOnly {
                 EditorGUI.LabelField(rect, name, EditorStyles.miniLabel);
 
                 // Bucket deps
-                for (int d = offset; d < count; d++) {
+                for (int d = offset; d < offset + count; d++) {
                     var depMetaProperty = depMetasProperty.GetArrayElementAtIndex(d);
                     var depPointerProperty = depPointersProperty.GetArrayElementAtIndex(d);
 
@@ -344,7 +344,7 @@ namespace MisterGames.Common.Editor.Attributes.ReadOnly {
                 height += EditorGUIUtility.singleLineHeight;
 
                 // Bucket deps
-                for (int d = offset; d < count; d++) {
+                for (int d = offset; d < offset + count; d++) {
                     var depMetaProperty = depMetasProperty.GetArrayElementAtIndex(d);
                     var depPointerProperty = depPointersProperty.GetArrayElementAtIndex(d);
 
