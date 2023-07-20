@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace MisterGames.Common.Dependencies {
 
-    public sealed class RuntimeDependencyResolver : MonoBehaviour, IDependencyOverride {
+    public sealed class RuntimeDependencyResolver : MonoBehaviour, IDependencyResolver, IDependencySetter {
 
         private readonly Dictionary<Type, object> _typeOverrides = new Dictionary<Type, object>();
 
@@ -16,14 +16,9 @@ namespace MisterGames.Common.Dependencies {
             _typeOverrides[typeof(T)] = value;
         }
 
-        public bool TryResolve<T>(out T value) where T : class {
-            if (_typeOverrides.TryGetValue(typeof(T), out object v)) {
-                value = v as T;
-                return true;
-            }
-
-            value = default;
-            return false;
+        public T Resolve<T>() where T : class {
+            if (_typeOverrides.TryGetValue(typeof(T), out object v)) return v as T;
+            return default;
         }
     }
 

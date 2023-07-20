@@ -17,7 +17,7 @@ namespace MisterGames.Common.Editor.Attributes.ReadOnly {
 
         private static readonly GUIContent LabelResolvedAtRuntime = new GUIContent("(resolved at runtime)");
         private static readonly GUIContent LabelHeaderRuntimeResolve = new GUIContent("Runtime Resolve");
-        private static readonly GUIContent LabelInternalResolve = new GUIContent("Resolved internally");
+        private static readonly GUIContent LabelInternalResolve = new GUIContent("Resolved at runtime if not assigned");
         private static readonly GUIContent LabelSharedResolve = new GUIContent("Resolved in shared dependencies");
         private static readonly GUIContent LabelHeaderSerializedResolve = new GUIContent("Serialized Resolve");
 
@@ -183,7 +183,6 @@ namespace MisterGames.Common.Editor.Attributes.ReadOnly {
                         serializedProperty,
                         type,
                         depLabel,
-                        isOverriden,
                         includeChildren: true
                     );
 
@@ -195,7 +194,6 @@ namespace MisterGames.Common.Editor.Attributes.ReadOnly {
                         serializedProperty,
                         type,
                         depLabel,
-                        isOverriden,
                         includeChildren: true
                     );
                 }
@@ -215,23 +213,8 @@ namespace MisterGames.Common.Editor.Attributes.ReadOnly {
             SerializedProperty property,
             Type type,
             GUIContent label,
-            bool isOverriden,
             bool includeChildren = false
         ) {
-            if (isOverriden) {
-                EditorGUI.LabelField(position, label);
-
-                var rect = new Rect(
-                    position.x + EditorGUIUtility.labelWidth,
-                    position.y,
-                    position.width - EditorGUIUtility.labelWidth,
-                    EditorGUIUtility.singleLineHeight
-                );
-                EditorGUI.LabelField(rect, LabelResolvedAtRuntime, EditorStyles.miniLabel);
-
-                return;
-            }
-
             if (typeof(Object).IsAssignableFrom(type)) {
                 EditorGUI.ObjectField(position, property, type, label);
                 return;
@@ -246,13 +229,8 @@ namespace MisterGames.Common.Editor.Attributes.ReadOnly {
             SerializedProperty property,
             Type type,
             GUIContent label,
-            bool isOverriden,
             bool includeChildren = false
         ) {
-            if (isOverriden) {
-                return EditorGUIUtility.singleLineHeight;
-            }
-
             if (type.IsSubclassOf(typeof(object)) || type.IsInterface) {
                 return SubclassSelectorGUI.GetPropertyHeight(property, label, includeChildren);
             }
@@ -349,8 +327,6 @@ namespace MisterGames.Common.Editor.Attributes.ReadOnly {
                     var depPointerProperty = depPointersProperty.GetArrayElementAtIndex(d);
 
                     var type = SerializedType.DeserializeType(depMetaProperty.FindPropertyRelative("type._type").stringValue);
-
-                    bool isOverriden = (allRuntimeOverridenTypes ?? _internalRuntimeOverridenTypesCache).Contains(type);
                     var depLabel = new GUIContent(TypeNameFormatter.GetTypeName(type));
 
                     int list = depPointerProperty.FindPropertyRelative("list").intValue;
@@ -366,7 +342,6 @@ namespace MisterGames.Common.Editor.Attributes.ReadOnly {
                         serializedProperty,
                         type,
                         depLabel,
-                        isOverriden,
                         includeChildren: true
                     );
 

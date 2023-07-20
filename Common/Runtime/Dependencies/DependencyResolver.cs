@@ -8,10 +8,11 @@ using Object = UnityEngine.Object;
 namespace MisterGames.Common.Dependencies {
 
     [Serializable]
-    public sealed class DependencyResolver : 
-        IDependencyResolver, 
-        IDependencyContainer, 
-        IDependencyOverride 
+    public sealed class DependencyResolver :
+        IDependencyResolver,
+        IDependencyContainer,
+        IDependencyBucket,
+        IDependencySetter
     {
         [SerializeField] private RuntimeResolveMode _mode;
         [SerializeField] private RuntimeDependencyResolver _sharedDependencies;
@@ -133,41 +134,7 @@ namespace MisterGames.Common.Dependencies {
             }
         }
 
-        public bool TryResolve<T>(out T value) where T : class {
-            switch (_mode) {
-                case RuntimeResolveMode.Internal:
-                    if (_typeOverrides.TryGetValue(typeof(T), out object v)) {
-                        value = v is T t ? t : default;
-                        return true;
-                    }
-
-                    value = default;
-                    return false;
-
-                case RuntimeResolveMode.Shared:
-                    return _sharedDependencies.TryResolve(out value);
-
-                default:
-                    throw new NotSupportedException();
-            }
-        }
-
-        public void SetValue<T>(T value) where T : class {
-            switch (_mode) {
-                case RuntimeResolveMode.Internal:
-                    _typeOverrides[typeof(T)] = value;
-                    break;
-
-                case RuntimeResolveMode.Shared:
-                    _sharedDependencies.SetValue(value);
-                    break;
-
-                default:
-                    throw new NotSupportedException();
-            }
-        }
-
-        public IDependencyContainer CreateBucket(object source) {
+        public IDependencyBucket CreateBucket(object source) {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (!ValidateDependencyBucketSource(source)) return this;
 #endif
@@ -186,7 +153,7 @@ namespace MisterGames.Common.Dependencies {
             return this;
         }
 
-        public IDependencyContainer Add<T>() where T : class {
+        public IDependencyBucket Add<T>() where T : class {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (!ValidateDependencyBucketCreated()) return this;
             if (!ValidateDependencyType(typeof(T))) return this;
@@ -246,16 +213,42 @@ namespace MisterGames.Common.Dependencies {
             if (!ValidateResolvedDependency<T>(index)) return default;
 #endif
 
-            if (TryResolve<T>(out var overridenValue)) return overridenValue;
-
             var pointer = _dependencyPointers[index];
-            return GetElement<T>(pointer.list, pointer.index);
+            var value = GetElement<T>(pointer.list, pointer.index);
+            if (value is not null) return value;
+
+            switch (_mode) {
+                case RuntimeResolveMode.Internal:
+                    if (_typeOverrides.TryGetValue(typeof(T), out object v)) return v as T;
+                    return default;
+
+                case RuntimeResolveMode.Shared:
+                    return _sharedDependencies.Resolve<T>();
+
+                default:
+                    throw new NotSupportedException();
+            }
+        }
+
+        public void SetValue<T>(T value) where T : class {
+            switch (_mode) {
+                case RuntimeResolveMode.Internal:
+                    _typeOverrides[typeof(T)] = value;
+                    break;
+
+                case RuntimeResolveMode.Shared:
+                    _sharedDependencies.SetValue(value);
+                    break;
+
+                default:
+                    throw new NotSupportedException();
+            }
         }
 
         private T GetElement<T>(int list, int index) where T : class {
             return list switch {
-                0 => _unityObjects[index] is T t ? t : default,
-                1 => _objects[index] is T t ? t : default,
+                0 => _unityObjects[index] as T,
+                1 => _objects[index] as T,
                 _ => throw new NotSupportedException(),
             };
         }
