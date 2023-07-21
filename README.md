@@ -1,4 +1,4 @@
-# MisterGames scripts for Unity
+# MisterGames scripts for Unity 
 
 - A bunch of different packages to use in a Unity project
 - Current Unity Editor version is `2022.2.12f1`
