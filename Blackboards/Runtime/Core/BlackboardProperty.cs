@@ -19,6 +19,11 @@ namespace MisterGames.Blackboards.Core {
         /// The type of the blackboard property value.
         /// </summary>
         public SerializedType type;
+
+        /// <summary>
+        /// Index of the blackboard map used to store blackboard property value.
+        /// </summary>
+        public int mapIndex;
     }
 
 }
