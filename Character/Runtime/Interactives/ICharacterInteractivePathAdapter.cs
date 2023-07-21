@@ -11,7 +11,7 @@ namespace MisterGames.Character.Interactives {
         IInteractive interactive
     );
 
-    public interface ICharacterInteractivePath {
+    public interface ICharacterInteractivePathAdapter {
 
         event CharacterInteractivePathEvent OnAttach;
         event CharacterInteractivePathEvent OnDetach;

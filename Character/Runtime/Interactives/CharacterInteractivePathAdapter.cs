@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace MisterGames.Character.Interactives {
 
-    public sealed class CharacterInteractivePath : MonoBehaviour, ICharacterInteractivePath {
+    public sealed class CharacterInteractivePathAdapter : MonoBehaviour, ICharacterInteractivePathAdapter {
 
         [SerializeField] private InteractivePath _interactivePath;
 

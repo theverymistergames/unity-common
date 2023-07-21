@@ -10,7 +10,6 @@ namespace MisterGames.Character.Interactives {
         [SerializeField] private CharacterAccess _characterAccess;
 
         private IInteractiveUser _user;
-        private ITransformAdapter _body;
 
         private void Awake() {
             _user = _characterAccess.GetPipeline<ICharacterInteractionPipeline>().InteractiveUser;
@@ -31,13 +30,13 @@ namespace MisterGames.Character.Interactives {
 
         private void OnStartInteract(IInteractive interactive) {
             interactive.Transform
-                .GetComponent<ICharacterInteractivePath>()
+                .GetComponent<ICharacterInteractivePathAdapter>()
                 ?.AttachToPath(_characterAccess, _user, interactive);
         }
 
         private void OnStopInteract(IInteractive interactive) {
             interactive.Transform
-                .GetComponent<ICharacterInteractivePath>()
+                .GetComponent<ICharacterInteractivePathAdapter>()
                 ?.DetachFromPath(_characterAccess, _user, interactive);
         }
     }
