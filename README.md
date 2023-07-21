@@ -1,7 +1,7 @@
 # MisterGames scripts for Unity
 
 - A bunch of different packages to use in a Unity project
-- Current Unity Editor version is `2021.3.16f1`
+- Current Unity Editor version is `2022.2.12f1`
 
 ## Packages
 - [`MisterGames.Blackboards`](https://github.com/theverymistergames/unity-common/tree/master/Blackboards)
