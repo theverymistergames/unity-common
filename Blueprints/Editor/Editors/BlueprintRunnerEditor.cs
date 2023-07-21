@@ -64,7 +64,7 @@ namespace MisterGames.Blueprints.Editor.Editors {
                 var ownerBlueprintProperty = entry.FindPropertyRelative("key");
                 var blackboardProperty = entry.FindPropertyRelative("value");
 
-                EditorGUILayout.PropertyField(blackboardProperty, new GUIContent("Blackboard of Blueprint"));
+                EditorGUILayout.PropertyField(blackboardProperty, new GUIContent("Host"));
 
                 var blackboardRect = GUILayoutUtility.GetLastRect();
                 var headerRect = new Rect(

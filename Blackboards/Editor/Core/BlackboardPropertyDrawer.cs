@@ -32,18 +32,13 @@ namespace MisterGames.Blackboards.Editor {
                 return;
             }
 
-            EditorGUI.indentLevel++;
-
             float y = position.y + EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
 
             var properties = BlackboardUtils.GetSerializedBlackboardProperties(property);
             if (properties.Count == 0) {
                 var rect = new Rect(position.x, y, position.width, EditorGUIUtility.singleLineHeight);
-
-                EditorGUI.HelpBox(rect, "Blackboard has no properties", MessageType.None);
+                EditorGUI.HelpBox(rect, "(no properties)", MessageType.None);
                 EditorGUI.EndProperty();
-
-                EditorGUI.indentLevel--;
                 return;
             }
 
@@ -62,8 +57,6 @@ namespace MisterGames.Blackboards.Editor {
 
                 EditorGUI.PropertyField(rect, serializedProperty, new GUIContent(propertyData.blackboardProperty.name), includeChildren: true);
             }
-
-            EditorGUI.indentLevel--;
 
             property.serializedObject.ApplyModifiedProperties();
             property.serializedObject.Update();
