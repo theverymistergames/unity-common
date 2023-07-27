@@ -2,20 +2,19 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Character.Core;
-using MisterGames.Character.Processors;
 using MisterGames.Common.Actions;
+using MisterGames.Common.Data;
 using MisterGames.Common.Dependencies;
-using UnityEngine;
 
 namespace MisterGames.Character.View {
     
     [Serializable]
-    public sealed class CharacterActionSetViewSensitivity : IAsyncAction, IDependency {
+    public sealed class CharacterActionSetViewClamp : IAsyncAction, IDependency {
 
-        [Min(0f)] public float sensitivityHorizontal = 0.15f;
-        [Min(0f)] public float sensitivityVertical = 0.15f;
+        public Optional<ViewAxisClamp> horizontal;
+        public Optional<ViewAxisClamp> vertical;
 
-        private CharacterProcessorVector2Sensitivity _sensitivity;
+        private CharacterProcessorViewClamp _clamp;
 
         public void OnSetupDependencies(IDependencyContainer container) {
             container.CreateBucket(this)
@@ -23,14 +22,16 @@ namespace MisterGames.Character.View {
         }
 
         public void OnResolveDependencies(IDependencyResolver resolver) {
-            _sensitivity = resolver
+            _clamp = resolver
                 .Resolve<ICharacterAccess>()
                 .GetPipeline<ICharacterViewPipeline>()
-                .GetProcessor<CharacterProcessorVector2Sensitivity>();
+                .GetProcessor<CharacterProcessorViewClamp>();
         }
 
         public UniTask Apply(object source, CancellationToken cancellationToken = default) {
-            _sensitivity.sensitivity = new Vector2(sensitivityVertical, sensitivityHorizontal);
+            if (horizontal.HasValue) _clamp.horizontal = horizontal.Value;
+            if (vertical.HasValue) _clamp.vertical = vertical.Value;
+
             return default;
         }
     }

@@ -21,10 +21,11 @@ namespace MisterGames.Character.View {
         };
 
         [SerializeReference] [SubclassSelector] private ICharacterProcessorVector2 _inputToViewProcessor =
-            new CharacterProcessorVector2Clamp {
-                xMode = ClampMode.Full,
-                lowerBounds = new Vector2(-90f, 0f),
-                upperBounds = new Vector2(90f, 0f),
+            new CharacterProcessorViewClamp {
+                vertical = new ViewAxisClamp {
+                    mode = ClampMode.Full,
+                    bounds = new Vector2(-90f, 90f),
+                }
             };
 
         [SerializeReference] [SubclassSelector] private ICharacterProcessorQuaternion[] _viewProcessors = {
