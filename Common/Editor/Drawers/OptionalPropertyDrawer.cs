@@ -11,17 +11,38 @@ namespace MisterGames.Common.Editor.Drawers {
             EditorGUI.BeginProperty(position, label, property);
 
             var hasValueProperty = property.FindPropertyRelative("_hasValue");
-            EditorGUI.PropertyField(position, hasValueProperty, label);
+            var valueProperty = property.FindPropertyRelative("_value");
+
+            var labelRect = new Rect(
+                position.x,
+                position.y,
+                EditorGUIUtility.labelWidth,
+                EditorGUIUtility.singleLineHeight
+            );
+            if (valueProperty.hasVisibleChildren) {
+                labelRect.x += 12f;
+                labelRect.width -= 12f;
+            }
+            EditorGUI.LabelField(labelRect, label);
+
+            var hasValueRect = new Rect(
+                position.x + EditorGUIUtility.labelWidth - 12f,
+                position.y,
+                12f,
+                EditorGUIUtility.singleLineHeight
+            );
+            EditorGUI.PropertyField(hasValueRect, hasValueProperty, GUIContent.none);
 
             EditorGUI.BeginDisabledGroup(!hasValueProperty.boolValue);
 
-            var valueProperty = property.FindPropertyRelative("_value");
-            var valueRect = new Rect(
-                position.x + EditorGUIUtility.labelWidth + 7f,
-                position.y,
-                position.width - EditorGUIUtility.labelWidth - 7f,
-                position.height
-            );
+            var valueRect = valueProperty.hasVisibleChildren
+                ? position
+                : new Rect(
+                    position.x + EditorGUIUtility.labelWidth + 7f,
+                    position.y,
+                    position.width - EditorGUIUtility.labelWidth - 7f,
+                    position.height
+                  );
 
             EditorGUI.PropertyField(valueRect, valueProperty, GUIContent.none, true);
 
