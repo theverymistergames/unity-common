@@ -14,7 +14,7 @@ namespace MisterGames.Character.Height {
     public class CharacterHeightPipeline : CharacterPipelineBase, ICharacterHeightPipeline {
 
         [SerializeField] private CharacterAccess _characterAccess;
-        [SerializeField] private CameraController _cameraController;
+        [SerializeField] private CameraContainer cameraContainer;
         [SerializeField] private CharacterController _characterController;
         [SerializeField] private PlayerLoopStage _playerLoopStage = PlayerLoopStage.Update;
 
@@ -72,11 +72,11 @@ namespace MisterGames.Character.Height {
             _isEnabled = isEnabled;
 
             if (_isEnabled) {
-                _cameraController.RegisterInteractor(this);
+                cameraContainer.RegisterInteractor(this);
                 return;
             }
 
-            _cameraController.UnregisterInteractor(this);
+            cameraContainer.UnregisterInteractor(this);
         }
 
         public async UniTask ApplyHeightChange(
@@ -135,7 +135,7 @@ namespace MisterGames.Character.Height {
             float detectorDistance = height * 0.5f - _characterController.radius;
             float previousHeight = _characterController.height;
 
-            _cameraController.SetPositionOffset(this, center);
+            cameraContainer.SetPositionOffset(this, center);
 
             _characterController.height = height;
             _characterController.center = halfCenter;

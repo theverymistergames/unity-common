@@ -12,7 +12,7 @@ namespace MisterGames.Character.Animations {
     public sealed class CharacterAnimationPipeline : CharacterPipelineBase, ICharacterAnimationPipeline {
 
         [SerializeField] private CharacterAccess _characterAccess;
-        [SerializeField] private CameraController _cameraController;
+        [SerializeField] private CameraContainer _cameraContainer;
         [SerializeField] private PlayerLoopStage _playerLoopStage = PlayerLoopStage.Update;
         [SerializeField] [Range(0f, 0.5f)] private float _edgeInterpolationWeight;
 
@@ -54,7 +54,7 @@ namespace MisterGames.Character.Animations {
             var startBodyPosition = _bodyAdapter.Position;
             var startBodyRotation = _bodyAdapter.Rotation;
 
-            _cameraController.RegisterInteractor(source);
+            _cameraContainer.RegisterInteractor(source);
             float progress = 0f;
 
             while (_isEnabled && !cancellationToken.IsCancellationRequested) {
@@ -87,15 +87,15 @@ namespace MisterGames.Character.Animations {
                 _bodyAdapter.Position = targetBodyPosition;
                 _bodyAdapter.Rotation = targetBodyRotation;
 
-                _cameraController.SetPositionOffset(source, targetHeadPositionOffset);
-                _cameraController.SetRotationOffset(source, targetHeadRotationOffset);
+                _cameraContainer.SetPositionOffset(source, targetHeadPositionOffset);
+                _cameraContainer.SetRotationOffset(source, targetHeadRotationOffset);
 
                 if (progress >= 1f) break;
 
                 await UniTask.Yield();
             }
 
-            _cameraController.UnregisterInteractor(source);
+            _cameraContainer.UnregisterInteractor(source);
         }
     }
 
