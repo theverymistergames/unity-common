@@ -8,169 +8,248 @@ namespace MisterGames.Character.View {
         [SerializeField] private Camera _camera;
         [SerializeField] private Transform _transform;
 
-        public Vector3 Position => _transform.position;
-        public Quaternion Rotation => _transform.rotation;
+        private readonly Dictionary<int, int> _stateHashToIndexMap = new Dictionary<int, int>();
+        private readonly List<CameraState> _states = new List<CameraState>();
 
-        private CameraParameters _baseCameraParameters;
-        private CameraParameters _resultCameraParameters;
-
-        private readonly Dictionary<object, CameraParameters> _cameraParametersMap = new Dictionary<object, CameraParameters>();
+        private CameraState _baseCameraState;
+        private CameraState _resultCameraState;
+        private float _invertedMaxWeight;
 
         private void Awake() {
-            _baseCameraParameters = new CameraParameters(_transform.localPosition, _transform.localRotation, _camera.fieldOfView);
+            _baseCameraState = new CameraState(
+                hash: 0,
+                weight: 1f,
+                _transform.localPosition,
+                _transform.localRotation,
+                _camera.fieldOfView
+            );
         }
 
         private void OnDestroy() {
-            _cameraParametersMap.Clear();
+            _states.Clear();
+            _stateHashToIndexMap.Clear();
         }
 
-        public void RegisterInteractor(object interactor) {
-            if (_cameraParametersMap.ContainsKey(interactor)) return;
+        public CameraStateKey CreateState(object source, float weight = 1f) {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (!ValidateStateSource(source)) return default;
+#endif
 
-            _cameraParametersMap.Add(interactor, CameraParameters.Default);
+            int hash = source.GetHashCode();
+            int index = _states.Count;
+
+            if (_stateHashToIndexMap.TryGetValue(hash, out int existentIndex)) {
+                index = existentIndex;
+                _states[index] = _states[index].WithWeight(weight);
+            }
+            else {
+                _states.Add(new CameraState(hash, weight));
+                _stateHashToIndexMap[hash] = index;
+            }
+
+            InvalidateInvertedMaxWeight();
+
+            return new CameraStateKey(index, hash);
         }
 
-        public void UnregisterInteractor(object interactor) {
-            if (!_cameraParametersMap.ContainsKey(interactor)) return;
+        public void RemoveState(CameraStateKey key) {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (!ValidateState(key)) return;
+#endif
 
-            _cameraParametersMap.Remove(interactor);
+            _states[key.index] = _states[key.index].WithWeight(0f);
+            _stateHashToIndexMap.Remove(key.hash);
 
-            InvalidateResultOffset();
-            InvalidateResultRotation();
+            for (int i = _states.Count - 1; i >= 0; i--) {
+                int hash = _states[i].hash;
+                if (_stateHashToIndexMap.ContainsKey(hash)) break;
+
+                _states.RemoveAt(i);
+                _stateHashToIndexMap.Remove(hash);
+            }
+
+            InvalidateInvertedMaxWeight();
+
+            InvalidateResultPositionOffset();
+            InvalidateResultRotationOffset();
             InvalidateResultFovOffset();
 
             ApplyCameraParameters();
         }
 
-        public void AddPositionOffset(object interactor, Vector3 offsetDelta) {
-            if (!CheckInteractorIsRegistered(interactor)) return;
+        public void AddPositionOffset(CameraStateKey key, Vector3 offsetDelta) {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (!ValidateState(key)) return;
+#endif
 
-            var data = _cameraParametersMap[interactor];
-            _cameraParametersMap[interactor] = data.WithPosition(data.position + offsetDelta);
+            var data = _states[key.index];
+            _states[key.index] = data.WithPosition(data.position + offsetDelta);
             
-            InvalidateResultOffset();
+            InvalidateResultPositionOffset();
             ApplyCameraParameters();
         }
 
-        public void SetPositionOffset(object interactor, Vector3 offset) {
-            if (!CheckInteractorIsRegistered(interactor)) return;
+        public void SetPositionOffset(CameraStateKey key, Vector3 offset) {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (!ValidateState(key)) return;
+#endif
 
-            var data = _cameraParametersMap[interactor];
-            _cameraParametersMap[interactor] = data.WithPosition(offset);
+            var data = _states[key.index];
+            _states[key.index] = data.WithPosition(offset);
             
-            InvalidateResultOffset();
+            InvalidateResultPositionOffset();
             ApplyCameraParameters();
         }
 
-        public void ResetPositionOffset(object interactor) {
-            if (!CheckInteractorIsRegistered(interactor)) return;
+        public void ResetPositionOffset(CameraStateKey key) {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (!ValidateState(key)) return;
+#endif
 
-            var data = _cameraParametersMap[interactor];
-            _cameraParametersMap[interactor] = data.WithPosition(Vector3.zero);
+            var data = _states[key.index];
+            _states[key.index] = data.WithPosition(Vector3.zero);
             
-            InvalidateResultOffset();
+            InvalidateResultPositionOffset();
             ApplyCameraParameters();
         }
 
-        public void AddRotationOffset(object interactor, Quaternion rotation) {
-            if (!CheckInteractorIsRegistered(interactor)) return;
+        public void AddRotationOffset(CameraStateKey key, Quaternion rotation) {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (!ValidateState(key)) return;
+#endif
 
-            var data = _cameraParametersMap[interactor];
-            _cameraParametersMap[interactor] = data.WithRotation(data.rotation * rotation);
+            var data = _states[key.index];
+            _states[key.index] = data.WithRotation(data.rotation * rotation);
             
-            InvalidateResultRotation();
+            InvalidateResultRotationOffset();
             ApplyCameraParameters();
         }
 
-        public void SetRotationOffset(object interactor, Quaternion rotation) {
-            if (!CheckInteractorIsRegistered(interactor)) return;
+        public void SetRotationOffset(CameraStateKey key, Quaternion rotation) {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (!ValidateState(key)) return;
+#endif
 
-            var data = _cameraParametersMap[interactor];
-            _cameraParametersMap[interactor] = data.WithRotation(rotation);
+            var data = _states[key.index];
+            _states[key.index] = data.WithRotation(rotation);
             
-            InvalidateResultRotation();
+            InvalidateResultRotationOffset();
             ApplyCameraParameters();
         }
         
-        public void ResetRotationOffset(object interactor) {
-            if (!CheckInteractorIsRegistered(interactor)) return;
+        public void ResetRotationOffset(CameraStateKey key) {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (!ValidateState(key)) return;
+#endif
 
-            var data = _cameraParametersMap[interactor];
-            _cameraParametersMap[interactor] = data.WithRotation(Quaternion.identity);
+            var data = _states[key.index];
+            _states[key.index] = data.WithRotation(Quaternion.identity);
             
-            InvalidateResultRotation();
+            InvalidateResultRotationOffset();
             ApplyCameraParameters();
         }
         
-        public void SetFovOffset(object interactor, float fov) {
-            if (!CheckInteractorIsRegistered(interactor)) return;
+        public void SetFovOffset(CameraStateKey key, float fov) {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (!ValidateState(key)) return;
+#endif
 
-            var data = _cameraParametersMap[interactor];
-            _cameraParametersMap[interactor] = data.WithFovOffset(fov);
+            var data = _states[key.index];
+            _states[key.index] = data.WithFovOffset(fov);
             
             InvalidateResultFovOffset();
             ApplyCameraParameters();
         }
         
-        public void AddFovOffset(object interactor, float fov) {
-            if (!CheckInteractorIsRegistered(interactor)) return;
+        public void AddFovOffset(CameraStateKey key, float fov) {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (!ValidateState(key)) return;
+#endif
 
-            var data = _cameraParametersMap[interactor];
-            _cameraParametersMap[interactor] = data.WithFovOffset(data.fov + fov);
+            var data = _states[key.index];
+            _states[key.index] = data.WithFovOffset(data.fov + fov);
             
             InvalidateResultFovOffset();
             ApplyCameraParameters();
         }
         
-        public void ResetFovOffset(object interactor) {
-            if (!CheckInteractorIsRegistered(interactor)) return;
+        public void ResetFovOffset(CameraStateKey key) {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (!ValidateState(key)) return;
+#endif
 
-            var data = _cameraParametersMap[interactor];
-            _cameraParametersMap[interactor] = data.WithFovOffset(0f);
+            var data = _states[key.index];
+            _states[key.index] = data.WithFovOffset(0f);
             
             InvalidateResultFovOffset();
             ApplyCameraParameters();
         }
 
-        private void InvalidateResultOffset() {
+        private void ApplyCameraParameters() {
+            _transform.localPosition = _baseCameraState.position + _resultCameraState.position;
+            _transform.localRotation = _baseCameraState.rotation * _resultCameraState.rotation;
+            _camera.fieldOfView = _baseCameraState.fov + _resultCameraState.fov;
+        }
+
+        private void InvalidateResultPositionOffset() {
             var position = Vector3.zero;
-            foreach (var data in _cameraParametersMap.Values) {
-                position += data.position;
+
+            for (int i = 0; i < _states.Count; i++) {
+                var data = _states[i];
+                position += data.weight * _invertedMaxWeight * data.position;
             }
 
-            _resultCameraParameters = _resultCameraParameters.WithPosition(position);
+            _resultCameraState = _resultCameraState.WithPosition(position);
         }
-        
-        private void InvalidateResultRotation() {
+
+        private void InvalidateResultRotationOffset() {
             var rotation = Quaternion.identity;
-            foreach (var data in _cameraParametersMap.Values) {
-                rotation *= data.rotation;
+
+            for (int i = 0; i < _states.Count; i++) {
+                var data = _states[i];
+                rotation *= Quaternion.Slerp(Quaternion.identity, data.rotation, data.weight * _invertedMaxWeight);
             }
 
-            _resultCameraParameters = _resultCameraParameters.WithRotation(rotation);
+            _resultCameraState = _resultCameraState.WithRotation(rotation);
         }
-        
+
         private void InvalidateResultFovOffset() {
             float fov = 0f;
-            foreach (var data in _cameraParametersMap.Values) {
-                fov += data.fov;
+
+            for (int i = 0; i < _states.Count; i++) {
+                var data = _states[i];
+                fov += data.weight * _invertedMaxWeight * data.fov;
             }
 
-            _resultCameraParameters = _resultCameraParameters.WithFovOffset(fov);
-        }
-        
-        private void ApplyCameraParameters() {
-            _transform.localPosition = _baseCameraParameters.position + _resultCameraParameters.position;
-            _transform.localRotation = _baseCameraParameters.rotation * _resultCameraParameters.rotation;
-            _camera.fieldOfView = _baseCameraParameters.fov + _resultCameraParameters.fov;
+            _resultCameraState = _resultCameraState.WithFovOffset(fov);
         }
 
-        private bool CheckInteractorIsRegistered(object interactor) {
-            if (_cameraParametersMap.ContainsKey(interactor)) return true;
+        private void InvalidateInvertedMaxWeight() {
+            float max = 0f;
 
-            Debug.LogWarning($"{nameof(CameraContainer)}: Not registered interactor {interactor} is trying to interact.");
+            for (int i = 0; i < _states.Count; i++) {
+                var data = _states[i];
+                if (max < data.weight) max = data.weight;
+            }
+
+            _invertedMaxWeight = max <= 0f ? 0f : 1f / max;
+        }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        private bool ValidateStateSource(object source) {
+            if (source != null) return true;
+
+            Debug.LogWarning($"{nameof(CameraContainer)}: Cannot create interactor for null object.");
             return false;
         }
+
+        private bool ValidateState(CameraStateKey key) {
+            if (_stateHashToIndexMap.TryGetValue(key.hash, out int index) && key.index == index) return true;
+
+            Debug.LogWarning($"{nameof(CameraContainer)}: Not registered state {key} is trying to interact.");
+            return false;
+        }
+#endif
     }
 
 }

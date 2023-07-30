@@ -5,32 +5,35 @@ namespace MisterGames.Character.View {
 
     public class CharacterHeadAdapter : MonoBehaviour, ITransformAdapter {
 
+        [SerializeField] private Transform _head;
         [SerializeField] private CameraContainer _cameraContainer;
 
         public Vector3 Position {
-            get => _cameraContainer.Position;
-            set => _cameraContainer.SetPositionOffset(this, value - _cameraContainer.Position);
+            get => _head.position;
+            set => _cameraContainer.SetPositionOffset(_cameraStateKey, value - _head.position);
         }
 
         public Quaternion Rotation {
-            get => _cameraContainer.Rotation;
-            set => _cameraContainer.SetRotationOffset(this, value * Quaternion.Inverse(_cameraContainer.Rotation));
+            get => _head.rotation;
+            set => _cameraContainer.SetRotationOffset(_cameraStateKey, value * Quaternion.Inverse(_head.rotation));
         }
 
+        private CameraStateKey _cameraStateKey;
+
         private void OnEnable() {
-            _cameraContainer.RegisterInteractor(this);
+            _cameraStateKey = _cameraContainer.CreateState(this);
         }
 
         private void OnDisable() {
-            _cameraContainer.UnregisterInteractor(this);
+            _cameraContainer.RemoveState(_cameraStateKey);
         }
 
         public void Move(Vector3 delta) {
-            _cameraContainer.AddPositionOffset(this, delta);
+            _cameraContainer.AddPositionOffset(_cameraStateKey, delta);
         }
 
         public void Rotate(Quaternion delta) {
-            _cameraContainer.AddRotationOffset(this, delta);
+            _cameraContainer.AddRotationOffset(_cameraStateKey, delta);
         }
     }
 

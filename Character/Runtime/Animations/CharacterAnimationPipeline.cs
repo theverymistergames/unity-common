@@ -54,7 +54,7 @@ namespace MisterGames.Character.Animations {
             var startBodyPosition = _bodyAdapter.Position;
             var startBodyRotation = _bodyAdapter.Rotation;
 
-            _cameraContainer.RegisterInteractor(source);
+            var key = _cameraContainer.CreateState(source);
             float progress = 0f;
 
             while (_isEnabled && !cancellationToken.IsCancellationRequested) {
@@ -87,15 +87,15 @@ namespace MisterGames.Character.Animations {
                 _bodyAdapter.Position = targetBodyPosition;
                 _bodyAdapter.Rotation = targetBodyRotation;
 
-                _cameraContainer.SetPositionOffset(source, targetHeadPositionOffset);
-                _cameraContainer.SetRotationOffset(source, targetHeadRotationOffset);
+                _cameraContainer.SetPositionOffset(key, targetHeadPositionOffset);
+                _cameraContainer.SetRotationOffset(key, targetHeadRotationOffset);
 
                 if (progress >= 1f) break;
 
                 await UniTask.Yield();
             }
 
-            _cameraContainer.UnregisterInteractor(source);
+            _cameraContainer.RemoveState(key);
         }
     }
 

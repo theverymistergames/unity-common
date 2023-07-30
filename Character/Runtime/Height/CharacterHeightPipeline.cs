@@ -11,10 +11,11 @@ using MisterGames.Tick.Core;
 using UnityEngine;
 
 namespace MisterGames.Character.Height {
+
     public class CharacterHeightPipeline : CharacterPipelineBase, ICharacterHeightPipeline {
 
         [SerializeField] private CharacterAccess _characterAccess;
-        [SerializeField] private CameraContainer cameraContainer;
+        [SerializeField] private Transform _headRoot;
         [SerializeField] private CharacterController _characterController;
         [SerializeField] private PlayerLoopStage _playerLoopStage = PlayerLoopStage.Update;
 
@@ -40,10 +41,13 @@ namespace MisterGames.Character.Height {
         private byte _lastHeightChangeId;
         private bool _isEnabled;
 
+        private Vector3 _headRootInitialPosition;
+
         private void Awake() {
             _destroyCts = new CancellationTokenSource();
 
             _bodyAdapter = _characterAccess.BodyAdapter;
+            _headRootInitialPosition = _headRoot.localPosition;
 
             var collisionPipeline = _characterAccess.GetPipeline<ICharacterCollisionPipeline>();
             _groundDetector = collisionPipeline.GroundDetector;
@@ -70,13 +74,7 @@ namespace MisterGames.Character.Height {
 
         public override void SetEnabled(bool isEnabled) {
             _isEnabled = isEnabled;
-
-            if (_isEnabled) {
-                cameraContainer.RegisterInteractor(this);
-                return;
-            }
-
-            cameraContainer.UnregisterInteractor(this);
+            if (!isEnabled) _headRoot.localPosition = _headRootInitialPosition;
         }
 
         public async UniTask ApplyHeightChange(
@@ -135,7 +133,7 @@ namespace MisterGames.Character.Height {
             float detectorDistance = height * 0.5f - _characterController.radius;
             float previousHeight = _characterController.height;
 
-            cameraContainer.SetPositionOffset(this, center);
+            _headRoot.localPosition = center + _headRootInitialPosition;
 
             _characterController.height = height;
             _characterController.center = halfCenter;
