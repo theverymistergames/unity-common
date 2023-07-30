@@ -52,12 +52,25 @@ namespace MisterGames.Character.View {
             return new CameraStateKey(index, hash);
         }
 
-        public void RemoveState(CameraStateKey key) {
+        public void RemoveState(CameraStateKey key, bool keepChanges = false) {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (!ValidateState(key)) return;
 #endif
 
-            _states[key.index] = _states[key.index].WithWeight(0f);
+            var state = _states[key.index];
+
+            if (keepChanges) {
+                float w = state.weight * _invertedMaxWeight;
+                _baseCameraState = new CameraState(
+                    _baseCameraState.hash,
+                    _baseCameraState.weight,
+                    _baseCameraState.position + w * state.position,
+                    _baseCameraState.rotation * Quaternion.SlerpUnclamped(Quaternion.identity, state.rotation, w),
+                    _baseCameraState.fov + w * state.fov
+                );
+            }
+
+            _states[key.index] = state.WithWeight(0f);
             _stateHashToIndexMap.Remove(key.hash);
 
             for (int i = _states.Count - 1; i >= 0; i--) {
@@ -207,7 +220,7 @@ namespace MisterGames.Character.View {
 
             for (int i = 0; i < _states.Count; i++) {
                 var data = _states[i];
-                rotation *= Quaternion.Slerp(Quaternion.identity, data.rotation, data.weight * _invertedMaxWeight);
+                rotation *= Quaternion.SlerpUnclamped(Quaternion.identity, data.rotation, data.weight * _invertedMaxWeight);
             }
 
             _resultCameraState = _resultCameraState.WithRotation(rotation);
@@ -228,8 +241,8 @@ namespace MisterGames.Character.View {
             float max = 0f;
 
             for (int i = 0; i < _states.Count; i++) {
-                var data = _states[i];
-                if (max < data.weight) max = data.weight;
+                float absWeight = Mathf.Abs(_states[i].weight);
+                if (max < absWeight) max = absWeight;
             }
 
             _invertedMaxWeight = max <= 0f ? 0f : 1f / max;
