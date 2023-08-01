@@ -8,7 +8,7 @@ namespace MisterGames.Character.View {
         [SerializeField] private Camera _camera;
         [SerializeField] private Transform _transform;
 
-        private readonly Dictionary<int, int> _stateHashToIndexMap = new Dictionary<int, int>();
+        private readonly Dictionary<int, CameraStateKey> _keyMap = new Dictionary<int, CameraStateKey>();
         private readonly List<CameraState> _states = new List<CameraState>();
 
         private CameraState _baseCameraState;
@@ -27,7 +27,7 @@ namespace MisterGames.Character.View {
 
         private void OnDestroy() {
             _states.Clear();
-            _stateHashToIndexMap.Clear();
+            _keyMap.Clear();
         }
 
         public CameraStateKey CreateState(object source, float weight = 1f) {
@@ -36,20 +36,26 @@ namespace MisterGames.Character.View {
 #endif
 
             int hash = source.GetHashCode();
-            int index = _states.Count;
+            var key = new CameraStateKey(hash, 0, _states.Count);
 
-            if (_stateHashToIndexMap.TryGetValue(hash, out int existentIndex)) {
-                index = existentIndex;
-                _states[index] = _states[index].WithWeight(weight);
+            if (_keyMap.TryGetValue(hash, out var existentKey)) {
+                _states[existentKey.index] = _states[existentKey.index].WithWeight(weight);
+                key = new CameraStateKey(hash, existentKey.token + 1, existentKey.index);
             }
             else {
                 _states.Add(new CameraState(hash, weight));
-                _stateHashToIndexMap[hash] = index;
             }
 
-            InvalidateInvertedMaxWeight();
+            _keyMap[hash] = key;
 
-            return new CameraStateKey(index, hash);
+            InvalidateInvertedMaxWeight();
+            InvalidateResultPositionOffset();
+            InvalidateResultRotationOffset();
+            InvalidateResultFovOffset();
+
+            ApplyCameraParameters();
+
+            return key;
         }
 
         public void RemoveState(CameraStateKey key, bool keepChanges = false) {
@@ -57,7 +63,13 @@ namespace MisterGames.Character.View {
             if (!ValidateState(key)) return;
 #endif
 
+            int lastToken = _keyMap[key.hash].token;
+            if (key.token != lastToken) return;
+
             var state = _states[key.index];
+            _states[key.index] = state.WithWeight(0f);
+
+            _keyMap.Remove(key.hash);
 
             if (keepChanges) {
                 float w = state.weight * _invertedMaxWeight;
@@ -70,19 +82,15 @@ namespace MisterGames.Character.View {
                 );
             }
 
-            _states[key.index] = state.WithWeight(0f);
-            _stateHashToIndexMap.Remove(key.hash);
-
             for (int i = _states.Count - 1; i >= 0; i--) {
                 int hash = _states[i].hash;
-                if (_stateHashToIndexMap.ContainsKey(hash)) break;
+                if (_keyMap.ContainsKey(hash)) break;
 
                 _states.RemoveAt(i);
-                _stateHashToIndexMap.Remove(hash);
+                _keyMap.Remove(hash);
             }
 
             InvalidateInvertedMaxWeight();
-
             InvalidateResultPositionOffset();
             InvalidateResultRotationOffset();
             InvalidateResultFovOffset();
@@ -252,14 +260,14 @@ namespace MisterGames.Character.View {
         private bool ValidateStateSource(object source) {
             if (source != null) return true;
 
-            Debug.LogWarning($"{nameof(CameraContainer)}: Cannot create interactor for null object.");
+            Debug.LogWarning($"{nameof(CameraContainer)}: Cannot create state for null source object.");
             return false;
         }
 
         private bool ValidateState(CameraStateKey key) {
-            if (_stateHashToIndexMap.TryGetValue(key.hash, out int index) && key.index == index) return true;
+            if (_keyMap.TryGetValue(key.hash, out var existentKey) && key.index == existentKey.index) return true;
 
-            Debug.LogWarning($"{nameof(CameraContainer)}: Not registered state {key} is trying to interact.");
+            Debug.LogWarning($"{nameof(CameraContainer)}: Not registered state #{key.index} is trying to interact.");
             return false;
         }
 #endif
