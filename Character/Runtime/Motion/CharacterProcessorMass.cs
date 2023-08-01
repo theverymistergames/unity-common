@@ -21,6 +21,9 @@ namespace MisterGames.Character.Motion {
         public float gravityForce = 9.8f;
         public bool isGravityEnabled = true;
 
+        public Vector3 PreviousVelocity => _previousVelocity;
+        public Vector3 CurrentVelocity => _currentVelocity;
+
         private readonly Dictionary<object, Vector3> _forceMap = new Dictionary<object, Vector3>();
 
         private ICollisionDetector _groundDetector;

@@ -36,7 +36,6 @@ namespace MisterGames.Character.Height {
         private float _targetHeight;
 
         private CancellationTokenSource _destroyCts;
-        private CancellationTokenSource _enableCts;
 
         private byte _lastHeightChangeId;
         private bool _isEnabled;
