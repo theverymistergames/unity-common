@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
 using JetBrains.Annotations;
 using MisterGames.Common.Types;
 using UnityEngine;
@@ -54,83 +55,17 @@ namespace MisterGames.Common.Dependencies {
             public int count;
         }
 
-        public void Fetch(IDependency dependency) {
-            _bucketsCount = 0;
-            _dependenciesCount = 0;
-            _unityObjectsCount = 0;
-            _objectsCount = 0;
-
-            _buckets ??= new List<DependencyBucket>();
-            _dependencyMetas ??= new List<DependencyMeta>();
-            _dependencyPointers ??= new List<DependencyPointer>();
-            _unityObjects ??= new List<Object>();
-            _objects ??= new List<object>();
-
-            dependency?.OnSetupDependencies(this);
-
-            for (int i = _dependencyMetas.Count - 1; i >= _dependenciesCount; i--) {
-                _dependencyMetas.RemoveAt(i);
-                _dependencyPointers.RemoveAt(i);
-            }
-
-            for (int i = _unityObjects.Count - 1; i >= _unityObjectsCount; i--) {
-                _unityObjects.RemoveAt(i);
-            }
-
-            for (int i = _objects.Count - 1; i >= _objectsCount; i--) {
-                _objects.RemoveAt(i);
-            }
-
-            for (int i = _buckets.Count - 1; i >= _bucketsCount; i--) {
-                _buckets.RemoveAt(i);
-            }
+        public void Resolve(IDependency dependency, bool additive = false) {
+            if (!additive) _dependenciesCount = 0;
+            dependency?.OnResolveDependencies(this);
         }
 
-        public void Fetch(IReadOnlyList<IDependency> dependencies) {
-            _bucketsCount = 0;
-            _dependenciesCount = 0;
-            _unityObjectsCount = 0;
-            _objectsCount = 0;
+        public void Resolve(IReadOnlyList<IDependency> dependencies, bool additive = false) {
+            if (!additive) _dependenciesCount = 0;
+            if (dependencies == null) return;
 
-            _buckets ??= new List<DependencyBucket>();
-            _dependencyMetas ??= new List<DependencyMeta>();
-            _dependencyPointers ??= new List<DependencyPointer>();
-            _unityObjects ??= new List<Object>();
-            _objects ??= new List<object>();
-
-            if (dependencies != null) {
-                for (int i = 0; i < dependencies.Count; i++) {
-                    dependencies[i]?.OnSetupDependencies(this);
-                }
-            }
-
-            for (int i = _dependencyMetas.Count - 1; i >= _dependenciesCount; i--) {
-                _dependencyMetas.RemoveAt(i);
-                _dependencyPointers.RemoveAt(i);
-            }
-
-            for (int i = _unityObjects.Count - 1; i >= _unityObjectsCount; i--) {
-                _unityObjects.RemoveAt(i);
-            }
-
-            for (int i = _objects.Count - 1; i >= _objectsCount; i--) {
-                _objects.RemoveAt(i);
-            }
-
-            for (int i = _buckets.Count - 1; i >= _bucketsCount; i--) {
-                _buckets.RemoveAt(i);
-            }
-        }
-
-        public void Resolve(IDependency dependency) {
-            _dependenciesCount = 0;
-            dependency.OnResolveDependencies(this);
-        }
-
-        public void Resolve(IReadOnlyList<IDependency> dependencies) {
-            _dependenciesCount = 0;
             for (int i = 0; i < dependencies.Count; i++) {
-                dependencies[i].OnResolveDependencies(this);
+                dependencies[i]?.OnResolveDependencies(this);
             }
         }
 
@@ -284,6 +219,50 @@ namespace MisterGames.Common.Dependencies {
         }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
+        public void OnBeforeFetch() {
+            _bucketsCount = 0;
+            _dependenciesCount = 0;
+            _unityObjectsCount = 0;
+            _objectsCount = 0;
+
+            _buckets ??= new List<DependencyBucket>();
+            _dependencyMetas ??= new List<DependencyMeta>();
+            _dependencyPointers ??= new List<DependencyPointer>();
+            _unityObjects ??= new List<Object>();
+            _objects ??= new List<object>();
+        }
+
+        public void OnAfterFetch() {
+            for (int i = _dependencyMetas.Count - 1; i >= _dependenciesCount; i--) {
+                _dependencyMetas.RemoveAt(i);
+                _dependencyPointers.RemoveAt(i);
+            }
+
+            for (int i = _unityObjects.Count - 1; i >= _unityObjectsCount; i--) {
+                _unityObjects.RemoveAt(i);
+            }
+
+            for (int i = _objects.Count - 1; i >= _objectsCount; i--) {
+                _objects.RemoveAt(i);
+            }
+
+            for (int i = _buckets.Count - 1; i >= _bucketsCount; i--) {
+                _buckets.RemoveAt(i);
+            }
+        }
+
+        public void Fetch(IDependency dependency) {
+            dependency?.OnSetupDependencies(this);
+        }
+
+        public void Fetch(IReadOnlyList<IDependency> dependencies) {
+            if (dependencies == null) return;
+
+            for (int i = 0; i < dependencies.Count; i++) {
+                dependencies[i]?.OnSetupDependencies(this);
+            }
+        }
+
         [AssertionMethod]
         private bool ValidateDependencyBucketSource(object source) {
             if (source != null) return true;
@@ -314,7 +293,7 @@ namespace MisterGames.Common.Dependencies {
         private bool ValidateResolvedDependency<T>(int index) where T : class {
             var type = typeof(T);
 
-            if (index > _dependencyMetas.Count - 1 || index > _dependencyPointers.Count - 1) {
+            if (index > _dependencyMetas.Count - 1) {
                 Debug.LogError($"Requested dependency of type {type.Name} is not found: " +
                                $"dependency index {index} exceeds total dependencies count: {_dependencyMetas.Count}.");
                 return default;
@@ -352,6 +331,54 @@ namespace MisterGames.Common.Dependencies {
                                    $"dependency has incorrect list index {pointer.list}.");
                     return false;
             }
+        }
+
+        public override string ToString() {
+            var sb = new StringBuilder();
+
+            sb.AppendLine($"{nameof(DependencyResolver)}: ");
+
+            sb.AppendLine($"- Mode: {_mode}");
+
+            sb.AppendLine($"- Shared Dependencies: {_sharedDependencies}");
+
+            sb.AppendLine($"- Buckets:");
+            for (int i = 0; i < _buckets.Count; i++) {
+                var b = _buckets[i];
+                sb.AppendLine($"--- Bucket #{i} {b.name}: start index {b.offset}, count {b.count}");
+            }
+
+            sb.AppendLine($"- Dependency Pointers:");
+            for (int i = 0; i < _dependencyPointers.Count; i++) {
+                var p = _dependencyPointers[i];
+                sb.AppendLine($"--- Pointer #{i}: list {p.list}, index {p.index}");
+            }
+
+            sb.AppendLine($"- Dependency Metas:");
+            for (int i = 0; i < _dependencyMetas.Count; i++) {
+                var m = _dependencyMetas[i];
+                sb.AppendLine($"--- Meta #{i}: {m.type}");
+            }
+
+            sb.AppendLine($"- Unity Objects:");
+            for (int i = 0; i < _unityObjects.Count; i++) {
+                var o = _unityObjects[i];
+                sb.AppendLine($"--- Unity Object #{i}: {o}");
+            }
+
+            sb.AppendLine($"- Objects:");
+            for (int i = 0; i < _objects.Count; i++) {
+                object o = _objects[i];
+                sb.AppendLine($"--- Object #{i}: {o}");
+            }
+
+            sb.AppendLine($"- Type Overrides:");
+            int j = 0;
+            foreach (var kvp in _typeOverrides) {
+                sb.AppendLine($"--- Override #{j++}: type {kvp.Key.Name}, value {kvp.Value}");
+            }
+
+            return sb.ToString();
         }
 #endif
     }

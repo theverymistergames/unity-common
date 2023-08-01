@@ -3,17 +3,17 @@ using UnityEngine;
 
 namespace MisterGames.Common.Dependencies {
 
-    [AttributeUsage(AttributeTargets.Field)]
+    [AttributeUsage(AttributeTargets.Field, AllowMultiple = true)]
     public sealed class FetchDependenciesAttribute : PropertyAttribute {
 
-        public readonly string dependencyPropertyName;
+        public readonly string propertyPath;
 
-        public FetchDependenciesAttribute(string dependencyPropertyName) {
-            this.dependencyPropertyName = dependencyPropertyName;
+        public FetchDependenciesAttribute(string propertyPath) {
+            this.propertyPath = propertyPath;
         }
 
         public FetchDependenciesAttribute() {
-            dependencyPropertyName = null;
+            propertyPath = null;
         }
     }
 

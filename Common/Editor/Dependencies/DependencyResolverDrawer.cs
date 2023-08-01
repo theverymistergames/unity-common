@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Text;
 using MisterGames.Common.Dependencies;
 using MisterGames.Common.Editor.Attributes.SubclassSelector;
+using MisterGames.Common.Editor.SerializedProperties;
 using MisterGames.Common.Types;
 using UnityEditor;
 using UnityEngine;
@@ -15,7 +16,6 @@ namespace MisterGames.Common.Editor.Attributes.ReadOnly {
     [CustomPropertyDrawer(typeof(DependencyResolver))]
     public class DependencyResolverDrawer : PropertyDrawer {
 
-        private static readonly GUIContent LabelResolvedAtRuntime = new GUIContent("(resolved at runtime)");
         private static readonly GUIContent LabelHeaderRuntimeResolve = new GUIContent("Runtime Resolve");
         private static readonly GUIContent LabelInternalResolve = new GUIContent("Resolved at runtime if not assigned");
         private static readonly GUIContent LabelSharedResolve = new GUIContent("Resolved in shared dependencies");
@@ -24,6 +24,12 @@ namespace MisterGames.Common.Editor.Attributes.ReadOnly {
         private readonly HashSet<Type> _internalRuntimeOverridenTypesCache = new HashSet<Type>();
 
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
+            var fetchDependenciesAttrs = fieldInfo
+                .GetCustomAttributes<FetchDependenciesAttribute>()
+                .ToArray();
+
+            FetchDependenciesFromAttributes(property, fetchDependenciesAttrs);
+
             EditorGUI.BeginProperty(position, label, property);
 
             float y = position.y;
@@ -166,8 +172,6 @@ namespace MisterGames.Common.Editor.Attributes.ReadOnly {
                     var depPointerProperty = depPointersProperty.GetArrayElementAtIndex(d);
 
                     var type = SerializedType.DeserializeType(depMetaProperty.FindPropertyRelative("type._type").stringValue);
-
-                    bool isOverriden = (allRuntimeOverridenTypes ?? _internalRuntimeOverridenTypesCache).Contains(type);
                     var depLabel = new GUIContent(TypeNameFormatter.GetTypeName(type));
 
                     int list = depPointerProperty.FindPropertyRelative("list").intValue;
@@ -202,9 +206,6 @@ namespace MisterGames.Common.Editor.Attributes.ReadOnly {
                 y += EditorGUIUtility.standardVerticalSpacing * 2f;
             }
 
-            property.serializedObject.ApplyModifiedProperties();
-            property.serializedObject.Update();
-
             EditorGUI.EndProperty();
         }
 
@@ -236,6 +237,53 @@ namespace MisterGames.Common.Editor.Attributes.ReadOnly {
             }
 
             return EditorGUI.GetPropertyHeight(property, label, includeChildren);
+        }
+
+        private static void FetchDependenciesFromAttributes(SerializedProperty property, FetchDependenciesAttribute[] attrs) {
+            if (Application.isPlaying) return;
+
+            var resolver = (DependencyResolver) property.GetValue();
+            resolver.OnBeforeFetch();
+
+            for (int i = 0; i < attrs.Length; i++) {
+                FetchPropertyAsDependency(property, resolver, attrs[i].propertyPath);
+            }
+
+            resolver.OnAfterFetch();
+
+            property.serializedObject.ApplyModifiedProperties();
+            property.serializedObject.Update();
+        }
+
+        private static void FetchPropertyAsDependency(SerializedProperty property, DependencyResolver resolver, string dependencyPropertyPath) {
+            string path = property.propertyPath;
+            int lastDotIndex = path.LastIndexOf('.');
+
+            path = lastDotIndex >= 0
+                ? $"{path.Remove(lastDotIndex)}.{dependencyPropertyPath}"
+                : dependencyPropertyPath;
+
+            if (string.IsNullOrEmpty(path)) {
+                if (property.serializedObject.targetObject is IDependency dep) {
+                    resolver.Fetch(dep);
+                }
+                else {
+                    resolver.Fetch((IDependency) null);
+                }
+            }
+            else {
+                var dependencyProperty = property.serializedObject.FindProperty(path);
+
+                if (dependencyProperty.GetValue() is IDependency dep) {
+                    resolver.Fetch(dep);
+                }
+                else if (dependencyProperty.GetValue() is IDependency[] deps) {
+                    resolver.Fetch(deps);
+                }
+                else {
+                    resolver.Fetch((IDependency) null);
+                }
+            }
         }
 
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label) {
