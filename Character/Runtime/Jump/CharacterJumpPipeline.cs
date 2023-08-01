@@ -7,6 +7,7 @@ using MisterGames.Character.Input;
 using MisterGames.Character.Motion;
 using MisterGames.Collisions.Core;
 using MisterGames.Common.Actions;
+using MisterGames.Common.Attributes;
 using MisterGames.Common.Dependencies;
 using MisterGames.Common.Maths;
 using UnityEngine;
@@ -19,7 +20,10 @@ namespace MisterGames.Character.Jump {
         [SerializeField] private Vector3 _direction = Vector3.up;
         [SerializeField] private float _force = 1f;
 
+        [EmbeddedInspector]
         [SerializeField] private AsyncActionAsset _jumpReaction;
+
+        [EmbeddedInspector]
         [SerializeField] private AsyncActionAsset _landReaction;
 
         [RuntimeDependency(typeof(ICharacterAccess))]
