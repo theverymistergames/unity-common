@@ -49,10 +49,14 @@ namespace MisterGames.Character.Motion {
 
             _hitDetector.OnTransformChanged -= OnHitDetectorTransformChanged;
             _hitDetector.OnTransformChanged += OnHitDetectorTransformChanged;
+
+            _groundDetector.OnContact -= OnLanded;
+            _groundDetector.OnContact += OnLanded;
         }
 
         public void DeInitialize() {
             _hitDetector.OnTransformChanged -= OnHitDetectorTransformChanged;
+            _groundDetector.OnContact -= OnLanded;
         }
 
         public void ApplyImpulse(Vector3 impulse) {
@@ -96,6 +100,14 @@ namespace MisterGames.Character.Motion {
             _gravitationalComponent = Vector3.ProjectOnPlane(_gravitationalComponent, info.normal);
         }
 
+        private void OnLanded() {
+            var info = _groundDetector.CollisionInfo;
+            if (!info.hasContact) return;
+
+            _inertialComponent = Vector3.ProjectOnPlane(_inertialComponent, info.normal);
+            _gravitationalComponent = Vector3.ProjectOnPlane(_gravitationalComponent, info.normal);
+        }
+
         /// <summary>
         /// Interpolates value of the gravitational component:
         ///
@@ -111,11 +123,11 @@ namespace MisterGames.Character.Motion {
 
             if (isGravityEnabled && !groundInfo.hasContact) {
                 _gravitationalComponent += gravityForce * dt * Vector3.down;
+                return;
             }
-            else {
-                float factor = groundInfo.hasContact ? groundInertialFactor : airInertialFactor;
-                _gravitationalComponent = Vector3.Lerp(_gravitationalComponent, Vector3.zero, factor * dt);
-            }
+
+            float factor = groundInfo.hasContact ? groundInertialFactor : airInertialFactor;
+            _gravitationalComponent = Vector3.Lerp(_gravitationalComponent, Vector3.zero, factor * dt);
         }
 
         /// <summary>
