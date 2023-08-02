@@ -51,7 +51,7 @@ namespace MisterGames.Character.Jump {
 
             for (int i = 0; i < cases.Length; i++) {
                 var c = cases[i];
-                if (c.minMagnitude * c.minMagnitude <= sqrMagnitude && sqrMagnitude < c.maxMagnitude) {
+                if (c.minMagnitude * c.minMagnitude <= sqrMagnitude && sqrMagnitude < c.maxMagnitude * c.maxMagnitude) {
                     return c.action.Apply(source, cancellationToken);
                 }
             }
