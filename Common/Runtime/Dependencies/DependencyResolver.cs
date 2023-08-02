@@ -7,7 +7,6 @@ using UnityEngine;
 using Object = UnityEngine.Object;
 
 namespace MisterGames.Common.Dependencies {
-
     [Serializable]
     public sealed class DependencyResolver :
         IDependencyResolver,
@@ -31,6 +30,8 @@ namespace MisterGames.Common.Dependencies {
         private int _dependenciesCount;
         private int _unityObjectsCount;
         private int _objectsCount;
+
+        private bool _changeFlag;
 
         private enum RuntimeResolveMode {
             Internal,
@@ -80,8 +81,20 @@ namespace MisterGames.Common.Dependencies {
                 count = 0,
             };
 
-            if (_buckets.Count > _bucketsCount) _buckets[_bucketsCount] = bucket;
-            else _buckets.Add(bucket);
+            if (_buckets.Count > _bucketsCount) {
+                var existentBucket = _buckets[_bucketsCount];
+                _buckets[_bucketsCount] = bucket;
+
+                bool hasSameName = string.IsNullOrWhiteSpace(existentBucket.name)
+                    ? string.IsNullOrWhiteSpace(bucket.name)
+                    : existentBucket.name == bucket.name;
+
+                if (!hasSameName || existentBucket.offset != bucket.offset) _changeFlag = true;
+            }
+            else {
+                _buckets.Add(bucket);
+                _changeFlag = true;
+            }
 
             _bucketsCount++;
 
@@ -101,6 +114,7 @@ namespace MisterGames.Common.Dependencies {
             if (typeof(Object).IsAssignableFrom(type)) {
                 for (int i = _unityObjects.Count; i <= _unityObjectsCount; i++) {
                     _unityObjects.Add(default);
+                    _changeFlag = true;
                 }
 
                 pointer.list = 0;
@@ -109,14 +123,33 @@ namespace MisterGames.Common.Dependencies {
             else if (type.IsSubclassOf(typeof(object)) || type.IsInterface) {
                 for (int i = _objects.Count; i <= _objectsCount; i++) {
                     _objects.Add(default);
+                    _changeFlag = true;
                 }
 
                 pointer.list = 1;
                 pointer.index = _objectsCount++;
             }
 
+            bool hasSameTypeAsExistent = false;
+
+            if (_dependencyMetas.Count > _dependenciesCount) {
+                if (_dependencyMetas[_dependenciesCount].type == meta.type) hasSameTypeAsExistent = true;
+                else _changeFlag = true;
+
+                _dependencyMetas[_dependenciesCount] = meta;
+            }
+            else {
+                _dependencyMetas.Add(meta);
+                _changeFlag = true;
+            }
+
             if (_dependencyPointers.Count > _dependenciesCount) {
                 var existentPointer = _dependencyPointers[_dependenciesCount];
+
+                if (existentPointer.list != pointer.list || existentPointer.index != pointer.index || !hasSameTypeAsExistent) {
+                    _changeFlag = true;
+                }
+
                 if (existentPointer.list == pointer.list &&
                     GetElement<T>(existentPointer.list, existentPointer.index) is { } t
                 ) {
@@ -125,11 +158,10 @@ namespace MisterGames.Common.Dependencies {
                 }
 
                 _dependencyPointers[_dependenciesCount] = pointer;
-                _dependencyMetas[_dependenciesCount] = meta;
             }
             else {
                 _dependencyPointers.Add(pointer);
-                _dependencyMetas.Add(meta);
+                _changeFlag = true;
             }
 
             var bucket = _buckets[_bucketsCount - 1];
@@ -219,7 +251,9 @@ namespace MisterGames.Common.Dependencies {
         }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-        public void OnBeforeFetch() {
+        public void PrepareFetch() {
+            _changeFlag = false;
+
             _bucketsCount = 0;
             _dependenciesCount = 0;
             _unityObjectsCount = 0;
@@ -232,23 +266,29 @@ namespace MisterGames.Common.Dependencies {
             _objects ??= new List<object>();
         }
 
-        public void OnAfterFetch() {
+        public bool CommitFetch() {
             for (int i = _dependencyMetas.Count - 1; i >= _dependenciesCount; i--) {
+                _changeFlag = true;
                 _dependencyMetas.RemoveAt(i);
                 _dependencyPointers.RemoveAt(i);
             }
 
             for (int i = _unityObjects.Count - 1; i >= _unityObjectsCount; i--) {
+                _changeFlag = true;
                 _unityObjects.RemoveAt(i);
             }
 
             for (int i = _objects.Count - 1; i >= _objectsCount; i--) {
+                _changeFlag = true;
                 _objects.RemoveAt(i);
             }
 
             for (int i = _buckets.Count - 1; i >= _bucketsCount; i--) {
+                _changeFlag = true;
                 _buckets.RemoveAt(i);
             }
+
+            return _changeFlag;
         }
 
         public void Fetch(IDependency dependency) {

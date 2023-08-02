@@ -24,13 +24,13 @@ namespace MisterGames.Common.Editor.Attributes.ReadOnly {
         private readonly HashSet<Type> _internalRuntimeOverridenTypesCache = new HashSet<Type>();
 
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
+            EditorGUI.BeginProperty(position, label, property);
+
             var fetchDependenciesAttrs = fieldInfo
                 .GetCustomAttributes<FetchDependenciesAttribute>()
                 .ToArray();
 
             FetchDependenciesFromAttributes(property, fetchDependenciesAttrs);
-
-            EditorGUI.BeginProperty(position, label, property);
 
             float y = position.y;
 
@@ -207,6 +207,9 @@ namespace MisterGames.Common.Editor.Attributes.ReadOnly {
             }
 
             EditorGUI.EndProperty();
+
+            property.serializedObject.ApplyModifiedProperties();
+            property.serializedObject.Update();
         }
 
         private static void DrawDependencyProperty(
@@ -243,16 +246,13 @@ namespace MisterGames.Common.Editor.Attributes.ReadOnly {
             if (Application.isPlaying) return;
 
             var resolver = (DependencyResolver) property.GetValue();
-            resolver.OnBeforeFetch();
+            resolver.PrepareFetch();
 
             for (int i = 0; i < attrs.Length; i++) {
                 FetchPropertyAsDependency(property, resolver, attrs[i].propertyPath);
             }
 
-            resolver.OnAfterFetch();
-
-            property.serializedObject.ApplyModifiedProperties();
-            property.serializedObject.Update();
+            if (resolver.CommitFetch()) EditorUtility.SetDirty(property.serializedObject.targetObject);
         }
 
         private static void FetchPropertyAsDependency(SerializedProperty property, DependencyResolver resolver, string dependencyPropertyPath) {
