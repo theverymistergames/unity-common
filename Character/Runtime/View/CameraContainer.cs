@@ -14,6 +14,7 @@ namespace MisterGames.Character.View {
         private CameraState _baseCameraState;
         private CameraState _resultCameraState;
         private float _invertedMaxWeight;
+        private bool _isInitialized;
 
         private void Awake() {
             _baseCameraState = new CameraState(
@@ -23,6 +24,9 @@ namespace MisterGames.Character.View {
                 _transform.localRotation,
                 _camera.fieldOfView
             );
+
+            _isInitialized = true;
+            ApplyCameraParameters();
         }
 
         private void OnDestroy() {
@@ -207,6 +211,8 @@ namespace MisterGames.Character.View {
         }
 
         private void ApplyCameraParameters() {
+            if (!_isInitialized) return;
+
             _transform.localPosition = _baseCameraState.position + _resultCameraState.position;
             _transform.localRotation = _baseCameraState.rotation * _resultCameraState.rotation;
             _camera.fieldOfView = _baseCameraState.fov + _resultCameraState.fov;

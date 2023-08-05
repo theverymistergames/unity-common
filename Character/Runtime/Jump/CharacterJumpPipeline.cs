@@ -14,7 +14,7 @@ using UnityEngine;
 
 namespace MisterGames.Character.Jump {
 
-    public class CharacterJumpPipeline : CharacterPipelineBase, ICharacterJumpPipeline {
+    public sealed class CharacterJumpPipeline : CharacterPipelineBase, ICharacterJumpPipeline {
 
         [SerializeField] private CharacterAccess _characterAccess;
         [SerializeField] private Vector3 _direction = Vector3.up;
