@@ -1,13 +1,15 @@
 ﻿using MisterGames.Character.Core;
-using MisterGames.Common.GameObjects;
-using MisterGames.Dbg.Draw;
 using MisterGames.Tick.Core;
 using UnityEngine;
 
 namespace MisterGames.Character.View {
 
-    public sealed class CharacterLeanCameraMotionPipeline : CharacterPipelineBase, ICharacterLeanCameraMotionPipeline, IUpdate {
-
+    public sealed class CharacterLeanCameraMotionPipeline :
+        CharacterPipelineBase,
+        ICharacterLeanCameraMotionPipeline,
+        IUpdate
+    {
+        [SerializeField] private PlayerLoopStage _playerLoopStage = PlayerLoopStage.Update;
         [SerializeField] private CharacterAccess _characterAccess;
 
         [Header("Motion Settings")]
@@ -23,7 +25,6 @@ namespace MisterGames.Character.View {
         [SerializeField] [Min(0f)] private float _rotationAmplitude = 0.1f;
 
         private ICharacterMotionPipeline _motion;
-        private ITransformAdapter _head;
         private CameraContainer _cameraContainer;
         private CameraStateKey _cameraStateKey;
 
@@ -35,19 +36,18 @@ namespace MisterGames.Character.View {
 
         private void Awake() {
             _motion = _characterAccess.GetPipeline<ICharacterMotionPipeline>();
-            _head = _characterAccess.HeadAdapter;
             _cameraContainer = _characterAccess.GetPipeline<CharacterViewPipeline>().CameraContainer;
         }
 
         public override void SetEnabled(bool isEnabled) {
             if (isEnabled) {
                 _cameraStateKey = _cameraContainer.CreateState(this, _cameraMotionWeight);
-                TimeSources.Get(PlayerLoopStage.Update).Subscribe(this);
+                TimeSources.Get(_playerLoopStage).Subscribe(this);
                 return;
             }
 
             _cameraContainer.RemoveState(_cameraStateKey);
-            TimeSources.Get(PlayerLoopStage.Update).Unsubscribe(this);
+            TimeSources.Get(_playerLoopStage).Unsubscribe(this);
         }
 
         private void OnEnable() {
@@ -78,10 +78,6 @@ namespace MisterGames.Character.View {
 
             _cameraContainer.SetPositionOffset(_cameraStateKey, _currentPositionOffset);
             _cameraContainer.SetRotationOffset(_cameraStateKey, _currentRotationOffset);
-
-            DbgRay.Create().From(_head.Position).Dir(velocity).Color(Color.red).Draw();
-            DbgRay.Create().From(_head.Position - lever).Dir(lever + _currentPositionOffset).Color(Color.green).Draw();
-            DbgRay.Create().From(_head.Position - lever).Dir(_currentRotationOffset * lever).Color(Color.cyan).Draw();
         }
     }
 
