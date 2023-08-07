@@ -12,25 +12,20 @@ using UnityEngine;
 
 namespace MisterGames.Character.Steps {
 
-    public class CharacterStepsPipeline : CharacterPipelineBase, ICharacterStepsPipeline, IUpdate {
+    public sealed class CharacterStepsPipeline : CharacterPipelineBase, ICharacterStepsPipeline, IUpdate {
 
         [SerializeField] private PlayerLoopStage _playerLoopStage = PlayerLoopStage.Update;
         [SerializeField] private CharacterAccess _characterAccess;
 
         [Header("Step Settings")]
         [SerializeField] [Min(0f)] private float _feetDistance = 0.3f;
-        [SerializeField] [Min(0f)] private float _feetForwardOffset = 0.3f;
+        [SerializeField] private float _feetForwardOffset = 0.3f;
         [SerializeField] [Min(0f)] private float _speedMax = 10f;
         [SerializeField] [Min(0f)] private float _stepLengthMin = 0.4f;
         [SerializeField] [Min(0f)] private float _stepLengthMultiplier = 3f;
         [SerializeField] private AnimationCurve _stepLengthBySpeed = EasingType.EaseOutExpo.ToAnimationCurve();
 
         public event StepCallback OnStep = delegate {  };
-
-        public float StepLengthMultiplier {
-            get => _stepLengthMultiplier;
-            set => _stepLengthMultiplier = value;
-        }
 
         private CharacterProcessorMass _mass;
         private ICollisionDetector _groundDetector;
@@ -63,10 +58,6 @@ namespace MisterGames.Character.Steps {
         }
 
         public void OnUpdate(float dt) {
-            UpdateStepProgress(dt);
-        }
-
-        private void UpdateStepProgress(float dt) {
             var groundInfo = _groundDetector.CollisionInfo;
 
             if (!groundInfo.hasContact) {
@@ -77,8 +68,8 @@ namespace MisterGames.Character.Steps {
             var velocity = _mass.CurrentVelocity;
             float sqrSpeed = velocity.sqrMagnitude;
             float stepLength = _stepLengthMin +
-                         _stepLengthMultiplier *
-                         _stepLengthBySpeed.Evaluate(_speedMax < 0f ? 0f : sqrSpeed / (_speedMax * _speedMax));
+                               _stepLengthMultiplier *
+                               _stepLengthBySpeed.Evaluate(_speedMax < 0f ? 0f : sqrSpeed / (_speedMax * _speedMax));
 
             if (sqrSpeed.IsNearlyZero() || _stepLengthMultiplier.IsNearlyZero()) {
                 _stepProgress = 0f;
@@ -103,7 +94,7 @@ namespace MisterGames.Character.Steps {
                 groundInfo.point +
                 dir *
                 (Vector3.right * (0.5f * (_foot == 0 ? _feetDistance : -_feetDistance)) +
-                Vector3.forward * _feetForwardOffset);
+                 Vector3.forward * _feetForwardOffset);
 
             OnStep.Invoke(foot, stepLength, point);
 

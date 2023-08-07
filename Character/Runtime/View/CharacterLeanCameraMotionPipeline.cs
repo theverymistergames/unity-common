@@ -17,12 +17,12 @@ namespace MisterGames.Character.View {
         [SerializeField] [Min(0f)] private float _smoothFactor = 1f;
 
         [Header("Amplitude")]
-        [SerializeField] [Min(0f)] private float _baseAmplitude = 0.01f;
-        [SerializeField] [Min(0f)] private float _forwardAmplitude = 0.01f;
-        [SerializeField] [Min(0f)] private float _backwardAmplitude = 0.01f;
-        [SerializeField] [Min(0f)] private float _sideAmplitude = 0.01f;
-        [SerializeField] [Min(0f)] private float _rotationLever = 0.1f;
-        [SerializeField] [Min(0f)] private float _rotationAmplitude = 0.1f;
+        [SerializeField] private float _baseAmplitude = 0.01f;
+        [SerializeField] private float _forwardAmplitude = 0.01f;
+        [SerializeField] private float _backwardAmplitude = 0.01f;
+        [SerializeField] private float _sideAmplitude = 0.01f;
+        [SerializeField] private float _rotationLever = 0.1f;
+        [SerializeField] private float _rotationAmplitude = 0.1f;
 
         private ICharacterMotionPipeline _motion;
         private CameraContainer _cameraContainer;

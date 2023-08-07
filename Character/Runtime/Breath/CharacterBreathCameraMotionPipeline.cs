@@ -15,11 +15,11 @@ namespace MisterGames.Character.Breath {
         [SerializeField] [Min(0f)] private float _smoothFactor = 1f;
 
         [Header("Amplitude")]
-        [SerializeField] [Min(0f)] private float _positionAmplitude = 0.01f;
-        [SerializeField] [Min(0f)] private float _positionAmplitudeRandom = 0.005f;
-        [SerializeField] [Min(0f)] private float _rotationXYRatio = 0.2f;
-        [SerializeField] [Min(0f)] private float _rotationAmplitude = 1f;
-        [SerializeField] [Min(0f)] private float _rotationAmplitudeRandom = 0.3f;
+        [SerializeField] private float _positionAmplitude = 0.01f;
+        [SerializeField] private float _positionAmplitudeRandom = 0.005f;
+        [SerializeField] private float _rotationXYRatio = 0.2f;
+        [SerializeField] private float _rotationAmplitude = 1f;
+        [SerializeField] private float _rotationAmplitudeRandom = 0.3f;
 
         private ICharacterBreathPipeline _breath;
         private CameraContainer _cameraContainer;

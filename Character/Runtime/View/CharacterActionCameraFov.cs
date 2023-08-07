@@ -21,9 +21,7 @@ namespace MisterGames.Character.View {
         [Min(0f)] public float durationRandom;
         public float weight = 1f;
 
-        public float multiplier = 1f;
-        public float multiplierRandom;
-        public AnimationCurve curve = AnimationCurve.Linear(0f, 0f, 1f, 1f);
+        public FloatParameter fovOffset = FloatParameter.Default();
 
         private CameraContainer _cameraContainer;
 
@@ -45,15 +43,14 @@ namespace MisterGames.Character.View {
             float progress = 0f;
             float resultDuration = duration + Random.Range(-durationRandom, durationRandom);
 
-            float m = multiplier + Random.Range(-multiplierRandom, multiplierRandom);
-
+            float m = fovOffset.CreateMultiplier();
             var key = _cameraContainer.CreateState(this, weight);
 
             while (!cancellationToken.IsCancellationRequested) {
                 float progressDelta = resultDuration <= 0f ? 1f : timeSource.DeltaTime / resultDuration;
                 progress = Mathf.Clamp01(progress + progressDelta);
 
-                float fov = m * curve.Evaluate(progress);
+                float fov = m * fovOffset.Evaluate(progress);
                 _cameraContainer.SetFovOffset(key, fov);
 
                 if (progress >= 1f) break;

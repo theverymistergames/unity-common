@@ -67,15 +67,11 @@ namespace MisterGames.Character.Jump {
         }
 
         private async void OnJump(Vector3 vector3) {
-            await TryApply(_jumpReaction);
+            await _jumpReaction.TryApply(this, _destroyCts.Token);
         }
 
         private async void OnLanded() {
-            await TryApply(_landReaction);
-        }
-
-        private UniTask TryApply(IAsyncAction action) {
-            return action?.Apply(this, _destroyCts.Token) ?? default;
+            await _landReaction.TryApply(this, _destroyCts.Token);
         }
     }
 

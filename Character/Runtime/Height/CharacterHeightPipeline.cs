@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using MisterGames.Character.Core;
 using MisterGames.Character.Collisions;
-using MisterGames.Character.View;
+using MisterGames.Character.Core;
 using MisterGames.Collisions.Core;
 using MisterGames.Common.GameObjects;
 using MisterGames.Common.Maths;
@@ -14,10 +13,10 @@ namespace MisterGames.Character.Height {
 
     public class CharacterHeightPipeline : CharacterPipelineBase, ICharacterHeightPipeline {
 
+        [SerializeField] private PlayerLoopStage _playerLoopStage = PlayerLoopStage.Update;
         [SerializeField] private CharacterAccess _characterAccess;
         [SerializeField] private Transform _headRoot;
         [SerializeField] private CharacterController _characterController;
-        [SerializeField] private PlayerLoopStage _playerLoopStage = PlayerLoopStage.Update;
 
         public event Action<float, float> OnHeightChanged = delegate {  };
 
