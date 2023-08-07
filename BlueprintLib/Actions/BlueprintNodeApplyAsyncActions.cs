@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using MisterGames.Blueprints;
+using MisterGames.Blueprints.Meta;
 using MisterGames.Common.Actions;
 using MisterGames.Common.Dependencies;
 using UnityEngine;
@@ -15,7 +16,8 @@ namespace MisterGames.BlueprintLib {
         IBlueprintEnter,
         IDependencyResolver,
         IDependencyContainer,
-        IDependencyBucket
+        IDependencyBucket,
+        IBlueprintAssetValidator
     {
         [SerializeField] private AsyncActionAsset[] _applyActions;
         [SerializeField] private AsyncActionAsset[] _releaseActions;
@@ -109,6 +111,10 @@ namespace MisterGames.BlueprintLib {
                     break;
                 }
             }
+        }
+
+        public void ValidateBlueprint(BlueprintAsset blueprint, int nodeId) {
+            blueprint.BlueprintMeta.InvalidateNodePorts(blueprint, nodeId, invalidateLinks: true);
         }
     }
 
