@@ -20,7 +20,11 @@ namespace MisterGames.Character.View {
 
         [Min(0f)] public float duration;
         [Min(0f)] public float durationRandom;
+
         public float weight = 1f;
+        public float baseMultiplier = 1f;
+        public float baseMultiplierRandom = 0f;
+
         public Vector3Parameter eulers = Vector3Parameter.Default();
 
         private CameraContainer _cameraContainer;
@@ -43,7 +47,7 @@ namespace MisterGames.Character.View {
             float progress = 0f;
             float resultDuration = duration + Random.Range(-durationRandom, durationRandom);
 
-            var m = eulers.CreateMultiplier();
+            var m = (baseMultiplier + Random.Range(-baseMultiplierRandom, baseMultiplierRandom)) * eulers.CreateMultiplier();
             var key = _cameraContainer.CreateState(this, weight);
 
             while (!cancellationToken.IsCancellationRequested) {

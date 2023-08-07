@@ -20,7 +20,10 @@ namespace MisterGames.Character.View {
 
         [Min(0f)] public float duration;
         [Min(0f)] public float durationRandom;
+
         public float weight = 1f;
+        public float baseMultiplier = 1f;
+        public float baseMultiplierRandom = 0f;
 
         public Vector3Parameter offset = Vector3Parameter.Default();
 
@@ -44,7 +47,7 @@ namespace MisterGames.Character.View {
             float progress = 0f;
             float resultDuration = duration + Random.Range(-durationRandom, durationRandom);
 
-            var m = offset.CreateMultiplier();
+            var m = (baseMultiplier + Random.Range(-baseMultiplierRandom, baseMultiplierRandom)) * offset.CreateMultiplier();
             var key = _cameraContainer.CreateState(this, weight);
 
             while (!cancellationToken.IsCancellationRequested) {
