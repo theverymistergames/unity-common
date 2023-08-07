@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 namespace MisterGames.Common.Data {
 
@@ -14,12 +13,8 @@ namespace MisterGames.Common.Data {
         public bool HasValue => _hasValue;
         public T Value => _value;
 
-        public static Optional<T> WithValue(T value) {
-            return new Optional<T>(value, true);
-        }
-
-        public static Optional<T> Empty() {
-            return new Optional<T>(default, false);
+        public static Optional<T> Create(T value = default, bool hasValue = false) {
+            return new Optional<T>(value, hasValue);
         }
 
         public Optional(T value, bool hasValue) {
