@@ -84,6 +84,16 @@ namespace MisterGames.Common.Maths {
             return new Vector2(vector.x, y);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector2 Multiply(this Vector2 a, Vector2 b) {
+            return new Vector2(a.x * b.x, a.y * b.y);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector3 Multiply(this Vector3 a, Vector3 b) {
+            return new Vector3(a.x * b.x, a.y * b.y, a.z * b.z);
+        }
+
         // ---------------- ---------------- Geometry ---------------- ----------------
 
         public static Vector3 FindNearestPointOnSegment(Vector3 start, Vector3 end, Vector3 point) {
