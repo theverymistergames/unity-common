@@ -7,6 +7,7 @@ namespace MisterGames.Character.Steps {
 
     public interface ICharacterStepsPipeline : ICharacterPipeline {
         event StepCallback OnStep;
+        event StepCallback OnStartMotionStep;
     }
 
 }

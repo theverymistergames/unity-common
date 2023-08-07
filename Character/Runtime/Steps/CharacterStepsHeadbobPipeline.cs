@@ -17,19 +17,17 @@ namespace MisterGames.Character.Steps {
         [Header("Motion Settings")]
         [SerializeField] [Min(0f)] private float _cameraWeight = 1f;
         [SerializeField] [Min(0f)] private float _smooth = 1f;
+        [SerializeField] [Min(0f)] private float _returnSmooth = 1f;
 
         [Header("Headbob Settings")]
         [SerializeField] private float _minSpeed = 0.2f;
+        [SerializeField] private float _maxSpeed = 6f;
         [SerializeField] private float _baseAmplitude = 1f;
         [SerializeField] private float _baseAmplitudeRandom = 0.2f;
+        [SerializeField] private AnimationCurve _baseAmplitudeBySpeed = AnimationCurve.Linear(0f, 0f, 1f, 1f);
 
-        [Header("Left Foot")]
-        [SerializeField] private Vector3Parameter _positionOffsetLeft = Vector3Parameter.Default();
-        [SerializeField] private Vector3Parameter _rotationOffsetLeft = Vector3Parameter.Default();
-
-        [Header("Right Foot")]
-        [SerializeField] private Vector3Parameter _positionOffsetRight = Vector3Parameter.Default();
-        [SerializeField] private Vector3Parameter _rotationOffsetRight = Vector3Parameter.Default();
+        [SerializeField] private Vector3Parameter _positionOffset = Vector3Parameter.Default();
+        [SerializeField] private Vector3Parameter _rotationOffset = Vector3Parameter.Default();
 
         private CharacterProcessorMass _mass;
         private CameraContainer _cameraContainer;
@@ -72,6 +70,9 @@ namespace MisterGames.Character.Steps {
 
                 _steps.OnStep -= OnStep;
                 _steps.OnStep += OnStep;
+
+                _steps.OnStartMotionStep -= OnStep;
+                _steps.OnStartMotionStep += OnStep;
                 return;
             }
 
@@ -79,18 +80,21 @@ namespace MisterGames.Character.Steps {
             TimeSources.Get(_playerLoopStage).Unsubscribe(this);
 
             _steps.OnStep -= OnStep;
+            _steps.OnStartMotionStep -= OnStep;
         }
 
         private void OnStep(int foot, float distance, Vector3 point) {
             _foot = foot;
             _invertedSqrDistance = distance > 0f ? 1f / (distance * distance) : 0f;
 
+            float speedRatio = _maxSpeed > 0f ? _mass.CurrentVelocity.sqrMagnitude / (_maxSpeed * _maxSpeed) : 0f;
             float baseAmplitude = _baseAmplitude + Random.Range(-_baseAmplitudeRandom, _baseAmplitudeRandom);
-            var positionParameter = _foot == 0 ? _positionOffsetLeft : _positionOffsetRight;
-            var rotationParameter = _foot == 0 ? _rotationOffsetLeft : _rotationOffsetRight;
+            baseAmplitude *= _baseAmplitudeBySpeed.Evaluate(speedRatio);
 
-            _targetPositionAmplitude = baseAmplitude * positionParameter.CreateMultiplier();
-            _targetRotationAmplitude = baseAmplitude * rotationParameter.CreateMultiplier();
+            int footDir = _foot == 0 ? 1 : -1;
+
+            _targetPositionAmplitude = baseAmplitude * _positionOffset.CreateMultiplier().Multiply(footDir, 1f, 1f);
+            _targetRotationAmplitude = baseAmplitude * _rotationOffset.CreateMultiplier().Multiply(1f, footDir, footDir);
 
             _stepProgress = 0f;
         }
@@ -98,31 +102,23 @@ namespace MisterGames.Character.Steps {
         public void OnUpdate(float dt) {
             var plainVelocity = Vector3.ProjectOnPlane(_mass.CurrentVelocity, _head.Rotation * Vector3.up);
             float sqrSpeed = plainVelocity.sqrMagnitude;
+            float targetSmooth;
 
             if (sqrSpeed < _minSpeed * _minSpeed) {
+                targetSmooth = _returnSmooth;
                 _stepProgress = 0f;
                 _targetPositionOffset = Vector3.zero;
                 _targetRotationOffset = Quaternion.identity;
             }
             else {
+                targetSmooth = _smooth;
                 _stepProgress = Mathf.Clamp01(_stepProgress + dt * sqrSpeed * _invertedSqrDistance);
-
-                var positionParameter = _foot == 0 ? _positionOffsetLeft : _positionOffsetRight;
-                var rotationParameter = _foot == 0 ? _rotationOffsetLeft : _rotationOffsetRight;
-
-                _targetPositionOffset = positionParameter
-                    .Evaluate(_stepProgress)
-                    .Multiply(_targetPositionAmplitude);
-
-                _targetRotationOffset = Quaternion.Euler(
-                    rotationParameter
-                        .Evaluate(_stepProgress)
-                        .Multiply(_targetRotationAmplitude)
-                );
+                _targetPositionOffset = _positionOffset.Evaluate(_stepProgress).Multiply(_targetPositionAmplitude);
+                _targetRotationOffset = Quaternion.Euler(_rotationOffset.Evaluate(_stepProgress).Multiply(_targetRotationAmplitude));
             }
 
-            _currentPositionOffset = Vector3.Lerp(_currentPositionOffset, _targetPositionOffset, dt * _smooth);
-            _currentRotationOffset = Quaternion.Slerp(_currentRotationOffset, _targetRotationOffset, dt * _smooth);
+            _currentPositionOffset = Vector3.Lerp(_currentPositionOffset, _targetPositionOffset, dt * targetSmooth);
+            _currentRotationOffset = Quaternion.Slerp(_currentRotationOffset, _targetRotationOffset, dt * targetSmooth);
 
             _cameraContainer.SetPositionOffset(_cameraStateKey, _currentPositionOffset);
             _cameraContainer.SetRotationOffset(_cameraStateKey, _currentRotationOffset);

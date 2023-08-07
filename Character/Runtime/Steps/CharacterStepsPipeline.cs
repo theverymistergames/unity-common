@@ -5,7 +5,6 @@ using MisterGames.Character.Motion;
 using MisterGames.Collisions.Core;
 using MisterGames.Common.Easing;
 using MisterGames.Common.GameObjects;
-using MisterGames.Common.Maths;
 using MisterGames.Dbg.Draw;
 using MisterGames.Tick.Core;
 using UnityEngine;
@@ -20,18 +19,20 @@ namespace MisterGames.Character.Steps {
         [Header("Step Settings")]
         [SerializeField] [Min(0f)] private float _feetDistance = 0.3f;
         [SerializeField] private float _feetForwardOffset = 0.3f;
+        [SerializeField] [Min(0f)] private float _speedMin = 0.1f;
         [SerializeField] [Min(0f)] private float _speedMax = 10f;
         [SerializeField] [Min(0f)] private float _stepLengthMin = 0.4f;
         [SerializeField] [Min(0f)] private float _stepLengthMultiplier = 3f;
         [SerializeField] private AnimationCurve _stepLengthBySpeed = EasingType.EaseOutExpo.ToAnimationCurve();
 
         public event StepCallback OnStep = delegate {  };
+        public event StepCallback OnStartMotionStep = delegate {  };
 
         private CharacterProcessorMass _mass;
         private ICollisionDetector _groundDetector;
         private ITransformAdapter _body;
 
-        private float _stepProgress;
+        private float _stepProgress = -1;
         private int _foot;
 
         private void Awake() {
@@ -61,7 +62,7 @@ namespace MisterGames.Character.Steps {
             var groundInfo = _groundDetector.CollisionInfo;
 
             if (!groundInfo.hasContact) {
-                _stepProgress = 0f;
+                _stepProgress = -1f;
                 return;
             }
 
@@ -71,8 +72,21 @@ namespace MisterGames.Character.Steps {
                                _stepLengthMultiplier *
                                _stepLengthBySpeed.Evaluate(_speedMax < 0f ? 0f : sqrSpeed / (_speedMax * _speedMax));
 
-            if (sqrSpeed.IsNearlyZero() || _stepLengthMultiplier.IsNearlyZero()) {
-                _stepProgress = 0f;
+            if (sqrSpeed < _speedMin * _speedMin) {
+                _stepProgress = -1f;
+                return;
+            }
+
+            var point = groundInfo.point + GetFootPointOffset(velocity, _foot);
+
+            if (_stepProgress < 0f) {
+                _stepProgress = sqrSpeed * dt;
+                OnStartMotionStep.Invoke(_foot, stepLength, point);
+                _foot = _foot == 0 ? 1 : 0;
+
+#if UNITY_EDITOR
+                DbgDrawStep(point, Color.red);
+#endif
                 return;
             }
 
@@ -82,25 +96,21 @@ namespace MisterGames.Character.Steps {
             }
 
             _stepProgress = 0f;
-
-            int foot = _foot;
+            OnStep.Invoke(_foot, stepLength, point);
             _foot = _foot == 0 ? 1 : 0;
 
+#if UNITY_EDITOR
+            DbgDrawStep(point, Color.yellow);
+#endif
+        }
 
+        private Vector3 GetFootPointOffset(Vector3 velocity, int foot) {
             var up = _body.Rotation * Vector3.up;
             var dir = Quaternion.LookRotation(Vector3.ProjectOnPlane(velocity, up), up);
 
-            var point =
-                groundInfo.point +
-                dir *
-                (Vector3.right * (0.5f * (_foot == 0 ? _feetDistance : -_feetDistance)) +
-                 Vector3.forward * _feetForwardOffset);
-
-            OnStep.Invoke(foot, stepLength, point);
-
-#if UNITY_EDITOR
-            DbgDrawStep(point);
-#endif
+            return dir *
+                   (Vector3.right * (0.5f * (foot == 0 ? _feetDistance : -_feetDistance)) +
+                    Vector3.forward * _feetForwardOffset);
         }
 
 #if UNITY_EDITOR
@@ -108,9 +118,9 @@ namespace MisterGames.Character.Steps {
         [SerializeField] private bool _debugDrawStep;
 
         [Conditional("UNITY_EDITOR")]
-        private void DbgDrawStep(Vector3 point) {
+        private void DbgDrawStep(Vector3 point, Color color) {
             if (_debugDrawStep) {
-                DbgPointer.Create().Color(Color.yellow).Time(2f).Position(point).Size(0.5f).Draw();
+                DbgPointer.Create().Color(color).Time(2f).Position(point).Size(0.5f).Draw();
             }
         }
 #endif
