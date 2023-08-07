@@ -5,6 +5,7 @@ using MisterGames.Character.Motion;
 using MisterGames.Collisions.Core;
 using MisterGames.Common.Easing;
 using MisterGames.Common.GameObjects;
+using MisterGames.Common.Maths;
 using MisterGames.Dbg.Draw;
 using MisterGames.Tick.Core;
 using UnityEngine;
@@ -106,9 +107,12 @@ namespace MisterGames.Character.Steps {
 
         private Vector3 GetFootPointOffset(Vector3 velocity, int foot) {
             var up = _body.Rotation * Vector3.up;
-            var dir = Quaternion.LookRotation(Vector3.ProjectOnPlane(velocity, up), up);
+            var velocityProjection = Vector3.ProjectOnPlane(velocity, up);
+            var forward = velocityProjection.sqrMagnitude.IsNearlyZero()
+                ? _body.Rotation * Vector3.forward
+                : velocity;
 
-            return dir *
+            return Quaternion.LookRotation(forward, up) *
                    (Vector3.right * (0.5f * (foot == 0 ? _feetDistance : -_feetDistance)) +
                     Vector3.forward * _feetForwardOffset);
         }
