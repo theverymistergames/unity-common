@@ -13,7 +13,7 @@ namespace MisterGames.Collisions.Materials {
         public event Action OnMaterialChanged = delegate {  };
         public Optional<MaterialData> Material { get; private set; }
 
-        private readonly Optional<MaterialData> _empty = Optional<MaterialData>.Empty();
+        private readonly Optional<MaterialData> _empty = Optional<MaterialData>.Create();
         private Optional<MaterialData> _default;
         
         private void Awake() {
@@ -29,7 +29,7 @@ namespace MisterGames.Collisions.Materials {
         }
 
         private void InitMaterialData() {
-            _default = Optional<MaterialData>.WithValue(_defaultMaterialData);
+            _default = Optional<MaterialData>.Create(_defaultMaterialData);
             Material = _empty;
         }
 
@@ -43,7 +43,7 @@ namespace MisterGames.Collisions.Materials {
             if (!info.hasContact) return _empty;
 
             var holder = info.transform.GetComponentInParent<MaterialHolder>();
-            return holder != null ? Optional<MaterialData>.WithValue(holder.materialData) : _default;
+            return holder != null ? Optional<MaterialData>.Create(holder.materialData) : _default;
         }
         
     }
