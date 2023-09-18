@@ -1,171 +1,192 @@
-# MisterGames Blueprints v0.1.1
-
-> :warning: Package needs refactoring to reduce heap allocations and scriptable objects overuse.
+# MisterGames Blueprints v0.2.1
 
 A tool for visual scripting without using reflection or code generation. 
 
 ## Core
 
-### Blueprint
+### Blueprint Asset
 
-`Blueprint` basically is a scriptable object (has no dependencies on a separate scene) with some runtime and editor data.
-Data is presented by:
+`BlueprintAsset` basically is a scriptable object with some runtime and editor data. 
 
-1. A list of blueprint nodes
+<img width="600" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/1c0c5ee0-54f0-4e30-b0c1-c676b68cb241">
 
-2. A blackboard to be able to create references to game objects on a scene
 
-<img width="833" alt="image" src="https://user-images.githubusercontent.com/109593086/208853464-567ce757-d215-46b5-ba61-3cddb0b17db1.png">
+The data is presented by:
 
-`Blueprint` can be started with `BlueprintRunner : MonoBehaviour` or from subgraph node (see [Built-in nodes](https://github.com/theverymistergames/unity-common/edit/master/Blueprints/README.md#built-in-nodes) section).
+1. Nodes
+2. Links between node ports
+3. Blackboard: exposed variables of a blueprint
 
-<img width="356" alt="image" src="https://user-images.githubusercontent.com/109593086/208853990-3cd43a0a-fd8e-478f-aca2-3eb0de86c549.png">
+### Blueprint Runner
 
-### Blueprint node implementation
+`BlueprintAsset` can be launched from `BlueprintRunner : MonoBehaviour`. At runtime `BlueprintRunner` creates a runtime copy of a `BlueprintAsset` with overrided values, which can be set up via inspector.
 
-To create new type of node, create a class that implements abstract class `BlueprintNode`.
+<img width="944" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/4ff04126-63f8-47f4-95f8-2167e8dd3311">
 
-`BlueprintNode` is also a scriptable object with data about in and out ports and action or data access implementation. 
- It is basic abstract class to implement node with one abstract member: method `CreatePorts`. 
+### Blueprint Subraph
+
+`BlueprintAsset` can also be launched from a built-in subgraph blueprint node, which takes a `BlueprintAsset` as a serialized field and exposes all its ports, that are intended to be exposed. 
+
+<img width="493" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/67d97b52-554e-477c-9c77-3621f865dbb3">
+
+Let's add a new exposed port to the previous `BlueprintAsset` example:
+
+<img width="624" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/f52ee6d9-a245-46ab-b843-f9acf3d353b2">
+
+Subgraph node fetches new exposed ports:
+
+<img width="508" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/c52ce285-bbcd-49d2-913f-9650c5fdc8c1">
+
+Now if we set up a `BlueprintRunner` with `BlueprintAsset` with one or more subgraphs, inspector of `BlueprintRunner` contains all nested blackboards:
+
+<img width="401" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/f2baaaac-6579-4acb-8a8b-d7d633c0af02">
+
+Subgraph node cannot hold a reference to the host `BlueprintAsset` and cannot contain reference loops to prevent recursion. 
+
+### Blueprint Node
+
+To create new type of node, create a class that implements abstract class `BlueprintNode`, add `[Serializable]` and `[BlueprintNodeMeta]` attributes to the class.
+
+`BlueprintNode` is a plain class, which holds references to connected nodes and some abstract members to implement.
  
- `[BlueprintNode]` attribute can be used to add meta data to the created blueprint node, like name, category for the node finder, colors.
+```csharp
+[Serializable]
+public abstract class BlueprintNode {
+
+    protected internal RuntimePort[] Ports;
+
+    public abstract Port[] CreatePorts();
+
+    public virtual void OnInitialize(IBlueprintHost host) {}
+    public virtual void OnDeInitialize() {}
+
+    public virtual void OnValidate() {}
+}
+```
+
+Note that node has `RuntimePort` struct array to store links to the connected nodes at runtime. This array is filled at the compilation stage of the `BlueprintRunner` during `Awake` call. The method `CreatePorts` returns an array of `Port` struct, which contains all the meta data about the port (name, direction, data type). This method is not used at runtime, only in the editor.
+
+ `[BlueprintNodeMeta]` attribute must be used to add meta data to the created blueprint node, like name, category for the node finder, colors.
 
 ```csharp
-[BlueprintNode(Name = "Implementation")]
-class BlueprintNodeImplementation : BlueprintNode {
+[Serializable]
+[BlueprintNodeMeta(Name = "Test", Category = "Test Nodes")]
+public class BlueprintNodeTest : BlueprintNode {
 
-  protected override IReadOnlyList<Port> CreatePorts() {
-    return Array.Empty<Port>(); 
-  }
+    public override Port[] CreatePorts() {
+        return Array.Empty<Port>();
+    }
 }
 ```
 
 After compilation the node appears in the node finder and it can be added to the blueprint.
 
-<img width="403" alt="image" src="https://user-images.githubusercontent.com/109593086/208870731-df527c9c-cc73-4608-87c6-5486f1c4a8ed.png">
+<img width="331" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/15ecc132-f6a2-4b8d-8a44-b4d5e2702f6b">
 
-#### Ports
+A node can have serialized fields, which are exposed in the node inspector.
 
-To add connection between nodes, each node needs ports. There are two types of ports:
+```csharp
+[Serializable]
+[BlueprintNodeMeta(Name = "Test", Category = "Test Nodes")]
+public class BlueprintNodeTest : BlueprintNode {
+
+    [SerializeField] private string _parameter;
+
+    public override Port[] CreatePorts() {
+        return Array.Empty<Port>();
+    }
+}
+```
+
+<img width="213" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/2a837a74-4b05-46b0-baaf-4560370e8ef4">
+
+#### Blueprint Node Ports
+
+To add connection between nodes, first you need to add ports. There are two types of ports:
 
 1. Flow port (enter and exit)
 
-When flow port called from inside the node by protected method `void BlueprintNode.Call(int port)`, node searches links to flow ports of other nodes and invokes method
-`void IBlueprintEnter.Enter(int port)`. So, to receive calls from enter ports, node needs:
-- to have a port created by `Port.Enter(...)` call
-- to implement interface `IBlueprintEnter`
+Flow ports are just like void method calls without parameters.
+
+- To add enter flow port, node needs implement `IBlueprintEnter` interface and have an enter port in array created in `CreatePorts` method
+- To add exit flow port, just add exit port to array in `CreatePorts` method
+
+Exit flow ports can be called within a node via `Ports` field of a `BlueprintNode` class.
 
 ```csharp
-[BlueprintNode(Name = "Implementation")]
-class BlueprintNodeImplementation : BlueprintNode, IBlueprintEnter {
-  
-  protected override IReadOnlyList<Port> CreatePorts() => new List<Port> {
-    Port.Enter("Enter") // index of port is 0
-  };
-  
-  void IBlueprintEnter.Enter(int port) {
-    if (port == 0) {
-      // called port "Enter"
+[Serializable]
+[BlueprintNodeMeta(Name = "Test", Category = "Test Nodes")]
+public class BlueprintNodeTest : BlueprintNode, IBlueprintEnter {
+
+    public override Port[] CreatePorts() => new [] {
+        Port.Enter("Enter"), // port 0
+        Port.Exit("Exit")    // port 1
+    };
+
+    public void OnEnterPort(int port) {
+        // Enter port 0 called
+        if (port == 0) {
+            
+            // Call exit port 1
+            Ports[1].Call();
+        }
     }
-  }
 }
 ```
 
-<img width="105" alt="image" src="https://user-images.githubusercontent.com/109593086/208855989-4978059d-d668-4913-96a6-a57ae1b573be.png">
-
-To create and call exit port the node needs to have port created by `Port.Exit(...)` call:
-
-```csharp
-[BlueprintNode(Name = "Implementation")]
-class BlueprintNodeImplementation : BlueprintNode, IBlueprintEnter {
-  
-  protected override IReadOnlyList<Port> CreatePorts() => new List<Port> {
-    Port.Enter("Enter"),  // index of port is 0
-    Port.Exit("Exit")     // index of port is 1
-  };
-  
-  void IBlueprintEnter.Enter(int port) {
-    if (port == 0) {
-      // Call port "Exit" when called port "Enter"
-      Call(port: 1);
-    }
-  }
-}
-```
-
-<img width="109" alt="image" src="https://user-images.githubusercontent.com/109593086/208856168-de4f2cd9-d0b9-439f-b01d-9ac9fff1f39e.png">
+In this implementation exit port (1) will be called inside the enter port (0) call.
 
 2. Data port (input and output)
 
-Input can be read by calling protected method `T BlueprintNode.Read<T>(int port, T default)`, this call invokes method `T IBlueprintGetter<out T>.Get(int port)` from a linked port of another node (a port must be an output of the same type to create a link). 
+Data ports are used to pass some data. Data port stores `System.Type` in a string form to be able to validate connections between ports by type.
+
+- To add input port, just add input port to array in `CreatePorts` method
+- To add output port, add output port to array in `CreatePorts` method and make the node implement `IBlueprintOutput<T>` interface
 
 ```csharp
-[BlueprintNode(Name = "Implementation")]
-class BlueprintNodeImplementation : BlueprintNode, IBlueprintEnter {
-  
-  protected override IReadOnlyList<Port> CreatePorts() => new List<Port> {
-    Port.Enter("Enter"),              // index of port is 0
-    Port.Exit("Exit"),                // index of port is 1
-    Port.Input<float>("Input float")  // index of port is 2
-  };
-  
-  void IBlueprintEnter.Enter(int port) {
-    if (port == 0) {
-      // Read input value when called port "Enter" with default value. It will be used later.
-      // Default value can be injected. Eg. with serialized field.
-      float value = Read(port: 2, defaultValue: 0f);
-      
-      // Call port "Exit" when called port "Enter"
-      Call(port: 1);
+[Serializable]
+[BlueprintNodeMeta(Name = "Test", Category = "Test Nodes")]
+public class BlueprintNodeTest : BlueprintNode, IBlueprintEnter, IBlueprintOutput<string> {
+
+    public override Port[] CreatePorts() => new [] {
+        Port.Enter("Enter"),                   // port 0
+        Port.Exit("Exit"),                     // port 1
+        Port.Input<string>("Input String"),    // port 2
+        Port.Output<string>("Output String"),  // port 3
+    };
+
+    public void OnEnterPort(int port) {
+        // Enter port 0 called
+        if (port == 0) {
+            
+            // Read input port 2
+            string input = Ports[2].Get<string>();
+            Debug.Log(input);
+            
+            // Call exit port 1
+            Ports[1].Call();
+        }
     }
-  }
+
+    public string GetOutputPortValue(int port) {
+        // Someone trying to read port 3 of type string
+        if (port == 3) {
+
+            // Read input port 2
+            string input = Ports[2].Get<string>();
+            
+            // Return string output
+            return $"Hello, {input}!";
+        }
+        
+        return default;
+    }
 }
 ```
 
-<img width="137" alt="image" src="https://user-images.githubusercontent.com/109593086/208857401-b7fad41f-4695-4e65-ace6-a41ca6a86e60.png">
+Added ports will be displayed in the node inspector.
 
-To have an output port, the node must implement interface `IBlueprintGetter<out T>`. Node can have multiple output ports, 
-so method `T IBlueprintGetter<out T>.Get(int port)` has argument `int port` to check if the output port index is correct.
-
-```csharp
-[BlueprintNode(Name = "Implementation")]
-class BlueprintNodeImplementation : BlueprintNode, IBlueprintEnter, IBlueprintGetter<bool> {
-  
-  // a field to store output result, that is calculated on "Enter" call
-  bool outputCache;
-  
-  protected override IReadOnlyList<Port> CreatePorts() => new List<Port> {
-    Port.Enter("Enter"),                           // index of port is 0
-    Port.Exit("Exit"),                             // index of port is 1
-    Port.Input<float>("Input float"),              // index of port is 2
-    Port.Output<bool>("Output bool: input >= 0?")  // index of port is 3
-  };
-  
-  void IBlueprintEnter.Enter(int port) {
-    if (port == 0) {
-      // Read input value when called port "Enter" with default value. It will be used later.
-      // Default value can be injected. Eg. with serialized field.
-      float value = Read(port: 2, defaultValue: 0f);
-      
-      // Write a result for input value
-      outputCache = value >= 0f;
-      
-      // Call port "Exit" when called port "Enter"
-      Call(port: 1);
-    }
-  }
-  
-  bool IBlueprintGetter<bool>.Get(int port) {
-    if (port == 3) {
-      return outputCache;
-    }
-    
-    return default;
-  }
-}
-```
-
-<img width="205" alt="image" src="https://user-images.githubusercontent.com/109593086/208858330-6199d36a-a091-490a-9a25-80a83d1684fe.png">
+<img width="207" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/001f5a43-92e0-4840-81b3-a9c6d4bac7b0">
 
 ## Built-in nodes
 
