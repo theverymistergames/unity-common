@@ -196,7 +196,7 @@ Subgraph node cannot hold a reference to the host `BlueprintAsset` and cannot co
 
 ## External nodes
 
-There is a category called `External` in the node finder, these are built-in nodes mostly for creation subgraphs. 
+There is a category called `External` in the node finder, these are built-in nodes mostly for subgraph creation. 
 
 <img width="746" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/160e4d7b-3e27-4f27-a8c6-9dcc2159d0b2">
 
@@ -218,6 +218,23 @@ This `BlueprintAsset` is displayed as following when used as subgraph:
 
 <img width="646" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/55db8bc2-76c2-40a8-8081-40b61f9eaf49">
 
+### Blackboard
+
+Blackboard is a storage for blueprint variables. You can add a property with specified name and type. 
+Blackboard has storages for main value types (`bool`, `float`, `int` etc.), some Unity value types (`AnimationCurve`, `LayerMask`, `Color` etc), any enum, and for any managed type, also it is possible to create an array of any of those types. 
+
+Blackboard Editor provides inspector for all properties.
+
+<img width="784" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/5e6c5d43-6f86-4070-b593-ae314ce361fc">
+
+Default blackboard property values are set in the inspector of `BlueprintAsset`. When asset is picked in `BlueprintRunner`, a copy of the asset blackboard is created. Here you can override blackboard values and setup some scene references.
+
+<img width="784" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/2126dfbe-c764-471d-a040-8687071936fb">
+
+To get blackboard property value you can use Get Blackboard Property node. It has one dynamic output port, which fetches chosen blackboard property type.
+
+<img width="484" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/f7a20634-82db-48cc-8970-dfbc62ced4ce">
+
 
 ## Assembly definitions
 - `MisterGames.Blueprints`
@@ -226,3 +243,4 @@ This `BlueprintAsset` is displayed as following when used as subgraph:
 ## Dependencies
 - [`MisterGames.Common`](https://github.com/theverymistergames/unity-common/tree/master/Common)
 - [`MisterGames.Tick`](https://github.com/theverymistergames/unity-common/tree/master/Tick)
+- [`MisterGames.Blackboards`](https://github.com/theverymistergames/unity-common/tree/master/Blackboards)
