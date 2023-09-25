@@ -6,8 +6,11 @@ using UnityEngine;
 
 namespace MisterGames.Blueprints.Core2 {
 
+    /// <summary>
+    /// Base class for blueprint node factories. It is used to store factories in blueprint storages.
+    /// </summary>
     [Serializable]
-    public abstract class BlueprintNodeFactory : IBlueprintNodeFactory, IBlueprintNodeDataStorage {
+    public abstract class BlueprintNodeFactory : IBlueprintNodeFactory, IBlueprintStorage {
 
 
         public abstract int Count { get; }
@@ -19,10 +22,13 @@ namespace MisterGames.Blueprints.Core2 {
         public abstract int AddElement();
 
 
-        public abstract int AddElementCopy(IBlueprintNodeDataStorage storage, int id);
+        public abstract int AddElementCopy(IBlueprintStorage storage, int id);
 
 
         public abstract void RemoveElement(int id);
+
+
+        public abstract string GetElementPath(int id);
 
 
         public abstract void Clear();
@@ -37,10 +43,13 @@ namespace MisterGames.Blueprints.Core2 {
         public abstract IBlueprintNode CreateNode();
     }
 
+    /// <summary>
+    /// Base class for deriving user defined factories.
+    /// It has implementations for most <see cref="IBlueprintNodeFactory"/> and <see cref="IBlueprintStorage"/> methods.
+    /// </summary>
+    /// <typeparam name="TData">Struct data type to store in the data array.</typeparam>
     [Serializable]
     public abstract class BlueprintNodeFactory<TData> : BlueprintNodeFactory where TData : struct {
-
-        public static TData Default;
 
         [SerializeField] private DataCell[] _array;
         [SerializeField] private SerializedDictionary<int, int> _idToIndexMap;
@@ -52,6 +61,7 @@ namespace MisterGames.Blueprints.Core2 {
             public TData data;
         }
 
+        private static TData Default;
         private readonly Queue<int> _freeIndices = new Queue<int>();
 
         public sealed override int Count => _idToIndexMap?.Count ?? 0;
@@ -125,7 +135,7 @@ namespace MisterGames.Blueprints.Core2 {
             return id;
         }
 
-        public sealed override int AddElementCopy(IBlueprintNodeDataStorage storage, int id) {
+        public sealed override int AddElementCopy(IBlueprintStorage storage, int id) {
             int localId = AddElement();
             ref var localData = ref Get<TData>(localId);
 
@@ -178,6 +188,42 @@ namespace MisterGames.Blueprints.Core2 {
 
             _freeIndices.Clear();
             OptimizeDataLayout();
+        }
+
+        public sealed override string GetElementPath(int id) {
+#if UNITY_EDITOR
+            if (_idToIndexMap == null) {
+                Debug.LogError($"{nameof(BlueprintNodeFactory<TData>)}: " +
+                                 $"trying to get element path by id {id}, " +
+                                 $"but data with this id is not found: " +
+                                 $"index map is null.");
+
+                return null;
+            }
+
+            if (!_idToIndexMap.TryGetValue(id, out int index)) {
+                Debug.LogError($"{nameof(BlueprintNodeFactory<TData>)}: " +
+                                 $"trying to get element path by id {id}, " +
+                                 $"but data with this id is not found: " +
+                                 $"index map has no entry with id {id}.");
+
+                return null;
+            }
+
+            if (index < 0 || index >= _array.Length) {
+                Debug.LogError($"{nameof(BlueprintNodeFactory<TData>)}: " +
+                               $"trying to get element path by id {id}, " +
+                               $"but data with this id is not found: " +
+                               $"index map returned incorrect index {index}. " +
+                               $"Array size is {_array.Length}.");
+
+                return null;
+            }
+
+            return $"{nameof(_array)}.Array.data[{index}].{nameof(DataCell.data)}";
+#endif
+            throw new InvalidOperationException($"{nameof(BlueprintNodeFactory<TData>)}: " +
+                                                $"calling method {nameof(GetElementPath)} is only allowed in the Unity Editor");
         }
 
         public sealed override void Clear() {

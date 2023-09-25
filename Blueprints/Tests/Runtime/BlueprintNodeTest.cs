@@ -19,9 +19,9 @@ namespace Core {
     [Serializable]
     public sealed class BlueprintNodeTest : IBlueprintNode {
 
-        public void OnCreateNode(IBlueprintNodeDataStorage storage, int id) { }
+        public void OnCreateNode(IBlueprintStorage storage, int id) { }
 
-        public Port[] CreatePorts(IBlueprintNodeDataStorage storage, int id) {
+        public Port[] CreatePorts(IBlueprintStorage storage, int id) {
             return Array.Empty<Port>();
         }
     }
