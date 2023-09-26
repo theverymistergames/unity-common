@@ -13,7 +13,7 @@ namespace MisterGames.Blackboards.Editor {
             EditorGUI.BeginProperty(position, label, property);
 
             if (BlackboardUtils.TryGetBlackboardProperty(property, out var blackboardProperty, out _, out _)) {
-                var baseType = (Type) blackboardProperty.type;
+                var baseType = blackboardProperty.type.ToType();
                 if (baseType.IsArray) baseType = baseType.GetElementType();
 
                 SubclassSelectorGUI.PropertyField(position, property.FindPropertyRelative("value"), baseType, label, includeChildren: true);

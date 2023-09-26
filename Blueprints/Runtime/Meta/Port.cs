@@ -18,7 +18,7 @@ namespace MisterGames.Blueprints {
         public string Name => _name;
 
         public Type DataType {
-            get => _dataType;
+            get => _dataType.ToType();
             private set => _dataType = new SerializedType(value);
         }
 
@@ -42,7 +42,7 @@ namespace MisterGames.Blueprints {
         internal int GetSignatureHashCode() => HashCode.Combine(
             _mode,
             string.IsNullOrWhiteSpace(_name) ? string.Empty : _name.Trim(),
-            _dataType ?? typeof(Null)
+            _dataType.HasNullType() ? typeof(Null) : _dataType.ToType()
         );
 
         internal Port External(bool isExternal) {
@@ -149,8 +149,8 @@ namespace MisterGames.Blueprints {
         public override string ToString() {
             string config = IsData
                 ? IsInput
-                    ? _dataType == null ? "dynamic input" : $"input<{TypeNameFormatter.GetTypeName(_dataType)}>"
-                    : _dataType == null ? "dynamic output" : $"output<{TypeNameFormatter.GetTypeName(_dataType)}>"
+                    ? _dataType.ToType() is {} t0 ? $"input<{TypeNameFormatter.GetTypeName(t0)}>" : "dynamic input"
+                    : _dataType.ToType() is {} t1 ? $"output<{TypeNameFormatter.GetTypeName(t1)}>" : "dynamic output"
                 : IsInput
                     ? "enter"
                     : "exit";

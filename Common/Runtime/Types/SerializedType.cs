@@ -4,22 +4,20 @@ using UnityEngine;
 namespace MisterGames.Common.Types {
 
     [Serializable]
-    public sealed class SerializedType : IEquatable<SerializedType>, IEquatable<Type> {
+    public struct SerializedType : IEquatable<SerializedType> {
 
         [SerializeField] private string _type;
-
-        private SerializedType() { }
 
         public SerializedType(Type type) {
             _type = SerializeType(type);
         }
 
-        public static implicit operator Type(SerializedType serializedType) {
-            return DeserializeType(serializedType?._type);
+        public Type ToType() {
+            return DeserializeType(_type);
         }
 
-        public bool Equals(Type other) {
-            return this == other;
+        public bool HasNullType() {
+            return string.IsNullOrWhiteSpace(_type);
         }
 
         public bool Equals(SerializedType other) {
@@ -27,29 +25,16 @@ namespace MisterGames.Common.Types {
         }
 
         public override bool Equals(object obj) {
-            if (obj == null) return string.IsNullOrWhiteSpace(_type);
-
-            return ReferenceEquals(this, obj) ||
-                   obj is SerializedType s && this == s ||
-                   obj is Type t && this == t;
+            return obj is SerializedType s && this == s;
         }
 
         public override int GetHashCode() {
-            var type = (Type) this;
-            return type is not null ? type.GetHashCode() : 0;
-        }
-
-        public static bool operator ==(SerializedType serializedType, Type type) {
-            return string.IsNullOrWhiteSpace(serializedType?._type) ? type is null : serializedType._type == SerializeType(type);
-        }
-
-        public static bool operator !=(SerializedType serializedType, Type type) {
-            return !(serializedType == type);
+            return _type != null ? _type.GetHashCode() : 0;
         }
 
         public static bool operator ==(SerializedType serializedType0, SerializedType serializedType1) {
-            string t0 = serializedType0?._type;
-            string t1 = serializedType1?._type;
+            string t0 = serializedType0._type;
+            string t1 = serializedType1._type;
             return string.IsNullOrWhiteSpace(t0) && string.IsNullOrWhiteSpace(t1) || t0 == t1;
         }
 
@@ -58,7 +43,7 @@ namespace MisterGames.Common.Types {
         }
 
         public override string ToString() {
-            return ((Type) this)?.ToString();
+            return ToType().ToString();
         }
 
         private const string TO_STRIP_START = ", Version";

@@ -340,7 +340,7 @@ namespace MisterGames.Common.Dependencies {
             }
 
             var meta = _dependencyMetas[index];
-            if (!type.IsAssignableFrom(meta.type)) {
+            if (!type.IsAssignableFrom(meta.type.ToType())) {
                 Debug.LogError($"Requested dependency of type {type.Name} is not found: " +
                                $"dependency type {type.Name} is not assignable from added type {meta.type}.");
                 return false;

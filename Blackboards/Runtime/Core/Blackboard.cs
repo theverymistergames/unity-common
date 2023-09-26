@@ -211,7 +211,7 @@ namespace MisterGames.Blackboards.Core {
                 case 33: {
                     if (!_enumArrays.TryGetValue(hash, out var array) || array == null) return default;
 
-                    var type = ((Type) property.type).GetElementType()!;
+                    var type = property.type.ToType().GetElementType()!;
 
                     var res = Array.CreateInstance(type, array.Length);
                     for (int i = 0; i < array.Length; i++) {
@@ -224,7 +224,7 @@ namespace MisterGames.Blackboards.Core {
                 case 34: {
                     if (!_objectArrays.TryGetValue(hash, out var array) || array == null) return default;
 
-                    var type = ((Type) property.type).GetElementType()!;
+                    var type = property.type.ToType().GetElementType()!;
 
                     var result = Array.CreateInstance(type, array.Length);
                     for (int i = 0; i < array.Length; i++) {
@@ -238,7 +238,7 @@ namespace MisterGames.Blackboards.Core {
                 case 35: {
                     if (!_referenceArrays.TryGetValue(hash, out var array) || array == null) return default;
 
-                    var type = ((Type) property.type).GetElementType()!;
+                    var type = property.type.ToType().GetElementType()!;
 
                     var result = Array.CreateInstance(type, array.Length);
                     for (int i = 0; i < array.Length; i++) {
@@ -320,7 +320,7 @@ namespace MisterGames.Blackboards.Core {
             for (int i = _properties.Count - 1; i >= 0; i--) {
                 int hash = _properties[i];
 
-                if (!blackboard._propertiesMap.TryGetValue(hash, out var p) || p.type == null) {
+                if (!blackboard._propertiesMap.TryGetValue(hash, out var p) || p.type.HasNullType()) {
                     _properties.RemoveAt(i);
                     _propertiesMap.Remove(hash);
 
@@ -348,7 +348,7 @@ namespace MisterGames.Blackboards.Core {
                 int hash = blackboard._properties[i];
                 var property = blackboard._propertiesMap[hash];
 
-                if (property.type == null) continue;
+                if (property.type.HasNullType()) continue;
 
                 if (!_propertiesMap.ContainsKey(hash)) {
                     _propertiesMap.Add(hash, property);
@@ -390,7 +390,7 @@ namespace MisterGames.Blackboards.Core {
         }
 
         public bool TrySetPropertyValue(int hash, object value) {
-            if (!_propertiesMap.TryGetValue(hash, out var property) || property.type == null) return false;
+            if (!_propertiesMap.TryGetValue(hash, out var property) || property.type.HasNullType()) return false;
 
             SetValue(property.mapIndex, hash, value);
             return true;
@@ -403,9 +403,9 @@ namespace MisterGames.Blackboards.Core {
                 int hash = _properties[i];
                 var property = _propertiesMap[hash];
 
-                if (property.type == null) continue;
+                if (property.type.HasNullType()) continue;
 
-                var type = (Type) property.type;
+                var type = property.type.ToType();
                 object value = _overridenBlackboard != null &&
                                _overridenBlackboard.TryGetPropertyValue(hash, out object v) &&
                                v != null &&
@@ -420,9 +420,9 @@ namespace MisterGames.Blackboards.Core {
         }
 
         public bool TryResetPropertyValue(int hash) {
-            if (!_propertiesMap.TryGetValue(hash, out var property) || property.type == null) return false;
+            if (!_propertiesMap.TryGetValue(hash, out var property) || property.type.HasNullType()) return false;
 
-            var type = (Type) property.type;
+            var type = property.type.ToType();
             object value = _overridenBlackboard != null &&
                            _overridenBlackboard.TryGetPropertyValue(hash, out object v) &&
                            v != null &&
@@ -434,7 +434,7 @@ namespace MisterGames.Blackboards.Core {
         }
 
         public bool TrySetPropertyName(int hash, string newName) {
-            if (!_propertiesMap.TryGetValue(hash, out var property) || property.type == null) return false;
+            if (!_propertiesMap.TryGetValue(hash, out var property) || property.type.HasNullType()) return false;
 
             newName = ValidateName(newName);
             int newHash = StringToHash(newName);
@@ -500,7 +500,7 @@ namespace MisterGames.Blackboards.Core {
         }
 
         private bool TryGetPropertyValue(int hash, out object value) {
-            if (!_propertiesMap.TryGetValue(hash, out var property) || property.type == null) {
+            if (!_propertiesMap.TryGetValue(hash, out var property) || property.type.HasNullType()) {
                 value = default;
                 return false;
             }

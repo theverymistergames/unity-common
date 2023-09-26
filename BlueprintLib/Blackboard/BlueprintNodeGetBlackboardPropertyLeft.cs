@@ -38,7 +38,7 @@ namespace MisterGames.BlueprintLib {
 
 #if UNITY_EDITOR
         public void DecoratePorts(BlueprintAsset blueprint, int nodeId, Port[] ports) {
-            var dataType = blueprint.Blackboard.TryGetProperty(_property, out var property) ? property.type : null;
+            var dataType = blueprint.Blackboard.TryGetProperty(_property, out var property) ? property.type.ToType() : null;
             ports[0] = Port.DynamicOutput(type: dataType).Hidden(dataType == null).Layout(PortLayout.Left);
         }
 

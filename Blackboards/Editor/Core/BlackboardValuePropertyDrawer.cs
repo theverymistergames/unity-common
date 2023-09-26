@@ -14,7 +14,7 @@ namespace MisterGames.Blackboards.Editor {
             EditorGUI.BeginProperty(position, label, property);
 
             if (BlackboardUtils.TryGetBlackboardProperty(property, out var blackboardProperty, out _, out _)) {
-                var type = (Type) blackboardProperty.type;
+                var type = blackboardProperty.type.ToType();
                 if (type.IsArray) type = type.GetElementType();
 
                 TypedField(position, property.FindPropertyRelative("value"), type, label);
@@ -28,7 +28,7 @@ namespace MisterGames.Blackboards.Editor {
 
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label) {
             return BlackboardUtils.TryGetBlackboardProperty(property, out var blackboardProperty, out _, out _)
-                ? GetTypedFieldHeight(property, label, blackboardProperty.type)
+                ? GetTypedFieldHeight(property, label, blackboardProperty.type.ToType())
                 : BlackboardUtils.GetNullPropertyHeight();
         }
 

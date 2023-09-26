@@ -701,7 +701,7 @@ namespace MisterGames.Blueprints.Editor.Core {
             for (int i = 0; i < pasteData.nodes.Count; i++) {
                 var nodeData = pasteData.nodes[i];
 
-                var nodeType = (Type) nodeData.nodeType;
+                var nodeType = nodeData.nodeType.ToType();
                 var node = JsonUtility.FromJson(nodeData.nodeJson, nodeType) as BlueprintNode;
                 var position = nodeData.position + positionDiff;
 

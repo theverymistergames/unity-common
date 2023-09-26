@@ -67,7 +67,7 @@ namespace Data {
 
         private static void AssertTypeCanBeSerialized(Type t) {
             var serializedType = new SerializedType(t);
-            var deserializedType = (Type) serializedType;
+            var deserializedType = serializedType.ToType();
             Assert.AreEqual(t, deserializedType);
         }
     }
