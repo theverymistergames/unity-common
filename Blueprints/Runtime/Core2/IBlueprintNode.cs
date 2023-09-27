@@ -1,8 +1,8 @@
 ﻿namespace MisterGames.Blueprints.Core2 {
 
     public interface IBlueprintNode {
-        void OnCreateNode(IBlueprintStorage storage, int id);
-        Port[] CreatePorts(IBlueprintStorage storage, int id);
+        void OnCreateNode(IBlueprint blueprint, long id);
+        Port[] CreatePorts(IBlueprint blueprint, long id);
     }
 
 }

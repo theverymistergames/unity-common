@@ -1,11 +1,16 @@
 ﻿namespace MisterGames.Blueprints.Core2 {
 
     /// <summary>
-    /// Blueprint node factory is an editor and runtime storage for the node data structs.
-    /// Each factory contains a generic data array to store custom user's structs.
-    /// A blueprint node is using factory to get needed data.
+    /// Blueprint factory is an editor and runtime storage for node data structs.
+    /// Each factory contains a generic data array to store user defined structs.
+    /// A blueprint node is using factory to get data.
     /// </summary>
-    public interface IBlueprintNodeFactory {
+    public interface IBlueprintFactory {
+
+        /// <summary>
+        /// Blueprint node instance created by <see cref="IBlueprintFactory.CreateNode"/>.
+        /// </summary>
+        IBlueprintNode Node { get; }
 
         /// <summary>
         /// Current amount of data elements.
@@ -13,31 +18,38 @@
         int Count { get; }
 
         /// <summary>
+        /// A getter for node data in form of user defined structs.
+        /// </summary>
+        /// <param name="id">Called blueprint node id</param>
+        /// <returns>Reference to the data struct in the storage.</returns>
+        ref T GetData<T>(int id) where T : struct;
+
+        /// <summary>
         /// Add space for a new element. Default value is added to the data array.
         /// </summary>
         /// <returns>Integer pointer of the element in the data array</returns>
-        int AddElement();
+        int AddBlueprintNodeData();
 
         /// <summary>
-        /// Add element and set its value by copying an element from storage <see cref="IBlueprintStorage"/> with id.
+        /// Add element and set its value by copying the element with id from factory.
         /// </summary>
         /// <returns>Integer pointer of the element in the data array</returns>
-        int AddElementCopy(IBlueprintStorage storage, int id);
+        int AddBlueprintNodeDataCopy(IBlueprintFactory factory, int id);
 
         /// <summary>
         /// Removes an element with id from the data array.
         /// Single remove operation marks the corresponding element as empty, and it is ready to store a new element.
         ///
         /// If removed elements amount in the data array is more than a half,
-        /// this operation is followed by <see cref="IBlueprintNodeFactory.OptimizeDataLayout"/> method call.
+        /// this operation is followed by <see cref="IBlueprintFactory.OptimizeDataLayout"/> method call.
         /// </summary>
-        void RemoveElement(int id);
+        void RemoveBlueprintNodeData(int id);
 
         /// <summary>
         /// Creates a string path to the serialized property of an element with id.
         /// </summary>
-        /// <returns>Relative path of where the element is stored in the <see cref="IBlueprintNodeFactory"/></returns>
-        string GetElementPath(int id);
+        /// <returns>Relative path of where the element is stored in the <see cref="IBlueprintFactory"/></returns>
+        string GetBlueprintNodeDataPath(int id);
 
         /// <summary>
         /// Clear all the elements.
@@ -55,12 +67,6 @@
         /// </summary>
         /// <returns>New instance of a blueprint node</returns>
         IBlueprintNode CreateNode();
-
-        /// <summary>
-        /// Create an instance of this node factory class.
-        /// </summary>
-        /// <returns>New instance of the node factory</returns>
-        IBlueprintNodeFactory CreateFactory();
     }
 
 }

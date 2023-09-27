@@ -14,7 +14,7 @@ namespace Core {
             var factory = new BlueprintNodeTestFactory();
 
             for (int i = 0; i < count; i++) {
-                int id = factory.AddElement();
+                int id = factory.AddBlueprintNodeData();
 
                 Assert.AreEqual(i + 1, id);
                 Assert.AreEqual(i + 1, factory.Count);
@@ -28,12 +28,12 @@ namespace Core {
         [TestCase(-1)]
         public void SetElementValue(int value) {
             var factory = new BlueprintNodeTestFactory();
-            int id = factory.AddElement();
+            int id = factory.AddBlueprintNodeData();
 
-            ref var dataByRef = ref factory.Get<BlueprintNodeTestData>(id);
+            ref var dataByRef = ref factory.GetData<BlueprintNodeTestData>(id);
             dataByRef.intValue = value;
 
-            var data = factory.Get<BlueprintNodeTestData>(id);
+            var data = factory.GetData<BlueprintNodeTestData>(id);
             Assert.AreEqual(value, data.intValue);
         }
 
@@ -44,15 +44,15 @@ namespace Core {
         [TestCase(-1)]
         public void AddElementCopy(int value) {
             var factory0 = new BlueprintNodeTestFactory();
-            int id0 = factory0.AddElement();
+            int id0 = factory0.AddBlueprintNodeData();
 
-            ref var data0 = ref factory0.Get<BlueprintNodeTestData>(id0);
+            ref var data0 = ref factory0.GetData<BlueprintNodeTestData>(id0);
             data0.intValue = value;
 
             var factory1 = new BlueprintNodeTestFactory();
-            int id1 = factory1.AddElementCopy(factory0, id0);
+            int id1 = factory1.AddBlueprintNodeDataCopy(factory0, id0);
 
-            ref var data1 = ref factory1.Get<BlueprintNodeTestData>(id1);
+            ref var data1 = ref factory1.GetData<BlueprintNodeTestData>(id1);
             Assert.AreEqual(value, data1.intValue);
         }
 
@@ -60,8 +60,8 @@ namespace Core {
         public void RemoveElement() {
             var factory = new BlueprintNodeTestFactory();
 
-            int id = factory.AddElement();
-            factory.RemoveElement(id);
+            int id = factory.AddBlueprintNodeData();
+            factory.RemoveBlueprintNodeData(id);
 
             Assert.AreEqual(0, factory.Count);
         }
@@ -79,8 +79,8 @@ namespace Core {
             var factory = new BlueprintNodeTestFactory();
 
             for (int i = 0; i < size; i++) {
-                int id = factory.AddElement();
-                ref var data = ref factory.Get<BlueprintNodeTestData>(id);
+                int id = factory.AddBlueprintNodeData();
+                ref var data = ref factory.GetData<BlueprintNodeTestData>(id);
 
                 data.intValue = id + 100;
             }
@@ -90,12 +90,12 @@ namespace Core {
             for (int i = 1; i <= size; i++) {
                 if (Random.Range(0f, 1f) < 0.5f) continue;
 
-                factory.RemoveElement(i);
+                factory.RemoveBlueprintNodeData(i);
                 removedIds.Add(i);
             }
 
             for (int i = 1; i <= size; i++) {
-                ref var data = ref factory.Get<BlueprintNodeTestData>(i);
+                ref var data = ref factory.GetData<BlueprintNodeTestData>(i);
                 int expected = removedIds.Contains(i) ? 0 : i + 100;
 
                 Assert.AreEqual(expected, data.intValue);

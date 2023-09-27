@@ -5,9 +5,8 @@ using MisterGames.Blueprints.Core2;
 namespace Core {
 
     [Serializable]
-    public sealed class BlueprintNodeTestFactory : BlueprintNodeFactory<BlueprintNodeTestData> {
+    public sealed class BlueprintNodeTestFactory : BlueprintFactory<BlueprintNodeTestData> {
         public override IBlueprintNode CreateNode() => new BlueprintNodeTest();
-        public override IBlueprintNodeFactory CreateFactory() => new BlueprintNodeTestFactory();
     }
 
     [Serializable]
@@ -19,9 +18,9 @@ namespace Core {
     [Serializable]
     public sealed class BlueprintNodeTest : IBlueprintNode {
 
-        public void OnCreateNode(IBlueprintStorage storage, int id) { }
+        public void OnCreateNode(IBlueprint blueprint, long id) { }
 
-        public Port[] CreatePorts(IBlueprintStorage storage, int id) {
+        public Port[] CreatePorts(IBlueprint blueprint, long id) {
             return Array.Empty<Port>();
         }
     }
