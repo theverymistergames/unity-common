@@ -1,4 +1,5 @@
 ﻿using System;
+using UnityEngine;
 
 namespace MisterGames.Blueprints.Core2 {
 
@@ -8,7 +9,7 @@ namespace MisterGames.Blueprints.Core2 {
     }
 
     [Serializable]
-    public sealed class BlueprintNodeLog : IBlueprintNode {
+    public sealed class BlueprintNodeLog : IBlueprintNode, IBlueprintEnter2, IBlueprintOutput2<string> {
 
         [Serializable]
         public struct Data {
@@ -16,12 +17,29 @@ namespace MisterGames.Blueprints.Core2 {
         }
 
         public void OnCreateNode(IBlueprint blueprint, long id) {
+            ref var data = ref blueprint.GetData<Data>(id);
 
+            data.text = "Default text";
         }
 
-        public Port[] CreatePorts(IBlueprint blueprint, long id) {
+        public Port[] CreatePorts(IBlueprint blueprint, long id) => new[] {
+            Port.Enter(),
+            Port.Exit(),
+            Port.Input<string>(),
+            Port.Output<string>(),
+        };
+
+        public void OnEnterPort(int port, IBlueprint blueprint, long id) {
+            if (port != 0) return;
+
             ref var data = ref blueprint.GetData<Data>(id);
-            return Array.Empty<Port>();
+            Debug.Log(data.text);
+
+            blueprint.Call(id, 1);
+        }
+
+        public string GetOutputPortValue(int port, IBlueprint blueprint, long id) {
+            return blueprint.Read<string>(id, 2);
         }
     }
 
