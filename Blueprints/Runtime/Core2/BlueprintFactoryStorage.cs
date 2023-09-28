@@ -22,100 +22,6 @@ namespace MisterGames.Blueprints.Core2 {
         private readonly Dictionary<Type, int> _typeToIdMap = new Dictionary<Type, int>();
         private readonly Queue<int> _freeIndices = new Queue<int>();
 
-        public long AddBlueprintNodeData(Type factoryType) {
-            int factoryId = GetOrCreateFactory(factoryType);
-            var factory = GetFactory(factoryId);
-
-            int nodeId = factory.AddBlueprintNodeData();
-
-            return BlueprintNodeAddress.Pack(factoryId, nodeId);
-        }
-
-        public long AddBlueprintNodeDataCopy(IBlueprintFactory factory, int id) {
-            int factoryId = GetOrCreateFactory(factory.GetType());
-            var targetFactory = GetFactory(factoryId);
-
-            int nodeId = targetFactory.AddBlueprintNodeDataCopy(factory, id);
-
-            return BlueprintNodeAddress.Pack(factoryId, nodeId);
-        }
-
-        public void RemoveBlueprintNodeData(long id) {
-            BlueprintNodeAddress.Unpack(id, out int factoryId, out int nodeId);
-
-            var factory = GetFactory(factoryId);
-            if (factory == null) return;
-
-            factory.RemoveBlueprintNodeData(nodeId);
-            if (factory.Count == 0) RemoveFactory(factoryId);
-        }
-
-        public string GetBlueprintNodeDataPath(int factoryId, int nodeId) {
-#if UNITY_EDITOR
-            if (_idToIndexMap == null) {
-                Debug.LogWarning($"{nameof(BlueprintFactoryStorage)}: " +
-                                 $"trying to get factory by id {factoryId}, " +
-                                 $"but factory with this id is not found: " +
-                                 $"index map is null.");
-
-                return null;
-            }
-
-            if (!_idToIndexMap.TryGetValue(factoryId, out int index)) {
-                Debug.LogWarning($"{nameof(BlueprintFactoryStorage)}: " +
-                                 $"trying to get factory by id {factoryId}, " +
-                                 $"but factory with this id is not found: " +
-                                 $"index map has no entry with id {factoryId}.");
-                return null;
-            }
-
-            if (index < 0 || index >= _factories.Length) {
-                Debug.LogWarning($"{nameof(BlueprintFactoryStorage)}: " +
-                                 $"trying to get factory by id {factoryId}, " +
-                                 $"but factory with this id is not found: " +
-                                 $"index map returned incorrect index {index}. " +
-                                 $"Array size is {_factories.Length}.");
-
-                return null;
-            }
-
-            ref var dataCell = ref _factories[index];
-            var factory = dataCell.factory;
-
-            return $"{nameof(_factories)}.Array.data[{index}].{nameof(DataCell.factory)}.{factory.GetBlueprintNodeDataPath(nodeId)}";
-#endif
-
-            throw new InvalidOperationException($"{nameof(BlueprintFactoryStorage)}: " +
-                                                $"calling method {nameof(GetBlueprintNodeDataPath)} is only allowed in the Unity Editor.");
-        }
-
-        public void Clear() {
-            _factories = null;
-            _idToIndexMap = null;
-            _lastId = 0;
-            _freeIndices.Clear();
-        }
-
-        public void OptimizeDataLayout() {
-            OptimizeFactoriesLayout();
-
-            for (int i = 0; i < _factories.Length; i++) {
-                ref var dataCell = ref _factories[i];
-                dataCell.factory.OptimizeDataLayout();
-            }
-        }
-
-        private int GetOrCreateFactory(Type factoryType) {
-            if (_typeToIdMap.TryGetValue(factoryType, out int id)) return id;
-
-            var instance = Activator.CreateInstance(factoryType) as IBlueprintFactory;
-            id = AddFactory(instance);
-
-            _typeToIdMap.Add(factoryType, id);
-
-            return id;
-        }
-
         public IBlueprintFactory GetFactory(int id) {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (_idToIndexMap == null) {
@@ -154,28 +60,31 @@ namespace MisterGames.Blueprints.Core2 {
             return dataCell.factory;
         }
 
-        private int AddFactory(IBlueprintFactory factory) {
-            _factories ??= new DataCell[1];
-            _idToIndexMap ??= new SerializedDictionary<int, int>(1);
+        public int GetOrCreateFactory(Type factoryType) {
+#if UNITY_EDITOR
+            if (_factories != null) {
+                for (int i = 0; i < _factories.Length; i++) {
+                    ref var dataCell = ref _factories[i];
+                    if (dataCell.id == 0) continue;
 
-            _lastId++;
-            if (_lastId == 0) _lastId++;
+                    if (dataCell.factory.GetType() == factoryType) return dataCell.id;
+                }
+            }
 
-            int id = _lastId;
-            int index = _freeIndices.TryDequeue(out int freeIndex) ? freeIndex : _idToIndexMap.Count;
+            return AddFactory(Activator.CreateInstance(factoryType) as IBlueprintFactory);
+#else
+            if (_typeToIdMap.TryGetValue(factoryType, out int id)) return id;
 
-            _idToIndexMap.Add(id, index);
-            ArrayExtensions.EnsureCapacity(ref _factories, index + 1);
+            var instance = Activator.CreateInstance(factoryType) as IBlueprintFactory;
+            id = AddFactory(instance);
 
-            ref var dataCell = ref _factories[index];
-
-            dataCell.id = id;
-            dataCell.factory = factory;
+            _typeToIdMap.Add(factoryType, id);
 
             return id;
+#endif
         }
 
-        private void RemoveFactory(int id) {
+        public void RemoveFactory(int id) {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (_idToIndexMap == null) {
                 Debug.LogWarning($"{nameof(BlueprintFactoryStorage)}: " +
@@ -223,6 +132,79 @@ namespace MisterGames.Blueprints.Core2 {
 
             _freeIndices.Clear();
             OptimizeFactoriesLayout();
+        }
+
+        public string GetFactoryPath(int id) {
+#if UNITY_EDITOR
+            if (_idToIndexMap == null) {
+                Debug.LogWarning($"{nameof(BlueprintFactoryStorage)}: " +
+                                 $"trying to get factory by id {id}, " +
+                                 $"but factory with this id is not found: " +
+                                 $"index map is null.");
+
+                return null;
+            }
+
+            if (!_idToIndexMap.TryGetValue(id, out int index)) {
+                Debug.LogWarning($"{nameof(BlueprintFactoryStorage)}: " +
+                                 $"trying to get factory by id {id}, " +
+                                 $"but factory with this id is not found: " +
+                                 $"index map has no entry with id {id}.");
+                return null;
+            }
+
+            if (index < 0 || index >= _factories.Length) {
+                Debug.LogWarning($"{nameof(BlueprintFactoryStorage)}: " +
+                                 $"trying to get factory by id {id}, " +
+                                 $"but factory with this id is not found: " +
+                                 $"index map returned incorrect index {index}. " +
+                                 $"Array size is {_factories.Length}.");
+
+                return null;
+            }
+
+            return $"{nameof(_factories)}.Array.data[{index}].{nameof(DataCell.factory)}";
+#endif
+
+            throw new InvalidOperationException($"{nameof(BlueprintFactoryStorage)}: " +
+                                                $"calling method {nameof(GetFactoryPath)} is only allowed in the Unity Editor.");
+        }
+
+        public void Clear() {
+            _factories = null;
+            _idToIndexMap = null;
+            _lastId = 0;
+            _freeIndices.Clear();
+        }
+
+        public void OptimizeDataLayout() {
+            OptimizeFactoriesLayout();
+
+            for (int i = 0; i < _factories.Length; i++) {
+                ref var dataCell = ref _factories[i];
+                dataCell.factory.OptimizeDataLayout();
+            }
+        }
+
+        private int AddFactory(IBlueprintFactory factory) {
+            _factories ??= new DataCell[1];
+            _idToIndexMap ??= new SerializedDictionary<int, int>(1);
+
+            _lastId++;
+            if (_lastId == 0) _lastId++;
+
+            int id = _lastId;
+            int index = _freeIndices.TryDequeue(out int freeIndex) ? freeIndex : _idToIndexMap.Count;
+
+            _idToIndexMap.Add(id, index);
+            ArrayExtensions.EnsureCapacity(ref _factories, index + 1);
+
+            ref var dataCell = ref _factories[index];
+
+            dataCell.id = id;
+            dataCell.factory = factory;
+
+            return id;
         }
 
         private void OptimizeFactoriesLayout() {

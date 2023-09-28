@@ -148,7 +148,9 @@ namespace MisterGames.Blueprints.Core2 {
 #endif
 
             ref var dataCell = ref _array[index];
+
             dataCell.id = 0;
+            dataCell.data = default;
 
             _idToIndexMap.Remove(id);
             _freeIndices.Enqueue(index);

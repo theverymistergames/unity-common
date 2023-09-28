@@ -22,6 +22,17 @@ namespace MisterGames.Blueprints.Core2 {
         }
 
         public void AddNode(int factoryId, int nodeId) {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (_nodePointer < 0 || _nodePointer >= _nodes.Length) {
+                Debug.LogError($"{nameof(BlueprintStorage)}: " +
+                               $"trying to add factory {factoryId} node {nodeId}, " +
+                               $"but node pointer is incorrect: {_nodePointer}. " +
+                               $"Node array size is {_nodes.Length}.");
+
+                return;
+            }
+#endif
+
             _nodes[_nodePointer++] = BlueprintNodeAddress.Pack(factoryId, nodeId);
         }
 
