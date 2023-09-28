@@ -12,7 +12,7 @@ namespace MisterGames.Blueprints.Core2 {
         /// Return long value that holds two passed int values of factory id and node id.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static long Create(int factoryId, int nodeId) {
+        public static long Pack(int factoryId, int nodeId) {
             return (long) factoryId << 32 | (uint) nodeId;
         }
 
@@ -20,7 +20,7 @@ namespace MisterGames.Blueprints.Core2 {
         /// Parse long value into two int values of factory id and node id.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Parse(long id, out int factoryId, out int nodeId) {
+        public static void Unpack(long id, out int factoryId, out int nodeId) {
             factoryId = (int) (id >> 32);
             nodeId = (int) (id & 0xFFFFFFFFL);
         }

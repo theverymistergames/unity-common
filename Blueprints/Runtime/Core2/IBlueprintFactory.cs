@@ -10,12 +10,18 @@
         /// <summary>
         /// Blueprint node instance created by <see cref="IBlueprintFactory.CreateNode"/>.
         /// </summary>
-        IBlueprintNode Node { get; }
+        BlueprintNode2 Node { get; }
 
         /// <summary>
         /// Current amount of data elements.
         /// </summary>
         int Count { get; }
+
+        /// <summary>
+        /// Create an instance of the needed node class, which should be derived from <see cref="BlueprintNode2"/>.
+        /// </summary>
+        /// <returns>New instance of a blueprint node</returns>
+        BlueprintNode2 CreateNode();
 
         /// <summary>
         /// A getter for node data in form of user defined structs.
@@ -61,12 +67,6 @@
         /// which is used to remove empty spaces and move alive elements closer to the array start.
         /// </summary>
         void OptimizeDataLayout();
-
-        /// <summary>
-        /// Create an instance of the needed node class, which should be derived from <see cref="IBlueprintNode"/>.
-        /// </summary>
-        /// <returns>New instance of a blueprint node</returns>
-        IBlueprintNode CreateNode();
     }
 
 }

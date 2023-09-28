@@ -4,23 +4,32 @@ using UnityEngine;
 
 namespace MisterGames.Blueprints.Core2 {
 
-    public sealed class BlueprintLinkStorage : IBlueprintLinkStorage {
+    public sealed class BlueprintStorage : IBlueprintStorage {
 
+        public IReadOnlyList<long> Nodes => _nodes;
+
+        private readonly long[] _nodes;
         private readonly BlueprintLink[] _links;
         private readonly Dictionary<long, int> _idToIndexMap;
 
-        private int _pointer;
+        private int _nodePointer;
+        private int _linkPointer;
 
-        public BlueprintLinkStorage(int nodeCount, int portCount, int linkCount) {
+        public BlueprintStorage(int nodeCount, int portCount, int linkCount) {
+            _nodes = new long[nodeCount];
             _links = new BlueprintLink[portCount + linkCount];
             _idToIndexMap = new Dictionary<long, int>(nodeCount);
+        }
+
+        public void AddNode(int factoryId, int nodeId) {
+            _nodes[_nodePointer++] = BlueprintNodeAddress.Pack(factoryId, nodeId);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public BlueprintLink GetLink(int index) {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (index < 0 || index >= _links.Length) {
-                Debug.LogError($"{nameof(BlueprintLinkStorage)}: " +
+                Debug.LogError($"{nameof(BlueprintStorage)}: " +
                                $"trying to get link by index {index}, " +
                                $"but index is incorrect. " +
                                $"Links array size is {_links.Length}.");
@@ -35,7 +44,7 @@ namespace MisterGames.Blueprints.Core2 {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void GetLinks(long id, int port, out int index, out int count) {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-            BlueprintNodeAddress.Parse(id, out int factoryId, out int nodeId);
+            BlueprintNodeAddress.Unpack(id, out int factoryId, out int nodeId);
 #endif
 
             if (!_idToIndexMap.TryGetValue(id, out index)) {
@@ -47,7 +56,7 @@ namespace MisterGames.Blueprints.Core2 {
             while (true) {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
                 if (index < 0 || index >= _links.Length) {
-                    Debug.LogError($"{nameof(BlueprintLinkStorage)}: " +
+                    Debug.LogError($"{nameof(BlueprintStorage)}: " +
                                    $"trying to get links for factory {factoryId} node {nodeId} port {port}, " +
                                    $"but while iterating through links of this node, " +
                                    $"there was retrieved an incorrect index {index}. " +
@@ -63,7 +72,7 @@ namespace MisterGames.Blueprints.Core2 {
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
                 if (link.factoryId != factoryId || link.nodeId != nodeId) {
-                    Debug.LogError($"{nameof(BlueprintLinkStorage)}: " +
+                    Debug.LogError($"{nameof(BlueprintStorage)}: " +
                                    $"trying to get links for factory {factoryId} node {nodeId} port {port}, " +
                                    $"but while iterating through links of this node, " +
                                    $"there was retrieved an incorrect index {index}. " +
@@ -95,7 +104,7 @@ namespace MisterGames.Blueprints.Core2 {
         public void SetLink(int index, int factoryId, int nodeId, int port) {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (index < 0 || index >= _links.Length) {
-                Debug.LogError($"{nameof(BlueprintLinkStorage)}: " +
+                Debug.LogError($"{nameof(BlueprintStorage)}: " +
                                $"trying to set link to factory {factoryId} node {nodeId} port {port}, " +
                                $"but input link index {index} is incorrect.");
 
@@ -108,13 +117,13 @@ namespace MisterGames.Blueprints.Core2 {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int AddLinks(int factoryId, int nodeId, int port, int count) {
-            long id = BlueprintNodeAddress.Create(factoryId, nodeId);
+            long id = BlueprintNodeAddress.Pack(factoryId, nodeId);
 
             if (_idToIndexMap.TryGetValue(id, out int index)) {
                 while (true) {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
                     if (index < 0 || index >= _links.Length) {
-                        Debug.LogError($"{nameof(BlueprintLinkStorage)}: " +
+                        Debug.LogError($"{nameof(BlueprintStorage)}: " +
                                        $"trying to add links for factory {factoryId} node {nodeId} port {port}, " +
                                        $"but while iterating through links of this node, " +
                                        $"there was retrieved an incorrect index {index}. " +
@@ -130,7 +139,7 @@ namespace MisterGames.Blueprints.Core2 {
                     if (link.factoryId != factoryId || link.nodeId != nodeId) {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
                         if (link.factoryId != 0 || link.nodeId != 0) {
-                            Debug.LogError($"{nameof(BlueprintLinkStorage)}: " +
+                            Debug.LogError($"{nameof(BlueprintStorage)}: " +
                                            $"trying to add links for factory {factoryId} node {nodeId} port {port}, " +
                                            $"but retrieved index {index} for new entry already has data: " +
                                            $"factoryId {link.factoryId}, nodeId {link.nodeId}, port {link.port}.");
@@ -143,7 +152,7 @@ namespace MisterGames.Blueprints.Core2 {
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
                     if (link.port == port) {
-                        Debug.LogError($"{nameof(BlueprintLinkStorage)}: " +
+                        Debug.LogError($"{nameof(BlueprintStorage)}: " +
                                        $"trying to add links for factory {factoryId} node {nodeId} port {port}, " +
                                        $"but this port has already been added: {link}. " +
                                        $"Node ports should be added in ascending order.");
@@ -152,7 +161,7 @@ namespace MisterGames.Blueprints.Core2 {
                     }
 
                     if (link.port > port) {
-                        Debug.LogError($"{nameof(BlueprintLinkStorage)}: " +
+                        Debug.LogError($"{nameof(BlueprintStorage)}: " +
                                        $"trying to add links for factory {factoryId} node {nodeId} port {port}, " +
                                        $"but port {link.port} has already been added: {link}. " +
                                        $"Node ports must be added in ascending order.");
@@ -164,16 +173,16 @@ namespace MisterGames.Blueprints.Core2 {
                     index += link.connections + 1;
                 }
 
-                _pointer = index;
+                _linkPointer = index;
             }
             else {
-                index = _pointer;
+                index = _linkPointer;
                 _idToIndexMap[id] = index;
             }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (index < 0 || index >= _links.Length) {
-                Debug.LogError($"{nameof(BlueprintLinkStorage)}: " +
+                Debug.LogError($"{nameof(BlueprintStorage)}: " +
                                $"trying to add links for factory {factoryId} node {nodeId} port {port}, " +
                                $"but there was retrieved an incorrect index {index}. " +
                                $"Links array size is {_links.Length}.");
@@ -183,7 +192,7 @@ namespace MisterGames.Blueprints.Core2 {
 #endif
 
             _links[index] = new BlueprintLink(factoryId, nodeId, port, count);
-            _pointer += count + 1;
+            _linkPointer += count + 1;
 
             return index;
         }

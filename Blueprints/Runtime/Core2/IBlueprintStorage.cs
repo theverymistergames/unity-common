@@ -1,13 +1,25 @@
-﻿namespace MisterGames.Blueprints.Core2 {
+﻿using System.Collections.Generic;
+
+namespace MisterGames.Blueprints.Core2 {
 
     /// <summary>
-    /// A storage that contains all the blueprint ports links after runtime blueprint compilation.
+    /// A storage that contains all the blueprint nodes and ports links.
     /// </summary>
-    public interface IBlueprintLinkStorage {
+    public interface IBlueprintStorage {
+
+        /// <summary>
+        /// Blueprint node id list.
+        /// </summary>
+        IReadOnlyList<long> Nodes { get; }
+
+        /// <summary>
+        /// Add blueprint node by address.
+        /// </summary>
+        void AddNode(int factoryId, int nodeId);
 
         /// <summary>
         /// Return a link by index in the links array.
-        /// Index to use can be retrieved by calling <see cref="IBlueprintLinkStorage.GetLinks"/>.
+        /// Index to use can be retrieved by calling <see cref="IBlueprintStorage.GetLinks"/>.
         /// </summary>
         BlueprintLink GetLink(int index);
 
@@ -18,7 +30,7 @@
 
         /// <summary>
         /// Set a link by index in the links array. Link will be created from passed node id and port.
-        /// Index to use can be retrieved by calling <see cref="IBlueprintLinkStorage.AddLinks"/>.
+        /// Index to use can be retrieved by calling <see cref="IBlueprintStorage.AddLinks"/>.
         /// </summary>
         void SetLink(int index, int factoryId, int nodeId, int port);
 

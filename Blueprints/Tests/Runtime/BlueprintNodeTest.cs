@@ -6,7 +6,7 @@ namespace Core {
 
     [Serializable]
     public sealed class BlueprintNodeTestFactory : BlueprintFactory<BlueprintNodeTestData> {
-        public override IBlueprintNode CreateNode() => new BlueprintNodeTest();
+        public override BlueprintNode2 CreateNode() => new BlueprintNodeTest();
     }
 
     [Serializable]
@@ -16,11 +16,9 @@ namespace Core {
     }
 
     [Serializable]
-    public sealed class BlueprintNodeTest : IBlueprintNode {
+    public sealed class BlueprintNodeTest : BlueprintNode2 {
 
-        public void OnCreateNode(IBlueprint blueprint, long id) { }
-
-        public Port[] CreatePorts(IBlueprint blueprint, long id) {
+        public override Port[] CreatePorts(IBlueprint blueprint, long id) {
             return Array.Empty<Port>();
         }
     }

@@ -23,14 +23,14 @@ namespace MisterGames.Blueprints.Core2 {
             public TData data;
         }
 
-        public IBlueprintNode Node => _node ??= CreateNode();
+        public BlueprintNode2 Node => _node ??= CreateNode();
         public int Count => _idToIndexMap?.Count ?? 0;
 
         public static TData Default;
         private readonly Queue<int> _freeIndices = new Queue<int>();
-        private IBlueprintNode _node;
+        private BlueprintNode2 _node;
 
-        public abstract IBlueprintNode CreateNode();
+        public abstract BlueprintNode2 CreateNode();
 
         public ref T GetData<T>(int id) where T : struct {
             if (this is not BlueprintFactory<T> factory) {
@@ -233,12 +233,12 @@ namespace MisterGames.Blueprints.Core2 {
     [Serializable]
     public abstract class BlueprintFactory : IBlueprintFactory {
 
-        public IBlueprintNode Node => _node ??= CreateNode();
+        public BlueprintNode2 Node => _node ??= CreateNode();
         public int Count => 0;
 
-        private IBlueprintNode _node;
+        private BlueprintNode2 _node;
 
-        public abstract IBlueprintNode CreateNode();
+        public abstract BlueprintNode2 CreateNode();
 
         public ref T GetData<T>(int id) where T : struct {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD

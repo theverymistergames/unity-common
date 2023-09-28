@@ -39,7 +39,7 @@ namespace MisterGames.Blueprints.Core2 {
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public long GetNodeAddress() {
-            return BlueprintNodeAddress.Create(factoryId, nodeId);
+            return BlueprintNodeAddress.Pack(factoryId, nodeId);
         }
 
         public override string ToString() {

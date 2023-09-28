@@ -1,11 +1,11 @@
 ﻿namespace MisterGames.Blueprints.Core2 {
 
     public interface IBlueprintOutput2 {
-        T GetOutputPortValue<T>(int port, IBlueprint blueprint, long id);
+        T GetOutputPortValue<T>(IBlueprint blueprint, long id, int port);
     }
 
     public interface IBlueprintOutput2<out T> {
-        T GetOutputPortValue(int port, IBlueprint blueprint, long id);
+        T GetOutputPortValue(IBlueprint blueprint, long id, int port);
     }
 
 }

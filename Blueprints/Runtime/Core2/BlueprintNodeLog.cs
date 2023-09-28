@@ -5,11 +5,11 @@ namespace MisterGames.Blueprints.Core2 {
 
     [Serializable]
     public sealed class BlueprintNodeLogFactory : BlueprintFactory<BlueprintNodeLog.Data> {
-        public override IBlueprintNode CreateNode() => new BlueprintNodeLog();
+        public override BlueprintNode2 CreateNode() => new BlueprintNodeLog();
     }
 
     [Serializable]
-    public sealed class BlueprintNodeLog : IBlueprintNode, IBlueprintEnter2, IBlueprintOutput2<string> {
+    public sealed class BlueprintNodeLog : BlueprintNode2, IBlueprintEnter2, IBlueprintOutput2<string> {
 
         [Serializable]
         public struct Data {
@@ -22,14 +22,14 @@ namespace MisterGames.Blueprints.Core2 {
             data.text = "Default text";
         }
 
-        public Port[] CreatePorts(IBlueprint blueprint, long id) => new[] {
+        public override Port[] CreatePorts(IBlueprint blueprint, long id) => new[] {
             Port.Enter(),
             Port.Exit(),
             Port.Input<string>(),
             Port.Output<string>(),
         };
 
-        public void OnEnterPort(int port, IBlueprint blueprint, long id) {
+        public void OnEnterPort(IBlueprint blueprint, long id, int port) {
             if (port != 0) return;
 
             ref var data = ref blueprint.GetData<Data>(id);
@@ -38,7 +38,7 @@ namespace MisterGames.Blueprints.Core2 {
             blueprint.Call(id, 1);
         }
 
-        public string GetOutputPortValue(int port, IBlueprint blueprint, long id) {
+        public string GetOutputPortValue(IBlueprint blueprint, long id, int port) {
             return blueprint.Read<string>(id, 2);
         }
     }

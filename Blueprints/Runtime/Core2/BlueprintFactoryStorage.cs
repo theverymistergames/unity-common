@@ -28,7 +28,7 @@ namespace MisterGames.Blueprints.Core2 {
 
             int nodeId = factory.AddBlueprintNodeData();
 
-            return BlueprintNodeAddress.Create(factoryId, nodeId);
+            return BlueprintNodeAddress.Pack(factoryId, nodeId);
         }
 
         public long AddBlueprintNodeDataCopy(IBlueprintFactory factory, int id) {
@@ -37,11 +37,11 @@ namespace MisterGames.Blueprints.Core2 {
 
             int nodeId = targetFactory.AddBlueprintNodeDataCopy(factory, id);
 
-            return BlueprintNodeAddress.Create(factoryId, nodeId);
+            return BlueprintNodeAddress.Pack(factoryId, nodeId);
         }
 
         public void RemoveBlueprintNodeData(long id) {
-            BlueprintNodeAddress.Parse(id, out int factoryId, out int nodeId);
+            BlueprintNodeAddress.Unpack(id, out int factoryId, out int nodeId);
 
             var factory = GetFactory(factoryId);
             if (factory == null) return;
