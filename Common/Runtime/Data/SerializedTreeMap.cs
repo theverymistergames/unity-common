@@ -12,22 +12,28 @@ namespace MisterGames.Common.Data {
 
         #region DATA
 
-        private static readonly Iterator InvalidIterator = new Iterator(null, -1, 0);
-
         [SerializeField] private Node[] _nodes;
         [SerializeField] private SerializedDictionary<K, int> _rootIndexMap;
         [SerializeField] private SerializedDictionary<KeyIndex, int> _nodeIndexMap;
         [SerializeField] private List<int> _freeIndices;
         [SerializeField] private int _head;
-        [SerializeField] private int _aliveCount;
         [SerializeField] private int _version;
+
+        private static readonly Iterator InvalidIterator = new Iterator(null, -1, 0, 0);
+
+        public Dictionary<K, int>.KeyCollection RootKeys => _rootIndexMap.Keys;
+        public Dictionary<KeyIndex, int>.KeyCollection NodeKeys => _nodeIndexMap.Keys;
+
+        public int Count => RootCount + NodeCount;
+        public int RootCount => _rootIndexMap.Count;
+        public int NodeCount => _nodeIndexMap.Count;
 
         #endregion
 
         #region DATA STRUCTURES
 
         [Serializable]
-        private struct KeyIndex : IEquatable<KeyIndex> {
+        public struct KeyIndex : IEquatable<KeyIndex> {
 
             public K key;
             public int index;
@@ -47,6 +53,10 @@ namespace MisterGames.Common.Data {
 
             public override int GetHashCode() {
                 return HashCode.Combine(key, index);
+            }
+
+            public override string ToString() {
+                return $"{nameof(KeyIndex)}(key {key}, index {index})";
             }
         }
 
@@ -87,14 +97,18 @@ namespace MisterGames.Common.Data {
 
         public struct Iterator : IDisposable {
 
-            private SerializedTreeMap<K, V> _map;
-            private int _version;
-            private int _index;
+            public int Level => _level;
 
-            public Iterator(SerializedTreeMap<K, V> map, int index, int version) {
+            private SerializedTreeMap<K, V> _map;
+            private int _index;
+            private int _level;
+            private int _version;
+
+            public Iterator(SerializedTreeMap<K, V> map, int index, int level, int version) {
                 _map = map;
-                _version = version;
                 _index = index;
+                _level = level;
+                _version = version;
             }
 
             public ref Node GetNode() {
@@ -103,12 +117,24 @@ namespace MisterGames.Common.Data {
                 return ref _map.GetNode(_index);
             }
 
+            public bool MovePreOrder() {
+                ThrowIfDisposed();
+
+                if (!_map.TryGetPreOrder(_index, out int levelOffset, out int next)) return false;
+
+                _index = next;
+                _level += levelOffset;
+                return true;
+            }
+
             public bool MoveParent() {
                 ThrowIfDisposed();
 
                 if (!_map.TryGetParent(_index, out int parent)) return false;
 
                 _index = parent;
+                _level--;
+
                 return true;
             }
 
@@ -118,6 +144,8 @@ namespace MisterGames.Common.Data {
                 if (!_map.TryGetChild(_index, out int child)) return false;
 
                 _index = child;
+                _level++;
+
                 return true;
             }
 
@@ -127,6 +155,8 @@ namespace MisterGames.Common.Data {
                 if (!_map.TryGetChild(_index, key, out int child)) return false;
 
                 _index = child;
+                _level++;
+
                 return true;
             }
 
@@ -173,6 +203,13 @@ namespace MisterGames.Common.Data {
                 return _map.GetChildCount(_index);
             }
 
+            public void ClearChildren() {
+                ThrowIfDisposed();
+
+                _map.ClearChildren(ref _index);
+                _version = _map._version;
+            }
+
             public void Dispose() {
                 _index = -1;
                 _map = null;
@@ -188,25 +225,16 @@ namespace MisterGames.Common.Data {
             public override string ToString() {
                 if (_index < 0 || _map == null || _map._version != _version) return $"Tree(version {_version}, disposed)";
 
-                ref var node = ref GetNode();
-
                 var it = this;
-                if (!it.MoveChild()) return $"Tree(version {_version}, root [{_index}] {node})";
-
                 var sb = new StringBuilder();
-                sb.AppendLine($"Tree(version {_version}, root [{_index}] {node}):");
 
-                int level = 1;
+                sb.AppendLine($"Tree(version {_version}):");
 
                 while (true) {
-                    if (it.MoveChild()) level++;
-                    else if (!it.MoveNext()) {
-                        if (it.MoveParent()) level--;
-                        if (!it.MoveNext()) break;
-                    }
+                    ref var node = ref GetNode();
+                    sb.AppendLine($"{it._level}{new string('-', it._level * 2)} [{it._index}] {node}");
 
-                    node = ref GetNode();
-                    sb.AppendLine($"{level}{new string('-', level * 2)} [{it._index}] {node}");
+                    if (!it.MovePreOrder()) break;
                 }
 
                 return sb.ToString();
@@ -236,12 +264,13 @@ namespace MisterGames.Common.Data {
                 _rootIndexMap[key] = index;
             }
 
-            return new Iterator(this, index, _version);
+            return new Iterator(this, index, 0, _version);
         }
 
         public Iterator GetTree(K key) {
-            _rootIndexMap.TryGetValue(key, out int index);
-            return index >= 0 ? new Iterator(this, index, _version) : InvalidIterator;
+            return _rootIndexMap.TryGetValue(key, out int index)
+                ? new Iterator(this, index, 0, _version)
+                : InvalidIterator;
         }
 
         public bool TryGetTree(K key, out Iterator iterator) {
@@ -250,17 +279,13 @@ namespace MisterGames.Common.Data {
                 return false;
             }
 
-            iterator = new Iterator(this, index, _version);
+            iterator = new Iterator(this, index, 0, _version);
             return true;
         }
 
         #endregion
 
         #region ROOT
-
-        public int RootCount => _rootIndexMap.Count;
-
-        public Dictionary<K, int>.KeyCollection RootKeys => _rootIndexMap.Keys;
 
         public int GetOrAddRoot(K key) {
             if (!_rootIndexMap.TryGetValue(key, out int index)) {
@@ -272,8 +297,7 @@ namespace MisterGames.Common.Data {
         }
 
         public int GetRoot(K key) {
-            _rootIndexMap.TryGetValue(key, out int index);
-            return index;
+            return _rootIndexMap.TryGetValue(key, out int index) ? index : -1;
         }
 
         public bool TryGetRoot(K key, out int index) {
@@ -294,12 +318,41 @@ namespace MisterGames.Common.Data {
             return _rootIndexMap.ContainsKey(key);
         }
 
+        public void ClearAll() {
+            _nodes = Array.Empty<Node>();
+            _rootIndexMap.Clear();
+            _nodeIndexMap.Clear();
+            _freeIndices.Clear();
+            _head = 0;
+            _version++;
+        }
+
+        public void OptimizeLayout() {
+            ApplyDefragmentation();
+        }
+
         #endregion
 
         #region NODE
 
         public ref Node GetNode(int index) {
             return ref _nodes[index];
+        }
+
+        public int GetPreOrder(int index) {
+            if (index < 0 || index >= _head) return -1;
+
+            ref var node = ref _nodes[index];
+
+            if (node.child >= 0) return node.child;
+            if (node.next >= 0) return node.next;
+
+            if (node.parent < 0) return -1;
+
+            node = ref _nodes[node.parent];
+            if (node.next < 0) return -1;
+
+            return node.next;
         }
 
         public int GetParent(int child) {
@@ -335,6 +388,80 @@ namespace MisterGames.Common.Data {
             return node.next;
         }
 
+        public bool TryGetPreOrder(int index, out int levelOffset, out int next) {
+            if (index < 0 || index >= _head) {
+                next = -1;
+                levelOffset = 0;
+                return false;
+            }
+
+            ref var node = ref _nodes[index];
+
+            if (node.child >= 0) {
+                next = node.child;
+                levelOffset = 1;
+                return true;
+            }
+
+            if (node.next >= 0) {
+                next = node.next;
+                levelOffset = 0;
+                return true;
+            }
+
+            if (node.parent < 0) {
+                next = -1;
+                levelOffset = 0;
+                return false;
+            }
+
+            node = ref _nodes[node.parent];
+
+            if (node.next < 0) {
+                next = -1;
+                levelOffset = 0;
+                return false;
+            }
+
+            next = node.next;
+            levelOffset = -1;
+            return true;
+        }
+
+        public bool TryGetPreOrder(int index, out int next) {
+            if (index < 0 || index >= _head) {
+                next = -1;
+                return false;
+            }
+
+            ref var node = ref _nodes[index];
+
+            if (node.child >= 0) {
+                next = node.child;
+                return true;
+            }
+
+            if (node.next >= 0) {
+                next = node.next;
+                return true;
+            }
+
+            if (node.parent < 0) {
+                next = -1;
+                return false;
+            }
+
+            node = ref _nodes[node.parent];
+
+            if (node.next < 0) {
+                next = -1;
+                return false;
+            }
+
+            next = node.next;
+            return true;
+        }
+
         public bool TryGetParent(int child, out int parent) {
             if (child < 0 || child >= _head) {
                 parent = -1;
@@ -360,7 +487,10 @@ namespace MisterGames.Common.Data {
         }
 
         public bool TryGetChild(int parent, K key, out int child) {
-            return _nodeIndexMap.TryGetValue(new KeyIndex(key, parent), out child);
+            if (_nodeIndexMap.TryGetValue(new KeyIndex(key, parent), out child)) return true;
+
+            child = -1;
+            return false;
         }
 
         public bool TryGetPrevious(int next, out int previous) {
@@ -399,6 +529,7 @@ namespace MisterGames.Common.Data {
             index = AllocateNode(key);
             _nodeIndexMap[nodeKey] = index;
 
+            node = ref _nodes[parent];
             int child = node.child;
 
             if (child >= 0) {
@@ -477,13 +608,18 @@ namespace MisterGames.Common.Data {
             return _nodeIndexMap.ContainsKey(new KeyIndex(key, parent));
         }
 
+        public void ClearChildren(ref int parent) {
+            if (parent < 0 || parent >= _head) return;
+
+            DisposeNodePath(parent, false);
+            parent = ApplyDefragmentationIfNecessary(parent);
+
+            _version++;
+        }
+
         #endregion
 
         #region STORAGE
-
-        public void OptimizeLayout() {
-            ApplyDefragmentation();
-        }
 
         private int AllocateNode(K key) {
             int index = -1;
@@ -504,60 +640,80 @@ namespace MisterGames.Common.Data {
             ref var node = ref _nodes[index];
             node.Reset(key);
 
-            _aliveCount++;
-
             return index;
         }
 
-        private void DisposeNodePath(int index) {
-            var entry = new Node();
-            DisposeNodePathRecursively(ref entry, ref index);
+        private void DisposeNode(ref Node node, int index) {
+            if (index == _head - 1) _head--;
+            else _freeIndices.Add(index);
+
+            if (node.parent < 0) _rootIndexMap.Remove(node.key);
+            else _nodeIndexMap.Remove(new KeyIndex(node.key, node.parent));
+
+            node.Dispose();
         }
 
-        private void DisposeNodePathRecursively(ref Node node, ref int index) {
+        private void DisposeNodePath(int root, bool disposeRoot = true) {
+            if (root < 0 || root >= _head) return;
+
+            ref var node = ref _nodes[root];
+            int child = node.child;
+
+            if (disposeRoot) DisposeNode(ref node, root);
+            if (child < 0) return;
+
+            int pointer = child;
+
             while (true) {
-                if (index < 0 || index >= _head) return;
+                node = ref _nodes[pointer];
 
-                node = ref _nodes[index];
-
-                _aliveCount--;
-                if (_aliveCount < 0) _aliveCount = 0;
-
-                if (index == _head - 1) _head--;
-                else _freeIndices.Add(index);
-
-                if (node.parent < 0) _rootIndexMap.Remove(node.key);
-                else _nodeIndexMap.Remove(new KeyIndex(node.key, node.parent));
-
-                node.Dispose();
-
-                index = node.child;
+                child = node.child;
                 int next = node.next;
+                int parent = node.parent;
 
-                DisposeNodePathRecursively(ref node, ref index);
+                DisposeNode(ref node, pointer);
 
-                index = next;
+                if (child >= 0) {
+                    pointer = child;
+                    continue;
+                }
+
+                if (next >= 0) {
+                    pointer = next;
+                    continue;
+                }
+
+                if (parent < 0) return;
+                if (parent == root) return;
+
+                node = ref _nodes[parent];
+                next = node.next;
+
+                if (next < 0) return;
+
+                pointer = next;
             }
         }
 
         private int ApplyDefragmentationIfNecessary(int index = -1) {
-            return _aliveCount <= _nodes.Length * 0.5f ? ApplyDefragmentation(index) : index;
+            return Count <= _nodes.Length * 0.5f ? ApplyDefragmentation(index) : index;
         }
 
         private int ApplyDefragmentation(int index = -1) {
             int j = _freeIndices.Count - 1;
+            int count = Count;
 
-            for (int i = _head - 1; i >= _aliveCount; i--) {
+            for (int i = _head - 1; i >= count; i--) {
                 ref var node = ref _nodes[i];
                 if (node.IsDisposed()) continue;
 
                 int freeIndex = -1;
                 for (; j >= 0; j--) {
                     freeIndex = _freeIndices[j];
-                    if (freeIndex < _aliveCount) break;
+                    if (freeIndex < count) break;
                 }
 
-                if (freeIndex < 0 || freeIndex >= _aliveCount) break;
+                if (freeIndex < 0 || freeIndex >= count) break;
 
                 ref var freeNode = ref _nodes[freeIndex];
                 freeNode = node;
@@ -595,7 +751,7 @@ namespace MisterGames.Common.Data {
                 }
             }
 
-            _head = _aliveCount;
+            _head = count;
             _freeIndices.Clear();
             Array.Resize(ref _nodes, _head);
 
@@ -608,10 +764,13 @@ namespace MisterGames.Common.Data {
 
         public override string ToString() {
             var sb = new StringBuilder();
-            sb.AppendLine($"{nameof(SerializedTreeMap<K, V>)}(version {_version}, roots {RootCount}, nodes {_aliveCount}):");
+            sb.AppendLine($"{nameof(SerializedTreeMap<K, V>)}(version {_version}, roots {RootCount}, nodes {NodeCount}):");
 
-            foreach (var root in RootKeys) {
-                sb.AppendLine(GetTree(root).ToString());
+            for (int i = 0; i < _head; i++) {
+                ref var node = ref _nodes[i];
+                if (node.IsDisposed()) continue;
+
+                sb.AppendLine($"[{i}] :: {node}");
             }
 
             return sb.ToString();
