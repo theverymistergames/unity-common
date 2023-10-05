@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 using MisterGames.Common.Data;
 using NUnit.Framework;
-using UnityEngine;
 using Random = UnityEngine.Random;
 
 namespace Data {
@@ -17,6 +14,7 @@ namespace Data {
             int root = map.GetOrAddRoot(0);
 
             Assert.IsTrue(map.ContainsRoot(0));
+            Assert.IsTrue(map.ContainsNode(root));
 
             Assert.IsTrue(map.TryGetRoot(0, out int rootGet));
             Assert.AreEqual(root, rootGet);
@@ -46,11 +44,11 @@ namespace Data {
             int root = map.GetOrAddRoot(0);
             map.RemoveRoot(0);
 
-            Assert.IsFalse(map.ContainsRoot(root));
+            Assert.IsFalse(map.ContainsRoot(0));
+            Assert.IsFalse(map.ContainsNode(root));
 
             Assert.IsFalse(map.TryGetRoot(0, out int rootGet));
             Assert.AreEqual(-1, rootGet);
-
             Assert.AreEqual(-1, map.GetRoot(0));
 
             Assert.AreEqual(0, map.Count);
@@ -65,6 +63,7 @@ namespace Data {
             int child = map.GetOrAddChild(root, 0);
 
             Assert.IsTrue(map.ContainsChild(root, 0));
+            Assert.IsTrue(map.ContainsNode(child));
 
             Assert.IsTrue(map.TryGetParent(child, out int rootGet));
             Assert.AreEqual(root, rootGet);
@@ -110,6 +109,7 @@ namespace Data {
             int child1 = map.GetOrAddChild(root, 1);
 
             Assert.IsTrue(map.ContainsChild(root, 1));
+            Assert.IsTrue(map.ContainsNode(child1));
 
             Assert.IsTrue(map.TryGetParent(child1, out int rootGet));
             Assert.AreEqual(root, rootGet);
@@ -144,6 +144,7 @@ namespace Data {
             int child = map.GetOrAddChild(parent, 0);
 
             Assert.IsTrue(map.ContainsChild(parent, 0));
+            Assert.IsTrue(map.ContainsNode(child));
 
             Assert.IsTrue(map.TryGetParent(child, out int parentGet));
             Assert.AreEqual(parent, parentGet);
@@ -186,6 +187,7 @@ namespace Data {
             int child1 = map.GetOrAddChild(parent, 1);
 
             Assert.IsTrue(map.ContainsChild(parent, 1));
+            Assert.IsTrue(map.ContainsNode(child1));
 
             Assert.IsTrue(map.TryGetParent(child1, out int parentGet));
             Assert.AreEqual(parent, parentGet);
@@ -217,7 +219,7 @@ namespace Data {
             int root = map.GetOrAddRoot(0);
             int child = map.GetOrAddChild(root, 0);
 
-            map.RemoveChild(ref root, child);
+            root = map.RemoveChild(root, 0);
 
             Assert.IsFalse(map.ContainsChild(root, 0));
 
@@ -248,7 +250,7 @@ namespace Data {
             int child0 = map.GetOrAddChild(root, 0);
             int child1 = map.GetOrAddChild(root, 1);
 
-            map.RemoveChild(ref root, child0);
+            root = map.RemoveChild(root, 0);
             child1 = map.GetChild(root, 1);
 
             Assert.IsTrue(map.ContainsChild(root, 1));
@@ -279,7 +281,7 @@ namespace Data {
             int child0 = map.GetOrAddChild(root, 0);
             int child1 = map.GetOrAddChild(root, 1);
 
-            map.RemoveChild(ref root, child1);
+            root = map.RemoveChild(root, 1);
             child0 = map.GetChild(root, 0);
 
             Assert.IsTrue(map.ContainsChild(root, 0));
@@ -311,7 +313,7 @@ namespace Data {
             int child1 = map.GetOrAddChild(root, 1);
             int child2 = map.GetOrAddChild(root, 2);
 
-            map.RemoveChild(ref root, child1);
+            root = map.RemoveChild(root, 1);
             child0 = map.GetChild(root, 0);
             child2 = map.GetChild(root, 2);
 
@@ -354,7 +356,7 @@ namespace Data {
             int parent = map.GetOrAddChild(root, 0);
             int child = map.GetOrAddChild(parent, 0);
 
-            map.RemoveChild(ref parent, child);
+            parent = map.RemoveChild(parent, 0);
 
             Assert.IsFalse(map.ContainsChild(parent, 0));
 
@@ -385,7 +387,7 @@ namespace Data {
             int child0 = map.GetOrAddChild(parent, 0);
             int child1 = map.GetOrAddChild(parent, 1);
 
-            map.RemoveChild(ref parent, child0);
+            parent = map.RemoveChild(parent, 0);
             child1 = map.GetChild(parent, 1);
 
             Assert.IsTrue(map.ContainsChild(parent, 1));
@@ -417,7 +419,7 @@ namespace Data {
             int child0 = map.GetOrAddChild(parent, 0);
             int child1 = map.GetOrAddChild(parent, 1);
 
-            map.RemoveChild(ref parent, child1);
+            parent = map.RemoveChild(parent, 1);
             child0 = map.GetChild(parent, 0);
 
             Assert.IsTrue(map.ContainsChild(parent, 0));
@@ -450,7 +452,7 @@ namespace Data {
             int child1 = map.GetOrAddChild(parent, 1);
             int child2 = map.GetOrAddChild(parent, 2);
 
-            map.RemoveChild(ref parent, child1);
+            parent = map.RemoveChild(parent, 1);
             child0 = map.GetChild(parent, 0);
             child2 = map.GetChild(parent, 2);
 
@@ -549,6 +551,9 @@ namespace Data {
             Assert.IsFalse(map.TryGetChild(parent, 0, out child0Get));
             Assert.AreEqual(-1, child0Get);
 
+            Assert.IsFalse(map.TryGetChild(parent, 1, out int child1Get));
+            Assert.AreEqual(-1, child1Get);
+
             Assert.AreEqual(-1, map.GetChild(parent));
             Assert.AreEqual(-1, map.GetChild(parent, 0));
 
@@ -611,16 +616,26 @@ namespace Data {
 
             node = ref map.GetNode(root);
             Assert.AreEqual(3f, node.value);
-
-            map.RemoveRoot(0);
-            Assert.Throws<IndexOutOfRangeException>(() => { map.GetNode(root); });
         }
 
         [Test]
         [TestCase(1, 1)]
+        [TestCase(1, 2)]
+        [TestCase(1, 3)]
+        [TestCase(1, 4)]
+        [TestCase(1, 5)]
+        [TestCase(2, 2)]
+        [TestCase(2, 3)]
+        [TestCase(2, 4)]
+        [TestCase(2, 5)]
+        [TestCase(3, 3)]
+        [TestCase(3, 4)]
+        [TestCase(3, 5)]
         [TestCase(10, 2)]
+        [TestCase(10, 3)]
         [TestCase(10, 4)]
         [TestCase(100, 2)]
+        [TestCase(100, 3)]
         [TestCase(100, 5)]
         [TestCase(100, 20)]
         [TestCase(1000, 2)]
@@ -649,32 +664,10 @@ namespace Data {
                         var added = addedNodes[l];
                         var removed = removedNodes[l];
 
-                        int targetKeyIndex = Random.Range(0, added.Count - 1);
-                        int k = 0;
-                        int key = -1;
+                        int key = Random.Range(0, keys);
+                        if (added.Contains(key) || removed.Contains(key)) break;
 
-                        foreach (int addedKey in added) {
-                            if (targetKeyIndex != k++) continue;
-
-                            key = addedKey;
-                            break;
-                        }
-
-                        if (l < level) {
-                            Assert.IsTrue(l == 0
-                                ? map.TryGetRoot(key, out lastParent)
-                                : map.TryGetChild(lastParent, key, out lastParent)
-                            );
-                            continue;
-                        }
-
-                        key = Random.Range(0, keys);
-
-                        if (added.Contains(key) || removed.Contains(key)) continue;
-
-                        if (l == 0) map.GetOrAddRoot(key);
-                        else map.GetOrAddChild(lastParent, key);
-
+                        lastParent = l == 0 ? map.GetOrAddRoot(key) : map.GetOrAddChild(lastParent, key);
                         added.Add(key);
                     }
                 }
@@ -682,38 +675,48 @@ namespace Data {
                 for (int j = 0; j < size; j++) {
                     if (Random.Range(0f, 1f) > removePossibility) continue;
 
+                    int r = 0;
+                    int targetKeyIndex = Random.Range(0, map.RootKeys.Count - 1);
+                    int key = -1;
+
+                    foreach (int root in map.RootKeys) {
+                        if (targetKeyIndex != r++) continue;
+                        key = root;
+                    }
+
+                    if (key < 0) break;
+
                     int level = Random.Range(0, levels - 1);
-                    int lastParent = -1;
+                    var tree = map.GetTree(key);
 
                     for (int l = 0; l <= level; l++) {
-                        var added = addedNodes[l];
-                        var removed = removedNodes[l];
-
-                        int targetKeyIndex = Random.Range(0, added.Count - 1);
-                        int k = 0;
-                        int key = -1;
-
-                        foreach (int addedKey in added) {
-                            if (targetKeyIndex != k++) continue;
-
-                            key = addedKey;
-                            break;
-                        }
-
                         if (l < level) {
-                            Assert.IsTrue(l == 0
-                                ? map.TryGetRoot(key, out lastParent)
-                                : map.TryGetChild(lastParent, key, out lastParent)
-                            );
-                            continue;
+                            int childCount = tree.GetChildCount();
+                            if (childCount > 0) {
+                                int childIndex = Random.Range(0, childCount);
+
+                                for (int c = 0; c < childCount; c++) {
+                                    if (c == 0) tree.MoveChild();
+                                    else tree.MoveNext();
+
+                                    if (c == childIndex) break;
+                                }
+
+                                continue;
+                            }
                         }
 
-                        if (!added.Contains(key) || removed.Contains(key)) break;
+                        int root = tree.Index;
 
-                        if (l == 0) map.RemoveRoot(key);
-                        else map.RemoveChild(ref lastParent, key);
+                        while (true) {
+                            ref var node = ref tree.GetNode();
+                            removedNodes[tree.Level].Add(node.key);
 
-                        removed.Add(key);
+                            if (!tree.MovePreOrder(root)) break;
+                        }
+
+                        map.RemoveNode(root);
+                        break;
                     }
                 }
 
@@ -726,10 +729,11 @@ namespace Data {
 
                     Assert.AreEqual(expectedContains, actualContains);
 
+                    if (!actualContains) continue;
+
                     while (tree.MovePreOrder()) {
                         ref var node = ref tree.GetNode();
-                        Assert.IsTrue(addedNodes[tree.Level].Contains(node.key) &&
-                                      !removedNodes[tree.Level].Contains(node.key));
+                        Assert.IsTrue(addedNodes[tree.Level].Contains(node.key) && !removedNodes[tree.Level].Contains(node.key));
                     }
                 }
             }
