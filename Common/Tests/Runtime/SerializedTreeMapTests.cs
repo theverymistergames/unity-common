@@ -219,7 +219,7 @@ namespace Data {
             int root = map.GetOrAddRoot(0);
             int child = map.GetOrAddChild(root, 0);
 
-            root = map.RemoveChild(root, 0);
+            map.RemoveChild(ref root, 0);
 
             Assert.IsFalse(map.ContainsChild(root, 0));
 
@@ -250,7 +250,7 @@ namespace Data {
             int child0 = map.GetOrAddChild(root, 0);
             int child1 = map.GetOrAddChild(root, 1);
 
-            root = map.RemoveChild(root, 0);
+            map.RemoveChild(ref root, 0);
             child1 = map.GetChild(root, 1);
 
             Assert.IsTrue(map.ContainsChild(root, 1));
@@ -281,7 +281,7 @@ namespace Data {
             int child0 = map.GetOrAddChild(root, 0);
             int child1 = map.GetOrAddChild(root, 1);
 
-            root = map.RemoveChild(root, 1);
+            map.RemoveChild(ref root, 1);
             child0 = map.GetChild(root, 0);
 
             Assert.IsTrue(map.ContainsChild(root, 0));
@@ -313,7 +313,7 @@ namespace Data {
             int child1 = map.GetOrAddChild(root, 1);
             int child2 = map.GetOrAddChild(root, 2);
 
-            root = map.RemoveChild(root, 1);
+            map.RemoveChild(ref root, 1);
             child0 = map.GetChild(root, 0);
             child2 = map.GetChild(root, 2);
 
@@ -356,7 +356,7 @@ namespace Data {
             int parent = map.GetOrAddChild(root, 0);
             int child = map.GetOrAddChild(parent, 0);
 
-            parent = map.RemoveChild(parent, 0);
+            map.RemoveChild(ref parent, 0);
 
             Assert.IsFalse(map.ContainsChild(parent, 0));
 
@@ -387,7 +387,7 @@ namespace Data {
             int child0 = map.GetOrAddChild(parent, 0);
             int child1 = map.GetOrAddChild(parent, 1);
 
-            parent = map.RemoveChild(parent, 0);
+            map.RemoveChild(ref parent, 0);
             child1 = map.GetChild(parent, 1);
 
             Assert.IsTrue(map.ContainsChild(parent, 1));
@@ -419,7 +419,7 @@ namespace Data {
             int child0 = map.GetOrAddChild(parent, 0);
             int child1 = map.GetOrAddChild(parent, 1);
 
-            parent = map.RemoveChild(parent, 1);
+            map.RemoveChild(ref parent, 1);
             child0 = map.GetChild(parent, 0);
 
             Assert.IsTrue(map.ContainsChild(parent, 0));
@@ -452,7 +452,7 @@ namespace Data {
             int child1 = map.GetOrAddChild(parent, 1);
             int child2 = map.GetOrAddChild(parent, 2);
 
-            parent = map.RemoveChild(parent, 1);
+            map.RemoveChild(ref parent, 1);
             child0 = map.GetChild(parent, 0);
             child2 = map.GetChild(parent, 2);
 
