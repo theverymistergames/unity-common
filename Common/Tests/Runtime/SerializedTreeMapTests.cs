@@ -1,11 +1,69 @@
 ﻿using System.Collections.Generic;
 using MisterGames.Common.Data;
 using NUnit.Framework;
+using UnityEngine;
 using Random = UnityEngine.Random;
 
 namespace Data {
 
     public class SerializedTreeMapTests {
+
+        [Test]
+        public void ContainsRoot() {
+            var map = new SerializedTreeMap<int, float>();
+
+            Assert.IsFalse(map.ContainsRoot(0));
+            Assert.IsFalse(map.TryGetRoot(0, out int rootGet));
+
+            int root = map.GetOrAddRoot(0);
+
+            Assert.IsTrue(map.ContainsRoot(0));
+            Assert.IsTrue(map.ContainsNode(root));
+            Assert.IsTrue(map.TryGetRoot(0, out rootGet));
+            Assert.AreEqual(root, rootGet);
+            Assert.AreEqual(root, map.GetRoot(0));
+            Assert.AreEqual(1, map.Count);
+            Assert.AreEqual(1, map.RootCount);
+
+            map.RemoveRoot(0);
+
+            Assert.IsFalse(map.ContainsRoot(0));
+            Assert.IsFalse(map.TryGetRoot(0, out rootGet));
+            Assert.AreEqual(-1, rootGet);
+            Assert.AreEqual(-1, map.GetRoot(0));
+            Assert.AreEqual(0, map.Count);
+            Assert.AreEqual(0, map.RootCount);
+        }
+
+        [Test]
+        public void ContainsNode() {
+            var map = new SerializedTreeMap<int, float>();
+
+            int root = map.GetOrAddRoot(0);
+            int child = map.GetOrAddChild(root, 0);
+
+            Assert.IsTrue(map.ContainsNode(child));
+            Assert.IsTrue(map.TryGetChild(root, 0, out int childGet));
+            Assert.AreEqual(child, childGet);
+            Assert.AreEqual(child, map.GetChild(root, 0));
+            Assert.IsTrue(map.TryGetParent(child, out int parentGet));
+            Assert.AreEqual(root, parentGet);
+            Assert.AreEqual(root, map.GetParent(child));
+            Assert.AreEqual(2, map.Count);
+            Assert.AreEqual(1, map.NodeCount);
+
+            map.RemoveChild(root, 0);
+
+            Assert.IsFalse(map.ContainsNode(child));
+            Assert.IsFalse(map.TryGetChild(root, 0, out childGet));
+            Assert.AreEqual(-1, childGet);
+            Assert.AreEqual(-1, map.GetChild(root, 0));
+            Assert.IsFalse(map.TryGetParent(child, out parentGet));
+            Assert.AreEqual(-1, parentGet);
+            Assert.AreEqual(-1, map.GetParent(child));
+            Assert.AreEqual(1, map.Count);
+            Assert.AreEqual(0, map.NodeCount);
+        }
 
         [Test]
         public void AddRoot() {
@@ -14,15 +72,6 @@ namespace Data {
             int root = map.GetOrAddRoot(0);
 
             Assert.IsTrue(map.ContainsRoot(0));
-            Assert.IsTrue(map.ContainsNode(root));
-
-            Assert.IsTrue(map.TryGetRoot(0, out int rootGet));
-            Assert.AreEqual(root, rootGet);
-
-            Assert.AreEqual(root, map.GetRoot(0));
-
-            Assert.AreEqual(1, map.Count);
-            Assert.AreEqual(1, map.RootCount);
         }
 
         [Test]
@@ -33,7 +82,6 @@ namespace Data {
             int rootDuplicate = map.GetOrAddRoot(0);
 
             Assert.AreEqual(root, rootDuplicate);
-            Assert.AreEqual(1, map.Count);
             Assert.AreEqual(1, map.RootCount);
         }
 
@@ -45,14 +93,6 @@ namespace Data {
             map.RemoveRoot(0);
 
             Assert.IsFalse(map.ContainsRoot(0));
-            Assert.IsFalse(map.ContainsNode(root));
-
-            Assert.IsFalse(map.TryGetRoot(0, out int rootGet));
-            Assert.AreEqual(-1, rootGet);
-            Assert.AreEqual(-1, map.GetRoot(0));
-
-            Assert.AreEqual(0, map.Count);
-            Assert.AreEqual(0, map.RootCount);
         }
 
         [Test]
@@ -61,9 +101,6 @@ namespace Data {
 
             int root = map.GetOrAddRoot(0);
             int child = map.GetOrAddChild(root, 0);
-
-            Assert.IsTrue(map.ContainsChild(root, 0));
-            Assert.IsTrue(map.ContainsNode(child));
 
             Assert.IsTrue(map.TryGetParent(child, out int rootGet));
             Assert.AreEqual(root, rootGet);
@@ -706,6 +743,7 @@ namespace Data {
                             }
                         }
 
+                        int parent = tree.GetParent();
                         int root = tree.Index;
 
                         while (true) {
@@ -715,7 +753,7 @@ namespace Data {
                             if (!tree.MovePreOrder(root)) break;
                         }
 
-                        map.RemoveNode(root);
+                        map.RemoveNode(root, parent);
                         break;
                     }
                 }

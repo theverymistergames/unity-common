@@ -68,30 +68,30 @@ namespace MisterGames.Common.Data {
             public K key => _key;
             public V value;
 
-            [SerializeField] internal int parent;
+            [SerializeField] internal int prev;
             [SerializeField] internal int child;
-            [SerializeField] internal int previous;
+            [SerializeField] internal int last;
             [SerializeField] internal int next;
 
             internal void Reset(K key) {
                 _key = key;
                 value = default;
-                parent = -1;
+                prev = -1;
                 child = -1;
-                previous = -1;
+                last = -1;
                 next = -1;
             }
 
             internal void Dispose() {
-                parent = -2;
+                prev = -2;
             }
 
             internal bool IsDisposed() {
-                return parent < -1;
+                return prev < -1;
             }
 
             public override string ToString() {
-                return $"{nameof(Node)}(key {_key}, value {value}, parent {parent}, child {child}, previous {previous}, next {next})";
+                return $"{nameof(Node)}(key {_key}, value {value}, prev {prev}, child {child}, last {last}, next {next})";
             }
         }
 
@@ -131,37 +131,36 @@ namespace MisterGames.Common.Data {
             public bool MovePreOrder(int root = -1) {
                 ThrowIfDisposed();
 
-                if (_map.TryGetChild(_index, out int child)) {
-                    _index = child;
+                ref var node = ref _map.GetNode(_index);
+
+                if (node.child >= 0) {
+                    _index = node.child;
                     _level++;
                     return true;
                 }
 
-                if (_index == root) return false;
+                int next = node.next;
+                if (next < 0) return false;
 
-                if (_map.TryGetNext(_index, out int next)) {
-                    _index = next;
-                    return true;
-                }
-
-                child = _index;
+                int index = _index;
                 int level = _level;
 
-                while (_map.TryGetParent(child, out int parent)) {
-                    if (parent == root) return false;
+                while (true) {
+                    if (next < 0 || next == root) return false;
+
+                    node = ref _map.GetNode(next);
+                    if (node.last != index) break;
 
                     level--;
 
-                    if (_map.TryGetNext(parent, out int nextParent)) {
-                        _index = nextParent;
-                        _level = level;
-                        return true;
-                    }
-
-                    child = parent;
+                    index = next;
+                    next = node.next;
                 }
 
-                return false;
+                _index = next;
+                _level = level;
+
+                return true;
             }
 
             public bool MoveParent() {
@@ -403,7 +402,7 @@ namespace MisterGames.Common.Data {
         public void RemoveRoot(K key) {
             if (!_rootIndexMap.TryGetValue(key, out int index)) return;
 
-            DisposeNodePath(index);
+            DisposeNodePath(index, -1, true);
             ApplyDefragmentationIfNecessary();
         }
 
@@ -428,22 +427,8 @@ namespace MisterGames.Common.Data {
 
         #region CHILD
 
-        public int GetChild(int parent) {
-            if (parent < 0 || parent >= _head) return -1;
-
-            ref var node = ref _nodes[parent];
-            if (node.IsDisposed()) return -1;
-
-            return node.child;
-        }
-
         public int GetChild(int parent, K key) {
             return _nodeIndexMap.TryGetValue(new KeyIndex(key, parent), out int child) ? child : -1;
-        }
-
-        public bool TryGetChild(int parent, out int child) {
-            child = GetChild(parent);
-            return child >= 0;
         }
 
         public bool TryGetChild(int parent, K key, out int child) {
@@ -464,25 +449,23 @@ namespace MisterGames.Common.Data {
             _nodeIndexMap[nodeKey] = index;
 
             node = ref _nodes[parent];
-            int child = node.child;
+            int last = node.last;
 
-            if (child >= 0) {
-                while (true) {
-                    node = ref _nodes[child];
-                    if (node.next < 0) break;
+            node.last = index;
 
-                    child = node.next;
-                }
-
+            if (last >= 0) {
+                node = ref _nodes[last];
                 node.next = index;
             }
             else {
                 node.child = index;
+                node.last = index;
+                last = parent;
             }
 
             node = ref _nodes[index];
-            node.parent = parent;
-            node.previous = child;
+            node.prev = last;
+            node.next = parent;
 
             return index;
         }
@@ -493,13 +476,14 @@ namespace MisterGames.Common.Data {
             ref var node = ref _nodes[parent];
             if (node.IsDisposed()) return 0;
 
-            parent = node.child;
+            int last = node.child;
             int count = 0;
 
-            while (parent >= 0) {
+            while (last >= 0 && last != parent) {
                 count++;
-                node = ref _nodes[parent];
-                parent = node.next;
+
+                node = ref _nodes[last];
+                last = node.next;
             }
 
             return count;
@@ -510,11 +494,11 @@ namespace MisterGames.Common.Data {
         }
 
         public void RemoveChild(int parent, K key) {
-            if (_nodeIndexMap.TryGetValue(new KeyIndex(key, parent), out int index)) RemoveNode(index, out parent);
+            RemoveChild(ref parent, key);
         }
 
         public void RemoveChild(ref int parent, K key) {
-            if (_nodeIndexMap.TryGetValue(new KeyIndex(key, parent), out int index)) RemoveNode(index, out parent);
+            if (_nodeIndexMap.TryGetValue(new KeyIndex(key, parent), out int index)) RemoveNode(index, ref parent);
         }
 
         public void ClearChildren(int parent) {
@@ -527,11 +511,12 @@ namespace MisterGames.Common.Data {
             ref var node = ref _nodes[parent];
             if (node.IsDisposed()) return;
 
-            DisposeNodePath(parent, false);
+            DisposeNodePath(parent, -1, false);
             parent = ApplyDefragmentationIfNecessary(parent);
 
             node = ref _nodes[parent];
             node.child = -1;
+            node.last = -1;
 
             _version++;
         }
@@ -551,12 +536,14 @@ namespace MisterGames.Common.Data {
             if (node.IsDisposed()) return 0;
 
             int depth = 0;
+            int prev = node.prev;
 
-            while (true) {
-                if (node.parent < 0) break;
+            while (prev >= 0) {
+                node = ref _nodes[prev];
+                if (node.child == index) depth++;
 
-                depth++;
-                node = ref _nodes[node.parent];
+                index = prev;
+                prev = node.prev;
             }
 
             return depth;
@@ -568,16 +555,26 @@ namespace MisterGames.Common.Data {
             ref var node = ref _nodes[child];
             if (node.IsDisposed()) return -1;
 
-            return node.parent;
+            int prev = node.prev;
+
+            while (prev >= 0) {
+                node = ref _nodes[prev];
+                if (node.child == child) return prev;
+
+                child = prev;
+                prev = node.prev;
+            }
+
+            return -1;
         }
 
-        public int GetPrevious(int next) {
-            if (next < 0 || next >= _head) return -1;
+        public int GetChild(int parent) {
+            if (parent < 0 || parent >= _head) return -1;
 
-            ref var node = ref _nodes[next];
+            ref var node = ref _nodes[parent];
             if (node.IsDisposed()) return -1;
 
-            return node.previous;
+            return node.child;
         }
 
         public int GetNext(int previous) {
@@ -586,7 +583,26 @@ namespace MisterGames.Common.Data {
             ref var node = ref _nodes[previous];
             if (node.IsDisposed()) return -1;
 
-            return node.next;
+            int next = node.next;
+
+            node = ref _nodes[next];
+            if (node.last == previous) return -1;
+
+            return next;
+        }
+
+        public int GetPrevious(int next) {
+            if (next < 0 || next >= _head) return -1;
+
+            ref var node = ref _nodes[next];
+            if (node.IsDisposed()) return -1;
+
+            int prev = node.prev;
+
+            node = ref _nodes[prev];
+            if (node.child == next) return -1;
+
+            return prev;
         }
 
         public bool TryGetParent(int child, out int parent) {
@@ -594,9 +610,9 @@ namespace MisterGames.Common.Data {
             return parent >= 0;
         }
 
-        public bool TryGetPrevious(int next, out int previous) {
-            previous = GetPrevious(next);
-            return previous >= 0;
+        public bool TryGetChild(int parent, out int child) {
+            child = GetChild(parent);
+            return child >= 0;
         }
 
         public bool TryGetNext(int previous, out int next) {
@@ -604,11 +620,16 @@ namespace MisterGames.Common.Data {
             return next >= 0;
         }
 
-        public void RemoveNode(int index) {
-            RemoveNode(index, out _);
+        public bool TryGetPrevious(int next, out int previous) {
+            previous = GetPrevious(next);
+            return previous >= 0;
         }
 
-        public void RemoveNode(int index, out int parent) {
+        public void RemoveNode(int index, int parent) {
+            RemoveNode(index, ref parent);
+        }
+
+        public void RemoveNode(int index, ref int parent) {
             if (index < 0 || index >= _head) {
                 parent = -1;
                 return;
@@ -620,24 +641,27 @@ namespace MisterGames.Common.Data {
                 return;
             }
 
+            int prev = node.prev;
             int next = node.next;
-            int previous = node.previous;
-            parent = node.parent;
 
-            DisposeNodePath(index);
+            DisposeNodePath(index, parent, disposeIndex: true);
 
-            if (next >= 0) {
-                node = ref _nodes[next];
-                node.previous = previous;
-            }
+            if (prev >= 0) {
+                node = ref _nodes[prev];
 
-            if (previous >= 0) {
-                node = ref _nodes[previous];
-                node.next = next;
-            }
-            else if (parent >= 0) {
-                node = ref _nodes[parent];
-                node.child = next;
+                if (prev == next) {
+                    node.child = -1;
+                    node.last = -1;
+                }
+                else {
+                    if (node.child == index) node.child = next;
+                    else node.next = next;
+
+                    node = ref _nodes[next];
+
+                    if (node.last == index) node.last = prev;
+                    else node.prev = prev;
+                }
             }
 
             parent = ApplyDefragmentationIfNecessary(parent);
@@ -677,60 +701,54 @@ namespace MisterGames.Common.Data {
             return index;
         }
 
-        private void DisposeNode(ref Node node, int index) {
+        private void DisposeNode(ref Node node, int index, int parent) {
             if (index == _head - 1) _head--;
             else _freeIndices.Add(index);
 
-            if (node.parent < 0) _rootIndexMap.Remove(node.key);
-            else _nodeIndexMap.Remove(new KeyIndex(node.key, node.parent));
+            if (parent < 0) _rootIndexMap.Remove(node.key);
+            else _nodeIndexMap.Remove(new KeyIndex(node.key, parent));
 
             node.Dispose();
         }
 
-        private void DisposeNodePath(int root, bool disposeRoot = true) {
-            if (root < 0 || root >= _head) return;
+        private void DisposeNodePath(int index, int parent, bool disposeIndex) {
+            if (index < 0 || index >= _head) return;
 
-            ref var node = ref _nodes[root];
-            int child = node.child;
+            ref var node = ref _nodes[index];
+            if (disposeIndex) DisposeNode(ref node, index, parent);
 
-            if (disposeRoot) DisposeNode(ref node, root);
-            if (child < 0) return;
+            parent = index;
+            int pointer = node.child;
 
-            int pointer = child;
-
-            while (true) {
+            while (pointer >= 0 && pointer != index) {
                 node = ref _nodes[pointer];
 
-                child = node.child;
-                int next = node.next;
-                int parent = node.parent;
-
-                DisposeNode(ref node, pointer);
-
-                if (child >= 0) {
-                    pointer = child;
-                    continue;
+                if (node.IsDisposed()) {
+                    parent = node.last;
                 }
+                else {
+                    DisposeNode(ref node, pointer, parent);
 
-                if (next >= 0) {
-                    pointer = next;
-                    continue;
-                }
-
-                while (true) {
-                    if (parent < 0 || parent == root) return;
-
-                    node = ref _nodes[parent];
-                    next = node.next;
-
-                    if (next < 0) {
-                        parent = node.parent;
+                    if (node.child >= 0) {
+                        node.last = parent;
+                        parent = pointer;
+                        pointer = node.child;
                         continue;
                     }
-
-                    pointer = next;
-                    break;
                 }
+
+                int next = node.next;
+                if (next < 0) return;
+
+                node = ref _nodes[next];
+
+                if (node.last == pointer) {
+                    pointer = next;
+                    parent = -1;
+                    continue;
+                }
+
+                pointer = next;
             }
         }
 
@@ -739,7 +757,7 @@ namespace MisterGames.Common.Data {
         }
 
         private int ApplyDefragmentation(int index = -1) {
-            //return index;
+            return index;
 
             int j = _freeIndices.Count - 1;
             int count = Count;
@@ -761,15 +779,15 @@ namespace MisterGames.Common.Data {
 
                 if (index == i) index = freeIndex;
 
-                int parent = node.parent;
                 int child = node.child;
-                int previous = node.previous;
+                int previous = node.last;
                 int next = node.next;
+                int prev = node.prev;
 
-                if (parent >= 0) {
-                    _nodeIndexMap[new KeyIndex(node.key, parent)] = freeIndex;
+                if (prev >= 0) {
+                    _nodeIndexMap[new KeyIndex(node.key, prev)] = freeIndex;
 
-                    node = ref _nodes[parent];
+                    node = ref _nodes[prev];
                     if (node.child == i) node.child = freeIndex;
                 }
                 else {
@@ -778,7 +796,7 @@ namespace MisterGames.Common.Data {
 
                 if (child >= 0) {
                     node = ref _nodes[child];
-                    node.parent = freeIndex;
+                    //node.parent = freeIndex;
                 }
 
                 if (previous >= 0) {
@@ -788,7 +806,7 @@ namespace MisterGames.Common.Data {
 
                 if (next >= 0) {
                     node = ref _nodes[next];
-                    node.previous = freeIndex;
+                    //node.root = freeIndex;
                 }
             }
 
