@@ -39,24 +39,24 @@ namespace Data {
             var map = new SerializedTreeMap<int, float>();
 
             int root = map.GetOrAddRoot(0);
-            int child = map.GetOrAddChild(root, 0);
+            int child = map.GetOrAddChild(0, root);
 
             Assert.IsTrue(map.ContainsNode(child));
-            Assert.IsTrue(map.TryGetChild(root, 0, out int childGet));
+            Assert.IsTrue(map.TryGetChild(0, root, out int childGet));
             Assert.AreEqual(child, childGet);
-            Assert.AreEqual(child, map.GetChild(root, 0));
+            Assert.AreEqual(child, map.GetChild(0, root));
             Assert.IsTrue(map.TryGetParent(child, out int parentGet));
             Assert.AreEqual(root, parentGet);
             Assert.AreEqual(root, map.GetParent(child));
             Assert.AreEqual(2, map.Count);
             Assert.AreEqual(1, map.NodeCount);
 
-            map.RemoveChild(root, 0);
+            map.RemoveChild(0, root);
 
             Assert.IsFalse(map.ContainsNode(child));
-            Assert.IsFalse(map.TryGetChild(root, 0, out childGet));
+            Assert.IsFalse(map.TryGetChild(0, root, out childGet));
             Assert.AreEqual(-1, childGet);
-            Assert.AreEqual(-1, map.GetChild(root, 0));
+            Assert.AreEqual(-1, map.GetChild(0, root));
             Assert.IsFalse(map.TryGetParent(child, out parentGet));
             Assert.AreEqual(-1, parentGet);
             Assert.AreEqual(-1, map.GetParent(child));
@@ -99,7 +99,7 @@ namespace Data {
             var map = new SerializedTreeMap<int, float>();
 
             int root = map.GetOrAddRoot(0);
-            int child = map.GetOrAddChild(root, 0);
+            int child = map.GetOrAddChild(0, root);
 
             Assert.IsTrue(map.TryGetParent(child, out int rootGet));
             Assert.AreEqual(root, rootGet);
@@ -109,11 +109,11 @@ namespace Data {
             Assert.IsTrue(map.TryGetChild(root, out int childGet));
             Assert.AreEqual(child, childGet);
 
-            Assert.IsTrue(map.TryGetChild(root, 0, out childGet));
+            Assert.IsTrue(map.TryGetChild(0, root, out childGet));
             Assert.AreEqual(child, childGet);
 
             Assert.AreEqual(child, map.GetChild(root));
-            Assert.AreEqual(child, map.GetChild(root, 0));
+            Assert.AreEqual(child, map.GetChild(0, root));
 
             Assert.AreEqual(1, map.GetChildCount(root));
 
@@ -126,8 +126,8 @@ namespace Data {
             var map = new SerializedTreeMap<int, float>();
 
             int root = map.GetOrAddRoot(0);
-            int child0 = map.GetOrAddChild(root, 0);
-            int child1 = map.GetOrAddChild(root, 0);
+            int child0 = map.GetOrAddChild(0, root);
+            int child1 = map.GetOrAddChild(0, root);
 
             Assert.AreEqual(child0, child1);
             Assert.AreEqual(1, map.GetChildCount(root));
@@ -141,10 +141,10 @@ namespace Data {
             var map = new SerializedTreeMap<int, float>();
 
             int root = map.GetOrAddRoot(0);
-            int child0 = map.GetOrAddChild(root, 0);
-            int child1 = map.GetOrAddChild(root, 1);
+            int child0 = map.GetOrAddChild(0, root);
+            int child1 = map.GetOrAddChild(1, root);
 
-            Assert.IsTrue(map.ContainsChild(root, 1));
+            Assert.IsTrue(map.ContainsChild(1, root));
             Assert.IsTrue(map.ContainsNode(child1));
 
             Assert.IsTrue(map.TryGetParent(child1, out int rootGet));
@@ -152,10 +152,10 @@ namespace Data {
 
             Assert.AreEqual(root, map.GetParent(child1));
 
-            Assert.IsTrue(map.TryGetChild(root, 1, out int child1Get));
+            Assert.IsTrue(map.TryGetChild(1, root, out int child1Get));
             Assert.AreEqual(child1, child1Get);
 
-            Assert.AreEqual(child1, map.GetChild(root, 1));
+            Assert.AreEqual(child1, map.GetChild(1, root));
 
             Assert.AreEqual(2, map.GetChildCount(root));
 
@@ -176,20 +176,20 @@ namespace Data {
             var map = new SerializedTreeMap<int, float>();
 
             int root = map.GetOrAddRoot(0);
-            int parent = map.GetOrAddChild(root, 0);
-            int child = map.GetOrAddChild(parent, 0);
+            int parent = map.GetOrAddChild(0, root);
+            int child = map.GetOrAddChild(0, parent);
 
-            Assert.IsTrue(map.ContainsChild(parent, 0));
+            Assert.IsTrue(map.ContainsChild(0, parent));
             Assert.IsTrue(map.ContainsNode(child));
 
             Assert.IsTrue(map.TryGetParent(child, out int parentGet));
             Assert.AreEqual(parent, parentGet);
             Assert.AreEqual(parent, map.GetParent(child));
 
-            Assert.IsTrue(map.TryGetChild(parent, 0, out int childGet));
+            Assert.IsTrue(map.TryGetChild(0, parent, out int childGet));
             Assert.AreEqual(child, childGet);
 
-            Assert.AreEqual(child, map.GetChild(parent, 0));
+            Assert.AreEqual(child, map.GetChild(0, parent));
 
             Assert.AreEqual(1, map.GetChildCount(parent));
 
@@ -202,9 +202,9 @@ namespace Data {
             var map = new SerializedTreeMap<int, float>();
 
             int root = map.GetOrAddRoot(0);
-            int parent = map.GetOrAddChild(root, 0);
-            int child0 = map.GetOrAddChild(parent, 0);
-            int child1 = map.GetOrAddChild(parent, 0);
+            int parent = map.GetOrAddChild(0, root);
+            int child0 = map.GetOrAddChild(0, parent);
+            int child1 = map.GetOrAddChild(0, parent);
 
             Assert.AreEqual(child0, child1);
             Assert.AreEqual(1, map.GetChildCount(parent));
@@ -218,21 +218,21 @@ namespace Data {
             var map = new SerializedTreeMap<int, float>();
 
             int root = map.GetOrAddRoot(0);
-            int parent = map.GetOrAddChild(root, 0);
-            int child0 = map.GetOrAddChild(parent, 0);
-            int child1 = map.GetOrAddChild(parent, 1);
+            int parent = map.GetOrAddChild(0, root);
+            int child0 = map.GetOrAddChild(0, parent);
+            int child1 = map.GetOrAddChild(1, parent);
 
-            Assert.IsTrue(map.ContainsChild(parent, 1));
+            Assert.IsTrue(map.ContainsChild(1, parent));
             Assert.IsTrue(map.ContainsNode(child1));
 
             Assert.IsTrue(map.TryGetParent(child1, out int parentGet));
             Assert.AreEqual(parent, parentGet);
             Assert.AreEqual(parent, map.GetParent(child1));
 
-            Assert.IsTrue(map.TryGetChild(parent, 1, out int child1Get));
+            Assert.IsTrue(map.TryGetChild(1, parent, out int child1Get));
             Assert.AreEqual(child1, child1Get);
 
-            Assert.AreEqual(child1, map.GetChild(parent, 1));
+            Assert.AreEqual(child1, map.GetChild(1, parent));
 
             Assert.AreEqual(2, map.GetChildCount(parent));
 
@@ -253,11 +253,11 @@ namespace Data {
             var map = new SerializedTreeMap<int, float>();
 
             int root = map.GetOrAddRoot(0);
-            int child = map.GetOrAddChild(root, 0);
+            int child = map.GetOrAddChild(0, root);
 
-            map.RemoveChild(ref root, 0);
+            map.RemoveChild(0, ref root);
 
-            Assert.IsFalse(map.ContainsChild(root, 0));
+            Assert.IsFalse(map.ContainsChild(0, root));
 
             Assert.IsFalse(map.TryGetParent(child, out int rootGet));
             Assert.AreEqual(-1, rootGet);
@@ -266,11 +266,11 @@ namespace Data {
             Assert.IsFalse(map.TryGetChild(root, out int childGet));
             Assert.AreEqual(-1, childGet);
 
-            Assert.IsFalse(map.TryGetChild(root, 0, out childGet));
+            Assert.IsFalse(map.TryGetChild(0, root, out childGet));
             Assert.AreEqual(-1, childGet);
 
             Assert.AreEqual(-1, map.GetChild(root));
-            Assert.AreEqual(-1, map.GetChild(root, 0));
+            Assert.AreEqual(-1, map.GetChild(0, root));
 
             Assert.AreEqual(0, map.GetChildCount(root));
 
@@ -283,13 +283,13 @@ namespace Data {
             var map = new SerializedTreeMap<int, float>();
 
             int root = map.GetOrAddRoot(0);
-            int child0 = map.GetOrAddChild(root, 0);
-            int child1 = map.GetOrAddChild(root, 1);
+            int child0 = map.GetOrAddChild(0, root);
+            int child1 = map.GetOrAddChild(1, root);
 
-            map.RemoveChild(ref root, 0);
-            child1 = map.GetChild(root, 1);
+            map.RemoveChild(0, ref root);
+            child1 = map.GetChild(1, root);
 
-            Assert.IsTrue(map.ContainsChild(root, 1));
+            Assert.IsTrue(map.ContainsChild(1, root));
 
             Assert.IsTrue(map.TryGetParent(child1, out int rootGet));
             Assert.AreEqual(root, rootGet);
@@ -298,7 +298,7 @@ namespace Data {
             Assert.IsTrue(map.TryGetChild(root, out int child1Get));
             Assert.AreEqual(child1, child1Get);
 
-            Assert.IsTrue(map.TryGetChild(root, 1, out child1Get));
+            Assert.IsTrue(map.TryGetChild(1, root, out child1Get));
             Assert.AreEqual(child1, child1Get);
 
             Assert.AreEqual(child1, map.GetChild(root));
@@ -314,13 +314,13 @@ namespace Data {
             var map = new SerializedTreeMap<int, float>();
 
             int root = map.GetOrAddRoot(0);
-            int child0 = map.GetOrAddChild(root, 0);
-            int child1 = map.GetOrAddChild(root, 1);
+            int child0 = map.GetOrAddChild(0, root);
+            int child1 = map.GetOrAddChild(1, root);
 
-            map.RemoveChild(ref root, 1);
-            child0 = map.GetChild(root, 0);
+            map.RemoveChild(1, ref root);
+            child0 = map.GetChild(0, root);
 
-            Assert.IsTrue(map.ContainsChild(root, 0));
+            Assert.IsTrue(map.ContainsChild(0, root));
 
             Assert.IsTrue(map.TryGetParent(child0, out int rootGet));
             Assert.AreEqual(root, rootGet);
@@ -329,7 +329,7 @@ namespace Data {
             Assert.IsTrue(map.TryGetChild(root, out int child0Get));
             Assert.AreEqual(child0, child0Get);
 
-            Assert.IsTrue(map.TryGetChild(root, 0, out child0Get));
+            Assert.IsTrue(map.TryGetChild(0, root, out child0Get));
             Assert.AreEqual(child0, child0Get);
 
             Assert.AreEqual(child0, map.GetChild(root));
@@ -345,15 +345,15 @@ namespace Data {
             var map = new SerializedTreeMap<int, float>();
 
             int root = map.GetOrAddRoot(0);
-            int child0 = map.GetOrAddChild(root, 0);
-            int child1 = map.GetOrAddChild(root, 1);
-            int child2 = map.GetOrAddChild(root, 2);
+            int child0 = map.GetOrAddChild(0, root);
+            int child1 = map.GetOrAddChild(1, root);
+            int child2 = map.GetOrAddChild(2, root);
 
-            map.RemoveChild(ref root, 1);
-            child0 = map.GetChild(root, 0);
-            child2 = map.GetChild(root, 2);
+            map.RemoveChild(1, ref root);
+            child0 = map.GetChild(0, root);
+            child2 = map.GetChild(2, root);
 
-            Assert.IsTrue(map.ContainsChild(root, 2));
+            Assert.IsTrue(map.ContainsChild(2, root));
 
             Assert.IsTrue(map.TryGetParent(child2, out int rootGet));
             Assert.AreEqual(root, rootGet);
@@ -362,10 +362,10 @@ namespace Data {
             Assert.IsTrue(map.TryGetChild(root, out int child0Get));
             Assert.AreEqual(child0, child0Get);
 
-            Assert.IsTrue(map.TryGetChild(root, 0, out child0Get));
+            Assert.IsTrue(map.TryGetChild(0, root, out child0Get));
             Assert.AreEqual(child0, child0Get);
 
-            Assert.IsTrue(map.TryGetChild(root, 2, out int child2Get));
+            Assert.IsTrue(map.TryGetChild(2, root, out int child2Get));
             Assert.AreEqual(child2, child2Get);
 
             Assert.IsTrue(map.TryGetPrevious(child2, out child0Get));
@@ -389,12 +389,12 @@ namespace Data {
             var map = new SerializedTreeMap<int, float>();
 
             int root = map.GetOrAddRoot(0);
-            int parent = map.GetOrAddChild(root, 0);
-            int child = map.GetOrAddChild(parent, 0);
+            int parent = map.GetOrAddChild(0, root);
+            int child = map.GetOrAddChild(0, parent);
 
-            map.RemoveChild(ref parent, 0);
+            map.RemoveChild(0, ref parent);
 
-            Assert.IsFalse(map.ContainsChild(parent, 0));
+            Assert.IsFalse(map.ContainsChild(0, parent));
 
             Assert.IsFalse(map.TryGetParent(child, out int parentGet));
             Assert.AreEqual(-1, parentGet);
@@ -402,11 +402,11 @@ namespace Data {
             Assert.IsFalse(map.TryGetChild(parent, out int childGet));
             Assert.AreEqual(-1, childGet);
 
-            Assert.IsFalse(map.TryGetChild(parent, 0, out childGet));
+            Assert.IsFalse(map.TryGetChild(0, parent, out childGet));
             Assert.AreEqual(-1, childGet);
 
             Assert.AreEqual(-1, map.GetChild(parent));
-            Assert.AreEqual(-1, map.GetChild(parent, 0));
+            Assert.AreEqual(-1, map.GetChild(0, parent));
 
             Assert.AreEqual(0, map.GetChildCount(parent));
 
@@ -419,14 +419,14 @@ namespace Data {
             var map = new SerializedTreeMap<int, float>();
 
             int root = map.GetOrAddRoot(0);
-            int parent = map.GetOrAddChild(root, 0);
-            int child0 = map.GetOrAddChild(parent, 0);
-            int child1 = map.GetOrAddChild(parent, 1);
+            int parent = map.GetOrAddChild(0, root);
+            int child0 = map.GetOrAddChild(0, parent);
+            int child1 = map.GetOrAddChild(1, parent);
 
-            map.RemoveChild(ref parent, 0);
-            child1 = map.GetChild(parent, 1);
+            map.RemoveChild(0, ref parent);
+            child1 = map.GetChild(1, parent);
 
-            Assert.IsTrue(map.ContainsChild(parent, 1));
+            Assert.IsTrue(map.ContainsChild(1, parent));
 
             Assert.IsTrue(map.TryGetParent(child1, out int parentGet));
             Assert.AreEqual(parent, parentGet);
@@ -435,7 +435,7 @@ namespace Data {
             Assert.IsTrue(map.TryGetChild(parent, out int child1Get));
             Assert.AreEqual(child1, child1Get);
 
-            Assert.IsTrue(map.TryGetChild(parent, 1, out child1Get));
+            Assert.IsTrue(map.TryGetChild(1, parent, out child1Get));
             Assert.AreEqual(child1, child1Get);
 
             Assert.AreEqual(child1, map.GetChild(parent));
@@ -451,14 +451,14 @@ namespace Data {
             var map = new SerializedTreeMap<int, float>();
 
             int root = map.GetOrAddRoot(0);
-            int parent = map.GetOrAddChild(root, 0);
-            int child0 = map.GetOrAddChild(parent, 0);
-            int child1 = map.GetOrAddChild(parent, 1);
+            int parent = map.GetOrAddChild(0, root);
+            int child0 = map.GetOrAddChild(0, parent);
+            int child1 = map.GetOrAddChild(1, parent);
 
-            map.RemoveChild(ref parent, 1);
-            child0 = map.GetChild(parent, 0);
+            map.RemoveChild(1, ref parent);
+            child0 = map.GetChild(0, parent);
 
-            Assert.IsTrue(map.ContainsChild(parent, 0));
+            Assert.IsTrue(map.ContainsChild(0, parent));
 
             Assert.IsTrue(map.TryGetParent(child0, out int parentGet));
             Assert.AreEqual(parent, parentGet);
@@ -467,7 +467,7 @@ namespace Data {
             Assert.IsTrue(map.TryGetChild(parent, out int child0Get));
             Assert.AreEqual(child0, child0Get);
 
-            Assert.IsTrue(map.TryGetChild(parent, 0, out child0Get));
+            Assert.IsTrue(map.TryGetChild(0, parent, out child0Get));
             Assert.AreEqual(child0, child0Get);
 
             Assert.AreEqual(child0, map.GetChild(parent));
@@ -483,16 +483,16 @@ namespace Data {
             var map = new SerializedTreeMap<int, float>();
 
             int root = map.GetOrAddRoot(0);
-            int parent = map.GetOrAddChild(root, 0);
-            int child0 = map.GetOrAddChild(parent, 0);
-            int child1 = map.GetOrAddChild(parent, 1);
-            int child2 = map.GetOrAddChild(parent, 2);
+            int parent = map.GetOrAddChild(0, root);
+            int child0 = map.GetOrAddChild(0, parent);
+            int child1 = map.GetOrAddChild(1, parent);
+            int child2 = map.GetOrAddChild(2, parent);
 
-            map.RemoveChild(ref parent, 1);
-            child0 = map.GetChild(parent, 0);
-            child2 = map.GetChild(parent, 2);
+            map.RemoveChild(1, ref parent);
+            child0 = map.GetChild(0, parent);
+            child2 = map.GetChild(2, parent);
 
-            Assert.IsTrue(map.ContainsChild(parent, 2));
+            Assert.IsTrue(map.ContainsChild(2, parent));
 
             Assert.IsTrue(map.TryGetParent(child2, out int parentGet));
             Assert.AreEqual(parent, parentGet);
@@ -501,10 +501,10 @@ namespace Data {
             Assert.IsTrue(map.TryGetChild(parent, out int child0Get));
             Assert.AreEqual(child0, child0Get);
 
-            Assert.IsTrue(map.TryGetChild(parent, 0, out child0Get));
+            Assert.IsTrue(map.TryGetChild(0, parent, out child0Get));
             Assert.AreEqual(child0, child0Get);
 
-            Assert.IsTrue(map.TryGetChild(parent, 2, out int child2Get));
+            Assert.IsTrue(map.TryGetChild(2, parent, out int child2Get));
             Assert.AreEqual(child2, child2Get);
 
             Assert.IsTrue(map.TryGetPrevious(child2, out child0Get));
@@ -528,13 +528,13 @@ namespace Data {
             var map = new SerializedTreeMap<int, float>();
 
             int root = map.GetOrAddRoot(0);
-            int child0 = map.GetOrAddChild(root, 0);
-            int child1 = map.GetOrAddChild(root, 1);
+            int child0 = map.GetOrAddChild(0, root);
+            int child1 = map.GetOrAddChild(1, root);
 
             map.ClearChildren(ref root);
 
-            Assert.IsFalse(map.ContainsChild(root, 0));
-            Assert.IsFalse(map.ContainsChild(root, 1));
+            Assert.IsFalse(map.ContainsChild(0, root));
+            Assert.IsFalse(map.ContainsChild(1, root));
 
             Assert.IsFalse(map.TryGetParent(child0, out int rootGet));
             Assert.AreEqual(-1, rootGet);
@@ -547,11 +547,11 @@ namespace Data {
             Assert.IsFalse(map.TryGetChild(root, out int child0Get));
             Assert.AreEqual(-1, child0Get);
 
-            Assert.IsFalse(map.TryGetChild(root, 0, out child0Get));
+            Assert.IsFalse(map.TryGetChild(0, root, out child0Get));
             Assert.AreEqual(-1, child0Get);
 
             Assert.AreEqual(-1, map.GetChild(root));
-            Assert.AreEqual(-1, map.GetChild(root, 0));
+            Assert.AreEqual(-1, map.GetChild(0, root));
 
             Assert.AreEqual(0, map.GetChildCount(root));
 
@@ -564,14 +564,14 @@ namespace Data {
             var map = new SerializedTreeMap<int, float>();
 
             int root = map.GetOrAddRoot(0);
-            int parent = map.GetOrAddChild(root, 0);
-            int child0 = map.GetOrAddChild(parent, 0);
-            int child1 = map.GetOrAddChild(parent, 1);
+            int parent = map.GetOrAddChild(0, root);
+            int child0 = map.GetOrAddChild(0, parent);
+            int child1 = map.GetOrAddChild(1, parent);
 
             map.ClearChildren(ref parent);
 
-            Assert.IsFalse(map.ContainsChild(parent, 0));
-            Assert.IsFalse(map.ContainsChild(parent, 1));
+            Assert.IsFalse(map.ContainsChild(0, parent));
+            Assert.IsFalse(map.ContainsChild(1, parent));
 
             Assert.IsFalse(map.TryGetParent(child0, out int parentGet));
             Assert.AreEqual(-1, parentGet);
@@ -584,14 +584,14 @@ namespace Data {
             Assert.IsFalse(map.TryGetChild(parent, out int child0Get));
             Assert.AreEqual(-1, child0Get);
 
-            Assert.IsFalse(map.TryGetChild(parent, 0, out child0Get));
+            Assert.IsFalse(map.TryGetChild(0, parent, out child0Get));
             Assert.AreEqual(-1, child0Get);
 
-            Assert.IsFalse(map.TryGetChild(parent, 1, out int child1Get));
+            Assert.IsFalse(map.TryGetChild(1, parent, out int child1Get));
             Assert.AreEqual(-1, child1Get);
 
             Assert.AreEqual(-1, map.GetChild(parent));
-            Assert.AreEqual(-1, map.GetChild(parent, 0));
+            Assert.AreEqual(-1, map.GetChild(0, parent));
 
             Assert.AreEqual(0, map.GetChildCount(parent));
 
@@ -604,16 +604,16 @@ namespace Data {
             var map = new SerializedTreeMap<int, float>();
 
             int root = map.GetOrAddRoot(0);
-            int parent = map.GetOrAddChild(root, 0);
-            int child0 = map.GetOrAddChild(parent, 0);
-            int child1 = map.GetOrAddChild(parent, 1);
+            int parent = map.GetOrAddChild(0, root);
+            int child0 = map.GetOrAddChild(0, parent);
+            int child1 = map.GetOrAddChild(1, parent);
 
             map.ClearAll();
 
             Assert.IsFalse(map.ContainsRoot(0));
-            Assert.IsFalse(map.ContainsChild(root, 0));
-            Assert.IsFalse(map.ContainsChild(parent, 0));
-            Assert.IsFalse(map.ContainsChild(parent, 1));
+            Assert.IsFalse(map.ContainsChild(0, root));
+            Assert.IsFalse(map.ContainsChild(0, parent));
+            Assert.IsFalse(map.ContainsChild(1, parent));
 
             Assert.AreEqual(0, map.GetChildCount(root));
             Assert.AreEqual(0, map.GetChildCount(parent));
@@ -703,7 +703,7 @@ namespace Data {
                         int key = Random.Range(0, keys);
                         if (added.Contains(key) || removed.Contains(key)) break;
 
-                        lastParent = l == 0 ? map.GetOrAddRoot(key) : map.GetOrAddChild(lastParent, key);
+                        lastParent = l == 0 ? map.GetOrAddRoot(key) : map.GetOrAddChild(key, lastParent);
                         added.Add(key);
                     }
                 }
