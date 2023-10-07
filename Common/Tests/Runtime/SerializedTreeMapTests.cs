@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using MisterGames.Common.Data;
 using NUnit.Framework;
-using UnityEngine;
 using Random = UnityEngine.Random;
 
 namespace Data {
@@ -757,6 +756,8 @@ namespace Data {
                         break;
                     }
                 }
+
+                map.OptimizeLayout();
 
                 var addedRoots = addedNodes[0];
                 var removedRoots = removedNodes[0];

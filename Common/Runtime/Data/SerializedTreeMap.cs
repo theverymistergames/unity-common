@@ -91,7 +91,9 @@ namespace MisterGames.Common.Data {
             }
 
             public override string ToString() {
-                return $"{nameof(Node)}(key {_key}, value {value}, prev {prev}, child {child}, last {last}, next {next})";
+                return IsDisposed()
+                    ? $"{nameof(Node)}(disposed)"
+                    : $"{nameof(Node)}(key {_key}, value {value}, prev {prev}, child {child}, last {last}, next {next})";
             }
         }
 
@@ -752,13 +754,11 @@ namespace MisterGames.Common.Data {
             }
         }
 
-        private int ApplyDefragmentationIfNecessary(int index = -1) {
-            return Count <= _nodes.Length * 0.5f ? ApplyDefragmentation(index) : index;
+        private int ApplyDefragmentationIfNecessary(int trackedIndex = -1) {
+            return Count <= _nodes.Length * 0.5f ? ApplyDefragmentation(trackedIndex) : trackedIndex;
         }
 
-        private int ApplyDefragmentation(int index = -1) {
-            return index;
-
+        private int ApplyDefragmentation(int trackedIndex = -1) {
             int j = _freeIndices.Count - 1;
             int count = Count;
 
@@ -767,8 +767,8 @@ namespace MisterGames.Common.Data {
                 if (node.IsDisposed()) continue;
 
                 int freeIndex = -1;
-                for (; j >= 0; j--) {
-                    freeIndex = _freeIndices[j];
+                while (j >= 0) {
+                    freeIndex = _freeIndices[j--];
                     if (freeIndex < count) break;
                 }
 
@@ -777,37 +777,64 @@ namespace MisterGames.Common.Data {
                 ref var freeNode = ref _nodes[freeIndex];
                 freeNode = node;
 
-                if (index == i) index = freeIndex;
+                if (trackedIndex == i) trackedIndex = freeIndex;
 
+                var key = node.key;
                 int child = node.child;
-                int previous = node.last;
+                int last = node.last;
                 int next = node.next;
                 int prev = node.prev;
 
-                if (prev >= 0) {
-                    _nodeIndexMap[new KeyIndex(node.key, prev)] = freeIndex;
-
-                    node = ref _nodes[prev];
-                    if (node.child == i) node.child = freeIndex;
-                }
-                else {
-                    _rootIndexMap[node.key] = freeIndex;
-                }
-
                 if (child >= 0) {
                     node = ref _nodes[child];
-                    //node.parent = freeIndex;
+                    node.prev = freeIndex;
                 }
 
-                if (previous >= 0) {
-                    node = ref _nodes[previous];
+                if (last >= 0) {
+                    node = ref _nodes[last];
                     node.next = freeIndex;
                 }
 
-                if (next >= 0) {
-                    node = ref _nodes[next];
-                    //node.root = freeIndex;
+                if (prev < 0) {
+                    _rootIndexMap[key] = freeIndex;
+                    continue;
                 }
+
+                int parent = -1;
+                node = ref _nodes[prev];
+
+                if (node.child == i) {
+                    parent = prev;
+                    node.child = freeIndex;
+                }
+                else node.next = freeIndex;
+
+                node = ref _nodes[next];
+
+                if (node.last == i) {
+                    parent = next;
+                    node.last = freeIndex;
+                }
+                else node.prev = freeIndex;
+
+                if (parent < 0) {
+                    child = next;
+                    next = node.next;
+
+                    while (next >= 0) {
+                        node = ref _nodes[next];
+
+                        if (node.last == child) {
+                            parent = next;
+                            break;
+                        }
+
+                        child = next;
+                        next = node.next;
+                    }
+                }
+
+                _nodeIndexMap[new KeyIndex(key, parent)] = freeIndex;
             }
 
             _head = count;
@@ -816,7 +843,7 @@ namespace MisterGames.Common.Data {
 
             _version++;
 
-            return index;
+            return trackedIndex;
         }
 
         #endregion
