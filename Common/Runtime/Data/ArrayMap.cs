@@ -19,7 +19,7 @@ namespace MisterGames.Common.Data {
 
         public V this[K key] {
             get => GetValue(key);
-            set => SetOrAddValue(key, value);
+            set => SetValue(key, value);
         }
 
         private readonly List<int> _freeIndices;
@@ -49,25 +49,6 @@ namespace MisterGames.Common.Data {
 
             ref var node = ref _nodes[index];
             return ref node.value;
-        }
-
-        public V GetValue(K key) {
-            if (!_indexMap.TryGetValue(key, out int index)) {
-                throw new KeyNotFoundException($"{nameof(ArrayMap<K, V>)}: key {key} not found");
-            }
-
-            ref var node = ref _nodes[index];
-            return node.value;
-        }
-
-        public void SetOrAddValue(K key, V value) {
-            if (_indexMap.TryGetValue(key, out int index)) {
-                ref var node = ref _nodes[index];
-                node.value = value;
-                return;
-            }
-
-            Add(key, value);
         }
 
         public bool TryGetValue(K key, out V value) {
@@ -117,6 +98,25 @@ namespace MisterGames.Common.Data {
             _indexMap.Clear();
             _freeIndices.Clear();
             _head = 0;
+        }
+
+        private V GetValue(K key) {
+            if (!_indexMap.TryGetValue(key, out int index)) {
+                throw new KeyNotFoundException($"{nameof(ArrayMap<K, V>)}: key {key} not found");
+            }
+
+            ref var node = ref _nodes[index];
+            return node.value;
+        }
+
+        private void SetValue(K key, V value) {
+            if (_indexMap.TryGetValue(key, out int index)) {
+                ref var node = ref _nodes[index];
+                node.value = value;
+                return;
+            }
+
+            Add(key, value);
         }
 
         private int AllocateNode(K key, V value) {
