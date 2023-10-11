@@ -697,10 +697,10 @@ namespace Data {
             var map = new TreeMap<int, float>();
 
             int root = map.GetOrAddNode(0);
-            Assert.AreEqual(0, map.GetKey(root));
+            Assert.AreEqual(0, map.GetKeyAt(root));
 
             root = map.GetOrAddNode(1);
-            Assert.AreEqual(1, map.GetKey(root));
+            Assert.AreEqual(1, map.GetKeyAt(root));
         }
 
         [Test]
@@ -708,14 +708,14 @@ namespace Data {
             var map = new TreeMap<int, float>();
 
             int root = map.GetOrAddNode(0);
-            ref float value = ref map.GetValueByRef(root);
+            ref float value = ref map.GetValueByRef(0);
 
             Assert.AreEqual(0f, value);
 
             value = 3f;
             Assert.AreEqual(3f, value);
 
-            value = map.GetValue(root);
+            value = map.GetValue(0);
             Assert.AreEqual(3f, value);
         }
 

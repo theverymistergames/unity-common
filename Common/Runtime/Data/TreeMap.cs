@@ -161,6 +161,11 @@ namespace MisterGames.Common.Data {
                 _version = version;
             }
 
+            public V this[K key] {
+                get => GetValue(key);
+                set => SetValue(key, value);
+            }
+
             /// <summary>
             /// Get current node key.
             /// </summary>
@@ -168,7 +173,7 @@ namespace MisterGames.Common.Data {
             public K GetKey() {
                 ThrowIfDisposed();
 
-                return _map.GetKey(_index);
+                return _map.GetKeyAt(_index);
             }
 
             /// <summary>
@@ -178,7 +183,7 @@ namespace MisterGames.Common.Data {
             public V GetValue() {
                 ThrowIfDisposed();
 
-                return _map.GetValue(_index);
+                return _map.GetValueAt(_index);
             }
 
             /// <summary>
@@ -188,7 +193,7 @@ namespace MisterGames.Common.Data {
             public ref V GetValueByRef() {
                 ThrowIfDisposed();
 
-                return ref _map.GetValueByRef(_index);
+                return ref _map.GetValueByRefAt(_index);
             }
 
             /// <summary>
@@ -198,7 +203,61 @@ namespace MisterGames.Common.Data {
             public void SetValue(V value) {
                 ThrowIfDisposed();
 
-                _map.SetValue(_index, value);
+                _map.SetValueAt(_index, value);
+            }
+
+            /// <summary>
+            /// Get child node value by key.
+            /// </summary>
+            /// <param name="key">Key of the child</param>
+            /// <param name="value">Value of the child</param>
+            /// <returns>True if has child node</returns>
+            public bool TryGetValue(K key, out V value) {
+                ThrowIfDisposed();
+
+                return _map.TryGetValue(key, _index, out value);
+            }
+
+            /// <summary>
+            /// Get child node value by key.
+            /// </summary>
+            /// <param name="key">Key of the child</param>
+            public V GetValue(K key) {
+                ThrowIfDisposed();
+
+                return _map.GetValue(key, _index);
+            }
+
+            /// <summary>
+            /// Get child node value by ref by key.
+            /// </summary>
+            /// <param name="key">Key of the child</param>
+            /// <returns>Child node value by ref</returns>
+            public ref V GetValueByRef(K key) {
+                ThrowIfDisposed();
+
+                return ref _map.GetValueByRef(key, _index);
+            }
+
+            /// <summary>
+            /// Set value of child node.
+            /// </summary>
+            /// <param name="key">Key of the child</param>
+            /// <param name="value">New value</param>
+            public void SetValue(K key, V value) {
+                ThrowIfDisposed();
+
+                _map.SetValue(key, _index, value);
+            }
+
+            /// <summary>
+            /// Add a child without key with value.
+            /// </summary>
+            /// <param name="value">New child value</param>
+            public void AddEndPoint(V value) {
+                ThrowIfDisposed();
+
+                _map.AddEndPoint(_index, value);
             }
 
             /// <summary>
@@ -306,17 +365,6 @@ namespace MisterGames.Common.Data {
                 _index = child;
                 _level++;
                 return true;
-            }
-
-            /// <summary>
-            /// Move iterator to the child node with passed key if exists, otherwise add and move.
-            /// </summary>
-            /// <param name="key">Key of the child</param>
-            public void MoveOrAddChild(K key) {
-                ThrowIfDisposed();
-
-                _index = _map.GetOrAddNode(key, _index);
-                _level++;
             }
 
             /// <summary>
@@ -670,67 +718,240 @@ namespace MisterGames.Common.Data {
 
         #endregion
 
-        #region NODE
+        #region KEY VALUE
+
+        public V this[K key] {
+            get => GetValue(key);
+            set => SetValue(key, value);
+        }
 
         /// <summary>
         /// Get node key at index.
-        /// Incorrect index can cause <see cref="IndexOutOfRangeException"/> or disposed node get.
-        /// See if node is present by <see cref="ContainsIndex"/>.
         /// </summary>
         /// <param name="index">Index of the node</param>
         /// <returns>Node key</returns>
-        public K GetKey(int index) {
+        public K GetKeyAt(int index) {
+            if (index < 0 || index >= _head) {
+                throw new KeyNotFoundException($"{nameof(TreeMap<K, V>)}: value at index {index} is not found");
+            }
+
             ref var node = ref _nodes[index];
+            if (node.IsDisposed()) {
+                throw new KeyNotFoundException($"{nameof(TreeMap<K, V>)}: value at index {index} is not found");
+            }
+
             return node.key;
         }
 
         /// <summary>
+        /// Check if map contains node with passed key and parent index.
+        /// </summary>
+        /// <param name="key">Key of the node</param>
+        /// <param name="parent">Index of the parent node</param>
+        /// <returns>True if contains node</returns>
+        public bool ContainsKey(K key, int parent = -1) {
+            return parent < 0 ? _rootIndexMap.ContainsKey(key) : _nodeIndexMap.ContainsKey(new KeyIndex(key, parent));
+        }
+
+        /// <summary>
         /// Get node value at index.
-        /// Incorrect index can cause <see cref="IndexOutOfRangeException"/> or disposed node get.
-        /// See if node is present by <see cref="ContainsIndex"/>.
+        /// </summary>
+        /// <param name="index">Index of the node</param>
+        /// <param name="value">Value of the node</param>
+        /// <returns>True if has node</returns>
+        public bool TryGetValueAt(int index, out V value) {
+            if (index < 0 || index >= _head) {
+                value = default;
+                return false;
+            }
+
+            ref var node = ref _nodes[index];
+            if (node.IsDisposed()) {
+                value = default;
+                return false;
+            }
+
+            value = node.value;
+            return true;
+        }
+
+        /// <summary>
+        /// Get node value at index.
         /// </summary>
         /// <param name="index">Index of the node</param>
         /// <returns>Node value</returns>
-        public V GetValue(int index) {
+        public V GetValueAt(int index) {
+            if (index < 0 || index >= _head) {
+                throw new KeyNotFoundException($"{nameof(TreeMap<K, V>)}: value at index {index} is not found");
+            }
+
             ref var node = ref _nodes[index];
+            if (node.IsDisposed()) {
+                throw new KeyNotFoundException($"{nameof(TreeMap<K, V>)}: value at index {index} is not found");
+            }
+
             return node.value;
         }
 
         /// <summary>
         /// Get node value by ref at index.
-        /// Incorrect index can cause <see cref="IndexOutOfRangeException"/> or disposed node get.
-        /// See if node is present by <see cref="ContainsIndex"/>.
         /// </summary>
         /// <param name="index">Index of the node</param>
-        /// <returns>Node value</returns>
-        public ref V GetValueByRef(int index) {
+        /// <returns>Node value by ref</returns>
+        public ref V GetValueByRefAt(int index) {
+            if (index < 0 || index >= _head) {
+                throw new KeyNotFoundException($"{nameof(TreeMap<K, V>)}: value at index {index} is not found");
+            }
+
             ref var node = ref _nodes[index];
+            if (node.IsDisposed()) {
+                throw new KeyNotFoundException($"{nameof(TreeMap<K, V>)}: value at index {index} is not found");
+            }
+
             return ref node.value;
         }
 
         /// <summary>
         /// Set node value at index.
-        /// Incorrect index can cause <see cref="IndexOutOfRangeException"/> or disposed node get.
-        /// See if node is present by <see cref="ContainsIndex"/>.
         /// </summary>
         /// <param name="index">Index of the node</param>
         /// <param name="value">New value</param>
-        public void SetValue(int index, V value) {
+        public void SetValueAt(int index, V value) {
+            if (index < 0 || index >= _head) {
+                throw new KeyNotFoundException($"{nameof(TreeMap<K, V>)}: node at index {index} is not found");
+            }
+
+            ref var node = ref _nodes[index];
+            if (node.IsDisposed()) {
+                throw new KeyNotFoundException($"{nameof(TreeMap<K, V>)}: node at index {index} is not found");
+            }
+
+            node.value = value;
+        }
+
+        /// <summary>
+        /// Get node value by key and parent index.
+        /// </summary>
+        /// <param name="key">Key of the node</param>
+        /// <param name="parent">Index of the parent node</param>
+        /// <param name="value">Value of the node</param>
+        /// <returns>True if has node</returns>
+        public bool TryGetValue(K key, int parent, out V value) {
+            if (!_nodeIndexMap.TryGetValue(new KeyIndex(key, parent), out int index)) {
+                value = default;
+                return false;
+            }
+
+            ref var node = ref _nodes[index];
+            value = node.value;
+            return true;
+        }
+
+        /// <summary>
+        /// Get root value by key.
+        /// </summary>
+        /// <param name="key">Key of the node</param>
+        /// <param name="value">Value of the node</param>
+        /// <returns>True if has node</returns>
+        public bool TryGetValue(K key, out V value) {
+            if (!_rootIndexMap.TryGetValue(key, out int index)) {
+                value = default;
+                return false;
+            }
+
+            ref var node = ref _nodes[index];
+            value = node.value;
+            return true;
+        }
+
+        /// <summary>
+        /// Get node value by key and parent index.
+        /// </summary>
+        /// <param name="key">Key of the node</param>
+        /// <param name="parent">Index of the parent node</param>
+        /// <returns>Node value</returns>
+        public V GetValue(K key, int parent = -1) {
+            int index;
+
+            if (parent < 0) {
+                if (!_rootIndexMap.TryGetValue(key, out index)) {
+                    throw new KeyNotFoundException($"{nameof(TreeMap<K, V>)}: root {key} is not found");
+                }
+            }
+            else if (!_nodeIndexMap.TryGetValue(new KeyIndex(key, parent), out index)) {
+                throw new KeyNotFoundException($"{nameof(TreeMap<K, V>)}: node {key} of parent at index {parent} is not found");
+            }
+
+            ref var node = ref _nodes[index];
+            return node.value;
+        }
+
+        /// <summary>
+        /// Get node value by ref by key and parent index.
+        /// </summary>
+        /// <param name="key">Key of the node</param>
+        /// <param name="parent">Index of the parent node</param>
+        /// <returns>Node value by ref</returns>
+        public ref V GetValueByRef(K key, int parent = -1) {
+            int index;
+
+            if (parent < 0) {
+                if (!_rootIndexMap.TryGetValue(key, out index)) {
+                    throw new KeyNotFoundException($"{nameof(TreeMap<K, V>)}: root {key} is not found");
+                }
+            }
+            else if (!_nodeIndexMap.TryGetValue(new KeyIndex(key, parent), out index)) {
+                throw new KeyNotFoundException($"{nameof(TreeMap<K, V>)}: node {key} of parent at index {parent} is not found");
+            }
+
+            ref var node = ref _nodes[index];
+            return ref node.value;
+        }
+
+        /// <summary>
+        /// Set root value by key.
+        /// </summary>
+        /// <param name="key">Key of the root</param>
+        /// <param name="value">New value</param>
+        public void SetValue(K key, V value) {
+            if (!_rootIndexMap.TryGetValue(key, out int index)) index = GetOrAddNode(key);
+
             ref var node = ref _nodes[index];
             node.value = value;
         }
 
         /// <summary>
-        /// Get depth of node with passed index. Root depth is 0, root child depth is 1, etc.
+        /// Set node value by key and parent index.
+        /// </summary>
+        /// <param name="key">Key of the root</param>
+        /// <param name="parent">Index of the parent node</param>
+        /// <param name="value">New value</param>
+        public void SetValue(K key, int parent, V value) {
+            if (!_nodeIndexMap.TryGetValue(new KeyIndex(key, parent), out int index)) index = GetOrAddNode(key, parent);
+
+            ref var node = ref _nodes[index];
+            node.value = value;
+        }
+
+        #endregion
+
+        #region NODE
+
+        /// <summary>
+        /// Get depth of node at index. Root depth is 0, root child depth is 1, etc.
         /// This operation iterates through a tree up to the tree root to calculate depth.
         /// </summary>
         /// <param name="index">Node index</param>
         /// <returns>Depth of the node with passed index</returns>
         public int GetDepth(int index) {
-            if (index < 0 || index >= _head) return 0;
+            if (index < 0 || index >= _head) {
+                throw new KeyNotFoundException($"{nameof(TreeMap<K, V>)}: node at index {index} is not found");
+            }
 
             ref var node = ref _nodes[index];
-            if (node.IsDisposed()) return 0;
+            if (node.IsDisposed()) {
+                throw new KeyNotFoundException($"{nameof(TreeMap<K, V>)}: node at index {index} is not found");
+            }
 
             int depth = 0;
 
@@ -793,13 +1014,54 @@ namespace MisterGames.Common.Data {
         }
 
         /// <summary>
+        /// Add node without key to the parent.
+        /// Throws <see cref="KeyNotFoundException"/> if parent index is invalid.
+        /// </summary>
+        /// <param name="parent">Index of the parent node</param>
+        /// <param name="value">Value of the child node</param>
+        /// <returns>Node index if added or get, otherwise -1</returns>
+        public int AddEndPoint(int parent, V value) {
+            if (parent < 0 || parent >= _head) {
+                throw new KeyNotFoundException($"{nameof(TreeMap<K, V>)}: parent at index {parent} is not found");
+            }
+
+            ref var node = ref _nodes[parent];
+            if (node.IsDisposed()) {
+                throw new KeyNotFoundException($"{nameof(TreeMap<K, V>)}: parent at index {parent} is not found");
+            }
+
+            int index = AllocateNode();
+
+            node = ref _nodes[parent];
+            int child = node.child;
+            node.child = index;
+            int next = -1;
+
+            if (child >= 0) {
+                node = ref _nodes[child];
+                node.prev = index;
+                next = child;
+            }
+
+            node = ref _nodes[index];
+            node.next = next;
+            node.parent = parent;
+            node.value = value;
+
+            node.DisallowChildren();
+
+            return index;
+        }
+
+        /// <summary>
         /// Remove node by key and parent. This operation can cause map version change.
         /// Note that parent index can change after remove during defragmentation.
         /// </summary>
         /// <param name="key">Key of the node</param>
         /// <param name="parent">Index of the parent node</param>
+        /// <returns>True if node was removed</returns>
         public bool RemoveNode(K key, int parent = -1) {
-            return RemoveNode(key, ref parent);
+            return RemoveNodeAt(GetIndex(key, parent), out parent);
         }
 
         /// <summary>
@@ -808,37 +1070,61 @@ namespace MisterGames.Common.Data {
         /// </summary>
         /// <param name="key">Key of the removed node</param>
         /// <param name="parent">Index of the parent node</param>
+        /// <returns>True if node was removed</returns>
         public bool RemoveNode(K key, ref int parent) {
-            if (parent < 0) {
-                if (!_rootIndexMap.TryGetValue(key, out int root)) return false;
+            return RemoveNodeAt(GetIndex(key, parent), out parent);
+        }
 
-                DisposeNodePath(root, disposeIndex: true);
-                ApplyDefragmentationIfNecessary();
+        /// <summary>
+        /// Remove node at index. This operation can cause map version change.
+        /// Note that parent index can change after remove during defragmentation.
+        /// </summary>
+        /// <param name="index">Index of the node</param>
+        /// <returns>True if node was removed</returns>
+        public bool RemoveNodeAt(int index) {
+            return RemoveNodeAt(index, out _);
+        }
 
-                _version++;
-                return true;
+        /// <summary>
+        /// Remove node at index. This operation can cause map version change.
+        /// Note that parent index can change after remove during defragmentation.
+        /// </summary>
+        /// <param name="index">Index of the node</param>
+        /// <param name="parent">Index of the parent node</param>
+        /// <returns>True if node was removed</returns>
+        public bool RemoveNodeAt(int index, out int parent) {
+            if (index < 0 || index >= _head) {
+                parent = -1;
+                return false;
             }
 
-            if (!_nodeIndexMap.TryGetValue(new KeyIndex(key, parent), out int index)) return false;
-
             ref var node = ref _nodes[index];
+
+            if (node.IsDisposed()) {
+                parent = -1;
+                return false;
+            }
+
+            parent = node.parent;
             int prev = node.prev;
             int next = node.next;
 
             DisposeNodePath(index, disposeIndex: true);
 
-            if (prev >= 0) {
-                node = ref _nodes[prev];
-                node.next = next;
-            }
-            else {
-                node = ref _nodes[parent];
-                node.child = next;
-            }
+            if (parent >= 0) {
+                if (prev >= 0) {
+                    node = ref _nodes[prev];
+                    node.next = next;
+                }
+                else {
+                    node = ref _nodes[parent];
+                    node.child = next;
+                }
 
-            if (next >= 0) {
-                node = ref _nodes[next];
-                node.prev = prev;
+                if (next >= 0) {
+                    node = ref _nodes[next];
+                    node.prev = prev;
+                }
             }
 
             parent = ApplyDefragmentationIfNecessary(parent);
@@ -908,16 +1194,6 @@ namespace MisterGames.Common.Data {
             if (node.IsDisposed()) return false;
 
             return node.child >= 0;
-        }
-
-        /// <summary>
-        /// Check if map contains node with passed key and parent index.
-        /// </summary>
-        /// <param name="key">Key of the node</param>
-        /// <param name="parent">Index of the parent node</param>
-        /// <returns>True if contains node</returns>
-        public bool ContainsKey(K key, int parent = -1) {
-            return parent < 0 ? _rootIndexMap.ContainsKey(key) : _nodeIndexMap.ContainsKey(new KeyIndex(key, parent));
         }
 
         #endregion
@@ -1075,7 +1351,7 @@ namespace MisterGames.Common.Data {
 
         #region STORAGE
 
-        private int AllocateNode(K key) {
+        private int AllocateNode(K key = default) {
             int index = -1;
 
             for (int i = _freeIndices.Count - 1; i >= 0; i--) {
