@@ -18,9 +18,6 @@ namespace MisterGames.Blueprints.Core2 {
 
 
         void Clear();
-
-
-        void OptimizeDataLayout();
     }
 
 }

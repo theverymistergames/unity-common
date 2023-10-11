@@ -1,5 +1,4 @@
-﻿using System;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace MisterGames.Blueprints.Core2 {
 
@@ -7,7 +6,7 @@ namespace MisterGames.Blueprints.Core2 {
     public sealed class BlueprintAsset2 : ScriptableObject {
 
         [SerializeField] private BlueprintFactoryStorage _factoryStorage;
-        [SerializeField] private BlueprintMeta2 _blueprintMeta;
+        [SerializeField] private BlueprintNodeMetaStorage _blueprintMeta;
 
     }
 }

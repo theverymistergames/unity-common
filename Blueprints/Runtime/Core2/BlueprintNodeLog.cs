@@ -4,25 +4,21 @@ using UnityEngine;
 namespace MisterGames.Blueprints.Core2 {
 
     [Serializable]
-    public sealed class BlueprintNodeLogFactory : BlueprintFactory<BlueprintNodeLog.Data> {
-        public override BlueprintNode2 CreateNode() => new BlueprintNodeLog();
-    }
+    public sealed class BlueprintNodeLogFactory :
+        BlueprintFactory<BlueprintNodeLog>,
+        BlueprintFactories.Enter<BlueprintNodeLog>,
+        BlueprintFactories.Output<BlueprintNodeLog, string> { }
 
     [Serializable]
-    public sealed class BlueprintNodeLog : BlueprintNode2, IBlueprintEnter2, IBlueprintOutput2<string> {
+    public struct BlueprintNodeLog : IBlueprintNode, IBlueprintEnter2, IBlueprintOutput2<string> {
 
-        [Serializable]
-        public struct Data {
-            public string text;
+        public string text;
+
+        public void SetDefaultValues(IBlueprintMeta blueprintMeta, long id) {
+            text = "Default text";
         }
 
-        public void OnCreateNode(IBlueprint blueprint, long id) {
-            ref var data = ref blueprint.GetData<Data>(id);
-
-            data.text = "Default text";
-        }
-
-        public override Port[] CreatePorts(IBlueprint blueprint, long id) => new[] {
+        public Port[] CreatePorts(IBlueprintMeta blueprintMeta, long id) => new[] {
             Port.Enter(),
             Port.Exit(),
             Port.Input<string>(),
@@ -32,8 +28,7 @@ namespace MisterGames.Blueprints.Core2 {
         public void OnEnterPort(IBlueprint blueprint, long id, int port) {
             if (port != 0) return;
 
-            ref var data = ref blueprint.GetData<Data>(id);
-            Debug.Log(data.text);
+            Debug.Log(text);
 
             blueprint.Call(id, 1);
         }

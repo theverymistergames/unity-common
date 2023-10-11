@@ -12,20 +12,14 @@
         IBlueprintHost2 Host { get; }
 
         /// <summary>
-        /// A getter for node data in form of user defined structs.
-        /// </summary>
-        /// <param name="id">Called blueprint node id</param>
-        /// <returns>Reference to the data struct in the storage.</returns>
-        ref T GetData<T>(long id) where T : struct;
-
-        /// <summary>
         /// Get first index and count of links for passed node id and port.
         /// Results can be used to read all links of the input port with Read by link index method.
         /// </summary>
         /// <param name="id">Blueprint node id</param>
         /// <param name="port">Blueprint node port index</param>
-        /// <param name="index">First index of links</param>
-        /// <param name="count">Count of links</param>
+        /// <param name="index">First link index</param>
+        /// <param name="count">Links count</param>
+        /// <returns>Tree iterator with current index on first entry or invalid</returns>
         void GetLinks(long id, int port, out int index, out int count);
 
         /// <summary>
@@ -51,7 +45,7 @@
 
         /// <summary>
         /// Read input port by link index. This operation is useful when you need
-        /// to read several input connection to the port. First you need to retrieve
+        /// to read several input connections to the port. First you need to retrieve
         /// indices of links by calling <see cref="IBlueprint.GetLinks"/>.
         /// Default value can be passed to return when result is not found.
         /// </summary>

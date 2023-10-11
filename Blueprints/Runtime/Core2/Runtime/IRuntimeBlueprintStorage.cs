@@ -5,7 +5,7 @@ namespace MisterGames.Blueprints.Core2 {
     /// <summary>
     /// A storage that contains all the blueprint nodes and ports links.
     /// </summary>
-    public interface IBlueprintStorage {
+    public interface IRuntimeBlueprintStorage {
 
         /// <summary>
         /// Blueprint node id list.
@@ -15,13 +15,13 @@ namespace MisterGames.Blueprints.Core2 {
         /// <summary>
         /// Add blueprint node by address.
         /// </summary>
-        void AddNode(int factoryId, int nodeId);
+        void AddNode(long id);
 
         /// <summary>
         /// Return a link by index in the links array.
-        /// Index to use can be retrieved by calling <see cref="IBlueprintStorage.GetLinks"/>.
+        /// Index to use can be retrieved by calling <see cref="IRuntimeBlueprintStorage.GetLinks"/>.
         /// </summary>
-        BlueprintLink GetLink(int index);
+        RuntimeLink2 GetLink(int index);
 
         /// <summary>
         /// Get first index in the links array and count of the links holding by passed node and port.
@@ -30,15 +30,14 @@ namespace MisterGames.Blueprints.Core2 {
 
         /// <summary>
         /// Set a link by index in the links array. Link will be created from passed node id and port.
-        /// Index to use can be retrieved by calling <see cref="IBlueprintStorage.AddLinks"/>.
+        /// Index to use can be retrieved by calling <see cref="AllocateLinks"/>.
         /// </summary>
-        void SetLink(int index, int factoryId, int nodeId, int port);
+        void SetLink(int index, long id, int port);
 
         /// <summary>
         /// Return index in the links array, starting from which there can be set passed count of links.
-        /// Links adding must be performed in ascending order of node ports.
         /// </summary>
-        int AddLinks(int factoryId, int nodeId, int port, int count);
+        int AllocateLinks(long nodeId, int port, int count);
     }
 
 }

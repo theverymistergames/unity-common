@@ -1,11 +1,11 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 
 namespace MisterGames.Blueprints.Core2 {
 
     [Serializable]
     public struct BlueprintNodeMeta2 {
-
 
         public int factoryId;
 
@@ -18,6 +18,10 @@ namespace MisterGames.Blueprints.Core2 {
 
         public Port[] ports;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public long GetNodeAddress() {
+            return BlueprintNodeAddress.Pack(factoryId, nodeId);
+        }
 
         public void RecreatePorts(BlueprintAsset blueprint) {
             //var ports = _node.CreatePorts();

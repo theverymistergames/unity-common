@@ -14,7 +14,7 @@ namespace Core {
             var factory = new BlueprintFactoryTest0();
 
             for (int i = 0; i < count; i++) {
-                int id = factory.AddBlueprintNodeData();
+                int id = factory.AddNode();
 
                 Assert.AreEqual(i + 1, id);
                 Assert.AreEqual(i + 1, factory.Count);
@@ -28,13 +28,13 @@ namespace Core {
         [TestCase(-1)]
         public void SetElementValue(int value) {
             var factory = new BlueprintFactoryTest0();
-            int id = factory.AddBlueprintNodeData();
+            int id = factory.AddNode();
 
-            ref var dataByRef = ref factory.GetData<BlueprintNodeTest0.Data>(id);
-            dataByRef.intValue = value;
+            ref var node = ref factory.GetNode<BlueprintNodeTest0>(id);
+            node.intValue = value;
 
-            var data = factory.GetData<BlueprintNodeTest0.Data>(id);
-            Assert.AreEqual(value, data.intValue);
+            node = factory.GetNode<BlueprintNodeTest0>(id);
+            Assert.AreEqual(value, node.intValue);
         }
 
         [Test]
@@ -44,24 +44,24 @@ namespace Core {
         [TestCase(-1)]
         public void AddElementCopy(int value) {
             var factory0 = new BlueprintFactoryTest0();
-            int id0 = factory0.AddBlueprintNodeData();
+            int id0 = factory0.AddNode();
 
-            ref var data0 = ref factory0.GetData<BlueprintNodeTest0.Data>(id0);
-            data0.intValue = value;
+            ref var node0 = ref factory0.GetNode<BlueprintNodeTest0>(id0);
+            node0.intValue = value;
 
             var factory1 = new BlueprintFactoryTest0();
-            int id1 = factory1.AddBlueprintNodeDataCopy(factory0, id0);
+            int id1 = factory1.AddNodeCopy(factory0, id0);
 
-            ref var data1 = ref factory1.GetData<BlueprintNodeTest0.Data>(id1);
-            Assert.AreEqual(value, data1.intValue);
+            ref var node1 = ref factory1.GetNode<BlueprintNodeTest0>(id1);
+            Assert.AreEqual(value, node1.intValue);
         }
 
         [Test]
         public void RemoveElement() {
             var factory = new BlueprintFactoryTest0();
 
-            int id = factory.AddBlueprintNodeData();
-            factory.RemoveBlueprintNodeData(id);
+            int id = factory.AddNode();
+            factory.RemoveNode(id);
 
             Assert.AreEqual(0, factory.Count);
         }
@@ -77,66 +77,43 @@ namespace Core {
         [TestCase(1000)]
         public void AddRemoveElements(int size) {
             var factory = new BlueprintFactoryTest0();
-
-            for (int i = 0; i < size; i++) {
-                int id = factory.AddBlueprintNodeData();
-                ref var data = ref factory.GetData<BlueprintNodeTest0.Data>(id);
-
-                data.intValue = id + 100;
-            }
-
+            var addedIds = new List<int>();
             var removedIds = new HashSet<int>();
 
-            for (int i = 1; i <= size; i++) {
-                if (Random.Range(0f, 1f) < 0.5f) continue;
+            const int times = 10;
+            const float removePossibility = 0.33f;
 
-                factory.RemoveBlueprintNodeData(i);
-                removedIds.Add(i);
-            }
+            for (int i = 0; i < times; i++) {
+                for (int j = 0; j < size / times; j++) {
+                    int id = factory.AddNode();
+                    ref var node = ref factory.GetNode<BlueprintNodeTest0>(id);
 
-            for (int i = 1; i <= size; i++) {
-                ref var data = ref factory.GetData<BlueprintNodeTest0.Data>(i);
-                int expected = removedIds.Contains(i) ? 0 : i + 100;
+                    node.intValue = id + 100;
 
-                Assert.AreEqual(expected, data.intValue);
-            }
-        }
+                    addedIds.Add(id);
+                }
 
-        [Test]
-        [TestCase(1)]
-        [TestCase(2)]
-        [TestCase(3)]
-        [TestCase(4)]
-        [TestCase(5)]
-        [TestCase(10)]
-        [TestCase(100)]
-        [TestCase(1000)]
-        public void OptimizeDataLayout(int size) {
-            var factory = new BlueprintFactoryTest0();
+                for (int j = 0; j < addedIds.Count; j++) {
+                    if (Random.Range(0f, 1f) > removePossibility) continue;
 
-            for (int i = 0; i < size; i++) {
-                int id = factory.AddBlueprintNodeData();
-                ref var data = ref factory.GetData<BlueprintNodeTest0.Data>(id);
+                    int id = addedIds[j];
+                    if (removedIds.Contains(id)) continue;
 
-                data.intValue = id + 100;
-            }
+                    factory.RemoveNode(id);
+                    removedIds.Add(id);
+                }
 
-            var removedIds = new HashSet<int>();
+                for (int j = 0; j < addedIds.Count; j++) {
+                    int id = addedIds[j];
 
-            for (int i = 1; i <= size; i++) {
-                if (Random.Range(0f, 1f) < 0.5f) continue;
+                    if (removedIds.Contains(id)) {
+                        Assert.Throws<KeyNotFoundException>(() => factory.GetNode<BlueprintNodeTest0>(id));
+                        continue;
+                    }
 
-                factory.RemoveBlueprintNodeData(i);
-                removedIds.Add(i);
-            }
-
-            factory.OptimizeDataLayout();
-
-            for (int i = 1; i <= size; i++) {
-                ref var data = ref factory.GetData<BlueprintNodeTest0.Data>(i);
-                int expected = removedIds.Contains(i) ? 0 : i + 100;
-
-                Assert.AreEqual(expected, data.intValue);
+                    ref var node = ref factory.GetNode<BlueprintNodeTest0>(id);
+                    Assert.AreEqual(id + 100, node.intValue);
+                }
             }
         }
     }

@@ -4,11 +4,13 @@
 
         public IBlueprintHost2 Host { get; private set; }
 
-        private readonly IBlueprintStorage _storage;
-        private readonly IBlueprintFactoryStorage _factoryStorage;
+        private readonly IRuntimeBlueprintStorage _storage;
+        private readonly IBlueprintFactoryStorage _factories;
 
-        public RuntimeBlueprint2(IBlueprintStorage storage, IBlueprintFactoryStorage factoryStorage) {
-            _factoryStorage = factoryStorage;
+        private RuntimeBlueprint2() { }
+
+        public RuntimeBlueprint2(IRuntimeBlueprintStorage storage, IBlueprintFactoryStorage factories) {
+            _factories = factories;
             _storage = storage;
         }
 
@@ -22,7 +24,7 @@
                 long id = nodes[i];
                 BlueprintNodeAddress.Unpack(id, out int factoryId, out int _);
 
-                _factoryStorage.GetFactory(factoryId).Node.OnInitialize(this, id);
+                _factories.GetFactory(factoryId).OnInitialize(this, id);
             }
         }
 
@@ -34,7 +36,7 @@
                 long id = nodes[i];
                 BlueprintNodeAddress.Unpack(id, out int factoryId, out int _);
 
-                _factoryStorage.GetFactory(factoryId).Node.OnDeInitialize(this, id);
+                _factories.GetFactory(factoryId).OnDeInitialize(this, id);
             }
         }
 
@@ -46,7 +48,7 @@
                 long id = nodes[i];
                 BlueprintNodeAddress.Unpack(id, out int factoryId, out int _);
 
-                if (_factoryStorage.GetFactory(factoryId).Node is IBlueprintEnableDisable2 enableDisable) {
+                if (_factories.GetFactory(factoryId) is IBlueprintEnableDisable2 enableDisable) {
                     enableDisable.OnEnable(this, id);
                 }
             }
@@ -60,7 +62,7 @@
                 long id = nodes[i];
                 BlueprintNodeAddress.Unpack(id, out int factoryId, out int _);
 
-                if (_factoryStorage.GetFactory(factoryId).Node is IBlueprintEnableDisable2 enableDisable) {
+                if (_factories.GetFactory(factoryId) is IBlueprintEnableDisable2 enableDisable) {
                     enableDisable.OnDisable(this, id);
                 }
             }
@@ -74,15 +76,10 @@
                 long id = nodes[i];
                 BlueprintNodeAddress.Unpack(id, out int factoryId, out int _);
 
-                if (_factoryStorage.GetFactory(factoryId).Node is IBlueprintStart2 start) {
+                if (_factories.GetFactory(factoryId) is IBlueprintStart2 start) {
                     start.OnStart(this, id);
                 }
             }
-        }
-
-        public ref T GetData<T>(long id) where T : struct {
-            BlueprintNodeAddress.Unpack(id, out int factoryId, out int nodeId);
-            return ref _factoryStorage.GetFactory(factoryId).GetData<T>(nodeId);
         }
 
         public void GetLinks(long id, int port, out int index, out int count) {
@@ -95,9 +92,11 @@
 
             for (int i = index; i < end; i++) {
                 var link = _storage.GetLink(i);
-                var node = _factoryStorage.GetFactory(link.factoryId).Node;
+                BlueprintNodeAddress.Unpack(link.nodeId, out int factoryId, out _);
 
-                if (node is IBlueprintEnter2 enter) enter.OnEnterPort(this, link.GetNodeAddress(), link.port);
+                if (_factories.GetFactory(factoryId) is not IBlueprintEnter2 enter) continue;
+
+                enter.OnEnterPort(this, link.nodeId, link.port);
             }
         }
 
@@ -108,11 +107,11 @@
 
         public T Read<T>(int linkIndex, T defaultValue = default) {
             var link = _storage.GetLink(linkIndex);
-            var node = _factoryStorage.GetFactory(link.factoryId).Node;
+            BlueprintNodeAddress.Unpack(link.nodeId, out int factoryId, out _);
 
-            return node switch {
-                IBlueprintOutput2<T> outputR => outputR.GetOutputPortValue(this, link.GetNodeAddress(), link.port),
-                IBlueprintOutput2 output => output.GetOutputPortValue<T>(this, link.GetNodeAddress(), link.port),
+            return _factories.GetFactory(factoryId) switch {
+                IBlueprintOutput2<T> outputT => outputT.GetOutputPortValue(this, link.nodeId, link.port),
+                IBlueprintOutput2 output => output.GetOutputPortValue<T>(this, link.nodeId, link.port),
                 _ => defaultValue
             };
         }
