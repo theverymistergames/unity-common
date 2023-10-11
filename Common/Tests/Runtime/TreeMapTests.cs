@@ -31,13 +31,11 @@ namespace Data {
             int child_1_2_3 = map.GetOrAddNode(3, child_1_2);
 
             var tree = map.GetTree(0);
-            ref var node = ref tree.GetNode();
-            Assert.AreEqual(0, node.key);
+            Assert.AreEqual(0, tree.GetKey());
 
             for (int i = 1; i < 14; i++) {
                 Assert.IsTrue(tree.MovePreOrder());
-                node = ref tree.GetNode();
-                Assert.AreEqual(i, node.key);
+                Assert.AreEqual(i, tree.GetKey());
             }
 
             Assert.IsFalse(tree.MovePreOrder());
@@ -71,13 +69,11 @@ namespace Data {
             tree.MoveIndex(child_1);
             int index = tree.Index;
 
-            ref var node = ref tree.GetNode();
-            Assert.AreEqual(1, node.key);
+            Assert.AreEqual(1, tree.GetKey());
 
             for (int i = 2; i < 6; i++) {
                 Assert.IsTrue(tree.MovePreOrder(index));
-                node = ref tree.GetNode();
-                Assert.AreEqual(i, node.key);
+                Assert.AreEqual(i, tree.GetKey());
             }
 
             Assert.IsFalse(tree.MovePreOrder(index));
@@ -85,13 +81,11 @@ namespace Data {
             tree.MoveIndex(child_6);
             index = tree.Index;
 
-            node = ref tree.GetNode();
-            Assert.AreEqual(6, node.key);
+            Assert.AreEqual(6, tree.GetKey());
 
             for (int i = 7; i < 11; i++) {
                 Assert.IsTrue(tree.MovePreOrder(index));
-                node = ref tree.GetNode();
-                Assert.AreEqual(i, node.key);
+                Assert.AreEqual(i, tree.GetKey());
             }
 
             Assert.IsFalse(tree.MovePreOrder(index));
@@ -99,8 +93,7 @@ namespace Data {
             tree.MoveIndex(child_11);
             index = tree.Index;
 
-            node = ref tree.GetNode();
-            Assert.AreEqual(11, node.key);
+            Assert.AreEqual(11, tree.GetKey());
             Assert.IsFalse(tree.MovePreOrder(index));
         }
 
@@ -704,14 +697,10 @@ namespace Data {
             var map = new TreeMap<int, float>();
 
             int root = map.GetOrAddNode(0);
-            ref var node = ref map.GetNode(root);
-
-            Assert.AreEqual(0, node.key);
+            Assert.AreEqual(0, map.GetKey(root));
 
             root = map.GetOrAddNode(1);
-            node = ref map.GetNode(root);
-
-            Assert.AreEqual(1, node.key);
+            Assert.AreEqual(1, map.GetKey(root));
         }
 
         [Test]
@@ -719,15 +708,15 @@ namespace Data {
             var map = new TreeMap<int, float>();
 
             int root = map.GetOrAddNode(0);
-            ref var node = ref map.GetNode(root);
+            ref float value = ref map.GetValueByRef(root);
 
-            Assert.AreEqual(0f, node.value);
+            Assert.AreEqual(0f, value);
 
-            node.value = 3f;
-            Assert.AreEqual(3f, node.value);
+            value = 3f;
+            Assert.AreEqual(3f, value);
 
-            node = ref map.GetNode(root);
-            Assert.AreEqual(3f, node.value);
+            value = map.GetValue(root);
+            Assert.AreEqual(3f, value);
         }
 
         [Test]
@@ -790,10 +779,10 @@ namespace Data {
                     if (Random.Range(0f, 1f) > removePossibility) continue;
 
                     int r = 0;
-                    int targetKeyIndex = Random.Range(0, map.Keys.Count - 1);
+                    int targetKeyIndex = Random.Range(0, map.Roots.Count - 1);
                     int key = -1;
 
-                    foreach (int root in map.Keys) {
+                    foreach (int root in map.Roots) {
                         if (targetKeyIndex != r++) continue;
                         key = root;
                     }
@@ -847,8 +836,8 @@ namespace Data {
                     if (!actualContains) continue;
 
                     while (tree.MovePreOrder()) {
-                        ref var node = ref tree.GetNode();
-                        Assert.IsTrue(addedNodes[tree.Level].Contains(node.key) && !removedNodes[tree.Level].Contains(node.key));
+                        Assert.IsTrue(addedNodes[tree.Level].Contains(tree.GetKey()) &&
+                                      !removedNodes[tree.Level].Contains(tree.GetKey()));
                     }
                 }
             }
