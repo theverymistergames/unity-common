@@ -15,6 +15,12 @@
         void RemovePort(long id, int port);
 
         void RemoveNode(long id);
+
+        bool ContainsLink(long id, int port, long toId, int toPort);
+
+        bool ContainsPort(long id, int port);
+
+        bool ContainsNode(long id);
     }
 
 }
