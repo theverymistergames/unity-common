@@ -98,6 +98,20 @@ namespace Data {
         }
 
         [Test]
+        public void AddEndPoint() {
+            var map = new TreeMap<int, float>();
+
+            int root = map.GetOrAddNode(0);
+
+            int child1 = map.GetOrAddNode(1, root);
+            int endPoint2 = map.AddEndPoint(root, 2f);
+            int endPoint3 = map.AddEndPoint(root, 3f);
+
+            Assert.AreEqual(2f, map.GetValueAt(endPoint2));
+            Assert.AreEqual(3f, map.GetValueAt(endPoint3));
+        }
+
+        [Test]
         public void ContainsRoot() {
             var map = new TreeMap<int, float>();
 
