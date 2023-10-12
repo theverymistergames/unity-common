@@ -44,6 +44,7 @@ namespace MisterGames.Common.Data {
         [SerializeField] private int _version;
 
         private readonly List<int> _freeIndices;
+        private bool _isDefragmentationAllowed;
 
         private static readonly Iterator InvalidIterator = new Iterator(null, -1, 0, 0);
 
@@ -1127,7 +1128,7 @@ namespace MisterGames.Common.Data {
                 }
             }
 
-            parent = ApplyDefragmentationIfNecessary(parent);
+            if (_isDefragmentationAllowed) parent = ApplyDefragmentationIfNecessary(parent);
 
             _version++;
             return true;
@@ -1155,7 +1156,7 @@ namespace MisterGames.Common.Data {
 
             DisposeNodePath(parent, disposeIndex: false);
 
-            parent = ApplyDefragmentationIfNecessary(parent);
+            if (_isDefragmentationAllowed) parent = ApplyDefragmentationIfNecessary(parent);
 
             _version++;
         }
@@ -1350,6 +1351,11 @@ namespace MisterGames.Common.Data {
         #endregion
 
         #region STORAGE
+
+        public void AllowDefragmentation(bool isAllowed) {
+            _isDefragmentationAllowed = isAllowed;
+            if (isAllowed) ApplyDefragmentationIfNecessary();
+        }
 
         private int AllocateNode(K key = default) {
             int index = -1;
