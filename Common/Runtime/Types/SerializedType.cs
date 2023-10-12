@@ -29,7 +29,7 @@ namespace MisterGames.Common.Types {
         }
 
         public override int GetHashCode() {
-            return _type != null ? _type.GetHashCode() : 0;
+            return string.IsNullOrWhiteSpace(_type) ? 0 : _type.GetHashCode();
         }
 
         public static bool operator ==(SerializedType serializedType0, SerializedType serializedType1) {
