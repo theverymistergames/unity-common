@@ -33,7 +33,7 @@
         /// Read input port of node with passed id. When this operation is performed,
         /// blueprint searches for the first link to this port.
         /// To read values of all the links connected to this port,
-        /// use <see cref="IBlueprint.GetLinks"/> and read by link index.
+        /// use <see cref="GetLinks"/> and read by link index.
         /// Default value can be passed to return when result is not found.
         /// </summary>
         /// <param name="id">Called blueprint node id</param>
@@ -46,7 +46,7 @@
         /// <summary>
         /// Read input port by link index. This operation is useful when you need
         /// to read several input connections to the port. First you need to retrieve
-        /// indices of links by calling <see cref="IBlueprint.GetLinks"/>.
+        /// indices of links by calling <see cref="GetLinks"/>.
         /// Default value can be passed to return when result is not found.
         /// </summary>
         /// <param name="linkIndex">Input port link index</param>

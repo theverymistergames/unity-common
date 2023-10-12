@@ -3,7 +3,7 @@
 namespace MisterGames.Blueprints.Core2 {
 
     /// <summary>
-    /// Struct that holds data for blueprint node port link. It is used only in editor.
+    /// Struct that holds data for blueprint node port. It is used only in editor.
     /// </summary>
     [Serializable]
     public struct BlueprintLink2 {

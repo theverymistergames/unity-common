@@ -72,25 +72,25 @@ namespace MisterGames.Blueprints.Core2 {
             _lastId = 0;
         }
 
-        public Port[] CreatePorts(IBlueprintMeta blueprintMeta, long id) {
+        public void CreatePorts(IBlueprintMeta meta, long id) {
             BlueprintNodeAddress.Unpack(id, out _, out int nodeId);
 
             ref var node = ref _nodeMap.GetValueByRef(nodeId);
-            return node.CreatePorts(blueprintMeta, id);
+            node.CreatePorts(meta, id);
         }
 
-        public void SetDefaultValues(IBlueprintMeta blueprintMeta, long id) {
+        public void SetDefaultValues(IBlueprintMeta meta, long id) {
             BlueprintNodeAddress.Unpack(id, out _, out int nodeId);
 
             ref var node = ref _nodeMap.GetValueByRef(nodeId);
-            node.SetDefaultValues(blueprintMeta, id);
+            node.SetDefaultValues(meta, id);
         }
 
-        public void OnValidate(IBlueprintMeta blueprintMeta, long id) {
+        public void OnValidate(IBlueprintMeta meta, long id) {
             BlueprintNodeAddress.Unpack(id, out _, out int nodeId);
 
             ref var node = ref _nodeMap.GetValueByRef(nodeId);
-            node.OnValidate(blueprintMeta, id);
+            node.OnValidate(meta, id);
         }
 
         public void OnInitialize(IBlueprint blueprint, long id) {

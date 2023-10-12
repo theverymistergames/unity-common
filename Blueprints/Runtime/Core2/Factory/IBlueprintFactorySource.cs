@@ -2,7 +2,7 @@
 
 namespace MisterGames.Blueprints.Core2 {
 
-    public interface IBlueprintFactoryStorage {
+    public interface IBlueprintFactorySource {
 
 
         IBlueprintFactory GetFactory(int id);

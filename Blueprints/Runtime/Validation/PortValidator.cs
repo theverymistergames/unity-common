@@ -10,20 +10,20 @@ namespace MisterGames.Blueprints.Validation {
 
         public static bool ArePortsCompatible(Port a, Port b) {
             // External ports cannot have connections
-            if (a.IsExternal || b.IsExternal) return false;
+            if (a.IsExternal() || b.IsExternal()) return false;
 
             // Hidden ports cannot have connections
-            if (a.IsHidden || b.IsHidden) return false;
+            if (a.IsHidden() || b.IsHidden()) return false;
 
             // In a blueprint graph port views are able to hold connections
             // only if they have different directions, which is defined by layout
-            if (a.IsLeftLayout == b.IsLeftLayout) return false;
+            if (a.IsLeftLayout() == b.IsLeftLayout()) return false;
 
             // Ports with same PortMode (Input/Output) are not compatible
-            if (a.IsInput == b.IsInput) return false;
+            if (a.IsInput() == b.IsInput()) return false;
 
-            if (!a.IsData) return !b.IsData;
-            if (!b.IsData) return false;
+            if (!a.IsData()) return !b.IsData();
+            if (!b.IsData()) return false;
 
             var aDataType = a.DataType;
             var bDataType = b.DataType;
@@ -35,19 +35,19 @@ namespace MisterGames.Blueprints.Validation {
             if (aDataType.IsValueType) return aDataType == bDataType;
             if (bDataType.IsValueType) return false;
 
-            if (a.IsInput) {
-                if (a.IsMultiple && bDataType.IsArray && bDataType.GetElementType() == aDataType) return true;
+            if (a.IsInput()) {
+                if (a.IsMultiple() && bDataType.IsArray && bDataType.GetElementType() == aDataType) return true;
 
-                return b.AcceptSubclass ? bDataType.IsAssignableFrom(aDataType) : aDataType.IsAssignableFrom(bDataType);
+                return b.AcceptSubclass() ? bDataType.IsAssignableFrom(aDataType) : aDataType.IsAssignableFrom(bDataType);
             }
 
-            if (b.IsMultiple && aDataType.IsArray && aDataType.GetElementType() == bDataType) return true;
+            if (b.IsMultiple() && aDataType.IsArray && aDataType.GetElementType() == bDataType) return true;
 
-            return a.AcceptSubclass ? aDataType.IsAssignableFrom(bDataType) : bDataType.IsAssignableFrom(aDataType);
+            return a.AcceptSubclass() ? aDataType.IsAssignableFrom(bDataType) : bDataType.IsAssignableFrom(aDataType);
         }
 
         public static bool ValidateExternalPortWithExistingSignature(BlueprintAsset asset, Port port) {
-            if (!port.IsInput && port.IsData) {
+            if (!port.IsInput() && port.IsData()) {
                 Debug.LogWarning($"Subgraph node has blueprint `{asset.name}` " +
                                  $"which contains multiple external output ports with same name `{port.Name}`: " +
                                  $"this can cause incorrect results. " +
@@ -69,19 +69,19 @@ namespace MisterGames.Blueprints.Validation {
 
             var port = nodeMeta.Ports[portIndex];
 
-            if (port.IsData) {
+            if (port.IsData()) {
                 if (port.DataType == null) {
-                    return port.IsInput
+                    return port.IsInput()
                         ? ValidateDynamicInputPort(blueprint, nodeMeta, portIndex)
                         : ValidateDynamicOutputPort(blueprint, nodeMeta, portIndex);
                 }
 
-                return port.IsInput
+                return port.IsInput()
                     ? ValidateInputPort(blueprint, nodeMeta, portIndex)
                     : ValidateOutputPort(blueprint, nodeMeta, portIndex);
             }
 
-            return port.IsInput
+            return port.IsInput()
                 ? ValidateEnterPort(blueprint, nodeMeta, portIndex)
                 : ValidateExitPort(blueprint, nodeMeta, portIndex);
         }

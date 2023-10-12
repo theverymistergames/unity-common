@@ -1,27 +1,39 @@
-﻿namespace MisterGames.Blueprints.Core2 {
+﻿using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+
+namespace MisterGames.Blueprints.Core2 {
 
     public sealed class RuntimeBlueprint2 : IBlueprint {
 
         public IBlueprintHost2 Host { get; private set; }
 
-        private readonly IRuntimeBlueprintStorage _storage;
-        private readonly IBlueprintFactoryStorage _factories;
+        /// <summary>
+        /// Blueprint node id list.
+        /// </summary>
+        public IReadOnlyList<long> Nodes => _nodes;
+
+        private readonly IBlueprintFactorySource _factories;
+        private readonly long[] _nodes;
+        private readonly RuntimeLink2[] _links;
+        private readonly Dictionary<RuntimePortAddress, int> _portIndexMap;
+
+        private int _nodePointer;
+        private int _linkPointer;
 
         private RuntimeBlueprint2() { }
 
-        public RuntimeBlueprint2(IRuntimeBlueprintStorage storage, IBlueprintFactoryStorage factories) {
+        public RuntimeBlueprint2(IBlueprintFactorySource factories, int nodeCount, int portCount, int linkCount) {
             _factories = factories;
-            _storage = storage;
+            _nodes = new long[nodeCount];
+            _links = new RuntimeLink2[portCount + linkCount];
+            _portIndexMap = new Dictionary<RuntimePortAddress, int>(portCount + linkCount);
         }
 
         public void Initialize(IBlueprintHost2 host) {
             Host = host;
 
-            var nodes = _storage.Nodes;
-            int count = nodes.Count;
-
-            for (int i = 0; i < count; i++) {
-                long id = nodes[i];
+            for (int i = 0; i < _nodes.Length; i++) {
+                long id = _nodes[i];
                 BlueprintNodeAddress.Unpack(id, out int factoryId, out int _);
 
                 _factories.GetFactory(factoryId).OnInitialize(this, id);
@@ -29,11 +41,8 @@
         }
 
         public void DeInitialize() {
-            var nodes = _storage.Nodes;
-            int count = nodes.Count;
-
-            for (int i = 0; i < count; i++) {
-                long id = nodes[i];
+            for (int i = 0; i < _nodes.Length; i++) {
+                long id = _nodes[i];
                 BlueprintNodeAddress.Unpack(id, out int factoryId, out int _);
 
                 _factories.GetFactory(factoryId).OnDeInitialize(this, id);
@@ -41,11 +50,8 @@
         }
 
         public void OnEnable() {
-            var nodes = _storage.Nodes;
-            int count = nodes.Count;
-
-            for (int i = 0; i < count; i++) {
-                long id = nodes[i];
+            for (int i = 0; i < _nodes.Length; i++) {
+                long id = _nodes[i];
                 BlueprintNodeAddress.Unpack(id, out int factoryId, out int _);
 
                 if (_factories.GetFactory(factoryId) is IBlueprintEnableDisable2 enableDisable) {
@@ -55,11 +61,8 @@
         }
 
         public void OnDisable() {
-            var nodes = _storage.Nodes;
-            int count = nodes.Count;
-
-            for (int i = 0; i < count; i++) {
-                long id = nodes[i];
+            for (int i = 0; i < _nodes.Length; i++) {
+                long id = _nodes[i];
                 BlueprintNodeAddress.Unpack(id, out int factoryId, out int _);
 
                 if (_factories.GetFactory(factoryId) is IBlueprintEnableDisable2 enableDisable) {
@@ -69,11 +72,8 @@
         }
 
         public void Start() {
-            var nodes = _storage.Nodes;
-            int count = nodes.Count;
-
-            for (int i = 0; i < count; i++) {
-                long id = nodes[i];
+            for (int i = 0; i < _nodes.Length; i++) {
+                long id = _nodes[i];
                 BlueprintNodeAddress.Unpack(id, out int factoryId, out int _);
 
                 if (_factories.GetFactory(factoryId) is IBlueprintStart2 start) {
@@ -82,16 +82,12 @@
             }
         }
 
-        public void GetLinks(long id, int port, out int index, out int count) {
-            _storage.GetLinks(id, port, out index, out count);
-        }
-
         public void Call(long id, int port) {
-            _storage.GetLinks(id, port, out int index, out int count);
+            GetLinks(id, port, out int index, out int count);
             int end = index + count;
 
             for (int i = index; i < end; i++) {
-                var link = _storage.GetLink(i);
+                var link = GetLink(i);
                 BlueprintNodeAddress.Unpack(link.nodeId, out int factoryId, out _);
 
                 if (_factories.GetFactory(factoryId) is not IBlueprintEnter2 enter) continue;
@@ -101,12 +97,12 @@
         }
 
         public T Read<T>(long id, int port, T defaultValue = default) {
-            _storage.GetLinks(id, port, out int index, out int count);
+            GetLinks(id, port, out int index, out int count);
             return count > 0 ? Read(index, defaultValue) : defaultValue;
         }
 
         public T Read<T>(int linkIndex, T defaultValue = default) {
-            var link = _storage.GetLink(linkIndex);
+            var link = GetLink(linkIndex);
             BlueprintNodeAddress.Unpack(link.nodeId, out int factoryId, out _);
 
             return _factories.GetFactory(factoryId) switch {
@@ -114,6 +110,64 @@
                 IBlueprintOutput2 output => output.GetOutputPortValue<T>(this, link.nodeId, link.port),
                 _ => defaultValue
             };
+        }
+
+        /// <summary>
+        /// Add blueprint node by address.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void AddNode(long id) {
+            _nodes[_nodePointer++] = id;
+        }
+
+        /// <summary>
+        /// Return a link by index in the links array.
+        /// Index to use can be retrieved by calling <see cref="GetLinks"/>.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public RuntimeLink2 GetLink(int index) {
+            return _links[index];
+        }
+
+        /// <summary>
+        /// Get first index in the links array and count of the links holding by passed node and port.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void GetLinks(long id, int port, out int index, out int count) {
+            if (!_portIndexMap.TryGetValue(new RuntimePortAddress(id, port), out index)) {
+                index = -1;
+                count = 0;
+                return;
+            }
+
+            ref var link = ref _links[index];
+            count = link.connections;
+        }
+
+        /// <summary>
+        /// Set a link by index in the links array. Link will be created from passed node id and port.
+        /// Index to use can be retrieved by calling <see cref="AllocateLinks"/>.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void SetLink(int index, long nodeId, int port) {
+            _links[index] = new RuntimeLink2(nodeId, port);
+        }
+
+        /// <summary>
+        /// Return index in the links array, starting from which there can be set passed count of links.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int AllocateLinks(long id, int port, int count) {
+            var portAddress = new RuntimePortAddress(id, port);
+            if (_portIndexMap.TryGetValue(portAddress, out int index)) return -1;
+
+            index = _linkPointer;
+            _portIndexMap[portAddress] = index;
+
+            _links[index] = new RuntimeLink2(id, port, count);
+            _linkPointer += count + 1;
+
+            return index + 1;
         }
     }
 

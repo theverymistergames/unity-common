@@ -10,10 +10,10 @@ namespace MisterGames.Blueprints.Editor.Utils {
     public static class BlueprintNodeMetaUtils {
 
         public static string GetFormattedPortName(int index, Port port, bool richText) {
-            string portName = port.Name?.Trim();
+            string portName = port.Name;
             string colorHex;
 
-            if (port.IsData) {
+            if (port.IsData()) {
                 if (port.DataType == null) {
                     colorHex = BlueprintColors.Port.Header.Data;
                     if (string.IsNullOrEmpty(portName)) portName = "?";
@@ -22,7 +22,7 @@ namespace MisterGames.Blueprints.Editor.Utils {
                     var dataType = port.DataType;
 
                     colorHex = BlueprintColors.Port.Header.GetColorForType(dataType);
-                    if (string.IsNullOrEmpty(portName)) portName = $"{TypeNameFormatter.GetTypeName(dataType)}{(port.IsInput && port.IsMultiple ? " (multi)" : string.Empty)}";
+                    if (string.IsNullOrEmpty(portName)) portName = $"{TypeNameFormatter.GetTypeName(dataType)}{(port.IsInput() && port.IsMultiple() ? " (multi)" : string.Empty)}";
                 }
             }
             else {
@@ -31,7 +31,7 @@ namespace MisterGames.Blueprints.Editor.Utils {
 
             string fullPortName = string.IsNullOrEmpty(portName)
                 ? $"[{index}]"
-                : port.IsLeftLayout ? $"[{index}] {portName}" : $"{portName} [{index}]";
+                : port.IsLeftLayout() ? $"[{index}] {portName}" : $"{portName} [{index}]";
 
             return richText ? $"<color={colorHex}>{fullPortName}</color>" : fullPortName;
         }
@@ -49,7 +49,7 @@ namespace MisterGames.Blueprints.Editor.Utils {
         }
 
         public static Color GetPortColor(Port port) {
-            return port.IsData
+            return port.IsData()
                 ? BlueprintColors.Port.Connection.GetColorForType(port.DataType)
                 : BlueprintColors.Port.Connection.Flow;
         }

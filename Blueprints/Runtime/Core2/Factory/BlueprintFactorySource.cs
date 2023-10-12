@@ -6,7 +6,7 @@ using UnityEngine;
 namespace MisterGames.Blueprints.Core2 {
 
     [Serializable]
-    public sealed class BlueprintFactoryStorage : IBlueprintFactoryStorage {
+    public sealed class BlueprintFactorySource : IBlueprintFactorySource {
 
         [SerializeField] private int _lastId;
         [SerializeField] private ReferenceArrayMap<int, IBlueprintFactory> _factories
@@ -44,7 +44,7 @@ namespace MisterGames.Blueprints.Core2 {
         public string GetFactoryPath(int id) {
 #if UNITY_EDITOR
             if (!_factories.ContainsKey(id)) {
-                Debug.LogWarning($"{nameof(BlueprintFactoryStorage)}: " +
+                Debug.LogWarning($"{nameof(BlueprintFactorySource)}: " +
                                  $"trying to get factory by id {id}, " +
                                  $"but factory with this id is not found: " +
                                  $"map has no entry with id {id}.");
@@ -54,7 +54,7 @@ namespace MisterGames.Blueprints.Core2 {
             return $"{nameof(_factories)}._entries.Array.data[{_factories.IndexOf(id)}].value";
 #endif
 
-            throw new InvalidOperationException($"{nameof(BlueprintFactoryStorage)}: " +
+            throw new InvalidOperationException($"{nameof(BlueprintFactorySource)}: " +
                                                 $"calling method {nameof(GetFactoryPath)} is only allowed in the Unity Editor.");
         }
 

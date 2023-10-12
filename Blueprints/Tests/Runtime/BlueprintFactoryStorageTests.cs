@@ -7,7 +7,7 @@ namespace Core {
 
         [Test]
         public void AddFactories() {
-            var storage = new BlueprintFactoryStorage();
+            var storage = new BlueprintFactorySource();
 
             int factoryId0 = storage.GetOrCreateFactory(typeof(BlueprintFactoryTest0));
             int factoryId1 = storage.GetOrCreateFactory(typeof(BlueprintFactoryTest1));
@@ -21,7 +21,7 @@ namespace Core {
 
         [Test]
         public void AddFactoriesWithSameType() {
-            var storage = new BlueprintFactoryStorage();
+            var storage = new BlueprintFactorySource();
 
             int factoryId0 = storage.GetOrCreateFactory(typeof(BlueprintFactoryTest0));
             int factoryId1 = storage.GetOrCreateFactory(typeof(BlueprintFactoryTest0));
@@ -31,7 +31,7 @@ namespace Core {
 
         [Test]
         public void RemoveFactory() {
-            var storage = new BlueprintFactoryStorage();
+            var storage = new BlueprintFactorySource();
 
             int factoryId0 = storage.GetOrCreateFactory(typeof(BlueprintFactoryTest0));
             int factoryId1 = storage.GetOrCreateFactory(typeof(BlueprintFactoryTest1));

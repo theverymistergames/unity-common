@@ -14,16 +14,16 @@ namespace MisterGames.Blueprints.Core2 {
 
         public string text;
 
-        public void SetDefaultValues(IBlueprintMeta blueprintMeta, long id) {
+        public void SetDefaultValues() {
             text = "Default text";
         }
 
-        public Port[] CreatePorts(IBlueprintMeta blueprintMeta, long id) => new[] {
-            Port.Enter(),
-            Port.Exit(),
-            Port.Input<string>(),
-            Port.Output<string>(),
-        };
+        public void CreatePorts(IBlueprintMeta meta, long id) {
+            meta.AddPort(id, 0, Port.Enter());
+            meta.AddPort(id, 1, Port.Exit());
+            meta.AddPort(id, 2, Port.Input<string>());
+            meta.AddPort(id, 3, Port.Output<string>());
+        }
 
         public void OnEnterPort(IBlueprint blueprint, long id, int port) {
             if (port != 0) return;

@@ -57,7 +57,7 @@ namespace MisterGames.Blueprints.Nodes {
 
                 for (int p = 0; p < nodePorts.Length; p++) {
                     var nodePort = nodePorts[p];
-                    if (!nodePort.IsExternal) continue;
+                    if (!nodePort.IsExternal()) continue;
 
                     // Drop external port if its linked port has no links
                     if (node is IBlueprintPortLinker linker) {
@@ -67,14 +67,14 @@ namespace MisterGames.Blueprints.Nodes {
                         for (int i = linkedPortIndex; i < count; i++) {
                             var linkedPort = nodePorts[i];
 
-                            if (linkedPort.IsInput || !linkedPort.IsData) {
+                            if (linkedPort.IsInput() || !linkedPort.IsData()) {
                                 if (blueprintMeta.GetLinksFromNodePort(nodeId, i).Count > 0) {
                                     hasLinks = true;
                                     break;
                                 }
                             }
 
-                            if (!linkedPort.IsInput || !linkedPort.IsData) {
+                            if (!linkedPort.IsInput() || !linkedPort.IsData()) {
                                 if (blueprintMeta.GetLinksToNodePort(nodeId, i).Count > 0) {
                                     hasLinks = true;
                                     break;

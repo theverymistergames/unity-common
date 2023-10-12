@@ -63,6 +63,17 @@
                 node.OnDisable(blueprint, id);
             }
         }
+
+        public interface ConnectionsCallback<TNode> : IBlueprintFactory, IBlueprintConnectionsCallback
+            where TNode : struct, IBlueprintNode, IBlueprintConnectionsCallback
+        {
+            void IBlueprintConnectionsCallback.OnConnectionsChanged(IBlueprintMeta meta, long id, int port) {
+                BlueprintNodeAddress.Unpack(id, out _, out int nodeId);
+
+                ref var node = ref GetNode<TNode>(nodeId);
+                node.OnConnectionsChanged(meta, id, port);
+            }
+        }
     }
 
 }

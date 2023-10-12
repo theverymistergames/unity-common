@@ -84,7 +84,7 @@ namespace MisterGames.Blueprints.Editor.Core {
         public void CreatePortViews(IEdgeConnectorListener connectorListener) {
             var portViewsCreationData = nodeMeta.Ports
                 .Select((port, index) => new PortViewCreationData { portIndex = index, port = port })
-                .Where(data => !data.port.IsHidden)
+                .Where(data => !data.port.IsHidden())
                 .OrderBy(d => d.portIndex)
                 .ToArray();
 
@@ -112,8 +112,8 @@ namespace MisterGames.Blueprints.Editor.Core {
         }
 
         private void CreatePortView(PortViewCreationData data, IEdgeConnectorListener connectorListener) {
-            var direction = data.port.IsLeftLayout ? Direction.Input : Direction.Output;
-            var capacity = data.port.IsMultiple ? PortView.Capacity.Multi : PortView.Capacity.Single;
+            var direction = data.port.IsLeftLayout() ? Direction.Input : Direction.Output;
+            var capacity = data.port.IsMultiple() ? PortView.Capacity.Multi : PortView.Capacity.Single;
             var container = direction == Direction.Input ? inputContainer : outputContainer;
 
             var portView = InstantiatePort(Orientation.Horizontal, direction, capacity, typeof(bool));

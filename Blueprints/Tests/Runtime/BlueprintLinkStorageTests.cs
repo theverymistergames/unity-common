@@ -4,7 +4,7 @@ using NUnit.Framework;
 using UnityEngine;
 
 namespace Core {
-/*
+
     public class BlueprintLinkStorageTests {
 
         [Test]
@@ -16,33 +16,14 @@ namespace Core {
             var storage = new BlueprintLinkStorage();
 
             for (int i = 0; i < iterations; i++) {
-                bool added = storage.AddLink(0L, 0, i, i);
-                Assert.IsTrue(added);
+                storage.AddLink(0L, 0, i, i);
 
-                storage.TryGetFirstLink(0L, 0, out int index, out int count);
-                Assert.AreEqual(i + 1, count);
+                Assert.IsTrue(storage.TryGetLinksFrom(0L, 0, out int firstLink));
+                var link = storage.GetLink(firstLink);
 
-                var link = storage.GetLink(index + i);
                 Assert.AreEqual(i, link.nodeId);
                 Assert.AreEqual(i, link.port);
             }
-        }
-
-        [Test]
-        public void AddDuplicatedLinks() {
-            var storage = new BlueprintLinkStorage();
-
-            storage.AddLink(0L, 0, 0L, 0);
-
-            bool added = storage.AddLink(0L, 0, 0L, 0);
-            Assert.IsFalse(added);
-
-            added = storage.AddLink(0L, 0, 0L, 0);
-            Assert.IsFalse(added);
-
-            storage.TryGetFirstLink(0L, 0, out int index, out int count);
-
-            Assert.AreEqual(1, count);
         }
 
         [Test]
@@ -53,24 +34,34 @@ namespace Core {
             storage.AddLink(0L, 0, 0L, 1);
             storage.AddLink(0L, 0, 0L, 2);
 
-            storage.TryGetFirstLink(0L, 0, out int index, out int count);
+            Assert.IsTrue(storage.TryGetLinksFrom(0L, 0, out int link));
+            Assert.AreEqual(2, storage.GetLink(link).port);
 
-            Assert.AreEqual(3, count);
+            Assert.IsTrue(storage.TryGetNextLink(link, out link));
+            Assert.AreEqual(1, storage.GetLink(link).port);
 
-            Assert.IsTrue(storage.HasLink(0L, 0, 0L, 0));
-            Assert.IsTrue(storage.HasLink(0L, 0, 0L, 1));
-            Assert.IsTrue(storage.HasLink(0L, 0, 0L, 2));
+            Assert.IsTrue(storage.TryGetNextLink(link, out link));
+            Assert.AreEqual(0, storage.GetLink(link).port);
+
+            Assert.IsFalse(storage.TryGetNextLink(link, out link));
         }
 
         [Test]
         public void AddNodeLinks() {
             var storage = new BlueprintLinkStorage();
 
-            storage.AddLink(0L, 1, 0L, 0);
-            storage.AddLink(0L, 0, 0L, 0);
+            storage.AddLink(0L, 0, 0L, 1);
+            storage.AddLink(0L, 1, 0L, 2);
+            storage.AddLink(0L, 2, 0L, 3);
 
-            Assert.IsTrue(storage.HasLink(0L, 0, 0L, 0));
-            Assert.IsTrue(storage.HasLink(0L, 1, 0L, 0));
+            Assert.IsTrue(storage.TryGetLinksFrom(0L, 0, out int link));
+            Assert.AreEqual(1, storage.GetLink(link).port);
+
+            Assert.IsTrue(storage.TryGetLinksFrom(0L, 1, out link));
+            Assert.AreEqual(2, storage.GetLink(link).port);
+
+            Assert.IsTrue(storage.TryGetLinksFrom(0L, 2, out link));
+            Assert.AreEqual(3, storage.GetLink(link).port);
         }
 
         [Test]
@@ -85,9 +76,9 @@ namespace Core {
             storage.RemoveLink(0L, 1, 0L, 0);
             storage.RemoveLink(0L, 2, 0L, 0);
 
-            Assert.IsFalse(storage.HasLink(0L, 0, 0L, 0));
-            Assert.IsFalse(storage.HasLink(0L, 1, 0L, 0));
-            Assert.IsFalse(storage.HasLink(0L, 2, 0L, 0));
+            Assert.IsFalse(storage.ContainsLink(0L, 0, 0L, 0));
+            Assert.IsFalse(storage.ContainsLink(0L, 1, 0L, 0));
+            Assert.IsFalse(storage.ContainsLink(0L, 2, 0L, 0));
         }
 
         [Test]
@@ -97,10 +88,10 @@ namespace Core {
             storage.AddLink(0L, 0, 0L, 0);
             storage.AddLink(0L, 0, 0L, 1);
 
-            storage.RemovePortLinks(0L, 0);
+            storage.RemovePort(0L, 0);
 
-            Assert.IsFalse(storage.HasLink(0L, 0, 0L, 0));
-            Assert.IsFalse(storage.HasLink(0L, 0, 0L, 1));
+            Assert.IsFalse(storage.ContainsLink(0L, 0, 0L, 0));
+            Assert.IsFalse(storage.ContainsLink(0L, 0, 0L, 1));
         }
 
         [Test]
@@ -110,10 +101,10 @@ namespace Core {
             storage.AddLink(0L, 0, 0L, 0);
             storage.AddLink(0L, 1, 0L, 0);
 
-            storage.RemoveNodeLinks(0L);
+            storage.RemoveNode(0L);
 
-            Assert.IsFalse(storage.HasLink(0L, 0, 0L, 0));
-            Assert.IsFalse(storage.HasLink(0L, 1, 0L, 0));
+            Assert.IsFalse(storage.ContainsLink(0L, 0, 0L, 0));
+            Assert.IsFalse(storage.ContainsLink(0L, 1, 0L, 0));
         }
 
         [Test]
@@ -147,7 +138,7 @@ namespace Core {
                 }
 
                 foreach ((long fromNodeId, int fromPort, long toNodeId, int toPort) in addedLinks) {
-                    Assert.IsTrue(storage.HasLink(fromNodeId, fromPort, toNodeId, toPort));
+                    Assert.IsTrue(storage.ContainsLink(fromNodeId, fromPort, toNodeId, toPort));
                 }
             }
         }
@@ -202,12 +193,12 @@ namespace Core {
 
                 foreach ((long fromNodeId, int fromPort, long toNodeId, int toPort) in addedLinks) {
                     bool hasLinkExpected = !removedLinks.Contains((fromNodeId, fromPort, toNodeId, toPort));
-                    bool hasLinkActual = storage.HasLink(fromNodeId, fromPort, toNodeId, toPort);
+                    bool hasLinkActual = storage.ContainsLink(fromNodeId, fromPort, toNodeId, toPort);
 
                     Assert.AreEqual(hasLinkExpected, hasLinkActual);
                 }
             }
         }
     }
-*/
+
 }

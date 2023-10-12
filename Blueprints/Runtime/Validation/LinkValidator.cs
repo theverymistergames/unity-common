@@ -23,19 +23,19 @@ namespace MisterGames.Blueprints.Validation {
 
             var fromPort = fromNodeMeta.Ports[fromPortIndex];
 
-            if (fromPort.IsData) {
+            if (fromPort.IsData()) {
                 if (fromPort.DataType == null) {
-                    return fromPort.IsInput
+                    return fromPort.IsInput()
                         ? ValidateLinkFromDynamicInputPort(blueprint, fromNodeMeta, fromPortIndex, toNodeMeta, toPortIndex)
                         : ValidateLinkFromDynamicOutputPort(blueprint, fromNodeMeta, fromPortIndex, toNodeMeta, toPortIndex);
                 }
 
-                return fromPort.IsInput
+                return fromPort.IsInput()
                     ? ValidateLinkFromInputPort(blueprint, fromNodeMeta, fromPortIndex, toNodeMeta, toPortIndex)
                     : ValidateLinkFromOutputPort(blueprint, fromNodeMeta, fromPortIndex, toNodeMeta, toPortIndex);
             }
 
-            return fromPort.IsInput
+            return fromPort.IsInput()
                 ? ValidateLinkFromEnterPort(blueprint, fromNodeMeta, fromPortIndex, toNodeMeta, toPortIndex)
                 : ValidateLinkFromExitPort(blueprint, fromNodeMeta, fromPortIndex, toNodeMeta, toPortIndex);
         }
@@ -69,14 +69,14 @@ namespace MisterGames.Blueprints.Validation {
 
             var toPort = toNodeMeta.Ports[toPortIndex];
 
-            if (!toPort.IsInput) {
+            if (!toPort.IsInput()) {
                 Debug.LogError($"Blueprint `{blueprint.name}`: " +
                                $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
                                $"ports have same direction.");
                 return false;
             }
 
-            if (toPort.IsData) {
+            if (toPort.IsData()) {
                 Debug.LogError($"Blueprint `{blueprint.name}`: " +
                                $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
                                $"source exit port cannot have link to the data-based input port.");
@@ -102,14 +102,14 @@ namespace MisterGames.Blueprints.Validation {
 
             var toPort = toNodeMeta.Ports[toPortIndex];
 
-            if (toPort.IsInput) {
+            if (toPort.IsInput()) {
                 Debug.LogError($"Blueprint `{blueprint.name}`: " +
                                $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
                                $"ports have same direction.");
                 return false;
             }
 
-            if (!toPort.IsData) {
+            if (!toPort.IsData()) {
                 Debug.LogError($"Blueprint `{blueprint.name}`: " +
                                $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
                                $"source dynamic input port cannot have link to the non-data output port.");
@@ -156,14 +156,14 @@ namespace MisterGames.Blueprints.Validation {
             var fromPort = fromNodeMeta.Ports[fromPortIndex];
             var toPort = toNodeMeta.Ports[toPortIndex];
 
-            if (toPort.IsInput) {
+            if (toPort.IsInput()) {
                 Debug.LogError($"Blueprint `{blueprint.name}`: " +
                                $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
                                $"ports have same direction.");
                 return false;
             }
 
-            if (!toPort.IsData) {
+            if (!toPort.IsData()) {
                 Debug.LogError($"Blueprint `{blueprint.name}`: " +
                                $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
                                $"source input port cannot have link to the non-data output port.");
@@ -175,7 +175,7 @@ namespace MisterGames.Blueprints.Validation {
 
             if (toPortDataType == null) return true;
 
-            if (fromPort.IsMultiple && toPortDataType.IsArray) {
+            if (fromPort.IsMultiple() && toPortDataType.IsArray) {
                 if (toPortDataType.GetElementType() != fromPortDataType) {
                     Debug.LogError($"Blueprint `{blueprint.name}`: " +
                                    $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
@@ -186,7 +186,7 @@ namespace MisterGames.Blueprints.Validation {
                 return true;
             }
 
-            if (toPort.AcceptSubclass && !toPortDataType.IsAssignableFrom(fromPortDataType)) {
+            if (toPort.AcceptSubclass() && !toPortDataType.IsAssignableFrom(fromPortDataType)) {
                 Debug.LogError($"Blueprint `{blueprint.name}`: " +
                                $"Validation failed for port link [node {fromNodeMeta}, port {fromPortIndex} :: node {toNodeMeta}, port {toPortIndex}]: " +
                                $"ports have different signature.");

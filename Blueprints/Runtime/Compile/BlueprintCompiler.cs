@@ -68,7 +68,7 @@ namespace MisterGames.Blueprints.Compile {
                 var port = ports[p];
 
                 // Skip enter or data-based output ports
-                if (port.IsInput != port.IsData) continue;
+                if (port.IsInput() != port.IsData()) continue;
 
                 var links = blueprintMeta.GetLinksFromNodePort(nodeId, p);
                 int linksCount = links.Count;
@@ -117,7 +117,7 @@ namespace MisterGames.Blueprints.Compile {
                 var port = subgraphPorts[p];
 
                 // Skip exit or data-based input ports
-                if (port.IsInput == port.IsData) continue;
+                if (port.IsInput() == port.IsData()) continue;
 
                 if (!_externalPortLinksMap.ContainsKey(port.GetSignatureHashCode())) {
                     Debug.LogError($"Subgraph blueprint asset `{subgraphBlueprint}` in node {subgraphNode} has error: " +
@@ -178,12 +178,12 @@ namespace MisterGames.Blueprints.Compile {
 #endif
 
                 var port = ports[p];
-                if (port.IsExternal) {
+                if (port.IsExternal()) {
                     int portSignature = port.GetSignatureHashCode();
 
                     // External port is enter or output: add port address as link into external ports map
                     // to create links from matched subgraph node port to this external port.
-                    if (port.IsInput != port.IsData) {
+                    if (port.IsInput() != port.IsData()) {
                         var link = new BlueprintLink { nodeId = nodeId, portIndex = p };
 
                         if (_externalPortLinksMap.TryGetValue(portSignature, out var externalPortLinks)) {
@@ -212,7 +212,7 @@ namespace MisterGames.Blueprints.Compile {
                 }
 
                 // Skip enter or data-based output ports
-                if (port.IsInput != port.IsData) continue;
+                if (port.IsInput() != port.IsData()) continue;
 
                 var links = blueprintMeta.GetLinksFromNodePort(nodeId, p);
                 int linksCount = links.Count;
@@ -265,7 +265,7 @@ namespace MisterGames.Blueprints.Compile {
                     var node = _runtimeNodesMap[link.nodeId];
 
                     // Exit or data-based input port: link owners
-                    if (port.IsInput == port.IsData) {
+                    if (port.IsInput() == port.IsData()) {
                         node.Ports ??= new RuntimePort[ports.Length];
                         node.Ports[link.portIndex] = new RuntimePort(runtimeLinks);
                         continue;
