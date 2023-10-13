@@ -4,7 +4,7 @@ using MisterGames.Blueprints.Core2;
 namespace Core {
 
     [Serializable]
-    public sealed class BlueprintFactoryTest0 : BlueprintFactory<BlueprintNodeTest0> { }
+    public sealed class BlueprintSourceTest0 : BlueprintSource<BlueprintNodeTest0> { }
 
     [Serializable]
     public struct BlueprintNodeTest0 : IBlueprintNode {

@@ -12,6 +12,10 @@
 
         bool TryGetNextLink(int previousLink, out int nextLink);
 
+        void SetSubgraph(long id, BlueprintAsset2 asset);
+
+        void RemoveSubgraph(long id);
+
         void InvalidateNode(long id, bool invalidatePorts = false);
     }
 

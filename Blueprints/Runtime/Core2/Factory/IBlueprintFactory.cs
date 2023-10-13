@@ -1,45 +1,42 @@
-﻿namespace MisterGames.Blueprints.Core2 {
+﻿using System;
+
+namespace MisterGames.Blueprints.Core2 {
 
     /// <summary>
-    /// Blueprint factory is an editor and runtime storage for node data structs.
-    /// Each factory contains a generic data array to store user defined structs.
-    /// A blueprint node is using factory to get data.
+    /// Blueprint factory is a storage for blueprint sources, see <see cref="IBlueprintSource"/>.
     /// </summary>
-    public interface IBlueprintFactory : IBlueprintNode {
+    public interface IBlueprintFactory {
 
         /// <summary>
-        /// Current amount of data elements.
+        /// Get blueprint source by id. Id can be retrieved with <see cref="GetOrCreateSource"/> method.
         /// </summary>
-        int Count { get; }
-
-        ref T GetNode<T>(int id) where T : struct, IBlueprintNode;
+        /// <param name="id">Blueprint source id</param>
+        /// <returns>Blueprint source</returns>
+        IBlueprintSource GetSource(int id);
 
         /// <summary>
-        /// Add space for a new element. Default value is added to the data array.
+        /// Get blueprint source by type or create and get if source of such type has not been created yet.
         /// </summary>
-        /// <returns>Integer pointer of the element in the data array</returns>
-        int AddNode();
+        /// <param name="sourceType">Type of the blueprint source</param>
+        /// <returns>Blueprint source id</returns>
+        int GetOrCreateSource(Type sourceType);
 
         /// <summary>
-        /// Add element and set its value by copying the element with id from factory.
+        /// Remove blueprint source by id.
         /// </summary>
-        /// <returns>Integer pointer of the element in the data array</returns>
-        int AddNodeCopy(IBlueprintFactory factory, int id);
+        /// <param name="id">Blueprint source id</param>
+        void RemoveSource(int id);
 
         /// <summary>
-        /// Removes an element with id from the data array.
-        /// Single remove operation marks the corresponding element as empty, and it is ready to store a new element.
+        /// Creates a string path to the serialized property of blueprint source with id.
+        /// Method works only in the Unity Editor, otherwise <see cref="InvalidOperationException"/> is thrown.
         /// </summary>
-        void RemoveNode(int id);
+        /// <param name="id">Blueprint source id</param>
+        /// <returns>Relative path of where the element is stored in the blueprint factory.</returns>
+        string GetSourcePath(int id);
 
         /// <summary>
-        /// Creates a string path to the serialized property of an element with id.
-        /// </summary>
-        /// <returns>Relative path of where the element is stored in the <see cref="IBlueprintFactory"/></returns>
-        string GetNodePath(int id);
-
-        /// <summary>
-        /// Clear all the elements.
+        /// Remove all
         /// </summary>
         void Clear();
     }

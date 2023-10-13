@@ -11,7 +11,7 @@ namespace Core {
         [TestCase(2)]
         [TestCase(100)]
         public void AddElements(int count) {
-            var factory = new BlueprintFactoryTest0();
+            var factory = new BlueprintSourceTest0();
 
             for (int i = 0; i < count; i++) {
                 int id = factory.AddNode();
@@ -27,7 +27,7 @@ namespace Core {
         [TestCase(2)]
         [TestCase(-1)]
         public void SetElementValue(int value) {
-            var factory = new BlueprintFactoryTest0();
+            var factory = new BlueprintSourceTest0();
             int id = factory.AddNode();
 
             ref var node = ref factory.GetNode<BlueprintNodeTest0>(id);
@@ -43,13 +43,13 @@ namespace Core {
         [TestCase(2)]
         [TestCase(-1)]
         public void AddElementCopy(int value) {
-            var factory0 = new BlueprintFactoryTest0();
+            var factory0 = new BlueprintSourceTest0();
             int id0 = factory0.AddNode();
 
             ref var node0 = ref factory0.GetNode<BlueprintNodeTest0>(id0);
             node0.intValue = value;
 
-            var factory1 = new BlueprintFactoryTest0();
+            var factory1 = new BlueprintSourceTest0();
             int id1 = factory1.AddNodeCopy(factory0, id0);
 
             ref var node1 = ref factory1.GetNode<BlueprintNodeTest0>(id1);
@@ -58,7 +58,7 @@ namespace Core {
 
         [Test]
         public void RemoveElement() {
-            var factory = new BlueprintFactoryTest0();
+            var factory = new BlueprintSourceTest0();
 
             int id = factory.AddNode();
             factory.RemoveNode(id);
@@ -76,7 +76,7 @@ namespace Core {
         [TestCase(100)]
         [TestCase(1000)]
         public void AddRemoveElements(int size) {
-            var factory = new BlueprintFactoryTest0();
+            var factory = new BlueprintSourceTest0();
             var addedIds = new List<int>();
             var removedIds = new HashSet<int>();
 

@@ -12,7 +12,7 @@ namespace MisterGames.Blueprints.Core2 {
         /// </summary>
         public IReadOnlyList<long> Nodes => _nodes;
 
-        private readonly IBlueprintFactorySource _factories;
+        private readonly IBlueprintFactory _factories;
         private readonly long[] _nodes;
         private readonly RuntimeLink2[] _links;
         private readonly Dictionary<RuntimePortAddress, int> _portIndexMap;
@@ -22,7 +22,7 @@ namespace MisterGames.Blueprints.Core2 {
 
         private RuntimeBlueprint2() { }
 
-        public RuntimeBlueprint2(IBlueprintFactorySource factories, int nodeCount, int portCount, int linkCount) {
+        public RuntimeBlueprint2(IBlueprintFactory factories, int nodeCount, int portCount, int linkCount) {
             _factories = factories;
             _nodes = new long[nodeCount];
             _links = new RuntimeLink2[portCount + linkCount];
@@ -36,7 +36,7 @@ namespace MisterGames.Blueprints.Core2 {
                 long id = _nodes[i];
                 BlueprintNodeAddress.Unpack(id, out int factoryId, out int _);
 
-                _factories.GetFactory(factoryId).OnInitialize(this, id);
+                _factories.GetSource(factoryId).OnInitialize(this, id);
             }
         }
 
@@ -45,7 +45,7 @@ namespace MisterGames.Blueprints.Core2 {
                 long id = _nodes[i];
                 BlueprintNodeAddress.Unpack(id, out int factoryId, out int _);
 
-                _factories.GetFactory(factoryId).OnDeInitialize(this, id);
+                _factories.GetSource(factoryId).OnDeInitialize(this, id);
             }
         }
 
@@ -54,7 +54,7 @@ namespace MisterGames.Blueprints.Core2 {
                 long id = _nodes[i];
                 BlueprintNodeAddress.Unpack(id, out int factoryId, out int _);
 
-                if (_factories.GetFactory(factoryId) is IBlueprintEnableDisable2 enableDisable) {
+                if (_factories.GetSource(factoryId) is IBlueprintEnableDisable2 enableDisable) {
                     enableDisable.OnEnable(this, id);
                 }
             }
@@ -65,7 +65,7 @@ namespace MisterGames.Blueprints.Core2 {
                 long id = _nodes[i];
                 BlueprintNodeAddress.Unpack(id, out int factoryId, out int _);
 
-                if (_factories.GetFactory(factoryId) is IBlueprintEnableDisable2 enableDisable) {
+                if (_factories.GetSource(factoryId) is IBlueprintEnableDisable2 enableDisable) {
                     enableDisable.OnDisable(this, id);
                 }
             }
@@ -76,7 +76,7 @@ namespace MisterGames.Blueprints.Core2 {
                 long id = _nodes[i];
                 BlueprintNodeAddress.Unpack(id, out int factoryId, out int _);
 
-                if (_factories.GetFactory(factoryId) is IBlueprintStart2 start) {
+                if (_factories.GetSource(factoryId) is IBlueprintStart2 start) {
                     start.OnStart(this, id);
                 }
             }
@@ -90,7 +90,7 @@ namespace MisterGames.Blueprints.Core2 {
                 var link = GetLink(i);
                 BlueprintNodeAddress.Unpack(link.nodeId, out int factoryId, out _);
 
-                if (_factories.GetFactory(factoryId) is not IBlueprintEnter2 enter) continue;
+                if (_factories.GetSource(factoryId) is not IBlueprintEnter2 enter) continue;
 
                 enter.OnEnterPort(this, link.nodeId, link.port);
             }
@@ -105,7 +105,7 @@ namespace MisterGames.Blueprints.Core2 {
             var link = GetLink(linkIndex);
             BlueprintNodeAddress.Unpack(link.nodeId, out int factoryId, out _);
 
-            return _factories.GetFactory(factoryId) switch {
+            return _factories.GetSource(factoryId) switch {
                 IBlueprintOutput2<T> outputT => outputT.GetOutputPortValue(this, link.nodeId, link.port),
                 IBlueprintOutput2 output => output.GetOutputPortValue<T>(this, link.nodeId, link.port),
                 _ => defaultValue

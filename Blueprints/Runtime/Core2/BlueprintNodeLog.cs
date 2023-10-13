@@ -4,10 +4,10 @@ using UnityEngine;
 namespace MisterGames.Blueprints.Core2 {
 
     [Serializable]
-    public sealed class BlueprintNodeLogFactory :
-        BlueprintFactory<BlueprintNodeLog>,
-        BlueprintFactories.Enter<BlueprintNodeLog>,
-        BlueprintFactories.Output<BlueprintNodeLog, string> { }
+    public sealed class BlueprintNodeLogSource :
+        BlueprintSource<BlueprintNodeLog>,
+        BlueprintSources.Enter<BlueprintNodeLog>,
+        BlueprintSources.Output<BlueprintNodeLog, string> { }
 
     [Serializable]
     public struct BlueprintNodeLog : IBlueprintNode, IBlueprintEnter2, IBlueprintOutput2<string> {

@@ -13,6 +13,18 @@ namespace MisterGames.Blueprints.Core2 {
             return _portTree.GetValueAt(index);
         }
 
+        public int GetPortCount(long id) {
+            BlueprintNodeAddress.Unpack(id, out int factoryId, out int nodeId);
+
+            if (!_portTree.TryGetIndex(factoryId, out int factoryRoot) ||
+                !_portTree.TryGetIndex(nodeId, factoryRoot, out int nodeRoot)
+            ) {
+                return 0;
+            }
+
+            return _portTree.GetChildrenCount(nodeRoot);
+        }
+
         public bool TryGetPorts(long id, out int firstPort) {
             BlueprintNodeAddress.Unpack(id, out int factoryId, out int nodeId);
             firstPort = -1;
@@ -45,7 +57,7 @@ namespace MisterGames.Blueprints.Core2 {
             _portTree.SetValueAt(portRoot, port);
         }
 
-        public void RemovePorts(long id) {
+        public void RemoveNode(long id) {
             BlueprintNodeAddress.Unpack(id, out int factoryId, out int nodeId);
 
             if (!_portTree.TryGetIndex(factoryId, out int factoryRoot) ||

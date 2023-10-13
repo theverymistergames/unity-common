@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using MisterGames.Blueprints.Validation;
 using MisterGames.Common.Data;
 using UnityEngine;
 
@@ -8,164 +9,171 @@ namespace MisterGames.Blueprints.Core2 {
     [Serializable]
     public sealed class BlueprintMeta2 : IBlueprintMeta {
 
-        [SerializeField] private ArrayMap<long, BlueprintNodeMeta2> _nodeMetaMap;
-        [SerializeField] private BlueprintFactorySource _factorySource;
-        [SerializeField] private BlueprintLinkStorage _linkStorage;
-        [SerializeField] private BlueprintPortStorage _portStorage;
+        [SerializeField] private ArrayMap<long, BlueprintNodeMeta2> _nodeMap;
+        [SerializeField] private SerializedDictionary<long, BlueprintAsset2> _subgraphMap;
+        [SerializeField] private BlueprintFactory _factory;
+        [SerializeField] private BlueprintLinkStorage _links;
+        [SerializeField] private BlueprintPortStorage _ports;
 
-        public IReadOnlyCollection<long> Nodes => _nodeMetaMap.Keys;
-        public Action<long> OnInvalidateNode;
+        public IReadOnlyCollection<long> Nodes => _nodeMap.Keys;
 
-        public BlueprintNodeMeta2 GetNode(long id) {
-            return _nodeMetaMap[id];
+        private Action<long> _onNodeChanged;
+
+        public void Bind(Action<long> onNodeChanged) {
+            _onNodeChanged = onNodeChanged;
+            _links.OnPortChanged = OnPortChanged;
         }
 
-        public long AddNode(Type factoryType, Vector2 position) {
-            int factoryId = _factorySource.GetOrCreateFactory(factoryType);
-            var factory = _factorySource.GetFactory(factoryId);
-            int nodeId = factory.AddNode();
+        public void Unbind() {
+            _onNodeChanged = null;
+            _links.OnPortChanged = null;
+        }
 
-            long id = BlueprintNodeAddress.Pack(factoryId, nodeId);
+        public BlueprintNodeMeta2 GetNode(long id) {
+            return _nodeMap[id];
+        }
 
-            _nodeMetaMap[id] = new BlueprintNodeMeta2 {
-                nodeId = id,
-                position = position
-            };
+        public string GetNodePath(long id) {
+            BlueprintNodeAddress.Unpack(id, out int sourceId, out int nodeId);
+            return $"{nameof(_factory)}.{_factory.GetSourcePath(sourceId)}.{_factory.GetSource(sourceId).GetNodePath(nodeId)}";
+        }
 
-            factory.CreatePorts(this, id);
+        public long AddNode(Type sourceType, Vector2 position) {
+            int sourceId = _factory.GetOrCreateSource(sourceType);
+            var source = _factory.GetSource(sourceId);
+            int nodeId = source.AddNode();
+
+            long id = BlueprintNodeAddress.Pack(sourceId, nodeId);
+            _nodeMap[id] = new BlueprintNodeMeta2 { nodeId = id, position = position };
+
+            source.CreatePorts(this, id);
+
+            _onNodeChanged?.Invoke(id);
 
             return id;
         }
 
         public void RemoveNode(long id) {
-            if (!_nodeMetaMap.ContainsKey(id)) return;
+            if (!_nodeMap.ContainsKey(id)) return;
 
-            _linkStorage.RemoveNode(id);
-            _nodeMetaMap.Remove(id);
+            _nodeMap.Remove(id);
+            _subgraphMap.Remove(id);
+            _links.RemoveNode(id);
+            _ports.RemoveNode(id);
+
+            BlueprintNodeAddress.Unpack(id, out int sourceId, out int nodeId);
+
+            var source = _factory.GetSource(sourceId);
+
+            source.RemoveNode(nodeId);
+            if (source.Count == 0) _factory.RemoveSource(sourceId);
         }
 
-        public void Clear() {
-            OnInvalidateNode = null;
+        public bool TryCreateConnection(long id, int port, long toId, int toPort) {
+            if (id == toId) return false;
 
-            _nodeMetaMap.Clear();
-            _factorySource.Clear();
-            _linkStorage.Clear();
-            _portStorage.Clear();
+            if (!_nodeMap.ContainsKey(id)) return false;
+            if (!_nodeMap.ContainsKey(toId)) return false;
+
+            if (!_ports.TryGetPort(id, port, out int portIndex)) return false;
+            if (!_ports.TryGetPort(toId, toPort, out int toPortIndex)) return false;
+
+            var portData = _ports.GetPortData(portIndex);
+            var toPortData = _ports.GetPortData(toPortIndex);
+
+            if (!PortValidator.ArePortsCompatible(portData, toPortData)) return false;
+
+            // FromPort is port that owns links to toPort (fromPort must be exit or data-based input port).
+            // So ports have to be swapped, if:
+            // 1) fromPort is enter port (IsData = false, IsInput = true)
+            // 2) fromPort is data-based output port (IsData = true, IsInput = false)
+            if (portData.IsData() != portData.IsInput()) {
+                long t0 = id;
+                int t1 = port;
+                var t2 = portData;
+
+                id = toId;
+                port = toPort;
+                portData = toPortData;
+
+                toId = t0;
+                toPort = t1;
+                toPortData = t2;
+            }
+
+            if (_links.ContainsLink(id, port, toId, toPort)) return false;
+
+            if (!portData.IsMultiple() && _links.TryGetLinksFrom(id, port, out _)) _links.RemovePort(id, port);
+            if (!toPortData.IsMultiple() && _links.TryGetLinksTo(toId, toPort, out _)) _links.RemovePort(toId, toPort);
+
+            _links.AddLink(id, port, toId, toPort);
+
+            return true;
+        }
+
+        public void RemoveConnection(long id, int port, long toId, int toPort) {
+            _links.RemoveLink(id, port, toId, toPort);
         }
 
         public bool TryGetLinksFrom(long id, int port, out int firstLink) {
-            return _linkStorage.TryGetLinksFrom(id, port, out firstLink);
+            return _links.TryGetLinksFrom(id, port, out firstLink);
         }
 
         public bool TryGetLinksTo(long id, int port, out int firstLink) {
-            return _linkStorage.TryGetLinksTo(id, port, out firstLink);
+            return _links.TryGetLinksTo(id, port, out firstLink);
         }
 
         public bool TryGetNextLink(int previousLink, out int nextLink) {
-            return _linkStorage.TryGetNextLink(previousLink, out nextLink);
+            return _links.TryGetNextLink(previousLink, out nextLink);
         }
 
         public void AddPort(long id, int index, Port port) {
-            _portStorage.AddPort(id, index, port);
+            _ports.AddPort(id, index, port);
         }
 
         public Port GetLinkedPort(int link) {
-            ref var l = ref _linkStorage.GetLink(link);
-            return _portStorage.TryGetPort(l.nodeId, l.port, out int port)
-                ? _portStorage.GetPortData(port)
+            ref var l = ref _links.GetLink(link);
+            return _ports.TryGetPort(l.nodeId, l.port, out int port)
+                ? _ports.GetPortData(port)
                 : default;
+        }
+
+        public void SetSubgraph(long id, BlueprintAsset2 asset) {
+            _subgraphMap[id] = asset;
+        }
+
+        public void RemoveSubgraph(long id) {
+            _subgraphMap.Remove(id);
         }
 
         public void InvalidateNode(long id, bool invalidatePorts = false) {
 
         }
 
+        public void Clear() {
+            _onNodeChanged = null;
+
+            _nodeMap.Clear();
+            _subgraphMap.Clear();
+            _factory.Clear();
+            _links.Clear();
+            _ports.Clear();
+        }
+
+        private void OnPortChanged(long id, int port) {
+            BlueprintNodeAddress.Unpack(id, out int sourceId, out _);
+
+            if (_factory.GetSource(sourceId) is IBlueprintConnectionsCallback callback) {
+                callback.OnConnectionsChanged(this, id, port);
+            }
+
+            _onNodeChanged?.Invoke(id);
+        }
+
 /*
 #if UNITY_EDITOR
 
 
-
-
-        public bool TryCreateConnection(long fromNodeId, int fromPortIndex, long toNodeId, int toPortIndex) {
-            if (fromNodeId == toNodeId) return false;
-
-            if (!_nodeMetaMap.ContainsKey(fromNodeId)) return false;
-            if (!_nodeMetaMap.ContainsKey(toNodeId)) return false;
-
-            ref var fromNodeMeta = ref _nodeMetaMap.Get(fromNodeId);
-            ref var toNodeMeta = ref _nodeMetaMap.Get(toNodeId);
-
-            if (fromPortIndex < 0 || fromPortIndex > fromNodeMeta.ports.Length - 1) return false;
-            if (toPortIndex < 0 || toPortIndex > toNodeMeta.ports.Length - 1) return false;
-
-            ref var fromPort = ref fromNodeMeta.ports[fromPortIndex];
-            ref var toPort = ref toNodeMeta.ports[toPortIndex];
-
-            if (!PortValidator.ArePortsCompatible(fromPort, toPort)) return false;
-
-            // FromPort is port that owns links to toPort (fromPort must be exit or data-based input port).
-            // So ports have to be swapped, if:
-            // 1) fromPort is enter port (IsData = false, IsInput = true)
-            // 2) fromPort is data-based output port (IsData = true, IsInput = false)
-            if (fromPort.IsData != fromPort.IsInput) {
-                long t0 = fromNodeId;
-                int t1 = fromPortIndex;
-                var t2 = fromPort;
-
-                fromNodeId = toNodeId;
-                fromPortIndex = toPortIndex;
-                fromPort = toPort;
-
-                toNodeId = t0;
-                toPortIndex = t1;
-                toPort = t2;
-            }
-
-            if (_fromPortLinks.HasLink(fromNodeId, fromPortIndex, toNodeId, toPortIndex)) return false;
-            if (_toPortLinks.HasLink(toNodeId, toPortIndex, fromNodeId, fromPortIndex)) return false;
-
-            _fromPortLinks.GetLinks(fromNodeId, fromPortIndex, out int fromPortLinksIndex, out int fromPortLinksCount);
-            _toPortLinks.GetLinks(toNodeId, toPortIndex, out int toPortLinksIndex, out int toPortLinksCount);
-
-            if (!fromPort.IsMultiple && fromPortLinksCount > 0) {
-                int end = fromPortLinksIndex + fromPortLinksCount;
-                for (int i = fromPortLinksIndex; i < end; i++) {
-                    var l = _fromPortLinks.GetLink(i);
-                    _toPortLinks.RemoveLink(l.nodeId, l.port, fromNodeId, fromPortIndex);
-                }
-                _fromPortLinks.RemovePortLinks(fromNodeId, fromPortIndex);
-            }
-
-            if (!toPort.IsMultiple && toPortLinksCount > 0) {
-                int end = toPortLinksIndex + toPortLinksCount;
-                for (int i = toPortLinksIndex; i < end; i++) {
-                    var l = _toPortLinks.GetLink(i);
-                    _fromPortLinks.RemoveLink(l.nodeId, l.port, toNodeId, toPortIndex);
-                }
-                _toPortLinks.RemovePortLinks(toNodeId, toPortIndex);
-            }
-
-            _fromPortLinks.AddLink(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
-            _toPortLinks.AddLink(toNodeId, toPortIndex, fromNodeId, fromPortIndex);
-
-            return true;
-        }
-
-        public void RemoveConnection(BlueprintAsset blueprint, int fromNodeId, int fromPortIndex, int toNodeId, int toPortIndex) {
-            RemoveLinkFromNodePort(blueprint, fromNodeId, fromPortIndex, toNodeId, toPortIndex);
-            RemoveLinkFromNodePort(blueprint, toNodeId, toPortIndex, fromNodeId, fromPortIndex);
-            RemoveLinkToNodePort(blueprint, fromNodeId, fromPortIndex, toNodeId, toPortIndex);
-            RemoveLinkToNodePort(blueprint, toNodeId, toPortIndex, fromNodeId, fromPortIndex);
-        }
-
-        public void Clear() {
-            _addedNodesTotalCount = 0;
-
-            _nodesMap.Clear();
-            _fromNodePortLinksMap.Clear();
-            _toNodePortLinksMap.Clear();
-            _subgraphReferencesMap.Clear();
-        }
 
         public bool InvalidateNodePorts(BlueprintAsset blueprint, int nodeId, bool invalidateLinks, bool notify = true) {
             if (!_nodesMap.TryGetValue(nodeId, out var nodeMeta)) return false;

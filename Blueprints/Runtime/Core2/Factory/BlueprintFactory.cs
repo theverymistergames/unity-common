@@ -1,114 +1,77 @@
 ﻿using System;
+using System.Collections.Generic;
 using MisterGames.Common.Data;
 using UnityEngine;
 
 namespace MisterGames.Blueprints.Core2 {
 
-    /// <summary>
-    /// Base class for deriving user defined factories. <see cref="IBlueprintFactory"/>.
-    /// </summary>
-    /// <typeparam name="TNode">Struct node type</typeparam>
     [Serializable]
-    public abstract class BlueprintFactory<TNode> : IBlueprintFactory
-        where TNode : struct, IBlueprintNode
-    {
-        [SerializeField] private ArrayMap<int, TNode> _nodeMap = new ArrayMap<int, TNode>();
+    public sealed class BlueprintFactory : IBlueprintFactory {
+
         [SerializeField] private int _lastId;
+        [SerializeField] private ReferenceArrayMap<int, IBlueprintSource> _sources
+            = new ReferenceArrayMap<int, IBlueprintSource>();
 
-        public int Count => _nodeMap.Count;
+        private readonly Dictionary<Type, int> _typeToIdMap = new Dictionary<Type, int>();
 
-        public ref T GetNode<T>(int id) where T : struct, IBlueprintNode {
-            if (this is not BlueprintFactory<T> factory) {
-                throw new InvalidOperationException($"{nameof(BlueprintFactory<TNode>)}: " +
-                                                    $"can not get node of type {typeof(T).Name} " +
-                                                    $"from factory with nodes of type {typeof(TNode).Name}");
+        public IBlueprintSource GetSource(int id) {
+            return _sources[id];
+        }
+
+        public int GetOrCreateSource(Type sourceType) {
+#if UNITY_EDITOR
+            foreach (int key in _sources.Keys) {
+                if (_sources[key].GetType() == sourceType) return key;
             }
 
-            return ref factory._nodeMap.GetValueByRef(id);
+            return AddSource(Activator.CreateInstance(sourceType) as IBlueprintSource);
+#else
+            if (_typeToIdMap.TryGetValue(factoryType, out int id)) return id;
+
+            var instance = Activator.CreateInstance(factoryType) as IBlueprintFactory;
+            id = AddFactory(instance);
+
+            _typeToIdMap.Add(factoryType, id);
+
+            return id;
+#endif
         }
 
-        public int AddNode() {
-            _lastId++;
-            if (_lastId == 0) _lastId++;
-
-            _nodeMap.Add(_lastId, default);
-
-            return _lastId;
+        public void RemoveSource(int id) {
+            _sources.Remove(id);
         }
 
-        public int AddNodeCopy(IBlueprintFactory factory, int id) {
-            int localId = AddNode();
-            ref var data = ref _nodeMap.GetValueByRef(localId);
-
-            data = factory.GetNode<TNode>(id);
-
-            return localId;
-        }
-
-        public void RemoveNode(int id) {
-            _nodeMap.Remove(id);
-        }
-
-        public string GetNodePath(int id) {
+        public string GetSourcePath(int id) {
 #if UNITY_EDITOR
-            if (!_nodeMap.ContainsKey(id)) {
-                Debug.LogWarning($"{nameof(BlueprintFactory<TNode>)}: " +
-                                 $"trying to get node path by id {id}, " +
-                                 $"but node with this id is not found: " +
-                                 $"node map has no entry with id {id}.");
-
+            if (!_sources.ContainsKey(id)) {
+                Debug.LogWarning($"{nameof(BlueprintFactory)}: " +
+                                 $"trying to get source by id {id}, " +
+                                 $"but source with this id is not found: " +
+                                 $"map has no entry with id {id}.");
                 return null;
             }
 
-            return $"{nameof(_nodeMap)}._entries.Array.data[{_nodeMap.IndexOf(id)}].value";
+            return $"{nameof(_sources)}._nodes.Array.data[{_sources.IndexOf(id)}].value";
 #endif
 
-            throw new InvalidOperationException($"{nameof(BlueprintFactory<TNode>)}: " +
-                                                $"calling method {nameof(GetNodePath)} is only allowed in the Unity Editor.");
+            throw new InvalidOperationException($"{nameof(BlueprintFactory)}: " +
+                                                $"calling method {nameof(GetSourcePath)} is only allowed in the Unity Editor.");
         }
 
         public void Clear() {
-            _nodeMap.Clear();
+            _sources.Clear();
+            _typeToIdMap.Clear();
             _lastId = 0;
         }
 
-        public void CreatePorts(IBlueprintMeta meta, long id) {
-            BlueprintNodeAddress.Unpack(id, out _, out int nodeId);
+        private int AddSource(IBlueprintSource source) {
+            _lastId++;
+            if (_lastId == 0) _lastId++;
 
-            ref var node = ref _nodeMap.GetValueByRef(nodeId);
-            node.CreatePorts(meta, id);
-        }
+            _sources.Add(_lastId, source);
 
-        public void SetDefaultValues(IBlueprintMeta meta, long id) {
-            BlueprintNodeAddress.Unpack(id, out _, out int nodeId);
-
-            ref var node = ref _nodeMap.GetValueByRef(nodeId);
-            node.SetDefaultValues(meta, id);
-        }
-
-        public void OnValidate(IBlueprintMeta meta, long id) {
-            BlueprintNodeAddress.Unpack(id, out _, out int nodeId);
-
-            ref var node = ref _nodeMap.GetValueByRef(nodeId);
-            node.OnValidate(meta, id);
-        }
-
-        public void OnInitialize(IBlueprint blueprint, long id) {
-            BlueprintNodeAddress.Unpack(id, out _, out int nodeId);
-
-            ref var node = ref _nodeMap.GetValueByRef(nodeId);
-            node.OnInitialize(blueprint, id);
-        }
-
-        public void OnDeInitialize(IBlueprint blueprint, long id) {
-            BlueprintNodeAddress.Unpack(id, out _, out int nodeId);
-
-            ref var node = ref _nodeMap.GetValueByRef(nodeId);
-            node.OnDeInitialize(blueprint, id);
-        }
-
-        public override string ToString() {
-            return _nodeMap.ToString();
+            return _lastId;
         }
     }
+
 }

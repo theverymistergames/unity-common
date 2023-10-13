@@ -23,11 +23,11 @@ namespace MisterGames.Blueprints.Core2 {
         }
 
         public bool TryGetLinksFrom(long id, int port, out int firstLink) {
-            BlueprintNodeAddress.Unpack(id, out int factoryId, out int nodeId);
+            BlueprintNodeAddress.Unpack(id, out int sourceId, out int nodeId);
             firstLink = -1;
 
-            if (!_linkTree.TryGetIndex(factoryId, out int factoryRoot) ||
-                !_linkTree.TryGetIndex(nodeId, factoryRoot, out int nodeRoot) ||
+            if (!_linkTree.TryGetIndex(sourceId, out int sourceRoot) ||
+                !_linkTree.TryGetIndex(nodeId, sourceRoot, out int nodeRoot) ||
                 !_linkTree.TryGetIndex(port, nodeRoot, out int portRoot) ||
                 !_linkTree.TryGetIndex(0, portRoot, out int linksRoot)
             ) {
@@ -38,11 +38,11 @@ namespace MisterGames.Blueprints.Core2 {
         }
 
         public bool TryGetLinksTo(long id, int port, out int firstLink) {
-            BlueprintNodeAddress.Unpack(id, out int factoryId, out int nodeId);
+            BlueprintNodeAddress.Unpack(id, out int sourceId, out int nodeId);
             firstLink = -1;
 
-            if (!_linkTree.TryGetIndex(factoryId, out int factoryRoot) ||
-                !_linkTree.TryGetIndex(nodeId, factoryRoot, out int nodeRoot) ||
+            if (!_linkTree.TryGetIndex(sourceId, out int sourceRoot) ||
+                !_linkTree.TryGetIndex(nodeId, sourceRoot, out int nodeRoot) ||
                 !_linkTree.TryGetIndex(port, nodeRoot, out int portRoot) ||
                 !_linkTree.TryGetIndex(1, portRoot, out int linksRoot)
             ) {
@@ -74,10 +74,10 @@ namespace MisterGames.Blueprints.Core2 {
         }
 
         public void RemovePort(long id, int port) {
-            BlueprintNodeAddress.Unpack(id, out int factoryId, out int nodeId);
+            BlueprintNodeAddress.Unpack(id, out int sourceId, out int nodeId);
 
-            if (!_linkTree.TryGetIndex(factoryId, out int factoryRoot) ||
-                !_linkTree.TryGetIndex(nodeId, factoryRoot, out int nodeRoot) ||
+            if (!_linkTree.TryGetIndex(sourceId, out int sourceRoot) ||
+                !_linkTree.TryGetIndex(nodeId, sourceRoot, out int nodeRoot) ||
                 !_linkTree.TryGetIndex(port, nodeRoot, out int portRoot)
             ) {
                 return;
@@ -89,7 +89,7 @@ namespace MisterGames.Blueprints.Core2 {
 
             _linkTree.RemoveNodeAt(portRoot);
             if (!_linkTree.HasChildren(nodeRoot)) _linkTree.RemoveNodeAt(nodeRoot);
-            if (!_linkTree.HasChildren(factoryRoot)) _linkTree.RemoveNodeAt(factoryRoot);
+            if (!_linkTree.HasChildren(sourceRoot)) _linkTree.RemoveNodeAt(sourceRoot);
 
             _linkTree.AllowDefragmentation(true);
 
@@ -97,10 +97,10 @@ namespace MisterGames.Blueprints.Core2 {
         }
 
         public void RemoveNode(long id) {
-            BlueprintNodeAddress.Unpack(id, out int factoryId, out int nodeId);
+            BlueprintNodeAddress.Unpack(id, out int sourceId, out int nodeId);
 
-            if (!_linkTree.TryGetIndex(factoryId, out int factoryRoot) ||
-                !_linkTree.TryGetIndex(nodeId, factoryRoot, out int nodeRoot)
+            if (!_linkTree.TryGetIndex(sourceId, out int sourceRoot) ||
+                !_linkTree.TryGetIndex(nodeId, sourceRoot, out int nodeRoot)
             ) {
                 return;
             }
@@ -118,16 +118,16 @@ namespace MisterGames.Blueprints.Core2 {
             }
 
             _linkTree.RemoveNodeAt(nodeRoot);
-            if (!_linkTree.HasChildren(factoryRoot)) _linkTree.RemoveNodeAt(factoryRoot);
+            if (!_linkTree.HasChildren(sourceRoot)) _linkTree.RemoveNodeAt(sourceRoot);
 
             _linkTree.AllowDefragmentation(true);
         }
 
         public bool ContainsLink(long id, int port, long toId, int toPort) {
-            BlueprintNodeAddress.Unpack(id, out int factoryId, out int nodeId);
+            BlueprintNodeAddress.Unpack(id, out int sourceId, out int nodeId);
 
-            if (!_linkTree.TryGetIndex(factoryId, out int factoryRoot) ||
-                !_linkTree.TryGetIndex(nodeId, factoryRoot, out int nodeRoot) ||
+            if (!_linkTree.TryGetIndex(sourceId, out int sourceRoot) ||
+                !_linkTree.TryGetIndex(nodeId, sourceRoot, out int nodeRoot) ||
                 !_linkTree.TryGetIndex(port, nodeRoot, out int portRoot) ||
                 !_linkTree.TryGetIndex(0, portRoot, out int linksRoot) ||
                 !_linkTree.TryGetChildIndex(linksRoot, out int index)
@@ -146,25 +146,25 @@ namespace MisterGames.Blueprints.Core2 {
         }
 
         public bool ContainsPort(long id, int port) {
-            BlueprintNodeAddress.Unpack(id, out int factoryId, out int nodeId);
+            BlueprintNodeAddress.Unpack(id, out int sourceId, out int nodeId);
 
-            return _linkTree.TryGetIndex(factoryId, out int factoryRoot) &&
-                   _linkTree.TryGetIndex(nodeId, factoryRoot, out int nodeRoot) &&
+            return _linkTree.TryGetIndex(sourceId, out int sourceRoot) &&
+                   _linkTree.TryGetIndex(nodeId, sourceRoot, out int nodeRoot) &&
                    _linkTree.TryGetIndex(port, nodeRoot, out _);
         }
 
         public bool ContainsNode(long id) {
-            BlueprintNodeAddress.Unpack(id, out int factoryId, out int nodeId);
+            BlueprintNodeAddress.Unpack(id, out int sourceId, out int nodeId);
 
-            return _linkTree.TryGetIndex(factoryId, out int factoryRoot) &&
-                   _linkTree.TryGetIndex(nodeId, factoryRoot, out _);
+            return _linkTree.TryGetIndex(sourceId, out int sourceRoot) &&
+                   _linkTree.TryGetIndex(nodeId, sourceRoot, out _);
         }
 
         private void AddLink(long id, int port, long toId, int toPort, int dir) {
-            BlueprintNodeAddress.Unpack(id, out int factoryId, out int nodeId);
+            BlueprintNodeAddress.Unpack(id, out int sourceId, out int nodeId);
 
-            int factoryRoot = _linkTree.GetOrAddNode(factoryId);
-            int nodeRoot = _linkTree.GetOrAddNode(nodeId, factoryRoot);
+            int sourceRoot = _linkTree.GetOrAddNode(sourceId);
+            int nodeRoot = _linkTree.GetOrAddNode(nodeId, sourceRoot);
             int portRoot = _linkTree.GetOrAddNode(port, nodeRoot);
             int linksRoot = _linkTree.GetOrAddNode(dir, portRoot);
 
@@ -172,10 +172,10 @@ namespace MisterGames.Blueprints.Core2 {
         }
 
         private void RemoveLink(long id, int port, long toId, int toPort, int dir) {
-            BlueprintNodeAddress.Unpack(id, out int factoryId, out int nodeId);
+            BlueprintNodeAddress.Unpack(id, out int sourceId, out int nodeId);
 
-            if (!_linkTree.TryGetIndex(factoryId, out int factoryRoot) ||
-                !_linkTree.TryGetIndex(nodeId, factoryRoot, out int nodeRoot) ||
+            if (!_linkTree.TryGetIndex(sourceId, out int sourceRoot) ||
+                !_linkTree.TryGetIndex(nodeId, sourceRoot, out int nodeRoot) ||
                 !_linkTree.TryGetIndex(port, nodeRoot, out int portRoot) ||
                 !_linkTree.TryGetIndex(dir, portRoot, out int linksRoot) ||
                 !_linkTree.TryGetChildIndex(linksRoot, out int index)
@@ -196,7 +196,7 @@ namespace MisterGames.Blueprints.Core2 {
                 if (!_linkTree.HasChildren(linksRoot)) _linkTree.RemoveNodeAt(linksRoot);
                 if (!_linkTree.HasChildren(portRoot)) _linkTree.RemoveNodeAt(portRoot);
                 if (!_linkTree.HasChildren(nodeRoot)) _linkTree.RemoveNodeAt(nodeRoot);
-                if (!_linkTree.HasChildren(factoryRoot)) _linkTree.RemoveNodeAt(factoryRoot);
+                if (!_linkTree.HasChildren(sourceRoot)) _linkTree.RemoveNodeAt(sourceRoot);
 
                 OnPortChanged?.Invoke(id, port);
 
