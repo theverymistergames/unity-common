@@ -553,7 +553,7 @@ namespace MisterGames.Common.Data {
             public int GetChildCount() {
                 ThrowIfDisposed();
 
-                return _map.GetChildCount(_index);
+                return _map.GetChildrenCount(_index);
             }
 
             /// <summary>
@@ -1166,7 +1166,7 @@ namespace MisterGames.Common.Data {
         /// </summary>
         /// <param name="parent">Index of the parent node</param>
         /// <returns>Amount of children of the parent node</returns>
-        public int GetChildCount(int parent) {
+        public int GetChildrenCount(int parent) {
             if (parent < 0 || parent >= _head) return 0;
 
             ref var node = ref _nodes[parent];

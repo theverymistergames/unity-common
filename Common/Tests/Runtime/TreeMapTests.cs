@@ -216,7 +216,7 @@ namespace Data {
             Assert.AreEqual(child, map.GetChildIndex(root));
             Assert.AreEqual(child, map.GetIndex(0, root));
 
-            Assert.AreEqual(1, map.GetChildCount(root));
+            Assert.AreEqual(1, map.GetChildrenCount(root));
 
             Assert.AreEqual(2, map.Count);
         }
@@ -230,7 +230,7 @@ namespace Data {
             int child1 = map.GetOrAddNode(0, root);
 
             Assert.AreEqual(child0, child1);
-            Assert.AreEqual(1, map.GetChildCount(root));
+            Assert.AreEqual(1, map.GetChildrenCount(root));
 
             Assert.AreEqual(2, map.Count);
         }
@@ -256,7 +256,7 @@ namespace Data {
 
             Assert.AreEqual(child1, map.GetIndex(1, root));
 
-            Assert.AreEqual(2, map.GetChildCount(root));
+            Assert.AreEqual(2, map.GetChildrenCount(root));
 
             Assert.IsTrue(map.TryGetNextIndex(child1, out int child0Get));
             Assert.AreEqual(child0, child0Get);
@@ -289,7 +289,7 @@ namespace Data {
 
             Assert.AreEqual(child, map.GetIndex(0, parent));
 
-            Assert.AreEqual(1, map.GetChildCount(parent));
+            Assert.AreEqual(1, map.GetChildrenCount(parent));
 
             Assert.AreEqual(3, map.Count);
         }
@@ -304,7 +304,7 @@ namespace Data {
             int child1 = map.GetOrAddNode(0, parent);
 
             Assert.AreEqual(child0, child1);
-            Assert.AreEqual(1, map.GetChildCount(parent));
+            Assert.AreEqual(1, map.GetChildrenCount(parent));
 
             Assert.AreEqual(3, map.Count);
         }
@@ -330,7 +330,7 @@ namespace Data {
 
             Assert.AreEqual(child1, map.GetIndex(1, parent));
 
-            Assert.AreEqual(2, map.GetChildCount(parent));
+            Assert.AreEqual(2, map.GetChildrenCount(parent));
 
             Assert.IsTrue(map.TryGetNextIndex(child1, out int child0Get));
             Assert.AreEqual(child0, child0Get);
@@ -367,7 +367,7 @@ namespace Data {
             Assert.AreEqual(-1, map.GetChildIndex(root));
             Assert.AreEqual(-1, map.GetIndex(0, root));
 
-            Assert.AreEqual(0, map.GetChildCount(root));
+            Assert.AreEqual(0, map.GetChildrenCount(root));
 
             Assert.AreEqual(1, map.Count);
         }
@@ -397,7 +397,7 @@ namespace Data {
 
             Assert.AreEqual(child1, map.GetChildIndex(root));
 
-            Assert.AreEqual(1, map.GetChildCount(root));
+            Assert.AreEqual(1, map.GetChildrenCount(root));
 
             Assert.AreEqual(2, map.Count);
         }
@@ -427,7 +427,7 @@ namespace Data {
 
             Assert.AreEqual(child0, map.GetChildIndex(root));
 
-            Assert.AreEqual(1, map.GetChildCount(root));
+            Assert.AreEqual(1, map.GetChildrenCount(root));
 
             Assert.AreEqual(2, map.Count);
         }
@@ -470,7 +470,7 @@ namespace Data {
 
             Assert.AreEqual(child2, map.GetChildIndex(root));
 
-            Assert.AreEqual(2, map.GetChildCount(root));
+            Assert.AreEqual(2, map.GetChildrenCount(root));
 
             Assert.AreEqual(3, map.Count);
         }
@@ -499,7 +499,7 @@ namespace Data {
             Assert.AreEqual(-1, map.GetChildIndex(parent));
             Assert.AreEqual(-1, map.GetIndex(0, parent));
 
-            Assert.AreEqual(0, map.GetChildCount(parent));
+            Assert.AreEqual(0, map.GetChildrenCount(parent));
 
             Assert.AreEqual(2, map.Count);
         }
@@ -530,7 +530,7 @@ namespace Data {
 
             Assert.AreEqual(child1, map.GetChildIndex(parent));
 
-            Assert.AreEqual(1, map.GetChildCount(parent));
+            Assert.AreEqual(1, map.GetChildrenCount(parent));
 
             Assert.AreEqual(3, map.Count);
         }
@@ -561,7 +561,7 @@ namespace Data {
 
             Assert.AreEqual(child0, map.GetChildIndex(parent));
 
-            Assert.AreEqual(1, map.GetChildCount(parent));
+            Assert.AreEqual(1, map.GetChildrenCount(parent));
 
             Assert.AreEqual(3, map.Count);
         }
@@ -605,7 +605,7 @@ namespace Data {
 
             Assert.AreEqual(child2, map.GetChildIndex(parent));
 
-            Assert.AreEqual(2, map.GetChildCount(parent));
+            Assert.AreEqual(2, map.GetChildrenCount(parent));
 
             Assert.AreEqual(4, map.Count);
         }
@@ -640,7 +640,7 @@ namespace Data {
             Assert.AreEqual(-1, map.GetChildIndex(root));
             Assert.AreEqual(-1, map.GetIndex(0, root));
 
-            Assert.AreEqual(0, map.GetChildCount(root));
+            Assert.AreEqual(0, map.GetChildrenCount(root));
 
             Assert.AreEqual(1, map.Count);
         }
@@ -679,7 +679,7 @@ namespace Data {
             Assert.AreEqual(-1, map.GetChildIndex(parent));
             Assert.AreEqual(-1, map.GetIndex(0, parent));
 
-            Assert.AreEqual(0, map.GetChildCount(parent));
+            Assert.AreEqual(0, map.GetChildrenCount(parent));
 
             Assert.AreEqual(2, map.Count);
         }
@@ -700,8 +700,8 @@ namespace Data {
             Assert.IsFalse(map.ContainsKey(0, parent));
             Assert.IsFalse(map.ContainsKey(1, parent));
 
-            Assert.AreEqual(0, map.GetChildCount(root));
-            Assert.AreEqual(0, map.GetChildCount(parent));
+            Assert.AreEqual(0, map.GetChildrenCount(root));
+            Assert.AreEqual(0, map.GetChildrenCount(parent));
 
             Assert.AreEqual(0, map.Count);
         }
