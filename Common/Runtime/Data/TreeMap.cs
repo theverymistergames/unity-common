@@ -599,7 +599,7 @@ namespace MisterGames.Common.Data {
                 sb.AppendLine($"Tree:");
 
                 while (true) {
-                    sb.AppendLine($"{it.Level}{new string('-', it.Level * 2)} [{it._index}] {it.GetKey()}");
+                    sb.AppendLine($"{it.Level}{new string('-', it.Level * 2)} [{it._index}] key {it.GetKey()} value {it.GetValue()}");
                     if (!it.MovePreOrder(root)) break;
                 }
 
