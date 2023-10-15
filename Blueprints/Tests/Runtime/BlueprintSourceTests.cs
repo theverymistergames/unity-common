@@ -4,20 +4,20 @@ using UnityEngine;
 
 namespace Core {
 
-    public class BlueprintFactoryTests {
+    public class BlueprintSourceTests {
 
         [Test]
         [TestCase(1)]
         [TestCase(2)]
         [TestCase(100)]
-        public void AddElements(int count) {
-            var factory = new BlueprintSourceTest0();
+        public void AddNodes(int count) {
+            var source = new BlueprintSourceTest0();
 
             for (int i = 0; i < count; i++) {
-                int id = factory.AddNode();
+                int id = source.AddNode();
 
                 Assert.AreEqual(i + 1, id);
-                Assert.AreEqual(i + 1, factory.Count);
+                Assert.AreEqual(i + 1, source.Count);
             }
         }
 
@@ -26,14 +26,14 @@ namespace Core {
         [TestCase(1)]
         [TestCase(2)]
         [TestCase(-1)]
-        public void SetElementValue(int value) {
-            var factory = new BlueprintSourceTest0();
-            int id = factory.AddNode();
+        public void SetNodeValue(int value) {
+            var source = new BlueprintSourceTest0();
+            int id = source.AddNode();
 
-            ref var node = ref factory.GetNode<BlueprintNodeTest0>(id);
+            ref var node = ref source.GetNode<BlueprintNodeTest0>(id);
             node.intValue = value;
 
-            node = factory.GetNode<BlueprintNodeTest0>(id);
+            node = source.GetNode<BlueprintNodeTest0>(id);
             Assert.AreEqual(value, node.intValue);
         }
 
@@ -42,28 +42,28 @@ namespace Core {
         [TestCase(1)]
         [TestCase(2)]
         [TestCase(-1)]
-        public void AddElementCopy(int value) {
-            var factory0 = new BlueprintSourceTest0();
-            int id0 = factory0.AddNode();
+        public void AddNodeCopy(int value) {
+            var source0 = new BlueprintSourceTest0();
+            int id0 = source0.AddNode();
 
-            ref var node0 = ref factory0.GetNode<BlueprintNodeTest0>(id0);
+            ref var node0 = ref source0.GetNode<BlueprintNodeTest0>(id0);
             node0.intValue = value;
 
-            var factory1 = new BlueprintSourceTest0();
-            int id1 = factory1.AddNodeCopy(factory0, id0);
+            var source1 = new BlueprintSourceTest0();
+            int id1 = source1.AddNodeCopy(source0, id0);
 
-            ref var node1 = ref factory1.GetNode<BlueprintNodeTest0>(id1);
+            ref var node1 = ref source1.GetNode<BlueprintNodeTest0>(id1);
             Assert.AreEqual(value, node1.intValue);
         }
 
         [Test]
-        public void RemoveElement() {
-            var factory = new BlueprintSourceTest0();
+        public void RemoveNode() {
+            var source = new BlueprintSourceTest0();
 
-            int id = factory.AddNode();
-            factory.RemoveNode(id);
+            int id = source.AddNode();
+            source.RemoveNode(id);
 
-            Assert.AreEqual(0, factory.Count);
+            Assert.AreEqual(0, source.Count);
         }
 
         [Test]
@@ -75,8 +75,8 @@ namespace Core {
         [TestCase(10)]
         [TestCase(100)]
         [TestCase(1000)]
-        public void AddRemoveElements(int size) {
-            var factory = new BlueprintSourceTest0();
+        public void AddRemoveNodes(int size) {
+            var source = new BlueprintSourceTest0();
             var addedIds = new List<int>();
             var removedIds = new HashSet<int>();
 
@@ -85,8 +85,8 @@ namespace Core {
 
             for (int i = 0; i < times; i++) {
                 for (int j = 0; j < size / times; j++) {
-                    int id = factory.AddNode();
-                    ref var node = ref factory.GetNode<BlueprintNodeTest0>(id);
+                    int id = source.AddNode();
+                    ref var node = ref source.GetNode<BlueprintNodeTest0>(id);
 
                     node.intValue = id + 100;
 
@@ -99,7 +99,7 @@ namespace Core {
                     int id = addedIds[j];
                     if (removedIds.Contains(id)) continue;
 
-                    factory.RemoveNode(id);
+                    source.RemoveNode(id);
                     removedIds.Add(id);
                 }
 
@@ -107,11 +107,11 @@ namespace Core {
                     int id = addedIds[j];
 
                     if (removedIds.Contains(id)) {
-                        Assert.Throws<KeyNotFoundException>(() => factory.GetNode<BlueprintNodeTest0>(id));
+                        Assert.Throws<KeyNotFoundException>(() => source.GetNode<BlueprintNodeTest0>(id));
                         continue;
                     }
 
-                    ref var node = ref factory.GetNode<BlueprintNodeTest0>(id);
+                    ref var node = ref source.GetNode<BlueprintNodeTest0>(id);
                     Assert.AreEqual(id + 100, node.intValue);
                 }
             }

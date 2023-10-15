@@ -108,6 +108,48 @@ namespace Core {
         }
 
         [Test]
+        public void CopyLinks() {
+            var storage = new BlueprintLinkStorage();
+
+            storage.AddLink(0L, 0, 1L, 0);
+            storage.AddLink(0L, 1, 1L, 1);
+
+            var links = storage.CopyLinks(0L);
+
+            var tree = links.GetTree(0);
+            Assert.IsTrue(tree.MoveChild(0));
+            Assert.IsTrue(tree.MoveChild());
+
+            Assert.AreEqual(1L, tree.GetValue().nodeId);
+            Assert.AreEqual(0, tree.GetValue().port);
+
+            tree = links.GetTree(1);
+            Assert.IsTrue(tree.MoveChild(0));
+            Assert.IsTrue(tree.MoveChild());
+
+            Assert.AreEqual(1L, tree.GetValue().nodeId);
+            Assert.AreEqual(1, tree.GetValue().port);
+        }
+
+        [Test]
+        public void SetLinks() {
+            var storage = new BlueprintLinkStorage();
+
+            storage.AddLink(0L, 0, 1L, 0);
+            storage.AddLink(0L, 1, 1L, 1);
+
+            var links = storage.CopyLinks(0L);
+
+            storage = new BlueprintLinkStorage();
+
+            storage.SetLinks(0L, 0, links, 0);
+            storage.SetLinks(0L, 1, links, 1);
+
+            Assert.IsTrue(storage.ContainsLink(0L, 0, 1L, 0));
+            Assert.IsTrue(storage.ContainsLink(0L, 1, 1L, 1));
+        }
+
+        [Test]
         [TestCase(1)]
         [TestCase(2)]
         [TestCase(3)]
