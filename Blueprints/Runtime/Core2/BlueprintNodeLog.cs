@@ -19,10 +19,10 @@ namespace MisterGames.Blueprints.Core2 {
         }
 
         public void CreatePorts(IBlueprintMeta meta, long id) {
-            meta.AddPort(id, 0, Port.Enter());
-            meta.AddPort(id, 1, Port.Exit());
-            meta.AddPort(id, 2, Port.Input<string>());
-            meta.AddPort(id, 3, Port.Output<string>());
+            meta.AddPort(id, Port.Enter());
+            meta.AddPort(id, Port.Exit());
+            meta.AddPort(id, Port.Input<string>());
+            meta.AddPort(id, Port.Output<string>());
         }
 
         public void OnEnterPort(IBlueprint blueprint, long id, int port) {

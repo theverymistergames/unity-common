@@ -2,7 +2,7 @@
 
     public interface IBlueprintConnectionsCallback {
 
-        void OnConnectionsChanged(IBlueprintMeta meta, long id, int port);
+        void OnLinksChanged(IBlueprintMeta meta, long id, int port);
     }
 
 }

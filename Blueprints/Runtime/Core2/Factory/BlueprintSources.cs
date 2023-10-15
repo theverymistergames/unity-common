@@ -67,11 +67,44 @@
         public interface ConnectionsCallback<TNode> : IBlueprintSource, IBlueprintConnectionsCallback
             where TNode : struct, IBlueprintNode, IBlueprintConnectionsCallback
         {
-            void IBlueprintConnectionsCallback.OnConnectionsChanged(IBlueprintMeta meta, long id, int port) {
+            void IBlueprintConnectionsCallback.OnLinksChanged(IBlueprintMeta meta, long id, int port) {
                 BlueprintNodeAddress.Unpack(id, out _, out int nodeId);
 
                 ref var node = ref GetNode<TNode>(nodeId);
-                node.OnConnectionsChanged(meta, id, port);
+                node.OnLinksChanged(meta, id, port);
+            }
+        }
+
+        internal interface PortLinker<TNode> : IBlueprintSource, IBlueprintPortLinker2
+            where TNode : struct, IBlueprintNode, IBlueprintPortLinker2
+        {
+            void IBlueprintPortLinker2.GetLinkedPorts(long id, int port, out int index, out int count) {
+                BlueprintNodeAddress.Unpack(id, out _, out int nodeId);
+
+                ref var node = ref GetNode<TNode>(nodeId);
+                node.GetLinkedPorts(id, port, out index, out count);
+            }
+        }
+
+        internal interface NodeLinker<TNode> : IBlueprintSource, IBlueprintNodeLinker2
+            where TNode : struct, IBlueprintNode, IBlueprintNodeLinker2
+        {
+            void IBlueprintNodeLinker2.GetLinkedNode(long id, out int hash, out int port) {
+                BlueprintNodeAddress.Unpack(id, out _, out int nodeId);
+
+                ref var node = ref GetNode<TNode>(nodeId);
+                node.GetLinkedNode(id, out hash, out port);
+            }
+        }
+
+        internal interface Compiled<TNode> : IBlueprintSource, IBlueprintCompiled
+            where TNode : struct, IBlueprintNode, IBlueprintCompiled
+        {
+            void IBlueprintCompiled.Compile(long id, Port[] ports) {
+                BlueprintNodeAddress.Unpack(id, out _, out int nodeId);
+
+                ref var node = ref GetNode<TNode>(nodeId);
+                node.Compile(id, ports);
             }
         }
     }

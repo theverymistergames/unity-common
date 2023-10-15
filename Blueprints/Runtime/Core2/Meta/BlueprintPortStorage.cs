@@ -9,8 +9,36 @@ namespace MisterGames.Blueprints.Core2 {
 
         [SerializeField] private TreeMap<int, Port> _portTree;
 
-        public Port GetPortData(int index) {
+        public TreeMap<int, int> CreatePortSignatureToIndicesMap(long id) {
+            BlueprintNodeAddress.Unpack(id, out int factoryId, out int nodeId);
+
+            if (!_portTree.TryGetIndex(factoryId, out int factoryRoot) ||
+                !_portTree.TryGetIndex(nodeId, factoryRoot, out int nodeRoot) ||
+                !_portTree.TryGetChildIndex(nodeRoot, out int p)
+            ) {
+                return null;
+            }
+
+            var treeMap = new TreeMap<int, int>();
+
+            while (p >= 0) {
+                int index = _portTree.GetKeyAt(p);
+                int sign = _portTree.GetValueAt(p).GetSignatureHashCode();
+
+                treeMap.GetOrAddNode(index, treeMap.GetOrAddNode(sign));
+
+                _portTree.TryGetNextIndex(p, out p);
+            }
+
+            return treeMap;
+        }
+
+        public Port GetPort(int index) {
             return _portTree.GetValueAt(index);
+        }
+
+        public int GetPortKey(int index) {
+            return _portTree.GetKeyAt(index);
         }
 
         public int GetPortCount(long id) {
@@ -34,11 +62,11 @@ namespace MisterGames.Blueprints.Core2 {
                    _portTree.TryGetChildIndex(nodeRoot, out firstPort);
         }
 
-        public bool TryGetNextPort(int previousPort, out int nextPort) {
+        public bool TryGetNextPortIndex(int previousPort, out int nextPort) {
             return _portTree.TryGetNextIndex(previousPort, out nextPort);
         }
 
-        public bool TryGetPort(long id, int index, out int port) {
+        public bool TryGetPortIndex(long id, int index, out int port) {
             BlueprintNodeAddress.Unpack(id, out int factoryId, out int nodeId);
             port = -1;
 
@@ -47,13 +75,14 @@ namespace MisterGames.Blueprints.Core2 {
                    _portTree.TryGetIndex(index, nodeRoot, out port);
         }
 
-        public void AddPort(long id, int index, Port port) {
+        public void AddPort(long id, Port port) {
             BlueprintNodeAddress.Unpack(id, out int factoryId, out int nodeId);
 
             int factoryRoot = _portTree.GetOrAddNode(factoryId);
             int nodeRoot = _portTree.GetOrAddNode(nodeId, factoryRoot);
-            int portRoot = _portTree.GetOrAddNode(index, nodeRoot);
+            int count = _portTree.GetChildrenCount(nodeRoot);
 
+            int portRoot = _portTree.GetOrAddNode(count, nodeRoot);
             _portTree.SetValueAt(portRoot, port);
         }
 

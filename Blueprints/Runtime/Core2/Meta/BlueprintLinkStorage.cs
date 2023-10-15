@@ -56,6 +56,44 @@ namespace MisterGames.Blueprints.Core2 {
             return _linkTree.TryGetNextIndex(previousLink, out nextLink);
         }
 
+        public TreeMap<int, BlueprintLink2> CopyLinks(long id) {
+            BlueprintNodeAddress.Unpack(id, out int sourceId, out int nodeId);
+
+            if (!_linkTree.TryGetIndex(sourceId, out int sourceRoot) ||
+                !_linkTree.TryGetIndex(nodeId, sourceRoot, out int nodeRoot)
+            ) {
+                return null;
+            }
+
+            return _linkTree.Copy(nodeRoot, includeRoot: false);
+        }
+
+        public void SetLinks(long id, int port, TreeMap<int, BlueprintLink2> links, int sourcePort) {
+            if (!links.TryGetIndex(sourcePort, out int root)) return;
+
+            if (links.TryGetIndex(0, root, out int linksRoot) &&
+                links.TryGetChildIndex(linksRoot, out int l)
+            ) {
+                while (l >= 0) {
+                    var link = links.GetValueAt(l);
+                    AddLink(id, port, link.nodeId, link.port);
+
+                    links.TryGetNextIndex(l, out l);
+                }
+            }
+
+            if (links.TryGetIndex(1, root, out linksRoot) &&
+                links.TryGetChildIndex(linksRoot, out l)
+            ) {
+                while (l >= 0) {
+                    var link = links.GetValueAt(l);
+                    AddLink(link.nodeId, link.port, id, port);
+
+                    links.TryGetNextIndex(l, out l);
+                }
+            }
+        }
+
         public void AddLink(long id, int port, long toId, int toPort) {
             AddLink(id, port, toId, toPort, 0);
             AddLink(toId, toPort, id, port, 1);

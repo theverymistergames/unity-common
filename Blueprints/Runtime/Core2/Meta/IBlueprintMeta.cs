@@ -2,7 +2,7 @@
 
     public interface IBlueprintMeta {
 
-        void AddPort(long id, int index, Port port);
+        void AddPort(long id, Port port);
 
         Port GetLinkedPort(int link);
 
@@ -16,7 +16,7 @@
 
         void RemoveSubgraph(long id);
 
-        void InvalidateNode(long id, bool invalidatePorts = false);
+        void InvalidateNode(long id, bool invalidateLinks, bool notify = true);
     }
 
 }
