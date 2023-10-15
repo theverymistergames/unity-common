@@ -618,17 +618,99 @@ namespace MisterGames.Common.Data {
         /// <param name="nodes">Nodes capacity</param>
         public TreeMap(int roots = 0, int nodes = 0) {
             int capacity = roots + nodes;
-            _nodes = capacity > 0 ? new Node[capacity] : Array.Empty<Node>();
 
+            _nodes = capacity > 0 ? new Node[capacity] : Array.Empty<Node>();
             _rootIndexMap = new SerializedDictionary<K, int>(roots);
             _nodeIndexMap = new SerializedDictionary<KeyIndex, int>(nodes);
-
             _freeIndices = new List<int>();
+
+            _isDefragmentationAllowed = true;
+        }
+
+        private TreeMap() {
+            _nodes = Array.Empty<Node>();
+            _rootIndexMap = new SerializedDictionary<K, int>();
+            _nodeIndexMap = new SerializedDictionary<KeyIndex, int>();
+            _freeIndices = new List<int>();
+
+            _isDefragmentationAllowed = true;
+        }
+
+        private TreeMap(TreeMap<K, V> source) {
+            _nodes = new Node[source._nodes.Length];
+            Array.Copy(source._nodes, _nodes, _nodes.Length);
+
+            _rootIndexMap = new SerializedDictionary<K, int>(source._rootIndexMap);
+            _nodeIndexMap = new SerializedDictionary<KeyIndex, int>(source._nodeIndexMap);
+            _freeIndices = new List<int>(source._freeIndices);
+
+            _count = source._count;
+            _head = source._head;
+
+            _isDefragmentationAllowed = true;
         }
 
         #endregion
 
         #region TREE
+
+        public TreeMap<K, V> Copy(int index, bool includeRoot = true) {
+            if (index < 0 || index >= _head) return null;
+
+            ref var node = ref _nodes[index];
+            if (node.IsDisposed()) return null;
+
+            var treeMap = new TreeMap<K, V>();
+
+            int root = index;
+            int parent = -1;
+            index = node.child;
+
+            if (includeRoot) {
+                parent = treeMap.GetOrAddNode(node.key);
+                treeMap.SetValueAt(parent, node.value);
+            }
+
+            while (index >= 0) {
+                node = ref _nodes[index];
+
+                int i = treeMap.GetOrAddNode(node.key, parent);
+                treeMap.SetValueAt(i, node.value);
+
+                if (node.child >= 0) {
+                    parent = i;
+                    index = node.child;
+                    continue;
+                }
+
+                if (index == root) break;
+
+                if (node.next >= 0) {
+                    index = node.next;
+                    continue;
+                }
+
+                index = node.parent;
+                treeMap.TryGetParentIndex(i, out i);
+
+                while (index >= 0 && index != root) {
+                    node = ref _nodes[index];
+
+                    if (node.next >= 0) {
+                        index = node.next;
+                        treeMap.TryGetParentIndex(i, out parent);
+                        break;
+                    }
+
+                    index = node.parent;
+                    treeMap.TryGetParentIndex(i, out i);
+                }
+
+                if (index == root) break;
+            }
+
+            return treeMap;
+        }
 
         /// <summary>
         /// Get or add and get iterator for node with passed key and parent index.
