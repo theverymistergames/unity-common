@@ -654,6 +654,13 @@ namespace MisterGames.Common.Data {
 
         #region TREE
 
+        /// <summary>
+        /// Create a tree copy from index as root node.
+        /// </summary>
+        /// <param name="index">Index of the root</param>
+        /// <param name="includeRoot">If true, tree copy will contain one root,
+        /// otherwise children of root will become roots of new tree.</param>
+        /// <returns>TreeMap instance</returns>
         public TreeMap<K, V> Copy(int index, bool includeRoot = true) {
             if (index < 0 || index >= _head) return null;
 

@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using MisterGames.Common.Data;
 using NUnit.Framework;
+using UnityEngine;
 using Random = UnityEngine.Random;
 
 namespace Data {
@@ -852,6 +853,159 @@ namespace Data {
                     while (tree.MovePreOrder()) {
                         Assert.IsTrue(addedNodes[tree.Level].Contains(tree.GetKey()) &&
                                       !removedNodes[tree.Level].Contains(tree.GetKey()));
+                    }
+                }
+            }
+        }
+
+        [Test]
+        [TestCase(1, 1)]
+        [TestCase(1, 2)]
+        [TestCase(1, 3)]
+        [TestCase(1, 4)]
+        [TestCase(1, 5)]
+        [TestCase(2, 2)]
+        [TestCase(2, 3)]
+        [TestCase(2, 4)]
+        [TestCase(2, 5)]
+        [TestCase(3, 3)]
+        [TestCase(3, 4)]
+        [TestCase(3, 5)]
+        [TestCase(10, 2)]
+        [TestCase(10, 3)]
+        [TestCase(10, 4)]
+        [TestCase(100, 2)]
+        [TestCase(100, 3)]
+        [TestCase(100, 5)]
+        [TestCase(100, 20)]
+        [TestCase(1000, 2)]
+        [TestCase(1000, 100)]
+        public void CopyTree(int size, int levels) {
+            var map = new TreeMap<int, float>();
+
+            const int iterations = 10;
+            const float removePossibility = 0.33f;
+            const int keys = 10;
+
+            var addedNodes = new List<HashSet<int>>();
+            var removedNodes = new List<HashSet<int>>();
+
+            for (int i = 0; i < levels; i++) {
+                addedNodes.Add(new HashSet<int>());
+                removedNodes.Add(new HashSet<int>());
+            }
+
+            for (int i = 0; i < iterations; i++) {
+                for (int j = 0; j < size; j++) {
+                    int level = Random.Range(0, levels - 1);
+                    int lastParent = -1;
+
+                    for (int l = 0; l <= level; l++) {
+                        var added = addedNodes[l];
+                        var removed = removedNodes[l];
+
+                        int key = Random.Range(0, keys);
+                        if (added.Contains(key) || removed.Contains(key)) break;
+
+                        int index = map.GetOrAddNode(key, lastParent);
+
+                        lastParent = index;
+                        added.Add(key);
+                    }
+                }
+
+                for (int j = 0; j < size; j++) {
+                    if (Random.Range(0f, 1f) > removePossibility) continue;
+
+                    int r = 0;
+                    int targetKeyIndex = Random.Range(0, map.Roots.Count - 1);
+                    int key = -1;
+
+                    foreach (int root in map.Roots) {
+                        if (targetKeyIndex != r++) continue;
+                        key = root;
+                    }
+
+                    if (key < 0) break;
+
+                    int level = Random.Range(0, levels - 1);
+                    var tree = map.GetTree(key);
+
+                    for (int l = 0; l <= level; l++) {
+                        if (l < level) {
+                            int childCount = tree.GetChildCount();
+                            if (childCount > 0) {
+                                int childIndex = Random.Range(0, childCount);
+
+                                for (int c = 0; c < childCount; c++) {
+                                    if (c == 0) tree.MoveChild();
+                                    else tree.MoveNext();
+
+                                    if (c == childIndex) break;
+                                }
+
+                                continue;
+                            }
+                        }
+
+                        int parent = tree.GetParentIndex();
+                        int root = tree.Index;
+                        key = tree.GetKey();
+
+                        while (true) {
+                            removedNodes[tree.Level].Add(tree.GetKey());
+                            if (!tree.MovePreOrder(root)) break;
+                        }
+
+                        map.RemoveNode(key, parent);
+                        break;
+                    }
+                }
+
+                const int attemptsMax = 100;
+                int attemptsCount = 0;
+                int copyRoot = -1;
+
+                while (!map.ContainsIndex(copyRoot) && attemptsCount++ < attemptsMax) {
+                    copyRoot = Random.Range(0, map.Count);
+                }
+
+                if (!map.ContainsIndex(copyRoot)) continue;
+
+                int levelOffset = map.GetDepth(copyRoot);
+                var copy = map.Copy(copyRoot);
+
+                var addedRoots = addedNodes[levelOffset];
+                var removedRoots = removedNodes[levelOffset];
+
+                foreach (int root in copy.Roots) {
+                    Assert.IsTrue(addedRoots.Contains(root));
+                    Assert.IsFalse(removedRoots.Contains(root));
+
+                    var tree = copy.GetTree(root);
+
+                    while (tree.MovePreOrder()) {
+                        Assert.IsTrue(addedNodes[tree.Level + levelOffset].Contains(tree.GetKey()) &&
+                                      !removedNodes[tree.Level + levelOffset].Contains(tree.GetKey()));
+                    }
+                }
+
+                copy = map.Copy(copyRoot, includeRoot: false);
+                if (copy.Count <= 0) continue;
+
+                levelOffset++;
+                addedRoots = addedNodes[levelOffset];
+                removedRoots = removedNodes[levelOffset];
+
+                foreach (int root in copy.Roots) {
+                    Assert.IsTrue(addedRoots.Contains(root));
+                    Assert.IsFalse(removedRoots.Contains(root));
+
+                    var tree = copy.GetTree(root);
+
+                    while (tree.MovePreOrder()) {
+                        Assert.IsTrue(addedNodes[tree.Level + levelOffset].Contains(tree.GetKey()) &&
+                                      !removedNodes[tree.Level + levelOffset].Contains(tree.GetKey()));
                     }
                 }
             }
