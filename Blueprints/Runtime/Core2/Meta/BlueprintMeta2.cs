@@ -9,7 +9,7 @@ namespace MisterGames.Blueprints.Core2 {
     [Serializable]
     public sealed class BlueprintMeta2 : IBlueprintMeta, IComparer<BlueprintLink2> {
 
-        [SerializeField] private ArrayMap<long, BlueprintNodeMeta2> _nodeMap;
+        [SerializeField] private SerializedDictionary<long, Vector2> _nodeMap;
         [SerializeField] private SerializedDictionary<long, BlueprintAsset2> _subgraphMap;
         [SerializeField] private BlueprintFactory _factory;
         [SerializeField] private BlueprintLinkStorage _links;
@@ -41,8 +41,14 @@ namespace MisterGames.Blueprints.Core2 {
             return changed;
         }
 
-        public BlueprintNodeMeta2 GetNode(long id) {
+        public Vector2 GetNodePosition(long id) {
             return _nodeMap[id];
+        }
+
+        public void SetNodePosition(long id, Vector2 position) {
+            if (!_nodeMap.ContainsKey(id)) return;
+
+            _nodeMap[id] = position;
         }
 
         public string GetNodePath(long id) {
@@ -50,13 +56,13 @@ namespace MisterGames.Blueprints.Core2 {
             return $"{nameof(_factory)}.{_factory.GetSourcePath(sourceId)}.{_factory.GetSource(sourceId).GetNodePath(nodeId)}";
         }
 
-        public long AddNode(Type sourceType) {
+        public long AddNode(Type sourceType, Vector2 position) {
             int sourceId = _factory.GetOrCreateSource(sourceType);
             var source = _factory.GetSource(sourceId);
             int nodeId = source.AddNode();
 
             long id = BlueprintNodeAddress.Pack(sourceId, nodeId);
-            _nodeMap[id] = new BlueprintNodeMeta2 { nodeId = id };
+            _nodeMap[id] = position;
 
             source.CreatePorts(this, id);
             source.OnValidate(this, id);
@@ -64,13 +70,6 @@ namespace MisterGames.Blueprints.Core2 {
             AddNodeChange(id);
 
             return id;
-        }
-
-        public void SetNodePosition(long id, Vector2 position) {
-            if (!_nodeMap.ContainsKey(id)) return;
-
-            ref var meta = ref _nodeMap.GetValueByRef(id);
-            meta.position = position;
         }
 
         public void RemoveNode(long id) {
@@ -94,7 +93,7 @@ namespace MisterGames.Blueprints.Core2 {
             var oldLinksTree = invalidateLinks ? _links.CopyLinks(id) : null;
             if (invalidateLinks) _links.RemoveNode(id);
 
-            var oldPortsTree = _ports.CreatePortSignatureToIndicesMap(id);
+            var oldPortsTree = _ports.CreatePortSignatureToIndicesTree(id);
             oldPortsTree.AllowDefragmentation(false);
 
             _ports.RemoveNode(id);
@@ -238,9 +237,7 @@ namespace MisterGames.Blueprints.Core2 {
         }
 
         int IComparer<BlueprintLink2>.Compare(BlueprintLink2 x, BlueprintLink2 y) {
-            return x.nodeId == y.nodeId
-                ? x.port.CompareTo(y.port)
-                : _nodeMap[x.nodeId].position.y.CompareTo(_nodeMap[y.nodeId].position.y);
+            return x.nodeId == y.nodeId ? x.port.CompareTo(y.port) : _nodeMap[x.nodeId].y.CompareTo(_nodeMap[y.nodeId].y);
         }
     }
 

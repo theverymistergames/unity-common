@@ -9,7 +9,7 @@ namespace MisterGames.Blueprints.Core2 {
 
         [SerializeField] private TreeMap<int, Port> _portTree;
 
-        public TreeMap<int, int> CreatePortSignatureToIndicesMap(long id) {
+        public TreeMap<int, int> CreatePortSignatureToIndicesTree(long id) {
             BlueprintNodeAddress.Unpack(id, out int factoryId, out int nodeId);
 
             if (!_portTree.TryGetIndex(factoryId, out int factoryRoot) ||
