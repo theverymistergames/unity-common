@@ -99,6 +99,34 @@ namespace Data {
         }
 
         [Test]
+        [TestCase(2)]
+        [TestCase(3)]
+        [TestCase(10)]
+        [TestCase(100)]
+        [TestCase(1000)]
+        public void SortChildren(int size) {
+            var map = new TreeMap<int, int>();
+
+            int root = map.GetOrAddNode(0);
+
+            for (int i = 0; i < size; i++) {
+                int index = map.GetOrAddNode(i, root);
+                map.SetValueAt(index, Random.Range(0, size));
+            }
+
+            map.SortChildren(root);
+            map.TryGetChildIndex(root, out int child);
+
+            int lastValue = map.GetValueAt(child);
+
+            while (map.TryGetNextIndex(child, out child)) {
+                int value = map.GetValueAt(child);
+                Assert.IsTrue(value >= lastValue);
+                lastValue = value;
+            }
+        }
+
+        [Test]
         public void AddEndPoint() {
             var map = new TreeMap<int, float>();
 

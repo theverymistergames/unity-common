@@ -1144,6 +1144,78 @@ namespace MisterGames.Common.Data {
         }
 
         /// <summary>
+        /// Sort children by value. If comparer is null, default comparer is used.
+        /// </summary>
+        /// <param name="parent">Index of the parent node</param>
+        /// <param name="comparer">Value comparer</param>
+        /// <exception cref="KeyNotFoundException">If parent index is invalid</exception>
+        public void SortChildren(int parent, IComparer<V> comparer = null) {
+            if (parent < 0 || parent >= _head) {
+                throw new KeyNotFoundException($"{nameof(TreeMap<K, V>)}: parent at index {parent} is not found");
+            }
+
+            ref var node = ref _nodes[parent];
+            if (node.IsDisposed()) {
+                throw new KeyNotFoundException($"{nameof(TreeMap<K, V>)}: parent at index {parent} is not found");
+            }
+
+            int child = node.child;
+            if (child < 0) return;
+
+            comparer ??= Comparer<V>.Default;
+            node = ref _nodes[child];
+
+            child = node.next;
+
+            while (child >= 0) {
+                node = ref _nodes[child];
+
+                int next = node.next;
+                int prev = node.prev;
+
+                int c = child;
+                int p = prev;
+
+                while (p >= 0) {
+                    ref var head = ref _nodes[p];
+                    if (comparer.Compare(node.value, head.value) >= 0) break;
+
+                    c = p;
+                    p = head.prev;
+                }
+
+                if (p != prev) {
+                    node.next = c;
+                    node.prev = p;
+
+                    if (p >= 0) {
+                        node = ref _nodes[p];
+                        node.next = child;
+                    }
+                    else if (node.parent >= 0) {
+                        node = ref _nodes[node.parent];
+                        node.child = child;
+                    }
+
+                    node = ref _nodes[c];
+                    node.prev = child;
+
+                    node = ref _nodes[prev];
+                    node.next = next;
+
+                    if (next >= 0) {
+                        node = ref _nodes[next];
+                        node.prev = prev;
+                    }
+                }
+
+                child = next;
+            }
+
+            _version++;
+        }
+
+        /// <summary>
         /// Remove node by key and parent. This operation can cause map version change.
         /// Note that parent index can change after remove during defragmentation.
         /// </summary>
