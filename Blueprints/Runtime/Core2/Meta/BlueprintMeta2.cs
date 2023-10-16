@@ -7,7 +7,7 @@ using UnityEngine;
 namespace MisterGames.Blueprints.Core2 {
 
     [Serializable]
-    public sealed class BlueprintMeta2 : IBlueprintMeta {
+    public sealed class BlueprintMeta2 : IBlueprintMeta, IComparer<BlueprintLink2> {
 
         [SerializeField] private ArrayMap<long, BlueprintNodeMeta2> _nodeMap;
         [SerializeField] private SerializedDictionary<long, BlueprintAsset2> _subgraphMap;
@@ -50,13 +50,13 @@ namespace MisterGames.Blueprints.Core2 {
             return $"{nameof(_factory)}.{_factory.GetSourcePath(sourceId)}.{_factory.GetSource(sourceId).GetNodePath(nodeId)}";
         }
 
-        public long AddNode(Type sourceType, Vector2 position) {
+        public long AddNode(Type sourceType) {
             int sourceId = _factory.GetOrCreateSource(sourceType);
             var source = _factory.GetSource(sourceId);
             int nodeId = source.AddNode();
 
             long id = BlueprintNodeAddress.Pack(sourceId, nodeId);
-            _nodeMap[id] = new BlueprintNodeMeta2 { nodeId = id, position = position };
+            _nodeMap[id] = new BlueprintNodeMeta2 { nodeId = id };
 
             source.CreatePorts(this, id);
             source.OnValidate(this, id);
@@ -64,6 +64,13 @@ namespace MisterGames.Blueprints.Core2 {
             AddNodeChange(id);
 
             return id;
+        }
+
+        public void SetNodePosition(long id, Vector2 position) {
+            if (!_nodeMap.ContainsKey(id)) return;
+
+            ref var meta = ref _nodeMap.GetValueByRef(id);
+            meta.position = position;
         }
 
         public void RemoveNode(long id) {
@@ -175,6 +182,7 @@ namespace MisterGames.Blueprints.Core2 {
         }
 
         public bool TryGetLinksFrom(long id, int port, out int firstLink) {
+            _links.SortLinksFrom(id, port, this);
             return _links.TryGetLinksFrom(id, port, out firstLink);
         }
 
@@ -227,6 +235,12 @@ namespace MisterGames.Blueprints.Core2 {
         private void AddNodeChange(long id) {
             _changedNodes ??= new HashSet<long>();
             _changedNodes.Add(id);
+        }
+
+        int IComparer<BlueprintLink2>.Compare(BlueprintLink2 x, BlueprintLink2 y) {
+            return x.nodeId == y.nodeId
+                ? x.port.CompareTo(y.port)
+                : _nodeMap[x.nodeId].position.y.CompareTo(_nodeMap[y.nodeId].position.y);
         }
     }
 

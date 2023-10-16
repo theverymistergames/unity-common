@@ -7,6 +7,12 @@ namespace Core {
 
     public class BlueprintLinkStorageTests {
 
+        private class LinksComparer : IComparer<BlueprintLink2> {
+            public int Compare(BlueprintLink2 x, BlueprintLink2 y) {
+                return x.nodeId == y.nodeId ? x.port.CompareTo(y.port) : x.nodeId.CompareTo(y.nodeId);
+            }
+        }
+
         [Test]
         [TestCase(1)]
         [TestCase(2)]
@@ -105,6 +111,30 @@ namespace Core {
 
             Assert.IsFalse(storage.ContainsLink(0L, 0, 0L, 0));
             Assert.IsFalse(storage.ContainsLink(0L, 1, 0L, 0));
+        }
+
+        [Test]
+        public void SortLinks() {
+            var storage = new BlueprintLinkStorage();
+
+            storage.AddLink(0L, 0, 0L, 0);
+            storage.AddLink(0L, 0, 0L, 1);
+            storage.AddLink(0L, 0, 0L, 2);
+
+            storage.SortLinksFrom(0L, 0, new LinksComparer());
+
+            storage.TryGetLinksFrom(0L, 0, out int l);
+
+            var link = storage.GetLink(l);
+            Assert.AreEqual(0, link.port);
+
+            storage.TryGetNextLink(l, out l);
+            link = storage.GetLink(l);
+            Assert.AreEqual(1, link.port);
+
+            storage.TryGetNextLink(l, out l);
+            link = storage.GetLink(l);
+            Assert.AreEqual(2, link.port);
         }
 
         [Test]

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using MisterGames.Common.Data;
 using UnityEngine;
 
@@ -54,6 +55,20 @@ namespace MisterGames.Blueprints.Core2 {
 
         public bool TryGetNextLink(int previousLink, out int nextLink) {
             return _linkTree.TryGetNextIndex(previousLink, out nextLink);
+        }
+
+        public void SortLinksFrom(long id, int port, IComparer<BlueprintLink2> comparer) {
+            BlueprintNodeAddress.Unpack(id, out int sourceId, out int nodeId);
+
+            if (!_linkTree.TryGetIndex(sourceId, out int sourceRoot) ||
+                !_linkTree.TryGetIndex(nodeId, sourceRoot, out int nodeRoot) ||
+                !_linkTree.TryGetIndex(port, nodeRoot, out int portRoot) ||
+                !_linkTree.TryGetIndex(0, portRoot, out int linksRoot)
+            ) {
+                return;
+            }
+
+            _linkTree.SortChildren(linksRoot, comparer);
         }
 
         public TreeMap<int, BlueprintLink2> CopyLinks(long id) {
