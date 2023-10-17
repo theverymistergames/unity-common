@@ -8,8 +8,8 @@ namespace MisterGames.Blueprints.Core2 {
     [Serializable]
     public sealed class BlueprintFactory : IBlueprintFactory {
 
-        [SerializeField] private int _lastId;
         [SerializeField] private ReferenceArrayMap<int, IBlueprintSource> _sources;
+        [SerializeField] private int _lastId;
 
         private readonly Dictionary<Type, int> _typeToIdMap = new Dictionary<Type, int>();
 
@@ -74,6 +74,10 @@ namespace MisterGames.Blueprints.Core2 {
             _sources.Add(_lastId, source);
 
             return _lastId;
+        }
+
+        public override string ToString() {
+            return $"{nameof(BlueprintFactory)}: sources {_sources}";
         }
     }
 

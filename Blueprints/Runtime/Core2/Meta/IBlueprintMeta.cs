@@ -2,15 +2,19 @@
 
     public interface IBlueprintMeta {
 
+        Port GetPort(long id, int port);
+
         void AddPort(long id, Port port);
 
-        Port GetLinkedPort(int link);
+        int GetPortCount(long id);
 
-        bool TryGetLinksFrom(long id, int port, out int firstLink);
+        BlueprintLink2 GetLink(int index);
 
-        bool TryGetLinksTo(long id, int port, out int firstLink);
+        bool TryGetLinksFrom(long id, int port, out int index);
 
-        bool TryGetNextLink(int previousLink, out int nextLink);
+        bool TryGetLinksTo(long id, int port, out int index);
+
+        bool TryGetNextLink(int previous, out int next);
 
         void SetSubgraph(long id, BlueprintAsset2 asset);
 

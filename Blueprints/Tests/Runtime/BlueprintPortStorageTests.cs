@@ -13,23 +13,13 @@ namespace Core {
             storage.AddPort(0L, Port.Enter());
             storage.AddPort(0L, Port.Exit());
 
-            Assert.IsTrue(storage.TryGetPorts(0L, out int p));
+            Assert.AreEqual(2, storage.GetPortCount(0L));
 
-            var port = storage.GetPort(p);
-            Assert.IsFalse(port.IsInput());
-            Assert.AreEqual(1, storage.GetPortKey(p));
-
-            Assert.IsTrue(storage.TryGetPortIndex(0L, 1, out p));
-            Assert.AreEqual(1, storage.GetPortKey(p));
-
-            Assert.IsTrue(storage.TryGetNextPortIndex(p, out p));
-
-            port = storage.GetPort(p);
+            Assert.IsTrue(storage.TryGetPort(0L, 0, out var port));
             Assert.IsTrue(port.IsInput());
-            Assert.AreEqual(0, storage.GetPortKey(p));
 
-            Assert.IsTrue(storage.TryGetPortIndex(0L, 0, out p));
-            Assert.AreEqual(0, storage.GetPortKey(p));
+            Assert.IsTrue(storage.TryGetPort(0L, 1, out port));
+            Assert.IsFalse(port.IsInput());
         }
 
         [Test]

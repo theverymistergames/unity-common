@@ -19,13 +19,13 @@ namespace MisterGames.Blueprints.Core2 {
             _linkTree = new TreeMap<int, BlueprintLink2>(capacity);
         }
 
-        public ref BlueprintLink2 GetLink(int link) {
-            return ref _linkTree.GetValueByRefAt(link);
+        public BlueprintLink2 GetLink(int link) {
+            return _linkTree.GetValueAt(link);
         }
 
-        public bool TryGetLinksFrom(long id, int port, out int firstLink) {
+        public bool TryGetLinksFrom(long id, int port, out int index) {
             BlueprintNodeAddress.Unpack(id, out int sourceId, out int nodeId);
-            firstLink = -1;
+            index = -1;
 
             if (!_linkTree.TryGetIndex(sourceId, out int sourceRoot) ||
                 !_linkTree.TryGetIndex(nodeId, sourceRoot, out int nodeRoot) ||
@@ -35,12 +35,12 @@ namespace MisterGames.Blueprints.Core2 {
                 return false;
             }
 
-            return _linkTree.TryGetChildIndex(linksRoot, out firstLink);
+            return _linkTree.TryGetChildIndex(linksRoot, out index);
         }
 
-        public bool TryGetLinksTo(long id, int port, out int firstLink) {
+        public bool TryGetLinksTo(long id, int port, out int index) {
             BlueprintNodeAddress.Unpack(id, out int sourceId, out int nodeId);
-            firstLink = -1;
+            index = -1;
 
             if (!_linkTree.TryGetIndex(sourceId, out int sourceRoot) ||
                 !_linkTree.TryGetIndex(nodeId, sourceRoot, out int nodeRoot) ||
@@ -50,11 +50,11 @@ namespace MisterGames.Blueprints.Core2 {
                 return false;
             }
 
-            return _linkTree.TryGetChildIndex(linksRoot, out firstLink);
+            return _linkTree.TryGetChildIndex(linksRoot, out index);
         }
 
-        public bool TryGetNextLink(int previousLink, out int nextLink) {
-            return _linkTree.TryGetNextIndex(previousLink, out nextLink);
+        public bool TryGetNextLink(int previous, out int next) {
+            return _linkTree.TryGetNextIndex(previous, out next);
         }
 
         public void SortLinksFrom(long id, int port, IComparer<BlueprintLink2> comparer) {
@@ -284,6 +284,10 @@ namespace MisterGames.Blueprints.Core2 {
         public void Clear() {
             _linkTree.Clear();
             OnPortChanged = null;
+        }
+
+        public override string ToString() {
+            return $"{nameof(BlueprintLinkStorage)}: links {_linkTree}";
         }
     }
 

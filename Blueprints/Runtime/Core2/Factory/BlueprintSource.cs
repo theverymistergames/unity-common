@@ -108,7 +108,7 @@ namespace MisterGames.Blueprints.Core2 {
         }
 
         public override string ToString() {
-            return _nodeMap.ToString();
+            return $"{nameof(BlueprintSource<TNode>)}: nodes: {_nodeMap}";
         }
     }
 

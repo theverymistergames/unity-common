@@ -37,12 +37,19 @@ namespace MisterGames.Blueprints.Core2 {
             return treeMap;
         }
 
-        public Port GetPort(int index) {
-            return _portTree.GetValueAt(index);
-        }
+        public bool TryGetPort(long id, int index, out Port port) {
+            BlueprintNodeAddress.Unpack(id, out int factoryId, out int nodeId);
 
-        public int GetPortKey(int index) {
-            return _portTree.GetKeyAt(index);
+            if (!_portTree.TryGetIndex(factoryId, out int factoryRoot) ||
+                !_portTree.TryGetIndex(nodeId, factoryRoot, out int nodeRoot) ||
+                !_portTree.TryGetIndex(index, nodeRoot, out int portRoot)
+            ) {
+                port = default;
+                return false;
+            }
+
+            port = _portTree.GetValueAt(portRoot);
+            return true;
         }
 
         public int GetPortCount(long id) {
@@ -55,28 +62,6 @@ namespace MisterGames.Blueprints.Core2 {
             }
 
             return _portTree.GetChildrenCount(nodeRoot);
-        }
-
-        public bool TryGetPorts(long id, out int firstPort) {
-            BlueprintNodeAddress.Unpack(id, out int factoryId, out int nodeId);
-            firstPort = -1;
-
-            return _portTree.TryGetIndex(factoryId, out int factoryRoot) &&
-                   _portTree.TryGetIndex(nodeId, factoryRoot, out int nodeRoot) &&
-                   _portTree.TryGetChildIndex(nodeRoot, out firstPort);
-        }
-
-        public bool TryGetNextPortIndex(int previousPort, out int nextPort) {
-            return _portTree.TryGetNextIndex(previousPort, out nextPort);
-        }
-
-        public bool TryGetPortIndex(long id, int index, out int port) {
-            BlueprintNodeAddress.Unpack(id, out int factoryId, out int nodeId);
-            port = -1;
-
-            return _portTree.TryGetIndex(factoryId, out int factoryRoot) &&
-                   _portTree.TryGetIndex(nodeId, factoryRoot, out int nodeRoot) &&
-                   _portTree.TryGetIndex(index, nodeRoot, out port);
         }
 
         public void AddPort(long id, Port port) {
@@ -104,6 +89,10 @@ namespace MisterGames.Blueprints.Core2 {
 
         public void Clear() {
             _portTree.Clear();
+        }
+
+        public override string ToString() {
+            return $"{nameof(BlueprintPortStorage)}: ports {_portTree}";
         }
     }
 
