@@ -98,11 +98,11 @@ namespace MisterGames.Blueprints.Core2 {
 
         public T Read<T>(long id, int port, T defaultValue = default) {
             GetLinks(id, port, out int index, out int count);
-            return count > 0 ? Read(index, defaultValue) : defaultValue;
+            return count > 0 ? ReadLink(index, defaultValue) : defaultValue;
         }
 
-        public T Read<T>(int linkIndex, T defaultValue = default) {
-            var link = GetLink(linkIndex);
+        public T ReadLink<T>(int index, T defaultValue = default) {
+            var link = GetLink(index);
             BlueprintNodeAddress.Unpack(link.nodeId, out int factoryId, out _);
 
             return _factories.GetSource(factoryId) switch {

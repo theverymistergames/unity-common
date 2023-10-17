@@ -119,13 +119,13 @@ namespace MisterGames.Blueprints.Compile {
                 // Skip exit or data-based input ports
                 if (port.IsInput() == port.IsData()) continue;
 
-                if (!_externalPortLinksMap.ContainsKey(port.GetSignatureHashCode())) {
+                if (!_externalPortLinksMap.ContainsKey(port.GetSignature())) {
                     Debug.LogError($"Subgraph blueprint asset `{subgraphBlueprint}` in node {subgraphNode} has error: " +
                                    $"external port links not found for subgraph port {port}.");
                     continue;
                 }
 
-                var links = _externalPortLinksMap[port.GetSignatureHashCode()];
+                var links = _externalPortLinksMap[port.GetSignature()];
                 int linksCount = links.Count;
                 var runtimeLinks = new List<RuntimeLink>(linksCount);
 
@@ -179,7 +179,7 @@ namespace MisterGames.Blueprints.Compile {
 
                 var port = ports[p];
                 if (port.IsExternal()) {
-                    int portSignature = port.GetSignatureHashCode();
+                    int portSignature = port.GetSignature();
 
                     // External port is enter or output: add port address as link into external ports map
                     // to create links from matched subgraph node port to this external port.
@@ -199,7 +199,7 @@ namespace MisterGames.Blueprints.Compile {
                     // External port is exit or input: create link from external port to matched subgraph node port.
                     int subgraphPortIndex = -1;
                     for (int i = 0; i < subgraphPortsCount; i++) {
-                        if (subgraphPorts[i].GetSignatureHashCode() != portSignature) continue;
+                        if (subgraphPorts[i].GetSignature() != portSignature) continue;
 
                         subgraphPortIndex = i;
                         break;

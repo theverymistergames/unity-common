@@ -91,7 +91,7 @@ namespace MisterGames.Blueprints {
             return port;
         }
 
-        internal static int GetSignatureHashCode(this Port port) {
+        internal static int GetSignature(this Port port) {
             return HashCode.Combine(port.mode, port.Name, port.dataType);
         }
     }

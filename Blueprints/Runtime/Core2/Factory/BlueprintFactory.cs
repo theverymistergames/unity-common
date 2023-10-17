@@ -9,10 +9,13 @@ namespace MisterGames.Blueprints.Core2 {
     public sealed class BlueprintFactory : IBlueprintFactory {
 
         [SerializeField] private int _lastId;
-        [SerializeField] private ReferenceArrayMap<int, IBlueprintSource> _sources
-            = new ReferenceArrayMap<int, IBlueprintSource>();
+        [SerializeField] private ReferenceArrayMap<int, IBlueprintSource> _sources;
 
         private readonly Dictionary<Type, int> _typeToIdMap = new Dictionary<Type, int>();
+
+        public BlueprintFactory() {
+            _sources = new ReferenceArrayMap<int, IBlueprintSource>();
+        }
 
         public IBlueprintSource GetSource(int id) {
             return _sources[id];

@@ -9,6 +9,10 @@ namespace MisterGames.Blueprints.Core2 {
 
         [SerializeField] private TreeMap<int, Port> _portTree;
 
+        public BlueprintPortStorage(int capacity = 0) {
+            _portTree = new TreeMap<int, Port>(capacity);
+        }
+
         public TreeMap<int, int> CreatePortSignatureToIndicesTree(long id) {
             BlueprintNodeAddress.Unpack(id, out int factoryId, out int nodeId);
 
@@ -23,7 +27,7 @@ namespace MisterGames.Blueprints.Core2 {
 
             while (p >= 0) {
                 int index = _portTree.GetKeyAt(p);
-                int sign = _portTree.GetValueAt(p).GetSignatureHashCode();
+                int sign = _portTree.GetValueAt(p).GetSignature();
 
                 treeMap.GetOrAddNode(index, treeMap.GetOrAddNode(sign));
 

@@ -106,7 +106,7 @@ namespace MisterGames.Blueprints.Core2 {
 
             while (p >= 0) {
                 int index = _ports.GetPortKey(p);
-                int sign = _ports.GetPort(p).GetSignatureHashCode();
+                int sign = _ports.GetPort(p).GetSignature();
 
                 if (oldPortsTree.TryGetIndex(sign, out int signRoot) &&
                     oldPortsTree.TryGetChildIndex(signRoot, out int pointer)

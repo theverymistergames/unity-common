@@ -85,7 +85,7 @@ namespace MisterGames.Blueprints.Nodes {
                         if (!hasLinks) continue;
                     }
 
-                    int portSignature = nodePort.GetSignatureHashCode();
+                    int portSignature = nodePort.GetSignature();
 
                     if (portSignatureSet.Contains(portSignature)) {
                         PortValidator.ValidateExternalPortWithExistingSignature(_blueprintAsset, nodePort);

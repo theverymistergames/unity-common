@@ -49,11 +49,11 @@
         /// indices of links by calling <see cref="GetLinks"/>.
         /// Default value can be passed to return when result is not found.
         /// </summary>
-        /// <param name="linkIndex">Input port link index</param>
+        /// <param name="index">Input port link index</param>
         /// <param name="defaultValue">Default value to be returned when result is not found</param>
         /// <typeparam name="T">Type of the read operation result</typeparam>
         /// <returns>Value of type T, or defaultValue if value was not found</returns>
-        T Read<T>(int linkIndex, T defaultValue = default);
+        T ReadLink<T>(int index, T defaultValue = default);
     }
 
 }
