@@ -5,7 +5,7 @@
     }
 
     public interface IBlueprintOutput2<out T> {
-        T GetOutputPortValue(IBlueprint blueprint, long id, int port);
+        T GetPortValue(IBlueprint blueprint, long id, int port);
     }
 
 }

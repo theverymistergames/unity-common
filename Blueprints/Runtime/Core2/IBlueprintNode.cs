@@ -4,7 +4,7 @@
 
         void CreatePorts(IBlueprintMeta meta, long id);
 
-        void SetDefaultValues(IBlueprintMeta meta, long id) {}
+        void SetDefaultValues(long id) {}
         void OnValidate(IBlueprintMeta meta, long id) {}
 
         void OnInitialize(IBlueprint blueprint, long id) {}

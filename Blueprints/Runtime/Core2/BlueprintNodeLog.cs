@@ -33,7 +33,7 @@ namespace MisterGames.Blueprints.Core2 {
             blueprint.Call(id, 1);
         }
 
-        public string GetOutputPortValue(IBlueprint blueprint, long id, int port) {
+        public string GetPortValue(IBlueprint blueprint, long id, int port) {
             return blueprint.Read<string>(id, 2);
         }
     }

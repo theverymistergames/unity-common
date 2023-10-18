@@ -16,11 +16,11 @@
         public interface IOutput<TNode, out R> : IBlueprintSource, IBlueprintOutput2<R>
             where TNode : struct, IBlueprintNode, IBlueprintOutput2<R>
         {
-            R IBlueprintOutput2<R>.GetOutputPortValue(IBlueprint blueprint, long id, int port) {
+            R IBlueprintOutput2<R>.GetPortValue(IBlueprint blueprint, long id, int port) {
                 BlueprintNodeAddress.Unpack(id, out _, out int nodeId);
 
                 ref var node = ref GetNode<TNode>(nodeId);
-                return node.GetOutputPortValue(blueprint, id, port);
+                return node.GetPortValue(blueprint, id, port);
             }
         }
 

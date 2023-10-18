@@ -79,11 +79,11 @@ namespace MisterGames.Blueprints.Core2 {
             node.CreatePorts(meta, id);
         }
 
-        public void SetDefaultValues(IBlueprintMeta meta, long id) {
+        public void SetDefaultValues(long id) {
             BlueprintNodeAddress.Unpack(id, out _, out int nodeId);
 
             ref var node = ref _nodeMap.GetValueByRef(nodeId);
-            node.SetDefaultValues(meta, id);
+            node.SetDefaultValues(id);
         }
 
         public void OnValidate(IBlueprintMeta meta, long id) {

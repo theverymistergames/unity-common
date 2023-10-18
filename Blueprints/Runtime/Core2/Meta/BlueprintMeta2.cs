@@ -68,7 +68,7 @@ namespace MisterGames.Blueprints.Core2 {
             _nodeMap[id] = position;
 
             source.CreatePorts(this, id);
-            source.SetDefaultValues(this, id);
+            source.SetDefaultValues(id);
             source.OnValidate(this, id);
 
             _onNodeChange?.Invoke(id);
