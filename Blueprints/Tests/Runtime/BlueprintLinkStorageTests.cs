@@ -30,6 +30,9 @@ namespace Core {
                 Assert.AreEqual(i, link.nodeId);
                 Assert.AreEqual(i, link.port);
             }
+
+            Assert.AreEqual(1, storage.LinkedPortCount);
+            Assert.AreEqual(iterations, storage.LinkCount);
         }
 
         [Test]
@@ -39,6 +42,9 @@ namespace Core {
             storage.AddLink(0L, 0, 0L, 0);
             storage.AddLink(0L, 0, 0L, 1);
             storage.AddLink(0L, 0, 0L, 2);
+
+            Assert.AreEqual(3, storage.LinkCount);
+            Assert.AreEqual(1, storage.LinkedPortCount);
 
             Assert.IsTrue(storage.TryGetLinksFrom(0L, 0, out int link));
             Assert.AreEqual(2, storage.GetLink(link).port);
@@ -60,6 +66,9 @@ namespace Core {
             storage.AddLink(0L, 1, 0L, 2);
             storage.AddLink(0L, 2, 0L, 3);
 
+            Assert.AreEqual(3, storage.LinkCount);
+            Assert.AreEqual(3, storage.LinkedPortCount);
+
             Assert.IsTrue(storage.TryGetLinksFrom(0L, 0, out int link));
             Assert.AreEqual(1, storage.GetLink(link).port);
 
@@ -78,9 +87,15 @@ namespace Core {
             storage.AddLink(0L, 2, 0L, 0);
             storage.AddLink(0L, 1, 0L, 0);
 
+            Assert.AreEqual(3, storage.LinkCount);
+            Assert.AreEqual(3, storage.LinkedPortCount);
+
             storage.RemoveLink(0L, 0, 0L, 0);
             storage.RemoveLink(0L, 1, 0L, 0);
             storage.RemoveLink(0L, 2, 0L, 0);
+
+            Assert.AreEqual(0, storage.LinkCount);
+            Assert.AreEqual(0, storage.LinkedPortCount);
 
             Assert.IsFalse(storage.ContainsLink(0L, 0, 0L, 0));
             Assert.IsFalse(storage.ContainsLink(0L, 1, 0L, 0));
@@ -94,7 +109,13 @@ namespace Core {
             storage.AddLink(0L, 0, 0L, 0);
             storage.AddLink(0L, 0, 0L, 1);
 
+            Assert.AreEqual(2, storage.LinkCount);
+            Assert.AreEqual(1, storage.LinkedPortCount);
+
             storage.RemovePort(0L, 0);
+
+            Assert.AreEqual(0, storage.LinkCount);
+            Assert.AreEqual(0, storage.LinkedPortCount);
 
             Assert.IsFalse(storage.ContainsLink(0L, 0, 0L, 0));
             Assert.IsFalse(storage.ContainsLink(0L, 0, 0L, 1));
@@ -107,7 +128,13 @@ namespace Core {
             storage.AddLink(0L, 0, 0L, 0);
             storage.AddLink(0L, 1, 0L, 0);
 
+            Assert.AreEqual(2, storage.LinkCount);
+            Assert.AreEqual(2, storage.LinkedPortCount);
+
             storage.RemoveNode(0L);
+
+            Assert.AreEqual(0, storage.LinkCount);
+            Assert.AreEqual(0, storage.LinkedPortCount);
 
             Assert.IsFalse(storage.ContainsLink(0L, 0, 0L, 0));
             Assert.IsFalse(storage.ContainsLink(0L, 1, 0L, 0));
@@ -227,6 +254,7 @@ namespace Core {
             var storage = new BlueprintLinkStorage();
             var addedLinks = new HashSet<(long, int, long, int)>();
             var removedLinks = new HashSet<(long, int, long, int)>();
+            var linkedPorts = new Dictionary<(long, int), int>();
 
             const int size = 10;
             const int maxNodes = 3;
@@ -246,6 +274,13 @@ namespace Core {
 
                     storage.AddLink(fromNodeId, fromPort, toNodeId, toPort);
                     addedLinks.Add((fromNodeId, fromPort, toNodeId, toPort));
+
+                    if (linkedPorts.TryGetValue((fromNodeId, fromPort), out int links)) {
+                        linkedPorts[(fromNodeId, fromPort)] = links + 1;
+                    }
+                    else {
+                        linkedPorts[(fromNodeId, fromPort)] = 1;
+                    }
                 }
 
                 for (int j = 0; j < size; j++) {
@@ -257,10 +292,14 @@ namespace Core {
                     long toNodeId = Random.Range(1, maxNodes);
                     int toPort = Random.Range(0, maxPorts - 1);
 
-                    if (removedLinks.Contains((fromNodeId, fromPort, toNodeId, toPort))) continue;
+                    if (!addedLinks.Contains((fromNodeId, fromPort, toNodeId, toPort)) ||
+                        removedLinks.Contains((fromNodeId, fromPort, toNodeId, toPort))) continue;
 
                     storage.RemoveLink(fromNodeId, fromPort, toNodeId, toPort);
                     removedLinks.Add((fromNodeId, fromPort, toNodeId, toPort));
+
+                    linkedPorts[(fromNodeId, fromPort)]--;
+                    if (linkedPorts[(fromNodeId, fromPort)] <= 0) linkedPorts.Remove((fromNodeId, fromPort));
                 }
 
                 foreach ((long fromNodeId, int fromPort, long toNodeId, int toPort) in addedLinks) {
@@ -269,6 +308,9 @@ namespace Core {
 
                     Assert.AreEqual(hasLinkExpected, hasLinkActual);
                 }
+
+                Assert.AreEqual(addedLinks.Count - removedLinks.Count, storage.LinkCount);
+                Assert.AreEqual(linkedPorts.Count, storage.LinkedPortCount);
             }
         }
     }

@@ -12,8 +12,13 @@ namespace MisterGames.Blueprints.Core2 {
     public sealed class BlueprintLinkStorage {
 
         [SerializeField] private TreeMap<int, BlueprintLink2> _linkTree;
+        [SerializeField] private int _linkCount;
+        [SerializeField] private int _linkedPortCount;
 
-        public Action<long, int> OnPortChanged;
+        public Action<long, int> OnPortChanged { get; set; }
+
+        public int LinkCount => _linkCount;
+        public int LinkedPortCount => _linkedPortCount;
 
         public BlueprintLinkStorage(int capacity = 0) {
             _linkTree = new TreeMap<int, BlueprintLink2>(capacity);
@@ -113,6 +118,8 @@ namespace MisterGames.Blueprints.Core2 {
             AddLink(id, port, toId, toPort, 0);
             AddLink(toId, toPort, id, port, 1);
 
+            _linkCount++;
+
             OnPortChanged?.Invoke(id, port);
             OnPortChanged?.Invoke(toId, toPort);
         }
@@ -122,6 +129,8 @@ namespace MisterGames.Blueprints.Core2 {
 
             RemoveLink(id, port, toId, toPort, 0);
             RemoveLink(toId, toPort, id, port, 1);
+
+            _linkCount--;
 
             _linkTree.AllowDefragmentation(true);
         }
@@ -165,9 +174,9 @@ namespace MisterGames.Blueprints.Core2 {
                 int port = _linkTree.GetKeyAt(portRoot);
 
                 RemovePortLinks(portRoot, id, port);
-                portRoot = _linkTree.GetNextIndex(portRoot);
-
                 OnPortChanged?.Invoke(id, port);
+
+                portRoot = _linkTree.GetNextIndex(portRoot);
             }
 
             _linkTree.RemoveNodeAt(nodeRoot);
@@ -219,6 +228,9 @@ namespace MisterGames.Blueprints.Core2 {
             int sourceRoot = _linkTree.GetOrAddNode(sourceId);
             int nodeRoot = _linkTree.GetOrAddNode(nodeId, sourceRoot);
             int portRoot = _linkTree.GetOrAddNode(port, nodeRoot);
+
+            if (dir == 0 && !_linkTree.ContainsKey(dir, portRoot)) _linkedPortCount++;
+
             int linksRoot = _linkTree.GetOrAddNode(dir, portRoot);
 
             _linkTree.AddEndPoint(linksRoot, new BlueprintLink2 { nodeId = toId, port = toPort });
@@ -246,7 +258,11 @@ namespace MisterGames.Blueprints.Core2 {
 
                 _linkTree.RemoveNodeAt(index);
 
-                if (!_linkTree.HasChildren(linksRoot)) _linkTree.RemoveNodeAt(linksRoot);
+                if (!_linkTree.HasChildren(linksRoot)) {
+                    _linkTree.RemoveNodeAt(linksRoot);
+                    if (dir == 0) _linkedPortCount--;
+                }
+
                 if (!_linkTree.HasChildren(portRoot)) _linkTree.RemoveNodeAt(portRoot);
                 if (!_linkTree.HasChildren(nodeRoot)) _linkTree.RemoveNodeAt(nodeRoot);
                 if (!_linkTree.HasChildren(sourceRoot)) _linkTree.RemoveNodeAt(sourceRoot);
@@ -263,10 +279,14 @@ namespace MisterGames.Blueprints.Core2 {
             ) {
                 while (index >= 0) {
                     ref var link = ref _linkTree.GetValueByRefAt(index);
+
                     RemoveLink(link.nodeId, link.port, id, port, 1);
+                    _linkCount--;
 
                     index = _linkTree.GetNextIndex(index);
                 }
+
+                _linkedPortCount--;
             }
 
             if (_linkTree.TryGetIndex(1, portRoot, out linksRoot) &&
@@ -274,7 +294,9 @@ namespace MisterGames.Blueprints.Core2 {
             ) {
                 while (index >= 0) {
                     ref var link = ref _linkTree.GetValueByRefAt(index);
+
                     RemoveLink(link.nodeId, link.port, id, port, 0);
+                    _linkCount--;
 
                     index = _linkTree.GetNextIndex(index);
                 }
@@ -283,6 +305,8 @@ namespace MisterGames.Blueprints.Core2 {
 
         public void Clear() {
             _linkTree.Clear();
+            _linkCount = 0;
+            _linkedPortCount = 0;
             OnPortChanged = null;
         }
 

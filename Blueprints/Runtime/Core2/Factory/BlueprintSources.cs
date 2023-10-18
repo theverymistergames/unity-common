@@ -49,18 +49,11 @@
         public interface EnableDisable<TNode> : IBlueprintSource, IBlueprintEnableDisable2
             where TNode : struct, IBlueprintNode, IBlueprintEnableDisable2
         {
-            void IBlueprintEnableDisable2.OnEnable(IBlueprint blueprint, long id) {
+            void IBlueprintEnableDisable2.OnEnable(IBlueprint blueprint, long id, bool enabled) {
                 BlueprintNodeAddress.Unpack(id, out _, out int nodeId);
 
                 ref var node = ref GetNode<TNode>(nodeId);
-                node.OnEnable(blueprint, id);
-            }
-
-            void IBlueprintEnableDisable2.OnDisable(IBlueprint blueprint, long id) {
-                BlueprintNodeAddress.Unpack(id, out _, out int nodeId);
-
-                ref var node = ref GetNode<TNode>(nodeId);
-                node.OnDisable(blueprint, id);
+                node.OnEnable(blueprint, id, enabled);
             }
         }
 

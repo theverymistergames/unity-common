@@ -12,7 +12,7 @@ namespace MisterGames.Blueprints.Core2 {
         /// </summary>
         public IReadOnlyList<long> Nodes => _nodes;
 
-        private readonly IBlueprintFactory _factories;
+        private readonly IBlueprintFactory _factory;
         private readonly long[] _nodes;
         private readonly RuntimeLink2[] _links;
         private readonly Dictionary<RuntimePortAddress, int> _portIndexMap;
@@ -22,11 +22,11 @@ namespace MisterGames.Blueprints.Core2 {
 
         private RuntimeBlueprint2() { }
 
-        public RuntimeBlueprint2(IBlueprintFactory factories, int nodeCount, int portCount, int linkCount) {
-            _factories = factories;
-            _nodes = new long[nodeCount];
-            _links = new RuntimeLink2[portCount + linkCount];
-            _portIndexMap = new Dictionary<RuntimePortAddress, int>(portCount + linkCount);
+        public RuntimeBlueprint2(IBlueprintFactory factory, int nodes, int linkedPorts, int links) {
+            _factory = factory;
+            _nodes = new long[nodes];
+            _links = new RuntimeLink2[linkedPorts + links];
+            _portIndexMap = new Dictionary<RuntimePortAddress, int>(linkedPorts + links);
         }
 
         public void Initialize(IBlueprintHost2 host) {
@@ -36,7 +36,7 @@ namespace MisterGames.Blueprints.Core2 {
                 long id = _nodes[i];
                 BlueprintNodeAddress.Unpack(id, out int factoryId, out int _);
 
-                _factories.GetSource(factoryId).OnInitialize(this, id);
+                _factory.GetSource(factoryId).OnInitialize(this, id);
             }
         }
 
@@ -45,28 +45,17 @@ namespace MisterGames.Blueprints.Core2 {
                 long id = _nodes[i];
                 BlueprintNodeAddress.Unpack(id, out int factoryId, out int _);
 
-                _factories.GetSource(factoryId).OnDeInitialize(this, id);
+                _factory.GetSource(factoryId).OnDeInitialize(this, id);
             }
         }
 
-        public void OnEnable() {
+        public void SetEnabled(bool enabled) {
             for (int i = 0; i < _nodes.Length; i++) {
                 long id = _nodes[i];
                 BlueprintNodeAddress.Unpack(id, out int factoryId, out int _);
 
-                if (_factories.GetSource(factoryId) is IBlueprintEnableDisable2 enableDisable) {
-                    enableDisable.OnEnable(this, id);
-                }
-            }
-        }
-
-        public void OnDisable() {
-            for (int i = 0; i < _nodes.Length; i++) {
-                long id = _nodes[i];
-                BlueprintNodeAddress.Unpack(id, out int factoryId, out int _);
-
-                if (_factories.GetSource(factoryId) is IBlueprintEnableDisable2 enableDisable) {
-                    enableDisable.OnDisable(this, id);
+                if (_factory.GetSource(factoryId) is IBlueprintEnableDisable2 enableDisable) {
+                    enableDisable.OnEnable(this, id, enabled);
                 }
             }
         }
@@ -76,12 +65,13 @@ namespace MisterGames.Blueprints.Core2 {
                 long id = _nodes[i];
                 BlueprintNodeAddress.Unpack(id, out int factoryId, out int _);
 
-                if (_factories.GetSource(factoryId) is IBlueprintStart2 start) {
+                if (_factory.GetSource(factoryId) is IBlueprintStart2 start) {
                     start.OnStart(this, id);
                 }
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Call(long id, int port) {
             GetLinks(id, port, out int index, out int count);
             int end = index + count;
@@ -90,22 +80,24 @@ namespace MisterGames.Blueprints.Core2 {
                 var link = GetLink(i);
                 BlueprintNodeAddress.Unpack(link.nodeId, out int factoryId, out _);
 
-                if (_factories.GetSource(factoryId) is not IBlueprintEnter2 enter) continue;
+                if (_factory.GetSource(factoryId) is not IBlueprintEnter2 enter) continue;
 
                 enter.OnEnterPort(this, link.nodeId, link.port);
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public T Read<T>(long id, int port, T defaultValue = default) {
             GetLinks(id, port, out int index, out int count);
             return count > 0 ? ReadLink(index, defaultValue) : defaultValue;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public T ReadLink<T>(int index, T defaultValue = default) {
             var link = GetLink(index);
             BlueprintNodeAddress.Unpack(link.nodeId, out int factoryId, out _);
 
-            return _factories.GetSource(factoryId) switch {
+            return _factory.GetSource(factoryId) switch {
                 IBlueprintOutput2<T> outputT => outputT.GetOutputPortValue(this, link.nodeId, link.port),
                 IBlueprintOutput2 output => output.GetOutputPortValue<T>(this, link.nodeId, link.port),
                 _ => defaultValue
@@ -118,6 +110,23 @@ namespace MisterGames.Blueprints.Core2 {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void AddNode(long id) {
             _nodes[_nodePointer++] = id;
+        }
+
+        /// <summary>
+        /// Return index in the links array, starting from which there can be set passed count of links.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int AllocateLinks(long id, int port, int count) {
+            var portAddress = new RuntimePortAddress(id, port);
+            if (_portIndexMap.TryGetValue(portAddress, out int index)) return -1;
+
+            index = _linkPointer;
+            _portIndexMap[portAddress] = index;
+
+            _links[index] = new RuntimeLink2(id, port, count);
+            _linkPointer += count + 1;
+
+            return index + 1;
         }
 
         /// <summary>
@@ -151,23 +160,6 @@ namespace MisterGames.Blueprints.Core2 {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SetLink(int index, long nodeId, int port) {
             _links[index] = new RuntimeLink2(nodeId, port);
-        }
-
-        /// <summary>
-        /// Return index in the links array, starting from which there can be set passed count of links.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int AllocateLinks(long id, int port, int count) {
-            var portAddress = new RuntimePortAddress(id, port);
-            if (_portIndexMap.TryGetValue(portAddress, out int index)) return -1;
-
-            index = _linkPointer;
-            _portIndexMap[portAddress] = index;
-
-            _links[index] = new RuntimeLink2(id, port, count);
-            _linkPointer += count + 1;
-
-            return index + 1;
         }
     }
 
