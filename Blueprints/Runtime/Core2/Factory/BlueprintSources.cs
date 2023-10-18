@@ -2,7 +2,7 @@
 
     public static class BlueprintSources {
 
-        public interface Enter<TNode> : IBlueprintSource, IBlueprintEnter2
+        public interface IEnter<TNode> : IBlueprintSource, IBlueprintEnter2
             where TNode : struct, IBlueprintNode, IBlueprintEnter2
         {
             void IBlueprintEnter2.OnEnterPort(IBlueprint blueprint, long id, int port) {
@@ -13,7 +13,7 @@
             }
         }
 
-        public interface Output<TNode, out R> : IBlueprintSource, IBlueprintOutput2<R>
+        public interface IOutput<TNode, out R> : IBlueprintSource, IBlueprintOutput2<R>
             where TNode : struct, IBlueprintNode, IBlueprintOutput2<R>
         {
             R IBlueprintOutput2<R>.GetOutputPortValue(IBlueprint blueprint, long id, int port) {
@@ -24,7 +24,7 @@
             }
         }
 
-        public interface DynamicOutput<TNode> : IBlueprintSource, IBlueprintOutput2
+        public interface IOutput<TNode> : IBlueprintSource, IBlueprintOutput2
             where TNode : struct, IBlueprintNode, IBlueprintOutput2
         {
             R IBlueprintOutput2.GetOutputPortValue<R>(IBlueprint blueprint, long id, int port) {
@@ -35,10 +35,10 @@
             }
         }
 
-        public interface Start<TNode> : IBlueprintSource, IBlueprintStart2
-            where TNode : struct, IBlueprintNode, IBlueprintStart2
+        public interface IStartCallback<TNode> : IBlueprintSource, IBlueprintStartCallback
+            where TNode : struct, IBlueprintNode, IBlueprintStartCallback
         {
-            void IBlueprintStart2.OnStart(IBlueprint blueprint, long id) {
+            void IBlueprintStartCallback.OnStart(IBlueprint blueprint, long id) {
                 BlueprintNodeAddress.Unpack(id, out _, out int nodeId);
 
                 ref var node = ref GetNode<TNode>(nodeId);
@@ -46,10 +46,10 @@
             }
         }
 
-        public interface EnableDisable<TNode> : IBlueprintSource, IBlueprintEnableDisable2
-            where TNode : struct, IBlueprintNode, IBlueprintEnableDisable2
+        public interface IEnableCallback<TNode> : IBlueprintSource, IBlueprintEnableCallback
+            where TNode : struct, IBlueprintNode, IBlueprintEnableCallback
         {
-            void IBlueprintEnableDisable2.OnEnable(IBlueprint blueprint, long id, bool enabled) {
+            void IBlueprintEnableCallback.OnEnable(IBlueprint blueprint, long id, bool enabled) {
                 BlueprintNodeAddress.Unpack(id, out _, out int nodeId);
 
                 ref var node = ref GetNode<TNode>(nodeId);
@@ -57,10 +57,10 @@
             }
         }
 
-        public interface ConnectionsCallback<TNode> : IBlueprintSource, IBlueprintConnectionsCallback
-            where TNode : struct, IBlueprintNode, IBlueprintConnectionsCallback
+        public interface IConnectionCallback<TNode> : IBlueprintSource, IBlueprintConnectionCallback
+            where TNode : struct, IBlueprintNode, IBlueprintConnectionCallback
         {
-            void IBlueprintConnectionsCallback.OnLinksChanged(IBlueprintMeta meta, long id, int port) {
+            void IBlueprintConnectionCallback.OnLinksChanged(IBlueprintMeta meta, long id, int port) {
                 BlueprintNodeAddress.Unpack(id, out _, out int nodeId);
 
                 ref var node = ref GetNode<TNode>(nodeId);
@@ -68,7 +68,7 @@
             }
         }
 
-        internal interface PortLinker<TNode> : IBlueprintSource, IBlueprintPortLinker2
+        internal interface IPortLinker<TNode> : IBlueprintSource, IBlueprintPortLinker2
             where TNode : struct, IBlueprintNode, IBlueprintPortLinker2
         {
             void IBlueprintPortLinker2.GetLinkedPorts(long id, int port, out int index, out int count) {
@@ -79,7 +79,7 @@
             }
         }
 
-        internal interface NodeLinker<TNode> : IBlueprintSource, IBlueprintNodeLinker2
+        internal interface INodeLinker<TNode> : IBlueprintSource, IBlueprintNodeLinker2
             where TNode : struct, IBlueprintNode, IBlueprintNodeLinker2
         {
             void IBlueprintNodeLinker2.GetLinkedNode(long id, out int hash, out int port) {
@@ -90,14 +90,14 @@
             }
         }
 
-        internal interface Compiled<TNode> : IBlueprintSource, IBlueprintCompiled
-            where TNode : struct, IBlueprintNode, IBlueprintCompiled
+        internal interface ICompilationCallback<TNode> : IBlueprintSource, IBlueprintCompilationCallback
+            where TNode : struct, IBlueprintNode, IBlueprintCompilationCallback
         {
-            void IBlueprintCompiled.Compile(long id, Port[] ports) {
+            void IBlueprintCompilationCallback.OnCompile(long id, Port[] ports) {
                 BlueprintNodeAddress.Unpack(id, out _, out int nodeId);
 
                 ref var node = ref GetNode<TNode>(nodeId);
-                node.Compile(id, ports);
+                node.OnCompile(id, ports);
             }
         }
     }

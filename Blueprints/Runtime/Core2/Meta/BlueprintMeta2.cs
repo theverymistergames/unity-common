@@ -18,6 +18,10 @@ namespace MisterGames.Blueprints.Core2 {
         public IReadOnlyCollection<long> Nodes => _nodeMap.Keys;
         public IReadOnlyCollection<BlueprintAsset2> SubgraphAssets => _subgraphMap.Values;
 
+        public int NodeCount => _nodeMap.Count;
+        public int LinkCount => _linkStorage.LinkCount;
+        public int LinkedPortCount => _linkStorage.LinkedPortCount;
+
         private Action<long> _onNodeChange;
 
         public BlueprintMeta2() {
@@ -55,7 +59,7 @@ namespace MisterGames.Blueprints.Core2 {
             return _nodeMap.ContainsKey(id);
         }
 
-        public long AddNode(Type sourceType, Vector2 position) {
+        public long AddNode(Type sourceType, Vector2 position = default) {
             int sourceId = _factory.GetOrCreateSource(sourceType);
             var source = _factory.GetSource(sourceId);
             int nodeId = source.AddNode();
@@ -228,7 +232,7 @@ namespace MisterGames.Blueprints.Core2 {
         private void OnPortChanged(long id, int port) {
             BlueprintNodeAddress.Unpack(id, out int sourceId, out _);
 
-            if (_factory.GetSource(sourceId) is IBlueprintConnectionsCallback callback) {
+            if (_factory.GetSource(sourceId) is IBlueprintConnectionCallback callback) {
                 callback.OnLinksChanged(this, id, port);
             }
 

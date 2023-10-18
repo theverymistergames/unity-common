@@ -6,8 +6,8 @@ namespace MisterGames.Blueprints.Core2 {
     [Serializable]
     public sealed class BlueprintNodeLogSource :
         BlueprintSource<BlueprintNodeLog>,
-        BlueprintSources.Enter<BlueprintNodeLog>,
-        BlueprintSources.Output<BlueprintNodeLog, string> { }
+        BlueprintSources.IEnter<BlueprintNodeLog>,
+        BlueprintSources.IOutput<BlueprintNodeLog, string> { }
 
     [Serializable]
     public struct BlueprintNodeLog : IBlueprintNode, IBlueprintEnter2, IBlueprintOutput2<string> {

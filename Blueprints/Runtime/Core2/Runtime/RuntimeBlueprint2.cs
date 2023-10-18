@@ -54,7 +54,7 @@ namespace MisterGames.Blueprints.Core2 {
                 long id = _nodes[i];
                 BlueprintNodeAddress.Unpack(id, out int factoryId, out int _);
 
-                if (_factory.GetSource(factoryId) is IBlueprintEnableDisable2 enableDisable) {
+                if (_factory.GetSource(factoryId) is IBlueprintEnableCallback enableDisable) {
                     enableDisable.OnEnable(this, id, enabled);
                 }
             }
@@ -65,7 +65,7 @@ namespace MisterGames.Blueprints.Core2 {
                 long id = _nodes[i];
                 BlueprintNodeAddress.Unpack(id, out int factoryId, out int _);
 
-                if (_factory.GetSource(factoryId) is IBlueprintStart2 start) {
+                if (_factory.GetSource(factoryId) is IBlueprintStartCallback start) {
                     start.OnStart(this, id);
                 }
             }
