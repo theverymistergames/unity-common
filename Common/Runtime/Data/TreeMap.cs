@@ -162,6 +162,10 @@ namespace MisterGames.Common.Data {
                 _version = version;
             }
 
+            /// <summary>
+            /// Get and set child node value by key.
+            /// </summary>
+            /// <param name="key"></param>
             public V this[K key] {
                 get => GetValue(key);
                 set => SetValue(key, value);
@@ -181,20 +185,10 @@ namespace MisterGames.Common.Data {
             /// Get current node value.
             /// </summary>
             /// <returns>Current node value</returns>
-            public V GetValue() {
+            public ref V GetValue() {
                 ThrowIfDisposed();
 
-                return _map.GetValueAt(_index);
-            }
-
-            /// <summary>
-            /// Get current node value.
-            /// </summary>
-            /// <returns>Current node value</returns>
-            public ref V GetValueByRef() {
-                ThrowIfDisposed();
-
-                return ref _map.GetValueByRefAt(_index);
+                return ref _map.GetValueAt(_index);
             }
 
             /// <summary>
@@ -223,21 +217,10 @@ namespace MisterGames.Common.Data {
             /// Get child node value by key.
             /// </summary>
             /// <param name="key">Key of the child</param>
-            public V GetValue(K key) {
+            public ref V GetValue(K key) {
                 ThrowIfDisposed();
 
-                return _map.GetValue(key, _index);
-            }
-
-            /// <summary>
-            /// Get child node value by ref by key.
-            /// </summary>
-            /// <param name="key">Key of the child</param>
-            /// <returns>Child node value by ref</returns>
-            public ref V GetValueByRef(K key) {
-                ThrowIfDisposed();
-
-                return ref _map.GetValueByRef(key, _index);
+                return ref _map.GetValue(key, _index);
             }
 
             /// <summary>
@@ -266,13 +249,13 @@ namespace MisterGames.Common.Data {
             /// </summary>
             /// <param name="index">Index of the target node in map</param>
             /// <returns>True if moved to the node with passed index</returns>
-            public bool MoveIndex(int index) {
+            public bool MoveNode(int index) {
                 ThrowIfDisposed();
 
-                if (!_map.ContainsIndex(index)) return false;
+                if (!_map.ContainsNodeAt(index)) return false;
 
                 _index = index;
-                _level = _map.GetDepth(index);
+                _level = _map.GetNodeDepth(index);
                 return true;
             }
 
@@ -332,7 +315,7 @@ namespace MisterGames.Common.Data {
             public bool MoveParent() {
                 ThrowIfDisposed();
 
-                if (!_map.TryGetParentIndex(_index, out int parent)) return false;
+                if (!_map.TryGetParent(_index, out int parent)) return false;
 
                 _index = parent;
                 _level--;
@@ -346,7 +329,7 @@ namespace MisterGames.Common.Data {
             public bool MoveChild() {
                 ThrowIfDisposed();
 
-                if (!_map.TryGetChildIndex(_index, out int child)) return false;
+                if (!_map.TryGetChild(_index, out int child)) return false;
 
                 _index = child;
                 _level++;
@@ -361,7 +344,7 @@ namespace MisterGames.Common.Data {
             public bool MoveChild(K key) {
                 ThrowIfDisposed();
 
-                if (!_map.TryGetIndex(key, _index, out int child)) return false;
+                if (!_map.TryGetNode(key, _index, out int child)) return false;
 
                 _index = child;
                 _level++;
@@ -375,7 +358,7 @@ namespace MisterGames.Common.Data {
             public bool MoveNext() {
                 ThrowIfDisposed();
 
-                if (!_map.TryGetNextIndex(_index, out int next)) return false;
+                if (!_map.TryGetNext(_index, out int next)) return false;
 
                 _index = next;
                 return true;
@@ -388,71 +371,20 @@ namespace MisterGames.Common.Data {
             public bool MovePrevious() {
                 ThrowIfDisposed();
 
-                if (!_map.TryGetPreviousIndex(_index, out int previous)) return false;
+                if (!_map.TryGetPrevious(_index, out int previous)) return false;
 
                 _index = previous;
                 return true;
             }
 
             /// <summary>
-            /// Check if current node contains 1 or more children.
-            /// </summary>
-            /// <returns>True if current node contains children</returns>
-            public bool HasChildren() {
-                ThrowIfDisposed();
-
-                return _map.HasChildren(_index);
-            }
-
-            /// <summary>
             /// Get index of the current node parent.
             /// </summary>
             /// <returns>Parent node index if present, otherwise -1</returns>
-            public int GetParentIndex() {
+            public int GetParent() {
                 ThrowIfDisposed();
 
-                return _map.GetParentIndex(_index);
-            }
-
-            /// <summary>
-            /// Get index of the current node first child.
-            /// </summary>
-            /// <returns>First child node index if present, otherwise -1</returns>
-            public int GetChildIndex() {
-                ThrowIfDisposed();
-
-                return _map.GetChildIndex(_index);
-            }
-
-            /// <summary>
-            /// Get index of the current node child with passed key.
-            /// </summary>
-            /// <param name="key">Key of the child</param>
-            /// <returns>Child node index if present, otherwise -1</returns>
-            public int GetChildIndex(K key) {
-                ThrowIfDisposed();
-
-                return _map.GetIndex(key, _index);
-            }
-
-            /// <summary>
-            /// Get index of the previous node.
-            /// </summary>
-            /// <returns>Previous node index if present, otherwise -1</returns>
-            public int GetPreviousIndex() {
-                ThrowIfDisposed();
-
-                return _map.GetPreviousIndex(_index);
-            }
-
-            /// <summary>
-            /// Get index of the next node.
-            /// </summary>
-            /// <returns>Next node index if present, otherwise -1</returns>
-            public int GetNextIndex() {
-                ThrowIfDisposed();
-
-                return _map.GetNextIndex(_index);
+                return _map.GetParent(_index);
             }
 
             /// <summary>
@@ -460,10 +392,31 @@ namespace MisterGames.Common.Data {
             /// </summary>
             /// <param name="parent">Parent node index if present, otherwise -1</param>
             /// <returns>True if has parent node</returns>
-            public bool TryGetParentIndex(out int parent) {
+            public bool TryGetParent(out int parent) {
                 ThrowIfDisposed();
 
-                return _map.TryGetParentIndex(_index, out parent);
+                return _map.TryGetParent(_index, out parent);
+            }
+
+            /// <summary>
+            /// Get index of the current node first child.
+            /// </summary>
+            /// <returns>First child node index if present, otherwise -1</returns>
+            public int GetChild() {
+                ThrowIfDisposed();
+
+                return _map.GetChild(_index);
+            }
+
+            /// <summary>
+            /// Get index of the current node child with passed key.
+            /// </summary>
+            /// <param name="key">Key of the child</param>
+            /// <returns>Child node index if present, otherwise -1</returns>
+            public int GetChild(K key) {
+                ThrowIfDisposed();
+
+                return _map.GetNode(key, _index);
             }
 
             /// <summary>
@@ -471,10 +424,10 @@ namespace MisterGames.Common.Data {
             /// </summary>
             /// <param name="child">First child node index if present, otherwise -1</param>
             /// <returns>True if has children</returns>
-            public bool TryGetChildIndex(out int child) {
+            public bool TryGetChild(out int child) {
                 ThrowIfDisposed();
 
-                return _map.TryGetChildIndex(_index, out child);
+                return _map.TryGetChild(_index, out child);
             }
 
             /// <summary>
@@ -483,21 +436,20 @@ namespace MisterGames.Common.Data {
             /// <param name="key">Key of the child</param>
             /// <param name="child">Child node index if present, otherwise -1</param>
             /// <returns>True if has child node with passed key</returns>
-            public bool TryGetChildIndex(K key, out int child) {
+            public bool TryGetChild(K key, out int child) {
                 ThrowIfDisposed();
 
-                return _map.TryGetIndex(key, _index, out child);
+                return _map.TryGetNode(key, _index, out child);
             }
 
             /// <summary>
-            /// Get index of the previous node.
+            /// Get index of the next node.
             /// </summary>
-            /// <param name="previous">Previous node index if present, otherwise -1</param>
-            /// <returns>True if has previous node</returns>
-            public bool TryGetPreviousIndex(out int previous) {
+            /// <returns>Next node index if present, otherwise -1</returns>
+            public int GetNext() {
                 ThrowIfDisposed();
 
-                return _map.TryGetPreviousIndex(_index, out previous);
+                return _map.GetNext(_index);
             }
 
             /// <summary>
@@ -505,10 +457,31 @@ namespace MisterGames.Common.Data {
             /// </summary>
             /// <param name="next">Next node index if present, otherwise -1</param>
             /// <returns>True if has next node</returns>
-            public bool TryGetNextIndex(out int next) {
+            public bool TryGetNext(out int next) {
                 ThrowIfDisposed();
 
-                return _map.TryGetNextIndex(_index, out next);
+                return _map.TryGetNext(_index, out next);
+            }
+
+            /// <summary>
+            /// Get index of the previous node.
+            /// </summary>
+            /// <returns>Previous node index if present, otherwise -1</returns>
+            public int GetPrevious() {
+                ThrowIfDisposed();
+
+                return _map.GetPrevious(_index);
+            }
+
+            /// <summary>
+            /// Get index of the previous node.
+            /// </summary>
+            /// <param name="previous">Previous node index if present, otherwise -1</param>
+            /// <returns>True if has previous node</returns>
+            public bool TryGetPrevious(out int previous) {
+                ThrowIfDisposed();
+
+                return _map.TryGetPrevious(_index, out previous);
             }
 
             /// <summary>
@@ -543,7 +516,17 @@ namespace MisterGames.Common.Data {
             public bool ContainsChild(K key) {
                 ThrowIfDisposed();
 
-                return _map.ContainsKey(key, _index);
+                return _map.ContainsNode(key, _index);
+            }
+
+            /// <summary>
+            /// Check if current node contains 1 or more children.
+            /// </summary>
+            /// <returns>True if current node contains children</returns>
+            public bool ContainsChildren() {
+                ThrowIfDisposed();
+
+                return _map.ContainsChildren(_index);
             }
 
             /// <summary>
@@ -574,13 +557,8 @@ namespace MisterGames.Common.Data {
                 _map = null;
             }
 
-            /// <summary>
-            /// Iterator can be invalid, when something changed in the map outside of the iterator,
-            /// or when it is constructed as invalid as the result of getting tree by non-existent key.
-            /// </summary>
-            /// <returns></returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public bool IsInvalid() {
+            private bool IsInvalid() {
                 return _index < 0 || _map == null || _map._version != _version;
             }
 
@@ -698,19 +676,19 @@ namespace MisterGames.Common.Data {
                 }
 
                 index = node.parent;
-                treeMap.TryGetParentIndex(i, out i);
+                treeMap.TryGetParent(i, out i);
 
                 while (index >= 0 && index != root) {
                     node = ref _nodes[index];
 
                     if (node.next >= 0) {
                         index = node.next;
-                        treeMap.TryGetParentIndex(i, out parent);
+                        treeMap.TryGetParent(i, out parent);
                         break;
                     }
 
                     index = node.parent;
-                    treeMap.TryGetParentIndex(i, out i);
+                    treeMap.TryGetParent(i, out i);
                 }
 
                 if (index == root) break;
@@ -735,7 +713,7 @@ namespace MisterGames.Common.Data {
                 if (!_nodeIndexMap.TryGetValue(new KeyIndex(key, parent), out index)) index = GetOrAddNode(key, parent);
             }
 
-            return new Iterator(this, index, GetDepth(index), _version);
+            return new Iterator(this, index, GetNodeDepth(index), _version);
         }
 
         /// <summary>
@@ -767,7 +745,7 @@ namespace MisterGames.Common.Data {
                 return false;
             }
 
-            tree = new Iterator(this, index, GetDepth(index), _version);
+            tree = new Iterator(this, index, GetNodeDepth(index), _version);
             return true;
         }
 
@@ -790,7 +768,7 @@ namespace MisterGames.Common.Data {
                 throw new KeyNotFoundException($"{nameof(TreeMap<K, V>)}: child key {key} for parent at index {parent} is not found");
             }
 
-            return new Iterator(this, index, GetDepth(index), _version);
+            return new Iterator(this, index, GetNodeDepth(index), _version);
         }
 
         /// <summary>
@@ -810,6 +788,10 @@ namespace MisterGames.Common.Data {
 
         #region KEY VALUE
 
+        /// <summary>
+        /// Get and set root node value by key.
+        /// </summary>
+        /// <param name="key"></param>
         public V this[K key] {
             get => GetValue(key);
             set => SetValue(key, value);
@@ -831,16 +813,6 @@ namespace MisterGames.Common.Data {
             }
 
             return node.key;
-        }
-
-        /// <summary>
-        /// Check if map contains node with passed key and parent index.
-        /// </summary>
-        /// <param name="key">Key of the node</param>
-        /// <param name="parent">Index of the parent node</param>
-        /// <returns>True if contains node</returns>
-        public bool ContainsKey(K key, int parent = -1) {
-            return parent < 0 ? _rootIndexMap.ContainsKey(key) : _nodeIndexMap.ContainsKey(new KeyIndex(key, parent));
         }
 
         /// <summary>
@@ -870,25 +842,7 @@ namespace MisterGames.Common.Data {
         /// </summary>
         /// <param name="index">Index of the node</param>
         /// <returns>Node value</returns>
-        public V GetValueAt(int index) {
-            if (index < 0 || index >= _head) {
-                throw new KeyNotFoundException($"{nameof(TreeMap<K, V>)}: value at index {index} is not found");
-            }
-
-            ref var node = ref _nodes[index];
-            if (node.IsDisposed()) {
-                throw new KeyNotFoundException($"{nameof(TreeMap<K, V>)}: value at index {index} is not found");
-            }
-
-            return node.value;
-        }
-
-        /// <summary>
-        /// Get node value by ref at index.
-        /// </summary>
-        /// <param name="index">Index of the node</param>
-        /// <returns>Node value by ref</returns>
-        public ref V GetValueByRefAt(int index) {
+        public ref V GetValueAt(int index) {
             if (index < 0 || index >= _head) {
                 throw new KeyNotFoundException($"{nameof(TreeMap<K, V>)}: value at index {index} is not found");
             }
@@ -960,29 +914,7 @@ namespace MisterGames.Common.Data {
         /// <param name="key">Key of the node</param>
         /// <param name="parent">Index of the parent node</param>
         /// <returns>Node value</returns>
-        public V GetValue(K key, int parent = -1) {
-            int index;
-
-            if (parent < 0) {
-                if (!_rootIndexMap.TryGetValue(key, out index)) {
-                    throw new KeyNotFoundException($"{nameof(TreeMap<K, V>)}: root {key} is not found");
-                }
-            }
-            else if (!_nodeIndexMap.TryGetValue(new KeyIndex(key, parent), out index)) {
-                throw new KeyNotFoundException($"{nameof(TreeMap<K, V>)}: node {key} of parent at index {parent} is not found");
-            }
-
-            ref var node = ref _nodes[index];
-            return node.value;
-        }
-
-        /// <summary>
-        /// Get node value by ref by key and parent index.
-        /// </summary>
-        /// <param name="key">Key of the node</param>
-        /// <param name="parent">Index of the parent node</param>
-        /// <returns>Node value by ref</returns>
-        public ref V GetValueByRef(K key, int parent = -1) {
+        public ref V GetValue(K key, int parent = -1) {
             int index;
 
             if (parent < 0) {
@@ -1027,30 +959,139 @@ namespace MisterGames.Common.Data {
 
         #region NODE
 
-        /// <summary>
-        /// Get depth of node at index. Root depth is 0, root child depth is 1, etc.
-        /// This operation iterates through a tree up to the tree root to calculate depth.
+         /// <summary>
+        /// Get index of the node with passed key and parent index.
         /// </summary>
-        /// <param name="index">Node index</param>
-        /// <returns>Depth of the node with passed index</returns>
-        public int GetDepth(int index) {
-            if (index < 0 || index >= _head) {
-                throw new KeyNotFoundException($"{nameof(TreeMap<K, V>)}: node at index {index} is not found");
-            }
+        /// <param name="key">Key of the node</param>
+        /// <param name="parent">Index of the parent node</param>
+        /// <returns>Node index if present, otherwise -1</returns>
+        public int GetNode(K key, int parent = -1) {
+            int index;
+            if (parent < 0) return _rootIndexMap.TryGetValue(key, out index) ? index : -1;
+            return _nodeIndexMap.TryGetValue(new KeyIndex(key, parent), out index) ? index : -1;
+        }
 
-            ref var node = ref _nodes[index];
-            if (node.IsDisposed()) {
-                throw new KeyNotFoundException($"{nameof(TreeMap<K, V>)}: node at index {index} is not found");
-            }
+        /// <summary>
+        /// Get index of the child node with passed key and parent index.
+        /// </summary>
+        /// <param name="key">Key of the child</param>
+        /// <param name="parent">Index of the parent node</param>
+        /// <param name="index">Child node index if present, otherwise -1</param>
+        /// <returns>True if parent has child with passed key</returns>
+        public bool TryGetNode(K key, int parent, out int index) {
+            index = GetNode(key, parent);
+            return index >= 0;
+        }
 
-            int depth = 0;
+        /// <summary>
+        /// Get root node with passed key.
+        /// </summary>
+        /// <param name="key">Key of the root node</param>
+        /// <param name="index">Root node index if passed key is valid, otherwise -1</param>
+        /// <returns>True if passed key is valid</returns>
+        public bool TryGetNode(K key, out int index) {
+            index = GetNode(key);
+            return index >= 0;
+        }
 
-            while (node.parent >= 0) {
-                node = ref _nodes[node.parent];
-                depth++;
-            }
+        /// <summary>
+        /// Get index of node parent.
+        /// </summary>
+        /// <param name="child">Index of the child node</param>
+        /// <returns>Parent node index if present, otherwise -1</returns>
+        public int GetParent(int child) {
+            if (child < 0 || child >= _head) return -1;
 
-            return depth;
+            ref var node = ref _nodes[child];
+            if (node.IsDisposed()) return -1;
+
+            return node.parent;
+        }
+
+        /// <summary>
+        /// Get index of node parent.
+        /// </summary>
+        /// <param name="child">Index of the child node</param>
+        /// <param name="parent">Parent node index if present, otherwise -1</param>
+        /// <returns>True if has parent</returns>
+        public bool TryGetParent(int child, out int parent) {
+            parent = GetParent(child);
+            return parent >= 0;
+        }
+
+        /// <summary>
+        /// Get index of node first child.
+        /// </summary>
+        /// <param name="parent">Index of the parent node</param>
+        /// <returns>First child node index if present, otherwise -1</returns>
+        public int GetChild(int parent) {
+            if (parent < 0 || parent >= _head) return -1;
+
+            ref var node = ref _nodes[parent];
+            if (node.IsDisposed()) return -1;
+
+            return node.child;
+        }
+
+        /// <summary>
+        /// Get index of node first child.
+        /// </summary>
+        /// <param name="parent">Index of the parent node</param>
+        /// <param name="child">First child node index if present, otherwise -1</param>
+        /// <returns>True if has children</returns>
+        public bool TryGetChild(int parent, out int child) {
+            child = GetChild(parent);
+            return child >= 0;
+        }
+
+        /// <summary>
+        /// Get index of the next node.
+        /// </summary>
+        /// <param name="previous">Index of the previous node</param>
+        /// <returns>Next node index if present, otherwise -1</returns>
+        public int GetNext(int previous) {
+            if (previous < 0 || previous >= _head) return -1;
+
+            ref var node = ref _nodes[previous];
+            if (node.IsDisposed()) return -1;
+
+            return node.next;
+        }
+
+        /// <summary>
+        /// Get index of the next node.
+        /// </summary>
+        /// <param name="previous">Index of the previous node</param>
+        /// <param name="next">Next node index if present, otherwise -1</param>
+        /// <returns>True if has next node</returns>
+        public bool TryGetNext(int previous, out int next) {
+            next = GetNext(previous);
+            return next >= 0;
+        }
+
+        /// <summary>
+        /// Get index of previous node.
+        /// </summary>
+        /// <param name="next">Index of the next node</param>
+        /// <returns>Previous node index if present, otherwise -1</returns>
+        public int GetPrevious(int next) {
+            if (next < 0 || next >= _head) return -1;
+
+            ref var node = ref _nodes[next];
+            if (node.IsDisposed()) return -1;
+
+            return node.prev;
+        }
+
+        /// <summary>
+        /// Get index of previous node.
+        /// </summary>
+        /// <param name="next">Index of the next node</param>
+        /// <param name="previous">Previous node index if present, otherwise -1</param>
+        /// <returns>True if has previous node</returns>
+        public bool TryGetPrevious(int next, out int previous) {
+            previous = GetPrevious(next);
+            return previous >= 0;
         }
 
         /// <summary>
@@ -1144,78 +1185,6 @@ namespace MisterGames.Common.Data {
         }
 
         /// <summary>
-        /// Sort children by value. If comparer is null, default comparer is used.
-        /// </summary>
-        /// <param name="parent">Index of the parent node</param>
-        /// <param name="comparer">Value comparer</param>
-        /// <exception cref="KeyNotFoundException">If parent index is invalid</exception>
-        public void SortChildren(int parent, IComparer<V> comparer = null) {
-            if (parent < 0 || parent >= _head) {
-                throw new KeyNotFoundException($"{nameof(TreeMap<K, V>)}: parent at index {parent} is not found");
-            }
-
-            ref var node = ref _nodes[parent];
-            if (node.IsDisposed()) {
-                throw new KeyNotFoundException($"{nameof(TreeMap<K, V>)}: parent at index {parent} is not found");
-            }
-
-            int child = node.child;
-            if (child < 0) return;
-
-            comparer ??= Comparer<V>.Default;
-            node = ref _nodes[child];
-
-            child = node.next;
-
-            while (child >= 0) {
-                node = ref _nodes[child];
-
-                int next = node.next;
-                int prev = node.prev;
-
-                int c = child;
-                int p = prev;
-
-                while (p >= 0) {
-                    ref var head = ref _nodes[p];
-                    if (comparer.Compare(node.value, head.value) >= 0) break;
-
-                    c = p;
-                    p = head.prev;
-                }
-
-                if (p != prev) {
-                    node.next = c;
-                    node.prev = p;
-
-                    if (p >= 0) {
-                        node = ref _nodes[p];
-                        node.next = child;
-                    }
-                    else if (node.parent >= 0) {
-                        node = ref _nodes[node.parent];
-                        node.child = child;
-                    }
-
-                    node = ref _nodes[c];
-                    node.prev = child;
-
-                    node = ref _nodes[prev];
-                    node.next = next;
-
-                    if (next >= 0) {
-                        node = ref _nodes[next];
-                        node.prev = prev;
-                    }
-                }
-
-                child = next;
-            }
-
-            _version++;
-        }
-
-        /// <summary>
         /// Remove node by key and parent. This operation can cause map version change.
         /// Note that parent index can change after remove during defragmentation.
         /// </summary>
@@ -1223,7 +1192,7 @@ namespace MisterGames.Common.Data {
         /// <param name="parent">Index of the parent node</param>
         /// <returns>True if node was removed</returns>
         public bool RemoveNode(K key, int parent = -1) {
-            return RemoveNodeAt(GetIndex(key, parent), out parent);
+            return RemoveNodeAt(GetNode(key, parent), out parent);
         }
 
         /// <summary>
@@ -1234,7 +1203,7 @@ namespace MisterGames.Common.Data {
         /// <param name="parent">Index of the parent node</param>
         /// <returns>True if node was removed</returns>
         public bool RemoveNode(K key, ref int parent) {
-            return RemoveNodeAt(GetIndex(key, parent), out parent);
+            return RemoveNodeAt(GetNode(key, parent), out parent);
         }
 
         /// <summary>
@@ -1349,7 +1318,7 @@ namespace MisterGames.Common.Data {
         /// Check if current node contains 1 or more children.
         /// </summary>
         /// <returns>True if current node contains children</returns>
-        public bool HasChildren(int parent) {
+        public bool ContainsChildren(int parent) {
             if (parent < 0 || parent >= _head) return false;
 
             ref var node = ref _nodes[parent];
@@ -1358,143 +1327,14 @@ namespace MisterGames.Common.Data {
             return node.child >= 0;
         }
 
-        #endregion
-
-        #region INDEX
-
         /// <summary>
-        /// Get index of the node with passed key and parent index.
+        /// Check if node with passed key and parent index is present and not disposed.
         /// </summary>
         /// <param name="key">Key of the node</param>
         /// <param name="parent">Index of the parent node</param>
-        /// <returns>Node index if present, otherwise -1</returns>
-        public int GetIndex(K key, int parent = -1) {
-            int index;
-            if (parent < 0) return _rootIndexMap.TryGetValue(key, out index) ? index : -1;
-            return _nodeIndexMap.TryGetValue(new KeyIndex(key, parent), out index) ? index : -1;
-        }
-
-        /// <summary>
-        /// Get index of the child node with passed key and parent index.
-        /// </summary>
-        /// <param name="key">Key of the child</param>
-        /// <param name="parent">Index of the parent node</param>
-        /// <param name="index">Child node index if present, otherwise -1</param>
-        /// <returns>True if parent has child with passed key</returns>
-        public bool TryGetIndex(K key, int parent, out int index) {
-            index = GetIndex(key, parent);
-            return index >= 0;
-        }
-
-        /// <summary>
-        /// Get root node with passed key.
-        /// </summary>
-        /// <param name="key">Key of the root node</param>
-        /// <param name="index">Root node index if passed key is valid, otherwise -1</param>
-        /// <returns>True if passed key is valid</returns>
-        public bool TryGetIndex(K key, out int index) {
-            index = GetIndex(key);
-            return index >= 0;
-        }
-
-        /// <summary>
-        /// Get index of node parent.
-        /// </summary>
-        /// <param name="child">Index of the child node</param>
-        /// <returns>Parent node index if present, otherwise -1</returns>
-        public int GetParentIndex(int child) {
-            if (child < 0 || child >= _head) return -1;
-
-            ref var node = ref _nodes[child];
-            if (node.IsDisposed()) return -1;
-
-            return node.parent;
-        }
-
-        /// <summary>
-        /// Get index of node first child.
-        /// </summary>
-        /// <param name="parent">Index of the parent node</param>
-        /// <returns>First child node index if present, otherwise -1</returns>
-        public int GetChildIndex(int parent) {
-            if (parent < 0 || parent >= _head) return -1;
-
-            ref var node = ref _nodes[parent];
-            if (node.IsDisposed()) return -1;
-
-            return node.child;
-        }
-
-        /// <summary>
-        /// Get index of the next node.
-        /// </summary>
-        /// <param name="previous">Index of the previous node</param>
-        /// <returns>Next node index if present, otherwise -1</returns>
-        public int GetNextIndex(int previous) {
-            if (previous < 0 || previous >= _head) return -1;
-
-            ref var node = ref _nodes[previous];
-            if (node.IsDisposed()) return -1;
-
-            return node.next;
-        }
-
-        /// <summary>
-        /// Get index of previous node.
-        /// </summary>
-        /// <param name="next">Index of the next node</param>
-        /// <returns>Previous node index if present, otherwise -1</returns>
-        public int GetPreviousIndex(int next) {
-            if (next < 0 || next >= _head) return -1;
-
-            ref var node = ref _nodes[next];
-            if (node.IsDisposed()) return -1;
-
-            return node.prev;
-        }
-
-        /// <summary>
-        /// Get index of node parent.
-        /// </summary>
-        /// <param name="child">Index of the child node</param>
-        /// <param name="parent">Parent node index if present, otherwise -1</param>
-        /// <returns>True if has parent</returns>
-        public bool TryGetParentIndex(int child, out int parent) {
-            parent = GetParentIndex(child);
-            return parent >= 0;
-        }
-
-        /// <summary>
-        /// Get index of node first child.
-        /// </summary>
-        /// <param name="parent">Index of the parent node</param>
-        /// <param name="child">First child node index if present, otherwise -1</param>
-        /// <returns>True if has children</returns>
-        public bool TryGetChildIndex(int parent, out int child) {
-            child = GetChildIndex(parent);
-            return child >= 0;
-        }
-
-        /// <summary>
-        /// Get index of the next node.
-        /// </summary>
-        /// <param name="previous">Index of the previous node</param>
-        /// <param name="next">Next node index if present, otherwise -1</param>
-        /// <returns>True if has next node</returns>
-        public bool TryGetNextIndex(int previous, out int next) {
-            next = GetNextIndex(previous);
-            return next >= 0;
-        }
-
-        /// <summary>
-        /// Get index of previous node.
-        /// </summary>
-        /// <param name="next">Index of the next node</param>
-        /// <param name="previous">Previous node index if present, otherwise -1</param>
-        /// <returns>True if has previous node</returns>
-        public bool TryGetPreviousIndex(int next, out int previous) {
-            previous = GetPreviousIndex(next);
-            return previous >= 0;
+        /// <returns>True if map has node and node is not disposed</returns>
+        public bool ContainsNode(K key, int parent = -1) {
+            return ContainsNodeAt(GetNode(key, parent));
         }
 
         /// <summary>
@@ -1502,11 +1342,109 @@ namespace MisterGames.Common.Data {
         /// </summary>
         /// <param name="index">Index of the node</param>
         /// <returns>True if map has node with passed index and node is not disposed</returns>
-        public bool ContainsIndex(int index) {
+        public bool ContainsNodeAt(int index) {
             if (index < 0 || index >= _head) return false;
 
             ref var node = ref _nodes[index];
             return !node.IsDisposed();
+        }
+
+        /// <summary>
+        /// Get depth of node at index. Root depth is 0, root child depth is 1, etc.
+        /// This operation iterates through a tree up to the tree root to calculate depth.
+        /// </summary>
+        /// <param name="index">Node index</param>
+        /// <returns>Depth of the node with passed index</returns>
+        public int GetNodeDepth(int index) {
+            if (index < 0 || index >= _head) {
+                throw new KeyNotFoundException($"{nameof(TreeMap<K, V>)}: node at index {index} is not found");
+            }
+
+            ref var node = ref _nodes[index];
+            if (node.IsDisposed()) {
+                throw new KeyNotFoundException($"{nameof(TreeMap<K, V>)}: node at index {index} is not found");
+            }
+
+            int depth = 0;
+
+            while (node.parent >= 0) {
+                node = ref _nodes[node.parent];
+                depth++;
+            }
+
+            return depth;
+        }
+
+        /// <summary>
+        /// Sort children by value. If comparer is null, default comparer is used.
+        /// </summary>
+        /// <param name="parent">Index of the parent node</param>
+        /// <param name="comparer">Value comparer</param>
+        /// <exception cref="KeyNotFoundException">If parent index is invalid</exception>
+        public void SortChildren(int parent, IComparer<V> comparer = null) {
+            if (parent < 0 || parent >= _head) {
+                throw new KeyNotFoundException($"{nameof(TreeMap<K, V>)}: parent at index {parent} is not found");
+            }
+
+            ref var node = ref _nodes[parent];
+            if (node.IsDisposed()) {
+                throw new KeyNotFoundException($"{nameof(TreeMap<K, V>)}: parent at index {parent} is not found");
+            }
+
+            int child = node.child;
+            if (child < 0) return;
+
+            comparer ??= Comparer<V>.Default;
+            node = ref _nodes[child];
+
+            child = node.next;
+
+            while (child >= 0) {
+                node = ref _nodes[child];
+
+                int next = node.next;
+                int prev = node.prev;
+
+                int c = child;
+                int p = prev;
+
+                while (p >= 0) {
+                    ref var head = ref _nodes[p];
+                    if (comparer.Compare(node.value, head.value) >= 0) break;
+
+                    c = p;
+                    p = head.prev;
+                }
+
+                if (p != prev) {
+                    node.next = c;
+                    node.prev = p;
+
+                    if (p >= 0) {
+                        node = ref _nodes[p];
+                        node.next = child;
+                    }
+                    else if (node.parent >= 0) {
+                        node = ref _nodes[node.parent];
+                        node.child = child;
+                    }
+
+                    node = ref _nodes[c];
+                    node.prev = child;
+
+                    node = ref _nodes[prev];
+                    node.next = next;
+
+                    if (next >= 0) {
+                        node = ref _nodes[next];
+                        node.prev = prev;
+                    }
+                }
+
+                child = next;
+            }
+
+            _version++;
         }
 
         #endregion

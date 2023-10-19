@@ -67,7 +67,7 @@ namespace Data {
 
             var tree = map.GetTree(0);
 
-            tree.MoveIndex(child_1);
+            tree.MoveNode(child_1);
             int index = tree.Index;
 
             Assert.AreEqual(1, tree.GetKey());
@@ -79,7 +79,7 @@ namespace Data {
 
             Assert.IsFalse(tree.MovePreOrder(index));
 
-            tree.MoveIndex(child_6);
+            tree.MoveNode(child_6);
             index = tree.Index;
 
             Assert.AreEqual(6, tree.GetKey());
@@ -91,7 +91,7 @@ namespace Data {
 
             Assert.IsFalse(tree.MovePreOrder(index));
 
-            tree.MoveIndex(child_11);
+            tree.MoveNode(child_11);
             index = tree.Index;
 
             Assert.AreEqual(11, tree.GetKey());
@@ -115,11 +115,11 @@ namespace Data {
             }
 
             map.SortChildren(root);
-            map.TryGetChildIndex(root, out int child);
+            map.TryGetChild(root, out int child);
 
             int lastValue = map.GetValueAt(child);
 
-            while (map.TryGetNextIndex(child, out child)) {
+            while (map.TryGetNext(child, out child)) {
                 int value = map.GetValueAt(child);
                 Assert.IsTrue(value >= lastValue);
                 lastValue = value;
@@ -144,24 +144,24 @@ namespace Data {
         public void ContainsRoot() {
             var map = new TreeMap<int, float>();
 
-            Assert.IsFalse(map.ContainsKey(0));
-            Assert.IsFalse(map.TryGetIndex(0, out int rootGet));
+            Assert.IsFalse(map.ContainsNode(0));
+            Assert.IsFalse(map.TryGetNode(0, out int rootGet));
 
             int root = map.GetOrAddNode(0);
 
-            Assert.IsTrue(map.ContainsKey(0));
-            Assert.IsTrue(map.ContainsIndex(root));
-            Assert.IsTrue(map.TryGetIndex(0, out rootGet));
+            Assert.IsTrue(map.ContainsNode(0));
+            Assert.IsTrue(map.ContainsNodeAt(root));
+            Assert.IsTrue(map.TryGetNode(0, out rootGet));
             Assert.AreEqual(root, rootGet);
-            Assert.AreEqual(root, map.GetIndex(0));
+            Assert.AreEqual(root, map.GetNode(0));
             Assert.AreEqual(1, map.Count);
 
             map.RemoveNode(0);
 
-            Assert.IsFalse(map.ContainsKey(0));
-            Assert.IsFalse(map.TryGetIndex(0, out rootGet));
+            Assert.IsFalse(map.ContainsNode(0));
+            Assert.IsFalse(map.TryGetNode(0, out rootGet));
             Assert.AreEqual(-1, rootGet);
-            Assert.AreEqual(-1, map.GetIndex(0));
+            Assert.AreEqual(-1, map.GetNode(0));
             Assert.AreEqual(0, map.Count);
         }
 
@@ -172,26 +172,26 @@ namespace Data {
             int root = map.GetOrAddNode(0);
             int child = map.GetOrAddNode(0, root);
 
-            Assert.IsTrue(map.ContainsKey(0, root));
-            Assert.IsTrue(map.ContainsIndex(child));
-            Assert.IsTrue(map.TryGetIndex(0, root, out int childGet));
+            Assert.IsTrue(map.ContainsNode(0, root));
+            Assert.IsTrue(map.ContainsNodeAt(child));
+            Assert.IsTrue(map.TryGetNode(0, root, out int childGet));
             Assert.AreEqual(child, childGet);
-            Assert.AreEqual(child, map.GetIndex(0, root));
-            Assert.IsTrue(map.TryGetParentIndex(child, out int parentGet));
+            Assert.AreEqual(child, map.GetNode(0, root));
+            Assert.IsTrue(map.TryGetParent(child, out int parentGet));
             Assert.AreEqual(root, parentGet);
-            Assert.AreEqual(root, map.GetParentIndex(child));
+            Assert.AreEqual(root, map.GetParent(child));
             Assert.AreEqual(2, map.Count);
 
             map.RemoveNode(0, root);
 
-            Assert.IsFalse(map.ContainsKey(0, root));
-            Assert.IsFalse(map.ContainsIndex(child));
-            Assert.IsFalse(map.TryGetIndex(0, root, out childGet));
+            Assert.IsFalse(map.ContainsNode(0, root));
+            Assert.IsFalse(map.ContainsNodeAt(child));
+            Assert.IsFalse(map.TryGetNode(0, root, out childGet));
             Assert.AreEqual(-1, childGet);
-            Assert.AreEqual(-1, map.GetIndex(0, root));
-            Assert.IsFalse(map.TryGetParentIndex(child, out parentGet));
+            Assert.AreEqual(-1, map.GetNode(0, root));
+            Assert.IsFalse(map.TryGetParent(child, out parentGet));
             Assert.AreEqual(-1, parentGet);
-            Assert.AreEqual(-1, map.GetParentIndex(child));
+            Assert.AreEqual(-1, map.GetParent(child));
             Assert.AreEqual(1, map.Count);
         }
 
@@ -200,7 +200,7 @@ namespace Data {
             var map = new TreeMap<int, float>();
 
             int root = map.GetOrAddNode(0);
-            Assert.IsTrue(map.ContainsKey(0));
+            Assert.IsTrue(map.ContainsNode(0));
         }
 
         [Test]
@@ -221,7 +221,7 @@ namespace Data {
             int root = map.GetOrAddNode(0);
             map.RemoveNode(0);
 
-            Assert.IsFalse(map.ContainsKey(0));
+            Assert.IsFalse(map.ContainsNode(0));
         }
 
         [Test]
@@ -231,19 +231,19 @@ namespace Data {
             int root = map.GetOrAddNode(0);
             int child = map.GetOrAddNode(0, root);
 
-            Assert.IsTrue(map.TryGetParentIndex(child, out int rootGet));
+            Assert.IsTrue(map.TryGetParent(child, out int rootGet));
             Assert.AreEqual(root, rootGet);
 
-            Assert.AreEqual(root, map.GetParentIndex(child));
+            Assert.AreEqual(root, map.GetParent(child));
 
-            Assert.IsTrue(map.TryGetChildIndex(root, out int childGet));
+            Assert.IsTrue(map.TryGetChild(root, out int childGet));
             Assert.AreEqual(child, childGet);
 
-            Assert.IsTrue(map.TryGetIndex(0, root, out childGet));
+            Assert.IsTrue(map.TryGetNode(0, root, out childGet));
             Assert.AreEqual(child, childGet);
 
-            Assert.AreEqual(child, map.GetChildIndex(root));
-            Assert.AreEqual(child, map.GetIndex(0, root));
+            Assert.AreEqual(child, map.GetChild(root));
+            Assert.AreEqual(child, map.GetNode(0, root));
 
             Assert.AreEqual(1, map.GetChildrenCount(root));
 
@@ -272,28 +272,28 @@ namespace Data {
             int child0 = map.GetOrAddNode(0, root);
             int child1 = map.GetOrAddNode(1, root);
 
-            Assert.IsTrue(map.ContainsKey(1, root));
-            Assert.IsTrue(map.ContainsIndex(child1));
+            Assert.IsTrue(map.ContainsNode(1, root));
+            Assert.IsTrue(map.ContainsNodeAt(child1));
 
-            Assert.IsTrue(map.TryGetParentIndex(child1, out int rootGet));
+            Assert.IsTrue(map.TryGetParent(child1, out int rootGet));
             Assert.AreEqual(root, rootGet);
 
-            Assert.AreEqual(root, map.GetParentIndex(child1));
+            Assert.AreEqual(root, map.GetParent(child1));
 
-            Assert.IsTrue(map.TryGetIndex(1, root, out int child1Get));
+            Assert.IsTrue(map.TryGetNode(1, root, out int child1Get));
             Assert.AreEqual(child1, child1Get);
 
-            Assert.AreEqual(child1, map.GetIndex(1, root));
+            Assert.AreEqual(child1, map.GetNode(1, root));
 
             Assert.AreEqual(2, map.GetChildrenCount(root));
 
-            Assert.IsTrue(map.TryGetNextIndex(child1, out int child0Get));
+            Assert.IsTrue(map.TryGetNext(child1, out int child0Get));
             Assert.AreEqual(child0, child0Get);
-            Assert.AreEqual(child0, map.GetNextIndex(child1));
+            Assert.AreEqual(child0, map.GetNext(child1));
 
-            Assert.IsTrue(map.TryGetPreviousIndex(child0, out child1Get));
+            Assert.IsTrue(map.TryGetPrevious(child0, out child1Get));
             Assert.AreEqual(child1, child1Get);
-            Assert.AreEqual(child1, map.GetPreviousIndex(child0));
+            Assert.AreEqual(child1, map.GetPrevious(child0));
 
             Assert.AreEqual(3, map.Count);
         }
@@ -306,17 +306,17 @@ namespace Data {
             int parent = map.GetOrAddNode(0, root);
             int child = map.GetOrAddNode(0, parent);
 
-            Assert.IsTrue(map.ContainsKey(0, parent));
-            Assert.IsTrue(map.ContainsIndex(child));
+            Assert.IsTrue(map.ContainsNode(0, parent));
+            Assert.IsTrue(map.ContainsNodeAt(child));
 
-            Assert.IsTrue(map.TryGetParentIndex(child, out int parentGet));
+            Assert.IsTrue(map.TryGetParent(child, out int parentGet));
             Assert.AreEqual(parent, parentGet);
-            Assert.AreEqual(parent, map.GetParentIndex(child));
+            Assert.AreEqual(parent, map.GetParent(child));
 
-            Assert.IsTrue(map.TryGetIndex(0, parent, out int childGet));
+            Assert.IsTrue(map.TryGetNode(0, parent, out int childGet));
             Assert.AreEqual(child, childGet);
 
-            Assert.AreEqual(child, map.GetIndex(0, parent));
+            Assert.AreEqual(child, map.GetNode(0, parent));
 
             Assert.AreEqual(1, map.GetChildrenCount(parent));
 
@@ -347,27 +347,27 @@ namespace Data {
             int child0 = map.GetOrAddNode(0, parent);
             int child1 = map.GetOrAddNode(1, parent);
 
-            Assert.IsTrue(map.ContainsKey(1, parent));
-            Assert.IsTrue(map.ContainsIndex(child1));
+            Assert.IsTrue(map.ContainsNode(1, parent));
+            Assert.IsTrue(map.ContainsNodeAt(child1));
 
-            Assert.IsTrue(map.TryGetParentIndex(child1, out int parentGet));
+            Assert.IsTrue(map.TryGetParent(child1, out int parentGet));
             Assert.AreEqual(parent, parentGet);
-            Assert.AreEqual(parent, map.GetParentIndex(child1));
+            Assert.AreEqual(parent, map.GetParent(child1));
 
-            Assert.IsTrue(map.TryGetIndex(1, parent, out int child1Get));
+            Assert.IsTrue(map.TryGetNode(1, parent, out int child1Get));
             Assert.AreEqual(child1, child1Get);
 
-            Assert.AreEqual(child1, map.GetIndex(1, parent));
+            Assert.AreEqual(child1, map.GetNode(1, parent));
 
             Assert.AreEqual(2, map.GetChildrenCount(parent));
 
-            Assert.IsTrue(map.TryGetNextIndex(child1, out int child0Get));
+            Assert.IsTrue(map.TryGetNext(child1, out int child0Get));
             Assert.AreEqual(child0, child0Get);
-            Assert.AreEqual(child0, map.GetNextIndex(child1));
+            Assert.AreEqual(child0, map.GetNext(child1));
 
-            Assert.IsTrue(map.TryGetPreviousIndex(child0, out child1Get));
+            Assert.IsTrue(map.TryGetPrevious(child0, out child1Get));
             Assert.AreEqual(child1, child1Get);
-            Assert.AreEqual(child1, map.GetPreviousIndex(child0));
+            Assert.AreEqual(child1, map.GetPrevious(child0));
 
             Assert.AreEqual(4, map.Count);
         }
@@ -381,20 +381,20 @@ namespace Data {
 
             map.RemoveNode(0, ref root);
 
-            Assert.IsFalse(map.ContainsKey(0, root));
+            Assert.IsFalse(map.ContainsNode(0, root));
 
-            Assert.IsFalse(map.TryGetParentIndex(child, out int rootGet));
+            Assert.IsFalse(map.TryGetParent(child, out int rootGet));
             Assert.AreEqual(-1, rootGet);
-            Assert.AreEqual(-1, map.GetParentIndex(child));
+            Assert.AreEqual(-1, map.GetParent(child));
 
-            Assert.IsFalse(map.TryGetChildIndex(root, out int childGet));
+            Assert.IsFalse(map.TryGetChild(root, out int childGet));
             Assert.AreEqual(-1, childGet);
 
-            Assert.IsFalse(map.TryGetIndex(0, root, out childGet));
+            Assert.IsFalse(map.TryGetNode(0, root, out childGet));
             Assert.AreEqual(-1, childGet);
 
-            Assert.AreEqual(-1, map.GetChildIndex(root));
-            Assert.AreEqual(-1, map.GetIndex(0, root));
+            Assert.AreEqual(-1, map.GetChild(root));
+            Assert.AreEqual(-1, map.GetNode(0, root));
 
             Assert.AreEqual(0, map.GetChildrenCount(root));
 
@@ -410,21 +410,21 @@ namespace Data {
             int child1 = map.GetOrAddNode(1, root);
 
             map.RemoveNode(0, ref root);
-            child1 = map.GetIndex(1, root);
+            child1 = map.GetNode(1, root);
 
-            Assert.IsTrue(map.ContainsKey(1, root));
+            Assert.IsTrue(map.ContainsNode(1, root));
 
-            Assert.IsTrue(map.TryGetParentIndex(child1, out int rootGet));
+            Assert.IsTrue(map.TryGetParent(child1, out int rootGet));
             Assert.AreEqual(root, rootGet);
-            Assert.AreEqual(root, map.GetParentIndex(child1));
+            Assert.AreEqual(root, map.GetParent(child1));
 
-            Assert.IsTrue(map.TryGetChildIndex(root, out int child1Get));
+            Assert.IsTrue(map.TryGetChild(root, out int child1Get));
             Assert.AreEqual(child1, child1Get);
 
-            Assert.IsTrue(map.TryGetIndex(1, root, out child1Get));
+            Assert.IsTrue(map.TryGetNode(1, root, out child1Get));
             Assert.AreEqual(child1, child1Get);
 
-            Assert.AreEqual(child1, map.GetChildIndex(root));
+            Assert.AreEqual(child1, map.GetChild(root));
 
             Assert.AreEqual(1, map.GetChildrenCount(root));
 
@@ -440,21 +440,21 @@ namespace Data {
             int child1 = map.GetOrAddNode(1, root);
 
             map.RemoveNode(1, ref root);
-            child0 = map.GetIndex(0, root);
+            child0 = map.GetNode(0, root);
 
-            Assert.IsTrue(map.ContainsKey(0, root));
+            Assert.IsTrue(map.ContainsNode(0, root));
 
-            Assert.IsTrue(map.TryGetParentIndex(child0, out int rootGet));
+            Assert.IsTrue(map.TryGetParent(child0, out int rootGet));
             Assert.AreEqual(root, rootGet);
-            Assert.AreEqual(root, map.GetParentIndex(child0));
+            Assert.AreEqual(root, map.GetParent(child0));
 
-            Assert.IsTrue(map.TryGetChildIndex(root, out int child0Get));
+            Assert.IsTrue(map.TryGetChild(root, out int child0Get));
             Assert.AreEqual(child0, child0Get);
 
-            Assert.IsTrue(map.TryGetIndex(0, root, out child0Get));
+            Assert.IsTrue(map.TryGetNode(0, root, out child0Get));
             Assert.AreEqual(child0, child0Get);
 
-            Assert.AreEqual(child0, map.GetChildIndex(root));
+            Assert.AreEqual(child0, map.GetChild(root));
 
             Assert.AreEqual(1, map.GetChildrenCount(root));
 
@@ -471,33 +471,33 @@ namespace Data {
             int child2 = map.GetOrAddNode(2, root);
 
             map.RemoveNode(1, ref root);
-            child0 = map.GetIndex(0, root);
-            child2 = map.GetIndex(2, root);
+            child0 = map.GetNode(0, root);
+            child2 = map.GetNode(2, root);
 
-            Assert.IsTrue(map.ContainsKey(2, root));
+            Assert.IsTrue(map.ContainsNode(2, root));
 
-            Assert.IsTrue(map.TryGetParentIndex(child2, out int rootGet));
+            Assert.IsTrue(map.TryGetParent(child2, out int rootGet));
             Assert.AreEqual(root, rootGet);
-            Assert.AreEqual(root, map.GetParentIndex(child2));
+            Assert.AreEqual(root, map.GetParent(child2));
 
-            Assert.IsTrue(map.TryGetChildIndex(root, out int child2Get));
+            Assert.IsTrue(map.TryGetChild(root, out int child2Get));
             Assert.AreEqual(child2, child2Get);
 
-            Assert.IsTrue(map.TryGetIndex(0, root, out int child0Get));
+            Assert.IsTrue(map.TryGetNode(0, root, out int child0Get));
             Assert.AreEqual(child0, child0Get);
 
-            Assert.IsTrue(map.TryGetIndex(2, root, out child2Get));
+            Assert.IsTrue(map.TryGetNode(2, root, out child2Get));
             Assert.AreEqual(child2, child2Get);
 
-            Assert.IsTrue(map.TryGetPreviousIndex(child0, out child2Get));
+            Assert.IsTrue(map.TryGetPrevious(child0, out child2Get));
             Assert.AreEqual(child2, child2Get);
-            Assert.AreEqual(child2, map.GetPreviousIndex(child0));
+            Assert.AreEqual(child2, map.GetPrevious(child0));
 
-            Assert.IsTrue(map.TryGetNextIndex(child2, out child0Get));
+            Assert.IsTrue(map.TryGetNext(child2, out child0Get));
             Assert.AreEqual(child0, child0Get);
-            Assert.AreEqual(child0, map.GetNextIndex(child2));
+            Assert.AreEqual(child0, map.GetNext(child2));
 
-            Assert.AreEqual(child2, map.GetChildIndex(root));
+            Assert.AreEqual(child2, map.GetChild(root));
 
             Assert.AreEqual(2, map.GetChildrenCount(root));
 
@@ -514,19 +514,19 @@ namespace Data {
 
             map.RemoveNode(0, ref parent);
 
-            Assert.IsFalse(map.ContainsKey(0, parent));
+            Assert.IsFalse(map.ContainsNode(0, parent));
 
-            Assert.IsFalse(map.TryGetParentIndex(child, out int parentGet));
+            Assert.IsFalse(map.TryGetParent(child, out int parentGet));
             Assert.AreEqual(-1, parentGet);
 
-            Assert.IsFalse(map.TryGetChildIndex(parent, out int childGet));
+            Assert.IsFalse(map.TryGetChild(parent, out int childGet));
             Assert.AreEqual(-1, childGet);
 
-            Assert.IsFalse(map.TryGetIndex(0, parent, out childGet));
+            Assert.IsFalse(map.TryGetNode(0, parent, out childGet));
             Assert.AreEqual(-1, childGet);
 
-            Assert.AreEqual(-1, map.GetChildIndex(parent));
-            Assert.AreEqual(-1, map.GetIndex(0, parent));
+            Assert.AreEqual(-1, map.GetChild(parent));
+            Assert.AreEqual(-1, map.GetNode(0, parent));
 
             Assert.AreEqual(0, map.GetChildrenCount(parent));
 
@@ -543,21 +543,21 @@ namespace Data {
             int child1 = map.GetOrAddNode(1, parent);
 
             map.RemoveNode(0, ref parent);
-            child1 = map.GetIndex(1, parent);
+            child1 = map.GetNode(1, parent);
 
-            Assert.IsTrue(map.ContainsKey(1, parent));
+            Assert.IsTrue(map.ContainsNode(1, parent));
 
-            Assert.IsTrue(map.TryGetParentIndex(child1, out int parentGet));
+            Assert.IsTrue(map.TryGetParent(child1, out int parentGet));
             Assert.AreEqual(parent, parentGet);
-            Assert.AreEqual(parent, map.GetParentIndex(child1));
+            Assert.AreEqual(parent, map.GetParent(child1));
 
-            Assert.IsTrue(map.TryGetChildIndex(parent, out int child1Get));
+            Assert.IsTrue(map.TryGetChild(parent, out int child1Get));
             Assert.AreEqual(child1, child1Get);
 
-            Assert.IsTrue(map.TryGetIndex(1, parent, out child1Get));
+            Assert.IsTrue(map.TryGetNode(1, parent, out child1Get));
             Assert.AreEqual(child1, child1Get);
 
-            Assert.AreEqual(child1, map.GetChildIndex(parent));
+            Assert.AreEqual(child1, map.GetChild(parent));
 
             Assert.AreEqual(1, map.GetChildrenCount(parent));
 
@@ -574,21 +574,21 @@ namespace Data {
             int child1 = map.GetOrAddNode(1, parent);
 
             map.RemoveNode(1, ref parent);
-            child0 = map.GetIndex(0, parent);
+            child0 = map.GetNode(0, parent);
 
-            Assert.IsTrue(map.ContainsKey(0, parent));
+            Assert.IsTrue(map.ContainsNode(0, parent));
 
-            Assert.IsTrue(map.TryGetParentIndex(child0, out int parentGet));
+            Assert.IsTrue(map.TryGetParent(child0, out int parentGet));
             Assert.AreEqual(parent, parentGet);
-            Assert.AreEqual(parent, map.GetParentIndex(child0));
+            Assert.AreEqual(parent, map.GetParent(child0));
 
-            Assert.IsTrue(map.TryGetChildIndex(parent, out int child0Get));
+            Assert.IsTrue(map.TryGetChild(parent, out int child0Get));
             Assert.AreEqual(child0, child0Get);
 
-            Assert.IsTrue(map.TryGetIndex(0, parent, out child0Get));
+            Assert.IsTrue(map.TryGetNode(0, parent, out child0Get));
             Assert.AreEqual(child0, child0Get);
 
-            Assert.AreEqual(child0, map.GetChildIndex(parent));
+            Assert.AreEqual(child0, map.GetChild(parent));
 
             Assert.AreEqual(1, map.GetChildrenCount(parent));
 
@@ -606,33 +606,33 @@ namespace Data {
             int child2 = map.GetOrAddNode(2, parent);
 
             map.RemoveNode(1, ref parent);
-            child0 = map.GetIndex(0, parent);
-            child2 = map.GetIndex(2, parent);
+            child0 = map.GetNode(0, parent);
+            child2 = map.GetNode(2, parent);
 
-            Assert.IsTrue(map.ContainsKey(2, parent));
+            Assert.IsTrue(map.ContainsNode(2, parent));
 
-            Assert.IsTrue(map.TryGetParentIndex(child2, out int parentGet));
+            Assert.IsTrue(map.TryGetParent(child2, out int parentGet));
             Assert.AreEqual(parent, parentGet);
-            Assert.AreEqual(parent, map.GetParentIndex(child2));
+            Assert.AreEqual(parent, map.GetParent(child2));
 
-            Assert.IsTrue(map.TryGetChildIndex(parent, out int child2Get));
+            Assert.IsTrue(map.TryGetChild(parent, out int child2Get));
             Assert.AreEqual(child2, child2Get);
 
-            Assert.IsTrue(map.TryGetIndex(0, parent, out int child0Get));
+            Assert.IsTrue(map.TryGetNode(0, parent, out int child0Get));
             Assert.AreEqual(child0, child0Get);
 
-            Assert.IsTrue(map.TryGetIndex(2, parent, out child2Get));
+            Assert.IsTrue(map.TryGetNode(2, parent, out child2Get));
             Assert.AreEqual(child2, child2Get);
 
-            Assert.IsTrue(map.TryGetPreviousIndex(child0, out child2Get));
+            Assert.IsTrue(map.TryGetPrevious(child0, out child2Get));
             Assert.AreEqual(child2, child2Get);
-            Assert.AreEqual(child2, map.GetPreviousIndex(child0));
+            Assert.AreEqual(child2, map.GetPrevious(child0));
 
-            Assert.IsTrue(map.TryGetNextIndex(child2, out child0Get));
+            Assert.IsTrue(map.TryGetNext(child2, out child0Get));
             Assert.AreEqual(child0, child0Get);
-            Assert.AreEqual(child0, map.GetNextIndex(child2));
+            Assert.AreEqual(child0, map.GetNext(child2));
 
-            Assert.AreEqual(child2, map.GetChildIndex(parent));
+            Assert.AreEqual(child2, map.GetChild(parent));
 
             Assert.AreEqual(2, map.GetChildrenCount(parent));
 
@@ -649,25 +649,25 @@ namespace Data {
 
             map.ClearChildren(ref root);
 
-            Assert.IsFalse(map.ContainsKey(0, root));
-            Assert.IsFalse(map.ContainsKey(1, root));
+            Assert.IsFalse(map.ContainsNode(0, root));
+            Assert.IsFalse(map.ContainsNode(1, root));
 
-            Assert.IsFalse(map.TryGetParentIndex(child0, out int rootGet));
+            Assert.IsFalse(map.TryGetParent(child0, out int rootGet));
             Assert.AreEqual(-1, rootGet);
-            Assert.AreEqual(-1, map.GetParentIndex(child0));
+            Assert.AreEqual(-1, map.GetParent(child0));
 
-            Assert.IsFalse(map.TryGetParentIndex(child1, out rootGet));
+            Assert.IsFalse(map.TryGetParent(child1, out rootGet));
             Assert.AreEqual(-1, rootGet);
-            Assert.AreEqual(-1, map.GetParentIndex(child1));
+            Assert.AreEqual(-1, map.GetParent(child1));
 
-            Assert.IsFalse(map.TryGetChildIndex(root, out int child0Get));
+            Assert.IsFalse(map.TryGetChild(root, out int child0Get));
             Assert.AreEqual(-1, child0Get);
 
-            Assert.IsFalse(map.TryGetIndex(0, root, out child0Get));
+            Assert.IsFalse(map.TryGetNode(0, root, out child0Get));
             Assert.AreEqual(-1, child0Get);
 
-            Assert.AreEqual(-1, map.GetChildIndex(root));
-            Assert.AreEqual(-1, map.GetIndex(0, root));
+            Assert.AreEqual(-1, map.GetChild(root));
+            Assert.AreEqual(-1, map.GetNode(0, root));
 
             Assert.AreEqual(0, map.GetChildrenCount(root));
 
@@ -685,28 +685,28 @@ namespace Data {
 
             map.ClearChildren(ref parent);
 
-            Assert.IsFalse(map.ContainsKey(0, parent));
-            Assert.IsFalse(map.ContainsKey(1, parent));
+            Assert.IsFalse(map.ContainsNode(0, parent));
+            Assert.IsFalse(map.ContainsNode(1, parent));
 
-            Assert.IsFalse(map.TryGetParentIndex(child0, out int parentGet));
+            Assert.IsFalse(map.TryGetParent(child0, out int parentGet));
             Assert.AreEqual(-1, parentGet);
-            Assert.AreEqual(-1, map.GetParentIndex(child0));
+            Assert.AreEqual(-1, map.GetParent(child0));
 
-            Assert.IsFalse(map.TryGetParentIndex(child1, out parentGet));
+            Assert.IsFalse(map.TryGetParent(child1, out parentGet));
             Assert.AreEqual(-1, parentGet);
-            Assert.AreEqual(-1, map.GetParentIndex(child1));
+            Assert.AreEqual(-1, map.GetParent(child1));
 
-            Assert.IsFalse(map.TryGetChildIndex(parent, out int child0Get));
+            Assert.IsFalse(map.TryGetChild(parent, out int child0Get));
             Assert.AreEqual(-1, child0Get);
 
-            Assert.IsFalse(map.TryGetIndex(0, parent, out child0Get));
+            Assert.IsFalse(map.TryGetNode(0, parent, out child0Get));
             Assert.AreEqual(-1, child0Get);
 
-            Assert.IsFalse(map.TryGetIndex(1, parent, out int child1Get));
+            Assert.IsFalse(map.TryGetNode(1, parent, out int child1Get));
             Assert.AreEqual(-1, child1Get);
 
-            Assert.AreEqual(-1, map.GetChildIndex(parent));
-            Assert.AreEqual(-1, map.GetIndex(0, parent));
+            Assert.AreEqual(-1, map.GetChild(parent));
+            Assert.AreEqual(-1, map.GetNode(0, parent));
 
             Assert.AreEqual(0, map.GetChildrenCount(parent));
 
@@ -724,10 +724,10 @@ namespace Data {
 
             map.Clear();
 
-            Assert.IsFalse(map.ContainsKey(0));
-            Assert.IsFalse(map.ContainsKey(0, root));
-            Assert.IsFalse(map.ContainsKey(0, parent));
-            Assert.IsFalse(map.ContainsKey(1, parent));
+            Assert.IsFalse(map.ContainsNode(0));
+            Assert.IsFalse(map.ContainsNode(0, root));
+            Assert.IsFalse(map.ContainsNode(0, parent));
+            Assert.IsFalse(map.ContainsNode(1, parent));
 
             Assert.AreEqual(0, map.GetChildrenCount(root));
             Assert.AreEqual(0, map.GetChildrenCount(parent));
@@ -751,7 +751,7 @@ namespace Data {
             var map = new TreeMap<int, float>();
 
             int root = map.GetOrAddNode(0);
-            ref float value = ref map.GetValueByRef(0);
+            ref float value = ref map.GetValue(0, -1);
 
             Assert.AreEqual(0f, value);
 
@@ -852,7 +852,7 @@ namespace Data {
                             }
                         }
 
-                        int parent = tree.GetParentIndex();
+                        int parent = tree.GetParent();
                         int root = tree.Index;
                         key = tree.GetKey();
 
@@ -976,7 +976,7 @@ namespace Data {
                             }
                         }
 
-                        int parent = tree.GetParentIndex();
+                        int parent = tree.GetParent();
                         int root = tree.Index;
                         key = tree.GetKey();
 
@@ -994,13 +994,13 @@ namespace Data {
                 int attemptsCount = 0;
                 int copyRoot = -1;
 
-                while (!map.ContainsIndex(copyRoot) && attemptsCount++ < attemptsMax) {
+                while (!map.ContainsNodeAt(copyRoot) && attemptsCount++ < attemptsMax) {
                     copyRoot = Random.Range(0, map.Count);
                 }
 
-                if (!map.ContainsIndex(copyRoot)) continue;
+                if (!map.ContainsNodeAt(copyRoot)) continue;
 
-                int levelOffset = map.GetDepth(copyRoot);
+                int levelOffset = map.GetNodeDepth(copyRoot);
                 var copy = map.Copy(copyRoot);
 
                 var addedRoots = addedNodes[levelOffset];
