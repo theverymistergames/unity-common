@@ -1185,6 +1185,50 @@ namespace MisterGames.Common.Data {
         }
 
         /// <summary>
+        /// Add node without key by index of the previous node.
+        /// Throws <see cref="KeyNotFoundException"/> if previous node index is invalid.
+        /// </summary>
+        /// <param name="previous">Index of the previous node</param>
+        /// <param name="value">Value of the child node</param>
+        /// <returns>Node index if added or get, otherwise -1</returns>
+        public int InsertNextEndPoint(int previous, V value) {
+            if (previous < 0 || previous >= _head) {
+                throw new KeyNotFoundException($"{nameof(TreeMap<K, V>)}: node at index {previous} is not found");
+            }
+
+            ref var node = ref _nodes[previous];
+            if (node.IsDisposed()) {
+                throw new KeyNotFoundException($"{nameof(TreeMap<K, V>)}: node at index {previous} is not found");
+            }
+
+            int parent = node.parent;
+            if (parent < 0) {
+                throw new InvalidOperationException($"{nameof(TreeMap<K, V>)}: node at index {previous} cannot have next nodes");
+            }
+
+            int next = node.next;
+            int index = AllocateNode();
+
+            node = ref _nodes[previous];
+            node.next = index;
+
+            if (next >= 0) {
+                node = ref _nodes[next];
+                node.prev = index;
+            }
+
+            node = ref _nodes[index];
+            node.next = next;
+            node.prev = previous;
+            node.parent = parent;
+            node.value = value;
+
+            node.DisallowChildren();
+
+            return index;
+        }
+
+        /// <summary>
         /// Remove node by key and parent. This operation can cause map version change.
         /// Note that parent index can change after remove during defragmentation.
         /// </summary>
