@@ -42,16 +42,7 @@ namespace MisterGames.Common.Data {
             _freeIndices = new List<int>();
         }
 
-        public V GetValue(K key) {
-            if (!_indexMap.TryGetValue(key, out int index)) {
-                throw new KeyNotFoundException($"{nameof(ArrayMap<K, V>)}: key {key} not found");
-            }
-
-            ref var node = ref _nodes[index];
-            return node.value;
-        }
-
-        public ref V GetValueByRef(K key) {
+        public ref V GetValue(K key) {
             if (!_indexMap.TryGetValue(key, out int index)) {
                 throw new KeyNotFoundException($"{nameof(ArrayMap<K, V>)}: key {key} not found");
             }

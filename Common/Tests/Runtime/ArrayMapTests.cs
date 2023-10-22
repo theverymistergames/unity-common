@@ -18,7 +18,7 @@ namespace Data {
             Assert.IsTrue(map.IndexOf(0) >= 0);
             Assert.AreEqual(1, map.Count);
             Assert.AreEqual(1f, map[0]);
-            Assert.AreEqual(1f, map.GetValueByRef(0));
+            Assert.AreEqual(1f, map.GetValue(0));
             Assert.IsTrue(map.TryGetValue(0, out float value));
             Assert.AreEqual(1f, value);
 
@@ -28,7 +28,7 @@ namespace Data {
             Assert.IsFalse(map.IndexOf(0) >= 0);
             Assert.AreEqual(0, map.Count);
 
-            Assert.Throws<KeyNotFoundException>(() => map.GetValueByRef(0));
+            Assert.Throws<KeyNotFoundException>(() => map.GetValue(0));
             Assert.IsFalse(map.TryGetValue(0, out value));
             Assert.AreEqual(0f, value);
         }
@@ -43,7 +43,7 @@ namespace Data {
             Assert.IsTrue(map.IndexOf(0) >= 0);
             Assert.AreEqual(1, map.Count);
             Assert.AreEqual(1f, map[0]);
-            Assert.AreEqual(1f, map.GetValueByRef(0));
+            Assert.AreEqual(1f, map.GetValue(0));
             Assert.IsTrue(map.TryGetValue(0, out float value));
             Assert.AreEqual(1f, value);
 
@@ -53,7 +53,7 @@ namespace Data {
             Assert.IsTrue(map.IndexOf(1) >= 0);
             Assert.AreEqual(2, map.Count);
             Assert.AreEqual(2f, map[1]);
-            Assert.AreEqual(2f, map.GetValueByRef(1));
+            Assert.AreEqual(2f, map.GetValue(1));
             Assert.IsTrue(map.TryGetValue(1, out value));
             Assert.AreEqual(2f, value);
         }
@@ -93,7 +93,7 @@ namespace Data {
             var map = new ArrayMap<int, float>();
 
             map[0] = 1.0f;
-            ref float value = ref map.GetValueByRef(0);
+            ref float value = ref map.GetValue(0);
 
             Assert.AreEqual(1f, value);
 
