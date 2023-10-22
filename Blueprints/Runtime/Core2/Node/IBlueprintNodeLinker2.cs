@@ -2,7 +2,7 @@
 
     internal interface IBlueprintNodeLinker2 {
 
-        void GetLinkedNode(long id, out int hash, out int port);
+        void GetLinkedNode(NodeId id, out int hash, out int port);
     }
 
 }

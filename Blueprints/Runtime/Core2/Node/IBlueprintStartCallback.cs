@@ -9,7 +9,7 @@
         /// <summary>
         /// Called when BlueprintRunner receives MonoBehaviour.Start call.
         /// </summary>
-        void OnStart(IBlueprint blueprint, long id);
+        void OnStart(IBlueprint blueprint, NodeId id);
     }
 
 }

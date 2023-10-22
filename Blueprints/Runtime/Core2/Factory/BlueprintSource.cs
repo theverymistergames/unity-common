@@ -24,7 +24,7 @@ namespace MisterGames.Blueprints.Core2 {
                                                     $"from factory with nodes of type {typeof(TNode).Name}");
             }
 
-            return ref factory._nodeMap.GetValueByRef(id);
+            return ref factory._nodeMap.GetValue(id);
         }
 
         public int AddNode() {
@@ -38,7 +38,7 @@ namespace MisterGames.Blueprints.Core2 {
 
         public int AddNodeCopy(IBlueprintSource source, int id) {
             int localId = AddNode();
-            ref var data = ref _nodeMap.GetValueByRef(localId);
+            ref var data = ref _nodeMap.GetValue(localId);
 
             data = source.GetNode<TNode>(id);
 
@@ -72,38 +72,28 @@ namespace MisterGames.Blueprints.Core2 {
             _lastId = 0;
         }
 
-        public void CreatePorts(IBlueprintMeta meta, long id) {
-            BlueprintNodeAddress.Unpack(id, out _, out int nodeId);
-
-            ref var node = ref _nodeMap.GetValueByRef(nodeId);
+        public void CreatePorts(IBlueprintMeta meta, NodeId id) {
+            ref var node = ref _nodeMap.GetValue(id.node);
             node.CreatePorts(meta, id);
         }
 
-        public void SetDefaultValues(long id) {
-            BlueprintNodeAddress.Unpack(id, out _, out int nodeId);
-
-            ref var node = ref _nodeMap.GetValueByRef(nodeId);
-            node.SetDefaultValues(id);
+        public void OnSetDefaults(IBlueprintMeta meta, NodeId id) {
+            ref var node = ref _nodeMap.GetValue(id.node);
+            node.OnSetDefaults(meta, id);
         }
 
-        public void OnValidate(IBlueprintMeta meta, long id) {
-            BlueprintNodeAddress.Unpack(id, out _, out int nodeId);
-
-            ref var node = ref _nodeMap.GetValueByRef(nodeId);
+        public void OnValidate(IBlueprintMeta meta, NodeId id) {
+            ref var node = ref _nodeMap.GetValue(id.node);
             node.OnValidate(meta, id);
         }
 
-        public void OnInitialize(IBlueprint blueprint, long id) {
-            BlueprintNodeAddress.Unpack(id, out _, out int nodeId);
-
-            ref var node = ref _nodeMap.GetValueByRef(nodeId);
+        public void OnInitialize(IBlueprint blueprint, NodeId id) {
+            ref var node = ref _nodeMap.GetValue(id.node);
             node.OnInitialize(blueprint, id);
         }
 
-        public void OnDeInitialize(IBlueprint blueprint, long id) {
-            BlueprintNodeAddress.Unpack(id, out _, out int nodeId);
-
-            ref var node = ref _nodeMap.GetValueByRef(nodeId);
+        public void OnDeInitialize(IBlueprint blueprint, NodeId id) {
+            ref var node = ref _nodeMap.GetValue(id.node);
             node.OnDeInitialize(blueprint, id);
         }
 

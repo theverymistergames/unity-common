@@ -2,25 +2,25 @@
 
     public interface IBlueprintMeta {
 
-        Port GetPort(long id, int port);
+        Port GetPort(NodeId id, int port);
 
-        void AddPort(long id, Port port);
+        void AddPort(NodeId id, Port port);
 
-        int GetPortCount(long id);
+        int GetPortCount(NodeId id);
 
         BlueprintLink2 GetLink(int index);
 
-        bool TryGetLinksFrom(long id, int port, out int index);
+        bool TryGetLinksFrom(NodeId id, int port, out int index);
 
-        bool TryGetLinksTo(long id, int port, out int index);
+        bool TryGetLinksTo(NodeId id, int port, out int index);
 
         bool TryGetNextLink(int previous, out int next);
 
-        void SetSubgraph(long id, BlueprintAsset2 asset);
+        void SetSubgraph(NodeId id, BlueprintAsset2 asset);
 
-        void RemoveSubgraph(long id);
+        void RemoveSubgraph(NodeId id);
 
-        void InvalidateNode(long id, bool invalidateLinks, bool notify = true);
+        void InvalidateNode(NodeId id, bool invalidateLinks, bool notify = true);
     }
 
 }

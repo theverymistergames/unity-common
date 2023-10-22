@@ -36,7 +36,7 @@ namespace MisterGames.Blueprints.Core2 {
         string GetSourcePath(int id);
 
         /// <summary>
-        /// Remove all
+        /// Remove all sources.
         /// </summary>
         void Clear();
     }

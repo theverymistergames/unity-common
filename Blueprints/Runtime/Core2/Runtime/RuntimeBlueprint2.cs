@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 
 namespace MisterGames.Blueprints.Core2 {
 
@@ -8,160 +7,95 @@ namespace MisterGames.Blueprints.Core2 {
         public IBlueprintHost2 Host { get; private set; }
 
         private readonly IBlueprintFactory _factory;
-        private readonly long[] _nodes;
-        private readonly RuntimeLink2[] _links;
-        private readonly Dictionary<RuntimePortAddress, int> _ports;
-
-        private int _nodePointer;
-        private int _linkPointer;
+        private readonly IRuntimeNodeStorage _nodes;
+        private readonly IRuntimeLinkStorage _links;
 
         private RuntimeBlueprint2() { }
 
-        public RuntimeBlueprint2(IBlueprintFactory factory, int nodes, int linkedPorts, int links) {
+        public RuntimeBlueprint2(IBlueprintFactory factory, IRuntimeNodeStorage nodes, IRuntimeLinkStorage links) {
             _factory = factory;
-            _nodes = new long[nodes];
-            _links = new RuntimeLink2[linkedPorts + links];
-            _ports = new Dictionary<RuntimePortAddress, int>(linkedPorts);
+            _nodes = nodes;
+            _links = links;
         }
 
         public void Initialize(IBlueprintHost2 host) {
             Host = host;
 
-            for (int i = 0; i < _nodes.Length; i++) {
-                long id = _nodes[i];
-                BlueprintNodeAddress.Unpack(id, out int factoryId, out int _);
-
-                _factory.GetSource(factoryId).OnInitialize(this, id);
+            for (int i = 0; i < _nodes.Count; i++) {
+                var id = _nodes.GetNode(i);
+                _factory.GetSource(id.source).OnInitialize(this, id);
             }
         }
 
         public void DeInitialize() {
-            for (int i = 0; i < _nodes.Length; i++) {
-                long id = _nodes[i];
-                BlueprintNodeAddress.Unpack(id, out int factoryId, out int _);
-
-                _factory.GetSource(factoryId).OnDeInitialize(this, id);
+            for (int i = 0; i < _nodes.Count; i++) {
+                var id = _nodes.GetNode(i);
+                _factory.GetSource(id.source).OnDeInitialize(this, id);
             }
+
+            Host = null;
         }
 
         public void SetEnabled(bool enabled) {
-            for (int i = 0; i < _nodes.Length; i++) {
-                long id = _nodes[i];
-                BlueprintNodeAddress.Unpack(id, out int factoryId, out int _);
+            for (int i = 0; i < _nodes.Count; i++) {
+                var id = _nodes.GetNode(i);
 
-                if (_factory.GetSource(factoryId) is IBlueprintEnableCallback enableDisable) {
+                if (_factory.GetSource(id.source) is IBlueprintEnableCallback enableDisable) {
                     enableDisable.OnEnable(this, id, enabled);
                 }
             }
         }
 
         public void Start() {
-            for (int i = 0; i < _nodes.Length; i++) {
-                long id = _nodes[i];
-                BlueprintNodeAddress.Unpack(id, out int factoryId, out int _);
+            for (int i = 0; i < _nodes.Count; i++) {
+                var id = _nodes.GetNode(i);
 
-                if (_factory.GetSource(factoryId) is IBlueprintStartCallback start) {
+                if (_factory.GetSource(id.source) is IBlueprintStartCallback start) {
                     start.OnStart(this, id);
                 }
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Call(long id, int port) {
-            GetLinks(id, port, out int index, out int count);
-            int end = index + count;
+        public void Call(NodeId id, int port) {
+            for (int l = _links.GetFirstLink(id.source, id.node, port); l >= 0; l = _links.GetNextLink(l)) {
+                var link = _links.GetLink(l);
+                if (_factory.GetSource(link.source) is not IBlueprintEnter2 enter) continue;
 
-            for (int i = index; i < end; i++) {
-                var link = GetLink(i);
-                BlueprintNodeAddress.Unpack(link.nodeId, out int factoryId, out _);
-
-                if (_factory.GetSource(factoryId) is not IBlueprintEnter2 enter) continue;
-
-                enter.OnEnterPort(this, link.nodeId, link.port);
+                enter.OnEnterPort(this, new NodeId(link.source, link.node), link.port);
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public T Read<T>(long id, int port, T defaultValue = default) {
-            GetLinks(id, port, out int index, out int count);
-            return count > 0 ? ReadLink(index, defaultValue) : defaultValue;
+        public T Read<T>(NodeId id, int port, T defaultValue = default) {
+            return ReadLink(_links.GetFirstLink(id.source, id.node, port), defaultValue);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public T ReadLink<T>(int index, T defaultValue = default) {
-            var link = GetLink(index);
-            BlueprintNodeAddress.Unpack(link.nodeId, out int factoryId, out _);
+            if (index < 0) return defaultValue;
 
-            return _factory.GetSource(factoryId) switch {
-                IBlueprintOutput2<T> outputT => outputT.GetPortValue(this, link.nodeId, link.port),
-                IBlueprintOutput2 output => output.GetOutputPortValue<T>(this, link.nodeId, link.port),
+            var link = _links.GetLink(index);
+
+            return _factory.GetSource(link.source) switch {
+                IBlueprintOutput2<T> outputT => outputT.GetPortValue(this, new NodeId(link.source, link.node), link.port),
+                IBlueprintOutput2 output => output.GetPortValue<T>(this, new NodeId(link.source, link.node), link.port),
                 _ => defaultValue
             };
         }
 
-        /// <summary>
-        /// Add blueprint node by address.
-        /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void AddNode(long id) {
-            _nodes[_nodePointer++] = id;
+        public LinkReader GetLinks(NodeId id, int port) {
+            return new LinkReader(this, _links.GetFirstLink(id.source, id.node, port));
         }
 
-        /// <summary>
-        /// Return index in the links array, starting from which there can be set passed count of links.
-        /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int AllocateLinks(long id, int port, int count) {
-            var portAddress = new RuntimePortAddress(id, port);
-
-            int index = _linkPointer;
-            _ports[portAddress] = _linkPointer;
-
-            _links[index] = new RuntimeLink2(id, port, count);
-            _linkPointer += count + 1;
-
-            return index + 1;
-        }
-
-        /// <summary>
-        /// Return a link by index in the links array.
-        /// Index to use can be retrieved by calling <see cref="GetLinks"/>.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public RuntimeLink2 GetLink(int index) {
-            return _links[index];
-        }
-
-        /// <summary>
-        /// Get first index in the links array and count of the links holding by passed node and port.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void GetLinks(long id, int port, out int index, out int count) {
-            if (!_ports.TryGetValue(new RuntimePortAddress(id, port), out index)) {
-                index = -1;
-                count = 0;
-                return;
-            }
-
-            ref var link = ref _links[index];
-
-            index++;
-            count = link.connections;
-        }
-
-        /// <summary>
-        /// Set a link by index in the links array. Link will be created from passed node id and port.
-        /// Index to use can be retrieved by calling <see cref="AllocateLinks"/>.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetLink(int index, long nodeId, int port) {
-            _links[index] = new RuntimeLink2(nodeId, port);
+        public int GetNextLink(int previous) {
+            return _links.GetNextLink(previous);
         }
 
         public override string ToString() {
-            return $"{nameof(RuntimeBlueprint2)}: " +
-                   $"Nodes: {string.Join(", ", _nodes)}\n" +
-                   $"Links:\n- {string.Join("\n- ", _links)}";
+            return $"{nameof(RuntimeBlueprint2)}: \nNodes: {_nodes}\nLinks: {_links}";
         }
     }
 

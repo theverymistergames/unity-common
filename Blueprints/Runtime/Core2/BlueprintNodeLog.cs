@@ -14,18 +14,18 @@ namespace MisterGames.Blueprints.Core2 {
 
         public string text;
 
-        public void SetDefaultValues() {
+        public void SetDefaultValues(IBlueprintMeta meta, NodeId id) {
             text = "Default text";
         }
 
-        public void CreatePorts(IBlueprintMeta meta, long id) {
+        public void CreatePorts(IBlueprintMeta meta, NodeId id) {
             meta.AddPort(id, Port.Enter());
             meta.AddPort(id, Port.Exit());
             meta.AddPort(id, Port.Input<string>());
             meta.AddPort(id, Port.Output<string>());
         }
 
-        public void OnEnterPort(IBlueprint blueprint, long id, int port) {
+        public void OnEnterPort(IBlueprint blueprint, NodeId id, int port) {
             if (port != 0) return;
 
             Debug.Log(text);
@@ -33,7 +33,7 @@ namespace MisterGames.Blueprints.Core2 {
             blueprint.Call(id, 1);
         }
 
-        public string GetPortValue(IBlueprint blueprint, long id, int port) {
+        public string GetPortValue(IBlueprint blueprint, NodeId id, int port) {
             return blueprint.Read<string>(id, 2);
         }
     }

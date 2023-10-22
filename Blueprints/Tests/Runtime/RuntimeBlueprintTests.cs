@@ -29,15 +29,15 @@ namespace Core {
             blueprint.AddNode(id2);
             blueprint.AddNode(id3);
 
-            int id0_port1_links = blueprint.AllocateLinks(id0, 1, 2);
-            int id1_port1_links = blueprint.AllocateLinks(id1, 1, 1);
-            int id2_port1_links = blueprint.AllocateLinks(id2, 1, 1);
+            blueprint.SetPort(id0, 1, 2);
+            blueprint.AddLink(id1, 0);
+            blueprint.AddLink(id2, 0);
 
-            blueprint.SetLink(id0_port1_links, id1, 0);
-            blueprint.SetLink(id0_port1_links + 1, id2, 0);
+            blueprint.SetPort(id1, 1, 1);
+            blueprint.AddLink(id3, 0);
 
-            blueprint.SetLink(id1_port1_links, id3, 0);
-            blueprint.SetLink(id2_port1_links, id3, 0);
+            blueprint.SetPort(id2, 1, 1);
+            blueprint.AddLink(id3, 0);
 
             blueprint.GetLinks(id0, 1, out int index, out _);
 
@@ -76,8 +76,8 @@ namespace Core {
             long id0 = BlueprintNodeAddress.Pack(sourceId, nodeId0);
             long id1 = BlueprintNodeAddress.Pack(sourceId, nodeId1);
 
-            source.SetDefaultValues(id0);
-            source.SetDefaultValues(id1);
+            source.OnSetDefaults(id0);
+            source.OnSetDefaults(id1);
 
             ref var node0 = ref source.GetNode<BlueprintNodeTest3>(nodeId0);
             ref var node1 = ref source.GetNode<BlueprintNodeTest3>(nodeId1);
@@ -90,8 +90,8 @@ namespace Core {
             blueprint.AddNode(id0);
             blueprint.AddNode(id1);
 
-            int id0_port1_links = blueprint.AllocateLinks(id0, 1, 1);
-            blueprint.SetLink(id0_port1_links, id1, 0);
+            blueprint.SetPort(id0, 1, 1);
+            blueprint.AddLink(id1, 0);
 
             blueprint.Call(id0, 1);
 
@@ -111,15 +111,15 @@ namespace Core {
             long id0 = BlueprintNodeAddress.Pack(sourceId, nodeId0);
             long id1 = BlueprintNodeAddress.Pack(sourceId, nodeId1);
 
-            source.SetDefaultValues(id1);
+            source.OnSetDefaults(id1);
 
             var blueprint = new RuntimeBlueprint2(factory, 2, 1, 1);
 
             blueprint.AddNode(id0);
             blueprint.AddNode(id1);
 
-            int id0_port1_links = blueprint.AllocateLinks(id0, 1, 1);
-            blueprint.SetLink(id0_port1_links, id1, 0);
+            blueprint.SetPort(id0, 1, 1);
+            blueprint.AddLink(id1, 0);
 
             int port = blueprint.Read<int>(id0, 1);
             Assert.AreEqual(-1, port);

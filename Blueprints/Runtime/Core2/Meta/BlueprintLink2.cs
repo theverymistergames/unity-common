@@ -9,17 +9,22 @@ namespace MisterGames.Blueprints.Core2 {
     public struct BlueprintLink2 {
 
         /// <summary>
-        /// Blueprint node id.
+        /// Node id, built from source id and node id.
         /// </summary>
-        public long nodeId;
+        public NodeId id;
 
         /// <summary>
-        /// Port index of the given blueprint node.
+        /// Port index.
         /// </summary>
         public int port;
 
+        public BlueprintLink2(NodeId id, int port) {
+            this.id = id;
+            this.port = port;
+        }
+
         public override string ToString() {
-            return $"{nameof(BlueprintLink2)}(nodeId {nodeId}, port {port})";
+            return $"{nameof(BlueprintLink2)}(source {id.source}, node {id.node}, port {port})";
         }
     }
 

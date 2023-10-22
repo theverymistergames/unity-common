@@ -56,16 +56,16 @@ namespace Core {
 
             var tree = storage.CreatePortSignatureToIndicesTree(0L);
 
-            Assert.IsTrue(tree.ContainsKey(Port.Enter().GetSignature()));
-            Assert.IsTrue(tree.ContainsKey(Port.Exit().GetSignature()));
+            Assert.IsTrue(tree.ContainsNode(Port.Enter().GetSignature()));
+            Assert.IsTrue(tree.ContainsNode(Port.Exit().GetSignature()));
             Assert.AreEqual(2, tree.Roots.Count);
 
-            Assert.IsTrue(tree.TryGetIndex(Port.Enter().GetSignature(), out int enterRoot));
-            Assert.IsTrue(tree.TryGetIndex(Port.Exit().GetSignature(), out int exitRoot));
+            Assert.IsTrue(tree.TryGetNode(Port.Enter().GetSignature(), out int enterRoot));
+            Assert.IsTrue(tree.TryGetNode(Port.Exit().GetSignature(), out int exitRoot));
 
-            Assert.IsTrue(tree.ContainsKey(0, enterRoot));
-            Assert.IsTrue(tree.ContainsKey(1, exitRoot));
-            Assert.IsTrue(tree.ContainsKey(2, exitRoot));
+            Assert.IsTrue(tree.ContainsNode(0, enterRoot));
+            Assert.IsTrue(tree.ContainsNode(1, exitRoot));
+            Assert.IsTrue(tree.ContainsNode(2, exitRoot));
         }
     }
 

@@ -2,13 +2,13 @@
 
     public interface IBlueprintNode {
 
-        void CreatePorts(IBlueprintMeta meta, long id);
+        void CreatePorts(IBlueprintMeta meta, NodeId id);
 
-        void SetDefaultValues(long id) {}
-        void OnValidate(IBlueprintMeta meta, long id) {}
+        void OnSetDefaults(IBlueprintMeta meta, NodeId id) {}
+        void OnValidate(IBlueprintMeta meta, NodeId id) {}
 
-        void OnInitialize(IBlueprint blueprint, long id) {}
-        void OnDeInitialize(IBlueprint blueprint, long id) {}
+        void OnInitialize(IBlueprint blueprint, NodeId id) {}
+        void OnDeInitialize(IBlueprint blueprint, NodeId id) {}
     }
 
 }

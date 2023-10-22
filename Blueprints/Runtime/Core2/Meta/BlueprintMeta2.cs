@@ -9,30 +9,30 @@ namespace MisterGames.Blueprints.Core2 {
     [Serializable]
     public sealed class BlueprintMeta2 : IBlueprintMeta, IComparer<BlueprintLink2> {
 
-        [SerializeField] private SerializedDictionary<long, Vector2> _nodeMap;
-        [SerializeField] private SerializedDictionary<long, BlueprintAsset2> _subgraphMap;
+        [SerializeField] private SerializedDictionary<NodeId, Vector2> _nodeMap;
+        [SerializeField] private SerializedDictionary<NodeId, BlueprintAsset2> _subgraphMap;
         [SerializeField] private BlueprintFactory _factory;
         [SerializeField] private BlueprintLinkStorage _linkStorage;
         [SerializeField] private BlueprintPortStorage _portStorage;
 
-        public IReadOnlyCollection<long> Nodes => _nodeMap.Keys;
+        public IReadOnlyCollection<NodeId> Nodes => _nodeMap.Keys;
         public IReadOnlyCollection<BlueprintAsset2> SubgraphAssets => _subgraphMap.Values;
 
         public int NodeCount => _nodeMap.Count;
         public int LinkCount => _linkStorage.LinkCount;
         public int LinkedPortCount => _linkStorage.LinkedPortCount;
 
-        private Action<long> _onNodeChange;
+        private Action<NodeId> _onNodeChange;
 
         public BlueprintMeta2() {
-            _nodeMap = new SerializedDictionary<long, Vector2>();
-            _subgraphMap = new SerializedDictionary<long, BlueprintAsset2>();
+            _nodeMap = new SerializedDictionary<NodeId, Vector2>();
+            _subgraphMap = new SerializedDictionary<NodeId, BlueprintAsset2>();
             _factory = new BlueprintFactory();
             _linkStorage = new BlueprintLinkStorage();
             _portStorage = new BlueprintPortStorage();
         }
 
-        public void Bind(Action<long> onNodeChange) {
+        public void Bind(Action<NodeId> onNodeChange) {
             _onNodeChange = onNodeChange;
             _linkStorage.OnPortChanged = OnPortChanged;
         }
@@ -42,41 +42,40 @@ namespace MisterGames.Blueprints.Core2 {
             _linkStorage.OnPortChanged = null;
         }
 
-        public Vector2 GetNodePosition(long id) {
+        public Vector2 GetNodePosition(NodeId id) {
             return _nodeMap[id];
         }
 
-        public void SetNodePosition(long id, Vector2 position) {
+        public void SetNodePosition(NodeId id, Vector2 position) {
             if (_nodeMap.ContainsKey(id)) _nodeMap[id] = position;
         }
 
-        public string GetNodePath(long id) {
-            BlueprintNodeAddress.Unpack(id, out int sourceId, out int nodeId);
-            return $"{nameof(_factory)}.{_factory.GetSourcePath(sourceId)}.{_factory.GetSource(sourceId).GetNodePath(nodeId)}";
+        public string GetNodePath(NodeId id) {
+            return $"{nameof(_factory)}.{_factory.GetSourcePath(id.source)}.{_factory.GetSource(id.source).GetNodePath(id.node)}";
         }
 
-        public bool ContainsNode(long id) {
+        public bool ContainsNode(NodeId id) {
             return _nodeMap.ContainsKey(id);
         }
 
-        public long AddNode(Type sourceType, Vector2 position = default) {
+        public NodeId AddNode(Type sourceType, Vector2 position = default) {
             int sourceId = _factory.GetOrCreateSource(sourceType);
             var source = _factory.GetSource(sourceId);
             int nodeId = source.AddNode();
 
-            long id = BlueprintNodeAddress.Pack(sourceId, nodeId);
-            _nodeMap[id] = position;
+            var key = new NodeId(sourceId, nodeId);
+            _nodeMap[key] = position;
 
-            source.CreatePorts(this, id);
-            source.SetDefaultValues(id);
-            source.OnValidate(this, id);
+            source.CreatePorts(this, key);
+            source.OnSetDefaults(this, key);
+            source.OnValidate(this, key);
 
-            _onNodeChange?.Invoke(id);
+            _onNodeChange?.Invoke(key);
 
-            return id;
+            return key;
         }
 
-        public void RemoveNode(long id) {
+        public void RemoveNode(NodeId id) {
             if (!_nodeMap.ContainsKey(id)) return;
 
             _nodeMap.Remove(id);
@@ -84,16 +83,14 @@ namespace MisterGames.Blueprints.Core2 {
             _linkStorage.RemoveNode(id);
             _portStorage.RemoveNode(id);
 
-            BlueprintNodeAddress.Unpack(id, out int sourceId, out int nodeId);
-
-            var source = _factory.GetSource(sourceId);
-            source.RemoveNode(nodeId);
-            if (source.Count == 0) _factory.RemoveSource(sourceId);
+            var source = _factory.GetSource(id.source);
+            source.RemoveNode(id.node);
+            if (source.Count == 0) _factory.RemoveSource(id.source);
 
             _onNodeChange?.Invoke(id);
         }
 
-        public void InvalidateNode(long id, bool invalidateLinks, bool notify = true) {
+        public void InvalidateNode(NodeId id, bool invalidateLinks, bool notify = true) {
             if (!_nodeMap.ContainsKey(id)) return;
 
             var oldLinksTree = invalidateLinks ? _linkStorage.CopyLinks(id) : null;
@@ -104,8 +101,7 @@ namespace MisterGames.Blueprints.Core2 {
 
             _portStorage.RemoveNode(id);
 
-            BlueprintNodeAddress.Unpack(id, out int sourceId, out _);
-            _factory.GetSource(sourceId).CreatePorts(this, id);
+            _factory.GetSource(id.source).CreatePorts(this, id);
 
             bool changed = false;
             int portCount = _portStorage.GetPortCount(id);
@@ -114,16 +110,16 @@ namespace MisterGames.Blueprints.Core2 {
                 _portStorage.TryGetPort(id, i, out var port);
                 int sign = port.GetSignature();
 
-                if (oldPortsTree.TryGetIndex(sign, out int signRoot) &&
-                    oldPortsTree.TryGetChildIndex(signRoot, out int pointer)
+                if (oldPortsTree.TryGetNode(sign, out int signRoot) &&
+                    oldPortsTree.TryGetChild(signRoot, out int pointer)
                 ) {
-                    if (oldPortsTree.TryGetIndex(i, signRoot, out int p)) pointer = p;
+                    if (oldPortsTree.TryGetNode(i, signRoot, out int p)) pointer = p;
                     else changed = true;
 
                     if (invalidateLinks) _linkStorage.SetLinks(id, i, oldLinksTree, oldPortsTree.GetKeyAt(pointer));
 
                     oldPortsTree.RemoveNodeAt(pointer);
-                    if (!oldPortsTree.HasChildren(signRoot)) oldPortsTree.RemoveNodeAt(signRoot);
+                    if (!oldPortsTree.ContainsChildren(signRoot)) oldPortsTree.RemoveNodeAt(signRoot);
                 }
                 else {
                     changed = true;
@@ -135,7 +131,7 @@ namespace MisterGames.Blueprints.Core2 {
             if (changed && notify) _onNodeChange?.Invoke(id);
         }
 
-        public bool TryCreateLink(long id, int port, long toId, int toPort) {
+        public bool TryCreateLink(NodeId id, int port, NodeId toId, int toPort) {
             if (id == toId) return false;
 
             if (!_nodeMap.ContainsKey(id)) return false;
@@ -151,7 +147,7 @@ namespace MisterGames.Blueprints.Core2 {
             // 1) fromPort is enter port (IsData = false, IsInput = true)
             // 2) fromPort is data-based output port (IsData = true, IsInput = false)
             if (portData.IsData() != portData.IsInput()) {
-                long t0 = id;
+                var t0 = id;
                 int t1 = port;
                 var t2 = portData;
 
@@ -179,20 +175,24 @@ namespace MisterGames.Blueprints.Core2 {
             return true;
         }
 
-        public void RemoveLink(long id, int port, long toId, int toPort) {
+        public void RemoveLink(NodeId id, int port, NodeId toId, int toPort) {
             _linkStorage.RemoveLink(id, port, toId, toPort);
         }
 
-        public Port GetPort(long id, int port) {
+        public IBlueprintSource GetNodeSource(NodeId id) {
+            return _nodeMap.ContainsKey(id) ? _factory.GetSource(id.source) : null;
+        }
+
+        public Port GetPort(NodeId id, int port) {
             _portStorage.TryGetPort(id, port, out var data);
             return data;
         }
 
-        public void AddPort(long id, Port port) {
+        public void AddPort(NodeId id, Port port) {
             if (_nodeMap.ContainsKey(id)) _portStorage.AddPort(id, port);
         }
 
-        public int GetPortCount(long id) {
+        public int GetPortCount(NodeId id) {
             return _portStorage.GetPortCount(id);
         }
 
@@ -200,12 +200,12 @@ namespace MisterGames.Blueprints.Core2 {
             return _linkStorage.GetLink(index);
         }
 
-        public bool TryGetLinksFrom(long id, int port, out int index) {
+        public bool TryGetLinksFrom(NodeId id, int port, out int index) {
             _linkStorage.SortLinksFrom(id, port, this);
             return _linkStorage.TryGetLinksFrom(id, port, out index);
         }
 
-        public bool TryGetLinksTo(long id, int port, out int index) {
+        public bool TryGetLinksTo(NodeId id, int port, out int index) {
             return _linkStorage.TryGetLinksTo(id, port, out index);
         }
 
@@ -213,11 +213,11 @@ namespace MisterGames.Blueprints.Core2 {
             return _linkStorage.TryGetNextLink(previous, out next);
         }
 
-        public void SetSubgraph(long id, BlueprintAsset2 asset) {
+        public void SetSubgraph(NodeId id, BlueprintAsset2 asset) {
             if (_nodeMap.ContainsKey(id)) _subgraphMap[id] = asset;
         }
 
-        public void RemoveSubgraph(long id) {
+        public void RemoveSubgraph(NodeId id) {
             _subgraphMap.Remove(id);
         }
 
@@ -229,10 +229,8 @@ namespace MisterGames.Blueprints.Core2 {
             _portStorage.Clear();
         }
 
-        private void OnPortChanged(long id, int port) {
-            BlueprintNodeAddress.Unpack(id, out int sourceId, out _);
-
-            if (_factory.GetSource(sourceId) is IBlueprintConnectionCallback callback) {
+        private void OnPortChanged(NodeId id, int port) {
+            if (_factory.GetSource(id.source) is IBlueprintConnectionCallback callback) {
                 callback.OnLinksChanged(this, id, port);
             }
 
@@ -240,7 +238,7 @@ namespace MisterGames.Blueprints.Core2 {
         }
 
         int IComparer<BlueprintLink2>.Compare(BlueprintLink2 x, BlueprintLink2 y) {
-            return x.nodeId == y.nodeId ? x.port.CompareTo(y.port) : _nodeMap[x.nodeId].y.CompareTo(_nodeMap[y.nodeId].y);
+            return x.id == y.id ? x.port.CompareTo(y.port) : _nodeMap[x.id].y.CompareTo(_nodeMap[y.id].y);
         }
 
         public override string ToString() {

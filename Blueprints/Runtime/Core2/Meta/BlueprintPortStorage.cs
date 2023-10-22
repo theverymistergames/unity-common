@@ -13,12 +13,10 @@ namespace MisterGames.Blueprints.Core2 {
             _portTree = new TreeMap<int, Port>(capacity);
         }
 
-        public TreeMap<int, int> CreatePortSignatureToIndicesTree(long id) {
-            BlueprintNodeAddress.Unpack(id, out int factoryId, out int nodeId);
-
-            if (!_portTree.TryGetIndex(factoryId, out int factoryRoot) ||
-                !_portTree.TryGetIndex(nodeId, factoryRoot, out int nodeRoot) ||
-                !_portTree.TryGetChildIndex(nodeRoot, out int p)
+        public TreeMap<int, int> CreatePortSignatureToIndicesTree(NodeId id) {
+            if (!_portTree.TryGetNode(id.source, out int sourceRoot) ||
+                !_portTree.TryGetNode(id.node, sourceRoot, out int nodeRoot) ||
+                !_portTree.TryGetChild(nodeRoot, out int p)
             ) {
                 return null;
             }
@@ -31,18 +29,16 @@ namespace MisterGames.Blueprints.Core2 {
 
                 treeMap.GetOrAddNode(index, treeMap.GetOrAddNode(sign));
 
-                _portTree.TryGetNextIndex(p, out p);
+                _portTree.TryGetNext(p, out p);
             }
 
             return treeMap;
         }
 
-        public bool TryGetPort(long id, int index, out Port port) {
-            BlueprintNodeAddress.Unpack(id, out int factoryId, out int nodeId);
-
-            if (!_portTree.TryGetIndex(factoryId, out int factoryRoot) ||
-                !_portTree.TryGetIndex(nodeId, factoryRoot, out int nodeRoot) ||
-                !_portTree.TryGetIndex(index, nodeRoot, out int portRoot)
+        public bool TryGetPort(NodeId id, int index, out Port port) {
+            if (!_portTree.TryGetNode(id.source, out int sourceRoot) ||
+                !_portTree.TryGetNode(id.node, sourceRoot, out int nodeRoot) ||
+                !_portTree.TryGetNode(index, nodeRoot, out int portRoot)
             ) {
                 port = default;
                 return false;
@@ -52,11 +48,9 @@ namespace MisterGames.Blueprints.Core2 {
             return true;
         }
 
-        public int GetPortCount(long id) {
-            BlueprintNodeAddress.Unpack(id, out int factoryId, out int nodeId);
-
-            if (!_portTree.TryGetIndex(factoryId, out int factoryRoot) ||
-                !_portTree.TryGetIndex(nodeId, factoryRoot, out int nodeRoot)
+        public int GetPortCount(NodeId id) {
+            if (!_portTree.TryGetNode(id.source, out int sourceRoot) ||
+                !_portTree.TryGetNode(id.node, sourceRoot, out int nodeRoot)
             ) {
                 return 0;
             }
@@ -64,22 +58,18 @@ namespace MisterGames.Blueprints.Core2 {
             return _portTree.GetChildrenCount(nodeRoot);
         }
 
-        public void AddPort(long id, Port port) {
-            BlueprintNodeAddress.Unpack(id, out int factoryId, out int nodeId);
-
-            int factoryRoot = _portTree.GetOrAddNode(factoryId);
-            int nodeRoot = _portTree.GetOrAddNode(nodeId, factoryRoot);
+        public void AddPort(NodeId id, Port port) {
+            int sourceRoot = _portTree.GetOrAddNode(id.source);
+            int nodeRoot = _portTree.GetOrAddNode(id.node, sourceRoot);
             int count = _portTree.GetChildrenCount(nodeRoot);
 
             int portRoot = _portTree.GetOrAddNode(count, nodeRoot);
             _portTree.SetValueAt(portRoot, port);
         }
 
-        public void RemoveNode(long id) {
-            BlueprintNodeAddress.Unpack(id, out int factoryId, out int nodeId);
-
-            if (!_portTree.TryGetIndex(factoryId, out int factoryRoot) ||
-                !_portTree.TryGetIndex(nodeId, factoryRoot, out int nodeRoot)
+        public void RemoveNode(NodeId id) {
+            if (!_portTree.TryGetNode(id.source, out int sourceRoot) ||
+                !_portTree.TryGetNode(id.node, sourceRoot, out int nodeRoot)
             ) {
                 return;
             }

@@ -1,5 +1,4 @@
 ﻿using MisterGames.Blackboards.Core;
-using MisterGames.Blueprints.Compile;
 using UnityEngine;
 
 namespace MisterGames.Blueprints.Core2 {
@@ -15,12 +14,12 @@ namespace MisterGames.Blueprints.Core2 {
         public BlueprintMeta2 BlueprintMeta => _blueprintMeta;
         public Blackboard Blackboard => _blackboard;
 
-        public RuntimeBlueprint2 Compile() {
-            return _blueprintCompiler.Compile(this);
+        public RuntimeBlueprint2 Compile(IBlueprintFactory factory) {
+            return _blueprintCompiler.Compile(factory, this);
         }
 
-        public RuntimeBlueprint2 CompileSubgraph(BlueprintNode subgraphNode, Port[] ports) {
-            return _blueprintCompiler.CompileSubgraph(this, subgraphNode, ports);
+        public RuntimeBlueprint2 CompileSubgraph(IBlueprintMeta rootMeta, NodeId rootNodeId, BlueprintCompileData data) {
+            return _blueprintCompiler.CompileSubgraph(rootMeta, rootNodeId, this, data);
         }
     }
 }
