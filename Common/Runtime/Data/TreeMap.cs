@@ -605,7 +605,10 @@ namespace MisterGames.Common.Data {
             _isDefragmentationAllowed = true;
         }
 
-        private TreeMap() {
+        /// <summary>
+        /// Initialize with empty storages.
+        /// </summary>
+        public TreeMap() {
             _nodes = Array.Empty<Node>();
             _rootIndexMap = new SerializedDictionary<K, int>();
             _nodeIndexMap = new SerializedDictionary<KeyIndex, int>();
