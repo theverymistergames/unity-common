@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using MisterGames.Common.Data;
 using NUnit.Framework;
-using UnityEngine;
 using Random = UnityEngine.Random;
 
 namespace Data {
