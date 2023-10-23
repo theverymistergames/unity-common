@@ -13,7 +13,7 @@ namespace Core {
         public int intValue;
         public float floatValue;
 
-        public void CreatePorts(IBlueprintMeta meta, long id) {
+        public void CreatePorts(IBlueprintMeta meta, NodeId id) {
             meta.AddPort(id, Port.Enter());
             meta.AddPort(id, Port.Exit());
         }

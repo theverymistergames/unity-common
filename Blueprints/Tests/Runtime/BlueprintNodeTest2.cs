@@ -9,7 +9,7 @@ namespace Core {
     [Serializable]
     public struct BlueprintNodeTest2 : IBlueprintNode {
 
-        public void CreatePorts(IBlueprintMeta meta, long id) { }
+        public void CreatePorts(IBlueprintMeta meta, NodeId id) { }
     }
 
 }

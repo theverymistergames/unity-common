@@ -230,18 +230,19 @@ namespace Core {
         [TestCase(100)]
         public void AddRandomLinks(int iterations) {
             var storage = new BlueprintLinkStorage();
-            var addedLinks = new HashSet<(long, int, long, int)>();
+            var addedLinks = new HashSet<(NodeId, int, NodeId, int)>();
 
             const int size = 10;
-            const int maxNodes = 3;
-            const int maxPorts = 3;
+            const int maxSources = 4;
+            const int maxNodes = 4;
+            const int maxPorts = 5;
 
             for (int i = 0; i < iterations; i++) {
                 for (int j = 0; j < size; j++) {
-                    long fromNodeId = Random.Range(1, maxNodes);
+                    var fromNodeId = new NodeId(Random.Range(1, maxSources), Random.Range(1, maxNodes));
                     int fromPort = Random.Range(0, maxPorts - 1);
 
-                    long toNodeId = Random.Range(1, maxNodes);
+                    var toNodeId = new NodeId(Random.Range(1, maxSources), Random.Range(1, maxNodes));
                     int toPort = Random.Range(0, maxPorts - 1);
 
                     if (addedLinks.Contains((fromNodeId, fromPort, toNodeId, toPort))) continue;
@@ -250,7 +251,7 @@ namespace Core {
                     addedLinks.Add((fromNodeId, fromPort, toNodeId, toPort));
                 }
 
-                foreach ((long fromNodeId, int fromPort, long toNodeId, int toPort) in addedLinks) {
+                foreach ((var fromNodeId, int fromPort, var toNodeId, int toPort) in addedLinks) {
                     Assert.IsTrue(storage.ContainsLink(fromNodeId, fromPort, toNodeId, toPort));
                 }
             }
@@ -266,21 +267,22 @@ namespace Core {
         [TestCase(100)]
         public void AddRemoveRandomLinks(int iterations) {
             var storage = new BlueprintLinkStorage();
-            var addedLinks = new HashSet<(long, int, long, int)>();
-            var removedLinks = new HashSet<(long, int, long, int)>();
-            var linkedPorts = new Dictionary<(long, int), int>();
+            var addedLinks = new HashSet<(NodeId, int, NodeId, int)>();
+            var removedLinks = new HashSet<(NodeId, int, NodeId, int)>();
+            var linkedPorts = new Dictionary<(NodeId, int), int>();
 
             const int size = 10;
-            const int maxNodes = 3;
-            const int maxPorts = 3;
+            const int maxSources = 4;
+            const int maxNodes = 4;
+            const int maxPorts = 5;
             const float removePossibility = 0.33f;
 
             for (int i = 0; i < iterations; i++) {
                 for (int j = 0; j < size; j++) {
-                    long fromNodeId = Random.Range(1, maxNodes);
+                    var fromNodeId = new NodeId(Random.Range(1, maxSources), Random.Range(1, maxNodes));
                     int fromPort = Random.Range(0, maxPorts - 1);
 
-                    long toNodeId = Random.Range(1, maxNodes);
+                    var toNodeId = new NodeId(Random.Range(1, maxSources), Random.Range(1, maxNodes));
                     int toPort = Random.Range(0, maxPorts - 1);
 
                     if (addedLinks.Contains((fromNodeId, fromPort, toNodeId, toPort)) ||
@@ -300,10 +302,10 @@ namespace Core {
                 for (int j = 0; j < size; j++) {
                     if (Random.Range(0f, 1f) > removePossibility) continue;
 
-                    long fromNodeId = Random.Range(1, maxNodes);
+                    var fromNodeId = new NodeId(Random.Range(1, maxSources), Random.Range(1, maxNodes));
                     int fromPort = Random.Range(0, maxPorts - 1);
 
-                    long toNodeId = Random.Range(1, maxNodes);
+                    var toNodeId = new NodeId(Random.Range(1, maxSources), Random.Range(1, maxNodes));
                     int toPort = Random.Range(0, maxPorts - 1);
 
                     if (!addedLinks.Contains((fromNodeId, fromPort, toNodeId, toPort)) ||
@@ -316,7 +318,7 @@ namespace Core {
                     if (linkedPorts[(fromNodeId, fromPort)] <= 0) linkedPorts.Remove((fromNodeId, fromPort));
                 }
 
-                foreach ((long fromNodeId, int fromPort, long toNodeId, int toPort) in addedLinks) {
+                foreach ((var fromNodeId, int fromPort, var toNodeId, int toPort) in addedLinks) {
                     bool hasLinkExpected = !removedLinks.Contains((fromNodeId, fromPort, toNodeId, toPort));
                     bool hasLinkActual = storage.ContainsLink(fromNodeId, fromPort, toNodeId, toPort);
 

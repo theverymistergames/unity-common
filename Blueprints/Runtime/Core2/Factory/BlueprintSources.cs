@@ -77,9 +77,9 @@
         internal interface ICompiled<TNode> : IBlueprintSource, IBlueprintCompiled
             where TNode : struct, IBlueprintNode, IBlueprintCompiled
         {
-            void IBlueprintCompiled.Compile(IBlueprintMeta meta, NodeId id, BlueprintCompileData data) {
-                ref var node = ref GetNode<TNode>(id.node);
-                node.Compile(meta, id, data);
+            void IBlueprintCompiled.Compile(IBlueprintFactory factory, BlueprintCompileData data) {
+                ref var node = ref GetNode<TNode>(data.id.node);
+                node.Compile(factory, data);
             }
         }
     }

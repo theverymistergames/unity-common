@@ -9,52 +9,56 @@ namespace Core {
         [Test]
         public void AddPort() {
             var storage = new BlueprintPortStorage();
+            var id = new NodeId(0, 0);
+            
+            storage.AddPort(id, Port.Enter());
+            storage.AddPort(id, Port.Exit());
 
-            storage.AddPort(0L, Port.Enter());
-            storage.AddPort(0L, Port.Exit());
+            Assert.AreEqual(2, storage.GetPortCount(id));
 
-            Assert.AreEqual(2, storage.GetPortCount(0L));
-
-            Assert.IsTrue(storage.TryGetPort(0L, 0, out var port));
+            Assert.IsTrue(storage.TryGetPort(id, 0, out var port));
             Assert.IsTrue(port.IsInput());
 
-            Assert.IsTrue(storage.TryGetPort(0L, 1, out port));
+            Assert.IsTrue(storage.TryGetPort(id, 1, out port));
             Assert.IsFalse(port.IsInput());
         }
 
         [Test]
         public void GetPortCount() {
             var storage = new BlueprintPortStorage();
+            var id = new NodeId(0, 0);
+            
+            storage.AddPort(id, Port.Enter());
+            storage.AddPort(id, Port.Exit());
+            storage.AddPort(id, Port.Exit());
 
-            storage.AddPort(0L, Port.Enter());
-            storage.AddPort(0L, Port.Exit());
-            storage.AddPort(0L, Port.Exit());
-
-            Assert.AreEqual(3, storage.GetPortCount(0L));
+            Assert.AreEqual(3, storage.GetPortCount(id));
         }
 
         [Test]
         public void RemoveNode() {
             var storage = new BlueprintPortStorage();
+            var id = new NodeId(0, 0);
+            
+            storage.AddPort(id, Port.Enter());
+            storage.AddPort(id, Port.Exit());
+            storage.AddPort(id, Port.Exit());
 
-            storage.AddPort(0L, Port.Enter());
-            storage.AddPort(0L, Port.Exit());
-            storage.AddPort(0L, Port.Exit());
+            storage.RemoveNode(id);
 
-            storage.RemoveNode(0L);
-
-            Assert.AreEqual(0, storage.GetPortCount(0L));
+            Assert.AreEqual(0, storage.GetPortCount(id));
         }
 
         [Test]
         public void CreatePortSignatureToIndicesTree() {
             var storage = new BlueprintPortStorage();
+            var id = new NodeId(0, 0);
+            
+            storage.AddPort(id, Port.Enter());
+            storage.AddPort(id, Port.Exit());
+            storage.AddPort(id, Port.Exit());
 
-            storage.AddPort(0L, Port.Enter());
-            storage.AddPort(0L, Port.Exit());
-            storage.AddPort(0L, Port.Exit());
-
-            var tree = storage.CreatePortSignatureToIndicesTree(0L);
+            var tree = storage.CreatePortSignatureToIndicesTree(id);
 
             Assert.IsTrue(tree.ContainsNode(Port.Enter().GetSignature()));
             Assert.IsTrue(tree.ContainsNode(Port.Exit().GetSignature()));

@@ -11,10 +11,10 @@ namespace Core {
         [Test]
         public void AddNode() {
             var meta = new BlueprintMeta2();
-            var changed = new HashSet<long>();
+            var changed = new HashSet<NodeId>();
 
             meta.Bind(id => changed.Add(id));
-            long id = meta.AddNode(typeof(BlueprintSourceTest0));
+            var id = meta.AddNode(typeof(BlueprintSourceTest0));
 
             Assert.IsTrue(changed.Contains(id));
             Assert.IsTrue(meta.ContainsNode(id));
@@ -27,11 +27,11 @@ namespace Core {
         [Test]
         public void RemoveNode() {
             var meta = new BlueprintMeta2();
-            var changed = new HashSet<long>();
+            var changed = new HashSet<NodeId>();
 
-            long id0 = meta.AddNode(typeof(BlueprintSourceTest0));
-            long id1 = meta.AddNode(typeof(BlueprintSourceTest0));
-            long id2 = meta.AddNode(typeof(BlueprintSourceTest0));
+            var id0 = meta.AddNode(typeof(BlueprintSourceTest0));
+            var id1 = meta.AddNode(typeof(BlueprintSourceTest0));
+            var id2 = meta.AddNode(typeof(BlueprintSourceTest0));
 
             meta.TryCreateLink(id0, 1, id1, 0);
             meta.TryCreateLink(id0, 1, id2, 0);
@@ -54,10 +54,10 @@ namespace Core {
         [Test]
         public void AddLink() {
             var meta = new BlueprintMeta2();
-            var changed = new HashSet<long>();
+            var changed = new HashSet<NodeId>();
 
-            long id0 = meta.AddNode(typeof(BlueprintSourceTest0));
-            long id1 = meta.AddNode(typeof(BlueprintSourceTest1));
+            var id0 = meta.AddNode(typeof(BlueprintSourceTest0));
+            var id1 = meta.AddNode(typeof(BlueprintSourceTest1));
 
             meta.Bind(id => changed.Add(id));
             Assert.IsTrue(meta.TryCreateLink(id0, 1, id1, 0));
@@ -68,23 +68,23 @@ namespace Core {
             Assert.IsTrue(meta.TryGetLinksFrom(id0, 1, out int index));
 
             var link = meta.GetLink(index);
-            Assert.AreEqual(id1, link.nodeId);
+            Assert.AreEqual(id1, link.id);
             Assert.AreEqual(0, link.port);
 
             Assert.IsTrue(meta.TryGetLinksTo(id1, 0, out index));
 
             link = meta.GetLink(index);
-            Assert.AreEqual(id0, link.nodeId);
+            Assert.AreEqual(id0, link.id);
             Assert.AreEqual(1, link.port);
         }
 
         [Test]
         public void RemoveLink() {
             var meta = new BlueprintMeta2();
-            var changed = new HashSet<long>();
+            var changed = new HashSet<NodeId>();
 
-            long id0 = meta.AddNode(typeof(BlueprintSourceTest0));
-            long id1 = meta.AddNode(typeof(BlueprintSourceTest1));
+            var id0 = meta.AddNode(typeof(BlueprintSourceTest0));
+            var id1 = meta.AddNode(typeof(BlueprintSourceTest1));
 
             meta.TryCreateLink(id0, 1, id1, 0);
 
@@ -102,8 +102,8 @@ namespace Core {
         public void InvalidateNode_RemoveAllPorts() {
             var meta = new BlueprintMeta2();
 
-            long id0 = meta.AddNode(typeof(BlueprintSourceTest0));
-            long id1 = meta.AddNode(typeof(BlueprintSourceTest2));
+            var id0 = meta.AddNode(typeof(BlueprintSourceTest0));
+            var id1 = meta.AddNode(typeof(BlueprintSourceTest2));
 
             meta.AddPort(id1, Port.Enter());
             meta.AddPort(id1, Port.Exit());
@@ -120,8 +120,8 @@ namespace Core {
         public void InvalidateNode_RemovePort() {
             var meta = new BlueprintMeta2();
 
-            long id0 = meta.AddNode(typeof(BlueprintSourceTest0));
-            long id1 = meta.AddNode(typeof(BlueprintSourceTest0));
+            var id0 = meta.AddNode(typeof(BlueprintSourceTest0));
+            var id1 = meta.AddNode(typeof(BlueprintSourceTest0));
 
             meta.AddPort(id0, Port.Exit());
 
@@ -137,18 +137,18 @@ namespace Core {
         public void GetFromLinks() {
             var meta = new BlueprintMeta2();
 
-            long id0 = meta.AddNode(typeof(BlueprintSourceTest0));
-            long id1 = meta.AddNode(typeof(BlueprintSourceTest0), Vector2.zero);
-            long id2 = meta.AddNode(typeof(BlueprintSourceTest0), Vector2.one);
+            var id0 = meta.AddNode(typeof(BlueprintSourceTest0));
+            var id1 = meta.AddNode(typeof(BlueprintSourceTest0), Vector2.zero);
+            var id2 = meta.AddNode(typeof(BlueprintSourceTest0), Vector2.one);
 
             meta.TryCreateLink(id0, 1, id1, 0);
             meta.TryCreateLink(id0, 1, id2, 0);
 
             meta.TryGetLinksFrom(id0, 1, out int i);
-            Assert.AreEqual(id1, meta.GetLink(i).nodeId);
+            Assert.AreEqual(id1, meta.GetLink(i).id);
 
             meta.TryGetNextLink(i, out i);
-            Assert.AreEqual(id2, meta.GetLink(i).nodeId);
+            Assert.AreEqual(id2, meta.GetLink(i).id);
 
             meta.RemoveLink(id0, 1, id1, 0);
             meta.RemoveLink(id0, 1, id2, 0);
@@ -157,10 +157,10 @@ namespace Core {
             meta.TryCreateLink(id0, 1, id1, 0);
 
             meta.TryGetLinksFrom(id0, 1, out i);
-            Assert.AreEqual(id1, meta.GetLink(i).nodeId);
+            Assert.AreEqual(id1, meta.GetLink(i).id);
 
             meta.TryGetNextLink(i, out i);
-            Assert.AreEqual(id2, meta.GetLink(i).nodeId);
+            Assert.AreEqual(id2, meta.GetLink(i).id);
         }
     }
 

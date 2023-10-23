@@ -17,13 +17,13 @@ namespace Core {
             pickedPort = -1;
         }
 
-        public void CreatePorts(IBlueprintMeta meta, long id) { }
+        public void CreatePorts(IBlueprintMeta meta, NodeId id) { }
 
-        public void OnEnterPort(IBlueprint blueprint, long id, int port) {
+        public void OnEnterPort(IBlueprint blueprint, NodeId id, int port) {
             pickedPort = port;
         }
 
-        public int GetPortValue(IBlueprint blueprint, long id, int port) {
+        public int GetPortValue(IBlueprint blueprint, NodeId id, int port) {
             return pickedPort;
         }
     }
