@@ -13,7 +13,7 @@ namespace MisterGames.Blueprints.Core2 {
             _portTree = new TreeMap<int, Port>(capacity);
         }
 
-        public TreeMap<int, int> CreatePortSignatureToIndicesTree(NodeId id) {
+        public TreeSet<int> CreatePortSignatureToIndicesTree(NodeId id) {
             if (!_portTree.TryGetNode(id.source, out int sourceRoot) ||
                 !_portTree.TryGetNode(id.node, sourceRoot, out int nodeRoot) ||
                 !_portTree.TryGetChild(nodeRoot, out int p)
@@ -21,18 +21,18 @@ namespace MisterGames.Blueprints.Core2 {
                 return null;
             }
 
-            var treeMap = new TreeMap<int, int>();
+            var treeSet = new TreeSet<int>();
 
             while (p >= 0) {
                 int index = _portTree.GetKeyAt(p);
                 int sign = _portTree.GetValueAt(p).GetSignature();
 
-                treeMap.GetOrAddNode(index, treeMap.GetOrAddNode(sign));
+                treeSet.GetOrAddNode(index, treeSet.GetOrAddNode(sign));
 
                 _portTree.TryGetNext(p, out p);
             }
 
-            return treeMap;
+            return treeSet;
         }
 
         public bool TryGetPort(NodeId id, int index, out Port port) {

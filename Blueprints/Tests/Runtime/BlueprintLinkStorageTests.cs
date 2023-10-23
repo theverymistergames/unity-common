@@ -184,19 +184,19 @@ namespace Core {
 
             var links = storage.CopyLinks(id0);
 
-            var tree = links.GetTree(0);
-            Assert.IsTrue(tree.MoveChild(0));
+            var tree = links.GetTree(new BlueprintLink2(id0, 0));
+            Assert.IsTrue(tree.MoveChild(new BlueprintLink2(id0, 0)));
             Assert.IsTrue(tree.MoveChild());
 
-            Assert.AreEqual(id1, tree.GetValue().id);
-            Assert.AreEqual(0, tree.GetValue().port);
+            Assert.AreEqual(id1, tree.GetKey().id);
+            Assert.AreEqual(0, tree.GetKey().port);
 
-            tree = links.GetTree(1);
-            Assert.IsTrue(tree.MoveChild(0));
+            tree = links.GetTree(new BlueprintLink2(id0, 1));
+            Assert.IsTrue(tree.MoveChild(new BlueprintLink2(id0, 0)));
             Assert.IsTrue(tree.MoveChild());
 
-            Assert.AreEqual(id1, tree.GetValue().id);
-            Assert.AreEqual(1, tree.GetValue().port);
+            Assert.AreEqual(id1, tree.GetKey().id);
+            Assert.AreEqual(1, tree.GetKey().port);
         }
 
         [Test]
