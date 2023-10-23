@@ -7,6 +7,8 @@
         NodeId GetNode(int index);
 
         void AddNode(NodeId id);
+
+        void AllocateSpace(int nodes);
     }
 
 }

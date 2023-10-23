@@ -79,12 +79,12 @@ namespace MisterGames.Blueprints.Core2 {
         private static bool ValidateEnterPort(BlueprintAsset2 asset, NodeId id, Port port, int index) {
             var source = asset.BlueprintMeta.GetNodeSource(id);
 
-            if (source is not (IBlueprintEnter2 or IBlueprintPortLinker2)) {
+            if (source is not (IBlueprintEnter2 or IBlueprintInternalLink)) {
                 Debug.LogError($"Blueprint `{asset.name}`: " +
                                $"Validation failed for enter port [{index}] {port} of node {id}: " +
                                $"node source class {source.GetType().Name} does not implement interface " +
                                $"{nameof(IBlueprintEnter2)} or " +
-                               $"{nameof(IBlueprintPortLinker2)}.");
+                               $"{nameof(IBlueprintInternalLink)}.");
                 return false;
             }
 
@@ -94,12 +94,12 @@ namespace MisterGames.Blueprints.Core2 {
         private static bool ValidateDynamicOutputPort(BlueprintAsset2 asset, NodeId id, Port port, int index) {
             var source = asset.BlueprintMeta.GetNodeSource(id);
 
-            if (source is not (IBlueprintOutput2 or IBlueprintPortLinker2)) {
+            if (source is not (IBlueprintOutput2 or IBlueprintInternalLink)) {
                 Debug.LogError($"Blueprint `{asset.name}`: " +
                                $"Validation failed for dynamic output port [{index}] {port} of node {id}: " +
                                $"node source class {source.GetType().Name} does not implement interface " +
                                $"{nameof(IBlueprintOutput2)} or " +
-                               $"{nameof(IBlueprintPortLinker2)}.");
+                               $"{nameof(IBlueprintInternalLink)}.");
                 return false;
             }
 
@@ -109,7 +109,7 @@ namespace MisterGames.Blueprints.Core2 {
         private static bool ValidateOutputPort(BlueprintAsset2 asset, NodeId id, Port port, int index) {
             var source = asset.BlueprintMeta.GetNodeSource(id);
 
-            if (source is not (IBlueprintOutput2 or IBlueprintPortLinker2) &&
+            if (source is not (IBlueprintOutput2 or IBlueprintInternalLink) &&
                 ValidationUtils2.GetGenericInterface(source.GetType(), typeof(IBlueprintOutput<>), port.DataType) == null
             ) {
                 Debug.LogError($"Blueprint `{asset.name}`: " +
@@ -117,7 +117,7 @@ namespace MisterGames.Blueprints.Core2 {
                                $"node source class {source.GetType().Name} does not implement interface " +
                                $"{nameof(IBlueprintOutput2)} or " +
                                $"{typeof(IBlueprintOutput2<>).Name} or " +
-                               $"{nameof(IBlueprintPortLinker2)}.");
+                               $"{nameof(IBlueprintInternalLink)}.");
                 return false;
             }
 

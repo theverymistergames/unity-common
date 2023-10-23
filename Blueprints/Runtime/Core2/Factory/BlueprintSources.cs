@@ -56,30 +56,30 @@
             }
         }
 
-        internal interface IPortLinker<TNode> : IBlueprintSource, IBlueprintPortLinker2
-            where TNode : struct, IBlueprintNode, IBlueprintPortLinker2
+        internal interface IPortLinker<TNode> : IBlueprintSource, IBlueprintInternalLink
+            where TNode : struct, IBlueprintNode, IBlueprintInternalLink
         {
-            void IBlueprintPortLinker2.GetLinkedPorts(NodeId id, int port, out int index, out int count) {
+            void IBlueprintInternalLink.GetLinkedPorts(NodeId id, int port, out int index, out int count) {
                 ref var node = ref GetNode<TNode>(id.node);
                 node.GetLinkedPorts(id, port, out index, out count);
             }
         }
 
-        internal interface INodeLinker<TNode> : IBlueprintSource, IBlueprintNodeLinker2
-            where TNode : struct, IBlueprintNode, IBlueprintNodeLinker2
+        internal interface INodeLinker<TNode> : IBlueprintSource, IBlueprintHashLink
+            where TNode : struct, IBlueprintNode, IBlueprintHashLink
         {
-            void IBlueprintNodeLinker2.GetLinkedNode(NodeId id, out int hash, out int port) {
+            void IBlueprintHashLink.GetLinkedPort(NodeId id, out int hash, out int port) {
                 ref var node = ref GetNode<TNode>(id.node);
-                node.GetLinkedNode(id, out hash, out port);
+                node.GetLinkedPort(id, out hash, out port);
             }
         }
 
         internal interface ICompiled<TNode> : IBlueprintSource, IBlueprintCompiled
             where TNode : struct, IBlueprintNode, IBlueprintCompiled
         {
-            void IBlueprintCompiled.OnCompile(IBlueprintMeta meta, NodeId id, BlueprintCompileData data) {
+            void IBlueprintCompiled.Compile(IBlueprintMeta meta, NodeId id, BlueprintCompileData data) {
                 ref var node = ref GetNode<TNode>(id.node);
-                node.OnCompile(meta, id, data);
+                node.Compile(meta, id, data);
             }
         }
     }

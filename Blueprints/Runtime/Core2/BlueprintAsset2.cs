@@ -18,8 +18,8 @@ namespace MisterGames.Blueprints.Core2 {
             return _blueprintCompiler.Compile(factory, this);
         }
 
-        public RuntimeBlueprint2 CompileSubgraph(IBlueprintMeta rootMeta, NodeId rootNodeId, BlueprintCompileData data) {
-            return _blueprintCompiler.CompileSubgraph(rootMeta, rootNodeId, this, data);
+        public void CompileSubgraph(IBlueprintFactory factory, BlueprintCompileData data) {
+            _blueprintCompiler.CompileSubgraph(factory, this, data);
         }
     }
 }

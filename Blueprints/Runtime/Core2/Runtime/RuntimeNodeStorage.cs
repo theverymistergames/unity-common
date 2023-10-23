@@ -6,13 +6,7 @@ namespace MisterGames.Blueprints.Core2 {
 
         public int Count { get; private set; }
 
-        private readonly NodeId[] _nodes;
-
-        private RuntimeNodeStorage() { }
-
-        public RuntimeNodeStorage(int count = 0) {
-            _nodes = count == 0 ? Array.Empty<NodeId>() : new NodeId[count];
-        }
+        private NodeId[] _nodes;
 
         public NodeId GetNode(int index) {
             return _nodes[index];
@@ -20,6 +14,10 @@ namespace MisterGames.Blueprints.Core2 {
 
         public void AddNode(NodeId id) {
             _nodes[Count++] = id;
+        }
+
+        public void AllocateSpace(int nodes) {
+            Array.Resize(ref _nodes, Count + nodes);
         }
     }
 
