@@ -1145,6 +1145,94 @@ namespace MisterGames.Common.Data {
         }
 
         /// <summary>
+        /// Insert node after previous by key and indices of parent and previous nodes.
+        /// Throws <see cref="KeyNotFoundException"/> if parent or previous node index is invalid.
+        /// </summary>
+        /// <param name="key">Key of the child node</param>
+        /// <param name="parent">Index of the parent node</param>
+        /// <param name="previous">Index of the previous node, can be -1 to insert as first child</param>
+        /// <returns>Node index if moved or inserted</returns>
+        public int InsertNextNode(K key, int parent, int previous = -1) {
+            if (parent < 0 || parent >= _head) {
+                throw new KeyNotFoundException($"{nameof(TreeMap<K, V>)}: node at index {parent} is not found");
+            }
+
+            ref var node = ref _nodes[parent];
+            if (node.IsDisposed()) {
+                throw new KeyNotFoundException($"{nameof(TreeMap<K, V>)}: node at index {parent} is not found");
+            }
+
+            int child = node.child;
+            int next = child;
+
+            if (previous >= 0) {
+                if (previous >= _head) {
+                    throw new KeyNotFoundException($"{nameof(TreeMap<K, V>)}: node at index {previous} is not found");
+                }
+
+                node = ref _nodes[previous];
+
+                if (node.IsDisposed() ||
+                    !_nodeIndexMap.TryGetValue(new KeyIndex(node.key, parent), out int prev) ||
+                    previous != prev
+                ) {
+                    throw new KeyNotFoundException($"{nameof(TreeMap<K, V>)}: node at index {previous} is not found");
+                }
+
+                next = node.next;
+            }
+
+            var nodeKey = new KeyIndex(key, parent);
+
+            if (_nodeIndexMap.TryGetValue(nodeKey, out int index)) {
+                node = ref _nodes[index];
+
+                int lastNext = node.next;
+                int lastPrev = node.prev;
+
+                if (lastPrev >= 0) {
+                    node = ref _nodes[lastPrev];
+                    node.next = lastNext;
+                }
+                else {
+                    node = ref _nodes[parent];
+                    node.child = lastNext;
+                }
+
+                if (lastNext >= 0) {
+                    node = ref _nodes[lastNext];
+                    node.next = lastPrev;
+                }
+            }
+            else {
+                index = AllocateNode(key);
+                _nodeIndexMap[nodeKey] = index;
+            }
+
+            node = ref _nodes[index];
+
+            node.next = next;
+            node.prev = previous;
+            node.parent = parent;
+
+            if (previous >= 0) {
+                node = ref _nodes[previous];
+                node.next = index;
+            }
+            else {
+                node = ref _nodes[parent];
+                node.child = index;
+            }
+
+            if (next >= 0) {
+                node = ref _nodes[next];
+                node.prev = index;
+            }
+
+            return index;
+        }
+
+        /// <summary>
         /// Add node without key to the parent.
         /// Throws <see cref="KeyNotFoundException"/> if parent index is invalid.
         /// </summary>
@@ -1176,50 +1264,6 @@ namespace MisterGames.Common.Data {
 
             node = ref _nodes[index];
             node.next = next;
-            node.parent = parent;
-            node.value = value;
-
-            node.DisallowChildren();
-
-            return index;
-        }
-
-        /// <summary>
-        /// Add node without key by index of the previous node.
-        /// Throws <see cref="KeyNotFoundException"/> if previous node index is invalid.
-        /// </summary>
-        /// <param name="previous">Index of the previous node</param>
-        /// <param name="value">Value of the child node</param>
-        /// <returns>Node index if added or get, otherwise -1</returns>
-        public int InsertNextEndPoint(int previous, V value) {
-            if (previous < 0 || previous >= _head) {
-                throw new KeyNotFoundException($"{nameof(TreeMap<K, V>)}: node at index {previous} is not found");
-            }
-
-            ref var node = ref _nodes[previous];
-            if (node.IsDisposed()) {
-                throw new KeyNotFoundException($"{nameof(TreeMap<K, V>)}: node at index {previous} is not found");
-            }
-
-            int parent = node.parent;
-            if (parent < 0) {
-                throw new InvalidOperationException($"{nameof(TreeMap<K, V>)}: node at index {previous} cannot have next nodes");
-            }
-
-            int next = node.next;
-            int index = AllocateNode();
-
-            node = ref _nodes[previous];
-            node.next = index;
-
-            if (next >= 0) {
-                node = ref _nodes[next];
-                node.prev = index;
-            }
-
-            node = ref _nodes[index];
-            node.next = next;
-            node.prev = previous;
             node.parent = parent;
             node.value = value;
 

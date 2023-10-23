@@ -141,17 +141,17 @@ namespace Data {
         }
 
         [Test]
-        public void InsertNextEndPoint() {
+        public void InsertNextChild() {
             var map = new TreeMap<int, float>();
 
             int root = map.GetOrAddNode(0);
-            int endPoint1 = map.AddEndPoint(root, 1f);
-            int endPoint2 = map.InsertNextEndPoint(endPoint1, 2f);
-            int endPoint3 = map.InsertNextEndPoint(endPoint2, 3f);
+            int child1 = map.InsertNextNode(1, root);
+            int child2 = map.InsertNextNode(2, root, child1);
+            int child3 = map.InsertNextNode(3, root, child2);
 
-            Assert.AreEqual(endPoint1, map.GetChild(root));
-            Assert.AreEqual(endPoint2, map.GetNext(endPoint1));
-            Assert.AreEqual(endPoint3, map.GetNext(endPoint2));
+            Assert.AreEqual(child1, map.GetChild(root));
+            Assert.AreEqual(child2, map.GetNext(child1));
+            Assert.AreEqual(child3, map.GetNext(child2));
         }
 
         [Test]
