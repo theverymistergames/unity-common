@@ -3,12 +3,14 @@
     public ref struct LinkReader {
 
         private readonly RuntimeBlueprint2 _blueprint;
+        private readonly IRuntimeLinkStorage _links;
         private readonly int _first;
         private int _index;
 
-        public LinkReader(RuntimeBlueprint2 blueprint, int index) {
+        public LinkReader(RuntimeBlueprint2 blueprint, IRuntimeLinkStorage links, NodeId id, int port) {
             _blueprint = blueprint;
-            _first = index;
+            _links = links;
+            _first = _links.GetFirstLink(id.source, id.node, port);
             _index = -1;
         }
 
@@ -22,7 +24,7 @@
                 return _index >= 0;
             }
 
-            int next =_blueprint.GetNextLink(_index);
+            int next =_links.GetNextLink(_index);
             if (next < 0) return false;
 
             _index = next;

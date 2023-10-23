@@ -40,8 +40,8 @@ namespace MisterGames.Blueprints.Core2 {
             for (int i = 0; i < _nodes.Count; i++) {
                 var id = _nodes.GetNode(i);
 
-                if (_factory.GetSource(id.source) is IBlueprintEnableCallback enableDisable) {
-                    enableDisable.OnEnable(this, id, enabled);
+                if (_factory.GetSource(id.source) is IBlueprintEnableCallback callback) {
+                    callback.OnEnable(this, id, enabled);
                 }
             }
         }
@@ -86,12 +86,7 @@ namespace MisterGames.Blueprints.Core2 {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public LinkReader GetLinks(NodeId id, int port) {
-            return new LinkReader(this, _links.GetFirstLink(id.source, id.node, port));
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int GetNextLink(int previous) {
-            return _links.GetNextLink(previous);
+            return new LinkReader(this, _links, id, port);
         }
 
         public override string ToString() {

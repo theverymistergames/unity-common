@@ -22,6 +22,10 @@ namespace MisterGames.Blueprints.Core2 {
         public int LinkCount => _linkStorage.LinkCount;
         public int LinkedPortCount => _linkStorage.LinkedPortCount;
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        public BlueprintAsset2 Asset { get; set; }
+#endif
+
         private Action<NodeId> _onNodeChange;
 
         public BlueprintMeta2() {

@@ -10,8 +10,7 @@ namespace MisterGames.Blueprints.Core2 {
         private readonly TreeMap<int, RuntimeLink2> _hashLinks = new TreeMap<int, RuntimeLink2>();
         private readonly Dictionary<int, RuntimeLink2> _subgraphRootPorts = new Dictionary<int, RuntimeLink2>();
 
-        public RuntimeBlueprint2 Compile(IBlueprintFactory factory, BlueprintAsset2 asset) {
-            var meta = asset.BlueprintMeta;
+        public RuntimeBlueprint2 Compile(IBlueprintFactory factory, BlueprintMeta2 meta) {
             var nodeStorage = new RuntimeNodeStorage();
             var linkStorage = new RuntimeLinkStorage(meta.NodeCount, meta.LinkedPortCount, meta.LinkCount);
 
@@ -19,44 +18,42 @@ namespace MisterGames.Blueprints.Core2 {
             _compiledNodes.Clear();
             _hashLinks.Clear();
 
-            CompileNodes(factory, asset, nodeStorage, linkStorage, compileExternalPorts: false);
+            CompileNodes(factory, meta, nodeStorage, linkStorage, compileExternalPorts: false);
             ConnectHashLinks(linkStorage, _hashLinks);
             InlineLinks(nodeStorage, linkStorage);
 
             return new RuntimeBlueprint2(factory, nodeStorage, linkStorage);
         }
 
-        public void CompileSubgraph(IBlueprintFactory factory, BlueprintAsset2 asset, BlueprintCompileData data) {
+        public void CompileSubgraph(IBlueprintFactory factory, BlueprintMeta2 meta, BlueprintCompileData data) {
             _runtimeNodeMap.Clear();
             _compiledNodes.Clear();
             _hashLinks.Clear();
             _subgraphRootPorts.Clear();
 
             AddSubgraphRootNodePorts(data.meta, data.id, data.runtimeId);
-            CompileNodes(factory, asset, data.nodeStorage, data.linkStorage, compileExternalPorts: true);
+            CompileNodes(factory, meta, data.nodeStorage, data.linkStorage, compileExternalPorts: true);
             ConnectHashLinks(data.linkStorage, _hashLinks);
         }
 
         private void CompileNodes(
             IBlueprintFactory factory,
-            BlueprintAsset2 asset,
+            BlueprintMeta2 meta,
             IRuntimeNodeStorage nodeStorage,
             IRuntimeLinkStorage linkStorage,
             bool compileExternalPorts
         ) {
-            var meta = asset.BlueprintMeta;
             var nodes = meta.Nodes;
-
             nodeStorage.AllocateSpace(meta.NodeCount);
 
             foreach (var id in nodes) {
-                nodeStorage.AddNode(GetOrCompileNode(factory, asset, nodeStorage, linkStorage, id, compileExternalPorts));
+                nodeStorage.AddNode(GetOrCompileNode(factory, meta, nodeStorage, linkStorage, id, compileExternalPorts));
             }
         }
 
         private NodeId GetOrCompileNode(
             IBlueprintFactory factory,
-            BlueprintAsset2 asset,
+            BlueprintMeta2 meta,
             IRuntimeNodeStorage nodeStorage,
             IRuntimeLinkStorage linkStorage,
             NodeId id,
@@ -64,10 +61,9 @@ namespace MisterGames.Blueprints.Core2 {
         ) {
             if (_compiledNodes.Contains(id)) return _runtimeNodeMap[id];
 
-            var runtimeId = GetOrCreateNode(factory, asset, id);
+            var runtimeId = GetOrCreateNode(factory, meta, id);
             var runtimeSource = factory.GetSource(runtimeId.source);
 
-            var meta = asset.BlueprintMeta;
             int portCount = meta.GetPortCount(id);
 
             linkStorage.SetPortCount(runtimeId.source, runtimeId.node, portCount);
@@ -76,7 +72,7 @@ namespace MisterGames.Blueprints.Core2 {
                 var port = meta.GetPort(id, p);
 
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
-                PortValidator2.ValidatePort(asset, id, p);
+                PortValidator2.ValidatePort(meta, id, p);
 #endif
 
                 bool isExternalPort = port.IsExternal();
@@ -126,10 +122,10 @@ namespace MisterGames.Blueprints.Core2 {
                     var link = meta.GetLink(l);
 
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
-                    LinkValidator2.ValidateLink(asset, id, p, link.id, link.port);
+                    LinkValidator2.ValidateLink(meta, id, p, link.id, link.port);
 #endif
 
-                    var linkedId = GetOrCreateNode(factory, asset, link.id);
+                    var linkedId = GetOrCreateNode(factory, meta, link.id);
                     i = linkStorage.InsertLinkAfter(i, linkedId.source, linkedId.node, link.port);
 
                     meta.TryGetNextLink(l, out l);
@@ -149,10 +145,10 @@ namespace MisterGames.Blueprints.Core2 {
             return runtimeId;
         }
 
-        private NodeId GetOrCreateNode(IBlueprintFactory factory, BlueprintAsset2 asset, NodeId id) {
+        private NodeId GetOrCreateNode(IBlueprintFactory factory, BlueprintMeta2 meta, NodeId id) {
             if (_runtimeNodeMap.TryGetValue(id, out var runtimeId)) return runtimeId;
 
-            var source = asset.BlueprintMeta.GetNodeSource(id);
+            var source = meta.GetNodeSource(id);
 
             int runtimeSourceId = factory.GetOrCreateSource(source.GetType());
             var runtimeSource = factory.GetSource(runtimeSourceId);

@@ -4,12 +4,12 @@ using NUnit.Framework;
 namespace Core {
 
     public class RuntimeBlueprintTests {
-/*
+
         [Test]
-        public void SetGetLinks() {
+        public void GetLinks() {
             var factory = new BlueprintFactory();
 
-            int sourceId = factory.GetOrCreateSource(typeof(BlueprintSourceTest0));
+            int sourceId = factory.GetOrCreateSource(typeof(BlueprintSourceTest3));
             var source = factory.GetSource(sourceId);
 
             int nodeId0 = source.AddNode();
@@ -17,50 +17,74 @@ namespace Core {
             int nodeId2 = source.AddNode();
             int nodeId3 = source.AddNode();
 
-            long id0 = BlueprintNodeAddress.Pack(sourceId, nodeId0);
-            long id1 = BlueprintNodeAddress.Pack(sourceId, nodeId1);
-            long id2 = BlueprintNodeAddress.Pack(sourceId, nodeId2);
-            long id3 = BlueprintNodeAddress.Pack(sourceId, nodeId3);
+            var id0 = new NodeId(sourceId, nodeId0);
+            var id1 = new NodeId(sourceId, nodeId1);
+            var id2 = new NodeId(sourceId, nodeId2);
+            var id3 = new NodeId(sourceId, nodeId3);
 
-            var blueprint = new RuntimeBlueprint2(factory, 4, 3, 4);
+            var nodeStorage = new RuntimeNodeStorage();
+            nodeStorage.AllocateSpace(4);
 
-            blueprint.AddNode(id0);
-            blueprint.AddNode(id1);
-            blueprint.AddNode(id2);
-            blueprint.AddNode(id3);
+            nodeStorage.AddNode(id0);
+            nodeStorage.AddNode(id1);
+            nodeStorage.AddNode(id2);
+            nodeStorage.AddNode(id3);
 
-            blueprint.SetPort(id0, 1, 2);
-            blueprint.AddLink(id1, 0);
-            blueprint.AddLink(id2, 0);
+            source.OnSetDefaults(null, id0);
+            source.OnSetDefaults(null, id1);
+            source.OnSetDefaults(null, id2);
+            source.OnSetDefaults(null, id3);
 
-            blueprint.SetPort(id1, 1, 1);
-            blueprint.AddLink(id3, 0);
+            ref var node = ref source.GetNode<BlueprintNodeTest3>(id0.node);
+            node.pickedPort = id0.node;
 
-            blueprint.SetPort(id2, 1, 1);
-            blueprint.AddLink(id3, 0);
+            node = ref source.GetNode<BlueprintNodeTest3>(id1.node);
+            node.pickedPort = id1.node;
 
-            blueprint.GetLinks(id0, 1, out int index, out _);
+            node = ref source.GetNode<BlueprintNodeTest3>(id2.node);
+            node.pickedPort = id2.node;
 
-            var link = blueprint.GetLink(index);
+            node = ref source.GetNode<BlueprintNodeTest3>(id3.node);
+            node.pickedPort = id3.node;
 
-            Assert.AreEqual(id1, link.nodeId);
-            Assert.AreEqual(0, link.port);
+            var linkStorage = new RuntimeLinkStorage(4, 3, 4);
 
-            link = blueprint.GetLink(index + 1);
-            Assert.AreEqual(id2, link.nodeId);
-            Assert.AreEqual(0, link.port);
+            int i = linkStorage.SelectPort(id0.source, id0.node, 1);
+            i = linkStorage.InsertLinkAfter(i, id1.source, id1.node, 0);
+            i = linkStorage.InsertLinkAfter(i, id2.source, id2.node, 0);
 
-            blueprint.GetLinks(id1, 1, out index, out _);
+            i = linkStorage.SelectPort(id1.source, id1.node, 1);
+            i = linkStorage.InsertLinkAfter(i, id3.source, id3.node, 0);
 
-            link = blueprint.GetLink(index);
-            Assert.AreEqual(id3, link.nodeId);
-            Assert.AreEqual(0, link.port);
+            i = linkStorage.SelectPort(id2.source, id2.node, 1);
+            i = linkStorage.InsertLinkAfter(i, id3.source, id3.node, 0);
 
-            blueprint.GetLinks(id2, 1, out index, out _);
+            var blueprint = new RuntimeBlueprint2(factory, nodeStorage, linkStorage);
 
-            link = blueprint.GetLink(index);
-            Assert.AreEqual(id3, link.nodeId);
-            Assert.AreEqual(0, link.port);
+            var links = blueprint.GetLinks(id0, 1);
+
+            Assert.IsTrue(links.MoveNext());
+            Assert.AreEqual(id1.node, links.Read<int>());
+
+            Assert.IsTrue(links.MoveNext());
+            Assert.AreEqual(id2.node, links.Read<int>());
+
+            Assert.IsFalse(links.MoveNext());
+
+            links = blueprint.GetLinks(id1, 1);
+
+            Assert.IsTrue(links.MoveNext());
+            Assert.AreEqual(id3.node, links.Read<int>());
+            Assert.IsFalse(links.MoveNext());
+
+            links = blueprint.GetLinks(id2, 1);
+
+            Assert.IsTrue(links.MoveNext());
+            Assert.AreEqual(id3.node, links.Read<int>());
+            Assert.IsFalse(links.MoveNext());
+
+            links = blueprint.GetLinks(id3, 1);
+            Assert.IsFalse(links.MoveNext());
         }
 
         [Test]
@@ -72,30 +96,47 @@ namespace Core {
 
             int nodeId0 = source.AddNode();
             int nodeId1 = source.AddNode();
+            int nodeId2 = source.AddNode();
 
-            long id0 = BlueprintNodeAddress.Pack(sourceId, nodeId0);
-            long id1 = BlueprintNodeAddress.Pack(sourceId, nodeId1);
+            var id0 = new NodeId(sourceId, nodeId0);
+            var id1 = new NodeId(sourceId, nodeId1);
+            var id2 = new NodeId(sourceId, nodeId2);
 
-            source.OnSetDefaults(id0);
-            source.OnSetDefaults(id1);
+            var nodeStorage = new RuntimeNodeStorage();
+            nodeStorage.AllocateSpace(3);
 
-            ref var node0 = ref source.GetNode<BlueprintNodeTest3>(nodeId0);
-            ref var node1 = ref source.GetNode<BlueprintNodeTest3>(nodeId1);
+            nodeStorage.AddNode(id0);
+            nodeStorage.AddNode(id1);
+            nodeStorage.AddNode(id2);
 
-            Assert.AreEqual(-1, node0.pickedPort);
-            Assert.AreEqual(-1, node1.pickedPort);
+            source.OnSetDefaults(null, id0);
+            source.OnSetDefaults(null, id1);
+            source.OnSetDefaults(null, id2);
 
-            var blueprint = new RuntimeBlueprint2(factory, 2, 1, 1);
+            ref var node = ref source.GetNode<BlueprintNodeTest3>(id0.node);
+            Assert.AreEqual(-1, node.pickedPort);
 
-            blueprint.AddNode(id0);
-            blueprint.AddNode(id1);
+            node = ref source.GetNode<BlueprintNodeTest3>(id1.node);
+            Assert.AreEqual(-1, node.pickedPort);
 
-            blueprint.SetPort(id0, 1, 1);
-            blueprint.AddLink(id1, 0);
+            node = ref source.GetNode<BlueprintNodeTest3>(id2.node);
+            Assert.AreEqual(-1, node.pickedPort);
+
+            var linkStorage = new RuntimeLinkStorage(3, 1, 2);
+
+            int i = linkStorage.SelectPort(id0.source, id0.node, 1);
+            i = linkStorage.InsertLinkAfter(i, id1.source, id1.node, 0);
+            i = linkStorage.InsertLinkAfter(i, id2.source, id2.node, 0);
+
+            var blueprint = new RuntimeBlueprint2(factory, nodeStorage, linkStorage);
 
             blueprint.Call(id0, 1);
 
-            Assert.AreEqual(0, node1.pickedPort);
+            node = ref source.GetNode<BlueprintNodeTest3>(id1.node);
+            Assert.AreEqual(0, node.pickedPort);
+
+            node = ref source.GetNode<BlueprintNodeTest3>(id2.node);
+            Assert.AreEqual(0, node.pickedPort);
         }
 
         [Test]
@@ -108,23 +149,31 @@ namespace Core {
             int nodeId0 = source.AddNode();
             int nodeId1 = source.AddNode();
 
-            long id0 = BlueprintNodeAddress.Pack(sourceId, nodeId0);
-            long id1 = BlueprintNodeAddress.Pack(sourceId, nodeId1);
+            var id0 = new NodeId(sourceId, nodeId0);
+            var id1 = new NodeId(sourceId, nodeId1);
 
-            source.OnSetDefaults(id1);
+            var nodeStorage = new RuntimeNodeStorage();
+            nodeStorage.AllocateSpace(2);
 
-            var blueprint = new RuntimeBlueprint2(factory, 2, 1, 1);
+            nodeStorage.AddNode(id0);
+            nodeStorage.AddNode(id1);
 
-            blueprint.AddNode(id0);
-            blueprint.AddNode(id1);
+            ref var node = ref source.GetNode<BlueprintNodeTest3>(id0.node);
+            node.pickedPort = id0.node;
 
-            blueprint.SetPort(id0, 1, 1);
-            blueprint.AddLink(id1, 0);
+            node = ref source.GetNode<BlueprintNodeTest3>(id1.node);
+            node.pickedPort = id1.node;
 
-            int port = blueprint.Read<int>(id0, 1);
-            Assert.AreEqual(-1, port);
+            var linkStorage = new RuntimeLinkStorage(2, 1, 1);
+
+            int i = linkStorage.SelectPort(id0.source, id0.node, 1);
+            i = linkStorage.InsertLinkAfter(i, id1.source, id1.node, 0);
+
+            var blueprint = new RuntimeBlueprint2(factory, nodeStorage, linkStorage);
+
+            int value = blueprint.Read<int>(id0, 1);
+            Assert.AreEqual(id1.node, value);
         }
-        */
     }
 
 }

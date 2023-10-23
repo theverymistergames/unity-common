@@ -13,7 +13,7 @@ namespace Core {
 
         public int pickedPort;
 
-        public void SetDefaultValues(long id) {
+        public void OnSetDefaults(IBlueprintMeta meta, NodeId id) {
             pickedPort = -1;
         }
 

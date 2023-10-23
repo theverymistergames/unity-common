@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using MisterGames.Common.Data;
 
 namespace MisterGames.Blueprints.Core2 {
@@ -10,6 +9,12 @@ namespace MisterGames.Blueprints.Core2 {
         private readonly Dictionary<NodeId, int> _nodeToPortCountMap;
 
         private RuntimeLink2 _selectedPort = new RuntimeLink2(-1, -1, -1);
+
+        public RuntimeLinkStorage() {
+            _nodeToPortCountMap = new Dictionary<NodeId, int>();
+            _linkTree = new TreeSet<RuntimeLink2>();
+            _linkTree.AllowDefragmentation(false);
+        }
 
         public RuntimeLinkStorage(int nodes, int linkedPorts, int links) {
             _nodeToPortCountMap = new Dictionary<NodeId, int>(nodes);
@@ -42,10 +47,7 @@ namespace MisterGames.Blueprints.Core2 {
         }
 
         public int InsertLinkAfter(int index, int source, int node, int port) {
-            if (_selectedPort.port < 0) {
-                throw new InvalidOperationException($"{nameof(RuntimeLinkStorage)}: " +
-                                                    $"cannot insert link before port is selected.");
-            }
+            if (_selectedPort.port < 0) return -1;
 
             var link = new RuntimeLink2(source, node, port);
             int portRoot = _linkTree.GetOrAddNode(_selectedPort);
