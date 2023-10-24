@@ -105,7 +105,8 @@ namespace MisterGames.Blueprints.Core2 {
 
             _portStorage.RemoveNode(id);
 
-            _factory.GetSource(id.source).CreatePorts(this, id);
+            var source = _factory.GetSource(id.source);
+            source.CreatePorts(this, id);
 
             bool changed = false;
             int portCount = _portStorage.GetPortCount(id);
@@ -218,7 +219,7 @@ namespace MisterGames.Blueprints.Core2 {
         }
 
         public void SetSubgraph(NodeId id, BlueprintAsset2 asset) {
-            if (_nodeMap.ContainsKey(id)) _subgraphMap[id] = asset;
+            _subgraphMap[id] = asset;
         }
 
         public void RemoveSubgraph(NodeId id) {
