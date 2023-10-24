@@ -6,7 +6,67 @@ namespace MisterGames.Blueprints.Core2 {
 
     internal static class LinkValidator2 {
 
-        public static bool ValidateLink(BlueprintMeta2 meta, NodeId id, int port, NodeId toId, int toPort) {
+        public static bool ValidateInternalLink(BlueprintMeta2 meta, NodeId id, int port, IBlueprintInternalLink link) {
+            int portCount = meta.GetPortCount(id);
+            if (port < 0 || port >= portCount) {
+                Debug.LogError($"Blueprint `{meta.Asset.name}`: " +
+                               $"Validation failed for internal links [node {id}, port {port}]: " +
+                               $"node {id} has no port with index {port}.");
+                return false;
+            }
+
+            var portData = meta.GetPort(id, port);
+            if (portData.IsData() == portData.IsInput()) {
+                Debug.LogError($"Blueprint `{meta.Asset.name}`: " +
+                               $"Validation failed for internal links of node {id} port {port}: " +
+                               $"port {port} must be enter or output to have internal links.");
+                return false;
+            }
+
+            link.GetLinkedPorts(id, port, out int index, out int count);
+
+            for (; index < count; index++) {
+                if (index < 0 || index >= portCount) {
+                    Debug.LogError($"Blueprint `{meta.Asset.name}`: " +
+                                   $"Validation failed for internal links [node {id}, port {port} :: port {index}]: " +
+                                   $"node {id} has no linked port {index}.");
+                    return false;
+                }
+
+                portData = meta.GetPort(id, index);
+                if (portData.IsData() != portData.IsInput()) {
+                    Debug.LogError($"Blueprint `{meta.Asset.name}`: " +
+                                   $"Validation failed for internal link [node {id}, port {port} :: port {index}]: " +
+                                   $"linked port {index} must be exit or input.");
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public static bool ValidateHashLink(IBlueprintHashLink link, BlueprintMeta2 meta, NodeId id) {
+            link.GetLinkedPort(id, out int hash, out int port);
+
+            if (port < 0 || port >= meta.GetPortCount(id)) {
+                Debug.LogError($"Blueprint `{meta.Asset.name}`: " +
+                               $"Validation failed for hash link of node {id} port {port}: " +
+                               $"node {id} has no port with index {port}.");
+                return false;
+            }
+
+            var portData = meta.GetPort(id, port);
+            if (portData.IsData() != portData.IsInput()) {
+                Debug.LogError($"Blueprint `{meta.Asset.name}`: " +
+                               $"Validation failed for hash link of node {id} port {port}: " +
+                               $"port {port} must be exit or input to have hash links.");
+                return false;
+            }
+
+            return true;
+        }
+
+        public static bool ValidateNodeLink(BlueprintMeta2 meta, NodeId id, int port, NodeId toId, int toPort) {
             if (port < 0 || port > meta.GetPortCount(id) - 1) {
                 Debug.LogError($"Blueprint `{meta.Asset.name}`: " +
                                $"Validation failed for link [node {id}, port {port} :: node {toId}, port {toPort}]: " +

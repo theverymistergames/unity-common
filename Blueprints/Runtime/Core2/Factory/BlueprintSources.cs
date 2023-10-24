@@ -56,7 +56,7 @@
             }
         }
 
-        internal interface IPortLinker<TNode> : IBlueprintSource, IBlueprintInternalLink
+        public interface IInternalLink<TNode> : IBlueprintSource, IBlueprintInternalLink
             where TNode : struct, IBlueprintNode, IBlueprintInternalLink
         {
             void IBlueprintInternalLink.GetLinkedPorts(NodeId id, int port, out int index, out int count) {
@@ -65,7 +65,7 @@
             }
         }
 
-        internal interface INodeLinker<TNode> : IBlueprintSource, IBlueprintHashLink
+        public interface IHashLink<TNode> : IBlueprintSource, IBlueprintHashLink
             where TNode : struct, IBlueprintNode, IBlueprintHashLink
         {
             void IBlueprintHashLink.GetLinkedPort(NodeId id, out int hash, out int port) {
