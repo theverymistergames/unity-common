@@ -9,11 +9,12 @@ namespace MisterGames.Blueprints.Core2 {
     public class BlueprintSourceGotoExit :
         BlueprintSource<BlueprintNodeGotoExit>,
         BlueprintSources.IInternalLink<BlueprintNodeGotoExit>,
-        BlueprintSources.IHashLink<BlueprintNodeGotoExit> { }
+        BlueprintSources.IHashLink<BlueprintNodeGotoExit>,
+        BlueprintSources.ICloneable { }
 
     [Serializable]
     [BlueprintNode(Name = "Goto", Category = "Flow", Color = BlueprintColors.Node.Flow)]
-    public struct BlueprintNodeGotoExit : IBlueprintNode, IBlueprintInternalLink, IBlueprintHashLink {
+    public struct BlueprintNodeGotoExit : IBlueprintNode, IBlueprintInternalLink, IBlueprintHashLink, IBlueprintCloneable {
         
         [SerializeField] private string _label;
 

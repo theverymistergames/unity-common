@@ -1,5 +1,6 @@
 ﻿using System;
 using MisterGames.Blueprints.Core2;
+using UnityEngine;
 
 namespace Core {
 
@@ -8,6 +9,10 @@ namespace Core {
 
     [Serializable]
     public struct BlueprintNodeTest2 : IBlueprintNode {
+
+        public int intValue;
+        public BlueprintAsset2 objectValue;
+        [SerializeReference] public object referenceValue;
 
         public void CreatePorts(IBlueprintMeta meta, NodeId id) { }
     }

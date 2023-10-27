@@ -8,12 +8,18 @@ namespace MisterGames.Blueprints.Core2 {
     public class BlueprintSourceExternalBlueprint : BlueprintSource<BlueprintNodeExternalBlueprint>,
         BlueprintSources.ICompiled<BlueprintNodeExternalBlueprint>,
         BlueprintSources.IEnter<BlueprintNodeExternalBlueprint>,
-        BlueprintSources.IOutput<BlueprintNodeExternalBlueprint> { }
+        BlueprintSources.IOutput<BlueprintNodeExternalBlueprint>,
+        BlueprintSources.ICloneable { }
 
     [Serializable]
     [BlueprintNode(Name = "External Blueprint", Category = "External", Color = BlueprintColors.Node.External)]
-    public struct BlueprintNodeExternalBlueprint : IBlueprintNode, IBlueprintCompiled, IBlueprintEnter2, IBlueprintOutput2 {
-
+    public struct BlueprintNodeExternalBlueprint :
+        IBlueprintNode,
+        IBlueprintCompiled,
+        IBlueprintEnter2,
+        IBlueprintOutput2,
+        IBlueprintCloneable
+    {
         [BlackboardProperty("_blackboard")]
         [SerializeField] private int _runner;
         [SerializeField] private BlueprintAsset2 _blueprint;
@@ -23,7 +29,7 @@ namespace MisterGames.Blueprints.Core2 {
         private NodeId _root;
 
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {
-            BlueprintCompilation.FetchExternalPorts(meta, id, _blueprint);
+            PortExtensions.FetchExternalPorts(meta, id, _blueprint);
         }
 
         public void OnInitialize(IBlueprint blueprint, NodeId id) {

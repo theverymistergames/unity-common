@@ -36,6 +36,20 @@ namespace MisterGames.Blueprints.Core2 {
         int AddNodeCopy(IBlueprintSource source, int id);
 
         /// <summary>
+        /// Add node copy from string representation.
+        /// </summary>
+        /// <param name="str">String representation of node</param>
+        /// <returns></returns>
+        int AddNodeCopy(string str);
+
+        /// <summary>
+        /// Get node as string to create copies.
+        /// </summary>
+        /// <param name="id">Blueprint node id</param>
+        /// <returns></returns>
+        string GetNodeAsString(int id);
+
+        /// <summary>
         /// Removes node with id from the data array.
         /// </summary>
         void RemoveNode(int id);

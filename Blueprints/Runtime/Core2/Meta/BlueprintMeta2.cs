@@ -23,10 +23,12 @@ namespace MisterGames.Blueprints.Core2 {
         public int LinkedPortCount => _linkStorage.LinkedPortCount;
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-        public BlueprintAsset2 Asset { get; set; }
+        public object Owner { get; set; }
 #endif
 
         private Action<NodeId> _onNodeChange;
+
+        public readonly Dictionary<NodeId, string> NodeJsonMap = new Dictionary<NodeId, string>();
 
         public BlueprintMeta2() {
             _nodeMap = new SerializedDictionary<NodeId, Vector2>();

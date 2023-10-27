@@ -46,11 +46,11 @@ namespace MisterGames.Blueprints.Core2 {
 
         public static bool ValidateExternalPortWithExistingSignature(BlueprintMeta2 meta, Port port) {
             if (!port.IsInput() && port.IsData()) {
-                Debug.LogWarning($"Subgraph node has blueprint `{meta.Asset}` " +
+                Debug.LogWarning($"Subgraph node has blueprint `{meta.Owner}` " +
                                  $"which contains multiple external output ports with same name `{port.Name}`: " +
                                  $"this can cause incorrect results. " +
                                  $"Blueprint can have multiple external output ports with same name only for enter, exit or input ports." +
-                                 $"Blueprint `{meta.Asset}` has to be refactored in order to be used as subgraph.");
+                                 $"Blueprint `{meta.Owner}` has to be refactored in order to be used as subgraph.");
                 return false;
             }
 
@@ -59,7 +59,7 @@ namespace MisterGames.Blueprints.Core2 {
 
         public static bool ValidatePort(BlueprintMeta2 meta, NodeId id, int index) {
             if (index < 0 || index > meta.GetPortCount(id) - 1) {
-                Debug.LogError($"Blueprint `{meta.Asset}`: " +
+                Debug.LogError($"Blueprint `{meta.Owner}`: " +
                                $"Validation failed for port [{index}] {index} of node {id}: " +
                                $"node {id} has no port with index {index}.");
                 return false;
@@ -80,7 +80,7 @@ namespace MisterGames.Blueprints.Core2 {
             var source = meta.GetNodeSource(id);
 
             if (source is not (IBlueprintEnter2 or IBlueprintInternalLink)) {
-                Debug.LogError($"Blueprint `{meta.Asset}`: " +
+                Debug.LogError($"Blueprint `{meta.Owner}`: " +
                                $"Validation failed for enter port [{index}] {port} of node {id}: " +
                                $"node source class {source.GetType().Name} does not implement interface " +
                                $"{nameof(IBlueprintEnter2)} or " +
@@ -95,7 +95,7 @@ namespace MisterGames.Blueprints.Core2 {
             var source = meta.GetNodeSource(id);
 
             if (source is not (IBlueprintOutput2 or IBlueprintInternalLink)) {
-                Debug.LogError($"Blueprint `{meta.Asset}`: " +
+                Debug.LogError($"Blueprint `{meta.Owner}`: " +
                                $"Validation failed for dynamic output port [{index}] {port} of node {id}: " +
                                $"node source class {source.GetType().Name} does not implement interface " +
                                $"{nameof(IBlueprintOutput2)} or " +
@@ -112,7 +112,7 @@ namespace MisterGames.Blueprints.Core2 {
             if (source is not (IBlueprintOutput2 or IBlueprintInternalLink) &&
                 ValidationUtils2.GetGenericInterface(source.GetType(), typeof(IBlueprintOutput<>), port.DataType) == null
             ) {
-                Debug.LogError($"Blueprint `{meta.Asset}`: " +
+                Debug.LogError($"Blueprint `{meta.Owner}`: " +
                                $"Validation failed for func output port [{index}] {port} of node {id}: " +
                                $"node source class {source.GetType().Name} does not implement interface " +
                                $"{nameof(IBlueprintOutput2)} or " +

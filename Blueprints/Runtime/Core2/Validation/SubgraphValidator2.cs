@@ -1,5 +1,6 @@
 ﻿#if DEVELOPMENT_BUILD || UNITY_EDITOR
 
+using System;
 using UnityEngine;
 
 namespace MisterGames.Blueprints.Core2 {
@@ -9,8 +10,10 @@ namespace MisterGames.Blueprints.Core2 {
         private const int MAX_SUBGRAPH_LEVELS = 100;
 
         public static void ValidateSubgraphAsset(IBlueprintMeta meta, ref BlueprintAsset2 subgraph) {
-            var root = ((BlueprintMeta2) meta).Asset;
-            if (!IsValidSubgraphAsset(root, subgraph, 0, $"`{root.name}`")) subgraph = null;
+            var root = ((BlueprintMeta2) meta).Owner as BlueprintAsset2;
+            string rootName = root == null ? string.Empty : $"`{root.name}`";
+
+            if (!IsValidSubgraphAsset(root, subgraph, 0, rootName)) subgraph = null;
         }
 
         private static bool IsValidSubgraphAsset(BlueprintAsset2 root, BlueprintAsset2 subgraph, int level, string path) {

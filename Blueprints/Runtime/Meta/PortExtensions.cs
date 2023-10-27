@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using MisterGames.Blueprints.Core2;
 using MisterGames.Blueprints.Meta;
 
 namespace MisterGames.Blueprints {
@@ -99,6 +101,33 @@ namespace MisterGames.Blueprints {
                 port.dataType,
                 string.IsNullOrWhiteSpace(port.name) ? string.Empty : port.name
             );
+        }
+
+        public static void FetchExternalPorts(IBlueprintMeta meta, NodeId id, BlueprintAsset2 asset) {
+            if (asset == null) return;
+
+            var subgraphMeta = asset.BlueprintMeta;
+            var nodes = subgraphMeta.Nodes;
+            var portSignatureSet = new HashSet<int>();
+
+            foreach (var subgraphNodeId in nodes) {
+                int portCount = subgraphMeta.GetPortCount(subgraphNodeId);
+
+                for (int p = 0; p < portCount; p++) {
+                    var port = subgraphMeta.GetPort(subgraphNodeId, p);
+                    if (!port.IsExternal()) continue;
+
+                    int sign = port.GetSignature();
+
+                    if (portSignatureSet.Contains(sign)) {
+                        PortValidator2.ValidateExternalPortWithExistingSignature(subgraphMeta, port);
+                        continue;
+                    }
+
+                    portSignatureSet.Add(sign);
+                    meta.AddPort(id, port.External(false).Hide(false));
+                }
+            }
         }
     }
 

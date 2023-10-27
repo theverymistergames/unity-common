@@ -14,7 +14,7 @@ namespace MisterGames.Blueprints.Core2 {
         public BlueprintMeta2 BlueprintMeta {
             get {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-                _blueprintMeta.Asset = this;
+                _blueprintMeta.Owner = this;
 #endif
                 return _blueprintMeta;
             }

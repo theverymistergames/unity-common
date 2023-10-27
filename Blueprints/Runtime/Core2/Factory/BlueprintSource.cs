@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.Serialization.Formatters.Binary;
 using MisterGames.Common.Data;
 using UnityEngine;
 
@@ -16,6 +17,8 @@ namespace MisterGames.Blueprints.Core2 {
         [SerializeField] private int _lastId;
 
         public int Count => _nodeMap.Count;
+
+        private readonly BinaryFormatter _binaryFormatter = new BinaryFormatter();
 
         public ref T GetNode<T>(int id) where T : struct, IBlueprintNode {
             if (this is not BlueprintSource<T> factory) {
@@ -38,11 +41,25 @@ namespace MisterGames.Blueprints.Core2 {
 
         public int AddNodeCopy(IBlueprintSource source, int id) {
             int localId = AddNode();
-            ref var data = ref _nodeMap.GetValue(localId);
 
-            data = source.GetNode<TNode>(id);
+            ref var node = ref _nodeMap.GetValue(localId);
+            node = source.GetNode<TNode>(id);
 
             return localId;
+        }
+
+        public int AddNodeCopy(string str) {
+            int id = AddNode();
+
+            ref var node = ref _nodeMap.GetValue(id);
+            node = JsonUtility.FromJson<TNode>(str);
+
+            return id;
+        }
+
+        public string GetNodeAsString(int id) {
+            ref var node = ref _nodeMap.GetValue(id);
+            return JsonUtility.ToJson(node);
         }
 
         public void RemoveNode(int id) {

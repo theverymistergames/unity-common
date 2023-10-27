@@ -7,11 +7,12 @@ namespace MisterGames.Blueprints.Core2 {
     public class BlueprintSourceGoto :
         BlueprintSource<BlueprintNodeGoto>,
         BlueprintSources.IInternalLink<BlueprintNodeGoto>,
-        BlueprintSources.IHashLink<BlueprintNodeGoto> { }
+        BlueprintSources.IHashLink<BlueprintNodeGoto>,
+        BlueprintSources.ICloneable { }
 
     [Serializable]
     [BlueprintNode(Name = "Goto", Category = "Flow", Color = BlueprintColors.Node.Flow)]
-    public struct BlueprintNodeGoto : IBlueprintNode, IBlueprintInternalLink, IBlueprintHashLink {
+    public struct BlueprintNodeGoto : IBlueprintNode, IBlueprintInternalLink, IBlueprintHashLink, IBlueprintCloneable {
 
         [SerializeField] private string _label;
 

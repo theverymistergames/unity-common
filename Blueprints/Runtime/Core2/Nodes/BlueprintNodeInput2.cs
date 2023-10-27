@@ -7,11 +7,12 @@ namespace MisterGames.Blueprints.Core2 {
     public class BlueprintSourceInput :
         BlueprintSource<BlueprintNodeInput2>,
         BlueprintSources.IInternalLink<BlueprintNodeInput2>,
-        BlueprintSources.IConnectionCallback<BlueprintNodeInput2> { }
+        BlueprintSources.IConnectionCallback<BlueprintNodeInput2>,
+        BlueprintSources.ICloneable { }
 
     [Serializable]
     [BlueprintNode(Name = "Input", Category = "External", Color = BlueprintColors.Node.External)]
-    public struct BlueprintNodeInput2 : IBlueprintNode, IBlueprintInternalLink, IBlueprintConnectionCallback {
+    public struct BlueprintNodeInput2 : IBlueprintNode, IBlueprintInternalLink, IBlueprintConnectionCallback, IBlueprintCloneable {
 
         [SerializeField] private string _port;
 

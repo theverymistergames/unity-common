@@ -4,13 +4,18 @@ using UnityEngine;
 namespace MisterGames.Blueprints.Core2 {
 
     [Serializable]
+    public class BlueprintSourceSubgraph : BlueprintSource<BlueprintNodeSubgraph2>,
+        BlueprintSources.ICompiled<BlueprintNodeSubgraph2>,
+        BlueprintSources.ICloneable { }
+
+    [Serializable]
     [BlueprintNode(Name = "Subgraph", Category = "External", Color = BlueprintColors.Node.External)]
-    public struct BlueprintNodeSubgraph2 : IBlueprintNode, IBlueprintCompiled {
+    public struct BlueprintNodeSubgraph2 : IBlueprintNode, IBlueprintCompiled, IBlueprintCloneable {
 
         [SerializeField] private BlueprintAsset2 _blueprint;
 
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {
-            BlueprintCompilation.FetchExternalPorts(meta, id, _blueprint);
+            PortExtensions.FetchExternalPorts(meta, id, _blueprint);
         }
 
         public void Compile(NodeId id, BlueprintCompileData data) {

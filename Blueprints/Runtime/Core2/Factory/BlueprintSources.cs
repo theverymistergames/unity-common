@@ -82,6 +82,8 @@
                 node.Compile(id, data);
             }
         }
+
+        internal interface ICloneable : IBlueprintSource, IBlueprintCloneable { }
     }
 
 }

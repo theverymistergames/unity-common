@@ -6,7 +6,8 @@ namespace MisterGames.Blueprints.Core2 {
     [Serializable]
     public class BlueprintSourceExit :
         BlueprintSource<BlueprintNodeExit2>,
-        BlueprintSources.IInternalLink<BlueprintNodeExit2> { }
+        BlueprintSources.IInternalLink<BlueprintNodeExit2>,
+        BlueprintSources.ICloneable { }
 
     [Serializable]
     [BlueprintNode(Name = "Exit", Category = "External", Color = BlueprintColors.Node.External)]
@@ -32,6 +33,10 @@ namespace MisterGames.Blueprints.Core2 {
 
         public void OnValidate(IBlueprintMeta meta, NodeId id) {
             meta.InvalidateNode(id, invalidateLinks: false, notify: false);
+        }
+
+        public T Clone<T>(NodeId id) where T : struct, IBlueprintNode {
+            return new T();
         }
     }
 
