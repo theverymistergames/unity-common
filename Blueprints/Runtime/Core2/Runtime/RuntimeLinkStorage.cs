@@ -94,20 +94,27 @@ namespace MisterGames.Blueprints.Core2 {
                     _linkTree.RemoveNodeAt(l);
                     l = prev;
 
-                    for (; s >= 0; s = _linkTree.GetNext(s)) {
+                    while (s >= 0) {
                         link = _linkTree.GetKeyAt(s);
                         l = _linkTree.InsertNextNode(link, rootIndex, l);
 
-                        if (inlined) continue;
+                        if (!inlined) {
+                            next = l;
+                            inlined = true;
+                        }
 
-                        next = l;
-                        inlined = true;
+                        int n = _linkTree.GetNext(s);
+                        _linkTree.RemoveNodeAt(s);
+                        s = n;
                     }
 
-                    _linkTree.RemoveNodeAt(linkedPort);
                     l = next;
                 }
             }
+        }
+
+        public override string ToString() {
+            return $"{nameof(RuntimeLinkStorage)}: links: {_linkTree}";
         }
     }
 

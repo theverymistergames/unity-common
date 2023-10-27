@@ -33,6 +33,10 @@ namespace MisterGames.Blueprints.Core2 {
         public static bool operator !=(RuntimeLink2 left, RuntimeLink2 right) {
             return !left.Equals(right);
         }
+
+        public override string ToString() {
+            return $"{nameof(RuntimeLink2)}(source {source}, node {node}, port {port})";
+        }
     }
 
 }
