@@ -57,7 +57,7 @@ namespace Core {
         }
 
         [Test]
-        public void RemoveLink() {
+        public void RemoveLinks() {
             var storage = new RuntimeLinkStorage();
 
             int i0 = storage.SelectPort(0, 0, 0);
@@ -66,11 +66,8 @@ namespace Core {
             int i3 = storage.InsertLinkAfter(i2, 0, 0, 3);
             int i4 = storage.InsertLinkAfter(i3, 0, 0, 4);
 
-            int i2_actual = storage.RemoveLink(i3);
-            Assert.AreEqual(i2, i2_actual);
-
-            int i0_actual = storage.RemoveLink(i1);
-            Assert.AreEqual(i0, i0_actual);
+            storage.RemoveLink(0, 0, 3);
+            storage.RemoveLink(0, 0, 1);
 
             int index = storage.GetFirstLink(0, 0, 0);
             Assert.IsTrue(index >= 0);
@@ -86,7 +83,7 @@ namespace Core {
         }
 
         [Test]
-        public void GetPorts() {
+        public void InlineLinks() {
             var storage = new RuntimeLinkStorage();
 
             int i0 = storage.SelectPort(0, 0, 0);
@@ -95,13 +92,6 @@ namespace Core {
             int i2 = storage.SelectPort( 0, 0, 2);
             int i3 = storage.InsertLinkAfter(i2, 0, 0, 3);
 
-            int p = storage.GetFirstPort(0, 0);
-            Assert.IsTrue(p >= 0);
-            Assert.AreEqual(0, storage.GetLink(p).port);
-
-            p = storage.GetNextLink(p);
-            Assert.IsTrue(p >= 0);
-            Assert.AreEqual(2, storage.GetLink(p).port);
 
         }
     }

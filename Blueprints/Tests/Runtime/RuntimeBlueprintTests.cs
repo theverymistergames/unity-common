@@ -22,7 +22,7 @@ namespace Core {
             var id2 = new NodeId(sourceId, nodeId2);
             var id3 = new NodeId(sourceId, nodeId3);
 
-            var nodeStorage = new RuntimeNodeStorage(default, 4);
+            var nodeStorage = new RuntimeNodeStorage(4);
 
             nodeStorage.AddNode(id0);
             nodeStorage.AddNode(id1);
@@ -101,7 +101,7 @@ namespace Core {
             var id1 = new NodeId(sourceId, nodeId1);
             var id2 = new NodeId(sourceId, nodeId2);
 
-            var nodeStorage = new RuntimeNodeStorage(default, 3);
+            var nodeStorage = new RuntimeNodeStorage(3);
 
             nodeStorage.AddNode(id0);
             nodeStorage.AddNode(id1);
@@ -150,7 +150,7 @@ namespace Core {
             var id0 = new NodeId(sourceId, nodeId0);
             var id1 = new NodeId(sourceId, nodeId1);
 
-            var nodeStorage = new RuntimeNodeStorage(default, 2);
+            var nodeStorage = new RuntimeNodeStorage(2);
 
             nodeStorage.AddNode(id0);
             nodeStorage.AddNode(id1);

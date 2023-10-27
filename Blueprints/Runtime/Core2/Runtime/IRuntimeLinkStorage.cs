@@ -6,7 +6,7 @@ namespace MisterGames.Blueprints.Core2 {
 
         NodeId Root { get; set; }
 
-        IEnumerable<int> RootPorts { get; }
+        HashSet<int> RootPorts { get; }
 
         void AddRootPort(int sign);
 
