@@ -7,9 +7,7 @@ namespace MisterGames.Blueprints.Meta {
 
         None = 0,
 
-
         External = 1,
-
 
         Hidden = 2,
 

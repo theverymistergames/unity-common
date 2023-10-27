@@ -93,7 +93,7 @@ namespace MisterGames.Blueprints.Nodes {
                     }
 
                     portSignatureSet.Add(portSignature);
-                    ports.Add(nodePort.External(false).Hidden(false));
+                    ports.Add(nodePort.External(false).Hide(false));
                 }
             }
 

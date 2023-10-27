@@ -56,7 +56,7 @@
             }
         }
 
-        public interface IInternalLink<TNode> : IBlueprintSource, IBlueprintInternalLink
+        internal interface IInternalLink<TNode> : IBlueprintSource, IBlueprintInternalLink
             where TNode : struct, IBlueprintNode, IBlueprintInternalLink
         {
             void IBlueprintInternalLink.GetLinkedPorts(NodeId id, int port, out int index, out int count) {
@@ -65,7 +65,7 @@
             }
         }
 
-        public interface IHashLink<TNode> : IBlueprintSource, IBlueprintHashLink
+        internal interface IHashLink<TNode> : IBlueprintSource, IBlueprintHashLink
             where TNode : struct, IBlueprintNode, IBlueprintHashLink
         {
             void IBlueprintHashLink.GetLinkedPort(NodeId id, out int hash, out int port) {
@@ -77,9 +77,9 @@
         internal interface ICompiled<TNode> : IBlueprintSource, IBlueprintCompiled
             where TNode : struct, IBlueprintNode, IBlueprintCompiled
         {
-            void IBlueprintCompiled.Compile(IBlueprintFactory factory, BlueprintCompileData data) {
-                ref var node = ref GetNode<TNode>(data.id.node);
-                node.Compile(factory, data);
+            void IBlueprintCompiled.Compile(NodeId id, BlueprintCompileData data) {
+                ref var node = ref GetNode<TNode>(id.node);
+                node.Compile(id, data);
             }
         }
     }

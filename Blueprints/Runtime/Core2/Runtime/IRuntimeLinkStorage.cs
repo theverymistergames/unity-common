@@ -1,24 +1,28 @@
-﻿namespace MisterGames.Blueprints.Core2 {
+﻿using System.Collections.Generic;
+
+namespace MisterGames.Blueprints.Core2 {
 
     public interface IRuntimeLinkStorage {
 
-        int GetPortCount(int source, int node);
+        NodeId Root { get; set; }
 
-        void SetPortCount(int source, int node, int count);
+        IEnumerable<int> RootPorts { get; }
+
+        void AddRootPort(int sign);
 
         int SelectPort(int source, int node, int port);
 
-        void RemovePort(int source, int node, int port);
-
         int InsertLinkAfter(int index, int source, int node, int port);
 
-        int RemoveLink(int index);
+        void RemoveLink(int source, int node, int port);
 
         int GetFirstLink(int source, int node, int port);
 
         int GetNextLink(int previous);
 
         RuntimeLink2 GetLink(int index);
+
+        void InlineLinks();
     }
 
 }

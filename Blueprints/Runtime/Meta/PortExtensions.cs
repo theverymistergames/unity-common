@@ -5,13 +5,6 @@ namespace MisterGames.Blueprints {
 
     public static class PortExtensions {
 
-        public static Port Hidden(this Port port, bool isHidden) {
-            if (isHidden) port.options |= PortOptions.Hidden;
-            else port.options &= ~PortOptions.Hidden;
-
-            return port;
-        }
-
         public static Port Layout(this Port port, PortLayout layout) {
             switch (layout) {
                 case PortLayout.Default:
@@ -52,36 +45,11 @@ namespace MisterGames.Blueprints {
             return port;
         }
 
-        internal static bool IsInput(this Port port) {
-            return port.mode.HasFlag(PortMode.Input);
-        }
+        public static Port Hide(this Port port, bool isHidden) {
+            if (isHidden) port.options |= PortOptions.Hidden;
+            else port.options &= ~PortOptions.Hidden;
 
-        internal static bool IsData(this Port port) {
-            return port.mode.HasFlag(PortMode.Data);
-        }
-
-        internal static bool IsExternal(this Port port) {
-            return port.options.HasFlag(PortOptions.External);
-        }
-
-        internal static bool IsHidden(this Port port) {
-            return port.options.HasFlag(PortOptions.Hidden);
-        }
-
-        internal static bool AcceptSubclass(this Port port) {
-            return port.options.HasFlag(PortOptions.AcceptSubclass);
-        }
-
-        internal static bool IsMultiple(this Port port) {
-            return !port.mode.HasFlag(PortMode.CapacitySingle) && !port.mode.HasFlag(PortMode.CapacityMultiple)
-                ? !port.IsInput() || !port.IsData()
-                : port.mode.HasFlag(PortMode.CapacityMultiple);
-        }
-
-        internal static bool IsLeftLayout(this Port port) {
-            return !port.mode.HasFlag(PortMode.LayoutLeft) && !port.mode.HasFlag(PortMode.LayoutRight)
-                ? port.mode.HasFlag(PortMode.Input)
-                : port.mode.HasFlag(PortMode.LayoutLeft);
+            return port;
         }
 
         internal static Port External(this Port port, bool isExternal) {
@@ -91,8 +59,46 @@ namespace MisterGames.Blueprints {
             return port;
         }
 
+        internal static bool IsInput(this Port port) {
+            return (port.mode & PortMode.Input) == PortMode.Input;
+        }
+
+        internal static bool IsData(this Port port) {
+            return (port.mode & PortMode.Data) == PortMode.Data;
+        }
+
+        internal static bool IsExternal(this Port port) {
+            return (port.options & PortOptions.External) == PortOptions.External;
+        }
+
+        internal static bool IsHidden(this Port port) {
+            return (port.options & PortOptions.Hidden) == PortOptions.Hidden;
+        }
+
+        internal static bool AcceptSubclass(this Port port) {
+            return (port.options & PortOptions.AcceptSubclass) == PortOptions.AcceptSubclass;
+        }
+
+        internal static bool IsMultiple(this Port port) {
+            return (port.mode & PortMode.CapacitySingle) != PortMode.CapacitySingle &&
+                   (port.mode & PortMode.CapacityMultiple) != PortMode.CapacityMultiple
+                ? !port.IsInput() || !port.IsData()
+                : (port.mode & PortMode.CapacityMultiple) == PortMode.CapacityMultiple;
+        }
+
+        internal static bool IsLeftLayout(this Port port) {
+            return (port.mode & PortMode.LayoutLeft) != PortMode.LayoutLeft &&
+                   (port.mode & PortMode.LayoutRight) != PortMode.LayoutRight
+                ? port.IsInput()
+                : (port.mode & PortMode.LayoutLeft) == PortMode.LayoutLeft;
+        }
+
         internal static int GetSignature(this Port port) {
-            return HashCode.Combine(port.mode, port.Name, port.dataType);
+            return HashCode.Combine(
+                port.mode,
+                port.dataType,
+                string.IsNullOrWhiteSpace(port.name) ? string.Empty : port.name
+            );
         }
     }
 

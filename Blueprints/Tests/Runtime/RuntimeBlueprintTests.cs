@@ -22,8 +22,7 @@ namespace Core {
             var id2 = new NodeId(sourceId, nodeId2);
             var id3 = new NodeId(sourceId, nodeId3);
 
-            var nodeStorage = new RuntimeNodeStorage();
-            nodeStorage.AllocateSpace(4);
+            var nodeStorage = new RuntimeNodeStorage(default, 4);
 
             nodeStorage.AddNode(id0);
             nodeStorage.AddNode(id1);
@@ -47,7 +46,7 @@ namespace Core {
             node = ref source.GetNode<BlueprintNodeTest3>(id3.node);
             node.pickedPort = id3.node;
 
-            var linkStorage = new RuntimeLinkStorage(4, 3, 4);
+            var linkStorage = new RuntimeLinkStorage(3, 4);
 
             int i = linkStorage.SelectPort(id0.source, id0.node, 1);
             i = linkStorage.InsertLinkAfter(i, id1.source, id1.node, 0);
@@ -102,8 +101,7 @@ namespace Core {
             var id1 = new NodeId(sourceId, nodeId1);
             var id2 = new NodeId(sourceId, nodeId2);
 
-            var nodeStorage = new RuntimeNodeStorage();
-            nodeStorage.AllocateSpace(3);
+            var nodeStorage = new RuntimeNodeStorage(default, 3);
 
             nodeStorage.AddNode(id0);
             nodeStorage.AddNode(id1);
@@ -122,7 +120,7 @@ namespace Core {
             node = ref source.GetNode<BlueprintNodeTest3>(id2.node);
             Assert.AreEqual(-1, node.pickedPort);
 
-            var linkStorage = new RuntimeLinkStorage(3, 1, 2);
+            var linkStorage = new RuntimeLinkStorage(1, 2);
 
             int i = linkStorage.SelectPort(id0.source, id0.node, 1);
             i = linkStorage.InsertLinkAfter(i, id1.source, id1.node, 0);
@@ -152,8 +150,7 @@ namespace Core {
             var id0 = new NodeId(sourceId, nodeId0);
             var id1 = new NodeId(sourceId, nodeId1);
 
-            var nodeStorage = new RuntimeNodeStorage();
-            nodeStorage.AllocateSpace(2);
+            var nodeStorage = new RuntimeNodeStorage(default, 2);
 
             nodeStorage.AddNode(id0);
             nodeStorage.AddNode(id1);
@@ -164,7 +161,7 @@ namespace Core {
             node = ref source.GetNode<BlueprintNodeTest3>(id1.node);
             node.pickedPort = id1.node;
 
-            var linkStorage = new RuntimeLinkStorage(2, 1, 1);
+            var linkStorage = new RuntimeLinkStorage(1, 1);
 
             int i = linkStorage.SelectPort(id0.source, id0.node, 1);
             i = linkStorage.InsertLinkAfter(i, id1.source, id1.node, 0);

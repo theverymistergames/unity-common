@@ -86,16 +86,23 @@ namespace Core {
         }
 
         [Test]
-        public void RemovePort() {
+        public void GetPorts() {
             var storage = new RuntimeLinkStorage();
 
             int i0 = storage.SelectPort(0, 0, 0);
             int i1 = storage.InsertLinkAfter(i0, 0, 0, 1);
-            int i2 = storage.InsertLinkAfter(i1, 0, 0, 2);
+
+            int i2 = storage.SelectPort( 0, 0, 2);
             int i3 = storage.InsertLinkAfter(i2, 0, 0, 3);
 
-            storage.RemovePort(0, 0, 0);
-            Assert.IsTrue(storage.GetFirstLink(0, 0, 0) < 0);
+            int p = storage.GetFirstPort(0, 0);
+            Assert.IsTrue(p >= 0);
+            Assert.AreEqual(0, storage.GetLink(p).port);
+
+            p = storage.GetNextLink(p);
+            Assert.IsTrue(p >= 0);
+            Assert.AreEqual(2, storage.GetLink(p).port);
+
         }
     }
 

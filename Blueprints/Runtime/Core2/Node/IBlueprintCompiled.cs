@@ -2,7 +2,7 @@
 
     internal interface IBlueprintCompiled {
 
-        void Compile(IBlueprintFactory factory, BlueprintCompileData data);
+        void Compile(NodeId id, BlueprintCompileData data);
     }
 
 }

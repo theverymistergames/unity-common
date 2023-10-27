@@ -6,11 +6,41 @@ namespace MisterGames.Blueprints.Core2 {
 
     internal static class LinkValidator2 {
 
+        public static bool ValidateExternalLink(
+            BlueprintMeta2 meta,
+            IRuntimeLinkStorage linkStorage,
+            NodeId id,
+            int port,
+            NodeId rootId,
+            int rootPort
+        ) {
+            int portCount = meta.GetPortCount(id);
+            if (port < 0 || port >= portCount) {
+                Debug.LogError($"Blueprint `{meta.Asset.name}`: " +
+                               $"Validation failed for external link of node {id} port {port}: " +
+                               $"node {id} has no port with index {port}.");
+                return false;
+            }
+
+            var portData = meta.GetPort(id, port);
+
+            if (portData.IsData() && !portData.IsInput() &&
+                linkStorage.GetFirstLink(rootId.source, rootId.node, rootPort) >= 0
+            ) {
+                Debug.LogError($"Blueprint `{meta.Asset.name}`: " +
+                               $"Validation failed for external link of node {id} port {port}: " +
+                               $"output external port with same signature was already added.");
+                return false;
+            }
+
+            return true;
+        }
+
         public static bool ValidateInternalLink(BlueprintMeta2 meta, NodeId id, int port, IBlueprintInternalLink link) {
             int portCount = meta.GetPortCount(id);
             if (port < 0 || port >= portCount) {
                 Debug.LogError($"Blueprint `{meta.Asset.name}`: " +
-                               $"Validation failed for internal links [node {id}, port {port}]: " +
+                               $"Validation failed for internal links of node {id} port {port}: " +
                                $"node {id} has no port with index {port}.");
                 return false;
             }
@@ -28,7 +58,7 @@ namespace MisterGames.Blueprints.Core2 {
             for (; index < count; index++) {
                 if (index < 0 || index >= portCount) {
                     Debug.LogError($"Blueprint `{meta.Asset.name}`: " +
-                                   $"Validation failed for internal links [node {id}, port {port} :: port {index}]: " +
+                                   $"Validation failed for internal link [node {id}, port {port} :: port {index}]: " +
                                    $"node {id} has no linked port {index}.");
                     return false;
                 }

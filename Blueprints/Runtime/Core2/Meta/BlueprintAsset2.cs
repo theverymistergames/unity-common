@@ -9,7 +9,7 @@ namespace MisterGames.Blueprints.Core2 {
         [SerializeField] private BlueprintMeta2 _blueprintMeta;
         [SerializeField] private Blackboard _blackboard;
 
-        private readonly BlueprintCompiler2 _blueprintCompiler = new BlueprintCompiler2();
+        public Blackboard Blackboard => _blackboard;
 
         public BlueprintMeta2 BlueprintMeta {
             get {
@@ -20,20 +20,16 @@ namespace MisterGames.Blueprints.Core2 {
             }
         }
 
-        public Blackboard Blackboard => _blackboard;
+        private BlueprintCompiler2 _blueprintCompiler;
 
         public RuntimeBlueprint2 Compile(IBlueprintFactory factory) {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            _blueprintMeta.Asset = this;
-#endif
-            return _blueprintCompiler.Compile(factory, _blueprintMeta);
+            _blueprintCompiler ??= new BlueprintCompiler2();
+            return _blueprintCompiler.Compile(factory, BlueprintMeta);
         }
 
-        public void CompileSubgraph(IBlueprintFactory factory, BlueprintCompileData data) {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            _blueprintMeta.Asset = this;
-#endif
-            _blueprintCompiler.CompileSubgraph(factory, _blueprintMeta, data);
+        public void CompileSubgraph(BlueprintCompileData data) {
+            _blueprintCompiler ??= new BlueprintCompiler2();
+            _blueprintCompiler.CompileSubgraph(BlueprintMeta, data);
         }
     }
 

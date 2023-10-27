@@ -2,24 +2,21 @@
 
     public readonly struct BlueprintCompileData {
 
-        public readonly IBlueprintMeta meta;
-        public readonly NodeId id;
-        public readonly NodeId runtimeId;
+        public readonly IBlueprintFactory factory;
         public readonly IRuntimeNodeStorage nodeStorage;
         public readonly IRuntimeLinkStorage linkStorage;
+        public readonly NodeId runtimeId;
 
         public BlueprintCompileData(
-            IBlueprintMeta meta,
-            NodeId id,
-            NodeId runtimeId,
+            IBlueprintFactory factory,
             IRuntimeNodeStorage nodeStorage,
-            IRuntimeLinkStorage linkStorage
+            IRuntimeLinkStorage linkStorage,
+            NodeId runtimeId
         ) {
-            this.meta = meta;
-            this.id = id;
-            this.runtimeId = runtimeId;
+            this.factory = factory;
             this.nodeStorage = nodeStorage;
             this.linkStorage = linkStorage;
+            this.runtimeId = runtimeId;
         }
     }
 

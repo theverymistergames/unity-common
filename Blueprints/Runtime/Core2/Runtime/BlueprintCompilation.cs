@@ -7,6 +7,42 @@ namespace MisterGames.Blueprints.Core2 {
     internal static class BlueprintCompilation {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void FetchExternalPorts(IBlueprintMeta meta, NodeId id, BlueprintAsset2 asset) {
+            if (asset == null) return;
+
+            var subgraphMeta = asset.BlueprintMeta;
+            var nodes = subgraphMeta.Nodes;
+            var portSignatureSet = new HashSet<int>();
+
+            foreach (var subgraphNodeId in nodes) {
+                int portCount = subgraphMeta.GetPortCount(subgraphNodeId);
+
+                for (int p = 0; p < portCount; p++) {
+                    var port = subgraphMeta.GetPort(subgraphNodeId, p);
+                    if (!port.IsExternal()) continue;
+
+                    int sign = port.GetSignature();
+
+                    if (portSignatureSet.Contains(sign)) {
+                        PortValidator2.ValidateExternalPortWithExistingSignature(subgraphMeta, port);
+                        continue;
+                    }
+
+                    portSignatureSet.Add(sign);
+                    meta.AddPort(id, port.External(false).Hide(false));
+                }
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static NodeId CreateRootNode(IBlueprintFactory factory) {
+            int sourceId = factory.GetOrCreateSource(typeof(BlueprintSourceRoot));
+            int nodeId = factory.GetSource(sourceId).AddNode();
+
+            return new NodeId(sourceId, nodeId);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static NodeId CreateNode(
             IBlueprintFactory factory,
             IBlueprintSource source,
@@ -17,44 +53,6 @@ namespace MisterGames.Blueprints.Core2 {
 
             int runtimeNodeId = runtimeSource.AddNodeCopy(source, id.node);
             return new NodeId(runtimeSourceId, runtimeNodeId);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void CompileInternalLink(
-            IBlueprintInternalLink link,
-            IRuntimeLinkStorage linkStorage,
-            NodeId id,
-            NodeId runtimeId,
-            int port
-        ) {
-            link.GetLinkedPorts(id, port, out int s, out int count);
-            int k = linkStorage.SelectPort(runtimeId.source, runtimeId.node, port);
-
-            for (; s < count; s++) {
-                k = linkStorage.InsertLinkAfter(k, runtimeId.source, runtimeId.node, s);
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void CompileExternalLinks(
-            IRuntimeLinkStorage linkStorage,
-            RuntimeLink2 root,
-            NodeId id,
-            int port,
-            bool isEnterOrOutput
-        ) {
-            // External port is enter or output port (link target):
-            // Create link from matched subgraph root port to this external port.
-            if (isEnterOrOutput) {
-                int k = linkStorage.SelectPort(root.source, root.node, root.port);
-                linkStorage.InsertLinkAfter(k, id.source, id.node, port);
-            }
-            // External port is exit or input port (link owner):
-            // Create link from this external port to matched subgraph root port.
-            else {
-                int k = linkStorage.SelectPort(id.source, id.node, port);
-                linkStorage.InsertLinkAfter(k, root.source, root.node, root.port);
-            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -75,94 +73,6 @@ namespace MisterGames.Blueprints.Core2 {
                     for (int l = t; l >= 0; l = links.GetNext(l)) {
                         var to = links.GetValueAt(l);
                         i = linkStorage.InsertLinkAfter(i, to.source, to.node, to.port);
-                    }
-                }
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void AddHashLink(
-            TreeMap<int, RuntimeLink2> links,
-            IBlueprintMeta meta,
-            NodeId id,
-            NodeId runtimeId,
-            IBlueprintHashLink link
-        ) {
-            link.GetLinkedPort(id, out int hash, out int port);
-
-            var portData = meta.GetPort(id, port);
-            int hashRoot = links.GetOrAddNode(hash);
-
-            int dir = portData.IsInput() == portData.IsData() ? 0 : 1;
-            int dirRoot = links.GetOrAddNode(dir, hashRoot);
-
-            links.AddEndPoint(dirRoot, new RuntimeLink2(runtimeId.source, runtimeId.node, port));
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void FillSignatureToPortMap(
-            Dictionary<int, RuntimeLink2> map,
-            IBlueprintMeta meta,
-            NodeId id,
-            NodeId runtimeId
-        ) {
-            int count = meta.GetPortCount(id);
-
-            for (int p = 0; p < count; p++) {
-                var port = meta.GetPort(id, p);
-                var address = new RuntimeLink2(runtimeId.source, runtimeId.node, p);
-
-                map.Add(port.GetSignature(), address);
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void InlineLinks(IRuntimeNodeStorage nodeStorage, IRuntimeLinkStorage linkStorage) {
-            for (int i = 0; i < nodeStorage.Count; i++) {
-                var id = nodeStorage.GetNode(i);
-                int portCount = linkStorage.GetPortCount(id.source, id.node);
-
-                for (int p = 0; p < portCount; p++) {
-                    int l = linkStorage.SelectPort(id.source, id.node, p);
-
-                    while (l >= 0) {
-                        var link = linkStorage.GetLink(l);
-                        int next = linkStorage.GetNextLink(l);
-
-                        int s = linkStorage.GetFirstLink(link.source, link.node, p);
-
-                        // Linked port has no own links: nothing to inline
-                        if (s < 0) {
-                            l = next;
-                            continue;
-                        }
-
-                        // Linked port has own links: inline selected port links
-                        // Example: from [0 -> 1, 1 -> 2] to [0 -> 2]:
-                        // 1) Remove original link [0 -> 1]
-                        // 2) Add inlined link [0 -> 2]
-                        // 3) Remove remote link [1 -> 2]
-                        // 4) Return to the first inlined links to continue inline checks
-
-                        bool inlined = false;
-                        l = linkStorage.RemoveLink(l);
-
-                        while (s >= 0) {
-                            link = linkStorage.GetLink(s);
-                            l = linkStorage.InsertLinkAfter(l, link.source, link.node, link.port);
-
-                            if (!inlined) {
-                                next = l;
-                                inlined = true;
-                            }
-
-                            int n = linkStorage.GetNextLink(s);
-                            linkStorage.RemoveLink(s);
-
-                            s = n;
-                        }
-
-                        l = next;
                     }
                 }
             }

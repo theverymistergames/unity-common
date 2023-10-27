@@ -15,34 +15,41 @@ namespace MisterGames.Blueprints.Core2 {
 
         private Blackboard _blackboard;
         private RuntimeBlueprint2 _runtimeBlueprint;
-        private bool _isRunningRuntimeBlueprint;
+        private bool _isCompiled;
 
-        private void Awake() {
-            _isRunningRuntimeBlueprint = true;
+        public RuntimeBlueprint2 GetOrCompileBlueprint() {
+            if (_isCompiled) return _runtimeBlueprint;
+
+            _isCompiled = true;
 
             _blackboard = GetBlackboard(_blueprintAsset);
-            _runtimeBlueprint = _blueprintAsset.Compile(BlueprintFactories.Global);
 
+            _runtimeBlueprint = _blueprintAsset.Compile(BlueprintFactories.Global);
             _runtimeBlueprint.Initialize(this);
+
+            return _runtimeBlueprint;
+        }
+
+        private void Awake() {
+            GetOrCompileBlueprint();
         }
 
         private void OnDestroy() {
             _runtimeBlueprint?.DeInitialize();
+            _runtimeBlueprint?.Destroy();
             _runtimeBlueprint = null;
-
-            _isRunningRuntimeBlueprint = false;
         }
 
         private void OnEnable() {
-            _runtimeBlueprint.SetEnabled(true);
+            _runtimeBlueprint?.SetEnabled(true);
         }
 
         private void OnDisable() {
-            _runtimeBlueprint.SetEnabled(false);
+            _runtimeBlueprint?.SetEnabled(false);
         }
 
         private void Start() {
-            _runtimeBlueprint.Start();
+            _runtimeBlueprint?.Start();
         }
 
         public Blackboard GetBlackboard(BlueprintAsset2 blueprint) {
@@ -50,16 +57,14 @@ namespace MisterGames.Blueprints.Core2 {
         }
 
 #if UNITY_EDITOR
-        internal bool IsRunningRuntimeBlueprint => _isRunningRuntimeBlueprint;
+        internal bool IsRunningRuntimeBlueprint => _runtimeBlueprint != null;
 
         internal SerializedDictionary<BlueprintAsset2, Blackboard> BlackboardOverridesMap =>
             _blackboardOverridesMap ??= new SerializedDictionary<BlueprintAsset2, Blackboard>();
 
-        internal void CompileAndStartRuntimeBlueprint() {
-            _isRunningRuntimeBlueprint = true;
-
-            _runtimeBlueprint = _blueprintAsset.Compile(BlueprintFactories.Global);
+        internal void RestartBlueprint() {
             _blackboard = GetBlackboard(_blueprintAsset);
+            _runtimeBlueprint = _blueprintAsset.Compile(BlueprintFactories.Global);
 
             _runtimeBlueprint.Initialize(this);
             _runtimeBlueprint.Start();
@@ -68,8 +73,6 @@ namespace MisterGames.Blueprints.Core2 {
         internal void InterruptRuntimeBlueprint() {
             _runtimeBlueprint?.DeInitialize();
             _runtimeBlueprint = null;
-
-            _isRunningRuntimeBlueprint = false;
         }
 #endif
     }

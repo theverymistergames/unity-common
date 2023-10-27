@@ -16,7 +16,7 @@ namespace MisterGames.Blueprints.Core2 {
 
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {
             meta.AddPort(id, Port.Enter());
-            meta.AddPort(id, Port.Exit(_port).External(true).Hidden(true));
+            meta.AddPort(id, Port.Exit(_port).External(true).Hide(true));
         }
 
         public void GetLinkedPorts(NodeId id, int port, out int index, out int count) {

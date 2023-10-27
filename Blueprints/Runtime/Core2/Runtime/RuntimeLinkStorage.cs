@@ -1,78 +1,109 @@
 ﻿using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using MisterGames.Common.Data;
 
 namespace MisterGames.Blueprints.Core2 {
 
     public sealed class RuntimeLinkStorage : IRuntimeLinkStorage {
 
+        public NodeId Root { get; set; }
+        public IEnumerable<int> RootPorts => _rootPorts;
+
         private readonly TreeSet<RuntimeLink2> _linkTree;
-        private readonly Dictionary<NodeId, int> _nodeToPortCountMap;
+        private readonly HashSet<int> _rootPorts;
+        private RuntimeLink2 _selectedPort;
 
-        private RuntimeLink2 _selectedPort = new RuntimeLink2(-1, -1, -1);
+        private RuntimeLinkStorage() { }
 
-        public RuntimeLinkStorage() {
-            _nodeToPortCountMap = new Dictionary<NodeId, int>();
-            _linkTree = new TreeSet<RuntimeLink2>();
-            _linkTree.AllowDefragmentation(false);
-        }
-
-        public RuntimeLinkStorage(int nodes, int linkedPorts, int links) {
-            _nodeToPortCountMap = new Dictionary<NodeId, int>(nodes);
+        public RuntimeLinkStorage(int linkedPorts = 0, int links = 0) {
             _linkTree = new TreeSet<RuntimeLink2>(linkedPorts, links);
             _linkTree.AllowDefragmentation(false);
         }
 
-        public int GetPortCount(int source, int node) {
-            return _nodeToPortCountMap.TryGetValue(new NodeId(source, node), out int portCount) ? portCount : 0;
-        }
-
-        public void SetPortCount(int source, int node, int count) {
-            _nodeToPortCountMap[new NodeId(source, node)] = count;
-        }
-
-        public int SelectPort(int source, int node, int port) {
-            _selectedPort = new RuntimeLink2(source, node, port);
-            return _linkTree.TryGetNode(_selectedPort, out int root) ? _linkTree.GetChild(root) : -1;
-        }
-
-        public void RemovePort(int source, int node, int port) {
-            if (_selectedPort.source == source &&
-                _selectedPort.node == node &&
-                _selectedPort.port == port
-            ) {
-                _selectedPort = new RuntimeLink2(-1, -1, -1);
-            }
-
-            _linkTree.RemoveNode(new RuntimeLink2(source, node, port));
-        }
-
-        public int InsertLinkAfter(int index, int source, int node, int port) {
-            if (_selectedPort.port < 0) return -1;
-
-            var link = new RuntimeLink2(source, node, port);
-            int portRoot = _linkTree.GetOrAddNode(_selectedPort);
-
-            return _linkTree.InsertNextNode(link, portRoot, index);
-        }
-
-        public int RemoveLink(int index) {
-            int previous = _linkTree.GetPrevious(index);
-            _linkTree.RemoveNodeAt(index);
-
-            return previous;
-        }
-
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int GetFirstLink(int source, int node, int port) {
-            var key = new RuntimeLink2(source, node, port);
-            return _linkTree.TryGetNode(key, out int index) ? _linkTree.GetChild(index) : -1;
+            return _linkTree.TryGetNode(new RuntimeLink2(source, node, port), out int portRoot)
+                ? _linkTree.GetChild(portRoot)
+                : -1;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int GetNextLink(int previous) {
             return _linkTree.GetNext(previous);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public RuntimeLink2 GetLink(int index) {
             return _linkTree.GetKeyAt(index);
+        }
+
+        public void AddRootPort(int sign) {
+            _rootPorts.Add(sign);
+        }
+
+        public int SelectPort(int source, int node, int port) {
+            _selectedPort = new RuntimeLink2(source, node, port);
+            return GetFirstLink(source, node, port);
+        }
+
+        public int InsertLinkAfter(int index, int source, int node, int port) {
+            int portRoot = _linkTree.GetOrAddNode(_selectedPort);
+            return _linkTree.InsertNextNode(new RuntimeLink2(source, node, port), portRoot, index);
+        }
+
+        public void RemoveLink(int source, int node, int port) {
+            if (!_linkTree.TryGetNode(_selectedPort, out int portRoot)) return;
+
+            _linkTree.RemoveNode(new RuntimeLink2(source, node, port), portRoot);
+            if (!_linkTree.ContainsChildren(portRoot)) _linkTree.RemoveNodeAt(portRoot);
+        }
+
+        public void InlineLinks() {
+            var roots = _linkTree.Roots;
+            foreach (var root in roots) {
+                int rootIndex = _linkTree.GetNode(root);
+                int l = _linkTree.GetChild(rootIndex);
+
+                while (l >= 0) {
+                    var link = _linkTree.GetKeyAt(l);
+                    int prev = _linkTree.GetPrevious(l);
+                    int next = _linkTree.GetNext(l);
+
+                    int s = _linkTree.TryGetNode(new RuntimeLink2(link.source, link.node, link.port), out int linkedPort)
+                        ? _linkTree.GetChild(linkedPort)
+                        : -1;
+
+                    // Linked port has no own links: nothing to inline
+                    if (s < 0) {
+                        l = next;
+                        continue;
+                    }
+
+                    // Linked port has own links: inline selected port links
+                    // Example: from [0 -> 1, 1 -> 2] to [0 -> 2]:
+                    // 1) Remove original link [0 -> 1]
+                    // 2) Add inlined link [0 -> 2]
+                    // 3) Remove remote link [1 -> 2]
+                    // 4) Return to the first inlined links to continue inline checks
+
+                    bool inlined = false;
+                    _linkTree.RemoveNodeAt(l);
+                    l = prev;
+
+                    for (; s >= 0; s = _linkTree.GetNext(s)) {
+                        link = _linkTree.GetKeyAt(s);
+                        l = _linkTree.InsertNextNode(link, rootIndex, l);
+
+                        if (inlined) continue;
+
+                        next = l;
+                        inlined = true;
+                    }
+
+                    _linkTree.RemoveNodeAt(linkedPort);
+                    l = next;
+                }
+            }
         }
     }
 

@@ -1,6 +1,6 @@
 ﻿namespace MisterGames.Blueprints.Core2 {
 
-    public interface IBlueprintHashLink {
+    internal interface IBlueprintHashLink {
 
         void GetLinkedPort(NodeId id, out int hash, out int port);
     }
