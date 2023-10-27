@@ -24,7 +24,7 @@ namespace MisterGames.BlueprintLib {
         private Blackboard _blackboard;
 
         public override Port[] CreatePorts() => new[] {
-            Port.DynamicOutput().Hidden(true).Layout(PortLayout.Left),
+            Port.DynamicOutput().Hide(true).Layout(PortLayout.Left),
         };
 
         public override void OnInitialize(IBlueprintHost host) {
@@ -39,7 +39,7 @@ namespace MisterGames.BlueprintLib {
 #if UNITY_EDITOR
         public void DecoratePorts(BlueprintAsset blueprint, int nodeId, Port[] ports) {
             var dataType = blueprint.Blackboard.TryGetProperty(_property, out var property) ? property.type.ToType() : null;
-            ports[0] = Port.DynamicOutput(type: dataType).Hidden(dataType == null).Layout(PortLayout.Left);
+            ports[0] = Port.DynamicOutput(type: dataType).Hide(dataType == null).Layout(PortLayout.Left);
         }
 
         public void ValidateBlueprint(BlueprintAsset blueprint, int nodeId) {

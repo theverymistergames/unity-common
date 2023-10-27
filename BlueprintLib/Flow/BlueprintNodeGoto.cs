@@ -16,7 +16,7 @@ namespace MisterGames.BlueprintLib {
 
         public override Port[] CreatePorts() => new[] {
             Port.Enter(),
-            Port.Exit().Hidden(true),
+            Port.Exit().Hide(true),
         };
 
         public int GetLinkedPorts(int port, out int count) {
