@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using MisterGames.Blueprints.Core2;
 using MisterGames.Blueprints.Meta;
+using MisterGames.Blueprints.Validation;
 
 namespace MisterGames.Blueprints {
 
@@ -103,7 +103,7 @@ namespace MisterGames.Blueprints {
             );
         }
 
-        public static void FetchExternalPorts(IBlueprintMeta meta, NodeId id, BlueprintAsset2 asset) {
+        internal static void FetchExternalPorts(IBlueprintMeta meta, NodeId id, BlueprintAsset2 asset) {
             if (asset == null) return;
 
             var subgraphMeta = asset.BlueprintMeta;

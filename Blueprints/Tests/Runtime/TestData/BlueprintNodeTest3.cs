@@ -1,10 +1,11 @@
 ﻿using System;
-using MisterGames.Blueprints.Core2;
+using MisterGames.Blueprints;
 
 namespace Core {
 
     [Serializable]
-    public sealed class BlueprintSourceTest3 : BlueprintSource<BlueprintNodeTest3>,
+    public sealed class BlueprintSourceTest3 :
+        BlueprintSource<BlueprintNodeTest3>,
         BlueprintSources.IEnter<BlueprintNodeTest3>,
         BlueprintSources.IOutput<BlueprintNodeTest3, int> { }
 

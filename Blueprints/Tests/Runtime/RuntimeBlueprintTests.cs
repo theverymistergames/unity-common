@@ -1,4 +1,6 @@
-﻿using MisterGames.Blueprints.Core2;
+﻿using MisterGames.Blueprints;
+using MisterGames.Blueprints.Factory;
+using MisterGames.Blueprints.Runtime;
 using NUnit.Framework;
 
 namespace Core {

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using MisterGames.Blueprints;
-using MisterGames.Blueprints.Core2;
+using MisterGames.Blueprints.Meta;
 using NUnit.Framework;
 using UnityEngine;
 

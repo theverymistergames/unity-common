@@ -1,5 +1,5 @@
 ﻿using System;
-using MisterGames.Blueprints.Core2;
+using MisterGames.Blueprints;
 using UnityEngine;
 
 namespace Core {

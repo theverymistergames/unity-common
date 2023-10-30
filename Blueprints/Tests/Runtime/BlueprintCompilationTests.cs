@@ -1,4 +1,9 @@
-﻿using MisterGames.Blueprints.Core2;
+﻿using MisterGames.Blueprints;
+using MisterGames.Blueprints.Compile;
+using MisterGames.Blueprints.Factory;
+using MisterGames.Blueprints.Meta;
+using MisterGames.Blueprints.Nodes;
+using MisterGames.Blueprints.Runtime;
 using MisterGames.Common.Data;
 using NUnit.Framework;
 using UnityEngine;
