@@ -60,13 +60,7 @@ namespace MisterGames.Common.Editor.Attributes.SubclassSelector {
                 }
             }
             else if (property.managedReferenceValue == null) {
-                object value = Activator.CreateInstance(baseType);
-
-                property.managedReferenceValue = value;
-                property.isExpanded = value != null;
-
-                property.serializedObject.ApplyModifiedProperties();
-                property.serializedObject.Update();
+                CreateInstance(baseType, property);
             }
 
             CustomPropertyGUI.PropertyField(position, property, label, property.GetFieldInfo(), includeChildren: includeChildren);
@@ -89,21 +83,23 @@ namespace MisterGames.Common.Editor.Attributes.SubclassSelector {
                 "Select type",
                 types,
                 t => t == null ? NULL : t.FullName,
-                t => {
-                    object value = t == null ? null : Activator.CreateInstance(t);
-
-                    property.managedReferenceValue = value;
-                    property.isExpanded = value != null;
-
-                    property.serializedObject.ApplyModifiedProperties();
-                    property.serializedObject.Update();
-                },
+                t => CreateInstance(t, property),
                 separator: '.',
                 sort: children => children
                     .OrderByDescending(n => n.data.data == null && n.children.Count == 0)
                     .ThenBy(n => n.children.Count == 0)
                     .ThenBy(n => n.data.name)
             );
+        }
+
+        private static void CreateInstance(Type type, SerializedProperty property) {
+            object value = type == null ? null : Activator.CreateInstance(type);
+
+            property.managedReferenceValue = value;
+            property.isExpanded = value != null;
+
+            property.serializedObject.ApplyModifiedProperties();
+            property.serializedObject.Update();
         }
 
         private static bool IsSupportedType(Type t) {
