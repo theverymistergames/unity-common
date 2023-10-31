@@ -16,6 +16,11 @@ namespace MisterGames.Blueprints.Factory {
         int Count { get; }
 
         /// <summary>
+        /// Type of the blueprint node. See <see cref="BlueprintSource{TNode}"/>.
+        /// </summary>
+        Type NodeType { get; }
+
+        /// <summary>
         /// Get node struct by ref.
         /// </summary>
         /// <param name="id">Node id</param>

@@ -18,6 +18,8 @@ namespace MisterGames.Blueprints {
 
         public int Count => _nodeMap.Count;
 
+        public Type NodeType => typeof(TNode);
+
         public ref T GetNode<T>(int id) where T : struct, IBlueprintNode {
             if (this is not BlueprintSource<T> factory) {
                 throw new InvalidOperationException($"{nameof(BlueprintSource<TNode>)}: " +
@@ -29,12 +31,9 @@ namespace MisterGames.Blueprints {
         }
 
         public int AddNode() {
-            _lastId++;
-            if (_lastId == 0) _lastId++;
-
-            _nodeMap.Add(_lastId, default);
-
-            return _lastId;
+            int id = _lastId++;
+            _nodeMap.Add(id, default);
+            return id;
         }
 
         public int AddNodeCopy(IBlueprintSource source, int id) {
@@ -71,7 +70,6 @@ namespace MisterGames.Blueprints {
                                  $"trying to get node path by id {id}, " +
                                  $"but node with this id is not found: " +
                                  $"node map has no entry with id {id}.");
-
                 return null;
             }
 

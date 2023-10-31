@@ -28,12 +28,12 @@ namespace MisterGames.Blueprints.Factory {
         void RemoveSource(int id);
 
         /// <summary>
-        /// Creates a string path to the serialized property of blueprint source with id.
+        /// Creates a string path to the serialized property of blueprint node with id.
         /// Method works only in the Unity Editor, otherwise <see cref="InvalidOperationException"/> is thrown.
         /// </summary>
-        /// <param name="id">Blueprint source id</param>
+        /// <param name="id">Blueprint node id</param>
         /// <returns>Relative path of where the element is stored in the blueprint factory.</returns>
-        string GetSourcePath(int id);
+        string GetNodePath(NodeId id);
 
         /// <summary>
         /// Remove all sources.

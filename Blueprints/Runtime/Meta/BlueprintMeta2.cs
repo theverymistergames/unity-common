@@ -59,7 +59,7 @@ namespace MisterGames.Blueprints.Meta {
         }
 
         public string GetNodePath(NodeId id) {
-            return $"{nameof(_factory)}.{_factory.GetSourcePath(id.source)}.{_factory.GetSource(id.source).GetNodePath(id.node)}";
+            return $"{nameof(_factory)}.{_factory.GetNodePath(id)}";
         }
 
         public bool ContainsNode(NodeId id) {
@@ -92,14 +92,18 @@ namespace MisterGames.Blueprints.Meta {
             _portStorage.RemoveNode(id);
 
             var source = _factory.GetSource(id.source);
-            source.RemoveNode(id.node);
-            if (source.Count == 0) _factory.RemoveSource(id.source);
+
+            source?.RemoveNode(id.node);
+            if (source == null || source.Count == 0) _factory.RemoveSource(id.source);
 
             _onNodeChange?.Invoke(id);
         }
 
         public void InvalidateNode(NodeId id, bool invalidateLinks, bool notify = true) {
             if (!_nodeMap.ContainsKey(id)) return;
+
+            var source = _factory.GetSource(id.source);
+            if (source == null) return;
 
             var oldLinksTree = invalidateLinks ? _linkStorage.CopyLinks(id) : null;
             if (invalidateLinks) _linkStorage.RemoveNode(id);
@@ -108,8 +112,6 @@ namespace MisterGames.Blueprints.Meta {
             oldPortsTree.AllowDefragmentation(false);
 
             _portStorage.RemoveNode(id);
-
-            var source = _factory.GetSource(id.source);
             source.CreatePorts(this, id);
 
             bool changed = false;

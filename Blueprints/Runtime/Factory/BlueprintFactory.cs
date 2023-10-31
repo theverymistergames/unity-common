@@ -18,7 +18,7 @@ namespace MisterGames.Blueprints.Factory {
         }
 
         public IBlueprintSource GetSource(int id) {
-            return _sources[id];
+            return _sources.TryGetValue(id, out var source) ? source : null;
         }
 
         public int GetOrCreateSource(Type sourceType) {
@@ -27,14 +27,20 @@ namespace MisterGames.Blueprints.Factory {
                 if (_sources[key].GetType() == sourceType) return key;
             }
 
-            return AddSource(Activator.CreateInstance(sourceType) as IBlueprintSource);
+            if (Activator.CreateInstance(sourceType) is not IBlueprintSource instance) {
+                throw new ArgumentException($"{nameof(BlueprintFactory)}: can not create source of type {sourceType}.");
+            }
+
+            return AddSource(instance);
 #else
-            if (_typeToIdMap.TryGetValue(factoryType, out int id)) return id;
+            if (_typeToIdMap.TryGetValue(sourceType, out int id)) return id;
 
-            var instance = Activator.CreateInstance(factoryType) as IBlueprintFactory;
-            id = AddFactory(instance);
+            if (Activator.CreateInstance(sourceType) is not IBlueprintSource instance) {
+                throw new ArgumentException($"{nameof(BlueprintFactory)}: can not create source of type {sourceType}.");
+            }
 
-            _typeToIdMap.Add(factoryType, id);
+            id = AddSource(instance);
+            _typeToIdMap.Add(sourceType, id);
 
             return id;
 #endif
@@ -44,21 +50,21 @@ namespace MisterGames.Blueprints.Factory {
             _sources.Remove(id);
         }
 
-        public string GetSourcePath(int id) {
+        public string GetNodePath(NodeId id) {
 #if UNITY_EDITOR
-            if (!_sources.ContainsKey(id)) {
+            if (!_sources.TryGetValue(id.source, out var source) || source == null) {
                 Debug.LogWarning($"{nameof(BlueprintFactory)}: " +
-                                 $"trying to get source by id {id}, " +
+                                 $"trying to get source by id {id.source}, " +
                                  $"but source with this id is not found: " +
-                                 $"map has no entry with id {id}.");
+                                 $"map has no entry with id {id.source}.");
                 return null;
             }
 
-            return $"{nameof(_sources)}._nodes.Array.data[{_sources.IndexOf(id)}].value";
+            return $"{nameof(_sources)}._nodes.Array.data[{_sources.IndexOf(id.source)}].value.{source.GetNodePath(id.node)}";
 #endif
 
             throw new InvalidOperationException($"{nameof(BlueprintFactory)}: " +
-                                                $"calling method {nameof(GetSourcePath)} is only allowed in the Unity Editor.");
+                                                $"calling method {nameof(GetNodePath)} is only allowed in the Unity Editor.");
         }
 
         public void Clear() {
@@ -68,12 +74,9 @@ namespace MisterGames.Blueprints.Factory {
         }
 
         private int AddSource(IBlueprintSource source) {
-            _lastId++;
-            if (_lastId == 0) _lastId++;
-
-            _sources.Add(_lastId, source);
-
-            return _lastId;
+            int id = _lastId++;
+            _sources.Add(id, source);
+            return id;
         }
 
         public override string ToString() {
