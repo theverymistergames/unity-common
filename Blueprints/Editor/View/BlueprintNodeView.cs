@@ -30,12 +30,13 @@ namespace MisterGames.Blueprints.Editor.View {
 
         private readonly BlueprintMeta2 _meta;
         private readonly SerializedObject _serializedObject;
+        private readonly InspectorView _inspector;
+        private readonly string _nodePath;
 
         private readonly Dictionary<PortView, int> _portViewToPortIndexMap = new Dictionary<PortView, int>();
         private readonly Dictionary<int, PortView> _portIndexToPortViewMap = new Dictionary<int, PortView>();
 
-        private readonly InspectorView _inspector;
-
+        private uint _contentHashCache;
         private float _labelWidth = -1f;
         private float _fieldWidth = -1f;
 
@@ -45,9 +46,10 @@ namespace MisterGames.Blueprints.Editor.View {
         }
 
         public BlueprintNodeView(BlueprintMeta2 meta, NodeId nodeId, Vector2 position, SerializedObject serializedObject) : base(GetUxmlPath()) {
-            _meta = meta;
             this.nodeId = nodeId;
+            _meta = meta;
             _serializedObject = serializedObject;
+            _nodePath = meta.GetNodePath(nodeId);
 
             viewDataKey = nodeId.ToString();
 
@@ -58,7 +60,7 @@ namespace MisterGames.Blueprints.Editor.View {
             var container = this.Q<VisualElement>("title-container");
 
             var source = meta.GetNodeSource(nodeId);
-            var nodeType = source.NodeType;
+            var nodeType = source?.NodeType;
 
             titleLabel.text = BlueprintNodeUtils.GetFormattedNodeName(nodeId, nodeType);
             container.style.backgroundColor = BlueprintNodeUtils.GetNodeColor(nodeType);
@@ -138,13 +140,13 @@ namespace MisterGames.Blueprints.Editor.View {
         }
 
         private void OnNodeGUI() {
-            var serializedProperty = _serializedObject.FindProperty(_meta.GetNodePath(nodeId));
-
+            var serializedProperty = _serializedObject.FindProperty(_nodePath);
             if (serializedProperty == null) {
                 DrawMissingNode();
                 return;
             }
 
+            uint contentHash = serializedProperty.contentHash;
             var endProperty = serializedProperty.GetEndProperty();
             bool enterChildren = true;
 
@@ -175,6 +177,9 @@ namespace MisterGames.Blueprints.Editor.View {
 
                 changed |= EditorGUI.EndChangeCheck();
             }
+
+            changed |= contentHash != _contentHashCache;
+            _contentHashCache = contentHash;
 
             EditorGUIUtility.labelWidth = labelWidthCache;
             EditorGUIUtility.fieldWidth = fieldWidthCache;

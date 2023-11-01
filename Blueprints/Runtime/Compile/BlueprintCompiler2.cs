@@ -58,21 +58,28 @@ namespace MisterGames.Blueprints.Compile {
 
             var nodes = meta.Nodes;
             foreach (var id in nodes) {
-                nodeStorage.AddNode(GetOrCompileNode(factory, meta, nodeStorage, linkStorage, id, rootId));
+                if (TryGetOrCompileNode(factory, meta, nodeStorage, linkStorage, id, rootId, out var runtimeId)) {
+                    nodeStorage.AddNode(runtimeId);
+                }
             }
         }
 
-        private NodeId GetOrCompileNode(
+        private bool TryGetOrCompileNode(
             IBlueprintFactory factory,
             BlueprintMeta2 meta,
             IRuntimeNodeStorage nodeStorage,
             IRuntimeLinkStorage linkStorage,
             NodeId id,
-            NodeId rootId
+            NodeId rootId,
+            out NodeId runtimeId
         ) {
-            if (_compiledNodes.Contains(id)) return _runtimeNodeMap[id];
+            if (_compiledNodes.Contains(id)) {
+                runtimeId = _runtimeNodeMap[id];
+                return true;
+            }
 
-            var runtimeId = GetOrCreateNode(factory, meta, id);
+            if (!TryGetOrCreateNode(factory, meta, id, out runtimeId)) return false;
+
             var source = meta.GetNodeSource(id);
             int portCount = meta.GetPortCount(id);
 
@@ -111,17 +118,16 @@ namespace MisterGames.Blueprints.Compile {
 
             _compiledNodes.Add(runtimeId);
 
-            return runtimeId;
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private NodeId GetOrCreateNode(IBlueprintFactory factory, BlueprintMeta2 meta, NodeId id) {
-            if (_runtimeNodeMap.TryGetValue(id, out var runtimeId)) return runtimeId;
+        private bool TryGetOrCreateNode(IBlueprintFactory factory, BlueprintMeta2 meta, NodeId id, out NodeId runtimeId) {
+            if (_runtimeNodeMap.TryGetValue(id, out runtimeId)) return true;
+            if (!BlueprintCompilation.TryCreateNode(factory, meta, id, out runtimeId)) return false;
 
-            runtimeId = BlueprintCompilation.CreateNode(factory, meta, id);
             _runtimeNodeMap[id] = runtimeId;
-
-            return runtimeId;
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -142,8 +148,9 @@ namespace MisterGames.Blueprints.Compile {
                 LinkValidator2.ValidateNodeLink(meta, id, port, link.id, link.port);
 #endif
 
-                var linkedId = GetOrCreateNode(factory, meta, link.id);
-                i = linkStorage.InsertLinkAfter(i, linkedId.source, linkedId.node, link.port);
+                if (TryGetOrCreateNode(factory, meta, link.id, out var linkedId)) {
+                    i = linkStorage.InsertLinkAfter(i, linkedId.source, linkedId.node, link.port);
+                }
             }
         }
     }

@@ -36,11 +36,15 @@ namespace MisterGames.Blueprints.Editor.Utils {
         }
 
         public static string GetFormattedNodeName(NodeId id, Type type) {
+            if (type == null) return $"#{id.source}.{id.node}";
+
             var attr = type.GetCustomAttribute<BlueprintNodeAttribute>(false);
             return $"#{id.source}.{id.node} {(string.IsNullOrWhiteSpace(attr?.Name) ? type.Name : attr.Name.Trim())}";
         }
 
         public static Color GetNodeColor(Type type) {
+            if (type == null) return ColorUtils.HexToColor(BlueprintColors.Node.Default);
+
             var nodeMetaAttr = type.GetCustomAttribute<BlueprintNodeAttribute>(false);
             string nodeColor = string.IsNullOrEmpty(nodeMetaAttr.Color) ? BlueprintColors.Node.Default : nodeMetaAttr.Color;
             return ColorUtils.HexToColor(nodeColor);

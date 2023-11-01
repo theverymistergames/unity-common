@@ -36,22 +36,14 @@ namespace MisterGames.Blueprints {
             return id;
         }
 
-        public int AddNodeCopy(IBlueprintSource source, int id) {
-            int localId = AddNode();
-
-            ref var node = ref _nodeMap.GetValue(localId);
-            node = source.GetNode<TNode>(id);
-
-            return localId;
-        }
-
-        public int AddNodeCopy(string str) {
-            int id = AddNode();
-
+        public void SetNode(int id, string str) {
             ref var node = ref _nodeMap.GetValue(id);
             node = JsonUtility.FromJson<TNode>(str);
+        }
 
-            return id;
+        public void SetNode(int id, IBlueprintSource source, int copyId) {
+            ref var node = ref _nodeMap.GetValue(id);
+            node = source.GetNode<TNode>(copyId);
         }
 
         public string GetNodeAsString(int id) {

@@ -14,24 +14,29 @@ namespace MisterGames.Blueprints.Compile {
         public static NodeId CreateRootNode(IBlueprintFactory factory) {
             int sourceId = factory.GetOrCreateSource(typeof(BlueprintSourceRoot));
             int nodeId = factory.GetSource(sourceId).AddNode();
-
             return new NodeId(sourceId, nodeId);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static NodeId CreateNode(
+        public static bool TryCreateNode(
             IBlueprintFactory factory,
             BlueprintMeta2 meta,
-            NodeId id
+            NodeId id,
+            out NodeId runtimeId
         ) {
             var source = meta.GetNodeSource(id);
 
+            if (source == null) {
+                runtimeId = default;
+                return false;
+            }
+
             int runtimeSourceId = factory.GetOrCreateSource(source.GetType());
             var runtimeSource = factory.GetSource(runtimeSourceId);
-            int runtimeNodeId;
+            int runtimeNodeId = runtimeSource.AddNode();
 
             if (source is IBlueprintCloneable) {
-                runtimeNodeId = runtimeSource.AddNodeCopy(source, id.node);
+                runtimeSource.SetNode(runtimeNodeId, source, id.node);
             }
             else {
                 if (!meta.NodeJsonMap.TryGetValue(id, out string json)) {
@@ -39,10 +44,11 @@ namespace MisterGames.Blueprints.Compile {
                     meta.NodeJsonMap[id] = json;
                 }
 
-                runtimeNodeId = runtimeSource.AddNodeCopy(json);
+                runtimeSource.SetNode(runtimeNodeId, json);
             }
 
-            return new NodeId(runtimeSourceId, runtimeNodeId);
+            runtimeId = new NodeId(runtimeSourceId, runtimeNodeId);
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

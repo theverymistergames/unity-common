@@ -27,19 +27,11 @@ namespace MisterGames.Blueprints.Factory {
                 if (_sources[key].GetType() == sourceType) return key;
             }
 
-            if (Activator.CreateInstance(sourceType) is not IBlueprintSource instance) {
-                throw new ArgumentException($"{nameof(BlueprintFactory)}: can not create source of type {sourceType}.");
-            }
-
-            return AddSource(instance);
+            return AddSource(Activator.CreateInstance(sourceType) as IBlueprintSource);
 #else
             if (_typeToIdMap.TryGetValue(sourceType, out int id)) return id;
 
-            if (Activator.CreateInstance(sourceType) is not IBlueprintSource instance) {
-                throw new ArgumentException($"{nameof(BlueprintFactory)}: can not create source of type {sourceType}.");
-            }
-
-            id = AddSource(instance);
+            id = AddSource(Activator.CreateInstance(sourceType) as IBlueprintSource);
             _typeToIdMap.Add(sourceType, id);
 
             return id;

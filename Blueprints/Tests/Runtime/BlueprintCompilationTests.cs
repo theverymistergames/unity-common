@@ -39,7 +39,7 @@ namespace Core {
             node.referenceValue = new TestClass(5);
 
             var factory = new BlueprintFactory();
-            var runtimeId0 = BlueprintCompilation.CreateNode(factory, meta, id0);
+            BlueprintCompilation.TryCreateNode(factory, meta, id0, out var runtimeId0);
             var runtimeSource0 = factory.GetSource(runtimeId0.source);
 
             ref var runtimeNode = ref runtimeSource0.GetNode<BlueprintNodeTest2>(runtimeId0.node);

@@ -59,7 +59,8 @@ namespace MisterGames.Blueprints.Meta {
         }
 
         public string GetNodePath(NodeId id) {
-            return $"{nameof(_factory)}.{_factory.GetNodePath(id)}";
+            string local = _factory.GetNodePath(id);
+            return local == null ? null : $"_blueprintMeta.{nameof(_factory)}.{local}";
         }
 
         public bool ContainsNode(NodeId id) {

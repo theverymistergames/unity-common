@@ -50,7 +50,9 @@ namespace Core {
             node0.intValue = value;
 
             var source1 = new BlueprintSourceTest0();
-            int id1 = source1.AddNodeCopy(source0, id0);
+            int id1 = source1.AddNode();
+
+            source1.SetNode(id1, source0, id0);
 
             ref var node1 = ref source1.GetNode<BlueprintNodeTest0>(id1);
             Assert.AreEqual(value, node1.intValue);

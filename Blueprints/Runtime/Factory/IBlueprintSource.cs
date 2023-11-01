@@ -35,17 +35,19 @@ namespace MisterGames.Blueprints.Factory {
         int AddNode();
 
         /// <summary>
-        /// Add space for a new node and set its value by copying the node with id from source.
+        /// Set node value by copying node from source.
         /// </summary>
-        /// <returns>Integer pointer of the element in the data array</returns>
-        int AddNodeCopy(IBlueprintSource source, int id);
+        /// <param name="id">Blueprint node id</param>
+        /// <param name="source">Blueprint source of copied node</param>
+        /// <param name="copyId">Id of copied blueprint node</param>
+        void SetNode(int id, IBlueprintSource source, int copyId);
 
         /// <summary>
-        /// Add node copy from string representation.
+        /// Set node value by string representation of node.
         /// </summary>
+        /// <param name="id">Blueprint node id</param>
         /// <param name="str">String representation of node</param>
-        /// <returns></returns>
-        int AddNodeCopy(string str);
+        void SetNode(int id, string str);
 
         /// <summary>
         /// Get node as string to create copies.
