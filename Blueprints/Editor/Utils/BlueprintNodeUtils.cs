@@ -2,11 +2,18 @@
 using System.Reflection;
 using MisterGames.Common.Colors;
 using MisterGames.Common.Types;
+using UnityEditor;
 using UnityEngine;
 
 namespace MisterGames.Blueprints.Editor.Utils {
 
     public static class BlueprintNodeUtils {
+
+        public static Type GetSourceType(Type nodeType) {
+            var sourceType = typeof(BlueprintSource<>).MakeGenericType(nodeType);
+            var types = TypeCache.GetTypesDerivedFrom(sourceType);
+            return types.Count == 0 ? null : types[0];
+        }
 
         public static string GetFormattedPortName(int index, Port port, bool richText) {
             string portName = port.Name;

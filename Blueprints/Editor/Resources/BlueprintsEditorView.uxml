@@ -6,5 +6,5 @@
         <uie:ToolbarSpacer style="width: 24px;" />
         <uie:ToolbarToggle focusable="false" label="Blackboard" value="false" name="blackboard-toggle" style="flex-shrink: 1; flex-wrap: wrap; flex-direction: row; align-items: stretch; justify-content: flex-start; flex-grow: 0; margin-left: 0;" />
     </uie:Toolbar>
-    <MisterGames.Blueprints.Editor.Core.BlueprintsView focusable="true" style="flex-grow: 1;" />
+    <MisterGames.Blueprints.Editor.View.BlueprintsView focusable="true" style="flex-grow: 1;" />
 </ui:UXML>

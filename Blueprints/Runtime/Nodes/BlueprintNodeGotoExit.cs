@@ -11,7 +11,7 @@ namespace MisterGames.Blueprints.Nodes {
         BlueprintSources.ICloneable { }
 
     [Serializable]
-    [BlueprintNode(Name = "Goto", Category = "Flow", Color = BlueprintColors.Node.Flow)]
+    [BlueprintNode(Name = "Goto (exit)", Category = "Flow", Color = BlueprintColors.Node.Flow)]
     public struct BlueprintNodeGotoExit : IBlueprintNode, IBlueprintInternalLink, IBlueprintHashLink, IBlueprintCloneable {
         
         [SerializeField] private string _label;

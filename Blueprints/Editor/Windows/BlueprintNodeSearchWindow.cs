@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using MisterGames.Blueprints.Editor.Utils;
+using MisterGames.Blueprints.Editor.View;
+using MisterGames.Blueprints.Factory;
 using MisterGames.Blueprints.Validation;
 using MisterGames.Common.Editor.Tree;
 using UnityEditor;
@@ -18,6 +20,7 @@ namespace MisterGames.Blueprints.Editor.Windows {
 
         private SearchMode _searchMode;
         private Port _searchPortsCompatibleWith;
+        private readonly BlueprintNodePortCache _portCache = new BlueprintNodePortCache();
 
         private enum SearchMode {
             Nodes,
@@ -92,7 +95,7 @@ namespace MisterGames.Blueprints.Editor.Windows {
             return tree;
         }
 
-        private static List<SearchTreeEntry> CreateSearchTreeForNodePortsCompatibleWith(Port fromPort) {
+        private List<SearchTreeEntry> CreateSearchTreeForNodePortsCompatibleWith(Port fromPort) {
             var root = PathTree
                 .CreateTree(GetBlueprintNodePortsSearchEntries(fromPort), GetNodePortPath);
 
@@ -112,15 +115,26 @@ namespace MisterGames.Blueprints.Editor.Windows {
             return GetBlueprintNodeTypes().Select(t => new NodeSearchEntry { nodeType = t });
         }
 
-        private static IEnumerable<NodePortSearchEntry> GetBlueprintNodePortsSearchEntries(Port fromPort) {
+        private IEnumerable<NodePortSearchEntry> GetBlueprintNodePortsSearchEntries(Port fromPort) {
             return GetBlueprintNodeTypes()
                 .SelectMany(t => {
-                    var nodeInstance = (BlueprintNode) Activator.CreateInstance(t);
-                    var ports = nodeInstance.CreatePorts();
-                    var portEntries = new List<NodePortSearchEntry>();
+                    var sourceType = BlueprintNodeUtils.GetSourceType(t);
+                    var source = Activator.CreateInstance(sourceType) as IBlueprintSource;
 
-                    for (int p = 0; p < ports.Length; p++) {
-                        var port = ports[p];
+                    var portEntries = new List<NodePortSearchEntry>();
+                    if (source == null) return portEntries;
+
+                    int nodeId = source.AddNode();
+                    var id = new NodeId(0, nodeId);
+
+                    _portCache.Clear();
+
+                    source.OnSetDefaults(_portCache, id);
+                    source.CreatePorts(_portCache, id);
+
+                    int portCount = _portCache.GetPortCount(id);
+                    for (int p = 0; p < portCount; p++) {
+                        var port = _portCache.GetPort(id, p);
                         if (!PortValidator.ArePortsCompatible(fromPort, port)) continue;
 
                         portEntries.Add(new NodePortSearchEntry {
@@ -144,28 +158,24 @@ namespace MisterGames.Blueprints.Editor.Windows {
 
         private static IEnumerable<Type> GetBlueprintNodeTypes() {
             return TypeCache
-                .GetTypesDerivedFrom<BlueprintNode>()
+                .GetTypesDerivedFrom<IBlueprintNode>()
                 .Where(t =>
-                    (t.IsPublic || t.IsNestedPublic) &&
-                    t.IsVisible &&
-                    !t.IsAbstract &&
-                    !t.IsGenericType &&
-                    Attribute.IsDefined(t, typeof(BlueprintNodeMetaAttribute)) &&
+                    (t.IsPublic || t.IsNestedPublic) && t.IsVisible && t.IsValueType &&
+                    Attribute.IsDefined(t, typeof(BlueprintNodeAttribute)) &&
                     Attribute.IsDefined(t, typeof(SerializableAttribute))
                 );
         }
 
         private static string GetNodeTypePath(Type nodeType) {
-            var nodeMetaAttr = GetBlueprintNodeMetaAttribute(nodeType);
-
-            string name = string.IsNullOrEmpty(nodeMetaAttr.Name) ? nodeType.Name : nodeMetaAttr.Name;
-            string category = string.IsNullOrEmpty(nodeMetaAttr.Category) ? "Other" : nodeMetaAttr.Category;
+            var attr = GetBlueprintNodeAttribute(nodeType);
+            string name = string.IsNullOrEmpty(attr.Name) ? nodeType.Name : attr.Name;
+            string category = string.IsNullOrEmpty(attr.Category) ? "Other" : attr.Category;
 
             return $"{category}/{name}";
         }
 
-        private static BlueprintNodeMetaAttribute GetBlueprintNodeMetaAttribute(Type type) {
-            return type.GetCustomAttribute<BlueprintNodeMetaAttribute>(false);
+        private static BlueprintNodeAttribute GetBlueprintNodeAttribute(Type type) {
+            return type.GetCustomAttribute<BlueprintNodeAttribute>(false);
         }
 
         private static SearchTreeEntry ToSearchEntry<T>(TreeEntry<PathTree.Node<T>> treeEntry) {

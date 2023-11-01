@@ -74,7 +74,7 @@ namespace MisterGames.Blueprints.Meta {
         }
 
         public void SetLinks(NodeId id, int port, TreeSet<BlueprintLink2> links, int sourcePort) {
-            if (!links.TryGetNode(new BlueprintLink2(id, sourcePort), out int portRoot)) return;
+            if (links == null || !links.TryGetNode(new BlueprintLink2(id, sourcePort), out int portRoot)) return;
 
             if (links.TryGetNode(new BlueprintLink2(id, 0), portRoot, out int linksRoot) &&
                 links.TryGetChild(linksRoot, out int l)

@@ -53,6 +53,9 @@ namespace MisterGames.Blueprints.Editor.View {
 
             viewDataKey = nodeId.ToString();
 
+            var serializedProperty = _serializedObject.FindProperty(_nodePath);
+            _contentHashCache = serializedProperty.contentHash;
+
             _inspector = this.Q<InspectorView>("inspector");
             _inspector.Inject(OnNodeGUI);
 
@@ -161,8 +164,11 @@ namespace MisterGames.Blueprints.Editor.View {
             EditorGUIUtility.fieldWidth = _fieldWidth;
 
             bool changed = false;
+            bool hasProperties = false;
 
             while (serializedProperty.NextVisible(enterChildren) && !SerializedProperty.DataEquals(serializedProperty, endProperty)) {
+                hasProperties = true;
+
                 EditorGUI.BeginChangeCheck();
 
                 enterChildren = false;
@@ -178,8 +184,11 @@ namespace MisterGames.Blueprints.Editor.View {
                 changed |= EditorGUI.EndChangeCheck();
             }
 
-            changed |= contentHash != _contentHashCache;
+            changed |= hasProperties && contentHash != _contentHashCache;
             _contentHashCache = contentHash;
+
+            _serializedObject.ApplyModifiedProperties();
+            _serializedObject.Update();
 
             EditorGUIUtility.labelWidth = labelWidthCache;
             EditorGUIUtility.fieldWidth = fieldWidthCache;

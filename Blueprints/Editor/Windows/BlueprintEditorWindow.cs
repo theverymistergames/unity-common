@@ -67,7 +67,7 @@ namespace MisterGames.Blueprints.Editor.Windows {
             root.styleSheets.Add(styleSheet);
 
             _assetPicker = root.Q<ObjectField>("asset");
-            _assetPicker.objectType = typeof(BlueprintAsset);
+            _assetPicker.objectType = typeof(BlueprintAsset2);
             _assetPicker.allowSceneObjects = false;
             _assetPicker.RegisterCallback<ChangeEvent<Object>>(OnAssetChanged);
 
@@ -86,12 +86,12 @@ namespace MisterGames.Blueprints.Editor.Windows {
         }
 
         private void OnBlueprintAssetSetDirty() {
-            var asset = _assetPicker?.value as BlueprintAsset;
+            var asset = _assetPicker?.value as BlueprintAsset2;
             SetWindowTitle(asset == null ? WINDOW_TITLE : $"{asset.name}*");
         }
 
         private void TrySaveCurrentBlueprintAsset() {
-            var asset = _assetPicker?.value as BlueprintAsset;
+            var asset = _assetPicker?.value as BlueprintAsset2;
             if (asset != null) AssetDatabase.SaveAssetIfDirty(asset);
             SetWindowTitle(asset == null ? WINDOW_TITLE : asset.name);
         }

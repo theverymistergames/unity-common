@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Blackboards.Editor;
+using MisterGames.Blueprints.Editor.Utils;
 using MisterGames.Blueprints.Editor.Windows;
 using MisterGames.Blueprints.Meta;
 using MisterGames.Blueprints.Validation;
@@ -98,6 +99,7 @@ namespace MisterGames.Blueprints.Editor.View {
             _blueprintAssetSerializedObject = new SerializedObject(_blueprintAsset);
 
             InvalidateBlueprintAsset(_blueprintAsset);
+            _changedNodes.Clear();
 
             RepopulateView();
             RepopulateBlackboardView();
@@ -367,15 +369,9 @@ namespace MisterGames.Blueprints.Editor.View {
 
         // ---------------- ---------------- Node and connection creation ---------------- ----------------
 
-        private static Type GetSourceType(Type nodeType) {
-            var sourceType = typeof(BlueprintSource<>).MakeGenericType(nodeType);
-            var types = TypeCache.GetTypesDerivedFrom(sourceType);
-            return types.Count == 0 ? null : types[0];
-        }
-
         private bool TryCreateNode(Type nodeType, Vector2 position, out NodeId id) {
             var meta = _blueprintAsset.BlueprintMeta;
-            var sourceType = GetSourceType(nodeType);
+            var sourceType = BlueprintNodeUtils.GetSourceType(nodeType);
 
             if (sourceType == null) {
                 id = default;
