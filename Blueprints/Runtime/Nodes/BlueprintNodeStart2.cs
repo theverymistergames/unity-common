@@ -10,7 +10,7 @@ namespace MisterGames.Blueprints.Nodes {
 
     [Serializable]
     [BlueprintNode(Name = "Start", Category = "External", Color = BlueprintColors.Node.External)]
-    public struct BlueprintNodeStart2 : IBlueprintNode, IBlueprintStartCallback, IBlueprintCloneable {
+    public struct BlueprintNodeStart2 : IBlueprintNode, IBlueprintStartCallback {
 
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {
             meta.AddPort(id, Port.Exit());

@@ -12,7 +12,7 @@ namespace MisterGames.Blueprints.Nodes {
 
     [Serializable]
     [BlueprintNode(Name = "Input", Category = "External", Color = BlueprintColors.Node.External)]
-    public struct BlueprintNodeInput2 : IBlueprintNode, IBlueprintInternalLink, IBlueprintConnectionCallback, IBlueprintCloneable {
+    public struct BlueprintNodeInput2 : IBlueprintNode, IBlueprintInternalLink, IBlueprintConnectionCallback {
 
         [SerializeField] private string _port;
 

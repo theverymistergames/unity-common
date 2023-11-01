@@ -8,7 +8,8 @@ using UnityEngine;
 namespace MisterGames.Blueprints.Nodes {
 
     [Serializable]
-    public class BlueprintSourceExternalBlueprint : BlueprintSource<BlueprintNodeExternalBlueprint>,
+    public class BlueprintSourceExternalBlueprint :
+        BlueprintSource<BlueprintNodeExternalBlueprint>,
         BlueprintSources.ICompiled<BlueprintNodeExternalBlueprint>,
         BlueprintSources.IEnter<BlueprintNodeExternalBlueprint>,
         BlueprintSources.IOutput<BlueprintNodeExternalBlueprint>,
@@ -20,8 +21,7 @@ namespace MisterGames.Blueprints.Nodes {
         IBlueprintNode,
         IBlueprintCompiled,
         IBlueprintEnter2,
-        IBlueprintOutput2,
-        IBlueprintCloneable
+        IBlueprintOutput2
     {
         [BlackboardProperty("_blackboard")]
         [SerializeField] private int _runner;

@@ -1,18 +1,21 @@
 ﻿using System;
+using MisterGames.Blueprints;
+using MisterGames.Blueprints.Core;
+using MisterGames.Blueprints.Nodes;
 using UnityEngine;
 
-namespace MisterGames.Blueprints.Nodes {
+namespace Core {
 
     [Serializable]
     public class BlueprintSourceGoto :
-        BlueprintSource<BlueprintNodeGoto>,
-        BlueprintSources.IInternalLink<BlueprintNodeGoto>,
-        BlueprintSources.IHashLink<BlueprintNodeGoto>,
+        BlueprintSource<BlueprintNodeGoto2>,
+        BlueprintSources.IInternalLink<BlueprintNodeGoto2>,
+        BlueprintSources.IHashLink<BlueprintNodeGoto2>,
         BlueprintSources.ICloneable { }
 
     [Serializable]
     [BlueprintNode(Name = "Goto", Category = "Flow", Color = BlueprintColors.Node.Flow)]
-    public struct BlueprintNodeGoto : IBlueprintNode, IBlueprintInternalLink, IBlueprintHashLink, IBlueprintCloneable {
+    public struct BlueprintNodeGoto2 : IBlueprintNode, IBlueprintInternalLink, IBlueprintHashLink {
 
         [SerializeField] private string _label;
 

@@ -1,19 +1,22 @@
 ﻿using System;
+using MisterGames.Blueprints;
+using MisterGames.Blueprints.Core;
+using MisterGames.Blueprints.Nodes;
 using UnityEngine;
 
-namespace MisterGames.Blueprints.Nodes {
+namespace Core {
 
     [Serializable]
     public class BlueprintSourceGotoExit :
-        BlueprintSource<BlueprintNodeGotoExit>,
-        BlueprintSources.IInternalLink<BlueprintNodeGotoExit>,
-        BlueprintSources.IHashLink<BlueprintNodeGotoExit>,
+        BlueprintSource<BlueprintNodeGotoExit2>,
+        BlueprintSources.IInternalLink<BlueprintNodeGotoExit2>,
+        BlueprintSources.IHashLink<BlueprintNodeGotoExit2>,
         BlueprintSources.ICloneable { }
 
     [Serializable]
     [BlueprintNode(Name = "Goto (exit)", Category = "Flow", Color = BlueprintColors.Node.Flow)]
-    public struct BlueprintNodeGotoExit : IBlueprintNode, IBlueprintInternalLink, IBlueprintHashLink, IBlueprintCloneable {
-        
+    public struct BlueprintNodeGotoExit2 : IBlueprintNode, IBlueprintInternalLink, IBlueprintHashLink {
+
         [SerializeField] private string _label;
 
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {

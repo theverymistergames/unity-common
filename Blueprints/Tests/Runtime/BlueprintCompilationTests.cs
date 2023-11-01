@@ -2,7 +2,6 @@
 using MisterGames.Blueprints.Compile;
 using MisterGames.Blueprints.Factory;
 using MisterGames.Blueprints.Meta;
-using MisterGames.Blueprints.Nodes;
 using MisterGames.Blueprints.Runtime;
 using MisterGames.Common.Data;
 using NUnit.Framework;
@@ -103,16 +102,6 @@ namespace Core {
             link = linkStorage.GetLink(l);
             Assert.AreEqual(id2.source, link.source);
             Assert.AreEqual(id2.node, link.node);
-        }
-
-        [Test]
-        public void CompileBlueprint() {
-            var meta = new BlueprintMeta2 { Owner = this };
-
-            var id0 = meta.AddNode(typeof(BlueprintSourceStart));
-            var id1 = meta.AddNode(typeof(BlueprintSourceGoto));
-            var id2 = meta.AddNode(typeof(BlueprintSourceGotoExit));
-            var id3 = meta.AddNode(typeof(BlueprintSourceGotoExit));
         }
     }
 

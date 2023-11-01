@@ -3,9 +3,11 @@
 namespace MisterGames.Blueprints.Nodes {
 
     [Serializable]
-    internal class BlueprintSourceRoot : BlueprintSource<BlueprintNodeRoot>,
+    internal class BlueprintSourceRoot :
+        BlueprintSource<BlueprintNodeRoot>,
         BlueprintSources.IEnter<BlueprintNodeRoot>,
-        BlueprintSources.IOutput<BlueprintNodeRoot> { }
+        BlueprintSources.IOutput<BlueprintNodeRoot>,
+        BlueprintSources.ICloneable { }
 
     [Serializable]
     internal struct BlueprintNodeRoot : IBlueprintNode, IBlueprintEnter2, IBlueprintOutput2 {

@@ -5,12 +5,13 @@ namespace MisterGames.Blueprints.Nodes {
 
     [Serializable]
     public class BlueprintSourceEnter :
-        BlueprintSource<BlueprintNodeEnter2>, BlueprintSources.IInternalLink<BlueprintNodeEnter2>,
+        BlueprintSource<BlueprintNodeEnter2>,
+        BlueprintSources.IInternalLink<BlueprintNodeEnter2>,
         BlueprintSources.ICloneable { }
 
     [Serializable]
     [BlueprintNode(Name = "Enter", Category = "External", Color = BlueprintColors.Node.External)]
-    public struct BlueprintNodeEnter2 : IBlueprintNode, IBlueprintInternalLink, IBlueprintCloneable {
+    public struct BlueprintNodeEnter2 : IBlueprintNode, IBlueprintInternalLink {
 
         [SerializeField] private string _port;
 

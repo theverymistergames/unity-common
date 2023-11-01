@@ -6,13 +6,14 @@ using UnityEngine;
 namespace MisterGames.Blueprints.Nodes {
 
     [Serializable]
-    public class BlueprintSourceSubgraph : BlueprintSource<BlueprintNodeSubgraph2>,
+    public class BlueprintSourceSubgraph :
+        BlueprintSource<BlueprintNodeSubgraph2>,
         BlueprintSources.ICompiled<BlueprintNodeSubgraph2>,
         BlueprintSources.ICloneable { }
 
     [Serializable]
     [BlueprintNode(Name = "Subgraph", Category = "External", Color = BlueprintColors.Node.External)]
-    public struct BlueprintNodeSubgraph2 : IBlueprintNode, IBlueprintCompiled, IBlueprintCloneable {
+    public struct BlueprintNodeSubgraph2 : IBlueprintNode, IBlueprintCompiled {
 
         [SerializeField] private BlueprintAsset2 _blueprint;
 
