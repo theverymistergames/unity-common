@@ -54,7 +54,7 @@ namespace MisterGames.Blueprints.Editor.View {
             viewDataKey = nodeId.ToString();
 
             var serializedProperty = _serializedObject.FindProperty(_nodePath);
-            _contentHashCache = serializedProperty.contentHash;
+            _contentHashCache = serializedProperty?.contentHash ?? 0;
 
             _inspector = this.Q<InspectorView>("inspector");
             _inspector.Inject(OnNodeGUI);
@@ -109,14 +109,6 @@ namespace MisterGames.Blueprints.Editor.View {
             RefreshPorts();
         }
 
-        public void ClearPortViews() {
-            _portViewToPortIndexMap.Clear();
-            _portIndexToPortViewMap.Clear();
-
-            inputContainer.Clear();
-            outputContainer.Clear();
-        }
-
         public PortView GetPortView(int portIndex) {
             return _portIndexToPortViewMap[portIndex];
         }
@@ -144,10 +136,7 @@ namespace MisterGames.Blueprints.Editor.View {
 
         private void OnNodeGUI() {
             var serializedProperty = _serializedObject.FindProperty(_nodePath);
-            if (serializedProperty == null) {
-                DrawMissingNode();
-                return;
-            }
+            if (serializedProperty == null) return;
 
             var endProperty = serializedProperty.GetEndProperty();
             bool enterChildren = true;
@@ -197,19 +186,6 @@ namespace MisterGames.Blueprints.Editor.View {
                 OnValidate?.Invoke(nodeId);
                 Debug.Log($"OnValidate {nodeId}, source {_meta.GetNodeSource(nodeId)}");
             }
-        }
-
-        private static void DrawMissingNode() {
-            float labelWidthCache = EditorGUIUtility.labelWidth;
-            float fieldWidthCache = EditorGUIUtility.fieldWidth;
-
-            EditorGUIUtility.labelWidth = 30f;
-            EditorGUIUtility.fieldWidth = 2f;
-
-            GUILayout.Label("Missing Blueprint Node type");
-
-            EditorGUIUtility.labelWidth = labelWidthCache;
-            EditorGUIUtility.fieldWidth = fieldWidthCache;
         }
 
         private static (float, float) CalculateLabelAndFieldWidth(SerializedProperty property) {

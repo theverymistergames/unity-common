@@ -43,7 +43,7 @@ namespace MisterGames.Blueprints.Editor.Utils {
         }
 
         public static string GetFormattedNodeName(NodeId id, Type type) {
-            if (type == null) return $"#{id.source}.{id.node}";
+            if (type == null) return $"#{id.source}.{id.node} (missing node type)";
 
             var attr = type.GetCustomAttribute<BlueprintNodeAttribute>(false);
             return $"#{id.source}.{id.node} {(string.IsNullOrWhiteSpace(attr?.Name) ? type.Name : attr.Name.Trim())}";

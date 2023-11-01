@@ -44,14 +44,7 @@ namespace MisterGames.Blueprints.Factory {
 
         public string GetNodePath(NodeId id) {
 #if UNITY_EDITOR
-            if (!_sources.TryGetValue(id.source, out var source) || source == null) {
-                Debug.LogWarning($"{nameof(BlueprintFactory)}: " +
-                                 $"trying to get source by id {id.source}, " +
-                                 $"but source with this id is not found: " +
-                                 $"map has no entry with id {id.source}.");
-                return null;
-            }
-
+            if (!_sources.TryGetValue(id.source, out var source) || source == null) return null;
             return $"{nameof(_sources)}._nodes.Array.data[{_sources.IndexOf(id.source)}].value.{source.GetNodePath(id.node)}";
 #endif
 

@@ -215,8 +215,6 @@ namespace MisterGames.Blueprints.Editor.View {
         }
 
         private static void InvalidateBlueprintAsset(BlueprintAsset2 blueprintAsset) {
-            SerializationUtility.ClearAllManagedReferencesWithMissingTypes(blueprintAsset);
-
             var meta = blueprintAsset.BlueprintMeta;
             var nodes = meta.Nodes;
 
