@@ -149,7 +149,6 @@ namespace MisterGames.Blueprints.Editor.View {
                 return;
             }
 
-            uint contentHash = serializedProperty.contentHash;
             var endProperty = serializedProperty.GetEndProperty();
             bool enterChildren = true;
 
@@ -163,13 +162,12 @@ namespace MisterGames.Blueprints.Editor.View {
             EditorGUIUtility.labelWidth = _labelWidth;
             EditorGUIUtility.fieldWidth = _fieldWidth;
 
-            bool changed = false;
             bool hasProperties = false;
+
+            EditorGUI.BeginChangeCheck();
 
             while (serializedProperty.NextVisible(enterChildren) && !SerializedProperty.DataEquals(serializedProperty, endProperty)) {
                 hasProperties = true;
-
-                EditorGUI.BeginChangeCheck();
 
                 enterChildren = false;
                 EditorGUILayout.PropertyField(serializedProperty, true);
@@ -180,14 +178,14 @@ namespace MisterGames.Blueprints.Editor.View {
                 ) {
                     BlueprintEditorWindow.OpenAsset(blueprint);
                 }
-
-                changed |= EditorGUI.EndChangeCheck();
             }
 
-            changed |= hasProperties && contentHash != _contentHashCache;
+            _serializedObject.ApplyModifiedProperties();
+
+            uint contentHash = _serializedObject.FindProperty(_nodePath).contentHash;
+            bool changed = EditorGUI.EndChangeCheck() || hasProperties && contentHash != _contentHashCache;
             _contentHashCache = contentHash;
 
-            _serializedObject.ApplyModifiedProperties();
             _serializedObject.Update();
 
             EditorGUIUtility.labelWidth = labelWidthCache;
@@ -197,6 +195,7 @@ namespace MisterGames.Blueprints.Editor.View {
                 _labelWidth = -1f;
                 _fieldWidth = -1f;
                 OnValidate?.Invoke(nodeId);
+                Debug.Log($"OnValidate {nodeId}, source {_meta.GetNodeSource(nodeId)}");
             }
         }
 

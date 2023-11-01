@@ -65,6 +65,8 @@ namespace MisterGames.Blueprints {
             _blackboardOverridesMap ??= new SerializedDictionary<BlueprintAsset2, Blackboard>();
 
         internal void RestartBlueprint() {
+            _blueprintAsset.BlueprintMeta.NodeJsonMap.Clear();
+
             _blackboard = GetBlackboard(_blueprintAsset);
             _runtimeBlueprint = _blueprintAsset.Compile(BlueprintFactories.Global);
 
