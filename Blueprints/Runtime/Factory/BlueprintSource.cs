@@ -55,21 +55,9 @@ namespace MisterGames.Blueprints {
             _nodeMap.Remove(id);
         }
 
-        public string GetNodePath(int id) {
-#if UNITY_EDITOR
-            if (!_nodeMap.ContainsKey(id)) {
-                Debug.LogWarning($"{nameof(BlueprintSource<TNode>)}: " +
-                                 $"trying to get node path by id {id}, " +
-                                 $"but node with this id is not found: " +
-                                 $"node map has no entry with id {id}.");
-                return null;
-            }
-
-            return $"{nameof(_nodeMap)}._nodes.Array.data[{_nodeMap.IndexOf(id)}].value";
-#endif
-
-            throw new InvalidOperationException($"{nameof(BlueprintSource<TNode>)}: " +
-                                                $"calling method {nameof(GetNodePath)} is only allowed in the Unity Editor.");
+        public bool TryGetNodePath(int id, out int index) {
+            index = _nodeMap.IndexOf(id);
+            return index >= 0;
         }
 
         public void Clear() {

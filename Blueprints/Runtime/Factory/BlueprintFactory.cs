@@ -42,14 +42,18 @@ namespace MisterGames.Blueprints.Factory {
             _sources.Remove(id);
         }
 
-        public string GetNodePath(NodeId id) {
-#if UNITY_EDITOR
-            if (!_sources.TryGetValue(id.source, out var source) || source == null) return null;
-            return $"{nameof(_sources)}._nodes.Array.data[{_sources.IndexOf(id.source)}].value.{source.GetNodePath(id.node)}";
-#endif
+        public bool TryGetNodePath(NodeId id, out int sourceIndex, out int nodeIndex) {
+            if (!_sources.TryGetValue(id.source, out var source) ||
+                source == null ||
+                !source.TryGetNodePath(id.node, out nodeIndex)
+            ) {
+                sourceIndex = -1;
+                nodeIndex = -1;
+                return false;
+            }
 
-            throw new InvalidOperationException($"{nameof(BlueprintFactory)}: " +
-                                                $"calling method {nameof(GetNodePath)} is only allowed in the Unity Editor.");
+            sourceIndex = _sources.IndexOf(id.source);
+            return true;
         }
 
         public void Clear() {

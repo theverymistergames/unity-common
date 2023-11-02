@@ -31,10 +31,13 @@ namespace MisterGames.Blueprints.Editor.View {
         private readonly BlueprintMeta2 _meta;
         private readonly SerializedObject _serializedObject;
         private readonly InspectorView _inspector;
-        private readonly string _nodePath;
 
         private readonly Dictionary<PortView, int> _portViewToPortIndexMap = new Dictionary<PortView, int>();
         private readonly Dictionary<int, PortView> _portIndexToPortViewMap = new Dictionary<int, PortView>();
+
+        private int _nodePathSourceIndex;
+        private int _nodePathNodeIndex;
+        private string _nodePath;
 
         private uint _contentHashCache;
         private float _labelWidth = -1f;
@@ -49,12 +52,11 @@ namespace MisterGames.Blueprints.Editor.View {
             this.nodeId = nodeId;
             _meta = meta;
             _serializedObject = serializedObject;
-            _nodePath = meta.GetNodePath(nodeId);
-
             viewDataKey = nodeId.ToString();
 
-            var serializedProperty = _serializedObject.FindProperty(_nodePath);
-            _contentHashCache = serializedProperty?.contentHash ?? 0;
+            if (FetchNodePath(forceRefresh: true)) {
+                _contentHashCache = _serializedObject.FindProperty(_nodePath)?.contentHash ?? 0;
+            }
 
             _inspector = this.Q<InspectorView>("inspector");
             _inspector.Inject(OnNodeGUI);
@@ -72,6 +74,19 @@ namespace MisterGames.Blueprints.Editor.View {
             style.top = position.y;
 
             capabilities &= ~Capabilities.Snappable;
+        }
+
+        private bool FetchNodePath(bool forceRefresh = false) {
+            if (!_meta.TryGetNodePath(nodeId, out int sourceIndex, out int nodeIndex)) return false;
+
+            if (_nodePathSourceIndex != sourceIndex || _nodePathNodeIndex != nodeIndex || forceRefresh) {
+                _nodePath = BlueprintNodeUtils.GetNodePath(sourceIndex, nodeIndex);
+            }
+
+            _nodePathSourceIndex = sourceIndex;
+            _nodePathNodeIndex = nodeIndex;
+
+            return true;
         }
 
         public void DeInitialize() {
@@ -141,8 +156,7 @@ namespace MisterGames.Blueprints.Editor.View {
         }
 
         private void OnNodeGUI() {
-            var serializedProperty = _serializedObject.FindProperty(_nodePath);
-            if (serializedProperty == null) return;
+            if (!FetchNodePath() || _serializedObject.FindProperty(_nodePath) is not {} serializedProperty) return;
 
             var endProperty = serializedProperty.GetEndProperty();
             bool enterChildren = true;

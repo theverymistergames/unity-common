@@ -58,9 +58,8 @@ namespace MisterGames.Blueprints.Meta {
             if (_nodeMap.ContainsKey(id)) _nodeMap[id] = position;
         }
 
-        public string GetNodePath(NodeId id) {
-            string local = _factory.GetNodePath(id);
-            return local == null ? null : $"_blueprintMeta.{nameof(_factory)}.{local}";
+        public bool TryGetNodePath(NodeId id, out int sourceIndex, out int nodeIndex) {
+            return _factory.TryGetNodePath(id, out sourceIndex, out nodeIndex);
         }
 
         public bool ContainsNode(NodeId id) {
