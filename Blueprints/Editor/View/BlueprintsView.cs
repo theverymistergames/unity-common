@@ -151,6 +151,8 @@ namespace MisterGames.Blueprints.Editor.View {
 
             _blackboardView?.Clear();
 
+            _changedNodes.Clear();
+
             if (_blueprintAsset != null) {
                 _blueprintAsset.BlueprintMeta.Unbind();
                 _blueprintAsset = null;
@@ -161,16 +163,27 @@ namespace MisterGames.Blueprints.Editor.View {
             _changedNodes.Add(id);
         }
 
-        private void FlushChanges() {
+        private void FlushChangedNodes() {
             var meta = _blueprintAsset.BlueprintMeta;
 
             foreach (var nodeId in _changedNodes) {
-                RemoveNodeView(nodeId);
-                if (meta.ContainsNode(nodeId)) CreateNodeView(nodeId, meta.GetNodePosition(nodeId));
+                if (!meta.ContainsNode(nodeId)) {
+                    RemoveNodeView(nodeId);
+                    continue;
+                }
+
+                var nodeView = FindNodeViewByNodeId(nodeId);
+                if (nodeView == null) {
+                    CreateNodeView(nodeId, meta.GetNodePosition(nodeId));
+                    continue;
+                }
+
+                RemoveNodeLinkViews(nodeView);
+                nodeView.CreatePortViews(this);
             }
 
             foreach (var nodeId in _changedNodes) {
-                CreateFromNodeConnectionViews(nodeId);
+                if (meta.ContainsNode(nodeId)) CreateFromNodeConnectionViews(nodeId);
             }
 
             _changedNodes.Clear();
@@ -236,7 +249,7 @@ namespace MisterGames.Blueprints.Editor.View {
                 if (_blueprintAsset == null) return;
                 if (!TryCreateNode(nodeType, ConvertScreenPositionToLocal(position), out _)) return;
 
-                FlushChanges();
+                FlushChangedNodes();
             };
 
             _nodeSearchWindow.onNodeAndLinkCreationRequest = (nodeType, position, portIndex) => {
@@ -244,7 +257,7 @@ namespace MisterGames.Blueprints.Editor.View {
                 if (!TryCreateNode(nodeType, ConvertScreenPositionToLocal(position), out var id)) return;
 
                 CreateConnection(_lastDropEdgeData.nodeId, _lastDropEdgeData.portIndex, id, portIndex);
-                FlushChanges();
+                FlushChangedNodes();
             };
 
             nodeCreationRequest = ctx => {
@@ -463,7 +476,7 @@ namespace MisterGames.Blueprints.Editor.View {
             if (hasMovedElements || hasElementsToRemove || hasEdgesToCreate) SetBlueprintAssetDirtyAndNotify();
             if (repaintBlackboard) RepopulateBlackboardView();
 
-            FlushChanges();
+            FlushChangedNodes();
 
             return change;
         }
@@ -480,8 +493,6 @@ namespace MisterGames.Blueprints.Editor.View {
         }
 
         private void OnNodePositionChanged(NodeId id, Vector2 position) {
-            Undo.RecordObject(_blueprintAsset, "Blueprint Node Position Changed");
-
             _blueprintAsset.BlueprintMeta.SetNodePosition(id, position);
 
             SetBlueprintAssetDirtyAndNotify();
@@ -526,6 +537,28 @@ namespace MisterGames.Blueprints.Editor.View {
 
             graphViewChanged -= OnGraphViewChanged;
             RemoveElement(nodeView);
+            graphViewChanged += OnGraphViewChanged;
+        }
+
+        private void RemoveNodeLinkViews(BlueprintNodeView nodeView) {
+            graphViewChanged -= OnGraphViewChanged;
+
+            int inputPortViewsCount = nodeView.inputContainer.hierarchy.childCount;
+            for (int i = 0; i < inputPortViewsCount; i++) {
+                var portView = nodeView.inputContainer[i] as PortView;
+                if (portView == null) continue;
+
+                DeleteElements(portView.connections);
+            }
+
+            int outputPortViewsCount = nodeView.outputContainer.hierarchy.childCount;
+            for (int i = 0; i < outputPortViewsCount; i++) {
+                var portView = nodeView.outputContainer[i] as PortView;
+                if (portView == null) continue;
+
+                DeleteElements(portView.connections);
+            }
+
             graphViewChanged += OnGraphViewChanged;
         }
 
@@ -685,7 +718,7 @@ namespace MisterGames.Blueprints.Editor.View {
                 }
             }
 
-            FlushChanges();
+            FlushChangedNodes();
 
             foreach (var (_, nodeId) in nodeIdMap) {
                 AddToSelection(FindNodeViewByNodeId(nodeId));

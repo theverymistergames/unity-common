@@ -112,8 +112,8 @@ namespace MisterGames.Blueprints.Compile {
 
             BlueprintCompilation.AddHashLink(_hashLinks, meta, source, id, runtimeId);
 
-            if (source is IBlueprintCompiled subgraph) {
-                subgraph.Compile(id, new BlueprintCompileData(factory, nodeStorage, linkStorage, runtimeId));
+            if (source is IBlueprintCompiled compiled) {
+                compiled.Compile(id, new BlueprintCompileData(factory, nodeStorage, linkStorage, runtimeId));
             }
 
             _compiledNodes.Add(runtimeId);

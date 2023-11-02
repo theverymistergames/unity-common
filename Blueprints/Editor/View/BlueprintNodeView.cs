@@ -89,6 +89,12 @@ namespace MisterGames.Blueprints.Editor.View {
         }
 
         public void CreatePortViews(IEdgeConnectorListener connectorListener) {
+            _portViewToPortIndexMap.Clear();
+            _portIndexToPortViewMap.Clear();
+
+            inputContainer.Clear();
+            outputContainer.Clear();
+
             var portViewsCreationData = new List<PortViewCreationData>();
             int portCount = _meta.GetPortCount(nodeId);
 

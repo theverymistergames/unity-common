@@ -1,6 +1,5 @@
 ﻿using System;
 using MisterGames.Blueprints;
-using MisterGames.Blueprints.Core;
 using MisterGames.Blueprints.Nodes;
 using UnityEngine;
 
@@ -14,7 +13,6 @@ namespace Core {
         BlueprintSources.ICloneable { }
 
     [Serializable]
-    [BlueprintNode(Name = "Goto (exit)", Category = "Flow", Color = BlueprintColors.Node.Flow)]
     public struct BlueprintNodeGotoExit2 : IBlueprintNode, IBlueprintInternalLink, IBlueprintHashLink {
 
         [SerializeField] private string _label;

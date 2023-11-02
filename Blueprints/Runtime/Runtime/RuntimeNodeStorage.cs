@@ -25,6 +25,10 @@ namespace MisterGames.Blueprints.Runtime {
         public void AllocateNodes(int count) {
             Array.Resize(ref _nodes, Count + count);
         }
+
+        public override string ToString() {
+            return $"{nameof(RuntimeNodeStorage)}(nodes {string.Join(", ", _nodes)})";
+        }
     }
 
 }

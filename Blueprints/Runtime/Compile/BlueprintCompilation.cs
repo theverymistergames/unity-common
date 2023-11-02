@@ -120,7 +120,7 @@ namespace MisterGames.Blueprints.Compile {
             internalLink.GetLinkedPorts(id, port, out int s, out int count);
             int k = linkStorage.SelectPort(runtimeId.source, runtimeId.node, port);
 
-            for (; s < count; s++) {
+            for (int end = s + count; s < end; s++) {
                 k = linkStorage.InsertLinkAfter(k, runtimeId.source, runtimeId.node, s);
             }
         }

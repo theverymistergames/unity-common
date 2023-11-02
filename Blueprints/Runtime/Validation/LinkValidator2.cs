@@ -56,21 +56,21 @@ namespace MisterGames.Blueprints.Validation {
                 return false;
             }
 
-            link.GetLinkedPorts(id, port, out int index, out int count);
+            link.GetLinkedPorts(id, port, out int p, out int count);
 
-            for (; index < count; index++) {
-                if (index < 0 || index >= portCount) {
+            for (int end = p + count; p < end; p++) {
+                if (p < 0 || p >= portCount) {
                     Debug.LogError($"Blueprint `{meta.Owner}`: " +
-                                   $"Validation failed for internal link [node {id}, port {port} :: port {index}]: " +
-                                   $"node {id} has no linked port {index}.");
+                                   $"Validation failed for internal link [node {id}, port {port} :: port {p}]: " +
+                                   $"node {id} has no linked port {p}.");
                     return false;
                 }
 
-                portData = meta.GetPort(id, index);
+                portData = meta.GetPort(id, p);
                 if (portData.IsData() != portData.IsInput()) {
                     Debug.LogError($"Blueprint `{meta.Owner}`: " +
-                                   $"Validation failed for internal link [node {id}, port {port} :: port {index}]: " +
-                                   $"linked port {index} must be exit or input.");
+                                   $"Validation failed for internal link [node {id}, port {port} :: port {p}]: " +
+                                   $"linked port {p} must be exit or input.");
                     return false;
                 }
             }
