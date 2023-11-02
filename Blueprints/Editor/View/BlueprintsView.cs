@@ -167,6 +167,8 @@ namespace MisterGames.Blueprints.Editor.View {
             var meta = _blueprintAsset.BlueprintMeta;
 
             foreach (var nodeId in _changedNodes) {
+                RemoveNodeLinkViews(nodeId);
+
                 if (!meta.ContainsNode(nodeId)) {
                     RemoveNodeView(nodeId);
                     continue;
@@ -178,7 +180,6 @@ namespace MisterGames.Blueprints.Editor.View {
                     continue;
                 }
 
-                RemoveNodeLinkViews(nodeView);
                 nodeView.CreatePortViews(this);
             }
 
@@ -540,7 +541,10 @@ namespace MisterGames.Blueprints.Editor.View {
             graphViewChanged += OnGraphViewChanged;
         }
 
-        private void RemoveNodeLinkViews(BlueprintNodeView nodeView) {
+        private void RemoveNodeLinkViews(NodeId id) {
+            var nodeView = FindNodeViewByNodeId(id);
+            if (nodeView == null) return;
+
             graphViewChanged -= OnGraphViewChanged;
 
             int inputPortViewsCount = nodeView.inputContainer.hierarchy.childCount;
