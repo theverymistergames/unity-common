@@ -22,7 +22,7 @@ namespace MisterGames.Blueprints {
 
             _isCompiled = true;
 
-            _runtimeBlueprint = _blueprintAsset.Compile(this, BlueprintFactories.Global);
+            _runtimeBlueprint = _blueprintAsset.Compile(BlueprintFactories.Global, this);
             _runtimeBlueprint.Initialize(this);
 
             return _runtimeBlueprint;
@@ -54,7 +54,7 @@ namespace MisterGames.Blueprints {
         }
 
 #if UNITY_EDITOR
-        internal bool IsRunningRuntimeBlueprint => _runtimeBlueprint != null;
+        internal RuntimeBlueprint2 RuntimeBlueprint => _runtimeBlueprint;
 
         internal SerializedDictionary<BlueprintAsset2, Blackboard> BlackboardOverridesMap =>
             _blackboardOverridesMap ??= new SerializedDictionary<BlueprintAsset2, Blackboard>();
@@ -62,7 +62,7 @@ namespace MisterGames.Blueprints {
         internal void RestartBlueprint() {
             _blueprintAsset.BlueprintMeta.NodeJsonMap.Clear();
 
-            _runtimeBlueprint = _blueprintAsset.Compile(this, BlueprintFactories.Global);
+            _runtimeBlueprint = _blueprintAsset.Compile(BlueprintFactories.Global, this);
 
             _runtimeBlueprint.Initialize(this);
             _runtimeBlueprint.Start();

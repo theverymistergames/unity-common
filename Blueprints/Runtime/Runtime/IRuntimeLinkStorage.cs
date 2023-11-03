@@ -1,14 +1,6 @@
-﻿using System.Collections.Generic;
-
-namespace MisterGames.Blueprints.Runtime {
+﻿namespace MisterGames.Blueprints.Runtime {
 
     public interface IRuntimeLinkStorage {
-
-        NodeId Root { get; set; }
-
-        HashSet<int> OutRootPorts { get; }
-
-        void AddOutRootPort(int sign);
 
         int SelectPort(int source, int node, int port);
 

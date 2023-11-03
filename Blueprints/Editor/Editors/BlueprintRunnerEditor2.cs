@@ -27,24 +27,29 @@ namespace MisterGames.Blueprints.Editor.Editors {
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_blueprintAsset"));
 
             var blueprint = runner.BlueprintAsset;
-            if (blueprint == null) {
-                if (runner.IsRunningRuntimeBlueprint && GUILayout.Button("Interrupt Blueprint")) {
-                    runner.InterruptRuntimeBlueprint();
-                }
-                return;
-            }
 
-            if (GUILayout.Button("Edit")) {
+            if (blueprint != null && GUILayout.Button("Edit")) {
                 BlueprintEditorWindow.OpenAsset(blueprint);
             }
 
-            if (runner.IsRunningRuntimeBlueprint) {
-                if (GUILayout.Button("Interrupt Blueprint")) {
-                    runner.InterruptRuntimeBlueprint();
+            if (runner.RuntimeBlueprint != null) {
+                if (GUILayout.Button("Interrupt Blueprint")) runner.InterruptRuntimeBlueprint();
+
+                GUILayout.Space(EditorGUIUtility.standardVerticalSpacing * 2f);
+                GUILayout.Label("External enter ports", EditorStyles.boldLabel);
+
+                var rootPorts = runner.RuntimeBlueprint.rootPorts;
+
+                foreach ((int sign, var port) in rootPorts) {
+                    if (port.IsData() || !port.IsInput()) continue;
+
+                    if (GUILayout.Button(port.Name)) {
+                        runner.RuntimeBlueprint.CallRoot(runner.RuntimeBlueprint.Root, sign);
+                    }
                 }
             }
             else {
-                if (GUILayout.Button("Compile & Start Blueprint")) {
+                if (blueprint != null && GUILayout.Button("Compile & Start Blueprint")) {
                     runner.RestartBlueprint();
                 }
             }
@@ -55,7 +60,6 @@ namespace MisterGames.Blueprints.Editor.Editors {
             if (count == 0) return;
 
             GUILayout.Space(EditorGUIUtility.standardVerticalSpacing * 2f);
-
             GUILayout.Label("Blackboards", EditorStyles.boldLabel);
 
             for (int i = 0; i < count; i++) {

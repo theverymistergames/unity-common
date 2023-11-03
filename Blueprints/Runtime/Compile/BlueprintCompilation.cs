@@ -152,7 +152,6 @@ namespace MisterGames.Blueprints.Compile {
             // Create link from this external port to matched subgraph root port.
             int j = linkStorage.SelectPort(runtimeId.source, runtimeId.node, port);
             linkStorage.InsertLinkAfter(j, rootId.source, rootId.node, sign);
-            linkStorage.AddOutRootPort(sign);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

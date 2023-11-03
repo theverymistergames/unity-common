@@ -1,12 +1,8 @@
-﻿using System.Collections.Generic;
-using MisterGames.Common.Data;
+﻿using MisterGames.Common.Data;
 
 namespace MisterGames.Blueprints.Runtime {
 
     public sealed class RuntimeLinkStorage : IRuntimeLinkStorage {
-
-        public NodeId Root { get; set; }
-        public HashSet<int> OutRootPorts { get; } = new HashSet<int>();
 
         private readonly TreeSet<RuntimeLink2> _linkTree;
         private RuntimeLink2 _selectedPort;
@@ -16,10 +12,6 @@ namespace MisterGames.Blueprints.Runtime {
         public RuntimeLinkStorage(int linkedPorts = 0, int links = 0) {
             _linkTree = new TreeSet<RuntimeLink2>(linkedPorts, links);
             _linkTree.AllowDefragmentation(false);
-        }
-
-        public void AddOutRootPort(int sign) {
-            OutRootPorts.Add(sign);
         }
 
         public int GetFirstLink(int source, int node, int port) {

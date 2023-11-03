@@ -26,9 +26,9 @@ namespace MisterGames.Blueprints {
 
         private BlueprintCompiler2 _blueprintCompiler;
 
-        public RuntimeBlueprint2 Compile(IBlueprintHost2 host, IBlueprintFactory factory) {
+        public RuntimeBlueprint2 Compile(IBlueprintFactory factory, IBlueprintHost2 host) {
             _blueprintCompiler ??= new BlueprintCompiler2();
-            return _blueprintCompiler.Compile(host, factory, this);
+            return _blueprintCompiler.Compile(factory, host, this);
         }
 
         public void CompileSubgraph(BlueprintCompileData data) {
