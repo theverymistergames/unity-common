@@ -7,8 +7,8 @@
         void OnSetDefaults(IBlueprintMeta meta, NodeId id) {}
         void OnValidate(IBlueprintMeta meta, NodeId id) {}
 
-        void OnInitialize(IBlueprint blueprint, NodeId id) {}
-        void OnDeInitialize(IBlueprint blueprint, NodeId id) {}
+        void OnInitialize(IBlueprint blueprint, NodeToken token) {}
+        void OnDeInitialize(IBlueprint blueprint, NodeToken token) {}
     }
 
 }

@@ -2,7 +2,7 @@
 
     public interface IBlueprintEnter2 {
 
-        void OnEnterPort(IBlueprint blueprint, NodeId id, int port);
+        void OnEnterPort(IBlueprint blueprint, NodeToken token, int port);
     }
 
 }

@@ -1,4 +1,5 @@
-﻿using MisterGames.Blueprints.Runtime;
+﻿using MisterGames.Blackboards.Core;
+using MisterGames.Blueprints.Runtime;
 
 namespace MisterGames.Blueprints {
 
@@ -14,11 +15,16 @@ namespace MisterGames.Blueprints {
         IBlueprintHost2 Host { get; }
 
         /// <summary>
+        /// Blueprint blackboard.
+        /// </summary>
+        Blackboard Blackboard { get; }
+
+        /// <summary>
         /// Invoke exit port of node with passed id.
         /// </summary>
-        /// <param name="id">Called blueprint node key</param>
+        /// <param name="token">Called blueprint node token</param>
         /// <param name="port">Called blueprint node port</param>
-        void Call(NodeId id, int port);
+        void Call(NodeToken token, int port);
 
         /// <summary>
         /// Read input port of node with passed id. When this operation is performed,
@@ -27,21 +33,21 @@ namespace MisterGames.Blueprints {
         /// use <see cref="GetLinks"/> and read by link index.
         /// Default value can be passed to return when result is not found.
         /// </summary>
-        /// <param name="id">Called blueprint node id</param>
+        /// <param name="token">Called blueprint node token</param>
         /// <param name="port">Called blueprint node port</param>
         /// <param name="defaultValue">Default value to be returned when result is not found</param>
         /// <typeparam name="T">Type of the read operation result</typeparam>
         /// <returns>Value of type T, or defaultValue if value was not found</returns>
-        T Read<T>(NodeId id, int port, T defaultValue = default);
+        T Read<T>(NodeToken token, int port, T defaultValue = default);
 
         /// <summary>
-        /// Get link reader for node and port.
-        /// Link reader allows to read all links for multiple input data ports.
+        /// Get link iterator for node and port.
+        /// Link iterator allows to read and call links separately, e.g. for multiple input data ports.
         /// </summary>
-        /// <param name="id">Blueprint node id</param>
+        /// <param name="token">Blueprint node token</param>
         /// <param name="port">Blueprint node port index</param>
         /// <returns>Runtime links iterator</returns>
-        LinkReader GetLinks(NodeId id, int port);
+        LinkIterator GetLinks(NodeToken token, int port);
     }
 
 }

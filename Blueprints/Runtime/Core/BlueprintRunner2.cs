@@ -12,10 +12,8 @@ namespace MisterGames.Blueprints {
         [SerializeField] private SerializedDictionary<BlueprintAsset2, Blackboard> _blackboardOverridesMap;
 
         public BlueprintAsset2 BlueprintAsset => _blueprintAsset;
-        public Blackboard Blackboard => _blackboard;
         public MonoBehaviour Runner => this;
 
-        private Blackboard _blackboard;
         private RuntimeBlueprint2 _runtimeBlueprint;
         private bool _isCompiled;
 
@@ -24,10 +22,10 @@ namespace MisterGames.Blueprints {
 
             _isCompiled = true;
 
-            _blackboard = GetBlackboard(_blueprintAsset);
+            var blackboard = GetBlackboard(_blueprintAsset);
 
             _runtimeBlueprint = _blueprintAsset.Compile(BlueprintFactories.Global);
-            _runtimeBlueprint.Initialize(this);
+            _runtimeBlueprint.Initialize(this, blackboard);
 
             return _runtimeBlueprint;
         }
@@ -38,7 +36,6 @@ namespace MisterGames.Blueprints {
 
         private void OnDestroy() {
             _runtimeBlueprint?.DeInitialize();
-            _runtimeBlueprint?.Destroy();
             _runtimeBlueprint = null;
         }
 
@@ -67,10 +64,10 @@ namespace MisterGames.Blueprints {
         internal void RestartBlueprint() {
             _blueprintAsset.BlueprintMeta.NodeJsonMap.Clear();
 
-            _blackboard = GetBlackboard(_blueprintAsset);
+            var blackboard = GetBlackboard(_blueprintAsset);
             _runtimeBlueprint = _blueprintAsset.Compile(BlueprintFactories.Global);
 
-            _runtimeBlueprint.Initialize(this);
+            _runtimeBlueprint.Initialize(this, blackboard);
             _runtimeBlueprint.Start();
         }
 

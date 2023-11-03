@@ -16,8 +16,8 @@ namespace MisterGames.Blueprints.Nodes {
             meta.AddPort(id, Port.Exit());
         }
 
-        public void OnStart(IBlueprint blueprint, NodeId id) {
-            blueprint.Call(id, 0);
+        public void OnStart(IBlueprint blueprint, NodeToken token) {
+            blueprint.Call(token, 0);
         }
     }
 

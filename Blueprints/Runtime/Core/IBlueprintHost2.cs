@@ -7,8 +7,6 @@ namespace MisterGames.Blueprints {
 
         MonoBehaviour Runner { get; }
 
-        Blackboard Blackboard { get; }
-
         Blackboard GetBlackboard(BlueprintAsset2 blueprint);
     }
 

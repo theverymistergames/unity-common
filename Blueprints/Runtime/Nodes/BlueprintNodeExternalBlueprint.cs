@@ -10,55 +10,47 @@ namespace MisterGames.Blueprints.Nodes {
     [Serializable]
     public class BlueprintSourceExternalBlueprint :
         BlueprintSource<BlueprintNodeExternalBlueprint>,
-        BlueprintSources.ICompiled<BlueprintNodeExternalBlueprint>,
         BlueprintSources.IEnter<BlueprintNodeExternalBlueprint>,
         BlueprintSources.IOutput<BlueprintNodeExternalBlueprint>,
+        BlueprintSources.ICompiled<BlueprintNodeExternalBlueprint>,
         BlueprintSources.ICloneable { }
 
     [Serializable]
     [BlueprintNode(Name = "External Blueprint", Category = "External", Color = BlueprintColors.Node.External)]
     public struct BlueprintNodeExternalBlueprint :
         IBlueprintNode,
-        IBlueprintCompiled,
         IBlueprintEnter2,
-        IBlueprintOutput2
+        IBlueprintOutput2,
+        IBlueprintCompiled
     {
         [BlackboardProperty("_blackboard")]
         [SerializeField] private int _runner;
         [SerializeField] private BlueprintAsset2 _blueprint;
 
-        private IBlueprint _rootBlueprint;
-        private RuntimeBlueprint2 _runtimeBlueprint;
-        private NodeId _root;
+        private RuntimeBlueprint2 _externalBlueprint;
 
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {
             PortExtensions.FetchExternalPorts(meta, id, _blueprint);
         }
 
-        public void OnInitialize(IBlueprint blueprint, NodeId id) {
-            _rootBlueprint = blueprint;
-
-            var runner = blueprint.Host.Blackboard.Get<BlueprintRunner2>(_runner);
+        public void OnInitialize(IBlueprint blueprint, NodeToken token) {
+            var runner = blueprint.Blackboard.Get<BlueprintRunner2>(_runner);
             if (runner == null) return;
 
-            _runtimeBlueprint = runner.GetOrCompileBlueprint();
-            _runtimeBlueprint.Bind(id);
-            _root = _runtimeBlueprint.Root;
+            _externalBlueprint = runner.GetOrCompileBlueprint();
+            _externalBlueprint.Bind(token.node, token.caller, blueprint);
         }
 
-        public void OnDeInitialize(IBlueprint blueprint, NodeId id) {
-            _runtimeBlueprint.Unbind(id);
+        public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
+            _externalBlueprint.Unbind(token.node);
         }
 
-        public void OnEnterPort(IBlueprint blueprint, NodeId id, int port) {
-            if (blueprint == _rootBlueprint) _runtimeBlueprint.Call(_root, port);
-            else _rootBlueprint.Call(id, port);
+        public void OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
+            _externalBlueprint.CallRoot(token.node, port);
         }
 
-        public T GetPortValue<T>(IBlueprint blueprint, NodeId id, int port) {
-            return blueprint == _rootBlueprint
-                ? _runtimeBlueprint.Read<T>(_root, port)
-                : _rootBlueprint.Read<T>(id, port);
+        public T GetPortValue<T>(IBlueprint blueprint, NodeToken token, int port) {
+            return _externalBlueprint.ReadRoot<T>(token.node, port);
         }
 
         public void OnValidate(IBlueprintMeta meta, NodeId id) {

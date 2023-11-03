@@ -1,12 +1,10 @@
-﻿using System;
-
-namespace MisterGames.Blueprints.Runtime {
+﻿namespace MisterGames.Blueprints.Runtime {
 
     public sealed class RuntimeNodeStorage : IRuntimeNodeStorage {
 
         public int Count { get; private set; }
 
-        private NodeId[] _nodes;
+        private readonly NodeId[] _nodes;
 
         private RuntimeNodeStorage() { }
 
@@ -20,10 +18,6 @@ namespace MisterGames.Blueprints.Runtime {
 
         public void AddNode(NodeId id) {
             _nodes[Count++] = id;
-        }
-
-        public void AllocateNodes(int count) {
-            Array.Resize(ref _nodes, Count + count);
         }
 
         public override string ToString() {

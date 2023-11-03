@@ -1,5 +1,6 @@
 ﻿using System;
 using MisterGames.Blueprints.Compile;
+using MisterGames.Blueprints.Runtime;
 using MisterGames.Blueprints.Validation;
 using UnityEngine;
 
@@ -17,12 +18,23 @@ namespace MisterGames.Blueprints.Nodes {
 
         [SerializeField] private BlueprintAsset2 _blueprint;
 
+        private RuntimeBlueprint2 _runtimeBlueprint2;
+
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {
             PortExtensions.FetchExternalPorts(meta, id, _blueprint);
         }
 
+        public void OnInitialize(IBlueprint blueprint, NodeId id) {
+            _runtimeBlueprint2.Initialize(blueprint.Host, blueprint.Host.GetBlackboard(_blueprint));
+            //_runtimeBlueprint2.
+        }
+
+        public void OnDeInitialize(IBlueprint blueprint, NodeId id) {
+
+        }
+
         public void Compile(NodeId id, BlueprintCompileData data) {
-            _blueprint.CompileSubgraph(data);
+            _runtimeBlueprint2 = _blueprint.CompileSubgraph(data);
         }
 
         public void OnValidate(IBlueprintMeta meta, NodeId id) {

@@ -6,9 +6,9 @@ namespace MisterGames.Blueprints.Runtime {
 
         NodeId Root { get; set; }
 
-        HashSet<int> RootPorts { get; }
+        HashSet<int> OutRootPorts { get; }
 
-        void AddRootPort(int sign);
+        void AddOutRootPort(int sign);
 
         int SelectPort(int source, int node, int port);
 

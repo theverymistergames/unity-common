@@ -2,7 +2,7 @@
 
     public interface IBlueprintEnableCallback {
 
-        void OnEnable(IBlueprint blueprint, NodeId id, bool enabled);
+        void OnEnable(IBlueprint blueprint, NodeToken token, bool enabled);
     }
 
 }

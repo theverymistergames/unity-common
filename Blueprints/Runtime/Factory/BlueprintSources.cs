@@ -9,45 +9,45 @@ namespace MisterGames.Blueprints {
         public interface IEnter<TNode> : IBlueprintSource, IBlueprintEnter2
             where TNode : struct, IBlueprintNode, IBlueprintEnter2
         {
-            void IBlueprintEnter2.OnEnterPort(IBlueprint blueprint, NodeId id, int port) {
-                ref var node = ref GetNode<TNode>(id.node);
-                node.OnEnterPort(blueprint, id, port);
+            void IBlueprintEnter2.OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
+                ref var node = ref GetNode<TNode>(token.node.node);
+                node.OnEnterPort(blueprint, token, port);
             }
         }
 
         public interface IOutput<TNode, out R> : IBlueprintSource, IBlueprintOutput2<R>
             where TNode : struct, IBlueprintNode, IBlueprintOutput2<R>
         {
-            R IBlueprintOutput2<R>.GetPortValue(IBlueprint blueprint, NodeId id, int port) {
-                ref var node = ref GetNode<TNode>(id.node);
-                return node.GetPortValue(blueprint, id, port);
+            R IBlueprintOutput2<R>.GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
+                ref var node = ref GetNode<TNode>(token.node.node);
+                return node.GetPortValue(blueprint, token, port);
             }
         }
 
         public interface IOutput<TNode> : IBlueprintSource, IBlueprintOutput2
             where TNode : struct, IBlueprintNode, IBlueprintOutput2
         {
-            R IBlueprintOutput2.GetPortValue<R>(IBlueprint blueprint, NodeId id, int port) {
-                ref var node = ref GetNode<TNode>(id.node);
-                return node.GetPortValue<R>(blueprint, id, port);
+            R IBlueprintOutput2.GetPortValue<R>(IBlueprint blueprint, NodeToken token, int port) {
+                ref var node = ref GetNode<TNode>(token.node.node);
+                return node.GetPortValue<R>(blueprint, token, port);
             }
         }
 
         public interface IStartCallback<TNode> : IBlueprintSource, IBlueprintStartCallback
             where TNode : struct, IBlueprintNode, IBlueprintStartCallback
         {
-            void IBlueprintStartCallback.OnStart(IBlueprint blueprint, NodeId id) {
-                ref var node = ref GetNode<TNode>(id.node);
-                node.OnStart(blueprint, id);
+            void IBlueprintStartCallback.OnStart(IBlueprint blueprint, NodeToken token) {
+                ref var node = ref GetNode<TNode>(token.node.node);
+                node.OnStart(blueprint, token);
             }
         }
 
         public interface IEnableCallback<TNode> : IBlueprintSource, IBlueprintEnableCallback
             where TNode : struct, IBlueprintNode, IBlueprintEnableCallback
         {
-            void IBlueprintEnableCallback.OnEnable(IBlueprint blueprint, NodeId id, bool enabled) {
-                ref var node = ref GetNode<TNode>(id.node);
-                node.OnEnable(blueprint, id, enabled);
+            void IBlueprintEnableCallback.OnEnable(IBlueprint blueprint, NodeToken token, bool enabled) {
+                ref var node = ref GetNode<TNode>(token.node.node);
+                node.OnEnable(blueprint, token, enabled);
             }
         }
 

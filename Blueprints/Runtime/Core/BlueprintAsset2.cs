@@ -31,9 +31,9 @@ namespace MisterGames.Blueprints {
             return _blueprintCompiler.Compile(factory, BlueprintMeta);
         }
 
-        public void CompileSubgraph(BlueprintCompileData data) {
+        public RuntimeBlueprint2 CompileSubgraph(BlueprintCompileData data) {
             _blueprintCompiler ??= new BlueprintCompiler2();
-            _blueprintCompiler.CompileSubgraph(BlueprintMeta, data);
+            return _blueprintCompiler.CompileSubgraph(BlueprintMeta, data);
         }
     }
 

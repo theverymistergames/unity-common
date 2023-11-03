@@ -80,14 +80,14 @@ namespace MisterGames.Blueprints {
             node.OnValidate(meta, id);
         }
 
-        public void OnInitialize(IBlueprint blueprint, NodeId id) {
-            ref var node = ref _nodeMap.GetValue(id.node);
-            node.OnInitialize(blueprint, id);
+        public void OnInitialize(IBlueprint blueprint, NodeToken token) {
+            ref var node = ref _nodeMap.GetValue(token.node.node);
+            node.OnInitialize(blueprint, token);
         }
 
-        public void OnDeInitialize(IBlueprint blueprint, NodeId id) {
-            ref var node = ref _nodeMap.GetValue(id.node);
-            node.OnDeInitialize(blueprint, id);
+        public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
+            ref var node = ref _nodeMap.GetValue(token.node.node);
+            node.OnDeInitialize(blueprint, token);
         }
 
         public override string ToString() {

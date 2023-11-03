@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using MisterGames.Common.Data;
 
 namespace MisterGames.Blueprints.Runtime {
@@ -7,7 +6,7 @@ namespace MisterGames.Blueprints.Runtime {
     public sealed class RuntimeLinkStorage : IRuntimeLinkStorage {
 
         public NodeId Root { get; set; }
-        public HashSet<int> RootPorts { get; }
+        public HashSet<int> OutRootPorts { get; } = new HashSet<int>();
 
         private readonly TreeSet<RuntimeLink2> _linkTree;
         private RuntimeLink2 _selectedPort;
@@ -15,45 +14,37 @@ namespace MisterGames.Blueprints.Runtime {
         private RuntimeLinkStorage() { }
 
         public RuntimeLinkStorage(int linkedPorts = 0, int links = 0) {
-            RootPorts = new HashSet<int>();
             _linkTree = new TreeSet<RuntimeLink2>(linkedPorts, links);
             _linkTree.AllowDefragmentation(false);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void AddOutRootPort(int sign) {
+            OutRootPorts.Add(sign);
+        }
+
         public int GetFirstLink(int source, int node, int port) {
             var address = new RuntimeLink2(source, node, port);
             return _linkTree.TryGetNode(address, out int portRoot) ? _linkTree.GetChild(portRoot) : -1;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int GetNextLink(int previous) {
             return _linkTree.GetNext(previous);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public RuntimeLink2 GetLink(int index) {
             return _linkTree.GetKeyAt(index);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void AddRootPort(int sign) {
-            RootPorts.Add(sign);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int SelectPort(int source, int node, int port) {
             _selectedPort = new RuntimeLink2(source, node, port);
             return GetFirstLink(source, node, port);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int InsertLinkAfter(int index, int source, int node, int port) {
             int portRoot = _linkTree.GetOrAddNode(_selectedPort);
             return _linkTree.InsertNextNode(new RuntimeLink2(source, node, port), portRoot, index);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void RemoveLink(int source, int node, int port) {
             if (!_linkTree.TryGetNode(_selectedPort, out int portRoot)) return;
 
@@ -61,7 +52,6 @@ namespace MisterGames.Blueprints.Runtime {
             if (!_linkTree.ContainsChildren(portRoot)) _linkTree.RemoveNodeAt(portRoot);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void InlineLinks() {
             var roots = _linkTree.Roots;
             foreach (var root in roots) {
