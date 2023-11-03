@@ -1,6 +1,6 @@
 ﻿namespace MisterGames.Blueprints {
 
-    public readonly ref struct NodeToken {
+    public readonly struct NodeToken {
 
         public readonly NodeId node;
         public readonly NodeId caller;
