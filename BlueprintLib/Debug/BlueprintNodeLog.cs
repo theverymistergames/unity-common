@@ -33,10 +33,10 @@ namespace MisterGames.BlueprintLib {
             meta.AddPort(id, Port.Exit());
         }
 
-        public void OnEnterPort(IBlueprint blueprint, NodeId id, int port) {
+        public void OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
             if (port != 0) return;
 
-            string text = blueprint.Read(id, 1, _defaultText);
+            string text = blueprint.Read(token, 1, _defaultText);
             string formatText = $"<color=#{ColorUtility.ToHtmlStringRGB(_color)}>{text}</color>";
 
             switch (_level) {
@@ -54,7 +54,7 @@ namespace MisterGames.BlueprintLib {
                     break;
             }
 
-            blueprint.Call(id, 2);
+            blueprint.Call(token, 2);
         }
     }
 

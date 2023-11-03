@@ -7,31 +7,31 @@ namespace MisterGames.Blueprints.Runtime {
 
     public sealed class RuntimeBlueprint2 : IBlueprint {
 
-        public NodeId Root => _linkStorage.Root;
         public IBlueprintHost2 Host { get; private set; }
-        public Blackboard Blackboard { get; private set; }
 
         private readonly IBlueprintFactory _factory;
         private readonly IRuntimeNodeStorage _nodeStorage;
         private readonly IRuntimeLinkStorage _linkStorage;
-        private Dictionary<NodeId, ExternalBlueprintData> _rootMap;
+        private readonly IRuntimeBlackboardStorage _blackboardStorage;
+
+        private readonly Dictionary<NodeId, ExternalBlueprintData> _rootMap = new Dictionary<NodeId, ExternalBlueprintData>();
 
         private RuntimeBlueprint2() { }
 
         public RuntimeBlueprint2(
             IBlueprintFactory factory,
             IRuntimeNodeStorage nodeStorage,
-            IRuntimeLinkStorage linkStorage
+            IRuntimeLinkStorage linkStorage,
+            IRuntimeBlackboardStorage blackboardStorage
         ) {
             _factory = factory;
             _nodeStorage = nodeStorage;
             _linkStorage = linkStorage;
+            _blackboardStorage = blackboardStorage;
         }
 
-        public void Initialize(IBlueprintHost2 host, Blackboard blackboard) {
+        public void Initialize(IBlueprintHost2 host) {
             Host = host;
-            Blackboard = blackboard;
-
             var root = _linkStorage.Root;
 
             for (int i = 0; i < _nodeStorage.Count; i++) {
@@ -53,7 +53,8 @@ namespace MisterGames.Blueprints.Runtime {
             }
 
             Host = null;
-            Blackboard = null;
+            _rootMap.Clear();
+            _blackboardStorage.Clear();
         }
 
         public void SetEnabled(bool enabled) {
@@ -78,25 +79,8 @@ namespace MisterGames.Blueprints.Runtime {
             }
         }
 
-        public void Bind(NodeId id, NodeId caller, IBlueprint blueprint) {
-            _rootMap ??= new Dictionary<NodeId, ExternalBlueprintData>();
-            _rootMap[id] = new ExternalBlueprintData(caller, blueprint);
-        }
-
-        public void Unbind(NodeId id) {
-            _rootMap?.Remove(id);
-        }
-
-        public void CallRoot(NodeId caller, int port) {
-            var root = _linkStorage.Root;
-            for (int l = GetFirstLink(root, port); l >= 0; l = _linkStorage.GetNextLink(l)) {
-                CallLink(l, caller);
-            }
-        }
-
-        public T ReadRoot<T>(NodeId caller, int port, T defaultValue = default) {
-            var root = _linkStorage.Root;
-            return ReadLink(GetFirstLink(root, port), caller, defaultValue);
+        public Blackboard GetBlackboard(NodeToken token) {
+            return _blackboardStorage.GetBlackboard(token.caller);
         }
 
         public void Call(NodeToken token, int port) {
@@ -124,15 +108,33 @@ namespace MisterGames.Blueprints.Runtime {
             return new LinkIterator(this, token, port);
         }
 
-        public int GetFirstLink(NodeId id, int port) {
+        internal void Bind(NodeId id, NodeId caller, IBlueprint blueprint) {
+            _rootMap[id] = new ExternalBlueprintData(caller, blueprint);
+        }
+
+        internal void Unbind(NodeId id) {
+            _rootMap?.Remove(id);
+        }
+
+        internal void CallRoot(NodeId caller, int port) {
+            for (int l = GetFirstLink(_linkStorage.Root, port); l >= 0; l = GetNextLink(l)) {
+                CallLink(l, caller);
+            }
+        }
+
+        internal T ReadRoot<T>(NodeId caller, int port, T defaultValue = default) {
+            return ReadLink(GetFirstLink(_linkStorage.Root, port), caller, defaultValue);
+        }
+
+        internal int GetFirstLink(NodeId id, int port) {
             return _linkStorage.GetFirstLink(id.source, id.node, port);
         }
 
-        public int GetNextLink(int previous) {
+        internal int GetNextLink(int previous) {
             return _linkStorage.GetNextLink(previous);
         }
 
-        public void CallLink(int index, NodeId caller) {
+        internal void CallLink(int index, NodeId caller) {
             if (index < 0) return;
 
             var link = _linkStorage.GetLink(index);
@@ -142,7 +144,7 @@ namespace MisterGames.Blueprints.Runtime {
             enter.OnEnterPort(this, token, link.port);
         }
 
-        public T ReadLink<T>(int index, NodeId caller, T defaultValue = default) {
+        internal T ReadLink<T>(int index, NodeId caller, T defaultValue = default) {
             if (index < 0) return defaultValue;
 
             var link = _linkStorage.GetLink(index);

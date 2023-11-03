@@ -27,15 +27,15 @@ namespace MisterGames.BlueprintLib {
             meta.AddPort(id, Port.Exit("On Finish"));
         }
 
-        public void OnEnterPort(IBlueprint blueprint, NodeId id, int port) {
+        public void OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
             if (port == 0) {
                 _cancelCts?.Cancel();
                 _cancelCts?.Dispose();
                 _cancelCts = new CancellationTokenSource();
                 var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_cancelCts.Token, _terminateCts.Token);
 
-                float duration = blueprint.Read(id, 2, _duration);
-                DelayAndExitAsync(blueprint, id, duration, linkedCts.Token).Forget();
+                float duration = blueprint.Read(token, 2, _duration);
+                DelayAndExitAsync(blueprint, token, duration, linkedCts.Token).Forget();
 
                 return;
             }
@@ -47,11 +47,11 @@ namespace MisterGames.BlueprintLib {
             }
         }
 
-        public void OnInitialize(IBlueprint blueprint, NodeId id) {
+        public void OnInitialize(IBlueprint blueprint, NodeToken token) {
             _terminateCts = new CancellationTokenSource();
         }
 
-        public void OnDeInitialize(IBlueprint blueprint, NodeId id) {
+        public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
             _terminateCts.Cancel();
             _terminateCts.Dispose();
 
@@ -59,14 +59,14 @@ namespace MisterGames.BlueprintLib {
             _cancelCts?.Dispose();
         }
 
-        private async UniTaskVoid DelayAndExitAsync(IBlueprint blueprint, NodeId id, float delay, CancellationToken token) {
+        private async UniTaskVoid DelayAndExitAsync(IBlueprint blueprint, NodeToken token, float delay, CancellationToken cancellationToken) {
             bool isCancelled = await UniTask
-                .Delay(TimeSpan.FromSeconds(delay), cancellationToken: token)
+                .Delay(TimeSpan.FromSeconds(delay), cancellationToken: cancellationToken)
                 .SuppressCancellationThrow();
 
             if (isCancelled) return;
 
-            blueprint.Call(id, 3);
+            blueprint.Call(token, 3);
         }
     }
 

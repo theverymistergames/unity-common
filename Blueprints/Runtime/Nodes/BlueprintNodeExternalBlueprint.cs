@@ -34,7 +34,7 @@ namespace MisterGames.Blueprints.Nodes {
         }
 
         public void OnInitialize(IBlueprint blueprint, NodeToken token) {
-            var runner = blueprint.Blackboard.Get<BlueprintRunner2>(_runner);
+            var runner = blueprint.GetBlackboard(token).Get<BlueprintRunner2>(_runner);
             if (runner == null) return;
 
             _externalBlueprint = runner.GetOrCompileBlueprint();

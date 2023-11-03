@@ -15,60 +15,74 @@ namespace MisterGames.Blueprints.Compile {
         private readonly HashSet<NodeId> _compiledNodes = new HashSet<NodeId>();
         private readonly TreeMap<int, RuntimeLink2> _hashLinks = new TreeMap<int, RuntimeLink2>();
 
-        public RuntimeBlueprint2 Compile(IBlueprintFactory factory, BlueprintMeta2 meta) {
+        public RuntimeBlueprint2 Compile(IBlueprintHost2 host, IBlueprintFactory factory, BlueprintAsset2 asset) {
             _runtimeNodeMap.Clear();
             _compiledNodes.Clear();
             _hashLinks.Clear();
 
             var root = BlueprintCompilation.CreateRootNode(factory);
+            var meta = asset.BlueprintMeta;
+
             var nodeStorage = new RuntimeNodeStorage(meta.NodeCount + 1);
             var linkStorage = new RuntimeLinkStorage(meta.LinkedPortCount, meta.LinkCount);
+            var blackboardStorage = new RuntimeBlackboardStorage(meta.SubgraphAssets.Count + 1);
 
-            CompileNodes(factory, meta, nodeStorage, linkStorage, root);
+            blackboardStorage.SetBlackboard(root, host.GetBlackboard(asset));
+
+            CompileNodes(host, factory, meta, nodeStorage, linkStorage, blackboardStorage, root);
             BlueprintCompilation.CompileHashLinks(linkStorage, _hashLinks);
 
             linkStorage.InlineLinks();
 
-            return new RuntimeBlueprint2(factory, nodeStorage, linkStorage);
+            return new RuntimeBlueprint2(factory, nodeStorage, linkStorage, blackboardStorage);
         }
 
-        public RuntimeBlueprint2 CompileSubgraph(BlueprintMeta2 meta, BlueprintCompileData data) {
+        public void CompileSubgraph(BlueprintAsset2 asset, BlueprintCompileData data) {
             _runtimeNodeMap.Clear();
             _compiledNodes.Clear();
             _hashLinks.Clear();
 
-            var factory = data.factory;
+            var host = data.host;
             var root = data.runtimeId;
-            var nodeStorage = new RuntimeNodeStorage(meta.NodeCount);
+            var meta = asset.BlueprintMeta;
+
+            var nodeStorage = data.nodeStorage;
             var linkStorage = data.linkStorage;
+            var blackboardStorage = data.blackboardStorage;
 
-            CompileNodes(factory, meta, nodeStorage, linkStorage, root);
+            blackboardStorage.SetBlackboard(root, host.GetBlackboard(asset));
+            nodeStorage.AllocateNodes(meta.NodeCount);
+
+            CompileNodes(host, data.factory, meta, nodeStorage, linkStorage, blackboardStorage, root);
             BlueprintCompilation.CompileHashLinks(linkStorage, _hashLinks);
-
-            return new RuntimeBlueprint2(factory, nodeStorage, linkStorage);
         }
 
         private void CompileNodes(
+            IBlueprintHost2 host,
             IBlueprintFactory factory,
             BlueprintMeta2 meta,
             IRuntimeNodeStorage nodeStorage,
             IRuntimeLinkStorage linkStorage,
+            IRuntimeBlackboardStorage blackboardStorage,
             NodeId rootId
         ) {
             linkStorage.Root = rootId;
 
             var nodes = meta.Nodes;
             foreach (var id in nodes) {
-                if (TryGetOrCompileNode(factory, meta, linkStorage, id, rootId, out var runtimeId)) {
+                if (TryGetOrCompileNode(host, factory, meta, nodeStorage, linkStorage, blackboardStorage, id, rootId, out var runtimeId)) {
                     nodeStorage.AddNode(runtimeId);
                 }
             }
         }
 
         private bool TryGetOrCompileNode(
+            IBlueprintHost2 host,
             IBlueprintFactory factory,
             BlueprintMeta2 meta,
+            IRuntimeNodeStorage nodeStorage,
             IRuntimeLinkStorage linkStorage,
+            IRuntimeBlackboardStorage blackboardStorage,
             NodeId id,
             NodeId rootId,
             out NodeId runtimeId
@@ -113,7 +127,7 @@ namespace MisterGames.Blueprints.Compile {
             BlueprintCompilation.AddHashLink(_hashLinks, meta, source, id, runtimeId);
 
             if (source is IBlueprintCompiled compiled) {
-                compiled.Compile(id, new BlueprintCompileData(factory, linkStorage, runtimeId));
+                compiled.Compile(id, new BlueprintCompileData(host, factory, nodeStorage, linkStorage, blackboardStorage, runtimeId));
             }
 
             _compiledNodes.Add(runtimeId);

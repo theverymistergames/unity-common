@@ -15,9 +15,9 @@ namespace MisterGames.Blueprints {
         IBlueprintHost2 Host { get; }
 
         /// <summary>
-        /// Blueprint blackboard.
+        /// Get blackboard by blueprint node id.
         /// </summary>
-        Blackboard Blackboard { get; }
+        Blackboard GetBlackboard(NodeToken token);
 
         /// <summary>
         /// Invoke exit port of node with passed id.

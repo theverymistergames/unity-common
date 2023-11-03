@@ -22,10 +22,8 @@ namespace MisterGames.Blueprints {
 
             _isCompiled = true;
 
-            var blackboard = GetBlackboard(_blueprintAsset);
-
-            _runtimeBlueprint = _blueprintAsset.Compile(BlueprintFactories.Global);
-            _runtimeBlueprint.Initialize(this, blackboard);
+            _runtimeBlueprint = _blueprintAsset.Compile(this, BlueprintFactories.Global);
+            _runtimeBlueprint.Initialize(this);
 
             return _runtimeBlueprint;
         }
@@ -64,10 +62,9 @@ namespace MisterGames.Blueprints {
         internal void RestartBlueprint() {
             _blueprintAsset.BlueprintMeta.NodeJsonMap.Clear();
 
-            var blackboard = GetBlackboard(_blueprintAsset);
-            _runtimeBlueprint = _blueprintAsset.Compile(BlueprintFactories.Global);
+            _runtimeBlueprint = _blueprintAsset.Compile(this, BlueprintFactories.Global);
 
-            _runtimeBlueprint.Initialize(this, blackboard);
+            _runtimeBlueprint.Initialize(this);
             _runtimeBlueprint.Start();
         }
 
