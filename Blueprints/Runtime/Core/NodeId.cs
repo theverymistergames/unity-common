@@ -34,7 +34,7 @@ namespace MisterGames.Blueprints {
         }
 
         public override string ToString() {
-            return $"{nameof(NodeId)}(source {source}, node {node})";
+            return $"{nameof(NodeId)}({source}.{node})";
         }
     }
 

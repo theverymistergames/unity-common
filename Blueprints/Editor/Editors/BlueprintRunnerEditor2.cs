@@ -32,9 +32,13 @@ namespace MisterGames.Blueprints.Editor.Editors {
                 BlueprintEditorWindow.OpenAsset(blueprint);
             }
 
-            if (runner.RuntimeBlueprint != null) {
-                if (GUILayout.Button("Interrupt Blueprint")) runner.InterruptRuntimeBlueprint();
-
+            if (runner.RuntimeBlueprint == null) {
+                if (blueprint != null && GUILayout.Button("Compile & Start Blueprint")) runner.RestartBlueprint();
+            }
+            else if (GUILayout.Button("Interrupt Blueprint")) {
+                runner.InterruptRuntimeBlueprint();
+            }
+            else {
                 GUILayout.Space(EditorGUIUtility.standardVerticalSpacing * 2f);
                 GUILayout.Label("External enter ports", EditorStyles.boldLabel);
 
@@ -46,11 +50,6 @@ namespace MisterGames.Blueprints.Editor.Editors {
                     if (GUILayout.Button(port.Name)) {
                         runner.RuntimeBlueprint.CallRoot(runner.RuntimeBlueprint.Root, sign);
                     }
-                }
-            }
-            else {
-                if (blueprint != null && GUILayout.Button("Compile & Start Blueprint")) {
-                    runner.RestartBlueprint();
                 }
             }
 

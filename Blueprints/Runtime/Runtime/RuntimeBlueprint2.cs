@@ -50,13 +50,11 @@ namespace MisterGames.Blueprints.Runtime {
         }
 
         public void DeInitialize() {
-            var root = Root;
-
             for (int i = 0; i < nodeStorage.Count; i++) {
                 var id = nodeStorage.GetNode(i);
                 var source = factory.GetSource(id.source);
 
-                source.OnDeInitialize(this, new NodeToken(id, root));
+                source.OnDeInitialize(this, new NodeToken(id, Root));
                 source.RemoveNode(id.node);
                 if (source.Count == 0) factory.RemoveSource(id.source);
             }

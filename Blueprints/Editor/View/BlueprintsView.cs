@@ -133,7 +133,7 @@ namespace MisterGames.Blueprints.Editor.View {
             }
 
             foreach (var nodeId in meta.Nodes) {
-                CreateFromNodeConnectionViews(nodeId);
+                CreateNodeLinkViews(nodeId);
             }
 
             ClearSelection();
@@ -184,7 +184,7 @@ namespace MisterGames.Blueprints.Editor.View {
             }
 
             foreach (var nodeId in _changedNodes) {
-                if (meta.ContainsNode(nodeId)) CreateFromNodeConnectionViews(nodeId);
+                if (meta.ContainsNode(nodeId)) CreateNodeLinkViews(nodeId);
             }
 
             _changedNodes.Clear();
@@ -511,7 +511,7 @@ namespace MisterGames.Blueprints.Editor.View {
             SetBlueprintAssetDirtyAndNotify();
         }
 
-        private void CreateFromNodeConnectionViews(NodeId id) {
+        private void CreateNodeLinkViews(NodeId id) {
             var meta = _blueprintAsset.BlueprintMeta;
 
             var fromNodeView = FindNodeViewByNodeId(id);
@@ -522,12 +522,41 @@ namespace MisterGames.Blueprints.Editor.View {
                 if (fromPort.IsHidden()) continue;
 
                 var fromPortView = fromNodeView.GetPortView(p);
+
                 for (meta.TryGetLinksFrom(id, p, out int l); l >= 0; meta.TryGetNextLink(l, out l)) {
                     var link = meta.GetLink(l);
-                    var toPortView = FindNodeViewByNodeId(link.id).GetPortView(link.port);
-                    var edge = fromPortView.ConnectTo(toPortView);
+                    var toNodeView = FindNodeViewByNodeId(link.id);
+                    var toPortView = toNodeView.GetPortView(link.port);
 
-                    AddElement(edge);
+                    bool hasConnectionView = false;
+                    foreach (var e in fromPortView.connections) {
+                        if (e.input == fromPortView && e.output == toPortView ||
+                            e.input == toPortView && e.output == fromPortView
+                        ) {
+                            hasConnectionView = true;
+                            break;
+                        }
+                    }
+
+                    if (!hasConnectionView) AddElement(fromPortView.ConnectTo(toPortView));
+                }
+
+                for (meta.TryGetLinksTo(id, p, out int l); l >= 0; meta.TryGetNextLink(l, out l)) {
+                    var link = meta.GetLink(l);
+                    var toNodeView = FindNodeViewByNodeId(link.id);
+                    var toPortView = toNodeView.GetPortView(link.port);
+
+                    bool hasConnectionView = false;
+                    foreach (var e in fromPortView.connections) {
+                        if (e.input == fromPortView && e.output == toPortView ||
+                            e.input == toPortView && e.output == fromPortView
+                        ) {
+                            hasConnectionView = true;
+                            break;
+                        }
+                    }
+
+                    if (!hasConnectionView) AddElement(toPortView.ConnectTo(fromPortView));
                 }
             }
         }
