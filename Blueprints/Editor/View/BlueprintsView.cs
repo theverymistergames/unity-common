@@ -228,13 +228,16 @@ namespace MisterGames.Blueprints.Editor.View {
             OnBlueprintAssetSetDirty?.Invoke();
         }
 
-        private static void InvalidateBlueprintAsset(BlueprintAsset2 blueprintAsset) {
+        private void InvalidateBlueprintAsset(BlueprintAsset2 blueprintAsset) {
             var meta = blueprintAsset.BlueprintMeta;
             var nodes = meta.Nodes;
+            bool changed = false;
 
             foreach (var nodeId in nodes) {
-                meta.InvalidateNode(nodeId, invalidateLinks: true);
+                changed |= meta.InvalidateNode(nodeId, invalidateLinks: true);
             }
+
+            if (changed) SetBlueprintAssetDirtyAndNotify();
         }
 
         // ---------------- ---------------- Node Search Window ---------------- ----------------
@@ -408,7 +411,7 @@ namespace MisterGames.Blueprints.Editor.View {
         private void CreateConnection(NodeId fromNodeId, int fromPortIndex, NodeId toNodeId, int toPortIndex) {
             Undo.RecordObject(_blueprintAsset, "Blueprint Create Connection");
 
-            _blueprintAsset.BlueprintMeta.TryCreateLink(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
+            if (!_blueprintAsset.BlueprintMeta.TryCreateLink(fromNodeId, fromPortIndex, toNodeId, toPortIndex)) return;
 
             SetBlueprintAssetDirtyAndNotify();
         }
@@ -512,9 +515,10 @@ namespace MisterGames.Blueprints.Editor.View {
         }
 
         private void CreateNodeLinkViews(NodeId id) {
-            var meta = _blueprintAsset.BlueprintMeta;
-
             var fromNodeView = FindNodeViewByNodeId(id);
+            if (fromNodeView == null) return;
+
+            var meta = _blueprintAsset.BlueprintMeta;
             int fromPortsCount = meta.GetPortCount(id);
 
             for (int p = 0; p < fromPortsCount; p++) {

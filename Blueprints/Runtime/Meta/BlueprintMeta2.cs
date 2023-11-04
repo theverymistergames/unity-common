@@ -99,20 +99,20 @@ namespace MisterGames.Blueprints.Meta {
             _onNodeChange?.Invoke(id);
         }
 
-        public void InvalidateNode(NodeId id, bool invalidateLinks, bool notify = true) {
-            if (!_nodeMap.ContainsKey(id)) return;
+        public bool InvalidateNode(NodeId id, bool invalidateLinks, bool notify = true) {
+            if (!_nodeMap.ContainsKey(id)) return false;
 
             var source = _factory.GetSource(id.source);
-            if (source == null) return;
-
-            var oldLinksTree = invalidateLinks ? _linkStorage.CopyLinks(id) : null;
-            if (invalidateLinks) _linkStorage.RemoveNode(id);
+            if (source == null) return false;
 
             var oldPortsTree = _portStorage.CreatePortSignatureToIndicesTree(id);
-            oldPortsTree.AllowDefragmentation(false);
+            oldPortsTree?.AllowDefragmentation(false);
 
             _portStorage.RemoveNode(id);
             source.CreatePorts(this, id);
+
+            var oldLinksTree = invalidateLinks ? _linkStorage.CopyLinks(id) : null;
+            if (invalidateLinks) _linkStorage.RemoveNode(id);
 
             bool changed = false;
             int portCount = _portStorage.GetPortCount(id);
@@ -121,13 +121,16 @@ namespace MisterGames.Blueprints.Meta {
                 _portStorage.TryGetPort(id, i, out var port);
                 int sign = port.GetSignature();
 
-                if (oldPortsTree.TryGetNode(sign, out int signRoot) &&
+                if (oldPortsTree != null &&
+                    oldPortsTree.TryGetNode(sign, out int signRoot) &&
                     oldPortsTree.TryGetChild(signRoot, out int pointer)
                 ) {
                     if (oldPortsTree.TryGetNode(i, signRoot, out int p)) pointer = p;
                     else changed = true;
 
-                    if (invalidateLinks) _linkStorage.SetLinks(id, i, oldLinksTree, oldPortsTree.GetKeyAt(pointer));
+                    if (invalidateLinks) {
+                        _linkStorage.SetLinks(id, i, oldLinksTree, oldPortsTree.GetKeyAt(pointer));
+                    }
 
                     oldPortsTree.RemoveNodeAt(pointer);
                     if (!oldPortsTree.ContainsChildren(signRoot)) oldPortsTree.RemoveNodeAt(signRoot);
@@ -137,9 +140,10 @@ namespace MisterGames.Blueprints.Meta {
                 }
             }
 
-            changed |= oldPortsTree.Count > 0;
-
+            changed |= oldPortsTree is { Count: > 0 };
             if (changed && notify) _onNodeChange?.Invoke(id);
+
+            return changed;
         }
 
         public bool TryCreateLink(NodeId id, int port, NodeId toId, int toPort) {

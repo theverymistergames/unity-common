@@ -22,7 +22,7 @@ namespace MisterGames.Blueprints {
 
         void RemoveSubgraph(NodeId id);
 
-        void InvalidateNode(NodeId id, bool invalidateLinks, bool notify = true);
+        bool InvalidateNode(NodeId id, bool invalidateLinks, bool notify = true);
     }
 
 }

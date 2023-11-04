@@ -7,25 +7,15 @@ namespace MisterGames.Blueprints.Editor.View {
 
         private readonly List<Port> _ports = new List<Port>();
 
-        public void Clear() {
-            _ports.Clear();
-        }
+        public void Clear() => _ports.Clear();
 
-        public Port GetPort(NodeId id, int port) {
-            return _ports[port];
-        }
+        public Port GetPort(NodeId id, int port) => _ports[port];
 
-        public void AddPort(NodeId id, Port port) {
-            _ports.Add(port);
-        }
+        public void AddPort(NodeId id, Port port) => _ports.Add(port);
 
-        public int GetPortCount(NodeId id) {
-            return _ports.Count;
-        }
+        public int GetPortCount(NodeId id) => _ports.Count;
 
-        public BlueprintLink2 GetLink(int index) {
-            return default;
-        }
+        public BlueprintLink2 GetLink(int index) => default;
 
         public bool TryGetLinksFrom(NodeId id, int port, out int index) {
             index = -1;
@@ -46,6 +36,6 @@ namespace MisterGames.Blueprints.Editor.View {
 
         public void RemoveSubgraph(NodeId id) { }
 
-        public void InvalidateNode(NodeId id, bool invalidateLinks, bool notify = true) { }
+        public bool InvalidateNode(NodeId id, bool invalidateLinks, bool notify = true) => false;
     }
 }
