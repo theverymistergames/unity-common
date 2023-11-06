@@ -113,13 +113,14 @@ namespace MisterGames.Blueprints.Runtime {
         }
 
         internal void ExternalCall(NodeId caller, int port) {
-            var data = _externalBlueprintMap[caller];
+            if (!_externalBlueprintMap.TryGetValue(caller, out var data)) return;
             data.blueprint.Call(new NodeToken(caller, data.caller), port);
         }
 
         internal T ExternalRead<T>(NodeId caller, int port, T defaultValue = default) {
-            var data = _externalBlueprintMap[caller];
-            return data.blueprint.Read(new NodeToken(caller, data.caller), port, defaultValue);
+            return _externalBlueprintMap.TryGetValue(caller, out var data)
+                ? data.blueprint.Read(new NodeToken(caller, data.caller), port, defaultValue)
+                : defaultValue;
         }
 
         internal void CallLink(int index, NodeId caller) {
