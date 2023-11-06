@@ -29,32 +29,55 @@ namespace MisterGames.Blueprints.Nodes {
 
         private RuntimeBlueprint2 _externalBlueprint;
 
+#if UNITY_EDITOR
+        private bool _isValidExternalBlueprint;
+#endif
+
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {
             PortExtensions.FetchExternalPorts(meta, id, _blueprint);
         }
 
         public void OnInitialize(IBlueprint blueprint, NodeToken token) {
             var runner = blueprint.GetBlackboard(token).Get<BlueprintRunner2>(_runner);
-            if (runner == null) return;
+
+#if UNITY_EDITOR
+            _isValidExternalBlueprint = SubgraphValidator2.ValidateExternalBlueprint(blueprint.Host.Runner, runner, _blueprint);
+            if (!_isValidExternalBlueprint) return;
+#endif
 
             _externalBlueprint = runner.GetOrCompileBlueprint();
             _externalBlueprint.Bind(token.node, token.caller, blueprint);
         }
 
         public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
+#if UNITY_EDITOR
+            if (!_isValidExternalBlueprint) return;
+#endif
+
             _externalBlueprint.Unbind(token.node);
         }
 
         public void OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
+#if UNITY_EDITOR
+            if (!_isValidExternalBlueprint) return;
+#endif
+
             _externalBlueprint.CallRoot(token.node, port);
         }
 
         public T GetPortValue<T>(IBlueprint blueprint, NodeToken token, int port) {
+#if UNITY_EDITOR
+            if (!_isValidExternalBlueprint) return default;
+#endif
+
             return _externalBlueprint.ReadRoot<T>(token.node, port);
         }
 
         public void OnValidate(IBlueprintMeta meta, NodeId id) {
+#if UNITY_EDITOR
             SubgraphValidator2.ValidateSubgraphAsset(meta, ref _blueprint);
+#endif
+
             meta.InvalidateNode(id, invalidateLinks: true);
         }
 

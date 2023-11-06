@@ -120,10 +120,10 @@ namespace MisterGames.Blueprints.Validation {
             var source = meta.GetNodeSource(id);
 
             if (source is not (IBlueprintOutput2 or IBlueprintInternalLink) &&
-                ValidationUtils2.GetGenericInterface(source.GetType(), typeof(IBlueprintOutput<>), port.DataType) == null
+                ValidationUtils2.GetGenericInterface(source.GetType(), typeof(IBlueprintOutput2<>), port.DataType) == null
             ) {
                 Debug.LogError($"Blueprint `{meta.Owner}`: " +
-                               $"Validation failed for func output port [{index}] {port} of node {id}: " +
+                               $"Validation failed for output port [{index}] {port} of node {id}: " +
                                $"node source class {source.GetType().Name} does not implement interface " +
                                $"{nameof(IBlueprintOutput2)} or " +
                                $"{typeof(IBlueprintOutput2<>).Name} or " +

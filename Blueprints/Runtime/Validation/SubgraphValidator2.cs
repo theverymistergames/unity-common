@@ -9,6 +9,35 @@ namespace MisterGames.Blueprints.Validation {
 
         private const int MAX_SUBGRAPH_LEVELS = 100;
 
+        public static bool ValidateExternalBlueprint(
+            MonoBehaviour owner,
+            BlueprintRunner2 externalRunner,
+            BlueprintAsset2 externalAsset
+        ) {
+            if (externalAsset == null) {
+                Debug.LogError($"External blueprint node, launched from runner {owner}, is invalid: " +
+                               $"provided external {nameof(BlueprintAsset2)} is null.");
+                return false;
+            }
+
+            if (externalRunner == null) {
+                Debug.LogError($"External blueprint node, launched from runner {owner}, is invalid: " +
+                               $"provided external {nameof(BlueprintRunner2)} is null.");
+                return false;
+            }
+
+            if (externalAsset != externalRunner.BlueprintAsset) {
+                Debug.LogError($"External blueprint node, launched from runner {owner}, is invalid: " +
+                               $"external blueprint node has external {nameof(BlueprintAsset2)} `{externalAsset}`, " +
+                               $"but provided {nameof(BlueprintRunner2)} {externalRunner} " +
+                               $"has different {nameof(BlueprintAsset2)} `{externalRunner.BlueprintAsset}`. " +
+                               $"Blueprint assets must be same.");
+                return false;
+            }
+
+            return true;
+        }
+
         public static void ValidateSubgraphAsset(IBlueprintMeta meta, ref BlueprintAsset2 subgraph) {
             var root = ((BlueprintMeta2) meta).Owner as BlueprintAsset2;
             string rootName = root == null ? string.Empty : $"`{root.name}`";

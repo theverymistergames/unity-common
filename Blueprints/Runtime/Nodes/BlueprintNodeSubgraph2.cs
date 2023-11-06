@@ -22,11 +22,17 @@ namespace MisterGames.Blueprints.Nodes {
         }
 
         public void Compile(NodeId id, BlueprintCompileData data) {
+#if UNITY_EDITOR
+            if (_blueprint == null) return;
+#endif
+
             _blueprint.CompileSubgraph(data);
         }
 
         public void OnValidate(IBlueprintMeta meta, NodeId id) {
+#if UNITY_EDITOR
             SubgraphValidator2.ValidateSubgraphAsset(meta, ref _blueprint);
+#endif
 
             if (_blueprint != null) meta.SetSubgraph(id, _blueprint);
             else meta.RemoveSubgraph(id);

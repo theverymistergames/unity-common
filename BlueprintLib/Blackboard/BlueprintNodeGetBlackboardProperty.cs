@@ -2,12 +2,47 @@
 using MisterGames.Blackboards.Core;
 using MisterGames.Blueprints;
 using UnityEngine;
-
-#if UNITY_EDITOR
 using MisterGames.Blueprints.Meta;
-#endif
 
 namespace MisterGames.BlueprintLib {
+
+    [Serializable]
+    public class BlueprintSourceGetBlackboardProperty :
+        BlueprintSource<BlueprintNodeGetBlackboardProperty2>,
+        BlueprintSources.IOutput<BlueprintNodeGetBlackboardProperty2> {}
+
+    [Serializable]
+    [BlueprintNode(Name = "Get Blackboard Property", Category = "Blackboard", Color = BlueprintColors.Node.Blackboard)]
+    public struct BlueprintNodeGetBlackboardProperty2 : IBlueprintNode, IBlueprintOutput2 {
+
+        [SerializeField] [BlackboardProperty("_blackboard")] private int _property;
+
+        private Blackboard _blackboard;
+
+        public void CreatePorts(IBlueprintMeta meta, NodeId id) {
+            var asset = (meta as BlueprintMeta2)?.Owner as BlueprintAsset2;
+            Type dataType = null;
+
+            if (asset != null && asset.Blackboard.TryGetProperty(_property, out var property)) {
+                dataType = property.type.ToType();
+            }
+
+            meta.AddPort(id, Port.DynamicOutput(type: dataType).Hide(dataType == null));
+        }
+
+        public void OnInitialize(IBlueprint blueprint, NodeToken token) {
+            _blackboard = blueprint.GetBlackboard(token);
+        }
+
+        public T GetPortValue<T>(IBlueprint blueprint, NodeToken token, int port) => port switch {
+            0 => _blackboard.Get<T>(_property),
+            _ => default,
+        };
+
+        public void OnValidate(IBlueprintMeta meta, NodeId id) {
+            meta.InvalidateNode(id, invalidateLinks: true);
+        }
+    }
 
     [Serializable]
     [BlueprintNodeMeta(Name = "Get Blackboard Property", Category = "Blackboard", Color = BlueprintColors.Node.Blackboard)]
