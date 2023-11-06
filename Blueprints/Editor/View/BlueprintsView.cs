@@ -157,39 +157,38 @@ namespace MisterGames.Blueprints.Editor.View {
             }
         }
 
-        private void OnNodeChange(NodeId id, bool force) {
-            if (!force) {
-                _changedNodes.Add(id);
+        private void OnNodeChange(NodeId id, bool repaintImmediately) {
+            if (repaintImmediately) {
+                RecreateNodeView(_blueprintAsset.BlueprintMeta, id);
+                CreateNodeLinkViews(id);
+                return;
+            }
+
+            _changedNodes.Add(id);
+        }
+
+        private void RecreateNodeView(BlueprintMeta2 meta, NodeId id) {
+            RemoveNodeLinkViews(id);
+
+            if (!meta.ContainsNode(id)) {
+                RemoveNodeView(id);
                 return;
             }
 
             var nodeView = FindNodeViewByNodeId(id);
-            if (nodeView == null) return;
+            if (nodeView == null) {
+                CreateNodeView(id, meta.GetNodePosition(id));
+                return;
+            }
 
-            RemoveNodeLinkViews(id);
             nodeView.CreatePortViews(this);
-
-            CreateNodeLinkViews(id);
         }
 
         private void FlushChangedNodes() {
             var meta = _blueprintAsset.BlueprintMeta;
 
             foreach (var nodeId in _changedNodes) {
-                RemoveNodeLinkViews(nodeId);
-
-                if (!meta.ContainsNode(nodeId)) {
-                    RemoveNodeView(nodeId);
-                    continue;
-                }
-
-                var nodeView = FindNodeViewByNodeId(nodeId);
-                if (nodeView == null) {
-                    CreateNodeView(nodeId, meta.GetNodePosition(nodeId));
-                    continue;
-                }
-
-                nodeView.CreatePortViews(this);
+                RecreateNodeView(meta, nodeId);
             }
 
             foreach (var nodeId in _changedNodes) {
@@ -428,7 +427,7 @@ namespace MisterGames.Blueprints.Editor.View {
         private void RemoveConnection(NodeId fromNodeId, int fromPortIndex, NodeId toNodeId, int toPortIndex) {
             Undo.RecordObject(_blueprintAsset, "Blueprint Remove Connection");
 
-            _blueprintAsset.BlueprintMeta.RemoveLink(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
+            if (!_blueprintAsset.BlueprintMeta.RemoveLink(fromNodeId, fromPortIndex, toNodeId, toPortIndex)) return;
 
             SetBlueprintAssetDirtyAndNotify();
         }
@@ -551,7 +550,9 @@ namespace MisterGames.Blueprints.Editor.View {
                         }
                     }
 
-                    if (!hasConnectionView) AddElement(fromPortView.ConnectTo(toPortView));
+                    if (hasConnectionView) continue;
+
+                    AddElement(fromPortView.ConnectTo(toPortView));
                 }
 
                 for (meta.TryGetLinksTo(id, p, out int l); l >= 0; meta.TryGetNextLink(l, out l)) {
@@ -569,7 +570,9 @@ namespace MisterGames.Blueprints.Editor.View {
                         }
                     }
 
-                    if (!hasConnectionView) AddElement(toPortView.ConnectTo(fromPortView));
+                    if (hasConnectionView) continue;
+
+                    AddElement(toPortView.ConnectTo(fromPortView));
                 }
             }
         }

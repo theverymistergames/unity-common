@@ -109,15 +109,22 @@ namespace MisterGames.Blueprints.Meta {
             OnPortChanged?.Invoke(toId, toPort);
         }
 
-        public void RemoveLink(NodeId id, int port, NodeId toId, int toPort) {
+        public bool RemoveLink(NodeId id, int port, NodeId toId, int toPort) {
             _linkTree.AllowDefragmentation(false);
 
-            RemoveLink(id, port, toId, toPort, 0);
-            RemoveLink(toId, toPort, id, port, 1);
+            bool removed = RemoveLink(id, port, toId, toPort, 0) |
+                           RemoveLink(toId, toPort, id, port, 1) |
+                           RemoveLink(toId, toPort, id, port, 0) |
+                           RemoveLink(id, port, toId, toPort, 1);
 
-            _linkCount--;
+            if (removed) {
+                _linkCount--;
+                if (_linkCount < 0) _linkCount = 0;
+            }
 
             _linkTree.AllowDefragmentation(true);
+
+            return removed;
         }
 
         public void RemovePort(NodeId id, int port) {
@@ -179,7 +186,6 @@ namespace MisterGames.Blueprints.Meta {
             _linkTree.Clear();
             _linkCount = 0;
             _linkedPortCount = 0;
-            OnPortChanged = null;
         }
 
         private void AddLink(NodeId id, int port, NodeId toId, int toPort, int dir) {
@@ -194,13 +200,13 @@ namespace MisterGames.Blueprints.Meta {
             _linkTree.GetOrAddNode(new BlueprintLink2(toId, toPort), linksRoot);
         }
 
-        private void RemoveLink(NodeId id, int port, NodeId toId, int toPort, int dir) {
+        private bool RemoveLink(NodeId id, int port, NodeId toId, int toPort, int dir) {
             if (!_linkTree.TryGetNode(new BlueprintLink2(id, 0), out int nodeRoot) ||
                 !_linkTree.TryGetNode(new BlueprintLink2(id, port), nodeRoot, out int portRoot) ||
                 !_linkTree.TryGetNode(new BlueprintLink2(id, dir), portRoot, out int linksRoot) ||
                 !_linkTree.TryGetNode(new BlueprintLink2(toId, toPort), linksRoot, out int link)
             ) {
-                return;
+                return false;
             }
 
             _linkTree.RemoveNodeAt(link);
@@ -208,12 +214,14 @@ namespace MisterGames.Blueprints.Meta {
             if (!_linkTree.ContainsChildren(linksRoot)) {
                 _linkTree.RemoveNodeAt(linksRoot);
                 if (dir == 0) _linkedPortCount--;
+                if (_linkedPortCount < 0) _linkedPortCount = 0;
             }
 
             if (!_linkTree.ContainsChildren(portRoot)) _linkTree.RemoveNodeAt(portRoot);
             if (!_linkTree.ContainsChildren(nodeRoot)) _linkTree.RemoveNodeAt(nodeRoot);
 
             OnPortChanged?.Invoke(id, port);
+            return true;
         }
 
         private void RemovePortLinks(int portRoot, NodeId id, int port) {
@@ -223,8 +231,7 @@ namespace MisterGames.Blueprints.Meta {
                 while (index >= 0) {
                     var link = _linkTree.GetKeyAt(index);
 
-                    RemoveLink(link.id, link.port, id, port, 1);
-                    _linkCount--;
+                    if (RemoveLink(link.id, link.port, id, port, 1)) _linkCount--;
 
                     index = _linkTree.GetNext(index);
                 }
@@ -238,12 +245,14 @@ namespace MisterGames.Blueprints.Meta {
                 while (index >= 0) {
                     var link = _linkTree.GetKeyAt(index);
 
-                    RemoveLink(link.id, link.port, id, port, 0);
-                    _linkCount--;
+                    if (RemoveLink(link.id, link.port, id, port, 0)) _linkCount--;
 
                     index = _linkTree.GetNext(index);
                 }
             }
+
+            if (_linkedPortCount < 0) _linkedPortCount = 0;
+            if (_linkCount < 0) _linkCount = 0;
         }
 
         public override string ToString() {

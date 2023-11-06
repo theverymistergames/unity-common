@@ -15,12 +15,9 @@ namespace MisterGames.Blueprints {
         public MonoBehaviour Runner => this;
 
         private RuntimeBlueprint2 _runtimeBlueprint;
-        private bool _isCompiled;
 
         public RuntimeBlueprint2 GetOrCompileBlueprint() {
-            if (_isCompiled) return _runtimeBlueprint;
-
-            _isCompiled = true;
+            if (_runtimeBlueprint != null) return _runtimeBlueprint;
 
             _runtimeBlueprint = _blueprintAsset.Compile(BlueprintFactories.Global, this);
             _runtimeBlueprint.Initialize(this);
@@ -61,11 +58,8 @@ namespace MisterGames.Blueprints {
 
         internal void RestartBlueprint() {
             _blueprintAsset.BlueprintMeta.NodeJsonMap.Clear();
-
-            _runtimeBlueprint = _blueprintAsset.Compile(BlueprintFactories.Global, this);
-
-            _runtimeBlueprint.Initialize(this);
-            _runtimeBlueprint.Start();
+            InterruptRuntimeBlueprint();
+            GetOrCompileBlueprint().Start();
         }
 
         internal void InterruptRuntimeBlueprint() {

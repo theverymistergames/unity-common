@@ -53,6 +53,8 @@ namespace MisterGames.Blueprints.Editor.Editors {
                 }
             }
 
+            if (blueprint == null) return;
+
             var blackboardOverrides = serializedObject.FindProperty("_blackboardOverridesMap").FindPropertyRelative("_entries");
 
             int count = blackboardOverrides.arraySize;

@@ -96,6 +96,9 @@ namespace MisterGames.Blueprints.Meta {
             source?.RemoveNode(id.node);
             if (source == null || source.Count == 0) _factory.RemoveSource(id.source);
 
+            if (_nodeMap.Count == 0) Clear();
+            else if (_linkStorage.LinkCount == 0) _linkStorage.Clear();
+
             _onNodeChange?.Invoke(id, false);
         }
 
@@ -111,8 +114,11 @@ namespace MisterGames.Blueprints.Meta {
             _portStorage.RemoveNode(id);
             source.CreatePorts(this, id);
 
-            var oldLinksTree = invalidateLinks ? _linkStorage.CopyLinks(id) : null;
-            if (invalidateLinks) _linkStorage.RemoveNode(id);
+            TreeSet<BlueprintLink2> oldLinksTree = null;
+            if (invalidateLinks) {
+                oldLinksTree = _linkStorage.CopyLinks(id);
+                _linkStorage.RemoveNode(id);
+            }
 
             bool changed = false;
             int portCount = _portStorage.GetPortCount(id);
@@ -177,21 +183,19 @@ namespace MisterGames.Blueprints.Meta {
 
             if (_linkStorage.ContainsLink(id, port, toId, toPort)) return false;
 
-            if (!portData.IsMultiple() && _linkStorage.TryGetLinksFrom(id, port, out _)) {
-                _linkStorage.RemovePort(id, port);
-            }
-
-            if (!toPortData.IsMultiple() && _linkStorage.TryGetLinksTo(toId, toPort, out _)) {
-                _linkStorage.RemovePort(toId, toPort);
-            }
+            if (!portData.IsMultiple()) _linkStorage.RemovePort(id, port);
+            if (!toPortData.IsMultiple()) _linkStorage.RemovePort(toId, toPort);
 
             _linkStorage.AddLink(id, port, toId, toPort);
 
             return true;
         }
 
-        public void RemoveLink(NodeId id, int port, NodeId toId, int toPort) {
-            _linkStorage.RemoveLink(id, port, toId, toPort);
+        public bool RemoveLink(NodeId id, int port, NodeId toId, int toPort) {
+            bool removed = _linkStorage.RemoveLink(id, port, toId, toPort);
+            if (_linkStorage.LinkCount == 0) _linkStorage.Clear();
+
+            return removed;
         }
 
         public IBlueprintSource GetNodeSource(NodeId id) {
