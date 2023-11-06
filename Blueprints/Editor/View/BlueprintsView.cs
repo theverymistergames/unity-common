@@ -99,14 +99,12 @@ namespace MisterGames.Blueprints.Editor.View {
             _blueprintAssetSerializedObject = new SerializedObject(_blueprintAsset);
 
             InvalidateBlueprintAsset(_blueprintAsset);
-            _changedNodes.Clear();
-
             RepopulateView();
             RepopulateBlackboardView();
 
             GetBlueprintNodesCenter(out var position, out var scale);
 
-            _blueprintAsset.BlueprintMeta.Bind(OnNodeChanged);
+            _blueprintAsset.BlueprintMeta.Bind(OnNodeChange);
 
             var currentPosition = contentViewContainer.transform.position;
             if (Vector3.Distance(position, currentPosition) < POPULATE_SCROLL_TO_NODES_CENTER_TOLERANCE_DISTANCE) {
@@ -159,8 +157,19 @@ namespace MisterGames.Blueprints.Editor.View {
             }
         }
 
-        private void OnNodeChanged(NodeId id) {
-            _changedNodes.Add(id);
+        private void OnNodeChange(NodeId id, bool force) {
+            if (!force) {
+                _changedNodes.Add(id);
+                return;
+            }
+
+            var nodeView = FindNodeViewByNodeId(id);
+            if (nodeView == null) return;
+
+            RemoveNodeLinkViews(id);
+            nodeView.CreatePortViews(this);
+
+            CreateNodeLinkViews(id);
         }
 
         private void FlushChangedNodes() {
@@ -234,7 +243,7 @@ namespace MisterGames.Blueprints.Editor.View {
             bool changed = false;
 
             foreach (var nodeId in nodes) {
-                changed |= meta.InvalidateNode(nodeId, invalidateLinks: true);
+                changed |= meta.InvalidateNode(nodeId, invalidateLinks: true, notify: false);
             }
 
             if (changed) SetBlueprintAssetDirtyAndNotify();

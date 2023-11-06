@@ -203,8 +203,8 @@ namespace MisterGames.Blueprints.Editor.View {
             if (changed) {
                 _labelWidth = -1f;
                 _fieldWidth = -1f;
-                OnValidate?.Invoke(nodeId);
                 Debug.Log($"OnValidate {nodeId}, source {_meta.GetNodeSource(nodeId)}");
+                OnValidate?.Invoke(nodeId);
             }
         }
 
