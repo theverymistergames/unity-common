@@ -24,13 +24,13 @@ namespace MisterGames.Blueprints.Meta {
         public int LinkCount => _linkStorage.LinkCount;
         public int LinkedPortCount => _linkStorage.LinkedPortCount;
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-        public object Owner { get; set; }
-#endif
+        public readonly Dictionary<NodeId, string> NodeJsonMap = new Dictionary<NodeId, string>();
 
         private Action<NodeId, bool> _onNodeChange;
 
-        public readonly Dictionary<NodeId, string> NodeJsonMap = new Dictionary<NodeId, string>();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        public object Owner { get; set; }
+#endif
 
         public BlueprintMeta2() {
             _nodeMap = new SerializedDictionary<NodeId, Vector2>();
@@ -140,10 +140,11 @@ namespace MisterGames.Blueprints.Meta {
 
                     oldPortsTree.RemoveNodeAt(pointer);
                     if (!oldPortsTree.ContainsChildren(signRoot)) oldPortsTree.RemoveNodeAt(signRoot);
+
+                    continue;
                 }
-                else {
-                    changed = true;
-                }
+
+                changed = true;
             }
 
             changed |= oldPortsTree is { Count: > 0 };

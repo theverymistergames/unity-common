@@ -39,7 +39,7 @@ namespace MisterGames.Blueprints.Editor.View {
         private int _nodePathNodeIndex;
         private string _nodePath;
 
-        private uint _contentHashCache;
+        private uint _lastContentHash;
         private float _labelWidth = -1f;
         private float _fieldWidth = -1f;
 
@@ -55,7 +55,7 @@ namespace MisterGames.Blueprints.Editor.View {
             viewDataKey = nodeId.ToString();
 
             if (FetchNodePath(forceRefresh: true)) {
-                _contentHashCache = _serializedObject.FindProperty(_nodePath)?.contentHash ?? 0;
+                _lastContentHash = _serializedObject.FindProperty(_nodePath)?.contentHash ?? 0;
             }
 
             _inspector = this.Q<InspectorView>("inspector");
@@ -172,14 +172,15 @@ namespace MisterGames.Blueprints.Editor.View {
             EditorGUIUtility.fieldWidth = _fieldWidth;
 
             bool hasProperties = false;
-
-            EditorGUI.BeginChangeCheck();
+            bool changed = false;
 
             while (serializedProperty.NextVisible(enterChildren) && !SerializedProperty.DataEquals(serializedProperty, endProperty)) {
                 hasProperties = true;
-
                 enterChildren = false;
+
+                EditorGUI.BeginChangeCheck();
                 EditorGUILayout.PropertyField(serializedProperty, true);
+                changed |= EditorGUI.EndChangeCheck();
 
                 if (serializedProperty.propertyType == SerializedPropertyType.ObjectReference &&
                     serializedProperty.objectReferenceValue is BlueprintAsset2 blueprint &&
@@ -192,8 +193,8 @@ namespace MisterGames.Blueprints.Editor.View {
             _serializedObject.ApplyModifiedProperties();
 
             uint contentHash = _serializedObject.FindProperty(_nodePath).contentHash;
-            bool changed = EditorGUI.EndChangeCheck() || hasProperties && contentHash != _contentHashCache;
-            _contentHashCache = contentHash;
+            changed |= hasProperties && contentHash != _lastContentHash;
+            _lastContentHash = contentHash;
 
             _serializedObject.Update();
 
