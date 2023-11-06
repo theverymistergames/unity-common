@@ -48,7 +48,8 @@ namespace MisterGames.Blueprints.Editor.Editors {
                     if (port.IsData() || !port.IsInput()) continue;
 
                     if (GUILayout.Button(port.Name)) {
-                        runner.RuntimeBlueprint.CallRoot(runner.RuntimeBlueprint.Root, sign);
+                        var root = runner.RuntimeBlueprint.root;
+                        runner.RuntimeBlueprint.Call(new NodeToken(root, root), sign);
                     }
                 }
             }

@@ -8,7 +8,7 @@ namespace MisterGames.Blueprints.Runtime {
     public sealed class RuntimeBlueprint2 : IBlueprint {
 
         public IBlueprintHost2 Host { get; private set; }
-        public NodeId Root { get; }
+        public readonly NodeId root;
 
         internal readonly IBlueprintFactory factory;
         internal readonly IRuntimeNodeStorage nodeStorage;
@@ -30,7 +30,7 @@ namespace MisterGames.Blueprints.Runtime {
             IRuntimeLinkStorage linkStorage,
             IRuntimeBlackboardStorage blackboardStorage
         ) {
-            Root = root;
+            this.root = root;
 
             this.factory = factory;
             this.nodeStorage = nodeStorage;
@@ -45,7 +45,7 @@ namespace MisterGames.Blueprints.Runtime {
 
             for (int i = 0; i < nodeStorage.Count; i++) {
                 var id = nodeStorage.GetNode(i);
-                factory.GetSource(id.source).OnInitialize(this, new NodeToken(id, Root));
+                factory.GetSource(id.source).OnInitialize(this, new NodeToken(id, root));
             }
         }
 
@@ -54,7 +54,7 @@ namespace MisterGames.Blueprints.Runtime {
                 var id = nodeStorage.GetNode(i);
                 var source = factory.GetSource(id.source);
 
-                source.OnDeInitialize(this, new NodeToken(id, Root));
+                source.OnDeInitialize(this, new NodeToken(id, root));
                 source.RemoveNode(id.node);
                 if (source.Count == 0) factory.RemoveSource(id.source);
             }
@@ -65,7 +65,7 @@ namespace MisterGames.Blueprints.Runtime {
         }
 
         public void SetEnabled(bool enabled) {
-            var root = Root;
+            var root = this.root;
             for (int i = 0; i < nodeStorage.Count; i++) {
                 var id = nodeStorage.GetNode(i);
 
@@ -76,7 +76,7 @@ namespace MisterGames.Blueprints.Runtime {
         }
 
         public void Start() {
-            var root = Root;
+            var root = this.root;
             for (int i = 0; i < nodeStorage.Count; i++) {
                 var id = nodeStorage.GetNode(i);
 
@@ -91,23 +91,12 @@ namespace MisterGames.Blueprints.Runtime {
         }
 
         public void Call(NodeToken token, int port) {
-            if (token.node == Root) {
-                var data = _externalBlueprintMap[token.caller];
-                data.blueprint.Call(new NodeToken(token.caller, data.caller), port);
-                return;
-            }
-
             for (int l = GetFirstLink(token.node, port); l >= 0; l = GetNextLink(l)) {
                 CallLink(l, token.caller);
             }
         }
 
         public T Read<T>(NodeToken token, int port, T defaultValue = default) {
-            if (token.node == Root) {
-                var data = _externalBlueprintMap[token.caller];
-                return data.blueprint.Read<T>(new NodeToken(token.caller, data.caller), port);
-            }
-
             return ReadLink(GetFirstLink(token.node, port), token.caller, defaultValue);
         }
 
@@ -123,14 +112,14 @@ namespace MisterGames.Blueprints.Runtime {
             _externalBlueprintMap?.Remove(id);
         }
 
-        internal void CallRoot(NodeId caller, int port) {
-            for (int l = GetFirstLink(Root, port); l >= 0; l = GetNextLink(l)) {
-                CallLink(l, caller);
-            }
+        internal void ExternalCall(NodeId caller, int port) {
+            var data = _externalBlueprintMap[caller];
+            data.blueprint.Call(new NodeToken(caller, data.caller), port);
         }
 
-        internal T ReadRoot<T>(NodeId caller, int port, T defaultValue = default) {
-            return ReadLink(GetFirstLink(Root, port), caller, defaultValue);
+        internal T ExternalRead<T>(NodeId caller, int port, T defaultValue = default) {
+            var data = _externalBlueprintMap[caller];
+            return data.blueprint.Read(new NodeToken(caller, data.caller), port, defaultValue);
         }
 
         internal void CallLink(int index, NodeId caller) {
@@ -165,7 +154,7 @@ namespace MisterGames.Blueprints.Runtime {
         }
 
         public override string ToString() {
-            return $"{nameof(RuntimeBlueprint2)}: \nNodes: {nodeStorage}\nLinks: {linkStorage}";
+            return $"{nameof(RuntimeBlueprint2)}: Root: {root}\nNodes: {nodeStorage}\nLinks: {linkStorage}";
         }
     }
 

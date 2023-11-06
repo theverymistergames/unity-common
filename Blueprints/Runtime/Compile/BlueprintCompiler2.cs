@@ -102,7 +102,7 @@ namespace MisterGames.Blueprints.Compile {
 
                 if (isExternal) {
 #if UNITY_EDITOR
-                    if (rootId == blueprint.Root) blueprint.rootPorts[sign] = port;
+                    if (rootId == blueprint.root) blueprint.rootPorts[sign] = port;
 #endif
 
                     BlueprintCompilation.CompileRootLinks(meta, linkStorage, id, runtimeId, p, rootId, sign, isEnterOrOutput);

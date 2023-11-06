@@ -65,7 +65,7 @@ namespace MisterGames.Blueprints.Nodes {
             if (!_isValidExternalBlueprint) return;
 #endif
 
-            _externalBlueprint.CallRoot(token.node, port);
+            _externalBlueprint.Call(new NodeToken(_externalBlueprint.root, caller: token.node), port);
         }
 
         public T GetPortValue<T>(IBlueprint blueprint, NodeToken token, int port) {
@@ -73,7 +73,7 @@ namespace MisterGames.Blueprints.Nodes {
             if (!_isValidExternalBlueprint) return default;
 #endif
 
-            return _externalBlueprint.ReadRoot<T>(token.node, port);
+            return _externalBlueprint.Read<T>(new NodeToken(_externalBlueprint.root, caller: token.node), port);
         }
 
         public void OnValidate(IBlueprintMeta meta, NodeId id) {

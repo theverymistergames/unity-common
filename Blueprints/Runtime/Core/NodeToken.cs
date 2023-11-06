@@ -9,6 +9,10 @@
             this.node = node;
             this.caller = caller;
         }
+
+        public override string ToString() {
+            return $"{nameof(NodeToken)}(node {node}, caller {caller})";
+        }
     }
 
 }
