@@ -102,13 +102,13 @@ namespace MisterGames.Blueprints.Compile {
 
                 if (isExternal) {
 #if UNITY_EDITOR
-                    blueprint.rootPorts[sign] = port;
+                    if (rootId == blueprint.Root) blueprint.rootPorts[sign] = port;
 #endif
 
                     BlueprintCompilation.CompileRootLinks(meta, linkStorage, id, runtimeId, p, rootId, sign, isEnterOrOutput);
                 }
                 else {
-                    BlueprintCompilation.CompileSignatureLinks(source, linkStorage, id, p, sign, isEnterOrOutput);
+                    BlueprintCompilation.CompileSignatureLinks(source, linkStorage, runtimeId, p, sign, isEnterOrOutput);
                 }
 
                 if (isEnterOrOutput) {
@@ -122,12 +122,11 @@ namespace MisterGames.Blueprints.Compile {
 
             BlueprintCompilation.AddHashLink(_hashLinks, meta, source, id, runtimeId);
 
-            if (source is IBlueprintCompiled compiled) {
+            if (source is IBlueprintCompilable compiled) {
                 compiled.Compile(id, new BlueprintCompileData(host, blueprint, runtimeId));
             }
 
-            _compiledNodes.Add(runtimeId);
-
+            _compiledNodes.Add(id);
             return true;
         }
 

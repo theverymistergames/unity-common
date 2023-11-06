@@ -2,7 +2,7 @@
 
 namespace MisterGames.Blueprints.Nodes {
 
-    internal interface IBlueprintCompiled {
+    internal interface IBlueprintCompilable {
 
         void Compile(NodeId id, BlueprintCompileData data);
     }

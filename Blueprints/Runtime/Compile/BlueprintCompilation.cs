@@ -158,21 +158,21 @@ namespace MisterGames.Blueprints.Compile {
         public static void CompileSignatureLinks(
             IBlueprintSource source,
             IRuntimeLinkStorage linkStorage,
-            NodeId id,
+            NodeId runtimeId,
             int port,
             int sign,
             bool isEnterOrOutput
         ) {
-            if (source is not IBlueprintCompiled) return;
+            if (source is not IBlueprintCompilable) return;
 
             if (isEnterOrOutput) {
-                int i = linkStorage.SelectPort(id.source, id.node, port);
-                linkStorage.InsertLinkAfter(i, id.source, id.node, sign);
+                int i = linkStorage.SelectPort(runtimeId.source, runtimeId.node, port);
+                linkStorage.InsertLinkAfter(i, runtimeId.source, runtimeId.node, sign);
                 return;
             }
 
-            int j = linkStorage.SelectPort(id.source, id.node, sign);
-            linkStorage.InsertLinkAfter(j, id.source, id.node, port);
+            int j = linkStorage.SelectPort(runtimeId.source, runtimeId.node, sign);
+            linkStorage.InsertLinkAfter(j, runtimeId.source, runtimeId.node, port);
         }
     }
 

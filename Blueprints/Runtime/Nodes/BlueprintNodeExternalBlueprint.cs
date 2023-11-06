@@ -12,7 +12,7 @@ namespace MisterGames.Blueprints.Nodes {
         BlueprintSource<BlueprintNodeExternalBlueprint>,
         BlueprintSources.IEnter<BlueprintNodeExternalBlueprint>,
         BlueprintSources.IOutput<BlueprintNodeExternalBlueprint>,
-        BlueprintSources.ICompiled<BlueprintNodeExternalBlueprint>,
+        BlueprintSources.ICompilable<BlueprintNodeExternalBlueprint>,
         BlueprintSources.ICloneable { }
 
     [Serializable]
@@ -21,7 +21,7 @@ namespace MisterGames.Blueprints.Nodes {
         IBlueprintNode,
         IBlueprintEnter2,
         IBlueprintOutput2,
-        IBlueprintCompiled
+        IBlueprintCompilable
     {
         [BlackboardProperty("_blackboard")]
         [SerializeField] private int _runner;

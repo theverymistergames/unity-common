@@ -23,7 +23,7 @@ namespace MisterGames.Blueprints.Runtime {
         }
 
         public void AllocateNodes(int count) {
-            Array.Resize(ref _nodes, Count + count);
+            Array.Resize(ref _nodes, _nodes.Length + count);
         }
 
         public override string ToString() {

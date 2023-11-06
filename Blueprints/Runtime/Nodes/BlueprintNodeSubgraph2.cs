@@ -8,12 +8,12 @@ namespace MisterGames.Blueprints.Nodes {
     [Serializable]
     public class BlueprintSourceSubgraph :
         BlueprintSource<BlueprintNodeSubgraph2>,
-        BlueprintSources.ICompiled<BlueprintNodeSubgraph2>,
+        BlueprintSources.ICompilable<BlueprintNodeSubgraph2>,
         BlueprintSources.ICloneable { }
 
     [Serializable]
     [BlueprintNode(Name = "Subgraph", Category = "External", Color = BlueprintColors.Node.External)]
-    public struct BlueprintNodeSubgraph2 : IBlueprintNode, IBlueprintCompiled {
+    public struct BlueprintNodeSubgraph2 : IBlueprintNode, IBlueprintCompilable {
 
         [SerializeField] private BlueprintAsset2 _blueprint;
 

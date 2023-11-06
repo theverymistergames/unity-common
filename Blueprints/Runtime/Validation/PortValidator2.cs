@@ -67,15 +67,23 @@ namespace MisterGames.Blueprints.Validation {
                 return false;
             }
 
+            // Any ports allowed for subgraph and external blueprint nodes
+            if (meta.GetNodeSource(id) is IBlueprintCompilable) return true;
+
             var port = meta.GetPort(id, index);
+            if (port.IsData()) {
+                // Data input port: nothing to validate
+                if (port.IsInput()) return true;
 
-            if (port.IsData()) return port.IsInput() || (
-                port.DataType == null
+                return port.DataType == null
                     ? ValidateDynamicOutputPort(meta, id, port, index)
-                    : ValidateOutputPort(meta, id, port, index)
-            );
+                    : ValidateOutputPort(meta, id, port, index);
+            }
 
-            return !port.IsInput() || ValidateEnterPort(meta, id, port, index);
+            // Exit port: nothing to validate
+            if (!port.IsInput()) return true;
+
+            return ValidateEnterPort(meta, id, port, index);
         }
 
         private static bool ValidateEnterPort(BlueprintMeta2 meta, NodeId id, Port port, int index) {
