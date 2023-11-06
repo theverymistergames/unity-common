@@ -1,4 +1,5 @@
-﻿using MisterGames.Blackboards.Core;
+﻿using System.Collections.Generic;
+using MisterGames.Blackboards.Core;
 using MisterGames.Blueprints.Factory;
 using MisterGames.Blueprints.Runtime;
 using MisterGames.Common.Data;
@@ -56,16 +57,35 @@ namespace MisterGames.Blueprints {
         internal SerializedDictionary<BlueprintAsset2, Blackboard> BlackboardOverridesMap =>
             _blackboardOverridesMap ??= new SerializedDictionary<BlueprintAsset2, Blackboard>();
 
+        private readonly HashSet<MonoBehaviour> _clients = new HashSet<MonoBehaviour>();
+
         internal void RestartBlueprint() {
             _blueprintAsset.BlueprintMeta.NodeJsonMap.Clear();
             InterruptRuntimeBlueprint();
+
+            RegisterClient(this);
             GetOrCompileBlueprint().Start();
         }
 
         internal void InterruptRuntimeBlueprint() {
+            UnregisterClient(this);
+
             _runtimeBlueprint?.DeInitialize();
             _runtimeBlueprint = null;
         }
+
+        internal void RegisterClient(MonoBehaviour client) {
+            _clients.Add(client);
+        }
+
+        internal void UnregisterClient(MonoBehaviour client) {
+            _clients.Remove(client);
+            if (_clients.Count > 0) return;
+
+            _runtimeBlueprint?.DeInitialize();
+            _runtimeBlueprint = null;
+        }
+
 #endif
     }
 

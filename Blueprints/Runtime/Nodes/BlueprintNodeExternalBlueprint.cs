@@ -43,6 +43,7 @@ namespace MisterGames.Blueprints.Nodes {
 #if UNITY_EDITOR
             _isValidExternalBlueprint = SubgraphValidator2.ValidateExternalBlueprint(blueprint.Host.Runner, runner, _blueprint);
             if (!_isValidExternalBlueprint) return;
+            runner.RegisterClient(blueprint.Host.Runner);
 #endif
 
             _externalBlueprint = runner.GetOrCompileBlueprint();
@@ -52,6 +53,8 @@ namespace MisterGames.Blueprints.Nodes {
         public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
 #if UNITY_EDITOR
             if (!_isValidExternalBlueprint) return;
+            var runner = blueprint.GetBlackboard(token).Get<BlueprintRunner2>(_runner);
+            if (runner != null) runner.UnregisterClient(blueprint.Host.Runner);
 #endif
 
             _externalBlueprint.Unbind(token.node);
