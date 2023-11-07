@@ -9,7 +9,8 @@ namespace MisterGames.BlueprintLib {
     [Serializable]
     public class BlueprintSourceDelay :
         BlueprintSource<BlueprintNodeDelay2>,
-        BlueprintSources.IEnter<BlueprintNodeDelay2> {}
+        BlueprintSources.IEnter<BlueprintNodeDelay2>,
+        BlueprintSources.ICloneable {}
 
     [Serializable]
     [BlueprintNode(Name = "Delay", Category = "Time", Color = BlueprintColors.Node.Time)]

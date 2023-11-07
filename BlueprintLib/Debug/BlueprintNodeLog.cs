@@ -5,7 +5,9 @@ using UnityEngine;
 namespace MisterGames.BlueprintLib {
 
     [Serializable]
-    public class BlueprintSourceLog : BlueprintSource<BlueprintNodeLog2>, BlueprintSources.IEnter<BlueprintNodeLog2> {}
+    public class BlueprintSourceLog :
+        BlueprintSource<BlueprintNodeLog2>,
+        BlueprintSources.IEnter<BlueprintNodeLog2> {}
 
     [Serializable]
     [BlueprintNode(Name = "Log", Category = "Debug", Color = BlueprintColors.Node.Debug)]
