@@ -371,6 +371,8 @@ namespace MisterGames.Blackboards.Core {
             int hash = StringToHash(name);
             if (_propertiesMap.ContainsKey(hash)) return false;
 
+            Debug.Log($"Blackboard.TryAddProperty: name {name}, type {type}, map index {GetMapIndex(type)}");
+
             var property = new BlackboardProperty {
                 name = name,
                 type = new SerializedType(type),
@@ -907,9 +909,9 @@ namespace MisterGames.Blackboards.Core {
             if (!type.IsArray) {
                 if (type == typeof(bool)) return 0;
                 if (type == typeof(int)) return 1;
-                if (type == typeof(float)) return 2;
-                if (type == typeof(double)) return 3;
-                if (type == typeof(long)) return 4;
+                if (type == typeof(long)) return 2;
+                if (type == typeof(float)) return 3;
+                if (type == typeof(double)) return 4;
                 if (type == typeof(string)) return 5;
 
                 if (type == typeof(Vector2)) return 6;
@@ -934,9 +936,9 @@ namespace MisterGames.Blackboards.Core {
 
             if (type == typeof(bool)) return 18;
             if (type == typeof(int)) return 19;
-            if (type == typeof(float)) return 20;
-            if (type == typeof(double)) return 21;
-            if (type == typeof(long)) return 22;
+            if (type == typeof(long)) return 20;
+            if (type == typeof(float)) return 21;
+            if (type == typeof(double)) return 22;
             if (type == typeof(string)) return 23;
 
             if (type == typeof(Vector2)) return 24;
