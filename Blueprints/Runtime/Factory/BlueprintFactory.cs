@@ -22,20 +22,12 @@ namespace MisterGames.Blueprints.Factory {
         }
 
         public int GetOrCreateSource(Type sourceType) {
-#if UNITY_EDITOR
-            foreach (int key in _sources.Keys) {
-                if (_sources[key].GetType() == sourceType) return key;
-            }
-
-            return AddSource(Activator.CreateInstance(sourceType) as IBlueprintSource);
-#else
             if (_typeToIdMap.TryGetValue(sourceType, out int id)) return id;
 
             id = AddSource(Activator.CreateInstance(sourceType) as IBlueprintSource);
             _typeToIdMap.Add(sourceType, id);
 
             return id;
-#endif
         }
 
         public void RemoveSource(int id) {
