@@ -9,7 +9,8 @@ namespace MisterGames.BlueprintLib {
     [Serializable]
     public class BlueprintSourceGetBlackboardPropertyLeft :
         BlueprintSource<BlueprintNodeGetBlackboardPropertyLeft2>,
-        BlueprintSources.IOutput<BlueprintNodeGetBlackboardPropertyLeft2> {}
+        BlueprintSources.IOutput<BlueprintNodeGetBlackboardPropertyLeft2>,
+        BlueprintSources.ICloneable {}
 
     [Serializable]
     [BlueprintNode(Name = "Get Blackboard Property (left)", Category = "Blackboard", Color = BlueprintColors.Node.Blackboard)]
