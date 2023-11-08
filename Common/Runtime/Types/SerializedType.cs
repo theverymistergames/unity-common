@@ -16,10 +16,6 @@ namespace MisterGames.Common.Types {
             return DeserializeType(_type);
         }
 
-        public bool HasNullType() {
-            return string.IsNullOrWhiteSpace(_type);
-        }
-
         public bool Equals(SerializedType other) {
             return this == other;
         }
@@ -66,7 +62,7 @@ namespace MisterGames.Common.Types {
         }
 
         public static Type DeserializeType(string serializedType) {
-            if (string.IsNullOrEmpty(serializedType)) return null;
+            if (string.IsNullOrWhiteSpace(serializedType)) return null;
             if (!serializedType.Contains('\n')) return DeserializeTypeDefinition(serializedType);
 
             ReadOnlySpan<string> serializedTypes = serializedType.Split('\n');
