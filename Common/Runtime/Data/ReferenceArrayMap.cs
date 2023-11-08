@@ -42,6 +42,15 @@ namespace MisterGames.Common.Data {
             _freeIndices = new List<int>();
         }
 
+        public ReferenceArrayMap(ReferenceArrayMap<K, V> source) {
+            int capacity = source._nodes.Length;
+            _nodes = new Node[capacity];
+            Array.Copy(source._nodes, _nodes, capacity);
+
+            _indexMap = new SerializedDictionary<K, int>(source._indexMap);
+            _freeIndices = new List<int>();
+        }
+
         public bool TryGetValue(K key, out V value) {
             if (_indexMap.TryGetValue(key, out int index)) {
                 ref var node = ref _nodes[index];
