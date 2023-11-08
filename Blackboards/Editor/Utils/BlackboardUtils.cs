@@ -101,7 +101,7 @@ namespace MisterGames.Blackboards.Editor {
                 break;
             }
 
-            return blackboard != null && blackboard.TryGetProperty(hash, out blackboardProperty) && !blackboardProperty.type.HasNullType();
+            return blackboard != null && blackboard.TryGetProperty(hash, out blackboardProperty) && blackboardProperty.type.ToType() != null;
         }
 
         public static VisualElement CreateBlackboardPropertyView(SerializedBlackboardProperty property) {
