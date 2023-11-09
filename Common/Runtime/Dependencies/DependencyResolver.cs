@@ -76,7 +76,7 @@ namespace MisterGames.Common.Dependencies {
 #endif
 
             var bucket = new DependencyBucket {
-                name = TypeNameFormatter.GetTypeName(source.GetType()),
+                name = TypeNameFormatter.GetShortTypeName(source.GetType()),
                 offset = _dependenciesCount,
                 count = 0,
             };

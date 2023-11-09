@@ -95,7 +95,7 @@ namespace MisterGames.Common.Editor.Attributes.ReadOnly {
 
                 var sb = new StringBuilder();
                 foreach (var type in _internalRuntimeOverridenTypesCache) {
-                    sb.AppendLine($"- {TypeNameFormatter.GetTypeName(type)}");
+                    sb.AppendLine($"- {TypeNameFormatter.GetShortTypeName(type)}");
                 }
 
                 float h = Mathf.Max(EditorGUIUtility.singleLineHeight, _internalRuntimeOverridenTypesCache.Count * EditorGUIUtility.singleLineHeight * 0.8f);
@@ -114,7 +114,7 @@ namespace MisterGames.Common.Editor.Attributes.ReadOnly {
                     if (_internalRuntimeOverridenTypesCache.Contains(type)) continue;
 
                     sb ??= new StringBuilder();
-                    sb.AppendLine($"- {TypeNameFormatter.GetTypeName(type)}");
+                    sb.AppendLine($"- {TypeNameFormatter.GetShortTypeName(type)}");
 
                     addExternalRuntimeOverridenTypesCount++;
                 }
@@ -172,7 +172,7 @@ namespace MisterGames.Common.Editor.Attributes.ReadOnly {
                     var depPointerProperty = depPointersProperty.GetArrayElementAtIndex(d);
 
                     var type = SerializedType.DeserializeType(depMetaProperty.FindPropertyRelative("type._type").stringValue);
-                    var depLabel = new GUIContent(TypeNameFormatter.GetTypeName(type));
+                    var depLabel = new GUIContent(TypeNameFormatter.GetShortTypeName(type));
 
                     int list = depPointerProperty.FindPropertyRelative("list").intValue;
                     int index = depPointerProperty.FindPropertyRelative("index").intValue;
@@ -375,7 +375,7 @@ namespace MisterGames.Common.Editor.Attributes.ReadOnly {
                     var depPointerProperty = depPointersProperty.GetArrayElementAtIndex(d);
 
                     var type = SerializedType.DeserializeType(depMetaProperty.FindPropertyRelative("type._type").stringValue);
-                    var depLabel = new GUIContent(TypeNameFormatter.GetTypeName(type));
+                    var depLabel = new GUIContent(TypeNameFormatter.GetShortTypeName(type));
 
                     int list = depPointerProperty.FindPropertyRelative("list").intValue;
                     int index = depPointerProperty.FindPropertyRelative("index").intValue;

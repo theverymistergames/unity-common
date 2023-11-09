@@ -7,7 +7,7 @@ using UnityEngine;
 namespace MisterGames.Common.Data {
 
     [Serializable]
-    public sealed class ReferenceArrayMap<K, V> where V : class {
+    public sealed class RefArrayMap<K, V> where V : class {
 
         [SerializeField] private Node[] _nodes;
         [SerializeField] private SerializedDictionary<K, int> _indexMap;
@@ -36,13 +36,13 @@ namespace MisterGames.Common.Data {
             }
         }
 
-        public ReferenceArrayMap(int capacity = 0) {
+        public RefArrayMap(int capacity = 0) {
             _nodes = new Node[capacity];
             _indexMap = new SerializedDictionary<K, int>(capacity);
             _freeIndices = new List<int>();
         }
 
-        public ReferenceArrayMap(ReferenceArrayMap<K, V> source) {
+        public RefArrayMap(RefArrayMap<K, V> source) {
             int capacity = source._nodes.Length;
             _nodes = new Node[capacity];
             Array.Copy(source._nodes, _nodes, capacity);
