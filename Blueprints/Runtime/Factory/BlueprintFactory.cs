@@ -31,6 +31,9 @@ namespace MisterGames.Blueprints.Factory {
         }
 
         public void RemoveSource(int id) {
+            if (!_sources.TryGetValue(id, out var source)) return;
+
+            if (source != null) _typeToIdMap.Remove(source.GetType());
             _sources.Remove(id);
         }
 
