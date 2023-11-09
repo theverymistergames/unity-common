@@ -531,7 +531,7 @@ namespace MisterGames.Blueprints.Editor.View {
 
             for (int p = 0; p < fromPortsCount; p++) {
                 var fromPort = meta.GetPort(id, p);
-                if (fromPort.IsHidden() || fromNodeView.TryGetPortView(p, out var fromPortView)) continue;
+                if (fromPort.IsHidden() || !fromNodeView.TryGetPortView(p, out var fromPortView)) continue;
 
                 for (meta.TryGetLinksFrom(id, p, out int l); l >= 0; meta.TryGetNextLink(l, out l)) {
                     var link = meta.GetLink(l);
