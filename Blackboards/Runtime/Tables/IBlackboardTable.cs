@@ -12,7 +12,7 @@
 
         bool TryGetValue(int hash, out object value);
 
-        bool TrySetValue(int hash, object value);
+        void SetOrAddValue(int hash, object value);
 
         bool RemoveValue(int hash);
 

@@ -9,7 +9,7 @@ namespace MisterGames.Blackboards.Tables {
     [BlackboardTable(typeof(object[]))]
     public sealed class BlackboardTableReferenceArray : IBlackboardTable {
 
-        [SerializeField] private ArrayMap<int, BlackboardReference[]> _map;
+        [SerializeField] private ArrayMap<int, BlackboardReference[]> _map = new ArrayMap<int, BlackboardReference[]>();
 
         public int Count => _map.Count;
 
@@ -54,11 +54,8 @@ namespace MisterGames.Blackboards.Tables {
             return true;
         }
 
-        public bool TrySetValue(int hash, object value) {
-            if (!_map.ContainsKey(hash)) return false;
-
+        public void SetOrAddValue(int hash, object value) {
             _map[hash] = value as BlackboardReference[];
-            return true;
         }
 
         public bool RemoveValue(int hash) {

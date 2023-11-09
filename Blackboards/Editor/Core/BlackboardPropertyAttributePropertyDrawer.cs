@@ -13,7 +13,7 @@ namespace MisterGames.Blackboards.Editor {
 
             var attr = (BlackboardPropertyAttribute) attribute;
             if (property.propertyType != SerializedPropertyType.Integer ||
-                property.serializedObject.FindProperty(attr.pathToBlackboard)?.GetValue() is not Blackboard blackboard
+                property.serializedObject.FindProperty(attr.pathToBlackboard)?.GetValue() is not Blackboard2 blackboard
             ) {
                 CustomPropertyGUI.PropertyField(position, property, label, property.GetFieldInfo(), includeChildren: true);
                 EditorGUI.EndProperty();
@@ -60,7 +60,7 @@ namespace MisterGames.Blackboards.Editor {
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label) {
             var attr = (BlackboardPropertyAttribute) attribute;
             return property.propertyType == SerializedPropertyType.Integer &&
-                   property.serializedObject.FindProperty(attr.pathToBlackboard)?.GetValue() is Blackboard
+                   property.serializedObject.FindProperty(attr.pathToBlackboard)?.GetValue() is Blackboard2
                 ? EditorGUIUtility.singleLineHeight
                 : CustomPropertyGUI.GetPropertyHeight(property, label, property.GetFieldInfo(), includeChildren: true);
         }

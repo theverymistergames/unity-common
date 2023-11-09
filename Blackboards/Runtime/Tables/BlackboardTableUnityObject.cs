@@ -10,7 +10,7 @@ namespace MisterGames.Blackboards.Tables {
     [BlackboardTable(typeof(Object))]
     public sealed class BlackboardTableUnityObject : IBlackboardTable {
 
-        [SerializeField] private ArrayMap<int, BlackboardValue<Object>> _map;
+        [SerializeField] private ArrayMap<int, BlackboardValue<Object>> _map = new ArrayMap<int, BlackboardValue<Object>>();
 
         public int Count => _map.Count;
 
@@ -40,11 +40,8 @@ namespace MisterGames.Blackboards.Tables {
             return true;
         }
 
-        public bool TrySetValue(int hash, object value) {
-            if (!_map.ContainsKey(hash)) return false;
-
+        public void SetOrAddValue(int hash, object value) {
             _map[hash] = value is BlackboardValue<Object> v ? v : default;
-            return true;
         }
 
         public bool RemoveValue(int hash) {

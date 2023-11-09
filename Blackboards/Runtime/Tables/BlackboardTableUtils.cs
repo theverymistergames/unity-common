@@ -24,7 +24,7 @@ namespace MisterGames.Blackboards.Tables {
             if (isArray) t = t.GetElementType()!;
 
             t = typeof(UnityEngine.Object).IsAssignableFrom(t) ? typeof(UnityEngine.Object) :
-                t.IsSubclassOf(typeof(object)) || t.IsInterface ? typeof(object) :
+                t.IsClass || t.IsInterface ? typeof(object) :
                 t.IsEnum ? typeof(Enum) :
                 t;
 
@@ -47,6 +47,7 @@ namespace MisterGames.Blackboards.Tables {
         private static Type[] GetBlackboardTableTypes() {
             BlackboardTableTypeCache ??= AppDomain.CurrentDomain
                 .GetAssemblies()
+                .Where(assembly => !assembly.FullName.Contains(EDITOR, StringComparison.OrdinalIgnoreCase))
                 .SelectMany(assembly => assembly.GetTypes())
                 .Where(t =>
                     typeof(IBlackboardTable).IsAssignableFrom(t) &&

@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace MisterGames.Blackboards.Editor {
 
-    [CustomPropertyDrawer(typeof(Blackboard))]
+    [CustomPropertyDrawer(typeof(Blackboard2))]
     public sealed class BlackboardPropertyDrawer : PropertyDrawer {
 
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
@@ -17,7 +17,7 @@ namespace MisterGames.Blackboards.Editor {
             if (e.type == EventType.MouseDown && e.isMouse && e.button == 1 && headerRect.Contains(e.mousePosition)) {
                 var menu = new GenericMenu();
                 menu.AddItem(new GUIContent("Reset"), false, () => {
-                    (property.GetValue() as Blackboard)?.TryResetPropertyValues();
+                    ((Blackboard2) property.GetValue()).TryResetPropertyValues();
 
                     property.serializedObject.ApplyModifiedProperties();
                     property.serializedObject.Update();
@@ -34,7 +34,9 @@ namespace MisterGames.Blackboards.Editor {
 
             float y = position.y + EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
 
-            var properties = BlackboardUtils.GetSerializedBlackboardProperties(property);
+            var blackboard = (Blackboard2) property.GetValue();
+            var properties = blackboard.Properties;
+
             if (properties.Count == 0) {
                 var rect = new Rect(position.x, y, position.width, EditorGUIUtility.singleLineHeight);
                 EditorGUI.HelpBox(rect, "(no properties)", MessageType.None);
@@ -43,9 +45,11 @@ namespace MisterGames.Blackboards.Editor {
             }
 
             for (int i = 0; i < properties.Count; i++) {
-                var propertyData = properties[i];
-                var serializedProperty = propertyData.serializedProperty;
+                int hash = properties[i];
+                string path = blackboard.GetSerializedPropertyPath(hash);
+                blackboard.TryGetProperty(hash, out var blackboardProperty);
 
+                var serializedProperty = property.FindPropertyRelative(path);
                 if (serializedProperty == null) {
                     y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
                     continue;
@@ -55,7 +59,7 @@ namespace MisterGames.Blackboards.Editor {
                 var rect = new Rect(position.x, y, position.width, propertyHeight);
                 y += propertyHeight + EditorGUIUtility.standardVerticalSpacing;
 
-                EditorGUI.PropertyField(rect, serializedProperty, new GUIContent(propertyData.blackboardProperty.name), includeChildren: true);
+                EditorGUI.PropertyField(rect, serializedProperty, new GUIContent(blackboardProperty.name), includeChildren: true);
             }
 
             property.serializedObject.ApplyModifiedProperties();
@@ -70,7 +74,8 @@ namespace MisterGames.Blackboards.Editor {
 
             height += EditorGUIUtility.standardVerticalSpacing;
 
-            var properties = BlackboardUtils.GetSerializedBlackboardProperties(property);
+            var blackboard = (Blackboard2) property.GetValue();
+            var properties = blackboard.Properties;
 
             if (properties.Count == 0) {
                 height += EditorGUIUtility.singleLineHeight;
@@ -78,11 +83,12 @@ namespace MisterGames.Blackboards.Editor {
             }
 
             for (int i = 0; i < properties.Count; i++) {
-                var elementProperty = properties[i].serializedProperty;
+                int hash = properties[i];
+                var serializedProperty = property.FindPropertyRelative(blackboard.GetSerializedPropertyPath(hash));
 
-                float propertyHeight = elementProperty == null
+                float propertyHeight = serializedProperty == null
                     ? EditorGUIUtility.singleLineHeight
-                    : EditorGUI.GetPropertyHeight(elementProperty, label, includeChildren: true);
+                    : EditorGUI.GetPropertyHeight(serializedProperty, label, includeChildren: true);
 
                 height += propertyHeight + EditorGUIUtility.standardVerticalSpacing;
             }

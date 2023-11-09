@@ -13,8 +13,8 @@ namespace MisterGames.Blackboards.Editor {
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
             EditorGUI.BeginProperty(position, label, property);
 
-            if (BlackboardUtils.TryGetBlackboardProperty(property, out var blackboardProperty, out _, out _)) {
-                var type = blackboardProperty.type.ToType();
+            if (BlackboardUtils.TryGetBlackboardPropertyData(property, out var data)) {
+                var type = data.property.type.ToType();
                 if (type.IsArray) type = type.GetElementType();
 
                 TypedField(position, property.FindPropertyRelative("value"), type, label);
@@ -27,8 +27,8 @@ namespace MisterGames.Blackboards.Editor {
         }
 
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label) {
-            return BlackboardUtils.TryGetBlackboardProperty(property, out var blackboardProperty, out _, out _)
-                ? GetTypedFieldHeight(property, label, blackboardProperty.type.ToType())
+            return BlackboardUtils.TryGetBlackboardPropertyData(property, out var data)
+                ? GetTypedFieldHeight(property, label, data.property.type.ToType())
                 : BlackboardUtils.GetNullPropertyHeight();
         }
 
@@ -39,14 +39,14 @@ namespace MisterGames.Blackboards.Editor {
             }
 
             if (type.IsEnum) {
-                var currentEnumValue = Enum.ToObject(type, property.longValue) as Enum;
+                var currentEnumValue = Enum.ToObject(type, property.ulongValue) as Enum;
 
                 var result = type.GetCustomAttribute<FlagsAttribute>(false) != null
                     ? EditorGUI.EnumFlagsField(position, label, currentEnumValue)
                     : EditorGUI.EnumPopup(position, label, currentEnumValue);
 
                 if (!Equals(result, currentEnumValue)) {
-                    property.longValue = Convert.ToInt64(result);
+                    property.ulongValue = Convert.ToUInt64(result);
 
                     property.serializedObject.ApplyModifiedProperties();
                     property.serializedObject.Update();

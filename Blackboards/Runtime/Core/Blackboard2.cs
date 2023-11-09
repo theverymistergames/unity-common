@@ -13,7 +13,7 @@ namespace MisterGames.Blackboards.Core {
 
         [SerializeField] private List<int> _propertyList;
         [SerializeField] private SerializedDictionary<int, BlackboardProperty2> _propertyMap;
-        [SerializeField] private ReferenceArrayMap<int, IBlackboardTable> _tables;
+        [SerializeField] private RefArrayMap<int, IBlackboardTable> _tables;
         [SerializeField] private int _tablesHead;
 
         public IReadOnlyList<int> Properties => _propertyList;
@@ -21,13 +21,13 @@ namespace MisterGames.Blackboards.Core {
         public Blackboard2() {
             _propertyList = new List<int>();
             _propertyMap = new SerializedDictionary<int, BlackboardProperty2>();
-            _tables = new ReferenceArrayMap<int, IBlackboardTable>();
+            _tables = new RefArrayMap<int, IBlackboardTable>();
         }
 
         public Blackboard2(Blackboard2 source) {
             _propertyList = new List<int>(source._propertyList);
             _propertyMap = new SerializedDictionary<int, BlackboardProperty2>(source._propertyMap);
-            _tables = new ReferenceArrayMap<int, IBlackboardTable>(source._tables);
+            _tables = new RefArrayMap<int, IBlackboardTable>(source._tables);
         }
 
         public T Get<T>(int hash) {
@@ -235,24 +235,31 @@ namespace MisterGames.Blackboards.Core {
 
         public string GetSerializedPropertyPath(int hash) {
             if (!_propertyMap.TryGetValue(hash, out var property)) return null;
-            if (property.table < 0 || property.table >= _tablesHead) return null;
+            if (!_tables.TryGetValue(property.table, out var t)) return null;
 
-            string tableLocalPath = _tables[property.table].GetSerializedPropertyPath(hash);
+            string tableLocalPath = t.GetSerializedPropertyPath(hash);
             if (tableLocalPath == null) return null;
 
-            return $"{nameof(_tables)}._nodes.Array.data[{_tables.IndexOf(property.table)}].{tableLocalPath}";
+            return $"{nameof(_tables)}._nodes.Array.data[{_tables.IndexOf(property.table)}].value.{tableLocalPath}";
         }
 
         private bool TryGetValue(int table, int hash, out object value) {
-            return _tables[table].TryGetValue(hash, out value);
+            if (_tables.TryGetValue(table, out var t)) return t.TryGetValue(hash, out value);
+
+            value = default;
+            return false;
         }
 
         private bool TrySetValue(int table, int hash, object value) {
-            return _tables[table].TrySetValue(hash, value);
+            if (!_tables.TryGetValue(table, out var t)) return false;
+
+            t.SetOrAddValue(hash, value);
+            return true;
         }
 
         private bool TryRemoveValue(int table, int hash) {
-            var t = _tables[table];
+            if (!_tables.TryGetValue(table, out var t)) return false;
+
             bool removed = t.RemoveValue(hash);
             if (t.Count <= 0) _tables.Remove(table);
 
@@ -260,8 +267,9 @@ namespace MisterGames.Blackboards.Core {
         }
 
         private int GetOrCreateTable(Type tableType) {
-            for (int i = 0; i < _tables.Count; i++) {
-                if (_tables[i] is {} t && t.GetType() == tableType) return i;
+            var tableIds = _tables.Keys;
+            foreach (int tableId in tableIds) {
+                if (_tables[tableId] is {} t && t.GetType() == tableType) return tableId;
             }
 
             var table = (IBlackboardTable) Activator.CreateInstance(tableType);

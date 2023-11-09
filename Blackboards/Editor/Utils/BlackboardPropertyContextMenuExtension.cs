@@ -12,10 +12,10 @@ namespace MisterGames.Blackboards.Editor {
         }
 
         private static void OnContextMenuOpening(GenericMenu menu, SerializedProperty property) {
-            if (!BlackboardUtils.TryGetBlackboardProperty(property, out _, out var blackboard, out int hash)) return;
+            if (!BlackboardUtils.TryGetBlackboardPropertyData(property, out var data)) return;
 
             menu.AddItem(new GUIContent("Reset"), false, () => {
-                blackboard.TryResetPropertyValue(hash);
+                data.blackboard.TryResetPropertyValue(data.hash);
 
                 property.serializedObject.ApplyModifiedProperties();
                 property.serializedObject.Update();

@@ -7,7 +7,7 @@ namespace MisterGames.Blackboards.Tables {
     [Serializable]
     public abstract class BlackboardTable<V> : IBlackboardTable {
 
-        [SerializeField] private ArrayMap<int, V> _map;
+        [SerializeField] private ArrayMap<int, V> _map = new ArrayMap<int, V>();
 
         public int Count => _map.Count;
 
@@ -33,11 +33,8 @@ namespace MisterGames.Blackboards.Tables {
             return true;
         }
 
-        public bool TrySetValue(int hash, object value) {
-            if (!_map.ContainsKey(hash)) return false;
-
+        public void SetOrAddValue(int hash, object value) {
             _map[hash] = value is V v ? v : default;
-            return true;
         }
 
         public bool RemoveValue(int hash) {
