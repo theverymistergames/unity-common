@@ -18,7 +18,7 @@ namespace MisterGames.BlueprintLib {
 
         [SerializeField] [BlackboardProperty("_blackboard")] private int _property;
 
-        private Blackboard2 _blackboard;
+        private Blackboard _blackboard;
 
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {
             var asset = (meta as BlueprintMeta2)?.Owner as BlueprintAsset2;

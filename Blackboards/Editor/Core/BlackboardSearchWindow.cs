@@ -5,6 +5,7 @@ using System.Text;
 using MisterGames.Blackboards.Tables;
 using MisterGames.Common.Editor.Tree;
 using MisterGames.Common.Types;
+using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using Blackboard = MisterGames.Blackboards.Core.Blackboard;

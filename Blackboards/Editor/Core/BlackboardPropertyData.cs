@@ -3,8 +3,8 @@
 namespace MisterGames.Blackboards.Editor {
 
     public struct BlackboardPropertyData {
-        public Blackboard2 blackboard;
-        public BlackboardProperty2 property;
+        public Blackboard blackboard;
+        public BlackboardProperty property;
         public int hash;
     }
 

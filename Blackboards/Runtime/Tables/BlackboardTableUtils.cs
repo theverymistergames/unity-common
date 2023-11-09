@@ -45,10 +45,16 @@ namespace MisterGames.Blackboards.Tables {
         }
 
         private static Type[] GetBlackboardTableTypes() {
-            BlackboardTableTypeCache ??= AppDomain.CurrentDomain
+            BlackboardTableTypeCache ??=
+#if UNITY_EDITOR
+                UnityEditor.TypeCache.GetTypesDerivedFrom<IBlackboardTable>()
+#else
+                AppDomain.CurrentDomain
                 .GetAssemblies()
                 .Where(assembly => !assembly.FullName.Contains(EDITOR, StringComparison.OrdinalIgnoreCase))
                 .SelectMany(assembly => assembly.GetTypes())
+                .Where(t => typeof(IBlackboardTable).IsAssignableFrom(t))
+#endif
                 .Where(t =>
                     typeof(IBlackboardTable).IsAssignableFrom(t) &&
                     (t.IsPublic || t.IsNestedPublic) &&

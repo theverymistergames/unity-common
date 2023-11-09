@@ -13,7 +13,6 @@ using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.UIElements;
-using Blackboard = MisterGames.Blackboards.Core.Blackboard;
 using BlackboardView = UnityEditor.Experimental.GraphView.Blackboard;
 using PortView = UnityEditor.Experimental.GraphView.Port;
 
@@ -363,7 +362,7 @@ namespace MisterGames.Blueprints.Editor.View {
         private void RemoveBlackboardProperty(string propertyName) {
             Undo.RecordObject(_blueprintAsset, "Blueprint Remove Blackboard Property");
 
-            _blueprintAsset.Blackboard.RemoveProperty(Blackboard.StringToHash(propertyName));
+            _blueprintAsset.Blackboard.RemoveProperty(Blackboards.Core.Blackboard.StringToHash(propertyName));
 
             SetBlueprintAssetDirtyAndNotify();
         }
@@ -373,7 +372,7 @@ namespace MisterGames.Blueprints.Editor.View {
 
             Undo.RecordObject(_blueprintAsset, "Blueprint Blackboard Property Position Changed");
 
-            if (!_blueprintAsset.Blackboard.TrySetPropertyIndex(Blackboard.StringToHash(field.text), newIndex)) return;
+            if (!_blueprintAsset.Blackboard.TrySetPropertyIndex(Blackboards.Core.Blackboard.StringToHash(field.text), newIndex)) return;
 
             SetBlueprintAssetDirtyAndNotify();
             RepopulateBlackboardView();
@@ -384,7 +383,7 @@ namespace MisterGames.Blueprints.Editor.View {
 
             Undo.RecordObject(_blueprintAsset, "Blueprint Blackboard Property Name Changed");
 
-            if (!_blueprintAsset.Blackboard.TrySetPropertyName(Blackboard.StringToHash(field.text), newName)) return;
+            if (!_blueprintAsset.Blackboard.TrySetPropertyName(Blackboards.Core.Blackboard.StringToHash(field.text), newName)) return;
 
             field.text = newName;
             SetBlueprintAssetDirtyAndNotify();

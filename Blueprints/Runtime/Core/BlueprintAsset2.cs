@@ -10,9 +10,9 @@ namespace MisterGames.Blueprints {
     public sealed class BlueprintAsset2 : ScriptableObject {
 
         [SerializeField] private BlueprintMeta2 _blueprintMeta;
-        [SerializeField] private Blackboard2 _blackboard;
+        [SerializeField] private Blackboard _blackboard;
 
-        public Blackboard2 Blackboard => _blackboard;
+        public Blackboard Blackboard => _blackboard;
 
         public BlueprintMeta2 BlueprintMeta {
             get {

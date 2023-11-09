@@ -23,7 +23,7 @@ namespace MisterGames.Blackboards.Core {
         /// <summary>
         /// Index of the blackboard map used to store blackboard property value.
         /// </summary>
-        public int mapIndex;
+        public int table;
     }
 
 }

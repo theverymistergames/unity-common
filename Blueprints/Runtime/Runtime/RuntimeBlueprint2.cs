@@ -86,7 +86,7 @@ namespace MisterGames.Blueprints.Runtime {
             }
         }
 
-        public Blackboard2 GetBlackboard(NodeToken token) {
+        public Blackboard GetBlackboard(NodeToken token) {
             return blackboardStorage.GetBlackboard(token.caller);
         }
 

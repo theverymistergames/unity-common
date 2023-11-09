@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace MisterGames.Blackboards.Editor {
 
-    [CustomPropertyDrawer(typeof(Blackboard2))]
+    [CustomPropertyDrawer(typeof(Blackboard))]
     public sealed class BlackboardPropertyDrawer : PropertyDrawer {
 
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
@@ -17,7 +17,7 @@ namespace MisterGames.Blackboards.Editor {
             if (e.type == EventType.MouseDown && e.isMouse && e.button == 1 && headerRect.Contains(e.mousePosition)) {
                 var menu = new GenericMenu();
                 menu.AddItem(new GUIContent("Reset"), false, () => {
-                    ((Blackboard2) property.GetValue()).TryResetPropertyValues();
+                    ((Blackboard) property.GetValue()).TryResetPropertyValues();
 
                     property.serializedObject.ApplyModifiedProperties();
                     property.serializedObject.Update();
@@ -34,7 +34,7 @@ namespace MisterGames.Blackboards.Editor {
 
             float y = position.y + EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
 
-            var blackboard = (Blackboard2) property.GetValue();
+            var blackboard = (Blackboard) property.GetValue();
             var properties = blackboard.Properties;
 
             if (properties.Count == 0) {
@@ -74,7 +74,7 @@ namespace MisterGames.Blackboards.Editor {
 
             height += EditorGUIUtility.standardVerticalSpacing;
 
-            var blackboard = (Blackboard2) property.GetValue();
+            var blackboard = (Blackboard) property.GetValue();
             var properties = blackboard.Properties;
 
             if (properties.Count == 0) {

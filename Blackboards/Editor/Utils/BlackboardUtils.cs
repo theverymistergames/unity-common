@@ -7,6 +7,7 @@ using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.UIElements;
+using Blackboard = MisterGames.Blackboards.Core.Blackboard;
 
 namespace MisterGames.Blackboards.Editor {
 
@@ -56,7 +57,7 @@ namespace MisterGames.Blackboards.Editor {
 
                 int hash = hashProperty.intValue;
 
-                if (p.serializedObject.FindProperty(path)?.GetValue() is not Blackboard2 blackboard) return false;
+                if (p.serializedObject.FindProperty(path)?.GetValue() is not Blackboard blackboard) return false;
                 if (!blackboard.TryGetProperty(hash, out var blackboardProperty)) return false;
 
                 data.hash = hash;
@@ -69,7 +70,7 @@ namespace MisterGames.Blackboards.Editor {
             return false;
         }
 
-        public static VisualElement CreateBlackboardPropertyView(BlackboardProperty2 property) {
+        public static VisualElement CreateBlackboardPropertyView(BlackboardProperty property) {
             var type = property.type.ToType();
             string typeName = TypeNameFormatter.GetShortTypeName(type);
             string propertyName = property.name;
