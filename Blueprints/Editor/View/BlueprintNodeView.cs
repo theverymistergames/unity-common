@@ -130,8 +130,8 @@ namespace MisterGames.Blueprints.Editor.View {
             RefreshPorts();
         }
 
-        public PortView GetPortView(int portIndex) {
-            return _portIndexToPortViewMap[portIndex];
+        public bool TryGetPortView(int portIndex, out PortView portView) {
+            return _portIndexToPortViewMap.TryGetValue(portIndex, out portView);
         }
 
         public int GetPortIndex(PortView portView) {

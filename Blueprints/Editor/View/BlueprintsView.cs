@@ -531,14 +531,12 @@ namespace MisterGames.Blueprints.Editor.View {
 
             for (int p = 0; p < fromPortsCount; p++) {
                 var fromPort = meta.GetPort(id, p);
-                if (fromPort.IsHidden()) continue;
-
-                var fromPortView = fromNodeView.GetPortView(p);
+                if (fromPort.IsHidden() || fromNodeView.TryGetPortView(p, out var fromPortView)) continue;
 
                 for (meta.TryGetLinksFrom(id, p, out int l); l >= 0; meta.TryGetNextLink(l, out l)) {
                     var link = meta.GetLink(l);
                     var toNodeView = FindNodeViewByNodeId(link.id);
-                    var toPortView = toNodeView.GetPortView(link.port);
+                    if (!toNodeView.TryGetPortView(link.port, out var toPortView)) continue;
 
                     bool hasConnectionView = false;
                     foreach (var e in fromPortView.connections) {
@@ -558,7 +556,7 @@ namespace MisterGames.Blueprints.Editor.View {
                 for (meta.TryGetLinksTo(id, p, out int l); l >= 0; meta.TryGetNextLink(l, out l)) {
                     var link = meta.GetLink(l);
                     var toNodeView = FindNodeViewByNodeId(link.id);
-                    var toPortView = toNodeView.GetPortView(link.port);
+                    if (!toNodeView.TryGetPortView(link.port, out var toPortView)) continue;
 
                     bool hasConnectionView = false;
                     foreach (var e in fromPortView.connections) {
@@ -732,6 +730,8 @@ namespace MisterGames.Blueprints.Editor.View {
 
             if (pasteData.nodes == null || pasteData.nodes.Count == 0) return;
 
+            ClearSelection();
+
             var meta = _blueprintAsset.BlueprintMeta;
             var positionDiff = _mousePosition - pasteData.position;
 
@@ -776,8 +776,11 @@ namespace MisterGames.Blueprints.Editor.View {
             for (int i = 0; i < connections.Count; i++) {
                 var (from, to) = connections[i];
 
-                var input = FindNodeViewByNodeId(from.id).GetPortView(from.port);
-                var output = FindNodeViewByNodeId(to.id).GetPortView(to.port);
+                if (!FindNodeViewByNodeId(from.id).TryGetPortView(from.port, out var input) ||
+                    !FindNodeViewByNodeId(to.id).TryGetPortView(to.port, out var output)
+                ) {
+                    continue;
+                }
 
                 var edge = input.connections
                     .FirstOrDefault(e =>
