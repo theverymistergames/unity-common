@@ -1,6 +1,4 @@
-﻿using MisterGames.Blueprints.Runtime;
-
-namespace MisterGames.Blueprints.Compile {
+﻿namespace MisterGames.Blueprints.Runtime {
 
     public readonly struct BlueprintCompileData {
 

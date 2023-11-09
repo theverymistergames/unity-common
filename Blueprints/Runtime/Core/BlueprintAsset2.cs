@@ -1,8 +1,7 @@
 ﻿using MisterGames.Blackboards.Core;
-using MisterGames.Blueprints.Compile;
+using MisterGames.Blueprints.Runtime;
 using MisterGames.Blueprints.Factory;
 using MisterGames.Blueprints.Meta;
-using MisterGames.Blueprints.Runtime;
 using UnityEngine;
 
 namespace MisterGames.Blueprints {
@@ -11,9 +10,9 @@ namespace MisterGames.Blueprints {
     public sealed class BlueprintAsset2 : ScriptableObject {
 
         [SerializeField] private BlueprintMeta2 _blueprintMeta;
-        [SerializeField] private Blackboard _blackboard;
+        [SerializeField] private Blackboard2 _blackboard;
 
-        public Blackboard Blackboard => _blackboard;
+        public Blackboard2 Blackboard => _blackboard;
 
         public BlueprintMeta2 BlueprintMeta {
             get {

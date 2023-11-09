@@ -22,7 +22,7 @@ namespace MisterGames.Blueprints.Editor.Utils {
                     var dataType = port.DataType;
 
                     colorHex = BlueprintColors.Port.Header.GetColorForType(dataType);
-                    if (string.IsNullOrEmpty(portName)) portName = $"{TypeNameFormatter.GetTypeName(dataType)}{(port.IsInput() && port.IsMultiple() ? " (multi)" : string.Empty)}";
+                    if (string.IsNullOrEmpty(portName)) portName = $"{TypeNameFormatter.GetShortTypeName(dataType)}{(port.IsInput() && port.IsMultiple() ? " (multi)" : string.Empty)}";
                 }
             }
             else {

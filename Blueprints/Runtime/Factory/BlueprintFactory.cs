@@ -8,13 +8,13 @@ namespace MisterGames.Blueprints.Factory {
     [Serializable]
     public sealed class BlueprintFactory : IBlueprintFactory {
 
-        [SerializeField] private ReferenceArrayMap<int, IBlueprintSource> _sources;
+        [SerializeField] private RefArrayMap<int, IBlueprintSource> _sources;
         [SerializeField] private int _lastId;
 
         private readonly Dictionary<Type, int> _typeToIdMap = new Dictionary<Type, int>();
 
         public BlueprintFactory() {
-            _sources = new ReferenceArrayMap<int, IBlueprintSource>();
+            _sources = new RefArrayMap<int, IBlueprintSource>();
         }
 
         public IBlueprintSource GetSource(int id) {

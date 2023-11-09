@@ -2,12 +2,10 @@
 using MisterGames.Blueprints.Factory;
 using MisterGames.Blueprints.Meta;
 using MisterGames.Blueprints.Nodes;
-using MisterGames.Blueprints.Runtime;
 using MisterGames.Blueprints.Validation;
 using MisterGames.Common.Data;
-using UnityEngine;
 
-namespace MisterGames.Blueprints.Compile {
+namespace MisterGames.Blueprints.Runtime {
 
     internal sealed class BlueprintCompiler2 {
 

@@ -251,7 +251,7 @@ namespace MisterGames.Blueprints.Editor.View {
         // ---------------- ---------------- Node Search Window ---------------- ----------------
 
         private static bool OpenSearchWindow<T>(T window, Vector2 position) where T : ScriptableObject, ISearchWindowProvider {
-            return SearchWindow.Open(new SearchWindowContext(position, 280f), window);
+            return SearchWindow.Open(new SearchWindowContext(position, 400f), window);
         }
 
         private void InitNodeSearchWindow() {
@@ -333,11 +333,12 @@ namespace MisterGames.Blueprints.Editor.View {
 
             if (!_blackboardView.visible) return;
 
-            var blackboardSerializedProperty = _blueprintAssetSerializedObject.FindProperty("_blackboard");
-            var properties = BlackboardUtils.GetSerializedBlackboardProperties(blackboardSerializedProperty);
+            var blackboard = _blueprintAsset.Blackboard;
+            var properties = blackboard.Properties;
 
             for (int i = 0; i < properties.Count; i++) {
-                _blackboardView.Add(BlackboardUtils.CreateBlackboardPropertyView(properties[i]));
+                if (!blackboard.TryGetProperty(properties[i], out var property)) continue;
+                _blackboardView.Add(BlackboardUtils.CreateBlackboardPropertyView(property));
             }
         }
 
@@ -352,7 +353,7 @@ namespace MisterGames.Blueprints.Editor.View {
 
             Undo.RecordObject(_blueprintAsset, "Blueprint Add Blackboard Property");
 
-            string typeName = TypeNameFormatter.GetTypeName(type);
+            string typeName = TypeNameFormatter.GetShortTypeName(type);
             if (!_blueprintAsset.Blackboard.TryAddProperty($"New {typeName}", type)) return;
 
             SetBlueprintAssetDirtyAndNotify();

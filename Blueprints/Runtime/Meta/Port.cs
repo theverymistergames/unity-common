@@ -70,8 +70,8 @@ namespace MisterGames.Blueprints {
         public override string ToString() {
             string config = this.IsData()
                 ? this.IsInput()
-                    ? dataType.ToType() is {} t0 ? $"input<{TypeNameFormatter.GetTypeName(t0)}>" : "dynamic input"
-                    : dataType.ToType() is {} t1 ? $"output<{TypeNameFormatter.GetTypeName(t1)}>" : "dynamic output"
+                    ? dataType.ToType() is {} t0 ? $"input<{TypeNameFormatter.GetShortTypeName(t0)}>" : "dynamic input"
+                    : dataType.ToType() is {} t1 ? $"output<{TypeNameFormatter.GetShortTypeName(t1)}>" : "dynamic output"
                 : this.IsInput()
                     ? "enter"
                     : "exit";

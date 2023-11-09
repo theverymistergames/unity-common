@@ -327,12 +327,14 @@ namespace MisterGames.Blueprints.Editor.Core {
 
             if (!_blackboardView.visible) return;
 
+            /*
             var blackboardSerializedProperty = _blueprintAssetSerializedObject.FindProperty("_blackboard");
             var properties = BlackboardUtils.GetSerializedBlackboardProperties(blackboardSerializedProperty);
 
             for (int i = 0; i < properties.Count; i++) {
                 _blackboardView.Add(BlackboardUtils.CreateBlackboardPropertyView(properties[i]));
             }
+            */
         }
 
         private void OnAddBlackboardPropertyRequest() {
@@ -346,7 +348,7 @@ namespace MisterGames.Blueprints.Editor.Core {
 
             Undo.RecordObject(_blueprintAsset, "Blueprint Add Blackboard Property");
 
-            string typeName = TypeNameFormatter.GetTypeName(type);
+            string typeName = TypeNameFormatter.GetShortTypeName(type);
             if (!_blueprintAsset.Blackboard.TryAddProperty($"New {typeName}", type)) return;
 
             InvalidateBlueprintAsset(_blueprintAsset);

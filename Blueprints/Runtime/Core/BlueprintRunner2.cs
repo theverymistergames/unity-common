@@ -10,7 +10,7 @@ namespace MisterGames.Blueprints {
     public sealed class BlueprintRunner2 : MonoBehaviour, IBlueprintHost2 {
 
         [SerializeField] private BlueprintAsset2 _blueprintAsset;
-        [SerializeField] private SerializedDictionary<BlueprintAsset2, Blackboard> _blackboardOverridesMap;
+        [SerializeField] private SerializedDictionary<BlueprintAsset2, Blackboard2> _blackboardOverridesMap;
 
         public BlueprintAsset2 BlueprintAsset => _blueprintAsset;
         public MonoBehaviour Runner => this;
@@ -47,15 +47,15 @@ namespace MisterGames.Blueprints {
             _runtimeBlueprint?.Start();
         }
 
-        public Blackboard GetBlackboard(BlueprintAsset2 blueprint) {
+        public Blackboard2 GetBlackboard(BlueprintAsset2 blueprint) {
             return _blackboardOverridesMap[blueprint];
         }
 
 #if UNITY_EDITOR
         internal RuntimeBlueprint2 RuntimeBlueprint => _runtimeBlueprint;
 
-        internal SerializedDictionary<BlueprintAsset2, Blackboard> BlackboardOverridesMap =>
-            _blackboardOverridesMap ??= new SerializedDictionary<BlueprintAsset2, Blackboard>();
+        internal SerializedDictionary<BlueprintAsset2, Blackboard2> BlackboardOverridesMap =>
+            _blackboardOverridesMap ??= new SerializedDictionary<BlueprintAsset2, Blackboard2>();
 
         private readonly HashSet<MonoBehaviour> _clients = new HashSet<MonoBehaviour>();
 
