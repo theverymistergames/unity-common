@@ -28,6 +28,7 @@ namespace MisterGames.Blueprints.Editor.View {
         private BlueprintAsset2 _blueprintAsset;
         private SerializedObject _blueprintAssetSerializedObject;
         private readonly HashSet<NodeId> _changedNodes = new HashSet<NodeId>();
+        private readonly HashSet<NodeId> _positionChangedNodes = new HashSet<NodeId>();
 
         private BlueprintNodeSearchWindow _nodeSearchWindow;
         private BlackboardSearchWindow _blackboardSearchWindow;
@@ -85,6 +86,35 @@ namespace MisterGames.Blueprints.Editor.View {
             InitUndoRedo();
             InitCopyPaste();
             InitMouse();
+
+            RegisterCallback<MouseUpEvent>(OnMouseUp);
+        }
+
+        private void OnMouseUp(MouseUpEvent evt) {
+            if (evt.button == 0) WriteChangedPositions();
+        }
+
+        private void WriteChangedPositions() {
+            if (_blueprintAsset == null) {
+                _positionChangedNodes.Clear();
+                return;
+            }
+
+            var meta = _blueprintAsset.BlueprintMeta;
+            int count = _positionChangedNodes.Count;
+
+            foreach (var nodeId in _positionChangedNodes) {
+                if (FindNodeViewByNodeId(nodeId) is not { } nodeView) continue;
+
+                var rect = nodeView.GetPosition();
+                var position = new Vector2(rect.x, rect.y);
+
+                meta.SetNodePosition(nodeId, position);
+            }
+
+            _positionChangedNodes.Clear();
+
+            if (count > 0) SetBlueprintAssetDirtyAndNotify();
         }
 
         // ---------------- ---------------- Population and views ---------------- ----------------
@@ -504,10 +534,8 @@ namespace MisterGames.Blueprints.Editor.View {
             AddElement(nodeView);
         }
 
-        private void OnNodePositionChanged(NodeId id, Vector2 position) {
-            _blueprintAsset.BlueprintMeta.SetNodePosition(id, position);
-
-            SetBlueprintAssetDirtyAndNotify();
+        private void OnNodePositionChanged(NodeId id) {
+            _positionChangedNodes.Add(id);
         }
 
         private void OnNodeValidate(NodeId id) {

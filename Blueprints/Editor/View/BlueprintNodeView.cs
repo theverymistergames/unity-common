@@ -23,7 +23,7 @@ namespace MisterGames.Blueprints.Editor.View {
 
         private const float NODE_VIEW_LABEL_WIDTH_INCREMENT_BY_DEPTH = 40f;
 
-        public Action<NodeId, Vector2> OnPositionChanged = delegate {  };
+        public Action<NodeId> OnPositionChanged = delegate {  };
         public Action<NodeId> OnValidate = delegate {  };
 
         public readonly NodeId nodeId;
@@ -100,7 +100,7 @@ namespace MisterGames.Blueprints.Editor.View {
 
         public override void SetPosition(Rect newPos) {
             base.SetPosition(newPos);
-            OnPositionChanged.Invoke(nodeId, new Vector2(newPos.xMin, newPos.yMin));
+            OnPositionChanged.Invoke(nodeId);
         }
 
         public void CreatePortViews(IEdgeConnectorListener connectorListener) {
@@ -156,16 +156,13 @@ namespace MisterGames.Blueprints.Editor.View {
         }
 
         private void OnNodeGUI() {
-            if (!FetchNodePath() || _serializedObject.FindProperty(_nodePath) is not {} serializedProperty) return;
-
-            var endProperty = serializedProperty.GetEndProperty();
-            bool enterChildren = true;
+            if (!FetchNodePath() || _serializedObject.FindProperty(_nodePath) is not {} property) return;
 
             float labelWidthCache = EditorGUIUtility.labelWidth;
             float fieldWidthCache = EditorGUIUtility.fieldWidth;
 
             if (_labelWidth < 0f || _fieldWidth < 0f) {
-                (_labelWidth, _fieldWidth) = CalculateLabelAndFieldWidth(serializedProperty);
+                (_labelWidth, _fieldWidth) = CalculateLabelAndFieldWidth(property);
             }
 
             EditorGUIUtility.labelWidth = _labelWidth;
@@ -174,16 +171,21 @@ namespace MisterGames.Blueprints.Editor.View {
             bool hasProperties = false;
             bool changed = false;
 
-            while (serializedProperty.NextVisible(enterChildren) && !SerializedProperty.DataEquals(serializedProperty, endProperty)) {
+            int depth = property.depth;
+            var enumerator = property.GetEnumerator();
+
+            while (enumerator.MoveNext()) {
+                if (enumerator.Current is not SerializedProperty childProperty) continue;
+                if (childProperty.depth > depth + 1) continue;
+
                 hasProperties = true;
-                enterChildren = false;
 
                 EditorGUI.BeginChangeCheck();
-                EditorGUILayout.PropertyField(serializedProperty, true);
+                EditorGUILayout.PropertyField(childProperty, true);
                 changed |= EditorGUI.EndChangeCheck();
 
-                if (serializedProperty.propertyType == SerializedPropertyType.ObjectReference &&
-                    serializedProperty.objectReferenceValue is BlueprintAsset2 blueprint &&
+                if (property.propertyType == SerializedPropertyType.ObjectReference &&
+                    property.objectReferenceValue is BlueprintAsset2 blueprint &&
                     GUILayout.Button("Edit")
                 ) {
                     BlueprintEditorWindow.OpenAsset(blueprint);
@@ -215,22 +217,24 @@ namespace MisterGames.Blueprints.Editor.View {
             float fieldWidth = 0;
 
             property = property.Copy();
-            var endProperty = property.GetEndProperty();
-
             bool hasArrayFields = false;
 
             int basePropertyDepth = property.depth;
             int maxPropertyDepth = basePropertyDepth;
+            var enumerator = property.GetEnumerator();
 
-            while (property.NextVisible(true) && !SerializedProperty.DataEquals(property, endProperty)) {
-                float labelTextWidth = EditorStyles.label.CalcSize(new GUIContent(property.displayName)).x;
+            while (enumerator.MoveNext()) {
+                if (enumerator.Current is not SerializedProperty childProperty) continue;
+                if (childProperty.depth > basePropertyDepth + 1) continue;
+
+                float labelTextWidth = EditorStyles.label.CalcSize(new GUIContent(childProperty.displayName)).x;
 
                 labelWidth = Mathf.Max(labelWidth, Mathf.Max(labelTextWidth + 20f, NODE_VIEW_MIN_LABEL_WIDTH));
                 fieldWidth = Mathf.Max(fieldWidth, Mathf.Max(totalWidth - labelWidth, NODE_VIEW_MIN_FIELD_WIDTH));
 
-                hasArrayFields |= property.propertyType == SerializedPropertyType.ArraySize;
+                hasArrayFields |= childProperty.propertyType == SerializedPropertyType.ArraySize;
 
-                if (property.depth > maxPropertyDepth) maxPropertyDepth = property.depth;
+                if (childProperty.depth > maxPropertyDepth) maxPropertyDepth = childProperty.depth;
             }
 
             if (hasArrayFields) {
