@@ -11,10 +11,10 @@ namespace MisterGames.Common.Data {
 
         [SerializeField] private Node[] _nodes;
         [SerializeField] private SerializedDictionary<K, int> _indexMap;
+        [SerializeField] private List<int> _freeIndices;
         [SerializeField] private int _head;
 
         public int Count => _indexMap.Count;
-
         public Dictionary<K, int>.KeyCollection Keys => _indexMap.Keys;
 
         public V this[K key] {
@@ -22,17 +22,14 @@ namespace MisterGames.Common.Data {
             set => SetValue(key, value);
         }
 
-        private readonly List<int> _freeIndices;
-
         [Serializable]
         private struct Node {
 
             public K key;
             [SerializeReference] public V value;
-            public bool isDisposed;
 
             public override string ToString() {
-                return $"{nameof(Node)}({(isDisposed ? "disposed" : $"key {key}, value {value}")})";
+                return $"{nameof(Node)}(key {key}, value {value})";
             }
         }
 
@@ -95,9 +92,6 @@ namespace MisterGames.Common.Data {
             if (index == _head - 1) _head--;
             else _freeIndices.Add(index);
 
-            ref var node = ref _nodes[index];
-            node.isDisposed = true;
-
             _indexMap.Remove(key);
 
             ApplyDefragmentationIfNecessary();
@@ -139,7 +133,6 @@ namespace MisterGames.Common.Data {
 
             node.key = key;
             node.value = value;
-            node.isDisposed = false;
 
             return index;
         }
@@ -152,7 +145,7 @@ namespace MisterGames.Common.Data {
 
             for (int i = _head - 1; i >= count; i--) {
                 ref var node = ref _nodes[i];
-                if (node.isDisposed) continue;
+                if (!_indexMap.TryGetValue(node.key, out int index) || index != i) continue;
 
                 int freeIndex = -1;
                 while (j >= 0) {
@@ -177,7 +170,7 @@ namespace MisterGames.Common.Data {
 
             for (int i = 0; i < _nodes.Length; i++) {
                 ref var node = ref _nodes[i];
-                if (node.isDisposed) continue;
+                if (!_indexMap.TryGetValue(node.key, out int index) || index != i) continue;
 
                 sb.AppendLine($"[{i}] :: {node}");
             }
