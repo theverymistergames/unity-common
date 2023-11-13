@@ -73,7 +73,7 @@ namespace MisterGames.Blueprints.Meta {
                 : null;
         }
 
-        public void SetLinks(NodeId id, int port, TreeSet<BlueprintLink2> links, int sourcePort) {
+        public void SetLinks(NodeId id, int port, TreeSet<BlueprintLink2> links, int sourcePort, bool notify = true) {
             if (links == null || !links.TryGetNode(new BlueprintLink2(id, sourcePort), out int portRoot)) return;
 
             if (links.TryGetNode(new BlueprintLink2(id, 0), portRoot, out int linksRoot) &&
@@ -81,8 +81,7 @@ namespace MisterGames.Blueprints.Meta {
             ) {
                 while (l >= 0) {
                     var link = links.GetKeyAt(l);
-                    AddLink(id, port, link.id, link.port);
-
+                    AddLink(id, port, link.id, link.port, notify);
                     links.TryGetNext(l, out l);
                 }
             }
@@ -92,30 +91,31 @@ namespace MisterGames.Blueprints.Meta {
             ) {
                 while (l >= 0) {
                     var link = links.GetKeyAt(l);
-                    AddLink(link.id, link.port, id, port);
-
+                    AddLink(link.id, link.port, id, port, notify);
                     links.TryGetNext(l, out l);
                 }
             }
         }
 
-        public void AddLink(NodeId id, int port, NodeId toId, int toPort) {
+        public void AddLink(NodeId id, int port, NodeId toId, int toPort, bool notify = true) {
             AddLink(id, port, toId, toPort, 0);
             AddLink(toId, toPort, id, port, 1);
 
             _linkCount++;
 
-            OnPortChanged?.Invoke(id, port);
-            OnPortChanged?.Invoke(toId, toPort);
+            if (notify) {
+                OnPortChanged?.Invoke(id, port);
+                OnPortChanged?.Invoke(toId, toPort);
+            }
         }
 
-        public bool RemoveLink(NodeId id, int port, NodeId toId, int toPort) {
+        public bool RemoveLink(NodeId id, int port, NodeId toId, int toPort, bool notify = true) {
             _linkTree.AllowDefragmentation(false);
 
-            bool removed = RemoveLink(id, port, toId, toPort, 0) |
-                           RemoveLink(toId, toPort, id, port, 1) |
-                           RemoveLink(toId, toPort, id, port, 0) |
-                           RemoveLink(id, port, toId, toPort, 1);
+            bool removed = RemoveLink(id, port, toId, toPort, 0, notify) |
+                           RemoveLink(toId, toPort, id, port, 1, notify) |
+                           RemoveLink(toId, toPort, id, port, 0, notify) |
+                           RemoveLink(id, port, toId, toPort, 1, notify);
 
             if (removed) {
                 _linkCount--;
@@ -127,7 +127,7 @@ namespace MisterGames.Blueprints.Meta {
             return removed;
         }
 
-        public void RemovePort(NodeId id, int port) {
+        public void RemovePort(NodeId id, int port, bool notify = true) {
             if (!_linkTree.TryGetNode(new BlueprintLink2(id, 0), out int nodeRoot) ||
                 !_linkTree.TryGetNode(new BlueprintLink2(id, port), nodeRoot, out int portRoot)
             ) {
@@ -136,17 +136,17 @@ namespace MisterGames.Blueprints.Meta {
 
             _linkTree.AllowDefragmentation(false);
 
-            RemovePortLinks(portRoot, id, port);
+            RemovePortLinks(portRoot, id, port, notify);
 
             _linkTree.RemoveNodeAt(portRoot);
             if (!_linkTree.ContainsChildren(nodeRoot)) _linkTree.RemoveNodeAt(nodeRoot);
 
             _linkTree.AllowDefragmentation(true);
 
-            OnPortChanged?.Invoke(id, port);
+            if (notify) OnPortChanged?.Invoke(id, port);
         }
 
-        public void RemoveNode(NodeId id) {
+        public void RemoveNode(NodeId id, bool notify = true) {
             if (!_linkTree.TryGetNode(new BlueprintLink2(id, 0), out int nodeRoot)) return;
 
             _linkTree.AllowDefragmentation(false);
@@ -155,8 +155,8 @@ namespace MisterGames.Blueprints.Meta {
             while (portRoot >= 0) {
                 int port = _linkTree.GetKeyAt(portRoot).port;
 
-                RemovePortLinks(portRoot, id, port);
-                OnPortChanged?.Invoke(id, port);
+                RemovePortLinks(portRoot, id, port, notify);
+                if (notify) OnPortChanged?.Invoke(id, port);
 
                 portRoot = _linkTree.GetNext(portRoot);
             }
@@ -200,7 +200,7 @@ namespace MisterGames.Blueprints.Meta {
             _linkTree.GetOrAddNode(new BlueprintLink2(toId, toPort), linksRoot);
         }
 
-        private bool RemoveLink(NodeId id, int port, NodeId toId, int toPort, int dir) {
+        private bool RemoveLink(NodeId id, int port, NodeId toId, int toPort, int dir, bool notify) {
             if (!_linkTree.TryGetNode(new BlueprintLink2(id, 0), out int nodeRoot) ||
                 !_linkTree.TryGetNode(new BlueprintLink2(id, port), nodeRoot, out int portRoot) ||
                 !_linkTree.TryGetNode(new BlueprintLink2(id, dir), portRoot, out int linksRoot) ||
@@ -220,18 +220,18 @@ namespace MisterGames.Blueprints.Meta {
             if (!_linkTree.ContainsChildren(portRoot)) _linkTree.RemoveNodeAt(portRoot);
             if (!_linkTree.ContainsChildren(nodeRoot)) _linkTree.RemoveNodeAt(nodeRoot);
 
-            OnPortChanged?.Invoke(id, port);
+            if (notify) OnPortChanged?.Invoke(id, port);
             return true;
         }
 
-        private void RemovePortLinks(int portRoot, NodeId id, int port) {
+        private void RemovePortLinks(int portRoot, NodeId id, int port, bool notify) {
             if (_linkTree.TryGetNode(new BlueprintLink2(id, 0), portRoot, out int linksRoot) &&
                 _linkTree.TryGetChild(linksRoot, out int index)
             ) {
                 while (index >= 0) {
                     var link = _linkTree.GetKeyAt(index);
 
-                    if (RemoveLink(link.id, link.port, id, port, 1)) _linkCount--;
+                    if (RemoveLink(link.id, link.port, id, port, 1, notify)) _linkCount--;
 
                     index = _linkTree.GetNext(index);
                 }
@@ -245,7 +245,7 @@ namespace MisterGames.Blueprints.Meta {
                 while (index >= 0) {
                     var link = _linkTree.GetKeyAt(index);
 
-                    if (RemoveLink(link.id, link.port, id, port, 0)) _linkCount--;
+                    if (RemoveLink(link.id, link.port, id, port, 0, notify)) _linkCount--;
 
                     index = _linkTree.GetNext(index);
                 }

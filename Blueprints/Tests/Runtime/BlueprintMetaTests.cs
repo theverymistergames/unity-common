@@ -13,7 +13,7 @@ namespace Core {
             var meta = new BlueprintMeta2();
             var changed = new HashSet<NodeId>();
 
-            meta.Bind((id, _) => changed.Add(id));
+            meta.Bind((id) => changed.Add(id));
             var id = meta.AddNode(typeof(BlueprintSourceTest0));
 
             Assert.IsTrue(changed.Contains(id));
@@ -36,7 +36,7 @@ namespace Core {
             meta.TryCreateLink(id0, 1, id1, 0);
             meta.TryCreateLink(id0, 1, id2, 0);
 
-            meta.Bind((id, _) => changed.Add(id));
+            meta.Bind((id) => changed.Add(id));
             meta.RemoveNode(id0);
 
             Assert.AreEqual(0, meta.GetPortCount(id0));
@@ -59,7 +59,7 @@ namespace Core {
             var id0 = meta.AddNode(typeof(BlueprintSourceTest0));
             var id1 = meta.AddNode(typeof(BlueprintSourceTest1));
 
-            meta.Bind((id, _) => changed.Add(id));
+            meta.Bind((id) => changed.Add(id));
             Assert.IsTrue(meta.TryCreateLink(id0, 1, id1, 0));
 
             Assert.IsTrue(changed.Contains(id0));
@@ -88,7 +88,7 @@ namespace Core {
 
             meta.TryCreateLink(id0, 1, id1, 0);
 
-            meta.Bind((id, _) => changed.Add(id));
+            meta.Bind((id) => changed.Add(id));
             meta.RemoveLink(id0, 1, id1, 0);
 
             Assert.IsTrue(changed.Contains(id0));

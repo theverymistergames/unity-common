@@ -26,7 +26,7 @@ namespace MisterGames.Blueprints.Meta {
 
         public readonly Dictionary<NodeId, string> NodeJsonMap = new Dictionary<NodeId, string>();
 
-        private Action<NodeId, bool> _onNodeChange;
+        private Action<NodeId> _onNodeChange;
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         public object Owner { get; set; }
@@ -40,7 +40,7 @@ namespace MisterGames.Blueprints.Meta {
             _portStorage = new BlueprintPortStorage();
         }
 
-        public void Bind(Action<NodeId, bool> onNodeChange) {
+        public void Bind(Action<NodeId> onNodeChange) {
             _onNodeChange = onNodeChange;
             _linkStorage.OnPortChanged = OnPortChanged;
         }
@@ -78,7 +78,7 @@ namespace MisterGames.Blueprints.Meta {
             source.OnSetDefaults(this, key);
             source.OnValidate(this, key);
 
-            _onNodeChange?.Invoke(key, false);
+            _onNodeChange?.Invoke(key);
 
             return key;
         }
@@ -99,7 +99,7 @@ namespace MisterGames.Blueprints.Meta {
             if (_nodeMap.Count == 0) Clear();
             else if (_linkStorage.LinkCount == 0) _linkStorage.Clear();
 
-            _onNodeChange?.Invoke(id, false);
+            _onNodeChange?.Invoke(id);
         }
 
         public bool InvalidateNode(NodeId id, bool invalidateLinks, bool notify = true) {
@@ -117,7 +117,7 @@ namespace MisterGames.Blueprints.Meta {
             TreeSet<BlueprintLink2> oldLinksTree = null;
             if (invalidateLinks) {
                 oldLinksTree = _linkStorage.CopyLinks(id);
-                _linkStorage.RemoveNode(id);
+                _linkStorage.RemoveNode(id, notify: false);
             }
 
             bool changed = false;
@@ -135,7 +135,7 @@ namespace MisterGames.Blueprints.Meta {
                     else changed = true;
 
                     if (invalidateLinks) {
-                        _linkStorage.SetLinks(id, i, oldLinksTree, oldPortsTree.GetKeyAt(pointer));
+                        _linkStorage.SetLinks(id, i, oldLinksTree, oldPortsTree.GetKeyAt(pointer), notify: false);
                     }
 
                     oldPortsTree.RemoveNodeAt(pointer);
@@ -148,7 +148,7 @@ namespace MisterGames.Blueprints.Meta {
             }
 
             changed |= oldPortsTree is { Count: > 0 };
-            if (changed && notify) _onNodeChange?.Invoke(id, true);
+            if (changed && notify) _onNodeChange?.Invoke(id);
 
             return changed;
         }
@@ -254,7 +254,7 @@ namespace MisterGames.Blueprints.Meta {
                 callback.OnLinksChanged(this, id, port);
             }
 
-            _onNodeChange?.Invoke(id, false);
+            _onNodeChange?.Invoke(id);
         }
 
         int IComparer<BlueprintLink2>.Compare(BlueprintLink2 x, BlueprintLink2 y) {

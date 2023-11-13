@@ -2,11 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using MisterGames.Blueprints.Editor.Utils;
-using MisterGames.Blueprints.Editor.Windows;
 using MisterGames.Blueprints.Meta;
-using MisterGames.Common.Editor.Views;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
+using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 using PortView = UnityEditor.Experimental.GraphView.Port;
@@ -30,7 +29,7 @@ namespace MisterGames.Blueprints.Editor.View {
 
         private readonly BlueprintMeta2 _meta;
         private readonly SerializedObject _serializedObject;
-        private readonly InspectorView _inspector;
+        private readonly VisualElement _inspector;
 
         private readonly Dictionary<PortView, int> _portViewToPortIndexMap = new Dictionary<PortView, int>();
         private readonly Dictionary<int, PortView> _portIndexToPortViewMap = new Dictionary<int, PortView>();
@@ -38,10 +37,7 @@ namespace MisterGames.Blueprints.Editor.View {
         private int _nodePathSourceIndex;
         private int _nodePathNodeIndex;
         private string _nodePath;
-
-        private uint _lastContentHash;
-        private float _labelWidth = -1f;
-        private float _fieldWidth = -1f;
+        private bool _allowChangeCallback;
 
         private struct PortViewCreationData {
             public int portIndex;
@@ -50,16 +46,13 @@ namespace MisterGames.Blueprints.Editor.View {
 
         public BlueprintNodeView(BlueprintMeta2 meta, NodeId nodeId, Vector2 position, SerializedObject serializedObject) : base(GetUxmlPath()) {
             this.nodeId = nodeId;
+
             _meta = meta;
             _serializedObject = serializedObject;
             viewDataKey = nodeId.ToString();
 
-            if (FetchNodePath(forceRefresh: true)) {
-                _lastContentHash = _serializedObject.FindProperty(_nodePath)?.contentHash ?? 0;
-            }
-
-            _inspector = this.Q<InspectorView>("inspector");
-            _inspector.Inject(OnNodeGUI);
+            _inspector = this.Q<VisualElement>("inspector");
+            CreateNodeGUI(_inspector);
 
             var titleLabel = this.Q<Label>("title");
             var container = this.Q<VisualElement>("title-container");
@@ -76,6 +69,32 @@ namespace MisterGames.Blueprints.Editor.View {
             capabilities &= ~Capabilities.Snappable;
         }
 
+        private void CreateNodeGUI(VisualElement container) {
+            if (!FetchNodePath(forceRefresh: true) ||
+                _serializedObject.FindProperty(_nodePath) is not { } property
+            ) {
+                return;
+            }
+
+            int depth = property.depth;
+            var enumerator = property.GetEnumerator();
+
+            while (enumerator.MoveNext()) {
+                if (enumerator.Current is not SerializedProperty childProperty) continue;
+                if (childProperty.depth > depth + 1) continue;
+
+                var propertyField = new PropertyField();
+                propertyField.BindProperty(property);
+                propertyField.TrackPropertyValue(property, OnChange);
+
+                container.Add(propertyField);
+            }
+        }
+
+        private void OnChange(SerializedProperty property) {
+            OnValidate?.Invoke(nodeId);
+        }
+
         private bool FetchNodePath(bool forceRefresh = false) {
             if (!_meta.TryGetNodePath(nodeId, out int sourceIndex, out int nodeIndex)) return false;
 
@@ -90,12 +109,9 @@ namespace MisterGames.Blueprints.Editor.View {
         }
 
         public void DeInitialize() {
-            _inspector.Clear();
-
-            _portViewToPortIndexMap.Clear();
-            _portIndexToPortViewMap.Clear();
-
-            Clear();
+            foreach (var child in _inspector.Children()) {
+                (child as PropertyField)?.Unbind();
+            }
         }
 
         public override void SetPosition(Rect newPos) {
@@ -153,61 +169,6 @@ namespace MisterGames.Blueprints.Editor.View {
 
             _portViewToPortIndexMap[portView] = data.portIndex;
             _portIndexToPortViewMap[data.portIndex] = portView;
-        }
-
-        private void OnNodeGUI() {
-            if (!FetchNodePath() || _serializedObject.FindProperty(_nodePath) is not {} property) return;
-
-            float labelWidthCache = EditorGUIUtility.labelWidth;
-            float fieldWidthCache = EditorGUIUtility.fieldWidth;
-
-            if (_labelWidth < 0f || _fieldWidth < 0f) {
-                (_labelWidth, _fieldWidth) = CalculateLabelAndFieldWidth(property);
-            }
-
-            EditorGUIUtility.labelWidth = _labelWidth;
-            EditorGUIUtility.fieldWidth = _fieldWidth;
-
-            bool hasProperties = false;
-            bool changed = false;
-
-            int depth = property.depth;
-            var enumerator = property.GetEnumerator();
-
-            while (enumerator.MoveNext()) {
-                if (enumerator.Current is not SerializedProperty childProperty) continue;
-                if (childProperty.depth > depth + 1) continue;
-
-                hasProperties = true;
-
-                EditorGUI.BeginChangeCheck();
-                EditorGUILayout.PropertyField(childProperty, true);
-                changed |= EditorGUI.EndChangeCheck();
-
-                if (property.propertyType == SerializedPropertyType.ObjectReference &&
-                    property.objectReferenceValue is BlueprintAsset2 blueprint &&
-                    GUILayout.Button("Edit")
-                ) {
-                    BlueprintEditorWindow.OpenAsset(blueprint);
-                }
-            }
-
-            _serializedObject.ApplyModifiedProperties();
-
-            uint contentHash = _serializedObject.FindProperty(_nodePath).contentHash;
-            changed |= hasProperties && contentHash != _lastContentHash;
-            _lastContentHash = contentHash;
-
-            _serializedObject.Update();
-
-            EditorGUIUtility.labelWidth = labelWidthCache;
-            EditorGUIUtility.fieldWidth = fieldWidthCache;
-
-            if (changed) {
-                _labelWidth = -1f;
-                _fieldWidth = -1f;
-                OnValidate?.Invoke(nodeId);
-            }
         }
 
         private static (float, float) CalculateLabelAndFieldWidth(SerializedProperty property) {

@@ -27,7 +27,12 @@ namespace MisterGames.Blueprints.Editor.View {
 
         private BlueprintAsset2 _blueprintAsset;
         private SerializedObject _blueprintAssetSerializedObject;
-        private readonly HashSet<NodeId> _changedNodes = new HashSet<NodeId>();
+
+        private bool _isWaitingEndOfFrameToValidateNodes;
+        private bool _isWaitingEndOfFrameToRepaintInvalidNodes;
+
+        private readonly HashSet<NodeId> _serializedPropertyChangedNodes = new HashSet<NodeId>();
+        private readonly HashSet<NodeId> _invalidNodes = new HashSet<NodeId>();
         private readonly HashSet<NodeId> _positionChangedNodes = new HashSet<NodeId>();
 
         private BlueprintNodeSearchWindow _nodeSearchWindow;
@@ -129,11 +134,10 @@ namespace MisterGames.Blueprints.Editor.View {
 
             InvalidateBlueprintAsset(_blueprintAsset);
             RepopulateView();
-            RepopulateBlackboardView();
 
             GetBlueprintNodesCenter(out var position, out var scale);
 
-            _blueprintAsset.BlueprintMeta.Bind(OnNodeChange);
+            _blueprintAsset.BlueprintMeta.Bind(OnNodeInvalidated);
 
             var currentPosition = contentViewContainer.transform.position;
             if (Vector3.Distance(position, currentPosition) < POPULATE_SCROLL_TO_NODES_CENTER_TOLERANCE_DISTANCE) {
@@ -156,14 +160,42 @@ namespace MisterGames.Blueprints.Editor.View {
             var meta = _blueprintAsset.BlueprintMeta;
 
             foreach (var nodeId in meta.Nodes) {
-                CreateNodeView(nodeId, meta.GetNodePosition(nodeId));
+                CreateNodeView(meta, nodeId);
             }
 
             foreach (var nodeId in meta.Nodes) {
-                CreateNodeLinkViews(nodeId);
+                CreateNodeLinkViews(meta, nodeId);
             }
 
             ClearSelection();
+            RepopulateBlackboardView();
+        }
+
+        private void RepaintInvalidNodes() {
+            var meta = _blueprintAsset.BlueprintMeta;
+
+            foreach (var nodeId in _invalidNodes) {
+                RemoveNodeLinkViews(nodeId);
+
+                if (!meta.ContainsNode(nodeId)) {
+                    RemoveNodeView(nodeId);
+                    continue;
+                }
+
+                var nodeView = FindNodeViewByNodeId(nodeId);
+                if (nodeView == null) {
+                    CreateNodeView(meta, nodeId);
+                    continue;
+                }
+
+                nodeView.CreatePortViews(this);
+            }
+
+            foreach (var nodeId in _invalidNodes) {
+                CreateNodeLinkViews(meta, nodeId);
+            }
+
+            _invalidNodes.Clear();
         }
 
         public void ClearView() {
@@ -178,53 +210,12 @@ namespace MisterGames.Blueprints.Editor.View {
 
             _blackboardView?.Clear();
 
-            _changedNodes.Clear();
+            _invalidNodes.Clear();
 
             if (_blueprintAsset != null) {
                 _blueprintAsset.BlueprintMeta.Unbind();
                 _blueprintAsset = null;
             }
-        }
-
-        private void OnNodeChange(NodeId id, bool repaintImmediately) {
-            if (repaintImmediately) {
-                RecreateNodeView(_blueprintAsset.BlueprintMeta, id);
-                CreateNodeLinkViews(id);
-                return;
-            }
-
-            _changedNodes.Add(id);
-        }
-
-        private void RecreateNodeView(BlueprintMeta2 meta, NodeId id) {
-            RemoveNodeLinkViews(id);
-
-            if (!meta.ContainsNode(id)) {
-                RemoveNodeView(id);
-                return;
-            }
-
-            var nodeView = FindNodeViewByNodeId(id);
-            if (nodeView == null) {
-                CreateNodeView(id, meta.GetNodePosition(id));
-                return;
-            }
-
-            nodeView.CreatePortViews(this);
-        }
-
-        private void FlushChangedNodes() {
-            var meta = _blueprintAsset.BlueprintMeta;
-
-            foreach (var nodeId in _changedNodes) {
-                RecreateNodeView(meta, nodeId);
-            }
-
-            foreach (var nodeId in _changedNodes) {
-                if (meta.ContainsNode(nodeId)) CreateNodeLinkViews(nodeId);
-            }
-
-            _changedNodes.Clear();
         }
 
         private void GetBlueprintNodesCenter(out Vector3 position, out Vector3 scale) {
@@ -290,7 +281,7 @@ namespace MisterGames.Blueprints.Editor.View {
                 if (_blueprintAsset == null) return;
                 if (!TryCreateNode(nodeType, ConvertScreenPositionToLocal(position), out _)) return;
 
-                FlushChangedNodes();
+                RepaintInvalidNodes();
             };
 
             _nodeSearchWindow.onNodeAndLinkCreationRequest = (nodeType, position, portIndex) => {
@@ -298,7 +289,7 @@ namespace MisterGames.Blueprints.Editor.View {
                 if (!TryCreateNode(nodeType, ConvertScreenPositionToLocal(position), out var id)) return;
 
                 CreateConnection(_lastDropEdgeData.nodeId, _lastDropEdgeData.portIndex, id, portIndex);
-                FlushChangedNodes();
+                RepaintInvalidNodes();
             };
 
             nodeCreationRequest = ctx => {
@@ -439,6 +430,8 @@ namespace MisterGames.Blueprints.Editor.View {
         }
 
         private void RemoveNode(NodeId id) {
+            Debug.Log($"BlueprintsView.RemoveNode: {id}");
+
             Undo.RecordObject(_blueprintAsset, "Blueprint Remove Node");
 
             _blueprintAsset.BlueprintMeta.RemoveNode(id);
@@ -472,6 +465,7 @@ namespace MisterGames.Blueprints.Editor.View {
             bool hasElementsToRemove = change.elementsToRemove is { Count: > 0 };
             bool hasMovedElements = change.movedElements is { Count: > 0 };
             bool hasEdgesToCreate = change.edgesToCreate is { Count: > 0 };
+            bool hasNodesToRemove = false;
 
             if (hasEdgesToCreate) for (int i = 0; i < change.edgesToCreate.Count; i++) {
                 var edge = change.edgesToCreate[i];
@@ -491,6 +485,7 @@ namespace MisterGames.Blueprints.Editor.View {
                 var element = change.elementsToRemove[i];
                 switch (element) {
                     case BlueprintNodeView view:
+                        hasNodesToRemove = true;
                         RemoveNode(view.nodeId);
                         break;
 
@@ -518,15 +513,20 @@ namespace MisterGames.Blueprints.Editor.View {
             if (hasMovedElements || hasElementsToRemove || hasEdgesToCreate) SetBlueprintAssetDirtyAndNotify();
             if (repaintBlackboard) RepopulateBlackboardView();
 
-            FlushChangedNodes();
+            if (hasEdgesToCreate || hasElementsToRemove) {
+                if (hasNodesToRemove) RepopulateView();
+                else RepaintInvalidNodes();
+            }
 
             return change;
         }
 
-        private void CreateNodeView(NodeId id, Vector2 position) {
-            var nodeView = new BlueprintNodeView(_blueprintAsset.BlueprintMeta, id, position, _blueprintAssetSerializedObject) {
+        private void CreateNodeView(BlueprintMeta2 meta, NodeId id) {
+            var position = meta.GetNodePosition(id);
+
+            var nodeView = new BlueprintNodeView(meta, id, position, _blueprintAssetSerializedObject) {
                 OnPositionChanged = OnNodePositionChanged,
-                OnValidate = OnNodeValidate,
+                OnValidate = OnNodeSerializedPropertyChanged,
             };
 
             nodeView.CreatePortViews(this);
@@ -534,27 +534,48 @@ namespace MisterGames.Blueprints.Editor.View {
             AddElement(nodeView);
         }
 
-        private void OnNodePositionChanged(NodeId id) {
-            _positionChangedNodes.Add(id);
-        }
+        private async void OnNodeSerializedPropertyChanged(NodeId id) {
+            _serializedPropertyChangedNodes.Add(id);
 
-        private void OnNodeValidate(NodeId id) {
+            if (_isWaitingEndOfFrameToValidateNodes) return;
+            _isWaitingEndOfFrameToValidateNodes = true;
+
+            await UniTask.Yield(PlayerLoopTiming.LastPostLateUpdate);
+
             _blueprintAssetSerializedObject.ApplyModifiedProperties();
             _blueprintAssetSerializedObject.Update();
 
             var meta = _blueprintAsset.BlueprintMeta;
-            var source = meta.GetNodeSource(id);
-
-            source?.OnValidate(meta, id);
+            foreach (var nodeId in _serializedPropertyChangedNodes) {
+                meta.GetNodeSource(nodeId)?.OnValidate(meta, nodeId);
+            }
 
             SetBlueprintAssetDirtyAndNotify();
+
+            _isWaitingEndOfFrameToValidateNodes = false;
         }
 
-        private void CreateNodeLinkViews(NodeId id) {
-            var fromNodeView = FindNodeViewByNodeId(id);
-            if (fromNodeView == null) return;
+        private async void OnNodeInvalidated(NodeId id) {
+            _invalidNodes.Add(id);
 
-            var meta = _blueprintAsset.BlueprintMeta;
+            if (_isWaitingEndOfFrameToRepaintInvalidNodes) return;
+            _isWaitingEndOfFrameToRepaintInvalidNodes = true;
+
+            await UniTask.Yield(PlayerLoopTiming.LastPostLateUpdate);
+
+            RepaintInvalidNodes();
+
+            _isWaitingEndOfFrameToRepaintInvalidNodes = false;
+        }
+
+        private void OnNodePositionChanged(NodeId id) {
+            _positionChangedNodes.Add(id);
+        }
+
+        private void CreateNodeLinkViews(BlueprintMeta2 meta, NodeId id) {
+            if (!meta.ContainsNode(id)) return;
+
+            var fromNodeView = FindNodeViewByNodeId(id);
             int fromPortsCount = meta.GetPortCount(id);
 
             for (int p = 0; p < fromPortsCount; p++) {
@@ -689,7 +710,6 @@ namespace MisterGames.Blueprints.Editor.View {
 
             SetBlueprintAssetDirtyAndNotify();
             RepopulateView();
-            RepopulateBlackboardView();
         }
         
         // ---------------- ---------------- Copy paste ---------------- ----------------
@@ -795,7 +815,7 @@ namespace MisterGames.Blueprints.Editor.View {
                 }
             }
 
-            FlushChangedNodes();
+            RepaintInvalidNodes();
 
             foreach (var (_, nodeId) in nodeIdMap) {
                 AddToSelection(FindNodeViewByNodeId(nodeId));
