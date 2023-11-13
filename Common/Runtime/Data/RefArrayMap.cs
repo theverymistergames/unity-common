@@ -166,7 +166,7 @@ namespace MisterGames.Common.Data {
 
         public override string ToString() {
             var sb = new StringBuilder();
-            sb.AppendLine($"{nameof(ArrayMap<K, V>)}(count {Count})");
+            sb.AppendLine($"{nameof(ArrayMap<K, V>)}(count {Count}): ");
 
             for (int i = 0; i < _nodes.Length; i++) {
                 ref var node = ref _nodes[i];
