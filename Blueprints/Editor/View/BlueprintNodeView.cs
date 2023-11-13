@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using MisterGames.Blueprints.Editor.Utils;
+using MisterGames.Blueprints.Editor.Windows;
 using MisterGames.Blueprints.Meta;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
@@ -29,7 +30,6 @@ namespace MisterGames.Blueprints.Editor.View {
 
         private readonly BlueprintMeta2 _meta;
         private readonly SerializedObject _serializedObject;
-        private readonly VisualElement _inspector;
 
         private readonly Dictionary<PortView, int> _portViewToPortIndexMap = new Dictionary<PortView, int>();
         private readonly Dictionary<int, PortView> _portIndexToPortViewMap = new Dictionary<int, PortView>();
@@ -51,8 +51,8 @@ namespace MisterGames.Blueprints.Editor.View {
             _serializedObject = serializedObject;
             viewDataKey = nodeId.ToString();
 
-            _inspector = this.Q<VisualElement>("inspector");
-            CreateNodeGUI(_inspector);
+            var inspector = this.Q<VisualElement>("inspector");
+            CreateNodeGUI(inspector);
 
             var titleLabel = this.Q<Label>("title");
             var container = this.Q<VisualElement>("title-container");
@@ -88,6 +88,13 @@ namespace MisterGames.Blueprints.Editor.View {
                 propertyField.TrackPropertyValue(property, OnChange);
 
                 container.Add(propertyField);
+
+                if (property.propertyType == SerializedPropertyType.ObjectReference &&
+                    property.objectReferenceValue is BlueprintAsset2 blueprint
+                ) {
+                    var button = new Button(() => BlueprintEditorWindow.OpenAsset(blueprint)) { text = "Edit" };
+                    container.Add(button);
+                }
             }
         }
 
@@ -106,12 +113,6 @@ namespace MisterGames.Blueprints.Editor.View {
             _nodePathNodeIndex = nodeIndex;
 
             return true;
-        }
-
-        public void DeInitialize() {
-            foreach (var child in _inspector.Children()) {
-                (child as PropertyField)?.Unbind();
-            }
         }
 
         public override void SetPosition(Rect newPos) {

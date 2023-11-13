@@ -151,9 +151,6 @@ namespace MisterGames.Blueprints.Editor.View {
             if (_blueprintAsset == null) return;
 
             graphViewChanged -= OnGraphViewChanged;
-            foreach (var element in graphElements) {
-                if (element is BlueprintNodeView nodeView) nodeView.DeInitialize();
-            }
             DeleteElements(graphElements);
             graphViewChanged += OnGraphViewChanged;
 
@@ -176,19 +173,8 @@ namespace MisterGames.Blueprints.Editor.View {
 
             foreach (var nodeId in _invalidNodes) {
                 RemoveNodeLinkViews(nodeId);
-
-                if (!meta.ContainsNode(nodeId)) {
-                    RemoveNodeView(nodeId);
-                    continue;
-                }
-
-                var nodeView = FindNodeViewByNodeId(nodeId);
-                if (nodeView == null) {
-                    CreateNodeView(meta, nodeId);
-                    continue;
-                }
-
-                nodeView.CreatePortViews(this);
+                RemoveNodeView(nodeId);
+                if (meta.ContainsNode(nodeId)) CreateNodeView(meta, nodeId);
             }
 
             foreach (var nodeId in _invalidNodes) {
@@ -200,9 +186,6 @@ namespace MisterGames.Blueprints.Editor.View {
 
         public void ClearView() {
             graphViewChanged -= OnGraphViewChanged;
-            foreach (var element in graphElements) {
-                if (element is BlueprintNodeView nodeView) nodeView.DeInitialize();
-            }
             DeleteElements(graphElements);
 
             _blackboardOpenSearchWindowCts?.Cancel();

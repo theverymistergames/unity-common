@@ -60,9 +60,7 @@ namespace MisterGames.Blueprints {
         private readonly HashSet<MonoBehaviour> _clients = new HashSet<MonoBehaviour>();
 
         internal void RestartBlueprint() {
-            _blueprintAsset.BlueprintMeta.NodeJsonMap.Clear();
             InterruptRuntimeBlueprint();
-
             RegisterClient(this);
             GetOrCompileBlueprint().Start();
         }
@@ -85,7 +83,6 @@ namespace MisterGames.Blueprints {
             _runtimeBlueprint?.DeInitialize();
             _runtimeBlueprint = null;
         }
-
 #endif
     }
 

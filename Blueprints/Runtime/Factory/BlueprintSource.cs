@@ -1,6 +1,7 @@
 ﻿using System;
 using MisterGames.Blueprints.Factory;
 using MisterGames.Common.Data;
+using MisterGames.Common.Types;
 using UnityEngine;
 
 namespace MisterGames.Blueprints {
@@ -91,7 +92,7 @@ namespace MisterGames.Blueprints {
         }
 
         public override string ToString() {
-            return $"{nameof(BlueprintSource<TNode>)}: nodes: {_nodeMap}";
+            return $"{TypeNameFormatter.GetShortTypeName(typeof(BlueprintSource<TNode>))}: nodes: {_nodeMap}";
         }
     }
 

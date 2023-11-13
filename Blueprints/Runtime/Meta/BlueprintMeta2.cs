@@ -264,8 +264,9 @@ namespace MisterGames.Blueprints.Meta {
         public override string ToString() {
             return $"{nameof(BlueprintMeta2)}:\n" +
                    $"Nodes: [{string.Join("] [", _nodeMap.Keys)}]\n" +
-                   $"Links: {_linkStorage}" +
-                   $"Ports: {_portStorage}";
+                   $"Ports: {_portStorage}\n" +
+                   $"Links: {_linkStorage}\n" +
+                   $"Factory: {_factory}";
         }
     }
 

@@ -26,13 +26,25 @@ namespace MisterGames.Blueprints {
         private BlueprintCompiler2 _blueprintCompiler;
 
         public RuntimeBlueprint2 Compile(IBlueprintFactory factory, IBlueprintHost2 host) {
+#if UNITY_EDITOR
+            _blueprintMeta.NodeJsonMap.Clear();
+#endif
+
             _blueprintCompiler ??= new BlueprintCompiler2();
             return _blueprintCompiler.Compile(factory, host, this);
         }
 
         public void CompileSubgraph(BlueprintCompileData data) {
+#if UNITY_EDITOR
+            _blueprintMeta.NodeJsonMap.Clear();
+#endif
+
             _blueprintCompiler ??= new BlueprintCompiler2();
             _blueprintCompiler.CompileSubgraph(this, data);
+        }
+
+        public override string ToString() {
+            return $"{nameof(BlueprintAsset2)} {name}: {_blueprintMeta}";
         }
     }
 
