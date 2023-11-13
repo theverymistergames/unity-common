@@ -76,6 +76,8 @@ namespace MisterGames.Blueprints.Editor.View {
                 return;
             }
 
+            float minWidth = CalculateMinWidth(property);
+
             int depth = property.depth;
             var enumerator = property.GetEnumerator();
 
@@ -83,7 +85,10 @@ namespace MisterGames.Blueprints.Editor.View {
                 if (enumerator.Current is not SerializedProperty childProperty) continue;
                 if (childProperty.depth > depth + 1) continue;
 
-                var propertyField = new PropertyField();
+                var propertyField = new PropertyField {
+                    style = { minWidth = minWidth }
+                };
+
                 propertyField.BindProperty(property);
                 propertyField.TrackPropertyValue(property, OnChange);
 
@@ -172,7 +177,7 @@ namespace MisterGames.Blueprints.Editor.View {
             _portIndexToPortViewMap[data.portIndex] = portView;
         }
 
-        private static (float, float) CalculateLabelAndFieldWidth(SerializedProperty property) {
+        private static float CalculateMinWidth(SerializedProperty property) {
             float totalWidth = EditorGUIUtility.labelWidth + EditorGUIUtility.fieldWidth;
 
             float labelWidth = 0;
@@ -207,7 +212,7 @@ namespace MisterGames.Blueprints.Editor.View {
             int maxDepthDiff = maxPropertyDepth - basePropertyDepth;
             if (maxDepthDiff > 1) labelWidth += maxDepthDiff * NODE_VIEW_LABEL_WIDTH_INCREMENT_BY_DEPTH;
 
-            return (labelWidth, fieldWidth);
+            return labelWidth + fieldWidth;
         }
 
         private static string GetUxmlPath() {
