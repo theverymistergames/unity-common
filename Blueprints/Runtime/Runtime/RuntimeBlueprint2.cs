@@ -65,7 +65,6 @@ namespace MisterGames.Blueprints.Runtime {
         }
 
         public void SetEnabled(bool enabled) {
-            var root = this.root;
             for (int i = 0; i < nodeStorage.Count; i++) {
                 var id = nodeStorage.GetNode(i);
 
@@ -76,12 +75,11 @@ namespace MisterGames.Blueprints.Runtime {
         }
 
         public void Start() {
-            var root = this.root;
             for (int i = 0; i < nodeStorage.Count; i++) {
                 var id = nodeStorage.GetNode(i);
 
-                if (factory.GetSource(id.source) is IBlueprintStartCallback start) {
-                    start.OnStart(this, new NodeToken(id, root));
+                if (factory.GetSource(id.source) is IBlueprintStartCallback callback) {
+                    callback.OnStart(this, new NodeToken(id, root));
                 }
             }
         }
@@ -113,8 +111,9 @@ namespace MisterGames.Blueprints.Runtime {
         }
 
         internal void ExternalCall(NodeId caller, int port) {
-            if (!_externalBlueprintMap.TryGetValue(caller, out var data)) return;
-            data.blueprint.Call(new NodeToken(caller, data.caller), port);
+            foreach (var (id, data) in _externalBlueprintMap) {
+                data.blueprint.Call(new NodeToken(id, data.caller), port);
+            }
         }
 
         internal T ExternalRead<T>(NodeId caller, int port, T defaultValue = default) {
