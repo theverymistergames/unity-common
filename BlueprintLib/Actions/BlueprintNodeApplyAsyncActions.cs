@@ -12,15 +12,16 @@ using UnityEngine;
 namespace MisterGames.BlueprintLib {
 
     [Serializable]
-    public class BlueprintSourceApplyAsyncActions :
-        BlueprintSource<BlueprintNodeApplyAsyncActions2>,
-        BlueprintSources.IEnter<BlueprintNodeApplyAsyncActions2> {}
+    public class BlueprintSourceApplyAsyncAction :
+        BlueprintSource<BlueprintNodeApplyAsyncAction>,
+        BlueprintSources.IEnter<BlueprintNodeApplyAsyncAction>,
+        BlueprintSources.ICloneable {}
 
     [Serializable]
-    [BlueprintNode(Name = "Apply Async Actions", Category = "Actions", Color = BlueprintColors.Node.Actions)]
-    public struct BlueprintNodeApplyAsyncActions2 : IBlueprintNode, IBlueprintEnter2 {
+    [BlueprintNode(Name = "Apply Async Action", Category = "Actions", Color = BlueprintColors.Node.Actions)]
+    public struct BlueprintNodeApplyAsyncAction : IBlueprintNode, IBlueprintEnter2 {
 
-        [SerializeField] private AsyncActionAsset[] _actions;
+        [SerializeField] private AsyncActionAsset _action;
 
         private CancellationTokenSource _terminateCts;
         private BlueprintPortDependencyResolver _dependencies;
@@ -29,15 +30,12 @@ namespace MisterGames.BlueprintLib {
             meta.AddPort(id, Port.Enter("Apply"));
             meta.AddPort(id, Port.Exit("On Applied"));
 
+            if (_action is not IDependency dep) return;
+
             _dependencies ??= new BlueprintPortDependencyResolver();
             _dependencies.Reset();
 
-            if (_actions == null) return;
-
-            for (int i = 0; i < _actions.Length; i++) {
-                if (_actions[i] is IDependency dep) dep.OnSetupDependencies(_dependencies);
-            }
-
+            dep.OnSetupDependencies(_dependencies);
             for (int i = 0; i < _dependencies.Count; i++) {
                 meta.AddPort(id, Port.DynamicInput(type: _dependencies[i]));
             }
@@ -58,21 +56,20 @@ namespace MisterGames.BlueprintLib {
         public void OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
             if (port != 0) return;
 
-            _dependencies ??= new BlueprintPortDependencyResolver();
-            _dependencies.Setup(blueprint, token, 2);
-
             Apply(blueprint, token, _terminateCts.Token).Forget();
         }
 
         private async UniTaskVoid Apply(IBlueprint blueprint, NodeToken token, CancellationToken cancellationToken) {
-            for (int i = 0; i < _actions.Length; i++) {
-                if (cancellationToken.IsCancellationRequested) break;
+            if (cancellationToken.IsCancellationRequested) return;
 
-                var action = _actions[i];
-                if (action is IDependency dep) dep.OnResolveDependencies(_dependencies);
+            if (_action is IDependency dep) {
+                _dependencies ??= new BlueprintPortDependencyResolver();
+                _dependencies.Setup(blueprint, token, 2);
 
-                await action.Apply(source: _actions, cancellationToken);
+                dep.OnResolveDependencies(_dependencies);
             }
+
+            await _action.Apply(source: blueprint, cancellationToken);
 
             if (cancellationToken.IsCancellationRequested) return;
 
