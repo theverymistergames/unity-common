@@ -11,7 +11,7 @@ namespace MisterGames.Blueprints.Nodes {
         BlueprintSource<BlueprintNodeExternalBlueprint>,
         BlueprintSources.IEnter<BlueprintNodeExternalBlueprint>,
         BlueprintSources.IOutput<BlueprintNodeExternalBlueprint>,
-        BlueprintSources.ICompilable<BlueprintNodeExternalBlueprint>,
+        BlueprintSources.ICreateSignaturePorts<BlueprintNodeExternalBlueprint>,
         BlueprintSources.ICloneable { }
 
     [Serializable]
@@ -20,7 +20,7 @@ namespace MisterGames.Blueprints.Nodes {
         IBlueprintNode,
         IBlueprintEnter2,
         IBlueprintOutput2,
-        IBlueprintCompilable
+        IBlueprintCreateSignaturePorts
     {
         [BlackboardProperty("_blackboard")]
         [SerializeField] private int _runner;
@@ -83,7 +83,7 @@ namespace MisterGames.Blueprints.Nodes {
             meta.InvalidateNode(id, invalidateLinks: true);
         }
 
-        public void Compile(NodeId id, BlueprintCompileData data) { }
+        public bool HasSignaturePorts(NodeId id) => true;
     }
 
 }

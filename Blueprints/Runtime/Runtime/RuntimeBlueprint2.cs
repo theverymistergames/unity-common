@@ -56,7 +56,11 @@ namespace MisterGames.Blueprints.Runtime {
 
                 source.OnDeInitialize(this, new NodeToken(id, root));
                 source.RemoveNode(id.node);
-                if (source.Count == 0) factory.RemoveSource(id.source);
+
+                if (source.Count > 0) continue;
+
+                source.Clear();
+                factory.RemoveSource(id.source);
             }
 
             Host = null;

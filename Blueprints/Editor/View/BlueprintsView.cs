@@ -406,7 +406,7 @@ namespace MisterGames.Blueprints.Editor.View {
             }
 
             Undo.RecordObject(_blueprintAsset, "Blueprint Add Node");
-            id = meta.AddNode(sourceType, position);
+            id = meta.AddNode(sourceType, nodeType, position);
             SetBlueprintAssetDirtyAndNotify();
 
             return true;
@@ -724,7 +724,7 @@ namespace MisterGames.Blueprints.Editor.View {
                     copyData.nodes.Add(new CopyPasteData.NodeData {
                         nodeId = id,
                         position = position,
-                        nodeType = new SerializedType(source?.NodeType),
+                        nodeType = new SerializedType(source?.GetNodeType(id.node)),
                         nodeJson = source?.GetNodeAsString(id.node),
                     });
 
@@ -776,7 +776,7 @@ namespace MisterGames.Blueprints.Editor.View {
 
                 if (!TryCreateNode(nodeType, position, out var id)) continue;
 
-                meta.GetNodeSource(id)?.SetNode(id.node, nodeData.nodeJson);
+                meta.GetNodeSource(id)?.SetNodeFromString(id.node, nodeData.nodeJson, nodeType);
                 nodeIdMap[nodeData.nodeId] = id;
             }
 

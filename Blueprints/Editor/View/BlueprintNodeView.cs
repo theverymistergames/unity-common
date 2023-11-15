@@ -58,7 +58,7 @@ namespace MisterGames.Blueprints.Editor.View {
             var container = this.Q<VisualElement>("title-container");
 
             var source = meta.GetNodeSource(nodeId);
-            var nodeType = source?.NodeType;
+            var nodeType = source?.GetNodeType(nodeId.node);
 
             titleLabel.text = BlueprintNodeUtils.GetFormattedNodeName(nodeId, nodeType);
             container.style.backgroundColor = BlueprintNodeUtils.GetNodeColor(nodeType);
@@ -178,10 +178,8 @@ namespace MisterGames.Blueprints.Editor.View {
         }
 
         private static float CalculateMinWidth(SerializedProperty property) {
-            float totalWidth = EditorGUIUtility.labelWidth + EditorGUIUtility.fieldWidth;
-
-            float labelWidth = 0;
-            float fieldWidth = 0;
+            float labelWidth = NODE_VIEW_MIN_LABEL_WIDTH;
+            float fieldWidth = NODE_VIEW_MIN_FIELD_WIDTH;
 
             property = property.Copy();
             bool hasArrayFields = false;
@@ -193,11 +191,6 @@ namespace MisterGames.Blueprints.Editor.View {
             while (enumerator.MoveNext()) {
                 if (enumerator.Current is not SerializedProperty childProperty) continue;
                 if (childProperty.depth > basePropertyDepth + 1) continue;
-
-                float labelTextWidth = EditorStyles.label.CalcSize(new GUIContent(childProperty.displayName)).x;
-
-                labelWidth = Mathf.Max(labelWidth, Mathf.Max(labelTextWidth + 20f, NODE_VIEW_MIN_LABEL_WIDTH));
-                fieldWidth = Mathf.Max(fieldWidth, Mathf.Max(totalWidth - labelWidth, NODE_VIEW_MIN_FIELD_WIDTH));
 
                 hasArrayFields |= childProperty.propertyType == SerializedPropertyType.ArraySize;
 

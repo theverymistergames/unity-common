@@ -66,21 +66,22 @@ namespace MisterGames.Blueprints.Meta {
             return _nodeMap.ContainsKey(id);
         }
 
-        public NodeId AddNode(Type sourceType, Vector2 position = default) {
+        public NodeId AddNode(Type sourceType, Type nodeType, Vector2 position = default) {
             int sourceId = _factory.GetOrCreateSource(sourceType);
             var source = _factory.GetSource(sourceId);
-            int nodeId = source.AddNode();
 
-            var key = new NodeId(sourceId, nodeId);
-            _nodeMap[key] = position;
+            int nodeId = source.AddNode(nodeType);
+            var id = new NodeId(sourceId, nodeId);
 
-            source.CreatePorts(this, key);
-            source.OnSetDefaults(this, key);
-            source.OnValidate(this, key);
+            _nodeMap[id] = position;
 
-            _onNodeChange?.Invoke(key);
+            source.CreatePorts(this, id);
+            source.OnSetDefaults(this, id);
+            source.OnValidate(this, id);
 
-            return key;
+            _onNodeChange?.Invoke(id);
+
+            return id;
         }
 
         public void RemoveNode(NodeId id) {
@@ -92,9 +93,12 @@ namespace MisterGames.Blueprints.Meta {
             _portStorage.RemoveNode(id);
 
             var source = _factory.GetSource(id.source);
-
             source?.RemoveNode(id.node);
-            if (source == null || source.Count == 0) _factory.RemoveSource(id.source);
+
+            if (source == null || source.Count == 0) {
+                source?.Clear();
+                _factory.RemoveSource(id.source);
+            }
 
             if (_nodeMap.Count == 0) Clear();
             else if (_linkStorage.LinkCount == 0) _linkStorage.Clear();

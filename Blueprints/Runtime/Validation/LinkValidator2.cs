@@ -79,7 +79,7 @@ namespace MisterGames.Blueprints.Validation {
         }
 
         public static bool ValidateHashLink(IBlueprintHashLink link, BlueprintMeta2 meta, NodeId id) {
-            link.GetLinkedPort(id, out int hash, out int port);
+            if (!link.TryGetLinkedPort(id, out int hash, out int port)) return true;
 
             if (port < 0 || port >= meta.GetPortCount(id)) {
                 Debug.LogError($"Blueprint `{meta.Owner}`: " +

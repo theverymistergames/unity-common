@@ -7,7 +7,7 @@ using UnityEngine;
 namespace MisterGames.Blueprints {
 
     /// <summary>
-    /// Base class for deriving user defined blueprint source. <see cref="IBlueprintSource"/>.
+    /// Base class for deriving user defined blueprint source with struct node type. <see cref="IBlueprintSource"/>.
     /// </summary>
     /// <typeparam name="TNode">Struct node type</typeparam>
     [Serializable]
@@ -19,37 +19,49 @@ namespace MisterGames.Blueprints {
 
         public int Count => _nodeMap.Count;
 
-        public Type NodeType => typeof(TNode);
+        public Type GetNodeType(int id) {
+            return typeof(TNode);
+        }
 
-        public ref T GetNode<T>(int id) where T : struct, IBlueprintNode {
+        public ref T GetNodeByRef<T>(int id) where T : struct, IBlueprintNode {
             if (this is not BlueprintSource<T> factory) {
                 throw new InvalidOperationException($"{nameof(BlueprintSource<TNode>)}: " +
                                                     $"can not get node of type {typeof(T).Name} " +
-                                                    $"from factory with nodes of type {typeof(TNode).Name}");
+                                                    $"from struct source with nodes of type {typeof(TNode).Name}");
             }
 
             return ref factory._nodeMap.GetValue(id);
         }
 
-        public int AddNode() {
-            int id = _lastId++;
-            _nodeMap.Add(id, default);
-            return id;
-        }
-
-        public void SetNode(int id, string str) {
-            ref var node = ref _nodeMap.GetValue(id);
-            node = JsonUtility.FromJson<TNode>(str);
-        }
-
-        public void SetNode(int id, IBlueprintSource source, int copyId) {
-            ref var node = ref _nodeMap.GetValue(id);
-            node = source.GetNode<TNode>(copyId);
+        public IBlueprintNode GetNodeAsInterface(int id) {
+            return _nodeMap.GetValue(id);
         }
 
         public string GetNodeAsString(int id) {
             ref var node = ref _nodeMap.GetValue(id);
             return JsonUtility.ToJson(node);
+        }
+
+        public int AddNode(Type nodeType = null) {
+            int id = _lastId++;
+            _nodeMap.Add(id, default);
+            return id;
+        }
+
+        public int AddNodeClone(IBlueprintSource source, int id) {
+            int targetId = _lastId++;
+            _nodeMap.Add(targetId, source.GetNodeByRef<TNode>(id));
+            return targetId;
+        }
+
+        public int AddNodeFromString(string value, Type nodeType) {
+            int id = _lastId++;
+            _nodeMap.Add(id, JsonUtility.FromJson<TNode>(value));
+            return id;
+        }
+
+        public void SetNodeFromString(int id, string value, Type nodeType) {
+            if (_nodeMap.ContainsKey(id)) _nodeMap[id] = JsonUtility.FromJson<TNode>(value);
         }
 
         public void RemoveNode(int id) {
@@ -95,5 +107,4 @@ namespace MisterGames.Blueprints {
             return $"{TypeNameFormatter.GetShortTypeName(typeof(BlueprintSource<TNode>))}: nodes: {_nodeMap}";
         }
     }
-
 }

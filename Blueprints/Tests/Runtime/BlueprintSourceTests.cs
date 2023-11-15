@@ -30,10 +30,10 @@ namespace Core {
             var source = new BlueprintSourceTest0();
             int id = source.AddNode();
 
-            ref var node = ref source.GetNode<BlueprintNodeTest0>(id);
+            ref var node = ref source.GetNodeByRef<BlueprintNodeTest0>(id);
             node.intValue = value;
 
-            node = source.GetNode<BlueprintNodeTest0>(id);
+            node = source.GetNodeByRef<BlueprintNodeTest0>(id);
             Assert.AreEqual(value, node.intValue);
         }
 
@@ -46,15 +46,13 @@ namespace Core {
             var source0 = new BlueprintSourceTest0();
             int id0 = source0.AddNode();
 
-            ref var node0 = ref source0.GetNode<BlueprintNodeTest0>(id0);
+            ref var node0 = ref source0.GetNodeByRef<BlueprintNodeTest0>(id0);
             node0.intValue = value;
 
             var source1 = new BlueprintSourceTest0();
-            int id1 = source1.AddNode();
+            int id1 = source1.AddNodeClone(source0, id0);
 
-            source1.SetNode(id1, source0, id0);
-
-            ref var node1 = ref source1.GetNode<BlueprintNodeTest0>(id1);
+            ref var node1 = ref source1.GetNodeByRef<BlueprintNodeTest0>(id1);
             Assert.AreEqual(value, node1.intValue);
         }
 
@@ -88,7 +86,7 @@ namespace Core {
             for (int i = 0; i < times; i++) {
                 for (int j = 0; j < size / times; j++) {
                     int id = source.AddNode();
-                    ref var node = ref source.GetNode<BlueprintNodeTest0>(id);
+                    ref var node = ref source.GetNodeByRef<BlueprintNodeTest0>(id);
 
                     node.intValue = id + 100;
 
@@ -109,11 +107,11 @@ namespace Core {
                     int id = addedIds[j];
 
                     if (removedIds.Contains(id)) {
-                        Assert.Throws<KeyNotFoundException>(() => source.GetNode<BlueprintNodeTest0>(id));
+                        Assert.Throws<KeyNotFoundException>(() => source.GetNodeByRef<BlueprintNodeTest0>(id));
                         continue;
                     }
 
-                    ref var node = ref source.GetNode<BlueprintNodeTest0>(id);
+                    ref var node = ref source.GetNodeByRef<BlueprintNodeTest0>(id);
                     Assert.AreEqual(id + 100, node.intValue);
                 }
             }

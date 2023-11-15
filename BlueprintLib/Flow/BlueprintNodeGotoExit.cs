@@ -35,9 +35,10 @@ namespace MisterGames.BlueprintLib {
             count = 0;
         }
 
-        public void GetLinkedPort(NodeId id, out int hash, out int port) {
+        public bool TryGetLinkedPort(NodeId id, out int hash, out int port) {
             hash = string.IsNullOrWhiteSpace(_label) ? 0 : _label.GetHashCode();
             port = 1;
+            return true;
         }
     }
 

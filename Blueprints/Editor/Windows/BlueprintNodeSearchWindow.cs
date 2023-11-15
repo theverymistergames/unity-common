@@ -124,7 +124,7 @@ namespace MisterGames.Blueprints.Editor.Windows {
                     var portEntries = new List<NodePortSearchEntry>();
                     if (source == null) return portEntries;
 
-                    int nodeId = source.AddNode();
+                    int nodeId = source.AddNode(t);
                     var id = new NodeId(0, nodeId);
 
                     _portCache.Clear();
@@ -160,7 +160,7 @@ namespace MisterGames.Blueprints.Editor.Windows {
             return TypeCache
                 .GetTypesDerivedFrom<IBlueprintNode>()
                 .Where(t =>
-                    (t.IsPublic || t.IsNestedPublic) && t.IsVisible && t.IsValueType &&
+                    (t.IsPublic || t.IsNestedPublic) && t.IsVisible &&
                     Attribute.IsDefined(t, typeof(BlueprintNodeAttribute)) &&
                     Attribute.IsDefined(t, typeof(SerializableAttribute))
                 );

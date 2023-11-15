@@ -16,6 +16,13 @@ namespace MisterGames.Blueprints.Editor.Utils {
         }
 
         public static Type GetSourceType(Type nodeType) {
+            // Need implement IBlueprintNode
+            if (!typeof(IBlueprintNode).IsAssignableFrom(nodeType)) return null;
+
+            // For class-based nodes
+            if (nodeType.IsClass) return typeof(BlueprintSourceRef);
+
+            // For struct-based nodes
             var sourceType = typeof(BlueprintSource<>).MakeGenericType(nodeType);
             var types = TypeCache.GetTypesDerivedFrom(sourceType);
             return types.Count == 0 ? null : types[0];

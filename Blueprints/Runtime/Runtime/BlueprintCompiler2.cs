@@ -67,17 +67,17 @@ namespace MisterGames.Blueprints.Runtime {
 
                     int runtimeSourceId = factory.GetOrCreateSource(source.GetType());
                     var runtimeSource = factory.GetSource(runtimeSourceId);
-                    int runtimeNodeId = runtimeSource.AddNode();
+                    int runtimeNodeId;
 
                     if (source is IBlueprintCloneable) {
-                        runtimeSource.SetNode(runtimeNodeId, source, id.node);
+                        runtimeNodeId = runtimeSource.AddNodeClone(source, id.node);
                     }
                     else {
                         if (!meta.NodeJsonMap.TryGetValue(id, out string json)) {
                             json = source.GetNodeAsString(id.node);
                             meta.NodeJsonMap[id] = json;
                         }
-                        runtimeSource.SetNode(runtimeNodeId, json);
+                        runtimeNodeId = runtimeSource.AddNodeFromString(json, source.GetNodeType(id.node));
                     }
 
                     runtimeId = new NodeId(runtimeSourceId, runtimeNodeId);
@@ -85,12 +85,13 @@ namespace MisterGames.Blueprints.Runtime {
                 }
 
                 int portCount = meta.GetPortCount(id);
+                bool hasSignaturePorts = source is IBlueprintCreateSignaturePorts c && c.HasSignaturePorts(id);
 
                 for (int p = 0; p < portCount; p++) {
                     var port = meta.GetPort(id, p);
 
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
-                    //PortValidator2.ValidatePort(meta, id, p);
+                    PortValidator2.ValidatePort(meta, id, p);
 #endif
 
                     int sign = port.GetSignature();
@@ -100,7 +101,7 @@ namespace MisterGames.Blueprints.Runtime {
                     if (isExternal) {
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
                         if (root == blueprint.root) blueprint.rootPorts[sign] = port;
-                        //LinkValidator2.ValidateRootLink(meta, linkStorage, id, p, rootId, sign);
+                        LinkValidator2.ValidateRootLink(meta, linkStorage, id, p, root, sign);
 #endif
 
                         // Compile links between root and external ports
@@ -118,8 +119,8 @@ namespace MisterGames.Blueprints.Runtime {
                         }
                     }
                     else {
-                        // Compile additional signature ports
-                        if (source is IBlueprintCompilable) {
+                        // Compile signature ports layer
+                        if (hasSignaturePorts) {
                             if (isEnterOrOutput) {
                                 int i = linkStorage.SelectPort(runtimeId.source, runtimeId.node, p);
                                 linkStorage.InsertLinkAfter(i, runtimeId.source, runtimeId.node, sign);
@@ -135,7 +136,7 @@ namespace MisterGames.Blueprints.Runtime {
                         // Compile in-node links
                         if (source is IBlueprintInternalLink internalLink) {
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
-                            //LinkValidator2.ValidateInternalLink(meta, id, p, internalLink);
+                            LinkValidator2.ValidateInternalLink(meta, id, p, internalLink);
 #endif
 
                             internalLink.GetLinkedPorts(id, p, out int s, out int count);
@@ -159,7 +160,7 @@ namespace MisterGames.Blueprints.Runtime {
                         var linkedId = link.id;
 
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
-                        //LinkValidator2.ValidateNodeLink(meta, id, p, linkedId, link.port);
+                        LinkValidator2.ValidateNodeLink(meta, id, p, linkedId, link.port);
 #endif
 
                         if (!_runtimeNodeMap.TryGetValue(linkedId, out var linkedRuntimeId)) {
@@ -168,17 +169,17 @@ namespace MisterGames.Blueprints.Runtime {
 
                             int linkedRuntimeSourceId = factory.GetOrCreateSource(linkedSource.GetType());
                             var linkedRuntimeSource = factory.GetSource(linkedRuntimeSourceId);
-                            int linkedRuntimeNodeId = linkedRuntimeSource.AddNode();
+                            int linkedRuntimeNodeId;
 
                             if (linkedSource is IBlueprintCloneable) {
-                                linkedRuntimeSource.SetNode(linkedRuntimeNodeId, linkedSource, linkedId.node);
+                                linkedRuntimeNodeId = linkedRuntimeSource.AddNodeClone(linkedSource, linkedId.node);
                             }
                             else {
                                 if (!meta.NodeJsonMap.TryGetValue(linkedId, out string json)) {
                                     json = linkedSource.GetNodeAsString(linkedId.node);
                                     meta.NodeJsonMap[linkedId] = json;
                                 }
-                                linkedRuntimeSource.SetNode(linkedRuntimeNodeId, json);
+                                linkedRuntimeNodeId = linkedRuntimeSource.AddNodeFromString(json, linkedSource.GetNodeType(linkedId.node));
                             }
 
                             linkedRuntimeId = new NodeId(linkedRuntimeSourceId, linkedRuntimeNodeId);
@@ -189,24 +190,22 @@ namespace MisterGames.Blueprints.Runtime {
                     }
                 }
 
-                if (source is IBlueprintHashLink hashLink) {
+                if (source is IBlueprintHashLink hashLink && hashLink.TryGetLinkedPort(id, out int hash, out int linkedPort)) {
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
-                    //LinkValidator2.ValidateHashLink(hashLink, meta, id);
+                    LinkValidator2.ValidateHashLink(hashLink, meta, id);
 #endif
 
-                    hashLink.GetLinkedPort(id, out int hash, out int p);
-
-                    var port = meta.GetPort(id, p);
+                    var port = meta.GetPort(id, linkedPort);
                     int hashRoot = _hashLinks.GetOrAddNode(hash);
 
                     int dir = port.IsInput() == port.IsData() ? 0 : 1;
                     int dirRoot = _hashLinks.GetOrAddNode(dir, hashRoot);
 
-                    _hashLinks.AddEndPoint(dirRoot, new RuntimeLink2(runtimeId.source, runtimeId.node, p));
+                    _hashLinks.AddEndPoint(dirRoot, new RuntimeLink2(runtimeId.source, runtimeId.node, linkedPort));
                 }
 
-                if (source is IBlueprintCompilable compiled) {
-                    compiled.Compile(id, new BlueprintCompileData(host, blueprint, runtimeId));
+                if (source is IBlueprintCompilable compilable) {
+                    compilable.Compile(id, new BlueprintCompileData(host, blueprint, runtimeId));
                 }
 
                 nodeStorage.AddNode(runtimeId);
