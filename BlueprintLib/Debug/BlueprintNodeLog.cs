@@ -62,52 +62,6 @@ namespace MisterGames.BlueprintLib {
     }
 
     [Serializable]
-    [BlueprintNode(Name = "Log (class)", Category = "Debug", Color = BlueprintColors.Node.Debug)]
-    public sealed class BlueprintNodeLog3 : IBlueprintNode, IBlueprintEnter2 {
-
-        [SerializeField] private Level _level = Level.Log;
-        [SerializeField] private Color _color = Color.white;
-        [SerializeField] private string _defaultText;
-
-        private enum Level {
-            Log,
-            Warning,
-            Assertion,
-            Error
-        }
-
-        public void CreatePorts(IBlueprintMeta meta, NodeId id) {
-            meta.AddPort(id, Port.Enter());
-            meta.AddPort(id, Port.Input<string>("Text"));
-            meta.AddPort(id, Port.Exit());
-        }
-
-        public void OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
-            if (port != 0) return;
-
-            string text = blueprint.Read(token, 1, _defaultText);
-            string formatText = $"<color=#{ColorUtility.ToHtmlStringRGB(_color)}>{text}</color>";
-
-            switch (_level) {
-                case Level.Log:
-                    Debug.Log(formatText);
-                    break;
-                case Level.Warning:
-                    Debug.LogWarning(formatText);
-                    break;
-                case Level.Assertion:
-                    Debug.LogAssertion(formatText);
-                    break;
-                case Level.Error:
-                    Debug.LogError(formatText);
-                    break;
-            }
-
-            blueprint.Call(token, 2);
-        }
-    }
-
-    [Serializable]
     [BlueprintNodeMeta(Name = "Log", Category = "Debug", Color = BlueprintColors.Node.Debug)]
     public sealed class BlueprintNodeLog : BlueprintNode, IBlueprintEnter {
         

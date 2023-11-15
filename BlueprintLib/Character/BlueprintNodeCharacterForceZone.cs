@@ -7,10 +7,10 @@ using MisterGames.Character.Motion;
 using UnityEngine;
 
 namespace MisterGames.BlueprintLib {
-/*
+
     [Serializable]
     [BlueprintNode(Name = "Character Force Zone", Category = "Character", Color = BlueprintColors.Node.Actions)]
-    public struct BlueprintNodeCharacterForceZone2 :
+    public sealed class BlueprintNodeCharacterForceZone2 :
         IBlueprintNode,
         IBlueprintEnter2,
         IBlueprintStartCallback,
@@ -21,6 +21,8 @@ namespace MisterGames.BlueprintLib {
 
         private CharacterAccess _characterAccess;
         private CharacterForceZone _forceZone;
+        private IBlueprint _blueprint;
+        private NodeToken _token;
         private Vector3 _force;
 
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {
@@ -33,9 +35,19 @@ namespace MisterGames.BlueprintLib {
             meta.AddPort(id, Port.Output<Vector3>("Force Vector"));
         }
 
+        public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
+            if (_forceZone == null) return;
+
+            _forceZone.OnEnteredZone -= OnEnteredZone;
+            _forceZone.OnExitedZone -= OnExitedZone;
+            _forceZone.OnForceUpdate -= OnForceUpdate;
+        }
+
         public void OnStart(IBlueprint blueprint, NodeToken token) {
             if (!_autoSetZoneAtStart) return;
 
+            _token = token;
+            _blueprint = blueprint;
             _forceZone = blueprint.Read<CharacterForceZone>(token, 1);
 
             _forceZone.OnEnteredZone -= OnEnteredZone;
@@ -45,18 +57,12 @@ namespace MisterGames.BlueprintLib {
             _forceZone.OnExitedZone += OnExitedZone;
         }
 
-        public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
-            if (_forceZone == null) return;
-
-            _forceZone.OnEnteredZone -= OnEnteredZone;
-            _forceZone.OnExitedZone -= OnExitedZone;
-            _forceZone.OnForceUpdate -= OnForceUpdate;
-        }
-
-        public void OnEnterPort(int port) {
+        public void OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
             if (port != 0) return;
 
-            _forceZone ??= Ports[1].Get<CharacterForceZone>();
+            _token = token;
+            _blueprint = blueprint;
+            _forceZone ??= blueprint.Read<CharacterForceZone>(token, 1);
 
             _forceZone.OnEnteredZone -= OnEnteredZone;
             _forceZone.OnEnteredZone += OnEnteredZone;
@@ -65,11 +71,11 @@ namespace MisterGames.BlueprintLib {
             _forceZone.OnExitedZone += OnExitedZone;
         }
 
-        CharacterAccess IBlueprintOutput<CharacterAccess>.GetOutputPortValue(int port) {
+        CharacterAccess IBlueprintOutput2<CharacterAccess>.GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
             return port == 2 ? _characterAccess : default;
         }
 
-        Vector3 IBlueprintOutput<Vector3>.GetOutputPortValue(int port) {
+        Vector3 IBlueprintOutput2<Vector3>.GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
             return port == 6 ? _force : default;
         }
 
@@ -79,22 +85,22 @@ namespace MisterGames.BlueprintLib {
             _forceZone.OnForceUpdate -= OnForceUpdate;
             _forceZone.OnForceUpdate += OnForceUpdate;
 
-            Ports[3].Call();
+            _blueprint.Call(_token, 3);
         }
 
         private void OnExitedZone(CharacterAccess characterAccess) {
             _forceZone.OnForceUpdate -= OnForceUpdate;
 
-            Ports[4].Call();
+            _blueprint.Call(_token, 4);
             _characterAccess = null;
         }
 
         private void OnForceUpdate(Vector3 force) {
             _force = force;
-            Ports[5].Call();
+            _blueprint.Call(_token, 5);
         }
     }
-*/
+
     [Serializable]
     [BlueprintNodeMeta(Name = "Character Force Zone", Category = "Character", Color = BlueprintColors.Node.Actions)]
     public sealed class BlueprintNodeCharacterForceZone :

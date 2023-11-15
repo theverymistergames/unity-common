@@ -7,7 +7,8 @@ namespace MisterGames.BlueprintLib {
     [Serializable]
     public class BlueprintSourceAppendString :
         BlueprintSource<BlueprintNodeAppendString2>,
-        BlueprintSources.IOutput<BlueprintNodeAppendString2, string> {}
+        BlueprintSources.IOutput<BlueprintNodeAppendString2, string>,
+        BlueprintSources.ICloneable {}
 
     [Serializable]
     [BlueprintNode(Name = "Append String", Category = "Debug", Color = BlueprintColors.Node.Data)]
