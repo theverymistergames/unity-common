@@ -1,6 +1,6 @@
 ﻿namespace MisterGames.Blueprints.Runtime {
 
-    public ref struct LinkIterator {
+    public struct LinkIterator {
 
         private readonly RuntimeBlueprint2 _blueprint;
         private readonly NodeToken _token;
