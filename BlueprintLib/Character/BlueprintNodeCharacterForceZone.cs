@@ -36,6 +36,15 @@ namespace MisterGames.BlueprintLib {
             meta.AddPort(id, Port.Output<Vector3>("Force Vector"));
         }
 
+        public void OnStart(IBlueprint blueprint, NodeToken token) {
+            _blueprint = blueprint;
+
+            if (!_autoSetZoneAtStart) return;
+
+            _token = token;
+            PrepareZone();
+        }
+
         public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
             _blueprint = null;
             _characterAccess = null;
@@ -45,41 +54,35 @@ namespace MisterGames.BlueprintLib {
             _forceZone.OnEnteredZone -= OnEnteredZone;
             _forceZone.OnExitedZone -= OnExitedZone;
             _forceZone.OnForceUpdate -= OnForceUpdate;
+
+            _forceZone = null;
         }
 
-        public void OnStart(IBlueprint blueprint, NodeToken token) {
-            if (!_autoSetZoneAtStart) return;
-
-            _token = token;
-            _blueprint = blueprint;
-            _forceZone = blueprint.Read<CharacterForceZone>(token, 1);
-
-            _forceZone.OnEnteredZone -= OnEnteredZone;
-            _forceZone.OnEnteredZone += OnEnteredZone;
-
-            _forceZone.OnExitedZone -= OnExitedZone;
-            _forceZone.OnExitedZone += OnExitedZone;
-        }
-
-        public void OnEnterPort(NodeToken token, int port) {
+        public void OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
             if (port != 0) return;
 
             _token = token;
-            _forceZone ??= _blueprint.Read<CharacterForceZone>(token, 1);
-
-            _forceZone.OnEnteredZone -= OnEnteredZone;
-            _forceZone.OnEnteredZone += OnEnteredZone;
-
-            _forceZone.OnExitedZone -= OnExitedZone;
-            _forceZone.OnExitedZone += OnExitedZone;
+            PrepareZone();
         }
 
-        CharacterAccess IBlueprintOutput2<CharacterAccess>.GetPortValue(NodeToken token, int port) {
+        CharacterAccess IBlueprintOutput2<CharacterAccess>.GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
             return port == 2 ? _characterAccess : default;
         }
 
-        Vector3 IBlueprintOutput2<Vector3>.GetPortValue(NodeToken token, int port) {
+        Vector3 IBlueprintOutput2<Vector3>.GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
             return port == 6 ? _force : default;
+        }
+
+        private void PrepareZone() {
+            if (_forceZone != null) {
+                _forceZone.OnEnteredZone -= OnEnteredZone;
+                _forceZone.OnExitedZone -= OnExitedZone;
+            }
+
+            _forceZone = _blueprint.Read<CharacterForceZone>(_token, 1);
+
+            _forceZone.OnEnteredZone += OnEnteredZone;
+            _forceZone.OnExitedZone += OnExitedZone;
         }
 
         private void OnEnteredZone(CharacterAccess characterAccess) {

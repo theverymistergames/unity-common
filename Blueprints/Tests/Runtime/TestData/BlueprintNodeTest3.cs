@@ -20,11 +20,11 @@ namespace Core {
 
         public void CreatePorts(IBlueprintMeta meta, NodeId id) { }
 
-        public void OnEnterPort(NodeToken token, int port) {
+        public void OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
             pickedPort = port;
         }
 
-        public int GetPortValue(NodeToken token, int port) {
+        public int GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
             return pickedPort;
         }
     }

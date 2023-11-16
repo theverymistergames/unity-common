@@ -18,8 +18,6 @@ namespace MisterGames.BlueprintLib {
         [SerializeField] private Color _color;
         [SerializeField] private string _defaultText;
 
-        private IBlueprint _blueprint;
-
         private enum Level {
             Log,
             Warning,
@@ -38,18 +36,10 @@ namespace MisterGames.BlueprintLib {
             meta.AddPort(id, Port.Exit());
         }
 
-        public void OnInitialize(IBlueprint blueprint, NodeToken token) {
-            _blueprint = blueprint;
-        }
-
-        public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
-            _blueprint = null;
-        }
-
-        public void OnEnterPort(NodeToken token, int port) {
+        public void OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
             if (port != 0) return;
 
-            string text = _blueprint.Read(token, 1, _defaultText);
+            string text = blueprint.Read(token, 1, _defaultText);
             string formatText = $"<color=#{ColorUtility.ToHtmlStringRGB(_color)}>{text}</color>";
 
             switch (_level) {
@@ -67,7 +57,7 @@ namespace MisterGames.BlueprintLib {
                     break;
             }
 
-            _blueprint.Call(token, 2);
+            blueprint.Call(token, 2);
         }
     }
 

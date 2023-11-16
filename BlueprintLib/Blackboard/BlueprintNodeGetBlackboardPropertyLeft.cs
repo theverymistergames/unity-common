@@ -35,7 +35,7 @@ namespace MisterGames.BlueprintLib {
             _blackboard = blueprint.GetBlackboard(token.caller);
         }
 
-        public T GetPortValue<T>(NodeToken token, int port) => port switch {
+        public T GetPortValue<T>(IBlueprint blueprint, NodeToken token, int port) => port switch {
             0 => _blackboard.Get<T>(_property),
             _ => default,
         };

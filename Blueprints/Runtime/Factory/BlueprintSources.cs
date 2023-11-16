@@ -9,27 +9,27 @@ namespace MisterGames.Blueprints {
         public interface IEnter<TNode> : IBlueprintSource, IBlueprintEnter2
             where TNode : struct, IBlueprintNode, IBlueprintEnter2
         {
-            void IBlueprintEnter2.OnEnterPort(NodeToken token, int port) {
+            void IBlueprintEnter2.OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
                 ref var node = ref GetNodeByRef<TNode>(token.node.node);
-                node.OnEnterPort(token, port);
+                node.OnEnterPort(blueprint, token, port);
             }
         }
 
         public interface IOutput<TNode, out R> : IBlueprintSource, IBlueprintOutput2<R>
             where TNode : struct, IBlueprintNode, IBlueprintOutput2<R>
         {
-            R IBlueprintOutput2<R>.GetPortValue(NodeToken token, int port) {
+            R IBlueprintOutput2<R>.GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
                 ref var node = ref GetNodeByRef<TNode>(token.node.node);
-                return node.GetPortValue(token, port);
+                return node.GetPortValue(blueprint, token, port);
             }
         }
 
         public interface IOutput<TNode> : IBlueprintSource, IBlueprintOutput2
             where TNode : struct, IBlueprintNode, IBlueprintOutput2
         {
-            R IBlueprintOutput2.GetPortValue<R>(NodeToken token, int port) {
+            R IBlueprintOutput2.GetPortValue<R>(IBlueprint blueprint, NodeToken token, int port) {
                 ref var node = ref GetNodeByRef<TNode>(token.node.node);
-                return node.GetPortValue<R>(token, port);
+                return node.GetPortValue<R>(blueprint, token, port);
             }
         }
 

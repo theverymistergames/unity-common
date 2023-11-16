@@ -17,24 +17,14 @@ namespace MisterGames.BlueprintLib {
         [SerializeField] private string _a;
         [SerializeField] private string _b;
 
-        private IBlueprint _blueprint;
-
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {
             meta.AddPort(id, Port.Input<string>("A"));
             meta.AddPort(id, Port.Input<string>("B"));
             meta.AddPort(id, Port.Output<string>());
         }
 
-        public void OnInitialize(IBlueprint blueprint, NodeToken token) {
-            _blueprint = blueprint;
-        }
-
-        public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
-            _blueprint = null;
-        }
-
-        public string GetPortValue(NodeToken token, int port) => port switch {
-            2 => $"{_blueprint.Read(token, 0, _a)}{_blueprint.Read(token, 1, _b)}",
+        public string GetPortValue(IBlueprint blueprint, NodeToken token, int port) => port switch {
+            2 => $"{blueprint.Read(token, 0, _a)}{blueprint.Read(token, 1, _b)}",
             _ => string.Empty,
         };
     }

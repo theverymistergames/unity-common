@@ -103,16 +103,16 @@ namespace MisterGames.Blueprints {
             _nodeMap.GetValue(token.node.node).OnDeInitialize(blueprint, token);
         }
 
-        public void OnEnterPort(NodeToken token, int port) {
+        public void OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
             if (_nodeMap.GetValue(token.node.node) is IBlueprintEnter2 enter) {
-                enter.OnEnterPort(token, port);
+                enter.OnEnterPort(blueprint, token, port);
             }
         }
 
-        public T GetPortValue<T>(NodeToken token, int port) {
+        public T GetPortValue<T>(IBlueprint blueprint, NodeToken token, int port) {
             return _nodeMap.GetValue(token.node.node) switch {
-                IBlueprintOutput2<T> outputT => outputT.GetPortValue(token, port),
-                IBlueprintOutput2 output => output.GetPortValue<T>(token, port),
+                IBlueprintOutput2<T> outputT => outputT.GetPortValue(blueprint, token, port),
+                IBlueprintOutput2 output => output.GetPortValue<T>(blueprint, token, port),
                 _ => default,
             };
         }

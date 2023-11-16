@@ -60,7 +60,7 @@ namespace MisterGames.Blueprints.Nodes {
             _externalBlueprint = null;
         }
 
-        public void OnEnterPort(NodeToken token, int port) {
+        public void OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
 #if UNITY_EDITOR
             if (!_isValidExternalBlueprint) return;
 #endif
@@ -68,7 +68,7 @@ namespace MisterGames.Blueprints.Nodes {
             _externalBlueprint.Call(new NodeToken(_externalBlueprint.root, caller: token.node), port);
         }
 
-        public T GetPortValue<T>(NodeToken token, int port) {
+        public T GetPortValue<T>(IBlueprint blueprint, NodeToken token, int port) {
 #if UNITY_EDITOR
             if (!_isValidExternalBlueprint) return default;
 #endif

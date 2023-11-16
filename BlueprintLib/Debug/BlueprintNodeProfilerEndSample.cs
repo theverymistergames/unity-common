@@ -14,26 +14,16 @@ namespace MisterGames.BlueprintLib {
     [BlueprintNode(Name = "Profiler.EndSample", Category = "Debug", Color = BlueprintColors.Node.Debug)]
     public struct BlueprintNodeProfilerEndSample2 : IBlueprintNode, IBlueprintEnter2 {
 
-        private IBlueprint _blueprint;
-
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {
             meta.AddPort(id, Port.Enter());
             meta.AddPort(id, Port.Exit());
         }
 
-        public void OnInitialize(IBlueprint blueprint, NodeToken token) {
-            _blueprint = blueprint;
-        }
-
-        public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
-            _blueprint = null;
-        }
-
-        public void OnEnterPort(NodeToken token, int port) {
+        public void OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
             if (port != 0) return;
 
             Profiler.EndSample();
-            _blueprint.Call(token, 1);
+            blueprint.Call(token, 1);
         }
     }
 

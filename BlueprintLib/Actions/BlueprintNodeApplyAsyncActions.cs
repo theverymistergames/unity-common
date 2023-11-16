@@ -23,7 +23,6 @@ namespace MisterGames.BlueprintLib {
 
         [SerializeField] private AsyncActionAsset _action;
 
-        private IBlueprint _blueprint;
         private CancellationTokenSource _terminateCts;
         private BlueprintPortDependencyResolver _dependencies;
 
@@ -43,15 +42,12 @@ namespace MisterGames.BlueprintLib {
         }
 
         public void OnInitialize(IBlueprint blueprint, NodeToken token) {
-            _blueprint = blueprint;
-
             _terminateCts?.Cancel();
             _terminateCts?.Dispose();
             _terminateCts = new CancellationTokenSource();
         }
 
         public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
-            _blueprint = null;
             _dependencies = null;
 
             _terminateCts?.Cancel();
@@ -59,27 +55,27 @@ namespace MisterGames.BlueprintLib {
             _terminateCts = null;
         }
 
-        public void OnEnterPort(NodeToken token, int port) {
+        public void OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
             if (port != 0) return;
 
-            Apply(token, _terminateCts.Token).Forget();
+            Apply(blueprint, token, _terminateCts.Token).Forget();
         }
 
-        private async UniTaskVoid Apply(NodeToken token, CancellationToken cancellationToken) {
+        private async UniTaskVoid Apply(IBlueprint blueprint, NodeToken token, CancellationToken cancellationToken) {
             if (cancellationToken.IsCancellationRequested) return;
 
             if (_action is IDependency dep) {
                 _dependencies ??= new BlueprintPortDependencyResolver();
-                _dependencies.Setup(_blueprint, token, 2);
+                _dependencies.Setup(blueprint, token, 2);
 
                 dep.OnResolveDependencies(_dependencies);
             }
 
-            await _action.Apply(source: _blueprint, cancellationToken);
+            await _action.Apply(source: blueprint, cancellationToken);
 
             if (cancellationToken.IsCancellationRequested) return;
 
-            _blueprint.Call(token, 1);
+            blueprint.Call(token, 1);
         }
 
         public void OnValidate(IBlueprintMeta meta, NodeId id) {

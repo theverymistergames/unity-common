@@ -20,10 +20,6 @@ namespace MisterGames.BlueprintLib {
             meta.AddPort(id, Port.Input<ITransition>("Transitions").Layout(PortLayout.Right).Capacity(PortCapacity.Multiple));
         }
 
-        public void OnInitialize(IBlueprint blueprint, NodeToken token) {
-            _blueprint = blueprint;
-        }
-
         public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
             _token = token;
             TryExit(notify: false);
@@ -31,7 +27,8 @@ namespace MisterGames.BlueprintLib {
             _blueprint = null;
         }
 
-        public void OnEnterPort(NodeToken token, int port) {
+        public void OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
+            _blueprint = blueprint;
             _token = token;
 
             switch (port) {
@@ -66,7 +63,7 @@ namespace MisterGames.BlueprintLib {
 
             var links = _blueprint.GetLinks(_token, 4);
             while (links.MoveNext()) {
-                links.Read<ITransition>()?.Arm(this);
+                links.Read<ITransition>()?.Disarm();
             }
 
             _isEnteredState = false;

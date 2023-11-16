@@ -30,10 +30,6 @@ namespace MisterGames.BlueprintLib {
             meta.AddPort(id, Port.Output<GameObject>());
         }
 
-        public void OnInitialize(IBlueprint blueprint, NodeToken token) {
-            _blueprint = blueprint;
-        }
-
         public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
             _blueprint = null;
             _go = null;
@@ -41,20 +37,22 @@ namespace MisterGames.BlueprintLib {
         }
 
         public void OnStart(IBlueprint blueprint, NodeToken token) {
+            _blueprint = blueprint;
+
             if (!_autoSetTriggerAtStart) return;
 
             _token = token;
             SetupTrigger();
         }
 
-        public void OnEnterPort(NodeToken token, int port) {
+        public void OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
             if (port != 0) return;
 
             _token = token;
             SetupTrigger();
         }
 
-        public GameObject GetPortValue(NodeToken token, int port) {
+        public GameObject GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
             return port == 3 ? _go : default;
         }
 

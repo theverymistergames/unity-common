@@ -60,7 +60,7 @@ namespace MisterGames.BlueprintLib {
             _stateCallback = null;
         }
 
-        public ITransition GetPortValue(NodeToken token, int port) {
+        public ITransition GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
             return port == 0 ? this : default;
         }
 
