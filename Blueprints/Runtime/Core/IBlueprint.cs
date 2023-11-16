@@ -17,7 +17,7 @@ namespace MisterGames.Blueprints {
         /// <summary>
         /// Get blackboard by blueprint node id.
         /// </summary>
-        Blackboard GetBlackboard(NodeToken token);
+        Blackboard GetBlackboard(NodeId root);
 
         /// <summary>
         /// Invoke exit port of node with passed id.

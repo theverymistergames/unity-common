@@ -20,6 +20,7 @@ namespace MisterGames.BlueprintLib {
         private Trigger _trigger;
         private GameObject _go;
         private IBlueprint _blueprint;
+
         private NodeToken _token;
 
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {
@@ -29,30 +30,39 @@ namespace MisterGames.BlueprintLib {
             meta.AddPort(id, Port.Output<GameObject>());
         }
 
+        public void OnInitialize(IBlueprint blueprint, NodeToken token) {
+            _blueprint = blueprint;
+        }
+
+        public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
+            _blueprint = null;
+            _go = null;
+            _trigger = null;
+        }
+
         public void OnStart(IBlueprint blueprint, NodeToken token) {
             if (!_autoSetTriggerAtStart) return;
 
             _token = token;
-            _blueprint = blueprint;
-            _trigger = blueprint.Read<Trigger>(token, 1);
-
-            _trigger.OnTriggered -= OnTriggered;
-            _trigger.OnTriggered += OnTriggered;
+            SetupTrigger();
         }
 
-        public void OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
-            if (port != 0)  return;
+        public void OnEnterPort(NodeToken token, int port) {
+            if (port != 0) return;
 
             _token = token;
-            _blueprint = blueprint;
-            _trigger = blueprint.Read<Trigger>(token, 1);
-
-            _trigger.OnTriggered -= OnTriggered;
-            _trigger.OnTriggered += OnTriggered;
+            SetupTrigger();
         }
 
-        public GameObject GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
+        public GameObject GetPortValue(NodeToken token, int port) {
             return port == 3 ? _go : default;
+        }
+
+        private void SetupTrigger() {
+            if (_trigger != null) _trigger.OnTriggered -= OnTriggered;
+
+            _trigger = _blueprint.Read<Trigger>(_token, 1);
+            _trigger.OnTriggered += OnTriggered;
         }
 
         private void OnTriggered(GameObject go) {

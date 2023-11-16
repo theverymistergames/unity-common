@@ -20,6 +20,7 @@ namespace MisterGames.BlueprintLib {
 
         private CancellationTokenSource _terminateCts;
         private CancellationTokenSource _cancelCts;
+        private IBlueprint _blueprint;
 
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {
             meta.AddPort(id, Port.Enter("Start"));
@@ -28,15 +29,32 @@ namespace MisterGames.BlueprintLib {
             meta.AddPort(id, Port.Exit("On Finish"));
         }
 
-        public void OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
+        public void OnInitialize(IBlueprint blueprint, NodeToken token) {
+            _blueprint = blueprint;
+            _terminateCts = new CancellationTokenSource();
+        }
+
+        public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
+            _terminateCts.Cancel();
+            _terminateCts.Dispose();
+            _terminateCts = null;
+
+            _cancelCts?.Cancel();
+            _cancelCts?.Dispose();
+            _cancelCts = null;
+
+            _blueprint = null;
+        }
+
+        public void OnEnterPort(NodeToken token, int port) {
             if (port == 0) {
                 _cancelCts?.Cancel();
                 _cancelCts?.Dispose();
                 _cancelCts = new CancellationTokenSource();
                 var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_cancelCts.Token, _terminateCts.Token);
 
-                float duration = blueprint.Read(token, 2, _duration);
-                DelayAndExitAsync(blueprint, token, duration, linkedCts.Token).Forget();
+                float duration = _blueprint.Read(token, 2, _duration);
+                DelayAndExitAsync(token, duration, linkedCts.Token).Forget();
 
                 return;
             }
@@ -48,26 +66,14 @@ namespace MisterGames.BlueprintLib {
             }
         }
 
-        public void OnInitialize(IBlueprint blueprint, NodeToken token) {
-            _terminateCts = new CancellationTokenSource();
-        }
-
-        public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
-            _terminateCts.Cancel();
-            _terminateCts.Dispose();
-
-            _cancelCts?.Cancel();
-            _cancelCts?.Dispose();
-        }
-
-        private async UniTaskVoid DelayAndExitAsync(IBlueprint blueprint, NodeToken token, float delay, CancellationToken cancellationToken) {
+        private async UniTaskVoid DelayAndExitAsync(NodeToken token, float delay, CancellationToken cancellationToken) {
             bool isCancelled = await UniTask
                 .Delay(TimeSpan.FromSeconds(delay), cancellationToken: cancellationToken)
                 .SuppressCancellationThrow();
 
             if (isCancelled) return;
 
-            blueprint.Call(token, 3);
+            _blueprint.Call(token, 3);
         }
     }
 

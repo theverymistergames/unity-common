@@ -37,7 +37,7 @@ namespace MisterGames.Blueprints.Nodes {
         }
 
         public void OnInitialize(IBlueprint blueprint, NodeToken token) {
-            var runner = blueprint.GetBlackboard(token).Get<BlueprintRunner2>(_runner);
+            var runner = blueprint.GetBlackboard(token.caller).Get<BlueprintRunner2>(_runner);
 
 #if UNITY_EDITOR
             _isValidExternalBlueprint = SubgraphValidator2.ValidateExternalBlueprint(blueprint.Host.Runner, runner, _blueprint);
@@ -52,14 +52,15 @@ namespace MisterGames.Blueprints.Nodes {
         public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
 #if UNITY_EDITOR
             if (!_isValidExternalBlueprint) return;
-            var runner = blueprint.GetBlackboard(token).Get<BlueprintRunner2>(_runner);
+            var runner = blueprint.GetBlackboard(token.caller).Get<BlueprintRunner2>(_runner);
             if (runner != null) runner.UnregisterClient(blueprint.Host.Runner);
 #endif
 
             _externalBlueprint.Unbind(token.node);
+            _externalBlueprint = null;
         }
 
-        public void OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
+        public void OnEnterPort(NodeToken token, int port) {
 #if UNITY_EDITOR
             if (!_isValidExternalBlueprint) return;
 #endif
@@ -67,7 +68,7 @@ namespace MisterGames.Blueprints.Nodes {
             _externalBlueprint.Call(new NodeToken(_externalBlueprint.root, caller: token.node), port);
         }
 
-        public T GetPortValue<T>(IBlueprint blueprint, NodeToken token, int port) {
+        public T GetPortValue<T>(NodeToken token, int port) {
 #if UNITY_EDITOR
             if (!_isValidExternalBlueprint) return default;
 #endif

@@ -34,10 +34,6 @@ namespace MisterGames.Blueprints.Nodes {
         public void OnValidate(IBlueprintMeta meta, NodeId id) {
             meta.InvalidateNode(id, invalidateLinks: false, notify: false);
         }
-
-        public T Clone<T>(NodeId id) where T : struct, IBlueprintNode {
-            return new T();
-        }
     }
 
 }

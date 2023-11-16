@@ -32,10 +32,14 @@ namespace MisterGames.BlueprintLib {
         }
 
         public void OnInitialize(IBlueprint blueprint, NodeToken token) {
-            _blackboard = blueprint.GetBlackboard(token);
+            _blackboard = blueprint.GetBlackboard(token.caller);
         }
 
-        public T GetPortValue<T>(IBlueprint blueprint, NodeToken token, int port) => port switch {
+        public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
+            _blackboard = null;
+        }
+
+        public T GetPortValue<T>(NodeToken token, int port) => port switch {
             0 => _blackboard.Get<T>(_property),
             _ => default,
         };

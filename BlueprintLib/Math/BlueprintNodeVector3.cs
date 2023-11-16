@@ -16,6 +16,8 @@ namespace MisterGames.BlueprintLib {
 
         [SerializeField] private Vector3 _vector;
 
+        private IBlueprint _blueprint;
+
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {
             meta.AddPort(id, Port.Input<float>("X"));
             meta.AddPort(id, Port.Input<float>("Y"));
@@ -23,11 +25,19 @@ namespace MisterGames.BlueprintLib {
             meta.AddPort(id, Port.Output<Vector3>());
         }
 
-        public Vector3 GetPortValue(IBlueprint blueprint, NodeToken token, int port) => port switch {
+        public void OnInitialize(IBlueprint blueprint, NodeToken token) {
+            _blueprint = blueprint;
+        }
+
+        public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
+            _blueprint = null;
+        }
+
+        public Vector3 GetPortValue(NodeToken token, int port) => port switch {
             3 => new Vector3(
-                blueprint.Read(token, 0, _vector.x),
-                blueprint.Read(token, 1, _vector.y),
-                blueprint.Read(token, 2, _vector.z)
+                _blueprint.Read(token, 0, _vector.x),
+                _blueprint.Read(token, 1, _vector.y),
+                _blueprint.Read(token, 2, _vector.z)
             ),
             _ => default
         };

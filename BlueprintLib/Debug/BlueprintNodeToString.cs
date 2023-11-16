@@ -84,7 +84,7 @@ namespace MisterGames.BlueprintLib {
 #endif
         }
 
-        public string GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
+        public string GetPortValue(NodeToken token, int port) {
             return port == 1 ? _getString.Invoke() : default;
         }
 

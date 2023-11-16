@@ -88,8 +88,8 @@ namespace MisterGames.Blueprints.Runtime {
             }
         }
 
-        public Blackboard GetBlackboard(NodeToken token) {
-            return blackboardStorage.GetBlackboard(token.caller);
+        public Blackboard GetBlackboard(NodeId root) {
+            return blackboardStorage.GetBlackboard(root);
         }
 
         public void Call(NodeToken token, int port) {
@@ -132,8 +132,7 @@ namespace MisterGames.Blueprints.Runtime {
             var link = linkStorage.GetLink(index);
             if (factory.GetSource(link.source) is not IBlueprintEnter2 enter) return;
 
-            var token = new NodeToken(new NodeId(link.source, link.node), caller);
-            enter.OnEnterPort(this, token, link.port);
+            enter.OnEnterPort(new NodeToken(new NodeId(link.source, link.node), caller), link.port);
         }
 
         internal T ReadLink<T>(int index, NodeId caller, T defaultValue = default) {
@@ -143,8 +142,8 @@ namespace MisterGames.Blueprints.Runtime {
             var token = new NodeToken(new NodeId(link.source, link.node), caller);
 
             return factory.GetSource(link.source) switch {
-                IBlueprintOutput2<T> outputT => outputT.GetPortValue(this, token, link.port),
-                IBlueprintOutput2 output => output.GetPortValue<T>(this, token, link.port),
+                IBlueprintOutput2<T> outputT => outputT.GetPortValue(token, link.port),
+                IBlueprintOutput2 output => output.GetPortValue<T>(token, link.port),
                 _ => defaultValue
             };
         }

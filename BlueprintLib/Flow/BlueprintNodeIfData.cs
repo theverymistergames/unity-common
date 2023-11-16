@@ -19,6 +19,8 @@ namespace MisterGames.BlueprintLib {
 
         [SerializeField] private bool _condition;
 
+        private IBlueprint _blueprint;
+
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {
             meta.AddPort(id, Port.Input<bool>("Condition"));
 
@@ -37,11 +39,19 @@ namespace MisterGames.BlueprintLib {
             meta.AddPort(id, Port.DynamicOutput(type: dataType));
         }
 
-        public T GetPortValue<T>(IBlueprint blueprint, NodeToken token, int port) {
+        public void OnInitialize(IBlueprint blueprint, NodeToken token) {
+            _blueprint = blueprint;
+        }
+
+        public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
+            _blueprint = null;
+        }
+
+        public T GetPortValue<T>(NodeToken token, int port) {
             if (port != 3) return default;
 
-            bool condition = blueprint.Read(token, 0, _condition);
-            return blueprint.Read<T>(token, condition ? 1 : 2);
+            bool condition = _blueprint.Read(token, 0, _condition);
+            return _blueprint.Read<T>(token, condition ? 1 : 2);
         }
 
         public void OnLinksChanged(IBlueprintMeta meta, NodeId id, int port) {

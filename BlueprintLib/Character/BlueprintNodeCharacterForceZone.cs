@@ -22,6 +22,7 @@ namespace MisterGames.BlueprintLib {
         private CharacterAccess _characterAccess;
         private CharacterForceZone _forceZone;
         private IBlueprint _blueprint;
+
         private NodeToken _token;
         private Vector3 _force;
 
@@ -36,6 +37,9 @@ namespace MisterGames.BlueprintLib {
         }
 
         public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
+            _blueprint = null;
+            _characterAccess = null;
+
             if (_forceZone == null) return;
 
             _forceZone.OnEnteredZone -= OnEnteredZone;
@@ -57,12 +61,11 @@ namespace MisterGames.BlueprintLib {
             _forceZone.OnExitedZone += OnExitedZone;
         }
 
-        public void OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
+        public void OnEnterPort(NodeToken token, int port) {
             if (port != 0) return;
 
             _token = token;
-            _blueprint = blueprint;
-            _forceZone ??= blueprint.Read<CharacterForceZone>(token, 1);
+            _forceZone ??= _blueprint.Read<CharacterForceZone>(token, 1);
 
             _forceZone.OnEnteredZone -= OnEnteredZone;
             _forceZone.OnEnteredZone += OnEnteredZone;
@@ -71,11 +74,11 @@ namespace MisterGames.BlueprintLib {
             _forceZone.OnExitedZone += OnExitedZone;
         }
 
-        CharacterAccess IBlueprintOutput2<CharacterAccess>.GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
+        CharacterAccess IBlueprintOutput2<CharacterAccess>.GetPortValue(NodeToken token, int port) {
             return port == 2 ? _characterAccess : default;
         }
 
-        Vector3 IBlueprintOutput2<Vector3>.GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
+        Vector3 IBlueprintOutput2<Vector3>.GetPortValue(NodeToken token, int port) {
             return port == 6 ? _force : default;
         }
 

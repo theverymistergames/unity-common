@@ -25,6 +25,7 @@ namespace MisterGames.BlueprintLib {
         private int _arrayPointer;
         private Array _arrayCache;
         private LinkIterator _links;
+        private IBlueprint _blueprint;
 
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {
             Type inputDataType = null;
@@ -61,10 +62,20 @@ namespace MisterGames.BlueprintLib {
             meta.AddPort(id, Port.DynamicOutput(outputDataType == null ? "Element" : null, outputDataType));
         }
 
-        public void OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
+        public void OnInitialize(IBlueprint blueprint, NodeToken token) {
+            _blueprint = blueprint;
+        }
+
+        public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
+            _blueprint = null;
+            _arrayCache = null;
+            _links = default;
+        }
+
+        public void OnEnterPort(NodeToken token, int port) {
             if (port != 0) return;
 
-            _links = blueprint.GetLinks(token, 1);
+            _links = _blueprint.GetLinks(token, 1);
 
             // No linked ports: nothing to iterate.
             if (!_links.MoveNext()) return;
@@ -84,7 +95,7 @@ namespace MisterGames.BlueprintLib {
                 // "On Iteration" port call.
                 // Connected node must read "Element" output port when the port is called,
                 // so method GetPortValue is called to retrieve element value.
-                blueprint.Call(token, 2);
+                _blueprint.Call(token, 2);
 
                 // Already retrieved array, has next element, continue iterate through array.
                 if (_arrayCache != null && _arrayPointer + 1 < _arrayCache.Length) {
@@ -107,7 +118,7 @@ namespace MisterGames.BlueprintLib {
             }
         }
 
-        public T GetPortValue<T>(IBlueprint blueprint, NodeToken token, int port) {
+        public T GetPortValue<T>(NodeToken token, int port) {
             // Has cached array: return current array element
             if (_arrayCache is T[] array) return array[_arrayPointer];
 
