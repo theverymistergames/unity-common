@@ -14,7 +14,7 @@ namespace MisterGames.Blueprints {
     public abstract class BlueprintSource<TNode> : IBlueprintSource
         where TNode : struct, IBlueprintNode
     {
-        [SerializeField] private ArrayMap<int, TNode> _nodeMap = new ArrayMap<int, TNode>();
+        [SerializeField] private Map<int, TNode> _nodeMap = new Map<int, TNode>();
         [SerializeField] private int _lastId;
 
         public int Count => _nodeMap.Count;
@@ -30,15 +30,15 @@ namespace MisterGames.Blueprints {
                                                     $"from struct source with nodes of type {typeof(TNode).Name}");
             }
 
-            return ref factory._nodeMap.GetValue(id);
+            return ref factory._nodeMap.Get(id);
         }
 
         public IBlueprintNode GetNodeAsInterface(int id) {
-            return _nodeMap.GetValue(id);
+            return _nodeMap.Get(id);
         }
 
         public string GetNodeAsString(int id) {
-            ref var node = ref _nodeMap.GetValue(id);
+            ref var node = ref _nodeMap.Get(id);
             return JsonUtility.ToJson(node);
         }
 
@@ -79,27 +79,27 @@ namespace MisterGames.Blueprints {
         }
 
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {
-            ref var node = ref _nodeMap.GetValue(id.node);
+            ref var node = ref _nodeMap.Get(id.node);
             node.CreatePorts(meta, id);
         }
 
         public void OnSetDefaults(IBlueprintMeta meta, NodeId id) {
-            ref var node = ref _nodeMap.GetValue(id.node);
+            ref var node = ref _nodeMap.Get(id.node);
             node.OnSetDefaults(meta, id);
         }
 
         public void OnValidate(IBlueprintMeta meta, NodeId id) {
-            ref var node = ref _nodeMap.GetValue(id.node);
+            ref var node = ref _nodeMap.Get(id.node);
             node.OnValidate(meta, id);
         }
 
         public void OnInitialize(IBlueprint blueprint, NodeToken token) {
-            ref var node = ref _nodeMap.GetValue(token.node.node);
+            ref var node = ref _nodeMap.Get(token.node.node);
             node.OnInitialize(blueprint, token);
         }
 
         public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
-            ref var node = ref _nodeMap.GetValue(token.node.node);
+            ref var node = ref _nodeMap.Get(token.node.node);
             node.OnDeInitialize(blueprint, token);
         }
 

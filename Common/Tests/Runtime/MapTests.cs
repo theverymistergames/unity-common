@@ -6,11 +6,11 @@ using Random = UnityEngine.Random;
 
 namespace Data {
 
-    public class ArrayMapTests {
+    public class MapTests {
 
         [Test]
         public void Contains() {
-            var map = new ArrayMap<int, float>();
+            var map = new Map<int, float>();
 
             map[0] = 1.0f;
 
@@ -18,7 +18,7 @@ namespace Data {
             Assert.IsTrue(map.IndexOf(0) >= 0);
             Assert.AreEqual(1, map.Count);
             Assert.AreEqual(1f, map[0]);
-            Assert.AreEqual(1f, map.GetValue(0));
+            Assert.AreEqual(1f, map.Get(0));
             Assert.IsTrue(map.TryGetValue(0, out float value));
             Assert.AreEqual(1f, value);
 
@@ -28,14 +28,14 @@ namespace Data {
             Assert.IsFalse(map.IndexOf(0) >= 0);
             Assert.AreEqual(0, map.Count);
 
-            Assert.Throws<KeyNotFoundException>(() => map.GetValue(0));
+            Assert.Throws<KeyNotFoundException>(() => map.Get(0));
             Assert.IsFalse(map.TryGetValue(0, out value));
             Assert.AreEqual(0f, value);
         }
 
         [Test]
         public void Add() {
-            var map = new ArrayMap<int, float>();
+            var map = new Map<int, float>();
 
             map.Add(0, 1.0f);
 
@@ -43,7 +43,7 @@ namespace Data {
             Assert.IsTrue(map.IndexOf(0) >= 0);
             Assert.AreEqual(1, map.Count);
             Assert.AreEqual(1f, map[0]);
-            Assert.AreEqual(1f, map.GetValue(0));
+            Assert.AreEqual(1f, map.Get(0));
             Assert.IsTrue(map.TryGetValue(0, out float value));
             Assert.AreEqual(1f, value);
 
@@ -53,22 +53,22 @@ namespace Data {
             Assert.IsTrue(map.IndexOf(1) >= 0);
             Assert.AreEqual(2, map.Count);
             Assert.AreEqual(2f, map[1]);
-            Assert.AreEqual(2f, map.GetValue(1));
+            Assert.AreEqual(2f, map.Get(1));
             Assert.IsTrue(map.TryGetValue(1, out value));
             Assert.AreEqual(2f, value);
         }
 
         [Test]
         public void AddDuplicate() {
-            var map = new ArrayMap<int, float>();
+            var map = new Map<int, float>();
 
             map.Add(0, 0.0f);
-            Assert.Throws<InvalidOperationException>(() => { map.Add(0, 0.0f); });
+            Assert.Throws<ArgumentException>(() => { map.Add(0, 0.0f); });
         }
 
         [Test]
         public void SetDuplicate() {
-            var map = new ArrayMap<int, float>();
+            var map = new Map<int, float>();
 
             map[0] = 0.0f;
             map[0] = 1.0f;
@@ -79,7 +79,7 @@ namespace Data {
 
         [Test]
         public void Clear() {
-            var map = new ArrayMap<int, float>();
+            var map = new Map<int, float>();
 
             map[0] = 1.0f;
             map[1] = 2.0f;
@@ -90,10 +90,10 @@ namespace Data {
 
         [Test]
         public void GetValueByRef() {
-            var map = new ArrayMap<int, float>();
+            var map = new Map<int, float>();
 
             map[0] = 1.0f;
-            ref float value = ref map.GetValue(0);
+            ref float value = ref map.Get(0);
 
             Assert.AreEqual(1f, value);
 
@@ -110,7 +110,7 @@ namespace Data {
         [TestCase(100)]
         [TestCase(1000)]
         public void AddRemoveRandom(int size) {
-            var map = new ArrayMap<int, float>();
+            var map = new Map<int, float>();
             var added = new Dictionary<int, float>();
             var removed = new HashSet<int>();
 

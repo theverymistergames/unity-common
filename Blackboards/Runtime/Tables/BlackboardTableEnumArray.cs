@@ -9,7 +9,7 @@ namespace MisterGames.Blackboards.Tables {
     [BlackboardTable(typeof(Enum[]))]
     public sealed class BlackboardTableEnumArray : IBlackboardTable {
 
-        [SerializeField] private ArrayMap<int, BlackboardValue<ulong>[]> _map = new ArrayMap<int, BlackboardValue<ulong>[]>();
+        [SerializeField] private Map<int, BlackboardValue<ulong>[]> _map = new Map<int, BlackboardValue<ulong>[]>();
 
         public int Count => _map.Count;
 
@@ -67,7 +67,7 @@ namespace MisterGames.Blackboards.Tables {
 
         public string GetSerializedPropertyPath(int hash) {
             return _map.ContainsKey(hash)
-                ? $"{nameof(_map)}._nodes.Array.data[{_map.IndexOf(hash)}].value"
+                ? $"{nameof(_map)}._entries.Array.data[{_map.IndexOf(hash)}].value"
                 : null;
         }
     }

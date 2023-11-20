@@ -10,7 +10,7 @@ namespace MisterGames.Blackboards.Tables {
     [BlackboardTable(typeof(Object[]))]
     public sealed class BlackboardTableUnityObjectArray : IBlackboardTable {
 
-        [SerializeField] private ArrayMap<int, BlackboardValue<Object>[]> _map = new ArrayMap<int, BlackboardValue<Object>[]>();
+        [SerializeField] private Map<int, BlackboardValue<Object>[]> _map = new Map<int, BlackboardValue<Object>[]>();
 
         public int Count => _map.Count;
 
@@ -68,7 +68,7 @@ namespace MisterGames.Blackboards.Tables {
 
         public string GetSerializedPropertyPath(int hash) {
             return _map.ContainsKey(hash)
-                ? $"{nameof(_map)}._nodes.Array.data[{_map.IndexOf(hash)}].value"
+                ? $"{nameof(_map)}._entries.Array.data[{_map.IndexOf(hash)}].value"
                 : null;
         }
     }

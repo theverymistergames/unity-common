@@ -11,8 +11,8 @@ namespace MisterGames.Blueprints.Editor.Utils {
 
         public static string GetNodePath(int sourceIndex, int nodeIndex) {
             return $"_blueprintMeta._factory." +
-                   $"_sources._nodes.Array.data[{sourceIndex}].value." +
-                   $"_nodeMap._nodes.Array.data[{nodeIndex}].value";
+                   $"_sources._entries.Array.data[{sourceIndex}].value." +
+                   $"_nodeMap._entries.Array.data[{nodeIndex}].value";
         }
 
         public static Type GetSourceType(Type nodeType) {

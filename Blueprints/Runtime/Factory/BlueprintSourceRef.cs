@@ -25,7 +25,7 @@ namespace MisterGames.Blueprints {
         IBlueprintCompilable,
         IBlueprintCreateSignaturePorts
     {
-        [SerializeField] private RefArrayMap<int, IBlueprintNode> _nodeMap = new RefArrayMap<int, IBlueprintNode>();
+        [SerializeField] private ReferenceMap<int, IBlueprintNode> _nodeMap = new ReferenceMap<int, IBlueprintNode>();
         [SerializeField] private int _lastId;
 
         public int Count => _nodeMap.Count;
@@ -45,7 +45,7 @@ namespace MisterGames.Blueprints {
         }
 
         public string GetNodeAsString(int id) {
-            return JsonUtility.ToJson(_nodeMap.GetValue(id));
+            return JsonUtility.ToJson(_nodeMap[id]);
         }
 
         public int AddNode(Type nodeType) {
@@ -84,33 +84,33 @@ namespace MisterGames.Blueprints {
         }
 
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {
-            _nodeMap.GetValue(id.node).CreatePorts(meta, id);
+            _nodeMap[id.node].CreatePorts(meta, id);
         }
 
         public void OnSetDefaults(IBlueprintMeta meta, NodeId id) {
-            _nodeMap.GetValue(id.node).OnSetDefaults(meta, id);
+            _nodeMap[id.node].OnSetDefaults(meta, id);
         }
 
         public void OnValidate(IBlueprintMeta meta, NodeId id) {
-            _nodeMap.GetValue(id.node).OnValidate(meta, id);
+            _nodeMap[id.node].OnValidate(meta, id);
         }
 
         public void OnInitialize(IBlueprint blueprint, NodeToken token) {
-            _nodeMap.GetValue(token.node.node).OnInitialize(blueprint, token);
+            _nodeMap[token.node.node].OnInitialize(blueprint, token);
         }
 
         public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
-            _nodeMap.GetValue(token.node.node).OnDeInitialize(blueprint, token);
+            _nodeMap[token.node.node].OnDeInitialize(blueprint, token);
         }
 
         public void OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
-            if (_nodeMap.GetValue(token.node.node) is IBlueprintEnter2 enter) {
+            if (_nodeMap[token.node.node] is IBlueprintEnter2 enter) {
                 enter.OnEnterPort(blueprint, token, port);
             }
         }
 
         public T GetPortValue<T>(IBlueprint blueprint, NodeToken token, int port) {
-            return _nodeMap.GetValue(token.node.node) switch {
+            return _nodeMap[token.node.node] switch {
                 IBlueprintOutput2<T> outputT => outputT.GetPortValue(blueprint, token, port),
                 IBlueprintOutput2 output => output.GetPortValue<T>(blueprint, token, port),
                 _ => default,
@@ -118,25 +118,25 @@ namespace MisterGames.Blueprints {
         }
 
         public void OnStart(IBlueprint blueprint, NodeToken token) {
-            if (_nodeMap.GetValue(token.node.node) is IBlueprintStartCallback callback) {
+            if (_nodeMap[token.node.node] is IBlueprintStartCallback callback) {
                 callback.OnStart(blueprint, token);
             }
         }
 
         public void OnEnable(IBlueprint blueprint, NodeToken token, bool enabled) {
-            if (_nodeMap.GetValue(token.node.node) is IBlueprintEnableCallback callback) {
+            if (_nodeMap[token.node.node] is IBlueprintEnableCallback callback) {
                 callback.OnEnable(blueprint, token, enabled);
             }
         }
 
         public void OnLinksChanged(IBlueprintMeta meta, NodeId id, int port) {
-            if (_nodeMap.GetValue(id.node) is IBlueprintConnectionCallback callback) {
+            if (_nodeMap[id.node] is IBlueprintConnectionCallback callback) {
                 callback.OnLinksChanged(meta, id, port);
             }
         }
 
         public void GetLinkedPorts(NodeId id, int port, out int index, out int count) {
-            if (_nodeMap.GetValue(id.node) is IBlueprintInternalLink internalLink) {
+            if (_nodeMap[id.node] is IBlueprintInternalLink internalLink) {
                 internalLink.GetLinkedPorts(id, port, out index, out count);
             }
 
@@ -145,7 +145,7 @@ namespace MisterGames.Blueprints {
         }
 
         public bool TryGetLinkedPort(NodeId id, out int hash, out int port) {
-            if (_nodeMap.GetValue(id.node) is IBlueprintHashLink hashLink) {
+            if (_nodeMap[id.node] is IBlueprintHashLink hashLink) {
                 return hashLink.TryGetLinkedPort(id, out hash, out port);
             }
 
@@ -155,11 +155,11 @@ namespace MisterGames.Blueprints {
         }
 
         public bool HasSignaturePorts(NodeId id) {
-            return _nodeMap.GetValue(id.node) is IBlueprintCreateSignaturePorts p && p.HasSignaturePorts(id);
+            return _nodeMap[id.node] is IBlueprintCreateSignaturePorts p && p.HasSignaturePorts(id);
         }
 
         public void Compile(NodeId id, BlueprintCompileData data) {
-            if (_nodeMap.GetValue(id.node) is IBlueprintCompilable compilable) {
+            if (_nodeMap[id.node] is IBlueprintCompilable compilable) {
                 compilable.Compile(id, data);
             }
         }

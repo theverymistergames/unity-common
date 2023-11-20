@@ -9,14 +9,14 @@ namespace MisterGames.Blueprints.Meta {
     [Serializable]
     public sealed class BlueprintMeta : IComparer<BlueprintLink> {
 
-        [SerializeField] private SerializedDictionary<int, BlueprintNodeMeta> _nodesMap;
-        [SerializeField] private SerializedDictionary<int, SerializedDictionary<int, List<BlueprintLink>>> _fromNodePortLinksMap;
+        [SerializeField] private Map<int, BlueprintNodeMeta> _nodesMap;
+        [SerializeField] private Map<int, Map<int, List<BlueprintLink>>> _fromNodePortLinksMap;
 
         [SerializeField] private int _addedNodesTotalCount;
-        [SerializeField] private SerializedDictionary<int, SerializedDictionary<int, List<BlueprintLink>>> _toNodePortLinksMap;
-        [SerializeField] private SerializedDictionary<int, BlueprintAsset> _subgraphReferencesMap;
+        [SerializeField] private Map<int, Map<int, List<BlueprintLink>>> _toNodePortLinksMap;
+        [SerializeField] private Map<int, BlueprintAsset> _subgraphReferencesMap;
 
-        public Dictionary<int, BlueprintNodeMeta> NodesMap => _nodesMap;
+        public Map<int, BlueprintNodeMeta> NodesMap => _nodesMap;
 
         public IReadOnlyList<BlueprintLink> GetLinksFromNodePort(int nodeId, int portIndex) {
             if (!_fromNodePortLinksMap.TryGetValue(nodeId, out var fromNodePortLinksMap) ||
@@ -36,7 +36,7 @@ namespace MisterGames.Blueprints.Meta {
 
 #if UNITY_EDITOR
         public Action<int> OnInvalidateNodePortsAndLinks;
-        public Dictionary<int, BlueprintAsset> SubgraphReferencesMap => _subgraphReferencesMap;
+        public Map<int, BlueprintAsset> SubgraphReferencesMap => _subgraphReferencesMap;
 
         public void AddNode(BlueprintNodeMeta  nodeMeta) {
             int nodeId = _addedNodesTotalCount++;
@@ -264,7 +264,7 @@ namespace MisterGames.Blueprints.Meta {
 
         private void SetLinksFromNodePort(int nodeId, int portIndex, IReadOnlyList<BlueprintLink> links) {
             if (!_fromNodePortLinksMap.TryGetValue(nodeId, out var fromNodePortLinksMap)) {
-                fromNodePortLinksMap = new SerializedDictionary<int, List<BlueprintLink>>();
+                fromNodePortLinksMap = new Map<int, List<BlueprintLink>>();
                 _fromNodePortLinksMap[nodeId] = fromNodePortLinksMap;
             }
 
@@ -274,7 +274,7 @@ namespace MisterGames.Blueprints.Meta {
                 var link = links[l];
 
                 if (!_toNodePortLinksMap.TryGetValue(link.nodeId, out var toNodePortLinksMap)) {
-                    toNodePortLinksMap = new SerializedDictionary<int, List<BlueprintLink>>();
+                    toNodePortLinksMap = new Map<int, List<BlueprintLink>>();
                     _toNodePortLinksMap[link.nodeId] = toNodePortLinksMap;
                 }
 
@@ -292,7 +292,7 @@ namespace MisterGames.Blueprints.Meta {
 
         private void SetLinksToNodePort(int nodeId, int portIndex, IReadOnlyList<BlueprintLink> links) {
             if (!_toNodePortLinksMap.TryGetValue(nodeId, out var toNodePortLinksMap)) {
-                toNodePortLinksMap = new SerializedDictionary<int, List<BlueprintLink>>();
+                toNodePortLinksMap = new Map<int, List<BlueprintLink>>();
                 _toNodePortLinksMap[nodeId] = toNodePortLinksMap;
             }
 
@@ -302,7 +302,7 @@ namespace MisterGames.Blueprints.Meta {
                 var link = links[l];
 
                 if (!_fromNodePortLinksMap.TryGetValue(link.nodeId, out var fromNodePortLinksMap)) {
-                    fromNodePortLinksMap = new SerializedDictionary<int, List<BlueprintLink>>();
+                    fromNodePortLinksMap = new Map<int, List<BlueprintLink>>();
                     _fromNodePortLinksMap[link.nodeId] = fromNodePortLinksMap;
                 }
 
@@ -320,7 +320,7 @@ namespace MisterGames.Blueprints.Meta {
 
         private void AddLinkFromNodePort(BlueprintAsset blueprint, int fromNodeId, int fromPortIndex, int toNodeId, int toPortIndex) {
             if (!_fromNodePortLinksMap.TryGetValue(fromNodeId, out var fromNodePortLinksMap)) {
-                fromNodePortLinksMap = new SerializedDictionary<int, List<BlueprintLink>>();
+                fromNodePortLinksMap = new Map<int, List<BlueprintLink>>();
                 _fromNodePortLinksMap[fromNodeId] = fromNodePortLinksMap;
             }
 
@@ -339,7 +339,7 @@ namespace MisterGames.Blueprints.Meta {
 
         private void AddLinkToNodePort(BlueprintAsset blueprint, int fromNodeId, int fromPortIndex, int toNodeId, int toPortIndex) {
             if (!_toNodePortLinksMap.TryGetValue(toNodeId, out var toNodePortLinksMap)) {
-                toNodePortLinksMap = new SerializedDictionary<int, List<BlueprintLink>>();
+                toNodePortLinksMap = new Map<int, List<BlueprintLink>>();
                 _toNodePortLinksMap[toNodeId] = toNodePortLinksMap;
             }
 

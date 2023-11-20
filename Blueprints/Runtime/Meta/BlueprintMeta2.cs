@@ -11,8 +11,8 @@ namespace MisterGames.Blueprints.Meta {
     [Serializable]
     public sealed class BlueprintMeta2 : IBlueprintMeta, IComparer<BlueprintLink2> {
 
-        [SerializeField] private SerializedDictionary<NodeId, Vector2> _nodeMap;
-        [SerializeField] private SerializedDictionary<NodeId, BlueprintAsset2> _subgraphMap;
+        [SerializeField] private Map<NodeId, Vector2> _nodeMap;
+        [SerializeField] private Map<NodeId, BlueprintAsset2> _subgraphMap;
         [SerializeField] private BlueprintFactory _factory;
         [SerializeField] private BlueprintLinkStorage _linkStorage;
         [SerializeField] private BlueprintPortStorage _portStorage;
@@ -33,8 +33,8 @@ namespace MisterGames.Blueprints.Meta {
 #endif
 
         public BlueprintMeta2() {
-            _nodeMap = new SerializedDictionary<NodeId, Vector2>();
-            _subgraphMap = new SerializedDictionary<NodeId, BlueprintAsset2>();
+            _nodeMap = new Map<NodeId, Vector2>();
+            _subgraphMap = new Map<NodeId, BlueprintAsset2>();
             _factory = new BlueprintFactory();
             _linkStorage = new BlueprintLinkStorage();
             _portStorage = new BlueprintPortStorage();

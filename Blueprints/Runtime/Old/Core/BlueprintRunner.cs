@@ -8,7 +8,7 @@ namespace MisterGames.Blueprints {
     public sealed class BlueprintRunner : MonoBehaviour, IBlueprintHost {
 
         [SerializeField] private BlueprintAsset _blueprintAsset;
-        [SerializeField] private SerializedDictionary<BlueprintAsset, Blackboard> _blackboardOverridesMap;
+        [SerializeField] private Map<BlueprintAsset, Blackboard> _blackboardOverridesMap;
 
         public BlueprintAsset BlueprintAsset => _blueprintAsset;
         public Blackboard Blackboard => _blackboard;
@@ -53,8 +53,8 @@ namespace MisterGames.Blueprints {
 #if UNITY_EDITOR
         internal bool IsRunningRuntimeBlueprint => _isRunningRuntimeBlueprint;
 
-        internal SerializedDictionary<BlueprintAsset, Blackboard> BlackboardOverridesMap =>
-            _blackboardOverridesMap ??= new SerializedDictionary<BlueprintAsset, Blackboard>();
+        internal Map<BlueprintAsset, Blackboard> BlackboardOverridesMap =>
+            _blackboardOverridesMap ??= new Map<BlueprintAsset, Blackboard>();
 
         internal void CompileAndStartRuntimeBlueprint() {
             _isRunningRuntimeBlueprint = true;

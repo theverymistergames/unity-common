@@ -36,8 +36,8 @@ namespace MisterGames.Common.Data {
         #region DATA
 
         [SerializeField] private Node[] _nodes;
-        [SerializeField] private SerializedDictionary<K, int> _rootIndexMap;
-        [SerializeField] private SerializedDictionary<KeyIndex, int> _nodeIndexMap;
+        [SerializeField] private Map<K, int> _rootIndexMap;
+        [SerializeField] private Map<KeyIndex, int> _nodeIndexMap;
         [SerializeField] private int _count;
         [SerializeField] private int _head;
         [SerializeField] private int _version;
@@ -515,8 +515,8 @@ namespace MisterGames.Common.Data {
             int capacity = roots + nodes;
 
             _nodes = capacity > 0 ? new Node[capacity] : Array.Empty<Node>();
-            _rootIndexMap = new SerializedDictionary<K, int>(roots);
-            _nodeIndexMap = new SerializedDictionary<KeyIndex, int>(nodes);
+            _rootIndexMap = new Map<K, int>(roots);
+            _nodeIndexMap = new Map<KeyIndex, int>(nodes);
             _freeIndices = new List<int>();
 
             _isDefragmentationAllowed = true;
@@ -527,8 +527,8 @@ namespace MisterGames.Common.Data {
         /// </summary>
         public TreeSet() {
             _nodes = Array.Empty<Node>();
-            _rootIndexMap = new SerializedDictionary<K, int>();
-            _nodeIndexMap = new SerializedDictionary<KeyIndex, int>();
+            _rootIndexMap = new Map<K, int>();
+            _nodeIndexMap = new Map<KeyIndex, int>();
             _freeIndices = new List<int>();
 
             _isDefragmentationAllowed = true;
@@ -538,8 +538,8 @@ namespace MisterGames.Common.Data {
             _nodes = new Node[source._nodes.Length];
             Array.Copy(source._nodes, _nodes, _nodes.Length);
 
-            _rootIndexMap = new SerializedDictionary<K, int>(source._rootIndexMap);
-            _nodeIndexMap = new SerializedDictionary<KeyIndex, int>(source._nodeIndexMap);
+            _rootIndexMap = new Map<K, int>(source._rootIndexMap);
+            _nodeIndexMap = new Map<KeyIndex, int>(source._nodeIndexMap);
             _freeIndices = new List<int>(source._freeIndices);
 
             _count = source._count;

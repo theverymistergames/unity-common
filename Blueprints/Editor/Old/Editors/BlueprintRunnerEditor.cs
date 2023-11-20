@@ -109,7 +109,7 @@ namespace MisterGames.Blueprints.Editor.Editors {
         private void FetchBlackboardOfBlueprintAndItsSubgraphsRecursively(
             BlueprintRunner runner,
             BlueprintAsset blueprint,
-            SerializedDictionary<BlueprintAsset, Blackboard> blackboardOverridesMap
+            IDictionary<BlueprintAsset, Blackboard> blackboardOverridesMap
         ) {
             if (blueprint == null) {
                 if (blackboardOverridesMap.ContainsKey(blueprint)) blackboardOverridesMap.Remove(blueprint);
@@ -129,7 +129,7 @@ namespace MisterGames.Blueprints.Editor.Editors {
         private static void FetchBlackboardOfBlueprint(
             BlueprintRunner runner,
             BlueprintAsset blueprint,
-            SerializedDictionary<BlueprintAsset, Blackboard> blackboardOverridesMap
+            IDictionary<BlueprintAsset, Blackboard> blackboardOverridesMap
         ) {
             if (!blackboardOverridesMap.TryGetValue(blueprint, out var blackboardOverride)) {
                 blackboardOverride = new Blackboard(blueprint.Blackboard);

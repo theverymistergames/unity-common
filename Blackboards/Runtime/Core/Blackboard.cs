@@ -12,22 +12,22 @@ namespace MisterGames.Blackboards.Core {
     public sealed class Blackboard {
 
         [SerializeField] private List<int> _propertyList;
-        [SerializeField] private SerializedDictionary<int, BlackboardProperty> _propertyMap;
-        [SerializeField] private RefArrayMap<int, IBlackboardTable> _tables;
+        [SerializeField] private Map<int, BlackboardProperty> _propertyMap;
+        [SerializeField] private ReferenceMap<int, IBlackboardTable> _tables;
         [SerializeField] private int _tablesHead;
 
         public IReadOnlyList<int> Properties => _propertyList;
 
         public Blackboard() {
             _propertyList = new List<int>();
-            _propertyMap = new SerializedDictionary<int, BlackboardProperty>();
-            _tables = new RefArrayMap<int, IBlackboardTable>();
+            _propertyMap = new Map<int, BlackboardProperty>();
+            _tables = new ReferenceMap<int, IBlackboardTable>();
         }
 
         public Blackboard(Blackboard source) {
             _propertyList = new List<int>(source._propertyList);
-            _propertyMap = new SerializedDictionary<int, BlackboardProperty>(source._propertyMap);
-            _tables = new RefArrayMap<int, IBlackboardTable>(source._tables);
+            _propertyMap = new Map<int, BlackboardProperty>(source._propertyMap);
+            _tables = new ReferenceMap<int, IBlackboardTable>(source._tables);
         }
 
         public T Get<T>(int hash) {
