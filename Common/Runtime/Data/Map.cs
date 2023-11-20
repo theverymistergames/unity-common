@@ -310,7 +310,7 @@ namespace MisterGames.Common.Data {
 
         private void TrimExcess(bool forceNewHashCodes) {
             int newSize = _count - _freeCount;
-            if (newSize == _entries.Length) return;
+            if (!forceNewHashCodes && newSize == _entries.Length) return;
 
             int[] newBuckets = new int[newSize];
             for (int i = 0; i < newBuckets.Length; i++) newBuckets[i] = -1;
@@ -323,6 +323,7 @@ namespace MisterGames.Common.Data {
                 if (entry.hashCode < 0) continue;
 
                 ref var newEntry = ref newEntries[newIndex];
+
                 newEntry.hashCode = forceNewHashCodes ? _comparer.GetHashCode(entry.key) & 0x7FFFFFFF : entry.hashCode;
                 newEntry.key = entry.key;
                 newEntry.value = entry.value;
@@ -362,7 +363,7 @@ namespace MisterGames.Common.Data {
                         return true;
                     }
                 }
-                if (_freeCount >= _count) TrimExcess(forceNewHashCodes: false);
+                if (_freeCount > _count) TrimExcess(forceNewHashCodes: false);
             }
             return false;
         }
