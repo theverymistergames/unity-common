@@ -93,7 +93,6 @@ namespace MisterGames.Common.Data {
         private KeyCollection _keys;
         private ValueCollection _values;
         private object _syncRoot;
-        private bool _allowTrimExcess;
 
         public Map(): this(0, null) {}
 
@@ -106,7 +105,6 @@ namespace MisterGames.Common.Data {
             if (capacity > 0) Initialize(capacity);
 
             _comparer = comparer ?? EqualityComparer<K>.Default;
-            _allowTrimExcess = true;
         }
 
         public Map(IDictionary<K,V> dictionary): this(dictionary, null) {}
@@ -125,13 +123,9 @@ namespace MisterGames.Common.Data {
         public void OnBeforeSerialize() { }
 
         public void OnAfterDeserialize() {
-            if (_allowTrimExcess) TrimExcess();
+            TrimExcess(forceNewHashCodes: true);
         }
 #endif
-
-        public void AllowTrimExcess(bool isAllowed) {
-            _allowTrimExcess = isAllowed;
-        }
 
         public ref V Get(K key) {
             int i = FindEntry(key);
@@ -230,7 +224,7 @@ namespace MisterGames.Common.Data {
         }
 
         private int FindEntry(K key) {
-            if (_buckets != null) {
+            if (_buckets is { Length: > 0 }) {
                 int hashCode = _comparer.GetHashCode(key) & 0x7FFFFFFF;
                 for (int i = _buckets[hashCode % _buckets.Length]; i >= 0; i = _entries[i].next) {
                     if (_entries[i].hashCode == hashCode && _comparer.Equals(_entries[i].key, key)) return i;
@@ -241,6 +235,12 @@ namespace MisterGames.Common.Data {
 
         private void Initialize(int capacity) {
             int size = HashHelpers.GetPrime(capacity);
+
+#if UNITY_EDITOR
+            if (capacity <= 1) size = 1;
+            else if (capacity <= 3) size = capacity;
+#endif
+
             _buckets = new int[size];
             for (int i = 0; i < _buckets.Length; i++) _buckets[i] = -1;
             _entries = new Entry[size];
@@ -308,7 +308,7 @@ namespace MisterGames.Common.Data {
             _entries = newEntries;
         }
 
-        private void TrimExcess() {
+        private void TrimExcess(bool forceNewHashCodes) {
             int newSize = _count - _freeCount;
             if (newSize == _entries.Length) return;
 
@@ -323,8 +323,7 @@ namespace MisterGames.Common.Data {
                 if (entry.hashCode < 0) continue;
 
                 ref var newEntry = ref newEntries[newIndex];
-
-                newEntry.hashCode = entry.hashCode;
+                newEntry.hashCode = forceNewHashCodes ? _comparer.GetHashCode(entry.key) & 0x7FFFFFFF : entry.hashCode;
                 newEntry.key = entry.key;
                 newEntry.value = entry.value;
 
@@ -341,7 +340,7 @@ namespace MisterGames.Common.Data {
         }
 
         public bool Remove(K key) {
-            if (_buckets != null) {
+            if (_buckets is { Length: > 0 }) {
                 int hashCode = _comparer.GetHashCode(key) & 0x7FFFFFFF;
                 int bucket = hashCode % _buckets.Length;
                 int last = -1;
@@ -363,7 +362,7 @@ namespace MisterGames.Common.Data {
                         return true;
                     }
                 }
-                if (_allowTrimExcess && _freeCount >= _count) TrimExcess();
+                if (_freeCount >= _count) TrimExcess(forceNewHashCodes: false);
             }
             return false;
         }
