@@ -240,7 +240,7 @@ namespace MisterGames.Blackboards.Core {
             string tableLocalPath = t.GetSerializedPropertyPath(hash);
             if (tableLocalPath == null) return null;
 
-            return $"{nameof(_tables)}._nodes.Array.data[{_tables.IndexOf(property.table)}].value.{tableLocalPath}";
+            return $"{nameof(_tables)}._entries.Array.data[{_tables.IndexOf(property.table)}].value.{tableLocalPath}";
         }
 
         private bool TryGetValue(int table, int hash, out object value) {
