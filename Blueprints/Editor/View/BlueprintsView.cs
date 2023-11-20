@@ -413,8 +413,6 @@ namespace MisterGames.Blueprints.Editor.View {
         }
 
         private void RemoveNode(NodeId id) {
-            Debug.Log($"BlueprintsView.RemoveNode: {id}");
-
             Undo.RecordObject(_blueprintAsset, "Blueprint Remove Node");
 
             _blueprintAsset.BlueprintMeta.RemoveNode(id);
