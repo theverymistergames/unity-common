@@ -9,12 +9,13 @@ namespace MisterGames.Common.Data {
 
     [DebuggerDisplay("Count = {Count}")]
     [Serializable]
-    public class Map<K, V> : IDictionary<K, V>, IDictionary, IReadOnlyDictionary<K, V>
+    public class ReferenceMap<K, V>: IDictionary<K, V>, IDictionary, IReadOnlyDictionary<K, V>
 
 #if UNITY_EDITOR
         , ISerializationCallbackReceiver
 #endif
 
+    where V : class
     {
         [SerializeField] private int[] _buckets;
         [SerializeField] private Entry[] _entries;
@@ -25,10 +26,10 @@ namespace MisterGames.Common.Data {
 
         [Serializable]
         private struct Entry {
-            public int hashCode;    // Lower 31 bits of hash code, -1 if unused
-            public int next;        // Index of next entry, -1 if last
-            public K key;        // Key of entry
-            public V value;    // Value of entry
+            public int hashCode;                    // Lower 31 bits of hash code, -1 if unused
+            public int next;                        // Index of next entry, -1 if last
+            public K key;                           // Key of entry
+            [SerializeReference] public V value;    // Value of entry
         }
 
         public IEqualityComparer<K> Comparer => _comparer;
@@ -45,7 +46,12 @@ namespace MisterGames.Common.Data {
         IEnumerable<V> IReadOnlyDictionary<K, V>.Values => _values ??= new ValueCollection(this);
 
         public V this[K key] {
-            get => Get(key);
+            get {
+                int i = FindEntry(key);
+                if (i >= 0) return _entries[i].value;
+
+                throw new KeyNotFoundException();
+            }
             set => Insert(key, value, false);
         }
 
@@ -95,13 +101,13 @@ namespace MisterGames.Common.Data {
         private object _syncRoot;
         private bool _allowTrimExcess;
 
-        public Map(): this(0, null) {}
+        public ReferenceMap(): this(0, null) {}
 
-        public Map(int capacity): this(capacity, null) {}
+        public ReferenceMap(int capacity): this(capacity, null) {}
 
-        public Map(IEqualityComparer<K> comparer): this(0, comparer) {}
+        public ReferenceMap(IEqualityComparer<K> comparer): this(0, comparer) {}
 
-        public Map(int capacity, IEqualityComparer<K> comparer) {
+        public ReferenceMap(int capacity, IEqualityComparer<K> comparer) {
             if (capacity < 0) throw new ArgumentOutOfRangeException(nameof(capacity));
             if (capacity > 0) Initialize(capacity);
 
@@ -109,9 +115,9 @@ namespace MisterGames.Common.Data {
             _allowTrimExcess = true;
         }
 
-        public Map(IDictionary<K,V> dictionary): this(dictionary, null) {}
+        public ReferenceMap(IDictionary<K,V> dictionary): this(dictionary, null) {}
 
-        public Map(IDictionary<K,V> dictionary, IEqualityComparer<K> comparer):
+        public ReferenceMap(IDictionary<K,V> dictionary, IEqualityComparer<K> comparer):
             this(dictionary?.Count ?? 0, comparer)
         {
             if (dictionary == null) throw new ArgumentNullException(nameof(dictionary));
@@ -131,13 +137,6 @@ namespace MisterGames.Common.Data {
 
         public void AllowTrimExcess(bool isAllowed) {
             _allowTrimExcess = isAllowed;
-        }
-
-        public ref V Get(K key) {
-            int i = FindEntry(key);
-            if (i >= 0) return ref _entries[i].value;
-
-            throw new KeyNotFoundException();
         }
 
         public void Add(K key, V value) {
@@ -539,7 +538,7 @@ namespace MisterGames.Common.Data {
                 }
             }
 
-            private Map<K,V> _map;
+            private ReferenceMap<K,V> _map;
             private int _version;
             private int _index;
             private KeyValuePair<K,V> _current;
@@ -548,7 +547,7 @@ namespace MisterGames.Common.Data {
             internal const int DictEntry = 1;
             internal const int KeyValuePair = 2;
 
-            internal Enumerator(Map<K, V> map, int getEnumeratorRetType) {
+            internal Enumerator(ReferenceMap<K, V> map, int getEnumeratorRetType) {
                 _map = map;
                 _version = map._version;
                 _index = 0;
@@ -597,9 +596,9 @@ namespace MisterGames.Common.Data {
             bool ICollection.IsSynchronized => false;
             object ICollection.SyncRoot => ((ICollection)_map).SyncRoot;
 
-            private readonly Map<K,V> _map;
+            private readonly ReferenceMap<K,V> _map;
 
-            public KeyCollection(Map<K,V> map) {
+            public KeyCollection(ReferenceMap<K,V> map) {
                 _map = map ?? throw new ArgumentNullException(nameof(map));
             }
 
@@ -700,12 +699,12 @@ namespace MisterGames.Common.Data {
                     }
                 }
 
-                private Map<K, V> _map;
+                private ReferenceMap<K, V> _map;
                 private int _index;
                 private int _version;
                 private K _currentKey;
 
-                internal Enumerator(Map<K, V> map) {
+                internal Enumerator(ReferenceMap<K, V> map) {
                     _map = map;
                     _version = map._version;
                     _index = 0;
@@ -752,9 +751,9 @@ namespace MisterGames.Common.Data {
             bool ICollection.IsSynchronized => false;
             object ICollection.SyncRoot => ((ICollection)_map).SyncRoot;
 
-            private readonly Map<K,V> _map;
+            private readonly ReferenceMap<K,V> _map;
 
-            public ValueCollection(Map<K,V> map) {
+            public ValueCollection(ReferenceMap<K,V> map) {
                 _map = map ?? throw new ArgumentNullException(nameof(map));
             }
 
@@ -855,12 +854,12 @@ namespace MisterGames.Common.Data {
                     }
                 }
 
-                private Map<K, V> _map;
+                private ReferenceMap<K, V> _map;
                 private int _index;
                 private int _version;
                 private V _currentValue;
 
-                internal Enumerator(Map<K, V> map) {
+                internal Enumerator(ReferenceMap<K, V> map) {
                     _map = map;
                     _version = map._version;
                     _index = 0;
