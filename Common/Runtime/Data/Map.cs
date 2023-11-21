@@ -269,8 +269,7 @@ namespace MisterGames.Common.Data {
                 _freeCount--;
             }
             else {
-                if (_count == _entries.Length)
-                {
+                if (_count == _entries.Length) {
                     Resize();
                     targetBucket = hashCode % _buckets.Length;
                 }
@@ -284,6 +283,10 @@ namespace MisterGames.Common.Data {
             _entries[index].value = value;
             _buckets[targetBucket] = index;
             _version++;
+
+#if UNITY_EDITOR
+            TrimExcess(false);
+#endif
         }
 
         private void Resize() {
@@ -363,7 +366,11 @@ namespace MisterGames.Common.Data {
                         return true;
                     }
                 }
+#if UNITY_EDITOR
+                TrimExcess(forceNewHashCodes: false);
+#else
                 if (_freeCount > _count) TrimExcess(forceNewHashCodes: false);
+#endif
             }
             return false;
         }
