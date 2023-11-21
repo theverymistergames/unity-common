@@ -9,13 +9,8 @@ namespace MisterGames.Common.Data {
 
     [DebuggerDisplay("Count = {Count}")]
     [Serializable]
-    public class Map<K, V> : IDictionary<K, V>, IDictionary, IReadOnlyDictionary<K, V>
+    public class Map<K, V> : IDictionary<K, V>, IDictionary, IReadOnlyDictionary<K, V>, ISerializationCallbackReceiver {
 
-#if UNITY_EDITOR
-        , ISerializationCallbackReceiver
-#endif
-
-    {
         [SerializeField] private int[] _buckets;
         [SerializeField] private Entry[] _entries;
         [SerializeField] private int _count;
@@ -119,13 +114,11 @@ namespace MisterGames.Common.Data {
             }
         }
 
-#if UNITY_EDITOR
         public void OnBeforeSerialize() { }
 
         public void OnAfterDeserialize() {
             TrimExcess(forceNewHashCodes: true);
         }
-#endif
 
         public ref V Get(K key) {
             int i = FindEntry(key);

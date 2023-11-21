@@ -9,13 +9,8 @@ namespace MisterGames.Common.Data {
 
     [DebuggerDisplay("Count = {Count}")]
     [Serializable]
-    public class ReferenceMap<K, V>: IDictionary<K, V>, IDictionary, IReadOnlyDictionary<K, V>
-
-#if UNITY_EDITOR
-        , ISerializationCallbackReceiver
-#endif
-
-    where V : class
+    public class ReferenceMap<K, V>: IDictionary<K, V>, IDictionary, IReadOnlyDictionary<K, V>, ISerializationCallbackReceiver
+        where V : class
     {
         [SerializeField] private int[] _buckets;
         [SerializeField] private Entry[] _entries;
@@ -125,13 +120,11 @@ namespace MisterGames.Common.Data {
             }
         }
 
-#if UNITY_EDITOR
         public void OnBeforeSerialize() { }
 
         public void OnAfterDeserialize() {
             TrimExcess(forceNewHashCodes: true);
         }
-#endif
 
         public void Add(K key, V value) {
             Insert(key, value, true);
@@ -234,6 +227,12 @@ namespace MisterGames.Common.Data {
 
         private void Initialize(int capacity) {
             int size = HashHelpers.GetPrime(capacity);
+
+#if UNITY_EDITOR
+            if (capacity <= 1) size = 1;
+            else if (capacity <= 3) size = capacity;
+#endif
+
             _buckets = new int[size];
             for (int i = 0; i < _buckets.Length; i++) _buckets[i] = -1;
             _entries = new Entry[size];
@@ -277,6 +276,10 @@ namespace MisterGames.Common.Data {
             _entries[index].value = value;
             _buckets[targetBucket] = index;
             _version++;
+
+#if UNITY_EDITOR
+            TrimExcess(false);
+#endif
         }
 
         private void Resize() {
@@ -356,7 +359,11 @@ namespace MisterGames.Common.Data {
                         return true;
                     }
                 }
+#if UNITY_EDITOR
+                TrimExcess(forceNewHashCodes: false);
+#else
                 if (_freeCount > _count) TrimExcess(forceNewHashCodes: false);
+#endif
             }
             return false;
         }
