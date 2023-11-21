@@ -120,6 +120,24 @@ namespace MisterGames.Common.Data {
             }
         }
 
+        public ReferenceMap(ReferenceMap<K, V> map): this(map, null) {}
+
+        public ReferenceMap(ReferenceMap<K, V> map, IEqualityComparer<K> comparer):
+            this(map?.Count ?? 0, comparer)
+        {
+            if (map == null) throw new ArgumentNullException(nameof(map));
+
+            _buckets = new int[map._buckets.Length];
+            Array.Copy(map._buckets, _buckets, map._buckets.Length);
+
+            _entries = new Entry[map._entries.Length];
+            Array.Copy(map._entries, _entries, map._entries.Length);
+
+            _count = map._count;
+            _freeCount = map._freeCount;
+            _freeList = map._freeList;
+        }
+
         public void OnBeforeSerialize() { }
 
         public void OnAfterDeserialize() {

@@ -1349,7 +1349,11 @@ namespace MisterGames.Common.Data {
                 }
             }
 
+#if UNITY_EDITOR
+            if (_isDefragmentationAllowed) parent = ApplyDefragmentation(parent);
+#else
             if (_isDefragmentationAllowed) parent = ApplyDefragmentationIfNecessary(parent);
+#endif
 
             _version++;
             return true;
@@ -1377,7 +1381,11 @@ namespace MisterGames.Common.Data {
 
             DisposeNodePath(parent, disposeIndex: false);
 
+#if UNITY_EDITOR
+            if (_isDefragmentationAllowed) parent = ApplyDefragmentation(parent);
+#else
             if (_isDefragmentationAllowed) parent = ApplyDefragmentationIfNecessary(parent);
+#endif
 
             _version++;
         }
@@ -1544,7 +1552,12 @@ namespace MisterGames.Common.Data {
 
         public void AllowDefragmentation(bool isAllowed) {
             _isDefragmentationAllowed = isAllowed;
+
+#if UNITY_EDITOR
+            if (isAllowed) ApplyDefragmentation();
+#else
             if (isAllowed) ApplyDefragmentationIfNecessary();
+#endif
         }
 
         private int AllocateNode(K key = default) {
@@ -1561,6 +1574,10 @@ namespace MisterGames.Common.Data {
             if (index < 0 || index >= _head) {
                 index = _head++;
                 ArrayExtensions.EnsureCapacity(ref _nodes, _head);
+
+#if UNITY_EDITOR
+                if (_isDefragmentationAllowed) index = ApplyDefragmentation(index);
+#endif
             }
 
             ref var node = ref _nodes[index];
@@ -1622,8 +1639,10 @@ namespace MisterGames.Common.Data {
         }
 
         private int ApplyDefragmentationIfNecessary(int trackedIndex = -1) {
-            if (Count >= _nodes.Length * 0.5f) return trackedIndex;
+            return Count >= _nodes.Length * 0.5f ? trackedIndex : ApplyDefragmentation(trackedIndex);
+        }
 
+        private int ApplyDefragmentation(int trackedIndex = -1) {
             int j = _freeIndices.Count - 1;
             int count = Count;
 

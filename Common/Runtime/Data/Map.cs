@@ -22,8 +22,8 @@ namespace MisterGames.Common.Data {
         private struct Entry {
             public int hashCode;    // Lower 31 bits of hash code, -1 if unused
             public int next;        // Index of next entry, -1 if last
-            public K key;        // Key of entry
-            public V value;    // Value of entry
+            public K key;           // Key of entry
+            public V value;         // Value of entry
         }
 
         public IEqualityComparer<K> Comparer => _comparer;
@@ -48,9 +48,7 @@ namespace MisterGames.Common.Data {
             get {
                 if (IsCompatibleKey(key)) {
                     int i = FindEntry((K)key);
-                    if (i >= 0) {
-                        return _entries[i].value;
-                    }
+                    if (i >= 0) return _entries[i].value;
                 }
                 return null;
             }
@@ -102,9 +100,9 @@ namespace MisterGames.Common.Data {
             _comparer = comparer ?? EqualityComparer<K>.Default;
         }
 
-        public Map(IDictionary<K,V> dictionary): this(dictionary, null) {}
+        public Map(IDictionary<K, V> dictionary): this(dictionary, null) {}
 
-        public Map(IDictionary<K,V> dictionary, IEqualityComparer<K> comparer):
+        public Map(IDictionary<K, V> dictionary, IEqualityComparer<K> comparer):
             this(dictionary?.Count ?? 0, comparer)
         {
             if (dictionary == null) throw new ArgumentNullException(nameof(dictionary));
@@ -112,6 +110,24 @@ namespace MisterGames.Common.Data {
             foreach (var pair in dictionary) {
                 Add(pair.Key, pair.Value);
             }
+        }
+
+        public Map(Map<K, V> map): this(map, null) {}
+
+        public Map(Map<K, V> map, IEqualityComparer<K> comparer):
+            this(map?.Count ?? 0, comparer)
+        {
+            if (map == null) throw new ArgumentNullException(nameof(map));
+
+            _buckets = new int[map._buckets.Length];
+            Array.Copy(map._buckets, _buckets, map._buckets.Length);
+
+            _entries = new Entry[map._entries.Length];
+            Array.Copy(map._entries, _entries, map._entries.Length);
+
+            _count = map._count;
+            _freeCount = map._freeCount;
+            _freeList = map._freeList;
         }
 
         public void OnBeforeSerialize() { }
