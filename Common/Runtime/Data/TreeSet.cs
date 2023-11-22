@@ -762,6 +762,24 @@ namespace MisterGames.Common.Data {
         }
 
         /// <summary>
+        /// Get node index, that is found first by predicate.
+        /// </summary>
+        /// <param name="target">Target object to compare with key and value of node</param>
+        /// <param name="predicate">Func to describe comparison</param>
+        /// <typeparam name="T">Type of the target object</typeparam>
+        /// <returns>Node index or -1 if not found</returns>
+        public int FindNode<T>(T target, Func<T, K, bool> predicate) {
+            for (int i = 0; i < _head; i++) {
+                ref var node = ref _nodes[i];
+                if (node.IsDisposed()) continue;
+
+                if (predicate.Invoke(target, node.key)) return i;
+            }
+
+            return -1;
+        }
+
+        /// <summary>
         /// Get index of node parent.
         /// </summary>
         /// <param name="child">Index of the child node</param>
@@ -1297,10 +1315,11 @@ namespace MisterGames.Common.Data {
 
             if (index < 0 || index >= _head) {
                 index = _head++;
-                ArrayExtensions.EnsureCapacity(ref _nodes, _head);
 
 #if UNITY_EDITOR
-                if (_isDefragmentationAllowed) index = ApplyDefragmentation(index);
+                ArrayExtensions.EnsureCapacity(ref _nodes, _head, _head);
+#else
+                ArrayExtensions.EnsureCapacity(ref _nodes, _head);
 #endif
             }
 
