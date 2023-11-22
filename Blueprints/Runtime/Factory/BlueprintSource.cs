@@ -43,20 +43,32 @@ namespace MisterGames.Blueprints {
         }
 
         public int AddNode(Type nodeType = null) {
-            int id = _lastId++;
+            _lastId++;
+            if (_lastId == 0) _lastId++;
+
+            int id = _lastId;
             _nodeMap.Add(id, default);
+
             return id;
         }
 
         public int AddNodeClone(IBlueprintSource source, int id) {
-            int targetId = _lastId++;
+            _lastId++;
+            if (_lastId == 0) _lastId++;
+
+            int targetId = _lastId;
             _nodeMap.Add(targetId, source.GetNodeByRef<TNode>(id));
+
             return targetId;
         }
 
         public int AddNodeFromString(string value, Type nodeType) {
-            int id = _lastId++;
+            _lastId++;
+            if (_lastId == 0) _lastId++;
+
+            int id = _lastId;
             _nodeMap.Add(id, JsonUtility.FromJson<TNode>(value));
+
             return id;
         }
 

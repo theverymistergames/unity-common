@@ -14,6 +14,7 @@ namespace MisterGames.BlueprintLib {
     [BlueprintNode(Name = "Set Position", Category = "Transform", Color = BlueprintColors.Node.Actions)]
     public struct BlueprintNodeSetPosition2 : IBlueprintNode, IBlueprintEnter2 {
 
+        [SerializeField] private Transform _transform;
         [SerializeField] private Vector3 _position;
 
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {
@@ -26,7 +27,7 @@ namespace MisterGames.BlueprintLib {
         public void OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
             if (port != 0) return;
 
-            var transform = blueprint.Read<Transform>(token, 1);
+            var transform = blueprint.Read(token, 1, _transform);
             var position = blueprint.Read(token, 2, _position);
 
             transform.position = position;

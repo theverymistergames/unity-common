@@ -39,7 +39,7 @@ namespace MisterGames.Blueprints.Validation {
         }
 
         public static void ValidateSubgraphAsset(IBlueprintMeta meta, ref BlueprintAsset2 subgraph) {
-            var root = ((BlueprintMeta2) meta).Owner as BlueprintAsset2;
+            var root = ((BlueprintMeta2) meta).owner as BlueprintAsset2;
             string rootName = root == null ? string.Empty : $"`{root.name}`";
 
             if (!IsValidSubgraphAsset(root, subgraph, 0, rootName)) subgraph = null;
@@ -67,8 +67,8 @@ namespace MisterGames.Blueprints.Validation {
                 return false;
             }
 
-            var assets = subgraph.BlueprintMeta.SubgraphAssets;
-            foreach (var asset in assets) {
+            var assets = subgraph.BlueprintMeta.SubgraphAssetMap;
+            foreach (var asset in assets.Values) {
                 if (!IsValidSubgraphAsset(root, asset, level, path)) return false;
             }
 

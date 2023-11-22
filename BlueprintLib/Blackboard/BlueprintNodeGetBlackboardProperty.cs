@@ -21,7 +21,7 @@ namespace MisterGames.BlueprintLib {
         private Blackboard _blackboard;
 
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {
-            var asset = (meta as BlueprintMeta2)?.Owner as BlueprintAsset2;
+            var asset = (meta as BlueprintMeta2)?.owner as BlueprintAsset2;
             Type dataType = null;
 
             if (asset != null && asset.Blackboard.TryGetProperty(_property, out var property)) {

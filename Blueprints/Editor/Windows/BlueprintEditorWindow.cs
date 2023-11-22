@@ -1,5 +1,8 @@
+using System.Linq;
+using MisterGames.Blackboards.Core;
 using MisterGames.Blueprints.Editor.Storage;
 using MisterGames.Blueprints.Editor.View;
+using MisterGames.Blueprints.Meta;
 using UnityEditor;
 using UnityEditor.Callbacks;
 using UnityEditor.UIElements;
@@ -12,6 +15,10 @@ namespace MisterGames.Blueprints.Editor.Windows {
     public sealed class BlueprintEditorWindow : EditorWindow {
 
         private const string WINDOW_TITLE = "Blueprint Editor 2";
+
+        private BlueprintMeta2 _blueprintMeta;
+        private Blackboard _blackboard;
+        private SerializedObject _serializedObject;
 
         private BlueprintsView _blueprintsView;
         private ObjectField _assetPicker;
@@ -34,18 +41,33 @@ namespace MisterGames.Blueprints.Editor.Windows {
         private static bool OnOpenAsset(int instanceId, int line) {
             if (Selection.activeObject is not BlueprintAsset2 blueprintAsset) return false;
 
-            OpenAsset(blueprintAsset);
+            Open(blueprintAsset);
             return true;
         }
 
-        public static void OpenAsset(BlueprintAsset2 blueprintAsset) {
+        public static void Open(
+            BlueprintAsset2 asset = null,
+            BlueprintMeta2 meta = null,
+            Blackboard blackboard = null,
+            SerializedObject serializedObject = null
+        ) {
             var window = GetWindow<BlueprintEditorWindow>(WINDOW_TITLE, focus: true, desiredDockNextTo: typeof(SceneView));
 
             var assetPicker = window._assetPicker;
             if (assetPicker == null) return;
 
-            assetPicker.value = blueprintAsset;
-            assetPicker.label = "Asset";
+            if (asset != null) {
+                meta ??= asset.BlueprintMeta;
+                blackboard ??= asset.Blackboard;
+                serializedObject ??= new SerializedObject(asset);
+            }
+
+            window._blueprintMeta = meta;
+            window._blackboard = blackboard;
+            window._serializedObject = serializedObject;
+
+            window.SetAssetPickerValue(asset, notify: false);
+            window.SetupView();
         }
 
         private void OnDisable() {
@@ -82,7 +104,7 @@ namespace MisterGames.Blueprints.Editor.Windows {
             var blackboardToggle = root.Q<ToolbarToggle>("blackboard-toggle");
             blackboardToggle.RegisterValueChangedCallback(OnToggleBlackboardButton);
 
-            OpenAsset(BlueprintEditorStorage.Instance.LastEditedBlueprintAsset);
+            BlueprintEditorStorage.Instance.OpenLast();
         }
 
         private void OnBlueprintAssetSetDirty() {
@@ -100,24 +122,64 @@ namespace MisterGames.Blueprints.Editor.Windows {
             _blueprintsView?.ToggleBlackboard(evt.newValue);
         }
 
+        private void SetAssetPickerValue(BlueprintAsset2 asset, bool notify) {
+            if (_assetPicker == null) return;
+
+            if (notify) _assetPicker.value = asset;
+            else _assetPicker.SetValueWithoutNotify(asset);
+        }
+
         private void OnAssetChanged(ChangeEvent<Object> evt) {
+            var asset = evt.newValue as BlueprintAsset2;
+
+            if (asset == null) {
+                _serializedObject = null;
+                _blueprintMeta = null;
+                _blackboard = null;
+            }
+            else {
+                _serializedObject = new SerializedObject(asset);
+                _blueprintMeta = asset.BlueprintMeta;
+                _blackboard = asset.Blackboard;
+            }
+
+            SetupView();
+        }
+
+        private void SetupView() {
             if (_blueprintsView == null) {
                 BlueprintEditorStorage.Instance.NotifyOpenedBlueprintAsset(null);
                 SetWindowTitle(WINDOW_TITLE);
                 return;
             }
 
-            var asset = evt.newValue as BlueprintAsset2;
-            if (asset == null) {
+            if (_blueprintMeta == null) {
                 BlueprintEditorStorage.Instance.NotifyOpenedBlueprintAsset(null);
                 SetWindowTitle(WINDOW_TITLE);
                 _blueprintsView.ClearView();
                 return;
             }
 
-            BlueprintEditorStorage.Instance.NotifyOpenedBlueprintAsset(asset);
-            SetWindowTitle(EditorUtility.IsDirty(asset) ? $"{asset.name}*" : asset.name);
-            _blueprintsView.PopulateViewFromAsset(asset);
+            var asset = _assetPicker.value as BlueprintAsset2;
+            string title = asset != null ? EditorUtility.IsDirty(asset) ? $"{asset.name}*" : asset.name : WINDOW_TITLE;
+            SetWindowTitle(title);
+
+            if (_serializedObject?.targetObject is BlueprintRunner2 runner) {
+                var subgraphPath = runner.FindSubgraphPath(_blueprintMeta);
+                BlueprintEditorStorage.Instance.NotifyOpenedBlueprintAsset(asset, runner, subgraphPath);
+
+                string path = subgraphPath is { Length: > 0 }
+                    ? $" :: Node {string.Join(" => ", subgraphPath.Select(id => $"{id.source}.{id.node}"))}"
+                    : null;
+
+                _assetPicker.label = $"{runner}{path}";
+            }
+            else {
+                BlueprintEditorStorage.Instance.NotifyOpenedBlueprintAsset(asset);
+                _assetPicker.label = "Asset";
+            }
+
+            _blueprintsView.PopulateView(_blueprintMeta, _blackboard, _serializedObject);
         }
 
         private void SetWindowTitle(string text) {

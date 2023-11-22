@@ -15,12 +15,12 @@ namespace MisterGames.Blueprints.Editor.Editors {
 
             EditorGUILayout.Space(EditorGUIUtility.standardVerticalSpacing);
 
-            var subgraphBlueprints = blueprint.BlueprintMeta.SubgraphAssets;
-            if (subgraphBlueprints.Count > 0) {
+            var subgraphAssetMap = blueprint.BlueprintMeta.SubgraphAssetMap;
+            if (subgraphAssetMap.Count > 0) {
                 GUILayout.Label("Subgraph blueprints", EditorStyles.boldLabel);
 
-                foreach (var subgraph in subgraphBlueprints) {
-                    DrawSubgraphBlueprintsRecursively(subgraph, 0);
+                foreach (var (id, subgraph) in subgraphAssetMap) {
+                    DrawSubgraphBlueprintsRecursively(id, subgraph);
                 }
             }
 
@@ -36,15 +36,15 @@ namespace MisterGames.Blueprints.Editor.Editors {
             }
         }
 
-        private static void DrawSubgraphBlueprintsRecursively(BlueprintAsset2 blueprint, int depth) {
+        private static void DrawSubgraphBlueprintsRecursively(NodeId id, BlueprintAsset2 blueprint) {
             if (blueprint == null) return;
 
-            EditorGUILayout.ObjectField($"Subgraph (depth {depth})", blueprint, typeof(BlueprintAsset), false);
+            EditorGUILayout.ObjectField($"Node {id.source}.{id.node}", blueprint, typeof(BlueprintAsset), false);
 
             EditorGUILayout.Space(EditorGUIUtility.standardVerticalSpacing);
 
-            foreach (var subgraph in blueprint.BlueprintMeta.SubgraphAssets) {
-                DrawSubgraphBlueprintsRecursively(subgraph, depth + 1);
+            foreach (var (nodeId, subgraph) in blueprint.BlueprintMeta.SubgraphAssetMap) {
+                DrawSubgraphBlueprintsRecursively(nodeId, subgraph);
             }
         }
     }

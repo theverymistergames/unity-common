@@ -17,7 +17,7 @@ namespace MisterGames.Blueprints {
         public BlueprintMeta2 BlueprintMeta {
             get {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-                _blueprintMeta.Owner = this;
+                _blueprintMeta.owner = this;
 #endif
                 return _blueprintMeta;
             }
@@ -31,7 +31,7 @@ namespace MisterGames.Blueprints {
 #endif
 
             _blueprintCompiler ??= new BlueprintCompiler2();
-            return _blueprintCompiler.Compile(factory, host, this);
+            return _blueprintCompiler.Compile(factory, host);
         }
 
         public void CompileSubgraph(BlueprintCompileData data) {
@@ -40,11 +40,7 @@ namespace MisterGames.Blueprints {
 #endif
 
             _blueprintCompiler ??= new BlueprintCompiler2();
-            _blueprintCompiler.CompileSubgraph(this, data);
-        }
-
-        public override string ToString() {
-            return $"{nameof(BlueprintAsset2)} {name}: {_blueprintMeta}";
+            _blueprintCompiler.CompileSubgraph(data);
         }
     }
 

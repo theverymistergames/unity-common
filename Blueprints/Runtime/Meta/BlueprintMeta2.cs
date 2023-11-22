@@ -18,7 +18,7 @@ namespace MisterGames.Blueprints.Meta {
         [SerializeField] private BlueprintPortStorage _portStorage;
 
         public IReadOnlyCollection<NodeId> Nodes => _nodeMap.Keys;
-        public IReadOnlyCollection<BlueprintAsset2> SubgraphAssets => _subgraphMap.Values;
+        public IDictionary<NodeId, BlueprintAsset2> SubgraphAssetMap => _subgraphMap;
 
         public int NodeCount => _nodeMap.Count;
         public int LinkCount => _linkStorage.LinkCount;
@@ -27,9 +27,10 @@ namespace MisterGames.Blueprints.Meta {
         public readonly Dictionary<NodeId, string> NodeJsonMap = new Dictionary<NodeId, string>();
 
         private Action<NodeId> _onNodeChange;
+        internal BlueprintMeta2 overridenMeta;
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-        public object Owner { get; set; }
+        public object owner;
 #endif
 
         public BlueprintMeta2() {
@@ -266,6 +267,7 @@ namespace MisterGames.Blueprints.Meta {
         }
 
         public override string ToString() {
+            return $"{nameof(BlueprintMeta2)}(owner {owner}, overridenMeta {overridenMeta})";
             return $"{nameof(BlueprintMeta2)}:\n" +
                    $"Nodes: [{string.Join("] [", _nodeMap.Keys)}]\n" +
                    $"Ports: {_portStorage}\n" +

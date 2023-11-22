@@ -1,6 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System.Text;
 using MisterGames.Blackboards.Core;
 using MisterGames.Blueprints.Editor.Windows;
+using MisterGames.Blueprints.Meta;
 using MisterGames.Common.Data;
 using UnityEditor;
 using UnityEngine;
@@ -10,143 +11,243 @@ namespace MisterGames.Blueprints.Editor.Editors {
     [CustomEditor(typeof(BlueprintRunner2))]
     public sealed class BlueprintRunnerEditor2 : UnityEditor.Editor {
 
-        private readonly HashSet<BlueprintAsset2> _visitedBlueprintAssets = new HashSet<BlueprintAsset2>();
-
         public override void OnInspectorGUI() {
             if (target is not BlueprintRunner2 runner) return;
 
             serializedObject.Update();
 
-            FetchBlackboards(runner);
-            DrawBlueprintRunner(runner);
+            FetchSubgraphData(runner);
+
+            DrawAssetPicker(runner, serializedObject);
+            DrawRoot(runner, serializedObject);
+            DrawCompileControls(runner);
+            DrawRootBlackboard(serializedObject);
+            DrawSubgraphs(runner, serializedObject);
 
             serializedObject.ApplyModifiedProperties();
         }
 
-        private void DrawBlueprintRunner(BlueprintRunner2 runner) {
+        private static void DrawAssetPicker(BlueprintRunner2 runner, SerializedObject serializedObject) {
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_blueprintAsset"));
 
-            var blueprint = runner.BlueprintAsset;
-
-            if (blueprint != null && GUILayout.Button("Edit")) {
-                BlueprintEditorWindow.OpenAsset(blueprint);
+            var asset = runner.BlueprintAsset;
+            if (asset != null && GUILayout.Button("Edit")) {
+                BlueprintEditorWindow.Open(asset, runner.GetBlueprintMeta(), runner.GetBlackboard());
             }
+        }
 
+        private static void DrawCompileControls(BlueprintRunner2 runner) {
             if (runner.RuntimeBlueprint == null) {
-                if (blueprint != null && GUILayout.Button("Compile & Start Blueprint")) runner.RestartBlueprint();
+                if (runner.GetBlueprintMeta() != null && GUILayout.Button("Compile & Start Blueprint")) runner.RestartBlueprint();
+                return;
             }
-            else if (GUILayout.Button("Interrupt Blueprint")) {
+
+            if (GUILayout.Button("Interrupt Blueprint")) {
                 runner.InterruptRuntimeBlueprint();
+                return;
             }
-            else {
-                GUILayout.Space(EditorGUIUtility.standardVerticalSpacing * 2f);
-                GUILayout.Label("External enter ports", EditorStyles.boldLabel);
-
-                var rootPorts = runner.RuntimeBlueprint.rootPorts;
-
-                foreach ((int sign, var port) in rootPorts) {
-                    if (port.IsData() || !port.IsInput()) continue;
-
-                    if (GUILayout.Button(port.Name)) {
-                        var root = runner.RuntimeBlueprint.root;
-                        runner.RuntimeBlueprint.Call(new NodeToken(root, root), sign);
-                    }
-                }
-            }
-
-            if (blueprint == null) return;
-
-            var blackboardOverrides = serializedObject.FindProperty("_blackboardOverridesMap").FindPropertyRelative("_entries");
-
-            int count = blackboardOverrides.arraySize;
-            if (count == 0) return;
 
             GUILayout.Space(EditorGUIUtility.standardVerticalSpacing * 2f);
-            GUILayout.Label("Blackboards", EditorStyles.boldLabel);
+            GUILayout.Label("External enter ports", EditorStyles.boldLabel);
 
-            for (int i = 0; i < count; i++) {
-                var entry = blackboardOverrides.GetArrayElementAtIndex(i);
+            var rootPorts = runner.RuntimeBlueprint.rootPorts;
 
-                var ownerBlueprintProperty = entry.FindPropertyRelative("key");
-                var blackboardProperty = entry.FindPropertyRelative("value");
+            foreach ((int sign, var port) in rootPorts) {
+                if (port.IsData() || !port.IsInput()) continue;
 
-                EditorGUILayout.PropertyField(blackboardProperty, new GUIContent("Host"));
-
-                var blackboardRect = GUILayoutUtility.GetLastRect();
-                var headerRect = new Rect(
-                    blackboardRect.x + EditorGUIUtility.labelWidth,
-                    blackboardRect.y,
-                    blackboardRect.width - EditorGUIUtility.labelWidth,
-                    EditorGUIUtility.singleLineHeight
-                );
-
-                EditorGUI.BeginDisabledGroup(true);
-                EditorGUI.PropertyField(headerRect, ownerBlueprintProperty, GUIContent.none);
-                EditorGUI.EndDisabledGroup();
-
-                if (i < count - 1) GUILayout.Space(EditorGUIUtility.standardVerticalSpacing);
+                if (GUILayout.Button(port.Name)) {
+                    var root = runner.RuntimeBlueprint.root;
+                    runner.RuntimeBlueprint.Call(new NodeToken(root, root), sign);
+                }
             }
         }
 
-        private void FetchBlackboards(BlueprintRunner2 runner) {
-            var blueprint = runner.BlueprintAsset;
+        private static void DrawRoot(BlueprintRunner2 runner, SerializedObject serializedObject) {
+            var sourceAssetProperty = serializedObject.FindProperty("_blueprintAsset");
+            var metaProperty = serializedObject.FindProperty("_rootOverrideMeta");
+            var asset = sourceAssetProperty.objectReferenceValue as BlueprintAsset2;
 
-            if (blueprint == null) {
-                runner.BlackboardOverridesMap.Clear();
+            // Local override buttons
+            EditorGUILayout.BeginHorizontal();
+            GUILayout.Label("Local Override");
+            if (metaProperty.managedReferenceValue is BlueprintMeta2) {
+                if (GUILayout.Button("Edit")) {
+                    var meta = runner.GetBlueprintMeta();
+                    var blackboard = asset != null ? asset.Blackboard : runner.GetBlackboard();
+                    BlueprintEditorWindow.Open(asset, meta, blackboard, new SerializedObject(runner));
+                }
+                if (GUILayout.Button("Delete")) {
+                    if (asset == null) runner.GetBlackboard()?.Clear();
+                    metaProperty.managedReferenceValue = null;
+                }
+            }
+            else {
+                if (GUILayout.Button("Create")) {
+                    metaProperty.managedReferenceValue = new BlueprintMeta2();
+                }
+            }
+            EditorGUILayout.EndHorizontal();
+        }
+
+        private static void DrawRootBlackboard(SerializedObject serializedObject) {
+            var blackboardProperty = serializedObject.FindProperty("_rootOverrideBlackboard");
+            EditorGUILayout.PropertyField(blackboardProperty, new GUIContent("Blackboard"));
+        }
+
+        private static void DrawSubgraphs(BlueprintRunner2 runner, SerializedObject serializedObject) {
+            var subgraphTree = runner.SubgraphTree;
+
+            int count = subgraphTree.Count;
+            if (count == 0) return;
+
+            var runnerSerializedObject = new SerializedObject(runner);
+
+            GUILayout.Space(EditorGUIUtility.standardVerticalSpacing * 6f);
+
+            foreach (var root in subgraphTree.Roots) {
+                var it = subgraphTree.GetTree(root);
+                while (true) {
+                    ref var data = ref it.GetValue();
+                    var id = it.GetKey();
+
+                    // Node header
+                    string label;
+                    if (it.TryGetParent(out int p)) {
+                        var sb = new StringBuilder($"{id.source}.{id.node}");
+
+                        while (true) {
+                            var nodeId = subgraphTree.GetKeyAt(p);
+                            sb.Insert(0, $"{nodeId.source}.{nodeId.node} => ");
+                            if (!subgraphTree.TryGetParent(p, out p)) break;
+                        }
+
+                        sb.Insert(0, "Node ");
+                        label = sb.ToString();
+                    }
+                    else {
+                        label = $"Node {id.source}.{id.node}";
+                    }
+                    GUILayout.Label(label);
+
+                    // Read-only asset field next to node header
+                    var rect = GUILayoutUtility.GetLastRect();
+                    var headerRect = new Rect(
+                        rect.x + EditorGUIUtility.labelWidth,
+                        rect.y,
+                        rect.width - EditorGUIUtility.labelWidth,
+                        EditorGUIUtility.singleLineHeight
+                    );
+                    EditorGUI.BeginDisabledGroup(true);
+                    EditorGUI.ObjectField(headerRect, "", data.asset, typeof(BlueprintAsset), false);
+                    EditorGUI.EndDisabledGroup();
+
+                    GUILayout.Space(EditorGUIUtility.standardVerticalSpacing);
+
+                    // Local override buttons
+                    EditorGUILayout.BeginHorizontal();
+                    GUILayout.Label("Local Override");
+                    if (data.metaOverride != null) {
+                        if (GUILayout.Button("Edit")) {
+                            BlueprintEditorWindow.Open(data.asset, data.metaOverride, serializedObject: runnerSerializedObject);
+                        }
+                        if (GUILayout.Button("Delete")) {
+                            data.metaOverride = null;
+                        }
+                    }
+                    else {
+                        if (GUILayout.Button("Create")) {
+                            data.metaOverride = new BlueprintMeta2();
+                        }
+                    }
+                    EditorGUILayout.EndHorizontal();
+
+                    // Blackboard field
+                    var blackboardProperty = serializedObject.FindProperty($"_subgraphTree._nodes.Array.data[{it.Index}].value.blackboard");
+                    EditorGUILayout.PropertyField(blackboardProperty);
+
+                    if (!it.MovePreOrder()) break;
+
+                    // Space between override entries
+                    GUILayout.Space(EditorGUIUtility.standardVerticalSpacing * 6f);
+                }
+            }
+        }
+
+        private static void FetchSubgraphData(BlueprintRunner2 runner) {
+            var meta = runner.GetBlueprintMeta();
+
+            if (meta == null) {
+                runner.SubgraphTree.Clear();
                 return;
             }
 
-            _visitedBlueprintAssets.Clear();
+            var asset = runner.BlueprintAsset;
+            if (asset != null) runner.GetBlackboard().MatchPropertiesWith(asset.Blackboard);
 
-            var blackboardOverridesMap = runner.BlackboardOverridesMap;
-            FetchBlackboardOfBlueprintAndItsSubgraphsRecursively(runner, blueprint, blackboardOverridesMap);
+            var subgraphTree = runner.SubgraphTree;
+            subgraphTree.AllowDefragmentation(false);
 
-            var keys = new BlueprintAsset2[blackboardOverridesMap.Keys.Count];
-            blackboardOverridesMap.Keys.CopyTo(keys, 0);
+            var subgraphAssetMap = meta.SubgraphAssetMap;
 
-            for (int i = 0; i < keys.Length; i++) {
-                var blueprintAsset = keys[i];
-                if (!_visitedBlueprintAssets.Contains(blueprintAsset)) blackboardOverridesMap.Remove(blueprintAsset);
+            foreach (var nodeId in subgraphTree.Roots) {
+                if (!subgraphAssetMap.ContainsKey(nodeId)) subgraphTree.RemoveNode(nodeId);
             }
 
-            _visitedBlueprintAssets.Clear();
+            foreach (var (nodeId, subgraphAsset) in subgraphAssetMap) {
+                FetchBlueprintAndItsSubgraphsRecursively(runner, subgraphAsset, subgraphTree, nodeId);
+            }
+
+            subgraphTree.AllowDefragmentation(true);
         }
 
-        private void FetchBlackboardOfBlueprintAndItsSubgraphsRecursively(
+        private static void FetchBlueprintAndItsSubgraphsRecursively(
             BlueprintRunner2 runner,
-            BlueprintAsset2 blueprint,
-            IDictionary<BlueprintAsset2, Blackboard> blackboardOverridesMap
+            BlueprintAsset2 asset,
+            TreeMap<NodeId, SubgraphData> subgraphTree,
+            NodeId id = default,
+            int parentIndex = -1
         ) {
-            if (blueprint == null) {
-                if (blackboardOverridesMap.ContainsKey(blueprint)) blackboardOverridesMap.Remove(blueprint);
+            if (asset == null) {
+                subgraphTree.RemoveNode(id, parentIndex);
                 return;
             }
 
-            if (_visitedBlueprintAssets.Contains(blueprint)) return;
-            _visitedBlueprintAssets.Add(blueprint);
+            if (subgraphTree.TryGetNode(id, parentIndex, out parentIndex)) {
+                ref var data = ref subgraphTree.GetValueAt(parentIndex);
 
-            FetchBlackboardOfBlueprint(runner, blueprint, blackboardOverridesMap);
+                bool changed = false;
 
-            foreach (var subgraphAsset in blueprint.BlueprintMeta.SubgraphAssets) {
-                FetchBlackboardOfBlueprintAndItsSubgraphsRecursively(runner, subgraphAsset, blackboardOverridesMap);
+                if (data.asset != asset) {
+                    data.asset = asset;
+                    data.metaOverride = null;
+
+                    changed = true;
+                }
+
+                changed |= data.blackboard.MatchPropertiesWith(asset.Blackboard);
+
+                if (changed) EditorUtility.SetDirty(runner.gameObject);
             }
-        }
+            else {
+                parentIndex = subgraphTree.GetOrAddNode(id, parentIndex);
+                ref var data = ref subgraphTree.GetValueAt(parentIndex);
 
-        private static void FetchBlackboardOfBlueprint(
-            BlueprintRunner2 runner,
-            BlueprintAsset2 blueprint,
-            IDictionary<BlueprintAsset2, Blackboard> blackboardOverridesMap
-        ) {
-            if (!blackboardOverridesMap.TryGetValue(blueprint, out var blackboardOverride)) {
-                blackboardOverride = new Blackboard(blueprint.Blackboard);
-                blackboardOverridesMap[blueprint] = blackboardOverride;
+                data.asset = asset;
+                data.blackboard = new Blackboard(asset.Blackboard);
+
                 EditorUtility.SetDirty(runner);
-                return;
             }
 
-            if (!blackboardOverride.OverrideBlackboard(blueprint.Blackboard)) return;
+            var subgraphAssetMap = asset.BlueprintMeta.SubgraphAssetMap;
 
-            EditorUtility.SetDirty(runner.gameObject);
+            for (int i = subgraphTree.GetChild(parentIndex); i >= 0; i = subgraphTree.GetNext(i)) {
+                var nodeId = subgraphTree.GetKeyAt(i);
+                if (!subgraphAssetMap.ContainsKey(nodeId)) subgraphTree.RemoveNode(nodeId, parentIndex);
+            }
+
+            foreach (var (nodeId, subgraphAsset) in subgraphAssetMap) {
+                FetchBlueprintAndItsSubgraphsRecursively(runner, subgraphAsset, subgraphTree, nodeId, parentIndex);
+            }
         }
     }
 

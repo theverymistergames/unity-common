@@ -95,9 +95,9 @@ namespace MisterGames.Blueprints.Editor.View {
                 container.Add(propertyField);
 
                 if (property.propertyType == SerializedPropertyType.ObjectReference &&
-                    property.objectReferenceValue is BlueprintAsset2 blueprint
+                    property.objectReferenceValue is BlueprintAsset2 asset
                 ) {
-                    var button = new Button(() => BlueprintEditorWindow.OpenAsset(blueprint)) { text = "Edit" };
+                    var button = new Button(() => BlueprintEditorWindow.Open(asset)) { text = "Edit" };
                     container.Add(button);
                 }
             }

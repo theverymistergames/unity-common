@@ -138,7 +138,7 @@ namespace MisterGames.Blueprints.Editor.Editors {
                 return;
             }
 
-            if (!blackboardOverride.OverrideBlackboard(blueprint.Blackboard)) return;
+            if (!blackboardOverride.MatchPropertiesWith(blueprint.Blackboard)) return;
 
             EditorUtility.SetDirty(runner.gameObject);
         }

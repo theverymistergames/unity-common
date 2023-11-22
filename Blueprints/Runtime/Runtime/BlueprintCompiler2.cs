@@ -12,11 +12,11 @@ namespace MisterGames.Blueprints.Runtime {
         private readonly Dictionary<NodeId, NodeId> _runtimeNodeMap = new Dictionary<NodeId, NodeId>();
         private readonly TreeMap<int, RuntimeLink2> _hashLinks = new TreeMap<int, RuntimeLink2>();
 
-        public RuntimeBlueprint2 Compile(IBlueprintFactory factory, IBlueprintHost2 host, BlueprintAsset2 asset) {
+        public RuntimeBlueprint2 Compile(IBlueprintFactory factory, IBlueprintHost2 host) {
             _runtimeNodeMap.Clear();
             _hashLinks.Clear();
 
-            var meta = asset.BlueprintMeta;
+            var meta = host.GetBlueprintMeta();
 
             // Create root node
             int rootSourceId = factory.GetOrCreateSource(typeof(BlueprintSourceRoot));
@@ -25,33 +25,32 @@ namespace MisterGames.Blueprints.Runtime {
 
             var nodeStorage = new RuntimeNodeStorage(meta.NodeCount + 1);
             var linkStorage = new RuntimeLinkStorage(meta.LinkedPortCount, meta.LinkCount);
-            var blackboardStorage = new RuntimeBlackboardStorage(meta.SubgraphAssets.Count + 1);
+            var blackboardStorage = new RuntimeBlackboardStorage(meta.SubgraphAssetMap.Count + 1);
 
             var blueprint = new RuntimeBlueprint2(root, factory, nodeStorage, linkStorage, blackboardStorage);
 
-            blackboardStorage.SetBlackboard(root, host.GetBlackboard(asset));
+            blackboardStorage.SetBlackboard(root, host.GetBlackboard());
             CompileNodes(host, meta, blueprint, root);
             linkStorage.InlineLinks();
 
             return blueprint;
         }
 
-        public void CompileSubgraph(BlueprintAsset2 asset, BlueprintCompileData data) {
+        public void CompileSubgraph(BlueprintCompileData data) {
             _runtimeNodeMap.Clear();
             _hashLinks.Clear();
 
             var host = data.host;
-            var root = data.runtimeId;
-            var meta = asset.BlueprintMeta;
+            var meta = host.GetBlueprintMeta(data.id, data.parent);
             var blueprint = data.blueprint;
 
-            blueprint.blackboardStorage.SetBlackboard(root, host.GetBlackboard(asset));
+            blueprint.blackboardStorage.SetBlackboard(data.runtimeId, host.GetBlackboard(data.id, data.parent));
             blueprint.nodeStorage.AllocateNodes(meta.NodeCount);
 
-            CompileNodes(host, meta, blueprint, root);
+            CompileNodes(host, meta, blueprint, data.runtimeId, parent: host.GetSubgraphIndex(data.id, data.parent));
         }
 
-        private void CompileNodes(IBlueprintHost2 host, BlueprintMeta2 meta, RuntimeBlueprint2 blueprint, NodeId root) {
+        private void CompileNodes(IBlueprintHost2 host, BlueprintMeta2 meta, RuntimeBlueprint2 blueprint, NodeId root, int parent = -1) {
             var factory = blueprint.factory;
             var nodeStorage = blueprint.nodeStorage;
             var linkStorage = blueprint.linkStorage;
@@ -205,7 +204,7 @@ namespace MisterGames.Blueprints.Runtime {
                 }
 
                 if (source is IBlueprintCompilable compilable) {
-                    compilable.Compile(id, new BlueprintCompileData(host, blueprint, runtimeId));
+                    compilable.Compile(id, new BlueprintCompileData(host, blueprint, id, runtimeId, parent));
                 }
 
                 nodeStorage.AddNode(runtimeId);

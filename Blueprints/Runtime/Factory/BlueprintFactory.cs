@@ -58,8 +58,12 @@ namespace MisterGames.Blueprints.Factory {
         }
 
         private int AddSource(IBlueprintSource source) {
-            int id = _lastId++;
+            _lastId++;
+            if (_lastId == 0) _lastId++;
+
+            int id = _lastId;
             _sources.Add(id, source);
+
             return id;
         }
 

@@ -19,7 +19,7 @@ namespace MisterGames.Blueprints.Validation {
         ) {
             int portCount = meta.GetPortCount(id);
             if (port < 0 || port >= portCount) {
-                Debug.LogError($"Blueprint `{meta.Owner}`: " +
+                Debug.LogError($"Blueprint `{meta.owner}`: " +
                                $"Validation failed for external link of node {id} port {port}: " +
                                $"node {id} has no port with index {port}.");
                 return false;
@@ -30,7 +30,7 @@ namespace MisterGames.Blueprints.Validation {
             if (portData.IsData() && !portData.IsInput() &&
                 linkStorage.GetFirstLink(rootId.source, rootId.node, rootPort) >= 0
             ) {
-                Debug.LogError($"Blueprint `{meta.Owner}`: " +
+                Debug.LogError($"Blueprint `{meta.owner}`: " +
                                $"Validation failed for external link of node {id} port {port}: " +
                                $"output external port with same signature was already added.");
                 return false;
@@ -42,7 +42,7 @@ namespace MisterGames.Blueprints.Validation {
         public static bool ValidateInternalLink(BlueprintMeta2 meta, NodeId id, int port, IBlueprintInternalLink link) {
             int portCount = meta.GetPortCount(id);
             if (port < 0 || port >= portCount) {
-                Debug.LogError($"Blueprint `{meta.Owner}`: " +
+                Debug.LogError($"Blueprint `{meta.owner}`: " +
                                $"Validation failed for internal links of node {id} port {port}: " +
                                $"node {id} has no port with index {port}.");
                 return false;
@@ -50,7 +50,7 @@ namespace MisterGames.Blueprints.Validation {
 
             var portData = meta.GetPort(id, port);
             if (portData.IsData() == portData.IsInput()) {
-                Debug.LogError($"Blueprint `{meta.Owner}`: " +
+                Debug.LogError($"Blueprint `{meta.owner}`: " +
                                $"Validation failed for internal links of node {id} port {port}: " +
                                $"port {port} must be enter or output to have internal links.");
                 return false;
@@ -60,7 +60,7 @@ namespace MisterGames.Blueprints.Validation {
 
             for (int end = p + count; p < end; p++) {
                 if (p < 0 || p >= portCount) {
-                    Debug.LogError($"Blueprint `{meta.Owner}`: " +
+                    Debug.LogError($"Blueprint `{meta.owner}`: " +
                                    $"Validation failed for internal link [node {id}, port {port} :: port {p}]: " +
                                    $"node {id} has no linked port {p}.");
                     return false;
@@ -68,7 +68,7 @@ namespace MisterGames.Blueprints.Validation {
 
                 portData = meta.GetPort(id, p);
                 if (portData.IsData() != portData.IsInput()) {
-                    Debug.LogError($"Blueprint `{meta.Owner}`: " +
+                    Debug.LogError($"Blueprint `{meta.owner}`: " +
                                    $"Validation failed for internal link [node {id}, port {port} :: port {p}]: " +
                                    $"linked port {p} must be exit or input.");
                     return false;
@@ -82,7 +82,7 @@ namespace MisterGames.Blueprints.Validation {
             if (!link.TryGetLinkedPort(id, out int hash, out int port)) return true;
 
             if (port < 0 || port >= meta.GetPortCount(id)) {
-                Debug.LogError($"Blueprint `{meta.Owner}`: " +
+                Debug.LogError($"Blueprint `{meta.owner}`: " +
                                $"Validation failed for hash link of node {id} port {port}: " +
                                $"node {id} has no port with index {port}.");
                 return false;
@@ -93,7 +93,7 @@ namespace MisterGames.Blueprints.Validation {
 
         public static bool ValidateNodeLink(BlueprintMeta2 meta, NodeId id, int port, NodeId toId, int toPort) {
             if (port < 0 || port > meta.GetPortCount(id) - 1) {
-                Debug.LogError($"Blueprint `{meta.Owner}`: " +
+                Debug.LogError($"Blueprint `{meta.owner}`: " +
                                $"Validation failed for link [node {id}, port {port} :: node {toId}, port {toPort}]: " +
                                $"node {id} has no port with index {port}.");
                 return false;
@@ -119,7 +119,7 @@ namespace MisterGames.Blueprints.Validation {
         }
 
         private static bool ValidateLinkFromEnterPort(BlueprintMeta2 meta, NodeId id, int port, NodeId toId, int toPort) {
-            Debug.LogError($"Blueprint `{meta.Owner}`: " +
+            Debug.LogError($"Blueprint `{meta.owner}`: " +
                            $"Validation failed for link [node {id}, port {port} :: node {toId}, port {toPort}]: " +
                            $"port {port} of node {id} is enter port and it cannot have links.");
             return false;
@@ -127,7 +127,7 @@ namespace MisterGames.Blueprints.Validation {
 
         private static bool ValidateLinkFromExitPort(BlueprintMeta2 meta, NodeId id, int port, NodeId toId, int toPort) {
             if (toPort < 0 || toPort > meta.GetPortCount(toId) - 1) {
-                Debug.LogError($"Blueprint `{meta.Owner}`: " +
+                Debug.LogError($"Blueprint `{meta.owner}`: " +
                                $"Validation failed for link [node {id}, port {port} :: node {toId}, port {toPort}]: " +
                                $"node {toId} has no port with index {toPort}.");
                 return false;
@@ -136,14 +136,14 @@ namespace MisterGames.Blueprints.Validation {
             var toPortData = meta.GetPort(toId, toPort);
 
             if (!toPortData.IsInput()) {
-                Debug.LogError($"Blueprint `{meta.Owner}`: " +
+                Debug.LogError($"Blueprint `{meta.owner}`: " +
                                $"Validation failed for link [node {id}, port {port} :: node {toId}, port {toPort}]: " +
                                $"ports have same direction.");
                 return false;
             }
 
             if (toPortData.IsData()) {
-                Debug.LogError($"Blueprint `{meta.Owner}`: " +
+                Debug.LogError($"Blueprint `{meta.owner}`: " +
                                $"Validation failed for link [node {id}, port {port} :: node {toId}, port {toPort}]: " +
                                $"source exit port cannot have link to the data-based input port.");
                 return false;
@@ -154,7 +154,7 @@ namespace MisterGames.Blueprints.Validation {
 
         private static bool ValidateLinkFromDynamicInputPort(BlueprintMeta2 meta, NodeId id, int port, NodeId toId, int toPort) {
             if (toPort < 0 || toPort > meta.GetPortCount(toId) - 1) {
-                Debug.LogError($"Blueprint `{meta.Owner}`: " +
+                Debug.LogError($"Blueprint `{meta.owner}`: " +
                                $"Validation failed for link [node {id}, port {port} :: node {toId}, port {toPort}]: " +
                                $"node {toId} has no port with index {toPort}.");
                 return false;
@@ -163,21 +163,21 @@ namespace MisterGames.Blueprints.Validation {
             var toPortData = meta.GetPort(toId, toPort);
 
             if (toPortData.IsInput()) {
-                Debug.LogError($"Blueprint `{meta.Owner}`: " +
+                Debug.LogError($"Blueprint `{meta.owner}`: " +
                                $"Validation failed for link [node {id}, port {port} :: node {toId}, port {toPort}]: " +
                                $"ports have same direction.");
                 return false;
             }
 
             if (!toPortData.IsData()) {
-                Debug.LogError($"Blueprint `{meta.Owner}`: " +
+                Debug.LogError($"Blueprint `{meta.owner}`: " +
                                $"Validation failed for link [node {id}, port {port} :: node {toId}, port {toPort}]: " +
                                $"source dynamic input port cannot have link to the non-data output port.");
                 return false;
             }
 
             if (toPortData.DataType == null) {
-                Debug.LogError($"Blueprint `{meta.Owner}`: " +
+                Debug.LogError($"Blueprint `{meta.owner}`: " +
                                $"Validation failed for link [node {id}, port {port} :: node {toId}, port {toPort}]: " +
                                $"source dynamic input port cannot have link to the dynamic output port.");
                 return false;
@@ -187,7 +187,7 @@ namespace MisterGames.Blueprints.Validation {
         }
 
         private static bool ValidateLinkFromDynamicOutputPort(BlueprintMeta2 meta, NodeId id, int port, NodeId toId, int toPort) {
-            Debug.LogError($"Blueprint `{meta.Owner}`: " +
+            Debug.LogError($"Blueprint `{meta.owner}`: " +
                            $"Validation failed for link [node {id}, port {port} :: node {toId}, port {toPort}]: " +
                            $"port {port} of node {id} is dynamic output port and it cannot have links.");
             return false;
@@ -195,7 +195,7 @@ namespace MisterGames.Blueprints.Validation {
 
         private static bool ValidateLinkFromInputPort(BlueprintMeta2 meta, NodeId id, int port, NodeId toId, int toPort) {
             if (toPort < 0 || toPort > meta.GetPortCount(toId) - 1) {
-                Debug.LogError($"Blueprint `{meta.Owner}`: " +
+                Debug.LogError($"Blueprint `{meta.owner}`: " +
                                $"Validation failed for link [node {id}, port {port} :: node {toId}, port {toPort}]: " +
                                $"node {toId} has no port with index {toPort}.");
                 return false;
@@ -205,14 +205,14 @@ namespace MisterGames.Blueprints.Validation {
             var toPortData = meta.GetPort(toId, toPort);
 
             if (toPortData.IsInput()) {
-                Debug.LogError($"Blueprint `{meta.Owner}`: " +
+                Debug.LogError($"Blueprint `{meta.owner}`: " +
                                $"Validation failed for link [node {id}, port {port} :: node {toId}, port {toPort}]: " +
                                $"ports have same direction.");
                 return false;
             }
 
             if (!toPortData.IsData()) {
-                Debug.LogError($"Blueprint `{meta.Owner}`: " +
+                Debug.LogError($"Blueprint `{meta.owner}`: " +
                                $"Validation failed for link [node {id}, port {port} :: node {toId}, port {toPort}]: " +
                                $"source input port cannot have link to the non-data output port.");
                 return false;
@@ -225,7 +225,7 @@ namespace MisterGames.Blueprints.Validation {
 
             if (fromPortData.IsMultiple() && toPortDataType.IsArray) {
                 if (toPortDataType.GetElementType() != fromPortDataType) {
-                    Debug.LogError($"Blueprint `{meta.Owner}`: " +
+                    Debug.LogError($"Blueprint `{meta.owner}`: " +
                                    $"Validation failed for link [node {id}, port {port} :: node {toId}, port {toPort}]: " +
                                    $"ports have different signature.");
                     return false;
@@ -235,14 +235,14 @@ namespace MisterGames.Blueprints.Validation {
             }
 
             if (toPortData.AcceptSubclass() && !toPortDataType.IsAssignableFrom(fromPortDataType)) {
-                Debug.LogError($"Blueprint `{meta.Owner}`: " +
+                Debug.LogError($"Blueprint `{meta.owner}`: " +
                                $"Validation failed for link [node {id}, port {port} :: node {toId}, port {toPort}]: " +
                                $"ports have different signature.");
                 return false;
             }
 
             if (!fromPortDataType.IsAssignableFrom(toPortDataType)) {
-                Debug.LogError($"Blueprint `{meta.Owner}`: " +
+                Debug.LogError($"Blueprint `{meta.owner}`: " +
                                $"Validation failed for link [node {id}, port {port} :: node {toId}, port {toPort}]: " +
                                $"ports have different signature.");
                 return false;
@@ -252,7 +252,7 @@ namespace MisterGames.Blueprints.Validation {
         }
 
         private static bool ValidateLinkFromOutputPort(BlueprintMeta2 meta, NodeId id, int port, NodeId toId, int toPort) {
-            Debug.LogError($"Blueprint `{meta.Owner}`: " +
+            Debug.LogError($"Blueprint `{meta.owner}`: " +
                            $"Validation failed for link [node {id}, port {port} :: node {toId}, port {toPort}]: " +
                            $"port {port} of node {id} is func output port and it cannot have links.");
             return false;
