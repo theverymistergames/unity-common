@@ -47,17 +47,24 @@ namespace MisterGames.Blackboards.Core {
         }
 
 #if UNITY_EDITOR
-        private Blackboard _overridenBlackboard;
+        private Blackboard _matchPropertiesSource;
 
-        public bool OverrideBlackboard(Blackboard blackboard) {
-            _overridenBlackboard = blackboard;
+        public void Clear() {
+            _propertyList.Clear();
+            _propertyMap.Clear();
+            _tables.Clear();
+            _tablesHead = 0;
+        }
+
+        public bool MatchPropertiesWith(Blackboard source) {
+            _matchPropertiesSource = source;
             bool changed = false;
 
             for (int i = _propertyList.Count - 1; i >= 0; i--) {
                 int hash = _propertyList[i];
                 var property = _propertyMap[hash];
 
-                if (!blackboard._propertyMap.TryGetValue(hash, out var p) || p.type.ToType() is not {} t) {
+                if (!source._propertyMap.TryGetValue(hash, out var p) || p.type.ToType() is not {} t) {
                     _propertyList.RemoveAt(i);
                     _propertyMap.Remove(hash);
 
@@ -76,25 +83,23 @@ namespace MisterGames.Blackboards.Core {
                 property.table = table;
                 _propertyMap[hash] = property;
 
-                blackboard.TryGetValue(p.table, hash, out object v);
+                source.TryGetValue(p.table, hash, out object v);
                 changed |= TrySetValue(table, hash, v);
             }
 
-            for (int i = 0; i < blackboard._propertyList.Count; i++) {
-                int hash = blackboard._propertyList[i];
-                var p = blackboard._propertyMap[hash];
+            for (int i = 0; i < source._propertyList.Count; i++) {
+                int hash = source._propertyList[i];
+                var p = source._propertyMap[hash];
                 if (p.type.ToType() is not {} t) continue;
 
                 if (!_propertyMap.ContainsKey(hash)) {
                     var tableType = BlackboardTableUtils.GetBlackboardTableType(t);
                     int table = GetOrCreateTable(tableType);
-                    int pTable = p.table;
 
-                    p.table = table;
-                    _propertyMap.Add(hash, p);
+                    _propertyMap.Add(hash, new BlackboardProperty {name  = p.name, table = table, type = p.type });
                     _propertyList.Add(hash);
 
-                    blackboard.TryGetValue(pTable, hash, out object v);
+                    source.TryGetValue(p.table, hash, out object v);
                     changed |= TrySetValue(table, hash, v);
                 }
 
@@ -158,8 +163,8 @@ namespace MisterGames.Blackboards.Core {
         public bool TryResetPropertyValue(int hash) {
             if (!_propertyMap.TryGetValue(hash, out var property) || property.type.ToType() is not {} t) return false;
 
-            object value = _overridenBlackboard != null &&
-                           _overridenBlackboard.TryGetPropertyValue(hash, out object v) &&
+            object value = _matchPropertiesSource != null &&
+                           _matchPropertiesSource.TryGetPropertyValue(hash, out object v) &&
                            v != null &&
                            t.IsInstanceOfType(v)
                 ? v : default;
@@ -234,11 +239,18 @@ namespace MisterGames.Blackboards.Core {
         }
 
         public string GetSerializedPropertyPath(int hash) {
-            if (!_propertyMap.TryGetValue(hash, out var property)) return null;
-            if (!_tables.TryGetValue(property.table, out var t)) return null;
+            if (!_propertyMap.TryGetValue(hash, out var property)) {
+                return null;
+            }
+
+            if (!_tables.TryGetValue(property.table, out var t)) {
+                return null;
+            }
 
             string tableLocalPath = t.GetSerializedPropertyPath(hash);
-            if (tableLocalPath == null) return null;
+            if (tableLocalPath == null) {
+                return null;
+            }
 
             return $"{nameof(_tables)}._entries.Array.data[{_tables.IndexOf(property.table)}].value.{tableLocalPath}";
         }
