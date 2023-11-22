@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Text;
+using Codice.CM.SEIDInfo;
 using MisterGames.Blackboards.Core;
 using MisterGames.Blueprints.Factory;
 using MisterGames.Blueprints.Meta;
@@ -74,7 +75,9 @@ namespace MisterGames.Blueprints {
                 var meta = _blueprintAsset == null ? null : _blueprintAsset.BlueprintMeta;
 
                 if (_rootOverrideMeta != null) {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
                     _rootOverrideMeta.owner = this;
+#endif
                     _rootOverrideMeta.overridenMeta = meta;
                     meta = _rootOverrideMeta;
                 }
@@ -90,7 +93,9 @@ namespace MisterGames.Blueprints {
                 var meta = data.asset.BlueprintMeta;
 
                 if (data.metaOverride != null) {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
                     data.metaOverride.owner = this;
+#endif
                     data.metaOverride.overridenMeta = meta;
                     meta = data.metaOverride;
                 }
@@ -111,6 +116,14 @@ namespace MisterGames.Blueprints {
             _subgraphTree ??= new TreeMap<NodeId, SubgraphData>();
 
         private readonly HashSet<MonoBehaviour> _clients = new HashSet<MonoBehaviour>();
+
+        internal Blackboard GetEditorBlackboardForMeta(BlueprintMeta2 meta) {
+            int n = _subgraphTree.FindNode(meta, (m, _, data) => m == data.metaOverride);
+            if (n < 0) return meta == _rootOverrideMeta ? _blackboard : null;
+
+            ref var data = ref _subgraphTree.GetValueAt(n);
+            return data.blackboard;
+        }
 
         internal string GetNodePath(BlueprintMeta2 meta, NodeId id) {
             if (!meta.TryGetNodePath(id, out int si, out int ni)) return null;

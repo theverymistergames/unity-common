@@ -47,13 +47,6 @@ namespace MisterGames.BlueprintLib {
         public void OnInitialize(IBlueprint blueprint, NodeToken token) {
             _getString = () => string.Empty;
 
-            Debug.LogWarning($"Using {nameof(BlueprintNodeToString2)} " +
-                             $"in blueprint `{((BlueprintRunner2) blueprint.Host.Runner).BlueprintAsset.name}` or in its subgraphs " +
-                             $"in blueprint runner `{blueprint.Host.Runner.name}`: " +
-                             $"this node uses reflection and it is for debug purposes only, " +
-                             $"it must be removed in the release build.\n" +
-                             $"Note that in the non-development build it returns empty string.");
-
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             var readMethod = typeof(IBlueprint).GetMethod("Read")?.MakeGenericMethod(_dataType.ToType());
 
@@ -81,6 +74,14 @@ namespace MisterGames.BlueprintLib {
                         return result.ToString();
                 }
             };
+
+#else
+            Debug.LogWarning($"Using {nameof(BlueprintNodeToString2)} " +
+                             $"in blueprint `{((BlueprintRunner2) blueprint.Host.Runner).BlueprintAsset}` or in its subgraphs " +
+                             $"in blueprint runner `{blueprint.Host.Runner.name}`: " +
+                             $"this node uses reflection and it is for debug purposes only, " +
+                             $"it must be removed in the release build.\n" +
+                             $"Note that in the non-development build it returns empty string.");
 #endif
         }
 

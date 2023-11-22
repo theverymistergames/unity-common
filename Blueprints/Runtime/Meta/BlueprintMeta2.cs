@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using MisterGames.Blackboards.Core;
 using MisterGames.Blueprints.Factory;
 using MisterGames.Blueprints.Nodes;
 using MisterGames.Blueprints.Validation;
@@ -30,7 +31,7 @@ namespace MisterGames.Blueprints.Meta {
         internal BlueprintMeta2 overridenMeta;
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-        public object owner;
+        internal object owner;
 #endif
 
         public BlueprintMeta2() {
@@ -206,6 +207,18 @@ namespace MisterGames.Blueprints.Meta {
 
         public IBlueprintSource GetNodeSource(NodeId id) {
             return _nodeMap.ContainsKey(id) ? _factory.GetSource(id.source) : null;
+        }
+
+        public Blackboard GetBlackboard() {
+#if UNITY_EDITOR
+            return owner switch {
+                BlueprintRunner2 runner => runner.GetEditorBlackboardForMeta(this),
+                BlueprintAsset2 asset => asset.Blackboard,
+                _ => null,
+            };
+#endif
+
+            return null;
         }
 
         public Port GetPort(NodeId id, int port) {

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using MisterGames.Blackboards.Core;
 using MisterGames.Blueprints.Meta;
 
 namespace MisterGames.Blueprints.Editor.View {
@@ -8,6 +9,8 @@ namespace MisterGames.Blueprints.Editor.View {
         private readonly List<Port> _ports = new List<Port>();
 
         public void Clear() => _ports.Clear();
+
+        public Blackboard GetBlackboard() => null;
 
         public Port GetPort(NodeId id, int port) => _ports[port];
 

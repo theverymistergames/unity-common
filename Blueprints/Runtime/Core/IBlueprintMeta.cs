@@ -1,8 +1,11 @@
-﻿using MisterGames.Blueprints.Meta;
+﻿using MisterGames.Blackboards.Core;
+using MisterGames.Blueprints.Meta;
 
 namespace MisterGames.Blueprints {
 
     public interface IBlueprintMeta {
+
+        Blackboard GetBlackboard();
 
         Port GetPort(NodeId id, int port);
 
