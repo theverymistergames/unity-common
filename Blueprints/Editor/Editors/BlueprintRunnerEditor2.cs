@@ -90,8 +90,8 @@ namespace MisterGames.Blueprints.Editor.Editors {
         }
 
         private static void DrawRootBlackboard(SerializedObject serializedObject) {
-            var blackboardProperty = serializedObject.FindProperty("_rootOverrideBlackboard");
-            EditorGUILayout.PropertyField(blackboardProperty, new GUIContent("Blackboard"));
+            var blackboardProperty = serializedObject.FindProperty("_blackboard");
+            EditorGUILayout.PropertyField(blackboardProperty);
         }
 
         private static void DrawSubgraphs(BlueprintRunner2 runner, SerializedObject serializedObject) {

@@ -42,6 +42,14 @@ namespace MisterGames.Blueprints {
             _blueprintCompiler ??= new BlueprintCompiler2();
             _blueprintCompiler.CompileSubgraph(data);
         }
+
+#if UNITY_EDITOR
+        internal string GetNodePath(NodeId id) {
+            return _blueprintMeta.TryGetNodePath(id, out int si, out int ni)
+                ? $"_blueprintMeta._factory._sources._entries.Array.data[{si}].value._nodeMap._entries.Array.data[{ni}].value"
+                : null;
+        }
+#endif
     }
 
 }

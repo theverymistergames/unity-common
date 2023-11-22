@@ -9,12 +9,6 @@ namespace MisterGames.Blueprints.Editor.Utils {
 
     public static class BlueprintNodeUtils {
 
-        public static string GetNodePath(int sourceIndex, int nodeIndex) {
-            return $"_blueprintMeta._factory." +
-                   $"_sources._entries.Array.data[{sourceIndex}].value." +
-                   $"_nodeMap._entries.Array.data[{nodeIndex}].value";
-        }
-
         public static Type GetSourceType(Type nodeType) {
             // Need implement IBlueprintNode
             if (!typeof(IBlueprintNode).IsAssignableFrom(nodeType)) return null;

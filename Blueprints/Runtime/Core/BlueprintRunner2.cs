@@ -14,7 +14,7 @@ namespace MisterGames.Blueprints {
         [SerializeField] private BlueprintAsset2 _blueprintAsset;
 
         [SerializeField] private TreeMap<NodeId, SubgraphData> _subgraphTree;
-        [SerializeField] private Blackboard _rootOverrideBlackboard;
+        [SerializeField] private Blackboard _blackboard;
         [SerializeReference] private BlueprintMeta2 _rootOverrideMeta;
 
         public BlueprintAsset2 BlueprintAsset => _blueprintAsset;
@@ -65,7 +65,7 @@ namespace MisterGames.Blueprints {
         }
 
         public Blackboard GetBlackboard(NodeId id = default, int parent = -1) {
-            if (id == default) return _rootOverrideBlackboard;
+            if (id == default) return _blackboard;
             return _subgraphTree.TryGetValue(id, parent, out var data) ? data.blackboard : null;
         }
 
@@ -111,6 +111,20 @@ namespace MisterGames.Blueprints {
             _subgraphTree ??= new TreeMap<NodeId, SubgraphData>();
 
         private readonly HashSet<MonoBehaviour> _clients = new HashSet<MonoBehaviour>();
+
+        internal string GetNodePath(BlueprintMeta2 meta, NodeId id) {
+            if (!meta.TryGetNodePath(id, out int si, out int ni)) return null;
+
+            int n = _subgraphTree.FindNode(meta, (m, _, data) => m == data.metaOverride);
+
+            if (n < 0) {
+                return meta == _rootOverrideMeta
+                    ? $"_rootOverrideMeta._factory._sources._entries.Array.data[{si}].value._nodeMap._entries.Array.data[{ni}].value"
+                    : null;
+            }
+
+            return $"_subgraphTree._nodes.Array.data[{n}].value.metaOverride._factory._sources._entries.Array.data[{si}].value._nodeMap._entries.Array.data[{ni}].value";
+        }
 
         internal NodeId[] FindSubgraphPath(BlueprintMeta2 meta) {
             int n = _subgraphTree.FindNode(meta, (m, _, data) => m == data.metaOverride);

@@ -34,9 +34,6 @@ namespace MisterGames.Blueprints.Editor.View {
         private readonly Dictionary<PortView, int> _portViewToPortIndexMap = new Dictionary<PortView, int>();
         private readonly Dictionary<int, PortView> _portIndexToPortViewMap = new Dictionary<int, PortView>();
 
-        private int _nodePathSourceIndex;
-        private int _nodePathNodeIndex;
-        private string _nodePath;
         private bool _allowChangeCallback;
 
         private struct PortViewCreationData {
@@ -70,11 +67,13 @@ namespace MisterGames.Blueprints.Editor.View {
         }
 
         private void CreateNodeGUI(VisualElement container) {
-            if (!FetchNodePath(forceRefresh: true) ||
-                _serializedObject.FindProperty(_nodePath) is not { } property
-            ) {
-                return;
-            }
+            string path = _serializedObject?.targetObject switch {
+                BlueprintRunner2 runner => runner.GetNodePath(_meta, nodeId),
+                BlueprintAsset2 asset => asset.GetNodePath(nodeId),
+                _ => null
+            };
+
+            if (_serializedObject?.FindProperty(path) is not { } property) return;
 
             float minWidth = CalculateMinWidth(property);
 
@@ -105,19 +104,6 @@ namespace MisterGames.Blueprints.Editor.View {
 
         private void OnChange(SerializedProperty property) {
             OnValidate?.Invoke(nodeId);
-        }
-
-        private bool FetchNodePath(bool forceRefresh = false) {
-            if (!_meta.TryGetNodePath(nodeId, out int sourceIndex, out int nodeIndex)) return false;
-
-            if (_nodePathSourceIndex != sourceIndex || _nodePathNodeIndex != nodeIndex || forceRefresh) {
-                _nodePath = BlueprintNodeUtils.GetNodePath(sourceIndex, nodeIndex);
-            }
-
-            _nodePathSourceIndex = sourceIndex;
-            _nodePathNodeIndex = nodeIndex;
-
-            return true;
         }
 
         public override void SetPosition(Rect newPos) {

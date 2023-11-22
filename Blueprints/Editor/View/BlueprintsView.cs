@@ -124,7 +124,13 @@ namespace MisterGames.Blueprints.Editor.View {
 
         // ---------------- ---------------- Population and views ---------------- ----------------
 
-        public void PopulateView(BlueprintMeta2 blueprintMeta, Blackboards.Core.Blackboard blackboard, SerializedObject serializedObject) {
+
+
+        public void PopulateView(
+            BlueprintMeta2 blueprintMeta,
+            Blackboards.Core.Blackboard blackboard,
+            SerializedObject serializedObject
+        ) {
             if (_blueprintMeta == blueprintMeta && _blackboard == blackboard && _serializedObject == serializedObject) return;
 
             ClearView();
