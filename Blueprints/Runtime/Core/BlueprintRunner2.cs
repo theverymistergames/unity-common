@@ -18,7 +18,11 @@ namespace MisterGames.Blueprints {
         [SerializeField] private Blackboard _blackboard;
         [SerializeReference] private BlueprintMeta2 _rootOverrideMeta;
 
-        public BlueprintAsset2 BlueprintAsset => _blueprintAsset;
+        public BlueprintAsset2 BlueprintAsset {
+            get => _blueprintAsset;
+            internal set => _blueprintAsset = value;
+        }
+
         public MonoBehaviour Runner => this;
 
         private RuntimeBlueprint2 _runtimeBlueprint;
@@ -112,6 +116,11 @@ namespace MisterGames.Blueprints {
 
 #if UNITY_EDITOR
         internal RuntimeBlueprint2 RuntimeBlueprint => _runtimeBlueprint;
+        internal BlueprintMeta2 RootOverrideMeta {
+            get => _rootOverrideMeta;
+            set => _rootOverrideMeta = value;
+        }
+
         internal TreeMap<NodeId, SubgraphData> SubgraphTree =>
             _subgraphTree ??= new TreeMap<NodeId, SubgraphData>();
 

@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using log4net;
 using MisterGames.Blackboards.Core;
 using MisterGames.Blueprints.Editor.Windows;
 using MisterGames.Blueprints.Meta;
@@ -16,9 +17,11 @@ namespace MisterGames.Blueprints.Editor.Editors {
 
             serializedObject.Update();
 
-            FetchSubgraphData(runner);
+            var asset = runner.BlueprintAsset;
 
-            DrawAssetPicker(runner, serializedObject);
+            DrawAssetPicker(runner);
+            FetchSubgraphData(runner, asset);
+
             DrawRoot(runner, serializedObject);
             DrawCompileControls(runner);
             DrawRootBlackboard(serializedObject);
@@ -27,12 +30,18 @@ namespace MisterGames.Blueprints.Editor.Editors {
             serializedObject.ApplyModifiedProperties();
         }
 
-        private static void DrawAssetPicker(BlueprintRunner2 runner, SerializedObject serializedObject) {
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("_blueprintAsset"));
+        private static void DrawAssetPicker(BlueprintRunner2 runner) {
+            var value = EditorGUILayout.ObjectField(
+                "Blueprint Asset",
+                runner.BlueprintAsset,
+                typeof(BlueprintAsset2),
+                false
+            );
 
-            var asset = runner.BlueprintAsset;
-            if (asset != null && GUILayout.Button("Edit")) {
-                BlueprintEditorWindow.Open(asset, runner.GetBlueprintMeta(), runner.GetBlackboard());
+            runner.BlueprintAsset = value as BlueprintAsset2;
+
+            if (runner.BlueprintAsset != null && GUILayout.Button("Edit")) {
+                BlueprintEditorWindow.Open(runner.BlueprintAsset, runner.GetBlueprintMeta(), runner.GetBlackboard());
             }
         }
 
@@ -173,7 +182,7 @@ namespace MisterGames.Blueprints.Editor.Editors {
             }
         }
 
-        private static void FetchSubgraphData(BlueprintRunner2 runner) {
+        private static void FetchSubgraphData(BlueprintRunner2 runner, BlueprintAsset2 oldAsset) {
             var meta = runner.GetBlueprintMeta();
 
             if (meta == null) {
@@ -182,7 +191,16 @@ namespace MisterGames.Blueprints.Editor.Editors {
             }
 
             var asset = runner.BlueprintAsset;
-            if (asset != null) runner.GetBlackboard().MatchPropertiesWith(asset.Blackboard);
+            bool changed = false;
+
+            if (asset != null) changed |= runner.GetBlackboard().MatchPropertiesWith(asset.Blackboard);
+
+            if (asset != oldAsset) {
+                runner.RootOverrideMeta = null;
+                changed = true;
+            }
+
+            if (changed) EditorUtility.SetDirty(runner);
 
             var subgraphTree = runner.SubgraphTree;
             subgraphTree.AllowDefragmentation(false);
@@ -226,7 +244,7 @@ namespace MisterGames.Blueprints.Editor.Editors {
 
                 changed |= data.blackboard.MatchPropertiesWith(asset.Blackboard);
 
-                if (changed) EditorUtility.SetDirty(runner.gameObject);
+                if (changed) EditorUtility.SetDirty(runner);
             }
             else {
                 parentIndex = subgraphTree.GetOrAddNode(id, parentIndex);
