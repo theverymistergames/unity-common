@@ -13,6 +13,10 @@ namespace MisterGames.Blueprints.Meta {
             _portTree = new TreeMap<int, Port>(capacity);
         }
 
+        public BlueprintPortStorage(BlueprintPortStorage source) {
+            _portTree = new TreeMap<int, Port>(source._portTree);
+        }
+
         public TreeSet<int> CreatePortSignatureToIndicesTree(NodeId id) {
             if (!_portTree.TryGetNode(id.source, out int sourceRoot) ||
                 !_portTree.TryGetNode(id.node, sourceRoot, out int nodeRoot) ||

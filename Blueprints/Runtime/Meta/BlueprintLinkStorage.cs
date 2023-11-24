@@ -24,6 +24,12 @@ namespace MisterGames.Blueprints.Meta {
             _linkTree = new TreeSet<BlueprintLink2>();
         }
 
+        public BlueprintLinkStorage(BlueprintLinkStorage source) {
+            _linkTree = new TreeSet<BlueprintLink2>(source._linkTree);
+            _linkCount = source._linkCount;
+            _linkedPortCount = source._linkedPortCount;
+        }
+
         public BlueprintLink2 GetLink(int link) {
             return _linkTree.GetKeyAt(link);
         }

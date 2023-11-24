@@ -12,45 +12,58 @@ namespace MisterGames.Blueprints.Runtime {
         private readonly Dictionary<NodeId, NodeId> _runtimeNodeMap = new Dictionary<NodeId, NodeId>();
         private readonly TreeMap<int, RuntimeLink2> _hashLinks = new TreeMap<int, RuntimeLink2>();
 
-        public RuntimeBlueprint2 Compile(IBlueprintFactory factory, IBlueprintHost2 host) {
+        public RuntimeBlueprint2 Compile(BlueprintMeta2 meta, IBlueprintFactory factory, IBlueprintHost2 host) {
             _runtimeNodeMap.Clear();
             _hashLinks.Clear();
-
-            var meta = host.GetBlueprintMeta();
 
             // Create root node
             int rootSourceId = factory.GetOrCreateSource(typeof(BlueprintSourceRoot));
             int rootNodeId = factory.GetSource(rootSourceId).AddNode();
             var root = new NodeId(rootSourceId, rootNodeId);
 
+#if UNITY_EDITOR
+            meta.NodeJsonMap.Clear();
+#endif
+
             var nodeStorage = new RuntimeNodeStorage(meta.NodeCount + 1);
             var linkStorage = new RuntimeLinkStorage(meta.LinkedPortCount, meta.LinkCount);
             var blackboardStorage = new RuntimeBlackboardStorage(meta.SubgraphAssetMap.Count + 1);
-
             var blueprint = new RuntimeBlueprint2(root, factory, nodeStorage, linkStorage, blackboardStorage);
 
-            blackboardStorage.SetBlackboard(root, host.GetBlackboard());
-            CompileNodes(host, meta, blueprint, root);
+            blackboardStorage.SetBlackboard(root, host.GetRootBlackboard());
+            CompileNodes(host, host.GetRootFactory(), meta, blueprint, root);
             linkStorage.InlineLinks();
 
             return blueprint;
         }
 
-        public void CompileSubgraph(BlueprintCompileData data) {
+        public void CompileSubgraph(BlueprintMeta2 meta, SubgraphCompileData data) {
             _runtimeNodeMap.Clear();
             _hashLinks.Clear();
 
             var host = data.host;
-            var meta = host.GetBlueprintMeta(data.id, data.parent);
             var blueprint = data.blueprint;
+            var factoryOverride = host.GetSubgraphFactory(data.id, data.parent);
+            int parent = host.GetSubgraphIndex(data.id, data.parent);
 
-            blueprint.blackboardStorage.SetBlackboard(data.runtimeId, host.GetBlackboard(data.id, data.parent));
+#if UNITY_EDITOR
+            meta.NodeJsonMap.Clear();
+#endif
+
+            blueprint.blackboardStorage.SetBlackboard(data.runtimeId, host.GetSubgraphBlackboard(data.id, data.parent));
             blueprint.nodeStorage.AllocateNodes(meta.NodeCount);
 
-            CompileNodes(host, meta, blueprint, data.runtimeId, parent: host.GetSubgraphIndex(data.id, data.parent));
+            CompileNodes(host, factoryOverride, meta, blueprint, data.runtimeId, parent);
         }
 
-        private void CompileNodes(IBlueprintHost2 host, BlueprintMeta2 meta, RuntimeBlueprint2 blueprint, NodeId root, int parent = -1) {
+        private void CompileNodes(
+            IBlueprintHost2 host,
+            IBlueprintFactory factoryOverride,
+            BlueprintMeta2 meta,
+            RuntimeBlueprint2 blueprint,
+            NodeId root,
+            int parent = -1
+        ) {
             var factory = blueprint.factory;
             var nodeStorage = blueprint.nodeStorage;
             var linkStorage = blueprint.linkStorage;
@@ -59,6 +72,13 @@ namespace MisterGames.Blueprints.Runtime {
 
             foreach (var id in nodes) {
                 var source = meta.GetNodeSource(id);
+
+                // Override node source if factory override contains node
+                if (factoryOverride?.GetSource(id.source) is { } sourceOverride &&
+                    sourceOverride.ContainsNode(id.node)
+                ) {
+                    source = sourceOverride;
+                }
 
                 // Try create node
                 if (!_runtimeNodeMap.TryGetValue(id, out var runtimeId)) {
@@ -166,6 +186,13 @@ namespace MisterGames.Blueprints.Runtime {
                             var linkedSource = meta.GetNodeSource(linkedId);
                             if (linkedSource == null) continue;
 
+                            // Override node source if factory override contains node
+                            if (factoryOverride?.GetSource(linkedId.source) is { } linkedSourceOverride &&
+                                linkedSourceOverride.ContainsNode(linkedId.node)
+                            ) {
+                                linkedSource = linkedSourceOverride;
+                            }
+
                             int linkedRuntimeSourceId = factory.GetOrCreateSource(linkedSource.GetType());
                             var linkedRuntimeSource = factory.GetSource(linkedRuntimeSourceId);
                             int linkedRuntimeNodeId;
@@ -204,7 +231,7 @@ namespace MisterGames.Blueprints.Runtime {
                 }
 
                 if (source is IBlueprintCompilable compilable) {
-                    compilable.Compile(id, new BlueprintCompileData(host, blueprint, id, runtimeId, parent));
+                    compilable.Compile(id, new SubgraphCompileData(host, blueprint, id, runtimeId, parent));
                 }
 
                 nodeStorage.AddNode(runtimeId);

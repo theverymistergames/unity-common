@@ -1,5 +1,6 @@
 ﻿using MisterGames.Blackboards.Core;
 using MisterGames.Blueprints.Runtime;
+using UnityEngine;
 
 namespace MisterGames.Blueprints {
 
@@ -12,7 +13,7 @@ namespace MisterGames.Blueprints {
         /// <summary>
         /// Current host object of the blueprint.
         /// </summary>
-        IBlueprintHost2 Host { get; }
+        MonoBehaviour Host { get; }
 
         /// <summary>
         /// Get blackboard by blueprint node id.

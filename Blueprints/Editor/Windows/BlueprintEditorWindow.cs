@@ -2,6 +2,7 @@ using System.Linq;
 using MisterGames.Blackboards.Core;
 using MisterGames.Blueprints.Editor.Storage;
 using MisterGames.Blueprints.Editor.View;
+using MisterGames.Blueprints.Factory;
 using MisterGames.Blueprints.Meta;
 using UnityEditor;
 using UnityEditor.Callbacks;
@@ -17,6 +18,7 @@ namespace MisterGames.Blueprints.Editor.Windows {
         private const string WINDOW_TITLE = "Blueprint Editor 2";
 
         private BlueprintMeta2 _blueprintMeta;
+        private IBlueprintFactory _factoryOverride;
         private Blackboard _blackboard;
         private SerializedObject _serializedObject;
 
@@ -48,13 +50,11 @@ namespace MisterGames.Blueprints.Editor.Windows {
         public static void Open(
             BlueprintAsset2 asset = null,
             BlueprintMeta2 meta = null,
+            IBlueprintFactory factoryOverride = null,
             Blackboard blackboard = null,
             SerializedObject serializedObject = null
         ) {
             var window = GetWindow<BlueprintEditorWindow>(WINDOW_TITLE, focus: true, desiredDockNextTo: typeof(SceneView));
-
-            var assetPicker = window._assetPicker;
-            if (assetPicker == null) return;
 
             if (asset != null) {
                 meta ??= asset.BlueprintMeta;
@@ -64,6 +64,7 @@ namespace MisterGames.Blueprints.Editor.Windows {
 
             window._blueprintMeta = meta;
             window._blackboard = blackboard;
+            window._factoryOverride = factoryOverride;
             window._serializedObject = serializedObject;
 
             window.SetAssetPickerValue(asset, notify: false);
@@ -95,7 +96,7 @@ namespace MisterGames.Blueprints.Editor.Windows {
 
             _blueprintsView = root.Q<BlueprintsView>();
             _blueprintsView.OnRequestWorldPosition = GetWorldPosition;
-            _blueprintsView.OnBlueprintAssetSetDirty = OnBlueprintAssetSetDirty;
+            _blueprintsView.OnSetDirty = OnTargetObjectSetDirty;
 
             _saveButton = root.Q<Button>("save-button");
             _saveButton.clicked -= TrySaveCurrentBlueprintAsset;
@@ -107,9 +108,8 @@ namespace MisterGames.Blueprints.Editor.Windows {
             BlueprintEditorStorage.Instance.OpenLast();
         }
 
-        private void OnBlueprintAssetSetDirty() {
-            var asset = _assetPicker?.value as BlueprintAsset2;
-            SetWindowTitle(asset == null ? WINDOW_TITLE : $"{asset.name}*");
+        private void OnTargetObjectSetDirty(Object obj) {
+            SetWindowTitle(_assetPicker?.value is BlueprintAsset2 asset ? $"{asset.name}*" : WINDOW_TITLE);
         }
 
         private void TrySaveCurrentBlueprintAsset() {
@@ -142,6 +142,8 @@ namespace MisterGames.Blueprints.Editor.Windows {
                 _blueprintMeta = asset.BlueprintMeta;
                 _blackboard = asset.Blackboard;
             }
+
+            _factoryOverride = null;
 
             SetupView();
         }
@@ -179,7 +181,7 @@ namespace MisterGames.Blueprints.Editor.Windows {
                 _assetPicker.label = "Asset";
             }
 
-            _blueprintsView.PopulateView(_blueprintMeta, _blackboard, _serializedObject);
+            _blueprintsView.PopulateView(_blueprintMeta, _factoryOverride, _blackboard, _serializedObject);
         }
 
         private void SetWindowTitle(string text) {

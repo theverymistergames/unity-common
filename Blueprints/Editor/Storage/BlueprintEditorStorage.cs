@@ -1,6 +1,7 @@
 ﻿using System;
 using MisterGames.Blackboards.Core;
 using MisterGames.Blueprints.Editor.Windows;
+using MisterGames.Blueprints.Factory;
 using MisterGames.Blueprints.Meta;
 using UnityEditor;
 using UnityEngine;
@@ -28,19 +29,30 @@ namespace MisterGames.Blueprints.Editor.Storage {
 
             if (target is BlueprintRunner2 runner) {
                 var serializedObject = new SerializedObject(target);
-                asset = _lastData.asset;
-                BlueprintMeta2 meta;
-                Blackboard blackboard;
 
-                if (_lastData.path is { Length: > 0 } path) {
-                    runner.TryFindSubgraph(path, out meta, out blackboard);
+                asset = _lastData.asset;
+                Blackboard blackboard = null;
+                BlueprintMeta2 meta = null;
+                IBlueprintFactory factoryOverride = null;
+
+                if (runner.TryFindSubgraph(_lastData.path, out var data)) {
+                    blackboard = data.asset.Blackboard;
+                    meta = data.asset.BlueprintMeta;
+                    factoryOverride = data.factoryOverride;
                 }
                 else {
-                    meta = runner.GetBlueprintMeta();
-                    blackboard = asset == null ? runner.GetBlackboard() : asset.Blackboard;
+                    if (asset == null) {
+                        blackboard = runner.GetRootBlackboard();
+                        meta = runner.RootMetaOverride;
+                    }
+                    else {
+                        blackboard = asset.Blackboard;
+                        meta = asset.BlueprintMeta;
+                        factoryOverride = runner.RootMetaOverride?.Factory;
+                    }
                 }
 
-                BlueprintEditorWindow.Open(asset, meta, blackboard, serializedObject);
+                BlueprintEditorWindow.Open(asset, meta, factoryOverride, blackboard, serializedObject);
             }
         }
 

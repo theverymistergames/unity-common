@@ -1,6 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Text;
-using Codice.CM.SEIDInfo;
 using MisterGames.Blackboards.Core;
 using MisterGames.Blueprints.Factory;
 using MisterGames.Blueprints.Meta;
@@ -13,17 +11,14 @@ namespace MisterGames.Blueprints {
     public sealed class BlueprintRunner2 : MonoBehaviour, IBlueprintHost2 {
 
         [SerializeField] private BlueprintAsset2 _blueprintAsset;
-
         [SerializeField] private TreeMap<NodeId, SubgraphData> _subgraphTree;
         [SerializeField] private Blackboard _blackboard;
-        [SerializeReference] private BlueprintMeta2 _rootOverrideMeta;
+        [SerializeReference] private BlueprintMeta2 _rootMetaOverride;
 
         public BlueprintAsset2 BlueprintAsset {
             get => _blueprintAsset;
             internal set => _blueprintAsset = value;
         }
-
-        public MonoBehaviour Runner => this;
 
         private RuntimeBlueprint2 _runtimeBlueprint;
         private BlueprintCompiler2 _compiler2;
@@ -34,12 +29,15 @@ namespace MisterGames.Blueprints {
             if (_blueprintAsset != null) {
                 _runtimeBlueprint = _blueprintAsset.Compile(BlueprintFactories.Global, this);
             }
-            else {
+            else if (_rootMetaOverride != null) {
                 _compiler2 ??= new BlueprintCompiler2();
-                _runtimeBlueprint = _compiler2.Compile(BlueprintFactories.Global, this);
+#if UNITY_EDITOR
+                _rootMetaOverride.owner = this;
+#endif
+                _runtimeBlueprint = _compiler2.Compile(_rootMetaOverride, BlueprintFactories.Global, this);
             }
 
-            _runtimeBlueprint.Initialize(this);
+            _runtimeBlueprint?.Initialize(this);
 
             return _runtimeBlueprint;
         }
@@ -65,91 +63,52 @@ namespace MisterGames.Blueprints {
             _runtimeBlueprint?.Start();
         }
 
+        public Blackboard GetRootBlackboard() {
+            return _blackboard;
+        }
+
+        public IBlueprintFactory GetRootFactory() {
+            return _rootMetaOverride?.Factory;
+        }
+
         public int GetSubgraphIndex(NodeId id, int parent = -1) {
             return _subgraphTree.GetNode(id, parent);
         }
 
-        public Blackboard GetBlackboard(NodeId id = default, int parent = -1) {
-            if (id == default) return _blackboard;
+        public Blackboard GetSubgraphBlackboard(NodeId id, int parent = -1) {
             return _subgraphTree.TryGetValue(id, parent, out var data) ? data.blackboard : null;
         }
 
-        public BlueprintMeta2 GetBlueprintMeta(NodeId id = default, int parent = -1) {
-            if (id == default) {
-                var meta = _blueprintAsset == null ? null : _blueprintAsset.BlueprintMeta;
-
-                if (_rootOverrideMeta != null) {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-                    _rootOverrideMeta.owner = this;
-#endif
-                    _rootOverrideMeta.overridenMeta = meta;
-                    meta = _rootOverrideMeta;
-                }
-
-#if UNITY_EDITOR
-                meta?.NodeJsonMap.Clear();
-#endif
-
-                return meta;
-            }
-
-            if (_subgraphTree.TryGetValue(id, parent, out var data)) {
-                var meta = data.asset.BlueprintMeta;
-
-                if (data.metaOverride != null) {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-                    data.metaOverride.owner = this;
-#endif
-                    data.metaOverride.overridenMeta = meta;
-                    meta = data.metaOverride;
-                }
-
-#if UNITY_EDITOR
-                meta?.NodeJsonMap.Clear();
-#endif
-
-                return meta;
-            }
-
-            return null;
+        public IBlueprintFactory GetSubgraphFactory(NodeId id, int parent = -1) {
+            return _subgraphTree.TryGetValue(id, parent, out var data) ? data.factoryOverride : null;
         }
 
 #if UNITY_EDITOR
         internal RuntimeBlueprint2 RuntimeBlueprint => _runtimeBlueprint;
-        internal BlueprintMeta2 RootOverrideMeta {
-            get => _rootOverrideMeta;
-            set => _rootOverrideMeta = value;
-        }
+        internal TreeMap<NodeId, SubgraphData> SubgraphTree => _subgraphTree ??= new TreeMap<NodeId, SubgraphData>();
 
-        internal TreeMap<NodeId, SubgraphData> SubgraphTree =>
-            _subgraphTree ??= new TreeMap<NodeId, SubgraphData>();
+        internal BlueprintMeta2 RootMetaOverride {
+            get {
+#if UNITY_EDITOR
+                if (_rootMetaOverride != null) _rootMetaOverride.owner = this;
+#endif
+                return _rootMetaOverride;
+            }
+            set => _rootMetaOverride = value;
+        }
 
         private readonly HashSet<MonoBehaviour> _clients = new HashSet<MonoBehaviour>();
 
-        internal Blackboard GetEditorBlackboardForMeta(BlueprintMeta2 meta) {
-            int n = _subgraphTree.FindNode(meta, (m, _, data) => m == data.metaOverride);
-            if (n < 0) return meta == _rootOverrideMeta ? _blackboard : null;
-
-            ref var data = ref _subgraphTree.GetValueAt(n);
-            return data.blackboard;
-        }
-
-        internal string GetNodePath(BlueprintMeta2 meta, NodeId id) {
-            if (!meta.TryGetNodePath(id, out int si, out int ni)) return null;
-
-            int n = _subgraphTree.FindNode(meta, (m, _, data) => m == data.metaOverride);
-
-            if (n < 0) {
-                return meta == _rootOverrideMeta
-                    ? $"_rootOverrideMeta._factory._sources._entries.Array.data[{si}].value._nodeMap._entries.Array.data[{ni}].value"
-                    : null;
-            }
-
-            return $"_subgraphTree._nodes.Array.data[{n}].value.metaOverride._factory._sources._entries.Array.data[{si}].value._nodeMap._entries.Array.data[{ni}].value";
+        internal string GetNodePath(NodeId id) {
+            return _rootMetaOverride.TryGetNodePath(id, out int s, out int n)
+                ? $"_rootMetaOverride._factory._sources._entries.Array.data[{s}].value._nodeMap._entries.Array.data[{n}].value"
+                : null;
         }
 
         internal NodeId[] FindSubgraphPath(BlueprintMeta2 meta) {
-            int n = _subgraphTree.FindNode(meta, (m, _, data) => m == data.metaOverride);
+            if (meta == null || meta == _rootMetaOverride) return null;
+
+            int n = _subgraphTree.FindNode(meta, (m, _, data) => m == data.asset.BlueprintMeta);
             if (n < 0) return null;
 
             int depth = _subgraphTree.GetNodeDepth(n);
@@ -163,29 +122,24 @@ namespace MisterGames.Blueprints {
             return path;
         }
 
-        internal bool TryFindSubgraph(NodeId[] path, out BlueprintMeta2 meta, out Blackboard blackboard) {
-            meta = null;
-            blackboard = null;
+        internal bool TryFindSubgraph(NodeId[] path, out SubgraphData data) {
+            if (path is not { Length: > 0 }) {
+                data = default;
+                return false;
+            }
 
             int index = -1;
 
-            var sb = new StringBuilder();
-
             for (int i = 0; i < path.Length; i++) {
-                int parent = index;
-                var nodeId = path[i];
-                index = GetSubgraphIndex(nodeId, parent);
-
-                sb.Append($"[{nodeId.source}.{nodeId.node}] =>");
+                index = GetSubgraphIndex(path[i], index);
             }
 
-            if (index < 0) return false;
+            if (index < 0) {
+                data = default;
+                return false;
+            }
 
-            ref var data = ref _subgraphTree.GetValueAt(index);
-
-            meta = data.metaOverride;
-            blackboard = data.asset.Blackboard;
-
+            data = _subgraphTree.GetValueAt(index);
             return true;
         }
 

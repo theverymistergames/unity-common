@@ -24,7 +24,7 @@ namespace MisterGames.Blueprints.Nodes {
 
         public bool HasSignaturePorts(NodeId id) => true;
 
-        public void Compile(NodeId id, BlueprintCompileData data) {
+        public void Compile(NodeId id, SubgraphCompileData data) {
 #if UNITY_EDITOR
             if (_blueprint == null) return;
 #endif

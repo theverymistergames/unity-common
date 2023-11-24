@@ -6,7 +6,9 @@ using Cysharp.Threading.Tasks;
 using MisterGames.Blackboards.Editor;
 using MisterGames.Blueprints.Editor.Utils;
 using MisterGames.Blueprints.Editor.Windows;
+using MisterGames.Blueprints.Factory;
 using MisterGames.Blueprints.Meta;
+using MisterGames.Blueprints.Nodes;
 using MisterGames.Blueprints.Validation;
 using MisterGames.Common.Types;
 using UnityEditor;
@@ -14,6 +16,7 @@ using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.UIElements;
 using BlackboardView = UnityEditor.Experimental.GraphView.Blackboard;
+using Object = UnityEngine.Object;
 using PortView = UnityEditor.Experimental.GraphView.Port;
 
 namespace MisterGames.Blueprints.Editor.View {
@@ -23,11 +26,15 @@ namespace MisterGames.Blueprints.Editor.View {
         private const float POPULATE_SCROLL_TO_NODES_CENTER_TOLERANCE_DISTANCE = 70f;
 
         public Func<Vector2, Vector2> OnRequestWorldPosition = _ => Vector2.zero;
-        public Action OnBlueprintAssetSetDirty = delegate {  };
+        public Action<Object> OnSetDirty = delegate {  };
 
-        private Blackboards.Core.Blackboard _blackboard;
         private BlueprintMeta2 _blueprintMeta;
+        private Blackboards.Core.Blackboard _blackboard;
         private SerializedObject _serializedObject;
+
+        private IBlueprintFactory _factoryOverride;
+        private BlueprintFactory _virtualFactory;
+        private SerializedObject _virtualSerializedObject;
 
         private bool _isWaitingEndOfFrameToValidateNodes;
         private bool _isWaitingEndOfFrameToRepaintInvalidNodes;
@@ -44,7 +51,18 @@ namespace MisterGames.Blueprints.Editor.View {
         private BlackboardView _blackboardView;
         private Vector2 _mousePosition;
 
+        private bool _isNodePositionChangeAllowed;
+        private bool _isNodeCreateAllowed;
+        private bool _isNodeRemoveAllowed;
+        private bool _isLinkCreateAllowed;
+        private bool _isLinkRemoveAllowed;
+        private bool _isBlackboardPropertyNameChangeAllowed;
+        private bool _isBlackboardPropertyPositionChangeAllowed;
+        private bool _isBlackboardPropertyCreateAllowed;
+        private bool _isBlackboardPropertyRemoveAllowed;
+
         private DropEdgeData _lastDropEdgeData;
+        private BlueprintMetaInvalidateTracker _invalidateTracker;
 
         private struct DropEdgeData {
             public NodeId nodeId;
@@ -92,59 +110,73 @@ namespace MisterGames.Blueprints.Editor.View {
             InitUndoRedo();
             InitCopyPaste();
             InitMouse();
-
-            RegisterCallback<MouseUpEvent>(OnMouseUp);
-        }
-
-        private void OnMouseUp(MouseUpEvent evt) {
-            if (evt.button == 0) WriteChangedPositions();
-        }
-
-        private void WriteChangedPositions() {
-            if (_blueprintMeta == null) {
-                _positionChangedNodes.Clear();
-                return;
-            }
-
-            int count = _positionChangedNodes.Count;
-
-            foreach (var nodeId in _positionChangedNodes) {
-                if (FindNodeViewByNodeId(nodeId) is not { } nodeView) continue;
-
-                var rect = nodeView.GetPosition();
-                var position = new Vector2(rect.x, rect.y);
-
-                _blueprintMeta.SetNodePosition(nodeId, position);
-            }
-
-            _positionChangedNodes.Clear();
-
-            if (count > 0) SetBlueprintAssetDirtyAndNotify();
         }
 
         // ---------------- ---------------- Population and views ---------------- ----------------
 
-
-
         public void PopulateView(
             BlueprintMeta2 blueprintMeta,
+            IBlueprintFactory factoryOverride,
             Blackboards.Core.Blackboard blackboard,
             SerializedObject serializedObject
         ) {
-            if (_blueprintMeta == blueprintMeta && _blackboard == blackboard && _serializedObject == serializedObject) return;
+            if (_blueprintMeta == blueprintMeta &&
+                _factoryOverride == factoryOverride &&
+                _blackboard == blackboard &&
+                _serializedObject == serializedObject
+            ) {
+                return;
+            }
 
             ClearView();
 
             _blueprintMeta = blueprintMeta;
             _blackboard = blackboard;
             _serializedObject = serializedObject;
+            _factoryOverride = factoryOverride;
 
-            InvalidateBlueprint(_blueprintMeta);
+            if (_factoryOverride == null) {
+                _virtualFactory = null;
+                _virtualSerializedObject = null;
+
+                _isNodePositionChangeAllowed = _blueprintMeta != null;
+                _isNodeCreateAllowed = _blueprintMeta != null;
+                _isNodeRemoveAllowed = _blueprintMeta != null;
+                _isLinkCreateAllowed = _blueprintMeta != null;
+                _isLinkRemoveAllowed = _blueprintMeta != null;
+
+                _isBlackboardPropertyNameChangeAllowed = _blueprintMeta != null;
+                _isBlackboardPropertyPositionChangeAllowed = _blueprintMeta != null;
+                _isBlackboardPropertyCreateAllowed = _blueprintMeta != null;
+                _isBlackboardPropertyRemoveAllowed = _blueprintMeta != null;
+            }
+            else if (_blueprintMeta != null) {
+                _virtualFactory = new BlueprintFactory();
+                _blueprintMeta.Factory.CopyInto(_virtualFactory);
+
+                var container = ScriptableObject.CreateInstance<VirtualBlueprintContainer>();
+                container.Initialize(_virtualFactory, _blackboard);
+
+                _virtualSerializedObject = new SerializedObject(container);
+
+                _isNodePositionChangeAllowed = false;
+                _isNodeCreateAllowed = false;
+                _isNodeRemoveAllowed = false;
+                _isLinkCreateAllowed = false;
+                _isLinkRemoveAllowed = false;
+
+                _isBlackboardPropertyNameChangeAllowed = false;
+                _isBlackboardPropertyPositionChangeAllowed = false;
+                _isBlackboardPropertyCreateAllowed = false;
+                _isBlackboardPropertyRemoveAllowed = false;
+            }
+
+            InvalidateBlueprint();
             RepopulateView();
 
-            GetBlueprintNodesCenter(out var position, out var scale);
+            _blueprintMeta?.Bind(OnNodeInvalidated);
 
-            _blueprintMeta.Bind(OnNodeInvalidated);
+            GetBlueprintNodesCenter(out var position, out var scale);
 
             var currentPosition = contentViewContainer.transform.position;
             if (Vector3.Distance(position, currentPosition) < POPULATE_SCROLL_TO_NODES_CENTER_TOLERANCE_DISTANCE) {
@@ -202,9 +234,45 @@ namespace MisterGames.Blueprints.Editor.View {
 
             _blueprintMeta?.Unbind();
 
-            _blackboard = null;
             _blueprintMeta = null;
+            _factoryOverride = null;
+            _blackboard = null;
             _serializedObject = null;
+            _virtualFactory = null;
+            _virtualSerializedObject = null;
+
+            _isNodePositionChangeAllowed = false;
+            _isNodeCreateAllowed = false;
+            _isNodeRemoveAllowed = false;
+            _isLinkCreateAllowed = false;
+            _isLinkRemoveAllowed = false;
+            _isBlackboardPropertyCreateAllowed = false;
+            _isBlackboardPropertyRemoveAllowed = false;
+
+            _isWaitingEndOfFrameToValidateNodes = false;
+            _isWaitingEndOfFrameToRepaintInvalidNodes = false;
+        }
+
+        private void WriteChangedPositions() {
+            if (_blueprintMeta == null || !_isNodePositionChangeAllowed) {
+                _positionChangedNodes.Clear();
+                return;
+            }
+
+            int count = _positionChangedNodes.Count;
+
+            foreach (var nodeId in _positionChangedNodes) {
+                if (FindNodeViewByNodeId(nodeId) is not { } nodeView) continue;
+
+                var rect = nodeView.GetPosition();
+                var position = new Vector2(rect.x, rect.y);
+
+                _blueprintMeta.SetNodePosition(nodeId, position);
+            }
+
+            _positionChangedNodes.Clear();
+
+            if (count > 0) SetTargetObjectDirtyAndNotify();
         }
 
         private void GetBlueprintNodesCenter(out Vector3 position, out Vector3 scale) {
@@ -234,25 +302,27 @@ namespace MisterGames.Blueprints.Editor.View {
             base.BuildContextualMenu(evt);
         }
 
-        private void SetBlueprintAssetDirtyAndNotify() {
+        private void SetTargetObjectDirtyAndNotify() {
             if (_serializedObject == null) return;
 
             _serializedObject.ApplyModifiedProperties();
             _serializedObject.Update();
 
             EditorUtility.SetDirty(_serializedObject.targetObject);
-            OnBlueprintAssetSetDirty?.Invoke();
+            OnSetDirty?.Invoke(_serializedObject.targetObject);
         }
 
-        private void InvalidateBlueprint(BlueprintMeta2 meta) {
-            var nodes = meta.Nodes;
+        private void InvalidateBlueprint() {
+            if (_factoryOverride != null) return;
+
+            var nodes = _blueprintMeta.Nodes;
             bool changed = false;
 
             foreach (var nodeId in nodes) {
-                changed |= meta.InvalidateNode(nodeId, invalidateLinks: true, notify: false);
+                changed |= _blueprintMeta.InvalidateNode(nodeId, invalidateLinks: true, notify: false);
             }
 
-            if (changed) SetBlueprintAssetDirtyAndNotify();
+            if (changed) SetTargetObjectDirtyAndNotify();
         }
 
         // ---------------- ---------------- Node Search Window ---------------- ----------------
@@ -265,22 +335,20 @@ namespace MisterGames.Blueprints.Editor.View {
             _nodeSearchWindow = ScriptableObject.CreateInstance<BlueprintNodeSearchWindow>();
 
             _nodeSearchWindow.onNodeCreationRequest = (nodeType, position) => {
-                if (_blueprintMeta == null) return;
                 if (!TryCreateNode(nodeType, ConvertScreenPositionToLocal(position), out _)) return;
 
                 RepaintInvalidNodes();
             };
 
             _nodeSearchWindow.onNodeAndLinkCreationRequest = (nodeType, position, portIndex) => {
-                if (_blueprintMeta == null) return;
                 if (!TryCreateNode(nodeType, ConvertScreenPositionToLocal(position), out var id)) return;
+                if (!TryCreateLink(_lastDropEdgeData.nodeId, _lastDropEdgeData.portIndex, id, portIndex)) return;
 
-                CreateConnection(_lastDropEdgeData.nodeId, _lastDropEdgeData.portIndex, id, portIndex);
                 RepaintInvalidNodes();
             };
 
             nodeCreationRequest = ctx => {
-                if (_blueprintMeta == null) return;
+                if (!_isNodeCreateAllowed) return;
 
                 _nodeSearchWindow.SwitchToNodeSearch();
                 OpenSearchWindow(_nodeSearchWindow, ctx.screenMousePosition);
@@ -349,60 +417,60 @@ namespace MisterGames.Blueprints.Editor.View {
         }
 
         private void OnAddBlackboardPropertyRequest() {
-            if (_serializedObject == null) return;
+            if (!_isBlackboardPropertyCreateAllowed) return;
 
             OpenSearchWindow(_blackboardSearchWindow, GetCurrentScreenMousePosition());
         }
 
         private void CreateBlackboardProperty(Type type) {
-            if (_serializedObject == null) return;
+            if (!_isBlackboardPropertyCreateAllowed) return;
 
             Undo.RecordObject(_serializedObject.targetObject, "Blueprint Add Blackboard Property");
 
             string typeName = TypeNameFormatter.GetShortTypeName(type);
             if (!_blackboard.TryAddProperty($"New {typeName}", type)) return;
 
-            SetBlueprintAssetDirtyAndNotify();
+            SetTargetObjectDirtyAndNotify();
             RepopulateBlackboardView();
         }
 
         private void RemoveBlackboardProperty(string propertyName) {
-            if (_serializedObject == null) return;
+            if (!_isBlackboardPropertyRemoveAllowed) return;
 
             Undo.RecordObject(_serializedObject.targetObject, "Blueprint Remove Blackboard Property");
 
             _blackboard.RemoveProperty(Blackboards.Core.Blackboard.StringToHash(propertyName));
 
-            SetBlueprintAssetDirtyAndNotify();
+            SetTargetObjectDirtyAndNotify();
         }
 
         private void OnBlackboardPropertyPositionChanged(BlackboardField field, int newIndex) {
-            if (_serializedObject == null) return;
+            if (!_isBlackboardPropertyPositionChangeAllowed) return;
 
             Undo.RecordObject(_serializedObject.targetObject, "Blueprint Blackboard Property Position Changed");
 
             if (!_blackboard.TrySetPropertyIndex(Blackboards.Core.Blackboard.StringToHash(field.text), newIndex)) return;
 
-            SetBlueprintAssetDirtyAndNotify();
+            SetTargetObjectDirtyAndNotify();
             RepopulateBlackboardView();
         }
 
         private void OnBlackboardPropertyNameChanged(BlackboardField field, string newName) {
-            if (_serializedObject == null) return;
+            if (!_isBlackboardPropertyNameChangeAllowed) return;
 
             Undo.RecordObject(_serializedObject.targetObject, "Blueprint Blackboard Property Name Changed");
 
             if (!_blackboard.TrySetPropertyName(Blackboards.Core.Blackboard.StringToHash(field.text), newName)) return;
 
             field.text = newName;
-            SetBlueprintAssetDirtyAndNotify();
+            SetTargetObjectDirtyAndNotify();
             RepopulateBlackboardView();
         }
 
         // ---------------- ---------------- Node and connection creation ---------------- ----------------
 
         private bool TryCreateNode(Type nodeType, Vector2 position, out NodeId id) {
-            if (_blueprintMeta == null) {
+            if (!_isNodeCreateAllowed) {
                 id = default;
                 return false;
             }
@@ -417,39 +485,41 @@ namespace MisterGames.Blueprints.Editor.View {
             Undo.RecordObject(_serializedObject.targetObject, "Blueprint Add Node");
 
             id = _blueprintMeta.AddNode(sourceType, nodeType, position);
-            SetBlueprintAssetDirtyAndNotify();
-
+            SetTargetObjectDirtyAndNotify();
             return true;
         }
 
-        private void RemoveNode(NodeId id) {
-            if (_blueprintMeta == null) return;
+        private bool TryRemoveNode(NodeId id) {
+            if (!_isNodeRemoveAllowed) return false;
 
             Undo.RecordObject(_serializedObject.targetObject, "Blueprint Remove Node");
 
-            _blueprintMeta.RemoveNode(id);
+            if (!_blueprintMeta.RemoveNode(id)) return false;
 
-            SetBlueprintAssetDirtyAndNotify();
+            SetTargetObjectDirtyAndNotify();
+            return true;
         }
         
-        private void CreateConnection(NodeId fromNodeId, int fromPortIndex, NodeId toNodeId, int toPortIndex) {
-            if (_blueprintMeta == null) return;
+        private bool TryCreateLink(NodeId fromNodeId, int fromPortIndex, NodeId toNodeId, int toPortIndex) {
+            if (!_isLinkCreateAllowed) return false;
 
             Undo.RecordObject(_serializedObject.targetObject, "Blueprint Create Connection");
 
-            if (!_blueprintMeta.TryCreateLink(fromNodeId, fromPortIndex, toNodeId, toPortIndex)) return;
+            if (!_blueprintMeta.TryCreateLink(fromNodeId, fromPortIndex, toNodeId, toPortIndex)) return false;
 
-            SetBlueprintAssetDirtyAndNotify();
+            SetTargetObjectDirtyAndNotify();
+            return true;
         }
         
-        private void RemoveConnection(NodeId fromNodeId, int fromPortIndex, NodeId toNodeId, int toPortIndex) {
-            if (_blueprintMeta == null) return;
+        private bool TryRemoveLink(NodeId fromNodeId, int fromPortIndex, NodeId toNodeId, int toPortIndex) {
+            if (!_isLinkRemoveAllowed) return false;
 
             Undo.RecordObject(_serializedObject.targetObject, "Blueprint Remove Connection");
 
-            if (!_blueprintMeta.RemoveLink(fromNodeId, fromPortIndex, toNodeId, toPortIndex)) return;
+            if (!_blueprintMeta.RemoveLink(fromNodeId, fromPortIndex, toNodeId, toPortIndex)) return false;
 
-            SetBlueprintAssetDirtyAndNotify();
+            SetTargetObjectDirtyAndNotify();
+            return true;
         }
 
         // ---------------- ---------------- View creation ---------------- ----------------
@@ -474,7 +544,7 @@ namespace MisterGames.Blueprints.Editor.View {
                     int fromPortIndex = fromNodeView.GetPortIndex(edge.output);
                     int toPortIndex = toNodeView.GetPortIndex(edge.input);
 
-                    CreateConnection(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
+                    TryCreateLink(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
                 }
             }
 
@@ -483,7 +553,7 @@ namespace MisterGames.Blueprints.Editor.View {
                 switch (element) {
                     case BlueprintNodeView view:
                         hasNodesToRemove = true;
-                        RemoveNode(view.nodeId);
+                        TryRemoveNode(view.nodeId);
                         break;
 
                     case BlackboardField field:
@@ -499,7 +569,7 @@ namespace MisterGames.Blueprints.Editor.View {
                             int fromPortIndex = fromNodeView.GetPortIndex(edge.output);
                             int toPortIndex = toNodeView.GetPortIndex(edge.input);
 
-                            RemoveConnection(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
+                            TryRemoveLink(fromNodeId, fromPortIndex, toNodeId, toPortIndex);
                         }
                         break;
                 }
@@ -507,7 +577,7 @@ namespace MisterGames.Blueprints.Editor.View {
 
             // Edge views are to be created in the next RepopulateView() call
             if (hasEdgesToCreate) change.edgesToCreate.Clear();
-            if (hasMovedElements || hasElementsToRemove || hasEdgesToCreate) SetBlueprintAssetDirtyAndNotify();
+            if (hasMovedElements || hasElementsToRemove || hasEdgesToCreate) SetTargetObjectDirtyAndNotify();
             if (repaintBlackboard) RepopulateBlackboardView();
 
             if (hasEdgesToCreate || hasElementsToRemove) {
@@ -520,15 +590,43 @@ namespace MisterGames.Blueprints.Editor.View {
 
         private void CreateNodeView(BlueprintMeta2 meta, NodeId id) {
             var position = meta.GetNodePosition(id);
+            var property = GetNodeSerializedProperty(id);
 
-            var nodeView = new BlueprintNodeView(meta, id, position, _serializedObject) {
+            var nodeView = new BlueprintNodeView(meta, this, id, position, property) {
                 OnPositionChanged = OnNodePositionChanged,
                 OnValidate = OnNodeSerializedPropertyChanged,
             };
 
-            nodeView.CreatePortViews(this);
+            nodeView.capabilities &= ~Capabilities.Snappable;
+            if (!_isNodePositionChangeAllowed) {
+                nodeView.capabilities &= ~Capabilities.Selectable;
+                nodeView.capabilities &= ~Capabilities.Movable;
+            }
+            if (!_isNodeRemoveAllowed) nodeView.capabilities &= ~Capabilities.Deletable;
 
             AddElement(nodeView);
+        }
+
+        private SerializedProperty GetNodeSerializedProperty(NodeId id) {
+            string path;
+            SerializedObject serializedObject;
+
+            if (_virtualSerializedObject != null &&
+                (_factoryOverride.GetSource(id.source) is not { } s || !s.ContainsNode(id.node))
+            ) {
+                serializedObject = _virtualSerializedObject;
+                path = ((VirtualBlueprintContainer) _virtualSerializedObject.targetObject).GetNodePath(id);
+            }
+            else {
+                serializedObject = _serializedObject;
+                path = _serializedObject.targetObject switch {
+                    BlueprintRunner2 runner => runner.GetNodePath(id),
+                    BlueprintAsset2 asset => asset.GetNodePath(id),
+                    _ => null,
+                };
+            }
+
+            return serializedObject?.FindProperty(path);
         }
 
         private async void OnNodeSerializedPropertyChanged(NodeId id) {
@@ -539,16 +637,56 @@ namespace MisterGames.Blueprints.Editor.View {
 
             await UniTask.Yield(PlayerLoopTiming.LastPostLateUpdate);
 
-            _serializedObject.ApplyModifiedProperties();
-            _serializedObject.Update();
+            if (_virtualSerializedObject != null) {
+                _virtualSerializedObject.ApplyModifiedProperties();
+                _virtualSerializedObject.Update();
 
-            foreach (var nodeId in _serializedPropertyChangedNodes) {
-                _blueprintMeta.GetNodeSource(nodeId)?.OnValidate(_blueprintMeta, nodeId);
+                _invalidateTracker ??= new BlueprintMetaInvalidateTracker();
+                _invalidateTracker.nodesWithInvalidatedLinks.Clear();
+
+                foreach (var nodeId in _serializedPropertyChangedNodes) {
+                    var virtualSource = _virtualFactory?.GetSource(nodeId.source);
+                    var sourceOverride = _factoryOverride?.GetSource(nodeId.source);
+
+                    bool isNodeOverriden = sourceOverride?.ContainsNode(nodeId.node) ?? false;
+
+                    if (isNodeOverriden) sourceOverride.OnValidate(_invalidateTracker, nodeId);
+                    else virtualSource?.OnValidate(_invalidateTracker, nodeId);
+
+                    // Node validation caused links invalidation, abort changes
+                    if (_invalidateTracker.nodesWithInvalidatedLinks.Contains(nodeId)) {
+                        // Check if can copy node from original source
+                        if (_blueprintMeta.GetNodeSource(nodeId) is { } source) {
+                            CopyNode(source, virtualSource, nodeId.node, add: false);
+                        }
+
+                        continue;
+                    }
+
+                    if (!isNodeOverriden && virtualSource != null) {
+                        var newSource = _factoryOverride?.AddSource(nodeId.source, virtualSource.GetType());
+                        CopyNode(virtualSource, newSource, nodeId.node, add: true);
+                    }
+                }
+
+                _invalidateTracker.nodesWithInvalidatedLinks.Clear();
+
+                _serializedObject.ApplyModifiedProperties();
+                _serializedObject.Update();
+            }
+            else {
+                _serializedObject.ApplyModifiedProperties();
+                _serializedObject.Update();
+
+                foreach (var nodeId in _serializedPropertyChangedNodes) {
+                    _blueprintMeta.GetNodeSource(nodeId)?.OnValidate(_blueprintMeta, nodeId);
+                }
             }
 
-            SetBlueprintAssetDirtyAndNotify();
+            SetTargetObjectDirtyAndNotify();
 
             _isWaitingEndOfFrameToValidateNodes = false;
+            _serializedPropertyChangedNodes.Clear();
         }
 
         private async void OnNodeInvalidated(NodeId id) {
@@ -566,6 +704,25 @@ namespace MisterGames.Blueprints.Editor.View {
 
         private void OnNodePositionChanged(NodeId id) {
             _positionChangedNodes.Add(id);
+        }
+
+        private static void CopyNode(IBlueprintSource fromSource, IBlueprintSource toSource, int id, bool add) {
+            switch (fromSource) {
+                case null:
+                    return;
+
+                case IBlueprintCloneable:
+                    if (add) toSource?.AddNodeClone(id, fromSource, id);
+                    else toSource?.SetNodeClone(id, fromSource, id);
+                    break;
+
+                default:
+                    string nodeAsString = fromSource.GetNodeAsString(id);
+                    var type = fromSource.GetNodeType(id);
+                    if (add) toSource?.AddNodeFromString(id, nodeAsString, type);
+                    else toSource?.SetNodeFromString(id, nodeAsString, type);
+                    break;
+            }
         }
 
         private void CreateNodeLinkViews(BlueprintMeta2 meta, NodeId id) {
@@ -595,7 +752,10 @@ namespace MisterGames.Blueprints.Editor.View {
 
                     if (hasConnectionView) continue;
 
-                    AddElement(fromPortView.ConnectTo(toPortView));
+                    var edge = fromPortView.ConnectTo(toPortView);
+                    if (!_isLinkRemoveAllowed) edge.capabilities &= ~Capabilities.Deletable;
+
+                    AddElement(edge);
                 }
 
                 for (meta.TryGetLinksTo(id, p, out int l); l >= 0; meta.TryGetNextLink(l, out l)) {
@@ -615,7 +775,10 @@ namespace MisterGames.Blueprints.Editor.View {
 
                     if (hasConnectionView) continue;
 
-                    AddElement(toPortView.ConnectTo(fromPortView));
+                    var edge = toPortView.ConnectTo(fromPortView);
+                    if (!_isLinkRemoveAllowed) edge.capabilities &= ~Capabilities.Deletable;
+
+                    AddElement(edge);
                 }
             }
         }
@@ -704,7 +867,7 @@ namespace MisterGames.Blueprints.Editor.View {
         private void OnUndoRedo() {
             if (_serializedObject == null) return;
 
-            SetBlueprintAssetDirtyAndNotify();
+            SetTargetObjectDirtyAndNotify();
             RepopulateView();
         }
         
@@ -805,7 +968,7 @@ namespace MisterGames.Blueprints.Editor.View {
                         new BlueprintLink2 { id = toNodeId, port = link.toPortIndex }
                     ));
 
-                    CreateConnection(fromNodeId, link.fromPortIndex, toNodeId, link.toPortIndex);
+                    TryCreateLink(fromNodeId, link.fromPortIndex, toNodeId, link.toPortIndex);
                 }
             }
 
@@ -842,6 +1005,11 @@ namespace MisterGames.Blueprints.Editor.View {
 
         private void InitMouse() {
             RegisterCallback<MouseMoveEvent>(HandleMouseMove);
+            RegisterCallback<MouseUpEvent>(OnMouseUp);
+        }
+
+        private void OnMouseUp(MouseUpEvent evt) {
+            if (evt.button == 0) WriteChangedPositions();
         }
 
         private void HandleMouseMove(MouseMoveEvent evt) {

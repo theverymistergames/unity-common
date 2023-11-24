@@ -83,7 +83,7 @@ namespace MisterGames.Blueprints {
         internal interface ICompilable<TNode> : IBlueprintSource, IBlueprintCompilable
             where TNode : struct, IBlueprintNode, IBlueprintCompilable
         {
-            void IBlueprintCompilable.Compile(NodeId id, BlueprintCompileData data) {
+            void IBlueprintCompilable.Compile(NodeId id, SubgraphCompileData data) {
                 ref var node = ref GetNodeByRef<TNode>(id.node);
                 node.Compile(id, data);
             }

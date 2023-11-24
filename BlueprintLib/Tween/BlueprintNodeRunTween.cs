@@ -61,7 +61,7 @@ namespace MisterGames.BlueprintLib {
             _token = token;
             _blueprint = blueprint;
 
-            _runner = blueprint.Host.Runner;
+            _runner = blueprint.Host;
             _destroyCts = new CancellationTokenSource();
         }
 

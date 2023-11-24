@@ -28,28 +28,27 @@ namespace MisterGames.Blueprints.Editor.View {
 
         public readonly NodeId nodeId;
 
-        private readonly BlueprintMeta2 _meta;
-        private readonly SerializedObject _serializedObject;
-
         private readonly Dictionary<PortView, int> _portViewToPortIndexMap = new Dictionary<PortView, int>();
         private readonly Dictionary<int, PortView> _portIndexToPortViewMap = new Dictionary<int, PortView>();
-
-        private bool _allowChangeCallback;
 
         private struct PortViewCreationData {
             public int portIndex;
             public Port port;
         }
 
-        public BlueprintNodeView(BlueprintMeta2 meta, NodeId nodeId, Vector2 position, SerializedObject serializedObject) : base(GetUxmlPath()) {
+        public BlueprintNodeView(
+            BlueprintMeta2 meta,
+            IEdgeConnectorListener connectorListener,
+            NodeId nodeId,
+            Vector2 position,
+            SerializedProperty property
+        ) : base(GetUxmlPath())
+        {
             this.nodeId = nodeId;
-
-            _meta = meta;
-            _serializedObject = serializedObject;
             viewDataKey = nodeId.ToString();
 
             var inspector = this.Q<VisualElement>("inspector");
-            CreateNodeGUI(inspector);
+            CreateNodeGUI(inspector, property);
 
             var titleLabel = this.Q<Label>("title");
             var container = this.Q<VisualElement>("title-container");
@@ -63,18 +62,15 @@ namespace MisterGames.Blueprints.Editor.View {
             style.left = position.x;
             style.top = position.y;
 
-            capabilities &= ~Capabilities.Snappable;
+            CreatePortViews(meta, connectorListener);
         }
 
-        private void CreateNodeGUI(VisualElement container) {
-            string path = _serializedObject?.targetObject switch {
-                BlueprintRunner2 runner => runner.GetNodePath(_meta, nodeId),
-                BlueprintAsset2 asset => asset.GetNodePath(nodeId),
-                _ => null
-            };
+        public override void SetPosition(Rect newPos) {
+            base.SetPosition(newPos);
+            OnPositionChanged.Invoke(nodeId);
+        }
 
-            if (_serializedObject?.FindProperty(path) is not { } property) return;
-
+        private void CreateNodeGUI(VisualElement container, SerializedProperty property) {
             float minWidth = CalculateMinWidth(property);
 
             int depth = property.depth;
@@ -106,12 +102,15 @@ namespace MisterGames.Blueprints.Editor.View {
             OnValidate?.Invoke(nodeId);
         }
 
-        public override void SetPosition(Rect newPos) {
-            base.SetPosition(newPos);
-            OnPositionChanged.Invoke(nodeId);
+        public bool TryGetPortView(int portIndex, out PortView portView) {
+            return _portIndexToPortViewMap.TryGetValue(portIndex, out portView);
         }
 
-        public void CreatePortViews(IEdgeConnectorListener connectorListener) {
+        public int GetPortIndex(PortView portView) {
+            return _portViewToPortIndexMap[portView];
+        }
+
+        private void CreatePortViews(IBlueprintMeta meta, IEdgeConnectorListener connectorListener) {
             _portViewToPortIndexMap.Clear();
             _portIndexToPortViewMap.Clear();
 
@@ -119,10 +118,10 @@ namespace MisterGames.Blueprints.Editor.View {
             outputContainer.Clear();
 
             var portViewsCreationData = new List<PortViewCreationData>();
-            int portCount = _meta.GetPortCount(nodeId);
+            int portCount = meta.GetPortCount(nodeId);
 
             for (int i = 0; i < portCount; i++) {
-                var port = _meta.GetPort(nodeId, i);
+                var port = meta.GetPort(nodeId, i);
                 portViewsCreationData.Add(new PortViewCreationData { portIndex = i, port = port });
             }
 
@@ -136,14 +135,6 @@ namespace MisterGames.Blueprints.Editor.View {
             }
 
             RefreshPorts();
-        }
-
-        public bool TryGetPortView(int portIndex, out PortView portView) {
-            return _portIndexToPortViewMap.TryGetValue(portIndex, out portView);
-        }
-
-        public int GetPortIndex(PortView portView) {
-            return _portViewToPortIndexMap[portView];
         }
 
         private void CreatePortView(PortViewCreationData data, IEdgeConnectorListener connectorListener) {

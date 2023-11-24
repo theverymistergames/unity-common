@@ -1,5 +1,6 @@
 ﻿using System;
 using MisterGames.Blueprints.Factory;
+using MisterGames.Blueprints.Nodes;
 using MisterGames.Common.Data;
 using MisterGames.Common.Types;
 using UnityEngine;
@@ -52,14 +53,22 @@ namespace MisterGames.Blueprints {
             return id;
         }
 
-        public int AddNodeClone(IBlueprintSource source, int id) {
+        public int AddNodeClone(IBlueprintSource source, int cloneId) {
             _lastId++;
             if (_lastId == 0) _lastId++;
 
             int targetId = _lastId;
-            _nodeMap.Add(targetId, source.GetNodeByRef<TNode>(id));
+            _nodeMap.Add(targetId, source.GetNodeByRef<TNode>(cloneId));
 
             return targetId;
+        }
+
+        public void AddNodeClone(int id, IBlueprintSource source, int cloneId) {
+            _nodeMap.Add(id, source.GetNodeByRef<TNode>(cloneId));
+        }
+
+        public void SetNodeClone(int id, IBlueprintSource source, int cloneId) {
+            if (_nodeMap.ContainsKey(id)) _nodeMap[id] = source.GetNodeByRef<TNode>(cloneId);
         }
 
         public int AddNodeFromString(string value, Type nodeType) {
@@ -72,12 +81,20 @@ namespace MisterGames.Blueprints {
             return id;
         }
 
+        public void AddNodeFromString(int id, string value, Type nodeType) {
+            _nodeMap.Add(id, JsonUtility.FromJson<TNode>(value));
+        }
+
         public void SetNodeFromString(int id, string value, Type nodeType) {
             if (_nodeMap.ContainsKey(id)) _nodeMap[id] = JsonUtility.FromJson<TNode>(value);
         }
 
         public void RemoveNode(int id) {
             _nodeMap.Remove(id);
+        }
+
+        public bool ContainsNode(int id) {
+            return _nodeMap.ContainsKey(id);
         }
 
         public bool TryGetNodePath(int id, out int index) {
@@ -88,6 +105,22 @@ namespace MisterGames.Blueprints {
         public void Clear() {
             _nodeMap.Clear();
             _lastId = 0;
+        }
+
+        public bool MatchNodesWith(IBlueprintSource source) {
+            return _nodeMap.RemoveIf(source, (s, id) => !s.ContainsNode(id));
+        }
+
+        public void CopyInto(IBlueprintSource source) {
+            if (source is not BlueprintSource<TNode> s) return;
+
+            foreach (int id in _nodeMap.Keys) {
+                var nodeCopy = s is IBlueprintCloneable
+                    ? GetNodeByRef<TNode>(id)
+                    : JsonUtility.FromJson<TNode>(GetNodeAsString(id));
+
+                s._nodeMap.Add(id, nodeCopy);
+            }
         }
 
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {

@@ -2,12 +2,13 @@
 using MisterGames.Blackboards.Core;
 using MisterGames.Blueprints.Factory;
 using MisterGames.Blueprints.Nodes;
+using UnityEngine;
 
 namespace MisterGames.Blueprints.Runtime {
 
     public sealed class RuntimeBlueprint2 : IBlueprint {
 
-        public IBlueprintHost2 Host { get; private set; }
+        public MonoBehaviour Host { get; private set; }
         public readonly NodeId root;
 
         internal readonly IBlueprintFactory factory;
@@ -40,7 +41,7 @@ namespace MisterGames.Blueprints.Runtime {
             _externalBlueprintMap = new Dictionary<NodeId, ExternalBlueprintData>();
         }
 
-        public void Initialize(IBlueprintHost2 host) {
+        public void Initialize(MonoBehaviour host) {
             Host = host;
 
             for (int i = 0; i < nodeStorage.Count; i++) {

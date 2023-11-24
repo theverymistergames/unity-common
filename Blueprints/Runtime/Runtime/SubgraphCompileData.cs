@@ -1,6 +1,6 @@
 ﻿namespace MisterGames.Blueprints.Runtime {
 
-    public readonly struct BlueprintCompileData {
+    public readonly struct SubgraphCompileData {
 
         public readonly IBlueprintHost2 host;
         public readonly RuntimeBlueprint2 blueprint;
@@ -8,7 +8,7 @@
         public readonly NodeId runtimeId;
         public readonly int parent;
 
-        public BlueprintCompileData(
+        public SubgraphCompileData(
             IBlueprintHost2 host,
             RuntimeBlueprint2 blueprint,
             NodeId id,

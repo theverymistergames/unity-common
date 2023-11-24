@@ -54,7 +54,17 @@ namespace MisterGames.Blueprints {
             return id;
         }
 
-        public int AddNodeClone(IBlueprintSource source, int id) {
+        public int AddNodeClone(IBlueprintSource source, int cloneId) {
+            throw new InvalidOperationException($"{nameof(BlueprintSourceRef)}: " +
+                                                $"can not clone nodes of type {nameof(IBlueprintNode)}");
+        }
+
+        public void AddNodeClone(int id, IBlueprintSource source, int cloneId) {
+            throw new InvalidOperationException($"{nameof(BlueprintSourceRef)}: " +
+                                                $"can not clone nodes of type {nameof(IBlueprintNode)}");
+        }
+
+        public void SetNodeClone(int id, IBlueprintSource source, int cloneId) {
             throw new InvalidOperationException($"{nameof(BlueprintSourceRef)}: " +
                                                 $"can not clone nodes of type {nameof(IBlueprintNode)}");
         }
@@ -65,12 +75,20 @@ namespace MisterGames.Blueprints {
             return id;
         }
 
+        public void AddNodeFromString(int id, string value, Type nodeType) {
+            _nodeMap.Add(id, JsonUtility.FromJson(value, nodeType) as IBlueprintNode);
+        }
+
         public void SetNodeFromString(int id, string value, Type nodeType) {
             if (_nodeMap.ContainsKey(id)) _nodeMap[id] = JsonUtility.FromJson(value, nodeType) as IBlueprintNode;
         }
 
         public void RemoveNode(int id) {
             _nodeMap.Remove(id);
+        }
+
+        public bool ContainsNode(int id) {
+            return _nodeMap.ContainsKey(id);
         }
 
         public bool TryGetNodePath(int id, out int index) {
@@ -81,6 +99,35 @@ namespace MisterGames.Blueprints {
         public void Clear() {
             _nodeMap.Clear();
             _lastId = 0;
+        }
+
+        public bool MatchNodesWith(IBlueprintSource source) {
+            int count = _nodeMap.Count;
+            int[] ids = new int[count];
+            _nodeMap.Keys.CopyTo(ids, count);
+
+            bool changed = false;
+
+            for (int i = 0; i < ids.Length; i++) {
+                int id = ids[i];
+                if (!source.ContainsNode(id)) changed |= _nodeMap.Remove(id);
+            }
+
+            return changed;
+        }
+
+        public void CopyInto(IBlueprintSource source) {
+            if (source is not BlueprintSourceRef s) return;
+
+            foreach ((int id, var node) in _nodeMap) {
+                var nodeCopy = node != null
+                    ? JsonUtility.FromJson(GetNodeAsString(id), node.GetType()) as IBlueprintNode
+                    : null;
+
+                s._nodeMap.Add(id, nodeCopy);
+            }
+
+            s._lastId = _lastId;
         }
 
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {
@@ -158,7 +205,7 @@ namespace MisterGames.Blueprints {
             return _nodeMap[id.node] is IBlueprintCreateSignaturePorts p && p.HasSignaturePorts(id);
         }
 
-        public void Compile(NodeId id, BlueprintCompileData data) {
+        public void Compile(NodeId id, SubgraphCompileData data) {
             if (_nodeMap[id.node] is IBlueprintCompilable compilable) {
                 compilable.Compile(id, data);
             }

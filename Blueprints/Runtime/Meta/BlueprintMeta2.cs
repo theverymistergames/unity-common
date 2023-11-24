@@ -26,9 +26,9 @@ namespace MisterGames.Blueprints.Meta {
         public int LinkedPortCount => _linkStorage.LinkedPortCount;
 
         public readonly Dictionary<NodeId, string> NodeJsonMap = new Dictionary<NodeId, string>();
+        public IBlueprintFactory Factory => _factory;
 
         private Action<NodeId> _onNodeChange;
-        internal BlueprintMeta2 overridenMeta;
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         internal object owner;
@@ -40,6 +40,14 @@ namespace MisterGames.Blueprints.Meta {
             _factory = new BlueprintFactory();
             _linkStorage = new BlueprintLinkStorage();
             _portStorage = new BlueprintPortStorage();
+        }
+
+        public BlueprintMeta2(BlueprintMeta2 source) {
+            _nodeMap = new Map<NodeId, Vector2>(source._nodeMap);
+            _subgraphMap = new Map<NodeId, BlueprintAsset2>(source._subgraphMap);
+            _factory = new BlueprintFactory(source._factory);
+            _linkStorage = new BlueprintLinkStorage(source._linkStorage);
+            _portStorage = new BlueprintPortStorage(source._portStorage);
         }
 
         public void Bind(Action<NodeId> onNodeChange) {
@@ -86,10 +94,10 @@ namespace MisterGames.Blueprints.Meta {
             return id;
         }
 
-        public void RemoveNode(NodeId id) {
-            if (!_nodeMap.ContainsKey(id)) return;
+        public bool RemoveNode(NodeId id) {
+            if (!_nodeMap.ContainsKey(id)) return false;
 
-            _nodeMap.Remove(id);
+            bool removed = _nodeMap.Remove(id);
             _subgraphMap.Remove(id);
             _linkStorage.RemoveNode(id);
             _portStorage.RemoveNode(id);
@@ -106,6 +114,7 @@ namespace MisterGames.Blueprints.Meta {
             else if (_linkStorage.LinkCount == 0) _linkStorage.Clear();
 
             _onNodeChange?.Invoke(id);
+            return removed;
         }
 
         public bool InvalidateNode(NodeId id, bool invalidateLinks, bool notify = true) {
@@ -212,8 +221,8 @@ namespace MisterGames.Blueprints.Meta {
         public Blackboard GetBlackboard() {
 #if UNITY_EDITOR
             return owner switch {
-                BlueprintRunner2 runner => runner.GetEditorBlackboardForMeta(this),
                 BlueprintAsset2 asset => asset.Blackboard,
+                BlueprintRunner2 runner => runner.GetRootBlackboard(),
                 _ => null,
             };
 #endif
@@ -280,7 +289,7 @@ namespace MisterGames.Blueprints.Meta {
         }
 
         public override string ToString() {
-            return $"{nameof(BlueprintMeta2)}(owner {owner}, overridenMeta {overridenMeta})";
+            return $"{nameof(BlueprintMeta2)}(owner {owner})";
             return $"{nameof(BlueprintMeta2)}:\n" +
                    $"Nodes: [{string.Join("] [", _nodeMap.Keys)}]\n" +
                    $"Ports: {_portStorage}\n" +

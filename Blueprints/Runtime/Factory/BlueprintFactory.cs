@@ -17,6 +17,10 @@ namespace MisterGames.Blueprints.Factory {
             _sources = new ReferenceMap<int, IBlueprintSource>();
         }
 
+        public BlueprintFactory(BlueprintFactory source) {
+            _sources = new ReferenceMap<int, IBlueprintSource>(source._sources);
+        }
+
         public IBlueprintSource GetSource(int id) {
             return _sources.TryGetValue(id, out var source) ? source : null;
         }
@@ -28,6 +32,12 @@ namespace MisterGames.Blueprints.Factory {
             _typeToIdMap.Add(sourceType, id);
 
             return id;
+        }
+
+        public IBlueprintSource AddSource(int id, Type sourceType) {
+            var source = Activator.CreateInstance(sourceType) as IBlueprintSource;
+            _sources.Add(id, source);
+            return source;
         }
 
         public void RemoveSource(int id) {
@@ -55,6 +65,37 @@ namespace MisterGames.Blueprints.Factory {
             _sources.Clear();
             _typeToIdMap.Clear();
             _lastId = 0;
+        }
+
+        public bool MatchNodesWith(IBlueprintFactory factory) {
+            bool changed = false;
+
+            foreach (int id in _sources.Keys) {
+                if (factory.GetSource(id) is {} s) changed = _sources[id].MatchNodesWith(s);
+            }
+
+            changed |= _sources.RemoveIf(factory, (f, id) => f.GetSource(id) == null);
+
+            if (changed) _typeToIdMap.Clear();
+
+            return changed;
+        }
+
+        public void CopyInto(IBlueprintFactory factory) {
+            if (factory is not BlueprintFactory f) return;
+
+            foreach ((int id, var source) in _sources) {
+                IBlueprintSource instance = null;
+
+                if (source != null) {
+                    instance = Activator.CreateInstance(source.GetType()) as IBlueprintSource;
+                    source.CopyInto(instance);
+                }
+
+                f._sources.Add(id, instance);
+            }
+
+            f._lastId = _lastId;
         }
 
         private int AddSource(IBlueprintSource source) {

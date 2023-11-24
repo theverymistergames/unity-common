@@ -1,6 +1,6 @@
 ﻿using System;
 using MisterGames.Blackboards.Core;
-using MisterGames.Blueprints.Meta;
+using MisterGames.Blueprints.Factory;
 using UnityEngine;
 
 namespace MisterGames.Blueprints {
@@ -11,7 +11,7 @@ namespace MisterGames.Blueprints {
         public BlueprintAsset2 asset;
         public Blackboard blackboard;
 
-        [SerializeReference] public BlueprintMeta2 metaOverride;
+        [SerializeReference] public IBlueprintFactory factoryOverride;
     }
 
 }

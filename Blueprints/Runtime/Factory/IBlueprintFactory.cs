@@ -22,10 +22,24 @@ namespace MisterGames.Blueprints.Factory {
         int GetOrCreateSource(Type sourceType);
 
         /// <summary>
+        /// Create blueprint source with id.
+        /// </summary>
+        /// <param name="id">Blueprint source id</param>
+        /// <param name="sourceType">Blueprint source type</param>
+        IBlueprintSource AddSource(int id, Type sourceType);
+
+        /// <summary>
         /// Remove blueprint source by id.
         /// </summary>
         /// <param name="id">Blueprint source id</param>
         void RemoveSource(int id);
+
+        /// <summary>
+        /// Leave only nodes that exist in the source.
+        /// </summary>
+        /// <param name="factory">Source factory</param>
+        /// <returns>True if changed</returns>
+        bool MatchNodesWith(IBlueprintFactory factory);
 
         /// <summary>
         /// Get indices of blueprint source and node in internal storage to create string path for serialized property.
@@ -40,6 +54,11 @@ namespace MisterGames.Blueprints.Factory {
         /// Remove all sources.
         /// </summary>
         void Clear();
+
+        /// <summary>
+        /// Copy current blueprint factory values into factory.
+        /// </summary>
+        void CopyInto(IBlueprintFactory factory);
     }
 
 }

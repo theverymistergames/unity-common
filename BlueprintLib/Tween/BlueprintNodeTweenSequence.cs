@@ -64,7 +64,7 @@ namespace MisterGames.BlueprintLib {
                 _tweenSequence.yoyo = _yoyo;
             }
 
-            _tweenSequence?.Initialize(_blueprint.Host.Runner);
+            _tweenSequence?.Initialize(_blueprint.Host);
         }
 
         public void DeInitialize() {

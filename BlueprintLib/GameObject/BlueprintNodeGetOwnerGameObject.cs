@@ -21,7 +21,7 @@ namespace MisterGames.BlueprintLib {
         }
 
         public void OnInitialize(IBlueprint blueprint, NodeToken token) {
-            _runner = blueprint.Host.Runner;
+            _runner = blueprint.Host;
         }
 
         public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {

@@ -59,9 +59,26 @@ namespace MisterGames.Blueprints.Factory {
         /// Add node with copied value from source.
         /// </summary>
         /// <param name="source">Blueprint source of cloned node</param>
-        /// <param name="id">Id of cloned blueprint node</param>
+        /// <param name="cloneId">Id of cloned blueprint node</param>
         /// <returns>Integer pointer of the node in the data array</returns>
-        int AddNodeClone(IBlueprintSource source, int id);
+        int AddNodeClone(IBlueprintSource source, int cloneId);
+
+        /// <summary>
+        /// Add node with copied value from source.
+        /// </summary>
+        /// <param name="id">Blueprint node id</param>
+        /// <param name="source">Blueprint source of cloned node</param>
+        /// <param name="cloneId">Id of cloned blueprint node</param>
+        void AddNodeClone(int id, IBlueprintSource source, int cloneId);
+
+        /// <summary>
+        /// Add node with copied value from source.
+        /// </summary>
+        /// <param name="source">Blueprint source of cloned node</param>
+        /// <param name="id">Id of target blueprint node</param>
+        /// <param name="cloneId">Id of cloned blueprint node</param>
+        /// <returns>Integer pointer of the node in the data array</returns>
+        void SetNodeClone(int id, IBlueprintSource source, int cloneId);
 
         /// <summary>
         /// Add node with string representation.
@@ -70,6 +87,14 @@ namespace MisterGames.Blueprints.Factory {
         /// <param name="nodeType">Type of the node</param>
         /// <returns>Integer pointer of the node in the data array</returns>
         int AddNodeFromString(string value, Type nodeType);
+
+        /// <summary>
+        /// Add node with string representation.
+        /// </summary>
+        /// <param name="id">Blueprint node id</param>
+        /// <param name="value">String representation of node</param>
+        /// <param name="nodeType">Type of the node</param>
+        void AddNodeFromString(int id, string value, Type nodeType);
 
         /// <summary>
         /// Set node value with string representation.
@@ -85,9 +110,28 @@ namespace MisterGames.Blueprints.Factory {
         void RemoveNode(int id);
 
         /// <summary>
+        /// Check if node with id is present.
+        /// </summary>
+        /// <param name="id">Blueprint node id</param>
+        /// <returns>True if contains</returns>
+        bool ContainsNode(int id);
+
+        /// <summary>
         /// Remove all nodes.
         /// </summary>
         void Clear();
+
+        /// <summary>
+        /// Leave only nodes that exist in the source.
+        /// </summary>
+        /// <returns>True if changed</returns>
+        bool MatchNodesWith(IBlueprintSource source);
+
+        /// <summary>
+        /// Copy current blueprint source values into source.
+        /// </summary>
+        /// <param name="source"></param>
+        void CopyInto(IBlueprintSource source);
     }
 
 }
