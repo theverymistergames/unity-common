@@ -534,7 +534,11 @@ namespace MisterGames.Common.Data {
             _isDefragmentationAllowed = true;
         }
 
-        private TreeSet(TreeSet<K> source) {
+        /// <summary>
+        /// Initialize from source.
+        /// </summary>
+        /// <param name="source">Source TreeSet</param>
+        public TreeSet(TreeSet<K> source) {
             _nodes = new Node[source._nodes.Length];
             Array.Copy(source._nodes, _nodes, _nodes.Length);
 

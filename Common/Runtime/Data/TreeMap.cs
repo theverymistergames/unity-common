@@ -617,7 +617,11 @@ namespace MisterGames.Common.Data {
             _isDefragmentationAllowed = true;
         }
 
-        private TreeMap(TreeMap<K, V> source) {
+        /// <summary>
+        /// Initialize from source.
+        /// </summary>
+        /// <param name="source">Source TreeMap</param>
+        public TreeMap(TreeMap<K, V> source) {
             _nodes = new Node[source._nodes.Length];
             Array.Copy(source._nodes, _nodes, _nodes.Length);
 
