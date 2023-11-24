@@ -753,7 +753,10 @@ namespace MisterGames.Blueprints.Editor.View {
                     if (hasConnectionView) continue;
 
                     var edge = fromPortView.ConnectTo(toPortView);
-                    if (!_isLinkRemoveAllowed) edge.capabilities &= ~Capabilities.Deletable;
+                    if (!_isLinkRemoveAllowed) {
+                        edge.capabilities &= ~Capabilities.Selectable;
+                        edge.capabilities &= ~Capabilities.Deletable;
+                    }
 
                     AddElement(edge);
                 }
@@ -776,7 +779,10 @@ namespace MisterGames.Blueprints.Editor.View {
                     if (hasConnectionView) continue;
 
                     var edge = toPortView.ConnectTo(fromPortView);
-                    if (!_isLinkRemoveAllowed) edge.capabilities &= ~Capabilities.Deletable;
+                    if (!_isLinkRemoveAllowed) {
+                        edge.capabilities &= ~Capabilities.Selectable;
+                        edge.capabilities &= ~Capabilities.Deletable;
+                    }
 
                     AddElement(edge);
                 }
