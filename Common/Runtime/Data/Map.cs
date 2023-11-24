@@ -86,6 +86,7 @@ namespace MisterGames.Common.Data {
         private KeyCollection _keys;
         private ValueCollection _values;
         private object _syncRoot;
+        private bool _isTrimExcessAllowed = true;
 
         public Map(): this(0, null) {}
 
@@ -320,7 +321,14 @@ namespace MisterGames.Common.Data {
             _entries = newEntries;
         }
 
+        private void AllowTrimExcess(bool isAllowed) {
+            _isTrimExcessAllowed = isAllowed;
+            if (isAllowed) TrimExcess(false);
+        }
+
         private void TrimExcess(bool forceNewHashCodes) {
+            if (!_isTrimExcessAllowed) return;
+
             int newSize = _count - _freeCount;
             if (!forceNewHashCodes && newSize == _entries.Length) return;
 
@@ -350,6 +358,19 @@ namespace MisterGames.Common.Data {
             _count = newSize;
             _freeCount = 0;
             _freeList = -1;
+        }
+
+        public bool RemoveIf<T>(T target, Func<T, K, bool> predicate) {
+            AllowTrimExcess(false);
+            bool removed = false;
+
+            for (int i = 0; i < _entries.Length; i++) {
+                ref var entry = ref _entries[i];
+                if (entry.hashCode >= 0 && predicate.Invoke(target, entry.key)) removed = Remove(entry.key);
+            }
+
+            AllowTrimExcess(true);
+            return removed;
         }
 
         public bool Remove(K key) {
