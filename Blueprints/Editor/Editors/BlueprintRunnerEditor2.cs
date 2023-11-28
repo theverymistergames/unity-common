@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Linq;
+using System.Text;
 using MisterGames.Blackboards.Core;
 using MisterGames.Blueprints.Editor.Windows;
 using MisterGames.Blueprints.Factory;
@@ -160,7 +161,7 @@ namespace MisterGames.Blueprints.Editor.Editors {
                             if (!subgraphTree.TryGetParent(p, out p)) break;
                         }
 
-                        sb.Insert(0, "Node ");
+                        sb.Insert(0, "Subgraph Node ");
                         label = sb.ToString();
                     }
                     else {
@@ -248,10 +249,7 @@ namespace MisterGames.Blueprints.Editor.Editors {
             subgraphTree.AllowDefragmentation(false);
 
             var subgraphAssetMap = meta.SubgraphAssetMap;
-
-            foreach (var nodeId in subgraphTree.Roots) {
-                if (!subgraphAssetMap.ContainsKey(nodeId)) subgraphTree.RemoveNode(nodeId);
-            }
+            subgraphTree.RemoveNodeIf(subgraphAssetMap, (m, id) => !m.ContainsKey(id));
 
             foreach (var (nodeId, subgraphAsset) in subgraphAssetMap) {
                 FetchBlueprintAndItsSubgraphsRecursively(runner, subgraphAsset, subgraphTree, nodeId);
@@ -272,8 +270,8 @@ namespace MisterGames.Blueprints.Editor.Editors {
                 return;
             }
 
-            if (subgraphTree.TryGetNode(id, parentIndex, out parentIndex)) {
-                ref var data = ref subgraphTree.GetValueAt(parentIndex);
+            if (subgraphTree.TryGetNode(id, parentIndex, out int i)) {
+                ref var data = ref subgraphTree.GetValueAt(i);
 
                 bool changed = false;
 
@@ -288,23 +286,24 @@ namespace MisterGames.Blueprints.Editor.Editors {
                 changed |= data.blackboard.MatchPropertiesWith(asset.Blackboard);
 
                 if (changed) EditorUtility.SetDirty(runner);
+
+                parentIndex = i;
             }
             else {
-                parentIndex = subgraphTree.GetOrAddNode(id, parentIndex);
-                ref var data = ref subgraphTree.GetValueAt(parentIndex);
+                int j = subgraphTree.GetOrAddNode(id, parentIndex);
+                ref var data = ref subgraphTree.GetValueAt(j);
 
                 data.asset = asset;
                 data.blackboard = new Blackboard(asset.Blackboard);
 
                 EditorUtility.SetDirty(runner);
+
+                parentIndex = j;
             }
+
 
             var subgraphAssetMap = asset.BlueprintMeta.SubgraphAssetMap;
-
-            for (int i = subgraphTree.GetChild(parentIndex); i >= 0; i = subgraphTree.GetNext(i)) {
-                var nodeId = subgraphTree.GetKeyAt(i);
-                if (!subgraphAssetMap.ContainsKey(nodeId)) subgraphTree.RemoveNode(nodeId, parentIndex);
-            }
+            subgraphTree.RemoveNodeIf(subgraphAssetMap, (m, n) => !m.ContainsKey(n), parentIndex);
 
             foreach (var (nodeId, subgraphAsset) in subgraphAssetMap) {
                 FetchBlueprintAndItsSubgraphsRecursively(runner, subgraphAsset, subgraphTree, nodeId, parentIndex);
