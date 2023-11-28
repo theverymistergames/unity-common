@@ -39,20 +39,25 @@ namespace MisterGames.Blueprints.Validation {
         }
 
         public static void ValidateSubgraphAsset(IBlueprintMeta meta, ref BlueprintAsset2 subgraph) {
-            var root = ((BlueprintMeta2) meta).owner as BlueprintAsset2;
+            Object root = (meta as BlueprintMeta2)?.owner switch {
+                BlueprintAsset2 asset => asset,
+                BlueprintRunner2 runner => runner,
+                _ => null,
+            };
+
             string rootName = root == null ? string.Empty : $"`{root.name}`";
 
-            if (!IsValidSubgraphAsset(root, subgraph, 0, rootName)) subgraph = null;
+            if (!IsValidSubgraphAsset(root, rootName, subgraph, 0, rootName)) subgraph = null;
         }
 
-        private static bool IsValidSubgraphAsset(BlueprintAsset2 root, BlueprintAsset2 subgraph, int level, string path) {
+        private static bool IsValidSubgraphAsset(Object root, string rootName, BlueprintAsset2 subgraph, int level, string path) {
             if (subgraph == null) return true;
 
             path += $" <- `{subgraph.name}`";
             level++;
 
             if (level >= MAX_SUBGRAPH_LEVELS) {
-                Debug.LogWarning($"Subgraph node of `{root.name}` " +
+                Debug.LogWarning($"Subgraph node of `{rootName}` " +
                                  $"cannot accept `{subgraph.name}` as parameter: " +
                                  $"subgraph depth is reached max level {MAX_SUBGRAPH_LEVELS}. " +
                                  $"Path: [{path}]");
@@ -60,7 +65,7 @@ namespace MisterGames.Blueprints.Validation {
             }
 
             if (subgraph == root) {
-                Debug.LogWarning($"Subgraph node of `{root.name}` " +
+                Debug.LogWarning($"Subgraph node of `{rootName}` " +
                                  $"cannot accept `{subgraph.name}` as parameter: " +
                                  $"this will produce cyclic references. " +
                                  $"Path: [{path}]");
@@ -69,7 +74,7 @@ namespace MisterGames.Blueprints.Validation {
 
             var assets = subgraph.BlueprintMeta.SubgraphAssetMap;
             foreach (var asset in assets.Values) {
-                if (!IsValidSubgraphAsset(root, asset, level, path)) return false;
+                if (!IsValidSubgraphAsset(root, rootName, asset, level, path)) return false;
             }
 
             return true;
