@@ -557,8 +557,7 @@ namespace MisterGames.Common.Data {
                 _map = null;
             }
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            private bool IsInvalid() {
+            public bool IsInvalid() {
                 return _index < 0 || _map == null || _map._version != _version;
             }
 
@@ -881,6 +880,23 @@ namespace MisterGames.Common.Data {
         }
 
         /// <summary>
+        /// Get root node value by key.
+        /// </summary>
+        /// <param name="key">Key of the node</param>
+        /// <param name="value">Value of the node</param>
+        /// <returns>True if has node</returns>
+        public bool TryGetValue(K key, out V value) {
+            if (_rootIndexMap.TryGetValue(key, out int index)) {
+                ref var node = ref _nodes[index];
+                value = node.value;
+                return true;
+            }
+
+            value = default;
+            return false;
+        }
+
+        /// <summary>
         /// Get node value by key and parent index.
         /// </summary>
         /// <param name="key">Key of the node</param>
@@ -888,31 +904,23 @@ namespace MisterGames.Common.Data {
         /// <param name="value">Value of the node</param>
         /// <returns>True if has node</returns>
         public bool TryGetValue(K key, int parent, out V value) {
-            if (!_nodeIndexMap.TryGetValue(new KeyIndex(key, parent), out int index)) {
-                value = default;
-                return false;
+            if (parent < 0) {
+                if (_rootIndexMap.TryGetValue(key, out int index)) {
+                    ref var node = ref _nodes[index];
+                    value = node.value;
+                    return true;
+                }
+            }
+            else {
+                if (_nodeIndexMap.TryGetValue(new KeyIndex(key, parent), out int index)) {
+                    ref var node = ref _nodes[index];
+                    value = node.value;
+                    return true;
+                }
             }
 
-            ref var node = ref _nodes[index];
-            value = node.value;
-            return true;
-        }
-
-        /// <summary>
-        /// Get root value by key.
-        /// </summary>
-        /// <param name="key">Key of the node</param>
-        /// <param name="value">Value of the node</param>
-        /// <returns>True if has node</returns>
-        public bool TryGetValue(K key, out V value) {
-            if (!_rootIndexMap.TryGetValue(key, out int index)) {
-                value = default;
-                return false;
-            }
-
-            ref var node = ref _nodes[index];
-            value = node.value;
-            return true;
+            value = default;
+            return false;
         }
 
         /// <summary>
