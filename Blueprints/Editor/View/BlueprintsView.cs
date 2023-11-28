@@ -617,23 +617,22 @@ namespace MisterGames.Blueprints.Editor.View {
         }
 
         private SerializedProperty GetNodeSerializedProperty(NodeId id) {
-            string path;
-            SerializedObject serializedObject;
+            bool containsNodeOverride = _factoryOverride?.GetSource(id.source)?.ContainsNode(id.node) ?? false;
 
-            if (_virtualSerializedObject != null &&
-                (_factoryOverride.GetSource(id.source) is not { } s || !s.ContainsNode(id.node))
-            ) {
-                serializedObject = _virtualSerializedObject;
-                path = ((VirtualBlueprintContainer) _virtualSerializedObject.targetObject).GetNodePath(id);
-            }
-            else {
-                serializedObject = _serializedObject;
-                path = _serializedObject.targetObject switch {
-                    BlueprintRunner2 runner => runner.GetNodePath(id),
-                    BlueprintAsset2 asset => asset.GetNodePath(id),
-                    _ => null,
-                };
-            }
+            // Use virtual serialized object if it is not null and there is no node override:
+            // If there is an override, then original serialized object is used,
+            // because only BlueprintRunner is acting as factory override container.
+            // This might be root or subgraph factory override.
+            var serializedObject = _virtualSerializedObject != null && !containsNodeOverride
+                ? _virtualSerializedObject
+                : _serializedObject;
+
+            string path = serializedObject?.targetObject switch {
+                VirtualBlueprintContainer container => container.GetNodePath(id),
+                BlueprintRunner2 runner => runner.GetNodePath(id, _factoryOverride),
+                BlueprintAsset2 asset => asset.GetNodePath(id),
+                _ => null,
+            };
 
             return serializedObject?.FindProperty(path);
         }
@@ -649,6 +648,9 @@ namespace MisterGames.Blueprints.Editor.View {
             if (_virtualSerializedObject != null) {
                 _virtualSerializedObject.ApplyModifiedProperties();
                 _virtualSerializedObject.Update();
+
+                _serializedObject.ApplyModifiedProperties();
+                _serializedObject.Update();
 
                 _invalidateTracker ??= new BlueprintMetaInvalidateTracker();
                 _invalidateTracker.nodesWithInvalidatedLinks.Clear();
@@ -673,8 +675,8 @@ namespace MisterGames.Blueprints.Editor.View {
                     }
 
                     if (!isNodeOverriden && virtualSource != null) {
-                        var newSource = _factoryOverride?.AddSource(nodeId.source, virtualSource.GetType());
-                        CopyNode(virtualSource, newSource, nodeId.node, add: true);
+                        var overrideSource = _factoryOverride?.AddSource(nodeId.source, virtualSource.GetType());
+                        CopyNode(virtualSource, overrideSource, nodeId.node, add: true);
                     }
                 }
 
@@ -690,6 +692,9 @@ namespace MisterGames.Blueprints.Editor.View {
                 foreach (var nodeId in _serializedPropertyChangedNodes) {
                     _blueprintMeta.GetNodeSource(nodeId)?.OnValidate(_blueprintMeta, nodeId);
                 }
+
+                _serializedObject.ApplyModifiedProperties();
+                _serializedObject.Update();
             }
 
             SetTargetObjectDirtyAndNotify();

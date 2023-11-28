@@ -100,10 +100,21 @@ namespace MisterGames.Blueprints {
 
         private readonly HashSet<MonoBehaviour> _clients = new HashSet<MonoBehaviour>();
 
-        internal string GetNodePath(NodeId id) {
-            return _rootMetaOverride.TryGetNodePath(id, out int s, out int n)
-                ? $"_rootMetaOverride._factory._sources._entries.Array.data[{s}].value._nodeMap._entries.Array.data[{n}].value"
-                : null;
+        internal string GetNodePath(NodeId id, IBlueprintFactory factoryOverride) {
+            if (factoryOverride == null ||
+                !factoryOverride.TryGetNodePath(id, out int s, out int n)
+            ) {
+                return null;
+            }
+
+            if (_rootMetaOverride?.Factory == factoryOverride) {
+                return $"_rootMetaOverride._factory._sources._entries.Array.data[{s}].value._nodeMap._entries.Array.data[{n}].value";
+            }
+
+            int i = _subgraphTree.FindNode(factoryOverride, (f, _, data) => f == data.factoryOverride);
+            if (i < 0) return null;
+
+            return $"_subgraphTree._nodes.Array.data[{i}].value.factoryOverride._sources._entries.Array.data[{s}].value._nodeMap._entries.Array.data[{n}].value";
         }
 
         internal NodeId[] FindSubgraphPath(BlueprintMeta2 meta) {

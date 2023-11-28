@@ -71,6 +71,11 @@ namespace MisterGames.Blueprints.Editor.View {
         }
 
         private void CreateNodeGUI(VisualElement container, SerializedProperty property) {
+            if (property == null) {
+                Debug.LogWarning($"{nameof(BlueprintNodeView)}: cannot create node inspector for node {nodeId}: property is null");
+                return;
+            }
+
             float minWidth = CalculateMinWidth(property);
 
             int depth = property.depth;
