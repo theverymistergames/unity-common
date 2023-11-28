@@ -13,12 +13,12 @@ namespace MisterGames.Blueprints.Runtime {
             _map = new Dictionary<NodeId, Blackboard>(capacity);
         }
 
-        public Blackboard GetBlackboard(NodeId id) {
-            return _map[id];
+        public bool TryGet(NodeId id, out Blackboard blackboard) {
+            return _map.TryGetValue(id, out blackboard);
         }
 
-        public void SetBlackboard(NodeId id, Blackboard blackboard) {
-            _map[id] = blackboard;
+        public void Add(NodeId id, Blackboard blackboard) {
+            _map.Add(id, blackboard);
         }
 
         public void Clear() {

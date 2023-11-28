@@ -20,11 +20,11 @@ namespace MisterGames.Scenario.BlueprintLib {
             meta.AddPort(id, Port.Exit("On Emit All"));
         }
 
-        public void OnInitialize(IBlueprint blueprint, NodeToken token) {
+        public void OnInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
             _blueprint = blueprint;
         }
 
-        public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
+        public void OnDeInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
             UnsubscribeAll();
             _blueprint = null;
         }

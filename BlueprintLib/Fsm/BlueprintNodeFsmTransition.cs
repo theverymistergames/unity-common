@@ -47,12 +47,12 @@ namespace MisterGames.BlueprintLib {
             }
         }
 
-        public void OnInitialize(IBlueprint blueprint, NodeToken token) {
+        public void OnInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
             _token = token;
             _blueprint = blueprint;
         }
 
-        public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
+        public void OnDeInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
             _blueprint = null;
             _dependencies = null;
 

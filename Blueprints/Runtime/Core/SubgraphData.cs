@@ -12,6 +12,10 @@ namespace MisterGames.Blueprints {
         public Blackboard blackboard;
 
         [SerializeReference] public IBlueprintFactory factoryOverride;
+
+        public override string ToString() {
+            return $"{nameof(SubgraphData)}(asset {asset}, blackboard {blackboard}, factory override {factoryOverride})";
+        }
     }
 
 }

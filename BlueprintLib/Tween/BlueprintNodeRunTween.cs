@@ -57,7 +57,7 @@ namespace MisterGames.BlueprintLib {
             meta.AddPort(id, Port.Output<float>("Progress"));
         }
 
-        public void OnInitialize(IBlueprint blueprint, NodeToken token) {
+        public void OnInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
             _token = token;
             _blueprint = blueprint;
 
@@ -65,7 +65,7 @@ namespace MisterGames.BlueprintLib {
             _destroyCts = new CancellationTokenSource();
         }
 
-        public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
+        public void OnDeInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
             _destroyCts.Cancel();
             _destroyCts.Dispose();
             _destroyCts = null;

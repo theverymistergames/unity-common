@@ -30,7 +30,9 @@ namespace MisterGames.Blueprints.Runtime {
             var blackboardStorage = new RuntimeBlackboardStorage(meta.SubgraphAssetMap.Count + 1);
             var blueprint = new RuntimeBlueprint2(root, factory, nodeStorage, linkStorage, blackboardStorage);
 
-            blackboardStorage.SetBlackboard(root, host.GetRootBlackboard());
+            nodeStorage.AddNode(root, root);
+            blackboardStorage.Add(root, host.GetRootBlackboard());
+
             CompileNodes(host, host.GetRootFactory(), meta, blueprint, root);
             linkStorage.InlineLinks();
 
@@ -50,7 +52,7 @@ namespace MisterGames.Blueprints.Runtime {
             meta.NodeJsonMap.Clear();
 #endif
 
-            blueprint.blackboardStorage.SetBlackboard(data.runtimeId, host.GetSubgraphBlackboard(data.id, data.parent));
+            blueprint.blackboardStorage.Add(data.runtimeId, host.GetSubgraphBlackboard(data.id, data.parent));
             blueprint.nodeStorage.AllocateNodes(meta.NodeCount);
 
             CompileNodes(host, factoryOverride, meta, blueprint, data.runtimeId, parent);
@@ -234,7 +236,7 @@ namespace MisterGames.Blueprints.Runtime {
                     compilable.Compile(id, new SubgraphCompileData(host, blueprint, id, runtimeId, parent));
                 }
 
-                nodeStorage.AddNode(runtimeId);
+                nodeStorage.AddNode(runtimeId, root);
             }
 
             var hashes = _hashLinks.Roots;

@@ -42,13 +42,13 @@ namespace MisterGames.BlueprintLib {
             meta.AddPort(id, Port.Output<float>("Progress"));
         }
 
-        public void OnInitialize(IBlueprint blueprint, NodeToken token) {
+        public void OnInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
             _blueprint = blueprint;
             _token = token;
             _tween = new DelayTween();
         }
 
-        public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
+        public void OnDeInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
             _tween?.DeInitialize();
             _tween = null;
             _blueprint = null;

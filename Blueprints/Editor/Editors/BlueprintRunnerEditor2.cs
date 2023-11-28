@@ -6,6 +6,7 @@ using MisterGames.Blueprints.Meta;
 using MisterGames.Common.Data;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.TestTools.Constraints;
 
 namespace MisterGames.Blueprints.Editor.Editors {
 
@@ -200,7 +201,7 @@ namespace MisterGames.Blueprints.Editor.Editors {
                     var blackboardProperty = serializedObject.FindProperty($"_subgraphTree._nodes.Array.data[{it.Index}].value.blackboard");
                     EditorGUILayout.PropertyField(blackboardProperty);
 
-                    if (!it.MovePreOrder()) break;
+                    if (it.IsInvalid() || !it.MovePreOrder()) break;
 
                     // Space between override entries
                     GUILayout.Space(EditorGUIUtility.standardVerticalSpacing * 6f);

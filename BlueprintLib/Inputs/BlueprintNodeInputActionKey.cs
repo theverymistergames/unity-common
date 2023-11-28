@@ -40,7 +40,7 @@ namespace MisterGames.BlueprintLib {
             _inputActionKey.OnRelease += OnRelease;
         }
 
-        public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
+        public void OnDeInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
 #if UNITY_EDITOR
             if (!Application.isPlaying && InputUpdater.TryStopInputUpdater(this, out var inputChannel)) {
                 inputChannel.RemoveInputAction(_inputActionKey);

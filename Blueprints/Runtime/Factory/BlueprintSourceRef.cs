@@ -142,12 +142,12 @@ namespace MisterGames.Blueprints {
             _nodeMap[id.node].OnValidate(meta, id);
         }
 
-        public void OnInitialize(IBlueprint blueprint, NodeToken token) {
-            _nodeMap[token.node.node].OnInitialize(blueprint, token);
+        public void OnInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
+            _nodeMap[token.node.node].OnInitialize(blueprint, token, root);
         }
 
-        public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
-            _nodeMap[token.node.node].OnDeInitialize(blueprint, token);
+        public void OnDeInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
+            _nodeMap[token.node.node].OnDeInitialize(blueprint, token, root);
         }
 
         public void OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {

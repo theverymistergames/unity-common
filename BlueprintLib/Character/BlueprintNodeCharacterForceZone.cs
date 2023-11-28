@@ -45,7 +45,7 @@ namespace MisterGames.BlueprintLib {
             PrepareZone();
         }
 
-        public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
+        public void OnDeInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
             _blueprint = null;
             _characterAccess = null;
 

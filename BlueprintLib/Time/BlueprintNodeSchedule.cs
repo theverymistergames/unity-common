@@ -32,11 +32,11 @@ namespace MisterGames.BlueprintLib {
             meta.AddPort(id, Port.Exit("On Finish"));
         }
 
-        public void OnInitialize(IBlueprint blueprint, NodeToken token) {
+        public void OnInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
             _terminateCts = new CancellationTokenSource();
         }
 
-        public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
+        public void OnDeInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
             _terminateCts.Cancel();
             _terminateCts.Dispose();
             _terminateCts = null;

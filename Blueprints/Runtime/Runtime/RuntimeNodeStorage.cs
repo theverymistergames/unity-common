@@ -6,28 +6,32 @@ namespace MisterGames.Blueprints.Runtime {
 
         public int Count { get; private set; }
 
-        private NodeId[] _nodes;
+        private NodeToken[] _nodeTokens;
 
         private RuntimeNodeStorage() { }
 
         public RuntimeNodeStorage(int capacity = 0) {
-            _nodes = new NodeId[capacity];
+            _nodeTokens = new NodeToken[capacity];
+        }
+
+        public NodeToken GetToken(int index) {
+            return _nodeTokens[index];
         }
 
         public NodeId GetNode(int index) {
-            return _nodes[index];
+            return _nodeTokens[index].node;
         }
 
-        public void AddNode(NodeId id) {
-            _nodes[Count++] = id;
+        public void AddNode(NodeId id, NodeId root) {
+            _nodeTokens[Count++] = new NodeToken(id, root);
         }
 
         public void AllocateNodes(int count) {
-            Array.Resize(ref _nodes, _nodes.Length + count);
+            Array.Resize(ref _nodeTokens, _nodeTokens.Length + count);
         }
 
         public override string ToString() {
-            return $"{nameof(RuntimeNodeStorage)}(nodes {string.Join(", ", _nodes)})";
+            return $"{nameof(RuntimeNodeStorage)}(nodes {string.Join(", ", _nodeTokens)})";
         }
     }
 

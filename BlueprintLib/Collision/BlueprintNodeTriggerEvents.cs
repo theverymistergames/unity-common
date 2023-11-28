@@ -30,7 +30,7 @@ namespace MisterGames.BlueprintLib {
             meta.AddPort(id, Port.Output<GameObject>());
         }
 
-        public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
+        public void OnDeInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
             _blueprint = null;
             _go = null;
             _trigger = null;

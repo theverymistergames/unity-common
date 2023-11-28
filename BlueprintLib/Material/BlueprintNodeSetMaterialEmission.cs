@@ -49,7 +49,7 @@ namespace MisterGames.BlueprintLib {
                             (_currentIntensity.IsNearlyZero() ? 1f : _currentIntensity);
         }
 
-        public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
+        public void OnDeInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
             _renderer = null;
         }
 

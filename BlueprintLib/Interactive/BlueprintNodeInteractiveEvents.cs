@@ -39,7 +39,7 @@ namespace MisterGames.BlueprintLib {
             PrepareInteractive();
         }
 
-        public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
+        public void OnDeInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
             if (_interactive != null) {
                 _interactive.OnStartInteract -= OnStartInteract;
                 _interactive.OnStopInteract -= OnStopInteract;

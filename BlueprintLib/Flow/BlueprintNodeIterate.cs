@@ -61,7 +61,7 @@ namespace MisterGames.BlueprintLib {
             meta.AddPort(id, Port.DynamicOutput(outputDataType == null ? "Element" : null, outputDataType));
         }
 
-        public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
+        public void OnDeInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
             _arrayCache = null;
             _links = default;
         }

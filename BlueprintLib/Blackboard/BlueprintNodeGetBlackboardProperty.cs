@@ -30,11 +30,11 @@ namespace MisterGames.BlueprintLib {
             meta.AddPort(id, Port.DynamicOutput(type: dataType).Hide(dataType == null));
         }
 
-        public void OnInitialize(IBlueprint blueprint, NodeToken token) {
-            _blackboard = blueprint.GetBlackboard(token.caller);
+        public void OnInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
+            _blackboard = blueprint.GetBlackboard(root);
         }
 
-        public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
+        public void OnDeInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
             _blackboard = null;
         }
 

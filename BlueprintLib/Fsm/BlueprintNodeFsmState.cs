@@ -20,7 +20,7 @@ namespace MisterGames.BlueprintLib {
             meta.AddPort(id, Port.Input<ITransition>("Transitions").Layout(PortLayout.Right).Capacity(PortCapacity.Multiple));
         }
 
-        public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
+        public void OnDeInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
             _token = token;
             TryExit(notify: false);
 

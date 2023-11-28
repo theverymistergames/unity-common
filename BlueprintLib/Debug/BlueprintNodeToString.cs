@@ -44,7 +44,7 @@ namespace MisterGames.BlueprintLib {
             meta.AddPort(id, Port.Output<string>());
         }
 
-        public void OnInitialize(IBlueprint blueprint, NodeToken token) {
+        public void OnInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
             _getString = () => string.Empty;
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD

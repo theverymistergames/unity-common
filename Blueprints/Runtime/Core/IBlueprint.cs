@@ -16,7 +16,7 @@ namespace MisterGames.Blueprints {
         MonoBehaviour Host { get; }
 
         /// <summary>
-        /// Get blackboard by blueprint node id.
+        /// Get blackboard by root node id.
         /// </summary>
         Blackboard GetBlackboard(NodeId root);
 

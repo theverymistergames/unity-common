@@ -85,7 +85,7 @@ namespace MisterGames.Blueprints.Editor.View {
                 };
 
                 propertyField.BindProperty(property);
-                propertyField.TrackPropertyValue(property, OnChange);
+                propertyField.TrackPropertyValue(property, OnValueChanged);
 
                 container.Add(propertyField);
 
@@ -98,7 +98,7 @@ namespace MisterGames.Blueprints.Editor.View {
             }
         }
 
-        private void OnChange(SerializedProperty property) {
+        private void OnValueChanged(SerializedProperty property) {
             OnValidate?.Invoke(nodeId);
         }
 

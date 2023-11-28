@@ -24,7 +24,9 @@ namespace MisterGames.Blueprints.Editor.Windows {
 
         private BlueprintsView _blueprintsView;
         private ObjectField _assetPicker;
-        private Button _saveButton;
+        private ObjectField _hostPicker;
+        private Label _hostPickerLabel;
+        private Label _address;
 
         private class SaveHelper : AssetModificationProcessor {
             public static string[] OnWillSaveAssets(string[] paths) {
@@ -73,12 +75,10 @@ namespace MisterGames.Blueprints.Editor.Windows {
 
         private void OnDisable() {
             _blueprintsView?.ClearView();
-            if (_saveButton != null) _saveButton.clicked -= TrySaveCurrentBlueprintAsset;
         }
 
         private void OnDestroy() {
             _blueprintsView?.ClearView();
-            if (_saveButton != null) _saveButton.clicked -= TrySaveCurrentBlueprintAsset;
         }
 
         private void CreateGUI() {
@@ -94,13 +94,22 @@ namespace MisterGames.Blueprints.Editor.Windows {
             _assetPicker.allowSceneObjects = false;
             _assetPicker.RegisterCallback<ChangeEvent<Object>>(OnAssetChanged);
 
+            _hostPickerLabel = root.Q<Label>("host-label");
+            _hostPickerLabel.visible = false;
+
+            _hostPicker = root.Q<ObjectField>("host");
+            _hostPicker.objectType = typeof(Object);
+            _hostPicker.allowSceneObjects = true;
+            _hostPicker.SetEnabled(false);
+            _hostPicker.visible = false;
+
+            _address = root.Q<Label>("address");
+            _address.visible = false;
+            _address.text = null;
+
             _blueprintsView = root.Q<BlueprintsView>();
             _blueprintsView.OnRequestWorldPosition = GetWorldPosition;
             _blueprintsView.OnSetDirty = OnTargetObjectSetDirty;
-
-            _saveButton = root.Q<Button>("save-button");
-            _saveButton.clicked -= TrySaveCurrentBlueprintAsset;
-            _saveButton.clicked += TrySaveCurrentBlueprintAsset;
 
             var blackboardToggle = root.Q<ToolbarToggle>("blackboard-toggle");
             blackboardToggle.RegisterValueChangedCallback(OnToggleBlackboardButton);
@@ -149,16 +158,16 @@ namespace MisterGames.Blueprints.Editor.Windows {
         }
 
         private void SetupView() {
-            if (_blueprintsView == null) {
-                BlueprintEditorStorage.Instance.NotifyOpenedBlueprintAsset(null);
-                SetWindowTitle(WINDOW_TITLE);
-                return;
-            }
+            if (_blueprintsView == null || _blueprintMeta == null) {
+                _hostPickerLabel.visible = false;
+                _hostPicker.visible = false;
+                _hostPicker.value = null;
+                _address.visible = false;
+                _address.text = null;
 
-            if (_blueprintMeta == null) {
                 BlueprintEditorStorage.Instance.NotifyOpenedBlueprintAsset(null);
                 SetWindowTitle(WINDOW_TITLE);
-                _blueprintsView.ClearView();
+                _blueprintsView?.ClearView();
                 return;
             }
 
@@ -171,14 +180,23 @@ namespace MisterGames.Blueprints.Editor.Windows {
                 BlueprintEditorStorage.Instance.NotifyOpenedBlueprintAsset(asset, runner, subgraphPath);
 
                 string path = subgraphPath is { Length: > 0 }
-                    ? $" :: Node {string.Join(" => ", subgraphPath.Select(id => $"{id.source}.{id.node}"))}"
+                    ? $"Node {string.Join(" => ", subgraphPath.Select(id => $"{id.source}.{id.node}"))}"
                     : null;
 
-                _assetPicker.label = $"{runner}{path}";
+                _hostPickerLabel.visible = true;
+                _hostPicker.visible = true;
+                _hostPicker.value = runner;
+                _address.visible = true;
+                _address.text = path;
             }
             else {
                 BlueprintEditorStorage.Instance.NotifyOpenedBlueprintAsset(asset);
-                _assetPicker.label = "Asset";
+
+                _hostPickerLabel.visible = false;
+                _hostPicker.visible = false;
+                _hostPicker.value = null;
+                _address.visible = false;
+                _address.text = null;
             }
 
             _blueprintsView.PopulateView(_blueprintMeta, _factoryOverride, _blackboard, _serializedObject);

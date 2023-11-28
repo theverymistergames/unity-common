@@ -41,13 +41,13 @@ namespace MisterGames.BlueprintLib {
             }
         }
 
-        public void OnInitialize(IBlueprint blueprint, NodeToken token) {
+        public void OnInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
             _terminateCts?.Cancel();
             _terminateCts?.Dispose();
             _terminateCts = new CancellationTokenSource();
         }
 
-        public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
+        public void OnDeInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
             _dependencies = null;
 
             _terminateCts?.Cancel();

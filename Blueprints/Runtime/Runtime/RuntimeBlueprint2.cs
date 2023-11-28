@@ -45,23 +45,25 @@ namespace MisterGames.Blueprints.Runtime {
             Host = host;
 
             for (int i = 0; i < nodeStorage.Count; i++) {
-                var id = nodeStorage.GetNode(i);
-                factory.GetSource(id.source).OnInitialize(this, new NodeToken(id, root));
+                var token = nodeStorage.GetToken(i);
+                factory
+                    .GetSource(token.node.source)
+                    .OnInitialize(this, new NodeToken(token.node, root), root: token.caller);
             }
         }
 
         public void DeInitialize() {
             for (int i = 0; i < nodeStorage.Count; i++) {
-                var id = nodeStorage.GetNode(i);
-                var source = factory.GetSource(id.source);
+                var token = nodeStorage.GetToken(i);
+                var source = factory.GetSource(token.node.source);
 
-                source.OnDeInitialize(this, new NodeToken(id, root));
-                source.RemoveNode(id.node);
+                source.OnDeInitialize(this, new NodeToken(token.node, root), root: token.caller);
+                source.RemoveNode(token.node.node);
 
                 if (source.Count > 0) continue;
 
                 source.Clear();
-                factory.RemoveSource(id.source);
+                factory.RemoveSource(token.node.source);
             }
 
             Host = null;
@@ -90,7 +92,7 @@ namespace MisterGames.Blueprints.Runtime {
         }
 
         public Blackboard GetBlackboard(NodeId root) {
-            return blackboardStorage.GetBlackboard(root);
+            return blackboardStorage.TryGet(root, out var blackboard) ? blackboard : null;
         }
 
         public void Call(NodeToken token, int port) {

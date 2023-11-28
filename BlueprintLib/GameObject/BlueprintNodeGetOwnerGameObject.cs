@@ -20,11 +20,11 @@ namespace MisterGames.BlueprintLib {
             meta.AddPort(id, Port.Output<GameObject>());
         }
 
-        public void OnInitialize(IBlueprint blueprint, NodeToken token) {
+        public void OnInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
             _runner = blueprint.Host;
         }
 
-        public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
+        public void OnDeInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
             _runner = null;
         }
 

@@ -13,6 +13,7 @@ using MisterGames.Blueprints.Validation;
 using MisterGames.Common.Types;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
+using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 using BlackboardView = UnityEditor.Experimental.GraphView.Blackboard;
@@ -175,15 +176,21 @@ namespace MisterGames.Blueprints.Editor.View {
             RepopulateView();
 
             _blueprintMeta?.Bind(OnNodeInvalidated);
+            contentContainer.TrackSerializedObjectValue(_serializedObject, OnSerializedObjectChanged);
 
             GetBlueprintNodesCenter(out var position, out var scale);
-
             var currentPosition = contentViewContainer.transform.position;
-            if (Vector3.Distance(position, currentPosition) < POPULATE_SCROLL_TO_NODES_CENTER_TOLERANCE_DISTANCE) {
-                return;
+            if (Vector3.Distance(position, currentPosition) >= POPULATE_SCROLL_TO_NODES_CENTER_TOLERANCE_DISTANCE) {
+                UpdateViewTransform(position, scale);
+            }
+        }
+
+        private void OnSerializedObjectChanged(SerializedObject obj) {
+            if (obj == null) {
+                ClearView();
+                Debug.Log($"BlueprintsView.OnSerializedObjectChanged: obj is null");
             }
 
-            UpdateViewTransform(position, scale);
         }
 
         private void RepopulateView() {
@@ -222,6 +229,8 @@ namespace MisterGames.Blueprints.Editor.View {
         }
 
         public void ClearView() {
+            contentContainer.Unbind();
+
             graphViewChanged -= OnGraphViewChanged;
             DeleteElements(graphElements);
 

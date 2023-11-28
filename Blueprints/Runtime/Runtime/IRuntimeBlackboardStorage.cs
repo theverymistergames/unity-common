@@ -4,11 +4,12 @@ namespace MisterGames.Blueprints.Runtime {
 
     public interface IRuntimeBlackboardStorage {
 
-        Blackboard GetBlackboard(NodeId id);
+        bool TryGet(NodeId id, out Blackboard blackboard);
 
-        void SetBlackboard(NodeId id, Blackboard blackboard);
+        void Add(NodeId id, Blackboard blackboard);
 
         void Clear();
+
     }
 
 }

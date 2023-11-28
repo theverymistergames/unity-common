@@ -23,7 +23,7 @@ namespace MisterGames.BlueprintLib {
             meta.AddPort(id, Port.Output<float>("Cosine time"));
         }
 
-        public void OnInitialize(IBlueprint blueprint, NodeToken token) {
+        public void OnInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
             _startTime = TimeSources.time;
         }
 

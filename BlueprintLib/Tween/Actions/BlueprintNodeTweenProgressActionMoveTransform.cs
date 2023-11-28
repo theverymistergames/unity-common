@@ -34,11 +34,11 @@ namespace MisterGames.BlueprintLib {
             meta.AddPort(id, Port.Output<ITweenProgressAction>());
         }
 
-        public void OnInitialize(IBlueprint blueprint, NodeToken token) {
+        public void OnInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
             _action = new TweenProgressActionMoveTransform();
         }
 
-        public void OnDeInitialize(IBlueprint blueprint, NodeToken token) {
+        public void OnDeInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
             _action = null;
         }
 
