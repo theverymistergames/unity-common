@@ -51,7 +51,7 @@ namespace MisterGames.Blueprints.Editor.Editors {
 
         private static void DrawCompileControls(BlueprintRunner2 runner) {
             if (runner.RuntimeBlueprint == null) {
-                if ((runner.BlueprintAsset != null || runner.RootMetaOverride != null) &&
+                if ((runner.BlueprintAsset != null || runner.GetRootFactory() != null) &&
                     GUILayout.Button("Compile & Start Blueprint")
                 ) {
                     runner.RestartBlueprint();
@@ -83,11 +83,17 @@ namespace MisterGames.Blueprints.Editor.Editors {
 
         private static void DrawRoot(BlueprintRunner2 runner, SerializedObject serializedObject) {
             var metaProperty = serializedObject.FindProperty("_rootMetaOverride");
+            var enabledProperty = serializedObject.FindProperty("_isRootOverrideEnabled");
             var asset = runner.BlueprintAsset;
 
             EditorGUILayout.BeginHorizontal();
 
-            GUILayout.Label("Local Override");
+            EditorGUI.BeginDisabledGroup(!enabledProperty.boolValue);
+
+            // Header & enable checkbox
+            EditorGUILayout.PropertyField(enabledProperty, new GUIContent("Local Override"));
+
+            EditorGUI.EndDisabledGroup();
 
             GUILayout.Space(EditorGUIUtility.standardVerticalSpacing);
 
@@ -99,26 +105,28 @@ namespace MisterGames.Blueprints.Editor.Editors {
 
                     if (asset == null) {
                         meta = rootMeta;
-                        blackboard = runner.GetRootBlackboard();
+                        blackboard = runner.RootBlackboard;
                         factoryOverride = null;
                     }
                     else {
                         meta = asset.BlueprintMeta;
                         blackboard = asset.Blackboard;
-                        factoryOverride = runner.GetRootFactory();
+                        factoryOverride = metaProperty.FindPropertyRelative("_factory")?.managedReferenceValue as IBlueprintFactory;
                     }
 
                     BlueprintEditorWindow.Open(asset, meta, factoryOverride, blackboard, new SerializedObject(runner));
                 }
 
                 if (GUILayout.Button("Delete")) {
-                    if (asset == null) runner.GetRootBlackboard()?.Clear();
+                    if (asset == null) runner.RootBlackboard?.Clear();
                     metaProperty.managedReferenceValue = null;
+                    enabledProperty.boolValue = false;
                 }
             }
             else {
                 if (GUILayout.Button("Create")) {
                     metaProperty.managedReferenceValue = new BlueprintMeta2();
+                    enabledProperty.boolValue = true;
                 }
             }
 
@@ -186,7 +194,14 @@ namespace MisterGames.Blueprints.Editor.Editors {
                     // Local override buttons
                     EditorGUILayout.BeginHorizontal();
 
-                    GUILayout.Label("Local Override");
+                    var property = serializedObject.FindProperty($"_subgraphTree._nodes.Array.data[{it.Index}].value");
+
+                    // Enable override field
+                    if (property?.FindPropertyRelative("isFactoryOverrideEnabled") is { } enabledProperty) {
+                        EditorGUI.BeginDisabledGroup(!enabledProperty.boolValue);
+                        EditorGUILayout.PropertyField(enabledProperty, new GUIContent("Local Override"));
+                        EditorGUI.EndDisabledGroup();
+                    }
 
                     if (data.factoryOverride != null) {
                         if (GUILayout.Button("Edit")) {
@@ -198,10 +213,12 @@ namespace MisterGames.Blueprints.Editor.Editors {
                         }
                         if (GUILayout.Button("Delete")) {
                             data.factoryOverride = null;
+                            data.isFactoryOverrideEnabled = false;
                         }
                     }
                     else {
                         if (GUILayout.Button("Create")) {
+                            data.isFactoryOverrideEnabled = true;
                             data.factoryOverride = new BlueprintFactory();
                         }
                     }
@@ -211,8 +228,9 @@ namespace MisterGames.Blueprints.Editor.Editors {
                     GUILayout.Space(EditorGUIUtility.standardVerticalSpacing);
 
                     // Blackboard field
-                    var blackboardProperty = serializedObject.FindProperty($"_subgraphTree._nodes.Array.data[{it.Index}].value.blackboard");
-                    if (blackboardProperty != null) EditorGUILayout.PropertyField(blackboardProperty);
+                    if (property?.FindPropertyRelative("blackboard") is { } blackboardProperty) {
+                        EditorGUILayout.PropertyField(blackboardProperty);
+                    }
 
                     if (it.IsInvalid() || !it.MovePreOrder()) break;
 
@@ -235,12 +253,13 @@ namespace MisterGames.Blueprints.Editor.Editors {
 
             if (asset != oldAsset) {
                 runner.RootMetaOverride = null;
+                runner.RootBlackboard?.Clear();
                 changed = true;
             }
 
             if (asset != null) {
-                changed |= runner.GetRootFactory()?.MatchNodesWith(asset.BlueprintMeta.Factory) ?? false;
-                changed |= runner.GetRootBlackboard()?.MatchPropertiesWith(asset.Blackboard) ?? false;
+                changed |= runner.RootMetaOverride?.Factory.MatchNodesWith(asset.BlueprintMeta.Factory) ?? false;
+                changed |= runner.RootBlackboard?.MatchPropertiesWith(asset.Blackboard) ?? false;
             }
 
             if (changed) EditorUtility.SetDirty(runner);
@@ -278,6 +297,8 @@ namespace MisterGames.Blueprints.Editor.Editors {
                 if (data.asset != asset) {
                     data.asset = asset;
                     data.factoryOverride = null;
+                    data.blackboard.Clear();
+                    data.isFactoryOverrideEnabled = false;
 
                     changed = true;
                 }
@@ -300,7 +321,6 @@ namespace MisterGames.Blueprints.Editor.Editors {
 
                 parentIndex = j;
             }
-
 
             var subgraphAssetMap = asset.BlueprintMeta.SubgraphAssetMap;
             subgraphTree.RemoveNodeIf(subgraphAssetMap, (m, n) => !m.ContainsKey(n), parentIndex);

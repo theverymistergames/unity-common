@@ -42,7 +42,7 @@ namespace MisterGames.Blueprints.Editor.Storage {
                 }
                 else {
                     if (asset == null) {
-                        blackboard = runner.GetRootBlackboard();
+                        blackboard = runner.RootBlackboard;
                         meta = runner.RootMetaOverride;
                     }
                     else {

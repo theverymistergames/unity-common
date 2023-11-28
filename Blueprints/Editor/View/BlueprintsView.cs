@@ -156,7 +156,8 @@ namespace MisterGames.Blueprints.Editor.View {
                 _blueprintMeta.Factory.CopyInto(_virtualFactory);
 
                 var container = ScriptableObject.CreateInstance<VirtualBlueprintContainer>();
-                container.Initialize(_virtualFactory, _blackboard);
+                container.blackboard = _blackboard;
+                container.factory = _virtualFactory;
 
                 _virtualSerializedObject = new SerializedObject(container);
 

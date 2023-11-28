@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using log4net;
 using MisterGames.Blackboards.Core;
 using MisterGames.Blueprints.Factory;
 using MisterGames.Blueprints.Meta;
@@ -15,6 +14,7 @@ namespace MisterGames.Blueprints {
         [SerializeField] private TreeMap<NodeId, SubgraphData> _subgraphTree;
         [SerializeField] private Blackboard _blackboard;
         [SerializeReference] private BlueprintMeta2 _rootMetaOverride;
+        [SerializeReference] private bool _isRootOverrideEnabled;
 
         public BlueprintAsset2 BlueprintAsset {
             get => _blueprintAsset;
@@ -30,7 +30,7 @@ namespace MisterGames.Blueprints {
             if (_blueprintAsset != null) {
                 _runtimeBlueprint = _blueprintAsset.Compile(BlueprintFactories.Global, this);
             }
-            else if (_rootMetaOverride != null) {
+            else if (_isRootOverrideEnabled && _rootMetaOverride != null) {
                 _compiler2 ??= new BlueprintCompiler2();
 #if UNITY_EDITOR
                 _rootMetaOverride.owner = this;
@@ -69,7 +69,7 @@ namespace MisterGames.Blueprints {
         }
 
         public IBlueprintFactory GetRootFactory() {
-            return _rootMetaOverride?.Factory;
+            return _isRootOverrideEnabled ? _rootMetaOverride?.Factory : null;
         }
 
         public int GetSubgraphIndex(NodeId id, int parent = -1) {
@@ -81,7 +81,7 @@ namespace MisterGames.Blueprints {
         }
 
         public IBlueprintFactory GetSubgraphFactory(NodeId id, int parent = -1) {
-            return _subgraphTree.TryGetValue(id, parent, out var data) ? data.factoryOverride : null;
+            return _subgraphTree.TryGetValue(id, parent, out var data) && data.isFactoryOverrideEnabled ? data.factoryOverride : null;
         }
 
 #if UNITY_EDITOR
@@ -96,6 +96,11 @@ namespace MisterGames.Blueprints {
                 return _rootMetaOverride;
             }
             set => _rootMetaOverride = value;
+        }
+
+        internal Blackboard RootBlackboard {
+            get => _blackboard;
+            set => _blackboard = value;
         }
 
         private readonly HashSet<MonoBehaviour> _clients = new HashSet<MonoBehaviour>();
