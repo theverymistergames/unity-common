@@ -1022,6 +1022,37 @@ namespace MisterGames.Common.Data {
         }
 
         /// <summary>
+        /// Remove node every node where predicate is true.
+        /// This operation can cause map version change.
+        /// Note that parent index can change after remove during defragmentation.
+        /// </summary>
+        /// <param name="target">Target object to compare</param>
+        /// <param name="predicate">If returns true, node is removed</param>
+        /// <param name="parent">Optional parent index</param>
+        public bool RemoveNodeIf<T>(T target, Func<T, K, bool> predicate, int parent = -1) {
+            bool isDefragmentationAllowed = _isDefragmentationAllowed;
+            AllowDefragmentation(false);
+
+            bool removed = false;
+            if (parent < 0) {
+                for (int i = 0; i < _head; i++) {
+                    ref var node = ref _nodes[i];
+                    if (node.IsDisposed() || node.parent >= 0) continue;
+                    if (predicate.Invoke(target, node.key)) removed |= RemoveNodeAt(i);
+                }
+            }
+            else if (TryGetChild(parent, out int i)) {
+                for (; i >= 0; i = GetNext(i)) {
+                    ref var node = ref _nodes[i];
+                    if (predicate.Invoke(target, node.key)) removed |= RemoveNodeAt(i);
+                }
+            }
+
+            AllowDefragmentation(isDefragmentationAllowed);
+            return removed;
+        }
+
+        /// <summary>
         /// Remove node by key and parent. This operation can cause map version change.
         /// Note that parent index can change after remove during defragmentation.
         /// </summary>

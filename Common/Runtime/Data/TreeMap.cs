@@ -1028,6 +1028,24 @@ namespace MisterGames.Common.Data {
         }
 
         /// <summary>
+        /// Get node index, that is found first by predicate.
+        /// </summary>
+        /// <param name="target">Target object to compare with key and value of node</param>
+        /// <param name="predicate">Func to describe comparison</param>
+        /// <typeparam name="T">Type of the target object</typeparam>
+        /// <returns>Node index or -1 if not found</returns>
+        public int FindNode<T>(T target, Func<T, K, bool> predicate) {
+            for (int i = 0; i < _head; i++) {
+                ref var node = ref _nodes[i];
+                if (node.IsDisposed()) continue;
+
+                if (predicate.Invoke(target, node.key)) return i;
+            }
+
+            return -1;
+        }
+
+        /// <summary>
         /// Get index of node parent.
         /// </summary>
         /// <param name="child">Index of the child node</param>
@@ -1303,6 +1321,37 @@ namespace MisterGames.Common.Data {
             node.DisallowChildren();
 
             return index;
+        }
+
+        /// <summary>
+        /// Remove node every node where predicate is true.
+        /// This operation can cause map version change.
+        /// Note that parent index can change after remove during defragmentation.
+        /// </summary>
+        /// <param name="target">Target object to compare</param>
+        /// <param name="predicate">If returns true, node is removed</param>
+        /// <param name="parent">Parent index to apply to child nodes of</param>
+        public bool RemoveNodeIf<T>(T target, Func<T, K, bool> predicate, int parent = -1) {
+            bool isDefragmentationAllowed = _isDefragmentationAllowed;
+            AllowDefragmentation(false);
+
+            bool removed = false;
+            if (parent < 0) {
+                for (int i = 0; i < _head; i++) {
+                    ref var node = ref _nodes[i];
+                    if (node.IsDisposed() || node.parent >= 0) continue;
+                    if (predicate.Invoke(target, node.key)) removed |= RemoveNodeAt(i);
+                }
+            }
+            else if (TryGetChild(parent, out int i)) {
+                for (; i >= 0; i = GetNext(i)) {
+                    ref var node = ref _nodes[i];
+                    if (predicate.Invoke(target, node.key)) removed |= RemoveNodeAt(i);
+                }
+            }
+
+            AllowDefragmentation(isDefragmentationAllowed);
+            return removed;
         }
 
         /// <summary>
