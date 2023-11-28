@@ -323,7 +323,12 @@ namespace MisterGames.Common.Data {
 
         private void AllowTrimExcess(bool isAllowed) {
             _isTrimExcessAllowed = isAllowed;
-            if (isAllowed) TrimExcess(false);
+
+#if UNITY_EDITOR
+            if (isAllowed) TrimExcess(forceNewHashCodes: false);
+#else
+            if (isAllowed && _freeCount > _count) TrimExcess(forceNewHashCodes: false);
+#endif
         }
 
         private void TrimExcess(bool forceNewHashCodes) {
@@ -361,6 +366,8 @@ namespace MisterGames.Common.Data {
         }
 
         public bool RemoveIf<T>(T target, Func<T, K, bool> predicate) {
+            if (_entries is not { Length: > 0 }) return false;
+
             AllowTrimExcess(false);
             bool removed = false;
 
