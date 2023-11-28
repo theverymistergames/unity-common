@@ -6,7 +6,6 @@ using MisterGames.Blueprints.Meta;
 using MisterGames.Common.Data;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.TestTools.Constraints;
 
 namespace MisterGames.Blueprints.Editor.Editors {
 
@@ -42,8 +41,11 @@ namespace MisterGames.Blueprints.Editor.Editors {
             runner.BlueprintAsset = value as BlueprintAsset2;
 
             if (runner.BlueprintAsset != null && GUILayout.Button("Edit")) {
+                GUILayout.Space(EditorGUIUtility.standardVerticalSpacing);
                 BlueprintEditorWindow.Open(runner.BlueprintAsset);
             }
+
+            GUILayout.Space(EditorGUIUtility.standardVerticalSpacing);
         }
 
         private static void DrawCompileControls(BlueprintRunner2 runner) {
@@ -61,7 +63,7 @@ namespace MisterGames.Blueprints.Editor.Editors {
                 return;
             }
 
-            GUILayout.Space(EditorGUIUtility.standardVerticalSpacing * 2f);
+            GUILayout.Space(EditorGUIUtility.standardVerticalSpacing * 4f);
             GUILayout.Label("External enter ports", EditorStyles.boldLabel);
 
             var rootPorts = runner.RuntimeBlueprint.rootPorts;
@@ -74,6 +76,8 @@ namespace MisterGames.Blueprints.Editor.Editors {
                     runner.RuntimeBlueprint.Call(new NodeToken(root, root), sign);
                 }
             }
+
+            GUILayout.Space(EditorGUIUtility.standardVerticalSpacing);
         }
 
         private static void DrawRoot(BlueprintRunner2 runner, SerializedObject serializedObject) {
@@ -83,6 +87,8 @@ namespace MisterGames.Blueprints.Editor.Editors {
             EditorGUILayout.BeginHorizontal();
 
             GUILayout.Label("Local Override");
+
+            GUILayout.Space(EditorGUIUtility.standardVerticalSpacing);
 
             if (metaProperty.managedReferenceValue is BlueprintMeta2 rootMeta) {
                 if (GUILayout.Button("Edit")) {
@@ -116,11 +122,15 @@ namespace MisterGames.Blueprints.Editor.Editors {
             }
 
             EditorGUILayout.EndHorizontal();
+
+            GUILayout.Space(EditorGUIUtility.standardVerticalSpacing);
         }
 
         private static void DrawRootBlackboard(SerializedObject serializedObject) {
             var blackboardProperty = serializedObject.FindProperty("_blackboard");
             EditorGUILayout.PropertyField(blackboardProperty);
+
+            GUILayout.Space(EditorGUIUtility.standardVerticalSpacing);
         }
 
         private static void DrawSubgraphs(BlueprintRunner2 runner, SerializedObject serializedObject) {
@@ -131,7 +141,7 @@ namespace MisterGames.Blueprints.Editor.Editors {
 
             var runnerSerializedObject = new SerializedObject(runner);
 
-            GUILayout.Space(EditorGUIUtility.standardVerticalSpacing * 6f);
+            GUILayout.Space(EditorGUIUtility.standardVerticalSpacing * 8f);
 
             foreach (var root in subgraphTree.Roots) {
                 var it = subgraphTree.GetTree(root);
@@ -154,21 +164,21 @@ namespace MisterGames.Blueprints.Editor.Editors {
                         label = sb.ToString();
                     }
                     else {
-                        label = $"Node {id.source}.{id.node}";
+                        label = $"Subgraph Node {id.source}.{id.node}";
                     }
-                    GUILayout.Label(label);
+                    GUILayout.Label(label, EditorStyles.boldLabel);
 
-                    // Read-only asset field next to node header
-                    var rect = GUILayoutUtility.GetLastRect();
-                    var headerRect = new Rect(
-                        rect.x + EditorGUIUtility.labelWidth,
-                        rect.y,
-                        rect.width - EditorGUIUtility.labelWidth,
-                        EditorGUIUtility.singleLineHeight
-                    );
+                    GUILayout.Space(EditorGUIUtility.standardVerticalSpacing);
+
                     EditorGUI.BeginDisabledGroup(true);
-                    EditorGUI.ObjectField(headerRect, "", data.asset, typeof(BlueprintAsset), false);
+                    EditorGUILayout.ObjectField("Blueprint Asset", data.asset, typeof(BlueprintAsset), false);
                     EditorGUI.EndDisabledGroup();
+
+                    GUILayout.Space(EditorGUIUtility.standardVerticalSpacing);
+
+                    if (data.asset != null && GUILayout.Button("Edit")) {
+                        BlueprintEditorWindow.Open(data.asset);
+                    }
 
                     GUILayout.Space(EditorGUIUtility.standardVerticalSpacing);
 
@@ -197,14 +207,16 @@ namespace MisterGames.Blueprints.Editor.Editors {
 
                     EditorGUILayout.EndHorizontal();
 
+                    GUILayout.Space(EditorGUIUtility.standardVerticalSpacing);
+
                     // Blackboard field
                     var blackboardProperty = serializedObject.FindProperty($"_subgraphTree._nodes.Array.data[{it.Index}].value.blackboard");
-                    EditorGUILayout.PropertyField(blackboardProperty);
+                    if (blackboardProperty != null) EditorGUILayout.PropertyField(blackboardProperty);
 
                     if (it.IsInvalid() || !it.MovePreOrder()) break;
 
                     // Space between override entries
-                    GUILayout.Space(EditorGUIUtility.standardVerticalSpacing * 6f);
+                    GUILayout.Space(EditorGUIUtility.standardVerticalSpacing * 8f);
                 }
             }
         }
