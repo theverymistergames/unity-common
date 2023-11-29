@@ -34,9 +34,12 @@ namespace MisterGames.Blueprints.Factory {
             return id;
         }
 
-        public IBlueprintSource AddSource(int id, Type sourceType) {
-            var source = Activator.CreateInstance(sourceType) as IBlueprintSource;
+        public IBlueprintSource GetOrCreateSource(int id, Type sourceType) {
+            if (_sources.TryGetValue(id, out var source)) return source;
+
+            source = Activator.CreateInstance(sourceType) as IBlueprintSource;
             _sources.Add(id, source);
+
             return source;
         }
 
@@ -81,21 +84,19 @@ namespace MisterGames.Blueprints.Factory {
             return changed;
         }
 
-        public void CopyInto(IBlueprintFactory factory) {
+        public void AdditiveCopyInto(IBlueprintFactory factory) {
             if (factory is not BlueprintFactory f) return;
 
             foreach ((int id, var source) in _sources) {
-                IBlueprintSource instance = null;
-
-                if (source != null) {
-                    instance = Activator.CreateInstance(source.GetType()) as IBlueprintSource;
-                    source.CopyInto(instance);
+                if (!f._sources.TryGetValue(id, out var s)) {
+                    s = Activator.CreateInstance(source.GetType()) as IBlueprintSource;
+                    f._sources.Add(id, s);
                 }
 
-                f._sources.Add(id, instance);
+                if (s != null) source.AdditiveCopyInto(s);
             }
 
-            f._lastId = _lastId;
+            if (f._lastId < _lastId) f._lastId = _lastId;
         }
 
         private int AddSource(IBlueprintSource source) {

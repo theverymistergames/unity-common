@@ -116,18 +116,16 @@ namespace MisterGames.Blueprints {
             return changed;
         }
 
-        public void CopyInto(IBlueprintSource source) {
+        public void AdditiveCopyInto(IBlueprintSource source) {
             if (source is not BlueprintSourceRef s) return;
 
             foreach ((int id, var node) in _nodeMap) {
-                var nodeCopy = node != null
+                s._nodeMap[id] = node != null
                     ? JsonUtility.FromJson(GetNodeAsString(id), node.GetType()) as IBlueprintNode
                     : null;
-
-                s._nodeMap.Add(id, nodeCopy);
             }
 
-            s._lastId = _lastId;
+            if (s._lastId < _lastId) s._lastId = _lastId;
         }
 
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {

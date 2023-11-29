@@ -88,11 +88,14 @@ namespace MisterGames.Blueprints {
         internal RuntimeBlueprint2 RuntimeBlueprint => _runtimeBlueprint;
         internal TreeMap<NodeId, SubgraphData> SubgraphTree => _subgraphTree ??= new TreeMap<NodeId, SubgraphData>();
 
+        internal bool IsRootMetaOverrideEnabled {
+            get => _isRootOverrideEnabled;
+            set => _isRootOverrideEnabled = value;
+        }
+
         internal BlueprintMeta2 RootMetaOverride {
             get {
-#if UNITY_EDITOR
                 if (_rootMetaOverride != null) _rootMetaOverride.owner = this;
-#endif
                 return _rootMetaOverride;
             }
             set => _rootMetaOverride = value;
@@ -105,18 +108,18 @@ namespace MisterGames.Blueprints {
 
         private readonly HashSet<MonoBehaviour> _clients = new HashSet<MonoBehaviour>();
 
-        internal string GetNodePath(NodeId id, IBlueprintFactory factoryOverride) {
-            if (factoryOverride == null ||
-                !factoryOverride.TryGetNodePath(id, out int s, out int n)
+        internal string GetNodePath(NodeId id, IBlueprintFactory factory) {
+            if (factory == null ||
+                !factory.TryGetNodePath(id, out int s, out int n)
             ) {
                 return null;
             }
 
-            if (_rootMetaOverride?.Factory == factoryOverride) {
+            if (_rootMetaOverride?.Factory == factory) {
                 return $"_rootMetaOverride._factory._sources._entries.Array.data[{s}].value._nodeMap._entries.Array.data[{n}].value";
             }
 
-            int i = _subgraphTree.FindNode(factoryOverride, (f, _, data) => f == data.factoryOverride);
+            int i = _subgraphTree.FindNode(factory, (f, _, data) => f == data.factoryOverride);
             if (i < 0) return null;
 
             return $"_subgraphTree._nodes.Array.data[{i}].value.factoryOverride._sources._entries.Array.data[{s}].value._nodeMap._entries.Array.data[{n}].value";

@@ -128,10 +128,10 @@ namespace MisterGames.Blueprints.Factory {
         bool MatchNodesWith(IBlueprintSource source);
 
         /// <summary>
-        /// Copy current blueprint source values into source.
+        /// Copy current blueprint source nodes into source.
         /// </summary>
         /// <param name="source"></param>
-        void CopyInto(IBlueprintSource source);
+        void AdditiveCopyInto(IBlueprintSource source);
     }
 
 }

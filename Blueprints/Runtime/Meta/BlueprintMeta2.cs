@@ -223,7 +223,7 @@ namespace MisterGames.Blueprints.Meta {
             return owner switch {
                 BlueprintAsset2 asset => asset.Blackboard,
                 BlueprintRunner2 runner => runner.GetRootBlackboard(),
-                VirtualBlueprintContainer container => container.blackboard,
+                VirtualBlueprintContainer container => container.Blackboard,
                 _ => null,
             };
 #endif

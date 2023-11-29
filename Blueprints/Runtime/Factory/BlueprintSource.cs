@@ -111,16 +111,16 @@ namespace MisterGames.Blueprints {
             return _nodeMap.RemoveIf(source, (s, id) => !s.ContainsNode(id));
         }
 
-        public void CopyInto(IBlueprintSource source) {
+        public void AdditiveCopyInto(IBlueprintSource source) {
             if (source is not BlueprintSource<TNode> s) return;
 
             foreach (int id in _nodeMap.Keys) {
-                var nodeCopy = s is IBlueprintCloneable
+                s._nodeMap[id] = s is IBlueprintCloneable
                     ? GetNodeByRef<TNode>(id)
                     : JsonUtility.FromJson<TNode>(GetNodeAsString(id));
-
-                s._nodeMap.Add(id, nodeCopy);
             }
+
+            if (s._lastId < _lastId) s._lastId = _lastId;
         }
 
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {

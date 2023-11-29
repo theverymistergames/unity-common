@@ -8,7 +8,7 @@ namespace MisterGames.Blueprints.Factory {
     public interface IBlueprintFactory {
 
         /// <summary>
-        /// Get blueprint source by id. Id can be retrieved with <see cref="GetOrCreateSource"/> method.
+        /// Get blueprint source by id.
         /// </summary>
         /// <param name="id">Blueprint source id</param>
         /// <returns>Blueprint source</returns>
@@ -26,7 +26,7 @@ namespace MisterGames.Blueprints.Factory {
         /// </summary>
         /// <param name="id">Blueprint source id</param>
         /// <param name="sourceType">Blueprint source type</param>
-        IBlueprintSource AddSource(int id, Type sourceType);
+        IBlueprintSource GetOrCreateSource(int id, Type sourceType);
 
         /// <summary>
         /// Remove blueprint source by id.
@@ -58,7 +58,7 @@ namespace MisterGames.Blueprints.Factory {
         /// <summary>
         /// Copy current blueprint factory values into factory.
         /// </summary>
-        void CopyInto(IBlueprintFactory factory);
+        void AdditiveCopyInto(IBlueprintFactory factory);
     }
 
 }
