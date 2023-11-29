@@ -67,6 +67,8 @@ namespace MisterGames.Blueprints.Runtime {
             }
 
             Host = null;
+            nodeStorage.Clear();
+            linkStorage.Clear();
             blackboardStorage.Clear();
             _externalBlueprintMap.Clear();
         }

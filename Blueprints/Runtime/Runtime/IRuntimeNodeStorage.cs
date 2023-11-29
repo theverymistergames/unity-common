@@ -11,6 +11,8 @@
         void AddNode(NodeId id, NodeId root);
 
         void AllocateNodes(int count);
+
+        void Clear();
     }
 
 }

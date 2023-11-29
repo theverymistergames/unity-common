@@ -37,13 +37,6 @@ namespace MisterGames.Blueprints.Runtime {
             return _linkTree.InsertNextNode(new RuntimeLink2(source, node, port), portRoot, index);
         }
 
-        public void RemoveLink(int source, int node, int port) {
-            if (!_linkTree.TryGetNode(_selectedPort, out int portRoot)) return;
-
-            _linkTree.RemoveNode(new RuntimeLink2(source, node, port), portRoot);
-            if (!_linkTree.ContainsChildren(portRoot)) _linkTree.RemoveNodeAt(portRoot);
-        }
-
         public void InlineLinks() {
             var roots = _linkTree.Roots;
             foreach (var root in roots) {
@@ -93,6 +86,11 @@ namespace MisterGames.Blueprints.Runtime {
                     l = next;
                 }
             }
+        }
+
+        public void Clear() {
+            _linkTree.Clear();
+            _selectedPort = default;
         }
 
         public override string ToString() {

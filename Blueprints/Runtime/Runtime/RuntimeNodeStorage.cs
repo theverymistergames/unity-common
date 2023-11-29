@@ -30,6 +30,11 @@ namespace MisterGames.Blueprints.Runtime {
             Array.Resize(ref _nodeTokens, _nodeTokens.Length + count);
         }
 
+        public void Clear() {
+            Count = 0;
+            _nodeTokens = Array.Empty<NodeToken>();
+        }
+
         public override string ToString() {
             return $"{nameof(RuntimeNodeStorage)}(nodes {string.Join(", ", _nodeTokens)})";
         }
