@@ -586,7 +586,7 @@ namespace MisterGames.Blueprints.Editor.View {
             var serializedObject = _virtualSerializedObject ?? _serializedObject;
             string path = serializedObject?.targetObject switch {
                 VirtualBlueprintContainer container => container.GetNodePath(id),
-                BlueprintRunner2 runner => runner.GetNodePath(id, _factoryOverride),
+                BlueprintRunner2 runner => runner.GetNodePath(id, _factoryOverride ?? _blueprintMeta.Factory),
                 BlueprintAsset2 asset => asset.GetNodePath(id),
                 _ => null,
             };
