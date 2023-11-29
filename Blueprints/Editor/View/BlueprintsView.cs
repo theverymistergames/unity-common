@@ -596,7 +596,7 @@ namespace MisterGames.Blueprints.Editor.View {
             if (property == null) {
                 Debug.LogWarning($"{nameof(BlueprintsView)}: property for node {id} is null, " +
                                  $"meta {_blueprintMeta}, " +
-                                 $"factory override is not null: {_factoryOverride != null}, " +
+                                 $"factory override is null: {_factoryOverride == null}, "  +
                                  $"serialized object target {_serializedObject?.targetObject}, " +
                                  $"virtual serialized object target {_virtualSerializedObject?.targetObject}");
             }

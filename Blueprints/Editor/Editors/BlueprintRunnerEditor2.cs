@@ -247,8 +247,10 @@ namespace MisterGames.Blueprints.Editor.Editors {
             bool changed = false;
 
             if (asset != oldAsset) {
+                runner.IsRootMetaOverrideEnabled = false;
                 runner.RootMetaOverride = null;
                 runner.RootBlackboard?.Clear();
+
                 if (meta == null) subgraphTree.Clear();
                 changed = true;
             }
