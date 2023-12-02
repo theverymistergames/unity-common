@@ -12,10 +12,7 @@ namespace MisterGames.Blueprints {
         [SerializeField] private BlueprintMeta _blueprintMeta;
         [SerializeField] private Blackboard _blackboard;
 
-        public Blackboard Blackboard {
-            get => _blackboard;
-            internal set => _blackboard = value;
-        }
+        public Blackboard Blackboard => _blackboard;
 
         public BlueprintMeta BlueprintMeta {
             get {
@@ -23,12 +20,6 @@ namespace MisterGames.Blueprints {
                 _blueprintMeta.owner = this;
 #endif
                 return _blueprintMeta;
-            }
-            internal set {
-                _blueprintMeta = value;
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-                _blueprintMeta.owner = this;
-#endif
             }
         }
 
