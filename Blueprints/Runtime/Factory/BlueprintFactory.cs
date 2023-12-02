@@ -28,6 +28,15 @@ namespace MisterGames.Blueprints.Factory {
         public int GetOrCreateSource(Type sourceType) {
             if (_typeToIdMap.TryGetValue(sourceType, out int id)) return id;
 
+#if UNITY_EDITOR
+            foreach ((int key, var source) in _sources) {
+                if (source?.GetType() != sourceType) continue;
+
+                _typeToIdMap.Add(sourceType, key);
+                return key;
+            }
+#endif
+
             id = AddSource(Activator.CreateInstance(sourceType) as IBlueprintSource);
             _typeToIdMap.Add(sourceType, id);
 

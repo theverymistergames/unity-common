@@ -49,8 +49,12 @@ namespace MisterGames.Blueprints {
         }
 
         public int AddNode(Type nodeType) {
-            int id = _lastId++;
+            _lastId++;
+            if (_lastId == 0) _lastId++;
+
+            int id = _lastId;
             _nodeMap.Add(id, Activator.CreateInstance(nodeType) as IBlueprintNode);
+
             return id;
         }
 
@@ -70,8 +74,12 @@ namespace MisterGames.Blueprints {
         }
 
         public int AddNodeFromString(string value, Type nodeType) {
-            int id = _lastId++;
+            _lastId++;
+            if (_lastId == 0) _lastId++;
+
+            int id = _lastId;
             _nodeMap.Add(id, JsonUtility.FromJson(value, nodeType) as IBlueprintNode);
+
             return id;
         }
 

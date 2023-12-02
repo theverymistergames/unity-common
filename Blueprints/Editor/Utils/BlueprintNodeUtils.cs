@@ -17,8 +17,7 @@ namespace MisterGames.Blueprints.Editor.Utils {
             if (nodeType.IsClass) return typeof(BlueprintSourceRef);
 
             // For struct-based nodes
-            var sourceType = typeof(BlueprintSource<>).MakeGenericType(nodeType);
-            var types = TypeCache.GetTypesDerivedFrom(sourceType);
+            var types = TypeCache.GetTypesDerivedFrom(typeof(BlueprintSource<>).MakeGenericType(nodeType));
             return types.Count == 0 ? null : types[0];
         }
 
