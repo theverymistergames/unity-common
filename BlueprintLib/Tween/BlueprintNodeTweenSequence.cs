@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Blueprints;
-using MisterGames.Blueprints.Compile;
 using MisterGames.Blueprints.Runtime;
 using MisterGames.Common.Attributes;
 using MisterGames.Tweens;
@@ -15,11 +14,11 @@ namespace MisterGames.BlueprintLib {
     [Serializable]
     [SubclassSelectorIgnore]
     [BlueprintNode(Name = "Tween Sequence", Category = "Tweens", Color = BlueprintColors.Node.Actions)]
-    public sealed class BlueprintNodeTweenSequence2 :
+    public sealed class BlueprintNodeTweenSequence :
         IBlueprintNode,
-        IBlueprintNodeTween2,
-        IBlueprintOutput2<IBlueprintNodeTween2>,
-        IBlueprintOutput2<float>,
+        IBlueprintNodeTween,
+        IBlueprintOutput<IBlueprintNodeTween>,
+        IBlueprintOutput<float>,
         ITween
     {
         [SerializeField] private bool _loop;
@@ -56,7 +55,7 @@ namespace MisterGames.BlueprintLib {
         }
 
         public void Initialize(MonoBehaviour owner) {
-            var t = BlueprintTweenConverter2.AsTween(_blueprint.GetLinks(_token, 2));
+            var t = BlueprintTweenConverter.AsTween(_blueprint.GetLinks(_token, 2));
             _tweenSequence = t == null ? null : t as TweenSequence ?? new TweenSequence { tweens = new List<ITween> { t } };
 
             if (_tweenSequence != null) {
@@ -72,11 +71,11 @@ namespace MisterGames.BlueprintLib {
             _tweenSequence = null;
         }
 
-        IBlueprintNodeTween2 IBlueprintOutput2<IBlueprintNodeTween2>.GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
+        IBlueprintNodeTween IBlueprintOutput<IBlueprintNodeTween>.GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
             return port == 0 ? this : default;
         }
 
-        float IBlueprintOutput2<float>.GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
+        float IBlueprintOutput<float>.GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
             return port == 6 && _tweenSequence != null ? _tweenSequence.Progress : default;
         }
 
@@ -88,82 +87,6 @@ namespace MisterGames.BlueprintLib {
             await _tweenSequence.Play(token);
 
             _blueprint.Call(_token, token.IsCancellationRequested ? 4 : 5);
-        }
-
-        public void Wind(bool reportProgress = true) {
-            _tweenSequence?.Wind(reportProgress);
-        }
-
-        public void Rewind(bool reportProgress = true) {
-            _tweenSequence?.Rewind(reportProgress);
-        }
-
-        public void Invert(bool isInverted) {
-            _tweenSequence?.Invert(isInverted);
-        }
-    }
-
-    [Serializable]
-    [SubclassSelectorIgnore]
-    [BlueprintNodeMeta(Name = "Tween Sequence", Category = "Tweens", Color = BlueprintColors.Node.Actions)]
-    public sealed class BlueprintNodeTweenSequence :
-        BlueprintNode,
-        IBlueprintNodeTween,
-        IBlueprintOutput<IBlueprintNodeTween>,
-        IBlueprintOutput<float>,
-        ITween
-    {
-        [SerializeField] private bool _loop;
-        [SerializeField] private bool _yoyo;
-
-        public ITween Tween => this;
-        public List<RuntimeLink> NextLinks => Ports[1].links;
-
-        public float Progress => _tweenSequence?.Progress ?? default;
-
-        private TweenSequence _tweenSequence;
-
-        public override Port[] CreatePorts() => new[] {
-            Port.Output<IBlueprintNodeTween>("Self").Layout(PortLayout.Left).Capacity(PortCapacity.Single),
-            Port.Input<IBlueprintNodeTween>("Next Tweens").Layout(PortLayout.Right).Capacity(PortCapacity.Multiple),
-            Port.Input<IBlueprintNodeTween>("Sequence Tweens").Layout(PortLayout.Right).Capacity(PortCapacity.Multiple),
-            Port.Exit("On Start"),
-            Port.Exit("On Cancelled"),
-            Port.Exit("On Finished"),
-            Port.Output<float>("Progress"),
-        };
-
-        IBlueprintNodeTween IBlueprintOutput<IBlueprintNodeTween>.GetOutputPortValue(int port) {
-            return port == 0 ? this : default;
-        }
-
-        float IBlueprintOutput<float>.GetOutputPortValue(int port) {
-            return port == 6 && _tweenSequence != null ? _tweenSequence.Progress : default;
-        }
-
-        public void Initialize(MonoBehaviour owner) {
-            var t = BlueprintTweenConverter.AsTween(Ports[2].links);
-            _tweenSequence = t == null ? null : t as TweenSequence ?? new TweenSequence { tweens = new List<ITween> { t } };
-
-            if (_tweenSequence != null) {
-                _tweenSequence.loop = _loop;
-                _tweenSequence.yoyo = _yoyo;
-            }
-
-            _tweenSequence?.Initialize(owner);
-        }
-
-        public void DeInitialize() {
-            _tweenSequence?.DeInitialize();
-            _tweenSequence = null;
-        }
-
-        public async UniTask Play(CancellationToken token) {
-            if (_tweenSequence == null) return;
-
-            Ports[3].Call();
-            await _tweenSequence.Play(token);
-            Ports[token.IsCancellationRequested ? 4 : 5].Call();
         }
 
         public void Wind(bool reportProgress = true) {

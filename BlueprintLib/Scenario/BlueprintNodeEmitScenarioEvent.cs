@@ -7,13 +7,13 @@ namespace MisterGames.BlueprintLib {
 
     [Serializable]
     public class BlueprintSourceEmitScenarioEvent :
-        BlueprintSource<BlueprintNodeEmitScenarioEvent2>,
-        BlueprintSources.IEnter<BlueprintNodeEmitScenarioEvent2>,
+        BlueprintSource<BlueprintNodeEmitScenarioEvent>,
+        BlueprintSources.IEnter<BlueprintNodeEmitScenarioEvent>,
         BlueprintSources.ICloneable {}
 
     [Serializable]
     [BlueprintNode(Name = "Emit Scenario Event", Category = "Scenario", Color = BlueprintLibColors.Node.Scenario)]
-    public struct BlueprintNodeEmitScenarioEvent2 : IBlueprintNode, IBlueprintEnter2 {
+    public struct BlueprintNodeEmitScenarioEvent : IBlueprintNode, IBlueprintEnter {
 
         [SerializeField] private ScenarioEvent _event;
 
@@ -27,25 +27,6 @@ namespace MisterGames.BlueprintLib {
 
             _event.Emit();
             blueprint.Call(token, 1);
-        }
-    }
-
-    [Serializable]
-    [BlueprintNodeMeta(Name = "Emit Scenario Event", Category = "Scenario", Color = BlueprintLibColors.Node.Scenario)]
-    public sealed class BlueprintNodeEmitScenarioEvent : BlueprintNode, IBlueprintEnter {
-        
-        [SerializeField] private ScenarioEvent _event;
-
-        public override Port[] CreatePorts() => new[] {
-            Port.Enter(),
-            Port.Exit(),
-        };
-
-        public void OnEnterPort(int port) {
-            if (port != 0) return;
-
-            _event.Emit();
-            Ports[1].Call();
         }
     }
 

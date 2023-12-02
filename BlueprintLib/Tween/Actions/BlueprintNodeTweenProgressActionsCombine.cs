@@ -8,13 +8,13 @@ namespace MisterGames.BlueprintLib {
 
     [Serializable]
     public class BlueprintSourceTweenProgressActionsCombine :
-        BlueprintSource<BlueprintNodeTweenProgressActionsCombine2>,
-        BlueprintSources.IOutput<BlueprintNodeTweenProgressActionsCombine2, ITweenProgressAction>,
+        BlueprintSource<BlueprintNodeTweenProgressActionsCombine>,
+        BlueprintSources.IOutput<BlueprintNodeTweenProgressActionsCombine, ITweenProgressAction>,
         BlueprintSources.ICloneable {}
 
     [Serializable]
     [BlueprintNode(Name = "Combine Tween Progress Actions", Category = "Tweens/Actions", Color = BlueprintColors.Node.Actions)]
-    public struct BlueprintNodeTweenProgressActionsCombine2 : IBlueprintNode, IBlueprintOutput2<ITweenProgressAction>  {
+    public struct BlueprintNodeTweenProgressActionsCombine : IBlueprintNode, IBlueprintOutput<ITweenProgressAction>  {
 
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {
             meta.AddPort(id, Port.Input<ITweenProgressAction>("Actions").Capacity(PortCapacity.Multiple));
@@ -50,42 +50,6 @@ namespace MisterGames.BlueprintLib {
             }
 
             return result;
-        }
-    }
-
-    [Serializable]
-    [BlueprintNodeMeta(Name = "Combine Tween Progress Actions", Category = "Tweens/Actions", Color = BlueprintColors.Node.Actions)]
-    public sealed class BlueprintNodeTweenProgressActionsCombine : BlueprintNode, IBlueprintOutput<ITweenProgressAction>  {
-
-        private readonly TweenProgressActions _actions = new TweenProgressActions();
-        
-        public override Port[] CreatePorts() => new[] {
-            Port.Input<ITweenProgressAction>("Actions").Capacity(PortCapacity.Multiple),
-            Port.Output<ITweenProgressAction>(),
-        };
-
-        public ITweenProgressAction GetOutputPortValue(int port) {
-            if (port != 1) return null;
-
-            var links = Ports[0].links;
-            _actions.actions = new List<ITweenProgressAction>(links.Count);
-
-            for (int l = 0; l < links.Count; l++) {
-                var link = links[l];
-
-                if (link.Get<ITweenProgressAction>() is { } action) {
-                    _actions.actions.Add(action);
-                    continue;
-                }
-
-                if (link.Get<ITweenProgressAction[]>() is { } actions) {
-                    for (int i = 0; i < actions.Length; i++) {
-                        if (actions[i] is { } a) _actions.actions.Add(a);
-                    }
-                }
-            }
-
-            return _actions;
         }
     }
 

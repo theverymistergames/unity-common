@@ -12,7 +12,7 @@ namespace MisterGames.BlueprintLib {
     
     [Serializable]
     [BlueprintNode(Name = "Enable Component", Category = "GameObject", Color = BlueprintColors.Node.Actions)]
-    public struct BlueprintNodeEnableComponent : IBlueprintNode, IBlueprintEnter2 {
+    public struct BlueprintNodeEnableComponent : IBlueprintNode, IBlueprintEnter {
 
         [SerializeField] private bool _isEnabled;
 

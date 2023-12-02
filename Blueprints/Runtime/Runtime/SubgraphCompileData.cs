@@ -2,15 +2,15 @@
 
     public readonly struct SubgraphCompileData {
 
-        public readonly IBlueprintHost2 host;
-        public readonly RuntimeBlueprint2 blueprint;
+        public readonly IBlueprintHost host;
+        public readonly RuntimeBlueprint blueprint;
         public readonly NodeId id;
         public readonly NodeId runtimeId;
         public readonly int parent;
 
         public SubgraphCompileData(
-            IBlueprintHost2 host,
-            RuntimeBlueprint2 blueprint,
+            IBlueprintHost host,
+            RuntimeBlueprint blueprint,
             NodeId id,
             NodeId runtimeId,
             int parent

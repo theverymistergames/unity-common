@@ -18,15 +18,15 @@ namespace MisterGames.Blueprints.Nodes {
     [BlueprintNode(Name = "External Blueprint", Category = "External", Color = BlueprintColors.Node.External)]
     public struct BlueprintNodeExternalBlueprint :
         IBlueprintNode,
-        IBlueprintEnter2,
-        IBlueprintOutput2,
+        IBlueprintEnter,
+        IBlueprintOutput,
         IBlueprintCreateSignaturePorts
     {
         [BlackboardProperty("_blackboard")]
         [SerializeField] private int _runner;
-        [SerializeField] private BlueprintAsset2 _blueprint;
+        [SerializeField] private BlueprintAsset _blueprint;
 
-        private RuntimeBlueprint2 _externalBlueprint;
+        private RuntimeBlueprint _externalBlueprint;
 
 #if UNITY_EDITOR
         private bool _isValidExternalBlueprint;
@@ -37,10 +37,10 @@ namespace MisterGames.Blueprints.Nodes {
         }
 
         public void OnInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
-            var runner = blueprint.GetBlackboard(root).Get<BlueprintRunner2>(_runner);
+            var runner = blueprint.GetBlackboard(root).Get<BlueprintRunner>(_runner);
 
 #if UNITY_EDITOR
-            _isValidExternalBlueprint = SubgraphValidator2.ValidateExternalBlueprint(blueprint.Host, runner, _blueprint);
+            _isValidExternalBlueprint = SubgraphValidator.ValidateExternalBlueprint(blueprint.Host, runner, _blueprint);
             if (!_isValidExternalBlueprint) return;
             runner.RegisterClient(blueprint.Host);
 #endif
@@ -52,7 +52,7 @@ namespace MisterGames.Blueprints.Nodes {
         public void OnDeInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
 #if UNITY_EDITOR
             if (!_isValidExternalBlueprint) return;
-            var runner = blueprint.GetBlackboard(root).Get<BlueprintRunner2>(_runner);
+            var runner = blueprint.GetBlackboard(root).Get<BlueprintRunner>(_runner);
             if (runner != null) runner.UnregisterClient(blueprint.Host);
 #endif
 
@@ -78,7 +78,7 @@ namespace MisterGames.Blueprints.Nodes {
 
         public void OnValidate(IBlueprintMeta meta, NodeId id) {
 #if UNITY_EDITOR
-            SubgraphValidator2.ValidateSubgraphAsset(meta, ref _blueprint);
+            SubgraphValidator.ValidateSubgraphAsset(meta, ref _blueprint);
 #endif
 
             meta.InvalidateNode(id, invalidateLinks: true);

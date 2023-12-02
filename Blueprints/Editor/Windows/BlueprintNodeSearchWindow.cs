@@ -140,7 +140,7 @@ namespace MisterGames.Blueprints.Editor.Windows {
                         portEntries.Add(new NodePortSearchEntry {
                             nodeType = t,
                             portIndex = p,
-                            portName = BlueprintNodeMetaUtils.GetFormattedPortName(p, port, richText: false),
+                            portName = BlueprintNodeUtils.GetFormattedPortName(p, port, richText: false),
                         });
                     }
 

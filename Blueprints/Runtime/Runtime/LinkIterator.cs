@@ -2,12 +2,12 @@
 
     public struct LinkIterator {
 
-        private readonly RuntimeBlueprint2 _blueprint;
+        private readonly RuntimeBlueprint _blueprint;
         private readonly NodeToken _token;
         private readonly int _port;
         private int _index;
 
-        public LinkIterator(RuntimeBlueprint2 blueprint, NodeToken token, int port) {
+        public LinkIterator(RuntimeBlueprint blueprint, NodeToken token, int port) {
             _blueprint = blueprint;
             _token = token;
             _port = port;

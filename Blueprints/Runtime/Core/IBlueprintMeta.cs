@@ -13,7 +13,7 @@ namespace MisterGames.Blueprints {
 
         int GetPortCount(NodeId id);
 
-        BlueprintLink2 GetLink(int index);
+        BlueprintLink GetLink(int index);
 
         bool TryGetLinksFrom(NodeId id, int port, out int index);
 
@@ -21,7 +21,7 @@ namespace MisterGames.Blueprints {
 
         bool TryGetNextLink(int previous, out int next);
 
-        void SetSubgraph(NodeId id, BlueprintAsset2 asset);
+        void SetSubgraph(NodeId id, BlueprintAsset asset);
 
         void RemoveSubgraph(NodeId id);
 

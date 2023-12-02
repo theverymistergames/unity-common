@@ -10,7 +10,7 @@ namespace Core {
 
         [Test]
         public void AddNode() {
-            var meta = new BlueprintMeta2();
+            var meta = new BlueprintMeta();
             var changed = new HashSet<NodeId>();
 
             meta.Bind((id) => changed.Add(id));
@@ -26,7 +26,7 @@ namespace Core {
 
         [Test]
         public void RemoveNode() {
-            var meta = new BlueprintMeta2();
+            var meta = new BlueprintMeta();
             var changed = new HashSet<NodeId>();
 
             var id0 = meta.AddNode(typeof(BlueprintSourceTest0), typeof(BlueprintNodeTest0));
@@ -53,7 +53,7 @@ namespace Core {
 
         [Test]
         public void AddLink() {
-            var meta = new BlueprintMeta2();
+            var meta = new BlueprintMeta();
             var changed = new HashSet<NodeId>();
 
             var id0 = meta.AddNode(typeof(BlueprintSourceTest0), typeof(BlueprintNodeTest0));
@@ -80,7 +80,7 @@ namespace Core {
 
         [Test]
         public void RemoveLink() {
-            var meta = new BlueprintMeta2();
+            var meta = new BlueprintMeta();
             var changed = new HashSet<NodeId>();
 
             var id0 = meta.AddNode(typeof(BlueprintSourceTest0), typeof(BlueprintNodeTest0));
@@ -100,7 +100,7 @@ namespace Core {
 
         [Test]
         public void InvalidateNode_RemoveAllPorts() {
-            var meta = new BlueprintMeta2();
+            var meta = new BlueprintMeta();
 
             var id0 = meta.AddNode(typeof(BlueprintSourceTest0), typeof(BlueprintNodeTest0));
             var id1 = meta.AddNode(typeof(BlueprintSourceTest2), typeof(BlueprintNodeTest2));
@@ -118,7 +118,7 @@ namespace Core {
 
         [Test]
         public void InvalidateNode_RemovePort() {
-            var meta = new BlueprintMeta2();
+            var meta = new BlueprintMeta();
 
             var id0 = meta.AddNode(typeof(BlueprintSourceTest0), typeof(BlueprintNodeTest0));
             var id1 = meta.AddNode(typeof(BlueprintSourceTest0), typeof(BlueprintNodeTest0));
@@ -135,7 +135,7 @@ namespace Core {
 
         [Test]
         public void GetFromLinks() {
-            var meta = new BlueprintMeta2();
+            var meta = new BlueprintMeta();
 
             var id0 = meta.AddNode(typeof(BlueprintSourceTest0), typeof(BlueprintNodeTest0));
             var id1 = meta.AddNode(typeof(BlueprintSourceTest0), typeof(BlueprintNodeTest0), Vector2.zero);

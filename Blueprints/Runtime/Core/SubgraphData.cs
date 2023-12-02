@@ -9,7 +9,7 @@ namespace MisterGames.Blueprints {
     public struct SubgraphData {
 
 
-        public BlueprintAsset2 asset;
+        public BlueprintAsset asset;
         public Blackboard blackboard;
         public bool isFactoryOverrideEnabled;
         [SerializeReference] public IBlueprintFactory factoryOverride;

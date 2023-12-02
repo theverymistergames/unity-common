@@ -22,7 +22,7 @@ namespace MisterGames.Blueprints.Editor.Utils {
             return 0;
         }
 
-        public BlueprintLink2 GetLink(int index) {
+        public BlueprintLink GetLink(int index) {
             return default;
         }
 
@@ -41,7 +41,7 @@ namespace MisterGames.Blueprints.Editor.Utils {
             return false;
         }
 
-        public void SetSubgraph(NodeId id, BlueprintAsset2 asset) { }
+        public void SetSubgraph(NodeId id, BlueprintAsset asset) { }
 
         public void RemoveSubgraph(NodeId id) { }
 

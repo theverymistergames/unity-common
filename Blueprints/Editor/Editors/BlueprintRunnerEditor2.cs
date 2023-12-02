@@ -9,11 +9,11 @@ using UnityEngine;
 
 namespace MisterGames.Blueprints.Editor.Editors {
 
-    [CustomEditor(typeof(BlueprintRunner2))]
+    [CustomEditor(typeof(BlueprintRunner))]
     public sealed class BlueprintRunnerEditor2 : UnityEditor.Editor {
 
         public override void OnInspectorGUI() {
-            if (target is not BlueprintRunner2 runner) return;
+            if (target is not BlueprintRunner runner) return;
 
             serializedObject.Update();
 
@@ -30,13 +30,13 @@ namespace MisterGames.Blueprints.Editor.Editors {
             serializedObject.ApplyModifiedProperties();
         }
 
-        private static void DrawAssetPicker(BlueprintRunner2 runner) {
+        private static void DrawAssetPicker(BlueprintRunner runner) {
             var newAsset = EditorGUILayout.ObjectField(
                 "Blueprint Asset",
                 runner.BlueprintAsset,
-                typeof(BlueprintAsset2),
+                typeof(BlueprintAsset),
                 false
-            ) as BlueprintAsset2;
+            ) as BlueprintAsset;
 
             runner.BlueprintAsset = newAsset;
 
@@ -48,7 +48,7 @@ namespace MisterGames.Blueprints.Editor.Editors {
             GUILayout.Space(EditorGUIUtility.standardVerticalSpacing);
         }
 
-        private static void DrawRoot(BlueprintRunner2 runner, SerializedObject serializedObject) {
+        private static void DrawRoot(BlueprintRunner runner, SerializedObject serializedObject) {
             var metaProperty = serializedObject.FindProperty("_rootMetaOverride");
             var enabledProperty = serializedObject.FindProperty("_isRootOverrideEnabled");
             var asset = runner.BlueprintAsset;
@@ -61,9 +61,9 @@ namespace MisterGames.Blueprints.Editor.Editors {
 
             EditorGUILayout.PropertyField(enabledProperty, GUIContent.none, GUILayout.MaxWidth(EditorGUIUtility.singleLineHeight));
 
-            if (metaProperty.managedReferenceValue is BlueprintMeta2) {
+            if (metaProperty.managedReferenceValue is BlueprintMeta) {
                 if (GUILayout.Button("Edit")) {
-                    BlueprintMeta2 meta;
+                    BlueprintMeta meta;
                     Blackboard blackboard;
                     IBlueprintFactory factoryOverride;
 
@@ -89,7 +89,7 @@ namespace MisterGames.Blueprints.Editor.Editors {
             }
             else {
                 if (GUILayout.Button("Create")) {
-                    runner.RootMetaOverride = new BlueprintMeta2();
+                    runner.RootMetaOverride = new BlueprintMeta();
                     runner.IsRootMetaOverrideEnabled = true;
                 }
             }
@@ -99,7 +99,7 @@ namespace MisterGames.Blueprints.Editor.Editors {
             GUILayout.Space(EditorGUIUtility.standardVerticalSpacing);
         }
 
-        private static void DrawCompileControls(BlueprintRunner2 runner) {
+        private static void DrawCompileControls(BlueprintRunner runner) {
             if (runner.RuntimeBlueprint == null) {
                 if (runner.BlueprintAsset != null || runner.GetRootFactory() != null) {
                     if (GUILayout.Button("Compile & Start Blueprint")) runner.RestartBlueprint();
@@ -141,7 +141,7 @@ namespace MisterGames.Blueprints.Editor.Editors {
             GUILayout.Space(EditorGUIUtility.standardVerticalSpacing);
         }
 
-        private static void DrawSubgraphs(BlueprintRunner2 runner, SerializedObject serializedObject) {
+        private static void DrawSubgraphs(BlueprintRunner runner, SerializedObject serializedObject) {
             var subgraphTree = runner.SubgraphTree;
 
             int count = subgraphTree.Count;
@@ -238,7 +238,7 @@ namespace MisterGames.Blueprints.Editor.Editors {
             }
         }
 
-        private static void FetchSubgraphData(BlueprintRunner2 runner, BlueprintAsset2 oldAsset) {
+        private static void FetchSubgraphData(BlueprintRunner runner, BlueprintAsset oldAsset) {
             var asset = runner.BlueprintAsset;
             var meta = asset != null ? asset.BlueprintMeta : runner.RootMetaOverride;
             var subgraphTree = runner.SubgraphTree;
@@ -275,8 +275,8 @@ namespace MisterGames.Blueprints.Editor.Editors {
         }
 
         private static void FetchBlueprintAndItsSubgraphsRecursively(
-            BlueprintRunner2 runner,
-            BlueprintAsset2 asset,
+            BlueprintRunner runner,
+            BlueprintAsset asset,
             TreeMap<NodeId, SubgraphData> subgraphTree,
             NodeId id = default,
             int parentIndex = -1

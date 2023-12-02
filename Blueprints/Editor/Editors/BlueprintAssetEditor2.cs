@@ -3,11 +3,11 @@ using UnityEngine;
 
 namespace MisterGames.Blueprints.Editor.Editors {
 
-    [CustomEditor(typeof(BlueprintAsset2))]
+    [CustomEditor(typeof(BlueprintAsset))]
     public sealed class BlueprintAssetEditor2 : UnityEditor.Editor {
 
         public override void OnInspectorGUI() {
-            if (target is not BlueprintAsset2 blueprint) return;
+            if (target is not BlueprintAsset blueprint) return;
 
             EditorGUILayout.IntField("Nodes count", blueprint.BlueprintMeta.NodeCount);
 

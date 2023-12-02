@@ -11,16 +11,16 @@ namespace MisterGames.Blueprints.Nodes {
         BlueprintSources.ICloneable { }
 
     [Serializable]
-    internal struct BlueprintNodeRoot : IBlueprintNode, IBlueprintEnter2, IBlueprintOutput2 {
+    internal struct BlueprintNodeRoot : IBlueprintNode, IBlueprintEnter, IBlueprintOutput {
 
         public void CreatePorts(IBlueprintMeta meta, NodeId id) { }
 
         public void OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
-            ((RuntimeBlueprint2) blueprint).ExternalCall(token.caller, port);
+            ((RuntimeBlueprint) blueprint).ExternalCall(token.caller, port);
         }
 
         public T GetPortValue<T>(IBlueprint blueprint, NodeToken token, int port) {
-            return ((RuntimeBlueprint2) blueprint).ExternalRead<T>(token.caller, port);
+            return ((RuntimeBlueprint) blueprint).ExternalRead<T>(token.caller, port);
         }
     }
 

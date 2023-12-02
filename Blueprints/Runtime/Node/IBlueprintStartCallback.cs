@@ -2,7 +2,7 @@
 
     /// <summary>
     /// Blueprint node callback, called when runtime blueprint starts
-    /// at MonoBehaviour.Start of <see cref="BlueprintRunner2"/> with corresponding <see cref="BlueprintAsset2"/>.
+    /// at MonoBehaviour.Start of <see cref="BlueprintRunner"/> with corresponding <see cref="BlueprintAsset"/>.
     /// </summary>
     public interface IBlueprintStartCallback {
 

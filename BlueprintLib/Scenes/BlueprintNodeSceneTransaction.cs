@@ -9,12 +9,12 @@ namespace MisterGames.BlueprintLib {
 
     [Serializable]
     public class BlueprintSourceSceneTransaction :
-        BlueprintSource<BlueprintNodeSceneTransaction2>,
-        BlueprintSources.IEnter<BlueprintNodeSceneTransaction2> { }
+        BlueprintSource<BlueprintNodeSceneTransaction>,
+        BlueprintSources.IEnter<BlueprintNodeSceneTransaction> { }
 
     [Serializable]
     [BlueprintNode(Name = "Scene Transaction", Category = "Scenes", Color = BlueprintLibColors.Node.Scenes)]
-    public struct BlueprintNodeSceneTransaction2 : IBlueprintNode, IBlueprintEnter2 {
+    public struct BlueprintNodeSceneTransaction : IBlueprintNode, IBlueprintEnter {
 
         [SerializeField] private SceneTransaction _sceneTransaction;
 
@@ -50,42 +50,6 @@ namespace MisterGames.BlueprintLib {
             if (cancellationToken.IsCancellationRequested) return;
 
             blueprint.Call(token, 1);
-        }
-    }
-
-    [Serializable]
-    [BlueprintNodeMeta(Name = "Scene Transaction", Category = "Scenes", Color = BlueprintLibColors.Node.Scenes)]
-    public sealed class BlueprintNodeSceneTransaction : BlueprintNode, IBlueprintEnter {
-        
-        [SerializeField] private SceneTransaction _sceneTransaction;
-
-        private CancellationTokenSource _terminateCts;
-
-        public override Port[] CreatePorts() => new[] {
-            Port.Enter("Perform"),
-            Port.Exit("On Finish"),
-        };
-
-        public override void OnInitialize(IBlueprintHost host) {
-            _terminateCts = new CancellationTokenSource();
-        }
-
-        public override void OnDeInitialize() {
-            _terminateCts.Cancel();
-            _terminateCts.Dispose();
-        }
-
-        public void OnEnterPort(int port) {
-            if (port != 0) return;
-
-            CommitTransactionAndExitAsync(_terminateCts.Token).Forget();
-        }
-
-        private async UniTaskVoid CommitTransactionAndExitAsync(CancellationToken token) {
-            await _sceneTransaction.Apply(this, token);
-            if (token.IsCancellationRequested) return;
-
-            Ports[1].Call();
         }
     }
 

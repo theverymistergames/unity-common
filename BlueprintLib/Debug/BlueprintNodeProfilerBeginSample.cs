@@ -7,13 +7,13 @@ namespace MisterGames.BlueprintLib {
 
     [Serializable]
     public class BlueprintSourceProfilerBeginSample :
-        BlueprintSource<BlueprintNodeProfilerBeginSample2>,
-        BlueprintSources.IEnter<BlueprintNodeProfilerBeginSample2>,
+        BlueprintSource<BlueprintNodeProfilerBeginSample>,
+        BlueprintSources.IEnter<BlueprintNodeProfilerBeginSample>,
         BlueprintSources.ICloneable {}
 
     [Serializable]
     [BlueprintNode(Name = "Profiler.BeginSample", Category = "Debug", Color = BlueprintColors.Node.Debug)]
-    public struct BlueprintNodeProfilerBeginSample2 : IBlueprintNode, IBlueprintEnter2 {
+    public struct BlueprintNodeProfilerBeginSample : IBlueprintNode, IBlueprintEnter {
 
         [SerializeField] private string _sampleName;
 
@@ -27,25 +27,6 @@ namespace MisterGames.BlueprintLib {
 
             Profiler.BeginSample(_sampleName);
             blueprint.Call(token, 1);
-        }
-    }
-
-    [Serializable]
-    [BlueprintNodeMeta(Name = "Profiler.BeginSample", Category = "Debug", Color = BlueprintColors.Node.Debug)]
-    public sealed class BlueprintNodeProfilerBeginSample : BlueprintNode, IBlueprintEnter {
-        
-        [SerializeField] private string _sampleName;
-
-        public override Port[] CreatePorts() => new[] {
-            Port.Enter(),
-            Port.Exit(),
-        };
-
-        public void OnEnterPort(int port) {
-            if (port != 0) return;
-
-            Profiler.BeginSample(_sampleName);
-            Ports[1].Call();
         }
     }
 

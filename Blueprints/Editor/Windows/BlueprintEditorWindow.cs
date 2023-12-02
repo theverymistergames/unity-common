@@ -17,7 +17,7 @@ namespace MisterGames.Blueprints.Editor.Windows {
 
         private const string WINDOW_TITLE = "Blueprint Editor 2";
 
-        private BlueprintMeta2 _blueprintMeta;
+        private BlueprintMeta _blueprintMeta;
         private IBlueprintFactory _factoryOverride;
         private Blackboard _blackboard;
         private SerializedObject _serializedObject;
@@ -43,15 +43,15 @@ namespace MisterGames.Blueprints.Editor.Windows {
 
         [OnOpenAsset]
         private static bool OnOpenAsset(int instanceId, int line) {
-            if (Selection.activeObject is not BlueprintAsset2 blueprintAsset) return false;
+            if (Selection.activeObject is not BlueprintAsset blueprintAsset) return false;
 
             Open(blueprintAsset);
             return true;
         }
 
         public static void Open(
-            BlueprintAsset2 asset = null,
-            BlueprintMeta2 meta = null,
+            BlueprintAsset asset = null,
+            BlueprintMeta meta = null,
             IBlueprintFactory factoryOverride = null,
             Blackboard blackboard = null,
             SerializedObject serializedObject = null
@@ -90,7 +90,7 @@ namespace MisterGames.Blueprints.Editor.Windows {
             root.styleSheets.Add(styleSheet);
 
             _assetPicker = root.Q<ObjectField>("asset");
-            _assetPicker.objectType = typeof(BlueprintAsset2);
+            _assetPicker.objectType = typeof(BlueprintAsset);
             _assetPicker.allowSceneObjects = false;
             _assetPicker.RegisterCallback<ChangeEvent<Object>>(OnAssetChanged);
 
@@ -118,11 +118,11 @@ namespace MisterGames.Blueprints.Editor.Windows {
         }
 
         private void OnTargetObjectSetDirty(Object obj) {
-            SetWindowTitle(_assetPicker?.value is BlueprintAsset2 asset ? $"{asset.name}*" : WINDOW_TITLE);
+            SetWindowTitle(_assetPicker?.value is BlueprintAsset asset ? $"{asset.name}*" : WINDOW_TITLE);
         }
 
         private void TrySaveCurrentBlueprintAsset() {
-            var asset = _assetPicker?.value as BlueprintAsset2;
+            var asset = _assetPicker?.value as BlueprintAsset;
             if (asset != null) AssetDatabase.SaveAssetIfDirty(asset);
             SetWindowTitle(asset == null ? WINDOW_TITLE : asset.name);
         }
@@ -131,7 +131,7 @@ namespace MisterGames.Blueprints.Editor.Windows {
             _blueprintsView?.ToggleBlackboard(evt.newValue);
         }
 
-        private void SetAssetPickerValue(BlueprintAsset2 asset, bool notify) {
+        private void SetAssetPickerValue(BlueprintAsset asset, bool notify) {
             if (_assetPicker == null) return;
 
             if (notify) _assetPicker.value = asset;
@@ -139,7 +139,7 @@ namespace MisterGames.Blueprints.Editor.Windows {
         }
 
         private void OnAssetChanged(ChangeEvent<Object> evt) {
-            var asset = evt.newValue as BlueprintAsset2;
+            var asset = evt.newValue as BlueprintAsset;
 
             if (asset == null) {
                 _serializedObject = null;
@@ -171,11 +171,11 @@ namespace MisterGames.Blueprints.Editor.Windows {
                 return;
             }
 
-            var asset = _assetPicker.value as BlueprintAsset2;
+            var asset = _assetPicker.value as BlueprintAsset;
             string title = asset != null ? EditorUtility.IsDirty(asset) ? $"{asset.name}*" : asset.name : WINDOW_TITLE;
             SetWindowTitle(title);
 
-            if (_serializedObject?.targetObject is BlueprintRunner2 runner) {
+            if (_serializedObject?.targetObject is BlueprintRunner runner) {
                 var subgraphPath = runner.FindSubgraphPath(_blueprintMeta);
                 BlueprintEditorStorage.Instance.NotifyOpenedBlueprintAsset(asset, runner, subgraphPath);
 

@@ -7,13 +7,13 @@ namespace MisterGames.BlueprintLib {
 
     [Serializable]
     public class BlueprintSourceRandomFloat :
-        BlueprintSource<BlueprintNodeRandomFloat2>,
-        BlueprintSources.IOutput<BlueprintNodeRandomFloat2, float>,
+        BlueprintSource<BlueprintNodeRandomFloat>,
+        BlueprintSources.IOutput<BlueprintNodeRandomFloat, float>,
         BlueprintSources.ICloneable {}
 
     [Serializable]
     [BlueprintNode(Name = "Random Float", Category = "Math", Color = BlueprintColors.Node.Data)]
-    public struct BlueprintNodeRandomFloat2 : IBlueprintNode, IBlueprintOutput2<float> {
+    public struct BlueprintNodeRandomFloat : IBlueprintNode, IBlueprintOutput<float> {
 
         [SerializeField] private float _from;
         [SerializeField] private float _to;
@@ -31,30 +31,6 @@ namespace MisterGames.BlueprintLib {
             float to = blueprint.Read(token, 1, _to);
 
             return Random.Range(from, to);
-        }
-    }
-
-    [Serializable]
-    [BlueprintNodeMeta(Name = "Random Float", Category = "Math", Color = BlueprintColors.Node.Data)]
-    public sealed class BlueprintNodeRandomFloat : BlueprintNode, IBlueprintOutput<float> {
-
-        [SerializeField] private float _from;
-        [SerializeField] private float _to;
-
-        public override Port[] CreatePorts() => new[] {
-            Port.Input<float>("From"),
-            Port.Input<float>("To"),
-            Port.Output<float>()
-        };
-
-        public float GetOutputPortValue(int port) {
-            var from = Ports[0].Get(defaultValue: _from);
-            var to = Ports[1].Get(defaultValue: _to);
-            
-            return port switch {
-                2 => Random.Range(from, to),
-                _ => 0f
-            };
         }
     }
 

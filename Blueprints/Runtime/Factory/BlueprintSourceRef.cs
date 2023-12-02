@@ -15,8 +15,8 @@ namespace MisterGames.Blueprints {
     [Serializable]
     internal sealed class BlueprintSourceRef :
         IBlueprintSource,
-        IBlueprintEnter2,
-        IBlueprintOutput2,
+        IBlueprintEnter,
+        IBlueprintOutput,
         IBlueprintStartCallback,
         IBlueprintEnableCallback,
         IBlueprintConnectionCallback,
@@ -149,15 +149,15 @@ namespace MisterGames.Blueprints {
         }
 
         public void OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
-            if (_nodeMap[token.node.node] is IBlueprintEnter2 enter) {
+            if (_nodeMap[token.node.node] is IBlueprintEnter enter) {
                 enter.OnEnterPort(blueprint, token, port);
             }
         }
 
         public T GetPortValue<T>(IBlueprint blueprint, NodeToken token, int port) {
             return _nodeMap[token.node.node] switch {
-                IBlueprintOutput2<T> outputT => outputT.GetPortValue(blueprint, token, port),
-                IBlueprintOutput2 output => output.GetPortValue<T>(blueprint, token, port),
+                IBlueprintOutput<T> outputT => outputT.GetPortValue(blueprint, token, port),
+                IBlueprintOutput output => output.GetPortValue<T>(blueprint, token, port),
                 _ => default,
             };
         }

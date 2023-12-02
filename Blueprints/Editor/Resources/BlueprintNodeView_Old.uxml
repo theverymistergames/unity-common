@@ -1,0 +1,18 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="True">
+    <Style src="project://database/Assets/MisterGames/unity-common/Blueprints/Editor/Resources/BlueprintNodeViewStyle.uss?fileID=7433441132597879392&amp;guid=dae0f2561eaeb3d4e8c1b4fd8d8ae21a&amp;type=3#BlueprintNodeViewStyle" />
+    <ui:VisualElement name="node-border" style="background-color: rgb(56, 56, 56);">
+        <ui:VisualElement name="contents">
+            <ui:VisualElement name="top">
+                <ui:VisualElement name="title-container" style="flex-direction: row; flex-wrap: wrap; flex-grow: 1; justify-content: flex-start; background-color: rgb(56, 56, 56); min-width: 50px;">
+                    <ui:Label name="title" text="Node" class="unity-text-element unity-label" style="padding-left: 0; align-items: center; -unity-text-align: upper-left; margin-left: 8px; flex-shrink: 1; flex-grow: 1; flex-direction: row; max-width: none; flex-wrap: wrap;" />
+                </ui:VisualElement>
+                <ui:VisualElement name="divider" class="vertical" />
+                <ui:GroupBox style="flex-direction: row; justify-content: center; flex-grow: 1; flex-shrink: 1; margin-left: 0; margin-right: 0; margin-top: 0; margin-bottom: 0; padding-left: 0; padding-right: 0; padding-top: 0; padding-bottom: 0; min-width: 50px; min-height: 20px; max-height: none; max-width: none; background-color: rgb(56, 56, 56);">
+                    <ui:VisualElement name="input" style="flex-grow: 1; flex-direction: column; justify-content: flex-start; min-width: 0; max-width: none; flex-wrap: nowrap; align-items: flex-start; max-height: none; min-height: 0; flex-shrink: 0; border-right-width: 0; border-right-color: rgb(77, 77, 77);" />
+                    <MisterGames.Common.Editor.Views.InspectorView name="inspector" style="flex-grow: 0; min-width: 0; max-width: none; min-height: 0; max-height: none; flex-shrink: 0; padding-left: 4px; padding-right: 4px; padding-top: 4px; padding-bottom: 4px; border-right-color: rgb(77, 77, 77); border-right-width: 0; border-left-color: rgb(77, 77, 77); border-top-color: rgb(77, 77, 77); border-bottom-color: rgb(77, 77, 77); border-left-width: 0; border-top-width: 0; border-bottom-width: 0; margin-left: 0; margin-right: 0; margin-top: 0; margin-bottom: 0;" />
+                    <ui:VisualElement name="output" picking-mode="Ignore" style="flex-grow: 1; justify-content: flex-start; max-width: none; max-height: none; min-width: 0; min-height: 0; align-items: flex-end; flex-shrink: 0;" />
+                </ui:GroupBox>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

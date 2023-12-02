@@ -18,7 +18,7 @@ namespace MisterGames.Blueprints.Editor.View {
 
         public int GetPortCount(NodeId id) => _ports.Count;
 
-        public BlueprintLink2 GetLink(int index) => default;
+        public BlueprintLink GetLink(int index) => default;
 
         public bool TryGetLinksFrom(NodeId id, int port, out int index) {
             index = -1;
@@ -35,7 +35,7 @@ namespace MisterGames.Blueprints.Editor.View {
             return false;
         }
 
-        public void SetSubgraph(NodeId id, BlueprintAsset2 asset) { }
+        public void SetSubgraph(NodeId id, BlueprintAsset asset) { }
 
         public void RemoveSubgraph(NodeId id) { }
 

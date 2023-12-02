@@ -6,13 +6,13 @@ namespace MisterGames.BlueprintLib {
 
     [Serializable]
     public class BlueprintSourceLog :
-        BlueprintSource<BlueprintNodeLog2>,
-        BlueprintSources.IEnter<BlueprintNodeLog2>,
+        BlueprintSource<BlueprintNodeLog>,
+        BlueprintSources.IEnter<BlueprintNodeLog>,
         BlueprintSources.ICloneable {}
 
     [Serializable]
     [BlueprintNode(Name = "Log", Category = "Debug", Color = BlueprintColors.Node.Debug)]
-    public struct BlueprintNodeLog2 : IBlueprintNode, IBlueprintEnter2 {
+    public struct BlueprintNodeLog : IBlueprintNode, IBlueprintEnter {
 
         [SerializeField] private Level _level;
         [SerializeField] private Color _color;
@@ -58,52 +58,6 @@ namespace MisterGames.BlueprintLib {
             }
 
             blueprint.Call(token, 2);
-        }
-    }
-
-    [Serializable]
-    [BlueprintNodeMeta(Name = "Log", Category = "Debug", Color = BlueprintColors.Node.Debug)]
-    public sealed class BlueprintNodeLog : BlueprintNode, IBlueprintEnter {
-        
-        [SerializeField] private Level _level = Level.Log;
-        [SerializeField] private Color _color = Color.white;
-        [SerializeField] private string _defaultText = "";
-
-        private enum Level {
-            Log,
-            Warning,
-            Assertion,
-            Error
-        }
-
-        public override Port[] CreatePorts() => new[] {
-            Port.Enter(),
-            Port.Input<string>("Text"),
-            Port.Exit(),
-        };
-
-        public void OnEnterPort(int port) {
-            if (port != 0) return;
-
-            string text = Ports[1].Get(_defaultText);
-            string formatText = $"<color=#{ColorUtility.ToHtmlStringRGB(_color)}>{text}</color>";
-
-            switch (_level) {
-                case Level.Log:
-                    Debug.Log(formatText);
-                    break;
-                case Level.Warning:
-                    Debug.LogWarning(formatText);
-                    break;
-                case Level.Assertion:
-                    Debug.LogAssertion(formatText);
-                    break;
-                case Level.Error:
-                    Debug.LogError(formatText);
-                    break;
-            }
-
-            Ports[2].Call();
         }
     }
 

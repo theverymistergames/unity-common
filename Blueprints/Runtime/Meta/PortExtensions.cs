@@ -103,7 +103,7 @@ namespace MisterGames.Blueprints {
             );
         }
 
-        internal static void FetchExternalPorts(IBlueprintMeta meta, NodeId id, BlueprintAsset2 asset) {
+        internal static void FetchExternalPorts(IBlueprintMeta meta, NodeId id, BlueprintAsset asset) {
             if (asset == null) return;
 
             var subgraphMeta = asset.BlueprintMeta;
@@ -120,7 +120,7 @@ namespace MisterGames.Blueprints {
                     int sign = port.GetSignature();
 
                     if (portSignatureSet.Contains(sign)) {
-                        PortValidator2.ValidateExternalPortWithExistingSignature(subgraphMeta, port);
+                        PortValidator.ValidateExternalPortWithExistingSignature(subgraphMeta, port);
                         continue;
                     }
 

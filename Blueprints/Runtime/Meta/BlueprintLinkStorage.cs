@@ -11,7 +11,7 @@ namespace MisterGames.Blueprints.Meta {
     [Serializable]
     public sealed class BlueprintLinkStorage {
 
-        [SerializeField] private TreeSet<BlueprintLink2> _linkTree;
+        [SerializeField] private TreeSet<BlueprintLink> _linkTree;
         [SerializeField] private int _linkCount;
         [SerializeField] private int _linkedPortCount;
 
@@ -21,23 +21,23 @@ namespace MisterGames.Blueprints.Meta {
         public int LinkedPortCount => _linkedPortCount;
 
         public BlueprintLinkStorage() {
-            _linkTree = new TreeSet<BlueprintLink2>();
+            _linkTree = new TreeSet<BlueprintLink>();
         }
 
         public BlueprintLinkStorage(BlueprintLinkStorage source) {
-            _linkTree = new TreeSet<BlueprintLink2>(source._linkTree);
+            _linkTree = new TreeSet<BlueprintLink>(source._linkTree);
             _linkCount = source._linkCount;
             _linkedPortCount = source._linkedPortCount;
         }
 
-        public BlueprintLink2 GetLink(int link) {
+        public BlueprintLink GetLink(int link) {
             return _linkTree.GetKeyAt(link);
         }
 
         public bool TryGetLinksFrom(NodeId id, int port, out int index) {
-            if (!_linkTree.TryGetNode(new BlueprintLink2(id, 0), out int nodeRoot) ||
-                !_linkTree.TryGetNode(new BlueprintLink2(id, port), nodeRoot, out int portRoot) ||
-                !_linkTree.TryGetNode(new BlueprintLink2(id, 0), portRoot, out int linksRoot)
+            if (!_linkTree.TryGetNode(new BlueprintLink(id, 0), out int nodeRoot) ||
+                !_linkTree.TryGetNode(new BlueprintLink(id, port), nodeRoot, out int portRoot) ||
+                !_linkTree.TryGetNode(new BlueprintLink(id, 0), portRoot, out int linksRoot)
             ) {
                 index = -1;
                 return false;
@@ -47,9 +47,9 @@ namespace MisterGames.Blueprints.Meta {
         }
 
         public bool TryGetLinksTo(NodeId id, int port, out int index) {
-            if (!_linkTree.TryGetNode(new BlueprintLink2(id, 0), out int nodeRoot) ||
-                !_linkTree.TryGetNode(new BlueprintLink2(id, port), nodeRoot, out int portRoot) ||
-                !_linkTree.TryGetNode(new BlueprintLink2(id, 1), portRoot, out int linksRoot)
+            if (!_linkTree.TryGetNode(new BlueprintLink(id, 0), out int nodeRoot) ||
+                !_linkTree.TryGetNode(new BlueprintLink(id, port), nodeRoot, out int portRoot) ||
+                !_linkTree.TryGetNode(new BlueprintLink(id, 1), portRoot, out int linksRoot)
             ) {
                 index = -1;
                 return false;
@@ -62,10 +62,10 @@ namespace MisterGames.Blueprints.Meta {
             return _linkTree.TryGetNext(previous, out next);
         }
 
-        public void SortLinksFrom(NodeId id, int port, IComparer<BlueprintLink2> comparer) {
-            if (!_linkTree.TryGetNode(new BlueprintLink2(id, 0), out int nodeRoot) ||
-                !_linkTree.TryGetNode(new BlueprintLink2(id, port), nodeRoot, out int portRoot) ||
-                !_linkTree.TryGetNode(new BlueprintLink2(id, 0), portRoot, out int linksRoot)
+        public void SortLinksFrom(NodeId id, int port, IComparer<BlueprintLink> comparer) {
+            if (!_linkTree.TryGetNode(new BlueprintLink(id, 0), out int nodeRoot) ||
+                !_linkTree.TryGetNode(new BlueprintLink(id, port), nodeRoot, out int portRoot) ||
+                !_linkTree.TryGetNode(new BlueprintLink(id, 0), portRoot, out int linksRoot)
             ) {
                 return;
             }
@@ -73,16 +73,16 @@ namespace MisterGames.Blueprints.Meta {
             _linkTree.SortChildren(linksRoot, comparer);
         }
 
-        public TreeSet<BlueprintLink2> CopyLinks(NodeId id) {
-            return _linkTree.TryGetNode(new BlueprintLink2(id, 0), out int nodeRoot)
+        public TreeSet<BlueprintLink> CopyLinks(NodeId id) {
+            return _linkTree.TryGetNode(new BlueprintLink(id, 0), out int nodeRoot)
                 ? _linkTree.Copy(nodeRoot, includeRoot: false)
                 : null;
         }
 
-        public void SetLinks(NodeId id, int port, TreeSet<BlueprintLink2> links, int sourcePort, bool notify = true) {
-            if (links == null || !links.TryGetNode(new BlueprintLink2(id, sourcePort), out int portRoot)) return;
+        public void SetLinks(NodeId id, int port, TreeSet<BlueprintLink> links, int sourcePort, bool notify = true) {
+            if (links == null || !links.TryGetNode(new BlueprintLink(id, sourcePort), out int portRoot)) return;
 
-            if (links.TryGetNode(new BlueprintLink2(id, 0), portRoot, out int linksRoot) &&
+            if (links.TryGetNode(new BlueprintLink(id, 0), portRoot, out int linksRoot) &&
                 links.TryGetChild(linksRoot, out int l)
             ) {
                 while (l >= 0) {
@@ -92,7 +92,7 @@ namespace MisterGames.Blueprints.Meta {
                 }
             }
 
-            if (links.TryGetNode(new BlueprintLink2(id, 1), portRoot, out linksRoot) &&
+            if (links.TryGetNode(new BlueprintLink(id, 1), portRoot, out linksRoot) &&
                 links.TryGetChild(linksRoot, out l)
             ) {
                 while (l >= 0) {
@@ -134,8 +134,8 @@ namespace MisterGames.Blueprints.Meta {
         }
 
         public void RemovePort(NodeId id, int port, bool notify = true) {
-            if (!_linkTree.TryGetNode(new BlueprintLink2(id, 0), out int nodeRoot) ||
-                !_linkTree.TryGetNode(new BlueprintLink2(id, port), nodeRoot, out int portRoot)
+            if (!_linkTree.TryGetNode(new BlueprintLink(id, 0), out int nodeRoot) ||
+                !_linkTree.TryGetNode(new BlueprintLink(id, port), nodeRoot, out int portRoot)
             ) {
                 return;
             }
@@ -153,7 +153,7 @@ namespace MisterGames.Blueprints.Meta {
         }
 
         public void RemoveNode(NodeId id, bool notify = true) {
-            if (!_linkTree.TryGetNode(new BlueprintLink2(id, 0), out int nodeRoot)) return;
+            if (!_linkTree.TryGetNode(new BlueprintLink(id, 0), out int nodeRoot)) return;
 
             _linkTree.AllowDefragmentation(false);
 
@@ -173,19 +173,19 @@ namespace MisterGames.Blueprints.Meta {
         }
 
         public bool ContainsLink(NodeId id, int port, NodeId toId, int toPort) {
-            return _linkTree.TryGetNode(new BlueprintLink2(id, 0), out int nodeRoot) &&
-                   _linkTree.TryGetNode(new BlueprintLink2(id, port), nodeRoot, out int portRoot) &&
-                   _linkTree.TryGetNode(new BlueprintLink2(id, 0), portRoot, out int linksRoot) &&
-                   _linkTree.ContainsNode(new BlueprintLink2(toId, toPort), linksRoot);
+            return _linkTree.TryGetNode(new BlueprintLink(id, 0), out int nodeRoot) &&
+                   _linkTree.TryGetNode(new BlueprintLink(id, port), nodeRoot, out int portRoot) &&
+                   _linkTree.TryGetNode(new BlueprintLink(id, 0), portRoot, out int linksRoot) &&
+                   _linkTree.ContainsNode(new BlueprintLink(toId, toPort), linksRoot);
         }
 
         public bool ContainsPort(NodeId id, int port) {
-            return _linkTree.TryGetNode(new BlueprintLink2(id, 0), out int nodeRoot) &&
-                   _linkTree.ContainsNode(new BlueprintLink2(id, port), nodeRoot);
+            return _linkTree.TryGetNode(new BlueprintLink(id, 0), out int nodeRoot) &&
+                   _linkTree.ContainsNode(new BlueprintLink(id, port), nodeRoot);
         }
 
         public bool ContainsNode(NodeId id) {
-            return _linkTree.ContainsNode(new BlueprintLink2(id, 0));
+            return _linkTree.ContainsNode(new BlueprintLink(id, 0));
         }
 
         public void Clear() {
@@ -195,22 +195,22 @@ namespace MisterGames.Blueprints.Meta {
         }
 
         private void AddLink(NodeId id, int port, NodeId toId, int toPort, int dir) {
-            int nodeRoot = _linkTree.GetOrAddNode(new BlueprintLink2(id, 0));
-            int portRoot = _linkTree.GetOrAddNode(new BlueprintLink2(id, port), nodeRoot);
+            int nodeRoot = _linkTree.GetOrAddNode(new BlueprintLink(id, 0));
+            int portRoot = _linkTree.GetOrAddNode(new BlueprintLink(id, port), nodeRoot);
 
-            var dirKey = new BlueprintLink2(id, dir);
+            var dirKey = new BlueprintLink(id, dir);
             if (dir == 0 && !_linkTree.ContainsNode(dirKey, portRoot)) _linkedPortCount++;
 
             int linksRoot = _linkTree.GetOrAddNode(dirKey, portRoot);
 
-            _linkTree.GetOrAddNode(new BlueprintLink2(toId, toPort), linksRoot);
+            _linkTree.GetOrAddNode(new BlueprintLink(toId, toPort), linksRoot);
         }
 
         private bool RemoveLink(NodeId id, int port, NodeId toId, int toPort, int dir, bool notify) {
-            if (!_linkTree.TryGetNode(new BlueprintLink2(id, 0), out int nodeRoot) ||
-                !_linkTree.TryGetNode(new BlueprintLink2(id, port), nodeRoot, out int portRoot) ||
-                !_linkTree.TryGetNode(new BlueprintLink2(id, dir), portRoot, out int linksRoot) ||
-                !_linkTree.TryGetNode(new BlueprintLink2(toId, toPort), linksRoot, out int link)
+            if (!_linkTree.TryGetNode(new BlueprintLink(id, 0), out int nodeRoot) ||
+                !_linkTree.TryGetNode(new BlueprintLink(id, port), nodeRoot, out int portRoot) ||
+                !_linkTree.TryGetNode(new BlueprintLink(id, dir), portRoot, out int linksRoot) ||
+                !_linkTree.TryGetNode(new BlueprintLink(toId, toPort), linksRoot, out int link)
             ) {
                 return false;
             }
@@ -231,7 +231,7 @@ namespace MisterGames.Blueprints.Meta {
         }
 
         private void RemovePortLinks(int portRoot, NodeId id, int port, bool notify) {
-            if (_linkTree.TryGetNode(new BlueprintLink2(id, 0), portRoot, out int linksRoot) &&
+            if (_linkTree.TryGetNode(new BlueprintLink(id, 0), portRoot, out int linksRoot) &&
                 _linkTree.TryGetChild(linksRoot, out int index)
             ) {
                 while (index >= 0) {
@@ -245,7 +245,7 @@ namespace MisterGames.Blueprints.Meta {
                 _linkedPortCount--;
             }
 
-            if (_linkTree.TryGetNode(new BlueprintLink2(id, 1), portRoot, out linksRoot) &&
+            if (_linkTree.TryGetNode(new BlueprintLink(id, 1), portRoot, out linksRoot) &&
                 _linkTree.TryGetChild(linksRoot, out index)
             ) {
                 while (index >= 0) {

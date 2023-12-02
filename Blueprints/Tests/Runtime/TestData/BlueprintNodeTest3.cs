@@ -10,7 +10,7 @@ namespace Core {
         BlueprintSources.IOutput<BlueprintNodeTest3, int> { }
 
     [Serializable]
-    public struct BlueprintNodeTest3 : IBlueprintNode, IBlueprintEnter2, IBlueprintOutput2<int> {
+    public struct BlueprintNodeTest3 : IBlueprintNode, IBlueprintEnter, IBlueprintOutput<int> {
 
         public int pickedPort;
 

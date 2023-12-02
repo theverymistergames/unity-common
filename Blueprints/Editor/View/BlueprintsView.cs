@@ -28,7 +28,7 @@ namespace MisterGames.Blueprints.Editor.View {
         public Func<Vector2, Vector2> OnRequestWorldPosition = _ => Vector2.zero;
         public Action<Object> OnSetDirty = delegate {  };
 
-        private BlueprintMeta2 _blueprintMeta;
+        private BlueprintMeta _blueprintMeta;
         private Blackboards.Core.Blackboard _blackboard;
         private SerializedObject _serializedObject;
 
@@ -108,7 +108,7 @@ namespace MisterGames.Blueprints.Editor.View {
         // ---------------- ---------------- Population and views ---------------- ----------------
 
         public void PopulateView(
-            BlueprintMeta2 blueprintMeta,
+            BlueprintMeta blueprintMeta,
             IBlueprintFactory factoryOverride,
             Blackboards.Core.Blackboard blackboard,
             SerializedObject serializedObject
@@ -562,7 +562,7 @@ namespace MisterGames.Blueprints.Editor.View {
             return change;
         }
 
-        private void CreateNodeView(BlueprintMeta2 meta, NodeId id) {
+        private void CreateNodeView(BlueprintMeta meta, NodeId id) {
             var position = meta.GetNodePosition(id);
             var property = GetNodeSerializedProperty(id);
 
@@ -586,8 +586,8 @@ namespace MisterGames.Blueprints.Editor.View {
             var serializedObject = _virtualSerializedObject ?? _serializedObject;
             string path = serializedObject?.targetObject switch {
                 VirtualBlueprintContainer container => container.GetNodePath(id),
-                BlueprintRunner2 runner => runner.GetNodePath(id, _factoryOverride ?? _blueprintMeta.Factory),
-                BlueprintAsset2 asset => asset.GetNodePath(id),
+                BlueprintRunner runner => runner.GetNodePath(id, _factoryOverride ?? _blueprintMeta.Factory),
+                BlueprintAsset asset => asset.GetNodePath(id),
                 _ => null,
             };
 
@@ -702,7 +702,7 @@ namespace MisterGames.Blueprints.Editor.View {
             }
         }
 
-        private void CreateNodeLinkViews(BlueprintMeta2 meta, NodeId id) {
+        private void CreateNodeLinkViews(BlueprintMeta meta, NodeId id) {
             if (!meta.ContainsNode(id)) return;
 
             var fromNodeView = FindNodeViewByNodeId(id);
@@ -924,7 +924,7 @@ namespace MisterGames.Blueprints.Editor.View {
             var positionDiff = _mousePosition - pasteData.position;
 
             var nodeIdMap = new Dictionary<NodeId, NodeId>();
-            var connections = new List<(BlueprintLink2, BlueprintLink2)>();
+            var connections = new List<(BlueprintLink, BlueprintLink)>();
 
             for (int i = 0; i < pasteData.nodes.Count; i++) {
                 var nodeData = pasteData.nodes[i];
@@ -947,8 +947,8 @@ namespace MisterGames.Blueprints.Editor.View {
                     }
 
                     connections.Add((
-                        new BlueprintLink2 { id = fromNodeId, port = link.fromPortIndex },
-                        new BlueprintLink2 { id = toNodeId, port = link.toPortIndex }
+                        new BlueprintLink { id = fromNodeId, port = link.fromPortIndex },
+                        new BlueprintLink { id = toNodeId, port = link.toPortIndex }
                     ));
 
                     TryCreateLink(fromNodeId, link.fromPortIndex, toNodeId, link.toPortIndex);

@@ -4,18 +4,18 @@ namespace MisterGames.Blueprints.Runtime {
 
     public sealed class RuntimeLinkStorage : IRuntimeLinkStorage {
 
-        private readonly TreeSet<RuntimeLink2> _linkTree;
-        private RuntimeLink2 _selectedPort;
+        private readonly TreeSet<RuntimeLink> _linkTree;
+        private RuntimeLink _selectedPort;
 
         private RuntimeLinkStorage() { }
 
         public RuntimeLinkStorage(int linkedPorts = 0, int links = 0) {
-            _linkTree = new TreeSet<RuntimeLink2>(linkedPorts, links);
+            _linkTree = new TreeSet<RuntimeLink>(linkedPorts, links);
             _linkTree.AllowDefragmentation(false);
         }
 
         public int GetFirstLink(int source, int node, int port) {
-            var address = new RuntimeLink2(source, node, port);
+            var address = new RuntimeLink(source, node, port);
             return _linkTree.TryGetNode(address, out int portRoot) ? _linkTree.GetChild(portRoot) : -1;
         }
 
@@ -23,18 +23,18 @@ namespace MisterGames.Blueprints.Runtime {
             return _linkTree.GetNext(previous);
         }
 
-        public RuntimeLink2 GetLink(int index) {
+        public RuntimeLink GetLink(int index) {
             return _linkTree.GetKeyAt(index);
         }
 
         public int SelectPort(int source, int node, int port) {
-            _selectedPort = new RuntimeLink2(source, node, port);
+            _selectedPort = new RuntimeLink(source, node, port);
             return GetFirstLink(source, node, port);
         }
 
         public int InsertLinkAfter(int index, int source, int node, int port) {
             int portRoot = _linkTree.GetOrAddNode(_selectedPort);
-            return _linkTree.InsertNextNode(new RuntimeLink2(source, node, port), portRoot, index);
+            return _linkTree.InsertNextNode(new RuntimeLink(source, node, port), portRoot, index);
         }
 
         public void InlineLinks() {
@@ -48,7 +48,7 @@ namespace MisterGames.Blueprints.Runtime {
                     int prev = _linkTree.GetPrevious(l);
                     int next = _linkTree.GetNext(l);
 
-                    int s = _linkTree.TryGetNode(new RuntimeLink2(link.source, link.node, link.port), out int linkedPort)
+                    int s = _linkTree.TryGetNode(new RuntimeLink(link.source, link.node, link.port), out int linkedPort)
                         ? _linkTree.GetChild(linkedPort)
                         : -1;
 

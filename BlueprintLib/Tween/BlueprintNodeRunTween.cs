@@ -2,7 +2,6 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Blueprints;
-using MisterGames.Blueprints.Core;
 using MisterGames.Blueprints.Nodes;
 using MisterGames.Tweens.Core;
 using UnityEngine;
@@ -11,19 +10,16 @@ namespace MisterGames.BlueprintLib {
 
     [Serializable]
     public class BlueprintSourceRunTween :
-        BlueprintSource<BlueprintNodeRunTween2>,
-        BlueprintSources.IEnter<BlueprintNodeRunTween2>,
-        BlueprintSources.IOutput<BlueprintNodeRunTween2, float>,
-        BlueprintSources.IStartCallback<BlueprintNodeRunTween2>,
+        BlueprintSource<BlueprintNodeRunTween>, BlueprintSources.IEnter<BlueprintNodeRunTween>, BlueprintSources.IOutput<BlueprintNodeRunTween, float>, BlueprintSources.IStartCallback<BlueprintNodeRunTween>,
         BlueprintSources.ICloneable { }
 
     [Serializable]
     [BlueprintNode(Name = "Run Tween", Category = "Tweens", Color = BlueprintColors.Node.Actions)]
-    public struct BlueprintNodeRunTween2 :
+    public struct BlueprintNodeRunTween :
         IBlueprintNode,
-        IBlueprintEnter2,
+        IBlueprintEnter,
         IBlueprintStartCallback,
-        IBlueprintOutput2<float>
+        IBlueprintOutput<float>
     {
         [SerializeField] private bool _autoInitOnStart;
         [SerializeField] private bool _autoInvertNextPlay;
@@ -80,7 +76,7 @@ namespace MisterGames.BlueprintLib {
             if (!_autoInitOnStart) return;
 
             _token = token;
-            _tween = BlueprintTweenConverter2.AsTween(blueprint.GetLinks(token, 6));
+            _tween = BlueprintTweenConverter.AsTween(blueprint.GetLinks(token, 6));
             _tween?.Initialize(_runner);
         }
 
@@ -91,7 +87,7 @@ namespace MisterGames.BlueprintLib {
                 case 0:
                     _tween?.DeInitialize();
 
-                    _tween = BlueprintTweenConverter2.AsTween(blueprint.GetLinks(token, 6));
+                    _tween = BlueprintTweenConverter.AsTween(blueprint.GetLinks(token, 6));
                     _tween?.Initialize(_runner);
                     break;
 
@@ -145,116 +141,6 @@ namespace MisterGames.BlueprintLib {
             await _tween.Play(linkedCts.Token);
 
             _blueprint.Call(_token, linkedCts.IsCancellationRequested ? 8 : 9);
-        }
-    }
-
-    [Serializable]
-    [BlueprintNodeMeta(Name = "Run Tween", Category = "Tweens", Color = BlueprintColors.Node.Actions)]
-    public sealed class BlueprintNodeRunTween : BlueprintNode, IBlueprintEnter, IBlueprintStart, IBlueprintOutput<float> {
-
-        [SerializeField] private bool _autoInitOnStart = true;
-        [SerializeField] private bool _autoInvertNextPlay = true;
-
-        private CancellationTokenSource _destroyCts;
-        private CancellationTokenSource _pauseCts;
-
-        private bool _isInverted;
-        private bool _isPlayCalledOnce;
-        private ITween _tween;
-        private MonoBehaviour _runner;
-
-        public override Port[] CreatePorts() => new[] {
-            Port.Enter("Init"),
-            Port.Enter("Play"),
-            Port.Enter("Pause"),
-            Port.Enter("Wind"),
-            Port.Enter("Rewind"),
-            Port.Enter("Invert"),
-            Port.Input<IBlueprintNodeTween>("Tweens").Layout(PortLayout.Right).Capacity(PortCapacity.Multiple),
-            Port.Exit("On Start"),
-            Port.Exit("On Cancelled"),
-            Port.Exit("On Finished"),
-            Port.Output<float>("Progress"),
-        };
-
-        public override void OnInitialize(IBlueprintHost host) {
-            _runner = host.Runner;
-            _destroyCts = new CancellationTokenSource();
-        }
-
-        public override void OnDeInitialize() {
-            _destroyCts.Cancel();
-            _destroyCts.Dispose();
-
-            _tween?.DeInitialize();
-        }
-
-        public void OnStart() {
-            if (!_autoInitOnStart) return;
-
-            _tween = BlueprintTweenConverter.AsTween(Ports[6].links);
-            _tween?.Initialize(_runner);
-        }
-
-        public float GetOutputPortValue(int port) {
-            return port == 10 && _tween != null ? _tween.Progress : default;
-        }
-
-        public void OnEnterPort(int port) {
-            switch (port) {
-                case 0:
-                    _tween?.DeInitialize();
-
-                    _tween = BlueprintTweenConverter.AsTween(Ports[6].links);
-                    _tween?.Initialize(_runner);
-                    break;
-
-                case 1:
-                    if (_tween != null) {
-                        if (_autoInvertNextPlay && _isPlayCalledOnce) {
-                            _isInverted = !_isInverted;
-                            _tween.Invert(_isInverted);
-                        }
-
-                        _isPlayCalledOnce = true;
-                        Play(_destroyCts.Token).Forget();
-                    }
-                    break;
-                
-                case 2:
-                    _pauseCts?.Cancel();
-                    break;
-                
-                case 3:
-                    _pauseCts?.Cancel();
-                    _tween?.Wind();
-                    break;
-                
-                case 4:
-                    _pauseCts?.Cancel();
-                    _tween?.Rewind();
-                    break;
-
-                case 5:
-                    if (_tween != null) {
-                        _isInverted = !_isInverted;
-                        _tween.Invert(_isInverted);
-                    }
-                    break;
-            }
-        }
-
-        private async UniTask Play(CancellationToken token) {
-            _pauseCts?.Cancel();
-            _pauseCts?.Dispose();
-            _pauseCts = new CancellationTokenSource();
-
-            Ports[7].Call();
-
-            var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_pauseCts.Token, token);
-            await _tween.Play(linkedCts.Token);
-
-            Ports[linkedCts.IsCancellationRequested ? 8 : 9].Call();
         }
     }
 

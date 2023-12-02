@@ -11,7 +11,7 @@ namespace Core {
     public struct BlueprintNodeTest2 : IBlueprintNode {
 
         public int intValue;
-        public BlueprintAsset2 objectValue;
+        public BlueprintAsset objectValue;
         [SerializeReference] public object referenceValue;
 
         public void CreatePorts(IBlueprintMeta meta, NodeId id) { }

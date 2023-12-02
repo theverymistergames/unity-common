@@ -6,13 +6,13 @@ namespace MisterGames.BlueprintLib {
 
     [Serializable]
     public class BlueprintSourceSetEulerAngles :
-        BlueprintSource<BlueprintNodeSetEulerAngles2>,
-        BlueprintSources.IEnter<BlueprintNodeSetEulerAngles2>,
+        BlueprintSource<BlueprintNodeSetEulerAngles>,
+        BlueprintSources.IEnter<BlueprintNodeSetEulerAngles>,
         BlueprintSources.ICloneable {}
 
     [Serializable]
     [BlueprintNode(Name = "Set Euler Angles", Category = "Transform", Color = BlueprintColors.Node.Actions)]
-    public struct BlueprintNodeSetEulerAngles2 : IBlueprintNode, IBlueprintEnter2 {
+    public struct BlueprintNodeSetEulerAngles : IBlueprintNode, IBlueprintEnter {
 
         [SerializeField] private Vector3 _eulers;
 
@@ -32,31 +32,6 @@ namespace MisterGames.BlueprintLib {
             transform.eulerAngles = eulers;
 
             blueprint.Call(token, 3);
-        }
-    }
-
-    [Serializable]
-    [BlueprintNodeMeta(Name = "Set Euler Angles", Category = "Transform", Color = BlueprintColors.Node.Actions)]
-    public sealed class BlueprintNodeSetEulerAngles : BlueprintNode, IBlueprintEnter {
-
-        [SerializeField] private Vector3 _eulers;
-
-        public override Port[] CreatePorts() => new[] {
-            Port.Enter(),
-            Port.Input<Transform>(),
-            Port.Input<Vector3>("Eulers"),
-            Port.Exit(),
-        };
-
-        public void OnEnterPort(int port) {
-            if (port != 0) return;
-
-            var transform = Ports[1].Get<Transform>();
-            var eulers = Ports[2].Get(_eulers);
-
-            transform.eulerAngles = eulers;
-
-            Ports[3].Call();
         }
     }
 

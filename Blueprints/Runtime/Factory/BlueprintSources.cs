@@ -6,28 +6,28 @@ namespace MisterGames.Blueprints {
 
     public static class BlueprintSources {
 
-        public interface IEnter<TNode> : IBlueprintSource, IBlueprintEnter2
-            where TNode : struct, IBlueprintNode, IBlueprintEnter2
+        public interface IEnter<TNode> : IBlueprintSource, IBlueprintEnter
+            where TNode : struct, IBlueprintNode, IBlueprintEnter
         {
-            void IBlueprintEnter2.OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
+            void IBlueprintEnter.OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
                 ref var node = ref GetNodeByRef<TNode>(token.node.node);
                 node.OnEnterPort(blueprint, token, port);
             }
         }
 
-        public interface IOutput<TNode, out R> : IBlueprintSource, IBlueprintOutput2<R>
-            where TNode : struct, IBlueprintNode, IBlueprintOutput2<R>
+        public interface IOutput<TNode, out R> : IBlueprintSource, IBlueprintOutput<R>
+            where TNode : struct, IBlueprintNode, IBlueprintOutput<R>
         {
-            R IBlueprintOutput2<R>.GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
+            R IBlueprintOutput<R>.GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
                 ref var node = ref GetNodeByRef<TNode>(token.node.node);
                 return node.GetPortValue(blueprint, token, port);
             }
         }
 
-        public interface IOutput<TNode> : IBlueprintSource, IBlueprintOutput2
-            where TNode : struct, IBlueprintNode, IBlueprintOutput2
+        public interface IOutput<TNode> : IBlueprintSource, IBlueprintOutput
+            where TNode : struct, IBlueprintNode, IBlueprintOutput
         {
-            R IBlueprintOutput2.GetPortValue<R>(IBlueprint blueprint, NodeToken token, int port) {
+            R IBlueprintOutput.GetPortValue<R>(IBlueprint blueprint, NodeToken token, int port) {
                 ref var node = ref GetNodeByRef<TNode>(token.node.node);
                 return node.GetPortValue<R>(blueprint, token, port);
             }

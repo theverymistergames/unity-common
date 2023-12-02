@@ -8,8 +8,8 @@ namespace Core {
 
     public class BlueprintLinkStorageTests {
 
-        private class LinksComparer : IComparer<BlueprintLink2> {
-            public int Compare(BlueprintLink2 x, BlueprintLink2 y) {
+        private class LinksComparer : IComparer<BlueprintLink> {
+            public int Compare(BlueprintLink x, BlueprintLink y) {
                 return x.id == y.id ? x.port.CompareTo(y.port) : x.id.node.CompareTo(y.id.node);
             }
         }
@@ -185,15 +185,15 @@ namespace Core {
 
             var links = storage.CopyLinks(id0);
 
-            var tree = links.GetTree(new BlueprintLink2(id0, 0));
-            Assert.IsTrue(tree.MoveChild(new BlueprintLink2(id0, 0)));
+            var tree = links.GetTree(new BlueprintLink(id0, 0));
+            Assert.IsTrue(tree.MoveChild(new BlueprintLink(id0, 0)));
             Assert.IsTrue(tree.MoveChild());
 
             Assert.AreEqual(id1, tree.GetKey().id);
             Assert.AreEqual(0, tree.GetKey().port);
 
-            tree = links.GetTree(new BlueprintLink2(id0, 1));
-            Assert.IsTrue(tree.MoveChild(new BlueprintLink2(id0, 0)));
+            tree = links.GetTree(new BlueprintLink(id0, 1));
+            Assert.IsTrue(tree.MoveChild(new BlueprintLink(id0, 0)));
             Assert.IsTrue(tree.MoveChild());
 
             Assert.AreEqual(id1, tree.GetKey().id);

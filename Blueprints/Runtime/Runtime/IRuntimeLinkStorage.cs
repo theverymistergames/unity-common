@@ -10,7 +10,7 @@
 
         int GetNextLink(int previous);
 
-        RuntimeLink2 GetLink(int index);
+        RuntimeLink GetLink(int index);
 
         void Clear();
     }

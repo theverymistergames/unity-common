@@ -37,7 +37,7 @@ namespace MisterGames.Blueprints.Editor.View {
         }
 
         public BlueprintNodeView(
-            BlueprintMeta2 meta,
+            BlueprintMeta meta,
             IEdgeConnectorListener connectorListener,
             NodeId nodeId,
             Vector2 position,
@@ -92,7 +92,7 @@ namespace MisterGames.Blueprints.Editor.View {
                 container.Add(propertyField);
 
                 if (property.propertyType == SerializedPropertyType.ObjectReference &&
-                    property.objectReferenceValue is BlueprintAsset2 asset
+                    property.objectReferenceValue is BlueprintAsset asset
                 ) {
                     var button = new Button(() => BlueprintEditorWindow.Open(asset)) { text = "Edit" };
                     container.Add(button);
@@ -147,8 +147,8 @@ namespace MisterGames.Blueprints.Editor.View {
             var portView = InstantiatePort(Orientation.Horizontal, direction, capacity, typeof(bool));
             portView.AddManipulator(new EdgeConnector<Edge>(connectorListener));
 
-            portView.portName = BlueprintNodeMetaUtils.GetFormattedPortName(data.portIndex, data.port, richText: true);
-            portView.portColor = BlueprintNodeMetaUtils.GetPortColor(data.port);
+            portView.portName = BlueprintNodeUtils.GetFormattedPortName(data.portIndex, data.port, richText: true);
+            portView.portColor = BlueprintNodeUtils.GetPortColor(data.port);
 
             container.Add(portView);
 

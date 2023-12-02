@@ -14,7 +14,7 @@ namespace MisterGames.Blueprints.Editor.Storage {
 
         [Serializable]
         private struct BlueprintEditorData {
-            public BlueprintAsset2 asset;
+            public BlueprintAsset asset;
             public UnityEngine.Object target;
             public NodeId[] path;
         }
@@ -22,17 +22,17 @@ namespace MisterGames.Blueprints.Editor.Storage {
         public void OpenLast() {
             var target = _lastData.target != null ? _lastData.target : _lastData.asset;
 
-            if (target is BlueprintAsset2 asset) {
+            if (target is BlueprintAsset asset) {
                 BlueprintEditorWindow.Open(asset);
                 return;
             }
 
-            if (target is BlueprintRunner2 runner) {
+            if (target is BlueprintRunner runner) {
                 var serializedObject = new SerializedObject(target);
 
                 asset = _lastData.asset;
                 Blackboard blackboard = null;
-                BlueprintMeta2 meta = null;
+                BlueprintMeta meta = null;
                 IBlueprintFactory factoryOverride = null;
 
                 if (runner.TryFindSubgraph(_lastData.path, out var data)) {
@@ -56,7 +56,7 @@ namespace MisterGames.Blueprints.Editor.Storage {
             }
         }
 
-        public void NotifyOpenedBlueprintAsset(BlueprintAsset2 asset, UnityEngine.Object target = null, NodeId[] path = null) {
+        public void NotifyOpenedBlueprintAsset(BlueprintAsset asset, UnityEngine.Object target = null, NodeId[] path = null) {
             _lastData.asset = asset;
             _lastData.target = target;
             _lastData.path = path;
