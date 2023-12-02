@@ -15,7 +15,7 @@ namespace MisterGames.Blueprints.Editor.Windows {
 
     public sealed class BlueprintEditorWindow : EditorWindow {
 
-        private const string WINDOW_TITLE = "Blueprint Editor 2";
+        private const string WINDOW_TITLE = "Blueprint Editor";
 
         private BlueprintMeta _blueprintMeta;
         private IBlueprintFactory _factoryOverride;
@@ -36,7 +36,7 @@ namespace MisterGames.Blueprints.Editor.Windows {
             }
         }
 
-        [MenuItem("MisterGames/Blueprint Editor 2")]
+        [MenuItem("MisterGames/Blueprint Editor")]
         private static void OpenWindow() {
             GetWindow<BlueprintEditorWindow>(WINDOW_TITLE, focus: true, desiredDockNextTo: typeof(SceneView));
         }

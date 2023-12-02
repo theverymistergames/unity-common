@@ -4,7 +4,7 @@ using UnityEngine;
 namespace MisterGames.Blueprints.Editor.Editors {
 
     [CustomEditor(typeof(BlueprintAsset))]
-    public sealed class BlueprintAssetEditor2 : UnityEditor.Editor {
+    public sealed class BlueprintAssetEditor : UnityEditor.Editor {
 
         public override void OnInspectorGUI() {
             if (target is not BlueprintAsset blueprint) return;

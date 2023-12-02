@@ -10,7 +10,7 @@ using UnityEngine;
 namespace MisterGames.Blueprints.Editor.Editors {
 
     [CustomEditor(typeof(BlueprintRunner))]
-    public sealed class BlueprintRunnerEditor2 : UnityEditor.Editor {
+    public sealed class BlueprintRunnerEditor : UnityEditor.Editor {
 
         public override void OnInspectorGUI() {
             if (target is not BlueprintRunner runner) return;
