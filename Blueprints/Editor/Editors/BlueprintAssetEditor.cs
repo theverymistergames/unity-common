@@ -9,7 +9,9 @@ namespace MisterGames.Blueprints.Editor.Editors {
         public override void OnInspectorGUI() {
             if (target is not BlueprintAsset blueprint) return;
 
+            EditorGUI.BeginDisabledGroup(true);
             EditorGUILayout.IntField("Nodes count", blueprint.BlueprintMeta.NodeCount);
+            EditorGUI.EndDisabledGroup();
 
             EditorGUILayout.Space(EditorGUIUtility.standardVerticalSpacing);
 
