@@ -16,9 +16,9 @@ namespace MisterGames.Blueprints.Editor.View {
     public sealed class BlueprintNodeView : Node {
 
         private const float NODE_VIEW_MIN_WIDTH = 200f;
-        private const float NODE_VIEW_WIDTH_INCREMENT_MANAGED_REFERENCE = 60f;
-        private const float NODE_VIEW_WIDTH_INCREMENT_ARRAY = 60f;
-        private const float NODE_VIEW_WIDTH_INCREMENT_DEPTH = 50f;
+        private const float NODE_VIEW_WIDTH_INCREMENT_MANAGED_REFERENCE = 70f;
+        private const float NODE_VIEW_WIDTH_INCREMENT_ARRAY = 70f;
+        private const float NODE_VIEW_WIDTH_INCREMENT_DEPTH = 70f;
 
         public Action<NodeId> OnPositionChanged = delegate {  };
         public Action<NodeId> OnValidate = delegate {  };
@@ -200,19 +200,19 @@ namespace MisterGames.Blueprints.Editor.View {
             var e = property.Copy().GetEnumerator();
 
             while (e.MoveNext()) {
-                if (e.Current is not SerializedProperty childProperty) continue;
-                if (childProperty.depth <= maxDepth) continue;
+                if (e.Current is not SerializedProperty p) continue;
+                if (p.depth <= maxDepth) continue;
 
-                if (childProperty.propertyType == SerializedPropertyType.ArraySize) {
+                if (p.propertyType == SerializedPropertyType.ArraySize) {
                     width += NODE_VIEW_WIDTH_INCREMENT_ARRAY;
                 }
 
-                if (childProperty.propertyType == SerializedPropertyType.ManagedReference) {
+                if (p.propertyType == SerializedPropertyType.ManagedReference) {
                     width += NODE_VIEW_WIDTH_INCREMENT_MANAGED_REFERENCE;
                 }
 
-                width += NODE_VIEW_WIDTH_INCREMENT_DEPTH * (childProperty.depth - maxDepth);
-                maxDepth = childProperty.depth;
+                width += NODE_VIEW_WIDTH_INCREMENT_DEPTH * (p.depth - maxDepth);
+                maxDepth = p.depth;
             }
 
             return width;
