@@ -86,16 +86,31 @@ namespace MisterGames.Blueprints.Editor.View {
                     style = { minWidth = minWidth }
                 };
 
-                propertyField.BindProperty(property);
-                propertyField.TrackPropertyValue(property, OnValueChanged);
+                propertyField.BindProperty(childProperty);
+                propertyField.TrackPropertyValue(childProperty, OnValueChanged);
 
                 container.Add(propertyField);
 
-                if (property.propertyType == SerializedPropertyType.ObjectReference &&
-                    property.objectReferenceValue is BlueprintAsset asset
+                if (childProperty.propertyType == SerializedPropertyType.ObjectReference &&
+                    childProperty.objectReferenceValue is BlueprintAsset asset
                 ) {
-                    var button = new Button(() => BlueprintEditorWindow.Open(asset)) { text = "Edit" };
-                    container.Add(button);
+                    container.Add(new Button(() => BlueprintEditorWindow.Open(asset)) { text = "Edit" });
+                    continue;
+                }
+
+                // Need to track changes inside managed reference property manually,
+                // because method propertyField.TrackPropertyValue(property, OnValueChanged) can only spot
+                // the reference change and not the changes inside the class that is serialized by reference.
+                if (childProperty.propertyType == SerializedPropertyType.ManagedReference &&
+                    childProperty.managedReferenceValue != null
+                ) {
+                    int d = childProperty.depth;
+                    var e = childProperty.Copy().GetEnumerator();
+
+                    while (e.MoveNext()) {
+                        if (e.Current is not SerializedProperty s || s.depth <= d) continue;
+                        propertyField.TrackPropertyValue(s, OnValueChanged);
+                    }
                 }
             }
         }
