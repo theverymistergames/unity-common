@@ -82,27 +82,27 @@ namespace MisterGames.Blueprints.Editor.View {
             var enumerator = property.GetEnumerator();
 
             while (enumerator.MoveNext()) {
-                if (enumerator.Current is not SerializedProperty childProperty) continue;
-                if (childProperty.depth > depth + 1) continue;
+                if (enumerator.Current is not SerializedProperty p) continue;
+                if (p.depth > depth + 1) continue;
 
                 var propertyField = new PropertyField { style = { minWidth = minWidth } };
-                propertyField.BindProperty(childProperty);
+                propertyField.BindProperty(p);
 
                 // Track managed reference properties separately
                 // to recreate node GUI with changed serialized properties max depth
                 // if managed reference value was changed.
-                if (childProperty.propertyType == SerializedPropertyType.ManagedReference) {
-                    propertyField.TrackPropertyValue(childProperty, OnSerializedPropertyManagedReferenceValueChanged);
+                if (p.propertyType == SerializedPropertyType.ManagedReference) {
+                    propertyField.TrackPropertyValue(p, OnSerializedPropertyManagedReferenceValueChanged);
                 }
                 else {
-                    propertyField.TrackPropertyValue(childProperty, OnSerializedPropertyValueChanged);
+                    propertyField.TrackPropertyValue(p, OnSerializedPropertyValueChanged);
                 }
 
                 _inspector.Add(propertyField);
 
                 // Edit button for BlueprintAsset fields.
-                if (childProperty.propertyType == SerializedPropertyType.ObjectReference &&
-                    childProperty.objectReferenceValue is BlueprintAsset asset
+                if (p.propertyType == SerializedPropertyType.ObjectReference &&
+                    p.objectReferenceValue is BlueprintAsset asset
                 ) {
                     _inspector.Add(new Button(() => BlueprintEditorWindow.Open(asset)) { text = "Edit" });
                 }
@@ -110,11 +110,11 @@ namespace MisterGames.Blueprints.Editor.View {
                 // Need to track changes inside managed reference property manually,
                 // because method propertyField.TrackPropertyValue(property, OnValueChanged) can only spot
                 // the reference change and not the changes inside the class that is serialized by reference.
-                if (childProperty.propertyType == SerializedPropertyType.ManagedReference &&
-                    childProperty.managedReferenceValue != null
+                if (p.propertyType == SerializedPropertyType.ManagedReference &&
+                    p.managedReferenceValue != null
                 ) {
-                    int d = childProperty.depth;
-                    var e = childProperty.Copy().GetEnumerator();
+                    int d = p.depth;
+                    var e = p.Copy().GetEnumerator();
 
                     while (e.MoveNext()) {
                         if (e.Current is not SerializedProperty s || s.depth <= d) continue;
@@ -122,7 +122,7 @@ namespace MisterGames.Blueprints.Editor.View {
                         // Track managed reference properties separately
                         // to recreate node GUI with changed serialized properties max depth
                         // if managed reference value was changed.
-                        if (childProperty.propertyType == SerializedPropertyType.ManagedReference) {
+                        if (s.propertyType == SerializedPropertyType.ManagedReference) {
                             propertyField.TrackPropertyValue(s, OnSerializedPropertyManagedReferenceValueChanged);
                         }
                         else {
