@@ -16,8 +16,9 @@ namespace MisterGames.Blueprints.Editor.View {
     public sealed class BlueprintNodeView : Node {
 
         private const float NODE_VIEW_MIN_WIDTH = 200f;
-        private const float NODE_VIEW_WIDTH_INCREMENT_ARRAY = 20f;
-        private const float NODE_VIEW_WIDTH_INCREMENT_DEPTH = 40f;
+        private const float NODE_VIEW_WIDTH_INCREMENT_MANAGED_REFERENCE = 60f;
+        private const float NODE_VIEW_WIDTH_INCREMENT_ARRAY = 60f;
+        private const float NODE_VIEW_WIDTH_INCREMENT_DEPTH = 50f;
 
         public Action<NodeId> OnPositionChanged = delegate {  };
         public Action<NodeId> OnValidate = delegate {  };
@@ -204,6 +205,10 @@ namespace MisterGames.Blueprints.Editor.View {
 
                 if (childProperty.propertyType == SerializedPropertyType.ArraySize) {
                     width += NODE_VIEW_WIDTH_INCREMENT_ARRAY;
+                }
+
+                if (childProperty.propertyType == SerializedPropertyType.ManagedReference) {
+                    width += NODE_VIEW_WIDTH_INCREMENT_MANAGED_REFERENCE;
                 }
 
                 width += NODE_VIEW_WIDTH_INCREMENT_DEPTH * (childProperty.depth - maxDepth);
