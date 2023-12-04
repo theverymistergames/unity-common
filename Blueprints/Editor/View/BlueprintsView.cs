@@ -463,6 +463,26 @@ namespace MisterGames.Blueprints.Editor.View {
             return true;
         }
 
+        private bool TryCreateNode(Type nodeType, Vector2 position, string nodeJson, out NodeId id) {
+            if (!_areGraphOperationsAllowed) {
+                id = default;
+                return false;
+            }
+
+            var sourceType = BlueprintNodeUtils.GetSourceType(nodeType);
+
+            if (sourceType == null) {
+                id = default;
+                return false;
+            }
+
+            Undo.RecordObject(_serializedObject.targetObject, "Blueprint Add Node");
+
+            id = _blueprintMeta.AddNode(sourceType, nodeType, nodeJson, position);
+            SetTargetObjectDirtyAndNotify();
+            return true;
+        }
+
         private bool TryRemoveNode(NodeId id) {
             if (!_areGraphOperationsAllowed) return false;
 
@@ -920,9 +940,7 @@ namespace MisterGames.Blueprints.Editor.View {
 
             ClearSelection();
 
-            var meta = _blueprintMeta;
             var positionDiff = _mousePosition - pasteData.position;
-
             var nodeIdMap = new Dictionary<NodeId, NodeId>();
             var connections = new List<(BlueprintLink, BlueprintLink)>();
 
@@ -931,10 +949,7 @@ namespace MisterGames.Blueprints.Editor.View {
                 var nodeType = nodeData.nodeType.ToType();
                 var position = nodeData.position + positionDiff;
 
-                if (!TryCreateNode(nodeType, position, out var id)) continue;
-
-                meta.GetNodeSource(id)?.SetNodeFromString(id.node, nodeData.nodeJson, nodeType);
-                nodeIdMap[nodeData.nodeId] = id;
+                if (TryCreateNode(nodeType, position, nodeData.nodeJson, out var id)) nodeIdMap[nodeData.nodeId] = id;
             }
 
             if (pasteData.links != null) {

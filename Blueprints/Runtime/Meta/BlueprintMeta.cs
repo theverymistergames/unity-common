@@ -94,6 +94,24 @@ namespace MisterGames.Blueprints.Meta {
             return id;
         }
 
+        public NodeId AddNode(Type sourceType, Type nodeType, string nodeJson, Vector2 position = default) {
+            int sourceId = _factory.GetOrCreateSource(sourceType);
+            var source = _factory.GetSource(sourceId);
+
+            int nodeId = source.AddNodeFromString(nodeJson, nodeType);
+            var id = new NodeId(sourceId, nodeId);
+
+            _nodeMap[id] = position;
+
+            source.CreatePorts(this, id);
+            source.OnSetDefaults(this, id);
+            source.OnValidate(this, id);
+
+            _onNodeChange?.Invoke(id);
+
+            return id;
+        }
+
         public bool RemoveNode(NodeId id) {
             if (!_nodeMap.ContainsKey(id)) return false;
 
