@@ -62,25 +62,23 @@ namespace MisterGames.Blueprints.Runtime {
                     // Example: from [0 -> 1, 1 -> 2] to [0 -> 2]:
                     // 1) Remove original link [0 -> 1]
                     // 2) Add inlined link [0 -> 2]
-                    // 3) Remove remote link [1 -> 2]
-                    // 4) Return to the first inlined links to continue inline checks
+                    // 3) Return to the first inlined link to continue inline checks
 
+                    // Remove original link
                     bool inlined = false;
                     _linkTree.RemoveNodeAt(l);
                     l = prev;
 
-                    while (s >= 0) {
+                    for (; s >= 0; s = _linkTree.GetNext(s)) {
+                        // Add inlined link
                         link = _linkTree.GetKeyAt(s);
                         l = _linkTree.InsertNextNode(link, rootIndex, l);
 
+                        // Found first link to inline, this is the next link to check for inline
                         if (!inlined) {
                             next = l;
                             inlined = true;
                         }
-
-                        int n = _linkTree.GetNext(s);
-                        _linkTree.RemoveNodeAt(s);
-                        s = n;
                     }
 
                     l = next;
