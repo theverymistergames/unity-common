@@ -1,6 +1,91 @@
-# MisterGames Blueprints v0.2.1
+# MisterGames Blueprints v0.3.1
 
-A tool for visual scripting without using reflection or code generation. 
+A node-based tool for visual scripting without using reflection or code generation. 
+
+### Basics
+
+#### 1. Blueprint 
+
+`Blueprint` is an alternative to the `MonoBehaviour` component script written in C#.
+
+- Script logic is represented by nodes and connections between them;
+- Script serialized fields are represented by a storage called `Blackboard`, where variables of different types can be stored. 
+
+#### 2. Blueprint node
+
+Blueprint node is a serializable class or struct that implements node interface `IBlueprintNode` and has node attribute `[BlueprintNode(...)]`.
+Each node can have ports to connect to the other nodes, and implement some special interfaces to support actions with ports.
+
+<img width="389" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/a815c534-b70a-4ae7-86d7-756fcad6a995">
+
+There are two categories of ports: 
+- Data-based: input or output ports, with or without specific data type, to read values;
+- Void-based: enter or exit ports, without data type, for void based calls (enter) and event-like subscriptions (exit).
+
+#### 3. Blueprint asset
+
+`Blueprint` can be saved into scriptable object called `BlueprintAsset`.
+
+<img width="574" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/a189b869-ecda-4ec7-bb6f-08c44d36a9f8">
+
+<img width="335" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/320bc0ae-ea35-407b-b0e2-35e6d7790f91">
+
+This blueprint calls `Debug.Log()` with serialized text from the blackboard variable, when the `MonoBehaviour.Start` method is called in the runner.
+
+#### 4. Blueprint runner
+
+`BlueprintRunner` is a `MonoBehaviour` component, an enter point for any blueprint to launch on the specific scene. 
+Each runner has overriden blackboard values for used blueprint assets. These values will be used at the runtime by blueprint runtime instance.
+
+<img width="333" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/a2c90a49-8b90-4891-8161-19bff8abe971">
+
+#### Blueprint node implementation
+
+```csharp
+// Node attribute adds the node type to the node browser in the Blueprint Editor. 
+[Serializable]
+[BlueprintNode(Name = "Log", Category = "Debug", Color = BlueprintColors.Node.Debug)]
+public struct BlueprintNodeLog : IBlueprintNode, IBlueprintEnter {
+
+  // Node can have serializable fields. 
+  [SerializeField] private string _defaultText;
+
+  // This method is called only in the Unity Editor to create node ports
+  // that can be connected with other nodes in the Blueprint Editor.   
+  public void CreatePorts(IBlueprintMeta meta, NodeId id) {
+    meta.AddPort(id, Port.Enter(name: "Log"));
+    meta.AddPort(id, Port.Input<string>(name: "Text"));
+    meta.AddPort(id, Port.Exit(name: "After Log"));
+  }
+
+  // This method is called when some node invokes its port,
+  // and that port is connected to the enter port 0 "Log" of this node.
+  public void OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
+    // Port 0 is the first enter port "Log" 
+    if (port != 0) return;
+
+    // Port 1 is input port "Text"
+    string text = blueprint.Read<string>(token, port: 1, defaultValue: _defaultText);
+    Debug.Log(text);
+
+    // Port 2 is exit port "Exit"
+    blueprint.Call(token, port: 2);
+  }
+}
+
+// BlueprintSourceLog is a storage implementation for struct-based node BlueprintNodeLog.
+// At the runtime single instance of this storage is created to store BlueprintNodeLog nodes
+// for every instantiated blueprint.
+//
+// To support enter ports of the node, the source implements IBlueprintEnter interface with default implementation:
+// BlueprintSources.IEnter<BlueprintNodeLog>. 
+[Serializable]
+public class BlueprintSourceLog :
+  BlueprintSource<BlueprintNodeLog>,
+  BlueprintSources.IEnter<BlueprintNodeLog> {}
+```
+
+
 
 ## Core
 
