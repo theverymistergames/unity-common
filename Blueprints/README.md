@@ -2,6 +2,17 @@
 
 A node-based tool for visual scripting without using reflection or code generation. 
 
+### Usage
+
+1. Create scriptable object `BlueprintAsset`, edit blueprint with the Blueprint Editor.   
+2. Add component `BlueprintRunner` to the game object to use the blueprint on the scene or inside a prefab
+3. Setup scene references and serialized fields of the blueprint in `BlueprintRunner` using `Blackboard`
+   
+https://github.com/theverymistergames/unity-common/assets/109593086/eec37e6c-bb73-4b85-b83c-9d4901f6ff30
+
+This blueprint invokes `Debug.Log(text)` on the `MonoBehaviour.Start` method call of `BlueprintRunner`. 
+Text value that is used when blueprint launches is stored in the overriden `Blackboard` in `BlueprintRunner`. 
+
 ### Basics
 
 #### 1. Blueprint 
@@ -26,9 +37,7 @@ There are two categories of ports:
 
 `Blueprint` can be saved into scriptable object called `BlueprintAsset`.
 
-<img width="574" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/a189b869-ecda-4ec7-bb6f-08c44d36a9f8">
 
-<img width="335" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/320bc0ae-ea35-407b-b0e2-35e6d7790f91">
 
 This blueprint calls `Debug.Log()` with serialized text from the blackboard variable, when the `MonoBehaviour.Start` method is called in the runner.
 
@@ -37,7 +46,7 @@ This blueprint calls `Debug.Log()` with serialized text from the blackboard vari
 `BlueprintRunner` is a `MonoBehaviour` component, an enter point for any blueprint to launch on the specific scene. 
 Each runner has overriden blackboard values for used blueprint assets. These values will be used at the runtime by blueprint runtime instance.
 
-<img width="333" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/a2c90a49-8b90-4891-8161-19bff8abe971">
+
 
 #### Blueprint node implementation
 
