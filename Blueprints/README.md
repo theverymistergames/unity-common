@@ -1,6 +1,6 @@
 # MisterGames Blueprints v0.3.1
 
-A node-based visual scripting tool, implemented without using reflection or code generation.
+A node-based visual scripting tool, implemented with structs, interfaces and generic methods to avoid boxing, without using reflection or code generation.
 
 **Blueprint** is an alternative to the `MonoBehaviour` component script written in C#.
 - Script logic is represented by nodes and connections between them;
@@ -9,11 +9,16 @@ A node-based visual scripting tool, implemented without using reflection or code
 <img width="954" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/e61f4161-941f-4c7c-9c36-57c10692187e">
 
 ### Main features
-- Blueprint **nodes**: implement custom nodes as a `struct` when possible to produce less garbage, `class` based implementation is also available 
-- Blueprint **subgraphs**: blueprint asset can be used as a subgraph inside another blueprint to create complex nodes
+- Blueprint **nodes**: implement custom nodes as a `struct` when possible to produce less garbage. `class` based implementation is also available 
+- Blueprint **subgraphs**: blueprint asset can be used as a subgraph inside another blueprint, to create complex nodes
 - Blueprint **references**: runtime graph can have links to another runtime graphs, using same interface as blueprint functions
 - Blueprint **global storage**: in the runtime all the nodes from every running blueprint instance are stored in one place to improve memory management
 - Blueprint **meta**: meta information for blueprint (node positions, ports, colors, etc.) is separated from data that will be used in the runtime
+- Blueprint **compilation**: connections between nodes are optimized during compilation, so helper nodes such as "Subgraph", "Pipe" or "Go To" don't add any overhead at runtime  
+
+Demonstration of the blueprint connections optimization process for subgraph and other special nodes:
+
+![blueprint_link_inline](https://github.com/theverymistergames/unity-common/assets/109593086/e26f58a0-415a-47c6-a66c-e6cab836ecf5)
 
 ### Usage
 
@@ -158,6 +163,8 @@ which points to the external runner (4).
 
 In the runtime running instance of the external blueprint will be used. 
 This allows to create connections between runners for complex behaviour.
+
+#### 7. Blueprint compilation
 
 ## Assembly definitions
 - `MisterGames.Blueprints`
