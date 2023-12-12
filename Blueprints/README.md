@@ -20,19 +20,19 @@ Demonstration of the blueprint connections optimization process for subgraph and
 
 ![blueprint_link_inline](https://github.com/theverymistergames/unity-common/assets/109593086/e26f58a0-415a-47c6-a66c-e6cab836ecf5)
 
-### Usage
+### Quick setup
 
 1. Create scriptable object `BlueprintAsset`, edit blueprint with the Blueprint Editor.   
 2. Add component `BlueprintRunner` to the game object to use the blueprint on the scene or inside a prefab
 3. Setup scene references and serialized fields of the blueprint in `BlueprintRunner` using `Blackboard`
 
-Any blueprint can be compiled and started in the Unity Editor on the `BlueprintRunner` component.
+Any blueprint can be compiled and started in the Unity Editor in `BlueprintRunner` component.
 
 https://github.com/theverymistergames/unity-common/assets/109593086/7b31fe4a-3d04-4fa9-85f3-d0098666f8c3
 
 This blueprint will result in picked game object being disabled or enabled in a delay after runner starts.
 
-### Basics
+### Core
 
 #### 1. Blueprint asset
 
@@ -99,8 +99,42 @@ public struct BlueprintNodeEnableGameObject : IBlueprintNode, IBlueprintEnter {
 [Serializable]
 public class BlueprintSourceEnableGameObject :
     BlueprintSource<BlueprintNodeEnableGameObject>,
-    BlueprintSources.IEnter<BlueprintNodeEnableGameObject> {}
+    BlueprintSources.IEnter<BlueprintNodeEnableGameObject>,
+    BlueprintSources.ICloneable {}
 ```
+
+Interface `IBlueprintNode` contains several methods, at least one method should be implemented: `CreatePorts(...)`. 
+Other methods have default empty implementation.
+
+```csharp
+public interface IBlueprintNode {
+
+    // Called in the editor to create node ports
+    void CreatePorts(IBlueprintMeta meta, NodeId id);
+
+    // Called in the editor to set default values into struct based nodes
+    void OnSetDefaults(IBlueprintMeta meta, NodeId id) {}
+
+    // Called in the editor when serialized fields of the node have been changed
+    void OnValidate(IBlueprintMeta meta, NodeId id) {}
+
+    // Called in the runtime at launch to initialize node internal stuff
+    void OnInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {}
+
+    // Called in the runtime when blueprint is about to be destroyed 
+    void OnDeInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {}
+}
+```
+
+Special interfaces for nodes are:
+- `IBlueprintEnter` for enter ports, to be able to react to enter port call
+- `IBlueprintOutput<T>` and `IBluepintOutput` for output ports, so other nodes have interface to get output value
+- `IBlueprintStartCallback` to react to `MonoBehaviour.Start` event at the component `BlueprintRunner`, where blueprint is launched
+- `IBlueprintEnableCallback` to react to `MonoBehaviour.OnEnable` and `MonoBehaviour.OnDisable` events at the component `BlueprintRunner`, where blueprint is launched
+- `IBlueprintConnectionCallback` to react to adding, deleting or changing connections of the node while blueprint is being edited
+- `IBlueprintHashLink` to create hidden connections between hash-nodes with same hash
+- `IBlueprintInternalLink` to create hidden internal links inside the node
+- `IBlueprintCloneable` for `struct` based nodes to optimize node copy operation, can be added to node if it does not have fields serialized by reference.
 
 #### 3. Blackboard
 
@@ -164,13 +198,13 @@ which points to the external runner (4).
 In the runtime running instance of the external blueprint will be used. 
 This allows to create connections between runners for complex behaviour.
 
-#### 7. Blueprint compilation
-
 ## Assembly definitions
 - `MisterGames.Blueprints`
 - `MisterGames.Blueprints.Editor`
+- `MisterGames.Blueprints.RuntimeTests`
 
 ## Dependencies
 - [`MisterGames.Common`](https://github.com/theverymistergames/unity-common/tree/master/Common)
 - [`MisterGames.Tick`](https://github.com/theverymistergames/unity-common/tree/master/Tick)
 - [`MisterGames.Blackboards`](https://github.com/theverymistergames/unity-common/tree/master/Blackboards)
+- [`Cysharp.UniTask`](https://github.com/Cysharp/UniTask)
