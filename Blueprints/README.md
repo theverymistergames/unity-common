@@ -1,6 +1,24 @@
 # MisterGames Blueprints v0.3.1
 
-A node-based tool for visual scripting without using reflection or code generation. 
+Blueprints is a node-based visual scripting tool, implemented without using reflection or code generation.
+
+- Blueprint node can be a `struct` when possible to produce less garbage, but `class` based implementation is also available 
+- Blueprint functions: graph can be used as a subgraph inside another blueprint to create complex nodes
+- Blueprint references: runtime graph can have a link to another runtime graph, using same interface as in blueprint functions
+- Blueprint global storage: in the runtime all the nodes from every running blueprint instance are stored in one place to improve memory manage
+
+### Subgraphs
+
+Blueprint can be used as a subgraph to create more nodes just within the Unity Editor. 
+Add subgraph node to use blueprint asset as a subgraph, pick asset, and its external ports will be fetched. 
+
+<img width="951" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/4d3d20cf-6223-48e9-a239-09d542353ac0">
+
+Here component `BlueprintRunner` at its `Start()` launches `Blueprint` asset (1), 
+which has subgraph node with `Blueprint_LogAsSubgraph` asset (2), 
+which invokes log node (3) to call `Debug.Log()` with provided text.
+Text string value is provided from input node `Text`, which is connected to blackboard property node (4) in `Blueprint`.
+In the runtime blackboard property value is provided from `BlueprintRunner` blackboard (5).
 
 ### Usage
 
