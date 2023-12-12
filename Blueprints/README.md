@@ -16,9 +16,10 @@ A node-based visual scripting tool, implemented with structs, interfaces and gen
 - Blueprint **meta**: meta information for blueprint (node positions, ports, colors, etc.) is separated from data that will be used in the runtime
 - Blueprint **compilation**: connections between nodes are optimized during compilation, so helper nodes such as "Subgraph", "Pipe" or "Go To" don't add any overhead at runtime  
 
-Demonstration of the blueprint connections optimization process for subgraph and other special nodes:
+Demonstration of the blueprint connections optimization process for subgraph and other special nodes
 
 ![blueprint_link_inline](https://github.com/theverymistergames/unity-common/assets/109593086/e26f58a0-415a-47c6-a66c-e6cab836ecf5)
+
 
 ### Quick setup
 
