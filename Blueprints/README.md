@@ -136,7 +136,46 @@ Special interfaces for nodes are:
 - `IBlueprintInternalLink` to create hidden internal links inside the node
 - `IBlueprintCloneable` for `struct` based nodes to optimize node copy operation, can be added to node if it does not have fields serialized by reference.
 
-#### 3. Blackboard
+#### 3. Blueprint runner
+
+`BlueprintRunner` is a `MonoBehaviour` component, an enter point for any blueprint to launch on the specific scene. 
+Each runner has overriden blackboard values for used blueprint assets. These values will be used at the runtime by blueprint runtime instance.
+
+<img width="942" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/76b348de-00a7-471a-86ee-e7d9e8200211">
+
+#### 4. Subgraphs
+
+Blueprint can be used as a subgraph to create more nodes just within the Unity Editor.
+
+Add node "Subgraph" to use blueprint asset as a subgraph, pick asset, and its external ports will be fetched. 
+External ports are added into blueprint as nodes from "External" category.
+
+<img width="951" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/4d3d20cf-6223-48e9-a239-09d542353ac0">
+
+Here component `BlueprintRunner` at its `Start()` launches `Blueprint` asset (1), 
+which has "Subgraph" node with `Blueprint_LogAsSubgraph` asset (2), 
+which invokes log node (3) to call `Debug.Log()` with provided text.
+Text string value is provided from the external input node `Text`, which is connected to blackboard property node (4) in `Blueprint`.
+
+In the runtime blackboard property value is provided from `BlueprintRunner` blackboard (5).
+
+#### 5. External subgraphs
+
+Blueprint can have a link to some external `BlueprintRunner` and its root blueprint. 
+Add node "External Blueprint", setup blackboard value for external runner, pick an asset that is used in that runner, and its external ports will be fetched.
+
+<img width="951" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/9bae49ee-addf-4f20-9fff-82343607dfda">
+
+Here component `BlueprintRunner` at its `Start()` launches `Blueprint` asset (1), 
+which has "External Blueprint" node with `Blueprint_LogAsSubgraph` asset (2), 
+which references an external runner via `Blackboard`. 
+`Blackboard` on the original runner has field for an external runner (3), 
+which points to the external runner (4).
+
+In the runtime running instance of the external blueprint will be used. 
+This allows to create connections between runners for complex behaviour.
+
+#### 6. Blackboard
 
 Blackboard is a storage for blueprint variables. 
 You can add a property with specified name and type and it will be displayed in the inspector like regular serialized field. 
@@ -158,45 +197,6 @@ Default blackboard property values are set in the inspector of `BlueprintAsset`.
 To get blackboard property value you can use Get Blackboard Property node. It has one dynamic output port, which fetches chosen blackboard property type.
 
 <img width="484" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/f7a20634-82db-48cc-8970-dfbc62ced4ce">
-
-#### 4. Blueprint runner
-
-`BlueprintRunner` is a `MonoBehaviour` component, an enter point for any blueprint to launch on the specific scene. 
-Each runner has overriden blackboard values for used blueprint assets. These values will be used at the runtime by blueprint runtime instance.
-
-<img width="942" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/76b348de-00a7-471a-86ee-e7d9e8200211">
-
-#### 5. Subgraphs
-
-Blueprint can be used as a subgraph to create more nodes just within the Unity Editor.
-
-Add node "Subgraph" to use blueprint asset as a subgraph, pick asset, and its external ports will be fetched. 
-External ports are added into blueprint as nodes from "External" category.
-
-<img width="951" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/4d3d20cf-6223-48e9-a239-09d542353ac0">
-
-Here component `BlueprintRunner` at its `Start()` launches `Blueprint` asset (1), 
-which has "Subgraph" node with `Blueprint_LogAsSubgraph` asset (2), 
-which invokes log node (3) to call `Debug.Log()` with provided text.
-Text string value is provided from the external input node `Text`, which is connected to blackboard property node (4) in `Blueprint`.
-
-In the runtime blackboard property value is provided from `BlueprintRunner` blackboard (5).
-
-#### 6. External subgraphs
-
-Blueprint can have a link to some external `BlueprintRunner` and its root blueprint. 
-Add node "External Blueprint", setup blackboard value for external runner, pick an asset that is used in that runner, and its external ports will be fetched.
-
-<img width="951" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/9bae49ee-addf-4f20-9fff-82343607dfda">
-
-Here component `BlueprintRunner` at its `Start()` launches `Blueprint` asset (1), 
-which has "External Blueprint" node with `Blueprint_LogAsSubgraph` asset (2), 
-which references an external runner via `Blackboard`. 
-`Blackboard` on the original runner has field for an external runner (3), 
-which points to the external runner (4).
-
-In the runtime running instance of the external blueprint will be used. 
-This allows to create connections between runners for complex behaviour.
 
 ## Assembly definitions
 - `MisterGames.Blueprints`
