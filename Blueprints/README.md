@@ -1,4 +1,5 @@
-# MisterGames Blueprints v0.3.1
+# MisterGames Blueprints 
+>v0.3.1
 
 A node-based visual scripting tool, implemented with structs, interfaces and generic methods to avoid boxing, without using reflection or code generation.
 
@@ -10,30 +11,15 @@ A node-based visual scripting tool, implemented with structs, interfaces and gen
 
 ### Table of contents
 
-[Main Features](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#main-features)
-
-[Quick setup](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#quick-setup)
-
-[Core](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#core)
-
-- [Blueprint asset](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#1-blueprint-asset)
-- [Blueprint node](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#2-blueprint-node)
-- [Blueprint runner](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#3-blueprint-runner)
-- [Subgraphs](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#4-subgraphs)
-- [External subgraphs](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#5-external-sugraphs)
-- [Blackboard](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#6-blackboard)
-
-### Main features
-- Blueprint **nodes**: implement custom nodes as a `struct` when possible to produce less garbage. `class` based implementation is also available 
-- Blueprint **subgraphs**: blueprint asset can be used as a subgraph inside another blueprint, to create complex nodes
-- Blueprint **references**: runtime graph can have links to another runtime graphs, using same interface as blueprint functions
-- Blueprint **global storage**: in the runtime all the nodes from every running blueprint instance are stored in one place to improve memory management
-- Blueprint **meta**: meta information for blueprint (node positions, ports, colors, etc.) is separated from data that will be used in the runtime
-- Blueprint **compilation**: connections between nodes are optimized during compilation, so helper nodes such as "Subgraph", "Pipe" or "Go To" don't add any overhead at runtime  
-
-Demonstration of the blueprint connections optimization process for subgraph and other special nodes
-
-![blueprint_link_inline](https://github.com/theverymistergames/unity-common/assets/109593086/e26f58a0-415a-47c6-a66c-e6cab836ecf5)
+- [Quick setup](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#quick-setup)
+- [Main Features](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#main-features)
+- [Core](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#core)
+    - [Blueprint asset](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#1-blueprint-asset)
+    - [Blueprint node](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#2-blueprint-node)
+    - [Blueprint runner](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#3-blueprint-runner)
+    - [Subgraphs](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#4-subgraphs)
+    - [External subgraphs](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#5-external-sugraphs)
+    - [Blackboard](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#6-blackboard)
 
 ### Quick setup
 
@@ -46,6 +32,18 @@ Any blueprint can be compiled and started in the Unity Editor in `BlueprintRunne
 https://github.com/theverymistergames/unity-common/assets/109593086/7b31fe4a-3d04-4fa9-85f3-d0098666f8c3
 
 This blueprint will result in picked game object being disabled or enabled in a delay after runner starts.
+
+### Main features
+- Blueprint **nodes**: implement custom nodes as a `struct` when possible to produce less garbage. `class` based implementation is also available 
+- Blueprint **subgraphs**: blueprint asset can be used as a subgraph inside another blueprint, to create complex nodes
+- Blueprint **references**: runtime graph can have links to another runtime graphs, using same interface as blueprint functions
+- Blueprint **global storage**: in the runtime all the nodes from every running blueprint instance are stored in one place to improve memory management
+- Blueprint **meta**: meta information for blueprint (node positions, ports, colors, etc.) is separated from data that will be used in the runtime
+- Blueprint **compilation**: connections between nodes are optimized during compilation, so helper nodes such as "Subgraph", "Pipe" or "Go To" don't add any overhead at runtime  
+
+Demonstration of the blueprint connections optimization process for subgraph and other special nodes
+
+![blueprint_link_inline](https://github.com/theverymistergames/unity-common/assets/109593086/e26f58a0-415a-47c6-a66c-e6cab836ecf5)
 
 ### Core
 
