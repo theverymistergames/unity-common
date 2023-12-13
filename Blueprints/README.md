@@ -27,11 +27,12 @@ A node-based visual scripting tool, implemented with structs, interfaces and gen
 2. Add component `BlueprintRunner` to the game object to use the blueprint on the scene or inside a prefab
 3. Setup scene references and serialized fields of the blueprint in `BlueprintRunner` using `Blackboard`
 
-Any blueprint can be compiled and started in the Unity Editor in `BlueprintRunner` component.
+Any blueprint can be compiled and started in the Unity Editor within `BlueprintRunner` component without entering playmode, 
+by pressing button "Compile & Start Blueprint" in the runner inspector.
 
 https://github.com/theverymistergames/unity-common/assets/109593086/7b31fe4a-3d04-4fa9-85f3-d0098666f8c3
 
-This blueprint will result in picked game object being disabled or enabled in a delay after runner starts.
+This blueprint will result in picked game object being disabled or enabled in a delay after runner starts. 
 
 ### Main features
 - Blueprint **nodes**: implement custom nodes as a `struct` when possible to produce less garbage. `class` based implementation is also available 
@@ -39,6 +40,8 @@ This blueprint will result in picked game object being disabled or enabled in a 
 - Blueprint **references**: runtime graph can have links to another runtime graphs, using same interface as blueprint functions
 - Blueprint **global storage**: in the runtime all the nodes from every running blueprint instance are stored in one place to improve memory management
 - Blueprint **meta**: meta information for blueprint (node positions, ports, colors, etc.) is separated from data that will be used in the runtime
+- Blueprint **editor**: using UI Toolkit to improve Blueprint Editor node rendering
+- Blueprint **prototyping**: any blueprint can be launched within a blueprint runner without entering playmode 
 - Blueprint **compilation**: connections between nodes are optimized during compilation, so helper nodes such as "Subgraph", "Pipe" or "Go To" don't add any overhead at runtime  
 
 Demonstration of the blueprint connections optimization process for subgraph and other special nodes
