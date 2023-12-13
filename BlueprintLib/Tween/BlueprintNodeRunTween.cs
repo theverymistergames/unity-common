@@ -10,7 +10,10 @@ namespace MisterGames.BlueprintLib {
 
     [Serializable]
     public class BlueprintSourceRunTween :
-        BlueprintSource<BlueprintNodeRunTween>, BlueprintSources.IEnter<BlueprintNodeRunTween>, BlueprintSources.IOutput<BlueprintNodeRunTween, float>, BlueprintSources.IStartCallback<BlueprintNodeRunTween>,
+        BlueprintSource<BlueprintNodeRunTween>,
+        BlueprintSources.IEnter<BlueprintNodeRunTween>,
+        BlueprintSources.IOutput<BlueprintNodeRunTween, float>,
+        BlueprintSources.IStartCallback<BlueprintNodeRunTween>,
         BlueprintSources.ICloneable { }
 
     [Serializable]
