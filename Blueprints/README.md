@@ -8,6 +8,14 @@ A node-based visual scripting tool, implemented with structs, interfaces and gen
 
 <img width="954" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/e61f4161-941f-4c7c-9c36-57c10692187e">
 
+### Table of contents
+
+[Main Features](https://github.com/theverymistergames/unity-common/edit/master/Blueprints/README.md#main-features)
+
+[Quick setup](https://github.com/theverymistergames/unity-common/edit/master/Blueprints/README.md#quick-setup)
+
+[Core](https://github.com/theverymistergames/unity-common/edit/master/Blueprints/README.md#core)
+
 ### Main features
 - Blueprint **nodes**: implement custom nodes as a `struct` when possible to produce less garbage. `class` based implementation is also available 
 - Blueprint **subgraphs**: blueprint asset can be used as a subgraph inside another blueprint, to create complex nodes
@@ -19,7 +27,6 @@ A node-based visual scripting tool, implemented with structs, interfaces and gen
 Demonstration of the blueprint connections optimization process for subgraph and other special nodes
 
 ![blueprint_link_inline](https://github.com/theverymistergames/unity-common/assets/109593086/e26f58a0-415a-47c6-a66c-e6cab836ecf5)
-
 
 ### Quick setup
 
