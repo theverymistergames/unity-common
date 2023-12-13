@@ -21,7 +21,8 @@ A node-based visual scripting tool, implemented with structs, interfaces and gen
     - [External subgraphs](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#5-external-subgraphs)
     - [Blackboard](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#6-blackboard)
 - [Examples](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#examples)
-    - [Implementing a door using Blueprints](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#1-implementing-a-door-using-blueprints)
+    - [Implementing a Finite State Machine using Blueprints](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#1-implementing-a-finite-state-machine-using-blueprints)
+    - [Implementing a door using Blueprints](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#2-implementing-a-door-using-blueprints)
   
 ### Quick setup
 
@@ -192,7 +193,7 @@ which points to the external runner (4).
 
 In the runtime running instance of the external blueprint will be used. 
 This allows to create connections between runners for complex behaviour. 
-See example [Implementing a door using Blueprints](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#1-implementing-a-door-using-blueprints).
+See example [Implementing a door using Blueprints](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#2-implementing-a-door-using-blueprints).
 
 #### 6. Blackboard
 
@@ -219,7 +220,24 @@ To get blackboard property value you can use Get Blackboard Property node. It ha
 
 ### Examples
 
-#### 1. Implementing a door using Blueprints
+#### 1. Implementing a Finite State Machine using Blueprints
+
+FSM can be created in form of a Blueprint using fsm nodes: "Fsm State" and "Fsm Transition".
+
+<img width="545" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/eccc7db0-df03-43bb-9ae4-beea88d82e8a">
+
+This nodes utilize some interfaces to be able to create states and transitions, and setup reactions for any state or transition.
+
+The following is an example how a character motion system can be implemented with FSM in Blueprints:
+- `Blueprint_CharacterMotionFsm`: main blueprint to connect all the states
+- `Blueprint_CharacterMotionState_XXX`: blueprint for a motion state, has reactions to apply state settings
+
+<img width="879" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/a6c01263-3e44-49e2-83d3-d5be25b86c0c">
+
+<img width="879" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/64a26102-df98-4754-adb5-fc2baa2c05da">
+
+
+#### 2. Implementing a door using Blueprints
 
 Let's create a simple door mechanics using Blueprints. The goal is to be able to open/close the door by activating levers.
 
