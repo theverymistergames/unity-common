@@ -134,7 +134,7 @@ namespace MisterGames.Tick.Core {
         }
 
         private static bool CheckTimeSourceCanBeStopped(ITimeSourceApi timeSource) {
-            return timeSource == null || timeSource.SubscribersCount == 0;
+            return timeSource == null;
         }
 
         private sealed class EditorDeltaTimeProvider : IDeltaTimeProvider {
