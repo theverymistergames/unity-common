@@ -22,7 +22,7 @@ A node-based visual scripting tool, implemented with structs, interfaces and gen
     - [Blackboard](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#6-blackboard)
 - [Examples](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#examples)
     - [Implementing Finite State Machine using Blueprints](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#1-implementing-finite-state-machine-using-blueprints)
-    - [Implementing door open/close using Blueprints](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#2-implementing-door-open-close-using-blueprints)
+    - [Implementing door open/close using Blueprints](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#2-implementing-door-openclose-using-blueprints)
   
 ### Quick setup
 
@@ -193,7 +193,7 @@ which points to the external runner (4).
 
 In the runtime running instance of the external blueprint will be used. 
 This allows to create connections between runners for complex behaviour. 
-See example [Implementing door open/close using Blueprints](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#2-implementing-door-open-close-using-blueprints).
+See example [Implementing door open/close using Blueprints](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#2-implementing-door-openclose-using-blueprints).
 
 #### 6. Blackboard
 
