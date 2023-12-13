@@ -260,12 +260,18 @@ Transition to `State 1` is active, so `State 1` is entered. `State 1` has two in
 #### 3. Character motion system as FSM using Blueprints
 
 The following is an example how a character motion system can be implemented as FSM in Blueprints:
+
 - `Blueprint_CharacterMotionFsm`: root blueprint, contains all states as connected subgraphs
+
+<img width="794" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/ddc55d11-fa9d-45fa-9d95-da341812791a">
+
+<img width="794" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/97ec3c16-88d0-4941-8e2d-04484cc3e603">
+
 - `Blueprint_CharacterMotionState_XXX`: subgraph blueprint for a motion state, contains transitions to possible states and reactions to apply state settings when needed
 
-<img width="879" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/a6c01263-3e44-49e2-83d3-d5be25b86c0c">
+<img width="794" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/64a26102-df98-4754-adb5-fc2baa2c05da">
 
-<img width="879" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/64a26102-df98-4754-adb5-fc2baa2c05da">
+<img width="794" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/4a010e2e-9897-4fc2-a416-4b20babac089">
 
 ## Assembly definitions
 - `MisterGames.Blueprints`
