@@ -18,7 +18,7 @@ A node-based visual scripting tool, implemented with structs, interfaces and gen
     - [Blueprint node](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#2-blueprint-node)
     - [Blueprint runner](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#3-blueprint-runner)
     - [Subgraphs](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#4-subgraphs)
-    - [External subgraphs](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#5-external-sugraphs)
+    - [External subgraphs](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#5-external-subgraphs)
     - [Blackboard](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#6-blackboard)
 
 ### Quick setup
