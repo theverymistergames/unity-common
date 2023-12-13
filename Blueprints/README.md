@@ -180,16 +180,17 @@ In the runtime blackboard property value is provided from `BlueprintRunner` blac
 Blueprint can have a link to some external `BlueprintRunner` and its root blueprint. 
 Add node "External Blueprint", setup blackboard value for external runner, pick an asset that is used in that runner, and its external ports will be fetched.
 
-<img width="951" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/9bae49ee-addf-4f20-9fff-82343607dfda">
+Let's create a simple door mechanics using Blueprints. The goal is to be able to open/close the door by activating levers.
 
-Here component `BlueprintRunner` at its `Start()` launches `Blueprint` asset (1), 
-which has "External Blueprint" node with `Blueprint_LogAsSubgraph` asset (2), 
-which references an external runner via `Blackboard`. 
-`Blackboard` on the original runner has field for an external runner (3), 
-which points to the external runner (4).
+<img width="690" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/974fdbc9-314b-4df5-9ad6-ecba61be4a72">
 
-In the runtime running instance of the external blueprint will be used. 
-This allows to create connections between runners for complex behaviour.
+There are 2 blueprint assets:
+- `Blueprint_Door`, has external enter port "Toggle" for other blueprints to open or close door with tween animation
+- `Blueprint_Lever`, also has external enter port "Toggle", and node "External Blueprint" with `Blueprint_Door` asset and reference to the door blueprint runner
+
+When someone presses "Toggle" on lever, it triggers the door and start lever animation. 
+
+https://github.com/theverymistergames/unity-common/assets/109593086/82c9dcef-48a8-4ce7-89ef-0d750a7a63fa
 
 #### 6. Blackboard
 
