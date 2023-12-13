@@ -10,11 +10,11 @@ A node-based visual scripting tool, implemented with structs, interfaces and gen
 
 ### Table of contents
 
-[Main Features](https://github.com/theverymistergames/unity-common/edit/master/Blueprints/README.md#main-features)
+[Main Features](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#main-features)
 
-[Quick setup](https://github.com/theverymistergames/unity-common/edit/master/Blueprints/README.md#quick-setup)
+[Quick setup](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#quick-setup)
 
-[Core](https://github.com/theverymistergames/unity-common/edit/master/Blueprints/README.md#core)
+[Core](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#core)
 
 - [Blueprint asset](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#1-blueprint-asset)
 - [Blueprint node](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#2-blueprint-node)
