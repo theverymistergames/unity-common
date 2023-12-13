@@ -21,8 +21,8 @@ A node-based visual scripting tool, implemented with structs, interfaces and gen
     - [External subgraphs](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#5-external-subgraphs)
     - [Blackboard](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#6-blackboard)
 - [Examples](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#examples)
-    - [Implementing a Finite State Machine using Blueprints](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#1-implementing-a-finite-state-machine-using-blueprints)
-    - [Implementing a door using Blueprints](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#2-implementing-a-door-using-blueprints)
+    - [Implementing Finite State Machine using Blueprints](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#1-implementing-finite-state-machine-using-blueprints)
+    - [Implementing door open/close using Blueprints](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#2-implementing-door-open-close-using-blueprints)
   
 ### Quick setup
 
@@ -193,7 +193,7 @@ which points to the external runner (4).
 
 In the runtime running instance of the external blueprint will be used. 
 This allows to create connections between runners for complex behaviour. 
-See example [Implementing a door using Blueprints](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#2-implementing-a-door-using-blueprints).
+See example [Implementing door open/close using Blueprints](https://github.com/theverymistergames/unity-common/blob/master/Blueprints/README.md#2-implementing-door-open-close-using-blueprints).
 
 #### 6. Blackboard
 
@@ -220,24 +220,35 @@ To get blackboard property value you can use Get Blackboard Property node. It ha
 
 ### Examples
 
-#### 1. Implementing a Finite State Machine using Blueprints
+#### 1. Implementing Finite State Machine using Blueprints
 
-FSM can be created in form of a Blueprint using fsm nodes: "Fsm State" and "Fsm Transition".
+FSM can be created in form of a Blueprint using fsm nodes: "Fsm State" and "Fsm Transition". 
 
 <img width="545" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/eccc7db0-df03-43bb-9ae4-beea88d82e8a">
 
-This nodes utilize some interfaces to be able to create states and transitions, and setup reactions for any state or transition.
+These nodes utilize several interfaces to be able to create states and transitions, and setup reactions for any state or transition: on enter/exit state, 
+on start/finish transition. 
 
-The following is an example how a character motion system can be implemented with FSM in Blueprints:
-- `Blueprint_CharacterMotionFsm`: main blueprint to connect all the states
-- `Blueprint_CharacterMotionState_XXX`: blueprint for a motion state, has reactions to apply state settings
+Let's create simple FSM to demonstrate states and transitions. To avoid too much connections between states we can add nodes "Go To" and "Go To (exit)",
+which are connected during compilation, if labels are same.
+
+<img width="770" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/32e81ca3-d98c-4199-9ee3-94baabfb4058">
+
+When `BlueprintRunner` with this blueprint starts, `State 0` is entered first through "Start" => "Go To" nodes, and log "State 0 entered" is called. 
+`State 0` has two debug transitions to `State 1` and `State 2`. 
+
+Transition to `State 1` is active, so `State 1` is entered. `State 1` has two inactive transitions, so it remains entered. 
+
+Real FSM has dynamically updated transitions. The following is an example how a character motion system can be implemented as FSM in Blueprints:
+- `Blueprint_CharacterMotionFsm`: root blueprint, contains all states as connected subgraphs
+- `Blueprint_CharacterMotionState_XXX`: subgraph blueprint for a motion state, contains transitions to possible states and reactions to apply state settings when needed
 
 <img width="879" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/a6c01263-3e44-49e2-83d3-d5be25b86c0c">
 
 <img width="879" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/64a26102-df98-4754-adb5-fc2baa2c05da">
 
 
-#### 2. Implementing a door using Blueprints
+#### 2. Implementing door open/close using Blueprints
 
 Let's create a simple door mechanics using Blueprints. The goal is to be able to open/close the door by activating levers.
 
@@ -247,7 +258,7 @@ There are 2 blueprint assets:
 - `Blueprint_Door`, has external enter port "Toggle" for other blueprints to open or close door with tween animation
 - `Blueprint_Lever`, also has external enter port "Toggle", and node "External Blueprint" with `Blueprint_Door` asset and reference to the door blueprint runner
 
-When someone presses "Toggle" on lever, it triggers the door and start lever animation. 
+When someone presses "Toggle" on lever (which can be replaced with actual interactive system to toggle levers), it triggers external port "Toggle" of the door blueprint and starts lever animation. Enter node "Toggle" inside door blueprint triggers door animation.
 
 https://github.com/theverymistergames/unity-common/assets/109593086/82c9dcef-48a8-4ce7-89ef-0d750a7a63fa
 
