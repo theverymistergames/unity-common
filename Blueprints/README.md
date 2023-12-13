@@ -40,7 +40,7 @@ This blueprint will result in picked game object being disabled or enabled in a 
 - Blueprint **references**: runtime graph can have links to another runtime graphs, using same interface as blueprint functions
 - Blueprint **global storage**: in the runtime all the nodes from every running blueprint instance are stored in one place to improve memory management
 - Blueprint **meta**: meta information for blueprint (node positions, ports, colors, etc.) is separated from data that will be used in the runtime
-- Blueprint **editor**: using UI Toolkit to improve Blueprint Editor node rendering
+- Blueprint **editor**: using UI Toolkit to improve node rendering
 - Blueprint **prototyping**: any blueprint can be launched within a blueprint runner without entering playmode 
 - Blueprint **compilation**: connections between nodes are optimized during compilation, so helper nodes such as "Subgraph", "Pipe" or "Go To" don't add any overhead at runtime  
 
