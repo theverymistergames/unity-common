@@ -263,15 +263,11 @@ The following is an example how a character motion system can be implemented as 
 
 - `Blueprint_CharacterMotionFsm`: root blueprint, contains all states as connected subgraphs
 
-<img width="794" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/ddc55d11-fa9d-45fa-9d95-da341812791a">
-
-<img width="794" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/97ec3c16-88d0-4941-8e2d-04484cc3e603">
+<img width="794" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/ad20f40c-494f-4c5f-ac75-bc994d3cef94">
 
 - `Blueprint_CharacterMotionState_XXX`: subgraph blueprint for a motion state, contains transitions to possible states and reactions to apply state settings when needed
 
-<img width="794" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/64a26102-df98-4754-adb5-fc2baa2c05da">
-
-<img width="794" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/4a010e2e-9897-4fc2-a416-4b20babac089">
+<img width="794" alt="image" src="https://github.com/theverymistergames/unity-common/assets/109593086/662e413e-df86-43c2-a091-f36cb33344f1">
 
 ## Assembly definitions
 - `MisterGames.Blueprints`
