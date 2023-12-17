@@ -13,8 +13,8 @@ namespace MisterGames.Common.Editor.Drawers {
             var labelRect = new Rect(
                 position.x,
                 position.y,
-                EditorGUIUtility.singleLineHeight,
-                EditorGUIUtility.labelWidth
+                EditorGUIUtility.labelWidth,
+                EditorGUIUtility.singleLineHeight
             );
             EditorGUI.LabelField(labelRect, label);
 

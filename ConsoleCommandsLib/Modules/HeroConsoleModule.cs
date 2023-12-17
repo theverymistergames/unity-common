@@ -98,9 +98,9 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
 
             var collisionPipeline = access.GetPipeline<ICharacterCollisionPipeline>();
 
-            collisionPipeline.SetEnabled(false);
+            collisionPipeline.IsEnabled = false;
             access.BodyAdapter.Position = position;
-            collisionPipeline.SetEnabled(true);
+            collisionPipeline.IsEnabled = true;
 
             ConsoleRunner.AppendLine($"Character {access.name} was respawned at point [{spawnPointName} :: {position}]");
         }

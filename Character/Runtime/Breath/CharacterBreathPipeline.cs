@@ -19,6 +19,8 @@ namespace MisterGames.Character.Breath {
         public event BreathCallback OnInhale = delegate {  };
         public event BreathCallback OnExhale = delegate {  };
 
+        public override bool IsEnabled { get => enabled; set => enabled = value; }
+
         public float Period {
             get => _period;
             set => _period = value;
@@ -33,22 +35,13 @@ namespace MisterGames.Character.Breath {
         private float _timer;
         private int _dir;
 
-        public override void SetEnabled(bool isEnabled) {
-            if (isEnabled) {
-                TimeSources.Get(_playerLoopStage).Subscribe(this);
-                return;
-            }
-
-            _timer = 0f;
-            TimeSources.Get(_playerLoopStage).Unsubscribe(this);
-        }
-
         private void OnEnable() {
-            SetEnabled(true);
+            TimeSources.Get(_playerLoopStage).Subscribe(this);
         }
 
         private void OnDisable() {
-            SetEnabled(false);
+            _timer = 0f;
+            TimeSources.Get(_playerLoopStage).Unsubscribe(this);
         }
 
         public void OnUpdate(float dt) {

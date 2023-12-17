@@ -7,16 +7,14 @@ namespace MisterGames.Character.MotionFsm {
 
         [SerializeField] private MonoBehaviour _motionFsm;
 
+        public override bool IsEnabled { get => enabled; set => enabled = value; }
+
         private void OnEnable() {
-            SetEnabled(true);
+            _motionFsm.enabled = true;
         }
 
         private void OnDisable() {
-            SetEnabled(false);
-        }
-
-        public override void SetEnabled(bool isEnabled) {
-            _motionFsm.enabled = isEnabled;
+            _motionFsm.enabled = false;
         }
     }
 

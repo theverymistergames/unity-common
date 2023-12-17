@@ -26,6 +26,8 @@ namespace MisterGames.Character.Height {
         public float Radius { get => _characterController.radius; set => ApplyRadius(value); }
         public Vector3 CenterOffset => _characterController.center;
 
+        public override bool IsEnabled { get => enabled; set => enabled = value; }
+
         private ITransformAdapter _bodyAdapter;
         private IRadiusCollisionDetector _groundDetector;
         private IRadiusCollisionDetector _ceilingDetector;
@@ -37,7 +39,6 @@ namespace MisterGames.Character.Height {
         private CancellationTokenSource _destroyCts;
 
         private byte _lastHeightChangeId;
-        private bool _isEnabled;
 
         private Vector3 _headRootInitialPosition;
 
@@ -63,16 +64,11 @@ namespace MisterGames.Character.Height {
         }
 
         private void OnEnable() {
-            SetEnabled(true);
+
         }
 
         private void OnDisable() {
-            SetEnabled(false);
-        }
-
-        public override void SetEnabled(bool isEnabled) {
-            _isEnabled = isEnabled;
-            if (!isEnabled) _headRoot.localPosition = _headRootInitialPosition;
+            _headRoot.localPosition = _headRootInitialPosition;
         }
 
         public async UniTask ApplyHeightChange(
@@ -81,7 +77,7 @@ namespace MisterGames.Character.Height {
             float duration,
             CancellationToken cancellationToken = default
         ) {
-            if (!_isEnabled) return;
+            if (!enabled) return;
 
             byte id = ++_lastHeightChangeId;
 
@@ -96,7 +92,7 @@ namespace MisterGames.Character.Height {
             float progress = 0f;
             OnHeightChanged.Invoke(progress, duration);
 
-            while (_isEnabled && !cancellationToken.IsCancellationRequested) {
+            while (enabled && !cancellationToken.IsCancellationRequested) {
                 float progressDelta = _timeSource.DeltaTime / duration;
                 progress = Mathf.Clamp01(progress + progressDelta);
 
@@ -112,7 +108,7 @@ namespace MisterGames.Character.Height {
         }
 
         private void SetHeight(float height) {
-            if (!_isEnabled) return;
+            if (!enabled) return;
 
             float sourceHeight = _characterController.height;
             _targetHeight = Mathf.Max(0f, height);

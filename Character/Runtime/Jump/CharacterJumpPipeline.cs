@@ -24,6 +24,8 @@ namespace MisterGames.Character.Jump {
         public float Force { get => _force; set => _force = value; }
         public float ForceMultiplier { get; set; } = 1f;
 
+        public override bool IsEnabled { get => enabled; set => enabled = value; }
+
         private ICharacterInputPipeline _input;
         private ICollisionDetector _ceilingDetector;
         private CharacterProcessorMass _mass;
@@ -43,22 +45,13 @@ namespace MisterGames.Character.Jump {
             _destroyCts.Dispose();
         }
 
-        public override void SetEnabled(bool isEnabled) {
-            if (isEnabled) {
-                _input.JumpPressed -= HandleJumpPressedInput;
-                _input.JumpPressed += HandleJumpPressedInput;
-                return;
-            }
-
-            _input.JumpPressed -= HandleJumpPressedInput;
-        }
-
         private void OnEnable() {
-            SetEnabled(true);
+            _input.JumpPressed -= HandleJumpPressedInput;
+            _input.JumpPressed += HandleJumpPressedInput;
         }
 
         private void OnDisable() {
-            SetEnabled(false);
+            _input.JumpPressed -= HandleJumpPressedInput;
         }
 
         private void HandleJumpPressedInput() {

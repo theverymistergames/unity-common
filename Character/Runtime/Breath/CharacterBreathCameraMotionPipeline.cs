@@ -21,6 +21,8 @@ namespace MisterGames.Character.Breath {
         [SerializeField] private float _rotationAmplitude = 1f;
         [SerializeField] private float _rotationAmplitudeRandom = 0.3f;
 
+        public override bool IsEnabled { get => enabled; set => enabled = value; }
+
         private ICharacterBreathPipeline _breath;
         private CameraContainer _cameraContainer;
         private CameraStateKey _cameraStateKey;
@@ -38,32 +40,23 @@ namespace MisterGames.Character.Breath {
             _cameraContainer = _characterAccess.GetPipeline<CharacterViewPipeline>().CameraContainer;
         }
 
-        public override void SetEnabled(bool isEnabled) {
-            if (isEnabled) {
-                _breath.OnInhale -= OnInhale;
-                _breath.OnInhale += OnInhale;
+        private void OnEnable() {
+            _breath.OnInhale -= OnInhale;
+            _breath.OnInhale += OnInhale;
 
-                _breath.OnExhale -= OnExhale;
-                _breath.OnExhale += OnExhale;
+            _breath.OnExhale -= OnExhale;
+            _breath.OnExhale += OnExhale;
 
-                _cameraStateKey = _cameraContainer.CreateState(this, _cameraMotionWeight);
-                TimeSources.Get(PlayerLoopStage.Update).Subscribe(this);
-                return;
-            }
+            _cameraStateKey = _cameraContainer.CreateState(this, _cameraMotionWeight);
+            TimeSources.Get(PlayerLoopStage.Update).Subscribe(this);
+        }
 
+        private void OnDisable() {
             _breath.OnInhale -= OnInhale;
             _breath.OnExhale -= OnExhale;
 
             _cameraContainer.RemoveState(_cameraStateKey);
             TimeSources.Get(PlayerLoopStage.Update).Unsubscribe(this);
-        }
-
-        private void OnEnable() {
-            SetEnabled(true);
-        }
-
-        private void OnDisable() {
-            SetEnabled(false);
         }
 
         public void OnUpdate(float dt) {

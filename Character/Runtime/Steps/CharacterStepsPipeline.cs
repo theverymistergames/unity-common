@@ -26,6 +26,8 @@ namespace MisterGames.Character.Steps {
         [SerializeField] [Min(0f)] private float _stepLengthMultiplier = 3f;
         [SerializeField] private AnimationCurve _stepLengthBySpeed = EasingType.EaseOutExpo.ToAnimationCurve();
 
+        public override bool IsEnabled { get => enabled; set => enabled = value; }
+
         public event StepCallback OnStep = delegate {  };
         public event StepCallback OnStartMotionStep = delegate {  };
 
@@ -43,19 +45,10 @@ namespace MisterGames.Character.Steps {
         }
 
         private void OnEnable() {
-            SetEnabled(true);
+            TimeSources.Get(_playerLoopStage).Subscribe(this);
         }
 
         private void OnDisable() {
-            SetEnabled(false);
-        }
-
-        public override void SetEnabled(bool isEnabled) {
-            if (isEnabled) {
-                TimeSources.Get(_playerLoopStage).Subscribe(this);
-                return;
-            }
-
             TimeSources.Get(_playerLoopStage).Unsubscribe(this);
         }
 
@@ -117,9 +110,10 @@ namespace MisterGames.Character.Steps {
                     Vector3.forward * _feetForwardOffset);
         }
 
-#if UNITY_EDITOR
         [Header("Debug")]
         [SerializeField] private bool _debugDrawStep;
+
+#if UNITY_EDITOR
 
         [Conditional("UNITY_EDITOR")]
         private void DbgDrawStep(Vector3 point, Color color) {

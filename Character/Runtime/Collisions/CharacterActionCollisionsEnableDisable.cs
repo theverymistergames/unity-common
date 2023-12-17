@@ -26,7 +26,7 @@ namespace MisterGames.Character.Collisions {
         }
 
         public UniTask Apply(object source, CancellationToken cancellationToken = default) {
-            _collisions.SetEnabled(isEnabled);
+            _collisions.IsEnabled = isEnabled;
             return default;
         }
     }

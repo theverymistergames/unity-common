@@ -27,7 +27,7 @@ namespace MisterGames.Character.Motion {
         }
 
         public UniTask Apply(object source, CancellationToken cancellationToken = default) {
-            _input.SetEnabled(isEnabled);
+            _input.IsEnabled = isEnabled;
             return default;
         }
     }

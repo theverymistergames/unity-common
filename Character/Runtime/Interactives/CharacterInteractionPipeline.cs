@@ -11,6 +11,7 @@ namespace MisterGames.Character.Interactives {
         [SerializeField] private InteractiveUser _interactiveUser;
 
         public IInteractiveUser InteractiveUser => _interactiveUser;
+        public override bool IsEnabled { get => enabled; set => enabled = value; }
 
         private void OnEnable() {
             SetEnabled(true);
@@ -20,7 +21,7 @@ namespace MisterGames.Character.Interactives {
             SetEnabled(false);
         }
 
-        public override void SetEnabled(bool isEnabled) {
+        private void SetEnabled(bool isEnabled) {
             _detector.enabled = isEnabled;
             _interactiveUser.enabled = isEnabled;
         }

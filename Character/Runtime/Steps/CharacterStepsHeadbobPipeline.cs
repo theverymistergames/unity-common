@@ -29,6 +29,8 @@ namespace MisterGames.Character.Steps {
         [SerializeField] private Vector3Parameter _positionOffset = Vector3Parameter.Default();
         [SerializeField] private Vector3Parameter _rotationOffset = Vector3Parameter.Default();
 
+        public override bool IsEnabled { get => enabled; set => enabled = value; }
+
         private CharacterProcessorMass _mass;
         private CameraContainer _cameraContainer;
         private CameraStateKey _cameraStateKey;
@@ -56,26 +58,17 @@ namespace MisterGames.Character.Steps {
         }
 
         private void OnEnable() {
-            SetEnabled(true);
+            _cameraStateKey = _cameraContainer.CreateState(this, _cameraWeight);
+            TimeSources.Get(_playerLoopStage).Subscribe(this);
+
+            _steps.OnStep -= OnStep;
+            _steps.OnStep += OnStep;
+
+            _steps.OnStartMotionStep -= OnStep;
+            _steps.OnStartMotionStep += OnStep;
         }
 
         private void OnDisable() {
-            SetEnabled(false);
-        }
-
-        public override void SetEnabled(bool isEnabled) {
-            if (isEnabled) {
-                _cameraStateKey = _cameraContainer.CreateState(this, _cameraWeight);
-                TimeSources.Get(_playerLoopStage).Subscribe(this);
-
-                _steps.OnStep -= OnStep;
-                _steps.OnStep += OnStep;
-
-                _steps.OnStartMotionStep -= OnStep;
-                _steps.OnStartMotionStep += OnStep;
-                return;
-            }
-
             _cameraContainer.RemoveState(_cameraStateKey);
             TimeSources.Get(_playerLoopStage).Unsubscribe(this);
 

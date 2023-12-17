@@ -25,6 +25,8 @@ namespace MisterGames.Character.Jump {
         [FetchDependencies(nameof(_landReaction))]
         [SerializeField] private DependencyResolver _dependencies;
 
+        public override bool IsEnabled { get => enabled; set => enabled = value; }
+
         private ICharacterJumpPipeline _jump;
         private ICollisionDetector _groundDetector;
         private CancellationTokenSource _destroyCts;
@@ -44,26 +46,17 @@ namespace MisterGames.Character.Jump {
             _destroyCts.Dispose();
         }
 
-        public override void SetEnabled(bool isEnabled) {
-            if (isEnabled) {
-                _jump.OnJump -= OnJump;
-                _jump.OnJump += OnJump;
-
-                _groundDetector.OnContact -= OnLanded;
-                _groundDetector.OnContact += OnLanded;
-                return;
-            }
-
-            _jump.OnJump -= OnJump;
-            _groundDetector.OnContact -= OnLanded;
-        }
-
         private void OnEnable() {
-            SetEnabled(true);
+            _jump.OnJump -= OnJump;
+            _jump.OnJump += OnJump;
+
+            _groundDetector.OnContact -= OnLanded;
+            _groundDetector.OnContact += OnLanded;
         }
 
         private void OnDisable() {
-            SetEnabled(false);
+            _jump.OnJump -= OnJump;
+            _groundDetector.OnContact -= OnLanded;
         }
 
         private async void OnJump(Vector3 vector3) {

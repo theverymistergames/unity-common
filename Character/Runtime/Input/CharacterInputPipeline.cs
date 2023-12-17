@@ -20,61 +20,50 @@ namespace MisterGames.Character.Input {
         public event Action RunPressed = delegate {  };
         public event Action RunReleased = delegate {  };
 
-        public bool IsRunPressed => _isEnabled && _run.IsPressed;
-        public bool WasRunPressed => _isEnabled && _run.WasPressed;
-        public bool WasRunReleased => _isEnabled && _run.WasReleased;
+        public bool IsRunPressed => enabled && _run.IsPressed;
+        public bool WasRunPressed => enabled && _run.WasPressed;
+        public bool WasRunReleased => enabled && _run.WasReleased;
 
         public event Action CrouchPressed = delegate {  };
         public event Action CrouchReleased = delegate {  };
         public event Action CrouchToggled = delegate {  };
 
-        public bool IsCrouchPressed => _isEnabled && _crouch.IsPressed;
-        public bool WasCrouchPressed => _isEnabled && _crouch.WasPressed;
-        public bool WasCrouchReleased => _isEnabled && _crouch.WasReleased;
-        public bool WasCrouchToggled => _isEnabled && _crouchToggle.WasPressed;
+        public bool IsCrouchPressed => enabled && _crouch.IsPressed;
+        public bool WasCrouchPressed => enabled && _crouch.WasPressed;
+        public bool WasCrouchReleased => enabled && _crouch.WasReleased;
+        public bool WasCrouchToggled => enabled && _crouchToggle.WasPressed;
 
         public event Action JumpPressed = delegate {  };
 
-        private bool _isEnabled;
+        public override bool IsEnabled { get => enabled; set => enabled = value; }
 
         private void OnEnable() {
-            SetEnabled(true);
+            _view.OnChanged -= OnViewChanged;
+            _view.OnChanged += OnViewChanged;
+
+            _move.OnChanged -= OnMoveChanged;
+            _move.OnChanged += OnMoveChanged;
+
+            _crouch.OnPress -= OnCrouchPressed;
+            _crouch.OnPress += OnCrouchPressed;
+
+            _crouch.OnRelease -= OnCrouchReleased;
+            _crouch.OnRelease += OnCrouchReleased;
+
+            _crouchToggle.OnPress -= OnCrouchToggled;
+            _crouchToggle.OnPress += OnCrouchToggled;
+
+            _run.OnPress -= OnRunPressed;
+            _run.OnPress += OnRunPressed;
+
+            _run.OnRelease -= OnRunReleased;
+            _run.OnRelease += OnRunReleased;
+
+            _jump.OnPress -= OnJumpPressed;
+            _jump.OnPress += OnJumpPressed;
         }
 
         private void OnDisable() {
-            SetEnabled(false);
-        }
-
-        public override void SetEnabled(bool isEnabled) {
-            _isEnabled = isEnabled;
-
-            if (_isEnabled) {
-                _view.OnChanged -= OnViewChanged;
-                _view.OnChanged += OnViewChanged;
-
-                _move.OnChanged -= OnMoveChanged;
-                _move.OnChanged += OnMoveChanged;
-
-                _crouch.OnPress -= OnCrouchPressed;
-                _crouch.OnPress += OnCrouchPressed;
-
-                _crouch.OnRelease -= OnCrouchReleased;
-                _crouch.OnRelease += OnCrouchReleased;
-
-                _crouchToggle.OnPress -= OnCrouchToggled;
-                _crouchToggle.OnPress += OnCrouchToggled;
-
-                _run.OnPress -= OnRunPressed;
-                _run.OnPress += OnRunPressed;
-
-                _run.OnRelease -= OnRunReleased;
-                _run.OnRelease += OnRunReleased;
-
-                _jump.OnPress -= OnJumpPressed;
-                _jump.OnPress += OnJumpPressed;
-                return;
-            }
-
             _view.OnChanged -= OnViewChanged;
             _move.OnChanged -= OnMoveChanged;
 

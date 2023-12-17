@@ -33,6 +33,7 @@ namespace MisterGames.Character.View {
             new CharacterProcessorQuaternionSmoothing { smoothFactor = 20f },
         };
 
+        public override bool IsEnabled { get => enabled; set => enabled = value; }
         public CameraContainer CameraContainer => _cameraContainer;
 
         private ITimeSource _timeSource;
@@ -61,29 +62,22 @@ namespace MisterGames.Character.View {
         }
 
         private void OnEnable() {
-            SetEnabled(true);
+            CanvasRegistry.Instance.SetCanvasEventCamera(_camera);
+
+            var input = _characterAccess.GetPipeline<ICharacterInputPipeline>();
+
+            input.OnViewVectorChanged -= HandleViewVectorChanged;
+            input.OnViewVectorChanged += HandleViewVectorChanged;
+
+            _timeSource.Subscribe(this);
         }
 
         private void OnDisable() {
-            SetEnabled(false);
-        }
-
-        public override void SetEnabled(bool isEnabled) {
-            var input = _characterAccess.GetPipeline<ICharacterInputPipeline>();
-
-            if (isEnabled) {
-                CanvasRegistry.Instance.SetCanvasEventCamera(_camera);
-
-                input.OnViewVectorChanged -= HandleViewVectorChanged;
-                input.OnViewVectorChanged += HandleViewVectorChanged;
-
-                _timeSource.Subscribe(this);
-                return;
-            }
-
             CanvasRegistry.Instance.SetCanvasEventCamera(null);
 
             _timeSource.Unsubscribe(this);
+
+            var input = _characterAccess.GetPipeline<ICharacterInputPipeline>();
             input.OnViewVectorChanged -= HandleViewVectorChanged;
         }
 

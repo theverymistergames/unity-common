@@ -26,7 +26,7 @@ namespace MisterGames.Character.MotionFsm {
         }
 
         public UniTask Apply(object source, CancellationToken cancellationToken = default) {
-            _motionFsm.SetEnabled(isEnabled);
+            _motionFsm.IsEnabled = isEnabled;
             return default;
         }
     }

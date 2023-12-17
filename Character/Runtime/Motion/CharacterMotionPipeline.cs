@@ -33,6 +33,8 @@ namespace MisterGames.Character.Motion {
 
         public Vector2 MotionInput => _input;
 
+        public override bool IsEnabled { get => enabled; set => enabled = value; }
+
         private ITimeSource _timeSource;
         private ITransformAdapter _bodyAdapter;
 
@@ -66,24 +68,16 @@ namespace MisterGames.Character.Motion {
         }
 
         private void OnEnable() {
-            SetEnabled(true);
+            var input = _characterAccess.GetPipeline<ICharacterInputPipeline>();
+
+            input.OnMotionVectorChanged -= HandleMotionInput;
+            input.OnMotionVectorChanged += HandleMotionInput;
+
+            _timeSource.Subscribe(this);
         }
 
         private void OnDisable() {
-            SetEnabled(false);
-        }
-
-        public override void SetEnabled(bool isEnabled) {
             var input = _characterAccess.GetPipeline<ICharacterInputPipeline>();
-
-            if (isEnabled) {
-                input.OnMotionVectorChanged -= HandleMotionInput;
-                input.OnMotionVectorChanged += HandleMotionInput;
-
-                _timeSource.Subscribe(this);
-                return;
-            }
-
             input.OnMotionVectorChanged -= HandleMotionInput;
 
             _timeSource.Unsubscribe(this);

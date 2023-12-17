@@ -15,6 +15,8 @@ namespace MisterGames.Character.Collisions {
         public IRadiusCollisionDetector CeilingDetector => _ceilingDetector;
         public IRadiusCollisionDetector GroundDetector => _groundDetector;
 
+        public override bool IsEnabled { get => enabled; set => enabled = value; }
+
         private void OnEnable() {
             SetEnabled(true);
         }
@@ -23,7 +25,7 @@ namespace MisterGames.Character.Collisions {
             SetEnabled(false);
         }
 
-        public override void SetEnabled(bool isEnabled) {
+        private void SetEnabled(bool isEnabled) {
             _characterController.enabled = isEnabled;
             _hitDetector.enabled = isEnabled;
             _ceilingDetector.enabled = isEnabled;

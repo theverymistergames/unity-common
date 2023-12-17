@@ -24,6 +24,8 @@ namespace MisterGames.Character.View {
         [SerializeField] private float _rotationLever = 0.1f;
         [SerializeField] private float _rotationAmplitude = 0.1f;
 
+        public override bool IsEnabled { get => enabled; set => enabled = value; }
+
         private ICharacterMotionPipeline _motion;
         private CameraContainer _cameraContainer;
         private CameraStateKey _cameraStateKey;
@@ -39,23 +41,14 @@ namespace MisterGames.Character.View {
             _cameraContainer = _characterAccess.GetPipeline<CharacterViewPipeline>().CameraContainer;
         }
 
-        public override void SetEnabled(bool isEnabled) {
-            if (isEnabled) {
-                _cameraStateKey = _cameraContainer.CreateState(this, _cameraMotionWeight);
-                TimeSources.Get(_playerLoopStage).Subscribe(this);
-                return;
-            }
-
-            _cameraContainer.RemoveState(_cameraStateKey);
-            TimeSources.Get(_playerLoopStage).Unsubscribe(this);
-        }
-
         private void OnEnable() {
-            SetEnabled(true);
+            _cameraStateKey = _cameraContainer.CreateState(this, _cameraMotionWeight);
+            TimeSources.Get(_playerLoopStage).Subscribe(this);
         }
 
         private void OnDisable() {
-            SetEnabled(false);
+            _cameraContainer.RemoveState(_cameraStateKey);
+            TimeSources.Get(_playerLoopStage).Unsubscribe(this);
         }
 
         public void OnUpdate(float dt) {
