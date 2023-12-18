@@ -3,9 +3,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Character.Core;
 using MisterGames.Common.Actions;
-using MisterGames.Common.Attributes;
 using MisterGames.Common.Dependencies;
-using UnityEngine;
 
 namespace MisterGames.Character.Inventory {
 
@@ -31,7 +29,7 @@ namespace MisterGames.Character.Inventory {
         public UniTask Apply(object source, CancellationToken cancellationToken = default) {
             for (int i = 0; i < items.Length; i++) {
                 var stack = items[i];
-                _inventory?.AddItems(stack.asset, stack.data.count);
+                _inventory?.AddItems(stack.asset, stack.count);
             }
 
             return default;

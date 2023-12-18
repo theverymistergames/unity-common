@@ -4,7 +4,7 @@ namespace MisterGames.Character.Inventory {
 
     public sealed class Inventory : IInventory {
 
-        public IReadOnlyDictionary<InventoryItemAsset, InventoryItemStackData> Items => _storage.Items;
+        public IReadOnlyDictionary<InventoryItemAsset, int> Items => _storage.Items;
         public bool IsEnabled { get => _isEnabled; set => _isEnabled = value; }
 
         private readonly IInventoryStorage _storage;
@@ -14,19 +14,18 @@ namespace MisterGames.Character.Inventory {
             _storage = storage;
         }
 
-        public int AddItems(InventoryItemAsset asset, int count) {
+        public int AddItems(InventoryItemAsset asset, int count, InventoryItemStackOverflowPolicy policy = InventoryItemStackOverflowPolicy.Cancel) {
             if (!_isEnabled) return 0;
-            return _storage.AddItems(asset, count);
+            return _storage.AddItems(asset, count, policy);
         }
 
-        public int RemoveItems(InventoryItemAsset asset, int count) {
+        public int RemoveItems(InventoryItemAsset asset, int count, InventoryItemStackOverflowPolicy policy = InventoryItemStackOverflowPolicy.Cancel) {
             if (!_isEnabled) return 0;
-            return _storage.RemoveItems(asset, count);
+            return _storage.RemoveItems(asset, count, policy);
         }
 
-        public int RemoveAllItemsOf(InventoryItemAsset asset) {
-            if (!_isEnabled) return 0;
-            return _storage.RemoveAllItemsOf(asset);
+        public bool ContainsItems(InventoryItemAsset asset) {
+            return _storage.Items.ContainsKey(asset);
         }
 
         public void Clear() {

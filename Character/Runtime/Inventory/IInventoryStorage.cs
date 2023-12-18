@@ -4,13 +4,11 @@ namespace MisterGames.Character.Inventory {
 
     public interface IInventoryStorage {
 
-        IReadOnlyDictionary<InventoryItemAsset, InventoryItemStackData> Items { get; }
+        IReadOnlyDictionary<InventoryItemAsset, int> Items { get; }
 
-        int AddItems(InventoryItemAsset asset, int count);
+        int AddItems(InventoryItemAsset asset, int count, InventoryItemStackOverflowPolicy policy = InventoryItemStackOverflowPolicy.Cancel);
 
-        int RemoveItems(InventoryItemAsset asset, int count);
-
-        int RemoveAllItemsOf(InventoryItemAsset asset);
+        int RemoveItems(InventoryItemAsset asset, int count, InventoryItemStackOverflowPolicy policy = InventoryItemStackOverflowPolicy.Cancel);
 
         void Clear();
     }

@@ -8,55 +8,63 @@ namespace MisterGames.Character.Inventory {
     [Serializable]
     public sealed class InventoryStorage : IInventoryStorage {
 
-        [SerializeField] private Map<InventoryItemAsset, InventoryItemStackData> _items;
+        [SerializeField] private Map<InventoryItemAsset, int> _items;
 
-        public IReadOnlyDictionary<InventoryItemAsset, InventoryItemStackData> Items => _items;
+        public IReadOnlyDictionary<InventoryItemAsset, int> Items => _items;
 
         public InventoryStorage() {
-            _items = new Map<InventoryItemAsset, InventoryItemStackData>();
+            _items = new Map<InventoryItemAsset, int>();
         }
 
-        public int AddItems(InventoryItemAsset asset, int count) {
+        public int AddItems(InventoryItemAsset asset, int count, InventoryItemStackOverflowPolicy policy = InventoryItemStackOverflowPolicy.Cancel) {
             if (count <= 0 || asset == null) {
                 return 0;
             }
 
-            if (_items.ContainsKey(asset)) {
-                ref var data = ref _items.Get(asset);
-                data.count += count;
-            }
-            else {
-                _items.Add(asset, new InventoryItemStackData { count = count });
-            }
+            _items.TryGetValue(asset, out int existent);
+            _items[asset] = existent + count;
 
             return count;
         }
 
-        public int RemoveItems(InventoryItemAsset asset, int count) {
+        public int RemoveItems(InventoryItemAsset asset, int count, InventoryItemStackOverflowPolicy policy = InventoryItemStackOverflowPolicy.Cancel) {
             if (count <= 0 || asset == null || !_items.ContainsKey(asset)) {
                 return 0;
             }
 
-            ref var data = ref _items.Get(asset);
+            ref int existent = ref _items.Get(asset);
 
-            if (data.count > count) {
-                data.count -= count;
+            if (existent >= count) {
+                existent -= count;
+                if (existent <= 0) _items.Remove(asset);
             }
             else {
-                count = data.count;
-                _items.Remove(asset);
+                switch (policy) {
+                    case InventoryItemStackOverflowPolicy.Cancel:
+                        count = 0;
+                        break;
+
+                    case InventoryItemStackOverflowPolicy.AsManyAsPossible:
+                        count = existent;
+                        _items.Remove(asset);
+                        break;
+
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(policy), policy, null);
+                }
             }
 
             return count;
         }
 
         public int RemoveAllItemsOf(InventoryItemAsset asset) {
-            if (asset == null || !_items.TryGetValue(asset, out var data)) {
+            if (asset == null || !_items.TryGetValue(asset, out int existent)) {
                 return 0;
             }
 
             _items.Remove(asset);
-            return data.count;
+
+            return existent;
         }
 
         public void Clear() {

@@ -35,7 +35,7 @@ namespace MisterGames.Character.Inventory {
 
             for (int i = 0; i < _addItems.Length; i++) {
                 var stack = _addItems[i];
-                _storage.AddItems(stack.asset, stack.data.count);
+                _storage.AddItems(stack.asset, stack.count);
             }
 
             _inventoryInstance = new Inventory(_storage);
