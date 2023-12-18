@@ -1,5 +1,4 @@
 ﻿using System;
-using MisterGames.Scenario.Core;
 using UnityEngine;
 
 namespace MisterGames.Scenario.Core {
