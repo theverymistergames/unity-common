@@ -14,6 +14,7 @@ namespace MisterGames.Interact.Interactives {
 
         IReadOnlyCollection<IInteractive> Interactives { get; }
         Transform Transform { get; }
+        GameObject Root { get; }
 
         bool IsInDirectView(IInteractive interactive, out float distance);
         bool IsDetected(IInteractive interactive);
