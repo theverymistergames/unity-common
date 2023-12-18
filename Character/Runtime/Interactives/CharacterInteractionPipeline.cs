@@ -11,6 +11,7 @@ namespace MisterGames.Character.Interactives {
         [SerializeField] private InteractiveUser _interactiveUser;
 
         public IInteractiveUser InteractiveUser => _interactiveUser;
+
         public override bool IsEnabled { get => enabled; set => enabled = value; }
 
         private void OnEnable() {

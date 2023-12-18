@@ -1,4 +1,5 @@
-﻿using MisterGames.Character.Motion;
+﻿using System;
+using MisterGames.Character.Motion;
 using MisterGames.Character.View;
 using MisterGames.Common.GameObjects;
 using UnityEngine;
@@ -14,6 +15,14 @@ namespace MisterGames.Character.Core {
 
         public ITransformAdapter HeadAdapter => headAdapter;
         public ITransformAdapter BodyAdapter => _bodyAdapter;
+
+        private void Awake() {
+            CharacterAccessRegistry.Instance.Register(this);
+        }
+
+        private void OnDestroy() {
+            CharacterAccessRegistry.Instance.Unregister(this);
+        }
 
         public T GetPipeline<T>() where T : ICharacterPipeline {
             for (int i = 0; i < _pipelines.Length; i++) {

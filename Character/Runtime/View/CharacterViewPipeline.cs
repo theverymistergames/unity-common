@@ -4,6 +4,7 @@ using MisterGames.Character.Processors;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.GameObjects;
 using MisterGames.Common.Maths;
+using MisterGames.Interact.Detectables;
 using MisterGames.Tick.Core;
 using MisterGames.UI.Initialization;
 using UnityEngine;
@@ -15,6 +16,7 @@ namespace MisterGames.Character.View {
         [SerializeField] private CharacterAccess _characterAccess;
         [SerializeField] private Camera _camera;
         [SerializeField] private CameraContainer _cameraContainer;
+        [SerializeField] private Detector _viewDetector;
         [SerializeField] private PlayerLoopStage _playerLoopStage = PlayerLoopStage.Update;
 
         [SerializeReference] [SubclassSelector] private ICharacterProcessorVector2[] _inputProcessors = {
@@ -35,6 +37,7 @@ namespace MisterGames.Character.View {
 
         public override bool IsEnabled { get => enabled; set => enabled = value; }
         public CameraContainer CameraContainer => _cameraContainer;
+        public IDetector ViewDetector => _viewDetector;
 
         private ITimeSource _timeSource;
         private ITransformAdapter _headAdapter;

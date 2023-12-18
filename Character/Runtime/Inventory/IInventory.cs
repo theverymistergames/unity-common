@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 
 namespace MisterGames.Character.Inventory {
+
     public interface IInventory {
 
         bool IsEnabled { get; set; }
@@ -16,4 +17,5 @@ namespace MisterGames.Character.Inventory {
         void Clear();
 
     }
+
 }
