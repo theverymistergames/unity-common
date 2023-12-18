@@ -13,6 +13,7 @@ namespace MisterGames.BlueprintLib {
         IBlueprintEnter,
         IBlueprintOutput<bool>,
         IBlueprintOutput<IInteractiveUser>,
+        IBlueprintOutput<GameObject>,
         IBlueprintStartCallback
     {
         [SerializeField] private bool _autoSetInteractiveOnStart = true;
@@ -29,12 +30,15 @@ namespace MisterGames.BlueprintLib {
             meta.AddPort(id, Port.Exit("On Stop Interact"));
             meta.AddPort(id, Port.Output<bool>("Is Interacting"));
             meta.AddPort(id, Port.Output<IInteractiveUser>("Last User"));
+            meta.AddPort(id, Port.Output<GameObject>("Last User Root"));
         }
 
         public void OnStart(IBlueprint blueprint, NodeToken token) {
             if (!_autoSetInteractiveOnStart) return;
 
             _token = token;
+            _blueprint = blueprint;
+
             PrepareInteractive();
         }
 
@@ -81,12 +85,17 @@ namespace MisterGames.BlueprintLib {
 
         bool IBlueprintOutput<bool>.GetPortValue(IBlueprint blueprint, NodeToken token, int port) => port switch {
             4 => _interactive != null && _interactive.IsInteractingWith(_lastUser),
-            _ => false,
+            _ => default,
         };
 
         IInteractiveUser IBlueprintOutput<IInteractiveUser>.GetPortValue(IBlueprint blueprint, NodeToken token, int port) => port switch {
             5 => _lastUser,
-            _ => null,
+            _ => default,
+        };
+
+        public GameObject GetPortValue(IBlueprint blueprint, NodeToken token, int port) => port switch {
+            6 => _lastUser?.Root,
+            _ => default,
         };
     }
 

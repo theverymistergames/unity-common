@@ -28,7 +28,7 @@ namespace MisterGames.BlueprintLib {
             bool isEnabled = blueprint.Read(token, 2, _isEnabled);
             var gameObject = blueprint.Read<GameObject>(token, 1);
 
-            gameObject.SetActive(isEnabled);
+            if (gameObject != null) gameObject.SetActive(isEnabled);
         }
 
         public void OnValidate(IBlueprintMeta meta, NodeId id) {
