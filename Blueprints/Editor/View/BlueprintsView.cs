@@ -708,7 +708,7 @@ namespace MisterGames.Blueprints.Editor.View {
                 case null:
                     return;
 
-                case IBlueprintCloneable:
+                case BlueprintSources.ICloneable:
                     if (add) toSource?.AddNodeClone(id, fromSource, id);
                     else toSource?.SetNodeClone(id, fromSource, id);
                     break;

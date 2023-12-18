@@ -60,7 +60,7 @@ namespace MisterGames.Blueprints {
             }
         }
 
-        public interface ICloneable : IBlueprintSource, IBlueprintCloneable { }
+        public interface ICloneable : IBlueprintSource { }
 
         public interface IInternalLink<TNode> : IBlueprintSource, IBlueprintInternalLink
             where TNode : struct, IBlueprintNode, IBlueprintInternalLink

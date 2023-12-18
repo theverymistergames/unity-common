@@ -13,6 +13,7 @@ namespace MisterGames.BlueprintLib {
         IBlueprintEnter,
         IBlueprintOutput<bool>,
         IBlueprintOutput<IInteractiveUser>,
+        IBlueprintOutput<Transform>,
         IBlueprintOutput<GameObject>,
         IBlueprintStartCallback
     {
@@ -30,6 +31,7 @@ namespace MisterGames.BlueprintLib {
             meta.AddPort(id, Port.Exit("On Stop Interact"));
             meta.AddPort(id, Port.Output<bool>("Is Interacting"));
             meta.AddPort(id, Port.Output<IInteractiveUser>("Last User"));
+            meta.AddPort(id, Port.Output<Transform>("Last User Transform"));
             meta.AddPort(id, Port.Output<GameObject>("Last User Root"));
         }
 
@@ -93,8 +95,13 @@ namespace MisterGames.BlueprintLib {
             _ => default,
         };
 
-        public GameObject GetPortValue(IBlueprint blueprint, NodeToken token, int port) => port switch {
-            6 => _lastUser?.Root,
+        Transform IBlueprintOutput<Transform>.GetPortValue(IBlueprint blueprint, NodeToken token, int port) => port switch {
+            6 => _lastUser?.Transform,
+            _ => default,
+        };
+
+        GameObject IBlueprintOutput<GameObject>.GetPortValue(IBlueprint blueprint, NodeToken token, int port) => port switch {
+            7 => _lastUser?.Root,
             _ => default,
         };
     }

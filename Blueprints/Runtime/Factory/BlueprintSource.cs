@@ -115,7 +115,7 @@ namespace MisterGames.Blueprints {
             if (source is not BlueprintSource<TNode> s) return;
 
             foreach (int id in _nodeMap.Keys) {
-                s._nodeMap[id] = s is IBlueprintCloneable
+                s._nodeMap[id] = s is BlueprintSources.ICloneable
                     ? GetNodeByRef<TNode>(id)
                     : JsonUtility.FromJson<TNode>(GetNodeAsString(id));
             }

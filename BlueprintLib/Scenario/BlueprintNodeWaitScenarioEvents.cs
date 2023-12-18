@@ -7,17 +7,20 @@ using UnityEngine;
 namespace MisterGames.Scenario.BlueprintLib {
 
     [Serializable]
-    [BlueprintNode(Name = "Wait Scenario Events", Category = "Scenario", Color = BlueprintLibColors.Node.Scenario)]
-    public sealed class BlueprintNodeWaitScenarioEvents : IBlueprintNode, IBlueprintEnter {
+    [BlueprintNode(Name = "Wait Scenario Event", Category = "Scenario", Color = BlueprintLibColors.Node.Scenario)]
+    public sealed class BlueprintNodeWaitScenarioEvent : IBlueprintNode, IBlueprintEnter, IBlueprintOutput<int> {
 
-        [SerializeField] private ScenarioEvent[] _events;
+        [SerializeField] private ScenarioEvent _events;
 
         private IBlueprint _blueprint;
         private NodeToken _token;
 
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {
-            meta.AddPort(id, Port.Enter("Start"));
-            meta.AddPort(id, Port.Exit("On Emit All"));
+            meta.AddPort(id, Port.Enter("Subscribe"));
+            meta.AddPort(id, Port.Enter("Unsubscribe"));
+            meta.AddPort(id, Port.Input<ScenarioEvent>());
+            meta.AddPort(id, Port.Exit("On Emit"));
+            meta.AddPort(id, Port.Output<int>("Emit Count"));
         }
 
         public void OnInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
@@ -25,56 +28,35 @@ namespace MisterGames.Scenario.BlueprintLib {
         }
 
         public void OnDeInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
-            UnsubscribeAll();
             _blueprint = null;
         }
 
         public void OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
-            if (port != 0) return;
-
             _token = token;
 
-            if (AllEventsDone()) {
-                Finish();
+            if (port == 0) {
+                var evt = blueprint.Read(token, 2, _events);
+                evt.OnEmit -= OnEmit;
+                evt.OnEmit += OnEmit;
                 return;
             }
 
-            SubscribeToNotEmittedEvents();
-        }
-
-        private void SubscribeToNotEmittedEvents() {
-            for (int i = 0; i < _events.Length; i++) {
-                var evt = _events[i];
-                if (evt.IsEmitted) continue;
-
-                evt.OnEmit -= CheckFinish;
-                evt.OnEmit += CheckFinish;
+            if (port == 1) {
+                var evt = blueprint.Read(token, 2, _events);
+                evt.OnEmit -= OnEmit;
+                return;
             }
         }
 
-        private void UnsubscribeAll() {
-            for (int i = 0; i < _events.Length; i++) {
-                var evt = _events[i];
-                evt.OnEmit -= CheckFinish;
-            }
+        public int GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
+            if (port != 4) return default;
+
+            var evt = blueprint.Read(token, 2, _events);
+            return evt.EmitCount;
         }
 
-        private void CheckFinish() {
-            if (AllEventsDone()) Finish();
-        }
-
-        private void Finish() {
-            UnsubscribeAll();
-            _blueprint.Call(_token, 1);
-        }
-
-        private bool AllEventsDone() {
-            for (int i = 0; i < _events.Length; i++) {
-                var evt = _events[i];
-                if (!evt.IsEmitted) return false;
-            }
-
-            return true;
+        private void OnEmit() {
+            _blueprint.Call(_token, 3);
         }
     }
 

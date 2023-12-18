@@ -90,7 +90,7 @@ namespace MisterGames.Blueprints.Runtime {
                     var runtimeSource = factory.GetSource(runtimeSourceId);
                     int runtimeNodeId;
 
-                    if (source is IBlueprintCloneable) {
+                    if (source is BlueprintSources.ICloneable) {
                         runtimeNodeId = runtimeSource.AddNodeClone(source, id.node);
                     }
                     else {
@@ -199,7 +199,7 @@ namespace MisterGames.Blueprints.Runtime {
                             var linkedRuntimeSource = factory.GetSource(linkedRuntimeSourceId);
                             int linkedRuntimeNodeId;
 
-                            if (linkedSource is IBlueprintCloneable) {
+                            if (linkedSource is BlueprintSources.ICloneable) {
                                 linkedRuntimeNodeId = linkedRuntimeSource.AddNodeClone(linkedSource, linkedId.node);
                             }
                             else {
