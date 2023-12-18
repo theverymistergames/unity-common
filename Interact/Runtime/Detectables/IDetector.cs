@@ -11,6 +11,7 @@ namespace MisterGames.Interact.Detectables {
 
         IReadOnlyCollection<IDetectable> Targets { get; }
         Transform Transform { get; }
+        GameObject Root { get; }
 
         bool IsInDirectView(IDetectable detectable, out float distance);
         bool IsDetected(IDetectable detectable);

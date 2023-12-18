@@ -13,12 +13,14 @@ namespace MisterGames.Interact.Detectables {
         [SerializeField] private CollisionDetectorBase _directViewDetector;
         [SerializeField] private CollisionDetectorBase _collisionDetector;
         [SerializeField] private CollisionFilter _collisionFilter;
+        [SerializeField] private GameObject _root;
 
         public event Action<IDetectable> OnDetected = delegate {  };
         public event Action<IDetectable> OnLost = delegate {  };
 
         public IReadOnlyCollection<IDetectable> Targets => _detectedTargetsSet;
         public Transform Transform { get; private set; }
+        public GameObject Root => _root;
 
         private readonly List<IDetectable> _detectedTargets = new List<IDetectable>();
         private readonly HashSet<IDetectable> _detectedTargetsSet = new HashSet<IDetectable>();
