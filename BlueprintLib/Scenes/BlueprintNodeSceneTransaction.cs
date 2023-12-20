@@ -46,10 +46,8 @@ namespace MisterGames.BlueprintLib {
             NodeToken token,
             CancellationToken cancellationToken
         ) {
-            await _sceneTransaction.Apply(blueprint, cancellationToken);
-            if (cancellationToken.IsCancellationRequested) return;
-
-            blueprint.Call(token, 1);
+            await _sceneTransaction.Apply(cancellationToken);
+            if (!cancellationToken.IsCancellationRequested) blueprint.Call(token, 1);
         }
     }
 
