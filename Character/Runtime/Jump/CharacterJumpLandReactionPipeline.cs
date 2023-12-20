@@ -1,11 +1,9 @@
 ﻿using System.Threading;
-using Cysharp.Threading.Tasks;
 using MisterGames.Character.Collisions;
 using MisterGames.Character.Core;
 using MisterGames.Collisions.Core;
-using MisterGames.Common.Actions;
+using MisterGames.Character.Actions;
 using MisterGames.Common.Attributes;
-using MisterGames.Common.Dependencies;
 using UnityEngine;
 
 namespace MisterGames.Character.Jump {
@@ -15,15 +13,10 @@ namespace MisterGames.Character.Jump {
         [SerializeField] private CharacterAccess _characterAccess;
 
         [EmbeddedInspector]
-        [SerializeField] private AsyncActionAsset _jumpReaction;
+        [SerializeField] private CharacterActionAsset _jumpReaction;
 
         [EmbeddedInspector]
-        [SerializeField] private AsyncActionAsset _landReaction;
-
-        [RuntimeDependency(typeof(ICharacterAccess))]
-        [FetchDependencies(nameof(_jumpReaction))]
-        [FetchDependencies(nameof(_landReaction))]
-        [SerializeField] private DependencyResolver _dependencies;
+        [SerializeField] private CharacterActionAsset _landReaction;
 
         public override bool IsEnabled { get => enabled; set => enabled = value; }
 
@@ -35,10 +28,6 @@ namespace MisterGames.Character.Jump {
             _destroyCts = new CancellationTokenSource();
             _jump = _characterAccess.GetPipeline<ICharacterJumpPipeline>();
             _groundDetector = _characterAccess.GetPipeline<ICharacterCollisionPipeline>().GroundDetector;
-
-            _dependencies.SetValue<ICharacterAccess>(_characterAccess);
-            _dependencies.Resolve(_jumpReaction);
-            _dependencies.Resolve(_landReaction, additive: true);
         }
 
         private void OnDestroy() {
@@ -60,11 +49,11 @@ namespace MisterGames.Character.Jump {
         }
 
         private async void OnJump(Vector3 vector3) {
-            await _jumpReaction.TryApply(this, _destroyCts.Token);
+            if (_jumpReaction != null) await _jumpReaction.Apply(_characterAccess, this, _destroyCts.Token);
         }
 
         private async void OnLanded() {
-            await _landReaction.TryApply(this, _destroyCts.Token);
+            if (_landReaction != null) await _landReaction.Apply(_characterAccess, this, _destroyCts.Token);
         }
     }
 

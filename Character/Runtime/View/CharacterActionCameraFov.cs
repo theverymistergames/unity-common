@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using MisterGames.Character.Actions;
 using MisterGames.Character.Core;
-using MisterGames.Common.Actions;
 using MisterGames.Common.Data;
-using MisterGames.Common.Dependencies;
 using MisterGames.Tick.Core;
 using UnityEngine;
 using Random = UnityEngine.Random;
@@ -12,7 +11,7 @@ using Random = UnityEngine.Random;
 namespace MisterGames.Character.View {
 
     [Serializable]
-    public sealed class CharacterActionCameraFov : IAsyncAction, IDependency {
+    public sealed class CharacterActionCameraFov : ICharacterAction {
 
         public PlayerLoopStage playerLoopStage = PlayerLoopStage.Update;
         public bool keepChanges;
@@ -23,42 +22,32 @@ namespace MisterGames.Character.View {
 
         public FloatParameter fovOffset = FloatParameter.Default();
 
-        private CameraContainer _cameraContainer;
-
-        public void OnSetupDependencies(IDependencyContainer container) {
-            container.CreateBucket(this)
-                .Add<CharacterAccess>();
-        }
-
-        public void OnResolveDependencies(IDependencyResolver resolver) {
-            _cameraContainer = resolver
-                .Resolve<ICharacterAccess>()
+        public async UniTask Apply(ICharacterAccess characterAccess, object source, CancellationToken cancellationToken = default) {
+            var cameraContainer = characterAccess
                 .GetPipeline<CharacterViewPipeline>()
                 .CameraContainer;
-        }
 
-        public async UniTask Apply(object source, CancellationToken cancellationToken = default) {
             var timeSource = TimeSources.Get(playerLoopStage);
 
             float progress = 0f;
             float resultDuration = duration + Random.Range(-durationRandom, durationRandom);
 
             float m = fovOffset.CreateMultiplier();
-            var key = _cameraContainer.CreateState(this, weight);
+            var key = cameraContainer.CreateState(this, weight);
 
             while (!cancellationToken.IsCancellationRequested) {
                 float progressDelta = resultDuration <= 0f ? 1f : timeSource.DeltaTime / resultDuration;
                 progress = Mathf.Clamp01(progress + progressDelta);
 
                 float fov = m * fovOffset.Evaluate(progress);
-                _cameraContainer.SetFovOffset(key, fov);
+                cameraContainer.SetFovOffset(key, fov);
 
                 if (progress >= 1f) break;
 
                 await UniTask.Yield();
             }
 
-            _cameraContainer.RemoveState(key, keepChanges);
+            cameraContainer.RemoveState(key, keepChanges);
         }
     }
 

@@ -1,8 +1,8 @@
 ﻿using System.Threading;
+using Cysharp.Threading.Tasks;
+using MisterGames.Character.Actions;
 using MisterGames.Character.Core;
-using MisterGames.Common.Actions;
 using MisterGames.Common.Attributes;
-using MisterGames.Common.Dependencies;
 using UnityEngine;
 
 namespace MisterGames.Character.Startup {
@@ -12,18 +12,9 @@ namespace MisterGames.Character.Startup {
         [SerializeField] private CharacterAccess _characterAccess;
 
         [EmbeddedInspector]
-        [SerializeField] private AsyncActionAsset[] _startupActions;
-
-        [RuntimeDependency(typeof(ICharacterAccess))]
-        [FetchDependencies(nameof(_startupActions))]
-        [SerializeField] private DependencyResolver _dependencies;
+        [SerializeField] private CharacterActionAsset[] _startupActions;
 
         private CancellationTokenSource _enableCts;
-
-        private void Awake() {
-            _dependencies.SetValue<ICharacterAccess>(_characterAccess);
-            _dependencies.Resolve(_startupActions);
-        }
 
         private void OnEnable() {
             _enableCts?.Cancel();
@@ -37,9 +28,13 @@ namespace MisterGames.Character.Startup {
             _enableCts = null;
         }
 
-        private async void Start() {
+        private void Start() {
+            Apply(_enableCts.Token).Forget();
+        }
+
+        private async UniTask Apply(CancellationToken token) {
             for (int i = 0; i < _startupActions.Length; i++) {
-                await _startupActions[i].Apply(this, _enableCts.Token);
+                await _startupActions[i].Apply(_characterAccess, this, token);
             }
         }
     }

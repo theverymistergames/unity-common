@@ -1,36 +1,25 @@
 ﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using MisterGames.Character.Actions;
 using MisterGames.Character.Core;
 using MisterGames.Character.Processors;
-using MisterGames.Common.Actions;
-using MisterGames.Common.Dependencies;
 using UnityEngine;
 
 namespace MisterGames.Character.View {
     
     [Serializable]
-    public sealed class CharacterActionSetViewSensitivity : IAsyncAction, IDependency {
+    public sealed class CharacterActionSetViewSensitivity : ICharacterAction {
 
         [Min(0f)] public float sensitivityHorizontal = 0.15f;
         [Min(0f)] public float sensitivityVertical = 0.15f;
 
-        private CharacterProcessorVector2Sensitivity _sensitivity;
-
-        public void OnSetupDependencies(IDependencyContainer container) {
-            container.CreateBucket(this)
-                .Add<CharacterAccess>();
-        }
-
-        public void OnResolveDependencies(IDependencyResolver resolver) {
-            _sensitivity = resolver
-                .Resolve<ICharacterAccess>()
+        public UniTask Apply(ICharacterAccess characterAccess, object source, CancellationToken cancellationToken = default) {
+            var sensitivity = characterAccess
                 .GetPipeline<ICharacterViewPipeline>()
                 .GetProcessor<CharacterProcessorVector2Sensitivity>();
-        }
 
-        public UniTask Apply(object source, CancellationToken cancellationToken = default) {
-            _sensitivity.sensitivity = new Vector2(sensitivityVertical, sensitivityHorizontal);
+            sensitivity.sensitivity = new Vector2(sensitivityVertical, sensitivityHorizontal);
             return default;
         }
     }
