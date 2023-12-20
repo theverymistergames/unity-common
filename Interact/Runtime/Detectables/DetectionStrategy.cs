@@ -1,32 +1,20 @@
 ﻿using MisterGames.Common.Attributes;
-using MisterGames.Common.Conditions;
-using MisterGames.Common.Dependencies;
 using UnityEngine;
 
 namespace MisterGames.Interact.Detectables {
 
     [CreateAssetMenu(fileName = nameof(DetectionStrategy), menuName = "MisterGames/Interactives/" + nameof(DetectionStrategy))]
-    public sealed class DetectionStrategy : ScriptableObject, IDependency {
+    public sealed class DetectionStrategy : ScriptableObject {
 
-        [SerializeReference] [SubclassSelector] private ICondition _startConstraint;
-        [SerializeReference] [SubclassSelector] private ICondition _continueConstraint;
+        [SerializeReference] [SubclassSelector] private IDetectCondition _startConstraint;
+        [SerializeReference] [SubclassSelector] private IDetectCondition _continueConstraint;
 
-        public void OnSetupDependencies(IDependencyContainer container) {
-            if (_startConstraint is IDependency s) s.OnSetupDependencies(container);
-            if (_continueConstraint is IDependency c) c.OnSetupDependencies(container);
+        public bool IsAllowedToStartDetection(IDetector detector, IDetectable detectable) {
+            return _startConstraint == null || _startConstraint.IsMatch(detector, detectable);
         }
 
-        public void OnResolveDependencies(IDependencyResolver resolver) {
-            if (_startConstraint is IDependency s) s.OnResolveDependencies(resolver);
-            if (_continueConstraint is IDependency c) c.OnResolveDependencies(resolver);
-        }
-
-        public bool IsAllowedToStartDetection() {
-            return _startConstraint == null || _startConstraint.IsMatched;
-        }
-
-        public bool IsAllowedToContinueDetection() {
-            return _continueConstraint == null || _continueConstraint.IsMatched;
+        public bool IsAllowedToContinueDetection(IDetector detector, IDetectable detectable) {
+            return _continueConstraint == null || _continueConstraint.IsMatch(detector, detectable);
         }
     }
 

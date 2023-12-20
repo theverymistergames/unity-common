@@ -57,10 +57,7 @@ namespace MisterGames.Interact.Cursors {
             var host = user.Transform.GetComponent<ICursorHost>();
             if (host == null) return;
 
-            _dependencies.SetValue(user);
-            _dependencies.Resolve(_strategy);
-
-            if (_strategy.TryGetCursorIcon(out var icon)) {
+            if (_strategy.TryGetCursorIcon(user, _interactive, out var icon)) {
                 host.ApplyCursorIconOverride(this, icon);
                 return;
             }

@@ -12,11 +12,6 @@ namespace MisterGames.Interact.Detectables {
         [EmbeddedInspector]
         [SerializeField] private DetectionStrategy _strategy;
 
-        [RuntimeDependency(typeof(IDetectable))]
-        [RuntimeDependency(typeof(IDetector))]
-        [FetchDependencies(nameof(_strategy))]
-        [SerializeField] private DependencyResolver _dependencies;
-
         public event Action<IDetector> OnDetectedBy = delegate {  };
         public event Action<IDetector> OnLostBy = delegate {  };
 
@@ -27,7 +22,6 @@ namespace MisterGames.Interact.Detectables {
         private readonly List<IDetector> _observers = new List<IDetector>();
 
         private void Awake() {
-            _dependencies.SetValue<IDetectable>(this);
             Transform = transform;
         }
 
@@ -40,17 +34,11 @@ namespace MisterGames.Interact.Detectables {
         }
 
         public bool IsAllowedToStartDetectBy(IDetector detector) {
-            _dependencies.SetValue(detector);
-            _dependencies.Resolve(_strategy);
-
-            return enabled && _strategy.IsAllowedToStartDetection();
+            return enabled && _strategy.IsAllowedToStartDetection(detector, this);
         }
 
         public bool IsAllowedToContinueDetectBy(IDetector detector) {
-            _dependencies.SetValue(detector);
-            _dependencies.Resolve(_strategy);
-
-            return enabled && _strategy.IsAllowedToContinueDetection();
+            return enabled && _strategy.IsAllowedToContinueDetection(detector, this);
         }
 
         public void NotifyDetectedBy(IDetector detector) {

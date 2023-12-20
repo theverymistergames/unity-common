@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using MisterGames.Common.Attributes;
-using MisterGames.Common.Dependencies;
 using MisterGames.Tick.Core;
 using UnityEngine;
 
@@ -11,11 +10,6 @@ namespace MisterGames.Interact.Interactives {
 
         [EmbeddedInspector]
         [SerializeField] private InteractionStrategy _strategy;
-
-        [RuntimeDependency(typeof(IInteractive))]
-        [RuntimeDependency(typeof(IInteractiveUser))]
-        [FetchDependencies(nameof(_strategy))]
-        [SerializeField] private DependencyResolver _dependencies;
 
         public event Action<IInteractiveUser> OnDetectedBy = delegate {  };
         public event Action<IInteractiveUser> OnLostBy = delegate {  };
@@ -40,7 +34,6 @@ namespace MisterGames.Interact.Interactives {
 
         private void Awake() {
             Transform = transform;
-            _dependencies.SetValue<IInteractive>(this);
         }
 
         private void OnDisable() {
@@ -62,24 +55,15 @@ namespace MisterGames.Interact.Interactives {
         }
 
         public bool IsReadyToStartInteractWith(IInteractiveUser user) {
-            _dependencies.SetValue(user);
-            _dependencies.Resolve(_strategy);
-
-            return enabled && _strategy.IsReadyToStartInteraction();
+            return enabled && _strategy.IsReadyToStartInteraction(user, this);
         }
 
         public bool IsAllowedToStartInteractWith(IInteractiveUser user) {
-            _dependencies.SetValue(user);
-            _dependencies.Resolve(_strategy);
-
-            return enabled && _strategy.IsAllowedToStartInteraction();
+            return enabled && _strategy.IsAllowedToStartInteraction(user, this);
         }
 
         public bool IsAllowedToContinueInteractWith(IInteractiveUser user) {
-            _dependencies.SetValue(user);
-            _dependencies.Resolve(_strategy);
-
-            return enabled && _strategy.IsAllowedToContinueInteraction();
+            return enabled && _strategy.IsAllowedToContinueInteraction(user, this);
         }
 
         public void NotifyDetectedBy(IInteractiveUser user) {

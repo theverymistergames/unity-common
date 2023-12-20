@@ -8,32 +8,20 @@ using UnityEngine;
 namespace MisterGames.Interact.Cursors {
 
     [CreateAssetMenu(fileName = nameof(InteractiveCursorStrategy), menuName = "MisterGames/Interactives/" + nameof(InteractiveCursorStrategy))]
-    public sealed class InteractiveCursorStrategy : ScriptableObject, IDependency {
+    public sealed class InteractiveCursorStrategy : ScriptableObject {
 
         [SerializeField] private Case[] _cases;
 
         [Serializable]
         private struct Case {
             public CursorIcon cursorIcon;
-            [SerializeReference] [SubclassSelector] public ICondition constraint;
+            [SerializeReference] [SubclassSelector] public IInteractCondition constraint;
         }
 
-        public void OnSetupDependencies(IDependencyContainer container) {
-            for (int i = 0; i < _cases.Length; i++) {
-                if (_cases[i].constraint is IDependency dep) dep.OnSetupDependencies(container);
-            }
-        }
-
-        public void OnResolveDependencies(IDependencyResolver resolver) {
-            for (int i = 0; i < _cases.Length; i++) {
-                if (_cases[i].constraint is IDependency dep) dep.OnResolveDependencies(resolver);
-            }
-        }
-
-        public bool TryGetCursorIcon(out CursorIcon cursorIcon) {
+        public bool TryGetCursorIcon(IInteractiveUser user, IInteractive interactive, out CursorIcon cursorIcon) {
             for (int i = 0; i < _cases.Length; i++) {
                 var c = _cases[i];
-                if (!c.constraint.IsMatched) continue;
+                if (!c.constraint.IsMatch(user, interactive)) continue;
 
                 cursorIcon = c.cursorIcon;
                 return true;
