@@ -18,7 +18,7 @@ namespace MisterGames.Scenes.Transactions {
         [VisibleIf(nameof(_activateSceneAfterLoad))]
         [SerializeField] private SceneReference _targetActiveScene;
 
-        public async UniTask Apply() {
+        public async UniTask Apply(CancellationToken cancellationToken = default) {
             int loadLength = _load.Length;
             int operationsCount = loadLength + _unload.Length;
 

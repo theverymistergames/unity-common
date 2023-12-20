@@ -49,7 +49,7 @@ namespace MisterGames.Scenes.Transactions {
 
             if (isCancelled) return;
 
-            await transaction.Apply();
+            await transaction.Apply(token);
         }
     }
     
