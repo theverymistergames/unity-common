@@ -13,7 +13,7 @@ namespace MisterGames.Character.Breath {
         public Optional<float> period;
         public Optional<float> amplitude;
 
-        public UniTask Apply(ICharacterAccess characterAccess, object source, CancellationToken cancellationToken = default) {
+        public UniTask Apply(ICharacterAccess characterAccess, CancellationToken cancellationToken = default) {
             var breath = characterAccess.GetPipeline<ICharacterBreathPipeline>();
 
             if (period.HasValue) breath.Period = period.Value;

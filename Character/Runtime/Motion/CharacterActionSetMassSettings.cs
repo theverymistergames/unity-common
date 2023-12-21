@@ -18,7 +18,7 @@ namespace MisterGames.Character.Motion {
         [Min(0.001f)] public float groundInertialFactor = 20f;
         [Min(0f)] public float inputInfluenceFactor = 1f;
 
-        public UniTask Apply(ICharacterAccess characterAccess, object source, CancellationToken cancellationToken = default) {
+        public UniTask Apply(ICharacterAccess characterAccess, CancellationToken cancellationToken = default) {
             var mass = characterAccess
                 .GetPipeline<ICharacterMotionPipeline>()
                 .GetProcessor<CharacterProcessorMass>();

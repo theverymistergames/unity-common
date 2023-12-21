@@ -22,7 +22,7 @@ namespace MisterGames.Character.Jump {
             [SerializeReference] public ICharacterAction action;
         }
 
-        public UniTask Apply(ICharacterAccess characterAccess, object source, CancellationToken cancellationToken = default) {
+        public UniTask Apply(ICharacterAccess characterAccess, CancellationToken cancellationToken = default) {
             var _jump = characterAccess.GetPipeline<ICharacterJumpPipeline>();
 
             float sqrMagnitude = _jump.LastJumpImpulse.sqrMagnitude;
@@ -32,7 +32,7 @@ namespace MisterGames.Character.Jump {
                 if (c.minMagnitude * c.minMagnitude <= sqrMagnitude &&
                     sqrMagnitude < c.maxMagnitude * c.maxMagnitude
                 ) {
-                    return c.action.Apply(characterAccess, source, cancellationToken);
+                    return c.action.Apply(characterAccess, cancellationToken);
                 }
             }
 

@@ -11,7 +11,7 @@ namespace MisterGames.Character.MotionFsm {
 
         public bool isEnabled;
 
-        public UniTask Apply(ICharacterAccess characterAccess, object source, CancellationToken cancellationToken = default) {
+        public UniTask Apply(ICharacterAccess characterAccess, CancellationToken cancellationToken = default) {
             characterAccess.GetPipeline<ICharacterMotionFsmPipeline>().IsEnabled = isEnabled;
             return default;
         }

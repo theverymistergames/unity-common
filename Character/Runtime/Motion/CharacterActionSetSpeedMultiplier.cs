@@ -13,7 +13,7 @@ namespace MisterGames.Character.Motion {
 
         [Min(0f)] public float speed;
 
-        public UniTask Apply(ICharacterAccess characterAccess, object source, CancellationToken cancellationToken = default) {
+        public UniTask Apply(ICharacterAccess characterAccess, CancellationToken cancellationToken = default) {
             var multiplier = characterAccess
                 .GetPipeline<ICharacterMotionPipeline>()
                 .GetProcessor<CharacterProcessorVector2Multiplier>();

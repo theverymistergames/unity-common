@@ -14,7 +14,7 @@ namespace MisterGames.Character.View {
         [Min(0f)] public float sensitivityHorizontal = 0.15f;
         [Min(0f)] public float sensitivityVertical = 0.15f;
 
-        public UniTask Apply(ICharacterAccess characterAccess, object source, CancellationToken cancellationToken = default) {
+        public UniTask Apply(ICharacterAccess characterAccess, CancellationToken cancellationToken = default) {
             var sensitivity = characterAccess
                 .GetPipeline<ICharacterViewPipeline>()
                 .GetProcessor<CharacterProcessorVector2Sensitivity>();

@@ -13,7 +13,7 @@ namespace MisterGames.Character.View {
         public Optional<ViewAxisClamp> horizontal;
         public Optional<ViewAxisClamp> vertical;
 
-        public UniTask Apply(ICharacterAccess characterAccess, object source, CancellationToken cancellationToken = default) {
+        public UniTask Apply(ICharacterAccess characterAccess, CancellationToken cancellationToken = default) {
             var clamp = characterAccess
                 .GetPipeline<ICharacterViewPipeline>()
                 .GetProcessor<CharacterProcessorViewClamp>();

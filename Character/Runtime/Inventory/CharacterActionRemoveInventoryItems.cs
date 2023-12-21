@@ -11,7 +11,7 @@ namespace MisterGames.Character.Inventory {
 
         public InventoryItemStack[] items;
 
-        public UniTask Apply(ICharacterAccess characterAccess, object source, CancellationToken cancellationToken = default) {
+        public UniTask Apply(ICharacterAccess characterAccess, CancellationToken cancellationToken = default) {
             var inventory = characterAccess.GetPipeline<ICharacterInventoryPipeline>().Inventory;
 
             for (int i = 0; i < items.Length; i++) {

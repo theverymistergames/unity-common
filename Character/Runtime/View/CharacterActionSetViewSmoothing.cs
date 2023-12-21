@@ -13,7 +13,7 @@ namespace MisterGames.Character.View {
 
         [Min(0.001f)] public float viewSmoothFactor = 20f;
 
-        public UniTask Apply(ICharacterAccess characterAccess, object source, CancellationToken cancellationToken = default) {
+        public UniTask Apply(ICharacterAccess characterAccess, CancellationToken cancellationToken = default) {
             var smoothing = characterAccess
                 .GetPipeline<ICharacterViewPipeline>()
                 .GetProcessor<CharacterProcessorQuaternionSmoothing>();

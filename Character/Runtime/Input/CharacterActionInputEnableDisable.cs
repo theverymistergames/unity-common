@@ -12,7 +12,7 @@ namespace MisterGames.Character.Motion {
 
         public bool isEnabled;
 
-        public UniTask Apply(ICharacterAccess characterAccess, object source, CancellationToken cancellationToken = default) {
+        public UniTask Apply(ICharacterAccess characterAccess, CancellationToken cancellationToken = default) {
             characterAccess.GetPipeline<ICharacterInputPipeline>().IsEnabled = isEnabled;
             return default;
         }

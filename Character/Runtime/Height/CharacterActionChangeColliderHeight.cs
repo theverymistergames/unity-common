@@ -17,7 +17,7 @@ namespace MisterGames.Character.Height {
 
         [Min(0f)] public float metersPerSecond;
 
-        public UniTask Apply(ICharacterAccess characterAccess, object source, CancellationToken cancellationToken = default) {
+        public UniTask Apply(ICharacterAccess characterAccess, CancellationToken cancellationToken = default) {
             var height = characterAccess.GetPipeline<ICharacterHeightPipeline>();
 
             if (targetRadius.HasValue) height.Radius = targetRadius.Value;

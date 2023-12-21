@@ -12,7 +12,7 @@ namespace MisterGames.Character.Jump {
 
         [Min(0f)] public float jumpForceMultiplier = 1f;
 
-        public UniTask Apply(ICharacterAccess characterAccess, object source, CancellationToken cancellationToken = default) {
+        public UniTask Apply(ICharacterAccess characterAccess, CancellationToken cancellationToken = default) {
             characterAccess.GetPipeline<ICharacterJumpPipeline>().ForceMultiplier = jumpForceMultiplier;
             return default;
         }

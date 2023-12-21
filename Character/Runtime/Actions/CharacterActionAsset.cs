@@ -1,9 +1,7 @@
 ﻿using System.Threading;
 using Cysharp.Threading.Tasks;
-using MisterGames.Character.Actions;
 using MisterGames.Character.Core;
 using MisterGames.Common.Attributes;
-using MisterGames.Common.Dependencies;
 using UnityEngine;
 
 namespace MisterGames.Character.Actions {
@@ -13,8 +11,8 @@ namespace MisterGames.Character.Actions {
 
         [SerializeReference] [SubclassSelector] private ICharacterAction _action;
 
-        public UniTask Apply(ICharacterAccess characterAccess, object source, CancellationToken cancellationToken = default) {
-            return _action?.Apply(characterAccess, source, cancellationToken) ?? default;
+        public UniTask Apply(ICharacterAccess context, CancellationToken cancellationToken = default) {
+            return _action?.Apply(context, cancellationToken) ?? default;
         }
     }
 

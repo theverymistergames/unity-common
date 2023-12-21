@@ -22,7 +22,7 @@ namespace MisterGames.Character.View {
 
         public FloatParameter fovOffset = FloatParameter.Default();
 
-        public async UniTask Apply(ICharacterAccess characterAccess, object source, CancellationToken cancellationToken = default) {
+        public async UniTask Apply(ICharacterAccess characterAccess, CancellationToken cancellationToken = default) {
             var cameraContainer = characterAccess
                 .GetPipeline<CharacterViewPipeline>()
                 .CameraContainer;

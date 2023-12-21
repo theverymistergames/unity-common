@@ -10,7 +10,7 @@ namespace MisterGames.Character.Motion {
     [Serializable]
     public sealed class CharacterActionResetVelocity : ICharacterAction {
 
-        public UniTask Apply(ICharacterAccess characterAccess, object source, CancellationToken cancellationToken = default) {
+        public UniTask Apply(ICharacterAccess characterAccess, CancellationToken cancellationToken = default) {
             var mass = characterAccess
                 .GetPipeline<ICharacterMotionPipeline>()
                 .GetProcessor<CharacterProcessorMass>();

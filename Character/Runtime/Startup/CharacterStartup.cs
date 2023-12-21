@@ -34,7 +34,7 @@ namespace MisterGames.Character.Startup {
 
         private async UniTask Apply(CancellationToken token) {
             for (int i = 0; i < _startupActions.Length; i++) {
-                await _startupActions[i].Apply(_characterAccess, this, token);
+                await _startupActions[i].Apply(_characterAccess, token);
             }
         }
     }

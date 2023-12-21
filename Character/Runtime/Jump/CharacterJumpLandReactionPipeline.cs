@@ -1,8 +1,8 @@
 ﻿using System.Threading;
+using MisterGames.Character.Actions;
 using MisterGames.Character.Collisions;
 using MisterGames.Character.Core;
 using MisterGames.Collisions.Core;
-using MisterGames.Character.Actions;
 using MisterGames.Common.Attributes;
 using UnityEngine;
 
@@ -49,11 +49,11 @@ namespace MisterGames.Character.Jump {
         }
 
         private async void OnJump(Vector3 vector3) {
-            if (_jumpReaction != null) await _jumpReaction.Apply(_characterAccess, this, _destroyCts.Token);
+            if (_jumpReaction != null) await _jumpReaction.Apply(_characterAccess, _destroyCts.Token);
         }
 
         private async void OnLanded() {
-            if (_landReaction != null) await _landReaction.Apply(_characterAccess, this, _destroyCts.Token);
+            if (_landReaction != null) await _landReaction.Apply(_characterAccess, _destroyCts.Token);
         }
     }
 

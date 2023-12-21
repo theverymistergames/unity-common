@@ -13,7 +13,7 @@ namespace MisterGames.Character.Motion {
         [Range(0f, 1f)] public float sideCorrection = 1f;
         [Range(0f, 1f)] public float backCorrection = 1f;
 
-        public UniTask Apply(ICharacterAccess characterAccess, object source, CancellationToken cancellationToken = default) {
+        public UniTask Apply(ICharacterAccess characterAccess, CancellationToken cancellationToken = default) {
             var correction = characterAccess
                 .GetPipeline<ICharacterMotionPipeline>()
                 .GetProcessor<CharacterProcessorBackSideSpeedCorrection>();
