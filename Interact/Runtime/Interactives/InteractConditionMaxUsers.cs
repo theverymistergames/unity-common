@@ -8,7 +8,8 @@ namespace MisterGames.Interact.Interactives {
 
         [Min(0)] public int maxUsers;
 
-        public bool IsMatch(IInteractiveUser user, IInteractive interactive) {
+        public bool IsMatched((IInteractiveUser, IInteractive) context) {
+            var (user, interactive) = context;
             return interactive.Users.Count <= maxUsers;
         }
     }

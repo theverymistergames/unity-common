@@ -7,7 +7,8 @@ namespace MisterGames.Interact.Interactives {
 
         public bool shouldBeInDirectView;
 
-        public bool IsMatch(IInteractiveUser user, IInteractive interactive) {
+        public bool IsMatched((IInteractiveUser, IInteractive) context) {
+            var (user, interactive) = context;
             return shouldBeInDirectView == user.IsInDirectView(interactive, out _);
         }
     }

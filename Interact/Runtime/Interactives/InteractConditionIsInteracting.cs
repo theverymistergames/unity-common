@@ -7,7 +7,8 @@ namespace MisterGames.Interact.Interactives {
 
         public bool shouldBeInInteraction;
 
-        public bool IsMatch(IInteractiveUser user, IInteractive interactive) {
+        public bool IsMatched((IInteractiveUser, IInteractive) context) {
+            var (user, interactive) = context;
             return shouldBeInInteraction == user.IsInteractingWith(interactive);
         }
     }

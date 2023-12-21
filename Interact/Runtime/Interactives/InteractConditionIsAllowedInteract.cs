@@ -10,7 +10,8 @@ namespace MisterGames.Interact.Interactives {
         public Optional<bool> shouldBeAllowedToStartInteract;
         public Optional<bool> shouldBeAllowedToContinueInteract;
 
-        public bool IsMatch(IInteractiveUser user, IInteractive interactive) {
+        public bool IsMatched((IInteractiveUser, IInteractive) context) {
+            var (user, interactive) = context;
             return shouldBeReadyToStartInteract.IsEmptyOrEquals(interactive.IsReadyToStartInteractWith(user)) &&
                    shouldBeAllowedToStartInteract.IsEmptyOrEquals(interactive.IsAllowedToStartInteractWith(user)) &&
                    shouldBeAllowedToContinueInteract.IsEmptyOrEquals(interactive.IsAllowedToContinueInteractWith(user));

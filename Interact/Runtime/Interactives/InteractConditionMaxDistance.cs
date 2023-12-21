@@ -8,9 +8,9 @@ namespace MisterGames.Interact.Interactives {
 
         [Min(0f)] public float maxDistance;
 
-        public bool IsMatch(IInteractiveUser user, IInteractive interactive) {
-            return Vector3.SqrMagnitude(user.Transform.position - interactive.Transform.position) <=
-                   maxDistance * maxDistance;
+        public bool IsMatched((IInteractiveUser, IInteractive) context) {
+            var (user, interactive) = context;
+            return (user.Transform.position - interactive.Transform.position).sqrMagnitude <= maxDistance * maxDistance;
         }
     }
 

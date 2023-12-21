@@ -1,7 +1,7 @@
-﻿namespace MisterGames.Interact.Interactives {
+﻿using MisterGames.Common.Conditions;
 
-    public interface IInteractCondition {
-        bool IsMatch(IInteractiveUser user, IInteractive interactive);
-    }
+namespace MisterGames.Interact.Interactives {
+
+    public interface IInteractCondition : ICondition<(IInteractiveUser, IInteractive)> { }
 
 }

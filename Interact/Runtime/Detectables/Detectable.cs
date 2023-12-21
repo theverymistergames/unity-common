@@ -10,7 +10,7 @@ namespace MisterGames.Interact.Detectables {
     public sealed class Detectable : MonoBehaviour, IDetectable {
 
         [EmbeddedInspector]
-        [SerializeField] private DetectionStrategy _strategy;
+        [SerializeField] private DetectStrategy _strategy;
 
         public event Action<IDetector> OnDetectedBy = delegate {  };
         public event Action<IDetector> OnLostBy = delegate {  };

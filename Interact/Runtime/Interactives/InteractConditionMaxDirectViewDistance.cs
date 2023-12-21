@@ -8,9 +8,9 @@ namespace MisterGames.Interact.Interactives {
 
         [Min(0f)] public float maxDistance;
 
-        public bool IsMatch(IInteractiveUser user, IInteractive interactive) {
-            return user.IsInDirectView(interactive, out float distance) &&
-                   distance <= maxDistance;
+        public bool IsMatched((IInteractiveUser, IInteractive) context) {
+            var (user, interactive) = context;
+            return user.IsInDirectView(interactive, out float distance) && distance <= maxDistance;
         }
     }
 

@@ -9,7 +9,8 @@ namespace MisterGames.Interact.Detectables {
         public Optional<bool> shouldBeAllowedToStartDetection;
         public Optional<bool> shouldBeAllowedToContinueDetection;
 
-        public bool IsMatch(IDetector detector, IDetectable detectable) {
+        public bool IsMatched((IDetector, IDetectable) context) {
+            var (detector, detectable) = context;
             return shouldBeAllowedToStartDetection.IsEmptyOrEquals(detectable.IsAllowedToStartDetectBy(detector)) &&
                    shouldBeAllowedToContinueDetection.IsEmptyOrEquals(detectable.IsAllowedToContinueDetectBy(detector));
         }

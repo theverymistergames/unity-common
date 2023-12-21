@@ -7,7 +7,8 @@ namespace MisterGames.Interact.Interactives {
 
         public bool shouldBeDetected;
 
-        public bool IsMatch(IInteractiveUser user, IInteractive interactive) {
+        public bool IsMatched((IInteractiveUser, IInteractive) context) {
+            var (user, interactive) = context;
             return shouldBeDetected == user.IsDetected(interactive);
         }
     }

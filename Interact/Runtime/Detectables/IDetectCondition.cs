@@ -1,7 +1,7 @@
-﻿namespace MisterGames.Interact.Detectables {
+﻿using MisterGames.Common.Conditions;
 
-    public interface IDetectCondition {
-        bool IsMatch(IDetector detector, IDetectable detectable);
-    }
+namespace MisterGames.Interact.Detectables {
+
+    public interface IDetectCondition : ICondition<(IDetector, IDetectable)> { }
 
 }
