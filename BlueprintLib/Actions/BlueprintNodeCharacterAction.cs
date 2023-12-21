@@ -57,7 +57,7 @@ namespace MisterGames.BlueprintLib {
             ICharacterAction action,
             CancellationToken cancellationToken
         ) {
-            await action.Apply(characterAccess, blueprint, cancellationToken);
+            await action.Apply(characterAccess, cancellationToken);
             if (!cancellationToken.IsCancellationRequested) blueprint.Call(token, 1);
         }
     }
