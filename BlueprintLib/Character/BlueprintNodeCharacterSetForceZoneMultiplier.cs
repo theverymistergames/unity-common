@@ -6,14 +6,14 @@ using UnityEngine;
 namespace MisterGames.BlueprintLib {
 
     [Serializable]
-    public class BlueprintSourceSetForceMultiplier :
-        BlueprintSource<BlueprintNodeSetForceZoneMultiplier>,
-        BlueprintSources.IEnter<BlueprintNodeSetForceZoneMultiplier>,
+    public class BlueprintSourceCharacterSetForceMultiplier :
+        BlueprintSource<BlueprintNodeCharacterSetForceZoneMultiplier>,
+        BlueprintSources.IEnter<BlueprintNodeCharacterSetForceZoneMultiplier>,
         BlueprintSources.ICloneable {}
 
     [Serializable]
-    [BlueprintNode(Name = "Set Force Zone Multiplier", Category = "Character", Color = BlueprintColors.Node.Actions)]
-    public struct BlueprintNodeSetForceZoneMultiplier : IBlueprintNode, IBlueprintEnter {
+    [BlueprintNode(Name = "Set Character Force Zone Multiplier", Category = "Character", Color = BlueprintColors.Node.Actions)]
+    public struct BlueprintNodeCharacterSetForceZoneMultiplier : IBlueprintNode, IBlueprintEnter {
 
         [SerializeField] private float _multiplier;
 
