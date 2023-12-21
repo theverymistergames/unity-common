@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using MisterGames.Character.Actions;
 using MisterGames.Character.Core;
+using MisterGames.Character.View;
 using MisterGames.Common.Data;
 
-namespace MisterGames.Character.View {
+namespace MisterGames.Character.Actions {
     
     [Serializable]
     public sealed class CharacterActionSetViewClamp : ICharacterAction {

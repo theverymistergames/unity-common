@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using MisterGames.Character.Actions;
 using MisterGames.Character.Core;
 using MisterGames.Character.Processors;
+using MisterGames.Character.View;
 using UnityEngine;
 
-namespace MisterGames.Character.View {
+namespace MisterGames.Character.Actions {
     
     [Serializable]
     public sealed class CharacterActionSetViewSensitivity : ICharacterAction {

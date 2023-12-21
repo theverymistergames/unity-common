@@ -1,15 +1,15 @@
 ﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using MisterGames.Character.Actions;
 using MisterGames.Character.Core;
+using MisterGames.Character.View;
 using MisterGames.Common.Data;
 using MisterGames.Common.Maths;
 using MisterGames.Tick.Core;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
-namespace MisterGames.Character.View {
+namespace MisterGames.Character.Actions {
 
     [Serializable]
     public sealed class CharacterActionCameraPosition : ICharacterAction {

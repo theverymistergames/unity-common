@@ -3,20 +3,22 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Character.Actions;
 using MisterGames.Character.Core;
+using MisterGames.Character.Processors;
+using UnityEngine;
 
-namespace MisterGames.Character.Motion {
+namespace MisterGames.Character.Actions {
     
     [Serializable]
-    public sealed class CharacterActionGravityEnableDisable : ICharacterAction {
+    public sealed class CharacterActionSetSpeedMultiplier : ICharacterAction {
 
-        public bool isEnabled;
+        [Min(0f)] public float speed;
 
         public UniTask Apply(ICharacterAccess characterAccess, CancellationToken cancellationToken = default) {
-            var mass = characterAccess
+            var multiplier = characterAccess
                 .GetPipeline<ICharacterMotionPipeline>()
-                .GetProcessor<CharacterProcessorMass>();
+                .GetProcessor<CharacterProcessorVector2Multiplier>();
 
-            mass.isGravityEnabled = isEnabled;
+            multiplier.multiplier = speed;
             return default;
         }
     }

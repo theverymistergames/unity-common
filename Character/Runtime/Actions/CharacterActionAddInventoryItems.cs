@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using MisterGames.Character.Actions;
 using MisterGames.Character.Core;
+using MisterGames.Character.Inventory;
 
-namespace MisterGames.Character.Inventory {
+namespace MisterGames.Character.Actions {
 
     [Serializable]
-    public sealed class CharacterActionRemoveInventoryItems : ICharacterAction {
+    public sealed class CharacterActionAddInventoryItems : ICharacterAction {
 
         public InventoryItemStack[] items;
 
@@ -16,7 +16,7 @@ namespace MisterGames.Character.Inventory {
 
             for (int i = 0; i < items.Length; i++) {
                 var stack = items[i];
-                inventory?.RemoveItems(stack.asset, stack.count);
+                inventory?.AddItems(stack.asset, stack.count);
             }
 
             return default;

@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using MisterGames.Character.Actions;
 using MisterGames.Character.Core;
+using MisterGames.Character.Height;
 using MisterGames.Common.Data;
 using UnityEngine;
 
-namespace MisterGames.Character.Height {
+namespace MisterGames.Character.Actions {
 
     [Serializable]
     public sealed class CharacterActionChangeColliderHeight : ICharacterAction {
