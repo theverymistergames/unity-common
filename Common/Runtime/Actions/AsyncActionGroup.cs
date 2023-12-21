@@ -6,6 +6,7 @@ using UnityEngine;
 
 namespace MisterGames.Common.Actions {
 
+    [SubclassSelectorIgnore]
     [Serializable]
     public class AsyncActionGroup<T, A> : IAsyncAction<T> where A : IAsyncAction<T> {
 

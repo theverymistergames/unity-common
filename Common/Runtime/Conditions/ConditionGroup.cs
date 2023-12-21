@@ -4,6 +4,7 @@ using UnityEngine;
 
 namespace MisterGames.Common.Conditions {
 
+    [SubclassSelectorIgnore]
     [Serializable]
     public class ConditionGroup<T, C> : ICondition<T> where C : ICondition<T> {
 
