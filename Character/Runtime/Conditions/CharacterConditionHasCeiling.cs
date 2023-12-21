@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
+using MisterGames.Character.Collisions;
 using MisterGames.Character.Core;
 using MisterGames.Character.Height;
 using MisterGames.Collisions.Core;
@@ -9,7 +9,7 @@ using MisterGames.Common.Dependencies;
 using MisterGames.Common.GameObjects;
 using UnityEngine;
 
-namespace MisterGames.Character.Collisions {
+namespace MisterGames.Character.Conditions {
 
     [Serializable]
     public sealed class CharacterConditionHasCeiling : ITransition, IDependency {

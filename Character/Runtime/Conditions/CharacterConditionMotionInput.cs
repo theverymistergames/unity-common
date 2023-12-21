@@ -1,12 +1,13 @@
 ﻿using System;
 using MisterGames.Character.Core;
+using MisterGames.Character.Input;
 using MisterGames.Common.Conditions;
 using MisterGames.Common.Data;
 using MisterGames.Common.Dependencies;
 using MisterGames.Common.Maths;
 using UnityEngine;
 
-namespace MisterGames.Character.Input {
+namespace MisterGames.Character.Conditions {
 
     [Serializable]
     public sealed class CharacterConditionMotionInput : ITransition, IDependency {

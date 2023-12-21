@@ -1,10 +1,11 @@
 ﻿using System;
 using MisterGames.Character.Core;
+using MisterGames.Character.Height;
 using MisterGames.Common.Conditions;
 using MisterGames.Common.Dependencies;
 using UnityEngine;
 
-namespace MisterGames.Character.Height {
+namespace MisterGames.Character.Conditions {
 
     [Serializable]
     public sealed class CharacterConditionMaxHeight : ITransition, IDependency {

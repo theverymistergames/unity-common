@@ -1,10 +1,11 @@
 ﻿using System;
+using MisterGames.Character.Collisions;
 using MisterGames.Character.Core;
 using MisterGames.Collisions.Core;
 using MisterGames.Common.Conditions;
 using MisterGames.Common.Dependencies;
 
-namespace MisterGames.Character.Collisions {
+namespace MisterGames.Character.Conditions {
 
     [Serializable]
     public sealed class CharacterConditionIsGrounded : ITransition, IDependency {
