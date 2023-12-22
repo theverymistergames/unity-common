@@ -104,7 +104,7 @@ namespace MisterGames.Common.Editor.Attributes.SubclassSelector {
 
         private static bool IsSupportedType(Type t) {
             return (t.IsPublic || t.IsNestedPublic) && !t.IsAbstract && !t.IsGenericType && !t.IsValueType &&
-                   !Attribute.IsDefined(t, typeof(SubclassSelectorIgnoreAttribute)) &&
+                   t.GetCustomAttribute<SubclassSelectorIgnoreAttribute>(inherit: false) is null &&
                    t.FullName is not null && !t.FullName.Contains(EDITOR, StringComparison.OrdinalIgnoreCase) &&
                    !UnityObjectType.IsAssignableFrom(t) && Attribute.IsDefined(t, typeof(SerializableAttribute));
         }
