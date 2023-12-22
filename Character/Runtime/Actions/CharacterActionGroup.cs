@@ -5,6 +5,8 @@ using MisterGames.Common.Actions;
 namespace MisterGames.Character.Actions {
 
     [Serializable]
-    public sealed class CharacterActionGroup : AsyncActionGroup<ICharacterAccess, ICharacterAction> { }
+    public sealed class CharacterActionGroup :
+        AsyncActionGroup<ICharacterAction, ICharacterAccess>,
+        ICharacterAction { }
 
 }

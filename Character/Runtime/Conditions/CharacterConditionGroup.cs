@@ -5,6 +5,8 @@ using MisterGames.Common.Conditions;
 namespace MisterGames.Character.Conditions {
 
     [Serializable]
-    public sealed class CharacterConditionGroup : ConditionGroup<ICharacterAccess, ICharacterCondition> { }
+    public sealed class CharacterConditionGroup :
+        ConditionGroup<ICharacterCondition, ICharacterAccess>,
+        ICharacterCondition { }
 
 }
