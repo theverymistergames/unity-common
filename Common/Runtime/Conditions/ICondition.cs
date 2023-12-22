@@ -4,8 +4,8 @@
         bool IsMatched { get; }
     }
 
-    public interface ICondition<in T> {
-        bool IsMatched(T context);
+    public interface ICondition<in TContext> {
+        bool IsMatched(TContext context);
     }
 
 }

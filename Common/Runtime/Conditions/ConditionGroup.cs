@@ -6,17 +6,18 @@ namespace MisterGames.Common.Conditions {
 
     [SubclassSelectorIgnore]
     [Serializable]
-    public class ConditionGroup<T, C> : ICondition<T> where C : ICondition<T> {
-
+    public class ConditionGroup<TCondition, TContext> : ICondition<TContext>
+        where TCondition : ICondition<TContext>
+    {
         public Mode mode;
-        [SerializeReference] [SubclassSelector] public C[] conditions;
+        [SerializeReference] [SubclassSelector] public TCondition[] conditions;
 
         public enum Mode {
             All,
             Any
         }
 
-        public bool IsMatched(T context) {
+        public bool IsMatched(TContext context) {
             switch (mode) {
                 case Mode.All:
                     for (int i = 0; i < conditions.Length; i++) {

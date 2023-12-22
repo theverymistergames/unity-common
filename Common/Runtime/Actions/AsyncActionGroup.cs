@@ -8,17 +8,18 @@ namespace MisterGames.Common.Actions {
 
     [SubclassSelectorIgnore]
     [Serializable]
-    public class AsyncActionGroup<T, A> : IAsyncAction<T> where A : IAsyncAction<T> {
-
+    public class AsyncActionGroup<TAction, TContext> : IAsyncAction<TContext>
+        where TAction : IAsyncAction<TContext>
+    {
         public Mode mode;
-        [SerializeReference] [SubclassSelector] public A[] actions;
+        [SerializeReference] [SubclassSelector] public TAction[] actions;
 
         public enum Mode {
             Sequence,
             Parallel,
         }
 
-        public async UniTask Apply(T context, CancellationToken cancellationToken = default) {
+        public async UniTask Apply(TContext context, CancellationToken cancellationToken = default) {
             if (actions is not { Length: > 0 }) return;
 
             switch (mode) {
