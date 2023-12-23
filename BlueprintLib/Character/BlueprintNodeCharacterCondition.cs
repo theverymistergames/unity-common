@@ -22,7 +22,7 @@ namespace MisterGames.BlueprintLib {
             if (port != 1) return default;
 
             var characterAccess = blueprint.Read<ICharacterAccess>(token, 0);
-            return _condition?.IsMatched(characterAccess) ?? false;
+            return _condition?.IsMatch(characterAccess) ?? false;
         }
     }
 

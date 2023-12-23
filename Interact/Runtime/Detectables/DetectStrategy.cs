@@ -10,11 +10,11 @@ namespace MisterGames.Interact.Detectables {
         [SerializeReference] [SubclassSelector] private IDetectCondition _continueConstraint;
 
         public bool IsAllowedToStartDetection(IDetector detector, IDetectable detectable) {
-            return _startConstraint == null || _startConstraint.IsMatched((detector, detectable));
+            return _startConstraint == null || _startConstraint.IsMatch((detector, detectable));
         }
 
         public bool IsAllowedToContinueDetection(IDetector detector, IDetectable detectable) {
-            return _continueConstraint == null || _continueConstraint.IsMatched((detector, detectable));
+            return _continueConstraint == null || _continueConstraint.IsMatch((detector, detectable));
         }
     }
 

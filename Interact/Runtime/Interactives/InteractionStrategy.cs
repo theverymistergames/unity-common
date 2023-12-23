@@ -13,16 +13,16 @@ namespace MisterGames.Interact.Interactives {
         [SerializeReference] [SubclassSelector] private IInteractCondition _continueConstraint;
 
         public bool IsReadyToStartInteraction(IInteractiveUser user, IInteractive interactive) {
-            return _readyConstraint == null || _readyConstraint.IsMatched((user, interactive));
+            return _readyConstraint == null || _readyConstraint.IsMatch((user, interactive));
         }
 
         public bool IsAllowedToStartInteraction(IInteractiveUser user, IInteractive interactive) {
-            return _startConstraint == null || _startConstraint.IsMatched((user, interactive));
+            return _startConstraint == null || _startConstraint.IsMatch((user, interactive));
         }
 
         public bool IsAllowedToContinueInteraction(IInteractiveUser user, IInteractive interactive) {
             if (_allowStopImmediatelyAfterStart) {
-                return _continueConstraint == null || _continueConstraint.IsMatched((user, interactive));
+                return _continueConstraint == null || _continueConstraint.IsMatch((user, interactive));
             }
 
             if (interactive.TryGetInteractionStartTime(user, out int startTime) &&
@@ -31,7 +31,7 @@ namespace MisterGames.Interact.Interactives {
                 return true;
             }
 
-            return _continueConstraint == null || _continueConstraint.IsMatched((user, interactive));
+            return _continueConstraint == null || _continueConstraint.IsMatch((user, interactive));
         }
     }
 

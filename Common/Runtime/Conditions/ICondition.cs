@@ -5,7 +5,7 @@
     }
 
     public interface ICondition<in TContext> {
-        bool IsMatched(TContext context);
+        bool IsMatch(TContext context);
     }
 
 }

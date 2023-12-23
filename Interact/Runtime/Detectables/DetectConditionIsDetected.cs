@@ -7,7 +7,7 @@ namespace MisterGames.Interact.Detectables {
 
         public bool shouldBeDetected;
 
-        public bool IsMatched((IDetector, IDetectable) context) {
+        public bool IsMatch((IDetector, IDetectable) context) {
             var (detector, detectable) = context;
             return shouldBeDetected == detectable.IsDetectedBy(detector);
         }
