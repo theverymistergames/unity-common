@@ -20,6 +20,12 @@ namespace MisterGames.Character.Height {
 
         public event Action<float, float> OnHeightChanged = delegate {  };
 
+        public Vector3 ColliderBottom => _bodyAdapter.Position + _characterController.center +
+                                         _characterController.height * 0.5f * Vector3.down;
+
+        public Vector3 ColliderTop => _bodyAdapter.Position + _characterController.center +
+                                      _characterController.height * 0.5f * Vector3.up;
+
         public float Height { get => _characterController.height; set => SetHeight(value); }
         public float TargetHeight => _targetHeight;
 

@@ -11,8 +11,6 @@ namespace MisterGames.Character.Conditions {
     public sealed class CharacterConditionRunInput : ITransition, IDependency {
 
         public Optional<bool> isRunInputActive;
-        public Optional<bool> isRunInputPressed;
-        public Optional<bool> isRunInputReleased;
 
         public bool IsMatched => CheckCondition();
 
@@ -33,16 +31,16 @@ namespace MisterGames.Character.Conditions {
         public void Arm(ITransitionCallback callback) {
             _callback = callback;
 
-            _input.RunPressed -= OnRunPressed;
-            _input.RunPressed += OnRunPressed;
+            _input.OnRunPressed -= OnRunPressed;
+            _input.OnRunPressed += OnRunPressed;
 
-            _input.RunReleased -= OnRunReleased;
-            _input.RunReleased += OnRunReleased;
+            _input.OnRunReleased -= OnRunReleased;
+            _input.OnRunReleased += OnRunReleased;
         }
 
         public void Disarm() {
-            _input.RunPressed -= OnRunPressed;
-            _input.RunReleased -= OnRunReleased;
+            _input.OnRunPressed -= OnRunPressed;
+            _input.OnRunReleased -= OnRunReleased;
 
             _callback = null;
         }
@@ -56,16 +54,7 @@ namespace MisterGames.Character.Conditions {
         }
 
         private bool CheckCondition() {
-            return isRunInputActive.IsEmptyOrEquals(_input.IsRunPressed) &&
-                   isRunInputPressed.IsEmptyOrEquals(_input.WasRunPressed) &&
-                   isRunInputReleased.IsEmptyOrEquals(_input.WasRunReleased);
-        }
-
-        public override string ToString() {
-            return $"{nameof(CharacterConditionRunInput)}(" +
-                   $"active {isRunInputActive}, " +
-                   $"pressed {isRunInputPressed}, " +
-                   $"released {isRunInputReleased})";
+            return isRunInputActive.IsEmptyOrEquals(_input.IsRunPressed);
         }
     }
 

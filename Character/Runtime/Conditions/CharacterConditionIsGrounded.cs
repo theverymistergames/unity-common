@@ -8,9 +8,14 @@ using MisterGames.Common.Dependencies;
 namespace MisterGames.Character.Conditions {
 
     [Serializable]
-    public sealed class CharacterConditionIsGrounded : ITransition, IDependency {
+    public sealed class CharacterConditionIsGrounded : ICharacterCondition, ITransition, IDependency {
 
         public bool isGrounded;
+
+        public bool IsMatch(ICharacterAccess context) {
+            var groundDetector = context.GetPipeline<ICharacterCollisionPipeline>().GroundDetector;
+            return groundDetector.CollisionInfo.hasContact == isGrounded;
+        }
 
         public bool IsMatched => CheckCondition();
 

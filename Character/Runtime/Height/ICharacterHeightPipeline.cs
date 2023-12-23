@@ -15,6 +15,9 @@ namespace MisterGames.Character.Height {
         /// </summary>
         event Action<float, float> OnHeightChanged;
 
+        Vector3 ColliderBottom { get; }
+        Vector3 ColliderTop { get; }
+
         float Height { get; set; }
         float TargetHeight { get; }
 

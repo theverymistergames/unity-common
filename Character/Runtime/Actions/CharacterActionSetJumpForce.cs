@@ -8,12 +8,12 @@ using UnityEngine;
 namespace MisterGames.Character.Actions {
 
     [Serializable]
-    public sealed class CharacterActionSetJumpForceMultiplier : ICharacterAction {
+    public sealed class CharacterActionSetJumpForce : ICharacterAction {
 
-        [Min(0f)] public float jumpForceMultiplier = 1f;
+        [Min(0f)] public float jumpForce = 1f;
 
         public UniTask Apply(ICharacterAccess characterAccess, CancellationToken cancellationToken = default) {
-            characterAccess.GetPipeline<ICharacterJumpPipeline>().ForceMultiplier = jumpForceMultiplier;
+            characterAccess.GetPipeline<ICharacterJumpPipeline>().Force = jumpForce;
             return default;
         }
     }

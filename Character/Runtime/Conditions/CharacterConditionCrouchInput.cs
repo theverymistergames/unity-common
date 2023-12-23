@@ -11,8 +11,6 @@ namespace MisterGames.Character.Conditions {
     public sealed class CharacterConditionCrouchInput : ITransition, IDependency {
 
         public Optional<bool> isCrouchInputActive;
-        public Optional<bool> isCrouchInputPressed;
-        public Optional<bool> isCrouchInputReleased;
         public Optional<bool> isCrouchInputToggled;
 
         public bool IsMatched => CheckCondition();
@@ -34,26 +32,26 @@ namespace MisterGames.Character.Conditions {
         public void Arm(ITransitionCallback callback) {
             _callback = callback;
 
-            if (isCrouchInputActive.HasValue || isCrouchInputPressed.HasValue) {
-                _input.CrouchPressed -= OnCrouchPressed;
-                _input.CrouchPressed += OnCrouchPressed;
+            if (isCrouchInputActive.HasValue) {
+                _input.OnCrouchPressed -= OnCrouchPressed;
+                _input.OnCrouchPressed += OnCrouchPressed;
             }
 
-            if (isCrouchInputActive.HasValue || isCrouchInputReleased.HasValue) {
-                _input.CrouchReleased -= OnCrouchReleased;
-                _input.CrouchReleased += OnCrouchReleased;
+            if (isCrouchInputActive.HasValue) {
+                _input.OnCrouchReleased -= OnCrouchReleased;
+                _input.OnCrouchReleased += OnCrouchReleased;
             }
 
             if (isCrouchInputToggled.HasValue) {
-                _input.CrouchToggled -= OnCrouchToggled;
-                _input.CrouchToggled += OnCrouchToggled;
+                _input.OnCrouchToggled -= OnCrouchToggled;
+                _input.OnCrouchToggled += OnCrouchToggled;
             }
         }
 
         public void Disarm() {
-            if (isCrouchInputActive.HasValue || isCrouchInputPressed.HasValue) _input.CrouchPressed -= OnCrouchPressed;
-            if (isCrouchInputActive.HasValue || isCrouchInputReleased.HasValue) _input.CrouchReleased -= OnCrouchReleased;
-            if (isCrouchInputToggled.HasValue) _input.CrouchToggled -= OnCrouchToggled;
+            if (isCrouchInputActive.HasValue) _input.OnCrouchPressed -= OnCrouchPressed;
+            if (isCrouchInputActive.HasValue) _input.OnCrouchReleased -= OnCrouchReleased;
+            if (isCrouchInputToggled.HasValue) _input.OnCrouchToggled -= OnCrouchToggled;
 
             _callback = null;
         }
@@ -74,17 +72,7 @@ namespace MisterGames.Character.Conditions {
 
         private bool CheckCondition() {
             return isCrouchInputActive.IsEmptyOrEquals(_input.IsCrouchPressed) &&
-                   isCrouchInputPressed.IsEmptyOrEquals(_input.WasCrouchPressed) &&
-                   isCrouchInputReleased.IsEmptyOrEquals(_input.WasCrouchReleased) &&
                    isCrouchInputToggled.IsEmptyOrEquals(_input.WasCrouchToggled);
-        }
-
-        public override string ToString() {
-            return $"{nameof(CharacterConditionCrouchInput)}(" +
-                   $"active {isCrouchInputActive}, " +
-                   $"pressed {isCrouchInputPressed}, " +
-                   $"released {isCrouchInputReleased}, " +
-                   $"toggled {isCrouchInputToggled})";
         }
     }
 

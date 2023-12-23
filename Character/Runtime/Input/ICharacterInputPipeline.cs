@@ -9,23 +9,19 @@ namespace MisterGames.Character.Input {
         event Action<Vector2> OnViewVectorChanged;
         event Action<Vector2> OnMotionVectorChanged;
 
-        event Action RunPressed;
-        event Action RunReleased;
+        event Action OnRunPressed;
+        event Action OnRunReleased;
 
-        bool IsRunPressed { get; }
-        bool WasRunPressed { get; }
-        bool WasRunReleased { get; }
-
-        event Action CrouchPressed;
-        event Action CrouchReleased;
-        event Action CrouchToggled;
-
-        bool IsCrouchPressed { get; }
-        bool WasCrouchPressed { get; }
-        bool WasCrouchReleased { get; }
-        bool WasCrouchToggled { get; }
+        event Action OnCrouchPressed;
+        event Action OnCrouchReleased;
+        event Action OnCrouchToggled;
 
         event Action JumpPressed;
+
+        bool IsRunPressed { get; }
+
+        bool IsCrouchPressed { get; }
+        bool WasCrouchToggled { get; }
     }
 
 }

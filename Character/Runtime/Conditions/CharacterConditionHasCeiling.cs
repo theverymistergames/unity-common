@@ -12,10 +12,35 @@ using UnityEngine;
 namespace MisterGames.Character.Conditions {
 
     [Serializable]
-    public sealed class CharacterConditionHasCeiling : ITransition, IDependency {
+    public sealed class CharacterConditionHasCeiling : ICharacterCondition, ITransition, IDependency {
 
         public bool hasCeiling;
         public Optional<float> minCeilingHeight;
+
+        public bool IsMatch(ICharacterAccess context) {
+            var ceilingDetector = context.GetPipeline<ICharacterCollisionPipeline>().CeilingDetector;
+            var info = ceilingDetector.CollisionInfo;
+
+            // No contact:
+            // return true if no contact is expected (hasCeiling == false)
+            if (!info.hasContact) return !hasCeiling;
+
+            // Has contact, no ceiling height limit (considering has contact):
+            // return true if contact is expected (hasCeiling == true)
+            if (!minCeilingHeight.HasValue) return hasCeiling;
+
+            var height = context.GetPipeline<ICharacterHeightPipeline>();
+            var bottomPoint = height.ColliderBottom;
+            float sqrCeilingHeight = (info.point - bottomPoint).sqrMagnitude;
+
+            // Has contact, current ceiling height is above or equal min limit (considering has no contact):
+            // return true if no contact is expected (hasCeiling == false)
+            if (sqrCeilingHeight >= minCeilingHeight.Value * minCeilingHeight.Value) return !hasCeiling;
+
+            // Has contact, current ceiling height is below min limit (considering has contact):
+            // return true if contact is expected (hasCeiling == true)
+            return hasCeiling;
+        }
 
         public bool IsMatched => CheckCondition();
 
