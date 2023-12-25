@@ -4,6 +4,7 @@ using System.Reflection;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Editor.SerializedProperties;
 using MisterGames.Common.Editor.Views;
+using MisterGames.Common.Types;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -21,6 +22,34 @@ namespace MisterGames.Common.Editor.Attributes.SubclassSelector {
         private static GUIContent IsNotManagedReferenceLabel => new GUIContent("Property type is not a managed reference");
         private static GUIContent PropertyTypeNullLabel => new GUIContent("Property type is null");
         private static GUIContent PropertyTypeUnsupportedLabel => new GUIContent("Property type is unsupported");
+
+        [Serializable]
+        private sealed class ManagedReferenceWrapper {
+
+            [SerializeField] private string _json;
+            [SerializeField] private SerializedType _type;
+
+            public static string Wrap(object obj, Type type) {
+                if (obj == null || type == null) return null;
+
+                var wrapper = new ManagedReferenceWrapper {
+                    _json = JsonUtility.ToJson(obj),
+                    _type = new SerializedType(type),
+                };
+
+                return JsonUtility.ToJson(wrapper);
+            }
+
+            public static object Unwrap(string str) {
+                try {
+                    var wrapper = JsonUtility.FromJson<ManagedReferenceWrapper>(str);
+                    return JsonUtility.FromJson(wrapper._json, wrapper._type.ToType());
+                }
+                catch (Exception e) {
+                    return null;
+                }
+            }
+        }
 
         public static void PropertyField(
             Rect position,
@@ -58,9 +87,14 @@ namespace MisterGames.Common.Editor.Attributes.SubclassSelector {
                 if (EditorGUI.DropdownButton(popupPosition, typeLabel, FocusType.Keyboard)) {
                     CreateTypeDropdown(baseType, property).Show(popupPosition);
                 }
+
+                CreateContextMenu(popupPosition, property, baseType, type);
             }
             else if (property.managedReferenceValue == null) {
                 CreateInstance(baseType, property);
+                var type = GetManagedReferenceValueType(property);
+                var rect = new Rect(position.x, position.y, EditorGUIUtility.labelWidth, EditorGUIUtility.singleLineHeight);
+                CreateContextMenu(rect, property, baseType, type);
             }
 
             CustomPropertyGUI.PropertyField(position, property, label, property.GetFieldInfo(), includeChildren: includeChildren);
@@ -68,6 +102,52 @@ namespace MisterGames.Common.Editor.Attributes.SubclassSelector {
 
         public static float GetPropertyHeight(SerializedProperty property, GUIContent label, bool includeChildren = false) {
             return CustomPropertyGUI.GetPropertyHeight(property, label, property.GetFieldInfo(), includeChildren: includeChildren);
+        }
+
+        private static void CreateContextMenu(Rect position, SerializedProperty property, Type baseType, Type type) {
+            var e = Event.current;
+
+            if (e.type != EventType.MouseDown ||
+                !e.isMouse || e.button != 1 ||
+                !position.Contains(e.mousePosition)
+            ) {
+                return;
+            }
+
+            var menu = new GenericMenu();
+
+            if (property.managedReferenceValue != null && type != null) {
+                menu.AddItem(new GUIContent($"Copy {type.Name}"), false, () => {
+                    string copy = ManagedReferenceWrapper.Wrap(property.managedReferenceValue, type);
+                    EditorGUIUtility.systemCopyBuffer = copy;
+                });
+
+                menu.AddItem(new GUIContent($"Cut {type.Name}"), false, () => {
+                    string copy = ManagedReferenceWrapper.Wrap(property.managedReferenceValue, type);
+                    EditorGUIUtility.systemCopyBuffer = copy;
+                    property.managedReferenceValue = null;
+                    property.serializedObject.ApplyModifiedProperties();
+                    property.serializedObject.Update();
+                });
+            }
+            else {
+                menu.AddDisabledItem(new GUIContent($"Copy {baseType.Name}"));
+                menu.AddDisabledItem(new GUIContent($"Cut {baseType.Name}"));
+            }
+
+            object pasteValue = ManagedReferenceWrapper.Unwrap(EditorGUIUtility.systemCopyBuffer);
+            if (pasteValue != null && baseType.IsInstanceOfType(pasteValue)) {
+                menu.AddItem(new GUIContent($"Paste {pasteValue.GetType().Name}"), false, () => {
+                    property.managedReferenceValue = pasteValue;
+                    property.serializedObject.ApplyModifiedProperties();
+                    property.serializedObject.Update();
+                });
+            }
+            else {
+                menu.AddDisabledItem(new GUIContent($"Paste {baseType.Name}"));
+            }
+
+            menu.ShowAsContext();
         }
 
         private static AdvancedDropdown<Type> CreateTypeDropdown(Type baseType, SerializedProperty property) {
