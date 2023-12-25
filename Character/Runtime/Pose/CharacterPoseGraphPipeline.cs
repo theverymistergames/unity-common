@@ -55,7 +55,7 @@ namespace MisterGames.Character.Pose {
             _input.OnCrouchToggled -= OnCrouchToggled;
         }
 
-        public CharacterCapsuleSize GetCapsuleSize(CharacterPoseType pose) {
+        public CharacterCapsuleSize GetDefaultCapsuleSize(CharacterPoseType pose) {
             return pose switch {
                 CharacterPoseType.Stand => poseSettings.stand,
                 CharacterPoseType.Crouch => poseSettings.crouch,
@@ -103,7 +103,7 @@ namespace MisterGames.Character.Pose {
                 return default;
             }
 
-            var capsuleSize = GetCapsuleSize(targetPose);
+            var capsuleSize = GetDefaultCapsuleSize(targetPose);
             float duration = GetTransitionDurationLeftover(targetPose, transition.duration);
 
             return _capsule.ChangePose(targetPose, capsuleSize, duration, transition.changePoseAt, cancellationToken);
@@ -152,8 +152,8 @@ namespace MisterGames.Character.Pose {
         }
 
         private float GetTransitionDurationLeftover(CharacterPoseType targetPose, float totalDuration) {
-            float sourceHeight = GetCapsuleSize(_capsule.CurrentPose).colliderHeight;
-            float targetHeight = GetCapsuleSize(targetPose).colliderHeight;
+            float sourceHeight = GetDefaultCapsuleSize(_capsule.CurrentPose).colliderHeight;
+            float targetHeight = GetDefaultCapsuleSize(targetPose).colliderHeight;
 
             if (sourceHeight.IsNearlyEqual(targetHeight)) return 0f;
 

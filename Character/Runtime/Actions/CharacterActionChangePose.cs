@@ -26,7 +26,7 @@ namespace MisterGames.Character.Actions {
 
             if (!overrideCapsuleSize.HasValue) {
                 poseGraph = characterAccess.GetPipeline<ICharacterPoseGraphPipeline>();
-                capsuleSize = poseGraph.GetCapsuleSize(targetPose);
+                capsuleSize = poseGraph.GetDefaultCapsuleSize(targetPose);
             }
 
             if (!overrideDuration.HasValue) {
