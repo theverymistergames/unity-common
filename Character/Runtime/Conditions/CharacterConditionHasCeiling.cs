@@ -1,7 +1,7 @@
 ﻿using System;
 using MisterGames.Character.Collisions;
 using MisterGames.Character.Core;
-using MisterGames.Character.Height;
+using MisterGames.Character.Pose;
 using MisterGames.Collisions.Core;
 using MisterGames.Common.Conditions;
 using MisterGames.Common.Data;
@@ -22,23 +22,23 @@ namespace MisterGames.Character.Conditions {
             var info = ceilingDetector.CollisionInfo;
 
             // No contact:
-            // return true if no contact is expected (hasCeiling == false)
+            // return true if no contact is expected
             if (!info.hasContact) return !hasCeiling;
 
-            // Has contact, no ceiling height limit (considering has contact):
-            // return true if contact is expected (hasCeiling == true)
+            // Has contact, no ceiling height limit:
+            // return true if contact is expected
             if (!minCeilingHeight.HasValue) return hasCeiling;
 
-            var height = context.GetPipeline<ICharacterHeightPipeline>();
-            var bottomPoint = height.ColliderBottom;
-            float sqrCeilingHeight = (info.point - bottomPoint).sqrMagnitude;
+            var capsule = context.GetPipeline<ICharacterCapsulePipeline>();
+            var top = capsule.ColliderTop;
+            float sqrDistanceToCeiling = (info.point - top).sqrMagnitude;
 
-            // Has contact, current ceiling height is above or equal min limit (considering has no contact):
-            // return true if no contact is expected (hasCeiling == false)
-            if (sqrCeilingHeight >= minCeilingHeight.Value * minCeilingHeight.Value) return !hasCeiling;
+            // Has contact, current distance from character top point to ceiling contact point is above min limit:
+            // return true if no contact is expected
+            if (sqrDistanceToCeiling > minCeilingHeight.Value * minCeilingHeight.Value) return !hasCeiling;
 
-            // Has contact, current ceiling height is below min limit (considering has contact):
-            // return true if contact is expected (hasCeiling == true)
+            // Has contact, current distance from character top point to ceiling contact point is below min limit:
+            // return true if contact is expected
             return hasCeiling;
         }
 
@@ -46,8 +46,7 @@ namespace MisterGames.Character.Conditions {
 
         private ICollisionDetector _ceilingDetector;
         private ITransformAdapter _bodyAdapter;
-        private ICharacterHeightPipeline _height;
-
+        private ICharacterCapsulePipeline _capsule;
         private ITransitionCallback _callback;
 
         public void OnSetupDependencies(IDependencyContainer container) {
@@ -60,7 +59,7 @@ namespace MisterGames.Character.Conditions {
 
             _ceilingDetector = characterAccess.GetPipeline<ICharacterCollisionPipeline>().CeilingDetector;
             _bodyAdapter = characterAccess.BodyAdapter;
-            _height = characterAccess.GetPipeline<ICharacterHeightPipeline>();
+            _capsule = characterAccess.GetPipeline<ICharacterCapsulePipeline>();
         }
 
         public void Arm(ITransitionCallback callback) {
@@ -101,9 +100,9 @@ namespace MisterGames.Character.Conditions {
             // return true if contact is expected (hasCeiling == true)
             if (!minCeilingHeight.HasValue) return hasCeiling;
 
-            float radius = _height.Radius;
-            var bottomPoint = _bodyAdapter.Position + _height.CenterOffset +
-                              ((_height.Height - radius) * 0.5f + radius) * Vector3.down;
+            float radius = _capsule.CurrentRadius;
+            var bottomPoint = _bodyAdapter.Position + _capsule.ColliderCenter +
+                              ((_capsule.CurrentHeight - radius) * 0.5f + radius) * Vector3.down;
 
             float sqrCeilingHeight = (info.point - bottomPoint).sqrMagnitude;
 

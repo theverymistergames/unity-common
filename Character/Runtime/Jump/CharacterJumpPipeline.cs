@@ -1,11 +1,8 @@
 ﻿using System;
-using System.Threading;
-using MisterGames.Character.Collisions;
 using MisterGames.Character.Conditions;
 using MisterGames.Character.Core;
 using MisterGames.Character.Input;
 using MisterGames.Character.Motion;
-using MisterGames.Collisions.Core;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Maths;
 using UnityEngine;
@@ -19,7 +16,7 @@ namespace MisterGames.Character.Jump {
         [SerializeField] private float _force = 1f;
 
         [EmbeddedInspector]
-        [SerializeField] private CharacterConditionAsset _jumpConditions;
+        [SerializeField] private CharacterConditionAsset _jumpCondition;
 
         public event Action<Vector3> OnJump = delegate {  };
 
@@ -47,7 +44,7 @@ namespace MisterGames.Character.Jump {
         }
 
         private void HandleJumpPressedInput() {
-            if (_jumpConditions != null && !_jumpConditions.IsMatched(_characterAccess)) return;
+            if (_jumpCondition != null && !_jumpCondition.IsMatch(_characterAccess)) return;
 
             LastJumpImpulse = _force * _direction;
             if (LastJumpImpulse.IsNearlyZero()) return;

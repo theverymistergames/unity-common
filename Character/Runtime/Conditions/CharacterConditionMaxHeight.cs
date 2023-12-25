@@ -1,6 +1,6 @@
 ﻿using System;
 using MisterGames.Character.Core;
-using MisterGames.Character.Height;
+using MisterGames.Character.Pose;
 using MisterGames.Common.Conditions;
 using MisterGames.Common.Dependencies;
 using UnityEngine;
@@ -14,7 +14,7 @@ namespace MisterGames.Character.Conditions {
 
         public bool IsMatched => CheckCondition();
 
-        private ICharacterHeightPipeline _heightPipeline;
+        private ICharacterCapsulePipeline _capsule;
         private ITransitionCallback _callback;
         
         public void OnSetupDependencies(IDependencyContainer container) {
@@ -23,20 +23,20 @@ namespace MisterGames.Character.Conditions {
         }
 
         public void OnResolveDependencies(IDependencyResolver resolver) {
-            _heightPipeline = resolver
+            _capsule = resolver
                 .Resolve<ICharacterAccess>()
-                .GetPipeline<ICharacterHeightPipeline>();
+                .GetPipeline<ICharacterCapsulePipeline>();
         }
 
         public void Arm(ITransitionCallback callback) {
             _callback = callback;
 
-            _heightPipeline.OnHeightChanged -= OnHeightChanged;
-            _heightPipeline.OnHeightChanged += OnHeightChanged;
+            _capsule.OnHeightChange -= OnHeightChanged;
+            _capsule.OnHeightChange += OnHeightChanged;
         }
 
         public void Disarm() {
-            _heightPipeline.OnHeightChanged -= OnHeightChanged;
+            _capsule.OnHeightChange -= OnHeightChanged;
 
             _callback = null;
         }
@@ -48,7 +48,7 @@ namespace MisterGames.Character.Conditions {
         }
 
         private bool CheckCondition() {
-            return _heightPipeline.Height <= maxHeight;
+            return _capsule.CurrentHeight <= maxHeight;
         }
 
         public override string ToString() {

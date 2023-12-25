@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace MisterGames.Character.Pose {
 
-    public sealed class CharacterPosePipeline : CharacterPipelineBase, ICharacterPosePipeline {
+    public sealed class CharacterPoseGraphPipeline : CharacterPipelineBase, ICharacterPoseGraphPipeline {
 
         [SerializeField] private CharacterAccess _characterAccess;
         [SerializeField] [Min(0f)] private float _retryChangePoseDelay;
@@ -23,7 +23,6 @@ namespace MisterGames.Character.Pose {
         private ICharacterInputPipeline _input;
         private CancellationTokenSource _enableCts;
 
-        private CharacterPoseType _targetPose;
         private byte _lastRetryChangePoseId;
 
         private void Awake() {
@@ -56,6 +55,20 @@ namespace MisterGames.Character.Pose {
             _input.OnCrouchToggled -= OnCrouchToggled;
         }
 
+        public CharacterCapsuleSize GetCapsuleSize(CharacterPoseType pose) {
+            return pose switch {
+                CharacterPoseType.Stand => poseSettings.stand,
+                CharacterPoseType.Crouch => poseSettings.crouch,
+                _ => throw new ArgumentOutOfRangeException(nameof(pose), pose, null)
+            };
+        }
+
+        public float GetDefaultTransitionDuration(CharacterPoseType targetPose) {
+            return TryGetTransition(targetPose, out var transition)
+                ? GetTransitionDurationLeftover(targetPose, transition.duration)
+                : 0f;
+        }
+
         private void OnCrouchPressed() {
             if (!enabled) return;
 
@@ -81,29 +94,22 @@ namespace MisterGames.Character.Pose {
         }
 
         private UniTask ChangePose(CharacterPoseType targetPose, CancellationToken cancellationToken = default) {
-            if (!enabled || _targetPose == targetPose) return default;
+            if (!enabled || _capsule.TargetPose == targetPose) return default;
 
-            _targetPose = targetPose;
             StopRetryAttempts();
 
             if (!TryGetTransition(targetPose, out var transition)) {
-                StartRetryAttempts(cancellationToken).Forget();
+                StartRetryAttempts(targetPose, cancellationToken).Forget();
                 return default;
             }
 
-            var currentPose = _capsule.CurrentPose;
-            float currentHeight = _capsule.CurrentHeight;
+            var capsuleSize = GetCapsuleSize(targetPose);
+            float duration = GetTransitionDurationLeftover(targetPose, transition.duration);
 
-            float sourceHeight = GetCapsuleSize(currentPose).colliderHeight;
-            var targetCapsuleSize = GetCapsuleSize(targetPose);
-
-            float k = GetHeightChangeDurationMultiplier(sourceHeight, targetCapsuleSize.colliderHeight, currentHeight);
-            float duration = transition.duration * k;
-
-            return _capsule.ChangePose(targetPose, targetCapsuleSize, duration, transition.changePoseAt, cancellationToken);
+            return _capsule.ChangePose(targetPose, capsuleSize, duration, transition.changePoseAt, cancellationToken);
         }
 
-        private async UniTask StartRetryAttempts(CancellationToken cancellationToken = default) {
+        private async UniTask StartRetryAttempts(CharacterPoseType targetPose, CancellationToken cancellationToken = default) {
             byte id = ++_lastRetryChangePoseId;
 
             while (!cancellationToken.IsCancellationRequested && id == _lastRetryChangePoseId) {
@@ -120,22 +126,14 @@ namespace MisterGames.Character.Pose {
 
                 if (cancelled || id != _lastRetryChangePoseId) break;
 
-                if (TryGetTransition(_targetPose, out _)) {
-                    await ChangePose(_targetPose, cancellationToken);
+                if (TryGetTransition(targetPose, out _)) {
+                    await ChangePose(targetPose, cancellationToken);
                 }
             }
         }
 
         private void StopRetryAttempts() {
             _lastRetryChangePoseId++;
-        }
-
-        private CharacterCapsuleSize GetCapsuleSize(CharacterPoseType pose) {
-            return pose switch {
-                CharacterPoseType.Stand => poseSettings.stand,
-                CharacterPoseType.Crouch => poseSettings.crouch,
-                _ => throw new ArgumentOutOfRangeException(nameof(pose), pose, null)
-            };
         }
 
         private bool TryGetTransition(CharacterPoseType targetPose, out CharacterPoseTransition transition) {
@@ -153,9 +151,13 @@ namespace MisterGames.Character.Pose {
             return false;
         }
 
-        private static float GetHeightChangeDurationMultiplier(float sourceHeight, float targetHeight, float currentHeight) {
+        private float GetTransitionDurationLeftover(CharacterPoseType targetPose, float totalDuration) {
+            float sourceHeight = GetCapsuleSize(_capsule.CurrentPose).colliderHeight;
+            float targetHeight = GetCapsuleSize(targetPose).colliderHeight;
+
             if (sourceHeight.IsNearlyEqual(targetHeight)) return 0f;
-            return (targetHeight - currentHeight) / (targetHeight - sourceHeight);
+
+            return (targetHeight - _capsule.CurrentHeight) / (targetHeight - sourceHeight) * totalDuration;
         }
     }
 

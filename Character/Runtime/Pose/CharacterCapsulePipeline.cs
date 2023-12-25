@@ -35,6 +35,7 @@ namespace MisterGames.Character.Pose {
 
         public override bool IsEnabled { get => enabled; set => enabled = value; }
 
+        private ICharacterPoseGraphPipeline _poseGraph;
         private ITransformAdapter _bodyAdapter;
         private IRadiusCollisionDetector _groundDetector;
         private IRadiusCollisionDetector _ceilingDetector;
