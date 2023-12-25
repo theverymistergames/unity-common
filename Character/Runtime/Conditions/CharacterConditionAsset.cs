@@ -5,11 +5,11 @@ using UnityEngine;
 namespace MisterGames.Character.Conditions {
 
     [CreateAssetMenu(fileName = nameof(CharacterConditionAsset), menuName = "MisterGames/Character/" + nameof(CharacterConditionAsset))]
-    public sealed class CharacterConditionAsset : ScriptableObject {
+    public sealed class CharacterConditionAsset : ScriptableObject, ICharacterCondition {
 
         [SerializeReference] [SubclassSelector] private ICharacterCondition _condition;
 
-        public bool IsMatched(ICharacterAccess characterAccess) {
+        public bool IsMatch(ICharacterAccess characterAccess) {
             return _condition.IsMatch(characterAccess);
         }
     }
