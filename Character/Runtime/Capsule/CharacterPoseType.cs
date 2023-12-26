@@ -1,4 +1,4 @@
-﻿namespace MisterGames.Character.Pose {
+﻿namespace MisterGames.Character.Capsule {
     
     public enum CharacterPoseType {
         Stand,

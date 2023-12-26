@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 
-namespace MisterGames.Character.Pose {
+namespace MisterGames.Character.Capsule {
+
     [CreateAssetMenu(fileName = nameof(CharacterPoseSettings), menuName = "MisterGames/Character/" + nameof(CharacterPoseSettings))]
     public sealed class CharacterPoseSettings : ScriptableObject {
 

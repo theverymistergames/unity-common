@@ -1,6 +1,6 @@
 ﻿using System;
 using MisterGames.Character.Core;
-using MisterGames.Character.Pose;
+using MisterGames.Character.Capsule;
 using MisterGames.Common.Data;
 
 namespace MisterGames.Character.Conditions {
@@ -12,9 +12,9 @@ namespace MisterGames.Character.Conditions {
         public Optional<CharacterPoseType> equalsTargetPose;
 
         public bool IsMatch(ICharacterAccess context) {
-            var capsule = context.GetPipeline<ICharacterCapsulePipeline>();
-            return equalsCurrentPose.IsEmptyOrEquals(capsule.CurrentPose) &&
-                   equalsTargetPose.IsEmptyOrEquals(capsule.TargetPose);
+            var pose = context.GetPipeline<ICharacterPosePipeline>();
+            return equalsCurrentPose.IsEmptyOrEquals(pose.CurrentPose) &&
+                   equalsTargetPose.IsEmptyOrEquals(pose.TargetPose);
         }
     }
 

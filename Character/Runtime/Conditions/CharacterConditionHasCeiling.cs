@@ -1,7 +1,7 @@
 ﻿using System;
 using MisterGames.Character.Collisions;
 using MisterGames.Character.Core;
-using MisterGames.Character.Pose;
+using MisterGames.Character.Capsule;
 using MisterGames.Collisions.Core;
 using MisterGames.Common.Conditions;
 using MisterGames.Common.Data;
@@ -100,9 +100,9 @@ namespace MisterGames.Character.Conditions {
             // return true if contact is expected (hasCeiling == true)
             if (!minCeilingHeight.HasValue) return hasCeiling;
 
-            float radius = _capsule.CurrentRadius;
+            float radius = _capsule.Radius;
             var bottomPoint = _bodyAdapter.Position + _capsule.ColliderCenter +
-                              ((_capsule.CurrentHeight - radius) * 0.5f + radius) * Vector3.down;
+                              ((_capsule.Height - radius) * 0.5f + radius) * Vector3.down;
 
             float sqrCeilingHeight = (info.point - bottomPoint).sqrMagnitude;
 

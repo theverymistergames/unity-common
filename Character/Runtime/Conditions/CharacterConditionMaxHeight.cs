@@ -1,6 +1,6 @@
 ﻿using System;
 using MisterGames.Character.Core;
-using MisterGames.Character.Pose;
+using MisterGames.Character.Capsule;
 using MisterGames.Common.Conditions;
 using MisterGames.Common.Dependencies;
 using UnityEngine;
@@ -48,7 +48,7 @@ namespace MisterGames.Character.Conditions {
         }
 
         private bool CheckCondition() {
-            return _capsule.CurrentHeight <= maxHeight;
+            return _capsule.Height <= maxHeight;
         }
 
         public override string ToString() {
