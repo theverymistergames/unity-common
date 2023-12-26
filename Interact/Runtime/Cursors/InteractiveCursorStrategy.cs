@@ -1,7 +1,5 @@
 ﻿using System;
 using MisterGames.Common.Attributes;
-using MisterGames.Common.Conditions;
-using MisterGames.Common.Dependencies;
 using MisterGames.Interact.Interactives;
 using UnityEngine;
 

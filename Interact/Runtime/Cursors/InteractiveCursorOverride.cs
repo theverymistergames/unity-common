@@ -1,5 +1,4 @@
-﻿using MisterGames.Common.Dependencies;
-using MisterGames.Interact.Interactives;
+﻿using MisterGames.Interact.Interactives;
 using UnityEngine;
 
 namespace MisterGames.Interact.Cursors {
@@ -9,14 +8,7 @@ namespace MisterGames.Interact.Cursors {
         [SerializeField] private Interactive _interactive;
         [SerializeField] private InteractiveCursorStrategy _strategy;
 
-        [RuntimeDependency(typeof(IInteractive))]
-        [RuntimeDependency(typeof(IInteractiveUser))]
-        [FetchDependencies(nameof(_strategy))]
-        [SerializeField] private DependencyResolver _dependencies;
-
         private void Awake() {
-            _dependencies.SetValue<IInteractive>(_interactive);
-
             _interactive.OnDetectedBy -= OnDetectedByUser;
             _interactive.OnDetectedBy += OnDetectedByUser;
 

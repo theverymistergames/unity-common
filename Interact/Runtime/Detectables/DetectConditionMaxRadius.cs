@@ -1,6 +1,4 @@
 ﻿using System;
-using MisterGames.Common.Conditions;
-using MisterGames.Common.Dependencies;
 using UnityEngine;
 
 namespace MisterGames.Interact.Detectables {
