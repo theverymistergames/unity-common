@@ -1,11 +1,10 @@
 ﻿using System.Threading;
 using Cysharp.Threading.Tasks;
-using MisterGames.Character.Conditions;
 using MisterGames.Character.Core;
 
 namespace MisterGames.Character.Capsule {
 
-    public delegate void OnPoseChanged(CharacterPoseType newPose, CharacterPoseType oldPose);
+    public delegate void OnPoseChanged(CharacterPose newPose, CharacterPose oldPose);
 
     public interface ICharacterPosePipeline : ICharacterPipeline {
 
@@ -18,12 +17,12 @@ namespace MisterGames.Character.Capsule {
         /// Current character pose.
         /// When set, pose is changed immediately, capsule size does not change.
         /// </summary>
-        CharacterPoseType CurrentPose { get; set; }
+        CharacterPose CurrentPose { get; set; }
 
         /// <summary>
         /// Target character pose is set when pose change begins.
         /// </summary>
-        CharacterPoseType TargetPose { get; }
+        CharacterPose TargetPose { get; }
 
         /// <summary>
         /// Current character height and radius.
@@ -42,7 +41,7 @@ namespace MisterGames.Character.Capsule {
         /// Returns true if size change is done, otherwise false.
         /// </summary>
         UniTask ChangePose(
-            CharacterPoseType targetPose,
+            CharacterPose targetPose,
             CharacterCapsuleSize capsuleSize,
             float duration,
             float setTargetPoseAt = 0f,

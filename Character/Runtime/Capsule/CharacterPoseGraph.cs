@@ -1,4 +1,4 @@
-﻿using System;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 namespace MisterGames.Character.Capsule {
@@ -7,16 +7,13 @@ namespace MisterGames.Character.Capsule {
     public sealed class CharacterPoseGraph : ScriptableObject {
 
         [Header("Poses")]
-        [SerializeField] private CharacterPoseSettings _stand;
-        [SerializeField] private CharacterPoseSettings _crouch;
+        [SerializeField] private CharacterPose _initialPose;
 
-        public CharacterPoseSettings GetPoseSettings(CharacterPoseType poseType) {
-            return poseType switch {
-                CharacterPoseType.Stand => _stand,
-                CharacterPoseType.Crouch => _crouch,
-                _ => throw new ArgumentOutOfRangeException(nameof(poseType), poseType, null)
-            };
-        }
+        [Header("Transitions")]
+        [SerializeField] private CharacterPoseTransition[] _transitions;
+
+        public CharacterPose InitialPose => _initialPose;
+        public IReadOnlyList<CharacterPoseTransition> Transitions => _transitions;
     }
 
 }

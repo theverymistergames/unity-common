@@ -47,18 +47,18 @@ namespace MisterGames.Character.Capsule {
             _headRoot.localPosition = _headRootInitialPosition;
         }
 
-        private void SetCapsuleSize(CharacterCapsuleSize capsuleSize, bool forceNotify = false) {
-            SetHeight(capsuleSize.height, forceNotify);
+        private void SetCapsuleSize(CharacterCapsuleSize capsuleSize) {
+            SetHeight(capsuleSize.height);
             SetRadius(capsuleSize.radius);
         }
 
-        private void SetHeight(float height, bool forceNotify = false) {
+        private void SetHeight(float height) {
             if (!enabled) return;
 
             float sourceHeight = _characterController.height;
             ApplyHeight(height);
 
-            if (forceNotify || !height.IsNearlyEqual(sourceHeight)) {
+            if (!height.IsNearlyEqual(sourceHeight)) {
                 OnHeightChange.Invoke(height, sourceHeight);
             }
         }

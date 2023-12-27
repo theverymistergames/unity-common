@@ -15,6 +15,10 @@ namespace MisterGames.Character.Capsule {
         [EmbeddedInspector]
         [SerializeField] private CharacterPoseGraph _poseGraph;
 
+        [Header("Crouch Input Triggers")]
+        [SerializeField] private CharacterPose _crouchPose;
+        [SerializeField] private CharacterPose _standPose;
+
         public override bool IsEnabled { get => enabled; set => enabled = value; }
 
         private ICharacterPosePipeline _pose;
@@ -25,6 +29,11 @@ namespace MisterGames.Character.Capsule {
         private void Awake() {
             _input = _characterAccess.GetPipeline<ICharacterInputPipeline>();
             _pose = _characterAccess.GetPipeline<ICharacterPosePipeline>();
+        }
+
+        private void Start() {
+            _pose.CurrentCapsuleSize = _poseGraph.InitialPose.CapsuleSize;
+            _pose.CurrentPose = _poseGraph.InitialPose;
         }
 
         private void OnEnable() {
@@ -55,26 +64,26 @@ namespace MisterGames.Character.Capsule {
         private void OnCrouchPressed() {
             if (!enabled) return;
 
-            ChangePose(CharacterPoseType.Crouch, _enableCts.Token).Forget();
+            ChangePose(_crouchPose, _enableCts.Token).Forget();
         }
 
         private void OnCrouchReleased() {
             if (!enabled) return;
 
-            ChangePose(CharacterPoseType.Stand, _enableCts.Token).Forget();
+            ChangePose(_standPose, _enableCts.Token).Forget();
         }
 
         private void OnCrouchToggled() {
             if (!enabled) return;
 
-            var nextPose = _pose.TargetPose == CharacterPoseType.Crouch
-                ? CharacterPoseType.Stand
-                : CharacterPoseType.Crouch;
+            var nextPose = _pose.TargetPose == _crouchPose
+                ? _standPose
+                : _crouchPose;
 
             ChangePose(nextPose, _enableCts.Token).Forget();
         }
 
-        private async UniTask ChangePose(CharacterPoseType targetPose, CancellationToken cancellationToken = default) {
+        private async UniTask ChangePose(CharacterPose targetPose, CancellationToken cancellationToken = default) {
             if (!enabled) return;
 
             var sourcePose = _pose.CurrentPose;
@@ -87,12 +96,10 @@ namespace MisterGames.Character.Capsule {
                 return;
             }
 
-            var sourcePoseSettings = _poseGraph.GetPoseSettings(sourcePose);
-            var targetPoseSettings = _poseGraph.GetPoseSettings(targetPose);
-            var targetCapsuleSize = targetPoseSettings.capsuleSize;
+            var targetCapsuleSize = targetPose.CapsuleSize;
 
-            float sourceHeight = sourcePoseSettings.capsuleSize.height;
-            float targetHeight = targetPoseSettings.capsuleSize.height;
+            float sourceHeight = sourcePose.CapsuleSize.height;
+            float targetHeight = targetCapsuleSize.height;
             float currentHeight = _pose.CurrentCapsuleSize.height;
 
             float progress = GetTransitionProgressDone(sourceHeight, targetHeight, currentHeight);
@@ -110,15 +117,19 @@ namespace MisterGames.Character.Capsule {
         }
 
         private bool TryGetTransition(
-            CharacterPoseType sourcePose,
-            CharacterPoseType targetPose,
+            CharacterPose sourcePose,
+            CharacterPose targetPose,
             out CharacterPoseTransition transition
         ) {
-            var transitions = _poseGraph.GetPoseSettings(sourcePose).transitions;
+            var transitions = _poseGraph.Transitions;
 
-            for (int i = 0; i < transitions.Length; i++) {
-                var (pose, t) = transitions[i];
-                if (pose == targetPose && (t.Condition == null || t.Condition.IsMatch(_characterAccess))) {
+            for (int i = 0; i < transitions.Count; i++) {
+                var t = transitions[i];
+
+                if (t.SourcePose == sourcePose &&
+                    t.TargetPose == targetPose &&
+                    (t.Condition == null || t.Condition.IsMatch(_characterAccess))
+                ) {
                     transition = t;
                     return true;
                 }
@@ -133,7 +144,7 @@ namespace MisterGames.Character.Capsule {
         }
 
         private static float GetTransitionPoseSetMark(float setPoseAt, float progressDone) {
-            if (setPoseAt <= progressDone) return 0f;
+            if (progressDone >= 1f || progressDone >= setPoseAt) return 0f;
             if (setPoseAt >= 1f) return 1f;
 
             return (setPoseAt - progressDone) / (1f - progressDone);

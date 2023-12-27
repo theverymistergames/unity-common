@@ -8,8 +8,8 @@ namespace MisterGames.Character.Conditions {
     [Serializable]
     public sealed class CharacterConditionPose : ICharacterCondition {
 
-        public Optional<CharacterPoseType> equalsCurrentPose;
-        public Optional<CharacterPoseType> equalsTargetPose;
+        public Optional<CharacterPose> equalsCurrentPose;
+        public Optional<CharacterPose> equalsTargetPose;
 
         public bool IsMatch(ICharacterAccess context) {
             var pose = context.GetPipeline<ICharacterPosePipeline>();
