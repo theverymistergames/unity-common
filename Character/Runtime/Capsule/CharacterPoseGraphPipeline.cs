@@ -1,5 +1,4 @@
-﻿using System;
-using System.Threading;
+﻿using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Character.Core;
 using MisterGames.Character.Input;
@@ -14,7 +13,7 @@ namespace MisterGames.Character.Capsule {
         [SerializeField] private CharacterAccess _characterAccess;
 
         [EmbeddedInspector]
-        [SerializeField] private CharacterPoseSettings _poseSettings;
+        [SerializeField] private CharacterPoseGraph _poseGraph;
 
         public override bool IsEnabled { get => enabled; set => enabled = value; }
 
@@ -22,8 +21,6 @@ namespace MisterGames.Character.Capsule {
         private ICharacterInputPipeline _input;
         private CancellationTokenSource _enableCts;
         private CancellationTokenSource _poseChangeCts;
-
-        private byte _lastPoseChangeId;
 
         private void Awake() {
             _input = _characterAccess.GetPipeline<ICharacterInputPipeline>();
@@ -55,137 +52,73 @@ namespace MisterGames.Character.Capsule {
             _input.OnCrouchToggled -= OnCrouchToggled;
         }
 
-        public CharacterCapsuleSize GetDefaultCapsuleSize(CharacterPoseType pose) {
-            return GetCapsuleSize(_poseSettings, pose);
-        }
-
-        public float GetDefaultTransitionDuration(CharacterPoseType targetPose) {
-            var sourcePose = _pose.CurrentPose;
-
-            // Try to use transition for last target pose instead of current pose
-            if (sourcePose == targetPose) sourcePose = _pose.TargetPose;
-
-            if (!TryGetTransition(_poseSettings, sourcePose, targetPose, out var transition)) return 0f;
-
-            var currentCapsuleSize = _pose.CurrentCapsuleSize;
-            var sourceCapsuleSize = GetCapsuleSize(_poseSettings, sourcePose);
-            var targetCapsuleSize = GetCapsuleSize(_poseSettings, targetPose);
-
-            float progress = GetTransitionProgress(sourceCapsuleSize.height, targetCapsuleSize.height, currentCapsuleSize.height);
-            return ConvertTransitionDuration(transition.duration, progress);
-        }
-
         private void OnCrouchPressed() {
             if (!enabled) return;
 
-            ChangePose(CharacterPoseType.Crouch, executeTransitionAction: true, _enableCts.Token).Forget();
+            ChangePose(CharacterPoseType.Crouch, _enableCts.Token).Forget();
         }
 
         private void OnCrouchReleased() {
             if (!enabled) return;
 
-            ChangePose(CharacterPoseType.Stand, executeTransitionAction: true, _enableCts.Token).Forget();
+            ChangePose(CharacterPoseType.Stand, _enableCts.Token).Forget();
         }
 
         private void OnCrouchToggled() {
             if (!enabled) return;
 
-            var nextPose = _pose.CurrentPose switch {
-                CharacterPoseType.Stand => CharacterPoseType.Crouch,
-                CharacterPoseType.Crouch => CharacterPoseType.Stand,
-                _ => throw new ArgumentOutOfRangeException()
-            };
+            var nextPose = _pose.TargetPose == CharacterPoseType.Crouch
+                ? CharacterPoseType.Stand
+                : CharacterPoseType.Crouch;
 
-            ChangePose(nextPose, executeTransitionAction: true, _enableCts.Token).Forget();
+            ChangePose(nextPose, _enableCts.Token).Forget();
         }
 
-        private async UniTask ChangePose(
-            CharacterPoseType targetPose,
-            bool executeTransitionAction,
-            CancellationToken cancellationToken = default
-        ) {
+        private async UniTask ChangePose(CharacterPoseType targetPose, CancellationToken cancellationToken = default) {
             if (!enabled) return;
 
             var sourcePose = _pose.CurrentPose;
 
-            // Try to use transition for last target pose instead of current pose
+            // Try to use transition for last target pose instead of current pose:
+            // if last pose change did not cause actual pose type change.
             if (sourcePose == targetPose) sourcePose = _pose.TargetPose;
 
-            if (!TryGetTransition(_poseSettings, sourcePose, targetPose, out var transition)) return;
+            if (!TryGetTransition(sourcePose, targetPose, out var transition)) {
+                return;
+            }
 
-            var currentCapsuleSize = _pose.CurrentCapsuleSize;
-            var sourceCapsuleSize = GetCapsuleSize(_poseSettings, sourcePose);
-            var targetCapsuleSize = GetCapsuleSize(_poseSettings, targetPose);
+            var sourcePoseSettings = _poseGraph.GetPoseSettings(sourcePose);
+            var targetPoseSettings = _poseGraph.GetPoseSettings(targetPose);
+            var targetCapsuleSize = targetPoseSettings.capsuleSize;
 
-            float progress = GetTransitionProgress(sourceCapsuleSize.height, targetCapsuleSize.height, currentCapsuleSize.height);
-            float duration = ConvertTransitionDuration(transition.duration, progress);
-            float setPoseAt = ConvertTransitionPoseSetMoment(transition.setPoseAt, progress);
+            float sourceHeight = sourcePoseSettings.capsuleSize.height;
+            float targetHeight = targetPoseSettings.capsuleSize.height;
+            float currentHeight = _pose.CurrentCapsuleSize.height;
+
+            float progress = GetTransitionProgressDone(sourceHeight, targetHeight, currentHeight);
+            float duration = GetTransitionDurationLeft(transition.Duration, progress);
+            float setPoseAt = GetTransitionPoseSetMark(transition.SetPoseAt, progress);
 
             _poseChangeCts?.Cancel();
             _poseChangeCts?.Dispose();
             _poseChangeCts = new CancellationTokenSource();
             var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _poseChangeCts.Token);
 
-            byte id = ++_lastPoseChangeId;
+            transition.Action?.Apply(_characterAccess, linkedCts.Token).Forget();
 
-            if (executeTransitionAction) transition.action?.Apply(_characterAccess, linkedCts.Token).Forget();
-
-            bool isPoseChanged = await _pose.TryChangePose(
-                targetPose,
-                targetCapsuleSize,
-                duration,
-                setPoseAt,
-                transition.condition,
-                linkedCts.Token
-            );
-
-            if (isPoseChanged) return;
-
-            // Check if next pose change called
-            if (id != _lastPoseChangeId) return;
-
-            // Execute pose change back to source pose.
-            // If current pose has not been changed, then transition action is not to be executed.
-            executeTransitionAction = _pose.CurrentPose != _pose.TargetPose;
-            ChangePose(sourcePose, executeTransitionAction, linkedCts.Token).Forget();
+            await _pose.ChangePose(targetPose, targetCapsuleSize, duration, setPoseAt, linkedCts.Token);
         }
 
-        private static float ConvertTransitionDuration(float totalDuration, float progress) {
-            return totalDuration * (1f - progress);
-        }
-
-        private static float ConvertTransitionPoseSetMoment(float setPoseAt, float progress) {
-            if (setPoseAt <= progress) return 0f;
-            if (setPoseAt >= 1f) return 1f;
-
-            return (setPoseAt - progress) / (1f - progress);
-        }
-
-        private static float GetTransitionProgress(float sourceHeight, float targetHeight, float currentHeight) {
-            return sourceHeight.IsNearlyEqual(targetHeight)
-                ? 0f
-                : Mathf.Clamp01((currentHeight - sourceHeight) / (targetHeight - sourceHeight));
-        }
-
-        private static CharacterCapsuleSize GetCapsuleSize(CharacterPoseSettings poseSettings, CharacterPoseType pose) {
-            return pose switch {
-                CharacterPoseType.Stand => poseSettings.stand,
-                CharacterPoseType.Crouch => poseSettings.crouch,
-                _ => throw new ArgumentOutOfRangeException(nameof(pose), pose, null)
-            };
-        }
-
-        private static bool TryGetTransition(
-            CharacterPoseSettings poseSettings,
+        private bool TryGetTransition(
             CharacterPoseType sourcePose,
             CharacterPoseType targetPose,
             out CharacterPoseTransition transition
         ) {
-            var transitions = poseSettings.transitions;
+            var transitions = _poseGraph.GetPoseSettings(sourcePose).transitions;
 
             for (int i = 0; i < transitions.Length; i++) {
-                var t = transitions[i];
-                if (t.sourcePose == sourcePose && t.targetPose == targetPose) {
+                var (pose, t) = transitions[i];
+                if (pose == targetPose && (t.Condition == null || t.Condition.IsMatch(_characterAccess))) {
                     transition = t;
                     return true;
                 }
@@ -193,6 +126,23 @@ namespace MisterGames.Character.Capsule {
 
             transition = default;
             return false;
+        }
+
+        private static float GetTransitionDurationLeft(float totalDuration, float progressDone) {
+            return totalDuration * (1f - progressDone);
+        }
+
+        private static float GetTransitionPoseSetMark(float setPoseAt, float progressDone) {
+            if (setPoseAt <= progressDone) return 0f;
+            if (setPoseAt >= 1f) return 1f;
+
+            return (setPoseAt - progressDone) / (1f - progressDone);
+        }
+
+        private static float GetTransitionProgressDone(float sourceHeight, float targetHeight, float currentHeight) {
+            return sourceHeight.IsNearlyEqual(targetHeight)
+                ? 0f
+                : Mathf.Clamp01((currentHeight - sourceHeight) / (targetHeight - sourceHeight));
         }
     }
 

@@ -41,15 +41,17 @@ namespace MisterGames.Character.Capsule {
         /// Change character pose and capsule size linearly within duration.
         /// Returns true if size change is done, otherwise false.
         /// </summary>
-        UniTask<bool> TryChangePose(
+        UniTask ChangePose(
             CharacterPoseType targetPose,
             CharacterCapsuleSize capsuleSize,
             float duration,
             float setTargetPoseAt = 0f,
-            ICharacterCondition canContinue = null,
             CancellationToken cancellationToken = default
         );
 
+        /// <summary>
+        /// Stop current pose change if there is one.
+        /// </summary>
         void StopPoseChange();
     }
 

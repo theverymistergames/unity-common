@@ -1,6 +1,5 @@
 ﻿using System.Threading;
 using Cysharp.Threading.Tasks;
-using MisterGames.Character.Conditions;
 using MisterGames.Character.Core;
 using MisterGames.Tick.Core;
 using UnityEngine;
@@ -33,24 +32,20 @@ namespace MisterGames.Character.Capsule {
             _capsule = _characterAccess.GetPipeline<ICharacterCapsulePipeline>();
         }
 
-        public async UniTask<bool> TryChangePose(
+        public async UniTask ChangePose(
             CharacterPoseType targetPose,
             CharacterCapsuleSize capsuleSize,
             float duration,
             float setTargetPoseAt = 0f,
-            ICharacterCondition canContinue = null,
             CancellationToken cancellationToken = default
         ) {
-            if (!enabled) return false;
+            if (!enabled) return;
 
             byte changeId = ++_lastPoseChangeId;
-            bool checkCondition = canContinue != null;
 
             var sourcePose = _currentPose;
             TargetPose = targetPose;
             TargetCapsuleSize = capsuleSize;
-
-            if (checkCondition && !canContinue.IsMatch(_characterAccess)) return false;
 
             if (duration <= 0f) {
                 _capsule.CapsuleSize = capsuleSize;
@@ -60,7 +55,7 @@ namespace MisterGames.Character.Capsule {
                     OnPoseChanged.Invoke(targetPose, sourcePose);
                 }
 
-                return !checkCondition || canContinue.IsMatch(_characterAccess);
+                return;
             }
 
             float sourceHeight = _capsule.Height;
@@ -86,13 +81,10 @@ namespace MisterGames.Character.Capsule {
                     OnPoseChanged.Invoke(_currentPose, sourcePose);
                 }
 
-                if (progress >= 1f) return !checkCondition || canContinue.IsMatch(_characterAccess);
-                if (checkCondition && !canContinue.IsMatch(_characterAccess)) return false;
+                if (progress >= 1f) return;
 
                 await UniTask.Yield();
             }
-
-            return false;
         }
 
         public void StopPoseChange() {
