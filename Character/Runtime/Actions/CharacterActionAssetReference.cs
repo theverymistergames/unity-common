@@ -8,10 +8,10 @@ namespace MisterGames.Character.Actions {
     [Serializable]
     public sealed class CharacterActionAssetReference : ICharacterAction {
 
-        public CharacterActionAsset action;
+        public CharacterActionAsset asset;
 
         public UniTask Apply(ICharacterAccess context, CancellationToken cancellationToken = default) {
-            return action == null ? default : action.Apply(context, cancellationToken);
+            return asset == null ? default : asset.Apply(context, cancellationToken);
         }
     }
 
