@@ -74,9 +74,9 @@ namespace MisterGames.Character.Capsule {
                 _capsule.Height = linearHeight;
                 _capsule.Radius = linearRadius;
 
-                if (sourcePose != targetPose && targetPose == TargetPose && progress >= setTargetPoseAt) {
+                if (progress >= setTargetPoseAt && _currentPose != TargetPose) {
                     sourcePose = _currentPose;
-                    _currentPose = targetPose;
+                    _currentPose = TargetPose;
                     OnPoseChanged.Invoke(_currentPose, sourcePose);
                 }
 
