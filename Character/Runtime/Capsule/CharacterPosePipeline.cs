@@ -86,10 +86,6 @@ namespace MisterGames.Character.Capsule {
             }
         }
 
-        public void StopPoseChange() {
-            ++_lastPoseChangeId;
-        }
-
         private void SetPose(CharacterPose targetPose) {
             if (!enabled) return;
 

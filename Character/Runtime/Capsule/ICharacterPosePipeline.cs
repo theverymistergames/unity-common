@@ -47,11 +47,6 @@ namespace MisterGames.Character.Capsule {
             float setTargetPoseAt = 0f,
             CancellationToken cancellationToken = default
         );
-
-        /// <summary>
-        /// Stop current pose change if there is one.
-        /// </summary>
-        void StopPoseChange();
     }
 
 }
