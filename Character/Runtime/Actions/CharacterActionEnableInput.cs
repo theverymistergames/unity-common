@@ -2,21 +2,17 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Character.Core;
-using MisterGames.Character.Motion;
+using MisterGames.Character.Input;
 
 namespace MisterGames.Character.Actions {
     
     [Serializable]
-    public sealed class CharacterActionGravityEnableDisable : ICharacterAction {
+    public sealed class CharacterActionEnableInput : ICharacterAction {
 
         public bool isEnabled;
 
         public UniTask Apply(ICharacterAccess characterAccess, CancellationToken cancellationToken = default) {
-            var mass = characterAccess
-                .GetPipeline<ICharacterMotionPipeline>()
-                .GetProcessor<CharacterProcessorMass>();
-
-            mass.isGravityEnabled = isEnabled;
+            characterAccess.GetPipeline<ICharacterInputPipeline>().IsEnabled = isEnabled;
             return default;
         }
     }

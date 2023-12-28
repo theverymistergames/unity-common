@@ -1,18 +1,18 @@
 ﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using MisterGames.Character.Collisions;
 using MisterGames.Character.Core;
+using MisterGames.Character.Motion;
 
 namespace MisterGames.Character.Actions {
     
     [Serializable]
-    public sealed class CharacterActionCollisionsEnableDisable : ICharacterAction {
+    public sealed class CharacterActionEnableMotionGraph : ICharacterAction {
 
         public bool isEnabled;
 
         public UniTask Apply(ICharacterAccess characterAccess, CancellationToken cancellationToken = default) {
-            characterAccess.GetPipeline<ICharacterCollisionPipeline>().IsEnabled = isEnabled;
+            characterAccess.GetPipeline<ICharacterMotionGraphPipeline>().IsEnabled = isEnabled;
             return default;
         }
     }
