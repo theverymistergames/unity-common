@@ -1,4 +1,5 @@
 ﻿using System;
+using Codice.LogWrapper;
 using MisterGames.Character.Collisions;
 using MisterGames.Character.Core;
 using MisterGames.Character.Processors;
@@ -37,15 +38,15 @@ namespace MisterGames.Character.Motion {
             var dir = new Vector3(input.x, 0f, input.y);
 
             _groundDetector.FetchResults();
-            var groundInfo = _groundDetector.CollisionInfo;
+            var info = _groundDetector.CollisionInfo;
 
-            // Move direction is same as view direction while gravity is not enabled
-            dir = (groundInfo.hasContact || _mass.isGravityEnabled ? _bodyAdapter.Rotation : _headAdapter.Rotation) * dir;
+            // Gravity is enabled and has ground contact: use character body direction and consider ground normal
+            if (_mass.isGravityEnabled && info.hasContact) {
+                return Vector3.ProjectOnPlane(_bodyAdapter.Rotation * dir, info.normal);
+            }
 
-            // Consider ground normal
-            if (groundInfo.hasContact) dir = Vector3.ProjectOnPlane(dir, groundInfo.normal);
-
-            return dir;
+            // Move direction is same as view direction while gravity is not enabled or has no ground contact
+            return _headAdapter.Rotation * dir;
         }
     }
 

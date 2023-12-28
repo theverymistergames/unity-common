@@ -10,7 +10,7 @@ using UnityEngine;
 
 namespace MisterGames.Character.Motion {
 
-    public class CharacterMotionGraphPipeline : CharacterPipelineBase, ICharacterPipeline {
+    public class CharacterMotionGraphPipeline : CharacterPipelineBase, ICharacterMotionGraphPipeline {
 
         [SerializeField] private CharacterAccess _characterAccess;
         [SerializeField] private CharacterActionAsset _action;
@@ -47,6 +47,8 @@ namespace MisterGames.Character.Motion {
 
             _input.OnRunReleased -= OnRunReleased;
             _input.OnRunReleased += OnRunReleased;
+
+            _action.Apply(_characterAccess, _enableCts.Token).Forget();
         }
 
         private void OnDisable() {
@@ -64,27 +66,23 @@ namespace MisterGames.Character.Motion {
         }
 
         private void OnStartContactGround() {
-            ApplyActionAndForget(_action);
+            _action.Apply(_characterAccess, _enableCts.Token).Forget();
         }
 
         private void OnStopContactGround() {
-            ApplyActionAndForget(_action);
+            _action.Apply(_characterAccess, _enableCts.Token).Forget();
         }
 
         private void OnPoseChanged(CharacterPose newPose, CharacterPose oldPose) {
-            ApplyActionAndForget(_action);
+            _action.Apply(_characterAccess, _enableCts.Token).Forget();
         }
 
         private void OnRunPressed() {
-            ApplyActionAndForget(_action);
+            _action.Apply(_characterAccess, _enableCts.Token).Forget();
         }
 
         private void OnRunReleased() {
-            ApplyActionAndForget(_action);
-        }
-
-        private void ApplyActionAndForget(ICharacterAction action) {
-            action.Apply(_characterAccess, _enableCts.Token).Forget();
+            _action.Apply(_characterAccess, _enableCts.Token).Forget();
         }
     }
 

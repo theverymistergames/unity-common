@@ -109,6 +109,18 @@ namespace MisterGames.Character.Motion {
         }
 
         /// <summary>
+        /// Interpolates value of the inertial component towards current force vector
+        /// with ground or in-air inertial factor.
+        /// </summary>
+        private void UpdateInertialComponent(Vector3 input, float dt) {
+            float factor = _groundDetector.CollisionInfo.hasContact
+                ? groundInertialFactor
+                : airInertialFactor * GetInputInfluence(input, _inertialComponent, inputInfluenceFactor);
+
+            _inertialComponent = Vector3.Lerp(_inertialComponent, input, factor * dt);
+        }
+
+        /// <summary>
         /// Interpolates value of the gravitational component:
         ///
         /// 1) If gravity is enabled and character is not grounded (i.e. is falling down) -
@@ -128,18 +140,6 @@ namespace MisterGames.Character.Motion {
 
             float factor = groundInfo.hasContact ? groundInertialFactor : airInertialFactor;
             _gravitationalComponent = Vector3.Lerp(_gravitationalComponent, Vector3.zero, factor * dt);
-        }
-
-        /// <summary>
-        /// Interpolates value of the inertial component towards current force vector
-        /// with ground or in-air inertial factor.
-        /// </summary>
-        private void UpdateInertialComponent(Vector3 input, float dt) {
-            float factor = _groundDetector.CollisionInfo.hasContact
-                ? groundInertialFactor
-                : airInertialFactor * GetInputInfluence(input, _inertialComponent, inputInfluenceFactor);
-
-            _inertialComponent = Vector3.Lerp(_inertialComponent, input, factor * dt);
         }
 
         private void UpdateForceComponent(float dt) {
