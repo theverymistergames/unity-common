@@ -1,4 +1,4 @@
-﻿namespace MisterGames.Common.Events {
+﻿namespace MisterGames.Scenario.Events {
 
     public static class EventSystems {
 

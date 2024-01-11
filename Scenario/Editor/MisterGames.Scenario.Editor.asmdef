@@ -1,0 +1,20 @@
+{
+    "name": "MisterGames.Scenario.Editor",
+    "rootNamespace": "MisterGames.Scenario.Editor",
+    "references": [
+        "GUID:30f50d247fb9adf46b9165dfc62f4527",
+        "GUID:0175294ec022c624cbe537915e3c9e71",
+        "GUID:bc3879bae5b869d48a8b5df880b31fff"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

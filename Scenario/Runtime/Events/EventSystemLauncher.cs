@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace MisterGames.Common.Events {
+namespace MisterGames.Scenario.Events {
 
     public class EventSystemLauncher : MonoBehaviour {
 
