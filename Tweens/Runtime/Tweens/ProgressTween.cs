@@ -53,7 +53,7 @@ namespace MisterGames.Tweens {
                 float progressDelta = _progressDirection * _timeSource.DeltaTime / duration;
 
                 _progress = Mathf.Clamp01(_progress + progressDelta);
-                _progressT = Mathf.Clamp01(curve.Evaluate(_progress));
+                _progressT = curve.Evaluate(_progress);
 
                 action.OnProgressUpdate(_progressT);
 
