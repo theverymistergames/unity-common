@@ -31,7 +31,7 @@ namespace MisterGames.Blueprints {
         public int Count => _nodeMap.Count;
 
         public Type GetNodeType(int id) {
-            return _nodeMap.TryGetValue(id, out var node) ? node.GetType() : null;
+            return _nodeMap.TryGetValue(id, out var node) ? node?.GetType() : null;
         }
 
         public ref T GetNodeByRef<T>(int id) where T : struct, IBlueprintNode {
@@ -137,23 +137,23 @@ namespace MisterGames.Blueprints {
         }
 
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {
-            _nodeMap[id.node].CreatePorts(meta, id);
+            _nodeMap[id.node]?.CreatePorts(meta, id);
         }
 
         public void OnSetDefaults(IBlueprintMeta meta, NodeId id) {
-            _nodeMap[id.node].OnSetDefaults(meta, id);
+            _nodeMap[id.node]?.OnSetDefaults(meta, id);
         }
 
         public void OnValidate(IBlueprintMeta meta, NodeId id) {
-            _nodeMap[id.node].OnValidate(meta, id);
+            _nodeMap[id.node]?.OnValidate(meta, id);
         }
 
         public void OnInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
-            _nodeMap[token.node.node].OnInitialize(blueprint, token, root);
+            _nodeMap[token.node.node]?.OnInitialize(blueprint, token, root);
         }
 
         public void OnDeInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
-            _nodeMap[token.node.node].OnDeInitialize(blueprint, token, root);
+            _nodeMap[token.node.node]?.OnDeInitialize(blueprint, token, root);
         }
 
         public void OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
