@@ -41,7 +41,7 @@ namespace MisterGames.Tweens {
 
             if (duration <= 0f) {
                 _progress = Mathf.Clamp01(_progressDirection);
-                _progressT = Mathf.Clamp01(curve.Evaluate(_progress));
+                _progressT = curve.Evaluate(_progress);
 
                 action.OnProgressUpdate(_progressT);
                 action.Finish();
@@ -67,7 +67,7 @@ namespace MisterGames.Tweens {
 
         public void Wind(bool reportProgress = true) {
             _progress = 1f;
-            _progressT = Mathf.Clamp01(curve.Evaluate(_progress));
+            _progressT = curve.Evaluate(_progress);
 
             if (!reportProgress) return;
 
@@ -78,7 +78,7 @@ namespace MisterGames.Tweens {
 
         public void Rewind(bool reportProgress = true) {
             _progress = 0f;
-            _progressT = Mathf.Clamp01(curve.Evaluate(_progress));
+            _progressT = curve.Evaluate(_progress);
 
             if (!reportProgress) return;
 
