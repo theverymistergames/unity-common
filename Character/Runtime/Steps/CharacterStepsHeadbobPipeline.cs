@@ -33,7 +33,7 @@ namespace MisterGames.Character.Steps {
 
         private CharacterProcessorMass _mass;
         private CameraContainer _cameraContainer;
-        private CameraStateKey _cameraStateKey;
+        private int _cameraStateId;
         private ICharacterStepsPipeline _steps;
         private ITransformAdapter _head;
 
@@ -58,7 +58,7 @@ namespace MisterGames.Character.Steps {
         }
 
         private void OnEnable() {
-            _cameraStateKey = _cameraContainer.CreateState(this, _cameraWeight);
+            _cameraStateId = _cameraContainer.CreateState(_cameraWeight);
             TimeSources.Get(_playerLoopStage).Subscribe(this);
 
             _steps.OnStep -= OnStep;
@@ -69,7 +69,7 @@ namespace MisterGames.Character.Steps {
         }
 
         private void OnDisable() {
-            _cameraContainer.RemoveState(_cameraStateKey);
+            _cameraContainer.RemoveState(_cameraStateId);
             TimeSources.Get(_playerLoopStage).Unsubscribe(this);
 
             _steps.OnStep -= OnStep;
@@ -113,8 +113,8 @@ namespace MisterGames.Character.Steps {
             _currentPositionOffset = Vector3.Lerp(_currentPositionOffset, _targetPositionOffset, dt * targetSmooth);
             _currentRotationOffset = Quaternion.Slerp(_currentRotationOffset, _targetRotationOffset, dt * targetSmooth);
 
-            _cameraContainer.SetPositionOffset(_cameraStateKey, _currentPositionOffset);
-            _cameraContainer.SetRotationOffset(_cameraStateKey, _currentRotationOffset);
+            _cameraContainer.SetPositionOffset(_cameraStateId, _currentPositionOffset);
+            _cameraContainer.SetRotationOffset(_cameraStateId, _currentRotationOffset);
         }
     }
 

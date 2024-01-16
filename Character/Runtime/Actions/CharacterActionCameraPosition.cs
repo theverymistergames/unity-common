@@ -15,7 +15,6 @@ namespace MisterGames.Character.Actions {
     public sealed class CharacterActionCameraPosition : ICharacterAction {
 
         public PlayerLoopStage playerLoopStage = PlayerLoopStage.Update;
-        public bool keepChanges;
 
         [Min(0f)] public float duration;
         [Min(0f)] public float durationRandom;
@@ -37,21 +36,21 @@ namespace MisterGames.Character.Actions {
             float resultDuration = duration + Random.Range(-durationRandom, durationRandom);
 
             var m = (baseMultiplier + Random.Range(-baseMultiplierRandom, baseMultiplierRandom)) * offset.CreateMultiplier();
-            var key = cameraContainer.CreateState(this, weight);
+            int id = cameraContainer.CreateState(weight);
 
             while (!cancellationToken.IsCancellationRequested) {
                 float progressDelta = resultDuration <= 0f ? 1f : timeSource.DeltaTime / resultDuration;
                 progress = Mathf.Clamp01(progress + progressDelta);
 
                 var position = offset.Evaluate(progress).Multiply(m);
-                cameraContainer.SetPositionOffset(key, position);
+                cameraContainer.SetPositionOffset(id, position);
 
                 if (progress >= 1f) break;
 
                 await UniTask.Yield();
             }
 
-            cameraContainer.RemoveState(key, keepChanges);
+            cameraContainer.RemoveState(id);
         }
     }
 

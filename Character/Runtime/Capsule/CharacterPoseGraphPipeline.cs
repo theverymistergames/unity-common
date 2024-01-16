@@ -15,7 +15,6 @@ namespace MisterGames.Character.Capsule {
         [EmbeddedInspector]
         [SerializeField] private CharacterPoseGraph _poseGraph;
 
-        [Header("Crouch Input Triggers")]
         [SerializeField] private CharacterPose _crouchPose;
         [SerializeField] private CharacterPose _standPose;
 
@@ -111,7 +110,7 @@ namespace MisterGames.Character.Capsule {
             _poseChangeCts = new CancellationTokenSource();
             var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _poseChangeCts.Token);
 
-            transition.Action?.Apply(_characterAccess, linkedCts.Token).Forget();
+            transition.Action?.Apply(_characterAccess, cancellationToken).Forget();
 
             await _pose.ChangePose(targetPose, targetCapsuleSize, duration, setPoseAt, linkedCts.Token);
         }

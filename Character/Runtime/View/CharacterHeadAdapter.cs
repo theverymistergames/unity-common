@@ -10,30 +10,30 @@ namespace MisterGames.Character.View {
 
         public Vector3 Position {
             get => _head.position;
-            set => _cameraContainer.SetPositionOffset(_cameraStateKey, value - _head.position);
+            set => _cameraContainer.SetPositionOffset(_cameraStateId, value - _head.position);
         }
 
         public Quaternion Rotation {
             get => _head.rotation;
-            set => _cameraContainer.SetRotationOffset(_cameraStateKey, value * Quaternion.Inverse(_head.rotation));
+            set => _cameraContainer.SetRotationOffset(_cameraStateId, value * Quaternion.Inverse(_head.rotation));
         }
 
-        private CameraStateKey _cameraStateKey;
+        private int _cameraStateId;
 
         private void OnEnable() {
-            _cameraStateKey = _cameraContainer.CreateState(this);
+            _cameraStateId = _cameraContainer.CreateState();
         }
 
         private void OnDisable() {
-            _cameraContainer.RemoveState(_cameraStateKey);
+            _cameraContainer.RemoveState(_cameraStateId);
         }
 
         public void Move(Vector3 delta) {
-            _cameraContainer.AddPositionOffset(_cameraStateKey, delta);
+            _cameraContainer.AddPositionOffset(_cameraStateId, delta);
         }
 
         public void Rotate(Quaternion delta) {
-            _cameraContainer.AddRotationOffset(_cameraStateKey, delta);
+            _cameraContainer.AddRotationOffset(_cameraStateId, delta);
         }
     }
 

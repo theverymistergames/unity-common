@@ -28,7 +28,7 @@ namespace MisterGames.Character.View {
 
         private ICharacterMotionPipeline _motion;
         private CameraContainer _cameraContainer;
-        private CameraStateKey _cameraStateKey;
+        private int _cameraStateId;
 
         private Vector3 _currentPositionOffset;
         private Vector3 _targetPositionOffset;
@@ -42,12 +42,12 @@ namespace MisterGames.Character.View {
         }
 
         private void OnEnable() {
-            _cameraStateKey = _cameraContainer.CreateState(this, _cameraMotionWeight);
+            _cameraStateId = _cameraContainer.CreateState(_cameraMotionWeight);
             TimeSources.Get(_playerLoopStage).Subscribe(this);
         }
 
         private void OnDisable() {
-            _cameraContainer.RemoveState(_cameraStateKey);
+            _cameraContainer.RemoveState(_cameraStateId);
             TimeSources.Get(_playerLoopStage).Unsubscribe(this);
         }
 
@@ -69,8 +69,8 @@ namespace MisterGames.Character.View {
             _currentPositionOffset = Vector3.Lerp(_currentPositionOffset, targetPositionOffset, _smoothFactor * dt);
             _currentRotationOffset = Quaternion.Slerp(_currentRotationOffset, targetRotationOffset, _smoothFactor * dt);
 
-            _cameraContainer.SetPositionOffset(_cameraStateKey, _currentPositionOffset);
-            _cameraContainer.SetRotationOffset(_cameraStateKey, _currentRotationOffset);
+            _cameraContainer.SetPositionOffset(_cameraStateId, _currentPositionOffset);
+            _cameraContainer.SetRotationOffset(_cameraStateId, _currentRotationOffset);
         }
     }
 
