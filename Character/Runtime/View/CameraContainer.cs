@@ -8,17 +8,17 @@ namespace MisterGames.Character.View {
         [SerializeField] private Camera _camera;
         [SerializeField] private Transform _transform;
 
-        private readonly Dictionary<int, CameraStateKey> _keyMap = new Dictionary<int, CameraStateKey>();
-        private readonly List<CameraState> _states = new List<CameraState>();
+        private readonly Dictionary<int, CameraStateData> _states = new Dictionary<int, CameraStateData>();
 
-        private CameraState _baseCameraState;
-        private CameraState _resultCameraState;
+        private CameraStateData _baseCameraState;
+        private CameraStateData _resultCameraState;
+
         private float _invertedMaxWeight;
         private bool _isInitialized;
+        private int _lastStateId;
 
         private void Awake() {
-            _baseCameraState = new CameraState(
-                hash: 0,
+            _baseCameraState = new CameraStateData(
                 weight: 1f,
                 _transform.localPosition,
                 _transform.localRotation,
@@ -26,191 +26,147 @@ namespace MisterGames.Character.View {
             );
 
             _isInitialized = true;
-            ApplyCameraParameters();
+
+            InvalidateResultState();
+            ApplyResultState();
         }
 
         private void OnDestroy() {
             _states.Clear();
-            _keyMap.Clear();
         }
 
-        public CameraStateKey CreateState(object source, float weight = 1f) {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (!ValidateStateSource(source)) return default;
-#endif
+        public int CreateState(float weight = 1f) {
+            int id = _lastStateId++;
+            _states[id] = new CameraStateData(weight);
 
-            int hash = source.GetHashCode();
-            var key = new CameraStateKey(hash, 0, _states.Count);
+            InvalidateWeights();
+            InvalidateResultState();
+            ApplyResultState();
 
-            if (_keyMap.TryGetValue(hash, out var existentKey)) {
-                _states[existentKey.index] = _states[existentKey.index].WithWeight(weight);
-                key = new CameraStateKey(hash, existentKey.token + 1, existentKey.index);
-            }
-            else {
-                _states.Add(new CameraState(hash, weight));
-            }
-
-            _keyMap[hash] = key;
-
-            InvalidateInvertedMaxWeight();
-            InvalidateResultPositionOffset();
-            InvalidateResultRotationOffset();
-            InvalidateResultFovOffset();
-
-            ApplyCameraParameters();
-
-            return key;
+            return id;
         }
 
-        public void RemoveState(CameraStateKey key, bool keepChanges = false) {
+        public void RemoveState(int id) {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (!ValidateState(key)) return;
+            if (!ValidateState(id)) return;
 #endif
 
-            int lastToken = _keyMap[key.hash].token;
-            if (key.token != lastToken) return;
-
-            var state = _states[key.index];
-            _states[key.index] = state.WithWeight(0f);
-
-            _keyMap.Remove(key.hash);
-
-            if (keepChanges) {
-                float w = state.weight * _invertedMaxWeight;
-                _baseCameraState = new CameraState(
-                    _baseCameraState.hash,
-                    _baseCameraState.weight,
-                    _baseCameraState.position + w * state.position,
-                    _baseCameraState.rotation * Quaternion.SlerpUnclamped(Quaternion.identity, state.rotation, w),
-                    _baseCameraState.fov + w * state.fov
-                );
-            }
-
-            for (int i = _states.Count - 1; i >= 0; i--) {
-                int hash = _states[i].hash;
-                if (_keyMap.ContainsKey(hash)) break;
-
-                _states.RemoveAt(i);
-                _keyMap.Remove(hash);
-            }
-
-            InvalidateInvertedMaxWeight();
-            InvalidateResultPositionOffset();
-            InvalidateResultRotationOffset();
-            InvalidateResultFovOffset();
-
-            ApplyCameraParameters();
-        }
-
-        public void AddPositionOffset(CameraStateKey key, Vector3 offsetDelta) {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (!ValidateState(key)) return;
-#endif
-
-            var data = _states[key.index];
-            _states[key.index] = data.WithPosition(data.position + offsetDelta);
+            _states.Remove(id);
             
-            InvalidateResultPositionOffset();
-            ApplyCameraParameters();
+            InvalidateWeights();
+            InvalidateResultState();
+            ApplyResultState();
         }
 
-        public void SetPositionOffset(CameraStateKey key, Vector3 offset) {
+        public void AddPositionOffset(int id, Vector3 offsetDelta) {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (!ValidateState(key)) return;
+            if (!ValidateState(id)) return;
 #endif
 
-            var data = _states[key.index];
-            _states[key.index] = data.WithPosition(offset);
+            var data = _states[id];
+            _states[id] = data.WithPosition(data.position + offsetDelta);
             
-            InvalidateResultPositionOffset();
-            ApplyCameraParameters();
+            InvalidateResultState(includeRotation: false, includeFov: false);
+            ApplyResultState();
         }
 
-        public void ResetPositionOffset(CameraStateKey key) {
+        public void SetPositionOffset(int id, Vector3 offset) {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (!ValidateState(key)) return;
+            if (!ValidateState(id)) return;
 #endif
 
-            var data = _states[key.index];
-            _states[key.index] = data.WithPosition(Vector3.zero);
+            var data = _states[id];
+            _states[id] = data.WithPosition(offset);
             
-            InvalidateResultPositionOffset();
-            ApplyCameraParameters();
+            InvalidateResultState(includeRotation: false, includeFov: false);
+            ApplyResultState();
         }
 
-        public void AddRotationOffset(CameraStateKey key, Quaternion rotation) {
+        public void ResetPositionOffset(int id) {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (!ValidateState(key)) return;
+            if (!ValidateState(id)) return;
 #endif
 
-            var data = _states[key.index];
-            _states[key.index] = data.WithRotation(data.rotation * rotation);
+            var data = _states[id];
+            _states[id] = data.WithPosition(Vector3.zero);
             
-            InvalidateResultRotationOffset();
-            ApplyCameraParameters();
+            InvalidateResultState(includeRotation: false, includeFov: false);
+            ApplyResultState();
         }
 
-        public void SetRotationOffset(CameraStateKey key, Quaternion rotation) {
+        public void AddRotationOffset(int id, Quaternion rotation) {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (!ValidateState(key)) return;
+            if (!ValidateState(id)) return;
 #endif
 
-            var data = _states[key.index];
-            _states[key.index] = data.WithRotation(rotation);
+            var data = _states[id];
+            _states[id] = data.WithRotation(data.rotation * rotation);
             
-            InvalidateResultRotationOffset();
-            ApplyCameraParameters();
+            InvalidateResultState(includePosition: false, includeFov: false);
+            ApplyResultState();
+        }
+
+        public void SetRotationOffset(int id, Quaternion rotation) {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (!ValidateState(id)) return;
+#endif
+
+            var data = _states[id];
+            _states[id] = data.WithRotation(rotation);
+            
+            InvalidateResultState(includePosition: false, includeFov: false);
+            ApplyResultState();
         }
         
-        public void ResetRotationOffset(CameraStateKey key) {
+        public void ResetRotationOffset(int id) {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (!ValidateState(key)) return;
+            if (!ValidateState(id)) return;
 #endif
 
-            var data = _states[key.index];
-            _states[key.index] = data.WithRotation(Quaternion.identity);
+            var data = _states[id];
+            _states[id] = data.WithRotation(Quaternion.identity);
             
-            InvalidateResultRotationOffset();
-            ApplyCameraParameters();
+            InvalidateResultState(includePosition: false, includeFov: false);
+            ApplyResultState();
         }
         
-        public void SetFovOffset(CameraStateKey key, float fov) {
+        public void SetFovOffset(int id, float fov) {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (!ValidateState(key)) return;
+            if (!ValidateState(id)) return;
 #endif
 
-            var data = _states[key.index];
-            _states[key.index] = data.WithFovOffset(fov);
+            var data = _states[id];
+            _states[id] = data.WithFovOffset(fov);
             
-            InvalidateResultFovOffset();
-            ApplyCameraParameters();
+            InvalidateResultState(includePosition: false, includeRotation: false);
+            ApplyResultState();
         }
         
-        public void AddFovOffset(CameraStateKey key, float fov) {
+        public void AddFovOffset(int id, float fov) {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (!ValidateState(key)) return;
+            if (!ValidateState(id)) return;
 #endif
 
-            var data = _states[key.index];
-            _states[key.index] = data.WithFovOffset(data.fov + fov);
+            var data = _states[id];
+            _states[id] = data.WithFovOffset(data.fov + fov);
             
-            InvalidateResultFovOffset();
-            ApplyCameraParameters();
+            InvalidateResultState(includePosition: false, includeRotation: false);
+            ApplyResultState();
         }
         
-        public void ResetFovOffset(CameraStateKey key) {
+        public void ResetFovOffset(int id) {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (!ValidateState(key)) return;
+            if (!ValidateState(id)) return;
 #endif
 
-            var data = _states[key.index];
-            _states[key.index] = data.WithFovOffset(0f);
+            var data = _states[id];
+            _states[id] = data.WithFovOffset(0f);
             
-            InvalidateResultFovOffset();
-            ApplyCameraParameters();
+            InvalidateResultState(includePosition: false, includeRotation: false);
+            ApplyResultState();
         }
 
-        private void ApplyCameraParameters() {
+        private void ApplyResultState() {
             if (!_isInitialized) return;
 
             _transform.localPosition = _baseCameraState.position + _resultCameraState.position;
@@ -218,44 +174,42 @@ namespace MisterGames.Character.View {
             _camera.fieldOfView = _baseCameraState.fov + _resultCameraState.fov;
         }
 
-        private void InvalidateResultPositionOffset() {
+        private void InvalidateResultState(
+            bool includePosition = true,
+            bool includeRotation = true,
+            bool includeFov = true
+        ) {
             var position = Vector3.zero;
-
-            for (int i = 0; i < _states.Count; i++) {
-                var data = _states[i];
-                position += data.weight * _invertedMaxWeight * data.position;
-            }
-
-            _resultCameraState = _resultCameraState.WithPosition(position);
-        }
-
-        private void InvalidateResultRotationOffset() {
             var rotation = Quaternion.identity;
-
-            for (int i = 0; i < _states.Count; i++) {
-                var data = _states[i];
-                rotation *= Quaternion.SlerpUnclamped(Quaternion.identity, data.rotation, data.weight * _invertedMaxWeight);
-            }
-
-            _resultCameraState = _resultCameraState.WithRotation(rotation);
-        }
-
-        private void InvalidateResultFovOffset() {
             float fov = 0f;
 
-            for (int i = 0; i < _states.Count; i++) {
-                var data = _states[i];
-                fov += data.weight * _invertedMaxWeight * data.fov;
+            foreach (var data in _states.Values) {
+                if (includePosition) {
+                    position += data.weight * _invertedMaxWeight * data.position;
+                }
+
+                if (includeRotation) {
+                    rotation *= Quaternion.SlerpUnclamped(Quaternion.identity, data.rotation, data.weight * _invertedMaxWeight);
+                }
+
+                if (includeFov) {
+                    fov += data.weight * _invertedMaxWeight * data.fov;
+                }
             }
 
-            _resultCameraState = _resultCameraState.WithFovOffset(fov);
+            _resultCameraState = new CameraStateData(
+                weight: 0f,
+                includePosition ? position : _resultCameraState.position,
+                includeRotation ? rotation : _resultCameraState.rotation,
+                includeFov ? fov : _resultCameraState.fov
+            );
         }
 
-        private void InvalidateInvertedMaxWeight() {
+        private void InvalidateWeights() {
             float max = 0f;
 
-            for (int i = 0; i < _states.Count; i++) {
-                float absWeight = Mathf.Abs(_states[i].weight);
+            foreach (var data in _states.Values) {
+                float absWeight = Mathf.Abs(data.weight);
                 if (max < absWeight) max = absWeight;
             }
 
@@ -263,17 +217,10 @@ namespace MisterGames.Character.View {
         }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-        private bool ValidateStateSource(object source) {
-            if (source != null) return true;
+        private bool ValidateState(int id) {
+            if (_states.ContainsKey(id)) return true;
 
-            Debug.LogWarning($"{nameof(CameraContainer)}: Cannot create state for null source object.");
-            return false;
-        }
-
-        private bool ValidateState(CameraStateKey key) {
-            if (_keyMap.TryGetValue(key.hash, out var existentKey) && key.index == existentKey.index) return true;
-
-            Debug.LogWarning($"{nameof(CameraContainer)}: Not registered state #{key.index} is trying to interact.");
+            Debug.LogWarning($"{nameof(CameraContainer)}: Not registered state #{id} is trying to interact.");
             return false;
         }
 #endif
