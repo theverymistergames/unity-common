@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Attributes;
@@ -30,11 +31,14 @@ namespace MisterGames.Common.Actions {
                     break;
 
                 case Mode.Parallel:
-                    var tasks = new UniTask[actions.Length];
+                    var tasks = ArrayPool<UniTask>.Shared.Rent(actions.Length);
+
                     for (int i = 0; i < actions.Length; i++) {
                         tasks[i] = actions[i].Apply(context, cancellationToken);
                     }
                     await UniTask.WhenAll(tasks);
+
+                    ArrayPool<UniTask>.Shared.Return(tasks);
                     break;
 
                 default:
