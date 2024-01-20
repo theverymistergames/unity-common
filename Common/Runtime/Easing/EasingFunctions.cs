@@ -68,83 +68,81 @@ namespace MisterGames.Common.Easing {
 
 	public static class EasingFunctions {
 
-		public delegate float Function(float start, float end, float value);
+        public static float Evaluate(this EasingType easingType, float start, float end, float value) {
+            return easingType switch {
+                EasingType.EaseInQuad => EaseInQuad(start, end, value),
+                EasingType.EaseOutQuad => EaseOutQuad(start, end, value),
+                EasingType.EaseInOutQuad => EaseInOutQuad(start, end, value),
+                EasingType.EaseInCubic => EaseInCubic(start, end, value),
+                EasingType.EaseOutCubic => EaseOutCubic(start, end, value),
+                EasingType.EaseInOutCubic => EaseInOutCubic(start, end, value),
+                EasingType.EaseInQuart => EaseInQuart(start, end, value),
+                EasingType.EaseOutQuart => EaseOutQuart(start, end, value),
+                EasingType.EaseInOutQuart => EaseInOutQuart(start, end, value),
+                EasingType.EaseInQuint => EaseInQuint(start, end, value),
+                EasingType.EaseOutQuint => EaseOutQuint(start, end, value),
+                EasingType.EaseInOutQuint => EaseInOutQuint(start, end, value),
+                EasingType.EaseInSine => EaseInSine(start, end, value),
+                EasingType.EaseOutSine => EaseOutSine(start, end, value),
+                EasingType.EaseInOutSine => EaseInOutSine(start, end, value),
+                EasingType.EaseInExpo => EaseInExpo(start, end, value),
+                EasingType.EaseOutExpo => EaseOutExpo(start, end, value),
+                EasingType.EaseInOutExpo => EaseInOutExpo(start, end, value),
+                EasingType.EaseInCirc => EaseInCirc(start, end, value),
+                EasingType.EaseOutCirc => EaseOutCirc(start, end, value),
+                EasingType.EaseInOutCirc => EaseInOutCirc(start, end, value),
+                EasingType.Linear => Linear(start, end, value),
+                EasingType.Spring => Spring(start, end, value),
+                EasingType.EaseInBounce => EaseInBounce(start, end, value),
+                EasingType.EaseOutBounce => EaseOutBounce(start, end, value),
+                EasingType.EaseInOutBounce => EaseInOutBounce(start, end, value),
+                EasingType.EaseInBack => EaseInBack(start, end, value),
+                EasingType.EaseOutBack => EaseOutBack(start, end, value),
+                EasingType.EaseInOutBack => EaseInOutBack(start, end, value),
+                EasingType.EaseInElastic => EaseInElastic(start, end, value),
+                EasingType.EaseOutElastic => EaseOutElastic(start, end, value),
+                EasingType.EaseInOutElastic => EaseInOutElastic(start, end, value),
+                _ => throw new NotImplementedException($"Easing function {easingType} is not implemented")
+            };
+        }
 
-		public static Function ToFunction(this EasingType easingType) {
-			return easingType switch {
-				EasingType.EaseInQuad => EaseInQuad,
-				EasingType.EaseOutQuad => EaseOutQuad,
-				EasingType.EaseInOutQuad => EaseInOutQuad,
-				EasingType.EaseInCubic => EaseInCubic,
-				EasingType.EaseOutCubic => EaseOutCubic,
-				EasingType.EaseInOutCubic => EaseInOutCubic,
-				EasingType.EaseInQuart => EaseInQuart,
-				EasingType.EaseOutQuart => EaseOutQuart,
-				EasingType.EaseInOutQuart => EaseInOutQuart,
-				EasingType.EaseInQuint => EaseInQuint,
-				EasingType.EaseOutQuint => EaseOutQuint,
-				EasingType.EaseInOutQuint => EaseInOutQuint,
-				EasingType.EaseInSine => EaseInSine,
-				EasingType.EaseOutSine => EaseOutSine,
-				EasingType.EaseInOutSine => EaseInOutSine,
-				EasingType.EaseInExpo => EaseInExpo,
-				EasingType.EaseOutExpo => EaseOutExpo,
-				EasingType.EaseInOutExpo => EaseInOutExpo,
-				EasingType.EaseInCirc => EaseInCirc,
-				EasingType.EaseOutCirc => EaseOutCirc,
-				EasingType.EaseInOutCirc => EaseInOutCirc,
-				EasingType.Linear => Linear,
-				EasingType.Spring => Spring,
-				EasingType.EaseInBounce => EaseInBounce,
-				EasingType.EaseOutBounce => EaseOutBounce,
-				EasingType.EaseInOutBounce => EaseInOutBounce,
-				EasingType.EaseInBack => EaseInBack,
-				EasingType.EaseOutBack => EaseOutBack,
-				EasingType.EaseInOutBack => EaseInOutBack,
-				EasingType.EaseInElastic => EaseInElastic,
-				EasingType.EaseOutElastic => EaseOutElastic,
-				EasingType.EaseInOutElastic => EaseInOutElastic,
-				_ => throw new NotImplementedException($"Easing function {easingType} is not implemented")
-			};
-		}
-
-		public static Function ToFunctionDerivative(this EasingType easingFunction) {
-			return easingFunction switch {
-				EasingType.EaseInQuad => EaseInQuadD,
-				EasingType.EaseOutQuad => EaseOutQuadD,
-				EasingType.EaseInOutQuad => EaseInOutQuadD,
-				EasingType.EaseInCubic => EaseInCubicD,
-				EasingType.EaseOutCubic => EaseOutCubicD,
-				EasingType.EaseInOutCubic => EaseInOutCubicD,
-				EasingType.EaseInQuart => EaseInQuartD,
-				EasingType.EaseOutQuart => EaseOutQuartD,
-				EasingType.EaseInOutQuart => EaseInOutQuartD,
-				EasingType.EaseInQuint => EaseInQuintD,
-				EasingType.EaseOutQuint => EaseOutQuintD,
-				EasingType.EaseInOutQuint => EaseInOutQuintD,
-				EasingType.EaseInSine => EaseInSineD,
-				EasingType.EaseOutSine => EaseOutSineD,
-				EasingType.EaseInOutSine => EaseInOutSineD,
-				EasingType.EaseInExpo => EaseInExpoD,
-				EasingType.EaseOutExpo => EaseOutExpoD,
-				EasingType.EaseInOutExpo => EaseInOutExpoD,
-				EasingType.EaseInCirc => EaseInCircD,
-				EasingType.EaseOutCirc => EaseOutCircD,
-				EasingType.EaseInOutCirc => EaseInOutCircD,
-				EasingType.Linear => LinearD,
-				EasingType.Spring => SpringD,
-				EasingType.EaseInBounce => EaseInBounceD,
-				EasingType.EaseOutBounce => EaseOutBounceD,
-				EasingType.EaseInOutBounce => EaseInOutBounceD,
-				EasingType.EaseInBack => EaseInBackD,
-				EasingType.EaseOutBack => EaseOutBackD,
-				EasingType.EaseInOutBack => EaseInOutBackD,
-				EasingType.EaseInElastic => EaseInElasticD,
-				EasingType.EaseOutElastic => EaseOutElasticD,
-				EasingType.EaseInOutElastic => EaseInOutElasticD,
-				_ => throw new NotImplementedException($"Easing function derivative for ease {easingFunction} is not implemented")
-			};
-		}
+        public static float EvaluateDerivative(this EasingType easingType, float start, float end, float value) {
+            return easingType switch {
+                EasingType.EaseInQuad => EaseInQuadD(start, end, value),
+                EasingType.EaseOutQuad => EaseOutQuadD(start, end, value),
+                EasingType.EaseInOutQuad => EaseInOutQuadD(start, end, value),
+                EasingType.EaseInCubic => EaseInCubicD(start, end, value),
+                EasingType.EaseOutCubic => EaseOutCubicD(start, end, value),
+                EasingType.EaseInOutCubic => EaseInOutCubicD(start, end, value),
+                EasingType.EaseInQuart => EaseInQuartD(start, end, value),
+                EasingType.EaseOutQuart => EaseOutQuartD(start, end, value),
+                EasingType.EaseInOutQuart => EaseInOutQuartD(start, end, value),
+                EasingType.EaseInQuint => EaseInQuintD(start, end, value),
+                EasingType.EaseOutQuint => EaseOutQuintD(start, end, value),
+                EasingType.EaseInOutQuint => EaseInOutQuintD(start, end, value),
+                EasingType.EaseInSine => EaseInSineD(start, end, value),
+                EasingType.EaseOutSine => EaseOutSineD(start, end, value),
+                EasingType.EaseInOutSine => EaseInOutSineD(start, end, value),
+                EasingType.EaseInExpo => EaseInExpoD(start, end, value),
+                EasingType.EaseOutExpo => EaseOutExpoD(start, end, value),
+                EasingType.EaseInOutExpo => EaseInOutExpoD(start, end, value),
+                EasingType.EaseInCirc => EaseInCircD(start, end, value),
+                EasingType.EaseOutCirc => EaseOutCircD(start, end, value),
+                EasingType.EaseInOutCirc => EaseInOutCircD(start, end, value),
+                EasingType.Linear => LinearD(start, end, value),
+                EasingType.Spring => SpringD(start, end, value),
+                EasingType.EaseInBounce => EaseInBounceD(start, end, value),
+                EasingType.EaseOutBounce => EaseOutBounceD(start, end, value),
+                EasingType.EaseInOutBounce => EaseInOutBounceD(start, end, value),
+                EasingType.EaseInBack => EaseInBackD(start, end, value),
+                EasingType.EaseOutBack => EaseOutBackD(start, end, value),
+                EasingType.EaseInOutBack => EaseInOutBackD(start, end, value),
+                EasingType.EaseInElastic => EaseInElasticD(start, end, value),
+                EasingType.EaseOutElastic => EaseOutElasticD(start, end, value),
+                EasingType.EaseInOutElastic => EaseInOutElasticD(start, end, value),
+                _ => throw new NotImplementedException($"Easing function {easingType} is not implemented")
+            };
+        }
 
         private const float NATURAL_LOG_2 = 0.693147181f;
 
@@ -168,7 +166,7 @@ namespace MisterGames.Common.Easing {
             return -end * value * (value - 2) + start;
         }
 
-        public static float EaseInOutQuad(float start, float end, float value)
+        private static float EaseInOutQuad(float start, float end, float value)
         {
             value /= .5f;
             end -= start;
@@ -177,20 +175,20 @@ namespace MisterGames.Common.Easing {
             return -end * 0.5f * (value * (value - 2) - 1) + start;
         }
 
-        public static float EaseInCubic(float start, float end, float value)
+        private static float EaseInCubic(float start, float end, float value)
         {
             end -= start;
             return end * value * value * value + start;
         }
 
-        public static float EaseOutCubic(float start, float end, float value)
+        private static float EaseOutCubic(float start, float end, float value)
         {
             value--;
             end -= start;
             return end * (value * value * value + 1) + start;
         }
 
-        public static float EaseInOutCubic(float start, float end, float value)
+        private static float EaseInOutCubic(float start, float end, float value)
         {
             value /= .5f;
             end -= start;
@@ -199,20 +197,20 @@ namespace MisterGames.Common.Easing {
             return end * 0.5f * (value * value * value + 2) + start;
         }
 
-        public static float EaseInQuart(float start, float end, float value)
+        private static float EaseInQuart(float start, float end, float value)
         {
             end -= start;
             return end * value * value * value * value + start;
         }
 
-        public static float EaseOutQuart(float start, float end, float value)
+        private static float EaseOutQuart(float start, float end, float value)
         {
             value--;
             end -= start;
             return -end * (value * value * value * value - 1) + start;
         }
 
-        public static float EaseInOutQuart(float start, float end, float value)
+        private static float EaseInOutQuart(float start, float end, float value)
         {
             value /= .5f;
             end -= start;
@@ -221,20 +219,20 @@ namespace MisterGames.Common.Easing {
             return -end * 0.5f * (value * value * value * value - 2) + start;
         }
 
-        public static float EaseInQuint(float start, float end, float value)
+        private static float EaseInQuint(float start, float end, float value)
         {
             end -= start;
             return end * value * value * value * value * value + start;
         }
 
-        public static float EaseOutQuint(float start, float end, float value)
+        private static float EaseOutQuint(float start, float end, float value)
         {
             value--;
             end -= start;
             return end * (value * value * value * value * value + 1) + start;
         }
 
-        public static float EaseInOutQuint(float start, float end, float value)
+        private static float EaseInOutQuint(float start, float end, float value)
         {
             value /= .5f;
             end -= start;
@@ -243,37 +241,37 @@ namespace MisterGames.Common.Easing {
             return end * 0.5f * (value * value * value * value * value + 2) + start;
         }
 
-        public static float EaseInSine(float start, float end, float value)
+        private static float EaseInSine(float start, float end, float value)
         {
             end -= start;
             return -end * Mathf.Cos(value * (Mathf.PI * 0.5f)) + end + start;
         }
 
-        public static float EaseOutSine(float start, float end, float value)
+        private static float EaseOutSine(float start, float end, float value)
         {
             end -= start;
             return end * Mathf.Sin(value * (Mathf.PI * 0.5f)) + start;
         }
 
-        public static float EaseInOutSine(float start, float end, float value)
+        private static float EaseInOutSine(float start, float end, float value)
         {
             end -= start;
             return -end * 0.5f * (Mathf.Cos(Mathf.PI * value) - 1) + start;
         }
 
-        public static float EaseInExpo(float start, float end, float value)
+        private static float EaseInExpo(float start, float end, float value)
         {
             end -= start;
             return end * Mathf.Pow(2, 10 * (value - 1)) + start;
         }
 
-        public static float EaseOutExpo(float start, float end, float value)
+        private static float EaseOutExpo(float start, float end, float value)
         {
             end -= start;
             return end * (-Mathf.Pow(2, -10 * value) + 1) + start;
         }
 
-        public static float EaseInOutExpo(float start, float end, float value)
+        private static float EaseInOutExpo(float start, float end, float value)
         {
             value /= .5f;
             end -= start;
@@ -282,20 +280,20 @@ namespace MisterGames.Common.Easing {
             return end * 0.5f * (-Mathf.Pow(2, -10 * value) + 2) + start;
         }
 
-        public static float EaseInCirc(float start, float end, float value)
+        private static float EaseInCirc(float start, float end, float value)
         {
             end -= start;
             return -end * (Mathf.Sqrt(1 - value * value) - 1) + start;
         }
 
-        public static float EaseOutCirc(float start, float end, float value)
+        private static float EaseOutCirc(float start, float end, float value)
         {
             value--;
             end -= start;
             return end * Mathf.Sqrt(1 - value * value) + start;
         }
 
-        public static float EaseInOutCirc(float start, float end, float value)
+        private static float EaseInOutCirc(float start, float end, float value)
         {
             value /= .5f;
             end -= start;
@@ -304,14 +302,14 @@ namespace MisterGames.Common.Easing {
             return end * 0.5f * (Mathf.Sqrt(1 - value * value) + 1) + start;
         }
 
-        public static float EaseInBounce(float start, float end, float value)
+        private static float EaseInBounce(float start, float end, float value)
         {
             end -= start;
             const float d = 1f;
             return end - EaseOutBounce(0, end, d - value) + start;
         }
 
-        public static float EaseOutBounce(float start, float end, float value)
+        private static float EaseOutBounce(float start, float end, float value)
         {
             value /= 1f;
             end -= start;
@@ -334,7 +332,7 @@ namespace MisterGames.Common.Easing {
             return end * (7.5625f * (value) * value + .984375f) + start;
         }
 
-        public static float EaseInOutBounce(float start, float end, float value)
+        private static float EaseInOutBounce(float start, float end, float value)
         {
             end -= start;
             const float d = 1f;
@@ -342,7 +340,7 @@ namespace MisterGames.Common.Easing {
             return EaseOutBounce(0, end, value * 2 - d) * 0.5f + end * 0.5f + start;
         }
 
-        public static float EaseInBack(float start, float end, float value)
+        private static float EaseInBack(float start, float end, float value)
         {
             end -= start;
             value /= 1;
@@ -350,7 +348,7 @@ namespace MisterGames.Common.Easing {
             return end * (value) * value * ((s + 1) * value - s) + start;
         }
 
-        public static float EaseOutBack(float start, float end, float value)
+        private static float EaseOutBack(float start, float end, float value)
         {
             const float s = 1.70158f;
             end -= start;
@@ -358,7 +356,7 @@ namespace MisterGames.Common.Easing {
             return end * ((value) * value * ((s + 1) * value + s) + 1) + start;
         }
 
-        public static float EaseInOutBack(float start, float end, float value)
+        private static float EaseInOutBack(float start, float end, float value)
         {
             float s = 1.70158f;
             end -= start;
@@ -373,7 +371,7 @@ namespace MisterGames.Common.Easing {
             return end * 0.5f * ((value) * value * (((s) + 1) * value + s) + 2) + start;
         }
 
-        public static float EaseInElastic(float start, float end, float value)
+        private static float EaseInElastic(float start, float end, float value)
         {
             end -= start;
 
@@ -399,7 +397,7 @@ namespace MisterGames.Common.Easing {
             return -(a * Mathf.Pow(2, 10 * (value -= 1)) * Mathf.Sin((value * d - s) * (2 * Mathf.PI) / p)) + start;
         }
 
-        public static float EaseOutElastic(float start, float end, float value)
+        private static float EaseOutElastic(float start, float end, float value)
         {
             end -= start;
 
@@ -425,7 +423,7 @@ namespace MisterGames.Common.Easing {
             return (a * Mathf.Pow(2, -10 * value) * Mathf.Sin((value * d - s) * (2 * Mathf.PI) / p) + end + start);
         }
 
-        public static float EaseInOutElastic(float start, float end, float value)
+        private static float EaseInOutElastic(float start, float end, float value)
         {
             end -= start;
 
@@ -461,23 +459,23 @@ namespace MisterGames.Common.Easing {
         // TODO: These functions have not had the testing they deserve. If there is odd behavior around
         //       dash speeds then this would be the first place I'd look.
 
-        public static float LinearD(float start, float end, float value)
+        private static float LinearD(float start, float end, float value)
         {
             return end - start;
         }
 
-        public static float EaseInQuadD(float start, float end, float value)
+        private static float EaseInQuadD(float start, float end, float value)
         {
             return 2f * (end - start) * value;
         }
 
-        public static float EaseOutQuadD(float start, float end, float value)
+        private static float EaseOutQuadD(float start, float end, float value)
         {
             end -= start;
             return -end * value - end * (value - 2);
         }
 
-        public static float EaseInOutQuadD(float start, float end, float value)
+        private static float EaseInOutQuadD(float start, float end, float value)
         {
             value /= .5f;
             end -= start;
@@ -492,19 +490,19 @@ namespace MisterGames.Common.Easing {
             return end * (1 - value);
         }
 
-        public static float EaseInCubicD(float start, float end, float value)
+        private static float EaseInCubicD(float start, float end, float value)
         {
             return 3f * (end - start) * value * value;
         }
 
-        public static float EaseOutCubicD(float start, float end, float value)
+        private static float EaseOutCubicD(float start, float end, float value)
         {
             value--;
             end -= start;
             return 3f * end * value * value;
         }
 
-        public static float EaseInOutCubicD(float start, float end, float value)
+        private static float EaseInOutCubicD(float start, float end, float value)
         {
             value /= .5f;
             end -= start;
@@ -519,19 +517,19 @@ namespace MisterGames.Common.Easing {
             return (3f / 2f) * end * value * value;
         }
 
-        public static float EaseInQuartD(float start, float end, float value)
+        private static float EaseInQuartD(float start, float end, float value)
         {
             return 4f * (end - start) * value * value * value;
         }
 
-        public static float EaseOutQuartD(float start, float end, float value)
+        private static float EaseOutQuartD(float start, float end, float value)
         {
             value--;
             end -= start;
             return -4f * end * value * value * value;
         }
 
-        public static float EaseInOutQuartD(float start, float end, float value)
+        private static float EaseInOutQuartD(float start, float end, float value)
         {
             value /= .5f;
             end -= start;
@@ -546,19 +544,19 @@ namespace MisterGames.Common.Easing {
             return -2f * end * value * value * value;
         }
 
-        public static float EaseInQuintD(float start, float end, float value)
+        private static float EaseInQuintD(float start, float end, float value)
         {
             return 5f * (end - start) * value * value * value * value;
         }
 
-        public static float EaseOutQuintD(float start, float end, float value)
+        private static float EaseOutQuintD(float start, float end, float value)
         {
             value--;
             end -= start;
             return 5f * end * value * value * value * value;
         }
 
-        public static float EaseInOutQuintD(float start, float end, float value)
+        private static float EaseInOutQuintD(float start, float end, float value)
         {
             value /= .5f;
             end -= start;
@@ -573,35 +571,35 @@ namespace MisterGames.Common.Easing {
             return (5f / 2f) * end * value * value * value * value;
         }
 
-        public static float EaseInSineD(float start, float end, float value)
+        private static float EaseInSineD(float start, float end, float value)
         {
             return (end - start) * 0.5f * Mathf.PI * Mathf.Sin(0.5f * Mathf.PI * value);
         }
 
-        public static float EaseOutSineD(float start, float end, float value)
+        private static float EaseOutSineD(float start, float end, float value)
         {
             end -= start;
             return (Mathf.PI * 0.5f) * end * Mathf.Cos(value * (Mathf.PI * 0.5f));
         }
 
-        public static float EaseInOutSineD(float start, float end, float value)
+        private static float EaseInOutSineD(float start, float end, float value)
         {
             end -= start;
             return end * 0.5f * Mathf.PI * Mathf.Sin(Mathf.PI * value);
         }
 
-        public static float EaseInExpoD(float start, float end, float value)
+        private static float EaseInExpoD(float start, float end, float value)
         {
             return 10f * NATURAL_LOG_2 * (end - start) * Mathf.Pow(2f, 10f * (value - 1));
         }
 
-        public static float EaseOutExpoD(float start, float end, float value)
+        private static float EaseOutExpoD(float start, float end, float value)
         {
             end -= start;
             return 5f * NATURAL_LOG_2 * end * Mathf.Pow(2f, 1f - 10f * value);
         }
 
-        public static float EaseInOutExpoD(float start, float end, float value)
+        private static float EaseInOutExpoD(float start, float end, float value)
         {
             value /= .5f;
             end -= start;
@@ -616,19 +614,19 @@ namespace MisterGames.Common.Easing {
             return (5f * NATURAL_LOG_2 * end) / (Mathf.Pow(2f, 10f * value));
         }
 
-        public static float EaseInCircD(float start, float end, float value)
+        private static float EaseInCircD(float start, float end, float value)
         {
             return (end - start) * value / Mathf.Sqrt(1f - value * value);
         }
 
-        public static float EaseOutCircD(float start, float end, float value)
+        private static float EaseOutCircD(float start, float end, float value)
         {
             value--;
             end -= start;
             return (-end * value) / Mathf.Sqrt(1f - value * value);
         }
 
-        public static float EaseInOutCircD(float start, float end, float value)
+        private static float EaseInOutCircD(float start, float end, float value)
         {
             value /= .5f;
             end -= start;
@@ -643,7 +641,7 @@ namespace MisterGames.Common.Easing {
             return (-end * value) / (2f * Mathf.Sqrt(1f - value * value));
         }
 
-        public static float EaseInBounceD(float start, float end, float value)
+        private static float EaseInBounceD(float start, float end, float value)
         {
             end -= start;
             const float d = 1f;
@@ -651,7 +649,7 @@ namespace MisterGames.Common.Easing {
             return EaseOutBounceD(0, end, d - value);
         }
 
-        public static float EaseOutBounceD(float start, float end, float value)
+        private static float EaseOutBounceD(float start, float end, float value)
         {
             value /= 1f;
             end -= start;
@@ -675,7 +673,7 @@ namespace MisterGames.Common.Easing {
             return 2f * end * 7.5625f * value;
         }
 
-        public static float EaseInOutBounceD(float start, float end, float value)
+        private static float EaseInOutBounceD(float start, float end, float value)
         {
             end -= start;
             const float d = 1f;
@@ -688,14 +686,14 @@ namespace MisterGames.Common.Easing {
             return EaseOutBounceD(0, end, value * 2 - d) * 0.5f;
         }
 
-        public static float EaseInBackD(float start, float end, float value)
+        private static float EaseInBackD(float start, float end, float value)
         {
             const float s = 1.70158f;
 
             return 3f * (s + 1f) * (end - start) * value * value - 2f * s * (end - start) * value;
         }
 
-        public static float EaseOutBackD(float start, float end, float value)
+        private static float EaseOutBackD(float start, float end, float value)
         {
             const float s = 1.70158f;
             end -= start;
@@ -704,7 +702,7 @@ namespace MisterGames.Common.Easing {
             return end * ((s + 1f) * value * value + 2f * value * ((s + 1f) * value + s));
         }
 
-        public static float EaseInOutBackD(float start, float end, float value)
+        private static float EaseInOutBackD(float start, float end, float value)
         {
             float s = 1.70158f;
             end -= start;
@@ -721,12 +719,12 @@ namespace MisterGames.Common.Easing {
             return 0.5f * end * ((s + 1) * value * value + 2f * value * ((s + 1f) * value + s));
         }
 
-        public static float EaseInElasticD(float start, float end, float value)
+        private static float EaseInElasticD(float start, float end, float value)
         {
             return EaseOutElasticD(start, end, 1f - value);
         }
 
-        public static float EaseOutElasticD(float start, float end, float value)
+        private static float EaseOutElasticD(float start, float end, float value)
         {
             end -= start;
 
@@ -750,7 +748,7 @@ namespace MisterGames.Common.Easing {
                 Mathf.Pow(2f, 1f - 10f * value) * Mathf.Sin((2f * Mathf.PI * (d * value - s)) / p);
         }
 
-        public static float EaseInOutElasticD(float start, float end, float value)
+        private static float EaseInOutElasticD(float start, float end, float value)
         {
             end -= start;
 
@@ -783,7 +781,7 @@ namespace MisterGames.Common.Easing {
                    5f * NATURAL_LOG_2 * a * Mathf.Sin(2f * Mathf.PI * (d * value - s) / p) / (Mathf.Pow(2f, 10f * value));
         }
 
-        public static float SpringD(float start, float end, float value)
+        private static float SpringD(float start, float end, float value)
         {
             value = Mathf.Clamp01(value);
             end -= start;
