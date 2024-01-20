@@ -7,33 +7,9 @@ using UnityEngine;
 namespace MisterGames.TweenLib {
     
     [Serializable]
-    public class TweenProgressActions : ITweenProgressAction {
+    public class TweenProgressActions : ITweenProgressCallback {
 
-        [SerializeReference] [SubclassSelector] public List<ITweenProgressAction> actions;
-        
-        public void Initialize(MonoBehaviour owner) {
-            for (int i = 0; i < actions.Count; i++) {
-                actions[i].Initialize(owner);
-            }
-        }
-
-        public void DeInitialize() {
-            for (int i = 0; i < actions.Count; i++) {
-                actions[i].DeInitialize();
-            }
-        }
-
-        public void Start() {
-            for (int i = 0; i < actions.Count; i++) {
-                actions[i].Start();
-            }
-        }
-
-        public void Finish() {
-            for (int i = 0; i < actions.Count; i++) {
-                actions[i].Finish();
-            }
-        }
+        [SerializeReference] [SubclassSelector] public List<ITweenProgressCallback> actions;
 
         public void OnProgressUpdate(float progress) {
             for (int i = 0; i < actions.Count; i++) {

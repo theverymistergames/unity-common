@@ -36,7 +36,7 @@ namespace MisterGames.BlueprintLib {
             meta.AddPort(id, Port.Input<IBlueprintNodeTween>("Next Tweens").Layout(PortLayout.Right).Capacity(PortCapacity.Multiple));
             meta.AddPort(id, Port.Input<float>("Duration"));
             meta.AddPort(id, Port.Input<AnimationCurve>("Curve"));
-            meta.AddPort(id, Port.Input<ITweenProgressAction>());
+            meta.AddPort(id, Port.Input<ITweenProgressCallback>());
             meta.AddPort(id, Port.Exit("On Start"));
             meta.AddPort(id, Port.Exit("On Cancelled"));
             meta.AddPort(id, Port.Exit("On Finished"));
@@ -70,7 +70,7 @@ namespace MisterGames.BlueprintLib {
         public void Initialize(MonoBehaviour owner) {
             _tween.duration = Mathf.Max(0f, _blueprint.Read(_token, 2, _duration));
             _tween.curve = _blueprint.Read(_token, 3, _curve);
-            _tween.action = _blueprint.Read<ITweenProgressAction>(_token, 4);
+            _tween.action = _blueprint.Read<ITweenProgressCallback>(_token, 4);
 
             _tween.Initialize(owner);
         }

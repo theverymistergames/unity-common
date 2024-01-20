@@ -9,12 +9,12 @@ namespace MisterGames.BlueprintLib {
     [Serializable]
     public class BlueprintSourceTweenProgressActionMoveTransform :
         BlueprintSource<BlueprintNodeTweenProgressActionMoveTransform>,
-        BlueprintSources.IOutput<BlueprintNodeTweenProgressActionMoveTransform, ITweenProgressAction>,
+        BlueprintSources.IOutput<BlueprintNodeTweenProgressActionMoveTransform, ITweenProgressCallback>,
         BlueprintSources.ICloneable {}
 
     [Serializable]
     [BlueprintNode(Name = "Tween Action Move Transform", Category = "Tweens/Actions", Color = BlueprintColors.Node.Actions)]
-    public struct BlueprintNodeTweenProgressActionMoveTransform : IBlueprintNode, IBlueprintOutput<ITweenProgressAction>  {
+    public struct BlueprintNodeTweenProgressActionMoveTransform : IBlueprintNode, IBlueprintOutput<ITweenProgressCallback>  {
 
         [SerializeField] private Transform _transform;
         [SerializeField] private Vector3 _startPosition;
@@ -31,7 +31,7 @@ namespace MisterGames.BlueprintLib {
             meta.AddPort(id, Port.Input<Transform>());
             meta.AddPort(id, Port.Input<Vector3>("Start Position"));
             meta.AddPort(id, Port.Input<Vector3>("End Position"));
-            meta.AddPort(id, Port.Output<ITweenProgressAction>());
+            meta.AddPort(id, Port.Output<ITweenProgressCallback>());
         }
 
         public void OnInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
@@ -42,7 +42,7 @@ namespace MisterGames.BlueprintLib {
             _action = null;
         }
 
-        public ITweenProgressAction GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
+        public ITweenProgressCallback GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
             if (port != 3) return null;
 
             _action.transform = blueprint.Read(token, 0, _transform);

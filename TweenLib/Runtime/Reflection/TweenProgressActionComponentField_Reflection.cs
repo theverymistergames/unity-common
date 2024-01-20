@@ -7,7 +7,7 @@ namespace MisterGames.TweenLib {
 
     [Serializable]
     [Obsolete("Using TweenProgressActionComponentField_Reflection, must be replaced later!")]
-    public sealed class TweenProgressActionComponentField_Reflection : ITweenProgressAction {
+    public sealed class TweenProgressActionComponentField_Reflection : ITweenProgressCallback {
 
         public Component component;
         public string fieldName;

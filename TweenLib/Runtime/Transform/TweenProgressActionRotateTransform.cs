@@ -5,24 +5,13 @@ using UnityEngine;
 namespace MisterGames.TweenLib {
 
     [Serializable]
-    public sealed class TweenProgressActionRotateTransform : ITweenProgressAction {
+    public sealed class TweenProgressActionRotateTransform : ITweenProgressCallback {
 
         public Transform transform;
         public Vector3 startEulerAngles;
         public Vector3 endEulerAngles;
         public bool useLocal = true;
         public bool useEulerInterpolation;
-
-        public void Initialize(MonoBehaviour owner) { }
-        public void DeInitialize() { }
-
-        public void Start() { }
-
-        public void Finish() {
-#if UNITY_EDITOR
-            if (!Application.isPlaying && transform != null) UnityEditor.EditorUtility.SetDirty(transform);
-#endif
-        }
 
         public void OnProgressUpdate(float progress) {
             var value = useEulerInterpolation
@@ -31,6 +20,10 @@ namespace MisterGames.TweenLib {
 
             if (useLocal) transform.localRotation = value;
             else transform.rotation = value;
+
+#if UNITY_EDITOR
+            if (!Application.isPlaying && transform != null) UnityEditor.EditorUtility.SetDirty(transform);
+#endif
         }
     }
 
