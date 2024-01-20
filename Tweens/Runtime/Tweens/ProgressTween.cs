@@ -13,44 +13,35 @@ namespace MisterGames.Tweens {
 
         [Min(0f)] public float duration;
         public AnimationCurve curve;
-        [SerializeReference] [SubclassSelector] public ITweenProgressAction action;
+        [SerializeReference] [SubclassSelector] public ITweenProgressCallback action;
 
         public float Progress => _progress;
         public float T => _progressT;
-
-        private ITimeSource _timeSource;
 
         private float _progressDirection = 1f;
         private float _progress;
         private float _progressT;
 
-        public void Initialize(MonoBehaviour owner) {
-            _timeSource = TimeSources.Get(PlayerLoopStage.Update);
+        public void Initialize(MonoBehaviour owner) { }
 
-            action.Initialize(owner);
-        }
-
-        public void DeInitialize() {
-            action.DeInitialize();
-        }
+        public void DeInitialize() { }
 
         public async UniTask Play(CancellationToken token) {
             if (HasReachedTargetProgress()) return;
-
-            action.Start();
 
             if (duration <= 0f) {
                 _progress = Mathf.Clamp01(_progressDirection);
                 _progressT = curve.Evaluate(_progress);
 
                 action.OnProgressUpdate(_progressT);
-                action.Finish();
 
                 return;
             }
 
+            var timeSource = TimeSources.Get(PlayerLoopStage.Update);
+
             while (!token.IsCancellationRequested) {
-                float progressDelta = _progressDirection * _timeSource.DeltaTime / duration;
+                float progressDelta = _progressDirection * timeSource.DeltaTime / duration;
 
                 _progress = Mathf.Clamp01(_progress + progressDelta);
                 _progressT = curve.Evaluate(_progress);
@@ -61,8 +52,6 @@ namespace MisterGames.Tweens {
 
                 await UniTask.Yield();
             }
-
-            action.Finish();
         }
 
         public void Wind(bool reportProgress = true) {
@@ -71,9 +60,7 @@ namespace MisterGames.Tweens {
 
             if (!reportProgress) return;
 
-            action.Start();
             action.OnProgressUpdate(_progressT);
-            action.Finish();
         }
 
         public void Rewind(bool reportProgress = true) {
@@ -82,9 +69,7 @@ namespace MisterGames.Tweens {
 
             if (!reportProgress) return;
 
-            action.Start();
             action.OnProgressUpdate(_progressT);
-            action.Finish();
         }
 
         public void Invert(bool isInverted) {
