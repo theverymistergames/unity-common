@@ -9,32 +9,34 @@ using UnityEngine;
 namespace MisterGames.Tweens.Core2 {
 
     [Serializable]
-    public sealed class TweenHandle {
+    public sealed class TweenPlayer {
 
         [SerializeField] [Range(0f, 1f)] private float _progress;
         [SerializeField] private float _speed = 1f;
         [SerializeField] private YoyoMode _yoyo;
         [SerializeField] private bool _loop;
+        [SerializeField] private bool _invertNextPlay;
         [SerializeReference] [SubclassSelector] private ITween _tween;
 
         public ITween Tween { get => _tween; set => SetTween(value); }
-
         public float Duration => GetDuration(forceRecalculate: false);
         public float Timer => _progress * _duration;
-
         public float Progress { get => _progress; set => SetProgress(value); }
         public float Speed { get => _speed; set => SetSpeed(value); }
-
         public YoyoMode Yoyo { get => _yoyo; set => _yoyo = value; }
         public bool Loop { get => _loop; set => _loop = value; }
+        public bool InvertNextPlay { get => _invertNextPlay; set => _invertNextPlay = value; }
+        public bool IsPlaying => _isPlaying;
 
         private CancellationTokenSource _cts;
         private float _duration;
         private byte _trackProgressVersion;
         private bool _isDurationSet;
         private bool _needRecalculateDuration;
+        private bool _isFirstPlay;
+        private bool _isPlaying;
 
-        public async UniTask Play<T>(
+        public async UniTask<bool> Play<T>(
             T data,
             ProgressCallback<T> progressCallback = null,
             CancellationToken cancellationToken = default
@@ -49,6 +51,11 @@ namespace MisterGames.Tweens.Core2 {
                 _cts = new CancellationTokenSource();
                 cancellationToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _cts.Token).Token;
             }
+
+            if (_invertNextPlay && !_isFirstPlay) _speed = -_speed;
+
+            _isFirstPlay = false;
+            _isPlaying = true;
 
             while (!cancellationToken.IsCancellationRequested) {
                 TrackProgress(data, progressCallback, cancellationToken).Forget();
@@ -75,11 +82,15 @@ namespace MisterGames.Tweens.Core2 {
                     continue;
                 }
 
-                break;
+                _isPlaying = false;
+                return true;
             }
+
+            _isPlaying = false;
+            return false;
         }
 
-        public async UniTask Play(
+        public async UniTask<bool> Play(
             ProgressCallback progressCallback = null,
             CancellationToken cancellationToken = default
         ) {
@@ -94,6 +105,11 @@ namespace MisterGames.Tweens.Core2 {
                 cancellationToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _cts.Token).Token;
             }
 
+            if (_invertNextPlay && !_isFirstPlay) _speed = -_speed;
+
+            _isFirstPlay = false;
+            _isPlaying = true;
+
             while (!cancellationToken.IsCancellationRequested) {
                 TrackProgress(progressCallback, cancellationToken).Forget();
                 if (_tween != null) await _tween.Play(duration, _progress, _speed, cancellationToken);
@@ -102,7 +118,7 @@ namespace MisterGames.Tweens.Core2 {
 
                 if (_speed > 0f && _yoyo == YoyoMode.End ||
                     _speed < 0f && _yoyo == YoyoMode.Start
-                   ) {
+                ) {
                     _speed = -_speed;
                     continue;
                 }
@@ -119,14 +135,19 @@ namespace MisterGames.Tweens.Core2 {
                     continue;
                 }
 
-                break;
+                _isPlaying = false;
+                return true;
             }
+
+            _isPlaying = false;
+            return false;
         }
 
         public void Stop() {
             _cts?.Cancel();
             _cts?.Dispose();
             _cts = null;
+            _isPlaying = false;
         }
 
         private async UniTask TrackProgress<T>(
@@ -193,6 +214,7 @@ namespace MisterGames.Tweens.Core2 {
         private void SetTween(ITween tween) {
             _tween = tween;
             _isDurationSet = false;
+            _isFirstPlay = true;
         }
 
         private void SetProgress(float value) {
@@ -210,6 +232,7 @@ namespace MisterGames.Tweens.Core2 {
 
             _duration = _tween?.CreateDuration() ?? 0f;
             _isDurationSet = true;
+
             return _duration;
         }
     }

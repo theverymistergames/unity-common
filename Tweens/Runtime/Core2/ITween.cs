@@ -4,13 +4,13 @@ using Cysharp.Threading.Tasks;
 namespace MisterGames.Tweens.Core2 {
 
     /// <summary>
-    /// Tween is a continuous behaviour with defined duration. Tweens can be played by <see cref="TweenHandle"/>,
+    /// Tween is a continuous behaviour with defined duration. Tweens can be played by <see cref="TweenPlayer"/>,
     /// which uses progress [0f, 1f] and speed values to control tween playback and report progress.
     /// </summary>
     public interface ITween {
 
         /// <summary>
-        /// This method is called by <see cref="TweenHandle"/> to determine tween play duration before its launch.
+        /// This method is called by <see cref="TweenPlayer"/> to determine tween play duration before its launch.
         /// The result is passed as "duration" float parameter into method <see cref="Play"/>.
         /// </summary>
         /// <returns>New duration for next play</returns>
