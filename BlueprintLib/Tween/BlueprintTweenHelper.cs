@@ -2,7 +2,7 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Blueprints.Runtime;
-using MisterGames.Tweens.Core2;
+using MisterGames.Tweens;
 using UnityEngine;
 
 namespace MisterGames.BlueprintLib.Tweens {
@@ -36,8 +36,8 @@ namespace MisterGames.BlueprintLib.Tweens {
 
         public static async UniTask PlayTwoTweensAsSequence<T>(
             T data,
-            TweenFactory<T> firstTask,
-            TweenFactory<T> secondTask,
+            CreateTween<T> firstTask,
+            CreateTween<T> secondTask,
             float firstDuration,
             float totalDuration,
             float startProgress,

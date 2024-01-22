@@ -3,7 +3,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Blueprints;
 using MisterGames.Blueprints.Nodes;
-using MisterGames.Tweens.Core2;
+using MisterGames.Tweens;
 using UnityEngine;
 
 namespace MisterGames.BlueprintLib {

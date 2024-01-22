@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using MisterGames.Blueprints;
 using MisterGames.TweenLib;
-using MisterGames.Tweens.Core;
+using MisterGames.Tweens;
 
 namespace MisterGames.BlueprintLib {
 

@@ -5,7 +5,7 @@ using Cysharp.Threading.Tasks;
 using MisterGames.BlueprintLib.Tweens;
 using MisterGames.Blueprints;
 using MisterGames.Common.Attributes;
-using MisterGames.Tweens.Core2;
+using MisterGames.Tweens;
 using UnityEngine;
 
 namespace MisterGames.BlueprintLib {

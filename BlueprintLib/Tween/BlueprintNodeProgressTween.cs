@@ -6,10 +6,8 @@ using MisterGames.BlueprintLib.Tweens;
 using MisterGames.Blueprints;
 using MisterGames.Common.Attributes;
 using MisterGames.Tick.Core;
-using MisterGames.Tweens.Core;
-using MisterGames.Tweens.Core2;
+using MisterGames.Tweens;
 using UnityEngine;
-using ITween = MisterGames.Tweens.Core2.ITween;
 using Random = UnityEngine.Random;
 
 namespace MisterGames.BlueprintLib {

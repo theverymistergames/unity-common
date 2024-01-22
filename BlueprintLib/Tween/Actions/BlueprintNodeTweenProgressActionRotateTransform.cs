@@ -1,7 +1,7 @@
 ﻿using System;
 using MisterGames.Blueprints;
 using MisterGames.TweenLib;
-using MisterGames.Tweens.Core;
+using MisterGames.Tweens;
 using UnityEngine;
 
 namespace MisterGames.BlueprintLib {
