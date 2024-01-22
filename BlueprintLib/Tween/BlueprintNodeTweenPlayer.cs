@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Blueprints;
@@ -17,7 +16,7 @@ namespace MisterGames.BlueprintLib {
         IBlueprintOutput<float>,
         IBlueprintStartCallback
     {
-        [SerializeField] private bool _autoSetTweenOnStart;
+        [SerializeField] private bool _autoSetTweensOnStart;
         [SerializeField] private bool _routeOnCancelledIntoOnFinished;
         [SerializeField] [Range(0f, 1f)] private float _progress;
         [SerializeField] private float _speed = 1f;
@@ -30,16 +29,18 @@ namespace MisterGames.BlueprintLib {
         private CancellationTokenSource _destroyCts;
         private TweenPlayer _tweenPlayer;
         private bool _isFirstPlay;
+        private bool _isFirstNotifyProgress;
 
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {
-            meta.AddPort(id, Port.Enter("Set Tween"));
+            meta.AddPort(id, Port.Enter("Set Tweens"));
+            meta.AddPort(id, Port.Input<ITween>("Tweens").Capacity(PortCapacity.Multiple).Layout(PortLayout.Right));
+
             meta.AddPort(id, Port.Enter("Play"));
             meta.AddPort(id, Port.Enter("Stop"));
 
             meta.AddPort(id, Port.Input<float>("Progress"));
             meta.AddPort(id, Port.Input<float>("Speed"));
 
-            meta.AddPort(id, Port.Input<ITween>("Tweens").Layout(PortLayout.Right).Capacity(PortCapacity.Multiple));
             meta.AddPort(id, Port.Exit("On Start"));
             meta.AddPort(id, Port.Exit("On Finished"));
             meta.AddPort(id, Port.Exit("On Cancelled"));
@@ -68,7 +69,7 @@ namespace MisterGames.BlueprintLib {
             _token = token;
             _blueprint = blueprint;
 
-            if (_autoSetTweenOnStart) SetTween();
+            if (_autoSetTweensOnStart) SetTween();
         }
 
         public void OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
@@ -80,11 +81,11 @@ namespace MisterGames.BlueprintLib {
                     SetTween();
                     break;
 
-                case 1:
+                case 2:
                     Play(_destroyCts.Token).Forget();
                     break;
 
-                case 2:
+                case 3:
                     _tweenPlayer.Stop();
                     break;
             }
@@ -104,15 +105,11 @@ namespace MisterGames.BlueprintLib {
         private async UniTask Play(CancellationToken cancellationToken = default) {
             if (_tweenPlayer == null) return;
 
-            // Wait one frame to save OnStart and OnFinish callbacks order,
-            // because OnStart will be called before last tween finishes and notifies OnFinish.
-            if (_tweenPlayer.IsPlaying) {
-                _tweenPlayer.Stop();
-                await UniTask.Yield();
-            }
+            _tweenPlayer.Stop();
 
             if (_invertNextPlay && !_isFirstPlay) _tweenPlayer.Speed = -_tweenPlayer.Speed;
             _isFirstPlay = false;
+            _isFirstNotifyProgress = true;
 
             if (_tweenPlayer.Speed > 0f && _tweenPlayer.Progress >= 1f ||
                 _tweenPlayer.Speed < 0f && _tweenPlayer.Progress <= 0f
@@ -120,68 +117,51 @@ namespace MisterGames.BlueprintLib {
                 return;
             }
 
-            // Notify OnStart
-            _blueprint.Call(_token, 6);
-
             bool finished = await _tweenPlayer.Play(
                 this,
-                (t, _) => t.ReportProgress(),
+                (t, p) => t.ReportProgress(p),
                 cancellationToken
             );
 
             // Notify OnFinished or OnCancelled
-            _blueprint.Call(_token, finished || _routeOnCancelledIntoOnFinished ? 7 : 8);
+            _blueprint.Call(_token, !finished && !_routeOnCancelledIntoOnFinished ? 8 : 7);
         }
 
-        private void ReportProgress() {
-            _blueprint.Call(_token, 9);
+        private void ReportProgress(float progress) {
+            // Notify OnStart when ReportProgress is called first time
+            // to save OnStart and OnCancelled calls order.
+            if (_isFirstNotifyProgress) {
+                _isFirstNotifyProgress = false;
+                _blueprint.Call(_token, 6);
+            }
+
+            _blueprint?.Call(_token, 9);
         }
 
         private void SetTween() {
-            var links = _blueprint.GetLinks(_token, 5);
+            var links = _blueprint.GetLinks(_token, 1);
             ITween tween = null;
 
             while (links.MoveNext()) {
-                if (links.Read<ITween>() is { } t0) {
-                    MergeTween(ref tween, t0);
+                if (links.Read<ITween>() is { } t) {
+                    TweenExtensions.MergeTweenIntoParallelGroup(ref tween, t);
                     continue;
                 }
 
                 if (links.Read<ITween[]>() is { } array) {
                     for (int i = 0; i < array.Length; i++) {
-                        if (array[i] is { } t1) MergeTween(ref tween, t1);
+                        TweenExtensions.MergeTweenIntoParallelGroup(ref tween, array[i]);
                     }
                 }
             }
 
             _tweenPlayer.Tween = tween;
-            _tweenPlayer.Progress = _blueprint.Read(_token, 3, _progress);
-            _tweenPlayer.Speed = _blueprint.Read(_token, 4, _speed);
+            _tweenPlayer.Progress = _blueprint.Read(_token, 4, _progress);
+            _tweenPlayer.Speed = _blueprint.Read(_token, 5, _speed);
             _tweenPlayer.Yoyo = _yoyo;
             _tweenPlayer.Loop = _loop;
 
             _isFirstPlay = true;
-        }
-
-        private static void MergeTween(ref ITween dest, ITween tween) {
-            if (dest == null) {
-                dest = tween;
-                return;
-            }
-
-            if (dest is TweenGroup { mode: TweenGroup.Mode.Parallel } tweenGroup) {
-                tweenGroup.tweens ??= new List<ITween>(1);
-                tweenGroup.tweens.Add(tween);
-                return;
-            }
-
-            dest = new TweenGroup {
-                mode = TweenGroup.Mode.Parallel,
-                tweens = new List<ITween>(2) {
-                    dest,
-                    tween
-                }
-            };
         }
     }
 

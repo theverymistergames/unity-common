@@ -17,7 +17,7 @@ namespace MisterGames.BlueprintLib {
         BlueprintSources.ICloneable { }
 
     [Serializable]
-    [BlueprintNode(Name = "Run Tween", Category = "Tweens", Color = BlueprintColors.Node.Actions)]
+    [BlueprintNode(Name = "Run Tween (deprecated)", Category = "Tweens", Color = BlueprintColors.Node.Actions)]
     public struct BlueprintNodeRunTween :
         IBlueprintNode,
         IBlueprintEnter,
