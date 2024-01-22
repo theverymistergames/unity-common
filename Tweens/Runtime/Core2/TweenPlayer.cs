@@ -26,7 +26,6 @@ namespace MisterGames.Tweens.Core2 {
         public YoyoMode Yoyo { get => _yoyo; set => _yoyo = value; }
         public bool Loop { get => _loop; set => _loop = value; }
         public bool InvertNextPlay { get => _invertNextPlay; set => _invertNextPlay = value; }
-        public bool IsPlaying => _isPlaying;
 
         private CancellationTokenSource _cts;
         private float _duration;
@@ -34,7 +33,6 @@ namespace MisterGames.Tweens.Core2 {
         private bool _isDurationSet;
         private bool _needRecalculateDuration;
         private bool _isFirstPlay;
-        private bool _isPlaying;
 
         public async UniTask<bool> Play<T>(
             T data,
@@ -53,9 +51,7 @@ namespace MisterGames.Tweens.Core2 {
             }
 
             if (_invertNextPlay && !_isFirstPlay) _speed = -_speed;
-
             _isFirstPlay = false;
-            _isPlaying = true;
 
             while (!cancellationToken.IsCancellationRequested) {
                 TrackProgress(data, progressCallback, cancellationToken).Forget();
@@ -82,11 +78,9 @@ namespace MisterGames.Tweens.Core2 {
                     continue;
                 }
 
-                _isPlaying = false;
                 return true;
             }
 
-            _isPlaying = false;
             return false;
         }
 
@@ -106,9 +100,7 @@ namespace MisterGames.Tweens.Core2 {
             }
 
             if (_invertNextPlay && !_isFirstPlay) _speed = -_speed;
-
             _isFirstPlay = false;
-            _isPlaying = true;
 
             while (!cancellationToken.IsCancellationRequested) {
                 TrackProgress(progressCallback, cancellationToken).Forget();
@@ -135,11 +127,9 @@ namespace MisterGames.Tweens.Core2 {
                     continue;
                 }
 
-                _isPlaying = false;
                 return true;
             }
 
-            _isPlaying = false;
             return false;
         }
 
@@ -147,7 +137,6 @@ namespace MisterGames.Tweens.Core2 {
             _cts?.Cancel();
             _cts?.Dispose();
             _cts = null;
-            _isPlaying = false;
         }
 
         private async UniTask TrackProgress<T>(
