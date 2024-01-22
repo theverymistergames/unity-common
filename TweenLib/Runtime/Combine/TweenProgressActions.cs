@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using MisterGames.Common.Attributes;
-using MisterGames.Tweens.Core;
+using MisterGames.Tweens;
 using UnityEngine;
 
 namespace MisterGames.TweenLib {

@@ -1,5 +1,5 @@
 ﻿using System;
-using MisterGames.Tweens.Core;
+using MisterGames.Tweens;
 using UnityEngine;
 
 namespace MisterGames.TweenLib {

@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Reflection;
-using MisterGames.Tweens.Core;
+using MisterGames.Tweens;
 using UnityEngine;
 
 namespace MisterGames.TweenLib {
@@ -16,37 +16,33 @@ namespace MisterGames.TweenLib {
 
         private FieldInfo _field;
         private PropertyInfo _property;
-        
-        private BindingFlags _flags = BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public | BindingFlags.Static;
 
-        public void Initialize(MonoBehaviour owner) {
-            Debug.LogWarning($"Using {nameof(TweenProgressActionComponentField_Reflection)} on GameObject {owner.name}. " +
-                             $"This class is for debug purposes only, " +
-                             $"don`t forget to remove it in release mode.");
-
-            _field = component.GetType().GetField(fieldName, _flags);
-            if (_field == null) _property = component.GetType().GetProperty(fieldName, _flags);
-        }
-
-        public void DeInitialize() { }
-
-        public void Start() { }
-
-        public void Finish() {
-#if UNITY_EDITOR
-            if (!Application.isPlaying && component != null) UnityEditor.EditorUtility.SetDirty(component);
-#endif
-        }
+        private static BindingFlags _bindingFlags =
+            BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public | BindingFlags.Static;
 
         public void OnProgressUpdate(float progress) {
+            if (_field == null && _property == null) {
+                Debug.LogWarning($"Using {nameof(TweenProgressActionComponentField_Reflection)}. " +
+                                 $"This class is for debug purposes only, " +
+                                 $"don`t forget to remove it in release mode.");
+
+                _field = component.GetType().GetField(fieldName, _bindingFlags);
+                if (_field == null) _property = component.GetType().GetProperty(fieldName, _bindingFlags);
+            }
+
             float value = Mathf.Lerp(startValue, endValue, progress);
 
             if (_field != null) {
                 _field.SetValue(component, value);
-                return;
+            }
+            else {
+                _property?.SetValue(component, value);
             }
 
-            _property.SetValue(component, value);
+#if UNITY_EDITOR
+            if (!Application.isPlaying && component != null) UnityEditor.EditorUtility.SetDirty(component);
+#endif
         }
     }
+
 }
