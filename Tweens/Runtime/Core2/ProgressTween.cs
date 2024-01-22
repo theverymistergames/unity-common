@@ -15,7 +15,7 @@ namespace MisterGames.Tweens.Core2 {
         [Min(0f)] public float duration;
         [Min(0f)] public float durationRandomAdd;
         public AnimationCurve curve;
-        [SerializeReference] [SubclassSelector] public ITweenProgressCallback action;
+        [SerializeReference] [SubclassSelector] public ITweenProgressAction action;
 
         public float CreateDuration() {
             return duration + Random.Range(-durationRandomAdd, durationRandomAdd);

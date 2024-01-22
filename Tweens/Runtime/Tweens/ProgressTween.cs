@@ -13,7 +13,7 @@ namespace MisterGames.Tweens {
 
         [Min(0f)] public float duration;
         public AnimationCurve curve;
-        [SerializeReference] [SubclassSelector] public ITweenProgressCallback action;
+        [SerializeReference] [SubclassSelector] public ITweenProgressAction action;
 
         public float Progress => _progress;
         public float T => _progressT;

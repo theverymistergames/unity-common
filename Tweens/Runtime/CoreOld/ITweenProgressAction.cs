@@ -1,6 +1,6 @@
 ﻿namespace MisterGames.Tweens.Core {
 
-    public interface ITweenProgressCallback {
+    public interface ITweenProgressAction {
 
         void OnProgressUpdate(float progress);
     }
