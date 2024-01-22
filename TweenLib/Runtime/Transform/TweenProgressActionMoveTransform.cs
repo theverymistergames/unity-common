@@ -5,7 +5,7 @@ using UnityEngine;
 namespace MisterGames.TweenLib {
 
     [Serializable]
-    public sealed class TweenProgressActionMoveTransform : ITweenProgressCallback {
+    public sealed class TweenProgressActionMoveTransform : ITweenProgressAction {
 
         public Transform transform;
         public bool useLocal = true;

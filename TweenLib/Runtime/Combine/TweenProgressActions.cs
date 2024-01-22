@@ -7,9 +7,9 @@ using UnityEngine;
 namespace MisterGames.TweenLib {
     
     [Serializable]
-    public class TweenProgressActions : ITweenProgressCallback {
+    public class TweenProgressActions : ITweenProgressAction {
 
-        [SerializeReference] [SubclassSelector] public List<ITweenProgressCallback> actions;
+        [SerializeReference] [SubclassSelector] public List<ITweenProgressAction> actions;
 
         public void OnProgressUpdate(float progress) {
             for (int i = 0; i < actions.Count; i++) {

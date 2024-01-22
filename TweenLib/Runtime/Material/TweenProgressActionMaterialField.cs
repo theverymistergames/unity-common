@@ -5,7 +5,7 @@ using UnityEngine;
 namespace MisterGames.TweenLib {
 
     [Serializable]
-    public sealed class TweenProgressActionMaterialField : ITweenProgressCallback {
+    public sealed class TweenProgressActionMaterialField : ITweenProgressAction {
 
         public Renderer renderer;
         public string fieldName;

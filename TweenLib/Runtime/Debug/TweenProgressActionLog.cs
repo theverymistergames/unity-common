@@ -5,7 +5,7 @@ using UnityEngine;
 namespace MisterGames.TweenLib {
     
     [Serializable]
-    public sealed class TweenProgressActionLog : ITweenProgressCallback {
+    public sealed class TweenProgressActionLog : ITweenProgressAction {
 
         public string text;
 

@@ -5,7 +5,7 @@ using UnityEngine;
 namespace MisterGames.TweenLib {
 
     [Serializable]
-    public sealed class TweenProgressActionRotateTransform : ITweenProgressCallback {
+    public sealed class TweenProgressActionRotateTransform : ITweenProgressAction {
 
         public Transform transform;
         public Vector3 startEulerAngles;
