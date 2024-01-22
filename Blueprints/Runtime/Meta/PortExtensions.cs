@@ -54,53 +54,53 @@ namespace MisterGames.Blueprints {
             return port;
         }
 
-        internal static Port External(this Port port, bool isExternal) {
-            if (isExternal) port.options |= PortOptions.External;
-            else port.options &= ~PortOptions.External;
-
-            return port;
-        }
-
-        internal static bool IsInput(this Port port) {
+        public static bool IsInput(this Port port) {
             return (port.mode & PortMode.Input) == PortMode.Input;
         }
 
-        internal static bool IsData(this Port port) {
+        public static bool IsData(this Port port) {
             return (port.mode & PortMode.Data) == PortMode.Data;
         }
 
-        internal static bool IsExternal(this Port port) {
+        public static bool IsExternal(this Port port) {
             return (port.options & PortOptions.External) == PortOptions.External;
         }
 
-        internal static bool IsHidden(this Port port) {
+        public static bool IsHidden(this Port port) {
             return (port.options & PortOptions.Hidden) == PortOptions.Hidden;
         }
 
-        internal static bool AcceptSubclass(this Port port) {
-            return (port.options & PortOptions.AcceptSubclass) == PortOptions.AcceptSubclass;
-        }
-
-        internal static bool IsMultiple(this Port port) {
+        public static bool IsMultiple(this Port port) {
             return (port.mode & PortMode.CapacitySingle) != PortMode.CapacitySingle &&
                    (port.mode & PortMode.CapacityMultiple) != PortMode.CapacityMultiple
                 ? !port.IsInput() || !port.IsData()
                 : (port.mode & PortMode.CapacityMultiple) == PortMode.CapacityMultiple;
         }
 
-        internal static bool IsLeftLayout(this Port port) {
+        public static bool IsLeftLayout(this Port port) {
             return (port.mode & PortMode.LayoutLeft) != PortMode.LayoutLeft &&
                    (port.mode & PortMode.LayoutRight) != PortMode.LayoutRight
                 ? port.IsInput()
                 : (port.mode & PortMode.LayoutLeft) == PortMode.LayoutLeft;
         }
 
-        internal static int GetSignature(this Port port) {
+        public static int GetSignature(this Port port) {
             return HashCode.Combine(
                 port.mode,
                 port.dataType,
                 string.IsNullOrWhiteSpace(port.name) ? string.Empty : port.name
             );
+        }
+
+        public static bool AcceptSubclass(this Port port) {
+            return (port.options & PortOptions.AcceptSubclass) == PortOptions.AcceptSubclass;
+        }
+
+        internal static Port External(this Port port, bool isExternal) {
+            if (isExternal) port.options |= PortOptions.External;
+            else port.options &= ~PortOptions.External;
+
+            return port;
         }
 
         internal static void FetchExternalPorts(IBlueprintMeta meta, NodeId id, BlueprintAsset asset) {
