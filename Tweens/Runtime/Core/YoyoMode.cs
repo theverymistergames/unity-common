@@ -1,4 +1,4 @@
-﻿namespace MisterGames.Tweens.Core2 {
+﻿namespace MisterGames.Tweens {
 
     public enum YoyoMode {
         None,

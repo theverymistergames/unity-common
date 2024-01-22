@@ -1,7 +1,7 @@
 ﻿using System.Threading;
 using Cysharp.Threading.Tasks;
 
-namespace MisterGames.Tweens.Core2 {
+namespace MisterGames.Tweens {
 
     /// <summary>
     /// Tween is a continuous behaviour with defined duration. Tweens can be played by <see cref="TweenPlayer"/>,

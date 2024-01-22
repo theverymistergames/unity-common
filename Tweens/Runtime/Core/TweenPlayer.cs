@@ -6,7 +6,7 @@ using MisterGames.Common.Maths;
 using MisterGames.Tick.Core;
 using UnityEngine;
 
-namespace MisterGames.Tweens.Core2 {
+namespace MisterGames.Tweens {
 
     [Serializable]
     public sealed class TweenPlayer {

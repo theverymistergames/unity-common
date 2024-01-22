@@ -1,4 +1,4 @@
-﻿namespace MisterGames.Tweens.Core {
+﻿namespace MisterGames.Tweens {
 
     public interface ITweenProgressAction {
 

@@ -8,13 +8,13 @@ using MisterGames.Tick.Core;
 using UnityEngine;
 using UnityEngine.Assertions;
 
-namespace MisterGames.Tweens.Core2 {
+namespace MisterGames.Tweens {
 
     public delegate void ProgressCallback(float progress);
     public delegate void ProgressCallback<in T>(T data, float progress);
 
-    public delegate UniTask TweenFactory(float duration, float startProgress, float speed, CancellationToken cancellationToken = default);
-    public delegate UniTask TweenFactory<in T>(T data, float duration, float startProgress, float speed, CancellationToken cancellationToken = default);
+    public delegate UniTask CreateTween(float duration, float startProgress, float speed, CancellationToken cancellationToken = default);
+    public delegate UniTask CreateTween<in T>(T data, float duration, float startProgress, float speed, CancellationToken cancellationToken = default);
 
     public static class TweenExtensions {
 

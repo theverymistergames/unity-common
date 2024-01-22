@@ -2,8 +2,8 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Tick.Core;
-using MisterGames.Tweens.Core;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace MisterGames.Tweens {
 
@@ -11,53 +11,22 @@ namespace MisterGames.Tweens {
     public sealed class DelayTween : ITween {
 
         [Min(0f)] public float duration;
+        [Min(0f)] public float durationRandomAdd;
 
-        public float Progress => _progress;
-
-        private ITimeSource _timeSource;
-
-        private float _progressDirection = 1f;
-        private float _progress;
-
-        public void Initialize(MonoBehaviour owner) {
-            _timeSource = TimeSources.Get(PlayerLoopStage.Update);
+        public float CreateDuration() {
+            return duration + Random.Range(-durationRandomAdd, durationRandomAdd);
         }
 
-        public void DeInitialize() { }
-
-        public async UniTask Play(CancellationToken token) {
-            if (HasReachedTargetProgress()) return;
-
-            if (duration <= 0f) {
-                _progress = Mathf.Clamp01(_progressDirection);
-                return;
-            }
-
-            while (!token.IsCancellationRequested) {
-                float progressDelta = _progressDirection * _timeSource.DeltaTime / duration;
-                _progress = Mathf.Clamp01(_progress + progressDelta);
-
-                if (HasReachedTargetProgress()) break;
-
-                await UniTask.Yield();
-            }
-        }
-
-        public void Wind(bool reportProgress = true) {
-            _progress = 1f;
-        }
-
-        public void Rewind(bool reportProgress = true) {
-            _progress = 0f;
-        }
-
-        public void Invert(bool isInverted) {
-            _progressDirection = isInverted ? -1f : 1f;
-        }
-
-        private bool HasReachedTargetProgress() {
-            return _progressDirection > 0f && _progress >= 1f ||
-                   _progressDirection < 0f && _progress <= 0f;
+        public UniTask Play(float duration, float startProgress, float speed, CancellationToken cancellationToken = default) {
+            return TweenExtensions.Play(
+                this,
+                duration,
+                progressCallback: null,
+                startProgress,
+                speed,
+                PlayerLoopStage.Update,
+                cancellationToken
+            );
         }
     }
 

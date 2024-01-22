@@ -1,12 +1,11 @@
 ﻿using System;
-using System.Buffers;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Attributes;
 using UnityEngine;
 
-namespace MisterGames.Tweens.Core2 {
+namespace MisterGames.Tweens {
 
     [Serializable]
     public sealed class TweenGroup : ITween {
