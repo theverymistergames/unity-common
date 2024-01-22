@@ -13,10 +13,6 @@ namespace MisterGames.Tweens {
 
         private CancellationTokenSource _enableCts;
 
-        private void Awake() {
-            Debug.Log($"TweenRunner.Awake: {name}");
-        }
-
         private void OnEnable() {
             _enableCts?.Cancel();
             _enableCts?.Dispose();
