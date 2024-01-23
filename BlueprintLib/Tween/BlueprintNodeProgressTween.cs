@@ -21,8 +21,11 @@ namespace MisterGames.BlueprintLib {
         [SerializeField] [Min(0f)] private float _durationRandomAdd;
         [SerializeField] private AnimationCurve _curve;
 
-        private readonly List<(ITween tween, float duration)> _nextTweens = new List<(ITween tween, float duration)>();
+        public float Duration { get; private set; }
+
+        private readonly List<ITween> _nextTweens = new List<ITween>();
         private readonly List<ITweenProgressAction> _actions = new List<ITweenProgressAction>();
+
         private IBlueprint _blueprint;
         private NodeToken _token;
         private float _selfDuration;
@@ -50,20 +53,21 @@ namespace MisterGames.BlueprintLib {
             return port == 0 ? this : default;
         }
 
-        public float CreateDuration() {
-            if (_blueprint == null) return 0f;
-
+        public void CreateNextDuration() {
             _nextTweens.Clear();
+
+            if (_blueprint == null) {
+                Duration = 0f;
+                _selfDuration = 0f;
+                return;
+            }
 
             _selfDuration = _duration + Random.Range(-_durationRandomAdd, _durationRandomAdd);
 
-            float nextDuration = BlueprintTweenHelper.CreateDurationFromLinkedTweens(
-                _blueprint.GetLinks(_token, 2),
-                TweenGroup.Mode.Parallel,
-                dest: _nextTweens
-            );
+            BlueprintTweenHelper.FetchLinkedTweens(_blueprint.GetLinks(_token, 2), dest: _nextTweens);
+            float nextDuration = TweenExtensions.CreateNextDurationGroup(TweenGroup.Mode.Parallel, _nextTweens);
 
-            return _selfDuration + nextDuration;
+            Duration = _selfDuration + nextDuration;
         }
 
         public UniTask Play(float duration, float startProgress, float speed, CancellationToken cancellationToken = default) {

@@ -15,8 +15,11 @@ namespace MisterGames.BlueprintLib {
     [BlueprintNode(Name = "Tween Chain", Category = "Tweens", Color = BlueprintColors.Node.Actions)]
     public sealed class BlueprintNodeTweenChain : IBlueprintNode, IBlueprintOutput<ITween>, ITween {
 
-        private readonly List<(ITween tween, float duration)> _nextTweens = new List<(ITween tween, float duration)>();
-        private (ITween tween, float duration) _internalTween;
+        public float Duration { get; private set; }
+
+        private readonly List<ITween> _nextTweens = new List<ITween>();
+        private ITween _selfTween;
+        private float _selfDuration;
 
         private IBlueprint _blueprint;
         private NodeToken _token;
@@ -44,20 +47,23 @@ namespace MisterGames.BlueprintLib {
             return port == 0 ? this : default;
         }
 
-        public float CreateDuration() {
-            if (_blueprint == null) return 0f;
-
+        public void CreateNextDuration() {
             _nextTweens.Clear();
-            _internalTween.tween = _blueprint.Read<ITween>(_token, 1);
-            _internalTween.duration = Mathf.Max(_internalTween.tween?.CreateDuration() ?? 0f, 0f);
 
-            float nextDuration = BlueprintTweenHelper.CreateDurationFromLinkedTweens(
-                _blueprint.GetLinks(_token, 2),
-                TweenGroup.Mode.Parallel,
-                dest: _nextTweens
-            );
+            if (_blueprint == null) {
+                Duration = 0f;
+                _selfDuration = 0f;
+                return;
+            }
 
-            return _internalTween.duration + nextDuration;
+            _selfTween = _blueprint.Read<ITween>(_token, 1);
+            _selfTween?.CreateNextDuration();
+            _selfDuration = Mathf.Max(_selfTween?.Duration ?? 0f, 0f);
+
+            BlueprintTweenHelper.FetchLinkedTweens(_blueprint.GetLinks(_token, 2), dest: _nextTweens);
+            float nextDuration = TweenExtensions.CreateNextDurationGroup(TweenGroup.Mode.Parallel, _nextTweens);
+
+            Duration = _selfDuration + nextDuration;
         }
 
         public UniTask Play(float duration, float startProgress, float speed, CancellationToken cancellationToken = default) {
@@ -65,7 +71,7 @@ namespace MisterGames.BlueprintLib {
                 data: this,
                 firstTask: (t, d, p, s, token) => t.PlaySelf(d, p, s, token),
                 secondTask: (t, d, p, s, token) => t.PlayNext(d, p, s, token),
-                firstDuration: _internalTween.duration,
+                firstDuration: _selfDuration,
                 totalDuration: duration,
                 startProgress,
                 speed,
@@ -74,7 +80,7 @@ namespace MisterGames.BlueprintLib {
         }
 
         private UniTask PlaySelf(float duration, float startProgress, float speed, CancellationToken cancellationToken = default) {
-            return _internalTween.tween?.Play(duration, startProgress, speed, cancellationToken) ?? default;
+            return _selfTween?.Play(duration, startProgress, speed, cancellationToken) ?? default;
         }
         
         private UniTask PlayNext(float duration, float startProgress, float speed, CancellationToken cancellationToken = default) {

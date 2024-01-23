@@ -20,8 +20,9 @@ namespace MisterGames.BlueprintLib {
         [SerializeField] private bool _invertLayout;
         [SerializeField] private bool _routeOnCancelledIntoOnFinished;
 
-        private (ITween tween, float duration) _internalTween;
+        public float Duration { get; private set; }
 
+        private ITween _selfTween;
         private IBlueprint _blueprint;
         private NodeToken _token;
 
@@ -78,17 +79,20 @@ namespace MisterGames.BlueprintLib {
             };
         }
 
-        public float CreateDuration() {
-            if (_blueprint == null) return 0f;
+        public void CreateNextDuration() {
+            if (_blueprint == null) {
+                Duration = 0f;
+                return;
+            }
 
-            _internalTween.tween = _blueprint.Read<ITween>(_token, 1);
-            _internalTween.duration = Mathf.Max(_internalTween.tween?.CreateDuration() ?? 0f, 0f);
+            _selfTween = _blueprint.Read<ITween>(_token, 1);
+            _selfTween?.CreateNextDuration();
 
-            return _internalTween.duration;
+            Duration = Mathf.Max(_selfTween?.Duration ?? 0f, 0f);
         }
 
         public async UniTask Play(float duration, float startProgress, float speed, CancellationToken cancellationToken = default) {
-            if (_internalTween.tween == null) return;
+            if (_selfTween == null || _blueprint == null) return;
 
             _speed = speed;
             _isFirstNotifyProgress = true;
@@ -102,7 +106,7 @@ namespace MisterGames.BlueprintLib {
                 cancellationToken: cancellationToken
             );
 
-            await _internalTween.tween.Play(duration, startProgress, speed, cancellationToken);
+            await _selfTween.Play(duration, startProgress, speed, cancellationToken);
 
             // Notify OnFinished or OnCancelled
             _blueprint.Call(_token, cancellationToken.IsCancellationRequested && !_routeOnCancelledIntoOnFinished ? 5 : 4);
@@ -124,4 +128,5 @@ namespace MisterGames.BlueprintLib {
             meta.InvalidateNode(id, invalidateLinks: true);
         }
     }
+
 }

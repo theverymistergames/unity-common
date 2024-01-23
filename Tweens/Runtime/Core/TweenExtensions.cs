@@ -13,9 +13,6 @@ namespace MisterGames.Tweens {
     public delegate void ProgressCallback(float progress);
     public delegate void ProgressCallback<in T>(T data, float progress);
 
-    public delegate UniTask CreateTween(float duration, float startProgress, float speed, CancellationToken cancellationToken = default);
-    public delegate UniTask CreateTween<in T>(T data, float duration, float startProgress, float speed, CancellationToken cancellationToken = default);
-
     public static class TweenExtensions {
 
         public static void PlayAndForget(
@@ -110,16 +107,33 @@ namespace MisterGames.Tweens {
             }
         }
 
+        public static UniTask PlayGroup(
+            TweenGroup.Mode mode,
+            IReadOnlyList<ITween> tweens,
+            float duration,
+            float startProgress,
+            float speed,
+            CancellationToken cancellationToken
+        ) {
+            return mode switch {
+                TweenGroup.Mode.Sequential => PlaySequential(tweens, duration, startProgress, speed, cancellationToken),
+                TweenGroup.Mode.Parallel => PlayParallel(tweens, duration, startProgress, speed, cancellationToken),
+                _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
+            };
+        }
+
         public static async UniTask PlaySequential(
             IReadOnlyList<ITween> tweens,
-            IReadOnlyList<float> durations,
             float duration,
             float startProgress,
             float speed,
             CancellationToken cancellationToken
         ) {
             if (tweens is not { Count: > 0 }) return;
+
             int count = tweens.Count;
+            duration = Mathf.Max(duration, 0f);
+            startProgress = Mathf.Clamp01(startProgress);
 
             if (count == 1) {
                 if (tweens[0] is { } t) await t.Play(duration, startProgress, speed, cancellationToken);
@@ -127,13 +141,13 @@ namespace MisterGames.Tweens {
             }
 
             int startIndex = -1;
-            float startTime = Mathf.Clamp01(startProgress) * duration;
+            float startTime = startProgress * duration;
             float durationSum = 0f;
             float targetProgress = speed > 0f ? 1f : 0f;
 
             // Find start tween and its local start progress
             for (int i = 0; i < count; i++) {
-                float localDuration = durations[i];
+                float localDuration = Mathf.Max(tweens[i]?.Duration ?? 0f, 0f);
                 float localStartTime = durationSum;
                 durationSum += localDuration;
 
@@ -150,7 +164,9 @@ namespace MisterGames.Tweens {
             if (startIndex < 0) return;
 
             // Play first tween with calculated start progress
-            if (tweens[startIndex] is {} t1) await t1.Play(durations[startIndex], startProgress, speed, cancellationToken);
+            if (tweens[startIndex] is { } t1) {
+                await t1.Play(Mathf.Max(t1.Duration, 0f), startProgress, speed, cancellationToken);
+            }
 
             // Setup start progress for next tweens
             int dir = speed > 0f ? 1 : -1;
@@ -159,141 +175,47 @@ namespace MisterGames.Tweens {
             for (int i = startIndex + dir; i >= 0 && i < count; i += dir) {
                 if (cancellationToken.IsCancellationRequested) break;
 
-                if (tweens[i] is {} t2) await t2.Play(durations[i], startProgress, speed, cancellationToken);
-            }
-        }
-
-        public static async UniTask PlaySequential(
-            IReadOnlyList<(ITween tween, float duration)> tweens,
-            float duration,
-            float startProgress,
-            float speed,
-            CancellationToken cancellationToken
-        ) {
-            if (tweens is not { Count: > 0 }) return;
-            int count = tweens.Count;
-
-            if (count == 1) {
-                if (tweens[0].tween is { } t) await t.Play(duration, startProgress, speed, cancellationToken);
-                return;
-            }
-
-            int startIndex = -1;
-            float startTime = Mathf.Clamp01(startProgress) * duration;
-            float durationSum = 0f;
-            float targetProgress = speed > 0f ? 1f : 0f;
-
-            // Find start tween and its local start progress
-            for (int i = 0; i < count; i++) {
-                (_, float localDuration) = tweens[i];
-                float localStartTime = durationSum;
-                durationSum += localDuration;
-
-                if (localStartTime <= startTime && startTime <= durationSum) {
-                    startIndex = i;
-                    startProgress = localDuration > 0f
-                        ? Mathf.Clamp01((startTime - localStartTime) / localDuration)
-                        : targetProgress;
-
-                    break;
+                if (tweens[i] is { } t2) {
+                    await t2.Play(Mathf.Max(t2.Duration, 0f), startProgress, speed, cancellationToken);
                 }
-            }
-
-            if (startIndex < 0) return;
-
-            // Play first tween with calculated start progress
-            (var firstTween, float firstDuration) = tweens[startIndex];
-            if (firstTween != null) await firstTween.Play(firstDuration, startProgress, speed, cancellationToken);
-
-            // Setup start progress for next tweens
-            int dir = speed > 0f ? 1 : -1;
-            startProgress = speed > 0f ? 0f : 1f;
-
-            for (int i = startIndex + dir; i >= 0 && i < count; i += dir) {
-                if (cancellationToken.IsCancellationRequested) break;
-
-                (var tween, float localDuration) = tweens[i];
-                if (tween != null) await tween.Play(localDuration, startProgress, speed, cancellationToken);
             }
         }
 
         public static async UniTask PlayParallel(
             IReadOnlyList<ITween> tweens,
-            IReadOnlyList<float> durations,
             float duration,
             float startProgress,
             float speed,
             CancellationToken cancellationToken
         ) {
             if (tweens is not { Count: > 0 }) return;
+
             int count = tweens.Count;
+            duration = Mathf.Max(duration, 0f);
+            startProgress = Mathf.Clamp01(startProgress);
 
             if (count == 1) {
                 if (tweens[0] is {} t) await t.Play(duration, startProgress, speed, cancellationToken);
                 return;
             }
 
-            float startTime = Mathf.Clamp01(startProgress) * duration;
+            float startTime = startProgress * duration;
             float targetProgress = speed > 0f ? 1f : 0f;
             float sourceProgress = speed > 0f ? 0f : 1f;
             var tasks = ArrayPool<UniTask>.Shared.Rent(count);
 
             for (int i = 0; i < count; i++) {
-                tasks[i] = UniTask.CompletedTask;
-                float localDuration = Mathf.Max(0f, durations[i]);
+                var tween = tweens[i];
+                float localDuration = Mathf.Max(tween?.Duration ?? 0f, 0f);
 
                 // Process tweens which should be delayed or skipped,
                 // if local duration is less than start time.
                 if (startTime > localDuration) {
                     // Skip if is playing forward
-                    if (speed >= 0f) continue;
-
-                    // Delay start if is playing backwards
-                    float delay = Mathf.Max(startTime - localDuration, 0f);
-                    tasks[i] = PlayDelayed(tweens[i], delay, localDuration, sourceProgress, speed, cancellationToken);
-
-                    continue;
-                }
-
-                float localProgress = localDuration <= 0f ? targetProgress : Mathf.Clamp01(startTime / localDuration);
-                tasks[i] = tweens[i]?.Play(localDuration, localProgress, speed, cancellationToken) ?? UniTask.CompletedTask;
-            }
-
-            await UniTask.WhenAll(tasks);
-
-            ArrayPool<UniTask>.Shared.Return(tasks);
-        }
-
-        public static async UniTask PlayParallel(
-            IReadOnlyList<(ITween tween, float duration)> tweens,
-            float duration,
-            float startProgress,
-            float speed,
-            CancellationToken cancellationToken
-        ) {
-            if (tweens is not { Count: > 0 }) return;
-            int count = tweens.Count;
-
-            if (count == 1) {
-                if (tweens[0].tween is {} t) await t.Play(duration, startProgress, speed, cancellationToken);
-                return;
-            }
-
-            float startTime = Mathf.Clamp01(startProgress) * duration;
-            float targetProgress = speed > 0f ? 1f : 0f;
-            float sourceProgress = speed > 0f ? 0f : 1f;
-            var tasks = ArrayPool<UniTask>.Shared.Rent(count);
-
-            for (int i = 0; i < count; i++) {
-                tasks[i] = UniTask.CompletedTask;
-                (var tween, float localDuration) = tweens[i];
-                localDuration = Mathf.Max(0f, localDuration);
-
-                // Process tweens which should be delayed or skipped,
-                // if local duration is less than start time.
-                if (startTime > localDuration) {
-                    // Skip if is playing forward
-                    if (speed >= 0f) continue;
+                    if (speed >= 0f) {
+                        tasks[i] = UniTask.CompletedTask;
+                        continue;
+                    }
 
                     // Delay start if is playing backwards
                     float delay = Mathf.Max(startTime - localDuration, 0f);
@@ -311,8 +233,40 @@ namespace MisterGames.Tweens {
             ArrayPool<UniTask>.Shared.Return(tasks);
         }
 
-        public static float CreateDuration(ITween tween, TweenGroup.Mode mode, ref float totalDuration) {
-            float localDuration = Mathf.Max(tween?.CreateDuration() ?? 0f, 0f);
+        private static async UniTask PlayDelayed(
+            ITween tween,
+            float delay,
+            float duration,
+            float startProgress,
+            float speed,
+            CancellationToken cancellationToken = default
+        ) {
+            if (tween == null) return;
+
+            bool canceled = await UniTask
+                .Delay(TimeSpan.FromSeconds(delay), cancellationToken: cancellationToken)
+                .SuppressCancellationThrow();
+
+            if (canceled) return;
+
+            await tween.Play(duration, startProgress, speed, cancellationToken);
+        }
+
+        public static float CreateNextDurationGroup(TweenGroup.Mode mode, IReadOnlyList<ITween> tweens) {
+            if (tweens is not { Count: > 0 }) return 0f;
+
+            float duration = 0f;
+
+            for (int i = 0; i < tweens.Count; i++) {
+                CreateNextDuration(tweens[i], mode, ref duration);
+            }
+
+            return duration;
+        }
+
+        public static void CreateNextDuration(ITween tween, TweenGroup.Mode mode, ref float totalDuration) {
+            tween?.CreateNextDuration();
+            float localDuration = Mathf.Max(tween?.Duration ?? 0f, 0f);
 
             switch (mode) {
                 case TweenGroup.Mode.Sequential:
@@ -326,8 +280,6 @@ namespace MisterGames.Tweens {
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-
-            return localDuration;
         }
 
         /// <summary>
@@ -410,25 +362,6 @@ namespace MisterGames.Tweens {
                     }
                 }
             }
-        }
-
-        private static async UniTask PlayDelayed(
-            ITween tween,
-            float delay,
-            float duration,
-            float startProgress,
-            float speed,
-            CancellationToken cancellationToken = default
-        ) {
-            if (tween == null) return;
-
-            bool canceled = await UniTask
-                .Delay(TimeSpan.FromSeconds(delay), cancellationToken: cancellationToken)
-                .SuppressCancellationThrow();
-
-            if (canceled) return;
-
-            await tween.Play(duration, startProgress, speed, cancellationToken);
         }
     }
 

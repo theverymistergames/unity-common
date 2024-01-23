@@ -9,29 +9,22 @@ namespace MisterGames.BlueprintLib.Tweens {
 
     public static class BlueprintTweenHelper {
 
-        public static float CreateDurationFromLinkedTweens(
-            LinkIterator links,
-            TweenGroup.Mode mode,
-            List<(ITween tween, float duration)> dest
-        ) {
-            float duration = 0f;
+        public delegate UniTask CreateTween(float duration, float startProgress, float speed, CancellationToken cancellationToken = default);
+        public delegate UniTask CreateTween<in T>(T data, float duration, float startProgress, float speed, CancellationToken cancellationToken = default);
 
+        public static void FetchLinkedTweens(LinkIterator links, List<ITween> dest) {
             while (links.MoveNext()) {
                 if (links.Read<ITween>() is { } t) {
-                    dest.Add((t, TweenExtensions.CreateDuration(t, mode, ref duration)));
+                    dest.Add(t);
                     continue;
                 }
 
                 if (links.Read<ITween[]>() is { } array) {
                     for (int i = 0; i < array.Length; i++) {
-                        if (array[i] is { } t1) {
-                            dest.Add((t1, TweenExtensions.CreateDuration(t1, mode, ref duration)));
-                        }
+                        if (array[i] is { } t1) dest.Add(t1);
                     }
                 }
             }
-
-            return duration;
         }
 
         public static async UniTask PlayTwoTweensAsSequence<T>(

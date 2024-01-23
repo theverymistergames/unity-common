@@ -13,8 +13,10 @@ namespace MisterGames.Tweens {
         [Min(0f)] public float duration;
         [Min(0f)] public float durationRandomAdd;
 
-        public float CreateDuration() {
-            return duration + Random.Range(-durationRandomAdd, durationRandomAdd);
+        public float Duration { get; private set; }
+
+        public void CreateNextDuration() {
+            Duration = duration + Random.Range(-durationRandomAdd, durationRandomAdd);
         }
 
         public UniTask Play(float duration, float startProgress, float speed, CancellationToken cancellationToken = default) {

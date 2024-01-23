@@ -20,7 +20,7 @@ namespace MisterGames.Tweens {
 
         public ITween Tween { get => _tween; set => SetTween(value); }
         public float Duration => GetDuration(forceRecalculate: false);
-        public float Timer => _progress * _duration;
+        public float Timer => _progress * _tween?.Duration ?? 0f;
         public float Progress { get => _progress; set => SetProgress(value); }
         public float Speed { get => _speed; set => SetSpeed(value); }
         public YoyoMode Yoyo { get => _yoyo; set => _yoyo = value; }
@@ -28,7 +28,6 @@ namespace MisterGames.Tweens {
         public bool InvertNextPlay { get => _invertNextPlay; set => _invertNextPlay = value; }
 
         private CancellationTokenSource _cts;
-        private float _duration;
         private byte _trackProgressVersion;
         private bool _isDurationSet;
         private bool _needRecalculateDuration;
@@ -54,7 +53,7 @@ namespace MisterGames.Tweens {
             _isFirstPlay = false;
 
             while (!cancellationToken.IsCancellationRequested) {
-                TrackProgress(data, progressCallback, cancellationToken).Forget();
+                TrackProgress(data, duration, progressCallback, cancellationToken).Forget();
                 if (_tween != null) await _tween.Play(duration, _progress, _speed, cancellationToken);
 
                 if (cancellationToken.IsCancellationRequested) break;
@@ -103,7 +102,7 @@ namespace MisterGames.Tweens {
             _isFirstPlay = false;
 
             while (!cancellationToken.IsCancellationRequested) {
-                TrackProgress(progressCallback, cancellationToken).Forget();
+                TrackProgress(duration, progressCallback, cancellationToken).Forget();
                 if (_tween != null) await _tween.Play(duration, _progress, _speed, cancellationToken);
 
                 if (cancellationToken.IsCancellationRequested) break;
@@ -141,12 +140,13 @@ namespace MisterGames.Tweens {
 
         private async UniTask TrackProgress<T>(
             T data,
+            float duration,
             ProgressCallback<T> progressCallback = null,
             CancellationToken cancellationToken = default
         ) {
             byte version = ++_trackProgressVersion;
 
-            if (_duration <= 0f) {
+            if (duration <= 0f) {
                 float oldProgress = _progress;
                 _progress = _speed > 0f ? 1f : 0f;
                 if (!oldProgress.IsNearlyEqual(_progress)) progressCallback?.Invoke(data, _progress);
@@ -159,7 +159,7 @@ namespace MisterGames.Tweens {
                 float dt = timeSource.DeltaTime;
 
                 float oldProgress = _progress;
-                _progress = Mathf.Clamp01(_progress + dt * _speed / _duration);
+                _progress = Mathf.Clamp01(_progress + dt * _speed / duration);
                 if (!oldProgress.IsNearlyEqual(_progress)) progressCallback?.Invoke(data, _progress);
 
                 if (_speed > 0 && _progress >= 1f || _speed < 0 && _progress <= 0f) {
@@ -171,12 +171,13 @@ namespace MisterGames.Tweens {
         }
 
         private async UniTask TrackProgress(
+            float duration,
             ProgressCallback progressCallback = null,
             CancellationToken cancellationToken = default
         ) {
             byte version = ++_trackProgressVersion;
 
-            if (_duration <= 0f) {
+            if (duration <= 0f) {
                 float oldProgress = _progress;
                 _progress = _speed > 0f ? 1f : 0f;
                 if (!oldProgress.IsNearlyEqual(_progress)) progressCallback?.Invoke(_progress);
@@ -189,7 +190,7 @@ namespace MisterGames.Tweens {
                 float dt = timeSource.DeltaTime;
 
                 float oldProgress = _progress;
-                _progress = Mathf.Clamp01(_progress + dt * _speed / _duration);
+                _progress = Mathf.Clamp01(_progress + dt * _speed / duration);
                 if (!oldProgress.IsNearlyEqual(_progress)) progressCallback?.Invoke(_progress);
 
                 if (_speed > 0 && _progress >= 1f || _speed < 0 && _progress <= 0f) {
@@ -217,12 +218,12 @@ namespace MisterGames.Tweens {
         }
 
         private float GetDuration(bool forceRecalculate) {
-            if (_isDurationSet && !forceRecalculate) return _duration;
+            if (!_isDurationSet || forceRecalculate) {
+                _tween?.CreateNextDuration();
+                _isDurationSet = true;
+            }
 
-            _duration = _tween?.CreateDuration() ?? 0f;
-            _isDurationSet = true;
-
-            return _duration;
+            return Mathf.Max(_tween?.Duration ?? 0f, 0f);
         }
     }
 

@@ -10,11 +10,16 @@ namespace MisterGames.Tweens {
     public interface ITween {
 
         /// <summary>
-        /// This method is called by <see cref="TweenPlayer"/> to determine tween play duration before its launch.
-        /// The result is passed as "duration" float parameter into method <see cref="Play"/>.
+        /// Total duration of the tween.
+        /// Can be created before each play in <see cref="CreateNextDuration"/> method.
         /// </summary>
-        /// <returns>New duration for next play</returns>
-        float CreateDuration();
+        float Duration { get; }
+
+        /// <summary>
+        /// This method is called by <see cref="TweenPlayer"/> to determine tween play duration before each launch.
+        /// The result should be stored in <see cref="Duration"/> property.
+        /// </summary>
+        void CreateNextDuration();
 
         /// <summary>
         /// Tween behaviour method.
