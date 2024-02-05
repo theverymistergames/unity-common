@@ -15,8 +15,8 @@ namespace MisterGames.TweenLib {
 
         public void OnProgressUpdate(float progress) {
             var value = useEulerInterpolation
-                ? Quaternion.Slerp(Quaternion.Euler(startEulerAngles), Quaternion.Euler(endEulerAngles), progress)
-                : Quaternion.Euler(Vector3.Lerp(startEulerAngles, endEulerAngles, progress));
+                ? Quaternion.SlerpUnclamped(Quaternion.Euler(startEulerAngles), Quaternion.Euler(endEulerAngles), progress)
+                : Quaternion.Euler(Vector3.LerpUnclamped(startEulerAngles, endEulerAngles, progress));
 
             if (useLocal) transform.localRotation = value;
             else transform.rotation = value;

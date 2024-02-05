@@ -13,7 +13,7 @@ namespace MisterGames.TweenLib {
         public Vector3 endPosition;
 
         public void OnProgressUpdate(float progress) {
-            var value = Vector3.Lerp(startPosition, endPosition, progress);
+            var value = Vector3.LerpUnclamped(startPosition, endPosition, progress);
 
             if (useLocal) transform.localPosition = value;
             else transform.position = value;
