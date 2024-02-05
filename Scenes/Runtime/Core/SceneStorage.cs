@@ -16,14 +16,12 @@ namespace MisterGames.Scenes.Core {
 
         [SerializeField] private bool _enablePlayModeStartSceneOverride = true;
         [SerializeField] private string[] _searchScenesInFolders = { "Assets" };
-
         [SerializeField] private SceneReference _rootScene;
-        internal string RootScene => _rootScene.scene;
-
         [SerializeField] [ReadOnly] private SceneReference _editorStartScene;
-        internal string EditorStartScene => _editorStartScene.scene;
-
         [SerializeField] [HideInInspector] private string[] _sceneNames;
+        
+        internal string RootScene => _rootScene.scene;
+        internal string EditorStartScene => _editorStartScene.scene;
         public string[] SceneNames => _sceneNames;
 
         protected override void OnSingletonInstanceLoaded() {

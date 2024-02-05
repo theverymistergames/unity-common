@@ -9,7 +9,11 @@ namespace MisterGames.Scenes.Core {
         [SerializeField] private bool _useStartSceneFromSceneStorage = true;
         [SerializeField] private SceneReference _startScene;
 
+        private static string _rootScene;
+        
         private void Awake() {
+            _rootScene = SceneManager.GetActiveScene().name;
+            
 #if UNITY_EDITOR
             string firstScene = SceneManager.GetActiveScene().name;
             string rootScene = SceneStorage.Instance.RootScene;
@@ -36,8 +40,7 @@ namespace MisterGames.Scenes.Core {
         }
 
         public static async UniTask LoadSceneAsync(string sceneName, bool makeActive) {
-            string rootScene = SceneStorage.Instance.RootScene;
-            if (sceneName == rootScene) return;
+            if (sceneName == _rootScene) return;
 
             if (SceneManager.GetSceneByName(sceneName) is not { isLoaded: true }) {
                 await SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
@@ -47,8 +50,7 @@ namespace MisterGames.Scenes.Core {
         }
 
         public static async UniTask UnloadSceneAsync(string sceneName) {
-            string rootScene = SceneStorage.Instance.RootScene;
-            if (sceneName == rootScene) return;
+            if (sceneName == _rootScene) return;
 
             if (SceneManager.GetSceneByName(sceneName) is { isLoaded: true }) {
                 await SceneManager.UnloadSceneAsync(sceneName);
