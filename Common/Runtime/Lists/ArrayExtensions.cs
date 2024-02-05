@@ -5,7 +5,6 @@ namespace MisterGames.Common.Lists {
 
     public static class ArrayExtensions {
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void EnsureCapacity<T>(ref T[] array, int min, int max = -1) {
             if (min < 0) min = 0;
 
@@ -22,6 +21,14 @@ namespace MisterGames.Common.Lists {
             if (max >= 0 && newCapacity > max) newCapacity = max;
 
             Array.Resize(ref array, newCapacity);
+        }
+
+        public static void ResetArrayElements<T>(this T[] array, int count = -1) {
+            if (count < 0) count = array.Length;
+
+            for (int i = 0; i < count; i++) {
+                array[i] = default;
+            }
         }
     }
 

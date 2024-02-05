@@ -1,9 +1,6 @@
 ﻿using System;
-
-#if UNITY_EDITOR
 using Cysharp.Threading.Tasks;
 using UnityEngine;
-#endif
 
 namespace MisterGames.Tick.Core {
 

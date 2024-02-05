@@ -22,20 +22,18 @@ namespace MisterGames.Character.Jump {
 
         private ICharacterJumpPipeline _jump;
         private ICollisionDetector _groundDetector;
-        private CancellationTokenSource _destroyCts;
+        private CancellationTokenSource _enableCts;
 
         private void Awake() {
-            _destroyCts = new CancellationTokenSource();
             _jump = _characterAccess.GetPipeline<ICharacterJumpPipeline>();
             _groundDetector = _characterAccess.GetPipeline<ICharacterCollisionPipeline>().GroundDetector;
         }
 
-        private void OnDestroy() {
-            _destroyCts.Cancel();
-            _destroyCts.Dispose();
-        }
-
         private void OnEnable() {
+            _enableCts?.Cancel();
+            _enableCts?.Dispose();
+            _enableCts = new CancellationTokenSource();
+
             _jump.OnJump -= OnJump;
             _jump.OnJump += OnJump;
 
@@ -44,16 +42,20 @@ namespace MisterGames.Character.Jump {
         }
 
         private void OnDisable() {
+            _enableCts?.Cancel();
+            _enableCts?.Dispose();
+            _enableCts = null;
+
             _jump.OnJump -= OnJump;
             _groundDetector.OnContact -= OnLanded;
         }
 
         private async void OnJump(Vector3 vector3) {
-            if (_jumpReaction != null) await _jumpReaction.Apply(_characterAccess, _destroyCts.Token);
+            if (_jumpReaction != null) await _jumpReaction.Apply(_characterAccess, _enableCts.Token);
         }
 
         private async void OnLanded() {
-            if (_landReaction != null) await _landReaction.Apply(_characterAccess, _destroyCts.Token);
+            if (_landReaction != null) await _landReaction.Apply(_characterAccess, _enableCts.Token);
         }
     }
 

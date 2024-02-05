@@ -1,5 +1,4 @@
 ﻿using System;
-using Codice.LogWrapper;
 using MisterGames.Character.Collisions;
 using MisterGames.Character.Core;
 using MisterGames.Character.Processors;

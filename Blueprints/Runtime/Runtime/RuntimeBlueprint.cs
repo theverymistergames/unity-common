@@ -18,7 +18,7 @@ namespace MisterGames.Blueprints.Runtime {
 
         private readonly Dictionary<NodeId, ExternalBlueprintData> _externalBlueprintMap;
 
-#if UNITY_EDITOR
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         internal readonly Dictionary<int, Port> rootPorts = new Dictionary<int, Port>();
 #endif
 

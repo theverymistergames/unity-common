@@ -17,6 +17,8 @@ namespace MisterGames.Blackboards.Core {
         [SerializeField] private int _tablesHead;
 
         public IReadOnlyList<int> Properties => _propertyList;
+        
+        private Blackboard _matchPropertiesSource;
 
         public Blackboard() {
             _propertyList = new List<int>();
@@ -45,9 +47,6 @@ namespace MisterGames.Blackboards.Core {
         public static int StringToHash(string name) {
             return name.GetHashCode();
         }
-
-#if UNITY_EDITOR
-        private Blackboard _matchPropertiesSource;
 
         public void Clear() {
             _propertyList.Clear();
@@ -304,7 +303,6 @@ namespace MisterGames.Blackboards.Core {
 
             return $"{name} ({count})";
         }
-#endif
     }
 
 }

@@ -3,6 +3,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using MisterGames.Common.Lists;
 using MisterGames.Common.Maths;
 using MisterGames.Tick.Core;
 using UnityEngine;
@@ -230,6 +231,7 @@ namespace MisterGames.Tweens {
 
             await UniTask.WhenAll(tasks);
 
+            tasks.ResetArrayElements();
             ArrayPool<UniTask>.Shared.Return(tasks);
         }
 

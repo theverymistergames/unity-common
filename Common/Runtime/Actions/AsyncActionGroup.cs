@@ -3,6 +3,7 @@ using System.Buffers;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Attributes;
+using MisterGames.Common.Lists;
 using UnityEngine;
 
 namespace MisterGames.Common.Actions {
@@ -22,22 +23,31 @@ namespace MisterGames.Common.Actions {
 
         public async UniTask Apply(TContext context, CancellationToken cancellationToken = default) {
             if (actions is not { Length: > 0 }) return;
-
+            
+            int count = actions.Length;
+            if (count == 1) {
+                await actions[0].Apply(context, cancellationToken);
+                return;
+            }
+            
             switch (mode) {
                 case Mode.Sequence:
-                    for (int i = 0; i < actions.Length; i++) {
+                    for (int i = 0; i < count; i++) {
+                        if (cancellationToken.IsCancellationRequested) break;
                         await actions[i].Apply(context, cancellationToken);
                     }
                     break;
 
                 case Mode.Parallel:
-                    var tasks = ArrayPool<UniTask>.Shared.Rent(actions.Length);
+                    var tasks = ArrayPool<UniTask>.Shared.Rent(count);
 
-                    for (int i = 0; i < actions.Length; i++) {
+                    for (int i = 0; i < count; i++) {
                         tasks[i] = actions[i].Apply(context, cancellationToken);
                     }
+
                     await UniTask.WhenAll(tasks);
 
+                    tasks.ResetArrayElements(count);
                     ArrayPool<UniTask>.Shared.Return(tasks);
                     break;
 
