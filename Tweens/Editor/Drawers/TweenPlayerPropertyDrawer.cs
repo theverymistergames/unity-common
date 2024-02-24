@@ -12,7 +12,10 @@ namespace MisterGames.Common.Editor.Drawers {
 
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
             var progressProperty = property.FindPropertyRelative("_progress");
+            var speedProperty = property.FindPropertyRelative("_speed");
+            
             float oldProgress = progressProperty.floatValue;
+            float oldSpeed = speedProperty.floatValue;
             
             EditorGUI.BeginProperty(position, label, property);
 
@@ -29,8 +32,11 @@ namespace MisterGames.Common.Editor.Drawers {
             if (!property.isExpanded) return;
 
             float newProgress = progressProperty.floatValue;
-            if (changed && !newProgress.IsNearlyEqual(oldProgress) && property.GetValue() is TweenPlayer tweenPlayer) {
-                tweenPlayer.Progress = newProgress;
+            float newSpeed = speedProperty.floatValue;
+
+            if (changed && property.GetValue() is TweenPlayer tweenPlayer) {
+                if (!newProgress.IsNearlyEqual(oldProgress)) tweenPlayer.Progress = newProgress;
+                if (!newSpeed.IsNearlyEqual(oldSpeed)) tweenPlayer.Speed = newSpeed;
             }
             
             position.y += h + EditorGUIUtility.standardVerticalSpacing;
