@@ -1,5 +1,6 @@
 ﻿using Cysharp.Threading.Tasks;
 using MisterGames.Common.Editor.SerializedProperties;
+using MisterGames.Common.Maths;
 using MisterGames.Tweens;
 using UnityEditor;
 using UnityEngine;
@@ -10,16 +11,28 @@ namespace MisterGames.Common.Editor.Drawers {
     public class TweenPlayerPropertyDrawer : PropertyDrawer {
 
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
+            var progressProperty = property.FindPropertyRelative("_progress");
+            float oldProgress = progressProperty.floatValue;
+            
             EditorGUI.BeginProperty(position, label, property);
 
+            EditorGUI.BeginChangeCheck();
+            
             float h = EditorGUI.GetPropertyHeight(property, includeChildren: true);
             position.height = h;
             EditorGUI.PropertyField(position, property, label, includeChildren: true);
 
+            bool changed = EditorGUI.EndChangeCheck();
+            
             EditorGUI.EndProperty();
-
+            
             if (!property.isExpanded) return;
 
+            float newProgress = progressProperty.floatValue;
+            if (changed && !newProgress.IsNearlyEqual(oldProgress) && property.GetValue() is TweenPlayer tweenPlayer) {
+                tweenPlayer.Progress = newProgress;
+            }
+            
             position.y += h + EditorGUIUtility.standardVerticalSpacing;
             position.height = EditorGUIUtility.singleLineHeight;
             position.x += 14f;
