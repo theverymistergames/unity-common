@@ -14,9 +14,7 @@ namespace MisterGames.Common.Lists {
         }
 
         public static T GetRandom<T>(this IReadOnlyList<T> list) {
-            if (list.Count == 0) return default;
-            int index = Random.Range(0, list.Count - 1);
-            return list[index];
+            return list.Count == 0 ? default : list[Random.Range(0, list.Count)];
         }
     }
 
