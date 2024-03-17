@@ -190,8 +190,8 @@ namespace MisterGames.TweenLib.MotionCapture {
             _duration = Mathf.Max(0f,(_crop.y - _crop.x) * timer);
             
             int count = _keyFrames.Count;
-            int lowerIndex = count > 0 ? Mathf.FloorToInt(_crop.x / count) : -1;
-            int upperIndex = count > 0 ? Mathf.FloorToInt(_crop.y / count) : -1;
+            int lowerIndex = Mathf.FloorToInt(_crop.x * count);
+            int upperIndex = Mathf.FloorToInt(_crop.y * count);
             
             if (_crop.y < 1f && ++upperIndex >= 0 && upperIndex <= count - 1) {
                 _keyFrames.RemoveRange(upperIndex, count - 1 - upperIndex);
