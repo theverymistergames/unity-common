@@ -1,5 +1,7 @@
-﻿using System.Threading;
+﻿using System;
+using System.Threading;
 using Cysharp.Threading.Tasks;
+using MisterGames.Common;
 using MisterGames.Tick.Core;
 using MisterGames.TweenLib.MotionCapture;
 using UnityEditor;
@@ -11,10 +13,23 @@ namespace MisterGames.TweenLib.Editor.MotionCapture {
     public class MotionCaptureClipEditor : UnityEditor.Editor {
 
         private CancellationTokenSource _cts;
-        
+        private float _previewProgress;
+
+        private void OnDisable() {
+            _previewProgress = 0f;
+            _cts?.Cancel();
+            _cts?.Dispose();
+            _cts = null;
+        }
+
         public override void OnInspectorGUI() {
             base.OnInspectorGUI();
             if (target is not MotionCaptureClip clip) return;
+
+            var camera = FindObjectOfType<Camera>();
+            if (camera == null) return;
+
+            var cameraTransform = camera.transform;
             
             GUILayout.Space(10f);
             GUILayout.Label("Preview on camera", EditorStyles.boldLabel);
@@ -26,38 +41,56 @@ namespace MisterGames.TweenLib.Editor.MotionCapture {
                 _cts?.Dispose();
                 _cts = new CancellationTokenSource();
                 
-                Play(clip, _cts.Token).Forget();
+                Play(cameraTransform, clip, _cts.Token).Forget();
             }
 
             if (GUILayout.Button("Stop")) {
+                if (_previewProgress > 0f) {
+                    cameraTransform.localPosition = Vector3.zero;
+                    cameraTransform.localRotation = Quaternion.identity;
+                }
+                
+                _previewProgress = 0f;
                 _cts?.Cancel();
                 _cts?.Dispose();
                 _cts = null;
             }
             
+            if (GUILayout.Button("Reset Camera Transform")) {
+                cameraTransform.localPosition = Vector3.zero;
+                cameraTransform.localRotation = Quaternion.identity;
+            }
+            
             GUILayout.EndHorizontal();
+
+            GUI.enabled = false;
+            EditorGUILayout.Slider("Progress", _previewProgress, 0f, 1f);
+            GUI.enabled = true;
         }
 
-        private static async UniTaskVoid Play(MotionCaptureClip clip, CancellationToken cancellationToken) {
-            var camera = FindObjectOfType<Camera>();
-            if (camera == null) return;
-
-            var t = camera.transform;
+        private async UniTaskVoid Play(UnityEngine.Transform t, MotionCaptureClip clip, CancellationToken cancellationToken) {
             float duration = clip.Duration;
-            float progress = 0f;
             var timeSource = TimeSources.Get(PlayerLoopStage.Update);
 
             var initialPosition = t.localPosition;
             var initialRotation = t.localRotation;
+            _previewProgress = 0f;
+
+            var prev = t.position;
             
             while (!cancellationToken.IsCancellationRequested) {
-                progress = duration > 0f ? Mathf.Clamp01(progress + timeSource.DeltaTime / duration) : 1f;
+                _previewProgress = duration > 0f ? Mathf.Clamp01(_previewProgress + timeSource.DeltaTime / duration) : 1f;
 
-                t.localPosition = initialPosition + clip.EvaluatePosition(progress);
-                t.localRotation = initialRotation * clip.EvaluateRotation(progress);
+                t.localPosition = initialPosition + clip.EvaluatePosition(_previewProgress);
+                t.localRotation = initialRotation * clip.EvaluateRotation(_previewProgress);
 
-                if (progress >= 1f) break;
+                DebugExt.DrawLine(t.position, prev, Color.green, duration: 15f);
+                DebugExt.DrawSphere(t.position, 0.001f, Color.yellow, duration: 15f);
+                prev = t.position;
                 
+                if (_previewProgress >= 1f) break;
+                
+                Repaint();
                 await UniTask.Yield();
             }
         }
