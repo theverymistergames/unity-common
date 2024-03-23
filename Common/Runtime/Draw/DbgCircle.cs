@@ -1,8 +1,8 @@
-﻿using MisterGames.Common.Maths;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace MisterGames.Dbg.Draw {
 
+    [System.Obsolete("Use MisterGames.Common.DebugExt.Draw...() methods")]
     public struct DbgCircle {
         
         private Vector3 _position;

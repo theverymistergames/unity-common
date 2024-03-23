@@ -2,6 +2,7 @@
 
 namespace MisterGames.Dbg.Draw {
 
+    [System.Obsolete("Use MisterGames.Common.DebugExt.Draw...() methods")]
     public struct DbgRay {
 
         private Vector3 _from;

@@ -4,6 +4,7 @@ using UnityEngine;
 
 namespace MisterGames.Dbg.Draw {
 
+    [System.Obsolete("Use MisterGames.Common.DebugExt.Draw...() methods")]
     public struct DbgLineArray {
 
         private Vector3[] _points;

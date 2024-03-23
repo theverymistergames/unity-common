@@ -3,6 +3,7 @@ using UnityEngine;
 
 namespace MisterGames.Dbg.Draw {
 
+    [System.Obsolete("Use MisterGames.Common.DebugExt.Draw...() methods")]
     public struct DbgLine {
 
         private Vector3 _from;

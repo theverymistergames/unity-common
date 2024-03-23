@@ -1,7 +1,9 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace MisterGames.Dbg.Draw {
 
+    [Obsolete("Use MisterGames.Common.DebugExt.Draw...() methods")]
     public struct DbgCapsule {
 
         private Vector3 _from;
