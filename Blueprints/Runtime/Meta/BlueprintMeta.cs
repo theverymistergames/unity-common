@@ -94,7 +94,8 @@ namespace MisterGames.Blueprints.Meta {
             int nodeId = source.AddNode(nodeType);
             var id = new NodeId(sourceId, nodeId);
 
-            _nodeMap[id] = position;
+            // z is for expanded state
+            _nodeMap[id] = new Vector3(position.x, position.y, 1f);
 
             source.CreatePorts(this, id);
             source.OnSetDefaults(this, id);
@@ -112,7 +113,8 @@ namespace MisterGames.Blueprints.Meta {
             int nodeId = source.AddNodeFromString(nodeJson, nodeType);
             var id = new NodeId(sourceId, nodeId);
 
-            _nodeMap[id] = position;
+            // z is for expanded state
+            _nodeMap[id] = new Vector3(position.x, position.y, 1f);
 
             source.CreatePorts(this, id);
             source.OnSetDefaults(this, id);

@@ -600,9 +600,6 @@ namespace MisterGames.Blueprints.Editor.View {
             id = _blueprintMeta.AddNode(sourceType, nodeType, position);
             SetTargetObjectDirtyAndNotify();
             
-            GetNodeSerializedProperty(id).isExpanded = true;
-            SetTargetObjectDirtyAndNotify();
-            
             return true;
         }
 
@@ -621,9 +618,7 @@ namespace MisterGames.Blueprints.Editor.View {
 
             Undo.RecordObject(_serializedObject.targetObject, "Blueprint Add Node");
             id = _blueprintMeta.AddNode(sourceType, nodeType, nodeJson, position);
-            SetTargetObjectDirtyAndNotify();
-            
-            GetNodeSerializedProperty(id).isExpanded = expanded;
+            _blueprintMeta.SetNodeExpandState(id, expanded);
             SetTargetObjectDirtyAndNotify();
             
             return true;

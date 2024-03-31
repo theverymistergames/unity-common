@@ -7,7 +7,7 @@ namespace MisterGames.Blueprints.Meta {
     [Serializable]
     public sealed class BlueprintGroupStorage {
 
-        [SerializeField] private List<BlueprintGroup> _groups;
+        [SerializeField] private List<BlueprintGroup> _groups = new List<BlueprintGroup>();
         [SerializeField] private int _lastId;
 
         public IReadOnlyList<BlueprintGroup> Groups => _groups;

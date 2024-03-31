@@ -52,7 +52,6 @@ namespace MisterGames.Blueprints.Editor.View {
 
             _inspector = this.Q<VisualElement>("inspector");
             _property = property;
-            _property.isExpanded = meta.GetNodeExpandState(nodeId);
             
             RecreateNodeGUI();
 
@@ -60,7 +59,7 @@ namespace MisterGames.Blueprints.Editor.View {
             var container = this.Q<VisualElement>("title-container");
             _expandButton = this.Q<Button>("expand");
 
-            SetupExpandButtonTransform();
+            SetupExpandButtonTransform(_blueprintMeta.GetNodeExpandState(nodeId));
             
             _expandButton.clicked -= OnExpandButtonClicked;
             _expandButton.clicked += OnExpandButtonClicked;
@@ -82,20 +81,18 @@ namespace MisterGames.Blueprints.Editor.View {
         }
         
         private void OnExpandButtonClicked() {
-            _property.isExpanded = !_property.isExpanded;
-            _property.serializedObject.ApplyModifiedProperties();
-            _property.serializedObject.Update();
+            bool expanded = !_blueprintMeta.GetNodeExpandState(nodeId);
             
-            SetupExpandButtonTransform();
+            _blueprintMeta.SetNodeExpandState(nodeId, expanded);
+            SetupExpandButtonTransform(expanded);
             RecreateNodeGUI();
 
-            _blueprintMeta.SetNodeExpandState(nodeId, _property.isExpanded);
             OnValidate?.Invoke(nodeId);
         }
 
-        private void SetupExpandButtonTransform() {
-            _expandButton.transform.rotation = _property.isExpanded ? Quaternion.Euler(0f, 0f, 90f) : Quaternion.identity;
-            _expandButton.transform.position = _property.isExpanded ? new Vector3(0f, 1f, 0f) : new Vector3();
+        private void SetupExpandButtonTransform(bool expanded) {
+            _expandButton.transform.rotation = expanded ? Quaternion.Euler(0f, 0f, 90f) : Quaternion.identity;
+            _expandButton.transform.position = expanded ? new Vector3(0f, 1f, 0f) : new Vector3();
         }
 
         public override void BuildContextualMenu(ContextualMenuPopulateEvent evt) {
@@ -117,9 +114,9 @@ namespace MisterGames.Blueprints.Editor.View {
 
         private void RecreateNodeGUI() {
             _inspector.Clear();
+            
             if (_property == null) return;
-
-            if (!_property.isExpanded) return;
+            if (!_blueprintMeta.GetNodeExpandState(nodeId)) return;
             
             float width = CalculateNodeViewMinWidth(_property);
 
