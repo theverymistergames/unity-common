@@ -23,6 +23,8 @@ namespace MisterGames.BlueprintLib {
             meta.AddPort(id, Port.Enter("Start"));
             meta.AddPort(id, Port.Enter("Stop"));
             meta.AddPort(id, Port.Input<float>("Duration"));
+            meta.AddPort(id, Port.Exit("On Start"));
+            meta.AddPort(id, Port.Exit("On Finish"));
             meta.AddPort(id, Port.Exit("On Update"));
             meta.AddPort(id, Port.Output<float>("Progress"));
         }
@@ -73,18 +75,22 @@ namespace MisterGames.BlueprintLib {
         private async UniTask ProgressAsync(IBlueprint blueprint, NodeToken token, float duration, CancellationToken cancellationToken) {
             var timeSource = TimeSources.Get(PlayerLoopStage.Update);
 
+            blueprint.Call(token, 3);
+            
             while (!cancellationToken.IsCancellationRequested) {
                 _progress = Mathf.Clamp01(_progress + timeSource.DeltaTime / duration);
-                blueprint.Call(token, 3);
+                blueprint.Call(token, 5);
 
                 if (_progress >= 1f) break;
 
                 await UniTask.Yield();
             }
+            
+            blueprint.Call(token, 4);
         }
 
         public float GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
-            if (port == 4) {
+            if (port == 6) {
                 return _isInverted ? 1f - _progress : _progress;
             }
 
