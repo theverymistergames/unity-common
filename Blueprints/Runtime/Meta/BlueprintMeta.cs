@@ -68,7 +68,7 @@ namespace MisterGames.Blueprints.Meta {
         }
 
         public void SetNodePosition(NodeId id, Vector2 position) {
-            if (_nodeMap.ContainsKey(id)) _nodeMap[id] = position;
+            if (_nodeMap.TryGetValue(id, out var pos)) _nodeMap[id] = new Vector3(position.x, position.y, pos.z);
         }
         
         public bool GetNodeExpandState(NodeId id) {
@@ -76,7 +76,7 @@ namespace MisterGames.Blueprints.Meta {
         }
 
         public void SetNodeExpandState(NodeId id, bool expanded) {
-            if (_nodeMap.ContainsKey(id)) _nodeMap[id] = _nodeMap[id].WithZ(expanded ? 1f : 0f);
+            if (_nodeMap.TryGetValue(id, out var pos)) _nodeMap[id] = pos.WithZ(expanded ? 1f : 0f);
         }
 
         public bool TryGetNodePath(NodeId id, out int sourceIndex, out int nodeIndex) {
