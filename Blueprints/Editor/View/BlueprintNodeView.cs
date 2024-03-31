@@ -22,11 +22,13 @@ namespace MisterGames.Blueprints.Editor.View {
 
         public Action<NodeId> OnPositionChanged = delegate {  };
         public Action<NodeId> OnValidate = delegate {  };
-
+        public Action<NodeId, int> OnRemoveFromGroup = delegate {  };
+        
         public readonly NodeId nodeId;
         public readonly VisualElement _inspector;
         public readonly SerializedProperty _property;
 
+        private readonly BlueprintMeta _blueprintMeta;
         private readonly Dictionary<PortView, int> _portViewToPortIndexMap = new Dictionary<PortView, int>();
         private readonly Dictionary<int, PortView> _portIndexToPortViewMap = new Dictionary<int, PortView>();
 
@@ -41,8 +43,9 @@ namespace MisterGames.Blueprints.Editor.View {
             NodeId nodeId,
             Vector2 position,
             SerializedProperty property
-        ) : base(GetUxmlPath())
-        {
+        ) : base(GetUxmlPath()) {
+            _blueprintMeta = meta;
+            
             this.nodeId = nodeId;
             viewDataKey = nodeId.ToString();
 
@@ -64,6 +67,18 @@ namespace MisterGames.Blueprints.Editor.View {
             style.top = position.y;
 
             CreatePortViews(meta, connectorListener);
+        }
+
+        public override void BuildContextualMenu(ContextualMenuPopulateEvent evt) {
+            if (_blueprintMeta == null) return;
+            
+            if (_blueprintMeta.GroupStorage.TryGetGroupOfNode(nodeId, out int groupId)) {
+                evt.menu.AppendAction("Ungroup", action => {
+                    OnRemoveFromGroup?.Invoke(nodeId, groupId);
+                });
+            }
+            
+            base.BuildContextualMenu(evt);   
         }
 
         public override void SetPosition(Rect newPos) {

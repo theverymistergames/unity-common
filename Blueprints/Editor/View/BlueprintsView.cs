@@ -42,6 +42,8 @@ namespace MisterGames.Blueprints.Editor.View {
         private readonly HashSet<NodeId> _serializedPropertyChangedNodes = new HashSet<NodeId>();
         private readonly HashSet<NodeId> _invalidNodes = new HashSet<NodeId>();
         private readonly HashSet<NodeId> _positionChangedNodes = new HashSet<NodeId>();
+        private readonly HashSet<int> _positionChangedGroups = new HashSet<int>();
+        private readonly HashSet<int> _invalidGroups = new HashSet<int>();
 
         private BlueprintNodeSearchWindow _nodeSearchWindow;
         private BlackboardSearchWindow _blackboardSearchWindow;
@@ -66,6 +68,7 @@ namespace MisterGames.Blueprints.Editor.View {
         public struct CopyPasteData {
 
             public List<NodeData> nodes;
+            public List<BlueprintGroup> groups;
             public List<LinkData> links;
             public Vector2 position;
 
@@ -163,11 +166,74 @@ namespace MisterGames.Blueprints.Editor.View {
             if (Vector3.Distance(position, currentPosition) >= POPULATE_SCROLL_TO_NODES_CENTER_TOLERANCE_DISTANCE) {
                 UpdateViewTransform(position, scale);
             }
+            
+            InitializeGroupCallbacks();
+        }
+
+        private void InitializeGroupCallbacks() {
+            groupTitleChanged = (group, title) => {
+                if (_blueprintMeta == null || group is not BlueprintGroupView groupView) return;
+
+                var g = _blueprintMeta.GroupStorage.GetGroup(groupView.id);
+                g.name = title;
+                
+                Undo.RecordObject(_serializedObject.targetObject, "Blueprint Set Group Title");
+                _blueprintMeta.GroupStorage.SetGroup(groupView.id, g);
+                SetTargetObjectDirtyAndNotify();
+            };
+            
+            elementsAddedToGroup = (group, elements) =>
+            {
+                if (_blueprintMeta == null || group is not BlueprintGroupView groupView) return;
+
+                Undo.RecordObject(_serializedObject.targetObject, "Blueprint Add Node Into Group");
+                var groupStorage = _blueprintMeta.GroupStorage;
+                
+                foreach (var element in elements)
+                {
+                    if (element is not BlueprintNodeView nodeView)
+                    {
+                        continue;
+                    }
+
+                    groupStorage.RemoveNodeFromGroups(nodeView.nodeId);
+                    groupStorage.AddNodeIntoGroup(nodeView.nodeId, groupView.id);
+                }
+                
+                SetTargetObjectDirtyAndNotify();
+            };
+
+            elementsRemovedFromGroup = (group, elements) => {
+                if (_blueprintMeta == null || group is not BlueprintGroupView) return;
+
+                Undo.RecordObject(_serializedObject.targetObject, "Blueprint Remove Node From Group");
+                var groupStorage = _blueprintMeta.GroupStorage;
+                
+                foreach (var element in elements)
+                {
+                    if (element is not BlueprintNodeView nodeView)
+                    {
+                        continue;
+                    }
+
+                    groupStorage.RemoveNodeFromGroups(nodeView.nodeId);
+                }
+                
+                SetTargetObjectDirtyAndNotify();
+            };
+        }
+
+        private void ClearGroupCallbacks() {
+            groupTitleChanged = null;
+            elementsAddedToGroup = null;
+            elementsRemovedFromGroup = null;
         }
 
         private void RepopulateView() {
             if (_blueprintMeta == null) return;
 
+            ClearGroupCallbacks();
+            
             graphViewChanged -= OnGraphViewChanged;
             DeleteElements(graphElements);
             graphViewChanged += OnGraphViewChanged;
@@ -179,9 +245,14 @@ namespace MisterGames.Blueprints.Editor.View {
             foreach (var nodeId in _blueprintMeta.Nodes) {
                 CreateNodeLinkViews(_blueprintMeta, nodeId);
             }
+            
+            foreach (var group in _blueprintMeta.GroupStorage.Groups) {
+                CreateGroupView(_blueprintMeta, group.id);
+            }
 
             ClearSelection();
             RepopulateBlackboardView();
+            InitializeGroupCallbacks();
         }
 
         private void RepaintInvalidNodes() {
@@ -198,9 +269,22 @@ namespace MisterGames.Blueprints.Editor.View {
             }
 
             _invalidNodes.Clear();
+
+            ClearGroupCallbacks();
+            var groupStorage = _blueprintMeta.GroupStorage;
+            
+            foreach (int groupId in _invalidGroups) {
+                RemoveGroupView(groupId);
+                if (groupStorage.TryGetGroup(groupId, out _)) CreateGroupView(_blueprintMeta, groupId);
+            }
+            
+            _invalidGroups.Clear();
+            InitializeGroupCallbacks();
         }
 
         public void ClearView() {
+            ClearGroupCallbacks();
+            
             graphViewChanged -= OnGraphViewChanged;
             DeleteElements(graphElements);
 
@@ -230,10 +314,11 @@ namespace MisterGames.Blueprints.Editor.View {
         private void WriteChangedPositions() {
             if (_blueprintMeta == null || !_areGraphOperationsAllowed) {
                 _positionChangedNodes.Clear();
+                _positionChangedGroups.Clear();
                 return;
             }
 
-            int count = _positionChangedNodes.Count;
+            int count = _positionChangedNodes.Count + _positionChangedGroups.Count;
 
             foreach (var nodeId in _positionChangedNodes) {
                 if (FindNodeViewByNodeId(nodeId) is not { } nodeView) continue;
@@ -245,6 +330,22 @@ namespace MisterGames.Blueprints.Editor.View {
             }
 
             _positionChangedNodes.Clear();
+
+            var groupStorage = _blueprintMeta.GroupStorage;
+            
+            foreach (int groupId in _positionChangedGroups) {
+                if (FindGroupViewById(groupId) is not { } groupView) continue;
+
+                var rect = groupView.GetPosition();
+                var position = new Vector2(rect.x, rect.y);
+
+                var group = groupStorage.GetGroup(groupId);
+                group.position = position;
+                
+                groupStorage.SetGroup(groupId, group);
+            }
+            
+            _positionChangedGroups.Clear();
 
             if (count > 0) SetTargetObjectDirtyAndNotify();
         }
@@ -272,7 +373,18 @@ namespace MisterGames.Blueprints.Editor.View {
 
         public override void BuildContextualMenu(ContextualMenuPopulateEvent evt) {
             if (_blueprintMeta == null) return;
+            
+            evt.menu.AppendAction("Create Group", action => {
+                var group = new BlueprintGroup {
+                    name = "New Group",
+                    position = action.eventInfo.localMousePosition,
+                };
+                
+                if (!TryCreateGroup(group, out _)) return;
 
+                RepaintInvalidNodes();
+            });
+            
             base.BuildContextualMenu(evt);
         }
 
@@ -307,7 +419,7 @@ namespace MisterGames.Blueprints.Editor.View {
 
         private void InitNodeSearchWindow() {
             _nodeSearchWindow = ScriptableObject.CreateInstance<BlueprintNodeSearchWindow>();
-
+            
             _nodeSearchWindow.onNodeCreationRequest = (nodeType, position) => {
                 if (!TryCreateNode(nodeType, ConvertScreenPositionToLocal(position), out _)) return;
 
@@ -443,12 +555,34 @@ namespace MisterGames.Blueprints.Editor.View {
 
         // ---------------- ---------------- Node and connection creation ---------------- ----------------
 
-        private bool TryCreateNode(Type nodeType, Vector2 position, out NodeId id) {
+        private bool TryCreateGroup(BlueprintGroup group, out int id) {
             if (!_areGraphOperationsAllowed) {
                 id = default;
                 return false;
             }
 
+            group.nodes ??= new List<NodeId>();
+            
+            foreach (var selectedElement in selection.Cast<GraphElement>()) {
+                if (selectedElement is not BlueprintNodeView nodeView) continue;
+                group.nodes.Add(nodeView.nodeId);
+            }
+            
+            Undo.RecordObject(_serializedObject.targetObject, "Blueprint Add Group");
+            id = _blueprintMeta.GroupStorage.AddGroup(group);
+            SetTargetObjectDirtyAndNotify();
+
+            _invalidGroups.Add(id);
+            
+            return true;
+        }
+        
+        private bool TryCreateNode(Type nodeType, Vector2 position, out NodeId id) {
+            if (!_areGraphOperationsAllowed) {
+                id = default;
+                return false;
+            }
+            
             var sourceType = BlueprintNodeUtils.GetSourceType(nodeType);
 
             if (sourceType == null) {
@@ -457,9 +591,9 @@ namespace MisterGames.Blueprints.Editor.View {
             }
 
             Undo.RecordObject(_serializedObject.targetObject, "Blueprint Add Node");
-
             id = _blueprintMeta.AddNode(sourceType, nodeType, position);
             SetTargetObjectDirtyAndNotify();
+            
             return true;
         }
 
@@ -489,6 +623,17 @@ namespace MisterGames.Blueprints.Editor.View {
             Undo.RecordObject(_serializedObject.targetObject, "Blueprint Remove Node");
 
             if (!_blueprintMeta.RemoveNode(id)) return false;
+
+            SetTargetObjectDirtyAndNotify();
+            return true;
+        }
+        
+        private bool TryRemoveGroup(int id) {
+            if (!_areGraphOperationsAllowed) return false;
+
+            Undo.RecordObject(_serializedObject.targetObject, "Blueprint Remove Node");
+
+            if (!_blueprintMeta.GroupStorage.RemoveGroup(id)) return false;
 
             SetTargetObjectDirtyAndNotify();
             return true;
@@ -549,6 +694,11 @@ namespace MisterGames.Blueprints.Editor.View {
                         hasNodesToRemove = true;
                         TryRemoveNode(view.nodeId);
                         break;
+                    
+                    case BlueprintGroupView groupView:
+                        hasNodesToRemove = true;
+                        TryRemoveGroup(groupView.id);
+                        break;
 
                     case BlackboardField field:
                         repaintBlackboard = true;
@@ -581,6 +731,30 @@ namespace MisterGames.Blueprints.Editor.View {
 
             return change;
         }
+        
+        private void CreateGroupView(BlueprintMeta meta, int id) {
+            var groupView = new BlueprintGroupView(meta, id) {
+                OnPositionChanged = OnGroupPositionChanged
+            };
+
+            groupView.capabilities &= ~Capabilities.Snappable;
+
+            if (!_areGraphOperationsAllowed) {
+                groupView.capabilities &= ~Capabilities.Selectable;
+                groupView.capabilities &= ~Capabilities.Movable;
+                groupView.capabilities &= ~Capabilities.Deletable;
+            }
+
+            AddElement(groupView);
+
+            var nodes = meta.GroupStorage.GetGroup(id).nodes;
+            
+            foreach (var nodeId in nodes) {
+                if (FindNodeViewByNodeId(nodeId) is not {} nodeView) continue;
+                
+                groupView.AddElement(nodeView);   
+            }
+        }
 
         private void CreateNodeView(BlueprintMeta meta, NodeId id) {
             var position = meta.GetNodePosition(id);
@@ -589,6 +763,7 @@ namespace MisterGames.Blueprints.Editor.View {
             var nodeView = new BlueprintNodeView(meta, this, id, position, property) {
                 OnPositionChanged = OnNodePositionChanged,
                 OnValidate = OnNodeSerializedPropertyChanged,
+                OnRemoveFromGroup = RemoveNodeFromGroup
             };
 
             nodeView.capabilities &= ~Capabilities.Snappable;
@@ -699,8 +874,32 @@ namespace MisterGames.Blueprints.Editor.View {
             _isWaitingEndOfFrameToRepaintInvalidNodes = false;
         }
 
+        private void RemoveNodeFromGroup(NodeId nodeId, int groupId) {
+            if (_blueprintMeta == null) return;
+
+            Undo.RecordObject(_serializedObject.targetObject, "Blueprint Remove Node From Group");
+
+            if (!_blueprintMeta.GroupStorage.RemoveNodeFromGroups(nodeId)) return;
+
+            SetTargetObjectDirtyAndNotify();
+            
+            _invalidGroups.Add(groupId);
+            _invalidNodes.Add(nodeId);
+
+            var group = _blueprintMeta.GroupStorage.GetGroup(groupId);
+            if (group.nodes is not {Count: > 0}) {
+                group.position = _blueprintMeta.GetNodePosition(nodeId);
+            }
+            
+            RepaintInvalidNodes();
+        }
+        
         private void OnNodePositionChanged(NodeId id) {
             _positionChangedNodes.Add(id);
+        }
+        
+        private void OnGroupPositionChanged(int id) {
+            _positionChangedGroups.Add(id);
         }
 
         private static void CopyNode(IBlueprintSource fromSource, IBlueprintSource toSource, int id, bool add) {
@@ -794,6 +993,15 @@ namespace MisterGames.Blueprints.Editor.View {
             RemoveElement(nodeView);
             graphViewChanged += OnGraphViewChanged;
         }
+        
+        private void RemoveGroupView(int id) {
+            var groupView = FindGroupViewById(id);
+            if (groupView == null) return;
+
+            graphViewChanged -= OnGraphViewChanged;
+            RemoveElement(groupView);
+            graphViewChanged += OnGraphViewChanged;
+        }
 
         private void RemoveNodeLinkViews(NodeId id) {
             var nodeView = FindNodeViewByNodeId(id);
@@ -822,6 +1030,10 @@ namespace MisterGames.Blueprints.Editor.View {
 
         private BlueprintNodeView FindNodeViewByNodeId(NodeId id) {
             return GetNodeByGuid(id.ToString()) as BlueprintNodeView;
+        }
+        
+        private BlueprintGroupView FindGroupViewById(int id) {
+            return GetElementByGuid($"__{nameof(BlueprintGroupView)}_{id}") as BlueprintGroupView;
         }
 
         public override List<PortView> GetCompatiblePorts(PortView startPortView, NodeAdapter nodeAdapter) {
@@ -879,18 +1091,19 @@ namespace MisterGames.Blueprints.Editor.View {
         private void InitCopyPaste() {
             canPasteSerializedData = CanPaste;
             serializeGraphElements = OnSerializeGraphElements;
-            unserializeAndPaste = OnUnserializeAndPaste;
+            unserializeAndPaste = OnDeserializeAndPaste;
         }
 
         private string OnSerializeGraphElements(IEnumerable<GraphElement> elements) {
             var copyData = new CopyPasteData {
+                groups = new List<BlueprintGroup>(),
                 nodes = new List<CopyPasteData.NodeData>(),
                 links = new List<CopyPasteData.LinkData>(),
                 position = Vector2.zero,
             };
 
-            var elementArray = elements.ToArray();
-            for (int i = 0; i < elementArray.Length; i++) {
+            var elementArray = elements.ToList();
+            for (int i = 0; i < elementArray.Count; i++) {
                 var element = elementArray[i];
 
                 if (element is BlueprintNodeView nodeView) {
@@ -910,6 +1123,12 @@ namespace MisterGames.Blueprints.Editor.View {
                     continue;
                 }
 
+                if (element is BlueprintGroupView groupView) {
+                    copyData.groups.Add(_blueprintMeta.GroupStorage.GetGroup(groupView.id));
+                    elementArray.AddRange(groupView.containedElements);
+                    continue;
+                }
+
                 if (element is Edge { input: { node: BlueprintNodeView toNodeView }, output: { node: BlueprintNodeView fromNodeView } } edge) {
                     copyData.links.Add(new CopyPasteData.LinkData {
                         fromNodeId = fromNodeView.nodeId,
@@ -920,12 +1139,12 @@ namespace MisterGames.Blueprints.Editor.View {
                 }
             }
 
-            if (elementArray.Length > 0) copyData.position /= elementArray.Length;
+            if (elementArray.Count > 0) copyData.position /= elementArray.Count;
 
             return JsonUtility.ToJson(copyData);
         }
 
-        private void OnUnserializeAndPaste(string operationName, string data) {
+        private void OnDeserializeAndPaste(string operationName, string data) {
             if (data == null) return;
 
             CopyPasteData pasteData;
@@ -968,6 +1187,13 @@ namespace MisterGames.Blueprints.Editor.View {
 
                     TryCreateLink(fromNodeId, link.fromPortIndex, toNodeId, link.toPortIndex);
                 }
+            }
+
+            for (int i = 0; i < pasteData.groups.Count; i++) {
+                var group = pasteData.groups[i];
+                group.nodes = group.nodes.Select(n => nodeIdMap[n]).ToList();
+
+                TryCreateGroup(group, out _);
             }
 
             RepaintInvalidNodes();

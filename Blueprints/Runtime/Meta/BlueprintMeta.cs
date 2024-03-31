@@ -17,10 +17,12 @@ namespace MisterGames.Blueprints.Meta {
         [SerializeField] private BlueprintFactory _factory;
         [SerializeField] private BlueprintLinkStorage _linkStorage;
         [SerializeField] private BlueprintPortStorage _portStorage;
+        [SerializeField] private BlueprintGroupStorage _groupStorage;
 
         public IReadOnlyCollection<NodeId> Nodes => _nodeMap.Keys;
         public IDictionary<NodeId, BlueprintAsset> SubgraphAssetMap => _subgraphMap;
-
+        public BlueprintGroupStorage GroupStorage => _groupStorage;
+        
         public int NodeCount => _nodeMap.Count;
         public int LinkCount => _linkStorage.LinkCount;
         public int LinkedPortCount => _linkStorage.LinkedPortCount;
