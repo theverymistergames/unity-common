@@ -400,15 +400,24 @@ namespace MisterGames.Common.Data {
                         _freeList = i;
                         _freeCount++;
                         _version++;
+                        
+#if UNITY_EDITOR
+                        TrimExcess(forceNewHashCodes: false);
+#else
+                        if (_freeCount > _count) TrimExcess(forceNewHashCodes: false);
+#endif
+                        
                         return true;
                     }
                 }
-#if UNITY_EDITOR
-                TrimExcess(forceNewHashCodes: false);
-#else
-                if (_freeCount > _count) TrimExcess(forceNewHashCodes: false);
-#endif
             }
+            
+#if UNITY_EDITOR
+            TrimExcess(forceNewHashCodes: false);
+#else
+            if (_freeCount > _count) TrimExcess(forceNewHashCodes: false);
+#endif
+            
             return false;
         }
 
