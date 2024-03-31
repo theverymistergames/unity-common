@@ -8,7 +8,6 @@ using MisterGames.Blueprints.Editor.Utils;
 using MisterGames.Blueprints.Editor.Windows;
 using MisterGames.Blueprints.Factory;
 using MisterGames.Blueprints.Meta;
-using MisterGames.Blueprints.Nodes;
 using MisterGames.Blueprints.Validation;
 using MisterGames.Common.Types;
 using UnityEditor;
@@ -78,6 +77,7 @@ namespace MisterGames.Blueprints.Editor.View {
                 public Vector2 position;
                 public SerializedType nodeType;
                 public string nodeJson;
+                public bool expanded;
             }
 
             [Serializable]
@@ -235,6 +235,9 @@ namespace MisterGames.Blueprints.Editor.View {
             ClearGroupCallbacks();
             
             graphViewChanged -= OnGraphViewChanged;
+            foreach (var graphElement in graphElements) {
+                if (graphElement is BlueprintNodeView view) view.DeInitialize();
+            }
             DeleteElements(graphElements);
             graphViewChanged += OnGraphViewChanged;
 
@@ -286,6 +289,9 @@ namespace MisterGames.Blueprints.Editor.View {
             ClearGroupCallbacks();
             
             graphViewChanged -= OnGraphViewChanged;
+            foreach (var graphElement in graphElements) {
+                if (graphElement is BlueprintNodeView view) view.DeInitialize();
+            }
             DeleteElements(graphElements);
 
             _blackboardOpenSearchWindowCts?.Cancel();
@@ -594,10 +600,13 @@ namespace MisterGames.Blueprints.Editor.View {
             id = _blueprintMeta.AddNode(sourceType, nodeType, position);
             SetTargetObjectDirtyAndNotify();
             
+            GetNodeSerializedProperty(id).isExpanded = true;
+            SetTargetObjectDirtyAndNotify();
+            
             return true;
         }
 
-        private bool TryCreateNode(Type nodeType, Vector2 position, string nodeJson, out NodeId id) {
+        private bool TryCreateNode(Type nodeType, Vector2 position, string nodeJson, bool expanded, out NodeId id) {
             if (!_areGraphOperationsAllowed) {
                 id = default;
                 return false;
@@ -611,9 +620,12 @@ namespace MisterGames.Blueprints.Editor.View {
             }
 
             Undo.RecordObject(_serializedObject.targetObject, "Blueprint Add Node");
-
             id = _blueprintMeta.AddNode(sourceType, nodeType, nodeJson, position);
             SetTargetObjectDirtyAndNotify();
+            
+            GetNodeSerializedProperty(id).isExpanded = expanded;
+            SetTargetObjectDirtyAndNotify();
+            
             return true;
         }
 
@@ -801,7 +813,7 @@ namespace MisterGames.Blueprints.Editor.View {
 
         private async void OnNodeSerializedPropertyChanged(NodeId id) {
             _serializedPropertyChangedNodes.Add(id);
-
+            
             if (_isWaitingEndOfFrameToValidateNodes) return;
             _isWaitingEndOfFrameToValidateNodes = true;
 
@@ -1116,6 +1128,7 @@ namespace MisterGames.Blueprints.Editor.View {
                         position = position,
                         nodeType = new SerializedType(source?.GetNodeType(id.node)),
                         nodeJson = source?.GetNodeAsString(id.node),
+                        expanded = GetNodeSerializedProperty(id).isExpanded
                     });
 
                     copyData.position += position;
@@ -1168,7 +1181,9 @@ namespace MisterGames.Blueprints.Editor.View {
                 var nodeType = nodeData.nodeType.ToType();
                 var position = nodeData.position + positionDiff;
 
-                if (TryCreateNode(nodeType, position, nodeData.nodeJson, out var id)) nodeIdMap[nodeData.nodeId] = id;
+                if (TryCreateNode(nodeType, position, nodeData.nodeJson, nodeData.expanded, out var id)) {
+                    nodeIdMap[nodeData.nodeId] = id;
+                }
             }
 
             if (pasteData.links != null) {

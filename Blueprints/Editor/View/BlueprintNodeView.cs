@@ -28,9 +28,10 @@ namespace MisterGames.Blueprints.Editor.View {
         public readonly VisualElement _inspector;
         public readonly SerializedProperty _property;
 
-        private readonly BlueprintMeta _blueprintMeta;
         private readonly Dictionary<PortView, int> _portViewToPortIndexMap = new Dictionary<PortView, int>();
         private readonly Dictionary<int, PortView> _portIndexToPortViewMap = new Dictionary<int, PortView>();
+        private readonly BlueprintMeta _blueprintMeta;
+        private readonly Button _expandButton;
 
         private struct PortViewCreationData {
             public int portIndex;
@@ -51,11 +52,18 @@ namespace MisterGames.Blueprints.Editor.View {
 
             _inspector = this.Q<VisualElement>("inspector");
             _property = property;
-
+            _property.isExpanded = meta.GetNodeExpandState(nodeId);
+            
             RecreateNodeGUI();
 
             var titleLabel = this.Q<Label>("title");
             var container = this.Q<VisualElement>("title-container");
+            _expandButton = this.Q<Button>("expand");
+
+            SetupExpandButtonTransform();
+            
+            _expandButton.clicked -= OnExpandButtonClicked;
+            _expandButton.clicked += OnExpandButtonClicked;
 
             var source = meta.GetNodeSource(nodeId);
             var nodeType = source?.GetNodeType(nodeId.node);
@@ -67,6 +75,27 @@ namespace MisterGames.Blueprints.Editor.View {
             style.top = position.y;
 
             CreatePortViews(meta, connectorListener);
+        }
+
+        public void DeInitialize() {
+            _expandButton.clicked -= OnExpandButtonClicked;
+        }
+        
+        private void OnExpandButtonClicked() {
+            _property.isExpanded = !_property.isExpanded;
+            _property.serializedObject.ApplyModifiedProperties();
+            _property.serializedObject.Update();
+            
+            SetupExpandButtonTransform();
+            RecreateNodeGUI();
+
+            _blueprintMeta.SetNodeExpandState(nodeId, _property.isExpanded);
+            OnValidate?.Invoke(nodeId);
+        }
+
+        private void SetupExpandButtonTransform() {
+            _expandButton.transform.rotation = _property.isExpanded ? Quaternion.Euler(0f, 0f, 90f) : Quaternion.identity;
+            _expandButton.transform.position = _property.isExpanded ? new Vector3(0f, 1f, 0f) : new Vector3();
         }
 
         public override void BuildContextualMenu(ContextualMenuPopulateEvent evt) {
@@ -90,7 +119,9 @@ namespace MisterGames.Blueprints.Editor.View {
             _inspector.Clear();
             if (_property == null) return;
 
-            float minWidth = CalculateNodeViewMinWidth(_property);
+            if (!_property.isExpanded) return;
+            
+            float width = CalculateNodeViewMinWidth(_property);
 
             var property = _property.Copy();
             int depth = property.depth;
@@ -100,7 +131,7 @@ namespace MisterGames.Blueprints.Editor.View {
                 if (enumerator.Current is not SerializedProperty p) continue;
                 if (p.depth > depth + 1) continue;
 
-                var propertyField = new PropertyField { style = { minWidth = minWidth } };
+                var propertyField = new PropertyField { style = { minWidth = width } };
                 propertyField.BindProperty(p);
 
                 // Track managed reference properties separately
@@ -149,6 +180,10 @@ namespace MisterGames.Blueprints.Editor.View {
         }
 
         private void OnSerializedPropertyValueChanged(SerializedProperty property) {
+            if (property.propertyType == SerializedPropertyType.ObjectReference) {
+                RecreateNodeGUI();
+            }
+            
             OnValidate?.Invoke(nodeId);
         }
 

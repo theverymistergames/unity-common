@@ -5,6 +5,7 @@ using MisterGames.Blueprints.Factory;
 using MisterGames.Blueprints.Nodes;
 using MisterGames.Blueprints.Validation;
 using MisterGames.Common.Data;
+using MisterGames.Common.Maths;
 using UnityEngine;
 
 namespace MisterGames.Blueprints.Meta {
@@ -12,7 +13,7 @@ namespace MisterGames.Blueprints.Meta {
     [Serializable]
     public sealed class BlueprintMeta : IBlueprintMeta, IComparer<BlueprintLink> {
 
-        [SerializeField] private Map<NodeId, Vector2> _nodeMap;
+        [SerializeField] private Map<NodeId, Vector3> _nodeMap;
         [SerializeField] private Map<NodeId, BlueprintAsset> _subgraphMap;
         [SerializeField] private BlueprintFactory _factory;
         [SerializeField] private BlueprintLinkStorage _linkStorage;
@@ -37,7 +38,7 @@ namespace MisterGames.Blueprints.Meta {
 #endif
 
         public BlueprintMeta() {
-            _nodeMap = new Map<NodeId, Vector2>();
+            _nodeMap = new Map<NodeId, Vector3>();
             _subgraphMap = new Map<NodeId, BlueprintAsset>();
             _factory = new BlueprintFactory();
             _linkStorage = new BlueprintLinkStorage();
@@ -45,7 +46,7 @@ namespace MisterGames.Blueprints.Meta {
         }
 
         public BlueprintMeta(BlueprintMeta source) {
-            _nodeMap = new Map<NodeId, Vector2>(source._nodeMap);
+            _nodeMap = new Map<NodeId, Vector3>(source._nodeMap);
             _subgraphMap = new Map<NodeId, BlueprintAsset>(source._subgraphMap);
             _factory = new BlueprintFactory(source._factory);
             _linkStorage = new BlueprintLinkStorage(source._linkStorage);
@@ -68,6 +69,14 @@ namespace MisterGames.Blueprints.Meta {
 
         public void SetNodePosition(NodeId id, Vector2 position) {
             if (_nodeMap.ContainsKey(id)) _nodeMap[id] = position;
+        }
+        
+        public bool GetNodeExpandState(NodeId id) {
+            return _nodeMap[id].z > 0f;
+        }
+
+        public void SetNodeExpandState(NodeId id, bool expanded) {
+            if (_nodeMap.ContainsKey(id)) _nodeMap[id] = _nodeMap[id].WithZ(expanded ? 1f : 0f);
         }
 
         public bool TryGetNodePath(NodeId id, out int sourceIndex, out int nodeIndex) {
