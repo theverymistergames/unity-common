@@ -30,8 +30,7 @@ namespace MisterGames.Tweens {
         private CancellationTokenSource _cts;
         private byte _trackProgressVersion;
         private bool _isDurationSet;
-        private bool _needRecalculateDuration;
-        private bool _isFirstPlay;
+        private bool _isFirstPlay = true;
 
         public async UniTask<bool> Play<T>(
             T data,
@@ -41,8 +40,7 @@ namespace MisterGames.Tweens {
             Stop();
 
             // First play must not recalculate duration, if it was previously calculated.
-            float duration = GetDuration(forceRecalculate: _needRecalculateDuration);
-            _needRecalculateDuration = true;
+            float duration = GetDuration(forceRecalculate: !_isFirstPlay);
 
             if (duration > 0f) {
                 _cts = new CancellationTokenSource();
@@ -93,8 +91,7 @@ namespace MisterGames.Tweens {
             Stop();
 
             // First play must not recalculate duration, if it was previously calculated.
-            float duration = GetDuration(forceRecalculate: _needRecalculateDuration);
-            _needRecalculateDuration = true;
+            float duration = GetDuration(forceRecalculate: !_isFirstPlay);
 
             if (duration > 0f) {
                 _cts = new CancellationTokenSource();
