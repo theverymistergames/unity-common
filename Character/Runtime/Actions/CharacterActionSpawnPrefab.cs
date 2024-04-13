@@ -20,7 +20,7 @@ namespace MisterGames.Character.Actions {
             var pos = characterAccess.BodyAdapter.Position;
             var rot = characterAccess.BodyAdapter.Rotation;
 
-            var instance = PrefabPool.Instance.TakeInactive(prefab);
+            var instance = PrefabPool.Instance.TakeActive(prefab);
 
             if (useLocal) {
                 instance.transform.SetPositionAndRotation(pos + rot * positionOffset, rot * Quaternion.Euler(rotationOffset));    
