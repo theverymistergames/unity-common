@@ -73,8 +73,9 @@ namespace MisterGames.Tweens {
                         else _progress = 1f;
                     }
 
-                    if (duration <= 0f) await UniTask.Yield();
+                    await UniTask.Yield();
                     duration = GetDuration(forceRecalculate: true);
+                    
                     continue;
                 }
 
@@ -124,8 +125,9 @@ namespace MisterGames.Tweens {
                         else _progress = 1f;
                     }
                     
-                    if (duration <= 0f) await UniTask.Yield();
+                    await UniTask.Yield();
                     duration = GetDuration(forceRecalculate: true);
+                    
                     continue;
                 }
 
