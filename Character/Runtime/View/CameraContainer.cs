@@ -8,6 +8,8 @@ namespace MisterGames.Character.View {
         [SerializeField] private Camera _camera;
         [SerializeField] private Transform _transform;
 
+        public Camera Camera => _camera;
+        
         private readonly Dictionary<int, CameraStateData> _states = new Dictionary<int, CameraStateData>();
 
         private CameraStateData _baseCameraState;

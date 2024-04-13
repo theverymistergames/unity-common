@@ -1,14 +1,16 @@
-﻿using System;
+﻿#if UNITY_EDITOR
+
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using MisterGames.Character.View;
 using MisterGames.Common;
 using MisterGames.Tick.Core;
-using MisterGames.TweenLib.MotionCapture;
 using UnityEditor;
 using UnityEngine;
 
 namespace MisterGames.TweenLib.Editor.MotionCapture {
     
+
     [CustomEditor(typeof(MotionCaptureClip))]
     public class MotionCaptureClipEditor : UnityEditor.Editor {
 
@@ -46,8 +48,8 @@ namespace MisterGames.TweenLib.Editor.MotionCapture {
 
             if (GUILayout.Button("Stop")) {
                 if (_previewProgress > 0f) {
-                    cameraTransform.localPosition = Vector3.zero;
-                    cameraTransform.localRotation = Quaternion.identity;
+                    //cameraTransform.localPosition = Vector3.zero;
+                    //cameraTransform.localRotation = Quaternion.identity;
                 }
                 
                 _previewProgress = 0f;
@@ -68,7 +70,7 @@ namespace MisterGames.TweenLib.Editor.MotionCapture {
             GUI.enabled = true;
         }
 
-        private async UniTaskVoid Play(UnityEngine.Transform t, MotionCaptureClip clip, CancellationToken cancellationToken) {
+        private async UniTaskVoid Play(Transform t, MotionCaptureClip clip, CancellationToken cancellationToken) {
             float duration = clip.Duration;
             var timeSource = TimeSources.Get(PlayerLoopStage.Update);
 
@@ -95,5 +97,5 @@ namespace MisterGames.TweenLib.Editor.MotionCapture {
             }
         }
     }
-    
+#endif
 }

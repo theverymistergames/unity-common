@@ -4,11 +4,12 @@ using System.Globalization;
 using System.IO;
 using System.Runtime.CompilerServices;
 using MisterGames.Common.Attributes;
+using MisterGames.Common.Maths;
 using UnityEngine;
 
-namespace MisterGames.TweenLib.MotionCapture {
+namespace MisterGames.Character.View {
 
-    [CreateAssetMenu(fileName = nameof(MotionCaptureClip), menuName = "MisterGames/MotionCapture/" + nameof(MotionCaptureClip))]
+    [CreateAssetMenu(fileName = nameof(MotionCaptureClip), menuName = "MisterGames/Mocap/" + nameof(MotionCaptureClip))]
     public sealed class MotionCaptureClip : ScriptableObject {
 
         [Header("Input Data")]
@@ -21,6 +22,8 @@ namespace MisterGames.TweenLib.MotionCapture {
         [SerializeField] private RotationSource _rotationSource;
         [SerializeField] private float _rotationAmplitude = 1f;
         [SerializeField] private float _velocityAmplitude = 1f;
+        [SerializeField] private Vector3 _rotationSensitivity = Vector3.one;
+        [SerializeField] private bool _removeRotationZ;
         [SerializeField] [Min(0f)] private float _rotationSmoothing = 20f;
         [SerializeField] [Min(0f)] private float _positionSmoothing = 20f;
         [SerializeField] [Min(0.001f)] private float _resolutionDeltaTime = 0.05f;
@@ -66,9 +69,13 @@ namespace MisterGames.TweenLib.MotionCapture {
             
             int count = _keyFrames.Count;
             int i = Mathf.FloorToInt(t * count);
-            
-            if (i < 0 || i > count - 1) return Quaternion.identity;
 
+            if (i < 0) return _offset.rotation;
+            
+            if (i > count - 1) return (count > 0 
+                ? _keyFrames[count - 1].rotation 
+                : Quaternion.identity) * _offset.rotation;
+            
             return (i + 1 <= count - 1
                 ? Quaternion.Slerp(_keyFrames[i].rotation, _keyFrames[i + 1].rotation, (t - (float) i / count) * count)
                 : _keyFrames[i].rotation) * _offset.rotation;
@@ -112,6 +119,10 @@ namespace MisterGames.TweenLib.MotionCapture {
 
                     float t = ReadTime(line);
                     var eulers = ReadRotation(line, _rotationSource);
+                    eulers.x *= _rotationSensitivity.x;
+                    eulers.y *= _rotationSensitivity.y;
+                    eulers.z *= _rotationSensitivity.z;
+                    
                     var prevTotalRotation = totalRotation;
                     
                     switch (_rotationSource) {
@@ -154,6 +165,10 @@ namespace MisterGames.TweenLib.MotionCapture {
                     framePosition = Vector3.Lerp(prevTotalPosition, totalPosition, (timer - prevTimeAcc) / (t - prevTimeAcc));
                     prevTimeAcc = t;
                     break;
+                }
+
+                if (_removeRotationZ) {
+                    frameRotation = Quaternion.Euler(frameRotation.eulerAngles.WithZ(0f));
                 }
                 
                 smoothedRotation = Quaternion.Slerp(smoothedRotation, frameRotation, _rotationSmoothing * dt);

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using MisterGames.Character.View;
 using MisterGames.Common.Attributes;
 using MisterGames.Tick.Core;
 using MisterGames.Tweens;

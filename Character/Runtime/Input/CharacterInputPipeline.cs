@@ -33,7 +33,24 @@ namespace MisterGames.Character.Input {
 
         public override bool IsEnabled { get => enabled; set => enabled = value; }
 
+        public void EnableViewInput(bool enable) {
+            _view.OnChanged -= HandleViewChanged;
+            if (enable) _view.OnChanged += HandleViewChanged;
+        }
+        
         private void OnEnable() {
+            Subscribe();
+        }
+
+        private void OnDisable() {
+            Unsubscribe();
+        }
+
+        private void OnDestroy() {
+            Unsubscribe();
+        }
+
+        private void Subscribe() {
             _view.OnChanged -= HandleViewChanged;
             _view.OnChanged += HandleViewChanged;
 
@@ -58,8 +75,8 @@ namespace MisterGames.Character.Input {
             _jump.OnPress -= HandleJumpPressed;
             _jump.OnPress += HandleJumpPressed;
         }
-
-        private void OnDisable() {
+        
+        private void Unsubscribe() {
             _view.OnChanged -= HandleViewChanged;
             _move.OnChanged -= HandleMoveChanged;
 

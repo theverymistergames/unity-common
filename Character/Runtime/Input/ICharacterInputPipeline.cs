@@ -22,6 +22,8 @@ namespace MisterGames.Character.Input {
 
         bool IsCrouchPressed { get; }
         bool WasCrouchToggled { get; }
+
+        void EnableViewInput(bool enable);
     }
 
 }

@@ -4,6 +4,7 @@ using Cysharp.Threading.Tasks;
 using MisterGames.Character.Core;
 using MisterGames.Character.View;
 using MisterGames.Common.Data;
+using UnityEngine;
 
 namespace MisterGames.Character.Actions {
     
@@ -18,9 +19,24 @@ namespace MisterGames.Character.Actions {
                 .GetPipeline<ICharacterViewPipeline>()
                 .GetProcessor<CharacterProcessorViewClamp>();
 
-            if (horizontal.HasValue) clamp.horizontal = horizontal.Value;
-            if (vertical.HasValue) clamp.vertical = vertical.Value;
+            var bodyRot = characterAccess.BodyAdapter.Rotation;
+            
+            if (horizontal.HasValue) {
+                float angleY = -90f + Vector3.SignedAngle(
+                    Vector3.forward,
+                    bodyRot * Vector3.forward,
+                    characterAccess.BodyAdapter.Rotation * Vector3.up
+                );
 
+                clamp.horizontal = horizontal.Value;
+                var b = clamp.horizontal.bounds;
+                clamp.horizontal.bounds += (b.x + angleY) * Vector2.one;
+            }
+
+            if (vertical.HasValue) {
+                clamp.vertical = vertical.Value;
+            }
+            
             return default;
         }
     }
