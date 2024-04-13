@@ -1,15 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
 using MisterGames.Common.Attributes;
+using MisterGames.Interact.Cursors;
+using MisterGames.Interact.Detectables;
 using MisterGames.Tick.Core;
 using UnityEngine;
 
 namespace MisterGames.Interact.Interactives {
 
+    [RequireComponent(typeof(Detectable))]
     public sealed class Interactive : MonoBehaviour, IInteractive {
 
         [EmbeddedInspector]
         [SerializeField] private InteractionStrategy _strategy;
+        
+        [EmbeddedInspector]
+        [SerializeField] private InteractiveCursorStrategy _cursorStrategy;
 
         public event Action<IInteractiveUser> OnDetectedBy = delegate {  };
         public event Action<IInteractiveUser> OnLostBy = delegate {  };
@@ -68,10 +74,12 @@ namespace MisterGames.Interact.Interactives {
 
         public void NotifyDetectedBy(IInteractiveUser user) {
             OnDetectedBy.Invoke(user);
+            TryApplyCursorIcon(user);
         }
 
         public void NotifyLostBy(IInteractiveUser user) {
             OnLostBy.Invoke(user);
+            TryApplyCursorIcon(user);
         }
 
         public void NotifyStartedInteractWith(IInteractiveUser user) {
@@ -81,6 +89,7 @@ namespace MisterGames.Interact.Interactives {
             _users.Add(user);
 
             OnStartInteract.Invoke(user);
+            TryApplyCursorIcon(user);
         }
 
         public void NotifyStoppedInteractWith(IInteractiveUser user) {
@@ -90,6 +99,7 @@ namespace MisterGames.Interact.Interactives {
             _users.Remove(user);
 
             OnStopInteract.Invoke(user);
+            TryApplyCursorIcon(user);
         }
 
         public void ForceStopInteractWithAllUsers() {
@@ -99,6 +109,17 @@ namespace MisterGames.Interact.Interactives {
 
             _users.Clear();
             _userInteractionMap.Clear();
+        }
+        
+        private void TryApplyCursorIcon(IInteractiveUser user) {
+            if (_strategy == null || !user.Transform.TryGetComponent(out ICursorHost host)) return;
+
+            if (_cursorStrategy.TryGetCursorIcon(user, this, out var icon)) {
+                host.ApplyCursorIconOverride(this, icon);
+                return;
+            }
+
+            host.ResetCursorIconOverride(this);
         }
 
         public override string ToString() {
