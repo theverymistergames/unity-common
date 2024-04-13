@@ -74,6 +74,9 @@ namespace MisterGames.Tweens {
                         if (_yoyo == YoyoMode.End) _speed = -_speed;
                         else _progress = 1f;
                     }
+
+                    if (duration <= 0f) await UniTask.Yield();
+                    duration = GetDuration(forceRecalculate: true);
                     continue;
                 }
 
@@ -123,6 +126,9 @@ namespace MisterGames.Tweens {
                         if (_yoyo == YoyoMode.End) _speed = -_speed;
                         else _progress = 1f;
                     }
+                    
+                    if (duration <= 0f) await UniTask.Yield();
+                    duration = GetDuration(forceRecalculate: true);
                     continue;
                 }
 
