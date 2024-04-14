@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace MisterGames.Tweens {
 
-    public class TweenRunner : MonoBehaviour {
+    public sealed class TweenRunner : MonoBehaviour {
 
         [SerializeField] private bool _playAtStart;
         [SerializeField] private TweenPlayer _tweenPlayer;
@@ -17,22 +17,16 @@ namespace MisterGames.Tweens {
             _enableCts?.Cancel();
             _enableCts?.Dispose();
             _enableCts = new CancellationTokenSource();
+
+            if (_playAtStart) {
+                _tweenPlayer.Play(cancellationToken: _enableCts.Token).Forget();
+            }
         }
 
         private void OnDisable() {
             _enableCts?.Cancel();
             _enableCts?.Dispose();
             _enableCts = null;
-
-            _tweenPlayer.Stop();
-        }
-
-        private void OnDestroy() {
-            _tweenPlayer.Stop();
-        }
-
-        private void Start() {
-            if (_playAtStart) _tweenPlayer.Play(cancellationToken: _enableCts.Token).Forget();
         }
     }
 
