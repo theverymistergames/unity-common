@@ -29,13 +29,20 @@ namespace MisterGames.Common.Editor.Menu {
         }
 
         [MenuItem("Edit/Paste Position &v", false, -101)]
-        public static void PasteTransformValues() {
+        public static void PasteTransformPosition() {
             foreach (var go in Selection.gameObjects) {
                 var t = go.transform;
-                Undo.RecordObject(t, "Paste Transform Values");
+                Undo.RecordObject(t, "Paste Transform Pos");
                 t.position = _transformData.position;
-                //t.rotation = _transformData.rotation;
-                //t.localScale = _transformData.localScale;
+            }
+        }
+        
+        [MenuItem("Edit/Paste Rotation &r", false, -101)]
+        public static void PasteTransformRotation() {
+            foreach (var go in Selection.gameObjects) {
+                var t = go.transform;
+                Undo.RecordObject(t, "Paste Transform Rot");
+                t.rotation = _transformData.rotation;
             }
         }
     }
