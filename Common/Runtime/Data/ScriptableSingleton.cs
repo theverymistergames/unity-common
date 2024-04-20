@@ -48,7 +48,7 @@ namespace MisterGames.Common.Data {
         protected virtual void OnSingletonInstanceLoaded() { }
 
 #if UNITY_EDITOR
-        private const string DataFolderPath = "Assets/Data";
+        private const string DataFolderPath = "Assets";
 
         private static readonly Queue<T> _pendingCreateAssetInstances = new Queue<T>();
 
