@@ -9,6 +9,7 @@ using MisterGames.Blueprints.Editor.Windows;
 using MisterGames.Blueprints.Factory;
 using MisterGames.Blueprints.Meta;
 using MisterGames.Blueprints.Validation;
+using MisterGames.Common.Maths;
 using MisterGames.Common.Types;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
@@ -94,7 +95,7 @@ namespace MisterGames.Blueprints.Editor.View {
         public BlueprintsView() {
             Insert(0, new GridBackground());
 
-            this.AddManipulator(new ContentZoomer { minScale = 0.01f, maxScale = 10f });
+            this.AddManipulator(new ContentZoomer {minScale = 0.01f, maxScale = 10f});
             this.AddManipulator(new ContentDragger());
             this.AddManipulator(new SelectionDragger());
             this.AddManipulator(new RectangleSelector());
@@ -161,12 +162,7 @@ namespace MisterGames.Blueprints.Editor.View {
 
             _blueprintMeta?.Bind(OnNodeInvalidated);
 
-            GetBlueprintNodesCenter(out var position, out var scale);
-            var currentPosition = contentViewContainer.transform.position;
-            if (Vector3.Distance(position, currentPosition) >= POPULATE_SCROLL_TO_NODES_CENTER_TOLERANCE_DISTANCE) {
-                UpdateViewTransform(position, scale);
-            }
-            
+            SetupPositionAndScale();
             InitializeGroupCallbacks();
         }
 
@@ -355,26 +351,24 @@ namespace MisterGames.Blueprints.Editor.View {
 
             if (count > 0) SetTargetObjectDirtyAndNotify();
         }
+        
+        private void WritePositionAndZoom() {
+            if (_blueprintMeta == null || !_areGraphOperationsAllowed) return;
 
-        private void GetBlueprintNodesCenter(out Vector3 position, out Vector3 scale) {
-            position = Vector3.zero;
-            scale = Vector3.one;
+            var t = contentViewContainer.transform;
+            _blueprintMeta.positionAndZoom = new Vector3(t.position.x, t.position.y, t.scale.x);
+            
+            SetTargetObjectDirtyAndNotify(notify: false);
+        }
 
+        private void SetupPositionAndScale() {
             if (_blueprintMeta == null) return;
 
-            var positionAccumulator = Vector2.zero;
-
-            var nodes = _blueprintMeta.Nodes;
-
-            foreach (var nodeId in nodes) {
-                positionAccumulator += _blueprintMeta.GetNodePosition(nodeId);
-            }
-
-            int nodeCount = _blueprintMeta.NodeCount;
-            if (nodeCount > 0) positionAccumulator /= nodeCount;
-
-            scale = contentViewContainer.transform.scale;
-            position = Vector3.Scale(-positionAccumulator, scale);
+            var positionAndZoom = _blueprintMeta.positionAndZoom;
+            var position = positionAndZoom.WithZ(0f);
+            var scale = Vector3.one * Mathf.Clamp(positionAndZoom.z, 0.01f, 10f);
+            
+            UpdateViewTransform(position, scale);
         }
 
         public override void BuildContextualMenu(ContextualMenuPopulateEvent evt) {
@@ -394,14 +388,14 @@ namespace MisterGames.Blueprints.Editor.View {
             base.BuildContextualMenu(evt);
         }
 
-        private void SetTargetObjectDirtyAndNotify() {
+        private void SetTargetObjectDirtyAndNotify(bool notify = true) {
             if (_serializedObject == null) return;
 
             _serializedObject.ApplyModifiedProperties();
             _serializedObject.Update();
 
             EditorUtility.SetDirty(_serializedObject.targetObject);
-            OnSetDirty?.Invoke(_serializedObject.targetObject);
+            if (notify) OnSetDirty?.Invoke(_serializedObject.targetObject);
         }
 
         private void InvalidateBlueprint() {
@@ -1240,10 +1234,25 @@ namespace MisterGames.Blueprints.Editor.View {
         private void InitMouse() {
             RegisterCallback<MouseMoveEvent>(HandleMouseMove);
             RegisterCallback<MouseUpEvent>(OnMouseUp);
+            RegisterCallback<WheelEvent>(OnMouseWheel);
         }
 
         private void OnMouseUp(MouseUpEvent evt) {
-            if (evt.button == 0) WriteChangedPositions();
+            switch (evt.button) {
+                // lmb
+                case 0:
+                    WriteChangedPositions();
+                    break;
+                
+                // wheel
+                case 3:
+                    WritePositionAndZoom();
+                    break;
+            }
+        }
+
+        private void OnMouseWheel(WheelEvent evt) {
+            WritePositionAndZoom();
         }
 
         private void HandleMouseMove(MouseMoveEvent evt) {
