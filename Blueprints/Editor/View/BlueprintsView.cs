@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Blackboards.Editor;
+using MisterGames.Blueprints.Editor.Storage;
 using MisterGames.Blueprints.Editor.Utils;
 using MisterGames.Blueprints.Editor.Windows;
 using MisterGames.Blueprints.Factory;
@@ -22,8 +23,6 @@ using PortView = UnityEditor.Experimental.GraphView.Port;
 namespace MisterGames.Blueprints.Editor.View {
 
     public sealed class BlueprintsView : GraphView, IEdgeConnectorListener {
-
-        private const float POPULATE_SCROLL_TO_NODES_CENTER_TOLERANCE_DISTANCE = 70f;
 
         public Func<Vector2, Vector2> OnRequestWorldPosition = _ => Vector2.zero;
         public Action<Object> OnSetDirty = delegate {  };
@@ -354,17 +353,19 @@ namespace MisterGames.Blueprints.Editor.View {
         
         private void WritePositionAndZoom() {
             if (_blueprintMeta == null || !_areGraphOperationsAllowed) return;
-
-            var t = contentViewContainer.transform;
-            _blueprintMeta.positionAndZoom = new Vector3(t.position.x, t.position.y, t.scale.x);
             
-            SetTargetObjectDirtyAndNotify(notify: false);
+            var t = contentViewContainer.transform;
+            
+            BlueprintEditorStorage.Instance.SetPosition(
+                _serializedObject.targetObject, 
+                new Vector3(t.position.x, t.position.y, t.scale.x)
+            );
         }
 
         private void SetupPositionAndScale() {
             if (_blueprintMeta == null) return;
 
-            var positionAndZoom = _blueprintMeta.positionAndZoom;
+            var positionAndZoom = BlueprintEditorStorage.Instance.GetPosition(_serializedObject.targetObject);
             var position = positionAndZoom.WithZ(0f);
             var scale = Vector3.one * Mathf.Clamp(positionAndZoom.z, 0.01f, 10f);
             

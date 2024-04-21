@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using MisterGames.Blackboards.Core;
 using MisterGames.Blueprints.Editor.Storage;
@@ -16,7 +17,7 @@ namespace MisterGames.Blueprints.Editor.Windows {
     public sealed class BlueprintEditorWindow : EditorWindow {
 
         private const string WINDOW_TITLE = "Blueprint Editor";
-
+        
         private BlueprintMeta _blueprintMeta;
         private IBlueprintFactory _factoryOverride;
         private Blackboard _blackboard;

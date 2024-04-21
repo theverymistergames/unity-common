@@ -1,22 +1,43 @@
 ﻿using System;
+using System.Collections.Generic;
 using MisterGames.Blackboards.Core;
 using MisterGames.Blueprints.Editor.Windows;
 using MisterGames.Blueprints.Factory;
 using MisterGames.Blueprints.Meta;
+using MisterGames.Common.Data;
 using UnityEditor;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace MisterGames.Blueprints.Editor.Storage {
 
     public sealed class BlueprintEditorStorage : Common.Data.ScriptableSingleton<BlueprintEditorStorage> {
 
         [SerializeField] [HideInInspector] private BlueprintEditorData _lastData;
+        [SerializeField] [HideInInspector] private Map<BlueprintAsset, Vector3> _positionMap;
 
+        private readonly Dictionary<Object, Vector3> _objectPositionMap = new(); 
+        
         [Serializable]
         private struct BlueprintEditorData {
             public BlueprintAsset asset;
-            public UnityEngine.Object target;
+            public Object target;
             public NodeId[] path;
+        }
+
+        public Vector3 GetPosition(Object obj) {
+            return obj is BlueprintAsset asset 
+                ? _positionMap.GetValueOrDefault(asset, new Vector3(0f, 0f, 1f)) 
+                : _objectPositionMap.GetValueOrDefault(obj, new Vector3(0f, 0f, 1f));
+        }
+
+        public void SetPosition(Object obj, Vector3 position) {
+            if (obj is BlueprintAsset asset) {
+                _positionMap[asset] = position;
+                return;
+            }
+
+            _objectPositionMap[obj] = position;
         }
 
         public void OpenLast() {

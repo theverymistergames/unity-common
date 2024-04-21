@@ -19,7 +19,6 @@ namespace MisterGames.Blueprints.Meta {
         [SerializeField] private BlueprintLinkStorage _linkStorage;
         [SerializeField] private BlueprintPortStorage _portStorage;
         [SerializeField] private BlueprintGroupStorage _groupStorage;
-        [SerializeField] internal Vector3 positionAndZoom;
         
         public IReadOnlyCollection<NodeId> Nodes => _nodeMap.Keys;
         public IDictionary<NodeId, BlueprintAsset> SubgraphAssetMap => _subgraphMap;
