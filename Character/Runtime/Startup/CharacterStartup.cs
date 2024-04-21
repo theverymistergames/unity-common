@@ -1,20 +1,23 @@
 ﻿using System.Threading;
 using Cysharp.Threading.Tasks;
-using MisterGames.Character.Actions;
-using MisterGames.Character.Core;
+using MisterGames.Actors;
+using MisterGames.Actors.Actions;
 using MisterGames.Common.Attributes;
 using UnityEngine;
 
 namespace MisterGames.Character.Startup {
 
-    public sealed class CharacterStartup : MonoBehaviour {
-
-        [SerializeField] private CharacterAccess _characterAccess;
+    public sealed class CharacterStartup : MonoBehaviour, IActorComponent {
 
         [EmbeddedInspector]
-        [SerializeField] private CharacterActionAsset[] _startupActions;
+        [SerializeField] private ActorAction[] _startupActions;
 
+        private IActor _actor;
         private CancellationTokenSource _enableCts;
+
+        public void OnAwakeActor(IActor actor) {
+            _actor = actor;
+        }
 
         private void OnEnable() {
             _enableCts?.Cancel();
@@ -34,7 +37,7 @@ namespace MisterGames.Character.Startup {
 
         private async UniTask Apply(CancellationToken token) {
             for (int i = 0; i < _startupActions.Length; i++) {
-                await _startupActions[i].Apply(_characterAccess, token);
+                await _startupActions[i].Apply(_actor, token);
             }
         }
     }

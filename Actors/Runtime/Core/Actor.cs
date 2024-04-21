@@ -126,20 +126,20 @@ namespace MisterGames.Actors
 
         private void NotifyAwake() {
             for (int i = 0, count = _actorComponents.Count; i < count && _isAwake; i++) {
-                _actorComponents[i]?.OnAwake(this);
+                _actorComponents[i]?.OnAwakeActor(this);
             }
         }
         
         private void NotifyDestroy() {
             for (int i = 0, count = _actorComponents.Count; i < count; i++) {
-                _actorComponents[i]?.OnDestroy(this);
+                _actorComponents[i]?.OnDestroyActor(this);
             }
         }
         
         private void NotifyDataUpdated()
         {
             for (int i = 0, count = _actorComponents.Count; i < count && _isAwake; i++) {
-                _actorComponents[i]?.OnDataUpdated(this);
+                _actorComponents[i]?.OnActorDataUpdated(this);
             }
         }
 

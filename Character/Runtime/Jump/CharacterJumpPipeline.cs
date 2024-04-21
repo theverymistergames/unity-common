@@ -1,5 +1,6 @@
 ﻿using System;
-using MisterGames.Character.Conditions;
+using MisterGames.Actors;
+using MisterGames.Actors.Actions;
 using MisterGames.Character.Core;
 using MisterGames.Character.Input;
 using MisterGames.Character.Motion;
@@ -9,14 +10,13 @@ using UnityEngine;
 
 namespace MisterGames.Character.Jump {
 
-    public sealed class CharacterJumpPipeline : CharacterPipelineBase, ICharacterJumpPipeline {
+    public sealed class CharacterJumpPipeline : CharacterPipelineBase, IActorComponent, ICharacterJumpPipeline {
 
-        [SerializeField] private CharacterAccess _characterAccess;
         [SerializeField] private Vector3 _direction = Vector3.up;
         [SerializeField] private float _force = 1f;
 
         [EmbeddedInspector]
-        [SerializeField] private CharacterConditionAsset _jumpCondition;
+        [SerializeField] private ActorCondition _jumpCondition;
 
         public event Action<Vector3> OnJump = delegate {  };
 
@@ -26,12 +26,14 @@ namespace MisterGames.Character.Jump {
 
         public override bool IsEnabled { get => enabled; set => enabled = value; }
 
+        private IActor _actor;
         private ICharacterInputPipeline _input;
         private CharacterProcessorMass _mass;
 
-        private void Awake() {
-            _input = _characterAccess.GetPipeline<ICharacterInputPipeline>();
-            _mass = _characterAccess.GetPipeline<ICharacterMotionPipeline>().GetProcessor<CharacterProcessorMass>();
+        void IActorComponent.OnAwakeActor(IActor actor) {
+            _actor = actor;
+            _input = actor.GetComponent<ICharacterInputPipeline>();
+            _mass = actor.GetComponent<ICharacterMotionPipeline>().GetProcessor<CharacterProcessorMass>();
         }
 
         private void OnEnable() {
@@ -44,7 +46,7 @@ namespace MisterGames.Character.Jump {
         }
 
         private void HandleJumpPressedInput() {
-            if (_jumpCondition != null && !_jumpCondition.IsMatch(_characterAccess)) return;
+            if (_jumpCondition != null && !_jumpCondition.IsMatch(_actor)) return;
 
             LastJumpImpulse = _force * _direction;
             if (LastJumpImpulse.IsNearlyZero()) return;

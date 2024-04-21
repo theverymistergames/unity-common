@@ -1,0 +1,43 @@
+﻿using System;
+using MisterGames.Actors;
+using MisterGames.Actors.Actions;
+using MisterGames.Character.Capsule;
+using MisterGames.Character.Collisions;
+using MisterGames.Character.Core;
+using MisterGames.Common.Data;
+
+namespace MisterGames.ActionLib.Character {
+
+    [Serializable]
+    public sealed class CharacterConditionHasCeiling : IActorCondition {
+
+        public bool hasCeiling;
+        public Optional<float> minCeilingHeight;
+
+        public bool IsMatch(IActor context) {
+            var ceilingDetector = context.GetComponent<ICharacterCollisionPipeline>().CeilingDetector;
+            var info = ceilingDetector.CollisionInfo;
+
+            // No contact:
+            // return true if no contact is expected
+            if (!info.hasContact) return !hasCeiling;
+
+            // Has contact, no ceiling height limit:
+            // return true if contact is expected
+            if (!minCeilingHeight.HasValue) return hasCeiling;
+
+            var capsule = context.GetComponent<ICharacterCapsulePipeline>();
+            var top = capsule.ColliderTop;
+            float sqrDistanceToCeiling = (info.point - top).sqrMagnitude;
+
+            // Has contact, current distance from character top point to ceiling contact point is above min limit:
+            // return true if no contact is expected
+            if (sqrDistanceToCeiling > minCeilingHeight.Value * minCeilingHeight.Value) return !hasCeiling;
+
+            // Has contact, current distance from character top point to ceiling contact point is below min limit:
+            // return true if contact is expected
+            return hasCeiling;
+        }
+    }
+
+}

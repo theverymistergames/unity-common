@@ -78,7 +78,21 @@ namespace MisterGames.Common.Data
             return true;
         }
 
-        public bool RemoveValue(K key, int index) {
+        public bool RemoveValue(K key, V value) {
+            int count = _countMap.GetValueOrDefault(key);
+            int index = -1;
+            
+            for (int i = 0; i < count; i++) {
+                if (EqualityComparer<V>.Default.Equals(value, _valueMap[(key, i)])) {
+                    index = i;
+                    break;
+                }
+            }
+
+            return RemoveValueAt(key, index);
+        }
+        
+        public bool RemoveValueAt(K key, int index) {
             int count = _countMap.GetValueOrDefault(key);
             if (index < 0 || index > count - 1) return false;
             

@@ -1,4 +1,4 @@
-﻿using System;
+﻿using MisterGames.Actors;
 using MisterGames.Character.Motion;
 using MisterGames.Character.View;
 using MisterGames.Common.GameObjects;
@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace MisterGames.Character.Core {
 
-    public sealed class CharacterAccess : MonoBehaviour, ICharacterAccess {
+    public sealed class CharacterAccess : MonoBehaviour, IActorComponent, ICharacterAccess {
 
         [SerializeField] private CharacterHeadAdapter headAdapter;
         [SerializeField] private CharacterBodyAdapter _bodyAdapter;
@@ -16,12 +16,12 @@ namespace MisterGames.Character.Core {
         public ITransformAdapter HeadAdapter => headAdapter;
         public ITransformAdapter BodyAdapter => _bodyAdapter;
 
-        private void Awake() {
-            CharacterAccessRegistry.Instance.Register(this);
+        void IActorComponent.OnAwakeActor(IActor actor) {
+            CharacterAccessRegistry.Instance.Register(actor);
         }
 
-        private void OnDestroy() {
-            CharacterAccessRegistry.Instance.Unregister(this);
+        void IActorComponent.OnDestroyActor(IActor actor) {
+            CharacterAccessRegistry.Instance.Unregister(actor);
         }
 
         public T GetPipeline<T>() where T : ICharacterPipeline {

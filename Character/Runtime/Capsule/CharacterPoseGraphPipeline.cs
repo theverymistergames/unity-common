@@ -1,5 +1,6 @@
 ﻿using System.Threading;
 using Cysharp.Threading.Tasks;
+using MisterGames.Actors;
 using MisterGames.Character.Core;
 using MisterGames.Character.Input;
 using MisterGames.Common.Attributes;
@@ -8,9 +9,7 @@ using UnityEngine;
 
 namespace MisterGames.Character.Capsule {
 
-    public class CharacterPoseGraphPipeline : CharacterPipelineBase, ICharacterPoseGraphPipeline {
-
-        [SerializeField] private CharacterAccess _characterAccess;
+    public class CharacterPoseGraphPipeline : CharacterPipelineBase, IActorComponent, ICharacterPoseGraphPipeline {
 
         [EmbeddedInspector]
         [SerializeField] private CharacterPoseGraph _poseGraph;
@@ -20,14 +19,16 @@ namespace MisterGames.Character.Capsule {
 
         public override bool IsEnabled { get => enabled; set => enabled = value; }
 
+        private IActor _actor;
         private ICharacterPosePipeline _pose;
         private ICharacterInputPipeline _input;
         private CancellationTokenSource _enableCts;
         private CancellationTokenSource _poseChangeCts;
 
-        private void Awake() {
-            _input = _characterAccess.GetPipeline<ICharacterInputPipeline>();
-            _pose = _characterAccess.GetPipeline<ICharacterPosePipeline>();
+        void IActorComponent.OnAwakeActor(IActor actor) {
+            _actor = actor;
+            _input = actor.GetComponent<ICharacterInputPipeline>();
+            _pose = actor.GetComponent<ICharacterPosePipeline>();
         }
 
         private void Start() {
@@ -110,7 +111,7 @@ namespace MisterGames.Character.Capsule {
             _poseChangeCts = new CancellationTokenSource();
             var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _poseChangeCts.Token);
 
-            transition.Action?.Apply(_characterAccess, cancellationToken).Forget();
+            transition.Action?.Apply(_actor, cancellationToken).Forget();
 
             await _pose.ChangePose(targetPose, targetCapsuleSize, duration, setPoseAt, linkedCts.Token);
         }
@@ -127,7 +128,7 @@ namespace MisterGames.Character.Capsule {
 
                 if (t.SourcePose == sourcePose &&
                     t.TargetPose == targetPose &&
-                    (t.Condition == null || t.Condition.IsMatch(_characterAccess))
+                    (t.Condition == null || t.Condition.IsMatch(_actor))
                 ) {
                     transition = t;
                     return true;

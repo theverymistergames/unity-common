@@ -1,18 +1,14 @@
-﻿using System;
+﻿using MisterGames.Actors;
 
 namespace MisterGames.Character.Core {
 
     public interface ICharacterAccessRegistry {
 
-        event Action<CharacterAccess> OnRegistered;
+        IActor GetCharacterAccess();
 
-        event Action<CharacterAccess> OnUnregistered;
+        void Register(IActor actor);
 
-        CharacterAccess GetCharacterAccess();
-
-        void Register(CharacterAccess characterAccess);
-
-        void Unregister(CharacterAccess characterAccess);
+        void Unregister(IActor actor);
     }
 
 }

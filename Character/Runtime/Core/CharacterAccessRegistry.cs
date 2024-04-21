@@ -1,4 +1,5 @@
 ﻿using System;
+using MisterGames.Actors;
 using UnityEngine;
 
 namespace MisterGames.Character.Core {
@@ -7,27 +8,22 @@ namespace MisterGames.Character.Core {
 
         public static ICharacterAccessRegistry Instance { get; private set; }
 
-        public event Action<CharacterAccess> OnRegistered = delegate {  };
-        public event Action<CharacterAccess> OnUnregistered = delegate {  };
-
-        private CharacterAccess _characterAccess;
+        private IActor _actor;
 
         private void Awake() {
             Instance = this;
         }
 
-        public CharacterAccess GetCharacterAccess() {
-            return _characterAccess;
+        public IActor GetCharacterAccess() {
+            return _actor;
         }
 
-        public void Register(CharacterAccess characterAccess) {
-            _characterAccess = characterAccess;
-            OnRegistered.Invoke(characterAccess);
+        public void Register(IActor actor) {
+            _actor = actor;
         }
 
-        public void Unregister(CharacterAccess characterAccess) {
-            _characterAccess = null;
-            OnUnregistered.Invoke(characterAccess);
+        public void Unregister(IActor action) {
+            _actor = null;
         }
     }
 
