@@ -38,13 +38,13 @@ namespace MisterGames.Character.Motion {
             _exitTrigger.OnTriggered -= OnExitTriggered;
         }
 
-        private void OnEnterTriggered(GameObject obj) {
+        private void OnEnterTriggered(Collider obj) {
             if (!obj.TryGetComponent(out IActor actor)) return;
 
             _enterAction.Apply(actor, _enableCts.Token).Forget();
         }
 
-        private void OnExitTriggered(GameObject obj) {
+        private void OnExitTriggered(Collider obj) {
             if (!obj.TryGetComponent(out IActor actor)) return;
 
             _exitAction.Apply(actor, _enableCts.Token).Forget();

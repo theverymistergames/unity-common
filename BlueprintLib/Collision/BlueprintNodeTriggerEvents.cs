@@ -12,12 +12,13 @@ namespace MisterGames.BlueprintLib {
         IBlueprintNode,
         IBlueprintEnter,
         IBlueprintStartCallback,
-        IBlueprintOutput<GameObject>
+        IBlueprintOutput<GameObject>,
+        IBlueprintOutput<Collider>
     {
         [SerializeField] private bool _autoSetTriggerAtStart;
 
         private Trigger _trigger;
-        private GameObject _go;
+        private Collider _collider;
         private IBlueprint _blueprint;
 
         private NodeToken _token;
@@ -27,11 +28,12 @@ namespace MisterGames.BlueprintLib {
             meta.AddPort(id, Port.Input<Trigger>());
             meta.AddPort(id, Port.Exit("On Triggered"));
             meta.AddPort(id, Port.Output<GameObject>());
+            meta.AddPort(id, Port.Output<Collider>());
         }
 
         public void OnDeInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
             _blueprint = null;
-            _go = null;
+            _collider = null;
             _trigger = null;
         }
 
@@ -51,8 +53,12 @@ namespace MisterGames.BlueprintLib {
             SetupTrigger();
         }
 
-        public GameObject GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
-            return port == 3 ? _go : default;
+        GameObject IBlueprintOutput<GameObject>.GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
+            return port == 3 ? _collider.gameObject : default;
+        }
+
+        Collider IBlueprintOutput<Collider>.GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
+            return port == 4 ? _collider : default;
         }
 
         private void SetupTrigger() {
@@ -62,8 +68,8 @@ namespace MisterGames.BlueprintLib {
             _trigger.OnTriggered += OnTriggered;
         }
 
-        private void OnTriggered(GameObject go) {
-            _go = go;
+        private void OnTriggered(Collider go) {
+            _collider = go;
             _blueprint.Call(_token, 2);
         }
     }

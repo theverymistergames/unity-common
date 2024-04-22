@@ -76,7 +76,7 @@ namespace MisterGames.Character.Motion {
             _random = 0f;
         }
 
-        private void OnEnterTrigger(GameObject go) {
+        private void OnEnterTrigger(Collider go) {
             if (_characterMass != null) return;
 
             var characterAccess = go.GetComponent<CharacterAccess>();
@@ -90,7 +90,7 @@ namespace MisterGames.Character.Motion {
             OnEnteredZone.Invoke(characterAccess);
         }
 
-        private void OnExitTrigger(GameObject go) {
+        private void OnExitTrigger(Collider go) {
             if (_characterMass == null) return;
 
             var characterAccess = go.GetComponent<CharacterAccess>();
