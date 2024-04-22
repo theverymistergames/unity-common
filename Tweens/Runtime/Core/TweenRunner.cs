@@ -6,7 +6,9 @@ namespace MisterGames.Tweens {
 
     public sealed class TweenRunner : MonoBehaviour {
 
+        [SerializeField] private string _name;
         [SerializeField] private bool _playAtStart;
+        [Space(10f)]
         [SerializeField] private TweenPlayer _tweenPlayer;
 
         public TweenPlayer TweenPlayer => _tweenPlayer;
