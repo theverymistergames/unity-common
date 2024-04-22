@@ -108,7 +108,7 @@ namespace MisterGames.BlueprintLib {
             bool finished = await _tweenPlayer.Play(
                 this,
                 (t, p) => t.ReportProgress(p),
-                cancellationToken
+                cancellationToken: cancellationToken
             );
 
             // Notify OnFinished or OnCancelled

@@ -41,10 +41,13 @@ namespace MisterGames.Tweens {
         public async UniTask<bool> Play<T>(
             T data,
             ProgressCallback<T> progressCallback = null,
+            float progress = -1f,
             CancellationToken cancellationToken = default
         ) {
             Stop();
 
+            if (progress >= 0f) _progress = progress;
+            
             float duration = GetDuration(forceRecalculate: _playState != PlayState.DurationCalculated);
             if (_invertNextPlay && _playState == PlayState.Playing) _speed = -_speed;
             _playState = PlayState.Playing;
@@ -93,10 +96,13 @@ namespace MisterGames.Tweens {
 
         public async UniTask<bool> Play(
             ProgressCallback progressCallback = null,
+            float progress = -1f,
             CancellationToken cancellationToken = default
         ) {
             Stop();
 
+            if (progress >= 0f) _progress = progress;
+            
             float duration = GetDuration(forceRecalculate: _playState != PlayState.DurationCalculated);
             if (_invertNextPlay && _playState == PlayState.Playing) _speed = -_speed;
             _playState = PlayState.Playing;
