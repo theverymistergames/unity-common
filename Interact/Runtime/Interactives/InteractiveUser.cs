@@ -151,13 +151,8 @@ namespace MisterGames.Interact.Interactives {
                 var interactive = _interactiveCache[i];
                 if (_interactiveTargetsSet.Contains(interactive)) continue;
 
-                bool ready = interactive.IsReadyToStartInteractWith(this);
-                bool allowedStart = interactive.IsAllowedToStartInteractWith(this);
-                
-                Debug.Log($"<color=white>{Time.frameCount}</color> :: InteractiveUser {name} .OnUpdate: " +
-                          $"interactive {interactive.Transform.name}, ready {ready}, allowed start {allowedStart}");
-                
-                if (!ready || !allowedStart) continue;
+                if (!interactive.IsReadyToStartInteractWith(this) || 
+                    !interactive.IsAllowedToStartInteractWith(this)) continue;
 
                 TryStartInteract(interactive);
             }
