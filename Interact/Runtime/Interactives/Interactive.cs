@@ -10,13 +10,15 @@ namespace MisterGames.Interact.Interactives {
 
     [RequireComponent(typeof(Detectable))]
     public sealed class Interactive : MonoBehaviour, IInteractive {
-
+        
         [EmbeddedInspector]
         [SerializeField] private InteractionStrategy _strategy;
         
         [EmbeddedInspector]
         [SerializeField] private InteractiveCursorStrategy _cursorStrategy;
 
+        [SerializeField] private bool _syncEnableStateWithDetectable = true;
+        
         public event Action<IInteractiveUser> OnDetectedBy = delegate {  };
         public event Action<IInteractiveUser> OnLostBy = delegate {  };
 
@@ -26,8 +28,9 @@ namespace MisterGames.Interact.Interactives {
         public IReadOnlyCollection<IInteractiveUser> Users => _users;
         public Transform Transform { get; private set; }
 
-        private readonly List<IInteractiveUser> _users = new List<IInteractiveUser>();
-        private readonly Dictionary<IInteractiveUser, InteractionData> _userInteractionMap = new Dictionary<IInteractiveUser, InteractionData>();
+        private readonly List<IInteractiveUser> _users = new();
+        private readonly Dictionary<IInteractiveUser, InteractionData> _userInteractionMap = new();
+        private Detectable _detectable;
 
         private readonly struct InteractionData {
 
@@ -40,10 +43,16 @@ namespace MisterGames.Interact.Interactives {
 
         private void Awake() {
             Transform = transform;
+            _detectable = GetComponent<Detectable>();
+        }
+
+        private void OnEnable() {
+            if (_syncEnableStateWithDetectable) _detectable.enabled = true;
         }
 
         private void OnDisable() {
             ForceStopInteractWithAllUsers();
+            if (_syncEnableStateWithDetectable) _detectable.enabled = false;
         }
 
         public bool IsInteractingWith(IInteractiveUser user) {

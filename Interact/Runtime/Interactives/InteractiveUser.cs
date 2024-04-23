@@ -24,11 +24,9 @@ namespace MisterGames.Interact.Interactives {
         public Transform Transform { get; private set; }
         public GameObject Root => _root;
 
-        private readonly List<IInteractive> _interactiveTargets = new List<IInteractive>();
         private readonly HashSet<IInteractive> _interactiveTargetsSet = new HashSet<IInteractive>();
-
-        private readonly List<IInteractive> _interactiveCandidates = new List<IInteractive>();
         private readonly HashSet<IInteractive> _interactiveCandidatesSet = new HashSet<IInteractive>();
+        private readonly List<IInteractive> _interactiveCache = new();
 
         private void Awake() {
             Transform = transform;
@@ -52,7 +50,6 @@ namespace MisterGames.Interact.Interactives {
             _interactivesDetector.OnDetected -= HandleDetected;
             _interactivesDetector.OnLost -= HandleLost;
 
-            _interactiveCandidates.Clear();
             _interactiveCandidatesSet.Clear();
 
             ForceStopInteractAll();
@@ -80,7 +77,6 @@ namespace MisterGames.Interact.Interactives {
             if (!enabled || interactive == null || _interactiveTargetsSet.Contains(interactive)) return false;
 
             _interactiveTargetsSet.Add(interactive);
-            _interactiveTargets.Add(interactive);
 
             interactive.NotifyStartedInteractWith(this);
             OnStartInteract.Invoke(interactive);
@@ -94,7 +90,6 @@ namespace MisterGames.Interact.Interactives {
             if (interactive == null || !_interactiveTargetsSet.Contains(interactive)) return false;
 
             _interactiveTargetsSet.Remove(interactive);
-            _interactiveTargets.Remove(interactive);
 
             OnStopInteract.Invoke(interactive);
             interactive.NotifyStoppedInteractWith(this);
@@ -108,15 +103,13 @@ namespace MisterGames.Interact.Interactives {
 
         public void ForceStopInteractAll() {
             _interactiveTargetsSet.Clear();
-
-            for (int i = 0; i < _interactiveTargets.Count; i++) {
-                var interactive = _interactiveTargets[i];
-
+            
+            foreach (var interactive in _interactiveTargetsSet) {
                 OnStopInteract.Invoke(interactive);
                 interactive.NotifyStoppedInteractWith(this);
             }
-
-            _interactiveTargets.Clear();
+            
+            _interactiveTargetsSet.Clear();
 
             if (_interactiveTargetsSet.Count == 0 && _interactiveCandidatesSet.Count == 0) {
                 TimeSources.Get(_timeSourceStage).Unsubscribe(this);
@@ -128,7 +121,6 @@ namespace MisterGames.Interact.Interactives {
                 _interactiveCandidatesSet.Contains(interactive)) return;
 
             _interactiveCandidatesSet.Add(interactive);
-            _interactiveCandidates.Add(interactive);
 
             OnDetected.Invoke(interactive);
             interactive.NotifyDetectedBy(this);
@@ -142,7 +134,6 @@ namespace MisterGames.Interact.Interactives {
                 !_interactiveCandidatesSet.Contains(interactive)) return;
 
             _interactiveCandidatesSet.Remove(interactive);
-            _interactiveCandidates.Remove(interactive);
 
             interactive.NotifyLostBy(this);
             OnLost.Invoke(interactive);
@@ -153,21 +144,31 @@ namespace MisterGames.Interact.Interactives {
         }
 
         public void OnUpdate(float dt) {
-            for (int i = 0; i < _interactiveCandidates.Count; i++) {
-                var interactive = _interactiveCandidates[i];
+            _interactiveCache.Clear();
+            _interactiveCache.AddRange(_interactiveCandidatesSet);
+            
+            for (int i = 0; i < _interactiveCache.Count; i++) {
+                var interactive = _interactiveCache[i];
                 if (_interactiveTargetsSet.Contains(interactive)) continue;
 
-                if (!interactive.IsReadyToStartInteractWith(this) ||
-                    !interactive.IsAllowedToStartInteractWith(this)) continue;
+                bool ready = interactive.IsReadyToStartInteractWith(this);
+                bool allowedStart = interactive.IsAllowedToStartInteractWith(this);
+                
+                Debug.Log($"<color=white>{Time.frameCount}</color> :: InteractiveUser {name} .OnUpdate: " +
+                          $"interactive {interactive.Transform.name}, ready {ready}, allowed start {allowedStart}");
+                
+                if (!ready || !allowedStart) continue;
 
                 TryStartInteract(interactive);
             }
+            
+            _interactiveCache.Clear();
+            _interactiveCache.AddRange(_interactiveTargetsSet);
 
-            for (int i = _interactiveTargets.Count - 1; i >= 0; i--) {
-                var interactive = _interactiveTargets[i];
-
+            for (int i = 0; i < _interactiveCache.Count; i++) {
+                var interactive = _interactiveCache[i];
                 if (interactive.IsAllowedToContinueInteractWith(this)) continue;
-
+                
                 TryStopInteract(interactive);
             }
         }
