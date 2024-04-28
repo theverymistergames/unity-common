@@ -16,17 +16,14 @@ namespace MisterGames.Blackboards.Tables {
 
         public T Get<T>(int hash) {
             if (!_map.TryGetValue(hash, out var a)) return default;
-
-            var type = typeof(T);
-            if (!type.IsArray) return default;
-
-            var elementType = typeof(T).GetElementType()!;
+            
+            var elementType = typeof(T).GetElementType() ?? typeof(Object);    
             var array = Array.CreateInstance(elementType, a.Length);
 
             for (int i = 0; i < a.Length; i++) {
-                if (a[i].value is {} v && v.GetType() == elementType) array.SetValue(v, i);
+                array.SetValue(a[i].value, i);
             }
-
+            
             return array is T t ? t : default;
         }
 

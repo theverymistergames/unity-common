@@ -6,8 +6,7 @@ namespace MisterGames.BlueprintLib {
 
     [Serializable]
     public class BlueprintSourceEnableGameObject :
-        BlueprintSource<BlueprintNodeEnableGameObject>,
-        BlueprintSources.IEnter<BlueprintNodeEnableGameObject>,
+        BlueprintSource<BlueprintNodeEnableGameObject>, BlueprintSources.IEnter<BlueprintNodeEnableGameObject>,
         BlueprintSources.ICloneable {}
 
     [Serializable]
@@ -24,10 +23,10 @@ namespace MisterGames.BlueprintLib {
 
         public void OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
             if (port != 0) return;
-
+            
             bool isEnabled = blueprint.Read(token, 2, _isEnabled);
             var gameObject = blueprint.Read<GameObject>(token, 1);
-
+            
             if (gameObject != null) gameObject.SetActive(isEnabled);
         }
 

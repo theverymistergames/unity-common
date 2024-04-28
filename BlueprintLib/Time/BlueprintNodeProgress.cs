@@ -53,7 +53,10 @@ namespace MisterGames.BlueprintLib {
                 float duration = blueprint.Read(token, 2, _duration);
 
                 if (duration <= 0) {
+                    blueprint.Call(token, 3);
                     _progress = 1f;
+                    blueprint.Call(token, 5);
+                    blueprint.Call(token, 4);
                     return;
                 }
 

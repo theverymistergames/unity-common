@@ -3,20 +3,13 @@ using MisterGames.Blueprints;
 using MisterGames.Blueprints.Meta;
 using MisterGames.Blueprints.Nodes;
 using MisterGames.Blueprints.Runtime;
+using UnityEngine;
 
 namespace MisterGames.BlueprintLib {
 
     [Serializable]
-    public class BlueprintSourceIterate :
-        BlueprintSource<BlueprintNodeIterate>,
-        BlueprintSources.IEnter<BlueprintNodeIterate>,
-        BlueprintSources.IOutput<BlueprintNodeIterate>,
-        BlueprintSources.IConnectionCallback<BlueprintNodeIterate>,
-        BlueprintSources.ICloneable {}
-
-    [Serializable]
     [BlueprintNode(Name = "Iterate", Category = "Flow", Color = BlueprintColors.Node.Flow)]
-    public struct BlueprintNodeIterate :
+    public sealed class BlueprintNodeIterate :
         IBlueprintNode,
         IBlueprintEnter,
         IBlueprintOutput,
@@ -83,14 +76,14 @@ namespace MisterGames.BlueprintLib {
                 _arrayPointer = 0;
                 _arrayCache = null;
             }
-
+            
             // Iterate through array and element links.
             while (true) {
                 // "On Iteration" port call.
                 // Connected node must read "Element" output port when the port is called,
                 // so method GetPortValue is called to retrieve element value.
                 blueprint.Call(token, 2);
-
+                
                 // Already retrieved array, has next element, continue iterate through array.
                 if (_arrayCache != null && _arrayPointer + 1 < _arrayCache.Length) {
                     _arrayPointer++;
@@ -114,7 +107,14 @@ namespace MisterGames.BlueprintLib {
 
         public T GetPortValue<T>(IBlueprint blueprint, NodeToken token, int port) {
             // Has cached array: return current array element
-            if (_arrayCache is T[] array) return array[_arrayPointer];
+            if (_arrayCache is T[] array) {
+                return array[_arrayPointer];
+            }
+
+            // Has cached array with base type: return current array element
+            if (_arrayCache != null) {
+                return _arrayCache.GetValue(_arrayPointer) is T t ? t : default;
+            }
 
             // Return current linked port value
             return _links.Read<T>();

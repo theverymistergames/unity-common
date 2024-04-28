@@ -2,14 +2,12 @@
 using MisterGames.Blackboards.Core;
 using MisterGames.Blueprints;
 using UnityEngine;
-using MisterGames.Blueprints.Meta;
 
 namespace MisterGames.BlueprintLib {
 
     [Serializable]
     public class BlueprintSourceGetBlackboardProperty :
-        BlueprintSource<BlueprintNodeGetBlackboardProperty>,
-        BlueprintSources.IOutput<BlueprintNodeGetBlackboardProperty>,
+        BlueprintSource<BlueprintNodeGetBlackboardProperty>, BlueprintSources.IOutput<BlueprintNodeGetBlackboardProperty>,
         BlueprintSources.ICloneable {}
 
     [Serializable]
@@ -38,10 +36,9 @@ namespace MisterGames.BlueprintLib {
             _blackboard = null;
         }
 
-        public T GetPortValue<T>(IBlueprint blueprint, NodeToken token, int port) => port switch {
-            0 => _blackboard.Get<T>(_property),
-            _ => default,
-        };
+        public T GetPortValue<T>(IBlueprint blueprint, NodeToken token, int port) {
+            return port == 0 ? _blackboard.Get<T>(_property) : default;
+        }
 
         public void OnValidate(IBlueprintMeta meta, NodeId id) {
             meta.InvalidateNode(id, invalidateLinks: true);

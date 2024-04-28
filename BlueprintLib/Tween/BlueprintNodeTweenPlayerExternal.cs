@@ -9,15 +9,15 @@ using UnityEngine;
 namespace MisterGames.BlueprintLib {
 
     [Serializable]
-    //[BlueprintNode(Name = "Tween Player External", Category = "Tweens", Color = BlueprintColors.Node.Actions)]
+    [BlueprintNode(Name = "Tween Player External", Category = "Tweens", Color = BlueprintColors.Node.Actions)]
     public sealed class BlueprintNodeTweenPlayerExternal :
         IBlueprintNode,
         IBlueprintEnter,
         IBlueprintOutput<float>,
         IBlueprintStartCallback
     {
-        [SerializeField] private bool _autoSetTweenRunnerOnStart;
-        [SerializeField] private bool _routeOnCancelledIntoOnFinished;
+        [SerializeField] private bool _autoSetTweenRunnerOnStart = true;
+        [SerializeField] private bool _routeOnCancelledIntoOnFinished = true;
         
         private IBlueprint _blueprint;
         private NodeToken _token;
@@ -28,11 +28,10 @@ namespace MisterGames.BlueprintLib {
 
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {
             meta.AddPort(id, Port.Enter("Set TweenRunner"));
-            meta.AddPort(id, Port.Input<TweenRunner>());
-
             meta.AddPort(id, Port.Enter("Play"));
             meta.AddPort(id, Port.Enter("Stop"));
 
+            meta.AddPort(id, Port.Input<TweenRunner>());
             meta.AddPort(id, Port.Input<float>("Progress"));
             meta.AddPort(id, Port.Input<float>("Speed"));
 
@@ -76,12 +75,12 @@ namespace MisterGames.BlueprintLib {
                     SetTweenRunner();
                     break;
 
-                case 2:
+                case 1:
                     Play(_destroyCts.Token).Forget();
                     break;
 
-                case 3:
-                    _tweenPlayer.Stop();
+                case 2:
+                    _tweenPlayer?.Stop();
                     break;
             }
         }
@@ -102,7 +101,6 @@ namespace MisterGames.BlueprintLib {
 
             _tweenPlayer.Stop();
             
-            _isFirstPlay = false;
             _isFirstNotifyProgress = true;
 
             bool finished = await _tweenPlayer.Play(
@@ -127,11 +125,10 @@ namespace MisterGames.BlueprintLib {
         }
 
         private void SetTweenRunner() {
-            var tweenRunner = _blueprint.Read<TweenRunner>(_token, 1);
+            var tweenRunner = _blueprint.Read<TweenRunner>(_token, 3);
             if (tweenRunner == null) return;
 
             _tweenPlayer = tweenRunner.TweenPlayer;
-            _isFirstPlay = true;
         }
     }
 

@@ -1,12 +1,13 @@
-﻿using System;
-using MisterGames.Actors;
+﻿using MisterGames.Actors;
 using UnityEngine;
 
 namespace MisterGames.Character.Core {
 
-    public sealed class CharacterAccessRegistry : MonoBehaviour, ICharacterAccessRegistry {
+    public sealed class CharacterAccessRegistry : MonoBehaviour {
 
-        public static ICharacterAccessRegistry Instance { get; private set; }
+        [SerializeField] private Actor _heroPrefab;
+
+        public static CharacterAccessRegistry Instance { get; private set; }
 
         private IActor _actor;
 
@@ -14,7 +15,11 @@ namespace MisterGames.Character.Core {
             Instance = this;
         }
 
-        public IActor GetCharacterAccess() {
+        public IActor GetCharacterAccess(bool spawnIfNotRegistered = false) {
+            if (_actor == null && spawnIfNotRegistered) {
+                _actor = Instantiate(_heroPrefab);
+            }
+            
             return _actor;
         }
 
@@ -22,7 +27,7 @@ namespace MisterGames.Character.Core {
             _actor = actor;
         }
 
-        public void Unregister(IActor action) {
+        public void Unregister(IActor actor) {
             _actor = null;
         }
     }

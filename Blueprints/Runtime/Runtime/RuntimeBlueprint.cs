@@ -145,7 +145,7 @@ namespace MisterGames.Blueprints.Runtime {
 
             var link = linkStorage.GetLink(index);
             var token = new NodeToken(new NodeId(link.source, link.node), caller);
-
+            
             return factory.GetSource(link.source) switch {
                 IBlueprintOutput<T> outputT => outputT.GetPortValue(this, token, link.port),
                 IBlueprintOutput output => output.GetPortValue<T>(this, token, link.port),

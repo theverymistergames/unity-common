@@ -76,6 +76,8 @@ namespace MisterGames.BlueprintLib {
             Transform t1,
             CancellationToken cancellationToken
         ) {
+            if (t0 == null || t1 == null) return;
+            
             while (!cancellationToken.IsCancellationRequested) {
                 var position0 = t0.position;
                 var position1 = t1.position;
