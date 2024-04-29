@@ -30,6 +30,7 @@ namespace MisterGames.Dbg.Console.Core {
 
         public string CurrentInput => _textInputField.text;
         internal IReadOnlyList<Command> Commands => _console.Commands;
+        internal IReadOnlyList<IConsoleModule> ConsoleModules => _consoleModules;
 
         private readonly Console _console = new Console();
         private readonly StringBuilder _stringBuilder = new StringBuilder();
