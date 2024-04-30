@@ -16,6 +16,7 @@ namespace MisterGames.BlueprintLib {
 
         [SerializeField] private string _a;
         [SerializeField] private string _b;
+        [SerializeField] private string _middle;
 
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {
             meta.AddPort(id, Port.Input<string>("A"));
@@ -24,7 +25,7 @@ namespace MisterGames.BlueprintLib {
         }
 
         public string GetPortValue(IBlueprint blueprint, NodeToken token, int port) => port switch {
-            2 => $"{blueprint.Read(token, 0, _a)}{blueprint.Read(token, 1, _b)}",
+            2 => $"{blueprint.Read(token, 0, _a)}{_middle}{blueprint.Read(token, 1, _b)}",
             _ => string.Empty,
         };
     }

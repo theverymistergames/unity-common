@@ -23,6 +23,7 @@ namespace MisterGames.Scenario.Events {
 
         public void OnLoadData(ISaveSystem saveSystem) {
             saveSystem.Pop(_id, _eventSystem, out _eventSystem);
+            EventSystems.Global = _eventSystem;
         }
 
         public void OnSaveData(ISaveSystem saveSystem) {

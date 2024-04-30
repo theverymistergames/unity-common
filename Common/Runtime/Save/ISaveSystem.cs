@@ -18,7 +18,7 @@ namespace MisterGames.Common.Save {
 
         void DeleteSave(string saveId);
         
-        void Register(ISaveable saveable);
+        void Register(ISaveable saveable, bool notifyLoad = true);
 
         void Unregister(ISaveable saveable);
         

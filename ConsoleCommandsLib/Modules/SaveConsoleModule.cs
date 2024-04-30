@@ -70,7 +70,7 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
         [ConsoleCommand("saves/delete")]
         [ConsoleCommandHelp("delete save by id")]
         public void DeleteSave(string saveId) {
-            ConsoleRunner.AppendLine($"Saving {saveId}");
+            ConsoleRunner.AppendLine($"Deleting {saveId}");
             SaveSystem.Instance.DeleteSave(saveId);
         }
         

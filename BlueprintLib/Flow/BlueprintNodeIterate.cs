@@ -1,9 +1,7 @@
 ﻿using System;
 using MisterGames.Blueprints;
-using MisterGames.Blueprints.Meta;
 using MisterGames.Blueprints.Nodes;
 using MisterGames.Blueprints.Runtime;
-using UnityEngine;
 
 namespace MisterGames.BlueprintLib {
 
@@ -13,11 +11,13 @@ namespace MisterGames.BlueprintLib {
         IBlueprintNode,
         IBlueprintEnter,
         IBlueprintOutput,
+        IBlueprintOutput<int>,
         IBlueprintConnectionCallback
     {
         private int _arrayPointer;
         private Array _arrayCache;
         private LinkIterator _links;
+        private int _index;
 
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {
             Type inputDataType = null;
@@ -52,6 +52,7 @@ namespace MisterGames.BlueprintLib {
             meta.AddPort(id, Port.DynamicInput("Elements", inputDataType).Capacity(PortCapacity.Multiple));
             meta.AddPort(id, Port.Exit("On Iteration"));
             meta.AddPort(id, Port.DynamicOutput(outputDataType == null ? "Element" : null, outputDataType));
+            meta.AddPort(id, Port.Output<int>("Index"));
         }
 
         public void OnDeInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
@@ -62,6 +63,7 @@ namespace MisterGames.BlueprintLib {
         public void OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
             if (port != 0) return;
 
+            _index = 0;
             _links = blueprint.GetLinks(token, 1);
 
             // No linked ports: nothing to iterate.
@@ -87,6 +89,7 @@ namespace MisterGames.BlueprintLib {
                 // Already retrieved array, has next element, continue iterate through array.
                 if (_arrayCache != null && _arrayPointer + 1 < _arrayCache.Length) {
                     _arrayPointer++;
+                    _index++;
                     continue;
                 }
 
@@ -102,6 +105,8 @@ namespace MisterGames.BlueprintLib {
                     _arrayPointer = 0;
                     _arrayCache = array;
                 }
+
+                _index++;
             }
         }
 
@@ -118,6 +123,10 @@ namespace MisterGames.BlueprintLib {
 
             // Return current linked port value
             return _links.Read<T>();
+        }
+
+        public int GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
+            return port == 4 ? _index : 0;
         }
 
         public void OnLinksChanged(IBlueprintMeta meta, NodeId id, int port) {

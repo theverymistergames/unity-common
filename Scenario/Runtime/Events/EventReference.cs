@@ -11,7 +11,7 @@ namespace MisterGames.Scenario.Events {
 
         public EventDomain EventDomain => _eventDomain;
         public int EventId => _eventId;
-        public string Path => _eventDomain.GetEventPath(_eventId);
+        public string Path => _eventDomain == null ? string.Empty : _eventDomain.GetEventPath(_eventId);
 
         public EventReference(EventDomain eventDomain, int eventId) {
             _eventDomain = eventDomain;
@@ -36,6 +36,10 @@ namespace MisterGames.Scenario.Events {
 
         public static bool operator !=(EventReference left, EventReference right) {
             return !left.Equals(right);
+        }
+
+        public override string ToString() {
+            return $"Event({Path})";
         }
     }
 

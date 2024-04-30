@@ -13,8 +13,13 @@ namespace MisterGames.Scenario.Events {
         public Map<EventReference, int> RaisedEvents => _raisedEvents;
         private readonly TreeMap<EventReference, IEventListener> _listenerTree = new();
 
-        public void Raise(EventReference e) {
-            AddEventRaiseCount(e, 1);
+        public void Raise(EventReference e, int add = 1) {
+            _raisedEvents[e] = _raisedEvents.GetValueOrDefault(e, 0) + add;
+            NotifyEventRaised(e);
+        }
+        
+        public void SetCount(EventReference e, int count) {
+            _raisedEvents[e] = count;
             NotifyEventRaised(e);
         }
 
@@ -37,10 +42,6 @@ namespace MisterGames.Scenario.Events {
                 _listenerTree.RemoveNodeAt(i);
                 return;
             }
-        }
-
-        private void AddEventRaiseCount(EventReference e, int add) {
-            _raisedEvents[e] = _raisedEvents.GetValueOrDefault(e, 0) + add;
         }
 
         private void NotifyEventRaised(EventReference e) {

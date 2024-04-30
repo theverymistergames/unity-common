@@ -42,9 +42,9 @@ namespace MisterGames.Common.Save {
             _saveMetas.Clear();
         }
 
-        public void Register(ISaveable saveable) {
+        public void Register(ISaveable saveable, bool notifyLoad = true) {
             _saveableSet.Add(saveable);
-            saveable.OnLoadData(this);
+            if (notifyLoad) saveable.OnLoadData(this);
         }
 
         public void Unregister(ISaveable saveable) {
@@ -158,6 +158,8 @@ namespace MisterGames.Common.Save {
                 sw.Close();
                 fs.Close();
             }
+            
+            NotifyAfterSaveAll();
         }
 
         public bool TryLoad(string saveId = null) {
@@ -192,6 +194,7 @@ namespace MisterGames.Common.Save {
 
             _activeSaveId = saveId;
             NotifyLoadAll();
+            NotifyAfterLoadAll();
             
             return true;
         }
@@ -255,8 +258,18 @@ namespace MisterGames.Common.Save {
                 saveable.OnSaveData(this);
             }
         }
+
+        private void NotifyAfterLoadAll() {
+            foreach (var saveable in _saveableSet) {
+                saveable.OnAfterLoadData(this);
+            }
+        }
         
-        
+        private void NotifyAfterSaveAll() {
+            foreach (var saveable in _saveableSet) {
+                saveable.OnAfterSaveData(this);
+            }
+        }
     }
     
 }

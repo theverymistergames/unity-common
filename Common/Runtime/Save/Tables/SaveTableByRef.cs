@@ -20,20 +20,20 @@ namespace MisterGames.Common.Save.Tables {
         }
 
         public bool TryGetData<S>(long id, out S data) {
-            if (this is not SaveTableByRef<S> table || !table._dataMap.TryGetValue(id, out var record)) {
+            if (!_dataMap.TryGetValue(id, out var record)) {
                 data = default;
                 return false;
             }
             
-            data = record.data;
+            data = record.data is S s ? s : default;
             return true;
         }
 
         public void SetData<S>(long id, S data) {
-            if (this is not SaveTableByRef<S> table || !table._dataMap.ContainsKey(id)) return;
+            if (!_dataMap.ContainsKey(id)) return;
             
-            ref var record = ref table._dataMap.Get(id);
-            record.data = data;
+            ref var record = ref _dataMap.Get(id);
+            record.data = data is T t ? t : default;
         }
 
         public void RemoveData(long id) {
