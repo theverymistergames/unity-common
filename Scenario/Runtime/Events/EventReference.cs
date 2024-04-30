@@ -11,6 +11,7 @@ namespace MisterGames.Scenario.Events {
 
         public EventDomain EventDomain => _eventDomain;
         public int EventId => _eventId;
+        public string Path => _eventDomain.GetEventPath(_eventId);
 
         public EventReference(EventDomain eventDomain, int eventId) {
             _eventDomain = eventDomain;

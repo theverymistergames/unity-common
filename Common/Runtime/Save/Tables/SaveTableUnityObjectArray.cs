@@ -10,27 +10,18 @@ namespace MisterGames.Common.Save.Tables {
     [SaveTable(typeof(Object[]))]
     public sealed class SaveTableUnityObjectArray : ISaveTable {
 
-        [SerializeField] private Map<long, SaveRecord<object[]>> _dataMap = new();
+        [SerializeField] private Map<long, SaveRecord<Object[]>> _dataMap = new();
 
         public Type GetElementType() => typeof(Object[]);
 
-        public void PrepareRecord(ISaveSystem saveSystem, long id) {
-            if (_dataMap.ContainsKey(id)) return;
-            
-            NumberExtensions.LongAsTwoInts(id, out int hash, out int index);
-            
-            _dataMap[id] = new SaveRecord<object[]> { id = saveSystem.GetPropertyName(hash), index = index };
-        }
-
-        public void FetchRecords(ISaveSystem saveSystem) {
-            foreach (var record in _dataMap.Values) {
-                saveSystem.CreateProperty(record.id);
-            }
+        public void PrepareRecord(string id, int index) {
+            long key = NumberExtensions.TwoIntsAsLong(Animator.StringToHash(id), index);
+            if (!_dataMap.ContainsKey(key)) _dataMap[key] = new SaveRecord<Object[]> { id = id, index = index };
         }
 
         public bool TryGetData<S>(long id, out S data) {
             if (_dataMap.TryGetValue(id, out var record)) {
-                var elementType = typeof(S).GetElementType() ?? typeof(object);    
+                var elementType = typeof(S).GetElementType() ?? typeof(Object);    
                 var array = Array.CreateInstance(elementType, record.data.Length);
 
                 for (int i = 0; i < record.data.Length; i++) {
@@ -51,7 +42,7 @@ namespace MisterGames.Common.Save.Tables {
             if (data is not Array array) return;
             
             ref var record = ref _dataMap.Get(id);
-            record.data = new object[array.Length];
+            record.data = new Object[array.Length];
             
             for (int i = 0; i < array.Length; i++) {
                 if (array.GetValue(i) is Object v) record.data[i] = v;

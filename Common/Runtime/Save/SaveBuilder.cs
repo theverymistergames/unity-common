@@ -3,10 +3,10 @@
     public struct SaveBuilder {
         
         private readonly ISaveSystem _saveSystem;
-        private readonly int _id;
+        private readonly string _id;
         private int _index;
 
-        internal SaveBuilder(ISaveSystem saveSystem, int id, int index = 0) {
+        internal SaveBuilder(ISaveSystem saveSystem, string id, int index = 0) {
             _saveSystem = saveSystem;
             _id = id;
             _index = index;

@@ -1,19 +1,17 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using MisterGames.Common.Data;
+using UnityEngine;
 
 namespace MisterGames.Scenario.Events {
 
+    [Serializable]
     public sealed class EventSystem : IEventSystem {
 
-        public Dictionary<EventReference, int> RaisedEvents => _raisedEvents;
-
-        private readonly Dictionary<EventReference, int> _raisedEvents;
-        private readonly TreeMap<EventReference, IEventListener> _listenerTree;
-
-        public EventSystem() {
-            _listenerTree = new TreeMap<EventReference, IEventListener>();
-            _raisedEvents = new Dictionary<EventReference, int>();
-        }
+        [SerializeField] private Map<EventReference, int> _raisedEvents = new();
+        
+        public Map<EventReference, int> RaisedEvents => _raisedEvents;
+        private readonly TreeMap<EventReference, IEventListener> _listenerTree = new();
 
         public void Raise(EventReference e) {
             AddEventRaiseCount(e, 1);
@@ -42,7 +40,7 @@ namespace MisterGames.Scenario.Events {
         }
 
         private void AddEventRaiseCount(EventReference e, int add) {
-            _raisedEvents[e] = (_raisedEvents.TryGetValue(e, out int count) ? count : 0) + add;
+            _raisedEvents[e] = _raisedEvents.GetValueOrDefault(e, 0) + add;
         }
 
         private void NotifyEventRaised(EventReference e) {

@@ -17,7 +17,6 @@ namespace MisterGames.Common.Save {
         public static ISaveSystem Instance { get; private set; }
         
         private readonly HashSet<ISaveable> _saveableSet = new();
-        private readonly Dictionary<int, string> _propertyIdHashMap = new();
         private readonly ISaveTableFactory _tables = new SaveTableFactory();
         
         private readonly List<SaveMeta> _saveMetas = new();
@@ -39,14 +38,8 @@ namespace MisterGames.Common.Save {
         private void Cleanup() {
             _saveableSet.Clear();
             _tables.Clear();
-            _propertyIdHashMap.Clear();
             _saveFileDto.tables.Clear();
             _saveMetas.Clear();
-        }
-
-        public void Register(ISaveable saveable, string id, out int hash) {
-            CreateProperty(id, out hash);
-            Register(saveable);
         }
 
         public void Register(ISaveable saveable) {
@@ -58,47 +51,33 @@ namespace MisterGames.Common.Save {
             _saveableSet.Remove(saveable);
         }
 
-        public string GetPropertyName(int hash) {
-            return _propertyIdHashMap.GetValueOrDefault(hash);
-        }
-
-        public ISaveSystem CreateProperty(string id, out int hash) {
-            hash = Animator.StringToHash(id);
-            _propertyIdHashMap[hash] = id;
-            return this;
-        }
-
-        public ISaveSystem CreateProperty(string id) {
-            return CreateProperty(id, out _);
-        }
-
-        public T Get<T>(int id, int index) {
+        public T Get<T>(string id, int index) {
             return TryGet<T>(id, index, out var data) ? data : default;
         }
 
-        public bool TryGet<T>(int id, int index, out T data) {
+        public bool TryGet<T>(string id, int index, out T data) {
             data = default;
             return _tables.Get<T>()
-                ?.TryGetData(NumberExtensions.TwoIntsAsLong(id, index), out data) ?? false;
+                ?.TryGetData(NumberExtensions.TwoIntsAsLong(Animator.StringToHash(id), index), out data) ?? false;
         }
 
-        public void Set<T>(int id, int index, T data) {
+        public void Set<T>(string id, int index, T data) {
             var repo = _tables.GetOrCreate<T>();
-            long key = NumberExtensions.TwoIntsAsLong(id, index);
+            long key = NumberExtensions.TwoIntsAsLong(Animator.StringToHash(id), index);
             
-            repo?.PrepareRecord(this, key);
+            repo?.PrepareRecord(id, index);
             repo?.SetData(key, data);
         }
 
-        public SaveBuilder Pop<T>(int id, T def, out T data) {
+        public SaveBuilder Pop<T>(string id, T def, out T data) {
             return new SaveBuilder(this, id).Pop(def, out data);
         }
 
-        public SaveBuilder Pop<T>(int id, out T data) {
+        public SaveBuilder Pop<T>(string id, out T data) {
             return new SaveBuilder(this, id).Pop(out data);
         }
 
-        public SaveBuilder Push<T>(int id, T data) {
+        public SaveBuilder Push<T>(string id, T data) {
             return new SaveBuilder(this, id).Push(data);
         }
 
@@ -185,7 +164,6 @@ namespace MisterGames.Common.Save {
             saveId ??= _activeSaveId ?? _saveSystemSettings.fileName;
             
             _tables.Clear();
-            _propertyIdHashMap.Clear();
             _saveFileDto.tables.Clear();
 
             string path = _saveSystemSettings.GetFilePath(saveId);
@@ -200,7 +178,6 @@ namespace MisterGames.Common.Save {
                 
                 for (int i = 0; i < tables.Count; i++) {
                     var table = tables[i];
-                    table.FetchRecords(this);
                     _tables.Set(table.GetElementType(), table);
                 }
             }

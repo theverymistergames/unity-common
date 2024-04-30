@@ -19,28 +19,20 @@ namespace MisterGames.Common.Save {
         void DeleteSave(string saveId);
         
         void Register(ISaveable saveable);
-        
-        void Register(ISaveable saveable, string id, out int hash);
 
         void Unregister(ISaveable saveable);
-
-        string GetPropertyName(int hash);
         
-        ISaveSystem CreateProperty(string id, out int hash);
+        bool TryGet<T>(string id, int index, out T data);
         
-        ISaveSystem CreateProperty(string id);
+        T Get<T>(string id, int index);
         
-        bool TryGet<T>(int id, int index, out T data);
+        void Set<T>(string id, int index, T data);
         
-        T Get<T>(int id, int index);
+        SaveBuilder Pop<T>(string id, out T data);
         
-        void Set<T>(int id, int index, T data);
+        SaveBuilder Pop<T>(string id, T def, out T data);
         
-        SaveBuilder Pop<T>(int id, out T data);
-        
-        SaveBuilder Pop<T>(int id, T def, out T data);
-        
-        SaveBuilder Push<T>(int id, T data);
+        SaveBuilder Push<T>(string id, T data);
     }
     
 }

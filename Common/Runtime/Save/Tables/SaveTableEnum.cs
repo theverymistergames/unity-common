@@ -13,18 +13,9 @@ namespace MisterGames.Common.Save.Tables {
 
         public Type GetElementType() => typeof(Enum);
 
-        public void PrepareRecord(ISaveSystem saveSystem, long id) {
-            if (_dataMap.ContainsKey(id)) return;
-            
-            NumberExtensions.LongAsTwoInts(id, out int hash, out int index);
-            
-            _dataMap[id] = new SaveRecord<ulong> { id = saveSystem.GetPropertyName(hash), index = index };
-        }
-
-        public void FetchRecords(ISaveSystem saveSystem) {
-            foreach (var record in _dataMap.Values) {
-                saveSystem.CreateProperty(record.id);
-            }
+        public void PrepareRecord(string id, int index) {
+            long key = NumberExtensions.TwoIntsAsLong(Animator.StringToHash(id), index);
+            if (!_dataMap.ContainsKey(key)) _dataMap[key] = new SaveRecord<ulong> { id = id, index = index };
         }
 
         public bool TryGetData<S>(long id, out S data) {

@@ -9,7 +9,10 @@ namespace MisterGames.Scenario.Events {
 
         [SerializeField] private EventGroup[] _eventGroups;
         [HideInInspector] [SerializeField] private int _nextId;
-
+        
+        private readonly Dictionary<int, string> _eventPathMap = new Dictionary<int, string>();
+        private bool _isEventPathMapInvalid;
+        
         [Serializable]
         internal struct EventGroup {
             public string name;
@@ -22,13 +25,7 @@ namespace MisterGames.Scenario.Events {
             [HideInInspector] public int id;
         }
 
-#if UNITY_EDITOR
-        private readonly HashSet<int> _occupiedIdsCache = new HashSet<int>();
-        private readonly Dictionary<int, string> _eventPathMap = new Dictionary<int, string>();
-        private bool _isEventPathMapInvalid;
-        internal EventGroup[] EventGroups => _eventGroups;
-
-        internal string GetEventPath(int id) {
+        public string GetEventPath(int id) {
             if (!_isEventPathMapInvalid && _eventPathMap.TryGetValue(id, out string path)) return path;
 
             _isEventPathMapInvalid = false;
@@ -45,8 +42,8 @@ namespace MisterGames.Scenario.Events {
                     path = string.IsNullOrWhiteSpace(entry.name)
                         ? null
                         : string.IsNullOrWhiteSpace(group.name)
-                            ? $"{entry.name.Trim()}"
-                            : $"{group.name.Trim()}/{entry.name.Trim()}";
+                            ? $"{entry.name}"
+                            : $"{group.name}/{entry.name}";
 
                     _eventPathMap[id] = path;
                     return path;
@@ -55,6 +52,10 @@ namespace MisterGames.Scenario.Events {
 
             return null;
         }
+        
+#if UNITY_EDITOR
+        private readonly HashSet<int> _occupiedIdsCache = new HashSet<int>();
+        internal EventGroup[] EventGroups => _eventGroups;
 
         private void OnValidate() {
             _isEventPathMapInvalid = true;

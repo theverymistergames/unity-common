@@ -14,18 +14,9 @@ namespace MisterGames.Common.Save.Tables {
             return typeof(T);
         }
 
-        public void PrepareRecord(ISaveSystem saveSystem, long id) {
-            if (_dataMap.ContainsKey(id)) return;
-            
-            NumberExtensions.LongAsTwoInts(id, out int hash, out int index);
-            
-            _dataMap[id] = new SaveRecordByRef<T> { id = saveSystem.GetPropertyName(hash), index = index };
-        }
-
-        public void FetchRecords(ISaveSystem saveSystem) {
-            foreach (var record in _dataMap.Values) {
-                saveSystem.CreateProperty(record.id);
-            }
+        public void PrepareRecord(string id, int index) {
+            long key = NumberExtensions.TwoIntsAsLong(Animator.StringToHash(id), index);
+            if (!_dataMap.ContainsKey(key)) _dataMap[key] = new SaveRecordByRef<T> { id = id, index = index };
         }
 
         public bool TryGetData<S>(long id, out S data) {

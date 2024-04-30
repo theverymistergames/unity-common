@@ -1,10 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using MisterGames.Common.Data;
 
 namespace MisterGames.Scenario.Events {
 
     public interface IEventSystem {
 
-        Dictionary<EventReference, int> RaisedEvents { get; }
+        Map<EventReference, int> RaisedEvents { get; }
 
         void Raise(EventReference e);
 
