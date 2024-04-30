@@ -52,19 +52,12 @@ namespace MisterGames.Common.Data
 
         public int AddValue(K key, V value) {
             int index = _countMap.GetValueOrDefault(key);
-            
-            _valueMap[(key, index)] = value;
-            _countMap[key] = index + 1;
-            _version++;
-            
+            SetValue(key, index, value);
             return index;
         }
 
         public void SetValue(K key, int index, V value) {
-            if (!_valueMap.ContainsKey((key, index))) {
-                throw new ArgumentException($"No entry with key {key} and index {index} was found");
-            }
-            
+            _countMap[key] = Math.Max(_countMap.GetValueOrDefault(key), index + 1);
             _valueMap[(key, index)] = value;
             _version++;
         }
@@ -72,9 +65,7 @@ namespace MisterGames.Common.Data
         public bool TrySetValue(K key, int index, V value) {
             if (!_valueMap.ContainsKey((key, index))) return false;
             
-            _valueMap[(key, index)] = value;
-            _version++;
-            
+            SetValue(key, index, value);
             return true;
         }
 
@@ -98,11 +89,13 @@ namespace MisterGames.Common.Data
             
             _valueMap.Remove((key, index));
 
-            if (count > 0) _countMap[key] = count - 1;
-            else _countMap.Remove(key);
-
-            for (int i = index + 1; i < count; i++) {
-                _valueMap[(key, i - 1)] = _valueMap[(key, i)];
+            if (count > 0) {
+                count = index > count - 1 ? index + 1
+                    : index < count - 1 ? count
+                    : count - 1;
+                
+                if (count > 0) _countMap[key] = count; 
+                else _countMap.Remove(key);
             }
             
             _version++;
