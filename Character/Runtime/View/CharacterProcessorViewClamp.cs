@@ -26,9 +26,9 @@ namespace MisterGames.Character.View {
         
         public Vector2 Process(Vector2 input, float dt) {
             var result = new Vector2(
-                (input.x - _offset.x).Clamp(vertical.mode, vertical.bounds.x, vertical.bounds.y),
-                (input.y - _offset.y).Clamp(horizontal.mode, horizontal.bounds.x, horizontal.bounds.y)
-            ) + _offset;
+                (input.x - _offset.x).Clamp(vertical.mode, vertical.bounds.x, vertical.bounds.y) + _offset.x,
+                input.y.Clamp(horizontal.mode, horizontal.bounds.x, horizontal.bounds.y)
+            );
 
             var diff = result - _lastResult;
 
