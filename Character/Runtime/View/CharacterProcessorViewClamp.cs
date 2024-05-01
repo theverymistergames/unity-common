@@ -12,12 +12,23 @@ namespace MisterGames.Character.View {
         public ViewAxisClamp vertical;
 
         private Vector2 _lastResult;
+        private Vector2 _offset;
 
+        public void ApplyVerticalClamp(ViewAxisClamp clamp) {
+            vertical = clamp;
+            _offset = _lastResult;
+        }
+
+        public void ApplyHorizontalClamp(ViewAxisClamp clamp) {
+            horizontal = clamp;
+            _offset = _lastResult;
+        }
+        
         public Vector2 Process(Vector2 input, float dt) {
             var result = new Vector2(
-                input.x.Clamp(vertical.mode, vertical.bounds.x, vertical.bounds.y),
-                input.y.Clamp(horizontal.mode, horizontal.bounds.x, horizontal.bounds.y)
-            );
+                (input.x - _offset.x).Clamp(vertical.mode, vertical.bounds.x, vertical.bounds.y),
+                (input.y - _offset.y).Clamp(horizontal.mode, horizontal.bounds.x, horizontal.bounds.y)
+            ) + _offset;
 
             var diff = result - _lastResult;
 

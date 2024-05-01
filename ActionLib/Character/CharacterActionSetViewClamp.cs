@@ -20,23 +20,8 @@ namespace MisterGames.ActionLib.Character {
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
             var clamp = context.GetComponent<ICharacterViewPipeline>().GetProcessor<CharacterProcessorViewClamp>();
 
-            var bodyRot = context.GetComponent<CharacterBodyAdapter>().Rotation;
-            
-            if (horizontal.HasValue) {
-                float angleY = -90f + Vector3.SignedAngle(
-                    Vector3.forward,
-                    bodyRot * Vector3.forward,
-                    bodyRot * Vector3.up
-                );
-
-                clamp.horizontal = horizontal.Value;
-                var b = clamp.horizontal.bounds;
-                clamp.horizontal.bounds += (b.x + angleY) * Vector2.one;
-            }
-
-            if (vertical.HasValue) {
-                clamp.vertical = vertical.Value;
-            }
+            if (horizontal.HasValue) clamp.ApplyHorizontalClamp(horizontal.Value);
+            if (vertical.HasValue) clamp.ApplyVerticalClamp(vertical.Value);
             
             return default;
         }

@@ -40,9 +40,9 @@ namespace MisterGames.Character.View {
         private ITransformAdapter _headAdapter;
         private ITransformAdapter _bodyAdapter;
 
-        private Vector2 _lastViewVector;
+        private Vector2 _inputDelta;
         private Vector2 _input;
-        private Quaternion _currentView;
+        private Quaternion _currentOrientation;
 
         private void Awake() {
             _headAdapter = _characterAccess.HeadAdapter;
@@ -96,27 +96,28 @@ namespace MisterGames.Character.View {
         }
 
         private void HandleViewVectorChanged(Vector2 input) {
-            _lastViewVector += new Vector2(-input.y, input.x);
+            _inputDelta += new Vector2(-input.y, input.x);
         }
 
         public void OnUpdate(float dt) {
-            var viewVector = _lastViewVector;
-            _lastViewVector = Vector2.zero;
+            var delta = _inputDelta;
+            _inputDelta = Vector2.zero;
 
             for (int i = 0; i < _inputProcessors.Length; i++) {
-                viewVector = _inputProcessors[i].Process(viewVector, dt);
+                delta = _inputProcessors[i].Process(delta, dt);
             }
 
-            _input = _inputToViewProcessor.Process(_input + viewVector, dt);
+            _input = _inputToViewProcessor.Process(_input + delta, dt);
 
             var inputQuaternion = Quaternion.Euler(_input.x, _input.y, 0f);
             for (int i = 0; i < _viewProcessors.Length; i++) {
                 inputQuaternion = _viewProcessors[i].Process(inputQuaternion, dt);
             }
 
-            var lastView = _currentView;
-            _currentView = inputQuaternion;
-            var diffEulers = _currentView.eulerAngles - lastView.eulerAngles;
+            var lastOrientation = _currentOrientation;
+            _currentOrientation = inputQuaternion;
+            
+            var diffEulers = _currentOrientation.eulerAngles - lastOrientation.eulerAngles;
 
             _headAdapter.Rotate(Quaternion.Euler(diffEulers.x, 0f, 0f));
             _bodyAdapter.Rotate(Quaternion.Euler(0f, diffEulers.y, 0f));
