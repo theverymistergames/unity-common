@@ -1,9 +1,9 @@
 ﻿using System;
 using MisterGames.Collisions.Core;
 using MisterGames.Collisions.Utils;
+using MisterGames.Common;
 using MisterGames.Common.Maths;
 using MisterGames.Tick.Core;
-using MisterGames.Dbg.Draw;
 using UnityEngine;
 
 namespace MisterGames.Character.Collisions {
@@ -168,19 +168,19 @@ namespace MisterGames.Character.Collisions {
             
             if (_debugDrawHitPoint) {
                 if (CollisionInfo.hasContact) {
-                    DbgPointer.Create().Position(CollisionInfo.point).Size(0.3f).Color(Color.yellow).Draw();    
+                    DebugExt.DrawPointer(CollisionInfo.point, Color.yellow, 0.3f, mode: DebugExt.DrawMode.Gizmo);
                 }
             }
             
             if (_debugDrawCast) {
                 var start = transform.position;
                 var end = start + _ceilingDetectionDirection * _distance;
-                DbgCapsule.Create().From(start).To(end).Radius(_radius).Color(Color.cyan).Draw();
+                DebugExt.DrawCapsule(start, end, _radius, Color.cyan, mode: DebugExt.DrawMode.Gizmo);
             }
             
             if (_debugDrawHasCeilingText) {
                 string text = CollisionInfo.hasContact ? "has ceiling" : "no ceiling";
-                DbgText.Create().Text(text).Position(transform.position + _debugDrawHasCeilingTextOffset).Draw();
+                DebugExt.DrawLabel(transform.position + _debugDrawHasCeilingTextOffset, text);
             }
         }
 #endif

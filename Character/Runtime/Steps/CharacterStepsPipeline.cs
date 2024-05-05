@@ -3,10 +3,10 @@ using MisterGames.Character.Collisions;
 using MisterGames.Character.Core;
 using MisterGames.Character.Motion;
 using MisterGames.Collisions.Core;
+using MisterGames.Common;
 using MisterGames.Common.Easing;
 using MisterGames.Common.GameObjects;
 using MisterGames.Common.Maths;
-using MisterGames.Dbg.Draw;
 using MisterGames.Tick.Core;
 using UnityEngine;
 
@@ -114,11 +114,9 @@ namespace MisterGames.Character.Steps {
         [SerializeField] private bool _debugDrawStep;
 
 #if UNITY_EDITOR
-
-        [Conditional("UNITY_EDITOR")]
         private void DbgDrawStep(Vector3 point, Color color) {
             if (_debugDrawStep) {
-                DbgPointer.Create().Color(color).Time(2f).Position(point).Size(0.5f).Draw();
+                DebugExt.DrawPointer(point, color, 0.5f, duration: 2f);
             }
         }
 #endif

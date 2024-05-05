@@ -1,8 +1,8 @@
 ﻿using System;
 using MisterGames.Collisions.Core;
 using MisterGames.Collisions.Utils;
+using MisterGames.Common;
 using MisterGames.Common.Maths;
-using MisterGames.Dbg.Draw;
 using MisterGames.Tick.Core;
 using UnityEngine;
 
@@ -194,24 +194,24 @@ namespace MisterGames.Character.Collisions {
                     CollisionInfo.point :
                     _originOffset + transform.position + _groundDetectionDirection * (_distance + _distanceAddition + _radius);
 
-                DbgRay.Create().From(start).Dir(CollisionInfo.normal).Color(Color.blue).Arrow(0.1f).Draw();
+                DebugExt.DrawRay(start, CollisionInfo.normal, Color.blue, mode: DebugExt.DrawMode.Gizmo);
             }
 
             if (_debugDrawHitPoint) {
                 if (CollisionInfo.hasContact) {
-                    DbgPointer.Create().Position(CollisionInfo.point).Size(0.3f).Color(Color.yellow).Draw();
+                    DebugExt.DrawPointer(CollisionInfo.point, Color.yellow, 0.3f, mode: DebugExt.DrawMode.Gizmo);
                 }
             }
             
             if (_debugDrawCast) {
                 var start = _originOffset + transform.position;
                 var end = start + _groundDetectionDirection * (_distance + _distanceAddition);
-                DbgCapsule.Create().From(start).To(end).Radius(_radius).Color(Color.cyan).Draw();
+                DebugExt.DrawCapsule(start, end, _radius, Color.cyan, mode: DebugExt.DrawMode.Gizmo);
             }
             
             if (_debugDrawIsGroundedText) {
                 string text = CollisionInfo.hasContact ? "grounded" : "in air";
-                DbgText.Create().Text(text).Position(_originOffset + transform.position + _debugDrawIsGroundedTextOffset).Draw();
+                DebugExt.DrawLabel(_originOffset + transform.position + _debugDrawIsGroundedTextOffset, text);
             }
         }
 #endif

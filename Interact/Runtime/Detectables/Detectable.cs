@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using MisterGames.Common;
 using MisterGames.Common.Attributes;
-using MisterGames.Dbg.Draw;
 using UnityEngine;
 
 namespace MisterGames.Interact.Detectables {
@@ -79,7 +79,7 @@ namespace MisterGames.Interact.Detectables {
         private void OnDrawGizmos() {
             if (!Application.isPlaying || !_debugDrawDetectable) return;
 
-            DbgSphere.Create().Color(Color.yellow).Position(transform.position).Radius(0.4f).Draw();
+            DebugExt.DrawSphere(transform.position, 0.4f, Color.yellow, mode: DebugExt.DrawMode.Gizmo);
         }
 #endif
     }

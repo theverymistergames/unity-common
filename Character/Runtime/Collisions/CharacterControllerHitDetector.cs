@@ -1,6 +1,6 @@
 ﻿using System;
 using MisterGames.Collisions.Core;
-using MisterGames.Dbg.Draw;
+using MisterGames.Common;
 using UnityEngine;
 
 namespace MisterGames.Character.Collisions {
@@ -33,7 +33,7 @@ namespace MisterGames.Character.Collisions {
             
             if (_debugDrawHitPoint) {
                 if (CollisionInfo.hasContact) {
-                    DbgPointer.Create().Position(CollisionInfo.point).Size(0.3f).Color(Color.yellow).Draw();    
+                    DebugExt.DrawPointer(CollisionInfo.point, Color.yellow, 0.3f, mode: DebugExt.DrawMode.Gizmo);
                 }
             }
         }

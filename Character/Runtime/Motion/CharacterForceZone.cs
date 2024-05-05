@@ -3,9 +3,9 @@ using MisterGames.Character.Core;
 using MisterGames.Collisions.Core;
 using MisterGames.Collisions.Triggers;
 using MisterGames.Collisions.Utils;
+using MisterGames.Common;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Maths;
-using MisterGames.Dbg.Draw;
 using MisterGames.Tick.Core;
 using UnityEngine;
 using Random = UnityEngine.Random;
@@ -169,9 +169,9 @@ namespace MisterGames.Character.Motion {
             var source = _forceSourcePoint.position;
             var target = source + _maxDistance * _forceDirection;
 
-            DbgSphere.Create().Color(Color.blue).Position(source).Radius(0.3f).Draw();
-            DbgSphere.Create().Color(Color.green).Position(target).Radius(0.15f).Draw();
-            DbgLine.Create().Color(Color.green).From(source).To(target).Draw();
+            DebugExt.DrawSphere(source, 0.3f, Color.blue, mode: DebugExt.DrawMode.Gizmo);
+            DebugExt.DrawSphere(source, 0.15f, Color.green, mode: DebugExt.DrawMode.Gizmo);
+            DebugExt.DrawLine(source, target, Color.green, mode: DebugExt.DrawMode.Gizmo);
         }
 #endif
     }

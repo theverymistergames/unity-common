@@ -1,6 +1,6 @@
 ﻿using System;
 using MisterGames.Character.Core;
-using MisterGames.Dbg.Draw;
+using MisterGames.Common;
 using MisterGames.Interact.Interactives;
 using MisterGames.Interact.Path;
 using UnityEngine;
@@ -144,8 +144,8 @@ namespace MisterGames.Character.Interactives {
             _interactivePath.Evaluate(_startReserveBound, out var startBoundPosition, out _, out _);
             _interactivePath.Evaluate(_endReserveBound, out var endBoundPosition, out _, out _);
 
-            DbgSphere.Create().Radius(0.05f).Color(Color.white).Position(startBoundPosition).Draw();
-            DbgSphere.Create().Radius(0.05f).Color(Color.white).Position(endBoundPosition).Draw();
+            DebugExt.DrawSphere(startBoundPosition, 0.05f, Color.white, mode: DebugExt.DrawMode.Gizmo);
+            DebugExt.DrawSphere(endBoundPosition, 0.05f, Color.white, mode: DebugExt.DrawMode.Gizmo);
 
             const float step = 0.04f;
             const float dirLength = 0.4f;
@@ -166,11 +166,10 @@ namespace MisterGames.Character.Interactives {
                     forward = GetForwardDefault(tangent, normal);
                     orientation = GetOrientationDefault(tangent, normal);
                 }
-
-                DbgSphere.Create().Radius(0.03f).Color(Color.red).Position(position).Draw();
-
-                DbgRay.Create().From(position).Dir(orientation * (dirLength * Vector3.forward)).Color(Color.red).Draw();
-                DbgRay.Create().From(position).Dir(dirLength * forward).Color(Color.green).Draw();
+                
+                DebugExt.DrawSphere(position, 0.03f, Color.red, mode: DebugExt.DrawMode.Gizmo);
+                DebugExt.DrawRay(position, orientation * (dirLength * Vector3.forward), Color.red, mode: DebugExt.DrawMode.Gizmo);
+                DebugExt.DrawRay(position, dirLength * forward, Color.green, mode: DebugExt.DrawMode.Gizmo);
             }
         }
 #endif

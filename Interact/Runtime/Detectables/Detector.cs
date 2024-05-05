@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using MisterGames.Collisions.Core;
-using MisterGames.Dbg.Draw;
+using MisterGames.Common;
 using MisterGames.Tick.Core;
 using UnityEngine;
 
@@ -184,11 +184,11 @@ namespace MisterGames.Interact.Detectables {
         private void OnDrawGizmos() {
             if (!Application.isPlaying || !_debugDrawDetectables) return;
 
-            DbgSphere.Create().Color(Color.blue).Position(transform.position).Radius(0.2f).Draw();
+            DebugExt.DrawSphere(transform.position, 0.2f, Color.blue, mode: DebugExt.DrawMode.Gizmo);
 
             foreach (var detectable in _detectedCandidatesSet) {
                 var color = IsDetected(detectable) ? Color.green : Color.gray;
-                DbgLine.Create().Color(color).From(transform.position).To(detectable.Transform.position).Draw();
+                DebugExt.DrawLine(transform.position, detectable.Transform.position, color, mode: DebugExt.DrawMode.Gizmo);
             }
         }
 #endif
