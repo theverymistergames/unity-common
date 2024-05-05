@@ -16,7 +16,7 @@ namespace MisterGames.ActionLib.Character {
         public AnimationCurve durationByDi;
         
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            
+            return default;
         }
     }
     
