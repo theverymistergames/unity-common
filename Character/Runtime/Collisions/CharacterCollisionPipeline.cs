@@ -1,12 +1,11 @@
-﻿using MisterGames.Character.Core;
+﻿using MisterGames.Actors;
 using MisterGames.Collisions.Core;
 using UnityEngine;
 
 namespace MisterGames.Character.Collisions {
 
-    public sealed class CharacterCollisionPipeline : CharacterPipelineBase, ICharacterCollisionPipeline {
+    public sealed class CharacterCollisionPipeline : MonoBehaviour, IActorComponent {
 
-        [SerializeField] private CharacterController _characterController;
         [SerializeField] private CharacterControllerHitDetector _hitDetector;
         [SerializeField] private CharacterCeilingDetector _ceilingDetector;
         [SerializeField] private CharacterGroundDetector _groundDetector;
@@ -15,7 +14,11 @@ namespace MisterGames.Character.Collisions {
         public IRadiusCollisionDetector CeilingDetector => _ceilingDetector;
         public IRadiusCollisionDetector GroundDetector => _groundDetector;
 
-        public override bool IsEnabled { get => enabled; set => enabled = value; }
+        private CharacterController _characterController;
+        
+        public void OnAwake(IActor actor) {
+            _characterController = actor.GetComponent<CharacterController>();
+        }
 
         private void OnEnable() {
             SetEnabled(true);

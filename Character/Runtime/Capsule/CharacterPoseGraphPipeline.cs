@@ -1,7 +1,6 @@
 ﻿using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
-using MisterGames.Character.Core;
 using MisterGames.Character.Input;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Maths;
@@ -9,7 +8,7 @@ using UnityEngine;
 
 namespace MisterGames.Character.Capsule {
 
-    public class CharacterPoseGraphPipeline : CharacterPipelineBase, IActorComponent, ICharacterPoseGraphPipeline {
+    public sealed class CharacterPoseGraphPipeline : MonoBehaviour, IActorComponent {
 
         [EmbeddedInspector]
         [SerializeField] private CharacterPoseGraph _poseGraph;
@@ -17,18 +16,16 @@ namespace MisterGames.Character.Capsule {
         [SerializeField] private CharacterPose _crouchPose;
         [SerializeField] private CharacterPose _standPose;
 
-        public override bool IsEnabled { get => enabled; set => enabled = value; }
-
         private IActor _actor;
-        private ICharacterPosePipeline _pose;
-        private ICharacterInputPipeline _input;
+        private CharacterPosePipeline _pose;
+        private CharacterInputPipeline _input;
         private CancellationTokenSource _enableCts;
         private CancellationTokenSource _poseChangeCts;
 
-        void IActorComponent.OnAwakeActor(IActor actor) {
+        public void OnAwake(IActor actor) {
             _actor = actor;
-            _input = actor.GetComponent<ICharacterInputPipeline>();
-            _pose = actor.GetComponent<ICharacterPosePipeline>();
+            _input = actor.GetComponent<CharacterInputPipeline>();
+            _pose = actor.GetComponent<CharacterPosePipeline>();
         }
 
         private void Start() {

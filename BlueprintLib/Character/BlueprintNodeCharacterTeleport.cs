@@ -20,11 +20,11 @@ namespace MisterGames.BlueprintLib {
             if (port != 0) return;
             
             var characterAccess = CharacterAccessRegistry.Instance.GetCharacterAccess(spawnIfNotRegistered: true);
-            var collisions = characterAccess.GetComponent<ICharacterCollisionPipeline>();
+            var collisions = characterAccess.GetComponent<CharacterCollisionPipeline>();
             
-            collisions.IsEnabled = false;
+            collisions.enabled = false;
             characterAccess.GetComponent<CharacterBodyAdapter>().Position = blueprint.Read<Vector3>(token, 1);
-            collisions.IsEnabled = true;
+            collisions.enabled = true;
         }
     }
 

@@ -1,7 +1,7 @@
 ﻿using System;
+using MisterGames.Actors;
 using MisterGames.Character.Collisions;
-using MisterGames.Character.Core;
-using MisterGames.Character.Processors;
+using MisterGames.Character.View;
 using MisterGames.Collisions.Core;
 using MisterGames.Common.GameObjects;
 using UnityEngine;
@@ -9,23 +9,22 @@ using UnityEngine;
 namespace MisterGames.Character.Motion {
 
     [Serializable]
-    public sealed class CharacterProcessorVector2ToCharacterForward : ICharacterProcessorVector2ToVector3, ICharacterAccessInitializable {
+    public sealed class CharacterForwardDirectionProcessor {
 
         private ITransformAdapter _headAdapter;
         private ITransformAdapter _bodyAdapter;
         private ICollisionDetector _groundDetector;
-        private CharacterProcessorMass _mass;
+        private CharacterMassProcessor _mass;
         private Func<Vector2, Vector3> _converter;
 
-        public void Initialize(ICharacterAccess characterAccess) {
-            _headAdapter = characterAccess.HeadAdapter;
-            _bodyAdapter = characterAccess.BodyAdapter;
-
-            _groundDetector = characterAccess.GetPipeline<ICharacterCollisionPipeline>().GroundDetector;
-            _mass = characterAccess.GetPipeline<ICharacterMotionPipeline>().GetProcessor<CharacterProcessorMass>();
+        public void Initialize(IActor actor) {
+            _headAdapter = actor.GetComponent<CharacterHeadAdapter>();
+            _bodyAdapter = actor.GetComponent<CharacterBodyAdapter>();
+            _groundDetector = actor.GetComponent<CharacterCollisionPipeline>().GroundDetector;
+            _mass = actor.GetComponent<CharacterMotionPipeline>().GetProcessor<CharacterMassProcessor>();
         }
 
-        public void DeInitialize() { }
+        public void DeInitialize(IActor actor) { }
 
         public void SetOverride(Func<Vector2, Vector3> converter) {
             _converter = converter;

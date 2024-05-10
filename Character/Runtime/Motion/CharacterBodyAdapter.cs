@@ -1,5 +1,5 @@
-﻿using MisterGames.Character.Collisions;
-using MisterGames.Character.Core;
+﻿using MisterGames.Actors;
+using MisterGames.Character.Collisions;
 using MisterGames.Collisions.Core;
 using MisterGames.Common.GameObjects;
 using MisterGames.Common.Maths;
@@ -7,11 +7,8 @@ using UnityEngine;
 
 namespace MisterGames.Character.Motion {
 
-    public class CharacterBodyAdapter : MonoBehaviour, ITransformAdapter {
-
-        [SerializeField] private CharacterAccess _characterAccess;
-        [SerializeField] private CharacterController _characterController;
-
+    public sealed class CharacterBodyAdapter : MonoBehaviour, IActorComponent, ITransformAdapter {
+        
         public Vector3 Position {
             get => _body.position;
             set => _body.position = value;
@@ -22,13 +19,14 @@ namespace MisterGames.Character.Motion {
             set => _body.rotation = value;
         }
 
+        private CharacterController _characterController;
         private ICollisionDetector _groundDetector;
         private Transform _body;
         private float _stepOffset;
 
-        private void Awake() {
-            _groundDetector = _characterAccess.GetPipeline<ICharacterCollisionPipeline>().GroundDetector;
-
+        public void OnAwake(IActor actor) {
+            _characterController = actor.GetComponent<CharacterController>();
+            _groundDetector = actor.GetComponent<CharacterCollisionPipeline>().GroundDetector;
             _body = _characterController.transform;
             _stepOffset = _characterController.stepOffset;
         }

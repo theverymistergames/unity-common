@@ -3,7 +3,6 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
-using MisterGames.Character;
 using MisterGames.Character.Motion;
 using MisterGames.Common.Attributes;
 using UnityEngine;
@@ -25,7 +24,7 @@ namespace MisterGames.ActionLib.Character {
         }
 
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            var mass = context.GetComponent<ICharacterMotionPipeline>().GetProcessor<CharacterProcessorMass>();
+            var mass = context.GetComponent<CharacterMotionPipeline>().GetProcessor<CharacterMassProcessor>();
 
             float sqrMagnitude = mass.PreviousVelocity.sqrMagnitude;
 

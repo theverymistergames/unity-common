@@ -3,7 +3,6 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
-using MisterGames.Character.Core;
 using MisterGames.Character.Jump;
 using MisterGames.Common.Attributes;
 using UnityEngine;
@@ -25,9 +24,9 @@ namespace MisterGames.ActionLib.Character {
         }
 
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            var _jump = context.GetComponent<ICharacterJumpPipeline>();
+            var jump = context.GetComponent<CharacterJumpPipeline>();
 
-            float sqrMagnitude = _jump.LastJumpImpulse.sqrMagnitude;
+            float sqrMagnitude = jump.LastJumpImpulse.sqrMagnitude;
 
             for (int i = 0; i < cases.Length; i++) {
                 var c = cases[i];

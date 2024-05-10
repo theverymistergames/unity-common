@@ -1,17 +1,14 @@
-﻿using MisterGames.Character.Core;
+﻿using MisterGames.Actors;
+using MisterGames.Character.Motion;
 using MisterGames.Tick.Core;
 using UnityEngine;
 
 namespace MisterGames.Character.View {
 
-    public sealed class CharacterLeanCameraMotionPipeline :
-        CharacterPipelineBase,
-        ICharacterLeanCameraMotionPipeline,
-        IUpdate
-    {
+    public sealed class CharacterLeanCameraMotionPipeline : MonoBehaviour, IActorComponent, IUpdate {
+        
         [SerializeField] private PlayerLoopStage _playerLoopStage = PlayerLoopStage.Update;
-        [SerializeField] private CharacterAccess _characterAccess;
-
+        
         [Header("Motion Settings")]
         [SerializeField] [Min(0f)] private float _cameraMotionWeight = 1f;
         [SerializeField] [Min(0f)] private float _smoothFactor = 1f;
@@ -23,10 +20,8 @@ namespace MisterGames.Character.View {
         [SerializeField] private float _sideAmplitude = 0.01f;
         [SerializeField] private float _rotationLever = 0.1f;
         [SerializeField] private float _rotationAmplitude = 0.1f;
-
-        public override bool IsEnabled { get => enabled; set => enabled = value; }
-
-        private ICharacterMotionPipeline _motion;
+        
+        private CharacterMotionPipeline _motion;
         private CameraContainer _cameraContainer;
         private int _cameraStateId;
 
@@ -36,11 +31,11 @@ namespace MisterGames.Character.View {
         private Quaternion _currentRotationOffset;
         private Quaternion _targetRotationOffset;
 
-        private void Awake() {
-            _motion = _characterAccess.GetPipeline<ICharacterMotionPipeline>();
-            _cameraContainer = _characterAccess.GetPipeline<CharacterViewPipeline>().CameraContainer;
+        public void OnAwake(IActor actor) {
+            _motion = actor.GetComponent<CharacterMotionPipeline>();
+            _cameraContainer = actor.GetComponent<CharacterViewPipeline>().CameraContainer;
         }
-
+        
         private void OnEnable() {
             _cameraStateId = _cameraContainer.CreateState(_cameraMotionWeight);
             TimeSources.Get(_playerLoopStage).Subscribe(this);

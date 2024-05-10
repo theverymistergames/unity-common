@@ -1,24 +1,21 @@
-﻿using MisterGames.Character.Core;
+﻿using MisterGames.Actors;
 using UnityEngine;
 
 namespace MisterGames.Character.Inventory {
 
-    public sealed class CharacterInventoryPipeline : CharacterPipelineBase, ICharacterInventoryPipeline {
+    public sealed class CharacterInventoryPipeline : MonoBehaviour, IActorComponent {
 
-        [SerializeField] private CharacterAccess _characterAccess;
         [SerializeField] private InventoryItemStack[] _addItems;
         [SerializeField] [HideInInspector] private InventoryStorage _storage;
 
         public IInventory Inventory => GetOrCreateInventoryInstance();
-        public override bool IsEnabled { get => enabled; set => enabled = value; }
-
         private Inventory _inventoryInstance;
 
-        private void Awake() {
+        public void OnAwake(IActor actor) {
             GetOrCreateInventoryInstance();
         }
 
-        private void OnDestroy() {
+        public void OnTerminate(IActor actor) {
             _inventoryInstance = null;
         }
 

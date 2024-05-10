@@ -2,32 +2,29 @@
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
 using MisterGames.Character.Collisions;
-using MisterGames.Character.Core;
 using MisterGames.Collisions.Core;
 using MisterGames.Common.Attributes;
 using UnityEngine;
 
 namespace MisterGames.Character.Jump {
 
-    public sealed class CharacterJumpLandReactionPipeline : CharacterPipelineBase, IActorComponent, ICharacterJumpLandReactionPipeline {
+    public sealed class CharacterJumpLandReactionPipeline : MonoBehaviour, IActorComponent {
 
         [EmbeddedInspector]
         [SerializeField] private ActorAction _jumpReaction;
 
         [EmbeddedInspector]
         [SerializeField] private ActorAction _landReaction;
-
-        public override bool IsEnabled { get => enabled; set => enabled = value; }
         
         private IActor _actor;
-        private ICharacterJumpPipeline _jump;
+        private CharacterJumpPipeline _jump;
         private ICollisionDetector _groundDetector;
         private CancellationTokenSource _enableCts;
 
-        void IActorComponent.OnAwakeActor(IActor actor) {
+        void IActorComponent.OnAwake(IActor actor) {
             _actor = actor;
-            _jump = actor.GetComponent<ICharacterJumpPipeline>();
-            _groundDetector = actor.GetComponent<ICharacterCollisionPipeline>().GroundDetector;
+            _jump = actor.GetComponent<CharacterJumpPipeline>();
+            _groundDetector = actor.GetComponent<CharacterCollisionPipeline>().GroundDetector;
         }
 
         private void OnEnable() {

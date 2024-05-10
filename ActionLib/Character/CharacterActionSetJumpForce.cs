@@ -14,7 +14,7 @@ namespace MisterGames.ActionLib.Character {
         [Min(0f)] public float jumpForce = 1f;
 
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            context.GetComponent<ICharacterJumpPipeline>().Force = jumpForce;
+            context.GetComponent<CharacterJumpPipeline>().Force = jumpForce;
             return default;
         }
     }

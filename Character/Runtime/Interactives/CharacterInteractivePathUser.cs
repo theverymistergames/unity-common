@@ -1,18 +1,16 @@
-﻿using MisterGames.Character.Core;
-using MisterGames.Common.GameObjects;
+﻿using MisterGames.Actors;
 using MisterGames.Interact.Interactives;
 using UnityEngine;
 
 namespace MisterGames.Character.Interactives {
 
-    public sealed class CharacterInteractivePathUser : MonoBehaviour {
+    public sealed class CharacterInteractivePathUser : MonoBehaviour, IActorComponent {
 
-        [SerializeField] private CharacterAccess _characterAccess;
-
+        private IActor _actor;
         private IInteractiveUser _user;
 
-        private void Awake() {
-            _user = _characterAccess.GetPipeline<ICharacterInteractionPipeline>().InteractiveUser;
+        public void OnAwake(IActor actor) {
+            _user = actor.GetComponent<CharacterInteractionPipeline>().InteractiveUser;   
         }
 
         private void OnEnable() {
@@ -29,15 +27,15 @@ namespace MisterGames.Character.Interactives {
         }
 
         private void OnStartInteract(IInteractive interactive) {
-            interactive.Transform
-                .GetComponent<ICharacterInteractivePathAdapter>()
-                ?.AttachToPath(_characterAccess, _user, interactive);
+            if (!interactive.Transform.TryGetComponent(out CharacterInteractivePathAdapter adapter)) return;
+            
+            adapter.AttachToPath(_actor, _user, interactive);
         }
 
         private void OnStopInteract(IInteractive interactive) {
-            interactive.Transform
-                .GetComponent<ICharacterInteractivePathAdapter>()
-                ?.DetachFromPath(_characterAccess, _user, interactive);
+            if (!interactive.Transform.TryGetComponent(out CharacterInteractivePathAdapter adapter)) return;
+            
+            adapter.DetachFromPath(_actor, _user, interactive);
         }
     }
 

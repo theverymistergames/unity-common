@@ -1,9 +1,10 @@
-﻿using MisterGames.Common.GameObjects;
+﻿using MisterGames.Actors;
+using MisterGames.Common.GameObjects;
 using UnityEngine;
 
 namespace MisterGames.Character.View {
 
-    public sealed class CharacterHeadAdapter : MonoBehaviour, ITransformAdapter {
+    public sealed class CharacterHeadAdapter : MonoBehaviour, IActorComponent, ITransformAdapter {
 
         [SerializeField] private Transform _head;
 

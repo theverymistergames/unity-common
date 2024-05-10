@@ -1,4 +1,5 @@
 ﻿using System;
+using MisterGames.Actors;
 using MisterGames.Character.Core;
 using MisterGames.Collisions.Core;
 using MisterGames.Collisions.Triggers;
@@ -43,15 +44,15 @@ namespace MisterGames.Character.Motion {
         [VisibleIf(nameof(_considerObstacles))]
         [SerializeField] private float _behindObstacleForceMultiplier = 1f;
 
-        public event Action<CharacterAccess> OnEnteredZone = delegate {  };
-        public event Action<CharacterAccess> OnExitedZone = delegate {  };
+        public event Action<IActor> OnEnteredZone = delegate {  };
+        public event Action<IActor> OnExitedZone = delegate {  };
         public event Action<Vector3> OnForceUpdate = delegate {  };
 
         public float ForceMultiplier { get; set; } = 1f;
 
         private Transform _characterTransform;
         private Transform _obstacleDetectorTransform;
-        private CharacterProcessorMass _characterMass;
+        private CharacterMassProcessor _characterMass;
 
         private float _force;
         private float _random;
@@ -77,24 +78,28 @@ namespace MisterGames.Character.Motion {
         }
 
         private void OnEnterTrigger(Collider go) {
-            if (_characterMass != null) return;
+            if (_characterMass != null ||
+                !go.TryGetComponent(out IActor actor) ||
+                !actor.TryGetComponent<CharacterAccess>(out _)
+            ) {
+                return;
+            }
 
-            var characterAccess = go.GetComponent<CharacterAccess>();
-            if (characterAccess == null) return;
-
-            _characterTransform = characterAccess.transform;
-            _characterMass = characterAccess.GetPipeline<ICharacterMotionPipeline>().GetProcessor<CharacterProcessorMass>();
+            _characterTransform = actor.Transform;
+            _characterMass = actor.GetComponent<CharacterMotionPipeline>().GetProcessor<CharacterMassProcessor>();
 
             TimeSources.Get(_playerLoopStage).Subscribe(this);
 
-            OnEnteredZone.Invoke(characterAccess);
+            OnEnteredZone.Invoke(actor);
         }
 
         private void OnExitTrigger(Collider go) {
-            if (_characterMass == null) return;
-
-            var characterAccess = go.GetComponent<CharacterAccess>();
-            if (characterAccess == null) return;
+            if (_characterMass == null ||
+                !go.TryGetComponent(out IActor actor) ||
+                !actor.TryGetComponent<CharacterAccess>(out _)
+            ) {
+                return;
+            }
 
             TimeSources.Get(_playerLoopStage).Unsubscribe(this);
 
@@ -106,7 +111,7 @@ namespace MisterGames.Character.Motion {
             _force = 0f;
             _random = 0f;
 
-            OnExitedZone.Invoke(characterAccess);
+            OnExitedZone.Invoke(actor);
         }
 
         public void OnUpdate(float dt) {

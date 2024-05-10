@@ -3,7 +3,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
-using MisterGames.Character;
+using MisterGames.Character.Motion;
 using MisterGames.Character.Processors;
 using UnityEngine;
 
@@ -15,7 +15,7 @@ namespace MisterGames.ActionLib.Character {
         [Min(0f)] public float speed;
 
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            var multiplier = context.GetComponent<ICharacterMotionPipeline>().GetProcessor<CharacterProcessorVector2Multiplier>();
+            var multiplier = context.GetComponent<CharacterMotionPipeline>().GetProcessor<CharacterProcessorVector2Multiplier>();
 
             multiplier.multiplier = speed;
             return default;

@@ -1,18 +1,15 @@
-﻿using MisterGames.Character.Core;
-using MisterGames.Interact.Detectables;
+﻿using MisterGames.Interact.Detectables;
 using MisterGames.Interact.Interactives;
 using UnityEngine;
 
 namespace MisterGames.Character.Interactives {
 
-    public sealed class CharacterInteractionPipeline : CharacterPipelineBase, ICharacterInteractionPipeline {
+    public sealed class CharacterInteractionPipeline : MonoBehaviour {
 
         [SerializeField] private Detector _detector;
         [SerializeField] private InteractiveUser _interactiveUser;
 
         public IInteractiveUser InteractiveUser => _interactiveUser;
-
-        public override bool IsEnabled { get => enabled; set => enabled = value; }
 
         private void OnEnable() {
             SetEnabled(true);

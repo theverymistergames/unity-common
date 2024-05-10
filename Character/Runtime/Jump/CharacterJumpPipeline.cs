@@ -1,7 +1,6 @@
 ﻿using System;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
-using MisterGames.Character.Core;
 using MisterGames.Character.Input;
 using MisterGames.Character.Motion;
 using MisterGames.Common.Attributes;
@@ -10,7 +9,7 @@ using UnityEngine;
 
 namespace MisterGames.Character.Jump {
 
-    public sealed class CharacterJumpPipeline : CharacterPipelineBase, IActorComponent, ICharacterJumpPipeline {
+    public sealed class CharacterJumpPipeline : MonoBehaviour, IActorComponent {
 
         [SerializeField] private Vector3 _direction = Vector3.up;
         [SerializeField] private float _force = 1f;
@@ -24,16 +23,14 @@ namespace MisterGames.Character.Jump {
         public Vector3 Direction { get => _direction; set => _direction = value; }
         public float Force { get => _force; set => _force = value; }
 
-        public override bool IsEnabled { get => enabled; set => enabled = value; }
-
         private IActor _actor;
-        private ICharacterInputPipeline _input;
-        private CharacterProcessorMass _mass;
+        private CharacterInputPipeline _input;
+        private CharacterMassProcessor _mass;
 
-        void IActorComponent.OnAwakeActor(IActor actor) {
+        public void OnAwake(IActor actor) {
             _actor = actor;
-            _input = actor.GetComponent<ICharacterInputPipeline>();
-            _mass = actor.GetComponent<ICharacterMotionPipeline>().GetProcessor<CharacterProcessorMass>();
+            _input = actor.GetComponent<CharacterInputPipeline>();
+            _mass = actor.GetComponent<CharacterMotionPipeline>().GetProcessor<CharacterMassProcessor>();
         }
 
         private void OnEnable() {

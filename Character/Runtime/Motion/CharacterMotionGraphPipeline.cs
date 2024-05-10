@@ -4,30 +4,27 @@ using MisterGames.Actors;
 using MisterGames.Actors.Actions;
 using MisterGames.Character.Capsule;
 using MisterGames.Character.Collisions;
-using MisterGames.Character.Core;
 using MisterGames.Character.Input;
 using MisterGames.Collisions.Core;
 using UnityEngine;
 
 namespace MisterGames.Character.Motion {
 
-    public sealed class CharacterMotionGraphPipeline : CharacterPipelineBase, IActorComponent, ICharacterMotionGraphPipeline {
+    public sealed class CharacterMotionGraphPipeline : MonoBehaviour, IActorComponent {
 
         [SerializeField] private ActorAction _action;
 
-        public override bool IsEnabled { get => enabled; set => enabled = value; }
-
         private IActor _actor;
-        private ICharacterPosePipeline _pose;
-        private ICharacterInputPipeline _input;
+        private CharacterPosePipeline _pose;
+        private CharacterInputPipeline _input;
         private ICollisionDetector _groundDetector;
         private CancellationTokenSource _enableCts;
 
-        void IActorComponent.OnAwakeActor(IActor actor) {
+        void IActorComponent.OnAwake(IActor actor) {
             _actor = actor;
-            _pose = actor.GetComponent<ICharacterPosePipeline>();
-            _input = actor.GetComponent<ICharacterInputPipeline>();
-            _groundDetector = actor.GetComponent<ICharacterCollisionPipeline>().GroundDetector;
+            _pose = actor.GetComponent<CharacterPosePipeline>();
+            _input = actor.GetComponent<CharacterInputPipeline>();
+            _groundDetector = actor.GetComponent<CharacterCollisionPipeline>().GroundDetector;
         }
 
         private void OnEnable() {

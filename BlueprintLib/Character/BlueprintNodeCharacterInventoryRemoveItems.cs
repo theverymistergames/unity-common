@@ -1,6 +1,6 @@
 ﻿using System;
+using MisterGames.Actors;
 using MisterGames.Blueprints;
-using MisterGames.Character.Core;
 using MisterGames.Character.Inventory;
 using UnityEngine;
 
@@ -31,7 +31,7 @@ namespace MisterGames.BlueprintLib {
 
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {
             meta.AddPort(id, Port.Enter());
-            meta.AddPort(id, Port.Input<CharacterAccess>());
+            meta.AddPort(id, Port.Input<IActor>());
             meta.AddPort(id, Port.Input<InventoryItemAsset>("Item Asset"));
             meta.AddPort(id, Port.Input<int>("Count"));
             meta.AddPort(id, Port.Exit());
@@ -42,8 +42,8 @@ namespace MisterGames.BlueprintLib {
         public void OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
             if (port != 0) return;
 
-            var characterAccess = blueprint.Read<CharacterAccess>(token, port: 1);
-            var inventory = characterAccess.GetPipeline<ICharacterInventoryPipeline>().Inventory;
+            var characterAccess = blueprint.Read<IActor>(token, port: 1);
+            var inventory = characterAccess.GetComponent<CharacterInventoryPipeline>().Inventory;
 
             var asset = blueprint.Read(token, port: 2, _asset);
             int count = blueprint.Read(token, port: 3, _count);

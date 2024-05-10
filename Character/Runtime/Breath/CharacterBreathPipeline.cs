@@ -1,10 +1,10 @@
-﻿using MisterGames.Character.Core;
+﻿using MisterGames.Actors;
 using MisterGames.Tick.Core;
 using UnityEngine;
 
 namespace MisterGames.Character.Breath {
 
-    public sealed class CharacterBreathPipeline : CharacterPipelineBase, ICharacterBreathPipeline, IUpdate {
+    public sealed class CharacterBreathPipeline : MonoBehaviour, IActorComponent, IUpdate {
 
         [SerializeField] private PlayerLoopStage _playerLoopStage = PlayerLoopStage.Update;
 
@@ -19,17 +19,10 @@ namespace MisterGames.Character.Breath {
         public event BreathCallback OnInhale = delegate {  };
         public event BreathCallback OnExhale = delegate {  };
 
-        public override bool IsEnabled { get => enabled; set => enabled = value; }
+        public delegate void BreathCallback(float duration, float amplitude);
 
-        public float Period {
-            get => _period;
-            set => _period = value;
-        }
-
-        public float Amplitude {
-            get => _amplitude;
-            set => _amplitude = value;
-        }
+        public float Period { get => _period; set => _period = value; }
+        public float Amplitude { get => _amplitude; set => _amplitude = value; }
 
         private float _targetPeriod;
         private float _timer;

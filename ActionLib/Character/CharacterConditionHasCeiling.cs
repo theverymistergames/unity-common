@@ -15,7 +15,7 @@ namespace MisterGames.ActionLib.Character {
         public Optional<float> minCeilingHeight;
 
         public bool IsMatch(IActor context) {
-            var ceilingDetector = context.GetComponent<ICharacterCollisionPipeline>().CeilingDetector;
+            var ceilingDetector = context.GetComponent<CharacterCollisionPipeline>().CeilingDetector;
             var info = ceilingDetector.CollisionInfo;
 
             // No contact:
@@ -26,7 +26,7 @@ namespace MisterGames.ActionLib.Character {
             // return true if contact is expected
             if (!minCeilingHeight.HasValue) return hasCeiling;
 
-            var capsule = context.GetComponent<ICharacterCapsulePipeline>();
+            var capsule = context.GetComponent<CharacterCapsulePipeline>();
             var top = capsule.ColliderTop;
             float sqrDistanceToCeiling = (info.point - top).sqrMagnitude;
 

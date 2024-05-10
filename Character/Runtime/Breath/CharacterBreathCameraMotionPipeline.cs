@@ -1,4 +1,4 @@
-﻿using MisterGames.Character.Core;
+﻿using MisterGames.Actors;
 using MisterGames.Character.View;
 using MisterGames.Common.Maths;
 using MisterGames.Tick.Core;
@@ -6,10 +6,8 @@ using UnityEngine;
 
 namespace MisterGames.Character.Breath {
 
-    public sealed class CharacterBreathCameraMotionPipeline : CharacterPipelineBase, ICharacterBreathCameraMotionPipeline, IUpdate {
-
-        [SerializeField] private CharacterAccess _characterAccess;
-
+    public sealed class CharacterBreathCameraMotionPipeline : MonoBehaviour, IActorComponent, IUpdate {
+        
         [Header("Motion Settings")]
         [SerializeField] [Min(0f)] private float _cameraMotionWeight = 1f;
         [SerializeField] [Min(0f)] private float _smoothFactor = 1f;
@@ -21,9 +19,7 @@ namespace MisterGames.Character.Breath {
         [SerializeField] private float _rotationAmplitude = 1f;
         [SerializeField] private float _rotationAmplitudeRandom = 0.3f;
 
-        public override bool IsEnabled { get => enabled; set => enabled = value; }
-
-        private ICharacterBreathPipeline _breath;
+        private CharacterBreathPipeline _breath;
         private CameraContainer _cameraContainer;
         private int _cameraStateId;
 
@@ -34,17 +30,14 @@ namespace MisterGames.Character.Breath {
         private Quaternion _currentRotationOffset;
         private Quaternion _preTargetRotationOffset;
         private Quaternion _targetRotationOffset;
-
-        private void Awake() {
-            _breath = _characterAccess.GetPipeline<ICharacterBreathPipeline>();
-            _cameraContainer = _characterAccess.GetPipeline<CharacterViewPipeline>().CameraContainer;
+        
+        public void OnAwake(IActor actor) {
+            _breath = actor.GetComponent<CharacterBreathPipeline>();
+            _cameraContainer = actor.GetComponent<CharacterViewPipeline>().CameraContainer;
         }
 
         private void OnEnable() {
-            _breath.OnInhale -= OnInhale;
             _breath.OnInhale += OnInhale;
-
-            _breath.OnExhale -= OnExhale;
             _breath.OnExhale += OnExhale;
 
             _cameraStateId = _cameraContainer.CreateState(_cameraMotionWeight);

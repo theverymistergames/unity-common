@@ -1,10 +1,9 @@
 ﻿namespace MisterGames.Actors {
     
     public interface IActorComponent {
-        void OnAwakeActor(IActor actor) { }
-        void OnDestroyActor(IActor actor) { }
-        
-        void OnActorDataUpdated(IActor actor) { }
+        void OnAwake(IActor actor) { }
+        void OnTerminate(IActor actor) { }
+        void OnDataChanged(IActor actor) { }
     }
     
 }

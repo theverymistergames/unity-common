@@ -1,4 +1,4 @@
-﻿using MisterGames.Character.Core;
+﻿using MisterGames.Actors;
 using MisterGames.Character.Motion;
 using MisterGames.Character.View;
 using MisterGames.Common.Data;
@@ -9,10 +9,9 @@ using UnityEngine;
 
 namespace MisterGames.Character.Steps {
 
-    public sealed class CharacterStepsHeadbobPipeline : CharacterPipelineBase, ICharacterStepsHeadbobPipeline, IUpdate {
+    public sealed class CharacterStepsHeadbobPipeline : MonoBehaviour, IActorComponent, IUpdate {
 
         [SerializeField] private PlayerLoopStage _playerLoopStage = PlayerLoopStage.Update;
-        [SerializeField] private CharacterAccess _characterAccess;
 
         [Header("Motion Settings")]
         [SerializeField] [Min(0f)] private float _cameraWeight = 1f;
@@ -29,13 +28,11 @@ namespace MisterGames.Character.Steps {
         [SerializeField] private Vector3Parameter _positionOffset = Vector3Parameter.Default();
         [SerializeField] private Vector3Parameter _rotationOffset = Vector3Parameter.Default();
 
-        public override bool IsEnabled { get => enabled; set => enabled = value; }
-
-        private CharacterProcessorMass _mass;
+        private CharacterMassProcessor _mass;
         private CameraContainer _cameraContainer;
-        private int _cameraStateId;
-        private ICharacterStepsPipeline _steps;
+        private CharacterStepsPipeline _steps;
         private ITransformAdapter _head;
+        private int _cameraStateId;
 
         private Vector3 _targetPositionOffset;
         private Vector3 _currentPositionOffset;
@@ -50,11 +47,11 @@ namespace MisterGames.Character.Steps {
         private float _stepProgress;
         private int _foot;
 
-        private void Awake() {
-            _mass = _characterAccess.GetPipeline<ICharacterMotionPipeline>().GetProcessor<CharacterProcessorMass>();
-            _head = _characterAccess.HeadAdapter;
-            _cameraContainer = _characterAccess.GetPipeline<ICharacterViewPipeline>().CameraContainer;
-            _steps = _characterAccess.GetPipeline<ICharacterStepsPipeline>();
+        public void OnAwake(IActor actor) {
+            _mass = actor.GetComponent<CharacterMotionPipeline>().GetProcessor<CharacterMassProcessor>();
+            _head = actor.GetComponent<CharacterHeadAdapter>();
+            _cameraContainer = actor.GetComponent<CharacterViewPipeline>().CameraContainer;
+            _steps = actor.GetComponent<CharacterStepsPipeline>();
         }
 
         private void OnEnable() {

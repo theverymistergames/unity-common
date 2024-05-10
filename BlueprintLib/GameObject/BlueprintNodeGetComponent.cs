@@ -25,7 +25,7 @@ namespace MisterGames.BlueprintLib {
         }
 
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {
-            var outputDataType = typeof(Component);
+            Type outputDataType = null;
 
             if (meta.TryGetLinksTo(id, 1, out int l)) {
                 var link = meta.GetLink(l);

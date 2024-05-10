@@ -18,9 +18,9 @@ namespace MisterGames.ActionLib.Character {
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
             var body = context.GetComponent<CharacterBodyAdapter>();
             
-            var collisionPipeline = context.GetComponent<ICharacterCollisionPipeline>();
+            var collisionPipeline = context.GetComponent<CharacterCollisionPipeline>();
 
-            collisionPipeline.IsEnabled = false;
+            collisionPipeline.enabled = false;
 
             var fwd = localCenter.forward;
             var positionOffset = body.Position - localCenter.position;
@@ -29,7 +29,7 @@ namespace MisterGames.ActionLib.Character {
             body.Position = targetCenter.position + Quaternion.FromToRotation(fwd, targetCenter.forward) * positionOffset;
             body.Rotation = targetCenter.rotation * rotationOffset;
             
-            collisionPipeline.IsEnabled = true;
+            collisionPipeline.enabled = true;
 
             return default;
         }

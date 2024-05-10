@@ -13,7 +13,7 @@ namespace MisterGames.ActionLib.Character {
         public InventoryItemStack[] items;
 
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            var inventory = context.GetComponent<ICharacterInventoryPipeline>().Inventory;
+            var inventory = context.GetComponent<CharacterInventoryPipeline>().Inventory;
 
             for (int i = 0; i < items.Length; i++) {
                 var stack = items[i];

@@ -1,17 +1,16 @@
 ﻿using System.Threading;
 using Cysharp.Threading.Tasks;
-using MisterGames.Character.Core;
+using MisterGames.Actors;
 using MisterGames.Tick.Core;
 using UnityEngine;
 
 namespace MisterGames.Character.Capsule {
 
-    public sealed class CharacterPosePipeline : CharacterPipelineBase, ICharacterPosePipeline {
+    public sealed class CharacterPosePipeline : MonoBehaviour, IActorComponent {
 
-        [SerializeField] private CharacterAccess _characterAccess;
         [SerializeField] private PlayerLoopStage _playerLoopStage = PlayerLoopStage.Update;
 
-        public event OnPoseChanged OnPoseChanged = delegate {  };
+        public event PoseChanged OnPoseChanged = delegate {  };
 
         public CharacterPose CurrentPose { get => _currentPose; set => SetPose(value); }
         public CharacterPose TargetPose { get; private set; }
@@ -19,17 +18,17 @@ namespace MisterGames.Character.Capsule {
         public CharacterCapsuleSize CurrentCapsuleSize { get => _capsule.CapsuleSize; set => _capsule.CapsuleSize = value; }
         public CharacterCapsuleSize TargetCapsuleSize { get; private set; }
 
-        public override bool IsEnabled { get => enabled; set => enabled = value; }
+        public delegate void PoseChanged(CharacterPose newPose, CharacterPose oldPose);
 
-        private ICharacterCapsulePipeline _capsule;
+        private CharacterCapsulePipeline _capsule;
         private ITimeSource _timeSource;
 
         private CharacterPose _currentPose;
         private byte _lastPoseChangeId;
-
-        private void Awake() {
+        
+        public void OnAwake(IActor actor) {
             _timeSource = TimeSources.Get(_playerLoopStage);
-            _capsule = _characterAccess.GetPipeline<ICharacterCapsulePipeline>();
+            _capsule = actor.GetComponent<CharacterCapsulePipeline>();
         }
 
         public async UniTask ChangePose(

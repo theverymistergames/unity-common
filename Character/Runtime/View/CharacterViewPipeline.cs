@@ -1,126 +1,115 @@
-﻿using MisterGames.Character.Core;
+﻿using MisterGames.Actors;
 using MisterGames.Character.Input;
-using MisterGames.Character.Processors;
-using MisterGames.Common.Attributes;
+using MisterGames.Character.Motion;
 using MisterGames.Common.GameObjects;
-using MisterGames.Common.Maths;
 using MisterGames.Tick.Core;
 using MisterGames.UI.Initialization;
 using UnityEngine;
 
 namespace MisterGames.Character.View {
 
-    public sealed class CharacterViewPipeline : CharacterPipelineBase, ICharacterViewPipeline, IUpdate {
+    public sealed class CharacterViewPipeline : MonoBehaviour, IActorComponent, IUpdate {
 
-        [SerializeField] private CharacterAccess _characterAccess;
         [SerializeField] private Camera _camera;
         [SerializeField] private CameraContainer _cameraContainer;
         [SerializeField] private PlayerLoopStage _playerLoopStage = PlayerLoopStage.Update;
 
-        [SerializeReference] [SubclassSelector] private ICharacterProcessorVector2[] _inputProcessors = {
-            new CharacterProcessorVector2Sensitivity { sensitivity = new Vector2(0.15f, 0.15f) },
-        };
+        [Header("View Settings")]
+        [SerializeField] private Vector2 _sensitivity = new Vector2(0.15f, 0.15f);
+        [SerializeField] private float _smoothing = 20f;
+        [SerializeField] private CharacterViewClampProcessor _viewClamp;
 
-        [SerializeReference] [SubclassSelector] private ICharacterProcessorVector2 _inputToViewProcessor =
-            new CharacterProcessorViewClamp {
-                vertical = new ViewAxisClamp {
-                    mode = ClampMode.Full,
-                    bounds = new Vector2(-90f, 90f),
-                }
-            };
-
-        [SerializeReference] [SubclassSelector] private ICharacterProcessorQuaternion[] _viewProcessors = {
-            new CharacterProcessorQuaternionSmoothing { smoothFactor = 20f },
-        };
-
-        public override bool IsEnabled { get => enabled; set => enabled = value; }
         public CameraContainer CameraContainer => _cameraContainer;
+        public Vector2 Sensitivity { get => _sensitivity; set => _sensitivity = value; }
+        public float Smoothing { get => _smoothing; set => _smoothing = value; }
 
         private ITimeSource _timeSource;
         private ITransformAdapter _headAdapter;
         private ITransformAdapter _bodyAdapter;
+        private CharacterInputPipeline _inputPipeline;
 
         private Vector2 _inputDelta;
-        private Vector2 _input;
-        private Quaternion _currentOrientation;
+        private Vector2 _currentOrientation;
 
-        private void Awake() {
-            _headAdapter = _characterAccess.HeadAdapter;
-            _bodyAdapter = _characterAccess.BodyAdapter;
-
+        void IActorComponent.OnAwake(IActor actor) {
+            _headAdapter = actor.GetComponent<CharacterHeadAdapter>();
+            _bodyAdapter = actor.GetComponent<CharacterBodyAdapter>();
+            _inputPipeline = actor.GetComponent<CharacterInputPipeline>();
             _timeSource = TimeSources.Get(_playerLoopStage);
-
-            for (int i = 0; i < _inputProcessors.Length; i++) {
-                if (_inputProcessors[i] is ICharacterAccessInitializable ip) ip.Initialize(_characterAccess);
-            }
-        }
-
-        private void OnDestroy() {
-            for (int i = 0; i < _inputProcessors.Length; i++) {
-                if (_inputProcessors[i] is ICharacterAccessInitializable ip) ip.DeInitialize();
-            }
         }
 
         private void OnEnable() {
             CanvasRegistry.Instance.SetCanvasEventCamera(_camera);
-
-            var input = _characterAccess.GetPipeline<ICharacterInputPipeline>();
-
-            input.OnViewVectorChanged -= HandleViewVectorChanged;
-            input.OnViewVectorChanged += HandleViewVectorChanged;
-
+            _inputPipeline.OnViewVectorChanged += HandleViewVectorChanged;
             _timeSource.Subscribe(this);
         }
 
         private void OnDisable() {
             CanvasRegistry.Instance.SetCanvasEventCamera(null);
-
+            _inputPipeline.OnViewVectorChanged -= HandleViewVectorChanged;
             _timeSource.Unsubscribe(this);
-
-            var input = _characterAccess.GetPipeline<ICharacterInputPipeline>();
-            input.OnViewVectorChanged -= HandleViewVectorChanged;
+        }
+        
+        public void LookAt(Transform target) {
+            _viewClamp.LookAt(target);
         }
 
-        public T GetProcessor<T>() where T : ICharacterProcessor {
-            for (int i = 0; i < _inputProcessors.Length; i++) {
-                if (_inputProcessors[i] is T ip) return ip;
-            }
+        public void LookAt(Vector3 target) {
+            _viewClamp.LookAt(target);
+        }
 
-            if (_inputToViewProcessor is T ivp) return ivp;
+        public void StopLookAt() {
+            _viewClamp.StopLookAt();
+        }
 
-            for (int i = 0; i < _viewProcessors.Length; i++) {
-                if (_viewProcessors[i] is T vp) return vp;
-            }
+        public void ApplyHorizontalClamp(ViewAxisClamp clamp) {
+            _viewClamp.ApplyHorizontalClamp(_currentOrientation, clamp);
+        }
 
-            return default;
+        public void ApplyVerticalClamp(ViewAxisClamp clamp) {
+            _viewClamp.ApplyVerticalClamp(_currentOrientation, clamp);
         }
 
         private void HandleViewVectorChanged(Vector2 input) {
             _inputDelta += new Vector2(-input.y, input.x);
         }
 
-        public void OnUpdate(float dt) {
+        void IUpdate.OnUpdate(float dt) {
+            var delta = ConsumeInputDelta();
+            
+            ApplySensitivity(ref delta);
+
+            var prevOrientation = _currentOrientation;
+            var targetOrientation = prevOrientation + delta;
+            
+            ApplyClamp(_currentOrientation, ref targetOrientation, dt);
+            ApplySmoothing(ref _currentOrientation, targetOrientation, dt);
+
+            PerformRotation(_currentOrientation - prevOrientation);
+        }
+
+        private Vector2 ConsumeInputDelta() {
             var delta = _inputDelta;
             _inputDelta = Vector2.zero;
+            return delta;
+        }
 
-            for (int i = 0; i < _inputProcessors.Length; i++) {
-                delta = _inputProcessors[i].Process(delta, dt);
-            }
+        private void ApplySensitivity(ref Vector2 input) {
+            input.x *= _sensitivity.x;
+            input.y *= _sensitivity.y;
+        }
 
-            _input = _inputToViewProcessor.Process(_input + delta, dt);
+        private void ApplyClamp(Vector2 current, ref Vector2 target, float dt) {
+            _viewClamp.Process(_headAdapter.Position, current, ref target, dt);
+        }
 
-            var inputQuaternion = Quaternion.Euler(_input.x, _input.y, 0f);
-            for (int i = 0; i < _viewProcessors.Length; i++) {
-                inputQuaternion = _viewProcessors[i].Process(inputQuaternion, dt);
-            }
+        private void ApplySmoothing(ref Vector2 current, Vector2 target, float dt) {
+            current = Vector2.Lerp(current, target, dt * _smoothing);
+        }
 
-            var lastOrientation = _currentOrientation;
-            _currentOrientation = inputQuaternion;
-            
-            var diffEulers = _currentOrientation.eulerAngles - lastOrientation.eulerAngles;
-
-            _headAdapter.Rotate(Quaternion.Euler(diffEulers.x, 0f, 0f));
-            _bodyAdapter.Rotate(Quaternion.Euler(0f, diffEulers.y, 0f));
+        private void PerformRotation(Vector2 deltaEulers) {
+            _headAdapter.Rotate(Quaternion.Euler(deltaEulers.x, 0f, 0f));
+            _bodyAdapter.Rotate(Quaternion.Euler(0f, deltaEulers.y, 0f));
         }
     }
 

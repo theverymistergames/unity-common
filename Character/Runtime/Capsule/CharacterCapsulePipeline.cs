@@ -1,5 +1,6 @@
-﻿using MisterGames.Character.Collisions;
-using MisterGames.Character.Core;
+﻿using MisterGames.Actors;
+using MisterGames.Character.Collisions;
+using MisterGames.Character.Motion;
 using MisterGames.Collisions.Core;
 using MisterGames.Common.GameObjects;
 using MisterGames.Common.Maths;
@@ -7,12 +8,10 @@ using UnityEngine;
 
 namespace MisterGames.Character.Capsule {
 
-    public sealed class CharacterCapsulePipeline : CharacterPipelineBase, ICharacterCapsulePipeline {
+    public sealed class CharacterCapsulePipeline : MonoBehaviour, IActorComponent {
 
-        [SerializeField] private CharacterAccess _characterAccess;
         [SerializeField] private Transform _headRoot;
-        [SerializeField] private CharacterController _characterController;
-
+        
         public event HeightChangeCallback OnHeightChange = delegate { };
 
         public float Height { get => _characterController.height; set => SetHeight(value); }
@@ -23,8 +22,9 @@ namespace MisterGames.Character.Capsule {
         public Vector3 ColliderCenter => GetColliderCenterPoint();
         public Vector3 ColliderBottom => GetColliderBottomPoint();
 
-        public override bool IsEnabled { get => enabled; set => enabled = value; }
-
+        public delegate void HeightChangeCallback(float newHeight, float oldHeight);
+        
+        private CharacterController _characterController;
         private ITransformAdapter _bodyAdapter;
         private IRadiusCollisionDetector _groundDetector;
         private IRadiusCollisionDetector _ceilingDetector;
@@ -32,10 +32,11 @@ namespace MisterGames.Character.Capsule {
         private Vector3 _headRootInitialPosition;
         private float _initialHeight;
 
-        private void Awake() {
-            _bodyAdapter = _characterAccess.BodyAdapter;
-
-            var collisionPipeline = _characterAccess.GetPipeline<ICharacterCollisionPipeline>();
+        public void OnAwake(IActor actor) {
+            _bodyAdapter = actor.GetComponent<CharacterBodyAdapter>();
+            _characterController = actor.GetComponent<CharacterController>();
+            
+            var collisionPipeline = actor.GetComponent<CharacterCollisionPipeline>();
             _groundDetector = collisionPipeline.GroundDetector;
             _ceilingDetector = collisionPipeline.CeilingDetector;
 

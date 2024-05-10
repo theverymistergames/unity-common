@@ -1,7 +1,7 @@
 ﻿using System;
+using MisterGames.Actors;
 using MisterGames.Blueprints;
 using MisterGames.Blueprints.Nodes;
-using MisterGames.Character.Core;
 using MisterGames.Character.Motion;
 using UnityEngine;
 
@@ -13,12 +13,12 @@ namespace MisterGames.BlueprintLib {
         IBlueprintNode,
         IBlueprintEnter,
         IBlueprintStartCallback,
-        IBlueprintOutput<CharacterAccess>,
+        IBlueprintOutput<IActor>,
         IBlueprintOutput<Vector3>
     {
         [SerializeField] private bool _autoSetZoneAtStart;
 
-        private CharacterAccess _characterAccess;
+        private IActor _characterAccess;
         private CharacterForceZone _forceZone;
         private IBlueprint _blueprint;
 
@@ -28,7 +28,7 @@ namespace MisterGames.BlueprintLib {
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {
             meta.AddPort(id, Port.Enter("Set Zone"));
             meta.AddPort(id, Port.Input<CharacterForceZone>("Zone"));
-            meta.AddPort(id, Port.Output<CharacterAccess>());
+            meta.AddPort(id, Port.Output<IActor>());
             meta.AddPort(id, Port.Exit("On Enter"));
             meta.AddPort(id, Port.Exit("On Exit"));
             meta.AddPort(id, Port.Exit("On Force Update"));
@@ -64,7 +64,7 @@ namespace MisterGames.BlueprintLib {
             PrepareZone();
         }
 
-        CharacterAccess IBlueprintOutput<CharacterAccess>.GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
+        IActor IBlueprintOutput<IActor>.GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
             return port == 2 ? _characterAccess : default;
         }
 
@@ -84,8 +84,8 @@ namespace MisterGames.BlueprintLib {
             _forceZone.OnExitedZone += OnExitedZone;
         }
 
-        private void OnEnteredZone(CharacterAccess characterAccess) {
-            _characterAccess = characterAccess;
+        private void OnEnteredZone(IActor actor) {
+            _characterAccess = actor;
 
             _forceZone.OnForceUpdate -= OnForceUpdate;
             _forceZone.OnForceUpdate += OnForceUpdate;
@@ -93,7 +93,7 @@ namespace MisterGames.BlueprintLib {
             _blueprint.Call(_token, 3);
         }
 
-        private void OnExitedZone(CharacterAccess characterAccess) {
+        private void OnExitedZone(IActor actor) {
             _forceZone.OnForceUpdate -= OnForceUpdate;
 
             _blueprint.Call(_token, 4);

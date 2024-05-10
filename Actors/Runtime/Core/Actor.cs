@@ -7,7 +7,7 @@ using UnityEngine;
 namespace MisterGames.Actors
 {
     
-    [DefaultExecutionOrder(-1000)]
+    [DefaultExecutionOrder(-2000)]
     public sealed class Actor : MonoBehaviour, IActor {
         
         [EmbeddedInspector] [SerializeField] private ActorData _data;
@@ -126,20 +126,20 @@ namespace MisterGames.Actors
 
         private void NotifyAwake() {
             for (int i = 0, count = _actorComponents.Count; i < count && _isAwake; i++) {
-                _actorComponents[i]?.OnAwakeActor(this);
+                _actorComponents[i]?.OnAwake(this);
             }
         }
         
         private void NotifyDestroy() {
             for (int i = 0, count = _actorComponents.Count; i < count; i++) {
-                _actorComponents[i]?.OnDestroyActor(this);
+                _actorComponents[i]?.OnTerminate(this);
             }
         }
         
         private void NotifyDataUpdated()
         {
             for (int i = 0, count = _actorComponents.Count; i < count && _isAwake; i++) {
-                _actorComponents[i]?.OnActorDataUpdated(this);
+                _actorComponents[i]?.OnDataChanged(this);
             }
         }
 

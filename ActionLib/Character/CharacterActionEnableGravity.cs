@@ -14,8 +14,8 @@ namespace MisterGames.ActionLib.Character {
         public bool isEnabled;
 
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            context.GetComponent<ICharacterMotionPipeline>()
-                .GetProcessor<CharacterProcessorMass>()
+            context.GetComponent<CharacterMotionPipeline>()
+                .GetProcessor<CharacterMassProcessor>()
                 .isGravityEnabled = isEnabled;
             
             return default;

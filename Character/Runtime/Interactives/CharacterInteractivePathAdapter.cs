@@ -1,5 +1,5 @@
 ﻿using System;
-using MisterGames.Character.Core;
+using MisterGames.Actors;
 using MisterGames.Common;
 using MisterGames.Interact.Interactives;
 using MisterGames.Interact.Path;
@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace MisterGames.Character.Interactives {
 
-    public sealed class CharacterInteractivePathAdapter : MonoBehaviour, ICharacterInteractivePathAdapter {
+    public sealed class CharacterInteractivePathAdapter : MonoBehaviour {
 
         [SerializeField] private InteractivePath _interactivePath;
 
@@ -31,6 +31,13 @@ namespace MisterGames.Character.Interactives {
             public Vector3 forwardWeights;
             public Vector3 forwardOffset;
         }
+        
+        public delegate void CharacterInteractivePathEvent(
+            float t,
+            IActor actor,
+            IInteractiveUser user,
+            IInteractive interactive
+        );
 
         public event CharacterInteractivePathEvent OnAttach = delegate {  };
         public event CharacterInteractivePathEvent OnDetach = delegate {  };
@@ -38,24 +45,24 @@ namespace MisterGames.Character.Interactives {
         public IInteractivePath Path => _interactivePath;
 
         public void AttachToPath(
-            ICharacterAccess characterAccess,
+            IActor actor,
             IInteractiveUser user,
             IInteractive interactive
         ) {
-            float t = _interactivePath.GetNearestPathPoint(characterAccess.BodyAdapter.Position);
+            float t = _interactivePath.GetNearestPathPoint(actor.Transform.position);
             t = Mathf.Clamp(t, _startReserveBound, _endReserveBound);
 
-            OnAttach.Invoke(t, characterAccess, user, interactive);
+            OnAttach.Invoke(t, actor, user, interactive);
         }
 
         public void DetachFromPath(
-            ICharacterAccess characterAccess,
+            IActor actor,
             IInteractiveUser user,
             IInteractive interactive
         ) {
-            float t = _interactivePath.GetNearestPathPoint(characterAccess.BodyAdapter.Position);
+            float t = _interactivePath.GetNearestPathPoint(actor.Transform.position);
 
-            OnDetach.Invoke(t, characterAccess, user, interactive);
+            OnDetach.Invoke(t, actor, user, interactive);
         }
 
         public void Evaluate(float t, out Vector3 position, out Vector3 forward, out Quaternion orientation) {

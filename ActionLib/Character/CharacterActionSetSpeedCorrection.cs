@@ -3,7 +3,6 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
-using MisterGames.Character;
 using MisterGames.Character.Motion;
 using UnityEngine;
 
@@ -16,7 +15,7 @@ namespace MisterGames.ActionLib.Character {
         [Range(0f, 1f)] public float backCorrection = 1f;
 
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            var correction = context.GetComponent<ICharacterMotionPipeline>().GetProcessor<CharacterProcessorBackSideSpeedCorrection>();
+            var correction = context.GetComponent<CharacterMotionPipeline>().GetProcessor<CharacterProcessorBackSideSpeedCorrection>();
 
             correction.speedCorrectionBack = backCorrection;
             correction.speedCorrectionSide = sideCorrection;

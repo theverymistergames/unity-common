@@ -13,7 +13,7 @@ namespace MisterGames.ActionLib.Character {
         public bool isEnabled;
 
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            context.GetComponent<ICharacterCollisionPipeline>().IsEnabled = isEnabled;
+            context.GetComponent<CharacterCollisionPipeline>().enabled = isEnabled;
             return default;
         }
     }

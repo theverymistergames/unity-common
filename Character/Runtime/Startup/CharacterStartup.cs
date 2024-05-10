@@ -15,7 +15,7 @@ namespace MisterGames.Character.Startup {
         private IActor _actor;
         private CancellationTokenSource _enableCts;
 
-        public void OnAwakeActor(IActor actor) {
+        public void OnAwake(IActor actor) {
             _actor = actor;
         }
 

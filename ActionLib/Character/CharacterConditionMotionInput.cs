@@ -1,7 +1,7 @@
 ﻿using System;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
-using MisterGames.Character;
+using MisterGames.Character.Motion;
 using MisterGames.Common.Data;
 using MisterGames.Common.Maths;
 
@@ -14,7 +14,7 @@ namespace MisterGames.ActionLib.Character {
         public Optional<bool> isMovingForward;
 
         public bool IsMatch(IActor context) {
-            var motionInput = context.GetComponent<ICharacterMotionPipeline>().MotionInput;
+            var motionInput = context.GetComponent<CharacterMotionPipeline>().MotionInput;
 
             return isMotionInputActive.IsEmptyOrEquals(!motionInput.IsNearlyZero()) &&
                    isMovingForward.IsEmptyOrEquals(motionInput.y > 0f);

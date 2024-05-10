@@ -8,12 +8,12 @@ namespace MisterGames.Actors {
         public Transform Transform => _actor.Transform;
 
         private IActor _actor;
-        
-        public void OnAwakeActor(IActor actor) {
+
+        void IActorComponent.OnAwake(IActor actor) {
             _actor = actor;
         }
 
-        public void OnDestroyActor(IActor actor) {
+        void IActorComponent.OnTerminate(IActor actor) {
             _actor = null;
         }
 

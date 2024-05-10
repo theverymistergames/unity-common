@@ -14,8 +14,8 @@ namespace MisterGames.ActionLib.Character {
         public bool isViewEnabled;
 
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            var inputPipeline = context.GetComponent<ICharacterInputPipeline>();
-            inputPipeline.IsEnabled = isEnabled;
+            var inputPipeline = context.GetComponent<CharacterInputPipeline>();
+            inputPipeline.enabled = isEnabled;
             inputPipeline.EnableViewInput(isViewEnabled);
             return default;
         }

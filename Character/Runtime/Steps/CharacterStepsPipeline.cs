@@ -1,6 +1,5 @@
-﻿using System.Diagnostics;
+﻿using MisterGames.Actors;
 using MisterGames.Character.Collisions;
-using MisterGames.Character.Core;
 using MisterGames.Character.Motion;
 using MisterGames.Collisions.Core;
 using MisterGames.Common;
@@ -12,10 +11,9 @@ using UnityEngine;
 
 namespace MisterGames.Character.Steps {
 
-    public sealed class CharacterStepsPipeline : CharacterPipelineBase, ICharacterStepsPipeline, IUpdate {
+    public sealed class CharacterStepsPipeline : MonoBehaviour, IActorComponent, IUpdate {
 
         [SerializeField] private PlayerLoopStage _playerLoopStage = PlayerLoopStage.Update;
-        [SerializeField] private CharacterAccess _characterAccess;
 
         [Header("Step Settings")]
         [SerializeField] [Min(0f)] private float _feetDistance = 0.3f;
@@ -25,23 +23,23 @@ namespace MisterGames.Character.Steps {
         [SerializeField] [Min(0f)] private float _stepLengthMin = 0.4f;
         [SerializeField] [Min(0f)] private float _stepLengthMultiplier = 3f;
         [SerializeField] private AnimationCurve _stepLengthBySpeed = EasingType.EaseOutExpo.ToAnimationCurve();
-
-        public override bool IsEnabled { get => enabled; set => enabled = value; }
-
+        
         public event StepCallback OnStep = delegate {  };
         public event StepCallback OnStartMotionStep = delegate {  };
 
-        private CharacterProcessorMass _mass;
+        public delegate void StepCallback(int foot, float distance, Vector3 point);
+        
+        private CharacterMassProcessor _mass;
         private ICollisionDetector _groundDetector;
         private ITransformAdapter _body;
 
         private float _stepProgress = -1;
         private int _foot;
-
-        private void Awake() {
-            _mass = _characterAccess.GetPipeline<ICharacterMotionPipeline>().GetProcessor<CharacterProcessorMass>();
-            _groundDetector = _characterAccess.GetPipeline<ICharacterCollisionPipeline>().GroundDetector;
-            _body = _characterAccess.BodyAdapter;
+        
+        public void OnAwake(IActor actor) {
+            _mass = actor.GetComponent<CharacterMotionPipeline>().GetProcessor<CharacterMassProcessor>();
+            _groundDetector = actor.GetComponent<CharacterCollisionPipeline>().GroundDetector;
+            _body = actor.GetComponent<CharacterBodyAdapter>();
         }
 
         private void OnEnable() {

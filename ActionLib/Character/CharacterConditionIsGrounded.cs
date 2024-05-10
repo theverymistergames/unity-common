@@ -11,7 +11,7 @@ namespace MisterGames.ActionLib.Character {
         public bool isGrounded;
 
         public bool IsMatch(IActor context) {
-            var groundDetector = context.GetComponent<ICharacterCollisionPipeline>().GroundDetector;
+            var groundDetector = context.GetComponent<CharacterCollisionPipeline>().GroundDetector;
             return groundDetector.CollisionInfo.hasContact == isGrounded;
         }
     }

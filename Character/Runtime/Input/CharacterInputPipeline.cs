@@ -1,11 +1,11 @@
 ﻿using System;
-using MisterGames.Character.Core;
+using MisterGames.Actors;
 using MisterGames.Input.Actions;
 using UnityEngine;
 
 namespace MisterGames.Character.Input {
 
-    public sealed class CharacterInputPipeline : CharacterPipelineBase, ICharacterInputPipeline {
+    public sealed class CharacterInputPipeline : MonoBehaviour, IActorComponent {
 
         [SerializeField] private InputActionVector2 _view;
         [SerializeField] private InputActionVector2 _move;
@@ -30,8 +30,6 @@ namespace MisterGames.Character.Input {
         public bool WasCrouchToggled => enabled && _crouchToggle.WasPressed;
 
         public event Action JumpPressed = delegate {  };
-
-        public override bool IsEnabled { get => enabled; set => enabled = value; }
 
         public void EnableViewInput(bool enable) {
             _view.OnChanged -= HandleViewChanged;
