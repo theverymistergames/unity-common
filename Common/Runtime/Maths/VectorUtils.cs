@@ -122,6 +122,43 @@ namespace MisterGames.Common.Maths {
             float dotP = Vector3.Dot(lhs, direction);
             return start + direction * dotP;
         }
+
+        public static Vector2 ToEulerAngles180(this Vector2 eulerAngles) {
+            eulerAngles.x += eulerAngles.x < -180f ? 360f : eulerAngles.x > 180f ? -360f : 0f;
+            eulerAngles.y += eulerAngles.y < -180f ? 360f : eulerAngles.y > 180f ? -360f : 0f;
+            return eulerAngles;
+        }
+        
+        public static Vector3 ToEulerAngles180(this Vector3 eulerAngles) {
+            eulerAngles.x += eulerAngles.x < -180f ? 360f : eulerAngles.x > 180f ? -360f : 0f;
+            eulerAngles.y += eulerAngles.y < -180f ? 360f : eulerAngles.y > 180f ? -360f : 0f;
+            eulerAngles.z += eulerAngles.z < -180f ? 360f : eulerAngles.z > 180f ? -360f : 0f;
+            return eulerAngles;
+        }
+        
+        public static Vector2 FloorToInt(this Vector2 value) {
+            return new Vector2(Mathf.FloorToInt(value.x), Mathf.FloorToInt(value.y));
+        }
+        
+        public static Vector3 FloorToInt(this Vector3 value) {
+            return new Vector3(Mathf.FloorToInt(value.x), Mathf.FloorToInt(value.y), Mathf.FloorToInt(value.z));
+        }
+        
+        public static Vector2 CeilToInt(this Vector2 value) {
+            return new Vector2(Mathf.CeilToInt(value.x), Mathf.CeilToInt(value.y));
+        }
+        
+        public static Vector3 CeilToInt(this Vector3 value) {
+            return new Vector3(Mathf.CeilToInt(value.x), Mathf.CeilToInt(value.y), Mathf.CeilToInt(value.z));
+        }
+
+        public static Vector2 Mod(this Vector2 value, float divider) {
+            return new Vector2(value.x % divider, value.y % divider);
+        }
+        
+        public static Vector3 Mod(this Vector3 value, float divider) {
+            return new Vector3(value.x % divider, value.y % divider, value.z % divider);
+        }
     }
 
 }

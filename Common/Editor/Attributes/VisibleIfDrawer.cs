@@ -1,39 +1,55 @@
-﻿using MisterGames.Common.Attributes;
+﻿using System;
+using MisterGames.Common.Attributes;
 using MisterGames.Common.Editor.SerializedProperties;
+using MisterGames.Common.Maths;
 using UnityEditor;
 using UnityEngine;
 
 namespace MisterGames.Common.Editor.Attributes {
 
     [CustomPropertyDrawer(typeof(VisibleIfAttribute))]
-    public class VisibleIfDrawer : PropertyDrawer {
+    public sealed class VisibleIfDrawer : PropertyDrawer {
 
         private bool _hasCachedPropertyDrawer;
 
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
-            var visibleIf = (VisibleIfAttribute) attribute;
-            string boolPropertyPath = GetNeighbourPropertyPath(property, visibleIf.boolPropertyName);
-
-            if (!string.IsNullOrEmpty(boolPropertyPath) &&
-                property.serializedObject.FindProperty(boolPropertyPath) is { propertyType: SerializedPropertyType.Boolean, boolValue: false }
-            ) {
-                return;
-            }
-
+            if (!Show(property)) return;
+            
             CustomPropertyGUI.PropertyField(position, property, label, fieldInfo, attribute, includeChildren: true);
         }
 
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label) {
-            var visibleIf = (VisibleIfAttribute) attribute;
-            string boolPropertyPath = GetNeighbourPropertyPath(property, visibleIf.boolPropertyName);
+            return Show(property) 
+                ? CustomPropertyGUI.GetPropertyHeight(property, label, fieldInfo, attribute, includeChildren: true) 
+                : 0f;
+        }
 
-            if (!string.IsNullOrEmpty(boolPropertyPath) &&
-                property.serializedObject.FindProperty(boolPropertyPath) is { propertyType: SerializedPropertyType.Boolean, boolValue: false }
-            ) {
-                return 0f;
-            }
+        private bool Show(SerializedProperty property) {
+            var attr = (VisibleIfAttribute) attribute;
+            
+            string propertyPath = GetNeighbourPropertyPath(property, attr.property);
+            var valueProperty = property.serializedObject.FindProperty(propertyPath);
 
-            return CustomPropertyGUI.GetPropertyHeight(property, label, fieldInfo, attribute, includeChildren: true);
+            int value = valueProperty switch {
+                {propertyType: SerializedPropertyType.ObjectReference} => (valueProperty.objectReferenceValue != null).AsInt(),
+                {propertyType: SerializedPropertyType.ManagedReference} => (valueProperty.managedReferenceValue != null).AsInt(),
+                {propertyType: SerializedPropertyType.Boolean} => valueProperty.boolValue.AsInt(),
+                {propertyType: SerializedPropertyType.Enum or SerializedPropertyType.Integer} => valueProperty.intValue,
+                _ => 0
+            };
+
+            return Match(value, attr.value, attr.mode);
+        }
+
+        private static bool Match(int a, int b, CompareMode mode) {
+            return mode switch {
+                CompareMode.Equals => a == b,
+                CompareMode.Greater => a > b,
+                CompareMode.Less => a < b,
+                CompareMode.GreaterOrEquals => a >= b,
+                CompareMode.LessOrEquals => a <= b,
+                _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
+            };
         }
 
         private static string GetNeighbourPropertyPath(SerializedProperty property, string propertyName) {
