@@ -16,11 +16,10 @@ namespace MisterGames.ActionLib.Character {
     public sealed class CharacterActionCameraRotation : IActorAction {
 
         public PlayerLoopStage playerLoopStage = PlayerLoopStage.Update;
-
+        public bool keepChanges;
+        public float weight = 1f;
         [Min(0f)] public float duration;
         [Min(0f)] public float durationRandom;
-
-        public float weight = 1f;
         public float baseMultiplier = 1f;
         public float baseMultiplierRandom = 0f;
 
@@ -35,21 +34,21 @@ namespace MisterGames.ActionLib.Character {
             float resultDuration = duration + Random.Range(-durationRandom, durationRandom);
 
             var m = (baseMultiplier + Random.Range(-baseMultiplierRandom, baseMultiplierRandom)) * eulers.CreateMultiplier();
-            int id = cameraContainer.CreateState(weight);
+            int id = cameraContainer.CreateState();
 
             while (!cancellationToken.IsCancellationRequested) {
                 float progressDelta = resultDuration <= 0f ? 1f : timeSource.DeltaTime / resultDuration;
                 progress = Mathf.Clamp01(progress + progressDelta);
 
                 var rotation = eulers.Evaluate(progress).Multiply(m);
-                cameraContainer.SetRotationOffset(id, Quaternion.Euler(rotation));
+                cameraContainer.SetRotationOffset(id, weight, Quaternion.Euler(rotation));
 
                 if (progress >= 1f) break;
 
                 await UniTask.Yield();
             }
 
-            cameraContainer.RemoveState(id);
+            cameraContainer.RemoveState(id, keepChanges);
         }
     }
 

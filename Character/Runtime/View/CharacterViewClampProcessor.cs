@@ -9,13 +9,14 @@ namespace MisterGames.Character.View {
 
         [SerializeField] private ViewAxisClamp _horizontal;
         [SerializeField] private ViewAxisClamp _vertical = new() {
+            absolute = true,
             mode = ClampMode.Full, 
             bounds = new Vector2(-90f, 90f)
         };
 
         private Transform _lookTarget;
         private Vector3 _lookTargetPoint;
-        private Vector3 _clampCenterEulers;
+        private Vector2 _clampCenterEulers;
         private LookMode _lookMode;
 
         private enum LookMode {
@@ -41,31 +42,54 @@ namespace MisterGames.Character.View {
         }
 
         public void ApplyHorizontalClamp(Vector2 orientation, ViewAxisClamp clamp) {
-            _clampCenterEulers.y = clamp.absolute ? 0f : orientation.y;
+            _clampCenterEulers.y = orientation.y;
             _horizontal = clamp;
         }
 
         public void ApplyVerticalClamp(Vector2 orientation, ViewAxisClamp clamp) {
-            _clampCenterEulers.x = clamp.absolute ? 0f : orientation.x;
+            _clampCenterEulers.x = orientation.x;
             _vertical = clamp;
         }
 
         public void Process(Vector3 position, Vector2 orientation, ref Vector2 targetOrientation, float dt) {
-            var clampCenterEulers = _lookMode switch {
+            Vector2 clampCenterEulers = _lookMode switch {
                 LookMode.Free => _clampCenterEulers,
-                LookMode.Point => Quaternion.FromToRotation(Vector3.forward, _lookTargetPoint - position).eulerAngles,
-                LookMode.Transform => Quaternion.FromToRotation(Vector3.forward, _lookTarget.position - position).eulerAngles,
+                LookMode.Point => Quaternion.LookRotation(_lookTargetPoint - position, Vector3.up).eulerAngles,
+                LookMode.Transform => Quaternion.LookRotation(_lookTarget.position - position, Vector3.up).eulerAngles,
                 _ => throw new ArgumentOutOfRangeException()
             };
+
+            clampCenterEulers = GetNearestAngle(clampCenterEulers, targetOrientation);
             
-            var verticalBounds = _vertical.bounds + Vector2.one * clampCenterEulers.x;
-            var horizontalBounds = _horizontal.bounds + Vector2.one * clampCenterEulers.y;
-            
+            var verticalBounds = _vertical.bounds + (_vertical.absolute ? Vector2.zero : Vector2.one * clampCenterEulers.x);
+            var horizontalBounds = _horizontal.bounds + (_horizontal.absolute ? Vector2.zero : Vector2.one * clampCenterEulers.y);
+
             targetOrientation.x = targetOrientation.x.Clamp(_vertical.mode, verticalBounds.x, verticalBounds.y);
             targetOrientation.y = targetOrientation.y.Clamp(_horizontal.mode, horizontalBounds.x, horizontalBounds.y);
 
             targetOrientation.x = ApplySpring(orientation.x, targetOrientation.x - orientation.x, clampCenterEulers.x, _vertical, dt);
             targetOrientation.y = ApplySpring(orientation.y, targetOrientation.y - orientation.y, clampCenterEulers.y, _horizontal, dt);
+
+            targetOrientation = GetNearestAngle(targetOrientation, orientation);
+        }
+
+        private Vector2 GetNearestAngle(Vector2 value, Vector2 target) {
+            value = value.Mod(360f);
+            var t = (target / 360f).FloorToInt() + new Vector2(value.x > 0f ? -1f : 0f, value.y > 0f ? -1f : 0f);
+            
+            var p0 = t * 360f + value;
+            var p1 = (t + Vector2.one) * 360f + value;
+            var p2 = (t + Vector2.one * 2f) * 360f + value;
+
+            var p01 = new Vector2(
+                Mathf.Abs(p0.x - target.x) < Mathf.Abs(p1.x - target.x) ? p0.x : p1.x,
+                Mathf.Abs(p0.y - target.y) < Mathf.Abs(p1.y - target.y) ? p0.y : p1.y
+            );
+            
+            value.x = Mathf.Abs(p01.x - target.x) < Mathf.Abs(p2.x - target.x) ? p01.x : p2.x;
+            value.y = Mathf.Abs(p01.y - target.y) < Mathf.Abs(p2.y - target.y) ? p01.y : p2.y;
+
+            return value;
         }
         
         private static float ApplySpring(float value, float diff, float center, ViewAxisClamp clamp, float dt) {

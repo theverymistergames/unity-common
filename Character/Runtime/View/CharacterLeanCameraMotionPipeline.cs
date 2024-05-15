@@ -37,7 +37,7 @@ namespace MisterGames.Character.View {
         }
         
         private void OnEnable() {
-            _cameraStateId = _cameraContainer.CreateState(_cameraMotionWeight);
+            _cameraStateId = _cameraContainer.CreateState();
             TimeSources.Get(_playerLoopStage).Subscribe(this);
         }
 
@@ -64,8 +64,8 @@ namespace MisterGames.Character.View {
             _currentPositionOffset = Vector3.Lerp(_currentPositionOffset, targetPositionOffset, _smoothFactor * dt);
             _currentRotationOffset = Quaternion.Slerp(_currentRotationOffset, targetRotationOffset, _smoothFactor * dt);
 
-            _cameraContainer.SetPositionOffset(_cameraStateId, _currentPositionOffset);
-            _cameraContainer.SetRotationOffset(_cameraStateId, _currentRotationOffset);
+            _cameraContainer.SetPositionOffset(_cameraStateId, _cameraMotionWeight, _currentPositionOffset);
+            _cameraContainer.SetRotationOffset(_cameraStateId, _cameraMotionWeight, _currentRotationOffset);
         }
     }
 

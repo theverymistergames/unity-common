@@ -21,9 +21,11 @@ namespace MisterGames.BlueprintLib {
         [SerializeField] private ActorAction _action;
 
         private CancellationTokenSource _terminateCts;
+        private CancellationTokenSource _actionCts;
 
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {
             meta.AddPort(id, Port.Enter("Apply"));
+            meta.AddPort(id, Port.Enter("Cancel"));
             meta.AddPort(id, Port.Exit("On Applied"));
             meta.AddPort(id, Port.Input<IActor>());
             meta.AddPort(id, Port.Input<IActorAction>());
@@ -39,15 +41,30 @@ namespace MisterGames.BlueprintLib {
             _terminateCts?.Cancel();
             _terminateCts?.Dispose();
             _terminateCts = null;
+            
+            _actionCts?.Cancel();
+            _actionCts?.Dispose();
+            _actionCts = null;
         }
 
         public void OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
-            if (port != 0) return;
+            switch (port) {
+                case 0: 
+                    _actionCts ??= new CancellationTokenSource();
+                    var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_actionCts.Token, _terminateCts.Token);
+                
+                    var actor = blueprint.Read<IActor>(token, 3);
+                    var action = blueprint.Read<IActorAction>(token, 4, _action);
 
-            var actor = blueprint.Read<IActor>(token, 2);
-            var action = blueprint.Read<IActorAction>(token, 3, _action);
-
-            Apply(blueprint, token, actor, action, _terminateCts.Token).Forget();
+                    Apply(blueprint, token, actor, action, linkedCts.Token).Forget();
+                    break;
+                
+                case 1:
+                    _actionCts?.Cancel();
+                    _actionCts?.Dispose();
+                    _actionCts = null;
+                    break;
+            }
         }
 
         private async UniTaskVoid Apply(
@@ -57,8 +74,8 @@ namespace MisterGames.BlueprintLib {
             IActorAction action,
             CancellationToken cancellationToken
         ) {
-            await action.Apply(actor, cancellationToken);
-            if (!cancellationToken.IsCancellationRequested) blueprint.Call(token, 1);
+            if (action != null) await action.Apply(actor, cancellationToken);
+            if (!cancellationToken.IsCancellationRequested) blueprint.Call(token, 2);
         }
     }
 

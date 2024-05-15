@@ -9,15 +9,11 @@ namespace MisterGames.Character.Motion {
 
     public sealed class CharacterBodyAdapter : MonoBehaviour, IActorComponent, ITransformAdapter {
         
-        public Vector3 Position {
-            get => _body.position;
-            set => _body.position = value;
-        }
+        public Vector3 Position { get => _body.position; set => _body.position = value; }
+        public Vector3 LocalPosition { get => _body.localPosition; set => _body.localPosition = value; }
 
-        public Quaternion Rotation {
-            get => _body.rotation;
-            set => _body.rotation = value;
-        }
+        public Quaternion Rotation { get => _body.rotation; set => _body.rotation = value; }
+        public Quaternion LocalRotation { get => _body.localRotation; set => _body.localRotation = value; }
 
         private CharacterController _characterController;
         private ICollisionDetector _groundDetector;

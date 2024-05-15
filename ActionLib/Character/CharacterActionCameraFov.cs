@@ -15,10 +15,10 @@ namespace MisterGames.ActionLib.Character {
     public sealed class CharacterActionCameraFov : IActorAction {
 
         public PlayerLoopStage playerLoopStage = PlayerLoopStage.Update;
-
+        public bool keepChanges;
+        public float weight = 1f;
         [Min(0f)] public float duration;
         [Min(0f)] public float durationRandom;
-        public float weight = 1f;
 
         public FloatParameter fovOffset = FloatParameter.Default();
 
@@ -31,21 +31,21 @@ namespace MisterGames.ActionLib.Character {
             float resultDuration = duration + Random.Range(-durationRandom, durationRandom);
 
             float m = fovOffset.CreateMultiplier();
-            int id = cameraContainer.CreateState(weight);
+            int id = cameraContainer.CreateState();
 
             while (!cancellationToken.IsCancellationRequested) {
                 float progressDelta = resultDuration <= 0f ? 1f : timeSource.DeltaTime / resultDuration;
                 progress = Mathf.Clamp01(progress + progressDelta);
 
                 float fov = m * fovOffset.Evaluate(progress);
-                cameraContainer.SetFovOffset(id, fov);
+                cameraContainer.SetFovOffset(id, weight, fov);
 
                 if (progress >= 1f) break;
 
                 await UniTask.Yield();
             }
 
-            cameraContainer.RemoveState(id);
+            cameraContainer.RemoveState(id, keepChanges);
         }
     }
 

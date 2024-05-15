@@ -17,8 +17,10 @@ namespace MisterGames.Character.View {
         [Header("View Settings")]
         [SerializeField] private Vector2 _sensitivity = new Vector2(0.15f, 0.15f);
         [SerializeField] private float _smoothing = 20f;
+        [SerializeField] [Min(0f)] private float _freeHeadRotationDistance;
+        [SerializeField] private float _returnFreeHeadRotationSmoothing = 5f;
         [SerializeField] private CharacterViewClampProcessor _viewClamp;
-
+        
         public CameraContainer CameraContainer => _cameraContainer;
         public Vector2 Sensitivity { get => _sensitivity; set => _sensitivity = value; }
         public float Smoothing { get => _smoothing; set => _smoothing = value; }
@@ -80,12 +82,12 @@ namespace MisterGames.Character.View {
             ApplySensitivity(ref delta);
 
             var prevOrientation = _currentOrientation;
-            var targetOrientation = prevOrientation + delta;
+            var targetOrientation = (prevOrientation + delta);
             
             ApplyClamp(_currentOrientation, ref targetOrientation, dt);
             ApplySmoothing(ref _currentOrientation, targetOrientation, dt);
 
-            PerformRotation(_currentOrientation - prevOrientation);
+            PerformRotation(_currentOrientation, dt);
         }
 
         private Vector2 ConsumeInputDelta() {
@@ -107,9 +109,18 @@ namespace MisterGames.Character.View {
             current = Vector2.Lerp(current, target, dt * _smoothing);
         }
 
-        private void PerformRotation(Vector2 deltaEulers) {
-            _headAdapter.Rotate(Quaternion.Euler(deltaEulers.x, 0f, 0f));
-            _bodyAdapter.Rotate(Quaternion.Euler(0f, deltaEulers.y, 0f));
+        private void PerformRotation(Vector2 orientationEulers, float dt) {
+            // If head offset from body is longer than free head rotation distance,
+            // body rotation is not applied to prevent head from rotation around body vertical axis. 
+            if (_headAdapter.LocalPosition.sqrMagnitude < _freeHeadRotationDistance * _freeHeadRotationDistance) {
+                _bodyAdapter.Rotation = Quaternion.Slerp(
+                    _bodyAdapter.Rotation,
+                    Quaternion.Euler(0f, orientationEulers.y, 0f), 
+                    dt * _returnFreeHeadRotationSmoothing
+                );
+            }
+            
+            _headAdapter.Rotation = Quaternion.Euler(orientationEulers.x, orientationEulers.y, 0f);
         }
     }
 

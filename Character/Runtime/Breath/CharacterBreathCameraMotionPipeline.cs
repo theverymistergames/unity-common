@@ -40,7 +40,7 @@ namespace MisterGames.Character.Breath {
             _breath.OnInhale += OnInhale;
             _breath.OnExhale += OnExhale;
 
-            _cameraStateId = _cameraContainer.CreateState(_cameraMotionWeight);
+            _cameraStateId = _cameraContainer.CreateState();
             TimeSources.Get(PlayerLoopStage.Update).Subscribe(this);
         }
 
@@ -59,8 +59,8 @@ namespace MisterGames.Character.Breath {
             _currentPositionOffset = Vector3.Lerp(_currentPositionOffset, _preTargetPositionOffset, _smoothFactor * dt);
             _currentRotationOffset = Quaternion.SlerpUnclamped(_currentRotationOffset, _preTargetRotationOffset, _smoothFactor * dt);
 
-            _cameraContainer.SetPositionOffset(_cameraStateId, _currentPositionOffset);
-            _cameraContainer.SetRotationOffset(_cameraStateId, _currentRotationOffset);
+            _cameraContainer.SetPositionOffset(_cameraStateId, _cameraMotionWeight, _currentPositionOffset);
+            _cameraContainer.SetRotationOffset(_cameraStateId, _cameraMotionWeight, _currentRotationOffset);
         }
 
         private void OnInhale(float duration, float amplitude) {

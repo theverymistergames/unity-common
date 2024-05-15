@@ -1,4 +1,6 @@
 ﻿using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
+using MisterGames.Tick.Core;
 using UnityEngine;
 
 namespace MisterGames.Character.View {
@@ -10,222 +12,215 @@ namespace MisterGames.Character.View {
 
         public Camera Camera => _camera;
         
-        private readonly Dictionary<int, CameraStateData> _states = new Dictionary<int, CameraStateData>();
+        private readonly Dictionary<int, WeightedValue<Vector3>> _positionStates = new();
+        private readonly Dictionary<int, WeightedValue<Quaternion>> _rotationStates = new();
+        private readonly Dictionary<int, WeightedValue<float>> _fovStates = new();
 
-        private CameraStateData _baseCameraState;
-        private CameraStateData _resultCameraState;
+        private ITimeSource _timeSource;
+        
+        private CameraState _baseState;
+        private CameraState _resultState;
+        private CameraState _persistentState;
+        private CameraState _persistentStateBuffer;
 
-        private float _invertedMaxWeight;
         private bool _isInitialized;
         private int _lastStateId;
+        private byte _clearPersistentStateOperationId;
 
         private void Awake() {
-            _baseCameraState = new CameraStateData(
-                weight: 1f,
-                _transform.localPosition,
-                _transform.localRotation,
-                _camera.fieldOfView
-            );
-
+            _timeSource = TimeSources.Get(PlayerLoopStage.Update);
+            
+            _baseState = new CameraState(_transform.localPosition, _transform.localRotation, _camera.fieldOfView);
+            _resultState = CameraState.Empty;
+            _persistentState = CameraState.Empty;
+            _persistentStateBuffer = CameraState.Empty;
+            
             _isInitialized = true;
-
-            InvalidateResultState();
+            
             ApplyResultState();
         }
 
         private void OnDestroy() {
-            _states.Clear();
+            _positionStates.Clear();
+            _rotationStates.Clear();
+            _fovStates.Clear();
         }
 
-        public int CreateState(float weight = 1f) {
-            int id = _lastStateId++;
-            _states[id] = new CameraStateData(weight);
-
-            InvalidateWeights();
-            InvalidateResultState();
-            ApplyResultState();
-
-            return id;
+        public int CreateState() {
+            return _lastStateId++;
         }
 
-        public void RemoveState(int id) {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (!ValidateState(id)) return;
-#endif
-
-            _states.Remove(id);
+        public void RemoveState(int id, bool keepChanges = false) {
+            _positionStates.Remove(id);
+            _rotationStates.Remove(id);
+            _fovStates.Remove(id);
             
-            InvalidateWeights();
-            InvalidateResultState();
-            ApplyResultState();
-        }
-
-        public void AddPositionOffset(int id, Vector3 offsetDelta) {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (!ValidateState(id)) return;
-#endif
-
-            var data = _states[id];
-            _states[id] = data.WithPosition(data.position + offsetDelta);
+            var currentState = _resultState;
+            _resultState = BuildResultState();
             
-            InvalidateResultState(includeRotation: false, includeFov: false);
+            if (keepChanges) {
+                _persistentState = new CameraState(
+                    _persistentState.position + currentState.position - _resultState.position,
+                    _persistentState.rotation * currentState.rotation * Quaternion.Inverse(_resultState.rotation),
+                    _persistentState.fov + currentState.fov - _resultState.fov
+                );
+            }
+            
             ApplyResultState();
         }
 
-        public void SetPositionOffset(int id, Vector3 offset) {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (!ValidateState(id)) return;
-#endif
-
-            var data = _states[id];
-            _states[id] = data.WithPosition(offset);
+        public async UniTask ClearPersistentStates(float duration = 0f) {
+            byte id = ++_clearPersistentStateOperationId;
             
-            InvalidateResultState(includeRotation: false, includeFov: false);
+            var startState = _persistentState;
+            _persistentState = CameraState.Empty;
+            _persistentStateBuffer = startState;
+
+            float speed = duration > 0f ? 1f / duration : float.MaxValue;
+            float t = 0f;
+            
+            while (id == _clearPersistentStateOperationId && !destroyCancellationToken.IsCancellationRequested) {
+                t = Mathf.Clamp01(t + speed * _timeSource.DeltaTime);
+
+                _persistentStateBuffer = new CameraState(
+                    Vector3.Lerp(startState.position, Vector3.zero, t),
+                    Quaternion.Slerp(startState.rotation, Quaternion.identity, t),
+                    Mathf.Lerp(startState.fov, 0f, t)
+                );
+                
+                await UniTask.Yield();
+                
+                if (t >= 1f) break;
+            }
+        }
+
+        public void AddPositionOffset(int id, float weight, Vector3 offsetDelta) {
+            var data = _positionStates.GetValueOrDefault(id);
+            _positionStates[id] = new WeightedValue<Vector3>(weight, data.value + offsetDelta);
+            _resultState = _resultState.WithPosition(BuildResultPosition());
+            
             ApplyResultState();
         }
 
-        public void ResetPositionOffset(int id) {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (!ValidateState(id)) return;
-#endif
-
-            var data = _states[id];
-            _states[id] = data.WithPosition(Vector3.zero);
+        public void SetPositionOffset(int id, float weight, Vector3 offset) { 
+            _positionStates[id] = new WeightedValue<Vector3>(weight, offset);
+            _resultState = _resultState.WithPosition(BuildResultPosition());
             
-            InvalidateResultState(includeRotation: false, includeFov: false);
             ApplyResultState();
         }
 
-        public void AddRotationOffset(int id, Quaternion rotation) {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (!ValidateState(id)) return;
-#endif
-
-            var data = _states[id];
-            _states[id] = data.WithRotation(data.rotation * rotation);
+        public void ResetPositionOffset(int id, float weight) {
+            _positionStates[id] = new WeightedValue<Vector3>(weight, Vector3.zero);
+            _resultState = _resultState.WithPosition(BuildResultPosition());
             
-            InvalidateResultState(includePosition: false, includeFov: false);
             ApplyResultState();
         }
 
-        public void SetRotationOffset(int id, Quaternion rotation) {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (!ValidateState(id)) return;
-#endif
-
-            var data = _states[id];
-            _states[id] = data.WithRotation(rotation);
+        public void AddRotationOffset(int id, float weight, Quaternion rotation) {
+            var data = _rotationStates
+                .GetValueOrDefault(id, new WeightedValue<Quaternion>(0f, Quaternion.identity));
             
-            InvalidateResultState(includePosition: false, includeFov: false);
+            _rotationStates[id] = new WeightedValue<Quaternion>(weight, data.value * rotation);
+            _resultState = _resultState.WithRotation(BuildResultRotation());
+            
             ApplyResultState();
         }
-        
-        public void ResetRotationOffset(int id) {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (!ValidateState(id)) return;
-#endif
 
-            var data = _states[id];
-            _states[id] = data.WithRotation(Quaternion.identity);
+        public void SetRotationOffset(int id, float weight, Quaternion rotation) {
+            _rotationStates[id] = new WeightedValue<Quaternion>(weight, rotation);
+            _resultState = _resultState.WithRotation(BuildResultRotation());
             
-            InvalidateResultState(includePosition: false, includeFov: false);
             ApplyResultState();
         }
         
-        public void SetFovOffset(int id, float fov) {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (!ValidateState(id)) return;
-#endif
-
-            var data = _states[id];
-            _states[id] = data.WithFovOffset(fov);
+        public void ResetRotationOffset(int id, float weight) {
+            _rotationStates[id] = new WeightedValue<Quaternion>(weight, Quaternion.identity);
+            _resultState = _resultState.WithRotation(BuildResultRotation());
             
-            InvalidateResultState(includePosition: false, includeRotation: false);
             ApplyResultState();
         }
-        
-        public void AddFovOffset(int id, float fov) {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (!ValidateState(id)) return;
-#endif
 
-            var data = _states[id];
-            _states[id] = data.WithFovOffset(data.fov + fov);
+        public void AddFovOffset(int id, float weight, float fov) {
+            var data = _fovStates.GetValueOrDefault(id);
+            _fovStates[id] = new WeightedValue<float>(weight, data.value + fov);
+            _resultState = _resultState.WithFov(BuildResultFov());
             
-            InvalidateResultState(includePosition: false, includeRotation: false);
             ApplyResultState();
         }
-        
-        public void ResetFovOffset(int id) {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (!ValidateState(id)) return;
-#endif
 
-            var data = _states[id];
-            _states[id] = data.WithFovOffset(0f);
+        public void SetFovOffset(int id, float weight, float fov) {
+            _fovStates[id] = new WeightedValue<float>(weight, fov);
+            _resultState = _resultState.WithFov(BuildResultFov());
             
-            InvalidateResultState(includePosition: false, includeRotation: false);
+            ApplyResultState();
+        }
+
+        public void ResetFovOffset(int id, float weight) {
+            _fovStates[id] = new WeightedValue<float>(weight, 0f);
+            _resultState = _resultState.WithFov(BuildResultFov());
+            
             ApplyResultState();
         }
 
         private void ApplyResultState() {
             if (!_isInitialized) return;
 
-            _transform.localPosition = _baseCameraState.position + _resultCameraState.position;
-            _transform.localRotation = _baseCameraState.rotation * _resultCameraState.rotation;
-            _camera.fieldOfView = _baseCameraState.fov + _resultCameraState.fov;
+            _transform.localPosition = _baseState.position + _persistentStateBuffer.position + _persistentState.position + _resultState.position;
+            _transform.localRotation = _baseState.rotation * _persistentStateBuffer.rotation * _persistentState.rotation * _resultState.rotation;
+            _camera.fieldOfView = _baseState.fov + _persistentStateBuffer.fov + _persistentState.fov + _resultState.fov;
         }
 
-        private void InvalidateResultState(
-            bool includePosition = true,
-            bool includeRotation = true,
-            bool includeFov = true
-        ) {
-            var position = Vector3.zero;
-            var rotation = Quaternion.identity;
-            float fov = 0f;
-
-            foreach (var data in _states.Values) {
-                if (includePosition) {
-                    position += data.weight * _invertedMaxWeight * data.position;
-                }
-
-                if (includeRotation) {
-                    rotation *= Quaternion.SlerpUnclamped(Quaternion.identity, data.rotation, data.weight * _invertedMaxWeight);
-                }
-
-                if (includeFov) {
-                    fov += data.weight * _invertedMaxWeight * data.fov;
-                }
-            }
-
-            _resultCameraState = new CameraStateData(
-                weight: 0f,
-                includePosition ? position : _resultCameraState.position,
-                includeRotation ? rotation : _resultCameraState.rotation,
-                includeFov ? fov : _resultCameraState.fov
+        private CameraState BuildResultState() {
+            return new CameraState(
+                BuildResultPosition(),
+                BuildResultRotation(),
+                BuildResultFov()
             );
         }
-
-        private void InvalidateWeights() {
-            float max = 0f;
-
-            foreach (var data in _states.Values) {
-                float absWeight = Mathf.Abs(data.weight);
-                if (max < absWeight) max = absWeight;
+        
+        private Vector3 BuildResultPosition() {
+            var result = Vector3.zero;
+            float invertedMaxWeight = BuildInvertedMaxWeight(_positionStates);
+            
+            foreach (var data in _positionStates.Values) {
+                result += data.weight * invertedMaxWeight * data.value;
             }
-
-            _invertedMaxWeight = max <= 0f ? 0f : 1f / max;
+            
+            return result;
         }
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-        private bool ValidateState(int id) {
-            if (_states.ContainsKey(id)) return true;
-
-            Debug.LogWarning($"{nameof(CameraContainer)}: Not registered state #{id} is trying to interact.");
-            return false;
+        private Quaternion BuildResultRotation() {
+            var result = Quaternion.identity;
+            float invertedMaxWeight = BuildInvertedMaxWeight(_rotationStates);
+            
+            foreach (var data in _rotationStates.Values) {
+                result *= Quaternion.SlerpUnclamped(Quaternion.identity, data.value, data.weight * invertedMaxWeight);
+            }
+            
+            return result;
         }
-#endif
+        
+        private float BuildResultFov() {
+            float result = 0f;
+            float invertedMaxWeight = BuildInvertedMaxWeight(_fovStates);
+            
+            foreach (var data in _fovStates.Values) {
+                result += data.weight * invertedMaxWeight * data.value;
+            }
+            
+            return result;
+        }
+        
+        private float BuildInvertedMaxWeight<T>(Dictionary<int, WeightedValue<T>> source) {
+            float maxWeight = 0f;
+            
+            foreach (var data in source.Values) {
+                float absWeight = Mathf.Abs(data.weight);
+                if (maxWeight < absWeight) maxWeight = absWeight;
+            }
+            
+            return maxWeight <= 0f ? 0f : 1f / maxWeight;
+        }
     }
 
 }

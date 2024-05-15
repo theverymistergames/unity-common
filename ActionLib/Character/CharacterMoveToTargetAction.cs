@@ -44,10 +44,6 @@ namespace MisterGames.ActionLib.Character {
             var curvePoint = BezierExtensions.GetCurvaturePoint(startPoint, targetPoint, targetRotation, curvature);
             float pathLength = BezierExtensions.GetBezier3PointsLength(startPoint, curvePoint, targetPoint);
             float duration = Mathf.Max(pathLength / speed, 0f);
-            
-#if UNITY_EDITOR
-            DebugExt.DrawBezier3Points(startPoint, curvePoint, targetPoint, Color.yellow, duration: duration);
-#endif
 
             collisions.enabled = false;
             float t = 0f;
@@ -59,6 +55,10 @@ namespace MisterGames.ActionLib.Character {
                 body.Position = BezierExtensions.EvaluateBezier3Points(startPoint, curvePoint, targetPoint, progress);
                 
                 if (t >= 1f) break;
+                
+#if UNITY_EDITOR
+                DebugExt.DrawSphere(body.Position, 0.005f, Color.yellow, duration: duration);
+#endif
 
                 await UniTask.Yield();
             }
