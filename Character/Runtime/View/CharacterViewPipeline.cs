@@ -2,6 +2,7 @@
 using MisterGames.Character.Input;
 using MisterGames.Character.Motion;
 using MisterGames.Common.GameObjects;
+using MisterGames.Common.Maths;
 using MisterGames.Tick.Core;
 using MisterGames.UI.Initialization;
 using UnityEngine;
@@ -30,7 +31,7 @@ namespace MisterGames.Character.View {
         private ITransformAdapter _bodyAdapter;
         private CharacterInputPipeline _inputPipeline;
 
-        private Vector2 _inputDelta;
+        private Vector2 _inputDeltaAccum;
         private Vector2 _currentOrientation;
 
         void IActorComponent.OnAwake(IActor actor) {
@@ -73,32 +74,22 @@ namespace MisterGames.Character.View {
         }
 
         private void HandleViewVectorChanged(Vector2 input) {
-            _inputDelta += new Vector2(-input.y, input.x);
+            _inputDeltaAccum += new Vector2(-input.y, input.x);
         }
 
         void IUpdate.OnUpdate(float dt) {
-            var delta = ConsumeInputDelta();
+            var current = GetCurrentOrientation();
+            var target = current + ConsumeInputDelta();
             
-            ApplySensitivity(ref delta);
-
-            var prevOrientation = _currentOrientation;
-            var targetOrientation = (prevOrientation + delta);
-            
-            ApplyClamp(_currentOrientation, ref targetOrientation, dt);
-            ApplySmoothing(ref _currentOrientation, targetOrientation, dt);
-
-            PerformRotation(_currentOrientation, dt);
+            ApplyClamp(current, ref target, dt);
+            ApplySmoothing(ref current, target, dt);
+            PerformRotation(current, dt);
         }
 
         private Vector2 ConsumeInputDelta() {
-            var delta = _inputDelta;
-            _inputDelta = Vector2.zero;
+            var delta = new Vector2(_inputDeltaAccum.x * _sensitivity.x, _inputDeltaAccum.y * _sensitivity.y);
+            _inputDeltaAccum = Vector2.zero;
             return delta;
-        }
-
-        private void ApplySensitivity(ref Vector2 input) {
-            input.x *= _sensitivity.x;
-            input.y *= _sensitivity.y;
         }
 
         private void ApplyClamp(Vector2 current, ref Vector2 target, float dt) {
@@ -109,18 +100,22 @@ namespace MisterGames.Character.View {
             current = Vector2.Lerp(current, target, dt * _smoothing);
         }
 
-        private void PerformRotation(Vector2 orientationEulers, float dt) {
+        private void PerformRotation(Vector2 eulerAngles, float dt) {
             // If head offset from body is longer than free head rotation distance,
             // body rotation is not applied to prevent head from rotation around body vertical axis. 
             if (_headAdapter.LocalPosition.sqrMagnitude < _freeHeadRotationDistance * _freeHeadRotationDistance) {
                 _bodyAdapter.Rotation = Quaternion.Slerp(
                     _bodyAdapter.Rotation,
-                    Quaternion.Euler(0f, orientationEulers.y, 0f), 
+                    Quaternion.Euler(0f, eulerAngles.y, 0f), 
                     dt * _returnFreeHeadRotationSmoothing
                 );
             }
             
-            _headAdapter.Rotation = Quaternion.Euler(orientationEulers.x, orientationEulers.y, 0f);
+            _headAdapter.Rotation = Quaternion.Euler(eulerAngles);
+        }
+
+        private Vector2 GetCurrentOrientation() {
+            return _headAdapter.Rotation.eulerAngles.ToEulerAngles180();
         }
     }
 

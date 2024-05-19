@@ -123,17 +123,18 @@ namespace MisterGames.Common.Maths {
             return start + direction * dotP;
         }
 
+        public static float ToEulerAngles180(float eulerAngle) {
+            return eulerAngle < -180f ? eulerAngle + 360f 
+                : eulerAngle > 180f ? eulerAngle - 360f 
+                : eulerAngle;
+        }
+
         public static Vector2 ToEulerAngles180(this Vector2 eulerAngles) {
-            eulerAngles.x += eulerAngles.x < -180f ? 360f : eulerAngles.x > 180f ? -360f : 0f;
-            eulerAngles.y += eulerAngles.y < -180f ? 360f : eulerAngles.y > 180f ? -360f : 0f;
-            return eulerAngles;
+            return new Vector2(ToEulerAngles180(eulerAngles.x), ToEulerAngles180(eulerAngles.y));
         }
         
         public static Vector3 ToEulerAngles180(this Vector3 eulerAngles) {
-            eulerAngles.x += eulerAngles.x < -180f ? 360f : eulerAngles.x > 180f ? -360f : 0f;
-            eulerAngles.y += eulerAngles.y < -180f ? 360f : eulerAngles.y > 180f ? -360f : 0f;
-            eulerAngles.z += eulerAngles.z < -180f ? 360f : eulerAngles.z > 180f ? -360f : 0f;
-            return eulerAngles;
+            return new Vector3(ToEulerAngles180(eulerAngles.x), ToEulerAngles180(eulerAngles.y), ToEulerAngles180(eulerAngles.z));
         }
         
         public static Vector2 FloorToInt(this Vector2 value) {

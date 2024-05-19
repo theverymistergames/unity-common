@@ -22,12 +22,14 @@ namespace MisterGames.ActionLib.Character {
 
             collisionPipeline.enabled = false;
 
-            var fwd = localCenter.forward;
+            var localForward = localCenter.forward;
+            var targetForward = targetCenter.forward;
             var positionOffset = body.Position - localCenter.position;
-            var rotationOffset = Quaternion.FromToRotation(fwd, body.Rotation * Vector3.forward);
             
-            body.Position = targetCenter.position + Quaternion.FromToRotation(fwd, targetCenter.forward) * positionOffset;
-            body.Rotation = targetCenter.rotation * rotationOffset;
+            float angle = Vector3.SignedAngle(localForward, targetForward, body.Rotation * Vector3.up);
+            
+            body.Position = targetCenter.position + Quaternion.FromToRotation(localForward, targetForward) * positionOffset;
+            body.Rotation *= Quaternion.Euler(0f, angle, 0f);
             
             collisionPipeline.enabled = true;
 

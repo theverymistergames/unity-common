@@ -11,14 +11,20 @@ namespace MisterGames.ActionLib.GameObjects {
     public sealed class EnableGameObjectAction : IActorAction {
 
         public bool enabled;
+        [Min(0f)] public float delay;
         public GameObject[] gameObjects;
         
-        public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
+        public async UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
+            if (delay > 0f) {
+                await UniTask.Delay(TimeSpan.FromSeconds(delay), cancellationToken: cancellationToken)
+                    .SuppressCancellationThrow();
+            }
+            
+            if (cancellationToken.IsCancellationRequested) return;
+            
             for (int i = 0; i < gameObjects.Length; i++) {
                 gameObjects[i].SetActive(enabled);
             }
-
-            return default;
         }
     }
     

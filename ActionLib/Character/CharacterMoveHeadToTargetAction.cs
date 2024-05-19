@@ -37,6 +37,7 @@ namespace MisterGames.ActionLib.Character {
         public enum OffsetMode {
             Local,
             World,
+            UseViewDirectionAsForward
         }
         
         public async UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
@@ -72,14 +73,19 @@ namespace MisterGames.ActionLib.Character {
                 }
 
                 case TargetType.Transform: {
-                    var offsetRotation = 
-                        (offsetMode == OffsetMode.Local ? target.rotation : Quaternion.identity) * 
-                        Quaternion.Euler(rotationOffset);
-                    
                     startPoint = head.Position;
-                    targetPoint = target.position + offsetRotation * offset;
+                    var targetPos = target.position;
                     
-                    var targetRotation = Quaternion.LookRotation(offsetRotation * offset, Vector3.up);
+                    var offsetOrient = offsetMode switch {
+                        OffsetMode.Local => target.rotation * Quaternion.Euler(rotationOffset),
+                        OffsetMode.World => Quaternion.Euler(rotationOffset),
+                        OffsetMode.UseViewDirectionAsForward => Quaternion.LookRotation(targetPos - startPoint, head.Rotation * Vector3.up),
+                        _ => throw new ArgumentOutOfRangeException()
+                    };
+                    
+                    targetPoint = targetPos + offsetOrient * offset;
+                    
+                    var targetRotation = Quaternion.LookRotation(offsetOrient * offset, Vector3.up);
                     curvePoint = BezierExtensions.GetCurvaturePoint(startPoint, targetPoint, targetRotation, curvature);
                     
                     break;
