@@ -86,6 +86,8 @@ namespace MisterGames.Character.Input {
             _run.OnRelease -= HandleRunReleased;
 
             _jump.OnPress -= HandleJumpPressed;
+            
+            OnMotionVectorChanged.Invoke(Vector2.zero);
         }
 
         private void HandleViewChanged(Vector2 delta) => OnViewVectorChanged.Invoke(delta);
