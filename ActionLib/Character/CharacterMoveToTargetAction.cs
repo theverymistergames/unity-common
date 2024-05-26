@@ -18,8 +18,11 @@ namespace MisterGames.ActionLib.Character {
         public Vector3 offset;
         public Vector3 rotationOffset;
         public OffsetMode offsetMode;
-        [Min(0f)] public float speed;
-        public float curvature;
+        [Min(0f)] public float speed = 1f;
+        [Min(0f)] public float reduceSpeedBelowDistance = 0.1f;
+        [Min(0f)] public float pointRadius = 0.1f;
+        [Min(0f)] public float smoothing = 10f;
+        public float curvature = 1f;
         public bool allowTranslationY;
         public AnimationCurve progressCurve = AnimationCurve.Linear(0f, 0f, 1f, 1f);
 
@@ -40,24 +43,37 @@ namespace MisterGames.ActionLib.Character {
             var startPoint = body.Position;
 
             if (!allowTranslationY) targetPoint.y = startPoint.y;
-
+            
             var curvePoint = BezierExtensions.GetCurvaturePoint(startPoint, targetPoint, targetRotation, curvature);
             float pathLength = BezierExtensions.GetBezier3PointsLength(startPoint, curvePoint, targetPoint);
-            float duration = Mathf.Max(pathLength / speed, 0f);
+            float speed = pathLength > 0f ? this.speed / pathLength : float.MaxValue;
 
             collisions.enabled = false;
             float t = 0f;
 
             while (!cancellationToken.IsCancellationRequested) {
-                t = duration > 0f ? Mathf.Clamp01(t + UnityEngine.Time.deltaTime / duration) : 1f;
-                float progress = progressCurve.Evaluate(t);
+                float distance = (targetPoint - body.Position).magnitude;
+                float dt = UnityEngine.Time.deltaTime;
+                float k = reduceSpeedBelowDistance > 0f ? Mathf.Clamp01(distance / reduceSpeedBelowDistance) : 1f;
 
-                body.Position = BezierExtensions.EvaluateBezier3Points(startPoint, curvePoint, targetPoint, progress);
+                t = Mathf.Clamp01(t + speed * k * dt);
                 
-                if (t >= 1f) break;
+                var position = BezierExtensions.EvaluateBezier3Points(
+                    startPoint,
+                    curvePoint,
+                    targetPoint,
+                    progressCurve.Evaluate(t)
+                );
+                
+                body.Position = smoothing > 0f 
+                    ? Vector3.Lerp(body.Position, position, smoothing * dt)
+                    : position;
+
+                float r = Mathf.Max(pointRadius, Mathf.Epsilon);
+                if ((targetPoint - body.Position).sqrMagnitude <= r * r && t >= 1f) break;
                 
 #if UNITY_EDITOR
-                DebugExt.DrawSphere(body.Position, 0.005f, Color.yellow, duration: duration);
+                DebugExt.DrawSphere(body.Position, 0.005f, Color.yellow, duration: 5f);
 #endif
 
                 await UniTask.Yield();

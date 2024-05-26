@@ -1,4 +1,5 @@
-﻿using MisterGames.Actors;
+﻿using System;
+using MisterGames.Actors;
 using MisterGames.Character.Input;
 using MisterGames.Character.Motion;
 using MisterGames.Common.GameObjects;
@@ -13,7 +14,6 @@ namespace MisterGames.Character.View {
 
         [SerializeField] private Camera _camera;
         [SerializeField] private CameraContainer _cameraContainer;
-        [SerializeField] private PlayerLoopStage _playerLoopStage = PlayerLoopStage.Update;
 
         [Header("View Settings")]
         [SerializeField] private Vector2 _sensitivity = new Vector2(0.15f, 0.15f);
@@ -26,6 +26,8 @@ namespace MisterGames.Character.View {
         public Vector2 Sensitivity { get => _sensitivity; set => _sensitivity = value; }
         public float Smoothing { get => _smoothing; set => _smoothing = value; }
 
+        private readonly CharacterHeadJoint _headJoint = new();
+        
         private ITimeSource _timeSource;
         private ITransformAdapter _headAdapter;
         private ITransformAdapter _bodyAdapter;
@@ -38,7 +40,7 @@ namespace MisterGames.Character.View {
             _headAdapter = actor.GetComponent<CharacterHeadAdapter>();
             _bodyAdapter = actor.GetComponent<CharacterBodyAdapter>();
             _inputPipeline = actor.GetComponent<CharacterInputPipeline>();
-            _timeSource = TimeSources.Get(_playerLoopStage);
+            _timeSource = TimeSources.Get(PlayerLoopStage.Update);
         }
 
         private void OnEnable() {
@@ -51,6 +53,23 @@ namespace MisterGames.Character.View {
             CanvasRegistry.Instance.SetCanvasEventCamera(null);
             _inputPipeline.OnViewVectorChanged -= HandleViewVectorChanged;
             _timeSource.Unsubscribe(this);
+        }
+
+        private void OnDestroy() {
+            Detach();
+            StopLookAt();
+        }
+        
+        public void Attach(Transform target, Vector3 point, float smoothing = 0f, bool rotate = true) {
+            _headJoint.Attach(target, point, smoothing, rotate);
+        }
+        
+        public void Attach(Vector3 point, float smoothing = 0f) {
+            _headJoint.Attach(point, smoothing);
+        }
+
+        public void Detach() {
+            _headJoint.Detach();
         }
         
         public void LookAt(Transform target) {
@@ -78,12 +97,13 @@ namespace MisterGames.Character.View {
         }
 
         void IUpdate.OnUpdate(float dt) {
-            var current = GetCurrentOrientation();
-            var target = current + ConsumeInputDelta();
+            var currentOrientation = GetCurrentOrientation();
+            var targetOrientation = currentOrientation + ConsumeInputDelta();
             
-            ApplyClamp(current, ref target, dt);
-            ApplySmoothing(ref current, target, dt);
-            PerformRotation(current, dt);
+            ApplyHeadJoint(dt);
+            ApplyClamp(currentOrientation, ref targetOrientation, dt);
+            ApplySmoothing(ref currentOrientation, targetOrientation, dt);
+            PerformRotation(currentOrientation, dt);
         }
 
         private Vector2 ConsumeInputDelta() {
@@ -98,6 +118,13 @@ namespace MisterGames.Character.View {
 
         private void ApplySmoothing(ref Vector2 current, Vector2 target, float dt) {
             current = Vector2.Lerp(current, target, dt * _smoothing);
+        }
+
+        private void ApplyHeadJoint(float dt) {
+            var position = _headAdapter.Position;
+
+            _headJoint.Update(ref position, dt);
+            _headAdapter.Position = position;
         }
 
         private void PerformRotation(Vector2 eulerAngles, float dt) {
