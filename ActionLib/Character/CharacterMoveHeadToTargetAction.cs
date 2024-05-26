@@ -30,6 +30,7 @@ namespace MisterGames.ActionLib.Character {
         [Header("Motion")]
         [Min(0f)] public float speed = 1f;
         [Min(0f)] public float reduceSpeedBelowDistance = 0.5f;
+        [Min(0f)] public float speedMin = 0.01f;
         public float curvature = 1f;
         public AnimationCurve progressCurve = AnimationCurve.Linear(0f, 0f, 1f, 1f);
         [VisibleIf(nameof(targetType), 1)] [Min(0f)] public float pointRadius = 0.05f;
@@ -54,6 +55,8 @@ namespace MisterGames.ActionLib.Character {
             Vector3 targetPoint;
             Vector3 curvePoint;
             Vector3 dest;
+            var targetRotation = Quaternion.identity;
+            var offsetOrient = Quaternion.identity;
             bool invertCurve = false;
             
             switch (targetType) {
@@ -62,7 +65,6 @@ namespace MisterGames.ActionLib.Character {
                         startPoint = localPosition;
                         targetPoint = head.LocalPosition;
                         var rot = target.rotation * Quaternion.Euler(rotationOffset) * Quaternion.Inverse(body.Rotation);
-                        
                         curvePoint = BezierExtensions.GetCurvaturePoint(startPoint, targetPoint, rot, curvature);
                         invertCurve = true;
                     }
@@ -81,11 +83,12 @@ namespace MisterGames.ActionLib.Character {
                 }
 
                 case TargetType.Transform: {
+                    targetRotation = target.rotation;
                     startPoint = head.Position;
                     var targetPos = target.position;
                     
-                    var offsetOrient = offsetMode switch {
-                        OffsetMode.Local => target.rotation * Quaternion.Euler(rotationOffset),
+                    offsetOrient = offsetMode switch {
+                        OffsetMode.Local => targetRotation * Quaternion.Euler(rotationOffset),
                         OffsetMode.World => Quaternion.Euler(rotationOffset),
                         OffsetMode.UseViewDirectionAsForward => Quaternion.LookRotation(targetPos - startPoint, head.Rotation * Vector3.up),
                         _ => throw new ArgumentOutOfRangeException()
@@ -93,8 +96,8 @@ namespace MisterGames.ActionLib.Character {
                     
                     targetPoint = targetPos + offsetOrient * offset;
                     
-                    var targetRotation = Quaternion.LookRotation(offsetOrient * offset, Vector3.up);
-                    curvePoint = BezierExtensions.GetCurvaturePoint(startPoint, targetPoint, targetRotation, curvature);
+                    var rot = Quaternion.LookRotation(offsetOrient * offset, Vector3.up);
+                    curvePoint = BezierExtensions.GetCurvaturePoint(startPoint, targetPoint, rot, curvature);
                     
                     dest = targetPoint;
                     break;
@@ -127,16 +130,27 @@ namespace MisterGames.ActionLib.Character {
             float t = 0f;
             
             while (!cancellationToken.IsCancellationRequested) {
-                var diff = targetType switch {
-                    TargetType.LocalPosition => dest - head.LocalPosition,
-                    TargetType.Transform => dest - head.Position,
-                    _ => throw new ArgumentOutOfRangeException()
-                };
+                Vector3 diff;
+                
+                switch (targetType) {
+                    case TargetType.LocalPosition:
+                        diff = dest - head.LocalPosition;
+                        break;
+                    
+                    case TargetType.Transform:
+                        var rotationDiff = Quaternion.Inverse(targetRotation) * target.rotation;
+                        dest = target.position + offsetOrient * rotationDiff * offset;
+                        targetPoint = dest;
+                        diff = dest - head.Position;
+                        break;
+                    
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
 
                 float dt = UnityEngine.Time.deltaTime;
                 float k = reduceSpeedBelowDistance > 0f ? Mathf.Clamp01(diff.magnitude / reduceSpeedBelowDistance) : 1f;
-
-                t = Mathf.Clamp01(t + speed * k * dt);
+                t = Mathf.Clamp01(t + dt * Mathf.Max(speed * k, speedMin));
 
                 var position = BezierExtensions.EvaluateBezier3Points(
                     startPoint,
@@ -158,18 +172,19 @@ namespace MisterGames.ActionLib.Character {
                             ? Vector3.Lerp(head.Position, position, smoothing * dt) 
                             : position;
                         float r = Mathf.Max(pointRadius, Mathf.Epsilon);
-                        canFinish = t >= 1f && (targetPoint - head.Position).sqrMagnitude <= r * r;
+                        canFinish = t >= 1f && (dest - head.Position).sqrMagnitude <= r * r;
                         break;
                     
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
                 
-                if (canFinish) break;
-                
 #if UNITY_EDITOR
-                DebugExt.DrawSphere(head.Position, 0.005f, Color.yellow, duration: 5f);
+                DebugExt.DrawSphere(head.Position, 0.008f, Color.yellow, duration: 5f);
+                DebugExt.DrawSphere(dest, 0.01f, Color.green, duration: 5f);
 #endif
+                
+                if (canFinish) break;
 
                 await UniTask.Yield();
             }
@@ -179,7 +194,7 @@ namespace MisterGames.ActionLib.Character {
             if (targetType == TargetType.Transform && attach) {
                 context
                     .GetComponent<CharacterViewPipeline>()
-                    .Attach(target, targetPoint, attachSmoothing, rotateWithAttachedTarget);   
+                    .Attach(target, dest, attachSmoothing, rotateWithAttachedTarget);   
             }
         }
     }

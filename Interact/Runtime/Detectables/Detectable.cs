@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using MisterGames.Actors;
 using MisterGames.Common;
 using MisterGames.Common.Attributes;
 using UnityEngine;
 
 namespace MisterGames.Interact.Detectables {
 
-    public sealed class Detectable : MonoBehaviour, IDetectable {
+    public sealed class Detectable : MonoBehaviour, IActorComponent, IDetectable {
 
         [EmbeddedInspector]
         [SerializeField] private DetectStrategy _strategy;

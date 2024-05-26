@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using MisterGames.Actors;
 using MisterGames.Common.Attributes;
 using MisterGames.Interact.Cursors;
 using MisterGames.Interact.Detectables;
@@ -9,7 +10,7 @@ using UnityEngine;
 namespace MisterGames.Interact.Interactives {
 
     [RequireComponent(typeof(Detectable))]
-    public sealed class Interactive : MonoBehaviour, IInteractive {
+    public sealed class Interactive : MonoBehaviour, IInteractive, IActorComponent {
         
         [EmbeddedInspector]
         [SerializeField] private InteractionStrategy _strategy;
@@ -27,7 +28,7 @@ namespace MisterGames.Interact.Interactives {
 
         public IReadOnlyCollection<IInteractiveUser> Users => _users;
         public Transform Transform { get; private set; }
-
+        public bool IsInteracting => _userInteractionMap.Count > 0;
         private readonly List<IInteractiveUser> _users = new();
         private readonly Dictionary<IInteractiveUser, InteractionData> _userInteractionMap = new();
         private Detectable _detectable;

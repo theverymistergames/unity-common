@@ -20,7 +20,7 @@ namespace MisterGames.Character.View {
         [SerializeField] private float _smoothing = 20f;
         [SerializeField] [Min(0f)] private float _freeHeadRotationDistance;
         [SerializeField] private float _returnFreeHeadRotationSmoothing = 5f;
-        [SerializeField] private CharacterViewClampProcessor _viewClamp;
+        [SerializeField] private ViewClampProcessor _viewClamp;
         
         public CameraContainer CameraContainer => _cameraContainer;
         public Vector2 Sensitivity { get => _sensitivity; set => _sensitivity = value; }
@@ -40,7 +40,7 @@ namespace MisterGames.Character.View {
             _headAdapter = actor.GetComponent<CharacterHeadAdapter>();
             _bodyAdapter = actor.GetComponent<CharacterBodyAdapter>();
             _inputPipeline = actor.GetComponent<CharacterInputPipeline>();
-            _timeSource = TimeSources.Get(PlayerLoopStage.Update);
+            _timeSource = TimeSources.Get(PlayerLoopStage.LateUpdate);
         }
 
         private void OnEnable() {

@@ -5,7 +5,7 @@ using UnityEngine;
 namespace MisterGames.Character.View {
 
     [Serializable]
-    public sealed class CharacterViewClampProcessor {
+    public sealed class ViewClampProcessor {
 
         [SerializeField] private ViewAxisClamp _horizontal;
         [SerializeField] private ViewAxisClamp _vertical = new() {
@@ -67,8 +67,8 @@ namespace MisterGames.Character.View {
             targetOrientation.x = targetOrientation.x.Clamp(_vertical.mode, verticalBounds.x, verticalBounds.y);
             targetOrientation.y = targetOrientation.y.Clamp(_horizontal.mode, horizontalBounds.x, horizontalBounds.y);
 
-            targetOrientation.x = ApplySpring(orientation.x, targetOrientation.x - orientation.x, clampCenterEulers.x, _vertical, dt);
-            targetOrientation.y = ApplySpring(orientation.y, targetOrientation.y - orientation.y, clampCenterEulers.y, _horizontal, dt);
+            targetOrientation.x = ApplySpring(orientation.x, targetOrientation.x, clampCenterEulers.x, _vertical, dt);
+            targetOrientation.y = ApplySpring(orientation.y, targetOrientation.y, clampCenterEulers.y, _horizontal, dt);
 
             targetOrientation = GetNearestAngle(targetOrientation, orientation);
         }
@@ -92,43 +92,44 @@ namespace MisterGames.Character.View {
             return value;
         }
         
-        private static float ApplySpring(float value, float diff, float center, ViewAxisClamp clamp, float dt) {
-            float target = value + diff - center;
+        private static float ApplySpring(float value, float target, float center, ViewAxisClamp clamp, float dt) {
+            float diff = target - value;
+            float centralizedTarget = target - center;
             
             // Not clamped or not in spring zone
             if (clamp.mode == ClampMode.None ||
-                target >= clamp.springs.x && target <= clamp.springs.y
+                centralizedTarget >= clamp.springs.x && centralizedTarget <= clamp.springs.y
             ) {
-                return target + center;
+                return target;
             }
 
             // In left spring zone
-            if (target < clamp.springs.x && clamp.mode is ClampMode.Lower or ClampMode.Full) {
+            if (centralizedTarget < clamp.springs.x && clamp.mode is ClampMode.Lower or ClampMode.Full) {
                 // Ignore if spring factor is not set
-                if (clamp.springFactors.x <= 0f) return target + center;
+                if (clamp.springFactors.x <= 0f) return target;
 
                 // Not moving or moving towards spring: lerp to spring
-                if (diff >= 0f) return Mathf.Lerp(target, clamp.springs.x, dt * clamp.springFactors.x) + center;
+                if (diff >= 0f) return Mathf.Lerp(centralizedTarget, clamp.springs.x, dt * clamp.springSmoothing.x) + center;
 
                 // Moving towards bound: decrease diff depending on distance between value and bound
                 float f = (value - center - clamp.bounds.x) / (clamp.springs.x - clamp.bounds.x);
-                return value + diff * f * f;
+                return value + diff * f * clamp.springFactors.x;
             }
 
             // In right spring zone
-            if (target > clamp.springs.y && clamp.mode is ClampMode.Upper or ClampMode.Full) {
+            if (centralizedTarget > clamp.springs.y && clamp.mode is ClampMode.Upper or ClampMode.Full) {
                 // Ignore if spring factor is not set
-                if (clamp.springFactors.y <= 0f) return target + center;
+                if (clamp.springFactors.y <= 0f) return target;
 
                 // Not moving or moving towards spring: lerp to spring
-                if (diff <= 0f) return Mathf.Lerp(target, clamp.springs.y, dt * clamp.springFactors.y) + center;
+                if (diff <= 0f) return Mathf.Lerp(centralizedTarget, clamp.springs.y, dt * clamp.springSmoothing.y) + center;
 
                 // Moving towards bound: decrease diff depending on distance between value and bound
                 float f = (value - center - clamp.bounds.y) / (clamp.springs.y - clamp.bounds.y);
-                return value + diff * f * f;
+                return value + diff * f * clamp.springFactors.y;
             }
 
-            return target + center;
+            return target;
         }
     }
 

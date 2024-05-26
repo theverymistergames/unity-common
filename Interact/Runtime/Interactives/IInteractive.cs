@@ -12,6 +12,7 @@ namespace MisterGames.Interact.Interactives {
         event Action<IInteractiveUser> OnStartInteract;
         event Action<IInteractiveUser> OnStopInteract;
 
+        bool IsInteracting { get; }
         IReadOnlyCollection<IInteractiveUser> Users { get; }
         Transform Transform { get; }
 

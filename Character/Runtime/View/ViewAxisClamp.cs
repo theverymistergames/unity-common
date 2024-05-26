@@ -11,6 +11,7 @@ namespace MisterGames.Character.View {
         public Vector2 bounds;
         public Vector2 springs;
         public Vector2 springFactors;
+        public Vector2 springSmoothing;
     }
 
 }

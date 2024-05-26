@@ -35,6 +35,18 @@ namespace MisterGames.Tick.Core {
             return _provider.Get(stage);
         }
 
+        public static void Subscribe(this PlayerLoopStage stage, IUpdate sub) {
+            Get(stage).Subscribe(sub);
+        }
+
+        public static void Unsubscribe(this PlayerLoopStage stage, IUpdate sub) {
+            Get(stage).Unsubscribe(sub);
+        }
+
+        public static float DeltaTime(PlayerLoopStage stage = PlayerLoopStage.Update) {
+            return Get(stage).DeltaTime;
+        }
+        
         private static ITimeSourceProvider _provider;
 
         internal static void InjectProvider(ITimeSourceProvider provider) {
