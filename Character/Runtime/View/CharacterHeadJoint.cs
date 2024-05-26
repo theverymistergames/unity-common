@@ -19,7 +19,6 @@ namespace MisterGames.Character.View {
         }
         
         public void Attach(Transform target, Vector3 point, float smoothing, bool rotate) {
-            Debug.Log($"CharacterHeadJoint.Attach: {target}, smoothing {smoothing}");
             _target = target;
             _targetPoint = point - target.position;
             _targetRotation = target.rotation;
@@ -34,7 +33,6 @@ namespace MisterGames.Character.View {
         }
 
         public void Detach() {
-            Debug.Log($"CharacterHeadJoint.Detach: ");
             _target = null;
             _attachMode = AttachMode.Free;
         }

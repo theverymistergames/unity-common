@@ -26,6 +26,7 @@ namespace MisterGames.Character.View {
         private bool _isInitialized;
         private int _lastStateId;
         private byte _clearPersistentStateOperationId;
+        private bool _isClearingPersistentStates;
 
         private void Awake() {
             _timeSource = TimeSources.Get(PlayerLoopStage.Update);
@@ -58,40 +59,46 @@ namespace MisterGames.Character.View {
             var currentState = _resultState;
             _resultState = BuildResultState();
             
-            if (keepChanges) {
-                _persistentState = new CameraState(
-                    _persistentState.position + currentState.position - _resultState.position,
-                    _persistentState.rotation * currentState.rotation * Quaternion.Inverse(_resultState.rotation),
-                    _persistentState.fov + currentState.fov - _resultState.fov
-                );
-            }
+            if (keepChanges) SavePersistentState(currentState);
             
             ApplyResultState();
         }
 
+        private void SavePersistentState(CameraState state) {
+            ref var dest = ref _isClearingPersistentStates ? ref _persistentStateBuffer : ref _persistentState; 
+            dest = new CameraState(
+                dest.position + state.position - _resultState.position,
+                dest.rotation * state.rotation * Quaternion.Inverse(_resultState.rotation),
+                dest.fov + state.fov - _resultState.fov
+            );
+        }
+
         public async UniTask ClearPersistentStates(float duration = 0f) {
             byte id = ++_clearPersistentStateOperationId;
-            
+
             var startState = _persistentState;
             _persistentState = CameraState.Empty;
             _persistentStateBuffer = startState;
 
             float speed = duration > 0f ? 1f / duration : float.MaxValue;
             float t = 0f;
+            _isClearingPersistentStates = true;
             
             while (id == _clearPersistentStateOperationId && !destroyCancellationToken.IsCancellationRequested) {
                 t = Mathf.Clamp01(t + speed * _timeSource.DeltaTime);
 
                 _persistentStateBuffer = new CameraState(
-                    Vector3.Lerp(startState.position, Vector3.zero, t),
-                    Quaternion.Slerp(startState.rotation, Quaternion.identity, t),
-                    Mathf.Lerp(startState.fov, 0f, t)
+                    Vector3.Lerp(_persistentStateBuffer.position, Vector3.zero, t),
+                    Quaternion.Slerp(_persistentStateBuffer.rotation, Quaternion.identity, t),
+                    Mathf.Lerp(_persistentStateBuffer.fov, 0f, t)
                 );
                 
                 await UniTask.Yield();
                 
                 if (t >= 1f) break;
             }
+
+            _isClearingPersistentStates = false;
         }
 
         public void AddPositionOffset(int id, float weight, Vector3 offsetDelta) {
