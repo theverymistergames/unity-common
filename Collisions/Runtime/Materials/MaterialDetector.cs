@@ -13,7 +13,7 @@ namespace MisterGames.Collisions.Materials {
         public event Action OnMaterialChanged = delegate {  };
         public Optional<MaterialData> Material { get; private set; }
 
-        private readonly Optional<MaterialData> _empty = Optional<MaterialData>.Create();
+        private readonly Optional<MaterialData> _empty = Optional<MaterialData>.Empty;
         private Optional<MaterialData> _default;
         
         private void Awake() {
