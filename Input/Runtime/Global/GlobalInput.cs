@@ -13,7 +13,7 @@ namespace MisterGames.Input.Global {
         private static readonly Dictionary<AxisBinding, InputAction> axes = new Dictionary<AxisBinding, InputAction>();
         
         public static bool IsActive(this KeyBinding key) {
-            return keys[key].phase == InputActionPhase.Performed;
+            return key != KeyBinding.None && keys[key].phase == InputActionPhase.Performed;
         }
         
         public static bool IsActive(this KeyCode key) {

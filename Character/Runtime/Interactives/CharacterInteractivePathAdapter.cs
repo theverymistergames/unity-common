@@ -151,8 +151,8 @@ namespace MisterGames.Character.Interactives {
             _interactivePath.Evaluate(_startReserveBound, out var startBoundPosition, out _, out _);
             _interactivePath.Evaluate(_endReserveBound, out var endBoundPosition, out _, out _);
 
-            DebugExt.DrawSphere(startBoundPosition, 0.05f, Color.white, mode: DebugExt.DrawMode.Gizmo);
-            DebugExt.DrawSphere(endBoundPosition, 0.05f, Color.white, mode: DebugExt.DrawMode.Gizmo);
+            DebugExt.DrawSphere(startBoundPosition, 0.05f, Color.white, gizmo: true);
+            DebugExt.DrawSphere(endBoundPosition, 0.05f, Color.white, gizmo: true);
 
             const float step = 0.04f;
             const float dirLength = 0.4f;
@@ -174,9 +174,9 @@ namespace MisterGames.Character.Interactives {
                     orientation = GetOrientationDefault(tangent, normal);
                 }
                 
-                DebugExt.DrawSphere(position, 0.03f, Color.red, mode: DebugExt.DrawMode.Gizmo);
-                DebugExt.DrawRay(position, orientation * (dirLength * Vector3.forward), Color.red, mode: DebugExt.DrawMode.Gizmo);
-                DebugExt.DrawRay(position, dirLength * forward, Color.green, mode: DebugExt.DrawMode.Gizmo);
+                DebugExt.DrawSphere(position, 0.03f, Color.red, gizmo: true);
+                DebugExt.DrawRay(position, orientation * (dirLength * Vector3.forward), Color.red, gizmo: true);
+                DebugExt.DrawRay(position, dirLength * forward, Color.green, gizmo: true);
             }
         }
 #endif

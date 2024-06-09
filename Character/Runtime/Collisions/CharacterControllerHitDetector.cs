@@ -33,7 +33,7 @@ namespace MisterGames.Character.Collisions {
             
             if (_debugDrawHitPoint) {
                 if (CollisionInfo.hasContact) {
-                    DebugExt.DrawPointer(CollisionInfo.point, Color.yellow, 0.3f, mode: DebugExt.DrawMode.Gizmo);
+                    DebugExt.DrawPointer(CollisionInfo.point, Color.yellow, 0.3f, gizmo: true);
                 }
             }
         }

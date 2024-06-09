@@ -194,19 +194,19 @@ namespace MisterGames.Character.Collisions {
                     CollisionInfo.point :
                     _originOffset + transform.position + _groundDetectionDirection * (_distance + _distanceAddition + _radius);
 
-                DebugExt.DrawRay(start, CollisionInfo.normal, Color.blue, mode: DebugExt.DrawMode.Gizmo);
+                DebugExt.DrawRay(start, CollisionInfo.normal, Color.blue, gizmo: true);
             }
 
             if (_debugDrawHitPoint) {
                 if (CollisionInfo.hasContact) {
-                    DebugExt.DrawPointer(CollisionInfo.point, Color.yellow, 0.3f, mode: DebugExt.DrawMode.Gizmo);
+                    DebugExt.DrawPointer(CollisionInfo.point, Color.yellow, 0.3f, gizmo: true);
                 }
             }
             
             if (_debugDrawCast) {
                 var start = _originOffset + transform.position;
                 var end = start + _groundDetectionDirection * (_distance + _distanceAddition);
-                DebugExt.DrawCapsule(start, end, _radius, Color.cyan, mode: DebugExt.DrawMode.Gizmo);
+                DebugExt.DrawCapsule(start, end, _radius, Color.cyan, gizmo: true);
             }
             
             if (_debugDrawIsGroundedText) {

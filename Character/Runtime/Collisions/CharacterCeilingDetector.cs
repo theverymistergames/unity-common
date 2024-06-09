@@ -168,14 +168,14 @@ namespace MisterGames.Character.Collisions {
             
             if (_debugDrawHitPoint) {
                 if (CollisionInfo.hasContact) {
-                    DebugExt.DrawPointer(CollisionInfo.point, Color.yellow, 0.3f, mode: DebugExt.DrawMode.Gizmo);
+                    DebugExt.DrawPointer(CollisionInfo.point, Color.yellow, 0.3f, gizmo: true);
                 }
             }
             
             if (_debugDrawCast) {
                 var start = transform.position;
                 var end = start + _ceilingDetectionDirection * _distance;
-                DebugExt.DrawCapsule(start, end, _radius, Color.cyan, mode: DebugExt.DrawMode.Gizmo);
+                DebugExt.DrawCapsule(start, end, _radius, Color.cyan, gizmo: true);
             }
             
             if (_debugDrawHasCeilingText) {

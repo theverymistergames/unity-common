@@ -1,4 +1,4 @@
-﻿using MisterGames.Common;
+﻿using System;
 using UnityEngine;
 
 namespace MisterGames.Character.View {
@@ -9,44 +9,52 @@ namespace MisterGames.Character.View {
         private Vector3 _targetPoint;
         private Quaternion _targetRotation;
         private float _smoothing;
-        private AttachMode _attachMode;
+        private Mode _mode;
+        private float _distance;
         
-        private enum AttachMode {
+        private enum Mode {
             Free,
             Point,
             Transform,
-            TransformWithoutRotation
+            TransformWithoutRotation,
+            TransformLookaround
         }
         
-        public void Attach(Transform target, Vector3 point, float smoothing, bool rotate) {
+        public void Attach(Transform target, Vector3 point, AttachMode mode, float smoothing) {
             _target = target;
             _targetPoint = point - target.position;
+            _distance = _targetPoint.magnitude;
             _targetRotation = target.rotation;
             _smoothing = smoothing;
-            _attachMode = rotate ? AttachMode.Transform : AttachMode.TransformWithoutRotation;
+            
+            _mode = mode switch {
+                AttachMode.OffsetOnly => Mode.TransformWithoutRotation,
+                AttachMode.RotateWithTarget => Mode.Transform,
+                AttachMode.RotateAroundTarget => Mode.TransformLookaround,
+                _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
+            };
         }
 
         public void Attach(Vector3 point, float smoothing) {
             _targetPoint = point;
             _smoothing = smoothing;
-            _attachMode = AttachMode.Point;
+            _mode = Mode.Point;
         }
 
         public void Detach() {
             _target = null;
-            _attachMode = AttachMode.Free;
+            _mode = Mode.Free;
         }
 
-        public void Update(ref Vector3 position, float dt) {
-            var targetPoint = _attachMode switch {
-                AttachMode.Point => _targetPoint,
-                AttachMode.Transform => _target.position + _target.rotation * Quaternion.Inverse(_targetRotation) * _targetPoint,
-                AttachMode.TransformWithoutRotation => _target.position + _targetPoint,
+        public void Update(ref Vector3 position, Vector2 orientation, float dt) {
+            var targetPoint = _mode switch {
+                Mode.Point => _targetPoint,
+                Mode.Transform => _target.position + _target.rotation * Quaternion.Inverse(_targetRotation) * _targetPoint,
+                Mode.TransformWithoutRotation => _target.position + _targetPoint,
+                Mode.TransformLookaround => _target.position + Quaternion.Euler(orientation) * Vector3.back * _distance,
                 _ => position,
             };
             
-            DebugExt.DrawSphere(targetPoint, 0.01f, Color.red);
-
             position = _smoothing > 0f ? Vector3.Lerp(position, targetPoint, dt * _smoothing) : targetPoint;
         }
     }

@@ -9,6 +9,7 @@ namespace MisterGames.Character.Collisions {
         [SerializeField] private CharacterControllerHitDetector _hitDetector;
         [SerializeField] private CharacterCeilingDetector _ceilingDetector;
         [SerializeField] private CharacterGroundDetector _groundDetector;
+        [SerializeField] private CapsuleCollider _extraCollider;
 
         public ICollisionDetector HitDetector => _hitDetector;
         public IRadiusCollisionDetector CeilingDetector => _ceilingDetector;
@@ -33,6 +34,7 @@ namespace MisterGames.Character.Collisions {
             _hitDetector.enabled = isEnabled;
             _ceilingDetector.enabled = isEnabled;
             _groundDetector.enabled = isEnabled;
+            _extraCollider.enabled = isEnabled;
         }
     }
 

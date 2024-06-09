@@ -184,11 +184,11 @@ namespace MisterGames.Interact.Detectables {
         private void OnDrawGizmos() {
             if (!Application.isPlaying || !_debugDrawDetectables) return;
 
-            DebugExt.DrawSphere(transform.position, 0.2f, Color.blue, mode: DebugExt.DrawMode.Gizmo);
+            DebugExt.DrawSphere(transform.position, 0.2f, Color.blue, gizmo: true);
 
             foreach (var detectable in _detectedCandidatesSet) {
                 var color = IsDetected(detectable) ? Color.green : Color.gray;
-                DebugExt.DrawLine(transform.position, detectable.Transform.position, color, mode: DebugExt.DrawMode.Gizmo);
+                DebugExt.DrawLine(transform.position, detectable.Transform.position, color, gizmo: true);
             }
         }
 #endif

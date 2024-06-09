@@ -25,7 +25,7 @@ namespace MisterGames.ActionLib.Character {
         public Vector3 rotationOffset;
         [VisibleIf(nameof(targetType), 1)] public bool attach;
         [VisibleIf(nameof(targetType), 1)] [Min(0f)] public float attachSmoothing;
-        [VisibleIf(nameof(targetType), 1)] public bool rotateWithAttachedTarget;
+        [VisibleIf(nameof(targetType), 1)] public AttachMode attachMode;
         
         [Header("Motion")]
         [Min(0f)] public float speed = 1f;
@@ -35,29 +35,32 @@ namespace MisterGames.ActionLib.Character {
         public AnimationCurve progressCurve = AnimationCurve.Linear(0f, 0f, 1f, 1f);
         [VisibleIf(nameof(targetType), 1)] [Min(0f)] public float pointRadius = 0.05f;
         [VisibleIf(nameof(targetType), 1)] [Min(0f)] public float smoothing = 10f;
-
+        
         public enum TargetType {
             LocalPosition,
             Transform,
         }
-        
+
         public enum OffsetMode {
             Local,
             World,
-            UseViewDirectionAsForward
+            UseViewDirectionAsForward,
         }
-        
+
         public async UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
             var head = context.GetComponent<CharacterHeadAdapter>();
             var body = context.GetComponent<CharacterBodyAdapter>();
+            var view = context.GetComponent<CharacterViewPipeline>();
             
             Vector3 startPoint;
             Vector3 targetPoint;
             Vector3 curvePoint;
             Vector3 dest;
+            
             var targetRotation = Quaternion.identity;
             var offsetOrient = Quaternion.identity;
             bool invertCurve = false;
+            float offsetDist = offset.magnitude;
             
             switch (targetType) {
                 case TargetType.LocalPosition: {
@@ -94,7 +97,9 @@ namespace MisterGames.ActionLib.Character {
                         _ => throw new ArgumentOutOfRangeException()
                     };
                     
-                    targetPoint = targetPos + offsetOrient * offset;
+                    targetPoint = attach && attachMode == AttachMode.RotateAroundTarget
+                        ? targetPos + Quaternion.Euler(view.CurrentOrientation) * new Vector3(0f, 0f, -offsetDist)
+                        : targetPos + offsetOrient * offset;
                     
                     var rot = Quaternion.LookRotation(offsetOrient * offset, Vector3.up);
                     curvePoint = BezierExtensions.GetCurvaturePoint(startPoint, targetPoint, rot, curvature);
@@ -106,7 +111,8 @@ namespace MisterGames.ActionLib.Character {
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-
+            
+#if UNITY_EDITOR
             switch (targetType) {
                 case TargetType.LocalPosition:
                     var p = head.Position;
@@ -124,6 +130,7 @@ namespace MisterGames.ActionLib.Character {
                     DebugExt.DrawSphere(targetPoint, 0.03f, Color.red, duration: 5f);
                     break;
             }
+#endif
             
             float pathLength = BezierExtensions.GetBezier3PointsLength(startPoint, curvePoint, targetPoint);
             float speed = pathLength > 0f ? this.speed / pathLength : float.MaxValue;
@@ -138,8 +145,10 @@ namespace MisterGames.ActionLib.Character {
                         break;
                     
                     case TargetType.Transform:
-                        var rotationDiff = Quaternion.Inverse(targetRotation) * target.rotation;
-                        dest = target.position + offsetOrient * rotationDiff * offset;
+                        dest = attach && attachMode == AttachMode.RotateAroundTarget
+                            ? target.position + Quaternion.Euler(view.CurrentOrientation) * new Vector3(0f, 0f, -offsetDist)
+                            : target.position + offsetOrient * (Quaternion.Inverse(targetRotation) * target.rotation) * offset;
+                        
                         targetPoint = dest;
                         diff = dest - head.Position;
                         break;
@@ -191,11 +200,7 @@ namespace MisterGames.ActionLib.Character {
             
             if (cancellationToken.IsCancellationRequested) return;
 
-            if (targetType == TargetType.Transform && attach) {
-                context
-                    .GetComponent<CharacterViewPipeline>()
-                    .Attach(target, dest, attachSmoothing, rotateWithAttachedTarget);   
-            }
+            if (targetType == TargetType.Transform && attach) view.Attach(target, dest, attachMode, attachSmoothing);
         }
     }
     

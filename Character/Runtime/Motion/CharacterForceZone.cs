@@ -174,9 +174,9 @@ namespace MisterGames.Character.Motion {
             var source = _forceSourcePoint.position;
             var target = source + _maxDistance * _forceDirection;
 
-            DebugExt.DrawSphere(source, 0.3f, Color.blue, mode: DebugExt.DrawMode.Gizmo);
-            DebugExt.DrawSphere(source, 0.15f, Color.green, mode: DebugExt.DrawMode.Gizmo);
-            DebugExt.DrawLine(source, target, Color.green, mode: DebugExt.DrawMode.Gizmo);
+            DebugExt.DrawSphere(source, 0.3f, Color.blue, gizmo: true);
+            DebugExt.DrawSphere(source, 0.15f, Color.green, gizmo: true);
+            DebugExt.DrawLine(source, target, Color.green, gizmo: true);
         }
 #endif
     }

@@ -7,23 +7,6 @@ namespace MisterGames.Common {
     
     public static class DebugExt
     {
-        /// <summary>
-        /// How the shape is drawn. There are several options for different cases.
-        /// </summary>
-        public enum DrawMode
-        {
-            /// <summary>
-            /// Uses Debug.DrawLine().
-            /// Does not support prefab-edit mode, use <see cref="Gizmo"/> instead.
-            /// </summary>
-            Debug,
-
-            /// <summary>
-            /// Uses Gizmos.DrawLine().
-            /// Does not support drawing with duration, use <see cref="Debug"/> instead.
-            /// </summary>
-            Gizmo,
-        }
 
         public static void DrawLabel(Vector3 origin, string text, int fontSize = 14, Color color = default) {
 #if UNITY_EDITOR
@@ -36,23 +19,18 @@ namespace MisterGames.Common {
             Vector3 end,
             Color color,
             float duration = 0f,
-            DrawMode mode = DrawMode.Debug)
+            bool gizmo = false)
         {
-            switch (mode)
-            {
-                case DrawMode.Debug:
-                    Debug.DrawLine(start, end, color, duration);
-                    break;
-
-                case DrawMode.Gizmo:
-                    if (duration > 0f) Debug.Log($"{nameof(DebugExt)}: Draw mode {mode} does not support duration > 0.");
-                    Gizmos.color = color;
-                    Gizmos.DrawLine(start, end);
-                    break;
-
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(mode), mode, null);
+            if (gizmo) {
+                if (duration > 0f) Debug.Log($"{nameof(DebugExt)}: Draw gizmo Gizmo does not support duration > 0.");
+                
+                Gizmos.color = color;
+                Gizmos.DrawLine(start, end);
+                
+                return;
             }
+            
+            Debug.DrawLine(start, end, color, duration);
         }
 
         public static void DrawRay(
@@ -60,9 +38,9 @@ namespace MisterGames.Common {
             Vector3 dir,
             Color color,
             float duration = 0f,
-            DrawMode mode = DrawMode.Debug)
+            bool gizmo = false)
         {
-            DrawLine(start, start + dir, color, duration, mode);
+            DrawLine(start, start + dir, color, duration, gizmo);
         }
 
         public static void DrawLines(
@@ -71,7 +49,7 @@ namespace MisterGames.Common {
             bool loop = false,
             int count = -1,
             float duration = 0f,
-            DrawMode mode = DrawMode.Debug)
+            bool gizmo = false)
         {
             if (count < 0) count = points.Length;
             if (count < 2) return;
@@ -81,7 +59,7 @@ namespace MisterGames.Common {
                 var p = points[i];
                 var n = points[i < count - 1 ? i + 1 : 0];
 
-                DrawLine(p, n, color, duration, mode);
+                DrawLine(p, n, color, duration, gizmo);
             }
 
             if (loop)
@@ -89,7 +67,7 @@ namespace MisterGames.Common {
                 var p = points[count - 1];
                 var n = points[0];
 
-                DrawLine(p, n, color, duration, mode);
+                DrawLine(p, n, color, duration, gizmo);
             }
         }
 
@@ -100,7 +78,7 @@ namespace MisterGames.Common {
             Color color,
             float step = 0.05f,
             float duration = 0f,
-            DrawMode mode = DrawMode.Debug)
+            bool gizmo = false)
         {
             int count = step > 0f ? Mathf.CeilToInt(1f / step) + 1 : 0;
             var points = ArrayPool<Vector3>.Shared.Rent(count);
@@ -111,7 +89,7 @@ namespace MisterGames.Common {
                 points[i] = BezierExtensions.EvaluateBezier3Points(p0, p1, p2, t);
             }
 
-            DrawLines(points, color, loop: false, count, duration, mode);
+            DrawLines(points, color, loop: false, count, duration, gizmo);
 
             ArrayPool<Vector3>.Shared.Return(points);
         }
@@ -124,7 +102,7 @@ namespace MisterGames.Common {
             Color color,
             float step = 0.05f,
             float duration = 0f,
-            DrawMode mode = DrawMode.Debug)
+            bool gizmo = false)
         {
             int count = step > 0f ? Mathf.CeilToInt(1f / step) + 1 : 0;
             var points = ArrayPool<Vector3>.Shared.Rent(count);
@@ -135,7 +113,7 @@ namespace MisterGames.Common {
                 points[i] = BezierExtensions.EvaluateBezier4Points(p0, p1, p2, p3, t);
             }
 
-            DrawLines(points, color, loop: false, count, duration, mode);
+            DrawLines(points, color, loop: false, count, duration, gizmo);
 
             ArrayPool<Vector3>.Shared.Return(points);
         }
@@ -145,7 +123,7 @@ namespace MisterGames.Common {
             Color color,
             float size = 0.1f,
             float duration = 0f,
-            DrawMode mode = DrawMode.Debug)
+            bool gizmo = false)
         {
             var points = ArrayPool<Vector3>.Shared.Rent(6);
 
@@ -156,7 +134,7 @@ namespace MisterGames.Common {
             points[4] = position + new Vector3(size * 0.5f, size, 0f);
             points[5] = position + new Vector3(-size * 0.5f, size, 0f);
 
-            DrawLines(points, color, loop: true, count: 6, duration, mode);
+            DrawLines(points, color, loop: true, count: 6, duration, gizmo);
 
             ArrayPool<Vector3>.Shared.Return(points);
         }
@@ -169,7 +147,7 @@ namespace MisterGames.Common {
             float angle = 360f,
             float step = 0.05f,
             float duration = 0f,
-            DrawMode mode = DrawMode.Debug)
+            bool gizmo = false)
         {
             var normal = orientation * Vector3.up;
             var start = orientation * Vector3.forward * radius;
@@ -186,7 +164,7 @@ namespace MisterGames.Common {
                 points[i] = rot * start + position;
             }
 
-            DrawLines(points, color, loop: angle >= 360f, count, duration, mode);
+            DrawLines(points, color, loop: angle >= 360f, count, duration, gizmo);
 
             ArrayPool<Vector3>.Shared.Return(points);
         }
@@ -197,17 +175,17 @@ namespace MisterGames.Common {
             Vector2 size,
             Color color,
             float duration = 0f,
-            DrawMode mode = DrawMode.Debug)
+            bool gizmo = false)
         {
             var v0 = position + orientation * Vector3.right * size.x * 0.5f + orientation * Vector3.up * size.y * 0.5f;
             var v1 = position + orientation * Vector3.right * size.x * 0.5f + orientation * Vector3.down * size.y * 0.5f;
             var v2 = position + orientation * Vector3.left * size.x * 0.5f + orientation * Vector3.down * size.y * 0.5f;
             var v3 = position + orientation * Vector3.left * size.x * 0.5f + orientation * Vector3.up * size.y * 0.5f;
 
-            DrawLine(v0, v1, color, duration, mode);
-            DrawLine(v1, v2, color, duration, mode);
-            DrawLine(v2, v3, color, duration, mode);
-            DrawLine(v3, v0, color, duration, mode);
+            DrawLine(v0, v1, color, duration, gizmo);
+            DrawLine(v1, v2, color, duration, gizmo);
+            DrawLine(v2, v3, color, duration, gizmo);
+            DrawLine(v3, v0, color, duration, gizmo);
         }
 
         public static void DrawSquare(
@@ -216,9 +194,9 @@ namespace MisterGames.Common {
             float side,
             Color color,
             float duration = 0f,
-            DrawMode mode = DrawMode.Debug)
+            bool gizmo = false)
         {
-            DrawRect(position, orientation, new Vector2(side, side), color, duration, mode);
+            DrawRect(position, orientation, new Vector2(side, side), color, duration, gizmo);
         }
 
         public static void DrawBox(
@@ -227,7 +205,7 @@ namespace MisterGames.Common {
             Vector3 size,
             Color color,
             float duration = 0f,
-            DrawMode mode = DrawMode.Debug)
+            bool gizmo = false)
         {
             var v0 = position + orientation * Vector3.up * size.y * 0.5f;
             var v1 = position + orientation * Vector3.down * size.y * 0.5f;
@@ -235,11 +213,11 @@ namespace MisterGames.Common {
             var v2 = position + orientation * Vector3.forward * size.z * 0.5f;
             var v3 = position + orientation * Vector3.back * size.z * 0.5f;
 
-            DrawRect(v0, orientation * Quaternion.Euler(90f, 0f, 0f), new Vector2(size.x, size.z), color, duration, mode);
-            DrawRect(v1, orientation * Quaternion.Euler(90f, 0f, 0f), new Vector2(size.x, size.z), color, duration, mode);
+            DrawRect(v0, orientation * Quaternion.Euler(90f, 0f, 0f), new Vector2(size.x, size.z), color, duration, gizmo);
+            DrawRect(v1, orientation * Quaternion.Euler(90f, 0f, 0f), new Vector2(size.x, size.z), color, duration, gizmo);
 
-            DrawRect(v2, orientation, new Vector2(size.x, size.y), color, duration, mode);
-            DrawRect(v3, orientation, new Vector2(size.x, size.y), color, duration, mode);
+            DrawRect(v2, orientation, new Vector2(size.x, size.y), color, duration, gizmo);
+            DrawRect(v3, orientation, new Vector2(size.x, size.y), color, duration, gizmo);
         }
 
         public static void DrawCube(
@@ -248,9 +226,9 @@ namespace MisterGames.Common {
             float size,
             Color color,
             float duration = 0f,
-            DrawMode mode = DrawMode.Debug)
+            bool gizmo = false)
         {
-            DrawBox(position, orientation, new Vector3(size, size, size), color, duration, mode);
+            DrawBox(position, orientation, new Vector3(size, size, size), color, duration, gizmo);
         }
 
         public static void DrawCylinder(
@@ -260,7 +238,7 @@ namespace MisterGames.Common {
             Color color,
             float step = 0.05f,
             float duration = 0f,
-            DrawMode mode = DrawMode.Debug)
+            bool gizmo = false)
         {
             var normal = (to - from).normalized;
             var rot = Quaternion.FromToRotation(Vector3.up, normal);
@@ -282,13 +260,13 @@ namespace MisterGames.Common {
 
             var orient = Quaternion.LookRotation(forward, normal);
 
-            DrawLine(from0, to0, color, duration, mode);
-            DrawLine(from1, to1, color, duration, mode);
-            DrawLine(from2, to2, color, duration, mode);
-            DrawLine(from3, to3, color, duration, mode);
+            DrawLine(from0, to0, color, duration, gizmo);
+            DrawLine(from1, to1, color, duration, gizmo);
+            DrawLine(from2, to2, color, duration, gizmo);
+            DrawLine(from3, to3, color, duration, gizmo);
 
-            DrawCircle(from, orient, radius, color, angle: 360f, step, duration, mode);
-            DrawCircle(to, orient, radius, color, angle: 360f, step, duration, mode);
+            DrawCircle(from, orient, radius, color, angle: 360f, step, duration, gizmo);
+            DrawCircle(to, orient, radius, color, angle: 360f, step, duration, gizmo);
         }
 
         public static void DrawSphere(
@@ -297,15 +275,15 @@ namespace MisterGames.Common {
             Color color,
             float step = 0.05f,
             float duration = 0f,
-            DrawMode mode = DrawMode.Debug)
+            bool gizmo = false)
         {
             var or0 = Quaternion.identity;
             var or1 = Quaternion.LookRotation(Vector3.up, Vector3.forward);
             var or2 = Quaternion.LookRotation(Vector3.up, Vector3.right);
 
-            DrawCircle(position, or0, radius, color, angle: 360f, step, duration, mode);
-            DrawCircle(position, or1, radius, color, angle: 360f, step, duration, mode);
-            DrawCircle(position, or2, radius, color, angle: 360f, step, duration, mode);
+            DrawCircle(position, or0, radius, color, angle: 360f, step, duration, gizmo);
+            DrawCircle(position, or1, radius, color, angle: 360f, step, duration, gizmo);
+            DrawCircle(position, or2, radius, color, angle: 360f, step, duration, gizmo);
         }
 
         public static void DrawCapsule(
@@ -315,7 +293,7 @@ namespace MisterGames.Common {
             Color color,
             float step = 0.05f,
             float duration = 0f,
-            DrawMode mode = DrawMode.Debug)
+            bool gizmo = false)
         {
             var normal = (to - from).normalized;
             var rot = Quaternion.FromToRotation(Vector3.up, normal);
@@ -327,11 +305,11 @@ namespace MisterGames.Common {
             var or2 = Quaternion.LookRotation(forward, -right);
             var or3 = Quaternion.LookRotation(-right, -forward);
 
-            DrawCylinder(from, to, radius, color, step, duration, mode);
-            DrawCircle(from, or0, radius, color, angle: 180f, step, duration, mode);
-            DrawCircle(from, or1, radius, color, angle: 180f, step, duration, mode);
-            DrawCircle(to, or2, radius, color, angle: 180f, step, duration, mode);
-            DrawCircle(to, or3, radius, color, angle: 180f, step, duration, mode);
+            DrawCylinder(from, to, radius, color, step, duration, gizmo);
+            DrawCircle(from, or0, radius, color, angle: 180f, step, duration, gizmo);
+            DrawCircle(from, or1, radius, color, angle: 180f, step, duration, gizmo);
+            DrawCircle(to, or2, radius, color, angle: 180f, step, duration, gizmo);
+            DrawCircle(to, or3, radius, color, angle: 180f, step, duration, gizmo);
         }
 
         public static void DrawSphereCast(
@@ -341,7 +319,7 @@ namespace MisterGames.Common {
             Color color,
             float step = 0.05f,
             float duration = 0f,
-            DrawMode mode = DrawMode.Debug)
+            bool gizmo = false)
         {
             var normal = (to - from).normalized;
             var rot = Quaternion.FromToRotation(Vector3.up, normal);
@@ -353,11 +331,11 @@ namespace MisterGames.Common {
             var or2 = Quaternion.LookRotation(forward, -right);
             var or3 = Quaternion.LookRotation(-right, -forward);
 
-            DrawCylinder(from, to, radius, color, step, duration, mode);
-            DrawCircle(from, or0, radius, color, angle: 180f, step, duration, mode);
-            DrawCircle(from, or1, radius, color, angle: 180f, step, duration, mode);
-            DrawCircle(to, or2, radius, color, angle: 180f, step, duration, mode);
-            DrawCircle(to, or3, radius, color, angle: 180f, step, duration, mode);
+            DrawCylinder(from, to, radius, color, step, duration, gizmo);
+            DrawCircle(from, or0, radius, color, angle: 180f, step, duration, gizmo);
+            DrawCircle(from, or1, radius, color, angle: 180f, step, duration, gizmo);
+            DrawCircle(to, or2, radius, color, angle: 180f, step, duration, gizmo);
+            DrawCircle(to, or3, radius, color, angle: 180f, step, duration, gizmo);
         }
 
         public static void DrawFrustum(
@@ -367,7 +345,7 @@ namespace MisterGames.Common {
             Vector2 window,
             Color color,
             float duration = 0f,
-            DrawMode mode = DrawMode.Debug)
+            bool gizmo = false)
         {
             var orient = Quaternion.LookRotation(direction, Vector3.up);
             
@@ -387,19 +365,19 @@ namespace MisterGames.Common {
             var rayEndStart = orient * endRotX * startRotY * f;
             var rayEndEnd = orient * endRotX * endRotY * f;
             
-            DrawRay(startPosX + startPosY, rayStartStart, color, duration, mode);
-            DrawRay(startPosX + endPosY, rayStartEnd, color, duration, mode);
-            DrawRay(endPosX + startPosY, rayEndStart, color, duration, mode);
-            DrawRay(endPosX + endPosY, rayEndEnd, color, duration, mode);
+            DrawRay(startPosX + startPosY, rayStartStart, color, duration, gizmo);
+            DrawRay(startPosX + endPosY, rayStartEnd, color, duration, gizmo);
+            DrawRay(endPosX + startPosY, rayEndStart, color, duration, gizmo);
+            DrawRay(endPosX + endPosY, rayEndEnd, color, duration, gizmo);
             
-            DrawLine(startPosX + startPosY, startPosX + endPosY, color, duration, mode);
-            DrawLine(startPosX + startPosY, endPosX + startPosY, color, duration, mode);
-            DrawLine(endPosX + endPosY, startPosX + endPosY, color, duration, mode);
+            DrawLine(startPosX + startPosY, startPosX + endPosY, color, duration, gizmo);
+            DrawLine(startPosX + startPosY, endPosX + startPosY, color, duration, gizmo);
+            DrawLine(endPosX + endPosY, startPosX + endPosY, color, duration, gizmo);
             DrawLine(endPosX + endPosY, endPosX + startPosY, color);
             
-            DrawLine(startPosX + startPosY + rayStartStart, startPosX + endPosY + rayStartEnd, color, duration, mode);
-            DrawLine(startPosX + startPosY + rayStartStart, endPosX + startPosY + rayEndStart, color, duration, mode);
-            DrawLine(endPosX + endPosY + rayEndEnd, startPosX + endPosY + rayStartEnd, color, duration, mode);
+            DrawLine(startPosX + startPosY + rayStartStart, startPosX + endPosY + rayStartEnd, color, duration, gizmo);
+            DrawLine(startPosX + startPosY + rayStartStart, endPosX + startPosY + rayEndStart, color, duration, gizmo);
+            DrawLine(endPosX + endPosY + rayEndEnd, startPosX + endPosY + rayStartEnd, color, duration, gizmo);
             DrawLine(endPosX + endPosY + rayEndEnd, endPosX + startPosY + rayEndStart, color);
         }
     }

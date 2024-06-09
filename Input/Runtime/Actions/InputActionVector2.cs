@@ -26,7 +26,7 @@ namespace MisterGames.Input.Actions {
 
         public event Action<Vector2> OnChanged = delegate {  };
         
-        private Vector2 _vector = Vector2.zero;
+        public Vector2 Value { get; private set; }
 
         protected override void OnInit() { }
 
@@ -41,23 +41,23 @@ namespace MisterGames.Input.Actions {
         }
         
         protected override void OnUpdate(float dt) {
-            var prevVector = _vector;
-            _vector = ReadInput();
+            var prevVector = Value;
+            Value = ReadInput();
 
             switch (_normalize) {
                 case NormalizeMode.Always:
-                    _vector.Normalize();
+                    Value.Normalize();
                     break;
                 
-                case NormalizeMode.Clamp when _vector.sqrMagnitude > 1f:
-                    _vector.Normalize();
+                case NormalizeMode.Clamp when Value.sqrMagnitude > 1f:
+                    Value.Normalize();
                     break;
             }
             
-            if (_ignoreNewValueIfNotChanged && prevVector.IsNearlyEqual(_vector)) return;
-            if (_ignoreZero && _vector.IsNearlyZero()) return;
+            if (_ignoreNewValueIfNotChanged && prevVector.IsNearlyEqual(Value)) return;
+            if (_ignoreZero && Value.IsNearlyZero()) return;
             
-            OnChanged.Invoke(_vector);
+            OnChanged.Invoke(Value);
         }
 
         private Vector2 ReadInput() {
@@ -77,9 +77,8 @@ namespace MisterGames.Input.Actions {
         }
         
         private void ResetVectorAndNotify() {
-            _vector.x = 0f;
-            _vector.y = 0f;
-            OnChanged.Invoke(_vector);
+            Value = Vector2.zero;
+            OnChanged.Invoke(Value);
         }
     }
 

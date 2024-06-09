@@ -80,7 +80,7 @@ namespace MisterGames.Interact.Detectables {
         private void OnDrawGizmos() {
             if (!Application.isPlaying || !_debugDrawDetectable) return;
 
-            DebugExt.DrawSphere(transform.position, 0.4f, Color.yellow, mode: DebugExt.DrawMode.Gizmo);
+            DebugExt.DrawSphere(transform.position, 0.4f, Color.yellow, gizmo: true);
         }
 #endif
     }

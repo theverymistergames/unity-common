@@ -18,7 +18,7 @@ namespace MisterGames.Input.Actions {
 
         public event Action<float> OnChanged = delegate {  };
         
-        private float _value;
+        public float Value { get; private set; }
 
         protected override void OnInit() { }
 
@@ -33,13 +33,13 @@ namespace MisterGames.Input.Actions {
         }
         
         protected override void OnUpdate(float dt) {
-            float prevValue = _value;
-            _value = ReadInput();
+            float prevValue = Value;
+            Value = ReadInput();
             
-            if (_ignoreNewValueIfNotChanged && prevValue.IsNearlyEqual(_value)) return;
-            if (_ignoreZero && _value.IsNearlyZero()) return;
+            if (_ignoreNewValueIfNotChanged && prevValue.IsNearlyEqual(Value)) return;
+            if (_ignoreZero && Value.IsNearlyZero()) return;
             
-            OnChanged.Invoke(_value);
+            OnChanged.Invoke(Value);
         }
 
         private float ReadInput() {
@@ -59,8 +59,8 @@ namespace MisterGames.Input.Actions {
         }
         
         private void ResetAndNotify() {
-            _value = 0;
-            OnChanged.Invoke(_value);
+            Value = 0f;
+            OnChanged.Invoke(Value);
         }
     }
 
