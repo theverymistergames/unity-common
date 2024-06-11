@@ -1,14 +1,19 @@
-﻿namespace MisterGames.Character.View {
+﻿using System;
+using UnityEngine;
 
-    public readonly struct WeightedValue<T> {
+namespace MisterGames.Character.View {
+
+    [Serializable]
+    public struct WeightedValue<T> {
         
-        public readonly float weight;
-        public readonly T value;
+        [Range(0f, 1f)] public float weight;
+        public T value;
         
         public WeightedValue(float weight, T value) {
             this.weight = weight;
             this.value = value;
         }
     }
+    
     
 }

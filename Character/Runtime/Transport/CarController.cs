@@ -1,6 +1,7 @@
 ﻿using System;
 using MisterGames.Actors;
 using MisterGames.Common;
+using MisterGames.Common.Maths;
 using MisterGames.Input.Actions;
 using UnityEngine;
 
@@ -15,19 +16,21 @@ namespace MisterGames.Character.Transport {
         [SerializeField] private InputActionKey _nitro;
         [SerializeField] private Vector2 _inputSmoothing = new Vector2(10f, 10f);
 
+        [Header("Startup")]
+        [SerializeField] private IgnitionMode _ignitionMode;
+        [SerializeField] [Min(0f)] private float _ignitionDuration = 0.6f;
+        
         [Header("Mass")]
         [SerializeField] private Vector3 _centerOfMass;
-        
-        [Header("Overturn")]
-        [SerializeField] private Vector3 _overturnForceOffset;
-        [SerializeField] private float _overturnForce;
-        [SerializeField] [Range(0f, 1f)] private float _overturnThreshold = 0.1f;
-        [SerializeField] [Min(0f)] private float _minTimeOverturnedToApplyForce = 0.5f;
         
         [Header("Acceleration")]
         [SerializeField] private DriveMode _driveMode;
         [SerializeField] [Min(0f)] private float _acceleration = 30f;
         [SerializeField] [Min(0f)] private float _nitroAcceleration = 30f;
+        [SerializeField] [Min(0f)] private float _speedToRpm = 0.1f;
+        [SerializeField] [Min(0f)] private float _rpmMin = 0.6f;
+        [SerializeField] [Min(0f)] private float _rpmMax = 6f;
+        [SerializeField] [Min(0f)] private float _rpmDropSmoothing = 2f;
         
         [Header("Brakes")]
         [SerializeField] private DriveMode _brakeMode;
@@ -40,6 +43,12 @@ namespace MisterGames.Character.Transport {
         [Header("Steering")]
         [SerializeField] [Range(0f, 180f)] private float _steerMaxAngle = 45f;
         [SerializeField] [Min(0f)] private float _steerSmoothing = 1f;
+        
+        [Header("Overturn")]
+        [SerializeField] private Vector3 _overturnForceOffset;
+        [SerializeField] private float _overturnForce;
+        [SerializeField] [Range(0f, 1f)] private float _overturnAngleMin = 80f;
+        [SerializeField] [Min(0f)] private float _minTimeOverturnedToApplyForce = 0.5f;
         
         [Header("Wheels")]
         [SerializeField] private WheelData[] _wheels;
@@ -58,6 +67,11 @@ namespace MisterGames.Character.Transport {
             Rear,
         }
 
+        private enum IgnitionMode {
+            OnAcceleration,
+            OnEnter,
+        }
+
         [Serializable]
         private struct WheelData {
             public Axel axel;
@@ -69,18 +83,35 @@ namespace MisterGames.Character.Transport {
 
         public event Action OnEnter = delegate { };
         public event Action OnExit = delegate { };
+        
+        /// <summary>
+        /// With ignition duration as a parameter. 
+        /// </summary>
+        public event Action<float> OnStartIgnition = delegate { };
+        
+        /// <summary>
+        /// With boolean 'is ignition active' as a parameter.
+        /// </summary>
+        public event Action<bool> OnIgnition = delegate { };
+        
+        /// <summary>
+        /// With boolean 'is brake active' as a parameter.
+        /// </summary>
         public event Action<bool> OnBrake = delegate { };
 
-        public bool IsBrakeActive { get; private set; }
+        public bool IsBrakeOn { get; private set; }
+        public bool IsIgnitionOn { get; private set; }
         public bool IsEntered { get; private set; }
-        
+        public float Rpm { get; private set; }
+
         private IActor _actor;
         private Transform _transform;
         private Rigidbody _rigidbody;
         private Quaternion[] _wheelRotations;
         private Vector2 _input;
         private float _lastTimeNotOverturned;
-        private bool _isLightEnabled;
+        private float _ignitionStartTime;
+        private bool _isIgnitionStartRequested;
 
         public void OnAwake(IActor actor) {
             _rigidbody = actor.GetComponent<Rigidbody>();
@@ -93,23 +124,37 @@ namespace MisterGames.Character.Transport {
         private void OnEnable() {
             IsEntered = true;
             OnEnter.Invoke();
+
+            if (_ignitionMode == IgnitionMode.OnEnter) StartIgnition(_ignitionDuration);
         }
 
         private void OnDisable() {
+            EnableIgnition(false);
+            EnableBrakes(false);
+            
             IsEntered = false;
             OnExit.Invoke();
             
-            IsBrakeActive = false;
             ResetWheelForces();
         }
 
         private void Update() {
-            bool wasBraking = IsBrakeActive;
-            IsBrakeActive = _brake.Value > 0f;
+            AnimateWheels();
+            EnableBrakes(!IsIgnitionOn || _brake.Value > 0f);
+            CheckIgnition();
+        }
 
-            if (wasBraking != IsBrakeActive) OnBrake.Invoke(IsBrakeActive);
+        private void CheckIgnition() {
+            if (IsIgnitionOn) return;
+
+            if (_ignitionMode == IgnitionMode.OnAcceleration) {
+                if (_move.Value.y.IsNearlyZero()) EnableIgnition(false, forceNotify: _isIgnitionStartRequested);
+                else StartIgnition(_ignitionDuration);
+            }
             
-            AnimateWheels();   
+            if (!_isIgnitionStartRequested || Time.time < _ignitionStartTime + _ignitionDuration) return;
+
+            EnableIgnition(true);
         }
 
         private void FixedUpdate() {
@@ -130,6 +175,37 @@ namespace MisterGames.Character.Transport {
             }
             
             ApplyAntiOverturn(_input.x);
+
+            float targetRpm = Mathf.Clamp(_rpmMin + _rigidbody.velocity.magnitude * _speedToRpm, 0f, _rpmMax);
+
+            Rpm = _move.Value.y.IsNearlyZero()
+                ? Mathf.Lerp(Rpm, targetRpm, _rpmDropSmoothing * dt)
+                : targetRpm;
+        }
+
+        private void StartIgnition(float duration) {
+            if (_isIgnitionStartRequested) return;
+
+            _ignitionStartTime = Time.time;
+            _isIgnitionStartRequested = true;
+            
+            OnStartIgnition.Invoke(duration);
+        }
+        
+        private void EnableBrakes(bool enabled) {
+            bool notify = enabled != IsBrakeOn;
+            IsBrakeOn = enabled;
+
+            if (notify) OnBrake.Invoke(IsBrakeOn);
+        }
+
+        private void EnableIgnition(bool enabled, bool forceNotify = false) {
+            bool notify = enabled != IsIgnitionOn;
+            
+            IsIgnitionOn = enabled;
+            _isIgnitionStartRequested = false;
+
+            if (forceNotify || notify) OnIgnition.Invoke(IsIgnitionOn);
         }
 
         private void ResetWheelForces() {
@@ -148,7 +224,8 @@ namespace MisterGames.Character.Transport {
         }
 
         private void Accelerate(ref WheelData wheel, float input, float dt) {
-            if (wheel.axel == Axel.Front && _driveMode == DriveMode.Rear || 
+            if (!IsIgnitionOn ||
+                wheel.axel == Axel.Front && _driveMode == DriveMode.Rear || 
                 wheel.axel == Axel.Rear && _driveMode == DriveMode.Forward) return;
 
             float acceleration = _nitro.IsPressed ? _nitroAcceleration : _acceleration;
@@ -189,7 +266,7 @@ namespace MisterGames.Character.Transport {
         private void ApplyAntiOverturn(float input) {
             var up = _transform.up;
             
-            if (Vector3.Dot(up, Vector3.up) >= _overturnThreshold) {
+            if (Vector3.Angle(up, Vector3.up) < _overturnAngleMin) {
                 _lastTimeNotOverturned = Time.time;
                 return;
             }
@@ -238,6 +315,7 @@ namespace MisterGames.Character.Transport {
             }
         }
         
+#if UNITY_EDITOR
         private void OnDrawGizmos() {
             if (!_showDebugInfo) return;
 
@@ -246,6 +324,7 @@ namespace MisterGames.Character.Transport {
             DebugExt.DrawSphere(_rigidbody.position, 0.05f, Color.green, gizmo: true);
             DebugExt.DrawSphere(_rigidbody.position + _rigidbody.centerOfMass, 0.03f, Color.cyan, gizmo: true);
         }
+#endif
     }
     
 }
