@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using MisterGames.Actors;
 using MisterGames.Common;
 using MisterGames.Common.Maths;
@@ -18,6 +19,7 @@ namespace MisterGames.Character.Transport {
 
         [Header("Startup")]
         [SerializeField] private IgnitionMode _ignitionMode;
+        [SerializeField] [Min(0f)] private float _ignitionDelayAfterEnter = 0.15f;
         [SerializeField] [Min(0f)] private float _ignitionDuration = 0.6f;
         
         [Header("Mass")]
@@ -30,7 +32,9 @@ namespace MisterGames.Character.Transport {
         [SerializeField] [Min(0f)] private float _speedToRpm = 0.1f;
         [SerializeField] [Min(0f)] private float _rpmMin = 0.6f;
         [SerializeField] [Min(0f)] private float _rpmMax = 6f;
-        [SerializeField] [Min(0f)] private float _rpmDropSmoothing = 2f;
+        [SerializeField] [Min(0f)] private float _rpmUpSmoothing = 8f;
+        [SerializeField] [Min(0f)] private float _rpmUpNotGroundedSmoothing = 3f;
+        [SerializeField] [Min(0f)] private float _rpmDownSmoothing = 0.7f;
         
         [Header("Brakes")]
         [SerializeField] private DriveMode _brakeMode;
@@ -99,33 +103,45 @@ namespace MisterGames.Character.Transport {
         /// </summary>
         public event Action<bool> OnBrake = delegate { };
 
+        public Transform Root { get; private set; }
         public bool IsBrakeOn { get; private set; }
         public bool IsIgnitionOn { get; private set; }
         public bool IsEntered { get; private set; }
+        public float Speed { get; private set; }
         public float Rpm { get; private set; }
+        public float BrakeForce { get; private set; }
+        public bool AreBrakeWheelsGrounded { get; private set; }
+        public bool AreDriveWheelsGrounded { get; private set; }
 
+        private readonly Dictionary<WheelCollider, int> _wheelIndexMap = new();
         private IActor _actor;
-        private Transform _transform;
         private Rigidbody _rigidbody;
         private Quaternion[] _wheelRotations;
         private Vector2 _input;
         private float _lastTimeNotOverturned;
         private float _ignitionStartTime;
+        private float _enterTime;
         private bool _isIgnitionStartRequested;
 
-        public void OnAwake(IActor actor) {
+        public bool IsWheelBrakeActive(WheelCollider wheelCollider) {
+            return IsBrakeOn && 
+                   _wheelIndexMap.TryGetValue(wheelCollider, out int i) && 
+                   i >= 0 && i < _wheels.Length && 
+                   IsMatch(_wheels[i].axel, _brakeMode);
+        }
+        
+        void IActorComponent.OnAwake(IActor actor) {
             _rigidbody = actor.GetComponent<Rigidbody>();
-            _transform = _rigidbody.transform;
-            _rigidbody.centerOfMass = Vector3.Scale(_centerOfMass, _transform.localScale);
+            Root = _rigidbody.transform;
+            _rigidbody.centerOfMass = Vector3.Scale(_centerOfMass, Root.localScale);
             
             FetchInitialWheelData();
         }
 
         private void OnEnable() {
+            _enterTime = Time.time;
             IsEntered = true;
             OnEnter.Invoke();
-
-            if (_ignitionMode == IgnitionMode.OnEnter) StartIgnition(_ignitionDuration);
         }
 
         private void OnDisable() {
@@ -145,13 +161,19 @@ namespace MisterGames.Character.Transport {
         }
 
         private void CheckIgnition() {
-            if (IsIgnitionOn) return;
+            if (IsIgnitionOn || Time.time < _enterTime + _ignitionDelayAfterEnter) return;
 
-            if (_ignitionMode == IgnitionMode.OnAcceleration) {
-                if (_move.Value.y.IsNearlyZero()) EnableIgnition(false, forceNotify: _isIgnitionStartRequested);
-                else StartIgnition(_ignitionDuration);
+            switch (_ignitionMode) {
+                case IgnitionMode.OnEnter:
+                    StartIgnition(_ignitionDuration);
+                    break;
+                
+                case IgnitionMode.OnAcceleration:
+                    if (_move.Value.y.IsNearlyZero()) EnableIgnition(false, forceNotify: _isIgnitionStartRequested);
+                    else StartIgnition(_ignitionDuration);
+                    break;
             }
-            
+
             if (!_isIgnitionStartRequested || Time.time < _ignitionStartTime + _ignitionDuration) return;
 
             EnableIgnition(true);
@@ -165,22 +187,48 @@ namespace MisterGames.Character.Transport {
             _input.y = Mathf.Lerp(_input.y, targetInput.y, dt * _inputSmoothing.y);
             
             float brake = _brake.Value;
+            float brakeForce = 0f;
+            bool atLeastOneDriveWheelGrounded = false;
+            bool atLeastOneBrakeWheelGrounded = false;
             
             for (int i = 0; i < _wheels.Length; i++) {
                 ref var wheel = ref _wheels[i];
+                bool isGrounded = wheel.collider.isGrounded;
                 
                 Steer(ref wheel, _input.x, dt);
                 Accelerate(ref wheel, _input.y, dt);
                 Brake(ref wheel, brake, dt);
+                
+                brakeForce += wheel.collider.brakeTorque;
+
+                if (IsMatch(wheel.axel, _driveMode)) atLeastOneDriveWheelGrounded |= isGrounded;
+                if (IsMatch(wheel.axel, _brakeMode)) atLeastOneBrakeWheelGrounded |= isGrounded;
             }
+
+            AreBrakeWheelsGrounded = atLeastOneBrakeWheelGrounded;
+            AreDriveWheelsGrounded = atLeastOneDriveWheelGrounded;
+            
+            Speed = _rigidbody.velocity.magnitude;
+            BrakeForce = _wheels.Length > 0 ? brakeForce / _wheels.Length : 0f;
             
             ApplyAntiOverturn(_input.x);
+            UpdateRpm(dt);
+        }
 
-            float targetRpm = Mathf.Clamp(_rpmMin + _rigidbody.velocity.magnitude * _speedToRpm, 0f, _rpmMax);
+        private void UpdateRpm(float dt) {
+            bool accelerationPressed = !_move.Value.y.IsNearlyZero();
+            
+            float targetRpm = accelerationPressed
+                ? AreDriveWheelsGrounded 
+                    ? Mathf.Clamp(_rpmMin + _rigidbody.velocity.magnitude * _speedToRpm, 0f, _rpmMax) 
+                    : _rpmMax
+                : _rpmMin;
 
-            Rpm = _move.Value.y.IsNearlyZero()
-                ? Mathf.Lerp(Rpm, targetRpm, _rpmDropSmoothing * dt)
-                : targetRpm;
+            float f = accelerationPressed
+                ? AreDriveWheelsGrounded ? _rpmUpSmoothing : _rpmUpNotGroundedSmoothing
+                : _rpmDownSmoothing;
+            
+            Rpm = Mathf.Lerp(Rpm, targetRpm, f * dt);
         }
 
         private void StartIgnition(float duration) {
@@ -224,18 +272,14 @@ namespace MisterGames.Character.Transport {
         }
 
         private void Accelerate(ref WheelData wheel, float input, float dt) {
-            if (!IsIgnitionOn ||
-                wheel.axel == Axel.Front && _driveMode == DriveMode.Rear || 
-                wheel.axel == Axel.Rear && _driveMode == DriveMode.Forward) return;
+            if (!IsIgnitionOn || !IsMatch(wheel.axel, _driveMode)) return;
 
             float acceleration = _nitro.IsPressed ? _nitroAcceleration : _acceleration;
             wheel.collider.motorTorque = input * acceleration * dt;
         }
 
         private void Brake(ref WheelData wheel, float input, float dt) {
-            if (wheel.axel == Axel.Front && _brakeMode != DriveMode.Rear ||
-                wheel.axel == Axel.Rear && _brakeMode != DriveMode.Forward
-            ) {
+            if (IsMatch(wheel.axel, _brakeMode)) {
                 float brake = input * _brakeAcceleration * dt;
                 wheel.collider.brakeTorque = input > 0f && _brakeSmoothing > 0f 
                     ? Mathf.Lerp(wheel.collider.brakeTorque, brake, _brakeSmoothing * dt)
@@ -248,9 +292,7 @@ namespace MisterGames.Character.Transport {
             var forwardFriction = wheel.collider.forwardFriction;
             var sidewaysFriction = wheel.collider.sidewaysFriction;
             
-            if (wheel.axel == Axel.Front && _driftMode != DriveMode.Rear ||
-                wheel.axel == Axel.Rear && _driftMode != DriveMode.Forward
-            ) {
+            if (IsMatch(wheel.axel, _driftMode)) {
                 forwardFriction.extremumSlip = Mathf.Lerp(wheel.forwardExtremumSlip, _brakeForwardExtremumSlip, input);
                 sidewaysFriction.extremumSlip = Mathf.Lerp(wheel.sideExtremumSlip, _brakeSideExtremumSlip, input);
             }
@@ -262,9 +304,14 @@ namespace MisterGames.Character.Transport {
             wheel.collider.forwardFriction = forwardFriction;
             wheel.collider.sidewaysFriction = sidewaysFriction;   
         }
+        
+        private static bool IsMatch(Axel axel, DriveMode mode) {
+            return axel == Axel.Front && mode != DriveMode.Rear ||
+                   axel == Axel.Rear && mode != DriveMode.Forward;
+        }
 
         private void ApplyAntiOverturn(float input) {
-            var up = _transform.up;
+            var up = Root.up;
             
             if (Vector3.Angle(up, Vector3.up) < _overturnAngleMin) {
                 _lastTimeNotOverturned = Time.time;
@@ -275,9 +322,9 @@ namespace MisterGames.Character.Transport {
                 return;
             }
             
-            var pos = _transform.position;
-            var rot = _transform.rotation;
-            var offset = Vector3.Scale(_overturnForceOffset, _transform.localScale);
+            var pos = Root.position;
+            var rot = Root.rotation;
+            var offset = Vector3.Scale(_overturnForceOffset, Root.localScale);
             var force = _overturnForce * up;
 
             var p0 = pos + rot * offset * input;
@@ -301,7 +348,9 @@ namespace MisterGames.Character.Transport {
         }
 
         private void FetchInitialWheelData() {
+            _wheelIndexMap.Clear();
             _wheelRotations = new Quaternion[_wheels.Length];
+            
             for (int i = 0; i < _wheels.Length; i++) {
                 ref var wheel = ref _wheels[i];
                 
@@ -312,6 +361,8 @@ namespace MisterGames.Character.Transport {
                 
                 wheel.forwardExtremumSlip = forwardFriction.extremumSlip;
                 wheel.sideExtremumSlip = sidewaysFriction.extremumSlip;
+
+                _wheelIndexMap[wheel.collider] = i;
             }
         }
         
@@ -323,6 +374,13 @@ namespace MisterGames.Character.Transport {
             
             DebugExt.DrawSphere(_rigidbody.position, 0.05f, Color.green, gizmo: true);
             DebugExt.DrawSphere(_rigidbody.position + _rigidbody.centerOfMass, 0.03f, Color.cyan, gizmo: true);
+
+            if (!Application.isPlaying) return;
+            
+            UnityEditor.Handles.Label(_rigidbody.position + Vector3.up, $"Ignition {(IsIgnitionOn ? "ON" : "OFF")}\n" +
+                                                                        $"Speed {_rigidbody.velocity.magnitude:0.00}\n" +
+                                                                        $"RPM {Rpm:0.000}\n" +
+                                                                        $"Brakes {(IsBrakeOn ? "ON" : "OFF")}, force {BrakeForce:0.00}");
         }
 #endif
     }

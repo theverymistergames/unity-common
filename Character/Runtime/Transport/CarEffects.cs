@@ -5,6 +5,7 @@ using MisterGames.Actors;
 using MisterGames.Actors.Actions;
 using MisterGames.Common.Async;
 using MisterGames.Common.Attributes;
+using MisterGames.Common.Maths;
 using MisterGames.Input.Actions;
 using MisterGames.Tick.Core;
 using UnityEngine;
@@ -29,18 +30,34 @@ namespace MisterGames.Character.Transport {
         [SerializeReference] [SubclassSelector] private IActorAction _onIgnitionOn;
         [SerializeReference] [SubclassSelector] private IActorAction _onIgnitionOff;
 
-        [Header("Engine")]
+        [Header("Engine Sound")]
         [SerializeField] private AudioSource _engineAudioSource;
         [SerializeField] private AudioClip _engineSound;
-        [SerializeField] [Min(0f)] private float _startEngineAfterIgnitionStartedDelay;
-        [SerializeField] [Min(0f)] private float _minPitch;
-        [SerializeField] [Min(0f)] private float _maxPitch;
-        [SerializeField] private float _rpmToPitch;
+        [SerializeField] [Min(0f)] private float _minPitchEngine = 0.9f;
+        [SerializeField] [Min(0f)] private float _maxPitchEngine = 2f;
+        [SerializeField] private float _rpmToPitch = 1f;
+        [SerializeField] [Min(0f)] private float _minVolumeEngine = 0.3f;
+        [SerializeField] [Min(0f)] private float _maxVolumeEngine = 1f;
+        [SerializeField] [Min(0f)] private float _rpmToVolume = 1f;
         
-        [Header("Brakes")]
-        [SerializeField] private TrailData[] _trails;
+        [Header("Brakes Sound")]
+        [SerializeField] private AudioSource _brakesAudioSource;
+        [SerializeField] private AudioClip _brakesSound;
+        [SerializeField] [Min(0f)] private float _minPitchBrakes = 0.9f;
+        [SerializeField] [Min(0f)] private float _maxPitchBrakes = 2f;
+        [SerializeField] [Min(0f)] private float _brakeForceToPitch = 1f;
+        [SerializeField] [Min(0f)] private float _minVolumeBrakes = 0.3f;
+        [SerializeField] [Min(0f)] private float _maxVolumeBrakes = 1f;
+        [SerializeField] [Min(0f)] private float _brakeForceToVolume = 1f;
+        [SerializeField] [Min(0f)] private float _minSpeedToPlayBrakesSound = 1f;
+        
+        [Header("Brakes Actions")]
         [SerializeReference] [SubclassSelector] private IActorAction _onBrakeOn;
         [SerializeReference] [SubclassSelector] private IActorAction _onBrakeOff;
+
+        [Header("Brakes Trails")]
+        [SerializeField] private float _trailGroundOffset = 0.05f;
+        [SerializeField] private TrailData[] _trails;
         
         [Serializable]
         private struct LightData {
@@ -69,7 +86,6 @@ namespace MisterGames.Character.Transport {
         private bool _isBrakeEnabled;
         private float _ignitionDuration;
         private float _ignitionStartTime;
-        private float _ignitionTurnOnTime;
         private float _ignitionTurnOffTime;
 
         public void OnAwake(IActor actor) {
@@ -78,6 +94,10 @@ namespace MisterGames.Character.Transport {
             
             _engineAudioSource.clip = _engineSound;
             _engineAudioSource.loop = true;
+
+            _brakesAudioSource.clip = _brakesSound;
+            _brakesAudioSource.loop = true;
+            _brakesAudioSource.volume = 0f; 
             
             InitializeRenderers();
             SetLightEnabled(false, false);
@@ -97,6 +117,10 @@ namespace MisterGames.Character.Transport {
             if (_carController.IsEntered) OnEnterCar();
             if (_carController.IsBrakeOn) OnBrake(true);
             if (_carController.IsIgnitionOn) OnIgnition(true);
+            
+            DisableTrails();
+            
+            _brakesAudioSource.Play();
         }
 
         private void OnDisable() {
@@ -110,17 +134,38 @@ namespace MisterGames.Character.Transport {
             _carController.OnBrake -= OnBrake;
             
             SetLightEnabled(false, false);
+            DisableTrails();
+            
+            _engineAudioSource.Stop();
+            _brakesAudioSource.Stop();
         }
 
         private void LateUpdate() {
             UpdateEngineSound();
+            UpdateBrakesSound();
+            UpdateTrails();
         }
 
         private void UpdateEngineSound() {
-            float pitch = Mathf.Clamp(_rpmToPitch * _carController.Rpm, _minPitch, _maxPitch);
+            float pitch = Mathf.Clamp(_rpmToPitch * _carController.Rpm, _minPitchEngine, _maxPitchEngine);
+            float volume = Mathf.Clamp(_rpmToVolume * _carController.Rpm, _minVolumeEngine, _maxVolumeEngine);
+
+            _engineAudioSource.volume = volume;
             _engineAudioSource.pitch = pitch;
         }
 
+        private void UpdateBrakesSound() {
+            float brakeRatio = _carController.BrakeForce * _carController.Speed;
+            float pitch = Mathf.Clamp(_brakeForceToPitch * brakeRatio, _minPitchBrakes, _maxPitchBrakes);
+            float volume = Mathf.Clamp(_brakeForceToVolume * brakeRatio, _minVolumeBrakes, _maxVolumeBrakes);
+
+            _brakesAudioSource.pitch = pitch;
+            _brakesAudioSource.volume = volume *
+                                        _carController.IsBrakeOn.AsFloat() *
+                                        _carController.AreBrakeWheelsGrounded.AsFloat() *
+                                        (_carController.Speed >= _minSpeedToPlayBrakesSound).AsFloat();
+        }
+        
         private void InitializeRenderers() {
             for (int i = 0; i < _lights.Length; i++) {
                 ref var data = ref _lights[i];
@@ -150,7 +195,25 @@ namespace MisterGames.Character.Transport {
             _onIgnitionStart?.Apply(_actor, _enableCts.Token).Forget();
             
             ApplyIgnitionLightBlink(_enableCts.Token).Forget();
-            StartEngineSoundAfterDelay(_startEngineAfterIgnitionStartedDelay, _enableCts.Token).Forget();
+        }
+
+        private void OnIgnition(bool on) {
+            SetLightIntensityMultiplier(1f);
+
+            if (on) {
+                if (!_engineAudioSource.isPlaying) _engineAudioSource.Play();
+                _onIgnitionOn?.Apply(_actor, _enableCts.Token).Forget();
+                return;
+            }
+            
+            _ignitionTurnOffTime = Time.time;
+            _engineAudioSource.Stop();
+            _onIgnitionOff?.Apply(_actor, _enableCts.Token).Forget();
+        }
+
+        private void OnBrake(bool isBrakeActive) {
+            SetLightEnabled(_isLightEnabled, isBrakeActive);
+            (isBrakeActive ? _onBrakeOn : _onBrakeOff)?.Apply(_actor, destroyCancellationToken).Forget();
         }
 
         private async UniTask ApplyIgnitionLightBlink(CancellationToken cancellationToken) {
@@ -169,42 +232,23 @@ namespace MisterGames.Character.Transport {
                 await UniTask.Yield();
             }
         }
-        
-        private async UniTask StartEngineSoundAfterDelay(float delay, CancellationToken cancellationToken) {
-            await UniTask.Delay(TimeSpan.FromSeconds(delay), cancellationToken: cancellationToken)
-                .SuppressCancellationThrow();
+
+        private void UpdateTrails() {
+            var up = _carController.Root.up;
             
-            if (cancellationToken.IsCancellationRequested || _ignitionTurnOffTime > _ignitionStartTime) return;
-
-            if (!_engineAudioSource.isPlaying) _engineAudioSource.Play();
-        }
-
-        private void OnIgnition(bool on) {
-            SetLightIntensityMultiplier(1f);
-
-            if (on) {
-                _ignitionTurnOnTime = Time.time;
-                if (!_engineAudioSource.isPlaying) _engineAudioSource.Play();
-                _onIgnitionOn?.Apply(_actor, _enableCts.Token).Forget();
-                return;
-            }
-            
-            _ignitionTurnOffTime = Time.time;
-            _engineAudioSource.Stop();
-            _onIgnitionOff?.Apply(_actor, _enableCts.Token).Forget();
-        }
-        
-        private void OnBrake(bool isBrakeActive) {
-            SetLightEnabled(_isLightEnabled, isBrakeActive);
-            ApplyTrails(isBrakeActive);
-
-            (isBrakeActive ? _onBrakeOn : _onBrakeOff)?.Apply(_actor, destroyCancellationToken).Forget();
-        }
-
-        private void ApplyTrails(bool isBrakeActive) {
             for (int i = 0; i < _trails.Length; i++) {
                 ref var trail = ref _trails[i];
-                trail.trailRenderer.emitting = isBrakeActive && trail.wheelCollider.isGrounded;
+                trail.wheelCollider.GetWorldPose(out var pos, out _);
+                
+                trail.trailRenderer.transform.position = pos + up * (_trailGroundOffset - trail.wheelCollider.radius);
+                trail.trailRenderer.emitting = trail.wheelCollider.isGrounded && _carController.IsWheelBrakeActive(trail.wheelCollider);
+            }
+        }
+        
+        private void DisableTrails() {
+            for (int i = 0; i < _trails.Length; i++) {
+                ref var trail = ref _trails[i];
+                trail.trailRenderer.emitting = false;
             }
         }
 

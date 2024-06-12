@@ -28,7 +28,7 @@ namespace MisterGames.Tick.Core {
         Time.time;
 #endif
 
-        public static ITimeSource Get(PlayerLoopStage stage) {
+        public static ITimeSource Get(this PlayerLoopStage stage) {
 #if UNITY_EDITOR
             return Application.isPlaying ? _provider.Get(stage) : GetOrCreateEditorTimeSource(stage);
 #endif
