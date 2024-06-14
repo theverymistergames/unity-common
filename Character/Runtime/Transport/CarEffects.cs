@@ -18,6 +18,7 @@ namespace MisterGames.Character.Transport {
         [Header("Lights")]
         [SerializeField] private InputActionKey _lightInput;
         [SerializeField] private bool _enableLightsOnEnter = true;
+        [SerializeField] private float _intensityMultiplier = 1f;
         [SerializeField] private LightData[] _lights;
         [SerializeReference] [SubclassSelector] private IActorAction _onLightsOn;
         [SerializeReference] [SubclassSelector] private IActorAction _onLightsOff;
@@ -62,6 +63,7 @@ namespace MisterGames.Character.Transport {
         [Serializable]
         private struct LightData {
             public float intensity;
+            public float emissionIntensity;
             public bool isBrake;
             [ColorUsage(showAlpha: true, hdr: true)] public Color colorOff;
             [ColorUsage(showAlpha: true, hdr: true)] public Color colorOn;
@@ -260,9 +262,12 @@ namespace MisterGames.Character.Transport {
             for (int i = 0; i < _lights.Length; i++) {
                 ref var data = ref _lights[i];
                 
-                for (int j = 0; j < data.lights.Length; j++) {
-                    data.lights[j].intensity = data.intensity * multiplier;
-                }
+                var color = data.isBrake && _isBrakeEnabled
+                    ? data.colorOnBrake 
+                    : enabled ? data.colorOn : data.colorOff;
+                
+                SetLightIntensity(ref data, _intensityMultiplier * multiplier);
+                SetLightEmission(ref data, color * data.emissionIntensity * _intensityMultiplier * multiplier);
             }
         }
         
@@ -279,35 +284,49 @@ namespace MisterGames.Character.Transport {
             for (int i = 0; i < _lights.Length; i++) {
                 ref var data = ref _lights[i];
                 
-                var color = data.isBrake && isBrakeEnabled
+                var color = data.isBrake && _isBrakeEnabled
                         ? data.colorOnBrake 
                         : enabled ? data.colorOn : data.colorOff;
 
                 for (int j = 0; j < data.lights.Length; j++) {
-                    var light = data.lights[j];
-                    if (light == null) continue;
-
-                    light.enabled = data.isBrake && isBrakeEnabled || enabled;
-                    light.color = color;
-                    light.intensity = data.intensity;
+                    data.lights[j].enabled = data.isBrake && isBrakeEnabled || enabled;
                 }
+                
+                SetLightIntensity(ref data, _intensityMultiplier);
+                SetLightEmission(ref data, color * data.emissionIntensity * _intensityMultiplier);
+            }
+        }
 
-                for (int j = 0; j < data.renderers.Length; j++) {
-                    if (data.renderers[j] == null) continue;
-                    
+        private void SetLightIntensity(ref LightData data, float intensity) {
+            for (int j = 0; j < data.lights.Length; j++) {
+                var light = data.lights[j];
+                if (light == null) continue;
+                
+                var color = data.isBrake && _isBrakeEnabled
+                    ? data.colorOnBrake 
+                    : enabled ? data.colorOn : data.colorOff;
+
+                light.color = color;
+                light.intensity = data.intensity * intensity;
+            }
+        }
+
+        private void SetLightEmission(ref LightData data, Color color) {
+            for (int j = 0; j < data.renderers.Length; j++) {
 #if UNITY_EDITOR
-                    if (!Application.isPlaying) {
-                        if (data.renderers[j].sharedMaterial == null) continue;
+                if (data.renderers[j] == null) continue;
+                
+                if (!Application.isPlaying) {
+                    if (data.renderers[j].sharedMaterial == null) continue;
                         
-                        data.renderers[j].sharedMaterial.SetColor(EmissiveColor, color);
-                        UnityEditor.EditorUtility.SetDirty(data.renderers[j].sharedMaterial);
+                    data.renderers[j].sharedMaterial.SetColor(EmissiveColor, color);
+                    UnityEditor.EditorUtility.SetDirty(data.renderers[j].sharedMaterial);
                         
-                        continue;
-                    }
+                    continue;
+                }
 #endif
                     
-                    data.renderers[j].material.SetColor(EmissiveColor, color);   
-                }
+                data.renderers[j].material.SetColor(EmissiveColor, color);   
             }
         }
 

@@ -23,7 +23,10 @@ namespace MisterGames.Character.Transport {
         [SerializeField] [Min(0f)] private float _ignitionDuration = 0.6f;
         
         [Header("Mass")]
+        [SerializeField] private float _mass = 100f;
+        [SerializeField] private float _wheelMass = 10f;
         [SerializeField] private Vector3 _centerOfMass;
+        [SerializeField] private float _forcesScale = 1f;
         
         [Header("Acceleration")]
         [SerializeField] private DriveMode _driveMode;
@@ -133,11 +136,11 @@ namespace MisterGames.Character.Transport {
         void IActorComponent.OnAwake(IActor actor) {
             _rigidbody = actor.GetComponent<Rigidbody>();
             Root = _rigidbody.transform;
-            _rigidbody.centerOfMass = Vector3.Scale(_centerOfMass, Root.localScale);
             
-            FetchInitialWheelData();
+            InitializeMass();
+            InitializeWheels();
         }
-
+        
         private void OnEnable() {
             _enterTime = Time.time;
             IsEntered = true;
@@ -152,6 +155,32 @@ namespace MisterGames.Character.Transport {
             OnExit.Invoke();
             
             ResetWheelForces();
+        }
+
+        private void InitializeMass() {
+            _rigidbody.mass = _mass;
+            _rigidbody.centerOfMass = Vector3.Scale(_centerOfMass, Root.localScale);
+        }
+        
+        private void InitializeWheels() {
+            _wheelIndexMap.Clear();
+            _wheelRotations = new Quaternion[_wheels.Length];
+            
+            for (int i = 0; i < _wheels.Length; i++) {
+                ref var wheel = ref _wheels[i];
+                
+                _wheelRotations[i] = wheel.geo.localRotation;
+                
+                var forwardFriction = wheel.collider.forwardFriction;
+                var sidewaysFriction = wheel.collider.sidewaysFriction;
+                
+                wheel.forwardExtremumSlip = forwardFriction.extremumSlip;
+                wheel.sideExtremumSlip = sidewaysFriction.extremumSlip;
+
+                wheel.collider.mass = _wheelMass;
+                
+                _wheelIndexMap[wheel.collider] = i;
+            }
         }
 
         private void Update() {
@@ -275,12 +304,12 @@ namespace MisterGames.Character.Transport {
             if (!IsIgnitionOn || !IsMatch(wheel.axel, _driveMode)) return;
 
             float acceleration = _nitro.IsPressed ? _nitroAcceleration : _acceleration;
-            wheel.collider.motorTorque = input * acceleration * dt;
+            wheel.collider.motorTorque = input * acceleration * _forcesScale * dt;
         }
 
         private void Brake(ref WheelData wheel, float input, float dt) {
             if (IsMatch(wheel.axel, _brakeMode)) {
-                float brake = input * _brakeAcceleration * dt;
+                float brake = input * _brakeAcceleration * _forcesScale * dt;
                 wheel.collider.brakeTorque = input > 0f && _brakeSmoothing > 0f 
                     ? Mathf.Lerp(wheel.collider.brakeTorque, brake, _brakeSmoothing * dt)
                     : brake;
@@ -344,25 +373,6 @@ namespace MisterGames.Character.Transport {
                 
                 wheel.collider.GetWorldPose(out var pos, out var rot);
                 wheel.geo.SetPositionAndRotation(pos, rot * Quaternion.Inverse(rotationOffset));
-            }
-        }
-
-        private void FetchInitialWheelData() {
-            _wheelIndexMap.Clear();
-            _wheelRotations = new Quaternion[_wheels.Length];
-            
-            for (int i = 0; i < _wheels.Length; i++) {
-                ref var wheel = ref _wheels[i];
-                
-                _wheelRotations[i] = wheel.geo.localRotation;
-                
-                var forwardFriction = wheel.collider.forwardFriction;
-                var sidewaysFriction = wheel.collider.sidewaysFriction;
-                
-                wheel.forwardExtremumSlip = forwardFriction.extremumSlip;
-                wheel.sideExtremumSlip = sidewaysFriction.extremumSlip;
-
-                _wheelIndexMap[wheel.collider] = i;
             }
         }
         
