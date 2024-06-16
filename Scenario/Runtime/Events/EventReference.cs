@@ -41,6 +41,11 @@ namespace MisterGames.Scenario.Events {
             return !left.Equals(right);
         }
 
+        public EventReference WithSubId(int subId) {
+            _subId = subId;
+            return this;
+        }
+        
         public override string ToString() {
             return $"Event({Path})";
         }

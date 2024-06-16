@@ -40,7 +40,7 @@ namespace MisterGames.Tweens {
         
         public async UniTask<bool> Play<T>(
             T data,
-            ProgressCallback<T> progressCallback = null,
+            ProgressCallback<T> progressCallback,
             float progress = -1f,
             CancellationToken cancellationToken = default
         ) {
