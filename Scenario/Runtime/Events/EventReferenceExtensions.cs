@@ -5,6 +5,11 @@
         public static int GetRaiseCount(this EventReference e) {
             return EventSystems.Global?.RaisedEvents?.TryGetValue(e, out int count) ?? false ? count : 0;
         }
+        
+        public static int GetRaiseCount(this EventReference e, int subId) {
+            e = new EventReference(e.EventDomain, e.EventId, subId);
+            return EventSystems.Global?.RaisedEvents?.TryGetValue(e, out int count) ?? false ? count : 0;
+        }
 
         public static void Raise(this EventReference e, int add = 1) {
             EventSystems.Global?.Raise(e, add);
