@@ -22,7 +22,8 @@ namespace MisterGames.Scenario.Events {
         [Serializable]
         internal struct EventEntry {
             public string name;
-            [HideInInspector] public int id;
+            public int id;
+            public int subId;
         }
 
         public string GetEventPath(int id) {

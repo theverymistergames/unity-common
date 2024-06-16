@@ -9,6 +9,7 @@ using UnityEngine;
 
 namespace MisterGames.Character.Motion {
 
+    [RequireComponent(typeof(Interactive))]
     public sealed class ActionOnInteract : MonoBehaviour {
         
         [SerializeField] private bool _cancelOnNextAction;

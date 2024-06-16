@@ -12,7 +12,7 @@ namespace MisterGames.Scenario.Events {
         
         public Map<EventReference, int> RaisedEvents => _raisedEvents;
         private readonly TreeMap<EventReference, IEventListener> _listenerTree = new();
-
+        
         public void Raise(EventReference e, int add = 1) {
             _raisedEvents[e] = _raisedEvents.GetValueOrDefault(e, 0) + add;
             NotifyEventRaised(e);

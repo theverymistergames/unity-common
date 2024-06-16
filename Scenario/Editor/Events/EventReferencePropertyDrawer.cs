@@ -18,6 +18,8 @@ namespace MisterGames.Scenario.Editor.Events {
 
             var eventDomainProperty = property.FindPropertyRelative("_eventDomain");
             var eventIdProperty = property.FindPropertyRelative("_eventId");
+            var subIdProperty = property.FindPropertyRelative("_subId");
+            
             var eventDomain = eventDomainProperty.objectReferenceValue as EventDomain;
             GUIContent eventLabel;
 
@@ -39,14 +41,23 @@ namespace MisterGames.Scenario.Editor.Events {
             rect = new Rect(
                 position.x,
                 position.y + EditorGUIUtility.standardVerticalSpacing + EditorGUIUtility.singleLineHeight,
-                position.width,
+                position.width * 0.8f - EditorGUIUtility.standardVerticalSpacing,
                 EditorGUIUtility.singleLineHeight
             );
-
+            
             if (EditorGUI.DropdownButton(rect, eventLabel, FocusType.Keyboard)) {
                 CreateDropdown(property).Show(position);
             }
+            
+            rect = new Rect(
+                position.x + rect.width,
+                rect.y,
+                position.width * 0.2f,
+                EditorGUIUtility.singleLineHeight
+            );
 
+            subIdProperty.intValue = EditorGUI.IntField(rect, GUIContent.none, subIdProperty.intValue);
+            
             EditorGUI.EndProperty();
         }
 
