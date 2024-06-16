@@ -28,6 +28,7 @@ namespace MisterGames.Character.Motion {
         private readonly CharacterForwardDirectionProcessor _forwardProcessor = new();
         
         public Vector2 MotionInput { get; private set; }
+        public Vector3 Velocity => _massProcessor.CurrentVelocity;
 
         private IActor _actor;
         private ITimeSource _timeSource;

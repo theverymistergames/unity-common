@@ -77,10 +77,10 @@ namespace MisterGames.Character.Steps {
             _foot = foot;
             _invertedSqrDistance = distance > 0f ? 1f / (distance * distance) : 0f;
 
-            float speedRatio = _maxSpeed > 0f ? _mass.CurrentVelocity.sqrMagnitude / (_maxSpeed * _maxSpeed) : 0f;
+            float speedRatio = _maxSpeed > 0f ? _mass.CurrentVelocity.magnitude / _maxSpeed : 0f;
             float baseAmplitude = _baseAmplitude + Random.Range(-_baseAmplitudeRandom, _baseAmplitudeRandom);
             baseAmplitude *= _baseAmplitudeBySpeed.Evaluate(speedRatio);
-
+            
             int footDir = _foot == 0 ? 1 : -1;
 
             _targetPositionAmplitude = baseAmplitude * _positionOffset.CreateMultiplier().Multiply(footDir, 1f, 1f);

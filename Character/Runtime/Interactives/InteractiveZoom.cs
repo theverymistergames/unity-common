@@ -15,18 +15,26 @@ namespace MisterGames.Character.Interactives {
         [SerializeField] private float _fovSmoothing = 10f;
         [SerializeField] private Vector2 _fovRange;
         
-        [Header("Rotation")]
-        [SerializeField] private Transform _rotationTarget;
+        [Header("Visual")]
+        [SerializeField] private Transform _visualRotation;
+        [SerializeField] private Transform _visualTranslation;
         [SerializeField] private Vector2 _angleRange;
-        [SerializeField] private Vector3 _axis;
+        [SerializeField] private Vector3 _angleAxis;
+        [SerializeField] private Vector2 _positionRange;
+        [SerializeField] private Vector3 _positionAxis;
 
         private Interactive _interactive;
         private Vector2 _inputAccum;
+        private Vector3 _initialVisualPosition;
+        private Quaternion _initialVisualRotation;
         private float _targetFov;
 
         private void Awake() {
             _interactive = GetComponent<Interactive>();
             _targetFov = _camera.fieldOfView;
+
+            _initialVisualPosition = _visualTranslation.localPosition;
+            _initialVisualRotation = _visualRotation.localRotation;
         }
 
         private void OnEnable() {
@@ -75,9 +83,11 @@ namespace MisterGames.Character.Interactives {
             _camera.fieldOfView = currentFov;
             
             float t = Mathf.Clamp01((currentFov - _fovRange.x) / (_fovRange.y - _fovRange.x));
-            float targetAngle = Mathf.Lerp(_angleRange.x, _angleRange.y, t);
+            var targetPosition = _positionAxis * Mathf.Lerp(_positionRange.x, _positionRange.y, t);
+            var targetRotation = Quaternion.AngleAxis(Mathf.Lerp(_angleRange.x, _angleRange.y, t), _angleAxis);
 
-            _rotationTarget.localRotation = Quaternion.AngleAxis(targetAngle, _axis);
+            _visualTranslation.localPosition = _initialVisualPosition + targetPosition;
+            _visualRotation.localRotation = _initialVisualRotation * targetRotation;
         }
     }
     

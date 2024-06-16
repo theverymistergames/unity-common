@@ -12,6 +12,7 @@ namespace MisterGames.Character.View {
         [Header("Motion Settings")]
         [SerializeField] [Min(0f)] private float _cameraMotionWeight = 1f;
         [SerializeField] [Min(0f)] private float _smoothFactor = 1f;
+        [SerializeField] [Min(0f)] private float _maxSpeed = 4f;
 
         [Header("Amplitude")]
         [SerializeField] private float _baseAmplitude = 0.01f;
@@ -47,7 +48,7 @@ namespace MisterGames.Character.View {
         }
 
         public void OnUpdate(float dt) {
-            var input = _motion.MotionInput;
+            var input = _motion.MotionInput * (_maxSpeed > 0f ? _motion.Velocity.magnitude / _maxSpeed : 1f);
             var velocity = new Vector3(
                 input.x * _baseAmplitude * _sideAmplitude,
                 0f,
