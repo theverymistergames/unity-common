@@ -124,7 +124,6 @@ namespace MisterGames.Blueprints.Editor.Windows {
 
         private void TrySaveCurrentBlueprintAsset() {
             var asset = _assetPicker?.value as BlueprintAsset;
-            if (asset != null) AssetDatabase.SaveAssetIfDirty(asset);
             SetWindowTitle(asset == null ? WINDOW_TITLE : asset.name);
         }
 
