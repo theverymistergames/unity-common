@@ -15,10 +15,9 @@ namespace MisterGames.ActionLib.Character {
         [Range(0f, 1f)] public float backCorrection = 1f;
 
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            var correction = context.GetComponent<CharacterMotionPipeline>().GetProcessor<CharacterProcessorBackSideSpeedCorrection>();
-
-            correction.speedCorrectionBack = backCorrection;
-            correction.speedCorrectionSide = sideCorrection;
+            var motion = context.GetComponent<CharacterMotionPipeline>();
+            motion.SpeedCorrectionBack = backCorrection;
+            motion.SpeedCorrectionSide = sideCorrection;
 
             return default;
         }

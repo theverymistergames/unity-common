@@ -3,21 +3,20 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
-using MisterGames.Character;
-using MisterGames.Character.Motion;
+using UnityEngine;
 
 namespace MisterGames.ActionLib.Character {
     
     [Serializable]
     public sealed class CharacterActionEnableGravity : IActorAction {
 
-        public bool isEnabled;
+        public bool useGravity;
+        public bool isKinematic;
 
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            context.GetComponent<CharacterMotionPipeline>()
-                .GetProcessor<CharacterMassProcessor>()
-                .isGravityEnabled = isEnabled;
-            
+            var rb = context.GetComponent<Rigidbody>();
+            rb.useGravity = useGravity;
+            rb.isKinematic = isKinematic;
             return default;
         }
     }

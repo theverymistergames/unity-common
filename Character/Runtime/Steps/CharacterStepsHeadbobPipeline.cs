@@ -1,5 +1,4 @@
 ﻿using MisterGames.Actors;
-using MisterGames.Character.Motion;
 using MisterGames.Character.View;
 using MisterGames.Common.Data;
 using MisterGames.Common.GameObjects;
@@ -10,8 +9,6 @@ using UnityEngine;
 namespace MisterGames.Character.Steps {
 
     public sealed class CharacterStepsHeadbobPipeline : MonoBehaviour, IActorComponent, IUpdate {
-
-        [SerializeField] private PlayerLoopStage _playerLoopStage = PlayerLoopStage.Update;
 
         [Header("Motion Settings")]
         [SerializeField] [Min(0f)] private float _cameraWeight = 1f;
@@ -28,7 +25,7 @@ namespace MisterGames.Character.Steps {
         [SerializeField] private Vector3Parameter _positionOffset = Vector3Parameter.Default();
         [SerializeField] private Vector3Parameter _rotationOffset = Vector3Parameter.Default();
 
-        private CharacterMassProcessor _mass;
+        private Rigidbody _rigidbody;
         private CameraContainer _cameraContainer;
         private CharacterStepsPipeline _steps;
         private ITransformAdapter _head;
@@ -48,7 +45,7 @@ namespace MisterGames.Character.Steps {
         private int _foot;
 
         public void OnAwake(IActor actor) {
-            _mass = actor.GetComponent<CharacterMotionPipeline>().GetProcessor<CharacterMassProcessor>();
+            _rigidbody = actor.GetComponent<Rigidbody>();
             _head = actor.GetComponent<CharacterHeadAdapter>();
             _cameraContainer = actor.GetComponent<CharacterViewPipeline>().CameraContainer;
             _steps = actor.GetComponent<CharacterStepsPipeline>();
@@ -56,7 +53,7 @@ namespace MisterGames.Character.Steps {
 
         private void OnEnable() {
             _cameraStateId = _cameraContainer.CreateState();
-            TimeSources.Get(_playerLoopStage).Subscribe(this);
+            PlayerLoopStage.Update.Subscribe(this);
 
             _steps.OnStep -= OnStep;
             _steps.OnStep += OnStep;
@@ -67,7 +64,7 @@ namespace MisterGames.Character.Steps {
 
         private void OnDisable() {
             _cameraContainer.RemoveState(_cameraStateId);
-            TimeSources.Get(_playerLoopStage).Unsubscribe(this);
+            PlayerLoopStage.Update.Unsubscribe(this);
 
             _steps.OnStep -= OnStep;
             _steps.OnStartMotionStep -= OnStep;
@@ -77,7 +74,7 @@ namespace MisterGames.Character.Steps {
             _foot = foot;
             _invertedSqrDistance = distance > 0f ? 1f / (distance * distance) : 0f;
 
-            float speedRatio = _maxSpeed > 0f ? _mass.CurrentVelocity.magnitude / _maxSpeed : 0f;
+            float speedRatio = _maxSpeed > 0f ? _rigidbody.velocity.magnitude / _maxSpeed : 0f;
             float baseAmplitude = _baseAmplitude + Random.Range(-_baseAmplitudeRandom, _baseAmplitudeRandom);
             baseAmplitude *= _baseAmplitudeBySpeed.Evaluate(speedRatio);
             
@@ -89,8 +86,8 @@ namespace MisterGames.Character.Steps {
             _stepProgress = 0f;
         }
 
-        public void OnUpdate(float dt) {
-            var plainVelocity = Vector3.ProjectOnPlane(_mass.CurrentVelocity, _head.Rotation * Vector3.up);
+        void IUpdate.OnUpdate(float dt) {
+            var plainVelocity = Vector3.ProjectOnPlane(_rigidbody.velocity, _head.Rotation * Vector3.up);
             float sqrSpeed = plainVelocity.sqrMagnitude;
             float targetSmooth;
 

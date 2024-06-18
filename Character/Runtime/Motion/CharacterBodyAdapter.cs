@@ -1,8 +1,5 @@
 ﻿using MisterGames.Actors;
-using MisterGames.Character.Collisions;
-using MisterGames.Collisions.Core;
 using MisterGames.Common.GameObjects;
-using MisterGames.Common.Maths;
 using UnityEngine;
 
 namespace MisterGames.Character.Motion {
@@ -15,30 +12,20 @@ namespace MisterGames.Character.Motion {
         public Quaternion Rotation { get => _body.rotation; set => _body.rotation = value; }
         public Quaternion LocalRotation { get => _body.localRotation; set => _body.localRotation = value; }
 
-        private CharacterController _characterController;
-        private ICollisionDetector _groundDetector;
+        private Rigidbody _rigidbody;
         private Transform _body;
-        private float _stepOffset;
 
-        public void OnAwake(IActor actor) {
-            _characterController = actor.GetComponent<CharacterController>();
-            _groundDetector = actor.GetComponent<CharacterCollisionPipeline>().GroundDetector;
-            _body = _characterController.transform;
-            _stepOffset = _characterController.stepOffset;
+        void IActorComponent.OnAwake(IActor actor) {
+            _rigidbody = actor.GetComponent<Rigidbody>();
+            _body = _rigidbody.transform;
         }
 
         public void Move(Vector3 delta) {
-            if (_characterController.enabled) {
-                _characterController.stepOffset = _groundDetector.CollisionInfo.hasContact.AsFloat() * _stepOffset;
-                _characterController.Move(delta);
-                return;
-            }
-
-            _body.Translate(delta, Space.World);
+            _rigidbody.MovePosition(_rigidbody.position + delta);
         }
-
+        
         public void Rotate(Quaternion delta) {
-            _body.rotation *= delta;
+            _rigidbody.MoveRotation(_rigidbody.rotation * delta);
         }
     }
 

@@ -29,7 +29,7 @@ namespace MisterGames.Character.Steps {
 
         public delegate void StepCallback(int foot, float distance, Vector3 point);
         
-        private CharacterMassProcessor _mass;
+        private Rigidbody _rigidbody;
         private ICollisionDetector _groundDetector;
         private ITransformAdapter _body;
 
@@ -37,7 +37,7 @@ namespace MisterGames.Character.Steps {
         private int _foot;
         
         public void OnAwake(IActor actor) {
-            _mass = actor.GetComponent<CharacterMotionPipeline>().GetProcessor<CharacterMassProcessor>();
+            _rigidbody = actor.GetComponent<Rigidbody>();
             _groundDetector = actor.GetComponent<CharacterCollisionPipeline>().GroundDetector;
             _body = actor.GetComponent<CharacterBodyAdapter>();
         }
@@ -58,7 +58,7 @@ namespace MisterGames.Character.Steps {
                 return;
             }
 
-            var velocity = _mass.CurrentVelocity;
+            var velocity = _rigidbody.velocity;
             float sqrSpeed = velocity.sqrMagnitude;
             float stepLength = _stepLengthMin +
                                _stepLengthMultiplier *

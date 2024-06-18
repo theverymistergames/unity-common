@@ -4,7 +4,6 @@ using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
 using MisterGames.Character.Motion;
-using MisterGames.Character.Processors;
 using UnityEngine;
 
 namespace MisterGames.ActionLib.Character {
@@ -13,11 +12,12 @@ namespace MisterGames.ActionLib.Character {
     public sealed class CharacterActionSetSpeedMultiplier : IActorAction {
 
         [Min(0f)] public float speed;
+        [Min(0f)] public float moveForce;
 
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            var multiplier = context.GetComponent<CharacterMotionPipeline>().GetProcessor<CharacterProcessorVector2Multiplier>();
-
-            multiplier.multiplier = speed;
+            var motion = context.GetComponent<CharacterMotionPipeline>();
+            motion.SpeedMultiplier = speed;
+            motion.MoveForce = moveForce;
             return default;
         }
     }

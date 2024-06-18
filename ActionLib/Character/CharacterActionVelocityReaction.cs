@@ -24,9 +24,9 @@ namespace MisterGames.ActionLib.Character {
         }
 
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            var mass = context.GetComponent<CharacterMotionPipeline>().GetProcessor<CharacterMassProcessor>();
+            var motion = context.GetComponent<CharacterMotionPipeline>();
 
-            float sqrMagnitude = mass.PreviousVelocity.sqrMagnitude;
+            float sqrMagnitude = motion.PreviousVelocity.sqrMagnitude;
 
             for (int i = 0; i < cases.Length; i++) {
                 var c = cases[i];

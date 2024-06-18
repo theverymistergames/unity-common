@@ -103,6 +103,30 @@ namespace MisterGames.Common.Maths {
         public static Vector3 Multiply(this Vector3 a, Vector3 b) {
             return new Vector3(a.x * b.x, a.y * b.y, a.z * b.z);
         }
+        
+        public static Vector2 FloorToInt(this Vector2 value) {
+            return new Vector2(Mathf.FloorToInt(value.x), Mathf.FloorToInt(value.y));
+        }
+        
+        public static Vector3 FloorToInt(this Vector3 value) {
+            return new Vector3(Mathf.FloorToInt(value.x), Mathf.FloorToInt(value.y), Mathf.FloorToInt(value.z));
+        }
+        
+        public static Vector2 CeilToInt(this Vector2 value) {
+            return new Vector2(Mathf.CeilToInt(value.x), Mathf.CeilToInt(value.y));
+        }
+        
+        public static Vector3 CeilToInt(this Vector3 value) {
+            return new Vector3(Mathf.CeilToInt(value.x), Mathf.CeilToInt(value.y), Mathf.CeilToInt(value.z));
+        }
+
+        public static Vector2 Mod(this Vector2 value, float divider) {
+            return new Vector2(value.x % divider, value.y % divider);
+        }
+        
+        public static Vector3 Mod(this Vector3 value, float divider) {
+            return new Vector3(value.x % divider, value.y % divider, value.z % divider);
+        }
 
         // ---------------- ---------------- Geometry ---------------- ----------------
 
@@ -137,28 +161,59 @@ namespace MisterGames.Common.Maths {
             return new Vector3(ToEulerAngles180(eulerAngles.x), ToEulerAngles180(eulerAngles.y), ToEulerAngles180(eulerAngles.z));
         }
         
-        public static Vector2 FloorToInt(this Vector2 value) {
-            return new Vector2(Mathf.FloorToInt(value.x), Mathf.FloorToInt(value.y));
+        /// <summary>
+        /// Clamp velocity by direction, so velocity projection along the direction will not exceed max speed.
+        /// </summary>
+        public static Vector3 ClampVelocity(Vector3 velocity, Vector3 direction, float maxSpeed)
+        {
+            // Velocity is not directed along the direction, do nothing.
+            if (Vector3.Dot(velocity, direction) <= 0f)
+            {
+                return velocity;
+            }
+            
+            var velocityProjection = Vector3.Project(velocity, direction);
+            
+            // Velocity projection on direction does not exceed max speed, do nothing.
+            if (velocityProjection.sqrMagnitude <= maxSpeed * maxSpeed)
+            {
+                return velocity;
+            }
+            
+            // New velocity is a projection along direction + projection on plane of direction.
+            // Plane projection of the velocity is needed to save velocity part that is not related to the direction. 
+            return velocityProjection.normalized * maxSpeed + Vector3.ProjectOnPlane(velocity, direction);
         }
         
-        public static Vector3 FloorToInt(this Vector3 value) {
-            return new Vector3(Mathf.FloorToInt(value.x), Mathf.FloorToInt(value.y), Mathf.FloorToInt(value.z));
-        }
-        
-        public static Vector2 CeilToInt(this Vector2 value) {
-            return new Vector2(Mathf.CeilToInt(value.x), Mathf.CeilToInt(value.y));
-        }
-        
-        public static Vector3 CeilToInt(this Vector3 value) {
-            return new Vector3(Mathf.CeilToInt(value.x), Mathf.CeilToInt(value.y), Mathf.CeilToInt(value.z));
-        }
+        /// <summary>
+        /// Clamp acceleration to prevent velocity exceeding max speed along the direction of acceleration.
+        /// </summary>
+        public static Vector3 ClampAcceleration(
+            Vector3 acceleration,
+            Vector3 velocity,
+            float maxSpeed,
+            float dt)
+        {
+            float maxSpeedSqr = maxSpeed * maxSpeed;
+            var velocityProjection = Vector3.Project(velocity, acceleration);
 
-        public static Vector2 Mod(this Vector2 value, float divider) {
-            return new Vector2(value.x % divider, value.y % divider);
-        }
-        
-        public static Vector3 Mod(this Vector3 value, float divider) {
-            return new Vector3(value.x % divider, value.y % divider, value.z % divider);
+            // Velocity projection directed as acceleration and exceeds max speed: return zero force.
+            if (Vector3.Dot(velocityProjection, acceleration) > 0f &&
+                velocityProjection.sqrMagnitude >= maxSpeedSqr)
+            {
+                return Vector3.zero;
+            }
+            
+            // Velocity will not exceed max value if acceleration is applied.  
+            if ((velocityProjection + dt * acceleration).sqrMagnitude <= maxSpeedSqr)
+            {
+                return acceleration;
+            }
+            
+            // Recreate acceleration from delta between current and max velocity,
+            // so if acceleration is applied, velocity will not exceed max speed. 
+            float clamp = (acceleration.normalized * maxSpeed - velocityProjection).magnitude / dt;
+            return Vector3.ClampMagnitude(acceleration, clamp);
         }
     }
 

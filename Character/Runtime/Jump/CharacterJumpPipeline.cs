@@ -2,7 +2,6 @@
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
 using MisterGames.Character.Input;
-using MisterGames.Character.Motion;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Maths;
 using UnityEngine;
@@ -25,12 +24,12 @@ namespace MisterGames.Character.Jump {
 
         private IActor _actor;
         private CharacterInputPipeline _input;
-        private CharacterMassProcessor _mass;
+        private Rigidbody _rigidbody;
 
         public void OnAwake(IActor actor) {
             _actor = actor;
             _input = actor.GetComponent<CharacterInputPipeline>();
-            _mass = actor.GetComponent<CharacterMotionPipeline>().GetProcessor<CharacterMassProcessor>();
+            _rigidbody = actor.GetComponent<Rigidbody>();
         }
 
         private void OnEnable() {
@@ -48,7 +47,7 @@ namespace MisterGames.Character.Jump {
             LastJumpImpulse = _force * _direction;
             if (LastJumpImpulse.IsNearlyZero()) return;
 
-            _mass.ApplyImpulse(LastJumpImpulse);
+            _rigidbody.AddForce(LastJumpImpulse, ForceMode.VelocityChange);
             OnJump.Invoke(LastJumpImpulse);
         }
     }

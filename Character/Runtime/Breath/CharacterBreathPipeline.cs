@@ -6,8 +6,6 @@ namespace MisterGames.Character.Breath {
 
     public sealed class CharacterBreathPipeline : MonoBehaviour, IActorComponent, IUpdate {
 
-        [SerializeField] private PlayerLoopStage _playerLoopStage = PlayerLoopStage.Update;
-
         [Header("Period")]
         [SerializeField] [Min(0f)] private float _period = 5f;
         [SerializeField] [Min(0f)] private float _periodRandom = 1f;
@@ -29,12 +27,12 @@ namespace MisterGames.Character.Breath {
         private int _dir;
 
         private void OnEnable() {
-            TimeSources.Get(_playerLoopStage).Subscribe(this);
+            PlayerLoopStage.Update.Subscribe(this);
         }
 
         private void OnDisable() {
             _timer = 0f;
-            TimeSources.Get(_playerLoopStage).Unsubscribe(this);
+            PlayerLoopStage.Update.Unsubscribe(this);
         }
 
         public void OnUpdate(float dt) {

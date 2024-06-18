@@ -19,6 +19,7 @@ namespace MisterGames.Character.View {
         [SerializeField] private float _smoothing = 20f;
         [SerializeField] [Min(0f)] private float _freeHeadRotationDistance;
         [SerializeField] private float _returnFreeHeadRotationSmoothing = 5f;
+        [SerializeField] private float _returnFreeHeadRotationSmoothingMax = 20f;
         [SerializeField] private ViewClampProcessor _viewClamp;
         
         public CameraContainer CameraContainer => _cameraContainer;
@@ -129,10 +130,14 @@ namespace MisterGames.Character.View {
             // If head offset from body is longer than free head rotation distance,
             // body rotation is not applied to prevent head from rotation around body vertical axis. 
             if (_headAdapter.LocalPosition.sqrMagnitude < _freeHeadRotationDistance * _freeHeadRotationDistance) {
+                float distance = _headAdapter.LocalPosition.magnitude;
+                float t = _freeHeadRotationDistance > 0f ? distance / _freeHeadRotationDistance : 1f;
+                float smooth = Mathf.Lerp(_returnFreeHeadRotationSmoothingMax, _returnFreeHeadRotationSmoothing, t);
+                
                 _bodyAdapter.Rotation = Quaternion.Slerp(
                     _bodyAdapter.Rotation,
                     Quaternion.Euler(0f, eulerAngles.y, 0f), 
-                    dt * _returnFreeHeadRotationSmoothing
+                    dt * smooth
                 );
             }
             

@@ -15,8 +15,6 @@ namespace MisterGames.Character.Motion {
 
     public sealed class CharacterForceZone : MonoBehaviour, IUpdate {
 
-        [SerializeField] private PlayerLoopStage _playerLoopStage = PlayerLoopStage.Update;
-
         [Header("Force Zone")]
         [SerializeField] private Trigger _enterTrigger;
         [SerializeField] private Trigger _exitTrigger;
@@ -52,7 +50,7 @@ namespace MisterGames.Character.Motion {
 
         private Transform _characterTransform;
         private Transform _obstacleDetectorTransform;
-        private CharacterMassProcessor _characterMass;
+        private Rigidbody _rigidbody;
 
         private float _force;
         private float _random;
@@ -78,7 +76,7 @@ namespace MisterGames.Character.Motion {
         }
 
         private void OnEnterTrigger(Collider go) {
-            if (_characterMass != null ||
+            if (_rigidbody != null ||
                 !go.TryGetComponent(out IActor actor) ||
                 !actor.TryGetComponent<CharacterAccess>(out _)
             ) {
@@ -86,26 +84,24 @@ namespace MisterGames.Character.Motion {
             }
 
             _characterTransform = actor.Transform;
-            _characterMass = actor.GetComponent<CharacterMotionPipeline>().GetProcessor<CharacterMassProcessor>();
+            _rigidbody = actor.GetComponent<Rigidbody>();
 
-            TimeSources.Get(_playerLoopStage).Subscribe(this);
+            PlayerLoopStage.FixedUpdate.Subscribe(this);
 
             OnEnteredZone.Invoke(actor);
         }
 
         private void OnExitTrigger(Collider go) {
-            if (_characterMass == null ||
+            if (_rigidbody == null ||
                 !go.TryGetComponent(out IActor actor) ||
                 !actor.TryGetComponent<CharacterAccess>(out _)
             ) {
                 return;
             }
 
-            TimeSources.Get(_playerLoopStage).Unsubscribe(this);
+            PlayerLoopStage.FixedUpdate.Unsubscribe(this);
 
-            _characterMass.RemoveForceSource(this);
-
-            _characterMass = null;
+            _rigidbody = null;
             _characterTransform = null;
 
             _force = 0f;
@@ -163,7 +159,8 @@ namespace MisterGames.Character.Motion {
 
             var forceVector = _force * _forceDirection;
 
-            _characterMass.ApplyForceSource(this, forceVector);
+            _rigidbody.AddForce(forceVector);
+            
             OnForceUpdate.Invoke(forceVector);
         }
 
