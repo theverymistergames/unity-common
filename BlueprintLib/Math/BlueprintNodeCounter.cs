@@ -30,8 +30,8 @@ namespace MisterGames.BlueprintLib {
             int value = _value;
             
             _value = port switch {
-                0 => ClampValue(blueprint.Read(token, 3, 0)),
-                1 => ClampValue(_value + blueprint.Read(token, 3, 1)),
+                0 => ClampValue(_value + blueprint.Read(token, 3, 1)),
+                1 => ClampValue(blueprint.Read(token, 3, 0)),
                 2 => ClampValue(0),
                 _ => _value
             };
