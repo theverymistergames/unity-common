@@ -14,6 +14,7 @@ namespace MisterGames.BlueprintLib {
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {
             meta.AddPort(id, Port.Enter());
             meta.AddPort(id, Port.Input<Vector3>("Position"));
+            meta.AddPort(id, Port.Input<Vector3>("Rotation"));
         }
 
         public void OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
@@ -23,7 +24,15 @@ namespace MisterGames.BlueprintLib {
             var collisions = characterAccess.GetComponent<CharacterCollisionPipeline>();
             
             collisions.enabled = false;
-            characterAccess.GetComponent<CharacterBodyAdapter>().Position = blueprint.Read<Vector3>(token, 1);
+            
+            var body = characterAccess.GetComponent<CharacterBodyAdapter>();
+            var head = characterAccess.GetComponent<CharacterBodyAdapter>();
+            
+            body.Position = blueprint.Read<Vector3>(token, 1);
+            body.Rotation = Quaternion.Euler(blueprint.Read<Vector3>(token, 2));
+            
+            head.LocalRotation = Quaternion.identity;
+            
             collisions.enabled = true;
         }
     }
