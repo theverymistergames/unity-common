@@ -249,8 +249,10 @@ namespace MisterGames.Collisions.Utils {
 
             for (int i = 0; i < hitCount; i++) {
                 var nextHit = hits[i];
+                
                 float distance = nextHit.distance;
-
+                if (distance <= 0f) continue;
+                
                 if (minDistance < 0f || distance < minDistance) {
                     hitIndex = i;
                     minDistance = distance;
@@ -279,8 +281,10 @@ namespace MisterGames.Collisions.Utils {
 
             for (int i = 0; i < hitCount; i++) {
                 var nextHit = hits[i];
+                
                 float distance = nextHit.distance;
-
+                if (distance <= 0f) continue;
+                
                 if (minDistance < 0f || distance < minDistance) {
                     hitIndex = i;
                     minDistance = distance;
@@ -309,8 +313,10 @@ namespace MisterGames.Collisions.Utils {
 
             for (int i = 0; i < hitCount; i++) {
                 var nextHit = hits[i];
+                
                 float distance = nextHit.distance;
-
+                if (distance <= 0f) continue;
+                
                 if (minDistance < 0f || distance < minDistance) {
                     hitIndex = i;
                     minDistance = distance;
@@ -339,8 +345,10 @@ namespace MisterGames.Collisions.Utils {
 
             for (int i = 0; i < hitCount; i++) {
                 var nextHit = hits[i];
+                
                 float distance = nextHit.distance;
-
+                if (distance <= 0f) continue;
+                
                 if (minDistance < 0 || distance < minDistance) {
                     hitIndex = i;
                     minDistance = distance;
@@ -369,8 +377,10 @@ namespace MisterGames.Collisions.Utils {
 
             for (int i = 0; i < hitCount; i++) {
                 var nextHit = hits[i];
+                
                 float distance = nextHit.distance;
-
+                if (distance <= 0f) continue;
+                
                 if (minDistance < 0f || distance < minDistance) {
                     hitIndex = i;
                     minDistance = distance;
@@ -381,60 +391,6 @@ namespace MisterGames.Collisions.Utils {
 
             hit = hits[hitIndex];
             return true;
-        }
-
-        public static string AsText(this ReadOnlySpan<RaycastHit> hits, int hitCount) {
-            var sb = new StringBuilder();
-
-            sb.AppendLine($"Hits({hitCount})" + " {");
-
-            hitCount = Math.Min(hitCount, hits.Length);
-            for (int i = 0; i < hitCount; i++) {
-                var hit = hits[i];
-                bool hasContact = hit.transform != null;
-
-                sb.AppendLine($" - Hit[{i}] : {(hasContact ? $"{hit.transform.name}::{hit.distance}" : "none")}");
-            }
-
-            sb.AppendLine("}");
-
-            return sb.ToString();
-        }
-
-        public static string AsText(this CollisionInfo[] hits, int hitCount) {
-            var sb = new StringBuilder();
-
-            sb.AppendLine($"Hits({hitCount})" + " {");
-
-            hitCount = Math.Min(hitCount, hits.Length);
-            for (int i = 0; i < hitCount; i++) {
-                var hit = hits[i];
-                bool hasContact = hit.transform != null;
-
-                sb.AppendLine($" - Hit[{i}] : {(hasContact ? $"{hit.transform.name}::{hit.distance}" : "none")}");
-            }
-
-            sb.AppendLine("}");
-
-            return sb.ToString();
-        }
-
-        public static string AsText(this IReadOnlyList<RaycastResult> hits, int hitCount) {
-            var sb = new StringBuilder();
-
-            sb.AppendLine($"Hits({hitCount})" + " {");
-
-            hitCount = Math.Min(hitCount, hits.Count);
-            for (int i = 0; i < hitCount; i++) {
-                var hit = hits[i];
-                bool hasContact = hit.gameObject != null;
-
-                sb.AppendLine($" - Hit[{i}] : {(hasContact ? $"{hit.gameObject.name}::{hit.distance}" : "none")}");
-            }
-
-            sb.AppendLine("}");
-
-            return sb.ToString();
         }
     }
     

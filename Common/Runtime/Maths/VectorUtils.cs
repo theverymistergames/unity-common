@@ -130,6 +130,22 @@ namespace MisterGames.Common.Maths {
 
         // ---------------- ---------------- Geometry ---------------- ----------------
 
+        public static float SqrMagnitudeOfProject(Vector3 vector, Vector3 onNormal)
+        {
+            return Vector3.Project(vector, onNormal).sqrMagnitude;
+        }
+        
+        public static float MagnitudeOfProject(Vector3 vector, Vector3 onNormal)
+        {
+            return Vector3.Project(vector, onNormal).magnitude;
+        }
+        
+        public static float SignedMagnitudeOfProject(Vector3 vector, Vector3 onNormal)
+        {
+            var p = Vector3.Project(vector, onNormal);
+            return p.magnitude * (Vector3.Dot(p, onNormal) > 0f ? 1f : -1f);
+        }
+        
         public static Vector3 FindNearestPointOnSegment(Vector3 start, Vector3 end, Vector3 point) {
             var direction = end - start;
             float magnitude = direction.magnitude;
