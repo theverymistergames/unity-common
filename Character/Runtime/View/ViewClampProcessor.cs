@@ -14,6 +14,9 @@ namespace MisterGames.Character.View {
             bounds = new Vector2(-90f, 90f)
         };
 
+        public ViewAxisClamp Horizontal => _horizontal;
+        public ViewAxisClamp Vertical => _vertical;
+        
         private Transform _lookTarget;
         private Vector3 _lookTargetPoint;
         private Vector2 _clampCenterEulers;
