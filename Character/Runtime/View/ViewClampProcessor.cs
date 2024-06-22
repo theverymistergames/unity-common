@@ -63,9 +63,12 @@ namespace MisterGames.Character.View {
             };
 
             clampCenterEulers = GetNearestAngle(clampCenterEulers, targetOrientation);
+
+            clampCenterEulers.x *= (!_vertical.absolute).AsInt();
+            clampCenterEulers.y *= (!_horizontal.absolute).AsInt();
             
-            var verticalBounds = _vertical.bounds + (_vertical.absolute ? Vector2.zero : Vector2.one * clampCenterEulers.x);
-            var horizontalBounds = _horizontal.bounds + (_horizontal.absolute ? Vector2.zero : Vector2.one * clampCenterEulers.y);
+            var verticalBounds = _vertical.bounds + Vector2.one * clampCenterEulers.x;
+            var horizontalBounds = _horizontal.bounds + Vector2.one * clampCenterEulers.y;
 
             targetOrientation.x = targetOrientation.x.Clamp(_vertical.mode, verticalBounds.x, verticalBounds.y);
             targetOrientation.y = targetOrientation.y.Clamp(_horizontal.mode, horizontalBounds.x, horizontalBounds.y);
