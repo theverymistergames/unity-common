@@ -9,6 +9,8 @@ namespace MisterGames.Common.GameObjects {
         public Vector3 position;
         public Quaternion rotation;
         public Vector3 scale;
+
+        public static readonly TransformData Default = new TransformData(Vector3.zero, Quaternion.identity, Vector3.one);
         
         public TransformData(Vector3 position, Quaternion rotation, Vector3 scale) {
             this.position = position;
