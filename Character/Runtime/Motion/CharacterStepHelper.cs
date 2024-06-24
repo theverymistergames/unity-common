@@ -62,7 +62,7 @@ namespace MisterGames.Character.Motion {
             
             var lowerPoint = _transform.position + _lowerRayOffset * up + _motion.Velocity * dt;
             var upperPoint = lowerPoint + stepHeight * up;
-            var motionDir = _motion.MotionDirection.normalized;
+            var motionDir = _motion.MotionDirWorld.normalized;
             
 #if UNITY_EDITOR
             if (_showDebugInfo) DebugExt.DrawRay(lowerPoint, motionDir * _distance, Color.yellow);

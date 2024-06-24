@@ -1,10 +1,13 @@
 ﻿using System;
+using System.Collections.Generic;
+using MisterGames.Common.GameObjects;
 using UnityEngine;
 
 namespace MisterGames.Character.View {
     
     public sealed class CharacterHeadJoint {
-
+        
+        private readonly Dictionary<Transform, AttachData> _attachedObjects = new();
         private Transform _target;
         private Vector3 _targetPoint;
         private Quaternion _targetRotation;
@@ -18,6 +21,12 @@ namespace MisterGames.Character.View {
             Transform,
             TransformWithoutRotation,
             TransformLookaround
+        }
+
+        private struct AttachData {
+            public Vector3 offset;
+            public Quaternion rotation;
+            public Quaternion orientation;
         }
         
         public void Attach(Transform target, Vector3 point, AttachMode mode, float smoothing) {
@@ -46,6 +55,18 @@ namespace MisterGames.Character.View {
             _mode = Mode.Free;
         }
 
+        public void AttachObject(Transform obj, Vector3 point, Vector3 position, Vector2 orientation) {
+            _attachedObjects[obj] = new AttachData {
+                offset = point - position,
+                rotation = obj.rotation * Quaternion.Inverse(Quaternion.Euler(orientation)),
+                orientation = Quaternion.Euler(orientation)
+            };
+        }
+
+        public void DetachObject(Transform obj) {
+            _attachedObjects.Remove(obj);
+        }
+
         public void Update(ref Vector3 position, Vector2 orientation, float dt) {
             var targetPoint = _mode switch {
                 Mode.Point => _targetPoint,
@@ -56,6 +77,11 @@ namespace MisterGames.Character.View {
             };
             
             position = _smoothing > 0f ? Vector3.Lerp(position, targetPoint, dt * _smoothing) : targetPoint;
+            
+            foreach (var (obj, data) in _attachedObjects) {
+                obj.position = position + Quaternion.Euler(orientation) * Quaternion.Inverse(data.orientation) * data.offset;
+                obj.rotation = Quaternion.Euler(orientation) * data.rotation;
+            }
         }
     }
     

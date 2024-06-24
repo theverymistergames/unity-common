@@ -32,7 +32,8 @@ namespace MisterGames.Character.Motion {
         [SerializeField] [Min(1)] private int _maxHits = 12;
         [SerializeField] private LayerMask _layer;
 
-        public Vector3 MotionDirection => GetWorldDir(Vector3.forward);
+        public Vector3 Forward => GetWorldDir(Vector3.forward);
+        public Vector3 MotionDirWorld => GetWorldDir(InputToLocal(MotionInput));
         public Vector2 MotionInput { get; private set; }
         public Vector3 Velocity { get => _rigidbody.velocity; set => _rigidbody.velocity = value; }
         public Vector3 PreviousVelocity { get; private set; }
@@ -87,7 +88,7 @@ namespace MisterGames.Character.Motion {
             
             float maxSpeed = CalculateSpeedCorrection(_smoothedInput) * SpeedMultiplier;
             var velocity = _rigidbody.velocity;
-            var inputDir = new Vector3(_smoothedInput.x, 0f, _smoothedInput.y);
+            var inputDir = InputToLocal(_smoothedInput);
             var forward = GetWorldDir(inputDir);
             
             PreviousVelocity = velocity;
@@ -100,6 +101,10 @@ namespace MisterGames.Character.Motion {
             if (!_rigidbody.useGravity) {
                 _rigidbody.velocity = Vector3.Lerp(_rigidbody.velocity, Vector3.zero, dt * _noGravityVelocityDamping);
             }
+        }
+
+        private static Vector3 InputToLocal(Vector2 input) {
+            return new Vector3(input.x, 0f, input.y);
         }
 
         private Vector3 GetWorldDir(Vector3 localDir) {

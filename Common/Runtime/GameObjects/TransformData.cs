@@ -12,6 +12,12 @@ namespace MisterGames.Common.GameObjects {
 
         public static readonly TransformData Default = new TransformData(Vector3.zero, Quaternion.identity, Vector3.one);
         
+        public TransformData(Vector3 position, Quaternion rotation) {
+            this.position = position;
+            this.rotation = rotation;
+            scale = Vector3.one;
+        }
+        
         public TransformData(Vector3 position, Quaternion rotation, Vector3 scale) {
             this.position = position;
             this.rotation = rotation;

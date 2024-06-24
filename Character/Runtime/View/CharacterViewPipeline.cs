@@ -58,6 +58,14 @@ namespace MisterGames.Character.View {
             StopLookAt();
         }
         
+        public void AttachObject(Transform obj, Vector3 point) {
+            _headJoint.AttachObject(obj, point, _headAdapter.Position, CurrentOrientation);
+        }
+        
+        public void DetachObject(Transform obj) {
+            _headJoint.DetachObject(obj);
+        }
+        
         public void Attach(Transform target, Vector3 point, AttachMode mode = AttachMode.OffsetOnly, float smoothing = 0f) {
             _headJoint.Attach(target, point, mode, smoothing);
         }
