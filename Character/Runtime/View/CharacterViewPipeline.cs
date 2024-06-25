@@ -58,8 +58,8 @@ namespace MisterGames.Character.View {
             StopLookAt();
         }
         
-        public void AttachObject(Transform obj, Vector3 point) {
-            _headJoint.AttachObject(obj, point, _headAdapter.Position, CurrentOrientation);
+        public void AttachObject(Transform obj, Vector3 point, float smoothing = 0f) {
+            _headJoint.AttachObject(obj, point, _headAdapter.Position, CurrentOrientation, smoothing);
         }
         
         public void DetachObject(Transform obj) {
@@ -96,6 +96,8 @@ namespace MisterGames.Character.View {
 
         public void StopLookAt() {
             _viewClamp.StopLookAt();
+            _viewClamp.ApplyHorizontalClamp(CurrentOrientation, _viewClamp.Horizontal);
+            _viewClamp.ApplyVerticalClamp(CurrentOrientation, _viewClamp.Vertical);
         }
 
         public void ApplyHorizontalClamp(ViewAxisClamp clamp) {

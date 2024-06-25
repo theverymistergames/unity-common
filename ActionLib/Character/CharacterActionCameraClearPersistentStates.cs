@@ -4,10 +4,7 @@ using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
 using MisterGames.Character.View;
-using MisterGames.Common.Data;
-using MisterGames.Tick.Core;
 using UnityEngine;
-using Random = UnityEngine.Random;
 
 namespace MisterGames.ActionLib.Character {
 

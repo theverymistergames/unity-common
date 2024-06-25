@@ -15,7 +15,6 @@ namespace MisterGames.ActionLib.Character {
     [Serializable]
     public sealed class CharacterActionCameraRotation : IActorAction {
 
-        public PlayerLoopStage playerLoopStage = PlayerLoopStage.Update;
         public bool keepChanges;
         public float weight = 1f;
         [Min(0f)] public float duration;
@@ -28,7 +27,7 @@ namespace MisterGames.ActionLib.Character {
         public async UniTask Apply(IActor actor, CancellationToken cancellationToken = default) {
             var cameraContainer = actor.GetComponent<CharacterViewPipeline>().CameraContainer;
 
-            var timeSource = TimeSources.Get(playerLoopStage);
+            var timeSource = PlayerLoopStage.LateUpdate.Get();
 
             float progress = 0f;
             float resultDuration = duration + Random.Range(-durationRandom, durationRandom);

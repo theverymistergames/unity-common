@@ -118,8 +118,8 @@ namespace MisterGames.Character.View {
                 if (diff >= 0f) return Mathf.Lerp(centralizedTarget, clamp.springs.x, dt * clamp.springSmoothing.x) + center;
 
                 // Moving towards bound: decrease diff depending on distance between value and bound
-                float f = (value - center - clamp.bounds.x) / (clamp.springs.x - clamp.bounds.x);
-                return value + diff * f * clamp.springFactors.x;
+                float f = 1f - (value - center - clamp.bounds.x) / (clamp.springs.x - clamp.bounds.x);
+                return value + Mathf.Lerp(diff, 0f, clamp.springFactors.x * f);
             }
 
             // In right spring zone
@@ -131,8 +131,8 @@ namespace MisterGames.Character.View {
                 if (diff <= 0f) return Mathf.Lerp(centralizedTarget, clamp.springs.y, dt * clamp.springSmoothing.y) + center;
 
                 // Moving towards bound: decrease diff depending on distance between value and bound
-                float f = (value - center - clamp.bounds.y) / (clamp.springs.y - clamp.bounds.y);
-                return value + diff * f * clamp.springFactors.y;
+                float f = 1f - (value - center - clamp.bounds.y) / (clamp.springs.y - clamp.bounds.y);
+                return value + Mathf.Lerp(diff, 0f, clamp.springFactors.y * f);
             }
 
             return target;

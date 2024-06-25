@@ -21,6 +21,7 @@ namespace MisterGames.Interact.Interactives {
         public event Action<IInteractive> OnStopInteract = delegate {  };
 
         public IReadOnlyCollection<IInteractive> Interactives => _interactiveTargetsSet;
+        public IDetector Detector => _interactivesDetector;
         public Transform Transform { get; private set; }
         public GameObject Root => _root;
 

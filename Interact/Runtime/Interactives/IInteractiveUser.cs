@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using MisterGames.Interact.Detectables;
 using UnityEngine;
 
 namespace MisterGames.Interact.Interactives {
@@ -13,6 +14,7 @@ namespace MisterGames.Interact.Interactives {
         event Action<IInteractive> OnStopInteract;
 
         IReadOnlyCollection<IInteractive> Interactives { get; }
+        IDetector Detector { get; }
         Transform Transform { get; }
         GameObject Root { get; }
 

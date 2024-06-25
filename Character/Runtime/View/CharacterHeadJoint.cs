@@ -30,6 +30,7 @@ namespace MisterGames.Character.View {
             public Vector3 offset;
             public Quaternion rotation;
             public Quaternion orientation;
+            public float smoothing;
         }
         
         private struct RotationData {
@@ -65,13 +66,12 @@ namespace MisterGames.Character.View {
             _mode = Mode.Free;
         }
 
-        public void AttachObject(Transform obj, Vector3 point, Vector3 position, Vector2 orientation) {
-            var rot = obj.rotation;
-            
+        public void AttachObject(Transform obj, Vector3 point, Vector3 position, Vector2 orientation, float smoothing = 0f) {
             _attachMap[obj] = new AttachData {
                 offset = point - position,
-                rotation = rot * Quaternion.Inverse(Quaternion.Euler(orientation)),
+                rotation = obj.rotation * Quaternion.Inverse(Quaternion.Euler(orientation)),
                 orientation = Quaternion.Euler(orientation),
+                smoothing = smoothing,
             };
         }
 
@@ -109,8 +109,17 @@ namespace MisterGames.Character.View {
             position = _smoothing > 0f ? Vector3.Lerp(position, targetPoint, dt * _smoothing) : targetPoint;
             
             foreach (var (obj, data) in _attachMap) {
-                obj.position = position + Quaternion.Euler(orientation) * Quaternion.Inverse(data.orientation) * data.offset;
-                if (!_rotationObjects.Contains(obj)) obj.rotation = Quaternion.Euler(orientation) * data.rotation;
+                var targetPos = position + Quaternion.Euler(orientation) * Quaternion.Inverse(data.orientation) * data.offset;
+                obj.position = data.smoothing > 0f 
+                    ? Vector3.Lerp(obj.position, targetPos, data.smoothing * dt)
+                    : targetPos;
+
+                if (_rotationObjects.Contains(obj)) continue;
+                
+                var targetRot = Quaternion.Euler(orientation) * data.rotation;
+                obj.rotation = data.smoothing > 0f 
+                    ? Quaternion.Slerp(obj.rotation, targetRot, data.smoothing * dt)
+                    : targetRot;
             }
             
             foreach (var obj in _rotationObjects) {

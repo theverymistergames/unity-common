@@ -11,9 +11,9 @@ namespace MisterGames.Tweens {
     [Serializable]
     public sealed class ProgressTween : ITween {
 
-        [Min(0f)] public float duration;
+        [Min(0f)] public float duration = 1f;
         [Min(0f)] public float durationRandomAdd;
-        public AnimationCurve curve;
+        public AnimationCurve curve = AnimationCurve.Linear(0f, 0f, 1f, 1f);
         [SerializeReference] [SubclassSelector] public ITweenProgressAction action;
 
         public float Duration { get; private set; }
