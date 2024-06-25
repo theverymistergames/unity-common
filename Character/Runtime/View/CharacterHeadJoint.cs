@@ -1,13 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
-using MisterGames.Common.GameObjects;
+using MisterGames.Common.Maths;
 using UnityEngine;
 
 namespace MisterGames.Character.View {
     
     public sealed class CharacterHeadJoint {
         
-        private readonly Dictionary<Transform, AttachData> _attachedObjects = new();
+        private readonly Dictionary<Transform, AttachData> _attachMap = new();
+        private readonly Dictionary<Transform, RotationData> _rotationsMap = new();
+        private readonly HashSet<Transform> _rotationObjects = new();
+        
         private Transform _target;
         private Vector3 _targetPoint;
         private Quaternion _targetRotation;
@@ -27,6 +30,13 @@ namespace MisterGames.Character.View {
             public Vector3 offset;
             public Quaternion rotation;
             public Quaternion orientation;
+        }
+        
+        private struct RotationData {
+            public Vector2 sensitivity;
+            public float smoothing;
+            public Quaternion rotation;
+            public Quaternion targetRotation;
         }
         
         public void Attach(Transform target, Vector3 point, AttachMode mode, float smoothing) {
@@ -56,18 +66,38 @@ namespace MisterGames.Character.View {
         }
 
         public void AttachObject(Transform obj, Vector3 point, Vector3 position, Vector2 orientation) {
-            _attachedObjects[obj] = new AttachData {
+            var rot = obj.rotation;
+            
+            _attachMap[obj] = new AttachData {
                 offset = point - position,
-                rotation = obj.rotation * Quaternion.Inverse(Quaternion.Euler(orientation)),
-                orientation = Quaternion.Euler(orientation)
+                rotation = rot * Quaternion.Inverse(Quaternion.Euler(orientation)),
+                orientation = Quaternion.Euler(orientation),
             };
         }
 
         public void DetachObject(Transform obj) {
-            _attachedObjects.Remove(obj);
+            _attachMap.Remove(obj);
         }
 
-        public void Update(ref Vector3 position, Vector2 orientation, float dt) {
+        public void RotateObject(Transform obj, Vector2 orientation, Vector2 sensitivity, float smoothing = 0f) {
+            _rotationObjects.Add(obj);
+
+            var rot = obj.rotation * Quaternion.Inverse(Quaternion.Euler(orientation));
+            
+            _rotationsMap[obj] = new RotationData {
+                sensitivity = sensitivity,
+                smoothing = smoothing,
+                rotation = rot,
+                targetRotation = rot,
+            };
+        }
+
+        public void StopRotateObject(Transform obj) {
+            _rotationsMap.Remove(obj);
+            _rotationObjects.Remove(obj);
+        }
+        
+        public void Update(ref Vector3 position, Vector2 orientation, Vector2 delta, float dt) {
             var targetPoint = _mode switch {
                 Mode.Point => _targetPoint,
                 Mode.Transform => _target.position + _target.rotation * Quaternion.Inverse(_targetRotation) * _targetPoint,
@@ -78,9 +108,22 @@ namespace MisterGames.Character.View {
             
             position = _smoothing > 0f ? Vector3.Lerp(position, targetPoint, dt * _smoothing) : targetPoint;
             
-            foreach (var (obj, data) in _attachedObjects) {
+            foreach (var (obj, data) in _attachMap) {
                 obj.position = position + Quaternion.Euler(orientation) * Quaternion.Inverse(data.orientation) * data.offset;
+                if (!_rotationObjects.Contains(obj)) obj.rotation = Quaternion.Euler(orientation) * data.rotation;
+            }
+            
+            foreach (var obj in _rotationObjects) {
+                var data = _rotationsMap[obj];
+                
+                data.targetRotation = Quaternion.Euler(delta.Multiply(data.sensitivity)) * data.targetRotation;
+                data.rotation = data.smoothing > 0f 
+                    ? Quaternion.Slerp(data.rotation, data.targetRotation, dt * data.smoothing)
+                    : data.targetRotation;
+                
                 obj.rotation = Quaternion.Euler(orientation) * data.rotation;
+
+                _rotationsMap[obj] = data;
             }
         }
     }

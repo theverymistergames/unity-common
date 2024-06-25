@@ -66,6 +66,14 @@ namespace MisterGames.Character.View {
             _headJoint.DetachObject(obj);
         }
         
+        public void RotateObject(Transform obj, Vector2 sensitivity, float smoothing = 0f) {
+            _headJoint.RotateObject(obj, CurrentOrientation, sensitivity, smoothing);
+        }
+
+        public void StopRotateObject(Transform obj) {
+            _headJoint.StopRotateObject(obj);
+        }
+        
         public void Attach(Transform target, Vector3 point, AttachMode mode = AttachMode.OffsetOnly, float smoothing = 0f) {
             _headJoint.Attach(target, point, mode, smoothing);
         }
@@ -103,14 +111,15 @@ namespace MisterGames.Character.View {
         }
 
         void IUpdate.OnUpdate(float dt) {
+            var delta = ConsumeInputDelta();
             var currentOrientation = (Vector2) CurrentOrientation;
-            var targetOrientation = currentOrientation + ConsumeInputDelta();
+            var targetOrientation = currentOrientation + delta;
             
             ApplyClamp(currentOrientation, ref targetOrientation, dt);
             ApplySmoothing(ref currentOrientation, targetOrientation, dt);
             
             PerformRotation(currentOrientation, dt);
-            ApplyHeadJoint(currentOrientation, dt);
+            ApplyHeadJoint(currentOrientation, delta, dt);
         }
 
         private Vector2 ConsumeInputDelta() {
@@ -127,10 +136,10 @@ namespace MisterGames.Character.View {
             current = Vector2.Lerp(current, target, dt * _smoothing);
         }
 
-        private void ApplyHeadJoint(Vector2 current, float dt) {
+        private void ApplyHeadJoint(Vector2 current, Vector2 delta, float dt) {
             var position = _headAdapter.Position;
 
-            _headJoint.Update(ref position, current, dt);
+            _headJoint.Update(ref position, current, delta, dt);
             _headAdapter.Position = position;
         }
 

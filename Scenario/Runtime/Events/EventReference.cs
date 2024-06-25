@@ -42,8 +42,7 @@ namespace MisterGames.Scenario.Events {
         }
 
         public EventReference WithSubId(int subId) {
-            _subId = subId;
-            return this;
+            return new EventReference(_eventDomain, _eventId, subId);
         }
         
         public override string ToString() {

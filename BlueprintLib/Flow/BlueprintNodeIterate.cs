@@ -2,6 +2,7 @@
 using MisterGames.Blueprints;
 using MisterGames.Blueprints.Nodes;
 using MisterGames.Blueprints.Runtime;
+using UnityEngine;
 
 namespace MisterGames.BlueprintLib {
 
@@ -12,12 +13,15 @@ namespace MisterGames.BlueprintLib {
         IBlueprintEnter,
         IBlueprintOutput,
         IBlueprintOutput<int>,
-        IBlueprintConnectionCallback
+        IBlueprintConnectionCallback 
     {
+        [SerializeField] private int _count;
+        
         private int _arrayPointer;
         private Array _arrayCache;
         private LinkIterator _links;
         private int _index;
+        private int _currentCount;
 
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {
             Type inputDataType = null;
@@ -43,7 +47,6 @@ namespace MisterGames.BlueprintLib {
 
                     if (linkedPort.DataType is { IsArray: true }) {
                         inputDataType = linkedPort.DataType.GetElementType();
-                        outputDataType = null;
                     }
                 }
             }
@@ -53,6 +56,7 @@ namespace MisterGames.BlueprintLib {
             meta.AddPort(id, Port.Exit("On Iteration"));
             meta.AddPort(id, Port.DynamicOutput(outputDataType == null ? "Element" : null, outputDataType));
             meta.AddPort(id, Port.Output<int>("Index"));
+            meta.AddPort(id, Port.Input<int>("Count"));
         }
 
         public void OnDeInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
@@ -64,23 +68,20 @@ namespace MisterGames.BlueprintLib {
             if (port != 0) return;
 
             _index = 0;
+            _arrayPointer = 0;
             _links = blueprint.GetLinks(token, 1);
+            _currentCount = blueprint.Read(token, 5, _count);
 
+            bool hasLinks = _links.MoveNext();
+            
             // No linked ports: nothing to iterate.
-            if (!_links.MoveNext()) return;
+            if (!hasLinks && _currentCount < 0) return;
 
             // First link has array data type, prepare to read array.
-            if (_links.Read<Array>() is { Length: > 0 } a) {
-                _arrayPointer = 0;
-                _arrayCache = a;
-            }
-            else {
-                _arrayPointer = 0;
-                _arrayCache = null;
-            }
-            
+            _arrayCache = hasLinks && _links.Read<Array>() is { Length: > 0 } a ? a : null;
+
             // Iterate through array and element links.
-            while (true) {
+            while (_count < 0 || _index < _count) {
                 // "On Iteration" port call.
                 // Connected node must read "Element" output port when the port is called,
                 // so method GetPortValue is called to retrieve element value.

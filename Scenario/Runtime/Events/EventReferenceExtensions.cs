@@ -6,6 +6,10 @@
             return EventSystems.Global?.RaisedEvents?.TryGetValue(e, out int count) ?? false ? count : 0;
         }
         
+        public static bool IsRaised(this EventReference e) {
+            return (EventSystems.Global?.RaisedEvents?.TryGetValue(e, out int count) ?? false) && count > 0;
+        }
+        
         public static void Raise(this EventReference e, int add = 1) {
             EventSystems.Global?.Raise(e, add);
         }

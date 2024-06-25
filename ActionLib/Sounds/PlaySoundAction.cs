@@ -29,8 +29,12 @@ namespace MisterGames.ActionLib.Sounds {
         }
         
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            if (audioClipVariants.Length == 0) return default;
-
+            if (audioClipVariants.Length == 0 ||
+                source == null && !context.TryGetComponent(out source)
+            ) {
+                return default;
+            }
+            
             var clip = audioClipVariants.GetRandom().value;
             
             switch (mode) {

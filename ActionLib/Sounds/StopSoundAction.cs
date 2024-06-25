@@ -3,12 +3,8 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
-using MisterGames.Character.View;
-using MisterGames.Common.Attributes;
-using MisterGames.Common.Lists;
 using MisterGames.Tick.Core;
 using UnityEngine;
-using Random = UnityEngine.Random;
 
 namespace MisterGames.ActionLib.Sounds {
 
@@ -20,6 +16,8 @@ namespace MisterGames.ActionLib.Sounds {
         public AnimationCurve fadeOutCurve = AnimationCurve.Linear(0f, 0f, 1f, 1f);
         
         public async UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
+            if (source == null && !context.TryGetComponent(out source)) return;
+            
             if (fadeOut <= 0f) {
                 source.Stop();
                 return;
