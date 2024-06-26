@@ -66,8 +66,8 @@ namespace MisterGames.Character.View {
             _headJoint.DetachObject(obj);
         }
         
-        public void RotateObject(Transform obj, Vector2 sensitivity, float smoothing = 0f) {
-            _headJoint.RotateObject(obj, CurrentOrientation, sensitivity, smoothing);
+        public void RotateObject(Transform obj, Vector3 sensitivity, RotationPlane plane = RotationPlane.XY, float smoothing = 0f) {
+            _headJoint.RotateObject(obj, CurrentOrientation, sensitivity, plane, smoothing);
         }
 
         public void StopRotateObject(Transform obj) {
@@ -93,7 +93,7 @@ namespace MisterGames.Character.View {
         public void LookAt(Vector3 target) {
             _viewClamp.LookAt(target);
         }
-
+        
         public void StopLookAt() {
             _viewClamp.StopLookAt();
             _viewClamp.ApplyHorizontalClamp(CurrentOrientation, _viewClamp.Horizontal);

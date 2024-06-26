@@ -4,8 +4,6 @@ using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
 using MisterGames.Character.View;
-using MisterGames.Common;
-using MisterGames.Common.Maths;
 using MisterGames.Tick.Core;
 using UnityEngine;
 
@@ -23,7 +21,7 @@ namespace MisterGames.ActionLib.Character {
             var view = context.GetComponent<CharacterViewPipeline>();
             var head = context.GetComponent<CharacterHeadAdapter>();
 
-            var timeSource = TimeSources.Get(PlayerLoopStage.Update);
+            var timeSource = PlayerLoopStage.Update.Get();
             
             while (!cancellationToken.IsCancellationRequested) {
                 var targetRotation = Quaternion.LookRotation(target.position - head.Position);
@@ -40,6 +38,7 @@ namespace MisterGames.ActionLib.Character {
             if (cancellationToken.IsCancellationRequested) return;
             
             if (keepLookingAtAfterFinish) view.LookAt(target);
+            else view.StopLookAt();
         }
     }
     

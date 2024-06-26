@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using MisterGames.Common.Maths;
 using UnityEngine;
 
 namespace MisterGames.Character.View {
@@ -34,10 +33,12 @@ namespace MisterGames.Character.View {
         }
         
         private struct RotationData {
-            public Vector2 sensitivity;
+            public Vector3 sensitivity;
             public float smoothing;
             public Quaternion rotation;
             public Quaternion targetRotation;
+            public Quaternion orientation;
+            public RotationPlane plane;
         }
         
         public void Attach(Transform target, Vector3 point, AttachMode mode, float smoothing) {
@@ -69,7 +70,7 @@ namespace MisterGames.Character.View {
         public void AttachObject(Transform obj, Vector3 point, Vector3 position, Vector2 orientation, float smoothing = 0f) {
             _attachMap[obj] = new AttachData {
                 offset = point - position,
-                rotation = obj.rotation * Quaternion.Inverse(Quaternion.Euler(orientation)),
+                rotation = obj.rotation,
                 orientation = Quaternion.Euler(orientation),
                 smoothing = smoothing,
             };
@@ -79,16 +80,24 @@ namespace MisterGames.Character.View {
             _attachMap.Remove(obj);
         }
 
-        public void RotateObject(Transform obj, Vector2 orientation, Vector2 sensitivity, float smoothing = 0f) {
+        public void RotateObject(
+            Transform obj,
+            Vector2 orientation,
+            Vector2 sensitivity,
+            RotationPlane plane = RotationPlane.XY,
+            float smoothing = 0f
+        ) {
             _rotationObjects.Add(obj);
 
-            var rot = obj.rotation * Quaternion.Inverse(Quaternion.Euler(orientation));
+            var rot = obj.rotation;
             
             _rotationsMap[obj] = new RotationData {
                 sensitivity = sensitivity,
                 smoothing = smoothing,
                 rotation = rot,
                 targetRotation = rot,
+                orientation = Quaternion.Euler(orientation),
+                plane = plane,
             };
         }
 
@@ -109,14 +118,16 @@ namespace MisterGames.Character.View {
             position = _smoothing > 0f ? Vector3.Lerp(position, targetPoint, dt * _smoothing) : targetPoint;
             
             foreach (var (obj, data) in _attachMap) {
-                var targetPos = position + Quaternion.Euler(orientation) * Quaternion.Inverse(data.orientation) * data.offset;
+                var rot = Quaternion.Euler(orientation) * Quaternion.Inverse(data.orientation);
+                var targetPos = position + rot * data.offset;
+                
                 obj.position = data.smoothing > 0f 
                     ? Vector3.Lerp(obj.position, targetPos, data.smoothing * dt)
                     : targetPos;
 
                 if (_rotationObjects.Contains(obj)) continue;
                 
-                var targetRot = Quaternion.Euler(orientation) * data.rotation;
+                var targetRot = data.rotation * rot;
                 obj.rotation = data.smoothing > 0f 
                     ? Quaternion.Slerp(obj.rotation, targetRot, data.smoothing * dt)
                     : targetRot;
@@ -124,16 +135,32 @@ namespace MisterGames.Character.View {
             
             foreach (var obj in _rotationObjects) {
                 var data = _rotationsMap[obj];
+                var rot = Quaternion.Euler(orientation) * Quaternion.Inverse(data.orientation);
                 
-                data.targetRotation = Quaternion.Euler(delta.Multiply(data.sensitivity)) * data.targetRotation;
+                data.targetRotation = GetRotationDelta(delta, data.sensitivity, data.plane) * data.targetRotation;
                 data.rotation = data.smoothing > 0f 
                     ? Quaternion.Slerp(data.rotation, data.targetRotation, dt * data.smoothing)
                     : data.targetRotation;
                 
-                obj.rotation = Quaternion.Euler(orientation) * data.rotation;
+                var targetRot = rot * data.rotation;
+                obj.rotation = data.smoothing > 0f 
+                    ? Quaternion.Slerp(obj.rotation, targetRot, data.smoothing * dt)
+                    : targetRot;
 
                 _rotationsMap[obj] = data;
             }
+        }
+
+        private static Quaternion GetRotationDelta(Vector2 delta, Vector2 sensitivity, RotationPlane plane) {
+            return plane switch {
+                RotationPlane.XY => Quaternion.Euler(delta.x * sensitivity.x, delta.y * sensitivity.y, 0f),
+                RotationPlane.YX => Quaternion.Euler(delta.y * sensitivity.y, delta.x * sensitivity.x, 0f),
+                RotationPlane.XZ => Quaternion.Euler(delta.x * sensitivity.x, 0f, delta.y * sensitivity.y),
+                RotationPlane.ZX => Quaternion.Euler(delta.y * sensitivity.y, 0f, delta.x * sensitivity.x),
+                RotationPlane.YZ => Quaternion.Euler(0f, delta.x * sensitivity.x, delta.y * sensitivity.y),
+                RotationPlane.ZY => Quaternion.Euler(0f, delta.y * sensitivity.y, delta.x * sensitivity.x),
+                _ => throw new ArgumentOutOfRangeException(nameof(plane), plane, null)
+            };
         }
     }
     
