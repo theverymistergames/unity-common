@@ -34,7 +34,7 @@ namespace MisterGames.ActionLib.Time {
                     .SuppressCancellationThrow();    
             }
 
-            if (action == null) return;
+            if (cancellationToken.IsCancellationRequested || action == null) return;
             
             if (mode == Mode.WaitDelayAndAction) {
                 await action.Apply(context, cancellationToken);

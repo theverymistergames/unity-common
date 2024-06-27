@@ -58,8 +58,7 @@ namespace MisterGames.Character.View {
             Vector2 clampCenterEulers = _lookMode switch {
                 LookMode.Free => _clampCenterEulers,
                 LookMode.Point => Quaternion.LookRotation(_lookTargetPoint - position, Vector3.up).eulerAngles,
-                LookMode.Transform => Quaternion.LookRotation(_lookTarget.position - position, Vector3.up).eulerAngles,
-                _ => throw new ArgumentOutOfRangeException()
+                LookMode.Transform => Quaternion.LookRotation(_lookTarget.position - position, Vector3.up).eulerAngles, 
             };
 
             clampCenterEulers = GetNearestAngle(clampCenterEulers, targetOrientation);

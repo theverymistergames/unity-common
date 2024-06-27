@@ -34,7 +34,7 @@ namespace MisterGames.Common.Actions {
                 case Mode.Sequence:
                     for (int i = 0; i < count; i++) {
                         if (cancellationToken.IsCancellationRequested) break;
-                        await actions[i].Apply(context, cancellationToken);
+                        if (actions[i] is {} action) await action.Apply(context, cancellationToken);
                     }
                     break;
 
@@ -42,7 +42,7 @@ namespace MisterGames.Common.Actions {
                     var tasks = ArrayPool<UniTask>.Shared.Rent(count);
 
                     for (int i = 0; i < count; i++) {
-                        tasks[i] = actions[i].Apply(context, cancellationToken);
+                        tasks[i] = actions[i] is {} action ? action.Apply(context, cancellationToken) : UniTask.CompletedTask;
                     }
 
                     await UniTask.WhenAll(tasks);
