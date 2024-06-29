@@ -1,4 +1,5 @@
 ﻿using System;
+using MisterGames.Common.Data;
 using UnityEngine;
 
 namespace MisterGames.Common.Attributes {
@@ -10,7 +11,7 @@ namespace MisterGames.Common.Attributes {
         public readonly int value;
         public readonly CompareMode mode;
 
-        public VisibleIfAttribute(string property, int value = 1, CompareMode mode = CompareMode.Equals) {
+        public VisibleIfAttribute(string property, int value = 1, CompareMode mode = CompareMode.Equal) {
             this.property = property;
             this.value = value;
             this.mode = mode;

@@ -1,5 +1,6 @@
 ﻿using System;
 using MisterGames.Common.Attributes;
+using MisterGames.Common.Data;
 using MisterGames.Common.Editor.SerializedProperties;
 using MisterGames.Common.Maths;
 using UnityEditor;
@@ -43,11 +44,12 @@ namespace MisterGames.Common.Editor.Attributes {
 
         private static bool Match(int a, int b, CompareMode mode) {
             return mode switch {
-                CompareMode.Equals => a == b,
+                CompareMode.Equal => a == b,
+                CompareMode.NotEqual => a != b,
                 CompareMode.Greater => a > b,
                 CompareMode.Less => a < b,
-                CompareMode.GreaterOrEquals => a >= b,
-                CompareMode.LessOrEquals => a <= b,
+                CompareMode.GreaterOrEqual => a >= b,
+                CompareMode.LessOrEqual => a <= b,
                 _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
             };
         }
