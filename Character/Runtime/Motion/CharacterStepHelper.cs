@@ -91,7 +91,7 @@ namespace MisterGames.Character.Motion {
             if (_showDebugInfo) DebugExt.DrawPointer(upperPoint + motionDir * _distance, Color.green, 0.1f);
 #endif
 
-            float angle = Vector3.SignedAngle(up, lowerHit.normal, -_transform.right);
+            float angle = Vector3.SignedAngle(up, lowerHit.normal, Vector3.Cross(motionDir, up));
             if (angle < _minInclineAngle) return;
 
             float speed = isGrounded ? 1f : _airSpeedMultiplier;

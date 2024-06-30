@@ -4,6 +4,7 @@ using MisterGames.Character.Collisions;
 using MisterGames.Character.Input;
 using MisterGames.Character.View;
 using MisterGames.Collisions.Utils;
+using MisterGames.Common;
 using MisterGames.Common.Maths;
 using MisterGames.Tick.Core;
 using UnityEngine;
@@ -17,6 +18,7 @@ namespace MisterGames.Character.Motion {
         [SerializeField] [Min(0f)] private float _noGravityVelocityDamping = 10f;
         [SerializeField] private float _speedCorrectionSide = 0.8f;
         [SerializeField] private float _speedCorrectionBack = 0.6f;
+        [SerializeField] [Range(0f, 90f)] private float _maxSlopeAngle = 45f;
         [SerializeField] private float _inputSmoothing = 20f;
         
         [Header("Friction")]
@@ -32,7 +34,6 @@ namespace MisterGames.Character.Motion {
         [SerializeField] [Min(1)] private int _maxHits = 12;
         [SerializeField] private LayerMask _layer;
 
-        public Vector3 Forward => GetWorldDir(Vector3.forward);
         public Vector3 MotionDirWorld => GetWorldDir(InputToLocal(MotionInput));
         public Vector2 MotionInput { get; private set; }
         public Vector3 Velocity { get => _rigidbody.velocity; set => _rigidbody.velocity = value; }
@@ -88,13 +89,14 @@ namespace MisterGames.Character.Motion {
             
             float maxSpeed = CalculateSpeedCorrection(_smoothedInput) * SpeedMultiplier;
             var velocity = _rigidbody.velocity;
-            var inputDir = InputToLocal(_smoothedInput);
-            var forward = GetWorldDir(inputDir);
+            var inputDirWorld = GetWorldDir(InputToLocal(_smoothedInput));
             
             PreviousVelocity = velocity;
             
-            var force = VectorUtils.ClampAcceleration(forward * _moveForce, velocity, maxSpeed, dt);
-            LimitForceByObstacles(forward, ref force);
+            var force = VectorUtils.ClampAcceleration(inputDirWorld * _moveForce, velocity, maxSpeed, dt);
+            
+            LimitForceByObstacles(inputDirWorld, ref force);
+            LimitForceBySlopeAngle(inputDirWorld, ref force);
             
             _rigidbody.AddForce(force, ForceMode.Acceleration);
 
@@ -129,8 +131,21 @@ namespace MisterGames.Character.Motion {
             return _speedCorrectionSide;
         }
 
-        private void LimitForceByObstacles(Vector3 dir, ref Vector3 inputForce) {
-            if (dir.IsNearlyZero()) return;
+        private void LimitForceBySlopeAngle(Vector3 inputDir, ref Vector3 inputForce) {
+            if (inputDir.IsNearlyZero() || !_groundDetector.CollisionInfo.hasContact) return;
+
+            var up = _rigidbody.transform.up;
+            var normal = _groundDetector.CollisionInfo.normal;
+            float angle = Vector3.SignedAngle(up, normal, Vector3.Cross(inputDir, up).normalized);
+            
+            if (angle <= _maxSlopeAngle) return;
+
+            var slopeUp = Vector3.Cross(Vector3.Cross(normal, up), normal).normalized;
+            inputForce = Vector3.ProjectOnPlane(inputForce, slopeUp);
+        }
+
+        private void LimitForceByObstacles(Vector3 inputDir, ref Vector3 inputForce) {
+            if (inputDir.IsNearlyZero()) return;
 
             var pos = _rigidbody.position;
             float radius = _collider.radius + _capsuleCastRadiusOffset;
@@ -147,7 +162,7 @@ namespace MisterGames.Character.Motion {
                 p0, 
                 p1, 
                 radius, 
-                dir.normalized, 
+                inputDir.normalized, 
                 _hits, 
                 _capsuleCastDistance, 
                 _layer, 
