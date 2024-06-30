@@ -1,10 +1,8 @@
-﻿using System;
-using MisterGames.Actors;
+﻿using MisterGames.Actors;
 using MisterGames.Character.Collisions;
 using MisterGames.Character.Input;
 using MisterGames.Character.View;
 using MisterGames.Collisions.Utils;
-using MisterGames.Common;
 using MisterGames.Common.Maths;
 using MisterGames.Tick.Core;
 using UnityEngine;
@@ -18,15 +16,20 @@ namespace MisterGames.Character.Motion {
         [SerializeField] [Min(0f)] private float _noGravityVelocityDamping = 10f;
         [SerializeField] private float _speedCorrectionSide = 0.8f;
         [SerializeField] private float _speedCorrectionBack = 0.6f;
+        [SerializeField] [Range(0f, 90f)] private float _minSlopeAngle = 15f;
         [SerializeField] [Range(0f, 90f)] private float _maxSlopeAngle = 45f;
         [SerializeField] private float _inputSmoothing = 20f;
         
         [Header("Friction")]
         [SerializeField] [Min(0f)] private float _frictionGrounded = 0.6f;
-        [SerializeField] [Min(0f)] private float _frictionAir = 0f;
+        [SerializeField] [Min(0f)] private float _frictionAir;
+        [SerializeField] [Min(0f)] private float _frictionSlope = 1f;
+        [SerializeField] [Min(0f)] private float _frictionSlopeOverMaxAngle = 0.6f;
         [SerializeField] private PhysicMaterialCombine _frictionCombineGrounded = PhysicMaterialCombine.Average;
         [SerializeField] private PhysicMaterialCombine _frictionCombineAir = PhysicMaterialCombine.Multiply;
-        
+        [SerializeField] private PhysicMaterialCombine _frictionCombineSlope = PhysicMaterialCombine.Maximum;
+        [SerializeField] private PhysicMaterialCombine _frictionCombineSlopeOverMaxAngle = PhysicMaterialCombine.Average;
+
         [Header("Detection")]
         [SerializeField] [Min(0f)] private float _capsuleCastDistance = 0.1f;
         [SerializeField] private float _capsuleCastRadiusOffset = -0.05f;
@@ -83,26 +86,27 @@ namespace MisterGames.Character.Motion {
         void IUpdate.OnUpdate(float dt) {
             _groundDetector.FetchResults();
             
-            UpdateFriction();
-            
             _smoothedInput = Vector2.Lerp(_smoothedInput, MotionInput, dt * _inputSmoothing);
             
             float maxSpeed = CalculateSpeedCorrection(_smoothedInput) * SpeedMultiplier;
             var velocity = _rigidbody.velocity;
             var inputDirWorld = GetWorldDir(InputToLocal(_smoothedInput));
+            float slopeAngle = GetSlopeAngle(inputDirWorld);
             
             PreviousVelocity = velocity;
             
             var force = VectorUtils.ClampAcceleration(inputDirWorld * _moveForce, velocity, maxSpeed, dt);
             
             LimitForceByObstacles(inputDirWorld, ref force);
-            LimitForceBySlopeAngle(inputDirWorld, ref force);
+            LimitForceBySlopeAngle(inputDirWorld, slopeAngle, ref force);
             
             _rigidbody.AddForce(force, ForceMode.Acceleration);
 
             if (!_rigidbody.useGravity) {
                 _rigidbody.velocity = Vector3.Lerp(_rigidbody.velocity, Vector3.zero, dt * _noGravityVelocityDamping);
             }
+            
+            UpdateFriction(slopeAngle);
         }
 
         private static Vector3 InputToLocal(Vector2 input) {
@@ -131,16 +135,18 @@ namespace MisterGames.Character.Motion {
             return _speedCorrectionSide;
         }
 
-        private void LimitForceBySlopeAngle(Vector3 inputDir, ref Vector3 inputForce) {
-            if (inputDir.IsNearlyZero() || !_groundDetector.CollisionInfo.hasContact) return;
-
+        private void LimitForceBySlopeAngle(Vector3 inputDir, float slopeAngle, ref Vector3 inputForce) {
+            if (inputDir.IsNearlyZero() ||
+                !_groundDetector.CollisionInfo.hasContact ||
+                slopeAngle <= _maxSlopeAngle
+            ) {
+                return;
+            }
+            
             var up = _rigidbody.transform.up;
             var normal = _groundDetector.CollisionInfo.normal;
-            float angle = Vector3.SignedAngle(up, normal, Vector3.Cross(inputDir, up).normalized);
-            
-            if (angle <= _maxSlopeAngle) return;
-
             var slopeUp = Vector3.Cross(Vector3.Cross(normal, up), normal).normalized;
+            
             inputForce = Vector3.ProjectOnPlane(inputForce, slopeUp);
         }
 
@@ -178,19 +184,47 @@ namespace MisterGames.Character.Motion {
             inputForce = Vector3.ProjectOnPlane(inputForce, hit.normal);
         }
 
-        private void UpdateFriction() {
+        private void UpdateFriction(float slopeAngle) {
             var mat = _collider.material;
             
             if (_groundDetector.CollisionInfo.hasContact) {
-                mat.frictionCombine = _frictionCombineGrounded;
-                mat.dynamicFriction = _frictionGrounded;
-                mat.staticFriction = _frictionGrounded;
+                float absAngle = Mathf.Abs(slopeAngle);
+
+                if (absAngle < _minSlopeAngle) {
+                    mat.frictionCombine = _frictionCombineGrounded;
+                    mat.dynamicFriction = _frictionGrounded;
+                    mat.staticFriction = _frictionGrounded;
+                    
+                    return;
+                }
+                
+                if (absAngle <= _maxSlopeAngle) {
+                    mat.frictionCombine = _frictionCombineSlope;
+                    mat.dynamicFriction = _frictionSlope;
+                    mat.staticFriction = _frictionSlope;
+                    
+                    return;
+                }
+                
+                mat.frictionCombine = _frictionCombineSlopeOverMaxAngle;
+                mat.dynamicFriction = _frictionSlopeOverMaxAngle;
+                mat.staticFriction = _frictionSlopeOverMaxAngle;
+                
                 return;
             }
             
             mat.frictionCombine = _frictionCombineAir;
             mat.dynamicFriction = _frictionAir;
             mat.staticFriction = _frictionAir;
+        }
+
+        private float GetSlopeAngle(Vector3 inputDir) {
+            var up = _rigidbody.transform.up;
+            return Vector3.SignedAngle(
+                up,
+                _groundDetector.CollisionInfo.normal, 
+                Vector3.Cross(inputDir, up).normalized
+            );
         }
     }
 
