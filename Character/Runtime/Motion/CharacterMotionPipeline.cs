@@ -1,4 +1,5 @@
-﻿using MisterGames.Actors;
+﻿using System;
+using MisterGames.Actors;
 using MisterGames.Character.Collisions;
 using MisterGames.Character.Input;
 using MisterGames.Character.View;
@@ -42,7 +43,7 @@ namespace MisterGames.Character.Motion {
         public Vector3 Velocity { get => _rigidbody.velocity; set => _rigidbody.velocity = value; }
         public Vector3 PreviousVelocity { get; private set; }
         public float MoveForce { get => _moveForce; set => _moveForce = value; }
-        public float SpeedMultiplier { get; set; }
+        public float Speed { get; set; }
         public float SpeedCorrectionBack { get => _speedCorrectionBack; set => _speedCorrectionBack = value; }
         public float SpeedCorrectionSide { get => _speedCorrectionSide; set => _speedCorrectionSide = value; }
         public Vector3 Position { get => _rigidbody.position; set => _rigidbody.position = value; }
@@ -88,14 +89,15 @@ namespace MisterGames.Character.Motion {
             
             _smoothedInput = Vector2.Lerp(_smoothedInput, MotionInput, dt * _inputSmoothing);
             
-            float maxSpeed = CalculateSpeedCorrection(_smoothedInput) * SpeedMultiplier;
+            float maxSpeed = CalculateSpeedCorrection(MotionInput) * Speed;
             var velocity = _rigidbody.velocity;
             var inputDirWorld = GetWorldDir(InputToLocal(_smoothedInput));
             float slopeAngle = GetSlopeAngle(inputDirWorld);
             
             PreviousVelocity = velocity;
-            
-            var force = VectorUtils.ClampAcceleration(inputDirWorld * _moveForce, velocity, maxSpeed, dt);
+
+            var velocityProj = velocity.magnitude * inputDirWorld;
+            var force = VectorUtils.ClampAcceleration(inputDirWorld * _moveForce, velocityProj, maxSpeed, dt);
             
             LimitForceByObstacles(inputDirWorld, ref force);
             LimitForceBySlopeAngle(inputDirWorld, slopeAngle, ref force);
@@ -226,6 +228,23 @@ namespace MisterGames.Character.Motion {
                 Vector3.Cross(inputDir, up).normalized
             );
         }
+
+        [Header("Debug")]
+        [SerializeField] private bool _showDebugInfo;
+        
+#if UNITY_EDITOR
+        private void OnDrawGizmos() {
+            if (!_showDebugInfo) return;
+
+            if (Application.isPlaying) {
+                UnityEditor.Handles.Label(
+                    transform.TransformPoint(Vector3.up),
+                    $"Speed {_rigidbody.velocity.magnitude:0.00} / {CalculateSpeedCorrection(_smoothedInput) * Speed:0.00}\n" +
+                    $"Move force {_moveForce:0.00}"
+                );
+            }
+        }
+#endif
     }
 
 }

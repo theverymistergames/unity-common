@@ -16,7 +16,7 @@ namespace MisterGames.ActionLib.Character {
 
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
             var motion = context.GetComponent<CharacterMotionPipeline>();
-            motion.SpeedMultiplier = speed;
+            motion.Speed = speed;
             motion.MoveForce = moveForce;
             return default;
         }
