@@ -124,6 +124,7 @@ namespace MisterGames.Interact.Cursors {
             }
 
             _cursorImage.sprite = icon.sprite;
+            _cursorImage.color = icon.tint;
 
             var rectTransform = _cursorImage.rectTransform;
             rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, icon.size.x);
