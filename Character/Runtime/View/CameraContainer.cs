@@ -1,23 +1,24 @@
 ﻿using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
+using MisterGames.Actors;
 using MisterGames.Tick.Core;
 using UnityEngine;
 
 namespace MisterGames.Character.View {
 
-    public sealed class CameraContainer : MonoBehaviour {
-
-        [SerializeField] private Camera _camera;
-        [SerializeField] private Transform _transform;
-
-        public Camera Camera => _camera;
+    public sealed class CameraContainer : MonoBehaviour, IActorComponent {
         
+        [SerializeField] private Transform _translationRoot;
+        [SerializeField] private Transform _rotationRoot;
+
+        public Camera Camera { get; private set; }
+
         private readonly Dictionary<int, WeightedValue<Vector3>> _positionStates = new();
         private readonly Dictionary<int, WeightedValue<Quaternion>> _rotationStates = new();
         private readonly Dictionary<int, WeightedValue<float>> _fovStates = new();
 
         private ITimeSource _timeSource;
-        
+
         private CameraState _baseState;
         private CameraState _resultState;
         private CameraState _persistentState;
@@ -28,10 +29,12 @@ namespace MisterGames.Character.View {
         private byte _clearPersistentStateOperationId;
         private bool _isClearingPersistentStates;
 
-        private void Awake() {
-            _timeSource = TimeSources.Get(PlayerLoopStage.Update);
+        void IActorComponent.OnAwake(IActor actor) {
+            Camera = actor.GetComponent<Camera>();
             
-            _baseState = new CameraState(_transform.localPosition, _transform.localRotation, _camera.fieldOfView);
+            _timeSource = PlayerLoopStage.Update.Get();
+            
+            _baseState = new CameraState(_translationRoot.localPosition, _rotationRoot.localRotation, Camera.fieldOfView);
             _resultState = CameraState.Empty;
             _persistentState = CameraState.Empty;
             _persistentStateBuffer = CameraState.Empty;
@@ -172,9 +175,9 @@ namespace MisterGames.Character.View {
         private void ApplyResultState() {
             if (!_isInitialized) return;
 
-            _transform.localPosition = _baseState.position + _persistentStateBuffer.position + _persistentState.position + _resultState.position;
-            _transform.localRotation = _baseState.rotation * _persistentStateBuffer.rotation * _persistentState.rotation * _resultState.rotation;
-            _camera.fieldOfView = _baseState.fov + _persistentStateBuffer.fov + _persistentState.fov + _resultState.fov;
+            _translationRoot.localPosition = _baseState.position + _persistentStateBuffer.position + _persistentState.position + _resultState.position;
+            _rotationRoot.localRotation = _baseState.rotation * _persistentStateBuffer.rotation * _persistentState.rotation * _resultState.rotation;
+            Camera.fieldOfView = _baseState.fov + _persistentStateBuffer.fov + _persistentState.fov + _resultState.fov;
         }
 
         private CameraState BuildResultState() {

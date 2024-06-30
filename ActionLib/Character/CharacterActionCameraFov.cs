@@ -22,7 +22,7 @@ namespace MisterGames.ActionLib.Character {
         public FloatParameter fovOffset = FloatParameter.Default();
 
         public async UniTask Apply(IActor actor, CancellationToken cancellationToken = default) {
-            var cameraContainer = actor.GetComponent<CharacterViewPipeline>().CameraContainer;
+            var cameraContainer = actor.GetComponent<CameraContainer>();
 
             var timeSource = PlayerLoopStage.LateUpdate.Get();
 

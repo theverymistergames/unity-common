@@ -32,7 +32,8 @@ namespace MisterGames.Character.Interactives {
         [SerializeField] private Vector2 _positionRange;
         [SerializeField] private Vector3 _positionAxis;
 
-        private CharacterViewPipeline _characterView;
+        private CharacterViewPipeline _viewPipeline;
+        private CameraContainer _cameraContainer;
         private Interactive _interactive;
         private Vector2 _inputAccum;
         private Vector3 _initialVisualPosition;
@@ -82,14 +83,19 @@ namespace MisterGames.Character.Interactives {
                 _zoomInput.OnChanged -= OnZoomInput;
                 _zoomInput.OnChanged += OnZoomInput;
 
-                if (_characterView == null) {
+                if (_cameraContainer == null) {
                     foreach (var user in _interactive.Users) {
-                        if (user.Root.TryGetComponent(out IActor actor) && actor.TryGetComponent(out _characterView)) break; 
+                        if (user.Root.TryGetComponent(out IActor actor) &&
+                            actor.TryGetComponent(out _cameraContainer) &&
+                            actor.TryGetComponent(out _viewPipeline)
+                        ) {
+                            break;
+                        } 
                     }
                 }
 
-                if (_characterView != null) {
-                   _cameraStateId = _characterView.CameraContainer.CreateState();
+                if (_cameraContainer != null) {
+                   _cameraStateId = _cameraContainer.CreateState();
                 }
                 
                 return;
@@ -100,8 +106,8 @@ namespace MisterGames.Character.Interactives {
             _zoomInput.OnChanged -= OnZoomInput;
             _inputAccum = Vector2.zero;
 
-            if (_characterView != null) {
-                _characterView.CameraContainer.RemoveState(_cameraStateId);
+            if (_cameraContainer != null) {
+                _cameraContainer.RemoveState(_cameraStateId);
             }
         }
 
@@ -135,7 +141,7 @@ namespace MisterGames.Character.Interactives {
         }
 
         private void UpdatePlayerVisuals(float t, float dt) {
-            if (_characterView == null || !_characterView.IsAttached) return;
+            if (_viewPipeline == null || !_viewPipeline.IsAttached || _cameraContainer == null) return;
 
             float fovOffset = Mathf.Lerp(_playerFovRange.x, _playerFovRange.y, t);
             float attachDistance = Mathf.Lerp(_playerAttachDistanceRange.x, _playerAttachDistanceRange.y, t);
@@ -143,8 +149,8 @@ namespace MisterGames.Character.Interactives {
             _playerFovOffset = Mathf.Lerp(_playerFovOffset, fovOffset, dt * _playerFovSmoothing);
             _playerAttachDistance = Mathf.Lerp(_playerAttachDistance, attachDistance, dt * _playerAttachSmoothing);
             
-            _characterView.CameraContainer.SetFovOffset(_cameraStateId, 1f, _playerFovOffset);
-            _characterView.AttachDistance = _playerAttachDistance;
+            _cameraContainer.SetFovOffset(_cameraStateId, 1f, _playerFovOffset);
+            _viewPipeline.AttachDistance = _playerAttachDistance;
         }
     }
     

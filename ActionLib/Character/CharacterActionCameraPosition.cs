@@ -25,7 +25,7 @@ namespace MisterGames.ActionLib.Character {
         public Vector3Parameter offset = Vector3Parameter.Default();
 
         public async UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            var cameraContainer = context.GetComponent<CharacterViewPipeline>().CameraContainer;
+            var cameraContainer = context.GetComponent<CameraContainer>();
 
             var timeSource = PlayerLoopStage.LateUpdate.Get();
 

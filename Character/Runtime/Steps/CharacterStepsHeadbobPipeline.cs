@@ -47,7 +47,7 @@ namespace MisterGames.Character.Steps {
         public void OnAwake(IActor actor) {
             _rigidbody = actor.GetComponent<Rigidbody>();
             _head = actor.GetComponent<CharacterHeadAdapter>();
-            _cameraContainer = actor.GetComponent<CharacterViewPipeline>().CameraContainer;
+            _cameraContainer = actor.GetComponent<CameraContainer>();
             _steps = actor.GetComponent<CharacterStepsPipeline>();
         }
 

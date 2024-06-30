@@ -34,7 +34,7 @@ namespace MisterGames.Character.View {
 
         public void OnAwake(IActor actor) {
             _motion = actor.GetComponent<CharacterMotionPipeline>();
-            _cameraContainer = actor.GetComponent<CharacterViewPipeline>().CameraContainer;
+            _cameraContainer = actor.GetComponent<CameraContainer>();
         }
         
         private void OnEnable() {

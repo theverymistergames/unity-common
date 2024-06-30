@@ -33,7 +33,7 @@ namespace MisterGames.Character.Breath {
         
         public void OnAwake(IActor actor) {
             _breath = actor.GetComponent<CharacterBreathPipeline>();
-            _cameraContainer = actor.GetComponent<CharacterViewPipeline>().CameraContainer;
+            _cameraContainer = actor.GetComponent<CameraContainer>();
         }
 
         private void OnEnable() {

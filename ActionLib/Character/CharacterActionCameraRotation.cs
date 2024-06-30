@@ -24,8 +24,8 @@ namespace MisterGames.ActionLib.Character {
 
         public Vector3Parameter eulers = Vector3Parameter.Default();
 
-        public async UniTask Apply(IActor actor, CancellationToken cancellationToken = default) {
-            var cameraContainer = actor.GetComponent<CharacterViewPipeline>().CameraContainer;
+        public async UniTask Apply(IActor actor, CancellationToken cancellationToken = default) { 
+            var cameraContainer = actor.GetComponent<CameraContainer>();
 
             var timeSource = PlayerLoopStage.LateUpdate.Get();
 

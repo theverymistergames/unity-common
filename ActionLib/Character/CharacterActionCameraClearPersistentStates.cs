@@ -14,7 +14,7 @@ namespace MisterGames.ActionLib.Character {
         [Min(0f)] public float duration;
 
         public UniTask Apply(IActor actor, CancellationToken cancellationToken = default) {
-            return actor.GetComponent<CharacterViewPipeline>().CameraContainer.ClearPersistentStates(duration);
+            return actor.GetComponent<CameraContainer>().ClearPersistentStates(duration);
         }
     }
 

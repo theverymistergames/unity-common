@@ -11,10 +11,7 @@ using UnityEngine;
 namespace MisterGames.Character.View {
 
     public sealed class CharacterViewPipeline : MonoBehaviour, IActorComponent, IUpdate {
-
-        [SerializeField] private Camera _camera;
-        [SerializeField] private CameraContainer _cameraContainer;
-
+        
         [Header("View Settings")]
         [SerializeField] private Vector2 _sensitivity = new Vector2(0.15f, 0.15f);
         [SerializeField] private float _smoothing = 20f;
@@ -26,7 +23,6 @@ namespace MisterGames.Character.View {
         public event Action<float> OnAttach { add => _headJoint.OnAttach += value; remove => _headJoint.OnAttach -= value; }
         public event Action OnDetach { add => _headJoint.OnDetach += value; remove => _headJoint.OnDetach -= value; }
         
-        public CameraContainer CameraContainer => _cameraContainer;
         public Vector3 CurrentOrientation => _headAdapter.Rotation.eulerAngles.ToEulerAngles180();
         public Vector2 Sensitivity { get => _sensitivity; set => _sensitivity = value; }
         public float Smoothing { get => _smoothing; set => _smoothing = value; }
@@ -35,6 +31,7 @@ namespace MisterGames.Character.View {
         
         private readonly CharacterHeadJoint _headJoint = new();
         
+        private CameraContainer _cameraContainer;
         private ITransformAdapter _headAdapter;
         private ITransformAdapter _bodyAdapter;
         private CharacterInputPipeline _inputPipeline;
@@ -42,13 +39,14 @@ namespace MisterGames.Character.View {
         private Vector2 _inputDeltaAccum;
 
         void IActorComponent.OnAwake(IActor actor) {
+            _cameraContainer = actor.GetComponent<CameraContainer>();
             _headAdapter = actor.GetComponent<CharacterHeadAdapter>();
             _bodyAdapter = actor.GetComponent<CharacterBodyAdapter>();
             _inputPipeline = actor.GetComponent<CharacterInputPipeline>();
         }
 
         private void OnEnable() {
-            CanvasRegistry.Instance.SetCanvasEventCamera(_camera);
+            CanvasRegistry.Instance.SetCanvasEventCamera(_cameraContainer.Camera);
             _inputPipeline.OnViewVectorChanged += HandleViewVectorChanged;
             PlayerLoopStage.LateUpdate.Subscribe(this);
         }
