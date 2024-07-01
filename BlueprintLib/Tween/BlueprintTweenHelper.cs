@@ -12,14 +12,14 @@ namespace MisterGames.BlueprintLib.Tweens {
         public delegate UniTask CreateTween(float duration, float startProgress, float speed, CancellationToken cancellationToken = default);
         public delegate UniTask CreateTween<in T>(T data, float duration, float startProgress, float speed, CancellationToken cancellationToken = default);
 
-        public static void FetchLinkedTweens(LinkIterator links, List<ITween> dest) {
+        public static void FetchLinkedTweens(LinkIterator links, List<IActorTween> dest) {
             while (links.MoveNext()) {
-                if (links.Read<ITween>() is { } t) {
+                if (links.Read<IActorTween>() is { } t) {
                     dest.Add(t);
                     continue;
                 }
 
-                if (links.Read<ITween[]>() is { } array) {
+                if (links.Read<IActorTween[]>() is { } array) {
                     for (int i = 0; i < array.Length; i++) {
                         if (array[i] is { } t1) dest.Add(t1);
                     }

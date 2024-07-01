@@ -9,16 +9,20 @@ using UnityEngine;
 namespace MisterGames.Tweens {
 
     [Serializable]
-    public sealed class TweenPlayer {
+    public sealed class TweenPlayer<TContext, TTween> : ITweenPlayer where TTween : ITween<TContext> {
 
         [SerializeField] [Range(0f, 1f)] private float _progress;
         [SerializeField] private float _speed = 1f;
         [SerializeField] private YoyoMode _yoyo;
         [SerializeField] private bool _loop;
         [SerializeField] private bool _invertNextPlay;
-        [SerializeReference] [SubclassSelector] private ITween _tween;
+        [SerializeReference] [SubclassSelector] private TTween _tween;
 
-        public ITween Tween { get => _tween; set => SetTween(value); }
+        public event ProgressCallback OnProgressUpdate = delegate { };
+        
+        public TContext Context { get; set; }
+        public TTween Tween { get => _tween; set => SetTween(value); }
+        
         public float Duration => GetDuration(forceRecalculate: false);
         public float Timer => _progress * _tween?.Duration ?? 0f;
         public float Progress { get => _progress; set => SetProgress(value); }
@@ -40,7 +44,7 @@ namespace MisterGames.Tweens {
         
         public async UniTask<bool> Play<T>(
             T data,
-            ProgressCallback<T> progressCallback,
+            ProgressCallback<TContext, T> progressCallback,
             float progress = -1f,
             CancellationToken cancellationToken = default
         ) {
@@ -59,7 +63,7 @@ namespace MisterGames.Tweens {
             
             while (!cancellationToken.IsCancellationRequested) {
                 TrackProgress(data, duration, _speed, progressCallback, cancellationToken).Forget();
-                if (_tween != null) await _tween.Play(duration, _progress, _speed, cancellationToken);
+                if (_tween != null) await _tween.Play(Context, duration, _progress, _speed, cancellationToken);
 
                 if (cancellationToken.IsCancellationRequested) break;
 
@@ -94,59 +98,44 @@ namespace MisterGames.Tweens {
             return false;
         }
 
-        public async UniTask<bool> Play(
+        public UniTask<bool> Play(
+            ProgressCallback<TContext> progressCallback,
+            float progress = -1f,
+            CancellationToken cancellationToken = default
+        ) {
+            return Play(
+                data: progressCallback,
+                progressCallback: (context, callback, p, oldP) => callback.Invoke(context, p, oldP),
+                progress,
+                cancellationToken
+            );
+        }
+
+        public UniTask<bool> Play<T>(
+            T data,
+            ProgressCallback<T> progressCallback,
+            float progress = -1f,
+            CancellationToken cancellationToken = default
+        ) {
+            return Play(
+                data: (data, progressCallback),
+                progressCallback: (_, d, p, oldP) => d.progressCallback.Invoke(d.data, p, oldP),
+                progress,
+                cancellationToken
+            );
+        }
+        
+        public UniTask<bool> Play(
             ProgressCallback progressCallback = null,
             float progress = -1f,
             CancellationToken cancellationToken = default
         ) {
-            Stop();
-
-            if (progress >= 0f) _progress = progress;
-            
-            float duration = GetDuration(forceRecalculate: _playState != PlayState.DurationCalculated);
-            if (_invertNextPlay && _playState == PlayState.Playing) _speed = -_speed;
-            _playState = PlayState.Playing;
-
-            if (duration > 0f) {
-                _cts = new CancellationTokenSource();
-                cancellationToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _cts.Token).Token;
-            }
-
-            while (!cancellationToken.IsCancellationRequested) {
-                TrackProgress(duration, _speed, progressCallback, cancellationToken).Forget();
-                if (_tween != null) await _tween.Play(duration, _progress, _speed, cancellationToken);
-
-                if (cancellationToken.IsCancellationRequested) break;
-
-                if (_speed > 0f && _yoyo == YoyoMode.End ||
-                    _speed < 0f && _yoyo == YoyoMode.Start
-                ) {
-                    _speed = -_speed;
-                    continue;
-                }
-
-                if (_loop) {
-                    if (_speed > 0f) {
-                        if (_yoyo == YoyoMode.Start) _speed = -_speed;
-                        else _progress = 0f;
-                    }
-                    else if (_speed < 0f) {
-                        if (_yoyo == YoyoMode.End) _speed = -_speed;
-                        else _progress = 1f;
-                    }
-                    
-                    await UniTask.Yield();
-                    duration = GetDuration(forceRecalculate: true);
-                    continue;
-                }
-                
-                _playState = PlayState.Completed;
-                if (_invertNextPlay) _speed = -_speed;
-                
-                return true;
-            }
-
-            return false;
+            return Play(
+                data: progressCallback,
+                progressCallback: (_, callback, p, oldP) => callback?.Invoke(p, oldP),
+                progress,
+                cancellationToken
+            );
         }
 
         public void Stop() {
@@ -159,7 +148,7 @@ namespace MisterGames.Tweens {
             T data,
             float duration,
             float speed,
-            ProgressCallback<T> progressCallback = null,
+            ProgressCallback<TContext, T> progressCallback = null,
             CancellationToken cancellationToken = default
         ) {
             byte id = ++_trackProgressId;
@@ -167,18 +156,27 @@ namespace MisterGames.Tweens {
             if (duration <= 0f) {
                 float oldProgress = _progress;
                 _progress = speed > 0f ? 1f : 0f;
-                if (!oldProgress.IsNearlyEqual(_progress)) progressCallback?.Invoke(data, _progress);
+                
+                if (!oldProgress.IsNearlyEqual(_progress)) {
+                    progressCallback?.Invoke(Context, data, _progress, oldProgress);
+                    OnProgressUpdate.Invoke(_progress, oldProgress);
+                }
+                
                 return;
             }
 
-            var timeSource = TimeSources.Get(PlayerLoopStage.Update);
+            var timeSource = PlayerLoopStage.Update.Get();
 
             while (!cancellationToken.IsCancellationRequested && id == _trackProgressId) {
                 float dt = timeSource.DeltaTime;
 
                 float oldProgress = _progress;
                 _progress = Mathf.Clamp01(_progress + dt * speed / duration);
-                if (!oldProgress.IsNearlyEqual(_progress)) progressCallback?.Invoke(data, _progress);
+
+                if (!oldProgress.IsNearlyEqual(_progress)) {
+                    progressCallback?.Invoke(Context, data, _progress, oldProgress);
+                    OnProgressUpdate.Invoke(_progress, oldProgress);
+                }
 
                 if (speed > 0 && _progress >= 1f || speed < 0 && _progress <= 0f) {
                     break;
@@ -188,39 +186,7 @@ namespace MisterGames.Tweens {
             }
         }
 
-        private async UniTask TrackProgress(
-            float duration,
-            float speed,
-            ProgressCallback progressCallback = null,
-            CancellationToken cancellationToken = default
-        ) {
-            byte id = ++_trackProgressId;
-            
-            if (duration <= 0f) {
-                float oldProgress = _progress;
-                _progress = speed > 0f ? 1f : 0f;
-                if (!oldProgress.IsNearlyEqual(_progress)) progressCallback?.Invoke(_progress);
-                return;
-            }
-
-            var timeSource = TimeSources.Get(PlayerLoopStage.Update);
-
-            while (!cancellationToken.IsCancellationRequested && id == _trackProgressId) {
-                float dt = timeSource.DeltaTime;
-
-                float oldProgress = _progress;
-                _progress = Mathf.Clamp01(_progress + dt * speed / duration);
-                if (!oldProgress.IsNearlyEqual(_progress)) progressCallback?.Invoke(_progress);
-
-                if (speed > 0 && _progress >= 1f || speed < 0 && _progress <= 0f) {
-                    break;
-                }
-
-                await UniTask.Yield();
-            }
-        }
-
-        private void SetTween(ITween tween) {
+        private void SetTween(TTween tween) {
             Stop();
             _tween = tween;
             _playState = PlayState.DurationNotSet;
@@ -231,7 +197,7 @@ namespace MisterGames.Tweens {
             _progress = Mathf.Clamp01(value);
             
 #if UNITY_EDITOR
-            _tween?.Play(Duration, _progress, speed: 0f).Forget();
+            _tween?.Play(context: default, Duration, _progress, speed: 0f).Forget();
 #endif
         }
 

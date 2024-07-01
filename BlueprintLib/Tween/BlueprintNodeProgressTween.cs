@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using MisterGames.Actors;
 using MisterGames.BlueprintLib.Tweens;
 using MisterGames.Blueprints;
 using MisterGames.Common.Attributes;
@@ -15,7 +16,7 @@ namespace MisterGames.BlueprintLib {
     [Serializable]
     [SubclassSelectorIgnore]
     [BlueprintNode(Name = "Progress Tween", Category = "Tweens", Color = BlueprintColors.Node.Actions)]
-    public sealed class BlueprintNodeProgressTween : IBlueprintNode, IBlueprintOutput<ITween>, ITween {
+    public sealed class BlueprintNodeProgressTween : IBlueprintNode, IBlueprintOutput<IActorTween>, IActorTween {
 
         [SerializeField] [Min(0f)] private float _duration;
         [SerializeField] [Min(0f)] private float _durationRandomAdd;
@@ -23,17 +24,17 @@ namespace MisterGames.BlueprintLib {
 
         public float Duration { get; private set; }
 
-        private readonly List<ITween> _nextTweens = new List<ITween>();
-        private readonly List<ITweenProgressAction> _actions = new List<ITweenProgressAction>();
+        private readonly List<IActorTween> _nextTweens = new();
+        private readonly List<ITweenProgressAction> _actions = new();
 
         private IBlueprint _blueprint;
         private NodeToken _token;
         private float _selfDuration;
 
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {
-            meta.AddPort(id, Port.Output<ITween>("Self").Capacity(PortCapacity.Single).Layout(PortLayout.Left));
+            meta.AddPort(id, Port.Output<IActorTween>("Self").Capacity(PortCapacity.Single).Layout(PortLayout.Left));
             meta.AddPort(id, Port.Input<ITweenProgressAction>("Actions").Capacity(PortCapacity.Multiple));
-            meta.AddPort(id, Port.Input<ITween>("Next").Capacity(PortCapacity.Multiple).Layout(PortLayout.Right));
+            meta.AddPort(id, Port.Input<IActorTween>("Next").Capacity(PortCapacity.Multiple).Layout(PortLayout.Right));
         }
 
         public void OnInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
@@ -46,7 +47,7 @@ namespace MisterGames.BlueprintLib {
             _nextTweens.Clear();
         }
 
-        ITween IBlueprintOutput<ITween>.GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
+        IActorTween IBlueprintOutput<IActorTween>.GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
             _token = token;
             _blueprint = blueprint;
 
@@ -65,16 +66,16 @@ namespace MisterGames.BlueprintLib {
             _selfDuration = _duration + Random.Range(-_durationRandomAdd, _durationRandomAdd);
 
             BlueprintTweenHelper.FetchLinkedTweens(_blueprint.GetLinks(_token, 2), dest: _nextTweens);
-            float nextDuration = TweenExtensions.CreateNextDurationGroup(TweenGroup.Mode.Parallel, _nextTweens);
+            float nextDuration = TweenExtensions.CreateNextDurationGroup(ExecuteMode.Parallel, _nextTweens);
 
             Duration = _selfDuration + nextDuration;
         }
 
-        public UniTask Play(float duration, float startProgress, float speed, CancellationToken cancellationToken = default) {
+        public UniTask Play(IActor context, float duration, float startProgress, float speed, CancellationToken cancellationToken = default) {
             return BlueprintTweenHelper.PlayTwoTweensAsSequence(
-                data: this,
-                firstTask: (t, d, p, s, token) => t.PlaySelf(d, p, s, token),
-                secondTask: (t, d, p, s, token) => t.PlayNext(d, p, s, token),
+                data: (self: this, context),
+                firstTask: (t, d, p, s, token) => t.self.PlaySelf(d, p, s, token),
+                secondTask: (t, d, p, s, token) => t.self.PlayNext(t.context, d, p, s, token),
                 firstDuration: _selfDuration,
                 totalDuration: duration,
                 startProgress,
@@ -89,7 +90,7 @@ namespace MisterGames.BlueprintLib {
             return TweenExtensions.Play(
                 this,
                 duration,
-                progressCallback: (t, p) => t.NotifyProgress(p),
+                progressCallback: (t, p, _) => t.NotifyProgress(p),
                 startProgress,
                 speed,
                 PlayerLoopStage.Update,
@@ -97,8 +98,8 @@ namespace MisterGames.BlueprintLib {
             );
         }
         
-        private UniTask PlayNext(float duration, float startProgress, float speed, CancellationToken cancellationToken = default) {
-            return TweenExtensions.PlayParallel(_nextTweens, duration, startProgress, speed, cancellationToken);
+        private UniTask PlayNext(IActor context, float duration, float startProgress, float speed, CancellationToken cancellationToken = default) {
+            return TweenExtensions.PlayParallel(context, _nextTweens, duration, startProgress, speed, cancellationToken);
         }
 
         private void NotifyProgress(float progress) {

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using MisterGames.Actors;
 using MisterGames.Blueprints;
 using MisterGames.Blueprints.Nodes;
 using MisterGames.Tweens;
@@ -27,7 +28,7 @@ namespace MisterGames.BlueprintLib {
         private IBlueprint _blueprint;
         private NodeToken _token;
         private CancellationTokenSource _destroyCts;
-        private TweenPlayer _tweenPlayer;
+        private TweenPlayer<IActor, IActorTween> _tweenPlayer;
         private bool _isFirstPlay;
         private bool _isFirstNotifyProgress;
 
@@ -48,13 +49,15 @@ namespace MisterGames.BlueprintLib {
 
             meta.AddPort(id, Port.Output<float>("Progress"));
             meta.AddPort(id, Port.Output<float>("Speed"));
+            
+            meta.AddPort(id, Port.Input<IActor>());
         }
 
         public void OnInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
             _token = token;
             _blueprint = blueprint;
             _destroyCts = new CancellationTokenSource();
-            _tweenPlayer = new TweenPlayer();
+            _tweenPlayer = new TweenPlayer<IActor, IActorTween>();
         }
 
         public void OnDeInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
@@ -119,7 +122,7 @@ namespace MisterGames.BlueprintLib {
 
             bool finished = await _tweenPlayer.Play(
                 this,
-                (t, p) => t.ReportProgress(p),
+                (t, p, _) => t.ReportProgress(p),
                 cancellationToken: cancellationToken
             );
 
@@ -140,21 +143,22 @@ namespace MisterGames.BlueprintLib {
 
         private void SetTween() {
             var links = _blueprint.GetLinks(_token, 1);
-            ITween tween = null;
+            IActorTween tween = null;
 
             while (links.MoveNext()) {
-                if (links.Read<ITween>() is { } t) {
-                    TweenExtensions.MergeTweenIntoParallelGroup(ref tween, t);
+                if (links.Read<IActorTween>() is { } t) {
+                    TweenExtensions.MergeTweenIntoParallelGroup<IActor, IActorTween, TweenGroup>(ref tween, t);
                     continue;
                 }
 
-                if (links.Read<ITween[]>() is { } array) {
+                if (links.Read<IActorTween[]>() is { } array) {
                     for (int i = 0; i < array.Length; i++) {
-                        TweenExtensions.MergeTweenIntoParallelGroup(ref tween, array[i]);
+                        TweenExtensions.MergeTweenIntoParallelGroup<IActor, IActorTween, TweenGroup>(ref tween, array[i]);
                     }
                 }
             }
 
+            _tweenPlayer.Context = _blueprint.Read<IActor>(_token, 12);
             _tweenPlayer.Tween = tween;
             _tweenPlayer.Progress = _blueprint.Read(_token, 4, _progress);
             _tweenPlayer.Speed = _blueprint.Read(_token, 5, _speed);

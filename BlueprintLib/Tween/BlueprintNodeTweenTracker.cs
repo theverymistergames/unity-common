@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using MisterGames.Actors;
 using MisterGames.Blueprints;
 using MisterGames.Common.Attributes;
 using MisterGames.Tweens;
@@ -13,16 +14,16 @@ namespace MisterGames.BlueprintLib {
     [BlueprintNode(Name = "Tween Tracker", Category = "Tweens", Color = BlueprintColors.Node.Actions)]
     public sealed class BlueprintNodeTweenTracker :
         IBlueprintNode,
-        IBlueprintOutput<ITween>,
+        IBlueprintOutput<IActorTween>,
         IBlueprintOutput<float>,
-        ITween
+        IActorTween
     {
         [SerializeField] private bool _invertLayout;
         [SerializeField] private bool _routeOnCancelledIntoOnFinished;
 
         public float Duration { get; private set; }
 
-        private ITween _selfTween;
+        private IActorTween _selfTween;
         private IBlueprint _blueprint;
         private NodeToken _token;
 
@@ -33,14 +34,14 @@ namespace MisterGames.BlueprintLib {
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {
             meta.AddPort(
                 id,
-                Port.Output<ITween>("Self")
+                Port.Output<IActorTween>("Self")
                     .Capacity(PortCapacity.Single)
                     .Layout(_invertLayout ? PortLayout.Right : PortLayout.Left)
             );
 
             meta.AddPort(
                 id,
-                Port.Input<ITween>("Tween")
+                Port.Input<IActorTween>("Tween")
                     .Layout(_invertLayout ? PortLayout.Left : PortLayout.Right)
             );
 
@@ -61,7 +62,7 @@ namespace MisterGames.BlueprintLib {
             _blueprint = null;
         }
 
-        ITween IBlueprintOutput<ITween>.GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
+        IActorTween IBlueprintOutput<IActorTween>.GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
             _token = token;
             _blueprint = blueprint;
 
@@ -85,13 +86,13 @@ namespace MisterGames.BlueprintLib {
                 return;
             }
 
-            _selfTween = _blueprint.Read<ITween>(_token, 1);
+            _selfTween = _blueprint.Read<IActorTween>(_token, 1);
             _selfTween?.CreateNextDuration();
 
             Duration = Mathf.Max(_selfTween?.Duration ?? 0f, 0f);
         }
 
-        public async UniTask Play(float duration, float startProgress, float speed, CancellationToken cancellationToken = default) {
+        public async UniTask Play(IActor context, float duration, float startProgress, float speed, CancellationToken cancellationToken = default) {
             if (_selfTween == null || _blueprint == null) return;
 
             _speed = speed;
@@ -100,13 +101,13 @@ namespace MisterGames.BlueprintLib {
             TweenExtensions.PlayAndForget(
                 this,
                 duration,
-                (t, p) => t.ReportProgress(p),
+                (t, p, _) => t.ReportProgress(p),
                 startProgress,
                 speed,
                 cancellationToken: cancellationToken
             );
 
-            await _selfTween.Play(duration, startProgress, speed, cancellationToken);
+            await _selfTween.Play(context, duration, startProgress, speed, cancellationToken);
 
             // Notify OnFinished or OnCancelled
             _blueprint.Call(_token, cancellationToken.IsCancellationRequested && !_routeOnCancelledIntoOnFinished ? 5 : 4);

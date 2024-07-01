@@ -3,6 +3,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using MisterGames.Actors;
 using MisterGames.Common.Lists;
 using MisterGames.Common.Maths;
 using MisterGames.Tick.Core;
@@ -11,24 +12,34 @@ using UnityEngine.Assertions;
 
 namespace MisterGames.Tweens {
 
-    public delegate void ProgressCallback(float progress);
-    public delegate void ProgressCallback<in T>(T data, float progress);
+    public delegate void ProgressCallback(float progress, float oldProgress);
+
+    public delegate void ProgressCallback<in T>(T context, float progress, float oldProgress);
+    
+    public delegate void ProgressCallback<in T, in D>(T context, D data, float progress, float oldProgress);
 
     public static class TweenExtensions {
 
-        public static void PlayAndForget(
-            float duration,
-            ProgressCallback progressCallback = null,
-            float startProgress = 0f,
-            float speed = 1f,
-            PlayerLoopStage playerLoopStage = PlayerLoopStage.Update,
-            CancellationToken cancellationToken = default
+        public static void NotifyTweenEvents(
+            this TweenEvent[] events, 
+            IActor actor, 
+            float progress, 
+            float oldProgress, 
+            CancellationToken cancellationToken
         ) {
-            Play(duration, progressCallback, startProgress, speed, playerLoopStage, cancellationToken).Forget();
-        }
+            for (int i = 0; i < events.Length; i++) {
+                ref var e = ref events[i];
 
+                if (progress > oldProgress && oldProgress <= e.progress && e.progress <= progress || 
+                    progress < oldProgress && progress <= e.progress && e.progress <= oldProgress
+                ) {
+                    e.action?.Apply(actor, cancellationToken).Forget();
+                }
+            }
+        }
+        
         public static void PlayAndForget<T>(
-            T data,
+            T context,
             float duration,
             ProgressCallback<T> progressCallback = null,
             float startProgress = 0f,
@@ -36,49 +47,24 @@ namespace MisterGames.Tweens {
             PlayerLoopStage playerLoopStage = PlayerLoopStage.Update,
             CancellationToken cancellationToken = default
         ) {
-            Play(data, duration, progressCallback, startProgress, speed, playerLoopStage, cancellationToken).Forget();
+            Play(context, duration, progressCallback, startProgress, speed, playerLoopStage, cancellationToken).Forget();
         }
 
-        public static async UniTask Play(
+        public static void PlayAndForget<T, D>(
+            T context,
+            D data,
             float duration,
-            ProgressCallback progressCallback = null,
+            ProgressCallback<T, D> progressCallback = null,
             float startProgress = 0f,
             float speed = 1f,
             PlayerLoopStage playerLoopStage = PlayerLoopStage.Update,
             CancellationToken cancellationToken = default
         ) {
-            if (cancellationToken.IsCancellationRequested) return;
-
-            float progress = Mathf.Clamp01(startProgress);
-            
-            // Speed is 0: only invoke progress callback at start progress.
-            if (speed is >= 0f and <= 0f) {
-                progressCallback?.Invoke(progress);
-                return;
-            }
-            
-            // Duration is 0: invoke progress callback at end progress that depends on speed direction.
-            if (duration <= 0f) {
-                progressCallback?.Invoke(speed > 0f ? 1f : 0f);
-                return;
-            }
-
-            var timeSource = TimeSources.Get(playerLoopStage);
-
-            while (!cancellationToken.IsCancellationRequested) {
-                float oldProgress = progress;
-                progress = Mathf.Clamp01(progress + timeSource.DeltaTime * speed / duration);
-                
-                if (!oldProgress.IsNearlyEqual(progress)) progressCallback?.Invoke(progress);
-
-                if (speed > 0f && progress >= 1f || speed < 0f && progress <= 0f) break;
-
-                await UniTask.Yield();
-            }
+            Play(context, data, duration, progressCallback, startProgress, speed, playerLoopStage, cancellationToken).Forget();
         }
 
         public static async UniTask Play<T>(
-            T data,
+            T context,
             float duration,
             ProgressCallback<T> progressCallback = null,
             float startProgress = 0f,
@@ -88,27 +74,69 @@ namespace MisterGames.Tweens {
         ) {
             if (cancellationToken.IsCancellationRequested) return;
 
-            float progress = Mathf.Clamp01(startProgress);
-
+            startProgress = Mathf.Clamp01(startProgress);
+            float progress = startProgress;
+            
             // Speed is 0: only invoke progress callback at start progress.
             if (speed is >= 0f and <= 0f) {
-                progressCallback?.Invoke(data, progress);
+                progressCallback?.Invoke(context, progress, startProgress);
                 return;
             }
             
             // Duration is 0: invoke progress callback at end progress that depends on speed direction.
             if (duration <= 0f) {
-                progressCallback?.Invoke(data, speed > 0f ? 1f : 0f);
+                progressCallback?.Invoke(context, speed > 0f ? 1f : 0f, startProgress);
                 return;
             }
 
-            var timeSource = TimeSources.Get(playerLoopStage);
+            var ts = playerLoopStage.Get();
+
+            while (!cancellationToken.IsCancellationRequested) {
+                float oldProgress = progress;
+                progress = Mathf.Clamp01(progress + ts.DeltaTime * speed / duration);
+                
+                if (!oldProgress.IsNearlyEqual(progress)) progressCallback?.Invoke(context, progress, oldProgress);
+
+                if (speed > 0f && progress >= 1f || speed < 0f && progress <= 0f) break;
+
+                await UniTask.Yield();
+            }
+        }
+
+        public static async UniTask Play<T, D>(
+            T context,
+            D data,
+            float duration,
+            ProgressCallback<T, D> progressCallback = null,
+            float startProgress = 0f,
+            float speed = 1f,
+            PlayerLoopStage playerLoopStage = PlayerLoopStage.Update,
+            CancellationToken cancellationToken = default
+        ) {
+            if (cancellationToken.IsCancellationRequested) return;
+
+            startProgress = Mathf.Clamp01(startProgress);
+            float progress = startProgress;
+
+            // Speed is 0: only invoke progress callback at start progress.
+            if (speed is >= 0f and <= 0f) {
+                progressCallback?.Invoke(context, data, progress, startProgress);
+                return;
+            }
+            
+            // Duration is 0: invoke progress callback at end progress that depends on speed direction.
+            if (duration <= 0f) {
+                progressCallback?.Invoke(context, data, speed > 0f ? 1f : 0f, speed);
+                return;
+            }
+
+            var timeSource = playerLoopStage.Get();
 
             while (!cancellationToken.IsCancellationRequested) {
                 float oldProgress = progress;
                 progress = Mathf.Clamp01(progress + timeSource.DeltaTime * speed / duration);
                 
-                if (!oldProgress.IsNearlyEqual(progress)) progressCallback?.Invoke(data, progress);
+                if (!oldProgress.IsNearlyEqual(progress)) progressCallback?.Invoke(context, data, progress, oldProgress);
 
                 if (speed > 0f && progress >= 1f || speed < 0f && progress <= 0f) break;
                 
@@ -116,23 +144,25 @@ namespace MisterGames.Tweens {
             }
         }
 
-        public static UniTask PlayGroup(
-            TweenGroup.Mode mode,
-            IReadOnlyList<ITween> tweens,
+        public static UniTask PlayGroup<T>(
+            T context,
+            ExecuteMode mode,
+            IReadOnlyList<ITween<T>> tweens,
             float duration,
             float startProgress = 0f,
             float speed = 1f,
             CancellationToken cancellationToken = default
         ) {
             return mode switch {
-                TweenGroup.Mode.Sequential => PlaySequential(tweens, duration, startProgress, speed, cancellationToken),
-                TweenGroup.Mode.Parallel => PlayParallel(tweens, duration, startProgress, speed, cancellationToken),
+                ExecuteMode.Sequential => PlaySequential(context, tweens, duration, startProgress, speed, cancellationToken),
+                ExecuteMode.Parallel => PlayParallel(context, tweens, duration, startProgress, speed, cancellationToken),
                 _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
             };
         }
 
-        public static async UniTask PlaySequential(
-            IReadOnlyList<ITween> tweens,
+        public static async UniTask PlaySequential<T>(
+            T context,
+            IReadOnlyList<ITween<T>> tweens,
             float duration,
             float startProgress = 0f,
             float speed = 1f,
@@ -145,7 +175,7 @@ namespace MisterGames.Tweens {
             startProgress = Mathf.Clamp01(startProgress);
             
             if (count == 1) {
-                if (tweens[0] is { } t) await t.Play(duration, startProgress, speed, cancellationToken);
+                if (tweens[0] is { } t) await t.Play(context, duration, startProgress, speed, cancellationToken);
                 return;
             }
 
@@ -173,7 +203,7 @@ namespace MisterGames.Tweens {
 
             // Play first tween with calculated start progress.
             if (tweens[startIndex] is { } t1) {
-                await t1.Play(Mathf.Max(t1.Duration, 0f), startProgress, speed, cancellationToken);
+                await t1.Play(context, Mathf.Max(t1.Duration, 0f), startProgress, speed, cancellationToken);
             }
 
             // Speed is 0: notify other tweens in sequence in both directions.
@@ -183,7 +213,7 @@ namespace MisterGames.Tweens {
                     if (cancellationToken.IsCancellationRequested) break;
 
                     if (tweens[i] is { } t2) {
-                        await t2.Play(Mathf.Max(t2.Duration, 0f), startProgress: 0f, speed, cancellationToken);
+                        await t2.Play(context, Mathf.Max(t2.Duration, 0f), startProgress: 0f, speed, cancellationToken);
                     }
                 }
                 
@@ -191,7 +221,7 @@ namespace MisterGames.Tweens {
                     if (cancellationToken.IsCancellationRequested) break;
 
                     if (tweens[i] is { } t2) {
-                        await t2.Play(Mathf.Max(t2.Duration, 0f), startProgress: 1f, speed, cancellationToken);
+                        await t2.Play(context, Mathf.Max(t2.Duration, 0f), startProgress: 1f, speed, cancellationToken);
                     }
                 }
                 
@@ -206,13 +236,14 @@ namespace MisterGames.Tweens {
                 if (cancellationToken.IsCancellationRequested) break;
 
                 if (tweens[i] is { } t2) {
-                    await t2.Play(Mathf.Max(t2.Duration, 0f), startProgress, speed, cancellationToken);
+                    await t2.Play(context, Mathf.Max(t2.Duration, 0f), startProgress, speed, cancellationToken);
                 }
             }
         }
 
-        public static async UniTask PlayParallel(
-            IReadOnlyList<ITween> tweens,
+        public static async UniTask PlayParallel<T>(
+            T context,
+            IReadOnlyList<ITween<T>> tweens,
             float duration,
             float startProgress = 0f,
             float speed = 1f,
@@ -225,7 +256,7 @@ namespace MisterGames.Tweens {
             startProgress = Mathf.Clamp01(startProgress);
 
             if (count == 1) {
-                if (tweens[0] is {} t) await t.Play(duration, startProgress, speed, cancellationToken);
+                if (tweens[0] is {} t) await t.Play(context, duration, startProgress, speed, cancellationToken);
                 return;
             }
 
@@ -249,17 +280,17 @@ namespace MisterGames.Tweens {
                     // Delay start if playing backwards.
                     if (speed < 0f) {
                         float delay = Mathf.Max(startTime - localDuration, 0f);
-                        tasks[i] = PlayDelayed(tween, delay, localDuration, startProgress: 1f, speed, cancellationToken); 
+                        tasks[i] = PlayDelayed(context, tween, delay, localDuration, startProgress: 1f, speed, cancellationToken); 
                         continue;
                     }
                     
                     // Speed is 0: notify tween with progress 1.
-                    tasks[i] = tween?.Play(localDuration, startProgress: 1f, speed, cancellationToken) ?? UniTask.CompletedTask;    
+                    tasks[i] = tween?.Play(context, localDuration, startProgress: 1f, speed, cancellationToken) ?? UniTask.CompletedTask;    
                     continue;
                 }
 
                 float localProgress = localDuration > 0f ? Mathf.Clamp01(startTime / localDuration) : targetProgress;
-                tasks[i] = tween?.Play(localDuration, localProgress, speed, cancellationToken) ?? UniTask.CompletedTask;
+                tasks[i] = tween?.Play(context, localDuration, localProgress, speed, cancellationToken) ?? UniTask.CompletedTask;
             }
 
             await UniTask.WhenAll(tasks);
@@ -268,8 +299,9 @@ namespace MisterGames.Tweens {
             ArrayPool<UniTask>.Shared.Return(tasks);
         }
 
-        private static async UniTask PlayDelayed(
-            ITween tween,
+        private static async UniTask PlayDelayed<T>(
+            T context,
+            ITween<T> tween,
             float delay,
             float duration,
             float startProgress,
@@ -287,10 +319,22 @@ namespace MisterGames.Tweens {
                 if (canceled) return;
             }
             
-            await tween.Play(duration, startProgress, speed, cancellationToken);
+            await tween.Play(context, duration, startProgress, speed, cancellationToken);
         }
 
-        public static float CreateNextDurationGroup(TweenGroup.Mode mode, IReadOnlyList<ITween> tweens) {
+        public static float CreateNextDurationGroup(ExecuteMode mode, IReadOnlyList<ITween> tweens) {
+            if (tweens is not { Count: > 0 }) return 0f;
+
+            float duration = 0f;
+
+            for (int i = 0; i < tweens.Count; i++) {
+                CreateNextDuration(tweens[i], mode, ref duration);
+            }
+
+            return duration;
+        }
+        
+        public static float CreateNextDurationGroup<T>(ExecuteMode mode, IReadOnlyList<T> tweens) where T : class, ITween {
             if (tweens is not { Count: > 0 }) return 0f;
 
             float duration = 0f;
@@ -302,16 +346,16 @@ namespace MisterGames.Tweens {
             return duration;
         }
 
-        public static void CreateNextDuration(ITween tween, TweenGroup.Mode mode, ref float totalDuration) {
+        public static void CreateNextDuration(ITween tween, ExecuteMode mode, ref float totalDuration) {
             tween?.CreateNextDuration();
             float localDuration = Mathf.Max(tween?.Duration ?? 0f, 0f);
 
             switch (mode) {
-                case TweenGroup.Mode.Sequential:
+                case ExecuteMode.Sequential:
                     totalDuration += localDuration;
                     break;
 
-                case TweenGroup.Mode.Parallel:
+                case ExecuteMode.Parallel:
                     if (localDuration > totalDuration) totalDuration = localDuration;
                     break;
 
@@ -340,7 +384,10 @@ namespace MisterGames.Tweens {
         /// containing all passed tweens
         /// </param>
         /// <param name="tween">Tween to run in parallel</param>
-        public static void MergeTweenIntoParallelGroup(ref ITween dest, ITween tween) {
+        public static void MergeTweenIntoParallelGroup<TContext, TTween, TGroup>(ref TTween dest, TTween tween)
+            where TTween : class, ITween<TContext>
+            where TGroup : TweenGroupBase<TContext, TTween>, TTween, new() 
+        {
             if (tween == null) return;
 
             if (dest == null) {
@@ -348,26 +395,30 @@ namespace MisterGames.Tweens {
                 return;
             }
 
-            if (dest is TweenGroup { mode: TweenGroup.Mode.Parallel } tweenGroup) {
-                MergeTweenIntoParallelGroup(tweenGroup, tween);
+            if (dest is TGroup { mode: ExecuteMode.Parallel } tweenGroup) {
+                MergeTweenIntoParallelGroup<TContext, TTween, TGroup>(tweenGroup, tween);
                 return;
             }
 
-            tweenGroup = new TweenGroup { mode = TweenGroup.Mode.Parallel };
-            MergeTweenIntoParallelGroup(tweenGroup, tween);
-            MergeTweenIntoParallelGroup(tweenGroup, dest);
+            tweenGroup = new TGroup { mode = ExecuteMode.Parallel };
+            
+            MergeTweenIntoParallelGroup<TContext, TTween, TGroup>(tweenGroup, tween);
+            MergeTweenIntoParallelGroup<TContext, TTween, TGroup>(tweenGroup, dest);
 
             dest = tweenGroup;
         }
 
-        private static void MergeTweenIntoParallelGroup(TweenGroup group, ITween tween) {
-            Assert.IsTrue(group is { mode: TweenGroup.Mode.Parallel });
+        private static void MergeTweenIntoParallelGroup<TContext, TTween, TGroup>(TGroup group, TTween tween) 
+            where TTween : class, ITween<TContext>
+            where TGroup : TweenGroupBase<TContext, TTween>, TTween, new() 
+        {
+            Assert.IsTrue(group is { mode: ExecuteMode.Parallel });
 
             if (tween == null) return;
 
             int lastGroupTweensCount = group.tweens?.Count ?? 0;
 
-            if (group.tweens == null) group.tweens = new List<ITween>(1) { tween };
+            if (group.tweens == null) group.tweens = new List<TTween>(1) { tween };
             else group.tweens.Add(tween);
 
             var groupTweens = group.tweens;
@@ -378,21 +429,21 @@ namespace MisterGames.Tweens {
                 var t = groupTweens[i];
 
                 // Remove null tweens and empty groups
-                if (t is null or TweenGroup { tweens: null or { Count: 0 }}) {
+                if (t is null or TGroup { tweens: null or { Count: 0 }}) {
                     groupTweens.RemoveAt(i--);
                     continue;
                 }
 
-                if (t is TweenGroup g) {
+                if (t is TGroup g) {
                     switch (g.mode) {
-                        case TweenGroup.Mode.Parallel:
+                        case ExecuteMode.Parallel:
                             // If new tween is also a parallel group,
                             // then try to collect maximum parallel groups into one root parallel group.
                             groupTweens.AddRange(g.tweens);
                             groupTweens.RemoveAt(i--);
                             break;
 
-                        case TweenGroup.Mode.Sequential:
+                        case ExecuteMode.Sequential:
                             // If new tween is a sequential group with a single element, then add only the element,
                             // otherwise add the group into parallel tweens.
                             groupTweens.Add(g.tweens.Count == 1 ? g.tweens[0] : g);

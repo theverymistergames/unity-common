@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using MisterGames.Actors;
 using MisterGames.Blueprints;
 using MisterGames.Blueprints.Nodes;
 using MisterGames.Tweens;
@@ -22,7 +23,7 @@ namespace MisterGames.BlueprintLib {
         private IBlueprint _blueprint;
         private NodeToken _token;
         private CancellationTokenSource _destroyCts;
-        private TweenPlayer _tweenPlayer;
+        private TweenPlayer<IActor, IActorTween> _tweenPlayer;
         private bool _isFirstPlay;
         private bool _isFirstNotifyProgress;
 
@@ -48,7 +49,6 @@ namespace MisterGames.BlueprintLib {
             _token = token;
             _blueprint = blueprint;
             _destroyCts = new CancellationTokenSource();
-            _tweenPlayer = new TweenPlayer();
         }
 
         public void OnDeInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
@@ -105,7 +105,7 @@ namespace MisterGames.BlueprintLib {
 
             bool finished = await _tweenPlayer.Play(
                 this,
-                (t, p) => t.ReportProgress(p),
+                (t, p, _) => t.ReportProgress(p),
                 cancellationToken: cancellationToken
             );
 

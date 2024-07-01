@@ -40,7 +40,7 @@ namespace MisterGames.ActionLib.Character {
             return TweenExtensions.Play(
                 this,
                 _croppedDuration,
-                progressCallback: (t, p) => t.OnProgressUpdate(p),
+                progressCallback: (t, p, _) => t.OnProgressUpdate(p),
                 0f,
                 1f,
                 PlayerLoopStage.Update,

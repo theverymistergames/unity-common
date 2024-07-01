@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace MisterGames.Common.Editor.Drawers {
 
-    [CustomPropertyDrawer(typeof(TweenPlayer))]
+    [CustomPropertyDrawer(typeof(TweenPlayer<,>))]
     public class TweenPlayerPropertyDrawer : PropertyDrawer {
 
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
@@ -34,7 +34,7 @@ namespace MisterGames.Common.Editor.Drawers {
             float newProgress = progressProperty.floatValue;
             float newSpeed = speedProperty.floatValue;
 
-            if (changed && property.GetValue() is TweenPlayer tweenPlayer) {
+            if (changed && property.GetValue() is ITweenPlayer tweenPlayer) {
                 if (!newProgress.IsNearlyEqual(oldProgress)) tweenPlayer.Progress = newProgress;
                 if (!newSpeed.IsNearlyEqual(oldSpeed)) tweenPlayer.Speed = newSpeed;
             }
@@ -45,13 +45,13 @@ namespace MisterGames.Common.Editor.Drawers {
             position.width = (position.width - 14f) * 0.5f;
 
             if (GUI.Button(position, "Play")) {
-                (property.GetValue() as TweenPlayer)?.Play().Forget();
+                (property.GetValue() as ITweenPlayer)?.Play().Forget();
             }
 
             position.x += position.width;
 
             if (GUI.Button(position, "Stop")) {
-                (property.GetValue() as TweenPlayer)?.Stop();
+                (property.GetValue() as ITweenPlayer)?.Stop();
             }
         }
 
