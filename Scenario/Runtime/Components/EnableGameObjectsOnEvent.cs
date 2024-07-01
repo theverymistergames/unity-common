@@ -5,9 +5,9 @@ using UnityEngine;
 
 namespace MisterGames.Scenario.Components {
     
-    public sealed class EnableGameObjectOnEvent : MonoBehaviour, IEventListener {
+    public sealed class EnableGameObjectsOnEvent : MonoBehaviour, IEventListener {
 
-        [SerializeField] private GameObject _gameObject;
+        [SerializeField] private GameObject[] _gameObjects;
         [SerializeField] private EventReference _eventReference;
         [SerializeField] private CompareMode _compareMode;
         
@@ -18,7 +18,7 @@ namespace MisterGames.Scenario.Components {
         [SerializeField] private int _value = 1;
 
         private void Reset() {
-            _gameObject = gameObject;
+            _gameObjects = new[] { gameObject };
         }
 
         private void Awake() {
@@ -34,7 +34,11 @@ namespace MisterGames.Scenario.Components {
         }
 
         public void OnEventRaised(EventReference e) {
-            _gameObject.SetActive(IsMatch(e.GetRaiseCount()));
+            bool isMatch = IsMatch(e.GetRaiseCount());
+
+            for (int i = 0; i < _gameObjects.Length; i++) {
+                _gameObjects[i].SetActive(isMatch);
+            }
         }
 
         private bool IsMatch(int raiseCount) {

@@ -78,7 +78,7 @@ namespace MisterGames.Character.Motion {
         private void OnEnterTrigger(Collider go) {
             if (_rigidbody != null ||
                 !go.TryGetComponent(out IActor actor) ||
-                !actor.TryGetComponent<CharacterAccess>(out _)
+                !actor.TryGetComponent<MainCharacter>(out _)
             ) {
                 return;
             }
@@ -94,7 +94,7 @@ namespace MisterGames.Character.Motion {
         private void OnExitTrigger(Collider go) {
             if (_rigidbody == null ||
                 !go.TryGetComponent(out IActor actor) ||
-                !actor.TryGetComponent<CharacterAccess>(out _)
+                !actor.TryGetComponent<MainCharacter>(out _)
             ) {
                 return;
             }

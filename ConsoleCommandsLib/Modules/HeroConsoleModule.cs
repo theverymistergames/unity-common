@@ -118,14 +118,14 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
         public void SpawnAtPointByIndex9() { }
 
         private void SpawnHero(Vector3 position, string spawnPointName) {
-            var access = Object.FindObjectOfType<CharacterAccess>();
+            var access = Object.FindObjectOfType<MainCharacter>();
             if (access == null) {
                 var newHeroInstance = PrefabPool.Instance.TakeActive(_heroPrefab);
-                access = newHeroInstance.GetComponent<CharacterAccess>();
+                access = newHeroInstance.GetComponent<MainCharacter>();
             }
 
             if (access == null) {
-                ConsoleRunner.AppendLine($"Character with {nameof(CharacterAccess)} component not found on the scene and in prefabs.");
+                ConsoleRunner.AppendLine($"Character with {nameof(MainCharacter)} component not found on the scene and in prefabs.");
                 return;
             }
 

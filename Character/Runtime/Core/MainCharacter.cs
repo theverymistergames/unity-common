@@ -3,14 +3,14 @@ using UnityEngine;
 
 namespace MisterGames.Character.Core {
 
-    public sealed class CharacterAccess : MonoBehaviour, IActorComponent {
+    public sealed class MainCharacter : MonoBehaviour, IActorComponent {
 
         void IActorComponent.OnAwake(IActor actor) {
-            CharacterAccessRegistry.Instance.Register(actor);
+            CharacterSystem.Instance.Register(actor);
         }
 
         void IActorComponent.OnTerminate(IActor actor) {
-            CharacterAccessRegistry.Instance.Unregister(actor);
+            CharacterSystem.Instance.Unregister(actor);
         }
     }
 

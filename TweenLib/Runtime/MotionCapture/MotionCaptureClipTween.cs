@@ -36,7 +36,7 @@ namespace MisterGames.TweenLib.MotionCapture {
             return TweenExtensions.Play(
                 this,
                 duration,
-                progressCallback: (t, p) => t.OnProgressUpdate(p),
+                progressCallback: (t, p, _) => t.OnProgressUpdate(p),
                 startProgress,
                 speed,
                 PlayerLoopStage.Update,

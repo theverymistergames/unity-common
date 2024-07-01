@@ -20,7 +20,7 @@ namespace MisterGames.BlueprintLib {
         public void OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
             if (port != 0) return;
             
-            var characterAccess = CharacterAccessRegistry.Instance.GetCharacterAccess(spawnIfNotRegistered: true);
+            var characterAccess = CharacterSystem.Instance.GetCharacter(spawnIfNotRegistered: true);
             var collisions = characterAccess.GetComponent<CharacterCollisionPipeline>();
             
             collisions.enabled = false;

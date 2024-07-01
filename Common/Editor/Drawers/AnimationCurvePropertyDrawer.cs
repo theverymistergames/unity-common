@@ -28,6 +28,7 @@ namespace MisterGames.Common.Editor.Drawers {
                 : new GUIContent("Custom");
 
             var easingRect = new Rect(easingPropertyX, position.y, easingPropertyWidth, position.height);
+            
             if (EditorGUI.DropdownButton(easingRect, easingLabel, FocusType.Keyboard)) {
                 CreateEasingTypeDropdown(property).Show(easingRect);
             }
