@@ -1,7 +1,7 @@
 ﻿using UnityEditor;
 using UnityEngine;
 
-namespace MisterGames.Common.Editor.Menu {
+namespace MisterGames.Scenes.Editor.Utils {
     
     public static class SceneEditorUtils {
         

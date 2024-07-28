@@ -3,6 +3,7 @@ using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
 using MisterGames.Common.Attributes;
+using MisterGames.Common.GameObjects;
 using MisterGames.Common.Layers;
 using UnityEngine;
 
@@ -62,7 +63,9 @@ namespace MisterGames.Collisions.Triggers {
             if (isForward) OnTriggeredForward.Invoke(go);
             else OnTriggeredBackward.Invoke(go);
 
-            if ((isForward ? _actionForward : _actionBackwards) is {} action && go.TryGetComponent(out IActor actor)) {
+            if ((isForward ? _actionForward : _actionBackwards) is {} action && 
+                other.GetComponentFromCollider<IActor>() is {} actor
+            ) {
                 action.Apply(actor, destroyCancellationToken).Forget();
             }
         }

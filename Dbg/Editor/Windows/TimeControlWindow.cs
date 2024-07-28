@@ -5,7 +5,7 @@ namespace MisterGames.Dbg.Editor.Windows {
     
     public class TimeControlWindow : EditorWindow {
         
-        [MenuItem("MisterGames/Time Control")]
+        [MenuItem("MisterGames/Tools/Time Control")]
         private static void ShowWindow() {
             var window = GetWindow<TimeControlWindow>();
             window.titleContent = new GUIContent("Time Control");

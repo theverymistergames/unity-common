@@ -3,6 +3,7 @@ using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
 using MisterGames.Common.Attributes;
+using MisterGames.Common.GameObjects;
 using MisterGames.Common.Layers;
 using UnityEngine;
 
@@ -21,7 +22,7 @@ namespace MisterGames.Collisions.Triggers {
             
             OnTriggered.Invoke(other);
             
-            if (_action != null && other.gameObject.TryGetComponent(out IActor actor)) {
+            if (_action != null && other.GetComponentFromCollider<IActor>() is {} actor) {
                 _action.Apply(actor, destroyCancellationToken).Forget();
             }
         }

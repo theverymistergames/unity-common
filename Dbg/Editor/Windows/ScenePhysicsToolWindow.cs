@@ -7,7 +7,7 @@ namespace MisterGames.Dbg.Editor.Windows {
 
         private float _speed = 1;
 
-        [MenuItem("MisterGames/Physics Tool")]
+        [MenuItem("MisterGames/Tools/Physics Tool")]
         private static void ShowWindow() {
             var window = GetWindow<ScenePhysicsToolWindow>();
             window.titleContent = new GUIContent("Physics Tool");
