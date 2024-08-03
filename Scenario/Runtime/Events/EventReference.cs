@@ -13,12 +13,19 @@ namespace MisterGames.Scenario.Events {
         public EventDomain EventDomain => _eventDomain;
         public int EventId => _eventId;
         public int SubId => _subId;
-        public string Path => _eventDomain == null ? string.Empty : _eventDomain.GetEventPath(_eventId);
 
         public EventReference(EventDomain eventDomain, int eventId, int subId = 0) {
             _eventDomain = eventDomain;
             _eventId = eventId;
             _subId = subId;
+        }
+        
+        public EventReference WithSubId(int subId) {
+            return new EventReference(_eventDomain, _eventId, subId);
+        }
+        
+        public string GetName() {
+            return _eventDomain == null ? null : _eventDomain.GetEventName(_eventId);
         }
 
         public bool Equals(EventReference other) {
@@ -40,13 +47,9 @@ namespace MisterGames.Scenario.Events {
         public static bool operator !=(EventReference left, EventReference right) {
             return !left.Equals(right);
         }
-
-        public EventReference WithSubId(int subId) {
-            return new EventReference(_eventDomain, _eventId, subId);
-        }
         
         public override string ToString() {
-            return $"Event({Path})";
+            return $"Event({GetName()})";
         }
     }
 

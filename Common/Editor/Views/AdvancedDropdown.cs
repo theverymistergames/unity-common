@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using MisterGames.Common.Editor.Tree;
 using UnityEditor;
 using UnityEditor.IMGUI.Controls;
@@ -31,6 +32,7 @@ namespace MisterGames.Common.Editor.Views {
 			char separator = '/',
 			Func<IEnumerable<TreeEntry<PathTree.Node<T>>>, IEnumerable<TreeEntry<PathTree.Node<T>>>> sort = null
 		) : base(new AdvancedDropdownState()) {
+
 			_title = title;
 			_onItemSelected = onItemSelected;
 			_pathTreeRoot = PathTree.CreateTree(items, getItemPath, separator, sort);

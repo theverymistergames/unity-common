@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using MisterGames.Common.Strings;
+using UnityEngine;
 
 namespace MisterGames.Common.Editor.Tree {
 
@@ -60,7 +62,7 @@ namespace MisterGames.Common.Editor.Tree {
                 var element = elements[i];
                 string path = getPath.Invoke(element);
 
-                if (!IsSubPathOf(path, parent)) continue;
+                if (!path.IsSubPathOf(parent, separator)) continue;
 
                 string[] pathParts = path.Split(separator);
                 int pathDepth = pathParts.Length;
@@ -125,12 +127,6 @@ namespace MisterGames.Common.Editor.Tree {
             }
 
             return entry;
-        }
-
-        private static bool IsSubPathOf(string sub, string parent) {
-            int parentLength = parent.Length;
-            if (parentLength > sub.Length) return false;
-            return parent == sub[..parentLength];
         }
     }
 

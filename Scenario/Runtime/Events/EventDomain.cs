@@ -10,8 +10,7 @@ namespace MisterGames.Scenario.Events {
         [SerializeField] private EventGroup[] _eventGroups;
         [HideInInspector] [SerializeField] private int _nextId;
         
-        private readonly Dictionary<int, string> _eventPathMap = new Dictionary<int, string>();
-        private bool _isEventPathMapInvalid;
+        private readonly Dictionary<int, (int, int)> _indexMap = new();
         
         [Serializable]
         internal struct EventGroup {
@@ -26,38 +25,54 @@ namespace MisterGames.Scenario.Events {
             public int subId;
         }
 
-        public string GetEventPath(int id) {
-            if (!_isEventPathMapInvalid && _eventPathMap.TryGetValue(id, out string path)) return path;
+        public string GetEventName(int eventId) {
+            if (!TryGetAddress(eventId, out int group, out int index)) return null;
 
-            _isEventPathMapInvalid = false;
-            _eventPathMap.Clear();
+            ref var g = ref _eventGroups[group];
+            ref var e = ref g.events[index];
+
+            return e.name;
+        }
+        
+        internal bool TryGetAddress(int eventId, out int group, out int index) {
+#if UNITY_EDITOR
+            if (_isEventPathMapInvalid) {
+                _isEventPathMapInvalid = false;
+                _indexMap.Clear();
+            }
+#endif
+
+            if (_indexMap.TryGetValue(eventId, out (int group, int index) address)) {
+                group = address.group;
+                index = address.index;
+                return true;
+            }
 
             for (int i = 0; i < _eventGroups.Length; i++) {
-                ref var group = ref _eventGroups[i];
-                var events = group.events;
+                ref var g = ref _eventGroups[i];
+                var events = g.events;
 
                 for (int j = 0; j < events.Length; j++) {
                     ref var entry = ref events[j];
-                    if (entry.id != id) continue;
+                    if (entry.id != eventId) continue;
 
-                    path = string.IsNullOrWhiteSpace(entry.name)
-                        ? null
-                        : string.IsNullOrWhiteSpace(group.name)
-                            ? $"{entry.name}"
-                            : $"{group.name}/{entry.name}";
-
-                    _eventPathMap[id] = path;
-                    return path;
+                    group = i;
+                    index = j;
+                    _indexMap[eventId] = (i, j);
+                    return true;
                 }
             }
 
-            return null;
+            group = 0;
+            index = 0;
+            return false;
         }
         
 #if UNITY_EDITOR
         private readonly HashSet<int> _occupiedIdsCache = new HashSet<int>();
-        internal EventGroup[] EventGroups => _eventGroups;
-
+        internal EventGroup[] EventGroups => _eventGroups ?? Array.Empty<EventGroup>();
+        private bool _isEventPathMapInvalid;
+        
         private void OnValidate() {
             _isEventPathMapInvalid = true;
             _occupiedIdsCache.Clear();
