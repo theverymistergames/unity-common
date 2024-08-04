@@ -3,6 +3,7 @@ using MisterGames.Collisions.Core;
 using MisterGames.Collisions.Utils;
 using MisterGames.Common.Layers;
 using MisterGames.Common.Maths;
+using MisterGames.Input.Global;
 using MisterGames.Tick.Core;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -86,11 +87,13 @@ namespace MisterGames.Collisions.Detectors {
         }
 
         private bool PerformRaycast(out RaycastResult hit) {
-            var origin = new PointerEventData(_eventSystem);
-            var inputModule = (InputSystemUIInputModule) _eventSystem.currentInputModule;
+            if (_eventSystem.currentInputModule is not InputSystemUIInputModule inputModule) {
+                hit = default;
+                return false;
+            }
             
-            hit = inputModule.GetLastRaycastResult(origin.pointerId);
-            return hit.distance <= _maxDistance && _layerMask.Contains(hit.gameObject.layer);
+            hit = inputModule.GetLastRaycastResult(GlobalInput.DeviceId);
+            return hit.isValid && hit.distance <= _maxDistance && _layerMask.Contains(hit.gameObject.layer);
         }
     }
 

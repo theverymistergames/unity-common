@@ -12,6 +12,9 @@ namespace MisterGames.Input.Global {
         private static readonly Dictionary<KeyBinding, InputAction> keys = new Dictionary<KeyBinding, InputAction>();
         private static readonly Dictionary<AxisBinding, InputAction> axes = new Dictionary<AxisBinding, InputAction>();
 
+        public static int DeviceId => deviceId;
+        internal static int deviceId;
+        
         public static bool IsActive(this KeyBinding key) {
             return key != KeyBinding.None && keys[key].phase == InputActionPhase.Performed;
         }

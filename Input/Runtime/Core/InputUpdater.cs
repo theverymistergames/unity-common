@@ -29,12 +29,16 @@ namespace MisterGames.Input.Core {
         }
 
         public void OnEnable() {
+            _globalInputs.Mouse.delta.performed += OnMouseMove;
+            
             GlobalInput.Enable();
             _inputChannel.Activate();
             _timeSourceStage.Subscribe(this);
         }
 
         public void OnDisable() {
+            _globalInputs.Mouse.delta.performed -= OnMouseMove;
+            
             GlobalInput.Disable();
             _inputChannel.Deactivate();
             _timeSourceStage.Unsubscribe(this);
@@ -43,6 +47,10 @@ namespace MisterGames.Input.Core {
         void IUpdate.OnUpdate(float dt) {
             InputSystem.Update();
             _inputChannel.DoUpdate(dt);
+        }
+        
+        private void OnMouseMove(UnityEngine.InputSystem.InputAction.CallbackContext context) {
+            GlobalInput.deviceId = context.control.device.deviceId;
         }
 
 #if UNITY_EDITOR
