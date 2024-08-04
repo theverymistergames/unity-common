@@ -2,7 +2,8 @@
     "name": "MisterGames.UI",
     "rootNamespace": "MisterGames.UI",
     "references": [
-        "GUID:0175294ec022c624cbe537915e3c9e71"
+        "GUID:0175294ec022c624cbe537915e3c9e71",
+        "GUID:75469ad4d38634e559750d17036d5f7c"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

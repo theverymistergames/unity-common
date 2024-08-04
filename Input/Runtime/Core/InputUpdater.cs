@@ -13,11 +13,13 @@ namespace MisterGames.Input.Core {
         [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.PreUpdate;
         [SerializeField] private InputChannel _inputChannel;
 
-        private ITimeSource _timeSource => TimeSources.Get(_timeSourceStage);
-
+        private GlobalInputs _globalInputs;
+        
         public void Awake() {
+            _globalInputs = new GlobalInputs();
+            
             InputSystem.settings.updateMode = InputSettings.UpdateMode.ProcessEventsManually;
-            GlobalInput.Init();
+            GlobalInput.Init(_globalInputs);
             _inputChannel.Init();
         }
 
@@ -29,13 +31,13 @@ namespace MisterGames.Input.Core {
         public void OnEnable() {
             GlobalInput.Enable();
             _inputChannel.Activate();
-            _timeSource.Subscribe(this);
+            _timeSourceStage.Subscribe(this);
         }
 
         public void OnDisable() {
             GlobalInput.Disable();
             _inputChannel.Deactivate();
-            _timeSource.Unsubscribe(this);
+            _timeSourceStage.Unsubscribe(this);
         }
 
         void IUpdate.OnUpdate(float dt) {

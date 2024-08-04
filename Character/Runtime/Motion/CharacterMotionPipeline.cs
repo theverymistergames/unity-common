@@ -85,9 +85,12 @@ namespace MisterGames.Character.Motion {
         }
 
         void IUpdate.OnUpdate(float dt) {
-            _groundDetector.FetchResults();
-            
             _smoothedInput = Vector2.Lerp(_smoothedInput, MotionInput, dt * _inputSmoothing);
+            
+            if (_rigidbody.isKinematic) return;
+            
+            
+            _groundDetector.FetchResults();
             
             float maxSpeed = CalculateSpeedCorrection(MotionInput) * Speed;
             var velocity = _rigidbody.velocity;

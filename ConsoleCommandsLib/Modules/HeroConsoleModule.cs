@@ -25,8 +25,8 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
         [ConsoleCommand("hero/spawni")]
         [ConsoleCommandHelp("spawn character at spawn point with index as in hero/spawns output")]
         public void SpawnAtPointByIndex(int index) {
-            var spawnPoints = Object.FindObjectsOfType<CharacterSpawnPoint>();
-
+            var spawnPoints = GetSpawnPoints();
+            
             string spawnPointName = SPAWN_POINT_ZERO_NAME;
             var spawnPosition = Vector3.zero;
 
@@ -49,7 +49,7 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
         [ConsoleCommand("hero/spawn")]
         [ConsoleCommandHelp("spawn character at spawn point with specified name")]
         public void SpawnAtPointByName(string spawnPointName) {
-            var spawnPoints = Object.FindObjectsOfType<CharacterSpawnPoint>();
+            var spawnPoints = GetSpawnPoints();
             var spawnPosition = Vector3.zero;
 
             CharacterSpawnPoint spawnPoint = null;
@@ -117,6 +117,12 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
         [ConsoleHotkey("hero/spawni 9", KeyBinding.A9, ShortcutModifiers.Alt)]
         public void SpawnAtPointByIndex9() { }
 
+        private CharacterSpawnPoint[] GetSpawnPoints() {
+            var spawnPoints = Object.FindObjectsOfType<CharacterSpawnPoint>();
+            Array.Sort(spawnPoints, (p0, p1) => string.Compare(p0.name, p1.name, StringComparison.InvariantCultureIgnoreCase));
+            return spawnPoints;
+        }
+        
         private void SpawnHero(Vector3 position, string spawnPointName) {
             var access = Object.FindObjectOfType<MainCharacter>();
             if (access == null) {

@@ -11,7 +11,7 @@ namespace MisterGames.Input.Global {
         private static GlobalInputs _globalInputs;
         private static readonly Dictionary<KeyBinding, InputAction> keys = new Dictionary<KeyBinding, InputAction>();
         private static readonly Dictionary<AxisBinding, InputAction> axes = new Dictionary<AxisBinding, InputAction>();
-        
+
         public static bool IsActive(this KeyBinding key) {
             return key != KeyBinding.None && keys[key].phase == InputActionPhase.Performed;
         }
@@ -64,8 +64,8 @@ namespace MisterGames.Input.Global {
             return axes[axis].ReadValue<Vector2>();
         }
         
-        internal static void Init() {
-            _globalInputs = new GlobalInputs();
+        internal static void Init(GlobalInputs globalInputs) {
+            _globalInputs = globalInputs;
             FillAxisBindingMap();
             FillKeyBindingMap();
         }

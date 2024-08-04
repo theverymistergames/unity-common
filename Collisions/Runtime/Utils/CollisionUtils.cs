@@ -148,6 +148,34 @@ namespace MisterGames.Collisions.Utils {
 
             return hits;
         }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static CollisionInfo[] Filter(
+            this CollisionInfo[] hits,
+            int hitCount,
+            CollisionFilter filter,
+            out int resultHitCount
+        ) {
+            hitCount = Math.Min(hitCount, hits.Length);
+            resultHitCount = hitCount;
+
+            for (int i = hitCount - 1; i >= 0; i--) {
+                var hit = hits[i];
+                int layer = hit.transform.gameObject.layer;
+
+                if (hit.distance <= filter.maxDistance &&
+                    filter.layerMask.Contains(layer)
+                ) {
+                    continue;
+                }
+
+                int lastValidHitIndex = --resultHitCount;
+                hits[i] = hits[lastValidHitIndex];
+                hits[lastValidHitIndex] = hit;
+            }
+
+            return hits;
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Span<RaycastHit> Filter(

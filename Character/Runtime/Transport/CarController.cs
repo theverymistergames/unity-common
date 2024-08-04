@@ -16,6 +16,7 @@ namespace MisterGames.Character.Transport {
         [SerializeField] private InputActionVector1 _brake;
         [SerializeField] private InputActionKey _nitro;
         [SerializeField] private Vector2 _inputSmoothing = new Vector2(10f, 10f);
+        [SerializeField] private Vector2 _inputSmoothingRelease = new Vector2(10f, 10f);
 
         [Header("Startup")]
         [SerializeField] private IgnitionMode _ignitionMode;
@@ -139,6 +140,7 @@ namespace MisterGames.Character.Transport {
             
             InitializeMass();
             InitializeWheels();
+            AnimateWheels();
         }
         
         private void OnEnable() {
@@ -212,8 +214,13 @@ namespace MisterGames.Character.Transport {
             float dt = Time.fixedDeltaTime;
             var targetInput = _move.Value;
 
-            _input.x = Mathf.Lerp(_input.x, targetInput.x, dt * _inputSmoothing.x);
-            _input.y = Mathf.Lerp(_input.y, targetInput.y, dt * _inputSmoothing.y);
+            var smoothing = new Vector2(
+                targetInput.x.IsNearlyZero() ? _inputSmoothingRelease.x : _inputSmoothing.x,
+                targetInput.y.IsNearlyZero() ? _inputSmoothingRelease.y : _inputSmoothing.y
+            );
+            
+            _input.x = Mathf.Lerp(_input.x, targetInput.x, dt * smoothing.x);
+            _input.y = Mathf.Lerp(_input.y, targetInput.y, dt * smoothing.y);
             
             float brake = _brake.Value;
             float brakeForce = 0f;
