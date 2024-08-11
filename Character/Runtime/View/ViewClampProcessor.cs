@@ -19,23 +19,39 @@ namespace MisterGames.Character.View {
         
         private Transform _lookTarget;
         private Vector3 _lookTargetPoint;
+        private Quaternion _lookTargetOrientation;
+        private Quaternion _lookTargetOrientationSmoothed;
+        private float _lookTargetSmoothing;
         private Vector2 _clampCenterEulers;
         private LookMode _lookMode;
 
         private enum LookMode {
             Free,
             Point,
-            Transform
+            Transform,
+            TransformOriented,
         }
 
-        public void LookAt(Transform target) {
+        public void LookAt(Transform target, Vector2 startOrientation, LookAtMode mode, Vector3 orientation, float smoothing = 0f) {
             _lookTarget = target;
-            _lookMode = LookMode.Transform;
+            _lookTargetPoint = target.position;
+            _lookTargetOrientationSmoothed = Quaternion.Euler(startOrientation);
+            _lookTargetOrientation = Quaternion.Euler(orientation);
+            _lookTargetSmoothing = smoothing;
+            
+            _lookMode = mode switch {
+                LookAtMode.Free => LookMode.Transform,
+                LookAtMode.Oriented => LookMode.TransformOriented,
+                _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
+            };
         }
 
-        public void LookAt(Vector3 target) {
+        public void LookAt(Vector3 target, Vector2 startOrientation, float smoothing = 0f) {
             _lookTarget = null;
             _lookTargetPoint = target;
+            _lookTargetOrientationSmoothed = Quaternion.Euler(startOrientation);
+            _lookTargetSmoothing = smoothing;
+            
             _lookMode = LookMode.Point;
         }
 
@@ -55,16 +71,7 @@ namespace MisterGames.Character.View {
         }
 
         public void Process(Vector3 position, Vector2 orientation, ref Vector2 targetOrientation, float dt) {
-            Vector2 clampCenterEulers = _lookMode switch {
-                LookMode.Free => _clampCenterEulers,
-                LookMode.Point => Quaternion.LookRotation(_lookTargetPoint - position, Vector3.up).eulerAngles,
-                LookMode.Transform => Quaternion.LookRotation(_lookTarget.position - position, Vector3.up).eulerAngles, 
-            };
-
-            clampCenterEulers = GetNearestAngle(clampCenterEulers, targetOrientation);
-
-            clampCenterEulers.x *= (!_vertical.absolute).AsInt();
-            clampCenterEulers.y *= (!_horizontal.absolute).AsInt();
+            var clampCenterEulers = GetViewCenter(position, targetOrientation, dt);
             
             var verticalBounds = _vertical.bounds + Vector2.one * clampCenterEulers.x;
             var horizontalBounds = _horizontal.bounds + Vector2.one * clampCenterEulers.y;
@@ -76,6 +83,57 @@ namespace MisterGames.Character.View {
             targetOrientation.y = ApplySpring(orientation.y, targetOrientation.y, clampCenterEulers.y, _horizontal, dt);
 
             targetOrientation = GetNearestAngle(targetOrientation, orientation);
+        }
+
+        private Vector2 GetViewCenter(Vector3 position, Vector2 targetOrientation, float dt) {
+            Vector2 clampCenterEulers;
+            
+            switch (_lookMode) {
+                case LookMode.Free: {
+                    clampCenterEulers = _clampCenterEulers;
+                    break;
+                }
+
+                case LookMode.Point: {
+                    var targetRot = Quaternion.LookRotation(_lookTargetPoint - position, Vector3.up);
+                    _lookTargetOrientationSmoothed = _lookTargetSmoothing > 0f
+                        ? Quaternion.Slerp(_lookTargetOrientationSmoothed, targetRot, dt * _lookTargetSmoothing)
+                        : targetRot;
+
+                    clampCenterEulers = _lookTargetOrientationSmoothed.eulerAngles;
+                    break;
+                }
+
+                case LookMode.Transform: {
+                    var targetRot = Quaternion.LookRotation(_lookTarget.position - position, Vector3.up);
+                    _lookTargetOrientationSmoothed = _lookTargetSmoothing > 0f
+                        ? Quaternion.Slerp(_lookTargetOrientationSmoothed, targetRot, dt * _lookTargetSmoothing)
+                        : targetRot;
+
+                    clampCenterEulers = _lookTargetOrientationSmoothed.eulerAngles;
+                    break;
+                }
+
+                case LookMode.TransformOriented: {
+                    var targetRot = _lookTarget.rotation * _lookTargetOrientation;
+                    _lookTargetOrientationSmoothed = _lookTargetSmoothing > 0f
+                        ? Quaternion.Slerp(_lookTargetOrientationSmoothed, targetRot, dt * _lookTargetSmoothing)
+                        : targetRot;
+
+                    clampCenterEulers = _lookTargetOrientationSmoothed.eulerAngles;
+                    break;
+                }
+                
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+
+            clampCenterEulers = GetNearestAngle(clampCenterEulers, targetOrientation);
+            
+            clampCenterEulers.x *= (!_vertical.absolute).AsInt();
+            clampCenterEulers.y *= (!_horizontal.absolute).AsInt();
+
+            return clampCenterEulers;
         }
 
         private Vector2 GetNearestAngle(Vector2 value, Vector2 target) {
@@ -103,7 +161,7 @@ namespace MisterGames.Character.View {
             
             // Not clamped or not in spring zone
             if (clamp.mode == ClampMode.None ||
-                centralizedTarget >= clamp.springs.x && centralizedTarget <= clamp.springs.y
+                centralizedTarget > clamp.springs.x && centralizedTarget < clamp.springs.y
             ) {
                 return target;
             }
@@ -114,11 +172,11 @@ namespace MisterGames.Character.View {
                 if (clamp.springFactors.x <= 0f) return target;
 
                 // Not moving or moving towards spring: lerp to spring
-                if (diff >= 0f) return Mathf.Lerp(centralizedTarget, clamp.springs.x, dt * clamp.springSmoothing.x) + center;
+                if (diff >= 0f) return centralizedTarget.SmoothExp(clamp.springs.x, dt * clamp.springSmoothing.x) + center;
 
                 // Moving towards bound: decrease diff depending on distance between value and bound
-                float f = 1f - (value - center - clamp.bounds.x) / (clamp.springs.x - clamp.bounds.x);
-                return value + Mathf.Lerp(diff, 0f, clamp.springFactors.x * f);
+                float f = Mathf.Clamp01(1f - (value - center - clamp.bounds.x) / (clamp.springs.x - clamp.bounds.x));
+                return value + diff.SmoothExp(0f, clamp.springFactors.x * f);
             }
 
             // In right spring zone
@@ -127,11 +185,11 @@ namespace MisterGames.Character.View {
                 if (clamp.springFactors.y <= 0f) return target;
 
                 // Not moving or moving towards spring: lerp to spring
-                if (diff <= 0f) return Mathf.Lerp(centralizedTarget, clamp.springs.y, dt * clamp.springSmoothing.y) + center;
+                if (diff <= 0f) return centralizedTarget.SmoothExp(clamp.springs.y, dt * clamp.springSmoothing.y) + center;
 
                 // Moving towards bound: decrease diff depending on distance between value and bound
-                float f = 1f - (value - center - clamp.bounds.y) / (clamp.springs.y - clamp.bounds.y);
-                return value + Mathf.Lerp(diff, 0f, clamp.springFactors.y * f);
+                float f = Mathf.Clamp01(1f - (value - center - clamp.bounds.y) / (clamp.springs.y - clamp.bounds.y));
+                return value + diff.SmoothExp(0f, clamp.springFactors.y * f);
             }
 
             return target;

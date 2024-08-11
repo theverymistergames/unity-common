@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using MisterGames.Common.Maths;
 using UnityEngine;
 
 namespace MisterGames.Character.View {
@@ -12,7 +13,7 @@ namespace MisterGames.Character.View {
         public float AttachDistance { get; set; }
         public bool IsAttached => _mode != Mode.Free;
         
-        private readonly Dictionary<Transform, AttachData> _attachMap = new();
+        private readonly Dictionary<Transform, AttachData> _attachedObjectsMap = new();
         private readonly Dictionary<Transform, RotationData> _rotationsMap = new();
         private readonly HashSet<Transform> _rotationObjects = new();
 
@@ -20,8 +21,8 @@ namespace MisterGames.Character.View {
         private Vector3 _targetPoint;
         private Vector3 _targetDir;
         private Quaternion _targetRotation;
-        private float _smoothing;
         private Mode _mode;
+        private float _smoothing;
 
         private enum Mode {
             Free,
@@ -48,14 +49,15 @@ namespace MisterGames.Character.View {
         }
         
         public void Attach(Transform target, Vector3 point, AttachMode mode, float smoothing) {
-            var pos = target.position;
+            var targetPos = target.position;
             
             _target = target;
+            _targetPoint = point;
             _targetRotation = target.rotation;
-            _targetDir = (point - pos).normalized;
+            _targetDir = (point - targetPos).normalized;
+            AttachDistance = (point - targetPos).magnitude;
             _smoothing = smoothing;
-            AttachDistance = (point - pos).magnitude;
-            
+
             _mode = mode switch {
                 AttachMode.OffsetOnly => Mode.TransformWithoutRotation,
                 AttachMode.RotateWithTarget => Mode.Transform,
@@ -83,7 +85,7 @@ namespace MisterGames.Character.View {
         }
 
         public void AttachObject(Transform obj, Vector3 point, Vector3 position, Vector2 orientation, float smoothing = 0f) {
-            _attachMap[obj] = new AttachData {
+            _attachedObjectsMap[obj] = new AttachData {
                 offset = point - position,
                 rotation = obj.rotation,
                 orientation = Quaternion.Euler(orientation),
@@ -92,7 +94,7 @@ namespace MisterGames.Character.View {
         }
 
         public void DetachObject(Transform obj) {
-            _attachMap.Remove(obj);
+            _attachedObjectsMap.Remove(obj);
         }
 
         public void RotateObject(
@@ -122,17 +124,44 @@ namespace MisterGames.Character.View {
         }
         
         public void Update(ref Vector3 position, Vector2 orientation, Vector2 delta, float dt) {
-            var targetPoint = _mode switch {
-                Mode.Point => _targetPoint,
-                Mode.Transform => _target.position + _target.rotation * Quaternion.Inverse(_targetRotation) * _targetDir * AttachDistance,
-                Mode.TransformWithoutRotation => _target.position + _targetDir * AttachDistance,
-                Mode.TransformLookaround => _target.position + Quaternion.Euler(orientation) * Vector3.back * AttachDistance,
-                _ => position,
-            };
+            position = GetPosition(position, orientation, dt);
             
-            position = _smoothing > 0f ? Vector3.Lerp(position, targetPoint, dt * _smoothing) : targetPoint;
-            
-            foreach (var (obj, data) in _attachMap) {
+            UpdateAttachedObjects(position, orientation, dt);
+            UpdateRotationObjects(orientation, delta, dt);
+        }
+
+        private Vector3 GetPosition(Vector3 position, Vector2 orientation, float dt) {
+            switch (_mode) {
+                case Mode.Point: 
+                    return _smoothing > 0f
+                        ? position.SmoothExp(_targetPoint, dt * _smoothing)
+                        : _targetPoint;
+
+                case Mode.Transform: 
+                    _targetPoint = _target.position + _target.rotation * Quaternion.Inverse(_targetRotation) * _targetDir * AttachDistance; 
+                    return _smoothing > 0f
+                        ? position.SmoothExp(_targetPoint, dt * _smoothing)
+                        : _targetPoint;
+
+                case Mode.TransformWithoutRotation: 
+                    _targetPoint = _target.position + _targetDir * AttachDistance;
+                    return _smoothing > 0f
+                        ? position.SmoothExp(_targetPoint, dt * _smoothing)
+                        : _targetPoint;
+
+                case Mode.TransformLookaround:
+                    _targetPoint = _smoothing > 0f
+                        ? _targetPoint.SmoothExp(_target.position, dt * _smoothing)
+                        : _target.position;
+                    return _targetPoint + Quaternion.Euler(orientation) * Vector3.back * AttachDistance;
+
+                default: 
+                    return position;
+            }
+        }
+
+        private void UpdateAttachedObjects(Vector3 position, Vector2 orientation, float dt) {
+            foreach (var (obj, data) in _attachedObjectsMap) {
                 var rot = Quaternion.Euler(orientation) * Quaternion.Inverse(data.orientation);
                 var targetPos = position + rot * data.offset;
                 
@@ -147,7 +176,9 @@ namespace MisterGames.Character.View {
                     ? Quaternion.Slerp(obj.rotation, targetRot, data.smoothing * dt)
                     : targetRot;
             }
-            
+        }
+
+        private void UpdateRotationObjects(Vector2 orientation, Vector2 delta, float dt) {
             foreach (var obj in _rotationObjects) {
                 var data = _rotationsMap[obj];
                 var rot = Quaternion.Euler(orientation) * Quaternion.Inverse(data.orientation);

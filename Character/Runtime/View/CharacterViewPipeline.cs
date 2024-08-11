@@ -13,6 +13,7 @@ namespace MisterGames.Character.View {
     public sealed class CharacterViewPipeline : MonoBehaviour, IActorComponent, IUpdate {
         
         [Header("View Settings")]
+        [SerializeField] private PlayerLoopStage _playerLoopStage = PlayerLoopStage.LateUpdate;
         [SerializeField] private Vector2 _sensitivity = new Vector2(0.15f, 0.15f);
         [SerializeField] private float _smoothing = 20f;
         [SerializeField] [Min(0f)] private float _freeHeadRotationDistance;
@@ -48,13 +49,17 @@ namespace MisterGames.Character.View {
         private void OnEnable() {
             CanvasRegistry.Instance.SetCanvasEventCamera(_cameraContainer.Camera);
             _inputPipeline.OnViewVectorChanged += HandleViewVectorChanged;
-            PlayerLoopStage.LateUpdate.Subscribe(this);
+            _playerLoopStage.Subscribe(this);
+
+#if UNITY_EDITOR
+            _subscribedPlayerLoopStage = _playerLoopStage;
+#endif
         }
 
         private void OnDisable() {
             CanvasRegistry.Instance.SetCanvasEventCamera(null);
             _inputPipeline.OnViewVectorChanged -= HandleViewVectorChanged;
-            PlayerLoopStage.LateUpdate.Unsubscribe(this);
+            _playerLoopStage.Unsubscribe(this);
         }
 
         private void OnDestroy() {
@@ -90,12 +95,12 @@ namespace MisterGames.Character.View {
             _headJoint.Detach();
         }
         
-        public void LookAt(Transform target) {
-            _viewClamp.LookAt(target);
+        public void LookAt(Transform target, LookAtMode mode = LookAtMode.Free, Vector3 orientation = default, float smoothing = 0f) {
+            _viewClamp.LookAt(target, CurrentOrientation, mode, orientation);
         }
 
-        public void LookAt(Vector3 target) {
-            _viewClamp.LookAt(target);
+        public void LookAt(Vector3 target, float smoothing = 0f) {
+            _viewClamp.LookAt(target, CurrentOrientation, smoothing);
         }
         
         public void StopLookAt() {
@@ -123,8 +128,8 @@ namespace MisterGames.Character.View {
             
             ApplyClamp(currentOrientation, ref targetOrientation, dt);
             ApplySmoothing(ref currentOrientation, targetOrientation, dt);
-            
-            PerformRotation(currentOrientation, dt);
+
+            ApplyRotation(currentOrientation, dt);
             ApplyHeadJoint(currentOrientation, delta, dt);
         }
 
@@ -139,7 +144,7 @@ namespace MisterGames.Character.View {
         }
 
         private void ApplySmoothing(ref Vector2 current, Vector2 target, float dt) {
-            current = Vector2.Lerp(current, target, dt * _smoothing);
+            current = Quaternion.Slerp(Quaternion.Euler(current), Quaternion.Euler(target), dt * _smoothing).eulerAngles;
         }
 
         private void ApplyHeadJoint(Vector2 current, Vector2 delta, float dt) {
@@ -149,7 +154,7 @@ namespace MisterGames.Character.View {
             _headAdapter.Position = position;
         }
 
-        private void PerformRotation(Vector2 eulerAngles, float dt) {
+        private void ApplyRotation(Vector2 eulerAngles, float dt) {
             // If head offset from body is longer than free head rotation distance,
             // body rotation is not applied to prevent head from rotation around body vertical axis. 
             if (_headAdapter.LocalPosition.sqrMagnitude < _freeHeadRotationDistance * _freeHeadRotationDistance) {
@@ -166,6 +171,18 @@ namespace MisterGames.Character.View {
             
             _headAdapter.Rotation = Quaternion.Euler(eulerAngles);
         }
+
+#if UNITY_EDITOR
+        private PlayerLoopStage? _subscribedPlayerLoopStage;
+        private void OnValidate() {
+            if (!Application.isPlaying || _subscribedPlayerLoopStage == null) return;
+            
+            _subscribedPlayerLoopStage?.Unsubscribe(this);
+            
+            _playerLoopStage.Subscribe(this);
+            _subscribedPlayerLoopStage = _playerLoopStage;
+        }
+#endif
     }
 
 }

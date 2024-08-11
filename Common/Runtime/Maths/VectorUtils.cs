@@ -251,6 +251,18 @@ namespace MisterGames.Common.Maths {
             float clamp = (acceleration.normalized * maxSpeed - velocityProjection).magnitude / dt;
             return Vector3.ClampMagnitude(acceleration, clamp);
         }
+        
+        public static float SmoothExp(this float value, float target, float factor) {
+            return value + (target - value) * (1f - Mathf.Exp(-factor));
+        }
+        
+        public static Vector2 SmoothExp(this Vector2 value, Vector2 target, float factor) {
+            return value + (target - value) * (1f - Mathf.Exp(-factor));
+        }
+        
+        public static Vector3 SmoothExp(this Vector3 value, Vector3 target, float factor) {
+            return value + (target - value) * (1f - Mathf.Exp(-factor));
+        }
     }
 
 }
