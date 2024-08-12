@@ -96,7 +96,7 @@ namespace MisterGames.Character.View {
         }
         
         public void LookAt(Transform target, LookAtMode mode = LookAtMode.Free, Vector3 orientation = default, float smoothing = 0f) {
-            _viewClamp.LookAt(target, CurrentOrientation, mode, orientation);
+            _viewClamp.LookAt(target, CurrentOrientation, mode, orientation, smoothing);
         }
 
         public void LookAt(Vector3 target, float smoothing = 0f) {

@@ -52,7 +52,7 @@ namespace MisterGames.Character.View {
             var targetPos = target.position;
             
             _target = target;
-            _targetPoint = point;
+            _targetPoint = targetPos;
             _targetRotation = target.rotation;
             _targetDir = (point - targetPos).normalized;
             AttachDistance = (point - targetPos).magnitude;
@@ -125,7 +125,7 @@ namespace MisterGames.Character.View {
         
         public void Update(ref Vector3 position, Vector2 orientation, Vector2 delta, float dt) {
             position = GetPosition(position, orientation, dt);
-            
+
             UpdateAttachedObjects(position, orientation, dt);
             UpdateRotationObjects(orientation, delta, dt);
         }
@@ -153,6 +153,7 @@ namespace MisterGames.Character.View {
                     _targetPoint = _smoothing > 0f
                         ? _targetPoint.SmoothExp(_target.position, dt * _smoothing)
                         : _target.position;
+                    
                     return _targetPoint + Quaternion.Euler(orientation) * Vector3.back * AttachDistance;
 
                 default: 

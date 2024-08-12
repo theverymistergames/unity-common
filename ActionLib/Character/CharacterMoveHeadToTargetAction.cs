@@ -33,8 +33,6 @@ namespace MisterGames.ActionLib.Character {
         [Min(0f)] public float speedMin = 0.01f;
         public float curvature = 1f;
         public AnimationCurve progressCurve = AnimationCurve.Linear(0f, 0f, 1f, 1f);
-        [VisibleIf(nameof(targetType), 1)] [Min(0f)] public float pointRadius = 0.05f;
-        [VisibleIf(nameof(targetType), 1)] [Min(0f)] public float smoothing = 10f;
         
         public enum TargetType {
             LocalPosition,
@@ -57,7 +55,6 @@ namespace MisterGames.ActionLib.Character {
             Vector3 curvePoint;
             Vector3 dest;
             
-            var headPos = head.Position;
             var targetPosAtStart = Vector3.zero;
             var targetPosOffset = Vector3.zero;
             var targetRotation = Quaternion.identity;
@@ -175,23 +172,13 @@ namespace MisterGames.ActionLib.Character {
                     invertCurve ? 1f - progressCurve.Evaluate(t) : progressCurve.Evaluate(t)
                 );
 
-                bool canFinish;
-
                 switch (targetType) {
                     case TargetType.LocalPosition:
                         head.LocalPosition = position;
-                        canFinish = t >= 1f;
                         break;
                     
                     case TargetType.Transform:
-                        headPos = smoothing > 0f 
-                            ? Vector3.Lerp(headPos, position, smoothing * dt)
-                            : position;
-
-                        head.Position = headPos + targetPosOffset;
-                        
-                        float r = Mathf.Max(pointRadius, Mathf.Epsilon);
-                        canFinish = t >= 1f && (dest - headPos).sqrMagnitude <= r * r;
+                        head.Position = position + targetPosOffset;
                         break;
                     
                     default:
@@ -200,10 +187,9 @@ namespace MisterGames.ActionLib.Character {
                 
 #if UNITY_EDITOR
                 DebugExt.DrawSphere(head.Position, 0.008f, Color.yellow, duration: 5f);
-                DebugExt.DrawSphere(dest, 0.01f, Color.green, duration: 5f);
 #endif
                 
-                if (canFinish) break;
+                if (t >= 1f) break;
 
                 await UniTask.Yield();
             }
