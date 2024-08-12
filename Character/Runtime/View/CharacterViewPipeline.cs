@@ -144,7 +144,9 @@ namespace MisterGames.Character.View {
         }
 
         private void ApplySmoothing(ref Vector2 current, Vector2 target, float dt) {
-            current = Quaternion.Slerp(Quaternion.Euler(current), Quaternion.Euler(target), dt * _smoothing).eulerAngles;
+            current = _smoothing > 0f 
+                ? Quaternion.Slerp(Quaternion.Euler(current), Quaternion.Euler(target), dt * _smoothing).eulerAngles
+                : target;
         }
 
         private void ApplyHeadJoint(Vector2 current, Vector2 delta, float dt) {
