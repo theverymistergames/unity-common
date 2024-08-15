@@ -1,5 +1,6 @@
 ﻿using System;
 using MisterGames.Blueprints;
+using MisterGames.Common.Attributes;
 using MisterGames.Scenario.Events;
 using UnityEngine;
 
@@ -9,6 +10,7 @@ namespace MisterGames.BlueprintLib {
     [BlueprintNode(Name = "Event", Category = "Scenario", Color = BlueprintLibColors.Node.Scenario)]
     public sealed class BlueprintNodeEvent : IBlueprintNode, IBlueprintEnter, IBlueprintOutput<int>, IEventListener {
 
+        [HideLabel]
         [SerializeField] private EventReference _event;
 
         private IBlueprint _blueprint;

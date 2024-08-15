@@ -1,5 +1,4 @@
 ﻿using MisterGames.Common.Attributes;
-using MisterGames.Common.Maths;
 using UnityEditor;
 using UnityEngine;
 

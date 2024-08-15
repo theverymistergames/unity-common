@@ -11,8 +11,6 @@ namespace MisterGames.Common.Editor.Attributes {
     [CustomPropertyDrawer(typeof(VisibleIfAttribute))]
     public sealed class VisibleIfDrawer : PropertyDrawer {
 
-        private bool _hasCachedPropertyDrawer;
-
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
             if (!Show(property)) return;
             

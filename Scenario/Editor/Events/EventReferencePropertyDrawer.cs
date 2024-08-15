@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using MisterGames.Common.Editor.Views;
+using MisterGames.Common.Maths;
 using MisterGames.Scenario.Events;
 using UnityEditor;
 using UnityEngine;
@@ -19,7 +20,7 @@ namespace MisterGames.Scenario.Editor.Events {
         private const string EventIdPropertyPath = "_eventId";
         private const string SubIdPropertyPath = "_subId";
 
-        private const float SubIdWidthRatio = 0.2f;
+        private const float SubIdWidthRatio = 0.12f;
 
         private static readonly GUIContent NullLabel = new(Null);
 
@@ -48,7 +49,7 @@ namespace MisterGames.Scenario.Editor.Events {
             float offset = indent - 1f;
             rect.x += offset;
             rect.width -= offset;
-
+            
             GUI.Label(rect, label);
 
             var eventDomainProperty = property.FindPropertyRelative(EventDomainPropertyPath);
@@ -67,8 +68,11 @@ namespace MisterGames.Scenario.Editor.Events {
                 property.serializedObject.Update();
             }
 
+            bool hasLabel = label != null && label != GUIContent.none;
+            
             rect = position;
-            offset = EditorGUIUtility.labelWidth + 2f;
+            offset = hasLabel.AsFloat() * EditorGUIUtility.labelWidth + 2f;
+            
             rect.x += offset;
             rect.width -= offset;
 
