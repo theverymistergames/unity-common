@@ -49,7 +49,7 @@ namespace MisterGames.Scenario.Events {
         }
         
         public override string ToString() {
-            return $"Event({GetName()})";
+            return $"Event({GetName()}, domain {_eventDomain}, id {_eventId}, sub id {_subId})";
         }
     }
 
