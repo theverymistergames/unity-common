@@ -17,10 +17,10 @@ namespace MisterGames.ActionLib.Character {
         public Transform target;
         public LookAtMode mode;
         [VisibleIf(nameof(mode), 1)] public Vector3 orientation;
-        [Min(0f)] public float angularSpeed;
+        [Min(0f)] public float smoothing;
         [Min(0f)] public float maxAngle;
         public bool keepLookingAtAfterFinish;
-        [Min(0f)] public float smoothing;
+        [Min(0f)] public float attachSmoothing;
         
         public async UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
             var view = context.GetComponent<CharacterViewPipeline>();
@@ -36,7 +36,7 @@ namespace MisterGames.ActionLib.Character {
                     _ => throw new ArgumentOutOfRangeException()
                 };
 
-                rotation = Quaternion.RotateTowards(rotation, targetRotation, timeSource.DeltaTime * angularSpeed);
+                rotation = Quaternion.Slerp(rotation, targetRotation, timeSource.DeltaTime * smoothing);
                 
                 float angle = Quaternion.Angle(targetRotation, rotation);
                 if (angle <= maxAngle) break;
@@ -53,7 +53,7 @@ namespace MisterGames.ActionLib.Character {
             
             if (cancellationToken.IsCancellationRequested) return;
             
-            if (keepLookingAtAfterFinish) view.LookAt(target, mode, orientation, smoothing);
+            if (keepLookingAtAfterFinish) view.LookAt(target, mode, orientation, attachSmoothing);
             else view.StopLookAt();
         }
     }
