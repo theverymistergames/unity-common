@@ -32,7 +32,7 @@ namespace MisterGames.Character.View {
             TransformOriented,
         }
 
-        public void LookAt(Transform target, Vector2 startOrientation, LookAtMode mode, Vector3 orientation, float smoothing = 0f) {
+        public void LookAt(Transform target, Vector2 startOrientation, LookAtMode mode, Vector3 orientation, float smoothing) {
             _lookTarget = target;
             _lookTargetPoint = target.position;
             _lookTargetOrientationSmoothed = Quaternion.Euler(startOrientation);
@@ -46,7 +46,7 @@ namespace MisterGames.Character.View {
             };
         }
 
-        public void LookAt(Vector3 target, Vector2 startOrientation, float smoothing = 0f) {
+        public void LookAt(Vector3 target, Vector2 startOrientation, float smoothing) {
             _lookTarget = null;
             _lookTargetPoint = target;
             _lookTargetOrientationSmoothed = Quaternion.Euler(startOrientation);

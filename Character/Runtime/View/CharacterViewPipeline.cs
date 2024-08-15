@@ -83,12 +83,12 @@ namespace MisterGames.Character.View {
             _headJoint.StopRotateObject(obj);
         }
         
-        public void Attach(Transform target, Vector3 point, AttachMode mode = AttachMode.OffsetOnly, float smoothing = 0f) {
-            _headJoint.Attach(target, point, mode, smoothing);
+        public void AttachTo(Transform target, Vector3 point, AttachMode mode = AttachMode.OffsetOnly, float smoothing = 0f) {
+            _headJoint.AttachTo(target, point, mode, smoothing);
         }
         
-        public void Attach(Vector3 point, float smoothing = 0f) {
-            _headJoint.Attach(point, smoothing);
+        public void AttachTo(Vector3 point, float smoothing = 0f) {
+            _headJoint.AttachTo(point, smoothing);
         }
 
         public void Detach() {
@@ -126,11 +126,12 @@ namespace MisterGames.Character.View {
             var currentOrientation = (Vector2) CurrentOrientation;
             var targetOrientation = currentOrientation + delta;
             
+            ApplyHeadJoint(currentOrientation, delta, dt);
+            
             ApplyClamp(currentOrientation, ref targetOrientation, dt);
             ApplySmoothing(ref currentOrientation, targetOrientation, dt);
 
             ApplyRotation(currentOrientation, dt);
-            ApplyHeadJoint(currentOrientation, delta, dt);
         }
 
         private Vector2 ConsumeInputDelta() {

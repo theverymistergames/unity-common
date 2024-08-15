@@ -56,8 +56,10 @@ namespace MisterGames.ActionLib.Character {
             Vector3 dest;
             
             var targetPosAtStart = Vector3.zero;
+            var targetRotAtStart = Quaternion.identity;
+            
             var targetPosOffset = Vector3.zero;
-            var targetRotation = Quaternion.identity;
+            
             var offsetOrient = Quaternion.identity;
             bool invertCurve = false;
             float offsetDist = offset.magnitude;
@@ -86,26 +88,26 @@ namespace MisterGames.ActionLib.Character {
                 }
 
                 case TargetType.Transform: {
-                    targetRotation = target.rotation;
-                    startPoint = head.Position;
-                    var targetPos = target.position;
+                    targetRotAtStart = target.rotation;
+                    targetPosAtStart = target.position;
                     
+                    startPoint = head.Position;
+
                     offsetOrient = offsetMode switch {
-                        OffsetMode.Local => targetRotation * Quaternion.Euler(rotationOffset),
+                        OffsetMode.Local => targetRotAtStart * Quaternion.Euler(rotationOffset),
                         OffsetMode.World => Quaternion.Euler(rotationOffset),
-                        OffsetMode.UseViewDirectionAsForward => Quaternion.LookRotation(targetPos - startPoint, head.Rotation * Vector3.up),
+                        OffsetMode.UseViewDirectionAsForward => Quaternion.LookRotation(targetPosAtStart - startPoint, head.Rotation * Vector3.up),
                         _ => throw new ArgumentOutOfRangeException()
                     };
                     
                     targetPoint = attach && attachMode == AttachMode.RotateAroundTarget
-                        ? targetPos + Quaternion.Euler(view.CurrentOrientation) * new Vector3(0f, 0f, -offsetDist)
-                        : targetPos + offsetOrient * offset;
+                        ? targetPosAtStart + Quaternion.Euler(view.CurrentOrientation) * new Vector3(0f, 0f, -offsetDist)
+                        : targetPosAtStart + offsetOrient * offset;
                     
                     var rot = Quaternion.LookRotation(offsetOrient * offset, Vector3.up);
                     curvePoint = BezierExtensions.GetCurvaturePoint(startPoint, targetPoint, rot, curvature);
                     
                     dest = targetPoint;
-                    targetPosAtStart = targetPos;
                     break;
                 }
                 
@@ -147,11 +149,12 @@ namespace MisterGames.ActionLib.Character {
                     
                     case TargetType.Transform:
                         var targetPos = target.position;
+                        
                         targetPosOffset = targetPos - targetPosAtStart;
                         
                         dest = attach && attachMode == AttachMode.RotateAroundTarget
                             ? targetPosAtStart + Quaternion.Euler(view.CurrentOrientation) * new Vector3(0f, 0f, -offsetDist)
-                            : targetPosAtStart + offsetOrient * (Quaternion.Inverse(targetRotation) * target.rotation) * offset;
+                            : targetPosAtStart + offsetOrient * (Quaternion.Inverse(targetRotAtStart) * target.rotation) * offset;
 
                         diff = dest - head.Position;
                         targetPoint = dest;
@@ -196,7 +199,7 @@ namespace MisterGames.ActionLib.Character {
             
             if (cancellationToken.IsCancellationRequested) return;
 
-            if (targetType == TargetType.Transform && attach) view.Attach(target, dest + targetPosOffset, attachMode, attachSmoothing);
+            if (targetType == TargetType.Transform && attach) view.AttachTo(target, dest + targetPosOffset, attachMode, attachSmoothing);
         }
     }
     

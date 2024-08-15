@@ -48,7 +48,7 @@ namespace MisterGames.Character.View {
             public RotationPlane plane;
         }
         
-        public void Attach(Transform target, Vector3 point, AttachMode mode, float smoothing) {
+        public void AttachTo(Transform target, Vector3 point, AttachMode mode, float smoothing) {
             var targetPos = target.position;
             
             _target = target;
@@ -68,7 +68,7 @@ namespace MisterGames.Character.View {
             OnAttach.Invoke(AttachDistance);
         }
 
-        public void Attach(Vector3 point, float smoothing) {
+        public void AttachTo(Vector3 point, float smoothing) {
             _targetPoint = point;
             _smoothing = smoothing;
             _mode = Mode.Point;
