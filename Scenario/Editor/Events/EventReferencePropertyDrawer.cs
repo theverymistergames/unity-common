@@ -23,6 +23,7 @@ namespace MisterGames.Scenario.Editor.Events {
         private const float SubIdWidthRatio = 0.12f;
 
         private static readonly GUIContent NullLabel = new(Null);
+        private static readonly Color BoxColor = new Color(0.2f, 0.2f, 0.2f);
 
         private readonly struct Entry {
 
@@ -43,19 +44,34 @@ namespace MisterGames.Scenario.Editor.Events {
 
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
             EditorGUI.BeginProperty(position, label, property);
+            
+            bool hasLabel = label != null && label != GUIContent.none;
+            float offset = hasLabel.AsFloat() * (EditorGUIUtility.labelWidth + 2f);
 
             var rect = position;
-            float indent = EditorGUI.indentLevel * 15;
-            float offset = indent - 1f;
             rect.x += offset;
             rect.width -= offset;
-            
-            GUI.Label(rect, label);
 
+            rect.height += 2f * EditorGUIUtility.standardVerticalSpacing;
+            rect.y -= EditorGUIUtility.standardVerticalSpacing;
+            
+            var oldColor = GUI.color;
+            GUI.color = BoxColor;
+            GUI.Box(rect, GUIContent.none, EditorStyles.helpBox);
+            GUI.color = oldColor;
+
+            rect = position;
+            float indent = EditorGUI.indentLevel * 15;
+            rect.x += indent + EditorGUIUtility.standardVerticalSpacing;
+            rect.width -= indent + 2f * EditorGUIUtility.standardVerticalSpacing;
+            rect.height = EditorGUIUtility.singleLineHeight;
+            
             var eventDomainProperty = property.FindPropertyRelative(EventDomainPropertyPath);
             var eventIdProperty = property.FindPropertyRelative(EventIdPropertyPath);
             var subIdProperty = property.FindPropertyRelative(SubIdPropertyPath);
 
+            EditorGUI.PropertyField(rect, eventDomainProperty, label);
+            
             var eventDomain = eventDomainProperty.objectReferenceValue as EventDomain;
             int eventId = eventIdProperty.intValue;
 
@@ -67,22 +83,20 @@ namespace MisterGames.Scenario.Editor.Events {
                 property.serializedObject.ApplyModifiedProperties();
                 property.serializedObject.Update();
             }
-
-            bool hasLabel = label != null && label != GUIContent.none;
+            
+            float subIdWidth = rect.width * SubIdWidthRatio;
             
             rect = position;
-            offset = hasLabel.AsFloat() * EditorGUIUtility.labelWidth + 2f;
+            rect.x += offset + EditorGUIUtility.standardVerticalSpacing;
+            rect.width -= offset + subIdWidth + EditorGUIUtility.standardVerticalSpacing;
             
-            rect.x += offset;
-            rect.width -= offset;
-
-            float subIdWidth = rect.width * SubIdWidthRatio;
-            rect.width -= subIdWidth;
+            rect.y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
+            rect.height = EditorGUIUtility.singleLineHeight;
             
             if (EditorGUI.DropdownButton(rect, GetDropdownLabel(eventDomain, eventId), FocusType.Keyboard)) {
                 var dropdown = new AdvancedDropdown<Entry>(
                     "Select event",
-                    GetAllEntries(),
+                    GetDomainEntries(eventDomain).Prepend(default),
                     GetEntryPath,
                     e => {
                         var p = property.Copy();
@@ -103,8 +117,8 @@ namespace MisterGames.Scenario.Editor.Events {
                 dropdown.Show(rect);
             }
 
-            rect.x += rect.width;
-            rect.width = subIdWidth;
+            rect.x += rect.width + EditorGUIUtility.standardVerticalSpacing;
+            rect.width = subIdWidth - 2f * EditorGUIUtility.standardVerticalSpacing;
             
             subIdProperty.intValue = EditorGUI.IntField(rect, GUIContent.none, subIdProperty.intValue);
 
@@ -112,15 +126,7 @@ namespace MisterGames.Scenario.Editor.Events {
         }
 
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label) {
-            return EditorGUIUtility.singleLineHeight;
-        }
-
-        private static IEnumerable<Entry> GetAllEntries() {
-            return AssetDatabase
-                .FindAssets($"a:assets t:{nameof(EventDomain)}")
-                .Select(guid => AssetDatabase.LoadAssetAtPath<EventDomain>(AssetDatabase.GUIDToAssetPath(guid)))
-                .SelectMany(GetDomainEntries)
-                .Prepend(default);
+            return EditorGUIUtility.singleLineHeight * 2f + EditorGUIUtility.standardVerticalSpacing;
         }
 
         private static IEnumerable<Entry> GetDomainEntries(EventDomain eventDomain) {
@@ -149,15 +155,15 @@ namespace MisterGames.Scenario.Editor.Events {
             return entry.eventDomain == null
                 ? Null
                 : string.IsNullOrWhiteSpace(entry.group)
-                    ? $"{entry.eventDomain.name}/{entry.name}"
-                    : $"{entry.eventDomain.name}/{entry.group}/{entry.name}";
+                    ? $"{entry.name}"
+                    : $"{entry.group}/{entry.name}";
         }
 
         private static GUIContent GetDropdownLabel(EventDomain eventDomain, int eventId) {
             if (eventDomain == null) return NullLabel;
             
             if (!eventDomain.TryGetAddress(eventId, out int group, out int index)) {
-                return new GUIContent($"{eventDomain.name}{Separator}Event [{eventId}] {NotFound}");
+                return new GUIContent($"Event [{eventId}] {NotFound}");
             }
 
             var eventGroups = eventDomain.EventGroups;
@@ -165,14 +171,14 @@ namespace MisterGames.Scenario.Editor.Events {
             
             string groupName = string.IsNullOrWhiteSpace(eventGroup.name)
                 ? eventDomain.EventGroups.Length == 1
-                    ? Separator
-                    : $"{Separator}Group [{group}]{Separator}"
-                : $"{Separator}{eventGroup.name}{Separator}";
+                    ? string.Empty
+                    : $"Group [{group}]{Separator}"
+                : $"{eventGroup.name}{Separator}";
 
             string eventName = eventDomain.GetEventName(eventId);
             eventName = string.IsNullOrWhiteSpace(eventName) ? $"Event [{index}]" : eventName;
             
-            return new GUIContent($"{eventDomain.name}{groupName}{eventName}");
+            return new GUIContent($"{groupName}{eventName}");
         }
     }
 
