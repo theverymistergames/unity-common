@@ -94,10 +94,12 @@ namespace MisterGames.Scenario.Editor.Events {
             rect.height = EditorGUIUtility.singleLineHeight;
             
             if (EditorGUI.DropdownButton(rect, GetDropdownLabel(eventDomain, eventId), FocusType.Keyboard)) {
+                bool hasCurrentDomain = eventDomain != null;
+                
                 var dropdown = new AdvancedDropdown<Entry>(
                     "Select event",
-                    GetDomainEntries(eventDomain).Prepend(default),
-                    GetEntryPath,
+                    hasCurrentDomain ? GetDomainEntries(eventDomain) : GetAllEntries(),
+                    e => GetEntryPath(e, includeDomain: !hasCurrentDomain),
                     e => {
                         var p = property.Copy();
 
@@ -129,6 +131,13 @@ namespace MisterGames.Scenario.Editor.Events {
             return EditorGUIUtility.singleLineHeight * 2f + EditorGUIUtility.standardVerticalSpacing;
         }
 
+        private static IEnumerable<Entry> GetAllEntries() {
+            return AssetDatabase
+                .FindAssets($"a:assets t:{nameof(EventDomain)}")
+                .Select(guid => AssetDatabase.LoadAssetAtPath<EventDomain>(AssetDatabase.GUIDToAssetPath(guid)))
+                .SelectMany(GetDomainEntries);
+        }
+
         private static IEnumerable<Entry> GetDomainEntries(EventDomain eventDomain) {
             if (eventDomain == null || eventDomain.EventGroups.Length <= 0) return Array.Empty<Entry>();
 
@@ -151,12 +160,12 @@ namespace MisterGames.Scenario.Editor.Events {
             return list;
         }
 
-        private static string GetEntryPath(Entry entry) {
+        private static string GetEntryPath(Entry entry, bool includeDomain) {
             return entry.eventDomain == null
                 ? Null
                 : string.IsNullOrWhiteSpace(entry.group)
-                    ? $"{entry.name}"
-                    : $"{entry.group}/{entry.name}";
+                    ? $"{(includeDomain ? $"{entry.eventDomain.name}/" : string.Empty)}{entry.name}"
+                    : $"{(includeDomain ? $"{entry.eventDomain.name}/" : string.Empty)}{entry.group}/{entry.name}";
         }
 
         private static GUIContent GetDropdownLabel(EventDomain eventDomain, int eventId) {
