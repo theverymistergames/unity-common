@@ -217,15 +217,17 @@ namespace MisterGames.Blackboards.Core {
                 _propertyList.Add(hash);
                 return true;
             }
-
-            _propertyList[oldIndex] = _propertyList[newIndex];
-            _propertyList[newIndex] = hash;
-
+            
+            _propertyList.Insert(newIndex, hash);
+            
+            if (oldIndex > newIndex) oldIndex++;
+            _propertyList.RemoveAt(oldIndex);
+            
             return true;
         }
 
         public void RemoveProperty(int hash) {
-            if (_propertyMap.TryGetValue(hash, out var property)) _propertyMap.Remove(hash);
+            _propertyMap.Remove(hash, out var property);
 
             for (int i = _propertyList.Count - 1; i >= 0; i--) {
                 if (_propertyList[i] != hash) continue;
