@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reflection;
 using MisterGames.Actors;
 using MisterGames.Character.Collisions;
 using MisterGames.Character.Core;
@@ -86,6 +87,35 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
                 ConsoleRunner.AppendLine($"[{i + 1}] {spawn.gameObject.name} : {spawn.transform.position}");
             }
         }
+        
+        [ConsoleCommand("hero/select")]
+        [ConsoleCommandHelp("select hero gameobject in current scene")]
+        public void SelectHero() {
+            var character = Object.FindObjectOfType<MainCharacter>();
+            
+            if (character == null) {
+                ConsoleRunner.AppendLine($"No prefab with {nameof(MainCharacter)} component attached found on scene.");
+                return;
+            }
+
+#if UNITY_EDITOR
+            UnityEditor.Selection.activeGameObject = character.gameObject;
+            
+            var type = typeof(UnityEditor.EditorWindow).Assembly.GetType("UnityEditor.SceneHierarchyWindow");
+            var window = UnityEditor.EditorWindow.GetWindow(type);
+            var method = type.GetMethod("SetExpandedRecursive");
+            
+            method!.Invoke(window, new object[] { character.gameObject.GetInstanceID(), true });
+
+            int childCount = character.transform.childCount;
+            for (int i = 0; i < childCount; i++) {
+                method!.Invoke(window, new object[] { character.transform.GetChild(i).gameObject.GetInstanceID(), false });   
+            }
+#endif
+        }
+        
+        [ConsoleHotkey("hero/select", KeyBinding.H, ShortcutModifiers.Control)]
+        public void SelectHeroHotKey() { }
 
         [ConsoleHotkey("hero/spawni 0", KeyBinding.A0, ShortcutModifiers.Alt)]
         public void SpawnAtPointByIndex0() { }
