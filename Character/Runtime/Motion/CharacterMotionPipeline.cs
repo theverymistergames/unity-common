@@ -4,6 +4,7 @@ using MisterGames.Character.Input;
 using MisterGames.Character.View;
 using MisterGames.Collisions.Utils;
 using MisterGames.Common;
+using MisterGames.Common.Attributes;
 using MisterGames.Common.Maths;
 using MisterGames.Tick.Core;
 using UnityEngine;
@@ -17,8 +18,9 @@ namespace MisterGames.Character.Motion {
         [SerializeField] [Min(0f)] private float _noGravityVelocityDamping = 10f;
         [SerializeField] private float _speedCorrectionSide = 0.8f;
         [SerializeField] private float _speedCorrectionBack = 0.6f;
-        [SerializeField] [Range(0f, 90f)] private float _minSlopeAngle = 15f;
-        [SerializeField] [Range(0f, 90f)] private float _maxSlopeAngle = 45f;
+        [SerializeField] [MinMaxSlider(0f, 1f)] private Vector2 _forceCorrection = new Vector2(0f, 0.5f);
+        [SerializeField] [MinMaxSlider(0f, 180f)] private Vector2 _forceCorrectionAngle = new Vector2(15f, 90f);
+        [SerializeField] [MinMaxSlider(0f, 90f)] private Vector2 _slopeAngle = new Vector2(25f, 45f);
         [SerializeField] private float _inputSmoothing = 20f;
         
         [Header("Friction")]
@@ -109,6 +111,7 @@ namespace MisterGames.Character.Motion {
             
             LimitForceByObstacles(groundDirWorld, ref force);
             LimitForceBySlopeAngle(groundDirWorld, slopeAngle, ref force);
+            ApplyDirCorrection(groundDirWorld * maxSpeed, velocity, ref force, dt);
             
             _rigidbody.AddForce(force, ForceMode.Acceleration);
 
@@ -156,7 +159,7 @@ namespace MisterGames.Character.Motion {
             
             if (inputDir.IsNearlyZero() ||
                 !info.hasContact ||
-                slopeAngle <= _maxSlopeAngle
+                slopeAngle <= _slopeAngle.y
             ) {
                 return;
             }
@@ -201,13 +204,26 @@ namespace MisterGames.Character.Motion {
             inputForce = Vector3.ProjectOnPlane(inputForce, hit.normal);
         }
 
+        private void ApplyDirCorrection(Vector3 targetVelocity, Vector3 velocity, ref Vector3 force, float dt) {
+            if (targetVelocity.IsNearlyZero() || !_groundDetector.CollisionInfo.hasContact) return;
+
+            var nextVelocity = velocity + force * dt;
+            var perfectForce = dt > 0f ? (targetVelocity - velocity) / dt : force;
+                
+            float angle = Vector3.Angle(targetVelocity, nextVelocity);
+            float t = Mathf.Clamp01((angle - _forceCorrectionAngle.x) / (_forceCorrectionAngle.y - _forceCorrectionAngle.x));
+
+            float f = Mathf.Lerp(_forceCorrection.x, _forceCorrection.y, t);
+            force = Vector3.Lerp(force, perfectForce, f);
+        }
+
         private void UpdateFriction(float slopeAngle) {
             var mat = _collider.material;
             
             if (_groundDetector.CollisionInfo.hasContact) {
                 float absAngle = Mathf.Abs(slopeAngle);
 
-                if (absAngle < _minSlopeAngle) {
+                if (absAngle < _slopeAngle.x) {
                     mat.frictionCombine = _frictionCombineGrounded;
                     mat.dynamicFriction = _frictionGrounded;
                     mat.staticFriction = _frictionGrounded;
@@ -215,7 +231,7 @@ namespace MisterGames.Character.Motion {
                     return;
                 }
                 
-                if (absAngle <= _maxSlopeAngle) {
+                if (absAngle <= _slopeAngle.y) {
                     mat.frictionCombine = _frictionCombineSlope;
                     mat.dynamicFriction = _frictionSlope;
                     mat.staticFriction = _frictionSlope;
