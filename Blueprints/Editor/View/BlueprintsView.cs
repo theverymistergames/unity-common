@@ -458,14 +458,15 @@ namespace MisterGames.Blueprints.Editor.View {
 
             _blackboardView = new BlackboardView(this) {
                 windowed = false,
+                scrollable = true,
                 addItemRequested = _ => { OnAddBlackboardPropertyRequest(); },
                 moveItemRequested = (_, i, element) => OnBlackboardPropertyPositionChanged((BlackboardField) element, i),
                 editTextRequested = (_, element, newName) => OnBlackboardPropertyNameChanged((BlackboardField) element, newName)
             };
-
+            
             _blackboardView.SetPosition(new Rect(0, 0, 300, 300));
             _blackboardView.visible = false;
-
+            
             Add(_blackboardView);
         }
 
@@ -495,12 +496,16 @@ namespace MisterGames.Blueprints.Editor.View {
 
             if (!_blackboardView.visible) return;
 
+            var section = new BlackboardSection { headerVisible = false };
             var properties = _blackboard.Properties;
 
             for (int i = 0; i < properties.Count; i++) {
                 if (!_blackboard.TryGetProperty(properties[i], out var property)) continue;
-                _blackboardView.Add(BlackboardUtils.CreateBlackboardPropertyView(property));
+
+                section.Add(BlackboardUtils.CreateBlackboardPropertyView(property));
             }
+            
+            _blackboardView.Add(section);
         }
 
         private void OnAddBlackboardPropertyRequest() {

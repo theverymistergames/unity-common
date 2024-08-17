@@ -70,7 +70,7 @@ namespace MisterGames.Blackboards.Editor {
             return false;
         }
 
-        public static VisualElement CreateBlackboardPropertyView(BlackboardProperty property) {
+        public static BlackboardField CreateBlackboardPropertyView(BlackboardProperty property) {
             var type = property.type.ToType();
             string typeName = TypeNameFormatter.GetShortTypeName(type);
             string propertyName = property.name;
