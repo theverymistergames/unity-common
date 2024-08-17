@@ -11,26 +11,26 @@ namespace MisterGames.Common.Editor.Drawers {
     [CustomPropertyDrawer(typeof(AnimationCurve))]
     public class AnimationCurvePropertyDrawer : PropertyDrawer {
 
-        private const float EASING_PROPERTY_X = 0.7f;
-        private const float EASING_PROPERTY_PADDING = 8f;
+        private const float EASING_PROPERTY_RATIO = 0.25f;
 
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
             EditorGUI.BeginProperty(position, label, property);
 
-            float easingPropertyX = position.x + position.width * EASING_PROPERTY_X;
-            float easingPropertyWidth = position.width * (1f - EASING_PROPERTY_X);
-
-            var curveRect = new Rect(position.x, position.y, easingPropertyX - EASING_PROPERTY_PADDING, position.height);
-            EditorGUI.PropertyField(curveRect, property, label);
+            var rect = position;
+            rect.width = position.width * (1f - EASING_PROPERTY_RATIO) - EditorGUIUtility.standardVerticalSpacing;
+            
+            EditorGUI.PropertyField(rect, property, label);
 
             var easingLabel = property.animationCurveValue.TryGetEasingType(out var easingType)
                 ? new GUIContent($"{easingType}")
                 : new GUIContent("Custom");
 
-            var easingRect = new Rect(easingPropertyX, position.y, easingPropertyWidth, position.height);
-            
-            if (EditorGUI.DropdownButton(easingRect, easingLabel, FocusType.Keyboard)) {
-                CreateEasingTypeDropdown(property).Show(easingRect);
+            rect = position;
+            rect.x += position.width * (1f - EASING_PROPERTY_RATIO) + EditorGUIUtility.standardVerticalSpacing;
+            rect.width = position.width * EASING_PROPERTY_RATIO;
+
+            if (EditorGUI.DropdownButton(rect, easingLabel, FocusType.Keyboard)) {
+                CreateEasingTypeDropdown(property).Show(rect);
             }
 
             EditorGUI.EndProperty();
