@@ -48,7 +48,7 @@ namespace MisterGames.Character.View {
         }
 
         public void OnUpdate(float dt) {
-            var input = _motion.MotionInput * (_maxSpeed > 0f ? _motion.Velocity.magnitude / _maxSpeed : 1f);
+            var input = _motion.InputDir * (_maxSpeed > 0f ? _motion.Velocity.magnitude / _maxSpeed : 1f);
             var velocity = new Vector3(
                 input.x * _baseAmplitude * _sideAmplitude,
                 0f,

@@ -9,8 +9,9 @@ using UnityEngine;
 namespace MisterGames.Character.Motion {
     
     public sealed class CharacterStepHelper : MonoBehaviour, IActorComponent, IUpdate {
-        
+
         [Header("Detection")]
+        [SerializeField] private float _sideOffset;
         [SerializeField] private float _lowerRayOffset;
         [SerializeField] private LayerMask _layerMask;
         [SerializeField] [Min(0f)] private float _distance;
@@ -21,8 +22,11 @@ namespace MisterGames.Character.Motion {
         [Header("Resolving")]
         [SerializeField] [Min(0f)] private float _maxStepHeight;
         [SerializeField] [Min(0f)] private float _maxStepHeightAir;
-        [SerializeField] private Vector2 _climbSpeed;
-        [SerializeField] private float _airSpeedMultiplier = 1f;
+        [SerializeField] private Vector3 _climbSpeedMin;
+        [SerializeField] private Vector3 _climbSpeedMax;
+        [SerializeField] private float _speedMultiplierGround = 1f;
+        [SerializeField] private float _speedMultiplierAir = 1f;
+        [SerializeField] [Min(0f)] private float _speedSmoothing;
         
         [Header("Debug")]
         [SerializeField] private bool _showDebugInfo;
@@ -31,9 +35,9 @@ namespace MisterGames.Character.Motion {
         private CharacterMotionPipeline _motion;
         private Transform _transform;
         private RaycastHit[] _hits;
+        private Vector3 _climbSpeed;
 
-        void IActorComponent.OnAwake(IActor actor)
-        {
+        void IActorComponent.OnAwake(IActor actor) {
             _transform = actor.Transform;
             _hits = new RaycastHit[_maxHits];
             
@@ -41,76 +45,83 @@ namespace MisterGames.Character.Motion {
             _groundDetector = actor.GetComponent<CharacterGroundDetector>();
         }
 
-        private void OnEnable()
-        {
+        private void OnEnable() {
             PlayerLoopStage.FixedUpdate.Subscribe(this);
+
+            _climbSpeed = _climbSpeedMin;
         }
 
-        private void OnDisable()
-        {
+        private void OnDisable() {
             PlayerLoopStage.FixedUpdate.Unsubscribe(this);
         }
 
         public void OnUpdate(float dt) {
-            if (_motion.MotionInput.IsNearlyZero()) return;
+            if (_motion.InputDir.IsNearlyZero()) {
+                _climbSpeed = _climbSpeedMin;
+                return;
+            }
 
             _groundDetector.FetchResults();
-            bool isGrounded = _groundDetector.CollisionInfo.hasContact;
+            var collisionInfo = _groundDetector.CollisionInfo;
+            bool isGrounded = collisionInfo.hasContact;
             
             var up = _transform.up;
             float stepHeight = isGrounded ? _maxStepHeight : _maxStepHeightAir;
             
-            var lowerPoint = _transform.position + _lowerRayOffset * up + _motion.Velocity * dt;
+            var lowerPoint = _transform.position + _lowerRayOffset * up;
             var upperPoint = lowerPoint + stepHeight * up;
-            var motionDir = _motion.MotionDirWorld.normalized;
-            
-#if UNITY_EDITOR
-            if (_showDebugInfo) DebugExt.DrawRay(lowerPoint, motionDir * _distance, Color.yellow);
-#endif
+            var inputDir = _motion.InputDirWorld.normalized;
             
             // Lower ray not detected any obstacles: do nothing
-            if (!Raycast(lowerPoint, motionDir, _distance, out var lowerHit)) return;
-      
-            float maxUpperDistance = lowerHit.distance + _maxStepDepth;
-            
-#if UNITY_EDITOR
-            if (_showDebugInfo) DebugExt.DrawPointer(lowerHit.point, Color.yellow, 0.1f);
-            if (_showDebugInfo) DebugExt.DrawRay(upperPoint, motionDir * maxUpperDistance, Color.yellow);
-#endif
-            
-            // Upper ray detected an obstacle: cannot climb up
-            if (Raycast(upperPoint, motionDir, maxUpperDistance, out var upperHit))
-            {
-#if UNITY_EDITOR
-                if (_showDebugInfo) DebugExt.DrawPointer(upperHit.point, Color.red, 0.1f);
-#endif
+            if (!DoubleRaycast(lowerPoint, inputDir, Vector3.up, _distance, out var lowerHit)) {
+                _climbSpeed = _climbSpeedMin;
                 return;
             }
             
 #if UNITY_EDITOR
-            if (_showDebugInfo) DebugExt.DrawPointer(upperPoint + motionDir * _distance, Color.green, 0.1f);
+            if (_showDebugInfo) DebugExt.DrawPointer(lowerHit.point, Color.yellow);
 #endif
 
-            float angle = Vector3.SignedAngle(up, lowerHit.normal, Vector3.Cross(motionDir, up));
-            if (angle < _minInclineAngle) return;
+            // Upper ray detected an obstacle: cannot climb up
+            if (DoubleRaycast(upperPoint, inputDir, up, lowerHit.distance + _maxStepDepth, out var upperHit)) {
+#if UNITY_EDITOR
+                if (_showDebugInfo) DebugExt.DrawPointer(upperHit.point, Color.red);
+#endif
+                
+                _climbSpeed = _climbSpeedMin;
+                return;
+            }
+            
+#if UNITY_EDITOR
+            if (_showDebugInfo) DebugExt.DrawPointer(upperPoint + inputDir * _distance, Color.green);
+#endif
 
-            float speed = isGrounded ? 1f : _airSpeedMultiplier;
-            var delta = (_climbSpeed.x * motionDir + _climbSpeed.y * up) * (speed * dt);
+            float angle = Vector3.SignedAngle(up, lowerHit.normal, Vector3.Cross(inputDir, up));
+            if (angle < _minInclineAngle) {
+                _climbSpeed = _climbSpeedMin;
+                return;
+            }
+
+            _climbSpeed = _speedSmoothing > 0f 
+                ? Vector3.Lerp(_climbSpeed, _climbSpeedMax, dt * _speedSmoothing)
+                : _climbSpeedMax;
+            
+            float speedMul = isGrounded ? _speedMultiplierGround : _speedMultiplierAir;
+            var delta = (_climbSpeed.x * inputDir + _climbSpeed.y * up + _climbSpeed.z * -lowerHit.normal) * (speedMul * dt);
             
             _motion.Position += delta;
             
 #if UNITY_EDITOR
-            if (_showDebugInfo)
-            {
-                DebugExt.DrawSphere(lowerPoint, 0.01f, Color.green, duration: 5f);
-                DebugExt.DrawRay(lowerPoint, delta, Color.green, duration: 5f);
-            }
+            if (_showDebugInfo) DebugExt.DrawSphere(lowerPoint, 0.01f, Color.green, duration: 5f);
+            if (_showDebugInfo) DebugExt.DrawRay(lowerPoint, delta, Color.green, duration: 5f);
 #endif
         }
-
-        private bool Raycast(Vector3 origin, Vector3 direction, float distance, out RaycastHit closestHit) {
+        
+        private bool DoubleRaycast(Vector3 origin, Vector3 direction, Vector3 up, float distance, out RaycastHit closestHit) {
+            var side = Vector3.Cross(direction, up);
+            
             int hitCount = Physics.RaycastNonAlloc(
-                origin,
+                origin + side * _sideOffset,
                 direction, 
                 _hits,
                 distance,
@@ -118,7 +129,36 @@ namespace MisterGames.Character.Motion {
                 QueryTriggerInteraction.Ignore
             );
 
-            return _hits.TryGetMinimumDistanceHit(hitCount, out closestHit);
+            bool hasRightHit = _hits.TryGetMinimumDistanceHit(hitCount, out var rightHit);
+            
+            hitCount = Physics.RaycastNonAlloc(
+                origin - side * _sideOffset,
+                direction, 
+                _hits,
+                distance,
+                _layerMask,
+                QueryTriggerInteraction.Ignore
+            );
+
+            bool hasLeftHit = _hits.TryGetMinimumDistanceHit(hitCount, out var leftHit);
+
+#if UNITY_EDITOR
+            if (_showDebugInfo) DebugExt.DrawRay(origin + side * _sideOffset, direction * distance, Color.yellow);
+            if (_showDebugInfo) DebugExt.DrawRay(origin - side * _sideOffset, direction * distance, Color.yellow);
+#endif
+            
+            if (hasRightHit && hasLeftHit) {
+                closestHit = rightHit.distance < leftHit.distance ? rightHit : leftHit;
+                return true;
+            }
+
+            if (!hasRightHit && !hasLeftHit) {
+                closestHit = default;
+                return false;
+            }
+
+            closestHit = hasRightHit ? rightHit : leftHit;
+            return true;
         }
 
 #if UNITY_EDITOR

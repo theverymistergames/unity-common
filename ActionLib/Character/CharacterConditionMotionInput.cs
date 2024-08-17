@@ -14,7 +14,7 @@ namespace MisterGames.ActionLib.Character {
         public Optional<bool> isMovingForward;
 
         public bool IsMatch(IActor context) {
-            var motionInput = context.GetComponent<CharacterMotionPipeline>().MotionInput;
+            var motionInput = context.GetComponent<CharacterMotionPipeline>().InputDir;
 
             return isMotionInputActive.IsEmptyOrEquals(!motionInput.IsNearlyZero()) &&
                    isMovingForward.IsEmptyOrEquals(motionInput.y > 0f);

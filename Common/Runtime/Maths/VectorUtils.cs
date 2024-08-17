@@ -50,16 +50,6 @@ namespace MisterGames.Common.Maths {
         // ---------------- ---------------- Modification ---------------- ----------------
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector3 Inverted(this Vector3 vector) {
-            return -1f * vector;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector2 Inverted(this Vector2 vector) {
-            return -1f * vector;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector3 WithX(this Vector3 vector, float x) {
             return new Vector3(x, vector.y, vector.z);
         }

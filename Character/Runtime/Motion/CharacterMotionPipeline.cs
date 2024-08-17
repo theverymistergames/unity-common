@@ -1,9 +1,9 @@
-﻿using System;
-using MisterGames.Actors;
+﻿using MisterGames.Actors;
 using MisterGames.Character.Collisions;
 using MisterGames.Character.Input;
 using MisterGames.Character.View;
 using MisterGames.Collisions.Utils;
+using MisterGames.Common;
 using MisterGames.Common.Maths;
 using MisterGames.Tick.Core;
 using UnityEngine;
@@ -38,8 +38,9 @@ namespace MisterGames.Character.Motion {
         [SerializeField] [Min(1)] private int _maxHits = 12;
         [SerializeField] private LayerMask _layer;
 
-        public Vector3 MotionDirWorld => GetWorldDir(InputToLocal(MotionInput));
-        public Vector2 MotionInput { get; private set; }
+        public Vector3 MotionDirWorld { get; private set; }
+        public Vector3 InputDirWorld { get; private set; }
+        public Vector2 InputDir { get; private set; }
         public Vector3 Velocity { get => _rigidbody.velocity; set => _rigidbody.velocity = value; }
         public Vector3 PreviousVelocity { get; private set; }
         public float MoveForce { get => _moveForce; set => _moveForce = value; }
@@ -81,32 +82,41 @@ namespace MisterGames.Character.Motion {
         }
 
         private void HandleMotionInput(Vector2 input) {
-            MotionInput = input;
+            InputDir = input;
         }
 
         void IUpdate.OnUpdate(float dt) {
-            _smoothedInput = Vector2.Lerp(_smoothedInput, MotionInput, dt * _inputSmoothing);
+            _smoothedInput = Vector2.Lerp(_smoothedInput, InputDir, dt * _inputSmoothing);
             
             if (_rigidbody.isKinematic) return;
+
+            InputDirWorld = GetWorldDir(InputToLocal(InputDir));
             
-            
+            _groundDetector.Forward = InputDirWorld;
             _groundDetector.FetchResults();
+
+            MotionDirWorld = GetGroundDir(InputDirWorld);
             
-            float maxSpeed = CalculateSpeedCorrection(MotionInput) * Speed;
+            float maxSpeed = CalculateSpeedCorrection(_smoothedInput) * Speed;
             var velocity = _rigidbody.velocity;
-            var inputDirWorld = GetWorldDir(InputToLocal(_smoothedInput));
-            float slopeAngle = GetSlopeAngle(inputDirWorld);
+            var groundDirWorld = GetGroundDir(GetWorldDir(InputToLocal(_smoothedInput)));
+            float slopeAngle = GetSlopeAngle(groundDirWorld);
             
             PreviousVelocity = velocity;
 
-            var velocityProj = velocity.magnitude * inputDirWorld;
-            var force = VectorUtils.ClampAcceleration(inputDirWorld * _moveForce, velocityProj, maxSpeed, dt);
+            var velocityProj = velocity.magnitude * groundDirWorld;
+            var force = VectorUtils.ClampAcceleration(groundDirWorld * _moveForce, velocityProj, maxSpeed, dt);
             
-            LimitForceByObstacles(inputDirWorld, ref force);
-            LimitForceBySlopeAngle(inputDirWorld, slopeAngle, ref force);
+            LimitForceByObstacles(groundDirWorld, ref force);
+            LimitForceBySlopeAngle(groundDirWorld, slopeAngle, ref force);
             
             _rigidbody.AddForce(force, ForceMode.Acceleration);
 
+#if UNITY_EDITOR
+            if (_showDebugInfo) DebugExt.DrawSphere(_rigidbody.position, 0.05f, Color.cyan);
+            if (_showDebugInfo) DebugExt.DrawRay(_rigidbody.position, groundDirWorld, Color.cyan);
+#endif
+            
             if (!_rigidbody.useGravity) {
                 _rigidbody.velocity = Vector3.Lerp(_rigidbody.velocity, Vector3.zero, dt * _noGravityVelocityDamping);
             }
@@ -119,16 +129,17 @@ namespace MisterGames.Character.Motion {
         }
 
         private Vector3 GetWorldDir(Vector3 localDir) {
-            // Gravity is disabled: use character head direction
-            if (!_rigidbody.useGravity) return _head.Rotation * localDir;
-            
-            var info = _groundDetector.CollisionInfo;
-
-            return info.hasContact 
-                ? Vector3.ProjectOnPlane(_rigidbody.rotation * localDir, info.normal) 
-                : _rigidbody.rotation * localDir;
+            return _rigidbody.useGravity 
+                ? _rigidbody.rotation * localDir 
+                : _head.Rotation * localDir;
         }
 
+        private Vector3 GetGroundDir(Vector3 worldDir) {
+            return _groundDetector.CollisionInfo.hasContact 
+                ? Vector3.ProjectOnPlane(worldDir, _groundDetector.CollisionInfo.normal) 
+                : worldDir;
+        }
+        
         private float CalculateSpeedCorrection(Vector2 input) {
             // Moving backwards OR backwards + sideways: apply back correction
             if (input.y < 0) return _speedCorrectionBack;
@@ -141,16 +152,17 @@ namespace MisterGames.Character.Motion {
         }
 
         private void LimitForceBySlopeAngle(Vector3 inputDir, float slopeAngle, ref Vector3 inputForce) {
+            var info = _groundDetector.CollisionInfo;
+            
             if (inputDir.IsNearlyZero() ||
-                !_groundDetector.CollisionInfo.hasContact ||
+                !info.hasContact ||
                 slopeAngle <= _maxSlopeAngle
             ) {
                 return;
             }
             
             var up = _rigidbody.transform.up;
-            var normal = _groundDetector.CollisionInfo.normal;
-            var slopeUp = Vector3.Cross(Vector3.Cross(normal, up), normal).normalized;
+            var slopeUp = Vector3.Cross(Vector3.Cross(info.normal, up), info.normal).normalized;
             
             inputForce = Vector3.ProjectOnPlane(inputForce, slopeUp);
         }

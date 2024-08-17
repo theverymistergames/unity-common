@@ -39,7 +39,6 @@ namespace MisterGames.Collisions.Detectors {
 
         public override int Capacity => _maxHits;
 
-        private ITimeSource _timeSource => TimeSources.Get(_timeSourceStage);
         private Transform _transform;
 
         private RaycastHit[] _raycastHits;
@@ -58,11 +57,11 @@ namespace MisterGames.Collisions.Detectors {
         }
 
         private void OnEnable() {
-            _timeSource.Subscribe(this);
+            _timeSourceStage.Subscribe(this);
         }
 
         private void OnDisable() {
-            _timeSource.Unsubscribe(this);
+            _timeSourceStage.Unsubscribe(this);
         }
 
         private void Start() {
@@ -78,17 +77,19 @@ namespace MisterGames.Collisions.Detectors {
         }
 
         public override ReadOnlySpan<CollisionInfo> FilterLastResults(CollisionFilter filter) {
+            int hitCount = _hitCount;
+            
             _raycastHits
-                .RemoveInvalidHits(_hitCount, out int hitCount)
-                .Filter(hitCount, filter, out int filterCount);
+                .RemoveInvalidHits(ref hitCount)
+                .Filter(ref hitCount, filter);
 
-            if (filterCount <= 0) return ReadOnlySpan<CollisionInfo>.Empty;
+            if (hitCount <= 0) return ReadOnlySpan<CollisionInfo>.Empty;
 
-            for (int i = 0; i < filterCount; i++) {
+            for (int i = 0; i < hitCount; i++) {
                 _hits[i] = CollisionInfo.FromRaycastHit(_raycastHits[i]);
             }
 
-            return ((ReadOnlySpan<CollisionInfo>) _hits)[..filterCount];
+            return ((ReadOnlySpan<CollisionInfo>) _hits)[..hitCount];
         }
 
         private void UpdateContacts(bool forceNotify = false) {
@@ -117,7 +118,7 @@ namespace MisterGames.Collisions.Detectors {
             );
 
             return _raycastHits
-                .RemoveInvalidHits(_hitCount, out _hitCount)
+                .RemoveInvalidHits(ref _hitCount)
                 .TryGetMinimumDistanceHit(_hitCount, out hit);
         }
     }

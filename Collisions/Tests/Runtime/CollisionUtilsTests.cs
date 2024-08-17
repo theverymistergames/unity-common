@@ -18,7 +18,7 @@ namespace CollisionUtilsTests {
                 hits[i] = new RaycastHit { distance = Random.Range(-1f, 1f) };
             }
 
-            hits.RemoveInvalidHits(hitCount, out hitCount);
+            hits.RemoveInvalidHits(ref hitCount);
 
             for (int i = 0; i < hitCount; i++) {
                 Assert.IsTrue(hits[i].distance > 0f);
@@ -34,7 +34,7 @@ namespace CollisionUtilsTests {
                 hits.Add(new RaycastResult { distance = Random.Range(-1f, 1f) });
             }
 
-            hits.RemoveInvalidHits(hitCount, out hitCount);
+            hits.RemoveInvalidHits(ref hitCount);
 
             for (int i = 0; i < hitCount; i++) {
                 Assert.IsTrue(hits[i].distance > 0f);
@@ -53,7 +53,7 @@ namespace CollisionUtilsTests {
                 hits[i] = new RaycastHit { distance = Random.Range(0f, 1f) };
             }
 
-            hits.Filter(hitCount, filter, out hitCount);
+            hits.Filter(ref hitCount, filter);
 
             for (int i = 0; i < hitCount; i++) {
                 Assert.IsTrue(hits[i].distance <= 0.5f);
@@ -71,7 +71,7 @@ namespace CollisionUtilsTests {
                 hits.Add(new RaycastResult { distance = Random.Range(0f, 1f) });
             }
 
-            hits.Filter(hitCount, filter, out hitCount);
+            hits.Filter(ref hitCount, filter);
 
             for (int i = 0; i < hitCount; i++) {
                 Assert.IsTrue(hits[i].distance <= 0.5f);

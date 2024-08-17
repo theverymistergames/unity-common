@@ -27,8 +27,6 @@ namespace MisterGames.Character.Collisions {
         public override Vector3 OriginOffset {
             get => _originOffset;
             set {
-                if (_originOffset.IsNearlyEqual(value, tolerance: 0f)) return;
-
                 _originOffset = value;
                 _invalidateFlag = true;
             }
@@ -37,8 +35,6 @@ namespace MisterGames.Character.Collisions {
         public override float Distance {
             get => _distance;
             set {
-                if (_distance.IsNearlyEqual(value, tolerance: 0f)) return;
-
                 _distance = value;
                 _invalidateFlag = true;
             }
@@ -47,16 +43,11 @@ namespace MisterGames.Character.Collisions {
         public float Radius {
             get => _radius;
             set {
-                if (_radius.IsNearlyEqual(value, tolerance: 0f)) return;
-
                 _radius = value;
                 _invalidateFlag = true;
             }
         }
 
-        private readonly Vector3 _ceilingDetectionDirection = Vector3.up;
-
-        private ITimeSource _timeSource => TimeSources.Get(_timeSourceStage);
         private Transform _transform;
 
         private RaycastHit[] _raycastHits;
@@ -65,7 +56,7 @@ namespace MisterGames.Character.Collisions {
         private int _hitCount;
 
         private Vector3 _originOffset;
-        private int _lastUpdateFrame = -1;
+        private int _lastUpdateFrame;
         private bool _invalidateFlag;
 
         private void Awake() {
@@ -79,11 +70,11 @@ namespace MisterGames.Character.Collisions {
         }
 
         private void OnEnable() {
-            _timeSource.Subscribe(this);
+            _timeSourceStage.Subscribe(this);
         }
 
         private void OnDisable() {
-            _timeSource.Unsubscribe(this);
+            _timeSourceStage.Unsubscribe(this);
         }
 
         void IUpdate.OnUpdate(float dt) {
@@ -95,17 +86,19 @@ namespace MisterGames.Character.Collisions {
         }
 
         public override ReadOnlySpan<CollisionInfo> FilterLastResults(CollisionFilter filter) {
+            int hitCount = _hitCount;
+            
             _raycastHits
-                .RemoveInvalidHits(_hitCount, out int hitCount)
-                .Filter(hitCount, filter, out int filterCount);
+                .RemoveInvalidHits(ref hitCount)
+                .Filter(ref hitCount, filter);
 
-            if (filterCount <= 0) return ReadOnlySpan<CollisionInfo>.Empty;
+            if (hitCount <= 0) return ReadOnlySpan<CollisionInfo>.Empty;
 
-            for (int i = 0; i < filterCount; i++) {
+            for (int i = 0; i < hitCount; i++) {
                 _hits[i] = CollisionInfo.FromRaycastHit(_raycastHits[i]);
             }
 
-            return ((ReadOnlySpan<CollisionInfo>) _hits)[..filterCount];
+            return ((ReadOnlySpan<CollisionInfo>) _hits)[..hitCount];
         }
 
         private void RequestCeiling(bool forceNotify = false) {
@@ -120,6 +113,8 @@ namespace MisterGames.Character.Collisions {
             _hitCount = PerformSphereCast(origin, _radius, distance, _raycastHits);
             bool hasHits = _hitCount > 0;
 
+            var up = _transform.up;
+            
             Vector3 normal;
             Vector3 hitPoint;
             float hitDistance;
@@ -134,7 +129,7 @@ namespace MisterGames.Character.Collisions {
             }
             else {
                 hitPoint = CollisionInfo.point;
-                normal = _ceilingDetectionDirection.Inverted().normalized;
+                normal = -up;
                 hitDistance = CollisionInfo.distance;
             }
 
@@ -145,15 +140,19 @@ namespace MisterGames.Character.Collisions {
         }
         
         private int PerformSphereCast(Vector3 origin, float radius, float distance, RaycastHit[] hits) {
-            return Physics.SphereCastNonAlloc(
+            int hitCount = Physics.SphereCastNonAlloc(
                 origin,
                 radius,
-                _ceilingDetectionDirection,
+                _transform.up,
                 hits,
                 distance,
                 _layerMask,
                 _triggerInteraction
             );
+
+            hits.RemoveInvalidHits(ref hitCount);
+
+            return hitCount;
         }
 
         [Header("Debug")]
@@ -166,6 +165,8 @@ namespace MisterGames.Character.Collisions {
         private void OnDrawGizmos() {
             if (!Application.isPlaying) return;
             
+            var up = _transform.up;
+            
             if (_debugDrawHitPoint) {
                 if (CollisionInfo.hasContact) {
                     DebugExt.DrawPointer(CollisionInfo.point, Color.yellow, 0.3f, gizmo: true);
@@ -174,7 +175,7 @@ namespace MisterGames.Character.Collisions {
             
             if (_debugDrawCast) {
                 var start = transform.position;
-                var end = start + _ceilingDetectionDirection * _distance;
+                var end = start + up * _distance;
                 DebugExt.DrawCapsule(start, end, _radius, Color.cyan, gizmo: true);
             }
             

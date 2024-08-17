@@ -64,7 +64,7 @@ namespace MisterGames.Collisions.Detectors {
 
         public override ReadOnlySpan<CollisionInfo> FilterLastResults(CollisionFilter filter) {
             int hitCount = CollisionInfo.hasContact.AsInt();
-            _hits.Filter(hitCount, filter, out hitCount);
+            _hits.Filter(ref hitCount, filter);
             
             return ((ReadOnlySpan<CollisionInfo>) _hits)[..hitCount];
         }

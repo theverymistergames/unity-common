@@ -2,7 +2,6 @@
 using MisterGames.Collisions.Core;
 using MisterGames.Collisions.Utils;
 using MisterGames.Common;
-using MisterGames.Common.Maths;
 using MisterGames.Tick.Core;
 using UnityEngine;
 
@@ -12,25 +11,19 @@ namespace MisterGames.Character.Collisions {
 
         [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
 
-        [Header("Sphere cast settings")]
+        [Header("Spherecast")]
         [SerializeField] [Min(1)] private int _maxHits = 6;
         [SerializeField] private float _distance = 0.55f;
         [SerializeField] private float _distanceAddition = 0.15f;
         [SerializeField] private float _radius = 0.3f;
         [SerializeField] private LayerMask _layerMask;
-        [SerializeField] private QueryTriggerInteraction _triggerInteraction = QueryTriggerInteraction.Ignore;
-
-        [Header("Normal calculation")]
-        [SerializeField] private float _hitPointElevation = 0.2f;
-        [SerializeField] private float _normalSphereCastRadius = 0.05f;
+        [SerializeField] [Min(0f)] private float _maxSlopeAngle = 60f;
 
         public override int Capacity => _maxHits;
 
         public override Vector3 OriginOffset {
             get => _originOffset;
             set {
-                if (_originOffset.IsNearlyEqual(value, tolerance: 0f)) return;
-
                 _originOffset = value;
                 _invalidateFlag = true;
             }
@@ -39,8 +32,6 @@ namespace MisterGames.Character.Collisions {
         public override float Distance {
             get => _distance;
             set {
-                if (_distance.IsNearlyEqual(value, tolerance: 0f)) return;
-
                 _distance = value;
                 _invalidateFlag = true;
             }
@@ -49,40 +40,41 @@ namespace MisterGames.Character.Collisions {
         public float Radius {
             get => _radius;
             set {
-                if (_radius.IsNearlyEqual(value, tolerance: 0f)) return;
-
                 _radius = value;
                 _invalidateFlag = true;
             }
         }
+        
+        public Vector3 Forward {
+            get => _forward;
+            set {
+                _forward = value;
+                _invalidateFlag = true;
+            }
+        }
 
-        private ITimeSource _timeSource => TimeSources.Get(_timeSourceStage);
-        private readonly Vector3 _groundDetectionDirection = Vector3.down;
         private Transform _transform;
 
-        private RaycastHit[] _raycastHitsMain;
         private CollisionInfo[] _hitsMain;
-
-        private RaycastHit[] _raycastHitsNormal;
-
+        private RaycastHit[] _raycastHitsMain;
         private int _hitCount;
 
         private Vector3 _originOffset;
-        private int _lastUpdateFrame = -1;
+        private Vector3 _forward;
+        private int _lastUpdateFrame;
         private bool _invalidateFlag;
 
         private void Awake() {
             _transform = transform;
             _raycastHitsMain = new RaycastHit[_maxHits];
-            _raycastHitsNormal = new RaycastHit[1];
         }
 
         private void OnEnable() {
-            _timeSource.Subscribe(this);
+            _timeSourceStage.Subscribe(this);
         }
 
         private void OnDisable() {
-            _timeSource.Unsubscribe(this);
+            _timeSourceStage.Unsubscribe(this);
         }
 
         private void Start() {
@@ -98,84 +90,127 @@ namespace MisterGames.Character.Collisions {
         }
 
         public override ReadOnlySpan<CollisionInfo> FilterLastResults(CollisionFilter filter) {
+            int hitCount = _hitCount;
+            
             _raycastHitsMain
-                .RemoveInvalidHits(_hitCount, out int hitCount)
-                .Filter(hitCount, filter, out int filterCount);
+                .RemoveInvalidHits(ref hitCount)
+                .Filter(ref hitCount, filter);
 
-            if (filterCount <= 0) return ReadOnlySpan<CollisionInfo>.Empty;
+            if (hitCount <= 0) return ReadOnlySpan<CollisionInfo>.Empty;
 
-            for (int i = 0; i < filterCount; i++) {
+            for (int i = 0; i < hitCount; i++) {
                 _hitsMain[i] = CollisionInfo.FromRaycastHit(_raycastHitsMain[i]);
             }
 
-            return ((ReadOnlySpan<CollisionInfo>) _hitsMain)[..filterCount];
+            return ((ReadOnlySpan<CollisionInfo>) _hitsMain)[..hitCount];
         }
 
         private void RequestGround(bool forceNotify = false) {
-            if (!enabled) return;
-
             int frame = Time.frameCount;
-            if (frame == _lastUpdateFrame && !_invalidateFlag) return;
+            if (!enabled || frame == _lastUpdateFrame && !_invalidateFlag) return;
 
-            var origin = _originOffset + _transform.position;
+            var up = _transform.up;
+            var origin = _transform.TransformPoint(_originOffset);
             float distance = _distance + _distanceAddition;
-            _hitCount = PerformSphereCast(origin, _radius, distance, _raycastHitsMain);
-
-            bool hasHits = _hitCount > 0;
+            
+            _hitCount = DetectGround(origin, _radius, distance, _raycastHitsMain);
+            
             var normal = Vector3.zero;
             var hitPoint = Vector3.zero;
             float hitDistance;
             Transform surface = null;
 
-            if (hasHits) {
+            if (_hitCount > 0) {
                 float minSqrMagnitude = -1f;
 
                 for (int i = 0; i < _hitCount; i++) {
                     var hit = _raycastHitsMain[i];
-
-                    var point = hit.point;
-                    hitPoint += point;
-
-                    float sqrMagnitude = (origin - point).sqrMagnitude;
+                    float sqrMagnitude = (origin - hit.point).sqrMagnitude;
+                    
                     if (sqrMagnitude < minSqrMagnitude || minSqrMagnitude < 0f) {
                         minSqrMagnitude = sqrMagnitude;
                         surface = hit.transform;
+                        hitPoint = hit.point;
                     }
 
-                    if (ClarifyNormalAtPoint(point)) normal += _raycastHitsNormal[0].normal;
+                    normal += hit.normal;
                 }
 
                 normal = normal.normalized;
-                hitPoint /= _hitCount;
                 hitDistance = Vector3.Distance(origin, hitPoint);
+
+                if (_forward.sqrMagnitude > 0f && 
+                    TryDetectMotionNormal(origin, _forward, out var motionNormal)
+                ) {
+                    normal = motionNormal;
+                }
             }
             else {
-                normal = _groundDetectionDirection.Inverted().normalized;
+                normal = up;
                 hitPoint = CollisionInfo.point;
                 hitDistance = CollisionInfo.distance;
             }
 
-            var info = new CollisionInfo(hasHits, hitDistance, normal, hitPoint, surface);
+            var info = new CollisionInfo(_hitCount > 0, hitDistance, normal, hitPoint, surface);
 
             SetCollisionInfo(info, forceNotify);
             _lastUpdateFrame = frame;
         }
 
-        private bool ClarifyNormalAtPoint(Vector3 point) {
-            var origin = point - _groundDetectionDirection * _hitPointElevation;
-            return PerformSphereCast(origin, _normalSphereCastRadius, _hitPointElevation, _raycastHitsNormal) > 0;
-        }
-
-        private int PerformSphereCast(Vector3 origin, float radius, float distance, RaycastHit[] hits) {
-            return Physics.SphereCastNonAlloc(
+        private int DetectGround(Vector3 origin, float radius, float distance, RaycastHit[] hits) {
+            var up = _transform.up;
+            int hitCount = Physics.SphereCastNonAlloc(
                 origin,
                 radius,
-                _groundDetectionDirection,
+                -up,
                 hits,
                 distance,
                 _layerMask,
-                _triggerInteraction
+                QueryTriggerInteraction.Ignore
             );
+
+            hits.Filter(
+                ref hitCount, 
+                data: (self: this, origin, up), 
+                predicate: (data, hit) => data.self.IsValidGroundHit(hit, data.origin, data.up)
+            );
+
+            return hitCount;
+        }
+        
+        private bool TryDetectMotionNormal(Vector3 origin, Vector3 desiredMotion, out Vector3 normal) {
+            var up = _transform.up;
+            normal = up;
+            var lowerCenter = origin + up * _distance;
+
+            float minSqrDistance = 0f;
+            int targetIndex = -1;
+            
+            // Trying to find contact point which is placed in front of current position
+            // and has the closest distance to the ground cast origin, and use its normal.
+            for (int i = 0; i < _hitCount; i++) {
+                var hit = _raycastHitsMain[i];
+                
+                // Filter out contacts behind current position.
+                if (Vector3.Dot(hit.point - lowerCenter, desiredMotion) < 0f) continue;
+                
+                float sqrDistance = Vector3.SqrMagnitude(origin - hit.point);
+                if (targetIndex >= 0 && sqrDistance > minSqrDistance) continue;
+                
+                minSqrDistance = sqrDistance; 
+                targetIndex = i;
+            }
+
+            if (targetIndex < 0) return false;
+            
+            normal = _raycastHitsMain[targetIndex].normal;
+            return true;
+        }
+        
+        private bool IsValidGroundHit(RaycastHit hit, Vector3 origin, Vector3 up) {
+            return hit.distance > 0f &&
+                   Vector3.Angle(up, hit.normal) <= _maxSlopeAngle &&
+                   Vector3.ProjectOnPlane(hit.point - origin, up).sqrMagnitude < _radius * _radius;
         }
 
         [Header("Debug")]
@@ -188,11 +223,12 @@ namespace MisterGames.Character.Collisions {
 #if UNITY_EDITOR
         private void OnDrawGizmos() {
             if (!Application.isPlaying) return;
+            var up = _transform.up;
             
             if (_debugDrawNormal) {
                 var start = CollisionInfo.hasContact ?
                     CollisionInfo.point :
-                    _originOffset + transform.position + _groundDetectionDirection * (_distance + _distanceAddition + _radius);
+                    _originOffset + transform.position - up * (_distance + _distanceAddition + _radius);
 
                 DebugExt.DrawRay(start, CollisionInfo.normal, Color.blue, gizmo: true);
             }
@@ -205,8 +241,8 @@ namespace MisterGames.Character.Collisions {
             
             if (_debugDrawCast) {
                 var start = _originOffset + transform.position;
-                var end = start + _groundDetectionDirection * (_distance + _distanceAddition);
-                DebugExt.DrawCapsule(start, end, _radius, Color.cyan, gizmo: true);
+                var end = start - up * (_distance + _distanceAddition);
+                DebugExt.DrawSphereCast(start, end, _radius, Color.cyan, gizmo: true);
             }
             
             if (_debugDrawIsGroundedText) {
