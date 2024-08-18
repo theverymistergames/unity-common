@@ -1,12 +1,14 @@
 ﻿using System.Threading;
+using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
 using MisterGames.Character.Collisions;
 using MisterGames.Collisions.Core;
+using MisterGames.Common.Async;
 using MisterGames.Common.Attributes;
 using UnityEngine;
 
-namespace MisterGames.Character.Jump {
+namespace MisterGames.Character.Motion {
 
     public sealed class CharacterJumpLandReactionPipeline : MonoBehaviour, IActorComponent {
 
@@ -28,32 +30,29 @@ namespace MisterGames.Character.Jump {
         }
 
         private void OnEnable() {
-            _enableCts?.Cancel();
-            _enableCts?.Dispose();
-            _enableCts = new CancellationTokenSource();
+            AsyncExt.RecreateCts(ref _enableCts);
 
-            _jump.OnJump -= OnJump;
-            _jump.OnJump += OnJump;
-
-            _groundDetector.OnContact -= OnLanded;
+            _jump.OnJumpRequest += OnJumpRequest;
             _groundDetector.OnContact += OnLanded;
         }
 
         private void OnDisable() {
-            _enableCts?.Cancel();
-            _enableCts?.Dispose();
-            _enableCts = null;
-
-            _jump.OnJump -= OnJump;
+            AsyncExt.DisposeCts(ref _enableCts);
+            
+            _jump.OnJumpRequest -= OnJumpRequest;
             _groundDetector.OnContact -= OnLanded;
         }
 
-        private async void OnJump(Vector3 vector3) {
-            if (_jumpReaction != null) await _jumpReaction.Apply(_actor, _enableCts.Token);
+        private void OnJumpRequest() {
+            ApplyAction(_jumpReaction, _enableCts.Token).Forget();
         }
 
-        private async void OnLanded() {
-            if (_landReaction != null) await _landReaction.Apply(_actor, _enableCts.Token);
+        private void OnLanded() {
+            ApplyAction(_landReaction, _enableCts.Token).Forget();
+        }
+
+        private UniTask ApplyAction(IActorAction action, CancellationToken cancellationToken) {
+            return action?.Apply(_actor, cancellationToken) ?? UniTask.CompletedTask;
         }
     }
 

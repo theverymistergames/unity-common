@@ -3,7 +3,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
-using MisterGames.Character.Jump;
+using MisterGames.Character.Motion;
 using MisterGames.Common.Attributes;
 using UnityEngine;
 

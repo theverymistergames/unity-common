@@ -19,6 +19,11 @@ namespace MisterGames.Character.Collisions {
         [SerializeField] private LayerMask _layerMask;
         [SerializeField] [Min(0f)] private float _maxSlopeAngle = 60f;
 
+        [Header("Debug")]
+        [SerializeField] private bool _showDebugInfo;
+        [SerializeField] private float _bottomPoint;
+        [SerializeField] [Min(0f)] private float _traceDuration = 3f;
+        
         public override int Capacity => _maxHits;
 
         public override Vector3 OriginOffset {
@@ -147,9 +152,21 @@ namespace MisterGames.Character.Collisions {
             }
             else {
                 normal = up;
-                hitPoint = CollisionInfo.point;
-                hitDistance = CollisionInfo.distance;
+                hitPoint = origin - distance * up;
+                hitDistance = distance;
             }
+            
+#if UNITY_EDITOR
+            if (_showDebugInfo) DebugExt.DrawRay(hitPoint, normal, Color.blue);
+            if (_showDebugInfo && _hitCount > 0) DebugExt.DrawPointer(hitPoint, Color.yellow, 0.3f);
+            if (_traceDuration > 0f) {
+                var p = _transform.TransformPoint(Vector3.up * _bottomPoint);
+                DebugExt.DrawSphere(p, 0.005f, Color.yellow, duration: _traceDuration);
+                DebugExt.DrawLine(_lastBottomPoint, p, Color.yellow, duration: _traceDuration);
+                DebugExt.DrawRay(p, normal * 0.03f, Color.cyan, duration: _traceDuration);
+                _lastBottomPoint = p;
+            }
+#endif
 
             var info = new CollisionInfo(_hitCount > 0, hitDistance, normal, hitPoint, surface);
 
@@ -168,6 +185,10 @@ namespace MisterGames.Character.Collisions {
                 _layerMask,
                 QueryTriggerInteraction.Ignore
             );
+
+#if UNITY_EDITOR
+            if (_showDebugInfo) DebugExt.DrawSphereCast(origin, origin - up * distance, _radius, Color.yellow);
+#endif
 
             hits.Filter(
                 ref hitCount, 
@@ -213,41 +234,21 @@ namespace MisterGames.Character.Collisions {
                    Vector3.ProjectOnPlane(hit.point - origin, up).sqrMagnitude < _radius * _radius;
         }
 
-        [Header("Debug")]
-        [SerializeField] private bool _debugDrawNormal;
-        [SerializeField] private bool _debugDrawCast;
-        [SerializeField] private bool _debugDrawHitPoint;
-        [SerializeField] private bool _debugDrawIsGroundedText;
-        [SerializeField] private Vector3 _debugDrawIsGroundedTextOffset;
-
 #if UNITY_EDITOR
+        private Vector3 _lastBottomPoint;
         private void OnDrawGizmos() {
-            if (!Application.isPlaying) return;
-            var up = _transform.up;
-            
-            if (_debugDrawNormal) {
-                var start = CollisionInfo.hasContact ?
-                    CollisionInfo.point :
-                    _originOffset + transform.position - up * (_distance + _distanceAddition + _radius);
+            if (!_showDebugInfo) return;
 
-                DebugExt.DrawRay(start, CollisionInfo.normal, Color.blue, gizmo: true);
-            }
+            var t = transform;
+            var p = t.TransformPoint(Vector3.up * _bottomPoint);
+            var r = t.right;
+            
+            DebugExt.DrawSphere(p, 0.02f, Color.yellow, gizmo: true);
+            DebugExt.DrawLine(p + r * 0.2f, p - r * 0.2f, Color.yellow, gizmo: true);
 
-            if (_debugDrawHitPoint) {
-                if (CollisionInfo.hasContact) {
-                    DebugExt.DrawPointer(CollisionInfo.point, Color.yellow, 0.3f, gizmo: true);
-                }
-            }
-            
-            if (_debugDrawCast) {
-                var start = _originOffset + transform.position;
-                var end = start - up * (_distance + _distanceAddition);
-                DebugExt.DrawSphereCast(start, end, _radius, Color.cyan, gizmo: true);
-            }
-            
-            if (_debugDrawIsGroundedText) {
+            if (Application.isPlaying) {
                 string text = CollisionInfo.hasContact ? "grounded" : "in air";
-                DebugExt.DrawLabel(_originOffset + transform.position + _debugDrawIsGroundedTextOffset, text);
+                DebugExt.DrawLabel(_originOffset + transform.TransformPoint(Vector3.up), text);
             }
         }
 #endif

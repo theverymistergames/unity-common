@@ -13,6 +13,7 @@ namespace MisterGames.Collisions.Core {
         public abstract Vector3 OriginOffset { get; set; }
         public abstract float Distance { get; set; }
         public abstract int Capacity { get; }
+        public bool HasContact { get; private set; }
         public CollisionInfo CollisionInfo { get; private set; }
 
         public abstract ReadOnlySpan<CollisionInfo> FilterLastResults(CollisionFilter filter);
@@ -21,6 +22,8 @@ namespace MisterGames.Collisions.Core {
         protected void SetCollisionInfo(CollisionInfo newInfo, bool forceNotify = false) {
             var lastInfo = CollisionInfo;
             CollisionInfo = newInfo;
+
+            HasContact = newInfo.hasContact;
             
             CheckContactChanged(lastInfo, newInfo, forceNotify);
             CheckTransformChanged(lastInfo, newInfo, forceNotify);

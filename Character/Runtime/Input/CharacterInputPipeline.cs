@@ -30,6 +30,7 @@ namespace MisterGames.Character.Input {
         public bool WasCrouchToggled => enabled && _crouchToggle.WasPressed;
 
         public event Action JumpPressed = delegate {  };
+        public bool IsJumpPressed => enabled && _jump.IsPressed;
 
         public void EnableViewInput(bool enable) {
             _view.OnChanged -= HandleViewChanged;

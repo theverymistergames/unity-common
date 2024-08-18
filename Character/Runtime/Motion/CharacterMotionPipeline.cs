@@ -40,6 +40,9 @@ namespace MisterGames.Character.Motion {
         [SerializeField] [Min(1)] private int _maxHits = 12;
         [SerializeField] private LayerMask _layer;
 
+        [Header("Debug")]
+        [SerializeField] private bool _showDebugInfo;
+        
         public Vector3 MotionDirWorld { get; private set; }
         public Vector3 InputDirWorld { get; private set; }
         public Vector2 InputDir { get; private set; }
@@ -83,6 +86,10 @@ namespace MisterGames.Character.Motion {
             _timeSource.Unsubscribe(this);
         }
 
+        public void AddForce(Vector3 force, ForceMode mode = ForceMode.Force) {
+            _rigidbody.AddForce(force, mode);
+        }
+        
         private void HandleMotionInput(Vector2 input) {
             InputDir = input;
         }
@@ -138,7 +145,7 @@ namespace MisterGames.Character.Motion {
         }
 
         private Vector3 GetGroundDir(Vector3 worldDir) {
-            return _groundDetector.CollisionInfo.hasContact 
+            return _groundDetector.HasContact 
                 ? Vector3.ProjectOnPlane(worldDir, _groundDetector.CollisionInfo.normal) 
                 : worldDir;
         }
@@ -155,15 +162,9 @@ namespace MisterGames.Character.Motion {
         }
 
         private void LimitForceBySlopeAngle(Vector3 inputDir, float slopeAngle, ref Vector3 inputForce) {
+            if (inputDir.IsNearlyZero() || !_groundDetector.HasContact || slopeAngle <= _slopeAngle.y) return;
+            
             var info = _groundDetector.CollisionInfo;
-            
-            if (inputDir.IsNearlyZero() ||
-                !info.hasContact ||
-                slopeAngle <= _slopeAngle.y
-            ) {
-                return;
-            }
-            
             var up = _rigidbody.transform.up;
             var slopeUp = Vector3.Cross(Vector3.Cross(info.normal, up), info.normal).normalized;
             
@@ -205,7 +206,7 @@ namespace MisterGames.Character.Motion {
         }
 
         private void ApplyDirCorrection(Vector3 targetVelocity, Vector3 velocity, ref Vector3 force, float dt) {
-            if (targetVelocity.IsNearlyZero() || !_groundDetector.CollisionInfo.hasContact) return;
+            if (targetVelocity.IsNearlyZero() || !_groundDetector.HasContact) return;
 
             var nextVelocity = velocity + force * dt;
             var perfectForce = dt > 0f ? (targetVelocity - velocity) / dt : force;
@@ -220,7 +221,7 @@ namespace MisterGames.Character.Motion {
         private void UpdateFriction(float slopeAngle) {
             var mat = _collider.material;
             
-            if (_groundDetector.CollisionInfo.hasContact) {
+            if (_groundDetector.HasContact) {
                 float absAngle = Mathf.Abs(slopeAngle);
 
                 if (absAngle < _slopeAngle.x) {
@@ -259,9 +260,6 @@ namespace MisterGames.Character.Motion {
                 Vector3.Cross(inputDir, up).normalized
             );
         }
-
-        [Header("Debug")]
-        [SerializeField] private bool _showDebugInfo;
         
 #if UNITY_EDITOR
         private void OnDrawGizmos() {

@@ -12,7 +12,7 @@ namespace MisterGames.Collisions.Core {
         Vector3 OriginOffset { get; set; }
         float Distance { get; set; }
         int Capacity { get; }
-
+        bool HasContact { get; }
         CollisionInfo CollisionInfo { get; }
 
         ReadOnlySpan<CollisionInfo> FilterLastResults(CollisionFilter filter);
