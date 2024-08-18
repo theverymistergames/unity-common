@@ -52,6 +52,7 @@ namespace MisterGames.Character.Motion {
         public float Speed { get; set; }
         public float SpeedCorrectionBack { get => _speedCorrectionBack; set => _speedCorrectionBack = value; }
         public float SpeedCorrectionSide { get => _speedCorrectionSide; set => _speedCorrectionSide = value; }
+        public float SlopeAngle { get; private set; }
         public Vector3 Position { get => _rigidbody.position; set => _rigidbody.position = value; }
 
         private ITimeSource _timeSource;
@@ -109,7 +110,7 @@ namespace MisterGames.Character.Motion {
             float maxSpeed = CalculateSpeedCorrection(_smoothedInput) * Speed;
             var velocity = _rigidbody.velocity;
             var groundDirWorld = GetGroundDir(GetWorldDir(InputToLocal(_smoothedInput)));
-            float slopeAngle = GetSlopeAngle(groundDirWorld);
+            SlopeAngle = GetSlopeAngle(groundDirWorld);
             
             PreviousVelocity = velocity;
 
@@ -117,7 +118,7 @@ namespace MisterGames.Character.Motion {
             var force = VectorUtils.ClampAcceleration(groundDirWorld * _moveForce, velocityProj, maxSpeed, dt);
             
             LimitForceByObstacles(groundDirWorld, ref force);
-            LimitForceBySlopeAngle(groundDirWorld, slopeAngle, ref force);
+            LimitForceBySlopeAngle(groundDirWorld, SlopeAngle, ref force);
             ApplyDirCorrection(groundDirWorld * maxSpeed, velocity, ref force, dt);
             
             _rigidbody.AddForce(force, ForceMode.Acceleration);
@@ -131,7 +132,7 @@ namespace MisterGames.Character.Motion {
                 _rigidbody.velocity = Vector3.Lerp(_rigidbody.velocity, Vector3.zero, dt * _noGravityVelocityDamping);
             }
             
-            UpdateFriction(slopeAngle);
+            UpdateFriction(SlopeAngle);
         }
 
         private static Vector3 InputToLocal(Vector2 input) {

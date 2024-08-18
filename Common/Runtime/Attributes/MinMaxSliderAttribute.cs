@@ -8,18 +8,15 @@ namespace MisterGames.Common.Attributes {
         
         public readonly float min;
         public readonly float max;
-        public readonly bool show;
 
-        public MinMaxSliderAttribute(float min, float max, bool show = false) {
+        public MinMaxSliderAttribute(float min, float max) {
             this.min = min;
             this.max = max;
-            this.show = show;
         }
         
-        public MinMaxSliderAttribute(int min, int max, bool show = false) {
+        public MinMaxSliderAttribute(int min, int max) {
             this.min = min;
             this.max = max;
-            this.show = show;
         }
     }
 }

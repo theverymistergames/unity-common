@@ -19,7 +19,7 @@ namespace MisterGames.ActionLib.Character {
         public MotionCaptureClip motionCaptureClip;
         public bool applyPosition;
         public bool applyRotation;
-        [MinMaxSlider(0f, 1f, show: true)] public Vector2 _crop = new Vector2(0f, 1f);
+        [MinMaxSlider(0f, 1f)] public Vector2 _crop = new Vector2(0f, 1f);
 
         private ITransformAdapter _headAdapter;
         private ITransformAdapter _bodyAdapter;

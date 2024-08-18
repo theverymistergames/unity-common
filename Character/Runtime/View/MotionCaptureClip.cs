@@ -28,7 +28,7 @@ namespace MisterGames.Character.View {
         [SerializeField] [Min(0f)] private float _positionSmoothing = 20f;
         [SerializeField] [Min(0.001f)] private float _resolutionDeltaTime = 0.05f;
         [SerializeField] private float _speed = 1f;
-        [SerializeField] [MinMaxSlider(0f, 1f, show: true)] private Vector2 _crop = new Vector2(0f, 1f);
+        [SerializeField] [MinMaxSlider(0f, 1f)] private Vector2 _crop = new Vector2(0f, 1f);
 
         [Header("Output Data")]
         [SerializeField] [ReadOnly] private float _duration;

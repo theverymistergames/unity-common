@@ -16,7 +16,7 @@ namespace MisterGames.TweenLib.MotionCapture {
         public MotionCaptureClip motionCaptureClip;
         public bool applyPosition;
         public bool applyRotation;
-        [MinMaxSlider(0f, 1f, show: true)] public Vector2 _crop = new Vector2(0f, 1f);
+        [MinMaxSlider(0f, 1f)] public Vector2 _crop = new Vector2(0f, 1f);
         
         public float Duration { get; private set; }
 

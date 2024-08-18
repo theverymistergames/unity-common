@@ -27,6 +27,7 @@ namespace MisterGames.Character.Motion {
         [SerializeField] [Min(0f)] private float _retryFailedJumpDuration = 0.15f;
         [SerializeField] [Min(0f)] private float _coyoteTime = 0.2f;
         [SerializeField] [Min(0f)] private float _jumpImpulseDelay;
+        [SerializeField] [Range(0f, 90f)] private float _maxSlopeAngle = 30f;
         
         [EmbeddedInspector]
         [SerializeField] private ActorCondition _jumpCondition;
@@ -139,6 +140,10 @@ namespace MisterGames.Character.Motion {
                     : verticalVelocity;
 
                 _motion.Velocity = verticalVelocity + Vector3.ProjectOnPlane(velocity, gravityDirection);
+            }
+
+            if (_motion.SlopeAngle >= _maxSlopeAngle) {
+                jumpImpulse = Force * _groundDetector.CollisionInfo.normal;
             }
             
             _motion.AddForce(jumpImpulse, ForceMode.VelocityChange);

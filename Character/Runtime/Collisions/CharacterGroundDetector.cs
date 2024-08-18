@@ -17,7 +17,6 @@ namespace MisterGames.Character.Collisions {
         [SerializeField] private float _distanceAddition = 0.15f;
         [SerializeField] private float _radius = 0.3f;
         [SerializeField] private LayerMask _layerMask;
-        [SerializeField] [Min(0f)] private float _maxSlopeAngle = 60f;
 
         [Header("Debug")]
         [SerializeField] private bool _showDebugInfo;
@@ -230,7 +229,6 @@ namespace MisterGames.Character.Collisions {
         
         private bool IsValidGroundHit(RaycastHit hit, Vector3 origin, Vector3 up) {
             return hit.distance > 0f &&
-                   Vector3.Angle(up, hit.normal) <= _maxSlopeAngle &&
                    Vector3.ProjectOnPlane(hit.point - origin, up).sqrMagnitude < _radius * _radius;
         }
 

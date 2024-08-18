@@ -87,7 +87,6 @@ namespace MisterGames.Character.Motion {
 #if UNITY_EDITOR
                 if (_showDebugInfo) DebugExt.DrawPointer(upperHit.point, Color.red);
 #endif
-                
                 _climbSpeed = _climbSpeedMin;
                 return;
             }
