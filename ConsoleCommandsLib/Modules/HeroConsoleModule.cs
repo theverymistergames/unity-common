@@ -111,6 +111,9 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
             for (int i = 0; i < childCount; i++) {
                 method!.Invoke(window, new object[] { character.transform.GetChild(i).gameObject.GetInstanceID(), false });   
             }
+            
+            UnityEditor.EditorGUIUtility.PingObject(character.gameObject);
+            UnityEditor.SceneView.lastActiveSceneView.FrameSelected();
 #endif
         }
         
