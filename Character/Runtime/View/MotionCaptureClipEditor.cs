@@ -97,5 +97,6 @@ namespace MisterGames.TweenLib.Editor.MotionCapture {
             }
         }
     }
-#endif
 }
+
+#endif

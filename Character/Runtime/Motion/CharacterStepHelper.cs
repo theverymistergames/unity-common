@@ -56,7 +56,7 @@ namespace MisterGames.Character.Motion {
         }
 
         public void OnUpdate(float dt) {
-            if (_motion.InputDir.IsNearlyZero()) {
+            if (_motion.Input.IsNearlyZero()) {
                 _climbSpeed = _climbSpeedMin;
                 return;
             }
@@ -70,7 +70,7 @@ namespace MisterGames.Character.Motion {
             
             var lowerPoint = _transform.position + _lowerRayOffset * up;
             var upperPoint = lowerPoint + stepHeight * up;
-            var inputDir = _motion.InputDirWorld.normalized;
+            var inputDir = _motion.InputDirWorld;
             
             // Lower ray not detected any obstacles: do nothing
             if (!DoubleRaycast(lowerPoint, inputDir, Vector3.up, _distance, out var lowerHit)) {
