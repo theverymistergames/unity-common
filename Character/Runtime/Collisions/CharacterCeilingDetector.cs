@@ -165,7 +165,7 @@ namespace MisterGames.Character.Collisions {
         private void OnDrawGizmos() {
             if (!Application.isPlaying) return;
             
-            var up = _transform.up;
+            var up = transform.up;
             
             if (_debugDrawHitPoint) {
                 if (CollisionInfo.hasContact) {
