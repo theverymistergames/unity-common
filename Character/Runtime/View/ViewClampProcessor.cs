@@ -158,40 +158,35 @@ namespace MisterGames.Character.View {
             float diff = target - value;
             float centralizedTarget = target - center;
             
-            // Not clamped or not in spring zone
-            if (clamp.mode == ClampMode.None ||
-                centralizedTarget > clamp.springs.x && centralizedTarget < clamp.springs.y
-            ) {
-                return target;
-            }
+            float lw = 0f;
+            float rw = 0f;
 
+            float lt = target;
+            float rt = target;
+            
             // In left spring zone
-            if (centralizedTarget < clamp.springs.x && clamp.mode is ClampMode.Lower or ClampMode.Full) {
-                // Ignore if spring factor is not set
-                if (clamp.springFactors.x <= 0f) return target;
-
-                // Not moving or moving towards spring: lerp to spring
-                if (diff >= 0f) return centralizedTarget.SmoothExp(clamp.springs.x, dt * clamp.springSmoothing.x) + center;
-
-                // Moving towards bound: decrease diff depending on distance between value and bound
-                float f = Mathf.Clamp01(1f - (value - center - clamp.bounds.x) / (clamp.springs.x - clamp.bounds.x));
-                return value + diff.SmoothExp(0f, clamp.springFactors.x * f);
+            if (centralizedTarget < clamp.springs.x && 
+                clamp.mode is ClampMode.Lower or ClampMode.Full && 
+                clamp.springFactors.x > 0f
+            ) {
+                lw = Mathf.Clamp01(1f - (value - center - clamp.bounds.x) / (clamp.springs.x - clamp.bounds.x));
+                lt = diff.IsNearlyZero()
+                    ? centralizedTarget.SmoothExp(clamp.springs.x, dt * clamp.springFactors.x) + center
+                    : value + diff.SmoothExp(0f, clamp.springFactors.x * lw);
             }
 
             // In right spring zone
-            if (centralizedTarget > clamp.springs.y && clamp.mode is ClampMode.Upper or ClampMode.Full) {
-                // Ignore if spring factor is not set
-                if (clamp.springFactors.y <= 0f) return target;
-
-                // Not moving or moving towards spring: lerp to spring
-                if (diff <= 0f) return centralizedTarget.SmoothExp(clamp.springs.y, dt * clamp.springSmoothing.y) + center;
-
-                // Moving towards bound: decrease diff depending on distance between value and bound
-                float f = Mathf.Clamp01(1f - (value - center - clamp.bounds.y) / (clamp.springs.y - clamp.bounds.y));
-                return value + diff.SmoothExp(0f, clamp.springFactors.y * f);
+            if (centralizedTarget > clamp.springs.y && 
+                clamp.mode is ClampMode.Upper or ClampMode.Full && 
+                clamp.springFactors.y > 0f
+            ) {
+                rw = Mathf.Clamp01(1f - (value - center - clamp.bounds.y) / (clamp.springs.y - clamp.bounds.y));
+                rt = diff.IsNearlyZero()
+                    ? centralizedTarget.SmoothExp(clamp.springs.y, dt * clamp.springFactors.y) + center
+                    : value + diff.SmoothExp(0f, clamp.springFactors.y * rw);
             }
 
-            return target;
+            return lw + rw <= 0f ? target : (lw * lt + rw * rt) / (lw + rw);
         }
     }
 
