@@ -24,7 +24,16 @@ namespace MisterGames.Character.View {
         public event Action<float> OnAttach { add => _headJoint.OnAttach += value; remove => _headJoint.OnAttach -= value; }
         public event Action OnDetach { add => _headJoint.OnDetach += value; remove => _headJoint.OnDetach -= value; }
         
-        public Vector3 CurrentOrientation => _headAdapter.Rotation.eulerAngles.ToEulerAngles180();
+        public Quaternion Orientation {
+            get => _headAdapter.Rotation;
+            set => _headAdapter.Rotation = value;
+        }
+        
+        public Vector3 EulerAngles {
+            get => _headAdapter.Rotation.ToEulerAngles180();
+            set => _headAdapter.Rotation = Quaternion.Euler(value);
+        }
+
         public Vector2 Sensitivity { get => _sensitivity; set => _sensitivity = value; }
         public float Smoothing { get => _smoothing; set => _smoothing = value; }
         public float AttachDistance { get => _headJoint.AttachDistance; set => _headJoint.AttachDistance = value; }
@@ -68,7 +77,7 @@ namespace MisterGames.Character.View {
         }
         
         public void AttachObject(Transform obj, Vector3 point, float smoothing = 0f) {
-            _headJoint.AttachObject(obj, point, _headAdapter.Position, CurrentOrientation, smoothing);
+            _headJoint.AttachObject(obj, point, _headAdapter.Position, EulerAngles, smoothing);
         }
         
         public void DetachObject(Transform obj) {
@@ -76,7 +85,7 @@ namespace MisterGames.Character.View {
         }
         
         public void RotateObject(Transform obj, Vector3 sensitivity, RotationPlane plane = RotationPlane.XY, float smoothing = 0f) {
-            _headJoint.RotateObject(obj, CurrentOrientation, sensitivity, plane, smoothing);
+            _headJoint.RotateObject(obj, EulerAngles, sensitivity, plane, smoothing);
         }
 
         public void StopRotateObject(Transform obj) {
@@ -96,25 +105,30 @@ namespace MisterGames.Character.View {
         }
         
         public void LookAt(Transform target, LookAtMode mode = LookAtMode.Free, Vector3 orientation = default, float smoothing = 0f) {
-            _viewClamp.LookAt(target, CurrentOrientation, mode, orientation, smoothing);
+            _viewClamp.LookAt(target, EulerAngles, mode, orientation, smoothing);
         }
 
         public void LookAt(Vector3 target, float smoothing = 0f) {
-            _viewClamp.LookAt(target, CurrentOrientation, smoothing);
+            _viewClamp.LookAt(target, EulerAngles, smoothing);
         }
         
         public void StopLookAt() {
             _viewClamp.StopLookAt();
-            _viewClamp.ApplyHorizontalClamp(CurrentOrientation, _viewClamp.Horizontal);
-            _viewClamp.ApplyVerticalClamp(CurrentOrientation, _viewClamp.Vertical);
+            _viewClamp.SetClampCenter(EulerAngles);
         }
 
         public void ApplyHorizontalClamp(ViewAxisClamp clamp) {
-            _viewClamp.ApplyHorizontalClamp(CurrentOrientation, clamp);
+            _viewClamp.SetClampCenter(EulerAngles);
+            _viewClamp.ApplyHorizontalClamp(clamp);
         }
 
         public void ApplyVerticalClamp(ViewAxisClamp clamp) {
-            _viewClamp.ApplyVerticalClamp(CurrentOrientation, clamp);
+            _viewClamp.SetClampCenter(EulerAngles);
+            _viewClamp.ApplyVerticalClamp(clamp);
+        }
+
+        public void SetClampCenter(Quaternion orientation) {
+            _viewClamp.SetClampCenter(orientation.ToEulerAngles180());
         }
 
         private void HandleViewVectorChanged(Vector2 input) {
@@ -123,7 +137,7 @@ namespace MisterGames.Character.View {
 
         void IUpdate.OnUpdate(float dt) {
             var delta = ConsumeInputDelta();
-            var currentOrientation = (Vector2) CurrentOrientation;
+            var currentOrientation = (Vector2) EulerAngles;
             var targetOrientation = currentOrientation + delta;
             
             ApplyHeadJoint(currentOrientation, delta, dt);

@@ -50,30 +50,23 @@ namespace MisterGames.Common.Maths {
         // ---------------- ---------------- Modification ---------------- ----------------
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector3 WithX(this Vector3 vector, float x) {
-            return new Vector3(x, vector.y, vector.z);
-        }
+        public static Vector3 WithX(this Vector3 vector, float x) => new(x, vector.y, vector.z);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector3 WithY(this Vector3 vector, float y) {
-            return new Vector3(vector.x, y, vector.z);
-        }
+        public static Vector3 WithY(this Vector3 vector, float y) => new(vector.x, y, vector.z);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector3 WithZ(this Vector3 vector, float z) {
-            return new Vector3(vector.x, vector.y, z);
-        }
+        public static Vector3 WithZ(this Vector3 vector, float z) => new(vector.x, vector.y, z);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector2 WithX(this Vector2 vector, float x) {
-            return new Vector2(x, vector.y);
-        }
+        public static Vector2 WithX(this Vector2 vector, float x) => new(x, vector.y);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector2 WithY(this Vector2 vector, float y) {
-            return new Vector2(vector.x, y);
-        }
+        public static Vector2 WithY(this Vector2 vector, float y) => new(vector.x, y);
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector3 WithZ(this Vector2 vector, float z) => new(vector.x, vector.y, z);
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector2 Multiply(this Vector2 a, Vector2 b) {
             return new Vector2(a.x * b.x, a.y * b.y);
@@ -114,42 +107,71 @@ namespace MisterGames.Common.Maths {
             return new Vector3(a.x / b.x, a.y / b.y, a.z / b.z);
         }
         
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector2 FloorToInt(this Vector2 value) {
             return new Vector2(Mathf.FloorToInt(value.x), Mathf.FloorToInt(value.y));
         }
         
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector3 FloorToInt(this Vector3 value) {
             return new Vector3(Mathf.FloorToInt(value.x), Mathf.FloorToInt(value.y), Mathf.FloorToInt(value.z));
         }
         
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector2 CeilToInt(this Vector2 value) {
             return new Vector2(Mathf.CeilToInt(value.x), Mathf.CeilToInt(value.y));
         }
         
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector3 CeilToInt(this Vector3 value) {
             return new Vector3(Mathf.CeilToInt(value.x), Mathf.CeilToInt(value.y), Mathf.CeilToInt(value.z));
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector2 Mod(this Vector2 value, float divider) {
             return new Vector2(value.x % divider, value.y % divider);
         }
         
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector3 Mod(this Vector3 value, float divider) {
             return new Vector3(value.x % divider, value.y % divider, value.z % divider);
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float ToEulerAngles180(float eulerAngle) {
+            return (eulerAngle + 180f) % 360f - 180f;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector2 ToEulerAngles180(this Vector2 eulerAngles) {
+            return new Vector2(ToEulerAngles180(eulerAngles.x), ToEulerAngles180(eulerAngles.y));
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector3 ToEulerAngles180(this Vector3 eulerAngles) {
+            return new Vector3(ToEulerAngles180(eulerAngles.x), ToEulerAngles180(eulerAngles.y), ToEulerAngles180(eulerAngles.z));
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector3 ToEulerAngles180(this Quaternion quaternion) {
+            return quaternion.eulerAngles.ToEulerAngles180();
         }
 
         // ---------------- ---------------- Geometry ---------------- ----------------
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float SqrMagnitudeOfProject(Vector3 vector, Vector3 onNormal)
         {
             return Vector3.Project(vector, onNormal).sqrMagnitude;
         }
         
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float MagnitudeOfProject(Vector3 vector, Vector3 onNormal)
         {
             return Vector3.Project(vector, onNormal).magnitude;
         }
         
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float SignedMagnitudeOfProject(Vector3 vector, Vector3 onNormal)
         {
             var p = Vector3.Project(vector, onNormal);
@@ -171,20 +193,6 @@ namespace MisterGames.Common.Maths {
             var lhs = point - start;
             float dotP = Vector3.Dot(lhs, direction);
             return start + direction * dotP;
-        }
-
-        public static float ToEulerAngles180(float eulerAngle) {
-            return eulerAngle < -180f ? eulerAngle + 360f 
-                : eulerAngle > 180f ? eulerAngle - 360f 
-                : eulerAngle;
-        }
-
-        public static Vector2 ToEulerAngles180(this Vector2 eulerAngles) {
-            return new Vector2(ToEulerAngles180(eulerAngles.x), ToEulerAngles180(eulerAngles.y));
-        }
-        
-        public static Vector3 ToEulerAngles180(this Vector3 eulerAngles) {
-            return new Vector3(ToEulerAngles180(eulerAngles.x), ToEulerAngles180(eulerAngles.y), ToEulerAngles180(eulerAngles.z));
         }
         
         /// <summary>

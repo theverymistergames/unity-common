@@ -26,8 +26,7 @@ namespace MisterGames.Character.Interactives {
             var eulers = _target.eulerAngles;
             _orientation = new Vector2(eulers.z, eulers.y);
             
-            _viewClamp.ApplyVerticalClamp(_orientation, _viewClamp.Vertical);
-            _viewClamp.ApplyHorizontalClamp(_orientation, _viewClamp.Horizontal);
+            _viewClamp.SetClampCenter(_orientation);
         }
 
         private void OnEnable() {

@@ -14,9 +14,6 @@ namespace MisterGames.Character.View {
             bounds = new Vector2(-90f, 90f)
         };
 
-        public ViewAxisClamp Horizontal => _horizontal;
-        public ViewAxisClamp Vertical => _vertical;
-        
         private Transform _lookTarget;
         private Vector3 _lookTargetPoint;
         private Quaternion _lookTargetOrientation;
@@ -60,14 +57,16 @@ namespace MisterGames.Character.View {
             _lookMode = LookMode.Free;
         }
 
-        public void ApplyHorizontalClamp(Vector2 orientation, ViewAxisClamp clamp) {
-            _clampCenterEulers.y = orientation.y;
+        public void ApplyHorizontalClamp(ViewAxisClamp clamp) {
             _horizontal = clamp;
         }
 
-        public void ApplyVerticalClamp(Vector2 orientation, ViewAxisClamp clamp) {
-            _clampCenterEulers.x = orientation.x;
+        public void ApplyVerticalClamp(ViewAxisClamp clamp) {
             _vertical = clamp;
+        }
+
+        public void SetClampCenter(Vector2 orientation) {
+            _clampCenterEulers = orientation;
         }
 
         public void Process(Vector3 position, Vector2 orientation, ref Vector2 targetOrientation, float dt) {

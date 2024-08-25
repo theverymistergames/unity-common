@@ -101,7 +101,7 @@ namespace MisterGames.ActionLib.Character {
                     };
                     
                     targetPoint = attach && attachMode == AttachMode.RotateAroundTarget
-                        ? targetPosAtStart + Quaternion.Euler(view.CurrentOrientation) * new Vector3(0f, 0f, -offsetDist)
+                        ? targetPosAtStart + Quaternion.Euler(view.EulerAngles) * new Vector3(0f, 0f, -offsetDist)
                         : targetPosAtStart + offsetOrient * offset;
                     
                     var rot = Quaternion.LookRotation(offsetOrient * offset, Vector3.up);
@@ -153,7 +153,7 @@ namespace MisterGames.ActionLib.Character {
                         targetPosOffset = targetPos - targetPosAtStart;
                         
                         dest = attach && attachMode == AttachMode.RotateAroundTarget
-                            ? targetPosAtStart + Quaternion.Euler(view.CurrentOrientation) * new Vector3(0f, 0f, -offsetDist)
+                            ? targetPosAtStart + Quaternion.Euler(view.EulerAngles) * new Vector3(0f, 0f, -offsetDist)
                             : targetPosAtStart + offsetOrient * (Quaternion.Inverse(targetRotAtStart) * target.rotation) * offset;
 
                         diff = dest - head.Position;

@@ -21,19 +21,22 @@ namespace MisterGames.ActionLib.Character {
         public bool applyRotation;
         [MinMaxSlider(0f, 1f)] public Vector2 _crop = new Vector2(0f, 1f);
 
-        private ITransformAdapter _headAdapter;
+        private CharacterViewPipeline _view;
         private ITransformAdapter _bodyAdapter;
         private float _totalDuration;
         private float _croppedDuration;
         private Vector3 _lastPosition;
         private Quaternion _lastRotation;
+        private Quaternion _startRotation;
 
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            _headAdapter = context.GetComponent<CharacterHeadAdapter>();
+            _view = context.GetComponent<CharacterViewPipeline>();
             _bodyAdapter = context.GetComponent<CharacterBodyAdapter>();
             
             _totalDuration = motionCaptureClip.Duration;
             _croppedDuration = (_crop.y - _crop.x) * _totalDuration;
+
+            _startRotation = _view.Orientation;
             _lastRotation = Quaternion.identity;
             _lastPosition = Vector3.zero;
             
@@ -61,10 +64,10 @@ namespace MisterGames.ActionLib.Character {
                 var lastRot = _lastRotation;
                 _lastRotation = motionCaptureClip.EvaluateRotation(t);
 
-                var diff = _lastRotation.eulerAngles - lastRot.eulerAngles;
+                var relativeRot = _startRotation * _lastRotation;
+                _view.SetClampCenter(relativeRot);
                 
-                _headAdapter.Rotate(Quaternion.Euler(diff.x, 0f, 0f));
-                _bodyAdapter.Rotate(Quaternion.Euler(0f, diff.y, 0f));
+                _view.Orientation *= _lastRotation * Quaternion.Inverse(lastRot);
             }
         }
     }
