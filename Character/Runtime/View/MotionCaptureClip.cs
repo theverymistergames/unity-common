@@ -187,12 +187,14 @@ namespace MisterGames.Character.View {
             int lowerIndex = Mathf.FloorToInt(_crop.x * count);
             int upperIndex = Mathf.FloorToInt(_crop.y * count);
             
-            if (_crop.y < 1f && ++upperIndex >= 0 && upperIndex <= count - 1) {
-                _keyFrames.RemoveRange(upperIndex, count - 1 - upperIndex);
+            if (_crop.y < 1f && upperIndex + 1 < count) {
+                _keyFrames.RemoveRange(upperIndex + 1, count - upperIndex - 1);
             }
+            
+            count = _keyFrames.Count;
 
-            if (_crop.x > 0f && --lowerIndex >= 0 && lowerIndex <= _keyFrames.Count - 1) {
-                _keyFrames.RemoveRange(0, lowerIndex + 1);
+            if (_crop.x > 0f && count > 0) {
+                _keyFrames.RemoveRange(0, Math.Min(lowerIndex, count - 1));
             }
             
             if (_keyFrames.Count > 0) {

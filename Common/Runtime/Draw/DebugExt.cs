@@ -1,6 +1,7 @@
 ﻿using System.Buffers;
 using MisterGames.Common.Maths;
 using UnityEngine;
+using UnityEngine.AI;
 
 namespace MisterGames.Common {
     
@@ -378,6 +379,68 @@ namespace MisterGames.Common {
             DrawLine(startPosX + startPosY + rayStartStart, endPosX + startPosY + rayEndStart, color, duration, gizmo);
             DrawLine(endPosX + endPosY + rayEndEnd, startPosX + endPosY + rayStartEnd, color, duration, gizmo);
             DrawLine(endPosX + endPosY + rayEndEnd, endPosX + startPosY + rayEndStart, color);
+        }
+        
+        public static void DrawTrajectory(
+            ThrowData data,
+            Vector3 origin,
+            float gravity,
+            Color color,
+            float step = 0.05f,
+            float duration = 0f,
+            bool gizmo = false)
+        {
+            for (float t = 0f; t < data.time; t += step)
+            {
+                var p = TrajectoryUtils.EvaluateTrajectory(origin, data.velocity, t, gravity);
+                DrawSphere(p, 0.02f, color, step, duration, gizmo);
+            }
+        }
+        
+        public static void DrawTransform(
+            Vector3 position,
+            Quaternion rotation,
+            Color color,
+            float radius = 0.05f,
+            float step = 0.05f,
+            float duration = 0f,
+            bool gizmo = false)
+        {
+            DrawSphere(position, radius, color, step, duration, gizmo);
+            DrawRay(position, rotation * Vector3.forward * (radius * 3f), Color.blue, duration, gizmo);
+            DrawRay(position, rotation * Vector3.up * (radius * 3f), Color.green, duration, gizmo);
+            DrawRay(position, rotation * Vector3.right * (radius * 3f), Color.red, duration, gizmo);
+        }
+        
+        public static void DrawTransform(
+            Transform transform,
+            Color color,
+            float radius = 0.05f,
+            float step = 0.05f,
+            float duration = 0f,
+            bool gizmo = false)
+        {
+            DrawTransform(transform.position, transform.rotation, color, radius, step, duration, gizmo);
+        }
+        
+        public static void DrawNavMeshPath(
+            NavMeshPath path,
+            Color color,
+            Color colorEnd,
+            float radius = 0.1f,
+            float step = 0.05f,
+            float duration = 0f,
+            bool gizmo = false)
+        {
+            if (path is not { corners: { Length: > 0 }}) return;
+            
+            int length = path.corners.Length;
+            for (int i = 0; i < length; i++)
+            {
+                var p = path.corners[i];
+                DrawSphere(p, radius, i < length - 1 ? color : colorEnd, step, duration, gizmo);
+                if (i > 0) DrawLine(p, path.corners[i - 1], color, duration, gizmo);
+            }
         }
     }
     
