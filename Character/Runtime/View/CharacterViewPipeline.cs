@@ -140,11 +140,16 @@ namespace MisterGames.Character.View {
             var currentOrientation = (Vector2) EulerAngles;
             var targetOrientation = currentOrientation + delta;
             
+            // To apply position before orientation smoothed
+            ApplyHeadJoint(currentOrientation, delta, dt);
+            
             ApplyClamp(currentOrientation, ref targetOrientation, dt);
             ApplySmoothing(ref currentOrientation, targetOrientation, dt);
 
             ApplyRotation(currentOrientation, dt);
-            ApplyHeadJoint(currentOrientation, delta, dt);
+            
+            // To fetch smoothed orientation
+            ApplyHeadJoint(currentOrientation, delta, dt: 0f);
         }
 
         private Vector2 ConsumeInputDelta() {
