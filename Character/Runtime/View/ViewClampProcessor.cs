@@ -170,7 +170,7 @@ namespace MisterGames.Character.View {
                 clamp.springFactors.x > 0f
             ) {
                 lw = Mathf.Clamp01(1f - (value - center - clamp.bounds.x) / (clamp.springs.x - clamp.bounds.x));
-                lt = diff.IsNearlyZero()
+                lt = diff >= 0f
                     ? centralizedTarget.SmoothExp(clamp.springs.x, dt * clamp.springFactors.x) + center
                     : value + diff.SmoothExp(0f, clamp.springFactors.x * lw);
             }
@@ -181,7 +181,7 @@ namespace MisterGames.Character.View {
                 clamp.springFactors.y > 0f
             ) {
                 rw = Mathf.Clamp01(1f - (value - center - clamp.bounds.y) / (clamp.springs.y - clamp.bounds.y));
-                rt = diff.IsNearlyZero()
+                rt = diff <= 0f
                     ? centralizedTarget.SmoothExp(clamp.springs.y, dt * clamp.springFactors.y) + center
                     : value + diff.SmoothExp(0f, clamp.springFactors.y * rw);
             }

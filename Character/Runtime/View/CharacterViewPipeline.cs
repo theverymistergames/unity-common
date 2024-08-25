@@ -140,12 +140,11 @@ namespace MisterGames.Character.View {
             var currentOrientation = (Vector2) EulerAngles;
             var targetOrientation = currentOrientation + delta;
             
-            ApplyHeadJoint(currentOrientation, delta, dt);
-            
             ApplyClamp(currentOrientation, ref targetOrientation, dt);
             ApplySmoothing(ref currentOrientation, targetOrientation, dt);
 
             ApplyRotation(currentOrientation, dt);
+            ApplyHeadJoint(currentOrientation, delta, dt);
         }
 
         private Vector2 ConsumeInputDelta() {
