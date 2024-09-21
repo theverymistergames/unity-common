@@ -81,7 +81,7 @@ namespace MisterGames.Character.View {
             targetOrientation.x = ApplySpring(orientation.x, targetOrientation.x, clampCenterEulers.x, _vertical, dt);
             targetOrientation.y = ApplySpring(orientation.y, targetOrientation.y, clampCenterEulers.y, _horizontal, dt);
 
-            targetOrientation = GetNearestAngle(targetOrientation, orientation);
+            targetOrientation = VectorUtils.GetNearestAngle(targetOrientation, orientation);
         }
 
         private Vector2 GetViewCenter(Vector3 position, Vector2 targetOrientation, float dt) {
@@ -127,31 +127,12 @@ namespace MisterGames.Character.View {
                     throw new ArgumentOutOfRangeException();
             }
 
-            clampCenterEulers = GetNearestAngle(clampCenterEulers, targetOrientation);
+            clampCenterEulers = VectorUtils.GetNearestAngle(clampCenterEulers, targetOrientation);
             
             clampCenterEulers.x *= (!_vertical.absolute).AsInt();
             clampCenterEulers.y *= (!_horizontal.absolute).AsInt();
 
             return clampCenterEulers;
-        }
-
-        private Vector2 GetNearestAngle(Vector2 value, Vector2 target) {
-            value = value.Mod(360f);
-            var t = (target / 360f).FloorToInt() + new Vector2(value.x > 0f ? -1f : 0f, value.y > 0f ? -1f : 0f);
-            
-            var p0 = t * 360f + value;
-            var p1 = (t + Vector2.one) * 360f + value;
-            var p2 = (t + Vector2.one * 2f) * 360f + value;
-
-            var p01 = new Vector2(
-                Mathf.Abs(p0.x - target.x) < Mathf.Abs(p1.x - target.x) ? p0.x : p1.x,
-                Mathf.Abs(p0.y - target.y) < Mathf.Abs(p1.y - target.y) ? p0.y : p1.y
-            );
-            
-            value.x = Mathf.Abs(p01.x - target.x) < Mathf.Abs(p2.x - target.x) ? p01.x : p2.x;
-            value.y = Mathf.Abs(p01.y - target.y) < Mathf.Abs(p2.y - target.y) ? p01.y : p2.y;
-
-            return value;
         }
         
         private static float ApplySpring(float value, float target, float center, ViewAxisClamp clamp, float dt) {

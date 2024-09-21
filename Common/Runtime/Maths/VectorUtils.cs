@@ -156,6 +156,26 @@ namespace MisterGames.Common.Maths {
         public static Vector3 ToEulerAngles180(this Quaternion quaternion) {
             return quaternion.eulerAngles.ToEulerAngles180();
         }
+        
+        public static Vector2 GetNearestAngle(Vector2 value, Vector2 target) {
+            return new Vector2(GetNearestAngle(value.x, target.x), GetNearestAngle(value.y, target.y));
+        }
+        
+        public static Vector3 GetNearestAngle(Vector3 value, Vector3 target) {
+            return new Vector3(GetNearestAngle(value.x, target.x), GetNearestAngle(value.y, target.y), GetNearestAngle(value.z, target.z));
+        }
+        
+        public static float GetNearestAngle(float value, float target) {
+            value %= 360f;
+            float t = Mathf.FloorToInt(target / 360f) + value > 0f ? -1f : 0f;
+            
+            float p0 = t * 360f + value;
+            float p1 = (t + 1f) * 360f + value;
+            float p2 = (t + 2f) * 360f + value;
+            float p01 = Mathf.Abs(p0 - target) < Mathf.Abs(p1 - target) ? p0 : p1;
+            
+            return Mathf.Abs(p01 - target) < Mathf.Abs(p2 - target) ? p01 : p2;
+        }
 
         // ---------------- ---------------- Geometry ---------------- ----------------
 

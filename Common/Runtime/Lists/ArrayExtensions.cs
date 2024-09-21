@@ -1,9 +1,51 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+using UnityEngine;
 
 namespace MisterGames.Common.Lists {
 
     public static class ArrayExtensions {
+        
+        public static float WriteToCircularBufferAndGetAverage(this float[] buffer, float value, ref int pointer) {
+            buffer[pointer++ % buffer.Length] = value;
+            
+            float sum = 0f;
+            int count = Math.Min(pointer, buffer.Length);
+            
+            for (int i = 0; i < count; i++) {
+                sum += buffer[i];
+            }
+            
+            return sum / count;
+        }
+
+        public static Vector2 WriteToCircularBufferAndGetAverage(this Vector2[] buffer, Vector2 value, ref int pointer) {
+            buffer[pointer++ % buffer.Length] = value;
+            
+            Vector2 sum = default;
+            int count = Math.Min(pointer, buffer.Length);
+            
+            for (int i = 0; i < count; i++) {
+                sum += buffer[i];
+            }
+            
+            return sum / count;
+        }
+
+        public static Vector3 WriteToCircularBufferAndGetAverage(this Vector3[] buffer, Vector3 value, ref int pointer) {
+            buffer[pointer++ % buffer.Length] = value;
+            
+            Vector3 sum = default;
+            int count = Math.Min(pointer, buffer.Length);
+            
+            for (int i = 0; i < count; i++) {
+                sum += buffer[i];
+            }
+            
+            return sum / count;
+        }
+
         public static bool TryFind<T>(this IReadOnlyList<T> list, Func<T, bool> predicate, out T value) {
             int count = list?.Count ?? 0;
             

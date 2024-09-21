@@ -11,6 +11,9 @@ using UnityEngine;
 namespace MisterGames.Character.View {
 
     public sealed class CharacterViewPipeline : MonoBehaviour, IActorComponent, IUpdate {
+
+        [SerializeField] private CharacterHeadAdapter _headAdapter;
+        [SerializeField] private CharacterBodyAdapter _bodyAdapter;
         
         [Header("View Settings")]
         [SerializeField] private PlayerLoopStage _playerLoopStage = PlayerLoopStage.LateUpdate;
@@ -42,8 +45,6 @@ namespace MisterGames.Character.View {
         private readonly CharacterHeadJoint _headJoint = new();
         
         private CameraContainer _cameraContainer;
-        private ITransformAdapter _headAdapter;
-        private ITransformAdapter _bodyAdapter;
         private CharacterInputPipeline _inputPipeline;
 
         private Vector2 _inputDeltaAccum;
