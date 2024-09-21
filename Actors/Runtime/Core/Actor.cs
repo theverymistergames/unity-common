@@ -426,6 +426,8 @@ namespace MisterGames.Actors
             }
 
             if (_dataOverrides != null) {
+                _dataMap ??= new Dictionary<Type, IActorData>(_dataOverrides.Length);
+                
                 for (int i = 0; i < _dataOverrides.Length; i++) {
                     if (_dataOverrides[i] is not { } data) continue;
                 
@@ -436,6 +438,8 @@ namespace MisterGames.Actors
 #endif              
                 }
             }
+            
+            _dataMap ??= new Dictionary<Type, IActorData>();
             
 #if UNITY_EDITOR
             foreach (var data in _dataMap.Values) {
