@@ -2,8 +2,8 @@
     
     public interface IActorComponent {
         void OnAwake(IActor actor) { }
-        void OnTerminate(IActor actor) { }
-        void OnDataChanged(IActor actor) { }
+        void OnDestroyed(IActor actor) { }
+        void OnSetData(IActor actor) { }
     }
     
 }

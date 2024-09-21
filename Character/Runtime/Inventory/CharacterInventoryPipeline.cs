@@ -15,7 +15,7 @@ namespace MisterGames.Character.Inventory {
             GetOrCreateInventoryInstance();
         }
 
-        public void OnTerminate(IActor actor) {
+        public void OnDestroyed(IActor actor) {
             _inventoryInstance = null;
         }
 

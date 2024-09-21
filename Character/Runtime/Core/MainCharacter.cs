@@ -9,7 +9,7 @@ namespace MisterGames.Character.Core {
             CharacterSystem.Instance.Register(actor);
         }
 
-        void IActorComponent.OnTerminate(IActor actor) {
+        void IActorComponent.OnDestroyed(IActor actor) {
             CharacterSystem.Instance.Unregister(actor);
         }
     }
