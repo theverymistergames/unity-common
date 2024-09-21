@@ -12,17 +12,17 @@ namespace MisterGames.Collisions.Rigidbodies {
         public abstract event TriggerCallback TriggerExit;
         public abstract event TriggerCallback TriggerStay;
 
-        public void Subscribe(TriggerEvent evt, TriggerCallback callback) {
+        public void Subscribe(TriggerEventType evt, TriggerCallback callback) {
             switch (evt) {
-                case TriggerEvent.Enter:
+                case TriggerEventType.Enter:
                     TriggerEnter += callback;
                     break;
                 
-                case TriggerEvent.Stay:
+                case TriggerEventType.Stay:
                     TriggerStay += callback;
                     break;
                 
-                case TriggerEvent.Exit:
+                case TriggerEventType.Exit:
                     TriggerExit += callback;
                     break;
                 
@@ -31,17 +31,17 @@ namespace MisterGames.Collisions.Rigidbodies {
             }
         }
 
-        public void Unsubscribe(TriggerEvent eventType, TriggerCallback callback) {
+        public void Unsubscribe(TriggerEventType eventType, TriggerCallback callback) {
             switch (eventType) {
-                case TriggerEvent.Enter:
+                case TriggerEventType.Enter:
                     TriggerEnter -= callback;
                     break;
                 
-                case TriggerEvent.Stay:
+                case TriggerEventType.Stay:
                     TriggerStay -= callback;
                     break;
                 
-                case TriggerEvent.Exit:
+                case TriggerEventType.Exit:
                     TriggerExit -= callback;
                     break;
                 

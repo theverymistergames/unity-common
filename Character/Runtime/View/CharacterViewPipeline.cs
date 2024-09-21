@@ -26,6 +26,8 @@ namespace MisterGames.Character.View {
         
         public event Action<float> OnAttach { add => _headJoint.OnAttach += value; remove => _headJoint.OnAttach -= value; }
         public event Action OnDetach { add => _headJoint.OnDetach += value; remove => _headJoint.OnDetach -= value; }
+
+        public Vector3 HeadPosition => _headAdapter.Position;
         
         public Quaternion Orientation {
             get => _headAdapter.Rotation;
