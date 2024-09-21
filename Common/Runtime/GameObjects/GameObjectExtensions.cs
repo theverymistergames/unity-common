@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
 namespace MisterGames.Common.GameObjects {
     
@@ -12,6 +13,12 @@ namespace MisterGames.Common.GameObjects {
         
         public static void SetupUniqueMaterial(this Renderer renderer) {
             if (renderer.material == renderer.sharedMaterial) renderer.material = new Material(renderer.sharedMaterial);
+        }
+
+        public static void SetActive(this IReadOnlyList<GameObject> gameObjects, bool active) {
+            for (int i = 0; i < gameObjects.Count; i++) {
+                gameObjects[i].SetActive(active);
+            }
         }
 
         public static void SetEnabled(this Object obj, bool enabled) {

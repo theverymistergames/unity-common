@@ -22,7 +22,7 @@ namespace MisterGames.ActionLib.Character {
             var pos = context.Transform.position;
             var rot = context.Transform.rotation;
 
-            var instance = PrefabPool.Instance.TakeActive(prefab);
+            var instance = PrefabPool.Main.Get(prefab);
 
             if (useLocal) {
                 instance.transform.SetPositionAndRotation(pos + rot * positionOffset, rot * Quaternion.Euler(rotationOffset));    
@@ -45,7 +45,7 @@ namespace MisterGames.ActionLib.Character {
 
             if (cancellationToken.IsCancellationRequested || gameObject == null) return;
             
-            PrefabPool.Instance.Recycle(gameObject);
+            PrefabPool.Main.Release(gameObject);
         }
     }
     

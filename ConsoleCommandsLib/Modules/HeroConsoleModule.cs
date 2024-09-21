@@ -159,7 +159,7 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
         private void SpawnHero(Vector3 position, string spawnPointName) {
             var access = Object.FindObjectOfType<MainCharacter>();
             if (access == null) {
-                var newHeroInstance = PrefabPool.Instance.TakeActive(_heroPrefab);
+                var newHeroInstance = PrefabPool.Main.Get(_heroPrefab);
                 access = newHeroInstance.GetComponent<MainCharacter>();
             }
 
