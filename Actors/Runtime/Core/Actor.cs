@@ -471,7 +471,7 @@ namespace MisterGames.Actors
 
         private void OnValidateData() {
             FetchData();
-            NotifySetData();
+            if (Application.isPlaying) NotifySetData();
         }
         
         private void RebindData() {

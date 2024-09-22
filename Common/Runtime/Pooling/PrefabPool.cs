@@ -254,7 +254,7 @@ namespace MisterGames.Common.Pooling {
 
 #if UNITY_EDITOR
         private void OnValidate() {
-            for (int i = _lastPredefinedPoolsCount; i >= 0 && i < _predefinedPools?.Length; i++) {
+            for (int i = _lastPredefinedPoolsCount; i < _predefinedPools?.Length; i++) {
                 ref var poolSettings = ref _predefinedPools[i];
 
                 poolSettings.name = null;
