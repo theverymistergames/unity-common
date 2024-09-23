@@ -12,6 +12,7 @@ namespace MisterGames.Character.View {
         [SerializeField] private Transform _rotationRoot;
 
         public Camera Camera { get; private set; }
+        public Transform CameraTransform { get; private set; }
 
         private readonly Dictionary<int, WeightedValue<Vector3>> _positionStates = new();
         private readonly Dictionary<int, WeightedValue<Quaternion>> _rotationStates = new();
@@ -31,6 +32,7 @@ namespace MisterGames.Character.View {
 
         void IActorComponent.OnAwake(IActor actor) {
             Camera = actor.GetComponent<Camera>();
+            CameraTransform = Camera.transform;
             
             _timeSource = PlayerLoopStage.Update.Get();
             
@@ -221,7 +223,7 @@ namespace MisterGames.Character.View {
             return result;
         }
         
-        private float BuildInvertedMaxWeight<T>(Dictionary<int, WeightedValue<T>> source) {
+        private static float BuildInvertedMaxWeight<T>(Dictionary<int, WeightedValue<T>> source) {
             float maxWeight = 0f;
             
             foreach (var data in source.Values) {
