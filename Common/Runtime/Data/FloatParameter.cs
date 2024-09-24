@@ -10,7 +10,7 @@ namespace MisterGames.Common.Data {
         public float addRandom;
         public AnimationCurve curve;
 
-        public static FloatParameter Default() => new FloatParameter {
+        public static readonly FloatParameter Default = new FloatParameter {
             multiplier = 0f,
             addRandom = 0f,
             curve = AnimationCurve.Linear(0f, 0f, 1f, 0f),

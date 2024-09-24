@@ -22,7 +22,7 @@ namespace MisterGames.ActionLib.Character {
         public float baseMultiplier = 1f;
         public float baseMultiplierRandom = 0f;
 
-        public Vector3Parameter eulers = Vector3Parameter.Default();
+        public Vector3Parameter eulers = Vector3Parameter.Default;
 
         public async UniTask Apply(IActor actor, CancellationToken cancellationToken = default) { 
             var cameraContainer = actor.GetComponent<CameraContainer>();
