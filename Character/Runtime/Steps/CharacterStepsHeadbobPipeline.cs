@@ -22,8 +22,8 @@ namespace MisterGames.Character.Steps {
         [SerializeField] private float _baseAmplitudeRandom = 0.2f;
         [SerializeField] private AnimationCurve _baseAmplitudeBySpeed = AnimationCurve.Linear(0f, 0f, 1f, 1f);
 
-        [SerializeField] private Vector3Parameter _positionOffset = Vector3Parameter.Default;
-        [SerializeField] private Vector3Parameter _rotationOffset = Vector3Parameter.Default;
+        [SerializeField] private Vector3Parameter _positionOffset = Vector3Parameter.Default();
+        [SerializeField] private Vector3Parameter _rotationOffset = Vector3Parameter.Default();
 
         private Rigidbody _rigidbody;
         private CameraContainer _cameraContainer;

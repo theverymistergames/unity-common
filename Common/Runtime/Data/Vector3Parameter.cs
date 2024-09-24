@@ -9,10 +9,10 @@ namespace MisterGames.Common.Data {
         public FloatParameter y;
         public FloatParameter z;
 
-        public static readonly Vector3Parameter Default = new Vector3Parameter() {
-            x = FloatParameter.Default,
-            y = FloatParameter.Default,
-            z = FloatParameter.Default,
+        public static Vector3Parameter Default() => new Vector3Parameter() {
+            x = FloatParameter.Default(),
+            y = FloatParameter.Default(),
+            z = FloatParameter.Default(),
         };
     }
 

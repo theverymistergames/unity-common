@@ -18,9 +18,9 @@ namespace MisterGames.ActionLib.Character {
         [Min(0f)] public float duration;
         public Vector3 positionOffset;
         public Vector3 rotationOffset;
-        public FloatParameter noiseScale = FloatParameter.Default;
-        public Vector3Parameter positionMultiplier = Vector3Parameter.Default;
-        public Vector3Parameter rotationMultiplier = Vector3Parameter.Default;
+        public FloatParameter noiseScale = FloatParameter.Default();
+        public Vector3Parameter positionMultiplier = Vector3Parameter.Default();
+        public Vector3Parameter rotationMultiplier = Vector3Parameter.Default();
         
         public async UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
             if (!context.TryGetComponent(out CameraShaker shaker)) return;

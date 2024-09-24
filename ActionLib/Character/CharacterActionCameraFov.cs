@@ -19,7 +19,7 @@ namespace MisterGames.ActionLib.Character {
         [Min(0f)] public float duration;
         [Min(0f)] public float durationRandom;
 
-        public FloatParameter fovOffset = FloatParameter.Default;
+        public FloatParameter fovOffset = FloatParameter.Default();
 
         public async UniTask Apply(IActor actor, CancellationToken cancellationToken = default) {
             var cameraContainer = actor.GetComponent<CameraContainer>();

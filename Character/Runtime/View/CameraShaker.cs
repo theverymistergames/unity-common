@@ -47,7 +47,11 @@ namespace MisterGames.Character.View {
 
         public int CreateState(float weight) {
             int id = _cameraContainer.CreateState();
+            
             _weightMap[id] = weight;
+            _noiseScaleMap[id] = 0f;
+            _positionMap[id] = default;
+            _rotationMap[id] = default;
             
             PlayerLoopStage.LateUpdate.Subscribe(this);
             
@@ -56,6 +60,7 @@ namespace MisterGames.Character.View {
 
         public void RemoveState(int id) {
             _cameraContainer.RemoveState(id);
+            
             _weightMap.Remove(id);
             _noiseScaleMap.Remove(id);
             _positionMap.Remove(id);
@@ -100,7 +105,7 @@ namespace MisterGames.Character.View {
 #if UNITY_EDITOR
         private int _lastStateId;
         private void OnValidate() {
-            if (!Application.isPlaying) return;
+            if (!Application.isPlaying || _cameraContainer == null) return;
             
             RemoveState(_lastStateId);
             _lastStateId = CreateState(_weight);
