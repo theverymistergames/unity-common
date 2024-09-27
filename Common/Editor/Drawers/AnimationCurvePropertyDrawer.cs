@@ -78,8 +78,19 @@ namespace MisterGames.Common.Editor.Drawers {
 
             var curve = property.animationCurveValue;
             
-            menu.AddItem(new GUIContent("Invert curve"), false, () => {
-                curve.InvertAnimationCurve();
+            menu.AddItem(new GUIContent("Invert curve by X"), false, () => {
+                curve.InvertAnimationCurveX();
+                
+                property.animationCurveValue = curve;
+                
+                property.serializedObject.ApplyModifiedProperties();
+                property.serializedObject.Update();
+                        
+                EditorUtility.SetDirty(property.serializedObject.targetObject); 
+            });
+            
+            menu.AddItem(new GUIContent("Invert curve by Y"), false, () => {
+                curve.InvertAnimationCurveY();
                 
                 property.animationCurveValue = curve;
                 

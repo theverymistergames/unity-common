@@ -10,7 +10,7 @@ namespace MisterGames.Common.Easing {
 			return new AnimationCurve { keys = GetEasingTypeKeys(ease) };
 		}
 
-		public static void InvertAnimationCurve(this AnimationCurve curve) {
+		public static void InvertAnimationCurveX(this AnimationCurve curve) {
 			if (curve.keys is not { Length: > 1 } keys) return;
 
 			int length = keys.Length;
@@ -26,6 +26,28 @@ namespace MisterGames.Common.Easing {
 				
 				keys[i] = new Keyframe(startTime + endTime - kb.time, kb.value, -kb.outTangent, -kb.inTangent, kb.outWeight, kb.inWeight) { weightedMode = kb.weightedMode };
 				keys[length - 1 - i] = new Keyframe(startTime + endTime - ka.time, ka.value, -ka.outTangent, -ka.inTangent, ka.outWeight, ka.inWeight) { weightedMode = ka.weightedMode };
+			}
+
+			curve.keys = keys;
+		}
+		
+		public static void InvertAnimationCurveY(this AnimationCurve curve) {
+			if (curve.keys is not { Length: > 1 } keys) return;
+
+			int length = keys.Length;
+			
+			float minValue = float.MaxValue;
+			float maxValue = float.MinValue;
+			
+			for (int i = 0; i < length; i++) {
+				var k = keys[i];
+				if (k.value > maxValue) maxValue = k.value;
+				if (k.value < minValue) minValue = k.value;
+			}
+			
+			for (int i = 0; i < length; i++) {
+				var k = keys[i];
+				keys[i] = new Keyframe(k.time, minValue + maxValue - k.value, -k.inTangent, -k.outTangent, k.inWeight, k.outWeight) { weightedMode = k.weightedMode };
 			}
 
 			curve.keys = keys;
