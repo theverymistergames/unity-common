@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using MisterGames.Common.Easing;
+using MisterGames.Common.Editor.SerializedProperties;
 using MisterGames.Common.Editor.Views;
 using UnityEditor;
 using UnityEngine;
@@ -61,6 +62,32 @@ namespace MisterGames.Common.Editor.Drawers {
                 separator: '.',
                 sort: children => children.OrderBy(n => n.data.data)
             );
+        }
+    }
+    
+    [InitializeOnLoad]
+    internal static class AnimationCurveContextMenu {
+        
+        static AnimationCurveContextMenu() {
+            EditorApplication.contextualPropertyMenu -= OnContextMenuOpening;
+            EditorApplication.contextualPropertyMenu += OnContextMenuOpening;
+        }
+
+        private static void OnContextMenuOpening(GenericMenu menu, SerializedProperty property) {
+            if (property.propertyType != SerializedPropertyType.AnimationCurve) return;
+
+            var curve = property.animationCurveValue;
+            
+            menu.AddItem(new GUIContent("Invert curve"), false, () => {
+                curve.InvertAnimationCurve();
+                
+                property.animationCurveValue = curve;
+                
+                property.serializedObject.ApplyModifiedProperties();
+                property.serializedObject.Update();
+                        
+                EditorUtility.SetDirty(property.serializedObject.targetObject); 
+            });
         }
     }
 

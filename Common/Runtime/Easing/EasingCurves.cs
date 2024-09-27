@@ -10,6 +10,27 @@ namespace MisterGames.Common.Easing {
 			return new AnimationCurve { keys = GetEasingTypeKeys(ease) };
 		}
 
+		public static void InvertAnimationCurve(this AnimationCurve curve) {
+			if (curve.keys is not { Length: > 1 } keys) return;
+
+			int length = keys.Length;
+			int halfLength = Mathf.CeilToInt(length * 0.5f);
+
+			float startTime = keys[0].time;
+			float endTime = keys[^1].time;
+			
+			for (int i = 0; i < halfLength; i++) {
+				
+				var ka = keys[i];
+				var kb = keys[length - 1 - i];
+				
+				keys[i] = new Keyframe(startTime + endTime - kb.time, kb.value, -kb.outTangent, -kb.inTangent, kb.outWeight, kb.inWeight) { weightedMode = kb.weightedMode };
+				keys[length - 1 - i] = new Keyframe(startTime + endTime - ka.time, ka.value, -ka.outTangent, -ka.inTangent, ka.outWeight, ka.inWeight) { weightedMode = ka.weightedMode };
+			}
+
+			curve.keys = keys;
+		}
+
 		public static bool TryGetEasingType(this AnimationCurve animationCurve, out EasingType easingType) {
 			if (animationCurve == null) {
 				easingType = default;
