@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using MisterGames.Actors;
 using MisterGames.Tick.Core;
 using UnityEngine;
@@ -10,14 +9,17 @@ namespace MisterGames.Character.View {
 
         [Header("Test")]
         [SerializeField] private float _weight;
-        [SerializeField] private float _noiseScale;
+        [SerializeField] private Vector3 _speed;
         [SerializeField] private Vector3 _positionOffset;
         [SerializeField] private Vector3 _positionMultiplier;
         [SerializeField] private Vector3 _rotationOffset;
         [SerializeField] private Vector3 _rotationMultiplier;
+
+        private const float TimeOffset = 100_000f;
+        private const float TimeRange = 1000f;
         
         private readonly Dictionary<int, float> _weightMap = new();
-        private readonly Dictionary<int, float> _noiseScaleMap = new();
+        private readonly Dictionary<int, Vector3> _speedMap = new();
         private readonly Dictionary<int, ShakeData> _positionMap = new();
         private readonly Dictionary<int, ShakeData> _rotationMap = new();
         
@@ -49,7 +51,7 @@ namespace MisterGames.Character.View {
             int id = _cameraContainer.CreateState();
             
             _weightMap[id] = weight;
-            _noiseScaleMap[id] = 0f;
+            _speedMap[id] = default;
             _positionMap[id] = default;
             _rotationMap[id] = default;
             
@@ -62,15 +64,15 @@ namespace MisterGames.Character.View {
             _cameraContainer.RemoveState(id);
             
             _weightMap.Remove(id);
-            _noiseScaleMap.Remove(id);
+            _speedMap.Remove(id);
             _positionMap.Remove(id);
             _rotationMap.Remove(id);
             
             if (_weightMap.Count == 0) PlayerLoopStage.LateUpdate.Unsubscribe(this);
         }
 
-        public void SetNoiseScale(int id, float noiseScale) {
-            _noiseScaleMap[id] = noiseScale;
+        public void SetSpeed(int id, Vector3 speed) {
+            _speedMap[id] = speed;
         }
 
         public void SetPosition(int id, Vector3 offset, Vector3 multiplier) {
@@ -82,23 +84,23 @@ namespace MisterGames.Character.View {
         }
 
         void IUpdate.OnUpdate(float dt) {
-            float time = Time.time;
+            float t = Mathf.Repeat(Time.time, TimeRange);
             
             foreach ((int id, float w) in _weightMap) {
-                float s = _noiseScaleMap[id] * time;
+                var speed = _speedMap[id];
                 var position = _positionMap[id];
                 var rotation = _rotationMap[id];
                 
-                _cameraContainer.SetPositionOffset(id, w, GetNoiseVector(s, position.offset, position.multiplier));    
-                _cameraContainer.SetRotationOffset(id, w, Quaternion.Euler(GetNoiseVector(s, rotation.offset, rotation.multiplier)));    
+                _cameraContainer.SetPositionOffset(id, w, GetNoiseVector(t, position.offset, speed, position.multiplier));    
+                _cameraContainer.SetRotationOffset(id, w, Quaternion.Euler(GetNoiseVector(t, rotation.offset, speed, rotation.multiplier)));    
             }
         }
 
-        private static Vector3 GetNoiseVector(float t, Vector3 offset, Vector3 multiplier) {
+        private static Vector3 GetNoiseVector(float t, Vector3 offset, Vector3 speed, Vector3 multiplier) {
             return new Vector3(
-                (Mathf.PerlinNoise1D(t + offset.x) - 0.5f) * multiplier.x,
-                (Mathf.PerlinNoise1D(t + offset.y) - 0.5f) * multiplier.y,
-                (Mathf.PerlinNoise1D(t + offset.z) - 0.5f) * multiplier.z
+                (Mathf.PerlinNoise1D(TimeOffset + t * speed.x + offset.x) - 0.5f) * multiplier.x,
+                (Mathf.PerlinNoise1D(TimeOffset + t * speed.y + offset.y) - 0.5f) * multiplier.y,
+                (Mathf.PerlinNoise1D(TimeOffset + t * speed.z + offset.z) - 0.5f) * multiplier.z
             );
         }
 
@@ -109,7 +111,7 @@ namespace MisterGames.Character.View {
             
             RemoveState(_lastStateId);
             _lastStateId = CreateState(_weight);
-            SetNoiseScale(_lastStateId, _noiseScale);
+            SetSpeed(_lastStateId, _speed);
             SetPosition(_lastStateId, _positionOffset, _positionMultiplier);
             SetRotation(_lastStateId, _rotationOffset, _rotationMultiplier);
         }
