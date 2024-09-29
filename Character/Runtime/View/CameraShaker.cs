@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using MisterGames.Actors;
+using MisterGames.Common.Maths;
 using MisterGames.Tick.Core;
 using UnityEngine;
 
@@ -16,25 +17,25 @@ namespace MisterGames.Character.View {
         [SerializeField] private Vector3 _rotationMultiplier;
 
         private const float TimeOffset = 100_000f;
-        private const float TimeRange = 1000f;
         
         private readonly Dictionary<int, float> _weightMap = new();
-        private readonly Dictionary<int, Vector3> _speedMap = new();
-        private readonly Dictionary<int, ShakeData> _positionMap = new();
-        private readonly Dictionary<int, ShakeData> _rotationMap = new();
+        private readonly Dictionary<int, float> _timeMap = new();
+        private readonly Dictionary<int, VectorData> _speedMap = new();
+        private readonly Dictionary<int, VectorData> _positionMap = new();
+        private readonly Dictionary<int, VectorData> _rotationMap = new();
         
         private CameraContainer _cameraContainer;
 
-        private readonly struct ShakeData {
+        private readonly struct VectorData {
             public readonly Vector3 offset;
             public readonly Vector3 multiplier;
             
-            public ShakeData(Vector3 offset, Vector3 multiplier) {
+            public VectorData(Vector3 offset, Vector3 multiplier) {
                 this.offset = offset;
                 this.multiplier = multiplier;
             }
         }
-        
+
         void IActorComponent.OnAwake(IActor actor) {
             _cameraContainer = actor.GetComponent<CameraContainer>();
         }
@@ -51,6 +52,7 @@ namespace MisterGames.Character.View {
             int id = _cameraContainer.CreateState();
             
             _weightMap[id] = weight;
+            _timeMap[id] = Time.time;
             _speedMap[id] = default;
             _positionMap[id] = default;
             _rotationMap[id] = default;
@@ -64,6 +66,7 @@ namespace MisterGames.Character.View {
             _cameraContainer.RemoveState(id);
             
             _weightMap.Remove(id);
+            _timeMap.Remove(id);
             _speedMap.Remove(id);
             _positionMap.Remove(id);
             _rotationMap.Remove(id);
@@ -72,35 +75,41 @@ namespace MisterGames.Character.View {
         }
 
         public void SetSpeed(int id, Vector3 speed) {
-            _speedMap[id] = speed;
+            float time = Time.time;
+            var lastSpeed = _speedMap.GetValueOrDefault(id);
+            var offset = lastSpeed.offset + lastSpeed.multiplier * (time - _timeMap[id]);
+            
+            _speedMap[id] = new VectorData(offset, speed);
+            _timeMap[id] = time;
         }
 
         public void SetPosition(int id, Vector3 offset, Vector3 multiplier) {
-            _positionMap[id] = new ShakeData(offset, multiplier);
+            _positionMap[id] = new VectorData(offset, multiplier);
         }
         
         public void SetRotation(int id, Vector3 offset, Vector3 multiplier) {
-            _rotationMap[id] = new ShakeData(offset, multiplier);
+            _rotationMap[id] = new VectorData(offset, multiplier);
         }
 
         void IUpdate.OnUpdate(float dt) {
-            float t = Mathf.Repeat(Time.time, TimeRange);
+            float time = Time.time;
             
             foreach ((int id, float w) in _weightMap) {
-                var speed = _speedMap[id];
                 var position = _positionMap[id];
                 var rotation = _rotationMap[id];
-                
-                _cameraContainer.SetPositionOffset(id, w, GetNoiseVector(t, position.offset, speed, position.multiplier));    
-                _cameraContainer.SetRotationOffset(id, w, Quaternion.Euler(GetNoiseVector(t, rotation.offset, speed, rotation.multiplier)));    
+                var speed = _speedMap[id];
+                var t = (time - _timeMap[id]) * speed.multiplier + speed.offset;
+
+                _cameraContainer.SetPositionOffset(id, w, GetNoiseVector(t + position.offset, position.multiplier));    
+                _cameraContainer.SetRotationOffset(id, w, Quaternion.Euler(GetNoiseVector(t + rotation.offset, rotation.multiplier)));    
             }
         }
 
-        private static Vector3 GetNoiseVector(float t, Vector3 offset, Vector3 speed, Vector3 multiplier) {
+        private static Vector3 GetNoiseVector(Vector3 t, Vector3 multiplier) {
             return new Vector3(
-                (Mathf.PerlinNoise1D(TimeOffset + t * speed.x + offset.x) - 0.5f) * multiplier.x,
-                (Mathf.PerlinNoise1D(TimeOffset + t * speed.y + offset.y) - 0.5f) * multiplier.y,
-                (Mathf.PerlinNoise1D(TimeOffset + t * speed.z + offset.z) - 0.5f) * multiplier.z
+                (Mathf.PerlinNoise1D(t.x) - 0.5f) * multiplier.x,
+                (Mathf.PerlinNoise1D(t.y) - 0.5f) * multiplier.y,
+                (Mathf.PerlinNoise1D(t.z) - 0.5f) * multiplier.z
             );
         }
 
@@ -111,6 +120,7 @@ namespace MisterGames.Character.View {
             
             RemoveState(_lastStateId);
             _lastStateId = CreateState(_weight);
+            
             SetSpeed(_lastStateId, _speed);
             SetPosition(_lastStateId, _positionOffset, _positionMultiplier);
             SetRotation(_lastStateId, _rotationOffset, _rotationMultiplier);
