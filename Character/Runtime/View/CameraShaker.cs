@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using MisterGames.Actors;
-using MisterGames.Common.Maths;
 using MisterGames.Tick.Core;
 using UnityEngine;
 
@@ -15,8 +14,6 @@ namespace MisterGames.Character.View {
         [SerializeField] private Vector3 _positionMultiplier;
         [SerializeField] private Vector3 _rotationOffset;
         [SerializeField] private Vector3 _rotationMultiplier;
-
-        private const float TimeOffset = 100_000f;
         
         private readonly Dictionary<int, float> _weightMap = new();
         private readonly Dictionary<int, float> _timeMap = new();
