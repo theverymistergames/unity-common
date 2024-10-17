@@ -106,6 +106,21 @@ namespace MisterGames.Character.View {
             _isClearingPersistentStates = false;
         }
 
+        public void SetBasePositionOffset(Vector3 offset) {
+            _baseState = _baseState.WithPosition(offset);
+            ApplyResultState();
+        }
+        
+        public void SetBaseRotationOffset(Quaternion offset) {
+            _baseState = _baseState.WithRotation(offset);
+            ApplyResultState();
+        }
+        
+        public void SetBaseFov(float fov) {
+            _baseState = _baseState.WithFov(fov);
+            ApplyResultState();
+        }
+
         public void AddPositionOffset(int id, float weight, Vector3 offsetDelta) {
             var data = _positionStates.GetValueOrDefault(id);
             _positionStates[id] = new WeightedValue<Vector3>(weight, data.value + offsetDelta);
@@ -151,7 +166,7 @@ namespace MisterGames.Character.View {
             
             ApplyResultState();
         }
-
+        
         public void AddFovOffset(int id, float weight, float fov) {
             var data = _fovStates.GetValueOrDefault(id);
             _fovStates[id] = new WeightedValue<float>(weight, data.value + fov);

@@ -5,6 +5,7 @@ using MisterGames.Actors;
 using MisterGames.Actors.Actions;
 using MisterGames.Character.Collisions;
 using MisterGames.Character.Motion;
+using MisterGames.Character.View;
 using UnityEngine;
 
 namespace MisterGames.ActionLib.Character {
@@ -18,6 +19,8 @@ namespace MisterGames.ActionLib.Character {
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
             var collisionPipeline = context.GetComponent<CharacterCollisionPipeline>();
             var rb = context.GetComponent<Rigidbody>();
+            var view = context.GetComponent<CharacterViewPipeline>();
+            
             var t = rb.transform;
             
             t.GetPositionAndRotation(out var pos, out var rot);
@@ -36,9 +39,11 @@ namespace MisterGames.ActionLib.Character {
             
             float angle = Vector3.SignedAngle(localForward, targetForward, rot * Vector3.up);
             var rotOffset = Quaternion.FromToRotation(localForward, targetForward);
+            var rotDelta = Quaternion.Euler(0f, angle, 0f);
             
             t.position = targetCenter.position + rotOffset * positionOffset;
-            t.rotation *= Quaternion.Euler(0f, angle, 0f);
+            t.rotation *= rotDelta;
+            view.Rotation *= rotDelta;
             
             collisionPipeline.enabled = true;
             rb.isKinematic = false;

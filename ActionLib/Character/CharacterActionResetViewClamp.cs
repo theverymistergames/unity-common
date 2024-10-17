@@ -4,17 +4,21 @@ using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
 using MisterGames.Character.View;
-using UnityEngine;
 
 namespace MisterGames.ActionLib.Character {
     
     [Serializable]
-    public sealed class CharacterActionSetViewSmoothing : IActorAction {
+    public sealed class CharacterActionResetViewClamp : IActorAction {
 
-        [Min(0)] public float viewSmoothFactor = 20f;
+        public bool horizontal = true;
+        public bool vertical = true;
 
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            context.GetComponent<CharacterViewPipeline>().ApplySmoothing(viewSmoothFactor);
+            var view = context.GetComponent<CharacterViewPipeline>();
+            
+            if (horizontal) view.ResetHorizontalClamp();
+            if (vertical) view.ResetVerticalClamp();
+            
             return default;
         }
     }

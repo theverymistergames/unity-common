@@ -15,7 +15,7 @@ namespace MisterGames.ActionLib.Character {
         [Min(0f)] public float sensitivityVertical = 0.15f;
 
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            context.GetComponent<CharacterViewPipeline>().Sensitivity = new Vector2(sensitivityVertical, sensitivityHorizontal);
+            context.GetComponent<CharacterViewPipeline>().ApplySensitivity(new Vector2(sensitivityVertical, sensitivityHorizontal));
             return default;
         }
     }

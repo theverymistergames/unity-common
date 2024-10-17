@@ -28,7 +28,7 @@ namespace MisterGames.Character.Steps {
         private Rigidbody _rigidbody;
         private CameraContainer _cameraContainer;
         private CharacterStepsPipeline _steps;
-        private ITransformAdapter _head;
+        private CharacterViewPipeline _view;
         private int _cameraStateId;
 
         private Vector3 _targetPositionOffset;
@@ -46,7 +46,7 @@ namespace MisterGames.Character.Steps {
 
         public void OnAwake(IActor actor) {
             _rigidbody = actor.GetComponent<Rigidbody>();
-            _head = actor.GetComponent<CharacterHeadAdapter>();
+            _view = actor.GetComponent<CharacterViewPipeline>();
             _cameraContainer = actor.GetComponent<CameraContainer>();
             _steps = actor.GetComponent<CharacterStepsPipeline>();
         }
@@ -87,7 +87,7 @@ namespace MisterGames.Character.Steps {
         }
 
         void IUpdate.OnUpdate(float dt) {
-            var plainVelocity = Vector3.ProjectOnPlane(_rigidbody.velocity, _head.Rotation * Vector3.up);
+            var plainVelocity = Vector3.ProjectOnPlane(_rigidbody.velocity, _view.Rotation * Vector3.up);
             float sqrSpeed = plainVelocity.sqrMagnitude;
             float targetSmooth;
 

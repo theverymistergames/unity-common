@@ -47,12 +47,12 @@ namespace MisterGames.ActionLib.Character {
         
         public async UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
             var body = context.GetComponent<CharacterBodyAdapter>();
-            var head = context.GetComponent<CharacterHeadAdapter>();
+            var view = context.GetComponent<CharacterViewPipeline>();
             var collisions = context.GetComponent<CharacterCollisionPipeline>();
 
             var rot = targetType switch {
                 TargetType.Transform => target.rotation,
-                TargetType.Head => head.Rotation,
+                TargetType.Head => view.Rotation,
                 _ => Quaternion.identity,
             };
             
@@ -62,7 +62,7 @@ namespace MisterGames.ActionLib.Character {
             
             var targetPoint = targetType switch {
                 TargetType.Transform => target.position + targetRotation * offset,
-                TargetType.Head => head.Position + targetRotation * offset,
+                TargetType.Head => view.Position + targetRotation * offset,
                 _ => body.Position,
             };
 
@@ -106,13 +106,13 @@ namespace MisterGames.ActionLib.Character {
                     progressCurve.Evaluate(t)
                 );
 
-                var headPosition = head.Position;
+                var headPosition = view.Position;
                 
                 body.Position = smoothing > 0f 
                     ? Vector3.Lerp(body.Position, position, smoothing * dt)
                     : position;
 
-                if (saveHeadPosition) head.Position = headPosition;
+                if (saveHeadPosition) view.Position = headPosition;
                 
                 float r = Mathf.Max(pointRadius, Mathf.Epsilon);
                 if ((targetPoint - body.Position).sqrMagnitude <= r * r && t >= 1f) break;

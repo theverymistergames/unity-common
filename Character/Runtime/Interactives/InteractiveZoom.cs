@@ -150,7 +150,7 @@ namespace MisterGames.Character.Interactives {
             _playerAttachDistance = Mathf.Lerp(_playerAttachDistance, attachDistance, dt * _playerAttachSmoothing);
             
             _cameraContainer.SetFovOffset(_cameraStateId, 1f, _playerFovOffset);
-            _viewPipeline.AttachDistance = _playerAttachDistance;
+            _viewPipeline.ApplyAttachDistance(_playerAttachDistance);
         }
     }
     

@@ -57,7 +57,7 @@ namespace MisterGames.Character.Motion {
 
         private Transform _transform;
         private Rigidbody _rigidbody;
-        private CharacterHeadAdapter _head;
+        private CharacterViewPipeline _view;
         private CharacterInputPipeline _input;
         private CharacterGroundDetector _groundDetector;
         private CapsuleCollider _collider;
@@ -70,7 +70,7 @@ namespace MisterGames.Character.Motion {
             _collider = actor.GetComponent<CapsuleCollider>();
             _input = actor.GetComponent<CharacterInputPipeline>();
             _rigidbody = actor.GetComponent<Rigidbody>();
-            _head = actor.GetComponent<CharacterHeadAdapter>();
+            _view = actor.GetComponent<CharacterViewPipeline>();
             _groundDetector = actor.GetComponent<CharacterGroundDetector>();
             
             if (_collider.material == null) _collider.material = new PhysicMaterial();
@@ -98,7 +98,11 @@ namespace MisterGames.Character.Motion {
 
         void IUpdate.OnUpdate(float dt) {
             var up = _transform.up;
-            var orient = _rigidbody.useGravity ? _rigidbody.rotation : _head.Rotation;
+            var orient = _view.Rotation;
+
+            if (_rigidbody.useGravity) {
+                orient = Quaternion.LookRotation(Vector3.ProjectOnPlane(orient * Vector3.forward, up), up);
+            }
             
             _smoothedInput = Vector2.Lerp(_smoothedInput, Input, dt * _inputSmoothing);
             InputDirWorld = Input.IsNearlyZero() ? Vector3.zero : orient * InputToLocal(Input).normalized;
