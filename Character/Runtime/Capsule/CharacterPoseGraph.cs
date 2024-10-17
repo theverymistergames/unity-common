@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace MisterGames.Character.Capsule {
 
@@ -7,13 +6,13 @@ namespace MisterGames.Character.Capsule {
     public sealed class CharacterPoseGraph : ScriptableObject {
 
         [Header("Poses")]
-        [SerializeField] private CharacterPose _initialPose;
-
+        public CharacterPose initialPose;
+        public CharacterPose crouchPose;
+        public CharacterPose standPose;
+        
         [Header("Transitions")]
-        [SerializeField] private CharacterPoseTransition[] _transitions;
-
-        public CharacterPose InitialPose => _initialPose;
-        public IReadOnlyList<CharacterPoseTransition> Transitions => _transitions;
+        public float retryDelay = 0.1f;
+        public CharacterPoseTransition[] transitions;
     }
 
 }

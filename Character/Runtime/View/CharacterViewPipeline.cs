@@ -262,10 +262,9 @@ namespace MisterGames.Character.View {
                 float t = _freeHeadRotationDistance > 0f ? distance / _freeHeadRotationDistance : 1f;
                 float smooth = Mathf.Lerp(_returnFreeHeadRotationSmoothingMax, _returnFreeHeadRotationSmoothing, t);
                 
-                //_body.Rotation = Quaternion.Slerp(_body.Rotation, Quaternion.Euler(0f, eulerAngles.y, 0f), dt * smooth);
+                _body.Rotation = Quaternion.Slerp(_body.Rotation, Quaternion.Euler(0f, eulerAngles.y, 0f), dt * smooth);
             }
 
-            _body.Rotation = Quaternion.Euler(0f, eulerAngles.y, 0f);
             _head.Rotation = _rotation;
         }
     }

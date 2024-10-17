@@ -1,4 +1,5 @@
-﻿using System.Threading;
+﻿using System;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Character.Input;
@@ -13,14 +14,12 @@ namespace MisterGames.Character.Capsule {
         [EmbeddedInspector]
         [SerializeField] private CharacterPoseGraph _poseGraph;
 
-        [SerializeField] private CharacterPose _crouchPose;
-        [SerializeField] private CharacterPose _standPose;
-
         private IActor _actor;
         private CharacterPosePipeline _pose;
         private CharacterInputPipeline _input;
         private CancellationTokenSource _enableCts;
         private CancellationTokenSource _poseChangeCts;
+        private byte _poseChangeId;
 
         public void OnAwake(IActor actor) {
             _actor = actor;
@@ -29,8 +28,8 @@ namespace MisterGames.Character.Capsule {
         }
 
         private void Start() {
-            _pose.CurrentCapsuleSize = _poseGraph.InitialPose.CapsuleSize;
-            _pose.CurrentPose = _poseGraph.InitialPose;
+            _pose.CurrentCapsuleSize = _poseGraph.initialPose.CapsuleSize;
+            _pose.CurrentPose = _poseGraph.initialPose;
         }
 
         private void OnEnable() {
@@ -61,21 +60,21 @@ namespace MisterGames.Character.Capsule {
         private void OnCrouchPressed() {
             if (!enabled) return;
 
-            ChangePose(_crouchPose, _enableCts.Token).Forget();
+            ChangePose(_poseGraph.crouchPose, _enableCts.Token).Forget();
         }
 
         private void OnCrouchReleased() {
             if (!enabled) return;
 
-            ChangePose(_standPose, _enableCts.Token).Forget();
+            ChangePose(_poseGraph.standPose, _enableCts.Token).Forget();
         }
 
         private void OnCrouchToggled() {
             if (!enabled) return;
 
-            var nextPose = _pose.TargetPose == _crouchPose
-                ? _standPose
-                : _crouchPose;
+            var nextPose = _pose.TargetPose == _poseGraph.crouchPose
+                ? _poseGraph.standPose
+                : _poseGraph.crouchPose;
 
             ChangePose(nextPose, _enableCts.Token).Forget();
         }
@@ -83,6 +82,7 @@ namespace MisterGames.Character.Capsule {
         private async UniTask ChangePose(CharacterPose targetPose, CancellationToken cancellationToken = default) {
             if (!enabled) return;
 
+            byte id = ++_poseChangeId;
             var sourcePose = _pose.CurrentPose;
 
             // Try to use transition for last target pose instead of current pose:
@@ -90,9 +90,16 @@ namespace MisterGames.Character.Capsule {
             if (sourcePose == targetPose) sourcePose = _pose.TargetPose;
 
             if (!TryGetTransition(sourcePose, targetPose, out var transition)) {
-                return;
+                while (!cancellationToken.IsCancellationRequested && id == _poseChangeId && 
+                       !TryGetTransition(sourcePose, targetPose, out transition)
+                ) {
+                    await UniTask.Delay(TimeSpan.FromSeconds(_poseGraph.retryDelay), cancellationToken: cancellationToken)
+                        .SuppressCancellationThrow();
+                }    
             }
-
+            
+            if (cancellationToken.IsCancellationRequested || id != _poseChangeId || transition == null) return;
+            
             var targetCapsuleSize = targetPose.CapsuleSize;
 
             float sourceHeight = sourcePose.CapsuleSize.height;
@@ -103,14 +110,9 @@ namespace MisterGames.Character.Capsule {
             float duration = GetTransitionDurationLeft(transition.Duration, progress);
             float setPoseAt = GetTransitionPoseSetMark(transition.SetPoseAt, progress);
 
-            _poseChangeCts?.Cancel();
-            _poseChangeCts?.Dispose();
-            _poseChangeCts = new CancellationTokenSource();
-            var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _poseChangeCts.Token);
-
             transition.Action?.Apply(_actor, cancellationToken).Forget();
 
-            await _pose.ChangePose(targetPose, targetCapsuleSize, duration, setPoseAt, linkedCts.Token);
+            await _pose.ChangePose(targetPose, targetCapsuleSize, duration, setPoseAt, cancellationToken);
         }
 
         private bool TryGetTransition(
@@ -118,9 +120,9 @@ namespace MisterGames.Character.Capsule {
             CharacterPose targetPose,
             out CharacterPoseTransition transition
         ) {
-            var transitions = _poseGraph.Transitions;
+            var transitions = _poseGraph.transitions;
 
-            for (int i = 0; i < transitions.Count; i++) {
+            for (int i = 0; i < transitions.Length; i++) {
                 var t = transitions[i];
 
                 if (t.SourcePose == sourcePose &&

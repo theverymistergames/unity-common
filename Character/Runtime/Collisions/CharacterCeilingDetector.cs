@@ -2,15 +2,12 @@
 using MisterGames.Collisions.Core;
 using MisterGames.Collisions.Utils;
 using MisterGames.Common;
-using MisterGames.Common.Maths;
 using MisterGames.Tick.Core;
 using UnityEngine;
 
 namespace MisterGames.Character.Collisions {
 
     public sealed class CharacterCeilingDetector : CollisionDetectorBase, IRadiusCollisionDetector, IUpdate {
-
-        [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
         
         [Header("Sphere cast settings")]
         [SerializeField] [Min(1)] private int _maxHits = 2;
@@ -18,7 +15,7 @@ namespace MisterGames.Character.Collisions {
         [SerializeField] private float _distance = 0.55f;
         [SerializeField] private float _distanceAddition = 0.15f;
         [SerializeField] private float _radius = 0.3f;
-
+        [SerializeField] private Vector3 _originOffset;
         [SerializeField] private LayerMask _layerMask;
         [SerializeField] private QueryTriggerInteraction _triggerInteraction = QueryTriggerInteraction.Ignore;
 
@@ -54,8 +51,6 @@ namespace MisterGames.Character.Collisions {
         private CollisionInfo[] _hits;
 
         private int _hitCount;
-
-        private Vector3 _originOffset;
         private int _lastUpdateFrame;
         private bool _invalidateFlag;
 
@@ -70,11 +65,11 @@ namespace MisterGames.Character.Collisions {
         }
 
         private void OnEnable() {
-            _timeSourceStage.Subscribe(this);
+            PlayerLoopStage.Update.Subscribe(this);
         }
 
         private void OnDisable() {
-            _timeSourceStage.Unsubscribe(this);
+            PlayerLoopStage.Update.Unsubscribe(this);
         }
 
         void IUpdate.OnUpdate(float dt) {
@@ -107,7 +102,7 @@ namespace MisterGames.Character.Collisions {
             int frame = Time.frameCount;
             if (frame == _lastUpdateFrame && !_invalidateFlag) return;
 
-            var origin = _originOffset + _transform.position;
+            var origin = _transform.TransformPoint(_originOffset);
             float distance = _distance + _distanceAddition;
 
             _hitCount = PerformSphereCast(origin, _radius, distance, _raycastHits);
@@ -174,9 +169,9 @@ namespace MisterGames.Character.Collisions {
             }
             
             if (_debugDrawCast) {
-                var start = transform.position;
-                var end = start + up * _distance;
-                DebugExt.DrawCapsule(start, end, _radius, Color.cyan, gizmo: true);
+                var start = transform.TransformPoint(_originOffset);
+                var end = start + up * (_distance + _distanceAddition);
+                DebugExt.DrawSphereCast(start, end, _radius, Color.cyan, gizmo: true);
             }
             
             if (_debugDrawHasCeilingText) {

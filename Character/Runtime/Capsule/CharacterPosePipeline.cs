@@ -8,8 +8,6 @@ namespace MisterGames.Character.Capsule {
 
     public sealed class CharacterPosePipeline : MonoBehaviour, IActorComponent {
 
-        [SerializeField] private PlayerLoopStage _playerLoopStage = PlayerLoopStage.Update;
-
         public event PoseChanged OnPoseChanged = delegate {  };
 
         public CharacterPose CurrentPose { get => _currentPose; set => SetPose(value); }
@@ -25,9 +23,9 @@ namespace MisterGames.Character.Capsule {
 
         private CharacterPose _currentPose;
         private byte _lastPoseChangeId;
-        
-        public void OnAwake(IActor actor) {
-            _timeSource = TimeSources.Get(_playerLoopStage);
+
+        void IActorComponent.OnAwake(IActor actor) {
+            _timeSource = PlayerLoopStage.Update.Get();
             _capsule = actor.GetComponent<CharacterCapsulePipeline>();
         }
 
