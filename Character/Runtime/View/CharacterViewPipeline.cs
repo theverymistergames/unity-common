@@ -78,7 +78,7 @@ namespace MisterGames.Character.View {
         private void OnEnable() {
             CanvasRegistry.Instance.SetCanvasEventCamera(_cameraContainer.Camera);
             _inputPipeline.OnViewVectorChanged += HandleViewVectorChanged;
-            PlayerLoopStage.LateUpdate.Subscribe(this);
+            PlayerLoopStage.UnscaledUpdate.Subscribe(this);
             
             _rotation = _head.Rotation;
         }
@@ -86,7 +86,7 @@ namespace MisterGames.Character.View {
         private void OnDisable() {
             CanvasRegistry.Instance.SetCanvasEventCamera(null);
             _inputPipeline.OnViewVectorChanged -= HandleViewVectorChanged;
-            PlayerLoopStage.LateUpdate.Unsubscribe(this);
+            PlayerLoopStage.UnscaledUpdate.Unsubscribe(this);
         }
 
         private void OnDestroy() {

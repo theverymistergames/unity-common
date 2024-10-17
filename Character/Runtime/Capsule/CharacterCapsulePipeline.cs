@@ -74,21 +74,13 @@ namespace MisterGames.Character.Capsule {
             var center = (height - _initialHeight) * Vector3.up;
             var halfCenter = 0.5f * center;
 
-            float detectorDistance = height * 0.5f - _capsuleCollider.radius;
-            float previousHeight = _capsuleCollider.height;
-
             _headRoot.localPosition = center + _headRootInitialPosition;
-
+            
             _capsuleCollider.height = height;
             _capsuleCollider.center = halfCenter;
 
             _groundDetector.OriginOffset = halfCenter;
-            _groundDetector.Distance = detectorDistance;
-            _groundDetector.FetchResults();
-
-            if (!_groundDetector.CollisionInfo.hasContact) {
-                _bodyAdapter.Move(Vector3.up * (previousHeight - height));
-            }
+            _groundDetector.Distance = height * 0.5f - _capsuleCollider.radius;
         }
 
         private void ApplyRadius(float radius) {
