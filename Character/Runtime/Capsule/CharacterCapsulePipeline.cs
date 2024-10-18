@@ -23,7 +23,8 @@ namespace MisterGames.Character.Capsule {
         public Vector3 ColliderBottom => GetColliderBottomPoint();
 
         public delegate void HeightChangeCallback(float newHeight, float oldHeight);
-        
+
+        private Transform _transform;
         private CapsuleCollider _capsuleCollider;
         private ITransformAdapter _bodyAdapter;
         private IRadiusCollisionDetector _groundDetector;
@@ -33,6 +34,8 @@ namespace MisterGames.Character.Capsule {
         private float _initialHeight;
 
         public void OnAwake(IActor actor) {
+            _transform = actor.Transform;
+                
             _bodyAdapter = actor.GetComponent<CharacterBodyAdapter>();
             _capsuleCollider = actor.GetComponent<CapsuleCollider>();
             
@@ -71,16 +74,24 @@ namespace MisterGames.Character.Capsule {
         }
 
         private void ApplyHeight(float height) {
-            var center = (height - _initialHeight) * Vector3.up;
+            var up = _transform.up;
+            var center = (height - _initialHeight) * up;
             var halfCenter = 0.5f * center;
-
+            
             _headRoot.localPosition = center + _headRootInitialPosition;
             
+            float prevHeight = _capsuleCollider.height;
             _capsuleCollider.height = height;
             _capsuleCollider.center = halfCenter;
 
             _groundDetector.OriginOffset = halfCenter;
             _groundDetector.Distance = height * 0.5f - _capsuleCollider.radius;
+            
+            _groundDetector.FetchResults();
+            
+            if (!_groundDetector.HasContact) {
+                _bodyAdapter.Position += (prevHeight - height) * up;
+            }
         }
 
         private void ApplyRadius(float radius) {

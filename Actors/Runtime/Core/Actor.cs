@@ -327,8 +327,8 @@ namespace MisterGames.Actors
         
         private void NotifySetData(object excludedObject = null)
         {
-            for (int i = 0, count = _actorComponents.Count; i < count && _isAwake; i++) {
-                if (_actorComponents[i] is {} c && c != excludedObject) NotifySetDataFor(c);
+            for (int i = 0, count = _actorComponents?.Count ?? 0; i < count && _isAwake; i++) {
+                if (_actorComponents![i] is {} c && c != excludedObject) NotifySetDataFor(c);
             }
         }
         
