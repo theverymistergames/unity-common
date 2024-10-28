@@ -45,7 +45,7 @@ namespace MisterGames.Character.Motion {
             
             if (!_rigidbody.useGravity || _groundDetector.CollisionInfo.hasContact) return;
             
-            var velocity = _rigidbody.velocity;
+            var velocity = _rigidbody.linearVelocity;
             float fallDir = Mathf.Sign(Vector3.Dot(-GravityDir, velocity));
             
             if (IsFallForceAllowed || 

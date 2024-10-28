@@ -74,7 +74,7 @@ namespace MisterGames.Character.Steps {
             _foot = foot;
             _invertedSqrDistance = distance > 0f ? 1f / (distance * distance) : 0f;
 
-            float speedRatio = _maxSpeed > 0f ? _rigidbody.velocity.magnitude / _maxSpeed : 0f;
+            float speedRatio = _maxSpeed > 0f ? _rigidbody.linearVelocity.magnitude / _maxSpeed : 0f;
             float baseAmplitude = _baseAmplitude + Random.Range(-_baseAmplitudeRandom, _baseAmplitudeRandom);
             baseAmplitude *= _baseAmplitudeBySpeed.Evaluate(speedRatio);
             
@@ -87,7 +87,7 @@ namespace MisterGames.Character.Steps {
         }
 
         void IUpdate.OnUpdate(float dt) {
-            var plainVelocity = Vector3.ProjectOnPlane(_rigidbody.velocity, _view.Rotation * Vector3.up);
+            var plainVelocity = Vector3.ProjectOnPlane(_rigidbody.linearVelocity, _view.Rotation * Vector3.up);
             float sqrSpeed = plainVelocity.sqrMagnitude;
             float targetSmooth;
 

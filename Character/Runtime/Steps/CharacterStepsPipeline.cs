@@ -58,7 +58,7 @@ namespace MisterGames.Character.Steps {
                 return;
             }
 
-            var velocity = _rigidbody.velocity;
+            var velocity = _rigidbody.linearVelocity;
             float sqrSpeed = velocity.sqrMagnitude;
             float stepLength = _stepLengthMin +
                                _stepLengthMultiplier *

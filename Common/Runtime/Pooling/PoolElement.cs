@@ -216,7 +216,7 @@ namespace MisterGames.Common.Pooling {
                 rb.interpolation = data.interpolation;
                 rb.constraints = data.constraints;
                 
-                if (!rb.isKinematic) rb.velocity = Vector3.zero;
+                if (!rb.isKinematic) rb.linearVelocity = Vector3.zero;
             }
         }
 

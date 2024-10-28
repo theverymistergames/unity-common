@@ -24,7 +24,7 @@ namespace MisterGames.Splines.Tools {
         
         [Tooltip("Physic material to apply on the bent mesh.")]
         [SerializeField]
-        private PhysicMaterial _physicMaterial;
+        private PhysicsMaterial _physicMaterial;
         
         [Tooltip("Translation to apply on the mesh before bending it.")]
         [SerializeField]

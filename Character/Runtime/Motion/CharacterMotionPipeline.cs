@@ -28,10 +28,10 @@ namespace MisterGames.Character.Motion {
         [SerializeField] [Min(0f)] private float _frictionAir;
         [SerializeField] [Min(0f)] private float _frictionSlope = 1f;
         [SerializeField] [Min(0f)] private float _frictionSlopeOverMaxAngle = 0.6f;
-        [SerializeField] private PhysicMaterialCombine _frictionCombineGrounded = PhysicMaterialCombine.Average;
-        [SerializeField] private PhysicMaterialCombine _frictionCombineAir = PhysicMaterialCombine.Multiply;
-        [SerializeField] private PhysicMaterialCombine _frictionCombineSlope = PhysicMaterialCombine.Maximum;
-        [SerializeField] private PhysicMaterialCombine _frictionCombineSlopeOverMaxAngle = PhysicMaterialCombine.Average;
+        [SerializeField] private PhysicsMaterialCombine _frictionCombineGrounded = PhysicsMaterialCombine.Average;
+        [SerializeField] private PhysicsMaterialCombine _frictionCombineAir = PhysicsMaterialCombine.Multiply;
+        [SerializeField] private PhysicsMaterialCombine _frictionCombineSlope = PhysicsMaterialCombine.Maximum;
+        [SerializeField] private PhysicsMaterialCombine _frictionCombineSlopeOverMaxAngle = PhysicsMaterialCombine.Average;
 
         [Header("Detection")]
         [SerializeField] [Min(0f)] private float _capsuleCastDistance = 0.1f;
@@ -46,7 +46,7 @@ namespace MisterGames.Character.Motion {
         public Vector3 MotionDirWorld { get; private set; }
         public Vector3 InputDirWorld { get; private set; }
         public Vector2 Input { get; private set; }
-        public Vector3 Velocity { get => _rigidbody.velocity; set => _rigidbody.velocity = value; }
+        public Vector3 Velocity { get => _rigidbody.linearVelocity; set => _rigidbody.linearVelocity = value; }
         public Vector3 PreviousVelocity { get; private set; }
         public float MoveForce { get => _moveForce; set => _moveForce = value; }
         public float Speed { get; set; }
@@ -73,7 +73,7 @@ namespace MisterGames.Character.Motion {
             _view = actor.GetComponent<CharacterViewPipeline>();
             _groundDetector = actor.GetComponent<CharacterGroundDetector>();
             
-            if (_collider.material == null) _collider.material = new PhysicMaterial();
+            if (_collider.material == null) _collider.material = new PhysicsMaterial();
 
             _hits = new RaycastHit[_maxHits];
         }
@@ -116,7 +116,7 @@ namespace MisterGames.Character.Motion {
             if (_rigidbody.isKinematic) return;
             
             float maxSpeed = CalculateSpeedCorrection(Input) * Speed;
-            var velocity = _rigidbody.velocity;
+            var velocity = _rigidbody.linearVelocity;
             PreviousVelocity = velocity;
 
             var inputDirNormalized = orient * (_smoothedInput.IsNearlyZero() ? Vector3.forward : InputToLocal(_smoothedInput).normalized);
@@ -139,7 +139,7 @@ namespace MisterGames.Character.Motion {
 #endif
             
             if (!_rigidbody.useGravity) {
-                _rigidbody.velocity = Vector3.Lerp(_rigidbody.velocity, Vector3.zero, dt * _noGravityVelocityDamping);
+                _rigidbody.linearVelocity = Vector3.Lerp(_rigidbody.linearVelocity, Vector3.zero, dt * _noGravityVelocityDamping);
             }
             
             UpdateFriction(SlopeAngle);
@@ -271,7 +271,7 @@ namespace MisterGames.Character.Motion {
             if (Application.isPlaying) {
                 UnityEditor.Handles.Label(
                     transform.TransformPoint(Vector3.up),
-                    $"Speed {_rigidbody.velocity.magnitude:0.00} / {CalculateSpeedCorrection(_smoothedInput) * Speed:0.00}\n" +
+                    $"Speed {_rigidbody.linearVelocity.magnitude:0.00} / {CalculateSpeedCorrection(_smoothedInput) * Speed:0.00}\n" +
                     $"Move force {_moveForce:0.00}"
                 );
             }

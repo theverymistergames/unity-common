@@ -27,7 +27,7 @@ namespace MisterGames.ActionLib.Character {
             
             collisionPipeline.enabled = false;
 
-            var velocity = rb.velocity;
+            var velocity = rb.linearVelocity;
             
             rb.isKinematic = true;
             var interpolation = rb.interpolation;
@@ -48,7 +48,7 @@ namespace MisterGames.ActionLib.Character {
             collisionPipeline.enabled = true;
             rb.isKinematic = false;
             rb.interpolation = interpolation;
-            rb.velocity = rotOffset * velocity;
+            rb.linearVelocity = rotOffset * velocity;
             
             return default;
         }

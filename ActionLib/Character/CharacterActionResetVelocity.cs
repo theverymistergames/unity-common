@@ -11,7 +11,7 @@ namespace MisterGames.ActionLib.Character {
     public sealed class CharacterActionResetVelocity : IActorAction {
 
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            context.GetComponent<Rigidbody>().velocity = Vector3.zero;
+            context.GetComponent<Rigidbody>().linearVelocity = Vector3.zero;
             return default;
         }
     }

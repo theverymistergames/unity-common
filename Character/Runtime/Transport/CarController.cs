@@ -246,7 +246,7 @@ namespace MisterGames.Character.Transport {
             AreBrakeWheelsGrounded = atLeastOneBrakeWheelGrounded;
             AreDriveWheelsGrounded = atLeastOneDriveWheelGrounded;
             
-            Speed = _rigidbody.velocity.magnitude;
+            Speed = _rigidbody.linearVelocity.magnitude;
             BrakeForce = _wheels.Length > 0 ? brakeForce / _wheels.Length : 0f;
             
             ApplyAntiOverturn(_input.x);
@@ -258,7 +258,7 @@ namespace MisterGames.Character.Transport {
             
             float targetRpm = accelerationPressed
                 ? AreDriveWheelsGrounded 
-                    ? Mathf.Clamp(_rpmMin + _rigidbody.velocity.magnitude * _speedToRpm, 0f, _rpmMax) 
+                    ? Mathf.Clamp(_rpmMin + _rigidbody.linearVelocity.magnitude * _speedToRpm, 0f, _rpmMax) 
                     : _rpmMax
                 : _rpmMin;
 
@@ -406,7 +406,7 @@ namespace MisterGames.Character.Transport {
             if (!Application.isPlaying) return;
             
             UnityEditor.Handles.Label(_rigidbody.position + Vector3.up, $"Ignition {(IsIgnitionOn ? "ON" : "OFF")}\n" +
-                                                                        $"Speed {_rigidbody.velocity.magnitude:0.00}\n" +
+                                                                        $"Speed {_rigidbody.linearVelocity.magnitude:0.00}\n" +
                                                                         $"RPM {Rpm:0.000}\n" +
                                                                         $"Brakes {(IsBrakeOn ? "ON" : "OFF")}, force {BrakeForce:0.00}");
         }
