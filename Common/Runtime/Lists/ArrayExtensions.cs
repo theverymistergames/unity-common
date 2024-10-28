@@ -1,11 +1,29 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace MisterGames.Common.Lists {
 
     public static class ArrayExtensions {
+        
+        public static void Shuffle<T> (this T[] array) {
+            int n = array.Length;
+            while (n > 1) 
+            {
+                int k = Random.Range(0, n--);
+                (array[n], array[k]) = (array[k], array[n]);
+            }
+        }
+        
+        public static void Shuffle<T> (this IList<T> array) {
+            int n = array.Count;
+            while (n > 1) 
+            {
+                int k = Random.Range(0, n--);
+                (array[n], array[k]) = (array[k], array[n]);
+            }
+        }
         
         public static float WriteToCircularBufferAndGetAverage(this float[] buffer, float value, ref int pointer) {
             buffer[pointer++ % buffer.Length] = value;
@@ -93,7 +111,7 @@ namespace MisterGames.Common.Lists {
         }
 
         public static T GetRandom<T>(this IReadOnlyList<T> list) {
-            return list.Count == 0 ? default : list[UnityEngine.Random.Range(0, list.Count)];
+            return list.Count == 0 ? default : list[Random.Range(0, list.Count)];
         }
         
         public static void EnsureCapacity<T>(ref T[] array, int min, int max = -1) {
