@@ -183,6 +183,10 @@ namespace MisterGames.Character.Transport {
 
                 wheel.collider.mass = _wheelMass;
                 
+                // Workaround for Unity 6 wheels bug
+                wheel.collider.enabled = false;
+                wheel.collider.enabled = true;
+                
                 _wheelIndexMap[wheel.collider] = i;
             }
         }
