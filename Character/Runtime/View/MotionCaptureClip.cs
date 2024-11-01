@@ -80,7 +80,8 @@ namespace MisterGames.Character.View {
                 ? Quaternion.Slerp(_keyFrames[i].rotation, _keyFrames[i + 1].rotation, (t - (float) i / count) * count)
                 : _keyFrames[i].rotation) * _offset.rotation;
         }
-
+        
+#if UNITY_EDITOR
         private void OnValidate() {
             _keyFrames.Clear();
 
@@ -246,6 +247,7 @@ namespace MisterGames.Character.View {
                     throw new ArgumentOutOfRangeException();
             }
         }
+#endif
     }
     
 }
