@@ -68,7 +68,6 @@ namespace MisterGames.Character.Interactives {
         private void OnStartInteract(IInteractiveUser user) {
             _playerFovOffset = 0f;
             _playerAttachDistance = _playerAttachDistanceStart;
-            
             ActualizeSubscriptions();
         }
 
@@ -115,8 +114,8 @@ namespace MisterGames.Character.Interactives {
             _inputAccum += new Vector2(delta.x, delta.y) * _sensitivity;
         }
 
-        public void OnUpdate(float dt) {
-            _targetFov = Mathf.Clamp( _targetFov + _inputAccum.y, _fovRange.x, _fovRange.y);
+        void IUpdate.OnUpdate(float dt) {
+            _targetFov = Mathf.Clamp(_targetFov + _inputAccum.y, _fovRange.x, _fovRange.y);
             _inputAccum = Vector2.zero;
             
             float currentFov = Mathf.Lerp(_camera.fieldOfView, _targetFov, dt * _fovSmoothing);
@@ -148,7 +147,7 @@ namespace MisterGames.Character.Interactives {
 
             _playerFovOffset = Mathf.Lerp(_playerFovOffset, fovOffset, dt * _playerFovSmoothing);
             _playerAttachDistance = Mathf.Lerp(_playerAttachDistance, attachDistance, dt * _playerAttachSmoothing);
-            
+
             _cameraContainer.SetFovOffset(_cameraStateId, 1f, _playerFovOffset);
             _viewPipeline.ApplyAttachDistance(_playerAttachDistance);
         }

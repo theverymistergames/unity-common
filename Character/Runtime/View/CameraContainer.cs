@@ -6,14 +6,16 @@ using UnityEngine;
 
 namespace MisterGames.Character.View {
 
-    public sealed class CameraContainer : MonoBehaviour, IActorComponent {
+    public sealed class CameraContainer : MonoBehaviour, IActorComponent, IUpdate {
         
         [SerializeField] private Transform _translationRoot;
         [SerializeField] private Transform _rotationRoot;
+        [SerializeField] [Min(0f)] private float _cameraSmoothing = 30f;
 
         public Camera Camera { get; private set; }
         public Transform CameraTransform { get; private set; }
-
+        public bool EnableSmoothing { get; set; } = true;
+        
         private readonly Dictionary<int, WeightedValue<Vector3>> _positionStates = new();
         private readonly Dictionary<int, WeightedValue<Quaternion>> _rotationStates = new();
         private readonly Dictionary<int, WeightedValue<float>> _fovStates = new();
@@ -25,6 +27,12 @@ namespace MisterGames.Character.View {
         private CameraState _persistentState;
         private CameraState _persistentStateBuffer;
 
+        private Transform _cameraParent;
+        private Vector3 _cameraOffset;
+        private Quaternion _cameraRotationOffset;
+        private Vector3 _cameraPosition;
+        private Quaternion _cameraRotation;
+        
         private bool _isInitialized;
         private int _lastStateId;
         private byte _clearPersistentStateOperationId;
@@ -33,6 +41,10 @@ namespace MisterGames.Character.View {
         void IActorComponent.OnAwake(IActor actor) {
             Camera = actor.GetComponent<Camera>();
             CameraTransform = Camera.transform;
+            
+            CameraTransform.GetLocalPositionAndRotation(out _cameraOffset, out _cameraRotationOffset);
+            CameraTransform.GetPositionAndRotation(out _cameraPosition, out _cameraRotation);
+            _cameraParent = CameraTransform.parent;
             
             _timeSource = PlayerLoopStage.Update.Get();
             
@@ -46,10 +58,29 @@ namespace MisterGames.Character.View {
             ApplyResultState();
         }
 
+        private void OnEnable() {
+            PlayerLoopStage.UnscaledUpdate.Subscribe(this);
+        }
+
+        private void OnDisable() {
+            PlayerLoopStage.UnscaledUpdate.Unsubscribe(this);
+        }
+
         private void OnDestroy() {
             _positionStates.Clear();
             _rotationStates.Clear();
             _fovStates.Clear();
+        }
+
+        void IUpdate.OnUpdate(float dt) {
+            _cameraParent.GetPositionAndRotation(out var parentPos, out var parentRot);
+
+            float t = EnableSmoothing ? dt * _cameraSmoothing : 1f;
+            
+            _cameraPosition = Vector3.Lerp(_cameraPosition, parentPos + parentRot * _cameraOffset, t);
+            _cameraRotation = Quaternion.Slerp(_cameraRotation, parentRot * _cameraRotationOffset, t);
+            
+            CameraTransform.SetPositionAndRotation(_cameraPosition, _cameraRotation);
         }
 
         public int CreateState() {
@@ -80,7 +111,8 @@ namespace MisterGames.Character.View {
 
         public async UniTask ClearPersistentStates(float duration = 0f) {
             byte id = ++_clearPersistentStateOperationId;
-
+            var cancellationToken = destroyCancellationToken;
+            
             var startState = _persistentState;
             _persistentState = CameraState.Empty;
             _persistentStateBuffer = startState;
@@ -89,7 +121,7 @@ namespace MisterGames.Character.View {
             float t = 0f;
             _isClearingPersistentStates = true;
             
-            while (id == _clearPersistentStateOperationId && !destroyCancellationToken.IsCancellationRequested) {
+            while (id == _clearPersistentStateOperationId && !cancellationToken.IsCancellationRequested) {
                 t = Mathf.Clamp01(t + speed * _timeSource.DeltaTime);
 
                 _persistentStateBuffer = new CameraState(
@@ -103,6 +135,8 @@ namespace MisterGames.Character.View {
                 if (t >= 1f) break;
             }
 
+            if (id != _clearPersistentStateOperationId || cancellationToken.IsCancellationRequested) return;
+            
             _isClearingPersistentStates = false;
         }
 

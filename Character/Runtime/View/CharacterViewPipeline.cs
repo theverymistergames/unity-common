@@ -64,6 +64,12 @@ namespace MisterGames.Character.View {
         private bool _isVerticalClampOverriden;
         private bool _isSmoothingOverriden;
         private bool _isSensitivityOverriden;
+        
+        private Transform _cameraParent;
+        private Vector3 _cameraOffset;
+        private Quaternion _cameraRotationOffset;
+        private Vector3 _cameraPosition;
+        private Quaternion _cameraRotation;
 
         void IActorComponent.OnAwake(IActor actor) {
             _cameraContainer = actor.GetComponent<CameraContainer>();
@@ -81,6 +87,7 @@ namespace MisterGames.Character.View {
             PlayerLoopStage.UnscaledUpdate.Subscribe(this);
             
             _rotation = _head.Rotation;
+            _cameraContainer.EnableSmoothing = !_headJoint.IsAttached;
         }
 
         private void OnDisable() {
@@ -112,14 +119,17 @@ namespace MisterGames.Character.View {
         
         public void AttachTo(Transform target, Vector3 point, AttachMode mode = AttachMode.OffsetOnly, float smoothing = 0f) {
             _headJoint.AttachTo(target, point, mode, smoothing);
+            _cameraContainer.EnableSmoothing = false;
         }
         
         public void AttachTo(Vector3 point, float smoothing = 0f) {
             _headJoint.AttachTo(point, smoothing);
+            _cameraContainer.EnableSmoothing = false;
         }
 
         public void Detach() {
             _headJoint.Detach();
+            _cameraContainer.EnableSmoothing = true;
         }
         
         public void LookAt(Transform target, LookAtMode mode = LookAtMode.Free, Vector3 orientation = default, float smoothing = 0f) {
@@ -166,11 +176,13 @@ namespace MisterGames.Character.View {
         public void ApplySmoothing(float smoothing) {
             _isSmoothingOverriden = true;
             _smoothing = smoothing;
+            _cameraContainer.EnableSmoothing = smoothing > 0f;
         }
         
         public void ResetSmoothing() {
             _isSmoothingOverriden = false;
             _smoothing = _viewData?.viewSmoothing ?? default;
+            _cameraContainer.EnableSmoothing = !_headJoint.IsAttached;
         }
 
         public void ApplySensitivity(Vector2 sensitivity) {

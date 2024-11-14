@@ -17,8 +17,7 @@ namespace MisterGames.ActionLib.Character {
         public Transform target;
         public LookAtMode mode;
         [VisibleIf(nameof(mode), 1)] public Vector3 orientation;
-        [Min(0f)] public float smoothing;
-        [Min(0f)] public float maxAngle;
+        [Min(0f)] public float duration = 0.5f;
         public bool keepLookingAtAfterFinish;
         [Min(0f)] public float attachSmoothing;
         
@@ -27,6 +26,8 @@ namespace MisterGames.ActionLib.Character {
 
             var timeSource = PlayerLoopStage.Update.Get();
             var rotation = view.Rotation;
+            float t = 0f;
+            float speed = duration > 0f ? 1f / duration : float.MaxValue;
             
             while (!cancellationToken.IsCancellationRequested) {
                 var targetRotation = mode switch {
@@ -35,10 +36,10 @@ namespace MisterGames.ActionLib.Character {
                     _ => throw new ArgumentOutOfRangeException()
                 };
 
-                rotation = Quaternion.Slerp(rotation, targetRotation, timeSource.DeltaTime * smoothing);
+                t += timeSource.DeltaTime * speed;
+                rotation = Quaternion.Slerp(rotation, targetRotation, t);
                 
-                float angle = Quaternion.Angle(targetRotation, rotation);
-                if (angle <= maxAngle) break;
+                if (t >= 1f) break;
                 
                 view.LookAt(view.Position + rotation * Vector3.forward);
                 
