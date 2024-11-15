@@ -83,6 +83,15 @@ namespace MisterGames.Character.View {
             CameraTransform.SetPositionAndRotation(_cameraPosition, _cameraRotation);
         }
 
+        public void PublishCameraPosition() {
+            _cameraParent.GetPositionAndRotation(out var parentPos, out var parentRot);
+
+            _cameraPosition = parentPos;
+            _cameraRotation = parentRot;
+            
+            CameraTransform.SetPositionAndRotation(_cameraPosition, _cameraRotation);
+        }
+
         public int CreateState() {
             return _lastStateId++;
         }

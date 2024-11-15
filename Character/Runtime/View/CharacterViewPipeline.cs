@@ -100,6 +100,10 @@ namespace MisterGames.Character.View {
             Detach();
             StopLookAt();
         }
+
+        public void PublishCameraPosition() {
+            _cameraContainer.PublishCameraPosition();
+        }
         
         public void AttachObject(Transform obj, Vector3 point, float smoothing = 0f) {
             _headJoint.AttachObject(obj, point, _head.Position, EulerAngles, smoothing);

@@ -17,38 +17,13 @@ namespace MisterGames.ActionLib.Character {
         public Transform targetCenter;
 
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            var collisionPipeline = context.GetComponent<CharacterCollisionPipeline>();
-            var rb = context.GetComponent<Rigidbody>();
-            var view = context.GetComponent<CharacterViewPipeline>();
-            
-            var t = rb.transform;
-            
-            t.GetPositionAndRotation(out var pos, out var rot);
-            
-            collisionPipeline.enabled = false;
+            var motion = context.GetComponent<CharacterMotionPipeline>();
+            context.Transform.GetPositionAndRotation(out var pos, out var rot);
 
-            var velocity = rb.linearVelocity;
-            
-            rb.isKinematic = true;
-            var interpolation = rb.interpolation;
-            rb.interpolation = RigidbodyInterpolation.None;
-            
-            var localForward = localCenter.forward;
-            var targetForward = targetCenter.forward;
             var positionOffset = pos - localCenter.position;
+            var rotOffset = Quaternion.FromToRotation(localCenter.forward, targetCenter.forward);
             
-            float angle = Vector3.SignedAngle(localForward, targetForward, rot * Vector3.up);
-            var rotOffset = Quaternion.FromToRotation(localForward, targetForward);
-            var rotDelta = Quaternion.Euler(0f, angle, 0f);
-            
-            t.position = targetCenter.position + rotOffset * positionOffset;
-            t.rotation *= rotDelta;
-            view.Rotation *= rotDelta;
-            
-            collisionPipeline.enabled = true;
-            rb.isKinematic = false;
-            rb.interpolation = interpolation;
-            rb.linearVelocity = rotOffset * velocity;
+            motion.Teleport(targetCenter.position + rotOffset * positionOffset, rot * rotOffset);
             
             return default;
         }

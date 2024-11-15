@@ -30,7 +30,7 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
             
             string spawnPointName = SPAWN_POINT_ZERO_NAME;
             var spawnPosition = Vector3.zero;
-
+            
             int spawnPointIndex = index - 1;
             if (index < 0 || spawnPointIndex >= spawnPoints.Length) {
                 ConsoleRunner.AppendLine($"Spawn point with index {index} not found. See hero/spawns");
@@ -81,7 +81,7 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
             ConsoleRunner.AppendLine("Spawn points:");
             ConsoleRunner.AppendLine($"[0] {SPAWN_POINT_ZERO_NAME}");
 
-            var spawnPoints = Object.FindObjectsOfType<CharacterSpawnPoint>(includeInactive: false);
+            var spawnPoints = GetSpawnPoints();
             for (int i = 0; i < spawnPoints.Length; i++) {
                 var spawn = spawnPoints[i];
                 ConsoleRunner.AppendLine($"[{i + 1}] {spawn.gameObject.name} : {spawn.transform.position}");
@@ -91,7 +91,7 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
         [ConsoleCommand("hero/select")]
         [ConsoleCommandHelp("select hero gameobject in current scene")]
         public void SelectHero() {
-            var character = Object.FindObjectOfType<MainCharacter>();
+            var character = Object.FindFirstObjectByType<MainCharacter>();
             
             if (character == null) {
                 ConsoleRunner.AppendLine($"No prefab with {nameof(MainCharacter)} component attached found on scene.");
@@ -151,13 +151,13 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
         public void SpawnAtPointByIndex9() { }
 
         private CharacterSpawnPoint[] GetSpawnPoints() {
-            var spawnPoints = Object.FindObjectsOfType<CharacterSpawnPoint>();
+            var spawnPoints = Object.FindObjectsByType<CharacterSpawnPoint>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
             Array.Sort(spawnPoints, (p0, p1) => string.Compare(p0.name, p1.name, StringComparison.InvariantCultureIgnoreCase));
             return spawnPoints;
         }
         
         private void SpawnHero(Vector3 position, string spawnPointName) {
-            var access = Object.FindObjectOfType<MainCharacter>();
+            var access = Object.FindFirstObjectByType<MainCharacter>();
             if (access == null) {
                 var newHeroInstance = PrefabPool.Main.Get(_heroPrefab);
                 access = newHeroInstance.GetComponent<MainCharacter>();
@@ -169,11 +169,7 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
             }
 
             var actor = access.GetComponent<IActor>();
-            var collisionPipeline = actor.GetComponent<CharacterCollisionPipeline>();
-
-            collisionPipeline.enabled = false;
-            actor.GetComponent<CharacterBodyAdapter>().Position = position;
-            collisionPipeline.enabled = true;
+            actor.GetComponent<CharacterMotionPipeline>().Teleport(position, actor.Transform.rotation);
 
             ConsoleRunner.AppendLine($"Character {access.name} was respawned at point [{spawnPointName} :: {position}]");
         }

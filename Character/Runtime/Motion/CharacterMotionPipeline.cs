@@ -60,6 +60,7 @@ namespace MisterGames.Character.Motion {
         private CharacterViewPipeline _view;
         private CharacterInputPipeline _input;
         private CharacterGroundDetector _groundDetector;
+        private CharacterCollisionPipeline _collisionPipeline;
         private CapsuleCollider _collider;
         private RaycastHit[] _hits;
         private Vector2 _smoothedInput;
@@ -72,6 +73,7 @@ namespace MisterGames.Character.Motion {
             _rigidbody = actor.GetComponent<Rigidbody>();
             _view = actor.GetComponent<CharacterViewPipeline>();
             _groundDetector = actor.GetComponent<CharacterGroundDetector>();
+            _collisionPipeline = actor.GetComponent<CharacterCollisionPipeline>();
             
             if (_collider.material == null) _collider.material = new PhysicsMaterial();
 
@@ -90,6 +92,31 @@ namespace MisterGames.Character.Motion {
 
         public void AddForce(Vector3 force, ForceMode mode = ForceMode.Force) {
             _rigidbody.AddForce(force, mode);
+        }
+
+        public void Teleport(Vector3 position, Quaternion rotation) {
+            _collisionPipeline.enabled = false;
+            
+            var velocity = _rigidbody.linearVelocity;
+            
+            _rigidbody.isKinematic = true;
+            var interpolation = _rigidbody.interpolation;
+            _rigidbody.interpolation = RigidbodyInterpolation.None;
+
+            var t = _rigidbody.transform;
+            var rot = t.rotation;
+            var rotDelta = rotation * Quaternion.Inverse(rot);
+            var viewDelta = Quaternion.Euler(0f, rotDelta.eulerAngles.y, 0f);
+            
+            t.SetPositionAndRotation(position, rotation);
+            _view.Rotation *= viewDelta;
+            
+            _collisionPipeline.enabled = true;
+            _rigidbody.isKinematic = false;
+            _rigidbody.interpolation = interpolation;
+            _rigidbody.linearVelocity = rotDelta * velocity;
+            
+            _view.PublishCameraPosition();
         }
         
         private void HandleMotionInput(Vector2 input) {

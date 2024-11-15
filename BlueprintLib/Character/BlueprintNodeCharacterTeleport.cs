@@ -1,4 +1,5 @@
 ﻿using System;
+using MisterGames.Actors;
 using MisterGames.Blueprints;
 using MisterGames.Character.Collisions;
 using MisterGames.Character.Core;
@@ -19,21 +20,15 @@ namespace MisterGames.BlueprintLib {
 
         public void OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
             if (port != 0) return;
+
+            var motion = CharacterSystem.Instance
+                .GetCharacter(spawnIfNotRegistered: true)
+                .GetComponent<CharacterMotionPipeline>();
             
-            var characterAccess = CharacterSystem.Instance.GetCharacter(spawnIfNotRegistered: true);
-            var collisions = characterAccess.GetComponent<CharacterCollisionPipeline>();
-            
-            collisions.enabled = false;
-            
-            var body = characterAccess.GetComponent<CharacterBodyAdapter>();
-            var head = characterAccess.GetComponent<CharacterBodyAdapter>();
-            
-            body.Position = blueprint.Read<Vector3>(token, 1);
-            body.Rotation = Quaternion.Euler(blueprint.Read<Vector3>(token, 2));
-            
-            head.LocalRotation = Quaternion.identity;
-            
-            collisions.enabled = true;
+            motion.Teleport(
+                blueprint.Read<Vector3>(token, 1), 
+                Quaternion.Euler(blueprint.Read<Vector3>(token, 2))
+            );
         }
     }
 
