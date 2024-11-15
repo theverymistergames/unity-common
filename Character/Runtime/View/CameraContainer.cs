@@ -10,7 +10,8 @@ namespace MisterGames.Character.View {
         
         [SerializeField] private Transform _translationRoot;
         [SerializeField] private Transform _rotationRoot;
-        [SerializeField] [Min(0f)] private float _cameraSmoothing = 30f;
+        [SerializeField] [Min(0f)] private float _positionSmoothing = 20f;
+        [SerializeField] [Min(0f)] private float _rotationSmoothing = 30f;
 
         public Camera Camera { get; private set; }
         public Transform CameraTransform { get; private set; }
@@ -75,10 +76,8 @@ namespace MisterGames.Character.View {
         void IUpdate.OnUpdate(float dt) {
             _cameraParent.GetPositionAndRotation(out var parentPos, out var parentRot);
 
-            float t = EnableSmoothing ? dt * _cameraSmoothing : 1f;
-            
-            _cameraPosition = Vector3.Lerp(_cameraPosition, parentPos + parentRot * _cameraOffset, t);
-            _cameraRotation = Quaternion.Slerp(_cameraRotation, parentRot * _cameraRotationOffset, t);
+            _cameraPosition = Vector3.Lerp(_cameraPosition, parentPos + parentRot * _cameraOffset, EnableSmoothing ? dt * _positionSmoothing : 1f);
+            _cameraRotation = Quaternion.Slerp(_cameraRotation, parentRot * _cameraRotationOffset, EnableSmoothing ? dt * _rotationSmoothing : 1f);
             
             CameraTransform.SetPositionAndRotation(_cameraPosition, _cameraRotation);
         }
@@ -86,8 +85,8 @@ namespace MisterGames.Character.View {
         public void PublishCameraPosition() {
             _cameraParent.GetPositionAndRotation(out var parentPos, out var parentRot);
 
-            _cameraPosition = parentPos;
-            _cameraRotation = parentRot;
+            _cameraPosition = parentPos + parentRot * _cameraOffset;
+            _cameraRotation = parentRot * _cameraRotationOffset;
             
             CameraTransform.SetPositionAndRotation(_cameraPosition, _cameraRotation);
         }

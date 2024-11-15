@@ -123,7 +123,7 @@ namespace MisterGames.Common.Lists {
             }
 
             int current = array.Length;
-            if (current >= min && current <= max) return;
+            if (current >= min && (max < 0 || current <= max)) return;
 
             int newCapacity = current * 2;
             if (newCapacity < min) newCapacity = min;

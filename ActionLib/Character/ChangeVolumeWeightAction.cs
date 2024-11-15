@@ -6,32 +6,30 @@ using MisterGames.Actors.Actions;
 using MisterGames.Tick.Core;
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.Rendering.HighDefinition;
 
 namespace MisterGames.ActionLib.Character {
-    /*
+    
     [Serializable]
-    public sealed class DepthOfFieldWeightAction : IActorAction {
+    public sealed class ChangeVolumeWeightAction : IActorAction {
         
-        public VolumeProfile volumeProfile;
+        public Volume volume;
         [Range(0f, 1f)] public float weight;
         [Min(0f)] public float duration;
         
         public async UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            if (!volumeProfile.TryGet(out DepthOfField depthOfField)) return;
-            
-            float t = 0f;
-            float speed = duration > 0f ? 1f : float.MaxValue;
             var ts = PlayerLoopStage.Update.Get();
-            
+            float start = volume.weight;
+            float dur = duration * Mathf.Abs(start - weight);
+            float speed = dur > 0f ? 1f / dur : float.MaxValue;
+            float t = 0f;
+
             while (!cancellationToken.IsCancellationRequested) {
                 t = Mathf.Clamp01(t + speed * ts.DeltaTime);
-
-                depthOfField.farFocusStart.min = 0f;
+                volume.weight = Mathf.Lerp(start, weight, t);
                 
                 await UniTask.Yield();
             }
         }
     }
-    */
+    
 }
