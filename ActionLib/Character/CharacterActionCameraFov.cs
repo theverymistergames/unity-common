@@ -44,8 +44,6 @@ namespace MisterGames.ActionLib.Character {
                 await UniTask.Yield();
             }
 
-            if (cancellationToken.IsCancellationRequested) return;
-            
             cameraContainer.RemoveState(id, keepChanges);
         }
     }

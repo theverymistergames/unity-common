@@ -59,18 +59,20 @@ namespace MisterGames.Character.View {
             ApplyResultState();
         }
 
+        private void OnDestroy() {
+            _isInitialized = false;
+            
+            _positionStates.Clear();
+            _rotationStates.Clear();
+            _fovStates.Clear();
+        }
+
         private void OnEnable() {
             PlayerLoopStage.UnscaledUpdate.Subscribe(this);
         }
 
         private void OnDisable() {
             PlayerLoopStage.UnscaledUpdate.Unsubscribe(this);
-        }
-
-        private void OnDestroy() {
-            _positionStates.Clear();
-            _rotationStates.Clear();
-            _fovStates.Clear();
         }
 
         void IUpdate.OnUpdate(float dt) {
@@ -109,7 +111,7 @@ namespace MisterGames.Character.View {
         }
 
         private void SavePersistentState(CameraState state) {
-            ref var dest = ref _isClearingPersistentStates ? ref _persistentStateBuffer : ref _persistentState; 
+            ref var dest = ref _isClearingPersistentStates ? ref _persistentStateBuffer : ref _persistentState;
             dest = new CameraState(
                 dest.position + state.position - _resultState.position,
                 dest.rotation * state.rotation * Quaternion.Inverse(_resultState.rotation),

@@ -29,10 +29,10 @@ namespace MisterGames.ActionLib.Sounds {
             float resultPitch = pitch + Random.Range(-pitchRandomAdd, pitchRandomAdd);
             
             if (attach) {
-                AudioPool.Main.Play(clip, context.Transform, localPosition: default, volume, resultPitch, spatialBlend, loop);    
+                AudioPool.Main.Play(clip, context.Transform, localPosition: default, volume, resultPitch, spatialBlend, loop, cancellationToken);    
             }
             else {
-                AudioPool.Main.Play(clip, context.Transform.position, volume, resultPitch, spatialBlend, loop);
+                AudioPool.Main.Play(clip, context.Transform.position, volume, resultPitch, spatialBlend, loop, cancellationToken);
             }
             
             return default;

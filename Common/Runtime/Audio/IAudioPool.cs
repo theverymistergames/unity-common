@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Threading;
+using UnityEngine;
 
 namespace MisterGames.Common.Audio {
     
@@ -10,7 +11,8 @@ namespace MisterGames.Common.Audio {
             float volume = 1f,
             float pitch = 1f,
             float spatialBlend = 1f,
-            bool loop = false
+            bool loop = false,
+            CancellationToken cancellationToken = default
         );
         
         public void Play(
@@ -20,7 +22,8 @@ namespace MisterGames.Common.Audio {
             float volume = 1f,
             float pitch = 1f,
             float spatialBlend = 1f,
-            bool loop = false
+            bool loop = false,
+            CancellationToken cancellationToken = default
         );
     }
     
