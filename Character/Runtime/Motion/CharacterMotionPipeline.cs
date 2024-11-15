@@ -94,10 +94,11 @@ namespace MisterGames.Character.Motion {
             _rigidbody.AddForce(force, mode);
         }
 
-        public void Teleport(Vector3 position, Quaternion rotation) {
+        public void Teleport(Vector3 position, Quaternion rotation, bool preserveVelocity = true) {
             _collisionPipeline.enabled = false;
             
             var velocity = _rigidbody.linearVelocity;
+            var angularVelocity = _rigidbody.angularVelocity;
             
             _rigidbody.isKinematic = true;
             var interpolation = _rigidbody.interpolation;
@@ -114,7 +115,9 @@ namespace MisterGames.Character.Motion {
             _collisionPipeline.enabled = true;
             _rigidbody.isKinematic = false;
             _rigidbody.interpolation = interpolation;
-            _rigidbody.linearVelocity = rotDelta * velocity;
+            
+            _rigidbody.linearVelocity = preserveVelocity ? rotDelta * velocity : Vector3.zero;
+            _rigidbody.angularVelocity = preserveVelocity ? angularVelocity : Vector3.zero;
             
             _view.PublishCameraPosition();
         }
