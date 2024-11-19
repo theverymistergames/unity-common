@@ -7,7 +7,7 @@ namespace MisterGames.Common.Lists {
 
     public static class ArrayExtensions {
         
-        public static void Shuffle<T> (this T[] array) {
+        public static void Shuffle<T>(this T[] array) {
             int n = array.Length;
             while (n > 1) 
             {
@@ -16,7 +16,7 @@ namespace MisterGames.Common.Lists {
             }
         }
         
-        public static void Shuffle<T> (this IList<T> array) {
+        public static void Shuffle<T>(this IList<T> array) {
             int n = array.Count;
             while (n > 1) 
             {

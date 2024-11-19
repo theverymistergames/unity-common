@@ -1,0 +1,33 @@
+{
+    "name": "MisterGames.Logic",
+    "rootNamespace": "MisterGames.Logic",
+    "references": [
+        "GUID:0175294ec022c624cbe537915e3c9e71",
+        "GUID:3b570a5146f9d4f0fa107ed4559471a3",
+        "GUID:9389483754b96b24488bc84bc80f8ac0",
+        "GUID:32c4950bf8b33bd4fa90d0e72d80cc0c",
+        "GUID:1775731419c69f94aa092d9b558c90f4",
+        "GUID:27b41c8f92a5419d8b9fce851e1339f8",
+        "GUID:0be29683dbd94234881d7802a3660630",
+        "GUID:30f50d247fb9adf46b9165dfc62f4527",
+        "GUID:9263d626fa3143948a41b819e0c5288e",
+        "GUID:b887f5744765cba4b9c25a5554ce71b3",
+        "GUID:567f537c4baeee944b9857671ea49405",
+        "GUID:f51ebe6a0ceec4240a699833d6309b23",
+        "GUID:3d6f9ec8b442ef04b866c9a2d92fad40",
+        "GUID:63005e8f2dd59ce45b4c7ab35005896f",
+        "GUID:2912c28a747838d47bc00f648f33424d",
+        "GUID:21d1eb854b91ade49bc69a263d12bee2",
+        "GUID:457756d89b35d2941b3e7b37b4ece6f1",
+        "GUID:df380645f10b7bc4b97d4f5eb6303d95"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
