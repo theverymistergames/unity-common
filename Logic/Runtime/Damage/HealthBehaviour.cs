@@ -1,5 +1,4 @@
-﻿using System;
-using MisterGames.Actors;
+﻿using MisterGames.Actors;
 using MisterGames.Common.Attributes;
 using UnityEngine;
 
@@ -7,9 +6,14 @@ namespace MisterGames.Logic.Damage {
     
     public sealed class HealthBehaviour : MonoBehaviour, IActorComponent {
 
-        public event Action<HealthBehaviour, DamageInfo> OnDamage = delegate { };
-        public event Action<HealthBehaviour> OnDeath = delegate { };
-        public event Action<HealthBehaviour> OnRestoreHealth = delegate { };
+        [SerializeField] private bool _restoreFullHealthOnAwake;
+
+        public delegate void DamageCallback(HealthBehaviour health, DamageInfo info);
+        public delegate void HealthCallback(HealthBehaviour health);
+        
+        public event DamageCallback OnDamage = delegate { };
+        public event HealthCallback OnDeath = delegate { };
+        public event HealthCallback OnRestoreHealth = delegate { };
         
         public float Health { get; private set; }
         public bool IsAlive => Health > 0f;
@@ -17,13 +21,20 @@ namespace MisterGames.Logic.Damage {
         
         private HealthData _healthData;
 
+        void IActorComponent.OnAwake(IActor actor) {
+            if (_restoreFullHealthOnAwake) RestoreFullHealth(); 
+        }
+
         void IActorComponent.OnSetData(IActor actor) {
             _healthData = actor.GetData<HealthData>();
-            RestoreFullHealth();
         }
 
         public void RestoreFullHealth() {
+            float oldHealth = Health;
             Health = _healthData.health;
+            
+            if (Health <= oldHealth) return;
+            
             OnRestoreHealth.Invoke(this);
         }
 
@@ -33,10 +44,11 @@ namespace MisterGames.Logic.Damage {
             
             float damageTotal = oldHealth - Health;  
             var info = new DamageInfo(damageTotal, mortal: true);
-            
-            if (notifyDamage) OnDamage.Invoke(this, info);
-            
-            OnDeath.Invoke(this);
+
+            if (oldHealth > 0f) {
+                if (notifyDamage) OnDamage.Invoke(this, info);
+                OnDeath.Invoke(this);   
+            }
             
             return info;
         }
@@ -49,9 +61,11 @@ namespace MisterGames.Logic.Damage {
             bool mortal = Health <= 0;
             
             var info = new DamageInfo(damageTotal, mortal);
-            OnDamage.Invoke(this, info);
-            
-            if (mortal) OnDeath.Invoke(this);
+
+            if (oldHealth > 0f) {
+                OnDamage.Invoke(this, info);
+                if (mortal) OnDeath.Invoke(this);   
+            }
             
             return info;
         }

@@ -281,6 +281,16 @@ namespace MisterGames.Common.Maths {
         public static Vector3 SmoothExp(this Vector3 value, Vector3 target, float factor) {
             return value + (target - value) * (1f - Mathf.Exp(-factor));
         }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float GetRandomInRange(this Vector2 value) {
+            return Random.Range(value.x, value.y);
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int GetRandomInRange(this Vector2Int value) {
+            return Random.Range(value.x, value.y);
+        }
     }
 
 }
