@@ -1,5 +1,6 @@
 ﻿using MisterGames.Actors;
 using MisterGames.Character.Collisions;
+using MisterGames.Collisions.Core;
 using MisterGames.Collisions.Utils;
 using MisterGames.Common;
 using MisterGames.Common.Maths;
@@ -26,6 +27,8 @@ namespace MisterGames.Character.Motion {
         [SerializeField] private Vector3 _climbSpeedMax;
         [SerializeField] private float _speedMultiplierGround = 1f;
         [SerializeField] private float _speedMultiplierAir = 1f;
+        [SerializeField] private float _forceMultiplierGround = 1f;
+        [SerializeField] private float _forceMultiplierAir = 1f;
         [SerializeField] [Min(0f)] private float _speedSmoothing;
         
         [Header("Debug")]
@@ -62,8 +65,7 @@ namespace MisterGames.Character.Motion {
             }
 
             _groundDetector.FetchResults();
-            var collisionInfo = _groundDetector.CollisionInfo;
-            bool isGrounded = collisionInfo.hasContact;
+            bool isGrounded = _groundDetector.HasContact;
             
             var up = _transform.up;
             float stepHeight = isGrounded ? _maxStepHeight : _maxStepHeightAir;
@@ -104,15 +106,17 @@ namespace MisterGames.Character.Motion {
             _climbSpeed = _speedSmoothing > 0f 
                 ? Vector3.Lerp(_climbSpeed, _climbSpeedMax, dt * _speedSmoothing)
                 : _climbSpeedMax;
-            
+
+            var vector = _climbSpeed.x * inputDir + _climbSpeed.y * up + _climbSpeed.z * -lowerHit.normal;// * Vector3.Project(_climbSpeed.x * inputDir, lowerHit.normal);
             float speedMul = isGrounded ? _speedMultiplierGround : _speedMultiplierAir;
-            var delta = (_climbSpeed.x * inputDir + _climbSpeed.y * up + _climbSpeed.z * -lowerHit.normal) * (speedMul * dt);
+            float forceMul = isGrounded ? _forceMultiplierGround : _forceMultiplierAir;
             
-            _motion.Position += delta;
+            _motion.Position += vector * (speedMul * dt);
+            _motion.AddForce(vector * forceMul, ForceMode.Acceleration);
             
 #if UNITY_EDITOR
             if (_showDebugInfo) DebugExt.DrawSphere(lowerPoint, 0.01f, Color.green, duration: 5f);
-            if (_showDebugInfo) DebugExt.DrawRay(lowerPoint, delta, Color.green, duration: 5f);
+            if (_showDebugInfo) DebugExt.DrawRay(lowerPoint, vector * (speedMul * dt), Color.green, duration: 5f);
 #endif
         }
         

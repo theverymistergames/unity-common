@@ -9,10 +9,9 @@ namespace MisterGames.Character.Collisions {
 
     public class CharacterGroundDetector : CollisionDetectorBase, IRadiusCollisionDetector, IUpdate {
 
-        [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
-
         [Header("Spherecast")]
         [SerializeField] [Min(1)] private int _maxHits = 6;
+        [SerializeField] private float _maxValidDotProduct = -0.001f;
         [SerializeField] private float _distance = 0.55f;
         [SerializeField] private float _distanceAddition = 0.15f;
         [SerializeField] private float _radius = 0.3f;
@@ -20,7 +19,6 @@ namespace MisterGames.Character.Collisions {
 
         [Header("Debug")]
         [SerializeField] private bool _showDebugInfo;
-        [SerializeField] private float _bottomPoint;
         [SerializeField] [Min(0f)] private float _traceDuration = 3f;
         
         public override int Capacity => _maxHits;
@@ -48,14 +46,6 @@ namespace MisterGames.Character.Collisions {
                 _invalidateFlag = true;
             }
         }
-        
-        public Vector3 Forward {
-            get => _forward;
-            set {
-                _forward = value;
-                _invalidateFlag = true;
-            }
-        }
 
         private Transform _transform;
 
@@ -64,7 +54,6 @@ namespace MisterGames.Character.Collisions {
         private int _hitCount;
 
         private Vector3 _originOffset;
-        private Vector3 _forward;
         private int _lastUpdateFrame;
         private bool _invalidateFlag;
 
@@ -74,18 +63,18 @@ namespace MisterGames.Character.Collisions {
         }
 
         private void OnEnable() {
-            _timeSourceStage.Subscribe(this);
+            PlayerLoopStage.FixedUpdate.Subscribe(this);
         }
 
         private void OnDisable() {
-            _timeSourceStage.Unsubscribe(this);
+            PlayerLoopStage.FixedUpdate.Unsubscribe(this);
         }
 
         private void Start() {
             RequestGround(forceNotify: true);
         }
 
-        public void OnUpdate(float dt) {
+        void IUpdate.OnUpdate(float dt) {
             RequestGround();
         }
 
@@ -109,6 +98,36 @@ namespace MisterGames.Character.Collisions {
             return ((ReadOnlySpan<CollisionInfo>) _hitsMain)[..hitCount];
         }
 
+        public Vector3 GetMotionNormal(Vector3 desiredMotion) {
+            var up = _transform.up;
+            var origin = _transform.TransformPoint(_originOffset);
+            var lowerCenter = origin - up * _distance;
+
+#if UNITY_EDITOR
+            if (_showDebugInfo) DebugExt.DrawSphere(lowerCenter, 0.05f, Color.cyan);
+#endif
+            
+            float minSqrDistance = 0f;
+            int targetIndex = -1;
+            
+            // Trying to find contact point which is placed in front of current position
+            // and has the closest distance to the ground cast origin, and use its normal.
+            for (int i = 0; i < _hitCount; i++) {
+                var hit = _raycastHitsMain[i];
+                
+                // Filter out contacts behind current position.
+                if (Vector3.Dot(hit.point - lowerCenter, desiredMotion) < 0f) continue;
+                
+                float sqrDistance = Vector3.SqrMagnitude(origin - hit.point);
+                if (targetIndex >= 0 && sqrDistance > minSqrDistance) continue;
+                
+                minSqrDistance = sqrDistance; 
+                targetIndex = i;
+            }
+
+            return targetIndex < 0 ? up : _raycastHitsMain[targetIndex].normal;
+        }
+
         private void RequestGround(bool forceNotify = false) {
             int frame = Time.frameCount;
             if (!enabled || frame == _lastUpdateFrame && !_invalidateFlag) return;
@@ -116,8 +135,9 @@ namespace MisterGames.Character.Collisions {
             var up = _transform.up;
             var origin = _transform.TransformPoint(_originOffset);
             float distance = _distance + _distanceAddition;
+            var lowerCenter = origin - up * _distance;
             
-            _hitCount = DetectGround(origin, _radius, distance, _raycastHitsMain);
+            _hitCount = DetectGround(origin, lowerCenter, _radius, distance, _raycastHitsMain);
             
             var normal = Vector3.zero;
             var hitPoint = Vector3.zero;
@@ -142,12 +162,6 @@ namespace MisterGames.Character.Collisions {
 
                 normal = normal.normalized;
                 hitDistance = Vector3.Distance(origin, hitPoint);
-
-                if (_forward.sqrMagnitude > 0f && 
-                    TryDetectMotionNormal(origin, _forward, out var motionNormal)
-                ) {
-                    normal = motionNormal;
-                }
             }
             else {
                 normal = up;
@@ -159,7 +173,7 @@ namespace MisterGames.Character.Collisions {
             if (_showDebugInfo) DebugExt.DrawRay(hitPoint, normal, Color.blue);
             if (_showDebugInfo && _hitCount > 0) DebugExt.DrawPointer(hitPoint, Color.yellow, 0.3f);
             if (_traceDuration > 0f) {
-                var p = _transform.TransformPoint(Vector3.up * _bottomPoint);
+                var p = lowerCenter - up * _radius;
                 DebugExt.DrawSphere(p, 0.005f, Color.yellow, duration: _traceDuration);
                 DebugExt.DrawLine(_lastBottomPoint, p, Color.yellow, duration: _traceDuration);
                 DebugExt.DrawRay(p, normal * 0.03f, Color.cyan, duration: _traceDuration);
@@ -173,7 +187,7 @@ namespace MisterGames.Character.Collisions {
             _lastUpdateFrame = frame;
         }
 
-        private int DetectGround(Vector3 origin, float radius, float distance, RaycastHit[] hits) {
+        private int DetectGround(Vector3 origin, Vector3 lowerCenter, float radius, float distance, RaycastHit[] hits) {
             var up = _transform.up;
             int hitCount = Physics.SphereCastNonAlloc(
                 origin,
@@ -191,45 +205,17 @@ namespace MisterGames.Character.Collisions {
 
             hits.Filter(
                 ref hitCount, 
-                data: (self: this, origin, up), 
-                predicate: (data, hit) => data.self.IsValidGroundHit(hit, data.origin, data.up)
+                data: (self: this, lowerCenter, up), 
+                predicate: (data, hit) => data.self.IsValidGroundHit(hit, data.lowerCenter, data.up)
             );
 
             return hitCount;
         }
-        
-        private bool TryDetectMotionNormal(Vector3 origin, Vector3 desiredMotion, out Vector3 normal) {
-            var up = _transform.up;
-            normal = up;
-            var lowerCenter = origin + up * _distance;
 
-            float minSqrDistance = 0f;
-            int targetIndex = -1;
-            
-            // Trying to find contact point which is placed in front of current position
-            // and has the closest distance to the ground cast origin, and use its normal.
-            for (int i = 0; i < _hitCount; i++) {
-                var hit = _raycastHitsMain[i];
-                
-                // Filter out contacts behind current position.
-                if (Vector3.Dot(hit.point - lowerCenter, desiredMotion) < 0f) continue;
-                
-                float sqrDistance = Vector3.SqrMagnitude(origin - hit.point);
-                if (targetIndex >= 0 && sqrDistance > minSqrDistance) continue;
-                
-                minSqrDistance = sqrDistance; 
-                targetIndex = i;
-            }
-
-            if (targetIndex < 0) return false;
-            
-            normal = _raycastHitsMain[targetIndex].normal;
-            return true;
-        }
-        
-        private bool IsValidGroundHit(RaycastHit hit, Vector3 origin, Vector3 up) {
+        private bool IsValidGroundHit(RaycastHit hit, Vector3 lowerCenter, Vector3 up) {
             return hit.distance > 0f &&
-                   Vector3.ProjectOnPlane(hit.point - origin, up).sqrMagnitude < _radius * _radius;
+                   Vector3.Dot(hit.point - lowerCenter, up) < _maxValidDotProduct &&
+                   Vector3.ProjectOnPlane(hit.point - lowerCenter, up).sqrMagnitude < _radius * _radius;
         }
 
 #if UNITY_EDITOR
@@ -238,7 +224,7 @@ namespace MisterGames.Character.Collisions {
             if (!_showDebugInfo) return;
 
             var t = transform;
-            var p = t.TransformPoint(Vector3.up * _bottomPoint);
+            var p = t.TransformPoint(_originOffset - t.up * (_distance + _radius));
             var r = t.right;
             
             DebugExt.DrawSphere(p, 0.02f, Color.yellow, gizmo: true);
