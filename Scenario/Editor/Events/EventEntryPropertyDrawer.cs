@@ -1,5 +1,4 @@
-﻿using System.Text;
-using MisterGames.Scenario.Events;
+﻿using MisterGames.Scenario.Events;
 using UnityEditor;
 using UnityEngine;
 
