@@ -13,17 +13,6 @@ namespace MisterGames.Scenes.Transactions {
         [SerializeField] private SceneTransaction _forwardSceneTransaction;
         [SerializeField] private SceneTransaction _backwardSceneTransaction;
 
-        private CancellationTokenSource _destroyCts;
-
-        private void Awake() {
-            _destroyCts = new CancellationTokenSource();
-        }
-
-        private void OnDestroy() {
-            _destroyCts.Cancel();
-            _destroyCts.Dispose();
-        }
-
         private void OnEnable() {
             _directionalTrigger.OnTriggeredForward += OnTriggeredForward;
             _directionalTrigger.OnTriggeredBackward += OnTriggeredBackward;
@@ -35,19 +24,19 @@ namespace MisterGames.Scenes.Transactions {
         }
 
         private void OnTriggeredForward(GameObject go) {
-            Apply(_forwardSceneTransaction, _loadDelay, _destroyCts.Token).Forget();
+            Apply(_forwardSceneTransaction, _loadDelay, destroyCancellationToken).Forget();
         }
 
         private void OnTriggeredBackward(GameObject go) {
-            Apply(_backwardSceneTransaction, _loadDelay, _destroyCts.Token).Forget();
+            Apply(_backwardSceneTransaction, _loadDelay, destroyCancellationToken).Forget();
         }
 
         private static async UniTaskVoid Apply(SceneTransaction transaction, float delay, CancellationToken token) {
-            bool isCancelled = await UniTask
+            await UniTask
                 .Delay(TimeSpan.FromSeconds(delay), cancellationToken: token)
                 .SuppressCancellationThrow();
 
-            if (isCancelled) return;
+            if (token.IsCancellationRequested) return;
 
             await transaction.Apply(token);
         }

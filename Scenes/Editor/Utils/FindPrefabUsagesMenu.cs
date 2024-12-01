@@ -25,7 +25,7 @@ namespace MisterGames.Scenes.Editor.Utils {
             }
             
             string[] openedScenes = SceneUtils.GetOpenedScenes().Select(s => s.path).ToArray();
-            var sceneAssets = SceneStorage.Instance.GetAllSceneAssets().ToArray();
+            var sceneAssets = SceneLoaderSettings.GetAllSceneAssets().ToArray();
             int totalCount = 0;
             int containingScenesCount = 0;
             

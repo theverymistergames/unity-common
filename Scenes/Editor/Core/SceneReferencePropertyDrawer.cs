@@ -1,5 +1,6 @@
 ﻿using MisterGames.Common.Editor.Views;
 using MisterGames.Scenes.Core;
+using MisterGames.Scenes.Editor.Utils;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -7,7 +8,7 @@ using UnityEngine.SceneManagement;
 namespace MisterGames.Scenes.Editor.Core {
 
     [CustomPropertyDrawer(typeof(SceneReference))]
-    public class SceneReferencePropertyDrawer : PropertyDrawer {
+    public sealed class SceneReferencePropertyDrawer : PropertyDrawer {
 
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
             EditorGUI.BeginProperty(position, label, property);
@@ -38,8 +39,8 @@ namespace MisterGames.Scenes.Editor.Core {
             if (EditorGUI.DropdownButton(dropdownPosition, new GUIContent(sceneProperty.stringValue), FocusType.Keyboard)) {
                 var scenesDropdown = new AdvancedDropdown<SceneAsset>(
                     "Select scene",
-                    SceneStorage.Instance.GetAllSceneAssets(),
-                    sceneAsset => ScenesMenu.RemoveSceneAssetFileFormat(AssetDatabase.GetAssetPath(sceneAsset)),
+                    SceneLoaderSettings.GetAllSceneAssets(),
+                    sceneAsset => SceneUtils.RemoveSceneAssetFileFormat(AssetDatabase.GetAssetPath(sceneAsset)),
                     sceneAsset => {
                         sceneProperty.stringValue = sceneAsset.name;
 

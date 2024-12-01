@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace MisterGames.Scenes.Editor.Utils {
     
-    public static class SceneEditorUtils {
+    public static class SceneTools {
         
         private static TransformData _transformData;
         

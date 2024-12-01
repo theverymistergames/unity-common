@@ -6,29 +6,43 @@ namespace MisterGames.Scenes.Core {
     
     public sealed class SceneLoader : MonoBehaviour {
 
-        [SerializeField] private bool _useStartSceneFromSceneStorage = true;
         [SerializeField] private SceneReference _startScene;
-
+        [SerializeField] private SceneReference _gameplayScene;
+        [SerializeField] private bool _loadGameplayScene;
+        [SerializeField] private bool _forceLoadGameplaySceneInEditor;
+        
         private static string _rootScene;
         
         private void Awake() {
             _rootScene = SceneManager.GetActiveScene().name;
+            LoadStartScenes().Forget();
+        }
+
+        private async UniTask LoadStartScenes() {
+            string startScene = _startScene.scene;
+            bool needLoadGameplayScene = _loadGameplayScene;
             
 #if UNITY_EDITOR
-            string firstScene = SceneManager.GetActiveScene().name;
-            string rootScene = SceneStorage.Instance.RootScene;
-
-            if (firstScene != rootScene) {
-                Debug.LogWarning($"First loaded scene [{firstScene}] is not root scene [{rootScene}]. " +
-                                 $"Move {nameof(SceneLoader)} prefab to root scene.");
+            if (_rootScene != SceneLoaderSettings.Instance.rootScene.scene) {
+                Debug.LogWarning($"{nameof(SceneLoader)}: loaded not on the root scene {SceneLoaderSettings.Instance.rootScene.scene}, " +
+                                 $"make sure {nameof(SceneLoader)} is on the root scene that should be selected in {nameof(SceneLoaderSettings)} asset.");
             }
 
-            string startScene = _useStartSceneFromSceneStorage ? SceneStorage.Instance.EditorStartScene : _startScene.scene;
-#else
-            string startScene = _startScene.scene;
-#endif
+            string playModeStartScene = SceneLoaderSettings.GetPlaymodeStartScene();
+            if (!string.IsNullOrEmpty(playModeStartScene) && playModeStartScene != _rootScene) {
+                startScene = playModeStartScene;
+            }
 
-            LoadScene(startScene, true);
+            // Force load gameplay scene in Unity Editor's playmode,
+            // if playmode start scene is not selected start scene.
+            needLoadGameplayScene |= _forceLoadGameplaySceneInEditor && startScene != _startScene.scene;
+#endif
+            
+            if (needLoadGameplayScene) {
+                await LoadSceneAsync(_gameplayScene.scene, makeActive: false);
+            }
+            
+            await LoadSceneAsync(startScene, makeActive: true);
         }
 
         public static void LoadScene(string sceneName, bool makeActive = false) {

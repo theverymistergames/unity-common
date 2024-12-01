@@ -12,38 +12,36 @@ namespace MisterGames.Scenes.Editor.Core {
         static ScenesMenu() {
             EditorSceneManager.activeSceneChangedInEditMode -= OnActiveSceneChangedInEditMode;
             EditorSceneManager.activeSceneChangedInEditMode += OnActiveSceneChangedInEditMode;
-        }
-
-        private static void OnActiveSceneChangedInEditMode(Scene arg0, Scene arg1) {
-            SceneStorage.Instance.Validate();
-
+            
             EditorSceneManager.sceneOpened -= OnSceneOpened;
             EditorSceneManager.sceneOpened += OnSceneOpened;
-
-            EditorSceneManager.newSceneCreated -= OnNewSceneCreated;
-            EditorSceneManager.newSceneCreated += OnNewSceneCreated;
         }
-
-        [MenuItem("MisterGames/Tools/Include ScenesStorage scenes in build settings")]
-        internal static void IncludeAllScenesInBuildSettings() {
-            EditorBuildSettings.scenes = SceneStorage.Instance.GetAllSceneAssets()
-                .Select(sceneAsset => new EditorBuildSettingsScene(AssetDatabase.GetAssetPath(sceneAsset), true))
-                .ToArray();
-        }
-
-        /// <summary>
-        /// Removes .unity from SceneAsset file path.
-        /// </summary>
-        internal static string RemoveSceneAssetFileFormat(string sceneAssetPath) {
-            return sceneAssetPath[..^6];
+        
+        private static void OnActiveSceneChangedInEditMode(Scene arg0, Scene arg1) {
+            TrySetPlaymodeStartScene(SceneLoaderSettings.Instance.rootScene.scene);
+            SceneLoaderSettings.SavePlaymodeStartScene(arg1.name);
         }
 
         private static void OnSceneOpened(Scene scene, OpenSceneMode mode) {
-            SceneStorage.Instance.Validate();
+            TrySetPlaymodeStartScene(SceneLoaderSettings.Instance.rootScene.scene);
+            SceneLoaderSettings.SavePlaymodeStartScene(scene.name);
         }
+        
+        private static void TrySetPlaymodeStartScene(string sceneName) {
+            if (!SceneLoaderSettings.Instance.enablePlayModeStartSceneOverride) {
+                EditorSceneManager.playModeStartScene = null;
+                return;
+            }
 
-        private static void OnNewSceneCreated(Scene scene, NewSceneSetup setup, NewSceneMode mode) {
-            SceneStorage.Instance.Validate();
+            var currentPlaymodeStartScene = EditorSceneManager.playModeStartScene;
+            if (currentPlaymodeStartScene != null && currentPlaymodeStartScene.name == sceneName) {
+                return;
+            }
+            
+            var playModeStartScene = SceneLoaderSettings.GetAllSceneAssets().FirstOrDefault(asset => asset.name == sceneName);
+            if (playModeStartScene == null) return;
+
+            EditorSceneManager.playModeStartScene = playModeStartScene;
         }
     }
     

@@ -1,6 +1,7 @@
 ﻿using MisterGames.Common.Editor.Menu;
 using MisterGames.Common.Editor.Views;
 using MisterGames.Scenes.Core;
+using MisterGames.Scenes.Editor.Utils;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -23,8 +24,8 @@ namespace MisterGames.Scenes.Editor.Core {
 			if (EditorGUILayout.DropdownButton(new GUIContent(activeSceneName), FocusType.Keyboard, GUILayout.MinWidth(222))) {
 				var scenesDropdown = new AdvancedDropdown<SceneAsset>(
 					"Select scene",
-					SceneStorage.Instance.GetAllSceneAssets(),
-					sceneAsset => ScenesMenu.RemoveSceneAssetFileFormat(AssetDatabase.GetAssetPath(sceneAsset)),
+					SceneLoaderSettings.GetAllSceneAssets(),
+					sceneAsset => SceneUtils.RemoveSceneAssetFileFormat(AssetDatabase.GetAssetPath(sceneAsset)),
 					OnSceneSelected
 				);
 

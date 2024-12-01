@@ -12,17 +12,6 @@ namespace MisterGames.Scenes.Transactions {
         [SerializeField] [Min(0f)] private float _loadDelay;
         [SerializeField] private SceneTransaction _transaction;
 
-        private CancellationTokenSource _destroyCts;
-
-        private void Awake() {
-            _destroyCts = new CancellationTokenSource();
-        }
-
-        private void OnDestroy() {
-            _destroyCts.Cancel();
-            _destroyCts.Dispose();
-        }
-
         private void OnEnable() {
             _trigger.OnTriggered += OnTriggered;
         }
@@ -32,15 +21,15 @@ namespace MisterGames.Scenes.Transactions {
         }
 
         private void OnTriggered(Collider go) {
-            Apply(_transaction, _loadDelay, _destroyCts.Token).Forget();
+            Apply(_transaction, _loadDelay, destroyCancellationToken).Forget();
         }
 
         private static async UniTaskVoid Apply(SceneTransaction transaction, float delay, CancellationToken token) {
-            bool isCancelled = await UniTask
+            await UniTask
                 .Delay(TimeSpan.FromSeconds(delay), cancellationToken: token)
                 .SuppressCancellationThrow();
-
-            if (isCancelled) return;
+            
+            if (token.IsCancellationRequested) return;
 
             await transaction.Apply(token);
         }
