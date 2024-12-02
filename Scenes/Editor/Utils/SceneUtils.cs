@@ -24,18 +24,6 @@ namespace MisterGames.Scenes.Editor.Utils {
 
             return openedScenes;
         }
-
-        public static string GetGameObjectPathInScene(Transform transform) {
-            var sb = new StringBuilder(transform.name);
-
-            while (transform.parent != null) {
-                sb.Insert(0, '/');
-                sb.Insert(0, transform.parent.name);
-                transform = transform.parent;
-            }
-
-            return sb.ToString();
-        }
     }
     
 }

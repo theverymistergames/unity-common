@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 
 namespace MisterGames.Common.GameObjects {
@@ -35,6 +36,26 @@ namespace MisterGames.Common.GameObjects {
                     collider.enabled = enabled;
                     break;
             }
+        }
+
+        public static string GetPathInScene(Transform transform, bool includeSceneName = false) {
+            if (transform == null) return string.Empty;
+            
+            var sb = new StringBuilder(transform.name);
+            var original = transform;
+            
+            while (transform.parent != null) {
+                sb.Insert(0, '/');
+                sb.Insert(0, transform.parent.name);
+                transform = transform.parent;
+            }
+            
+            if (includeSceneName) {
+                sb.Insert(0, '/');
+                sb.Insert(0, original.gameObject.scene.name);
+            }
+
+            return sb.ToString();
         }
     }
     

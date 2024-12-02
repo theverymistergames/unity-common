@@ -21,9 +21,7 @@ namespace MisterGames.BlueprintLib {
         public void OnEnterPort(IBlueprint blueprint, NodeToken token, int port) {
             if (port != 0) return;
 
-            var motion = CharacterSystem.Instance
-                .GetCharacter(spawnIfNotRegistered: true)
-                .GetComponent<CharacterMotionPipeline>();
+            var motion = CharacterSystem.Instance.GetCharacter().GetComponent<CharacterMotionPipeline>();
             
             motion.Teleport(
                 blueprint.Read<Vector3>(token, 1), 

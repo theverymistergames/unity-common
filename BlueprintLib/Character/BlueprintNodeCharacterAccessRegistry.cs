@@ -14,8 +14,6 @@ namespace MisterGames.BlueprintLib {
         IBlueprintOutput<GameObject>, 
         IBlueprintOutput<Transform> 
     {
-        [SerializeField] private bool _spawnHeroIfNotSpawnedYet;
-        
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {
             meta.AddPort(id, Port.Output<IActor>());
             meta.AddPort(id, Port.Output<GameObject>());
@@ -23,15 +21,15 @@ namespace MisterGames.BlueprintLib {
         }
 
         IActor IBlueprintOutput<IActor>.GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
-            return port == 0 ? CharacterSystem.Instance.GetCharacter(_spawnHeroIfNotSpawnedYet) : default;
+            return port == 0 ? CharacterSystem.Instance.GetCharacter() : default;
         }
         
         GameObject IBlueprintOutput<GameObject>.GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
-            return port == 1 ? CharacterSystem.Instance.GetCharacter(_spawnHeroIfNotSpawnedYet)?.GameObject : default;
+            return port == 1 ? CharacterSystem.Instance.GetCharacter()?.GameObject : default;
         }
         
         Transform IBlueprintOutput<Transform>.GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
-            return port == 1 ? CharacterSystem.Instance.GetCharacter(_spawnHeroIfNotSpawnedYet)?.Transform : default;
+            return port == 1 ? CharacterSystem.Instance.GetCharacter()?.Transform : default;
         }
     }
 

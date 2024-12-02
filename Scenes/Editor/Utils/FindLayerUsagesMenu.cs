@@ -1,5 +1,6 @@
 ﻿using System.Linq;
 using System.Text;
+using MisterGames.Common.GameObjects;
 using MisterGames.Scenes.Core;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -112,7 +113,7 @@ namespace MisterGames.Scenes.Editor.Utils {
                     if (layer != t.gameObject.layer) continue;
 
                     sb ??= new StringBuilder();
-                    sb.AppendLine($" + {SceneUtils.GetGameObjectPathInScene(t)}");
+                    sb.AppendLine($" + {GameObjectExtensions.GetPathInScene(t)}");
                     
                     count++;
                 }
@@ -140,7 +141,7 @@ namespace MisterGames.Scenes.Editor.Utils {
                 if (layer != t.gameObject.layer) continue;
 
                 sb ??= new StringBuilder();
-                sb.AppendLine($" + {SceneUtils.GetGameObjectPathInScene(t)}");
+                sb.AppendLine($" + {GameObjectExtensions.GetPathInScene(t)}");
                     
                 count++;
             }

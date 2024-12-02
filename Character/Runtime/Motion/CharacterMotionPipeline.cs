@@ -46,7 +46,8 @@ namespace MisterGames.Character.Motion {
         public float SlopeAngle { get; private set; }
         public Vector2 SlopeAngleLimits => _slopeAngle;
         public Vector3 Position { get => _rigidbody.position; set => _rigidbody.position = value; }
-
+        public bool HasBeenTeleported { get; private set; }
+        
         private Transform _transform;
         private Rigidbody _rigidbody;
         private CharacterViewPipeline _view;
@@ -110,6 +111,8 @@ namespace MisterGames.Character.Motion {
             _rigidbody.angularVelocity = preserveVelocity ? angularVelocity : Vector3.zero;
             
             _view.PublishCameraPosition();
+
+            HasBeenTeleported = true;
         }
         
         private void HandleMotionInput(Vector2 input) {

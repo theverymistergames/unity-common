@@ -28,20 +28,8 @@ namespace MisterGames.Character.Behaviours {
             _gameObjects = new[] { go };
         }
 
-        private void Awake() {
-            CharacterSystem.Instance.OnCharacterInstanceChanged += OnCharacterInstanceChanged;
-        }
-
-        private void OnDestroy() {
-            CharacterSystem.Instance.OnCharacterInstanceChanged -= OnCharacterInstanceChanged;
-        }
-
         private void Start() {
             StartTrackingDistance(CharacterSystem.Instance.GetCharacter(), destroyCancellationToken).Forget();
-        }
-
-        private void OnCharacterInstanceChanged(IActor actor) {
-            StartTrackingDistance(actor, destroyCancellationToken).Forget();
         }
 
         private async UniTask StartTrackingDistance(IActor actor, CancellationToken cancellationToken) {

@@ -1,43 +1,51 @@
 ﻿using System;
+using System.Collections.Generic;
 using MisterGames.Actors;
+using MisterGames.Character.Motion;
+using MisterGames.Common.GameObjects;
+using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace MisterGames.Character.Core {
 
+    [DefaultExecutionOrder(-10000)]
     public sealed class CharacterSystem : MonoBehaviour {
 
-        [SerializeField] private Actor _heroPrefab;
+        [SerializeField] private Actor _hero;
 
-        public event Action<IActor> OnCharacterInstanceChanged = delegate { }; 
         public static CharacterSystem Instance { get; private set; }
 
-        private IActor _actor;
-
+        public IActor GetCharacter() {
+            return _hero;
+        }
+        
         private void Awake() {
             Instance = this;
-        }
 
-        public IActor GetCharacter(bool spawnIfNotRegistered = false) {
-            if (_actor == null && spawnIfNotRegistered) {
-                _actor = Instantiate(_heroPrefab);
+            if (_hero == null) {
+                Debug.LogError($"{nameof(CharacterSystem)}: hero actor is not set. " +
+                               $"Please assign a hero actor to the {nameof(CharacterSystem)} in the inspector " +
+                               $"at {GameObjectExtensions.GetPathInScene(transform, includeSceneName: true)}.");
+            }
+        }
+        
+#if UNITY_EDITOR
+        private void Start() {
+            if (_hero == null ||
+                !_hero.TryGetComponent(out CharacterMotionPipeline motion) || motion.HasBeenTeleported ||
+                FindObjectsByType<CharacterSpawnPoint>(FindObjectsInactive.Exclude, FindObjectsSortMode.None) is not { Length: > 0 } spawnPoints
+            ) {
+                return;
             }
             
-            return _actor;
+            Array.Sort(spawnPoints, (p0, p1) => string.Compare(p0.name, p1.name, StringComparison.InvariantCultureIgnoreCase));
+            var spawnPoint = spawnPoints[0];
+                
+            spawnPoint.transform.GetPositionAndRotation(out var position, out var rotation);
+            motion.Teleport(position, rotation, preserveVelocity: false);
         }
-
-        public void Register(IActor actor) {
-            if (_actor == actor || actor == null) return;
-            
-            _actor = actor;
-            OnCharacterInstanceChanged.Invoke(_actor);
-        }
-
-        public void Unregister(IActor actor) {
-            if (_actor != actor || _actor == null) return;
-            
-            _actor = null;
-            OnCharacterInstanceChanged.Invoke(null);
-        }
+#endif
     }
 
 }
