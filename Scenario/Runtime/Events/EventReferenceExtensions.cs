@@ -1,45 +1,78 @@
-﻿namespace MisterGames.Scenario.Events {
+﻿using System;
+using System.Runtime.CompilerServices;
+
+namespace MisterGames.Scenario.Events {
 
     public static class EventReferenceExtensions {
 
-        public static int GetRaiseCount(this EventReference e) {
-            return EventSystems.Global?.RaisedEvents?.TryGetValue(e, out int count) ?? false ? count : 0;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int GetCount(this EventReference e) {
+            return EventSystem.Main.GetCount(e);
         }
         
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsRaised(this EventReference e) {
-            return (EventSystems.Global?.RaisedEvents?.TryGetValue(e, out int count) ?? false) && count > 0;
+            return EventSystem.Main.IsRaised(e);
         }
         
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Raise(this EventReference e, int add = 1) {
-            EventSystems.Global?.Raise(e, add);
+            EventSystem.Main.Raise(e, add);
         }
         
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void SetCount(this EventReference e, int count) {
-            EventSystems.Global?.SetCount(e, count);
+            EventSystem.Main.SetCount(e, count);
         }
         
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Raise<T>(this EventReference e, T data, int add = 1) {
-            EventSystems.Global?.Raise(e, data, add);
+            EventSystem.Main.Raise(e, data, add);
         }
         
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void SetCount<T>(this EventReference e, T data, int count) {
-            EventSystems.Global?.SetCount(e, data, count);
+            EventSystem.Main.SetCount(e, data, count);
         }
         
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Subscribe(this EventReference e, IEventListener listener) {
-            EventSystems.Global?.Subscribe(e, listener);
+            EventSystem.Main.Subscribe(e, listener);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Unsubscribe(this EventReference e, IEventListener listener) {
-            EventSystems.Global?.Unsubscribe(e, listener);
+            EventSystem.Main.Unsubscribe(e, listener);
         }
         
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Subscribe<T>(this EventReference e, IEventListener<T> listener) {
-            EventSystems.Global?.Subscribe(e, listener);
+            EventSystem.Main.Subscribe(e, listener);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Unsubscribe<T>(this EventReference e, IEventListener<T> listener) {
-            EventSystems.Global?.Unsubscribe(e, listener);
+            EventSystem.Main.Unsubscribe(e, listener);
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Subscribe(this EventReference e, Action listener) {
+            EventSystem.Main.Subscribe(e, listener);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Unsubscribe(this EventReference e, Action listener) {
+            EventSystem.Main.Unsubscribe(e, listener);
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Subscribe<T>(this EventReference e, Action<T> listener) {
+            EventSystem.Main.Subscribe(e, listener);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Unsubscribe<T>(this EventReference e, Action<T> listener) {
+            EventSystem.Main.Unsubscribe(e, listener);
         }
     }
 

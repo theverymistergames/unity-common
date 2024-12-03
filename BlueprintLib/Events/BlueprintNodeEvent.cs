@@ -39,7 +39,7 @@ namespace MisterGames.BlueprintLib {
         }
 
         public int GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
-            return port == 2 ? _event.GetRaiseCount() : default;
+            return port == 2 ? _event.GetCount() : default;
         }
 
         public void OnEventRaised(EventReference e) {

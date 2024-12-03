@@ -34,7 +34,7 @@ namespace MisterGames.Scenario.Components {
         }
 
         public void OnEventRaised(EventReference e) {
-            bool isMatch = IsMatch(e.GetRaiseCount());
+            bool isMatch = IsMatch(e.GetCount());
 
             for (int i = 0; i < _gameObjects.Length; i++) {
                 _gameObjects[i].SetActive(isMatch);

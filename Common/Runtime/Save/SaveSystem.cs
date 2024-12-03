@@ -1,47 +1,42 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using MisterGames.Common.Attributes;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Save.Tables;
 using UnityEngine;
 
 namespace MisterGames.Common.Save {
     
-    [DefaultExecutionOrder(-10000)]
-    public sealed class SaveSystem : MonoBehaviour, ISaveSystem {
-
-        [EmbeddedInspector]
-        [SerializeField] private SaveSystemSettings _saveSystemSettings;
+    public sealed class SaveSystem : ISaveSystem, IDisposable {
         
-        public static ISaveSystem Instance { get; private set; }
+        public static readonly ISaveSystem Main = new SaveSystem();
         
         private readonly HashSet<ISaveable> _saveableSet = new();
         private readonly ISaveTableFactory _tables = new SaveTableFactory();
         
         private readonly List<SaveMeta> _saveMetas = new();
         private readonly SaveFileDto _saveFileDto = new SaveFileDto { tables = new List<ISaveTable>() };
+        
+        private SaveSystemSettings _saveSystemSettings;
         private string _activeSaveId;
+        private bool _disposed;
 
-        private void Awake() {
-            Instance = this;
-        }
-
-        private void Start() {
+        public void Initialize(SaveSystemSettings saveSystemSettings) {
+            _disposed = false;
+            _saveSystemSettings = saveSystemSettings;
             _tables.Prewarm();
         }
 
-        private void OnDestroy() {
-            Cleanup();
-        }
-        
-        private void Cleanup() {
+        public void Dispose() {
+            if (_disposed) return;
+
+            _disposed = true;
             _saveableSet.Clear();
             _tables.Clear();
             _saveFileDto.tables.Clear();
             _saveMetas.Clear();
         }
-
+        
         public void Register(ISaveable saveable, bool notifyLoad = true) {
             _saveableSet.Add(saveable);
             if (notifyLoad) saveable.OnLoadData(this);

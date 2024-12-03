@@ -23,6 +23,7 @@ namespace MisterGames.Scenario.Events {
             public string name;
             public int id;
             public int subId;
+            public bool save;
         }
 
         public string GetEventName(int eventId) {
@@ -33,7 +34,16 @@ namespace MisterGames.Scenario.Events {
 
             return e.name;
         }
-        
+
+        internal bool IsSerializable(int eventId) {
+            if (!TryGetAddress(eventId, out int group, out int index)) return false;
+
+            ref var g = ref _eventGroups[group];
+            ref var e = ref g.events[index];
+
+            return e.save;
+        }
+
         internal bool TryGetAddress(int eventId, out int group, out int index) {
 #if UNITY_EDITOR
             if (_isEventPathMapInvalid) {
@@ -67,7 +77,7 @@ namespace MisterGames.Scenario.Events {
             index = 0;
             return false;
         }
-        
+
 #if UNITY_EDITOR
         private readonly HashSet<int> _occupiedIdsCache = new HashSet<int>();
         internal EventGroup[] EventGroups => _eventGroups ?? Array.Empty<EventGroup>();

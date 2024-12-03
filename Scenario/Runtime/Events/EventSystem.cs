@@ -5,31 +5,39 @@ using UnityEngine;
 
 namespace MisterGames.Scenario.Events {
 
-    [Serializable]
     public sealed class EventSystem : IEventSystem {
-
-        [SerializeField] private Map<EventReference, int> _raisedEvents = new();
         
-        public Map<EventReference, int> RaisedEvents => _raisedEvents;
+        public static readonly IEventSystem Main = new EventSystem();
+        private static readonly EventReference RootEvent = new();
+        
+        public Dictionary<EventReference, int> RaisedEvents { get; } = new();
         private readonly TreeMap<EventReference, object> _listenerTree = new();
-        
+
+        public bool IsRaised(EventReference e) {
+            return RaisedEvents.TryGetValue(e, out int count) && count > 0;
+        }
+
+        public int GetCount(EventReference e) {
+            return RaisedEvents.GetValueOrDefault(e, 0);
+        }
+
         public void Raise(EventReference e, int add = 1) {
-            _raisedEvents[e] = _raisedEvents.GetValueOrDefault(e, 0) + add;
+            RaisedEvents[e] = RaisedEvents.GetValueOrDefault(e, 0) + add;
             NotifyEventRaised(e);
         }
         
         public void SetCount(EventReference e, int count) {
-            _raisedEvents[e] = count;
+            RaisedEvents[e] = count;
             NotifyEventRaised(e);
         }
 
         public void Raise<T>(EventReference e, T data, int add = 1) {
-            _raisedEvents[e] = _raisedEvents.GetValueOrDefault(e, 0) + add;
+            RaisedEvents[e] = RaisedEvents.GetValueOrDefault(e, 0) + add;
             NotifyEventRaised(e, data);
         }
 
         public void SetCount<T>(EventReference e, T data, int count) {
-            _raisedEvents[e] = count;
+            RaisedEvents[e] = count;
             NotifyEventRaised(e, data);
         }
 
@@ -47,6 +55,38 @@ namespace MisterGames.Scenario.Events {
 
         public void Unsubscribe<T>(EventReference e, IEventListener<T> listener) {
             UnsubscribeListener(e, listener);
+        }
+
+        public void Subscribe<T>(IEventListener<T> listener) {
+            SubscribeListener(RootEvent, listener);
+        }
+
+        public void Unsubscribe<T>(IEventListener<T> listener) {
+            UnsubscribeListener(RootEvent, listener);
+        }
+
+        public void Subscribe(EventReference e, Action listener) {
+            SubscribeListener(e, listener);
+        }
+
+        public void Unsubscribe(EventReference e, Action listener) {
+            UnsubscribeListener(e, listener);
+        }
+
+        public void Subscribe<T>(EventReference e, Action<T> listener) {
+            SubscribeListener(e, listener);
+        }
+
+        public void Unsubscribe<T>(EventReference e, Action<T> listener) {
+            UnsubscribeListener(e, listener);
+        }
+
+        public void Subscribe<T>(Action<T> listener) {
+            SubscribeListener(RootEvent, listener);
+        }
+
+        public void Unsubscribe<T>(Action<T> listener) {
+            UnsubscribeListener(RootEvent, listener);
         }
 
         private void SubscribeListener(EventReference e, object listener) {
@@ -74,7 +114,15 @@ namespace MisterGames.Scenario.Events {
             if (!_listenerTree.TryGetNode(e, out int root)) return;
 
             for (int i = _listenerTree.GetChild(root); i >= 0; i = _listenerTree.GetNext(i)) {
-                if (_listenerTree.GetValueAt(i) is IEventListener listener) listener.OnEventRaised(e);
+                switch (_listenerTree.GetValueAt(i)) {
+                    case IEventListener interfaceListener:
+                        interfaceListener.OnEventRaised(e);
+                        break;
+
+                    case Action actionListener:
+                        actionListener.Invoke();
+                        break;
+                }
             }
         }
         
@@ -82,7 +130,15 @@ namespace MisterGames.Scenario.Events {
             if (!_listenerTree.TryGetNode(e, out int root)) return;
 
             for (int i = _listenerTree.GetChild(root); i >= 0; i = _listenerTree.GetNext(i)) {
-                if (_listenerTree.GetValueAt(i) is IEventListener<T> listener) listener.OnEventRaised(e, data);
+                switch (_listenerTree.GetValueAt(i)) {
+                    case IEventListener<T> interfaceListener:
+                        interfaceListener.OnEventRaised(e, data);
+                        break;
+
+                    case Action<T> actionListener:
+                        actionListener.Invoke(data);
+                        break;
+                }
             }
         }
     }

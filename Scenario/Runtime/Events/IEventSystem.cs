@@ -1,11 +1,12 @@
-﻿using MisterGames.Common.Data;
+﻿using System;
 
 namespace MisterGames.Scenario.Events {
 
     public interface IEventSystem {
 
-        Map<EventReference, int> RaisedEvents { get; }
-
+        bool IsRaised(EventReference e);
+        int GetCount(EventReference e);
+        
         void Raise(EventReference e, int add = 1);
         void SetCount(EventReference e, int count);
         
@@ -17,6 +18,18 @@ namespace MisterGames.Scenario.Events {
         
         void Subscribe<T>(EventReference e, IEventListener<T> listener);
         void Unsubscribe<T>(EventReference e, IEventListener<T> listener);
+        
+        void Subscribe<T>(IEventListener<T> listener);
+        void Unsubscribe<T>(IEventListener<T> listener);
+        
+        void Subscribe(EventReference e, Action listener);
+        void Unsubscribe(EventReference e, Action listener);
+        
+        void Subscribe<T>(EventReference e, Action<T> listener);
+        void Unsubscribe<T>(EventReference e, Action<T> listener);
+        
+        void Subscribe<T>(Action<T> listener);
+        void Unsubscribe<T>(Action<T> listener);
     }
 
 }

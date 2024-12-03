@@ -25,14 +25,14 @@ namespace MisterGames.BlueprintLib.Save {
             _blueprint = blueprint;
             _token = token;
             
-            SaveSystem.Instance.Register(this, _notifyLoadAtStart);
+            SaveSystem.Main.Register(this, _notifyLoadAtStart);
         }
 
         public void OnDeInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
             _blueprint = default;
             _token = default;
             
-            SaveSystem.Instance.Unregister(this);
+            SaveSystem.Main.Unregister(this);
         }
 
         public void OnSaveData(ISaveSystem saveSystem) {

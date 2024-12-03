@@ -1,33 +1,59 @@
-﻿using MisterGames.Common.Save;
+﻿using System;
+using System.Collections.Generic;
+using MisterGames.Common.Save;
 using UnityEngine;
 
 namespace MisterGames.Scenario.Events {
     
-    public class EventSystemLauncher : MonoBehaviour, ISaveable {
+    [DefaultExecutionOrder(-10000)]
+    public sealed class EventSystemLauncher : MonoBehaviour, ISaveable {
 
         [SerializeField] private string _id;
-        private EventSystem _eventSystem;
 
-        private void Awake() {
-            _eventSystem = new EventSystem();
-            EventSystems.Global = _eventSystem;
+        [Serializable]
+        private struct EventEntry {
+            public EventReference eventReference;
+            public int count;
         }
-
+        
+        private readonly List<EventEntry> _eventsListEmpty = new();
+        private readonly List<EventEntry> _eventsListSaveable = new();
+        
         private void OnEnable() {
-            SaveSystem.Instance.Register(this);
+            SaveSystem.Main.Register(this);
         }
 
         private void OnDisable() {
-            SaveSystem.Instance.Unregister(this);
+            SaveSystem.Main.Unregister(this);
+        }
+
+        private void OnDestroy() {
+            var raisedEventsMap = ((EventSystem) EventSystem.Main).RaisedEvents;
+            raisedEventsMap.Clear();
         }
 
         public void OnLoadData(ISaveSystem saveSystem) {
-            saveSystem.Pop(_id, _eventSystem, out _eventSystem);
-            EventSystems.Global = _eventSystem;
+            saveSystem.Pop(_id, _eventsListEmpty, out var eventList);
+
+            var raisedEventsMap = ((EventSystem) EventSystem.Main).RaisedEvents;
+            
+            for (int i = 0; i < eventList.Count; i++) {
+                var eventEntry = eventList[i];
+                raisedEventsMap[eventEntry.eventReference] = eventEntry.count;
+            }
         }
 
         public void OnSaveData(ISaveSystem saveSystem) {
-            saveSystem.Push(_id, _eventSystem);
+            _eventsListSaveable.Clear();
+            var raisedEventsMap = ((EventSystem) EventSystem.Main).RaisedEvents;
+            
+            foreach ((var e, int count) in raisedEventsMap) {
+                if (!e.EventDomain.IsSerializable(e.EventId)) continue;
+                
+                _eventsListSaveable.Add(new EventEntry { eventReference = e, count = count });
+            }
+            
+            saveSystem.Push(_id, _eventsListSaveable);
         }
     }
 

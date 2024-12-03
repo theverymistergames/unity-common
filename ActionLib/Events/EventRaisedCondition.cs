@@ -14,7 +14,7 @@ namespace MisterGames.ActionLib.Events {
         public int comparedValue;
         
         public bool IsMatch(IActor context) {
-            return compareMode.IsMatch(eventReference.GetRaiseCount(), comparedValue);
+            return compareMode.IsMatch(eventReference.GetCount(), comparedValue);
         }
     }
     
