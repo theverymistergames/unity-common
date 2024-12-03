@@ -20,7 +20,7 @@ namespace MisterGames.Scenario.Editor.Events {
         private const string EventIdPropertyPath = "_eventId";
         private const string SubIdPropertyPath = "_subId";
 
-        private const float SubIdWidthRatio = 0.12f;
+        private const float SubIdWidthRatio = 0.15f;
 
         private static readonly GUIContent NullLabel = new(Null);
         private static readonly Color BoxColor = new Color(0.2f, 0.2f, 0.2f);
@@ -47,30 +47,34 @@ namespace MisterGames.Scenario.Editor.Events {
             
             bool hasLabel = label != null && label != GUIContent.none;
             float offset = hasLabel.AsFloat() * (EditorGUIUtility.labelWidth + 2f);
-
+            float indent = EditorGUI.indentLevel * 15f;
+            
             var rect = position;
             rect.x += offset;
             rect.width -= offset;
-
-            rect.height += 2f * EditorGUIUtility.standardVerticalSpacing;
-            rect.y -= EditorGUIUtility.standardVerticalSpacing;
             
             var oldColor = GUI.color;
             GUI.color = BoxColor;
             GUI.Box(rect, GUIContent.none, EditorStyles.helpBox);
             GUI.color = oldColor;
-
-            rect = position;
-            float indent = EditorGUI.indentLevel * 15;
-            rect.x += indent + EditorGUIUtility.standardVerticalSpacing;
-            rect.width -= indent + 2f * EditorGUIUtility.standardVerticalSpacing;
-            rect.height = EditorGUIUtility.singleLineHeight;
             
             var eventDomainProperty = property.FindPropertyRelative(EventDomainPropertyPath);
             var eventIdProperty = property.FindPropertyRelative(EventIdPropertyPath);
             var subIdProperty = property.FindPropertyRelative(SubIdPropertyPath);
 
-            EditorGUI.PropertyField(rect, eventDomainProperty, label);
+            rect = position;
+            rect.x += indent - 1f;
+            rect.height = EditorGUIUtility.singleLineHeight;
+            
+            GUI.Label(rect, label);
+            
+            rect = position;
+            rect.x += offset + -indent + 2f;
+            rect.width = position.width - offset + indent - 4f;
+            rect.height = EditorGUIUtility.singleLineHeight;
+            rect.y += EditorGUIUtility.standardVerticalSpacing;
+            
+            EditorGUI.PropertyField(rect, eventDomainProperty, GUIContent.none);
             
             var eventDomain = eventDomainProperty.objectReferenceValue as EventDomain;
             int eventId = eventIdProperty.intValue;
@@ -84,13 +88,12 @@ namespace MisterGames.Scenario.Editor.Events {
                 property.serializedObject.Update();
             }
             
-            float subIdWidth = rect.width * SubIdWidthRatio;
-            
             rect = position;
-            rect.x += offset + EditorGUIUtility.standardVerticalSpacing;
-            rect.width -= offset + subIdWidth + EditorGUIUtility.standardVerticalSpacing;
+            float subIdWidth = (rect.width - offset - 2f) * SubIdWidthRatio;
             
-            rect.y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
+            rect.x += offset + 2f;
+            rect.width -= offset + subIdWidth - 2f;
+            rect.y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing * 2f;
             rect.height = EditorGUIUtility.singleLineHeight;
             
             if (EditorGUI.DropdownButton(rect, GetDropdownLabel(eventDomain, eventId), FocusType.Keyboard)) {
@@ -119,8 +122,11 @@ namespace MisterGames.Scenario.Editor.Events {
                 dropdown.Show(rect);
             }
 
-            rect.x += rect.width + EditorGUIUtility.standardVerticalSpacing;
-            rect.width = subIdWidth - 2f * EditorGUIUtility.standardVerticalSpacing;
+            rect = position;
+            rect.x += rect.width - subIdWidth + 4f - indent;
+            rect.width = subIdWidth - 6f + indent;
+            rect.y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing * 2f;
+            rect.height = EditorGUIUtility.singleLineHeight;
             
             subIdProperty.intValue = EditorGUI.IntField(rect, GUIContent.none, subIdProperty.intValue);
 
@@ -128,7 +134,7 @@ namespace MisterGames.Scenario.Editor.Events {
         }
 
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label) {
-            return EditorGUIUtility.singleLineHeight * 2f + EditorGUIUtility.standardVerticalSpacing;
+            return EditorGUIUtility.singleLineHeight * 2f + EditorGUIUtility.standardVerticalSpacing * 3f;
         }
 
         private static IEnumerable<Entry> GetAllEntries() {
