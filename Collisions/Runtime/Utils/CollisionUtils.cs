@@ -37,20 +37,23 @@ namespace MisterGames.Collisions.Utils {
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T GetComponentFromRaycastHit<T>(this RaycastHit raycastHit) {
-            var rb = raycastHit.rigidbody;
-            return rb == null ? GetComponentFromCollider<T>(raycastHit.collider) : rb.GetComponent<T>();
+            return raycastHit.rigidbody is { } rb && rb.TryGetComponent(out T t)
+                ? t
+                : raycastHit.collider.GetComponent<T>();
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T GetComponentFromCollision<T>(this Collision collision) {
-            var rb = collision.rigidbody;
-            return rb == null ? GetComponentFromCollider<T>(collision.collider) : rb.GetComponent<T>();
+            return collision.rigidbody is { } rb && rb.TryGetComponent(out T t) 
+                ? t 
+                : collision.collider.GetComponent<T>();
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T GetComponentFromCollider<T>(this Collider collider) {
-            var rb = collider.attachedRigidbody;
-            return rb == null ? collider.GetComponent<T>() : rb.GetComponent<T>();
+            return collider.attachedRigidbody is { } rb && rb.TryGetComponent(out T t) 
+                ? t 
+                : collider.GetComponent<T>();
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -5,12 +5,6 @@ using UnityEngine;
 namespace MisterGames.Common.GameObjects {
     
     public static class GameObjectExtensions {
-
-        public static T GetComponentFromCollider<T>(this Collider collider) {
-            return collider.attachedRigidbody != null 
-                ? collider.attachedRigidbody.GetComponent<T>() 
-                : collider.GetComponent<T>();
-        }
         
         public static void SetupUniqueMaterial(this Renderer renderer) {
             if (renderer.material == renderer.sharedMaterial) renderer.material = new Material(renderer.sharedMaterial);

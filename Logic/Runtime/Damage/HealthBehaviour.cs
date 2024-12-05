@@ -1,4 +1,5 @@
-﻿using MisterGames.Actors;
+﻿using System;
+using MisterGames.Actors;
 using MisterGames.Common.Attributes;
 using UnityEngine;
 
@@ -8,20 +9,21 @@ namespace MisterGames.Logic.Damage {
 
         [SerializeField] private bool _restoreFullHealthOnAwake;
 
-        public delegate void DamageCallback(HealthBehaviour health, DamageInfo info);
-        public delegate void HealthCallback(HealthBehaviour health);
+        public delegate void DamageCallback(DamageInfo info);
         
         public event DamageCallback OnDamage = delegate { };
-        public event HealthCallback OnDeath = delegate { };
-        public event HealthCallback OnRestoreHealth = delegate { };
+        public event Action OnDeath = delegate { };
+        public event Action OnRestoreHealth = delegate { };
         
         public float Health { get; private set; }
         public bool IsAlive => Health > 0f;
         public bool IsDead => Health <= 0f;
         
+        private IActor _actor;
         private HealthData _healthData;
 
         void IActorComponent.OnAwake(IActor actor) {
+            _actor = actor;
             if (_restoreFullHealthOnAwake) RestoreFullHealth(); 
         }
 
@@ -35,36 +37,36 @@ namespace MisterGames.Logic.Damage {
             
             if (Health <= oldHealth) return;
             
-            OnRestoreHealth.Invoke(this);
+            OnRestoreHealth.Invoke();
         }
 
-        public DamageInfo Kill(bool notifyDamage = true) {
+        public DamageInfo Kill(IActor author = null, Vector3 point = default, bool notifyDamage = true) {
             float oldHealth = Health;
             Health = 0f;
             
             float damageTotal = oldHealth - Health;  
-            var info = new DamageInfo(damageTotal, mortal: true);
+            var info = new DamageInfo(victim: _actor, damageTotal, mortal: true, author, point);
 
             if (oldHealth > 0f) {
-                if (notifyDamage) OnDamage.Invoke(this, info);
-                OnDeath.Invoke(this);   
+                if (notifyDamage) OnDamage.Invoke(info);
+                OnDeath.Invoke();   
             }
             
             return info;
         }
         
-        public DamageInfo TakeDamage(float damage) {
+        public DamageInfo TakeDamage(float damage, IActor author = null, Vector3 point = default) {
             float oldHealth = Health;
             Health = Mathf.Max(0f, Health - damage);
             
             float damageTotal = oldHealth - Health;  
             bool mortal = Health <= 0;
             
-            var info = new DamageInfo(damageTotal, mortal);
+            var info = new DamageInfo(victim: _actor, damageTotal, mortal, author, point);
 
             if (oldHealth > 0f) {
-                OnDamage.Invoke(this, info);
-                if (mortal) OnDeath.Invoke(this);   
+                OnDamage.Invoke(info);
+                if (mortal) OnDeath.Invoke();   
             }
             
             return info;

@@ -23,7 +23,8 @@ namespace MisterGames.Actors
                 this.data = data;
             }
         }
-        
+
+        public IActor ParentActor { get; set; }
         public Transform Transform => _isAwake ? _transform : !_isDestroyed ? transform : null;
         public GameObject GameObject => _isAwake ? _gameObject : !_isDestroyed ? gameObject : null;
         public ActorData DataSO => _data;

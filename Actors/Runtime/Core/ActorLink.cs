@@ -4,7 +4,8 @@ using UnityEngine;
 namespace MisterGames.Actors {
     
     public sealed class ActorLink : MonoBehaviour, IActorComponent, IActor {
-
+        
+        public IActor ParentActor => _actor?.ParentActor;
         public GameObject GameObject => _actor?.GameObject;
         public Transform Transform => _actor?.Transform;
         public ActorData DataSO => _actor?.DataSO;

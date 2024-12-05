@@ -5,6 +5,7 @@ namespace MisterGames.Actors {
     
     public interface IActor {
         
+        IActor ParentActor { get; }
         GameObject GameObject { get; }
         Transform Transform { get; }
         ActorData DataSO { get; }
