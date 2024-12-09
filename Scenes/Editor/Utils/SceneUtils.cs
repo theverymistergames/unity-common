@@ -1,6 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Text;
-using UnityEngine;
 using UnityEngine.SceneManagement;
 
 namespace MisterGames.Scenes.Editor.Utils {

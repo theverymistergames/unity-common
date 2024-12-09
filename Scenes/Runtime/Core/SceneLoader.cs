@@ -14,15 +14,20 @@ namespace MisterGames.Scenes.Core {
         private static string _rootScene;
         
         private void Awake() {
-            _rootScene = SceneManager.GetActiveScene().name;
             LoadStartScenes().Forget();
         }
 
         private async UniTask LoadStartScenes() {
+            _rootScene = SceneManager.GetActiveScene().name;
+            
             string startScene = _startScene.scene;
             bool needLoadGameplayScene = _loadGameplayScene;
             
 #if UNITY_EDITOR
+            if (!SceneLoaderSettings.Instance.enablePlayModeStartSceneOverride) {
+                return;
+            }
+            
             if (_rootScene != SceneLoaderSettings.Instance.rootScene.scene) {
                 Debug.LogWarning($"{nameof(SceneLoader)}: loaded not on the root scene {SceneLoaderSettings.Instance.rootScene.scene}, " +
                                  $"make sure {nameof(SceneLoader)} is on the root scene that should be selected in {nameof(SceneLoaderSettings)} asset.");

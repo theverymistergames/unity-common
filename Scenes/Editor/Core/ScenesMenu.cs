@@ -15,16 +15,21 @@ namespace MisterGames.Scenes.Editor.Core {
             
             EditorSceneManager.sceneOpened -= OnSceneOpened;
             EditorSceneManager.sceneOpened += OnSceneOpened;
+
+            if (SceneManager.sceneCount > 0) SetupStartScene(SceneManager.GetSceneAt(0).name);
         }
         
         private static void OnActiveSceneChangedInEditMode(Scene arg0, Scene arg1) {
-            TrySetPlaymodeStartScene(SceneLoaderSettings.Instance.rootScene.scene);
-            SceneLoaderSettings.SavePlaymodeStartScene(arg1.name);
+            SetupStartScene(arg1.name);
         }
 
         private static void OnSceneOpened(Scene scene, OpenSceneMode mode) {
+            SetupStartScene(scene.name);
+        }
+
+        private static void SetupStartScene(string sceneName) {
+            SceneLoaderSettings.SavePlaymodeStartScene(sceneName);
             TrySetPlaymodeStartScene(SceneLoaderSettings.Instance.rootScene.scene);
-            SceneLoaderSettings.SavePlaymodeStartScene(scene.name);
         }
         
         private static void TrySetPlaymodeStartScene(string sceneName) {

@@ -47,6 +47,10 @@ namespace MisterGames.Scenes.Core {
         public static void SavePlaymodeStartScene(string sceneName) {
             PlayerPrefs.SetString(GetPlaymodeStartSceneKey(), sceneName);
         }
+        
+        public static void DeletePlaymodeStartScene() {
+            PlayerPrefs.DeleteKey(GetPlaymodeStartSceneKey());
+        }
 
         public static string GetPlaymodeStartScene() {
             return PlayerPrefs.GetString(GetPlaymodeStartSceneKey());
