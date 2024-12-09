@@ -7,8 +7,9 @@ using UnityEngine;
 
 namespace MisterGames.Collisions.Detectors {
 
-    public class FrameRaycaster : CollisionDetectorBase, IUpdate {
+    public sealed class FrameRaycaster : CollisionDetectorBase, IUpdate {
 
+        [SerializeField] private Transform _transform;
         [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
 
         [Header("Raycast Settings")]
@@ -39,8 +40,6 @@ namespace MisterGames.Collisions.Detectors {
 
         public override int Capacity => _maxHits;
 
-        private Transform _transform;
-
         private RaycastHit[] _raycastHits;
         private CollisionInfo[] _hits;
 
@@ -51,7 +50,6 @@ namespace MisterGames.Collisions.Detectors {
         private int _lastUpdateFrame = -1;
 
         private void Awake() {
-            _transform = transform;
             _raycastHits = new RaycastHit[_maxHits];
             _hits = new CollisionInfo[_maxHits];
         }
