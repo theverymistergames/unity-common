@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Cysharp.Threading.Tasks;
 using UnityEngine;
-
 #if UNITY_EDITOR
+using System.Threading.Tasks;
 using UnityEditor;
 #endif
 
@@ -74,7 +73,7 @@ namespace MisterGames.Scenes.Core {
 
         private async void UpdateScenesCacheDelayed() {
             byte id = ++_updateCacheId;
-            await UniTask.Delay(UpdateCacheDelayMs);
+            await Task.Delay(UpdateCacheDelayMs);
             
             if (id != _updateCacheId) return;
             

@@ -14,7 +14,7 @@ namespace MisterGames.Common.Editor.Labels {
 
         private static void OnContextMenuOpening(GenericMenu menu, SerializedProperty property) {
             if (property.propertyType != SerializedPropertyType.Generic ||
-                property.FindPropertyRelative("library") is not { objectReferenceValue: LabelLibrary labelLibrary } ||
+                property.FindPropertyRelative("library") is not { objectReferenceValue: LabelLibraryBase labelLibrary } ||
                 property.FindPropertyRelative("array") is null ||
                 property.FindPropertyRelative("value") is null
             ) {

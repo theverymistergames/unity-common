@@ -1,16 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using MisterGames.Common.Attributes;
 using UnityEngine;
 
 namespace MisterGames.Common.Labels {
     
-    [CreateAssetMenu(fileName = nameof(LabelLibrary), menuName = "MisterGames/Libs/" + nameof(LabelLibrary))]
-    public sealed class LabelLibrary : LabelLibraryBase {
-        
-        internal const int Null = -2;
-        internal const int None = -1;
-        internal const string NoneLabel = "None";
-        
+    public abstract class LabelLibraryByRef<T> : LabelLibraryBaseT<T> {
+
         [SerializeField] private LabelArray[] _labelArrays;
 
         [Serializable]
@@ -24,7 +20,13 @@ namespace MisterGames.Common.Labels {
             
             [Space(10f)]
             public bool none;
-            public string[] labels;
+            public LabelData[] labels;
+        }
+
+        [Serializable]
+        private struct LabelData {
+            public string name;
+            [SerializeReference] [SubclassSelector] public T data;
         }
         
         private readonly Dictionary<(int, int), int> _indexMap = new();
@@ -33,24 +35,33 @@ namespace MisterGames.Common.Labels {
             int address = GetIndex(array, value);
             
             switch (address) {
-                case Null:
+                case LabelLibrary.Null:
                     return null;
                 
-                case None:
-                    return NoneLabel;
+                case LabelLibrary.None:
+                    return LabelLibrary.NoneLabel;
                 
                 default:
                     ref var arr = ref _labelArrays[array];
-                    return arr.labels[address];
+                    return arr.labels[address].name;
             }
         }
 
         public override bool ContainsLabel(int array, int value) {
-            return GetIndex(array, value) > Null;
+            return GetIndex(array, value) > LabelLibrary.Null;
         }
+        
+        public override bool TryGetData(int array, int value, out T data) {
+            int address = GetIndex(array, value);
 
-        public override Type GetDataType() {
-            return null;
+            if (address < 0) {
+                data = default;
+                return false;
+            }
+            
+            ref var arr = ref _labelArrays[array];
+            data = arr.labels[address].data;
+            return true;
         }
 
         public override int GetArraysCount() {
@@ -70,7 +81,7 @@ namespace MisterGames.Common.Labels {
             ref var arr = ref _labelArrays[array];
             if (arr.labels == null || arr.labels.Length <= index) return default;
             
-            return arr.labels[index];
+            return arr.labels[index].name;
         }
 
         public override string GetArrayName(int array) {
@@ -93,7 +104,7 @@ namespace MisterGames.Common.Labels {
             ref var arr = ref _labelArrays[array];
             return arr.usage;
         }
-
+        
         private int GetIndex(int array, int value) {
 #if UNITY_EDITOR
             if (_isInvalid) {
@@ -105,12 +116,12 @@ namespace MisterGames.Common.Labels {
             if (_indexMap.TryGetValue((array, value), out int index)) return index;
 
             int arrays = _labelArrays?.Length ?? 0;
-            if (array < 0 || array >= arrays) return Null;
+            if (array < 0 || array >= arrays) return LabelLibrary.Null;
             
             ref var labelArray = ref _labelArrays![array];
             if (labelArray.none && value == 0) {
-                _indexMap[(array, value)] = None;
-                return None;
+                _indexMap[(array, value)] = LabelLibrary.None;
+                return LabelLibrary.None;
             }
 
             switch (labelArray.usage) {
@@ -124,7 +135,7 @@ namespace MisterGames.Common.Labels {
                 
                 case LabelArrayUsage.ByHash:
                     for (int i = 0; i < labelArray.labels?.Length; i++) {
-                        if (Animator.StringToHash(labelArray.labels[i]) == value) return i;
+                        if (Animator.StringToHash(labelArray.labels[i].name) == value) return i;
                     }
                     break;
                 
@@ -132,7 +143,7 @@ namespace MisterGames.Common.Labels {
                     throw new ArgumentOutOfRangeException();
             }
 
-            return Null;
+            return LabelLibrary.Null;
         }
         
 #if UNITY_EDITOR

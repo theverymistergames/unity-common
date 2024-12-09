@@ -4,7 +4,6 @@ using System.Linq;
 using System.Reflection;
 using MisterGames.Common.Editor.Views;
 using MisterGames.Common.Labels;
-using MisterGames.Common.Lists;
 using MisterGames.Common.Strings;
 using UnityEditor;
 using UnityEngine;
@@ -12,6 +11,7 @@ using UnityEngine;
 namespace MisterGames.Common.Editor.Drawers {
     
     [CustomPropertyDrawer(typeof(LabelValue))]
+    [CustomPropertyDrawer(typeof(LabelValue<>))]
     public sealed class LabelValuePropertyDrawer : PropertyDrawer {
         
         private const string Separator = " : ";
@@ -27,13 +27,13 @@ namespace MisterGames.Common.Editor.Drawers {
         
         private readonly struct Entry {
             
-            public readonly LabelLibrary library;
+            public readonly LabelLibraryBase library;
             public readonly int array;
             public readonly int value;
             public readonly int index;
             public readonly string path;
 
-            public Entry(LabelLibrary library, int array, int value, int index, string path) {
+            public Entry(LabelLibraryBase library, int array, int value, int index, string path) {
                 this.library = library;
                 this.array = array;
                 this.value = value;
@@ -57,7 +57,7 @@ namespace MisterGames.Common.Editor.Drawers {
             var arrayProperty = property.FindPropertyRelative(ArrayPropertyPath); 
             var valueProperty = property.FindPropertyRelative(ValuePropertyPath);
 
-            var library = libraryProperty.objectReferenceValue as LabelLibrary;
+            var library = libraryProperty.objectReferenceValue as LabelLibraryBase;
             int array = arrayProperty.intValue;
             int value = valueProperty.intValue;
 
@@ -107,45 +107,53 @@ namespace MisterGames.Common.Editor.Drawers {
 
         private static IEnumerable<Entry> GetAllEntries(FieldInfo propertyFieldInfo) {
             var filters = propertyFieldInfo.GetCustomAttributes<LabelFilterAttribute>().ToArray();
+            var genericType = propertyFieldInfo.FieldType.IsGenericType ? propertyFieldInfo.FieldType.GetGenericArguments()[0] : null;
             
             return AssetDatabase
-                .FindAssets($"a:assets t:{nameof(LabelLibrary)}")
-                .Select(guid => AssetDatabase.LoadAssetAtPath<LabelLibrary>(AssetDatabase.GUIDToAssetPath(guid)))
+                .FindAssets($"a:assets t:{nameof(LabelLibraryBase)}")
+                .Select(guid => AssetDatabase.LoadAssetAtPath<LabelLibraryBase>(AssetDatabase.GUIDToAssetPath(guid)))
+                .Where(lib => IsValidLibraryType(lib, genericType))
                 .SelectMany(lib => GetLibraryEntries(lib, filters))
                 .Prepend(default);
         }
 
-        private static IEnumerable<Entry> GetLibraryEntries(LabelLibrary library, LabelFilterAttribute[] filters) {
-            if (library == null || library.labelArrays?.Length <= 0) return Array.Empty<Entry>();
+        private static IEnumerable<Entry> GetLibraryEntries(LabelLibraryBase library, LabelFilterAttribute[] filters) {
+            int arrayCount = library == null ? 0 : library.GetArraysCount();
+            if (arrayCount <= 0) return Array.Empty<Entry>();
 
             string libName = library.name;
             var list = new List<Entry>();
 
-            var labelArrays = library.labelArrays;
-            for (int i = 0; i < labelArrays!.Length; i++) {
-                var labelArray = labelArrays[i];
-                string arrayName = string.IsNullOrWhiteSpace(labelArray.name)
-                    ? labelArrays.Length == 1 ? null : $"Array [{i}]"
-                    : labelArray.name;
+            for (int i = 0; i < arrayCount; i++) {
+                string arrayName = library.GetArrayName(i);
+                arrayName = string.IsNullOrWhiteSpace(arrayName)
+                    ? arrayCount == 1 ? null : $"Array [{i}]"
+                    : arrayName;
 
                 string path;
+                bool none = library.GetArrayNoneLabel(i);
                 
-                if (labelArray.none) {
+                if (none) {
                     path = GetEntryPath(libName, arrayName, None);
                     if (!IsValidPath(path, filters)) continue;
                     
                     list.Add(new Entry(library, i, 0, 0, path));
                 }
 
-                int indexOffset = labelArray.none ? 1 : 0;
-                for (int j = 0; j < labelArray.labels?.Length; j++) {
-                    path = GetEntryPath(libName, arrayName, labelArray.labels[j]);
+                int indexOffset = none ? 1 : 0;
+                int labelsCount = library.GetLabelsCount(i);
+                var usage = library.GetArrayUsage(i);
+                
+                for (int j = 0; j < labelsCount; j++) {
+                    string label = library.GetLabelByIndex(i, j);
+                    path = GetEntryPath(libName, arrayName, label);
+                    
                     if (!IsValidPath(path, filters)) continue;
                     
-                    int value = labelArray.usage switch {
-                        LabelLibrary.Usage.ByIndex => j + indexOffset,
-                        LabelLibrary.Usage.ByHash => Animator.StringToHash(labelArray.labels[j]),
-                        _ => throw new ArgumentOutOfRangeException()
+                    int value = usage switch {
+                        LabelArrayUsage.ByIndex => j + indexOffset,
+                        LabelArrayUsage.ByHash => Animator.StringToHash(label),
+                        _ => throw new ArgumentOutOfRangeException(),
                     };
                     
                     list.Add(new Entry(library, i, value, j + indexOffset, path));
@@ -153,6 +161,11 @@ namespace MisterGames.Common.Editor.Drawers {
             }
 
             return list;
+        }
+
+        private static bool IsValidLibraryType(LabelLibraryBase library, Type genericType) {
+            var dataType = library.GetDataType();
+            return genericType?.IsAssignableFrom(dataType) ?? dataType == null;
         }
         
         private static bool IsValidPath(string path, LabelFilterAttribute[] filters) {
@@ -172,39 +185,43 @@ namespace MisterGames.Common.Editor.Drawers {
                     : $"{library}/{array}/{value}";
         }
 
-        private static GUIContent GetDropdownLabel(LabelLibrary library, int array, int value) {
+        private static GUIContent GetDropdownLabel(LabelLibraryBase library, int array, int value) {
             if (library == null) return NullLabel;
 
-            var labelArrays = library.labelArrays ?? Array.Empty<LabelLibrary.LabelArray>();
-            if (array < 0 || array >= labelArrays.Length) {
+            int arrayCount = library.GetArraysCount();
+            if (array < 0 || array >= arrayCount) {
                 return new GUIContent($"{library.name}{Separator}Array [{array}]{Separator}Value [{value}] {NotFound}");
             }
 
-            var labelArray = labelArrays[array];
-            
-            string arrayName = string.IsNullOrWhiteSpace(labelArray.name) 
-                ? labelArrays.Length == 1 
+            string arrayName = library.GetArrayName(array);
+            arrayName = string.IsNullOrWhiteSpace(arrayName) 
+                ? arrayCount == 1 
                     ? Separator 
                     : $"{Separator}Array [{array}]{Separator}" 
-                : $"{Separator}{labelArray.name}{Separator}";
+                : $"{Separator}{arrayName}{Separator}";
+
+            bool none = library.GetArrayNoneLabel(array);
             
-            if (labelArray.none && value == 0) {
+            if (none && value == 0) {
                 return new GUIContent($"{library.name}{arrayName}{None}");
             }
 
-            switch (labelArray.usage) {
-                case LabelLibrary.Usage.ByIndex:
-                    int count = (labelArray.none ? 1 : 0) + (labelArray.labels?.Length ?? 0);
-                    int index = labelArray.none ? value - 1 : value;
+            int labelsCount = library.GetLabelsCount(array);
+            string label = library.GetLabel(array, value);
+            bool containsLabel = library.ContainsLabel(array, value);
+            
+            switch (library.GetArrayUsage(array)) {
+                case LabelArrayUsage.ByIndex:
+                    int count = (none ? 1 : 0) + labelsCount;
                     
                     return value >= 0 && value < count 
-                        ? string.IsNullOrWhiteSpace(labelArray.labels![index]) 
+                        ? string.IsNullOrWhiteSpace(label) 
                             ? new GUIContent($"{library.name}{arrayName}Value [{value}]") 
-                            : new GUIContent($"{library.name}{arrayName}{labelArray.labels![index]}") 
+                            : new GUIContent($"{library.name}{arrayName}{label}") 
                         : new GUIContent($"{library.name}{arrayName}Value [{value}] {NotFound}");
                 
-                case LabelLibrary.Usage.ByHash:
-                    return labelArray.labels?.TryFind(value, (s, v) => Animator.StringToHash(s) == v, out string label) ?? false 
+                case LabelArrayUsage.ByHash:
+                    return containsLabel 
                         ? string.IsNullOrWhiteSpace(label) 
                             ? new GUIContent($"{library.name}{arrayName}Value [hash {value}]") 
                             : new GUIContent($"{library.name}{arrayName}{label}") 
