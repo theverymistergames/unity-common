@@ -1,4 +1,5 @@
 ﻿using System;
+using MisterGames.Common.Labels.Base;
 using UnityEngine;
 
 namespace MisterGames.Common.Labels {
@@ -7,11 +8,10 @@ namespace MisterGames.Common.Labels {
     public struct LabelValue : IEquatable<LabelValue> {
         
         [SerializeField] internal LabelLibraryBase library;
-        [SerializeField] internal int array;
-        public int value;
+        [SerializeField] internal int id;
 
         public bool Equals(LabelValue other) {
-            return Equals(library, other.library) && array == other.array && value == other.value;
+            return Equals(library, other.library) && id == other.id;
         }
 
         public override bool Equals(object obj) {
@@ -19,7 +19,7 @@ namespace MisterGames.Common.Labels {
         }
 
         public override int GetHashCode() {
-            return HashCode.Combine(library, array, value);
+            return HashCode.Combine(library, id);
         }
 
         public static bool operator ==(LabelValue left, LabelValue right) {
@@ -38,12 +38,11 @@ namespace MisterGames.Common.Labels {
     [Serializable]
     public struct LabelValue<T> : IEquatable<LabelValue<T>> {
         
-        [SerializeField] internal LabelLibraryBaseT<T> library;
-        [SerializeField] internal int array;
-        public int value;
+        [SerializeField] internal LabelLibraryBase<T> library;
+        [SerializeField] internal int id;
 
         public bool Equals(LabelValue<T> other) {
-            return Equals(library, other.library) && array == other.array && value == other.value;
+            return Equals(library, other.library) && id == other.id;
         }
 
         public override bool Equals(object obj) {
@@ -51,7 +50,7 @@ namespace MisterGames.Common.Labels {
         }
 
         public override int GetHashCode() {
-            return HashCode.Combine(library, array, value);
+            return HashCode.Combine(library, id);
         }
 
         public static bool operator ==(LabelValue<T> left, LabelValue<T> right) {

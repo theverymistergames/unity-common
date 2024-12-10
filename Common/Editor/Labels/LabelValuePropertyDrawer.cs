@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using MisterGames.Common.Editor.Views;
 using MisterGames.Common.Labels;
+using MisterGames.Common.Labels.Base;
 using MisterGames.Common.Strings;
 using UnityEditor;
 using UnityEngine;
@@ -18,10 +19,9 @@ namespace MisterGames.Common.Editor.Drawers {
         private const string None = "None";
         private const string Null = "<null>";
         private const string NotFound = "(not found)";
-        
-        private const string LibraryPropertyPath = "library";
-        private const string ArrayPropertyPath = "array";
-        private const string ValuePropertyPath = "value";
+
+        private const string LibraryPropertyPath = nameof(LabelValue.library);
+        private const string IdPropertyPath = nameof(LabelValue.id);
 
         private static readonly GUIContent NullLabel = new(Null);
         
@@ -29,15 +29,13 @@ namespace MisterGames.Common.Editor.Drawers {
             
             public readonly LabelLibraryBase library;
             public readonly int array;
-            public readonly int value;
-            public readonly int index;
+            public readonly int id;
             public readonly string path;
 
-            public Entry(LabelLibraryBase library, int array, int value, int index, string path) {
+            public Entry(LabelLibraryBase library, int id, int array, string path) {
                 this.library = library;
+                this.id = id;
                 this.array = array;
-                this.value = value;
-                this.index = index;
                 this.path = path;
             }
         }
@@ -54,16 +52,14 @@ namespace MisterGames.Common.Editor.Drawers {
             GUI.Label(rect, label);
 
             var libraryProperty = property.FindPropertyRelative(LibraryPropertyPath); 
-            var arrayProperty = property.FindPropertyRelative(ArrayPropertyPath); 
-            var valueProperty = property.FindPropertyRelative(ValuePropertyPath);
+            var idProperty = property.FindPropertyRelative(IdPropertyPath); 
 
             var library = libraryProperty.objectReferenceValue as LabelLibraryBase;
-            int array = arrayProperty.intValue;
-            int value = valueProperty.intValue;
+            int id = idProperty.intValue;
 
             if (library == null) {
-                array = -1;
-                arrayProperty.intValue = -1;
+                id = 0;
+                idProperty.intValue = id;
                 
                 property.serializedObject.ApplyModifiedProperties();
                 property.serializedObject.Update();
@@ -74,7 +70,7 @@ namespace MisterGames.Common.Editor.Drawers {
             rect.x += offset;
             rect.width -= offset;
             
-            if (EditorGUI.DropdownButton(rect, GetDropdownLabel(library, array, value), FocusType.Keyboard)) {
+            if (EditorGUI.DropdownButton(rect, GetDropdownLabel(library, id), FocusType.Keyboard)) {
                 var dropdown = new AdvancedDropdown<Entry>(
                     "Select value",
                     GetAllEntries(fieldInfo),
@@ -83,15 +79,14 @@ namespace MisterGames.Common.Editor.Drawers {
                         var p = property.Copy();
                         
                         property.FindPropertyRelative(LibraryPropertyPath).objectReferenceValue = e.library; 
-                        property.FindPropertyRelative(ArrayPropertyPath).intValue = e.array; 
-                        property.FindPropertyRelative(ValuePropertyPath).intValue = e.value;
+                        property.FindPropertyRelative(IdPropertyPath).intValue = e.id; 
                         
                         p.serializedObject.ApplyModifiedProperties();
                         p.serializedObject.Update();
                     },
                     sort: nodes => nodes
                         .OrderBy(n => n.data.data.library == null)
-                        .ThenBy(n => n.data.data.index)
+                        .ThenBy(n => n.data.data.array)
                         .ThenBy(n => n.data.name)
                 );
                 
@@ -137,26 +132,18 @@ namespace MisterGames.Common.Editor.Drawers {
                     path = GetEntryPath(libName, arrayName, None);
                     if (!IsValidPath(path, filters)) continue;
                     
-                    list.Add(new Entry(library, i, 0, 0, path));
+                    list.Add(new Entry(library, library.GetArrayId(i), i, path));
                 }
 
-                int indexOffset = none ? 1 : 0;
                 int labelsCount = library.GetLabelsCount(i);
-                var usage = library.GetArrayUsage(i);
                 
                 for (int j = 0; j < labelsCount; j++) {
-                    string label = library.GetLabelByIndex(i, j);
-                    path = GetEntryPath(libName, arrayName, label);
+                    int id = library.GetLabelId(i, j);
+                    path = GetEntryPath(libName, arrayName, library.GetLabel(id));
                     
                     if (!IsValidPath(path, filters)) continue;
                     
-                    int value = usage switch {
-                        LabelArrayUsage.ByIndex => j + indexOffset,
-                        LabelArrayUsage.ByHash => Animator.StringToHash(label),
-                        _ => throw new ArgumentOutOfRangeException(),
-                    };
-                    
-                    list.Add(new Entry(library, i, value, j + indexOffset, path));
+                    list.Add(new Entry(library, library.GetLabelId(i, j), i, path));
                 }
             }
 
@@ -185,14 +172,17 @@ namespace MisterGames.Common.Editor.Drawers {
                     : $"{library}/{array}/{value}";
         }
 
-        private static GUIContent GetDropdownLabel(LabelLibraryBase library, int array, int value) {
+        private static GUIContent GetDropdownLabel(LabelLibraryBase library, int id) {
             if (library == null) return NullLabel;
 
-            int arrayCount = library.GetArraysCount();
-            if (array < 0 || array >= arrayCount) {
-                return new GUIContent($"{library.name}{Separator}Array [{array}]{Separator}Value [{value}] {NotFound}");
+            if (!library.ContainsLabel(id)) {
+                return new GUIContent($"{library.name}{Separator}Id [{id}] {NotFound}");
             }
 
+            int arrayCount = library.GetArraysCount();
+            int array = library.GetArrayIndex(id);
+            int arrayId = library.GetArrayId(array);
+            
             string arrayName = library.GetArrayName(array);
             arrayName = string.IsNullOrWhiteSpace(arrayName) 
                 ? arrayCount == 1 
@@ -201,35 +191,15 @@ namespace MisterGames.Common.Editor.Drawers {
                 : $"{Separator}{arrayName}{Separator}";
 
             bool none = library.GetArrayNoneLabel(array);
-            
-            if (none && value == 0) {
+            if (none && id == arrayId) {
                 return new GUIContent($"{library.name}{arrayName}{None}");
             }
 
-            int labelsCount = library.GetLabelsCount(array);
-            string label = library.GetLabel(array, value);
-            bool containsLabel = library.ContainsLabel(array, value);
+            string label = library.GetLabel(id);
             
-            switch (library.GetArrayUsage(array)) {
-                case LabelArrayUsage.ByIndex:
-                    int count = (none ? 1 : 0) + labelsCount;
-                    
-                    return value >= 0 && value < count 
-                        ? string.IsNullOrWhiteSpace(label) 
-                            ? new GUIContent($"{library.name}{arrayName}Value [{value}]") 
-                            : new GUIContent($"{library.name}{arrayName}{label}") 
-                        : new GUIContent($"{library.name}{arrayName}Value [{value}] {NotFound}");
-                
-                case LabelArrayUsage.ByHash:
-                    return containsLabel 
-                        ? string.IsNullOrWhiteSpace(label) 
-                            ? new GUIContent($"{library.name}{arrayName}Value [hash {value}]") 
-                            : new GUIContent($"{library.name}{arrayName}{label}") 
-                        : new GUIContent($"{library.name}{arrayName}Value [hash {value}] {NotFound}");
-                
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
+            return string.IsNullOrWhiteSpace(label)
+                ? new GUIContent($"{library.name}{arrayName}Label [{library.GetLabelIndex(id)}]")
+                : new GUIContent($"{library.name}{arrayName}{label}");
         }
     }
     
