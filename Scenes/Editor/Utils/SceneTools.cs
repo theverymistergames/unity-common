@@ -13,13 +13,6 @@ namespace MisterGames.Scenes.Editor.Utils {
             public Vector3 localScale;
         }
         
-        [MenuItem("Edit/Toggle Active &a", false, -101)]
-        public static void ToggleActive() {
-            foreach (var go in Selection.gameObjects) {
-                go.SetActive(!go.activeSelf);
-            }
-        }
-        
         [MenuItem("Edit/Copy Position &c", false, -101)]
         public static void CopyTransformValues() {
             if (Selection.gameObjects.Length == 0) return;

@@ -282,6 +282,18 @@ namespace MisterGames.Common.Maths {
             return value + (target - value) * (1f - Mathf.Exp(-factor));
         }
         
+        public static float SmoothExpNonZero(this float value, float target, float factor) {
+            return factor > 0f ? value + (target - value) * (1f - Mathf.Exp(-factor)) : value;
+        }
+        
+        public static Vector2 SmoothExpNonZero(this Vector2 value, Vector2 target, float factor) {
+            return factor > 0f ? value + (target - value) * (1f - Mathf.Exp(-factor)) : value;
+        }
+        
+        public static Vector3 SmoothExpNonZero(this Vector3 value, Vector3 target, float factor) {
+            return factor > 0f ? value + (target - value) * (1f - Mathf.Exp(-factor)) : value;
+        }
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float GetRandomInRange(this Vector2 value) {
             return Random.Range(value.x, value.y);
@@ -290,6 +302,11 @@ namespace MisterGames.Common.Maths {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int GetRandomInRange(this Vector2Int value) {
             return Random.Range(value.x, value.y);
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool InRange(this float value, Vector2 range) {
+            return value >= range.x && value <= range.y;
         }
     }
 

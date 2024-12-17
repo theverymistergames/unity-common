@@ -2,6 +2,7 @@
 using MisterGames.Scenes.Core;
 using UnityEditor;
 using UnityEditor.SceneManagement;
+using UnityEngine;
 using UnityEngine.SceneManagement;
 
 namespace MisterGames.Scenes.Editor.Core {
@@ -10,26 +11,14 @@ namespace MisterGames.Scenes.Editor.Core {
     public static class ScenesMenu {
 
         static ScenesMenu() {
-            EditorSceneManager.activeSceneChangedInEditMode -= OnActiveSceneChangedInEditMode;
-            EditorSceneManager.activeSceneChangedInEditMode += OnActiveSceneChangedInEditMode;
+            EditorApplication.playModeStateChanged += EditorApplicationOnplayModeStateChanged;
+        }
+
+        private static void EditorApplicationOnplayModeStateChanged(PlayModeStateChange change) {
+            if (change != PlayModeStateChange.ExitingEditMode) return;
             
-            EditorSceneManager.sceneOpened -= OnSceneOpened;
-            EditorSceneManager.sceneOpened += OnSceneOpened;
-
-            if (SceneManager.sceneCount > 0) SetupStartScene(SceneManager.GetSceneAt(0).name);
-        }
-        
-        private static void OnActiveSceneChangedInEditMode(Scene arg0, Scene arg1) {
-            SetupStartScene(arg1.name);
-        }
-
-        private static void OnSceneOpened(Scene scene, OpenSceneMode mode) {
-            SetupStartScene(scene.name);
-        }
-
-        private static void SetupStartScene(string sceneName) {
-            SceneLoaderSettings.SavePlaymodeStartScene(sceneName);
-            TrySetPlaymodeStartScene(SceneLoaderSettings.Instance.rootScene.scene);
+            SceneLoaderSettings.SavePlaymodeStartScene(SceneManager.GetActiveScene().name);
+            TrySetPlaymodeStartScene(SceneLoaderSettings.Instance.rootScene.scene);   
         }
         
         private static void TrySetPlaymodeStartScene(string sceneName) {

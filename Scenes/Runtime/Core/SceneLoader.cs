@@ -34,10 +34,11 @@ namespace MisterGames.Scenes.Core {
             }
 
             string playModeStartScene = SceneLoaderSettings.GetPlaymodeStartScene();
+            
             if (!string.IsNullOrEmpty(playModeStartScene) && playModeStartScene != _rootScene) {
                 startScene = playModeStartScene;
             }
-
+            
             // Force load gameplay scene in Unity Editor's playmode,
             // if playmode start scene is not selected start scene.
             needLoadGameplayScene |= _forceLoadGameplaySceneInEditor && startScene != _startScene.scene;
