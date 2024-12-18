@@ -127,9 +127,7 @@ namespace MisterGames.Common.Pooling {
             
             if (cancellationToken.IsCancellationRequested) return;
 
-            gameObject.SetActive(false);
             pool.Release(gameObject);
-            
             SpawnOnLifetimeOut(pool);
         }
 
