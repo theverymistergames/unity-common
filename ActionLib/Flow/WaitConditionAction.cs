@@ -21,7 +21,7 @@ namespace MisterGames.ActionLib.Flow {
                 if (checkPeriod > 0f) {
                     await UniTask.Delay(TimeSpan.FromSeconds(checkPeriod), cancellationToken: cancellationToken)
                         .SuppressCancellationThrow();
-                    return;
+                    continue;
                 }
 
                 await UniTask.Yield();
