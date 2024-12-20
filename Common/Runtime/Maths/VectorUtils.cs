@@ -5,48 +5,6 @@ namespace MisterGames.Common.Maths {
 
     public static class VectorUtils {
 
-        // ---------------- ---------------- Equality ---------------- ----------------
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsNearlyZero(this Vector3 vector) {
-            return vector.x.IsNearlyZero() && vector.y.IsNearlyZero() && vector.z.IsNearlyZero();
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsNearlyZero(this Vector3 vector, float tolerance) {
-            return vector.x.IsNearlyZero(tolerance) && vector.y.IsNearlyZero(tolerance) && vector.z.IsNearlyZero(tolerance);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsNearlyZero(this Vector2 vector) {
-            return vector.x.IsNearlyZero() && vector.y.IsNearlyZero();
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsNearlyZero(this Vector2 vector, float tolerance) {
-            return vector.x.IsNearlyZero(tolerance) && vector.y.IsNearlyZero(tolerance);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsNearlyEqual(this Vector3 vector, Vector3 other) {
-            return vector.x.IsNearlyEqual(other.x) && vector.y.IsNearlyEqual(other.y) && vector.z.IsNearlyEqual(other.z);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsNearlyEqual(this Vector3 vector, Vector3 other, float tolerance) {
-            return vector.x.IsNearlyEqual(other.x, tolerance) && vector.y.IsNearlyEqual(other.y, tolerance) && vector.z.IsNearlyEqual(other.z, tolerance);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsNearlyEqual(this Vector2 vector, Vector2 other) {
-            return vector.x.IsNearlyEqual(other.x) && vector.y.IsNearlyEqual(other.y);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsNearlyEqual(this Vector2 vector, Vector2 other, float tolerance) {
-            return vector.x.IsNearlyEqual(other.x, tolerance) && vector.y.IsNearlyEqual(other.y, tolerance);
-        }
-
         // ---------------- ---------------- Modification ---------------- ----------------
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

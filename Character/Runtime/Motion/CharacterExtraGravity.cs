@@ -38,7 +38,7 @@ namespace MisterGames.Character.Motion {
         public void OnUpdate(float dt) {
             var gravity = Physics.gravity;
             
-            if (!gravity.IsNearlyEqual(_lastGravity)) {
+            if (gravity != _lastGravity) {
                 _lastGravity = gravity;
                 GravityDir = _lastGravity.normalized;
             }

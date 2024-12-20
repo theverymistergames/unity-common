@@ -52,9 +52,7 @@ namespace MisterGames.Interact.Detectables {
         }
 
         public bool IsInDirectView(IDetectable detectable, out float distance) {
-            _directViewDetector.FetchResults();
             var info = _directViewDetector.CollisionInfo;
-
             distance = info.hasContact ? info.distance : 0f;
 
             return info.hasContact &&
@@ -99,7 +97,6 @@ namespace MisterGames.Interact.Detectables {
         }
 
         public void OnUpdate(float dt) {
-            _collisionDetector.FetchResults();
             var hits = _collisionDetector.FilterLastResults(_collisionFilter);
 
             FillDetectedTransformHashesInto(hits, _detectedTransformHashesBuffer);

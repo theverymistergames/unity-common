@@ -16,8 +16,6 @@ namespace MisterGames.Collisions.Core {
         CollisionInfo CollisionInfo { get; }
 
         ReadOnlySpan<CollisionInfo> FilterLastResults(CollisionFilter filter);
-
-        void FetchResults();
     }
 
 }

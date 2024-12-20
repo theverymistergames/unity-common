@@ -41,12 +41,12 @@ namespace MisterGames.Interact.Interactives {
             _interactivesDetector.OnLost += HandleLost;
 
             if (_interactiveCandidatesSet.Count > 0 || _interactiveTargetsSet.Count > 0) {
-                TimeSources.Get(_timeSourceStage).Subscribe(this);
+                _timeSourceStage.Subscribe(this);
             }
         }
 
         private void OnDisable() {
-            TimeSources.Get(_timeSourceStage).Unsubscribe(this);
+            _timeSourceStage.Unsubscribe(this);
 
             _interactivesDetector.OnDetected -= HandleDetected;
             _interactivesDetector.OnLost -= HandleLost;
@@ -57,9 +57,7 @@ namespace MisterGames.Interact.Interactives {
         }
 
         public bool IsInDirectView(IInteractive interactive, out float distance) {
-            _directViewDetector.FetchResults();
             var info = _directViewDetector.CollisionInfo;
-
             distance = info.hasContact ? info.distance : 0f;
 
             return info.hasContact &&

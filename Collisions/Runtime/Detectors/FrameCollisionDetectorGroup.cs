@@ -29,24 +29,19 @@ namespace MisterGames.Collisions.Detectors {
             }
         }
 
-        private ITimeSource _timeSource => TimeSources.Get(_timeSourceStage);
-
         private CollisionInfo[] _hits;
         private CollisionInfo[] _obstacleHits;
-
-        private bool _invalidateFlag;
-        private int _lastUpdateFrame = -1;
 
         private void Awake() {
             _hits = new CollisionInfo[Capacity];
         }
 
         private void OnEnable() {
-            _timeSource.Subscribe(this);
+            _timeSourceStage.Subscribe(this);
         }
 
         private void OnDisable() {
-            _timeSource.Unsubscribe(this);
+            _timeSourceStage.Unsubscribe(this);
         }
 
         private void Start() {
@@ -68,29 +63,18 @@ namespace MisterGames.Collisions.Detectors {
                 : ((ReadOnlySpan<CollisionInfo>) _hits)[..filterCount];
         }
 
-        public override void FetchResults() {
-            UpdateContacts();
-        }
-
-        public void OnUpdate(float dt) {
+        void IUpdate.OnUpdate(float dt) {
             UpdateContacts();
         }
 
         private void UpdateContacts(bool forceNotify = false) {
             if (!enabled) return;
 
-            int frame = Time.frameCount;
-            if (frame == _lastUpdateFrame && !_invalidateFlag) return;
-
-            _invalidateFlag = false;
-
             PerformCast(out var info);
             SetCollisionInfo(info, forceNotify);
-
-            _lastUpdateFrame = frame;
         }
 
-        private int PerformCast(out CollisionInfo info) {
+        private void PerformCast(out CollisionInfo info) {
             var filter = new CollisionFilter { maxDistance = _maxDistance, layerMask = _layerMask };
             int hitCount = 0;
             float minDistance = -1f;
@@ -98,9 +82,8 @@ namespace MisterGames.Collisions.Detectors {
 
             for (int i = 0; i < _detectors.Length; i++) {
                 var detector = _detectors[i];
-                detector.FetchResults();
-
                 var hits = detector.FilterLastResults(filter);
+                
                 for (int h = 0; h < hits.Length; h++) {
                     _hits[hitCount++] = hits[h];
                 }
@@ -112,8 +95,6 @@ namespace MisterGames.Collisions.Detectors {
                     info = nearestHit;
                 }
             }
-
-            return hitCount;
         }
     }
 

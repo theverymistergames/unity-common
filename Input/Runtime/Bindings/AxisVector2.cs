@@ -20,7 +20,7 @@ namespace MisterGames.Input.Bindings {
             get {
                 var vector = _axis.GetValue();
 
-                if (_normalize && !vector.IsNearlyZero()) vector.Normalize();
+                if (_normalize && vector != Vector2.zero) vector.Normalize();
 
                 vector.x *= _sensitivityX;
                 vector.y *= _sensitivityY;

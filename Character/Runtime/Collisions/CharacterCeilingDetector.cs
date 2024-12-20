@@ -20,48 +20,19 @@ namespace MisterGames.Character.Collisions {
         [SerializeField] private QueryTriggerInteraction _triggerInteraction = QueryTriggerInteraction.Ignore;
 
         public override int Capacity => _maxHits;
-
-        public override Vector3 OriginOffset {
-            get => _originOffset;
-            set {
-                _originOffset = value;
-                _invalidateFlag = true;
-            }
-        }
-
-        public override float Distance {
-            get => _distance;
-            set {
-                _distance = value;
-                _invalidateFlag = true;
-            }
-        }
-
-        public float Radius {
-            get => _radius;
-            set {
-                _radius = value;
-                _invalidateFlag = true;
-            }
-        }
+        public override Vector3 OriginOffset { get => _originOffset; set => _originOffset = value; }
+        public override float Distance { get => _distance; set => _distance = value; }
+        public float Radius { get => _radius; set => _radius = value; }
 
         private Transform _transform;
-
         private RaycastHit[] _raycastHits;
         private CollisionInfo[] _hits;
-
         private int _hitCount;
-        private int _lastUpdateFrame;
-        private bool _invalidateFlag;
 
         private void Awake() {
             _transform = transform;
             _raycastHits = new RaycastHit[_maxHits];
             _hits = new CollisionInfo[_maxHits];
-        }
-
-        private void Start() {
-            RequestCeiling(forceNotify: true);
         }
 
         private void OnEnable() {
@@ -72,11 +43,11 @@ namespace MisterGames.Character.Collisions {
             PlayerLoopStage.Update.Unsubscribe(this);
         }
 
-        void IUpdate.OnUpdate(float dt) {
-            RequestCeiling();
+        private void Start() {
+            RequestCeiling(forceNotify: true);
         }
 
-        public override void FetchResults() {
+        void IUpdate.OnUpdate(float dt) {
             RequestCeiling();
         }
 
@@ -98,9 +69,6 @@ namespace MisterGames.Character.Collisions {
 
         private void RequestCeiling(bool forceNotify = false) {
             if (!enabled) return;
-
-            int frame = Time.frameCount;
-            if (frame == _lastUpdateFrame && !_invalidateFlag) return;
 
             var origin = _transform.TransformPoint(_originOffset);
             float distance = _distance + _distanceAddition;
@@ -131,7 +99,6 @@ namespace MisterGames.Character.Collisions {
             var info = new CollisionInfo(hasHits, hitDistance, normal, hitPoint, surface);
             
             SetCollisionInfo(info, forceNotify);
-            _lastUpdateFrame = frame;
         }
         
         private int PerformSphereCast(Vector3 origin, float radius, float distance, RaycastHit[] hits) {

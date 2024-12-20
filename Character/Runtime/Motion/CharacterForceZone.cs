@@ -137,7 +137,6 @@ namespace MisterGames.Character.Motion {
 
                 _obstacleDetector.transform.forward = _forceDirection;
                 _obstacleDetector.OriginOffset = obstacleRaycastOriginOffset;
-                _obstacleDetector.FetchResults();
 
                 var hits = _obstacleDetector.FilterLastResults(_obstacleCollisionFilter);
                 if (hits.TryGetMinimumDistanceHit(hits.Length, out var obstacleHit) &&

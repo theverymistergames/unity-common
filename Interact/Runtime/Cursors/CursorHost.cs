@@ -76,7 +76,6 @@ namespace MisterGames.Interact.Cursors {
         public void OnUpdate(float deltaTime) {
             if (!_isAlphaControlledByDistance) return;
 
-            _transparencyRaycaster.FetchResults();
             var hits = _transparencyRaycaster.FilterLastResults(_collisionFilter);
             bool hasHit = hits.TryGetMinimumDistanceHit(hits.Length, out var hit);
 

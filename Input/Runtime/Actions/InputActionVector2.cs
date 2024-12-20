@@ -54,8 +54,8 @@ namespace MisterGames.Input.Actions {
                     break;
             }
             
-            if (_ignoreNewValueIfNotChanged && prevVector.IsNearlyEqual(Value)) return;
-            if (_ignoreZero && Value.IsNearlyZero()) return;
+            if (_ignoreNewValueIfNotChanged && prevVector == Value) return;
+            if (_ignoreZero && Value == Vector2.zero) return;
             
             OnChanged.Invoke(Value);
         }
@@ -67,7 +67,7 @@ namespace MisterGames.Input.Actions {
             int count = 0;
             for (int i = 0; i < _bindings.Length; i++) {
                 var value = _bindings[i].Value;
-                if (value.IsNearlyZero()) continue;
+                if (value == Vector2.zero) continue;
                 
                 result += value;
                 count++;

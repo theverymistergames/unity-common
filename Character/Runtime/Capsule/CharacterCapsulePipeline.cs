@@ -87,8 +87,6 @@ namespace MisterGames.Character.Capsule {
             _groundDetector.OriginOffset = halfCenter;
             _groundDetector.Distance = height * 0.5f - _capsuleCollider.radius;
             
-            _groundDetector.FetchResults();
-            
             if (!_groundDetector.HasContact) {
                 _bodyAdapter.Position += (prevHeight - height) * up;
             }

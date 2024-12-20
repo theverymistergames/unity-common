@@ -171,10 +171,10 @@ namespace MisterGames.Character.Motion {
         private bool CanApplyJumpImpulse() {
             float time = Time.time;
 
-            return _infiniteJumps || !IsBlocked && 
-                time >= _jumpRequestApplyTime + _jumpImpulseDelay + _jumpTakeoffDuration && 
-                _jumpRequestApplyTime + _jumpImpulseDelay + _jumpTakeoffDuration + _minGroundedTimeToAllowJump <= _lastTimeGrounded && 
-                (_coyoteTime <= 0f || time - _lastTimeGrounded <= _coyoteTime);
+            return _infiniteJumps || 
+                   !IsBlocked && time >= _jumpRequestApplyTime + _jumpImpulseDelay + _jumpTakeoffDuration && 
+                   _jumpRequestApplyTime + _jumpImpulseDelay + _jumpTakeoffDuration + _minGroundedTimeToAllowJump <= _lastTimeGrounded && 
+                   (_groundDetector.HasContact || time - _lastTimeGrounded <= _coyoteTime);
         }
     }
 

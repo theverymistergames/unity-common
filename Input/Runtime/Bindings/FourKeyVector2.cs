@@ -27,7 +27,7 @@ namespace MisterGames.Input.Bindings {
                     _positiveY.IsActive().AsInt() - _negativeY.IsActive().AsInt()
                 );
 
-                if (_normalize && !vector.IsNearlyZero()) vector.Normalize();
+                if (_normalize && vector != Vector2.zero) vector.Normalize();
 
                 vector.x *= _sensitivityX;
                 vector.y *= _sensitivityY;

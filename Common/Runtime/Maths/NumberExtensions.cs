@@ -42,8 +42,7 @@ namespace MisterGames.Common.Maths {
             b = (int) (l >> 32);
         }
 
-        public static long TwoIntsAsLong(int a, int b)
-        {
+        public static long TwoIntsAsLong(int a, int b) {
             long l = b;
             l <<= 32;
             l |= (uint) a;
