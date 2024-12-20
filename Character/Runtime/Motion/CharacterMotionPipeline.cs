@@ -2,7 +2,6 @@
 using MisterGames.Character.Collisions;
 using MisterGames.Character.Input;
 using MisterGames.Character.View;
-using MisterGames.Collisions.Utils;
 using MisterGames.Common;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Maths;
@@ -18,18 +17,15 @@ namespace MisterGames.Character.Motion {
         [SerializeField] [Min(0f)] private float _noGravityVelocityDamping = 10f;
         [SerializeField] private float _speedCorrectionSide = 0.8f;
         [SerializeField] private float _speedCorrectionBack = 0.6f;
-        [SerializeField] [MinMaxSlider(0f, 1f)] private Vector2 _forceCorrection = new Vector2(0f, 0.5f);
-        [SerializeField] [MinMaxSlider(0f, 180f)] private Vector2 _forceCorrectionAngle = new Vector2(15f, 90f);
         [SerializeField] [MinMaxSlider(0f, 90f)] private Vector2 _slopeAngle = new Vector2(25f, 45f);
         [SerializeField] private float _inputSmoothing = 20f;
-        
-        [Header("Detection")]
-        [SerializeField] [Min(0f)] private float _capsuleCastDistance = 0.1f;
-        [SerializeField] private float _capsuleCastRadiusOffset = -0.05f;
-        [SerializeField] private float _lowerPointOffset = -0.1f;
-        [SerializeField] [Min(1)] private int _maxHits = 12;
-        [SerializeField] private LayerMask _layer;
 
+        [Header("Force Correction")]
+        [SerializeField] [MinMaxSlider(0f, 180f)] private Vector2 _forceCorrectionTurnAngle = new Vector2(15f, 120f);
+        [SerializeField] [MinMaxSlider(0f, 90f)] private Vector2 _forceCorrectionSlopeAngle = new Vector2(3f, 60f);
+        [SerializeField] [Range(0f, 1f)] private float _forceCorrectionTurnAngleWeight = 0.5f;
+        [SerializeField] [Range(0f, 1f)] private float _forceCorrectionSlopeAngleWeight = 1f;
+        
         [Header("Debug")]
         [SerializeField] private bool _showDebugInfo;
         
@@ -54,21 +50,16 @@ namespace MisterGames.Character.Motion {
         private CharacterInputPipeline _input;
         private CharacterGroundDetector _groundDetector;
         private CharacterCollisionPipeline _collisionPipeline;
-        private CapsuleCollider _collider;
-        private RaycastHit[] _hits;
         private Vector2 _smoothedInput;
 
         void IActorComponent.OnAwake(IActor actor) {
             _transform = actor.Transform;
-                
-            _collider = actor.GetComponent<CapsuleCollider>();
+            
             _input = actor.GetComponent<CharacterInputPipeline>();
             _rigidbody = actor.GetComponent<Rigidbody>();
             _view = actor.GetComponent<CharacterViewPipeline>();
             _groundDetector = actor.GetComponent<CharacterGroundDetector>();
             _collisionPipeline = actor.GetComponent<CharacterCollisionPipeline>();
-
-            _hits = new RaycastHit[_maxHits];
         }
         
         private void OnEnable() {
@@ -127,30 +118,29 @@ namespace MisterGames.Character.Motion {
                 orient = Quaternion.LookRotation(Vector3.ProjectOnPlane(orient * Vector3.forward, up), up);
             }
 
-            _groundDetector.FetchResults();
+            InputDirWorld = Input == Vector2.zero ? Vector3.zero : orient * InputToLocal(Input).normalized;
             MotionNormal = _groundDetector.GetMotionNormal(InputDirWorld);
             var normalRot = Quaternion.FromToRotation(up, MotionNormal);
-            SlopeAngle = GetSlopeAngle(MotionDirWorld);
             
-            InputDirWorld = Input.IsNearlyZero() ? Vector3.zero : orient * InputToLocal(Input).normalized;
             MotionDirWorld = normalRot * InputDirWorld;
             _smoothedInput = Vector2.Lerp(_smoothedInput, Input, dt * _inputSmoothing);
-
+            
+            SlopeAngle = Vector3.SignedAngle(up, _groundDetector.CollisionInfo.normal, Vector3.Cross(MotionDirWorld, up).normalized);
+            
             if (_rigidbody.isKinematic) return;
             
             float maxSpeed = CalculateSpeedCorrection(Input) * Speed;
             var velocity = _rigidbody.linearVelocity;
             PreviousVelocity = velocity;
 
-            var inputDirNormalized = normalRot * orient * (_smoothedInput.IsNearlyZero() ? Vector3.forward : InputToLocal(_smoothedInput).normalized);
+            var inputDirNormalized = normalRot * orient * (_smoothedInput == Vector2.zero ? Vector3.forward : InputToLocal(_smoothedInput).normalized);
             var inputDirSmoothed = normalRot * orient * InputToLocal(_smoothedInput);
             
             var velocityProj = Vector3.Project(velocity, inputDirNormalized);
             var force = VectorUtils.ClampAcceleration(inputDirSmoothed * _moveForce, velocityProj, maxSpeed, dt);
 
-            if (!Input.IsNearlyZero()) {
-                ApplyDirCorrection(inputDirNormalized * maxSpeed, velocity, ref force, dt);
-                LimitForceByObstacles(inputDirNormalized, ref force);
+            if (Input != Vector2.zero) {
+                ApplyDirCorrection(inputDirNormalized * maxSpeed, Vector3.ProjectOnPlane(velocity, MotionNormal), ref force, dt);
                 LimitForceBySlopeAngle(SlopeAngle, ref force);
             }
             
@@ -191,56 +181,20 @@ namespace MisterGames.Character.Motion {
             inputForce = Vector3.ProjectOnPlane(inputForce, slopeUp);
         }
 
-        private void LimitForceByObstacles(Vector3 direction, ref Vector3 inputForce) {
-            var pos = _rigidbody.position;
-            float radius = _collider.radius + _capsuleCastRadiusOffset;
-            float height = _collider.height;
-            float halfHeight = height * 0.5f - radius;
-            
-            var center = _collider.center;
-            var up = _transform.up;
-            
-            var p0 = pos + center + halfHeight * up;
-            var p1 = pos + center - halfHeight * up;
-
-            int hitCount = Physics.CapsuleCastNonAlloc(
-                p0, 
-                p1, 
-                radius, 
-                direction, 
-                _hits, 
-                _capsuleCastDistance, 
-                _layer, 
-                QueryTriggerInteraction.Ignore
-            );
-            
-            if (!_hits.TryGetMinimumDistanceHit(hitCount, out var hit) || 
-                VectorUtils.SignedMagnitudeOfProject(hit.point - p1 - _lowerPointOffset * up, up) < 0f
-            ) {
-                return;
-            }
-            
-            inputForce = Vector3.ProjectOnPlane(inputForce, hit.normal);
-        }
-
         private void ApplyDirCorrection(Vector3 targetVelocity, Vector3 velocity, ref Vector3 force, float dt) {
-            if (targetVelocity.IsNearlyZero() || !_groundDetector.HasContact) return;
+            if (targetVelocity == Vector3.zero || !_groundDetector.HasContact) return;
 
             var nextVelocity = velocity + force * dt;
             var perfectForce = dt > 0f ? (targetVelocity - velocity) / dt : force;
                 
-            float angle = Vector3.Angle(targetVelocity, nextVelocity);
-            float t = Mathf.Clamp01((angle - _forceCorrectionAngle.x) / (_forceCorrectionAngle.y - _forceCorrectionAngle.x));
-
-            float f = Mathf.Lerp(_forceCorrection.x, _forceCorrection.y, t);
-            force = Vector3.Lerp(force, perfectForce, f);
+            float turnAngle = Vector3.Angle(targetVelocity, Vector3.ProjectOnPlane(nextVelocity, _transform.up));
+            float turnFactor = Mathf.Clamp01((turnAngle - _forceCorrectionTurnAngle.x) / (_forceCorrectionTurnAngle.y - _forceCorrectionTurnAngle.x));
+            float slopeFactor = Mathf.Clamp01((Mathf.Abs(SlopeAngle) - _forceCorrectionSlopeAngle.x) / (_forceCorrectionSlopeAngle.y - _forceCorrectionSlopeAngle.x));
+            
+            float t = Mathf.Max(turnFactor * _forceCorrectionTurnAngleWeight, slopeFactor * _forceCorrectionSlopeAngleWeight);
+            force = Vector3.Lerp(force, perfectForce, t);
         }
 
-        private float GetSlopeAngle(Vector3 inputDir) {
-            var up = _transform.up;
-            return Vector3.SignedAngle(up, MotionNormal, Vector3.Cross(inputDir, up).normalized);
-        }
-        
 #if UNITY_EDITOR
         private void OnDrawGizmos() {
             if (!_showDebugInfo) return;

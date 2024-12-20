@@ -1,6 +1,5 @@
 ﻿using MisterGames.Actors;
 using MisterGames.Character.Collisions;
-using MisterGames.Collisions.Core;
 using MisterGames.Collisions.Utils;
 using MisterGames.Common;
 using MisterGames.Common.Maths;
@@ -23,13 +22,12 @@ namespace MisterGames.Character.Motion {
         [Header("Resolving")]
         [SerializeField] [Min(0f)] private float _maxStepHeight;
         [SerializeField] [Min(0f)] private float _maxStepHeightAir;
-        [SerializeField] private Vector3 _climbSpeedMin;
-        [SerializeField] private Vector3 _climbSpeedMax;
+        [SerializeField] private Vector3 _climbSpeed;
+        [SerializeField] private Vector3 _climbForce;
         [SerializeField] private float _speedMultiplierGround = 1f;
         [SerializeField] private float _speedMultiplierAir = 1f;
         [SerializeField] private float _forceMultiplierGround = 1f;
         [SerializeField] private float _forceMultiplierAir = 1f;
-        [SerializeField] [Min(0f)] private float _speedSmoothing;
         
         [Header("Debug")]
         [SerializeField] private bool _showDebugInfo;
@@ -38,7 +36,6 @@ namespace MisterGames.Character.Motion {
         private CharacterMotionPipeline _motion;
         private Transform _transform;
         private RaycastHit[] _hits;
-        private Vector3 _climbSpeed;
 
         void IActorComponent.OnAwake(IActor actor) {
             _transform = actor.Transform;
@@ -50,33 +47,25 @@ namespace MisterGames.Character.Motion {
 
         private void OnEnable() {
             PlayerLoopStage.FixedUpdate.Subscribe(this);
-
-            _climbSpeed = _climbSpeedMin;
         }
 
         private void OnDisable() {
             PlayerLoopStage.FixedUpdate.Unsubscribe(this);
         }
 
-        public void OnUpdate(float dt) {
-            if (_motion.Input.IsNearlyZero()) {
-                _climbSpeed = _climbSpeedMin;
-                return;
-            }
+        void IUpdate.OnUpdate(float dt) {
+            if (_motion.Input == Vector2.zero) return;
 
-            _groundDetector.FetchResults();
             bool isGrounded = _groundDetector.HasContact;
-            
             var up = _transform.up;
             float stepHeight = isGrounded ? _maxStepHeight : _maxStepHeightAir;
             
             var lowerPoint = _transform.position + _lowerRayOffset * up;
             var upperPoint = lowerPoint + stepHeight * up;
-            var inputDir = _motion.InputDirWorld;
+            var inputDir = Vector3.ProjectOnPlane(_motion.InputDirWorld, up).normalized;
             
             // Lower ray not detected any obstacles: do nothing
             if (!DoubleRaycast(lowerPoint, inputDir, Vector3.up, _distance, out var lowerHit)) {
-                _climbSpeed = _climbSpeedMin;
                 return;
             }
             
@@ -89,7 +78,6 @@ namespace MisterGames.Character.Motion {
 #if UNITY_EDITOR
                 if (_showDebugInfo) DebugExt.DrawPointer(upperHit.point, Color.red);
 #endif
-                _climbSpeed = _climbSpeedMin;
                 return;
             }
             
@@ -98,25 +86,22 @@ namespace MisterGames.Character.Motion {
 #endif
 
             float angle = Vector3.SignedAngle(up, lowerHit.normal, Vector3.Cross(inputDir, up));
-            if (angle < _minInclineAngle) {
-                _climbSpeed = _climbSpeedMin;
-                return;
-            }
+            if (angle < _minInclineAngle) return;
 
-            _climbSpeed = _speedSmoothing > 0f 
-                ? Vector3.Lerp(_climbSpeed, _climbSpeedMax, dt * _speedSmoothing)
-                : _climbSpeedMax;
+            var speedVector = _climbSpeed.x * inputDir + _climbSpeed.y * up + _climbSpeed.z * -lowerHit.normal; 
+            var forceVector = _climbForce.x * inputDir + _climbForce.y * up + _climbForce.z * -lowerHit.normal; 
 
-            var vector = _climbSpeed.x * inputDir + _climbSpeed.y * up + _climbSpeed.z * -lowerHit.normal;// * Vector3.Project(_climbSpeed.x * inputDir, lowerHit.normal);
-            float speedMul = isGrounded ? _speedMultiplierGround : _speedMultiplierAir;
-            float forceMul = isGrounded ? _forceMultiplierGround : _forceMultiplierAir;
+            float speedK = isGrounded ? _speedMultiplierGround : _speedMultiplierAir;
+            float forceK = isGrounded ? _forceMultiplierGround : _forceMultiplierAir;
             
-            _motion.Position += vector * (speedMul * dt);
-            _motion.AddForce(vector * forceMul, ForceMode.Acceleration);
+            var diff = speedK * dt * speedVector;
+            
+            _motion.Position += diff;
+            _motion.AddForce(forceVector * forceK, ForceMode.Acceleration);
             
 #if UNITY_EDITOR
             if (_showDebugInfo) DebugExt.DrawSphere(lowerPoint, 0.01f, Color.green, duration: 5f);
-            if (_showDebugInfo) DebugExt.DrawRay(lowerPoint, vector * (speedMul * dt), Color.green, duration: 5f);
+            if (_showDebugInfo) DebugExt.DrawRay(lowerPoint, diff, Color.green, duration: 5f);
 #endif
         }
         

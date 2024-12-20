@@ -1,7 +1,6 @@
 ﻿using MisterGames.Actors;
 using MisterGames.Character.View;
 using MisterGames.Common.Data;
-using MisterGames.Common.GameObjects;
 using MisterGames.Common.Maths;
 using MisterGames.Tick.Core;
 using UnityEngine;
@@ -40,10 +39,6 @@ namespace MisterGames.Character.Steps {
         private Vector3 _targetPositionAmplitude;
         private Vector3 _targetRotationAmplitude;
 
-        private float _invertedSqrDistance;
-        private float _stepProgress;
-        private int _foot;
-
         public void OnAwake(IActor actor) {
             _rigidbody = actor.GetComponent<Rigidbody>();
             _view = actor.GetComponent<CharacterViewPipeline>();
@@ -55,11 +50,7 @@ namespace MisterGames.Character.Steps {
             _cameraStateId = _cameraContainer.CreateState();
             PlayerLoopStage.Update.Subscribe(this);
 
-            _steps.OnStep -= OnStep;
             _steps.OnStep += OnStep;
-
-            _steps.OnStartMotionStep -= OnStep;
-            _steps.OnStartMotionStep += OnStep;
         }
 
         private void OnDisable() {
@@ -67,23 +58,17 @@ namespace MisterGames.Character.Steps {
             PlayerLoopStage.Update.Unsubscribe(this);
 
             _steps.OnStep -= OnStep;
-            _steps.OnStartMotionStep -= OnStep;
         }
 
         private void OnStep(int foot, float distance, Vector3 point) {
-            _foot = foot;
-            _invertedSqrDistance = distance > 0f ? 1f / (distance * distance) : 0f;
-
             float speedRatio = _maxSpeed > 0f ? _rigidbody.linearVelocity.magnitude / _maxSpeed : 0f;
             float baseAmplitude = _baseAmplitude + Random.Range(-_baseAmplitudeRandom, _baseAmplitudeRandom);
             baseAmplitude *= _baseAmplitudeBySpeed.Evaluate(speedRatio);
             
-            int footDir = _foot == 0 ? 1 : -1;
+            int footDir = foot == 0 ? 1 : -1;
 
             _targetPositionAmplitude = baseAmplitude * _positionOffset.CreateMultiplier().Multiply(footDir, 1f, 1f);
             _targetRotationAmplitude = baseAmplitude * _rotationOffset.CreateMultiplier().Multiply(1f, footDir, footDir);
-
-            _stepProgress = 0f;
         }
 
         void IUpdate.OnUpdate(float dt) {
@@ -93,15 +78,13 @@ namespace MisterGames.Character.Steps {
 
             if (sqrSpeed < _minSpeed * _minSpeed) {
                 targetSmooth = _returnSmooth;
-                _stepProgress = 0f;
                 _targetPositionOffset = Vector3.zero;
                 _targetRotationOffset = Quaternion.identity;
             }
             else {
                 targetSmooth = _smooth;
-                _stepProgress = Mathf.Clamp01(_stepProgress + dt * sqrSpeed * _invertedSqrDistance);
-                _targetPositionOffset = _positionOffset.Evaluate(_stepProgress).Multiply(_targetPositionAmplitude);
-                _targetRotationOffset = Quaternion.Euler(_rotationOffset.Evaluate(_stepProgress).Multiply(_targetRotationAmplitude));
+                _targetPositionOffset = _positionOffset.Evaluate(_steps.StepProgress).Multiply(_targetPositionAmplitude);
+                _targetRotationOffset = Quaternion.Euler(_rotationOffset.Evaluate(_steps.StepProgress).Multiply(_targetRotationAmplitude));
             }
 
             _currentPositionOffset = Vector3.Lerp(_currentPositionOffset, _targetPositionOffset, dt * targetSmooth);

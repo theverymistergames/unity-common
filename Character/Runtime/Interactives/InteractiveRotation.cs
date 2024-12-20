@@ -1,5 +1,6 @@
 ﻿using MisterGames.Actors;
 using MisterGames.Character.View;
+using MisterGames.Common.Maths;
 using MisterGames.Input.Actions;
 using MisterGames.Interact.Interactives;
 using MisterGames.Tick.Core;
@@ -18,15 +19,17 @@ namespace MisterGames.Character.Interactives {
 
         private Interactive _interactive;
         private Vector2 _inputAccum;
-        private Vector2 _orientation;
+        private Vector2 _targetOrientation;
+        private Vector2 _smoothedOrientation;
         
         private void Awake() {
             _interactive = GetComponent<Interactive>();
 
             var eulers = _target.eulerAngles;
-            _orientation = new Vector2(eulers.z, eulers.y);
+            _targetOrientation = new Vector2(eulers.z, eulers.y);
+            _smoothedOrientation = _targetOrientation;
             
-            _viewClamp.SetClampCenter(_orientation);
+            _viewClamp.SetClampCenter(_smoothedOrientation);
         }
 
         private void OnEnable() {
@@ -69,17 +72,14 @@ namespace MisterGames.Character.Interactives {
         }
 
         public void OnUpdate(float dt) {
-            var current = _orientation;
-            var target = _orientation + _inputAccum;
+            _targetOrientation += _inputAccum;
             _inputAccum = Vector2.zero;
             
-            _viewClamp.Process(_target.position, current, ref target, dt);
-            _orientation = _smoothing > 0f 
-                ? Vector2.Lerp(current, target, dt * _smoothing)
-                : target;
+            _viewClamp.Process(_target.position, _smoothedOrientation, ref _targetOrientation, dt);
+            _smoothedOrientation = _smoothedOrientation.SmoothExpNonZero(_targetOrientation, dt * _smoothing); 
             
-            _target.rotation = Quaternion.Euler(0f, _orientation.y, _orientation.x);
-        }
+            _target.rotation = Quaternion.Euler(0f, _smoothedOrientation.y, _smoothedOrientation.x);
+        }   
     }
     
 }

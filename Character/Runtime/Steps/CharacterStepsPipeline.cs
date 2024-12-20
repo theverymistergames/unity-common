@@ -5,7 +5,6 @@ using MisterGames.Collisions.Core;
 using MisterGames.Common;
 using MisterGames.Common.Easing;
 using MisterGames.Common.GameObjects;
-using MisterGames.Common.Maths;
 using MisterGames.Tick.Core;
 using UnityEngine;
 
@@ -13,26 +12,32 @@ namespace MisterGames.Character.Steps {
 
     public sealed class CharacterStepsPipeline : MonoBehaviour, IActorComponent, IUpdate {
 
-        [SerializeField] private PlayerLoopStage _playerLoopStage = PlayerLoopStage.Update;
-
         [Header("Step Settings")]
         [SerializeField] [Min(0f)] private float _feetDistance = 0.3f;
         [SerializeField] private float _feetForwardOffset = 0.3f;
         [SerializeField] [Min(0f)] private float _speedMin = 0.1f;
         [SerializeField] [Min(0f)] private float _speedMax = 10f;
+        [SerializeField] [Min(0f)] private float _minSpeedDetectDuration = 0.15f;
+        [SerializeField] [Min(0f)] private float _skipNotGroundedDuration = 0.15f;
         [SerializeField] [Min(0f)] private float _stepLengthMin = 0.4f;
         [SerializeField] [Min(0f)] private float _stepLengthMultiplier = 3f;
         [SerializeField] private AnimationCurve _stepLengthBySpeed = EasingType.EaseOutExpo.ToAnimationCurve();
+
+        [Header("Debug")]
+        [SerializeField] private bool _showDebugInfo;
+        
+        public delegate void StepCallback(int foot, float distance, Vector3 point);
         
         public event StepCallback OnStep = delegate {  };
-        public event StepCallback OnStartMotionStep = delegate {  };
 
-        public delegate void StepCallback(int foot, float distance, Vector3 point);
+        public float StepProgress => Mathf.Clamp01(_stepProgress);
         
         private Rigidbody _rigidbody;
         private ICollisionDetector _groundDetector;
         private ITransformAdapter _body;
 
+        private float _lastTimeGrounded;
+        private float _lastTimeMoving;
         private float _stepProgress = -1;
         private int _foot;
         
@@ -43,81 +48,55 @@ namespace MisterGames.Character.Steps {
         }
 
         private void OnEnable() {
-            TimeSources.Get(_playerLoopStage).Subscribe(this);
+            PlayerLoopStage.Update.Subscribe(this);
         }
 
         private void OnDisable() {
-            TimeSources.Get(_playerLoopStage).Unsubscribe(this);
+            PlayerLoopStage.Update.Unsubscribe(this);
         }
 
-        public void OnUpdate(float dt) {
-            var groundInfo = _groundDetector.CollisionInfo;
-
-            if (!groundInfo.hasContact) {
+        void IUpdate.OnUpdate(float dt) {
+            float time = Time.time;
+            var velocityFlat = Vector3.ProjectOnPlane(_rigidbody.linearVelocity, _body.Rotation * Vector3.up);
+            float sqrSpeedFlat = velocityFlat.sqrMagnitude;
+            
+            if (_groundDetector.HasContact) _lastTimeGrounded = time; 
+            if (sqrSpeedFlat >= _speedMin * _speedMin) _lastTimeMoving = time;
+            
+            if (time - _lastTimeGrounded > _skipNotGroundedDuration || time - _lastTimeMoving > _minSpeedDetectDuration) {
                 _stepProgress = -1f;
                 return;
             }
 
-            var velocity = _rigidbody.linearVelocity;
-            float sqrSpeed = velocity.sqrMagnitude;
+            var point = _groundDetector.CollisionInfo.point + GetFootPointOffset(velocityFlat, _foot);
             float stepLength = _stepLengthMin +
                                _stepLengthMultiplier *
-                               _stepLengthBySpeed.Evaluate(_speedMax < 0f ? 0f : sqrSpeed / (_speedMax * _speedMax));
-
-            if (sqrSpeed < _speedMin * _speedMin) {
-                _stepProgress = -1f;
+                               _stepLengthBySpeed.Evaluate(_speedMax <= 0f ? 0f : sqrSpeedFlat / (_speedMax * _speedMax));
+            
+            if (_stepProgress is >= 0f and < 1f) {
+                _stepProgress = Mathf.Clamp01(_stepProgress + sqrSpeedFlat * dt / (stepLength * stepLength));
                 return;
             }
-
-            var point = groundInfo.point + GetFootPointOffset(velocity, _foot);
-
-            if (_stepProgress < 0f) {
-                _stepProgress = sqrSpeed * dt;
-                OnStartMotionStep.Invoke(_foot, stepLength, point);
-                _foot = _foot == 0 ? 1 : 0;
-
+            
 #if UNITY_EDITOR
-                DbgDrawStep(point, Color.red);
+            if (_showDebugInfo) DebugExt.DrawPointer(point, _stepProgress >= 0f ? Color.yellow : Color.red, 0.2f, duration: 2f);
 #endif
-                return;
-            }
-
-            if (_stepProgress < stepLength * stepLength) {
-                _stepProgress += sqrSpeed * dt;
-                return;
-            }
-
+            
             _stepProgress = 0f;
             OnStep.Invoke(_foot, stepLength, point);
             _foot = _foot == 0 ? 1 : 0;
-
-#if UNITY_EDITOR
-            DbgDrawStep(point, Color.yellow);
-#endif
         }
 
         private Vector3 GetFootPointOffset(Vector3 velocity, int foot) {
             var up = _body.Rotation * Vector3.up;
-            var velocityProjection = Vector3.ProjectOnPlane(velocity, up);
-            var forward = velocityProjection.sqrMagnitude.IsNearlyZero()
+            var forward = velocity == Vector3.zero
                 ? _body.Rotation * Vector3.forward
                 : velocity;
-
+            
             return Quaternion.LookRotation(forward, up) *
                    (Vector3.right * (0.5f * (foot == 0 ? _feetDistance : -_feetDistance)) +
                     Vector3.forward * _feetForwardOffset);
         }
-
-        [Header("Debug")]
-        [SerializeField] private bool _debugDrawStep;
-
-#if UNITY_EDITOR
-        private void DbgDrawStep(Vector3 point, Color color) {
-            if (_debugDrawStep) {
-                DebugExt.DrawPointer(point, color, 0.5f, duration: 2f);
-            }
-        }
-#endif
     }
 
 }
