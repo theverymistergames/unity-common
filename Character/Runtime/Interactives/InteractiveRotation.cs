@@ -14,13 +14,16 @@ namespace MisterGames.Character.Interactives {
         [SerializeField] private Transform _target;
         [SerializeField] private InputActionVector2 _rotationInput;
         [SerializeField] private Vector2 _sensitivity = Vector2.one;
-        [SerializeField] private float _smoothing = 10f;
+        [SerializeField] [Min(0f)] private float _smoothing = 10f;
+        [SerializeField] [Min(0f)] private float _inputSmoothing = 1f;
         [SerializeField] private ViewClampProcessor _viewClamp;
 
         private Interactive _interactive;
         private Vector2 _inputAccum;
         private Vector2 _targetOrientation;
         private Vector2 _smoothedOrientation;
+        private float _smoothFactor;
+        private bool _finishingFlag;
         
         private void Awake() {
             _interactive = GetComponent<Interactive>();
@@ -35,15 +38,19 @@ namespace MisterGames.Character.Interactives {
         private void OnEnable() {
             _interactive.OnStartInteract += OnStartInteract;
             _interactive.OnStopInteract += OnStopInteract;
+            
             ActualizeSubscriptions();
         }
 
         private void OnDisable() {
             PlayerLoopStage.Update.Unsubscribe(this);
+            
             _interactive.OnStartInteract -= OnStartInteract;
             _interactive.OnStopInteract -= OnStopInteract;
             _rotationInput.OnChanged -= OnRotationInput;
+            
             _inputAccum = Vector2.zero;
+            _finishingFlag = false;
         }
 
         private void OnStartInteract(IInteractiveUser user) {
@@ -56,30 +63,36 @@ namespace MisterGames.Character.Interactives {
 
         private void ActualizeSubscriptions() {
             if (_interactive.IsInteracting) {
+                _finishingFlag = false;
                 PlayerLoopStage.Update.Subscribe(this);
                 _rotationInput.OnChanged -= OnRotationInput;
                 _rotationInput.OnChanged += OnRotationInput;
                 return;
             }
             
-            PlayerLoopStage.Update.Unsubscribe(this);
             _rotationInput.OnChanged -= OnRotationInput;
-            _inputAccum = Vector2.zero;
+            _finishingFlag = true;
         }
 
         private void OnRotationInput(Vector2 delta) {
             _inputAccum += new Vector2(delta.y, delta.x) * _sensitivity;
         }
 
-        public void OnUpdate(float dt) {
-            _targetOrientation += _inputAccum;
-            _inputAccum = Vector2.zero;
-            
+        void IUpdate.OnUpdate(float dt) {
+            float consume = _inputSmoothing * dt;
+            _targetOrientation += consume * _inputAccum;
+            _inputAccum *= Mathf.Max(1f - consume, 0f);
+
             _viewClamp.Process(_target.position, _smoothedOrientation, ref _targetOrientation, dt);
-            _smoothedOrientation = _smoothedOrientation.SmoothExpNonZero(_targetOrientation, dt * _smoothing); 
-            
+            _smoothedOrientation = _smoothedOrientation.SmoothExpNonZero(_targetOrientation, dt * _smoothing);
+
             _target.rotation = Quaternion.Euler(0f, _smoothedOrientation.y, _smoothedOrientation.x);
-        }   
+
+            if (_finishingFlag && _smoothedOrientation == _targetOrientation && _inputAccum == Vector2.zero) {
+                _finishingFlag = false;
+                PlayerLoopStage.Update.Unsubscribe(this);
+            }
+        }
     }
     
 }
