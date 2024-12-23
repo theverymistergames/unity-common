@@ -6,9 +6,9 @@ using Random = UnityEngine.Random;
 namespace MisterGames.Common.Lists {
 
     public static class ArrayExtensions {
-        
-        public static void Shuffle<T>(this T[] array) {
-            int n = array.Length;
+
+        public static void Shuffle<T>(this T[] array, int length = -1) {
+            int n = length < 0 ? array.Length : length;
             while (n > 1) 
             {
                 int k = Random.Range(0, n--);
@@ -16,8 +16,8 @@ namespace MisterGames.Common.Lists {
             }
         }
         
-        public static void Shuffle<T>(this IList<T> array) {
-            int n = array.Count;
+        public static void Shuffle<T>(this IList<T> array, int length = -1) {
+            int n = length < 0 ? array.Count : length;
             while (n > 1) 
             {
                 int k = Random.Range(0, n--);

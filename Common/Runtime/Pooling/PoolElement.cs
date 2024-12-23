@@ -45,6 +45,7 @@ namespace MisterGames.Common.Pooling {
         private RigidbodyData[] _syncRigidbodyData;
         private Rigidbody[] _rigidbodies;
         private float _startTime;
+        private byte _takeId;
 
         [Serializable]
         private struct ReplaceData {
@@ -103,29 +104,32 @@ namespace MisterGames.Common.Pooling {
         }
 
         internal void NotifyTakenFromPool(IPrefabPool pool) {
+            byte id = ++_takeId;
+            
             SyncChildTransforms();
             SyncRigidbodies();
             
             OnTake.Invoke();
 
-            ReplaceGameObjectsWithPrefabsAtFrameEnd(pool).Forget();
+            ReplaceGameObjectsWithPrefabsAtFrameEnd(id, pool, destroyCancellationToken).Forget();
             
-            if (_lifetime >= 0f) WaitAndRelease(pool, destroyCancellationToken).Forget();
+            if (_lifetime >= 0f) WaitAndRelease(id, pool, destroyCancellationToken).Forget();
         }
 
         internal void NotifyReleasedToPool(IPrefabPool pool) {
+            _takeId++;
             OnRelease.Invoke();
         }
 
-        private async UniTask WaitAndRelease(IPrefabPool pool, CancellationToken cancellationToken) {
+        private async UniTask WaitAndRelease(byte id, IPrefabPool pool, CancellationToken cancellationToken) {
             _startTime = Time.time;
 
-            while (!cancellationToken.IsCancellationRequested && Time.time <= _startTime + _lifetime)
+            while (!cancellationToken.IsCancellationRequested && id == _takeId && Time.time <= _startTime + _lifetime)
             {
                 await UniTask.Yield();
             }
             
-            if (cancellationToken.IsCancellationRequested) return;
+            if (cancellationToken.IsCancellationRequested || id != _takeId) return;
 
             pool.Release(gameObject);
             SpawnOnLifetimeOut(pool);
@@ -163,8 +167,11 @@ namespace MisterGames.Common.Pooling {
             }
         }
 
-        private async UniTask ReplaceGameObjectsWithPrefabsAtFrameEnd(IPrefabPool pool) {
+        private async UniTask ReplaceGameObjectsWithPrefabsAtFrameEnd(byte id, IPrefabPool pool, CancellationToken cancellationToken) {
             await UniTask.Yield(PlayerLoopTiming.LastPostLateUpdate);
+            
+            if (cancellationToken.IsCancellationRequested || id != _takeId) return;
+            
             ReplaceGameObjectsWithPrefabs(pool);
         }
 
