@@ -143,7 +143,7 @@ namespace MisterGames.Character.Motion {
             }
 
             if (_motion.SlopeAngle >= _maxSlopeAngle) {
-                jumpImpulse = Force * _groundDetector.CollisionInfo.normal;
+                jumpImpulse = Force * _groundDetector.GetAccurateNormal();
             }
             
             _motion.AddForce(jumpImpulse, ForceMode.VelocityChange);

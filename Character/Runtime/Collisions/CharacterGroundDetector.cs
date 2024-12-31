@@ -19,6 +19,10 @@ namespace MisterGames.Character.Collisions {
         [SerializeField] private float _secondaryRadiusOffset = -0.01f;
         [SerializeField] private LayerMask _layerMask;
 
+        [Header("Normals")]
+        [SerializeField] [Min(0f)] private float _normalElevation = 0.05f;
+        [SerializeField] [Min(1)] private int _maxNormalHits = 3;
+        
         [Header("Debug")]
         [SerializeField] private bool _showDebugInfo;
         [SerializeField] [Min(0f)] private float _traceDuration = 3f;
@@ -31,11 +35,13 @@ namespace MisterGames.Character.Collisions {
         private Transform _transform;
         private CollisionInfo[] _hitsMain;
         private RaycastHit[] _raycastHitsMain;
+        private RaycastHit[] _raycastHitsNormal;
         private int _hitCount;
         
         private void Awake() {
             _transform = transform;
             _raycastHitsMain = new RaycastHit[_maxHits];
+            _raycastHitsNormal = new RaycastHit[_maxNormalHits];
         }
 
         private void OnEnable() {
@@ -90,6 +96,17 @@ namespace MisterGames.Character.Collisions {
             return normal.normalized;
         }
 
+        public Vector3 GetAccurateNormal() {
+            var up = _transform.up;
+            if (!_raycastHitsMain.TryGetMinimumDistanceHit(_hitCount, out var hit)) return up;
+
+            var origin = hit.point + up * _normalElevation;
+            float distance = _normalElevation * 2f;
+            int hitCount = Physics.RaycastNonAlloc(origin, -up, _raycastHitsNormal, distance, _layerMask);
+            
+            return _raycastHitsNormal.TryGetMinimumDistanceHit(hitCount, out hit) ? hit.normal : up;
+        }
+        
         private void RequestGround(bool forceNotify = false) {
             if (!enabled) return;
 
