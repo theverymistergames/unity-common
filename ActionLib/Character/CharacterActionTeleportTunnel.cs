@@ -21,9 +21,9 @@ namespace MisterGames.ActionLib.Character {
             context.Transform.GetPositionAndRotation(out var pos, out var rot);
 
             var positionOffset = pos - localCenter.position;
-            var rotOffset = Quaternion.FromToRotation(localCenter.forward, targetCenter.forward);
+            var rotOffset = targetCenter.rotation * Quaternion.Inverse(localCenter.rotation);
             
-            motion.Teleport(targetCenter.position + rotOffset * positionOffset, rot * rotOffset);
+            motion.Teleport(targetCenter.position + rotOffset * positionOffset, rotOffset * rot);
             
             return default;
         }

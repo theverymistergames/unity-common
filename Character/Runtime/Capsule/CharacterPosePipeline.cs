@@ -62,7 +62,7 @@ namespace MisterGames.Character.Capsule {
             float progress = 0f;
             if (setTargetPoseAt >= 1f) setTargetPoseAt = 1f;
 
-            while (enabled && !cancellationToken.IsCancellationRequested && changeId == _lastPoseChangeId) {
+            while (!cancellationToken.IsCancellationRequested && enabled && changeId == _lastPoseChangeId) {
                 progress = Mathf.Clamp01(progress + _timeSource.DeltaTime / duration);
 
                 float linearHeight = Mathf.Lerp(sourceHeight, targetHeight, progress);

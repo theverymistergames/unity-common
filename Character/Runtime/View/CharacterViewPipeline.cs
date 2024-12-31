@@ -26,7 +26,6 @@ namespace MisterGames.Character.View {
         public event Action<float> OnAttach { add => _headJoint.OnAttach += value; remove => _headJoint.OnAttach -= value; }
         public event Action OnDetach { add => _headJoint.OnDetach += value; remove => _headJoint.OnDetach -= value; }
 
-        public Vector3 HeadPosition => _head.Position;
         public bool IsAttached => _headJoint.IsAttached;
 
         public Vector3 Position {
@@ -41,15 +40,12 @@ namespace MisterGames.Character.View {
         
         public Quaternion Rotation {
             get => _rotation;
-            set {
-                _rotation = value;
-                _head.Rotation = value;
-            }
+            set => SetRotation(value);
         }
 
         public Vector3 EulerAngles {
             get => _rotation.ToEulerAngles180();
-            set => Rotation = Quaternion.Euler(value);
+            set => SetRotation(Quaternion.Euler(value));
         }
         
         private readonly CharacterHeadJoint _headJoint = new();
@@ -266,6 +262,11 @@ namespace MisterGames.Character.View {
 
             _headJoint.Update(ref position, current, delta, dt);
             _head.Position = position;
+        }
+
+        private void SetRotation(Quaternion rotation) {
+            _rotation = rotation;
+            _head.Rotation = rotation;
         }
 
         private void ApplyRotation(Vector2 eulerAngles, float dt) {

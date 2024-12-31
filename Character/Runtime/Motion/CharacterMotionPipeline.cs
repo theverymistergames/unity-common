@@ -1,4 +1,5 @@
-﻿using MisterGames.Actors;
+﻿using Cysharp.Threading.Tasks;
+using MisterGames.Actors;
 using MisterGames.Character.Collisions;
 using MisterGames.Character.Input;
 using MisterGames.Character.View;
@@ -76,7 +77,7 @@ namespace MisterGames.Character.Motion {
             _rigidbody.AddForce(force, mode);
         }
 
-        public void Teleport(Vector3 position, Quaternion rotation, bool preserveVelocity = true) {
+        public async void Teleport(Vector3 position, Quaternion rotation, bool preserveVelocity = true) {
             _collisionPipeline.enabled = false;
             
             var velocity = _rigidbody.linearVelocity;
@@ -88,11 +89,14 @@ namespace MisterGames.Character.Motion {
 
             var t = _rigidbody.transform;
             var rot = t.rotation;
-            var rotDelta = rotation * Quaternion.Inverse(rot);
-            var viewDelta = Quaternion.Euler(0f, rotDelta.eulerAngles.y, 0f);
+            var up = rot * Vector3.up;
             
-            t.SetPositionAndRotation(position, rotation);
-            _view.Rotation *= viewDelta;
+            var rotDelta = rotation * Quaternion.Inverse(rot);
+            var flatRotation = Quaternion.LookRotation(Vector3.ProjectOnPlane(rotation * Vector3.forward, up), up);
+            var viewRotation = Quaternion.Euler((rotDelta * _view.Rotation).eulerAngles.WithZ(0f));
+
+            t.SetPositionAndRotation(position, flatRotation);
+            _view.Rotation = viewRotation;
             
             _collisionPipeline.enabled = true;
             _rigidbody.isKinematic = false;
