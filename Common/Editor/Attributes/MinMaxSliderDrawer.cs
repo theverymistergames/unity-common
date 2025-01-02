@@ -32,14 +32,16 @@ namespace MisterGames.Common.Editor.Attributes {
             var vector2 = asInteger ? property.vector2IntValue : property.vector2Value;
             float x = Mathf.Clamp(vector2.x, attr.min, attr.max);
             float y = Mathf.Clamp(vector2.y, x, attr.max);
-
-            GUI.Label(position, label);
-
+            
             bool hasLabel = label != null && label != GUIContent.none;
             float offset = hasLabel.AsFloat() * (EditorGUIUtility.labelWidth + 2f);
+            float indent = EditorGUI.indentLevel * 15f;
 
-            position.x += offset;
-            position.width -= offset;
+            position.x += indent;
+            GUI.Label(position, label);
+            
+            position.x += offset - 2f * indent;
+            position.width -= offset - indent;
 
             var rect = position;
             rect.width = position.width * ValueWidthRatio - EditorGUIUtility.standardVerticalSpacing;

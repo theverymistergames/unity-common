@@ -6,7 +6,17 @@ namespace MisterGames.Common.Maths {
     public static class NumberExtensions {
 
         public static readonly float SqrEpsilon = Mathf.Epsilon * Mathf.Epsilon;
-
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float Abs(this float value) {
+            return Mathf.Abs(value);
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int Abs(this int value) {
+            return Mathf.Abs(value);
+        }
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsNearlyZero(this float value) {
             return Mathf.Abs(value) <= Mathf.Epsilon;

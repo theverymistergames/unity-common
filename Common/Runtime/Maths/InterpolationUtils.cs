@@ -10,7 +10,7 @@
         ///
         /// The result depends on t:
         /// 1) t = [0f, w]: result is linearly interpolated from 0f to 1f (y = t / w);
-        /// 2) t = (w, 1f -w): result is 1f;
+        /// 2) t = (w, 1f - w): result is 1f;
         /// 3) t = [1f - w, 1f]: result is linearly interpolated from 1f to 0f (y = (1f - t) / w).
         ///
         /// The value of edge interpolation can be used to make smooth transitions between two axes around their edges.
