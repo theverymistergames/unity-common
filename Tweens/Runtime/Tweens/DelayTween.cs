@@ -2,7 +2,6 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
-using MisterGames.Tick.Core;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -27,9 +26,9 @@ namespace MisterGames.Tweens {
                 data: (self: this, token: cancellationToken),
                 duration,
                 progressCallback: (actor, data, p, oldP) => data.self.events.NotifyTweenEvents(actor, p, oldP, data.token),
+                progressModifier: null,
                 startProgress,
                 speed,
-                PlayerLoopStage.Update,
                 cancellationToken
             );
         }

@@ -8,16 +8,17 @@ namespace MisterGames.Logic.Damage {
     public sealed class HealthBehaviour : MonoBehaviour, IActorComponent {
 
         [SerializeField] private bool _restoreFullHealthOnAwake;
-
+        [SerializeField] [Min(0f)] private float _health;
+        
         public delegate void DamageCallback(DamageInfo info);
         
         public event DamageCallback OnDamage = delegate { };
         public event Action OnDeath = delegate { };
-        public event Action OnRestoreHealth = delegate { };
+        public event Action OnRestoreFullHealth = delegate { };
         
-        public float Health { get; private set; }
-        public bool IsAlive => Health > 0f;
-        public bool IsDead => Health <= 0f;
+        public float Health => _health;
+        public bool IsAlive => _health > 0f;
+        public bool IsDead => _health <= 0f;
         
         private IActor _actor;
         private HealthData _healthData;
@@ -32,19 +33,19 @@ namespace MisterGames.Logic.Damage {
         }
 
         public void RestoreFullHealth() {
-            float oldHealth = Health;
-            Health = _healthData.health;
+            float oldHealth = _health;
+            _health = _healthData?.health ?? _health;
             
-            if (Health <= oldHealth) return;
+            if (_health <= oldHealth) return;
             
-            OnRestoreHealth.Invoke();
+            OnRestoreFullHealth.Invoke();
         }
 
         public DamageInfo Kill(IActor author = null, Vector3 point = default, bool notifyDamage = true) {
-            float oldHealth = Health;
-            Health = 0f;
+            float oldHealth = _health;
+            _health = 0f;
             
-            float damageTotal = oldHealth - Health;  
+            float damageTotal = oldHealth - _health;  
             var info = new DamageInfo(victim: _actor, damageTotal, mortal: true, author, point);
 
             if (oldHealth > 0f) {
@@ -56,11 +57,11 @@ namespace MisterGames.Logic.Damage {
         }
         
         public DamageInfo TakeDamage(float damage, IActor author = null, Vector3 point = default) {
-            float oldHealth = Health;
-            Health = Mathf.Max(0f, Health - damage);
+            float oldHealth = _health;
+            _health = Mathf.Max(0f, _health - damage);
             
-            float damageTotal = oldHealth - Health;  
-            bool mortal = Health <= 0;
+            float damageTotal = oldHealth - _health;  
+            bool mortal = _health <= 0;
             
             var info = new DamageInfo(victim: _actor, damageTotal, mortal, author, point);
 

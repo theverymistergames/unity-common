@@ -102,6 +102,7 @@ namespace MisterGames.BlueprintLib {
                 this,
                 duration,
                 (t, p, _) => t.ReportProgress(p),
+                progressModifier: null,
                 startProgress,
                 speed,
                 cancellationToken: cancellationToken

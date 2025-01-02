@@ -250,15 +250,15 @@ namespace MisterGames.Common.Maths {
         }
         
         public static float SmoothExpNonZero(this float value, float target, float factor) {
-            return factor > 0f ? value + (target - value) * (1f - Mathf.Exp(-factor)) : value;
+            return factor > 0f ? value + (target - value) * (1f - Mathf.Exp(-factor)) : target;
         }
         
         public static Vector2 SmoothExpNonZero(this Vector2 value, Vector2 target, float factor) {
-            return factor > 0f ? value + (target - value) * (1f - Mathf.Exp(-factor)) : value;
+            return factor > 0f ? value + (target - value) * (1f - Mathf.Exp(-factor)) : target;
         }
         
         public static Vector3 SmoothExpNonZero(this Vector3 value, Vector3 target, float factor) {
-            return factor > 0f ? value + (target - value) * (1f - Mathf.Exp(-factor)) : value;
+            return factor > 0f ? value + (target - value) * (1f - Mathf.Exp(-factor)) : target;
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

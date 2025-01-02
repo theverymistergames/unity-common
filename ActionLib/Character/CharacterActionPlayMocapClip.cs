@@ -7,7 +7,6 @@ using MisterGames.Character.Motion;
 using MisterGames.Character.View;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.GameObjects;
-using MisterGames.Tick.Core;
 using MisterGames.Tweens;
 using UnityEngine;
 
@@ -44,9 +43,9 @@ namespace MisterGames.ActionLib.Character {
                 this,
                 _croppedDuration,
                 progressCallback: (t, p, _) => t.OnProgressUpdate(p),
+                progressModifier: null,
                 0f,
                 1f,
-                PlayerLoopStage.Update,
                 cancellationToken
             );
         }

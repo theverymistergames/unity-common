@@ -6,7 +6,6 @@ using MisterGames.Actors;
 using MisterGames.BlueprintLib.Tweens;
 using MisterGames.Blueprints;
 using MisterGames.Common.Attributes;
-using MisterGames.Tick.Core;
 using MisterGames.Tweens;
 using UnityEngine;
 using Random = UnityEngine.Random;
@@ -91,9 +90,9 @@ namespace MisterGames.BlueprintLib {
                 this,
                 duration,
                 progressCallback: (t, p, _) => t.NotifyProgress(p),
+                progressModifier: null,
                 startProgress,
                 speed,
-                PlayerLoopStage.Update,
                 cancellationToken
             );
         }

@@ -6,34 +6,36 @@ using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Common.Lists;
 using MisterGames.Common.Maths;
-using MisterGames.Tick.Core;
 using UnityEngine;
 using UnityEngine.Assertions;
 
 namespace MisterGames.Tweens {
 
     public delegate void ProgressCallback(float progress, float oldProgress);
-
     public delegate void ProgressCallback<in T>(T context, float progress, float oldProgress);
-    
     public delegate void ProgressCallback<in T, in D>(T context, D data, float progress, float oldProgress);
+
+    public delegate float ProgressModifier(float progress);
+    public delegate float ProgressModifier<in T>(T context, float progress);
 
     public static class TweenExtensions {
 
         public static void NotifyTweenEvents(
             this TweenEvent[] events, 
-            IActor actor, 
+            IActor context, 
             float progress, 
             float oldProgress, 
             CancellationToken cancellationToken
         ) {
-            for (int i = 0; i < events.Length; i++) {
+            if (progress.IsNearlyEqual(oldProgress)) return;
+            
+            for (int i = 0; i < events?.Length; i++) {
                 ref var e = ref events[i];
 
-                if (progress > oldProgress && oldProgress <= e.progress && e.progress <= progress || 
-                    progress < oldProgress && progress <= e.progress && e.progress <= oldProgress
+                if (oldProgress <= e.progress && e.progress <= progress || 
+                    progress <= e.progress && e.progress <= oldProgress
                 ) {
-                    e.action?.Apply(actor, cancellationToken).Forget();
+                    e.action?.Apply(context, cancellationToken).Forget();
                 }
             }
         }
@@ -42,12 +44,12 @@ namespace MisterGames.Tweens {
             T context,
             float duration,
             ProgressCallback<T> progressCallback = null,
+            ProgressModifier progressModifier = null,
             float startProgress = 0f,
             float speed = 1f,
-            PlayerLoopStage playerLoopStage = PlayerLoopStage.Update,
             CancellationToken cancellationToken = default
         ) {
-            Play(context, duration, progressCallback, startProgress, speed, playerLoopStage, cancellationToken).Forget();
+            Play(context, duration, progressCallback, progressModifier, startProgress, speed, cancellationToken).Forget();
         }
 
         public static void PlayAndForget<T, D>(
@@ -55,49 +57,56 @@ namespace MisterGames.Tweens {
             D data,
             float duration,
             ProgressCallback<T, D> progressCallback = null,
+            ProgressModifier<D> progressModifier = null,
             float startProgress = 0f,
             float speed = 1f,
-            PlayerLoopStage playerLoopStage = PlayerLoopStage.Update,
             CancellationToken cancellationToken = default
         ) {
-            Play(context, data, duration, progressCallback, startProgress, speed, playerLoopStage, cancellationToken).Forget();
+            Play(context, data, duration, progressCallback, progressModifier, startProgress, speed, cancellationToken).Forget();
         }
 
         public static async UniTask Play<T>(
             T context,
             float duration,
             ProgressCallback<T> progressCallback = null,
+            ProgressModifier progressModifier = null,
             float startProgress = 0f,
             float speed = 1f,
-            PlayerLoopStage playerLoopStage = PlayerLoopStage.Update,
             CancellationToken cancellationToken = default
         ) {
             if (cancellationToken.IsCancellationRequested) return;
 
-            startProgress = Mathf.Clamp01(startProgress);
-            float progress = startProgress;
+            progressCallback ??= (_, _, _) => { };
+            progressModifier ??= p => p;
+            
+            float linearProgress = Mathf.Clamp01(startProgress);
+            float progress = progressModifier.Invoke(linearProgress);
             
             // Speed is 0: only invoke progress callback at start progress.
             if (speed is >= 0f and <= 0f) {
-                progressCallback?.Invoke(context, progress, startProgress);
+                progressCallback.Invoke(context, progress, progress);
                 return;
             }
             
             // Duration is 0: invoke progress callback at end progress that depends on speed direction.
             if (duration <= 0f) {
-                progressCallback?.Invoke(context, speed > 0f ? 1f : 0f, startProgress);
+                progressCallback.Invoke(context, progressModifier.Invoke(speed > 0f ? 1f : 0f), progress);
                 return;
             }
 
-            var ts = playerLoopStage.Get();
-
+            speed /= duration;
+            
             while (!cancellationToken.IsCancellationRequested) {
-                float oldProgress = progress;
-                progress = Mathf.Clamp01(progress + ts.DeltaTime * speed / duration);
+                linearProgress = Mathf.Clamp01(linearProgress + Time.deltaTime * speed);
                 
-                if (!oldProgress.IsNearlyEqual(progress)) progressCallback?.Invoke(context, progress, oldProgress);
+                float oldProgress = progress;
+                progress = progressModifier.Invoke(linearProgress);
 
-                if (speed > 0f && progress >= 1f || speed < 0f && progress <= 0f) break;
+                if (!oldProgress.IsNearlyEqual(progress)) {
+                    progressCallback.Invoke(context, progress, oldProgress);
+                }
+
+                if (speed > 0f && linearProgress >= 1f || speed < 0f && linearProgress <= 0f) break;
 
                 await UniTask.Yield();
             }
@@ -108,37 +117,44 @@ namespace MisterGames.Tweens {
             D data,
             float duration,
             ProgressCallback<T, D> progressCallback = null,
+            ProgressModifier<D> progressModifier = null,
             float startProgress = 0f,
             float speed = 1f,
-            PlayerLoopStage playerLoopStage = PlayerLoopStage.Update,
             CancellationToken cancellationToken = default
         ) {
             if (cancellationToken.IsCancellationRequested) return;
 
-            startProgress = Mathf.Clamp01(startProgress);
-            float progress = startProgress;
-
+            progressCallback ??= (_, _, _, _) => { };
+            progressModifier ??= (_, p) => p;
+            
+            float linearProgress = Mathf.Clamp01(startProgress);
+            float progress = progressModifier.Invoke(data, linearProgress);
+            
             // Speed is 0: only invoke progress callback at start progress.
             if (speed is >= 0f and <= 0f) {
-                progressCallback?.Invoke(context, data, progress, startProgress);
+                progressCallback.Invoke(context, data, progress, progress);
                 return;
             }
             
             // Duration is 0: invoke progress callback at end progress that depends on speed direction.
             if (duration <= 0f) {
-                progressCallback?.Invoke(context, data, speed > 0f ? 1f : 0f, speed);
+                progressCallback.Invoke(context, data, progressModifier.Invoke(data, speed > 0f ? 1f : 0f), progress);
                 return;
             }
 
-            var timeSource = playerLoopStage.Get();
+            speed /= duration;
 
             while (!cancellationToken.IsCancellationRequested) {
-                float oldProgress = progress;
-                progress = Mathf.Clamp01(progress + timeSource.DeltaTime * speed / duration);
+                linearProgress = Mathf.Clamp01(linearProgress + Time.deltaTime * speed);
                 
-                if (!oldProgress.IsNearlyEqual(progress)) progressCallback?.Invoke(context, data, progress, oldProgress);
+                float oldProgress = progress;
+                progress = progressModifier.Invoke(data, linearProgress);
 
-                if (speed > 0f && progress >= 1f || speed < 0f && progress <= 0f) break;
+                if (!oldProgress.IsNearlyEqual(progress)) {
+                    progressCallback.Invoke(context, data, progress, oldProgress);
+                }
+
+                if (speed > 0f && linearProgress >= 1f || speed < 0f && linearProgress <= 0f) break;
                 
                 await UniTask.Yield();
             }
@@ -320,18 +336,6 @@ namespace MisterGames.Tweens {
             }
             
             await tween.Play(context, duration, startProgress, speed, cancellationToken);
-        }
-
-        public static float CreateNextDurationGroup(ExecuteMode mode, IReadOnlyList<ITween> tweens) {
-            if (tweens is not { Count: > 0 }) return 0f;
-
-            float duration = 0f;
-
-            for (int i = 0; i < tweens.Count; i++) {
-                CreateNextDuration(tweens[i], mode, ref duration);
-            }
-
-            return duration;
         }
         
         public static float CreateNextDurationGroup<T>(ExecuteMode mode, IReadOnlyList<T> tweens) where T : class, ITween {

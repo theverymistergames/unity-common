@@ -11,7 +11,7 @@ namespace MisterGames.TweenLib {
         public Object target;
         public bool enabledBeforeThreshold;
         [Range(0f, 1f)] public float enableThreshold;
-
+        
         public void OnProgressUpdate(float progress) {
             bool enabled = progress <= enableThreshold == enabledBeforeThreshold;
 

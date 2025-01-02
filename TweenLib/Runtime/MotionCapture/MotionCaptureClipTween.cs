@@ -37,9 +37,9 @@ namespace MisterGames.TweenLib.MotionCapture {
                 this,
                 duration,
                 progressCallback: (t, p, _) => t.OnProgressUpdate(p),
+                progressModifier: null,
                 startProgress,
                 speed,
-                PlayerLoopStage.Update,
                 cancellationToken
             );
         }

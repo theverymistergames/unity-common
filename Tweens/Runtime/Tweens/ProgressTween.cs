@@ -3,7 +3,6 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Common.Attributes;
-using MisterGames.Tick.Core;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -15,6 +14,7 @@ namespace MisterGames.Tweens {
         [Min(0f)] public float duration = 1f;
         [Min(0f)] public float durationRandomAdd;
         public AnimationCurve curve = AnimationCurve.Linear(0f, 0f, 1f, 1f);
+        [SerializeReference] [SubclassSelector] public IProgressModulator modulator;
         [SerializeReference] [SubclassSelector] public ITweenProgressAction action;
         public TweenEvent[] events;
         
@@ -31,11 +31,14 @@ namespace MisterGames.Tweens {
                 duration,
                 progressCallback: (actor, data, p, oldP) => {
                     data.self.events.NotifyTweenEvents(actor, p, oldP, data.token);
-                    data.self.action?.OnProgressUpdate(data.self.curve?.Evaluate(p) ?? 0f);
+                    data.self.action?.OnProgressUpdate(p);
+                },
+                progressModifier: (data, p) => {
+                    p = data.self.curve?.Evaluate(p) ?? p;
+                    return data.self.modulator?.Modulate(p) ?? p;
                 },
                 startProgress,
                 speed,
-                PlayerLoopStage.Update,
                 cancellationToken
             );
         }

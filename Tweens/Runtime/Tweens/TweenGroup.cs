@@ -22,6 +22,7 @@ namespace MisterGames.Tweens {
                 data: (events, cancellationToken),
                 duration,
                 progressCallback: (actor, data, p, oldP) => data.events.NotifyTweenEvents(actor, p, oldP, data.cancellationToken),
+                progressModifier: null,
                 startProgress, speed, cancellationToken: cancellationToken
             ).Forget();
             

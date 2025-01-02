@@ -32,7 +32,11 @@ namespace MisterGames.Common.GameObjects {
             }
         }
 
-        public static string GetPathInScene(Transform transform, bool includeSceneName = false) {
+        public static string GetPathInScene(this GameObject gameObject, bool includeSceneName = false) {
+            return gameObject.transform.GetPathInScene(includeSceneName);
+        }
+
+        public static string GetPathInScene(this Transform transform, bool includeSceneName = false) {
             if (transform == null) return string.Empty;
             
             var sb = new StringBuilder(transform.name);
