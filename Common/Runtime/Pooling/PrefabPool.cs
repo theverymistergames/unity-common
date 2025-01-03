@@ -197,7 +197,8 @@ namespace MisterGames.Common.Pooling {
             var t = instance.transform;
             t.SetParent(parent, worldPositionStays);
             if (setupPositionAndRotation) t.SetPositionAndRotation(position, rotation);
-
+            t.localScale = prefab.transform.localScale;
+            
             instance.SetActive(active);
             
             if (instance.TryGetComponent(out PoolElement poolElement)) {

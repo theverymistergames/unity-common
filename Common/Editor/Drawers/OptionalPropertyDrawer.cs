@@ -1,4 +1,5 @@
 ﻿using MisterGames.Common.Data;
+using MisterGames.Common.Maths;
 using UnityEditor;
 using UnityEngine;
 
@@ -13,39 +14,19 @@ namespace MisterGames.Common.Editor.Drawers {
             var hasValueProperty = property.FindPropertyRelative("_hasValue");
             var valueProperty = property.FindPropertyRelative("_value");
 
-            var labelRect = new Rect(
-                position.x,
-                position.y,
-                EditorGUIUtility.labelWidth,
-                EditorGUIUtility.singleLineHeight
-            );
-            if (valueProperty.hasVisibleChildren) {
-                labelRect.x += 12f;
-                labelRect.width -= 12f;
-            }
-            EditorGUI.LabelField(labelRect, label);
-
-            var hasValueRect = new Rect(
-                position.x + EditorGUIUtility.labelWidth - 12f,
-                position.y,
-                12f,
-                EditorGUIUtility.singleLineHeight
-            );
-            EditorGUI.PropertyField(hasValueRect, hasValueProperty, GUIContent.none);
+            bool hasLabel = label != null && label != GUIContent.none;
+            float offset = hasLabel.AsFloat() * (EditorGUIUtility.labelWidth + 2f);
+            float indent = EditorGUI.indentLevel * 15f;
+            
+            var rect = position;
+            rect.x += offset + -indent - EditorGUIUtility.singleLineHeight;
+            rect.width = EditorGUIUtility.singleLineHeight;
+            rect.height = EditorGUIUtility.singleLineHeight;
+            
+            EditorGUI.PropertyField(rect, hasValueProperty, GUIContent.none);
 
             EditorGUI.BeginDisabledGroup(!hasValueProperty.boolValue);
-
-            var valueRect = valueProperty.hasVisibleChildren
-                ? position
-                : new Rect(
-                    position.x + EditorGUIUtility.labelWidth + 7f,
-                    position.y,
-                    position.width - EditorGUIUtility.labelWidth - 7f,
-                    position.height
-                  );
-
-            EditorGUI.PropertyField(valueRect, valueProperty, GUIContent.none, true);
-
+            EditorGUI.PropertyField(position, valueProperty, label, true);
             EditorGUI.EndDisabledGroup();
 
             EditorGUI.EndProperty();

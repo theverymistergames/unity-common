@@ -10,14 +10,13 @@ namespace MisterGames.Common.Data {
         [SerializeField] private bool _hasValue;
         [SerializeField] private T _value;
 
-        public static readonly Optional<T> Empty = new Optional<T>(default, false);
+        public static readonly Optional<T> Empty = new(default, false);
         
         public bool HasValue => _hasValue;
         public T Value => _value;
         
-        public static Optional<T> Create(T value) {
-            return new Optional<T>(value, true);
-        }
+        public static Optional<T> WithValue(T value) => new(value, true);
+        public static Optional<T> WithDisabled(T value) => new(value, false);
 
         public Optional(T value, bool hasValue) {
             _value = value;

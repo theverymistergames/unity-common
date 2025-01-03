@@ -10,7 +10,7 @@ namespace MisterGames.BlueprintLib {
     public sealed class BlueprintNodeCounter : IBlueprintNode, IBlueprintEnter, IBlueprintOutput<int> {
 
         [SerializeField] private int _value;
-        [SerializeField] private Optional<int> _lowerBound = Optional<int>.Create(0);
+        [SerializeField] private Optional<int> _lowerBound = Optional<int>.WithValue(0);
         [SerializeField] private Optional<int> _upperBound;
 
         public void CreatePorts(IBlueprintMeta meta, NodeId id) {

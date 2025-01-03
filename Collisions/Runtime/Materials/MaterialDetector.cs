@@ -12,8 +12,6 @@ namespace MisterGames.Collisions.Materials {
 
         public event Action OnMaterialChanged = delegate {  };
         public Optional<MaterialData> Material { get; private set; }
-
-        private readonly Optional<MaterialData> _empty = Optional<MaterialData>.Empty;
         private Optional<MaterialData> _default;
         
         private void Awake() {
@@ -29,8 +27,8 @@ namespace MisterGames.Collisions.Materials {
         }
 
         private void InitMaterialData() {
-            _default = Optional<MaterialData>.Create(_defaultMaterialData);
-            Material = _empty;
+            _default = Optional<MaterialData>.WithValue(_defaultMaterialData);
+            Material = Optional<MaterialData>.Empty;
         }
 
         private void HandleTransformChanged() {
@@ -40,10 +38,10 @@ namespace MisterGames.Collisions.Materials {
 
         private Optional<MaterialData> ExtractMaterial() {
             var info = _collisionDetector.CollisionInfo;
-            if (!info.hasContact) return _empty;
+            if (!info.hasContact) return Optional<MaterialData>.Empty;
 
             var holder = info.transform.GetComponentInParent<MaterialHolder>();
-            return holder != null ? Optional<MaterialData>.Create(holder.materialData) : _default;
+            return holder != null ? Optional<MaterialData>.WithValue(holder.materialData) : _default;
         }
         
     }

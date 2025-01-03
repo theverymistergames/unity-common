@@ -31,22 +31,6 @@ namespace MisterGames.Common.Pooling {
         [Tooltip("These objects are disabled when pool element is taken for the first time and then replaced by prefabs for each take.")]
         [SerializeField] private ReplaceData[] _replaceGameObjectsWithPrefabs;
         
-        public event Action OnTake = delegate { };
-        public event Action OnRelease = delegate { };
-        
-        /// <summary>
-        /// If less than zero, lifetime is infinite.
-        /// </summary>
-        public float LifetimeTotal { get => _lifetime; set => _lifetime = value; }
-        public float LifetimeLeft => _startTime + _lifetime - Time.time;
-        
-        private CancellationTokenSource _enableCts;
-        private TransformData[] _syncTransformData;
-        private RigidbodyData[] _syncRigidbodyData;
-        private Rigidbody[] _rigidbodies;
-        private float _startTime;
-        private byte _takeId;
-
         [Serializable]
         private struct ReplaceData {
             public GameObject gameObject;
@@ -62,12 +46,14 @@ namespace MisterGames.Common.Pooling {
         }
 
         private readonly struct TransformData {
-            
+
+            public readonly Transform transform;
             public readonly Vector3 position;
             public readonly Quaternion rotation;
             public readonly Vector3 scale;
             
-            public TransformData(Vector3 position, Quaternion rotation, Vector3 scale) {
+            public TransformData(Transform transform, Vector3 position, Quaternion rotation, Vector3 scale) {
+                this.transform = transform;
                 this.position = position;
                 this.rotation = rotation;
                 this.scale = scale;
@@ -75,19 +61,36 @@ namespace MisterGames.Common.Pooling {
         }
 
         private readonly struct RigidbodyData {
-            
+
+            public readonly Rigidbody rigidbody;
             public readonly bool isKinematic;
             public readonly bool useGravity;
             public readonly RigidbodyInterpolation interpolation;
             public readonly RigidbodyConstraints constraints;
             
-            public RigidbodyData(bool isKinematic, bool useGravity, RigidbodyInterpolation interpolation, RigidbodyConstraints constraints) {
+            public RigidbodyData(Rigidbody rigidbody, bool isKinematic, bool useGravity, RigidbodyInterpolation interpolation, RigidbodyConstraints constraints) {
+                this.rigidbody = rigidbody;
                 this.isKinematic = isKinematic;
                 this.useGravity = useGravity;
                 this.interpolation = interpolation;
                 this.constraints = constraints;
             }
         }
+        
+        public event Action OnTake = delegate { };
+        public event Action OnRelease = delegate { };
+        
+        /// <summary>
+        /// If less than zero, lifetime is infinite.
+        /// </summary>
+        public float LifetimeTotal { get => _lifetime; set => _lifetime = value; }
+        public float LifetimeLeft => _startTime + _lifetime - Time.time;
+        
+        private CancellationTokenSource _enableCts;
+        private TransformData[] _syncTransformData;
+        private RigidbodyData[] _syncRigidbodyData;
+        private float _startTime;
+        private byte _takeId;
         
         private void Awake() {
             FetchChildTransformsData();
@@ -138,25 +141,25 @@ namespace MisterGames.Common.Pooling {
         private void FetchChildTransformsData() {
             if (!_syncTransforms) return;
 
-            var t = transform;
-            int count = t.childCount;
-            _syncTransformData = new TransformData[count];
+            var childTransforms = transform.GetComponentsInChildren<Transform>();
+            _syncTransformData = new TransformData[childTransforms.Length];
             
-            for (int i = 0; i < count; i++) {
-                var child = t.GetChild(i);
-                _syncTransformData[i] = new TransformData(child.localPosition, child.localRotation, child.localScale);   
+            for (int i = 0; i < childTransforms.Length; i++) {
+                var t = childTransforms[i];
+                t.GetLocalPositionAndRotation(out var pos, out var rot);
+                _syncTransformData[i] = new TransformData(t, pos, rot, t.localScale);
             }
         }
 
         private void FetchRigidbodiesData() {
             if (!_syncRigidbodies) return;
 
-            _rigidbodies ??= gameObject.GetComponentsInChildren<Rigidbody>(includeInactive: true);
-            _syncRigidbodyData ??= new RigidbodyData[_rigidbodies.Length];
+            var rigidbodies = gameObject.GetComponentsInChildren<Rigidbody>(includeInactive: true);
+            _syncRigidbodyData = new RigidbodyData[rigidbodies.Length];
             
-            for (int i = 0; i < _rigidbodies.Length; i++) {
-                var rb = _rigidbodies[i];
-                _syncRigidbodyData[i] = new RigidbodyData(rb.isKinematic, rb.useGravity, rb.interpolation, rb.constraints);
+            for (int i = 0; i < rigidbodies.Length; i++) {
+                var rb = rigidbodies[i];
+                _syncRigidbodyData[i] = new RigidbodyData(rb, rb.isKinematic, rb.useGravity, rb.interpolation, rb.constraints);
             }
         }
         
@@ -199,31 +202,29 @@ namespace MisterGames.Common.Pooling {
         private void SyncChildTransforms() {
             if (!_syncTransforms) return;
             
-            var t = transform;
-            int count = t.childCount;
+            var root = transform;
             
-            for (int i = 0; i < count; i++) {
-                var child = t.GetChild(i);
+            for (int i = 0; i < _syncTransformData.Length; i++) {
                 var data = _syncTransformData[i];
+                if (data.transform == root) continue;
                 
-                child.SetLocalPositionAndRotation(data.position, data.rotation);
-                child.localScale = data.scale;
+                data.transform.SetLocalPositionAndRotation(data.position, data.rotation);
+                data.transform.localScale = data.scale;
             }
         }
 
         private void SyncRigidbodies() {
             if (!_syncRigidbodies) return;
 
-            for (int i = 0; i < _rigidbodies.Length; i++) {
-                var rb = _rigidbodies[i];
+            for (int i = 0; i < _syncRigidbodyData.Length; i++) {
                 var data = _syncRigidbodyData[i];
                 
-                rb.isKinematic = data.isKinematic;
-                rb.useGravity = data.useGravity;
-                rb.interpolation = data.interpolation;
-                rb.constraints = data.constraints;
+                data.rigidbody.isKinematic = data.isKinematic;
+                data.rigidbody.useGravity = data.useGravity;
+                data.rigidbody.interpolation = data.interpolation;
+                data.rigidbody.constraints = data.constraints;
                 
-                if (!rb.isKinematic) rb.linearVelocity = Vector3.zero;
+                if (!data.isKinematic) data.rigidbody.linearVelocity = Vector3.zero;
             }
         }
 
