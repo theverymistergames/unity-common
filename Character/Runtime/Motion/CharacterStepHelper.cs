@@ -2,7 +2,6 @@
 using MisterGames.Character.Collisions;
 using MisterGames.Collisions.Utils;
 using MisterGames.Common;
-using MisterGames.Common.Maths;
 using MisterGames.Tick.Core;
 using UnityEngine;
 
@@ -20,6 +19,7 @@ namespace MisterGames.Character.Motion {
         [SerializeField] [Min(1)] private int _maxHits = 6;
         
         [Header("Resolving")]
+        [SerializeField] private bool _disableIfNotUsingGravity;
         [SerializeField] [Min(0f)] private float _maxStepHeight;
         [SerializeField] [Min(0f)] private float _maxStepHeightAir;
         [SerializeField] private Vector3 _climbSpeed;
@@ -54,7 +54,7 @@ namespace MisterGames.Character.Motion {
         }
 
         void IUpdate.OnUpdate(float dt) {
-            if (_motion.Input == Vector2.zero) return;
+            if (_disableIfNotUsingGravity && !_motion.UseGravity || _motion.Input == Vector2.zero) return;
 
             bool isGrounded = _groundDetector.HasContact;
             var up = _transform.up;

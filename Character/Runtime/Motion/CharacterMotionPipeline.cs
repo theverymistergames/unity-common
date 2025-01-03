@@ -1,5 +1,4 @@
-﻿using Cysharp.Threading.Tasks;
-using MisterGames.Actors;
+﻿using MisterGames.Actors;
 using MisterGames.Character.Collisions;
 using MisterGames.Character.Input;
 using MisterGames.Character.View;
@@ -8,6 +7,10 @@ using MisterGames.Common.Attributes;
 using MisterGames.Common.Maths;
 using MisterGames.Tick.Core;
 using UnityEngine;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace MisterGames.Character.Motion {
 
@@ -34,16 +37,20 @@ namespace MisterGames.Character.Motion {
         public Vector3 MotionNormal { get; private set; }
         public Vector3 InputDirWorld { get; private set; }
         public Vector2 Input { get; private set; }
+        
+        public bool UseGravity { get => _rigidbody.useGravity; set => _rigidbody.useGravity = value; }
         public Vector3 Velocity { get => _rigidbody.linearVelocity; set => _rigidbody.linearVelocity = value; }
         public Vector3 PreviousVelocity { get; private set; }
+        public Vector3 Position { get => _rigidbody.position; set => _rigidbody.position = value; }
+        public bool HasBeenTeleported { get; private set; }
+
         public float MoveForce { get => _moveForce; set => _moveForce = value; }
         public float Speed { get; set; }
         public float SpeedCorrectionBack { get => _speedCorrectionBack; set => _speedCorrectionBack = value; }
         public float SpeedCorrectionSide { get => _speedCorrectionSide; set => _speedCorrectionSide = value; }
+        
         public float SlopeAngle { get; private set; }
         public Vector2 SlopeAngleLimits => _slopeAngle;
-        public Vector3 Position { get => _rigidbody.position; set => _rigidbody.position = value; }
-        public bool HasBeenTeleported { get; private set; }
         
         private Transform _transform;
         private Rigidbody _rigidbody;
@@ -77,7 +84,7 @@ namespace MisterGames.Character.Motion {
             _rigidbody.AddForce(force, mode);
         }
 
-        public async void Teleport(Vector3 position, Quaternion rotation, bool preserveVelocity = true) {
+        public void Teleport(Vector3 position, Quaternion rotation, bool preserveVelocity = true) {
             _collisionPipeline.enabled = false;
             
             var velocity = _rigidbody.linearVelocity;
@@ -117,8 +124,9 @@ namespace MisterGames.Character.Motion {
         void IUpdate.OnUpdate(float dt) {
             var up = _transform.up;
             var orient = _view.Rotation;
+            bool useGravity = _rigidbody.useGravity;
             
-            if (_rigidbody.useGravity) {
+            if (useGravity) {
                 orient = Quaternion.LookRotation(Vector3.ProjectOnPlane(orient * Vector3.forward, up), up);
             }
 
@@ -127,7 +135,7 @@ namespace MisterGames.Character.Motion {
             var normalRot = Quaternion.FromToRotation(up, MotionNormal);
             
             MotionDirWorld = normalRot * InputDirWorld;
-            _smoothedInput = Vector2.Lerp(_smoothedInput, Input, dt * _inputSmoothing);
+            _smoothedInput = _smoothedInput.SmoothExpNonZero(Input, dt * _inputSmoothing);
             
             SlopeAngle = Vector3.SignedAngle(up, _groundDetector.CollisionInfo.normal, Vector3.Cross(MotionDirWorld, up).normalized);
             
@@ -143,22 +151,22 @@ namespace MisterGames.Character.Motion {
             var velocityProj = Vector3.Project(velocity, inputDirNormalized);
             var force = VectorUtils.ClampAcceleration(inputDirSmoothed * _moveForce, velocityProj, maxSpeed, dt);
 
-            if (Input != Vector2.zero) {
+            if (useGravity && Input != Vector2.zero) {
                 ApplyDirCorrection(inputDirNormalized * maxSpeed, Vector3.ProjectOnPlane(velocity, MotionNormal), ref force, dt);
                 LimitForceBySlopeAngle(SlopeAngle, ref force);
             }
             
             _rigidbody.AddForce(force, ForceMode.Acceleration);
-
+            
+            if (!useGravity) {
+                _rigidbody.linearVelocity = Vector3.Lerp(_rigidbody.linearVelocity, Vector3.zero, dt * _noGravityVelocityDamping);
+            }
+            
 #if UNITY_EDITOR
             if (_showDebugInfo) DebugExt.DrawSphere(_rigidbody.position, 0.05f, Color.green);
             if (_showDebugInfo) DebugExt.DrawRay(_rigidbody.position, MotionDirWorld, Color.green);
             if (_showDebugInfo) DebugExt.DrawRay(_rigidbody.position, MotionNormal, Color.cyan);
 #endif
-            
-            if (!_rigidbody.useGravity) {
-                _rigidbody.linearVelocity = Vector3.Lerp(_rigidbody.linearVelocity, Vector3.zero, dt * _noGravityVelocityDamping);
-            }
         }
 
         private static Vector3 InputToLocal(Vector2 input) {
@@ -204,7 +212,7 @@ namespace MisterGames.Character.Motion {
             if (!_showDebugInfo) return;
 
             if (Application.isPlaying) {
-                UnityEditor.Handles.Label(
+                Handles.Label(
                     transform.TransformPoint(Vector3.up),
                     $"Speed {_rigidbody.linearVelocity.magnitude:0.00} / {CalculateSpeedCorrection(_smoothedInput) * Speed:0.00}\n" +
                     $"Move force {_moveForce:0.00}\n" +
