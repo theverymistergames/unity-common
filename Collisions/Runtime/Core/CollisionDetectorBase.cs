@@ -21,7 +21,6 @@ namespace MisterGames.Collisions.Core {
         protected void SetCollisionInfo(CollisionInfo newInfo, bool forceNotify = false) {
             var lastInfo = CollisionInfo;
             CollisionInfo = newInfo;
-
             HasContact = newInfo.hasContact;
             
             CheckContactChanged(lastInfo, newInfo, forceNotify);
@@ -29,15 +28,12 @@ namespace MisterGames.Collisions.Core {
         }
 
         private void CheckContactChanged(CollisionInfo lastInfo, CollisionInfo newInfo, bool forceNotify) {
-            bool hadContact = lastInfo.hasContact;
-            bool hasContact = newInfo.hasContact;
-
-            if ((hadContact || forceNotify) && !hasContact) {
+            if ((lastInfo.hasContact || forceNotify) && !newInfo.hasContact) {
                 OnLostContact.Invoke();
                 return;
             }
             
-            if ((!hadContact || forceNotify) && hasContact) {
+            if ((!lastInfo.hasContact || forceNotify) && newInfo.hasContact) {
                 OnContact.Invoke();
             }
         }

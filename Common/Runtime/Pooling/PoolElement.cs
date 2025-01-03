@@ -141,7 +141,7 @@ namespace MisterGames.Common.Pooling {
         private void FetchChildTransformsData() {
             if (!_syncTransforms) return;
 
-            var childTransforms = transform.GetComponentsInChildren<Transform>();
+            var childTransforms = gameObject.GetComponentsInChildren<Transform>(includeInactive: true);
             _syncTransformData = new TransformData[childTransforms.Length];
             
             for (int i = 0; i < childTransforms.Length; i++) {

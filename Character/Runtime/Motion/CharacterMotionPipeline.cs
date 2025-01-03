@@ -200,7 +200,10 @@ namespace MisterGames.Character.Motion {
             var perfectForce = dt > 0f ? (targetVelocity - velocity) / dt : force;
                 
             float turnAngle = Vector3.Angle(targetVelocity, Vector3.ProjectOnPlane(nextVelocity, _transform.up));
-            float turnFactor = Mathf.Clamp01((turnAngle - _forceCorrectionTurnAngle.x) / (_forceCorrectionTurnAngle.y - _forceCorrectionTurnAngle.x));
+            float turnFactor = turnAngle <= _forceCorrectionTurnAngle.y
+                ? Mathf.Clamp01((turnAngle - _forceCorrectionTurnAngle.x) / (_forceCorrectionTurnAngle.y - _forceCorrectionTurnAngle.x))
+                : 0f;
+            
             float slopeFactor = Mathf.Clamp01((Mathf.Abs(SlopeAngle) - _forceCorrectionSlopeAngle.x) / (_forceCorrectionSlopeAngle.y - _forceCorrectionSlopeAngle.x));
             
             float t = Mathf.Max(turnFactor * _forceCorrectionTurnAngleWeight, slopeFactor * _forceCorrectionSlopeAngleWeight);

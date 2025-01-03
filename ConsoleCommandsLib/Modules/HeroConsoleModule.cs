@@ -166,7 +166,7 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
             }
 
             var actor = access.GetComponent<IActor>();
-            actor.GetComponent<CharacterMotionPipeline>().Teleport(position, actor.Transform.rotation);
+            actor.GetComponent<CharacterMotionPipeline>().Teleport(position, actor.Transform.rotation, preserveVelocity: false);
 
             ConsoleRunner.AppendLine($"Character {access.name} was respawned at point [{spawnPointName} :: {position}]");
         }
