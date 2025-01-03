@@ -101,18 +101,10 @@ namespace MisterGames.Scenes.Editor.Utils {
         }
 
         [MenuItem("Assets/Find prefab usages on all scenes", isValidateFunction: true)]
-        private static bool FindPrefabUsagesOnScenesValidation() {
-            return PrefabUtility.IsPartOfAnyPrefab(Selection.activeObject);
-        }
-
         [MenuItem("Assets/Find prefab usages on opened scenes", isValidateFunction: true)]
-        private static bool FindPrefabUsagesOnOpenedScenesValidation() {
-            return PrefabUtility.IsPartOfAnyPrefab(Selection.activeObject);
-        }
-        
         [MenuItem("Assets/Find prefab usages in all prefabs", isValidateFunction: true)]
-        private static bool FindPrefabUsagesInAllPrefabsValidation() {
-            return PrefabUtility.IsPartOfAnyPrefab(Selection.activeObject);
+        private static bool IsPrefabSelectedValidation() {
+            return Selection.activeObject != null && PrefabUtility.IsPartOfAnyPrefab(Selection.activeObject);
         }
         
         private static int FindPrefabUsagesOnScene(GameObject prefab, Scene scene)
