@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using MisterGames.Input.Global;
-using MisterGames.Tick.Core;
+using MisterGames.Common.Tick;
 using UnityEngine;
 using UnityEngine.InputSystem;
 

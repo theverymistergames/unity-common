@@ -1,4 +1,4 @@
-﻿namespace MisterGames.Tick.Core {
+﻿namespace MisterGames.Common.Tick {
 
     public interface IUpdate {
         void OnUpdate(float dt);

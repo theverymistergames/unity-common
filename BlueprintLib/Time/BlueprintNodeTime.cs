@@ -1,6 +1,6 @@
 ﻿using System;
 using MisterGames.Blueprints;
-using MisterGames.Tick.Core;
+using MisterGames.Common.Tick;
 using UnityEngine;
 
 namespace MisterGames.BlueprintLib {

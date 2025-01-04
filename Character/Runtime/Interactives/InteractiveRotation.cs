@@ -3,7 +3,7 @@ using MisterGames.Character.View;
 using MisterGames.Common.Maths;
 using MisterGames.Input.Actions;
 using MisterGames.Interact.Interactives;
-using MisterGames.Tick.Core;
+using MisterGames.Common.Tick;
 using UnityEngine;
 
 namespace MisterGames.Character.Interactives {

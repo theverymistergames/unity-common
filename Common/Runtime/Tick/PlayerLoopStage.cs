@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 
-namespace MisterGames.Tick.Core {
+namespace MisterGames.Common.Tick {
 
     public enum PlayerLoopStage {
         PreUpdate,

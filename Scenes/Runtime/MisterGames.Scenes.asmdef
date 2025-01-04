@@ -3,7 +3,6 @@
     "rootNamespace": "MisterGames.Scenes",
     "references": [
         "GUID:0175294ec022c624cbe537915e3c9e71",
-        "GUID:b887f5744765cba4b9c25a5554ce71b3",
         "GUID:f51ebe6a0ceec4240a699833d6309b23",
         "GUID:850a500602d96814c8248951d59795a7",
         "GUID:3d6f9ec8b442ef04b866c9a2d92fad40"

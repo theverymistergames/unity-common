@@ -1,6 +1,6 @@
 ﻿using MisterGames.Actors;
 using MisterGames.Character.Motion;
-using MisterGames.Tick.Core;
+using MisterGames.Common.Tick;
 using UnityEngine;
 
 namespace MisterGames.Character.View {

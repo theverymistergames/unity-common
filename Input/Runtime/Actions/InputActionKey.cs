@@ -3,7 +3,7 @@ using MisterGames.Common.Attributes;
 using MisterGames.Input.Activation;
 using MisterGames.Input.Bindings;
 using MisterGames.Input.Core;
-using MisterGames.Tick.Core;
+using MisterGames.Common.Tick;
 using UnityEngine;
 
 namespace MisterGames.Input.Actions {

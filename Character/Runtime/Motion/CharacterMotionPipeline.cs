@@ -5,7 +5,7 @@ using MisterGames.Character.View;
 using MisterGames.Common;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Maths;
-using MisterGames.Tick.Core;
+using MisterGames.Common.Tick;
 using UnityEngine;
 
 #if UNITY_EDITOR

@@ -2,7 +2,7 @@
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 
-namespace MisterGames.Tick.Core {
+namespace MisterGames.Common.Tick {
 
     public interface ITimeSourceProvider {
         ITimeSource Get(PlayerLoopStage stage);

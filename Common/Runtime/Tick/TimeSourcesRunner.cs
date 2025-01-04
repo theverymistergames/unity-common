@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace MisterGames.Tick.Core {
+namespace MisterGames.Common.Tick {
 
     [DefaultExecutionOrder(-10000)]
     public class TimeSourcesRunner : MonoBehaviour, ITimeSourceProvider {

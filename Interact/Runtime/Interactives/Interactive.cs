@@ -4,7 +4,7 @@ using MisterGames.Actors;
 using MisterGames.Common.Attributes;
 using MisterGames.Interact.Cursors;
 using MisterGames.Interact.Detectables;
-using MisterGames.Tick.Core;
+using MisterGames.Common.Tick;
 using UnityEngine;
 
 namespace MisterGames.Interact.Interactives {

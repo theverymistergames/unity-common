@@ -5,7 +5,7 @@ using MisterGames.Character.Collisions;
 using MisterGames.Character.Input;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Maths;
-using MisterGames.Tick.Core;
+using MisterGames.Common.Tick;
 using UnityEngine;
 
 namespace MisterGames.Character.Motion {

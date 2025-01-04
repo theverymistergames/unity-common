@@ -6,7 +6,7 @@ using MisterGames.Actors.Actions;
 using MisterGames.Character.View;
 using MisterGames.Common;
 using MisterGames.Common.Attributes;
-using MisterGames.Tick.Core;
+using MisterGames.Common.Tick;
 using UnityEngine;
 
 namespace MisterGames.ActionLib.Character {

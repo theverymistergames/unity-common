@@ -1,7 +1,7 @@
 ﻿using System;
 using MisterGames.Collisions.Core;
 using MisterGames.Collisions.Utils;
-using MisterGames.Tick.Core;
+using MisterGames.Common.Tick;
 using UnityEngine;
 
 namespace MisterGames.Collisions.Detectors {

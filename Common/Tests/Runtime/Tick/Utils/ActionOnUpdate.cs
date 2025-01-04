@@ -1,5 +1,5 @@
 ﻿using System;
-using MisterGames.Tick.Core;
+using MisterGames.Common.Tick;
 
 namespace Utils {
 

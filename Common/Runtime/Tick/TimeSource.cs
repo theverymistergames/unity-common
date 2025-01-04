@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace MisterGames.Tick.Core {
+namespace MisterGames.Common.Tick {
 
     internal sealed class TimeSource : ITimeSource, ITimeSourceApi {
 

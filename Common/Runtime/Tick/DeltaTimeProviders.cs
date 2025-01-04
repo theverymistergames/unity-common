@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace MisterGames.Tick.Core {
+namespace MisterGames.Common.Tick {
 
     public interface IDeltaTimeProvider {
         float DeltaTime { get; }

@@ -1,4 +1,4 @@
-﻿using MisterGames.Tick.Core;
+﻿using MisterGames.Common.Tick;
 using NUnit.Framework;
 using Utils;
 

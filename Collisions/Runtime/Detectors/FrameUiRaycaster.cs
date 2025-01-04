@@ -4,7 +4,7 @@ using MisterGames.Collisions.Utils;
 using MisterGames.Common.Layers;
 using MisterGames.Common.Maths;
 using MisterGames.Input.Global;
-using MisterGames.Tick.Core;
+using MisterGames.Common.Tick;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;

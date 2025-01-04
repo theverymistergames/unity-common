@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using MisterGames.Collisions.Core;
 using MisterGames.Interact.Detectables;
-using MisterGames.Tick.Core;
+using MisterGames.Common.Tick;
 using UnityEngine;
 
 namespace MisterGames.Interact.Interactives {

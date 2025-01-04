@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using MisterGames.Tick.Core;
+using MisterGames.Common.Tick;
 using UnityEngine;
 
 namespace MisterGames.Collisions.Rigidbodies {

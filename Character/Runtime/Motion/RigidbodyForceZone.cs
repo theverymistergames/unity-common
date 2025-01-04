@@ -3,7 +3,7 @@ using MisterGames.Collisions.Rigidbodies;
 using MisterGames.Collisions.Utils;
 using MisterGames.Common;
 using MisterGames.Common.Attributes;
-using MisterGames.Tick.Core;
+using MisterGames.Common.Tick;
 using UnityEngine;
 
 namespace MisterGames.Character.Motion {

@@ -5,7 +5,7 @@ using MisterGames.Collisions.Core;
 using MisterGames.Common;
 using MisterGames.Common.Easing;
 using MisterGames.Common.GameObjects;
-using MisterGames.Tick.Core;
+using MisterGames.Common.Tick;
 using UnityEngine;
 
 namespace MisterGames.Character.Steps {

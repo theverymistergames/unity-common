@@ -5,7 +5,7 @@ using MisterGames.Actors;
 using MisterGames.Actors.Actions;
 using MisterGames.Character.View;
 using MisterGames.Common.Data;
-using MisterGames.Tick.Core;
+using MisterGames.Common.Tick;
 using UnityEngine;
 using Random = UnityEngine.Random;
 

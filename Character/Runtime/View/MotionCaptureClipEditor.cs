@@ -5,7 +5,7 @@ using Cysharp.Threading.Tasks;
 using MisterGames.Character.View;
 using MisterGames.Common;
 using MisterGames.Common.Async;
-using MisterGames.Tick.Core;
+using MisterGames.Common.Tick;
 using UnityEditor;
 using UnityEngine;
 

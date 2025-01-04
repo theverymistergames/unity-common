@@ -3,8 +3,7 @@
     "rootNamespace": "MisterGames.Input",
     "references": [
         "GUID:0175294ec022c624cbe537915e3c9e71",
-        "GUID:75469ad4d38634e559750d17036d5f7c",
-        "GUID:b887f5744765cba4b9c25a5554ce71b3"
+        "GUID:75469ad4d38634e559750d17036d5f7c"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

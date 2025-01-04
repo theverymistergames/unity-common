@@ -1,8 +1,7 @@
 {
     "name": "MisterGames.Actors",
-    "rootNamespace": "",
+    "rootNamespace": "MisterGames.Actors",
     "references": [
-        "GUID:b887f5744765cba4b9c25a5554ce71b3",
         "GUID:0175294ec022c624cbe537915e3c9e71",
         "GUID:f51ebe6a0ceec4240a699833d6309b23"
     ],
