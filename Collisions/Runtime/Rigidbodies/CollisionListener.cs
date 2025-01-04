@@ -1,5 +1,4 @@
-﻿using System;
-using MisterGames.Common.Layers;
+﻿using MisterGames.Common.Layers;
 using UnityEngine;
 
 namespace MisterGames.Collisions.Rigidbodies {

@@ -44,15 +44,7 @@ namespace MisterGames.Tweens {
         }
 
         private void OnProgressUpdate(float progress, float oldProgress) {
-            for (int i = 0; i < _events.Length; i++) {
-                ref var e = ref _events[i];
-
-                if (progress > oldProgress && oldProgress <= e.progress && e.progress <= progress || 
-                    progress < oldProgress && progress <= e.progress && e.progress <= oldProgress
-                ) {
-                    e.action?.Apply(_actor, _enableCts.Token).Forget();
-                }
-            }
+            _events.NotifyTweenEvents(_actor, progress, oldProgress, _enableCts.Token);
         }
     }
 

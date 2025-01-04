@@ -32,8 +32,10 @@ namespace MisterGames.Tweens {
             for (int i = 0; i < events?.Length; i++) {
                 ref var e = ref events[i];
 
-                if (oldProgress <= e.progress && e.progress <= progress || 
-                    progress <= e.progress && e.progress <= oldProgress
+                if (oldProgress <= e.progress && e.progress <= progress && 
+                    e.direction is TweenEvent.Direction.Both or TweenEvent.Direction.Forward || 
+                    progress <= e.progress && e.progress <= oldProgress && 
+                    e.direction is TweenEvent.Direction.Both or TweenEvent.Direction.Backwards
                 ) {
                     e.action?.Apply(context, cancellationToken).Forget();
                 }
