@@ -3,6 +3,7 @@ using MisterGames.Collisions.Rigidbodies;
 using MisterGames.Collisions.Utils;
 using MisterGames.Common;
 using MisterGames.Common.Attributes;
+using MisterGames.Common.Maths;
 using MisterGames.Common.Tick;
 using UnityEngine;
 
@@ -35,6 +36,7 @@ namespace MisterGames.Character.Motion {
         [SerializeField] [Min(0f)] private float _behindObstacleForceMultiplier = 0.01f;
 
         private readonly HashSet<Rigidbody> _rigidbodies = new();
+        private readonly Dictionary<Rigidbody, float> _rigidbodyForceWeightMap = new();
         private RaycastHit[] _hits;
 
         private void Awake() {
@@ -53,14 +55,20 @@ namespace MisterGames.Character.Motion {
             PlayerLoopStage.FixedUpdate.Unsubscribe(this);
         }
 
+        public float GetForceWeight(Rigidbody rigidbody) {
+            return _rigidbodyForceWeightMap.GetValueOrDefault(rigidbody);
+        }
+        
         private void OnEnterTrigger(Rigidbody rigidbody) {
             _rigidbodies.Add(rigidbody);
+            _rigidbodyForceWeightMap[rigidbody] = 0f;
             
             PlayerLoopStage.FixedUpdate.Subscribe(this);
         }
 
         private void OnExitTrigger(Rigidbody rigidbody) {
             _rigidbodies.Remove(rigidbody);
+            _rigidbodyForceWeightMap.Remove(rigidbody);
             
             if (_rigidbodies.Count == 0) PlayerLoopStage.FixedUpdate.Unsubscribe(this);
         }
@@ -70,30 +78,37 @@ namespace MisterGames.Character.Motion {
             var forceDir = Quaternion.Euler(_forceRotation) * _forceSourcePoint.forward;
 
             foreach (var rb in _rigidbodies) {
-                if (rb == null || !rb.gameObject.activeSelf) continue;
+                if (rb == null || !rb.gameObject.activeSelf) {
+                    _rigidbodyForceWeightMap[rb] = 0f;
+                    continue;
+                }
 
                 float distance = (rb.position - forcePoint).magnitude;
                 float t = _maxDistance > 0f ? 1f - Mathf.Clamp01(distance / _maxDistance) : 0f;
                 
-                var force = GetForce(t, forceDir, rb.linearVelocity);
+                float forceK = GetMainForce(t) * GetAngleCoeff(forceDir, rb.linearVelocity) + GetRandomForce(t);
                 float obstacleK = _considerObstacles && DetectObstacle(forcePoint, forceDir, rb, distance) 
                     ? _behindObstacleForceMultiplier 
                     : 1f;
                 
-                rb.AddForce(force * obstacleK, _forceMode);
+                rb.AddForce(forceK * obstacleK * forceDir, _forceMode);
+                _rigidbodyForceWeightMap[rb] = _forceMultiplier.IsNearlyZero() ? 0f : forceK * obstacleK / _forceMultiplier;
             }
         }
 
-        private Vector3 GetForce(float t, Vector3 forceDir, Vector3 velocity) {
-            float forceK = _forceMultiplier * _forceByDistanceCurve.Evaluate(t);
-            float angleK = Vector3.Dot(forceDir, velocity) >= 0
+        private float GetMainForce(float t) {
+            return _forceMultiplier * _forceByDistanceCurve.Evaluate(t);
+        }
+
+        private float GetAngleCoeff(Vector3 forceDir, Vector3 velocity) {
+            return Vector3.Dot(forceDir, velocity) >= 0 
                 ? _forceByVelocityAngleWeight.x
                 : _forceByVelocityAngleWeight.y;
+        }
 
+        private float GetRandomForce(float t) {
             float randomBase = (Mathf.PerlinNoise1D(Time.time * _randomNoiseSpeed) - 0.5f) * 2f;
-            float randomK = randomBase * _randomMultiplier * _randomByDistanceCurve.Evaluate(t);
-
-            return forceDir * (angleK * forceK + randomK);
+            return _randomMultiplier * randomBase * _randomByDistanceCurve.Evaluate(t);
         }
 
         private bool DetectObstacle(Vector3 forcePoint, Vector3 forceDir, Rigidbody rb, float distance) {
