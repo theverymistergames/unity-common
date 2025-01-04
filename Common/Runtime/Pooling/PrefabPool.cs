@@ -13,47 +13,60 @@ namespace MisterGames.Common.Pooling {
     public sealed class PrefabPool : MonoBehaviour, IPrefabPool {
         
         [SerializeField] private bool _isMainPool = true;
+
+        [Header("Auto Pools")]
+        [SerializeField] [Min(0)] private int _totalTakeCountToCreatePool = 3; 
+        [SerializeField] [Min(0)] private int _activeCountToCreatePool = 3; 
+        [SerializeField] [Min(0)] private int _autoPoolMaxSize = 100; 
+        [SerializeField] [Min(0)] private float _unusedPoolClearTimeout = 300f; 
+        [SerializeField] [Min(0)] private float _autoPoolCheckPeriod = 1f; 
+        
+        [Header("Pools")]
         [SerializeField] [Min(0)] private int _defaultInitialSize;
         [SerializeField] [Min(0)] private int _defaultMaxSize;
-        
         [SerializeField] private PoolSettings[] _predefinedPools;
-
-        [Header("Debug")]
-        [SerializeField] private bool _showDebugLogs;
-        
-        [HideInInspector]
-        [SerializeField] private int _lastPredefinedPoolsCount;
         
         [Serializable]
         private struct PoolSettings {
-            [HideLabel] public string name;
+#if UNITY_EDITOR
+            [HideLabel] public string name;      
+#endif
+            
             public bool enabled;
             [Min(0)] public int initialSize;
             [Min(0)] public int maxSize;
             public GameObject[] prefabs;
         }
+        
+        private struct AutoPoolUsage {
+            public float lastUseTime;
+            public int activeObjectsCount;
+            public int totalTakeCount;
+        }
 
         public static IPrefabPool Main { get; private set; }
+        private static CancellationToken DestroyToken;
         
         public Transform ActiveSceneRoot { get; private set; }
         public Transform PoolRoot { get; private set; }
-
-        private static CancellationToken DestroyToken;
         
-        private readonly Dictionary<int, IObjectPool<GameObject>> _poolMap = new();
+        private readonly Dictionary<int, ObjectPool<GameObject>> _poolMap = new();
+        private readonly Dictionary<int, AutoPoolUsage> _autoPoolUsageMap = new();
         private readonly List<GameObject> _activeSceneRoots = new();
-        
+
         private void Awake() {
             if (_isMainPool) Main = this;
             DestroyToken = destroyCancellationToken;
             
             PoolRoot = transform;
             InitializePools();
+
+            StartAutoPoolChecks(DestroyToken).Forget();
         }
 
         private void OnDestroy() {
-            if (_isMainPool) Main = null;
             DeInitializePools();
+            if (_isMainPool) Main = null;
         }
 
         private void OnEnable() {
@@ -62,6 +75,26 @@ namespace MisterGames.Common.Pooling {
 
         private void OnDisable() {
             SceneManager.activeSceneChanged -= OnActiveSceneChanged;
+        }
+
+        private async UniTask StartAutoPoolChecks(CancellationToken cancellationToken) {
+            while (!cancellationToken.IsCancellationRequested) {
+                float time = Time.realtimeSinceStartup;
+                
+                foreach ((int id, var usage) in _autoPoolUsageMap) {
+                    if (time < usage.lastUseTime + _unusedPoolClearTimeout ||
+                        !_poolMap.TryGetValue(id, out var pool) ||
+                        pool.CountInactive <= 0) 
+                    {
+                        continue;
+                    }
+
+                    pool.Clear();
+                }
+                
+                await UniTask.Delay(TimeSpan.FromSeconds(_autoPoolCheckPeriod), cancellationToken: cancellationToken)
+                             .SuppressCancellationThrow();
+            }
         }
 
         private void OnActiveSceneChanged(Scene oldActiveScene, Scene newActiveScene) {
@@ -83,20 +116,25 @@ namespace MisterGames.Common.Pooling {
                     if (prefab == null) continue;
 
                     var pool = CreatePool(prefab, poolSettings.initialSize, poolSettings.maxSize);
-                    
                     _poolMap[GetPoolId(prefab)] = pool;
+                    
                     FillPool(pool, poolSettings.initialSize);
                 }
             }
         }
 
         private void DeInitializePools() {
+            foreach (var pool in _poolMap.Values) {
+                pool.Clear();
+            }
+
+            _autoPoolUsageMap.Clear();
             _poolMap.Clear();
         }
         
-        private IObjectPool<GameObject> CreatePool(GameObject prefab, int initialSize, int maxSize) {
+        private ObjectPool<GameObject> CreatePool(GameObject prefab, int initialSize, int maxSize) {
 #if UNITY_EDITOR
-            if (_showDebugLogs) Debug.Log($"{nameof(PrefabPool)} {name}: frame {Time.frameCount}, create pool for {prefab}, size {initialSize} / {maxSize}");
+            Log($"creating {(_autoPoolUsageMap.ContainsKey(GetPoolId(prefab)) ? "auto " : "")}pool for {prefab}, size {initialSize}/{maxSize}");
 #endif
             
             return new ObjectPool<GameObject>(
@@ -112,7 +150,7 @@ namespace MisterGames.Common.Pooling {
 
         private void FillPool(IObjectPool<GameObject> pool, int count) {
             for (int i = 0; i < count; i++) { 
-                pool.Get().SetActive(false);
+                pool.Release(pool.Get());
             }
         }
         
@@ -187,13 +225,12 @@ namespace MisterGames.Common.Pooling {
         ) {
             if (prefab == null) return null;
             
-#if UNITY_EDITOR
-            if (_showDebugLogs) Debug.Log($"{nameof(PrefabPool)} {name}: frame {Time.frameCount}, get instance of prefab {prefab}");
-#endif
+            int id = GetPoolId(prefab);
+            UpdateAutoPoolUsageOnTake(id, prefab);
             
-            var instance = _poolMap.GetValueOrDefault(GetPoolId(prefab))?.Get();
-            if (instance == null) instance = CreatePoolObject(prefab);
-            
+            var pool = _poolMap.GetValueOrDefault(id);
+            var instance = pool?.Get() ?? CreatePoolObject(prefab);
+
             var t = instance.transform;
             t.SetParent(parent, worldPositionStays);
             if (setupPositionAndRotation) t.SetPositionAndRotation(position, rotation);
@@ -204,6 +241,10 @@ namespace MisterGames.Common.Pooling {
             if (instance.TryGetComponent(out PoolElement poolElement)) {
                 poolElement.NotifyTakenFromPool(this);
             }
+            
+#if UNITY_EDITOR
+            Log($"taken instance of prefab {prefab} {GetPoolInfo(id)}");
+#endif
             
             return instance;
         }
@@ -216,20 +257,49 @@ namespace MisterGames.Common.Pooling {
             
             if (cancellationToken.IsCancellationRequested) return;
 
-#if UNITY_EDITOR
-            if (_showDebugLogs) Debug.Log($"{nameof(PrefabPool)} {name}: frame {Time.frameCount}, release instance {instance}");
-#endif
+            int id = GetPoolId(instance);
+            bool hasPoolElement = instance.TryGetComponent(out PoolElement poolElement);
+            if (hasPoolElement) poolElement.NotifyReleasedToPool(this);
             
-            if (instance.TryGetComponent(out PoolElement poolElement)) {
-                poolElement.NotifyReleasedToPool(this);
-            }
-            
-            if (_poolMap.TryGetValue(GetPoolId(instance), out var pool)) {
+            if (_poolMap.TryGetValue(id, out var pool)) {
                 pool.Release(instance);
             }
             else {
                 DestroyPoolObject(instance);   
             }
+            
+            UpdateAutoPoolUsageOnRelease(id, pool);
+            
+#if UNITY_EDITOR
+            Log($"released instance {instance} {GetPoolInfo(id)}");
+#endif
+        }
+
+        private void UpdateAutoPoolUsageOnTake(int id, GameObject prefab) {
+            bool hasPool = _poolMap.ContainsKey(id);
+            if (!_autoPoolUsageMap.TryGetValue(id, out var usage) && hasPool) return;
+            
+            usage.activeObjectsCount++;
+            usage.totalTakeCount++;
+            usage.lastUseTime = Time.realtimeSinceStartup;
+            
+            _autoPoolUsageMap[id] = usage;
+
+            if (!hasPool && 
+                (usage.totalTakeCount >= _totalTakeCountToCreatePool ||
+                 usage.activeObjectsCount >= _activeCountToCreatePool)) 
+            {
+                _poolMap[id] = CreatePool(prefab, usage.activeObjectsCount, _autoPoolMaxSize);
+            }
+        }
+        
+        private void UpdateAutoPoolUsageOnRelease(int id, IObjectPool<GameObject> pool) {
+            if (!_autoPoolUsageMap.TryGetValue(id, out var usage) && pool != null) return;
+            
+            usage.activeObjectsCount = Mathf.Max(0, usage.activeObjectsCount - 1);
+            usage.lastUseTime = Time.realtimeSinceStartup;
+            
+            _autoPoolUsageMap[id] = usage;
         }
 
         private GameObject CreatePoolObject(GameObject prefab) {
@@ -256,6 +326,24 @@ namespace MisterGames.Common.Pooling {
         }
 
 #if UNITY_EDITOR
+        [Header("Debug")]
+        [SerializeField] private bool _showDebugLogs;
+        
+        [HideInInspector]
+        [SerializeField] private int _lastPredefinedPoolsCount;
+
+        private void Log(string message) {
+            if (_showDebugLogs) Debug.Log($"<color=cyan>PrefabPool {(_isMainPool ? "Main" : name)}</color> [f {Time.frameCount}]: {message}");
+        }
+
+        private string GetPoolInfo(int id) {
+            bool hasUsage = _autoPoolUsageMap.TryGetValue(id, out var usage);
+            
+            return _poolMap.TryGetValue(id, out var pool)
+                ? $"[Pool, active {pool.CountActive}/{pool.CountAll}{(hasUsage ? $", total taken {usage.totalTakeCount}" : "")}]"
+                : $"[no pool{(hasUsage ? $", total taken {usage.totalTakeCount}, active {usage.activeObjectsCount}" : "")}]";
+        }
+        
         private void OnValidate() {
             for (int i = _lastPredefinedPoolsCount; i < _predefinedPools?.Length; i++) {
                 ref var poolSettings = ref _predefinedPools[i];
