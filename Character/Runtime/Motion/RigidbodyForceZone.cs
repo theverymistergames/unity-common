@@ -68,8 +68,6 @@ namespace MisterGames.Character.Motion {
             var forcePoint = _forceSourcePoint.position;
             var forceDir = Quaternion.Euler(_forceRotation) * _forceSourcePoint.forward;
 
-            _rigidbodies.RemoveWhere(rb => rb == null);
-            
             foreach (var rb in _rigidbodies) {
                 if (!rb.gameObject.activeSelf) continue;
                 

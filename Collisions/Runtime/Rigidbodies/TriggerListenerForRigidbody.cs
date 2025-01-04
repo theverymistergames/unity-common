@@ -1,9 +1,10 @@
 ﻿using System.Collections.Generic;
+using MisterGames.Tick.Core;
 using UnityEngine;
 
 namespace MisterGames.Collisions.Rigidbodies {
     
-    public sealed class TriggerListenerForRigidbody : MonoBehaviour {
+    public sealed class TriggerListenerForRigidbody : MonoBehaviour, IUpdate {
 
         [SerializeField] private TriggerEmitter _triggerEmitter;
         
@@ -14,7 +15,8 @@ namespace MisterGames.Collisions.Rigidbodies {
 
         private readonly Dictionary<Collider, Rigidbody> _colliderToRigidbodyMap = new();
         private readonly Dictionary<Rigidbody, int> _rigidbodyColliderCountMap = new();
-        
+        private readonly List<Collider> _collidersBuffer = new();
+
         private void OnEnable() {
             _triggerEmitter.TriggerEnter += TriggerEntered;
             _triggerEmitter.TriggerExit += TriggerExited;
@@ -30,6 +32,9 @@ namespace MisterGames.Collisions.Rigidbodies {
             
             _colliderToRigidbodyMap.Clear();
             _rigidbodyColliderCountMap.Clear();
+            _collidersBuffer.Clear();
+            
+            PlayerLoopStage.Update.Unsubscribe(this);
         }
 
         private void TriggerEntered(Collider collider) {
@@ -39,20 +44,21 @@ namespace MisterGames.Collisions.Rigidbodies {
                 return;
             }
 
-            int count = _rigidbodyColliderCountMap.GetValueOrDefault(rb);
-            _rigidbodyColliderCountMap[rb] = count + 1;
+            int oldCount = _rigidbodyColliderCountMap.GetValueOrDefault(rb);
+            _rigidbodyColliderCountMap[rb] = oldCount + 1;
 
-            if (count <= 0) TriggerEnter.Invoke(rb);
+            if (oldCount <= 0) TriggerEnter.Invoke(rb);
+
+            PlayerLoopStage.Update.Subscribe(this);
         }
 
         private void TriggerExited(Collider collider) {
-            if (collider.attachedRigidbody is not {} rb || 
-                !_colliderToRigidbodyMap.Remove(collider)) 
+            if (!_colliderToRigidbodyMap.Remove(collider, out var rb)) 
             {
                 return;
             }
             
-            int newCount = Mathf.Max(0, _rigidbodyColliderCountMap.GetValueOrDefault(rb) - 1);
+            int newCount = _rigidbodyColliderCountMap.GetValueOrDefault(rb) - 1;
             if (newCount > 0) {
                 _rigidbodyColliderCountMap[rb] = newCount;
                 return;
@@ -60,6 +66,20 @@ namespace MisterGames.Collisions.Rigidbodies {
 
             _rigidbodyColliderCountMap.Remove(rb);
             TriggerExit.Invoke(rb);
+            
+            if (_rigidbodyColliderCountMap.Count == 0) PlayerLoopStage.Update.Unsubscribe(this);
+        }
+
+        void IUpdate.OnUpdate(float dt) {
+            _collidersBuffer.Clear();
+            
+            foreach (var (collider, _) in _colliderToRigidbodyMap) {
+                if (collider == null || !collider.gameObject.activeSelf) _collidersBuffer.Add(collider);
+            }
+
+            for (int i = 0; i < _collidersBuffer.Count; i++) {
+                TriggerExited(_collidersBuffer[i]);
+            }
         }
     }
     
