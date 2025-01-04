@@ -4,8 +4,7 @@ using MisterGames.Common.Attributes;
 using MisterGames.Common.Data;
 using UnityEngine;
 
-namespace MisterGames.Actors
-{
+namespace MisterGames.Actors {
     
     [DefaultExecutionOrder(-2000)]
     public sealed class Actor : MonoBehaviour, IActor {

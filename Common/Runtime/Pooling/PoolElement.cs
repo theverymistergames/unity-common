@@ -223,8 +223,11 @@ namespace MisterGames.Common.Pooling {
                 data.rigidbody.useGravity = data.useGravity;
                 data.rigidbody.interpolation = data.interpolation;
                 data.rigidbody.constraints = data.constraints;
+
+                if (data.isKinematic) continue;
                 
-                if (!data.isKinematic) data.rigidbody.linearVelocity = Vector3.zero;
+                data.rigidbody.linearVelocity = Vector3.zero;
+                data.rigidbody.angularVelocity = Vector3.zero;
             }
         }
 

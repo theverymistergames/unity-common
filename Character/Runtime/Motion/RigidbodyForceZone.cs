@@ -31,6 +31,7 @@ namespace MisterGames.Character.Motion {
         [SerializeField] private bool _considerObstacles;
         [SerializeField] private LayerMask _layerMask;
         [SerializeField] [Min(1)] private int _maxHits = 6;
+        [SerializeField] [Min(0f)] private float _distanceOffset = 0.5f;
         [SerializeField] [Min(0f)] private float _behindObstacleForceMultiplier = 0.01f;
 
         private readonly HashSet<Rigidbody> _rigidbodies = new();
@@ -69,10 +70,13 @@ namespace MisterGames.Character.Motion {
             var forceDir = Quaternion.Euler(_forceRotation) * _forceSourcePoint.forward;
 
             foreach (var rb in _rigidbodies) {
-                if (!rb.gameObject.activeSelf) continue;
+                if (rb == null || !rb.gameObject.activeSelf) continue;
+
+                float distance = (rb.position - forcePoint).magnitude;
+                float t = _maxDistance > 0f ? 1f - Mathf.Clamp01(distance / _maxDistance) : 0f;
                 
-                var force = GetForce(forcePoint, forceDir, rb.position, rb.linearVelocity);
-                float obstacleK = _considerObstacles && DetectObstacle(forcePoint, forceDir, rb) 
+                var force = GetForce(t, forceDir, rb.linearVelocity);
+                float obstacleK = _considerObstacles && DetectObstacle(forcePoint, forceDir, rb, distance) 
                     ? _behindObstacleForceMultiplier 
                     : 1f;
                 
@@ -80,10 +84,7 @@ namespace MisterGames.Character.Motion {
             }
         }
 
-        private Vector3 GetForce(Vector3 forcePoint, Vector3 forceDir, Vector3 point, Vector3 velocity) {
-            float distance = (point - forcePoint).magnitude;
-            float t = _maxDistance > 0f ? 1f - Mathf.Clamp01(distance / _maxDistance) : 0f;
-            
+        private Vector3 GetForce(float t, Vector3 forceDir, Vector3 velocity) {
             float forceK = _forceMultiplier * _forceByDistanceCurve.Evaluate(t);
             float angleK = Vector3.Dot(forceDir, velocity) >= 0
                 ? _forceByVelocityAngleWeight.x
@@ -95,9 +96,9 @@ namespace MisterGames.Character.Motion {
             return forceDir * (angleK * forceK + randomK);
         }
 
-        private bool DetectObstacle(Vector3 forcePoint, Vector3 forceDir, Rigidbody rb) {
+        private bool DetectObstacle(Vector3 forcePoint, Vector3 forceDir, Rigidbody rb, float distance) {
             var origin = forcePoint + Vector3.ProjectOnPlane(rb.position - forcePoint, forceDir);
-            int hitCount = Physics.RaycastNonAlloc(origin, forceDir, _hits, _maxDistance, _layerMask, QueryTriggerInteraction.Ignore);
+            int hitCount = Physics.RaycastNonAlloc(origin, forceDir, _hits, distance + _distanceOffset, _layerMask, QueryTriggerInteraction.Ignore);
 
             _hits.RemoveInvalidHits(ref hitCount);
             return _hits.TryGetMinimumDistanceHit(hitCount, out var hit) && hit.rigidbody != rb;

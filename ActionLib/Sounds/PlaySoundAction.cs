@@ -23,7 +23,7 @@ namespace MisterGames.ActionLib.Sounds {
         public WeightedValue<AudioClip>[] audioClipVariants;
 
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            if (audioClipVariants.Length == 0) return default;
+            if (audioClipVariants is not { Length: > 0 }) return default;
             
             var clip = audioClipVariants.GetRandom().value;
             float resultPitch = pitch + Random.Range(-pitchRandomAdd, pitchRandomAdd);

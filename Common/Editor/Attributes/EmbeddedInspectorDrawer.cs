@@ -18,8 +18,7 @@ namespace MisterGames.Common.Editor.Attributes {
                 return;
             }
 
-            var foldoutRect = new Rect(position.x - 16f, position.y, position.width + 16f, position.height);
-            property.isExpanded = EditorGUI.Foldout(foldoutRect, property.isExpanded, GUIContent.none, toggleOnLabelClick: true);
+            property.isExpanded = EditorGUI.Foldout(position, property.isExpanded, GUIContent.none, toggleOnLabelClick: true);
 
             if (!property.isExpanded) return;
 

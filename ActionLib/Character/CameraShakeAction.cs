@@ -3,6 +3,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
+using MisterGames.Character.Core;
 using MisterGames.Character.View;
 using MisterGames.Common.Data;
 using MisterGames.Common.Maths;
@@ -23,7 +24,7 @@ namespace MisterGames.ActionLib.Character {
         public Vector3Parameter rotationMultiplier = Vector3Parameter.Default();
         
         public async UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            if (!context.TryGetComponent(out CameraShaker shaker)) return;
+            if (!CharacterSystem.Instance.GetCharacter().TryGetComponent(out CameraShaker shaker)) return;
 
             int id = shaker.CreateState(weight);
 

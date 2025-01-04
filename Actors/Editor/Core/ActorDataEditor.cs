@@ -3,7 +3,6 @@ using UnityEngine;
 
 namespace MisterGames.Actors.Editor.Core {
     
-    
     [CustomEditor(typeof(ActorData))]
     public sealed class ActorDataEditor : UnityEditor.Editor {
 
@@ -35,4 +34,5 @@ namespace MisterGames.Actors.Editor.Core {
             _isDirty = true;
         }
     }
+    
 }
