@@ -71,6 +71,10 @@ namespace MisterGames.Character.View {
             if (_weightMap.Count == 0) PlayerLoopStage.LateUpdate.Unsubscribe(this);
         }
 
+        public void SetWeight(int id, float weight) {
+            _weightMap[id] = weight;
+        }
+
         public void SetSpeed(int id, Vector3 speed) {
             float time = Time.time;
             var lastSpeed = _speedMap.GetValueOrDefault(id);
