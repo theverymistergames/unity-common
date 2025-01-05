@@ -22,6 +22,7 @@ namespace MisterGames.Character.View {
         [SerializeField] private float _returnFreeHeadRotationSmoothing = 5f;
         [SerializeField] private float _returnFreeHeadRotationSmoothingMax = 20f;
         [SerializeField] private ViewClampProcessor _viewClamp;
+        [SerializeField] [Min(0f)] private float _startDelay = 0.3f;
         
         public event Action<float> OnAttach { add => _headJoint.OnAttach += value; remove => _headJoint.OnAttach -= value; }
         public event Action OnDetach { add => _headJoint.OnDetach += value; remove => _headJoint.OnDetach -= value; }
@@ -67,9 +68,12 @@ namespace MisterGames.Character.View {
         private Vector3 _cameraPosition;
         private Quaternion _cameraRotation;
 
+        private float _startTime;
+
         void IActorComponent.OnAwake(IActor actor) {
             _cameraContainer = actor.GetComponent<CameraContainer>();
             _inputPipeline = actor.GetComponent<CharacterInputPipeline>();
+            _startTime = Time.time;
         }
 
         void IActorComponent.OnSetData(IActor actor) {
@@ -215,6 +219,8 @@ namespace MisterGames.Character.View {
         }
 
         private void HandleViewVectorChanged(Vector2 input) {
+            if (Time.time < _startTime + _startDelay) return;
+            
             _inputDeltaAccum += new Vector2(-input.y, input.x);
         }
 

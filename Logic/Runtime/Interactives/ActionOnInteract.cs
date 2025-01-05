@@ -7,7 +7,7 @@ using MisterGames.Common.Attributes;
 using MisterGames.Interact.Interactives;
 using UnityEngine;
 
-namespace MisterGames.Character.Motion {
+namespace MisterGames.Logic.Interactives {
 
     [RequireComponent(typeof(Interactive))]
     public sealed class ActionOnInteract : MonoBehaviour {

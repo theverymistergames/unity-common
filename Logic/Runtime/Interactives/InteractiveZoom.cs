@@ -5,7 +5,7 @@ using MisterGames.Interact.Interactives;
 using MisterGames.Common.Tick;
 using UnityEngine;
 
-namespace MisterGames.Character.Interactives {
+namespace MisterGames.Logic.Interactives {
     
     [RequireComponent(typeof(Interactive))]
     public sealed class InteractiveZoom : MonoBehaviour, IActorComponent, IUpdate {

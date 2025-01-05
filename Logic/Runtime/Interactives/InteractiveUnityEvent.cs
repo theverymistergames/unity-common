@@ -3,11 +3,11 @@ using MisterGames.Interact.Interactives;
 using UnityEngine;
 using UnityEngine.Events;
 
-namespace MisterGames.Interact.Objects {
+namespace MisterGames.Logic.Interactives {
 
     [RequireComponent(typeof(Interactive))]
     [Obsolete("InteractiveUnityEvent must be replaced later!")]
-    public class InteractiveUnityEvent : MonoBehaviour {
+    public sealed class InteractiveUnityEvent : MonoBehaviour {
 
         [SerializeField] private UnityEvent _event;
 
@@ -33,4 +33,5 @@ namespace MisterGames.Interact.Objects {
             _event.Invoke();
         }
     }
+    
 }

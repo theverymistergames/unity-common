@@ -7,7 +7,7 @@ using MisterGames.Common.Maths;
 using MisterGames.Common.Tick;
 using UnityEngine;
 
-namespace MisterGames.Character.Motion {
+namespace MisterGames.Logic.Phys {
 
     public sealed class RigidbodyForceZone : MonoBehaviour, IUpdate {
 

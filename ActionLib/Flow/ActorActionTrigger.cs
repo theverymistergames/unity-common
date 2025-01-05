@@ -5,7 +5,7 @@ using MisterGames.Actors.Actions;
 using MisterGames.Collisions.Triggers;
 using UnityEngine;
 
-namespace MisterGames.Character.Motion {
+namespace MisterGames.ActionLib.Flow {
 
     public sealed class ActorActionTrigger : MonoBehaviour {
 
