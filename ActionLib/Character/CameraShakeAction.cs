@@ -16,6 +16,7 @@ namespace MisterGames.ActionLib.Character {
     public sealed class CameraShakeAction : IActorAction {
 
         public float weight = 1f;
+        public float offsetMultiplier = 1f;
         [Min(0f)] public float duration;
         public Vector3 positionOffset;
         public Vector3 rotationOffset;
@@ -44,8 +45,8 @@ namespace MisterGames.ActionLib.Character {
                 var rot = rm.Multiply(rotationMultiplier.Evaluate(t));
                 
                 shaker.SetSpeed(id, speed);
-                shaker.SetPosition(id, positionOffset, pos);
-                shaker.SetRotation(id, rotationOffset, rot);
+                shaker.SetPosition(id, positionOffset, pos * offsetMultiplier);
+                shaker.SetRotation(id, rotationOffset, rot * offsetMultiplier);
                 
                 await UniTask.Yield();
             }

@@ -13,6 +13,8 @@ namespace MisterGames.Character.View {
         [SerializeField] [Min(0f)] private float _positionSmoothing = 20f;
         [SerializeField] [Min(0f)] private float _rotationSmoothing = 30f;
 
+        private const float WeightTolerance = 0.00001f;
+        
         public Camera Camera { get; private set; }
         public Transform CameraTransform { get; private set; }
         public bool EnableSmoothing { get; set; } = true;
@@ -112,6 +114,7 @@ namespace MisterGames.Character.View {
 
         private void SavePersistentState(CameraState state) {
             ref var dest = ref _isClearingPersistentStates ? ref _persistentStateBuffer : ref _persistentState;
+
             dest = new CameraState(
                 dest.position + state.position - _resultState.position,
                 dest.rotation * state.rotation * Quaternion.Inverse(_resultState.rotation),
@@ -222,7 +225,6 @@ namespace MisterGames.Character.View {
         public void SetFovOffset(int id, float weight, float fov) {
             _fovStates[id] = new WeightedValue<float>(weight, fov);
             _resultState = _resultState.WithFov(BuildResultFov());
-            
             ApplyResultState();
         }
 
@@ -242,19 +244,15 @@ namespace MisterGames.Character.View {
         }
 
         private CameraState BuildResultState() {
-            return new CameraState(
-                BuildResultPosition(),
-                BuildResultRotation(),
-                BuildResultFov()
-            );
+            return new CameraState(BuildResultPosition(), BuildResultRotation(), BuildResultFov());
         }
         
         private Vector3 BuildResultPosition() {
             var result = Vector3.zero;
-            float invertedMaxWeight = BuildInvertedMaxWeight(_positionStates);
+            float w = BuildWeightMultiplier(_positionStates);
             
             foreach (var data in _positionStates.Values) {
-                result += data.weight * invertedMaxWeight * data.value;
+                result += w * data.weight * data.value;
             }
             
             return result;
@@ -262,10 +260,10 @@ namespace MisterGames.Character.View {
 
         private Quaternion BuildResultRotation() {
             var result = Quaternion.identity;
-            float invertedMaxWeight = BuildInvertedMaxWeight(_rotationStates);
+            float w = BuildWeightMultiplier(_rotationStates);
             
             foreach (var data in _rotationStates.Values) {
-                result *= Quaternion.SlerpUnclamped(Quaternion.identity, data.value, data.weight * invertedMaxWeight);
+                result *= Quaternion.SlerpUnclamped(Quaternion.identity, data.value, data.weight * w);
             }
             
             return result;
@@ -273,24 +271,24 @@ namespace MisterGames.Character.View {
         
         private float BuildResultFov() {
             float result = 0f;
-            float invertedMaxWeight = BuildInvertedMaxWeight(_fovStates);
+            float w = BuildWeightMultiplier(_fovStates);
             
             foreach (var data in _fovStates.Values) {
-                result += data.weight * invertedMaxWeight * data.value;
+                result += w * data.weight * data.value;
             }
             
             return result;
         }
         
-        private static float BuildInvertedMaxWeight<T>(Dictionary<int, WeightedValue<T>> source) {
-            float maxWeight = 0f;
+        private static float BuildWeightMultiplier<T>(Dictionary<int, WeightedValue<T>> source) {
+            float max = 0f;
             
             foreach (var data in source.Values) {
-                float absWeight = Mathf.Abs(data.weight);
-                if (maxWeight < absWeight) maxWeight = absWeight;
+                float w = Mathf.Abs(data.weight);
+                if (w > max) max = w;
             }
             
-            return maxWeight <= 0f ? 0f : 1f / maxWeight;
+            return max <= WeightTolerance ? 0f : 1f / max;
         }
     }
 

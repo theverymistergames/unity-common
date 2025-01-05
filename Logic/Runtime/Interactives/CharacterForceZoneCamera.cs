@@ -13,6 +13,7 @@ namespace MisterGames.Logic.Interactives {
         [SerializeField] private RigidbodyForceZone _rigidbodyForceZone;
         
         [Header("Camera Settings")]
+        [SerializeField] private float _cameraStateWeight = 1f;
         [SerializeField] [Min(0f)] private float _forceWeightSmoothing = 3f;
         [SerializeField] [Min(0f)] private float _fovSmoothing = 3f;
         [SerializeField] private float _fovOffsetStart; 
@@ -74,14 +75,13 @@ namespace MisterGames.Logic.Interactives {
             float targetWeight = enabled ? _rigidbodyForceZone.GetForceWeight(_characterRigidbody) : 0f;
             _forceWeightSmoothed = _forceWeightSmoothed.SmoothExpNonZero(targetWeight, dt * _forceWeightSmoothing);
             
-            _cameraShaker.SetWeight(_shakerStateId, _forceWeightSmoothed);
+            _cameraShaker.SetWeight(_shakerStateId, _cameraStateWeight);
             _cameraShaker.SetSpeed(_shakerStateId, Vector3.Lerp(_noiseSpeedStart, _noiseSpeedEnd, _forceWeightSmoothed));
-            _cameraShaker.SetPosition(_shakerStateId, _noisePositionOffset, _noisePositionMul);
-            _cameraShaker.SetRotation(_shakerStateId, _noiseRotationOffset, _noiseRotationMul);
+            _cameraShaker.SetPosition(_shakerStateId, _noisePositionOffset, _noisePositionMul * _forceWeightSmoothed);
+            _cameraShaker.SetRotation(_shakerStateId, _noiseRotationOffset, _noiseRotationMul * _forceWeightSmoothed);
 
             float targetFov = Mathf.Lerp(_fovOffsetStart, _fovOffsetEnd, _forceWeightSmoothed);
-            _fovOffsetSmoothed = _fovOffsetSmoothed.SmoothExpNonZero(targetFov, dt * _fovSmoothing);
-            _cameraContainer.SetFovOffset(_containerStateId, _forceWeightSmoothed, _fovOffsetSmoothed);
+            _cameraContainer.SetFovOffset(_containerStateId, _cameraStateWeight, targetFov);
             
             if (_rigidbodyForceZone.enabled && _rigidbodyForceZone.InZone(_characterRigidbody) || _forceWeightSmoothed > 0f) return;
             
