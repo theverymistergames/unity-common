@@ -16,13 +16,15 @@ namespace MisterGames.Common.Labels {
         private struct LabelArray {
 
             [HideInInspector] public int id;
-            public string name;
-            public LabelArrayUsage usage;
             
+#if UNITY_EDITOR
+            public string name;
             [TextArea]
             public string comment;
+#endif
             
             [Space(10f)]
+            public LabelArrayUsage usage;
             public bool none;
             public LabelData[] labels;
         }
