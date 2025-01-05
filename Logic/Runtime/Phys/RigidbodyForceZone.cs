@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using MisterGames.Collisions.Rigidbodies;
 using MisterGames.Collisions.Utils;
 using MisterGames.Common;
@@ -36,18 +38,26 @@ namespace MisterGames.Logic.Phys {
         [SerializeField] [Min(0f)] private float _distanceOffset = 0.5f;
         [SerializeField] [Min(0f)] private float _behindObstacleForceMultiplier = 0.01f;
 
+        [Header("Disabling")]
+        [SerializeField] [Min(0f)] private float _disableDuration = 0.5f;
+        
         public event Action<Rigidbody> OnEnterZone = delegate { };
         public event Action<Rigidbody> OnExitZone = delegate { };
         
         private readonly HashSet<Rigidbody> _rigidbodies = new();
         private readonly Dictionary<Rigidbody, float> _rigidbodyForceWeightMap = new();
         private RaycastHit[] _hits;
+        private float _forceEnableMul = 1f;
+        private byte _disableId;
 
         private void Awake() {
             _hits = new RaycastHit[_maxHits];
         }
 
         private void OnEnable() {
+            _forceEnableMul = 1f;
+            _disableId++;
+            
             _triggerListenerForRigidbody.TriggerEnter += OnEnterTrigger;
             _triggerListenerForRigidbody.TriggerExit += OnExitTrigger;
         }
@@ -56,7 +66,12 @@ namespace MisterGames.Logic.Phys {
             _triggerListenerForRigidbody.TriggerEnter -= OnEnterTrigger;
             _triggerListenerForRigidbody.TriggerExit -= OnExitTrigger;
             
+            StartDisabling(destroyCancellationToken).Forget();
+        }
+
+        private void OnDestroy() {
             PlayerLoopStage.FixedUpdate.Unsubscribe(this);
+            ClearZone();
         }
 
         public float GetForceWeight(Rigidbody rigidbody) {
@@ -65,6 +80,35 @@ namespace MisterGames.Logic.Phys {
 
         public bool InZone(Rigidbody rigidbody) {
             return _rigidbodies.Contains(rigidbody);
+        }
+
+        private async UniTask StartDisabling(CancellationToken cancellationToken) {
+            byte id = ++_disableId;
+            
+            float t = 0f;
+            float speed = _disableDuration > 0f ? 1f / _disableDuration : float.MaxValue;
+            float startMul = _forceEnableMul;
+            
+            while (cancellationToken.IsCancellationRequested && t < 1f && id == _disableId) {
+                t = Mathf.Clamp01(t + Time.deltaTime * speed);
+                _forceEnableMul = Mathf.Lerp(startMul, 0f, t);
+                
+                await UniTask.Yield(PlayerLoopTiming.FixedUpdate);
+            }
+            
+            if (cancellationToken.IsCancellationRequested || id != _disableId) return;
+            
+            PlayerLoopStage.FixedUpdate.Unsubscribe(this);
+            ClearZone();
+        }
+
+        private void ClearZone() {
+            foreach (var rb in _rigidbodies) {
+                if (rb != null && rb.gameObject.activeSelf) OnExitZone.Invoke(rb);
+            }
+            
+            _rigidbodies.Clear();
+            _rigidbodyForceWeightMap.Clear();
         }
         
         private void OnEnterTrigger(Rigidbody rigidbody) {
@@ -106,11 +150,11 @@ namespace MisterGames.Logic.Phys {
                     ? _behindObstacleForceMultiplier 
                     : 1f;
                 
-                rb.AddForce((forceK * angleK + randomK) * obstacleK * forceDir, _forceMode);
+                rb.AddForce(_forceEnableMul * (forceK * angleK + randomK) * obstacleK * forceDir, _forceMode);
                 
                 _rigidbodyForceWeightMap[rb] = _forceMultiplier.IsNearlyZero() 
                     ? 0f 
-                    : (forceK + randomK) * obstacleK / _forceMultiplier;
+                    : _forceEnableMul * (forceK + randomK) * obstacleK / _forceMultiplier;
             }
         }
 

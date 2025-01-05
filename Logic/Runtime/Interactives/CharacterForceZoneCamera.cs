@@ -39,6 +39,10 @@ namespace MisterGames.Logic.Interactives {
 
             if (_characterRigidbody != null && _rigidbodyForceZone.InZone(_characterRigidbody)) {
                 PlayerLoopStage.LateUpdate.Subscribe(this);
+
+                _cameraShaker.RemoveState(_shakerStateId);
+                _cameraContainer.RemoveState(_containerStateId);
+                
                 _shakerStateId = _cameraShaker.CreateState(_forceWeightSmoothed);    
                 _containerStateId = _cameraContainer.CreateState();    
             }
@@ -46,13 +50,6 @@ namespace MisterGames.Logic.Interactives {
 
         private void OnDisable() {
             _rigidbodyForceZone.OnEnterZone -= OnEnterZone;
-            
-            PlayerLoopStage.LateUpdate.Unsubscribe(this);
-
-            if (_characterRigidbody != null) {
-                _cameraShaker.RemoveState(_shakerStateId);
-                _cameraContainer.RemoveState(_containerStateId);
-            }
         }
 
         private void OnEnterZone(Rigidbody rigidbody) {
@@ -74,7 +71,7 @@ namespace MisterGames.Logic.Interactives {
         }
 
         void IUpdate.OnUpdate(float dt) {
-            float targetWeight = _rigidbodyForceZone.GetForceWeight(_characterRigidbody);
+            float targetWeight = enabled ? _rigidbodyForceZone.GetForceWeight(_characterRigidbody) : 0f;
             _forceWeightSmoothed = _forceWeightSmoothed.SmoothExpNonZero(targetWeight, dt * _forceWeightSmoothing);
             
             _cameraShaker.SetWeight(_shakerStateId, _forceWeightSmoothed);
@@ -86,7 +83,7 @@ namespace MisterGames.Logic.Interactives {
             _fovOffsetSmoothed = _fovOffsetSmoothed.SmoothExpNonZero(targetFov, dt * _fovSmoothing);
             _cameraContainer.SetFovOffset(_containerStateId, _forceWeightSmoothed, _fovOffsetSmoothed);
             
-            if (_rigidbodyForceZone.InZone(_characterRigidbody) || _forceWeightSmoothed > 0f) return;
+            if (_rigidbodyForceZone.enabled && _rigidbodyForceZone.InZone(_characterRigidbody) || _forceWeightSmoothed > 0f) return;
             
             PlayerLoopStage.LateUpdate.Unsubscribe(this);
 
