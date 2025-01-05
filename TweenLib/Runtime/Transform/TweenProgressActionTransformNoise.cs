@@ -9,14 +9,23 @@ namespace MisterGames.TweenLib {
 
         public Transform transform;
         public AnimationCurve curve;
-        public Vector3 positionMultiplier;
         public Vector3 positionOffset;
-        public Vector3 rotationMultiplier;
         public Vector3 rotationOffset;
-        public Vector3 scaleMultiplier;
         public Vector3 scaleOffset;
+        public Vector3 positionMultiplier;
+        public Vector3 rotationMultiplier;
+        public Vector3 scaleMultiplier;
         public float noiseScale;
         public bool useLocal = true;
+        public ApplyMode applyMode = ApplyMode.Position | ApplyMode.Rotation | ApplyMode.Scale;
+        
+        [Flags]
+        public enum ApplyMode {
+            None = 0,
+            Position = 1,
+            Rotation = 2,
+            Scale = 4,
+        }
         
         public void OnProgressUpdate(float progress) {
             float s = curve.Evaluate(progress);
@@ -41,8 +50,7 @@ namespace MisterGames.TweenLib {
             );
             
             if (useLocal) {
-                transform.localPosition = positionNoise;
-                transform.localRotation = Quaternion.Euler(rotationNoise);
+                transform.SetLocalPositionAndRotation(positionNoise, Quaternion.Euler(rotationNoise));
             }
             else {
                 transform.SetPositionAndRotation(positionNoise, Quaternion.Euler(rotationNoise));
