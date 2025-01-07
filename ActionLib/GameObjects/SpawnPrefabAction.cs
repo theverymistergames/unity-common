@@ -5,6 +5,7 @@ using MisterGames.Actors;
 using MisterGames.Actors.Actions;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Data;
+using MisterGames.Common.Maths;
 using MisterGames.Common.Pooling;
 using UnityEngine;
 
@@ -17,8 +18,7 @@ namespace MisterGames.ActionLib.GameObjects {
         public Mode mode;
         [VisibleIf(nameof(mode), 1)]
         public Transform explicitTransform;
-        public bool inheritPosition = true;
-        public bool inheritRotation = true;
+        public Inherit inherit = Inherit.Position | Inherit.Rotation;
         public Vector3 offset;
         public Vector3 rotationOffset;
         public Optional<Vector3> scale = Optional<Vector3>.WithDisabled(Vector3.one);
@@ -26,7 +26,15 @@ namespace MisterGames.ActionLib.GameObjects {
 
         public enum Mode {
             UseActorTransform,
-            UseExplicitTransform
+            UseExplicitTransform,
+        }
+
+        [Flags]
+        public enum Inherit {
+            None = 0,
+            Position = 1,
+            Rotation = 2,
+            Scale = 4,
         }
         
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
@@ -36,14 +44,16 @@ namespace MisterGames.ActionLib.GameObjects {
                 _ => throw new ArgumentOutOfRangeException()
             };
 
-            root.GetPositionAndRotation(out var pos, out var rot);
-            var parent = parentToTransform ? root : PrefabPool.Main.ActiveSceneRoot;
-
-            pos = inheritPosition ? pos : Vector3.zero;
-            rot = inheritRotation ? rot : Quaternion.identity;
+            root.GetPositionAndRotation(out var rootPos, out var rootRot);
+            var parent = parentToTransform ? root : PrefabPool.Main.ActiveSceneRoot; 
             
-            var t = PrefabPool.Main.Get(prefab, pos + offset, rot * Quaternion.Euler(rotationOffset), parent).transform;
-            if (scale.HasValue) t.localScale = scale.Value;
+            rootPos = (inherit & Inherit.Position) == Inherit.Position ? rootPos : Vector3.zero;
+            rootRot = (inherit & Inherit.Rotation) == Inherit.Rotation ? rootRot : Quaternion.identity;
+            var rootScale = (inherit & Inherit.Scale) == Inherit.Scale ? root.localScale : Vector3.one;
+            
+            PrefabPool.Main
+                .Get(prefab, rootPos + offset, rootRot * Quaternion.Euler(rotationOffset), parent)
+                .transform.localScale = (scale.HasValue ? scale.Value : prefab.transform.localScale).Multiply(rootScale);
             
             return default;
         }
