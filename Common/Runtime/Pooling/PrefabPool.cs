@@ -322,6 +322,7 @@ namespace MisterGames.Common.Pooling {
 
         private void OnReleaseToPool(GameObject go) {
             go.SetActive(false);
+            go.transform.SetParent(PoolRoot);
         }
         
         private static int GetPoolId(GameObject instance) {

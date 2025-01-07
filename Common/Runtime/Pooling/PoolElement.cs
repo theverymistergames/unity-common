@@ -85,6 +85,7 @@ namespace MisterGames.Common.Pooling {
         /// </summary>
         public float LifetimeTotal { get => _lifetime; set => _lifetime = value; }
         public float LifetimeLeft => _startTime + _lifetime - Time.time;
+        public float LifetimeProgress => LifetimeTotal > 0f ? Mathf.Clamp01(1f - LifetimeLeft / LifetimeTotal) : 0f;
         
         private CancellationTokenSource _enableCts;
         private TransformData[] _syncTransformData;
