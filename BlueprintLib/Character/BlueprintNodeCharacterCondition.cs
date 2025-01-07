@@ -19,13 +19,19 @@ namespace MisterGames.BlueprintLib {
             meta.AddPort(id, Port.Output<bool>("Condition"));
         }
 
+        private float _startTime;
+        
+        public void OnInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
+            _startTime = Time.time;
+        }
+
         public bool GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
             if (port != 2) return default;
 
             var actor = blueprint.Read<IActor>(token, 0);
             var condition = blueprint.Read<IActorCondition>(token, 1, _condition);
             
-            return condition?.IsMatch(actor) ?? false;
+            return condition?.IsMatch(actor, _startTime) ?? false;
         }
     }
 

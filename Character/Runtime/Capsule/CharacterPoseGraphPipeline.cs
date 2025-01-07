@@ -20,6 +20,7 @@ namespace MisterGames.Character.Capsule {
         private CancellationTokenSource _enableCts;
         private CancellationTokenSource _poseChangeCts;
         private byte _poseChangeId;
+        private float _startTime;
 
         public void OnAwake(IActor actor) {
             _actor = actor;
@@ -33,6 +34,8 @@ namespace MisterGames.Character.Capsule {
         }
 
         private void OnEnable() {
+            _startTime = Time.time;
+                
             _enableCts?.Cancel();
             _enableCts?.Dispose();
             _enableCts = new CancellationTokenSource();
@@ -127,7 +130,7 @@ namespace MisterGames.Character.Capsule {
 
                 if (t.SourcePose == sourcePose &&
                     t.TargetPose == targetPose &&
-                    (t.Condition == null || t.Condition.IsMatch(_actor))
+                    (t.Condition == null || t.Condition.IsMatch(_actor, _startTime))
                 ) {
                     transition = t;
                     return true;

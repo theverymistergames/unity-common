@@ -11,7 +11,7 @@ namespace MisterGames.ActionLib.Character {
 
         public Optional<bool> isRunInputPressed;
 
-        public bool IsMatch(IActor context) {
+        public bool IsMatch(IActor context, float startTime) {
             return isRunInputPressed.IsEmptyOrEquals(context.GetComponent<CharacterInputPipeline>().IsRunPressed);
         }
     }

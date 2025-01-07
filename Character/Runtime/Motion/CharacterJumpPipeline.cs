@@ -54,6 +54,8 @@ namespace MisterGames.Character.Motion {
         private bool _isJumpRequested;
         private bool _isJumpImpulseRequested;
 
+        private float _startTime;
+
         public void OnAwake(IActor actor) {
             _actor = actor;
             _input = actor.GetComponent<CharacterInputPipeline>();
@@ -63,6 +65,8 @@ namespace MisterGames.Character.Motion {
         }
 
         private void OnEnable() {
+            _startTime = Time.time;
+            
             PlayerLoopStage.Update.Subscribe(this);
             _input.JumpPressed += HandleJumpPressedInput;
         }
@@ -165,7 +169,7 @@ namespace MisterGames.Character.Motion {
         private bool CanRequestJump() {
             return _infiniteJumps || 
                    !IsBlocked && !_force.IsNearlyZero() && 
-                   (_jumpCondition == null || _jumpCondition.IsMatch(_actor));
+                   (_jumpCondition == null || _jumpCondition.IsMatch(_actor, _startTime));
         }
         
         private bool CanApplyJumpImpulse() {

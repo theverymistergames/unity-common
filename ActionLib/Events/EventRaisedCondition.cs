@@ -13,7 +13,7 @@ namespace MisterGames.ActionLib.Events {
         public CompareMode compareMode;
         public int comparedValue;
         
-        public bool IsMatch(IActor context) {
+        public bool IsMatch(IActor context, float startTime) {
             return compareMode.IsMatch(eventReference.GetCount(), comparedValue);
         }
     }

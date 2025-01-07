@@ -14,7 +14,7 @@ namespace MisterGames.Actors.Actions {
         [SerializeReference] [SubclassSelector] public IActorAction actionOnFalse;
 
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            var nextAction = (condition?.IsMatch(context) ?? false) ? actionOnTrue : actionOnFalse;
+            var nextAction = condition?.IsMatch(context, Time.time) ?? false ? actionOnTrue : actionOnFalse;
             return nextAction?.Apply(context, cancellationToken) ?? default;
         }
     }

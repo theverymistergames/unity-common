@@ -13,7 +13,7 @@ namespace MisterGames.Common.Pooling {
     public sealed class PrefabPool : MonoBehaviour, IPrefabPool {
         
         [SerializeField] private bool _isMainPool = true;
-
+        
         [Header("Auto Pools")]
         [SerializeField] [Min(0)] private int _totalTakeCountToCreatePool = 3; 
         [SerializeField] [Min(0)] private int _activeCountToCreatePool = 3; 
@@ -25,6 +25,9 @@ namespace MisterGames.Common.Pooling {
         [SerializeField] [Min(0)] private int _defaultInitialSize;
         [SerializeField] [Min(0)] private int _defaultMaxSize;
         [SerializeField] private PoolSettings[] _predefinedPools;
+        
+        [Header("Debug")]
+        public bool showDebugLogs;
         
         [Serializable]
         private struct PoolSettings {
@@ -325,15 +328,16 @@ namespace MisterGames.Common.Pooling {
             return Animator.StringToHash(instance.name);
         }
 
-#if UNITY_EDITOR
-        [Header("Debug")]
-        [SerializeField] private bool _showDebugLogs;
-        
-        [HideInInspector]
-        [SerializeField] private int _lastPredefinedPoolsCount;
-
         private void Log(string message) {
-            if (_showDebugLogs) Debug.Log($"<color=cyan>PrefabPool {(_isMainPool ? "Main" : name)}</color> [f {Time.frameCount}]: {message}");
+#if UNITY_EDITOR
+            string cOpen = "<color=cyan>";
+            string cClose = "</color>";
+#else
+            string cOpen = null;
+            string cClose = null;
+#endif
+            
+            if (showDebugLogs) Debug.Log($"{cOpen}PrefabPool {(_isMainPool ? "Main" : name)}{cClose} [f {Time.frameCount}]: {message}");
         }
 
         private string GetPoolInfo(int id) {
@@ -343,6 +347,10 @@ namespace MisterGames.Common.Pooling {
                 ? $"[Pool, active {pool.CountActive}/{pool.CountAll}{(hasUsage ? $", total taken {usage.totalTakeCount}" : "")}]"
                 : $"[no pool{(hasUsage ? $", total taken {usage.totalTakeCount}, active {usage.activeObjectsCount}" : "")}]";
         }
+        
+#if UNITY_EDITOR
+        [HideInInspector]
+        [SerializeField] private int _lastPredefinedPoolsCount;
         
         private void OnValidate() {
             for (int i = _lastPredefinedPoolsCount; i < _predefinedPools?.Length; i++) {

@@ -18,9 +18,12 @@ namespace MisterGames.Actors.Actions {
         }
 
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
+            float time = Time.time;
+            
             for (int i = 0; i < cases.Length; i++) {
-                var c = cases[i];
-                if (c.condition?.IsMatch(context) ?? false) {
+                ref var c = ref cases[i];
+                
+                if (c.condition?.IsMatch(context, time) ?? true) {
                     return c.action?.Apply(context, cancellationToken) ?? default;
                 }
             }

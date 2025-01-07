@@ -8,7 +8,7 @@ namespace MisterGames.Interact.Detectables {
 
         [Min(0f)] public float maxDistance;
 
-        public bool IsMatch((IDetector, IDetectable) context) {
+        public bool IsMatch((IDetector, IDetectable) context, float startTime) {
             var (detector, detectable) = context;
             return detector.IsInDirectView(detectable, out float distance) && distance <= maxDistance;
         }

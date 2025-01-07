@@ -10,8 +10,8 @@ namespace MisterGames.Character.Actions {
         public ActorCondition condition;
         public bool defaultCondition;
 
-        public bool IsMatch(IActor context) {
-            return condition == null ? defaultCondition : condition.IsMatch(context);
+        public bool IsMatch(IActor context, float startTime) {
+            return condition == null ? defaultCondition : condition.IsMatch(context, startTime);
         }
     }
 

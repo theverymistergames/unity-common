@@ -8,7 +8,7 @@ namespace MisterGames.Interact.Detectables {
 
         [Min(0f)] public float maxRadius;
 
-        public bool IsMatch((IDetector, IDetectable) context) {
+        public bool IsMatch((IDetector, IDetectable) context, float startTime) {
             var (detector, detectable) = context;
             return (detector.Transform.position - detectable.Transform.position).sqrMagnitude <= maxRadius * maxRadius;
         }

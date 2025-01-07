@@ -17,17 +17,17 @@ namespace MisterGames.Common.Conditions {
             Any
         }
 
-        public bool IsMatch(TContext context) {
+        public bool IsMatch(TContext context, float startTime) {
             switch (mode) {
                 case Mode.All:
                     for (int i = 0; i < conditions.Length; i++) {
-                        if (!conditions[i].IsMatch(context)) return false;
+                        if (!conditions[i].IsMatch(context, startTime)) return false;
                     }
                     return true;
 
                 case Mode.Any:
                     for (int i = 0; i < conditions.Length; i++) {
-                        if (conditions[i].IsMatch(context)) return true;
+                        if (conditions[i].IsMatch(context, startTime)) return true;
                     }
                     return false;
 

@@ -21,8 +21,14 @@ namespace MisterGames.Interact.Detectables {
         private readonly HashSet<IDetector> _observersSet = new HashSet<IDetector>();
         private readonly List<IDetector> _observers = new List<IDetector>();
 
+        private float _startTime;
+        
         private void Awake() {
             Transform = transform;
+        }
+
+        private void OnEnable() {
+            _startTime = Time.time;
         }
 
         private void OnDisable() {
@@ -34,11 +40,11 @@ namespace MisterGames.Interact.Detectables {
         }
 
         public bool IsAllowedToStartDetectBy(IDetector detector) {
-            return enabled && _strategy.IsAllowedToStartDetection(detector, this);
+            return enabled && _strategy.IsAllowedToStartDetection(detector, this, _startTime);
         }
 
         public bool IsAllowedToContinueDetectBy(IDetector detector) {
-            return enabled && _strategy.IsAllowedToContinueDetection(detector, this);
+            return enabled && _strategy.IsAllowedToContinueDetection(detector, this, _startTime);
         }
 
         public void NotifyDetectedBy(IDetector detector) {

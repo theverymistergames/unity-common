@@ -32,13 +32,14 @@ namespace MisterGames.Interact.Interactives {
         private readonly List<IInteractiveUser> _users = new();
         private readonly Dictionary<IInteractiveUser, InteractionData> _userInteractionMap = new();
         private Detectable _detectable;
+        private float _startTime;
 
         private readonly struct InteractionData {
 
-            public readonly int startTime;
+            public readonly int startFrame;
 
-            public InteractionData(int startTime) {
-                this.startTime = startTime;
+            public InteractionData(int startFrame) {
+                this.startFrame = startFrame;
             }
         }
 
@@ -48,6 +49,7 @@ namespace MisterGames.Interact.Interactives {
         }
 
         private void OnEnable() {
+            _startTime = Time.time;
             if (_syncEnableStateWithDetectable) _detectable.enabled = true;
         }
 
@@ -62,7 +64,7 @@ namespace MisterGames.Interact.Interactives {
 
         public bool TryGetInteractionStartTime(IInteractiveUser user, out int startTime) {
             if (_userInteractionMap.TryGetValue(user, out var data)) {
-                startTime = data.startTime;
+                startTime = data.startFrame;
                 return true;
             }
 
@@ -71,15 +73,15 @@ namespace MisterGames.Interact.Interactives {
         }
 
         public bool IsReadyToStartInteractWith(IInteractiveUser user) {
-            return enabled && _strategy.IsReadyToStartInteraction(user, this);
+            return enabled && _strategy.IsReadyToStartInteraction(user, this, _startTime);
         }
 
         public bool IsAllowedToStartInteractWith(IInteractiveUser user) {
-            return enabled && _strategy.IsAllowedToStartInteraction(user, this);
+            return enabled && _strategy.IsAllowedToStartInteraction(user, this, _startTime);
         }
 
         public bool IsAllowedToContinueInteractWith(IInteractiveUser user) {
-            return enabled && _strategy.IsAllowedToContinueInteraction(user, this);
+            return enabled && _strategy.IsAllowedToContinueInteraction(user, this, _startTime);
         }
 
         public void NotifyDetectedBy(IInteractiveUser user) {
@@ -124,7 +126,7 @@ namespace MisterGames.Interact.Interactives {
         private void TryApplyCursorIcon(IInteractiveUser user) {
             if (_strategy == null || !user.Transform.TryGetComponent(out ICursorHost host)) return;
 
-            if (_cursorStrategy.TryGetCursorIcon(user, this, out var icon)) {
+            if (_cursorStrategy.TryGetCursorIcon(user, this, _startTime, out var icon)) {
                 host.ApplyCursorIconOverride(this, icon);
                 return;
             }

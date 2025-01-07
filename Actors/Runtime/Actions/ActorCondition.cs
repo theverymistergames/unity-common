@@ -8,8 +8,8 @@ namespace MisterGames.Actors.Actions {
 
         [SerializeReference] [SubclassSelector] private IActorCondition _condition;
 
-        public bool IsMatch(IActor context) {
-            return _condition.IsMatch(context);
+        public bool IsMatch(IActor context, float startTime) {
+            return _condition.IsMatch(context, startTime);
         }
     }
 
