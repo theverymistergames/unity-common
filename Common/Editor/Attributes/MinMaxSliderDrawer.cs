@@ -64,7 +64,8 @@ namespace MisterGames.Common.Editor.Attributes {
                 EditorGUI.MinMaxSlider(rect, GUIContent.none, ref x, ref y, attr.min, attr.max);
             }
             
-            property.vector2Value = new Vector2(x, y);
+            if (asInteger) property.vector2IntValue = new Vector2Int((int) x, (int) y);
+            else property.vector2Value = new Vector2(x, y);
 
             float sliderStart = position.x + position.width * ValueWidthRatio;
             float sliderEnd = position.x + position.width * (1f - ValueWidthRatio);

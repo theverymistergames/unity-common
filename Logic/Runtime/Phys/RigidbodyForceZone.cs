@@ -134,7 +134,7 @@ namespace MisterGames.Logic.Phys {
             var forceDir = Quaternion.Euler(_forceRotation) * _forceSourcePoint.forward;
 
             foreach (var rb in _rigidbodies) {
-                if (rb == null || !rb.gameObject.activeSelf) {
+                if (rb == null || !rb.gameObject.activeSelf || rb.isKinematic) {
                     _rigidbodyForceWeightMap[rb] = 0f;
                     continue;
                 }
