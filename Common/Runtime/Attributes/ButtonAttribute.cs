@@ -6,9 +6,17 @@ namespace MisterGames.Common.Attributes {
     public sealed class ButtonAttribute : Attribute
     {
         public readonly string name;
+        public readonly Mode mode;
+
+        public enum Mode {
+            Always,
+            Runtime,
+            Editor,
+        }
         
-        public ButtonAttribute(string name = default) {
+        public ButtonAttribute(string name = null, Mode mode = Mode.Always) {
             this.name = name;
+            this.mode = mode;
         }
     }
     
