@@ -30,7 +30,7 @@ namespace MisterGames.Character.Collisions {
         private void SetEnabled(bool isEnabled) {
             _ceilingDetector.enabled = isEnabled;
             _groundDetector.enabled = isEnabled;
-            _collider.enabled = isEnabled;
+            _collider.isTrigger = !isEnabled;
         }
     }
 
