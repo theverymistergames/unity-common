@@ -12,18 +12,18 @@ namespace MisterGames.Common.Tick {
 
         public static int frameCount =>
 #if UNITY_EDITOR
-            Application.isPlaying ? Time.frameCount
-            : _isRunningEditorUpdates ? _editorUpdatesFrameCount
-            : 0;
+            !Application.isPlaying && _isRunningEditorUpdates
+                ? _editorUpdatesFrameCount 
+                : Time.frameCount;
 #else
         Time.frameCount;
 #endif
 
         public static float time =>
 #if UNITY_EDITOR
-            Application.isPlaying ? Time.time
-            : _isRunningEditorUpdates ? _editorUpdatesTime
-            : 0f;
+            !Application.isPlaying && _isRunningEditorUpdates 
+                ? _editorUpdatesTime 
+                : Time.time;
 #else
         Time.time;
 #endif
@@ -68,8 +68,6 @@ namespace MisterGames.Common.Tick {
         private static float _editorUpdatesTime;
 
         private static ITimeSource GetOrCreateEditorTimeSource(PlayerLoopStage stage) {
-            _editorDeltaTimeProvider ??= new EditorDeltaTimeProvider();
-
             CheckEditorUpdatesAreStarted().Forget();
 
             switch (stage) {
@@ -121,10 +119,14 @@ namespace MisterGames.Common.Tick {
             }
             
             _isRunningEditorUpdates = true;
-
+            _editorUpdatesFrameCount = Time.frameCount;
+            _editorUpdatesTime = Time.time;
+            _editorDeltaTimeProvider = new EditorDeltaTimeProvider();
+            
             while (true) {
                 _editorDeltaTimeProvider.UpdateDeltaTime();
-
+                _editorUpdatesTime += _editorDeltaTimeProvider.DeltaTime;
+                
                 _editorPreUpdateTimeSource?.Tick();
                 _editorUpdateTimeSource?.Tick();
                 _editorUnscaledUpdateTimeSource?.Tick();
@@ -133,21 +135,29 @@ namespace MisterGames.Common.Tick {
                 await UniTask.Yield();
 
                 _editorUpdatesFrameCount++;
-                _editorUpdatesTime += _editorDeltaTimeProvider.DeltaTime;
-
+                
                 bool canStopEditorUpdates =
-                    _editorPreUpdateTimeSource == null &&
-                    _editorUpdateTimeSource == null &&
-                    _editorUnscaledUpdateTimeSource == null &&
-                    _editorLateUpdateTimeSource == null;
+                    CanStopUpdate(_editorPreUpdateTimeSource) &&
+                    CanStopUpdate(_editorUpdateTimeSource) &&
+                    CanStopUpdate(_editorUnscaledUpdateTimeSource) &&
+                    CanStopUpdate(_editorLateUpdateTimeSource);
 
                 if (canStopEditorUpdates) break;
             }
 
-            _editorUpdatesFrameCount = 0;
-            _editorUpdatesTime = 0f;
+            _editorDeltaTimeProvider = null;
+            _editorPreUpdateTimeSource = null;
+            _editorUpdateTimeSource = null;
+            _editorUnscaledUpdateTimeSource = null;
+            _editorLateUpdateTimeSource = null;
 
             _isRunningEditorUpdates = false;
+            _editorUpdatesFrameCount = Time.frameCount;
+            _editorUpdatesTime = Time.time;
+        }
+
+        private static bool CanStopUpdate(ITimeSourceApi timeSource) {
+            return timeSource is not { SubscribersCount: > 0 };
         }
 
         private sealed class EditorDeltaTimeProvider : IDeltaTimeProvider {
@@ -155,11 +165,7 @@ namespace MisterGames.Common.Tick {
             public float DeltaTime => _deltaTime;
 
             private float _deltaTime;
-            private float _lastTimeSinceStartup;
-
-            public EditorDeltaTimeProvider() {
-                _lastTimeSinceStartup = Time.realtimeSinceStartup;
-            }
+            private float _lastTimeSinceStartup = Time.realtimeSinceStartup;
 
             public void UpdateDeltaTime() {
                 float timeSinceStartup = Time.realtimeSinceStartup;
