@@ -56,7 +56,7 @@ namespace MisterGames.Logic.Phys {
         
         private void TriggerExit(Rigidbody rigidbody) {
             _rigidbodies.Remove(rigidbody, out var data);
-            rigidbody.useGravity = data.useGravity;
+            if (rigidbody != null) rigidbody.useGravity = data.useGravity;
         }
 
         void IUpdate.OnUpdate(float dt) {
