@@ -20,6 +20,12 @@ namespace MisterGames.Tweens {
 
     public static class TweenExtensions {
 
+        public static bool NeedNotifyProgress(this TweenDirection direction, float oldProgress, float newProgress) {
+            return direction is TweenDirection.Both ||
+                   direction is TweenDirection.Forward && oldProgress <= newProgress || 
+                   direction is TweenDirection.Backwards && oldProgress >= newProgress;
+        }
+        
         public static void NotifyTweenEvents(
             this TweenEvent[] events, 
             IActor context, 
@@ -33,9 +39,9 @@ namespace MisterGames.Tweens {
                 ref var e = ref events[i];
 
                 if (oldProgress <= e.progress && e.progress <= progress && 
-                    e.direction is TweenEvent.Direction.Both or TweenEvent.Direction.Forward || 
+                    e.direction is TweenDirection.Both or TweenDirection.Forward || 
                     progress <= e.progress && e.progress <= oldProgress && 
-                    e.direction is TweenEvent.Direction.Both or TweenEvent.Direction.Backwards
+                    e.direction is TweenDirection.Both or TweenDirection.Backwards
                 ) {
                     e.action?.Apply(context, cancellationToken).Forget();
                 }
