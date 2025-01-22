@@ -12,6 +12,7 @@ namespace MisterGames.Common.Audio {
             float volume = 1f,
             float pitch = 1f,
             float spatialBlend = 1f,
+            float normalizedTime = 0f,
             bool loop = false,
             CancellationToken cancellationToken = default
         );
@@ -23,6 +24,7 @@ namespace MisterGames.Common.Audio {
             float volume = 1f,
             float pitch = 1f,
             float spatialBlend = 1f,
+            float normalizedTime = 0f,
             bool loop = false,
             CancellationToken cancellationToken = default
         );

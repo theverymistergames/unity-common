@@ -13,9 +13,11 @@ namespace MisterGames.ActionLib.Flow {
 
         [SerializeField] private bool _useCharacterAsActor;
         [SerializeField] private bool _cancelOnNextAction;
+        [SerializeField] private bool _cancelOnDisable;
         [SerializeField] private LaunchMode _launchMode;
         [SerializeReference] [SubclassSelector] private IActorAction _action;
 
+        private CancellationTokenSource _enableCts;
         private CancellationTokenSource _actionCts;
         private IActor _actor;
         private bool _isStarted;
@@ -44,7 +46,9 @@ namespace MisterGames.ActionLib.Flow {
         }
 
         private void Awake() {
-            if (_launchMode == LaunchMode.OnAwake) Launch(destroyCancellationToken).Forget();
+            AsyncExt.RecreateCts(ref _enableCts);
+            
+            if (_launchMode == LaunchMode.OnAwake) Launch(GetCancellationToken()).Forget();
         }
 
         private void OnDestroy() {
@@ -53,14 +57,18 @@ namespace MisterGames.ActionLib.Flow {
 
         private void Start() {
             _isStarted = true;
-            if (_launchMode == LaunchMode.OnStart) Launch(destroyCancellationToken).Forget();
+            if (_launchMode == LaunchMode.OnStart) Launch(GetCancellationToken()).Forget();
         }
 
         private void OnEnable() {
-            if (_launchMode == LaunchMode.OnEnable) Launch(destroyCancellationToken).Forget();
+            AsyncExt.RecreateCts(ref _enableCts);
+            
+            if (_launchMode == LaunchMode.OnEnable) Launch(GetCancellationToken()).Forget();
         }
 
         private void OnDisable() {
+            AsyncExt.DisposeCts(ref _enableCts);
+            
             if (_launchMode == LaunchMode.OnDisable ||
                 _isStarted && _launchMode == LaunchMode.OnDisableIfStarted
             ) {
@@ -70,6 +78,10 @@ namespace MisterGames.ActionLib.Flow {
 
         private IActor GetActor() {
             return _useCharacterAsActor ? CharacterSystem.Instance.GetCharacter() : _actor;
+        }
+
+        private CancellationToken GetCancellationToken() {
+            return _cancelOnDisable ? _enableCts.Token : destroyCancellationToken;
         }
     }
     

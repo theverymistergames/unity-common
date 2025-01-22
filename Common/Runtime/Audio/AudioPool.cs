@@ -45,15 +45,34 @@ namespace MisterGames.Common.Audio {
             Main = null;
         }
         
-        public void Play(AudioClip clip, Vector3 position, float volume = 1, float pitch = 1, float spatialBlend = 1f, bool loop = false, CancellationToken cancellationToken = default) {
+        public void Play(
+            AudioClip clip, 
+            Vector3 position, 
+            float volume = 1f, 
+            float pitch = 1f, 
+            float spatialBlend = 1f,
+            float normalizedTime = 0f,
+            bool loop = false, 
+            CancellationToken cancellationToken = default) 
+        {
             var source = GetAudioSourceAtWorldPosition(position);
-            RestartAudioSource(source, clip, volume, pitch, spatialBlend, loop);
+            RestartAudioSource(source, clip, volume, pitch, spatialBlend, normalizedTime, loop);
             ReleaseDelayed(source, clip.length, loop, cancellationToken).Forget();
         }
 
-        public void Play(AudioClip clip, Transform attachTo, Vector3 localPosition = default, float volume = 1, float pitch = 1, float spatialBlend = 1f, bool loop = false, CancellationToken cancellationToken = default) {
+        public void Play(
+            AudioClip clip,
+            Transform attachTo,
+            Vector3 localPosition = default,
+            float volume = 1f,
+            float pitch = 1f,
+            float spatialBlend = 1f,
+            float normalizedTime = 0f,
+            bool loop = false,
+            CancellationToken cancellationToken = default) 
+        {
             var source = GetAudioSourceAttached(attachTo, localPosition);
-            RestartAudioSource(source, clip, volume, pitch, spatialBlend, loop);
+            RestartAudioSource(source, clip, volume, pitch, spatialBlend, normalizedTime, loop);
             ReleaseDelayed(source, clip.length, loop, cancellationToken).Forget();
         }
 
@@ -105,10 +124,19 @@ namespace MisterGames.Common.Audio {
             return audioSource;
         }
 
-        private static void RestartAudioSource(AudioSource source, AudioClip clip, float volume = 1, float pitch = 1, float spatialBlend = 1f, bool loop = false) {
+        private static void RestartAudioSource(
+            AudioSource source,
+            AudioClip clip,
+            float volume = 1f, 
+            float pitch = 1f, 
+            float spatialBlend = 1f,
+            float normalizedTime = 0f, 
+            bool loop = false) 
+        {
             source.Stop();
-            
+
             source.clip = clip;
+            source.time = normalizedTime * clip.length;
             source.volume = volume;
             source.pitch = pitch;
             source.loop = loop;
