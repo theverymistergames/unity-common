@@ -1,11 +1,12 @@
-﻿using System.Threading;
+﻿using System.Collections.Generic;
+using System.Threading;
 using UnityEngine;
 
 namespace MisterGames.Common.Audio {
     
     public interface IAudioPool {
 
-        public void Play(
+        void Play(
             AudioClip clip,
             Vector3 position,
             float volume = 1f,
@@ -15,7 +16,7 @@ namespace MisterGames.Common.Audio {
             CancellationToken cancellationToken = default
         );
         
-        public void Play(
+        void Play(
             AudioClip clip,
             Transform attachTo,
             Vector3 localPosition = default,
@@ -25,6 +26,8 @@ namespace MisterGames.Common.Audio {
             bool loop = false,
             CancellationToken cancellationToken = default
         );
+
+        AudioClip ShuffleClips(IReadOnlyList<AudioClip> clips);
     }
     
 }

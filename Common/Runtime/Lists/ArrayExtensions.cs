@@ -110,8 +110,35 @@ namespace MisterGames.Common.Lists {
             return false;
         }
 
-        public static T GetRandom<T>(this IReadOnlyList<T> list) {
-            return list.Count == 0 ? default : list[Random.Range(0, list.Count)];
+        public static T GetRandom<T>(this IReadOnlyList<T> list, int tryExcludeIndex = -1) {
+            int count = list?.Count ?? 0;
+            return count == 0 ? default : list![GetRandom(0, count, tryExcludeIndex)];
+        }
+        
+        public static int GetRandomIndex<T>(this IReadOnlyList<T> list, int tryExcludeIndex = -1) {
+            return GetRandom(0, list?.Count ?? 0, tryExcludeIndex);
+        }
+
+        public static int GetRandom(int minInclusive, int maxExclusive, int tryExclude) {
+            int r = Random.Range(minInclusive, maxExclusive);
+            
+            if (r != tryExclude || Mathf.Abs(minInclusive - maxExclusive) <= 1) {
+                return r;
+            }
+
+            if (minInclusive > maxExclusive) {
+                (minInclusive, maxExclusive) = (maxExclusive, minInclusive);
+            }
+            
+            if (maxExclusive - tryExclude <= 1) {
+                return Random.Range(minInclusive, tryExclude);
+            }
+
+            if (tryExclude - minInclusive <= 0) {
+                return Random.Range(tryExclude + 1, maxExclusive);
+            }
+
+            return Random.value < 0.5f ? Random.Range(minInclusive, tryExclude) : Random.Range(tryExclude + 1, maxExclusive);
         }
         
         public static void EnsureCapacity<T>(ref T[] array, int min, int max = -1) {

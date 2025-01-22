@@ -1,8 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using MisterGames.Common.Lists;
 using MisterGames.Common.Pooling;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace MisterGames.Common.Audio {
     
@@ -10,14 +13,32 @@ namespace MisterGames.Common.Audio {
 
         [SerializeField] private AudioSource _prefab;
         [SerializeField] [Min(0f)] private float _fadeOut = 0.25f;
+        [SerializeField] [Min(0f)] private float _lastIndexStoreLifetime = 60f;
 
         public static IAudioPool Main { get; private set; }
 
+        private readonly Dictionary<int, IndexData> _lastIndexMap = new();
+        private readonly List<int> _keysBuffer = new();
         private CancellationToken _cancellationToken;
+
+        private readonly struct IndexData {
+            
+            public static readonly IndexData Invalid = new(-1, 0f); 
+            
+            public readonly int index;
+            public readonly float time;
+            
+            public IndexData(int index, float time) {
+                this.index = index;
+                this.time = time;
+            }
+        }
         
         private void Awake() {
             Main = this;
             _cancellationToken = destroyCancellationToken;
+
+            StartIndexStorageChecks(_cancellationToken).Forget();
         }
 
         private void OnDestroy() {
@@ -36,6 +57,44 @@ namespace MisterGames.Common.Audio {
             ReleaseDelayed(source, clip.length, loop, cancellationToken).Forget();
         }
 
+        public AudioClip ShuffleClips(IReadOnlyList<AudioClip> clips) {
+            int count = clips?.Count ?? 0;
+            if (count == 0) return default;
+
+            int s = 0;
+
+            for (int i = 0; i < count; i++) {
+                s += clips![i].GetHashCode();
+            }
+
+            var lastData = _lastIndexMap.GetValueOrDefault(s, IndexData.Invalid);
+            int index = ArrayExtensions.GetRandom(0, count, tryExclude: lastData.index);
+
+            _lastIndexMap[s] = new IndexData(index, Time.time);
+            
+            return clips![index];
+        }
+
+        private async UniTask StartIndexStorageChecks(CancellationToken cancellationToken) {
+            while (!cancellationToken.IsCancellationRequested) {
+                float time = Time.time;
+            
+                _keysBuffer.Clear();
+                _keysBuffer.AddRange(_lastIndexMap.Keys);
+
+                for (int i = 0; i < _keysBuffer.Count; i++) {
+                    int k = _keysBuffer[i];
+                    var data = _lastIndexMap[k];
+                    if (time - data.time < _lastIndexStoreLifetime) continue;
+
+                    _lastIndexMap.Remove(k);
+                }
+
+                await UniTask.Delay(TimeSpan.FromSeconds(_lastIndexStoreLifetime), cancellationToken: cancellationToken)
+                    .SuppressCancellationThrow(); 
+            }
+        }
+        
         private AudioSource GetAudioSourceAtWorldPosition(Vector3 position) {
             return PrefabPool.Main.Get(_prefab, position, Quaternion.identity);
         }

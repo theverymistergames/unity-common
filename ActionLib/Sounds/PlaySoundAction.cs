@@ -3,9 +3,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
-using MisterGames.Character.View;
 using MisterGames.Common.Audio;
-using MisterGames.Common.Lists;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -20,12 +18,12 @@ namespace MisterGames.ActionLib.Sounds {
         public float pitchRandomAdd;
         [Range(0f, 1f)] public float spatialBlend = 1f;
         public bool loop;
-        public WeightedValue<AudioClip>[] audioClipVariants;
+        public AudioClip[] audioClipVariants;
 
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
             if (audioClipVariants is not { Length: > 0 }) return default;
-            
-            var clip = audioClipVariants.GetRandom().value;
+
+            var clip = AudioPool.Main.ShuffleClips(audioClipVariants);
             float resultPitch = pitch + Random.Range(-pitchRandomAdd, pitchRandomAdd);
             
             if (attach) {
