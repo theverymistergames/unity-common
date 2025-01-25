@@ -5,7 +5,6 @@ using Cysharp.Threading.Tasks;
 using MisterGames.Common.Lists;
 using MisterGames.Common.Pooling;
 using UnityEngine;
-using Random = UnityEngine.Random;
 
 namespace MisterGames.Common.Audio {
     
@@ -14,12 +13,6 @@ namespace MisterGames.Common.Audio {
         [SerializeField] private AudioSource _prefab;
         [SerializeField] [Min(0f)] private float _fadeOut = 0.25f;
         [SerializeField] [Min(0f)] private float _lastIndexStoreLifetime = 60f;
-
-        public static IAudioPool Main { get; private set; }
-
-        private readonly Dictionary<int, IndexData> _lastIndexMap = new();
-        private readonly List<int> _keysBuffer = new();
-        private CancellationToken _cancellationToken;
 
         private readonly struct IndexData {
             
@@ -34,6 +27,15 @@ namespace MisterGames.Common.Audio {
             }
         }
         
+        public static IAudioPool Main { get; private set; }
+
+        private readonly HashSet<int> _validHandles = new();
+        private int _handleId;
+        
+        private readonly Dictionary<int, IndexData> _lastIndexMap = new();
+        private readonly List<int> _keysBuffer = new();
+        private CancellationToken _cancellationToken;
+        
         private void Awake() {
             Main = this;
             _cancellationToken = destroyCancellationToken;
@@ -42,10 +44,11 @@ namespace MisterGames.Common.Audio {
         }
 
         private void OnDestroy() {
+            _validHandles.Clear();
             Main = null;
         }
         
-        public void Play(
+        public AudioHandle Play(
             AudioClip clip, 
             Vector3 position, 
             float volume = 1f, 
@@ -57,10 +60,14 @@ namespace MisterGames.Common.Audio {
         {
             var source = GetAudioSourceAtWorldPosition(position);
             RestartAudioSource(source, clip, volume, pitch, spatialBlend, normalizedTime, loop);
-            ReleaseDelayed(source, clip.length, loop, cancellationToken).Forget();
+
+            int id = ++_handleId;
+            ReleaseDelayed(id, source, clip.length, loop, cancellationToken).Forget();
+            
+            return new AudioHandle(id, source, this);
         }
 
-        public void Play(
+        public AudioHandle Play(
             AudioClip clip,
             Transform attachTo,
             Vector3 localPosition = default,
@@ -73,7 +80,11 @@ namespace MisterGames.Common.Audio {
         {
             var source = GetAudioSourceAttached(attachTo, localPosition);
             RestartAudioSource(source, clip, volume, pitch, spatialBlend, normalizedTime, loop);
-            ReleaseDelayed(source, clip.length, loop, cancellationToken).Forget();
+            
+            int id = ++_handleId;
+            ReleaseDelayed(id, source, clip.length, loop, cancellationToken).Forget();
+
+            return new AudioHandle(id, source, this);
         }
 
         public AudioClip ShuffleClips(IReadOnlyList<AudioClip> clips) {
@@ -92,6 +103,14 @@ namespace MisterGames.Common.Audio {
             _lastIndexMap[s] = new IndexData(index, Time.time);
             
             return clips![index];
+        }
+        
+        public void ReleaseAudioHandle(int id) {
+            _validHandles.Remove(id);
+        }
+
+        public bool IsValidAudioHandle(int id) {
+            return _validHandles.Contains(id);
         }
 
         private async UniTask StartIndexStorageChecks(CancellationToken cancellationToken) {
@@ -145,21 +164,25 @@ namespace MisterGames.Common.Audio {
             source.Play();
         }
 
-        private async UniTask ReleaseDelayed(AudioSource source, float delay, bool loop, CancellationToken cancellationToken) {
-            if (loop) {
-                while (!cancellationToken.IsCancellationRequested && !_cancellationToken.IsCancellationRequested) {
-                    await UniTask.Yield();
-                }   
-            }
-            else {
-                await UniTask.Delay(TimeSpan.FromSeconds(delay), cancellationToken: cancellationToken)
-                    .SuppressCancellationThrow();
+        private async UniTask ReleaseDelayed(int id, AudioSource source, float delay, bool loop, CancellationToken cancellationToken) {
+            _validHandles.Add(id);
+
+            float t = 0f;
+            float speed = loop ? 0f : delay > 0f ? 1f / delay : float.MaxValue;
+            
+            while (t < 1f && _validHandles.Contains(id) && 
+                   !cancellationToken.IsCancellationRequested && !_cancellationToken.IsCancellationRequested) 
+            {
+                t += Time.unscaledDeltaTime * speed;
+                await UniTask.Yield();
             }
             
             if (_cancellationToken.IsCancellationRequested) return;
 
-            float t = 0f;
-            float speed = _fadeOut > 0f ? 1f / _fadeOut : float.MaxValue;
+            _validHandles.Remove(id);
+            
+            t = 0f;
+            speed = _fadeOut > 0f ? 1f / _fadeOut : float.MaxValue;
             float startVolume = source.volume;
             
             while (!_cancellationToken.IsCancellationRequested && t < 1f) {

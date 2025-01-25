@@ -6,7 +6,7 @@ namespace MisterGames.Common.Audio {
     
     public interface IAudioPool {
 
-        void Play(
+        AudioHandle Play(
             AudioClip clip,
             Vector3 position,
             float volume = 1f,
@@ -17,7 +17,7 @@ namespace MisterGames.Common.Audio {
             CancellationToken cancellationToken = default
         );
         
-        void Play(
+        AudioHandle Play(
             AudioClip clip,
             Transform attachTo,
             Vector3 localPosition = default,
