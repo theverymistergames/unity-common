@@ -15,11 +15,12 @@ namespace MisterGames.ActionLib.Sounds {
     public sealed class PlaySoundAction : IActorAction {
         
         public bool attach = true;
-        [Min(0f)] public float volume = 1f;
-        [Min(0f)] public float pitch = 1f;
+        [Min(0f)] public float fadeIn;
+        [MinMaxSlider(0f, 1f)] public Vector2 startTime;
+        [Range(0f, 2f)] public float volume = 1f;
+        [Range(0f, 2f)] public float pitch = 1f;
         public float pitchRandomAdd;
         [Range(0f, 1f)] public float spatialBlend = 1f;
-        [MinMaxSlider(0f, 1f)] public Vector2 startTime;
         public bool loop;
         public AudioClip[] audioClipVariants;
 
@@ -31,10 +32,10 @@ namespace MisterGames.ActionLib.Sounds {
             float resultStartTime = startTime.GetRandomInRange();
             
             if (attach) {
-                AudioPool.Main.Play(clip, context.Transform, localPosition: default, volume, resultPitch, spatialBlend, resultStartTime, loop, cancellationToken);    
+                AudioPool.Main.Play(clip, context.Transform, localPosition: default, fadeIn, volume, resultPitch, spatialBlend, resultStartTime, loop, cancellationToken);    
             }
             else {
-                AudioPool.Main.Play(clip, context.Transform.position, volume, resultPitch, spatialBlend, resultStartTime, loop, cancellationToken);
+                AudioPool.Main.Play(clip, context.Transform.position, fadeIn, volume, resultPitch, spatialBlend, resultStartTime, loop, cancellationToken);
             }
             
             return default;

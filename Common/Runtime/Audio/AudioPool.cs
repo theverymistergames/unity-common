@@ -51,6 +51,7 @@ namespace MisterGames.Common.Audio {
         public AudioHandle Play(
             AudioClip clip, 
             Vector3 position, 
+            float fadeIn = 0f,
             float volume = 1f, 
             float pitch = 1f, 
             float spatialBlend = 1f,
@@ -58,10 +59,19 @@ namespace MisterGames.Common.Audio {
             bool loop = false, 
             CancellationToken cancellationToken = default) 
         {
-            var source = GetAudioSourceAtWorldPosition(position);
-            RestartAudioSource(source, clip, volume, pitch, spatialBlend, normalizedTime, loop);
-
+            if (clip == null) {
+#if UNITY_EDITOR
+                Debug.LogWarning($"{nameof(AudioPool)}: trying to play clip that is null");          
+#endif
+                return AudioHandle.Invalid;
+            }
+            
             int id = ++_handleId;
+            var source = GetAudioSourceAtWorldPosition(position);
+            
+            _validHandles.Add(id);
+            
+            RestartAudioSource(id, source, clip, fadeIn, volume, pitch, spatialBlend, normalizedTime, loop, cancellationToken).Forget();
             ReleaseDelayed(id, source, clip.length, loop, cancellationToken).Forget();
             
             return new AudioHandle(id, source, this);
@@ -71,6 +81,7 @@ namespace MisterGames.Common.Audio {
             AudioClip clip,
             Transform attachTo,
             Vector3 localPosition = default,
+            float fadeIn = 0f,
             float volume = 1f,
             float pitch = 1f,
             float spatialBlend = 1f,
@@ -78,10 +89,19 @@ namespace MisterGames.Common.Audio {
             bool loop = false,
             CancellationToken cancellationToken = default) 
         {
-            var source = GetAudioSourceAttached(attachTo, localPosition);
-            RestartAudioSource(source, clip, volume, pitch, spatialBlend, normalizedTime, loop);
+            if (clip == null) {
+#if UNITY_EDITOR
+                Debug.LogWarning($"{nameof(AudioPool)}: trying to play clip that is null");          
+#endif
+                return AudioHandle.Invalid;
+            }
             
             int id = ++_handleId;
+            var source = GetAudioSourceAttached(attachTo, localPosition);
+            
+            _validHandles.Add(id);
+            
+            RestartAudioSource(id, source, clip, fadeIn, volume, pitch, spatialBlend, normalizedTime, loop, cancellationToken).Forget();
             ReleaseDelayed(id, source, clip.length, loop, cancellationToken).Forget();
 
             return new AudioHandle(id, source, this);
@@ -143,30 +163,33 @@ namespace MisterGames.Common.Audio {
             return audioSource;
         }
 
-        private static void RestartAudioSource(
+        private UniTask RestartAudioSource(
+            int id,
             AudioSource source,
             AudioClip clip,
-            float volume = 1f, 
-            float pitch = 1f, 
-            float spatialBlend = 1f,
-            float normalizedTime = 0f, 
-            bool loop = false) 
+            float fadeIn,
+            float volume, 
+            float pitch, 
+            float spatialBlend,
+            float normalizedTime, 
+            bool loop, 
+            CancellationToken cancellationToken) 
         {
             source.Stop();
 
             source.clip = clip;
             source.time = normalizedTime * clip.length;
-            source.volume = volume;
+            source.volume = fadeIn > 0f ? 0f : volume;
             source.pitch = pitch;
             source.loop = loop;
             source.spatialBlend = spatialBlend;
             
             source.Play();
+            
+            return fadeIn > 0f ? FadeIn(id, source, fadeIn, volume, cancellationToken) : default;
         }
 
         private async UniTask ReleaseDelayed(int id, AudioSource source, float delay, bool loop, CancellationToken cancellationToken) {
-            _validHandles.Add(id);
-
             float t = 0f;
             float speed = loop ? 0f : delay > 0f ? 1f / delay : float.MaxValue;
             
@@ -180,21 +203,39 @@ namespace MisterGames.Common.Audio {
             if (_cancellationToken.IsCancellationRequested) return;
 
             _validHandles.Remove(id);
+
+            await FadeOut(source, _fadeOut);
             
-            t = 0f;
-            speed = _fadeOut > 0f ? 1f / _fadeOut : float.MaxValue;
+            if (_cancellationToken.IsCancellationRequested) return;
+            
+            PrefabPool.Main.Release(source);
+        }
+
+        private async UniTask FadeIn(int id, AudioSource source, float duration, float volume, CancellationToken cancellationToken) {
+            float t = 0f;
+            float speed = duration > 0f ? 1f / duration : float.MaxValue;
+
+            while (t < 1f && _validHandles.Contains(id) && 
+                   !cancellationToken.IsCancellationRequested && !_cancellationToken.IsCancellationRequested) 
+            {
+                t += Time.unscaledDeltaTime * speed;
+                source.volume = Mathf.Lerp(0f, volume, t);
+                
+                await UniTask.Yield();
+            }
+        }
+        
+        private async UniTask FadeOut(AudioSource source, float duration) {
+            float t = 0f;
+            float speed = duration > 0f ? 1f / duration : float.MaxValue;
             float startVolume = source.volume;
             
-            while (!_cancellationToken.IsCancellationRequested && t < 1f) {
+            while (t < 1f && !_cancellationToken.IsCancellationRequested) {
                 t += Time.unscaledDeltaTime * speed;
                 source.volume = Mathf.Lerp(startVolume, 0f, t);
                 
                 await UniTask.Yield();
             }
-            
-            if (_cancellationToken.IsCancellationRequested) return;
-            
-            PrefabPool.Main.Release(source);
         }
     }
     

@@ -9,6 +9,7 @@ namespace MisterGames.Common.Audio {
         AudioHandle Play(
             AudioClip clip,
             Vector3 position,
+            float fadeIn,
             float volume = 1f,
             float pitch = 1f,
             float spatialBlend = 1f,
@@ -21,6 +22,7 @@ namespace MisterGames.Common.Audio {
             AudioClip clip,
             Transform attachTo,
             Vector3 localPosition = default,
+            float fadeIn = 0f,
             float volume = 1f,
             float pitch = 1f,
             float spatialBlend = 1f,
@@ -30,6 +32,10 @@ namespace MisterGames.Common.Audio {
         );
 
         AudioClip ShuffleClips(IReadOnlyList<AudioClip> clips);
+
+        void ReleaseAudioHandle(int id);
+
+        bool IsValidAudioHandle(int id);
     }
     
 }
