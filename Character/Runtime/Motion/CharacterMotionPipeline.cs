@@ -135,7 +135,7 @@ namespace MisterGames.Character.Motion {
             var normalRot = Quaternion.FromToRotation(up, MotionNormal);
             
             MotionDirWorld = normalRot * InputDirWorld;
-            _smoothedInput = _smoothedInput.SmoothExpNonZero(Input, dt * _inputSmoothing);
+            _smoothedInput = _smoothedInput.SmoothExpNonZero(Input, _inputSmoothing, dt);
             
             SlopeAngle = Vector3.SignedAngle(up, _groundDetector.CollisionInfo.normal, Vector3.Cross(MotionDirWorld, up).normalized);
             

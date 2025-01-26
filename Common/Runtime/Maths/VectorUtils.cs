@@ -276,18 +276,72 @@ namespace MisterGames.Common.Maths {
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static float SmoothExpNonZero(this float value, float target, float factor) {
-            return factor > 0f ? value + (target - value) * (1f - Mathf.Exp(-factor)) : target;
+        public static Quaternion Slerp(this Quaternion value, Quaternion target, float factor) {
+            return Quaternion.Slerp(value, target, factor);
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector2 SmoothExpNonZero(this Vector2 value, Vector2 target, float factor) {
-            return factor > 0f ? value + (target - value) * (1f - Mathf.Exp(-factor)) : target;
+        public static Quaternion SlerpNonZero(this Quaternion value, Quaternion target, float factor, float dt) {
+            return factor > 0f ? Quaternion.Slerp(value, target, factor * dt) : target;
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector3 SmoothExpNonZero(this Vector3 value, Vector3 target, float factor) {
-            return factor > 0f ? value + (target - value) * (1f - Mathf.Exp(-factor)) : target;
+        public static float SmoothExpNonZero(this float value, float target, float factor, float dt) {
+            return factor > 0f ? value + (target - value) * (1f - Mathf.Exp(-factor * dt)) : target;
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector2 SmoothExpNonZero(this Vector2 value, Vector2 target, float factor, float dt) {
+            return factor > 0f ? value + (target - value) * (1f - Mathf.Exp(-factor * dt)) : target;
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector3 SmoothExpNonZero(this Vector3 value, Vector3 target, float factor, float dt) {
+            return factor > 0f ? value + (target - value) * (1f - Mathf.Exp(-factor * dt)) : target;
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float SmoothExpAngle(this float value, float target, float factor) {
+            return SmoothExp(value, GetNearestAngle(target, value), factor);
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector2 SmoothExpAngle(this Vector2 value, Vector2 target, float factor) {
+            return new Vector2(
+                SmoothExpAngle(value.x, target.x, factor), 
+                SmoothExpAngle(value.y, target.y, factor)
+            );
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector3 SmoothExpAngle(this Vector3 value, Vector3 target, float factor) {
+            return new Vector3(
+                SmoothExpAngle(value.x, target.x, factor), 
+                SmoothExpAngle(value.y, target.y, factor), 
+                SmoothExpAngle(value.z, target.z, factor)
+            );
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float SmoothExpAngleNonZero(this float value, float target, float factor, float dt) {
+            return SmoothExpNonZero(value, GetNearestAngle(target, value), factor, dt);
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector2 SmoothExpAngleNonZero(this Vector2 value, Vector2 target, float factor, float dt) {
+            return new Vector2(
+                SmoothExpAngleNonZero(value.x, target.x, factor, dt), 
+                SmoothExpAngleNonZero(value.y, target.y, factor, dt)
+            );
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector3 SmoothExpAngleNonZero(this Vector3 value, Vector3 target, float factor, float dt) {
+            return new Vector3(
+                SmoothExpAngleNonZero(value.x, target.x, factor, dt), 
+                SmoothExpAngleNonZero(value.y, target.y, factor, dt), 
+                SmoothExpAngleNonZero(value.z, target.z, factor, dt)
+            );
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

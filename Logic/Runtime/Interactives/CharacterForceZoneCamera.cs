@@ -73,7 +73,7 @@ namespace MisterGames.Logic.Interactives {
 
         void IUpdate.OnUpdate(float dt) {
             float targetWeight = enabled ? _rigidbodyForceZone.GetForceWeight(_characterRigidbody) : 0f;
-            _forceWeightSmoothed = _forceWeightSmoothed.SmoothExpNonZero(targetWeight, dt * _forceWeightSmoothing);
+            _forceWeightSmoothed = _forceWeightSmoothed.SmoothExpNonZero(targetWeight, _forceWeightSmoothing, dt);
             
             _cameraShaker.SetWeight(_shakerStateId, _cameraStateWeight);
             _cameraShaker.SetSpeed(_shakerStateId, Vector3.Lerp(_noiseSpeedStart, _noiseSpeedEnd, _forceWeightSmoothed));
