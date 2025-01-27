@@ -21,27 +21,26 @@ namespace MisterGames.Tweens {
     public static class TweenExtensions {
 
         public static bool NeedNotifyProgress(this TweenDirection direction, float oldProgress, float newProgress) {
-            return direction is TweenDirection.Both ||
-                   direction is TweenDirection.Forward && oldProgress <= newProgress || 
-                   direction is TweenDirection.Backwards && oldProgress >= newProgress;
+            return direction is TweenDirection.Forward or TweenDirection.Both && oldProgress < newProgress || 
+                   direction is TweenDirection.Backwards or TweenDirection.Both && oldProgress > newProgress;
         }
         
         public static void NotifyTweenEvents(
             this TweenEvent[] events, 
             IActor context, 
-            float progress, 
+            float newProgress, 
             float oldProgress, 
             CancellationToken cancellationToken
         ) {
-            if (progress.IsNearlyEqual(oldProgress)) return;
+            if (newProgress.IsNearlyEqual(oldProgress)) return;
             
             for (int i = 0; i < events?.Length; i++) {
                 ref var e = ref events[i];
 
-                if (oldProgress <= e.progress && e.progress <= progress && 
-                    e.direction is TweenDirection.Both or TweenDirection.Forward || 
-                    progress <= e.progress && e.progress <= oldProgress && 
-                    e.direction is TweenDirection.Both or TweenDirection.Backwards
+                if (e.direction is TweenDirection.Forward or TweenDirection.Both && 
+                    oldProgress < newProgress && oldProgress <= e.progress && e.progress <= newProgress || 
+                    e.direction is TweenDirection.Backwards or TweenDirection.Both && 
+                    newProgress < oldProgress && newProgress <= e.progress && e.progress <= oldProgress
                 ) {
                     e.action?.Apply(context, cancellationToken).Forget();
                 }
