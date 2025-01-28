@@ -9,8 +9,7 @@ namespace MisterGames.Common.Lists {
 
         public static void Shuffle<T>(this T[] array, int length = -1) {
             int n = length < 0 ? array.Length : length;
-            while (n > 1) 
-            {
+            while (n > 1) {
                 int k = Random.Range(0, n--);
                 (array[n], array[k]) = (array[k], array[n]);
             }
@@ -18,8 +17,7 @@ namespace MisterGames.Common.Lists {
         
         public static void Shuffle<T>(this IList<T> array, int length = -1) {
             int n = length < 0 ? array.Count : length;
-            while (n > 1) 
-            {
+            while (n > 1) {
                 int k = Random.Range(0, n--);
                 (array[n], array[k]) = (array[k], array[n]);
             }
