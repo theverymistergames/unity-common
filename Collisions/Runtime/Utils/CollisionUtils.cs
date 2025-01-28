@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using System.Text;
 using MisterGames.Collisions.Core;
 using MisterGames.Common.Layers;
 using UnityEngine;
@@ -11,17 +10,10 @@ namespace MisterGames.Collisions.Utils {
     
     public static class CollisionUtils {
 
-        private static readonly IComparer<RaycastHit> RaycastHitDistanceComparerAsc
-            = new RaycastHitDistanceComparer(true);
-
-        private static readonly IComparer<RaycastHit> RaycastHitDistanceComparerDesc
-            = new RaycastHitDistanceComparer(false);
-
-        private static readonly IComparer<RaycastResult> RaycastResultDistanceComparerAsc
-            = new RaycastResultDistanceComparer(true);
-
-        private static readonly IComparer<RaycastResult> RaycastResultDistanceComparerDesc
-            = new RaycastResultDistanceComparer(false);
+        private static readonly IComparer<RaycastHit> RaycastHitDistanceComparerAsc = new RaycastHitDistanceComparer(true);
+        private static readonly IComparer<RaycastHit> RaycastHitDistanceComparerDesc = new RaycastHitDistanceComparer(false);
+        private static readonly IComparer<RaycastResult> RaycastResultDistanceComparerAsc = new RaycastResultDistanceComparer(true);
+        private static readonly IComparer<RaycastResult> RaycastResultDistanceComparerDesc = new RaycastResultDistanceComparer(false);
 
         private sealed class RaycastHitDistanceComparer : IComparer<RaycastHit> {
             private readonly int _orderSign;

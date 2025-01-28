@@ -22,6 +22,38 @@ namespace MisterGames.Common.Lists {
                 (array[n], array[k]) = (array[k], array[n]);
             }
         }
+
+        /// <summary>
+        /// Place valid elements at start. 
+        /// </summary>
+        public static void RemoveIf<T>(this T[] list, ref int count, Func<T, bool> predicate) {
+            for (int i = count - 1; i >= 0; i--) {
+                var t = list[i];
+                if (!predicate.Invoke(t)) continue;
+
+                int lastValid = --count;
+                list[i] = list[lastValid];
+                list[lastValid] = t;
+            }
+        }
+        
+        /// <summary>
+        /// Remove elements with positive predicate.
+        /// </summary>
+        public static void RemoveIf<T>(this List<T> list, Func<T, bool> predicate) {
+            int count = list.Count;
+            
+            for (int i = count - 1; i >= 0; i--) {
+                var t = list[i];
+                if (!predicate.Invoke(t)) continue;
+                
+                int lastValid = --count;
+                list[i] = list[lastValid];
+                list[lastValid] = t;
+            }
+            
+            list.RemoveRange(count, list.Count - count);
+        }
         
         public static float WriteToCircularBufferAndGetAverage(this float[] buffer, float value, ref int pointer) {
             buffer[pointer++ % buffer.Length] = value;
