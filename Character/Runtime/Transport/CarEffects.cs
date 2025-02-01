@@ -13,7 +13,7 @@ using UnityEngine;
 namespace MisterGames.Character.Transport {
     
     [RequireComponent(typeof(CarController))]
-    public sealed class CarEffects : MonoBehaviour, IActorComponent {
+    public sealed class CarEffects : MonoBehaviour, IActorComponent, IUpdate {
         
         [Header("Lights")]
         [SerializeField] private InputActionKey _lightInput;
@@ -123,6 +123,8 @@ namespace MisterGames.Character.Transport {
             DisableTrails();
             
             _brakesAudioSource.Play();
+            
+            PlayerLoopStage.LateUpdate.Subscribe(this);
         }
 
         private void OnDisable() {
@@ -140,9 +142,11 @@ namespace MisterGames.Character.Transport {
             
             _engineAudioSource.Stop();
             _brakesAudioSource.Stop();
+            
+            PlayerLoopStage.LateUpdate.Unsubscribe(this);
         }
 
-        private void LateUpdate() {
+        void IUpdate.OnUpdate(float dt) {
             UpdateEngineSound();
             UpdateBrakesSound();
             UpdateTrails();
@@ -201,7 +205,7 @@ namespace MisterGames.Character.Transport {
 
         private void OnIgnition(bool on) {
             SetLightIntensityMultiplier(1f);
-
+            
             if (on) {
                 if (!_engineAudioSource.isPlaying) _engineAudioSource.Play();
                 _onIgnitionOn?.Apply(_actor, _enableCts.Token).Forget();
@@ -220,13 +224,12 @@ namespace MisterGames.Character.Transport {
 
         private async UniTask ApplyIgnitionLightBlink(CancellationToken cancellationToken) {
             float timer = 0f;
-            var timeSource = TimeSources.Get(PlayerLoopStage.Update);
             
             while (!cancellationToken.IsCancellationRequested && 
                    Time.time < _ignitionStartTime + _ignitionDuration && 
                    _ignitionStartTime > _ignitionTurnOffTime
             ) {
-                timer += timeSource.DeltaTime;
+                timer += Time.deltaTime;
                 float m = _ignitionLightIntensityMultiplier + Mathf.Sin(timer * _ignitionBlinkFrequency) * _ignitionBlinkRange;
                 
                 SetLightIntensityMultiplier(m);

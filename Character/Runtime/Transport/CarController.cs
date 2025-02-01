@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using MisterGames.Actors;
 using MisterGames.Common;
 using MisterGames.Common.Maths;
+using MisterGames.Common.Tick;
 using MisterGames.Input.Actions;
 using UnityEngine;
 
 namespace MisterGames.Character.Transport {
     
     [RequireComponent(typeof(Rigidbody))]
-    public sealed class CarController : MonoBehaviour, IActorComponent {
+    public sealed class CarController : MonoBehaviour, IActorComponent, IUpdate {
 
         [Header("Inputs")]
         [SerializeField] private InputActionVector2 _move;
@@ -149,6 +150,8 @@ namespace MisterGames.Character.Transport {
             _enterTime = Time.time;
             IsEntered = true;
             OnEnter.Invoke();
+            
+            PlayerLoopStage.FixedUpdate.Subscribe(this);
         }
 
         private void OnDisable() {
@@ -159,6 +162,8 @@ namespace MisterGames.Character.Transport {
             OnExit.Invoke();
             
             ResetWheelForces();
+            
+            PlayerLoopStage.FixedUpdate.Unsubscribe(this);
         }
 
         private void InitializeMass() {
@@ -191,33 +196,11 @@ namespace MisterGames.Character.Transport {
             }
         }
 
-        private void Update() {
+        void IUpdate.OnUpdate(float dt) {
             AnimateWheels();
             EnableBrakes(!IsIgnitionOn || _brake.Value > 0f);
             CheckIgnition();
-        }
-
-        private void CheckIgnition() {
-            if (IsIgnitionOn || Time.time < _enterTime + _ignitionDelayAfterEnter) return;
-
-            switch (_ignitionMode) {
-                case IgnitionMode.OnEnter:
-                    StartIgnition(_ignitionDuration);
-                    break;
-                
-                case IgnitionMode.OnAcceleration:
-                    if (_move.Value.y.IsNearlyZero()) EnableIgnition(false, forceNotify: _isIgnitionStartRequested);
-                    else StartIgnition(_ignitionDuration);
-                    break;
-            }
-
-            if (!_isIgnitionStartRequested || Time.time < _ignitionStartTime + _ignitionDuration) return;
-
-            EnableIgnition(true);
-        }
-
-        private void FixedUpdate() {
-            float dt = Time.fixedDeltaTime;
+            
             var targetInput = _move.Value;
 
             var smoothing = new Vector2(
@@ -255,6 +238,25 @@ namespace MisterGames.Character.Transport {
             
             ApplyAntiOverturn(_input.x);
             UpdateRpm(dt);
+        }
+
+        private void CheckIgnition() {
+            if (IsIgnitionOn || Time.time < _enterTime + _ignitionDelayAfterEnter) return;
+
+            switch (_ignitionMode) {
+                case IgnitionMode.OnEnter:
+                    StartIgnition(_ignitionDuration);
+                    break;
+                
+                case IgnitionMode.OnAcceleration:
+                    if (_move.Value.y.IsNearlyZero()) EnableIgnition(false, forceNotify: _isIgnitionStartRequested);
+                    else StartIgnition(_ignitionDuration);
+                    break;
+            }
+
+            if (!_isIgnitionStartRequested || Time.time < _ignitionStartTime + _ignitionDuration) return;
+
+            EnableIgnition(true);
         }
 
         private void UpdateRpm(float dt) {
