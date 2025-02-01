@@ -8,6 +8,7 @@ using UnityEngine;
 
 namespace MisterGames.Common.Audio {
     
+    [DefaultExecutionOrder(-999)]
     public sealed class AudioPool : MonoBehaviour, IAudioPool {
 
         [SerializeField] private AudioSource _prefab;
@@ -16,7 +17,7 @@ namespace MisterGames.Common.Audio {
 
         private readonly struct IndexData {
             
-            public static readonly IndexData Invalid = new(-1, 0f); 
+            public static readonly IndexData Invalid = new(-1, 0f);
             
             public readonly int index;
             public readonly float time;
@@ -26,15 +27,36 @@ namespace MisterGames.Common.Audio {
                 this.time = time;
             }
         }
+
+        private readonly struct AttachKey : IEquatable<AttachKey> {
+            
+            public static readonly AttachKey Invalid = new(0, 0);
+            
+            public readonly int instanceId;
+            public readonly int hash;
+            
+            public AttachKey(int instanceId, int hash) {
+                this.instanceId = instanceId;
+                this.hash = hash;
+            }
+            
+            public bool Equals(AttachKey other) => instanceId == other.instanceId && hash == other.hash;
+            public override bool Equals(object obj) => obj is AttachKey other && Equals(other);
+            public override int GetHashCode() => HashCode.Combine(instanceId, hash);
+
+            public static bool operator ==(AttachKey left, AttachKey right) => left.Equals(right);
+            public static bool operator !=(AttachKey left, AttachKey right) => !left.Equals(right);
+        }
         
         public static IAudioPool Main { get; private set; }
 
-        private readonly HashSet<int> _validHandles = new();
-        private int _handleId;
-        
         private readonly Dictionary<int, IndexData> _lastIndexMap = new();
+        private readonly Dictionary<AttachKey, int> _attachKeyToHandleIdMap = new();
+        private readonly Dictionary<int, AudioSource> _handleIdToSourceMap = new();
         private readonly List<int> _keysBuffer = new();
+        
         private CancellationToken _cancellationToken;
+        private int _lastHandleId;
         
         private void Awake() {
             Main = this;
@@ -44,15 +66,20 @@ namespace MisterGames.Common.Audio {
         }
 
         private void OnDestroy() {
-            _validHandles.Clear();
+            _lastIndexMap.Clear();
+            _attachKeyToHandleIdMap.Clear();
+            _handleIdToSourceMap.Clear();
+            _keysBuffer.Clear();
+            
             Main = null;
         }
         
         public AudioHandle Play(
             AudioClip clip, 
             Vector3 position, 
+            float volume = 1f,
             float fadeIn = 0f,
-            float volume = 1f, 
+            float fadeOut = -1f,
             float pitch = 1f, 
             float spatialBlend = 1f,
             float normalizedTime = 0f,
@@ -66,13 +93,13 @@ namespace MisterGames.Common.Audio {
                 return AudioHandle.Invalid;
             }
             
-            int id = ++_handleId;
+            int id = ++_lastHandleId;
             var source = GetAudioSourceAtWorldPosition(position);
             
-            _validHandles.Add(id);
+            _handleIdToSourceMap[id] = source;
             
             RestartAudioSource(id, source, clip, fadeIn, volume, pitch, spatialBlend, normalizedTime, loop, cancellationToken).Forget();
-            ReleaseDelayed(id, source, clip.length, loop, cancellationToken).Forget();
+            ReleaseDelayed(id, AttachKey.Invalid, source, clip.length, loop, fadeOut, cancellationToken).Forget();
             
             return new AudioHandle(id, source, this);
         }
@@ -81,8 +108,10 @@ namespace MisterGames.Common.Audio {
             AudioClip clip,
             Transform attachTo,
             Vector3 localPosition = default,
-            float fadeIn = 0f,
+            int hash = 0,
             float volume = 1f,
+            float fadeIn = 0f,
+            float fadeOut = -1f,
             float pitch = 1f,
             float spatialBlend = 1f,
             float normalizedTime = 0f,
@@ -95,14 +124,16 @@ namespace MisterGames.Common.Audio {
 #endif
                 return AudioHandle.Invalid;
             }
-            
-            int id = ++_handleId;
+
+            int id = ++_lastHandleId;
+            var attachKey = new AttachKey(attachTo.GetInstanceID(), hash);
             var source = GetAudioSourceAttached(attachTo, localPosition);
             
-            _validHandles.Add(id);
+            _handleIdToSourceMap[id] = source;
+            _attachKeyToHandleIdMap[attachKey] = id;
             
             RestartAudioSource(id, source, clip, fadeIn, volume, pitch, spatialBlend, normalizedTime, loop, cancellationToken).Forget();
-            ReleaseDelayed(id, source, clip.length, loop, cancellationToken).Forget();
+            ReleaseDelayed(id, attachKey, source, clip.length, loop, fadeOut, cancellationToken).Forget();
 
             return new AudioHandle(id, source, this);
         }
@@ -124,13 +155,20 @@ namespace MisterGames.Common.Audio {
             
             return clips![index];
         }
-        
+
+        public AudioHandle GetAudioHandle(Transform attachedTo, int hash) {
+            return _attachKeyToHandleIdMap.TryGetValue(new AttachKey(attachedTo.GetInstanceID(), hash), out int id) && 
+                   _handleIdToSourceMap.TryGetValue(id, out var source)
+                ? new AudioHandle(id, source, this)
+                : AudioHandle.Invalid;
+        }
+
         public void ReleaseAudioHandle(int id) {
-            _validHandles.Remove(id);
+            _handleIdToSourceMap.Remove(id);
         }
 
         public bool IsValidAudioHandle(int id) {
-            return _validHandles.Contains(id);
+            return _handleIdToSourceMap.ContainsKey(id);
         }
 
         private async UniTask StartIndexStorageChecks(CancellationToken cancellationToken) {
@@ -189,11 +227,19 @@ namespace MisterGames.Common.Audio {
             return fadeIn > 0f ? FadeIn(id, source, fadeIn, volume, cancellationToken) : default;
         }
 
-        private async UniTask ReleaseDelayed(int id, AudioSource source, float delay, bool loop, CancellationToken cancellationToken) {
+        private async UniTask ReleaseDelayed(
+            int id,
+            AttachKey attachKey,
+            AudioSource source,
+            float delay,
+            bool loop,
+            float fadeOut,
+            CancellationToken cancellationToken) 
+        {
             float t = 0f;
             float speed = loop ? 0f : delay > 0f ? 1f / delay : float.MaxValue;
             
-            while (t < 1f && _validHandles.Contains(id) && 
+            while (t < 1f && _handleIdToSourceMap.ContainsKey(id) && 
                    !cancellationToken.IsCancellationRequested && !_cancellationToken.IsCancellationRequested) 
             {
                 t += Time.unscaledDeltaTime * speed;
@@ -202,9 +248,10 @@ namespace MisterGames.Common.Audio {
             
             if (_cancellationToken.IsCancellationRequested) return;
 
-            _validHandles.Remove(id);
-
-            await FadeOut(source, _fadeOut);
+            _handleIdToSourceMap.Remove(id);
+            _attachKeyToHandleIdMap.Remove(attachKey);
+            
+            await FadeOut(source, fadeOut < 0f ? _fadeOut : fadeOut);
             
             if (_cancellationToken.IsCancellationRequested) return;
             
@@ -215,7 +262,7 @@ namespace MisterGames.Common.Audio {
             float t = 0f;
             float speed = duration > 0f ? 1f / duration : float.MaxValue;
 
-            while (t < 1f && _validHandles.Contains(id) && 
+            while (t < 1f && _handleIdToSourceMap.ContainsKey(id) && 
                    !cancellationToken.IsCancellationRequested && !_cancellationToken.IsCancellationRequested) 
             {
                 t += Time.unscaledDeltaTime * speed;
