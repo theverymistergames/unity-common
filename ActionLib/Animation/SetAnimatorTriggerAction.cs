@@ -3,7 +3,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
-using MisterGames.Common.Labels;
+using MisterGames.Common.Data;
 using UnityEngine;
 
 namespace MisterGames.ActionLib.Animation {
@@ -11,7 +11,7 @@ namespace MisterGames.ActionLib.Animation {
     [Serializable]
     public sealed class SetAnimatorTriggerAction : IActorAction {
 
-        public LabelValue parameter;
+        public HashId parameter;
         public Operation operation;
 
         public enum Operation {
@@ -24,11 +24,11 @@ namespace MisterGames.ActionLib.Animation {
 
             switch (operation) {
                 case Operation.Set:
-                    animator.SetTrigger(parameter.GetValue());
+                    animator.SetTrigger(parameter);
                     break;
                 
                 case Operation.Reset:
-                    animator.ResetTrigger(parameter.GetValue());
+                    animator.ResetTrigger(parameter);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();

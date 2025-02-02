@@ -129,6 +129,8 @@ namespace MisterGames.Common.Easing {
 				EasingType.EaseInElastic => EaseInElastic.keys,
 				EasingType.EaseOutElastic => EaseOutElastic.keys,
 				EasingType.EaseInOutElastic => EaseInOutElastic.keys,
+				EasingType.Constant0 => Constant0.keys,
+				EasingType.Constant1 => Constant1.keys,
 				_ => throw new NotImplementedException($"Easing animation curve is not implemented for easing function {ease}")
 			};
 		}
@@ -574,6 +576,9 @@ namespace MisterGames.Common.Easing {
 			new Vector2(0.9125f, 0.9987463f),
 			new Vector2(1.0f, 1.0f),
 		});
+		
+		private static readonly AnimationCurve Constant0 = AnimationCurve.Constant(0f, 1f, 0f);
+		private static readonly AnimationCurve Constant1 = AnimationCurve.Constant(0f, 1f, 1f);
 	}
 
 }

@@ -102,6 +102,8 @@ namespace MisterGames.Common.Easing {
                 EasingType.EaseInElastic => EaseInElastic(start, end, value),
                 EasingType.EaseOutElastic => EaseOutElastic(start, end, value),
                 EasingType.EaseInOutElastic => EaseInOutElastic(start, end, value),
+                EasingType.Constant0 => 0f,
+                EasingType.Constant1 => 1f,
                 _ => throw new NotImplementedException($"Easing function {easingType} is not implemented")
             };
         }
@@ -140,6 +142,8 @@ namespace MisterGames.Common.Easing {
                 EasingType.EaseInElastic => EaseInElasticD(start, end, value),
                 EasingType.EaseOutElastic => EaseOutElasticD(start, end, value),
                 EasingType.EaseInOutElastic => EaseInOutElasticD(start, end, value),
+                EasingType.Constant0 => 0f,
+                EasingType.Constant1 => 0f,
                 _ => throw new NotImplementedException($"Easing function {easingType} is not implemented")
             };
         }

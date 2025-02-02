@@ -33,6 +33,8 @@
         EaseInElastic = 29,
         EaseOutElastic = 30,
         EaseInOutElastic = 31,
+        Constant0,
+        Constant1,
     }
 
 }

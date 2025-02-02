@@ -1,13 +1,17 @@
 ﻿using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
+using MisterGames.Common.Async;
 using UnityEngine;
 
 namespace MisterGames.Tweens {
 
     public sealed class TweenRunner : MonoBehaviour, IActorComponent {
 
-        [SerializeField] private string _name;
+#if UNITY_EDITOR
+        [SerializeField] private string _name;  
+#endif
+        
         [SerializeField] private bool _playAtStart;
         [Space(10f)]
         [SerializeField] private TweenPlayer<IActor, IActorTween> _tweenPlayer;
@@ -24,9 +28,7 @@ namespace MisterGames.Tweens {
         }
 
         private void OnEnable() {
-            _enableCts?.Cancel();
-            _enableCts?.Dispose();
-            _enableCts = new CancellationTokenSource();
+            AsyncExt.RecreateCts(ref _enableCts);
 
             _tweenPlayer.OnProgressUpdate += OnProgressUpdate;
             
@@ -36,11 +38,9 @@ namespace MisterGames.Tweens {
         }
 
         private void OnDisable() {
-            _tweenPlayer.OnProgressUpdate -= OnProgressUpdate;
+            AsyncExt.DisposeCts(ref _enableCts);
             
-            _enableCts?.Cancel();
-            _enableCts?.Dispose();
-            _enableCts = null;
+            _tweenPlayer.OnProgressUpdate -= OnProgressUpdate;
         }
 
         private void OnProgressUpdate(float progress, float oldProgress) {
