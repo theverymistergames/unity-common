@@ -42,7 +42,7 @@ namespace MisterGames.Character.Motion {
         private IActor _actor;
         private CharacterInputPipeline _input;
         private CharacterMotionPipeline _motion;
-        private CharacterExtraGravity _extraGravity;
+        private CharacterGravity _extraGravity;
         private CharacterGroundDetector _groundDetector;
         
         private float _jumpPressTime;
@@ -60,7 +60,7 @@ namespace MisterGames.Character.Motion {
             _actor = actor;
             _input = actor.GetComponent<CharacterInputPipeline>();
             _motion = actor.GetComponent<CharacterMotionPipeline>();
-            _extraGravity = actor.GetComponent<CharacterExtraGravity>();
+            _extraGravity = actor.GetComponent<CharacterGravity>();
             _groundDetector = actor.GetComponent<CharacterGroundDetector>();
         }
 

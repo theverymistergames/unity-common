@@ -14,6 +14,9 @@ namespace MisterGames.Common.Maths {
         public static Vector2 WithY(this Vector2 vector, float y) => new(vector.x, y);
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector3 WithZ(this Vector2 vector, float z) => new(vector.x, vector.y, z);
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector3 WithX(this Vector3 vector, float x) => new(x, vector.y, vector.z);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -16,13 +16,16 @@ namespace MisterGames.Character.View {
         
         [Header("View Settings")]
         [SerializeField] private Vector2 _sensitivity = new Vector2(0.15f, 0.15f);
-        [SerializeField] private float _smoothing = 20f;
-        [SerializeField] private float _defaultFov = 70f;
+        [SerializeField] [Min(0f)] private float _smoothing = 20f;
+        [SerializeField] [Min(0f)] private float _defaultFov = 70f;
         [SerializeField] [Min(0f)] private float _freeHeadRotationDistance;
         [SerializeField] private float _returnFreeHeadRotationSmoothing = 5f;
         [SerializeField] private float _returnFreeHeadRotationSmoothingMax = 20f;
         [SerializeField] private ViewClampProcessor _viewClamp;
         [SerializeField] [Min(0f)] private float _startDelay = 0.3f;
+        
+        [Header("Gravity Settings")]
+        [SerializeField] [Min(0f)] private float _gravityDirSmoothing = 6f;
         
         public event Action<float> OnAttach { add => _headJoint.OnAttach += value; remove => _headJoint.OnAttach -= value; }
         public event Action OnDetach { add => _headJoint.OnDetach += value; remove => _headJoint.OnDetach -= value; }
@@ -38,24 +41,29 @@ namespace MisterGames.Character.View {
             get => _head.LocalPosition;
             set => _head.LocalPosition = value;
         }
-        
+
         public Quaternion Rotation {
-            get => _rotation;
-            set => SetRotation(value);
+            get => _gravityOffset * _rotation;
+            set {
+                _rotation = value;
+                _head.Rotation = _gravityOffset * value;
+            }
         }
 
         public Vector3 EulerAngles {
-            get => _rotation.ToEulerAngles180();
-            set => SetRotation(Quaternion.Euler(value));
+            get => Rotation.ToEulerAngles180();
+            set => Rotation = Quaternion.Euler(value);
         }
         
         private readonly CharacterHeadJoint _headJoint = new();
        
         private CameraContainer _cameraContainer;
         private CharacterInputPipeline _inputPipeline;
+        private CharacterGravity _characterGravity;
         
         private CharacterViewData _viewData;
         private Quaternion _rotation = Quaternion.identity;
+        private Quaternion _gravityOffset = Quaternion.identity;
         private Vector2 _inputDeltaAccum;
         private bool _isHorizontalClampOverriden;
         private bool _isVerticalClampOverriden;
@@ -73,6 +81,8 @@ namespace MisterGames.Character.View {
         void IActorComponent.OnAwake(IActor actor) {
             _cameraContainer = actor.GetComponent<CameraContainer>();
             _inputPipeline = actor.GetComponent<CharacterInputPipeline>();
+            _characterGravity = actor.GetComponent<CharacterGravity>();
+            
             _startTime = Time.time;
         }
 
@@ -106,7 +116,7 @@ namespace MisterGames.Character.View {
         }
         
         public void AttachObject(Transform obj, Vector3 point, float smoothing = 0f) {
-            _headJoint.AttachObject(obj, point, _head.Position, EulerAngles, smoothing);
+            _headJoint.AttachObject(obj, point, _head.Position, _rotation.ToEulerAngles180(), smoothing);
         }
         
         public void DetachObject(Transform obj) {
@@ -114,7 +124,7 @@ namespace MisterGames.Character.View {
         }
         
         public void RotateObject(Transform obj, Vector3 sensitivity, RotationPlane plane = RotationPlane.XY, float smoothing = 0f) {
-            _headJoint.RotateObject(obj, EulerAngles, sensitivity, plane, smoothing);
+            _headJoint.RotateObject(obj, _rotation.ToEulerAngles180(), sensitivity, plane, smoothing);
         }
 
         public void StopRotateObject(Transform obj) {
@@ -137,44 +147,44 @@ namespace MisterGames.Character.View {
         }
         
         public void LookAt(Transform target, LookAtMode mode = LookAtMode.Free, Vector3 orientation = default, float smoothing = 0f) {
-            _viewClamp.LookAt(target, EulerAngles, mode, orientation, smoothing);
+            _viewClamp.LookAt(target, _rotation.ToEulerAngles180(), mode, orientation, smoothing);
         }
 
         public void LookAt(Vector3 target, float smoothing = 0f) {
-            _viewClamp.LookAt(target, EulerAngles, smoothing);
+            _viewClamp.LookAt(target, _rotation.ToEulerAngles180(), smoothing);
         }
         
         public void StopLookAt() {
             _viewClamp.StopLookAt();
-            _viewClamp.SetClampCenter(EulerAngles);
+            _viewClamp.SetClampCenter(_rotation.ToEulerAngles180());
         }
 
         public void ApplyHorizontalClamp(ViewAxisClamp clamp) {
             _isHorizontalClampOverriden = true;
-            _viewClamp.SetClampCenter(EulerAngles);
+            _viewClamp.SetClampCenter(_rotation.ToEulerAngles180());
             _viewClamp.ApplyHorizontalClamp(clamp);
         }
 
         public void ApplyVerticalClamp(ViewAxisClamp clamp) {
             _isVerticalClampOverriden = true;
-            _viewClamp.SetClampCenter(EulerAngles);
+            _viewClamp.SetClampCenter(_rotation.ToEulerAngles180());
             _viewClamp.ApplyVerticalClamp(clamp);
         }
         
         public void ResetHorizontalClamp() {
             _isHorizontalClampOverriden = false;
-            _viewClamp.SetClampCenter(EulerAngles);
+            _viewClamp.SetClampCenter(_rotation.ToEulerAngles180());
             _viewClamp.ApplyHorizontalClamp(_viewData?.horizontalClamp ?? default);
         }
 
         public void ResetVerticalClamp() {
             _isVerticalClampOverriden = false;
-            _viewClamp.SetClampCenter(EulerAngles);
+            _viewClamp.SetClampCenter(_rotation.ToEulerAngles180());
             _viewClamp.ApplyVerticalClamp(_viewData?.verticalClamp ?? default);
         }
 
         public void SetClampCenter(Quaternion orientation) {
-            _viewClamp.SetClampCenter(orientation.ToEulerAngles180());
+            _viewClamp.SetClampCenter((Quaternion.Inverse(_gravityOffset) * orientation).ToEulerAngles180());
         }
 
         public void ApplySmoothing(float smoothing) {
@@ -205,12 +215,12 @@ namespace MisterGames.Character.View {
 
         private void UpdateOverridableParameters() {
             if (!_isHorizontalClampOverriden) {
-                _viewClamp.SetClampCenter(EulerAngles);
+                _viewClamp.SetClampCenter(_rotation.ToEulerAngles180());
                 _viewClamp.ApplyHorizontalClamp(_viewData?.horizontalClamp ?? default);
             }
             
             if (!_isVerticalClampOverriden) {
-                _viewClamp.SetClampCenter(EulerAngles);
+                _viewClamp.SetClampCenter(_rotation.ToEulerAngles180());
                 _viewClamp.ApplyVerticalClamp(_viewData?.verticalClamp ?? default);
             }
             
@@ -225,8 +235,10 @@ namespace MisterGames.Character.View {
         }
 
         void IUpdate.OnUpdate(float dt) {
+            ProcessGravity(dt);
+            
             var delta = ConsumeInputDelta();
-            var currentOrientation = (Vector2) EulerAngles;
+            var currentOrientation = (Vector2) _rotation.ToEulerAngles180();
             var targetOrientation = currentOrientation + delta;
             
             // To apply position before orientation smoothed
@@ -243,6 +255,11 @@ namespace MisterGames.Character.View {
             ApplyCameraState();
         }
 
+        private void ProcessGravity(float dt) {
+            var target = Quaternion.FromToRotation(Vector3.down, _characterGravity.GravityDir);
+            _gravityOffset = _gravityOffset.SlerpNonZero(target, _gravityDirSmoothing, dt);
+        }
+
         private void ApplyCameraState() {
             _cameraContainer.SetBaseFov(_viewData?.fov ?? _defaultFov);
         }
@@ -254,7 +271,7 @@ namespace MisterGames.Character.View {
         }
 
         private void ApplyClamp(Vector2 current, ref Vector2 target, float dt) {
-            _viewClamp.Process(_head.Position, current, ref target, dt);
+            _viewClamp.Process(_head.Position, _gravityOffset, current, ref target, dt);
         }
 
         private void ApplySmoothing(ref Vector2 current, Vector2 target, float dt) {
@@ -266,13 +283,8 @@ namespace MisterGames.Character.View {
         private void ApplyHeadJoint(Vector2 current, Vector2 delta, float dt) {
             var position = _head.Position;
 
-            _headJoint.Update(ref position, current, delta, dt);
+            _headJoint.Update(ref position, _gravityOffset, current, delta, dt);
             _head.Position = position;
-        }
-
-        private void SetRotation(Quaternion rotation) {
-            _rotation = rotation;
-            _head.Rotation = rotation;
         }
 
         private void ApplyRotation(Vector2 eulerAngles, float dt) {
@@ -285,10 +297,11 @@ namespace MisterGames.Character.View {
                 float t = _freeHeadRotationDistance > 0f ? distance / _freeHeadRotationDistance : 1f;
                 float smooth = Mathf.Lerp(_returnFreeHeadRotationSmoothingMax, _returnFreeHeadRotationSmoothing, t);
                 
-                _body.Rotation = Quaternion.Slerp(_body.Rotation, Quaternion.Euler(0f, eulerAngles.y, 0f), dt * smooth);
+                var target = _gravityOffset * Quaternion.Euler(0f, eulerAngles.y, 0f);
+                _body.Rotation = Quaternion.Slerp(_body.Rotation, target, dt * smooth);
             }
 
-            _head.Rotation = _rotation;
+            _head.Rotation = _gravityOffset * _rotation;
         }
     }
 

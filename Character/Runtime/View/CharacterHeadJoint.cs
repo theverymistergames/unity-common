@@ -123,14 +123,14 @@ namespace MisterGames.Character.View {
             _rotationObjects.Remove(obj);
         }
         
-        public void Update(ref Vector3 position, Vector2 orientation, Vector2 delta, float dt) {
-            position = GetPosition(position, orientation, dt);
+        public void Update(ref Vector3 position, Quaternion rotationOffset, Vector2 orientation, Vector2 delta, float dt) {
+            position = GetPosition(position, rotationOffset, orientation, dt);
 
-            UpdateAttachedObjects(position, orientation, dt);
-            UpdateRotationObjects(orientation, delta, dt);
+            UpdateAttachedObjects(position, rotationOffset, orientation, dt);
+            UpdateRotationObjects(rotationOffset, orientation, delta, dt);
         }
 
-        private Vector3 GetPosition(Vector3 position, Vector2 orientation, float dt) {
+        private Vector3 GetPosition(Vector3 position, Quaternion rotationOffset, Vector2 orientation, float dt) {
             switch (_mode) {
                 case Mode.Point: 
                     return _smoothing > 0f
@@ -154,16 +154,18 @@ namespace MisterGames.Character.View {
                         ? _targetPoint.SmoothExp(_target.position, dt * _smoothing)
                         : _target.position;
                     
-                    return _targetPoint + Quaternion.Euler(orientation) * Vector3.back * AttachDistance;
+                    return _targetPoint + rotationOffset * Quaternion.Euler(orientation) * Vector3.back * AttachDistance;
 
                 default: 
                     return position;
             }
         }
 
-        private void UpdateAttachedObjects(Vector3 position, Vector2 orientation, float dt) {
+        private void UpdateAttachedObjects(Vector3 position, Quaternion rotationOffset, Vector2 orientation, float dt) {
+            var rotOffset = rotationOffset * Quaternion.Euler(orientation);
+            
             foreach (var (obj, data) in _attachedObjectsMap) {
-                var rot = Quaternion.Euler(orientation) * Quaternion.Inverse(data.orientation);
+                var rot = rotOffset * Quaternion.Inverse(data.orientation);
                 var targetPos = position + rot * data.offset;
                 
                 obj.position = data.smoothing > 0f 
@@ -179,10 +181,12 @@ namespace MisterGames.Character.View {
             }
         }
 
-        private void UpdateRotationObjects(Vector2 orientation, Vector2 delta, float dt) {
+        private void UpdateRotationObjects(Quaternion rotationOffset, Vector2 orientation, Vector2 delta, float dt) {
+            var rotOffset = rotationOffset * Quaternion.Euler(orientation);
+            
             foreach (var obj in _rotationObjects) {
                 var data = _rotationsMap[obj];
-                var rot = Quaternion.Euler(orientation) * Quaternion.Inverse(data.orientation);
+                var rot = rotOffset * Quaternion.Inverse(data.orientation);
 
                 data.targetRotation = GetRotationDelta(delta, data.sensitivity, data.orientation, data.plane) * data.targetRotation;
                 data.rotation = data.smoothing > 0f 

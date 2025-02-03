@@ -1,12 +1,11 @@
 ﻿using MisterGames.Actors;
 using MisterGames.Character.Collisions;
-using MisterGames.Common.Maths;
 using MisterGames.Common.Tick;
 using UnityEngine;
 
 namespace MisterGames.Character.Motion {
     
-    public sealed class CharacterExtraGravity : MonoBehaviour, IActorComponent, IUpdate {
+    public sealed class CharacterGravity : MonoBehaviour, IActorComponent, IUpdate {
 
         [SerializeField] private float _applyFallForceBelowVerticalSpeed;
         [SerializeField] private float _fallForce = 10f;
