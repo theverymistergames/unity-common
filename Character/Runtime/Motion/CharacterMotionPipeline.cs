@@ -30,17 +30,14 @@ namespace MisterGames.Character.Motion {
         [SerializeField] [Range(0f, 1f)] private float _forceCorrectionTurnAngleWeight = 0.5f;
         [SerializeField] [Range(0f, 1f)] private float _forceCorrectionSlopeAngleWeight = 1f;
         
-        [Header("Debug")]
-        [SerializeField] private bool _showDebugInfo;
-        
         public Vector3 MotionDirWorld { get; private set; }
         public Vector3 MotionNormal { get; private set; }
         public Vector3 InputDirWorld { get; private set; }
         public Vector2 Input { get; private set; }
         
+        public bool IsKinematic { get => _rigidbody.isKinematic; set => _rigidbody.isKinematic = value; }
         public bool UseGravity { get => _rigidbody.useGravity; set => _rigidbody.useGravity = value; }
         public Vector3 Velocity { get => _rigidbody.linearVelocity; set => _rigidbody.linearVelocity = value; }
-        public Vector3 PreviousVelocity { get; private set; }
         public Vector3 Position { get => _rigidbody.position; set => _rigidbody.position = value; }
         public bool HasBeenTeleported { get; private set; }
 
@@ -143,7 +140,6 @@ namespace MisterGames.Character.Motion {
             
             float maxSpeed = CalculateSpeedCorrection(Input) * Speed;
             var velocity = _rigidbody.linearVelocity;
-            PreviousVelocity = velocity;
 
             var inputDirNormalized = normalRot * orient * (_smoothedInput == Vector2.zero ? Vector3.forward : InputToLocal(_smoothedInput).normalized);
             var inputDirSmoothed = normalRot * orient * InputToLocal(_smoothedInput);
@@ -211,6 +207,9 @@ namespace MisterGames.Character.Motion {
         }
 
 #if UNITY_EDITOR
+        [Header("Debug")]
+        [SerializeField] private bool _showDebugInfo;
+        
         private void OnDrawGizmos() {
             if (!_showDebugInfo) return;
 

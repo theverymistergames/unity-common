@@ -31,7 +31,10 @@ namespace MisterGames.Character.Collisions {
         public override Vector3 OriginOffset { get; set; }
         public override float Distance { get => _distance; set => _distance = value; }
         public float Radius { get => _radius; set => _radius = value; }
-
+        
+        public float LastGroundedTime { get; private set; }
+        public float LastNotGroundedTime { get; private set; }
+        
         private Transform _transform;
         private CollisionInfo[] _hitsMain;
         private RaycastHit[] _raycastHitsMain;
@@ -142,11 +145,15 @@ namespace MisterGames.Character.Collisions {
 
                 normal = normal.normalized;
                 hitDistance = Vector3.Distance(origin, hitPoint);
+
+                LastGroundedTime = Time.time;
             }
             else {
                 normal = up;
                 hitPoint = origin - distance * up;
                 hitDistance = distance;
+                
+                LastNotGroundedTime = Time.time;
             }
             
 #if UNITY_EDITOR

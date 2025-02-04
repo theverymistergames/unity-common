@@ -7,8 +7,6 @@ namespace MisterGames.Character.View {
 
     public sealed class CharacterLeanCameraMotionPipeline : MonoBehaviour, IActorComponent, IUpdate {
         
-        [SerializeField] private PlayerLoopStage _playerLoopStage = PlayerLoopStage.Update;
-        
         [Header("Motion Settings")]
         [SerializeField] [Min(0f)] private float _cameraMotionWeight = 1f;
         [SerializeField] [Min(0f)] private float _smoothFactor = 1f;
@@ -39,15 +37,15 @@ namespace MisterGames.Character.View {
         
         private void OnEnable() {
             _cameraStateId = _cameraContainer.CreateState();
-            TimeSources.Get(_playerLoopStage).Subscribe(this);
+            PlayerLoopStage.Update.Subscribe(this);
         }
 
         private void OnDisable() {
             _cameraContainer.RemoveState(_cameraStateId);
-            TimeSources.Get(_playerLoopStage).Unsubscribe(this);
+            PlayerLoopStage.Update.Unsubscribe(this);
         }
 
-        public void OnUpdate(float dt) {
+        void IUpdate.OnUpdate(float dt) {
             var input = _motion.Input * (_maxSpeed > 0f ? _motion.Velocity.magnitude / _maxSpeed : 1f);
             var velocity = new Vector3(
                 input.x * _baseAmplitude * _sideAmplitude,

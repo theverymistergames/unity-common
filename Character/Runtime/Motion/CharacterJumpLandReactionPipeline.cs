@@ -1,9 +1,8 @@
-﻿using System.Threading;
+﻿using System;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
-using MisterGames.Character.Collisions;
-using MisterGames.Collisions.Core;
 using MisterGames.Common.Async;
 using MisterGames.Common.Attributes;
 using UnityEngine;
@@ -11,48 +10,59 @@ using UnityEngine;
 namespace MisterGames.Character.Motion {
 
     public sealed class CharacterJumpLandReactionPipeline : MonoBehaviour, IActorComponent {
-
-        [EmbeddedInspector]
-        [SerializeField] private ActorAction _jumpReaction;
-
-        [EmbeddedInspector]
-        [SerializeField] private ActorAction _landReaction;
         
-        private IActor _actor;
-        private CharacterJumpPipeline _jump;
-        private ICollisionDetector _groundDetector;
+        [SerializeReference] [SubclassSelector] private IActorAction _jumpAction;
+        [SerializeField] private LandingOption[] _landingOptions;
+
+        [Serializable]
+        private struct LandingOption {
+            [Range(-1f, 0f)] public float relativeSpeed;
+            [SerializeReference] [SubclassSelector]
+            public IActorAction action;
+        }
+
         private CancellationTokenSource _enableCts;
+        private IActor _actor;
+        private CharacterJumpPipeline _jumpPipeline;
+        private CharacterLandingDetector _landingDetector;
+        private CharacterMotionPipeline _motionPipeline;
 
         void IActorComponent.OnAwake(IActor actor) {
             _actor = actor;
-            _jump = actor.GetComponent<CharacterJumpPipeline>();
-            _groundDetector = actor.GetComponent<CharacterCollisionPipeline>().GroundDetector;
+            _jumpPipeline = actor.GetComponent<CharacterJumpPipeline>();
+            _landingDetector = actor.GetComponent<CharacterLandingDetector>();
+            _motionPipeline = actor.GetComponent<CharacterMotionPipeline>();
         }
 
         private void OnEnable() {
             AsyncExt.RecreateCts(ref _enableCts);
 
-            _jump.OnJumpRequest += OnJumpRequest;
-            _groundDetector.OnContact += OnLanded;
+            _jumpPipeline.OnJumpRequest += JumpPipelineRequest;
+            _landingDetector.OnLanded += OnLanded;
         }
 
         private void OnDisable() {
             AsyncExt.DisposeCts(ref _enableCts);
             
-            _jump.OnJumpRequest -= OnJumpRequest;
-            _groundDetector.OnContact -= OnLanded;
+            _jumpPipeline.OnJumpRequest -= JumpPipelineRequest;
+            _landingDetector.OnLanded -= OnLanded;
         }
 
-        private void OnJumpRequest() {
-            ApplyAction(_jumpReaction, _enableCts.Token).Forget();
+        private void JumpPipelineRequest() {
+            _jumpAction?.Apply(_actor, _enableCts.Token).Forget();
         }
 
-        private void OnLanded() {
-            ApplyAction(_landReaction, _enableCts.Token).Forget();
-        }
-
-        private UniTask ApplyAction(IActorAction action, CancellationToken cancellationToken) {
-            return action?.Apply(_actor, cancellationToken) ?? UniTask.CompletedTask;
+        private void OnLanded(Vector3 point, float relativeSpeed) {
+            if (_motionPipeline.IsKinematic) return;
+            
+            for (int i = _landingOptions.Length - 1; i >= 0; i--)
+            {
+                ref var option = ref _landingOptions[i];
+                if (relativeSpeed > option.relativeSpeed) continue;
+                
+                option.action?.Apply(_actor, _enableCts.Token).Forget();
+                break;
+            }
         }
     }
 

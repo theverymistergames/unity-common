@@ -3,9 +3,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
-using MisterGames.Character.Collisions;
 using MisterGames.Character.Motion;
-using MisterGames.Character.View;
 using UnityEngine;
 
 namespace MisterGames.ActionLib.Character {

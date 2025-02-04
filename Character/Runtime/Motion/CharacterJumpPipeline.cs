@@ -29,8 +29,7 @@ namespace MisterGames.Character.Motion {
         [SerializeField] [Min(0f)] private float _jumpImpulseDelay;
         [SerializeField] [Range(0f, 90f)] private float _maxSlopeAngle = 30f;
         
-        [EmbeddedInspector]
-        [SerializeField] private ActorCondition _jumpCondition;
+        [SerializeReference] [SubclassSelector] private IActorCondition _canJumpCondition;
 
         public event Action OnJumpRequest = delegate {  };
         public event Action<Vector3> OnJumpImpulse = delegate {  };
@@ -38,11 +37,12 @@ namespace MisterGames.Character.Motion {
         public Vector3 LastJumpImpulse { get; private set; }
         public float Force { get => _force; set => _force = value; }
         public bool IsBlocked { get; set; }
-
+        public float JumpImpulseTime => _jumpImpulseApplyTime;
+        
         private IActor _actor;
         private CharacterInputPipeline _input;
         private CharacterMotionPipeline _motion;
-        private CharacterGravity _extraGravity;
+        private CharacterGravity _gravity;
         private CharacterGroundDetector _groundDetector;
         
         private float _jumpPressTime;
@@ -56,11 +56,11 @@ namespace MisterGames.Character.Motion {
 
         private float _startTime;
 
-        public void OnAwake(IActor actor) {
+        void IActorComponent.OnAwake(IActor actor) {
             _actor = actor;
             _input = actor.GetComponent<CharacterInputPipeline>();
             _motion = actor.GetComponent<CharacterMotionPipeline>();
-            _extraGravity = actor.GetComponent<CharacterGravity>();
+            _gravity = actor.GetComponent<CharacterGravity>();
             _groundDetector = actor.GetComponent<CharacterGroundDetector>();
         }
 
@@ -124,7 +124,7 @@ namespace MisterGames.Character.Motion {
         }
 
         private void ApplyJumpImpulse() {
-            var gravityDirection = _extraGravity.GravityDir;
+            var gravityDirection = _gravity.GravityDir;
             var jumpImpulse = Force * -gravityDirection;
             var velocity = _motion.Velocity;
 
@@ -157,19 +157,19 @@ namespace MisterGames.Character.Motion {
         }
         
         private void ApplyFallForce() {
-            var gravityDirection = _extraGravity.GravityDir;
+            var gravityDirection = _gravity.GravityDir;
             var velocity = _motion.Velocity;
             
             float sqrVerticalSpeed = Mathf.Sign(Vector3.Dot(-gravityDirection, velocity)) * 
                                      Vector3.Project(velocity, gravityDirection).sqrMagnitude;
 
-            _extraGravity.IsFallForceAllowed = sqrVerticalSpeed > 0f && _jumpReleaseTime > _jumpRequestApplyTime + _jumpImpulseDelay;
+            _gravity.IsFallForceAllowed = sqrVerticalSpeed > 0f && _jumpReleaseTime > _jumpRequestApplyTime + _jumpImpulseDelay;
         }
         
         private bool CanRequestJump() {
             return _infiniteJumps || 
                    !IsBlocked && !_force.IsNearlyZero() && 
-                   (_jumpCondition == null || _jumpCondition.IsMatch(_actor, _startTime));
+                   (_canJumpCondition == null || _canJumpCondition.IsMatch(_actor, _startTime));
         }
         
         private bool CanApplyJumpImpulse() {
