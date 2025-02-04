@@ -101,10 +101,10 @@ namespace MisterGames.Character.Motion {
             
             var rotDelta = rotation * Quaternion.Inverse(rot);
             var flatRotation = Quaternion.LookRotation(Vector3.ProjectOnPlane(rotation * Vector3.forward, up), up);
-            var viewRotation = Quaternion.Euler(rotDelta.eulerAngles.WithZ(0f)) * _view.Rotation;
+            var viewRotation = Quaternion.Euler(rotDelta.eulerAngles.WithZ(0f)) * _view.HeadRotation;
 
             t.SetPositionAndRotation(position, flatRotation);
-            _view.Rotation = viewRotation;
+            _view.HeadRotation = viewRotation;
             
             _collisionPipeline.enabled = true;
             _rigidbody.isKinematic = false;
@@ -124,7 +124,7 @@ namespace MisterGames.Character.Motion {
 
         void IUpdate.OnUpdate(float dt) {
             var up = _transform.up;
-            var orient = _view.Rotation;
+            var orient = _view.HeadRotation;
             bool useGravity = _rigidbody.useGravity;
             
             if (useGravity) {

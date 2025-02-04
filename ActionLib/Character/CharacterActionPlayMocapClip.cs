@@ -34,7 +34,7 @@ namespace MisterGames.ActionLib.Character {
             _totalDuration = motionCaptureClip.Duration;
             _croppedDuration = (_crop.y - _crop.x) * _totalDuration;
 
-            _startRotation = _view.Rotation;
+            _startRotation = _view.HeadRotation;
             _lastRotation = Quaternion.identity;
             _lastPosition = Vector3.zero;
             
@@ -65,7 +65,7 @@ namespace MisterGames.ActionLib.Character {
                 var relativeRot = _startRotation * _lastRotation;
                 _view.SetClampCenter(relativeRot);
                 
-                _view.Rotation *= _lastRotation * Quaternion.Inverse(lastRot);
+                _view.HeadRotation *= _lastRotation * Quaternion.Inverse(lastRot);
             }
         }
     }

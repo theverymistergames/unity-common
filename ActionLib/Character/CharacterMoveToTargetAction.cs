@@ -51,7 +51,7 @@ namespace MisterGames.ActionLib.Character {
 
             var rot = targetType switch {
                 TargetType.Transform => target.rotation,
-                TargetType.Head => view.Rotation,
+                TargetType.Head => view.HeadRotation,
                 _ => Quaternion.identity,
             };
             
@@ -61,7 +61,7 @@ namespace MisterGames.ActionLib.Character {
             
             var targetPoint = targetType switch {
                 TargetType.Transform => target.position + targetRotation * offset,
-                TargetType.Head => view.Position + targetRotation * offset,
+                TargetType.Head => view.HeadPosition + targetRotation * offset,
                 _ => view.BodyPosition,
             };
 
@@ -105,13 +105,13 @@ namespace MisterGames.ActionLib.Character {
                     progressCurve.Evaluate(t)
                 );
 
-                var headPosition = view.Position;
+                var headPosition = view.HeadPosition;
                 
                 view.BodyPosition = smoothing > 0f 
                     ? Vector3.Lerp(view.BodyPosition, position, smoothing * dt)
                     : position;
 
-                if (saveHeadPosition) view.Position = headPosition;
+                if (saveHeadPosition) view.HeadPosition = headPosition;
                 
                 float r = Mathf.Max(pointRadius, Mathf.Epsilon);
                 if ((targetPoint - view.BodyPosition).sqrMagnitude <= r * r && t >= 1f) break;

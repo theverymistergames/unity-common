@@ -66,13 +66,13 @@ namespace MisterGames.ActionLib.Character {
                 case TargetType.LocalPosition: {
                     if (useTargetAsCurvePointOrigin) {
                         startPoint = localPosition;
-                        targetPoint = view.LocalPosition;
+                        targetPoint = view.HeadLocalPosition;
                         var rot = target.rotation * Quaternion.Euler(rotationOffset) * Quaternion.Inverse(view.BodyRotation);
                         curvePoint = BezierExtensions.GetCurvaturePoint(startPoint, targetPoint, rot, curvature);
                         invertCurve = true;
                     }
                     else {
-                        startPoint = view.LocalPosition;
+                        startPoint = view.HeadLocalPosition;
                         targetPoint = localPosition;
                         var rot = 
                             Quaternion.LookRotation(targetPoint.sqrMagnitude > 0f ? -targetPoint : startPoint, Vector3.up) * 
@@ -89,17 +89,17 @@ namespace MisterGames.ActionLib.Character {
                     targetRotAtStart = target.rotation;
                     targetPosAtStart = target.position;
                     
-                    startPoint = view.Position;
+                    startPoint = view.HeadPosition;
 
                     offsetOrient = offsetMode switch {
                         OffsetMode.Local => targetRotAtStart * Quaternion.Euler(rotationOffset),
                         OffsetMode.World => Quaternion.Euler(rotationOffset),
-                        OffsetMode.UseViewDirectionAsForward => Quaternion.LookRotation(targetPosAtStart - startPoint, view.Rotation * Vector3.up),
+                        OffsetMode.UseViewDirectionAsForward => Quaternion.LookRotation(targetPosAtStart - startPoint, view.HeadRotation * Vector3.up),
                         _ => throw new ArgumentOutOfRangeException()
                     };
                     
                     targetPoint = attach && attachMode == AttachMode.RotateAroundTarget
-                        ? targetPosAtStart + Quaternion.Euler(view.Rotation.ToEulerAngles180()) * new Vector3(0f, 0f, -offsetDist)
+                        ? targetPosAtStart + Quaternion.Euler(view.HeadRotation.ToEulerAngles180()) * new Vector3(0f, 0f, -offsetDist)
                         : targetPosAtStart + offsetOrient * offset;
                     
                     var rot = Quaternion.LookRotation(offsetOrient * offset, Vector3.up);
@@ -116,13 +116,13 @@ namespace MisterGames.ActionLib.Character {
 #if UNITY_EDITOR
             switch (targetType) {
                 case TargetType.LocalPosition:
-                    var p = view.Position;
-                    DebugExt.DrawSphere(view.LocalPosition, 0.03f, Color.green, duration: 5f);
-                    view.LocalPosition = curvePoint;
-                    DebugExt.DrawSphere(view.Position, 0.03f, Color.yellow, duration: 5f);
-                    view.LocalPosition = dest;
-                    DebugExt.DrawSphere(view.Position, 0.03f, Color.red, duration: 5f);
-                    view.Position = p;
+                    var p = view.HeadPosition;
+                    DebugExt.DrawSphere(view.HeadLocalPosition, 0.03f, Color.green, duration: 5f);
+                    view.HeadLocalPosition = curvePoint;
+                    DebugExt.DrawSphere(view.HeadPosition, 0.03f, Color.yellow, duration: 5f);
+                    view.HeadLocalPosition = dest;
+                    DebugExt.DrawSphere(view.HeadPosition, 0.03f, Color.red, duration: 5f);
+                    view.HeadPosition = p;
                     break;
                 
                 case TargetType.Transform:
@@ -142,7 +142,7 @@ namespace MisterGames.ActionLib.Character {
                 
                 switch (targetType) {
                     case TargetType.LocalPosition:
-                        diff = dest - view.LocalPosition;
+                        diff = dest - view.HeadLocalPosition;
                         break;
                     
                     case TargetType.Transform:
@@ -151,10 +151,10 @@ namespace MisterGames.ActionLib.Character {
                         targetPosOffset = targetPos - targetPosAtStart;
                         
                         dest = attach && attachMode == AttachMode.RotateAroundTarget
-                            ? targetPosAtStart + Quaternion.Euler(view.Rotation.ToEulerAngles180()) * new Vector3(0f, 0f, -offsetDist)
+                            ? targetPosAtStart + Quaternion.Euler(view.HeadRotation.ToEulerAngles180()) * new Vector3(0f, 0f, -offsetDist)
                             : targetPosAtStart + offsetOrient * (Quaternion.Inverse(targetRotAtStart) * target.rotation) * offset;
 
-                        diff = dest - view.Position;
+                        diff = dest - view.HeadPosition;
                         targetPoint = dest;
                         break;
                     
@@ -175,11 +175,11 @@ namespace MisterGames.ActionLib.Character {
 
                 switch (targetType) {
                     case TargetType.LocalPosition:
-                        view.LocalPosition = position;
+                        view.HeadLocalPosition = position;
                         break;
                     
                     case TargetType.Transform:
-                        view.Position = position + targetPosOffset;
+                        view.HeadPosition = position + targetPosOffset;
                         break;
                     
                     default:
@@ -187,7 +187,7 @@ namespace MisterGames.ActionLib.Character {
                 }
                 
 #if UNITY_EDITOR
-                DebugExt.DrawSphere(view.Position, 0.008f, Color.yellow, duration: 5f);
+                DebugExt.DrawSphere(view.HeadPosition, 0.008f, Color.yellow, duration: 5f);
 #endif
                 
                 if (t >= 1f) break;

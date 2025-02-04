@@ -33,7 +33,7 @@ namespace MisterGames.Character.View {
 
         public bool IsAttached => _headJoint.IsAttached;
 
-        public Vector3 Position {
+        public Vector3 HeadPosition {
             get => _head.position;
             set {
                 _headPosition = value;
@@ -41,7 +41,7 @@ namespace MisterGames.Character.View {
             }
         }
 
-        public Vector3 LocalPosition {
+        public Vector3 HeadLocalPosition {
             get => _head.localPosition;
             set {
                 _headPosition = _headParent.TransformPoint(value);
@@ -49,7 +49,7 @@ namespace MisterGames.Character.View {
             }
         }
 
-        public Quaternion Rotation {
+        public Quaternion HeadRotation {
             get => _head.rotation;
             set {
                 _headRotation = Quaternion.Inverse(_gravityOffset) * value;

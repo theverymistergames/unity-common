@@ -72,7 +72,7 @@ namespace MisterGames.Character.Steps {
         }
 
         void IUpdate.OnUpdate(float dt) {
-            var plainVelocity = Vector3.ProjectOnPlane(_rigidbody.linearVelocity, _view.Rotation * Vector3.up);
+            var plainVelocity = Vector3.ProjectOnPlane(_rigidbody.linearVelocity, _view.HeadRotation * Vector3.up);
             float sqrSpeed = plainVelocity.sqrMagnitude;
             float targetSmooth;
 

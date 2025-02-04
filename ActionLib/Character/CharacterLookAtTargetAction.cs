@@ -25,13 +25,13 @@ namespace MisterGames.ActionLib.Character {
             var view = context.GetComponent<CharacterViewPipeline>();
 
             var timeSource = PlayerLoopStage.Update.Get();
-            var rotation = view.Rotation;
+            var rotation = view.HeadRotation;
             float t = 0f;
             float speed = duration > 0f ? 1f / duration : float.MaxValue;
             
             while (!cancellationToken.IsCancellationRequested) {
                 var targetRotation = mode switch {
-                    LookAtMode.Free => Quaternion.LookRotation(target.position - view.Position, Vector3.up),
+                    LookAtMode.Free => Quaternion.LookRotation(target.position - view.HeadPosition, Vector3.up),
                     LookAtMode.Oriented => target.rotation * Quaternion.Euler(orientation),
                     _ => throw new ArgumentOutOfRangeException()
                 };
@@ -41,11 +41,11 @@ namespace MisterGames.ActionLib.Character {
                 
                 if (t >= 1f) break;
                 
-                view.LookAt(view.Position + rotation * Vector3.forward);
+                view.LookAt(view.HeadPosition + rotation * Vector3.forward);
                 
 #if UNITY_EDITOR
-                DebugExt.DrawRay(view.Position, view.Rotation * Vector3.forward, Color.yellow);
-                DebugExt.DrawRay(view.Position, targetRotation * Vector3.forward, Color.green);          
+                DebugExt.DrawRay(view.HeadPosition, view.HeadRotation * Vector3.forward, Color.yellow);
+                DebugExt.DrawRay(view.HeadPosition, targetRotation * Vector3.forward, Color.green);          
 #endif
                 
                 await UniTask.Yield();
