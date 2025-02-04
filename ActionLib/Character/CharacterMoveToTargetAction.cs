@@ -46,7 +46,6 @@ namespace MisterGames.ActionLib.Character {
         }
         
         public async UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            var body = context.GetComponent<CharacterBodyAdapter>();
             var view = context.GetComponent<CharacterViewPipeline>();
             var collisions = context.GetComponent<CharacterCollisionPipeline>();
 
@@ -63,7 +62,7 @@ namespace MisterGames.ActionLib.Character {
             var targetPoint = targetType switch {
                 TargetType.Transform => target.position + targetRotation * offset,
                 TargetType.Head => view.Position + targetRotation * offset,
-                _ => body.Position,
+                _ => view.BodyPosition,
             };
 
             if (detectGround) {
@@ -81,7 +80,7 @@ namespace MisterGames.ActionLib.Character {
                 }
             }
             
-            var startPoint = body.Position;
+            var startPoint = view.BodyPosition;
 
             if (!allowTranslationY) targetPoint.y = startPoint.y;
             
@@ -93,7 +92,7 @@ namespace MisterGames.ActionLib.Character {
             float t = 0f;
 
             while (!cancellationToken.IsCancellationRequested) {
-                float distance = (targetPoint - body.Position).magnitude;
+                float distance = (targetPoint - view.BodyPosition).magnitude;
                 float dt = UnityEngine.Time.deltaTime;
                 float k = reduceSpeedBelowDistance > 0f ? Mathf.Clamp01(distance / reduceSpeedBelowDistance) : 1f;
 
@@ -108,17 +107,17 @@ namespace MisterGames.ActionLib.Character {
 
                 var headPosition = view.Position;
                 
-                body.Position = smoothing > 0f 
-                    ? Vector3.Lerp(body.Position, position, smoothing * dt)
+                view.BodyPosition = smoothing > 0f 
+                    ? Vector3.Lerp(view.BodyPosition, position, smoothing * dt)
                     : position;
 
                 if (saveHeadPosition) view.Position = headPosition;
                 
                 float r = Mathf.Max(pointRadius, Mathf.Epsilon);
-                if ((targetPoint - body.Position).sqrMagnitude <= r * r && t >= 1f) break;
+                if ((targetPoint - view.BodyPosition).sqrMagnitude <= r * r && t >= 1f) break;
                 
 #if UNITY_EDITOR
-                DebugExt.DrawSphere(body.Position, 0.005f, Color.yellow, duration: 5f);
+                DebugExt.DrawSphere(view.BodyPosition, 0.005f, Color.yellow, duration: 5f);
 #endif
 
                 await UniTask.Yield();

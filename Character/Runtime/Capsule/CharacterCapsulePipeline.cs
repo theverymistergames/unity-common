@@ -1,6 +1,7 @@
 ﻿using MisterGames.Actors;
 using MisterGames.Character.Collisions;
 using MisterGames.Character.Motion;
+using MisterGames.Character.View;
 using MisterGames.Collisions.Core;
 using MisterGames.Common.GameObjects;
 using MisterGames.Common.Maths;
@@ -26,7 +27,7 @@ namespace MisterGames.Character.Capsule {
 
         private Transform _transform;
         private CapsuleCollider _capsuleCollider;
-        private ITransformAdapter _bodyAdapter;
+        private CharacterViewPipeline _view;
         private IRadiusCollisionDetector _groundDetector;
         private IRadiusCollisionDetector _ceilingDetector;
 
@@ -36,7 +37,7 @@ namespace MisterGames.Character.Capsule {
         public void OnAwake(IActor actor) {
             _transform = actor.Transform;
                 
-            _bodyAdapter = actor.GetComponent<CharacterBodyAdapter>();
+            _view = actor.GetComponent<CharacterViewPipeline>();
             _capsuleCollider = actor.GetComponent<CapsuleCollider>();
             
             var collisionPipeline = actor.GetComponent<CharacterCollisionPipeline>();
@@ -88,7 +89,7 @@ namespace MisterGames.Character.Capsule {
             _groundDetector.Distance = height * 0.5f - _capsuleCollider.radius;
             
             if (!_groundDetector.HasContact) {
-                _bodyAdapter.Position += (prevHeight - height) * up;
+                _view.BodyPosition += (prevHeight - height) * up;
             }
         }
 
@@ -106,15 +107,15 @@ namespace MisterGames.Character.Capsule {
         }
 
         private Vector3 GetColliderTopPoint() {
-            return _bodyAdapter.Position + _capsuleCollider.center + _capsuleCollider.height * 0.5f * Vector3.up;
+            return _view.BodyPosition + _capsuleCollider.center + _capsuleCollider.height * 0.5f * Vector3.up;
         }
 
         private Vector3 GetColliderCenterPoint() {
-            return _bodyAdapter.Position + _capsuleCollider.center;
+            return _view.BodyPosition + _capsuleCollider.center;
         }
 
         private Vector3 GetColliderBottomPoint() {
-            return _bodyAdapter.Position + _capsuleCollider.center + _capsuleCollider.height * 0.5f * Vector3.down;
+            return _view.BodyPosition + _capsuleCollider.center + _capsuleCollider.height * 0.5f * Vector3.down;
         }
     }
 

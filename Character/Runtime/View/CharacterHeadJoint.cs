@@ -125,9 +125,11 @@ namespace MisterGames.Character.View {
         
         public void Update(ref Vector3 position, Quaternion rotationOffset, Vector2 orientation, Vector2 delta, float dt) {
             position = GetPosition(position, rotationOffset, orientation, dt);
-
-            UpdateAttachedObjects(position, rotationOffset, orientation, dt);
-            UpdateRotationObjects(rotationOffset, orientation, delta, dt);
+            
+            var orient = rotationOffset * Quaternion.Euler(orientation);
+            
+            UpdateAttachedObjects(position, orient, dt);
+            UpdateRotationObjects(orient, delta, dt);
         }
 
         private Vector3 GetPosition(Vector3 position, Quaternion rotationOffset, Vector2 orientation, float dt) {
@@ -161,11 +163,9 @@ namespace MisterGames.Character.View {
             }
         }
 
-        private void UpdateAttachedObjects(Vector3 position, Quaternion rotationOffset, Vector2 orientation, float dt) {
-            var rotOffset = rotationOffset * Quaternion.Euler(orientation);
-            
+        private void UpdateAttachedObjects(Vector3 position, Quaternion orientation, float dt) {
             foreach (var (obj, data) in _attachedObjectsMap) {
-                var rot = rotOffset * Quaternion.Inverse(data.orientation);
+                var rot = orientation * Quaternion.Inverse(data.orientation);
                 var targetPos = position + rot * data.offset;
                 
                 obj.position = data.smoothing > 0f 
@@ -181,12 +181,10 @@ namespace MisterGames.Character.View {
             }
         }
 
-        private void UpdateRotationObjects(Quaternion rotationOffset, Vector2 orientation, Vector2 delta, float dt) {
-            var rotOffset = rotationOffset * Quaternion.Euler(orientation);
-            
+        private void UpdateRotationObjects(Quaternion orientation, Vector2 delta, float dt) {
             foreach (var obj in _rotationObjects) {
                 var data = _rotationsMap[obj];
-                var rot = rotOffset * Quaternion.Inverse(data.orientation);
+                var rot = orientation * Quaternion.Inverse(data.orientation);
 
                 data.targetRotation = GetRotationDelta(delta, data.sensitivity, data.orientation, data.plane) * data.targetRotation;
                 data.rotation = data.smoothing > 0f 

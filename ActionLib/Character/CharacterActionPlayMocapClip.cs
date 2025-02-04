@@ -6,7 +6,6 @@ using MisterGames.Actors.Actions;
 using MisterGames.Character.Motion;
 using MisterGames.Character.View;
 using MisterGames.Common.Attributes;
-using MisterGames.Common.GameObjects;
 using MisterGames.Tweens;
 using UnityEngine;
 
@@ -21,7 +20,7 @@ namespace MisterGames.ActionLib.Character {
         [MinMaxSlider(0f, 1f)] public Vector2 _crop = new Vector2(0f, 1f);
 
         private CharacterViewPipeline _view;
-        private ITransformAdapter _bodyAdapter;
+        private CharacterMotionPipeline _motion;
         private float _totalDuration;
         private float _croppedDuration;
         private Vector3 _lastPosition;
@@ -30,7 +29,7 @@ namespace MisterGames.ActionLib.Character {
 
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
             _view = context.GetComponent<CharacterViewPipeline>();
-            _bodyAdapter = context.GetComponent<CharacterBodyAdapter>();
+            _motion = context.GetComponent<CharacterMotionPipeline>();
             
             _totalDuration = motionCaptureClip.Duration;
             _croppedDuration = (_crop.y - _crop.x) * _totalDuration;
@@ -56,7 +55,7 @@ namespace MisterGames.ActionLib.Character {
             if (applyPosition) {
                 var lastPos = _lastPosition;
                 _lastPosition = motionCaptureClip.EvaluatePosition(t);
-                _bodyAdapter.Move(_lastPosition - lastPos);
+                _motion.Move(_lastPosition - lastPos);
             }
 
             if (applyRotation) {

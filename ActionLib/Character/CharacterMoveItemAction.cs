@@ -57,7 +57,6 @@ namespace MisterGames.ActionLib.Character {
         }
 
         public async UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            var body = context.GetComponent<CharacterBodyAdapter>();
             var view = context.GetComponent<CharacterViewPipeline>();
 
             if (detachOnStart) view.DetachObject(item);
@@ -72,7 +71,7 @@ namespace MisterGames.ActionLib.Character {
 
             switch (targetType) {
                 case TargetType.Head: {
-                    var rot = useBodyRotation ? body.Rotation : view.Rotation;
+                    var rot = useBodyRotation ? view.BodyRotation : view.Rotation;
                     var offsetOrient = offsetMode switch {
                         OffsetMode.Local => rot * Quaternion.Euler(rotationOffset),
                         OffsetMode.World => Quaternion.Euler(rotationOffset),
@@ -116,7 +115,7 @@ namespace MisterGames.ActionLib.Character {
                 
                 switch (targetType) {
                     case TargetType.Head: {
-                        var rot = useBodyRotation ? body.Rotation : view.Rotation;
+                        var rot = useBodyRotation ? view.BodyRotation : view.Rotation;
                         var offsetOrient = offsetMode switch {
                             OffsetMode.Local => rot * Quaternion.Euler(rotationOffset),
                             OffsetMode.World => Quaternion.Euler(rotationOffset),
@@ -181,12 +180,11 @@ namespace MisterGames.ActionLib.Character {
             if (enableColliderOnFinish && collider != null) collider.enabled = true;
             if (attachOnFinish) view.AttachObject(item, item.position, attachSmoothing);
 
-            if (pullToPositionAfterExit) Exit(view, body, startPoint, startRotation, t, cancellationToken).Forget();
+            if (pullToPositionAfterExit) Exit(view, startPoint, startRotation, t, cancellationToken).Forget();
         }
 
         private async UniTask Exit(
             CharacterViewPipeline view,
-            CharacterBodyAdapter body,
             Vector3 startPoint,
             Quaternion startRotation,
             float t,
@@ -202,7 +200,7 @@ namespace MisterGames.ActionLib.Character {
                 
                 switch (targetType) {
                     case TargetType.Head: {
-                        var rot = useBodyRotation ? body.Rotation : view.Rotation;
+                        var rot = useBodyRotation ? view.BodyRotation : view.Rotation;
                         var offsetOrient = offsetMode switch {
                             OffsetMode.Local => rot * Quaternion.Euler(rotationOffset),
                             OffsetMode.World => Quaternion.Euler(rotationOffset),

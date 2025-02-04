@@ -46,7 +46,6 @@ namespace MisterGames.ActionLib.Character {
         }
 
         public async UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            var body = context.GetComponent<CharacterBodyAdapter>();
             var view = context.GetComponent<CharacterViewPipeline>();
 
             Vector3 startPoint;
@@ -68,7 +67,7 @@ namespace MisterGames.ActionLib.Character {
                     if (useTargetAsCurvePointOrigin) {
                         startPoint = localPosition;
                         targetPoint = view.LocalPosition;
-                        var rot = target.rotation * Quaternion.Euler(rotationOffset) * Quaternion.Inverse(body.Rotation);
+                        var rot = target.rotation * Quaternion.Euler(rotationOffset) * Quaternion.Inverse(view.BodyRotation);
                         curvePoint = BezierExtensions.GetCurvaturePoint(startPoint, targetPoint, rot, curvature);
                         invertCurve = true;
                     }
@@ -100,7 +99,7 @@ namespace MisterGames.ActionLib.Character {
                     };
                     
                     targetPoint = attach && attachMode == AttachMode.RotateAroundTarget
-                        ? targetPosAtStart + Quaternion.Euler(view.EulerAngles) * new Vector3(0f, 0f, -offsetDist)
+                        ? targetPosAtStart + Quaternion.Euler(view.Rotation.ToEulerAngles180()) * new Vector3(0f, 0f, -offsetDist)
                         : targetPosAtStart + offsetOrient * offset;
                     
                     var rot = Quaternion.LookRotation(offsetOrient * offset, Vector3.up);
@@ -152,7 +151,7 @@ namespace MisterGames.ActionLib.Character {
                         targetPosOffset = targetPos - targetPosAtStart;
                         
                         dest = attach && attachMode == AttachMode.RotateAroundTarget
-                            ? targetPosAtStart + Quaternion.Euler(view.EulerAngles) * new Vector3(0f, 0f, -offsetDist)
+                            ? targetPosAtStart + Quaternion.Euler(view.Rotation.ToEulerAngles180()) * new Vector3(0f, 0f, -offsetDist)
                             : targetPosAtStart + offsetOrient * (Quaternion.Inverse(targetRotAtStart) * target.rotation) * offset;
 
                         diff = dest - view.Position;

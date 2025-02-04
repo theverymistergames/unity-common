@@ -11,12 +11,13 @@ namespace MisterGames.Character.View {
 
     public sealed class CharacterViewPipeline : MonoBehaviour, IActorComponent, IUpdate {
         
-        [SerializeField] private CharacterHeadAdapter _head;
-        [SerializeField] private CharacterBodyAdapter _body;
+        [SerializeField] private Transform _head;
+        [SerializeField] private Transform _body;
         
         [Header("View Settings")]
         [SerializeField] private Vector2 _sensitivity = new Vector2(0.15f, 0.15f);
         [SerializeField] [Min(0f)] private float _smoothing = 20f;
+        [SerializeField] [Min(0f)] private float _positionSmoothing = 30f;
         [SerializeField] [Min(0f)] private float _defaultFov = 70f;
         [SerializeField] [Min(0f)] private float _freeHeadRotationDistance;
         [SerializeField] private float _returnFreeHeadRotationSmoothing = 5f;
@@ -33,26 +34,37 @@ namespace MisterGames.Character.View {
         public bool IsAttached => _headJoint.IsAttached;
 
         public Vector3 Position {
-            get => _head.Position;
-            set => _head.Position = value;
-        }
-
-        public Vector3 LocalPosition {
-            get => _head.LocalPosition;
-            set => _head.LocalPosition = value;
-        }
-
-        public Quaternion Rotation {
-            get => _gravityOffset * _rotation;
+            get => _head.position;
             set {
-                _rotation = value;
-                _head.Rotation = _gravityOffset * value;
+                _headPosition = value;
+                _head.position = value;
             }
         }
 
-        public Vector3 EulerAngles {
-            get => Rotation.ToEulerAngles180();
-            set => Rotation = Quaternion.Euler(value);
+        public Vector3 LocalPosition {
+            get => _head.localPosition;
+            set {
+                _headPosition = _headParent.TransformPoint(value);
+                _head.localPosition = value;
+            }
+        }
+
+        public Quaternion Rotation {
+            get => _head.rotation;
+            set {
+                _headRotation = Quaternion.Inverse(_gravityOffset) * value;
+                _head.rotation = value;
+            }
+        }
+        
+        public Vector3 BodyPosition {
+            get => _body.position;
+            set => _body.position = value;
+        }
+        
+        public Quaternion BodyRotation {
+            get => _body.rotation;
+            set => _body.rotation = value;
         }
         
         private readonly CharacterHeadJoint _headJoint = new();
@@ -60,9 +72,9 @@ namespace MisterGames.Character.View {
         private CameraContainer _cameraContainer;
         private CharacterInputPipeline _inputPipeline;
         private CharacterGravity _characterGravity;
+        private Transform _headParent;
         
         private CharacterViewData _viewData;
-        private Quaternion _rotation = Quaternion.identity;
         private Quaternion _gravityOffset = Quaternion.identity;
         private Vector2 _inputDeltaAccum;
         private bool _isHorizontalClampOverriden;
@@ -70,11 +82,8 @@ namespace MisterGames.Character.View {
         private bool _isSmoothingOverriden;
         private bool _isSensitivityOverriden;
         
-        private Transform _cameraParent;
-        private Vector3 _cameraOffset;
-        private Quaternion _cameraRotationOffset;
-        private Vector3 _cameraPosition;
-        private Quaternion _cameraRotation;
+        private Vector3 _headPosition;
+        private Quaternion _headRotation = Quaternion.identity;
 
         private float _startTime;
 
@@ -82,6 +91,8 @@ namespace MisterGames.Character.View {
             _cameraContainer = actor.GetComponent<CameraContainer>();
             _inputPipeline = actor.GetComponent<CharacterInputPipeline>();
             _characterGravity = actor.GetComponent<CharacterGravity>();
+
+            _headParent = _head.parent;
             
             _startTime = Time.time;
         }
@@ -96,8 +107,7 @@ namespace MisterGames.Character.View {
             _inputPipeline.OnViewVectorChanged += HandleViewVectorChanged;
             PlayerLoopStage.UnscaledUpdate.Subscribe(this);
             
-            _rotation = _head.Rotation;
-            _cameraContainer.EnableSmoothing = !_headJoint.IsAttached;
+            _head.GetPositionAndRotation(out _headPosition, out _headRotation);
         }
 
         private void OnDisable() {
@@ -111,12 +121,12 @@ namespace MisterGames.Character.View {
             StopLookAt();
         }
 
-        public void PublishCameraPosition() {
-            _cameraContainer.PublishCameraPosition();
+        public void PublishHeadPosition() {
+            _headPosition = _headParent.position;
         }
         
         public void AttachObject(Transform obj, Vector3 point, float smoothing = 0f) {
-            _headJoint.AttachObject(obj, point, _head.Position, _rotation.ToEulerAngles180(), smoothing);
+            _headJoint.AttachObject(obj, point, _head.position, _headRotation.ToEulerAngles180(), smoothing);
         }
         
         public void DetachObject(Transform obj) {
@@ -124,7 +134,7 @@ namespace MisterGames.Character.View {
         }
         
         public void RotateObject(Transform obj, Vector3 sensitivity, RotationPlane plane = RotationPlane.XY, float smoothing = 0f) {
-            _headJoint.RotateObject(obj, _rotation.ToEulerAngles180(), sensitivity, plane, smoothing);
+            _headJoint.RotateObject(obj, _headRotation.ToEulerAngles180(), sensitivity, plane, smoothing);
         }
 
         public void StopRotateObject(Transform obj) {
@@ -133,53 +143,50 @@ namespace MisterGames.Character.View {
         
         public void AttachTo(Transform target, Vector3 point, AttachMode mode = AttachMode.OffsetOnly, float smoothing = 0f) {
             _headJoint.AttachTo(target, point, mode, smoothing);
-            _cameraContainer.EnableSmoothing = false;
         }
         
         public void AttachTo(Vector3 point, float smoothing = 0f) {
             _headJoint.AttachTo(point, smoothing);
-            _cameraContainer.EnableSmoothing = false;
         }
 
         public void Detach() {
             _headJoint.Detach();
-            _cameraContainer.EnableSmoothing = true;
         }
         
         public void LookAt(Transform target, LookAtMode mode = LookAtMode.Free, Vector3 orientation = default, float smoothing = 0f) {
-            _viewClamp.LookAt(target, _rotation.ToEulerAngles180(), mode, orientation, smoothing);
+            _viewClamp.LookAt(target, _headRotation.ToEulerAngles180(), mode, orientation, smoothing);
         }
 
         public void LookAt(Vector3 target, float smoothing = 0f) {
-            _viewClamp.LookAt(target, _rotation.ToEulerAngles180(), smoothing);
+            _viewClamp.LookAt(target, _headRotation.ToEulerAngles180(), smoothing);
         }
         
         public void StopLookAt() {
             _viewClamp.StopLookAt();
-            _viewClamp.SetClampCenter(_rotation.ToEulerAngles180());
+            _viewClamp.SetClampCenter(_headRotation.ToEulerAngles180());
         }
 
         public void ApplyHorizontalClamp(ViewAxisClamp clamp) {
             _isHorizontalClampOverriden = true;
-            _viewClamp.SetClampCenter(_rotation.ToEulerAngles180());
+            _viewClamp.SetClampCenter(_headRotation.ToEulerAngles180());
             _viewClamp.ApplyHorizontalClamp(clamp);
         }
 
         public void ApplyVerticalClamp(ViewAxisClamp clamp) {
             _isVerticalClampOverriden = true;
-            _viewClamp.SetClampCenter(_rotation.ToEulerAngles180());
+            _viewClamp.SetClampCenter(_headRotation.ToEulerAngles180());
             _viewClamp.ApplyVerticalClamp(clamp);
         }
         
         public void ResetHorizontalClamp() {
             _isHorizontalClampOverriden = false;
-            _viewClamp.SetClampCenter(_rotation.ToEulerAngles180());
+            _viewClamp.SetClampCenter(_headRotation.ToEulerAngles180());
             _viewClamp.ApplyHorizontalClamp(_viewData?.horizontalClamp ?? default);
         }
 
         public void ResetVerticalClamp() {
             _isVerticalClampOverriden = false;
-            _viewClamp.SetClampCenter(_rotation.ToEulerAngles180());
+            _viewClamp.SetClampCenter(_headRotation.ToEulerAngles180());
             _viewClamp.ApplyVerticalClamp(_viewData?.verticalClamp ?? default);
         }
 
@@ -190,13 +197,11 @@ namespace MisterGames.Character.View {
         public void ApplySmoothing(float smoothing) {
             _isSmoothingOverriden = true;
             _smoothing = smoothing;
-            _cameraContainer.EnableSmoothing = smoothing > 0f;
         }
         
         public void ResetSmoothing() {
             _isSmoothingOverriden = false;
             _smoothing = _viewData?.viewSmoothing ?? default;
-            _cameraContainer.EnableSmoothing = !_headJoint.IsAttached;
         }
 
         public void ApplySensitivity(Vector2 sensitivity) {
@@ -215,12 +220,12 @@ namespace MisterGames.Character.View {
 
         private void UpdateOverridableParameters() {
             if (!_isHorizontalClampOverriden) {
-                _viewClamp.SetClampCenter(_rotation.ToEulerAngles180());
+                _viewClamp.SetClampCenter(_headRotation.ToEulerAngles180());
                 _viewClamp.ApplyHorizontalClamp(_viewData?.horizontalClamp ?? default);
             }
             
             if (!_isVerticalClampOverriden) {
-                _viewClamp.SetClampCenter(_rotation.ToEulerAngles180());
+                _viewClamp.SetClampCenter(_headRotation.ToEulerAngles180());
                 _viewClamp.ApplyVerticalClamp(_viewData?.verticalClamp ?? default);
             }
             
@@ -236,28 +241,36 @@ namespace MisterGames.Character.View {
 
         void IUpdate.OnUpdate(float dt) {
             ProcessGravity(dt);
+            ProcessPosition(dt);
             
             var delta = ConsumeInputDelta();
-            var currentOrientation = (Vector2) _rotation.ToEulerAngles180();
+            var currentOrientation = (Vector2) _headRotation.ToEulerAngles180();
             var targetOrientation = currentOrientation + delta;
+            var position = _headPosition;
             
             // To apply position before orientation smoothed
-            ApplyHeadJoint(currentOrientation, delta, dt);
+            ApplyHeadJoint(ref position, currentOrientation, delta, dt);
             
-            ApplyClamp(currentOrientation, ref targetOrientation, dt);
+            ApplyClamp(position, currentOrientation, ref targetOrientation, dt);
             ApplySmoothing(ref currentOrientation, targetOrientation, dt);
 
             ApplyRotation(currentOrientation, dt);
             
             // To fetch smoothed orientation
-            ApplyHeadJoint(currentOrientation, delta, dt: 0f);
+            ApplyHeadJoint(ref position, currentOrientation, delta, dt: 0f);
+            
+            ApplyPosition(position);
             
             ApplyCameraState();
         }
-
+        
         private void ProcessGravity(float dt) {
             var target = Quaternion.FromToRotation(Vector3.down, _characterGravity.GravityDir);
             _gravityOffset = _gravityOffset.SlerpNonZero(target, _gravityDirSmoothing, dt);
+        }
+
+        private void ProcessPosition(float dt) {
+            _headPosition = _headPosition.SmoothExpNonZero(_headParent.position, _positionSmoothing, dt);
         }
 
         private void ApplyCameraState() {
@@ -270,38 +283,39 @@ namespace MisterGames.Character.View {
             return delta;
         }
 
-        private void ApplyClamp(Vector2 current, ref Vector2 target, float dt) {
-            _viewClamp.Process(_head.Position, _gravityOffset, current, ref target, dt);
+        private void ApplyClamp(Vector3 position, Vector2 current, ref Vector2 target, float dt) {
+            _viewClamp.Process(position, _gravityOffset, current, ref target, dt);
         }
 
         private void ApplySmoothing(ref Vector2 current, Vector2 target, float dt) {
-            current = _smoothing > 0f 
-                ? Quaternion.Slerp(Quaternion.Euler(current), Quaternion.Euler(target), dt * _smoothing).eulerAngles
-                : target;
+            current = Quaternion.Euler(current)
+                .SlerpNonZero(Quaternion.Euler(target), _smoothing, dt)
+                .eulerAngles;
         }
 
-        private void ApplyHeadJoint(Vector2 current, Vector2 delta, float dt) {
-            var position = _head.Position;
-
+        private void ApplyHeadJoint(ref Vector3 position, Vector2 current, Vector2 delta, float dt) {
             _headJoint.Update(ref position, _gravityOffset, current, delta, dt);
-            _head.Position = position;
         }
 
         private void ApplyRotation(Vector2 eulerAngles, float dt) {
-            _rotation = Quaternion.Euler(eulerAngles);
+            _headRotation = Quaternion.Euler(eulerAngles);
             
             // If head offset from body is longer than free head rotation distance,
             // body rotation is not applied to prevent head from rotation around body vertical axis. 
-            if (_head.LocalPosition.sqrMagnitude < _freeHeadRotationDistance * _freeHeadRotationDistance) {
-                float distance = _head.LocalPosition.magnitude;
+            if (_head.localPosition.sqrMagnitude < _freeHeadRotationDistance * _freeHeadRotationDistance) {
+                float distance = _head.localPosition.magnitude;
                 float t = _freeHeadRotationDistance > 0f ? distance / _freeHeadRotationDistance : 1f;
                 float smooth = Mathf.Lerp(_returnFreeHeadRotationSmoothingMax, _returnFreeHeadRotationSmoothing, t);
                 
                 var target = _gravityOffset * Quaternion.Euler(0f, eulerAngles.y, 0f);
-                _body.Rotation = Quaternion.Slerp(_body.Rotation, target, dt * smooth);
+                _body.rotation = Quaternion.Slerp(_body.rotation, target, dt * smooth);
             }
 
-            _head.Rotation = _gravityOffset * _rotation;
+            _head.rotation = _gravityOffset * _headRotation;
+        }
+
+        private void ApplyPosition(Vector3 position) {
+            _head.position = position;
         }
     }
 

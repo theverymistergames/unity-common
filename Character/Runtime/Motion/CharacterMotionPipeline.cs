@@ -77,6 +77,10 @@ namespace MisterGames.Character.Motion {
             PlayerLoopStage.FixedUpdate.Unsubscribe(this);
         }
 
+        public void Move(Vector3 delta) {
+            _rigidbody.MovePosition(_rigidbody.position + delta);
+        }
+        
         public void AddForce(Vector3 force, ForceMode mode = ForceMode.Force) {
             _rigidbody.AddForce(force, mode);
         }
@@ -97,7 +101,7 @@ namespace MisterGames.Character.Motion {
             
             var rotDelta = rotation * Quaternion.Inverse(rot);
             var flatRotation = Quaternion.LookRotation(Vector3.ProjectOnPlane(rotation * Vector3.forward, up), up);
-            var viewRotation = Quaternion.Euler((rotDelta * _view.Rotation).eulerAngles.WithZ(0f));
+            var viewRotation = Quaternion.Euler(rotDelta.eulerAngles.WithZ(0f)) * _view.Rotation;
 
             t.SetPositionAndRotation(position, flatRotation);
             _view.Rotation = viewRotation;
@@ -109,7 +113,7 @@ namespace MisterGames.Character.Motion {
             _rigidbody.linearVelocity = preserveVelocity ? rotDelta * velocity : Vector3.zero;
             _rigidbody.angularVelocity = preserveVelocity ? angularVelocity : Vector3.zero;
             
-            _view.PublishCameraPosition();
+            _view.PublishHeadPosition();
 
             HasBeenTeleported = true;
         }

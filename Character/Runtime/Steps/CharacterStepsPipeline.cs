@@ -1,6 +1,7 @@
 ﻿using MisterGames.Actors;
 using MisterGames.Character.Collisions;
 using MisterGames.Character.Motion;
+using MisterGames.Character.View;
 using MisterGames.Collisions.Core;
 using MisterGames.Common;
 using MisterGames.Common.Easing;
@@ -34,7 +35,7 @@ namespace MisterGames.Character.Steps {
         
         private Rigidbody _rigidbody;
         private ICollisionDetector _groundDetector;
-        private ITransformAdapter _body;
+        private CharacterViewPipeline _view;
 
         private float _lastTimeGrounded;
         private float _lastTimeMoving;
@@ -44,7 +45,7 @@ namespace MisterGames.Character.Steps {
         public void OnAwake(IActor actor) {
             _rigidbody = actor.GetComponent<Rigidbody>();
             _groundDetector = actor.GetComponent<CharacterCollisionPipeline>().GroundDetector;
-            _body = actor.GetComponent<CharacterBodyAdapter>();
+            _view = actor.GetComponent<CharacterViewPipeline>();
         }
 
         private void OnEnable() {
@@ -57,7 +58,7 @@ namespace MisterGames.Character.Steps {
 
         void IUpdate.OnUpdate(float dt) {
             float time = Time.time;
-            var velocityFlat = Vector3.ProjectOnPlane(_rigidbody.linearVelocity, _body.Rotation * Vector3.up);
+            var velocityFlat = Vector3.ProjectOnPlane(_rigidbody.linearVelocity, _view.BodyRotation * Vector3.up);
             float sqrSpeedFlat = velocityFlat.sqrMagnitude;
             
             if (_groundDetector.HasContact) _lastTimeGrounded = time; 
@@ -88,9 +89,9 @@ namespace MisterGames.Character.Steps {
         }
 
         private Vector3 GetFootPointOffset(Vector3 velocity, int foot) {
-            var up = _body.Rotation * Vector3.up;
+            var up = _view.BodyRotation * Vector3.up;
             var forward = velocity == Vector3.zero
-                ? _body.Rotation * Vector3.forward
+                ? _view.BodyRotation * Vector3.forward
                 : velocity;
             
             return Quaternion.LookRotation(forward, up) *

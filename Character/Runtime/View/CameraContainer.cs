@@ -6,35 +6,27 @@ using UnityEngine;
 
 namespace MisterGames.Character.View {
 
-    public sealed class CameraContainer : MonoBehaviour, IActorComponent, IUpdate {
+    public sealed class CameraContainer : MonoBehaviour, IActorComponent {
         
         [SerializeField] private Transform _translationRoot;
         [SerializeField] private Transform _rotationRoot;
-        [SerializeField] [Min(0f)] private float _positionSmoothing = 20f;
-        [SerializeField] [Min(0f)] private float _rotationSmoothing = 30f;
 
         private const float WeightTolerance = 0.00001f;
         
         public Camera Camera { get; private set; }
         public Transform CameraTransform { get; private set; }
-        public bool EnableSmoothing { get; set; } = true;
         
         private readonly Dictionary<int, WeightedValue<Vector3>> _positionStates = new();
         private readonly Dictionary<int, WeightedValue<Quaternion>> _rotationStates = new();
         private readonly Dictionary<int, WeightedValue<float>> _fovStates = new();
-
-        private ITimeSource _timeSource;
 
         private CameraState _baseState;
         private CameraState _resultState;
         private CameraState _persistentState;
         private CameraState _persistentStateBuffer;
 
-        private Transform _cameraParent;
         private Vector3 _cameraOffset;
         private Quaternion _cameraRotationOffset;
-        private Vector3 _cameraPosition;
-        private Quaternion _cameraRotation;
         
         private bool _isInitialized;
         private int _lastStateId;
@@ -44,12 +36,6 @@ namespace MisterGames.Character.View {
         void IActorComponent.OnAwake(IActor actor) {
             Camera = actor.GetComponent<Camera>();
             CameraTransform = Camera.transform;
-            
-            CameraTransform.GetLocalPositionAndRotation(out _cameraOffset, out _cameraRotationOffset);
-            CameraTransform.GetPositionAndRotation(out _cameraPosition, out _cameraRotation);
-            _cameraParent = CameraTransform.parent;
-            
-            _timeSource = PlayerLoopStage.Update.Get();
             
             _baseState = new CameraState(_translationRoot.localPosition, _rotationRoot.localRotation, Camera.fieldOfView);
             _resultState = CameraState.Empty;
@@ -67,32 +53,6 @@ namespace MisterGames.Character.View {
             _positionStates.Clear();
             _rotationStates.Clear();
             _fovStates.Clear();
-        }
-
-        private void OnEnable() {
-            PlayerLoopStage.UnscaledUpdate.Subscribe(this);
-        }
-
-        private void OnDisable() {
-            PlayerLoopStage.UnscaledUpdate.Unsubscribe(this);
-        }
-
-        void IUpdate.OnUpdate(float dt) {
-            _cameraParent.GetPositionAndRotation(out var parentPos, out var parentRot);
-
-            _cameraPosition = Vector3.Lerp(_cameraPosition, parentPos + parentRot * _cameraOffset, EnableSmoothing ? dt * _positionSmoothing : 1f);
-            _cameraRotation = Quaternion.Slerp(_cameraRotation, parentRot * _cameraRotationOffset, EnableSmoothing ? dt * _rotationSmoothing : 1f);
-            
-            CameraTransform.SetPositionAndRotation(_cameraPosition, _cameraRotation);
-        }
-
-        public void PublishCameraPosition() {
-            _cameraParent.GetPositionAndRotation(out var parentPos, out var parentRot);
-
-            _cameraPosition = parentPos + parentRot * _cameraOffset;
-            _cameraRotation = parentRot * _cameraRotationOffset;
-            
-            CameraTransform.SetPositionAndRotation(_cameraPosition, _cameraRotation);
         }
 
         public int CreateState() {
@@ -135,7 +95,7 @@ namespace MisterGames.Character.View {
             _isClearingPersistentStates = true;
             
             while (id == _clearPersistentStateOperationId && !cancellationToken.IsCancellationRequested) {
-                t = Mathf.Clamp01(t + speed * _timeSource.DeltaTime);
+                t = Mathf.Clamp01(t + speed * Time.deltaTime);
 
                 _persistentStateBuffer = new CameraState(
                     Vector3.Lerp(_persistentStateBuffer.position, Vector3.zero, t),
