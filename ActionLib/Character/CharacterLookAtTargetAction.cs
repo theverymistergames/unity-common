@@ -24,7 +24,6 @@ namespace MisterGames.ActionLib.Character {
         public async UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
             var view = context.GetComponent<CharacterViewPipeline>();
 
-            var timeSource = PlayerLoopStage.Update.Get();
             var rotation = view.HeadRotation;
             float t = 0f;
             float speed = duration > 0f ? 1f / duration : float.MaxValue;
@@ -36,7 +35,7 @@ namespace MisterGames.ActionLib.Character {
                     _ => throw new ArgumentOutOfRangeException()
                 };
 
-                t += timeSource.DeltaTime * speed;
+                t += UnityEngine.Time.deltaTime * speed;
                 rotation = Quaternion.Slerp(rotation, targetRotation, t);
                 
                 if (t >= 1f) break;

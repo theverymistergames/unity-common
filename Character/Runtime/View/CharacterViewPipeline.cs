@@ -36,16 +36,18 @@ namespace MisterGames.Character.View {
         public Vector3 HeadPosition {
             get => _head.position;
             set {
-                _headPosition = value;
                 _head.position = value;
+                _headPosition = _headParent.position;
+                _headOffset = value - _headPosition;
             }
         }
 
         public Vector3 HeadLocalPosition {
             get => _head.localPosition;
             set {
-                _headPosition = _headParent.TransformPoint(value);
                 _head.localPosition = value;
+                _headPosition = _headParent.position;
+                _headOffset = _head.position - _headPosition;
             }
         }
 
@@ -66,6 +68,8 @@ namespace MisterGames.Character.View {
             get => _body.rotation;
             set => _body.rotation = value;
         }
+
+        public Vector3 BodyUp => _body.up;
         
         private readonly CharacterHeadJoint _headJoint = new();
        
@@ -83,6 +87,7 @@ namespace MisterGames.Character.View {
         private bool _isSensitivityOverriden;
         
         private Vector3 _headPosition;
+        private Vector3 _headOffset;
         private Quaternion _headRotation = Quaternion.identity;
 
         private float _startTime;
@@ -246,21 +251,20 @@ namespace MisterGames.Character.View {
             var delta = ConsumeInputDelta();
             var currentOrientation = (Vector2) _headRotation.ToEulerAngles180();
             var targetOrientation = currentOrientation + delta;
-            var position = _headPosition;
+            var position = _headPosition + _headOffset;
             
             // To apply position before orientation smoothed
             ApplyHeadJoint(ref position, currentOrientation, delta, dt);
-            
             ApplyClamp(position, currentOrientation, ref targetOrientation, dt);
+            
             ApplySmoothing(ref currentOrientation, targetOrientation, dt);
 
-            ApplyRotation(currentOrientation, dt);
-            
             // To fetch smoothed orientation
             ApplyHeadJoint(ref position, currentOrientation, delta, dt: 0f);
             
+
+            ApplyRotation(currentOrientation, dt);
             ApplyPosition(position);
-            
             ApplyCameraState();
         }
         

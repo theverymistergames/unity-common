@@ -1,4 +1,5 @@
-﻿using System.Threading;
+﻿using System;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Common.Async;
@@ -9,13 +10,13 @@ namespace MisterGames.Tweens {
     public sealed class TweenRunner : MonoBehaviour, IActorComponent {
 
 #if UNITY_EDITOR
-        [SerializeField] private string _name;  
+        [SerializeField] private string _name;
 #endif
         
         [SerializeField] private bool _playAtStart;
         [Space(10f)]
-        [SerializeField] private TweenPlayer<IActor, IActorTween> _tweenPlayer;
-        [SerializeField] private TweenEvent[] _events;
+        [SerializeField] private TweenPlayer<IActor, IActorTween> _tweenPlayer = new();
+        [SerializeField] private TweenEvent[] _events = Array.Empty<TweenEvent>();
         
         public TweenPlayer<IActor, IActorTween> TweenPlayer => _tweenPlayer;
 

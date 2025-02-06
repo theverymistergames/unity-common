@@ -45,122 +45,43 @@ namespace MisterGames.ActionLib.Character {
             UseViewDirectionAsForward,
         }
 
-        public async UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
+        public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
+            return targetType switch {
+                TargetType.LocalPosition => MoveHeadToLocalPosition(context, cancellationToken),
+                TargetType.Transform => MoveHeadToTransform(context, cancellationToken),
+                _ => throw new ArgumentOutOfRangeException()
+            };
+        }
+
+        private async UniTask MoveHeadToLocalPosition(IActor context, CancellationToken cancellationToken) {
             var view = context.GetComponent<CharacterViewPipeline>();
 
             Vector3 startPoint;
             Vector3 targetPoint;
             Vector3 curvePoint;
-            Vector3 dest;
-            
-            var targetPosAtStart = Vector3.zero;
-            var targetRotAtStart = Quaternion.identity;
-            
-            var targetPosOffset = Vector3.zero;
-            
-            var offsetOrient = Quaternion.identity;
-            bool invertCurve = false;
-            float offsetDist = offset.magnitude;
-            
-            switch (targetType) {
-                case TargetType.LocalPosition: {
-                    if (useTargetAsCurvePointOrigin) {
-                        startPoint = localPosition;
-                        targetPoint = view.HeadLocalPosition;
-                        var rot = target.rotation * Quaternion.Euler(rotationOffset) * Quaternion.Inverse(view.BodyRotation);
-                        curvePoint = BezierExtensions.GetCurvaturePoint(startPoint, targetPoint, rot, curvature);
-                        invertCurve = true;
-                    }
-                    else {
-                        startPoint = view.HeadLocalPosition;
-                        targetPoint = localPosition;
-                        var rot = 
-                            Quaternion.LookRotation(targetPoint.sqrMagnitude > 0f ? -targetPoint : startPoint, Vector3.up) * 
-                            Quaternion.Euler(rotationOffset);
+
+            if (useTargetAsCurvePointOrigin) {
+                startPoint = localPosition;
+                targetPoint = view.HeadLocalPosition;
+                var rot = target.rotation * Quaternion.Euler(rotationOffset) * Quaternion.Inverse(view.BodyRotation);
+                curvePoint = BezierExtensions.GetCurvaturePoint(startPoint, targetPoint, rot, curvature);
+            }
+            else {
+                startPoint = view.HeadLocalPosition;
+                targetPoint = localPosition;
+                var rot = 
+                    Quaternion.LookRotation(targetPoint.sqrMagnitude > 0f ? -targetPoint : startPoint, Vector3.up) * 
+                    Quaternion.Euler(rotationOffset);
                         
-                        curvePoint = BezierExtensions.GetCurvaturePoint(startPoint, targetPoint, rot, curvature);
-                    }
-                    
-                    dest = localPosition;
-                    break;
-                }
-
-                case TargetType.Transform: {
-                    targetRotAtStart = target.rotation;
-                    targetPosAtStart = target.position;
-                    
-                    startPoint = view.HeadPosition;
-
-                    offsetOrient = offsetMode switch {
-                        OffsetMode.Local => targetRotAtStart * Quaternion.Euler(rotationOffset),
-                        OffsetMode.World => Quaternion.Euler(rotationOffset),
-                        OffsetMode.UseViewDirectionAsForward => Quaternion.LookRotation(targetPosAtStart - startPoint, view.HeadRotation * Vector3.up),
-                        _ => throw new ArgumentOutOfRangeException()
-                    };
-                    
-                    targetPoint = attach && attachMode == AttachMode.RotateAroundTarget
-                        ? targetPosAtStart + Quaternion.Euler(view.HeadRotation.ToEulerAngles180()) * new Vector3(0f, 0f, -offsetDist)
-                        : targetPosAtStart + offsetOrient * offset;
-                    
-                    var rot = Quaternion.LookRotation(offsetOrient * offset, Vector3.up);
-                    curvePoint = BezierExtensions.GetCurvaturePoint(startPoint, targetPoint, rot, curvature);
-                    
-                    dest = targetPoint;
-                    break;
-                }
-                
-                default:
-                    throw new ArgumentOutOfRangeException();
+                curvePoint = BezierExtensions.GetCurvaturePoint(startPoint, targetPoint, rot, curvature);
             }
-            
-#if UNITY_EDITOR
-            switch (targetType) {
-                case TargetType.LocalPosition:
-                    var p = view.HeadPosition;
-                    DebugExt.DrawSphere(view.HeadLocalPosition, 0.03f, Color.green, duration: 5f);
-                    view.HeadLocalPosition = curvePoint;
-                    DebugExt.DrawSphere(view.HeadPosition, 0.03f, Color.yellow, duration: 5f);
-                    view.HeadLocalPosition = dest;
-                    DebugExt.DrawSphere(view.HeadPosition, 0.03f, Color.red, duration: 5f);
-                    view.HeadPosition = p;
-                    break;
-                
-                case TargetType.Transform:
-                    DebugExt.DrawSphere(startPoint, 0.03f, Color.green, duration: 5f);
-                    DebugExt.DrawSphere(curvePoint, 0.03f, Color.yellow, duration: 5f);
-                    DebugExt.DrawSphere(targetPoint, 0.03f, Color.red, duration: 5f);
-                    break;
-            }
-#endif
-            
+
             float pathLength = BezierExtensions.GetBezier3PointsLength(startPoint, curvePoint, targetPoint);
             float speed = pathLength > 0f ? this.speed / pathLength : float.MaxValue;
             float t = 0f;
             
             while (!cancellationToken.IsCancellationRequested) {
-                Vector3 diff;
-                
-                switch (targetType) {
-                    case TargetType.LocalPosition:
-                        diff = dest - view.HeadLocalPosition;
-                        break;
-                    
-                    case TargetType.Transform:
-                        var targetPos = target.position;
-                        
-                        targetPosOffset = targetPos - targetPosAtStart;
-                        
-                        dest = attach && attachMode == AttachMode.RotateAroundTarget
-                            ? targetPosAtStart + Quaternion.Euler(view.HeadRotation.ToEulerAngles180()) * new Vector3(0f, 0f, -offsetDist)
-                            : targetPosAtStart + offsetOrient * (Quaternion.Inverse(targetRotAtStart) * target.rotation) * offset;
-
-                        diff = dest - view.HeadPosition;
-                        targetPoint = dest;
-                        break;
-                    
-                    default:
-                        throw new ArgumentOutOfRangeException();
-                }
+                var diff = localPosition - view.HeadLocalPosition;
 
                 float dt = UnityEngine.Time.deltaTime;
                 float k = reduceSpeedBelowDistance > 0f ? Mathf.Clamp01(diff.magnitude / reduceSpeedBelowDistance) : 1f;
@@ -170,34 +91,97 @@ namespace MisterGames.ActionLib.Character {
                     startPoint,
                     curvePoint,
                     targetPoint,
-                    invertCurve ? 1f - progressCurve.Evaluate(t) : progressCurve.Evaluate(t)
+                    useTargetAsCurvePointOrigin ? 1f - progressCurve.Evaluate(t) : progressCurve.Evaluate(t)
                 );
 
-                switch (targetType) {
-                    case TargetType.LocalPosition:
-                        view.HeadLocalPosition = position;
-                        break;
-                    
-                    case TargetType.Transform:
-                        view.HeadPosition = position + targetPosOffset;
-                        break;
-                    
-                    default:
-                        throw new ArgumentOutOfRangeException();
-                }
+                view.HeadLocalPosition = position;
                 
 #if UNITY_EDITOR
                 DebugExt.DrawSphere(view.HeadPosition, 0.008f, Color.yellow, duration: 5f);
 #endif
                 
                 if (t >= 1f) break;
-
+                
                 await UniTask.Yield();
             }
             
-            if (cancellationToken.IsCancellationRequested) return;
+#if UNITY_EDITOR
+            DebugExt.DrawSphere(view.HeadPosition, 0.01f, Color.green, duration: 5f);
+#endif
+        }
 
-            if (targetType == TargetType.Transform && attach) view.AttachTo(target, dest + targetPosOffset, attachMode, attachSmoothing);
+        private async UniTask MoveHeadToTransform(IActor context, CancellationToken cancellationToken) {
+            var view = context.GetComponent<CharacterViewPipeline>();
+            
+            target.GetPositionAndRotation(out var targetStartPosition, out var targetStartRotation);
+            
+            var headStartRotation = view.HeadRotation;
+            var startPoint = view.HeadPosition;
+
+            var offsetOrient = offsetMode switch {
+                OffsetMode.Local => targetStartRotation * Quaternion.Euler(rotationOffset),
+                OffsetMode.World => Quaternion.Euler(rotationOffset),
+                OffsetMode.UseViewDirectionAsForward => Quaternion.LookRotation(targetStartPosition - startPoint, view.HeadRotation * Vector3.up),
+                _ => throw new ArgumentOutOfRangeException()
+            };
+            
+            var finalPoint = attach && attachMode == AttachMode.RotateAroundTarget
+                ? targetStartPosition + view.HeadRotation * offset
+                : targetStartPosition + offsetOrient * offset;
+                    
+            var rot = Quaternion.LookRotation(offsetOrient * offset, Vector3.up);
+            var curvePoint = BezierExtensions.GetCurvaturePoint(startPoint, finalPoint, rot, curvature);
+            
+            var startPointOffset = startPoint - targetStartPosition;
+            var curvePointOffset = curvePoint - targetStartPosition;
+            var finalPointOffset = finalPoint - targetStartPosition;
+            
+            float pathLength = BezierExtensions.GetBezier3PointsLength(startPoint, curvePoint, finalPoint);
+            float speed = pathLength > 0f ? this.speed / pathLength : float.MaxValue;
+            float t = 0f;
+            
+            while (!cancellationToken.IsCancellationRequested) {
+                target.GetPositionAndRotation(out var targetPosition, out var targetRotation);
+                
+                var targetRotationOffset = attach && attachMode == AttachMode.RotateAroundTarget
+                    ? view.HeadRotation * Quaternion.Inverse(headStartRotation) 
+                    : targetRotation * Quaternion.Inverse(targetStartRotation);
+                
+                startPoint = targetPosition + targetRotationOffset * startPointOffset;
+                curvePoint = targetPosition + targetRotationOffset * curvePointOffset;
+                finalPoint = targetPosition + targetRotationOffset * finalPointOffset;
+
+                var diff = finalPoint - view.HeadPosition;
+
+                float dt = UnityEngine.Time.deltaTime;
+                float k = reduceSpeedBelowDistance > 0f ? Mathf.Clamp01(diff.magnitude / reduceSpeedBelowDistance) : 1f;
+                t = Mathf.Clamp01(t + dt * Mathf.Max(speed * k, speedMin));
+
+                var position = BezierExtensions.EvaluateBezier3Points(
+                    startPoint,
+                    curvePoint,
+                    finalPoint,
+                    progressCurve.Evaluate(t)
+                );
+
+                view.HeadPosition = position;
+                
+#if UNITY_EDITOR
+                DebugExt.DrawSphere(view.HeadPosition, 0.008f, Color.yellow, duration: 5f);
+#endif
+                
+                if (t >= 1f) break;
+                
+                await UniTask.Yield();
+            }
+            
+#if UNITY_EDITOR
+            DebugExt.DrawSphere(view.HeadPosition, 0.01f, Color.green, duration: 5f);
+#endif
+            
+            if (cancellationToken.IsCancellationRequested) return;
+            
+            if (attach) view.AttachTo(target, view.HeadPosition, attachMode, attachSmoothing);
         }
     }
     

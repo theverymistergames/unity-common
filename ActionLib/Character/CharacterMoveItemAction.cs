@@ -101,7 +101,6 @@ namespace MisterGames.ActionLib.Character {
             var startRotationOffset = Quaternion.Inverse(targetStartRotation) * startRotation;
             var finalRotationOffset = Quaternion.Inverse(targetStartRotation) * finalRotation;
 
-            var ts = PlayerLoopStage.Update.Get();
             float pathLength = BezierExtensions.GetBezier3PointsLength(startPoint, curvePoint, finalPoint);
             float speed = pathLength > 0f && this.speed > 0f ? this.speed / pathLength : float.MaxValue;
             float t = 0f;
@@ -137,7 +136,7 @@ namespace MisterGames.ActionLib.Character {
                 
                 var diff = finalPoint - item.position;
 
-                float dt = ts.DeltaTime;
+                float dt = UnityEngine.Time.deltaTime;
                 float k = reduceSpeedBelowDistance > 0f ? Mathf.Clamp01(speedCoeffMin + diff.magnitude / reduceSpeedBelowDistance) : 1f;
                 t = Mathf.Clamp01(t + dt * speed * k);
 
@@ -156,9 +155,13 @@ namespace MisterGames.ActionLib.Character {
 #endif
                 
                 if (t >= 1f) break;
-
+                
                 await UniTask.Yield(PlayerLoopTiming.PostLateUpdate);
             }
+            
+#if UNITY_EDITOR
+            DebugExt.DrawSphere(item.position, 0.01f, Color.green, duration: 5f);
+#endif
             
             if (cancellationToken.IsCancellationRequested) return;
 
