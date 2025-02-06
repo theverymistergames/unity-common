@@ -83,7 +83,7 @@ namespace MisterGames.Logic.Interactives {
             _targetOrientation += consume * _inputAccum;
             _inputAccum *= Mathf.Max(1f - consume, 0f);
 
-            _viewClamp.Process(_target.position, Quaternion.identity, _smoothedOrientation, ref _targetOrientation, dt);
+            _viewClamp.Process(_target.position, Quaternion.identity, ref _smoothedOrientation, ref _targetOrientation, dt);
             _smoothedOrientation = _smoothedOrientation.SmoothExpNonZero(_targetOrientation, _smoothing, dt);
 
             _target.rotation = Quaternion.Euler(0f, _smoothedOrientation.y, _smoothedOrientation.x);

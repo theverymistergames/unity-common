@@ -5,8 +5,6 @@ namespace MisterGames.Common.Maths {
 
     public static class VectorUtils {
 
-        // ---------------- ---------------- Modification ---------------- ----------------
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector2 WithX(this Vector2 vector, float x) => new(x, vector.y);
 
@@ -132,6 +130,46 @@ namespace MisterGames.Common.Maths {
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector2 Abs(this Vector2 value) {
+            return new Vector2(Mathf.Abs(value.x), Mathf.Abs(value.y));
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector3 Abs(this Vector3 value) {
+            return new Vector3(Mathf.Abs(value.x), Mathf.Abs(value.y), Mathf.Abs(value.z));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector2 Min(Vector2 a, Vector2 b) {
+            return new Vector2(Mathf.Min(a.x, b.x), Mathf.Min(a.y, b.y));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector3 Min(Vector3 a, Vector3 b) {
+            return new Vector3(Mathf.Min(a.x, b.x), Mathf.Min(a.y, b.y), Mathf.Min(a.z, b.z));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector2 Max(Vector2 a, Vector2 b) {
+            return new Vector2(Mathf.Max(a.x, b.x), Mathf.Max(a.y, b.y));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector3 Max(Vector3 a, Vector3 b) {
+            return new Vector3(Mathf.Max(a.x, b.x), Mathf.Max(a.y, b.y), Mathf.Max(a.z, b.z));
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector2 Sign(this Vector2 value) {
+            return new Vector2(Mathf.Sign(value.x), Mathf.Sign(value.y));
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector3 Sign(this Vector3 value) {
+            return new Vector3(Mathf.Sign(value.x), Mathf.Sign(value.y), Mathf.Sign(value.z));
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float ToEulerAngles180(float eulerAngle) {
             return (eulerAngle + 180f) % 360f - 180f;
         }
@@ -152,12 +190,12 @@ namespace MisterGames.Common.Maths {
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector2 GetNearestAngle(Vector2 value, Vector2 target) {
+        public static Vector2 GetNearestAngle(this Vector2 value, Vector2 target) {
             return new Vector2(GetNearestAngle(value.x, target.x), GetNearestAngle(value.y, target.y));
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector3 GetNearestAngle(Vector3 value, Vector3 target) {
+        public static Vector3 GetNearestAngle(this Vector3 value, Vector3 target) {
             return new Vector3(GetNearestAngle(value.x, target.x), GetNearestAngle(value.y, target.y), GetNearestAngle(value.z, target.z));
         }
         
@@ -172,8 +210,6 @@ namespace MisterGames.Common.Maths {
             
             return Mathf.Abs(p01 - target) < Mathf.Abs(p2 - target) ? p01 : p2;
         }
-
-        // ---------------- ---------------- Geometry ---------------- ----------------
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float SqrMagnitudeOfProject(Vector3 vector, Vector3 onNormal) {
@@ -301,90 +337,6 @@ namespace MisterGames.Common.Maths {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector3 SmoothExpNonZero(this Vector3 value, Vector3 target, float factor, float dt) {
             return factor > 0f ? value + (target - value) * (1f - Mathf.Exp(-factor * dt)) : target;
-        }
-        
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static float SmoothExpAngle(this float value, float target, float factor) {
-            return SmoothExp(value, GetNearestAngle(target, value), factor);
-        }
-        
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector2 SmoothExpAngle(this Vector2 value, Vector2 target, float factor) {
-            return new Vector2(
-                SmoothExpAngle(value.x, target.x, factor), 
-                SmoothExpAngle(value.y, target.y, factor)
-            );
-        }
-        
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector3 SmoothExpAngle(this Vector3 value, Vector3 target, float factor) {
-            return new Vector3(
-                SmoothExpAngle(value.x, target.x, factor), 
-                SmoothExpAngle(value.y, target.y, factor), 
-                SmoothExpAngle(value.z, target.z, factor)
-            );
-        }
-        
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static float SmoothExpAngleNonZero(this float value, float target, float factor, float dt) {
-            return SmoothExpNonZero(value, GetNearestAngle(target, value), factor, dt);
-        }
-        
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector2 SmoothExpAngleNonZero(this Vector2 value, Vector2 target, float factor, float dt) {
-            return new Vector2(
-                SmoothExpAngleNonZero(value.x, target.x, factor, dt), 
-                SmoothExpAngleNonZero(value.y, target.y, factor, dt)
-            );
-        }
-        
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector3 SmoothExpAngleNonZero(this Vector3 value, Vector3 target, float factor, float dt) {
-            return new Vector3(
-                SmoothExpAngleNonZero(value.x, target.x, factor, dt), 
-                SmoothExpAngleNonZero(value.y, target.y, factor, dt), 
-                SmoothExpAngleNonZero(value.z, target.z, factor, dt)
-            );
-        }
-        
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector2 Abs(this Vector2 value) {
-            return new Vector2(Mathf.Abs(value.x), Mathf.Abs(value.y));
-        }
-        
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector3 Abs(this Vector3 value) {
-            return new Vector3(Mathf.Abs(value.x), Mathf.Abs(value.y), Mathf.Abs(value.z));
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector2 Min(Vector2 a, Vector2 b) {
-            return new Vector2(Mathf.Min(a.x, b.x), Mathf.Min(a.y, b.y));
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector3 Min(Vector3 a, Vector3 b) {
-            return new Vector3(Mathf.Min(a.x, b.x), Mathf.Min(a.y, b.y), Mathf.Min(a.z, b.z));
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector2 Max(Vector2 a, Vector2 b) {
-            return new Vector2(Mathf.Max(a.x, b.x), Mathf.Max(a.y, b.y));
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector3 Max(Vector3 a, Vector3 b) {
-            return new Vector3(Mathf.Max(a.x, b.x), Mathf.Max(a.y, b.y), Mathf.Max(a.z, b.z));
-        }
-        
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector2 Sign(this Vector2 value) {
-            return new Vector2(Mathf.Sign(value.x), Mathf.Sign(value.y));
-        }
-        
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector3 Sign(this Vector3 value) {
-            return new Vector3(Mathf.Sign(value.x), Mathf.Sign(value.y), Mathf.Sign(value.z));
         }
     }
 

@@ -167,32 +167,27 @@ namespace MisterGames.Character.View {
         }
         
         public void StopLookAt() {
-            _viewClamp.StopLookAt();
-            _viewClamp.SetClampCenter(_headRotation.ToEulerAngles180());
+            _viewClamp.StopLookAt(_headRotation.ToEulerAngles180());
         }
 
         public void ApplyHorizontalClamp(ViewAxisClamp clamp) {
             _isHorizontalClampOverriden = true;
-            _viewClamp.SetClampCenter(_headRotation.ToEulerAngles180());
-            _viewClamp.ApplyHorizontalClamp(clamp);
+            _viewClamp.ApplyHorizontalClamp(clamp, _headRotation.ToEulerAngles180());
         }
 
         public void ApplyVerticalClamp(ViewAxisClamp clamp) {
             _isVerticalClampOverriden = true;
-            _viewClamp.SetClampCenter(_headRotation.ToEulerAngles180());
-            _viewClamp.ApplyVerticalClamp(clamp);
+            _viewClamp.ApplyVerticalClamp(clamp, _headRotation.ToEulerAngles180());
         }
         
         public void ResetHorizontalClamp() {
             _isHorizontalClampOverriden = false;
-            _viewClamp.SetClampCenter(_headRotation.ToEulerAngles180());
-            _viewClamp.ApplyHorizontalClamp(_viewData?.horizontalClamp ?? default);
+            _viewClamp.ApplyHorizontalClamp(_viewData?.horizontalClamp ?? default, _headRotation.ToEulerAngles180());
         }
 
         public void ResetVerticalClamp() {
             _isVerticalClampOverriden = false;
-            _viewClamp.SetClampCenter(_headRotation.ToEulerAngles180());
-            _viewClamp.ApplyVerticalClamp(_viewData?.verticalClamp ?? default);
+            _viewClamp.ApplyVerticalClamp(_viewData?.verticalClamp ?? default, _headRotation.ToEulerAngles180());
         }
 
         public void SetClampCenter(Quaternion orientation) {
@@ -225,13 +220,11 @@ namespace MisterGames.Character.View {
 
         private void UpdateOverridableParameters() {
             if (!_isHorizontalClampOverriden) {
-                _viewClamp.SetClampCenter(_headRotation.ToEulerAngles180());
-                _viewClamp.ApplyHorizontalClamp(_viewData?.horizontalClamp ?? default);
+                _viewClamp.ApplyHorizontalClamp(_viewData?.horizontalClamp ?? default, _headRotation.ToEulerAngles180());
             }
             
             if (!_isVerticalClampOverriden) {
-                _viewClamp.SetClampCenter(_headRotation.ToEulerAngles180());
-                _viewClamp.ApplyVerticalClamp(_viewData?.verticalClamp ?? default);
+                _viewClamp.ApplyVerticalClamp(_viewData?.verticalClamp ?? default, _headRotation.ToEulerAngles180());
             }
             
             if (!_isSensitivityOverriden) _sensitivity = _viewData?.sensitivity ?? default;
@@ -255,14 +248,14 @@ namespace MisterGames.Character.View {
             
             // To apply position before orientation smoothed
             ApplyHeadJoint(ref position, currentOrientation, delta, dt);
-            ApplyClamp(position, currentOrientation, ref targetOrientation, dt);
+            ApplyClamp(position, ref currentOrientation, ref targetOrientation, dt);
             
             ApplySmoothing(ref currentOrientation, targetOrientation, dt);
 
             // To fetch smoothed orientation
             ApplyHeadJoint(ref position, currentOrientation, delta, dt: 0f);
+            ApplyClamp(position, ref currentOrientation, ref currentOrientation, dt: 0f);
             
-
             ApplyRotation(currentOrientation, dt);
             ApplyPosition(position);
             ApplyCameraState();
@@ -287,8 +280,8 @@ namespace MisterGames.Character.View {
             return delta;
         }
 
-        private void ApplyClamp(Vector3 position, Vector2 current, ref Vector2 target, float dt) {
-            _viewClamp.Process(position, _gravityOffset, current, ref target, dt);
+        private void ApplyClamp(Vector3 position, ref Vector2 current, ref Vector2 target, float dt) {
+            _viewClamp.Process(position, _gravityOffset, ref current, ref target, dt);
         }
 
         private void ApplySmoothing(ref Vector2 current, Vector2 target, float dt) {

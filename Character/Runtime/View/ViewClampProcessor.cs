@@ -19,8 +19,10 @@ namespace MisterGames.Character.View {
         private Quaternion _lookTargetOrientation;
         private Quaternion _lookTargetOrientationSmoothed;
         private float _lookTargetSmoothing;
-        private Vector2 _clampCenterEulers;
+        private Vector2 _clampCenterStatic;
+        private Vector2 _clampCenter;
         private LookMode _lookMode;
+        private bool _ignoreNextClampCenterOffset;
 
         private enum LookMode {
             Free,
@@ -30,72 +32,92 @@ namespace MisterGames.Character.View {
         }
 
         public void LookAt(Transform target, Vector2 startOrientation, LookAtMode mode, Vector3 orientation, float smoothing) {
-            _lookTarget = target;
-            _lookTargetPoint = target.position;
-            _lookTargetOrientationSmoothed = Quaternion.Euler(startOrientation);
-            _lookTargetOrientation = Quaternion.Euler(orientation);
-            _lookTargetSmoothing = smoothing;
-            
             _lookMode = mode switch {
                 LookAtMode.Free => LookMode.Transform,
                 LookAtMode.Oriented => LookMode.TransformOriented,
                 _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
             };
+            
+            _lookTarget = target;
+            _lookTargetPoint = target.position;
+            _lookTargetOrientationSmoothed = Quaternion.Euler(startOrientation);
+            _lookTargetOrientation = Quaternion.Euler(orientation);
+            _lookTargetSmoothing = smoothing;
+
+            _ignoreNextClampCenterOffset = true;
+
+            Debug.Log($"ViewClampProcessor.LookAt: f {Time.frameCount}, ");
         }
 
-        public void LookAt(Vector3 target, Vector2 startOrientation, float smoothing) {
+        public void LookAt(Vector3 target, Vector2 orientation, float smoothing) {
+            _lookMode = LookMode.Point;
+            
             _lookTarget = null;
             _lookTargetPoint = target;
-            _lookTargetOrientationSmoothed = Quaternion.Euler(startOrientation);
+            _lookTargetOrientationSmoothed = Quaternion.Euler(orientation);
             _lookTargetSmoothing = smoothing;
             
-            _lookMode = LookMode.Point;
+            _ignoreNextClampCenterOffset = true;
+
+            Debug.Log($"ViewClampProcessor.LookAt: point f {Time.frameCount}, ");
         }
 
-        public void StopLookAt() {
-            _lookTarget = null;
+        public void StopLookAt(Vector2 orientation) {
             _lookMode = LookMode.Free;
+            _lookTarget = null;
         }
 
-        public void ApplyHorizontalClamp(ViewAxisClamp clamp) {
+        public void ApplyHorizontalClamp(ViewAxisClamp clamp, Vector2 orientation) {
             _horizontal = clamp;
         }
 
-        public void ApplyVerticalClamp(ViewAxisClamp clamp) {
+        public void ApplyVerticalClamp(ViewAxisClamp clamp, Vector2 orientation) {
             _vertical = clamp;
         }
 
         public void SetClampCenter(Vector2 orientation) {
-            _clampCenterEulers = orientation;
+            _clampCenterStatic = orientation;
         }
 
         public void Process(
             Vector3 position,
             Quaternion rotationOffset,
-            Vector2 orientation,
+            ref Vector2 orientation,
             ref Vector2 targetOrientation,
-            float dt) 
-        {
-            var clampCenterEulers = GetViewCenter(position, rotationOffset, targetOrientation, dt);
+            float dt
+        ) {
+            targetOrientation = targetOrientation.ToEulerAngles180();
             
-            var verticalBounds = _vertical.bounds + Vector2.one * clampCenterEulers.x;
-            var horizontalBounds = _horizontal.bounds + Vector2.one * clampCenterEulers.y;
-
+            ProcessClampCenter(position, rotationOffset, ref orientation, ref targetOrientation, dt);
+            
+            var verticalBounds = _vertical.bounds + Vector2.one * _clampCenter.x;
+            var horizontalBounds = _horizontal.bounds + Vector2.one * _clampCenter.y;
+            
             targetOrientation.x = targetOrientation.x.Clamp(_vertical.mode, verticalBounds.x, verticalBounds.y);
             targetOrientation.y = targetOrientation.y.Clamp(_horizontal.mode, horizontalBounds.x, horizontalBounds.y);
-
-            targetOrientation.x = ApplySpring(orientation.x, targetOrientation.x, clampCenterEulers.x, _vertical, dt);
-            targetOrientation.y = ApplySpring(orientation.y, targetOrientation.y, clampCenterEulers.y, _horizontal, dt);
-
-            targetOrientation = VectorUtils.GetNearestAngle(targetOrientation, orientation);
+            
+            targetOrientation.x = ApplySpring(orientation.x, targetOrientation.x, _clampCenter.x, _vertical, dt);
+            targetOrientation.y = ApplySpring(orientation.y, targetOrientation.y, _clampCenter.y, _horizontal, dt);
         }
 
-        private Vector2 GetViewCenter(Vector3 position, Quaternion rotationOffset, Vector2 targetOrientation, float dt) {
+        private void ProcessClampCenter(Vector3 position, Quaternion rotationOffset, ref Vector2 orientation, ref Vector2 targetOrientation, float dt) {
+            var clampCenterLast = _clampCenter;
+            _clampCenter = GetViewCenter(position, rotationOffset, dt).GetNearestAngle(targetOrientation);
+
+            if (_lookMode != LookMode.Free && !_ignoreNextClampCenterOffset) {
+                //orientation += _clampCenter - clampCenterLast;
+                //targetOrientation = (targetOrientation + _clampCenter - clampCenterLast).GetNearestAngle(_clampCenter);
+            }
+
+            _ignoreNextClampCenterOffset = false;
+        }
+
+        private Vector2 GetViewCenter(Vector3 position, Quaternion rotationOffset, float dt) {
             Vector2 clampCenterEulers;
             
             switch (_lookMode) {
                 case LookMode.Free: {
-                    clampCenterEulers = _clampCenterEulers;
+                    clampCenterEulers = _clampCenterStatic;
                     break;
                 }
 
@@ -139,8 +161,6 @@ namespace MisterGames.Character.View {
                     throw new ArgumentOutOfRangeException();
             }
 
-            clampCenterEulers = VectorUtils.GetNearestAngle(clampCenterEulers, targetOrientation);
-            
             clampCenterEulers.x *= (!_vertical.absolute).AsInt();
             clampCenterEulers.y *= (!_horizontal.absolute).AsInt();
 
