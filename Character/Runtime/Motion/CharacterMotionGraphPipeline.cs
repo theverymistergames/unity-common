@@ -17,14 +17,14 @@ namespace MisterGames.Character.Motion {
         private IActor _actor;
         private CharacterPosePipeline _pose;
         private CharacterInputPipeline _input;
-        private ICollisionDetector _groundDetector;
+        private CharacterGroundDetector _groundDetector;
         private CancellationTokenSource _enableCts;
 
         void IActorComponent.OnAwake(IActor actor) {
             _actor = actor;
             _pose = actor.GetComponent<CharacterPosePipeline>();
             _input = actor.GetComponent<CharacterInputPipeline>();
-            _groundDetector = actor.GetComponent<CharacterCollisionPipeline>().GroundDetector;
+            _groundDetector = actor.GetComponent<CharacterGroundDetector>();
         }
 
         private void OnEnable() {

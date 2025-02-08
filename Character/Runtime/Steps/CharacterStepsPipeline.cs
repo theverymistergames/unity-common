@@ -34,7 +34,7 @@ namespace MisterGames.Character.Steps {
         public float StepProgress => Mathf.Clamp01(_stepProgress);
         
         private Rigidbody _rigidbody;
-        private ICollisionDetector _groundDetector;
+        private CharacterGroundDetector _groundDetector;
         private CharacterViewPipeline _view;
 
         private float _lastTimeGrounded;
@@ -44,7 +44,7 @@ namespace MisterGames.Character.Steps {
         
         public void OnAwake(IActor actor) {
             _rigidbody = actor.GetComponent<Rigidbody>();
-            _groundDetector = actor.GetComponent<CharacterCollisionPipeline>().GroundDetector;
+            _groundDetector = actor.GetComponent<CharacterGroundDetector>();
             _view = actor.GetComponent<CharacterViewPipeline>();
         }
 

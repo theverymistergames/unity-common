@@ -157,19 +157,26 @@ namespace MisterGames.Character.View {
         public void Detach() {
             _headJoint.Detach();
         }
-        
-        public void LookAt(Transform target, LookAtMode mode = LookAtMode.Free, Vector3 orientation = default, float smoothing = 0f) {
-            _viewClamp.LookAt(target, _headRotation.ToEulerAngles180(), mode, orientation, smoothing);
+
+        public void LookAt(Transform target, Vector3 offset = default, LookAtMode mode = LookAtMode.Free, Vector3 orientation = default, float smoothing = 0f) {
+            _viewClamp.LookAt(target, _headRotation.ToEulerAngles180(), mode, offset, orientation, smoothing);
+            _viewClamp.ResetNextViewCenterOffset();
         }
 
         public void LookAt(Vector3 target, float smoothing = 0f) {
             _viewClamp.LookAt(target, _headRotation.ToEulerAngles180(), smoothing);
+            _viewClamp.ResetNextViewCenterOffset();
         }
         
         public void StopLookAt() {
-            _viewClamp.StopLookAt(_headRotation.ToEulerAngles180());
+            _viewClamp.StopLookAt();
+            _viewClamp.SetViewCenter(_headRotation.ToEulerAngles180());
         }
 
+        public void SetViewCenter(Quaternion orientation) {
+            _viewClamp.SetViewCenter((Quaternion.Inverse(_gravityOffset) * orientation).ToEulerAngles180());
+        }
+        
         public void ApplyHorizontalClamp(ViewAxisClamp clamp) {
             _isHorizontalClampOverriden = true;
             _viewClamp.ApplyHorizontalClamp(clamp, _headRotation.ToEulerAngles180());
@@ -188,10 +195,6 @@ namespace MisterGames.Character.View {
         public void ResetVerticalClamp() {
             _isVerticalClampOverriden = false;
             _viewClamp.ApplyVerticalClamp(_viewData?.verticalClamp ?? default, _headRotation.ToEulerAngles180());
-        }
-
-        public void SetClampCenter(Quaternion orientation) {
-            _viewClamp.SetClampCenter((Quaternion.Inverse(_gravityOffset) * orientation).ToEulerAngles180());
         }
 
         public void ApplySmoothing(float smoothing) {
@@ -251,12 +254,14 @@ namespace MisterGames.Character.View {
             ApplyClamp(position, ref currentOrientation, ref targetOrientation, dt);
             
             ApplySmoothing(ref currentOrientation, targetOrientation, dt);
-
-            // To fetch smoothed orientation
-            ApplyHeadJoint(ref position, currentOrientation, delta, dt: 0f);
-            ApplyClamp(position, ref currentOrientation, ref currentOrientation, dt: 0f);
             
-            ApplyRotation(currentOrientation, dt);
+            // Copy current into target to reapply clamp and head joint after smoothing
+            targetOrientation = currentOrientation;
+            
+            ApplyHeadJoint(ref position, currentOrientation, delta, dt: 0f);
+            ApplyClamp(position, ref currentOrientation, ref targetOrientation, dt: 0f);
+            
+            ApplyRotation(targetOrientation, dt);
             ApplyPosition(position);
             ApplyCameraState();
         }
@@ -290,8 +295,8 @@ namespace MisterGames.Character.View {
                 .eulerAngles;
         }
 
-        private void ApplyHeadJoint(ref Vector3 position, Vector2 current, Vector2 delta, float dt) {
-            _headJoint.Update(ref position, _gravityOffset, current, delta, dt);
+        private void ApplyHeadJoint(ref Vector3 position, Vector2 orientation, Vector2 delta, float dt) {
+            _headJoint.Update(ref position, _gravityOffset, orientation, delta, dt);
         }
 
         private void ApplyRotation(Vector2 eulerAngles, float dt) {

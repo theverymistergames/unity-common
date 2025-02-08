@@ -3,7 +3,6 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
-using MisterGames.Character.Motion;
 using MisterGames.Character.View;
 using MisterGames.Common;
 using MisterGames.Common.Attributes;
@@ -23,16 +22,16 @@ namespace MisterGames.ActionLib.Character {
         [VisibleIf(nameof(targetType), 1)] public OffsetMode offsetMode;
         [VisibleIf(nameof(targetType), 1)] public Vector3 offset;
         public Vector3 rotationOffset;
-        [VisibleIf(nameof(targetType), 1)] public bool attach;
-        [VisibleIf(nameof(targetType), 1)] [Min(0f)] public float attachSmoothing;
-        [VisibleIf(nameof(targetType), 1)] public AttachMode attachMode;
         
         [Header("Motion")]
         [Min(0f)] public float speed = 1f;
-        [Min(0f)] public float reduceSpeedBelowDistance = 0.5f;
-        [Min(0f)] public float speedMin = 0.01f;
         public float curvature = 1f;
         public AnimationCurve progressCurve = AnimationCurve.Linear(0f, 0f, 1f, 1f);
+        
+        [Header("Attach")]
+        [VisibleIf(nameof(targetType), 1)] public bool attach;
+        [VisibleIf(nameof(targetType), 1)] [Min(0f)] public float attachSmoothing;
+        [VisibleIf(nameof(targetType), 1)] public AttachMode attachMode;
         
         public enum TargetType {
             LocalPosition,
@@ -77,15 +76,11 @@ namespace MisterGames.ActionLib.Character {
             }
 
             float pathLength = BezierExtensions.GetBezier3PointsLength(startPoint, curvePoint, targetPoint);
-            float speed = pathLength > 0f ? this.speed / pathLength : float.MaxValue;
+            float speed = pathLength > 0f && this.speed > 0f ? this.speed / pathLength : float.MaxValue;
             float t = 0f;
             
             while (!cancellationToken.IsCancellationRequested) {
-                var diff = localPosition - view.HeadLocalPosition;
-
-                float dt = UnityEngine.Time.deltaTime;
-                float k = reduceSpeedBelowDistance > 0f ? Mathf.Clamp01(diff.magnitude / reduceSpeedBelowDistance) : 1f;
-                t = Mathf.Clamp01(t + dt * Mathf.Max(speed * k, speedMin));
+                t = Mathf.Clamp01(t + UnityEngine.Time.deltaTime * speed);
 
                 var position = BezierExtensions.EvaluateBezier3Points(
                     startPoint,
@@ -96,16 +91,18 @@ namespace MisterGames.ActionLib.Character {
 
                 view.HeadLocalPosition = position;
                 
+                if (t >= 1f) break;
+                
 #if UNITY_EDITOR
                 DebugExt.DrawSphere(view.HeadPosition, 0.008f, Color.yellow, duration: 5f);
 #endif
-                
-                if (t >= 1f) break;
                 
                 await UniTask.Yield();
             }
             
 #if UNITY_EDITOR
+            if (cancellationToken.IsCancellationRequested) return;
+            
             DebugExt.DrawSphere(view.HeadPosition, 0.01f, Color.green, duration: 5f);
 #endif
         }
@@ -137,7 +134,7 @@ namespace MisterGames.ActionLib.Character {
             var finalPointOffset = finalPoint - targetStartPosition;
             
             float pathLength = BezierExtensions.GetBezier3PointsLength(startPoint, curvePoint, finalPoint);
-            float speed = pathLength > 0f ? this.speed / pathLength : float.MaxValue;
+            float speed = pathLength > 0f && this.speed > 0f ? this.speed / pathLength : float.MaxValue;
             float t = 0f;
             
             while (!cancellationToken.IsCancellationRequested) {
@@ -151,11 +148,7 @@ namespace MisterGames.ActionLib.Character {
                 curvePoint = targetPosition + targetRotationOffset * curvePointOffset;
                 finalPoint = targetPosition + targetRotationOffset * finalPointOffset;
 
-                var diff = finalPoint - view.HeadPosition;
-
-                float dt = UnityEngine.Time.deltaTime;
-                float k = reduceSpeedBelowDistance > 0f ? Mathf.Clamp01(diff.magnitude / reduceSpeedBelowDistance) : 1f;
-                t = Mathf.Clamp01(t + dt * Mathf.Max(speed * k, speedMin));
+                t = Mathf.Clamp01(t + UnityEngine.Time.deltaTime * speed);
 
                 var position = BezierExtensions.EvaluateBezier3Points(
                     startPoint,
@@ -166,20 +159,20 @@ namespace MisterGames.ActionLib.Character {
 
                 view.HeadPosition = position;
                 
+                if (t >= 1f) break;
+                
 #if UNITY_EDITOR
                 DebugExt.DrawSphere(view.HeadPosition, 0.008f, Color.yellow, duration: 5f);
 #endif
                 
-                if (t >= 1f) break;
-                
                 await UniTask.Yield();
             }
+      
+            if (cancellationToken.IsCancellationRequested) return;
             
 #if UNITY_EDITOR
             DebugExt.DrawSphere(view.HeadPosition, 0.01f, Color.green, duration: 5f);
 #endif
-            
-            if (cancellationToken.IsCancellationRequested) return;
             
             if (attach) view.AttachTo(target, view.HeadPosition, attachMode, attachSmoothing);
         }

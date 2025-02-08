@@ -15,7 +15,7 @@ namespace MisterGames.ActionLib.Character {
         public Optional<float> minCeilingHeight;
 
         public bool IsMatch(IActor context, float startTime) {
-            var ceilingDetector = context.GetComponent<CharacterCollisionPipeline>().CeilingDetector;
+            var ceilingDetector = context.GetComponent<CharacterCeilingDetector>();
             var info = ceilingDetector.CollisionInfo;
 
             // No contact:

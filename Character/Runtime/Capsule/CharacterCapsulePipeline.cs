@@ -39,10 +39,8 @@ namespace MisterGames.Character.Capsule {
                 
             _view = actor.GetComponent<CharacterViewPipeline>();
             _capsuleCollider = actor.GetComponent<CapsuleCollider>();
-            
-            var collisionPipeline = actor.GetComponent<CharacterCollisionPipeline>();
-            _groundDetector = collisionPipeline.GroundDetector;
-            _ceilingDetector = collisionPipeline.CeilingDetector;
+            _groundDetector = actor.GetComponent<CharacterGroundDetector>();
+            _ceilingDetector = actor.GetComponent<CharacterCeilingDetector>();
 
             _headRootInitialPosition = _headRoot.localPosition;
             _initialHeight = _capsuleCollider.height;

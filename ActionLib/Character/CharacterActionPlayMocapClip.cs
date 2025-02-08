@@ -63,7 +63,7 @@ namespace MisterGames.ActionLib.Character {
                 _lastRotation = motionCaptureClip.EvaluateRotation(t);
 
                 var relativeRot = _startRotation * _lastRotation;
-                _view.SetClampCenter(relativeRot);
+                _view.SetViewCenter(relativeRot);
                 
                 _view.HeadRotation *= _lastRotation * Quaternion.Inverse(lastRot);
             }

@@ -14,15 +14,16 @@ namespace MisterGames.Character.View {
             bounds = new Vector2(-90f, 90f)
         };
 
+        private LookMode _lookMode;
         private Transform _lookTarget;
         private Vector3 _lookTargetPoint;
         private Quaternion _lookTargetOrientation;
         private Quaternion _lookTargetOrientationSmoothed;
         private float _lookTargetSmoothing;
-        private Vector2 _clampCenterStatic;
-        private Vector2 _clampCenter;
-        private LookMode _lookMode;
-        private bool _ignoreNextClampCenterOffset;
+
+        private Vector2 _viewCenterStatic;
+        private Vector2 _viewCenter;
+        private float _viewCenterOffsetMul = 1f;
 
         private enum LookMode {
             Free,
@@ -31,7 +32,7 @@ namespace MisterGames.Character.View {
             TransformOriented,
         }
 
-        public void LookAt(Transform target, Vector2 startOrientation, LookAtMode mode, Vector3 orientation, float smoothing) {
+        public void LookAt(Transform target, Vector2 startOrientation, LookAtMode mode, Vector3 offset, Vector3 orientation, float smoothing) {
             _lookMode = mode switch {
                 LookAtMode.Free => LookMode.Transform,
                 LookAtMode.Oriented => LookMode.TransformOriented,
@@ -39,44 +40,44 @@ namespace MisterGames.Character.View {
             };
             
             _lookTarget = target;
-            _lookTargetPoint = target.position;
+            _lookTargetPoint = offset;
             _lookTargetOrientationSmoothed = Quaternion.Euler(startOrientation);
             _lookTargetOrientation = Quaternion.Euler(orientation);
             _lookTargetSmoothing = smoothing;
-
-            _ignoreNextClampCenterOffset = true;
-
-            Debug.Log($"ViewClampProcessor.LookAt: f {Time.frameCount}, ");
         }
 
-        public void LookAt(Vector3 target, Vector2 orientation, float smoothing) {
+        public void LookAt(Vector3 target, Vector2 startOrientation, float smoothing) {
             _lookMode = LookMode.Point;
             
             _lookTarget = null;
             _lookTargetPoint = target;
-            _lookTargetOrientationSmoothed = Quaternion.Euler(orientation);
+            _lookTargetOrientationSmoothed = Quaternion.Euler(startOrientation);
             _lookTargetSmoothing = smoothing;
-            
-            _ignoreNextClampCenterOffset = true;
-
-            Debug.Log($"ViewClampProcessor.LookAt: point f {Time.frameCount}, ");
         }
 
-        public void StopLookAt(Vector2 orientation) {
+        public void StopLookAt() {
             _lookMode = LookMode.Free;
             _lookTarget = null;
         }
 
         public void ApplyHorizontalClamp(ViewAxisClamp clamp, Vector2 orientation) {
             _horizontal = clamp;
+            _viewCenterStatic = orientation;
+            ResetNextViewCenterOffset();
         }
 
         public void ApplyVerticalClamp(ViewAxisClamp clamp, Vector2 orientation) {
             _vertical = clamp;
+            _viewCenterStatic = orientation;
+            ResetNextViewCenterOffset();
         }
 
-        public void SetClampCenter(Vector2 orientation) {
-            _clampCenterStatic = orientation;
+        public void SetViewCenter(Vector2 orientation) {
+            _viewCenterStatic = orientation;
+        }
+
+        public void ResetNextViewCenterOffset() {
+            _viewCenterOffsetMul = 0;
         }
 
         public void Process(
@@ -88,60 +89,57 @@ namespace MisterGames.Character.View {
         ) {
             targetOrientation = targetOrientation.ToEulerAngles180();
             
-            ProcessClampCenter(position, rotationOffset, ref orientation, ref targetOrientation, dt);
+            var lastViewCenter = _viewCenter;
+            _viewCenter = GetViewCenter(position, rotationOffset, dt).GetNearestAngle(targetOrientation);
+
+            var diff = _viewCenterOffsetMul * (_viewCenter - lastViewCenter);
+            orientation += diff;
+            targetOrientation = (targetOrientation + diff).GetNearestAngle(_viewCenter);
+
+            var verticalBounds = _vertical.bounds + Vector2.one * _viewCenter.x;
+            var horizontalBounds = _horizontal.bounds + Vector2.one * _viewCenter.y;
             
-            var verticalBounds = _vertical.bounds + Vector2.one * _clampCenter.x;
-            var horizontalBounds = _horizontal.bounds + Vector2.one * _clampCenter.y;
+            _viewCenterOffsetMul = 1f;
             
             targetOrientation.x = targetOrientation.x.Clamp(_vertical.mode, verticalBounds.x, verticalBounds.y);
             targetOrientation.y = targetOrientation.y.Clamp(_horizontal.mode, horizontalBounds.x, horizontalBounds.y);
             
-            targetOrientation.x = ApplySpring(orientation.x, targetOrientation.x, _clampCenter.x, _vertical, dt);
-            targetOrientation.y = ApplySpring(orientation.y, targetOrientation.y, _clampCenter.y, _horizontal, dt);
-        }
-
-        private void ProcessClampCenter(Vector3 position, Quaternion rotationOffset, ref Vector2 orientation, ref Vector2 targetOrientation, float dt) {
-            var clampCenterLast = _clampCenter;
-            _clampCenter = GetViewCenter(position, rotationOffset, dt).GetNearestAngle(targetOrientation);
-
-            if (_lookMode != LookMode.Free && !_ignoreNextClampCenterOffset) {
-                //orientation += _clampCenter - clampCenterLast;
-                //targetOrientation = (targetOrientation + _clampCenter - clampCenterLast).GetNearestAngle(_clampCenter);
-            }
-
-            _ignoreNextClampCenterOffset = false;
+            targetOrientation.x = ApplySpring(orientation.x, targetOrientation.x, _viewCenter.x, _vertical, dt);
+            targetOrientation.y = ApplySpring(orientation.y, targetOrientation.y, _viewCenter.y, _horizontal, dt);
         }
 
         private Vector2 GetViewCenter(Vector3 position, Quaternion rotationOffset, float dt) {
-            Vector2 clampCenterEulers;
+            Vector2 viewCenter;
             
             switch (_lookMode) {
                 case LookMode.Free: {
-                    clampCenterEulers = _clampCenterStatic;
+                    viewCenter = _viewCenterStatic;
                     break;
                 }
 
                 case LookMode.Point: {
+                    var dir = _lookTargetPoint - position;
                     var targetRot = Quaternion.Inverse(rotationOffset) * 
-                                    Quaternion.LookRotation(_lookTargetPoint - position, Vector3.up);
+                                    Quaternion.LookRotation(dir, Vector3.up);
                     
                     _lookTargetOrientationSmoothed = _lookTargetSmoothing > 0f
                         ? Quaternion.Slerp(_lookTargetOrientationSmoothed, targetRot, dt * _lookTargetSmoothing)
                         : targetRot;
 
-                    clampCenterEulers = _lookTargetOrientationSmoothed.eulerAngles;
+                    viewCenter = _lookTargetOrientationSmoothed.eulerAngles;
                     break;
                 }
 
                 case LookMode.Transform: {
+                    var dir = _lookTarget.TransformPoint(_lookTargetPoint) - position;
                     var targetRot = Quaternion.Inverse(rotationOffset) * 
-                                    Quaternion.LookRotation(_lookTarget.position - position, Vector3.up);
+                                    Quaternion.LookRotation(dir, Vector3.up);
                     
                     _lookTargetOrientationSmoothed = _lookTargetSmoothing > 0f
                         ? Quaternion.Slerp(_lookTargetOrientationSmoothed, targetRot, dt * _lookTargetSmoothing)
                         : targetRot;
 
-                    clampCenterEulers = _lookTargetOrientationSmoothed.eulerAngles;
+                    viewCenter = _lookTargetOrientationSmoothed.eulerAngles;
                     break;
                 }
 
@@ -153,7 +151,7 @@ namespace MisterGames.Character.View {
                         ? Quaternion.Slerp(_lookTargetOrientationSmoothed, targetRot, dt * _lookTargetSmoothing)
                         : targetRot;
 
-                    clampCenterEulers = _lookTargetOrientationSmoothed.eulerAngles;
+                    viewCenter = _lookTargetOrientationSmoothed.eulerAngles;
                     break;
                 }
                 
@@ -161,10 +159,10 @@ namespace MisterGames.Character.View {
                     throw new ArgumentOutOfRangeException();
             }
 
-            clampCenterEulers.x *= (!_vertical.absolute).AsInt();
-            clampCenterEulers.y *= (!_horizontal.absolute).AsInt();
+            viewCenter.x *= (!_vertical.absolute).AsInt();
+            viewCenter.y *= (!_horizontal.absolute).AsInt();
 
-            return clampCenterEulers;
+            return viewCenter;
         }
         
         private static float ApplySpring(float value, float target, float center, ViewAxisClamp clamp, float dt) {
