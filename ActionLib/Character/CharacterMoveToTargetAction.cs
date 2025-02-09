@@ -98,7 +98,7 @@ namespace MisterGames.ActionLib.Character {
             float speed = pathLength > 0f && this.speed > 0f ? this.speed / pathLength : float.MaxValue;
             float t = 0f;
 
-            if (disableCollisionsWhileMoving) collisions.enabled = false;
+            if (disableCollisionsWhileMoving) collisions.Block(this, blocked: true, cancellationToken);
             
             while (!cancellationToken.IsCancellationRequested) {
                 target.GetPositionAndRotation(out var targetPosition, out var targetRotation);
@@ -131,12 +131,14 @@ namespace MisterGames.ActionLib.Character {
                 
                 await UniTask.Yield();
             }
+      
+            if (cancellationToken.IsCancellationRequested) return;
             
 #if UNITY_EDITOR
             DebugExt.DrawSphere(view.BodyPosition, 0.01f, Color.green, duration: 5f);
 #endif
             
-            if (disableCollisionsWhileMoving) collisions.enabled = true;
+            if (disableCollisionsWhileMoving) collisions.Block(this, blocked: false, cancellationToken);
         }
 
         public async UniTask MoveToHead(IActor context, CancellationToken cancellationToken = default) {
@@ -182,7 +184,7 @@ namespace MisterGames.ActionLib.Character {
             float speed = pathLength > 0f && this.speed > 0f ? this.speed / pathLength : float.MaxValue;
             float t = 0f;
             
-            if (disableCollisionsWhileMoving) collisions.enabled = false;
+            if (disableCollisionsWhileMoving) collisions.Block(this, blocked: true, cancellationToken);
 
             while (!cancellationToken.IsCancellationRequested) {
                 var targetPosition = view.HeadPosition;
@@ -213,12 +215,14 @@ namespace MisterGames.ActionLib.Character {
                 
                 await UniTask.Yield();
             }
+      
+            if (cancellationToken.IsCancellationRequested) return;
             
 #if UNITY_EDITOR
             DebugExt.DrawSphere(view.BodyPosition, 0.01f, Color.green, duration: 5f);
 #endif
             
-            if (disableCollisionsWhileMoving) collisions.enabled = true;
+            if (disableCollisionsWhileMoving) collisions.Block(this, blocked: false, cancellationToken);
         }
     }
     

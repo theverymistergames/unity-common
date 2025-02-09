@@ -1,10 +1,13 @@
-﻿using MisterGames.Actors;
-using MisterGames.Collisions.Core;
+﻿using System.Threading;
+using MisterGames.Actors;
+using MisterGames.Common.Data;
 using UnityEngine;
 
 namespace MisterGames.Character.Collisions {
 
     public sealed class CharacterCollisionPipeline : MonoBehaviour, IActorComponent {
+
+        private readonly BlockSet _blockSet = new();
         
         private CharacterCeilingDetector _ceilingDetector;
         private CharacterGroundDetector _groundDetector;
@@ -17,11 +20,21 @@ namespace MisterGames.Character.Collisions {
         }
 
         private void OnEnable() {
-            SetEnabled(true);
+            _blockSet.OnUpdate += OnBlocksUpdated;
+            OnBlocksUpdated();
         }
 
         private void OnDisable() {
+            _blockSet.OnUpdate -= OnBlocksUpdated;
             SetEnabled(false);
+        }
+
+        public void Block(object source, bool blocked, CancellationToken cancellationToken = default) {
+            _blockSet.SetBlock(source, blocked, cancellationToken);
+        }
+
+        private void OnBlocksUpdated() {
+            SetEnabled(_blockSet.Count == 0);
         }
 
         private void SetEnabled(bool isEnabled) {

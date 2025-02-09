@@ -3,9 +3,10 @@ using System.Collections.Generic;
 
 namespace MisterGames.Common.Data {
     
-    public sealed class PriorityMap<K, V> : IComparer<PriorityMap<K,V>.KeyData> {
+    public sealed class PriorityMap<K, V> : IComparer<PriorityMap<K, V>.KeyData> {
 
         public V this[K key] { get => _map[new KeyData(key)]; set => _map[new KeyData(key)] = value; } 
+        public int Count => _map.Count;
         
         private readonly SortedDictionary<KeyData, V> _map;
         private V _resultCache;

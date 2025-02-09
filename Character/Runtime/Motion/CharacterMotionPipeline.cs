@@ -75,6 +75,8 @@ namespace MisterGames.Character.Motion {
         private void OnDisable() {
             _input.OnMotionVectorChanged -= HandleMotionInput;
             PlayerLoopStage.FixedUpdate.Unsubscribe(this);
+            
+            _collisionPipeline.Block(this, blocked: false);
         }
 
         public void Move(Vector3 delta) {
@@ -86,7 +88,7 @@ namespace MisterGames.Character.Motion {
         }
 
         public void Teleport(Vector3 position, Quaternion rotation, bool preserveVelocity = true) {
-            _collisionPipeline.enabled = false;
+            _collisionPipeline.Block(this, blocked: true);
             
             var velocity = _rigidbody.linearVelocity;
             var angularVelocity = _rigidbody.angularVelocity;
@@ -106,7 +108,7 @@ namespace MisterGames.Character.Motion {
             _view.HeadPosition = _view.HeadPosition;
             _view.HeadRotation = viewRotation;
             
-            _collisionPipeline.enabled = true;
+            _collisionPipeline.Block(this, blocked: false);
             
             _rigidbody.WakeUp();
             _rigidbody.linearVelocity = preserveVelocity ? rotDelta * velocity : Vector3.zero;

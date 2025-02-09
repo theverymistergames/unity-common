@@ -68,7 +68,7 @@ namespace MisterGames.ActionLib.Character {
             
             if (cancellationToken.IsCancellationRequested) return;
             
-            if (keepLookingAtAfterFinish) view.LookAt(target, Vector3.zero, mode, orientation, attachSmoothing);
+            if (keepLookingAtAfterFinish) view.LookAt(target, mode, orientation, attachSmoothing);
         }
     }
     

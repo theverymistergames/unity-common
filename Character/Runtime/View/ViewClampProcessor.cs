@@ -128,35 +128,30 @@ namespace MisterGames.Character.View {
                 }
 
                 case LookMode.Point: {
-                    var dir = _lookTargetPoint - position;
                     var targetRot = Quaternion.Inverse(rotationOffset) * 
-                                    Quaternion.LookRotation(dir, Vector3.up);
+                                    Quaternion.LookRotation(_lookTargetPoint - position, Vector3.up);
                     
-                    _lookTargetOrientationSmoothed = _lookTargetSmoothing > 0f
-                        ? Quaternion.Slerp(_lookTargetOrientationSmoothed, targetRot, dt * _lookTargetSmoothing)
-                        : targetRot;
-
+                    _lookTargetOrientationSmoothed = _lookTargetOrientationSmoothed
+                        .SlerpNonZero(targetRot, _lookTargetSmoothing, dt);
+                    
                     viewCenter = _lookTargetOrientationSmoothed.eulerAngles;
                     break;
                 }
                 
                 case LookMode.Orientation: {
-                    _lookTargetOrientationSmoothed = _lookTargetSmoothing > 0f
-                        ? Quaternion.Slerp(_lookTargetOrientationSmoothed, _lookTargetOrientation, dt * _lookTargetSmoothing)
-                        : _lookTargetOrientation;
-
+                    _lookTargetOrientationSmoothed = _lookTargetOrientationSmoothed
+                        .SlerpNonZero(_lookTargetOrientation, _lookTargetSmoothing, dt);
+                    
                     viewCenter = _lookTargetOrientationSmoothed.eulerAngles;
                     break;
                 }
 
                 case LookMode.Transform: {
-                    var dir = _lookTarget.TransformPoint(_lookTargetPoint) - position;
                     var targetRot = Quaternion.Inverse(rotationOffset) * 
-                                    Quaternion.LookRotation(dir, Vector3.up);
+                                    Quaternion.LookRotation(_lookTarget.TransformPoint(_lookTargetPoint) - position, Vector3.up);
                     
-                    _lookTargetOrientationSmoothed = _lookTargetSmoothing > 0f
-                        ? Quaternion.Slerp(_lookTargetOrientationSmoothed, targetRot, dt * _lookTargetSmoothing)
-                        : targetRot;
+                    _lookTargetOrientationSmoothed = _lookTargetOrientationSmoothed
+                        .SlerpNonZero(targetRot, _lookTargetSmoothing, dt);
 
                     viewCenter = _lookTargetOrientationSmoothed.eulerAngles;
                     break;
@@ -166,9 +161,8 @@ namespace MisterGames.Character.View {
                     var targetRot = Quaternion.Inverse(rotationOffset) * 
                                     _lookTarget.rotation * _lookTargetOrientation;
                     
-                    _lookTargetOrientationSmoothed = _lookTargetSmoothing > 0f
-                        ? Quaternion.Slerp(_lookTargetOrientationSmoothed, targetRot, dt * _lookTargetSmoothing)
-                        : targetRot;
+                    _lookTargetOrientationSmoothed = _lookTargetOrientationSmoothed
+                        .SlerpNonZero(targetRot, _lookTargetSmoothing, dt);
 
                     viewCenter = _lookTargetOrientationSmoothed.eulerAngles;
                     break;
