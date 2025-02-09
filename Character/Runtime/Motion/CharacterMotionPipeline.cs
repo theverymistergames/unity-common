@@ -91,12 +91,10 @@ namespace MisterGames.Character.Motion {
             var velocity = _rigidbody.linearVelocity;
             var angularVelocity = _rigidbody.angularVelocity;
             
-            _rigidbody.isKinematic = true;
-            var interpolation = _rigidbody.interpolation;
-            _rigidbody.interpolation = RigidbodyInterpolation.None;
+            _rigidbody.Sleep();
 
             var t = _rigidbody.transform;
-            var rot = t.rotation;
+            t.GetPositionAndRotation(out var pos, out var rot);
             var up = rot * Vector3.up;
             
             var rotDelta = rotation * Quaternion.Inverse(rot);
@@ -104,16 +102,15 @@ namespace MisterGames.Character.Motion {
             var viewRotation = Quaternion.Euler(rotDelta.eulerAngles.WithZ(0f)) * _view.HeadRotation;
 
             t.SetPositionAndRotation(position, flatRotation);
+
+            _view.HeadPosition = _view.HeadPosition;
             _view.HeadRotation = viewRotation;
             
             _collisionPipeline.enabled = true;
-            _rigidbody.isKinematic = false;
-            _rigidbody.interpolation = interpolation;
             
+            _rigidbody.WakeUp();
             _rigidbody.linearVelocity = preserveVelocity ? rotDelta * velocity : Vector3.zero;
             _rigidbody.angularVelocity = preserveVelocity ? angularVelocity : Vector3.zero;
-            
-            _view.PublishHeadPosition();
 
             HasBeenTeleported = true;
         }

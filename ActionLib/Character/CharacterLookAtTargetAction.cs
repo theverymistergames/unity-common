@@ -7,7 +7,6 @@ using MisterGames.Character.View;
 using MisterGames.Common;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Easing;
-using MisterGames.Common.Maths;
 using UnityEngine;
 
 namespace MisterGames.ActionLib.Character {
@@ -32,40 +31,33 @@ namespace MisterGames.ActionLib.Character {
         public async UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
             var view = context.GetComponent<CharacterViewPipeline>();
             
-            var rotation = view.HeadRotation;
-            var targetRotation = mode switch {
+            var startRotation = view.HeadRotation;
+            var startTargetRotation = mode switch {
                 LookAtMode.Free => Quaternion.LookRotation(target.position - view.HeadPosition, view.BodyUp),
                 LookAtMode.Oriented => target.rotation * Quaternion.Euler(orientation),
                 _ => throw new ArgumentOutOfRangeException()
             };
 
-            float speed = angularSpeed > 0f ? angularSpeed : float.MaxValue;
-            float angle = Quaternion.Angle(rotation, targetRotation);
-            float invAngle = angle > 0f ? 1f / angle : 0f;
-            float tMin = 0f;
+            float angle = Quaternion.Angle(startRotation, startTargetRotation);
+            float speed = angularSpeed > 0f && angle > 0f ? angularSpeed / angle : float.MaxValue;
+            float t = 0f;
             
             while (speed < float.MaxValue && !cancellationToken.IsCancellationRequested) {
-                float dt = UnityEngine.Time.deltaTime;
-                
-                targetRotation = mode switch {
+                var targetRotation = mode switch {
                     LookAtMode.Free => Quaternion.LookRotation(target.position - view.HeadPosition, view.BodyUp),
                     LookAtMode.Oriented => target.rotation * Quaternion.Euler(orientation),
                     _ => throw new ArgumentOutOfRangeException()
                 };
                 
-                // Find speed via progress curve derivative
-                float t0 = Mathf.Max(tMin, Mathf.Clamp01(1f - Quaternion.Angle(rotation, targetRotation) * invAngle));
-                float t1 = Mathf.Min(1f, t0 + speed * dt);
+                t += UnityEngine.Time.deltaTime * speed;
                 
-                tMin = t0;
+                var rotationOffset = targetRotation * Quaternion.Inverse(startTargetRotation);
+                var rot = Quaternion.Slerp(startRotation * rotationOffset, targetRotation, progressCurve.Evaluate(t));
                 
-                float dx = t1 <= t0 ? 1f : (progressCurve.Evaluate(t1) - progressCurve.Evaluate(t0)) / (t1 - t0);
-
-                rotation = Quaternion.RotateTowards(rotation, targetRotation, speed * dt * dx);
-                view.SetViewCenter(rotation);
+                view.SetViewOrientation(rot);
                 
-                if (Quaternion.Angle(rotation, targetRotation).IsNearlyZero(tolerance: maxAngleDiff)) break;
-                    
+                if (t >= 1f) break;
+                
 #if UNITY_EDITOR
                 DebugExt.DrawRay(view.HeadPosition, view.HeadRotation * Vector3.forward, Color.yellow, duration: 3f);
                 DebugExt.DrawRay(view.HeadPosition, targetRotation * Vector3.forward, Color.green, duration: 3f);

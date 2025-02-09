@@ -39,7 +39,7 @@ namespace MisterGames.Character.Core {
                 return;
             }
             
-            Array.Sort(spawnPoints, (p0, p1) => p0.transform.GetSiblingIndex().CompareTo(p1.transform.GetSiblingIndex()));
+            Array.Sort(spawnPoints, (p0, p1) => p0.transform.GetInstanceID().CompareTo(p1.transform.GetInstanceID()));
             var spawnPoint = spawnPoints[0];
                 
             spawnPoint.transform.GetPositionAndRotation(out var position, out var rotation);

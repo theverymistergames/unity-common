@@ -28,6 +28,7 @@ namespace MisterGames.Character.View {
         private enum LookMode {
             Free,
             Point,
+            Orientation,
             Transform,
             TransformOriented,
         }
@@ -54,6 +55,15 @@ namespace MisterGames.Character.View {
             _lookTargetOrientationSmoothed = Quaternion.Euler(startOrientation);
             _lookTargetSmoothing = smoothing;
         }
+        
+        public void LookAlong(Quaternion orientation, Vector2 startOrientation, float smoothing) {
+            _lookMode = LookMode.Orientation;
+            
+            _lookTarget = null;
+            _lookTargetOrientation = orientation;
+            _lookTargetOrientationSmoothed = Quaternion.Euler(startOrientation);
+            _lookTargetSmoothing = smoothing;
+        }
 
         public void StopLookAt() {
             _lookMode = LookMode.Free;
@@ -72,7 +82,7 @@ namespace MisterGames.Character.View {
             ResetNextViewCenterOffset();
         }
 
-        public void SetViewCenter(Vector2 orientation) {
+        public void SetViewOrientation(Vector2 orientation) {
             _viewCenterStatic = orientation;
         }
 
@@ -125,6 +135,15 @@ namespace MisterGames.Character.View {
                     _lookTargetOrientationSmoothed = _lookTargetSmoothing > 0f
                         ? Quaternion.Slerp(_lookTargetOrientationSmoothed, targetRot, dt * _lookTargetSmoothing)
                         : targetRot;
+
+                    viewCenter = _lookTargetOrientationSmoothed.eulerAngles;
+                    break;
+                }
+                
+                case LookMode.Orientation: {
+                    _lookTargetOrientationSmoothed = _lookTargetSmoothing > 0f
+                        ? Quaternion.Slerp(_lookTargetOrientationSmoothed, _lookTargetOrientation, dt * _lookTargetSmoothing)
+                        : _lookTargetOrientation;
 
                     viewCenter = _lookTargetOrientationSmoothed.eulerAngles;
                     break;

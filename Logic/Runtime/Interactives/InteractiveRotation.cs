@@ -32,7 +32,7 @@ namespace MisterGames.Logic.Interactives {
             _targetOrientation = new Vector2(eulers.z, eulers.y);
             _smoothedOrientation = _targetOrientation;
             
-            _viewClamp.SetViewCenter(_smoothedOrientation);
+            _viewClamp.SetViewOrientation(_smoothedOrientation);
         }
 
         private void OnEnable() {

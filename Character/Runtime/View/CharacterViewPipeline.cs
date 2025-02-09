@@ -41,7 +41,7 @@ namespace MisterGames.Character.View {
             get => _head.position;
             set {
                 _head.position = value;
-                _headOffset = value - _headPosition;
+                SnapHeadPositionToParent();
             }
         }
 
@@ -49,7 +49,7 @@ namespace MisterGames.Character.View {
             get => _head.localPosition;
             set {
                 _head.localPosition = value;
-                _headOffset = _head.position - _headPosition;
+                SnapHeadPositionToParent();
             }
         }
 
@@ -132,10 +132,6 @@ namespace MisterGames.Character.View {
             Detach();
             StopLookAt();
         }
-
-        public void PublishHeadPosition() {
-            _headPosition = _headParent.position;
-        }
         
         public void AttachObject(Transform obj, Vector3 point, float smoothing = 0f) {
             _headJoint.AttachObject(obj, point, _head.position, _headRotation.ToEulerAngles180(), smoothing);
@@ -168,20 +164,29 @@ namespace MisterGames.Character.View {
         public void LookAt(Transform target, Vector3 offset = default, LookAtMode mode = LookAtMode.Free, Vector3 orientation = default, float smoothing = 0f) {
             _viewClamp.LookAt(target, _headRotation.ToEulerAngles180(), mode, offset, orientation, smoothing);
             _viewClamp.ResetNextViewCenterOffset();
+            SnapHeadPositionToParent();
         }
 
         public void LookAt(Vector3 target, float smoothing = 0f) {
             _viewClamp.LookAt(target, _headRotation.ToEulerAngles180(), smoothing);
             _viewClamp.ResetNextViewCenterOffset();
+            SnapHeadPositionToParent();
+        }
+        
+        public void LookAlong(Quaternion orientation, float smoothing = 0f) {
+            _viewClamp.LookAlong(orientation, _headRotation.ToEulerAngles180(), smoothing);
+            _viewClamp.ResetNextViewCenterOffset();
+            SnapHeadPositionToParent();
         }
         
         public void StopLookAt() {
             _viewClamp.StopLookAt();
-            _viewClamp.SetViewCenter(_headRotation.ToEulerAngles180());
+            _viewClamp.SetViewOrientation(_headRotation.ToEulerAngles180());
         }
 
-        public void SetViewCenter(Quaternion orientation) {
-            _viewClamp.SetViewCenter((Quaternion.Inverse(_gravityOffset) * orientation).ToEulerAngles180());
+        public void SetViewOrientation(Quaternion orientation) {
+            _viewClamp.SetViewOrientation((Quaternion.Inverse(_gravityOffset) * orientation).ToEulerAngles180());
+            SnapHeadPositionToParent();
         }
         
         public void ApplyHorizontalClamp(ViewAxisClamp clamp) {
@@ -332,6 +337,11 @@ namespace MisterGames.Character.View {
         private void ApplyPosition(Vector3 position) {
             _head.position = position;
             _headOffset = position - _headPosition;
+        }
+
+        private void SnapHeadPositionToParent() {
+            _headPosition = _headParent.position;
+            _headOffset = _head.position - _headPosition;
         }
     }
 
