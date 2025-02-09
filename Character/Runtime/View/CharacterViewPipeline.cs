@@ -1,7 +1,11 @@
 ﻿using System;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Character.Input;
 using MisterGames.Character.Motion;
+using MisterGames.Common;
+using MisterGames.Common.Async;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Tick;
 using MisterGames.UI.Initialization;
@@ -9,7 +13,7 @@ using UnityEngine;
 
 namespace MisterGames.Character.View {
 
-    public sealed class CharacterViewPipeline : MonoBehaviour, IActorComponent, IUpdate {
+    public sealed class CharacterViewPipeline : MonoBehaviour, IActorComponent {
         
         [SerializeField] private Transform _head;
         [SerializeField] private Transform _body;
@@ -37,7 +41,6 @@ namespace MisterGames.Character.View {
             get => _head.position;
             set {
                 _head.position = value;
-                _headPosition = _headParent.position;
                 _headOffset = value - _headPosition;
             }
         }
@@ -46,7 +49,6 @@ namespace MisterGames.Character.View {
             get => _head.localPosition;
             set {
                 _head.localPosition = value;
-                _headPosition = _headParent.position;
                 _headOffset = _head.position - _headPosition;
             }
         }
@@ -72,7 +74,8 @@ namespace MisterGames.Character.View {
         public Vector3 BodyUp => _body.up;
         
         private readonly CharacterHeadJoint _headJoint = new();
-       
+        private CancellationTokenSource _enableCts;
+        
         private CameraContainer _cameraContainer;
         private CharacterInputPipeline _inputPipeline;
         private CharacterGravity _characterGravity;
@@ -108,17 +111,21 @@ namespace MisterGames.Character.View {
         }
 
         private void OnEnable() {
+            AsyncExt.RecreateCts(ref _enableCts);
+            
             CanvasRegistry.Instance.SetCanvasEventCamera(_cameraContainer.Camera);
             _inputPipeline.OnViewVectorChanged += HandleViewVectorChanged;
-            PlayerLoopStage.UnscaledUpdate.Subscribe(this);
             
             _head.GetPositionAndRotation(out _headPosition, out _headRotation);
+
+            StartUpdates(PlayerLoopTiming.LastPostLateUpdate, _enableCts.Token).Forget();
         }
 
         private void OnDisable() {
+            AsyncExt.DisposeCts(ref _enableCts);
+            
             CanvasRegistry.Instance.SetCanvasEventCamera(null);
             _inputPipeline.OnViewVectorChanged -= HandleViewVectorChanged;
-            PlayerLoopStage.UnscaledUpdate.Unsubscribe(this);
         }
 
         private void OnDestroy() {
@@ -240,7 +247,14 @@ namespace MisterGames.Character.View {
             _inputDeltaAccum += new Vector2(-input.y, input.x);
         }
 
-        void IUpdate.OnUpdate(float dt) {
+        private async UniTask StartUpdates(PlayerLoopTiming loop, CancellationToken cancellationToken) {
+            while (!cancellationToken.IsCancellationRequested) {
+                OnUpdate(Time.unscaledDeltaTime);
+                await UniTask.Yield(loop);
+            }
+        }
+
+        private void OnUpdate(float dt) {
             ProcessGravity(dt);
             ProcessPosition(dt);
             
@@ -248,11 +262,11 @@ namespace MisterGames.Character.View {
             var currentOrientation = (Vector2) _headRotation.ToEulerAngles180();
             var targetOrientation = currentOrientation + delta;
             var position = _headPosition + _headOffset;
-            
+
             // To apply position before orientation smoothed
             ApplyHeadJoint(ref position, currentOrientation, delta, dt);
             ApplyClamp(position, ref currentOrientation, ref targetOrientation, dt);
-            
+
             ApplySmoothing(ref currentOrientation, targetOrientation, dt);
             
             // Copy current into target to reapply clamp and head joint after smoothing
@@ -291,8 +305,7 @@ namespace MisterGames.Character.View {
 
         private void ApplySmoothing(ref Vector2 current, Vector2 target, float dt) {
             current = Quaternion.Euler(current)
-                .SlerpNonZero(Quaternion.Euler(target), _smoothing, dt)
-                .eulerAngles;
+                .SlerpNonZero(Quaternion.Euler(target), _smoothing, dt).eulerAngles;
         }
 
         private void ApplyHeadJoint(ref Vector3 position, Vector2 orientation, Vector2 delta, float dt) {
@@ -318,6 +331,7 @@ namespace MisterGames.Character.View {
 
         private void ApplyPosition(Vector3 position) {
             _head.position = position;
+            _headOffset = position - _headPosition;
         }
     }
 

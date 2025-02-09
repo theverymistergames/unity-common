@@ -139,7 +139,7 @@ namespace MisterGames.ActionLib.Character {
             
             while (!cancellationToken.IsCancellationRequested) {
                 target.GetPositionAndRotation(out var targetPosition, out var targetRotation);
-                
+
                 var targetRotationOffset = attach && attachMode == AttachMode.RotateAroundTarget
                     ? view.HeadRotation * Quaternion.Inverse(headStartRotation) 
                     : targetRotation * Quaternion.Inverse(targetStartRotation);
@@ -165,7 +165,7 @@ namespace MisterGames.ActionLib.Character {
                 DebugExt.DrawSphere(view.HeadPosition, 0.008f, Color.yellow, duration: 5f);
 #endif
                 
-                await UniTask.Yield();
+                await UniTask.Yield(PlayerLoopTiming.PostLateUpdate);
             }
       
             if (cancellationToken.IsCancellationRequested) return;

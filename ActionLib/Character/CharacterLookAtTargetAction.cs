@@ -42,6 +42,7 @@ namespace MisterGames.ActionLib.Character {
             float speed = angularSpeed > 0f ? angularSpeed : float.MaxValue;
             float angle = Quaternion.Angle(rotation, targetRotation);
             float invAngle = angle > 0f ? 1f / angle : 0f;
+            float tMin = 0f;
             
             while (speed < float.MaxValue && !cancellationToken.IsCancellationRequested) {
                 float dt = UnityEngine.Time.deltaTime;
@@ -52,17 +53,11 @@ namespace MisterGames.ActionLib.Character {
                     _ => throw new ArgumentOutOfRangeException()
                 };
                 
-                var nextRotation = Quaternion.RotateTowards(rotation, targetRotation, speed * dt);
-
                 // Find speed via progress curve derivative
-                float t0 = Mathf.Clamp01(1f - Quaternion.Angle(rotation, targetRotation) * invAngle);
-                float t1 = Mathf.Clamp01(1f - Quaternion.Angle(nextRotation, targetRotation) * invAngle);
-
-                // To get derivative at start
-                if (t1 <= 0f) {
-                    t0 = 0f;
-                    t1 = Mathf.Min(1f, speed * dt);
-                }
+                float t0 = Mathf.Max(tMin, Mathf.Clamp01(1f - Quaternion.Angle(rotation, targetRotation) * invAngle));
+                float t1 = Mathf.Min(1f, t0 + speed * dt);
+                
+                tMin = t0;
                 
                 float dx = t1 <= t0 ? 1f : (progressCurve.Evaluate(t1) - progressCurve.Evaluate(t0)) / (t1 - t0);
 

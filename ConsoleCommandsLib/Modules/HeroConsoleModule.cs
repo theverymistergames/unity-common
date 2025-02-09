@@ -149,7 +149,7 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
 
         private CharacterSpawnPoint[] GetSpawnPoints() {
             var spawnPoints = Object.FindObjectsByType<CharacterSpawnPoint>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
-            Array.Sort(spawnPoints, (p0, p1) => string.Compare(p0.name, p1.name, StringComparison.InvariantCultureIgnoreCase));
+            Array.Sort(spawnPoints, (p0, p1) => p0.transform.GetSiblingIndex().CompareTo(p1.transform.GetSiblingIndex()));
             return spawnPoints;
         }
         
