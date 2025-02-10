@@ -349,6 +349,8 @@ namespace MisterGames.Character.View {
         }
 
         private void ProcessPositionSnap(float dt) {
+            if (_headJoint.IsAttached) return;
+            
             _headPosition = _headPosition.SmoothExpNonZero(_headParent.position, _positionSmoothing, dt);
         }
         
