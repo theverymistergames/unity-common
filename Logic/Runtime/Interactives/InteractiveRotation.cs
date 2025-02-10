@@ -28,11 +28,12 @@ namespace MisterGames.Logic.Interactives {
         private void Awake() {
             _interactive = GetComponent<Interactive>();
 
-            var eulers = _target.eulerAngles;
+            var eulers = _target.eulerAngles.ToEulerAngles180();
             _targetOrientation = new Vector2(eulers.z, eulers.y);
             _smoothedOrientation = _targetOrientation;
-            
+
             _viewClamp.SetViewOrientation(_smoothedOrientation);
+            _viewClamp.ResetNextViewCenterOffset();
         }
 
         private void OnEnable() {
@@ -82,10 +83,10 @@ namespace MisterGames.Logic.Interactives {
             float consume = _inputSmoothing * dt;
             _targetOrientation += consume * _inputAccum;
             _inputAccum *= Mathf.Max(1f - consume, 0f);
-
+            
             _viewClamp.Process(_target.position, Quaternion.identity, ref _smoothedOrientation, ref _targetOrientation, dt);
             _smoothedOrientation = _smoothedOrientation.SmoothExpNonZero(_targetOrientation, _smoothing, dt);
-
+            
             _target.rotation = Quaternion.Euler(0f, _smoothedOrientation.y, _smoothedOrientation.x);
 
             if (_finishingFlag && _smoothedOrientation == _targetOrientation && _inputAccum == Vector2.zero) {

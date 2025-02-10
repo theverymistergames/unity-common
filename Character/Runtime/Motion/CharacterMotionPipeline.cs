@@ -111,8 +111,6 @@ namespace MisterGames.Character.Motion {
             _rigidbody.angularVelocity = preserveVelocity ? angularVelocity : Vector3.zero;
 
             HasBeenTeleported = true;
-            
-            Debug.Break();
         }
         
         private void HandleMotionInput(Vector2 input) {
