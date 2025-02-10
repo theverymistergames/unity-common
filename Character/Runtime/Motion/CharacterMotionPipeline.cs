@@ -96,18 +96,14 @@ namespace MisterGames.Character.Motion {
             _rigidbody.Sleep();
 
             var t = _rigidbody.transform;
-            t.GetPositionAndRotation(out var pos, out var rot);
-            var up = rot * Vector3.up;
+            var rotDelta = rotation * Quaternion.Inverse(t.rotation);
+            var viewRotation = rotDelta * _view.HeadRotation;
+
+            t.SetPositionAndRotation(position, rotation);
             
-            var rotDelta = rotation * Quaternion.Inverse(rot);
-            var flatRotation = Quaternion.LookRotation(Vector3.ProjectOnPlane(rotation * Vector3.forward, up), up);
-            var viewRotation = Quaternion.Euler(rotDelta.eulerAngles.WithZ(0f)) * _view.HeadRotation;
-
-            t.SetPositionAndRotation(position, flatRotation);
-
             _view.HeadPosition = _view.HeadPosition;
             _view.HeadRotation = viewRotation;
-            
+
             _collisionPipeline.Block(this, blocked: false);
             
             _rigidbody.WakeUp();
@@ -115,6 +111,8 @@ namespace MisterGames.Character.Motion {
             _rigidbody.angularVelocity = preserveVelocity ? angularVelocity : Vector3.zero;
 
             HasBeenTeleported = true;
+            
+            Debug.Break();
         }
         
         private void HandleMotionInput(Vector2 input) {

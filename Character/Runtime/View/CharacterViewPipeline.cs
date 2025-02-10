@@ -56,7 +56,7 @@ namespace MisterGames.Character.View {
         public Quaternion HeadRotation {
             get => _head.rotation;
             set {
-                _headRotation = Quaternion.Inverse(_gravityOffset) * value;
+                _headRotation = Quaternion.Inverse(_gravityRotation) * value;
                 _head.rotation = value;
             }
         }
@@ -82,7 +82,7 @@ namespace MisterGames.Character.View {
         private Transform _headParent;
         
         private CharacterViewData _viewData;
-        private Quaternion _gravityOffset = Quaternion.identity;
+        private Quaternion _gravityRotation = Quaternion.identity;
         private Vector2 _inputDeltaAccum;
         private bool _isHorizontalClampOverriden;
         private bool _isVerticalClampOverriden;
@@ -188,7 +188,7 @@ namespace MisterGames.Character.View {
         }
 
         public void SetViewOrientation(Quaternion orientation) {
-            _viewClamp.SetViewOrientation((Quaternion.Inverse(_gravityOffset) * orientation).ToEulerAngles180());
+            _viewClamp.SetViewOrientation((Quaternion.Inverse(_gravityRotation) * orientation).ToEulerAngles180());
             SnapHeadPositionToParent();
         }
         
@@ -306,15 +306,15 @@ namespace MisterGames.Character.View {
         }
 
         private void ApplyAttach(ref Vector3 position, Vector2 orientation, float dt) {
-            _headJoint.UpdateSelf(ref position, _gravityOffset, orientation, dt);
+            _headJoint.UpdateSelf(ref position, _gravityRotation, orientation, dt);
         }
         
         private void ApplyAttachedObjects(Vector3 position, Vector2 orientation, Vector2 delta, float dt) {
-            _headJoint.UpdateAttachedObjects(position, _gravityOffset * Quaternion.Euler(orientation), delta, dt);
+            _headJoint.UpdateAttachedObjects(position, _gravityRotation * Quaternion.Euler(orientation), delta, dt);
         }
         
         private void ApplyClamp(Vector3 position, ref Vector2 current, ref Vector2 target, float dt) {
-            _viewClamp.Process(position, _gravityOffset, ref current, ref target, dt);
+            _viewClamp.Process(position, _gravityRotation, ref current, ref target, dt);
         }
 
         private void ApplySmoothing(ref Vector2 current, Vector2 target, float dt) {
@@ -336,16 +336,16 @@ namespace MisterGames.Character.View {
                 float t = _freeHeadRotationDistance > 0f ? distance / _freeHeadRotationDistance : 1f;
                 float smooth = Mathf.Lerp(_returnFreeHeadRotationSmoothingMax, _returnFreeHeadRotationSmoothing, t);
                 
-                var target = _gravityOffset * Quaternion.Euler(0f, eulerAngles.y, 0f);
-                _body.rotation = Quaternion.Slerp(_body.rotation, target, dt * smooth);
+                var target = _gravityRotation * Quaternion.Euler(0f, eulerAngles.y, 0f);
+                _body.rotation = _body.rotation.SlerpNonZero(target, smooth, dt);
             }
 
-            _head.rotation = _gravityOffset * _headRotation;
+            _head.rotation = _gravityRotation * _headRotation;
         }
 
         private void ProcessGravity(float dt) {
             var target = Quaternion.FromToRotation(Vector3.down, _characterGravity.GravityDir);
-            _gravityOffset = _gravityOffset.SlerpNonZero(target, _gravityDirSmoothing, dt);
+            _gravityRotation = _gravityRotation.SlerpNonZero(target, _gravityDirSmoothing, dt);
         }
 
         private void ProcessPositionSnap(float dt) {
@@ -353,7 +353,7 @@ namespace MisterGames.Character.View {
             
             _headPosition = _headPosition.SmoothExpNonZero(_headParent.position, _positionSmoothing, dt);
         }
-        
+
         private void ApplyPosition(Vector3 position) {
             _head.position = position;
             _headOffset = position - _headPosition;
