@@ -3,7 +3,6 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Maths;
-using MisterGames.Common.Tick;
 using UnityEngine;
 
 namespace MisterGames.Tweens {
@@ -62,11 +61,13 @@ namespace MisterGames.Tweens {
             }
             
             while (!cancellationToken.IsCancellationRequested) {
-                TrackProgress(data, duration, _speed, progressCallback, cancellationToken).Forget();
-                if (_tween != null) await _tween.Play(Context, duration, _progress, _speed, cancellationToken);
+                _tween?.Play(Context, duration, _progress, _speed, cancellationToken).Forget();
+                await TrackProgress(data, duration, _speed, progressCallback, cancellationToken);
 
                 if (cancellationToken.IsCancellationRequested) break;
 
+                _progress = _speed >= 0f ? 1f : 0f;
+                
                 if (_speed > 0f && _yoyo == YoyoMode.End ||
                     _speed < 0f && _yoyo == YoyoMode.Start
                 ) {
@@ -155,7 +156,7 @@ namespace MisterGames.Tweens {
 
             if (duration <= 0f) {
                 float oldProgress = _progress;
-                _progress = speed > 0f ? 1f : 0f;
+                _progress = speed >= 0f ? 1f : 0f;
                 
                 if (!oldProgress.IsNearlyEqual(_progress)) {
                     progressCallback?.Invoke(Context, data, _progress, oldProgress);
@@ -165,11 +166,8 @@ namespace MisterGames.Tweens {
                 return;
             }
 
-            var timeSource = PlayerLoopStage.Update.Get();
-
             while (!cancellationToken.IsCancellationRequested && id == _trackProgressId) {
-                float dt = timeSource.DeltaTime;
-
+                float dt = Time.deltaTime;
                 float oldProgress = _progress;
                 _progress = Mathf.Clamp01(_progress + dt * speed / duration);
 

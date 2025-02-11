@@ -1,5 +1,4 @@
-﻿using System;
-using MisterGames.Common.Attributes;
+﻿using MisterGames.Common.Attributes;
 using MisterGames.Common.Data;
 using MisterGames.Common.Editor.SerializedProperties;
 using MisterGames.Common.Maths;
@@ -36,20 +35,8 @@ namespace MisterGames.Common.Editor.Attributes {
                 {propertyType: SerializedPropertyType.Enum or SerializedPropertyType.Integer} => valueProperty.intValue,
                 _ => 0
             };
-
-            return Match(value, attr.value, attr.mode);
-        }
-
-        private static bool Match(int a, int b, CompareMode mode) {
-            return mode switch {
-                CompareMode.Equal => a == b,
-                CompareMode.NotEqual => a != b,
-                CompareMode.Greater => a > b,
-                CompareMode.Less => a < b,
-                CompareMode.GreaterOrEqual => a >= b,
-                CompareMode.LessOrEqual => a <= b,
-                _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
-            };
+            
+            return attr.mode.IsMatch(value, attr.value);
         }
 
         private static string GetNeighbourPropertyPath(SerializedProperty property, string propertyName) {

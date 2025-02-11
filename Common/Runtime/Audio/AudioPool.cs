@@ -93,7 +93,7 @@ namespace MisterGames.Common.Audio {
                 return AudioHandle.Invalid;
             }
             
-            int id = ++_lastHandleId;
+            int id = GetNextHandleId();
             var source = GetAudioSourceAtWorldPosition(position);
             
             _handleIdToSourceMap[id] = source;
@@ -108,7 +108,7 @@ namespace MisterGames.Common.Audio {
             AudioClip clip,
             Transform attachTo,
             Vector3 localPosition = default,
-            int hash = 0,
+            int attachId = 0,
             float volume = 1f,
             float fadeIn = 0f,
             float fadeOut = -1f,
@@ -125,12 +125,16 @@ namespace MisterGames.Common.Audio {
                 return AudioHandle.Invalid;
             }
 
-            int id = ++_lastHandleId;
-            var attachKey = new AttachKey(attachTo.GetInstanceID(), hash);
+            int id = GetNextHandleId();
             var source = GetAudioSourceAttached(attachTo, localPosition);
-            
+            var attachKey = new AttachKey(attachTo.GetInstanceID(), attachId);
+
             _handleIdToSourceMap[id] = source;
-            _attachKeyToHandleIdMap[attachKey] = id;
+
+            if (attachId != 0) {
+                _handleIdToSourceMap.Remove(_attachKeyToHandleIdMap.GetValueOrDefault(attachKey));
+                _attachKeyToHandleIdMap[attachKey] = id;   
+            }
             
             RestartAudioSource(id, source, clip, fadeIn, volume, pitch, spatialBlend, normalizedTime, loop, cancellationToken).Forget();
             ReleaseDelayed(id, attachKey, source, clip.length, loop, fadeOut, cancellationToken).Forget();
@@ -283,6 +287,11 @@ namespace MisterGames.Common.Audio {
                 
                 await UniTask.Yield();
             }
+        }
+
+        private int GetNextHandleId() {
+            if (++_lastHandleId == 0) _lastHandleId++;
+            return _lastHandleId;
         }
     }
     

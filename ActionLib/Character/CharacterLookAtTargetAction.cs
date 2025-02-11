@@ -42,7 +42,9 @@ namespace MisterGames.ActionLib.Character {
             float speed = angularSpeed > 0f && angle > 0f ? angularSpeed / angle : float.MaxValue;
             float t = 0f;
             
-            while (speed < float.MaxValue && !cancellationToken.IsCancellationRequested) {
+            view.SetViewOrientation(startRotation, moveView: false);
+            
+            while (!cancellationToken.IsCancellationRequested) {
                 var targetRotation = mode switch {
                     LookAtMode.Free => Quaternion.LookRotation(target.position - view.HeadPosition, view.BodyUp),
                     LookAtMode.Oriented => target.rotation * Quaternion.Euler(orientation),
@@ -54,7 +56,7 @@ namespace MisterGames.ActionLib.Character {
                 var rotationOffset = targetRotation * Quaternion.Inverse(startTargetRotation);
                 var rot = Quaternion.Slerp(startRotation * rotationOffset, targetRotation, progressCurve.Evaluate(t));
                 
-                view.SetViewOrientation(rot);
+                view.SetViewOrientation(rot, moveView: true);
                 
                 if (t >= 1f) break;
                 

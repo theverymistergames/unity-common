@@ -136,7 +136,7 @@ namespace MisterGames.Tweens {
             
             float linearProgress = Mathf.Clamp01(startProgress);
             float progress = progressModifier.Invoke(data, linearProgress);
-            
+
             // Speed is 0: only invoke progress callback at start progress.
             if (speed is >= 0f and <= 0f) {
                 progressCallback.Invoke(context, data, progress, progress);
@@ -156,7 +156,7 @@ namespace MisterGames.Tweens {
                 
                 float oldProgress = progress;
                 progress = progressModifier.Invoke(data, linearProgress);
-
+                
                 if (!oldProgress.IsNearlyEqual(progress)) {
                     progressCallback.Invoke(context, data, progress, oldProgress);
                 }

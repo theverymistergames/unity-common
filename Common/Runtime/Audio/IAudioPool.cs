@@ -23,7 +23,7 @@ namespace MisterGames.Common.Audio {
             AudioClip clip,
             Transform attachTo,
             Vector3 localPosition = default,
-            int hash = 0,
+            int attachId = 0,
             float volume = 1f,
             float fadeIn = 0f,
             float fadeOut = -1f,

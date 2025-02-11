@@ -4,10 +4,8 @@ using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Character.Input;
 using MisterGames.Character.Motion;
-using MisterGames.Common;
 using MisterGames.Common.Async;
 using MisterGames.Common.Maths;
-using MisterGames.Common.Tick;
 using MisterGames.UI.Initialization;
 using UnityEngine;
 
@@ -187,8 +185,9 @@ namespace MisterGames.Character.View {
             _viewClamp.SetViewOrientation(_headRotation.ToEulerAngles180());
         }
 
-        public void SetViewOrientation(Quaternion orientation) {
+        public void SetViewOrientation(Quaternion orientation, bool moveView = false) {
             _viewClamp.SetViewOrientation((Quaternion.Inverse(_gravityRotation) * orientation).ToEulerAngles180());
+            if (!moveView) _viewClamp.ResetNextViewCenterOffset();
             SnapHeadPositionToParent();
         }
         

@@ -10,6 +10,7 @@ namespace MisterGames.Scenario.Components {
         [SerializeField] private GameObject[] _gameObjects;
         [SerializeField] private EventReference _eventReference;
         [SerializeField] private CompareMode _compareMode;
+        [SerializeField] private bool _unsubscribeAfterMatch;
         
         [VisibleIf(nameof(_compareMode), 1, CompareMode.LessOrEqual)]
         [SerializeField] private int[] _values;
@@ -39,15 +40,17 @@ namespace MisterGames.Scenario.Components {
             for (int i = 0; i < _gameObjects.Length; i++) {
                 _gameObjects[i].SetActive(isMatch);
             }
+            
+            if (isMatch && _unsubscribeAfterMatch) _eventReference.Unsubscribe(this);
         }
 
         private bool IsMatch(int raiseCount) {
             if (_compareMode is not (CompareMode.Equal or CompareMode.NotEqual)) {
-                return _compareMode.IsMatch(_value, raiseCount);
+                return _compareMode.IsMatch(raiseCount, _value);
             }
             
             for (int i = 0; i < _values.Length; i++) {
-                if (_compareMode.IsMatch(_values[i], raiseCount)) return true;
+                if (_compareMode.IsMatch(raiseCount, _values[i])) return true;
             }
             
             return false;
