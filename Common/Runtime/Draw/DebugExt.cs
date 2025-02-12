@@ -8,9 +8,10 @@ namespace MisterGames.Common {
     public static class DebugExt
     {
 
-        public static void DrawLabel(Vector3 origin, string text, int fontSize = 14, Color color = default) {
+        public static void DrawLabel(Vector3 origin, string text, int fontSize = 14, Color? color = default) {
 #if UNITY_EDITOR
-            UnityEditor.Handles.Label(origin, text, new GUIStyle { fontSize = fontSize, normal = { textColor = color }});      
+            var c = color ?? Color.white;
+            UnityEditor.Handles.Label(origin, text, new GUIStyle { fontSize = fontSize, normal = { textColor = c }});      
 #endif
         }
 

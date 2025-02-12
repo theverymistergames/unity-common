@@ -8,10 +8,10 @@ namespace MisterGames.Common.Attributes {
     public sealed class VisibleIfAttribute : PropertyAttribute {
 
         public readonly string property;
-        public readonly int value;
+        public readonly float value;
         public readonly CompareMode mode;
 
-        public VisibleIfAttribute(string property, int value = 1, CompareMode mode = CompareMode.Equal) {
+        public VisibleIfAttribute(string property, float value = 1f, CompareMode mode = CompareMode.Equal) {
             this.property = property;
             this.value = value;
             this.mode = mode;
