@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace MisterGames.Logic.Phys {
     
-    public sealed class CustomGravitySource : MonoBehaviour, CustomGravity.IGravitySource {
+    public sealed class CustomGravitySource : MonoBehaviour, IGravitySource {
 
         [Header("Source")]
         [SerializeField] private Transform _source;
@@ -36,7 +36,7 @@ namespace MisterGames.Logic.Phys {
         private void OnEnable() {
             switch (_usage) {
                 case Usage.AsGlobalGravitySource:
-                    CustomGravity.RegisterGravitySource(this);
+                    CustomGravity.AddGravitySource(this);
                     break;
                 
                 case Usage.AsLocalGravitySource:
@@ -50,7 +50,7 @@ namespace MisterGames.Logic.Phys {
         private void OnDisable() {
             switch (_usage) {
                 case Usage.AsGlobalGravitySource:
-                    CustomGravity.UnregisterGravitySource(this);
+                    CustomGravity.RemoveGravitySource(this);
                     break;
                 
                 case Usage.AsLocalGravitySource:
@@ -76,21 +76,21 @@ namespace MisterGames.Logic.Phys {
         }
 
         private float GetWeight(Vector3 position) {
-            if (_fallOff <= 0f) return 1f;
+            if (_fallOff <= 0f) return _weightMul;
             
             var center = _source.position;
             
             float sqrDistance = (position - center).sqrMagnitude;
-            if (sqrDistance < _innerRadius * _innerRadius) return 1f;
+            if (sqrDistance < _innerRadius * _innerRadius) return _weightMul;
             
-            if (_outerRadius - _innerRadius <= 0f) return 1f - _fallOff;
+            if (_outerRadius - _innerRadius <= 0f) return _weightMul * (1f - _fallOff);
 
-            float a = 1f / (1f + (Vector3.Distance(center, position) - _innerRadius) / (_outerRadius - _innerRadius));
-            return Mathf.Clamp01(1f + 2f * _fallOff * (a - 1f));
+            float x = ((center - position).magnitude - _innerRadius) / (_outerRadius - _innerRadius);
+            return Mathf.Clamp01(1f + 2f * _fallOff * (1f / (x + 1f) - 1f)) * _weightMul;
         }
 
         private float GetFullMagnitude() {
-            return _gravityMagnitude * _weightMul * (_useScaleZAsMultiplier ? _source.localScale.z : 1f);
+            return _gravityMagnitude * (_useScaleZAsMultiplier ? _source.localScale.z : 1f);
         }
 
 #if UNITY_EDITOR
@@ -110,7 +110,7 @@ namespace MisterGames.Logic.Phys {
 
             _source.GetPositionAndRotation(out var position, out var rotation);
             
-            DebugExt.DrawLabel(position + rotation * Vector3.up * 0.12f, $"G = {GetFullMagnitude():0.00}");
+            DebugExt.DrawLabel(position + rotation * Vector3.up * 0.12f, $"G = {_weightMul * GetFullMagnitude():0.00}");
             
             switch (_sourceMode) {
                 case SourceMode.UseForwardAsDirection:

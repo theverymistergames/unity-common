@@ -3,29 +3,25 @@ using UnityEngine;
 
 namespace MisterGames.Logic.Phys {
     
-    public static class CustomGravity {
-    
-        public enum Mode {
-            Physics,
-            CustomGlobal,
-            CustomLocal,
-        }
+    public sealed class CustomGravity {
         
-        public interface IGravitySource {
-            Vector3 GetGravity(Vector3 position, out float weight);
-        }
+        public static readonly CustomGravity Main = new CustomGravity();
         
-        private static readonly HashSet<IGravitySource> _sources = new();
+        private readonly HashSet<IGravitySource> _sources = new();
 
-        public static void RegisterGravitySource(IGravitySource source) {
+        public void AddGravitySource(IGravitySource source) {
             _sources.Add(source);
         }
 
-        public static void UnregisterGravitySource(IGravitySource source) {
+        public void RemoveGravitySource(IGravitySource source) {
             _sources.Remove(source);
         }
 
-        public static Vector3 GetGlobalGravity(Vector3 position) {
+        public void ClearSources() {
+            _sources.Clear();
+        }
+
+        public Vector3 GetGlobalGravity(Vector3 position) {
             if (_sources.Count == 0) return Vector3.zero;
             
             var gravity = Vector3.zero;
@@ -33,9 +29,10 @@ namespace MisterGames.Logic.Phys {
             
             foreach (var source in _sources) {
                 var g = source.GetGravity(position, out float weight);
+                float w = Mathf.Abs(weight);
                 
-                weightSum += Mathf.Abs(weight);
-                gravity += g * weight;
+                weightSum += w;
+                gravity += g * w;
             }
             
             return weightSum > 0f ? gravity / weightSum : Vector3.zero;
