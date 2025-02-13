@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using MisterGames.Collisions.Core;
 using MisterGames.Common.Tick;
 using UnityEngine;
 
@@ -17,6 +19,36 @@ namespace MisterGames.Collisions.Rigidbodies {
         private readonly Dictionary<Rigidbody, int> _rigidbodyColliderCountMap = new();
         private readonly List<Collider> _collidersBuffer = new();
 
+        public void Subscribe(RigidbodyTriggerEventType evt, TriggerCallback callback) {
+            switch (evt) {
+                case RigidbodyTriggerEventType.Enter:
+                    TriggerEnter += callback;
+                    break;
+                
+                case RigidbodyTriggerEventType.Exit:
+                    TriggerExit += callback;
+                    break;
+                
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(evt), evt, null);
+            }
+        }
+
+        public void Unsubscribe(RigidbodyTriggerEventType eventType, TriggerCallback callback) {
+            switch (eventType) {
+                case RigidbodyTriggerEventType.Enter:
+                    TriggerEnter -= callback;
+                    break;
+                
+                case RigidbodyTriggerEventType.Exit:
+                    TriggerExit -= callback;
+                    break;
+                
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(eventType), eventType, null);
+            }
+        }
+        
         private void OnEnable() {
             _triggerEmitter.TriggerEnter += TriggerEntered;
             _triggerEmitter.TriggerExit += TriggerExited;

@@ -11,8 +11,9 @@ namespace MisterGames.Character.Motion {
         [SerializeField] private float _fallForce = 10f;
         
         public Vector3 GravityDir { get; private set; }
+        public bool UseGravity => _rigidbody.useGravity;
         public bool IsFallForceAllowed { get; set; }
-
+        
         private Rigidbody _rigidbody;
         private CharacterGroundDetector _groundDetector;
         private Vector3 _lastGravity;

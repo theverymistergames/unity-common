@@ -51,6 +51,7 @@ namespace MisterGames.Character.Motion {
         
         private Transform _transform;
         private Rigidbody _rigidbody;
+        private CharacterGravity _characterGravity;
         private CharacterViewPipeline _view;
         private CharacterInputPipeline _input;
         private CharacterGroundDetector _groundDetector;
@@ -62,6 +63,7 @@ namespace MisterGames.Character.Motion {
             
             _input = actor.GetComponent<CharacterInputPipeline>();
             _rigidbody = actor.GetComponent<Rigidbody>();
+            _characterGravity = actor.GetComponent<CharacterGravity>();
             _view = actor.GetComponent<CharacterViewPipeline>();
             _groundDetector = actor.GetComponent<CharacterGroundDetector>();
             _collisionPipeline = actor.GetComponent<CharacterCollisionPipeline>();
@@ -120,7 +122,7 @@ namespace MisterGames.Character.Motion {
         void IUpdate.OnUpdate(float dt) {
             var up = _transform.up;
             var orient = _view.HeadRotation;
-            bool useGravity = _rigidbody.useGravity;
+            bool useGravity = _characterGravity.UseGravity;
             
             if (useGravity) {
                 orient = Quaternion.LookRotation(Vector3.ProjectOnPlane(orient * Vector3.forward, up), up);

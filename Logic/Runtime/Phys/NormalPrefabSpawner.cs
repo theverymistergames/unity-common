@@ -1,10 +1,11 @@
 ﻿using System;
 using MisterGames.Collisions.Core;
+using MisterGames.Collisions.Rigidbodies;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Pooling;
 using UnityEngine;
 
-namespace MisterGames.Collisions.Rigidbodies {
+namespace MisterGames.Logic.Phys {
     
     public sealed class NormalPrefabSpawner : MonoBehaviour {
 
