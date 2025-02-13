@@ -5,7 +5,7 @@ using MisterGames.Common;
 using MisterGames.Common.Tick;
 using UnityEngine;
 
-namespace MisterGames.Character.Collisions {
+namespace MisterGames.Character.Phys {
 
     public sealed class CharacterGroundDetector : CollisionDetectorBase, IRadiusCollisionDetector, IUpdate {
 

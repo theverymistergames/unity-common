@@ -12,8 +12,8 @@ namespace MisterGames.Logic.Phys {
         [SerializeField] private Rigidbody _rigidbody;
         
         [Header("Gravity")]
-        [SerializeField] private GravityMode _gravityMode;
-        [VisibleIf(nameof(_gravityMode), 2)]
+        [SerializeField] private Mode _gravityMode;
+        [VisibleIf(nameof(_gravityMode), 3)]
         [SerializeField] private CustomGravitySource _localGravitySource;
         [SerializeField] private bool _useGravity;
         [SerializeField] private float _gravityScale = 1f;
@@ -23,7 +23,14 @@ namespace MisterGames.Logic.Phys {
         [SerializeField] [Min(0f)] private float _velocityMin = 0.01f;
         [SerializeField] [Min(0f)] private float _sleepDelay = 1f;
 
-        public GravityMode GravityMode {
+        public enum Mode {
+            Physics,
+            CustomGlobalOrPhysics,
+            CustomGlobal,
+            CustomLocal,
+        }
+        
+        public Mode GravityMode {
             get => _gravityMode;
             set {
                 _gravityMode = value;
@@ -39,13 +46,7 @@ namespace MisterGames.Logic.Phys {
             }
         }
 
-        public float GravityScale {
-            get => _gravityScale;
-            set {
-                _gravityScale = value;
-                UpdateGravityUsage();
-            }
-        }
+        public float GravityScale { get => _gravityScale; set => _gravityScale = value; }
 
         public Vector3 Gravity => GravityDirection * GravityMagnitude;
         public Vector3 GravityDirection { get; private set; } = Vector3.down;
@@ -69,6 +70,8 @@ namespace MisterGames.Logic.Phys {
             var gravity = GetGravity(_rigidbody.position) * _gravityScale;
             bool changed = UpdateGravityVector(gravity);
 
+            UpdateGravityUsage();
+            
             if (_rigidbody.useGravity) {
                 _sleepTimer = 0f;
                 return;
@@ -109,16 +112,18 @@ namespace MisterGames.Logic.Phys {
         }
         
         private void UpdateGravityUsage() {
-            _rigidbody.useGravity = _useGravity && 
-                                    _gravityMode == GravityMode.Physics && 
-                                    _gravityScale.IsNearlyEqual(1f);
+            _rigidbody.useGravity = _useGravity &&
+                                    _gravityScale.IsNearlyEqual(1f) &&
+                                    (_gravityMode == Mode.Physics ||
+                                     _gravityMode == Mode.CustomGlobalOrPhysics && !CustomGravity.Main.HasCustomSources);
         }
 
         private Vector3 GetGravity(Vector3 position) {
             return _gravityMode switch {
-                GravityMode.Physics => Physics.gravity,
-                GravityMode.CustomGlobal => CustomGravity.Main.GetGlobalGravity(position),
-                GravityMode.CustomLocal => _localGravitySource.GetGravity(position, out _),
+                Mode.Physics => Physics.gravity,
+                Mode.CustomGlobalOrPhysics => CustomGravity.Main.GetGlobalGravity(position, defaultGravity: Physics.gravity),
+                Mode.CustomGlobal => CustomGravity.Main.GetGlobalGravity(position),
+                Mode.CustomLocal => _localGravitySource.GetGravity(position, out _),
                 _ => throw new ArgumentOutOfRangeException()
             };
         }

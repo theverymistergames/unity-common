@@ -1,5 +1,5 @@
 ﻿using MisterGames.Actors;
-using MisterGames.Character.Collisions;
+using MisterGames.Character.Phys;
 using MisterGames.Character.Input;
 using MisterGames.Character.View;
 using MisterGames.Common;

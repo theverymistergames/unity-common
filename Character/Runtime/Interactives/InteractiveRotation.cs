@@ -6,7 +6,7 @@ using MisterGames.Interact.Interactives;
 using MisterGames.Common.Tick;
 using UnityEngine;
 
-namespace MisterGames.Logic.Interactives {
+namespace MisterGames.Character.Interactives {
     
     [RequireComponent(typeof(Interactive))]
     public sealed class InteractiveRotation : MonoBehaviour, IActorComponent, IUpdate {

@@ -6,7 +6,7 @@ using MisterGames.Common.Tick;
 using MisterGames.Logic.Phys;
 using UnityEngine;
 
-namespace MisterGames.Logic.Interactives {
+namespace MisterGames.Character.Interactives {
     
     public sealed class CharacterForceZoneCamera : MonoBehaviour, IUpdate {
 

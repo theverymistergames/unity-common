@@ -3,7 +3,7 @@ using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
 using MisterGames.Character.Capsule;
-using MisterGames.Character.Collisions;
+using MisterGames.Character.Phys;
 using MisterGames.Character.Input;
 using MisterGames.Collisions.Core;
 using UnityEngine;

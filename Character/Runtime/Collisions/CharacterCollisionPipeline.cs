@@ -3,7 +3,7 @@ using MisterGames.Actors;
 using MisterGames.Common.Data;
 using UnityEngine;
 
-namespace MisterGames.Character.Collisions {
+namespace MisterGames.Character.Phys {
 
     public sealed class CharacterCollisionPipeline : MonoBehaviour, IActorComponent {
 

@@ -1,5 +1,5 @@
 ﻿using MisterGames.Actors;
-using MisterGames.Character.Collisions;
+using MisterGames.Character.Phys;
 using MisterGames.Collisions.Utils;
 using MisterGames.Common;
 using MisterGames.Common.Tick;

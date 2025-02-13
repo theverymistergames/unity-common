@@ -5,7 +5,9 @@ namespace MisterGames.Logic.Phys {
     
     public sealed class CustomGravity {
         
-        public static readonly CustomGravity Main = new CustomGravity();
+        public static readonly CustomGravity Main = new();
+        
+        public bool HasCustomSources => _sources.Count > 0;
         
         private readonly HashSet<IGravitySource> _sources = new();
 
@@ -21,9 +23,7 @@ namespace MisterGames.Logic.Phys {
             _sources.Clear();
         }
 
-        public Vector3 GetGlobalGravity(Vector3 position) {
-            if (_sources.Count == 0) return Vector3.zero;
-            
+        public Vector3 GetGlobalGravity(Vector3 position,Vector3 defaultGravity = default) {
             var gravity = Vector3.zero;
             float weightSum = 0f;
             
@@ -35,7 +35,7 @@ namespace MisterGames.Logic.Phys {
                 gravity += g * w;
             }
             
-            return weightSum > 0f ? gravity / weightSum : Vector3.zero;
+            return weightSum > 0f ? gravity / weightSum : defaultGravity;
         }
     }
     

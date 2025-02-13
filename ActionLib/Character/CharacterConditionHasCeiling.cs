@@ -2,7 +2,7 @@
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
 using MisterGames.Character.Capsule;
-using MisterGames.Character.Collisions;
+using MisterGames.Character.Phys;
 using MisterGames.Character.Core;
 using MisterGames.Common.Data;
 

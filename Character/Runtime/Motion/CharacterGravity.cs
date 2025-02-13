@@ -1,6 +1,7 @@
 ﻿using MisterGames.Actors;
-using MisterGames.Character.Collisions;
+using MisterGames.Character.Phys;
 using MisterGames.Common.Tick;
+using MisterGames.Logic.Phys;
 using UnityEngine;
 
 namespace MisterGames.Character.Motion {
@@ -9,22 +10,20 @@ namespace MisterGames.Character.Motion {
 
         [SerializeField] private float _applyFallForceBelowVerticalSpeed;
         [SerializeField] private float _fallForce = 10f;
-        
-        public Vector3 GravityDir { get; private set; }
-        public bool UseGravity => _rigidbody.useGravity;
+
+        public Vector3 GravityDir => _customGravity.GravityDirection;
+        public bool UseGravity => _customGravity.UseGravity;
         public bool IsFallForceAllowed { get; set; }
         
         private Rigidbody _rigidbody;
+        private RigidbodyCustomGravity _customGravity;
         private CharacterGroundDetector _groundDetector;
-        private Vector3 _lastGravity;
 
         void IActorComponent.OnAwake(IActor actor)
         {
             _rigidbody = actor.GetComponent<Rigidbody>();
             _groundDetector = actor.GetComponent<CharacterGroundDetector>();
-            
-            _lastGravity = Physics.gravity;
-            GravityDir = _lastGravity.normalized;
+            _customGravity = actor.GetComponent<RigidbodyCustomGravity>();
         }
 
         private void OnEnable() {
@@ -36,23 +35,17 @@ namespace MisterGames.Character.Motion {
         }
 
         public void OnUpdate(float dt) {
-            var gravity = Physics.gravity;
-            
-            if (gravity != _lastGravity) {
-                _lastGravity = gravity;
-                GravityDir = _lastGravity.normalized;
-            }
-            
-            if (!_rigidbody.useGravity || _groundDetector.CollisionInfo.hasContact) return;
-            
+            if (!_customGravity.UseGravity || _groundDetector.CollisionInfo.hasContact) return;
+
+            var dir = _customGravity.GravityDirection;
             var velocity = _rigidbody.linearVelocity;
-            float fallDir = Mathf.Sign(Vector3.Dot(-GravityDir, velocity));
+            float fallDir = Mathf.Sign(Vector3.Dot(-dir, velocity));
             
             if (IsFallForceAllowed || 
-                fallDir * Vector3.Project(velocity, GravityDir).sqrMagnitude <= 
+                fallDir * Vector3.Project(velocity, dir).sqrMagnitude <= 
                 _applyFallForceBelowVerticalSpeed * _applyFallForceBelowVerticalSpeed
             ) {
-                _rigidbody.AddForce(GravityDir * _fallForce, ForceMode.Acceleration);
+                _rigidbody.AddForce(dir * _fallForce, ForceMode.Acceleration);
             }
         }
     }

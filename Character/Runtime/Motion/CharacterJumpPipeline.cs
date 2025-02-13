@@ -1,7 +1,7 @@
 ﻿using System;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
-using MisterGames.Character.Collisions;
+using MisterGames.Character.Phys;
 using MisterGames.Character.Input;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Maths;
