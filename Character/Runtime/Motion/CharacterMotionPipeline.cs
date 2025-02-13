@@ -98,13 +98,22 @@ namespace MisterGames.Character.Motion {
             _rigidbody.Sleep();
 
             var t = _rigidbody.transform;
-            var rotDelta = rotation * Quaternion.Inverse(t.rotation);
-            var viewRotation = rotDelta * _view.HeadRotation;
-
-            t.SetPositionAndRotation(position, rotation);
+            var oldBodyRotation = t.rotation;
+            var oldHeadRotation = _view.HeadRotation;
             
-            _view.HeadPosition = _view.HeadPosition;
-            _view.HeadRotation = viewRotation;
+            var up = -_characterGravity.GravityDirection;
+            var rotDelta = rotation * Quaternion.Inverse(oldBodyRotation);
+            var flatRotDelta = Quaternion.FromToRotation(
+                Vector3.ProjectOnPlane(oldBodyRotation * Vector3.forward, up),
+                Vector3.ProjectOnPlane(rotation * Vector3.forward, up)
+            );
+            
+            var headOffset = t.InverseTransformPoint(_view.HeadSmoothPosition);
+            
+            t.SetPositionAndRotation(position, flatRotDelta * oldBodyRotation);
+
+            _view.HeadRotation = rotDelta * oldHeadRotation;
+            _view.HeadSmoothPosition = t.TransformPoint(headOffset);
 
             _collisionPipeline.Block(this, blocked: false);
             

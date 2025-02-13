@@ -50,6 +50,14 @@ namespace MisterGames.Character.View {
                 SnapHeadPositionToParent();
             }
         }
+        
+        public Vector3 HeadSmoothPosition {
+            get => _headPosition;
+            set {
+                _headPosition = value;
+                _head.position = value + _head.rotation * _headOffset;
+            }
+        }
 
         public Quaternion HeadRotation {
             get => _head.rotation;
@@ -90,6 +98,7 @@ namespace MisterGames.Character.View {
         private Vector3 _headPosition;
         private Vector3 _headOffset;
         private Quaternion _headRotation = Quaternion.identity;
+        private Quaternion _bodyRotation = Quaternion.identity;
 
         private float _startTime;
 
@@ -272,7 +281,7 @@ namespace MisterGames.Character.View {
             ProcessGravity(dt);
             ProcessPositionSnap(dt);
             
-            var position = _headPosition + _headOffset;
+            var position = _headPosition + _head.rotation * _headOffset;
             var orientation = (Vector2) _headRotation.ToEulerAngles180();
             
             ApplyAttach(ref position, orientation, dt);
@@ -283,7 +292,7 @@ namespace MisterGames.Character.View {
             var delta = ConsumeInputDelta();
             var currentOrientation = (Vector2) _headRotation.ToEulerAngles180();
             var targetOrientation = currentOrientation + delta;
-            var position = _headPosition + _headOffset;
+            var position = _headPosition + _head.rotation * _headOffset;
 
             ApplyClamp(position, ref currentOrientation, ref targetOrientation, dt);
             ApplySmoothing(ref currentOrientation, targetOrientation, dt);
@@ -335,10 +344,10 @@ namespace MisterGames.Character.View {
                 float t = _freeHeadRotationDistance > 0f ? distance / _freeHeadRotationDistance : 1f;
                 float smooth = Mathf.Lerp(_returnFreeHeadRotationSmoothingMax, _returnFreeHeadRotationSmoothing, t);
                 
-                var target = _gravityRotation * Quaternion.Euler(0f, eulerAngles.y, 0f);
-                _body.rotation = _body.rotation.SlerpNonZero(target, smooth, dt);
+                _bodyRotation = _bodyRotation.SlerpNonZero(Quaternion.Euler(0f, eulerAngles.y, 0f), smooth, dt);
             }
 
+            _body.rotation = _gravityRotation * _bodyRotation;
             _head.rotation = _gravityRotation * _headRotation;
         }
 
@@ -355,12 +364,12 @@ namespace MisterGames.Character.View {
 
         private void ApplyPosition(Vector3 position) {
             _head.position = position;
-            _headOffset = position - _headPosition;
+            _headOffset = _head.InverseTransformDirection(position - _headPosition);
         }
-
+        
         private void SnapHeadPositionToParent() {
             _headPosition = _headParent.position;
-            _headOffset = _head.position - _headPosition;
+            _headOffset = _head.InverseTransformDirection(_head.position - _headPosition);
         }
     }
 
