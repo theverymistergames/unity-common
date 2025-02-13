@@ -1,4 +1,5 @@
 ﻿using System;
+using MisterGames.Common;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Tick;
@@ -46,12 +47,11 @@ namespace MisterGames.Logic.Phys {
             }
         }
 
-        public float GravityScale { get => _gravityScale; set => _gravityScale = value; }
-
         public Vector3 Gravity => GravityDirection * GravityMagnitude;
         public Vector3 GravityDirection { get; private set; } = Vector3.down;
         public float GravityMagnitude { get; private set; } = GravityMagnitudeDefault;
-        
+        public float GravityScale { get => _gravityScale; set => _gravityScale = value; }
+
         private const float GravityMagnitudeDefault = 9.81f;
 
         private Vector3 _lastGravity = Vector3.down * GravityMagnitudeDefault;
@@ -129,14 +129,25 @@ namespace MisterGames.Logic.Phys {
         }
         
 #if UNITY_EDITOR
+        [Header("Debug")]
+        [SerializeField] private bool _showDebugInfo;
+        
         private void Reset() {
             _rigidbody = GetComponent<Rigidbody>();
         }
 
         private void OnValidate() {
-            if (!Application.isPlaying) return;
+            if (Application.isPlaying) UpdateGravityUsage();
+        }
+
+        private void OnDrawGizmos() {
+            if (!Application.isPlaying || !_showDebugInfo) return;
+
+            var p = _rigidbody.position;
             
-            UpdateGravityUsage();
+            DebugExt.DrawSphere(p, 0.05f, Color.white, gizmo: true);
+            DebugExt.DrawRay(p, GravityDirection, Color.white, gizmo: true);
+            DebugExt.DrawLabel(p + GravityDirection, $"G = {GravityMagnitude:0.00}");
         }
 #endif
     }

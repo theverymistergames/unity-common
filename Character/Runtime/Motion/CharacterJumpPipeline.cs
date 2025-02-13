@@ -124,7 +124,7 @@ namespace MisterGames.Character.Motion {
         }
 
         private void ApplyJumpImpulse() {
-            var gravityDirection = _gravity.GravityDir;
+            var gravityDirection = _gravity.GravityDirection;
             var jumpImpulse = Force * -gravityDirection;
             var velocity = _motion.Velocity;
 
@@ -157,7 +157,7 @@ namespace MisterGames.Character.Motion {
         }
         
         private void ApplyFallForce() {
-            var gravityDirection = _gravity.GravityDir;
+            var gravityDirection = _gravity.GravityDirection;
             var velocity = _motion.Velocity;
             
             float sqrVerticalSpeed = Mathf.Sign(Vector3.Dot(-gravityDirection, velocity)) * 

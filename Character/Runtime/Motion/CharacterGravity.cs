@@ -9,9 +9,11 @@ namespace MisterGames.Character.Motion {
     public sealed class CharacterGravity : MonoBehaviour, IActorComponent, IUpdate {
 
         [SerializeField] private float _applyFallForceBelowVerticalSpeed;
-        [SerializeField] private float _fallForce = 10f;
+        [SerializeField] private float _gravityWeight = 2f;
 
-        public Vector3 GravityDir => _customGravity.GravityDirection;
+        public Vector3 Gravity => _customGravity.Gravity;
+        public Vector3 GravityDirection => _customGravity.GravityDirection;
+        public float GravityMagnitude => _customGravity.GravityMagnitude;
         public bool UseGravity => _customGravity.UseGravity;
         public bool IsFallForceAllowed { get; set; }
         
@@ -37,15 +39,15 @@ namespace MisterGames.Character.Motion {
         public void OnUpdate(float dt) {
             if (!_customGravity.UseGravity || _groundDetector.CollisionInfo.hasContact) return;
 
-            var dir = _customGravity.GravityDirection;
+            var gravity = _customGravity.Gravity;
             var velocity = _rigidbody.linearVelocity;
-            float fallDir = Mathf.Sign(Vector3.Dot(-dir, velocity));
+            float fallDir = Mathf.Sign(Vector3.Dot(-gravity, velocity));
             
             if (IsFallForceAllowed || 
-                fallDir * Vector3.Project(velocity, dir).sqrMagnitude <= 
+                fallDir * Vector3.Project(velocity, gravity).sqrMagnitude <= 
                 _applyFallForceBelowVerticalSpeed * _applyFallForceBelowVerticalSpeed
             ) {
-                _rigidbody.AddForce(dir * _fallForce, ForceMode.Acceleration);
+                _rigidbody.AddForce(gravity * (_gravityWeight - 1f), ForceMode.Acceleration);
             }
         }
     }

@@ -343,7 +343,7 @@ namespace MisterGames.Character.View {
         }
 
         private void ProcessGravity(float dt) {
-            var target = Quaternion.FromToRotation(Vector3.down, _characterGravity.GravityDir);
+            var target = Quaternion.FromToRotation(Vector3.down, _characterGravity.GravityDirection);
             _gravityRotation = _gravityRotation.SlerpNonZero(target, _gravityDirSmoothing, dt);
         }
 

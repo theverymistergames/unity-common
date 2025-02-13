@@ -122,7 +122,7 @@ namespace MisterGames.Character.Motion {
         void IUpdate.OnUpdate(float dt) {
             var up = _transform.up;
             var orient = _view.HeadRotation;
-            bool useGravity = _characterGravity.UseGravity;
+            bool useGravity = _characterGravity.UseGravity && _characterGravity.GravityMagnitude > 0f;
             
             if (useGravity) {
                 orient = Quaternion.LookRotation(Vector3.ProjectOnPlane(orient * Vector3.forward, up), up);

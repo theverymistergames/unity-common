@@ -92,7 +92,7 @@ namespace MisterGames.Character.Motion {
         
         private float GetRelativeVerticalSpeed(Vector3 velocity) {
             return _maxVerticalSpeed > 0f 
-                ? -VectorUtils.SignedMagnitudeOfProject(velocity, _gravity.GravityDir) / _maxVerticalSpeed 
+                ? -VectorUtils.SignedMagnitudeOfProject(velocity, _gravity.GravityDirection) / _maxVerticalSpeed 
                 : 0f;
         }
 
