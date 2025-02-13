@@ -36,7 +36,7 @@ namespace MisterGames.Logic.Phys {
         private void OnEnable() {
             switch (_usage) {
                 case Usage.AsGlobalGravitySource:
-                    CustomGravity.AddGravitySource(this);
+                    CustomGravity.Main.AddGravitySource(this);
                     break;
                 
                 case Usage.AsLocalGravitySource:
@@ -50,7 +50,7 @@ namespace MisterGames.Logic.Phys {
         private void OnDisable() {
             switch (_usage) {
                 case Usage.AsGlobalGravitySource:
-                    CustomGravity.RemoveGravitySource(this);
+                    CustomGravity.Main.RemoveGravitySource(this);
                     break;
                 
                 case Usage.AsLocalGravitySource:

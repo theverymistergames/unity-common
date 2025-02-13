@@ -67,14 +67,14 @@ namespace MisterGames.Logic.Phys {
 
         void IUpdate.OnUpdate(float dt) {
             var gravity = GetGravity(_rigidbody.position) * _gravityScale;
-            UpdateGravityVector(gravity);
+            bool changed = UpdateGravityVector(gravity);
 
             if (_rigidbody.useGravity) {
                 _sleepTimer = 0f;
                 return;
             }
             
-            if (_rigidbody.IsSleeping()) {
+            if (!changed && _rigidbody.IsSleeping()) {
                 _sleepTimer = 0f;
                 return;
             }
@@ -91,19 +91,21 @@ namespace MisterGames.Logic.Phys {
             _rigidbody.AddForce(gravity, ForceMode.Acceleration);
         }
 
-        private void UpdateGravityVector(Vector3 gravity) {
-            if (gravity == _lastGravity) return;
+        private bool UpdateGravityVector(Vector3 gravity) {
+            if (gravity == _lastGravity) return false;
             
             _lastGravity = gravity;
 
             // Do not change last direction if gravity is zero
             if (gravity == default) {
                 GravityMagnitude = 0f;
-                return;
+            }
+            else {
+                GravityDirection = gravity.normalized;
+                GravityMagnitude = gravity.magnitude;
             }
             
-            GravityDirection = gravity.normalized;
-            GravityMagnitude = gravity.magnitude;
+            return true;
         }
         
         private void UpdateGravityUsage() {
@@ -124,7 +126,13 @@ namespace MisterGames.Logic.Phys {
 #if UNITY_EDITOR
         private void Reset() {
             _rigidbody = GetComponent<Rigidbody>();
-        }  
+        }
+
+        private void OnValidate() {
+            if (!Application.isPlaying) return;
+            
+            UpdateGravityUsage();
+        }
 #endif
     }
     
