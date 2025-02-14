@@ -5,6 +5,7 @@ using MisterGames.Actors;
 using MisterGames.Character.Input;
 using MisterGames.Character.Motion;
 using MisterGames.Common.Async;
+using MisterGames.Common.Data;
 using MisterGames.Common.Maths;
 using MisterGames.UI.Initialization;
 using UnityEngine;
@@ -79,6 +80,7 @@ namespace MisterGames.Character.View {
 
         public Vector3 BodyUp => _body.up;
         
+        private readonly CancelableSet<int> _gravityAlignBlock = new();
         private readonly CharacterHeadJoint _headJoint = new();
         private CancellationTokenSource _enableCts;
         
@@ -139,6 +141,8 @@ namespace MisterGames.Character.View {
         private void OnDestroy() {
             Detach();
             StopLookAt();
+            
+            _gravityAlignBlock.Clear();
         }
         
         public void AttachObject(Transform obj, Vector3 point, float smoothing = 0f) {
@@ -244,6 +248,11 @@ namespace MisterGames.Character.View {
             _headJoint.AttachDistance = distance;
         }
 
+        public void BlockGravityAlign(object source, bool block, CancellationToken cancellationToken = default) {
+            if (block) _gravityAlignBlock.Add(source.GetHashCode(), cancellationToken);
+            else _gravityAlignBlock.Remove(source.GetHashCode());
+        }
+
         private void UpdateOverridableParameters() {
             if (!_isHorizontalClampOverriden) {
                 _viewClamp.ApplyHorizontalClamp(_viewData?.horizontalClamp ?? default, _headRotation.ToEulerAngles180());
@@ -278,7 +287,7 @@ namespace MisterGames.Character.View {
         }
 
         private void PreUpdate(float dt) {
-            ProcessGravity(dt);
+            ProcessGravityAlign(dt);
             ProcessPositionSnap(dt);
             
             var position = _headPosition + _head.rotation * _headOffset;
@@ -351,7 +360,9 @@ namespace MisterGames.Character.View {
             _head.rotation = _gravityRotation * _headRotation;
         }
 
-        private void ProcessGravity(float dt) {
+        private void ProcessGravityAlign(float dt) {
+            if (_gravityAlignBlock.Count > 0) return;
+            
             var target = Quaternion.FromToRotation(Vector3.down, _characterGravity.GravityDirection);
             _gravityRotation = _gravityRotation.SlerpNonZero(target, _gravityDirSmoothing, dt);
         }

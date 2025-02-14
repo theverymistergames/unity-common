@@ -110,7 +110,7 @@ namespace MisterGames.Logic.Phys {
 
             _source.GetPositionAndRotation(out var position, out var rotation);
             
-            DebugExt.DrawLabel(position + rotation * Vector3.up * 0.12f, $"G = {_weightMul * GetFullMagnitude():0.00}");
+            DebugExt.DrawLabel(position + rotation * Vector3.up * 0.12f, $"G = {_weightMul * GetFullMagnitude():0.000}");
             
             switch (_sourceMode) {
                 case SourceMode.UseForwardAsDirection:
@@ -131,14 +131,14 @@ namespace MisterGames.Logic.Phys {
             float w = GetWeight(pIn);
             DebugExt.DrawSphere(position, _innerRadius, Color.white, gizmo: true);
             DebugExt.DrawPointer(pIn, Color.white, 0.03f, gizmo: true);
-            DebugExt.DrawLabel(pIn + rotation * Vector3.right * 0.12f, $"W = {w:0.00}\nG = {w * GetFullMagnitude():0.00}");
+            DebugExt.DrawLabel(pIn + rotation * Vector3.right * 0.12f, $"W = {w:0.00}\nG = {w * GetFullMagnitude():0.000}");
             DebugExt.DrawLine(pIn, position, Color.white, gizmo: true);
             
             var pOut = position + rotation * Vector3.forward * _outerRadius;
             w = GetWeight(pOut);
             DebugExt.DrawSphere(position, _outerRadius, Color.yellow, gizmo: true);
             DebugExt.DrawPointer(pOut, Color.yellow, 0.03f, gizmo: true);
-            DebugExt.DrawLabel(pOut - rotation * Vector3.right * 0.12f, $"W = {w:0.00}\nG = {w * GetFullMagnitude():0.00}");
+            DebugExt.DrawLabel(pOut - rotation * Vector3.right * 0.12f, $"W = {w:0.00}\nG = {w * GetFullMagnitude():0.000}");
             DebugExt.DrawLine(pOut, pIn, Color.yellow, gizmo: true);
         }
 #endif

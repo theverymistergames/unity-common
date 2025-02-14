@@ -147,7 +147,7 @@ namespace MisterGames.Logic.Phys {
             
             DebugExt.DrawSphere(p, 0.05f, Color.white, gizmo: true);
             DebugExt.DrawRay(p, GravityDirection, Color.white, gizmo: true);
-            DebugExt.DrawLabel(p + GravityDirection, $"G = {GravityMagnitude:0.00}");
+            DebugExt.DrawLabel(p + GravityDirection, $"G = {GravityMagnitude:0.000}");
         }
 #endif
     }

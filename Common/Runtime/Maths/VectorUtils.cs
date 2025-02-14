@@ -227,6 +227,22 @@ namespace MisterGames.Common.Maths {
             return p.magnitude * (Vector3.Dot(p, onNormal) > 0f ? 1f : -1f);
         }
         
+        public static Vector3 Orthogonal(this Vector3 vector, bool normalize = true) {
+            float sqr = vector.x * vector.x + vector.y * vector.y;
+            float im;
+            
+            // (0,0,1) x (x,y,z)
+            if (sqr > 0f) { 
+                im = normalize? 1f / Mathf.Sqrt(sqr) : 1f;
+                return new Vector3(-vector.y * im, vector.x * im, 0f);
+            }
+            
+            // (1,0,0) x (x,y,z)
+            sqr = vector.y * vector.y + vector.z * vector.z;
+            im = normalize? 1f / Mathf.Sqrt(sqr) : 1f;
+            return new Vector3(0f, -vector.z * im, vector.y * im);
+        }
+        
         public static Vector3 FindNearestPointOnSegment(Vector3 start, Vector3 end, Vector3 point) {
             var direction = end - start;
             float magnitude = direction.magnitude;

@@ -28,7 +28,7 @@ namespace MisterGames.Common.Maths {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector3 OnUnitCircle(Vector3 axis) {
-            return Quaternion.AngleAxis(Random.Range(0f, 360f), axis) * Vector3.forward;
+            return Quaternion.AngleAxis(Random.Range(-180f, 180f), axis) * axis.Orthogonal();
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

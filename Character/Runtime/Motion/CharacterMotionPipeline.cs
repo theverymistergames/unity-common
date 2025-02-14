@@ -18,7 +18,6 @@ namespace MisterGames.Character.Motion {
 
         [Header("Motion")]
         [SerializeField] [Min(0f)] private float _moveForce;
-        [SerializeField] [Min(0f)] private float _noGravityVelocityDamping = 10f;
         [SerializeField] private float _speedCorrectionSide = 0.8f;
         [SerializeField] private float _speedCorrectionBack = 0.6f;
         [SerializeField] [MinMaxSlider(0f, 90f)] private Vector2 _slopeAngle = new Vector2(25f, 45f);
@@ -29,6 +28,12 @@ namespace MisterGames.Character.Motion {
         [SerializeField] [MinMaxSlider(0f, 90f)] private Vector2 _forceCorrectionSlopeAngle = new Vector2(3f, 60f);
         [SerializeField] [Range(0f, 1f)] private float _forceCorrectionTurnAngleWeight = 0.5f;
         [SerializeField] [Range(0f, 1f)] private float _forceCorrectionSlopeAngleWeight = 1f;
+        
+        [Header("Gravity")]
+        [SerializeField] [Min(0f)] private float _minGravityMagnitude = 0.01f;
+        [SerializeField] [Min(0f)] private float _noGravityVelocityDamping = 10f;
+        [SerializeField] [Min(0f)] private float _zeroGravityVelocityDamping = 2f;
+        [SerializeField] [Min(0f)] private float _zeroGravityInputSpeed = 0.25f;
         
         public Vector3 MotionDirWorld { get; private set; }
         public Vector3 MotionNormal { get; private set; }
@@ -131,9 +136,11 @@ namespace MisterGames.Character.Motion {
         void IUpdate.OnUpdate(float dt) {
             var up = _transform.up;
             var orient = _view.HeadRotation;
-            bool useGravity = _characterGravity.UseGravity && _characterGravity.GravityMagnitude > 0f;
+
+            bool useGravity = _characterGravity.UseGravity;
+            bool hasGravity = useGravity && _characterGravity.GravityMagnitude > _minGravityMagnitude;
             
-            if (useGravity) {
+            if (hasGravity) {
                 orient = Quaternion.LookRotation(Vector3.ProjectOnPlane(orient * Vector3.forward, up), up);
             }
 
@@ -147,8 +154,9 @@ namespace MisterGames.Character.Motion {
             SlopeAngle = Vector3.SignedAngle(up, _groundDetector.CollisionInfo.normal, Vector3.Cross(MotionDirWorld, up).normalized);
             
             if (_rigidbody.isKinematic) return;
-            
-            float maxSpeed = CalculateSpeedCorrection(Input) * Speed;
+
+            float inputSpeed = hasGravity || !useGravity ? Speed : _zeroGravityInputSpeed;
+            float maxSpeed = CalculateSpeedCorrection(Input) * inputSpeed;
             var velocity = _rigidbody.linearVelocity;
 
             var inputDirNormalized = normalRot * orient * (_smoothedInput == Vector2.zero ? Vector3.forward : InputToLocal(_smoothedInput).normalized);
@@ -157,15 +165,16 @@ namespace MisterGames.Character.Motion {
             var velocityProj = Vector3.Project(velocity, inputDirNormalized);
             var force = VectorUtils.ClampAcceleration(inputDirSmoothed * _moveForce, velocityProj, maxSpeed, dt);
 
-            if (useGravity && Input != Vector2.zero) {
+            if (hasGravity && Input != Vector2.zero) {
                 ApplyDirCorrection(inputDirNormalized * maxSpeed, Vector3.ProjectOnPlane(velocity, MotionNormal), ref force, dt);
                 LimitForceBySlopeAngle(SlopeAngle, ref force);
             }
             
             _rigidbody.AddForce(force, ForceMode.Acceleration);
             
-            if (!useGravity) {
-                _rigidbody.linearVelocity = Vector3.Lerp(_rigidbody.linearVelocity, Vector3.zero, dt * _noGravityVelocityDamping);
+            if (!hasGravity) {
+                float damping = useGravity ? _zeroGravityVelocityDamping : _noGravityVelocityDamping;
+                _rigidbody.linearVelocity = Vector3.Lerp(_rigidbody.linearVelocity, Vector3.zero, dt * damping);
             }
             
 #if UNITY_EDITOR
