@@ -117,6 +117,13 @@ namespace MisterGames.Character.Motion {
             
             t.SetPositionAndRotation(position, flatRotDelta * oldBodyRotation);
 
+            _view.Detach();
+            _view.StopLookAt();
+            _view.ResetHorizontalClamp();
+            _view.ResetVerticalClamp();
+            _view.ResetSmoothing();
+            _view.ResetSensitivity();
+            
             _view.HeadRotation = rotDelta * oldHeadRotation;
             _view.HeadSmoothPosition = t.TransformPoint(headOffset);
 
