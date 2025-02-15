@@ -49,14 +49,19 @@ namespace MisterGames.TweenLib {
                 (Mathf.PerlinNoise1D(t + scaleOffset.z) - 0.5f) * scaleMultiplier.z
             );
             
-            if (useLocal) {
-                transform.SetLocalPositionAndRotation(positionNoise, Quaternion.Euler(rotationNoise));
-            }
-            else {
-                transform.SetPositionAndRotation(positionNoise, Quaternion.Euler(rotationNoise));
+            if ((applyMode & ApplyMode.Position) == ApplyMode.Position) {
+                if (useLocal) transform.localPosition = positionNoise;
+                else transform.position = positionNoise;        
             }
             
-            transform.localScale = scaleNoise;
+            if ((applyMode & ApplyMode.Rotation) == ApplyMode.Rotation) {
+                if (useLocal) transform.localRotation = Quaternion.Euler(rotationNoise);
+                else transform.rotation = Quaternion.Euler(rotationNoise);
+            }
+            
+            if ((applyMode & ApplyMode.Scale) == ApplyMode.Scale) {
+                transform.localScale = scaleNoise;
+            }
         }
     }
 

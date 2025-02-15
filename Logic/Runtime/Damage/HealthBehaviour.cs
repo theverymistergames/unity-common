@@ -74,8 +74,8 @@ namespace MisterGames.Logic.Damage {
         }
 
 #if UNITY_EDITOR
-        [Button] private void RestoreHealth() => RestoreFullHealth();
-        [Button] private void KillHealth() => Kill(notifyDamage: true);
+        [Button(mode: ButtonAttribute.Mode.Runtime)] private void RestoreHealth() => RestoreFullHealth();
+        [Button(mode: ButtonAttribute.Mode.Runtime)] private void KillHealth() => Kill(notifyDamage: true);
 #endif
     }
     
