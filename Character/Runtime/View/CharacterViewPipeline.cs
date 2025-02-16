@@ -80,7 +80,6 @@ namespace MisterGames.Character.View {
 
         public Vector3 BodyUp => _body.up;
         
-        private readonly CancelableSet<int> _gravityAlignBlock = new();
         private readonly CharacterHeadJoint _headJoint = new();
         private CancellationTokenSource _enableCts;
         
@@ -141,8 +140,6 @@ namespace MisterGames.Character.View {
         private void OnDestroy() {
             Detach();
             StopLookAt();
-            
-            _gravityAlignBlock.Clear();
         }
         
         public void AttachObject(Transform obj, Vector3 point, float smoothing = 0f) {
@@ -246,11 +243,6 @@ namespace MisterGames.Character.View {
         
         public void ApplyAttachDistance(float distance) {
             _headJoint.AttachDistance = distance;
-        }
-
-        public void BlockGravityAlign(object source, bool block, CancellationToken cancellationToken = default) {
-            if (block) _gravityAlignBlock.Add(source.GetHashCode(), cancellationToken);
-            else _gravityAlignBlock.Remove(source.GetHashCode());
         }
 
         private void UpdateOverridableParameters() {
@@ -361,7 +353,7 @@ namespace MisterGames.Character.View {
         }
 
         private void ProcessGravityAlign(float dt) {
-            if (_gravityAlignBlock.Count > 0) return;
+            if (_characterGravity.IsGravityAlignBlocked) return;
             
             var target = Quaternion.FromToRotation(Vector3.down, _characterGravity.GravityDirection);
             _gravityRotation = _gravityRotation.SlerpNonZero(target, _gravityDirSmoothing, dt);

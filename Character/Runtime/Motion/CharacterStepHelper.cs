@@ -34,6 +34,7 @@ namespace MisterGames.Character.Motion {
         
         private CharacterGroundDetector _groundDetector;
         private CharacterMotionPipeline _motion;
+        private CharacterGravity _characterGravity;
         private Transform _transform;
         private RaycastHit[] _hits;
 
@@ -43,6 +44,7 @@ namespace MisterGames.Character.Motion {
             
             _motion = actor.GetComponent<CharacterMotionPipeline>();
             _groundDetector = actor.GetComponent<CharacterGroundDetector>();
+            _characterGravity = actor.GetComponent<CharacterGravity>();
         }
 
         private void OnEnable() {
@@ -54,7 +56,7 @@ namespace MisterGames.Character.Motion {
         }
 
         void IUpdate.OnUpdate(float dt) {
-            if (_disableIfNotUsingGravity && !_motion.UseGravity || _motion.Input == Vector2.zero) return;
+            if (_disableIfNotUsingGravity && !_characterGravity.HasGravity || _motion.Input == Vector2.zero) return;
 
             bool isGrounded = _groundDetector.HasContact;
             var up = _transform.up;

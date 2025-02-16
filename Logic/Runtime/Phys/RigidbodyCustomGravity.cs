@@ -31,22 +31,8 @@ namespace MisterGames.Logic.Phys {
             CustomLocal,
         }
         
-        public Mode GravityMode {
-            get => _gravityMode;
-            set {
-                _gravityMode = value;
-                UpdateGravityUsage();
-            }
-        }
-
-        public bool UseGravity {
-            get => _useGravity;
-            set {
-                _useGravity = value;
-                UpdateGravityUsage();
-            }
-        }
-
+        public Mode GravityMode { get => _gravityMode; set => _gravityMode = value; }
+        public bool UseGravity { get => _useGravity; set => _useGravity = value; }
         public Vector3 Gravity => GravityDirection * GravityMagnitude;
         public Vector3 GravityDirection { get; private set; } = Vector3.down;
         public float GravityMagnitude { get; private set; } = GravityMagnitudeDefault;
@@ -58,7 +44,6 @@ namespace MisterGames.Logic.Phys {
         private float _sleepTimer;
 
         private void OnEnable() {
-            UpdateGravityUsage();
             PlayerLoopStage.FixedUpdate.Subscribe(this);
         }
 
@@ -67,10 +52,8 @@ namespace MisterGames.Logic.Phys {
         }
 
         void IUpdate.OnUpdate(float dt) {
-            var gravity = GetGravity(_rigidbody.position) * _gravityScale;
-            bool changed = UpdateGravityVector(gravity);
-
-            UpdateGravityUsage();
+            var gravity = UpdateGravity(_rigidbody.position);
+            bool changed = NotifyGravityVector(gravity);
             
             if (_rigidbody.useGravity) {
                 _sleepTimer = 0f;
@@ -90,11 +73,39 @@ namespace MisterGames.Logic.Phys {
             }
 
             if (_sleepTimer > _sleepDelay) return;
-            
+
             _rigidbody.AddForce(gravity, ForceMode.Acceleration);
         }
 
-        private bool UpdateGravityVector(Vector3 gravity) {
+        private Vector3 UpdateGravity(Vector3 position) {
+            switch (_gravityMode) {
+                case Mode.Physics:
+                    _rigidbody.useGravity = _useGravity && _gravityScale.IsNearlyEqual(1f);
+                    return Physics.gravity * _gravityScale;
+                
+                case Mode.CustomGlobalOrPhysics:
+                    if (CustomGravity.Main.TryGetGlobalGravity(position, out var g)) {
+                        _rigidbody.useGravity = false;
+                        return g * _gravityScale;
+                    }
+
+                    _rigidbody.useGravity = _useGravity && _gravityScale.IsNearlyEqual(1f);
+                    return Physics.gravity * _gravityScale;
+                
+                case Mode.CustomGlobal:
+                    _rigidbody.useGravity = false;
+                    return CustomGravity.Main.GetGlobalGravity(position) * _gravityScale;
+                
+                case Mode.CustomLocal:
+                    _rigidbody.useGravity = false;
+                    return _localGravitySource.GetGravity(position, out _) * _gravityScale;
+                
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+        
+        private bool NotifyGravityVector(Vector3 gravity) {
             if (gravity == _lastGravity) return false;
             
             _lastGravity = gravity;
@@ -107,25 +118,8 @@ namespace MisterGames.Logic.Phys {
                 GravityDirection = gravity.normalized;
                 GravityMagnitude = gravity.magnitude;
             }
-            
-            return true;
-        }
-        
-        private void UpdateGravityUsage() {
-            _rigidbody.useGravity = _useGravity &&
-                                    _gravityScale.IsNearlyEqual(1f) &&
-                                    (_gravityMode == Mode.Physics ||
-                                     _gravityMode == Mode.CustomGlobalOrPhysics && !CustomGravity.Main.HasCustomSources);
-        }
 
-        private Vector3 GetGravity(Vector3 position) {
-            return _gravityMode switch {
-                Mode.Physics => Physics.gravity,
-                Mode.CustomGlobalOrPhysics => CustomGravity.Main.GetGlobalGravity(position, defaultGravity: Physics.gravity),
-                Mode.CustomGlobal => CustomGravity.Main.GetGlobalGravity(position),
-                Mode.CustomLocal => _localGravitySource.GetGravity(position, out _),
-                _ => throw new ArgumentOutOfRangeException()
-            };
+            return true;
         }
         
 #if UNITY_EDITOR
@@ -134,10 +128,6 @@ namespace MisterGames.Logic.Phys {
         
         private void Reset() {
             _rigidbody = GetComponent<Rigidbody>();
-        }
-
-        private void OnValidate() {
-            if (Application.isPlaying) UpdateGravityUsage();
         }
 
         private void OnDrawGizmos() {

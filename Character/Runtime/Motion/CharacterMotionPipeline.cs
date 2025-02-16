@@ -30,7 +30,6 @@ namespace MisterGames.Character.Motion {
         [SerializeField] [Range(0f, 1f)] private float _forceCorrectionSlopeAngleWeight = 1f;
         
         [Header("Gravity")]
-        [SerializeField] [Min(0f)] private float _minGravityMagnitude = 0.01f;
         [SerializeField] [Min(0f)] private float _noGravityVelocityDamping = 10f;
         [SerializeField] [Min(0f)] private float _zeroGravityVelocityDamping = 2f;
         [SerializeField] [Min(0f)] private float _zeroGravityInputSpeed = 0.25f;
@@ -41,7 +40,6 @@ namespace MisterGames.Character.Motion {
         public Vector2 Input { get; private set; }
         
         public bool IsKinematic { get => _rigidbody.isKinematic; set => _rigidbody.isKinematic = value; }
-        public bool UseGravity { get => _rigidbody.useGravity; set => _rigidbody.useGravity = value; }
         public Vector3 Velocity { get => _rigidbody.linearVelocity; set => _rigidbody.linearVelocity = value; }
         public Vector3 Position { get => _rigidbody.position; set => _rigidbody.position = value; }
         public bool HasBeenTeleported { get; private set; }
@@ -145,7 +143,7 @@ namespace MisterGames.Character.Motion {
             var orient = _view.HeadRotation;
 
             bool useGravity = _characterGravity.UseGravity;
-            bool hasGravity = useGravity && _characterGravity.GravityMagnitude > _minGravityMagnitude;
+            bool hasGravity = _characterGravity.HasGravity;
             
             if (hasGravity) {
                 orient = Quaternion.LookRotation(Vector3.ProjectOnPlane(orient * Vector3.forward, up), up);
