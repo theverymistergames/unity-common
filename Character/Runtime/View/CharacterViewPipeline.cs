@@ -172,6 +172,10 @@ namespace MisterGames.Character.View {
             _headJoint.Detach();
         }
 
+        public void ApplyAttachDistance(float distance) {
+            _headJoint.AttachDistance = distance;
+        }
+
         public void LookAt(Transform target, LookAtMode mode = LookAtMode.Free, Vector3 orientation = default, float smoothing = 0f) {
             _viewClamp.LookAt(target, _headRotation.ToEulerAngles180(), mode, offset: default, orientation, smoothing);
             _viewClamp.ResetNextViewCenterOffset();
@@ -183,13 +187,13 @@ namespace MisterGames.Character.View {
             _viewClamp.ResetNextViewCenterOffset();
             SnapHeadPositionToParent();
         }
-        
+
         public void LookAlong(Quaternion orientation, float smoothing = 0f) {
             _viewClamp.LookAlong(orientation, _headRotation.ToEulerAngles180(), smoothing);
             _viewClamp.ResetNextViewCenterOffset();
             SnapHeadPositionToParent();
         }
-        
+
         public void StopLookAt() {
             _viewClamp.StopLookAt();
             _viewClamp.SetViewOrientation(_headRotation.ToEulerAngles180());
@@ -200,7 +204,7 @@ namespace MisterGames.Character.View {
             if (!moveView) _viewClamp.ResetNextViewCenterOffset();
             SnapHeadPositionToParent();
         }
-        
+
         public void ApplyHorizontalClamp(ViewAxisClamp clamp) {
             _isHorizontalClampOverriden = true;
             _viewClamp.ApplyHorizontalClamp(clamp, _headRotation.ToEulerAngles180());
@@ -210,7 +214,7 @@ namespace MisterGames.Character.View {
             _isVerticalClampOverriden = true;
             _viewClamp.ApplyVerticalClamp(clamp, _headRotation.ToEulerAngles180());
         }
-        
+
         public void ResetHorizontalClamp() {
             _isHorizontalClampOverriden = false;
             _viewClamp.ApplyHorizontalClamp(_viewData?.horizontalClamp ?? default, _headRotation.ToEulerAngles180());
@@ -225,7 +229,7 @@ namespace MisterGames.Character.View {
             _isSmoothingOverriden = true;
             _smoothing = smoothing;
         }
-        
+
         public void ResetSmoothing() {
             _isSmoothingOverriden = false;
             _smoothing = _viewData?.viewSmoothing ?? default;
@@ -240,9 +244,10 @@ namespace MisterGames.Character.View {
             _isSensitivityOverriden = false;
             _sensitivity = _viewData?.sensitivity ?? default;
         }
-        
-        public void ApplyAttachDistance(float distance) {
-            _headJoint.AttachDistance = distance;
+
+        public void ResetHeadOffset() {
+            _headOffset = Vector3.zero;
+            _head.position = _headPosition;
         }
 
         private void UpdateOverridableParameters() {

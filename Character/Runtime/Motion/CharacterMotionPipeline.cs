@@ -1,4 +1,5 @@
-﻿using MisterGames.Actors;
+﻿using System;
+using MisterGames.Actors;
 using MisterGames.Character.Phys;
 using MisterGames.Character.Input;
 using MisterGames.Character.View;
@@ -33,6 +34,8 @@ namespace MisterGames.Character.Motion {
         [SerializeField] [Min(0f)] private float _noGravityVelocityDamping = 10f;
         [SerializeField] [Min(0f)] private float _zeroGravityVelocityDamping = 2f;
         [SerializeField] [Min(0f)] private float _zeroGravityInputSpeed = 0.25f;
+        
+        public event Action OnTeleport = delegate { }; 
         
         public Vector3 MotionDirWorld { get; private set; }
         public Vector3 MotionNormal { get; private set; }
@@ -114,6 +117,9 @@ namespace MisterGames.Character.Motion {
             var headOffset = t.InverseTransformPoint(_view.HeadSmoothPosition);
             
             t.SetPositionAndRotation(position, flatRotDelta * oldBodyRotation);
+            
+            _view.HeadRotation = rotDelta * oldHeadRotation;
+            _view.HeadSmoothPosition = t.TransformPoint(headOffset);
 
             _view.Detach();
             _view.StopLookAt();
@@ -121,16 +127,16 @@ namespace MisterGames.Character.Motion {
             _view.ResetVerticalClamp();
             _view.ResetSmoothing();
             _view.ResetSensitivity();
+            _view.ResetHeadOffset();
             
-            _view.HeadRotation = rotDelta * oldHeadRotation;
-            _view.HeadSmoothPosition = t.TransformPoint(headOffset);
-
             _collisionPipeline.Block(this, blocked: false);
             
             _rigidbody.WakeUp();
             _rigidbody.linearVelocity = preserveVelocity ? rotDelta * velocity : Vector3.zero;
             _rigidbody.angularVelocity = preserveVelocity ? angularVelocity : Vector3.zero;
 
+            OnTeleport.Invoke();
+            
             HasBeenTeleported = true;
         }
         

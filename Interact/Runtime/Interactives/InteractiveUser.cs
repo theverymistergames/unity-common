@@ -9,7 +9,6 @@ namespace MisterGames.Interact.Interactives {
 
     public sealed class InteractiveUser : MonoBehaviour, IInteractiveUser, IUpdate {
 
-        [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
         [SerializeField] private Detector _interactivesDetector;
         [SerializeField] private CollisionDetectorBase _directViewDetector;
         [SerializeField] private GameObject _root;
@@ -41,12 +40,12 @@ namespace MisterGames.Interact.Interactives {
             _interactivesDetector.OnLost += HandleLost;
 
             if (_interactiveCandidatesSet.Count > 0 || _interactiveTargetsSet.Count > 0) {
-                _timeSourceStage.Subscribe(this);
+                PlayerLoopStage.Update.Subscribe(this);
             }
         }
 
         private void OnDisable() {
-            _timeSourceStage.Unsubscribe(this);
+            PlayerLoopStage.Update.Unsubscribe(this);
 
             _interactivesDetector.OnDetected -= HandleDetected;
             _interactivesDetector.OnLost -= HandleLost;
@@ -73,14 +72,12 @@ namespace MisterGames.Interact.Interactives {
         }
 
         public bool TryStartInteract(IInteractive interactive) {
-            if (!enabled || interactive == null || _interactiveTargetsSet.Contains(interactive)) return false;
-
-            _interactiveTargetsSet.Add(interactive);
+            if (!enabled || interactive == null || !_interactiveTargetsSet.Add(interactive)) return false;
 
             interactive.NotifyStartedInteractWith(this);
             OnStartInteract.Invoke(interactive);
 
-            TimeSources.Get(_timeSourceStage).Subscribe(this);
+            PlayerLoopStage.Update.Subscribe(this);
 
             return true;
         }
@@ -94,15 +91,13 @@ namespace MisterGames.Interact.Interactives {
             interactive.NotifyStoppedInteractWith(this);
 
             if (_interactiveTargetsSet.Count == 0 && _interactiveCandidatesSet.Count == 0) {
-                TimeSources.Get(_timeSourceStage).Unsubscribe(this);
+                PlayerLoopStage.Update.Unsubscribe(this);
             }
 
             return true;
         }
 
         public void ForceStopInteractAll() {
-            _interactiveTargetsSet.Clear();
-            
             foreach (var interactive in _interactiveTargetsSet) {
                 OnStopInteract.Invoke(interactive);
                 interactive.NotifyStoppedInteractWith(this);
@@ -111,26 +106,30 @@ namespace MisterGames.Interact.Interactives {
             _interactiveTargetsSet.Clear();
 
             if (_interactiveTargetsSet.Count == 0 && _interactiveCandidatesSet.Count == 0) {
-                TimeSources.Get(_timeSourceStage).Unsubscribe(this);
+                PlayerLoopStage.Update.Unsubscribe(this);
             }
         }
 
         private void HandleDetected(IDetectable detectable) {
-            if (detectable.Transform.GetComponent<IInteractive>() is not {} interactive ||
-                _interactiveCandidatesSet.Contains(interactive)) return;
-
-            _interactiveCandidatesSet.Add(interactive);
+            if (detectable.Transform.GetComponent<IInteractive>() is not { } interactive ||
+                !_interactiveCandidatesSet.Add(interactive)) 
+            {
+                return;
+            }
 
             OnDetected.Invoke(interactive);
             interactive.NotifyDetectedBy(this);
 
-            TimeSources.Get(_timeSourceStage).Subscribe(this);
+            PlayerLoopStage.Update.Subscribe(this);
         }
 
         private void HandleLost(IDetectable detectable) {
             if (detectable.Transform == null ||
-                detectable.Transform.GetComponent<IInteractive>() is not {} interactive ||
-                !_interactiveCandidatesSet.Contains(interactive)) return;
+                detectable.Transform.GetComponent<IInteractive>() is not { } interactive ||
+                !_interactiveCandidatesSet.Contains(interactive)) 
+            {
+                return;
+            }
 
             _interactiveCandidatesSet.Remove(interactive);
 
@@ -138,11 +137,11 @@ namespace MisterGames.Interact.Interactives {
             OnLost.Invoke(interactive);
 
             if (_interactiveTargetsSet.Count == 0 && _interactiveCandidatesSet.Count == 0) {
-                TimeSources.Get(_timeSourceStage).Unsubscribe(this);
+                PlayerLoopStage.Update.Unsubscribe(this);
             }
         }
 
-        public void OnUpdate(float dt) {
+        void IUpdate.OnUpdate(float dt) {
             _interactiveCache.Clear();
             _interactiveCache.AddRange(_interactiveCandidatesSet);
             
