@@ -55,16 +55,16 @@ namespace MisterGames.Logic.Phys {
             var gravity = UpdateGravity(_rigidbody.position);
             bool changed = NotifyGravityVector(gravity);
             
-            if (_rigidbody.useGravity) {
+            // Explicitly set not to use gravity OR
+            // using default Unity gravity OR
+            // gravity not changed and rb is sleeping: do nothing.
+            if (!_useGravity || _rigidbody.useGravity || 
+                !changed && _rigidbody.IsSleeping()) 
+            {
                 _sleepTimer = 0f;
                 return;
             }
             
-            if (!changed && _rigidbody.IsSleeping()) {
-                _sleepTimer = 0f;
-                return;
-            }
-
             if (_allowSleeping && _rigidbody.linearVelocity.sqrMagnitude < _velocityMin * _velocityMin) {
                 _sleepTimer += dt;
             }

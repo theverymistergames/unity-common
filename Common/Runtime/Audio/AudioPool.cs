@@ -270,6 +270,8 @@ namespace MisterGames.Common.Audio {
             _handlesMap.Remove(id);
             _attachKeyToHandleIdMap.Remove(attachKey);
             
+            if (source == null) return;
+            
             await FadeOut(source, fadeOut < 0f ? _fadeOut : fadeOut);
             
             if (_cancellationToken.IsCancellationRequested) return;

@@ -1,35 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace MisterGames.Common.Data {
     
-    public sealed class PriorityMap<K, V> : IComparer<PriorityMap<K, V>.KeyData> {
+    public sealed class PriorityMap<K, V> : IComparer<K> {
 
-        public V this[K key] { get => _map[new KeyData(key)]; set => _map[new KeyData(key)] = value; } 
+        public V this[K key] { get => _map[key]; set => _map[key] = value; } 
         public int Count => _map.Count;
         
-        private readonly SortedDictionary<KeyData, V> _map;
+        private readonly SortedDictionary<K, V> _map;
+        private readonly Dictionary<K, int> _priorityMap;
         private V _resultCache;
-        
-        private readonly struct KeyData : IEquatable<KeyData> {
-
-            public readonly K key;
-            public readonly int priority;
-            
-            public KeyData(K key, int priority = 0) {
-                this.key = key;
-                this.priority = priority;
-            }
-            
-            public bool Equals(KeyData other) => EqualityComparer<K>.Default.Equals(key, other.key);
-            public override bool Equals(object obj) => obj is KeyData other && Equals(other);
-            public override int GetHashCode() => EqualityComparer<K>.Default.GetHashCode(key);
-            public static bool operator ==(KeyData left, KeyData right) => left.Equals(right);
-            public static bool operator !=(KeyData left, KeyData right) => !left.Equals(right);
-        }
 
         public PriorityMap() {
-            _map = new SortedDictionary<KeyData, V>(this);
+            _map = new SortedDictionary<K, V>(this);
+            _priorityMap = new Dictionary<K, int>();
         }
 
         public bool TryGetResult(out V value) {
@@ -47,30 +31,41 @@ namespace MisterGames.Common.Data {
         }
         
         public V GetValueOrDefault(K key, V defaultValue = default) {
-            return _map.GetValueOrDefault(new KeyData(key), defaultValue);
+            return _map.GetValueOrDefault(key, defaultValue);
         }
 
         public bool TryGetValue(K key, out V value) {
-            return _map.TryGetValue(new KeyData(key), out value);
+            return _map.TryGetValue(key, out value);
         }
         
         public void Set(K key, V value, int priority) {
-            _map[new KeyData(key, priority)] = value;
-            _resultCache = GetResultOrDefault();
+            _priorityMap[key] = priority;
+            _map[key] = value;
+            _resultCache = GetResult();
         }
 
         public void Remove(K key) {
-            _map.Remove(new KeyData(key));
-            _resultCache = GetResultOrDefault();
+            _priorityMap.Remove(key);
+            _map.Remove(key);
+            _resultCache = GetResult();
         }
 
         public void Clear() {
+            _priorityMap.Clear();
             _map.Clear();
             _resultCache = default;
         }
 
-        int IComparer<KeyData>.Compare(KeyData x, KeyData y) {
-            return x.priority.CompareTo(y.priority);
+        int IComparer<K>.Compare(K x, K y) {
+            return _priorityMap.GetValueOrDefault(x).CompareTo(_priorityMap.GetValueOrDefault(y));
+        }
+
+        private V GetResult() {
+            foreach (var v in _map.Values) {
+                return v;
+            }
+
+            return default;
         }
     }
     
