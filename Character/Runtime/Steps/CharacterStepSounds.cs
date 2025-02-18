@@ -29,7 +29,13 @@ namespace MisterGames.Character.Steps {
         }
 
         private void OnStep(int foot, float distance, Vector3 point) {
-            AudioPool.Main.Play(AudioPool.Main.ShuffleClips(_sounds), _transform, volume: _volume, pitch: _pitch.GetRandomInRange());
+            AudioPool.Main.Play(
+                AudioPool.Main.ShuffleClips(_sounds), 
+                _transform, 
+                volume: _volume, 
+                pitch: _pitch.GetRandomInRange(), 
+                options: AudioOptions.AffectedByTimeScale
+            );
         }
     }
     

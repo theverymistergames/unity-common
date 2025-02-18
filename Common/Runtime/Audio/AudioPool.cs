@@ -3,75 +3,49 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Lists;
+using MisterGames.Common.Maths;
 using MisterGames.Common.Pooling;
+using MisterGames.Common.Tick;
 using UnityEngine;
 
 namespace MisterGames.Common.Audio {
     
     [DefaultExecutionOrder(-999)]
-    public sealed class AudioPool : MonoBehaviour, IAudioPool {
+    public sealed class AudioPool : MonoBehaviour, IAudioPool, IUpdate {
 
         [SerializeField] private AudioSource _prefab;
         [SerializeField] [Min(0f)] private float _fadeOut = 0.25f;
         [SerializeField] [Min(0f)] private float _lastIndexStoreLifetime = 60f;
-
-        private readonly struct IndexData {
-            
-            public static readonly IndexData Invalid = new(-1, 0f);
-            
-            public readonly int index;
-            public readonly float time;
-            
-            public IndexData(int index, float time) {
-                this.index = index;
-                this.time = time;
-            }
-        }
-
-        private readonly struct AttachKey : IEquatable<AttachKey> {
-            
-            public static readonly AttachKey Invalid = new(0, 0);
-            
-            public readonly int instanceId;
-            public readonly int hash;
-            
-            public AttachKey(int instanceId, int hash) {
-                this.instanceId = instanceId;
-                this.hash = hash;
-            }
-            
-            public bool Equals(AttachKey other) => instanceId == other.instanceId && hash == other.hash;
-            public override bool Equals(object obj) => obj is AttachKey other && Equals(other);
-            public override int GetHashCode() => HashCode.Combine(instanceId, hash);
-
-            public static bool operator ==(AttachKey left, AttachKey right) => left.Equals(right);
-            public static bool operator !=(AttachKey left, AttachKey right) => !left.Equals(right);
-        }
         
         public static IAudioPool Main { get; private set; }
 
         private readonly Dictionary<int, IndexData> _lastIndexMap = new();
         private readonly Dictionary<AttachKey, int> _attachKeyToHandleIdMap = new();
-        private readonly Dictionary<int, AudioSource> _handleIdToSourceMap = new();
+        private readonly Dictionary<int, AudioHandleData> _handlesMap = new();
         private readonly List<int> _keysBuffer = new();
         
         private CancellationToken _cancellationToken;
         private int _lastHandleId;
+
+        private float _lastTimeScale;
         
         private void Awake() {
             Main = this;
             _cancellationToken = destroyCancellationToken;
 
             StartIndexStorageChecks(_cancellationToken).Forget();
+            
+            PlayerLoopStage.Update.Subscribe(this);
         }
 
         private void OnDestroy() {
             _lastIndexMap.Clear();
             _attachKeyToHandleIdMap.Clear();
-            _handleIdToSourceMap.Clear();
+            _handlesMap.Clear();
             _keysBuffer.Clear();
             
             Main = null;
+            PlayerLoopStage.Update.Unsubscribe(this);
         }
         
         public AudioHandle Play(
@@ -83,7 +57,7 @@ namespace MisterGames.Common.Audio {
             float pitch = 1f, 
             float spatialBlend = 1f,
             float normalizedTime = 0f,
-            bool loop = false, 
+            AudioOptions options = default,
             CancellationToken cancellationToken = default) 
         {
             if (clip == null) {
@@ -95,13 +69,16 @@ namespace MisterGames.Common.Audio {
             
             int id = GetNextHandleId();
             var source = GetAudioSourceAtWorldPosition(position);
+
+            bool loop = (options & AudioOptions.Loop) == AudioOptions.Loop;
+            bool affectedByTimeScale = (options & AudioOptions.AffectedByTimeScale) == AudioOptions.AffectedByTimeScale;
             
-            _handleIdToSourceMap[id] = source;
+            _handlesMap[id] = new AudioHandleData(source, pitch, affectedByTimeScale);
             
-            RestartAudioSource(id, source, clip, fadeIn, volume, pitch, spatialBlend, normalizedTime, loop, cancellationToken).Forget();
+            RestartAudioSource(id, source, clip, fadeIn, volume, pitch, spatialBlend, normalizedTime, loop, affectedByTimeScale, cancellationToken).Forget();
             ReleaseDelayed(id, AttachKey.Invalid, source, clip.length, loop, fadeOut, cancellationToken).Forget();
             
-            return new AudioHandle(id, source, this);
+            return new AudioHandle(this, id);
         }
 
         public AudioHandle Play(
@@ -115,7 +92,7 @@ namespace MisterGames.Common.Audio {
             float pitch = 1f,
             float spatialBlend = 1f,
             float normalizedTime = 0f,
-            bool loop = false,
+            AudioOptions options = default,
             CancellationToken cancellationToken = default) 
         {
             if (clip == null) {
@@ -129,17 +106,20 @@ namespace MisterGames.Common.Audio {
             var source = GetAudioSourceAttached(attachTo, localPosition);
             var attachKey = new AttachKey(attachTo.GetInstanceID(), attachId);
 
-            _handleIdToSourceMap[id] = source;
-
+            bool loop = (options & AudioOptions.Loop) == AudioOptions.Loop;
+            bool affectedByTimeScale = (options & AudioOptions.AffectedByTimeScale) == AudioOptions.AffectedByTimeScale;
+            
             if (attachId != 0) {
-                _handleIdToSourceMap.Remove(_attachKeyToHandleIdMap.GetValueOrDefault(attachKey));
+                _handlesMap.Remove(_attachKeyToHandleIdMap.GetValueOrDefault(attachKey));
                 _attachKeyToHandleIdMap[attachKey] = id;   
             }
             
-            RestartAudioSource(id, source, clip, fadeIn, volume, pitch, spatialBlend, normalizedTime, loop, cancellationToken).Forget();
+            _handlesMap[id] = new AudioHandleData(source, pitch, affectedByTimeScale);
+            
+            RestartAudioSource(id, source, clip, fadeIn, volume, pitch, spatialBlend, normalizedTime, loop, affectedByTimeScale, cancellationToken).Forget();
             ReleaseDelayed(id, attachKey, source, clip.length, loop, fadeOut, cancellationToken).Forget();
 
-            return new AudioHandle(id, source, this);
+            return new AudioHandle(this, id);
         }
 
         public AudioClip ShuffleClips(IReadOnlyList<AudioClip> clips) {
@@ -162,17 +142,45 @@ namespace MisterGames.Common.Audio {
 
         public AudioHandle GetAudioHandle(Transform attachedTo, int hash) {
             return _attachKeyToHandleIdMap.TryGetValue(new AttachKey(attachedTo.GetInstanceID(), hash), out int id) && 
-                   _handleIdToSourceMap.TryGetValue(id, out var source)
-                ? new AudioHandle(id, source, this)
+                   _handlesMap.ContainsKey(id)
+                ? new AudioHandle(this, id)
                 : AudioHandle.Invalid;
         }
 
-        public void ReleaseAudioHandle(int id) {
-            _handleIdToSourceMap.Remove(id);
+        public void ReleaseAudioHandle(int handleId) {
+            _handlesMap.Remove(handleId);
         }
 
-        public bool IsValidAudioHandle(int id) {
-            return _handleIdToSourceMap.ContainsKey(id);
+        public void SetAudioHandlePitch(int handleId, float pitch) {
+            if (!_handlesMap.TryGetValue(handleId, out var data)) return;
+            
+            pitch *= data.affectedByTimeScale ? Time.timeScale : 1f;
+            data.source.pitch = pitch;
+            
+            _handlesMap[handleId] = new AudioHandleData(data.source, pitch, data.affectedByTimeScale);
+        }
+
+        public bool TryGetAudioSource(int handleId, out AudioSource source) {
+            if (_handlesMap.TryGetValue(handleId, out var data)) {
+                source = data.source;
+                return true;
+            }
+            
+            source = null;
+            return false;
+        }
+
+        void IUpdate.OnUpdate(float dt) {
+            float timeScale = Time.timeScale;
+            if (timeScale.IsNearlyEqual(_lastTimeScale)) return;
+
+            _lastTimeScale = timeScale;
+            
+            foreach (var data in _handlesMap.Values) {
+                if (!data.affectedByTimeScale) continue;
+                
+                data.source.pitch = data.pitch * timeScale;
+            }
         }
 
         private async UniTask StartIndexStorageChecks(CancellationToken cancellationToken) {
@@ -215,6 +223,7 @@ namespace MisterGames.Common.Audio {
             float spatialBlend,
             float normalizedTime, 
             bool loop, 
+            bool affectedByTimeScale, 
             CancellationToken cancellationToken) 
         {
             source.Stop();
@@ -222,7 +231,7 @@ namespace MisterGames.Common.Audio {
             source.clip = clip;
             source.time = normalizedTime * clip.length;
             source.volume = fadeIn > 0f ? 0f : volume;
-            source.pitch = pitch;
+            source.pitch = pitch * (affectedByTimeScale ? Time.timeScale : 1f);
             source.loop = loop;
             source.spatialBlend = spatialBlend;
             
@@ -243,7 +252,7 @@ namespace MisterGames.Common.Audio {
             float t = 0f;
             float speed = loop ? 0f : delay > 0f ? 1f / delay : float.MaxValue;
             
-            while (t < 1f && _handleIdToSourceMap.ContainsKey(id) && 
+            while (t < 1f && _handlesMap.ContainsKey(id) && 
                    !cancellationToken.IsCancellationRequested && !_cancellationToken.IsCancellationRequested) 
             {
                 t += Time.unscaledDeltaTime * speed;
@@ -252,7 +261,7 @@ namespace MisterGames.Common.Audio {
             
             if (_cancellationToken.IsCancellationRequested) return;
 
-            _handleIdToSourceMap.Remove(id);
+            _handlesMap.Remove(id);
             _attachKeyToHandleIdMap.Remove(attachKey);
             
             await FadeOut(source, fadeOut < 0f ? _fadeOut : fadeOut);
@@ -266,7 +275,7 @@ namespace MisterGames.Common.Audio {
             float t = 0f;
             float speed = duration > 0f ? 1f / duration : float.MaxValue;
 
-            while (t < 1f && _handleIdToSourceMap.ContainsKey(id) && 
+            while (t < 1f && _handlesMap.ContainsKey(id) && 
                    !cancellationToken.IsCancellationRequested && !_cancellationToken.IsCancellationRequested) 
             {
                 t += Time.unscaledDeltaTime * speed;
@@ -292,6 +301,52 @@ namespace MisterGames.Common.Audio {
         private int GetNextHandleId() {
             if (++_lastHandleId == 0) _lastHandleId++;
             return _lastHandleId;
+        }
+        
+        private readonly struct IndexData {
+            
+            public static readonly IndexData Invalid = new(-1, 0f);
+            
+            public readonly int index;
+            public readonly float time;
+            
+            public IndexData(int index, float time) {
+                this.index = index;
+                this.time = time;
+            }
+        }
+
+        private readonly struct AttachKey : IEquatable<AttachKey> {
+            
+            public static readonly AttachKey Invalid = new(0, 0);
+            
+            public readonly int instanceId;
+            public readonly int hash;
+            
+            public AttachKey(int instanceId, int hash) {
+                this.instanceId = instanceId;
+                this.hash = hash;
+            }
+            
+            public bool Equals(AttachKey other) => instanceId == other.instanceId && hash == other.hash;
+            public override bool Equals(object obj) => obj is AttachKey other && Equals(other);
+            public override int GetHashCode() => HashCode.Combine(instanceId, hash);
+
+            public static bool operator ==(AttachKey left, AttachKey right) => left.Equals(right);
+            public static bool operator !=(AttachKey left, AttachKey right) => !left.Equals(right);
+        }
+
+        private readonly struct AudioHandleData {
+            
+            public readonly AudioSource source;
+            public readonly float pitch;
+            public readonly bool affectedByTimeScale;
+            
+            public AudioHandleData(AudioSource source, float pitch, bool affectedByTimeScale) {
+                this.affectedByTimeScale = affectedByTimeScale;
+                this.pitch = pitch;
+                this.source = source;
+            }
         }
     }
     

@@ -32,6 +32,7 @@ namespace MisterGames.ActionLib.Sounds {
         [Range(0f, 2f)] public float pitchRandomAdd;
         [Range(0f, 1f)] public float spatialBlend = 1f;
         public bool loop;
+        public bool affectedByTimeScale = true;
         
         [Space]
         public AudioClip[] audioClipVariants;
@@ -53,12 +54,16 @@ namespace MisterGames.ActionLib.Sounds {
                 PositionMode.ExplicitTransform => transform,
                 _ => throw new ArgumentOutOfRangeException()
             };
+
+            var options = AudioOptions.None;
+            options |= loop ? AudioOptions.Loop : AudioOptions.None;
+            options |= affectedByTimeScale ? AudioOptions.AffectedByTimeScale : AudioOptions.None;
             
             if (attach) {
-                pool.Play(clip, trf, localPosition: default, attachId, volume, fadeIn, fadeOut, resultPitch, spatialBlend, resultStartTime, loop, cancellationToken);    
+                pool.Play(clip, trf, localPosition: default, attachId, volume, fadeIn, fadeOut, resultPitch, spatialBlend, resultStartTime, options, cancellationToken);    
             }
             else {
-                pool.Play(clip, trf.position, volume, fadeIn, fadeOut, resultPitch, spatialBlend, resultStartTime, loop, cancellationToken);
+                pool.Play(clip, trf.position, volume, fadeIn, fadeOut, resultPitch, spatialBlend, resultStartTime, options, cancellationToken);
             }
             
             return default;

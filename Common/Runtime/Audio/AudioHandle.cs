@@ -9,55 +9,51 @@ namespace MisterGames.Common.Audio {
         public static readonly AudioHandle Invalid = default;
         
         public float Volume {
-            get => IsValid() ? _audioSource.volume : 0f;
-            set { if (IsValid()) _audioSource.volume = value; }
+            get => IsValid(out var source) ? source.volume : 0f;
+            set { if (IsValid(out var source)) source.volume = value; }
         }
 
         public float Pitch {
-            get => IsValid() ? _audioSource.pitch : 0f;
-            set { if (IsValid()) _audioSource.pitch = value; }
+            get => IsValid(out var source) ? source.pitch : 0f;
+            set => _pool?.SetAudioHandlePitch(_id, value);
         }
         
         public float StereoPan {
-            get => IsValid() ? _audioSource.panStereo : 0f;
-            set { if (IsValid()) _audioSource.panStereo = value; }
+            get => IsValid(out var source) ? source.panStereo : 0f;
+            set { if (IsValid(out var source)) source.panStereo = value; }
         }
         
         public Vector3 Position {
-            get => IsValid() ? _transform.position : Vector3.zero;
-            set { if (IsValid()) _transform.position = value; }
+            get => IsValid(out var source) ? source.transform.position : default;
+            set { if (IsValid(out var source)) source.transform.position = value; }
         }
 
         public Vector3 LocalPosition {
-            get => IsValid() ? _transform.localPosition : Vector3.zero;
-            set { if (IsValid()) _transform.localPosition = value; }
+            get => IsValid(out var source) ? source.transform.localPosition : default;
+            set { if (IsValid(out var source)) source.transform.localPosition = value; }
         }
 
-        private readonly int _id;
-        private readonly AudioSource _audioSource;
-        private readonly Transform _transform;
         private readonly IAudioPool _pool;
+        private readonly int _id;
 
-        public AudioHandle(int id, AudioSource audioSource, IAudioPool pool) {
-            _id = id;
-            _audioSource = audioSource;
-            _transform = audioSource.transform;
+        public AudioHandle(IAudioPool pool, int id) {
             _pool = pool;
+            _id = id;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Play() {
-            if (IsValid()) _audioSource.Play();
+            if (IsValid(out var source)) source.Play();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Pause() {
-            if (IsValid()) _audioSource.Pause();
+            if (IsValid(out var source)) source.Pause();
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Stop() {
-            if (IsValid()) _audioSource.Stop();
+            if (IsValid(out var source)) source.Stop();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -67,7 +63,13 @@ namespace MisterGames.Common.Audio {
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool IsValid() {
-            return _pool?.IsValidAudioHandle(_id) ?? false;
+            return _pool?.TryGetAudioSource(_id, out _) ?? false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool IsValid(out AudioSource source) {
+            source = null;
+            return _pool?.TryGetAudioSource(_id, out source) ?? false;
         }
         
         public bool Equals(AudioHandle other) => _id == other._id;
