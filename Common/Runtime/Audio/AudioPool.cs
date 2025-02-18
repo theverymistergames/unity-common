@@ -72,11 +72,12 @@ namespace MisterGames.Common.Audio {
 
             bool loop = (options & AudioOptions.Loop) == AudioOptions.Loop;
             bool affectedByTimeScale = (options & AudioOptions.AffectedByTimeScale) == AudioOptions.AffectedByTimeScale;
+            normalizedTime = Mathf.Clamp01(normalizedTime);
             
             _handlesMap[id] = new AudioHandleData(source, pitch, affectedByTimeScale);
             
             RestartAudioSource(id, source, clip, fadeIn, volume, pitch, spatialBlend, normalizedTime, loop, affectedByTimeScale, cancellationToken).Forget();
-            ReleaseDelayed(id, AttachKey.Invalid, source, clip.length, loop, fadeOut, cancellationToken).Forget();
+            ReleaseDelayed(id, AttachKey.Invalid, source, (1f - normalizedTime) * clip.length, loop, fadeOut, cancellationToken).Forget();
             
             return new AudioHandle(this, id);
         }
@@ -108,6 +109,7 @@ namespace MisterGames.Common.Audio {
 
             bool loop = (options & AudioOptions.Loop) == AudioOptions.Loop;
             bool affectedByTimeScale = (options & AudioOptions.AffectedByTimeScale) == AudioOptions.AffectedByTimeScale;
+            normalizedTime = Mathf.Clamp01(normalizedTime);
             
             if (attachId != 0) {
                 _handlesMap.Remove(_attachKeyToHandleIdMap.GetValueOrDefault(attachKey));
@@ -117,7 +119,7 @@ namespace MisterGames.Common.Audio {
             _handlesMap[id] = new AudioHandleData(source, pitch, affectedByTimeScale);
             
             RestartAudioSource(id, source, clip, fadeIn, volume, pitch, spatialBlend, normalizedTime, loop, affectedByTimeScale, cancellationToken).Forget();
-            ReleaseDelayed(id, attachKey, source, clip.length, loop, fadeOut, cancellationToken).Forget();
+            ReleaseDelayed(id, attachKey, source, (1f - normalizedTime) * clip.length, loop, fadeOut, cancellationToken).Forget();
 
             return new AudioHandle(this, id);
         }
@@ -249,13 +251,17 @@ namespace MisterGames.Common.Audio {
             float fadeOut,
             CancellationToken cancellationToken) 
         {
-            float t = 0f;
-            float speed = loop ? 0f : delay > 0f ? 1f / delay : float.MaxValue;
+            float timer = 0f;
+            float length = !loop && source.pitch > 0f ? delay / source.pitch : float.MaxValue;
             
-            while (t < 1f && _handlesMap.ContainsKey(id) && 
-                   !cancellationToken.IsCancellationRequested && !_cancellationToken.IsCancellationRequested) 
+            while (timer < length &&
+                   !cancellationToken.IsCancellationRequested && 
+                   !_cancellationToken.IsCancellationRequested && 
+                   _handlesMap.ContainsKey(id)) 
             {
-                t += Time.unscaledDeltaTime * speed;
+                timer += Time.unscaledDeltaTime;
+                length = !loop && source.pitch > 0f ? delay / source.pitch : float.MaxValue;
+                
                 await UniTask.Yield();
             }
             
