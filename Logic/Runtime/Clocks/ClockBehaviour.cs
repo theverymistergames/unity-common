@@ -1,16 +1,32 @@
-﻿using MisterGames.Common.Tick;
-using UnityEditor;
+﻿using System;
+using Cysharp.Threading.Tasks;
+using MisterGames.Actors;
+using MisterGames.Actors.Actions;
+using MisterGames.Common.Attributes;
+using MisterGames.Common.Tick;
 using UnityEngine;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace MisterGames.Logic.Clocks {
     
-    public sealed class ClockBehaviour  : MonoBehaviour, IUpdate {
+    public sealed class ClockBehaviour  : MonoBehaviour, IActorComponent, IUpdate {
         
+        [Header("Arrows")]
         [SerializeField] private Transform _circleCenter;
         [SerializeField] private Transform _hourArrow;
         [SerializeField] private Transform _minuteArrow;
         [SerializeField] private Transform _secondArrow;
         [SerializeField] private Vector3 _centerNormal;
+
+        [Header("Actions")]
+        [SerializeField] [Min(0f)] private float _ignoreStartDelay = 0.1f;
+        [SerializeReference] [SubclassSelector] private IActorAction _evenTickAction;  
+        [SerializeReference] [SubclassSelector] private IActorAction _oddTickAction; 
+        
+        public event Action<int> OnTick = delegate { };
         
         private Vector3 _hourOffset;
         private Vector3 _minuteOffset;
@@ -21,7 +37,13 @@ namespace MisterGames.Logic.Clocks {
         private bool _hasHourArrow;
         private bool _hasMinuteArrow;
         private bool _hasSecondArrow;
-        private float _timer;
+        private int _lastSecond;
+        private float _startTime; 
+        private IActor _actor;
+
+        void IActorComponent.OnAwake(IActor actor) {
+            _actor = actor;
+        }
 
         private void Awake() {
             _circleCenter.GetPositionAndRotation(out var pos, out var rot);
@@ -47,7 +69,12 @@ namespace MisterGames.Logic.Clocks {
             }
         }
 
+        private void Start() {
+            _startTime = Time.realtimeSinceStartup;
+        }
+
         private void OnEnable() {
+            _lastSecond = ClockSystem.Now.Second;
             PlayerLoopStage.Update.Subscribe(this);
         }
 
@@ -56,9 +83,28 @@ namespace MisterGames.Logic.Clocks {
         }
 
         void IUpdate.OnUpdate(float dt) {
+            ApplyTick();
+            UpdateArrows();
+        }
+
+        private void ApplyTick() {
+            int second = ClockSystem.Now.Second;
+            if (_lastSecond == second) return;
+            
+            _lastSecond = second;
+
+            if (Time.realtimeSinceStartup < _startTime + _ignoreStartDelay) return;
+            
+            var action = second % 2 == 0 ? _evenTickAction : _oddTickAction;
+            action?.Apply(_actor, destroyCancellationToken).Forget();
+            
+            OnTick.Invoke(second);
+        }
+
+        private void UpdateArrows() {
+            var now = ClockSystem.Now;
             _circleCenter.GetPositionAndRotation(out var pos, out var rot);
             var normal = rot * _centerNormal;
-            var now = ClockSystem.Now;
 
             if (_hasHourArrow) {
                 var angle = Quaternion.AngleAxis(now.Hour * 15f, normal) * rot;

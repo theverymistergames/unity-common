@@ -251,17 +251,11 @@ namespace MisterGames.Common.Audio {
             float fadeOut,
             CancellationToken cancellationToken) 
         {
-            float timer = 0f;
-            float length = !loop && source.pitch > 0f ? delay / source.pitch : float.MaxValue;
-            
-            while (timer < length &&
+            while ((loop || source.time < delay) && 
                    !cancellationToken.IsCancellationRequested && 
                    !_cancellationToken.IsCancellationRequested && 
                    _handlesMap.ContainsKey(id)) 
             {
-                timer += Time.unscaledDeltaTime;
-                length = !loop && source.pitch > 0f ? delay / source.pitch : float.MaxValue;
-                
                 await UniTask.Yield();
             }
             
