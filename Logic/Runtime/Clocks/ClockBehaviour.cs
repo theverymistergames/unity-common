@@ -22,7 +22,7 @@ namespace MisterGames.Logic.Clocks {
         [SerializeField] private Vector3 _centerNormal;
 
         [Header("Actions")]
-        [SerializeField] [Min(0f)] private float _ignoreStartDelay = 0.1f;
+        [SerializeField] [Min(0f)] private float _tickThreshold = 0.12f;
         [SerializeReference] [SubclassSelector] private IActorAction _evenTickAction;  
         [SerializeReference] [SubclassSelector] private IActorAction _oddTickAction; 
         
@@ -38,7 +38,6 @@ namespace MisterGames.Logic.Clocks {
         private bool _hasMinuteArrow;
         private bool _hasSecondArrow;
         private int _lastSecond;
-        private float _startTime; 
         private IActor _actor;
 
         void IActorComponent.OnAwake(IActor actor) {
@@ -69,10 +68,6 @@ namespace MisterGames.Logic.Clocks {
             }
         }
 
-        private void Start() {
-            _startTime = Time.realtimeSinceStartup;
-        }
-
         private void OnEnable() {
             _lastSecond = ClockSystem.Now.Second;
             PlayerLoopStage.Update.Subscribe(this);
@@ -88,12 +83,13 @@ namespace MisterGames.Logic.Clocks {
         }
 
         private void ApplyTick() {
-            int second = ClockSystem.Now.Second;
+            var now = ClockSystem.Now;
+            int second = now.Second;
             if (_lastSecond == second) return;
             
             _lastSecond = second;
 
-            if (Time.realtimeSinceStartup < _startTime + _ignoreStartDelay) return;
+            if (now.Millisecond > _tickThreshold * 1000f) return;
             
             var action = second % 2 == 0 ? _evenTickAction : _oddTickAction;
             action?.Apply(_actor, destroyCancellationToken).Forget();

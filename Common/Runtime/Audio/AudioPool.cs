@@ -251,10 +251,10 @@ namespace MisterGames.Common.Audio {
             float fadeOut,
             CancellationToken cancellationToken) 
         {
-            while ((loop || source.time < delay) && 
-                   !cancellationToken.IsCancellationRequested && 
+            while (!cancellationToken.IsCancellationRequested && 
                    !_cancellationToken.IsCancellationRequested && 
-                   _handlesMap.ContainsKey(id)) 
+                   _handlesMap.ContainsKey(id) && 
+                   (loop || source.time < delay))
             {
                 await UniTask.Yield();
             }
