@@ -20,6 +20,13 @@ namespace MisterGames.Common.Data {
         public static bool operator !=(HashId left, HashId right) => !left.Equals(right);
 
         public static implicit operator int(HashId hashId) => hashId._hash;
+
+        public override string ToString() {
+#if UNITY_EDITOR
+            return $"{_name}";
+#endif
+            return _hash.ToString();
+        }
     }
     
 }
