@@ -12,6 +12,7 @@ namespace MisterGames.Common.Audio {
         int Id { get; set; }
         float Pitch { get; set; }
         AudioOptions AudioOptions { get; set; }
+        int OcclusionFlag { get; set; }
     }
     
 }

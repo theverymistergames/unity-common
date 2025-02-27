@@ -68,6 +68,7 @@ namespace MisterGames.Common.Audio {
         private readonly Dictionary<int, IAudioElement> _handleIdToAudioElementMap = new();
         private readonly List<OcclusionData> _occlusionList = new();
 
+        private Transform _transform;
         private Transform _currentListener;
         private Transform _listenerUp;
         private CancellationToken _cancellationToken;
@@ -77,6 +78,8 @@ namespace MisterGames.Common.Audio {
         
         private void Awake() {
             Main = this;
+            
+            _transform = transform;
             _cancellationToken = destroyCancellationToken;
             
             StartLastClipIndexUpdates(_cancellationToken).Forget();
@@ -353,10 +356,13 @@ namespace MisterGames.Common.Audio {
             audioElement.Pitch = pitch;
             audioElement.LowPass.lowpassResonanceQ = _qLow;
             audioElement.HighPass.highpassResonanceQ = _qHigh;
+            audioElement.LowPass.cutoffFrequency = 22000f;
+            audioElement.HighPass.cutoffFrequency = 10f;
+            audioElement.OcclusionFlag = 0;
         }
         
         private IAudioElement GetAudioElementAtWorldPosition(Vector3 position) {
-            return PrefabPool.Main.Get(_prefab, position, Quaternion.identity);
+            return PrefabPool.Main.Get(_prefab, position, Quaternion.identity, _transform);
         }
 
         private IAudioElement GetAudioElementAttached(Transform parent, Vector3 localPosition = default) {
@@ -504,12 +510,12 @@ namespace MisterGames.Common.Audio {
             var lp = audioElement.LowPass;
             var hp = audioElement.HighPass;
 
-            lp.cutoffFrequency = lp.cutoffFrequency.SmoothExpNonZero(cutoffLow, _occlusionSmoothing, dt);
-            hp.cutoffFrequency = hp.cutoffFrequency.SmoothExpNonZero(cutoffHigh, _occlusionSmoothing, dt);
-        }
-
-        private static Vector3 GetDirWithOffset(Vector3 dir, Vector3 offset, float distance) {
-            return Quaternion.FromToRotation(dir, dir * distance + offset) * -dir;
+            float smoothing = audioElement.OcclusionFlag * _occlusionSmoothing;
+            
+            lp.cutoffFrequency = lp.cutoffFrequency.SmoothExpNonZero(cutoffLow, smoothing, dt);
+            hp.cutoffFrequency = hp.cutoffFrequency.SmoothExpNonZero(cutoffHigh, smoothing, dt);
+            
+            audioElement.OcclusionFlag = 1;
         }
         
         private static Vector3 GetOcclusionOffset(int i, int count, float sector) {
