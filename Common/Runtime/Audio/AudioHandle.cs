@@ -9,28 +9,28 @@ namespace MisterGames.Common.Audio {
         public static readonly AudioHandle Invalid = default;
         
         public float Volume {
-            get => IsValid(out var source) ? source.volume : 0f;
-            set { if (IsValid(out var source)) source.volume = value; }
+            get => IsValid(out var e) ? e.Source.volume : 0f;
+            set { if (IsValid(out var e)) e.Source.volume = value; }
         }
 
         public float Pitch {
-            get => IsValid(out var source) ? source.pitch : 0f;
+            get => IsValid(out var e) ? e.Source.pitch : 0f;
             set => _pool?.SetAudioHandlePitch(_id, value);
         }
         
         public float StereoPan {
-            get => IsValid(out var source) ? source.panStereo : 0f;
-            set { if (IsValid(out var source)) source.panStereo = value; }
+            get => IsValid(out var e) ? e.Source.panStereo : 0f;
+            set { if (IsValid(out var e)) e.Source.panStereo = value; }
         }
         
         public Vector3 Position {
-            get => IsValid(out var source) ? source.transform.position : default;
-            set { if (IsValid(out var source)) source.transform.position = value; }
+            get => IsValid(out var e) ? e.Transform.position : default;
+            set { if (IsValid(out var e)) e.Transform.position = value; }
         }
 
         public Vector3 LocalPosition {
-            get => IsValid(out var source) ? source.transform.localPosition : default;
-            set { if (IsValid(out var source)) source.transform.localPosition = value; }
+            get => IsValid(out var e) ? e.Transform.localPosition : default;
+            set { if (IsValid(out var e)) e.Transform.localPosition = value; }
         }
 
         private readonly IAudioPool _pool;
@@ -43,17 +43,17 @@ namespace MisterGames.Common.Audio {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Play() {
-            if (IsValid(out var source)) source.Play();
+            if (IsValid(out var e)) e.Source.Play();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Pause() {
-            if (IsValid(out var source)) source.Pause();
+            if (IsValid(out var e)) e.Source.Pause();
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Stop() {
-            if (IsValid(out var source)) source.Stop();
+            if (IsValid(out var e)) e.Source.Stop();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -63,13 +63,13 @@ namespace MisterGames.Common.Audio {
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool IsValid() {
-            return _pool?.TryGetAudioSource(_id, out _) ?? false;
+            return _pool?.TryGetAudioElement(_id, out _) ?? false;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool IsValid(out AudioSource source) {
-            source = null;
-            return _pool?.TryGetAudioSource(_id, out source) ?? false;
+        private bool IsValid(out IAudioElement audioElement) {
+            audioElement = null;
+            return _pool?.TryGetAudioElement(_id, out audioElement) ?? false;
         }
         
         public bool Equals(AudioHandle other) => _id == other._id;

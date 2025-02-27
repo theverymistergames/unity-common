@@ -1,11 +1,15 @@
 ﻿using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
+using UnityEngine.Audio;
 
 namespace MisterGames.Common.Audio {
     
     public interface IAudioPool {
 
+        void RegisterListener(AudioListener listener);
+        void UnregisterListener(AudioListener listener);
+        
         AudioHandle Play(
             AudioClip clip,
             Vector3 position,
@@ -15,6 +19,7 @@ namespace MisterGames.Common.Audio {
             float pitch = 1f,
             float spatialBlend = 1f,
             float normalizedTime = 0f,
+            AudioMixerGroup mixerGroup = null,
             AudioOptions options = default,
             CancellationToken cancellationToken = default
         );
@@ -30,17 +35,17 @@ namespace MisterGames.Common.Audio {
             float pitch = 1f,
             float spatialBlend = 1f,
             float normalizedTime = 0f,
+            AudioMixerGroup mixerGroup = null,
             AudioOptions options = default,
             CancellationToken cancellationToken = default
         );
-
-        AudioClip ShuffleClips(IReadOnlyList<AudioClip> clips);
-
-        AudioHandle GetAudioHandle(Transform attachedTo, int hash);
-        void ReleaseAudioHandle(int handleId);
-        void SetAudioHandlePitch(int handleId, float pitch);
-        bool TryGetAudioSource(int handleId, out AudioSource source);
         
+        AudioClip ShuffleClips(IReadOnlyList<AudioClip> clips);
+        AudioHandle GetAudioHandle(Transform attachedTo, int hash);
+        
+        internal void ReleaseAudioHandle(int handleId);
+        internal void SetAudioHandlePitch(int handleId, float pitch);
+        internal bool TryGetAudioElement(int handleId, out IAudioElement audioElement);
     }
     
 }

@@ -8,6 +8,7 @@ using MisterGames.Common.Audio;
 using MisterGames.Common.Data;
 using MisterGames.Common.Maths;
 using UnityEngine;
+using UnityEngine.Audio;
 using Random = UnityEngine.Random;
 
 namespace MisterGames.ActionLib.Sounds {
@@ -33,6 +34,9 @@ namespace MisterGames.ActionLib.Sounds {
         [Range(0f, 1f)] public float spatialBlend = 1f;
         public bool loop;
         public bool affectedByTimeScale = true;
+        
+        [Tooltip("Leave null to use default group")]
+        public AudioMixerGroup mixerGroup;
         
         [Space]
         public AudioClip[] audioClipVariants;
@@ -60,10 +64,10 @@ namespace MisterGames.ActionLib.Sounds {
             options |= affectedByTimeScale ? AudioOptions.AffectedByTimeScale : AudioOptions.None;
             
             if (attach) {
-                pool.Play(clip, trf, localPosition: default, attachId, volume, fadeIn, fadeOut, resultPitch, spatialBlend, resultStartTime, options, cancellationToken);    
+                pool.Play(clip, trf, localPosition: default, attachId, volume, fadeIn, fadeOut, resultPitch, spatialBlend, resultStartTime, mixerGroup, options, cancellationToken);    
             }
             else {
-                pool.Play(clip, trf.position, volume, fadeIn, fadeOut, resultPitch, spatialBlend, resultStartTime, options, cancellationToken);
+                pool.Play(clip, trf.position, volume, fadeIn, fadeOut, resultPitch, spatialBlend, resultStartTime, mixerGroup, options, cancellationToken);
             }
             
             return default;
