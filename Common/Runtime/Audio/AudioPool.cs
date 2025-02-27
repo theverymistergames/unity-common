@@ -2,10 +2,13 @@
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using MisterGames.Common.Easing;
 using MisterGames.Common.Lists;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Pooling;
 using MisterGames.Common.Tick;
+using Unity.Collections;
+using Unity.Jobs.LowLevel.Unsafe;
 using UnityEngine;
 using UnityEngine.Audio;
 
@@ -14,21 +17,59 @@ namespace MisterGames.Common.Audio {
     [DefaultExecutionOrder(-999)]
     public sealed class AudioPool : MonoBehaviour, IAudioPool, IUpdate {
 
+        [Header("Audio Element")]
         [SerializeField] private AudioElement _prefab;
         [SerializeField] private AudioMixerGroup _defaultMixerGroup;
         [SerializeField] [Min(0f)] private float _fadeOut = 0.25f;
-        [SerializeField] [Min(0f)] private float _lastIndexStoreLifetime = 60f;
         
+        [Header("Shuffle")]
+        [SerializeField] [Min(0f)] private float _lastIndexStoreLifetime = 60f;
+
+        [Header("Occlusion Detection")]
+        [SerializeField] private bool _applyOcclusion = true;
+        [SerializeField] [Min(0f)] private float _minDistance = 0.1f;
+        [SerializeField] [Min(0f)] private float _maxDistance = 100f;
+        [SerializeField] [Min(1)] private int _rays = 3;
+        [SerializeField] [Min(0f)] private float _rayOffset0 = 1f;
+        [SerializeField] [Min(0f)] private float _rayOffset1 = 5f;
+        [SerializeField] [Min(1)] private int _maxHits = 1;
+        [SerializeField] private LayerMask _layerMask;
+
+        [Header("Occlusion Profile")]
+        [SerializeField] [Min(0f)] private float _occlusionSmoothing = 0f;
+        
+        [Space]
+        [SerializeField] [Range(0f, 1f)] private float _distanceWeightLow = 1f;
+        [SerializeField] [Range(0f, 1f)] private float _collisionWeightLow = 0.3f;
+        [SerializeField] [Range(1f, 10f)] private float _qLow = 1f;
+        [SerializeField] [Range(10f, 22000f)] private float _cutoffLow = 2000f;
+        [SerializeField] private AnimationCurve _distanceCurveLow = EasingType.Linear.ToAnimationCurve();
+        [SerializeField] private AnimationCurve _cutoffLowCurve = EasingType.Linear.ToAnimationCurve();
+        
+        [Space]
+        [SerializeField] [Range(0f, 1f)] private float _distanceWeightHigh = 1f;
+        [SerializeField] [Range(0f, 1f)] private float _collisionWeightHigh = 0.3f;
+        [SerializeField] [Range(1f, 10f)] private float _qHigh = 1f;
+        [SerializeField] [Range(10f, 22000f)] private float _cutoffHigh = 500f;
+        [SerializeField] private AnimationCurve _distanceCurveHigh = EasingType.Linear.ToAnimationCurve();
+        [SerializeField] private AnimationCurve _cutoffHighCurve = EasingType.Linear.ToAnimationCurve();
+
         public static IAudioPool Main { get; private set; }
 
+        private const float DistanceThreshold = 0.001f;
+        private static readonly Vector3 Up = Vector3.up;
+        private static readonly Vector3 Forward = Vector3.forward;
+        private static readonly Vector3 Right = Vector3.right;
+        
         private readonly Dictionary<int, IndexData> _clipsHashToLastIndexMap = new();
         private readonly List<int> _clipsHashBuffer = new();
 
         private readonly Dictionary<AttachKey, int> _attachKeyToHandleIdMap = new();
         private readonly Dictionary<int, IAudioElement> _handleIdToAudioElementMap = new();
-        private readonly List<IAudioElement> _audioElements = new();
+        private readonly List<OcclusionData> _occlusionList = new();
 
         private Transform _currentListener;
+        private Transform _listenerUp;
         private CancellationToken _cancellationToken;
         private int _lastHandleId;
 
@@ -49,20 +90,22 @@ namespace MisterGames.Common.Audio {
             
             _attachKeyToHandleIdMap.Clear();
             _handleIdToAudioElementMap.Clear();
-            _audioElements.Clear();
+            _occlusionList.Clear();
             
             Main = null;
             PlayerLoopStage.Update.Unsubscribe(this);
         }
 
-        public void RegisterListener(AudioListener listener) {
+        public void RegisterListener(AudioListener listener, Transform up) {
             _currentListener = listener.transform;
+            _listenerUp = up;
         }
 
         public void UnregisterListener(AudioListener listener) {
             if (listener.transform != _currentListener) return;
             
             _currentListener = null;
+            _listenerUp = null;
         }
 
         public AudioHandle Play(
@@ -92,15 +135,24 @@ namespace MisterGames.Common.Audio {
             bool affectedByTimeScale = (options & AudioOptions.AffectedByTimeScale) == AudioOptions.AffectedByTimeScale;
             normalizedTime = Mathf.Clamp01(normalizedTime);
 
-            audioElement.Id = id;
-            audioElement.AffectedByTimeScale = affectedByTimeScale;
-            audioElement.Pitch = pitch;
+            InitializeAudioElement(audioElement, id, pitch, options);
             
             _handleIdToAudioElementMap[id] = audioElement;
-            _audioElements.Add(audioElement);
+            _occlusionList.Add(default);
             
-            RestartAudioSource(id, audioElement.Source, clip, mixerGroup, fadeIn, volume, pitch, spatialBlend, normalizedTime, loop, affectedByTimeScale, cancellationToken).Forget();
-            ReleaseDelayed(id, AttachKey.Invalid, audioElement.Source, (1f - normalizedTime) * clip.length, loop, fadeOut, cancellationToken).Forget();
+            RestartAudioSource(
+                id, audioElement.Source, clip, mixerGroup, 
+                fadeIn, volume, pitch * (affectedByTimeScale ? Time.timeScale : 1f), 
+                spatialBlend, normalizedTime, loop, 
+                cancellationToken
+            ).Forget();
+            
+            ReleaseDelayed(
+                id, AttachKey.Invalid, audioElement.Source, 
+                delay: (1f - normalizedTime) * clip.length, 
+                loop, fadeOut, 
+                cancellationToken
+            ).Forget();
             
             return new AudioHandle(this, id);
         }
@@ -140,16 +192,25 @@ namespace MisterGames.Common.Audio {
                 _attachKeyToHandleIdMap[attachKey] = id;   
             }
             
-            audioElement.Id = id;
-            audioElement.AffectedByTimeScale = affectedByTimeScale;
-            audioElement.Pitch = pitch;
+            InitializeAudioElement(audioElement, id, pitch, options);
             
             _handleIdToAudioElementMap[id] = audioElement;
-            _audioElements.Add(audioElement);
+            _occlusionList.Add(default);
             
-            RestartAudioSource(id, audioElement.Source, clip, mixerGroup, fadeIn, volume, pitch, spatialBlend, normalizedTime, loop, affectedByTimeScale, cancellationToken).Forget();
-            ReleaseDelayed(id, attachKey, audioElement.Source, (1f - normalizedTime) * clip.length, loop, fadeOut, cancellationToken).Forget();
-
+            RestartAudioSource(
+                id, audioElement.Source, clip, mixerGroup, 
+                fadeIn, volume, pitch * (affectedByTimeScale ? Time.timeScale : 1f), 
+                spatialBlend, normalizedTime, loop, 
+                cancellationToken
+            ).Forget();
+            
+            ReleaseDelayed(
+                id, attachKey, audioElement.Source, 
+                delay: (1f - normalizedTime) * clip.length, 
+                loop, fadeOut, 
+                cancellationToken
+            ).Forget();
+            
             return new AudioHandle(this, id);
         }
 
@@ -178,54 +239,6 @@ namespace MisterGames.Common.Audio {
                 : AudioHandle.Invalid;
         }
 
-        void IAudioPool.ReleaseAudioHandle(int handleId) {
-            _handleIdToAudioElementMap.Remove(handleId);
-        }
-
-        void IAudioPool.SetAudioHandlePitch(int handleId, float pitch) {
-            if (!_handleIdToAudioElementMap.TryGetValue(handleId, out var audioElement)) return;
-            
-            audioElement.Pitch = pitch;
-            audioElement.Source.pitch = pitch * (audioElement.AffectedByTimeScale ? Time.timeScale : 1f);
-        }
-
-        bool IAudioPool.TryGetAudioElement(int handleId, out IAudioElement audioElement) {
-            return _handleIdToAudioElementMap.TryGetValue(handleId, out audioElement);
-        }
-
-        void IUpdate.OnUpdate(float dt) {
-            float timeScale = Time.timeScale;
-            int count = _audioElements.Count;
-            int validCount = count;
-            
-            
-            
-            for (int i = count - 1; i >= 0; i--) {
-                var audioElement = _audioElements[i];
-
-                if (audioElement == null || !_handleIdToAudioElementMap.ContainsKey(audioElement.Id)) {
-                    _audioElements[i] = _audioElements[--validCount];
-                    continue;
-                }
-
-                if (audioElement.AffectedByTimeScale) audioElement.Source.pitch = audioElement.Pitch * timeScale;
-                
-                
-            }
-            
-            _audioElements.RemoveRange(validCount, count - validCount);
-        }
-        
-        private IAudioElement GetAudioElementAtWorldPosition(Vector3 position) {
-            return PrefabPool.Main.Get(_prefab, position, Quaternion.identity);
-        }
-
-        private IAudioElement GetAudioElementAttached(Transform parent, Vector3 localPosition = default) {
-            var audioSource = PrefabPool.Main.Get(_prefab, parent);
-            audioSource.transform.SetLocalPositionAndRotation(localPosition, Quaternion.identity);
-            return audioSource;
-        }
-
         private UniTask RestartAudioSource(
             int id,
             AudioSource source,
@@ -236,8 +249,7 @@ namespace MisterGames.Common.Audio {
             float pitch, 
             float spatialBlend,
             float normalizedTime, 
-            bool loop, 
-            bool affectedByTimeScale, 
+            bool loop,  
             CancellationToken cancellationToken) 
         {
             source.Stop();
@@ -245,7 +257,7 @@ namespace MisterGames.Common.Audio {
             source.clip = clip;
             source.time = normalizedTime * clip.length;
             source.volume = fadeIn > 0f ? 0f : volume;
-            source.pitch = pitch * (affectedByTimeScale ? Time.timeScale : 1f);
+            source.pitch = pitch;
             source.loop = loop;
             source.spatialBlend = spatialBlend;
             source.outputAudioMixerGroup = mixerGroup == null ? _defaultMixerGroup : mixerGroup;
@@ -312,10 +324,45 @@ namespace MisterGames.Common.Audio {
                 await UniTask.Yield();
             }
         }
+        
+        void IAudioPool.ReleaseAudioHandle(int handleId) {
+            _handleIdToAudioElementMap.Remove(handleId);
+        }
 
+        void IAudioPool.SetAudioHandlePitch(int handleId, float pitch) {
+            if (!_handleIdToAudioElementMap.TryGetValue(handleId, out var audioElement)) return;
+            
+            bool applyTimescale = (audioElement.AudioOptions & AudioOptions.AffectedByTimeScale) == AudioOptions.AffectedByTimeScale;
+            
+            audioElement.Pitch = pitch;
+            audioElement.Source.pitch = pitch * (applyTimescale ? Time.timeScale : 1f);
+        }
+
+        bool IAudioPool.TryGetAudioElement(int handleId, out IAudioElement audioElement) {
+            return _handleIdToAudioElementMap.TryGetValue(handleId, out audioElement);
+        }
+        
         private int GetNextHandleId() {
             if (++_lastHandleId == 0) _lastHandleId++;
             return _lastHandleId;
+        }
+
+        private void InitializeAudioElement(IAudioElement audioElement, int id, float pitch, AudioOptions options) {
+            audioElement.Id = id;
+            audioElement.AudioOptions = options;
+            audioElement.Pitch = pitch;
+            audioElement.LowPass.lowpassResonanceQ = _qLow;
+            audioElement.HighPass.highpassResonanceQ = _qHigh;
+        }
+        
+        private IAudioElement GetAudioElementAtWorldPosition(Vector3 position) {
+            return PrefabPool.Main.Get(_prefab, position, Quaternion.identity);
+        }
+
+        private IAudioElement GetAudioElementAttached(Transform parent, Vector3 localPosition = default) {
+            var audioSource = PrefabPool.Main.Get(_prefab, parent);
+            audioSource.transform.SetLocalPositionAndRotation(localPosition, Quaternion.identity);
+            return audioSource;
         }
 
         private async UniTask StartLastClipIndexUpdates(CancellationToken cancellationToken) {
@@ -336,7 +383,164 @@ namespace MisterGames.Common.Audio {
                     .SuppressCancellationThrow(); 
             }
         }
+        
+        void IUpdate.OnUpdate(float dt) {
+            bool hasListener = _currentListener != null;
+            var listenerPos = hasListener ? _currentListener.position : default;
+            var listenerUp = hasListener ? _listenerUp.up : Vector3.up;
+            
+            float timeScale = Time.timeScale;
+            int occlusionCount = 0;
+            
+            int count = _handleIdToAudioElementMap.Count;
+            _occlusionList.RemoveRange(count, _occlusionList.Count - count);
 
+            float minSqr = _minDistance * _minDistance;
+            float maxSqr = _maxDistance * _maxDistance;
+            
+            foreach (var audioElement in _handleIdToAudioElementMap.Values) {
+                if ((audioElement.AudioOptions & AudioOptions.AffectedByTimeScale) == AudioOptions.AffectedByTimeScale) {
+                    audioElement.Source.pitch = audioElement.Pitch * timeScale;
+                }
+
+                if (!hasListener || !_applyOcclusion || 
+                    (audioElement.AudioOptions & AudioOptions.ApplyOcclusion) != AudioOptions.ApplyOcclusion) 
+                {
+                    ApplyOcclusion(audioElement, distanceWeight: 0f, collisionWeight: 0f, dt);
+                    continue;
+                }
+
+                var position = audioElement.Transform.position;
+                float sqr = (listenerPos - position).sqrMagnitude;
+                float spatial = audioElement.Source.spatialBlend;
+                
+                if (sqr > minSqr && sqr < maxSqr) {
+                    _occlusionList[occlusionCount++] = new OcclusionData(
+                        audioElement,
+                        position,
+                        direction: (listenerPos - position).normalized,
+                        distance: (listenerPos - position).magnitude,
+                        weight: spatial
+                    );
+                    continue;
+                }
+                
+                ApplyOcclusion(audioElement, distanceWeight: sqr > maxSqr ? spatial : 0f, collisionWeight: 1f, dt);
+            }
+
+            if (hasListener) ProcessOcclusion(listenerUp, occlusionCount, dt);
+        }
+
+        private void ProcessOcclusion(Vector3 up, int count, float dt) {
+            var raycastCommands = new NativeArray<RaycastCommand>(count * _rays, Allocator.TempJob);
+            var hits = new NativeArray<RaycastHit>(count * _rays * _maxHits, Allocator.TempJob);
+            
+            float sector = 360f / _rays;
+            
+            for (int i = 0; i < count; i++) {
+                var data = _occlusionList[i];
+                var rot = Quaternion.LookRotation(data.direction, up);
+
+#if UNITY_EDITOR
+                if (_showDebugInfo) DebugExt.DrawSphere(data.position, 0.01f, Color.magenta);
+#endif
+                
+                for (int j = 0; j < _rays; j++) {
+                    var offset = rot * 
+                                 GetOcclusionOffset(j, _rays, sector) * 
+                                 Mathf.Lerp(_rayOffset0, _rayOffset1, GetRelativeDistance(data.distance));
+                    
+                    raycastCommands[i * _rays + j] = new RaycastCommand(
+                        from: data.position + offset,
+                        data.direction,
+                        new QueryParameters(_layerMask, hitMultipleFaces: false, hitTriggers: QueryTriggerInteraction.Ignore, hitBackfaces: false),
+                        data.distance
+                    );
+                    
+#if UNITY_EDITOR
+                    if (_showDebugInfo) DebugExt.DrawRay(data.position, offset, Color.magenta);
+                    if (_showDebugInfo) DebugExt.DrawRay(data.position + offset, data.direction * data.distance, Color.magenta);
+#endif
+                }
+            }
+
+            int commandsPerJob = Mathf.Max(count / JobsUtility.JobWorkerCount, 1);
+            RaycastCommand.ScheduleBatch(raycastCommands, hits, commandsPerJob, _maxHits).Complete();
+
+            for (int i = 0; i < count; i++) {
+                var data = _occlusionList[i];
+                float weightSum = 0f;
+                
+                for (int j = 0; j < _rays; j++) {
+                    int collisions = 0;
+                    
+                    for (int r = 0; r < _maxHits; r++) {
+                        var hit = hits[i * _rays + j * _maxHits + r];
+                        if (hit.collider == null) break;
+                        
+                        collisions++;
+                    }
+
+                    weightSum += (float) collisions / _maxHits;
+                }
+
+                float distanceWeight = Mathf.Clamp01(data.weight * GetRelativeDistance(data.distance));
+                float collisionWeight = Mathf.Clamp01(data.weight * weightSum / _rays);
+                
+                ApplyOcclusion(data.audioElement, distanceWeight, collisionWeight, dt);
+            }
+
+            hits.Dispose();
+            raycastCommands.Dispose();
+        }
+
+        private void ApplyOcclusion(IAudioElement audioElement, float distanceWeight, float collisionWeight, float dt) {
+            float wLow = Mathf.Clamp01(_distanceCurveLow.Evaluate(distanceWeight) * _distanceWeightLow + collisionWeight * _collisionWeightLow);
+            float wHigh = Mathf.Clamp01(_distanceCurveHigh.Evaluate(distanceWeight) * _distanceWeightHigh + collisionWeight * _collisionWeightHigh);
+            
+            float cutoffLow = Mathf.Lerp(22000f, _cutoffLow, _cutoffLowCurve.Evaluate(wLow));
+            float cutoffHigh = Mathf.Lerp(10f, _cutoffHigh, _cutoffHighCurve.Evaluate(wHigh));
+
+            var lp = audioElement.LowPass;
+            var hp = audioElement.HighPass;
+
+            lp.cutoffFrequency = lp.cutoffFrequency.SmoothExpNonZero(cutoffLow, _occlusionSmoothing, dt);
+            hp.cutoffFrequency = hp.cutoffFrequency.SmoothExpNonZero(cutoffHigh, _occlusionSmoothing, dt);
+        }
+
+        private static Vector3 GetDirWithOffset(Vector3 dir, Vector3 offset, float distance) {
+            return Quaternion.FromToRotation(dir, dir * distance + offset) * -dir;
+        }
+        
+        private static Vector3 GetOcclusionOffset(int i, int count, float sector) {
+            return count switch {
+                2 => (2 * i - 1) * Right,
+                3 => (i - 1) * Right,
+                _ => i == 0 ? default : Quaternion.AngleAxis(i * sector, Forward) * Up,
+            };
+        }
+
+        private float GetRelativeDistance(float distance) {
+            return Mathf.Clamp01((distance - _minDistance) / (_maxDistance - _minDistance + DistanceThreshold));
+        }
+
+        private readonly struct OcclusionData {
+
+            public readonly IAudioElement audioElement;
+            public readonly Vector3 position;
+            public readonly Vector3 direction;
+            public readonly float distance;
+            public readonly float weight;
+            
+            public OcclusionData(IAudioElement audioElement, Vector3 position, Vector3 direction, float distance, float weight) {
+                this.audioElement = audioElement;
+                this.position = position;
+                this.direction = direction;
+                this.distance = distance;
+                this.weight = weight;
+            }
+        }
+        
         private readonly struct IndexData {
             
             public static readonly IndexData Invalid = new(-1, 0f);
@@ -369,6 +573,15 @@ namespace MisterGames.Common.Audio {
             public static bool operator ==(AttachKey left, AttachKey right) => left.Equals(right);
             public static bool operator !=(AttachKey left, AttachKey right) => !left.Equals(right);
         }
+
+#if UNITY_EDITOR
+        [Header("Debug")]
+        [SerializeField] private bool _showDebugInfo;
+        
+        private void OnValidate() {
+            if (_maxDistance < _minDistance) _maxDistance = _minDistance;
+        }
+#endif
     }
     
 }

@@ -7,7 +7,7 @@ namespace MisterGames.Common.Audio {
     
     public interface IAudioPool {
 
-        void RegisterListener(AudioListener listener);
+        void RegisterListener(AudioListener listener, Transform up);
         void UnregisterListener(AudioListener listener);
         
         AudioHandle Play(

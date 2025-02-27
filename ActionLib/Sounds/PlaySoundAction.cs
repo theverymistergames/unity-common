@@ -34,6 +34,7 @@ namespace MisterGames.ActionLib.Sounds {
         [Range(0f, 1f)] public float spatialBlend = 1f;
         public bool loop;
         public bool affectedByTimeScale = true;
+        public bool occlusion = true;
         
         [Tooltip("Leave null to use default group")]
         public AudioMixerGroup mixerGroup;
@@ -62,6 +63,7 @@ namespace MisterGames.ActionLib.Sounds {
             var options = AudioOptions.None;
             options |= loop ? AudioOptions.Loop : AudioOptions.None;
             options |= affectedByTimeScale ? AudioOptions.AffectedByTimeScale : AudioOptions.None;
+            options |= occlusion ? AudioOptions.ApplyOcclusion : AudioOptions.None;
             
             if (attach) {
                 pool.Play(clip, trf, localPosition: default, attachId, volume, fadeIn, fadeOut, resultPitch, spatialBlend, resultStartTime, mixerGroup, options, cancellationToken);    

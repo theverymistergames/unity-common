@@ -11,7 +11,7 @@ namespace MisterGames.Common.Audio {
         
         int Id { get; set; }
         float Pitch { get; set; }
-        bool AffectedByTimeScale { get; set; }
+        AudioOptions AudioOptions { get; set; }
     }
     
 }

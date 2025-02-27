@@ -19,8 +19,12 @@ namespace MisterGames.Common.Audio {
 
         public int Id { get; set; }
         public float Pitch { get; set; }
-        public bool AffectedByTimeScale { get; set; }
-        
+        public AudioOptions AudioOptions { get; set; }
+
+        public override string ToString() {
+            return $"{nameof(AudioElement)}({_source.clip.name})";
+        }
+
 #if UNITY_EDITOR
         private void Reset() {
             _transform = transform;
