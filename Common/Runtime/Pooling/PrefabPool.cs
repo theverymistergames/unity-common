@@ -57,11 +57,15 @@ namespace MisterGames.Common.Pooling {
         private readonly Dictionary<int, AutoPoolUsage> _autoPoolUsageMap = new();
         private readonly List<GameObject> _activeSceneRoots = new();
 
+        private Transform _disabledRoot;
+        
         private void Awake() {
             if (_isMainPool) Main = this;
-            DestroyToken = destroyCancellationToken;
             
+            DestroyToken = destroyCancellationToken;
             PoolRoot = transform;
+            
+            CreateDisabledRoot();
             InitializePools();
 
             StartAutoPoolChecks(DestroyToken).Forget();
@@ -78,6 +82,13 @@ namespace MisterGames.Common.Pooling {
 
         private void OnDisable() {
             SceneManager.activeSceneChanged -= OnActiveSceneChanged;
+        }
+
+        private void CreateDisabledRoot() {
+            var disabledRoot = new GameObject("DisabledRoot");
+            disabledRoot.SetActive(false);
+            _disabledRoot = disabledRoot.transform;
+            _disabledRoot.SetParent(PoolRoot, false);
         }
 
         private async UniTask StartAutoPoolChecks(CancellationToken cancellationToken) {
@@ -238,7 +249,7 @@ namespace MisterGames.Common.Pooling {
             t.SetParent(parent, worldPositionStays);
             if (setupPositionAndRotation) t.SetPositionAndRotation(position, rotation);
             t.localScale = prefab.transform.localScale;
-            
+
             instance.SetActive(active);
             
             if (instance.TryGetComponent(out PoolElement poolElement)) {
@@ -306,8 +317,10 @@ namespace MisterGames.Common.Pooling {
         }
 
         private GameObject CreatePoolObject(GameObject prefab) {
-            var instance = Instantiate(prefab, Vector3.zero, Quaternion.identity, PoolRoot);
+            var instance = Instantiate(prefab, Vector3.zero, Quaternion.identity, _disabledRoot);
+            
             instance.name = prefab.name;
+            instance.SetActive(false);
             
             return instance;
         }

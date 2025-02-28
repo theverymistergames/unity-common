@@ -354,11 +354,12 @@ namespace MisterGames.Common.Audio {
             audioElement.Id = id;
             audioElement.AudioOptions = options;
             audioElement.Pitch = pitch;
+            audioElement.OcclusionFlag = 0;
+            
             audioElement.LowPass.lowpassResonanceQ = _qLow;
             audioElement.HighPass.highpassResonanceQ = _qHigh;
             audioElement.LowPass.cutoffFrequency = 22000f;
             audioElement.HighPass.cutoffFrequency = 10f;
-            audioElement.OcclusionFlag = 0;
         }
         
         private IAudioElement GetAudioElementAtWorldPosition(Vector3 position) {
@@ -366,9 +367,7 @@ namespace MisterGames.Common.Audio {
         }
 
         private IAudioElement GetAudioElementAttached(Transform parent, Vector3 localPosition = default) {
-            var audioSource = PrefabPool.Main.Get(_prefab, parent);
-            audioSource.transform.SetLocalPositionAndRotation(localPosition, Quaternion.identity);
-            return audioSource;
+            return PrefabPool.Main.Get(_prefab, parent.TransformPoint(localPosition), Quaternion.identity, parent);
         }
 
         private async UniTask StartLastClipIndexUpdates(CancellationToken cancellationToken) {
