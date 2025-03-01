@@ -1,11 +1,11 @@
-﻿using UnityEngine;
+﻿using MisterGames.Common.Easing;
+using UnityEngine;
 
 namespace MisterGames.Common.Inputs {
     
     public class GamepadVibrationTest : MonoBehaviour {
         
-        [Range(0f, 1f)] public float low;
-        [Range(0f, 1f)] public float high;
+        public OscillatedCurve[] clips;
         
         private void OnEnable() {
             DeviceService.Instance.GamepadVibration.Register(this, 0);
@@ -16,7 +16,7 @@ namespace MisterGames.Common.Inputs {
         }
 
         public void Update() {
-            DeviceService.Instance.GamepadVibration.SetFrequency(this, new Vector2(low, high));
+            //DeviceService.Instance.GamepadVibration.SetTwoMotors(this, new Vector2(low, high));
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using MisterGames.Common.Maths;
 using UnityEngine;
 
 namespace MisterGames.Common.Inputs {
@@ -8,10 +9,10 @@ namespace MisterGames.Common.Inputs {
         private readonly struct Data {
             
             public readonly int priority;
-            public readonly float weight;
+            public readonly Vector2 weight;
             public readonly Vector2 frequency;
             
-            public Data(int priority, float weight, Vector2 frequency) {
+            public Data(int priority, Vector2 weight = default, Vector2 frequency = default) {
                 this.priority = priority;
                 this.weight = weight;
                 this.frequency = frequency;
@@ -26,7 +27,7 @@ namespace MisterGames.Common.Inputs {
             int hash = source.GetHashCode();
             _dataMap[hash] = _dataMap.TryGetValue(hash, out var data) 
                 ? new Data(priority, data.weight, data.frequency)
-                : new Data(priority, weight: 0f, Vector2.zero);
+                : new Data(priority);
 
             _topPriority = GetTopPriority();
             _resultFrequency = BuildResultFrequency(_topPriority);
@@ -41,11 +42,31 @@ namespace MisterGames.Common.Inputs {
             ApplyFrequency(_resultFrequency);
         }
 
-        public void SetFrequency(object source, Vector2 frequency, float weight = 1f) {
+        public void SetTwoMotors(object source, Vector2 frequency, float weight = 1f) {
             int hash = source.GetHashCode();
             if (!_dataMap.TryGetValue(hash, out var data)) return;
             
-            _dataMap[hash] = new Data(data.priority, weight, frequency);
+            _dataMap[hash] = new Data(data.priority, weight * Vector2.one, frequency);
+            
+            _resultFrequency = BuildResultFrequency(_topPriority);
+            ApplyFrequency(_resultFrequency);
+        }
+        
+        public void SetLeftMotor(object source, float frequency, float weight = 1f) {
+            int hash = source.GetHashCode();
+            if (!_dataMap.TryGetValue(hash, out var data)) return;
+            
+            _dataMap[hash] = new Data(data.priority, data.weight.WithX(weight), data.frequency.WithX(frequency));
+            
+            _resultFrequency = BuildResultFrequency(_topPriority);
+            ApplyFrequency(_resultFrequency);
+        }
+        
+        public void SetRightMotor(object source, float frequency, float weight = 1f) {
+            int hash = source.GetHashCode();
+            if (!_dataMap.TryGetValue(hash, out var data)) return;
+            
+            _dataMap[hash] = new Data(data.priority, data.weight.WithY(weight), data.frequency.WithY(frequency));
             
             _resultFrequency = BuildResultFrequency(_topPriority);
             ApplyFrequency(_resultFrequency);
@@ -56,7 +77,7 @@ namespace MisterGames.Common.Inputs {
                 DeviceService.Instance.DualSenseAdapter.SetRumble(frequency);
                 return;
             } 
-            return;
+            
             if (DeviceService.Instance.TryGetGamepad(out var gamepad)) {
                 gamepad.SetMotorSpeeds(frequency.x, frequency.y);   
             }
@@ -64,16 +85,21 @@ namespace MisterGames.Common.Inputs {
 
         private Vector2 BuildResultFrequency(int minPriority) {
             var frequency = Vector2.zero;
-            float weightSum = 0f;
+            var weightSum = Vector2.zero;
             
             foreach (var data in _dataMap.Values) {
                 if (data.priority < minPriority) continue;
                 
-                weightSum += data.weight;
-                frequency += data.frequency * data.weight;
+                var w = data.weight.Abs();
+                
+                weightSum += w;
+                frequency += data.frequency * w;
             }
-            
-            return weightSum > 0f ? frequency / weightSum : default;
+
+            return new Vector2(
+                weightSum.x > 0f ? frequency.x / weightSum.x : 0f,
+                weightSum.y > 0f ? frequency.y / weightSum.y : 0f  
+            );
         }
 
         private int GetTopPriority() {
