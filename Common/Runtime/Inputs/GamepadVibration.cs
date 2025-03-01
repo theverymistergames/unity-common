@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using MisterGames.Common.Maths;
 using UnityEngine;
 
@@ -47,28 +48,36 @@ namespace MisterGames.Common.Inputs {
             if (!_dataMap.TryGetValue(hash, out var data)) return;
             
             _dataMap[hash] = new Data(data.priority, weight * Vector2.one, frequency);
-            
             _resultFrequency = BuildResultFrequency(_topPriority);
+            
             ApplyFrequency(_resultFrequency);
         }
-        
-        public void SetLeftMotor(object source, float frequency, float weight = 1f) {
+
+        public void SetMotor(object source, GamepadMotor motor, float frequency, float weight = 1f) {
             int hash = source.GetHashCode();
             if (!_dataMap.TryGetValue(hash, out var data)) return;
+
+            var f = data.frequency;
+            var w = data.weight;
+
+            switch (motor) {
+                case GamepadMotor.Left:
+                    f = f.WithX(frequency);
+                    w = w.WithX(weight);
+                    break;
+                
+                case GamepadMotor.Right:
+                    f = f.WithY(frequency);
+                    w = w.WithY(weight);
+                    break;
+                
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(motor), motor, null);
+            }
             
-            _dataMap[hash] = new Data(data.priority, data.weight.WithX(weight), data.frequency.WithX(frequency));
-            
+            _dataMap[hash] = new Data(data.priority, w, f);
             _resultFrequency = BuildResultFrequency(_topPriority);
-            ApplyFrequency(_resultFrequency);
-        }
-        
-        public void SetRightMotor(object source, float frequency, float weight = 1f) {
-            int hash = source.GetHashCode();
-            if (!_dataMap.TryGetValue(hash, out var data)) return;
             
-            _dataMap[hash] = new Data(data.priority, data.weight.WithY(weight), data.frequency.WithY(frequency));
-            
-            _resultFrequency = BuildResultFrequency(_topPriority);
             ApplyFrequency(_resultFrequency);
         }
 
