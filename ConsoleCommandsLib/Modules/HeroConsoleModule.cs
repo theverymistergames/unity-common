@@ -84,35 +84,35 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
                 ConsoleRunner.AppendLine($"[{i + 1}] {spawn.gameObject.name} : {spawn.transform.position}");
             }
         }
-        
-        [ConsoleHotkey("hero/spawni 0", KeyBinding.A0, ShortcutModifiers.Alt)]
+
+        [ConsoleHotkey("hero/spawni 0", KeyBinding.A0, ShortcutModifiers.Shift)]
         public void SpawnAtPointByIndex0() { }
 
-        [ConsoleHotkey("hero/spawni 1", KeyBinding.A1, ShortcutModifiers.Alt)]
+        [ConsoleHotkey("hero/spawni 1", KeyBinding.A1, ShortcutModifiers.Shift)]
         public void SpawnAtPointByIndex1() { }
         
-        [ConsoleHotkey("hero/spawni 2", KeyBinding.A2, ShortcutModifiers.Alt)]
+        [ConsoleHotkey("hero/spawni 2", KeyBinding.A2, ShortcutModifiers.Shift)]
         public void SpawnAtPointByIndex2() { }
         
-        [ConsoleHotkey("hero/spawni 3", KeyBinding.A3, ShortcutModifiers.Alt)]
+        [ConsoleHotkey("hero/spawni 3", KeyBinding.A3, ShortcutModifiers.Shift)]
         public void SpawnAtPointByIndex3() { }
         
-        [ConsoleHotkey("hero/spawni 4", KeyBinding.A4, ShortcutModifiers.Alt)]
+        [ConsoleHotkey("hero/spawni 4", KeyBinding.A4, ShortcutModifiers.Shift)]
         public void SpawnAtPointByIndex4() { }
         
-        [ConsoleHotkey("hero/spawni 5", KeyBinding.A5, ShortcutModifiers.Alt)]
+        [ConsoleHotkey("hero/spawni 5", KeyBinding.A5, ShortcutModifiers.Shift)]
         public void SpawnAtPointByIndex5() { }
         
-        [ConsoleHotkey("hero/spawni 6", KeyBinding.A6, ShortcutModifiers.Alt)]
+        [ConsoleHotkey("hero/spawni 6", KeyBinding.A6, ShortcutModifiers.Shift)]
         public void SpawnAtPointByIndex6() { }
         
-        [ConsoleHotkey("hero/spawni 7", KeyBinding.A7, ShortcutModifiers.Alt)]
+        [ConsoleHotkey("hero/spawni 7", KeyBinding.A7, ShortcutModifiers.Shift)]
         public void SpawnAtPointByIndex7() { }
         
-        [ConsoleHotkey("hero/spawni 8", KeyBinding.A8, ShortcutModifiers.Alt)]
+        [ConsoleHotkey("hero/spawni 8", KeyBinding.A8, ShortcutModifiers.Shift)]
         public void SpawnAtPointByIndex8() { }
         
-        [ConsoleHotkey("hero/spawni 9", KeyBinding.A9, ShortcutModifiers.Alt)]
+        [ConsoleHotkey("hero/spawni 9", KeyBinding.A9, ShortcutModifiers.Shift)]
         public void SpawnAtPointByIndex9() { }
 
         private CharacterSpawnPoint[] GetSpawnPoints() {
