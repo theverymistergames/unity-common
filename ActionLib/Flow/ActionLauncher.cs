@@ -83,6 +83,13 @@ namespace MisterGames.ActionLib.Flow {
         private CancellationToken GetCancellationToken() {
             return _cancelOnDisable ? _enableCts.Token : destroyCancellationToken;
         }
+
+#if UNITY_EDITOR
+        [Button]
+        private void LaunchManual() {
+            Launch(destroyCancellationToken).Forget();
+        }
+#endif
     }
     
 }

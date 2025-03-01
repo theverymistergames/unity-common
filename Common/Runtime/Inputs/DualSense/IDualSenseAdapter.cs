@@ -9,8 +9,7 @@ namespace MisterGames.Common.Inputs.DualSense {
         ControllerInputState GetInputState(int index = 0);
         
         void SetRumble(Vector2 rumble, int index = 0);
-        void SetRightTriggerEffect(TriggerEffect effect, int index = 0);
-        void SetLeftTriggerEffect(TriggerEffect effect, int index = 0);
+        void SetTriggerEffect(GamepadSide side, TriggerEffect effect, int index = 0);
     }
     
 }

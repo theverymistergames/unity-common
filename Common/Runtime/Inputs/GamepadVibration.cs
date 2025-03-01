@@ -53,26 +53,26 @@ namespace MisterGames.Common.Inputs {
             ApplyFrequency(_resultFrequency);
         }
 
-        public void SetMotor(object source, GamepadMotor motor, float frequency, float weight = 1f) {
+        public void SetMotor(object source, GamepadSide side, float frequency, float weight = 1f) {
             int hash = source.GetHashCode();
             if (!_dataMap.TryGetValue(hash, out var data)) return;
 
             var f = data.frequency;
             var w = data.weight;
 
-            switch (motor) {
-                case GamepadMotor.Left:
+            switch (side) {
+                case GamepadSide.Left:
                     f = f.WithX(frequency);
                     w = w.WithX(weight);
                     break;
                 
-                case GamepadMotor.Right:
+                case GamepadSide.Right:
                     f = f.WithY(frequency);
                     w = w.WithY(weight);
                     break;
                 
                 default:
-                    throw new ArgumentOutOfRangeException(nameof(motor), motor, null);
+                    throw new ArgumentOutOfRangeException(nameof(side), side, null);
             }
             
             _dataMap[hash] = new Data(data.priority, w, f);

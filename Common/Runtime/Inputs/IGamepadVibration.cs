@@ -8,7 +8,7 @@ namespace MisterGames.Common.Inputs {
         void Unregister(object source);
         
         void SetTwoMotors(object source, Vector2 frequency, float weightLeft = 1f, float weightRight = 1f);
-        void SetMotor(object source, GamepadMotor motor, float frequency, float weight = 1f);
+        void SetMotor(object source, GamepadSide side, float frequency, float weight = 1f);
     }
     
 }

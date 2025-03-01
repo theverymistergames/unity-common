@@ -1,6 +1,6 @@
 ﻿namespace MisterGames.Common.Inputs {
     
-    public enum GamepadMotor {
+    public enum GamepadSide {
         Left,
         Right,
     }
