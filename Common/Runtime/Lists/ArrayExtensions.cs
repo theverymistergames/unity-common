@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem.Utilities;
 using Random = UnityEngine.Random;
 
 namespace MisterGames.Common.Lists {
@@ -94,9 +95,61 @@ namespace MisterGames.Common.Lists {
             return sum / count;
         }
 
+        public static bool Any<T>(this ReadOnlyArray<T> list, Func<T, bool> predicate) {
+            return TryFind(list, predicate, out _);
+        }
+        
+        public static bool Any<T>(this IReadOnlyList<T> list, Func<T, bool> predicate) {
+            return TryFind(list, predicate, out _);
+        }
+        
+        public static bool Any<T, S>(this ReadOnlyArray<T> list, S data, Func<T, S, bool> predicate) {
+            return TryFind(list, data, predicate, out _);
+        }
+        
+        public static bool Any<T, S>(this IReadOnlyList<T> list, S data, Func<T, S, bool> predicate) {
+            return TryFind(list, data, predicate, out _);
+        }
+        
+        public static bool Contains<T>(this IReadOnlyList<T> list, T element) {
+            int count = list.Count;
+            for (int i = 0; i < count; i++) {
+                if (EqualityComparer<T>.Default.Equals(list![i], element)) return true;
+            }
+
+            return false;
+        }
+        
+        public static bool TryFind<T>(this ReadOnlyArray<T> list, Func<T, bool> predicate, out T value) {
+            int count = list.Count;
+            for (int i = 0; i < count; i++) {
+                var t = list[i];
+                if (!predicate.Invoke(t)) continue;
+                
+                value = t;
+                return true;
+            }
+
+            value = default;
+            return false;
+        }
+        
+        public static bool TryFind<T, S>(this ReadOnlyArray<T> list, S data, Func<T, S, bool> predicate, out T value) {
+            int count = list.Count;
+            for (int i = 0; i < count; i++) {
+                var t = list[i];
+                if (!predicate.Invoke(t, data)) continue;
+                
+                value = t;
+                return true;
+            }
+
+            value = default;
+            return false;
+        }
+        
         public static bool TryFind<T>(this IReadOnlyList<T> list, Func<T, bool> predicate, out T value) {
-            int count = list?.Count ?? 0;
-            
+            int count = list.Count;
             for (int i = 0; i < count; i++) {
                 var t = list![i];
                 if (!predicate.Invoke(t)) continue;
@@ -110,8 +163,7 @@ namespace MisterGames.Common.Lists {
         }
         
         public static bool TryFind<T, S>(this IReadOnlyList<T> list, S data, Func<T, S, bool> predicate, out T value) {
-            int count = list?.Count ?? 0;
-            
+            int count = list.Count;
             for (int i = 0; i < count; i++) {
                 var t = list![i];
                 if (!predicate.Invoke(t, data)) continue;
@@ -124,20 +176,48 @@ namespace MisterGames.Common.Lists {
             return false;
         }
         
+        public static int TryFindIndex<T>(this ReadOnlyArray<T> list, Func<T, bool> predicate) {
+            int count = list.Count;
+            for (int i = 0; i < count; i++) {
+                if (predicate.Invoke(list[i])) return i;
+            }
+            
+            return -1;
+        }
+        
+        public static int TryFindIndex<T, S>(this ReadOnlyArray<T> list, S data, Func<T, S, bool> predicate) {
+            int count = list.Count;
+            for (int i = 0; i < count; i++) {
+                if (predicate.Invoke(list[i], data)) return i;
+            }
+            
+            return -1;
+        }
+        
+        public static int TryFindIndex<T>(this IReadOnlyList<T> list, Func<T, bool> predicate) {
+            int count = list.Count;
+            for (int i = 0; i < count; i++) {
+                if (predicate.Invoke(list![i])) return i;
+            }
+
+            return -1;
+        }
+        
+        public static int TryFindIndex<T, S>(this IReadOnlyList<T> list, S data, Func<T, S, bool> predicate) {
+            int count = list.Count;
+            for (int i = 0; i < count; i++) {
+                if (predicate.Invoke(list![i], data)) return i;
+            }
+
+            return -1;
+        }
+        
         public static T FirstOrDefault<T>(this IReadOnlyList<T> list, Func<T, bool> predicate, T defaultValue = default) {
             return TryFind(list, predicate, out var value) ? value : defaultValue;
         }
         
         public static T FirstOrDefault<T, S>(this IReadOnlyList<T> list, S data, Func<T, S, bool> predicate, T defaultValue = default) {
             return TryFind(list, data, predicate, out var value) ? value : defaultValue;
-        }
-        
-        public static bool Contains<T>(this IReadOnlyList<T> list, T value) {
-            for (int i = 0; i < list.Count; i++) {
-                if (EqualityComparer<T>.Default.Equals(list[i], value)) return true;
-            }
-
-            return false;
         }
 
         public static T GetRandom<T>(this IReadOnlyList<T> list, int tryExcludeIndex = -1) {
