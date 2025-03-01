@@ -9,11 +9,17 @@ namespace MisterGames.ActionLib.Libs {
     
     [Serializable]
     public sealed class LibraryAction : IActorAction {
-
-        public LabelValue<IActorAction> action;
         
+        public LabelValue<IActorAction> action;
+        public bool waitAction = true;
+
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            return action.GetData()?.Apply(context, cancellationToken) ?? UniTask.CompletedTask;
+            if (waitAction) {
+                return action.GetData()?.Apply(context, cancellationToken) ?? UniTask.CompletedTask;
+            }
+            
+            action.GetData()?.Apply(context, cancellationToken).Forget();
+            return default;
         }
     }
     

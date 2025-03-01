@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using MisterGames.Common.Attributes;
+using MisterGames.Common.Data;
 
 namespace MisterGames.Common.Inputs.DualSense
 {
@@ -43,6 +45,22 @@ namespace MisterGames.Common.Inputs.DualSense
    [Serializable]
    public struct TriggerEffect {
       
+      public TriggerEffectType EffectType;
+      [VisibleIf(nameof(EffectType), value: 0, CompareMode.Greater)]
+      public double StartPosition;
+      [VisibleIf(nameof(EffectType), value: 2)]
+      public double EndPosition;
+      [VisibleIf(nameof(EffectType), value: 0, CompareMode.Greater)]
+      public double BeginForce;
+      [VisibleIf(nameof(EffectType), value: 3)]
+      public double MiddleForce;
+      [VisibleIf(nameof(EffectType), value: 3)]
+      public double EndForce;
+      [VisibleIf(nameof(EffectType), value: 3)]
+      public double Frequency;
+      [VisibleIf(nameof(EffectType), value: 3)]
+      [MarshalAs(UnmanagedType.I1)] public bool KeepEffect;
+      
       public void InitializeNoResistanceEffect() {
          EffectType = TriggerEffectType.NoResistance;
       }
@@ -69,16 +87,6 @@ namespace MisterGames.Common.Inputs.DualSense
          Frequency = frequency;
          KeepEffect = keepEffect;
       }
-
-      public TriggerEffectType EffectType;
-      public double StartPosition;
-      public double EndPosition;
-      public double BeginForce;
-      public double MiddleForce;
-      public double EndForce;
-      public double Frequency;
-      [MarshalAs(UnmanagedType.I1)]
-      public bool KeepEffect;
    }
    
 }

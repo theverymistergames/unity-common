@@ -120,7 +120,7 @@ namespace MisterGames.Common.Editor.SerializedProperties {
         
         private static object GetPathComponentValue(object container, PropertyPathComponent component) {
             return component.propertyName == null 
-                ? ((IList) container)[component.elementIndex] 
+                ? (container as IList)?[component.elementIndex] 
                 : GetMemberValue(container, component.propertyName);
         }
 

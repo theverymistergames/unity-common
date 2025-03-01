@@ -71,7 +71,51 @@ namespace MisterGames.Common.Inputs.DualSense {
             
             DualSenseNative.SetControllerOutputState((uint) index, state);
         }
-        
+
+        public void SetRightTriggerEffect(TriggerEffect effect, int index = 0) {
+            if (_replicateOutputStateForAllControllers) {
+                for (uint i = 0; i < _controllerCount; i++) {
+                    ref var s = ref _outputStates[i];
+                    
+                    s.RightTriggerEffect = effect;
+
+                    DualSenseNative.SetControllerOutputState(i, s);
+                }
+                
+                return;
+            }
+            
+            if (index < 0 || index >= _controllerCount) return;
+            
+            ref var state = ref _outputStates[index];
+            
+            state.RightTriggerEffect = effect;
+            
+            DualSenseNative.SetControllerOutputState((uint) index, state);
+        }
+
+        public void SetLeftTriggerEffect(TriggerEffect effect, int index = 0) {
+            if (_replicateOutputStateForAllControllers) {
+                for (uint i = 0; i < _controllerCount; i++) {
+                    ref var s = ref _outputStates[i];
+                    
+                    s.LeftTriggerEffect = effect;
+
+                    DualSenseNative.SetControllerOutputState(i, s);
+                }
+                
+                return;
+            }
+            
+            if (index < 0 || index >= _controllerCount) return;
+            
+            ref var state = ref _outputStates[index];
+            
+            state.LeftTriggerEffect = effect;
+            
+            DualSenseNative.SetControllerOutputState((uint) index, state);
+        }
+
         private async UniTask StartControllersCountChecks(CancellationToken cancellationToken) {
             while (!cancellationToken.IsCancellationRequested) {
                 UpdateOutputStates(DualSenseNative.GetControllerCount());

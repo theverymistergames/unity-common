@@ -21,8 +21,16 @@ namespace MisterGames.Common.Editor.Drawers {
             EditorGUI.EndProperty();
 
             if (!property.isExpanded) return;
-            
-            var curve = (OscillatedCurve) property.GetValue();
+
+            var curve = new OscillatedCurve {
+                curve0 = property.FindPropertyRelative(nameof(OscillatedCurve.curve0)).animationCurveValue,
+                curve1 = property.FindPropertyRelative(nameof(OscillatedCurve.curve1)).animationCurveValue,
+                scale0 = property.FindPropertyRelative(nameof(OscillatedCurve.scale0)).floatValue,
+                scale1 = property.FindPropertyRelative(nameof(OscillatedCurve.scale1)).floatValue,
+                oscillateFreq0 = property.FindPropertyRelative(nameof(OscillatedCurve.oscillateFreq0)).floatValue,
+                oscillateFreq1 = property.FindPropertyRelative(nameof(OscillatedCurve.oscillateFreq1)).floatValue,
+                oscillateThr = property.FindPropertyRelative(nameof(OscillatedCurve.oscillateThr)).floatValue,
+            };
 
             float max = float.MinValue;
             float min = float.MaxValue;

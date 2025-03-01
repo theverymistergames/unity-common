@@ -51,9 +51,20 @@ namespace MisterGames.Common.Editor.Drawers {
             
             GUI.Label(rect, label);
 
+            rect = position;
+            offset = EditorGUIUtility.labelWidth + 2f;
+            rect.x += offset;
+            rect.width -= offset;
+            
             var libraryProperty = property.FindPropertyRelative(LibraryPropertyPath); 
-            var idProperty = property.FindPropertyRelative(IdPropertyPath); 
+            var idProperty = property.FindPropertyRelative(IdPropertyPath);
 
+            if (libraryProperty == null || idProperty == null) {
+                GUI.Label(rect, $"Error: {property.propertyPath} is not a LabelValue");
+                EditorGUI.EndProperty();
+                return;
+            }
+            
             var library = libraryProperty.objectReferenceValue as LabelLibraryBase;
             int id = idProperty.intValue;
 
@@ -64,11 +75,6 @@ namespace MisterGames.Common.Editor.Drawers {
                 property.serializedObject.ApplyModifiedProperties();
                 property.serializedObject.Update();
             }
-
-            rect = position;
-            offset = EditorGUIUtility.labelWidth + 2f;
-            rect.x += offset;
-            rect.width -= offset;
             
             if (EditorGUI.DropdownButton(rect, GetDropdownLabel(library, id), FocusType.Keyboard)) {
                 var dropdown = new AdvancedDropdown<Entry>(

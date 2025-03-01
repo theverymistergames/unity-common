@@ -43,11 +43,11 @@ namespace MisterGames.Common.Inputs {
             ApplyFrequency(_resultFrequency);
         }
 
-        public void SetTwoMotors(object source, Vector2 frequency, float weight = 1f) {
+        public void SetTwoMotors(object source, Vector2 frequency, float weightLeft = 1f, float weightRight = 1f) {
             int hash = source.GetHashCode();
             if (!_dataMap.TryGetValue(hash, out var data)) return;
             
-            _dataMap[hash] = new Data(data.priority, weight * Vector2.one, frequency);
+            _dataMap[hash] = new Data(data.priority, new Vector2(weightLeft, weightRight), frequency);
             _resultFrequency = BuildResultFrequency(_topPriority);
             
             ApplyFrequency(_resultFrequency);
