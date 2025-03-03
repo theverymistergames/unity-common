@@ -3,6 +3,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Maths;
+using MisterGames.Common.Tick;
 using UnityEngine;
 
 namespace MisterGames.Tweens {
@@ -166,8 +167,20 @@ namespace MisterGames.Tweens {
                 return;
             }
 
+#if UNITY_EDITOR
+            float time = Time.realtimeSinceStartup;
+#endif
+            
             while (!cancellationToken.IsCancellationRequested && id == _trackProgressId) {
                 float dt = Time.deltaTime;
+
+#if UNITY_EDITOR
+                if (!Application.isPlaying) {
+                    dt = Time.realtimeSinceStartup - time;
+                    time = Time.realtimeSinceStartup;
+                }
+#endif
+                
                 float oldProgress = _progress;
                 _progress = Mathf.Clamp01(_progress + dt * speed / duration);
 

@@ -103,8 +103,21 @@ namespace MisterGames.Tweens {
 
             speed /= duration;
             
+#if UNITY_EDITOR
+            float time = Time.realtimeSinceStartup;
+#endif
+            
             while (!cancellationToken.IsCancellationRequested) {
-                linearProgress = Mathf.Clamp01(linearProgress + Time.deltaTime * speed);
+                float dt = Time.deltaTime;
+
+#if UNITY_EDITOR
+                if (!Application.isPlaying) {
+                    dt = Time.realtimeSinceStartup - time;
+                    time = Time.realtimeSinceStartup;
+                }
+#endif
+                
+                linearProgress = Mathf.Clamp01(linearProgress + dt * speed);
                 
                 float oldProgress = progress;
                 progress = progressModifier.Invoke(linearProgress);
@@ -151,8 +164,21 @@ namespace MisterGames.Tweens {
 
             speed /= duration;
 
+#if UNITY_EDITOR
+            float time = Time.realtimeSinceStartup;
+#endif
+            
             while (!cancellationToken.IsCancellationRequested) {
-                linearProgress = Mathf.Clamp01(linearProgress + Time.deltaTime * speed);
+                float dt = Time.deltaTime;
+
+#if UNITY_EDITOR
+                if (!Application.isPlaying) {
+                    dt = Time.realtimeSinceStartup - time;
+                    time = Time.realtimeSinceStartup;
+                }
+#endif
+                
+                linearProgress = Mathf.Clamp01(linearProgress + dt * speed);
                 
                 float oldProgress = progress;
                 progress = progressModifier.Invoke(data, linearProgress);
