@@ -42,11 +42,15 @@ namespace MisterGames.Character.Interactives {
         public void SetSmoothing(float smoothing) {
             _weightSmoothing = smoothing;
         }
-        
-        private void OnEnable() {
-            _cameraShaker = CharacterSystem.Instance.GetCharacter().GetComponent<CameraShaker>();
-            _cameraContainer = CharacterSystem.Instance.GetCharacter().GetComponent<CameraContainer>();
 
+        private void Awake() {
+            var character = CharacterSystem.Instance.GetCharacter();
+            
+            _cameraShaker = character.GetComponent<CameraShaker>();
+            _cameraContainer = character.GetComponent<CameraContainer>();
+        }
+
+        private void OnEnable() {
             Register();
             PlayerLoopStage.LateUpdate.Subscribe(this);
         }
@@ -56,7 +60,7 @@ namespace MisterGames.Character.Interactives {
         }
 
         private void Register() {
-            if (_isRegistered) return;
+            if (_isRegistered || _cameraShaker == null || _cameraContainer == null) return;
             
             _shakerStateId = _cameraShaker.CreateState(_weightSmoothed);
             _containerStateId = _cameraContainer.CreateState();
@@ -64,7 +68,7 @@ namespace MisterGames.Character.Interactives {
         }
 
         private void Unregister() {
-            if (!_isRegistered) return;
+            if (!_isRegistered || _cameraShaker == null || _cameraContainer == null) return;
             
             _cameraShaker.RemoveState(_shakerStateId);
             _cameraContainer.RemoveState(_containerStateId);
@@ -88,6 +92,14 @@ namespace MisterGames.Character.Interactives {
             Unregister();
             PlayerLoopStage.LateUpdate.Unsubscribe(this);
         }
+        
+#if UNITY_EDITOR
+        private void OnValidate() {
+            if (!Application.isPlaying) return;
+            
+            SetWeight(_targetWeight);
+        }
+#endif
     }
     
 }

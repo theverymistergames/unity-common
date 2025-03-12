@@ -63,9 +63,9 @@ namespace MisterGames.Common.Maths {
         /// Returns sine of 2 * pi * t multiplied by frequency that is linearly interpolated from f0 to f1 depending on t.
         /// If abs of result is less than threshold thr, result sign is used instead.
         /// </summary>
-        public static float Oscillate(float t, float f0, float f1, float thr) {
+        public static float Oscillate(float t, float f0, float f1, float thr, float phase = 0f) {
             float f = f0 + (f1 - f0) * t;
-            float v = Mathf.Sin(2f * Mathf.PI * t * f);
+            float v = Mathf.Sin(2f * Mathf.PI * (t * f + phase));
             return Mathf.Abs(v) < thr ? v : Mathf.Sign(v);
         }
     }

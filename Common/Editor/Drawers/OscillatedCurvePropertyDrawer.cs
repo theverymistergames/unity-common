@@ -30,6 +30,7 @@ namespace MisterGames.Common.Editor.Drawers {
                 oscillateFreq0 = property.FindPropertyRelative(nameof(OscillatedCurve.oscillateFreq0)).floatValue,
                 oscillateFreq1 = property.FindPropertyRelative(nameof(OscillatedCurve.oscillateFreq1)).floatValue,
                 oscillateThr = property.FindPropertyRelative(nameof(OscillatedCurve.oscillateThr)).floatValue,
+                phase = property.FindPropertyRelative(nameof(OscillatedCurve.phase)).floatValue, 
             };
 
             float max = float.MinValue;
