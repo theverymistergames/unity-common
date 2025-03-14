@@ -6,6 +6,9 @@ using MisterGames.Common.Strings;
 
 namespace MisterGames.Common.Trees {
 
+    /// <summary>
+    /// Creates a tree with branches (nodes that have children) and leafs (without children) based on provided path.
+    /// </summary>
     public static class PathTree {
 
         public readonly struct Node<T> {
@@ -19,7 +22,7 @@ namespace MisterGames.Common.Trees {
             }
 
             public override string ToString() {
-                return $"{nameof(Node<T>)}(name {name})";
+                return $"{nameof(Node<T>)}({name}, data {data})";
             }
         }
 
@@ -45,6 +48,8 @@ namespace MisterGames.Common.Trees {
                 .ThenBy(e => e.data.name);
         }
 
+        // First disable usages from static constructors, then add logs:
+        // static constructors are invoked during compilation and may cause infinite loop in importing assets.
         private static List<TreeEntry<Node<T>>> GetChildren<T>(
             string parent,
             IReadOnlyList<T> elements,
@@ -56,12 +61,14 @@ namespace MisterGames.Common.Trees {
             var sb = new StringBuilder();
             var nodes = new List<TreeEntry<Node<T>>>();
             var folderNameHashesSet = new HashSet<int>();
-
+            
             for (int i = 0; i < elements.Count; i++) {
                 var element = elements[i];
                 string path = getPath.Invoke(element);
 
-                if (!path.IsSubPathOf(parent, separator)) continue;
+                if (path == null || path == parent || !path.IsSubPathOf(parent, separator)) {
+                    continue;
+                }
 
                 string[] pathParts = path.Split(separator);
                 int pathDepth = pathParts.Length;
@@ -74,6 +81,7 @@ namespace MisterGames.Common.Trees {
                         level = level,
                         children = new List<TreeEntry<Node<T>>>(),
                     });
+                    
                     continue;
                 }
 

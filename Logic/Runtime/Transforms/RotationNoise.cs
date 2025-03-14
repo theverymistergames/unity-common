@@ -1,13 +1,17 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using MisterGames.Common.Attributes;
-using MisterGames.Common.Data;
+using MisterGames.Common.Easing;
 using MisterGames.Common.GameObjects;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Tick;
-using UnityEditor;
+using MisterGames.Common.Trees;
 using UnityEngine;
+using UnityEngine.Pool;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace MisterGames.Logic.Transforms {
     
@@ -24,26 +28,36 @@ namespace MisterGames.Logic.Transforms {
         [SerializeField] private float _noiseSpeedMul = 1f;
         [SerializeField] private float _noiseAmplitude = 1f;
 
-        [HideInInspector]
-        [SerializeField] private Quaternion[] _originLocalRotations;
+        [Header("Hierarchy")]
+        [SerializeField] private float _hierarchyLevelMul;
+        [SerializeField] private AnimationCurve _hierarchyLevelCurve = EasingType.Linear.ToAnimationCurve();
         
+        [HideInInspector] [SerializeField] private Quaternion[] _originLocalRotations;
+        [HideInInspector] [SerializeField] private TargetData[] _targetDataArray;
+        [HideInInspector] [SerializeField] private int _minLevel = 1;
+        [HideInInspector] [SerializeField] private int _maxLevel = 1;
+
         [Serializable]
         private struct TargetLimit {
             public Transform target;
             public Vector3 mul;
         }
+
+        [Serializable]
+        private struct TargetData {
+            public Vector3 mul;
+            public int level;
+        }
         
         public float NoiseSpeed { get => _noiseSpeedMul; set => SetNoiseScale(_noiseSpeedMul, value); }
         public float NoiseAmplitude { get => _noiseAmplitude; set => SetNoiseAmplitude(value); }
 
-        private readonly Dictionary<int, Vector3> _limitsMap = new();
-        
         private float _noiseScaleOffset;
         private float _noiseScaleTime;
         
         private void Awake() {
             FetchInitialRotations();
-            FetchLimits();
+            FetchTargetData();
         }
 
         private void OnEnable() {
@@ -91,38 +105,85 @@ namespace MisterGames.Logic.Transforms {
             
             for (int i = 0; i < _targets.Length; i++) {
                 var target = _targets[i];
+                ref var data = ref _targetDataArray[i];
                 
-                var mul = _limitsMap.GetValueOrDefault(target.GetInstanceID(), Vector3.one).Multiply(noiseMul);
                 var rotationNoise = new Vector3(
                     Mathf.PerlinNoise1D(t + (i + 1) * _noiseOffset.x) - 0.5f,
                     Mathf.PerlinNoise1D(t + (i + 1) * _noiseOffset.y) - 0.5f,
                     Mathf.PerlinNoise1D(t + (i + 1) * _noiseOffset.z) - 0.5f
                 );
+
+                float levelT = _maxLevel > _minLevel ? (float) (data.level - _minLevel) / (_maxLevel - _minLevel) : 0f;
+                float levelMul = _hierarchyLevelCurve.Evaluate(levelT) * _hierarchyLevelMul + 1f;
                 
-                target.localRotation = _originLocalRotations[i] * Quaternion.Euler(rotationNoise.Multiply(mul));
+                target.localRotation = _originLocalRotations[i] * 
+                                       Quaternion.Euler(rotationNoise.Multiply(data.mul).Multiply(noiseMul) * levelMul);
             }
         }
 
-        private void FetchInitialRotations() {
-            if (_originLocalRotations != null && _originLocalRotations.Length == _targets.Length) return;
+        private void FetchInitialRotations(bool force = false) {
+            if (_originLocalRotations != null && _originLocalRotations.Length == _targets.Length && !force) return;
             
-            _originLocalRotations = new Quaternion[_targets.Length];
-                
-            for (int i = 0; i < _originLocalRotations.Length; i++) {
+            int dataCount = _originLocalRotations?.Length ?? 0;
+            if (_targets.Length != dataCount) _originLocalRotations = new Quaternion[_targets.Length];
+            
+            for (int i = 0; i < _originLocalRotations!.Length; i++) {
                 var t = _targets[i];
                 if (t == null) continue;
                 
                 _originLocalRotations[i] = t.localRotation;
             }
+            
+#if UNITY_EDITOR
+            EditorUtility.SetDirty(this);
+#endif
         }
 
-        private void FetchLimits() {
-            _limitsMap.Clear();
-            
-            for (int i = 0; i < _limits?.Length; i++) {
-                var data = _limits[i];
-                _limitsMap[data.target.GetInstanceID()] = data.mul;
+        private void FetchTargetData() {
+            int dataCount = _targetDataArray?.Length ?? 0;
+            if (_targets.Length != dataCount) {
+                var arr = new TargetData[_targets.Length];
+                
+                if (_targetDataArray != null) {
+                    Array.Copy(_targetDataArray, arr, Mathf.Min(arr.Length, dataCount));
+                }
+                
+                for (int i = dataCount; i < arr.Length; i++) {
+                    ref var data = ref arr[i];
+                    data.mul = Vector3.one;
+                    data.level = 1;
+                }
+
+                _targetDataArray = arr;
             }
+
+            var map = DictionaryPool<int, Vector3>.Get();
+            for (int i = 0; i < _limits.Length; i++) {
+                ref var targetLimit = ref _limits[i];
+                if (targetLimit.target == null) continue;
+                
+                map[targetLimit.target.GetInstanceID()] = targetLimit.mul;
+            }
+
+            _minLevel = 1;
+            _maxLevel = 1;
+            
+            for (int i = 0; i < _targetDataArray!.Length; i++) {
+                ref var data = ref _targetDataArray[i];
+                
+                _minLevel = Mathf.Min(_minLevel, data.level);
+                _maxLevel = Mathf.Max(_maxLevel, data.level);
+                
+                data.mul = _targets[i] == null || !map.TryGetValue(_targets[i].GetInstanceID(), out var mul)
+                    ? Vector3.one
+                    : mul;
+            }
+
+            DictionaryPool<int, Vector3>.Release(map);
+
+#if UNITY_EDITOR
+            EditorUtility.SetDirty(this);
+#endif
         }
         
 #if UNITY_EDITOR
@@ -130,14 +191,16 @@ namespace MisterGames.Logic.Transforms {
         [SerializeField] private float _lastNoiseSpeedMul = 1f;
         
         private void OnValidate() {
-            if (_lastNoiseSpeedMul.IsNearlyEqual(_noiseSpeedMul)) return;
-            
-            SetNoiseScale(_lastNoiseSpeedMul, _noiseSpeedMul);
+            if (!_lastNoiseSpeedMul.IsNearlyEqual(_noiseSpeedMul)) {
+                SetNoiseScale(_lastNoiseSpeedMul, _noiseSpeedMul);
+            }
         }
 
         [Button]
         private void StartDemo() {
-            FetchLimits();
+            Undo.RecordObject(this, "StartDemo");
+            
+            FetchTargetData();
             FetchInitialRotations();
             
             PlayerLoopStage.Update.Subscribe(this);
@@ -151,8 +214,7 @@ namespace MisterGames.Logic.Transforms {
         [Button]
         private void SaveRotationsAsInitial() {
             Undo.RecordObject(this, "SaveRotationsAsInitial");
-            FetchInitialRotations();
-            EditorUtility.SetDirty(this);
+            FetchInitialRotations(force: true);
         }
         
         [Button]
@@ -169,9 +231,36 @@ namespace MisterGames.Logic.Transforms {
 
         [Button]
         private void FetchHierarchyLevels() {
+            Undo.RecordObject(this, "FetchHierarchyLevels");
             
-            //var root = PathTree.CreateTree(_targets, t => t.GetPathInScene()).LevelOrder();
-            //Debug.Log($"RotationNoise.FetchHierarchyLevels: f {Time.frameCount}, tree:\n{string.Join("\n", root.Select(x => $"[{x.level}] {x.data.data}"))}");
+            FetchTargetData();
+            
+            var nodes = PathTree
+                .CreateTree(_targets, t => t?.GetPathInScene())
+                .LevelOrder().Where(x => x.children.Count == 0 && x.data.data != null)
+                .ToArray();
+            
+            var map = DictionaryPool<int, int>.Get();
+            for (int i = 0; i < nodes.Length; i++) {
+                var treeEntry = nodes[i];
+                map[treeEntry.data.data.GetInstanceID()] = treeEntry.level;
+            }
+
+            _minLevel = 1;
+            _maxLevel = 1;
+            
+            for (int i = 0; i < _targetDataArray.Length; i++) {
+                ref var data = ref _targetDataArray[i];
+                
+                data.level = _targets[i] == null || !map.TryGetValue(_targets[i].GetInstanceID(), out int level)
+                    ? 1
+                    : level;
+
+                _minLevel = Mathf.Min(_minLevel, data.level);
+                _maxLevel = Mathf.Max(_maxLevel, data.level);
+            }
+            
+            EditorUtility.SetDirty(this);
         }
 #endif
     }
