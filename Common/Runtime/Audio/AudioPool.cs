@@ -73,7 +73,7 @@ namespace MisterGames.Common.Audio {
         private Transform _listenerUp;
         private CancellationToken _cancellationToken;
         private int _lastHandleId;
-
+        private float _occlusionWeight = 1f;
         private float _lastTimeScale;
         
         private void Awake() {
@@ -109,6 +109,10 @@ namespace MisterGames.Common.Audio {
             
             _currentListener = null;
             _listenerUp = null;
+        }
+
+        public void SetOcclusionWeightNextFrame(float weight) {
+            _occlusionWeight = weight;
         }
 
         public AudioHandle Play(
@@ -434,6 +438,8 @@ namespace MisterGames.Common.Audio {
             }
 
             if (hasListener) ProcessOcclusion(listenerUp, occlusionCount, dt);
+
+            _occlusionWeight = 1f;
         }
 
         private void ProcessOcclusion(Vector3 up, int count, float dt) {
@@ -500,8 +506,8 @@ namespace MisterGames.Common.Audio {
         }
 
         private void ApplyOcclusion(IAudioElement audioElement, float distanceWeight, float collisionWeight, float dt) {
-            float wLow = Mathf.Clamp01(_distanceCurveLow.Evaluate(distanceWeight) * _distanceWeightLow + collisionWeight * _collisionWeightLow);
-            float wHigh = Mathf.Clamp01(_distanceCurveHigh.Evaluate(distanceWeight) * _distanceWeightHigh + collisionWeight * _collisionWeightHigh);
+            float wLow = Mathf.Clamp01((_distanceCurveLow.Evaluate(distanceWeight) * _distanceWeightLow + collisionWeight * _collisionWeightLow) * _occlusionWeight);
+            float wHigh = Mathf.Clamp01((_distanceCurveHigh.Evaluate(distanceWeight) * _distanceWeightHigh + collisionWeight * _collisionWeightHigh) * _occlusionWeight);
             
             float cutoffLow = Mathf.Lerp(22000f, _cutoffLow, _cutoffLowCurve.Evaluate(wLow));
             float cutoffHigh = Mathf.Lerp(10f, _cutoffHigh, _cutoffHighCurve.Evaluate(wHigh));

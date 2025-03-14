@@ -43,6 +43,8 @@ namespace MisterGames.Common.Audio {
         AudioClip ShuffleClips(IReadOnlyList<AudioClip> clips);
         AudioHandle GetAudioHandle(Transform attachedTo, int hash);
         
+        void SetOcclusionWeightNextFrame(float weight);
+        
         internal void ReleaseAudioHandle(int handleId);
         internal void SetAudioHandlePitch(int handleId, float pitch);
         internal bool TryGetAudioElement(int handleId, out IAudioElement audioElement);
