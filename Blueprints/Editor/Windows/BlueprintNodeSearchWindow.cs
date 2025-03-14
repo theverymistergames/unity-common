@@ -6,7 +6,7 @@ using MisterGames.Blueprints.Editor.Utils;
 using MisterGames.Blueprints.Editor.View;
 using MisterGames.Blueprints.Factory;
 using MisterGames.Blueprints.Validation;
-using MisterGames.Common.Editor.Tree;
+using MisterGames.Common.Trees;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;

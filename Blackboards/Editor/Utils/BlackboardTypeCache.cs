@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using MisterGames.Blackboards.Tables;
-using MisterGames.Common.Editor.Tree;
+using MisterGames.Common.Trees;
 using MisterGames.Common.Types;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;

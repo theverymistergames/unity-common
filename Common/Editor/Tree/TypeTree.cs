@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using MisterGames.Common.Lists;
 
-namespace MisterGames.Common.Editor.Tree {
+namespace MisterGames.Common.Trees {
 
     public static class TypeTree {
 

@@ -1,7 +1,7 @@
 ﻿using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 
-namespace MisterGames.Common.Editor.Tree {
+namespace MisterGames.Common.Trees {
 
     public static class SearchTreeEntryUtils {
 

@@ -3,9 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using MisterGames.Common.Strings;
-using UnityEngine;
 
-namespace MisterGames.Common.Editor.Tree {
+namespace MisterGames.Common.Trees {
 
     public static class PathTree {
 
