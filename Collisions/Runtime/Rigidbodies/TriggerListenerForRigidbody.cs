@@ -15,6 +15,8 @@ namespace MisterGames.Collisions.Rigidbodies {
         public event TriggerCallback TriggerEnter = delegate { };
         public event TriggerCallback TriggerExit = delegate { };
 
+        public IReadOnlyCollection<Rigidbody> Rigidbodies => _rigidbodyColliderCountMap.Keys;
+        
         private readonly Dictionary<Collider, Rigidbody> _colliderToRigidbodyMap = new();
         private readonly Dictionary<Rigidbody, int> _rigidbodyColliderCountMap = new();
         private readonly List<Collider> _collidersBuffer = new();

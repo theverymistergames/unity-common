@@ -5,8 +5,8 @@ using UnityEngine;
 
 namespace MisterGames.Logic.Transforms {
     
-    public sealed class RadialWeightCalculator : MonoBehaviour {
-        
+    public sealed class RadialWeightProvider : PositionWeightProvider {
+
         [SerializeField] private Transform _center;
         [SerializeField] private float _weightMul = 1f;
         [SerializeField] private AnimationCurve _weightCurve = EasingType.Linear.ToAnimationCurve();
@@ -14,11 +14,11 @@ namespace MisterGames.Logic.Transforms {
         [SerializeField] [Min(0f)] private float _innerRadius = 1f;
         [SerializeField] [Min(0f)] private float _outerRadius = 2f;
 
-        public float GetRealWeight(Vector3 position) {
-            return GetRealWeight(GetLinearWeight(position));
+        public override float GetWeight(Vector3 position) {
+            return ConvertLinearWeight(GetLinearWeight(position));
         }
 
-        public float GetLinearWeight(Vector3 position) {
+        private float GetLinearWeight(Vector3 position) {
             if (_fallOff <= 0f) {
                 return 1f;
             }
@@ -36,7 +36,7 @@ namespace MisterGames.Logic.Transforms {
             return Mathf.Clamp01(1f + 2f * _fallOff * (1f / (x + 1f) - 1f));
         }
 
-        private float GetRealWeight(float linearWeight) {
+        private float ConvertLinearWeight(float linearWeight) {
             return _weightCurve.Evaluate(linearWeight) * _weightMul;
         }
 
@@ -59,26 +59,26 @@ namespace MisterGames.Logic.Transforms {
 
             _center.GetPositionAndRotation(out var position, out var rotation);
             
-            DebugExt.DrawLabel(position + rotation * Vector3.up * 0.12f, $"W = {GetRealWeight(1f):0.000}\nLin = {1f:0.000}");
+            DebugExt.DrawLabel(position + rotation * Vector3.up * 0.12f, $"W = {ConvertLinearWeight(1f):0.000}\nLin = {1f:0.000}");
             
             if (_fallOff <= 0f) return;
 
             var pIn = position + rotation * Vector3.forward * _innerRadius;
-            float w = GetRealWeight(1f);
+            float w = ConvertLinearWeight(1f);
             DebugExt.DrawSphere(position, _innerRadius, Color.white, gizmo: true);
             DebugExt.DrawPointer(pIn, Color.white, 0.03f, gizmo: true);
             DebugExt.DrawLabel(pIn + rotation * Vector3.right * 0.12f, $"W = {w:0.000}\nLin = {1f:0.000}", color: Color.white);
             DebugExt.DrawLine(pIn, position, Color.white, gizmo: true);
             
             var pOut = position + rotation * Vector3.forward * _outerRadius;
-            w = GetRealWeight(pOut);
+            w = GetWeight(pOut);
             DebugExt.DrawSphere(position, _outerRadius, Color.yellow, gizmo: true);
             DebugExt.DrawPointer(pOut, Color.yellow, 0.03f, gizmo: true);
             DebugExt.DrawLabel(pOut - rotation * Vector3.right * 0.12f, $"W = {w:0.000}\nLin = {GetLinearWeight(pOut):0.000}", color: Color.yellow);
             DebugExt.DrawLine(pOut, pIn, Color.yellow, gizmo: true);
             
             var pFar = position + rotation * Vector3.forward * _testPoint;
-            w = GetRealWeight(pFar);
+            w = GetWeight(pFar);
             DebugExt.DrawPointer(pFar, Color.cyan, 0.03f, gizmo: true);
             DebugExt.DrawLabel(pFar + rotation * Vector3.forward * 0.12f, $"W = {w:0.000}\nLin = {GetLinearWeight(pFar):0.000}", color: Color.cyan);
             if (_testPoint > _outerRadius) DebugExt.DrawLine(pFar, pOut, Color.cyan, gizmo: true);
