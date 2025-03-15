@@ -26,7 +26,7 @@ namespace MisterGames.Common.Editor.Drawers {
             );
 
             float halfWidth = valueRect.width * 0.5f;
-            var valueARect = new Rect(valueRect.x, valueRect.y, halfWidth, valueRect.height);
+            var valueARect = new Rect(valueRect.x, valueRect.y, halfWidth - EditorGUIUtility.standardVerticalSpacing, valueRect.height);
             var valueBRect = new Rect(valueRect.x + halfWidth, valueRect.y, halfWidth, valueRect.height);
 
             var propertyA = property.FindPropertyRelative("_a");
