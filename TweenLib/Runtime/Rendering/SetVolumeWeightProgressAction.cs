@@ -4,7 +4,7 @@ using MisterGames.Tweens;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-namespace MisterGames.TweenLib.Logic {
+namespace MisterGames.TweenLib.Rendering {
     
     [Serializable]
     public sealed class SetVolumeWeightProgressAction : ITweenProgressAction {

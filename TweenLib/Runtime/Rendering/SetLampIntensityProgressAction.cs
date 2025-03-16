@@ -1,9 +1,9 @@
 ﻿using System;
-using MisterGames.Logic.Interactives;
+using MisterGames.Logic.Rendering;
 using MisterGames.Tweens;
 using UnityEngine;
 
-namespace MisterGames.TweenLib.Logic {
+namespace MisterGames.TweenLib.Rendering {
     
     [Serializable]
     public sealed class SetLampIntensityProgressAction : ITweenProgressAction {

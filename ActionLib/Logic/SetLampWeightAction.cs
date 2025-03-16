@@ -3,8 +3,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
-using MisterGames.Common.Attributes;
-using MisterGames.Logic.Interactives;
+using MisterGames.Logic.Rendering;
 using UnityEngine;
 
 namespace MisterGames.ActionLib.Logic {

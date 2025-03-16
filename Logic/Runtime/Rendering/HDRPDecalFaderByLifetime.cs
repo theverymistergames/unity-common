@@ -3,7 +3,7 @@ using MisterGames.Common.Tick;
 using UnityEngine;
 using UnityEngine.Rendering.HighDefinition;
 
-namespace MisterGames.Logic.Phys {
+namespace MisterGames.Logic.Rendering {
     
     [RequireComponent(typeof(DecalProjector))]
     [RequireComponent(typeof(PoolElement))]

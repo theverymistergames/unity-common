@@ -1,7 +1,7 @@
 ﻿using MisterGames.Actors;
 using UnityEngine;
 
-namespace MisterGames.Logic.Interactives {
+namespace MisterGames.Logic.Rendering {
     
     public sealed class LampBehaviour : MonoBehaviour, IActorComponent {
         
