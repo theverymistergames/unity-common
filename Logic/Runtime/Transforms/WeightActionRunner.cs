@@ -9,11 +9,12 @@ using UnityEngine;
 
 namespace MisterGames.Logic.Transforms {
     
-    public sealed class WeightProgressActionRunner : MonoBehaviour, IUpdate {
+    public sealed class WeightActionRunner : MonoBehaviour, IUpdate {
         
         [SerializeField] private PositionWeightProvider _weightProvider;
         [SerializeField] private TriggerListenerForRigidbody _triggerListenerForRigidbody;
         [SerializeField] private WeightMode _weightMode = WeightMode.Average;
+        [SerializeField] private float _weightMul = 1f;
         [SerializeField] private AnimationCurve _weightCurve = EasingType.Linear.ToAnimationCurve();
         [SerializeReference] [SubclassSelector] private ITweenProgressAction _action;
         
@@ -23,6 +24,8 @@ namespace MisterGames.Logic.Transforms {
             Average,
         }
         
+        public float WeightMul { get => _weightMul; set => _weightMul = value; }
+
         private readonly HashSet<Rigidbody> _rigidbodies = new();
         
         private void OnEnable() {
@@ -63,7 +66,7 @@ namespace MisterGames.Logic.Transforms {
         }
 
         void IUpdate.OnUpdate(float dt) {
-            ApplyWeight(_weightCurve.Evaluate(GetWeight()));
+            ApplyWeight(_weightMul * _weightCurve.Evaluate(GetWeight()));
         }
 
         private void ApplyWeight(float weight) {
