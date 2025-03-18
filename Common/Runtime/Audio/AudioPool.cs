@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Easing;
-using MisterGames.Common.Lists;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Pooling;
 using MisterGames.Common.Tick;
@@ -11,6 +10,7 @@ using Unity.Collections;
 using Unity.Jobs.LowLevel.Unsafe;
 using UnityEngine;
 using UnityEngine.Audio;
+using Random = UnityEngine.Random;
 
 namespace MisterGames.Common.Audio {
     
@@ -57,6 +57,7 @@ namespace MisterGames.Common.Audio {
         public static IAudioPool Main { get; private set; }
 
         private const float DistanceThreshold = 0.001f;
+        
         private static readonly Vector3 Up = Vector3.up;
         private static readonly Vector3 Forward = Vector3.forward;
         private static readonly Vector3 Right = Vector3.right;
@@ -223,22 +224,23 @@ namespace MisterGames.Common.Audio {
 
         public AudioClip ShuffleClips(IReadOnlyList<AudioClip> clips) {
             int count = clips?.Count ?? 0;
-            if (count == 0) return default;
-
-            int s = 0;
-
+            
+            switch (count) {
+                case 0:
+                    return default;
+                
+                case 1:
+                    return clips![0];
+            }
+            
+            int hash = 0;
             for (int i = 0; i < count; i++) {
-                s += clips![i].GetHashCode();
+                hash += clips![i].GetHashCode();
             }
 
-            var lastData = _clipsHashToLastIndexMap.GetValueOrDefault(s, IndexData.Invalid);
-            int index = ArrayExtensions.GetRandom(0, count, tryExclude: lastData.index);
-
-            _clipsHashToLastIndexMap[s] = new IndexData(index, Time.time);
-            
-            return clips![index];
+            return clips![NextClipIndex(hash, count)];
         }
-
+        
         public AudioHandle GetAudioHandle(Transform attachedTo, int hash) {
             return _attachKeyToHandleIdMap.TryGetValue(new AttachKey(attachedTo.GetInstanceID(), hash), out int id) && 
                    _handleIdToAudioElementMap.ContainsKey(id)
@@ -534,7 +536,58 @@ namespace MisterGames.Common.Audio {
         private float GetRelativeDistance(float distance) {
             return Mathf.Clamp01((distance - _minDistance) / (_maxDistance - _minDistance + DistanceThreshold));
         }
+        
+        private int NextClipIndex(int hash, int count) {
+            var data = _clipsHashToLastIndexMap.GetValueOrDefault(hash);
+            
+            int mask = data.indicesMask;
+            int startIndex = data.startIndex;
+            int index = GetRandomIndex(ref mask, ref startIndex, count);
+            
+            _clipsHashToLastIndexMap[hash] = new IndexData(mask, startIndex, Time.time);
+            
+            return index;
+        }
 
+        private static int GetRandomIndex(ref int indicesMask, ref int startIndex, int count) {
+            const int bits = 32;
+            
+            int max = Mathf.Min(bits, count - startIndex);
+            int freeCount = max;
+            int r;
+            
+            for (int i = 0; i < max; i++) {
+                if ((indicesMask & (1 << i)) != 0) freeCount--;
+            }
+
+            if (freeCount <= 0) {
+                startIndex += bits;
+                if (startIndex > count - 1) startIndex = 0;
+                
+                r = Random.Range(0, Mathf.Min(bits, count - startIndex));
+                indicesMask = 1 << r;
+
+                return r + startIndex;
+            }
+            
+            r = Random.Range(0, freeCount);
+            
+            if (freeCount >= max) {
+                indicesMask |= 1 << r;
+                return r + startIndex;
+            }
+            
+            freeCount = 0;
+            for (int i = 0; i < max; i++) {
+                if ((indicesMask & (1 << i)) != 0 || freeCount++ != r) continue;
+                
+                indicesMask |= 1 << i;
+                return i + startIndex;
+            }
+            
+            return Random.Range(0, count);
+        }
+        
         private readonly struct OcclusionData {
 
             public readonly IAudioElement audioElement;
@@ -554,13 +607,13 @@ namespace MisterGames.Common.Audio {
         
         private readonly struct IndexData {
             
-            public static readonly IndexData Invalid = new(-1, 0f);
-            
-            public readonly int index;
+            public readonly int indicesMask;
+            public readonly int startIndex;
             public readonly float time;
             
-            public IndexData(int index, float time) {
-                this.index = index;
+            public IndexData(int indicesMask, int startIndex, float time) {
+                this.indicesMask = indicesMask;
+                this.startIndex = startIndex;
                 this.time = time;
             }
         }
