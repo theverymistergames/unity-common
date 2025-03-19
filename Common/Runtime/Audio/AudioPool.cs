@@ -2,9 +2,11 @@
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using MisterGames.Common.Attributes;
 using MisterGames.Common.Easing;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Pooling;
+using MisterGames.Common.Strings;
 using MisterGames.Common.Tick;
 using Unity.Collections;
 using Unity.Jobs.LowLevel.Unsafe;
@@ -542,14 +544,22 @@ namespace MisterGames.Common.Audio {
             
             int mask = data.indicesMask;
             int startIndex = data.startIndex;
-            int index = GetRandomIndex(ref mask, ref startIndex, count);
+            int index = GetRandomIndex(ref mask, ref startIndex, data.lastIndex, count);
             
-            _clipsHashToLastIndexMap[hash] = new IndexData(mask, startIndex, Time.time);
+            _clipsHashToLastIndexMap[hash] = new IndexData(mask, startIndex, index, Time.time);
             
             return index;
         }
 
-        private static int GetRandomIndex(ref int indicesMask, ref int startIndex, int count) {
+        private static int GetRandomIndex(ref int indicesMask, ref int startIndex, int lastIndex, int count) {
+            switch (count) {
+                case 2:
+                    return 1 - lastIndex;
+                
+                case 3:
+                    return (int) Mathf.Repeat(lastIndex + Mathf.Sign(Random.value - 0.5f), 3);
+            }
+            
             const int bits = 32;
             
             int max = Mathf.Min(bits, count - startIndex);
@@ -563,11 +573,16 @@ namespace MisterGames.Common.Audio {
             if (freeCount <= 0) {
                 startIndex += bits;
                 if (startIndex > count - 1) startIndex = 0;
-                
-                r = Random.Range(0, Mathf.Min(bits, count - startIndex));
-                indicesMask = 1 << r;
 
-                return r + startIndex;
+                if (count > bits) {
+                    r = Random.Range(0, Mathf.Min(bits, count - startIndex));
+                    indicesMask = 1 << r;
+                    return r + startIndex;
+                }
+                
+                indicesMask = 0;
+                max = Mathf.Min(bits, count - startIndex);
+                freeCount = max - 1;
             }
             
             r = Random.Range(0, freeCount);
@@ -579,12 +594,14 @@ namespace MisterGames.Common.Audio {
             
             freeCount = 0;
             for (int i = 0; i < max; i++) {
-                if ((indicesMask & (1 << i)) != 0 || freeCount++ != r) continue;
+                if ((indicesMask & (1 << i)) != 0 || i + startIndex == lastIndex || freeCount++ != r) {
+                    continue;
+                }
                 
                 indicesMask |= 1 << i;
                 return i + startIndex;
             }
-            
+
             return Random.Range(0, count);
         }
         
@@ -609,11 +626,13 @@ namespace MisterGames.Common.Audio {
             
             public readonly int indicesMask;
             public readonly int startIndex;
+            public readonly int lastIndex;
             public readonly float time;
             
-            public IndexData(int indicesMask, int startIndex, float time) {
+            public IndexData(int indicesMask, int startIndex, int lastIndex, float time) {
                 this.indicesMask = indicesMask;
                 this.startIndex = startIndex;
+                this.lastIndex = lastIndex;
                 this.time = time;
             }
         }
