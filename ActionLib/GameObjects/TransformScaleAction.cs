@@ -21,7 +21,7 @@ namespace MisterGames.ActionLib.GameObjects {
             float speed = duration > 0f ? 1f / duration : float.MaxValue;
             float t = 0f;
 
-            while (!cancellationToken.IsCancellationRequested) {
+            while (t < 1f && !cancellationToken.IsCancellationRequested) {
                 t = Mathf.Clamp01(t + UnityEngine.Time.deltaTime * speed);
                 
                 transform.localScale = Vector3.Lerp(startScale, endScale, curve.Evaluate(t));
