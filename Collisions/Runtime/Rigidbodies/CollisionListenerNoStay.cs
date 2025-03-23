@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace MisterGames.Collisions.Rigidbodies {
     
-    public sealed class CollisionListener : CollisionEmitter {
+    public sealed class CollisionListenerNoStay : CollisionEmitter {
         
         [SerializeField] private LayerMask _layerMask;
         [SerializeField] private bool _collideWithTriggers;
@@ -16,12 +16,6 @@ namespace MisterGames.Collisions.Rigidbodies {
             if (!CanCollide(collision.collider)) return;
             
             CollisionEnter.Invoke(collision);
-        }
-
-        private void OnCollisionStay(Collision collision) {
-            if (!CanCollide(collision.collider)) return;
-            
-            CollisionStay.Invoke(collision);
         }
 
         private void OnCollisionExit(Collision collision) {
