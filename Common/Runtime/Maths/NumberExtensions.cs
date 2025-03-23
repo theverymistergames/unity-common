@@ -68,6 +68,18 @@ namespace MisterGames.Common.Maths {
             float v = Mathf.Sin(2f * Mathf.PI * (t * f + phase));
             return Mathf.Abs(v) < thr ? v : Mathf.Sign(v);
         }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool InRange(this float value, Vector2 range) {
+            return value >= range.x && value <= range.y;
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float Map01(this float value, Vector2 range) {
+            return range.x.IsNearlyEqual(range.y)
+                ? range.x
+                : (value - range.x) / (range.y - range.x);
+        }
     }
 
 }

@@ -4,11 +4,6 @@ using UnityEngine;
 namespace MisterGames.Common.Maths {
     
     public static class RandomExtensions {
-        
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool InRange(this float value, Vector2 range) {
-            return value >= range.x && value <= range.y;
-        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float GetRandomInRange(this Vector2 value) {
