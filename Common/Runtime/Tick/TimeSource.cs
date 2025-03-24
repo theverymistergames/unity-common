@@ -10,14 +10,14 @@ namespace MisterGames.Common.Tick {
 
         public int SubscribersCount => _updateList.Count;
 
+        private readonly List<IUpdate> _updateList = new();
+        private readonly Dictionary<int, int> _indexMap = new();
+        
         private readonly IDeltaTimeProvider _deltaTimeProvider;
         private readonly ITimeScaleProvider _timeScaleProvider;
-        private readonly List<IUpdate> _updateList = new List<IUpdate>();
 
         private float _deltaTime;
         private bool _isPaused;
-        private bool _isPendingReset;
-        private bool _isInUpdateLoop;
 
         public TimeSource(IDeltaTimeProvider deltaTimeProvider, ITimeScaleProvider timeScaleProvider) {
             _deltaTimeProvider = deltaTimeProvider;
@@ -25,62 +25,49 @@ namespace MisterGames.Common.Tick {
         }
 
         public bool Subscribe(IUpdate sub) {
-            int index = _updateList.IndexOf(sub);
-            if (index >= 0) return false;
+            if (!_indexMap.TryAdd(sub.GetHashCode(), _updateList.Count)) return false;
 
             _updateList.Add(sub);
             return true;
         }
 
         public bool Unsubscribe(IUpdate sub) {
-            int index = _updateList.IndexOf(sub);
-            if (index < 0) return false;
+            if (!_indexMap.Remove(sub.GetHashCode(), out int index)) return false;
 
-            if (_isInUpdateLoop) {
-                _updateList[index] = null;
-                return true;
-            }
-
-            _updateList.RemoveAt(index);
+            _updateList[index] = null;
             return true;
         }
 
         public void Tick() {
             UpdateDeltaTime();
-            _isInUpdateLoop = _deltaTime > 0f;
 
-            if (_isInUpdateLoop) {
-                int count = _updateList.Count;
-                for (int i = 0; i < count; i++) {
-                    var update = _updateList[i];
-
-                    if (update is null) {
-                        _updateList.RemoveAt(i--);
-                        count--;
-                        continue;
-                    }
-
+            int count = _updateList.Count;
+            int validCount = count;
+                
+            for (int i = count - 1; i >= 0; i--) {
+                if (_updateList[i] is { } update) {
                     update.OnUpdate(_deltaTime);
+                    continue;
                 }
 
-                _isInUpdateLoop = false;
-                UpdateDeltaTime();
+                if (_updateList[--validCount] is { } swap) {
+                    _updateList[i] = swap;
+                    _indexMap[swap.GetHashCode()] = i;
+                }
             }
 
-            if (_isPendingReset) ResetImmediately();
+            _updateList.RemoveRange(validCount, count - validCount);
         }
 
         public void Reset() {
-            _isPendingReset = true;
-            if (!_isInUpdateLoop) ResetImmediately();
+            ResetImmediately();
         }
 
         private void ResetImmediately() {
-            _isPendingReset = false;
-
             _isPaused = false;
             _deltaTime = 0f;
             _updateList.Clear();
+            _indexMap.Clear();
         }
 
         private void UpdateDeltaTime() {
