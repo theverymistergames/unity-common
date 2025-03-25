@@ -1,4 +1,6 @@
-﻿using MisterGames.Common.Data;
+﻿using System.Reflection;
+using MisterGames.Common.Attributes;
+using MisterGames.Common.Data;
 using UnityEditor;
 using UnityEngine;
 
@@ -21,7 +23,11 @@ namespace MisterGames.Common.Editor.Drawers {
             }
 
             nameProperty.stringValue = name;
-            hashProperty.intValue = string.IsNullOrWhiteSpace(name) ? 0 : Animator.StringToHash(name);
+            hashProperty.intValue = string.IsNullOrWhiteSpace(name) 
+                ? 0
+                : fieldInfo.GetCustomAttribute<HashIdUsageAttribute>() is { hashMethod: HashMethod.Shader }
+                    ? Shader.PropertyToID(name)
+                    : Animator.StringToHash(name);
             
             property.serializedObject.ApplyModifiedProperties();
             property.serializedObject.Update();

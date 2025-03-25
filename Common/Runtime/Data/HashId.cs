@@ -5,7 +5,7 @@ namespace MisterGames.Common.Data {
     
     [Serializable]
     public struct HashId : IEquatable<HashId> {
-
+        
         [SerializeField] private int _hash;
 
 #if UNITY_EDITOR
