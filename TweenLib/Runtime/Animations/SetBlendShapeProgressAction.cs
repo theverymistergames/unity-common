@@ -17,7 +17,8 @@ namespace MisterGames.TweenLib.Animations {
         [Range(0f, 100f)] public float endWeight;
         
         public void OnProgressUpdate(float progress) {
-            skinnedMeshRenderer.SetBlendShapeWeight(index, Mathf.Lerp(startWeight, endWeight, progress));
+            var go = skinnedMeshRenderer.gameObject;
+            if (go.activeSelf && go.activeInHierarchy) skinnedMeshRenderer.SetBlendShapeWeight(index, Mathf.Lerp(startWeight, endWeight, progress));
 
 #if UNITY_EDITOR
             if (!Application.isPlaying) EditorUtility.SetDirty(skinnedMeshRenderer);

@@ -28,20 +28,21 @@ namespace MisterGames.Common.Localization {
 
         private void SetLocalizationId(int hash) {
             int count = _localizationLib.GetLabelsCount(_languagesArray);
-
+            int lastId = _localizationId;
+            
             for (int i = 0; i < count; i++) {
                 int id = _localizationLib.GetLabelId(_languagesArray, i);
                 if (hash != _localizationLib.GetValue(id)) continue;
                 
                 _localizationId = hash;
-                Debug.Log($"LocalizationService: set localization {_localizationLib.GetLabel(id)}");
+                if (_localizationId != lastId) Debug.Log($"LocalizationService: set localization {_localizationLib.GetLabel(id)}");
                 break;
             }
         }
 
 #if UNITY_EDITOR
         private void OnValidate() {
-            if (!Application.isPlaying) return;
+            if (!Application.isPlaying || Instance == null) return;
             
             SetLocalizationId(_defaultLanguage.GetValue());
         }  
