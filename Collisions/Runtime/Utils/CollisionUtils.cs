@@ -252,11 +252,10 @@ namespace MisterGames.Collisions.Utils {
             
             for (int i = hitCount - 1; i >= 0; i--) {
                 var hit = hits[i];
-                int layer = hit.transform.gameObject.layer;
 
                 if (hit.distance <= filter.maxDistance &&
-                    filter.layerMask.Contains(layer)
-                ) {
+                    filter.layerMask.Contains(hit.transform.gameObject.layer)) 
+                {
                     continue;
                 }
 
@@ -277,11 +276,10 @@ namespace MisterGames.Collisions.Utils {
 
             for (int i = hitCount - 1; i >= 0; i--) {
                 var hit = hits[i];
-                int layer = hit.transform.gameObject.layer;
 
                 if (hit.distance <= filter.maxDistance &&
-                    filter.layerMask.Contains(layer)
-                ) {
+                    filter.layerMask.Contains(hit.transform.gameObject.layer)) 
+                {
                     continue;
                 }
 
@@ -302,11 +300,10 @@ namespace MisterGames.Collisions.Utils {
 
             for (int i = hitCount - 1; i >= 0; i--) {
                 var hit = hits[i];
-                int layer = hit.transform.gameObject.layer;
 
                 if (hit.distance <= filter.maxDistance &&
-                    filter.layerMask.Contains(layer)
-                ) {
+                    filter.layerMask.Contains(hit.transform.gameObject.layer)) 
+                {
                     continue;
                 }
 
@@ -327,11 +324,10 @@ namespace MisterGames.Collisions.Utils {
 
             for (int i = hitCount - 1; i >= 0; i--) {
                 var hit = hits[i];
-                int layer = hit.gameObject.layer;
 
                 if (hit.distance <= filter.maxDistance &&
-                    filter.layerMask.Contains(layer)
-                ) {
+                    filter.layerMask.Contains(hit.gameObject.layer)) 
+                {
                     continue;
                 }
 
