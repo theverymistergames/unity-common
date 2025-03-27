@@ -36,6 +36,9 @@ namespace MisterGames.ActionLib.Sounds {
         public bool affectedByTimeScale = true;
         public bool occlusion = true;
         
+        [Tooltip("Set to true to avoid stopping sound when action is canceled")] 
+        public bool useActorDestroyToken;
+        
         [Tooltip("Leave null to use default group")]
         public AudioMixerGroup mixerGroup;
         
@@ -64,6 +67,8 @@ namespace MisterGames.ActionLib.Sounds {
             options |= loop ? AudioOptions.Loop : AudioOptions.None;
             options |= affectedByTimeScale ? AudioOptions.AffectedByTimeScale : AudioOptions.None;
             options |= occlusion ? AudioOptions.ApplyOcclusion : AudioOptions.None;
+
+            cancellationToken = useActorDestroyToken ? context.GameObject.GetCancellationTokenOnDestroy() : cancellationToken;
             
             if (attach) {
                 pool.Play(clip, trf, localPosition: default, attachId, volume, fadeIn, fadeOut, resultPitch, spatialBlend, resultStartTime, mixerGroup, options, cancellationToken);    
