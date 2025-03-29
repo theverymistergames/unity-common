@@ -6,6 +6,12 @@ namespace MisterGames.Common.Maths {
     public static class RandomExtensions {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Color GetRandomColor() {
+            var r = Random.onUnitSphere;
+            return new Color(r.x, r.y, r.z);
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float GetRandomInRange(this Vector2 value) {
             return Random.Range(value.x, value.y);
         }
