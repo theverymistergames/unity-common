@@ -49,11 +49,11 @@ namespace MisterGames.Logic.Rendering {
             FetchVertices();
         }
 
-        public bool TryGetVertex(ref Vector3 point) {
-            return TryGetVertex(LocalPositionToCell(_transform.InverseTransformPoint(point) - _localBounds.center), out point);
+        public bool TrySamplePosition(ref Vector3 point) {
+            return TrySamplePosition(LocalPositionToCell(_transform.InverseTransformPoint(point) - _localBounds.center), out point);
         }
 
-        private bool TryGetVertex(int cellIndex, out Vector3 point) {
+        private bool TrySamplePosition(int cellIndex, out Vector3 point) {
             point = default;
             if (cellIndex < 0) return false;
             
@@ -207,7 +207,7 @@ namespace MisterGames.Logic.Rendering {
             if (_grid == null) return;
 
             for (int i = 0; i < _grid.Length; i++) {
-                if (!TryGetVertex(i, out var point)) continue;
+                if (!TrySamplePosition(i, out var point)) continue;
 
                 var cellPoint = _transform.TransformPoint(_localBounds.center + CellToLocalPosition(i));
                 

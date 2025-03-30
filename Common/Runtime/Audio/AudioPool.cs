@@ -290,7 +290,7 @@ namespace MisterGames.Common.Audio {
             while (!cancellationToken.IsCancellationRequested && 
                    !_cancellationToken.IsCancellationRequested && 
                    _handleIdToAudioElementMap.ContainsKey(id) && 
-                   (loop || source.time < delay))
+                   (loop || source.time < source.clip.length))
             {
                 await UniTask.Yield();
             }
