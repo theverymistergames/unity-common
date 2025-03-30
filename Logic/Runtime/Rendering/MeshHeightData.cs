@@ -50,7 +50,14 @@ namespace MisterGames.Logic.Rendering {
         }
 
         public bool TrySamplePosition(ref Vector3 point) {
-            return TrySamplePosition(LocalPositionToCell(_transform.InverseTransformPoint(point) - _localBounds.center), out point);
+            var center = _localBounds.center;
+            var local = _transform.InverseTransformPoint(point) - center;
+            int cellIndex = LocalPositionToCell(local);
+
+            if (!TrySamplePosition(cellIndex, out var p)) return false;
+            
+            point = _transform.TransformPoint(local.WithY(p.y) + center);
+            return true;
         }
 
         private bool TrySamplePosition(int cellIndex, out Vector3 point) {
@@ -70,7 +77,7 @@ namespace MisterGames.Logic.Rendering {
             
             if (count <= 0) return false;
             
-            point = _transform.TransformPoint(point / count + _localBounds.center);
+            point /= count;
             return true;
         }
         
@@ -210,7 +217,8 @@ namespace MisterGames.Logic.Rendering {
                 if (!TrySamplePosition(i, out var point)) continue;
 
                 var cellPoint = _transform.TransformPoint(_localBounds.center + CellToLocalPosition(i));
-                
+                point = _transform.TransformPoint(_localBounds.center + point);
+                 
                 DebugExt.DrawSphere(cellPoint, 0.005f, Color.yellow, step: 0.25f, gizmo: true);
                 DebugExt.DrawSphere(point, 0.01f, Color.yellow, step: 0.125f, gizmo: true);
                 DebugExt.DrawLine(point, cellPoint, Color.yellow, gizmo: true);
