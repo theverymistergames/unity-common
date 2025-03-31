@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem.Utilities;
 using Random = UnityEngine.Random;
 
 namespace MisterGames.Common.Lists {
@@ -95,16 +94,8 @@ namespace MisterGames.Common.Lists {
             return sum / count;
         }
 
-        public static bool Any<T>(this ReadOnlyArray<T> list, Func<T, bool> predicate) {
-            return TryFind(list, predicate, out _);
-        }
-        
         public static bool Any<T>(this IReadOnlyList<T> list, Func<T, bool> predicate) {
             return TryFind(list, predicate, out _);
-        }
-        
-        public static bool Any<T, S>(this ReadOnlyArray<T> list, S data, Func<T, S, bool> predicate) {
-            return TryFind(list, data, predicate, out _);
         }
         
         public static bool Any<T, S>(this IReadOnlyList<T> list, S data, Func<T, S, bool> predicate) {
@@ -117,34 +108,6 @@ namespace MisterGames.Common.Lists {
                 if (EqualityComparer<T>.Default.Equals(list![i], element)) return true;
             }
 
-            return false;
-        }
-        
-        public static bool TryFind<T>(this ReadOnlyArray<T> list, Func<T, bool> predicate, out T value) {
-            int count = list.Count;
-            for (int i = 0; i < count; i++) {
-                var t = list[i];
-                if (!predicate.Invoke(t)) continue;
-                
-                value = t;
-                return true;
-            }
-
-            value = default;
-            return false;
-        }
-        
-        public static bool TryFind<T, S>(this ReadOnlyArray<T> list, S data, Func<T, S, bool> predicate, out T value) {
-            int count = list.Count;
-            for (int i = 0; i < count; i++) {
-                var t = list[i];
-                if (!predicate.Invoke(t, data)) continue;
-                
-                value = t;
-                return true;
-            }
-
-            value = default;
             return false;
         }
         
@@ -174,24 +137,6 @@ namespace MisterGames.Common.Lists {
 
             value = default;
             return false;
-        }
-        
-        public static int TryFindIndex<T>(this ReadOnlyArray<T> list, Func<T, bool> predicate) {
-            int count = list.Count;
-            for (int i = 0; i < count; i++) {
-                if (predicate.Invoke(list[i])) return i;
-            }
-            
-            return -1;
-        }
-        
-        public static int TryFindIndex<T, S>(this ReadOnlyArray<T> list, S data, Func<T, S, bool> predicate) {
-            int count = list.Count;
-            for (int i = 0; i < count; i++) {
-                if (predicate.Invoke(list[i], data)) return i;
-            }
-            
-            return -1;
         }
         
         public static int TryFindIndex<T>(this IReadOnlyList<T> list, Func<T, bool> predicate) {

@@ -1,11 +1,8 @@
 ﻿using MisterGames.Actors;
 using MisterGames.Character.Phys;
-using MisterGames.Character.Motion;
 using MisterGames.Character.View;
-using MisterGames.Collisions.Core;
 using MisterGames.Common;
 using MisterGames.Common.Easing;
-using MisterGames.Common.GameObjects;
 using MisterGames.Common.Tick;
 using UnityEngine;
 
@@ -23,9 +20,6 @@ namespace MisterGames.Character.Steps {
         [SerializeField] [Min(0f)] private float _stepLengthMin = 0.4f;
         [SerializeField] [Min(0f)] private float _stepLengthMultiplier = 3f;
         [SerializeField] private AnimationCurve _stepLengthBySpeed = EasingType.EaseOutExpo.ToAnimationCurve();
-
-        [Header("Debug")]
-        [SerializeField] private bool _showDebugInfo;
         
         public delegate void StepCallback(int foot, float distance, Vector3 point);
         
@@ -98,6 +92,11 @@ namespace MisterGames.Character.Steps {
                    (Vector3.right * (0.5f * (foot == 0 ? _feetDistance : -_feetDistance)) +
                     Vector3.forward * _feetForwardOffset);
         }
+
+#if UNITY_EDITOR
+        [Header("Debug")]
+        [SerializeField] private bool _showDebugInfo;
+#endif
     }
 
 }
