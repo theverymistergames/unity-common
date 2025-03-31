@@ -30,13 +30,17 @@ namespace MisterGames.Common.Editor.Drawers {
             public readonly LabelLibraryBase library;
             public readonly int array;
             public readonly int id;
+            public readonly int index;
+            public readonly LabelArrayUsage usage;
             public readonly string path;
 
-            public Entry(LabelLibraryBase library, int id, int array, string path) {
+            public Entry(LabelLibraryBase library, int id, int index, int array, string path, LabelArrayUsage usage) {
                 this.library = library;
                 this.id = id;
+                this.index = index;
                 this.array = array;
                 this.path = path;
+                this.usage = usage;
             }
         }
 
@@ -93,7 +97,8 @@ namespace MisterGames.Common.Editor.Drawers {
                     sort: nodes => nodes
                         .OrderBy(n => n.data.data.library == null)
                         .ThenBy(n => n.data.data.array)
-                        .ThenBy(n => n.data.name)
+                        .ThenBy(n => n.data.data.usage == LabelArrayUsage.ByIndex ? n.data.data.index : 0)
+                        .ThenBy(n => n.data.data.usage == LabelArrayUsage.ByHash ? n.data.name : null)
                 );
                 
                 dropdown.Show(rect);
@@ -133,12 +138,13 @@ namespace MisterGames.Common.Editor.Drawers {
 
                 string path;
                 bool none = library.GetArrayNoneLabel(i);
+                var usage = library.GetArrayUsage(i);
                 
                 if (none) {
                     path = GetEntryPath(libName, arrayName, None);
                     if (!IsValidPath(path, filters)) continue;
                     
-                    list.Add(new Entry(library, library.GetArrayId(i), i, path));
+                    list.Add(new Entry(library, library.GetArrayId(i), index: 0, array: i, path, usage));
                 }
 
                 int labelsCount = library.GetLabelsCount(i);
@@ -149,7 +155,7 @@ namespace MisterGames.Common.Editor.Drawers {
                     
                     if (!IsValidPath(path, filters)) continue;
                     
-                    list.Add(new Entry(library, library.GetLabelId(i, j), i, path));
+                    list.Add(new Entry(library, library.GetLabelId(i, j), index: none ? j + 1 : j, array: i, path, usage));
                 }
             }
 

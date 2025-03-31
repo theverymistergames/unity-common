@@ -122,6 +122,13 @@ namespace MisterGames.Common.Labels {
             ref var arr = ref _labelArrays[array];
             return arr.id;
         }
+        
+        public override LabelArrayUsage GetArrayUsage(int array) {
+            if (_labelArrays == null || _labelArrays.Length <= array) return default;
+
+            ref var arr = ref _labelArrays[array];
+            return arr.usage;
+        }
 
         public override int GetArrayIndex(int labelId) {
             return GetAddress(labelId).array;

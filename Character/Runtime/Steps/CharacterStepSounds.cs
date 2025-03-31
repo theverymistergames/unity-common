@@ -1,4 +1,5 @@
 using MisterGames.Actors;
+using MisterGames.Character.Phys;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Audio;
 using MisterGames.Common.Maths;
@@ -8,6 +9,7 @@ namespace MisterGames.Character.Steps {
     
     public sealed class CharacterStepSounds : MonoBehaviour, IActorComponent {
         
+        [SerializeField] private MaterialDetectorBase _materialDetector;
         [SerializeField] [Range(0f, 2f)] private float _volume = 1f;
         [SerializeField] [MinMaxSlider(0f, 2f)] private Vector2 _pitch = new Vector2(0.9f, 1.1f);
         [SerializeField] private AudioClip[] _sounds;

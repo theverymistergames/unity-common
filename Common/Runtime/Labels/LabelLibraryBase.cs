@@ -14,6 +14,7 @@ namespace MisterGames.Common.Labels.Base {
         public abstract int GetArraysCount();
         public abstract string GetArrayName(int array);
         public abstract bool GetArrayNoneLabel(int array);
+        public abstract LabelArrayUsage GetArrayUsage(int array);
         public abstract int GetArrayId(int array);
         public abstract int GetArrayIndex(int labelId);
 
