@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using MisterGames.Collisions.Core;
 using MisterGames.Common.Data;
 using MisterGames.Common.Labels;
@@ -10,9 +11,9 @@ namespace MisterGames.Character.Phys {
     public sealed class GroundLayerMaterialDetector : MaterialDetectorBase {
 
         [SerializeField] private CollisionDetectorBase _collisionDetector;
-        [SerializeField] private LabelValue _priority;
         [SerializeField] private LabelValue _defaultMaterial;
         [SerializeField] private Optional<LabelValue> _noContactMaterial;
+        [SerializeField] [Min(0f)] private float _weight = 1f;
         [SerializeField] private MaterialData[] _materials;
         
         [Serializable]
@@ -21,32 +22,38 @@ namespace MisterGames.Character.Phys {
             public LabelValue material;
         }
 
+        private readonly List<MaterialInfo> _materialList = new();
+        
         private int _lastContactHash;
         private int _lastContactMaterialId;
         
-        public override bool TryGetMaterial(out int materialId, out int priority) {
-            priority = _priority.GetValue();
+        public override IReadOnlyList<MaterialInfo> GetMaterials() {
+            _materialList.Clear();
             
             if (!_collisionDetector.HasContact) {
                 _lastContactHash = 0;
-                materialId = _noContactMaterial.Value.GetValue();
-                return _noContactMaterial.HasValue;
+
+                if (_noContactMaterial.HasValue) {
+                    _materialList.Add(new MaterialInfo(_noContactMaterial.Value.GetValue(), _weight));
+                }
+                
+                return _materialList;
             }
 
             var info = _collisionDetector.CollisionInfo;
             int hash = info.transform.GetHashCode();
             
             if (hash == _lastContactHash) {
-                materialId = _lastContactMaterialId;
-                return true;
+                _materialList.Add(new MaterialInfo(_lastContactMaterialId, _weight));
+                return _materialList;
             }
 
             _lastContactHash = hash;
 
             if (info.transform.TryGetComponent(out SurfaceMaterial surfaceMaterial)) {
                 _lastContactMaterialId = surfaceMaterial.MaterialId;
-                materialId = _lastContactMaterialId;
-                return true;
+                _materialList.Add(new MaterialInfo(_lastContactMaterialId, _weight));
+                return _materialList;
             }
             
             int layer = info.transform.gameObject.layer;
@@ -56,13 +63,13 @@ namespace MisterGames.Character.Phys {
                 if (!data.layerMask.Contains(layer)) continue;
 
                 _lastContactMaterialId = data.material.GetValue();
-                materialId = _lastContactMaterialId;
-                return true;
+                _materialList.Add(new MaterialInfo(_lastContactMaterialId, _weight));
+                return _materialList;
             }
             
             _lastContactMaterialId = _defaultMaterial.GetValue();
-            materialId = _lastContactMaterialId;
-            return true;
+            _materialList.Add(new MaterialInfo(_lastContactMaterialId, _weight));
+            return _materialList;
         }
     }
     

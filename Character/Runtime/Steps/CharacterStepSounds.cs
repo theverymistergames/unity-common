@@ -1,10 +1,10 @@
 using System;
+using System.Collections.Generic;
 using MisterGames.Actors;
 using MisterGames.Character.Phys;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Audio;
 using MisterGames.Common.Labels;
-using MisterGames.Common.Lists;
 using MisterGames.Common.Maths;
 using UnityEngine;
 
@@ -26,6 +26,7 @@ namespace MisterGames.Character.Steps {
             public AudioClip[] clips;
         }
         
+        private readonly Dictionary<int, int> _materialIdToIndexMap = new();
         private Transform _transform;
         private CharacterStepsPipeline _characterStepsPipeline;
 
@@ -42,27 +43,49 @@ namespace MisterGames.Character.Steps {
             _characterStepsPipeline.OnStep -= OnStep;
         }
 
-        private void OnStep(int foot, float distance, Vector3 point) {
-            var clips = _sounds;
-            float volume = _volume;
-            float pitch = _pitch.GetRandomInRange();
+        private void FetchMaterialIdToIndexMap() {
+            _materialIdToIndexMap.Clear();
             
-            if (_materialDetector.TryGetMaterial(out int materialId, out _) && 
-                _materialSounds.TryFind(materialId, (preset, m) => preset.material.GetValue() == m, out var materialSounds))
-            {
-                clips = materialSounds.clips;
-                volume = materialSounds.volume;
-                pitch = materialSounds.pitch.GetRandomInRange();
+            for (int i = 0; i < _materialSounds?.Length; i++) {
+                ref var materialSounds = ref _materialSounds[i];
+                _materialIdToIndexMap[materialSounds.material.GetValue()] = i;
             }
-            
-            AudioPool.Main.Play(
-                AudioPool.Main.ShuffleClips(clips), 
-                _transform, 
-                volume: volume, 
-                pitch: pitch, 
-                options: AudioOptions.AffectedByTimeScale
-            );
         }
+
+        private void OnStep(int foot, float distance, Vector3 point) {
+            var materials = _materialDetector.GetMaterials();
+            
+            for (int i = 0; i < materials.Count; i++) {
+                var info = materials[i];
+                if (info.weight <= 0f) continue;
+                
+                var clips = _sounds;
+                float volume = _volume;
+                float pitch = _pitch.GetRandomInRange();
+
+                if (_materialIdToIndexMap.TryGetValue(info.materialId, out int index)) {
+                    ref var data = ref _materialSounds[index];
+                    
+                    clips = data.clips;
+                    volume = data.volume;
+                    pitch = data.pitch.GetRandomInRange();    
+                }
+                
+                AudioPool.Main.Play(
+                    AudioPool.Main.ShuffleClips(clips), 
+                    _transform, 
+                    volume: volume * info.weight, 
+                    pitch: pitch, 
+                    options: AudioOptions.AffectedByTimeScale
+                );   
+            }
+        }
+
+#if UNITY_EDITOR
+        private void OnValidate() {
+            FetchMaterialIdToIndexMap();
+        }
+#endif
     }
     
 }

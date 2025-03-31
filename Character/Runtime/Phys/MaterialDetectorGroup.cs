@@ -1,30 +1,51 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
 namespace MisterGames.Character.Phys {
     
     public sealed class MaterialDetectorGroup : MaterialDetectorBase {
 
-        [SerializeField] private MaterialDetectorBase[] _detectors;
+        [SerializeField] private MaterialDetectorBase[] _detectorsPrimary;
+        [SerializeField] private MaterialDetectorBase[] _detectorsSecondary;
 
-        public override bool TryGetMaterial(out int materialId, out int priority) {
-            int mat = 0;
-            int topPriority = -1;
+        private readonly List<MaterialInfo> _materialList = new(); 
+        
+        public override IReadOnlyList<MaterialInfo> GetMaterials() {
+            _materialList.Clear();
             
-            for (int i = 0; i < _detectors.Length; i++) {
-                if (!_detectors[i].TryGetMaterial(out int matId, out int prior) ||
-                    topPriority >= 0 && prior < topPriority) 
-                { 
-                    continue;    
-                }
+            for (int i = _detectorsPrimary.Length - 1; i >= 0; i--) {
+                var detector = _detectorsPrimary[i];
+                
+                var materials = detector.GetMaterials();
+                if (materials.Count == 0) continue;
 
-                topPriority = prior;
-                mat = matId;
+                _materialList.AddRange(materials);
+                break;
+            }
+            
+            for (int i = _detectorsSecondary.Length - 1; i >= 0; i--) {
+                var detector = _detectorsSecondary[i];
+                
+                var materials = detector.GetMaterials();
+                if (materials.Count == 0) continue;
+
+                _materialList.AddRange(materials);
+                break;
             }
 
-            materialId = mat;
-            priority = topPriority;
+            float invertedWeightSum = 0f;
+            for (int i = 0; i < _materialList.Count; i++) {
+                invertedWeightSum += _materialList[i].weight;
+            }
             
-            return topPriority >= 0;
+            invertedWeightSum = invertedWeightSum > 0f ? 1f / invertedWeightSum : 0f;
+
+            for (int i = 0; i < _materialList.Count; i++) {
+                var material = _materialList[i];
+                _materialList[i] = new MaterialInfo(material.materialId, material.weight * invertedWeightSum);
+            }
+            
+            return _materialList;
         }
     }
     
