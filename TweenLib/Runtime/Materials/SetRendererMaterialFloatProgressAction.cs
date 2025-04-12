@@ -1,7 +1,7 @@
 ﻿using System;
-using MisterGames.Common.Attributes;
 using MisterGames.Common.Data;
 using MisterGames.Tweens;
+using UnityEditor;
 using UnityEngine;
 
 namespace MisterGames.TweenLib.Materials {
@@ -10,7 +10,7 @@ namespace MisterGames.TweenLib.Materials {
     public sealed class SetRendererMaterialFloatProgressAction : ITweenProgressAction {
 
         public Renderer renderer;
-        [HashIdUsage(HashMethod.Shader)] public HashId fieldName;
+        public ShaderHashId fieldName;
         public float startValue = 0;
         public float endValue;
 
@@ -26,7 +26,7 @@ namespace MisterGames.TweenLib.Materials {
             mat.SetFloat(fieldName, Mathf.Lerp(startValue, endValue, progress));
             
 #if UNITY_EDITOR
-            if (!Application.isPlaying) UnityEditor.EditorUtility.SetDirty(mat);
+            if (!Application.isPlaying) EditorUtility.SetDirty(mat);
 #endif
         }
     }

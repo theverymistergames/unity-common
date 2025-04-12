@@ -23,7 +23,7 @@ namespace MisterGames.Common.Data {
 
         public override string ToString() {
 #if UNITY_EDITOR
-            return $"{_name}";
+            return _name;
 #endif
             return _hash.ToString();
         }

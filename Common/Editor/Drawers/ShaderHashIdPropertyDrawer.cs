@@ -4,13 +4,12 @@ using UnityEngine;
 
 namespace MisterGames.Common.Editor.Drawers {
 
-    [CustomPropertyDrawer(typeof(HashId))]
-    public class HashIdPropertyDrawer : PropertyDrawer {
+    [CustomPropertyDrawer(typeof(ShaderHashId))]
+    public class ShaderHashIdPropertyDrawer : PropertyDrawer {
 
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
             EditorGUI.BeginProperty(position, label, property);
 
-            var hashProperty = property.FindPropertyRelative("_hash");
             var nameProperty = property.FindPropertyRelative("_name");
             
             EditorGUI.PropertyField(position, nameProperty, label);
@@ -21,7 +20,6 @@ namespace MisterGames.Common.Editor.Drawers {
             }
 
             nameProperty.stringValue = name;
-            hashProperty.intValue = string.IsNullOrWhiteSpace(name) ? 0 : Animator.StringToHash(name);
             
             property.serializedObject.ApplyModifiedProperties();
             property.serializedObject.Update();

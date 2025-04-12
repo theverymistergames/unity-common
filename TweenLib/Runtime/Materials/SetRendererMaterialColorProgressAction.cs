@@ -1,7 +1,7 @@
 ﻿using System;
-using MisterGames.Common.Attributes;
 using MisterGames.Common.Data;
 using MisterGames.Tweens;
+using UnityEditor;
 using UnityEngine;
 
 namespace MisterGames.TweenLib.Materials {
@@ -10,7 +10,7 @@ namespace MisterGames.TweenLib.Materials {
     public sealed class SetRendererMaterialColorProgressAction : ITweenProgressAction {
 
         public Renderer renderer;
-        [HashIdUsage(HashMethod.Shader)] public HashId fieldName;
+        public ShaderHashId fieldName;
         [ColorUsage(showAlpha: true, hdr: true)] public Color startColor;
         [ColorUsage(showAlpha: true, hdr: true)] public Color endColor;
         [Range(0f, 1f)] public float threshold;
@@ -27,7 +27,7 @@ namespace MisterGames.TweenLib.Materials {
             mat.SetColor(fieldName, progress <= threshold ? startColor : endColor);
             
 #if UNITY_EDITOR
-            if (!Application.isPlaying) UnityEditor.EditorUtility.SetDirty(mat);
+            if (!Application.isPlaying) EditorUtility.SetDirty(mat);
 #endif
         }
     }

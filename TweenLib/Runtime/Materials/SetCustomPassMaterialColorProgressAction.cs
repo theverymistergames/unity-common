@@ -1,5 +1,4 @@
 ﻿using System;
-using MisterGames.Common.Attributes;
 using MisterGames.Common.Data;
 using MisterGames.Logic.Rendering;
 using MisterGames.Tweens;
@@ -11,7 +10,7 @@ namespace MisterGames.TweenLib.Materials {
     public sealed class SetCustomPassMaterialColorProgressAction : ITweenProgressAction {
 
         public CustomPassVolumeMaterialInstance customPassVolumeMaterialInstance;
-        [HashIdUsage(HashMethod.Shader)] public HashId fieldName;
+        public ShaderHashId fieldName;
         [ColorUsage(showAlpha: true, hdr: true)] public Color startColor;
         [ColorUsage(showAlpha: true, hdr: true)] public Color endColor;
         [Range(0f, 1f)] public float threshold;
