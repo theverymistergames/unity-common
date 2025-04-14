@@ -2,11 +2,9 @@
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using MisterGames.Common.Attributes;
 using MisterGames.Common.Easing;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Pooling;
-using MisterGames.Common.Strings;
 using MisterGames.Common.Tick;
 using Unity.Collections;
 using Unity.Jobs.LowLevel.Unsafe;
@@ -149,7 +147,7 @@ namespace MisterGames.Common.Audio {
             
             _handleIdToAudioElementMap[id] = audioElement;
             _occlusionList.Add(default);
-            
+
             RestartAudioSource(
                 id, audioElement.Source, clip, mixerGroup, 
                 fadeIn, volume, pitch * (affectedByTimeScale ? Time.timeScale : 1f), 
@@ -157,9 +155,8 @@ namespace MisterGames.Common.Audio {
                 cancellationToken
             ).Forget();
             
-            ReleaseDelayed(
+            WaitAndRelease(
                 id, AttachKey.Invalid, audioElement.Source, 
-                delay: (1f - normalizedTime) * clip.length, 
                 loop, fadeOut, 
                 cancellationToken
             ).Forget();
@@ -214,9 +211,8 @@ namespace MisterGames.Common.Audio {
                 cancellationToken
             ).Forget();
             
-            ReleaseDelayed(
+            WaitAndRelease(
                 id, attachKey, audioElement.Source, 
-                delay: (1f - normalizedTime) * clip.length, 
                 loop, fadeOut, 
                 cancellationToken
             ).Forget();
@@ -278,25 +274,28 @@ namespace MisterGames.Common.Audio {
             return fadeIn > 0f ? FadeIn(id, source, fadeIn, volume, cancellationToken) : default;
         }
 
-        private async UniTask ReleaseDelayed(
+        private async UniTask WaitAndRelease(
             int id,
             AttachKey attachKey,
             AudioSource source,
-            float delay,
             bool loop,
             float fadeOut,
             CancellationToken cancellationToken) 
         {
+            float maxTime = source.time;
+            float clipLength = source.clip.length;
+            
             while (!cancellationToken.IsCancellationRequested && 
                    !_cancellationToken.IsCancellationRequested && 
                    _handleIdToAudioElementMap.ContainsKey(id) && 
-                   (loop || source.time < source.clip.length))
+                   (loop || source.time is var time && time < clipLength && time >= maxTime)) 
             {
+                maxTime = source.time;
                 await UniTask.Yield();
             }
             
             if (_cancellationToken.IsCancellationRequested) return;
-
+            
             _handleIdToAudioElementMap.Remove(id);
             _attachKeyToHandleIdMap.Remove(attachKey);
             
@@ -457,7 +456,7 @@ namespace MisterGames.Common.Audio {
                 var rot = Quaternion.LookRotation(data.direction, up);
 
 #if UNITY_EDITOR
-                if (_showDebugInfo) DebugExt.DrawSphere(data.position, 0.01f, Color.magenta);
+                if (_showOcclusionInfo) DebugExt.DrawSphere(data.position, 0.01f, Color.magenta);
 #endif
                 
                 for (int j = 0; j < _rays; j++) {
@@ -473,8 +472,8 @@ namespace MisterGames.Common.Audio {
                     );
                     
 #if UNITY_EDITOR
-                    if (_showDebugInfo) DebugExt.DrawRay(data.position, offset, Color.magenta);
-                    if (_showDebugInfo) DebugExt.DrawRay(data.position + offset, data.direction * data.distance, Color.magenta);
+                    if (_showOcclusionInfo) DebugExt.DrawRay(data.position, offset, Color.magenta);
+                    if (_showOcclusionInfo) DebugExt.DrawRay(data.position + offset, data.direction * data.distance, Color.magenta);
 #endif
                 }
             }
@@ -660,6 +659,9 @@ namespace MisterGames.Common.Audio {
 #if UNITY_EDITOR
         [Header("Debug")]
         [SerializeField] private bool _showDebugInfo;
+        [SerializeField] private bool _showOcclusionInfo;
+        
+        internal bool ShowDebugInfo => _showDebugInfo;
         
         private void OnValidate() {
             if (_maxDistance < _minDistance) _maxDistance = _minDistance;

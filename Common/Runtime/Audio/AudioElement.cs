@@ -32,7 +32,13 @@ namespace MisterGames.Common.Audio {
             _source = GetComponent<AudioSource>();
             _lowPass = GetComponent<AudioLowPassFilter>();
             _highPass = GetComponent<AudioHighPassFilter>();
-        }  
+        }
+
+        private void OnDrawGizmos() {
+            if (!Application.isPlaying || AudioPool.Main is not AudioPool { ShowDebugInfo: true }) return;
+            
+            DebugExt.DrawLabel(transform.position, $"[{Id}] {(_source.clip == null ? "<null>" : _source.clip.name)}");
+        }
 #endif
     }
     
