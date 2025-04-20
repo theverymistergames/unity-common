@@ -24,6 +24,28 @@ namespace MisterGames.Common.Inputs {
         private Vector2 _resultFrequency;
         private int _topPriority;
 
+        private void OnEnable() {
+            DeviceService.Instance.OnDeviceChanged += OnDeviceChanged;
+        }
+
+        private void OnDisable() {
+            DeviceService.Instance.OnDeviceChanged -= OnDeviceChanged;
+        }
+
+        private void OnDeviceChanged(DeviceType device) {
+            switch (device) {
+                case DeviceType.KeyboardMouse:
+                    ApplyFrequency(Vector2.zero);
+                    break;
+                
+                case DeviceType.Gamepad:
+                    break;
+                
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(device), device, null);
+            }
+        }
+
         public void Register(object source, int priority) {
             int hash = source.GetHashCode();
             _dataMap[hash] = _dataMap.TryGetValue(hash, out var data) 
@@ -32,7 +54,8 @@ namespace MisterGames.Common.Inputs {
 
             _topPriority = GetTopPriority();
             _resultFrequency = BuildResultFrequency(_topPriority);
-            ApplyFrequency(_resultFrequency);
+            
+            ApplyFrequencyIfGamepadActive(_resultFrequency);
         }
 
         public void Unregister(object source) {
@@ -40,7 +63,8 @@ namespace MisterGames.Common.Inputs {
             
             _topPriority = GetTopPriority();
             _resultFrequency = BuildResultFrequency(_topPriority);
-            ApplyFrequency(_resultFrequency);
+            
+            ApplyFrequencyIfGamepadActive(_resultFrequency);
         }
 
         public void SetTwoMotors(object source, Vector2 frequency, float weightLeft = 1f, float weightRight = 1f) {
@@ -50,7 +74,7 @@ namespace MisterGames.Common.Inputs {
             _dataMap[hash] = new Data(data.priority, new Vector2(weightLeft, weightRight), frequency);
             _resultFrequency = BuildResultFrequency(_topPriority);
             
-            ApplyFrequency(_resultFrequency);
+            ApplyFrequencyIfGamepadActive(_resultFrequency);
         }
 
         public void SetMotor(object source, GamepadSide side, float frequency, float weight = 1f) {
@@ -78,7 +102,21 @@ namespace MisterGames.Common.Inputs {
             _dataMap[hash] = new Data(data.priority, w, f);
             _resultFrequency = BuildResultFrequency(_topPriority);
             
-            ApplyFrequency(_resultFrequency);
+            ApplyFrequencyIfGamepadActive(_resultFrequency);
+        }
+
+        private void ApplyFrequencyIfGamepadActive(Vector2 frequency) {
+            switch (DeviceService.Instance.CurrentDevice) {
+                case DeviceType.KeyboardMouse:
+                    return;
+
+                case DeviceType.Gamepad:
+                    ApplyFrequency(frequency);
+                    break;
+                
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
 
         private void ApplyFrequency(Vector2 frequency) {

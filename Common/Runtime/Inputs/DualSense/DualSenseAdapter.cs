@@ -9,28 +9,6 @@ namespace MisterGames.Common.Inputs.DualSense {
 
         [SerializeField] private bool _replicateOutputStateForAllControllers = true;
         
-        public readonly struct Controller {
-            
-            private readonly uint _index;
-            
-            public Controller(uint index) {
-                _index = index;
-            }
-
-            public ControllerInputState GetInputState() {
-                var inputState = DualSenseNative.GetControllerInputState(_index);
-                
-                inputState.LeftTrigger.TriggerValue = Math.Round(inputState.LeftTrigger.TriggerValue, 2);
-                inputState.RightTrigger.TriggerValue = Math.Round(inputState.RightTrigger.TriggerValue, 2);
-
-                return inputState;
-            }
-
-            public bool SetOutputState(ControllerOutputState outputState) {
-                return DualSenseNative.SetControllerOutputState(_index, outputState);
-            }
-        }
-        
         private ControllerOutputState[] _outputStates;
         private uint _controllerCount;
 

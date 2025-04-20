@@ -132,9 +132,12 @@ namespace MisterGames.Character.Motion {
             _collisionPipeline.Block(this, blocked: false);
             
             _rigidbody.WakeUp();
-            _rigidbody.linearVelocity = preserveVelocity ? rotDelta * velocity : Vector3.zero;
-            _rigidbody.angularVelocity = preserveVelocity ? angularVelocity : Vector3.zero;
 
+            if (!_rigidbody.isKinematic) {
+                _rigidbody.linearVelocity = preserveVelocity ? rotDelta * velocity : Vector3.zero;
+                _rigidbody.angularVelocity = preserveVelocity ? angularVelocity : Vector3.zero;
+            }
+            
             OnTeleport.Invoke();
             
             HasBeenTeleported = true;

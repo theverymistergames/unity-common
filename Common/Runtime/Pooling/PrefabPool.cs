@@ -246,9 +246,10 @@ namespace MisterGames.Common.Pooling {
             var instance = pool?.Get() ?? CreatePoolObject(prefab);
 
             var t = instance.transform;
+            t.localScale = prefab.transform.localScale;
+            
             t.SetParent(parent, worldPositionStays);
             if (setupPositionAndRotation) t.SetPositionAndRotation(position, rotation);
-            t.localScale = prefab.transform.localScale;
 
             instance.SetActive(active);
             
