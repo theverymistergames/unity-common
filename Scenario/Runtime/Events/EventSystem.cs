@@ -138,6 +138,14 @@ namespace MisterGames.Scenario.Events {
                     case Action<T> actionListener:
                         actionListener.Invoke(data);
                         break;
+                    
+                    case IEventListener interfaceListener:
+                        interfaceListener.OnEventRaised(e);
+                        break;
+
+                    case Action actionListener:
+                        actionListener.Invoke();
+                        break;
                 }
             }
         }

@@ -34,6 +34,8 @@ namespace MisterGames.Character.Interactives {
 
         public void SetWeight(float weight) {
             _targetWeight = Mathf.Clamp01(weight);
+
+            if (!didAwake) return;
             
             Register();
             PlayerLoopStage.LateUpdate.Subscribe(this);
@@ -78,7 +80,7 @@ namespace MisterGames.Character.Interactives {
         void IUpdate.OnUpdate(float dt) {
             float targetWeight = enabled ? _targetWeight : 0f;
             _weightSmoothed = _weightSmoothed.SmoothExpNonZero(targetWeight, _weightSmoothing, dt);
-            
+
             _cameraShaker.SetWeight(_shakerStateId, _cameraStateWeight);
             _cameraShaker.SetSpeed(_shakerStateId, Vector3.Lerp(_noiseSpeedStart, _noiseSpeedEnd, _weightSmoothed));
             _cameraShaker.SetPosition(_shakerStateId, _noisePositionOffset, _noisePositionMul * _weightSmoothed);

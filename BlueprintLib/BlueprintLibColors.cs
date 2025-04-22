@@ -2,7 +2,7 @@
 
 namespace MisterGames.BlueprintLib {
     
-    internal static class BlueprintLibColors {
+    public static class BlueprintLibColors {
         
         public static class Node {
             public const string Input = "#38697A";

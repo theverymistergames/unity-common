@@ -18,7 +18,9 @@ namespace MisterGames.ActionLib.Character {
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
             if (points.Length == 0) return default;
             
-            points.GetRandom().GetPositionAndRotation(out var pos, out var rot);
+            var point = points.GetRandom();
+
+            point.GetPositionAndRotation(out var pos, out var rot);
             context.GetComponent<CharacterMotionPipeline>().Teleport(pos, rot, preserveVelocity);
             
             return default;
