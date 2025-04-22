@@ -25,13 +25,13 @@ namespace MisterGames.Logic.Rendering {
         private float _distanceSmoothed;
         
         private void Awake() {
-            _volumeProfile.TryGet(out _depthOfField);
-            _depthOfField.focusMode.value = DepthOfFieldMode.Manual;
-
             _distanceSmoothed = _defaultDistance;
         }
 
         private void OnEnable() {
+            _volumeProfile.TryGet(out _depthOfField);
+            _depthOfField.focusMode.value = DepthOfFieldMode.Manual;
+            
             PlayerLoopStage.LateUpdate.Subscribe(this);
         }
 

@@ -23,7 +23,7 @@ namespace MisterGames.Common.Inputs.DualSense {
         }
 
         public bool HasController(int index = 0) {
-            return index >= 0 && index < _controllerCount;
+            return index >= 0 && index < _controllerCount && DeviceService.Instance.CurrentDevice == DeviceType.Gamepad;
         }
         
         public void SetRumble(Vector2 rumble, int index = 0) {
