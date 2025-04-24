@@ -1,10 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using MisterGames.Common.Attributes;
 using MisterGames.Input.Actions;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Pool;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace MisterGames.Dbg.Console.Core {
 
@@ -21,9 +27,8 @@ namespace MisterGames.Dbg.Console.Core {
 
         [Header("Inputs")]
         [SerializeField] private InputActionKey _activationInput;
-
         [SerializeReference] [SubclassSelector] private IConsoleModule[] _consoleModules;
-
+        
         public event Action OnShowConsole = delegate {  };
         public event Action OnHideConsole = delegate {  };
         public event Action<string> OnBeforeRunCommand = delegate {  };
@@ -32,19 +37,13 @@ namespace MisterGames.Dbg.Console.Core {
         internal IReadOnlyList<Command> Commands => _console.Commands;
         internal IReadOnlyList<IConsoleModule> ConsoleModules => _consoleModules;
 
-        private readonly Console _console = new Console();
-        private readonly StringBuilder _stringBuilder = new StringBuilder();
+        private readonly Console _console = new();
+        private readonly StringBuilder _stringBuilder = new();
         private CursorLockMode _lastCursorLockMode;
         private bool _lastCursorVisibility;
 
         private void Awake() {
-            for (int i = 0; i < _consoleModules.Length; i++) {
-                var module = _consoleModules[i];
-                module.ConsoleRunner = this;
-
-                _console.AddModule(module);
-            }
-
+            FetchConsoleModules();
             SetTextFieldFontSize(_textFieldFontSize);
             SetTextInputFieldFontSize(_textInputFieldFontSize);
         }
@@ -106,6 +105,49 @@ namespace MisterGames.Dbg.Console.Core {
             _stringBuilder.Clear();
             UpdateTextField();
         }
+
+        private void FetchConsoleModules() {
+            var types =
+
+#if UNITY_EDITOR
+                TypeCache.GetTypesDerivedFrom<IConsoleModule>()
+#else
+                AppDomain.CurrentDomain
+                    .GetAssemblies()
+                    .Where(assembly => !assembly.FullName.Contains(EDITOR, StringComparison.OrdinalIgnoreCase))
+                    .SelectMany(assembly => assembly.GetTypes())
+                    .Where(t => typeof(IConsoleModule).IsAssignableFrom(t))
+#endif
+                .Where(t =>
+                    typeof(IConsoleModule).IsAssignableFrom(t) &&
+                    (t.IsPublic || t.IsNestedPublic) &&
+                    t.IsVisible &&
+                    !t.IsAbstract &&
+                    !t.IsGenericType
+                )
+                .ToArray();
+
+            var map = DictionaryPool<Type, IConsoleModule>.Get();
+
+            for (int i = 0; i < _consoleModules.Length; i++) {
+                if (_consoleModules[i] is {} module) map[module.GetType()] = module;
+            }
+
+            for (int i = 0; i < types.Length; i++) {
+                var type = types[i];
+                if (!map.ContainsKey(type)) map[type] = Activator.CreateInstance(type) as IConsoleModule; 
+            }
+            
+            _consoleModules = map.Values.ToArray();
+            DictionaryPool<Type, IConsoleModule>.Release(map);
+
+            for (int i = 0; i < _consoleModules.Length; i++) {
+                var module = _consoleModules[i];
+                module.ConsoleRunner = this;
+
+                _console.AddModule(module);
+            }
+        }
         
         private void OnPressActivationInput() {
             if (_canvas.activeSelf) HideConsole();
@@ -156,32 +198,6 @@ namespace MisterGames.Dbg.Console.Core {
             int toRemoveCount = length - lengthShouldBe;
             _stringBuilder.Remove(0, toRemoveCount);
         }
-
-#if UNITY_EDITOR
-        public void RefreshModules(IReadOnlyList<IConsoleModule> newModules) {
-            var existentConsoleModulesTypeMap = new Dictionary<Type, IConsoleModule>(_consoleModules.Length);
-            for (int i = 0; i < _consoleModules.Length; i++) {
-                var consoleModule = _consoleModules[i];
-                if (consoleModule == null) continue;
-
-                existentConsoleModulesTypeMap.Add(consoleModule.GetType(), consoleModule);
-            }
-
-            var targetConsoleModules = new List<IConsoleModule>();
-
-            for (int i = 0; i < newModules.Count; i++) {
-                var newModule = newModules[i];
-
-                var moduleToAdd = existentConsoleModulesTypeMap.TryGetValue(newModule.GetType(), out var existentModule)
-                    ? existentModule
-                    : newModule;
-
-                targetConsoleModules.Add(moduleToAdd);
-            }
-
-            _consoleModules = targetConsoleModules.ToArray();
-        }
-#endif
     }
     
 }

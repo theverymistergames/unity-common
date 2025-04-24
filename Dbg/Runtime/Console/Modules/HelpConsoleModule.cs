@@ -16,38 +16,45 @@ namespace MisterGames.Dbg.Console.Modules {
         [ConsoleCommandHelp("prints all commands help")]
         public void PrintAllCommandsHelp() {
             var commands = ConsoleRunner.Commands.OrderBy(c => c.cmd).ToArray();
-
+            var sb = new StringBuilder();
+            
             ConsoleRunner.AppendLine("Commands:");
+            
             for (int i = 0; i < commands.Length; i++) {
-                string help = GetHelpText(commands[i]);
-                ConsoleRunner.AppendLine($" - {help}");
+                AppendHelpText(sb, commands[i]);
             }
+            
+            ConsoleRunner.AppendLine(sb.ToString());
         }
 
         [ConsoleCommand("help")]
         [ConsoleCommandHelp("prints command help")]
         public void PrintCommandHelp(string cmd) {
+            var sb = new StringBuilder();
             var commands = ConsoleRunner.Commands;
+            
             cmd = cmd.ToLower();
 
             bool foundAtLeastOneCommand = false;
 
             for (int i = 0; i < commands.Count; i++) {
                 var command = commands[i];
-                if (command.cmd != cmd) continue;
+                if (!command.cmd.Contains(cmd)) continue;
 
-                string help = GetHelpText(commands[i]);
-                ConsoleRunner.AppendLine($" - {help}");
+                AppendHelpText(sb, commands[i]);
                 foundAtLeastOneCommand = true;
             }
 
             if (!foundAtLeastOneCommand) {
                 ConsoleRunner.AppendLine($"Command {cmd} is not found. Type help to see list of all commands.");
+                return;
             }
+            
+            ConsoleRunner.AppendLine(sb.ToString());
         }
 
-        private static string GetHelpText(Command command) {
-            var sb = new StringBuilder(command.cmd);
+        private static void AppendHelpText(StringBuilder sb, Command command) {
+            sb.Append($"- {command.cmd}");
 
             string parametersText = GetMethodParametersAsString(command.method);
             if (!string.IsNullOrEmpty(parametersText)) {
@@ -59,7 +66,7 @@ namespace MisterGames.Dbg.Console.Modules {
                 sb.Append($" : {helpAttrText}");
             }
 
-            return sb.ToString();
+            sb.Append('\n');
         }
 
         private static string GetCmdHelpFromMethod(ICustomAttributeProvider methodInfo) {

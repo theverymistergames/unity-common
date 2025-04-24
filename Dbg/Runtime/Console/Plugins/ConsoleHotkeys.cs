@@ -22,7 +22,7 @@ namespace MisterGames.Dbg.Console.Plugins {
             public string command;
             
             public void Process(ConsoleRunner consoleRunner) {
-                if ((key.WasPressedThisFrame() || modifiers.WasPressedThisFrame()) && 
+                if ((key.WasPerformedThisFrame() || modifiers.WasPerformedThisFrame()) && 
                     key.IsActive() && modifiers.IsActive()
                 ) {
                     consoleRunner.RunCommand(command);
@@ -34,6 +34,9 @@ namespace MisterGames.Dbg.Console.Plugins {
 
         private void Awake() {
             _consoleRunner = GetComponent<ConsoleRunner>();
+        }
+
+        private void Start() {
             FetchConsoleCommands();
         }
 

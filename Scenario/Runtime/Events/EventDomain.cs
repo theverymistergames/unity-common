@@ -11,6 +11,7 @@ namespace MisterGames.Scenario.Events {
         [HideInInspector] [SerializeField] private int _nextId;
         
         private readonly Dictionary<int, (int, int)> _indexMap = new();
+        private readonly Dictionary<int, (int, int)> _nameHashMap = new();
         
         [Serializable]
         internal struct EventGroup {
@@ -33,6 +34,15 @@ namespace MisterGames.Scenario.Events {
             ref var e = ref g.events[index];
 
             return e.name;
+        }
+
+        public EventReference GetEventByName(string eventName) {
+            if (!TryGetAddress(eventName, out int group, out int index)) return default;
+
+            ref var g = ref _eventGroups[group];
+            ref var e = ref g.events[index];
+
+            return new EventReference(this, e.id);
         }
 
         internal bool IsSerializable(int eventId) {
@@ -69,6 +79,48 @@ namespace MisterGames.Scenario.Events {
                     group = i;
                     index = j;
                     _indexMap[eventId] = (i, j);
+                    return true;
+                }
+            }
+
+            group = 0;
+            index = 0;
+            return false;
+        }
+        
+        private bool TryGetAddress(string eventName, out int group, out int index) {
+            if (eventName == null) {
+                group = 0;
+                index = 0;
+                return false;
+            }
+            
+#if UNITY_EDITOR
+            if (_isEventPathMapInvalid) {
+                _isEventPathMapInvalid = false;
+                _nameHashMap.Clear();
+            }
+#endif
+
+            int hash = Animator.StringToHash(eventName);
+            
+            if (_nameHashMap.TryGetValue(hash, out (int group, int index) address)) {
+                group = address.group;
+                index = address.index;
+                return true;
+            }
+
+            for (int i = 0; i < _eventGroups.Length; i++) {
+                ref var g = ref _eventGroups[i];
+                var events = g.events;
+
+                for (int j = 0; j < events.Length; j++) {
+                    ref var entry = ref events[j];
+                    if (Animator.StringToHash(entry.name) != hash) continue;
+
+                    group = i;
+                    index = j;
+                    _nameHashMap[hash] = (i, j);
                     return true;
                 }
             }
