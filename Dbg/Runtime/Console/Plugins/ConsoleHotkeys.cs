@@ -20,17 +20,10 @@ namespace MisterGames.Dbg.Console.Plugins {
             public KeyBinding key;
             public ShortcutModifiers modifiers;
             public string command;
-            
-            public void Process(ConsoleRunner consoleRunner) {
-                if ((key.WasPerformedThisFrame() || modifiers.WasPerformedThisFrame()) && 
-                    key.IsActive() && modifiers.IsActive()
-                ) {
-                    consoleRunner.RunCommand(command);
-                }
-            }
         }
         
         private ConsoleRunner _consoleRunner;
+        private bool[] _inputActiveMap;
 
         private void Awake() {
             _consoleRunner = GetComponent<ConsoleRunner>();
@@ -42,7 +35,14 @@ namespace MisterGames.Dbg.Console.Plugins {
 
         private void Update() {
             for (int i = 0; i < _hotkeys.Count; i++) {
-                _hotkeys[i].Process(_consoleRunner);
+                var hotkey = _hotkeys[i];
+
+                bool wasActive = _inputActiveMap[i];
+                bool active = hotkey.key.IsActive() && hotkey.modifiers.IsActive();
+                
+                if (active && !wasActive) _consoleRunner.RunCommand(hotkey.command);
+
+                _inputActiveMap[i] = active;
             }
         }
 
@@ -58,6 +58,8 @@ namespace MisterGames.Dbg.Console.Plugins {
                     _hotkeys.Add(new ConsoleHotkey { command = attr.cmd, key = attr.key, modifiers = attr.mod });
                 }
             }
+
+            _inputActiveMap = new bool[_hotkeys.Count];
         }
 
         private static bool TryGetAttrFromMethod(ICustomAttributeProvider methodInfo, out ConsoleHotkeyAttribute attr) {

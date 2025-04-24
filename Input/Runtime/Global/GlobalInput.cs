@@ -18,45 +18,21 @@ namespace MisterGames.Input.Global {
         public static bool IsActive(this KeyBinding key) {
             return key != KeyBinding.None && keys[key].phase == InputActionPhase.Performed;
         }
-        
-        public static bool IsActive(this KeyCode key) {
-            return UnityEngine.Input.GetKey(key);
-        }
 
         public static bool IsActive(this ShortcutModifiers key) {
             if (key == ShortcutModifiers.None) return true;
 
             return ((key & ShortcutModifiers.Alt) != ShortcutModifiers.Alt || 
-                    KeyCode.LeftAlt.IsActive() || KeyCode.RightAlt.IsActive()) &&
+                    KeyBinding.LeftAlt.IsActive() || KeyBinding.RightAlt.IsActive()) &&
                    
                    ((key & ShortcutModifiers.Action) != ShortcutModifiers.Action || 
-                    KeyCode.LeftControl.IsActive() || KeyCode.LeftCommand.IsActive()) && 
+                    KeyBinding.LeftControl.IsActive() || KeyBinding.RightControl.IsActive()) && 
                    
                    ((key & ShortcutModifiers.Shift) != ShortcutModifiers.Shift || 
-                    KeyCode.LeftShift.IsActive() || KeyCode.RightShift.IsActive()) &&
+                    KeyBinding.LeftShift.IsActive() || KeyBinding.RightShift.IsActive()) &&
                    
                    ((key & ShortcutModifiers.Control) != ShortcutModifiers.Control || 
-                    KeyCode.LeftControl.IsActive() || KeyCode.RightControl.IsActive());
-        }
-
-        public static bool WasPerformedThisFrame(this KeyBinding key) {
-            return keys[key].WasPerformedThisFrame();
-        }
-
-        public static bool WasPerformedThisFrame(this ShortcutModifiers key) {
-            if (key == ShortcutModifiers.None) return false;
-
-            return ((key & ShortcutModifiers.Alt) == ShortcutModifiers.Alt && 
-                    (KeyBinding.LeftAlt.WasPerformedThisFrame() || KeyBinding.RightAlt.WasPerformedThisFrame())) ||
-                   
-                   ((key & ShortcutModifiers.Action) == ShortcutModifiers.Action && 
-                    (KeyBinding.LeftControl.WasPerformedThisFrame() || KeyBinding.RightControl.WasPerformedThisFrame())) ||
-                   
-                   ((key & ShortcutModifiers.Shift) == ShortcutModifiers.Shift && 
-                    (KeyBinding.LeftShift.IsActive() || KeyBinding.RightShift.WasPerformedThisFrame())) ||
-                   
-                   ((key & ShortcutModifiers.Control) == ShortcutModifiers.Control && 
-                    (KeyBinding.LeftControl.WasPerformedThisFrame() || KeyBinding.RightControl.WasPerformedThisFrame()));
+                    KeyBinding.LeftControl.IsActive() || KeyBinding.RightControl.IsActive());
         }
 
         public static Vector2 GetValue(this AxisBinding axis) {
