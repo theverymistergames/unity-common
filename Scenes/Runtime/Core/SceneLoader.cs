@@ -8,8 +8,6 @@ namespace MisterGames.Scenes.Core {
 
         [SerializeField] private SceneReference _startScene;
         [SerializeField] private SceneReference _gameplayScene;
-        [SerializeField] private bool _loadGameplayScene;
-        [SerializeField] private bool _forceLoadGameplaySceneInEditor;
         
         private static string _rootScene;
         
@@ -21,7 +19,6 @@ namespace MisterGames.Scenes.Core {
             _rootScene = SceneManager.GetActiveScene().name;
             
             string startScene = _startScene.scene;
-            bool needLoadGameplayScene = _loadGameplayScene;
             
 #if UNITY_EDITOR
             if (!SceneLoaderSettings.Instance.enablePlayModeStartSceneOverride) {
@@ -41,12 +38,10 @@ namespace MisterGames.Scenes.Core {
             
             // Force load gameplay scene in Unity Editor's playmode,
             // if playmode start scene is not selected start scene.
-            needLoadGameplayScene |= _forceLoadGameplaySceneInEditor && startScene != _startScene.scene;
-#endif
-            
-            if (needLoadGameplayScene) {
+            if (startScene != _startScene.scene) {
                 await LoadSceneAsync(_gameplayScene.scene, makeActive: false);
             }
+#endif
             
             await LoadSceneAsync(startScene, makeActive: true);
         }
