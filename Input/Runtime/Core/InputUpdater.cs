@@ -18,9 +18,17 @@ namespace MisterGames.Input.Core {
         public void Awake() {
             _globalInputs = new GlobalInputs();
             
-            InputSystem.settings.updateMode = InputSettings.UpdateMode.ProcessEventsManually;
             GlobalInput.Init(_globalInputs);
             _inputChannel.Init();
+
+#if UNITY_EDITOR
+            if (!Application.isPlaying) {
+                InputSystem.settings.updateMode = InputSettings.UpdateMode.ProcessEventsManually;
+                return;
+            }
+#endif
+            
+            InputSystem.settings.updateMode = InputSettings.UpdateMode.ProcessEventsInDynamicUpdate;
         }
 
         public void OnDestroy() {
@@ -45,7 +53,10 @@ namespace MisterGames.Input.Core {
         }
 
         void IUpdate.OnUpdate(float dt) {
-            InputSystem.Update();
+#if UNITY_EDITOR
+            if (!Application.isPlaying) InputSystem.Update();
+#endif
+            
             _inputChannel.DoUpdate(dt);
         }
         

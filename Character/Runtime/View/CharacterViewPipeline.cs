@@ -5,9 +5,7 @@ using MisterGames.Actors;
 using MisterGames.Character.Input;
 using MisterGames.Character.Motion;
 using MisterGames.Common.Async;
-using MisterGames.Common.Data;
 using MisterGames.Common.Maths;
-using MisterGames.UI.Initialization;
 using UnityEngine;
 
 namespace MisterGames.Character.View {
@@ -121,7 +119,6 @@ namespace MisterGames.Character.View {
         private void OnEnable() {
             AsyncExt.RecreateCts(ref _enableCts);
             
-            CanvasRegistry.Instance.SetCanvasEventCamera(_cameraContainer.Camera);
             _inputPipeline.OnViewVectorChanged += HandleViewVectorChanged;
             
             _head.GetPositionAndRotation(out _headPosition, out _headRotation);
@@ -133,7 +130,6 @@ namespace MisterGames.Character.View {
         private void OnDisable() {
             AsyncExt.DisposeCts(ref _enableCts);
             
-            CanvasRegistry.Instance.SetCanvasEventCamera(null);
             _inputPipeline.OnViewVectorChanged -= HandleViewVectorChanged;
         }
 

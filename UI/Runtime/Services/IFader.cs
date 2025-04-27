@@ -1,7 +1,7 @@
 ﻿using Cysharp.Threading.Tasks;
 using UnityEngine;
 
-namespace MisterGames.UI.Behaviours {
+namespace MisterGames.UI.Services {
     
     public interface IFader {
 

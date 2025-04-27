@@ -8,7 +8,7 @@ using UnityEngine.UI;
 
 namespace MisterGames.Interact.Cursors {
 
-    public class CursorHost : MonoBehaviour, ICursorHost, IUpdate {
+    public sealed class CursorHost : MonoBehaviour, ICursorHost, IUpdate {
 
         [Header("General")]
         [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
@@ -43,24 +43,15 @@ namespace MisterGames.Interact.Cursors {
             if (!_enableCursorOverride) SetCursorIcon(_initialCursorIcon);
 
             TimeSources.Get(_timeSourceStage).Subscribe(this);
-
-            Application.focusChanged -= OnApplicationFocusChanged;
-            Application.focusChanged += OnApplicationFocusChanged;
         }
 
         private void OnDisable() {
-            Application.focusChanged -= OnApplicationFocusChanged;
-
             TimeSources.Get(_timeSourceStage).Unsubscribe(this);
 
             ResetCursorIconOverride(this);
             SetCursorIcon(null);
         }
-
-        private void Start() {
-            OnApplicationFocusChanged(true);
-        }
-
+        
         public void ApplyCursorIconOverride(object source, CursorIcon icon) {
             _iconOverridesMap[source] = new CursorIconQueueItem(TimeSources.frameCount, icon);
 
@@ -128,11 +119,6 @@ namespace MisterGames.Interact.Cursors {
             var rectTransform = _cursorImage.rectTransform;
             rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, icon.size.x);
             rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, icon.size.y);
-        }
-
-        private static void OnApplicationFocusChanged(bool isFocused) {
-            Cursor.visible = !isFocused;
-            Cursor.lockState = isFocused ? CursorLockMode.Locked : CursorLockMode.None;
         }
     }
 

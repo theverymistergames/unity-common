@@ -4,7 +4,7 @@ using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
 using MisterGames.Common.Data;
-using MisterGames.UI.Behaviours;
+using MisterGames.UI.Services;
 using UnityEngine;
 
 namespace MisterGames.ActionLib.UI {

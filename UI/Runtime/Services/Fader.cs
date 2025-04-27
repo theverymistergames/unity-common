@@ -7,7 +7,7 @@ using MisterGames.Common.Maths;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace MisterGames.UI.Behaviours {
+namespace MisterGames.UI.Services {
     
     [DefaultExecutionOrder(-100_000)]
     public sealed class Fader : MonoBehaviour, IFader {

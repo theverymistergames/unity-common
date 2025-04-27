@@ -52,13 +52,11 @@ namespace MisterGames.Input.Global {
         internal static void Disable() {
             _globalInputs?.Disable();
         }
-        
+
         internal static void Terminate() {
 #if UNITY_EDITOR
             if (Application.isPlaying) _globalInputs?.Dispose();
-            else if (_globalInputs != null) {
-                Object.DestroyImmediate(_globalInputs.asset);
-            }
+            else if (_globalInputs != null) Object.DestroyImmediate(_globalInputs.asset);
 #else
             _globalInputs?.Dispose();
 #endif

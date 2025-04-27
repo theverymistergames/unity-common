@@ -1,4 +1,4 @@
-﻿namespace MisterGames.UI.Behaviours {
+﻿namespace MisterGames.UI.Services {
     
     public enum FadeMode {
         FadeIn,

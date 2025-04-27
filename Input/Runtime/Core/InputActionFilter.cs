@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using MisterGames.Input.Actions;
 using UnityEngine;
 
 namespace MisterGames.Input.Core {

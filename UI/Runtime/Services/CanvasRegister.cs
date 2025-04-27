@@ -1,8 +1,8 @@
 ﻿using UnityEngine;
 
-namespace MisterGames.UI.Initialization {
+namespace MisterGames.UI.Services {
 
-    public class CanvasRegister : MonoBehaviour {
+    public sealed class CanvasRegister : MonoBehaviour {
 
         [SerializeField] private Canvas _canvas;
 
@@ -13,5 +13,12 @@ namespace MisterGames.UI.Initialization {
         private void OnDestroy() {
             CanvasRegistry.Instance.RemoveCanvas(_canvas);
         }
+
+#if UNITY_EDITOR
+        private void Reset() {
+            _canvas = GetComponent<Canvas>();
+        }
+#endif
     }
+    
 }
