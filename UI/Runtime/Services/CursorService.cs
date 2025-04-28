@@ -56,7 +56,9 @@ namespace MisterGames.UI.Services {
         
         private void SetCursorVisible(bool visible) {
             Cursor.visible = visible;
-            Cursor.lockState = visible ? CursorLockMode.None : CursorLockMode.Locked;
+            Cursor.lockState = visible 
+                ? Application.isFocused ? CursorLockMode.Confined : CursorLockMode.None 
+                : CursorLockMode.Locked;
         }
     }
     

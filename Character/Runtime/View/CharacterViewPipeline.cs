@@ -93,6 +93,7 @@ namespace MisterGames.Character.View {
         private bool _isVerticalClampOverriden;
         private bool _isSmoothingOverriden;
         private bool _isSensitivityOverriden;
+        private bool _hasGravity;
         
         private Vector3 _headPosition;
         private Vector3 _headOffset;
@@ -104,7 +105,7 @@ namespace MisterGames.Character.View {
         void IActorComponent.OnAwake(IActor actor) {
             _cameraContainer = actor.GetComponent<CameraContainer>();
             _inputPipeline = actor.GetComponent<CharacterInputPipeline>();
-            _characterGravity = actor.GetComponent<CharacterGravity>();
+            _hasGravity = actor.TryGetComponent(out _characterGravity);
 
             _headParent = _head.parent;
             
@@ -248,15 +249,15 @@ namespace MisterGames.Character.View {
 
         private void UpdateOverridableParameters() {
             if (!_isHorizontalClampOverriden) {
-                _viewClamp.ApplyHorizontalClamp(_viewData?.horizontalClamp ?? default, _headRotation.ToEulerAngles180());
+                _viewClamp.ApplyHorizontalClamp(_viewData?.horizontalClamp ?? _viewClamp.Horizontal, _headRotation.ToEulerAngles180());
             }
             
             if (!_isVerticalClampOverriden) {
-                _viewClamp.ApplyVerticalClamp(_viewData?.verticalClamp ?? default, _headRotation.ToEulerAngles180());
+                _viewClamp.ApplyVerticalClamp(_viewData?.verticalClamp ?? _viewClamp.Vertical, _headRotation.ToEulerAngles180());
             }
             
-            if (!_isSensitivityOverriden) _sensitivity = _viewData?.sensitivity ?? default;
-            if (!_isSmoothingOverriden) _smoothing = _viewData?.viewSmoothing ?? default;
+            if (!_isSensitivityOverriden) _sensitivity = _viewData?.sensitivity ?? _sensitivity;
+            if (!_isSmoothingOverriden) _smoothing = _viewData?.viewSmoothing ?? _smoothing;
         }
 
         private void HandleViewVectorChanged(Vector2 input) {
@@ -354,7 +355,7 @@ namespace MisterGames.Character.View {
         }
 
         private void ProcessGravityAlign(float dt) {
-            if (_characterGravity.IsGravityAlignBlocked) return;
+            if (!_hasGravity || _characterGravity.IsGravityAlignBlocked) return;
             
             var target = Quaternion.FromToRotation(Vector3.down, _characterGravity.GravityDirection);
             _gravityRotation = _gravityRotation.SlerpNonZero(target, _gravityDirSmoothing, dt);

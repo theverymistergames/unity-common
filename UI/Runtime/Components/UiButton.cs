@@ -209,7 +209,7 @@ namespace MisterGames.UI.Behaviours {
             _state = state;
             byte id = ++_transitionId;
             
-            TransitTo(id, state, instant: force, _enableCts.Token).Forget();
+            if (_enableCts != null) TransitTo(id, state, instant: force, _enableCts.Token).Forget();
         }
 
         private State GetState() {
@@ -224,7 +224,7 @@ namespace MisterGames.UI.Behaviours {
         }
         
         private bool IsSelected() {
-            return EventSystem.current.currentSelectedGameObject == _button.gameObject;
+            return EventSystem.current?.currentSelectedGameObject == _button.gameObject;
         }
 
         private async UniTask AnimateSubmit(CancellationToken cancellationToken) {
