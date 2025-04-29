@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-namespace MisterGames.UI.Behaviours {
+namespace MisterGames.UI.Components {
     
     public sealed class UiMenuWindow : MonoBehaviour {
 

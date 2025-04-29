@@ -11,7 +11,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-namespace MisterGames.UI.Behaviours {
+namespace MisterGames.UI.Components {
     
     [RequireComponent(typeof(Button))]
     public sealed class UiButton : 

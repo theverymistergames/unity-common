@@ -1,4 +1,5 @@
 ﻿using Cysharp.Threading.Tasks;
+using MisterGames.Scenes.Loading;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -6,8 +7,10 @@ namespace MisterGames.Scenes.Core {
     
     public sealed class SceneLoader : MonoBehaviour {
 
+        [SerializeField] private SceneReference _splashScreenScene;
         [SerializeField] private SceneReference _startScene;
         [SerializeField] private SceneReference _gameplayScene;
+        [SerializeField] private SceneReference _loadingScene;
         
         private static string _rootScene;
         
@@ -17,6 +20,12 @@ namespace MisterGames.Scenes.Core {
 
         private async UniTask LoadStartScenes() {
             _rootScene = SceneManager.GetActiveScene().name;
+
+            LoadingService.Instance.ShowLoadingScreen(true);
+            
+            if (_splashScreenScene.IsValid()) {
+                await LoadSceneAsync(_splashScreenScene.scene, makeActive: true);
+            }
             
             string startScene = _startScene.scene;
             
@@ -42,8 +51,18 @@ namespace MisterGames.Scenes.Core {
                 await LoadSceneAsync(_gameplayScene.scene, makeActive: false);
             }
 #endif
-            
+
             await LoadSceneAsync(startScene, makeActive: true);
+            
+            LoadingService.Instance.ShowLoadingScreen(false);
+            
+            if (_loadingScene.IsValid()) {
+                LoadSceneAsync(_loadingScene.scene, makeActive: false).Forget();
+            }
+            
+            if (_splashScreenScene.IsValid() && _splashScreenScene.scene != _loadingScene.scene) {
+                UnloadSceneAsync(_splashScreenScene.scene).Forget();
+            }
         }
 
         public static void LoadScene(string sceneName, bool makeActive = false) {
