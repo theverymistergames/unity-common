@@ -77,16 +77,16 @@ namespace MisterGames.Common.Audio {
         private Transform _listenerUp;
         
         private Transform _transform;
-        private CancellationToken _cancellationToken;
+        private CancellationToken _destroyToken;
         private float _lastTimeScale;
         
         private void Awake() {
             Main = this;
             
             _transform = transform;
-            _cancellationToken = destroyCancellationToken;
+            _destroyToken = destroyCancellationToken;
             
-            StartLastClipIndexUpdates(_cancellationToken).Forget();
+            StartLastClipIndexUpdates(_destroyToken).Forget();
             
             PlayerLoopStage.Update.Subscribe(this);
         }
@@ -287,7 +287,7 @@ namespace MisterGames.Common.Audio {
             float clipLength = source.clip.length;
             
             while (!cancellationToken.IsCancellationRequested && 
-                   !_cancellationToken.IsCancellationRequested && 
+                   !_destroyToken.IsCancellationRequested && 
                    _handleIdToAudioElementMap.ContainsKey(id) && 
                    (loop || source.time is var time && time < clipLength && time >= maxTime)) 
             {
@@ -295,7 +295,7 @@ namespace MisterGames.Common.Audio {
                 await UniTask.Yield();
             }
             
-            if (_cancellationToken.IsCancellationRequested) return;
+            if (_destroyToken.IsCancellationRequested) return;
             
             _handleIdToAudioElementMap.Remove(id);
             _attachKeyToHandleIdMap.Remove(attachKey);
@@ -304,7 +304,7 @@ namespace MisterGames.Common.Audio {
             
             await FadeOut(source, fadeOut < 0f ? _fadeOut : fadeOut);
             
-            if (_cancellationToken.IsCancellationRequested) return;
+            if (_destroyToken.IsCancellationRequested) return;
             
             PrefabPool.Main.Release(source);
         }
@@ -314,7 +314,7 @@ namespace MisterGames.Common.Audio {
             float speed = duration > 0f ? 1f / duration : float.MaxValue;
 
             while (t < 1f && _handleIdToAudioElementMap.ContainsKey(id) && 
-                   !cancellationToken.IsCancellationRequested && !_cancellationToken.IsCancellationRequested) 
+                   !cancellationToken.IsCancellationRequested && !_destroyToken.IsCancellationRequested) 
             {
                 t += Time.unscaledDeltaTime * speed;
                 source.volume = Mathf.Lerp(0f, volume, t);
@@ -328,7 +328,7 @@ namespace MisterGames.Common.Audio {
             float speed = duration > 0f ? 1f / duration : float.MaxValue;
             float startVolume = source.volume;
             
-            while (t < 1f && !_cancellationToken.IsCancellationRequested) {
+            while (t < 1f && !_destroyToken.IsCancellationRequested) {
                 t += Time.unscaledDeltaTime * speed;
                 source.volume = Mathf.Lerp(startVolume, 0f, t);
                 

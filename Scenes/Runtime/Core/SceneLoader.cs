@@ -38,11 +38,22 @@ namespace MisterGames.Scenes.Core {
         private async UniTask LoadStartScenes(CancellationToken cancellationToken) {
             _rootScene = SceneManager.GetActiveScene().name;
             _applicationLaunchMode = ApplicationLaunchMode.FromRootScene;
+
+            bool playSplashScreen = _splashScreenScene.IsValid();
             
-            await Fader.Main.FadeInAsync(duration: 0f);
-            if (cancellationToken.IsCancellationRequested) return;
+#if UNITY_EDITOR
+            if (_rootScene != SceneLoaderSettings.Instance.rootScene.scene) {
+                Debug.LogError($"{nameof(SceneLoader)}: loaded not on the root scene {SceneLoaderSettings.Instance.rootScene.scene}, " + 
+                               $"make sure {nameof(SceneLoader)} is on the root scene that should be selected in {nameof(SceneLoaderSettings)} asset.");
+            }
+
+            playSplashScreen &= _playSplashScreenInEditor;
+#endif
             
-            if (_splashScreenScene.IsValid()) {
+            if (playSplashScreen) {
+                await Fader.Main.FadeInAsync(duration: 0f);
+                if (cancellationToken.IsCancellationRequested) return;
+                
                 if (_splashScreenScene.scene == _loadingScene.scene) {
                     LoadingService.Instance.ShowLoadingScreen(true);
                 }
@@ -54,52 +65,44 @@ namespace MisterGames.Scenes.Core {
                 if (cancellationToken.IsCancellationRequested) return;
             }
             
-            await LoadSceneAsync(_loadingScene.scene, makeActive: false);
-            if (cancellationToken.IsCancellationRequested) return;
+            LoadSceneAsync(_loadingScene.scene, makeActive: false).Forget();
             
             string startScene = _startScene.scene;
             
 #if UNITY_EDITOR
-            if (!SceneLoaderSettings.Instance.enablePlayModeStartSceneOverride) {
-                return;
-            }
+            if (SceneLoaderSettings.Instance.enablePlayModeStartSceneOverride) {
+                string playModeStartScene = SceneLoaderSettings.GetPlaymodeStartScene();
             
-            if (_rootScene != SceneLoaderSettings.Instance.rootScene.scene) {
-                Debug.LogWarning($"{nameof(SceneLoader)}: loaded not on the root scene {SceneLoaderSettings.Instance.rootScene.scene}, " +
-                                 $"make sure {nameof(SceneLoader)} is on the root scene that should be selected in {nameof(SceneLoaderSettings)} asset.");
-            }
-
-            string playModeStartScene = SceneLoaderSettings.GetPlaymodeStartScene();
+                if (!string.IsNullOrEmpty(playModeStartScene) && playModeStartScene != _rootScene) {
+                    startScene = playModeStartScene;
+                }
             
-            if (!string.IsNullOrEmpty(playModeStartScene) && playModeStartScene != _rootScene) {
-                startScene = playModeStartScene;
-            }
-            
-            // Force load gameplay scene in Unity Editor's playmode,
-            // if playmode start scene is not selected start scene.
-            if (startScene != _startScene.scene) {
-                _applicationLaunchMode = ApplicationLaunchMode.FromCustomEditorScene;
+                // Force load gameplay scene in Unity Editor's playmode
+                // if app is launched from custom scene.
+                if (startScene != _startScene.scene) {
+                    _applicationLaunchMode = ApplicationLaunchMode.FromCustomEditorScene;
                 
-                await LoadSceneAsync(_gameplayScene.scene, makeActive: false);
-                if (cancellationToken.IsCancellationRequested) return;
+                    await LoadSceneAsync(_gameplayScene.scene, makeActive: false);
+                    if (cancellationToken.IsCancellationRequested) return;
+                }   
             }
 #endif
 
             await LoadSceneAsync(startScene, makeActive: false);
             if (cancellationToken.IsCancellationRequested) return;
 
-            if (_splashScreenScene.IsValid()) {
+            if (playSplashScreen) {
                 await Fader.Main.FadeInAsync(_fadeIn, _fadeInCurve.GetOrDefault());
                 if (cancellationToken.IsCancellationRequested) return;
                 
                 if (_splashScreenScene.scene != _loadingScene.scene) {
-                    await UnloadSceneAsync(_splashScreenScene.scene);
-                    if (cancellationToken.IsCancellationRequested) return;
+                    UnloadSceneAsync(_splashScreenScene.scene).Forget();
                 }
+                
+                LoadingService.Instance.ShowLoadingScreen(false);
             }
 
             MakeSceneActive(startScene);
-            LoadingService.Instance.ShowLoadingScreen(false);
             
             await Fader.Main.FadeOutAsync(_fadeOut, _fadeOutCurve.GetOrDefault());
         }
@@ -137,6 +140,11 @@ namespace MisterGames.Scenes.Core {
                 await SceneManager.UnloadSceneAsync(sceneName);
             }
         }
+
+#if UNITY_EDITOR
+        [Header("Debug")]
+        [SerializeField] private bool _playSplashScreenInEditor = false;
+#endif
     }
     
 }
