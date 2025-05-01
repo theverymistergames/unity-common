@@ -1,7 +1,7 @@
 ﻿using Cysharp.Threading.Tasks;
 using UnityEngine;
 
-namespace MisterGames.UI.Services {
+namespace MisterGames.Scenes.Loading {
     
     public interface IFader {
 

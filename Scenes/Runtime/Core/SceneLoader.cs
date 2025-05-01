@@ -1,4 +1,7 @@
-﻿using Cysharp.Threading.Tasks;
+﻿using System.Threading;
+using Cysharp.Threading.Tasks;
+using MisterGames.Common.Data;
+using MisterGames.Common.Easing;
 using MisterGames.Scenes.Loading;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -7,25 +10,52 @@ namespace MisterGames.Scenes.Core {
     
     public sealed class SceneLoader : MonoBehaviour {
 
+        [Header("Scenes")]
         [SerializeField] private SceneReference _splashScreenScene;
         [SerializeField] private SceneReference _startScene;
         [SerializeField] private SceneReference _gameplayScene;
         [SerializeField] private SceneReference _loadingScene;
+
+        [Header("Fader")]
+        [SerializeField] [Min(-1f)] private float _fadeIn = -1f;
+        [SerializeField] [Min(-1f)] private float _fadeOut = -1f;
+        [SerializeField] private Optional<AnimationCurve> _fadeInCurve = Optional<AnimationCurve>.WithDisabled(EasingType.Linear.ToAnimationCurve());
+        [SerializeField] private Optional<AnimationCurve> _fadeOutCurve = Optional<AnimationCurve>.WithDisabled(EasingType.Linear.ToAnimationCurve());
         
+        public static ApplicationLaunchMode LaunchMode => _instance._applicationLaunchMode;
+        
+        private static SceneLoader _instance;
+        
+        private ApplicationLaunchMode _applicationLaunchMode;
         private static string _rootScene;
         
         private void Awake() {
-            LoadStartScenes().Forget();
+            _instance = this;
+            
+            LoadStartScenes(destroyCancellationToken).Forget();
         }
 
-        private async UniTask LoadStartScenes() {
+        private async UniTask LoadStartScenes(CancellationToken cancellationToken) {
             _rootScene = SceneManager.GetActiveScene().name;
-
-            LoadingService.Instance.ShowLoadingScreen(true);
+            _applicationLaunchMode = ApplicationLaunchMode.FromRootScene;
+            
+            await Fader.Main.FadeInAsync(duration: 0f);
+            if (cancellationToken.IsCancellationRequested) return;
             
             if (_splashScreenScene.IsValid()) {
+                if (_splashScreenScene.scene == _loadingScene.scene) {
+                    LoadingService.Instance.ShowLoadingScreen(true);
+                }
+                
                 await LoadSceneAsync(_splashScreenScene.scene, makeActive: true);
+                if (cancellationToken.IsCancellationRequested) return;
+                
+                await Fader.Main.FadeOutAsync(_fadeOut, _fadeOutCurve.GetOrDefault());
+                if (cancellationToken.IsCancellationRequested) return;
             }
+            
+            await LoadSceneAsync(_loadingScene.scene, makeActive: false);
+            if (cancellationToken.IsCancellationRequested) return;
             
             string startScene = _startScene.scene;
             
@@ -48,21 +78,38 @@ namespace MisterGames.Scenes.Core {
             // Force load gameplay scene in Unity Editor's playmode,
             // if playmode start scene is not selected start scene.
             if (startScene != _startScene.scene) {
+                _applicationLaunchMode = ApplicationLaunchMode.FromCustomEditorScene;
+                
                 await LoadSceneAsync(_gameplayScene.scene, makeActive: false);
+                if (cancellationToken.IsCancellationRequested) return;
             }
 #endif
 
-            await LoadSceneAsync(startScene, makeActive: true);
-            
+            await LoadSceneAsync(startScene, makeActive: false);
+            if (cancellationToken.IsCancellationRequested) return;
+
+            if (_splashScreenScene.IsValid()) {
+                await Fader.Main.FadeInAsync(_fadeIn, _fadeInCurve.GetOrDefault());
+                if (cancellationToken.IsCancellationRequested) return;
+                
+                if (_splashScreenScene.scene != _loadingScene.scene) {
+                    await UnloadSceneAsync(_splashScreenScene.scene);
+                    if (cancellationToken.IsCancellationRequested) return;
+                }
+            }
+
+            MakeSceneActive(startScene);
             LoadingService.Instance.ShowLoadingScreen(false);
             
-            if (_loadingScene.IsValid()) {
-                LoadSceneAsync(_loadingScene.scene, makeActive: false).Forget();
-            }
-            
-            if (_splashScreenScene.IsValid() && _splashScreenScene.scene != _loadingScene.scene) {
-                UnloadSceneAsync(_splashScreenScene.scene).Forget();
-            }
+            await Fader.Main.FadeOutAsync(_fadeOut, _fadeOutCurve.GetOrDefault());
+        }
+
+        public static bool IsSceneLoaded(string sceneName) {
+            return SceneManager.GetSceneByName(sceneName) is { isLoaded: true };
+        }
+
+        public static bool MakeSceneActive(string sceneName) {
+            return SceneManager.SetActiveScene(SceneManager.GetSceneByName(sceneName));
         }
 
         public static void LoadScene(string sceneName, bool makeActive = false) {

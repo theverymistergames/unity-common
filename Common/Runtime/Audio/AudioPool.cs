@@ -67,14 +67,17 @@ namespace MisterGames.Common.Audio {
 
         private readonly Dictionary<AttachKey, int> _attachKeyToHandleIdMap = new();
         private readonly Dictionary<int, IAudioElement> _handleIdToAudioElementMap = new();
-        private readonly List<OcclusionData> _occlusionList = new();
-
-        private Transform _transform;
-        private Transform _currentListener;
-        private Transform _listenerUp;
-        private CancellationToken _cancellationToken;
         private int _lastHandleId;
+        
+        private readonly List<OcclusionData> _occlusionList = new();
         private float _occlusionWeight = 1f;
+        
+        private readonly Dictionary<AudioListener, ListenerData> _audioListenersMap = new();
+        private Transform _listenerTransform;
+        private Transform _listenerUp;
+        
+        private Transform _transform;
+        private CancellationToken _cancellationToken;
         private float _lastTimeScale;
         
         private void Awake() {
@@ -100,16 +103,14 @@ namespace MisterGames.Common.Audio {
             PlayerLoopStage.Update.Unsubscribe(this);
         }
 
-        public void RegisterListener(AudioListener listener, Transform up) {
-            _currentListener = listener.transform;
-            _listenerUp = up;
+        public void RegisterListener(AudioListener listener, Transform up, int priority) {
+            _audioListenersMap[listener] = new ListenerData(priority, up);
+            UpdateListeners();
         }
 
         public void UnregisterListener(AudioListener listener) {
-            if (listener.transform != _currentListener) return;
-            
-            _currentListener = null;
-            _listenerUp = null;
+            _audioListenersMap.Remove(listener);
+            UpdateListeners();
         }
 
         public void SetOcclusionWeightNextFrame(float weight) {
@@ -377,6 +378,38 @@ namespace MisterGames.Common.Audio {
             return PrefabPool.Main.Get(_prefab, parent.TransformPoint(localPosition), Quaternion.identity, parent);
         }
 
+        private void UpdateListeners() {
+            if (TryGetCurrentListener(out var currentListener, out var transformUp)) {
+                _listenerTransform = currentListener.transform;
+                _listenerUp = transformUp;
+                
+                foreach (var l in _audioListenersMap.Keys) {
+                    l.enabled = l == currentListener;
+                }
+                
+                return;
+            }
+            
+            _listenerTransform = null;
+            _listenerUp = null;
+        }
+        
+        private bool TryGetCurrentListener(out AudioListener listener, out Transform transformUp) {
+            listener = null;
+            transformUp = null;
+            int priority = 0;
+            
+            foreach (var (audioListener, data) in _audioListenersMap) {
+                if (data.priority < priority && listener != null) continue;
+                
+                priority = data.priority;
+                listener = audioListener;
+                transformUp = data.transformUp;
+            }
+            
+            return listener != null;
+        }
+        
         private async UniTask StartLastClipIndexUpdates(CancellationToken cancellationToken) {
             while (!cancellationToken.IsCancellationRequested) {
                 float time = Time.time;
@@ -397,8 +430,8 @@ namespace MisterGames.Common.Audio {
         }
         
         void IUpdate.OnUpdate(float dt) {
-            bool hasListener = _currentListener != null;
-            var listenerPos = hasListener ? _currentListener.position : default;
+            bool hasListener = _audioListenersMap.Count > 0;
+            var listenerPos = hasListener ? _listenerTransform.position : default;
             var listenerUp = hasListener ? _listenerUp.up : Vector3.up;
             
             float timeScale = Time.timeScale;
@@ -602,6 +635,17 @@ namespace MisterGames.Common.Audio {
             }
 
             return Random.Range(0, count);
+        }
+
+        private readonly struct ListenerData {
+            
+            public readonly int priority;
+            public readonly Transform transformUp;
+            
+            public ListenerData(int priority, Transform transformUp) {
+                this.priority = priority;
+                this.transformUp = transformUp;
+            }
         }
         
         private readonly struct OcclusionData {

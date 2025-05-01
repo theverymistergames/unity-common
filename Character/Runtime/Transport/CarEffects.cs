@@ -6,9 +6,13 @@ using MisterGames.Actors.Actions;
 using MisterGames.Common.Async;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Maths;
-using MisterGames.Input.Actions;
 using MisterGames.Common.Tick;
+using MisterGames.Input.Actions;
 using UnityEngine;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace MisterGames.Character.Transport {
     
@@ -323,12 +327,14 @@ namespace MisterGames.Character.Transport {
                     if (data.renderers[j].sharedMaterial == null) continue;
                         
                     data.renderers[j].sharedMaterial.SetColor(EmissiveColor, color);
-                    UnityEditor.EditorUtility.SetDirty(data.renderers[j].sharedMaterial);
+                    EditorUtility.SetDirty(data.renderers[j].sharedMaterial);
                         
                     continue;
                 }
+
+                if (PrefabUtility.IsPartOfRegularPrefab(data.renderers[j])) continue;
 #endif
-                    
+
                 data.renderers[j].material.SetColor(EmissiveColor, color);   
             }
         }

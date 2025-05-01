@@ -23,7 +23,7 @@ namespace MisterGames.Common.Data {
             _hasValue = hasValue;
         }
 
-        public T GetOrDefault(T defaultValue) {
+        public T GetOrDefault(T defaultValue = default) {
             return _hasValue ? _value : defaultValue;
         }
 

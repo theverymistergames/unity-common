@@ -4,6 +4,7 @@ using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
 using MisterGames.Common.Data;
+using MisterGames.Scenes.Loading;
 using MisterGames.UI.Services;
 using UnityEngine;
 

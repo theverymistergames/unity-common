@@ -3,10 +3,8 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Blueprints;
 using MisterGames.Common.Async;
-using MisterGames.UI.Components;
-using MisterGames.UI.Services;
+using MisterGames.Scenes.Loading;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace MisterGames.BlueprintLib {
 

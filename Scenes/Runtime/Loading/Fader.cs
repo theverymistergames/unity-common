@@ -7,7 +7,7 @@ using MisterGames.Common.Maths;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace MisterGames.UI.Services {
+namespace MisterGames.Scenes.Loading {
     
     [DefaultExecutionOrder(-100_000)]
     public sealed class Fader : MonoBehaviour, IFader {
@@ -102,12 +102,12 @@ namespace MisterGames.UI.Services {
             float speed = duration > 0f ? 1f / duration : float.MaxValue;
             float progressStart = Progress;
             float alphaDiff = color.a - curve.Evaluate(Progress);
-            
+
             while (id == _fadeId && !cancellationToken.IsCancellationRequested && 
                    (dir > 0f && Progress < max || dir < 0f && Progress > min)) 
             {
                 Progress = Mathf.Clamp(Progress + Time.deltaTime * speed * dir, min, max);
-
+                
                 float t = progressStart.IsNearlyEqual(progressEnd) 
                     ? 1f 
                     : (Progress - progressStart) / (progressEnd - progressStart);

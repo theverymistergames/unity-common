@@ -1,9 +1,12 @@
-﻿using UnityEngine;
+﻿using MisterGames.Scenes.Core;
+using UnityEngine;
 
 namespace MisterGames.Scenes.Loading {
     
     [DefaultExecutionOrder(-100_000)]
     public sealed class LoadingService : MonoBehaviour, ILoadingService {
+        
+        [SerializeField] private bool _makeSceneActiveWhenLoading = true;
         
         public static ILoadingService Instance { get; private set; }
         
@@ -16,7 +19,13 @@ namespace MisterGames.Scenes.Loading {
 
         public void ShowLoadingScreen(bool show) {
             _showLoadingScreen = show;
-            if (_loadingScreenRoot != null) _loadingScreenRoot.SetActive(show);
+            if (_loadingScreenRoot == null) return;
+            
+            _loadingScreenRoot.SetActive(show);
+            
+            if (_makeSceneActiveWhenLoading && show) {
+                SceneLoader.MakeSceneActive(_loadingScreenRoot.gameObject.scene.name);
+            }
         }
 
         public void RegisterLoadingScreenRoot(GameObject root) {
