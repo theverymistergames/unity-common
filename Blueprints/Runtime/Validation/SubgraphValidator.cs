@@ -1,6 +1,7 @@
 ﻿#if DEVELOPMENT_BUILD || UNITY_EDITOR
 
 using MisterGames.Blueprints.Meta;
+using MisterGames.Common.GameObjects;
 using UnityEngine;
 
 namespace MisterGames.Blueprints.Validation {
@@ -15,21 +16,21 @@ namespace MisterGames.Blueprints.Validation {
             BlueprintAsset externalAsset
         ) {
             if (externalAsset == null) {
-                Debug.LogError($"External blueprint node, launched from runner {owner}, is invalid: " +
+                Debug.LogError($"External blueprint node, launched from runner {owner.GetPathInScene()}, is invalid: " +
                                $"provided external {nameof(BlueprintAsset)} is null.");
                 return false;
             }
 
             if (externalRunner == null) {
-                Debug.LogError($"External blueprint node, launched from runner {owner}, is invalid: " +
+                Debug.LogError($"External blueprint node, launched from runner {owner.GetPathInScene()}, is invalid: " +
                                $"provided external {nameof(BlueprintRunner)} is null.");
                 return false;
             }
 
             if (externalAsset != externalRunner.BlueprintAsset) {
-                Debug.LogError($"External blueprint node, launched from runner {owner}, is invalid: " +
+                Debug.LogError($"External blueprint node, launched from runner {owner.GetPathInScene()}, is invalid: " +
                                $"external blueprint node has external {nameof(BlueprintAsset)} `{externalAsset}`, " +
-                               $"but provided {nameof(BlueprintRunner)} {externalRunner} " +
+                               $"but provided {nameof(BlueprintRunner)} {externalRunner.GetPathInScene()} " +
                                $"has different {nameof(BlueprintAsset)} `{externalRunner.BlueprintAsset}`. " +
                                $"Blueprint assets must be same.");
                 return false;
