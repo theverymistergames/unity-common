@@ -5,6 +5,7 @@ using UnityEngine;
 namespace MisterGames.Common.Tick {
 
     public interface ITimeSourceProvider {
+        bool ShowDebugInfo { get; }
         ITimeSource Get(PlayerLoopStage stage);
     }
 
@@ -28,6 +29,10 @@ namespace MisterGames.Common.Tick {
         Time.time;
 #endif
 
+#if UNITY_EDITOR
+        internal static bool ShowDebugInfo => _provider?.ShowDebugInfo ?? false;
+#endif
+        
         public static ITimeSource Get(this PlayerLoopStage stage) {
 #if UNITY_EDITOR
             return Application.isPlaying ? _provider.Get(stage) : GetOrCreateEditorTimeSource(stage);
@@ -75,7 +80,7 @@ namespace MisterGames.Common.Tick {
                     if (_editorPreUpdateTimeSource != null) return _editorPreUpdateTimeSource;
 
                     _editorTimeScaleProvider ??= TimeScaleProviders.Create();
-                    _editorPreUpdateTimeSource = new TimeSource(_editorDeltaTimeProvider, _editorTimeScaleProvider);
+                    _editorPreUpdateTimeSource = new TimeSource(_editorDeltaTimeProvider, _editorTimeScaleProvider, "editor pre update");
 
                     return _editorPreUpdateTimeSource;
 
@@ -83,7 +88,7 @@ namespace MisterGames.Common.Tick {
                     if (_editorUpdateTimeSource != null) return _editorUpdateTimeSource;
 
                     _editorTimeScaleProvider ??= TimeScaleProviders.Create();
-                    _editorUpdateTimeSource = new TimeSource(_editorDeltaTimeProvider, _editorTimeScaleProvider);
+                    _editorUpdateTimeSource = new TimeSource(_editorDeltaTimeProvider, _editorTimeScaleProvider, "editor update");
 
                     return _editorUpdateTimeSource;
 
@@ -91,7 +96,7 @@ namespace MisterGames.Common.Tick {
                     if (_editorUnscaledUpdateTimeSource != null) return _editorUnscaledUpdateTimeSource;
 
                     _editorUnscaledTimeScaleProvider ??= TimeScaleProviders.Create();
-                    _editorUnscaledUpdateTimeSource = new TimeSource(_editorDeltaTimeProvider, _editorUnscaledTimeScaleProvider);
+                    _editorUnscaledUpdateTimeSource = new TimeSource(_editorDeltaTimeProvider, _editorUnscaledTimeScaleProvider, "editor unscaled");
 
                     return _editorUnscaledUpdateTimeSource;
 
@@ -99,7 +104,7 @@ namespace MisterGames.Common.Tick {
                     if (_editorLateUpdateTimeSource != null) return _editorLateUpdateTimeSource;
 
                     _editorTimeScaleProvider ??= TimeScaleProviders.Create();
-                    _editorLateUpdateTimeSource = new TimeSource(_editorDeltaTimeProvider, _editorTimeScaleProvider);
+                    _editorLateUpdateTimeSource = new TimeSource(_editorDeltaTimeProvider, _editorTimeScaleProvider, "editor late update");
 
                     return _editorLateUpdateTimeSource;
 
@@ -162,14 +167,13 @@ namespace MisterGames.Common.Tick {
 
         private sealed class EditorDeltaTimeProvider : IDeltaTimeProvider {
 
-            public float DeltaTime => _deltaTime;
+            public float DeltaTime { get; private set; }
 
-            private float _deltaTime;
             private float _lastTimeSinceStartup = Time.realtimeSinceStartup;
 
             public void UpdateDeltaTime() {
                 float timeSinceStartup = Time.realtimeSinceStartup;
-                _deltaTime = timeSinceStartup - _lastTimeSinceStartup;
+                DeltaTime = timeSinceStartup - _lastTimeSinceStartup;
                 _lastTimeSinceStartup = timeSinceStartup;
             }
         }

@@ -4,14 +4,20 @@ using UnityEngine;
 
 namespace MisterGames.Common.Tick {
 
-    [DefaultExecutionOrder(-10000)]
-    public class TimeSourcesRunner : MonoBehaviour, ITimeSourceProvider {
+    [DefaultExecutionOrder(-1_000_000)]
+    public sealed class TimeSourcesRunner : MonoBehaviour, ITimeSourceProvider {
 
-        private readonly TimeSource _preUpdateTimeSource = new TimeSource(DeltaTimeProviders.Main, TimeScaleProviders.Global);
-        private readonly TimeSource _updateTimeSource = new TimeSource(DeltaTimeProviders.Main, TimeScaleProviders.Global);
-        private readonly TimeSource _unscaledUpdateTimeSource = new TimeSource(DeltaTimeProviders.Unscaled, TimeScaleProviders.Create());
-        private readonly TimeSource _lateUpdateTimeSource = new TimeSource(DeltaTimeProviders.Main, TimeScaleProviders.Global);
-        private readonly TimeSource _fixedUpdateTimeSource = new TimeSource(DeltaTimeProviders.Fixed, TimeScaleProviders.Global);
+#if UNITY_EDITOR
+        [Header("Debug")]
+        [SerializeField] private bool _showDebugInfo;
+        public bool ShowDebugInfo => _showDebugInfo;
+#endif
+        
+        private readonly TimeSource _preUpdateTimeSource = new TimeSource(DeltaTimeProviders.Main, TimeScaleProviders.Global, "pre update");
+        private readonly TimeSource _updateTimeSource = new TimeSource(DeltaTimeProviders.Main, TimeScaleProviders.Global, "update");
+        private readonly TimeSource _unscaledUpdateTimeSource = new TimeSource(DeltaTimeProviders.Unscaled, TimeScaleProviders.Create(), "unscaled update");
+        private readonly TimeSource _lateUpdateTimeSource = new TimeSource(DeltaTimeProviders.Main, TimeScaleProviders.Global, "late update");
+        private readonly TimeSource _fixedUpdateTimeSource = new TimeSource(DeltaTimeProviders.Fixed, TimeScaleProviders.Global, "fixed update");
 
         private readonly List<TimeSource> _timeSources = new List<TimeSource>();
 

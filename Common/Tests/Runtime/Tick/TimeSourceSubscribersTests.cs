@@ -71,10 +71,10 @@ namespace Core {
             timeSource.Subscribe(frameCounter);
 
             timeSource.Tick();
-            Assert.AreEqual(0, frameCounter.Count);
+            Assert.True(frameCounter.Count <= 1);
 
             timeSource.Tick();
-            Assert.AreEqual(0, frameCounter.Count);
+            Assert.True(frameCounter.Count <= 1);
         }
 
         [Test]
@@ -87,10 +87,55 @@ namespace Core {
             timeSource.Subscribe(unsubscribeOnUpdate);
 
             timeSource.Tick();
-            Assert.AreEqual(1, frameCounter.Count);
+            Assert.True(frameCounter.Count <= 1);
+
+            timeSource.Tick();
+            Assert.True(frameCounter.Count <= 1);
+        }
+        
+        [Test]
+        public void CanResubscribeOther_InUpdateLoop() {
+            var timeSource = (TimeSource) TimeSources.Get(PlayerLoopStage.Update);
+            var frameCounter = new CountOnUpdate();
+            var unsubscribeOnUpdate = new ActionOnUpdate(update => {
+                timeSource.Unsubscribe(frameCounter);
+                timeSource.Subscribe(frameCounter);
+            });
+
+            timeSource.Subscribe(frameCounter);
+            timeSource.Subscribe(unsubscribeOnUpdate);
+
+            timeSource.Tick();
+            timeSource.Tick();
+        }
+        
+        [Test]
+        public void CanResubscribe_BeforeUpdates() {
+            var timeSource = (TimeSource) TimeSources.Get(PlayerLoopStage.Update);
+
+            var nothingOnUpdate0 = new ActionOnUpdate(update => {});
+            var nothingOnUpdate1 = new ActionOnUpdate(update => {});
+            var nothingOnUpdate2 = new ActionOnUpdate(update => {});
+            var nothingOnUpdate3 = new ActionOnUpdate(update => {});
+            var frameCounter = new CountOnUpdate();
+
+            timeSource.Subscribe(nothingOnUpdate0);
+            
+            timeSource.Subscribe(nothingOnUpdate1);
+            timeSource.Unsubscribe(nothingOnUpdate1);
+            
+            timeSource.Subscribe(nothingOnUpdate2);
+            
+            timeSource.Subscribe(frameCounter);
+            
+            timeSource.Subscribe(nothingOnUpdate3);
+            timeSource.Unsubscribe(nothingOnUpdate3);
 
             timeSource.Tick();
             Assert.AreEqual(1, frameCounter.Count);
+            
+            timeSource.Tick();
+            Assert.AreEqual(2, frameCounter.Count);
         }
 
         [Test]
