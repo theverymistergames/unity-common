@@ -54,6 +54,14 @@ namespace MisterGames.Collisions.Rigidbodies {
         private void OnEnable() {
             _triggerEmitter.TriggerEnter += TriggerEntered;
             _triggerEmitter.TriggerExit += TriggerExited;
+            
+            foreach (var rb in _rigidbodyColliderCountMap.Keys) {
+                TriggerEnter.Invoke(rb);
+            }
+
+            if (_rigidbodyColliderCountMap.Count > 0) {
+                PlayerLoopStage.Update.Subscribe(this);
+            }
         }
 
         private void OnDisable() {
@@ -64,11 +72,14 @@ namespace MisterGames.Collisions.Rigidbodies {
                 TriggerExit.Invoke(rb);
             }
             
-            _colliderToRigidbodyMap.Clear();
-            _rigidbodyColliderCountMap.Clear();
             _collidersBuffer.Clear();
             
             PlayerLoopStage.Update.Unsubscribe(this);
+        }
+
+        private void OnDestroy() {
+            _colliderToRigidbodyMap.Clear();
+            _rigidbodyColliderCountMap.Clear();
         }
 
         private void TriggerEntered(Collider collider) {
@@ -100,8 +111,10 @@ namespace MisterGames.Collisions.Rigidbodies {
 
             _rigidbodyColliderCountMap.Remove(rb);
             TriggerExit.Invoke(rb);
-            
-            if (_rigidbodyColliderCountMap.Count == 0) PlayerLoopStage.Update.Unsubscribe(this);
+
+            if (_rigidbodyColliderCountMap.Count == 0) {
+                PlayerLoopStage.Update.Unsubscribe(this);
+            }
         }
 
         void IUpdate.OnUpdate(float dt) {

@@ -169,6 +169,40 @@ namespace MisterGames.Common {
 
             ArrayPool<Vector3>.Shared.Return(points);
         }
+        
+        public static void DrawVortex(
+            Vector3 position,
+            Vector3 normal,
+            float angle,
+            Color color,
+            float size = 1f,
+            float step = 0.05f,
+            float duration = 0f,
+            bool gizmo = false)
+        {
+            var p = position + size * Mathf.Cos(Mathf.Deg2Rad * angle) * normal;
+            var start = Quaternion.LookRotation(normal.Orthogonal(), normal) * 
+                        (size * Mathf.Sin(Mathf.Deg2Rad * angle) * Vector3.forward);
+            
+            float inc = step * 360f;
+
+            int count = inc > 0f ? Mathf.CeilToInt(360f / inc) + 1 : 0;
+            var points = ArrayPool<Vector3>.Shared.Rent(count);
+
+            for (int i = 0; i < count; i++)
+            {
+                float a = Mathf.Clamp(i * inc, 0, 360f);
+                var rot = Quaternion.AngleAxis(a, normal);
+                
+                points[i] = rot * start + p;
+                
+                DrawLine(points[i], position, color, duration, gizmo);
+            }
+
+            DrawLines(points, color, loop: true, count, duration, gizmo);
+
+            ArrayPool<Vector3>.Shared.Return(points);
+        }
 
         public static void DrawRect(
             Vector3 position,

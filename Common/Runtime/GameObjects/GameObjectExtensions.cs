@@ -15,6 +15,12 @@ namespace MisterGames.Common.GameObjects {
                 gameObjects[i].SetActive(active);
             }
         }
+        
+        public static void SetEnabled(this IReadOnlyList<Object> objects, bool active) {
+            for (int i = 0; i < objects.Count; i++) {
+                objects[i].SetEnabled(active);
+            }
+        }
 
         public static void SetEnabled(this Object obj, bool enabled) {
             switch (obj) {
