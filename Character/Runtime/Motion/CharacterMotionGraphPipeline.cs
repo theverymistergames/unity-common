@@ -6,6 +6,8 @@ using MisterGames.Character.Capsule;
 using MisterGames.Character.Phys;
 using MisterGames.Character.Input;
 using MisterGames.Collisions.Core;
+using MisterGames.Common.Async;
+using MisterGames.Common.Data;
 using UnityEngine;
 
 namespace MisterGames.Character.Motion {
@@ -14,6 +16,8 @@ namespace MisterGames.Character.Motion {
 
         [SerializeField] private ActorAction _action;
 
+        private readonly BlockSet _blockSet = new();
+        
         private IActor _actor;
         private CharacterPosePipeline _pose;
         private CharacterInputPipeline _input;
@@ -28,33 +32,67 @@ namespace MisterGames.Character.Motion {
         }
 
         private void OnEnable() {
-            _enableCts?.Cancel();
-            _enableCts?.Dispose();
-            _enableCts = new CancellationTokenSource();
-
-            _groundDetector.OnContact -= OnStartContactGround;
-            _groundDetector.OnContact += OnStartContactGround;
-
-            _groundDetector.OnLostContact -= OnStopContactGround;
-            _groundDetector.OnLostContact += OnStopContactGround;
-
-            _pose.OnPoseChanged -= OnPoseChanged;
-            _pose.OnPoseChanged += OnPoseChanged;
-
-            _input.OnRunPressed -= OnRunPressed;
-            _input.OnRunPressed += OnRunPressed;
-
-            _input.OnRunReleased -= OnRunReleased;
-            _input.OnRunReleased += OnRunReleased;
-
-            _action.Apply(_actor, _enableCts.Token).Forget();
+            _blockSet.OnUpdate += UpdateState;
+            
+            UpdateState();
         }
 
         private void OnDisable() {
-            _enableCts?.Cancel();
-            _enableCts?.Dispose();
-            _enableCts = null;
+            _blockSet.OnUpdate -= UpdateState;
+            
+            DisableGraph();
+        }
 
+        public void SetBlock(object source, bool blocked, CancellationToken cancellationToken = default) {
+            _blockSet.SetBlock(source, blocked, cancellationToken);
+        }
+
+        private void UpdateState() {
+            if (_blockSet.Count <= 0) EnableGraph();
+            else DisableGraph();
+        }
+
+        private void OnStartContactGround() {
+            ApplyState();
+        }
+
+        private void OnStopContactGround() {
+            ApplyState();
+        }
+
+        private void OnPoseChanged(CharacterPose newPose, CharacterPose oldPose) {
+            ApplyState();
+        }
+
+        private void OnRunPressed() {
+            ApplyState();
+        }
+
+        private void OnRunReleased() {
+            ApplyState();
+        }
+
+        private void EnableGraph() {
+            if (_enableCts != null) return;
+            
+            AsyncExt.RecreateCts(ref _enableCts);
+            
+            _groundDetector.OnContact += OnStartContactGround;
+            _groundDetector.OnLostContact += OnStopContactGround;
+
+            _pose.OnPoseChanged += OnPoseChanged;
+            
+            _input.OnRunPressed += OnRunPressed;
+            _input.OnRunReleased += OnRunReleased;
+            
+            ApplyState();
+        }
+
+        private void DisableGraph() {
+            if (_enableCts == null) return;
+            
+            AsyncExt.DisposeCts(ref _enableCts);
+            
             _groundDetector.OnContact -= OnStartContactGround;
             _groundDetector.OnLostContact -= OnStopContactGround;
 
@@ -64,23 +102,7 @@ namespace MisterGames.Character.Motion {
             _input.OnRunReleased -= OnRunReleased;
         }
 
-        private void OnStartContactGround() {
-            _action.Apply(_actor, _enableCts.Token).Forget();
-        }
-
-        private void OnStopContactGround() {
-            _action.Apply(_actor, _enableCts.Token).Forget();
-        }
-
-        private void OnPoseChanged(CharacterPose newPose, CharacterPose oldPose) {
-            _action.Apply(_actor, _enableCts.Token).Forget();
-        }
-
-        private void OnRunPressed() {
-            _action.Apply(_actor, _enableCts.Token).Forget();
-        }
-
-        private void OnRunReleased() {
+        private void ApplyState() {
             _action.Apply(_actor, _enableCts.Token).Forget();
         }
     }

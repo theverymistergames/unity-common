@@ -36,7 +36,6 @@ namespace MisterGames.Character.Motion {
 
         public Vector3 LastJumpImpulse { get; private set; }
         public float Force { get => _force; set => _force = value; }
-        public bool IsBlocked { get; set; }
         public float JumpImpulseTime => _jumpImpulseApplyTime;
         
         private IActor _actor;
@@ -168,7 +167,7 @@ namespace MisterGames.Character.Motion {
         
         private bool CanRequestJump() {
             return _infiniteJumps || 
-                   !IsBlocked && !_force.IsNearlyZero() && 
+                   !_force.IsNearlyZero() && 
                    (_canJumpCondition == null || _canJumpCondition.IsMatch(_actor, _startTime));
         }
         
@@ -176,7 +175,7 @@ namespace MisterGames.Character.Motion {
             float time = Time.time;
 
             return _infiniteJumps || 
-                   !IsBlocked && time >= _jumpRequestApplyTime + _jumpImpulseDelay + _jumpTakeoffDuration && 
+                   time >= _jumpRequestApplyTime + _jumpImpulseDelay + _jumpTakeoffDuration && 
                    _jumpRequestApplyTime + _jumpImpulseDelay + _jumpTakeoffDuration + _minGroundedTimeToAllowJump <= _lastTimeGrounded && 
                    (_groundDetector.HasContact || time - _lastTimeGrounded <= _coyoteTime);
         }

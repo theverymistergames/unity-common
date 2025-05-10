@@ -3,7 +3,9 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Character.Input;
+using MisterGames.Common.Async;
 using MisterGames.Common.Attributes;
+using MisterGames.Common.Data;
 using MisterGames.Common.Maths;
 using UnityEngine;
 
@@ -14,18 +16,26 @@ namespace MisterGames.Character.Capsule {
         [EmbeddedInspector]
         [SerializeField] private CharacterPoseGraph _poseGraph;
 
+        private readonly BlockSet _blockSet = new();
+        
+        private CancellationTokenSource _enableCts;
+        private CancellationTokenSource _poseChangeCts;
+        private CancellationToken _destroyToken;
+        
         private IActor _actor;
         private CharacterPosePipeline _pose;
         private CharacterInputPipeline _input;
-        private CancellationTokenSource _enableCts;
-        private CancellationTokenSource _poseChangeCts;
         private byte _poseChangeId;
         private float _startTime;
 
-        public void OnAwake(IActor actor) {
+        void IActorComponent.OnAwake(IActor actor) {
             _actor = actor;
             _input = actor.GetComponent<CharacterInputPipeline>();
             _pose = actor.GetComponent<CharacterPosePipeline>();
+        }
+
+        private void Awake() {
+            _destroyToken = destroyCancellationToken;
         }
 
         private void Start() {
@@ -34,32 +44,53 @@ namespace MisterGames.Character.Capsule {
         }
 
         private void OnEnable() {
+            _blockSet.OnUpdate += UpdateState;
+            
             _startTime = Time.time;
-                
-            _enableCts?.Cancel();
-            _enableCts?.Dispose();
-            _enableCts = new CancellationTokenSource();
-
-            _input.OnCrouchPressed -= OnCrouchPressed;
-            _input.OnCrouchPressed += OnCrouchPressed;
-
-            _input.OnCrouchReleased -= OnCrouchReleased;
-            _input.OnCrouchReleased += OnCrouchReleased;
-
-            _input.OnCrouchToggled -= OnCrouchToggled;
-            _input.OnCrouchToggled += OnCrouchToggled;
+            
+            UpdateState();
         }
 
         private void OnDisable() {
-            _enableCts?.Cancel();
-            _enableCts?.Dispose();
-            _enableCts = null;
+            _blockSet.OnUpdate -= UpdateState;
+            
+            DisableGraph();
+            ApplyStandPose();
+        }
+        
+        public void SetBlock(object source, bool blocked, CancellationToken cancellationToken = default) {
+            _blockSet.SetBlock(source, blocked, cancellationToken);
+        }
 
+        public void ApplyStandPose() {
+            ChangePose(_poseGraph.standPose, _destroyToken).Forget();
+        }
+
+        private void UpdateState() {
+            if (_blockSet.Count <= 0) EnableGraph();
+            else DisableGraph();
+        }
+        
+        private void EnableGraph() {
+            if (_enableCts != null) return;
+            
+            AsyncExt.RecreateCts(ref _enableCts);
+            
+            _input.OnCrouchPressed += OnCrouchPressed;
+            _input.OnCrouchReleased += OnCrouchReleased;
+            _input.OnCrouchToggled += OnCrouchToggled;
+        }
+
+        private void DisableGraph() {
+            if (_enableCts == null) return;
+            
+            AsyncExt.DisposeCts(ref _enableCts);
+            
             _input.OnCrouchPressed -= OnCrouchPressed;
             _input.OnCrouchReleased -= OnCrouchReleased;
             _input.OnCrouchToggled -= OnCrouchToggled;
         }
-
+        
         private void OnCrouchPressed() {
             if (!enabled) return;
 
@@ -82,7 +113,7 @@ namespace MisterGames.Character.Capsule {
             ChangePose(nextPose, _enableCts.Token).Forget();
         }
 
-        private async UniTask ChangePose(CharacterPose targetPose, CancellationToken cancellationToken = default) {
+        private async UniTask ChangePose(CharacterPose targetPose, CancellationToken cancellationToken) {
             if (!enabled) return;
 
             byte id = ++_poseChangeId;
@@ -137,7 +168,7 @@ namespace MisterGames.Character.Capsule {
                 }
             }
 
-            transition = default;
+            transition = null;
             return false;
         }
 

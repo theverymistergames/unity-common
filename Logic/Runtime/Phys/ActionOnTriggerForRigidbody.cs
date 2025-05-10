@@ -2,7 +2,6 @@
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
-using MisterGames.Collisions.Core;
 using MisterGames.Collisions.Rigidbodies;
 using MisterGames.Common.Async;
 using MisterGames.Common.Attributes;
@@ -14,9 +13,9 @@ namespace MisterGames.Logic.Phys {
     public sealed class ActionOnTriggerForRigidbody : MonoBehaviour, IActorComponent {
 
         [SerializeField] private TriggerListenerForRigidbody _triggerListenerForRigidbody;
-        [SerializeField] private RigidbodyTriggerEventType _triggerEvent; 
         [SerializeField] private LayerMask _layerMask;
-        [SerializeReference] [SubclassSelector] private IActorAction _action;
+        [SerializeReference] [SubclassSelector] private IActorAction _onEnter;
+        [SerializeReference] [SubclassSelector] private IActorAction _onExit;
 
         private CancellationTokenSource _enableCts;
         private IActor _actor;
@@ -27,18 +26,28 @@ namespace MisterGames.Logic.Phys {
 
         private void OnEnable() {
             AsyncExt.RecreateCts(ref _enableCts);
-            _triggerListenerForRigidbody.Subscribe(_triggerEvent, HandleTrigger);
+            
+            _triggerListenerForRigidbody.TriggerEnter += TriggerEnter;
+            _triggerListenerForRigidbody.TriggerExit += TriggerExit;
         }
 
         private void OnDisable() {
             AsyncExt.DisposeCts(ref _enableCts);
-            _triggerListenerForRigidbody.Unsubscribe(_triggerEvent, HandleTrigger);
+            
+            _triggerListenerForRigidbody.TriggerEnter -= TriggerEnter;
+            _triggerListenerForRigidbody.TriggerExit -= TriggerExit;
         }
 
-        private void HandleTrigger(Rigidbody rigidbody) {
+        private void TriggerEnter(Rigidbody rigidbody) {
             if (rigidbody == null || !_layerMask.Contains(rigidbody.gameObject.layer)) return;
 
-            _action?.Apply(_actor, _enableCts.Token).Forget();
+            _onEnter?.Apply(_actor, _enableCts.Token).Forget();
+        }
+
+        private void TriggerExit(Rigidbody rigidbody) {
+            if (rigidbody == null || !_layerMask.Contains(rigidbody.gameObject.layer)) return;
+
+            _onExit?.Apply(_actor, _enableCts.Token).Forget();   
         }
     }
     
