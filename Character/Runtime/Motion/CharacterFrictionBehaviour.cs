@@ -56,7 +56,7 @@ namespace MisterGames.Character.Motion {
 
         void IUpdate.OnUpdate(float dt) {
             _up = _transform.up;
-            _lowerPoint = _rigidbody.position + _collider.center - _up * (_collider.height * 0.5f - _collider.radius);
+            _lowerPoint = _transform.TransformPoint(_collider.center - Vector3.up * (_collider.height * 0.5f - _collider.radius));
             
             _slopeAngle = _motion.SlopeAngle;
             _slopeAngleLimits = _motion.SlopeAngleLimits;

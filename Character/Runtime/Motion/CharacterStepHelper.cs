@@ -67,7 +67,7 @@ namespace MisterGames.Character.Motion {
             var inputDir = Vector3.ProjectOnPlane(_motion.InputDirWorld, up).normalized;
             
             // Lower ray not detected any obstacles: do nothing
-            if (!DoubleRaycast(lowerPoint, inputDir, Vector3.up, _distance, out var lowerHit)) {
+            if (!DoubleRaycast(lowerPoint, inputDir, up, _distance, out var lowerHit)) {
                 return;
             }
             

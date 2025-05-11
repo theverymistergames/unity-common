@@ -1,9 +1,6 @@
 ﻿using MisterGames.Actors;
 using MisterGames.Character.Phys;
-using MisterGames.Character.Motion;
-using MisterGames.Character.View;
 using MisterGames.Collisions.Core;
-using MisterGames.Common.GameObjects;
 using MisterGames.Common.Maths;
 using UnityEngine;
 
@@ -27,7 +24,6 @@ namespace MisterGames.Character.Capsule {
 
         private Transform _transform;
         private CapsuleCollider _capsuleCollider;
-        private CharacterViewPipeline _view;
         private IRadiusCollisionDetector _groundDetector;
         private IRadiusCollisionDetector _ceilingDetector;
 
@@ -36,8 +32,7 @@ namespace MisterGames.Character.Capsule {
 
         public void OnAwake(IActor actor) {
             _transform = actor.Transform;
-                
-            _view = actor.GetComponent<CharacterViewPipeline>();
+            
             _capsuleCollider = actor.GetComponent<CapsuleCollider>();
             _groundDetector = actor.GetComponent<CharacterGroundDetector>();
             _ceilingDetector = actor.GetComponent<CharacterCeilingDetector>();
@@ -73,8 +68,7 @@ namespace MisterGames.Character.Capsule {
         }
 
         private void ApplyHeight(float height) {
-            var up = _transform.up;
-            var center = (height - _initialHeight) * up;
+            var center = (height - _initialHeight) * Vector3.up;
             var halfCenter = 0.5f * center;
             
             _headRoot.localPosition = center + _headRootInitialPosition;
@@ -87,7 +81,7 @@ namespace MisterGames.Character.Capsule {
             _groundDetector.Distance = height * 0.5f - _capsuleCollider.radius;
             
             if (!_groundDetector.HasContact) {
-                _view.BodyPosition += (prevHeight - height) * up;
+                _transform.position += (prevHeight - height) * _transform.up;
             }
         }
 
@@ -105,15 +99,15 @@ namespace MisterGames.Character.Capsule {
         }
 
         private Vector3 GetColliderTopPoint() {
-            return _view.BodyPosition + _capsuleCollider.center + _capsuleCollider.height * 0.5f * Vector3.up;
-        }
-
-        private Vector3 GetColliderCenterPoint() {
-            return _view.BodyPosition + _capsuleCollider.center;
+            return GetColliderCenterPoint(_capsuleCollider.height * 0.5f);
         }
 
         private Vector3 GetColliderBottomPoint() {
-            return _view.BodyPosition + _capsuleCollider.center + _capsuleCollider.height * 0.5f * Vector3.down;
+            return GetColliderCenterPoint(-_capsuleCollider.height * 0.5f);
+        }
+
+        private Vector3 GetColliderCenterPoint(float verticalOffset = 0f) {
+            return _transform.TransformPoint(_capsuleCollider.center + verticalOffset * Vector3.up);
         }
     }
 
