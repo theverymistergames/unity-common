@@ -1,9 +1,10 @@
 ﻿using System;
+using System.Threading;
 using MisterGames.Actors;
-using MisterGames.Actors.Actions;
-using MisterGames.Character.Phys;
+using MisterGames.Character.Capsule;
 using MisterGames.Character.Input;
-using MisterGames.Common.Attributes;
+using MisterGames.Character.Phys;
+using MisterGames.Common.Data;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Tick;
 using UnityEngine;
@@ -15,6 +16,7 @@ namespace MisterGames.Character.Motion {
         [SerializeField] private float _force = 1f;
         [SerializeField] private bool _infiniteJumps;
 
+        [Header("Timings")]
         [Tooltip("Max time from jump impulse to takeoff from ground. " +
                  "When the player is trying to jump mid-air using the coyote time, " +
                  "this value is used to prevent double jumps, " +
@@ -23,13 +25,14 @@ namespace MisterGames.Character.Motion {
                  "then it is considered that the player jumped to take off from ground, and coyote jump is unavailable. " +
                  "Otherwise it is considered the player just fell, so coyote jump can be performed.")]
         [SerializeField] [Min(0f)] private float _jumpTakeoffDuration = 0.1f;
-        [SerializeField] [Min(0f)] private float _minGroundedTimeToAllowJump = 0.2f;
         [SerializeField] [Min(0f)] private float _retryFailedJumpDuration = 0.15f;
-        [SerializeField] [Min(0f)] private float _coyoteTime = 0.2f;
-        [SerializeField] [Min(0f)] private float _jumpImpulseDelay;
-        [SerializeField] [Range(0f, 90f)] private float _maxSlopeAngle = 30f;
+        [SerializeField] [Min(0f)] private float _jumpImpulseDelayDefault = 0.05f;
         
-        [SerializeReference] [SubclassSelector] private IActorCondition _canJumpCondition;
+        [Header("Conditions")]
+        [SerializeField] [Min(0f)] private float _minGroundedTimeToAllowJump = 0.2f;
+        [SerializeField] [Min(0f)] private float _coyoteTime = 0.2f;
+        [SerializeField] [Range(0f, 90f)] private float _maxSlopeAngle = 30f;
+        [SerializeField] private float _minCeilingHeight = 0.3f;
 
         public event Action OnJumpRequest = delegate {  };
         public event Action<Vector3> OnJumpImpulse = delegate {  };
@@ -37,42 +40,73 @@ namespace MisterGames.Character.Motion {
         public Vector3 LastJumpImpulse { get; private set; }
         public float Force { get => _force; set => _force = value; }
         public float JumpImpulseTime => _jumpImpulseApplyTime;
-        
-        private IActor _actor;
+
+        private readonly PrioritySet<IJumpOverride> _jumpOverrides = new();
+        private readonly BlockSet _blockSet = new();
+
         private CharacterInputPipeline _input;
         private CharacterMotionPipeline _motion;
         private CharacterGravity _gravity;
         private CharacterGroundDetector _groundDetector;
+        private CharacterCeilingDetector _ceilingDetector;
+        private CharacterCapsulePipeline _capsulePipeline;
         
-        private float _jumpPressTime;
+        private float _jumpRequestTime;
         private float _jumpReleaseTime;
         private float _jumpRequestApplyTime;
         private float _jumpImpulseApplyTime;
+        private float _jumpImpulseDelay;
         private float _lastTimeGrounded;
 
         private bool _isJumpRequested;
         private bool _isJumpImpulseRequested;
-
-        private float _startTime;
-
+        
         void IActorComponent.OnAwake(IActor actor) {
-            _actor = actor;
             _input = actor.GetComponent<CharacterInputPipeline>();
             _motion = actor.GetComponent<CharacterMotionPipeline>();
             _gravity = actor.GetComponent<CharacterGravity>();
             _groundDetector = actor.GetComponent<CharacterGroundDetector>();
+            _ceilingDetector = actor.GetComponent<CharacterCeilingDetector>();
+            _capsulePipeline  = actor.GetComponent<CharacterCapsulePipeline>();
+        }
+
+        private void OnDestroy() {
+            _blockSet.Clear();
         }
 
         private void OnEnable() {
-            _startTime = Time.time;
-            
             PlayerLoopStage.Update.Subscribe(this);
+            
             _input.JumpPressed += HandleJumpPressedInput;
         }
 
         private void OnDisable() {
             PlayerLoopStage.Update.Unsubscribe(this);
+            
             _input.JumpPressed -= HandleJumpPressedInput;
+        }
+        
+        public void SetBlock(object source, bool blocked, CancellationToken cancellationToken = default) {
+            _blockSet.SetBlock(source, blocked, cancellationToken);
+        }
+        
+        public void RequestJump() {
+            float jumpImpulseDelay = _jumpImpulseDelayDefault;
+            if (!CanRequestJump(ref jumpImpulseDelay)) return;
+
+            _jumpRequestTime = Time.time;
+            _jumpImpulseDelay = jumpImpulseDelay;
+            _isJumpRequested = true;
+        }
+        
+        public void StartOverride(IJumpOverride jumpOverride, int priority)
+        {
+            _jumpOverrides.Set(jumpOverride, priority);
+        }
+
+        public void StopOverride(IJumpOverride jumpOverride)
+        {
+            _jumpOverrides.Remove(jumpOverride);
         }
 
         void IUpdate.OnUpdate(float dt) {
@@ -93,10 +127,7 @@ namespace MisterGames.Character.Motion {
         }
 
         private void HandleJumpPressedInput() {
-            if (!CanRequestJump()) return;
-            
-            _jumpPressTime = Time.time;
-            _isJumpRequested = true;
+            RequestJump();
         }
         
         private void ApplyJumpRequest() {
@@ -104,7 +135,7 @@ namespace MisterGames.Character.Motion {
 
             // Jump requested: check if can jump or retry.
             if (_isJumpRequested) {
-                if (CanApplyJumpImpulse()) {
+                if (CanApplyJumpImpulse(ref _jumpImpulseDelay)) {
                     _jumpRequestApplyTime = time;
                     _isJumpImpulseRequested = true;
                     _isJumpRequested = false;
@@ -112,7 +143,7 @@ namespace MisterGames.Character.Motion {
                     OnJumpRequest.Invoke();
                 }
 
-                if (time > _jumpPressTime + _retryFailedJumpDuration) _isJumpRequested = false;
+                if (time > _jumpRequestTime + _retryFailedJumpDuration) _isJumpRequested = false;
             }
 
             // Jump impulse delay finished.
@@ -125,6 +156,13 @@ namespace MisterGames.Character.Motion {
         private void ApplyJumpImpulse() {
             var gravityDirection = _gravity.GravityDirection;
             var jumpImpulse = Force * -gravityDirection;
+            
+            if (_jumpOverrides.TryGetResult(out var jumpOverride) && 
+                !jumpOverride.OnJumpImpulseRequested(ref jumpImpulse)) 
+            {
+                return;
+            }
+            
             var velocity = _motion.Velocity;
 
             if (Vector3.Dot(gravityDirection, velocity) > 0f) {
@@ -165,19 +203,34 @@ namespace MisterGames.Character.Motion {
             _gravity.IsFallForceAllowed = sqrVerticalSpeed > 0f && _jumpReleaseTime > _jumpRequestApplyTime + _jumpImpulseDelay;
         }
         
-        private bool CanRequestJump() {
-            return _infiniteJumps || 
-                   !_force.IsNearlyZero() && 
-                   (_canJumpCondition == null || _canJumpCondition.IsMatch(_actor, _startTime));
+        private bool CanRequestJump(ref float jumpImpulseDelay) {
+            bool hasOverride = _jumpOverrides.TryGetResult(out var jumpOverride);
+
+            return _infiniteJumps ||
+                   hasOverride && jumpOverride.OnJumpRequested(ref jumpImpulseDelay) ||
+                   !hasOverride && _blockSet.Count == 0 && !_force.IsNearlyZero();
         }
         
-        private bool CanApplyJumpImpulse() {
+        private bool CanApplyJumpImpulse(ref float impulseDelay) {
             float time = Time.time;
-
+            float lastJumpTakeoffTime = JumpImpulseTime + _jumpTakeoffDuration;
+            bool hasOverride = _jumpOverrides.TryGetResult(out var jumpOverride);
+            
             return _infiniteJumps || 
-                   time >= _jumpRequestApplyTime + _jumpImpulseDelay + _jumpTakeoffDuration && 
-                   _jumpRequestApplyTime + _jumpImpulseDelay + _jumpTakeoffDuration + _minGroundedTimeToAllowJump <= _lastTimeGrounded && 
-                   (_groundDetector.HasContact || time - _lastTimeGrounded <= _coyoteTime);
+                   
+                   hasOverride && jumpOverride.OnJumpRequested(ref impulseDelay) ||
+                   
+                   !hasOverride && _blockSet.Count == 0 &&
+                   time >= lastJumpTakeoffTime &&
+                   lastJumpTakeoffTime + _minGroundedTimeToAllowJump <= _lastTimeGrounded && 
+                   (_groundDetector.HasContact || time - _lastTimeGrounded <= _coyoteTime) && 
+                   HasNoCeiling();
+        }
+
+        private bool HasNoCeiling() {
+            var info = _ceilingDetector.CollisionInfo;
+            return !info.hasContact ||
+                   (info.point - _capsulePipeline.ColliderTop).sqrMagnitude > _minCeilingHeight * _minCeilingHeight;
         }
     }
 
