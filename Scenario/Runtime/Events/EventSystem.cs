@@ -113,7 +113,10 @@ namespace MisterGames.Scenario.Events {
         private void NotifyEventRaised(EventReference e) {
             if (!_listenerTree.TryGetNode(e, out int root)) return;
 
-            for (int i = _listenerTree.GetChild(root); i >= 0; i = _listenerTree.GetNext(i)) {
+            int i = _listenerTree.GetChild(root);
+            while (i >= 0) {
+                int next = _listenerTree.GetNext(i);
+                
                 switch (_listenerTree.GetValueAt(i)) {
                     case IEventListener interfaceListener:
                         interfaceListener.OnEventRaised(e);
@@ -123,13 +126,18 @@ namespace MisterGames.Scenario.Events {
                         actionListener.Invoke();
                         break;
                 }
+
+                i = next;
             }
         }
         
         private void NotifyEventRaised<T>(EventReference e, T data) {
             if (!_listenerTree.TryGetNode(e, out int root)) return;
-
-            for (int i = _listenerTree.GetChild(root); i >= 0; i = _listenerTree.GetNext(i)) {
+            
+            int i = _listenerTree.GetChild(root);
+            while (i >= 0) {
+                int next = _listenerTree.GetNext(i);
+                
                 switch (_listenerTree.GetValueAt(i)) {
                     case IEventListener<T> interfaceListener:
                         interfaceListener.OnEventRaised(e, data);
@@ -147,6 +155,8 @@ namespace MisterGames.Scenario.Events {
                         actionListener.Invoke();
                         break;
                 }
+
+                i = next;
             }
         }
     }
