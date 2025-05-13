@@ -115,9 +115,23 @@ namespace MisterGames.Common.Pooling {
             _activeSceneRoots.Clear();
             newActiveScene.GetRootGameObjects(_activeSceneRoots);
 
-            ActiveSceneRoot = _activeSceneRoots.Count > 1 ? _activeSceneRoots[1].transform 
-                : _activeSceneRoots.Count > 0 ? _activeSceneRoots[0].transform
-                : null;
+            switch (_activeSceneRoots.Count) {
+                case 0:
+                    ActiveSceneRoot = null;
+                    return;
+                
+                case 1:
+                    ActiveSceneRoot = _activeSceneRoots[0].transform;
+                    return;
+            }
+
+            for (int i = 1; i < _activeSceneRoots.Count; i++) {
+                var root = _activeSceneRoots[i];
+                if (!root.activeSelf || !root.activeInHierarchy) continue;
+                
+                ActiveSceneRoot = root.transform;
+                return;
+            }
         }
 
         private void InitializePools() {
