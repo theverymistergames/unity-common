@@ -215,6 +215,7 @@ namespace MisterGames.Tweens {
         private void SetSpeed(float value) {
             Stop();
             _speed = value;
+            _playState = PlayState.DurationNotSet;
         }
 
         private float GetDuration(bool forceRecalculate) {
