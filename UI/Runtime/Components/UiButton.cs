@@ -25,9 +25,8 @@ namespace MisterGames.UI.Components {
         [SerializeField] private TMP_Text _buttonText;
 
         [Header("Click")]
-        [SerializeField]
-        [SerializeReference] [SubclassSelector] private IActorAction _clickAction;
         [SerializeField] private CancelMode _cancelMode;
+        [SerializeReference] [SubclassSelector] private IActorAction _clickAction;
         
         [Header("Animation")]
         [SerializeField] private bool _selectOnHover = true;
@@ -64,17 +63,21 @@ namespace MisterGames.UI.Components {
         [VisibleIf(nameof(_applyColorToText))]
         [SerializeField] private Color _pressColorText = Color.white;
 
-        private enum CancelMode {
-            NotCancelable,
-            OnButtonDisabled,
-            OnButtonDestroyed,
-        }
-        
-        private enum State {
+        public event Action OnClicked = delegate { };
+        public event Action<State> OnStateChanged = delegate { };
+        public State CurrentState { get; private set; } = State.Default;
+
+        public enum State {
             Default,
             Hover,
             Selected,
             Pressed,
+        }
+
+        private enum CancelMode {
+            NotCancelable,
+            OnButtonDisabled,
+            OnButtonDestroyed,
         }
 
         private struct StateData {
@@ -87,7 +90,6 @@ namespace MisterGames.UI.Components {
         
         private CancellationTokenSource _enableCts;
         private IActor _actor;
-        private State _state = State.Default;
         private bool _isHovering;
         private bool _isPressed;
         private Vector3 _originalScale;
@@ -119,10 +121,12 @@ namespace MisterGames.UI.Components {
         }
         
         private void OnClick() {
+            OnClicked.Invoke();
+            
             if (_clickAction == null) return;
 
             var cancellationToken = _cancelMode switch {
-                CancelMode.NotCancelable => default,
+                CancelMode.NotCancelable => CancellationToken.None,
                 CancelMode.OnButtonDisabled => _enableCts.Token,
                 CancelMode.OnButtonDestroyed => destroyCancellationToken,
                 _ => throw new ArgumentOutOfRangeException()
@@ -204,11 +208,12 @@ namespace MisterGames.UI.Components {
         }
 
         private void ApplyState(State state, bool force = false) {
-            if (state == _state && !force) return;
+            if (state == CurrentState && !force) return;
 
-            _state = state;
-            byte id = ++_transitionId;
+            CurrentState = state;
+            OnStateChanged.Invoke(CurrentState);
             
+            byte id = ++_transitionId;
             if (_enableCts != null) TransitTo(id, state, instant: force, _enableCts.Token).Forget();
         }
 
