@@ -10,6 +10,7 @@ namespace MisterGames.Scenario.Components {
         [SerializeField] private GameObject[] _gameObjects;
         [SerializeField] private EventReference _eventReference;
         [SerializeField] private CompareMode _compareMode;
+        [SerializeField] private bool _checkOnEnable = true;
         [SerializeField] private bool _unsubscribeAfterMatch;
         
         [VisibleIf(nameof(_compareMode), 1, CompareMode.LessOrEqual)]
@@ -31,7 +32,7 @@ namespace MisterGames.Scenario.Components {
         }
 
         private void OnEnable() {
-            OnEventRaised(_eventReference);
+            if (_checkOnEnable) OnEventRaised(_eventReference);
         }
 
         public void OnEventRaised(EventReference e) {
