@@ -260,6 +260,7 @@ namespace MisterGames.Logic.Transforms {
                 _maxLevel = Mathf.Max(_maxLevel, data.level);
             }
             
+            DictionaryPool<int, int>.Release(map);
             EditorUtility.SetDirty(this);
         }
 #endif
