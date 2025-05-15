@@ -28,14 +28,14 @@ namespace MisterGames.Scenario.Events {
         }
 
         private void OnDestroy() {
-            var raisedEventsMap = ((EventSystem) EventSystem.Main).RaisedEvents;
+            var raisedEventsMap = EventSystem.Main.RaisedEvents;
             raisedEventsMap.Clear();
         }
 
         public void OnLoadData(ISaveSystem saveSystem) {
             saveSystem.Pop(_id, _eventsListEmpty, out var eventList);
 
-            var raisedEventsMap = ((EventSystem) EventSystem.Main).RaisedEvents;
+            var raisedEventsMap = EventSystem.Main.RaisedEvents;
             
             for (int i = 0; i < eventList.Count; i++) {
                 var eventEntry = eventList[i];
@@ -45,7 +45,7 @@ namespace MisterGames.Scenario.Events {
 
         public void OnSaveData(ISaveSystem saveSystem) {
             _eventsListSaveable.Clear();
-            var raisedEventsMap = ((EventSystem) EventSystem.Main).RaisedEvents;
+            var raisedEventsMap = EventSystem.Main.RaisedEvents;
             
             foreach ((var e, int count) in raisedEventsMap) {
                 if (!e.EventDomain.IsSerializable(e.EventId)) continue;

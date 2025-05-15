@@ -1,9 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace MisterGames.Scenario.Events {
 
     public interface IEventSystem {
 
+        Dictionary<EventReference, int> RaisedEvents { get; }
+        
         bool IsRaised(EventReference e);
         int GetCount(EventReference e);
         
@@ -13,6 +16,9 @@ namespace MisterGames.Scenario.Events {
         void Raise<T>(EventReference e, T data, int add = 1);
         void SetCount<T>(EventReference e, T data, int count);
 
+        void ResetEventsOf(EventDomain eventDomain, bool includeSaved, bool notify);
+        void ResetAllEvents(bool notify);
+        
         void Subscribe(EventReference e, IEventListener listener);
         void Unsubscribe(EventReference e, IEventListener listener);
         

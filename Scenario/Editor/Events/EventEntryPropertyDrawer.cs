@@ -64,7 +64,7 @@ namespace MisterGames.Scenario.Editor.Events {
                 
                 GUI.Label(rect, RaisedEventsLabel);
 
-                var raisedEventsMap = ((EventSystem) EventSystem.Main).RaisedEvents;
+                var raisedEventsMap = EventSystem.Main.RaisedEvents;
                 
                 foreach ((var e, int count) in raisedEventsMap) {
                     if (e.EventId != eventId || e.EventDomain != eventDomain) continue;
@@ -83,7 +83,7 @@ namespace MisterGames.Scenario.Editor.Events {
                 int eventId = property.FindPropertyRelative("id").intValue;
                 int count = 0;
                 
-                var raisedEventsMap = ((EventSystem) EventSystem.Main).RaisedEvents;
+                var raisedEventsMap = EventSystem.Main.RaisedEvents;
                 
                 foreach (var e in raisedEventsMap.Keys) {
                     if (e.EventId == eventId && e.EventDomain == eventDomain) count++;
