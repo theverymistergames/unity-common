@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using MisterGames.Common.Data;
 using UnityEngine;
 
@@ -91,9 +92,9 @@ namespace MisterGames.Scenario.Events {
 
         private void SubscribeListener(EventReference e, object listener) {
             int root = _listenerTree.GetOrAddNode(e);
-
+            
             for (int i = _listenerTree.GetChild(root); i >= 0; i = _listenerTree.GetNext(i)) {
-                if (_listenerTree.GetValueAt(i) == listener) return;
+                if (AreEqualListeners(_listenerTree.GetValueAt(i), listener)) return;
             }
 
             _listenerTree.AddEndPoint(root, listener);
@@ -101,9 +102,9 @@ namespace MisterGames.Scenario.Events {
         
         private void UnsubscribeListener(EventReference e, object listener) {
             if (!_listenerTree.TryGetNode(e, out int root)) return;
-
+            
             for (int i = _listenerTree.GetChild(root); i >= 0; i = _listenerTree.GetNext(i)) {
-                if (_listenerTree.GetValueAt(i) != listener) continue;
+                if (!AreEqualListeners(_listenerTree.GetValueAt(i), listener)) continue;
 
                 _listenerTree.RemoveNodeAt(i);
                 return;
@@ -158,6 +159,11 @@ namespace MisterGames.Scenario.Events {
 
                 i = next;
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool AreEqualListeners(object l0, object l1) {
+            return l0 is not null && l0.Equals(l1);
         }
     }
     
