@@ -13,10 +13,10 @@ namespace MisterGames.Logic.Phys {
         [SerializeField] private Rigidbody _rigidbody;
         
         [Header("Gravity")]
-        [SerializeField] private Mode _gravityMode;
+        [SerializeField] private Mode _gravityMode = Mode.CustomGlobalOrPhysics;
         [VisibleIf(nameof(_gravityMode), 3)]
         [SerializeField] private CustomGravitySource _localGravitySource;
-        [SerializeField] private bool _useGravity;
+        [SerializeField] private bool _useGravity = true;
         [SerializeField] private float _gravityScale = 1f;
 
         [Header("Sleeping")]

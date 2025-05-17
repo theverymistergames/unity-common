@@ -12,6 +12,7 @@ namespace MisterGames.Interact.Interactives {
         [SerializeField] private Detector _interactivesDetector;
         [SerializeField] private CollisionDetectorBase _directViewDetector;
         [SerializeField] private GameObject _root;
+        [SerializeField] private Transform _viewOrigin;
 
         public event Action<IInteractive> OnDetected = delegate {  };
         public event Action<IInteractive> OnLost = delegate {  };
@@ -22,8 +23,9 @@ namespace MisterGames.Interact.Interactives {
         public IReadOnlyCollection<IInteractive> Interactives => _interactiveTargetsSet;
         public IDetector Detector => _interactivesDetector;
         public Transform Transform { get; private set; }
+        public Transform ViewOrigin => _viewOrigin;
         public GameObject Root => _root;
-
+        
         private readonly HashSet<IInteractive> _interactiveTargetsSet = new HashSet<IInteractive>();
         private readonly HashSet<IInteractive> _interactiveCandidatesSet = new HashSet<IInteractive>();
         private readonly List<IInteractive> _interactiveCache = new();
