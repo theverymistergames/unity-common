@@ -3,6 +3,7 @@ using UnityEngine;
 
 namespace MisterGames.Common.Rendering {
     
+    [DefaultExecutionOrder(-100_000)]
     public sealed class EnableGpuInstancing : MonoBehaviour {
         
         [SerializeField] private MeshRenderer _meshRenderer;
