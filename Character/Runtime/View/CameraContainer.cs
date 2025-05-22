@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using UnityEngine;
@@ -10,6 +11,13 @@ namespace MisterGames.Character.View {
         [SerializeField] private Transform _translationRoot;
         [SerializeField] private Transform _rotationRoot;
 
+        public enum MaskMode {
+            And,
+            Xand,
+            Or,
+            Xor,
+        }
+        
         private const float WeightTolerance = 0.00001f;
         
         public Camera Camera { get; private set; }
@@ -18,11 +26,14 @@ namespace MisterGames.Character.View {
         private readonly Dictionary<int, WeightedValue<Vector3>> _positionStates = new();
         private readonly Dictionary<int, WeightedValue<Quaternion>> _rotationStates = new();
         private readonly Dictionary<int, WeightedValue<float>> _fovStates = new();
+        private readonly Dictionary<int, (int mask, MaskMode mode)> _cullingMaskStates = new();
 
         private CameraState _baseState;
         private CameraState _resultState;
         private CameraState _persistentState;
         private CameraState _persistentStateBuffer;
+        private int _defaultCullingMask;
+        private int _resultCullingMask;
 
         private Vector3 _cameraOffset;
         private Quaternion _cameraRotationOffset;
@@ -40,6 +51,9 @@ namespace MisterGames.Character.View {
             _resultState = CameraState.Empty;
             _persistentState = CameraState.Empty;
             _persistentStateBuffer = CameraState.Empty;
+
+            _defaultCullingMask = Camera.cullingMask;
+            _resultCullingMask = _defaultCullingMask;
             
             _isInitialized = true;
             
@@ -184,6 +198,7 @@ namespace MisterGames.Character.View {
         public void SetFovOffset(int id, float weight, float fov) {
             _fovStates[id] = new WeightedValue<float>(weight, fov);
             _resultState = _resultState.WithFov(BuildResultFov());
+            
             ApplyResultState();
         }
 
@@ -194,6 +209,20 @@ namespace MisterGames.Character.View {
             ApplyResultState();
         }
 
+        public void SetCullingMask(int id, int mask, MaskMode mode = MaskMode.And) {
+            _cullingMaskStates[id] = (mask, mode);
+            _resultCullingMask = BuildResultCullingMask();
+            
+            ApplyCullingMask();
+        }
+
+        public void RemoveCullingMask(int id) {
+            _cullingMaskStates.Remove(id);
+            _resultCullingMask = BuildResultCullingMask();
+            
+            ApplyCullingMask();
+        }
+
         private void ApplyResultState() {
             if (!_isInitialized) return;
 
@@ -202,6 +231,26 @@ namespace MisterGames.Character.View {
             Camera.fieldOfView = _baseState.fov + _persistentStateBuffer.fov + _persistentState.fov + _resultState.fov;
         }
 
+        private void ApplyCullingMask() {
+            Camera.cullingMask = _resultCullingMask;
+        }
+
+        private int BuildResultCullingMask() {
+            int mask = _defaultCullingMask;
+            
+            foreach (var data in _cullingMaskStates.Values) {
+                mask = data.mode switch {
+                    MaskMode.And => mask & data.mask,
+                    MaskMode.Xand => mask & ~data.mask,
+                    MaskMode.Or => mask | data.mask,
+                    MaskMode.Xor => mask ^ data.mask,
+                    _ => throw new ArgumentOutOfRangeException()
+                };
+            }
+
+            return mask;
+        }
+        
         private CameraState BuildResultState() {
             return new CameraState(BuildResultPosition(), BuildResultRotation(), BuildResultFov());
         }

@@ -17,14 +17,13 @@ namespace MisterGames.ActionLib.Character {
         [Min(0f)] public float duration;
         
         public async UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            var ts = PlayerLoopStage.Update.Get();
             float start = volume.weight;
             float dur = duration * Mathf.Abs(start - weight);
             float speed = dur > 0f ? 1f / dur : float.MaxValue;
             float t = 0f;
 
-            while (!cancellationToken.IsCancellationRequested) {
-                t = Mathf.Clamp01(t + speed * ts.DeltaTime);
+            while (!cancellationToken.IsCancellationRequested && t < 1f) {
+                t = Mathf.Clamp01(t + speed * UnityEngine.Time.deltaTime);
                 volume.weight = Mathf.Lerp(start, weight, t);
                 
                 await UniTask.Yield();
