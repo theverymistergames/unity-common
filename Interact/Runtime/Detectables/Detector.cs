@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using MisterGames.Collisions.Core;
+using MisterGames.Collisions.Utils;
 using MisterGames.Common;
 using MisterGames.Common.Tick;
 using UnityEngine;
@@ -9,7 +10,6 @@ namespace MisterGames.Interact.Detectables {
 
     public sealed class Detector : MonoBehaviour, IDetector, IUpdate {
 
-        [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
         [SerializeField] private CollisionDetectorBase _directViewDetector;
         [SerializeField] private CollisionDetectorBase _collisionDetector;
         [SerializeField] private CollisionFilter _collisionFilter;
@@ -26,37 +26,38 @@ namespace MisterGames.Interact.Detectables {
         private readonly HashSet<IDetectable> _detectedTargetsSet = new HashSet<IDetectable>();
 
         private readonly List<IDetectable> _detectedCandidates = new List<IDetectable>();
-        private readonly HashSet<IDetectable> _detectedCandidatesSet = new HashSet<IDetectable>();
+        private readonly HashSet<int> _detectedCandidatesHashesSet = new HashSet<int>();
 
         private readonly HashSet<int> _detectedTransformHashesSet = new HashSet<int>();
         private readonly HashSet<int> _detectedTransformHashesBuffer = new HashSet<int>();
 
+        private CollisionInfo _directViewHit;
+        
         private void Awake() {
             Transform = transform;
         }
 
         private void OnEnable() {
-            TimeSources.Get(_timeSourceStage).Subscribe(this);
+            PlayerLoopStage.Update.Subscribe(this);
         }
 
         private void OnDisable() {
-            TimeSources.Get(_timeSourceStage).Unsubscribe(this);
+            PlayerLoopStage.Update.Unsubscribe(this);
 
             ForceLoseAll();
 
             _detectedCandidates.Clear();
-            _detectedCandidatesSet.Clear();
+            _detectedCandidatesHashesSet.Clear();
 
             _detectedTransformHashesSet.Clear();
             _detectedTransformHashesBuffer.Clear();
         }
 
         public bool IsInDirectView(IDetectable detectable, out float distance) {
-            var info = _directViewDetector.CollisionInfo;
-            distance = info.hasContact ? info.distance : 0f;
-
-            return info.hasContact &&
-                   info.transform.GetHashCode() == detectable.Transform.GetHashCode();
+            distance = _directViewHit.hasContact ? _directViewHit.distance : 0f;
+            
+            return _directViewHit.hasContact &&
+                   _directViewHit.transform.GetHashCode() == detectable.Transform.GetHashCode();
         }
 
         public bool IsDetected(IDetectable detectable) {
@@ -96,26 +97,48 @@ namespace MisterGames.Interact.Detectables {
             _detectedTargets.Clear();
         }
 
-        public void OnUpdate(float dt) {
+        void IUpdate.OnUpdate(float dt) {
             var hits = _collisionDetector.FilterLastResults(_collisionFilter);
-
+            
             FillDetectedTransformHashesInto(hits, _detectedTransformHashesBuffer);
 
             RemoveNotDetectedCandidates(_detectedTransformHashesBuffer);
             AddNewDetectedCandidates(_detectedTransformHashesSet, hits);
-
+            UpdateDirectViewHits();
+            
             NotifyNewDetectedOrAllowedTargets(_detectedTransformHashesBuffer);
             NotifyLostOrNotAllowedTargets(_detectedTransformHashesBuffer);
 
             FillDetectedTransformHashesInto(hits, _detectedTransformHashesSet);
         }
 
+        private void UpdateDirectViewHits() {
+            var hits = _directViewDetector.FilterLastResults(_collisionFilter);
+            float minDistance = -1f;
+            
+            for (int i = 0; i < hits.Length; i++) {
+                var info = hits[i];
+                
+                if (!info.hasContact ||
+                    !_detectedCandidatesHashesSet.Contains(info.transform.GetHashCode()) ||
+                    minDistance >= 0f && info.distance > minDistance) 
+                {
+                    continue;
+                }
+                
+                _directViewHit = info;
+                minDistance = info.distance;
+            }
+        }
+
         private void RemoveNotDetectedCandidates(ICollection<int> detectedTransformHashes) {
             for (int i = _detectedCandidates.Count - 1; i >= 0; i--) {
                 var detectable = _detectedCandidates[i];
-                if (detectedTransformHashes.Contains(detectable.Transform.GetHashCode())) continue;
+                int hash = detectable.Transform.GetHashCode();
+                
+                if (detectedTransformHashes.Contains(hash)) continue;
 
-                _detectedCandidatesSet.Remove(detectable);
+                _detectedCandidatesHashesSet.Remove(hash);
                 _detectedCandidates.RemoveAt(i);
             }
         }
@@ -130,7 +153,7 @@ namespace MisterGames.Interact.Detectables {
 
                 if (hit.transform.GetComponent<IDetectable>() is not {} detectable) continue;
 
-                _detectedCandidatesSet.Add(detectable);
+                _detectedCandidatesHashesSet.Add(detectable.Transform.GetHashCode());
                 _detectedCandidates.Add(detectable);
             }
         }
@@ -170,7 +193,7 @@ namespace MisterGames.Interact.Detectables {
         public override string ToString() {
             return $"{nameof(Detector)}(" +
                    $"{name}, " +
-                   $"detected targets/candidates count = {_detectedTargetsSet.Count}/{_detectedCandidatesSet.Count}" +
+                   $"detected targets/candidates count = {_detectedTargets.Count}/{_detectedCandidates.Count}" +
                    $")";
         }
 
@@ -183,7 +206,8 @@ namespace MisterGames.Interact.Detectables {
 
             DebugExt.DrawSphere(transform.position, 0.2f, Color.blue, gizmo: true);
 
-            foreach (var detectable in _detectedCandidatesSet) {
+            for (int i = 0; i < _detectedCandidates.Count; i++) {
+                var detectable = _detectedCandidates[i];
                 var color = IsDetected(detectable) ? Color.green : Color.gray;
                 DebugExt.DrawLine(transform.position, detectable.Transform.position, color, gizmo: true);
             }
