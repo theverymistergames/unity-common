@@ -1,4 +1,5 @@
-﻿using System.Threading;
+﻿using System;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
@@ -12,10 +13,17 @@ namespace MisterGames.Logic.Interactives {
     [RequireComponent(typeof(Interactive))]
     public sealed class ActionOnInteract : MonoBehaviour {
         
-        [SerializeField] private bool _cancelOnNextAction;
+        [SerializeField] private CancelMode _cancelOnNextAction;
         [SerializeReference] [SubclassSelector] private IActorAction _startAction;
         [SerializeReference] [SubclassSelector] private IActorAction _stopAction;
 
+        private enum CancelMode {
+            DontCancel,
+            CancelOnStartAndStop,
+            CancelOnlyOnStart,
+            CancelOnlyOnStop,
+        }
+        
         private Interactive _interactive;
         private CancellationTokenSource _enableCts;
         private CancellationTokenSource _actionCts;
@@ -42,7 +50,7 @@ namespace MisterGames.Logic.Interactives {
         private void OnStartInteract(IInteractiveUser user) {
             var token = _enableCts.Token;
             
-            if (_cancelOnNextAction) {
+            if (NeedCancelPrevious(isStartAction: true)) {
                 AsyncExt.RecreateCts(ref _actionCts);
                 token = CancellationTokenSource.CreateLinkedTokenSource(token, _actionCts.Token).Token;
             }
@@ -53,12 +61,22 @@ namespace MisterGames.Logic.Interactives {
         private void OnStopInteract(IInteractiveUser user) {
             var token = _enableCts.Token;
             
-            if (_cancelOnNextAction) {
+            if (NeedCancelPrevious(isStartAction: false)) {
                 AsyncExt.RecreateCts(ref _actionCts);
                 token = CancellationTokenSource.CreateLinkedTokenSource(token, _actionCts.Token).Token;
             }
             
             if (user.Root.GetComponent<IActor>() is {} actor) _stopAction?.Apply(actor, token).Forget();
+        }
+
+        private bool NeedCancelPrevious(bool isStartAction) {
+            return _cancelOnNextAction switch {
+                CancelMode.DontCancel => false,
+                CancelMode.CancelOnStartAndStop => true,
+                CancelMode.CancelOnlyOnStart => isStartAction,
+                CancelMode.CancelOnlyOnStop => !isStartAction,
+                _ => throw new ArgumentOutOfRangeException()
+            };
         }
     }
 

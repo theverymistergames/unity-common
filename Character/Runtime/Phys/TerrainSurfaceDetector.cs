@@ -81,13 +81,13 @@ namespace MisterGames.Character.Phys {
 
         private void OnContact() {
             var info = _groundDetector.CollisionInfo;
-            int hash = info.transform.GetHashCode();
+            int hash = info.collider.GetInstanceID();
             
             if (hash == _lastContactHash) return;
 
             _lastContactHash = hash;
 
-            if (info.transform.TryGetComponent(out TerrainCollider terrainCollider)) {
+            if (info.collider.TryGetComponent(out TerrainCollider terrainCollider)) {
                 FetchTerrainData(terrainCollider);
                 return;
             }

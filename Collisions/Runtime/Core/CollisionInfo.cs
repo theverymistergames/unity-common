@@ -11,14 +11,18 @@ namespace MisterGames.Collisions.Core {
         public readonly float distance;
         public readonly Vector3 normal;
         public readonly Vector3 point;
+        public readonly Rigidbody rigidbody;
+        public readonly Collider collider;
         public readonly Transform transform;
 
-        public CollisionInfo(bool hasContact, float distance, Vector3 normal, Vector3 point, Transform transform) {
+        public CollisionInfo(bool hasContact, float distance, Vector3 normal, Vector3 point, Transform transform, Rigidbody rigidbody, Collider collider) {
             this.hasContact = hasContact;
             this.distance = distance;
             this.normal = normal;
             this.point = point;
             this.transform = transform;
+            this.rigidbody = rigidbody;
+            this.collider = collider;
         }
 
         public static CollisionInfo FromRaycastHit(RaycastHit raycastHit, bool hasContact = true) {
@@ -27,7 +31,9 @@ namespace MisterGames.Collisions.Core {
                 raycastHit.distance,
                 raycastHit.normal,
                 raycastHit.point,
-                raycastHit.transform
+                raycastHit.transform,
+                raycastHit.rigidbody,
+                raycastHit.collider
             );
         }
 
@@ -37,7 +43,9 @@ namespace MisterGames.Collisions.Core {
                 raycastResult.distance,
                 raycastResult.worldNormal,
                 raycastResult.worldPosition,
-                hasContact ? raycastResult.gameObject.transform : null
+                hasContact ? raycastResult.gameObject.transform : null,
+                rigidbody: null,
+                collider: null
             );
         }
 

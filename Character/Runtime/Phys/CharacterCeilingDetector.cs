@@ -82,6 +82,8 @@ namespace MisterGames.Character.Phys {
             Vector3 hitPoint;
             float hitDistance;
             Transform surface = null;
+            Rigidbody rigidbody = null;
+            Collider collider = null;
 
             if (hasHits) {
                 var hit = _raycastHits[0];
@@ -89,6 +91,8 @@ namespace MisterGames.Character.Phys {
                 normal = hit.normal;
                 surface = hit.transform;
                 hitDistance = hit.distance;
+                rigidbody = hit.rigidbody;
+                collider = hit.collider;
             }
             else {
                 hitPoint = CollisionInfo.point;
@@ -96,7 +100,7 @@ namespace MisterGames.Character.Phys {
                 hitDistance = CollisionInfo.distance;
             }
 
-            var info = new CollisionInfo(hasHits, hitDistance, normal, hitPoint, surface);
+            var info = new CollisionInfo(hasHits, hitDistance, normal, hitPoint, surface, rigidbody, collider);
             
             SetCollisionInfo(info, forceNotify);
         }

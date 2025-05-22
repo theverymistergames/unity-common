@@ -15,6 +15,7 @@ namespace MisterGames.Character.Steps {
         [SerializeField] private MaterialDetectorBase _materialDetector;
         [SerializeField] [Range(0f, 2f)] private float _volume = 1f;
         [SerializeField] [MinMaxSlider(0f, 2f)] private Vector2 _pitch = new Vector2(0.9f, 1.1f);
+        [SerializeField] [Min(0f)] private float _playSoundCooldown = 0.3f;
         [SerializeField] private AudioClip[] _sounds;
         [SerializeField] private MaterialSounds[] _materialSounds;
         
@@ -29,10 +30,13 @@ namespace MisterGames.Character.Steps {
         private readonly Dictionary<int, int> _materialIdToIndexMap = new();
         private Transform _transform;
         private CharacterStepsPipeline _characterStepsPipeline;
+        private float _nextStepSoundTime;
 
         void IActorComponent.OnAwake(IActor actor) {
             _transform = transform;
             _characterStepsPipeline = actor.GetComponent<CharacterStepsPipeline>();
+            
+            FetchMaterialIdToIndexMap();
         }
 
         private void OnEnable() {
@@ -43,16 +47,12 @@ namespace MisterGames.Character.Steps {
             _characterStepsPipeline.OnStep -= OnStep;
         }
 
-        private void FetchMaterialIdToIndexMap() {
-            _materialIdToIndexMap.Clear();
+        public void PlayStepSound(float volumeMul = 1f, float cooldown = -1f) {
+            float time = Time.time;
+            if (time < _nextStepSoundTime) return;
             
-            for (int i = 0; i < _materialSounds?.Length; i++) {
-                ref var materialSounds = ref _materialSounds[i];
-                _materialIdToIndexMap[materialSounds.material.GetValue()] = i;
-            }
-        }
-
-        private void OnStep(int foot, float distance, Vector3 point) {
+            _nextStepSoundTime = time + (cooldown < 0f ? _playSoundCooldown : cooldown);
+            
             var materials = _materialDetector.GetMaterials();
             
             for (int i = 0; i < materials.Count; i++) {
@@ -74,10 +74,23 @@ namespace MisterGames.Character.Steps {
                 AudioPool.Main.Play(
                     AudioPool.Main.ShuffleClips(clips), 
                     _transform, 
-                    volume: volume * info.weight, 
+                    volume: volume * info.weight * volumeMul, 
                     pitch: pitch, 
                     options: AudioOptions.AffectedByTimeScale
                 );   
+            }
+        }
+
+        private void OnStep(int foot, float distance, Vector3 point) {
+            PlayStepSound();
+        }
+
+        private void FetchMaterialIdToIndexMap() {
+            _materialIdToIndexMap.Clear();
+            
+            for (int i = 0; i < _materialSounds?.Length; i++) {
+                ref var materialSounds = ref _materialSounds[i];
+                _materialIdToIndexMap[materialSounds.material.GetValue()] = i;
             }
         }
 

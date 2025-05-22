@@ -41,7 +41,7 @@ namespace MisterGames.Character.Phys {
             }
 
             var info = _collisionDetector.CollisionInfo;
-            int hash = info.transform.GetHashCode();
+            int hash = info.collider.GetInstanceID();
             
             if (hash == _lastContactHash) {
                 _materialList.Add(new MaterialInfo(_lastContactMaterialId, _weight));
@@ -50,13 +50,13 @@ namespace MisterGames.Character.Phys {
 
             _lastContactHash = hash;
 
-            if (info.transform.TryGetComponent(out SurfaceMaterial surfaceMaterial)) {
+            if (info.collider.TryGetComponent(out SurfaceMaterial surfaceMaterial)) {
                 _lastContactMaterialId = surfaceMaterial.MaterialId;
                 _materialList.Add(new MaterialInfo(_lastContactMaterialId, _weight));
                 return _materialList;
             }
             
-            int layer = info.transform.gameObject.layer;
+            int layer = info.collider.gameObject.layer;
             
             for (int i = 0; i < _materials.Length; i++) {
                 ref var data = ref _materials[i];
