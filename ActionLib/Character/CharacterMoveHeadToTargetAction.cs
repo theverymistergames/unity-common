@@ -58,6 +58,8 @@ namespace MisterGames.ActionLib.Character {
             Vector3 startPoint;
             Vector3 targetPoint;
             Vector3 curvePoint;
+            
+            var startBodyRotation = view.BodyRotation;
 
             if (useTargetAsCurvePointOrigin) {
                 startPoint = localPosition;
@@ -89,7 +91,7 @@ namespace MisterGames.ActionLib.Character {
                     useTargetAsCurvePointOrigin ? 1f - progressCurve.Evaluate(t) : progressCurve.Evaluate(t)
                 );
 
-                view.HeadLocalPosition = position;
+                view.HeadLocalPosition = startBodyRotation * Quaternion.Inverse(view.BodyRotation) * position;
                 
                 if (t >= 1f) break;
                 
