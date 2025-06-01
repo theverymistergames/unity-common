@@ -18,6 +18,12 @@ namespace MisterGames.Scenario.Events {
         private readonly HashSet<EventReference> _subIdEventSet = new();
         private readonly TreeMap<EventReference, object> _listenerTree = new();
 
+        public void Dispose() {
+            _listenerTree.Clear();
+            _subIdEventSet.Clear();
+            RaisedEvents.Clear();
+        }
+
         public bool IsRaised(EventReference e) {
             return RaisedEvents.TryGetValue(e, out int count) && count > 0;
         }

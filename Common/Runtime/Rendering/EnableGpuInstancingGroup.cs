@@ -13,7 +13,7 @@ namespace MisterGames.Common.Rendering {
     [DefaultExecutionOrder(-100_001)]
     public sealed class EnableGpuInstancingGroup : MonoBehaviour {
         
-        [SerializeField] private MeshRenderer[] _meshRenderers;
+        [SerializeField] private Renderer[] _meshRenderers;
         
         [Header("Apply for all renderers")]
         [SerializeField] private ColorProperty[] _colors;
@@ -93,7 +93,7 @@ namespace MisterGames.Common.Rendering {
         private void CollectChildMeshRenderers() {
             Undo.RecordObject(this, "CollectChildMeshRenderers");
             
-            _meshRenderers = GetComponentsInChildren<MeshRenderer>();
+            _meshRenderers = GetComponentsInChildren<Renderer>();
             
             EditorUtility.SetDirty(this);
         }

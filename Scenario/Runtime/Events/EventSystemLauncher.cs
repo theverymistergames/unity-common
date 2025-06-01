@@ -28,8 +28,7 @@ namespace MisterGames.Scenario.Events {
         }
 
         private void OnDestroy() {
-            var raisedEventsMap = EventSystem.Main.RaisedEvents;
-            raisedEventsMap.Clear();
+            EventSystem.Main.Dispose();
         }
 
         public void OnLoadData(ISaveSystem saveSystem) {

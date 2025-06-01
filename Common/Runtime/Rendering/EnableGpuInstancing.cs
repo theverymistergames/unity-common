@@ -8,7 +8,7 @@ namespace MisterGames.Common.Rendering {
     [DefaultExecutionOrder(-100_000)]
     public sealed class EnableGpuInstancing : MonoBehaviour {
         
-        [SerializeField] private MeshRenderer _meshRenderer;
+        [SerializeField] private Renderer _meshRenderer;
         [SerializeField] private ColorProperty[] _colors;
         [SerializeField] private GenericProperty<float>[] _floats;
         [SerializeField] private GenericProperty<Vector4>[] _vectors;
@@ -81,7 +81,7 @@ namespace MisterGames.Common.Rendering {
         }
 
         private void Reset() {
-            _meshRenderer = GetComponent<MeshRenderer>();
+            _meshRenderer = GetComponent<Renderer>();
         }
 #endif
     }
