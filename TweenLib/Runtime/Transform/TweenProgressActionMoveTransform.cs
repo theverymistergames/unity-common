@@ -31,7 +31,6 @@ namespace MisterGames.TweenLib {
                 return Vector3.LerpUnclamped(startPosition, endPosition, progress);
             }
             
-            var rot = useLocal ? transform.localRotation : transform.rotation;
             var curvaturePoint = BezierExtensions.GetCurvaturePoint(
                 startPosition,
                 endPosition,

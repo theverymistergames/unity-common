@@ -30,13 +30,19 @@ namespace MisterGames.TweenLib.Editor.Transform {
             var propertyCopy = property.Copy();
 
             menu.AddItem(new GUIContent("Write from Transform"), false, () => {
+                Undo.RecordObject(property.serializedObject.targetObject, "TweenProgressActionScaleTransformContextMenuExtensions_WriteFromTransform");
+                
                 propertyCopy.vector3Value = t.transform.localScale;
                 
                 propertyCopy.serializedObject.ApplyModifiedProperties();
                 propertyCopy.serializedObject.Update();
+                
+                EditorUtility.SetDirty(property.serializedObject.targetObject);
             });
             
             menu.AddItem(new GUIContent("Set to Transform"), false, () => {
+                Undo.RecordObject(t.transform, "TweenProgressActionScaleTransformContextMenuExtensions_SetToTransform");
+                
                 t.transform.localScale = propertyCopy.vector3Value;
 
                 EditorUtility.SetDirty(t.transform);

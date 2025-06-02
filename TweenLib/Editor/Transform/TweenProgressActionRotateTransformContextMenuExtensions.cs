@@ -30,13 +30,19 @@ namespace MisterGames.TweenLib.Editor.Transform {
             var propertyCopy = property.Copy();
 
             menu.AddItem(new GUIContent("Write from Transform"), false, () => {
+                Undo.RecordObject(property.serializedObject.targetObject, "TweenProgressActionRotateTransformContextMenuExtensions_WriteFromTransform");
+                
                 propertyCopy.vector3Value = t.useLocal ? t.transform.localEulerAngles : t.transform.eulerAngles;
                 
                 propertyCopy.serializedObject.ApplyModifiedProperties();
                 propertyCopy.serializedObject.Update();
+                
+                EditorUtility.SetDirty(property.serializedObject.targetObject);
             });
             
             menu.AddItem(new GUIContent("Set to Transform"), false, () => {
+                Undo.RecordObject(t.transform, "TweenProgressActionRotateTransformContextMenuExtensions_SetToTransform");
+                
                 if (t.useLocal) t.transform.localEulerAngles = propertyCopy.vector3Value;
                 else t.transform.eulerAngles = propertyCopy.vector3Value;
                 
