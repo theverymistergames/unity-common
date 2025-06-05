@@ -1,15 +1,23 @@
-﻿using MisterGames.Actors;
+﻿using System;
+using MisterGames.Actors;
+using MisterGames.Common.Maths;
 using UnityEngine;
 
 namespace MisterGames.Logic.Rendering {
     
     public sealed class LampBehaviour : MonoBehaviour, IActorComponent {
-        
+
+        [SerializeField] private MaterialMode _mode = MaterialMode.MaterialPropertyBlock;
         [SerializeField] private Light[] _lights;
         [SerializeField] private Renderer[] _renderers;
         [SerializeField] [Min(0f)] private float _weight = 1f;
         [SerializeField] [Min(0f)] private float _intensity = 1f;
 
+        private enum MaterialMode {
+            MaterialPropertyBlock,
+            InstantiateMaterial,
+        }
+        
         public float Weight { get => _weight; set => SetWeight(value); }
         public float Intensity { get => _intensity; set => SetIntensity(value); }
 
@@ -20,34 +28,15 @@ namespace MisterGames.Logic.Rendering {
         private Color[] _originMaterialColors;
         private Color[] _overrideLightColors;
         private Color[] _overrideMaterialColors;
-
+        private MaterialPropertyBlock[] _materialPropertyBlocks;
+        
         private void Awake() {
-            _lightIntensities = new float[_lights.Length];
-            
-            _originLightColors = new Color[_lights.Length];
-            _originMaterialColors = new Color[_renderers.Length];
-            
-            _overrideLightColors = new Color[_lights.Length];
-            _overrideMaterialColors = new Color[_renderers.Length];
-            
-            for (int i = 0; i < _lights.Length; i++) {
-                var light = _lights[i];
-                
-                _lightIntensities[i] = light.intensity;
-                _originLightColors[i] = light.color;
-                _overrideLightColors[i] = light.color;
-            }
-            
-            for (int i = 0; i < _renderers.Length; i++) {
-                var color = _renderers[i].material.GetColor(EmissiveColor);
-                
-                _originMaterialColors[i] = color;
-                _overrideMaterialColors[i] = color;
-            }
+            FetchOriginalLightData();
+            FetchOriginalMaterialData();
         }
 
         private void OnEnable() {
-            SetWeight(_weight);
+            UpdateState();
         }
 
         public void SetLightColor(Color color, int index) {
@@ -115,34 +104,117 @@ namespace MisterGames.Logic.Rendering {
         }
         
         private void SetWeight(float weight) {
+            float oldValue = _weight * _intensity;
             _weight = Mathf.Max(0f, weight);
+            
+            if (oldValue.IsNearlyEqual(_weight * _intensity)) return;
+            
             UpdateState();
         }
 
         private void SetIntensity(float intensity) {
+            float oldValue = _weight * _intensity;
             _intensity = Mathf.Max(0f, intensity);
+            
+            if (oldValue.IsNearlyEqual(_weight * _intensity)) return;
+            
             UpdateState();
         }
         
         private void UpdateState() {
+            float intensity = _weight * _intensity;
+            
             for (int i = 0; i < _lights.Length; i++) {
                 var light = _lights[i];
                 
-                light.intensity = Mathf.LerpUnclamped(0f, _lightIntensities[i], _weight * _intensity);
+                light.intensity = Mathf.LerpUnclamped(0f, _lightIntensities[i], intensity);
                 light.color = _overrideLightColors[i];
             }
-            
-            for (int i = 0; i < _renderers.Length; i++) {
-                _renderers[i].material.SetColor(EmissiveColor, _weight * _intensity * _overrideMaterialColors[i]);
+
+            switch (_mode) {
+                case MaterialMode.MaterialPropertyBlock:
+                    for (int i = 0; i < _renderers.Length; i++) {
+                        _materialPropertyBlocks[i].SetColor(EmissiveColor, intensity * _overrideMaterialColors[i]);
+                        _renderers[i].SetPropertyBlock(_materialPropertyBlocks[i]);
+                    }
+                    break;
+                
+                case MaterialMode.InstantiateMaterial:
+                    for (int i = 0; i < _renderers.Length; i++) {
+                        _renderers[i].material.SetColor(EmissiveColor, intensity * _overrideMaterialColors[i]);
+                    }
+                    break;
+                
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
         }
 
+        private void FetchOriginalLightData() {
+            if (_lights is not { Length: > 0 }) {
+                _lightIntensities = Array.Empty<float>();
+                _originLightColors = Array.Empty<Color>();
+                _overrideLightColors = Array.Empty<Color>();
+                return;
+            }
+            
+            int lightCount = _lights.Length;
+
+            _lightIntensities = new float[lightCount];
+            _originLightColors = new Color[lightCount];
+            _overrideLightColors = new Color[lightCount];
+            
+            for (int i = 0; i < lightCount; i++) {
+                var light = _lights[i];
+
+                _lightIntensities[i] = light.intensity;
+                _originLightColors[i] = light.color;
+                _overrideLightColors[i] = light.color;
+            }
+        }
+
+        private void FetchOriginalMaterialData() {
+            if (_renderers is not { Length: > 0 }) {
+                _originMaterialColors = Array.Empty<Color>();
+                _overrideMaterialColors = Array.Empty<Color>();
+                return;
+            }
+            
+            _originMaterialColors = new Color[_renderers.Length];
+            _overrideMaterialColors = new Color[_renderers.Length];
+
+            switch (_mode) {
+                case MaterialMode.MaterialPropertyBlock:
+                    _materialPropertyBlocks = new MaterialPropertyBlock[_renderers.Length];
+                    
+                    for (int i = 0; i < _renderers.Length; i++) {
+                        var color = _renderers[i].sharedMaterial.GetColor(EmissiveColor);
+                
+                        _originMaterialColors[i] = color;
+                        _overrideMaterialColors[i] = color;
+                        _materialPropertyBlocks[i] = new MaterialPropertyBlock();
+                    }
+                    break;
+                
+                case MaterialMode.InstantiateMaterial:
+                    for (int i = 0; i < _renderers.Length; i++) {
+                        var color = _renderers[i].sharedMaterial.GetColor(EmissiveColor);
+                
+                        _originMaterialColors[i] = color;
+                        _overrideMaterialColors[i] = color;
+                    }
+                    break;
+                
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+        
 #if UNITY_EDITOR
         private void OnValidate() {
             if (!Application.isPlaying || _lightIntensities == null) return;
             
-            SetWeight(_weight);
-            SetIntensity(_intensity);
+            UpdateState();
         }
 #endif
     }

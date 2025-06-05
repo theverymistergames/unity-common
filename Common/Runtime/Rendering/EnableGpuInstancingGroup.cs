@@ -3,6 +3,7 @@ using MisterGames.Common.Attributes;
 using MisterGames.Common.Data;
 using MisterGames.Common.GameObjects;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -13,7 +14,8 @@ namespace MisterGames.Common.Rendering {
     [DefaultExecutionOrder(-100_001)]
     public sealed class EnableGpuInstancingGroup : MonoBehaviour {
         
-        [SerializeField] private Renderer[] _meshRenderers;
+        [FormerlySerializedAs("_meshRenderers")]
+        [SerializeField] private Renderer[] _renderers;
         
         [Header("Apply for all renderers")]
         [SerializeField] private ColorProperty[] _colors;
@@ -48,16 +50,16 @@ namespace MisterGames.Common.Rendering {
                 SetupProperties(block);
             }
             
-            for (int i = 0; i < _meshRenderers.Length; i++) {
+            for (int i = 0; i < _renderers.Length; i++) {
 #if UNITY_EDITOR
-                if (!Application.isPlaying && _meshRenderers[i] == null) continue;
-                if (Application.isPlaying && _meshRenderers[i] == null) {
+                if (!Application.isPlaying && _renderers[i] == null) continue;
+                if (Application.isPlaying && _renderers[i] == null) {
                     Debug.LogError($"{nameof(EnableGpuInstancingGroup)}: mesh renderer #{i} is null on {gameObject.GetPathInScene()}.");
                     continue;
                 }
 #endif
                 
-                _meshRenderers[i].SetPropertyBlock(block);
+                _renderers[i].SetPropertyBlock(block);
             }
         }
         
@@ -93,7 +95,7 @@ namespace MisterGames.Common.Rendering {
         private void CollectChildMeshRenderers() {
             Undo.RecordObject(this, "CollectChildMeshRenderers");
             
-            _meshRenderers = GetComponentsInChildren<Renderer>();
+            _renderers = GetComponentsInChildren<Renderer>();
             
             EditorUtility.SetDirty(this);
         }

@@ -2,13 +2,15 @@
 using MisterGames.Common.Data;
 using MisterGames.Common.GameObjects;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace MisterGames.Common.Rendering {
     
     [DefaultExecutionOrder(-100_000)]
     public sealed class EnableGpuInstancing : MonoBehaviour {
         
-        [SerializeField] private Renderer _meshRenderer;
+        [FormerlySerializedAs("_meshRenderer")] 
+        [SerializeField] private Renderer _renderer;
         [SerializeField] private ColorProperty[] _colors;
         [SerializeField] private GenericProperty<float>[] _floats;
         [SerializeField] private GenericProperty<Vector4>[] _vectors;
@@ -29,7 +31,7 @@ namespace MisterGames.Common.Rendering {
         
         private void Awake() {
 #if UNITY_EDITOR
-            if (_meshRenderer == null) Debug.LogError($"{nameof(EnableGpuInstancing)}: mesh renderer is null on {gameObject.GetPathInScene()}.");
+            if (_renderer == null) Debug.LogError($"{nameof(EnableGpuInstancing)}: mesh renderer is null on {gameObject.GetPathInScene()}.");
 #endif
             
             SetupPropertyBlock();
@@ -37,7 +39,7 @@ namespace MisterGames.Common.Rendering {
 
         private void SetupPropertyBlock() {
 #if UNITY_EDITOR
-            if (!Application.isPlaying && _meshRenderer == null) return;
+            if (!Application.isPlaying && _renderer == null) return;
 #endif
             
             _sharedMaterialPropertyBlock ??= new MaterialPropertyBlock();
@@ -49,7 +51,7 @@ namespace MisterGames.Common.Rendering {
                 SetupProperties(block);
             }
             
-            _meshRenderer.SetPropertyBlock(block);
+            _renderer.SetPropertyBlock(block);
         }
         
         private bool HasOverrides() {
@@ -81,7 +83,7 @@ namespace MisterGames.Common.Rendering {
         }
 
         private void Reset() {
-            _meshRenderer = GetComponent<Renderer>();
+            _renderer = GetComponent<Renderer>();
         }
 #endif
     }
