@@ -12,7 +12,9 @@ namespace MisterGames.Blackboards.Editor {
     
     [InitializeOnLoad]
     public static class BlackboardTypeCache {
- 
+
+        private const string Editor = "editor";
+        
         public static List<SearchTreeEntry> SearchTree { get; }
 
         static BlackboardTypeCache() {
@@ -91,7 +93,7 @@ namespace MisterGames.Blackboards.Editor {
         private static Type[] CollectAssemblyTypes() {
             return AppDomain.CurrentDomain
                 .GetAssemblies()
-                .Where(assembly => !assembly.FullName.Contains("editor", StringComparison.OrdinalIgnoreCase))
+                .Where(assembly => !assembly.FullName.Contains(Editor, StringComparison.OrdinalIgnoreCase))
                 .SelectMany(assembly => assembly.GetTypes())
                 .ToArray();   
         }

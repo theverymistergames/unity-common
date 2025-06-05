@@ -10,6 +10,8 @@ namespace MisterGames.Scenario.Events {
         [SerializeField] private EventGroup[] _eventGroups;
         [HideInInspector] [SerializeField] private int _nextId;
         
+        internal EventGroup[] EventGroups => _eventGroups ?? Array.Empty<EventGroup>();
+        
         private readonly Dictionary<int, (int, int)> _indexMap = new();
         private readonly Dictionary<int, (int, int)> _nameHashMap = new();
         
@@ -131,8 +133,7 @@ namespace MisterGames.Scenario.Events {
         }
 
 #if UNITY_EDITOR
-        private readonly HashSet<int> _occupiedIdsCache = new HashSet<int>();
-        internal EventGroup[] EventGroups => _eventGroups ?? Array.Empty<EventGroup>();
+        private readonly HashSet<int> _occupiedIdsCache = new();
         private bool _isEventPathMapInvalid;
         
         private void OnValidate() {

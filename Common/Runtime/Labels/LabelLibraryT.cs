@@ -102,10 +102,13 @@ namespace MisterGames.Common.Labels {
         }
 
         public override string GetArrayName(int array) {
+#if UNITY_EDITOR
             if (_labelArrays == null || _labelArrays.Length <= array) return default;
 
             ref var arr = ref _labelArrays[array];
             return arr.name;
+#endif
+            return null;
         }
 
         public override bool GetArrayNoneLabel(int array) {

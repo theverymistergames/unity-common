@@ -7,11 +7,9 @@ namespace MisterGames.Common.Tick {
     [DefaultExecutionOrder(-1_000_000)]
     public sealed class TimeSourcesRunner : MonoBehaviour, ITimeSourceProvider {
 
-#if UNITY_EDITOR
         [Header("Debug")]
         [SerializeField] private bool _showDebugInfo;
         public bool ShowDebugInfo => _showDebugInfo;
-#endif
         
         private readonly TimeSource _preUpdateTimeSource = new TimeSource(DeltaTimeProviders.Main, TimeScaleProviders.Global, "pre update");
         private readonly TimeSource _updateTimeSource = new TimeSource(DeltaTimeProviders.Main, TimeScaleProviders.Global, "update");

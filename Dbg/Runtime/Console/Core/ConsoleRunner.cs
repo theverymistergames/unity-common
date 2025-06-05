@@ -29,6 +29,8 @@ namespace MisterGames.Dbg.Console.Core {
         [SerializeField] private InputActionKey _activationInput;
         [SerializeReference] [SubclassSelector] private IConsoleModule[] _consoleModules;
         
+        private const string Editor = "editor";
+        
         public event Action OnShowConsole = delegate {  };
         public event Action OnHideConsole = delegate {  };
         public event Action<string> OnBeforeRunCommand = delegate {  };
@@ -114,7 +116,7 @@ namespace MisterGames.Dbg.Console.Core {
 #else
                 AppDomain.CurrentDomain
                     .GetAssemblies()
-                    .Where(assembly => !assembly.FullName.Contains(EDITOR, StringComparison.OrdinalIgnoreCase))
+                    .Where(assembly => !assembly.FullName.Contains(Editor, StringComparison.OrdinalIgnoreCase))
                     .SelectMany(assembly => assembly.GetTypes())
                     .Where(t => typeof(IConsoleModule).IsAssignableFrom(t))
 #endif
