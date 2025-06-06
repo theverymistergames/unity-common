@@ -18,11 +18,9 @@ namespace MisterGames.Common.Labels {
 
             [HideInInspector] public int id;
 
-#if UNITY_EDITOR
             public string name;
             [TextArea]
             public string comment;
-#endif
             
             [Space(10f)]
             public LabelArrayUsage usage;
@@ -103,13 +101,10 @@ namespace MisterGames.Common.Labels {
         }
 
         public override string GetArrayName(int array) {
-#if UNITY_EDITOR
             if (_labelArrays == null || _labelArrays.Length <= array) return default;
 
             ref var arr = ref _labelArrays[array];
             return arr.name;
-#endif
-            return null;
         }
 
         public override bool GetArrayNoneLabel(int array) {
