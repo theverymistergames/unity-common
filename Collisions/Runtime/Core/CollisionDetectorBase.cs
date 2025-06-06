@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using MisterGames.Collisions.Utils;
 using UnityEngine;
 
@@ -23,11 +24,15 @@ namespace MisterGames.Collisions.Core {
             CollisionInfo = newInfo;
             HasContact = newInfo.hasContact;
             
-            CheckContactChanged(lastInfo, newInfo, forceNotify);
-            CheckTransformChanged(lastInfo, newInfo, forceNotify);
+            CheckContactChanged(ref lastInfo, ref newInfo, forceNotify);
+            
+            if (forceNotify || IsTransformChanged(ref newInfo, ref lastInfo)) {
+                OnTransformChanged.Invoke();
+            }
         }
 
-        private void CheckContactChanged(CollisionInfo lastInfo, CollisionInfo newInfo, bool forceNotify) {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void CheckContactChanged(ref CollisionInfo lastInfo, ref CollisionInfo newInfo, bool forceNotify) {
             if ((lastInfo.hasContact || forceNotify) && !newInfo.hasContact) {
                 OnLostContact.Invoke();
                 return;
@@ -38,8 +43,12 @@ namespace MisterGames.Collisions.Core {
             }
         }
 
-        private void CheckTransformChanged(CollisionInfo lastInfo, CollisionInfo newInfo, bool forceNotify) {
-            if (forceNotify || newInfo.IsTransformChanged(lastInfo)) OnTransformChanged.Invoke();
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsTransformChanged(ref CollisionInfo newInfo, ref CollisionInfo lastInfo) {
+            return
+                !lastInfo.hasContact && newInfo.hasContact ||
+                lastInfo.hasContact && !newInfo.hasContact ||
+                lastInfo.hasContact && lastInfo.transform.GetInstanceID() != newInfo.transform.GetInstanceID();
         }
     }
 

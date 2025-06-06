@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using MisterGames.Common.Inputs.DualSense;
 using MisterGames.Common.Lists;
 using MisterGames.Common.Tick;
@@ -50,23 +51,38 @@ namespace MisterGames.Common.Inputs {
         }
 
         private DeviceType GetCurrentDeviceType() {
-            if (Gamepad.current != null &&
-                Gamepad.current.allControls.Any(control => control.IsPressed() && control.synthetic == false))
-            {
-                return DeviceType.Gamepad;
-            }
-            
-            if (Keyboard.current.anyKey.wasPressedThisFrame 
-                || Mouse.current.leftButton.wasPressedThisFrame 
-                || Mouse.current.rightButton.wasPressedThisFrame
-                || Mouse.current.middleButton.wasPressedThisFrame
-                || Mouse.current.scroll.ReadValue() != Vector2.zero
-                || Mouse.current.delta.ReadValue() != Vector2.zero)
+            if (IsAnyKeyboardMouseControlPressed())
             {
                 return DeviceType.KeyboardMouse;
             }
             
+            if (Gamepad.current != null && IsAnyGamepadControlPressed())
+            {
+                return DeviceType.Gamepad;
+            }
+            
             return CurrentDevice;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsAnyKeyboardMouseControlPressed() {
+            return Keyboard.current.anyKey.wasPressedThisFrame 
+                   || Mouse.current.leftButton.wasPressedThisFrame
+                   || Mouse.current.rightButton.wasPressedThisFrame
+                   || Mouse.current.middleButton.wasPressedThisFrame
+                   || Mouse.current.scroll.ReadValue() != default
+                   || Mouse.current.delta.ReadValue() != default;
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsAnyGamepadControlPressed() {
+            var controls = Gamepad.current.allControls;
+            
+            for (int i = 0; i < controls.Count; i++) {
+                if (controls[i].IsPressed() && !controls[i].synthetic) return true;
+            }
+
+            return false;
         }
     }
     

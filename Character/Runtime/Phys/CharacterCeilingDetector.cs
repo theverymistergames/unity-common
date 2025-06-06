@@ -84,7 +84,8 @@ namespace MisterGames.Character.Phys {
             Transform surface = null;
             Rigidbody rigidbody = null;
             Collider collider = null;
-
+            bool isValid = false;
+            
             if (hasHits) {
                 var hit = _raycastHits[0];
                 hitPoint = hit.point;
@@ -93,6 +94,7 @@ namespace MisterGames.Character.Phys {
                 hitDistance = hit.distance;
                 rigidbody = hit.rigidbody;
                 collider = hit.collider;
+                isValid = hit.colliderInstanceID != 0;
             }
             else {
                 hitPoint = CollisionInfo.point;
@@ -100,7 +102,7 @@ namespace MisterGames.Character.Phys {
                 hitDistance = CollisionInfo.distance;
             }
 
-            var info = new CollisionInfo(hasHits, hitDistance, normal, hitPoint, surface, rigidbody, collider);
+            var info = new CollisionInfo(hasHits, hitDistance, normal, hitPoint, surface, rigidbody, collider, isValid);
             
             SetCollisionInfo(info, forceNotify);
         }

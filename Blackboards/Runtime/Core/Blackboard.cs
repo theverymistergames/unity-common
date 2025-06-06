@@ -33,11 +33,16 @@ namespace MisterGames.Blackboards.Core {
         }
 
         public T Get<T>(int hash) {
-            return _propertyMap.TryGetValue(hash, out var property) ? _tables[property.table].Get<T>(hash) : default;
+            return _propertyMap.TryGetValue(hash, out var property) && _tables[property.table] is { } table 
+                ? table is IBlackboardTable<T> tableT ? tableT.Get(hash) : table.Get<T>(hash)
+                : default;
         }
 
         public void Set<T>(int hash, T value) {
-            if (_propertyMap.TryGetValue(hash, out var property)) _tables[property.table].Set(hash, value);
+            if (_propertyMap.TryGetValue(hash, out var property) && _tables[property.table] is { } table) {
+                if (table is IBlackboardTable<T> tableT) tableT.Set(hash, value);
+                else table.Set(hash, value);
+            }
         }
 
         public bool Contains(int hash) {

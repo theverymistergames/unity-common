@@ -5,18 +5,26 @@ using UnityEngine;
 namespace MisterGames.Blackboards.Tables {
 
     [Serializable]
-    public abstract class BlackboardTable<V> : IBlackboardTable {
+    public abstract class BlackboardTable<T> : IBlackboardTable<T> {
 
-        [SerializeField] private Map<int, V> _map = new Map<int, V>();
+        [SerializeField] private Map<int, T> _map = new();
 
         public int Count => _map.Count;
 
-        public T Get<T>(int hash) {
-            return _map.TryGetValue(hash, out var v) && v is T t ? t : default;
+        public V Get<V>(int hash) {
+            return _map.GetValueOrDefault(hash) is V v ? v : default;
         }
 
-        public void Set<T>(int hash, T value) {
-            if (_map.ContainsKey(hash)) _map[hash] = value is V v ? v : default;
+        public void Set<V>(int hash, V value) {
+            if (_map.ContainsKey(hash)) _map[hash] = value is T t ? t : default;
+        }
+
+        public T Get(int hash) { 
+            return _map.GetValueOrDefault(hash);
+        }
+
+        public void Set(int hash, T value) {
+            if (_map.ContainsKey(hash)) _map[hash] = value;
         }
 
         public bool Contains(int hash) {
@@ -34,7 +42,7 @@ namespace MisterGames.Blackboards.Tables {
         }
 
         public void SetOrAddValue(int hash, object value) {
-            _map[hash] = value is V v ? v : default;
+            _map[hash] = value is T v ? v : default;
         }
 
         public bool RemoveValue(int hash) {

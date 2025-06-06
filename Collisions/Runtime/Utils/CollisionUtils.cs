@@ -48,14 +48,6 @@ namespace MisterGames.Collisions.Utils {
                 : collider.GetComponent<T>();
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsTransformChanged(this CollisionInfo newInfo, CollisionInfo lastInfo) {
-            return
-                !lastInfo.hasContact && newInfo.hasContact ||
-                lastInfo.hasContact && !newInfo.hasContact ||
-                lastInfo.hasContact && lastInfo.transform.GetHashCode() != newInfo.transform.GetHashCode();
-        }
-
         public static RaycastHit[] RemoveInvalidHits(
             this RaycastHit[] hits,
             ref int hitCount
@@ -64,7 +56,7 @@ namespace MisterGames.Collisions.Utils {
             
             for (int i = hitCount - 1; i >= 0; i--) {
                 var currentHit = hits[i];
-                if (currentHit.distance > 0f && currentHit.collider != null) continue;
+                if (currentHit.distance > 0f && currentHit.colliderInstanceID != 0) continue;
 
                 int lastValidHitIndex = --hitCount;
                 hits[i] = hits[lastValidHitIndex];
@@ -82,7 +74,7 @@ namespace MisterGames.Collisions.Utils {
 
             for (int i = hitCount - 1; i >= 0; i--) {
                 var currentHit = hits[i];
-                if (currentHit.distance > 0f && currentHit.collider != null) continue;
+                if (currentHit.distance > 0f && currentHit.colliderInstanceID != 0) continue;
 
                 int lastValidHitIndex = --hitCount;
                 hits[i] = hits[lastValidHitIndex];
@@ -100,7 +92,7 @@ namespace MisterGames.Collisions.Utils {
 
             for (int i = hitCount - 1; i >= 0; i--) {
                 var currentHit = hits[i];
-                if (currentHit.distance > 0f && currentHit.gameObject != null) continue;
+                if (currentHit is { distance: > 0f, isValid: true }) continue;
 
                 int lastValidHitIndex = --hitCount;
                 hits[i] = hits[lastValidHitIndex];
@@ -239,7 +231,7 @@ namespace MisterGames.Collisions.Utils {
                 var hit = hits[i];
 
                 if (hit.distance <= filter.maxDistance &&
-                    hit.collider != null &&
+                    hit.colliderInstanceID != 0 &&
                     filter.layerMask.Contains(hit.collider.gameObject.layer)) 
                 {
                     continue;
@@ -264,7 +256,7 @@ namespace MisterGames.Collisions.Utils {
                 var hit = hits[i];
 
                 if (hit.distance <= filter.maxDistance &&
-                    hit.transform != null &&
+                    hit.isValid &&
                     filter.layerMask.Contains(hit.transform.gameObject.layer)) 
                 {
                     continue;
@@ -289,7 +281,7 @@ namespace MisterGames.Collisions.Utils {
                 var hit = hits[i];
 
                 if (hit.distance <= filter.maxDistance &&
-                    hit.collider != null &&
+                    hit.colliderInstanceID != 0 &&
                     filter.layerMask.Contains(hit.collider.gameObject.layer)) 
                 {
                     continue;
@@ -314,7 +306,7 @@ namespace MisterGames.Collisions.Utils {
                 var hit = hits[i];
 
                 if (hit.distance <= filter.maxDistance &&
-                    hit.gameObject != null &&
+                    hit.isValid &&
                     filter.layerMask.Contains(hit.gameObject.layer)) 
                 {
                     continue;

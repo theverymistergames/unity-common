@@ -2,12 +2,12 @@
 
     public interface IBlackboardTable {
 
-        int Count { get; }
-
         T Get<T>(int hash);
 
         void Set<T>(int hash, T value);
-
+        
+        int Count { get; }
+        
         bool Contains(int hash);
 
         bool TryGetValue(int hash, out object value);
@@ -19,4 +19,11 @@
         string GetSerializedPropertyPath(int hash);
     }
 
+    public interface IBlackboardTable<T> : IBlackboardTable {
+        
+        T Get(int hash);
+
+        void Set(int hash, T value);
+    }
+    
 }
