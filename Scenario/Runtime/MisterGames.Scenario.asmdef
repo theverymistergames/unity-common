@@ -2,7 +2,9 @@
     "name": "MisterGames.Scenario",
     "rootNamespace": "MisterGames.Scenario",
     "references": [
-        "GUID:0175294ec022c624cbe537915e3c9e71"
+        "GUID:0175294ec022c624cbe537915e3c9e71",
+        "GUID:32c4950bf8b33bd4fa90d0e72d80cc0c",
+        "GUID:f51ebe6a0ceec4240a699833d6309b23"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

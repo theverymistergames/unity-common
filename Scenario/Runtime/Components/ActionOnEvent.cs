@@ -1,13 +1,15 @@
-﻿using MisterGames.Common.Data;
+﻿using Cysharp.Threading.Tasks;
+using MisterGames.Actors;
+using MisterGames.Actors.Actions;
+using MisterGames.Common.Attributes;
+using MisterGames.Common.Data;
 using MisterGames.Scenario.Events;
 using UnityEngine;
 
 namespace MisterGames.Scenario.Components {
     
-    public sealed class EnableGameObjectsOnEvent : MonoBehaviour, IEventListener {
+    public sealed class ActionOnEvent : MonoBehaviour, IActorComponent, IEventListener {
 
-        [SerializeField] private GameObject[] _gameObjects;
-        
         [Header("Event")]
         [SerializeField] private EventReference _eventReference;
         [SerializeField] private bool _checkOnEnable = true;
@@ -21,6 +23,15 @@ namespace MisterGames.Scenario.Components {
         
         [Header("For other comparisons")]
         [SerializeField] private int _value = 1;
+
+        [Header("Action")]
+        [SerializeReference] [SubclassSelector] private IActorAction _action;
+
+        private IActor _actor;
+
+        void IActorComponent.OnAwake(IActor actor) {
+            _actor = actor;
+        }
 
         private void Awake() {
             _eventReference.Subscribe(this);
@@ -36,12 +47,11 @@ namespace MisterGames.Scenario.Components {
 
         public void OnEventRaised(EventReference e) {
             bool isMatch = IsMatch(e.GetCount());
+            if (!isMatch) return;
 
-            for (int i = 0; i < _gameObjects.Length; i++) {
-                _gameObjects[i].SetActive(isMatch);
-            }
+            _action?.Apply(_actor, destroyCancellationToken).Forget();
             
-            if (isMatch && _unsubscribeAfterMatch) _eventReference.Unsubscribe(this);
+            if (_unsubscribeAfterMatch) _eventReference.Unsubscribe(this);
         }
 
         private bool IsMatch(int raiseCount) {
@@ -55,12 +65,6 @@ namespace MisterGames.Scenario.Components {
             
             return false;
         }
-
-#if UNITY_EDITOR
-        private void Reset() {
-            _gameObjects = new[] { gameObject };
-        }
-#endif
     }
     
 }

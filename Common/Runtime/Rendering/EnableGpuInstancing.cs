@@ -11,9 +11,15 @@ namespace MisterGames.Common.Rendering {
         
         [FormerlySerializedAs("_meshRenderer")] 
         [SerializeField] private Renderer _renderer;
+        [SerializeField] private ApplyMode _applyMode = ApplyMode.OnlyFirstMaterial;
         [SerializeField] private ColorProperty[] _colors;
         [SerializeField] private GenericProperty<float>[] _floats;
         [SerializeField] private GenericProperty<Vector4>[] _vectors;
+        
+        private enum ApplyMode {
+            OnlyFirstMaterial,
+            AllMaterials,
+        }
         
         [Serializable]
         private struct ColorProperty {
@@ -40,6 +46,11 @@ namespace MisterGames.Common.Rendering {
         private void SetupPropertyBlock() {
 #if UNITY_EDITOR
             if (!Application.isPlaying && _renderer == null) return;
+            
+            if (Application.isPlaying && _renderer == null) {
+                Debug.LogError($"{nameof(EnableGpuInstancingGroup)}: renderer is null on {gameObject.GetPathInScene()}.");
+                return;
+            }
 #endif
             
             _sharedMaterialPropertyBlock ??= new MaterialPropertyBlock();
@@ -50,8 +61,30 @@ namespace MisterGames.Common.Rendering {
                 block = new MaterialPropertyBlock();
                 SetupProperties(block);
             }
-            
-            _renderer.SetPropertyBlock(block);
+
+            switch (_applyMode) {
+                case ApplyMode.OnlyFirstMaterial: {
+                    _renderer.SetPropertyBlock(block, 0);
+
+                    int count = _renderer.sharedMaterials.Length;
+                    for (int j = 1; j < count; j++) {
+                        _renderer.SetPropertyBlock(_sharedMaterialPropertyBlock, j);
+                    }
+
+                    break;
+                }
+
+                case ApplyMode.AllMaterials: {
+                    int count = _renderer.sharedMaterials.Length;
+                    for (int j = 0; j < count; j++) {
+                        _renderer.SetPropertyBlock(block, j);
+                    }
+                    break; 
+                }
+
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
         
         private bool HasOverrides() {

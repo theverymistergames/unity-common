@@ -211,6 +211,11 @@ namespace MisterGames.Logic.Rendering {
         }
         
 #if UNITY_EDITOR
+        private void Reset() {
+            _renderers = GetComponentsInChildren<Renderer>();
+            _lights = GetComponentsInChildren<Light>();
+        }
+
         private void OnValidate() {
             if (!Application.isPlaying || _lightIntensities == null) return;
             
