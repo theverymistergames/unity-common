@@ -1,4 +1,5 @@
-﻿using MisterGames.Dbg.Console.Attributes;
+﻿using Cysharp.Threading.Tasks;
+using MisterGames.Dbg.Console.Attributes;
 using MisterGames.Dbg.Console.Core;
 using UnityEngine;
 
@@ -13,7 +14,6 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
             (1280, 720),
             (1920, 1080),
             (2560, 1440),
-            (3840, 2160),
         };
         
         [ConsoleCommand("screen/reslist")]
@@ -28,19 +28,12 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
         [ConsoleCommand("screen/info")]
         [ConsoleCommandHelp("print screen resolution, vsync, fps")]
         public void PrintScreenInfo() {
-            ConsoleRunner.AppendLine($"Screen resolution: {Screen.currentResolution.width} x {Screen.currentResolution.height}");
-            ConsoleRunner.AppendLine($"VSync: {QualitySettings.vSyncCount}");
-            ConsoleRunner.AppendLine($"Target FPS: {Application.targetFrameRate} (not used if VSync is enabled)");
+            PrintScreenInfoNextFrame().Forget();
         }
         
         [ConsoleCommand("screen/res")]
         [ConsoleCommandHelp("set resolution width and height")]
         public void SetResolution(int x, int y) {
-            var resMin = _resolutions[0];
-
-            x = Mathf.Max(resMin.width, x);
-            y = Mathf.Max(resMin.height, y);
-            
             Screen.SetResolution(x, y, Screen.fullScreenMode);
             
             PrintScreenInfo();
@@ -80,6 +73,14 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
             ConsoleRunner.AppendLine($"VSync set to {vsync}");
             
             PrintScreenInfo();
+        }
+
+        private async UniTask PrintScreenInfoNextFrame() {
+            await UniTask.Yield();
+            
+            ConsoleRunner.AppendLine($"Screen resolution: {Screen.currentResolution.width} x {Screen.currentResolution.height}");
+            ConsoleRunner.AppendLine($"VSync: {QualitySettings.vSyncCount}");
+            ConsoleRunner.AppendLine($"Target FPS: {Application.targetFrameRate} (not used if VSync is enabled)");
         }
     }
     
