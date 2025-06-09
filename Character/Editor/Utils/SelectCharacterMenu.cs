@@ -25,7 +25,7 @@ namespace MisterGames.Character.Editor.Utils {
             }
             
             EditorGUIUtility.PingObject(character.gameObject);
-            SceneView.lastActiveSceneView.FrameSelected();
+            if (SceneView.lastActiveSceneView != null) SceneView.lastActiveSceneView.FrameSelected();
         }
     }
     
