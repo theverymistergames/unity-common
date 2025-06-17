@@ -1,4 +1,5 @@
-﻿using MisterGames.Common.Editor.Menu;
+﻿using System;
+using MisterGames.Common.Editor.Menu;
 using MisterGames.Common.Editor.Views;
 using MisterGames.Scenes.Core;
 using MisterGames.Scenes.Editor.Utils;
@@ -12,6 +13,9 @@ namespace MisterGames.Scenes.Editor.Core {
 	[InitializeOnLoad]
 	public static class SceneShortcutEditor {
 
+		private static Texture2D _iconPlus;
+		private static Texture2D _iconMinus;
+		
 		static SceneShortcutEditor() {
 			ToolbarExtender.OnRightToolbarGUI(OnGUI);
 		}
@@ -20,13 +24,16 @@ namespace MisterGames.Scenes.Editor.Core {
 			EditorGUI.BeginDisabledGroup(Application.isPlaying);
 
 			string activeSceneName = SceneManager.GetActiveScene().name;
-
+			
 			if (EditorGUILayout.DropdownButton(new GUIContent(activeSceneName), FocusType.Keyboard, GUILayout.MinWidth(222))) {
+				LoadIcons();
+				
 				var scenesDropdown = new AdvancedDropdown<SceneAsset>(
 					"Select scene",
 					SceneLoaderSettings.GetAllSceneAssets(),
 					sceneAsset => SceneUtils.RemoveSceneAssetFileFormat(AssetDatabase.GetAssetPath(sceneAsset)),
-					OnSceneSelected
+					OnSceneSelected,
+					getIcon: GetIcon
 				);
 
 				var dropdownRect = new Rect(rect);
@@ -38,20 +45,59 @@ namespace MisterGames.Scenes.Editor.Core {
 			EditorGUI.EndDisabledGroup();
 		}
 
-		private static void OnSceneSelected(SceneAsset sceneAsset) {
-			var activeScene = SceneManager.GetActiveScene();
+		private static void LoadIcons() {
+			_iconPlus = Resources.Load<Texture2D>("SceneShortcut_IconPlus");
+			_iconMinus = Resources.Load<Texture2D>("SceneShortcut_IconMinus");
+		}
+		
+		private static Texture2D GetIcon(SceneAsset sceneAsset) {
+			return sceneAsset == null
+				? null
+				: SceneManager.GetSceneByName(sceneAsset.name).isLoaded 
+					? SceneManager.loadedSceneCount == 1 ? null : _iconMinus 
+					: _iconPlus;
+		}
+		
+		private static void OnSceneSelected(SceneAsset sceneAsset, AdvancedDropdownSelectType selectType) {
+			int loadedCount = SceneManager.loadedSceneCount;
+			string sceneName = sceneAsset.name;
+			bool isRequestedSceneLoaded = SceneManager.GetSceneByName(sceneName).isLoaded;
+			
+			for (int i = 0; i < loadedCount; i++) {
+				var scene = SceneManager.GetSceneAt(i);
 
-			if (activeScene.isDirty) {
+				bool needUnload = selectType switch {
+					AdvancedDropdownSelectType.Item => scene.name != sceneName,
+					AdvancedDropdownSelectType.ItemIcon => scene.name == sceneName,
+					_ => throw new ArgumentOutOfRangeException(nameof(selectType), selectType, null)
+				};
+				
+				if (needUnload) ShowSaveSceneDialogAndUnload(scene);
+			}
+			
+			if (isRequestedSceneLoaded) return;
+
+			var mode = selectType switch {
+				AdvancedDropdownSelectType.Item => OpenSceneMode.Single,
+				AdvancedDropdownSelectType.ItemIcon => OpenSceneMode.Additive,
+				_ => throw new ArgumentOutOfRangeException(nameof(selectType), selectType, null)
+			};
+			
+			EditorSceneManager.OpenScene(AssetDatabase.GetAssetPath(sceneAsset), mode);
+		}
+
+		private static void ShowSaveSceneDialogAndUnload(Scene scene) {
+			if (scene.isDirty) {
 				int dialogResult = EditorUtility.DisplayDialogComplex(
 					"Scene have been modified",
-					$"Do you want to save the changes in the scene:\n{activeScene.path}",
+					$"Do you want to save the changes in the scene:\n{scene.path}",
 					"Save", "Cancel", "Discard"
 				);
 
 				switch (dialogResult) {
 					// Save
 					case 0:
-						EditorSceneManager.SaveScene(activeScene);
+						EditorSceneManager.SaveScene(scene);
 						break;
 
 					// Cancel
@@ -61,10 +107,10 @@ namespace MisterGames.Scenes.Editor.Core {
 					// Don't Save
 					case 2:
 						break;
-				}
+				}	
 			}
-
-			EditorSceneManager.OpenScene(AssetDatabase.GetAssetPath(sceneAsset), OpenSceneMode.Single);
+			
+			SceneManager.UnloadSceneAsync(scene);
 		}
 	}
 

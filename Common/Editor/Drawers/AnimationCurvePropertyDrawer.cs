@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using MisterGames.Common.Easing;
-using MisterGames.Common.Editor.SerializedProperties;
 using MisterGames.Common.Editor.Views;
 using UnityEditor;
 using UnityEngine;
@@ -51,7 +50,7 @@ namespace MisterGames.Common.Editor.Drawers {
                 $"Select {nameof(EasingType)}",
                 easingTypes,
                 i => i < 0 ? "Custom" : $"{(EasingType) i}",
-                i => {
+                (i, _) => {
                     if (i < 0) return;
 
                     property.animationCurveValue = ((EasingType) i).ToAnimationCurve();

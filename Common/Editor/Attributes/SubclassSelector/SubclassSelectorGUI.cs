@@ -163,7 +163,7 @@ namespace MisterGames.Common.Editor.Attributes.SubclassSelector {
                 "Select type",
                 types,
                 t => t == null ? NULL : t.FullName,
-                t => CreateInstance(t, property),
+                (t, _) => CreateInstance(t, property),
                 separator: '.',
                 sort: children => children
                     .OrderByDescending(n => n.data.data == null && n.children.Count == 0)

@@ -85,7 +85,7 @@ namespace MisterGames.Common.Editor.Drawers {
                     "Select value",
                     GetAllEntries(fieldInfo),
                     e => e.path ?? Null,
-                    onItemSelected: e => {
+                    onItemSelected: (e, _) => {
                         var p = property.Copy();
                         
                         property.FindPropertyRelative(LibraryPropertyPath).objectReferenceValue = e.library; 

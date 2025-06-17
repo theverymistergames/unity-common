@@ -103,7 +103,7 @@ namespace MisterGames.Scenario.Editor.Events {
                     "Select event",
                     hasCurrentDomain ? GetDomainEntries(eventDomain) : GetAllEntries(),
                     e => GetEntryPath(e, includeDomain: !hasCurrentDomain),
-                    e => {
+                    (e, _) => {
                         var p = property.Copy();
 
                         property.FindPropertyRelative(EventDomainPropertyPath).objectReferenceValue = e.eventDomain;

@@ -41,7 +41,7 @@ namespace MisterGames.Scenes.Editor.Core {
                     "Select scene",
                     SceneLoaderSettings.GetAllSceneAssets(),
                     sceneAsset => SceneUtils.RemoveSceneAssetFileFormat(AssetDatabase.GetAssetPath(sceneAsset)),
-                    sceneAsset => {
+                    (sceneAsset, _) => {
                         sceneProperty.stringValue = sceneAsset.name;
 
                         property.serializedObject.ApplyModifiedProperties();
