@@ -72,7 +72,8 @@ namespace MisterGames.Scenes.Editor.Core {
 					_ => throw new ArgumentOutOfRangeException(nameof(selectType), selectType, null)
 				};
 				
-				if (needUnload) ShowSaveSceneDialogAndUnload(scene);
+				if (!needUnload) continue;
+				if (!ShowSaveSceneDialogAndUnload(scene)) return;
 			}
 			
 			if (isRequestedSceneLoaded) return;
@@ -86,7 +87,7 @@ namespace MisterGames.Scenes.Editor.Core {
 			EditorSceneManager.OpenScene(AssetDatabase.GetAssetPath(sceneAsset), mode);
 		}
 
-		private static void ShowSaveSceneDialogAndUnload(Scene scene) {
+		private static bool ShowSaveSceneDialogAndUnload(Scene scene) {
 			if (scene.isDirty) {
 				int dialogResult = EditorUtility.DisplayDialogComplex(
 					"Scene have been modified",
@@ -102,7 +103,7 @@ namespace MisterGames.Scenes.Editor.Core {
 
 					// Cancel
 					case 1:
-						return;
+						return false;
 
 					// Don't Save
 					case 2:
@@ -111,6 +112,7 @@ namespace MisterGames.Scenes.Editor.Core {
 			}
 			
 			SceneManager.UnloadSceneAsync(scene);
+			return true;
 		}
 	}
 

@@ -15,7 +15,9 @@ namespace MisterGames.Common.Editor.Views {
 	
 	public sealed class AdvancedDropdown<T> : AdvancedDropdown {
 
-		private const int _iconPosXMax = 12;
+		private const int MinHeightLines = 14;
+		private const float MinWidth = 240f;
+		private const int IconPosXMax = 12;
 		
 		private readonly string _title;
 		private readonly Action<T, AdvancedDropdownSelectType> _onItemSelected;
@@ -41,7 +43,9 @@ namespace MisterGames.Common.Editor.Views {
 			char separator = '/',
 			Func<IEnumerable<TreeEntry<PathTree.Node<T>>>, IEnumerable<TreeEntry<PathTree.Node<T>>>> sort = null,
 			Func<T, Texture2D> getIcon = null,
-			Func<T, bool> getEnabled = null
+			Func<T, bool> getEnabled = null,
+			float minWidth = -1f,
+			float height = -1f
 		) : base(new AdvancedDropdownState()) {
 			_title = title;
 			_onItemSelected = onItemSelected;
@@ -49,10 +53,10 @@ namespace MisterGames.Common.Editor.Views {
 			_getEnabled = getEnabled;
 			_pathTreeRoot = PathTree.CreateTree(items, getItemPath, separator, sort);
 
-			float width = Mathf.Max(minimumSize.x, 240f);
-			float height = 14 * EditorGUIUtility.singleLineHeight;
+			if (minWidth < 0f) minWidth = Mathf.Max(minimumSize.x, MinWidth);
+			if (height < 0f) height = MinHeightLines * EditorGUIUtility.singleLineHeight;
 
-			minimumSize = new Vector2(width, height);
+			minimumSize = new Vector2(minWidth, height);
 		}
 
 		protected override AdvancedDropdownItem BuildRoot() {
@@ -84,7 +88,7 @@ namespace MisterGames.Common.Editor.Views {
 		protected override void ItemSelected(AdvancedDropdownItem item) {
 			base.ItemSelected(item);
 
-			var selectType = Event.current.mousePosition.x <= _iconPosXMax && item.icon != null 
+			var selectType = Event.current.mousePosition.x <= IconPosXMax && item.icon != null 
 				? AdvancedDropdownSelectType.ItemIcon 
 				: AdvancedDropdownSelectType.Item;
 			
