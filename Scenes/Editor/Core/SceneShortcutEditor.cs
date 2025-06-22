@@ -3,6 +3,7 @@ using MisterGames.Common.Editor.Menu;
 using MisterGames.Common.Editor.Views;
 using MisterGames.Scenes.Core;
 using MisterGames.Scenes.Editor.Utils;
+using MisterGames.Scenes.Utils;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -73,7 +74,7 @@ namespace MisterGames.Scenes.Editor.Core {
 				};
 				
 				if (!needUnload) continue;
-				if (!ShowSaveSceneDialogAndUnload(scene)) return;
+				if (!SceneUtils.ShowSaveSceneDialogAndUnload_EditorOnly(scene)) return;
 			}
 			
 			if (isRequestedSceneLoaded) return;
@@ -85,34 +86,6 @@ namespace MisterGames.Scenes.Editor.Core {
 			};
 			
 			EditorSceneManager.OpenScene(AssetDatabase.GetAssetPath(sceneAsset), mode);
-		}
-
-		private static bool ShowSaveSceneDialogAndUnload(Scene scene) {
-			if (scene.isDirty) {
-				int dialogResult = EditorUtility.DisplayDialogComplex(
-					"Scene have been modified",
-					$"Do you want to save the changes in the scene:\n{scene.path}",
-					"Save", "Cancel", "Discard"
-				);
-
-				switch (dialogResult) {
-					// Save
-					case 0:
-						EditorSceneManager.SaveScene(scene);
-						break;
-
-					// Cancel
-					case 1:
-						return false;
-
-					// Don't Save
-					case 2:
-						break;
-				}	
-			}
-			
-			SceneManager.UnloadSceneAsync(scene);
-			return true;
 		}
 	}
 

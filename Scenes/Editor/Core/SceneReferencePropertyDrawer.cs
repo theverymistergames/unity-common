@@ -1,14 +1,17 @@
-﻿using MisterGames.Common.Editor.Views;
+﻿using System.Linq;
+using MisterGames.Common.Editor.Views;
 using MisterGames.Scenes.Core;
-using MisterGames.Scenes.Editor.Utils;
+using MisterGames.Scenes.Utils;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 namespace MisterGames.Scenes.Editor.Core {
 
     [CustomPropertyDrawer(typeof(SceneReference))]
     public sealed class SceneReferencePropertyDrawer : PropertyDrawer {
+        
+        private const string NullPath = "<null>";
+        private static readonly GUIContent NullContent = new GUIContent(NullPath);
 
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
             EditorGUI.BeginProperty(position, label, property);
@@ -17,15 +20,16 @@ namespace MisterGames.Scenes.Editor.Core {
             property = property.Copy();
 
             string sceneName = sceneProperty.stringValue;
-
             if (string.IsNullOrEmpty(sceneName)) {
-                sceneName = SceneManager.GetActiveScene().name;
-                sceneProperty.stringValue = sceneName;
-
+                sceneProperty.stringValue = null;
+                sceneName = null;
+                
                 property.serializedObject.ApplyModifiedProperties();
                 property.serializedObject.Update();
             }
 
+            var guiContent = sceneName == null ? NullContent : new GUIContent(sceneName); 
+            
             var dropdownPosition = new Rect(position);
 
             if (label.text != sceneName) {
@@ -36,22 +40,31 @@ namespace MisterGames.Scenes.Editor.Core {
                 dropdownPosition.height = EditorGUIUtility.singleLineHeight;
             }
 
-            if (EditorGUI.DropdownButton(dropdownPosition, new GUIContent(sceneProperty.stringValue), FocusType.Keyboard)) {
+            if (EditorGUI.DropdownButton(dropdownPosition, guiContent, FocusType.Keyboard)) {
                 var scenesDropdown = new AdvancedDropdown<SceneAsset>(
                     "Select scene",
-                    SceneLoaderSettings.GetAllSceneAssets(),
-                    sceneAsset => SceneUtils.RemoveSceneAssetFileFormat(AssetDatabase.GetAssetPath(sceneAsset)),
+                    SceneLoaderSettings.GetAllSceneAssets().Prepend(null),
+                    GetItemPath,
                     (sceneAsset, _) => {
-                        sceneProperty.stringValue = sceneAsset.name;
+                        sceneProperty.stringValue = sceneAsset == null ? null : sceneAsset.name;
 
                         property.serializedObject.ApplyModifiedProperties();
                         property.serializedObject.Update();
-                    });
+                    },
+                    sort: nodes => nodes
+                        .OrderBy(n => n.data.data == null)
+                        .ThenBy(n => n.data.name));
 
                 scenesDropdown.Show(dropdownPosition);
             }
 
             EditorGUI.EndProperty();
+        }
+
+        private static string GetItemPath(SceneAsset sceneAsset) {
+            return sceneAsset == null 
+                ? NullPath 
+                : SceneUtils.RemoveSceneAssetFileFormat(AssetDatabase.GetAssetPath(sceneAsset));
         }
     }
 

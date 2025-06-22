@@ -36,6 +36,10 @@ namespace MisterGames.Scenes.Core {
             return SceneAssetsCache!.Values;
         }
 
+        public static SceneAsset GetSceneAsset(string sceneName) {
+            return GetAllSceneAssets().FirstOrDefault(a => a.name == sceneName);
+        }
+
         public void IncludeScenesInBuildSettings() {
             EditorBuildSettings.scenes = GetAllSceneAssets()
                 .OrderBy(sceneAsset => sceneAsset.name != rootScene.scene)
