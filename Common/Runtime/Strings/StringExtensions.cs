@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System;
+using System.Text;
 using System.Text.RegularExpressions;
 using UnityEngine;
 
@@ -13,15 +14,22 @@ namespace MisterGames.Common.Strings {
             return input != null && Regex.Match(input, pattern).Success;
         }
         
-        public static bool IsSubPathOf(this string sub, string parent, char separator) {
+        public static bool IsSubPathOf(this string sub, string parent) {
+            return IsSubPathOf(sub.AsSpan(), parent);
+        }
+        
+        public static bool IsSubPathOf(this ReadOnlySpan<char> sub, string parent) {
             int parentLength = parent.Length;
             if (parentLength == 0) return true;
             
             int subLength = sub.Length;
             if (parentLength > subLength) return false;
-            if (parentLength == subLength) return sub == parent;
 
-            return sub[parentLength] == separator && parent == sub[..parentLength];
+            for (int i = 0; i < parentLength; i++) {
+                if (sub[i] != parent[i]) return false;
+            }
+            
+            return true;
         }
 
         public static string ToBitString(this long value, int bits = 64) => GetBitString(value, Mathf.Min(bits, 64));

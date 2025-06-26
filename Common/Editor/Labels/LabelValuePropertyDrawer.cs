@@ -172,7 +172,7 @@ namespace MisterGames.Common.Editor.Drawers {
             
             for (int i = 0; i < filters.Length; i++) {
                 string filterPath = filters[i].path ?? string.Empty;
-                if (path.IsSubPathOf(filterPath, '/')) return true;
+                if (path.IsSubPathOf(filterPath)) return true;
             }
 
             return false;

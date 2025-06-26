@@ -37,7 +37,7 @@ namespace MisterGames.Common.Trees {
             var elements = collection.ToArray();
 
             var root = new TreeEntry<Node<T>> {
-                children = GetChildren("", elements, getPath, 1, separator, sort)
+                children = GetChildren(string.Empty, elements, getPath, 1, separator, sort)
             };
 
             return SquashParentsWithSingleChild(root, 0);
@@ -65,15 +65,15 @@ namespace MisterGames.Common.Trees {
             
             for (int i = 0; i < elements.Count; i++) {
                 var element = elements[i];
-                string path = getPath.Invoke(element);
+                string path = getPath.Invoke(element)?.Trim(separator);
 
-                if (path == null || path == parent || !path.IsSubPathOf(parent, separator)) {
+                if (path == null || path == parent || !path.IsSubPathOf(parent)) {
                     continue;
                 }
 
-                string[] pathParts = path.Split(separator);
+                string[] pathParts = path.Split(separator, StringSplitOptions.RemoveEmptyEntries);
                 int pathDepth = pathParts.Length;
-
+                
                 if (pathDepth <= level) {
                     string name = pathDepth == 0 ? string.Empty : pathParts[pathDepth - 1];
 
@@ -88,7 +88,9 @@ namespace MisterGames.Common.Trees {
 
                 string folderName = pathParts[level - 1];
                 int folderNameHash = folderName.GetHashCode();
-                if (folderNameHashesSet.Contains(folderNameHash)) continue;
+                if (folderNameHashesSet.Contains(folderNameHash)) {
+                    continue;
+                }
 
                 sb.Clear();
                 for (int p = 0; p < level; p++) {

@@ -1,5 +1,6 @@
 ﻿using System.Linq;
 using MisterGames.Common.Editor.Views;
+using MisterGames.Common.Trees;
 using MisterGames.Scenes.Core;
 using MisterGames.Scenes.Utils;
 using UnityEditor;
@@ -41,10 +42,12 @@ namespace MisterGames.Scenes.Editor.Core {
             }
 
             if (EditorGUI.DropdownButton(dropdownPosition, guiContent, FocusType.Keyboard)) {
+                string nullPath = GetNullPath();
+                
                 var scenesDropdown = new AdvancedDropdown<SceneAsset>(
                     "Select scene",
                     SceneLoaderSettings.GetAllSceneAssets().Prepend(null),
-                    GetItemPath,
+                    sceneAsset => GetItemPath(sceneAsset, nullPath),
                     (sceneAsset, _) => {
                         sceneProperty.stringValue = sceneAsset == null ? null : sceneAsset.name;
 
@@ -53,7 +56,8 @@ namespace MisterGames.Scenes.Editor.Core {
                     },
                     sort: nodes => nodes
                         .OrderBy(n => n.data.data == null)
-                        .ThenBy(n => n.data.name));
+                        .ThenBy(n => n.data.name)
+                );
 
                 scenesDropdown.Show(dropdownPosition);
             }
@@ -61,10 +65,14 @@ namespace MisterGames.Scenes.Editor.Core {
             EditorGUI.EndProperty();
         }
 
-        private static string GetItemPath(SceneAsset sceneAsset) {
+        private static string GetItemPath(SceneAsset sceneAsset, string nullPath) {
             return sceneAsset == null 
-                ? NullPath 
+                ? nullPath 
                 : SceneUtils.RemoveSceneAssetFileFormat(AssetDatabase.GetAssetPath(sceneAsset));
+        }
+
+        private static string GetNullPath() {
+            return $"{PathTree.CreateTree(SceneLoaderSettings.Instance.searchScenesInFolders, p => p).data.name}/{NullPath}";
         }
     }
 
