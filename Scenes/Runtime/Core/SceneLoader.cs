@@ -1,7 +1,10 @@
-﻿using System.Threading;
+﻿using System.Buffers;
+using System.Collections.Generic;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Data;
 using MisterGames.Common.Easing;
+using MisterGames.Common.Lists;
 using MisterGames.Scenes.Loading;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -67,19 +70,20 @@ namespace MisterGames.Scenes.Core {
             
             LoadSceneAsync(_loadingScene.scene, makeActive: false).Forget();
             
-            string startScene = _startScene.scene;
+            var startScenes = new List<string> { _startScene.scene };
             
 #if UNITY_EDITOR
             if (SceneLoaderSettings.Instance.enablePlayModeStartSceneOverride) {
-                string playModeStartScene = SceneLoaderSettings.GetPlaymodeStartScene();
-            
-                if (!string.IsNullOrEmpty(playModeStartScene) && playModeStartScene != _rootScene) {
-                    startScene = playModeStartScene;
+                var playmodeStartScenes = SceneLoaderSettings.GetPlaymodeStartScenes();
+                playmodeStartScenes?.Remove(_rootScene);
+                
+                if (playmodeStartScenes is { Count: > 0 }) {
+                    startScenes = playmodeStartScenes; 
                 }
-            
+                
                 // Force load gameplay scene in Unity Editor's playmode
                 // if app is launched from custom scene.
-                if (startScene != _startScene.scene) {
+                if (!startScenes.Contains(_startScene.scene)) {
                     _applicationLaunchMode = ApplicationLaunchMode.FromCustomEditorScene;
                 
                     await LoadSceneAsync(_gameplayScene.scene, makeActive: false);
@@ -88,7 +92,8 @@ namespace MisterGames.Scenes.Core {
             }
 #endif
 
-            await LoadSceneAsync(startScene, makeActive: false);
+            await LoadScenesAsync(startScenes);
+            
             if (cancellationToken.IsCancellationRequested) return;
 
             if (playSplashScreen) {
@@ -102,7 +107,7 @@ namespace MisterGames.Scenes.Core {
                 LoadingService.Instance.ShowLoadingScreen(false);
             }
 
-            MakeSceneActive(startScene);
+            MakeSceneActive(startScenes[0]);
             
             await Fader.Main.FadeOutAsync(_fadeOut, _fadeOutCurve.GetOrDefault());
         }
@@ -119,8 +124,16 @@ namespace MisterGames.Scenes.Core {
             LoadSceneAsync(sceneName, makeActive).Forget();
         }
 
+        public static void LoadScenes(IReadOnlyList<string> sceneNames, string activeScene = null) {
+            LoadScenesAsync(sceneNames, activeScene).Forget();
+        }
+
         public static void UnloadScene(string sceneName) {
             UnloadSceneAsync(sceneName).Forget();
+        }
+        
+        public static void UnloadScenes(IReadOnlyList<string> sceneNames) {
+            UnloadScenesAsync(sceneNames).Forget();
         }
 
         public static async UniTask LoadSceneAsync(string sceneName, bool makeActive) {
@@ -133,12 +146,41 @@ namespace MisterGames.Scenes.Core {
             if (makeActive) SceneManager.SetActiveScene(SceneManager.GetSceneByName(sceneName));
         }
 
+        public static async UniTask LoadScenesAsync(IReadOnlyList<string> sceneNames, string activeScene = null) {
+            int count = sceneNames.Count;
+            var tasks = ArrayPool<UniTask>.Shared.Rent(count);
+
+            for (int i = 0; i < count; i++) {
+                string sceneName = sceneNames[i];
+                tasks[i] = LoadSceneAsync(sceneName, makeActive: sceneName == activeScene);
+            }
+
+            await UniTask.WhenAll(tasks);
+
+            tasks.ResetArrayElements(count);
+            ArrayPool<UniTask>.Shared.Return(tasks);
+        }
+
         public static async UniTask UnloadSceneAsync(string sceneName) {
             if (sceneName == _rootScene) return;
 
             if (SceneManager.GetSceneByName(sceneName) is { isLoaded: true }) {
                 await SceneManager.UnloadSceneAsync(sceneName);
             }
+        }
+        
+        public static async UniTask UnloadScenesAsync(IReadOnlyList<string> sceneNames) {
+            int count = sceneNames.Count;
+            var tasks = ArrayPool<UniTask>.Shared.Rent(count);
+
+            for (int i = 0; i < count; i++) {
+                tasks[i] = UnloadSceneAsync(sceneNames[i]);
+            }
+
+            await UniTask.WhenAll(tasks);
+
+            tasks.ResetArrayElements(count);
+            ArrayPool<UniTask>.Shared.Return(tasks);
         }
 
 #if UNITY_EDITOR

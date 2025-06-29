@@ -1,5 +1,6 @@
 ﻿using System.Linq;
 using MisterGames.Scenes.Core;
+using MisterGames.Scenes.Utils;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -16,8 +17,8 @@ namespace MisterGames.Scenes.Editor.Core {
 
         private static void EditorApplicationOnplayModeStateChanged(PlayModeStateChange change) {
             if (change != PlayModeStateChange.ExitingEditMode) return;
-            
-            SceneLoaderSettings.SavePlaymodeStartScene(SceneManager.GetActiveScene().name);
+
+            SceneLoaderSettings.SavePlaymodeStartScenes(SceneUtils.GetOpenedScenes().Select(s => s.name), SceneManager.GetActiveScene().name);
             TrySetPlaymodeStartScene(SceneLoaderSettings.Instance.rootScene.scene);   
         }
         
