@@ -25,12 +25,20 @@ namespace MisterGames.Scenes.Core {
         [SerializeField] private Optional<AnimationCurve> _fadeInCurve = Optional<AnimationCurve>.WithDisabled(EasingType.Linear.ToAnimationCurve());
         [SerializeField] private Optional<AnimationCurve> _fadeOutCurve = Optional<AnimationCurve>.WithDisabled(EasingType.Linear.ToAnimationCurve());
         
+        private struct SceneLoadData
+        {
+            public AsyncOperation handle;
+            public CancellationTokenSource cts;
+            public bool isLoading;
+        }
+        
         public static ApplicationLaunchMode LaunchMode => _instance._applicationLaunchMode;
         
         private static SceneLoader _instance;
+        private static string _rootScene;
+        private static readonly Dictionary<string, SceneLoadData> _loadSceneDataMap = new();
         
         private ApplicationLaunchMode _applicationLaunchMode;
-        private static string _rootScene;
         
         private void Awake() {
             _instance = this;
@@ -107,7 +115,7 @@ namespace MisterGames.Scenes.Core {
                 LoadingService.Instance.ShowLoadingScreen(false);
             }
 
-            MakeSceneActive(startScenes[0]);
+            SetActiveScene(startScenes[0]);
             
             await Fader.Main.FadeOutAsync(_fadeOut, _fadeOutCurve.GetOrDefault());
         }
@@ -116,8 +124,17 @@ namespace MisterGames.Scenes.Core {
             return SceneManager.GetSceneByName(sceneName) is { isLoaded: true };
         }
 
-        public static bool MakeSceneActive(string sceneName) {
-            return SceneManager.SetActiveScene(SceneManager.GetSceneByName(sceneName));
+        public static bool SetActiveScene(string sceneName) {
+            bool result = SceneManager.SetActiveScene(SceneManager.GetSceneByName(sceneName));
+
+            if (result) {
+                Debug.Log($"SceneLoader: set active scene <color=green>{sceneName}</color>");    
+            }
+            else {
+                Debug.LogWarning($"SceneLoader: failed to set active scene <color=red>{sceneName}</color>");
+            }
+            
+            return result;
         }
 
         public static void LoadScene(string sceneName, bool makeActive = false) {
@@ -137,13 +154,65 @@ namespace MisterGames.Scenes.Core {
         }
 
         public static async UniTask LoadSceneAsync(string sceneName, bool makeActive) {
-            if (sceneName == _rootScene) return;
-
-            if (SceneManager.GetSceneByName(sceneName) is not { isLoaded: true }) {
-                await SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+            if (string.IsNullOrEmpty(sceneName) || sceneName == _rootScene) {
+                return;
             }
 
-            if (makeActive) SceneManager.SetActiveScene(SceneManager.GetSceneByName(sceneName));
+            if (_loadSceneDataMap.TryGetValue(sceneName, out var data)) {
+                if (data.isLoading) {
+                    await data.handle.ToUniTask();
+                    return;
+                }
+                
+                data.cts.Cancel();
+                data.cts.Dispose();
+            }
+
+            var handle = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+            
+            data = new SceneLoadData { handle = handle, cts = new CancellationTokenSource(), isLoading = true }; 
+            _loadSceneDataMap[sceneName] = data;
+            
+            await handle.WithCancellation(data.cts.Token);
+
+            if (data.cts.IsCancellationRequested) return;
+            
+            Debug.Log($"SceneLoader: loaded scene <color=yellow>{sceneName}</color>");
+
+            if (makeActive) SetActiveScene(sceneName);
+        }
+
+        public static async UniTask UnloadSceneAsync(string sceneName) {
+            if (string.IsNullOrEmpty(sceneName) || sceneName == _rootScene || 
+                !_loadSceneDataMap.TryGetValue(sceneName, out var data)) 
+            {
+                return;
+            }
+
+            if (!data.isLoading) {
+                await data.handle.ToUniTask();
+                return;
+            }
+            
+            data.cts.Cancel();
+            data.cts.Dispose();
+            
+            var handle = SceneManager.UnloadSceneAsync(sceneName);
+            if (handle == null) {
+                _loadSceneDataMap.Remove(sceneName);    
+                return;
+            }
+            
+            data = new SceneLoadData { handle = handle, cts = new CancellationTokenSource(), isLoading = false }; 
+            _loadSceneDataMap[sceneName] = data;
+            
+            await handle.WithCancellation(data.cts.Token);
+            
+            if (data.cts.IsCancellationRequested) return;
+
+            Debug.Log($"SceneLoader: unloaded scene <color=yellow>{sceneName}</color>");
+            
+            _loadSceneDataMap.Remove(sceneName);
         }
 
         public static async UniTask LoadScenesAsync(IReadOnlyList<string> sceneNames, string activeScene = null) {
@@ -161,14 +230,6 @@ namespace MisterGames.Scenes.Core {
             ArrayPool<UniTask>.Shared.Return(tasks);
         }
 
-        public static async UniTask UnloadSceneAsync(string sceneName) {
-            if (sceneName == _rootScene) return;
-
-            if (SceneManager.GetSceneByName(sceneName) is { isLoaded: true }) {
-                await SceneManager.UnloadSceneAsync(sceneName);
-            }
-        }
-        
         public static async UniTask UnloadScenesAsync(IReadOnlyList<string> sceneNames) {
             int count = sceneNames.Count;
             var tasks = ArrayPool<UniTask>.Shared.Rent(count);

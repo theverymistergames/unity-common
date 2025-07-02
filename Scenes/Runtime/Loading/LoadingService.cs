@@ -24,7 +24,7 @@ namespace MisterGames.Scenes.Loading {
             _loadingScreenRoot.SetActive(show);
             
             if (_makeSceneActiveWhenLoading && show) {
-                SceneLoader.MakeSceneActive(_loadingScreenRoot.gameObject.scene.name);
+                SceneLoader.SetActiveScene(_loadingScreenRoot.gameObject.scene.name);
             }
         }
 
