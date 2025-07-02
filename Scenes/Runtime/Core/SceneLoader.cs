@@ -41,9 +41,18 @@ namespace MisterGames.Scenes.Core {
         private ApplicationLaunchMode _applicationLaunchMode;
         
         private void Awake() {
+            if (_instance != null) {
+                Destroy(gameObject);
+                return;
+            }
+            
             _instance = this;
             
             LoadStartScenes(destroyCancellationToken).Forget();
+        }
+
+        private void OnDestroy() {
+            _loadSceneDataMap.Clear();
         }
 
         private async UniTask LoadStartScenes(CancellationToken cancellationToken) {
@@ -128,7 +137,7 @@ namespace MisterGames.Scenes.Core {
             bool result = SceneManager.SetActiveScene(SceneManager.GetSceneByName(sceneName));
 
             if (result) {
-                Debug.Log($"SceneLoader: set active scene <color=green>{sceneName}</color>");    
+                Debug.Log($"SceneLoader: set active scene <color=green>{sceneName}</color>");
             }
             else {
                 Debug.LogWarning($"SceneLoader: failed to set active scene <color=red>{sceneName}</color>");

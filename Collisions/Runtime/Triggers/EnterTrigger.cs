@@ -17,9 +17,8 @@ namespace MisterGames.Collisions.Triggers {
         public override event Action<Collider> OnTriggered = delegate {  };
 
         private void OnTriggerEnter(Collider other) {
-            if (!enabled) return;
-            if (!_layerMask.Contains(other.gameObject.layer)) return;
-            
+            if (!enabled || !_layerMask.Contains(other.gameObject.layer)) return;
+
             OnTriggered.Invoke(other);
             
             if (_action != null && other.GetComponentFromCollider<IActor>() is {} actor) {
