@@ -28,8 +28,8 @@ namespace MisterGames.Dbg.Console.Core {
         [Header("Inputs")]
         [SerializeField] private InputActionKey _activationInput;
         [SerializeReference] [SubclassSelector] private IConsoleModule[] _consoleModules;
-        
-        private const string Editor = "editor";
+
+        private const string Editor = "editor";  
         
         public event Action OnShowConsole = delegate {  };
         public event Action OnHideConsole = delegate {  };
@@ -39,12 +39,16 @@ namespace MisterGames.Dbg.Console.Core {
         internal IReadOnlyList<Command> Commands => _console.Commands;
         internal IReadOnlyList<IConsoleModule> ConsoleModules => _consoleModules;
 
+        public static ConsoleRunner Instance { get; private set; }
+        
         private readonly Console _console = new();
         private readonly StringBuilder _stringBuilder = new();
         private CursorLockMode _lastCursorLockMode;
         private bool _lastCursorVisibility;
 
         private void Awake() {
+            Instance = this;
+            
             FetchConsoleModules();
             SetTextFieldFontSize(_textFieldFontSize);
             SetTextInputFieldFontSize(_textInputFieldFontSize);

@@ -9,6 +9,10 @@ namespace MisterGames.Scenes.Core {
         public bool IsValid() {
             return !string.IsNullOrWhiteSpace(scene);
         }
+
+        public override string ToString() {
+            return scene;
+        }
     }
 
 }

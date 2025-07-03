@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using MisterGames.Common.Editor.Menu;
 using MisterGames.Common.Editor.Views;
 using MisterGames.Scenes.Core;
@@ -7,6 +8,7 @@ using MisterGames.Scenes.Utils;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.Pool;
 using UnityEngine.SceneManagement;
 
 namespace MisterGames.Scenes.Editor.Core {
@@ -63,6 +65,7 @@ namespace MisterGames.Scenes.Editor.Core {
 			int loadedCount = SceneManager.loadedSceneCount;
 			string sceneName = sceneAsset.name;
 			bool isRequestedSceneLoaded = SceneManager.GetSceneByName(sceneName).isLoaded;
+			HashSet<string> scenesToUnload = null;
 			
 			for (int i = 0; i < loadedCount; i++) {
 				var scene = SceneManager.GetSceneAt(i);
@@ -74,18 +77,29 @@ namespace MisterGames.Scenes.Editor.Core {
 				};
 				
 				if (!needUnload) continue;
-				if (!SceneUtils.ShowSaveSceneDialogAndUnload_EditorOnly(scene)) return;
+				if (!SceneUtils.ShowSaveSceneDialog_EditorOnly(scene)) return;
+
+				if (selectType == AdvancedDropdownSelectType.ItemIcon) {
+					scenesToUnload ??= HashSetPool<string>.Get();
+					scenesToUnload.Add(scene.name);	
+				}
 			}
 			
-			if (isRequestedSceneLoaded) return;
+			if (!isRequestedSceneLoaded) {
+				var mode = selectType switch {
+					AdvancedDropdownSelectType.Item => OpenSceneMode.Single,
+					AdvancedDropdownSelectType.ItemIcon => OpenSceneMode.Additive,
+					_ => throw new ArgumentOutOfRangeException(nameof(selectType), selectType, null)
+				};
+				
+				EditorSceneManager.OpenScene(AssetDatabase.GetAssetPath(sceneAsset), mode);
+			}
 
-			var mode = selectType switch {
-				AdvancedDropdownSelectType.Item => OpenSceneMode.Single,
-				AdvancedDropdownSelectType.ItemIcon => OpenSceneMode.Additive,
-				_ => throw new ArgumentOutOfRangeException(nameof(selectType), selectType, null)
-			};
-			
-			EditorSceneManager.OpenScene(AssetDatabase.GetAssetPath(sceneAsset), mode);
+			if (scenesToUnload != null) {
+				foreach (string scene in scenesToUnload) {
+					SceneManager.UnloadSceneAsync(scene);
+				}	
+			}
 		}
 	}
 

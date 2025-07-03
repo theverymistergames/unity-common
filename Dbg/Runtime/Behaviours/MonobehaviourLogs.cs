@@ -1,6 +1,7 @@
 ﻿using System;
 using MisterGames.Common.Data;
 using MisterGames.Common.GameObjects;
+using MisterGames.Dbg.Console.Core;
 using UnityEngine;
 
 namespace MisterGames.Dbg.Behaviours {
@@ -10,6 +11,7 @@ namespace MisterGames.Dbg.Behaviours {
         [SerializeField] private Level _level;
         [SerializeField] private Prefix _prefix;
         [SerializeField] private Color _color = Color.white;
+        [SerializeField] private bool _logToDebugConsole;
         [SerializeField] private Optional<string> _awake;
         [SerializeField] private Optional<string> _start;
         [SerializeField] private Optional<string> _enable;
@@ -72,6 +74,10 @@ namespace MisterGames.Dbg.Behaviours {
                 
                 default:
                     throw new ArgumentOutOfRangeException();
+            }
+
+            if (_logToDebugConsole) {
+                ConsoleRunner.Instance.AppendLine($"{_level}: {message}");
             }
         }
 

@@ -29,7 +29,7 @@ namespace MisterGames.Scenes.Utils {
         }
 
 #if UNITY_EDITOR
-        public static bool ShowSaveSceneDialogAndUnload_EditorOnly(Scene scene) {
+        public static bool ShowSaveSceneDialog_EditorOnly(Scene scene) {
             if (scene.isDirty) {
                 int dialogResult = EditorUtility.DisplayDialogComplex(
                     "Scene have been modified",
@@ -53,7 +53,6 @@ namespace MisterGames.Scenes.Utils {
                 }	
             }
 			
-            SceneManager.UnloadSceneAsync(scene);
             return true;
         }  
 #endif

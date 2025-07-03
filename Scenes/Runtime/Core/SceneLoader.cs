@@ -166,7 +166,7 @@ namespace MisterGames.Scenes.Core {
             if (string.IsNullOrEmpty(sceneName) || sceneName == _rootScene) {
                 return;
             }
-
+            
             if (_loadSceneDataMap.TryGetValue(sceneName, out var data)) {
                 if (data.isLoading) {
                     await data.handle.ToUniTask();
@@ -186,7 +186,7 @@ namespace MisterGames.Scenes.Core {
 
             if (data.cts.IsCancellationRequested) return;
             
-            Debug.Log($"SceneLoader: loaded scene <color=yellow>{sceneName}</color>");
+            Debug.Log($"SceneLoader: loaded scene <color=yellow>{sceneName}</color> ({SceneManager.GetSceneByName(sceneName).buildIndex})");
 
             if (makeActive) SetActiveScene(sceneName);
         }

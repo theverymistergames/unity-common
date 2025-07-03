@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
 using UnityEngine;
@@ -32,6 +33,10 @@ namespace MisterGames.Common.Strings {
             return true;
         }
 
+        public static string AsString<T>(this IEnumerable<T> list, string separator = ", ") {
+            return string.Join(separator, list);
+        }
+        
         public static string ToBitString(this long value, int bits = 64) => GetBitString(value, Mathf.Min(bits, 64));
         public static string ToBitString(this int value, int bits = 64) => GetBitString(value, Mathf.Min(bits, 32));
         public static string ToBitString(this short value, int bits = 64) => GetBitString(value, Mathf.Min(bits, 16));
