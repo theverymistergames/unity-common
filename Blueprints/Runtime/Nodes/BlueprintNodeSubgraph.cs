@@ -1,7 +1,10 @@
 ﻿using System;
 using MisterGames.Blueprints.Runtime;
-using MisterGames.Blueprints.Validation;
 using UnityEngine;
+
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
+using MisterGames.Blueprints.Validation;
+#endif
 
 namespace MisterGames.Blueprints.Nodes {
 

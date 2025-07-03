@@ -2,8 +2,11 @@
 using MisterGames.Blueprints.Factory;
 using MisterGames.Blueprints.Meta;
 using MisterGames.Blueprints.Nodes;
-using MisterGames.Blueprints.Validation;
 using MisterGames.Common.Data;
+
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
+using MisterGames.Blueprints.Validation;
+#endif
 
 namespace MisterGames.Blueprints.Runtime {
 

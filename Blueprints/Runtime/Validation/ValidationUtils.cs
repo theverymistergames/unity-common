@@ -2,7 +2,6 @@
 
 using System;
 using System.Linq;
-using System.Text;
 
 namespace MisterGames.Blueprints.Validation {
 

@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using MisterGames.Blueprints.Meta;
+
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
 using MisterGames.Blueprints.Validation;
+#endif
 
 namespace MisterGames.Blueprints {
 
@@ -120,7 +123,9 @@ namespace MisterGames.Blueprints {
                     int sign = port.GetSignature();
 
                     if (portSignatureSet.Contains(sign)) {
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
                         PortValidator.ValidateExternalPortWithExistingSignature(subgraphMeta, port);
+#endif
                         continue;
                     }
 

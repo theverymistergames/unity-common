@@ -3,10 +3,13 @@ using System.Collections.Generic;
 using MisterGames.Blackboards.Core;
 using MisterGames.Blueprints.Factory;
 using MisterGames.Blueprints.Nodes;
-using MisterGames.Blueprints.Validation;
 using MisterGames.Common.Data;
 using MisterGames.Common.Maths;
 using UnityEngine;
+
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
+using MisterGames.Blueprints.Validation;
+#endif
 
 namespace MisterGames.Blueprints.Meta {
 
@@ -208,8 +211,10 @@ namespace MisterGames.Blueprints.Meta {
             if (!_portStorage.TryGetPort(id, port, out var portData)) return false;
             if (!_portStorage.TryGetPort(toId, toPort, out var toPortData)) return false;
 
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
             if (!PortValidator.ArePortsCompatible(portData, toPortData)) return false;
-
+#endif
+            
             // FromPort is port that owns links to toPort (fromPort must be exit or data-based input port).
             // So ports have to be swapped, if:
             // 1) fromPort is enter port (IsData = false, IsInput = true)
