@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
 using MisterGames.Scenes.Core;
 using UnityEditor;
 using UnityEngine;
@@ -10,14 +9,12 @@ namespace MisterGames.Scenes.Editor.Core {
     public sealed class SceneLoaderSettingsEditor : UnityEditor.Editor {
 
         private static readonly GUIContent ScenesLabel = new GUIContent("Scenes"); 
+        private static readonly GUIContent ScenesProdLabel = new GUIContent("Production"); 
+        private static readonly GUIContent ScenesDevLabel = new GUIContent("Development");
         private const string SceneNamesProperty = "_sceneNamesCache";
-        
-        private readonly HashSet<SceneAsset> _buildSceneAssetsCache = new();
         
         public override void OnInspectorGUI() {
             base.OnInspectorGUI();
-
-            if (target is not SceneLoaderSettings sceneLoaderSettings) return;
 
             GUILayout.Space(10);
 
@@ -26,38 +23,33 @@ namespace MisterGames.Scenes.Editor.Core {
 
             if (!sceneNamesProperty.isExpanded) return;
             
-            var sceneAssets = SceneLoaderSettings.GetAllSceneAssets().ToArray();
+            GUILayout.Space(EditorGUIUtility.standardVerticalSpacing);
             
-            if (CheckCanAddScenesIntoBuildSettings(sceneAssets)) {
-                if (GUILayout.Button("Include scenes into build settings")) {
-                    sceneLoaderSettings.IncludeScenesInBuildSettings();
-                }
-                
-                GUILayout.Space(EditorGUIUtility.standardVerticalSpacing);
-            }
+            GUILayout.Label(ScenesProdLabel);
             
             EditorGUI.BeginDisabledGroup(true);
+            
+            var sceneAssets = SceneLoaderSettings.GetProductionBuildSceneAssets().ToArray();
             
             for (int i = 0; i < sceneAssets.Length; i++) {
                 EditorGUILayout.ObjectField(sceneAssets[i], typeof(SceneAsset), false);
             }
 
             EditorGUI.EndDisabledGroup();
-        }
-
-        private bool CheckCanAddScenesIntoBuildSettings(SceneAsset[] sceneAssets) {
-            _buildSceneAssetsCache.Clear();
             
-            var scenesInBuild = EditorBuildSettings.scenes;
-            for (int i = 0; i < scenesInBuild.Length; i++) {
-                _buildSceneAssetsCache.Add(AssetDatabase.LoadAssetAtPath<SceneAsset>(scenesInBuild[i].path));
-            }
-
+            GUILayout.Space(EditorGUIUtility.standardVerticalSpacing * 4f);
+            
+            GUILayout.Label(ScenesDevLabel);
+            
+            EditorGUI.BeginDisabledGroup(true);
+            
+            sceneAssets = SceneLoaderSettings.GetDevelopmentBuildSceneAssets().ToArray();
+            
             for (int i = 0; i < sceneAssets.Length; i++) {
-                if (!_buildSceneAssetsCache.Contains(sceneAssets[i])) return true;
+                EditorGUILayout.ObjectField(sceneAssets[i], typeof(SceneAsset), false);
             }
 
-            return false;
+            EditorGUI.EndDisabledGroup();
         }
     }
     

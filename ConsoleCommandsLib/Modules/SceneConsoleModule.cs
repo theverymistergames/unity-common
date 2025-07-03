@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Linq;
 using MisterGames.Common.Lists;
 using MisterGames.Dbg.Console.Attributes;
 using MisterGames.Dbg.Console.Core;
 using MisterGames.Scenes.Core;
+using MisterGames.Scenes.Utils;
 
 namespace MisterGames.ConsoleCommandsLib.Modules {
 
@@ -53,6 +55,17 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
         [ConsoleCommandHelp("list all scenes")]
         public void PrintAllScenes() {
             string[] sceneNames = SceneLoaderSettings.GetAllSceneNames();
+            ConsoleRunner.AppendLine("Scenes:");
+
+            for (int i = 0; i < sceneNames.Length; i++) {
+                ConsoleRunner.AppendLine($" - [{i}] {sceneNames[i]}");
+            }
+        }
+        
+        [ConsoleCommand("scenes/loaded")]
+        [ConsoleCommandHelp("list all loaded scenes")]
+        public void PrintAllLoadedScenes() {
+            string[] sceneNames = SceneUtils.GetOpenedScenes().Select(s => s.name).ToArray();
             ConsoleRunner.AppendLine("Scenes:");
 
             for (int i = 0; i < sceneNames.Length; i++) {

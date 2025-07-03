@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using MisterGames.Common.Strings;
 using UnityEngine;
 #if UNITY_EDITOR
 using System.Threading.Tasks;
@@ -14,6 +15,7 @@ namespace MisterGames.Scenes.Core {
         public SceneReference rootScene;
         public bool enablePlayModeStartSceneOverride = true;
         public string[] searchScenesInFolders = { "Assets" };
+        public string[] searchDevScenesInFolders = { };
 
         [HideInInspector]
         [SerializeField] private string[] _sceneNamesCache;
@@ -40,16 +42,23 @@ namespace MisterGames.Scenes.Core {
             if (SceneAssetsCache == null) UpdateScenesCache();
             return SceneAssetsCache!.Values;
         }
+        
+        public static IEnumerable<SceneAsset> GetDevelopmentBuildSceneAssets() {
+            if (SceneAssetsCache == null) UpdateScenesCache();
+            
+            string[] folders = Instance.searchDevScenesInFolders;
+            return SceneAssetsCache!.Values.Where(s => IsInFolder(AssetDatabase.GetAssetPath(s), folders));
+        }
+        
+        public static IEnumerable<SceneAsset> GetProductionBuildSceneAssets() {
+            if (SceneAssetsCache == null) UpdateScenesCache();
+
+            string[] folders = Instance.searchScenesInFolders;
+            return SceneAssetsCache!.Values.Where(s => IsInFolder(AssetDatabase.GetAssetPath(s), folders));
+        }
 
         public static SceneAsset GetSceneAsset(string sceneName) {
             return GetAllSceneAssets().FirstOrDefault(a => a.name == sceneName);
-        }
-
-        public void IncludeScenesInBuildSettings() {
-            EditorBuildSettings.scenes = GetAllSceneAssets()
-                .OrderBy(sceneAsset => sceneAsset.name != rootScene.scene)
-                .Select(sceneAsset => new EditorBuildSettingsScene(AssetDatabase.GetAssetPath(sceneAsset), true))
-                .ToArray();
         }
 
         public static void SavePlaymodeStartScene(string sceneName) {
@@ -126,18 +135,17 @@ namespace MisterGames.Scenes.Core {
         }
         
         private static bool IsValidScenePath(string path) {
+            return IsInFolder(path, Instance.searchScenesInFolders) || 
+                   IsInFolder(path, Instance.searchDevScenesInFolders);
+        }
+
+        private static bool IsInFolder(string path, string[] folders) {
             if (string.IsNullOrEmpty(path)) return false;
 
-            int pathLength = path.Length;
-            string[] folders = Instance.searchScenesInFolders;
-
             for (int i = 0; i < folders.Length; i++) {
-                string folderPath = folders[i];
-                if (folderPath.Length > pathLength || folderPath != path[..folderPath.Length]) continue;
-
-                return true;
+                if (path.IsSubPathOf(folders[i])) return true;
             }
-
+            
             return false;
         }
 

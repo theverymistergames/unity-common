@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using MisterGames.Common.Editor.Views;
 using MisterGames.Common.Trees;
 using MisterGames.Scenes.Core;
@@ -72,7 +73,12 @@ namespace MisterGames.Scenes.Editor.Core {
         }
 
         private static string GetNullPath() {
-            return $"{PathTree.CreateTree(SceneLoaderSettings.Instance.searchScenesInFolders, p => p).data.name}/{NullPath}";
+            var folders = new List<string>();
+            
+            folders.AddRange(SceneLoaderSettings.Instance.searchScenesInFolders);
+            folders.AddRange(SceneLoaderSettings.Instance.searchDevScenesInFolders);
+                
+            return $"{PathTree.CreateTree(folders, p => p).data.name}/{NullPath}";
         }
     }
 
