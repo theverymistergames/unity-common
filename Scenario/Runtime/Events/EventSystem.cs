@@ -3,7 +3,6 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using MisterGames.Common.Data;
-using UnityEngine;
 using UnityEngine.Pool;
 
 namespace MisterGames.Scenario.Events {

@@ -10,6 +10,11 @@ namespace MisterGames.Common.Labels {
         [SerializeField] internal LabelLibraryBase library;
         [SerializeField] internal int id;
 
+        internal LabelValue(LabelLibraryBase library, int id) {
+            this.library = library;
+            this.id = id;
+        }
+        
         public bool Equals(LabelValue other) {
             return Equals(library, other.library) && id == other.id;
         }
@@ -41,6 +46,11 @@ namespace MisterGames.Common.Labels {
         [SerializeField] internal LabelLibraryBase<T> library;
         [SerializeField] internal int id;
 
+        internal LabelValue(LabelLibraryBase<T> library, int id) {
+            this.library = library;
+            this.id = id;
+        }
+        
         public bool Equals(LabelValue<T> other) {
             return Equals(library, other.library) && id == other.id;
         }

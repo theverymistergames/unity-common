@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System;
+using System.Runtime.CompilerServices;
 
 namespace MisterGames.Common.Labels {
     
@@ -102,13 +103,50 @@ namespace MisterGames.Common.Labels {
         public static T GetData<T>(this LabelValue<T> labelValue) {
             return labelValue.library?.TryGetData(labelValue.id, out var data) ?? false ? data : default;
         }
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool TryGetData<T>(this LabelValue<T> labelValue, out T data) {
             if (labelValue.library?.TryGetData(labelValue.id, out data) ?? false) return true;
             
             data = default;
             return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool TrySetData<T>(this LabelValue<T> labelValue, T data) {
+            return labelValue.library?.TrySetData(labelValue.id, data) ?? false;
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool SubscribeChanges<T>(this LabelValue<T> labelValue, Action<T> listener, bool notifyOnSubscribe = true) {
+            if (!LabelValueEventSystemRunner.EventSystem.Subscribe(labelValue, listener)) return false;
+
+            if (notifyOnSubscribe && labelValue.TryGetData(out var data)) {
+                listener?.Invoke(data);
+            }
+            
+            return true;
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool UnsubscribeChanges<T>(this LabelValue<T> labelValue, Action<T> listener) {
+            return LabelValueEventSystemRunner.EventSystem.Unsubscribe(labelValue, listener);
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool SubscribeChanges<T>(this LabelValue<T> labelValue, ILabelValueListener<T> listener, bool notifyOnSubscribe = true) {
+            if (!LabelValueEventSystemRunner.EventSystem.Subscribe(labelValue, listener)) return false;
+
+            if (notifyOnSubscribe && labelValue.TryGetData(out var data)) {
+                listener?.OnDataChanged(labelValue, data);
+            }
+            
+            return true;
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool UnsubscribeChanges<T>(this LabelValue<T> labelValue, ILabelValueListener<T> listener) {
+            return LabelValueEventSystemRunner.EventSystem.Unsubscribe(labelValue, listener);
         }
     }
     

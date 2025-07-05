@@ -25,11 +25,10 @@ namespace MisterGames.Common.Labels.Base {
     
     public abstract class LabelLibraryBase<T> : LabelLibraryBase {
 
-        public override Type GetDataType() {
-            return typeof(T);
-        }
-        
+        public sealed override Type GetDataType() => typeof(T);
+
         public abstract bool TryGetData(int id, out T data);
+        public abstract bool TrySetData(int id, T data);
     }
     
 }

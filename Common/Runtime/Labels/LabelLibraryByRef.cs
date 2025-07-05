@@ -37,7 +37,7 @@ namespace MisterGames.Common.Labels {
         
         private readonly Dictionary<int, (int, int)> _addressMap = new();
         private readonly Dictionary<int, int> _valueMap = new();
-
+        
         public override bool ContainsLabel(int id) {
             return GetAddress(id).index > LabelLibrary.Null;
         }
@@ -93,6 +93,19 @@ namespace MisterGames.Common.Labels {
 
             ref var arr = ref _labelArrays[array];
             data = arr.labels[index].data;
+            return true;
+        }
+        
+        public override bool TrySetData(int id, T data) {
+            (int array, int index) = GetAddress(id);
+            if (index < 0) return false;
+
+            ref var arr = ref _labelArrays[array];
+            ref var label = ref arr.labels[index];
+            
+            label.data = data;
+            LabelValueEventSystemRunner.EventSystem.NotifyDataChanged(new LabelValue<T>(this, id), data);
+            
             return true;
         }
 
