@@ -35,7 +35,21 @@ namespace MisterGames.Common.GameObjects {
                 case Collider collider:
                     collider.enabled = enabled;
                     break;
+                
+                case Renderer renderer:
+                    renderer.enabled = enabled;
+                    break;
             }
+        }
+        
+        public static bool IsEnabled(this Object obj) {
+            return obj switch {
+                GameObject go => go.activeSelf && go.activeInHierarchy,
+                Behaviour bhv => bhv.enabled,
+                Collider collider => collider.enabled,
+                Renderer renderer => renderer.enabled,
+                _ => false
+            };
         }
 
         public static string GetPathInScene(this GameObject gameObject, bool includeSceneName = true) {
