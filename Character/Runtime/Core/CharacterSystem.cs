@@ -31,12 +31,28 @@ namespace MisterGames.Character.Core {
         }
         
 #if UNITY_EDITOR
-        private void Start() {
+        private void OnEnable() {
+            if (TryTeleportToSpawnPoint()) return;
+            
+            SceneManager.activeSceneChanged += OnActiveSceneChanged;
+        }
+
+        private void OnDisable() {
+            SceneManager.activeSceneChanged -= OnActiveSceneChanged;
+        }
+
+        private void OnActiveSceneChanged(Scene arg0, Scene arg1) {
+            if (!TryTeleportToSpawnPoint()) return;
+            
+            SceneManager.activeSceneChanged -= OnActiveSceneChanged;
+        }
+
+        private bool TryTeleportToSpawnPoint() {
             if (_hero == null ||
                 !_hero.TryGetComponent(out CharacterMotionPipeline motion) || motion.HasBeenTeleported ||
                 FindObjectsByType<CharacterSpawnPoint>(FindObjectsInactive.Exclude, FindObjectsSortMode.None) is not { Length: > 0 } spawnPoints
             ) {
-                return;
+                return false;
             }
             
             Array.Sort(spawnPoints, (p0, p1) => p0.transform.GetInstanceID().CompareTo(p1.transform.GetInstanceID()));
@@ -44,6 +60,7 @@ namespace MisterGames.Character.Core {
                 
             spawnPoint.transform.GetPositionAndRotation(out var position, out var rotation);
             motion.Teleport(position, rotation, preserveVelocity: false);
+            return true;
         }
 #endif
     }

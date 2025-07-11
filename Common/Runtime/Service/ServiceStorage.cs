@@ -12,13 +12,15 @@ namespace MisterGames.Common.Service {
         private readonly MultiValueDictionary<object, Type> _globalServiceToTypeMap = new();
         private readonly MultiValueDictionary<KeyIdInstance, Type> _serviceWithIdToTypeMap = new();
 
-        public ServiceBuilder<T> RegisterGlobal<T>(T service) where T : class {
-            var type = typeof(T);
-            
+        public ServiceBuilder RegisterGlobal<T>(T service) where T : class {
+            return RegisterGlobal(service, typeof(T));
+        }
+
+        public ServiceBuilder RegisterGlobal(object service, Type type) {
             if (service == null) {
                 LogError($"trying to register global service of type [{type.Name}], " +
                          $"but passed service instance is null.");
-                return CreateServiceBuilder<T>(null);
+                return CreateServiceBuilder(null);
             }
 
             if (_globalServicesMap.TryGetValue(type, out object existent)) {
@@ -40,9 +42,9 @@ namespace MisterGames.Common.Service {
             return CreateServiceBuilder(service);
         }
 
-        public void UnregisterGlobal<T>(T service) where T : class {
+        public void UnregisterGlobal(object service) {
             if (service == null) {
-                LogError($"trying to unregister global service of type [{typeof(T).Name}], " +
+                LogError($"trying to unregister global service, " +
                          $"but passed service instance is null.");
                 return;
             }
@@ -55,16 +57,18 @@ namespace MisterGames.Common.Service {
 
             _globalServiceToTypeMap.RemoveValues(service);
             
-            if (count > 0) LogInfo($"global service {service} of type [{typeof(T).Name}] is unregistered.");
+            if (count > 0) LogInfo($"global service {service} of type [{service.GetType().Name}] is unregistered.");
         }
         
-        public ServiceBuilder<T> Register<T>(T service, int id) where T : class {
-            var type = typeof(T);
-            
+        public ServiceBuilder Register<T>(T service, int id) where T : class {
+            return Register(service, typeof(T), id);
+        }
+
+        public ServiceBuilder Register(object service, Type type, int id) {
             if (service == null) {
                 LogError($"trying to register service of type [{type.Name}] with id [{id}], " +
                          $"but passed service instance is null.");
-                return CreateServiceBuilder<T>(null, id);
+                return CreateServiceBuilder(null, id);
             }
             
             var typeKey = CreateIdTypeKey(type, id);
@@ -88,9 +92,9 @@ namespace MisterGames.Common.Service {
             return CreateServiceBuilder(service, id);
         }
 
-        public void Unregister<T>(T service, int id) where T : class {
+        public void Unregister(object service, int id) {
             if (service == null) {
-                LogError($"trying to unregister service of type [{typeof(T).Name}] with id [{id}], " +
+                LogError($"trying to unregister service with id [{id}], " +
                          $"but passed service instance is null.");
                 return;
             }
@@ -104,7 +108,7 @@ namespace MisterGames.Common.Service {
 
             _serviceWithIdToTypeMap.RemoveValues(instanceKey);
             
-            if (count > 0) LogInfo($"service {service} of type [{typeof(T).Name}] with id [{id}] is unregistered.");
+            if (count > 0) LogInfo($"service {service} of type [{service.GetType().Name}] with id [{id}] is unregistered.");
         }
 
         public T GetGlobalService<T>() where T : class {
@@ -122,15 +126,15 @@ namespace MisterGames.Common.Service {
             _globalServiceToTypeMap.Clear();
         }
 
-        private ServiceBuilder<T> CreateServiceBuilder<T>(T service, int? id = null) where T : class {
-            return new ServiceBuilder<T>(this, service, id);
+        private ServiceBuilder CreateServiceBuilder(object service, int? id = null) {
+            return new ServiceBuilder(this, service, id);
         }
 
         private static KeyIdType CreateIdTypeKey(Type type, int id) {
             return new KeyIdType(id, type);
         }
         
-        private static KeyIdInstance CreateIdInstanceKey<T>(T instance, int id) where T : class {
+        private static KeyIdInstance CreateIdInstanceKey(object instance, int id) {
             return new KeyIdInstance(id, instance);
         }
         
