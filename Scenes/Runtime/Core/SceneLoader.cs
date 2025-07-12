@@ -5,6 +5,7 @@ using Cysharp.Threading.Tasks;
 using MisterGames.Common.Data;
 using MisterGames.Common.Easing;
 using MisterGames.Common.Lists;
+using MisterGames.Common.Strings;
 using MisterGames.Scenes.Loading;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -31,6 +32,9 @@ namespace MisterGames.Scenes.Core {
             public CancellationTokenSource cts;
             public bool isLoading;
         }
+        
+        private const bool EnableLogs = true;
+        private static readonly string LogPrefix = "SceneLoader: ".FormatColorOnlyForEditor(Color.white);
         
         public static ApplicationLaunchMode LaunchMode => _instance._applicationLaunchMode;
         
@@ -63,8 +67,8 @@ namespace MisterGames.Scenes.Core {
             
 #if UNITY_EDITOR
             if (_rootScene != SceneLoaderSettings.Instance.rootScene.scene) {
-                Debug.LogError($"{nameof(SceneLoader)}: loaded not on the root scene {SceneLoaderSettings.Instance.rootScene.scene}, " + 
-                               $"make sure {nameof(SceneLoader)} is on the root scene that should be selected in {nameof(SceneLoaderSettings)} asset.");
+                LogError($"loaded not on the root scene {SceneLoaderSettings.Instance.rootScene.scene}, " + 
+                         $"make sure {nameof(SceneLoader)} is on the root scene that should be selected in {nameof(SceneLoaderSettings)} asset.");
             }
 
             playSplashScreen &= _playSplashScreenInEditor;
@@ -137,10 +141,10 @@ namespace MisterGames.Scenes.Core {
             bool result = SceneManager.SetActiveScene(SceneManager.GetSceneByName(sceneName));
 
             if (result) {
-                Debug.Log($"SceneLoader: set active scene <color=green>{sceneName}</color>");
+                LogInfo($"set active scene {sceneName.FormatColorOnlyForEditor(Color.green)}");
             }
             else {
-                Debug.LogWarning($"SceneLoader: failed to set active scene <color=red>{sceneName}</color>");
+                LogWarning($"failed to set active scene {sceneName.FormatColorOnlyForEditor(Color.red)}");
             }
             
             return result;
@@ -186,7 +190,7 @@ namespace MisterGames.Scenes.Core {
 
             if (data.cts.IsCancellationRequested) return;
             
-            Debug.Log($"SceneLoader: loaded scene <color=yellow>{sceneName}</color> ({SceneManager.GetSceneByName(sceneName).buildIndex})");
+            LogInfo($"loaded scene {sceneName.FormatColorOnlyForEditor(Color.yellow)} ({SceneManager.GetSceneByName(sceneName).buildIndex})");
 
             if (makeActive) SetActiveScene(sceneName);
         }
@@ -219,7 +223,7 @@ namespace MisterGames.Scenes.Core {
             
             if (data.cts.IsCancellationRequested) return;
 
-            Debug.Log($"SceneLoader: unloaded scene <color=yellow>{sceneName}</color>");
+            LogInfo($"unloaded scene {sceneName.FormatColorOnlyForEditor(Color.yellow)}");
             
             _loadSceneDataMap.Remove(sceneName);
         }
@@ -253,6 +257,18 @@ namespace MisterGames.Scenes.Core {
             ArrayPool<UniTask>.Shared.Return(tasks);
         }
 
+        private static void LogInfo(string message) {
+            if (EnableLogs) Debug.Log($"{LogPrefix}{message}");
+        }
+        
+        private static void LogWarning(string message) {
+            if (EnableLogs) Debug.LogWarning($"{LogPrefix}{message}");
+        }
+        
+        private static void LogError(string message) {
+            if (EnableLogs) Debug.LogError($"{LogPrefix}{message}");
+        }
+        
 #if UNITY_EDITOR
         [Header("Debug")]
         [SerializeField] private bool _playSplashScreenInEditor = false;

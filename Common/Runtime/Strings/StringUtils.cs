@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using UnityEngine;
 
 namespace MisterGames.Common.Strings {
 
-    public static class StringExtensions {
+    public static class StringUtils {
 
         public const string PatternFieldName = @"^([a-zA-Z_])([a-zA-Z0-9_]*)";
         public const string PatternFileName = @"[a-zA-Z0-9_ ]";
@@ -50,6 +51,19 @@ namespace MisterGames.Common.Strings {
             }
             
             return sb.ToString();
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static string FormatColor(this string text, Color color) {
+            return $"<color=#{ColorUtility.ToHtmlStringRGB(color)}>{text}</color>";
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static string FormatColorOnlyForEditor(this string text, Color color) {
+#if UNITY_EDITOR
+            return FormatColor(text, color);
+#endif
+            return text;
         }
     }
 

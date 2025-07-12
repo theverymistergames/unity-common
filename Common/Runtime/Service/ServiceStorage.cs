@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using MisterGames.Common.Data;
+using MisterGames.Common.Strings;
 using UnityEngine;
 
 namespace MisterGames.Common.Service {
@@ -12,6 +13,9 @@ namespace MisterGames.Common.Service {
         private readonly MultiValueDictionary<object, Type> _globalServiceToTypeMap = new();
         private readonly MultiValueDictionary<KeyIdInstance, Type> _serviceWithIdToTypeMap = new();
 
+        private const bool EnableLogs = true;
+        private static readonly string LogPrefix = "Services: ".FormatColorOnlyForEditor(Color.white);
+        
         public ServiceBuilder RegisterGlobal<T>(T service) where T : class {
             return RegisterGlobal(service, typeof(T));
         }
@@ -57,7 +61,7 @@ namespace MisterGames.Common.Service {
 
             _globalServiceToTypeMap.RemoveValues(service);
             
-            if (count > 0) LogInfo($"global service {service} of type [{service.GetType().Name}] is unregistered.");
+            if (count > 0) LogInfo($"global service [{service}] of type [{service.GetType().Name}] is unregistered.");
         }
         
         public ServiceBuilder Register<T>(T service, int id) where T : class {
@@ -108,7 +112,7 @@ namespace MisterGames.Common.Service {
 
             _serviceWithIdToTypeMap.RemoveValues(instanceKey);
             
-            if (count > 0) LogInfo($"service {service} of type [{service.GetType().Name}] with id [{id}] is unregistered.");
+            if (count > 0) LogInfo($"service [{service}] of type [{service.GetType().Name}] with id [{id}] is unregistered.");
         }
 
         public T GetGlobalService<T>() where T : class {
@@ -138,16 +142,16 @@ namespace MisterGames.Common.Service {
             return new KeyIdInstance(id, instance);
         }
         
-        private void LogInfo(string message) {
-            Debug.Log($"<color=white>Services</color>: {message}");
+        private static void LogInfo(string message) {
+            if (EnableLogs) Debug.Log($"{LogPrefix}{message}");
         }
         
-        private void LogWarning(string message) {
-            Debug.LogWarning($"<color=white>Services</color>: {message}");
+        private static void LogWarning(string message) {
+            if (EnableLogs) Debug.LogWarning($"{LogPrefix}{message}");
         }
         
-        private void LogError(string message) {
-            Debug.LogError($"<color=white>Services</color>: {message}");
+        private static void LogError(string message) {
+            if (EnableLogs) Debug.LogError($"{LogPrefix}{message}");
         }
         
         private readonly struct KeyIdType : IEquatable<KeyIdType> {
