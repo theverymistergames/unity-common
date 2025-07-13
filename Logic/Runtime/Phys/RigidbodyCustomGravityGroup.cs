@@ -5,6 +5,7 @@ using MisterGames.Common.Attributes;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Tick;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace MisterGames.Logic.Phys {
     
@@ -12,8 +13,7 @@ namespace MisterGames.Logic.Phys {
     public sealed class RigidbodyCustomGravityGroup : MonoBehaviour, IUpdate {
         
         [Header("Default State")]
-        [SerializeField] private bool _isKinematic;
-        [SerializeField] private bool _returnToInitialPositions;
+        [SerializeField] private Options _options;
         [SerializeField] private StartMode _startMode;
         
         [Header("Gravity")]
@@ -23,7 +23,21 @@ namespace MisterGames.Logic.Phys {
         [SerializeField] private CustomGravitySource _localGravitySource;
         [SerializeField] private bool _useGravity = true;
         [SerializeField] private float _gravityScale = 1f;
-
+        
+        [Header("Torque")]
+        [SerializeField] private bool _addRandomTorqueOnGravityChange = true;
+        [SerializeField] [Min(0f)] private float _torqueMin = 0f;
+        [SerializeField] [Min(0f)] private float _torqueMax = 60f;
+        
+        [Flags]
+        public enum Options {
+            UseDefault = 0,
+            None = 1,
+            SetKinematic = 2,
+            ReturnToInitialPosition = 4,
+            ContinuousSpeculativeCCD = 8,
+        }
+        
         private enum StartMode {
             OnEnable,
             OnGravityChanged,
@@ -32,10 +46,12 @@ namespace MisterGames.Logic.Phys {
         private readonly struct RigidbodyData {
             public readonly Vector3 position;
             public readonly Quaternion rotation;
+            public readonly Options options;
             
-            public RigidbodyData(Vector3 position, Quaternion rotation) {
+            public RigidbodyData(Vector3 position, Quaternion rotation, Options options) {
                 this.position = position;
                 this.rotation = rotation;
+                this.options = options;
             }
         }
         
@@ -79,8 +95,8 @@ namespace MisterGames.Logic.Phys {
             }
         }
 
-        public void Register(Rigidbody rigidbody) {
-            if (!_rigidbodyMap.TryAdd(rigidbody, new RigidbodyData(rigidbody.position, rigidbody.rotation))) return;
+        public void Register(Rigidbody rigidbody, Options options) {
+            if (!_rigidbodyMap.TryAdd(rigidbody, new RigidbodyData(rigidbody.position, rigidbody.rotation, CreateOptions(options, _options)))) return;
             
             if (_isCustomGravityActive) SetupRigidbodyActiveState(rigidbody);
             else SetupRigidbodyInitialState(rigidbody);
@@ -91,26 +107,39 @@ namespace MisterGames.Logic.Phys {
             _rigidbodyMap.Remove(rigidbody);
         }
 
+        private static Options CreateOptions(Options optionsOfRigidbody, Options defaultOptions) {
+            return optionsOfRigidbody == Options.UseDefault ? defaultOptions : optionsOfRigidbody;
+        }
+
         private void SetupRigidbodyActiveState(Rigidbody rigidbody) {
+            if (!_rigidbodyMap.TryGetValue(rigidbody, out var data)) return;
+            
             rigidbody.isKinematic = false;
+            
+            if ((data.options & Options.ContinuousSpeculativeCCD) == Options.ContinuousSpeculativeCCD) {
+                rigidbody.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
+            }
         }
 
         private void SetupRigidbodyInitialState(Rigidbody rigidbody) {
-            if (!_rigidbodyMap.TryGetValue(rigidbody, out var data)) return;
+            if (!_rigidbodyMap.TryGetValue(rigidbody, out var data) || rigidbody == null) return;
+
+            if ((data.options & Options.SetKinematic) == Options.SetKinematic) {
+                rigidbody.isKinematic = true;
+            }
+
+            if ((data.options & Options.ReturnToInitialPosition) == Options.ReturnToInitialPosition) {
+                rigidbody.Sleep();
             
-            rigidbody.isKinematic = _isKinematic;
+                rigidbody.position = data.position;
+                rigidbody.rotation = data.rotation;
             
-            if (!_returnToInitialPositions) return;
-            
-            rigidbody.Sleep();
-            
-            rigidbody.position = data.position;
-            rigidbody.rotation = data.rotation;
-            
-            rigidbody.WakeUp();
+                rigidbody.WakeUp();   
+            }
         }
         
         void IUpdate.OnUpdate(float dt) {
+            var lastGravity = _lastGravity;
             var gravity = GetGravity(_center.position, out bool useGravity);
             bool changed = NotifyGravityVector(gravity);
             
@@ -123,13 +152,19 @@ namespace MisterGames.Logic.Phys {
                     SetupRigidbodyActiveState(rb);
                 }
             }
+
+            if (changed && Vector3.Dot(gravity, lastGravity) < 0f) {
+                foreach (var rb in _rigidbodyMap.Keys) {
+                    rb.AddTorque(Random.Range(_torqueMin, _torqueMax) * Random.onUnitSphere, ForceMode.Acceleration);
+                }
+            }
             
             foreach (var rb in _rigidbodyMap.Keys) {
                 rb.useGravity = useGravity;
                 
                 if (!_useGravity || !changed && rb.IsSleeping()) return;
                 
-                rb.AddForce(gravity, ForceMode.Acceleration);   
+                rb.AddForce(gravity, ForceMode.Acceleration);
             }
         }
 

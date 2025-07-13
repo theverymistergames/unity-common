@@ -5,6 +5,7 @@ using UnityEngine;
 
 namespace MisterGames.Common.Service {
     
+    [DefaultExecutionOrder(-10_000)]
     public sealed class ComponentServiceRegisterer : MonoBehaviour {
         
         [SerializeField] private Component _component;

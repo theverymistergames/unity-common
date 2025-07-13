@@ -1,4 +1,5 @@
-﻿using MisterGames.Common.Labels;
+﻿using System.Collections;
+using MisterGames.Common.Labels;
 using MisterGames.Common.Service;
 using UnityEngine;
 
@@ -8,24 +9,26 @@ namespace MisterGames.Logic.Phys {
     public sealed class RigidbodyCustomGravityGroupMember : MonoBehaviour {
         
         [SerializeField] private Rigidbody _rigidbody;
-        [SerializeField] private LabelValue[] _groups;
+        [SerializeField] private LabelValue _group;
+        [SerializeField] private RigidbodyCustomGravityGroup.Options _options;
 
         private void OnEnable() {
-            for (int i = 0; i < _groups.Length; i++) {
-                Services.Get<RigidbodyCustomGravityGroup>(_groups[i].GetValue())?.Register(_rigidbody);
-            }
+            Services.Get<RigidbodyCustomGravityGroup>(_group.GetValue())?.Register(_rigidbody, _options);
         }
 
         private void OnDisable() {
-            for (int i = 0; i < _groups.Length; i++) {
-                Services.Get<RigidbodyCustomGravityGroup>(_groups[i].GetValue())?.Unregister(_rigidbody);
-            }
+            Services.Get<RigidbodyCustomGravityGroup>(_group.GetValue())?.Unregister(_rigidbody);
         }
         
 #if UNITY_EDITOR
         private void Reset() {
+            StartCoroutine(ResetNextFrame());
+        }
+
+        private IEnumerator ResetNextFrame() {
+            yield return null;
             _rigidbody = GetComponent<Rigidbody>();
-        }  
+        }
 #endif
     }
     
