@@ -9,6 +9,7 @@ namespace MisterGames.Common.Tick {
         public bool IsPaused { get; set; }
         public float DeltaTime { get; private set; }
         public float TimeScale { get => _timeScaleProvider.TimeScale; set => _timeScaleProvider.TimeScale = value; }
+        public float ScaledTime { get; private set; }
 
         public int SubscribersCount => _updateList.Count;
 
@@ -52,7 +53,8 @@ namespace MisterGames.Common.Tick {
 
         public void Tick() {
             DeltaTime = IsPaused ? 0f : _deltaTimeProvider.DeltaTime * _timeScaleProvider.TimeScale;
-
+            ScaledTime += DeltaTime;
+            
             int count = _updateList.Count;
             for (int i = 0; i < count; i++) {
                 if (_updateList[i] is { } update) {
@@ -79,7 +81,6 @@ namespace MisterGames.Common.Tick {
 
         public void Reset() {
             IsPaused = false;
-            DeltaTime = 0f;
             
             _updateList.Clear();
             _indexMap.Clear();

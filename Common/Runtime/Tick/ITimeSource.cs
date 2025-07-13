@@ -4,6 +4,7 @@
         
         float DeltaTime { get; }
         float TimeScale { get; set; }
+        float ScaledTime { get; }
         bool IsPaused { get; set; }
 
         bool Subscribe(IUpdate sub);

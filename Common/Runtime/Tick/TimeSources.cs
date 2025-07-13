@@ -28,6 +28,15 @@ namespace MisterGames.Common.Tick {
 #else
         Time.time;
 #endif
+        
+        public static float scaledTime =>
+#if UNITY_EDITOR
+            !Application.isPlaying && _isRunningEditorUpdates 
+                ? _editorUpdatesTime 
+                : Get(PlayerLoopStage.Update).ScaledTime;
+#else
+        Time.time;
+#endif
 
 #if UNITY_EDITOR
         internal static bool ShowDebugInfo => _provider?.ShowDebugInfo ?? false;
