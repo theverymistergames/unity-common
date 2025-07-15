@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using MisterGames.Collisions.Core;
-using MisterGames.Collisions.Detectors;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Audio;
 using MisterGames.Common.Labels;
@@ -68,6 +67,7 @@ namespace MisterGames.Logic.Phys {
         
         private void PlaySound(Vector3 point, int rbMaterial, int surfaceMaterial, float volumeMul = 1f) {
             if (!_materialPairToIndexMap.TryGetValue((rbMaterial, surfaceMaterial), out int index) &&
+                !_materialPairToIndexMap.TryGetValue((0, surfaceMaterial), out index) &&
                 !_materialPairToIndexMap.TryGetValue((rbMaterial, 0), out index)) 
             {
                 return;

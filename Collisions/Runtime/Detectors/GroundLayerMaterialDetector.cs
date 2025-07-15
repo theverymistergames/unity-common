@@ -27,7 +27,7 @@ namespace MisterGames.Collisions.Detectors {
         private int _lastContactHash;
         private int _lastContactMaterialId;
         
-        public override IReadOnlyList<MaterialInfo> GetMaterials() {
+        public override IReadOnlyList<MaterialInfo> GetMaterials(Vector3 point) {
             _materialList.Clear();
             
             if (!_collisionDetector.HasContact) {

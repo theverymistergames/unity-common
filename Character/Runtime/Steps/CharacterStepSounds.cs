@@ -12,7 +12,8 @@ using UnityEngine;
 namespace MisterGames.Character.Steps {
     
     public sealed class CharacterStepSounds : MonoBehaviour, IActorComponent {
-        
+
+        [SerializeField] private CapsuleCollider _capsuleCollider;
         [SerializeField] private MaterialDetectorBase _materialDetector;
         [SerializeField] [Range(0f, 2f)] private float _volume = 1f;
         [SerializeField] [MinMaxSlider(0f, 2f)] private Vector2 _pitch = new Vector2(0.9f, 1.1f);
@@ -53,8 +54,11 @@ namespace MisterGames.Character.Steps {
             if (time < _nextStepSoundTime) return;
             
             _nextStepSoundTime = time + (cooldown < 0f ? _playSoundCooldown : cooldown);
+
+            var up = _transform.up;
+            var point = _transform.TransformPoint(_capsuleCollider.center) - _capsuleCollider.height * 0.5f * up;
             
-            var materials = _materialDetector.GetMaterials();
+            var materials = _materialDetector.GetMaterials(point);
             
             for (int i = 0; i < materials.Count; i++) {
                 var info = materials[i];

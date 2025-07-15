@@ -8,7 +8,6 @@ namespace MisterGames.Collisions.Detectors {
     
     public sealed class TerrainMaterialDetector : MaterialDetectorBase {
 
-        [SerializeField] private CapsuleCollider _capsuleCollider;
         [SerializeField] private CollisionDetectorBase _groundDetector;
         [SerializeField] private LabelValue _defaultMaterial;
         [SerializeField] [Min(0f)] private float _weight = 1f;
@@ -22,7 +21,6 @@ namespace MisterGames.Collisions.Detectors {
         
         private readonly Dictionary<int, int> _textureIndexToMaterialIdMap = new();
         private readonly List<MaterialInfo> _materialList = new();
-        private Transform _transform;
         private Terrain _terrain;
         private TerrainData _terrainData;
         private int _alphaMapWidth;
@@ -32,8 +30,6 @@ namespace MisterGames.Collisions.Detectors {
         private int _lastContactHash;
 
         private void Awake() {
-            _transform = _capsuleCollider.transform;
-
             FetchTextureIndexToMaterialIdMap();
         }
 
@@ -56,15 +52,13 @@ namespace MisterGames.Collisions.Detectors {
             }
         }
 
-        public override IReadOnlyList<MaterialInfo> GetMaterials() {
+        public override IReadOnlyList<MaterialInfo> GetMaterials(Vector3 point) {
             _materialList.Clear();
 
             if (_terrain == null) {
                 return _materialList;
             }
             
-            var up = _transform.up;
-            var point = _transform.TransformPoint(_capsuleCollider.center) - _capsuleCollider.height * 0.5f * up;
             var terrainCoord = ConvertToSplatMapCoordinate(_terrain, point);
 
             for (int i = 0; i < _numTextures; i++) 

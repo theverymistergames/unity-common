@@ -11,13 +11,13 @@ namespace MisterGames.Collisions.Detectors {
 
         private readonly List<MaterialInfo> _materialList = new(); 
         
-        public override IReadOnlyList<MaterialInfo> GetMaterials() {
+        public override IReadOnlyList<MaterialInfo> GetMaterials(Vector3 point) {
             _materialList.Clear();
             
             for (int i = _detectorsPrimary.Length - 1; i >= 0; i--) {
                 var detector = _detectorsPrimary[i];
                 
-                var materials = detector.GetMaterials();
+                var materials = detector.GetMaterials(point);
                 if (materials.Count == 0) continue;
 
                 _materialList.AddRange(materials);
@@ -27,7 +27,7 @@ namespace MisterGames.Collisions.Detectors {
             for (int i = _detectorsSecondary.Length - 1; i >= 0; i--) {
                 var detector = _detectorsSecondary[i];
                 
-                var materials = detector.GetMaterials();
+                var materials = detector.GetMaterials(point);
                 if (materials.Count == 0) continue;
 
                 _materialList.AddRange(materials);
