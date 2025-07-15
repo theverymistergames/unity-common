@@ -58,7 +58,7 @@ namespace MisterGames.Character.Steps {
             var up = _transform.up;
             var point = _transform.TransformPoint(_capsuleCollider.center) - _capsuleCollider.height * 0.5f * up;
             
-            var materials = _materialDetector.GetMaterials(point);
+            var materials = _materialDetector.GetMaterials(point, up);
             
             for (int i = 0; i < materials.Count; i++) {
                 var info = materials[i];

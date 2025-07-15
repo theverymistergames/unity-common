@@ -11,7 +11,6 @@ namespace MisterGames.Collisions.Detectors {
     
     public sealed class TriggerSurfaceDetector : MaterialDetectorBase {
         
-        [SerializeField] private Transform _transform;
         [SerializeField] private TriggerEmitter _triggerEmitter;
         [SerializeField] private LayerMask _layerMask;
         [SerializeField] private LabelValue _material;
@@ -44,10 +43,8 @@ namespace MisterGames.Collisions.Detectors {
             _colliders.Remove(collider);
         }
 
-        public override IReadOnlyList<MaterialInfo> GetMaterials(Vector3 point) {
+        public override IReadOnlyList<MaterialInfo> GetMaterials(Vector3 point, Vector3 normal) {
             _materialList.Clear();
-            
-            var up = _transform.up;
             
 #if UNITY_EDITOR
             if (_showDebugInfo) DebugExt.DrawSphere(point, 0.01f, Color.yellow, duration: 1f);
@@ -55,18 +52,18 @@ namespace MisterGames.Collisions.Detectors {
 
             var topPoint = point;
             
-            if (!TrySampleTopPoint(up, ref topPoint)) {
+            if (!TrySampleTopPoint(normal, ref topPoint)) {
                 return _materialList;
             }
 
 #if UNITY_EDITOR
             if (_showDebugInfo) {
-                DebugExt.DrawCircle(point, _transform.rotation, 0.05f, Color.green, duration: 1f);
-                DebugExt.DrawRay(point, _transform.up * 0.005f, Color.green, duration: 1f);
+                DebugExt.DrawCircle(point, Quaternion.identity, 0.05f, Color.green, duration: 1f);
+                DebugExt.DrawRay(point, normal * 0.005f, Color.green, duration: 1f);
             }
 #endif
 
-            float mag = VectorUtils.SignedMagnitudeOfProject(topPoint - point, up);
+            float mag = VectorUtils.SignedMagnitudeOfProject(topPoint - point, normal);
             float weight = mag > 0f 
                 ? Mathf.Lerp(_weightMin, _weightMax, _maxDistance > 0f ? Mathf.Clamp01(mag / _maxDistance) : 1f) 
                 : 0f;

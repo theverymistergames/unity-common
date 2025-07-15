@@ -6,7 +6,7 @@ namespace MisterGames.Collisions.Detectors {
     
     public abstract class MaterialDetectorBase : MonoBehaviour {
 
-        public abstract IReadOnlyList<MaterialInfo> GetMaterials(Vector3 point);
+        public abstract IReadOnlyList<MaterialInfo> GetMaterials(Vector3 point, Vector3 normal);
     }
     
 }

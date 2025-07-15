@@ -52,7 +52,7 @@ namespace MisterGames.Collisions.Detectors {
             }
         }
 
-        public override IReadOnlyList<MaterialInfo> GetMaterials(Vector3 point) {
+        public override IReadOnlyList<MaterialInfo> GetMaterials(Vector3 point, Vector3 normal) {
             _materialList.Clear();
 
             if (_terrain == null) {
