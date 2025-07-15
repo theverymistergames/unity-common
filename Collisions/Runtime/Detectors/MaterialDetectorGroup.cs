@@ -1,7 +1,8 @@
 ﻿using System.Collections.Generic;
+using MisterGames.Collisions.Core;
 using UnityEngine;
 
-namespace MisterGames.Character.Phys {
+namespace MisterGames.Collisions.Detectors {
     
     public sealed class MaterialDetectorGroup : MaterialDetectorBase {
 

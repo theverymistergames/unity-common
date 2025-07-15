@@ -1,4 +1,4 @@
-﻿namespace MisterGames.Character.Phys {
+﻿namespace MisterGames.Collisions.Core {
     
     public readonly struct MaterialInfo {
 

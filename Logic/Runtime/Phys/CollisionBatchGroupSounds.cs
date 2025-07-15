@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using MisterGames.Collisions.Core;
+using MisterGames.Collisions.Detectors;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Audio;
 using MisterGames.Common.Labels;
@@ -23,13 +24,15 @@ namespace MisterGames.Logic.Phys {
         [Serializable]
         private struct MaterialSounds {
             public LabelValue material;
+            public LabelValue surface;
             [Range(0f, 2f)] public float volume;
             [MinMaxSlider(0f, 2f)] public Vector2 pitch;
             public AudioClip[] clips;
         }
         
-        private readonly Dictionary<int, int> _materialIdToIndexMap = new();
+        private readonly Dictionary<(int material, int surface), int> _materialPairToIndexMap = new();
         private readonly Dictionary<int, float> _lastSoundTimeMap = new();
+        private readonly Dictionary<int, int> _colliderMaterialMap = new();
         
         private void OnEnable() {
             _collisionBatchGroup.OnContact += OnContact;
@@ -40,21 +43,35 @@ namespace MisterGames.Logic.Phys {
             _collisionBatchGroup.OnContact -= OnContact;
         }
 
-        private void OnContact(TriggerEventType evt, Rigidbody rb, int surfaceMaterial, Vector3 point, Vector3 normal, Vector3 impulse) {
+        private void OnContact(TriggerEventType evt, Rigidbody rb, int surfaceMaterial, Collider collider, Vector3 point, Vector3 normal, Vector3 impulse) {
             if (evt != TriggerEventType.Enter ||
                 _lastSoundTimeMap.TryGetValue(rb.GetInstanceID(), out float lastSoundTime) && TimeSources.scaledTime < lastSoundTime + _soundCooldown) 
             {
                 return;
             }
-            
+
             _lastSoundTimeMap[rb.GetInstanceID()] = TimeSources.scaledTime;
 
             float volumeMul = _impulseMax > 0f ? Mathf.Clamp01(impulse.sqrMagnitude / (_impulseMax * _impulseMax)) : 1f;
-            PlaySound(point, surfaceMaterial, volumeMul);
+            PlaySound(point, surfaceMaterial, GetSurfaceMaterial(collider), volumeMul);
+        }
+
+        private int GetSurfaceMaterial(Collider collider) {
+            int instanceId = collider.GetInstanceID();
+            if (_colliderMaterialMap.TryGetValue(instanceId, out int material)) return material;
+
+            material = collider.TryGetComponent(out SurfaceMaterial surfaceMaterial) ? surfaceMaterial.MaterialId : 0;
+            _colliderMaterialMap[instanceId] = material;
+            
+            return material;
         }
         
-        private void PlaySound(Vector3 point, int surfaceMaterial, float volumeMul = 1f) {
-            if (!_materialIdToIndexMap.TryGetValue(surfaceMaterial, out int index)) return;
+        private void PlaySound(Vector3 point, int rbMaterial, int surfaceMaterial, float volumeMul = 1f) {
+            if (!_materialPairToIndexMap.TryGetValue((rbMaterial, surfaceMaterial), out int index) &&
+                !_materialPairToIndexMap.TryGetValue((rbMaterial, 0), out index)) 
+            {
+                return;
+            }
             
             ref var data = ref _materialSounds[index];
 
@@ -68,11 +85,11 @@ namespace MisterGames.Logic.Phys {
         }
         
         private void FetchMaterialIdToIndexMap() {
-            _materialIdToIndexMap.Clear();
+            _materialPairToIndexMap.Clear();
             
             for (int i = 0; i < _materialSounds?.Length; i++) {
-                ref var materialSounds = ref _materialSounds[i];
-                _materialIdToIndexMap[materialSounds.material.GetValue()] = i;
+                ref var data = ref _materialSounds[i];
+                _materialPairToIndexMap[(data.material.GetValue(), data.surface.GetValue())] = i;
             }
         }
         

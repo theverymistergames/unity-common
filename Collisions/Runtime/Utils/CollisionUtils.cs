@@ -1,20 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using MisterGames.Collisions.Core;
 using MisterGames.Common.Layers;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
 namespace MisterGames.Collisions.Utils {
     
+    [InitializeOnLoad]
     public static class CollisionUtils {
 
         private static readonly IComparer<RaycastHit> RaycastHitDistanceComparerAsc = new RaycastHitDistanceComparer(true);
         private static readonly IComparer<RaycastHit> RaycastHitDistanceComparerDesc = new RaycastHitDistanceComparer(false);
         private static readonly IComparer<RaycastResult> RaycastResultDistanceComparerAsc = new RaycastResultDistanceComparer(true);
         private static readonly IComparer<RaycastResult> RaycastResultDistanceComparerDesc = new RaycastResultDistanceComparer(false);
-
+        
+        private static Func<int, Collider> _getColliderById;
+        
         private sealed class RaycastHitDistanceComparer : IComparer<RaycastHit> {
             private readonly int _orderSign;
             public RaycastHitDistanceComparer(bool ascending) => _orderSign = ascending ? 1 : -1;
@@ -25,6 +30,22 @@ namespace MisterGames.Collisions.Utils {
             private readonly int _orderSign;
             public RaycastResultDistanceComparer(bool ascending) => _orderSign = ascending ? 1 : -1;
             public int Compare(RaycastResult x, RaycastResult y) => x.distance.CompareTo(y.distance) * _orderSign;
+        }
+
+        static CollisionUtils() {
+            PrepareGetColliderByIdFunc();
+        }
+        
+        private static void PrepareGetColliderByIdFunc() {
+            if (_getColliderById != null) return;
+            
+            var method = typeof(Physics).GetMethod("GetColliderByInstanceID", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+            _getColliderById = Delegate.CreateDelegate(typeof(Func<int, Collider>), method) as Func<int, Collider>;
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Collider GetColliderByInstanceId(int instanceId) {
+            return _getColliderById.Invoke(instanceId);
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

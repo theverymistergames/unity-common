@@ -1,7 +1,7 @@
 ﻿using MisterGames.Common.Labels;
 using UnityEngine;
 
-namespace MisterGames.Character.Phys {
+namespace MisterGames.Collisions.Core {
     
     public sealed class SurfaceMaterial : MonoBehaviour {
         

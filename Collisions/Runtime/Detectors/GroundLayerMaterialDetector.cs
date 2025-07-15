@@ -6,7 +6,7 @@ using MisterGames.Common.Labels;
 using MisterGames.Common.Layers;
 using UnityEngine;
 
-namespace MisterGames.Character.Phys {
+namespace MisterGames.Collisions.Detectors {
     
     public sealed class GroundLayerMaterialDetector : MaterialDetectorBase {
 

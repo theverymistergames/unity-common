@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
 using MisterGames.Collisions.Core;
+using MisterGames.Collisions.Utils;
+using MisterGames.Common.Layers;
 using MisterGames.Common.Tick;
 using Unity.Collections;
 using Unity.Jobs;
@@ -9,7 +11,11 @@ namespace MisterGames.Logic.Phys {
 
     public sealed class CollisionBatchGroup : MonoBehaviour, IUpdate {
 
+        [SerializeField] private LayerMask _layerMask;
+        
         private struct ContactInfo {
+            public int thisColliderId;
+            public int otherColliderId;
             public int thisBodyID;
             public int otherBodyID;
             public Vector3 point;
@@ -28,7 +34,7 @@ namespace MisterGames.Logic.Phys {
         }
 
         public event ContactEvent OnContact = delegate { };
-        public delegate void ContactEvent(TriggerEventType evt, Rigidbody rigidbody, int surfaceMaterial, Vector3 point, Vector3 normal, Vector3 impulse);
+        public delegate void ContactEvent(TriggerEventType evt, Rigidbody rigidbody, int rbMaterial, Collider collider, Vector3 point, Vector3 normal, Vector3 impulse);
 
         private readonly Dictionary<int, RigidbodyData> _rbIdToDataMap = new();
 
@@ -64,43 +70,60 @@ namespace MisterGames.Logic.Phys {
             _rbIdToDataMap.Remove(rigidbody.GetInstanceID());
         }
 
+        
+
         void IUpdate.OnUpdate(float dt) {
             _jobHandle.Complete();
 
             for (int i = 0; i < _contactInfoCount; i++) {
                 var info = _contactEnterArray[i];
-                if (info.thisBodyID != 0 || info.otherBodyID != 0) {
-                    if (_rbIdToDataMap.TryGetValue(info.thisBodyID, out var thisData)) {
-                        OnContact.Invoke(TriggerEventType.Enter, thisData.rigidbody, thisData.surfaceMaterial, info.point, info.normal, info.impulse);
-                    }
-
-                    if (_rbIdToDataMap.TryGetValue(info.thisBodyID, out var otherData)) {
-                        OnContact.Invoke(TriggerEventType.Enter, otherData.rigidbody, otherData.surfaceMaterial, info.point, info.normal, info.impulse);
-                    }
+                if (IsValidContact(info.thisBodyID, info.otherBodyID, info.otherColliderId, out var rb, out int surfaceMaterial, out var collider)) {
+                    OnContact.Invoke(TriggerEventType.Enter, rb, surfaceMaterial, collider, info.point, info.normal, info.impulse);
+                }
+                if (IsValidContact(info.otherBodyID, info.thisBodyID, info.thisColliderId, out rb, out surfaceMaterial, out collider)) {
+                    OnContact.Invoke(TriggerEventType.Enter, rb, surfaceMaterial, collider, info.point, info.normal, info.impulse);
                 }
                 
                 info = _contactStayArray[i];
-                if (info.thisBodyID != 0 || info.otherBodyID != 0) {
-                    if (_rbIdToDataMap.TryGetValue(info.thisBodyID, out var thisData)) {
-                        OnContact.Invoke(TriggerEventType.Stay, thisData.rigidbody, thisData.surfaceMaterial, info.point, info.normal, info.impulse);
-                    }
-
-                    if (_rbIdToDataMap.TryGetValue(info.thisBodyID, out var otherData)) {
-                        OnContact.Invoke(TriggerEventType.Stay, otherData.rigidbody, otherData.surfaceMaterial, info.point, info.normal, info.impulse);
-                    }
+                if (IsValidContact(info.thisBodyID, info.otherBodyID, info.otherColliderId, out rb, out surfaceMaterial, out collider)) {
+                    OnContact.Invoke(TriggerEventType.Stay, rb, surfaceMaterial, collider, info.point, info.normal, info.impulse);
+                }
+                if (IsValidContact(info.otherBodyID, info.thisBodyID, info.thisColliderId, out rb, out surfaceMaterial, out collider)) {
+                    OnContact.Invoke(TriggerEventType.Stay, rb, surfaceMaterial, collider, info.point, info.normal, info.impulse);
                 }
                 
                 info = _contactExitArray[i];
-                if (info.thisBodyID != 0 || info.otherBodyID != 0) {
-                    if (_rbIdToDataMap.TryGetValue(info.thisBodyID, out var thisData)) {
-                        OnContact.Invoke(TriggerEventType.Exit, thisData.rigidbody, thisData.surfaceMaterial, info.point, info.normal, info.impulse);
-                    }
-
-                    if (_rbIdToDataMap.TryGetValue(info.thisBodyID, out var otherData)) {
-                        OnContact.Invoke(TriggerEventType.Exit, otherData.rigidbody, otherData.surfaceMaterial, info.point, info.normal, info.impulse);
-                    }
+                if (IsValidContact(info.thisBodyID, info.otherBodyID, info.otherColliderId, out rb, out surfaceMaterial, out collider)) {
+                    OnContact.Invoke(TriggerEventType.Exit, rb, surfaceMaterial, collider, info.point, info.normal, info.impulse);
+                }
+                if (IsValidContact(info.otherBodyID, info.thisBodyID, info.thisColliderId, out rb, out surfaceMaterial, out collider)) {
+                    OnContact.Invoke(TriggerEventType.Exit, rb, surfaceMaterial, collider, info.point, info.normal, info.impulse);
                 }
             }
+        }
+
+        private bool IsValidContact(
+            int thisBodyId,
+            int otherBodyId,
+            int colliderId,
+            out Rigidbody rigidbody,
+            out int surfaceMaterial,
+            out Collider collider) 
+        {
+            if (thisBodyId == 0 || colliderId == 0 ||
+                !_rbIdToDataMap.TryGetValue(thisBodyId, out var data)) 
+            {
+                rigidbody = null;
+                collider = null;
+                surfaceMaterial = 0;
+                return false;
+            }
+            
+            rigidbody = data.rigidbody;
+            surfaceMaterial = data.surfaceMaterial;
+            collider = CollisionUtils.GetColliderByInstanceId(colliderId);
+
+            return _layerMask.Contains(otherBodyId != 0 ? collider.attachedRigidbody.gameObject.layer : collider.gameObject.layer);
         }
         
         private void OnContactEvent(PhysicsScene scene, NativeArray<ContactPairHeader>.ReadOnly headers) {
@@ -135,14 +158,16 @@ namespace MisterGames.Logic.Phys {
             public NativeArray<ContactInfo> contactEnterArray;
             public NativeArray<ContactInfo> contactStayArray;
             public NativeArray<ContactInfo> contactExitArray;
-
+            
             public void Execute(int index) {
                 var averageNormalEnter = Vector3.zero;
                 var averagePointEnter = Vector3.zero;
                 var averageImpulseEnter = Vector3.zero;
+                
                 var averageNormalStay = Vector3.zero;
                 var averagePointStay = Vector3.zero;
                 var averageImpulseStay = Vector3.zero;
+                
                 var averageNormalExit = Vector3.zero;
                 var averagePointExit = Vector3.zero;
                 var averageImpulseExit = Vector3.zero;
@@ -151,10 +176,23 @@ namespace MisterGames.Logic.Phys {
                 int countStay = 0;
                 int countExit = 0;
 
-                for (int i = 0; i < headers[index].pairCount; i++) {
-                    ref readonly var pair = ref headers[index].GetContactPair(i);
+                var header = headers[index];
 
+                int thisColliderEnter = 0;
+                int thisColliderStay = 0;
+                int thisColliderExit = 0;
+                
+                int otherColliderEnter = 0;
+                int otherColliderStay = 0;
+                int otherColliderExit = 0;
+                
+                for (int i = 0; i < header.pairCount; i++) {
+                    ref readonly var pair = ref header.GetContactPair(i);
+                    
                     if (pair.isCollisionEnter) {
+                        thisColliderEnter = pair.colliderInstanceID;
+                        otherColliderEnter = pair.otherColliderInstanceID;
+                        
                         for (int k = 0; k < pair.contactCount; k++) {
                             ref readonly var contact = ref pair.GetContactPoint(k);
                             averageNormalEnter += contact.normal;
@@ -167,6 +205,9 @@ namespace MisterGames.Logic.Phys {
                     }
 
                     if (pair.isCollisionStay) {
+                        thisColliderStay = pair.colliderInstanceID;
+                        otherColliderStay = pair.otherColliderInstanceID;
+                        
                         for (int k = 0; k < pair.contactCount; k++) {
                             ref readonly var contact = ref pair.GetContactPoint(k);
                             averageNormalStay += contact.normal;
@@ -178,6 +219,9 @@ namespace MisterGames.Logic.Phys {
                     }
                     
                     for (int k = 0; k < pair.contactCount; k++) {
+                        thisColliderExit = pair.colliderInstanceID;
+                        otherColliderExit = pair.otherColliderInstanceID;
+                        
                         ref readonly var contact = ref pair.GetContactPoint(k);
                         averageNormalExit += contact.normal;
                         averagePointExit += contact.position;
@@ -207,8 +251,10 @@ namespace MisterGames.Logic.Phys {
                 
                 contactEnterArray[index] = countEnter > 0 
                     ? new ContactInfo { 
-                        thisBodyID = headers[index].bodyInstanceID, 
-                        otherBodyID = headers[index].otherBodyInstanceID, 
+                        thisColliderId = thisColliderEnter,
+                        otherColliderId = otherColliderEnter,
+                        thisBodyID = header.bodyInstanceID, 
+                        otherBodyID = header.otherBodyInstanceID, 
                         normal = averageNormalEnter, 
                         point = averagePointEnter,
                         impulse = averageImpulseEnter,
@@ -216,9 +262,11 @@ namespace MisterGames.Logic.Phys {
                     : default;
                 
                 contactStayArray[index] = countStay > 0 
-                    ? new ContactInfo { 
-                        thisBodyID = headers[index].bodyInstanceID, 
-                        otherBodyID = headers[index].otherBodyInstanceID, 
+                    ? new ContactInfo {
+                        thisColliderId = thisColliderStay,
+                        otherColliderId = otherColliderStay,
+                        thisBodyID = header.bodyInstanceID, 
+                        otherBodyID = header.otherBodyInstanceID, 
                         normal = averageNormalStay, 
                         point = averagePointStay,
                         impulse = averageImpulseStay,
@@ -227,8 +275,10 @@ namespace MisterGames.Logic.Phys {
                 
                 contactExitArray[index] = countExit > 0 
                     ? new ContactInfo { 
-                        thisBodyID = headers[index].bodyInstanceID, 
-                        otherBodyID = headers[index].otherBodyInstanceID, 
+                        thisColliderId = thisColliderExit,
+                        otherColliderId = otherColliderExit,
+                        thisBodyID = header.bodyInstanceID, 
+                        otherBodyID = header.otherBodyInstanceID, 
                         normal = averageNormalExit, 
                         point = averagePointExit,
                         impulse = averageImpulseExit,
