@@ -44,6 +44,7 @@ namespace MisterGames.Common.Editor.Views {
 			Func<IEnumerable<TreeEntry<PathTree.Node<T>>>, IEnumerable<TreeEntry<PathTree.Node<T>>>> sort = null,
 			Func<T, Texture2D> getIcon = null,
 			Func<T, bool> getEnabled = null,
+			Func<string[], string> pathToName = null,
 			float minWidth = -1f,
 			float height = -1f
 		) : base(new AdvancedDropdownState()) {
@@ -51,7 +52,7 @@ namespace MisterGames.Common.Editor.Views {
 			_onItemSelected = onItemSelected;
 			_getIcon = getIcon;
 			_getEnabled = getEnabled;
-			_pathTreeRoot = PathTree.CreateTree(items, getItemPath, separator, sort);
+			_pathTreeRoot = PathTree.CreateTree(items, getItemPath, separator, sort, pathToName);
 
 			if (minWidth < 0f) minWidth = Mathf.Max(minimumSize.x, MinWidth);
 			if (height < 0f) height = MinHeightLines * EditorGUIUtility.singleLineHeight;

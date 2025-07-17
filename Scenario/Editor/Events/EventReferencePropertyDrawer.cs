@@ -116,7 +116,8 @@ namespace MisterGames.Scenario.Editor.Events {
                     sort: nodes => nodes
                         .OrderBy(n => n.data.data.eventDomain == null)
                         .ThenBy(n => n.data.data.index)
-                        .ThenBy(n => n.data.name)
+                        .ThenBy(n => n.data.name),
+                    pathToName: pathParts => string.Join(Separator, pathParts)
                 );
 
                 dropdown.Show(rect);

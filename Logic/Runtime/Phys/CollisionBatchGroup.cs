@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace MisterGames.Logic.Phys {
 
-    public sealed class CollisionBatchGroup : MonoBehaviour, IUpdate {
+    public sealed class CollisionBatchGroup : MonoBehaviour {
 
         [SerializeField] private LayerMask _layerMask;
         
@@ -46,14 +46,10 @@ namespace MisterGames.Logic.Phys {
 
         private void OnEnable() {
             Physics.ContactEvent += OnContactEvent;
-
-            PlayerLoopStage.FixedUpdate.Subscribe(this);
         }
 
         private void OnDisable() {
             Physics.ContactEvent -= OnContactEvent;
-
-            PlayerLoopStage.FixedUpdate.Unsubscribe(this);
 
             _jobHandle.Complete();
             
@@ -70,11 +66,36 @@ namespace MisterGames.Logic.Phys {
             _rbIdToDataMap.Remove(rigidbody.GetInstanceID());
         }
 
-        
+        private void OnContactEvent(PhysicsScene scene, NativeArray<ContactPairHeader>.ReadOnly headers) {
+            int count = headers.Length;
 
-        void IUpdate.OnUpdate(float dt) {
+            if (_contactEnterArray.Length < count) {
+                _contactEnterArray.Dispose();
+                _contactStayArray.Dispose();
+                _contactExitArray.Dispose();
+
+                int n = Mathf.NextPowerOfTwo(count);
+                _contactEnterArray = new NativeArray<ContactInfo>(n, Allocator.Persistent);
+                _contactStayArray = new NativeArray<ContactInfo>(n, Allocator.Persistent);
+                _contactExitArray = new NativeArray<ContactInfo>(n, Allocator.Persistent);
+            }
+
+            _contactInfoCount = count;
+
+            var job = new CalculateContactJob {
+                headers = headers,
+                contactEnterArray = _contactEnterArray,
+                contactStayArray = _contactStayArray,
+                contactExitArray = _contactExitArray,
+            };
+
+            _jobHandle = job.Schedule(count, innerloopBatchCount: 256);
             _jobHandle.Complete();
+            
+            NotifyCollisions();
+        }
 
+        private void NotifyCollisions() {
             for (int i = 0; i < _contactInfoCount; i++) {
                 var info = _contactEnterArray[i];
                 if (IsValidContact(info.thisBodyID, info.otherBodyID, info.otherColliderId, out var rb, out int surfaceMaterial, out var collider)) {
@@ -124,32 +145,6 @@ namespace MisterGames.Logic.Phys {
             collider = CollisionUtils.GetColliderByInstanceId(colliderId);
 
             return _layerMask.Contains(otherBodyId != 0 ? collider.attachedRigidbody.gameObject.layer : collider.gameObject.layer);
-        }
-        
-        private void OnContactEvent(PhysicsScene scene, NativeArray<ContactPairHeader>.ReadOnly headers) {
-            int count = headers.Length;
-
-            if (_contactEnterArray.Length < count) {
-                _contactEnterArray.Dispose();
-                _contactStayArray.Dispose();
-                _contactExitArray.Dispose();
-
-                int n = Mathf.NextPowerOfTwo(count);
-                _contactEnterArray = new NativeArray<ContactInfo>(n, Allocator.Persistent);
-                _contactStayArray = new NativeArray<ContactInfo>(n, Allocator.Persistent);
-                _contactExitArray = new NativeArray<ContactInfo>(n, Allocator.Persistent);
-            }
-
-            _contactInfoCount = count;
-
-            var job = new CalculateContactJob {
-                headers = headers,
-                contactEnterArray = _contactEnterArray,
-                contactStayArray = _contactStayArray,
-                contactExitArray = _contactExitArray,
-            };
-
-            _jobHandle = job.Schedule(count, innerloopBatchCount: 256);
         }
 
         private struct CalculateContactJob : IJobParallelFor {

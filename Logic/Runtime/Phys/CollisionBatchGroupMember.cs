@@ -1,4 +1,5 @@
-﻿using MisterGames.Common.Labels;
+﻿using MisterGames.Collisions.Core;
+using MisterGames.Common.Labels;
 using MisterGames.Common.Service;
 using UnityEngine;
 
@@ -7,14 +8,15 @@ namespace MisterGames.Logic.Phys {
     [RequireComponent(typeof(Rigidbody))]
     public sealed class CollisionBatchGroupMember : MonoBehaviour {
         
-        [SerializeField] private Rigidbody _rigidbody;
-        [SerializeField] private Collider[] _colliders;
-        [SerializeField] private LabelValue _surfaceMaterial;
         [SerializeField] private LabelValue _group;
+        [SerializeField] private Rigidbody _rigidbody;
+        [SerializeField] private SurfaceMaterial _surfaceMaterial;
+        [SerializeField] private Collider[] _colliders;
 
         private void OnEnable() {
             ProvideContacts(true);
-            Services.Get<CollisionBatchGroup>(_group.GetValue())?.Register(_rigidbody, _surfaceMaterial.GetValue());
+            Services.Get<CollisionBatchGroup>(_group.GetValue())
+                ?.Register(_rigidbody, _surfaceMaterial != null ? _surfaceMaterial.MaterialId : 0);
         }
 
         private void OnDisable() {
@@ -32,6 +34,7 @@ namespace MisterGames.Logic.Phys {
         private void Reset() {
             _rigidbody = GetComponent<Rigidbody>();
             _colliders = GetComponentsInChildren<Collider>();
+            _surfaceMaterial = GetComponent<SurfaceMaterial>();
         }
 #endif
     }

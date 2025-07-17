@@ -19,6 +19,7 @@ namespace MisterGames.Logic.Phys {
         
         [Header("Materials")]
         [SerializeField] [Min(0f)] private float _primaryMaterialWeight = 1f;
+        [SerializeField] private LabelValue _defaultSurfaceMaterial;
         [SerializeField] private MaterialData[] _primaryMaterialsPerLayer;
         [SerializeField] private MaterialDetectorBase _secondaryMaterialDetector;
         
@@ -32,7 +33,7 @@ namespace MisterGames.Logic.Phys {
         [Serializable]
         private struct MaterialSounds {
             public LabelValue material;
-            public LabelValue surface;
+            public LabelValue[] surfaces;
             [Range(0f, 2f)] public float volume;
             [MinMaxSlider(0f, 2f)] public Vector2 pitch;
             public AudioClip[] clips;
@@ -48,6 +49,10 @@ namespace MisterGames.Logic.Phys {
         private readonly Dictionary<int, float> _lastSoundTimeMap = new();
         private readonly Dictionary<int, int> _colliderMaterialMap = new();
         private readonly List<MaterialInfo> _materialList = new();
+
+        private void Awake() {
+            FetchMaterialIdToIndexMap();
+        }
 
         private void OnEnable() {
             _collisionBatchGroup.OnContact += OnContact;
@@ -104,7 +109,7 @@ namespace MisterGames.Logic.Phys {
                 material = 
                     TryGetSurfaceMaterialByLayer(collider.gameObject.layer, out int materialByLayer) ? materialByLayer 
                     : collider.TryGetComponent(out SurfaceMaterial surfaceMaterial) ? surfaceMaterial.MaterialId 
-                    : 0;
+                    : _defaultSurfaceMaterial.GetValue();
                 
                 _colliderMaterialMap[instanceId] = material;
             } 
@@ -149,7 +154,14 @@ namespace MisterGames.Logic.Phys {
             
             for (int i = 0; i < _materialSounds?.Length; i++) {
                 ref var data = ref _materialSounds[i];
-                _materialPairToIndexMap[(data.material.GetValue(), data.surface.GetValue())] = i;
+                int mat = data.material.GetValue();
+                
+                for (int j = 0; j < data.surfaces?.Length; j++) {
+                    var surface = data.surfaces[j];
+                    if (surface.IsNull()) continue;
+                    
+                    _materialPairToIndexMap[(mat, surface.GetValue())] = i;   
+                }
             }
         }
         
@@ -159,7 +171,7 @@ namespace MisterGames.Logic.Phys {
         }
         
         private void OnValidate() {
-            FetchMaterialIdToIndexMap();
+            if (Application.isPlaying) FetchMaterialIdToIndexMap();
         }
 #endif
     }

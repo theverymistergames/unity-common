@@ -31,13 +31,15 @@ namespace MisterGames.Common.Trees {
             IEnumerable<T> collection,
             Func<T, string> getPath,
             char separator = '/',
-            Func<IEnumerable<TreeEntry<Node<T>>>, IEnumerable<TreeEntry<Node<T>>>> sort = null
+            Func<IEnumerable<TreeEntry<Node<T>>>, IEnumerable<TreeEntry<Node<T>>>> sort = null,
+            Func<string[], string> pathToName = null
         ) {
             sort ??= SortChildren;
+            pathToName ??= PathToName;
             var elements = collection.ToArray();
 
             var root = new TreeEntry<Node<T>> {
-                children = GetChildren(string.Empty, elements, getPath, 1, separator, sort)
+                children = GetChildren(string.Empty, elements, getPath, 1, separator, sort, pathToName)
             };
 
             return SquashParentsWithSingleChild(root, 0);
@@ -57,7 +59,8 @@ namespace MisterGames.Common.Trees {
             Func<T, string> getPath,
             int level,
             char separator,
-            Func<IEnumerable<TreeEntry<Node<T>>>, IEnumerable<TreeEntry<Node<T>>>> sort
+            Func<IEnumerable<TreeEntry<Node<T>>>, IEnumerable<TreeEntry<Node<T>>>> sort,
+            Func<string[], string> pathToName
         ) {
             var sb = new StringBuilder();
             var nodes = new List<TreeEntry<Node<T>>>();
@@ -75,7 +78,7 @@ namespace MisterGames.Common.Trees {
                 int pathDepth = pathParts.Length;
                 
                 if (pathDepth <= level) {
-                    string name = pathDepth == 0 ? string.Empty : pathParts[pathDepth - 1];
+                    string name = pathDepth == 0 ? string.Empty : pathToName.Invoke(pathParts);
 
                     nodes.Add(new TreeEntry<Node<T>> {
                         data = new Node<T>(name, element),
@@ -103,7 +106,7 @@ namespace MisterGames.Common.Trees {
                 nodes.Add(new TreeEntry<Node<T>> {
                     data = new Node<T>(folderName),
                     level = level,
-                    children = GetChildren(folderPath, elements, getPath, level + 1, separator, sort)
+                    children = GetChildren(folderPath, elements, getPath, level + 1, separator, sort, pathToName)
                 });
             }
 
@@ -137,6 +140,10 @@ namespace MisterGames.Common.Trees {
             }
 
             return entry;
+        }
+
+        private static string PathToName(string[] pathParts) {
+            return pathParts[^1];
         }
     }
 

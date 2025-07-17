@@ -98,7 +98,8 @@ namespace MisterGames.Common.Editor.Drawers {
                         .OrderBy(n => n.data.data.library == null)
                         .ThenBy(n => n.data.data.array)
                         .ThenBy(n => n.data.data.usage == LabelArrayUsage.ByIndex ? n.data.data.index : 0)
-                        .ThenBy(n => n.data.data.usage == LabelArrayUsage.ByHash ? n.data.name : null)
+                        .ThenBy(n => n.data.data.usage == LabelArrayUsage.ByHash ? n.data.name : null),
+                    pathToName: pathParts => string.Join(Separator, pathParts)
                 );
                 
                 dropdown.Show(rect);

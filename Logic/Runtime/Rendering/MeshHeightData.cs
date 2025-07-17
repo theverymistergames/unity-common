@@ -50,6 +50,8 @@ namespace MisterGames.Logic.Rendering {
         }
 
         public bool TrySamplePosition(ref Vector3 point) {
+            if (!enabled || !gameObject.activeSelf || !gameObject.activeInHierarchy) return false;
+            
             var center = _localBounds.center;
             var local = _transform.InverseTransformPoint(point) - center;
             int cellIndex = LocalPositionToCell(local);
