@@ -14,7 +14,7 @@ namespace MisterGames.Dbg.Behaviours {
         [SerializeField] private float _torque = 10f;
         [SerializeField] private ForceMode _forceMode = ForceMode.VelocityChange;
         
-        [Button]
+        [Button(mode: ButtonAttribute.Mode.Runtime)]
         private void ApplyForce() {
             if (!Application.isPlaying) return;
             
@@ -31,7 +31,7 @@ namespace MisterGames.Dbg.Behaviours {
         [Header("Apply Velocity")]
         [SerializeField] private float _velocityMagnitude = 10f;
         
-        [Button]
+        [Button(mode: ButtonAttribute.Mode.Runtime)]
         private void ApplyVelocity() {
             if (!Application.isPlaying) return;
             
