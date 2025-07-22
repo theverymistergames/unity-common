@@ -1,12 +1,15 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using MisterGames.Actors;
 using MisterGames.Collisions.Rigidbodies;
 using MisterGames.Common;
+using MisterGames.Common.Attributes;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Tick;
+using MisterGames.Logic.Phys;
 using UnityEngine;
 
-namespace MisterGames.Logic.Phys {
+namespace MisterGames.Logic.Water {
     
     [RequireComponent(typeof(BoxCollider))]
     public sealed class WaterZone : MonoBehaviour, IActorComponent, IUpdate {
@@ -16,27 +19,35 @@ namespace MisterGames.Logic.Phys {
         
         [Header("Surface")]
         [SerializeField] private float _surfaceOffset;
+        [SerializeField] [Min(0f)] private float _forceLevelDecrease = 0f;
         
         [Header("Force")]
         [SerializeField] [Min(-1f)] private float _maxSpeed = -1f;
-        [SerializeField] private float _distanceForce = 0f;
-        [SerializeField] private float _constForce = 0f;
-        [SerializeField] private float _torque = 0f;
+        [SerializeField] private float _buoyancyDefault = 0f;
         [SerializeField] private float _deceleration = 0f;
         [SerializeField] private float _torqueDeceleration = 0f;
+        [SerializeField] private ForceSource _forceSource;
+        [SerializeField] private float _force = 0f;
+        [VisibleIf(nameof(_forceSource), 1)]
+        [SerializeField] private GravityProvider _gravityProvider;
         
         [Header("Random")]
         [SerializeField] private float _randomForce = 0f;
         [SerializeField] private float _randomTorque = 0f;
         [SerializeField] private float _randomForceSpeed = 0f;
         [SerializeField] private float _randomTorqueSpeed = 0f;
+
+        private enum ForceSource {
+            Constant,
+            UseGravityMagnitude,
+        }
         
         private readonly struct WaterClientData {
 
-            public readonly WaterClient waterClient;
+            public readonly IWaterClient waterClient;
             public readonly bool isMainRigidbody;
             
-            public WaterClientData(WaterClient waterClient, bool isMainRigidbody) {
+            public WaterClientData(IWaterClient waterClient, bool isMainRigidbody) {
                 this.waterClient = waterClient;
                 this.isMainRigidbody = isMainRigidbody;
             }
@@ -80,8 +91,11 @@ namespace MisterGames.Logic.Phys {
             
             _rbList.Add(rigidbody);
 
-            if (rigidbody.TryGetComponent(out WaterClient waterClient)) {
-                _rbWaterClientDataMap[id] = new WaterClientData(waterClient, isMainRigidbody: waterClient.Rigidbodies[0].GetInstanceID() == id);
+            if (rigidbody.TryGetComponent(out IWaterClient waterClient)) {
+                _rbWaterClientDataMap[id] = new WaterClientData(
+                    waterClient,
+                    isMainRigidbody: waterClient.Rigidbody.GetInstanceID() == id
+                );
             }
         }
 
@@ -109,7 +123,7 @@ namespace MisterGames.Logic.Phys {
                         continue;
                     }
             
-                    ProcessRigidbody(rb, up, i);
+                    ProcessRigidbody(rb, rb.position, up, _buoyancyDefault, _maxSpeed, surfaceOffset: 0f, mul: 1f, i);
                     continue;
                 }
 
@@ -126,117 +140,83 @@ namespace MisterGames.Logic.Phys {
 
         private void ProcessWaterClient(Rigidbody rb, WaterClientData data, Vector3 waterUp, int index) {
             if (data.waterClient.IgnoreWaterZone) return;
-            
-            var surfacePoint = GetSurfacePoint(_surfaceOffset + data.waterClient.SurfaceOffset);
-            var rbPos = rb.position;
-            
-            var velocity = rb.linearVelocity;
-            var angularVelocity = rb.angularVelocity;
-            
-            var deceleration = _deceleration * data.waterClient.DecelerationMul * velocity;
-            var torqueDeceleration = _torqueDeceleration * data.waterClient.TorqueDecelerationMul * angularVelocity;
-            
-            float distanceForce = _distanceForce * data.waterClient.ForceMul;
-            float constForce = _constForce * data.waterClient.ForceMul;
-            float torque = _torque * data.waterClient.TorqueMul;
-            
-            float maxSpeed = data.waterClient.MaxSpeed < -1f ? -_maxSpeed : data.waterClient.MaxSpeed;
-            
-            var randomForce = GetNoiseVector(_randomForceSpeed, NoiseOffset * index) * _randomForce;
-            var randomTorque = GetNoiseVector(_randomTorqueSpeed, NoiseOffset * 5f * index) * _randomTorque;
-            
-            Vector3 vectorToSurface;
-            Vector3 floatingForceVector;
 
-#if UNITY_EDITOR
-            if (_showDebugInfo) DebugExt.DrawSphere(rbPos, 0.05f, Color.yellow);
-#endif
+            var client = data.waterClient;
             
             if (data.isMainRigidbody) {
-                for (int i = 0; i < data.waterClient.FloatingPoints.Count; i++) {
-                    var floatingPoint = data.waterClient.FloatingPoints[i].position;
-                     
-#if UNITY_EDITOR
-                    if (_showDebugInfo) DebugExt.DrawLine(rbPos, floatingPoint, Color.yellow);
-                    if (_showDebugInfo) DebugExt.DrawSphere(floatingPoint, 0.03f, Color.yellow);
-                    if (_showDebugInfo) DebugExt.DrawRay(floatingPoint, Vector3.Project(surfacePoint - floatingPoint, waterUp), Color.white);
-                    if (_showDebugInfo) DebugExt.DrawSphere(floatingPoint + Vector3.Project(surfacePoint - floatingPoint, waterUp), 0.02f, Color.white);
-#endif
+                var surfacePoint = GetSurfacePoint(_surfaceOffset + client.SurfaceOffset);
+                int count = client.FloatingPointCount;
+                int belowSurfaceCount = 0;
+                
+                for (int i = 0; i < count; i++) {
+                    var point = client.GetFloatingPoint(i);
+                    if (Vector3.Dot(surfacePoint - point, waterUp) <= 0f) continue;
                     
-                    // Floating point is above the surface
-                    if (Vector3.Dot(surfacePoint - floatingPoint, waterUp) <= 0f) continue;
+                    belowSurfaceCount++;
+                }
 
-                    vectorToSurface = Vector3.Project(surfacePoint - floatingPoint, waterUp);
-                    floatingForceVector = (distanceForce * vectorToSurface.magnitude) * waterUp - deceleration;
-                    var torqueVector = torque * Vector3.Cross(floatingPoint - rbPos, waterUp);
-                    
-                    rb.AddForceAtPosition(floatingForceVector, floatingPoint, ForceMode.Acceleration);
-                    rb.AddTorque(torqueVector, ForceMode.Acceleration);
-                    
-#if UNITY_EDITOR
-                    if (_showDebugInfo) DebugExt.DrawRay(floatingPoint, floatingForceVector, Color.magenta);
-#endif
+                if (belowSurfaceCount > 0) {
+                    float mul = 1f / belowSurfaceCount;
+                    for (int i = 0; i < count; i++) {
+                        var point = client.GetFloatingPoint(i);
+                        if (Vector3.Dot(surfacePoint - point, waterUp) <= 0f) return;
+                        
+                        ProcessRigidbody(rb, point, waterUp, client.Buoyancy, client.MaxSpeed, client.SurfaceOffset, mul, index);
+                    }
                 }
                 
-                rb.AddForce(randomForce, ForceMode.Acceleration);
-                rb.AddTorque(-torqueDeceleration + randomTorque, ForceMode.Acceleration);
-                
-                if (maxSpeed >= 0f) rb.linearVelocity = VectorUtils.ClampVelocity(velocity, velocity, maxSpeed);
-
                 return;
             }
 
-#if UNITY_EDITOR
-            if (_showDebugInfo) DebugExt.DrawRay(rbPos, Vector3.Project(surfacePoint - rbPos, waterUp), Color.white);
-            if (_showDebugInfo) DebugExt.DrawSphere(rbPos + Vector3.Project(surfacePoint - rbPos, waterUp), 0.02f, Color.white);
-#endif
-            
-            // Floating point is above the surface
-            if (Vector3.Dot(surfacePoint - rbPos, waterUp) <= 0f) return;
-
-            vectorToSurface = Vector3.Project(surfacePoint - rbPos, waterUp);
-            floatingForceVector = distanceForce * vectorToSurface.magnitude * waterUp - deceleration;
-            
-            rb.AddForce(floatingForceVector + randomForce, ForceMode.Acceleration);
-            rb.AddTorque(-torqueDeceleration + randomTorque, ForceMode.Acceleration);
-            
-            if (maxSpeed >= 0f) rb.linearVelocity = VectorUtils.ClampVelocity(velocity, velocity, maxSpeed);
-            
-#if UNITY_EDITOR
-            if (_showDebugInfo) DebugExt.DrawRay(rbPos, floatingForceVector, Color.magenta);
-#endif
+            ProcessRigidbody(rb, rb.position, waterUp, client.Buoyancy, client.MaxSpeed, client.SurfaceOffset, mul: 1f, index);
         }
 
-        private void ProcessRigidbody(Rigidbody rb, Vector3 waterUp, int index) {
-            var surfacePoint = GetSurfacePoint(_surfaceOffset);
-            var rbPos = rb.position;
+        private void ProcessRigidbody(
+            Rigidbody rb,
+            Vector3 position,
+            Vector3 waterUp,
+            float buoyancy,
+            float maxSpeed,
+            float surfaceOffset,
+            float mul,
+            int index) 
+        {
+            var surfacePoint = GetSurfacePoint(_surfaceOffset + surfaceOffset);
 
 #if UNITY_EDITOR
-            if (_showDebugInfo) DebugExt.DrawSphere(rbPos, 0.05f, Color.yellow);
-            if (_showDebugInfo) DebugExt.DrawRay(rbPos, Vector3.Project(surfacePoint - rbPos, waterUp), Color.white);
-            if (_showDebugInfo) DebugExt.DrawSphere(rbPos + Vector3.Project(surfacePoint - rbPos, waterUp), 0.02f, Color.white);
+            if (_showDebugInfo) DebugExt.DrawSphere(position, 0.05f, Color.yellow);
+            if (_showDebugInfo) DebugExt.DrawRay(position, Vector3.Project(surfacePoint - position, waterUp), Color.white);
+            if (_showDebugInfo) DebugExt.DrawSphere(position + Vector3.Project(surfacePoint - position, waterUp), 0.02f, Color.white);
 #endif
             
             // Floating point is above the surface
-            if (Vector3.Dot(surfacePoint - rbPos, waterUp) <= 0f) return;
+            if (Vector3.Dot(surfacePoint - position, waterUp) <= 0f) return;
 
             var velocity = rb.linearVelocity;
             var angularVelocity = rb.angularVelocity;
+
+            float distToSurface = Vector3.Project(surfacePoint - position, waterUp).magnitude;
+            float forceMul = _forceLevelDecrease > 0f ? Mathf.Clamp01(distToSurface / _forceLevelDecrease) : 1f;
             
-            var vectorToSurface = Vector3.Project(surfacePoint - rbPos, waterUp);
-            var floatingForceVector = (_distanceForce * vectorToSurface.magnitude + _constForce) * waterUp - _deceleration * velocity;
-            var torqueDeceleration = _torqueDeceleration * angularVelocity;
+            float force = _forceSource switch {
+                ForceSource.Constant => _force,
+                ForceSource.UseGravityMagnitude => _force * _gravityProvider.GravityMagnitude,
+                _ => throw new ArgumentOutOfRangeException()
+            };
+            
+            var forceVector = (1f + buoyancy) * force * forceMul * waterUp - _deceleration * velocity;
+            var torqueVector = -_torqueDeceleration * angularVelocity;
 
             var randomForce = GetNoiseVector(_randomForceSpeed, NoiseOffset * index) * _randomForce;
             var randomTorque = GetNoiseVector(_randomTorqueSpeed, NoiseOffset * 5f * index) * _randomTorque;
             
-            rb.AddForce(floatingForceVector + randomForce, ForceMode.Acceleration);
-            rb.AddTorque(-torqueDeceleration + randomTorque, ForceMode.Acceleration);
+            rb.AddForceAtPosition(mul * (forceVector + randomForce), position, ForceMode.Acceleration);
+            rb.AddTorque(mul * (torqueVector + randomTorque), ForceMode.Acceleration);
             
-            if (_maxSpeed >= 0f) rb.linearVelocity = VectorUtils.ClampVelocity(velocity, velocity, _maxSpeed);
+            if (maxSpeed >= 0f) rb.linearVelocity = VectorUtils.ClampVelocity(velocity, velocity, _maxSpeed);
             
 #if UNITY_EDITOR
-            if (_showDebugInfo) DebugExt.DrawRay(rbPos, floatingForceVector, Color.magenta);
+            if (_showDebugInfo) DebugExt.DrawRay(position, forceVector, Color.magenta);
 #endif
         }
 
@@ -250,14 +230,10 @@ namespace MisterGames.Logic.Phys {
         }
 
         private Vector3 GetSurfacePoint(float offset) {
-            var bounds = _waterBox.bounds;
-            return bounds.center + _waterBoxTransform.up * (bounds.extents.y + offset);
+            return _waterBox.bounds.center + 
+                   _waterBoxTransform.up * (0.5f * _waterBox.size.y * _waterBoxTransform.localScale.y + offset);
         }
-        
-        private Vector3 GetWaterBoxCenter() {
-            return _waterBox.bounds.center;
-        }
-        
+
         private Vector3 GetWaterBoxUp() {
             return _waterBoxTransform.up;
         }
@@ -273,17 +249,22 @@ namespace MisterGames.Logic.Phys {
                 _waterBoxTransform = _waterBox.transform;
             }
 
-            var center = GetWaterBoxCenter();
+            var center = _waterBox.bounds.center;
             var surfacePoint = GetSurfacePoint(_surfaceOffset);
+            var forceLevel = GetSurfacePoint(_surfaceOffset - _forceLevelDecrease);
 
             var right = _waterBoxTransform.right;
             var forward = _waterBoxTransform.forward;
             
             DebugExt.DrawSphere(center, 0.03f, Color.white, gizmo: true);
             DebugExt.DrawLine(center, surfacePoint, Color.white, gizmo: true);
+            
             DebugExt.DrawSphere(surfacePoint, 0.04f, Color.cyan, gizmo: true);
             DebugExt.DrawLine(surfacePoint - right * 0.4f, surfacePoint + right * 0.4f, Color.cyan, gizmo: true);
             DebugExt.DrawLine(surfacePoint - forward * 0.4f, surfacePoint + forward * 0.4f, Color.cyan, gizmo: true);
+            
+            DebugExt.DrawLine(forceLevel - right * 0.4f, forceLevel + right * 0.4f, Color.magenta, gizmo: true);
+            DebugExt.DrawLine(forceLevel - forward * 0.4f, forceLevel + forward * 0.4f, Color.magenta, gizmo: true);
         }
 
         private void Reset() {

@@ -38,7 +38,7 @@ namespace MisterGames.Logic.Phys {
         public float GravityMagnitude { get; private set; } = GravityMagnitudeDefault;
         public float GravityScale { get => _gravityScale; set => _gravityScale = value; }
 
-        private const float GravityMagnitudeDefault = 9.81f;
+        public const float GravityMagnitudeDefault = 9.81f;
 
         private Vector3 _lastGravity = Vector3.down * GravityMagnitudeDefault;
         private float _sleepTimer;
