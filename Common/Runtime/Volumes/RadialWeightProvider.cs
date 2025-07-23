@@ -1,9 +1,8 @@
-﻿using MisterGames.Common;
-using MisterGames.Common.Attributes;
+﻿using MisterGames.Common.Attributes;
 using MisterGames.Common.Easing;
 using UnityEngine;
 
-namespace MisterGames.Logic.Transforms {
+namespace MisterGames.Common.Volumes {
     
     public sealed class RadialWeightProvider : PositionWeightProvider {
 

@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using MisterGames.Actors.Actions;
+using MisterGames.Common.Conditions;
 
-namespace MisterGames.Character.Stats {
+namespace MisterGames.Common.Stats {
     
-    public interface IStatSystem {
+    public interface IStatSystem<out TContext> where TContext : class {
         
         event Action OnUpdateModifiers;
         
@@ -13,8 +13,8 @@ namespace MisterGames.Character.Stats {
 
         void ForceNotifyUpdate();
         
-        void AddModifier(object source, IStatModifier modifier, IActorCondition condition = null);
-        void AddModifiers(object source, IReadOnlyList<IStatModifier> modifiers, IActorCondition condition = null);
+        void AddModifier(object source, IStatModifier modifier, ICondition<TContext> condition = null);
+        void AddModifiers(object source, IReadOnlyList<IStatModifier> modifiers, ICondition<TContext> condition = null);
 
         void RemoveModifier(object source, IStatModifier modifier);
         void RemoveModifiers(object source, IReadOnlyList<IStatModifier> modifiers);

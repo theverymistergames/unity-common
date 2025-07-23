@@ -4,6 +4,7 @@ using MisterGames.Collisions.Rigidbodies;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Easing;
 using MisterGames.Common.Tick;
+using MisterGames.Common.Volumes;
 using MisterGames.Tweens;
 using UnityEngine;
 

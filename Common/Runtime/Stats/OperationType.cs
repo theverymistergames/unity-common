@@ -1,7 +1,7 @@
-﻿namespace MisterGames.Character.Stats {
+﻿namespace MisterGames.Common.Stats {
     
     public enum OperationType {
-        Multiply,
+        Mul,
         Add,
         Min,
         Max,

@@ -35,6 +35,7 @@ namespace MisterGames.ActionLib.Sounds {
         public bool loop;
         public bool affectedByTimeScale = true;
         public bool occlusion = true;
+        public bool affectedByVolumes = true;
         
         [Tooltip("Set to true to avoid stopping sound when action is canceled")] 
         public bool useActorDestroyToken;
@@ -67,6 +68,7 @@ namespace MisterGames.ActionLib.Sounds {
             options |= loop ? AudioOptions.Loop : AudioOptions.None;
             options |= affectedByTimeScale ? AudioOptions.AffectedByTimeScale : AudioOptions.None;
             options |= occlusion ? AudioOptions.ApplyOcclusion : AudioOptions.None;
+            options |= affectedByVolumes ? AudioOptions.AffectedByVolumes : AudioOptions.None;
 
             cancellationToken = useActorDestroyToken ? context.GameObject.GetCancellationTokenOnDestroy() : cancellationToken;
             

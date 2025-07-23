@@ -2,7 +2,7 @@
 using MisterGames.Common.Labels;
 using UnityEngine;
 
-namespace MisterGames.Character.Stats {
+namespace MisterGames.Common.Stats {
     
     [Serializable]
     public sealed class StatModifier : IStatModifier {
@@ -17,7 +17,6 @@ namespace MisterGames.Character.Stats {
 
         public int Priority => (int) _priority;
         public int Order => (int) _operation;
-        public float Modifier { get => _modifier; set => _modifier = value; }
         public float Duration => _duration;
         public int StatType => _statType.GetValue();
         public ModifierOptions Options => _options;

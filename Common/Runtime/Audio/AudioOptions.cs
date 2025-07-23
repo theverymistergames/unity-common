@@ -8,6 +8,7 @@ namespace MisterGames.Common.Audio {
         Loop = 1,
         AffectedByTimeScale = 2,
         ApplyOcclusion = 4,
+        AffectedByVolumes = 8,
     }
     
 }

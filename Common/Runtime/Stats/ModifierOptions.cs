@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace MisterGames.Character.Stats {
+namespace MisterGames.Common.Stats {
     
     [Flags]
     public enum ModifierOptions {

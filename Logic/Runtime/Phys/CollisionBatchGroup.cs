@@ -2,7 +2,6 @@
 using MisterGames.Collisions.Core;
 using MisterGames.Collisions.Utils;
 using MisterGames.Common.Layers;
-using MisterGames.Common.Tick;
 using Unity.Collections;
 using Unity.Jobs;
 using UnityEngine;
@@ -42,7 +41,6 @@ namespace MisterGames.Logic.Phys {
         private NativeArray<ContactInfo> _contactStayArray;
         private NativeArray<ContactInfo> _contactExitArray;
         private int _contactInfoCount;
-        private JobHandle _jobHandle;
 
         private void OnEnable() {
             Physics.ContactEvent += OnContactEvent;
@@ -51,8 +49,6 @@ namespace MisterGames.Logic.Phys {
         private void OnDisable() {
             Physics.ContactEvent -= OnContactEvent;
 
-            _jobHandle.Complete();
-            
             _contactEnterArray.Dispose();
             _contactStayArray.Dispose();
             _contactExitArray.Dispose();
@@ -89,8 +85,7 @@ namespace MisterGames.Logic.Phys {
                 contactExitArray = _contactExitArray,
             };
 
-            _jobHandle = job.Schedule(count, innerloopBatchCount: 256);
-            _jobHandle.Complete();
+            job.Schedule(count, innerloopBatchCount: 256).Complete();
             
             NotifyCollisions();
         }

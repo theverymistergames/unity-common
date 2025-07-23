@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace MisterGames.Logic.Transforms {
+namespace MisterGames.Common.Volumes {
     
     public abstract class PositionWeightProvider : MonoBehaviour, IPositionWeightProvider {
         

@@ -1,16 +1,19 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using MisterGames.Actors;
-using MisterGames.Actors.Actions;
+using MisterGames.Common.Conditions;
 using MisterGames.Common.Tick;
 using UnityEngine;
 using UnityEngine.Pool;
 
-namespace MisterGames.Character.Stats {
+namespace MisterGames.Common.Stats {
     
-    public sealed class StatSystem : IStatSystem, IUpdate, IComparer<StatSystem.ModifierData> {
-        
+    public sealed class StatSystem<TContext> : 
+        IStatSystem<TContext>, 
+        IUpdate, 
+        IComparer<StatSystem<TContext>.ModifierData> 
+        where TContext : class
+    {
         private const bool PrintLogs = true;
 
         public event Action OnUpdateModifiers = delegate { };
@@ -36,11 +39,11 @@ namespace MisterGames.Character.Stats {
         }
 
         private readonly struct ConditionData {
-            public readonly IActorCondition condition;
+            public readonly ICondition<TContext> condition;
             public readonly float startTime;
             public readonly bool result;
 
-            public ConditionData(IActorCondition condition, float startTime, bool result) {
+            public ConditionData(ICondition<TContext> condition, float startTime, bool result) {
                 this.condition = condition;
                 this.result = result;
                 this.startTime = startTime;
@@ -68,16 +71,16 @@ namespace MisterGames.Character.Stats {
             public static bool operator !=(GroupKey left, GroupKey right) => !left.Equals(right);
         }
 
-        private IActor _actor;
+        private TContext _context;
         private int _lastId;
         private bool _notifyFlag;
 
-        public void Bind(IActor actor) {
-            _actor = actor;
+        public void Bind(TContext context) {
+            _context = context;
         }
 
         public void Unbind() {
-            _actor = null;
+            _context = null;
         }
         
         public int ModifyValue(int statType, int value) {
@@ -114,7 +117,7 @@ namespace MisterGames.Character.Stats {
 
         public void ForceNotifyUpdate() {
 #if UNITY_EDITOR
-            if (PrintLogs) Debug.LogWarning($"{nameof(StatSystem)}: force update modifiers. " +
+            if (PrintLogs) Debug.LogWarning($"{nameof(StatSystem<TContext>)}: force update modifiers. " +
                                             $"State:\n{GetModifiersStateAsString()}");
 #endif
 
@@ -122,7 +125,7 @@ namespace MisterGames.Character.Stats {
             OnUpdateModifiers.Invoke();
         }
 
-        public void AddModifier(object source, IStatModifier modifier, IActorCondition condition = null) {
+        public void AddModifier(object source, IStatModifier modifier, ICondition<TContext> condition = null) {
             if (source == null || modifier == null) return;
 
             AddModifierEntry(source, modifier, condition);
@@ -130,7 +133,7 @@ namespace MisterGames.Character.Stats {
             _modifiersData.Sort(this);
 
 #if UNITY_EDITOR
-            if (PrintLogs) Debug.LogWarning($"{nameof(StatSystem)}: added modifier {modifier} " +
+            if (PrintLogs) Debug.LogWarning($"{nameof(StatSystem<TContext>)}: added modifier {modifier} " +
                                             $"from source [{source}], " +
                                             $"condition [{condition}]. " +
                                             $"State:\n{GetModifiersStateAsString()}");
@@ -139,7 +142,7 @@ namespace MisterGames.Character.Stats {
             _notifyFlag = true;
         }
 
-        public void AddModifiers(object source, IReadOnlyList<IStatModifier> modifiers, IActorCondition condition = null) {
+        public void AddModifiers(object source, IReadOnlyList<IStatModifier> modifiers, ICondition<TContext> condition = null) {
             if (source == null || modifiers is not { Count: > 0 }) return;
 
             for (int i = 0; i < modifiers.Count; i++) {
@@ -149,7 +152,7 @@ namespace MisterGames.Character.Stats {
             _modifiersData.Sort(this);
 
 #if UNITY_EDITOR
-            if (PrintLogs) Debug.LogWarning($"{nameof(StatSystem)}: added modifiers\n- {string.Join("\n- ", modifiers)}\n" +
+            if (PrintLogs) Debug.LogWarning($"{nameof(StatSystem<TContext>)}: added modifiers\n- {string.Join("\n- ", modifiers)}\n" +
                                             $"from source [{source}], " +
                                             $"condition [{condition}]. " +
                                             $"State:\n{GetModifiersStateAsString()}");
@@ -184,7 +187,7 @@ namespace MisterGames.Character.Stats {
             if (!changed) return;
 
 #if UNITY_EDITOR
-            if (PrintLogs) Debug.LogWarning($"{nameof(StatSystem)}: removed modifier {modifier} " +
+            if (PrintLogs) Debug.LogWarning($"{nameof(StatSystem<TContext>)}: removed modifier {modifier} " +
                                             $"from source [{source}]. " +
                                             $"State:\n{GetModifiersStateAsString()}");
 #endif
@@ -223,7 +226,7 @@ namespace MisterGames.Character.Stats {
             if (!changed) return;
 
 #if UNITY_EDITOR
-            if (PrintLogs) Debug.LogWarning($"{nameof(StatSystem)}: removed modifiers\n- {string.Join("\n- ", modifiers)}\n" +
+            if (PrintLogs) Debug.LogWarning($"{nameof(StatSystem<TContext>)}: removed modifiers\n- {string.Join("\n- ", modifiers)}\n" +
                                             $"from source [{source}]. " +
                                             $"State:\n{GetModifiersStateAsString()}");
 #endif
@@ -252,7 +255,7 @@ namespace MisterGames.Character.Stats {
             if (!changed) return;
 
 #if UNITY_EDITOR
-            if (PrintLogs) Debug.LogWarning($"{nameof(StatSystem)}: removed all modifiers " +
+            if (PrintLogs) Debug.LogWarning($"{nameof(StatSystem<TContext>)}: removed all modifiers " +
                                             $"from source [{source}]. " +
                                             $"State:\n{GetModifiersStateAsString()}");
 #endif
@@ -268,7 +271,7 @@ namespace MisterGames.Character.Stats {
             _groupToRemoveLastIdMap.Clear();
 
 #if UNITY_EDITOR
-            if (PrintLogs) Debug.LogWarning($"{nameof(StatSystem)}: cleared all modifiers from all sources. " +
+            if (PrintLogs) Debug.LogWarning($"{nameof(StatSystem<TContext>)}: cleared all modifiers from all sources. " +
                                             $"State:\n{GetModifiersStateAsString()}");
 #endif
 
@@ -312,7 +315,7 @@ namespace MisterGames.Character.Stats {
                 bool conditionResult = true;
 
                 if (_conditionsMap.TryGetValue(data.id, out var conditionData)) {
-                    conditionResult = conditionData.condition.IsMatch(_actor, conditionData.startTime);
+                    conditionResult = conditionData.condition.IsMatch(_context, conditionData.startTime);
 
                     if (conditionData.result != conditionResult) {
                         conditionData = new ConditionData(conditionData.condition, conditionData.startTime, conditionResult);
@@ -374,8 +377,8 @@ namespace MisterGames.Character.Stats {
 
 #if UNITY_EDITOR
             if (removedModifiers.Count > 0 && PrintLogs) {
-                Debug.LogWarning($"{nameof(StatSystem)}: removed modifiers\n- {string.Join("\n- ", removedModifiers)}\n" +
-                                                                          $"State:\n{GetModifiersStateAsString()}");
+                Debug.LogWarning($"{nameof(StatSystem<TContext>)}: removed modifiers\n- {string.Join("\n- ", removedModifiers)}\n" +
+                                 $"State:\n{GetModifiersStateAsString()}");
             }
             ListPool<IStatModifier>.Release(removedModifiers);
 #endif
@@ -386,7 +389,7 @@ namespace MisterGames.Character.Stats {
             OnUpdateModifiers.Invoke();
         }
 
-        private void AddModifierEntry(object source, IStatModifier modifier, IActorCondition condition) {
+        private void AddModifierEntry(object source, IStatModifier modifier, ICondition<TContext> condition) {
             int id = _lastId++;
             int sourceHash = source.GetHashCode();
             float startTime = Time.time;
@@ -394,7 +397,7 @@ namespace MisterGames.Character.Stats {
             _modifiersMap[id] = modifier;
             _modifiersData.Add(new ModifierData(id, sourceHash, startTime, modifier.Duration));
 
-            if (condition != null) _conditionsMap[id] = new ConditionData(condition, startTime, condition.IsMatch(_actor, startTime));
+            if (condition != null) _conditionsMap[id] = new ConditionData(condition, startTime, condition.IsMatch(_context, startTime));
         }
 
         private static GroupKey CreateGroupKey(IStatModifier modifier) {
@@ -442,4 +445,5 @@ namespace MisterGames.Character.Stats {
         }
 #endif
     }
+    
 }

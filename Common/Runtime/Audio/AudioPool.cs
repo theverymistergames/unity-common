@@ -7,6 +7,7 @@ using MisterGames.Common.Maths;
 using MisterGames.Common.Pooling;
 using MisterGames.Common.Tick;
 using Unity.Collections;
+using Unity.Jobs;
 using Unity.Jobs.LowLevel.Unsafe;
 using UnityEngine;
 using UnityEngine.Audio;
@@ -57,6 +58,8 @@ namespace MisterGames.Common.Audio {
         public static IAudioPool Main { get; private set; }
 
         private const float DistanceThreshold = 0.001f;
+        private const float HpCutoffLowerBound = 10f;
+        private const float LpCutoffUpperBound = 22000f;
         
         private static readonly Vector3 Up = Vector3.up;
         private static readonly Vector3 Forward = Vector3.forward;
@@ -69,12 +72,17 @@ namespace MisterGames.Common.Audio {
         private readonly Dictionary<int, IAudioElement> _handleIdToAudioElementMap = new();
         private int _lastHandleId;
         
+        private readonly List<OcclusionSearchData> _occlusionSearchList = new();
         private readonly List<OcclusionData> _occlusionList = new();
-        private float _occlusionWeight = 1f;
+        private float _globalOcclusionWeight = 1f;
         
         private readonly Dictionary<AudioListener, ListenerData> _audioListenersMap = new();
         private Transform _listenerTransform;
         private Transform _listenerUp;
+
+        private readonly HashSet<IAudioVolume> _volumes = new();
+        private NativeArray<VolumeData> _volumeDataArray;
+        private NativeArray<VolumeData> _resultVolumeDataBuffer;
         
         private Transform _transform;
         private CancellationToken _destroyToken;
@@ -85,6 +93,8 @@ namespace MisterGames.Common.Audio {
             
             _transform = transform;
             _destroyToken = destroyCancellationToken;
+
+            _resultVolumeDataBuffer = new NativeArray<VolumeData>(1, Allocator.Persistent);
             
             StartLastClipIndexUpdates(_destroyToken).Forget();
             
@@ -97,7 +107,12 @@ namespace MisterGames.Common.Audio {
             
             _attachKeyToHandleIdMap.Clear();
             _handleIdToAudioElementMap.Clear();
+            
+            _occlusionSearchList.Clear();
             _occlusionList.Clear();
+
+            _volumeDataArray.Dispose();
+            _resultVolumeDataBuffer.Dispose();
             
             Main = null;
             PlayerLoopStage.Update.Unsubscribe(this);
@@ -113,8 +128,16 @@ namespace MisterGames.Common.Audio {
             UpdateListeners();
         }
 
-        public void SetOcclusionWeightNextFrame(float weight) {
-            _occlusionWeight = weight;
+        public void RegisterVolume(IAudioVolume volume) {
+            _volumes.Add(volume);
+        }
+
+        public void UnregisterVolume(IAudioVolume volume) {
+            _volumes.Remove(volume);
+        }
+
+        public void SetGlobalOcclusionWeightNextFrame(float weight) {
+            _globalOcclusionWeight = weight;
         }
 
         public AudioHandle Play(
@@ -147,6 +170,8 @@ namespace MisterGames.Common.Audio {
             InitializeAudioElement(audioElement, id, pitch, options);
             
             _handleIdToAudioElementMap[id] = audioElement;
+            
+            _occlusionSearchList.Add(default);
             _occlusionList.Add(default);
 
             RestartAudioSource(
@@ -203,6 +228,8 @@ namespace MisterGames.Common.Audio {
             InitializeAudioElement(audioElement, id, pitch, options);
             
             _handleIdToAudioElementMap[id] = audioElement;
+            
+            _occlusionSearchList.Add(default);
             _occlusionList.Add(default);
             
             RestartAudioSource(
@@ -366,8 +393,9 @@ namespace MisterGames.Common.Audio {
             
             audioElement.LowPass.lowpassResonanceQ = _qLow;
             audioElement.HighPass.highpassResonanceQ = _qHigh;
-            audioElement.LowPass.cutoffFrequency = 22000f;
-            audioElement.HighPass.cutoffFrequency = 10f;
+            
+            audioElement.LowPass.cutoffFrequency = LpCutoffUpperBound;
+            audioElement.HighPass.cutoffFrequency = HpCutoffLowerBound;
         }
         
         private IAudioElement GetAudioElementAtWorldPosition(Vector3 position) {
@@ -438,46 +466,138 @@ namespace MisterGames.Common.Audio {
             int occlusionCount = 0;
             
             int count = _handleIdToAudioElementMap.Count;
+            
+            _occlusionSearchList.RemoveRange(count, _occlusionSearchList.Count - count);
             _occlusionList.RemoveRange(count, _occlusionList.Count - count);
 
             float minSqr = _minDistance * _minDistance;
             float maxSqr = _maxDistance * _maxDistance;
             
             foreach (var audioElement in _handleIdToAudioElementMap.Values) {
-                if ((audioElement.AudioOptions & AudioOptions.AffectedByTimeScale) == AudioOptions.AffectedByTimeScale) {
-                    audioElement.Source.pitch = audioElement.Pitch * timeScale;
+                var position = audioElement.Transform.position;
+                var options = audioElement.AudioOptions;
+
+                float pitch = audioElement.Pitch;
+                float occlusionWeight = 1f;
+                float lpCutoffBound = LpCutoffUpperBound;
+                float hpCutoffBound = HpCutoffLowerBound;
+
+                if ((options & AudioOptions.AffectedByVolumes) == AudioOptions.AffectedByVolumes) {
+                    ProcessVolumes(position, ref pitch, ref occlusionWeight, ref lpCutoffBound, ref hpCutoffBound);
                 }
+                
+                if ((options & AudioOptions.AffectedByTimeScale) == AudioOptions.AffectedByTimeScale) {
+                    pitch *= timeScale;
+                }
+
+                audioElement.Source.pitch = pitch;
 
                 if (!hasListener || !_applyOcclusion || 
-                    (audioElement.AudioOptions & AudioOptions.ApplyOcclusion) != AudioOptions.ApplyOcclusion) 
+                    (options & AudioOptions.ApplyOcclusion) != AudioOptions.ApplyOcclusion) 
                 {
-                    ApplyOcclusion(audioElement, distanceWeight: 0f, collisionWeight: 0f, dt);
+                    ApplyOcclusion(audioElement, distanceWeight: 0f, collisionWeight: 0f, lpCutoffBound, hpCutoffBound, dt);
                     continue;
                 }
-
-                var position = audioElement.Transform.position;
+                
                 float sqr = (listenerPos - position).sqrMagnitude;
+
+                if (sqr <= minSqr) {
+                    ApplyOcclusion(audioElement, distanceWeight: 0f, collisionWeight: 0f, lpCutoffBound, hpCutoffBound, dt);
+                    continue;
+                }
+                
                 float spatial = audioElement.Source.spatialBlend;
                 
                 if (sqr > minSqr && sqr < maxSqr) {
-                    _occlusionList[occlusionCount++] = new OcclusionData(
-                        audioElement,
+                    float distance = (listenerPos - position).magnitude;
+                    
+                    _occlusionSearchList[occlusionCount] = new OcclusionSearchData(
                         position,
                         direction: (listenerPos - position).normalized,
-                        distance: (listenerPos - position).magnitude,
-                        weight: spatial
+                        distance
+                    );
+                    
+                    _occlusionList[occlusionCount++] = new OcclusionData(
+                        audioElement,
+                        distance,
+                        weight: spatial * occlusionWeight,
+                        lpCutoffBound,
+                        hpCutoffBound
                     );
                     continue;
                 }
                 
-                ApplyOcclusion(audioElement, distanceWeight: sqr > maxSqr ? spatial : 0f, collisionWeight: 1f, dt);
+                ApplyOcclusion(audioElement, distanceWeight: spatial * occlusionWeight, collisionWeight: occlusionWeight, lpCutoffBound, hpCutoffBound, dt);
             }
 
             if (hasListener) ProcessOcclusion(listenerUp, occlusionCount, dt);
 
-            _occlusionWeight = 1f;
+            _globalOcclusionWeight = 1f;
         }
 
+        private void ProcessVolumes(
+            Vector3 position,
+            ref float pitch,
+            ref float occlusionWeight,
+            ref float lpCutoffBound,
+            ref float hpCutoffBound) 
+        {
+            int count = _volumes.Count;
+            if (count == 0) return;
+            
+            int realCount = 0;
+            int topPriority = int.MinValue;
+
+            if (_volumeDataArray.Length < count) {
+                _volumeDataArray.Dispose();
+                _volumeDataArray = new NativeArray<VolumeData>(Mathf.NextPowerOfTwo(count), Allocator.Persistent);
+            }
+            
+            foreach (var volume in _volumes) {
+                int priority = volume.Priority;
+                if (priority < topPriority || volume.GetWeight(position) is var weight && weight <= 0f) continue;
+                
+                topPriority = Mathf.Max(topPriority, priority);
+                
+                float pitchLocal = pitch;
+                float occlusionWeightLocal = occlusionWeight;
+                float lpCutoffBoundLocal = lpCutoffBound;
+                float hpCutoffBoundLocal = hpCutoffBound;
+                
+                volume.ModifyPitch(ref pitchLocal);
+                volume.ModifyOcclusionWeight(ref occlusionWeightLocal);
+                volume.ModifyLowHighPassFilters(ref lpCutoffBoundLocal, ref hpCutoffBoundLocal);
+                
+                _volumeDataArray[realCount++] = new VolumeData {
+                    priority = priority,
+                    weight = weight,
+                    pitch = Mathf.Lerp(pitch, pitchLocal, weight),
+                    occlusionWeight = Mathf.Lerp(occlusionWeight, occlusionWeightLocal, weight),
+                    lpCutoffBound = Mathf.Lerp(lpCutoffBound, lpCutoffBoundLocal, weight),
+                    hpCutoffBound = Mathf.Lerp(hpCutoffBound, hpCutoffBoundLocal, weight),
+                };
+            }
+
+            _resultVolumeDataBuffer[0] = default;
+            
+            var job = new CalculateVolumeJob {
+                count = realCount,
+                topPriority = topPriority,
+                volumeDataArray = _volumeDataArray,
+                result = _resultVolumeDataBuffer,
+            };
+            
+            job.Schedule().Complete();
+            
+            var result = job.result[0];
+            if (result.weight <= 0f) return;
+            
+            pitch = result.pitch;
+            occlusionWeight = result.occlusionWeight;
+            lpCutoffBound = result.lpCutoffBound;
+            hpCutoffBound = result.hpCutoffBound;
+        }
+        
         private void ProcessOcclusion(Vector3 up, int count, float dt) {
             var raycastCommands = new NativeArray<RaycastCommand>(count * _rays, Allocator.TempJob);
             var hits = new NativeArray<RaycastHit>(count * _rays * _maxHits, Allocator.TempJob);
@@ -485,7 +605,7 @@ namespace MisterGames.Common.Audio {
             float sector = 360f / _rays;
             
             for (int i = 0; i < count; i++) {
-                var data = _occlusionList[i];
+                var data = _occlusionSearchList[i];
                 var rot = Quaternion.LookRotation(data.direction, up);
 
 #if UNITY_EDITOR
@@ -531,26 +651,34 @@ namespace MisterGames.Common.Audio {
                     weightSum += (float) collisions / _maxHits;
                 }
 
-                float distanceWeight = Mathf.Clamp01(data.weight * GetRelativeDistance(data.distance));
-                float collisionWeight = Mathf.Clamp01(data.weight * weightSum / _rays);
+                float distanceWeight = data.weight * Mathf.Clamp01(GetRelativeDistance(data.distance));
+                float collisionWeight = data.weight * Mathf.Clamp01(weightSum / _rays);
                 
-                ApplyOcclusion(data.audioElement, distanceWeight, collisionWeight, dt);
+                ApplyOcclusion(data.audioElement, distanceWeight, collisionWeight, data.lpCutoffBound, data.hpCutoffBound, dt);
             }
 
             hits.Dispose();
             raycastCommands.Dispose();
         }
 
-        private void ApplyOcclusion(IAudioElement audioElement, float distanceWeight, float collisionWeight, float dt) {
-            float wLow = Mathf.Clamp01((_distanceCurveLow.Evaluate(distanceWeight) * _distanceWeightLow + collisionWeight * _collisionWeightLow) * _occlusionWeight);
-            float wHigh = Mathf.Clamp01((_distanceCurveHigh.Evaluate(distanceWeight) * _distanceWeightHigh + collisionWeight * _collisionWeightHigh) * _occlusionWeight);
+        private void ApplyOcclusion(
+            IAudioElement audioElement,
+            float distanceWeight,
+            float collisionWeight,
+            float lpCutoffBound,
+            float hpCutoffBound,
+            float dt) 
+        {
+            float wLow = Mathf.Clamp01((_distanceCurveLow.Evaluate(distanceWeight) * _distanceWeightLow + collisionWeight * _collisionWeightLow) * _globalOcclusionWeight);
+            float wHigh = Mathf.Clamp01((_distanceCurveHigh.Evaluate(distanceWeight) * _distanceWeightHigh + collisionWeight * _collisionWeightHigh) * _globalOcclusionWeight);
             
-            float cutoffLow = Mathf.Lerp(22000f, _cutoffLow, _cutoffLowCurve.Evaluate(wLow));
-            float cutoffHigh = Mathf.Lerp(10f, _cutoffHigh, _cutoffHighCurve.Evaluate(wHigh));
+            float cutoffLow = Mathf.Min(lpCutoffBound, Mathf.Lerp(LpCutoffUpperBound, _cutoffLow, _cutoffLowCurve.Evaluate(wLow)));
+            float cutoffHigh = Mathf.Max(hpCutoffBound, Mathf.Lerp(HpCutoffLowerBound, _cutoffHigh, _cutoffHighCurve.Evaluate(wHigh)));
 
             var lp = audioElement.LowPass;
             var hp = audioElement.HighPass;
 
+            // Apply occlusion instantly if flag is 0 after audio element was just initialized
             float smoothing = audioElement.OcclusionFlag * _occlusionSmoothing;
             
             lp.cutoffFrequency = lp.cutoffFrequency.SmoothExpNonZero(cutoffLow, smoothing, dt);
@@ -648,20 +776,33 @@ namespace MisterGames.Common.Audio {
             }
         }
         
-        private readonly struct OcclusionData {
+        private readonly struct OcclusionSearchData {
 
-            public readonly IAudioElement audioElement;
             public readonly Vector3 position;
             public readonly Vector3 direction;
             public readonly float distance;
-            public readonly float weight;
             
-            public OcclusionData(IAudioElement audioElement, Vector3 position, Vector3 direction, float distance, float weight) {
-                this.audioElement = audioElement;
+            public OcclusionSearchData(Vector3 position, Vector3 direction, float distance) {
                 this.position = position;
                 this.direction = direction;
                 this.distance = distance;
+            }
+        }
+        
+        private readonly struct OcclusionData {
+
+            public readonly IAudioElement audioElement;
+            public readonly float distance;
+            public readonly float weight;
+            public readonly float lpCutoffBound;
+            public readonly float hpCutoffBound;
+            
+            public OcclusionData(IAudioElement audioElement, float distance, float weight, float lpCutoffBound, float hpCutoffBound) {
+                this.audioElement = audioElement;
+                this.distance = distance;
                 this.weight = weight;
+                this.lpCutoffBound = lpCutoffBound;
+                this.hpCutoffBound = hpCutoffBound;
             }
         }
         
@@ -698,6 +839,52 @@ namespace MisterGames.Common.Audio {
 
             public static bool operator ==(AttachKey left, AttachKey right) => left.Equals(right);
             public static bool operator !=(AttachKey left, AttachKey right) => !left.Equals(right);
+        }
+
+        private struct VolumeData {
+            public int priority;
+            public float weight;
+            public float pitch;
+            public float occlusionWeight;
+            public float lpCutoffBound;
+            public float hpCutoffBound;
+        }
+        
+        private struct CalculateVolumeJob : IJob {
+            
+            [ReadOnly] public int count;
+            [ReadOnly] public int topPriority;
+            [ReadOnly] public NativeArray<VolumeData> volumeDataArray;
+            public NativeArray<VolumeData> result;
+            
+            public void Execute() {
+                var resultData = result[0];
+
+                resultData.pitch = 0f;
+                resultData.occlusionWeight = 0f;
+                resultData.lpCutoffBound = 0f;
+                resultData.hpCutoffBound = 0f;
+                
+                for (int i = 0; i < count; i++) {
+                    var data = volumeDataArray[i];
+                    if (data.priority < topPriority) continue;
+                    
+                    resultData.weight += data.weight;
+                    resultData.pitch += data.pitch * data.weight;
+                    resultData.occlusionWeight += data.occlusionWeight * data.weight;
+                    resultData.lpCutoffBound += data.lpCutoffBound * data.weight;
+                    resultData.hpCutoffBound += data.hpCutoffBound * data.weight;
+                }
+
+                if (resultData.weight <= 0f) return;
+                
+                resultData.pitch /= resultData.weight;
+                resultData.occlusionWeight /= resultData.weight;
+                resultData.lpCutoffBound /= resultData.weight;
+                resultData.hpCutoffBound /= resultData.weight;
+
+                result[0] = resultData;
+            }
         }
 
 #if UNITY_EDITOR

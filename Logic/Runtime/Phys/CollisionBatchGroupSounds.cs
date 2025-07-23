@@ -145,7 +145,7 @@ namespace MisterGames.Logic.Phys {
                 point, 
                 volume: data.volume * volumeMul, 
                 pitch: data.pitch.GetRandomInRange(), 
-                options: AudioOptions.AffectedByTimeScale | AudioOptions.ApplyOcclusion
+                options: AudioOptions.AffectedByTimeScale | AudioOptions.ApplyOcclusion | AudioOptions.AffectedByVolumes
             );
         }
         

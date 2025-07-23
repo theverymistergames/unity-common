@@ -10,6 +10,9 @@ namespace MisterGames.Common.Audio {
         void RegisterListener(AudioListener listener, Transform up, int priority);
         void UnregisterListener(AudioListener listener);
         
+        void RegisterVolume(IAudioVolume volume);
+        void UnregisterVolume(IAudioVolume volume);
+        
         AudioHandle Play(
             AudioClip clip,
             Vector3 position,
@@ -43,7 +46,7 @@ namespace MisterGames.Common.Audio {
         AudioClip ShuffleClips(IReadOnlyList<AudioClip> clips);
         AudioHandle GetAudioHandle(Transform attachedTo, int hash);
         
-        void SetOcclusionWeightNextFrame(float weight);
+        void SetGlobalOcclusionWeightNextFrame(float weight);
         
         internal void ReleaseAudioHandle(int handleId);
         internal void SetAudioHandlePitch(int handleId, float pitch);

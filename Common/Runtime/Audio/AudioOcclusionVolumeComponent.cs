@@ -11,7 +11,7 @@ namespace MisterGames.Common.Audio {
             base.Override(state, interpFactor);
             
             float w = ((AudioOcclusionVolumeComponent) state).weight.value;
-            AudioPool.Main?.SetOcclusionWeightNextFrame(w);
+            AudioPool.Main?.SetGlobalOcclusionWeightNextFrame(w);
         }
     }
     

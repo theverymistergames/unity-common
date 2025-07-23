@@ -1,4 +1,4 @@
-﻿namespace MisterGames.Character.Stats {
+﻿namespace MisterGames.Common.Stats {
     
     public enum ModifierPriority {
         Persistent,
