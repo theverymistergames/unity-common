@@ -2,6 +2,7 @@
 using MisterGames.Collisions.Rigidbodies;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Audio;
+using MisterGames.Common.Layers;
 using MisterGames.Common.Maths;
 using UnityEngine;
 
@@ -10,8 +11,8 @@ namespace MisterGames.Logic.Phys {
     public sealed class SoundOnTrigger : MonoBehaviour {
         
         [SerializeField] private TriggerEmitter _triggerEmitter;
+        [SerializeField] private LayerMask _layerMask;
         [SerializeField] private PositionMode _positionMode;
-        [VisibleIf(nameof(_positionMode), 1)]
         [SerializeField] private Collider[] _colliders;
         
         [Header("Sound Settings")]
@@ -25,8 +26,14 @@ namespace MisterGames.Logic.Phys {
         [Header("Volume by Size")]
         [SerializeField] [Min(0f)] private float _minSize;
         [SerializeField] [Min(0f)] private float _maxSize = 1f;
-        [SerializeField] [Min(0f)] private float _minVolumeMul = 0.5f;
-        [SerializeField] [Min(0f)] private float _maxVolumeMul = 1f;
+        [SerializeField] [Min(0f)] private float _minSizeVolumeMul = 0.5f;
+        [SerializeField] [Min(0f)] private float _maxSizeVolumeMul = 1f;
+        
+        [Header("Volume by Speed")]
+        [SerializeField] [Min(0f)] private float _minSpeed;
+        [SerializeField] [Min(0f)] private float _maxSpeed = 1f;
+        [SerializeField] [Min(0f)] private float _minSpeedVolumeMul = 0.5f;
+        [SerializeField] [Min(0f)] private float _maxSpeedVolumeMul = 1f;
         
         [Header("Sounds")]
         [SerializeField] private SoundData[] _enterSounds;
@@ -39,7 +46,8 @@ namespace MisterGames.Logic.Phys {
         
         [Serializable]
         private struct SoundData {
-            [Min(0f)] public float minSize;
+            [Min(0f)] public float minColliderSize;
+            [Min(0f)] public float minSpeed;
             [Min(0f)] public float volumeMul;
             public AudioClip[] clips;
         }
@@ -55,23 +63,31 @@ namespace MisterGames.Logic.Phys {
         }
 
         private void TriggerEnter(Collider collider) {
+            if (!_layerMask.Contains(collider.gameObject.layer)) return;
+            
             float size = GetColliderSize(collider);
-            int index = GetSoundDataIndex(size, _enterSounds);
+            float sqrSpeed = GetSqrSpeed(collider);
+            
+            int index = GetSoundDataIndex(size, sqrSpeed, _enterSounds);
             if (index < 0) return;
             
             ref var data = ref _enterSounds[index];
-            float volumeMul = GetVolumeMul(size) * data.volumeMul;
+            float volumeMul = GetVolumeMul(size, sqrSpeed) * data.volumeMul;
             
             PlaySound(data.clips, GetPosition(collider), volumeMul);
         }
 
         private void TriggerExit(Collider collider) {
+            if (!_layerMask.Contains(collider.gameObject.layer)) return;
+            
             float size = GetColliderSize(collider);
-            int index = GetSoundDataIndex(size, _exitSounds);
+            float sqrSpeed = GetSqrSpeed(collider);
+            
+            int index = GetSoundDataIndex(size, sqrSpeed, _exitSounds);
             if (index < 0) return;
             
             ref var data = ref _exitSounds[index];
-            float volumeMul = GetVolumeMul(size) * data.volumeMul;
+            float volumeMul = GetVolumeMul(size, sqrSpeed) * data.volumeMul;
             
             PlaySound(data.clips, GetPosition(collider), volumeMul);
         }
@@ -118,10 +134,15 @@ namespace MisterGames.Logic.Phys {
             );
         }
 
-        private static int GetSoundDataIndex(float colliderSize, SoundData[] sounds) {
-            for (int i = 0; i < sounds.Length; i++) {
+        private static int GetSoundDataIndex(float colliderSize, float sqrSpeed, SoundData[] sounds) {
+            for (int i = sounds.Length - 1; i >= 0; i--) {
                 ref var data = ref sounds[i];
-                if (colliderSize > data.minSize) return i;
+                
+                if (colliderSize >= data.minColliderSize &&
+                    (sqrSpeed < 0f || sqrSpeed >= data.minSpeed * data.minSpeed)) 
+                {
+                    return i;
+                }
             }
 
             return -1;
@@ -131,16 +152,25 @@ namespace MisterGames.Logic.Phys {
             var size = collider.bounds.size;
             return Mathf.Max(Mathf.Max(size.x, size.y), size.z);
         }
+        
+        private static float GetSqrSpeed(Collider collider) {
+            if (collider.attachedRigidbody is not { } rb || rb.isKinematic) return -1f;
+            
+            return rb.linearVelocity.sqrMagnitude;
+        }
 
-        private float GetVolumeMul(float colliderSize) {
-            float t = _maxSize - _minSize > 0f ? (colliderSize - _minSize) / (_maxSize - _minSize) : 1f;
-            return Mathf.Lerp(_minVolumeMul, _maxVolumeMul, t);
+        private float GetVolumeMul(float colliderSize, float sqrSpeed) {
+            float tSize = _maxSize - _minSize > 0f ? (colliderSize - _minSize) / (_maxSize - _minSize) : 1f;
+            float tSpeed = sqrSpeed >= 0f && _maxSpeed - _minSpeed > 0f ? (Mathf.Sqrt(sqrSpeed) - _minSpeed) / (_maxSpeed - _minSpeed) : 1f;
+            
+            return Mathf.Lerp(_minSizeVolumeMul, _maxSizeVolumeMul, tSize) * Mathf.Lerp(_minSpeedVolumeMul, _maxSpeedVolumeMul, tSpeed);
         }
 
 #if UNITY_EDITOR
         private void OnValidate() {
             if (_maxSize < _minSize) _maxSize = _minSize;
-            if (_maxVolumeMul < _minVolumeMul) _maxVolumeMul = _minVolumeMul;
+            if (_maxSizeVolumeMul < _minSizeVolumeMul) _maxSizeVolumeMul = _minSizeVolumeMul;
+            if (_maxSpeedVolumeMul < _minSpeedVolumeMul) _maxSpeedVolumeMul = _minSpeedVolumeMul;
 
             ValidateSoundData(_enterSounds);
             ValidateSoundData(_exitSounds);
@@ -151,8 +181,8 @@ namespace MisterGames.Logic.Phys {
             
             for (int i = 0; i < sounds?.Length; i++) {
                 ref var data = ref sounds[i];
-                if (data.minSize < size) data.minSize = size;
-                size = data.minSize;
+                if (data.minColliderSize < size) data.minColliderSize = size;
+                size = data.minColliderSize;
             }
         }
 #endif
