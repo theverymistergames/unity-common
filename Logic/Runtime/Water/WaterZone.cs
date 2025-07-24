@@ -109,32 +109,31 @@ namespace MisterGames.Logic.Water {
 
         void IUpdate.OnUpdate(float dt) {
             int count = _rbList.Count;
-            int validCount = count;
             var up = GetWaterBoxUp(); 
             
-            for (int i = _rbList.Count - 1; i >= 0; i--) {
+            for (int i = 0; i < _rbList.Count; i++) {
                 var rb = _rbList[i];
-                
-                if (rb != null) {
-                    if (rb.isKinematic) continue;
+                if (rb == null || rb.isKinematic) continue;
             
-                    if (_rbWaterClientDataMap.TryGetValue(rb.GetInstanceID(), out var data)) {
-                        ProcessWaterClient(rb, data, up, i);
-                        continue;
-                    }
-            
-                    ProcessRigidbody(rb, rb.position, up, _buoyancyDefault, _maxSpeed, surfaceOffset: 0f, mul: 1f, i);
+                if (_rbWaterClientDataMap.TryGetValue(rb.GetInstanceID(), out var data)) {
+                    ProcessWaterClient(rb, data, up, i);
                     continue;
                 }
-
-                // Swap deleted with last valid and update index
-                rb = _rbList[--validCount];
-                if (rb != null) _rbIndexMap[rb.GetInstanceID()] = i;
-                
-                _rbList[i] = rb;
-                _rbList[validCount] = null;
+            
+                ProcessRigidbody(rb, rb.position, up, _buoyancyDefault, _maxSpeed, surfaceOffset: 0f, mul: 1f, i);
             }
             
+            int validCount = count;
+
+            for (int i = _rbList.Count - 1; i >= 0; i--) {
+                if ((_rbList[i] is not { } rb || rb == null) &&
+                    _rbList[--validCount] is { } swap && swap != null) 
+                {
+                    _rbList[i] = swap;
+                    _rbIndexMap[swap.GetInstanceID()] = i;
+                }
+            }
+
             _rbList.RemoveRange(validCount, count - validCount);
         }
 
