@@ -5,6 +5,7 @@
         float DeltaTime { get; }
         float TimeScale { get; set; }
         float ScaledTime { get; }
+        int FrameCount { get; }
         bool IsPaused { get; set; }
 
         bool Subscribe(IUpdate sub);

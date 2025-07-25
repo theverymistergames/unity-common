@@ -38,8 +38,6 @@ namespace MisterGames.Collisions.Detectors {
         }
 
         private void TriggerExit(Collider collider) {
-            if (!_layerMask.Contains(collider.gameObject.layer)) return;
-            
             _colliders.Remove(collider);
         }
 

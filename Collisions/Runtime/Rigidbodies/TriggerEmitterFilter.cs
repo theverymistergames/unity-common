@@ -1,4 +1,5 @@
-﻿using MisterGames.Common.Layers;
+﻿using System.Collections.Generic;
+using MisterGames.Common.Layers;
 using UnityEngine;
 
 namespace MisterGames.Collisions.Rigidbodies {
@@ -11,6 +12,10 @@ namespace MisterGames.Collisions.Rigidbodies {
         public override event TriggerCallback TriggerEnter = delegate { };
         public override event TriggerCallback TriggerExit = delegate { };
         public override event TriggerCallback TriggerStay = delegate { };
+
+        public override IReadOnlyCollection<Collider> EnteredColliders => _enteredColliders;
+
+        private readonly HashSet<Collider> _enteredColliders = new();
         
         private void OnEnable() {
             _triggerEmitter.TriggerEnter += HandleTriggerEnter;
@@ -25,21 +30,26 @@ namespace MisterGames.Collisions.Rigidbodies {
         }
 
         private void HandleTriggerEnter(Collider collider) {
-            if (!enabled || !_layerMask.Contains(collider.gameObject.layer)) return;
+            if (!CanCollide(collider)) return;
             
+            _enteredColliders.Add(collider);
             TriggerEnter.Invoke(collider);
         }
 
         private void HandleTriggerStay(Collider collider) {
-            if (!enabled || !_layerMask.Contains(collider.gameObject.layer)) return;
+            if (!CanCollide(collider)) return;
             
             TriggerStay.Invoke(collider);
         }
 
         private void HandleTriggerExit(Collider collider) {
-            if (!enabled || !_layerMask.Contains(collider.gameObject.layer)) return;
+            if (!_enteredColliders.Remove(collider)) return;
             
             TriggerExit.Invoke(collider);
+        }
+
+        private bool CanCollide(Collider collider) {
+            return _layerMask.Contains(collider.gameObject.layer);
         }
     }
     

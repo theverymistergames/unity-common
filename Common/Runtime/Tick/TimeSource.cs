@@ -10,6 +10,7 @@ namespace MisterGames.Common.Tick {
         public float DeltaTime { get; private set; }
         public float TimeScale { get => _timeScaleProvider.TimeScale; set => _timeScaleProvider.TimeScale = value; }
         public float ScaledTime { get; private set; }
+        public int FrameCount { get; private set; }
 
         public int SubscribersCount => _updateList.Count;
 
@@ -73,7 +74,9 @@ namespace MisterGames.Common.Tick {
             }
             
             _updateList.RemoveRange(validCount, count - validCount);
-            
+
+            FrameCount++;
+                
 #if UNITY_EDITOR
             if (count != validCount && TimeSources.ShowDebugInfo) Log($"cleaned {count - validCount} null subscribers");
 #endif

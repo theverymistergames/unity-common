@@ -24,16 +24,15 @@ namespace MisterGames.Logic.Water {
         [SerializeField] private float _surfaceOffset;
         [SerializeField] [Min(-1f)] private float _maxSpeed = -1f;
         
-        public float SurfaceOffset => _surfaceOffset;
+        public bool IgnoreWaterZone { get => _ignoreWaterZone; set => _ignoreWaterZone = value; }
 
         public Rigidbody Rigidbody => _rigidbody;
         public int FloatingPointCount => _mainFloatingPoints.Length;
         public Vector3 GetFloatingPoint(int index) => _transform.TransformPoint(_mainFloatingPoints[index]);
 
-        public float Buoyancy => _buoyancy;
-        public float MaxSpeed => _maxSpeed;
-        
-        public bool IgnoreWaterZone => _ignoreWaterZone;
+        public float Buoyancy { get => _buoyancy; set => _buoyancy = value; }
+        public float SurfaceOffset { get => _surfaceOffset; set => _surfaceOffset = value; }
+        public float MaxSpeed { get => _maxSpeed; set => _maxSpeed = value; }
 
         private Transform _transform;
         

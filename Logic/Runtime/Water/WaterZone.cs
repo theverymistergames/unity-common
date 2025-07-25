@@ -55,8 +55,8 @@ namespace MisterGames.Logic.Water {
 
         private const float NoiseOffset = 100f;
         
-        private readonly Dictionary<int, WaterClientData> _rbWaterClientDataMap = new();
-        private readonly Dictionary<int, int> _rbIndexMap = new();
+        private readonly Dictionary<Rigidbody, WaterClientData> _rbWaterClientDataMap = new();
+        private readonly Dictionary<Rigidbody, int> _rbIndexMap = new();
         private readonly List<Rigidbody> _rbList = new();
         
         private Transform _waterBoxTransform;
@@ -86,36 +86,34 @@ namespace MisterGames.Logic.Water {
         }
 
         private void TriggerEnter(Rigidbody rigidbody) {
-            int id = rigidbody.GetInstanceID();
-            if (!_rbIndexMap.TryAdd(id, _rbList.Count)) return;
+            if (!_rbIndexMap.TryAdd(rigidbody, _rbList.Count)) return;
             
             _rbList.Add(rigidbody);
-
-            if (rigidbody.TryGetComponent(out IWaterClient waterClient)) {
-                _rbWaterClientDataMap[id] = new WaterClientData(
-                    waterClient,
-                    isMainRigidbody: waterClient.Rigidbody.GetInstanceID() == id
-                );
-            }
+            
+            if (!rigidbody.TryGetComponent(out IWaterClient waterClient)) return;
+            
+            _rbWaterClientDataMap[rigidbody] = new WaterClientData(
+                waterClient,
+                isMainRigidbody: waterClient.Rigidbody == rigidbody
+            );
         }
 
         private void TriggerExit(Rigidbody rigidbody) {
-            int id = rigidbody.GetInstanceID();
-            if (!_rbIndexMap.Remove(id, out int index)) return;
+            if (!_rbIndexMap.Remove(rigidbody, out int index)) return;
 
             _rbList[index] = null;
-            _rbWaterClientDataMap.Remove(id);
+            _rbWaterClientDataMap.Remove(rigidbody);
         }
 
         void IUpdate.OnUpdate(float dt) {
             int count = _rbList.Count;
             var up = GetWaterBoxUp(); 
             
-            for (int i = 0; i < _rbList.Count; i++) {
+            for (int i = 0; i < count; i++) {
                 var rb = _rbList[i];
                 if (rb == null || rb.isKinematic) continue;
             
-                if (_rbWaterClientDataMap.TryGetValue(rb.GetInstanceID(), out var data)) {
+                if (_rbWaterClientDataMap.TryGetValue(rb, out var data)) {
                     ProcessWaterClient(rb, data, up, i);
                     continue;
                 }
@@ -127,11 +125,15 @@ namespace MisterGames.Logic.Water {
             int validCount = count;
 
             for (int i = _rbList.Count - 1; i >= 0; i--) {
-                if ((_rbList[i] is not { } rb || rb == null) &&
-                    _rbList[--validCount] is { } swap && swap != null) 
+                var rb = _rbList[i];
+                if (rb != null) continue;
+
+                if (rb is {} notNull) _rbIndexMap.Remove(notNull);
+                
+                if (_rbList[--validCount] is { } swap && swap != null) 
                 {
                     _rbList[i] = swap;
-                    _rbIndexMap[swap.GetInstanceID()] = i;
+                    _rbIndexMap[swap] = i;
                 }
             }
 

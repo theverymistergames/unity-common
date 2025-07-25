@@ -33,7 +33,7 @@ namespace MisterGames.Logic.Transforms {
             _triggerListenerForRigidbody.TriggerEnter += TriggerEnter;
             _triggerListenerForRigidbody.TriggerExit += TriggerExit;
             
-            var rigidbodies = _triggerListenerForRigidbody.Rigidbodies;
+            var rigidbodies = _triggerListenerForRigidbody.EnteredRigidbodies;
             foreach (var rb in rigidbodies) {
                 _rigidbodies.Add(rb);
             }

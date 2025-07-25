@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using MisterGames.Collisions.Core;
 using UnityEngine;
 
@@ -12,6 +13,8 @@ namespace MisterGames.Collisions.Rigidbodies {
         public abstract event TriggerCallback TriggerExit;
         public abstract event TriggerCallback TriggerStay;
 
+        public abstract IReadOnlyCollection<Collider> EnteredColliders { get; } 
+        
         public void Subscribe(TriggerEventType evt, TriggerCallback callback) {
             switch (evt) {
                 case TriggerEventType.Enter:

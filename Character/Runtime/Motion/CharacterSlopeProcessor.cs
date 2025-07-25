@@ -58,7 +58,7 @@ namespace MisterGames.Character.Motion {
         }
 
         void IMotionProcessor.ProcessInputForce(ref Vector3 inputForce, Vector3 desiredVelocity, float dt) {
-            if (!_characterGravity.HasGravity || _motionPipeline.Input == Vector2.zero) return;
+            if (!_groundDetector.HasContact || !_characterGravity.HasGravity || _motionPipeline.Input == default) return;
 
             var velocity = Vector3.ProjectOnPlane(_motionPipeline.Velocity, _motionPipeline.MotionNormal);
             
@@ -67,7 +67,7 @@ namespace MisterGames.Character.Motion {
         }
         
         private void LimitForceBySlopeAngle(ref Vector3 inputForce) {
-            if (!_groundDetector.HasContact || SlopeAngle <= _slopeAngle.y) return;
+            if (SlopeAngle <= _slopeAngle.y) return;
             
             var up = _motionPipeline.Up;
             var normal = _motionPipeline.MotionNormal;
@@ -77,7 +77,7 @@ namespace MisterGames.Character.Motion {
         }
 
         private void ApplyDirCorrection(Vector3 desiredVelocity, Vector3 currentVelocity, ref Vector3 force, float dt) {
-            if (desiredVelocity == Vector3.zero || !_groundDetector.HasContact) return;
+            if (desiredVelocity == Vector3.zero) return;
 
             var nextVelocity = currentVelocity + force * dt;
             var perfectForce = dt > 0f ? (desiredVelocity - currentVelocity) / dt : force;

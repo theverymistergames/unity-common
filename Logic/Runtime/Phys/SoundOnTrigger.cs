@@ -63,7 +63,7 @@ namespace MisterGames.Logic.Phys {
         }
 
         private void TriggerEnter(Collider collider) {
-            if (!_layerMask.Contains(collider.gameObject.layer)) return;
+            if (collider == null || !_layerMask.Contains(collider.gameObject.layer)) return;
             
             float size = GetColliderSize(collider);
             float sqrSpeed = GetSqrSpeed(collider);
@@ -78,7 +78,7 @@ namespace MisterGames.Logic.Phys {
         }
 
         private void TriggerExit(Collider collider) {
-            if (!_layerMask.Contains(collider.gameObject.layer)) return;
+            if (collider == null || !_layerMask.Contains(collider.gameObject.layer)) return;
             
             float size = GetColliderSize(collider);
             float sqrSpeed = GetSqrSpeed(collider);

@@ -19,6 +19,15 @@ namespace MisterGames.Common.Tick {
 #else
         Time.frameCount;
 #endif
+        
+        public static int fixedFrameCount =>
+#if UNITY_EDITOR
+            !Application.isPlaying && _isRunningEditorUpdates 
+                ? Time.frameCount
+                : (_timeSourceFixedUpdate ??= Get(PlayerLoopStage.FixedUpdate)).FrameCount;
+#else
+        (_timeSourceFixedUpdate ??= Get(PlayerLoopStage.FixedUpdate)).FrameCount;
+#endif
 
         public static float time =>
 #if UNITY_EDITOR
@@ -33,14 +42,17 @@ namespace MisterGames.Common.Tick {
 #if UNITY_EDITOR
             !Application.isPlaying && _isRunningEditorUpdates 
                 ? _editorUpdatesTime 
-                : Get(PlayerLoopStage.Update).ScaledTime;
+                : (_timeSourceUpdate ??= Get(PlayerLoopStage.Update)).ScaledTime;
 #else
-        Time.time;
+        (_timeSourceUpdate ??= Get(PlayerLoopStage.Update)).ScaledTime;
 #endif
-
+        
 #if UNITY_EDITOR
         internal static bool ShowDebugInfo => _provider?.ShowDebugInfo ?? false;
 #endif
+
+        private static ITimeSource _timeSourceUpdate;
+        private static ITimeSource _timeSourceFixedUpdate;
         
         public static ITimeSource Get(this PlayerLoopStage stage) {
 #if UNITY_EDITOR

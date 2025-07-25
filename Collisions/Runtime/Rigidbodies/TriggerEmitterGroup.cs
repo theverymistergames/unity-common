@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
 namespace MisterGames.Collisions.Rigidbodies {
     
@@ -9,6 +10,10 @@ namespace MisterGames.Collisions.Rigidbodies {
         public override event TriggerCallback TriggerEnter = delegate { };
         public override event TriggerCallback TriggerExit = delegate { };
         public override event TriggerCallback TriggerStay = delegate { };
+
+        public override IReadOnlyCollection<Collider> EnteredColliders => _enteredColliders;
+
+        private readonly HashSet<Collider> _enteredColliders = new();
         
         private void OnEnable() {
             for (int i = 0; i < _triggerEmitters.Length; i++) {
@@ -31,20 +36,16 @@ namespace MisterGames.Collisions.Rigidbodies {
         }
 
         private void HandleTriggerEnter(Collider collider) {
-            if (!enabled) return;
-            
+            _enteredColliders.Add(collider);
             TriggerEnter.Invoke(collider);
         }
 
         private void HandleTriggerStay(Collider collider) {
-            if (!enabled) return;
-            
             TriggerStay.Invoke(collider);
         }
 
         private void HandleTriggerExit(Collider collider) {
-            if (!enabled) return;
-            
+            _enteredColliders.Remove(collider);
             TriggerExit.Invoke(collider);
         }
     }

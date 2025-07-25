@@ -4,15 +4,15 @@ namespace MisterGames.Logic.Water {
     
     public interface IWaterClient {
         
-        bool IgnoreWaterZone { get; }
+        bool IgnoreWaterZone { get; set; }
         
         Rigidbody Rigidbody { get; }
         int FloatingPointCount { get; }
         Vector3 GetFloatingPoint(int index);
         
-        float SurfaceOffset { get; }
-        float MaxSpeed { get; }
-        float Buoyancy { get; }
+        float Buoyancy { get; set; }
+        float SurfaceOffset { get; set; }
+        float MaxSpeed { get; set; }
     }
     
 }
