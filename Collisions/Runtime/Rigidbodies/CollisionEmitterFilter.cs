@@ -26,19 +26,19 @@ namespace MisterGames.Collisions.Rigidbodies {
         }
 
         private void HandleCollisionEnter(Collision collision) {
-            if (!enabled || !_layerMask.Contains(collision.collider.gameObject.layer)) return;
+            if (!_layerMask.Contains(collision.collider.gameObject.layer)) return;
             
             CollisionEnter.Invoke(collision);
         }
 
         private void HandleCollisionStay(Collision collision) {
-            if (!enabled || !_layerMask.Contains(collision.collider.gameObject.layer)) return;
+            if (!_layerMask.Contains(collision.collider.gameObject.layer)) return;
             
             CollisionStay.Invoke(collision);
         }
 
         private void HandleCollisionExit(Collision collision) {
-            if (!enabled || !_layerMask.Contains(collision.collider.gameObject.layer)) return;
+            if (!_layerMask.Contains(collision.collider.gameObject.layer)) return;
             
             CollisionExit.Invoke(collision);
         }

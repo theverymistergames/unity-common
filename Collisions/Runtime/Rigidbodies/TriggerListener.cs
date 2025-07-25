@@ -8,6 +8,7 @@ namespace MisterGames.Collisions.Rigidbodies {
     public sealed class TriggerListener : TriggerEmitter, IUpdate {
         
         [SerializeField] private LayerMask _layerMask;
+        [SerializeField] private bool _clearCollidersOnDisable = true;
 
         private readonly struct ColliderData {
             public readonly Collider collider;
@@ -37,6 +38,15 @@ namespace MisterGames.Collisions.Rigidbodies {
 
         private void OnDisable() {
             PlayerLoopStage.FixedUpdate.Unsubscribe(this);
+            
+            if (!_clearCollidersOnDisable) return;
+            
+            for (int i = 0; i < _colliderDataList.Count; i++) {
+                TriggerExit.Invoke(_colliderDataList[i].collider);
+            }
+
+            _colliderDataList.Clear();
+            _indexMap.Clear();
         }
 
         void IUpdate.OnUpdate(float dt) {

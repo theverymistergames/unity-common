@@ -11,7 +11,7 @@ namespace MisterGames.Collisions.Rigidbodies {
         public override event TriggerCallback TriggerExit = delegate { };
         public override event TriggerCallback TriggerStay = delegate { };
 
-        public override IReadOnlyCollection<Collider> EnteredColliders => _enteredColliders;
+        public override IReadOnlyCollection<Collider> EnteredColliders => GetEnteredColliders();
 
         private readonly HashSet<Collider> _enteredColliders = new();
         
@@ -23,6 +23,8 @@ namespace MisterGames.Collisions.Rigidbodies {
                 emitter.TriggerStay += HandleTriggerStay;
                 emitter.TriggerExit += HandleTriggerExit;
             }
+            
+            FilterColliders();
         }
 
         private void OnDisable() {
@@ -32,6 +34,23 @@ namespace MisterGames.Collisions.Rigidbodies {
                 emitter.TriggerEnter -= HandleTriggerEnter;
                 emitter.TriggerStay -= HandleTriggerStay;
                 emitter.TriggerExit -= HandleTriggerExit;
+            }
+        }
+        
+        private IReadOnlyCollection<Collider> GetEnteredColliders() {
+            if (!enabled) FilterColliders();
+            return _enteredColliders;
+        }
+
+        private void FilterColliders() {
+            _enteredColliders.Clear();
+            
+            for (int i = 0; i < _triggerEmitters.Length; i++) {
+                var emitter = _triggerEmitters[i];
+                
+                foreach (var collider in emitter.EnteredColliders) {
+                    if (collider != null) _enteredColliders.Add(collider);
+                }
             }
         }
 

@@ -1,5 +1,4 @@
-﻿using System;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace MisterGames.Collisions.Rigidbodies {
     
@@ -32,20 +31,14 @@ namespace MisterGames.Collisions.Rigidbodies {
         }
 
         private void HandleCollisionEnter(Collision collision) {
-            if (!enabled) return;
-            
             CollisionEnter.Invoke(collision);
         }
 
         private void HandleCollisionStay(Collision collision) {
-            if (!enabled) return;
-            
             CollisionStay.Invoke(collision);
         }
 
         private void HandleCollisionExit(Collision collision) {
-            if (!enabled) return;
-            
             CollisionExit.Invoke(collision);
         }
     }
