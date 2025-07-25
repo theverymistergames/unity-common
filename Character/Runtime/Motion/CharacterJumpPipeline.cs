@@ -50,6 +50,7 @@ namespace MisterGames.Character.Motion {
         private CharacterGroundDetector _groundDetector;
         private CharacterCeilingDetector _ceilingDetector;
         private CharacterCapsulePipeline _capsulePipeline;
+        private CharacterSlopeProcessor _slopeProcessor;
         
         private float _jumpRequestTime;
         private float _jumpReleaseTime;
@@ -68,6 +69,7 @@ namespace MisterGames.Character.Motion {
             _groundDetector = actor.GetComponent<CharacterGroundDetector>();
             _ceilingDetector = actor.GetComponent<CharacterCeilingDetector>();
             _capsulePipeline  = actor.GetComponent<CharacterCapsulePipeline>();
+            _slopeProcessor = actor.GetComponent<CharacterSlopeProcessor>();
         }
 
         private void OnDestroy() {
@@ -183,7 +185,7 @@ namespace MisterGames.Character.Motion {
                 _motion.Velocity = verticalVelocity + Vector3.ProjectOnPlane(velocity, gravityDirection);
             }
 
-            if (_motion.SlopeAngle >= _maxSlopeAngle) {
+            if (_slopeProcessor.SlopeAngle >= _maxSlopeAngle) {
                 jumpImpulse = Force * _groundDetector.GetAccurateNormal();
             }
             

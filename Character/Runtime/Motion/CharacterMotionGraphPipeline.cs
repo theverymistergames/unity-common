@@ -5,7 +5,6 @@ using MisterGames.Actors.Actions;
 using MisterGames.Character.Capsule;
 using MisterGames.Character.Phys;
 using MisterGames.Character.Input;
-using MisterGames.Collisions.Core;
 using MisterGames.Common.Async;
 using MisterGames.Common.Data;
 using UnityEngine;

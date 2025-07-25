@@ -12,14 +12,10 @@ namespace MisterGames.Character.Motion {
         [SerializeField] [Min(0f)] private float _frictionSlope = 1f;
         [SerializeField] [Min(0f)] private float _frictionSlopeOverMaxAngle = 0.6f;
         [SerializeField] private float _minDotProduct = -0.001f;
-
-        [Header("Debug")]
-        [SerializeField] private bool _showDebugInfo;
         
         private Transform _transform;
-        private Rigidbody _rigidbody;
         private CapsuleCollider _collider;
-        private CharacterMotionPipeline _motion;
+        private CharacterSlopeProcessor _slopeProcessor;
         private int _colliderInstanceId;
 
         private Vector3 _up;
@@ -29,10 +25,10 @@ namespace MisterGames.Character.Motion {
         private float _friction;
 
         void IActorComponent.OnAwake(IActor actor) {
-            _motion = actor.GetComponent<CharacterMotionPipeline>();
-            _rigidbody = actor.GetComponent<Rigidbody>();
-            _transform = _rigidbody.transform;
+            _transform = actor.Transform;
             
+            _slopeProcessor = actor.GetComponent<CharacterSlopeProcessor>();
+
             _collider = actor.GetComponent<CapsuleCollider>();
             _collider.hasModifiableContacts = true;
             _colliderInstanceId = _collider.GetInstanceID();
@@ -58,8 +54,9 @@ namespace MisterGames.Character.Motion {
             _up = _transform.up;
             _lowerPoint = _transform.TransformPoint(_collider.center - Vector3.up * (_collider.height * 0.5f - _collider.radius));
             
-            _slopeAngle = _motion.SlopeAngle;
-            _slopeAngleLimits = _motion.SlopeAngleLimits;
+            _slopeAngle = _slopeProcessor.SlopeAngle;
+            _slopeAngleLimits = _slopeProcessor.SlopeAngleLimits;
+            
             _friction = GetFriction();
         }
 
@@ -118,6 +115,11 @@ namespace MisterGames.Character.Motion {
                 : absAngle <= _slopeAngleLimits.y ? _frictionSlope 
                 : _frictionSlopeOverMaxAngle;
         }
+
+#if UNITY_EDITOR
+        [Header("Debug")]
+        [SerializeField] private bool _showDebugInfo;
+#endif
     }
     
 }

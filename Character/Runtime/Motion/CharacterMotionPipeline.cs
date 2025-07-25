@@ -1,10 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using MisterGames.Actors;
 using MisterGames.Character.Phys;
 using MisterGames.Character.Input;
 using MisterGames.Character.View;
 using MisterGames.Common;
-using MisterGames.Common.Attributes;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Tick;
 using UnityEngine;
@@ -21,19 +21,7 @@ namespace MisterGames.Character.Motion {
         [SerializeField] [Min(0f)] private float _moveForce;
         [SerializeField] private float _speedCorrectionSide = 0.8f;
         [SerializeField] private float _speedCorrectionBack = 0.6f;
-        [SerializeField] [MinMaxSlider(0f, 90f)] private Vector2 _slopeAngle = new Vector2(25f, 45f);
         [SerializeField] private float _inputSmoothing = 20f;
-
-        [Header("Force Correction")]
-        [SerializeField] [MinMaxSlider(0f, 180f)] private Vector2 _forceCorrectionTurnAngle = new Vector2(15f, 120f);
-        [SerializeField] [MinMaxSlider(0f, 90f)] private Vector2 _forceCorrectionSlopeAngle = new Vector2(3f, 60f);
-        [SerializeField] [Range(0f, 1f)] private float _forceCorrectionTurnAngleWeight = 0.5f;
-        [SerializeField] [Range(0f, 1f)] private float _forceCorrectionSlopeAngleWeight = 1f;
-        
-        [Header("Gravity")]
-        [SerializeField] [Min(0f)] private float _noGravityVelocityDamping = 10f;
-        [SerializeField] [Min(0f)] private float _zeroGravityVelocityDamping = 2f;
-        [SerializeField] [Min(0f)] private float _zeroGravityInputSpeed = 0.25f;
         
         public event Action OnTeleport = delegate { }; 
         
@@ -41,6 +29,7 @@ namespace MisterGames.Character.Motion {
         public Vector3 MotionNormal { get; private set; }
         public Vector3 InputDirWorld { get; private set; }
         public Vector2 Input { get; private set; }
+        public Vector3 Up => _transform.up;
         
         public bool IsKinematic { get => _rigidbody.isKinematic; set => _rigidbody.isKinematic = value; }
         public Vector3 Velocity { get => _rigidbody.linearVelocity; set => _rigidbody.linearVelocity = value; }
@@ -52,8 +41,8 @@ namespace MisterGames.Character.Motion {
         public float SpeedCorrectionBack { get => _speedCorrectionBack; set => _speedCorrectionBack = value; }
         public float SpeedCorrectionSide { get => _speedCorrectionSide; set => _speedCorrectionSide = value; }
         
-        public float SlopeAngle { get; private set; }
-        public Vector2 SlopeAngleLimits => _slopeAngle;
+        private readonly Dictionary<IMotionProcessor, int> _processorIndexMap = new();
+        private readonly List<IMotionProcessor> _processorList = new();
         
         private Transform _transform;
         private Rigidbody _rigidbody;
@@ -85,6 +74,18 @@ namespace MisterGames.Character.Motion {
             PlayerLoopStage.FixedUpdate.Unsubscribe(this);
             
             _collisionPipeline.Block(this, blocked: false);
+        }
+
+        public void AddProcessor(IMotionProcessor processor) {
+            if (!_processorIndexMap.TryAdd(processor, _processorList.Count)) return;
+
+            _processorList.Add(processor);
+        }
+
+        public void RemoveProcessor(IMotionProcessor processor) {
+            if (!_processorIndexMap.Remove(processor, out int index)) return;
+
+            _processorList[index] = null;
         }
 
         public void Move(Vector3 delta) {
@@ -151,12 +152,7 @@ namespace MisterGames.Character.Motion {
             var up = _transform.up;
             var orient = _view.HeadRotation;
 
-            bool useGravity = _characterGravity.UseGravity;
-            bool hasGravity = _characterGravity.HasGravity;
-            
-            if (hasGravity) {
-                orient = Quaternion.LookRotation(Vector3.ProjectOnPlane(orient * Vector3.forward, up), up);
-            }
+            ApplyProcessorsForOrientation(ref orient);
 
             InputDirWorld = Input == Vector2.zero ? Vector3.zero : orient * InputToLocal(Input).normalized;
             MotionNormal = _groundDetector.GetMotionNormal(InputDirWorld);
@@ -164,12 +160,15 @@ namespace MisterGames.Character.Motion {
             
             MotionDirWorld = normalRot * InputDirWorld;
             _smoothedInput = _smoothedInput.SmoothExpNonZero(Input, _inputSmoothing, dt);
-            
-            SlopeAngle = Vector3.SignedAngle(up, _groundDetector.CollisionInfo.normal, Vector3.Cross(MotionDirWorld, up).normalized);
-            
-            if (_rigidbody.isKinematic) return;
 
-            float inputSpeed = hasGravity || !useGravity ? Speed : _zeroGravityInputSpeed;
+            if (_rigidbody.isKinematic) {
+                CleanupProcessors();
+                return;
+            }
+            
+            float inputSpeed = Speed;
+            ApplyProcessorsForInputSpeed(ref inputSpeed, dt);
+            
             float maxSpeed = CalculateSpeedCorrection(Input) * inputSpeed;
             var velocity = _rigidbody.linearVelocity;
 
@@ -178,18 +177,12 @@ namespace MisterGames.Character.Motion {
             
             var velocityProj = Vector3.Project(velocity, inputDirNormalized);
             var force = VectorUtils.ClampAcceleration(inputDirSmoothed * _moveForce, velocityProj, maxSpeed, dt);
-
-            if (hasGravity && Input != Vector2.zero) {
-                ApplyDirCorrection(inputDirNormalized * maxSpeed, Vector3.ProjectOnPlane(velocity, MotionNormal), ref force, dt);
-                LimitForceBySlopeAngle(SlopeAngle, ref force);
-            }
+            
+            ApplyProcessorsForInputForce(ref force, inputDirNormalized * maxSpeed, dt);
+            
+            CleanupProcessors();
             
             _rigidbody.AddForce(force, ForceMode.Acceleration);
-            
-            if (!hasGravity) {
-                float damping = useGravity ? _zeroGravityVelocityDamping : _noGravityVelocityDamping;
-                _rigidbody.linearVelocity = Vector3.Lerp(_rigidbody.linearVelocity, Vector3.zero, dt * damping);
-            }
             
 #if UNITY_EDITOR
             if (_showDebugInfo) DebugExt.DrawSphere(_rigidbody.position, 0.05f, Color.green);
@@ -212,31 +205,52 @@ namespace MisterGames.Character.Motion {
             // Moving sideways only: apply side correction
             return _speedCorrectionSide;
         }
+        
+        private void ApplyProcessorsForOrientation(ref Quaternion orientation) {
+            int count = _processorList.Count;
+            int topPriority = int.MinValue;
+            
+            for (int i = 0; i < count; i++) {
+                if (_processorList[i] is not { } processor) continue;
 
-        private void LimitForceBySlopeAngle(float slopeAngle, ref Vector3 inputForce) {
-            if (!_groundDetector.HasContact || slopeAngle <= _slopeAngle.y) return;
-            
-            var up = _transform.up;
-            var slopeUp = Vector3.Cross(Vector3.Cross(MotionNormal, up), MotionNormal).normalized;
-            
-            inputForce = Vector3.ProjectOnPlane(inputForce, slopeUp);
+                var orientationProcessed = orientation;
+                if (!processor.ProcessOrientation(ref orientationProcessed, out int priority) || priority < topPriority) continue;
+                
+                topPriority = priority;
+                orientation = orientationProcessed;
+            }
+        }
+        
+        private void ApplyProcessorsForInputSpeed(ref float inputSpeed, float dt) {
+            int count = _processorList.Count;
+            for (int i = 0; i < count; i++) {
+                if (_processorList[i] is { } processor) {
+                    processor.ProcessInputSpeed(ref inputSpeed, dt);
+                }
+            }
+        }
+        
+        private void ApplyProcessorsForInputForce(ref Vector3 inputForce, Vector3 desiredVelocity, float dt) {
+            int count = _processorList.Count;
+            for (int i = 0; i < count; i++) {
+                if (_processorList[i] is { } processor) {
+                    processor.ProcessInputForce(ref inputForce, desiredVelocity, dt);
+                }
+            }
         }
 
-        private void ApplyDirCorrection(Vector3 targetVelocity, Vector3 velocity, ref Vector3 force, float dt) {
-            if (targetVelocity == Vector3.zero || !_groundDetector.HasContact) return;
-
-            var nextVelocity = velocity + force * dt;
-            var perfectForce = dt > 0f ? (targetVelocity - velocity) / dt : force;
-                
-            float turnAngle = Vector3.Angle(targetVelocity, Vector3.ProjectOnPlane(nextVelocity, _transform.up));
-            float turnFactor = turnAngle <= _forceCorrectionTurnAngle.y
-                ? Mathf.Clamp01((turnAngle - _forceCorrectionTurnAngle.x) / (_forceCorrectionTurnAngle.y - _forceCorrectionTurnAngle.x))
-                : 0f;
+        private void CleanupProcessors() {
+            int count = _processorList.Count;
+            int validCount = count;
             
-            float slopeFactor = Mathf.Clamp01((Mathf.Abs(SlopeAngle) - _forceCorrectionSlopeAngle.x) / (_forceCorrectionSlopeAngle.y - _forceCorrectionSlopeAngle.x));
+            for (int i = count - 1; i >= 0; i--) {
+                if (_processorList[i] is null && _processorList[--validCount] is { } swap) {
+                    _processorList[i] = swap;
+                    _processorIndexMap[swap] = i;
+                }
+            }
             
-            float t = Mathf.Max(turnFactor * _forceCorrectionTurnAngleWeight, slopeFactor * _forceCorrectionSlopeAngleWeight);
-            force = Vector3.Lerp(force, perfectForce, t);
+            _processorList.RemoveRange(validCount, count - validCount);
         }
 
 #if UNITY_EDITOR
@@ -250,8 +264,7 @@ namespace MisterGames.Character.Motion {
                 Handles.Label(
                     transform.TransformPoint(Vector3.up),
                     $"Speed {_rigidbody.linearVelocity.magnitude:0.00} / {CalculateSpeedCorrection(_smoothedInput) * Speed:0.00}\n" +
-                    $"Move force {_moveForce:0.00}\n" +
-                    $"Slope angle {SlopeAngle:0.00}"
+                    $"Move force {_moveForce:0.00}"
                 );
             }
         }

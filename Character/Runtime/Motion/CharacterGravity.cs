@@ -9,10 +9,14 @@ using UnityEngine;
 namespace MisterGames.Character.Motion {
     
     public sealed class CharacterGravity : MonoBehaviour, IActorComponent, IUpdate {
-
+        
         [SerializeField] private float _applyFallForceBelowVerticalSpeed;
         [SerializeField] private float _gravityWeight = 2f;
         [SerializeField] [Min(0f)] private float _minGravityMagnitude = 0.1f;
+        
+        [Header("Velocity")]
+        [SerializeField] [Min(0f)] private float _noGravityVelocityDamping = 10f;
+        [SerializeField] [Min(0f)] private float _zeroGravityVelocityDamping = 1f;
         
         public Vector3 Gravity => _customGravity.Gravity;
         public Vector3 GravityDirection => _customGravity.GravityDirection;
@@ -53,7 +57,20 @@ namespace MisterGames.Character.Motion {
         }
 
         void IUpdate.OnUpdate(float dt) {
-            if (!HasGravity ||
+            ProcessVelocityDamping(dt);
+            ProcessFallForce();
+        }
+
+        private void ProcessVelocityDamping(float dt) {
+            if (_rigidbody.isKinematic || HasGravity) return;
+            
+            float damping = UseGravity ? _zeroGravityVelocityDamping : _noGravityVelocityDamping;
+            _rigidbody.linearVelocity = Vector3.Lerp(_rigidbody.linearVelocity, Vector3.zero, dt * damping);
+        }
+        
+        private void ProcessFallForce() {
+            if (_rigidbody.isKinematic ||
+                !HasGravity ||
                 _groundDetector.CollisionInfo.hasContact ||
                 !IsFallForceAllowed) 
             {

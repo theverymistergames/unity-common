@@ -123,6 +123,7 @@ namespace MisterGames.Logic.Water {
                 ProcessRigidbody(rb, rb.position, up, _buoyancyDefault, _maxSpeed, surfaceOffset: 0f, mul: 1f, i);
             }
             
+            count = _rbList.Count;
             int validCount = count;
 
             for (int i = _rbList.Count - 1; i >= 0; i--) {
