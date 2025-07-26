@@ -255,18 +255,13 @@ namespace MisterGames.Logic.Water {
             var surfacePoint = GetSurfacePoint(_surfaceOffset);
             var forceLevel = GetSurfacePoint(_surfaceOffset - _forceLevelDecrease);
 
-            var right = _waterBoxTransform.right;
-            var forward = _waterBoxTransform.forward;
+            var rot = _waterBoxTransform.rotation;
             
             DebugExt.DrawSphere(center, 0.03f, Color.white, gizmo: true);
             DebugExt.DrawLine(center, surfacePoint, Color.white, gizmo: true);
             
-            DebugExt.DrawSphere(surfacePoint, 0.04f, Color.cyan, gizmo: true);
-            DebugExt.DrawLine(surfacePoint - right * 0.4f, surfacePoint + right * 0.4f, Color.cyan, gizmo: true);
-            DebugExt.DrawLine(surfacePoint - forward * 0.4f, surfacePoint + forward * 0.4f, Color.cyan, gizmo: true);
-            
-            DebugExt.DrawLine(forceLevel - right * 0.4f, forceLevel + right * 0.4f, Color.magenta, gizmo: true);
-            DebugExt.DrawLine(forceLevel - forward * 0.4f, forceLevel + forward * 0.4f, Color.magenta, gizmo: true);
+            DebugExt.DrawCrossedPoint(surfacePoint, rot, Color.cyan, gizmo: true);
+            DebugExt.DrawCrossedPoint(forceLevel, rot, Color.magenta, radius: 0f, gizmo: true);
         }
 
         private void Reset() {

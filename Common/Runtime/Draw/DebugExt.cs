@@ -139,6 +139,21 @@ namespace MisterGames.Common {
 
             ArrayPool<Vector3>.Shared.Return(points);
         }
+        
+        public static void DrawCrossedPoint(
+            Vector3 position,
+            Quaternion rotation,
+            Color color,
+            float size = 0.4f,
+            float radius = 0.05f,
+            float step = 0.05f,
+            float duration = 0f,
+            bool gizmo = false)
+        {
+            DrawSphere(position, radius, color, step, duration, gizmo);
+            DrawLine(position - rotation * Vector3.right * size, position + rotation * Vector3.right * size, color, duration, gizmo);
+            DrawLine(position - rotation * Vector3.forward * size, position + rotation * Vector3.forward * size, color, duration, gizmo);
+        }
 
         public static void DrawCircle(
             Vector3 position,
@@ -312,6 +327,8 @@ namespace MisterGames.Common {
             float duration = 0f,
             bool gizmo = false)
         {
+            if (radius <= 0f) return;
+            
             var or0 = Quaternion.identity;
             var or1 = Quaternion.LookRotation(Vector3.up, Vector3.forward);
             var or2 = Quaternion.LookRotation(Vector3.up, Vector3.right);

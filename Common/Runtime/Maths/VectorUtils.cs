@@ -255,9 +255,7 @@ namespace MisterGames.Common.Maths {
 
         public static Vector3 FindNearestPointOnLine(Vector3 start, Vector3 direction, Vector3 point) {
             direction.Normalize();
-            var lhs = point - start;
-            float dotP = Vector3.Dot(lhs, direction);
-            return start + direction * dotP;
+            return start + direction * Vector3.Dot(point - start, direction);
         }
         
         /// <summary>
