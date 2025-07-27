@@ -1,17 +1,14 @@
 ﻿using System;
-using MisterGames.Collisions.Rigidbodies;
-using MisterGames.Common.Layers;
+using MisterGames.Common.Maths;
 using MisterGames.Common.Pooling;
 using UnityEngine;
 
-namespace MisterGames.Logic.Phys {
+namespace MisterGames.Logic.Water {
     
-    public sealed class SpawnPrefabOnTrigger : MonoBehaviour {
+    [RequireComponent(typeof(WaterZone))]
+    public sealed class WaterZoneVfx : MonoBehaviour {
         
-        [SerializeField] private TriggerEmitter _triggerEmitter;
-        [SerializeField] private LayerMask _layerMask;
-        [SerializeField] private PositionMode _positionMode;
-        [SerializeField] private Collider[] _colliders;
+        [SerializeField] private WaterZone _waterZone;
         
         [Header("Scale by Size")]
         [SerializeField] [Min(0f)] private float _minSize;
@@ -28,11 +25,6 @@ namespace MisterGames.Logic.Phys {
         [Header("Prefabs")]
         [SerializeField] private SpawnData[] _enterPrefabs;
         [SerializeField] private SpawnData[] _exitPrefabs;
-
-        private enum PositionMode {
-            ColliderPosition,
-            ClosestPointOnBounds,
-        }
         
         [Serializable]
         private struct SpawnData {
@@ -43,18 +35,16 @@ namespace MisterGames.Logic.Phys {
         }
         
         private void OnEnable() {
-            _triggerEmitter.TriggerEnter += TriggerEnter; 
-            _triggerEmitter.TriggerExit += TriggerExit; 
+            _waterZone.OnColliderEnter += OnColliderEnter;
+            _waterZone.OnColliderExit += OnColliderExit;
         }
 
         private void OnDisable() {
-            _triggerEmitter.TriggerEnter -= TriggerEnter; 
-            _triggerEmitter.TriggerExit -= TriggerExit;
+            _waterZone.OnColliderEnter -= OnColliderEnter;
+            _waterZone.OnColliderExit -= OnColliderExit;
         }
 
-        private void TriggerEnter(Collider collider) {
-            if (!_layerMask.Contains(collider.gameObject.layer)) return;
-            
+        private void OnColliderEnter(Collider collider, Vector3 position, Vector3 surfacePoint, Vector3 surfaceNormal) {
             float size = GetColliderSize(collider);
             float sqrSpeed = GetSqrSpeed(collider);
             
@@ -63,14 +53,14 @@ namespace MisterGames.Logic.Phys {
             
             ref var data = ref _enterPrefabs[index];
             float scaleMul = GetScaleMul(size, sqrSpeed) * data.scaleMul;
-            
-            collider.transform.GetPositionAndRotation(out var pos, out var rot);
-            
-            Spawn(data.prefab, GetPosition(pos), rot, scaleMul);
-        }
 
-        private void TriggerExit(Collider collider) {
-            if (collider == null || !_layerMask.Contains(collider.gameObject.layer)) return;
+            var rot = Quaternion.LookRotation(RandomExtensions.OnUnitCircle(surfaceNormal), surfaceNormal);
+            
+            Spawn(data.prefab, position, rot, scaleMul);
+        }
+        
+        private void OnColliderExit(Collider collider, Vector3 position, Vector3 surfacePoint, Vector3 surfaceNormal) {
+            if (collider == null) return;
             
             float size = GetColliderSize(collider);
             float sqrSpeed = GetSqrSpeed(collider);
@@ -81,39 +71,11 @@ namespace MisterGames.Logic.Phys {
             ref var data = ref _exitPrefabs[index];
             float scaleMul = GetScaleMul(size, sqrSpeed) * data.scaleMul;
             
-            collider.transform.GetPositionAndRotation(out var pos, out var rot);
+            var rot = Quaternion.LookRotation(RandomExtensions.OnUnitCircle(surfaceNormal), surfaceNormal);
             
-            Spawn(data.prefab, GetPosition(pos), rot, scaleMul);
+            Spawn(data.prefab, position, rot, scaleMul);
         }
-
-        private Vector3 GetPosition(Vector3 colliderPos) {
-            switch (_positionMode) {
-                case PositionMode.ColliderPosition:
-                    return colliderPos;
-                
-                case PositionMode.ClosestPointOnBounds:
-                    float minSqrDistance = float.MaxValue;
-                    var point = colliderPos;
-                    
-                    for (int i = 0; i < _colliders.Length; i++) {
-                        var c = _colliders[i];
-                        var p = c.ClosestPoint(colliderPos);
-                        
-                        float sqrDistance = (p - colliderPos).sqrMagnitude;
-                        
-                        if (sqrDistance < minSqrDistance) continue;
-
-                        point = p;
-                        minSqrDistance = sqrDistance;
-                    }
-
-                    return point;
-
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
-        }
-
+        
         private static void Spawn(GameObject prefab, Vector3 position, Quaternion rotation, float scaleMul) {
             var instance = PrefabPool.Main.Get(prefab, position, rotation, PrefabPool.Main.ActiveSceneRoot);
             instance.transform.localScale *= scaleMul;
@@ -152,19 +114,23 @@ namespace MisterGames.Logic.Phys {
         }
 
 #if UNITY_EDITOR
+        private void Reset() {
+            _waterZone = GetComponent<WaterZone>();
+        }
+        
         private void OnValidate() {
             if (_maxSize < _minSize) _maxSize = _minSize;
             if (_maxSizeScaleMul < _minSizeScaleMul) _maxSizeScaleMul = _minSizeScaleMul;
 
-            ValidateData(_enterPrefabs);
-            ValidateData(_exitPrefabs);
+            ValidateSoundData(_enterPrefabs);
+            ValidateSoundData(_exitPrefabs);
         }
 
-        private static void ValidateData(SpawnData[] dataArray) {
+        private static void ValidateSoundData(SpawnData[] sounds) {
             float size = 0f;
             
-            for (int i = 0; i < dataArray?.Length; i++) {
-                ref var data = ref dataArray[i];
+            for (int i = 0; i < sounds?.Length; i++) {
+                ref var data = ref sounds[i];
                 if (data.minColliderSize < size) data.minColliderSize = size;
                 size = data.minColliderSize;
             }

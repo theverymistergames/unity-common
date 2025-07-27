@@ -78,10 +78,16 @@ namespace MisterGames.Logic.Water {
 #endif
         }
 
+        public delegate void TriggerAction(Collider collider, Vector3 position, Vector3 surfacePoint, Vector3 surfaceNormal);
+        
+        public event TriggerAction OnColliderEnter = delegate { };
+        public event TriggerAction OnColliderExit = delegate { };
+
+        public HashSet<IWaterZoneProxy> WaterProxies { get; } = new();
+        public float SurfaceOffset => _surfaceOffset;
+
         private const float NoiseOffset = 100f;
-        
-        private readonly HashSet<IWaterZoneProxy> _proxySet = new();
-        
+
         private readonly Dictionary<int, int> _colliderToRbIdMap = new();
         private readonly Dictionary<int, int> _rbIdToColliderCountMap = new();
 
@@ -113,16 +119,16 @@ namespace MisterGames.Logic.Water {
             _rbIdToWaterClientDataMap.Clear();
             _rbIdToIndexMap.Clear();
             _rbList.Clear();
-            _proxySet.Clear();
+            WaterProxies.Clear();
         }
 
         public void AddProxy(IWaterZoneProxy proxy) {
-            _proxySet.Add(proxy);
+            WaterProxies.Add(proxy);
             proxy.BindZone(this);
         }
 
         public void RemoveProxy(IWaterZoneProxy proxy) {
-            _proxySet.Remove(proxy);
+            WaterProxies.Remove(proxy);
             proxy.UnbindZone(this);
         }
 
@@ -133,6 +139,10 @@ namespace MisterGames.Logic.Water {
             int rbId = rb.GetInstanceID();
             
             if (!_colliderToRbIdMap.TryAdd(id, rbId)) return;
+            
+            var pos = collider.transform.position;
+            proxy.SampleSurface(pos, out var surfacePoint, out var surfaceNormal);
+            OnColliderEnter.Invoke(collider, proxy.GetClosestPoint(pos), surfacePoint, surfaceNormal);
             
             int oldCount = _rbIdToColliderCountMap.GetValueOrDefault(rbId);
             _rbIdToColliderCountMap[rbId] = oldCount + 1;
@@ -145,6 +155,10 @@ namespace MisterGames.Logic.Water {
             
             int id = collider.GetInstanceID();
             if (collider == null || !_colliderToRbIdMap.Remove(id, out int rbId)) return;
+
+            var pos = collider.transform.position;
+            proxy.SampleSurface(pos, out var surfacePoint, out var surfaceNormal);
+            OnColliderExit.Invoke(collider, proxy.GetClosestPoint(pos), surfacePoint, surfaceNormal);
             
             int newCount = _rbIdToColliderCountMap.GetValueOrDefault(rbId) - 1;
             if (newCount > 0) {
@@ -244,12 +258,12 @@ namespace MisterGames.Logic.Water {
         }
 
         private NativeArray<ProxyData> CreateProxyDataArray(out int count) {
-            count = _proxySet.Count;
+            count = WaterProxies.Count;
             
             int index = 0;
             var proxyDataArray = new NativeArray<ProxyData>(count, Allocator.TempJob);
             
-            foreach (var proxy in _proxySet) {
+            foreach (var proxy in WaterProxies) {
                 proxy.GetBox(out var position, out var rotation, out var size);
                 
                 proxyDataArray[index++] = new ProxyData {

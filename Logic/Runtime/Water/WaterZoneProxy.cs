@@ -71,6 +71,18 @@ namespace MisterGames.Logic.Water {
             }
         }
 
+        public Vector3 GetClosestPoint(Vector3 position) {
+            return _waterBox.ClosestPoint(position);
+        }
+
+        public void SampleSurface(Vector3 position, out Vector3 surfacePoint, out Vector3 normal) {
+            var center = _waterBox.bounds.center;
+            normal = _waterBoxTransform.up;
+            
+            var sc = center + normal * (_waterBoxTransform.localScale.y * _waterBox.size.y * 0.5f);
+            surfacePoint = position + Vector3.Project(sc - position, normal);
+        }
+
         public void GetBox(out Vector3 position, out Quaternion rotation, out Vector3 size) {
             position = _waterBox.bounds.center;
             rotation = _waterBoxTransform.rotation;
