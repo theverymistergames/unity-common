@@ -7,11 +7,11 @@ namespace MisterGames.Logic.Water {
         bool IgnoreWaterZone { get; set; }
         
         Rigidbody Rigidbody { get; }
+        
         int FloatingPointCount { get; }
         Vector3 GetFloatingPoint(int index);
         
         float Buoyancy { get; set; }
-        float SurfaceOffset { get; set; }
         float MaxSpeed { get; set; }
     }
     

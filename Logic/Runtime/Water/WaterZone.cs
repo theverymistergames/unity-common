@@ -1,9 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using MisterGames.Actors;
 using MisterGames.Common;
-using MisterGames.Common.Data;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Tick;
+using MisterGames.Logic.Phys;
+using Unity.Collections;
+using Unity.Jobs;
 using UnityEngine;
 
 namespace MisterGames.Logic.Water {
@@ -13,11 +16,19 @@ namespace MisterGames.Logic.Water {
         [Header("Proxy")]
         [SerializeField] private WaterZoneProxy[] _predefinedProxies;
         
-        [Header("Force")]
+        [Header("Surface")]
+        [SerializeField] private float _surfaceOffset;
+        [SerializeField] [Min(0f)] private float _forceLevelDecrease = 0f;
+        
+        [Header("Motion")]
         [SerializeField] [Min(-1f)] private float _maxSpeed = -1f;
         [SerializeField] private float _buoyancyDefault = 0f;
         [SerializeField] private float _deceleration = 0f;
         [SerializeField] private float _torqueDeceleration = 0f;
+        
+        [Header("Force")]
+        [SerializeField] private float _force = 0f;
+        [SerializeField] private ForceSource _forceSource;
         
         [Header("Random")]
         [SerializeField] private float _randomForce = 0f;
@@ -25,31 +36,66 @@ namespace MisterGames.Logic.Water {
         [SerializeField] private float _randomForceSpeed = 0f;
         [SerializeField] private float _randomTorqueSpeed = 0f;
         
+        private enum ForceSource {
+            Constant,
+            UseGravityMagnitude,
+        }
+        
         private readonly struct WaterClientData {
 
-            public readonly IWaterClient waterClient;
             public readonly bool isMainRigidbody;
+            public readonly IWaterClient waterClient;
             
-            public WaterClientData(IWaterClient waterClient, bool isMainRigidbody) {
-                this.waterClient = waterClient;
+            public WaterClientData(bool isMainRigidbody, IWaterClient waterClient) {
                 this.isMainRigidbody = isMainRigidbody;
+                this.waterClient = waterClient;
             }
+        }
+        
+        private struct ProxyData {
+            public Vector3 position;
+            public Quaternion rotation;
+            public Vector3 size;
+            public float forceMul;
+            public float surfaceOffset;
+        }
+        
+        private struct FloatingData {
+            public int rbId;
+            public Vector3 point;
+            public float buoyancy;
+            public float maxSpeed;
+        }
+        
+        private struct ForceData {
+            public int rbId;
+            public Vector3 point;
+            public Vector3 force;
+            public float maxSpeed;
+#if UNITY_EDITOR
+            public Vector3 surfacePoint;
+            public Vector3 surfaceNormal;
+#endif
         }
 
         private const float NoiseOffset = 100f;
         
-        private readonly MultiValueDictionary<Rigidbody, IWaterZoneProxy> _rbWaterProxyMap = new();
+        private readonly HashSet<IWaterZoneProxy> _proxySet = new();
         
-        private readonly Dictionary<Collider, Rigidbody> _colliderToRigidbodyMap = new();
-        private readonly Dictionary<Rigidbody, int> _rigidbodyColliderCountMap = new();
-        
-        private readonly Dictionary<Rigidbody, WaterClientData> _rbWaterClientDataMap = new();
-        private readonly Dictionary<Rigidbody, int> _rbIndexMap = new();
-        private readonly List<Rigidbody> _rbList = new();
+        private readonly Dictionary<int, int> _colliderToRbIdMap = new();
+        private readonly Dictionary<int, int> _rbIdToColliderCountMap = new();
 
+        private readonly List<(int id, Rigidbody rb)> _rbList = new();
+        private readonly Dictionary<int, int> _rbIdToIndexMap = new();
+        private readonly Dictionary<int, WaterClientData> _rbIdToWaterClientDataMap = new();
+        private readonly Dictionary<int, int> _rbIdToProxyCountMap = new();
+
+        private NativeArray<ProxyData> _proxyDataArray;
+        private int _floatingPointsCount;
+        
         private void OnEnable() {
             for (int i = 0; i < _predefinedProxies.Length; i++) {
-                _predefinedProxies[i].BindZone(this);
+                AddProxy(_predefinedProxies[i]);
             }
         }
 
@@ -57,172 +103,236 @@ namespace MisterGames.Logic.Water {
             PlayerLoopStage.FixedUpdate.Unsubscribe(this);
             
             for (int i = 0; i < _predefinedProxies.Length; i++) {
-                _predefinedProxies[i].UnbindZone(this);
+                RemoveProxy(_predefinedProxies[i]);
             }
+
+            _proxyDataArray.Dispose();
         }
 
         private void OnDestroy() {
-            _rbWaterClientDataMap.Clear();
-            _rbIndexMap.Clear();
+            _rbIdToWaterClientDataMap.Clear();
+            _rbIdToIndexMap.Clear();
             _rbList.Clear();
+            _proxySet.Clear();
+        }
+
+        public void AddProxy(IWaterZoneProxy proxy) {
+            _proxySet.Add(proxy);
+            proxy.BindZone(this);
+        }
+
+        public void RemoveProxy(IWaterZoneProxy proxy) {
+            _proxySet.Remove(proxy);
+            proxy.UnbindZone(this);
         }
 
         public void TriggerEnter(Collider collider, IWaterZoneProxy proxy) {
-            if (collider.attachedRigidbody is not {} rb || 
-                !_colliderToRigidbodyMap.TryAdd(collider, rb)) 
-            {
-                return;
-            }
+            if (collider.attachedRigidbody is not {} rb) return;
+            
+            int id = collider.GetInstanceID();
+            int rbId = rb.GetInstanceID();
+            
+            if (!_colliderToRbIdMap.TryAdd(id, rbId)) return;
+            
+            int oldCount = _rbIdToColliderCountMap.GetValueOrDefault(rbId);
+            _rbIdToColliderCountMap[rbId] = oldCount + 1;
 
-            int oldCount = _rigidbodyColliderCountMap.GetValueOrDefault(rb);
-            _rigidbodyColliderCountMap[rb] = oldCount + 1;
-
-            if (oldCount <= 0) TriggerEnterRigidbody(rb, proxy);
+            if (oldCount <= 0) TriggerEnterRigidbody(rb);
         }
 
         public void TriggerExit(Collider collider, IWaterZoneProxy proxy) {
-            if (!_colliderToRigidbodyMap.Remove(collider, out var rb)) {
-                return;
-            }
+            if (collider == null) return;
             
-            int newCount = _rigidbodyColliderCountMap.GetValueOrDefault(rb) - 1;
+            int id = collider.GetInstanceID();
+            if (collider == null || !_colliderToRbIdMap.Remove(id, out int rbId)) return;
+            
+            int newCount = _rbIdToColliderCountMap.GetValueOrDefault(rbId) - 1;
             if (newCount > 0) {
-                _rigidbodyColliderCountMap[rb] = newCount;
+                _rbIdToColliderCountMap[rbId] = newCount;
                 return;
             }
 
-            _rigidbodyColliderCountMap.Remove(rb);
-            TriggerExitRigidbody(rb, proxy);
+            _rbIdToColliderCountMap.Remove(rbId);
+            TriggerExitRigidbody(rbId);
         }
 
-        private void TriggerEnterRigidbody(Rigidbody rigidbody, IWaterZoneProxy proxy) {
-            _rbWaterProxyMap.AddValue(rigidbody, proxy);
+        private void TriggerEnterRigidbody(Rigidbody rigidbody) {
+            int id = rigidbody.GetInstanceID();
+            _rbIdToProxyCountMap[id] = _rbIdToProxyCountMap.GetValueOrDefault(id) + 1;
             
-            if (!_rbIndexMap.TryAdd(rigidbody, _rbList.Count)) return;
+            if (!_rbIdToIndexMap.TryAdd(id, _rbList.Count)) return;
             
-            _rbList.Add(rigidbody);
+            _rbList.Add((id, rigidbody));
+
+            if (!rigidbody.TryGetComponent(out IWaterClient waterClient)) {
+                _floatingPointsCount++;
+                return;
+            }
             
-            if (!rigidbody.TryGetComponent(out IWaterClient waterClient)) return;
-            
-            _rbWaterClientDataMap[rigidbody] = new WaterClientData(
-                waterClient,
-                isMainRigidbody: waterClient.Rigidbody == rigidbody
+            _rbIdToWaterClientDataMap[id] = new WaterClientData(
+                isMainRigidbody: waterClient.Rigidbody == rigidbody,
+                waterClient
             );
+            
+            _floatingPointsCount += waterClient.FloatingPointCount;
             
             PlayerLoopStage.FixedUpdate.Subscribe(this);
         }
 
-        private void TriggerExitRigidbody(Rigidbody rigidbody, IWaterZoneProxy proxy) {
-            _rbWaterProxyMap.RemoveValue(rigidbody, proxy);
-            int proxiesLeft = _rbWaterProxyMap.GetCount(rigidbody);
-            
-            if (proxiesLeft > 0 || !_rbIndexMap.Remove(rigidbody, out int index)) return;
+        private void TriggerExitRigidbody(int rbId) {
+            int proxiesLeft = _rbIdToProxyCountMap[rbId] - 1;
 
-            _rbList[index] = null;
-            _rbWaterClientDataMap.Remove(rigidbody);
+            if (proxiesLeft > 0) _rbIdToProxyCountMap[rbId] = proxiesLeft;
+            else _rbIdToProxyCountMap.Remove(rbId);
             
-            if (_rbIndexMap.Count == 0) PlayerLoopStage.FixedUpdate.Unsubscribe(this);
+            if (proxiesLeft > 0 || !_rbIdToIndexMap.Remove(rbId, out int index)) return;
+
+            _rbList[index] = default;
+            
+            if (_rbIdToWaterClientDataMap.Remove(rbId, out var data)) {
+                _floatingPointsCount -= data.waterClient.FloatingPointCount;
+            }
+            else {
+                _floatingPointsCount--;
+            }
         }
 
         void IUpdate.OnUpdate(float dt) {
-            int count = _rbList.Count;
+            var proxyDataArray = CreateProxyDataArray(out int proxyCount);
+            var floatingDataArray = CreateFloatingDataArray(out int floatingPointsCount);
+            var forceDataArray = new NativeArray<ForceData>(floatingPointsCount, Allocator.TempJob);
+            var rbIdToFloatingPointsCountMap = new NativeHashMap<int, int>(_rbList.Count, Allocator.TempJob);
             
-            for (int i = 0; i < count; i++) {
-                var rb = _rbList[i];
-                if (rb == null || rb.isKinematic) continue;
+            var calculateForceJob = new CalculateForceJob {
+                floatingDataArray = floatingDataArray,
+                proxyDataArray = proxyDataArray,
+                proxyCount = proxyCount,
+                forceLevel = _forceLevelDecrease,
+                forceDataArray = forceDataArray,
+            };
+
+            var calculateValidFloatingPointsCountJob = new CalculateValidFloatingPointsPerRbJob {
+                count = floatingPointsCount,
+                rbIdToFloatingPointsCountMap = rbIdToFloatingPointsCountMap,
+                forceDataArray = forceDataArray,
+            };
             
-                if (_rbWaterClientDataMap.TryGetValue(rb, out var data)) {
-                    ProcessWaterClient(rb, data, i);
+            var calculateForceJobHandle = calculateForceJob.Schedule(floatingPointsCount, innerloopBatchCount: 256);
+            calculateValidFloatingPointsCountJob.Schedule(calculateForceJobHandle).Complete();
+            
+            proxyDataArray.Dispose();
+            floatingDataArray.Dispose();
+
+            for (int i = 0; i < forceDataArray.Length; i++) {
+                var forceData = forceDataArray[i];
+                if (forceData.rbId == 0) continue;
+                
+                int fpCount = rbIdToFloatingPointsCountMap[forceData.rbId];
+                var rb = _rbList[_rbIdToIndexMap[forceData.rbId]].rb;
+
+#if UNITY_EDITOR
+                if (_showDebugInfo) DrawFloatingPoint(forceData.point, forceData.surfacePoint);
+#endif
+                
+                ProcessRigidbody(rb, forceData.point, forceData.force, forceData.maxSpeed, mul: 1f / fpCount, i);
+            }
+
+            rbIdToFloatingPointsCountMap.Dispose();
+            forceDataArray.Dispose();
+            
+            if (_rbList.Count == 0) PlayerLoopStage.FixedUpdate.Unsubscribe(this);
+        }
+
+        private NativeArray<ProxyData> CreateProxyDataArray(out int count) {
+            count = _proxySet.Count;
+            
+            int index = 0;
+            var proxyDataArray = new NativeArray<ProxyData>(count, Allocator.TempJob);
+            
+            foreach (var proxy in _proxySet) {
+                proxy.GetBox(out var position, out var rotation, out var size);
+                
+                proxyDataArray[index++] = new ProxyData {
+                    position = position,
+                    rotation = rotation,
+                    size = size,
+                    surfaceOffset = _surfaceOffset + proxy.SurfaceOffset,
+                    forceMul = _force * _forceSource switch {
+                        ForceSource.Constant => 1f,
+                        ForceSource.UseGravityMagnitude => 
+                            CustomGravity.Main.TryGetGlobalGravity(position, out var g) 
+                                ? g.magnitude 
+                                : Physics.gravity.magnitude,
+                        _ => throw new ArgumentOutOfRangeException()
+                    },
+                };
+            }
+
+            return proxyDataArray;
+        }
+
+        private NativeArray<FloatingData> CreateFloatingDataArray(out int count) {
+            int rbCount = _rbList.Count;
+            int validRbCount = rbCount;
+            int fpIndex = 0;
+            
+            var floatingDataArray = new NativeArray<FloatingData>(_floatingPointsCount, Allocator.TempJob);
+
+            for (int i = _rbList.Count - 1; i >= 0; i--) {
+                (int id, var rb) = _rbList[i];
+                
+                if (id != 0 && rb != null) {
+                    if (rb.isKinematic) continue;
+                    
+                    if (_rbIdToWaterClientDataMap.TryGetValue(id, out var data) && data.isMainRigidbody) {
+                        if (data.waterClient.IgnoreWaterZone) continue;
+
+                        int floatingPointCount = data.waterClient.FloatingPointCount;
+                        for (int j = 0; j < floatingPointCount; j++) {
+                            floatingDataArray[fpIndex++] = new FloatingData {
+                                rbId = id,
+                                point = data.waterClient.GetFloatingPoint(j),
+                                buoyancy = data.waterClient.Buoyancy,
+                                maxSpeed = data.waterClient.MaxSpeed,
+                            };
+                        }
+                        
+                        continue;
+                    }
+                    
+                    floatingDataArray[fpIndex++] = new FloatingData {
+                        rbId = id,
+                        point = rb.position,
+                        buoyancy = _buoyancyDefault,
+                        maxSpeed = _maxSpeed,
+                    };
+                    
                     continue;
                 }
 
-                int proxyCount = _rbWaterProxyMap.GetCount(rb);
-                if (proxyCount <= 0) continue;
+                if (_rbIdToIndexMap.Remove(id)) {
+                    if (_rbIdToWaterClientDataMap.Remove(id, out var data)) {
+                        _floatingPointsCount -= data.waterClient.FloatingPointCount;
+                    }
+                    else {
+                        _floatingPointsCount--;
+                    }
+                }
                 
-                var pos = rb.position;
-                SampleSurface(rb, pos, proxyCount, surfaceOffset: 0f, out var surfacePoint, out var surfaceNormal, out var force);
-
-#if UNITY_EDITOR
-                DrawFloatingPoint(pos, surfacePoint, surfaceNormal);          
-#endif
-                
-                // Floating point is above the surface
-                if (Vector3.Dot(surfacePoint - pos, surfaceNormal) <= 0f) continue;
-                
-                ProcessRigidbody(rb, pos, force * (1f + _buoyancyDefault), _maxSpeed, i);
-            }
-            
-            count = _rbList.Count;
-            int validCount = count;
-
-            for (int i = _rbList.Count - 1; i >= 0; i--) {
-                var rb = _rbList[i];
-                if (rb != null) continue;
-
-                if (rb is {} notNull) _rbIndexMap.Remove(notNull);
-                
-                if (_rbList[--validCount] is { } swap && swap != null) 
+                if (_rbList[--validRbCount] is var swap && swap.rb != null) 
                 {
                     _rbList[i] = swap;
-                    _rbIndexMap[swap] = i;
+                    _rbIdToIndexMap[swap.id] = i;
                 }
             }
 
-            _rbList.RemoveRange(validCount, count - validCount);
+            _rbList.RemoveRange(validRbCount, rbCount - validRbCount);
+            count = fpIndex;
+
+            return floatingDataArray;
         }
 
-        private void ProcessWaterClient(Rigidbody rb, WaterClientData data, int index) {
-            if (data.waterClient.IgnoreWaterZone) return;
-
-            int proxyCount = _rbWaterProxyMap.GetCount(rb);
-            if (proxyCount <= 0) return;
-            
-            var client = data.waterClient;
-            
-            Vector3 pos = default;
-            Vector3 force = default;
-
-            if (data.isMainRigidbody) {
-                int count = client.FloatingPointCount;
-                int belowSurfaceCount = 0;
-                
-                for (int i = 0; i < count; i++) {
-                    var point = client.GetFloatingPoint(i);
-                    SampleSurface(rb, point, proxyCount, client.SurfaceOffset, out var p, out var n, out var f);
-                    
-#if UNITY_EDITOR
-                    DrawFloatingPoint(point, p, n);          
-#endif
-                    
-                    if (Vector3.Dot(p - point, n) <= 0f) continue;
-
-                    belowSurfaceCount++;
-
-                    pos += point;
-                    force += f;
-                }
-
-                if (belowSurfaceCount > 0) {
-                    ProcessRigidbody(rb, pos / belowSurfaceCount, force / belowSurfaceCount * (1f + client.Buoyancy), client.MaxSpeed, index);    
-                }
-                
-                return;
-            }
-
-            pos = rb.position;
-            SampleSurface(rb, pos, proxyCount, client.SurfaceOffset, out var surfacePoint, out var surfaceNormal, out force);
-            
-#if UNITY_EDITOR
-            DrawFloatingPoint(pos, surfacePoint, surfaceNormal);          
-#endif
-            
-            // Floating point is above the surface
-            if (Vector3.Dot(surfacePoint - pos, surfaceNormal) <= 0f) return;
-            
-            ProcessRigidbody(rb, pos, force * (1f + client.Buoyancy), client.MaxSpeed, index);
-        }
-
-        private void ProcessRigidbody(Rigidbody rb, Vector3 position, Vector3 force, float maxSpeed, int index) {
+        private void ProcessRigidbody(Rigidbody rb, Vector3 position, Vector3 force, float maxSpeed, float mul, int index) {
             var velocity = rb.linearVelocity;
             var angularVelocity = rb.angularVelocity;
 
@@ -232,40 +342,14 @@ namespace MisterGames.Logic.Water {
             var randomForce = GetNoiseVector(_randomForceSpeed, NoiseOffset * index) * _randomForce;
             var randomTorque = GetNoiseVector(_randomTorqueSpeed, NoiseOffset * 5f * index) * _randomTorque;
             
-            rb.AddForceAtPosition(forceVector + randomForce, position, ForceMode.Acceleration);
-            rb.AddTorque(torqueVector + randomTorque, ForceMode.Acceleration);
+            rb.AddForceAtPosition(mul * (forceVector + randomForce), position, ForceMode.Acceleration);
+            rb.AddTorque(mul * (torqueVector + randomTorque), ForceMode.Acceleration);
             
             if (maxSpeed >= 0f) rb.linearVelocity = VectorUtils.ClampVelocity(velocity, velocity, _maxSpeed);
             
 #if UNITY_EDITOR
             if (_showDebugInfo) DebugExt.DrawRay(position, forceVector, Color.magenta);
 #endif
-        }
-
-        private void SampleSurface(
-            Rigidbody rb,
-            Vector3 position,
-            int proxyCount,
-            float surfaceOffset,
-            out Vector3 surfacePoint,
-            out Vector3 surfaceNormal,
-            out Vector3 force) 
-        {
-            surfacePoint = default;
-            surfaceNormal = default;
-            force = default;
-
-            for (int i = 0; i < proxyCount; i++) {
-                _rbWaterProxyMap.GetValue(rb, i).SampleSurface(position, out var p, out var n, out var f);
-
-                surfacePoint += p + n * surfaceOffset;
-                surfaceNormal += n;
-                force += f;
-            }
-
-            surfaceNormal = (surfaceNormal / proxyCount).normalized;
-            surfacePoint /= proxyCount;
-            force /= proxyCount;
         }
 
         private static Vector3 GetNoiseVector(float speed, float offset) {
@@ -277,18 +361,103 @@ namespace MisterGames.Logic.Water {
             );
         }
         
+        private struct CalculateForceJob : IJobParallelFor {
+            
+            [ReadOnly] public NativeArray<FloatingData> floatingDataArray;
+            [ReadOnly] public NativeArray<ProxyData> proxyDataArray;
+            [ReadOnly] public int proxyCount;
+            [ReadOnly] public float forceLevel;
+            
+            public NativeArray<ForceData> forceDataArray;
+            
+            public void Execute(int index) {
+                var floatingData = floatingDataArray[index];
+                var point = floatingData.point;
+                var force = Vector3.zero;
+                
+                var up = Vector3.up;
+                int validProxyCount = 0;
+
+#if UNITY_EDITOR
+                Vector3 surfacePoint = default;
+                Vector3 surfaceNormal = default;
+#endif
+                
+                for (int i = 0; i < proxyCount; i++) {
+                    var proxyData = proxyDataArray[i];
+
+                    var localPoint = Quaternion.Inverse(proxyData.rotation) * (point - proxyData.position);
+                    var halfSize = proxyData.size * 0.5f;
+
+                    if (localPoint.x < -halfSize.x || localPoint.x > halfSize.x ||
+                        localPoint.y < -halfSize.y || localPoint.y > halfSize.y ||
+                        localPoint.z < -halfSize.z || localPoint.z > halfSize.z) 
+                    {
+                        continue;
+                    }
+                    
+                    var sn = proxyData.rotation * up;
+                    var sc = proxyData.position + sn * (halfSize.y + proxyData.surfaceOffset);
+                    var sp = point + Vector3.Project(sc - point, sn);
+                    
+#if UNITY_EDITOR
+                    surfacePoint += sp;
+                    surfaceNormal += sn;
+#endif
+                    
+                    // Point is above the surface
+                    if (Vector3.Dot(sp - point, sn) <= 0f) continue;
+                    
+                    validProxyCount++;
+                    
+                    float forceMul = forceLevel > 0f ? Mathf.Clamp01((sp - point).magnitude / forceLevel) : 1f;
+                    force += proxyData.forceMul * forceMul * sn;
+                }
+
+                if (validProxyCount <= 0) {
+                    forceDataArray[index] = default;
+                    return;
+                }
+                
+                forceDataArray[index] = new ForceData {
+                    rbId = floatingData.rbId,
+                    point = floatingData.point,
+                    force = (1f + floatingData.buoyancy) * force / validProxyCount,
+                    maxSpeed = floatingData.maxSpeed,
+#if UNITY_EDITOR
+                    surfacePoint = surfacePoint / validProxyCount,
+                    surfaceNormal = (surfaceNormal / validProxyCount).normalized,
+#endif
+                };
+            }
+        }
+        
+        private struct CalculateValidFloatingPointsPerRbJob : IJob {
+            
+            [ReadOnly] public NativeArray<ForceData> forceDataArray;
+            [ReadOnly] public int count;
+
+            public NativeHashMap<int, int> rbIdToFloatingPointsCountMap;
+            
+            public void Execute() {
+                for (int i = 0; i < count; i++) {
+                    var forceData = forceDataArray[i];
+                    if (forceData.rbId == 0) continue;
+                    
+                    rbIdToFloatingPointsCountMap[forceData.rbId] = 
+                        (rbIdToFloatingPointsCountMap.TryGetValue(forceData.rbId, out int count) ? count : 0) + 1;
+                }
+            }
+        }
+        
 #if UNITY_EDITOR
         [Header("Debug")]
         [SerializeField] private bool _showDebugInfo;
 
-        private void DrawFloatingPoint(Vector3 position, Vector3 surfacePoint, Vector3 surfaceNormal) {
-            if (!_showDebugInfo) return;
-            
-            bool isBelowSurface = Vector3.Dot(surfacePoint - position, surfaceNormal) > 0f;
-            
-            DebugExt.DrawSphere(position, 0.05f, isBelowSurface ? Color.green : Color.red);
-            DebugExt.DrawRay(position, Vector3.Project(surfacePoint - position, surfaceNormal), Color.white);
-            DebugExt.DrawSphere(position + Vector3.Project(surfacePoint - position, surfaceNormal), 0.02f, Color.white);
+        private static void DrawFloatingPoint(Vector3 position, Vector3 surfacePoint) {
+            DebugExt.DrawSphere(position, 0.05f, Color.yellow);
+            DebugExt.DrawLine(position, surfacePoint, Color.white);
+            DebugExt.DrawSphere(surfacePoint, 0.02f, Color.white);
         }
 #endif
     }
