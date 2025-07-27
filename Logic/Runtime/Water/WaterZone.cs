@@ -1,46 +1,29 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using MisterGames.Actors;
-using MisterGames.Collisions.Rigidbodies;
 using MisterGames.Common;
-using MisterGames.Common.Attributes;
+using MisterGames.Common.Data;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Tick;
-using MisterGames.Logic.Phys;
 using UnityEngine;
 
 namespace MisterGames.Logic.Water {
     
-    [RequireComponent(typeof(BoxCollider))]
-    public sealed class WaterZone : MonoBehaviour, IActorComponent, IUpdate {
+    public sealed class WaterZone : MonoBehaviour, IActorComponent, IUpdate, IWaterZone {
 
-        [SerializeField] private BoxCollider _waterBox;
-        [SerializeField] private TriggerListenerForRigidbody _triggerListenerForRigidbody;
-        
-        [Header("Surface")]
-        [SerializeField] private float _surfaceOffset;
-        [SerializeField] [Min(0f)] private float _forceLevelDecrease = 0f;
+        [Header("Proxy")]
+        [SerializeField] private WaterZoneProxy[] _predefinedProxies;
         
         [Header("Force")]
         [SerializeField] [Min(-1f)] private float _maxSpeed = -1f;
         [SerializeField] private float _buoyancyDefault = 0f;
         [SerializeField] private float _deceleration = 0f;
         [SerializeField] private float _torqueDeceleration = 0f;
-        [SerializeField] private ForceSource _forceSource;
-        [SerializeField] private float _force = 0f;
-        [VisibleIf(nameof(_forceSource), 1)]
-        [SerializeField] private GravityProvider _gravityProvider;
         
         [Header("Random")]
         [SerializeField] private float _randomForce = 0f;
         [SerializeField] private float _randomTorque = 0f;
         [SerializeField] private float _randomForceSpeed = 0f;
         [SerializeField] private float _randomTorqueSpeed = 0f;
-
-        private enum ForceSource {
-            Constant,
-            UseGravityMagnitude,
-        }
         
         private readonly struct WaterClientData {
 
@@ -55,28 +38,27 @@ namespace MisterGames.Logic.Water {
 
         private const float NoiseOffset = 100f;
         
+        private readonly MultiValueDictionary<Rigidbody, IWaterZoneProxy> _rbWaterProxyMap = new();
+        
+        private readonly Dictionary<Collider, Rigidbody> _colliderToRigidbodyMap = new();
+        private readonly Dictionary<Rigidbody, int> _rigidbodyColliderCountMap = new();
+        
         private readonly Dictionary<Rigidbody, WaterClientData> _rbWaterClientDataMap = new();
         private readonly Dictionary<Rigidbody, int> _rbIndexMap = new();
         private readonly List<Rigidbody> _rbList = new();
-        
-        private Transform _waterBoxTransform;
-
-        private void Awake() {
-            _waterBoxTransform = _waterBox.transform;
-        }
 
         private void OnEnable() {
-            _triggerListenerForRigidbody.TriggerEnter += TriggerEnter;
-            _triggerListenerForRigidbody.TriggerExit += TriggerExit;
-            
-            PlayerLoopStage.FixedUpdate.Subscribe(this);
+            for (int i = 0; i < _predefinedProxies.Length; i++) {
+                _predefinedProxies[i].BindZone(this);
+            }
         }
 
         private void OnDisable() {
-            _triggerListenerForRigidbody.TriggerEnter -= TriggerEnter;
-            _triggerListenerForRigidbody.TriggerExit -= TriggerExit;
-
             PlayerLoopStage.FixedUpdate.Unsubscribe(this);
+            
+            for (int i = 0; i < _predefinedProxies.Length; i++) {
+                _predefinedProxies[i].UnbindZone(this);
+            }
         }
 
         private void OnDestroy() {
@@ -85,7 +67,37 @@ namespace MisterGames.Logic.Water {
             _rbList.Clear();
         }
 
-        private void TriggerEnter(Rigidbody rigidbody) {
+        public void TriggerEnter(Collider collider, IWaterZoneProxy proxy) {
+            if (collider.attachedRigidbody is not {} rb || 
+                !_colliderToRigidbodyMap.TryAdd(collider, rb)) 
+            {
+                return;
+            }
+
+            int oldCount = _rigidbodyColliderCountMap.GetValueOrDefault(rb);
+            _rigidbodyColliderCountMap[rb] = oldCount + 1;
+
+            if (oldCount <= 0) TriggerEnterRigidbody(rb, proxy);
+        }
+
+        public void TriggerExit(Collider collider, IWaterZoneProxy proxy) {
+            if (!_colliderToRigidbodyMap.Remove(collider, out var rb)) {
+                return;
+            }
+            
+            int newCount = _rigidbodyColliderCountMap.GetValueOrDefault(rb) - 1;
+            if (newCount > 0) {
+                _rigidbodyColliderCountMap[rb] = newCount;
+                return;
+            }
+
+            _rigidbodyColliderCountMap.Remove(rb);
+            TriggerExitRigidbody(rb, proxy);
+        }
+
+        private void TriggerEnterRigidbody(Rigidbody rigidbody, IWaterZoneProxy proxy) {
+            _rbWaterProxyMap.AddValue(rigidbody, proxy);
+            
             if (!_rbIndexMap.TryAdd(rigidbody, _rbList.Count)) return;
             
             _rbList.Add(rigidbody);
@@ -96,29 +108,48 @@ namespace MisterGames.Logic.Water {
                 waterClient,
                 isMainRigidbody: waterClient.Rigidbody == rigidbody
             );
+            
+            PlayerLoopStage.FixedUpdate.Subscribe(this);
         }
 
-        private void TriggerExit(Rigidbody rigidbody) {
-            if (!_rbIndexMap.Remove(rigidbody, out int index)) return;
+        private void TriggerExitRigidbody(Rigidbody rigidbody, IWaterZoneProxy proxy) {
+            _rbWaterProxyMap.RemoveValue(rigidbody, proxy);
+            int proxiesLeft = _rbWaterProxyMap.GetCount(rigidbody);
+            
+            if (proxiesLeft > 0 || !_rbIndexMap.Remove(rigidbody, out int index)) return;
 
             _rbList[index] = null;
             _rbWaterClientDataMap.Remove(rigidbody);
+            
+            if (_rbIndexMap.Count == 0) PlayerLoopStage.FixedUpdate.Unsubscribe(this);
         }
 
         void IUpdate.OnUpdate(float dt) {
             int count = _rbList.Count;
-            var up = GetWaterBoxUp(); 
             
             for (int i = 0; i < count; i++) {
                 var rb = _rbList[i];
                 if (rb == null || rb.isKinematic) continue;
             
                 if (_rbWaterClientDataMap.TryGetValue(rb, out var data)) {
-                    ProcessWaterClient(rb, data, up, i);
+                    ProcessWaterClient(rb, data, i);
                     continue;
                 }
-            
-                ProcessRigidbody(rb, rb.position, up, _buoyancyDefault, _maxSpeed, surfaceOffset: 0f, mul: 1f, i);
+
+                int proxyCount = _rbWaterProxyMap.GetCount(rb);
+                if (proxyCount <= 0) continue;
+                
+                var pos = rb.position;
+                SampleSurface(rb, pos, proxyCount, surfaceOffset: 0f, out var surfacePoint, out var surfaceNormal, out var force);
+
+#if UNITY_EDITOR
+                DrawFloatingPoint(pos, surfacePoint, surfaceNormal);          
+#endif
+                
+                // Floating point is above the surface
+                if (Vector3.Dot(surfacePoint - pos, surfaceNormal) <= 0f) continue;
+                
+                ProcessRigidbody(rb, pos, force * (1f + _buoyancyDefault), _maxSpeed, i);
             }
             
             count = _rbList.Count;
@@ -140,86 +171,101 @@ namespace MisterGames.Logic.Water {
             _rbList.RemoveRange(validCount, count - validCount);
         }
 
-        private void ProcessWaterClient(Rigidbody rb, WaterClientData data, Vector3 waterUp, int index) {
+        private void ProcessWaterClient(Rigidbody rb, WaterClientData data, int index) {
             if (data.waterClient.IgnoreWaterZone) return;
 
+            int proxyCount = _rbWaterProxyMap.GetCount(rb);
+            if (proxyCount <= 0) return;
+            
             var client = data.waterClient;
             
+            Vector3 pos = default;
+            Vector3 force = default;
+
             if (data.isMainRigidbody) {
-                var surfacePoint = GetSurfacePoint(_surfaceOffset + client.SurfaceOffset);
                 int count = client.FloatingPointCount;
                 int belowSurfaceCount = 0;
                 
                 for (int i = 0; i < count; i++) {
                     var point = client.GetFloatingPoint(i);
-                    if (Vector3.Dot(surfacePoint - point, waterUp) <= 0f) continue;
+                    SampleSurface(rb, point, proxyCount, client.SurfaceOffset, out var p, out var n, out var f);
                     
+#if UNITY_EDITOR
+                    DrawFloatingPoint(point, p, n);          
+#endif
+                    
+                    if (Vector3.Dot(p - point, n) <= 0f) continue;
+
                     belowSurfaceCount++;
+
+                    pos += point;
+                    force += f;
                 }
 
                 if (belowSurfaceCount > 0) {
-                    float mul = 1f / belowSurfaceCount;
-                    for (int i = 0; i < count; i++) {
-                        var point = client.GetFloatingPoint(i);
-                        if (Vector3.Dot(surfacePoint - point, waterUp) <= 0f) return;
-                        
-                        ProcessRigidbody(rb, point, waterUp, client.Buoyancy, client.MaxSpeed, client.SurfaceOffset, mul, index);
-                    }
+                    ProcessRigidbody(rb, pos / belowSurfaceCount, force / belowSurfaceCount * (1f + client.Buoyancy), client.MaxSpeed, index);    
                 }
                 
                 return;
             }
 
-            ProcessRigidbody(rb, rb.position, waterUp, client.Buoyancy, client.MaxSpeed, client.SurfaceOffset, mul: 1f, index);
-        }
-
-        private void ProcessRigidbody(
-            Rigidbody rb,
-            Vector3 position,
-            Vector3 waterUp,
-            float buoyancy,
-            float maxSpeed,
-            float surfaceOffset,
-            float mul,
-            int index) 
-        {
-            var surfacePoint = GetSurfacePoint(_surfaceOffset + surfaceOffset);
-
+            pos = rb.position;
+            SampleSurface(rb, pos, proxyCount, client.SurfaceOffset, out var surfacePoint, out var surfaceNormal, out force);
+            
 #if UNITY_EDITOR
-            if (_showDebugInfo) DebugExt.DrawSphere(position, 0.05f, Color.yellow);
-            if (_showDebugInfo) DebugExt.DrawRay(position, Vector3.Project(surfacePoint - position, waterUp), Color.white);
-            if (_showDebugInfo) DebugExt.DrawSphere(position + Vector3.Project(surfacePoint - position, waterUp), 0.02f, Color.white);
+            DrawFloatingPoint(pos, surfacePoint, surfaceNormal);          
 #endif
             
             // Floating point is above the surface
-            if (Vector3.Dot(surfacePoint - position, waterUp) <= 0f) return;
+            if (Vector3.Dot(surfacePoint - pos, surfaceNormal) <= 0f) return;
+            
+            ProcessRigidbody(rb, pos, force * (1f + client.Buoyancy), client.MaxSpeed, index);
+        }
 
+        private void ProcessRigidbody(Rigidbody rb, Vector3 position, Vector3 force, float maxSpeed, int index) {
             var velocity = rb.linearVelocity;
             var angularVelocity = rb.angularVelocity;
 
-            float distToSurface = Vector3.Project(surfacePoint - position, waterUp).magnitude;
-            float forceMul = _forceLevelDecrease > 0f ? Mathf.Clamp01(distToSurface / _forceLevelDecrease) : 1f;
-            
-            float force = _forceSource switch {
-                ForceSource.Constant => _force,
-                ForceSource.UseGravityMagnitude => _force * _gravityProvider.GravityMagnitude,
-                _ => throw new ArgumentOutOfRangeException()
-            };
-            
-            var forceVector = (1f + buoyancy) * force * forceMul * waterUp - _deceleration * velocity;
+            var forceVector = force - _deceleration * velocity;
             var torqueVector = -_torqueDeceleration * angularVelocity;
 
             var randomForce = GetNoiseVector(_randomForceSpeed, NoiseOffset * index) * _randomForce;
             var randomTorque = GetNoiseVector(_randomTorqueSpeed, NoiseOffset * 5f * index) * _randomTorque;
             
-            rb.AddForceAtPosition(mul * (forceVector + randomForce), position, ForceMode.Acceleration);
-            rb.AddTorque(mul * (torqueVector + randomTorque), ForceMode.Acceleration);
+            rb.AddForceAtPosition(forceVector + randomForce, position, ForceMode.Acceleration);
+            rb.AddTorque(torqueVector + randomTorque, ForceMode.Acceleration);
             
             if (maxSpeed >= 0f) rb.linearVelocity = VectorUtils.ClampVelocity(velocity, velocity, _maxSpeed);
             
 #if UNITY_EDITOR
             if (_showDebugInfo) DebugExt.DrawRay(position, forceVector, Color.magenta);
 #endif
+        }
+
+        private void SampleSurface(
+            Rigidbody rb,
+            Vector3 position,
+            int proxyCount,
+            float surfaceOffset,
+            out Vector3 surfacePoint,
+            out Vector3 surfaceNormal,
+            out Vector3 force) 
+        {
+            surfacePoint = default;
+            surfaceNormal = default;
+            force = default;
+
+            for (int i = 0; i < proxyCount; i++) {
+                _rbWaterProxyMap.GetValue(rb, i).SampleSurface(position, out var p, out var n, out var f);
+
+                surfacePoint += p + n * surfaceOffset;
+                surfaceNormal += n;
+                force += f;
+            }
+
+            surfaceNormal = (surfaceNormal / proxyCount).normalized;
+            surfacePoint /= proxyCount;
+            force /= proxyCount;
         }
 
         private static Vector3 GetNoiseVector(float speed, float offset) {
@@ -230,42 +276,19 @@ namespace MisterGames.Logic.Water {
                 Mathf.PerlinNoise1D(t + 11f * offset) - 0.5f
             );
         }
-
-        private Vector3 GetSurfacePoint(float offset) {
-            return _waterBox.bounds.center + 
-                   _waterBoxTransform.up * (0.5f * _waterBox.size.y * _waterBoxTransform.localScale.y + offset);
-        }
-
-        private Vector3 GetWaterBoxUp() {
-            return _waterBoxTransform.up;
-        }
         
 #if UNITY_EDITOR
         [Header("Debug")]
         [SerializeField] private bool _showDebugInfo;
-        
-        private void OnDrawGizmos() {
-            if (!_showDebugInfo || _waterBox == null) return;
 
-            if (_waterBoxTransform == null || _waterBoxTransform != _waterBox.transform) {
-                _waterBoxTransform = _waterBox.transform;
-            }
-
-            var center = _waterBox.bounds.center;
-            var surfacePoint = GetSurfacePoint(_surfaceOffset);
-            var forceLevel = GetSurfacePoint(_surfaceOffset - _forceLevelDecrease);
-
-            var rot = _waterBoxTransform.rotation;
+        private void DrawFloatingPoint(Vector3 position, Vector3 surfacePoint, Vector3 surfaceNormal) {
+            if (!_showDebugInfo) return;
             
-            DebugExt.DrawSphere(center, 0.03f, Color.white, gizmo: true);
-            DebugExt.DrawLine(center, surfacePoint, Color.white, gizmo: true);
+            bool isBelowSurface = Vector3.Dot(surfacePoint - position, surfaceNormal) > 0f;
             
-            DebugExt.DrawCrossedPoint(surfacePoint, rot, Color.cyan, gizmo: true);
-            DebugExt.DrawCrossedPoint(forceLevel, rot, Color.magenta, radius: 0f, gizmo: true);
-        }
-
-        private void Reset() {
-            _waterBox = GetComponent<BoxCollider>();
+            DebugExt.DrawSphere(position, 0.05f, isBelowSurface ? Color.green : Color.red);
+            DebugExt.DrawRay(position, Vector3.Project(surfacePoint - position, surfaceNormal), Color.white);
+            DebugExt.DrawSphere(position + Vector3.Project(surfacePoint - position, surfaceNormal), 0.02f, Color.white);
         }
 #endif
     }

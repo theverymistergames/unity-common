@@ -115,7 +115,7 @@ namespace MisterGames.Common.Data
             _countMap[key] = count;
             
             int i = 0;
-            foreach (var value in values) {
+            foreach (var value in values!) {
                 _valueMap[(key, i++)] = value;
             }
             
@@ -130,7 +130,7 @@ namespace MisterGames.Common.Data
             _countMap[key] = existentCount + newCount;
             
             int i = existentCount;
-            foreach (var value in values) {
+            foreach (var value in values!) {
                 _valueMap[(key, i++)] = value;
             }
             
