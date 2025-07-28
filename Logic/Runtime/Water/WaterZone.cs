@@ -77,37 +77,40 @@ namespace MisterGames.Logic.Water {
             public readonly float3 point;
             public readonly float buoyancy;
             public readonly float maxSpeed;
+            public readonly float decelerationMul;
             
-            public FloatingData(int rbId, float3 point, float buoyancy, float maxSpeed) {
+            public FloatingData(int rbId, float3 point, float buoyancy, float maxSpeed, float decelerationMul) {
                 this.rbId = rbId;
                 this.point = point;
                 this.buoyancy = buoyancy;
                 this.maxSpeed = maxSpeed;
+                this.decelerationMul = decelerationMul;
             }
         }
         
         private readonly struct ForceData {
+            
             public readonly int rbId;
             public readonly float3 point;
             public readonly float3 force;
             public readonly float maxSpeed;
+            public readonly float decelerationMul;
 #if UNITY_EDITOR
             public readonly float3 surfacePoint;
-            public readonly float3 surfaceNormal;
 #endif
             
-            public ForceData(int rbId, float3 point, float3 force, float maxSpeed
+            public ForceData(int rbId, float3 point, float3 force, float maxSpeed, float decelerationMul
 #if UNITY_EDITOR
-                , float3 surfacePoint, float3 surfaceNormal
+                , float3 surfacePoint
 #endif
             ) {
                 this.rbId = rbId;
                 this.point = point;
                 this.force = force;
                 this.maxSpeed = maxSpeed;
+                this.decelerationMul = decelerationMul;
 #if UNITY_EDITOR
                 this.surfacePoint = surfacePoint;
-                this.surfaceNormal = surfaceNormal;
 #endif
             }
         }
@@ -118,7 +121,6 @@ namespace MisterGames.Logic.Water {
         public event TriggerAction OnColliderExit = delegate { };
 
         public HashSet<IWaterZoneProxy> WaterProxies { get; } = new();
-        public float SurfaceOffset => _surfaceOffset;
 
         private const float NoiseOffset = 100f;
 
@@ -212,17 +214,17 @@ namespace MisterGames.Logic.Water {
             
             _rbList.Add((id, rigidbody));
 
-            if (!rigidbody.TryGetComponent(out IWaterClient waterClient)) {
-                _floatingPointsCount++;
-                return;
+            if (rigidbody.TryGetComponent(out IWaterClient waterClient)) {
+                _rbIdToWaterClientDataMap[id] = new WaterClientData(
+                    isMainRigidbody: waterClient.Rigidbody == rigidbody,
+                    waterClient
+                );
+            
+                _floatingPointsCount += waterClient.FloatingPointCount;
             }
-            
-            _rbIdToWaterClientDataMap[id] = new WaterClientData(
-                isMainRigidbody: waterClient.Rigidbody == rigidbody,
-                waterClient
-            );
-            
-            _floatingPointsCount += waterClient.FloatingPointCount;
+            else {
+                _floatingPointsCount++;
+            }
             
             PlayerLoopStage.FixedUpdate.Subscribe(this);
         }
@@ -282,7 +284,7 @@ namespace MisterGames.Logic.Water {
                 if (_showDebugInfo) DrawFloatingPoint(forceData.point, forceData.surfacePoint);
 #endif
                 
-                ProcessRigidbody(rb, forceData.point, forceData.force, forceData.maxSpeed, mul: 1f / fpCount, i);
+                ProcessRigidbody(rb, forceData.point, forceData.force, forceData.maxSpeed, forceData.decelerationMul, mul: 1f / fpCount, i);
             }
 
             rbIdToFloatingPointsCountMap.Dispose();
@@ -336,19 +338,24 @@ namespace MisterGames.Logic.Water {
                         if (data.waterClient.IgnoreWaterZone) continue;
 
                         int floatingPointCount = data.waterClient.FloatingPointCount;
+                        float buoyancy = data.waterClient.Buoyancy;
+                        float maxSpeed = data.waterClient.MaxSpeed;
+                        float decelerationMul = data.waterClient.DecelerationMul * _deceleration;
+                        
                         for (int j = 0; j < floatingPointCount; j++) {
                             floatingDataArray[fpIndex++] = new FloatingData(
                                 id,
                                 data.waterClient.GetFloatingPoint(j),
-                                data.waterClient.Buoyancy,
-                                data.waterClient.MaxSpeed
+                                buoyancy,
+                                maxSpeed,
+                                decelerationMul
                             );
                         }
                         
                         continue;
                     }
                     
-                    floatingDataArray[fpIndex++] = new FloatingData(id, rb.position, _buoyancyDefault, _maxSpeed);
+                    floatingDataArray[fpIndex++] = new FloatingData(id, rb.position, _buoyancyDefault, _maxSpeed, _deceleration);
                     
                     continue;
                 }
@@ -375,11 +382,11 @@ namespace MisterGames.Logic.Water {
             return floatingDataArray;
         }
 
-        private void ProcessRigidbody(Rigidbody rb, Vector3 position, Vector3 force, float maxSpeed, float mul, int index) {
+        private void ProcessRigidbody(Rigidbody rb, Vector3 position, Vector3 force, float maxSpeed, float deceleration, float mul, int index) {
             var velocity = rb.linearVelocity;
             var angularVelocity = rb.angularVelocity;
 
-            var forceVector = force - _deceleration * velocity;
+            var forceVector = force - deceleration * velocity;
             var torqueVector = -_torqueDeceleration * angularVelocity;
 
             var randomForce = GetNoiseVector(_randomForceSpeed, NoiseOffset * index) * _randomForce;
@@ -424,7 +431,6 @@ namespace MisterGames.Logic.Water {
 
 #if UNITY_EDITOR
                 float3 surfacePoint = default;
-                float3 surfaceNormal = default;
 #endif
                 
                 for (int i = 0; i < proxyCount; i++) {
@@ -446,7 +452,6 @@ namespace MisterGames.Logic.Water {
                     
 #if UNITY_EDITOR
                     surfacePoint += sp;
-                    surfaceNormal += sn;
 #endif
                     
                     // Point is above the surface
@@ -467,10 +472,10 @@ namespace MisterGames.Logic.Water {
                     floatingData.rbId,
                     floatingData.point,
                     (1f + floatingData.buoyancy) * force / validProxyCount,
-                    floatingData.maxSpeed
+                    floatingData.maxSpeed,
+                    floatingData.decelerationMul
 #if UNITY_EDITOR
-                    , surfacePoint / validProxyCount,
-                    math.normalize(surfaceNormal / validProxyCount)
+                    , surfacePoint / validProxyCount
 #endif
                 );
             }

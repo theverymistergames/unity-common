@@ -81,7 +81,7 @@ namespace MisterGames.Character.Steps {
                     _transform, 
                     volume: volume * info.weight * volumeMul, 
                     pitch: pitch, 
-                    options: AudioOptions.AffectedByTimeScale | AudioOptions.AffectedByVolumes
+                    options: AudioOptions.AffectedByTimeScale | AudioOptions.AffectedByVolumes | AudioOptions.ApplyOcclusion
                 );   
             }
         }

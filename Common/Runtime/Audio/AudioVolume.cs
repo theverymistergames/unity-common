@@ -15,9 +15,12 @@ namespace MisterGames.Common.Audio {
         [VisibleIf(nameof(_mode), 1)]
         [SerializeField] private PositionWeightProvider _positionWeightProvider;
 
-        [Header("Audio")]
+        [Header("Process Listener")]
+        [SerializeField] private ValueModifier _occlusionWeightListener = ValueModifier.Empty;
+
+        [Header("Process Sound")]
         [SerializeField] private ValueModifier _pitch = ValueModifier.Empty;
-        [SerializeField] private ValueModifier _occlusionWeight = ValueModifier.Empty;
+        [SerializeField] private ValueModifier _occlusionWeightSound = ValueModifier.Empty;
         [SerializeField] private ValueModifier _lowPassCutoffFrequency = ValueModifier.Empty;
         [SerializeField] private ValueModifier _highPassCutoffFrequency = ValueModifier.Empty;
         
@@ -48,8 +51,12 @@ namespace MisterGames.Common.Audio {
             pitch = _pitch.Modify(pitch);
         }
 
-        public void ModifyOcclusionWeight(ref float occlusionWeight) {
-            occlusionWeight = _occlusionWeight.Modify(occlusionWeight);
+        public void ModifyOcclusionWeightForSound(ref float occlusionWeight) {
+            occlusionWeight = _occlusionWeightSound.Modify(occlusionWeight);
+        }
+
+        public void ModifyOcclusionWeightForListener(ref float occlusionWeight) {
+            occlusionWeight = _occlusionWeightListener.Modify(occlusionWeight);
         }
 
         public void ModifyLowHighPassFilters(ref float lpCutoffFreq, ref float hpCutoffFreq) {

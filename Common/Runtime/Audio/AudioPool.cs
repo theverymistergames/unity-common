@@ -452,6 +452,7 @@ namespace MisterGames.Common.Audio {
             bool hasListener = _audioListenersMap.Count > 0;
             var listenerPos = hasListener ? _listenerTransform.position : default;
             var listenerUp = hasListener ? _listenerUp.up : Vector3.up;
+            float listenerOcclusionWeight = 1f;
             
             float timeScale = Time.timeScale;
             int occlusionCount = 0;
@@ -464,6 +465,8 @@ namespace MisterGames.Common.Audio {
             PrepareVolumeData(out int volumeCount);
             PrepareOcclusionData(count);
             
+            if (hasListener) ProcessVolumesForListener(volumeCount, listenerPos, ref listenerOcclusionWeight);
+            
             foreach (var audioElement in _handleIdToAudioElementMap.Values) {
                 var position = audioElement.Transform.position;
                 var options = audioElement.AudioOptions;
@@ -473,8 +476,10 @@ namespace MisterGames.Common.Audio {
                 float lpCutoffBound = LpCutoffUpperBound;
                 float hpCutoffBound = HpCutoffLowerBound;
 
+                occlusionWeight *= listenerOcclusionWeight;
+                
                 if ((options & AudioOptions.AffectedByVolumes) == AudioOptions.AffectedByVolumes) {
-                    ProcessVolumes(volumeCount, position, ref pitch, ref occlusionWeight, ref lpCutoffBound, ref hpCutoffBound);
+                    ProcessVolumesForSound(volumeCount, position, ref pitch, ref occlusionWeight, ref lpCutoffBound, ref hpCutoffBound);
                 }
                 
                 if ((options & AudioOptions.AffectedByTimeScale) == AudioOptions.AffectedByTimeScale) {
@@ -539,8 +544,48 @@ namespace MisterGames.Common.Audio {
             if (_volumeDataArray.IsCreated) _volumeDataArray.Dispose();
             if (_resultVolumeDataArray.IsCreated) _resultVolumeDataArray.Dispose();
         }
-        
-        private void ProcessVolumes(
+
+        private void ProcessVolumesForListener(int count, Vector3 position, ref float occlusionWeight) {
+            if (count == 0) return;
+            
+            int realCount = 0;
+            int topPriority = int.MinValue;
+
+            foreach (var volume in _volumes) {
+                int priority = volume.Priority;
+                if (priority < topPriority || volume.GetWeight(position) is var weight && weight <= 0f) continue;
+                
+                topPriority = Mathf.Max(topPriority, priority);
+                
+                float occlusionWeightLocal = occlusionWeight;
+                
+                volume.ModifyOcclusionWeightForListener(ref occlusionWeightLocal);
+                
+                _volumeDataArray[realCount++] = new VolumeData {
+                    priority = priority,
+                    weight = weight,
+                    occlusionWeight = Mathf.Lerp(occlusionWeight, occlusionWeightLocal, weight),
+                };
+            }
+
+            _resultVolumeDataArray[0] = default;
+
+            var job = new CalculateVolumeJob {
+                count = realCount,
+                topPriority = topPriority,
+                volumeDataArray = _volumeDataArray,
+                result = _resultVolumeDataArray,
+            };
+            
+            job.Schedule().Complete();
+            
+            var result = job.result[0];
+            if (result.weight <= 0f) return;
+
+            occlusionWeight = result.occlusionWeight;
+        }
+
+        private void ProcessVolumesForSound(
             int count,
             Vector3 position,
             ref float pitch,
@@ -565,7 +610,7 @@ namespace MisterGames.Common.Audio {
                 float hpCutoffBoundLocal = hpCutoffBound;
                 
                 volume.ModifyPitch(ref pitchLocal);
-                volume.ModifyOcclusionWeight(ref occlusionWeightLocal);
+                volume.ModifyOcclusionWeightForSound(ref occlusionWeightLocal);
                 volume.ModifyLowHighPassFilters(ref lpCutoffBoundLocal, ref hpCutoffBoundLocal);
                 
                 _volumeDataArray[realCount++] = new VolumeData {
