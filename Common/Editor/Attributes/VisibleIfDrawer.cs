@@ -25,7 +25,7 @@ namespace MisterGames.Common.Editor.Attributes {
         private bool Show(SerializedProperty property) {
             var attr = (VisibleIfAttribute) attribute;
             
-            string propertyPath = GetNeighbourPropertyPath(property, attr.property);
+            string propertyPath = SerializedPropertyExtensions.GetNeighbourPropertyPath(property, attr.property);
             var valueProperty = property.serializedObject.FindProperty(propertyPath);
 
             int value = valueProperty switch {
@@ -37,12 +37,6 @@ namespace MisterGames.Common.Editor.Attributes {
             };
             
             return attr.mode.IsMatch(value, attr.value);
-        }
-
-        private static string GetNeighbourPropertyPath(SerializedProperty property, string propertyName) {
-            string neighbourPath = property.propertyPath;
-            int dotIndex = neighbourPath.LastIndexOf('.');
-            return dotIndex < 0 ? propertyName : $"{neighbourPath.Remove(dotIndex)}.{propertyName}";
         }
     }
 

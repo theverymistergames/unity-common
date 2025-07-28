@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Text;
 using System.Text.RegularExpressions;
 using UnityEditor;
 
@@ -17,6 +18,33 @@ namespace MisterGames.Common.Editor.SerializedProperties {
         private struct PropertyPathComponent {
             public string propertyName;
             public int elementIndex;
+        }
+        
+        public static string GetNeighbourPropertyPath(SerializedProperty property, string propertyName) {
+            string path = property.propertyPath;
+            int dotIndex = path.LastIndexOf('.');
+            
+            if (dotIndex < 0) return propertyName;
+
+            if (path.Contains('[')) {
+                var parts = SplitPropertyPath(path);
+                if (parts.Count <= 1) return propertyName;
+
+                if (ArrayElementRegex.Match(parts[^1], 0).Success) {
+                    if (parts.Count == 2) return propertyName;
+                    
+                    var sb = new StringBuilder();
+                    
+                    for (int i = 0; i < parts.Count - 2; i++) {
+                        sb.Append(parts[i]);
+                        if (i < parts.Count - 3) sb.Append('.');
+                    }
+
+                    return $"{sb}.{propertyName}";
+                }
+            }
+
+            return $"{path.Remove(dotIndex)}.{propertyName}";
         }
 
         public static FieldInfo GetFieldInfo(this SerializedProperty property) {

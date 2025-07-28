@@ -1,6 +1,7 @@
 ﻿using System;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Labels;
+using MisterGames.Common.Types;
 using UnityEngine;
 
 namespace MisterGames.Common.Service {
@@ -13,7 +14,9 @@ namespace MisterGames.Common.Service {
         [SerializeField] private ServiceType _serviceType;
         [VisibleIf(nameof(_serviceType), 1)]
         [SerializeField] private LabelValue _id;
-        
+        [TypeFilter(nameof(_component), TypeFilterMode.Interfaces | TypeFilterMode.ExcludeSelf)]
+        [SerializeField] private SerializedType[] _addTypes;
+
         private enum Lifetime {
             AwakeDestroy,
             EnableDisable,
@@ -41,17 +44,14 @@ namespace MisterGames.Common.Service {
         }
         
         private void Register() {
-            switch (_serviceType) {
-                case ServiceType.Global:
-                    Services.Register(_component, _component.GetType());
-                    break;
-                
-                case ServiceType.WithId:
-                    Services.Register(_component, _component.GetType(), _id.GetValue());
-                    break;
-                
-                default:
-                    throw new ArgumentOutOfRangeException();
+            var builder = _serviceType switch {
+                ServiceType.Global => Services.Register(_component, _component.GetType()),
+                ServiceType.WithId => Services.Register(_component, _component.GetType(), _id.GetValue()),
+                _ => throw new ArgumentOutOfRangeException()
+            };
+            
+            for (int i = 0; i < _addTypes.Length; i++) {
+                if (_addTypes[i].ToType() is {} type) builder.AddType(type);
             }
         }
         
