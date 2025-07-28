@@ -6,9 +6,11 @@ using MisterGames.Common.Easing;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Pooling;
 using MisterGames.Common.Tick;
+using Unity.Burst;
 using Unity.Collections;
 using Unity.Jobs;
 using Unity.Jobs.LowLevel.Unsafe;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Audio;
 using Random = UnityEngine.Random;
@@ -61,9 +63,9 @@ namespace MisterGames.Common.Audio {
         private const float HpCutoffLowerBound = 10f;
         private const float LpCutoffUpperBound = 22000f;
         
-        private static readonly Vector3 Up = Vector3.up;
-        private static readonly Vector3 Forward = Vector3.forward;
-        private static readonly Vector3 Right = Vector3.right;
+        private static readonly float3 Up = Vector3.up;
+        private static readonly float3 Forward = Vector3.forward;
+        private static readonly float3 Right = Vector3.right;
         
         private readonly Dictionary<int, IndexData> _clipsHashToLastIndexMap = new();
         private readonly List<int> _clipsHashBuffer = new();
@@ -72,17 +74,17 @@ namespace MisterGames.Common.Audio {
         private readonly Dictionary<int, IAudioElement> _handleIdToAudioElementMap = new();
         private int _lastHandleId;
         
-        private readonly List<OcclusionSearchData> _occlusionSearchList = new();
-        private readonly List<OcclusionData> _occlusionList = new();
-        private float _globalOcclusionWeight = 1f;
-        
         private readonly Dictionary<AudioListener, ListenerData> _audioListenersMap = new();
         private Transform _listenerTransform;
         private Transform _listenerUp;
 
         private readonly HashSet<IAudioVolume> _volumes = new();
         private NativeArray<VolumeData> _volumeDataArray;
-        private NativeArray<VolumeData> _resultVolumeDataBuffer;
+        private NativeArray<VolumeData> _resultVolumeDataArray;
+        
+        private NativeArray<OcclusionSearchData> _occlusionSearchArray;
+        private NativeArray<OcclusionData> _occlusionArray;
+        private float _globalOcclusionWeight = 1f;
         
         private Transform _transform;
         private CancellationToken _destroyToken;
@@ -93,8 +95,6 @@ namespace MisterGames.Common.Audio {
             
             _transform = transform;
             _destroyToken = destroyCancellationToken;
-
-            _resultVolumeDataBuffer = new NativeArray<VolumeData>(1, Allocator.Persistent);
             
             StartLastClipIndexUpdates(_destroyToken).Forget();
             
@@ -108,12 +108,9 @@ namespace MisterGames.Common.Audio {
             _attachKeyToHandleIdMap.Clear();
             _handleIdToAudioElementMap.Clear();
             
-            _occlusionSearchList.Clear();
-            _occlusionList.Clear();
+            CleanupVolumeData();
+            CleanupOcclusionData();
 
-            _volumeDataArray.Dispose();
-            _resultVolumeDataBuffer.Dispose();
-            
             Main = null;
             PlayerLoopStage.Update.Unsubscribe(this);
         }
@@ -170,9 +167,6 @@ namespace MisterGames.Common.Audio {
             InitializeAudioElement(audioElement, id, pitch, options);
             
             _handleIdToAudioElementMap[id] = audioElement;
-            
-            _occlusionSearchList.Add(default);
-            _occlusionList.Add(default);
 
             RestartAudioSource(
                 id, audioElement.Source, clip, mixerGroup, 
@@ -228,9 +222,6 @@ namespace MisterGames.Common.Audio {
             InitializeAudioElement(audioElement, id, pitch, options);
             
             _handleIdToAudioElementMap[id] = audioElement;
-            
-            _occlusionSearchList.Add(default);
-            _occlusionList.Add(default);
             
             RestartAudioSource(
                 id, audioElement.Source, clip, mixerGroup, 
@@ -467,11 +458,11 @@ namespace MisterGames.Common.Audio {
             
             int count = _handleIdToAudioElementMap.Count;
             
-            _occlusionSearchList.RemoveRange(count, _occlusionSearchList.Count - count);
-            _occlusionList.RemoveRange(count, _occlusionList.Count - count);
-
             float minSqr = _minDistance * _minDistance;
             float maxSqr = _maxDistance * _maxDistance;
+            
+            PrepareVolumeData(out int volumeCount);
+            PrepareOcclusionData(count);
             
             foreach (var audioElement in _handleIdToAudioElementMap.Values) {
                 var position = audioElement.Transform.position;
@@ -483,7 +474,7 @@ namespace MisterGames.Common.Audio {
                 float hpCutoffBound = HpCutoffLowerBound;
 
                 if ((options & AudioOptions.AffectedByVolumes) == AudioOptions.AffectedByVolumes) {
-                    ProcessVolumes(position, ref pitch, ref occlusionWeight, ref lpCutoffBound, ref hpCutoffBound);
+                    ProcessVolumes(volumeCount, position, ref pitch, ref occlusionWeight, ref lpCutoffBound, ref hpCutoffBound);
                 }
                 
                 if ((options & AudioOptions.AffectedByTimeScale) == AudioOptions.AffectedByTimeScale) {
@@ -511,14 +502,14 @@ namespace MisterGames.Common.Audio {
                 if (sqr > minSqr && sqr < maxSqr) {
                     float distance = (listenerPos - position).magnitude;
                     
-                    _occlusionSearchList[occlusionCount] = new OcclusionSearchData(
+                    _occlusionSearchArray[occlusionCount] = new OcclusionSearchData(
                         position,
                         direction: (listenerPos - position).normalized,
                         distance
                     );
                     
-                    _occlusionList[occlusionCount++] = new OcclusionData(
-                        audioElement,
+                    _occlusionArray[occlusionCount++] = new OcclusionData(
+                        audioElement.Id,
                         distance,
                         weight: spatial * occlusionWeight,
                         lpCutoffBound,
@@ -529,30 +520,39 @@ namespace MisterGames.Common.Audio {
                 
                 ApplyOcclusion(audioElement, distanceWeight: spatial * occlusionWeight, collisionWeight: occlusionWeight, lpCutoffBound, hpCutoffBound, dt);
             }
-
+            
             if (hasListener) ProcessOcclusion(listenerUp, occlusionCount, dt);
 
             _globalOcclusionWeight = 1f;
+            
+            CleanupVolumeData();
+            CleanupOcclusionData();
         }
 
+        private void PrepareVolumeData(out int count) {
+            count = _volumes.Count;
+            _volumeDataArray = new NativeArray<VolumeData>(count, Allocator.TempJob);
+            _resultVolumeDataArray = new NativeArray<VolumeData>(1, Allocator.TempJob);
+        }
+
+        private void CleanupVolumeData() {
+            if (_volumeDataArray.IsCreated) _volumeDataArray.Dispose();
+            if (_resultVolumeDataArray.IsCreated) _resultVolumeDataArray.Dispose();
+        }
+        
         private void ProcessVolumes(
+            int count,
             Vector3 position,
             ref float pitch,
             ref float occlusionWeight,
             ref float lpCutoffBound,
             ref float hpCutoffBound) 
         {
-            int count = _volumes.Count;
             if (count == 0) return;
             
             int realCount = 0;
             int topPriority = int.MinValue;
 
-            if (_volumeDataArray.Length < count) {
-                _volumeDataArray.Dispose();
-                _volumeDataArray = new NativeArray<VolumeData>(Mathf.NextPowerOfTwo(count), Allocator.Persistent);
-            }
-            
             foreach (var volume in _volumes) {
                 int priority = volume.Priority;
                 if (priority < topPriority || volume.GetWeight(position) is var weight && weight <= 0f) continue;
@@ -578,13 +578,13 @@ namespace MisterGames.Common.Audio {
                 };
             }
 
-            _resultVolumeDataBuffer[0] = default;
-            
+            _resultVolumeDataArray[0] = default;
+
             var job = new CalculateVolumeJob {
                 count = realCount,
                 topPriority = topPriority,
                 volumeDataArray = _volumeDataArray,
-                result = _resultVolumeDataBuffer,
+                result = _resultVolumeDataArray,
             };
             
             job.Schedule().Complete();
@@ -597,68 +597,65 @@ namespace MisterGames.Common.Audio {
             lpCutoffBound = result.lpCutoffBound;
             hpCutoffBound = result.hpCutoffBound;
         }
+
+        private void PrepareOcclusionData(int count) {
+            _occlusionSearchArray = new NativeArray<OcclusionSearchData>(count, Allocator.TempJob);
+            _occlusionArray = new NativeArray<OcclusionData>(count, Allocator.TempJob);
+        }
+
+        private void CleanupOcclusionData() {
+            if (_occlusionSearchArray.IsCreated) _occlusionSearchArray.Dispose();
+            if (_occlusionArray.IsCreated) _occlusionArray.Dispose();
+        }
         
         private void ProcessOcclusion(Vector3 up, int count, float dt) {
             var raycastCommands = new NativeArray<RaycastCommand>(count * _rays, Allocator.TempJob);
             var hits = new NativeArray<RaycastHit>(count * _rays * _maxHits, Allocator.TempJob);
+            var occlusionWeightArray = new NativeArray<OcclusionWeightData>(count, Allocator.TempJob);
             
-            float sector = 360f / _rays;
+#if UNITY_EDITOR
+            if (_showDebugInfo) DrawOcclusionRays(count, up);
+#endif
+
+            var prepareRaycastCommandsJob = new PrepareRaycastCommandsJob {
+                occlusionSearchArray = _occlusionSearchArray,
+                up = up,
+                raySector = 360f / _rays,
+                rayOffset0 = _rayOffset0,
+                rayOffset1 = _rayOffset1,
+                minDistance = _minDistance,
+                maxDistance = _maxDistance,
+                layerMask = _layerMask,
+                raycastCommands = raycastCommands,
+            };
+
+            var calculateOcclusionWeightsJob = new CalculateOcclusionWeightsJob {
+                hitsArray = hits,
+                occlusionArray = _occlusionArray,
+                maxHits = _maxHits,
+                maxDistance = _maxDistance,
+                minDistance = _minDistance,
+                rays = _rays,
+                occlusionWeightArray = occlusionWeightArray
+            };
             
-            for (int i = 0; i < count; i++) {
-                var data = _occlusionSearchList[i];
-                var rot = Quaternion.LookRotation(data.direction, up);
-
-#if UNITY_EDITOR
-                if (_showOcclusionInfo) DebugExt.DrawSphere(data.position, 0.01f, Color.magenta);
-#endif
-                
-                for (int j = 0; j < _rays; j++) {
-                    var offset = rot * 
-                                 GetOcclusionOffset(j, _rays, sector) * 
-                                 Mathf.Lerp(_rayOffset0, _rayOffset1, GetRelativeDistance(data.distance));
-                    
-                    raycastCommands[i * _rays + j] = new RaycastCommand(
-                        from: data.position + offset,
-                        data.direction,
-                        new QueryParameters(_layerMask, hitMultipleFaces: false, hitTriggers: QueryTriggerInteraction.Ignore, hitBackfaces: false),
-                        data.distance
-                    );
-                    
-#if UNITY_EDITOR
-                    if (_showOcclusionInfo) DebugExt.DrawRay(data.position, offset, Color.magenta);
-                    if (_showOcclusionInfo) DebugExt.DrawRay(data.position + offset, data.direction * data.distance, Color.magenta);
-#endif
-                }
-            }
-
             int commandsPerJob = Mathf.Max(count / JobsUtility.JobWorkerCount, 1);
-            RaycastCommand.ScheduleBatch(raycastCommands, hits, commandsPerJob, _maxHits).Complete();
 
+            var prepareJobHandle = prepareRaycastCommandsJob.ScheduleBatch(count * _rays, _rays);
+            var raycastJobHandle = RaycastCommand.ScheduleBatch(raycastCommands, hits, commandsPerJob, _maxHits, prepareJobHandle);
+            var calculateWeightsJobHandle = calculateOcclusionWeightsJob.Schedule(count, innerloopBatchCount: 256, raycastJobHandle);
+                
+            calculateWeightsJobHandle.Complete();
+            
             for (int i = 0; i < count; i++) {
-                var data = _occlusionList[i];
-                float weightSum = 0f;
+                var data = occlusionWeightArray[i];
                 
-                for (int j = 0; j < _rays; j++) {
-                    int collisions = 0;
-                    
-                    for (int r = 0; r < _maxHits; r++) {
-                        var hit = hits[i * _rays + j * _maxHits + r];
-                        if (hit.collider == null) break;
-                        
-                        collisions++;
-                    }
-
-                    weightSum += (float) collisions / _maxHits;
-                }
-
-                float distanceWeight = data.weight * Mathf.Clamp01(GetRelativeDistance(data.distance));
-                float collisionWeight = data.weight * Mathf.Clamp01(weightSum / _rays);
-                
-                ApplyOcclusion(data.audioElement, distanceWeight, collisionWeight, data.lpCutoffBound, data.hpCutoffBound, dt);
+                ApplyOcclusion(_handleIdToAudioElementMap[data.id], data.distanceWeight, data.collisionWeight, data.lpCutoffBound, data.hpCutoffBound, dt);
             }
 
             hits.Dispose();
             raycastCommands.Dispose();
+            occlusionWeightArray.Dispose();
         }
 
         private void ApplyOcclusion(
@@ -687,16 +684,16 @@ namespace MisterGames.Common.Audio {
             audioElement.OcclusionFlag = 1;
         }
         
-        private static Vector3 GetOcclusionOffset(int i, int count, float sector) {
+        private static float3 GetOcclusionOffset(int i, int count, float sector) {
             return count switch {
                 2 => (2 * i - 1) * Right,
                 3 => (i - 1) * Right,
-                _ => i == 0 ? default : Quaternion.AngleAxis(i * sector, Forward) * Up,
+                _ => i == 0 ? default : math.mul(quaternion.AxisAngle(Forward, i * sector), Up),
             };
         }
 
-        private float GetRelativeDistance(float distance) {
-            return Mathf.Clamp01((distance - _minDistance) / (_maxDistance - _minDistance + DistanceThreshold));
+        private static float GetRelativeDistance(float distance, float min, float max) {
+            return math.clamp((distance - min) / (max - min + DistanceThreshold), 0f, 1f);
         }
         
         private int NextClipIndex(int hash, int count) {
@@ -776,36 +773,6 @@ namespace MisterGames.Common.Audio {
             }
         }
         
-        private readonly struct OcclusionSearchData {
-
-            public readonly Vector3 position;
-            public readonly Vector3 direction;
-            public readonly float distance;
-            
-            public OcclusionSearchData(Vector3 position, Vector3 direction, float distance) {
-                this.position = position;
-                this.direction = direction;
-                this.distance = distance;
-            }
-        }
-        
-        private readonly struct OcclusionData {
-
-            public readonly IAudioElement audioElement;
-            public readonly float distance;
-            public readonly float weight;
-            public readonly float lpCutoffBound;
-            public readonly float hpCutoffBound;
-            
-            public OcclusionData(IAudioElement audioElement, float distance, float weight, float lpCutoffBound, float hpCutoffBound) {
-                this.audioElement = audioElement;
-                this.distance = distance;
-                this.weight = weight;
-                this.lpCutoffBound = lpCutoffBound;
-                this.hpCutoffBound = hpCutoffBound;
-            }
-        }
-        
         private readonly struct IndexData {
             
             public readonly int indicesMask;
@@ -840,6 +807,53 @@ namespace MisterGames.Common.Audio {
             public static bool operator ==(AttachKey left, AttachKey right) => left.Equals(right);
             public static bool operator !=(AttachKey left, AttachKey right) => !left.Equals(right);
         }
+        
+        private readonly struct OcclusionSearchData {
+
+            public readonly float3 position;
+            public readonly float3 direction;
+            public readonly float distance;
+            
+            public OcclusionSearchData(float3 position, float3 direction, float distance) {
+                this.position = position;
+                this.direction = direction;
+                this.distance = distance;
+            }
+        }
+        
+        private readonly struct OcclusionData {
+
+            public readonly int id;
+            public readonly float distance;
+            public readonly float weight;
+            public readonly float lpCutoffBound;
+            public readonly float hpCutoffBound;
+            
+            public OcclusionData(int id, float distance, float weight, float lpCutoffBound, float hpCutoffBound) {
+                this.id = id;
+                this.distance = distance;
+                this.weight = weight;
+                this.lpCutoffBound = lpCutoffBound;
+                this.hpCutoffBound = hpCutoffBound;
+            }
+        }
+        
+        private readonly struct OcclusionWeightData {
+
+            public readonly int id;
+            public readonly float distanceWeight;
+            public readonly float collisionWeight;
+            public readonly float lpCutoffBound;
+            public readonly float hpCutoffBound;
+            
+            public OcclusionWeightData(int id, float distanceWeight, float collisionWeight, float lpCutoffBound, float hpCutoffBound) {
+                this.id = id;
+                this.distanceWeight = distanceWeight;
+                this.collisionWeight = collisionWeight;
+                this.lpCutoffBound = lpCutoffBound;
+                this.hpCutoffBound = hpCutoffBound;
+            }
+        }
 
         private struct VolumeData {
             public int priority;
@@ -850,11 +864,13 @@ namespace MisterGames.Common.Audio {
             public float hpCutoffBound;
         }
         
+        [BurstCompile]
         private struct CalculateVolumeJob : IJob {
             
             [ReadOnly] public int count;
             [ReadOnly] public int topPriority;
             [ReadOnly] public NativeArray<VolumeData> volumeDataArray;
+            
             public NativeArray<VolumeData> result;
             
             public void Execute() {
@@ -886,6 +902,79 @@ namespace MisterGames.Common.Audio {
                 result[0] = resultData;
             }
         }
+        
+        [BurstCompile]
+        private struct PrepareRaycastCommandsJob : IJobParallelForBatch {
+            
+            [ReadOnly] public NativeArray<OcclusionSearchData> occlusionSearchArray;
+            [ReadOnly] public float3 up;
+            [ReadOnly] public float raySector;
+            [ReadOnly] public float rayOffset0;
+            [ReadOnly] public float rayOffset1;
+            [ReadOnly] public float minDistance;
+            [ReadOnly] public float maxDistance;
+            [ReadOnly] public int layerMask;
+            
+            public NativeArray<RaycastCommand> raycastCommands;
+
+            public void Execute(int startIndex, int count) {
+                var data = occlusionSearchArray[startIndex / count];
+                
+                var rot = quaternion.LookRotation(data.direction, up);
+                float offset = math.lerp(rayOffset0, rayOffset1, GetRelativeDistance(data.distance, minDistance, maxDistance));
+                
+                for (int j = startIndex; j < startIndex + count; j++) {
+                    raycastCommands[j] = new RaycastCommand(
+                        from: data.position + math.mul(rot, offset * GetOcclusionOffset(j, count, raySector)),
+                        data.direction,
+                        new QueryParameters(layerMask, hitMultipleFaces: false, hitTriggers: QueryTriggerInteraction.Ignore, hitBackfaces: false),
+                        data.distance
+                    );
+                }
+            }
+        }
+        
+        [BurstCompile]
+        private struct CalculateOcclusionWeightsJob : IJobParallelFor {
+            
+            [ReadOnly] public NativeArray<RaycastHit> hitsArray;
+            [ReadOnly] public NativeArray<OcclusionData> occlusionArray;
+            [ReadOnly] public int rays;
+            [ReadOnly] public int maxHits;
+            [ReadOnly] public float minDistance;
+            [ReadOnly] public float maxDistance;
+            
+            public NativeArray<OcclusionWeightData> occlusionWeightArray;
+
+            public void Execute(int startIndex) {
+                var data = occlusionArray[startIndex];
+                float weightSum = 0f;
+                
+                for (int j = 0; j < rays; j++) {
+                    int collisions = 0;
+                    
+                    for (int r = 0; r < maxHits; r++) {
+                        var hit = hitsArray[startIndex * rays + j * maxHits + r];
+                        if (hit.colliderInstanceID == 0) break;
+                        
+                        collisions++;
+                    }
+
+                    weightSum += (float) collisions / maxHits;
+                }
+
+                float distanceWeight = data.weight * GetRelativeDistance(data.distance, minDistance, maxDistance);
+                float collisionWeight = data.weight * math.clamp(weightSum / rays, 0f, 1f);
+                
+                occlusionWeightArray[startIndex] = new OcclusionWeightData(
+                    data.id,
+                    distanceWeight,
+                    collisionWeight,
+                    data.lpCutoffBound,
+                    data.hpCutoffBound
+                );
+            }
+        }
 
 #if UNITY_EDITOR
         [Header("Debug")]
@@ -896,6 +985,23 @@ namespace MisterGames.Common.Audio {
         
         private void OnValidate() {
             if (_maxDistance < _minDistance) _maxDistance = _minDistance;
+        }
+
+        private void DrawOcclusionRays(int count, Vector3 up) {
+            for (int i = 0; i < count; i++) {
+                var data = _occlusionSearchArray[i];
+                var rot = quaternion.LookRotation(data.direction, up);
+
+                DebugExt.DrawSphere(data.position, 0.01f, Color.magenta);
+
+                float off = Mathf.Lerp(_rayOffset0, _rayOffset1, GetRelativeDistance(data.distance, _minDistance, _maxDistance));
+                
+                for (int j = 0; j < _rays; j++) {
+                    var offset = math.mul(rot, GetOcclusionOffset(j, _rays, 360f / _rays) * off);
+                    DebugExt.DrawRay(data.position, offset, Color.magenta);
+                    DebugExt.DrawRay(data.position + offset, data.direction * data.distance, Color.magenta);
+                }
+            }
         }
 #endif
     }

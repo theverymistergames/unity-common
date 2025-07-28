@@ -5,8 +5,10 @@ using MisterGames.Common;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Tick;
 using MisterGames.Logic.Phys;
+using Unity.Burst;
 using Unity.Collections;
 using Unity.Jobs;
+using Unity.Mathematics;
 using UnityEngine;
 
 namespace MisterGames.Logic.Water {
@@ -52,30 +54,62 @@ namespace MisterGames.Logic.Water {
             }
         }
         
-        private struct ProxyData {
-            public Vector3 position;
-            public Quaternion rotation;
-            public Vector3 size;
-            public float forceMul;
-            public float surfaceOffset;
+        private readonly struct ProxyData {
+            
+            public readonly float3 position;
+            public readonly quaternion rotation;
+            public readonly float3 size;
+            public readonly float surfaceOffset;
+            public readonly float forceMul;
+
+            public ProxyData(float3 position, quaternion rotation, float3 size, float surfaceOffset, float forceMul) {
+                this.position = position;
+                this.rotation = rotation;
+                this.size = size;
+                this.surfaceOffset = surfaceOffset;
+                this.forceMul = forceMul;
+            }
         }
         
-        private struct FloatingData {
-            public int rbId;
-            public Vector3 point;
-            public float buoyancy;
-            public float maxSpeed;
+        private readonly struct FloatingData {
+            
+            public readonly int rbId;
+            public readonly float3 point;
+            public readonly float buoyancy;
+            public readonly float maxSpeed;
+            
+            public FloatingData(int rbId, float3 point, float buoyancy, float maxSpeed) {
+                this.rbId = rbId;
+                this.point = point;
+                this.buoyancy = buoyancy;
+                this.maxSpeed = maxSpeed;
+            }
         }
         
-        private struct ForceData {
-            public int rbId;
-            public Vector3 point;
-            public Vector3 force;
-            public float maxSpeed;
+        private readonly struct ForceData {
+            public readonly int rbId;
+            public readonly float3 point;
+            public readonly float3 force;
+            public readonly float maxSpeed;
 #if UNITY_EDITOR
-            public Vector3 surfacePoint;
-            public Vector3 surfaceNormal;
+            public readonly float3 surfacePoint;
+            public readonly float3 surfaceNormal;
 #endif
+            
+            public ForceData(int rbId, float3 point, float3 force, float maxSpeed
+#if UNITY_EDITOR
+                , float3 surfacePoint, float3 surfaceNormal
+#endif
+            ) {
+                this.rbId = rbId;
+                this.point = point;
+                this.force = force;
+                this.maxSpeed = maxSpeed;
+#if UNITY_EDITOR
+                this.surfacePoint = surfacePoint;
+                this.surfaceNormal = surfaceNormal;
+#endif
+            }
         }
 
         public delegate void TriggerAction(Collider collider, Vector3 position, Vector3 surfacePoint, Vector3 surfaceNormal);
@@ -266,20 +300,20 @@ namespace MisterGames.Logic.Water {
             foreach (var proxy in WaterProxies) {
                 proxy.GetBox(out var position, out var rotation, out var size);
                 
-                proxyDataArray[index++] = new ProxyData {
-                    position = position,
-                    rotation = rotation,
-                    size = size,
-                    surfaceOffset = _surfaceOffset + proxy.SurfaceOffset,
-                    forceMul = _force * _forceSource switch {
+                proxyDataArray[index++] = new ProxyData(
+                    position,
+                    rotation,
+                    size,
+                    surfaceOffset: _surfaceOffset + proxy.SurfaceOffset,
+                    forceMul: _force * _forceSource switch {
                         ForceSource.Constant => 1f,
                         ForceSource.UseGravityMagnitude => 
                             CustomGravity.Main.TryGetGlobalGravity(position, out var g) 
                                 ? g.magnitude 
                                 : Physics.gravity.magnitude,
                         _ => throw new ArgumentOutOfRangeException()
-                    },
-                };
+                    }
+                );
             }
 
             return proxyDataArray;
@@ -303,23 +337,18 @@ namespace MisterGames.Logic.Water {
 
                         int floatingPointCount = data.waterClient.FloatingPointCount;
                         for (int j = 0; j < floatingPointCount; j++) {
-                            floatingDataArray[fpIndex++] = new FloatingData {
-                                rbId = id,
-                                point = data.waterClient.GetFloatingPoint(j),
-                                buoyancy = data.waterClient.Buoyancy,
-                                maxSpeed = data.waterClient.MaxSpeed,
-                            };
+                            floatingDataArray[fpIndex++] = new FloatingData(
+                                id,
+                                data.waterClient.GetFloatingPoint(j),
+                                data.waterClient.Buoyancy,
+                                data.waterClient.MaxSpeed
+                            );
                         }
                         
                         continue;
                     }
                     
-                    floatingDataArray[fpIndex++] = new FloatingData {
-                        rbId = id,
-                        point = rb.position,
-                        buoyancy = _buoyancyDefault,
-                        maxSpeed = _maxSpeed,
-                    };
+                    floatingDataArray[fpIndex++] = new FloatingData(id, rb.position, _buoyancyDefault, _maxSpeed);
                     
                     continue;
                 }
@@ -375,6 +404,7 @@ namespace MisterGames.Logic.Water {
             );
         }
         
+        [BurstCompile]
         private struct CalculateForceJob : IJobParallelFor {
             
             [ReadOnly] public NativeArray<FloatingData> floatingDataArray;
@@ -387,20 +417,20 @@ namespace MisterGames.Logic.Water {
             public void Execute(int index) {
                 var floatingData = floatingDataArray[index];
                 var point = floatingData.point;
-                var force = Vector3.zero;
+                float3 force = default;
                 
-                var up = Vector3.up;
+                var up = new float3(0f, 1f, 0f);
                 int validProxyCount = 0;
 
 #if UNITY_EDITOR
-                Vector3 surfacePoint = default;
-                Vector3 surfaceNormal = default;
+                float3 surfacePoint = default;
+                float3 surfaceNormal = default;
 #endif
                 
                 for (int i = 0; i < proxyCount; i++) {
                     var proxyData = proxyDataArray[i];
 
-                    var localPoint = Quaternion.Inverse(proxyData.rotation) * (point - proxyData.position);
+                    var localPoint = math.mul(math.inverse(proxyData.rotation), point - proxyData.position);
                     var halfSize = proxyData.size * 0.5f;
 
                     if (localPoint.x < -halfSize.x || localPoint.x > halfSize.x ||
@@ -410,9 +440,9 @@ namespace MisterGames.Logic.Water {
                         continue;
                     }
                     
-                    var sn = proxyData.rotation * up;
+                    var sn = math.mul(proxyData.rotation, up);
                     var sc = proxyData.position + sn * (halfSize.y + proxyData.surfaceOffset);
-                    var sp = point + Vector3.Project(sc - point, sn);
+                    var sp = point + math.project(sc - point, sn);
                     
 #if UNITY_EDITOR
                     surfacePoint += sp;
@@ -420,11 +450,11 @@ namespace MisterGames.Logic.Water {
 #endif
                     
                     // Point is above the surface
-                    if (Vector3.Dot(sp - point, sn) <= 0f) continue;
+                    if (math.dot(sp - point, sn) <= 0f) continue;
                     
                     validProxyCount++;
                     
-                    float forceMul = forceLevel > 0f ? Mathf.Clamp01((sp - point).magnitude / forceLevel) : 1f;
+                    float forceMul = forceLevel > 0f ? math.clamp(math.distance(sp, point) / forceLevel, 0f, 1f) : 1f;
                     force += proxyData.forceMul * forceMul * sn;
                 }
 
@@ -433,19 +463,20 @@ namespace MisterGames.Logic.Water {
                     return;
                 }
                 
-                forceDataArray[index] = new ForceData {
-                    rbId = floatingData.rbId,
-                    point = floatingData.point,
-                    force = (1f + floatingData.buoyancy) * force / validProxyCount,
-                    maxSpeed = floatingData.maxSpeed,
+                forceDataArray[index] = new ForceData(
+                    floatingData.rbId,
+                    floatingData.point,
+                    (1f + floatingData.buoyancy) * force / validProxyCount,
+                    floatingData.maxSpeed
 #if UNITY_EDITOR
-                    surfacePoint = surfacePoint / validProxyCount,
-                    surfaceNormal = (surfaceNormal / validProxyCount).normalized,
+                    , surfacePoint / validProxyCount,
+                    math.normalize(surfaceNormal / validProxyCount)
 #endif
-                };
+                );
             }
         }
         
+        [BurstCompile]
         private struct CalculateValidFloatingPointsPerRbJob : IJob {
             
             [ReadOnly] public NativeArray<ForceData> forceDataArray;

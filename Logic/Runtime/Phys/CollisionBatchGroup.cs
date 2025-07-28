@@ -2,8 +2,10 @@
 using MisterGames.Collisions.Core;
 using MisterGames.Collisions.Utils;
 using MisterGames.Common.Layers;
+using Unity.Burst;
 using Unity.Collections;
 using Unity.Jobs;
+using Unity.Mathematics;
 using UnityEngine;
 
 namespace MisterGames.Logic.Phys {
@@ -12,17 +14,29 @@ namespace MisterGames.Logic.Phys {
 
         [SerializeField] private LayerMask _layerMask;
         
-        private struct ContactInfo {
-            public int thisColliderId;
-            public int otherColliderId;
-            public int thisBodyID;
-            public int otherBodyID;
-            public Vector3 point;
-            public Vector3 normal;
-            public Vector3 impulse;
+        private readonly struct ContactInfo {
+            
+            public readonly int thisColliderId;
+            public readonly int otherColliderId;
+            public readonly int thisBodyID;
+            public readonly int otherBodyID;
+            public readonly float3 point;
+            public readonly float3 normal;
+            public readonly float3 impulse;
+            
+            public ContactInfo(int thisColliderId, int otherColliderId, int thisBodyID, int otherBodyID, float3 point, float3 normal, float3 impulse) {
+                this.thisColliderId = thisColliderId;
+                this.otherColliderId = otherColliderId;
+                this.thisBodyID = thisBodyID;
+                this.otherBodyID = otherBodyID;
+                this.point = point;
+                this.normal = normal;
+                this.impulse = impulse;
+            }
         }
 
         private readonly struct RigidbodyData {
+            
             public readonly Rigidbody rigidbody;
             public readonly int surfaceMaterial;
 
@@ -37,21 +51,12 @@ namespace MisterGames.Logic.Phys {
 
         private readonly Dictionary<int, RigidbodyData> _rbIdToDataMap = new();
 
-        private NativeArray<ContactInfo> _contactEnterArray;
-        private NativeArray<ContactInfo> _contactStayArray;
-        private NativeArray<ContactInfo> _contactExitArray;
-        private int _contactInfoCount;
-
         private void OnEnable() {
             Physics.ContactEvent += OnContactEvent;
         }
 
         private void OnDisable() {
             Physics.ContactEvent -= OnContactEvent;
-
-            _contactEnterArray.Dispose();
-            _contactStayArray.Dispose();
-            _contactExitArray.Dispose();
         }
 
         public void Register(Rigidbody rigidbody, int surfaceMaterial = 0) {
@@ -65,34 +70,21 @@ namespace MisterGames.Logic.Phys {
         private void OnContactEvent(PhysicsScene scene, NativeArray<ContactPairHeader>.ReadOnly headers) {
             int count = headers.Length;
 
-            if (_contactEnterArray.Length < count) {
-                _contactEnterArray.Dispose();
-                _contactStayArray.Dispose();
-                _contactExitArray.Dispose();
-
-                int n = Mathf.NextPowerOfTwo(count);
-                _contactEnterArray = new NativeArray<ContactInfo>(n, Allocator.Persistent);
-                _contactStayArray = new NativeArray<ContactInfo>(n, Allocator.Persistent);
-                _contactExitArray = new NativeArray<ContactInfo>(n, Allocator.Persistent);
-            }
-
-            _contactInfoCount = count;
+            var contactEnterArray = new NativeArray<ContactInfo>(count, Allocator.TempJob);
+            var contactStayArray = new NativeArray<ContactInfo>(count, Allocator.TempJob);
+            var contactExitArray = new NativeArray<ContactInfo>(count, Allocator.TempJob);
 
             var job = new CalculateContactJob {
                 headers = headers,
-                contactEnterArray = _contactEnterArray,
-                contactStayArray = _contactStayArray,
-                contactExitArray = _contactExitArray,
+                contactEnterArray = contactEnterArray,
+                contactStayArray = contactStayArray,
+                contactExitArray = contactExitArray,
             };
 
             job.Schedule(count, innerloopBatchCount: 256).Complete();
             
-            NotifyCollisions();
-        }
-
-        private void NotifyCollisions() {
-            for (int i = 0; i < _contactInfoCount; i++) {
-                var info = _contactEnterArray[i];
+            for (int i = 0; i < count; i++) {
+                var info = contactEnterArray[i];
                 if (IsValidContact(info.thisBodyID, info.otherBodyID, info.otherColliderId, out var rb, out int surfaceMaterial, out var collider)) {
                     OnContact.Invoke(TriggerEventType.Enter, rb, surfaceMaterial, collider, info.point, info.normal, info.impulse);
                 }
@@ -100,7 +92,7 @@ namespace MisterGames.Logic.Phys {
                     OnContact.Invoke(TriggerEventType.Enter, rb, surfaceMaterial, collider, info.point, info.normal, info.impulse);
                 }
                 
-                info = _contactStayArray[i];
+                info = contactStayArray[i];
                 if (IsValidContact(info.thisBodyID, info.otherBodyID, info.otherColliderId, out rb, out surfaceMaterial, out collider)) {
                     OnContact.Invoke(TriggerEventType.Stay, rb, surfaceMaterial, collider, info.point, info.normal, info.impulse);
                 }
@@ -108,7 +100,7 @@ namespace MisterGames.Logic.Phys {
                     OnContact.Invoke(TriggerEventType.Stay, rb, surfaceMaterial, collider, info.point, info.normal, info.impulse);
                 }
                 
-                info = _contactExitArray[i];
+                info = contactExitArray[i];
                 if (IsValidContact(info.thisBodyID, info.otherBodyID, info.otherColliderId, out rb, out surfaceMaterial, out collider)) {
                     OnContact.Invoke(TriggerEventType.Exit, rb, surfaceMaterial, collider, info.point, info.normal, info.impulse);
                 }
@@ -116,6 +108,10 @@ namespace MisterGames.Logic.Phys {
                     OnContact.Invoke(TriggerEventType.Exit, rb, surfaceMaterial, collider, info.point, info.normal, info.impulse);
                 }
             }
+
+            contactEnterArray.Dispose();
+            contactStayArray.Dispose(); 
+            contactExitArray.Dispose();
         }
 
         private bool IsValidContact(
@@ -142,25 +138,27 @@ namespace MisterGames.Logic.Phys {
             return _layerMask.Contains(otherBodyId != 0 ? collider.attachedRigidbody.gameObject.layer : collider.gameObject.layer);
         }
 
+        [BurstCompile]
         private struct CalculateContactJob : IJobParallelFor {
             
             [ReadOnly] public NativeArray<ContactPairHeader>.ReadOnly headers;
+            
             public NativeArray<ContactInfo> contactEnterArray;
             public NativeArray<ContactInfo> contactStayArray;
             public NativeArray<ContactInfo> contactExitArray;
             
             public void Execute(int index) {
-                var averageNormalEnter = Vector3.zero;
-                var averagePointEnter = Vector3.zero;
-                var averageImpulseEnter = Vector3.zero;
+                float3 averageNormalEnter = default;
+                float3 averagePointEnter = default;
+                float3 averageImpulseEnter = default;
                 
-                var averageNormalStay = Vector3.zero;
-                var averagePointStay = Vector3.zero;
-                var averageImpulseStay = Vector3.zero;
+                float3 averageNormalStay = default;
+                float3 averagePointStay = default;
+                float3 averageImpulseStay = default;
                 
-                var averageNormalExit = Vector3.zero;
-                var averagePointExit = Vector3.zero;
-                var averageImpulseExit = Vector3.zero;
+                float3 averageNormalExit = default;
+                float3 averagePointExit = default;
+                float3 averageImpulseExit = default;
                 
                 int countEnter = 0;
                 int countStay = 0;
@@ -185,9 +183,9 @@ namespace MisterGames.Logic.Phys {
                         
                         for (int k = 0; k < pair.contactCount; k++) {
                             ref readonly var contact = ref pair.GetContactPoint(k);
-                            averageNormalEnter += contact.normal;
-                            averagePointEnter += contact.position;
-                            averageImpulseEnter += contact.impulse;
+                            averageNormalEnter += (float3) contact.normal;
+                            averagePointEnter += (float3) contact.position;
+                            averageImpulseEnter += (float3) contact.impulse;
                         }
 
                         countEnter += pair.contactCount; 
@@ -200,9 +198,9 @@ namespace MisterGames.Logic.Phys {
                         
                         for (int k = 0; k < pair.contactCount; k++) {
                             ref readonly var contact = ref pair.GetContactPoint(k);
-                            averageNormalStay += contact.normal;
-                            averagePointStay += contact.position;
-                            averageImpulseStay += contact.impulse;
+                            averageNormalStay += (float3) contact.normal;
+                            averagePointStay += (float3) contact.position;
+                            averageImpulseStay += (float3) contact.impulse;
                         }
 
                         countStay += pair.contactCount;
@@ -213,9 +211,9 @@ namespace MisterGames.Logic.Phys {
                         otherColliderExit = pair.otherColliderInstanceID;
                         
                         ref readonly var contact = ref pair.GetContactPoint(k);
-                        averageNormalExit += contact.normal;
-                        averagePointExit += contact.position;
-                        averageImpulseExit += contact.impulse;
+                        averageNormalExit += (float3) contact.normal;
+                        averagePointExit += (float3) contact.position;
+                        averageImpulseExit += (float3) contact.impulse;
                     }
 
                     countExit += pair.contactCount;
@@ -240,39 +238,39 @@ namespace MisterGames.Logic.Phys {
                 }
                 
                 contactEnterArray[index] = countEnter > 0 
-                    ? new ContactInfo { 
-                        thisColliderId = thisColliderEnter,
-                        otherColliderId = otherColliderEnter,
-                        thisBodyID = header.bodyInstanceID, 
-                        otherBodyID = header.otherBodyInstanceID, 
-                        normal = averageNormalEnter, 
-                        point = averagePointEnter,
-                        impulse = averageImpulseEnter,
-                    }
+                    ? new ContactInfo(
+                        thisColliderEnter,
+                        otherColliderEnter,
+                        header.bodyInstanceID, 
+                        header.otherBodyInstanceID, 
+                        averageNormalEnter, 
+                        averagePointEnter,
+                        averageImpulseEnter
+                    )
                     : default;
                 
                 contactStayArray[index] = countStay > 0 
-                    ? new ContactInfo {
-                        thisColliderId = thisColliderStay,
-                        otherColliderId = otherColliderStay,
-                        thisBodyID = header.bodyInstanceID, 
-                        otherBodyID = header.otherBodyInstanceID, 
-                        normal = averageNormalStay, 
-                        point = averagePointStay,
-                        impulse = averageImpulseStay,
-                    }
+                    ? new ContactInfo(
+                        thisColliderStay,
+                        otherColliderStay,
+                        header.bodyInstanceID, 
+                        header.otherBodyInstanceID, 
+                        averageNormalStay, 
+                        averagePointStay,
+                        averageImpulseStay
+                    )
                     : default;
                 
                 contactExitArray[index] = countExit > 0 
-                    ? new ContactInfo { 
-                        thisColliderId = thisColliderExit,
-                        otherColliderId = otherColliderExit,
-                        thisBodyID = header.bodyInstanceID, 
-                        otherBodyID = header.otherBodyInstanceID, 
-                        normal = averageNormalExit, 
-                        point = averagePointExit,
-                        impulse = averageImpulseExit,
-                    }
+                    ? new ContactInfo( 
+                        thisColliderExit,
+                        otherColliderExit,
+                        header.bodyInstanceID, 
+                        header.otherBodyInstanceID, 
+                        averageNormalExit, 
+                        averagePointExit,
+                        averageImpulseExit
+                    )
                     : default;
             }
         }
