@@ -18,6 +18,7 @@ namespace MisterGames.Common.Audio {
         public AudioHighPassFilter HighPass => _highPass;
 
         public int Id { get; set; }
+        public int MixerGroupId { get; set; }
         public float Pitch { get; set; }
         public float AttenuationDistance { get; set; }
         public AudioOptions AudioOptions { get; set; }

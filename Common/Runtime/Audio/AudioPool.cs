@@ -29,6 +29,10 @@ namespace MisterGames.Common.Audio {
         [Header("Shuffle")]
         [SerializeField] [Min(0f)] private float _lastIndexStoreLifetime = 60f;
 
+        [Header("Audio Volumes")]
+        [SerializeField] private bool _includeDefaultMixerGroupsForVolumes = true;
+        [SerializeField] private AudioMixerGroup[] _includeMixerGroupsForVolumes;
+        
         [Header("Occlusion Detection")]
         [SerializeField] private bool _applyOcclusion = true;
         [SerializeField] [Min(0f)] private float _minDistance = 0.1f;
@@ -80,6 +84,7 @@ namespace MisterGames.Common.Audio {
         private Transform _listenerUp;
 
         private readonly HashSet<IAudioVolume> _volumes = new();
+        private readonly HashSet<int> _includeMixerGroupsForVolumesSet = new();
         
         private NativeHashMap<int, float> _listenerClusterToWeightMap;
         private NativeArray<VolumeValueData> _volumePitchArray;
@@ -106,6 +111,8 @@ namespace MisterGames.Common.Audio {
             
             _transform = transform;
             _destroyToken = destroyCancellationToken;
+            
+            FetchIncludeMixerGroupsFromVolumes();
             
             StartLastClipIndexUpdates(_destroyToken).Forget();
             
@@ -174,8 +181,9 @@ namespace MisterGames.Common.Audio {
             bool loop = (options & AudioOptions.Loop) == AudioOptions.Loop;
             bool affectedByTimeScale = (options & AudioOptions.AffectedByTimeScale) == AudioOptions.AffectedByTimeScale;
             normalizedTime = Mathf.Clamp01(normalizedTime);
-
-            InitializeAudioElement(audioElement, id, pitch, options);
+            mixerGroup = mixerGroup == null ? _defaultMixerGroup : mixerGroup;
+            
+            InitializeAudioElement(audioElement, id, pitch, options, mixerGroup);
             
             _handleIdToAudioElementMap[id] = audioElement;
 
@@ -224,13 +232,14 @@ namespace MisterGames.Common.Audio {
             bool loop = (options & AudioOptions.Loop) == AudioOptions.Loop;
             bool affectedByTimeScale = (options & AudioOptions.AffectedByTimeScale) == AudioOptions.AffectedByTimeScale;
             normalizedTime = Mathf.Clamp01(normalizedTime);
+            mixerGroup = mixerGroup == null ? _defaultMixerGroup : mixerGroup;
             
             if (attachId != 0) {
                 _handleIdToAudioElementMap.Remove(_attachKeyToHandleIdMap.GetValueOrDefault(attachKey));
                 _attachKeyToHandleIdMap[attachKey] = id;   
             }
             
-            InitializeAudioElement(audioElement, id, pitch, options);
+            InitializeAudioElement(audioElement, id, pitch, options, mixerGroup);
             
             _handleIdToAudioElementMap[id] = audioElement;
             
@@ -299,7 +308,7 @@ namespace MisterGames.Common.Audio {
             source.pitch = pitch;
             source.loop = loop;
             source.spatialBlend = spatialBlend;
-            source.outputAudioMixerGroup = mixerGroup == null ? _defaultMixerGroup : mixerGroup;
+            source.outputAudioMixerGroup = mixerGroup;
             
             source.Play();
             
@@ -380,8 +389,10 @@ namespace MisterGames.Common.Audio {
             return _lastHandleId;
         }
 
-        private void InitializeAudioElement(IAudioElement audioElement, int id, float pitch, AudioOptions options) {
+        private void InitializeAudioElement(IAudioElement audioElement, int id, float pitch, AudioOptions options, AudioMixerGroup mixerGroup) {
             audioElement.Id = id;
+            audioElement.MixerGroupId = mixerGroup == null ? 0 : mixerGroup.GetInstanceID();
+            
             audioElement.AudioOptions = options;
             audioElement.Pitch = pitch;
             audioElement.AttenuationDistance = _attenuationDistance;
@@ -482,15 +493,18 @@ namespace MisterGames.Common.Audio {
                 float lpCutoffBound = LpCutoffUpperBound;
                 float hpCutoffBound = HpCutoffLowerBound;
                 
-                if (hasListener && (options & AudioOptions.AffectedByVolumes) == AudioOptions.AffectedByVolumes) {
+                if (hasListener && 
+                    (options & AudioOptions.AffectedByVolumes) == AudioOptions.AffectedByVolumes &&
+                    (audioElement.MixerGroupId == 0 || _includeMixerGroupsForVolumesSet.Contains(audioElement.MixerGroupId))) 
+                {
                     ProcessVolumesForSound(volumeCount, position, ref pitch, ref attenuationDistance, ref occlusionWeight, ref lpCutoffBound, ref hpCutoffBound);
+                    
+                    occlusionWeight *= listenerOcclusionWeight;
                 }
                 
                 if ((options & AudioOptions.AffectedByTimeScale) == AudioOptions.AffectedByTimeScale) {
                     pitch *= timeScale;
                 }
-
-                occlusionWeight *= listenerOcclusionWeight;
                 
                 audioElement.Source.pitch = pitch;
                 audioElement.Source.maxDistance = attenuationDistance;
@@ -541,6 +555,18 @@ namespace MisterGames.Common.Audio {
             CleanupOcclusionData();
         }
 
+        private void FetchIncludeMixerGroupsFromVolumes() {
+            _includeMixerGroupsForVolumesSet.Clear();
+            
+            for (int i = 0; i < _includeMixerGroupsForVolumes.Length; i++) {
+                _includeMixerGroupsForVolumesSet.Add(_includeMixerGroupsForVolumes[i].GetInstanceID());
+            }
+
+            if (_includeDefaultMixerGroupsForVolumes && _defaultMixerGroup != null) {
+                _includeMixerGroupsForVolumesSet.Add(_defaultMixerGroup.GetInstanceID());
+            }
+        }
+        
         private void PrepareVolumeData(out int count) {
             count = _volumes.Count;
             
@@ -1197,6 +1223,8 @@ namespace MisterGames.Common.Audio {
         
         private void OnValidate() {
             if (_maxDistance < _minDistance) _maxDistance = _minDistance;
+            
+            if (Application.isPlaying) FetchIncludeMixerGroupsFromVolumes();
         }
 
         private void DrawOcclusionRays(int count, Vector3 up) {
