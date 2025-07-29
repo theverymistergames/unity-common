@@ -80,10 +80,7 @@ namespace MisterGames.Common.Audio {
 
         private readonly HashSet<IAudioVolume> _volumes = new();
         
-        private NativeArray<VolumeValueData> _volumeListenerOcclusionArray;
-        private NativeArray<VolumeValueData> _resultVolumeListenerOcclusionArray;
-        private int _listenerVolumesCount;
-        
+        private NativeHashMap<int, float> _listenerClusterToWeightMap;
         private NativeArray<VolumeValueData> _volumePitchArray;
         private NativeArray<VolumeValueData> _volumeOcclusionArray;
         private NativeArray<VolumeValueData> _volumeLpArray;
@@ -263,7 +260,9 @@ namespace MisterGames.Common.Audio {
             
             int hash = 0;
             for (int i = 0; i < count; i++) {
-                hash += clips![i].GetHashCode();
+                unchecked {
+                    hash += clips![i].GetHashCode();   
+                }
             }
 
             return clips![NextClipIndex(hash, count)];
@@ -547,8 +546,7 @@ namespace MisterGames.Common.Audio {
         private void PrepareVolumeData(out int count) {
             count = _volumes.Count;
             
-            _volumeListenerOcclusionArray = new NativeArray<VolumeValueData>(count, Allocator.TempJob);
-            _resultVolumeListenerOcclusionArray = new NativeArray<VolumeValueData>(2, Allocator.TempJob);
+            _listenerClusterToWeightMap = new NativeHashMap<int, float>(count, Allocator.TempJob);
             
             _volumePitchArray = new NativeArray<VolumeValueData>(count, Allocator.TempJob);
             _volumeOcclusionArray = new NativeArray<VolumeValueData>(count, Allocator.TempJob);
@@ -559,13 +557,10 @@ namespace MisterGames.Common.Audio {
             _resultVolumeOcclusionArray = new NativeArray<VolumeValueData>(2, Allocator.TempJob);
             _resultVolumeLpArray = new NativeArray<VolumeValueData>(2, Allocator.TempJob);
             _resultVolumeHpArray = new NativeArray<VolumeValueData>(2, Allocator.TempJob);
-            
-            _listenerVolumesCount = 0;
         }
 
         private void CleanupVolumeData() {
-            if (_volumeListenerOcclusionArray.IsCreated) _volumeListenerOcclusionArray.Dispose();
-            if (_resultVolumeListenerOcclusionArray.IsCreated) _resultVolumeListenerOcclusionArray.Dispose();
+            if (_listenerClusterToWeightMap.IsCreated) _listenerClusterToWeightMap.Dispose();
             
             if (_volumePitchArray.IsCreated) _volumePitchArray.Dispose();
             if (_volumeOcclusionArray.IsCreated) _volumeOcclusionArray.Dispose();
@@ -584,43 +579,44 @@ namespace MisterGames.Common.Audio {
             int realCount = 0;
             int topPriority = int.MinValue;
 
+            var volumeListenerOcclusionArray = new NativeArray<VolumeListenerData>(count, Allocator.TempJob);
+            var resultVolumeListenerOcclusionArray = new NativeArray<VolumeListenerData>(2, Allocator.TempJob);
+            
             foreach (var volume in _volumes) {
                 int priority = volume.Priority;
                 if (priority < topPriority || volume.GetWeight(position, out int cluster) is var weight && weight <= 0f) continue;
                 
                 topPriority = Mathf.Max(topPriority, priority);
-                
                 float occlusionWeightLocal = occlusionWeight;
+
                 float w = volume.ModifyOcclusionWeightForListener(ref occlusionWeightLocal) ? 1f : 0f;
                 
-                _volumeListenerOcclusionArray[realCount++] = new VolumeValueData {
+                volumeListenerOcclusionArray[realCount++] = new VolumeListenerData {
                     priority = priority,
                     cluster = cluster,
-                    weight = weight * w,
-                    value = Mathf.Lerp(occlusionWeight, occlusionWeightLocal, weight),
-                };
+                    weight = weight,
+                    valueAndWeight = new float2(Mathf.Lerp(occlusionWeight, occlusionWeightLocal, weight * w), weight * w),
+                };  
             }
 
-            _resultVolumeListenerOcclusionArray[0] = default;
-
-            var realCountBuffer = new NativeArray<int>(2, Allocator.TempJob); 
+            resultVolumeListenerOcclusionArray[0] = default;
             
             var job = new CalculateVolumeForListenerJob {
                 count = realCount,
                 topPriority = topPriority,
-                volumeDataArray = _volumeListenerOcclusionArray,
-                realCount = realCountBuffer,
-                result = _resultVolumeListenerOcclusionArray,
+                volumeDataArray = volumeListenerOcclusionArray,
+                result = resultVolumeListenerOcclusionArray,
+                listenerClusterToWeightMap = _listenerClusterToWeightMap,
             };
             
             job.Schedule().Complete();
-
-            _listenerVolumesCount = realCountBuffer[0];
             
-            var result = _resultVolumeListenerOcclusionArray[0];
-            if (result.weight <= 0f) return;
+            var result = resultVolumeListenerOcclusionArray[0];
 
-            occlusionWeight = result.value;
+            volumeListenerOcclusionArray.Dispose();
+            resultVolumeListenerOcclusionArray.Dispose();
+            
+            occlusionWeight = result.valueAndWeight.y > 0f ? result.valueAndWeight.x : occlusionWeight;
         }
 
         private void ProcessVolumesForSound(
@@ -713,8 +709,7 @@ namespace MisterGames.Common.Audio {
                 count = realCountPitch,
                 topPriority = topPriorityPitch,
                 volumeDataArray = _volumePitchArray,
-                volumeDataListenerArray = _volumeListenerOcclusionArray,
-                listenerVolumeCount = _listenerVolumesCount,
+                listenerClusterToWeightMap = _listenerClusterToWeightMap,
                 result = _resultVolumePitchArray,
             };
             
@@ -722,8 +717,7 @@ namespace MisterGames.Common.Audio {
                 count = realCountOcclusion,
                 topPriority = topPriorityOcclusion,
                 volumeDataArray = _volumeOcclusionArray,
-                volumeDataListenerArray = _volumeListenerOcclusionArray,
-                listenerVolumeCount = _listenerVolumesCount,
+                listenerClusterToWeightMap = _listenerClusterToWeightMap,
                 result = _resultVolumeOcclusionArray,
             };
             
@@ -731,8 +725,7 @@ namespace MisterGames.Common.Audio {
                 count = realCountLp,
                 topPriority = topPriorityLp,
                 volumeDataArray = _volumeLpArray,
-                volumeDataListenerArray = _volumeListenerOcclusionArray,
-                listenerVolumeCount = _listenerVolumesCount,
+                listenerClusterToWeightMap = _listenerClusterToWeightMap,
                 result = _resultVolumeLpArray,
             };
             
@@ -740,8 +733,7 @@ namespace MisterGames.Common.Audio {
                 count = realCountHp,
                 topPriority = topPriorityHp,
                 volumeDataArray = _volumeHpArray,
-                volumeDataListenerArray = _volumeListenerOcclusionArray,
-                listenerVolumeCount = _listenerVolumesCount,
+                listenerClusterToWeightMap = _listenerClusterToWeightMap,
                 result = _resultVolumeHpArray,
             };
             
@@ -1018,6 +1010,13 @@ namespace MisterGames.Common.Audio {
             }
         }
 
+        private struct VolumeListenerData {
+            public int priority;
+            public int cluster;
+            public float weight;
+            public float2 valueAndWeight;
+        }
+        
         private struct VolumeValueData {
             public int priority;
             public int cluster;
@@ -1031,30 +1030,27 @@ namespace MisterGames.Common.Audio {
             
             [ReadOnly] public int count;
             [ReadOnly] public int topPriority;
-            
-            public NativeArray<VolumeValueData> volumeDataArray;
-            public NativeArray<int> realCount;
-            public NativeArray<VolumeValueData> result;
+            [ReadOnly] public NativeArray<VolumeListenerData> volumeDataArray;
+
+            public NativeHashMap<int, float> listenerClusterToWeightMap;
+            public NativeArray<VolumeListenerData> result;
             
             public void Execute() {
                 var resultData = result[0];
-                int validCount = 0;
 
                 for (int i = 0; i < count; i++) {
                     var data = volumeDataArray[i];
                     if (data.priority < topPriority) continue;
                     
-                    resultData.weight += data.weight;
-                    resultData.value += data.value * data.weight;
+                    resultData.valueAndWeight += new float2(data.valueAndWeight.x * data.valueAndWeight.y, data.valueAndWeight.y);
                     
-                    volumeDataArray[validCount++] = data;
+                    listenerClusterToWeightMap[data.cluster] = 
+                        math.max(data.weight, listenerClusterToWeightMap.TryGetValue(data.cluster, out float w) ? w : 0f);
                 }
-
-                realCount[0] = validCount;
                 
-                if (resultData.weight <= 0f) return;
+                if (resultData.valueAndWeight.y <= 0f) return;
                 
-                resultData.value /= resultData.weight;
+                resultData.valueAndWeight = new float2(resultData.valueAndWeight.x / resultData.valueAndWeight.y, resultData.valueAndWeight.y);
                 result[0] = resultData;
             }
         }
@@ -1065,8 +1061,7 @@ namespace MisterGames.Common.Audio {
             [ReadOnly] public int count;
             [ReadOnly] public int topPriority;
             [ReadOnly] public NativeArray<VolumeValueData> volumeDataArray;
-            [ReadOnly] public NativeArray<VolumeValueData> volumeDataListenerArray;
-            [ReadOnly] public int listenerVolumeCount;
+            [ReadOnly] public NativeHashMap<int, float> listenerClusterToWeightMap;
             
             public NativeArray<VolumeValueData> result;
             
@@ -1077,6 +1072,9 @@ namespace MisterGames.Common.Audio {
                     var data = volumeDataArray[i];
                     if (data.priority < topPriority) continue;
 
+                    float listenerWeight = listenerClusterToWeightMap.TryGetValue(data.cluster, out float w) ? w : 0f;
+                    data.weight *= math.lerp(1f, listenerWeight, data.listenerPresence);
+                    
                     resultData.weight += data.weight;
                     resultData.value += data.value * data.weight;
                 }
