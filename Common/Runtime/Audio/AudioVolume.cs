@@ -1,5 +1,6 @@
 ﻿using System;
 using MisterGames.Common.Attributes;
+using MisterGames.Common.Data;
 using MisterGames.Common.Stats;
 using MisterGames.Common.Volumes;
 using UnityEngine;
@@ -15,14 +16,15 @@ namespace MisterGames.Common.Audio {
         [VisibleIf(nameof(_mode), 1)]
         [SerializeField] private PositionWeightProvider _positionWeightProvider;
 
-        [Header("Process Listener")]
-        [SerializeField] private ValueModifier _occlusionWeightListener = ValueModifier.Empty;
+        [Header("Listener")]
+        [SerializeField] private Optional<ValueModifier> _occlusionWeightListener = Optional<ValueModifier>.WithDisabled(ValueModifier.Empty);
 
-        [Header("Process Sound")]
-        [SerializeField] private ValueModifier _pitch = ValueModifier.Empty;
-        [SerializeField] private ValueModifier _occlusionWeightSound = ValueModifier.Empty;
-        [SerializeField] private ValueModifier _lowPassCutoffFrequency = ValueModifier.Empty;
-        [SerializeField] private ValueModifier _highPassCutoffFrequency = ValueModifier.Empty;
+        [Header("Sound")]
+        [SerializeField] [Range(0f, 1f)] private float _listenerPresence;
+        [SerializeField] private Optional<ValueModifier> _pitch = Optional<ValueModifier>.WithDisabled(ValueModifier.Empty);
+        [SerializeField] private Optional<ValueModifier> _occlusionWeightSound = Optional<ValueModifier>.WithDisabled(ValueModifier.Empty);
+        [SerializeField] private Optional<ValueModifier> _lowPassCutoffFrequency = Optional<ValueModifier>.WithDisabled(ValueModifier.Empty);
+        [SerializeField] private Optional<ValueModifier> _highPassCutoffFrequency = Optional<ValueModifier>.WithDisabled(ValueModifier.Empty);
         
         private enum Mode {
             Global,
@@ -30,6 +32,7 @@ namespace MisterGames.Common.Audio {
         }
         
         public int Priority => _priority;
+        public float ListenerPresence => _listenerPresence;
 
         private void OnEnable() {
             AudioPool.Main?.RegisterVolume(this);
@@ -39,29 +42,39 @@ namespace MisterGames.Common.Audio {
             AudioPool.Main?.UnregisterVolume(this);
         }
 
-        public float GetWeight(Vector3 position) {
+        public float GetWeight(Vector3 position, out int cluster) {
+            cluster = 0;
+            
             return _mode switch {
                 Mode.Global => _weight,
-                Mode.Local => _weight * _positionWeightProvider.GetWeight(position),
+                Mode.Local => _weight * _positionWeightProvider.GetWeight(position, out cluster),
                 _ => throw new ArgumentOutOfRangeException()
             };
         }
-
-        public void ModifyPitch(ref float pitch) {
-            pitch = _pitch.Modify(pitch);
+        
+        public bool ModifyOcclusionWeightForListener(ref float occlusionWeight) {
+            occlusionWeight = _occlusionWeightListener.Value.Modify(occlusionWeight);
+            return _occlusionWeightListener.HasValue;
         }
 
-        public void ModifyOcclusionWeightForSound(ref float occlusionWeight) {
-            occlusionWeight = _occlusionWeightSound.Modify(occlusionWeight);
+        public bool ModifyPitch(ref float pitch) {
+            pitch = _pitch.Value.Modify(pitch);
+            return _pitch.HasValue;
         }
 
-        public void ModifyOcclusionWeightForListener(ref float occlusionWeight) {
-            occlusionWeight = _occlusionWeightListener.Modify(occlusionWeight);
+        public bool ModifyOcclusionWeightForSound(ref float occlusionWeight) {
+            occlusionWeight = _occlusionWeightSound.Value.Modify(occlusionWeight);
+            return _occlusionWeightSound.HasValue;
         }
 
-        public void ModifyLowHighPassFilters(ref float lpCutoffFreq, ref float hpCutoffFreq) {
-            lpCutoffFreq = _lowPassCutoffFrequency.Modify(lpCutoffFreq);
-            hpCutoffFreq = _highPassCutoffFrequency.Modify(hpCutoffFreq);
+        public bool ModifyLowPassFilter(ref float lpCutoffFreq) {
+            lpCutoffFreq = _lowPassCutoffFrequency.Value.Modify(lpCutoffFreq);
+            return _lowPassCutoffFrequency.HasValue;
+        }
+
+        public bool ModifyHighPassFilter(ref float hpCutoffFreq) {
+            hpCutoffFreq = _highPassCutoffFrequency.Value.Modify(hpCutoffFreq);
+            return _highPassCutoffFrequency.HasValue;
         }
     }
     

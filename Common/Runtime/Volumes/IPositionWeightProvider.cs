@@ -4,8 +4,7 @@ namespace MisterGames.Common.Volumes {
     
     public interface IPositionWeightProvider {
     
-        float GetWeight(Vector3 position);
-        
+        float GetWeight(Vector3 position, out int cluster);
     }
     
 }

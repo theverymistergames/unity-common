@@ -17,11 +17,24 @@ namespace MisterGames.Logic.Water {
             public readonly float3 position;
             public readonly quaternion rotation;
             public readonly float3 size;
+            public readonly int cluster;
             
-            public ProxyData(float3 position, quaternion rotation, float3 size) {
+            public ProxyData(float3 position, quaternion rotation, float3 size, int cluster) {
                 this.position = position;
                 this.rotation = rotation;
                 this.size = size;
+                this.cluster = cluster;
+            }
+        }
+        
+        private readonly struct WeightData {
+            
+            public readonly int cluster;
+            public readonly float weight;
+            
+            public WeightData(int cluster, float weight) {
+                this.weight = weight;
+                this.cluster = cluster;
             }
         }
 
@@ -33,13 +46,14 @@ namespace MisterGames.Logic.Water {
             _proxyDataArray.Dispose();
         }
 
-        public override float GetWeight(Vector3 position) {
+        public override float GetWeight(Vector3 position, out int cluster) {
+            cluster = 0;
             if (!enabled) return 0f;
             
             UpdateProxyDataArray();
             
-            var weightArray = new NativeArray<float>(_proxyCount, Allocator.TempJob);
-            var resultArray = new NativeArray<float>(2, Allocator.TempJob);
+            var weightArray = new NativeArray<WeightData>(_proxyCount, Allocator.TempJob);
+            var resultArray = new NativeArray<WeightData>(2, Allocator.TempJob);
 
             var calculateWeightJob = new CalculateWeightJob {
                 proxyDataArray = _proxyDataArray,
@@ -55,19 +69,20 @@ namespace MisterGames.Logic.Water {
             var calculateWeightJobHandle = calculateWeightJob.Schedule(_proxyCount, innerloopBatchCount: 256);
             calculateMaxWeightJob.Schedule(calculateWeightJobHandle).Complete();
 
-            float weight = resultArray[0];
+            var result = resultArray[0];
             
             weightArray.Dispose();
             resultArray.Dispose();
             
-            return weight;
+            cluster = result.cluster;
+            return result.weight;
         }
 
         private void UpdateProxyDataArray() {
             int frame = Time.frameCount;
             if (_proxyDataArrayCreationFrame >= frame && _proxyDataArray.IsCreated) return;
 
-            var proxySet = _waterZone.WaterProxies;
+            var proxySet = _waterZone.WaterProxySet;
             _proxyCount = proxySet.Count;
             _proxyDataArrayCreationFrame = frame;
             
@@ -80,7 +95,7 @@ namespace MisterGames.Logic.Water {
             
             foreach (var proxy in proxySet) {
                 proxy.GetBox(out var position, out var rotation, out var size);
-                _proxyDataArray[index++] = new ProxyData(position, rotation, size);
+                _proxyDataArray[index++] = new ProxyData(position, rotation, size, _waterZone.GetProxyClusterId(proxy));
             }
         }
         
@@ -90,7 +105,7 @@ namespace MisterGames.Logic.Water {
             [ReadOnly] public NativeArray<ProxyData> proxyDataArray;
             [ReadOnly] public float3 position;
             
-            public NativeArray<float> weightArray;
+            public NativeArray<WeightData> weightArray;
             
             public void Execute(int index) {
                 var proxyData = proxyDataArray[index];
@@ -102,30 +117,33 @@ namespace MisterGames.Logic.Water {
                     localPoint.y < -halfSize.y || localPoint.y > halfSize.y ||
                     localPoint.z < -halfSize.z || localPoint.z > halfSize.z) 
                 {
-                    weightArray[index] = 0f;
+                    weightArray[index] = new WeightData(proxyData.cluster, 0f);
                     return;
                 }
                 
-                weightArray[index] = 1f;
+                weightArray[index] = new WeightData(proxyData.cluster, 1f);
             }
         }
         
         [BurstCompile]
         private struct CalculateMaxWeightJob : IJob {
             
-            [ReadOnly] public NativeArray<float> weightArray;
+            [ReadOnly] public NativeArray<WeightData> weightArray;
             
-            public NativeArray<float> result;
+            public NativeArray<WeightData> result;
             
             public void Execute() {
                 float max = float.MinValue;
+                int cluster = 0;
                 
                 for (int i = 0; i < weightArray.Length; i++) {
-                    max = Mathf.Max(max, weightArray[i]);
+                    max = Mathf.Max(max, weightArray[i].weight);
+                    cluster = weightArray[i].cluster;
+                    
                     if (max >= 1f) break;
                 }
 
-                result[0] = max;
+                result[0] = new WeightData(cluster, max);
             }
         }
         

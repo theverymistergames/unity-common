@@ -5,12 +5,16 @@ namespace MisterGames.Common.Audio {
     public interface IAudioVolume {
 
         int Priority { get; }
-        float GetWeight(Vector3 position);
+        float ListenerPresence { get; }
+        
+        float GetWeight(Vector3 position, out int cluster);
 
-        void ModifyPitch(ref float pitch);
-        void ModifyOcclusionWeightForSound(ref float occlusionWeight);
-        void ModifyOcclusionWeightForListener(ref float occlusionWeight);
-        void ModifyLowHighPassFilters(ref float lpCutoffFreq, ref float hpCutoffFreq);
+        bool ModifyOcclusionWeightForListener(ref float occlusionWeight);
+        
+        bool ModifyPitch(ref float pitch);
+        bool ModifyOcclusionWeightForSound(ref float occlusionWeight);
+        bool ModifyLowPassFilter(ref float lpCutoffFreq);
+        bool ModifyHighPassFilter(ref float hpCutoffFreq);
     }
     
 }

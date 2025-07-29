@@ -13,7 +13,8 @@ namespace MisterGames.Common.Volumes {
         [SerializeField] [Min(0f)] private float _innerRadius = 1f;
         [SerializeField] [Min(0f)] private float _outerRadius = 2f;
 
-        public override float GetWeight(Vector3 position) {
+        public override float GetWeight(Vector3 position, out int cluster) {
+            cluster = 0;
             return ConvertLinearWeight(GetLinearWeight(position));
         }
 
@@ -70,14 +71,14 @@ namespace MisterGames.Common.Volumes {
             DebugExt.DrawLine(pIn, position, Color.white, gizmo: true);
             
             var pOut = position + rotation * Vector3.forward * _outerRadius;
-            w = GetWeight(pOut);
+            w = GetWeight(pOut, out _);
             DebugExt.DrawSphere(position, _outerRadius, Color.yellow, gizmo: true);
             DebugExt.DrawPointer(pOut, Color.yellow, 0.03f, gizmo: true);
             DebugExt.DrawLabel(pOut - rotation * Vector3.right * 0.12f, $"W = {w:0.000}\nLin = {GetLinearWeight(pOut):0.000}", color: Color.yellow);
             DebugExt.DrawLine(pOut, pIn, Color.yellow, gizmo: true);
             
             var pFar = position + rotation * Vector3.forward * _testPoint;
-            w = GetWeight(pFar);
+            w = GetWeight(pFar, out _);
             DebugExt.DrawPointer(pFar, Color.cyan, 0.03f, gizmo: true);
             DebugExt.DrawLabel(pFar + rotation * Vector3.forward * 0.12f, $"W = {w:0.000}\nLin = {GetLinearWeight(pFar):0.000}", color: Color.cyan);
             if (_testPoint > _outerRadius) DebugExt.DrawLine(pFar, pOut, Color.cyan, gizmo: true);

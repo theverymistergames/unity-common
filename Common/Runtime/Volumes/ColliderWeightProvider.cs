@@ -1,5 +1,4 @@
-﻿using MisterGames.Common;
-using MisterGames.Common.Attributes;
+﻿using MisterGames.Common.Attributes;
 using MisterGames.Common.Easing;
 using UnityEngine;
 
@@ -12,7 +11,8 @@ namespace MisterGames.Common.Volumes {
         [SerializeField] private float _weightMul = 1f;
         [SerializeField] private AnimationCurve _weightCurve = EasingType.Linear.ToAnimationCurve();
         
-        public override float GetWeight(Vector3 position) {
+        public override float GetWeight(Vector3 position, out int cluster) {
+            cluster = 0;
             return _weightMul * _weightCurve.Evaluate(GetLinearWeight(position));
         }
 
@@ -46,7 +46,7 @@ namespace MisterGames.Common.Volumes {
             DebugExt.DrawSphere(p, 0.05f, Color.white);
             DebugExt.DrawLine(p, b, Color.white);
             
-            DebugExt.DrawLabel(p + transform.up * 0.1f, $"W = {GetWeight(p):0.000}\nLin = {GetLinearWeight(p):0.000}");
+            DebugExt.DrawLabel(p + transform.up * 0.1f, $"W = {GetWeight(p, out _):0.000}\nLin = {GetLinearWeight(p):0.000}");
         }
 #endif
     }

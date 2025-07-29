@@ -120,8 +120,9 @@ namespace MisterGames.Logic.Water {
         public event TriggerAction OnColliderEnter = delegate { };
         public event TriggerAction OnColliderExit = delegate { };
 
-        public HashSet<IWaterZoneProxy> WaterProxies { get; } = new();
-
+        public HashSet<IWaterZoneProxy> WaterProxySet { get; } = new();
+        private readonly Dictionary<int, int> _proxyIdToClusterIdMap = new();
+        
         private const float NoiseOffset = 100f;
 
         private readonly Dictionary<int, int> _colliderToRbIdMap = new();
@@ -155,17 +156,40 @@ namespace MisterGames.Logic.Water {
             _rbIdToWaterClientDataMap.Clear();
             _rbIdToIndexMap.Clear();
             _rbList.Clear();
-            WaterProxies.Clear();
+            
+            WaterProxySet.Clear();
+            _proxyIdToClusterIdMap.Clear();
+        }
+
+        public void AddProxyCluster(IWaterZoneProxyCluster cluster) {
+            int count = cluster.ProxyCount;
+            int id = cluster.ClusterId;
+            
+            for (int i = 0; i < count; i++) {
+                _proxyIdToClusterIdMap[cluster.GetProxyId(i)] = id;
+            }
+        }
+
+        public void RemoveProxyCluster(IWaterZoneProxyCluster cluster) {
+            int count = cluster.ProxyCount;
+            
+            for (int i = 0; i < count; i++) {
+                _proxyIdToClusterIdMap.Remove(cluster.GetProxyId(i));
+            }
         }
 
         public void AddProxy(IWaterZoneProxy proxy) {
-            WaterProxies.Add(proxy);
+            WaterProxySet.Add(proxy);
             proxy.BindZone(this);
         }
 
         public void RemoveProxy(IWaterZoneProxy proxy) {
-            WaterProxies.Remove(proxy);
+            WaterProxySet.Remove(proxy);
             proxy.UnbindZone(this);
+        }
+
+        public int GetProxyClusterId(IWaterZoneProxy proxy) {
+            return _proxyIdToClusterIdMap.TryGetValue(proxy.ProxyId, out int clusterId) ? clusterId : proxy.ProxyId;
         }
 
         public void TriggerEnter(Collider collider, IWaterZoneProxy proxy) {
@@ -294,12 +318,12 @@ namespace MisterGames.Logic.Water {
         }
 
         private NativeArray<ProxyData> CreateProxyDataArray(out int count) {
-            count = WaterProxies.Count;
+            count = WaterProxySet.Count;
             
             int index = 0;
             var proxyDataArray = new NativeArray<ProxyData>(count, Allocator.TempJob);
             
-            foreach (var proxy in WaterProxies) {
+            foreach (var proxy in WaterProxySet) {
                 proxy.GetBox(out var position, out var rotation, out var size);
                 
                 proxyDataArray[index++] = new ProxyData(

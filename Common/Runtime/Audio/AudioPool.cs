@@ -79,8 +79,19 @@ namespace MisterGames.Common.Audio {
         private Transform _listenerUp;
 
         private readonly HashSet<IAudioVolume> _volumes = new();
-        private NativeArray<VolumeData> _volumeDataArray;
-        private NativeArray<VolumeData> _resultVolumeDataArray;
+        
+        private NativeArray<VolumeValueData> _volumeListenerOcclusionArray;
+        private NativeArray<VolumeValueData> _resultVolumeListenerOcclusionArray;
+        private int _listenerVolumesCount;
+        
+        private NativeArray<VolumeValueData> _volumePitchArray;
+        private NativeArray<VolumeValueData> _volumeOcclusionArray;
+        private NativeArray<VolumeValueData> _volumeLpArray;
+        private NativeArray<VolumeValueData> _volumeHpArray;
+        private NativeArray<VolumeValueData> _resultVolumePitchArray;
+        private NativeArray<VolumeValueData> _resultVolumeOcclusionArray;
+        private NativeArray<VolumeValueData> _resultVolumeLpArray;
+        private NativeArray<VolumeValueData> _resultVolumeHpArray;
         
         private NativeArray<OcclusionSearchData> _occlusionSearchArray;
         private NativeArray<OcclusionData> _occlusionArray;
@@ -475,10 +486,8 @@ namespace MisterGames.Common.Audio {
                 float occlusionWeight = 1f;
                 float lpCutoffBound = LpCutoffUpperBound;
                 float hpCutoffBound = HpCutoffLowerBound;
-
-                occlusionWeight *= listenerOcclusionWeight;
                 
-                if ((options & AudioOptions.AffectedByVolumes) == AudioOptions.AffectedByVolumes) {
+                if (hasListener && (options & AudioOptions.AffectedByVolumes) == AudioOptions.AffectedByVolumes) {
                     ProcessVolumesForSound(volumeCount, position, ref pitch, ref occlusionWeight, ref lpCutoffBound, ref hpCutoffBound);
                 }
                 
@@ -486,6 +495,7 @@ namespace MisterGames.Common.Audio {
                     pitch *= timeScale;
                 }
 
+                occlusionWeight *= listenerOcclusionWeight;
                 audioElement.Source.pitch = pitch;
 
                 if (!hasListener || !_applyOcclusion || 
@@ -536,13 +546,36 @@ namespace MisterGames.Common.Audio {
 
         private void PrepareVolumeData(out int count) {
             count = _volumes.Count;
-            _volumeDataArray = new NativeArray<VolumeData>(count, Allocator.TempJob);
-            _resultVolumeDataArray = new NativeArray<VolumeData>(1, Allocator.TempJob);
+            
+            _volumeListenerOcclusionArray = new NativeArray<VolumeValueData>(count, Allocator.TempJob);
+            _resultVolumeListenerOcclusionArray = new NativeArray<VolumeValueData>(2, Allocator.TempJob);
+            
+            _volumePitchArray = new NativeArray<VolumeValueData>(count, Allocator.TempJob);
+            _volumeOcclusionArray = new NativeArray<VolumeValueData>(count, Allocator.TempJob);
+            _volumeLpArray = new NativeArray<VolumeValueData>(count, Allocator.TempJob);
+            _volumeHpArray = new NativeArray<VolumeValueData>(count, Allocator.TempJob);
+            
+            _resultVolumePitchArray = new NativeArray<VolumeValueData>(2, Allocator.TempJob);
+            _resultVolumeOcclusionArray = new NativeArray<VolumeValueData>(2, Allocator.TempJob);
+            _resultVolumeLpArray = new NativeArray<VolumeValueData>(2, Allocator.TempJob);
+            _resultVolumeHpArray = new NativeArray<VolumeValueData>(2, Allocator.TempJob);
+            
+            _listenerVolumesCount = 0;
         }
 
         private void CleanupVolumeData() {
-            if (_volumeDataArray.IsCreated) _volumeDataArray.Dispose();
-            if (_resultVolumeDataArray.IsCreated) _resultVolumeDataArray.Dispose();
+            if (_volumeListenerOcclusionArray.IsCreated) _volumeListenerOcclusionArray.Dispose();
+            if (_resultVolumeListenerOcclusionArray.IsCreated) _resultVolumeListenerOcclusionArray.Dispose();
+            
+            if (_volumePitchArray.IsCreated) _volumePitchArray.Dispose();
+            if (_volumeOcclusionArray.IsCreated) _volumeOcclusionArray.Dispose();
+            if (_volumeLpArray.IsCreated) _volumeLpArray.Dispose();
+            if (_volumeHpArray.IsCreated) _volumeHpArray.Dispose();
+            
+            if (_resultVolumePitchArray.IsCreated) _resultVolumePitchArray.Dispose();
+            if (_resultVolumeOcclusionArray.IsCreated) _resultVolumeOcclusionArray.Dispose();
+            if (_resultVolumeLpArray.IsCreated) _resultVolumeLpArray.Dispose();
+            if (_resultVolumeHpArray.IsCreated) _resultVolumeHpArray.Dispose();
         }
 
         private void ProcessVolumesForListener(int count, Vector3 position, ref float occlusionWeight) {
@@ -553,36 +586,41 @@ namespace MisterGames.Common.Audio {
 
             foreach (var volume in _volumes) {
                 int priority = volume.Priority;
-                if (priority < topPriority || volume.GetWeight(position) is var weight && weight <= 0f) continue;
+                if (priority < topPriority || volume.GetWeight(position, out int cluster) is var weight && weight <= 0f) continue;
                 
                 topPriority = Mathf.Max(topPriority, priority);
                 
                 float occlusionWeightLocal = occlusionWeight;
+                float w = volume.ModifyOcclusionWeightForListener(ref occlusionWeightLocal) ? 1f : 0f;
                 
-                volume.ModifyOcclusionWeightForListener(ref occlusionWeightLocal);
-                
-                _volumeDataArray[realCount++] = new VolumeData {
+                _volumeListenerOcclusionArray[realCount++] = new VolumeValueData {
                     priority = priority,
-                    weight = weight,
-                    occlusionWeight = Mathf.Lerp(occlusionWeight, occlusionWeightLocal, weight),
+                    cluster = cluster,
+                    weight = weight * w,
+                    value = Mathf.Lerp(occlusionWeight, occlusionWeightLocal, weight),
                 };
             }
 
-            _resultVolumeDataArray[0] = default;
+            _resultVolumeListenerOcclusionArray[0] = default;
 
-            var job = new CalculateVolumeJob {
+            var realCountBuffer = new NativeArray<int>(2, Allocator.TempJob); 
+            
+            var job = new CalculateVolumeForListenerJob {
                 count = realCount,
                 topPriority = topPriority,
-                volumeDataArray = _volumeDataArray,
-                result = _resultVolumeDataArray,
+                volumeDataArray = _volumeListenerOcclusionArray,
+                realCount = realCountBuffer,
+                result = _resultVolumeListenerOcclusionArray,
             };
             
             job.Schedule().Complete();
+
+            _listenerVolumesCount = realCountBuffer[0];
             
-            var result = job.result[0];
+            var result = _resultVolumeListenerOcclusionArray[0];
             if (result.weight <= 0f) return;
 
-            occlusionWeight = result.occlusionWeight;
+            occlusionWeight = result.value;
         }
 
         private void ProcessVolumesForSound(
@@ -595,52 +633,132 @@ namespace MisterGames.Common.Audio {
         {
             if (count == 0) return;
             
-            int realCount = 0;
-            int topPriority = int.MinValue;
+            int realCountPitch = 0;
+            int realCountOcclusion = 0;
+            int realCountLp = 0;
+            int realCountHp = 0;
+            
+            int topPriorityPitch = int.MinValue;
+            int topPriorityOcclusion = int.MinValue;
+            int topPriorityLp = int.MinValue;
+            int topPriorityHp = int.MinValue;
 
             foreach (var volume in _volumes) {
-                int priority = volume.Priority;
-                if (priority < topPriority || volume.GetWeight(position) is var weight && weight <= 0f) continue;
+                float weight = volume.GetWeight(position, out int cluster);
+                if (weight <= 0f) continue;
                 
-                topPriority = Mathf.Max(topPriority, priority);
+                int priority = volume.Priority;
+                float listenerPresence = volume.ListenerPresence;
                 
                 float pitchLocal = pitch;
                 float occlusionWeightLocal = occlusionWeight;
                 float lpCutoffBoundLocal = lpCutoffBound;
                 float hpCutoffBoundLocal = hpCutoffBound;
-                
-                volume.ModifyPitch(ref pitchLocal);
-                volume.ModifyOcclusionWeightForSound(ref occlusionWeightLocal);
-                volume.ModifyLowHighPassFilters(ref lpCutoffBoundLocal, ref hpCutoffBoundLocal);
-                
-                _volumeDataArray[realCount++] = new VolumeData {
-                    priority = priority,
-                    weight = weight,
-                    pitch = Mathf.Lerp(pitch, pitchLocal, weight),
-                    occlusionWeight = Mathf.Lerp(occlusionWeight, occlusionWeightLocal, weight),
-                    lpCutoffBound = Mathf.Lerp(lpCutoffBound, lpCutoffBoundLocal, weight),
-                    hpCutoffBound = Mathf.Lerp(hpCutoffBound, hpCutoffBoundLocal, weight),
-                };
+
+                if (volume.ModifyPitch(ref pitchLocal)) {
+                    topPriorityPitch = Mathf.Max(topPriorityPitch, priority);
+
+                    _volumePitchArray[realCountPitch++] = new VolumeValueData {
+                        priority = priority,
+                        cluster = cluster,
+                        weight = weight,
+                        listenerPresence = listenerPresence,
+                        value = Mathf.Lerp(pitch, pitchLocal, weight)
+                    };
+                }
+
+                if (volume.ModifyOcclusionWeightForSound(ref occlusionWeightLocal)) {
+                    topPriorityOcclusion = Mathf.Max(topPriorityOcclusion, priority);
+                    
+                    _volumeOcclusionArray[realCountOcclusion++] = new VolumeValueData {
+                        priority = priority,
+                        cluster = cluster,
+                        weight = weight,
+                        listenerPresence = listenerPresence,
+                        value = Mathf.Lerp(occlusionWeight, occlusionWeightLocal, weight)
+                    };
+                }
+
+                if (volume.ModifyLowPassFilter(ref lpCutoffBoundLocal)) {
+                    topPriorityLp = Mathf.Max(topPriorityLp, priority);
+                    
+                    _volumeLpArray[realCountLp++] = new VolumeValueData {
+                        priority = priority,
+                        cluster = cluster,
+                        weight = weight,
+                        listenerPresence = listenerPresence,
+                        value = Mathf.Lerp(lpCutoffBound, lpCutoffBoundLocal, weight)
+                    };
+                }
+
+                if (volume.ModifyHighPassFilter(ref hpCutoffBoundLocal)) {
+                    topPriorityHp = Mathf.Max(topPriorityHp, priority);
+                    
+                    _volumeHpArray[realCountHp++] = new VolumeValueData {
+                        priority = priority,
+                        cluster = cluster,
+                        weight = weight,
+                        listenerPresence = listenerPresence,
+                        value = Mathf.Lerp(hpCutoffBound, hpCutoffBoundLocal, weight)
+                    };
+                }
             }
 
-            _resultVolumeDataArray[0] = default;
+            _resultVolumePitchArray[0] = default;
+            _resultVolumeOcclusionArray[0] = default;
+            _resultVolumeLpArray[0] = default;
+            _resultVolumeHpArray[0] = default;
 
-            var job = new CalculateVolumeJob {
-                count = realCount,
-                topPriority = topPriority,
-                volumeDataArray = _volumeDataArray,
-                result = _resultVolumeDataArray,
+            var calculatePitchJob = new CalculateVolumeValueJob {
+                count = realCountPitch,
+                topPriority = topPriorityPitch,
+                volumeDataArray = _volumePitchArray,
+                volumeDataListenerArray = _volumeListenerOcclusionArray,
+                listenerVolumeCount = _listenerVolumesCount,
+                result = _resultVolumePitchArray,
             };
             
-            job.Schedule().Complete();
+            var calculateOcclusionWeightJob = new CalculateVolumeValueJob {
+                count = realCountOcclusion,
+                topPriority = topPriorityOcclusion,
+                volumeDataArray = _volumeOcclusionArray,
+                volumeDataListenerArray = _volumeListenerOcclusionArray,
+                listenerVolumeCount = _listenerVolumesCount,
+                result = _resultVolumeOcclusionArray,
+            };
             
-            var result = job.result[0];
-            if (result.weight <= 0f) return;
+            var calculateLpJob = new CalculateVolumeValueJob {
+                count = realCountLp,
+                topPriority = topPriorityLp,
+                volumeDataArray = _volumeLpArray,
+                volumeDataListenerArray = _volumeListenerOcclusionArray,
+                listenerVolumeCount = _listenerVolumesCount,
+                result = _resultVolumeLpArray,
+            };
             
-            pitch = result.pitch;
-            occlusionWeight = result.occlusionWeight;
-            lpCutoffBound = result.lpCutoffBound;
-            hpCutoffBound = result.hpCutoffBound;
+            var calculateHpJob = new CalculateVolumeValueJob {
+                count = realCountHp,
+                topPriority = topPriorityHp,
+                volumeDataArray = _volumeHpArray,
+                volumeDataListenerArray = _volumeListenerOcclusionArray,
+                listenerVolumeCount = _listenerVolumesCount,
+                result = _resultVolumeHpArray,
+            };
+            
+            calculatePitchJob.Schedule().Complete();
+            calculateOcclusionWeightJob.Schedule().Complete();
+            calculateLpJob.Schedule().Complete();
+            calculateHpJob.Schedule().Complete();
+            
+            var resultPitch = _resultVolumePitchArray[0];
+            var resultOcclusion = _resultVolumeOcclusionArray[0];
+            var resultLp = _resultVolumeLpArray[0];
+            var resultHp = _resultVolumeHpArray[0];
+            
+            pitch = resultPitch.weight > 0f ? resultPitch.value : pitch;
+            occlusionWeight = resultOcclusion.weight > 0f ? resultOcclusion.value : occlusionWeight;
+            lpCutoffBound = resultLp.weight > 0f ? resultLp.value : lpCutoffBound;
+            hpCutoffBound = resultHp.weight > 0f ? resultHp.value : hpCutoffBound;
         }
 
         private void PrepareOcclusionData(int count) {
@@ -900,49 +1018,70 @@ namespace MisterGames.Common.Audio {
             }
         }
 
-        private struct VolumeData {
+        private struct VolumeValueData {
             public int priority;
+            public int cluster;
             public float weight;
-            public float pitch;
-            public float occlusionWeight;
-            public float lpCutoffBound;
-            public float hpCutoffBound;
+            public float listenerPresence;
+            public float value;
         }
         
         [BurstCompile]
-        private struct CalculateVolumeJob : IJob {
+        private struct CalculateVolumeForListenerJob : IJob {
             
             [ReadOnly] public int count;
             [ReadOnly] public int topPriority;
-            [ReadOnly] public NativeArray<VolumeData> volumeDataArray;
             
-            public NativeArray<VolumeData> result;
+            public NativeArray<VolumeValueData> volumeDataArray;
+            public NativeArray<int> realCount;
+            public NativeArray<VolumeValueData> result;
             
             public void Execute() {
                 var resultData = result[0];
+                int validCount = 0;
 
-                resultData.pitch = 0f;
-                resultData.occlusionWeight = 0f;
-                resultData.lpCutoffBound = 0f;
-                resultData.hpCutoffBound = 0f;
-                
                 for (int i = 0; i < count; i++) {
                     var data = volumeDataArray[i];
                     if (data.priority < topPriority) continue;
                     
                     resultData.weight += data.weight;
-                    resultData.pitch += data.pitch * data.weight;
-                    resultData.occlusionWeight += data.occlusionWeight * data.weight;
-                    resultData.lpCutoffBound += data.lpCutoffBound * data.weight;
-                    resultData.hpCutoffBound += data.hpCutoffBound * data.weight;
+                    resultData.value += data.value * data.weight;
+                    
+                    volumeDataArray[validCount++] = data;
                 }
 
+                realCount[0] = validCount;
+                
                 if (resultData.weight <= 0f) return;
                 
-                resultData.pitch /= resultData.weight;
-                resultData.occlusionWeight /= resultData.weight;
-                resultData.lpCutoffBound /= resultData.weight;
-                resultData.hpCutoffBound /= resultData.weight;
+                resultData.value /= resultData.weight;
+                result[0] = resultData;
+            }
+        }
+        
+        [BurstCompile]
+        private struct CalculateVolumeValueJob : IJob {
+            
+            [ReadOnly] public int count;
+            [ReadOnly] public int topPriority;
+            [ReadOnly] public NativeArray<VolumeValueData> volumeDataArray;
+            [ReadOnly] public NativeArray<VolumeValueData> volumeDataListenerArray;
+            [ReadOnly] public int listenerVolumeCount;
+            
+            public NativeArray<VolumeValueData> result;
+            
+            public void Execute() {
+                var resultData = result[0];
+                
+                for (int i = 0; i < count; i++) {
+                    var data = volumeDataArray[i];
+                    if (data.priority < topPriority) continue;
+
+                    resultData.weight += data.weight;
+                    resultData.value += data.value * data.weight;
+                }
+
+                if (resultData.weight > 0f) resultData.value /= resultData.weight;
 
                 result[0] = resultData;
             }

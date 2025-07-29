@@ -4,6 +4,7 @@ namespace MisterGames.Logic.Water {
     
     public interface IWaterZoneProxy {
 
+        int ProxyId { get; }
         float SurfaceOffset { get; }
         
         void BindZone(IWaterZone waterZone);

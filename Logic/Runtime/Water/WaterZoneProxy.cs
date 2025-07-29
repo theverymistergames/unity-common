@@ -12,6 +12,7 @@ namespace MisterGames.Logic.Water {
         [SerializeField] private BoxCollider _waterBox;
         [SerializeField] private float _surfaceOffset;
 
+        public int ProxyId => GetInstanceID();
         public float SurfaceOffset => _surfaceOffset;
 
         private Transform _waterBoxTransform;
