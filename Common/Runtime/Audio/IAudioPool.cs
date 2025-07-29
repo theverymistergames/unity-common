@@ -49,7 +49,6 @@ namespace MisterGames.Common.Audio {
         void SetGlobalOcclusionWeightNextFrame(float weight);
         
         internal void ReleaseAudioHandle(int handleId);
-        internal void SetAudioHandlePitch(int handleId, float pitch);
         internal bool TryGetAudioElement(int handleId, out IAudioElement audioElement);
     }
     

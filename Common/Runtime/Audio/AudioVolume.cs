@@ -22,6 +22,7 @@ namespace MisterGames.Common.Audio {
         [Header("Sound")]
         [SerializeField] [Range(0f, 1f)] private float _listenerPresence;
         [SerializeField] private Optional<ValueModifier> _pitch = Optional<ValueModifier>.WithDisabled(ValueModifier.Empty);
+        [SerializeField] private Optional<ValueModifier> _attenuationDistance = Optional<ValueModifier>.WithDisabled(ValueModifier.Empty);
         [SerializeField] private Optional<ValueModifier> _occlusionWeightSound = Optional<ValueModifier>.WithDisabled(ValueModifier.Empty);
         [SerializeField] private Optional<ValueModifier> _lowPassCutoffFrequency = Optional<ValueModifier>.WithDisabled(ValueModifier.Empty);
         [SerializeField] private Optional<ValueModifier> _highPassCutoffFrequency = Optional<ValueModifier>.WithDisabled(ValueModifier.Empty);
@@ -60,6 +61,11 @@ namespace MisterGames.Common.Audio {
         public bool ModifyPitch(ref float pitch) {
             pitch = _pitch.Value.Modify(pitch);
             return _pitch.HasValue;
+        }
+
+        public bool ModifyAttenuationDistance(ref float attenuationDistance) {
+            attenuationDistance = _attenuationDistance.Value.Modify(attenuationDistance);
+            return _attenuationDistance.HasValue;
         }
 
         public bool ModifyOcclusionWeightForSound(ref float occlusionWeight) {

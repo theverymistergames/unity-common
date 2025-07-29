@@ -19,6 +19,7 @@ namespace MisterGames.Common.Audio {
 
         public int Id { get; set; }
         public float Pitch { get; set; }
+        public float AttenuationDistance { get; set; }
         public AudioOptions AudioOptions { get; set; }
         public int OcclusionFlag { get; set; }
 

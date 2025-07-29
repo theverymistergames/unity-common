@@ -24,6 +24,7 @@ namespace MisterGames.Common.Audio {
         [SerializeField] private AudioElement _prefab;
         [SerializeField] private AudioMixerGroup _defaultMixerGroup;
         [SerializeField] [Min(0f)] private float _fadeOut = 0.25f;
+        [SerializeField] [Min(0f)] private float _attenuationDistance = 50f;
         
         [Header("Shuffle")]
         [SerializeField] [Min(0f)] private float _lastIndexStoreLifetime = 60f;
@@ -82,10 +83,12 @@ namespace MisterGames.Common.Audio {
         
         private NativeHashMap<int, float> _listenerClusterToWeightMap;
         private NativeArray<VolumeValueData> _volumePitchArray;
+        private NativeArray<VolumeValueData> _volumeAttenuationArray;
         private NativeArray<VolumeValueData> _volumeOcclusionArray;
         private NativeArray<VolumeValueData> _volumeLpArray;
         private NativeArray<VolumeValueData> _volumeHpArray;
         private NativeArray<VolumeValueData> _resultVolumePitchArray;
+        private NativeArray<VolumeValueData> _resultVolumeAttenuationArray;
         private NativeArray<VolumeValueData> _resultVolumeOcclusionArray;
         private NativeArray<VolumeValueData> _resultVolumeLpArray;
         private NativeArray<VolumeValueData> _resultVolumeHpArray;
@@ -368,15 +371,6 @@ namespace MisterGames.Common.Audio {
             _handleIdToAudioElementMap.Remove(handleId);
         }
 
-        void IAudioPool.SetAudioHandlePitch(int handleId, float pitch) {
-            if (!_handleIdToAudioElementMap.TryGetValue(handleId, out var audioElement)) return;
-            
-            bool applyTimescale = (audioElement.AudioOptions & AudioOptions.AffectedByTimeScale) == AudioOptions.AffectedByTimeScale;
-            
-            audioElement.Pitch = pitch;
-            audioElement.Source.pitch = pitch * (applyTimescale ? Time.timeScale : 1f);
-        }
-
         bool IAudioPool.TryGetAudioElement(int handleId, out IAudioElement audioElement) {
             return _handleIdToAudioElementMap.TryGetValue(handleId, out audioElement);
         }
@@ -390,6 +384,7 @@ namespace MisterGames.Common.Audio {
             audioElement.Id = id;
             audioElement.AudioOptions = options;
             audioElement.Pitch = pitch;
+            audioElement.AttenuationDistance = _attenuationDistance;
             audioElement.OcclusionFlag = 0;
             
             audioElement.LowPass.lowpassResonanceQ = _qLow;
@@ -482,12 +477,13 @@ namespace MisterGames.Common.Audio {
                 var options = audioElement.AudioOptions;
 
                 float pitch = audioElement.Pitch;
+                float attenuationDistance = audioElement.AttenuationDistance;
                 float occlusionWeight = 1f;
                 float lpCutoffBound = LpCutoffUpperBound;
                 float hpCutoffBound = HpCutoffLowerBound;
                 
                 if (hasListener && (options & AudioOptions.AffectedByVolumes) == AudioOptions.AffectedByVolumes) {
-                    ProcessVolumesForSound(volumeCount, position, ref pitch, ref occlusionWeight, ref lpCutoffBound, ref hpCutoffBound);
+                    ProcessVolumesForSound(volumeCount, position, ref pitch, ref attenuationDistance, ref occlusionWeight, ref lpCutoffBound, ref hpCutoffBound);
                 }
                 
                 if ((options & AudioOptions.AffectedByTimeScale) == AudioOptions.AffectedByTimeScale) {
@@ -495,7 +491,9 @@ namespace MisterGames.Common.Audio {
                 }
 
                 occlusionWeight *= listenerOcclusionWeight;
+                
                 audioElement.Source.pitch = pitch;
+                audioElement.Source.maxDistance = attenuationDistance;
 
                 if (!hasListener || !_applyOcclusion || 
                     (options & AudioOptions.ApplyOcclusion) != AudioOptions.ApplyOcclusion) 
@@ -549,11 +547,13 @@ namespace MisterGames.Common.Audio {
             _listenerClusterToWeightMap = new NativeHashMap<int, float>(count, Allocator.TempJob);
             
             _volumePitchArray = new NativeArray<VolumeValueData>(count, Allocator.TempJob);
+            _volumeAttenuationArray = new NativeArray<VolumeValueData>(count, Allocator.TempJob);
             _volumeOcclusionArray = new NativeArray<VolumeValueData>(count, Allocator.TempJob);
             _volumeLpArray = new NativeArray<VolumeValueData>(count, Allocator.TempJob);
             _volumeHpArray = new NativeArray<VolumeValueData>(count, Allocator.TempJob);
             
             _resultVolumePitchArray = new NativeArray<VolumeValueData>(2, Allocator.TempJob);
+            _resultVolumeAttenuationArray = new NativeArray<VolumeValueData>(2, Allocator.TempJob);
             _resultVolumeOcclusionArray = new NativeArray<VolumeValueData>(2, Allocator.TempJob);
             _resultVolumeLpArray = new NativeArray<VolumeValueData>(2, Allocator.TempJob);
             _resultVolumeHpArray = new NativeArray<VolumeValueData>(2, Allocator.TempJob);
@@ -563,11 +563,13 @@ namespace MisterGames.Common.Audio {
             if (_listenerClusterToWeightMap.IsCreated) _listenerClusterToWeightMap.Dispose();
             
             if (_volumePitchArray.IsCreated) _volumePitchArray.Dispose();
+            if (_volumeAttenuationArray.IsCreated) _volumeAttenuationArray.Dispose();
             if (_volumeOcclusionArray.IsCreated) _volumeOcclusionArray.Dispose();
             if (_volumeLpArray.IsCreated) _volumeLpArray.Dispose();
             if (_volumeHpArray.IsCreated) _volumeHpArray.Dispose();
             
             if (_resultVolumePitchArray.IsCreated) _resultVolumePitchArray.Dispose();
+            if (_resultVolumeAttenuationArray.IsCreated) _resultVolumeAttenuationArray.Dispose();
             if (_resultVolumeOcclusionArray.IsCreated) _resultVolumeOcclusionArray.Dispose();
             if (_resultVolumeLpArray.IsCreated) _resultVolumeLpArray.Dispose();
             if (_resultVolumeHpArray.IsCreated) _resultVolumeHpArray.Dispose();
@@ -623,6 +625,7 @@ namespace MisterGames.Common.Audio {
             int count,
             Vector3 position,
             ref float pitch,
+            ref float attenuationDistance,
             ref float occlusionWeight,
             ref float lpCutoffBound,
             ref float hpCutoffBound) 
@@ -630,11 +633,13 @@ namespace MisterGames.Common.Audio {
             if (count == 0) return;
             
             int realCountPitch = 0;
+            int realCountAttenuation = 0;
             int realCountOcclusion = 0;
             int realCountLp = 0;
             int realCountHp = 0;
             
             int topPriorityPitch = int.MinValue;
+            int topPriorityAttenuation = int.MinValue;
             int topPriorityOcclusion = int.MinValue;
             int topPriorityLp = int.MinValue;
             int topPriorityHp = int.MinValue;
@@ -647,6 +652,7 @@ namespace MisterGames.Common.Audio {
                 float listenerPresence = volume.ListenerPresence;
                 
                 float pitchLocal = pitch;
+                float attenuationLocal = attenuationDistance;
                 float occlusionWeightLocal = occlusionWeight;
                 float lpCutoffBoundLocal = lpCutoffBound;
                 float hpCutoffBoundLocal = hpCutoffBound;
@@ -660,6 +666,18 @@ namespace MisterGames.Common.Audio {
                         weight = weight,
                         listenerPresence = listenerPresence,
                         value = Mathf.Lerp(pitch, pitchLocal, weight)
+                    };
+                }
+                
+                if (volume.ModifyAttenuationDistance(ref attenuationLocal)) {
+                    topPriorityAttenuation = Mathf.Max(topPriorityAttenuation, priority);
+
+                    _volumeAttenuationArray[realCountAttenuation++] = new VolumeValueData {
+                        priority = priority,
+                        cluster = cluster,
+                        weight = weight,
+                        listenerPresence = listenerPresence,
+                        value = Mathf.Lerp(attenuationDistance, attenuationLocal, weight)
                     };
                 }
 
@@ -701,6 +719,7 @@ namespace MisterGames.Common.Audio {
             }
 
             _resultVolumePitchArray[0] = default;
+            _resultVolumeAttenuationArray[0] = default;
             _resultVolumeOcclusionArray[0] = default;
             _resultVolumeLpArray[0] = default;
             _resultVolumeHpArray[0] = default;
@@ -711,6 +730,14 @@ namespace MisterGames.Common.Audio {
                 volumeDataArray = _volumePitchArray,
                 listenerClusterToWeightMap = _listenerClusterToWeightMap,
                 result = _resultVolumePitchArray,
+            };
+            
+            var calculateAttenuationJob = new CalculateVolumeValueJob {
+                count = realCountAttenuation,
+                topPriority = topPriorityAttenuation,
+                volumeDataArray = _volumeAttenuationArray,
+                listenerClusterToWeightMap = _listenerClusterToWeightMap,
+                result = _resultVolumeAttenuationArray,
             };
             
             var calculateOcclusionWeightJob = new CalculateVolumeValueJob {
@@ -738,16 +765,19 @@ namespace MisterGames.Common.Audio {
             };
             
             calculatePitchJob.Schedule().Complete();
+            calculateAttenuationJob.Schedule().Complete();
             calculateOcclusionWeightJob.Schedule().Complete();
             calculateLpJob.Schedule().Complete();
             calculateHpJob.Schedule().Complete();
             
             var resultPitch = _resultVolumePitchArray[0];
+            var resultAttenuation = _resultVolumeAttenuationArray[0];
             var resultOcclusion = _resultVolumeOcclusionArray[0];
             var resultLp = _resultVolumeLpArray[0];
             var resultHp = _resultVolumeHpArray[0];
             
             pitch = resultPitch.weight > 0f ? resultPitch.value : pitch;
+            attenuationDistance = resultAttenuation.weight > 0f ? resultAttenuation.value : attenuationDistance;
             occlusionWeight = resultOcclusion.weight > 0f ? resultOcclusion.value : occlusionWeight;
             lpCutoffBound = resultLp.weight > 0f ? resultLp.value : lpCutoffBound;
             hpCutoffBound = resultHp.weight > 0f ? resultHp.value : hpCutoffBound;
