@@ -43,12 +43,12 @@ namespace MisterGames.Common.Audio {
             AudioPool.Main?.UnregisterVolume(this);
         }
 
-        public float GetWeight(Vector3 position, out int cluster) {
-            cluster = 0;
+        public float GetWeight(Vector3 position, out int volumeId) {
+            volumeId = 0;
             
             return _mode switch {
                 Mode.Global => _weight,
-                Mode.Local => _weight * _positionWeightProvider.GetWeight(position, out cluster),
+                Mode.Local => _weight * _positionWeightProvider.GetWeight(position, out volumeId),
                 _ => throw new ArgumentOutOfRangeException()
             };
         }

@@ -121,7 +121,7 @@ namespace MisterGames.Logic.Water {
         public event TriggerAction OnColliderExit = delegate { };
 
         public HashSet<IWaterZoneProxy> WaterProxySet { get; } = new();
-        private readonly Dictionary<int, int> _proxyIdToClusterIdMap = new();
+        private readonly Dictionary<int, int> _proxyVolumeIdToClusterVolumeIdMap = new();
         
         private const float NoiseOffset = 100f;
 
@@ -158,15 +158,15 @@ namespace MisterGames.Logic.Water {
             _rbList.Clear();
             
             WaterProxySet.Clear();
-            _proxyIdToClusterIdMap.Clear();
+            _proxyVolumeIdToClusterVolumeIdMap.Clear();
         }
 
         public void AddProxyCluster(IWaterZoneProxyCluster cluster) {
             int count = cluster.ProxyCount;
-            int id = cluster.ClusterId;
+            int id = cluster.VolumeId;
             
             for (int i = 0; i < count; i++) {
-                _proxyIdToClusterIdMap[cluster.GetProxyId(i)] = id;
+                _proxyVolumeIdToClusterVolumeIdMap[cluster.GetVolumeId(i)] = id;
             }
         }
 
@@ -174,7 +174,7 @@ namespace MisterGames.Logic.Water {
             int count = cluster.ProxyCount;
             
             for (int i = 0; i < count; i++) {
-                _proxyIdToClusterIdMap.Remove(cluster.GetProxyId(i));
+                _proxyVolumeIdToClusterVolumeIdMap.Remove(cluster.GetVolumeId(i));
             }
         }
 
@@ -188,8 +188,8 @@ namespace MisterGames.Logic.Water {
             proxy.UnbindZone(this);
         }
 
-        public int GetProxyClusterId(IWaterZoneProxy proxy) {
-            return _proxyIdToClusterIdMap.TryGetValue(proxy.ProxyId, out int clusterId) ? clusterId : proxy.ProxyId;
+        public int GetProxyVolumeId(IWaterZoneProxy proxy) {
+            return _proxyVolumeIdToClusterVolumeIdMap.TryGetValue(proxy.VolumeId, out int clusterVolumeId) ? clusterVolumeId : proxy.VolumeId;
         }
 
         public void TriggerEnter(Collider collider, IWaterZoneProxy proxy) {

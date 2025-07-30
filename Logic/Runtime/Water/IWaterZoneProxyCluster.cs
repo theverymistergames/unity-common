@@ -2,10 +2,10 @@
     
     public interface IWaterZoneProxyCluster {
         
-        int ClusterId { get; }
+        int VolumeId { get; }
         int ProxyCount { get; }
         
-        int GetProxyId(int index);
+        int GetVolumeId(int index);
     }
     
 }

@@ -13,8 +13,8 @@ namespace MisterGames.Common.Volumes {
         [SerializeField] [Min(0f)] private float _innerRadius = 1f;
         [SerializeField] [Min(0f)] private float _outerRadius = 2f;
 
-        public override float GetWeight(Vector3 position, out int cluster) {
-            cluster = 0;
+        public override float GetWeight(Vector3 position, out int volumeId) {
+            volumeId = GetInstanceID();
             return ConvertLinearWeight(GetLinearWeight(position));
         }
 

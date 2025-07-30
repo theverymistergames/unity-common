@@ -6,11 +6,11 @@ namespace MisterGames.Logic.Water {
         
         [SerializeField] private WaterZoneProxy[] _proxies;
 
-        public int ClusterId => GetInstanceID();
+        public int VolumeId => GetInstanceID();
         public int ProxyCount => _proxies.Length;
         
-        public int GetProxyId(int index) {
-            return _proxies[index].ProxyId;
+        public int GetVolumeId(int index) {
+            return _proxies[index].VolumeId;
         }
     }
     

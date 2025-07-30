@@ -11,8 +11,8 @@ namespace MisterGames.Common.Volumes {
         [SerializeField] private float _weightMul = 1f;
         [SerializeField] private AnimationCurve _weightCurve = EasingType.Linear.ToAnimationCurve();
         
-        public override float GetWeight(Vector3 position, out int cluster) {
-            cluster = 0;
+        public override float GetWeight(Vector3 position, out int volumeId) {
+            volumeId = GetInstanceID();
             return _weightMul * _weightCurve.Evaluate(GetLinearWeight(position));
         }
 

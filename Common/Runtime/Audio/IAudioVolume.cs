@@ -7,7 +7,7 @@ namespace MisterGames.Common.Audio {
         int Priority { get; }
         float ListenerPresence { get; }
         
-        float GetWeight(Vector3 position, out int cluster);
+        float GetWeight(Vector3 position, out int volumeId);
 
         bool ModifyOcclusionWeightForListener(ref float occlusionWeight);
         

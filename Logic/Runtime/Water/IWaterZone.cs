@@ -10,7 +10,7 @@ namespace MisterGames.Logic.Water {
         void AddProxy(IWaterZoneProxy proxy);
         void RemoveProxy(IWaterZoneProxy proxy);
         
-        int GetProxyClusterId(IWaterZoneProxy proxy);
+        int GetProxyVolumeId(IWaterZoneProxy proxy);
         
         void TriggerEnter(Collider collider, IWaterZoneProxy proxy);
         void TriggerExit(Collider collider, IWaterZoneProxy proxy);

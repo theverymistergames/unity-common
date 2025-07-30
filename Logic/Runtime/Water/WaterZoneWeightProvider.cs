@@ -17,24 +17,24 @@ namespace MisterGames.Logic.Water {
             public readonly float3 position;
             public readonly quaternion rotation;
             public readonly float3 size;
-            public readonly int cluster;
+            public readonly int volumeId;
             
-            public ProxyData(float3 position, quaternion rotation, float3 size, int cluster) {
+            public ProxyData(float3 position, quaternion rotation, float3 size, int volumeId) {
                 this.position = position;
                 this.rotation = rotation;
                 this.size = size;
-                this.cluster = cluster;
+                this.volumeId = volumeId;
             }
         }
         
         private readonly struct WeightData {
             
-            public readonly int cluster;
+            public readonly int volumeId;
             public readonly float weight;
             
-            public WeightData(int cluster, float weight) {
+            public WeightData(int volumeId, float weight) {
+                this.volumeId = volumeId;
                 this.weight = weight;
-                this.cluster = cluster;
             }
         }
 
@@ -46,8 +46,8 @@ namespace MisterGames.Logic.Water {
             _proxyDataArray.Dispose();
         }
 
-        public override float GetWeight(Vector3 position, out int cluster) {
-            cluster = 0;
+        public override float GetWeight(Vector3 position, out int volumeId) {
+            volumeId = GetInstanceID();
             if (!enabled) return 0f;
             
             UpdateProxyDataArray();
@@ -74,7 +74,7 @@ namespace MisterGames.Logic.Water {
             weightArray.Dispose();
             resultArray.Dispose();
             
-            cluster = result.cluster;
+            volumeId = result.volumeId;
             return result.weight;
         }
 
@@ -95,7 +95,7 @@ namespace MisterGames.Logic.Water {
             
             foreach (var proxy in proxySet) {
                 proxy.GetBox(out var position, out var rotation, out var size);
-                _proxyDataArray[index++] = new ProxyData(position, rotation, size, _waterZone.GetProxyClusterId(proxy));
+                _proxyDataArray[index++] = new ProxyData(position, rotation, size, _waterZone.GetProxyVolumeId(proxy));
             }
         }
         
@@ -117,11 +117,11 @@ namespace MisterGames.Logic.Water {
                     localPoint.y < -halfSize.y || localPoint.y > halfSize.y ||
                     localPoint.z < -halfSize.z || localPoint.z > halfSize.z) 
                 {
-                    weightArray[index] = new WeightData(proxyData.cluster, 0f);
+                    weightArray[index] = new WeightData(proxyData.volumeId, 0f);
                     return;
                 }
                 
-                weightArray[index] = new WeightData(proxyData.cluster, 1f);
+                weightArray[index] = new WeightData(proxyData.volumeId, 1f);
             }
         }
         
@@ -134,16 +134,16 @@ namespace MisterGames.Logic.Water {
             
             public void Execute() {
                 float max = float.MinValue;
-                int cluster = 0;
+                int volumeId = 0;
                 
                 for (int i = 0; i < weightArray.Length; i++) {
                     max = Mathf.Max(max, weightArray[i].weight);
-                    cluster = weightArray[i].cluster;
+                    volumeId = weightArray[i].volumeId;
                     
                     if (max >= 1f) break;
                 }
 
-                result[0] = new WeightData(cluster, max);
+                result[0] = new WeightData(volumeId, max);
             }
         }
         
