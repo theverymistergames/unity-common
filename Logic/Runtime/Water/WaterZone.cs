@@ -449,9 +449,9 @@ namespace MisterGames.Logic.Water {
 
         private static float3 GetNoiseVector(float t, float offset) {
             return new float3(
-                noise.cnoise((float2) t + offset) - 0.5f,
-                noise.cnoise((float2) t + 7f * offset) - 0.5f,
-                noise.cnoise((float2) t + 11f * offset) - 0.5f
+                noise.cnoise((float2) t + offset),
+                noise.cnoise((float2) t + 7f * offset),
+                noise.cnoise((float2) t + 11f * offset)
             );
         }
         

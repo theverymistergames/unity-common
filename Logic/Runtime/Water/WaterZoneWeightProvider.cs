@@ -86,8 +86,8 @@ namespace MisterGames.Logic.Water {
             _proxyCount = proxySet.Count;
             _proxyDataArrayCreationFrame = frame;
             
-            if (_proxyDataArray.Length < _proxyCount) {
-                _proxyDataArray.Dispose();
+            if (!_proxyDataArray.IsCreated || _proxyDataArray.Length < _proxyCount) {
+                if (_proxyDataArray.IsCreated) _proxyDataArray.Dispose();
                 _proxyDataArray = new NativeArray<ProxyData>(_proxyCount, Allocator.Persistent);
             }
             

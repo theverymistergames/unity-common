@@ -1,6 +1,9 @@
 ﻿using System.Collections.Generic;
 using MisterGames.Common.Layers;
 using MisterGames.Common.Tick;
+using Unity.Burst;
+using Unity.Collections;
+using Unity.Jobs;
 using UnityEngine;
 
 namespace MisterGames.Collisions.Rigidbodies {
@@ -9,31 +12,28 @@ namespace MisterGames.Collisions.Rigidbodies {
         
         [SerializeField] private LayerMask _layerMask;
         [SerializeField] private bool _clearCollidersOnDisable = true;
-
-        private readonly struct ColliderData {
-            public readonly Collider collider;
-            public readonly int frame;
-            
-            public ColliderData(Collider collider, int frame) {
-                this.collider = collider;
-                this.frame = frame;
-            }
-            
-            public ColliderData WithFrame(int frame) => new(collider, frame);
-        }
         
         public override event TriggerCallback TriggerEnter = delegate { };
         public override event TriggerCallback TriggerExit = delegate { };
         public override event TriggerCallback TriggerStay = delegate { };
 
-        public override IReadOnlyCollection<Collider> EnteredColliders => _indexMap.Keys;
+        public override IReadOnlyCollection<Collider> EnteredColliders => _colliderSet;
         
-        private readonly List<ColliderData> _colliderDataList = new();
-        private readonly Dictionary<Collider, int> _indexMap = new();
+        private readonly HashSet<Collider> _colliderSet = new();
+        private readonly Dictionary<int, Collider> _hashToColliderMap = new();
+        private NativeHashMap<int, int> _colliderHashToStayFrameMap;
         private int _frameCount;
 
+        private void Awake() {
+            _colliderHashToStayFrameMap = new NativeHashMap<int, int>(2, Allocator.Persistent);
+        }
+
+        private void OnDestroy() {
+            _colliderHashToStayFrameMap.Dispose();
+        }
+
         private void OnEnable() {
-            if (_colliderDataList.Count > 0) PlayerLoopStage.FixedUpdate.Subscribe(this);
+            if (_colliderSet.Count > 0) PlayerLoopStage.FixedUpdate.Subscribe(this);
         }
 
         private void OnDisable() {
@@ -41,74 +41,101 @@ namespace MisterGames.Collisions.Rigidbodies {
             
             if (!_clearCollidersOnDisable) return;
             
-            for (int i = 0; i < _colliderDataList.Count; i++) {
-                TriggerExit.Invoke(_colliderDataList[i].collider);
+            foreach (var c in _colliderSet) {
+                TriggerExit.Invoke(c);
             }
 
-            _colliderDataList.Clear();
-            _indexMap.Clear();
+            _colliderSet.Clear();
+            _hashToColliderMap.Clear();
+            _colliderHashToStayFrameMap.Clear();
         }
-
+        
         void IUpdate.OnUpdate(float dt) {
-            int count = _colliderDataList.Count;
-            int validCount = count;
+            int count = _colliderSet.Count;
+            
+            var job = new CheckExitedCollidersJob {
+                frameCount = _frameCount++,
+                colliderHashToStayFrameMap = _colliderHashToStayFrameMap,
+                exitArray = new NativeArray<int>(count, Allocator.TempJob),
+                exitArrayCount = new NativeArray<int>(2, Allocator.TempJob),
+            };
+            
+            job.Schedule().Complete();
 
-            for (int i = count - 1; i >= 0; i--) {
-                var data = _colliderDataList[i];
-                if (data.frame >= _frameCount) continue;
+            int exitCount = job.exitArrayCount[0];
+            
+            for (int i = 0; i < exitCount; i++) {
+                if (!_hashToColliderMap.Remove(job.exitArray[i], out var collider)) continue;
                 
-                if (data.frame >= 0) TriggerExit.Invoke(data.collider);
-
-                _indexMap.Remove(data.collider);
-                
-                if (_colliderDataList[--validCount] is var swap && swap.frame >= _frameCount &&
-                    swap.collider != null) 
-                {
-                    _colliderDataList[i] = swap;
-                    _indexMap[swap.collider] = i;
-                }
+                _colliderSet.Remove(collider);
+                TriggerExit.Invoke(collider);
             }
             
-            _colliderDataList.RemoveRange(validCount, count - validCount);
-            _frameCount++;
-            
-            if (validCount <= 0) PlayerLoopStage.FixedUpdate.Unsubscribe(this);
+            job.exitArray.Dispose();
+            job.exitArrayCount.Dispose();
+
+            if (_colliderSet.Count <= 0) PlayerLoopStage.FixedUpdate.Unsubscribe(this);
         }
         
         private void OnTriggerEnter(Collider collider) {
             if (!CanCollide(collider)) return;
 
-            if (_indexMap.TryAdd(collider, _colliderDataList.Count)) {
-                _colliderDataList.Add(new ColliderData(collider, _frameCount));
-            }
+            int hash = collider.GetHashCode();
+            int count = _colliderHashToStayFrameMap.Count;
             
+            _colliderHashToStayFrameMap[hash] = _frameCount;
+            _hashToColliderMap[hash] = collider;
+            _colliderSet.Add(collider);
+
             TriggerEnter.Invoke(collider);
             
-            PlayerLoopStage.FixedUpdate.Subscribe(this);
+            if (count <= 0) PlayerLoopStage.FixedUpdate.Subscribe(this);
         }
 
         private void OnTriggerStay(Collider collider) {
-            if (!CanCollide(collider)) return;
+            int hash = collider.GetHashCode();
+            if (!_colliderHashToStayFrameMap.ContainsKey(hash)) return;
             
-            if (_indexMap.TryGetValue(collider, out int index)) {
-                _colliderDataList[index] = _colliderDataList[index].WithFrame(_frameCount);
-            }
+            _colliderHashToStayFrameMap[hash] = _frameCount;
             
             TriggerStay.Invoke(collider);
         }
 
         private void OnTriggerExit(Collider collider) {
-            if (!CanCollide(collider)) return;
+            int hash = collider.GetHashCode();
+            if (!_colliderHashToStayFrameMap.Remove(hash)) return;
 
-            if (_indexMap.Remove(collider, out int index)) {
-                _colliderDataList[index] = _colliderDataList[index].WithFrame(-1);
-            }
+            _hashToColliderMap.Remove(hash);
+            _colliderSet.Remove(collider);
             
             TriggerExit.Invoke(collider);
         }
 
         private bool CanCollide(Collider collider) {
             return enabled && _layerMask.Contains(collider.gameObject.layer);
+        }
+        
+        [BurstCompile]
+        private struct CheckExitedCollidersJob : IJob {
+            
+            [ReadOnly] public int frameCount;
+            public NativeHashMap<int, int> colliderHashToStayFrameMap;
+            public NativeArray<int> exitArray;
+            public NativeArray<int> exitArrayCount;
+            
+            public void Execute() {
+                int exitCount = 0;
+                
+                foreach (var kvp in colliderHashToStayFrameMap) {
+                    if (kvp.Value < frameCount) exitArray[exitCount++] = kvp.Key;
+                }
+
+                for (int i = 0; i < exitCount; i++) {
+                    colliderHashToStayFrameMap.Remove(exitArray[i]);
+                }
+
+                exitArrayCount[0] = exitCount;
+            }
         }
     }
     
