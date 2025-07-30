@@ -41,6 +41,8 @@ namespace MisterGames.Logic.Water {
         }
 
 #if UNITY_EDITOR
+        public bool DrawGizmos => _showDebugInfo;
+
         [Header("Debug")]
         [SerializeField] private bool _showDebugInfo;
         

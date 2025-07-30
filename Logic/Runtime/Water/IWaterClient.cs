@@ -14,6 +14,10 @@ namespace MisterGames.Logic.Water {
         float Buoyancy { get; set; }
         float MaxSpeed { get; set; }
         float DecelerationMul { get; set; }
+
+#if UNITY_EDITOR
+        bool DrawGizmos { get; }
+#endif
     }
     
 }

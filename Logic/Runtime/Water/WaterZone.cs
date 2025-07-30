@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using MisterGames.Actors;
 using MisterGames.Common;
-using MisterGames.Common.Maths;
 using MisterGames.Common.Tick;
 using MisterGames.Logic.Phys;
 using Unity.Burst;
@@ -23,7 +22,6 @@ namespace MisterGames.Logic.Water {
         [SerializeField] [Min(0f)] private float _forceLevelDecrease = 0f;
         
         [Header("Motion")]
-        [SerializeField] [Min(-1f)] private float _maxSpeed = -1f;
         [SerializeField] private float _buoyancyDefault = 0f;
         [SerializeField] private float _deceleration = 0f;
         [SerializeField] private float _torqueDeceleration = 0f;
@@ -75,16 +73,28 @@ namespace MisterGames.Logic.Water {
             
             public readonly int rbId;
             public readonly float3 point;
+            public readonly float3 velocity;
+            public readonly float3 angularVelocity;
             public readonly float buoyancy;
-            public readonly float maxSpeed;
-            public readonly float decelerationMul;
+            public readonly float deceleration;
+#if UNITY_EDITOR
+            public readonly bool drawGizmos;
+#endif
             
-            public FloatingData(int rbId, float3 point, float buoyancy, float maxSpeed, float decelerationMul) {
+            public FloatingData(int rbId, float3 point, float3 velocity, float3 angularVelocity, float buoyancy, float deceleration
+#if UNITY_EDITOR
+                , bool drawGizmos
+#endif            
+            ) {
                 this.rbId = rbId;
                 this.point = point;
+                this.velocity = velocity;
+                this.angularVelocity = angularVelocity;
                 this.buoyancy = buoyancy;
-                this.maxSpeed = maxSpeed;
-                this.decelerationMul = decelerationMul;
+                this.deceleration = deceleration;
+#if UNITY_EDITOR
+                this.drawGizmos = drawGizmos;          
+#endif
             }
         }
         
@@ -93,24 +103,25 @@ namespace MisterGames.Logic.Water {
             public readonly int rbId;
             public readonly float3 point;
             public readonly float3 force;
-            public readonly float maxSpeed;
-            public readonly float decelerationMul;
+            public readonly float3 torque;
 #if UNITY_EDITOR
             public readonly float3 surfacePoint;
+            public readonly bool drawGizmos;
 #endif
             
-            public ForceData(int rbId, float3 point, float3 force, float maxSpeed, float decelerationMul
+            public ForceData(int rbId, float3 point, float3 force, float3 torque
 #if UNITY_EDITOR
                 , float3 surfacePoint
+                , bool drawGizmos
 #endif
             ) {
                 this.rbId = rbId;
                 this.point = point;
                 this.force = force;
-                this.maxSpeed = maxSpeed;
-                this.decelerationMul = decelerationMul;
+                this.torque = torque;
 #if UNITY_EDITOR
                 this.surfacePoint = surfacePoint;
+                this.drawGizmos = drawGizmos;
 #endif
             }
         }
@@ -276,6 +287,8 @@ namespace MisterGames.Logic.Water {
             var floatingDataArray = CreateFloatingDataArray(out int floatingPointsCount);
             var forceDataArray = new NativeArray<ForceData>(floatingPointsCount, Allocator.TempJob);
             var rbIdToFloatingPointsCountMap = new NativeHashMap<int, int>(_rbList.Count, Allocator.TempJob);
+
+            float time = Time.time;
             
             var calculateForceJob = new CalculateForceJob {
                 floatingDataArray = floatingDataArray,
@@ -283,6 +296,11 @@ namespace MisterGames.Logic.Water {
                 proxyCount = proxyCount,
                 forceLevel = _forceLevelDecrease,
                 forceDataArray = forceDataArray,
+                torqueDeceleration = _torqueDeceleration,
+                randomForce = _randomForce,
+                randomForceT = time * _randomForceSpeed,
+                randomTorque = _randomTorque,
+                randomTorqueT = time * _randomTorqueSpeed,
             };
 
             var calculateValidFloatingPointsCountJob = new CalculateValidFloatingPointsPerRbJob {
@@ -305,10 +323,17 @@ namespace MisterGames.Logic.Water {
                 var rb = _rbList[_rbIdToIndexMap[forceData.rbId]].rb;
 
 #if UNITY_EDITOR
-                if (_showDebugInfo) DrawFloatingPoint(forceData.point, forceData.surfacePoint);
+                if (forceData.drawGizmos) DebugExt.DrawLine(forceData.point, forceData.surfacePoint, Color.white);
 #endif
                 
-                ProcessRigidbody(rb, forceData.point, forceData.force, forceData.maxSpeed, forceData.decelerationMul, mul: 1f / fpCount, i);
+                float mul = 1f / fpCount;
+                
+                rb.AddForceAtPosition(mul * forceData.force, forceData.point, ForceMode.Acceleration);
+                rb.AddTorque(mul * forceData.torque, ForceMode.Acceleration);
+            
+#if UNITY_EDITOR
+                if (forceData.drawGizmos) DebugExt.DrawRay(forceData.point, forceData.force, Color.magenta);
+#endif
             }
 
             rbIdToFloatingPointsCountMap.Dispose();
@@ -357,29 +382,45 @@ namespace MisterGames.Logic.Water {
                 
                 if (id != 0 && rb != null) {
                     if (rb.isKinematic) continue;
+
+                    float3 velocity = rb.linearVelocity;
+                    float3 angularVelocity = rb.angularVelocity;
                     
                     if (_rbIdToWaterClientDataMap.TryGetValue(id, out var data) && data.isMainRigidbody) {
                         if (data.waterClient.IgnoreWaterZone) continue;
 
                         int floatingPointCount = data.waterClient.FloatingPointCount;
                         float buoyancy = data.waterClient.Buoyancy;
-                        float maxSpeed = data.waterClient.MaxSpeed;
                         float decelerationMul = data.waterClient.DecelerationMul * _deceleration;
                         
                         for (int j = 0; j < floatingPointCount; j++) {
                             floatingDataArray[fpIndex++] = new FloatingData(
                                 id,
                                 data.waterClient.GetFloatingPoint(j),
+                                velocity,
+                                angularVelocity,
                                 buoyancy,
-                                maxSpeed,
                                 decelerationMul
+#if UNITY_EDITOR
+                                , data.waterClient.DrawGizmos
+#endif
                             );
                         }
                         
                         continue;
                     }
                     
-                    floatingDataArray[fpIndex++] = new FloatingData(id, rb.position, _buoyancyDefault, _maxSpeed, _deceleration);
+                    floatingDataArray[fpIndex++] = new FloatingData(
+                        id,
+                        rb.position,
+                        velocity,
+                        angularVelocity,
+                        _buoyancyDefault,
+                        _deceleration
+#if UNITY_EDITOR
+                        , _showNoClientGizmo
+#endif
+                    );
                     
                     continue;
                 }
@@ -406,32 +447,11 @@ namespace MisterGames.Logic.Water {
             return floatingDataArray;
         }
 
-        private void ProcessRigidbody(Rigidbody rb, Vector3 position, Vector3 force, float maxSpeed, float deceleration, float mul, int index) {
-            var velocity = rb.linearVelocity;
-            var angularVelocity = rb.angularVelocity;
-
-            var forceVector = force - deceleration * velocity;
-            var torqueVector = -_torqueDeceleration * angularVelocity;
-
-            var randomForce = GetNoiseVector(_randomForceSpeed, NoiseOffset * index) * _randomForce;
-            var randomTorque = GetNoiseVector(_randomTorqueSpeed, NoiseOffset * 5f * index) * _randomTorque;
-            
-            rb.AddForceAtPosition(mul * (forceVector + randomForce), position, ForceMode.Acceleration);
-            rb.AddTorque(mul * (torqueVector + randomTorque), ForceMode.Acceleration);
-            
-            if (maxSpeed >= 0f) rb.linearVelocity = VectorUtils.ClampVelocity(velocity, velocity, _maxSpeed);
-            
-#if UNITY_EDITOR
-            if (_showDebugInfo) DebugExt.DrawRay(position, forceVector, Color.magenta);
-#endif
-        }
-
-        private static Vector3 GetNoiseVector(float speed, float offset) {
-            float t = Time.time * speed;
-            return new Vector3(
-                Mathf.PerlinNoise1D(t + offset) - 0.5f,
-                Mathf.PerlinNoise1D(t + 7f * offset) - 0.5f,
-                Mathf.PerlinNoise1D(t + 11f * offset) - 0.5f
+        private static float3 GetNoiseVector(float t, float offset) {
+            return new float3(
+                noise.cnoise((float2) t + offset) - 0.5f,
+                noise.cnoise((float2) t + 7f * offset) - 0.5f,
+                noise.cnoise((float2) t + 11f * offset) - 0.5f
             );
         }
         
@@ -442,6 +462,12 @@ namespace MisterGames.Logic.Water {
             [ReadOnly] public NativeArray<ProxyData> proxyDataArray;
             [ReadOnly] public int proxyCount;
             [ReadOnly] public float forceLevel;
+            [ReadOnly] public float torqueDeceleration;
+            
+            [ReadOnly] public float randomForceT;
+            [ReadOnly] public float randomForce;
+            [ReadOnly] public float randomTorqueT;
+            [ReadOnly] public float randomTorque;
             
             public NativeArray<ForceData> forceDataArray;
             
@@ -491,15 +517,22 @@ namespace MisterGames.Logic.Water {
                     forceDataArray[index] = default;
                     return;
                 }
+
+                force = (1f + floatingData.buoyancy) * force / validProxyCount 
+                        - floatingData.deceleration * floatingData.velocity 
+                        + GetNoiseVector(randomForceT, NoiseOffset * index) * randomForce;
+
+                var torque = - floatingData.angularVelocity * torqueDeceleration 
+                             + GetNoiseVector(randomTorqueT, NoiseOffset * 5f * index) * randomTorque;
                 
                 forceDataArray[index] = new ForceData(
                     floatingData.rbId,
                     floatingData.point,
-                    (1f + floatingData.buoyancy) * force / validProxyCount,
-                    floatingData.maxSpeed,
-                    floatingData.decelerationMul
+                    force,
+                    torque 
 #if UNITY_EDITOR
                     , surfacePoint / validProxyCount
+                    , floatingData.drawGizmos
 #endif
                 );
             }
@@ -526,13 +559,7 @@ namespace MisterGames.Logic.Water {
         
 #if UNITY_EDITOR
         [Header("Debug")]
-        [SerializeField] private bool _showDebugInfo;
-
-        private static void DrawFloatingPoint(Vector3 position, Vector3 surfacePoint) {
-            DebugExt.DrawSphere(position, 0.05f, Color.yellow);
-            DebugExt.DrawLine(position, surfacePoint, Color.white);
-            DebugExt.DrawSphere(surfacePoint, 0.02f, Color.white);
-        }
+        [SerializeField] private bool _showNoClientGizmo;
 #endif
     }
     
