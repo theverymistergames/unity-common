@@ -14,10 +14,9 @@ namespace MisterGames.Common.Volumes {
     
         [SerializeField] private Collider _collider;
         [SerializeField] [Min(0f)] private float _blendDistance = 1f;
-        [SerializeField] private EasingType _easingType = EasingType.Linear;
 
         public override WeightData GetWeight(Vector3 position) {
-            float w = GetWeight(position, _collider.ClosestPoint(position), _blendDistance, _easingType);
+            float w = GetWeight(position, _collider.ClosestPoint(position), _blendDistance);
             return new WeightData(w, volumeId: GetHashCode());
         }
 
@@ -43,7 +42,6 @@ namespace MisterGames.Common.Volumes {
                 positions = positions,
                 closestPoints = closestPoints,
                 blend = _blendDistance,
-                easingType = _easingType,
                 volumeId = GetHashCode(),
                 results = results
             };
@@ -56,12 +54,12 @@ namespace MisterGames.Common.Volumes {
             weightJob.Schedule(count, UnityJobsExt.BatchCount(count), commandsJobHandle).Complete();
         }
 
-        private static float GetWeight(float3 position, float3 closestPoint, float blend, EasingType easingType) {
+        private static float GetWeight(float3 position, float3 closestPoint, float blend) {
             if (position.Approx(closestPoint)) return 1f;
             if (math.lengthsq(position - closestPoint) > blend * blend) return 0f;
 
             return blend > 0f 
-                ? easingType.Evaluate(math.clamp(1f - math.length(position - closestPoint) / blend, 0f, 1f))
+                ? math.clamp(1f - math.length(position - closestPoint) / blend, 0f, 1f)
                 : 1f;
         }
         
@@ -87,13 +85,12 @@ namespace MisterGames.Common.Volumes {
             [Unity.Collections.ReadOnly] public NativeArray<float3> positions;
             [Unity.Collections.ReadOnly] public NativeArray<Vector3> closestPoints;
             [Unity.Collections.ReadOnly] public float blend;
-            [Unity.Collections.ReadOnly] public EasingType easingType;
             [Unity.Collections.ReadOnly] public int volumeId;
             
             public NativeArray<WeightData> results;
 
             public void Execute(int index) {
-                float w = GetWeight(positions[index], closestPoints[index], blend, easingType);
+                float w = GetWeight(positions[index], closestPoints[index], blend);
                 results[index] = new WeightData(w, volumeId);
             }
         }
@@ -113,10 +110,9 @@ namespace MisterGames.Common.Volumes {
             DebugExt.DrawSphere(p, 0.05f, Color.white);
             DebugExt.DrawLine(p, b, Color.white);
             
-            float w = GetWeight(p, b, _blendDistance, _easingType);
-            float lin = GetWeight(p, b, _blendDistance, EasingType.Linear);
+            float w = GetWeight(p, b, _blendDistance);
             
-            DebugExt.DrawLabel(p + transform.up * 0.1f, $"W = {w:0.000}\nLin = {lin:0.000}");
+            DebugExt.DrawLabel(p + transform.up * 0.1f, $"W = {w:0.000}");
         }
 #endif
     }
