@@ -6,7 +6,7 @@ namespace MisterGames.Logic.Water {
         
         [SerializeField] private WaterZoneProxy[] _proxies;
 
-        public int VolumeId => GetInstanceID();
+        public int VolumeId => GetHashCode();
         public int ProxyCount => _proxies.Length;
         
         public int GetVolumeId(int index) {

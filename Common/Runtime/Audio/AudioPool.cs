@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Easing;
+using MisterGames.Common.Jobs;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Pooling;
 using MisterGames.Common.Tick;
@@ -463,6 +464,27 @@ namespace MisterGames.Common.Audio {
                     .SuppressCancellationThrow(); 
             }
         }
+
+        private readonly struct AudioElementData {
+            
+            public readonly float3 position;
+            public readonly float pitch;
+            public readonly float attenuationDistance;
+            public readonly float spatialBlend;
+            public readonly AudioOptions options;
+            public readonly int mixerGroupId;
+            
+            public AudioElementData(float3 position, float pitch, float attenuationDistance, float spatialBlend, AudioOptions options, int mixerGroupId) {
+                this.position = position;
+                this.pitch = pitch;
+                this.attenuationDistance = attenuationDistance;
+                this.spatialBlend = spatialBlend;
+                this.options = options;
+                this.mixerGroupId = mixerGroupId;
+            }
+        }
+
+        private NativeArray<AudioElementData> _audioElementDataArray;
         
         void IUpdate.OnUpdate(float dt) {
             bool hasListener = _audioListenersMap.Count > 0;
@@ -481,7 +503,27 @@ namespace MisterGames.Common.Audio {
             PrepareVolumeData(out int volumeCount);
             PrepareOcclusionData(count);
             
-            if (hasListener) ProcessVolumesForListener(volumeCount, listenerPos, ref listenerOcclusionWeight);
+            //if (hasListener) ProcessVolumesForListener(volumeCount, listenerPos, ref listenerOcclusionWeight);
+
+            _audioElementDataArray = new NativeArray<AudioElementData>(count, Allocator.TempJob);
+            int index = 0;
+            
+            foreach (var audioElement in _handleIdToAudioElementMap.Values) {
+                var position = audioElement.Transform.position;
+
+                _audioElementDataArray[index++] = new AudioElementData(
+                    position,
+                    audioElement.Pitch,
+                    audioElement.AttenuationDistance,
+                    audioElement.Source.spatialBlend,
+                    audioElement.AudioOptions,
+                    audioElement.MixerGroupId
+                );
+            }
+
+            foreach (var volume in _volumes) {
+                
+            }
             
             foreach (var audioElement in _handleIdToAudioElementMap.Values) {
                 var position = audioElement.Transform.position;
@@ -497,7 +539,7 @@ namespace MisterGames.Common.Audio {
                     (options & AudioOptions.AffectedByVolumes) == AudioOptions.AffectedByVolumes &&
                     (audioElement.MixerGroupId == 0 || _includeMixerGroupsForVolumesSet.Contains(audioElement.MixerGroupId))) 
                 {
-                    ProcessVolumesForSound(volumeCount, position, ref pitch, ref attenuationDistance, ref occlusionWeight, ref lpCutoffBound, ref hpCutoffBound);
+                    //ProcessVolumesForSound(volumeCount, position, ref pitch, ref attenuationDistance, ref occlusionWeight, ref lpCutoffBound, ref hpCutoffBound);
                     
                     occlusionWeight *= listenerOcclusionWeight;
                 }
@@ -600,7 +642,7 @@ namespace MisterGames.Common.Audio {
             if (_resultVolumeLpArray.IsCreated) _resultVolumeLpArray.Dispose();
             if (_resultVolumeHpArray.IsCreated) _resultVolumeHpArray.Dispose();
         }
-
+/*
         private void ProcessVolumesForListener(int count, Vector3 position, ref float occlusionWeight) {
             if (count == 0) return;
             
@@ -646,10 +688,10 @@ namespace MisterGames.Common.Audio {
             
             occlusionWeight = result.valueAndWeight.y > 0f ? result.valueAndWeight.x : occlusionWeight;
         }
-
-        private void ProcessVolumesForSound(
+*/
+        private void ProcessVolumes(
             int count,
-            Vector3 position,
+            Vector3 listenerPosition,
             ref float pitch,
             ref float attenuationDistance,
             ref float occlusionWeight,
@@ -671,7 +713,7 @@ namespace MisterGames.Common.Audio {
             int topPriorityHp = int.MinValue;
 
             foreach (var volume in _volumes) {
-                float weight = volume.GetWeight(position, out int volumeId);
+                float weight = 0f;//volume.GetWeight(position);
                 if (weight <= 0f) continue;
                 
                 int priority = volume.Priority;
@@ -688,7 +730,7 @@ namespace MisterGames.Common.Audio {
 
                     _volumePitchArray[realCountPitch++] = new VolumeValueData {
                         priority = priority,
-                        volumeId = volumeId,
+                        volumeId = 0,//volumeId,
                         weight = weight,
                         listenerPresence = listenerPresence,
                         value = Mathf.Lerp(pitch, pitchLocal, weight)
@@ -700,7 +742,7 @@ namespace MisterGames.Common.Audio {
 
                     _volumeAttenuationArray[realCountAttenuation++] = new VolumeValueData {
                         priority = priority,
-                        volumeId = volumeId,
+                        volumeId = 0,//volumeId,
                         weight = weight,
                         listenerPresence = listenerPresence,
                         value = Mathf.Lerp(attenuationDistance, attenuationLocal, weight)
@@ -712,7 +754,7 @@ namespace MisterGames.Common.Audio {
                     
                     _volumeOcclusionArray[realCountOcclusion++] = new VolumeValueData {
                         priority = priority,
-                        volumeId = volumeId,
+                        volumeId = 0,//volumeId,
                         weight = weight,
                         listenerPresence = listenerPresence,
                         value = Mathf.Lerp(occlusionWeight, occlusionWeightLocal, weight)
@@ -724,7 +766,7 @@ namespace MisterGames.Common.Audio {
                     
                     _volumeLpArray[realCountLp++] = new VolumeValueData {
                         priority = priority,
-                        volumeId = volumeId,
+                        volumeId = 0,//volumeId,
                         weight = weight,
                         listenerPresence = listenerPresence,
                         value = Mathf.Lerp(lpCutoffBound, lpCutoffBoundLocal, weight)
@@ -736,7 +778,7 @@ namespace MisterGames.Common.Audio {
                     
                     _volumeHpArray[realCountHp++] = new VolumeValueData {
                         priority = priority,
-                        volumeId = volumeId,
+                        volumeId = 0,//volumeId,
                         weight = weight,
                         listenerPresence = listenerPresence,
                         value = Mathf.Lerp(hpCutoffBound, hpCutoffBoundLocal, weight)
@@ -849,12 +891,10 @@ namespace MisterGames.Common.Audio {
                 rays = _rays,
                 occlusionWeightArray = occlusionWeightArray
             };
-            
-            int commandsPerJob = Mathf.Max(count / JobsUtility.JobWorkerCount, 1);
 
             var prepareJobHandle = prepareRaycastCommandsJob.ScheduleBatch(count * _rays, _rays);
-            var raycastJobHandle = RaycastCommand.ScheduleBatch(raycastCommands, hits, commandsPerJob, _maxHits, prepareJobHandle);
-            var calculateWeightsJobHandle = calculateOcclusionWeightsJob.Schedule(count, innerloopBatchCount: 256, raycastJobHandle);
+            var raycastJobHandle = RaycastCommand.ScheduleBatch(raycastCommands, hits, UnityJobsExt.BatchCount(count * _rays), _maxHits, prepareJobHandle);
+            var calculateWeightsJobHandle = calculateOcclusionWeightsJob.Schedule(count, UnityJobsExt.BatchCount(count), raycastJobHandle);
                 
             calculateWeightsJobHandle.Complete();
             

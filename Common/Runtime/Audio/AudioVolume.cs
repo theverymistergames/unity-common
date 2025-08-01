@@ -1,8 +1,13 @@
 ﻿using System;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Data;
+using MisterGames.Common.Jobs;
 using MisterGames.Common.Stats;
 using MisterGames.Common.Volumes;
+using Unity.Burst;
+using Unity.Collections;
+using Unity.Jobs;
+using Unity.Mathematics;
 using UnityEngine;
 
 namespace MisterGames.Common.Audio {
@@ -43,16 +48,48 @@ namespace MisterGames.Common.Audio {
             AudioPool.Main?.UnregisterVolume(this);
         }
 
-        public float GetWeight(Vector3 position, out int volumeId) {
-            volumeId = 0;
-            
-            return _mode switch {
-                Mode.Global => _weight,
-                Mode.Local => _weight * _positionWeightProvider.GetWeight(position, out volumeId),
-                _ => throw new ArgumentOutOfRangeException()
-            };
+        public WeightData GetWeight(Vector3 position) {
+            switch (_mode) {
+                case Mode.Global:
+                    return new WeightData(_weight, GetHashCode());
+                
+                case Mode.Local:
+                    var data = _positionWeightProvider.GetWeight(position);
+                    return new WeightData(_weight * data.weight, data.volumeId);
+                
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
-        
+
+        public void GetWeight(NativeArray<float3> positions, NativeArray<WeightData> results, int count) {
+            switch (_mode) {
+                case Mode.Global:
+                    var writeZeroWeightJob = new WriteConstWeightJob {
+                        weight = _weight,
+                        defaultVolumeId = GetHashCode(),
+                        results = results,
+                    };
+                
+                    writeZeroWeightJob.Schedule(count, UnityJobsExt.BatchCount(count)).Complete();
+                    return;
+                
+                case Mode.Local:
+                    _positionWeightProvider.GetWeight(positions, results, count);
+                    
+                    var multiplyWeightJob = new MultiplyWeightJob {
+                        mul = _weight,
+                        results = results,
+                    };
+                
+                    multiplyWeightJob.Schedule(count, UnityJobsExt.BatchCount(count)).Complete();
+                    return;
+                
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+
         public bool ModifyOcclusionWeightForListener(ref float occlusionWeight) {
             occlusionWeight = _occlusionWeightListener.Value.Modify(occlusionWeight);
             return _occlusionWeightListener.HasValue;
@@ -81,6 +118,31 @@ namespace MisterGames.Common.Audio {
         public bool ModifyHighPassFilter(ref float hpCutoffFreq) {
             hpCutoffFreq = _highPassCutoffFrequency.Value.Modify(hpCutoffFreq);
             return _highPassCutoffFrequency.HasValue;
+        }
+        
+        [BurstCompile]
+        private struct WriteConstWeightJob : IJobParallelFor {
+            
+            [Unity.Collections.ReadOnly] public int defaultVolumeId;
+            [Unity.Collections.ReadOnly] public float weight;
+            public NativeArray<WeightData> results;
+
+            public void Execute(int index) {
+                results[index] = new WeightData(weight, defaultVolumeId);
+            }
+        }
+        
+        [BurstCompile]
+        private struct MultiplyWeightJob : IJobParallelFor {
+            
+            [Unity.Collections.ReadOnly] public float mul;
+            
+            public NativeArray<WeightData> results;
+
+            public void Execute(int index) {
+                var data = results[index];
+                results[index] = new WeightData(data.weight * mul, data.volumeId);
+            }
         }
     }
     

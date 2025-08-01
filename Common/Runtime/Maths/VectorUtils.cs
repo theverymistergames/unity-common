@@ -1,10 +1,21 @@
 ﻿using System.Runtime.CompilerServices;
+using Unity.Burst;
+using Unity.Mathematics;
 using UnityEngine;
 
 namespace MisterGames.Common.Maths {
 
     public static class VectorUtils {
 
+        [BurstCompile]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool Approx(this float3 a, float3 b) {
+            float num1 = a.x - b.x;
+            float num2 = a.y - b.y;
+            float num3 = a.z - b.z;
+            return (double) num1 * num1 + (double) num2 * num2 + (double) num3 * num3 < 9.999999439624929E-11;
+        }
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector2 WithX(this Vector2 vector, float x) => new(x, vector.y);
 

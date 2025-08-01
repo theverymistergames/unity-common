@@ -90,7 +90,7 @@ namespace MisterGames.Logic.Transforms {
             foreach (var rb in _rigidbodies) {
                 if (rb == null) continue;
 
-                weight = Mathf.Min(_weightProvider.GetWeight(rb.position, out _), weight);
+                weight = Mathf.Min(_weightProvider.GetWeight(rb.position).weight, weight);
                 count++;
             }
                     
@@ -103,7 +103,7 @@ namespace MisterGames.Logic.Transforms {
             foreach (var rb in _rigidbodies) {
                 if (rb == null) continue;
 
-                weight = Mathf.Max(_weightProvider.GetWeight(rb.position, out _), weight);
+                weight = Mathf.Max(_weightProvider.GetWeight(rb.position).weight, weight);
             }
                     
             return weight;
@@ -116,7 +116,7 @@ namespace MisterGames.Logic.Transforms {
             foreach (var rb in _rigidbodies) {
                 if (rb == null) continue;
                 
-                weight += _weightProvider.GetWeight(rb.position, out _);
+                weight += _weightProvider.GetWeight(rb.position).weight;
                 count++;
             }
                     

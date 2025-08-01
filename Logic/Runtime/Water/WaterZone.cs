@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using MisterGames.Actors;
 using MisterGames.Common;
+using MisterGames.Common.Jobs;
 using MisterGames.Common.Tick;
 using MisterGames.Logic.Phys;
 using Unity.Burst;
@@ -309,7 +310,7 @@ namespace MisterGames.Logic.Water {
                 forceDataArray = forceDataArray,
             };
             
-            var calculateForceJobHandle = calculateForceJob.Schedule(floatingPointsCount, innerloopBatchCount: 256);
+            var calculateForceJobHandle = calculateForceJob.Schedule(floatingPointsCount, UnityJobsExt.BatchCount(floatingPointsCount));
             calculateValidFloatingPointsCountJob.Schedule(calculateForceJobHandle).Complete();
             
             proxyDataArray.Dispose();

@@ -1,4 +1,5 @@
-﻿using MisterGames.Common.Volumes;
+﻿using MisterGames.Common.Jobs;
+using MisterGames.Common.Volumes;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Jobs;
@@ -27,55 +28,66 @@ namespace MisterGames.Logic.Water {
             }
         }
         
-        private readonly struct WeightData {
-            
-            public readonly int volumeId;
-            public readonly float weight;
-            
-            public WeightData(int volumeId, float weight) {
-                this.volumeId = volumeId;
-                this.weight = weight;
-            }
-        }
-
         private NativeArray<ProxyData> _proxyDataArray;
         private int _proxyDataArrayCreationFrame;
         private int _proxyCount;
 
-        private void OnDisable() {
-            _proxyDataArray.Dispose();
+        private void OnDestroy() {
+            if (_proxyDataArray.IsCreated) _proxyDataArray.Dispose();
         }
 
-        public override float GetWeight(Vector3 position, out int volumeId) {
-            volumeId = GetInstanceID();
-            if (!enabled) return 0f;
-            
-            UpdateProxyDataArray();
-            
-            var weightArray = new NativeArray<WeightData>(_proxyCount, Allocator.TempJob);
+        public override WeightData GetWeight(Vector3 position) {
+            var positionArray = new NativeArray<float3>(2, Allocator.TempJob);
             var resultArray = new NativeArray<WeightData>(2, Allocator.TempJob);
 
+            positionArray[0] = position;
+            
+            GetWeight(positionArray, resultArray, 1);
+            
+            var result = resultArray[0];
+
+            positionArray.Dispose();
+            resultArray.Dispose();
+            
+            return result;
+        }
+
+        public override void GetWeight(NativeArray<float3> positions, NativeArray<WeightData> results, int count) {
+            if (count <= 0) return;
+            
+            UpdateProxyDataArray();
+
+            if (_proxyCount <= 0) {
+                var writeZeroWeightJob = new WriteConstWeightJob {
+                    weight = 0f,
+                    defaultVolumeId = GetHashCode(),
+                    results = results,
+                };
+                
+                writeZeroWeightJob.Schedule(count, UnityJobsExt.BatchCount(count)).Complete();
+                return;
+            }
+            
+            var weightArray = new NativeArray<WeightData>(_proxyCount * count, Allocator.TempJob);
+            
             var calculateWeightJob = new CalculateWeightJob {
                 proxyDataArray = _proxyDataArray,
-                position = position,
+                positions = positions,
+                proxyCount = _proxyCount,
                 weightArray = weightArray,
             };
 
             var calculateMaxWeightJob = new CalculateMaxWeightJob {
                 weightArray = weightArray,
-                result = resultArray,
+                defaultVolumeId = GetHashCode(),
+                proxyCount = _proxyCount,
+                results = results,
             };
             
-            var calculateWeightJobHandle = calculateWeightJob.Schedule(_proxyCount, innerloopBatchCount: 256);
-            calculateMaxWeightJob.Schedule(calculateWeightJobHandle).Complete();
+            var calculateWeightJobHandle = calculateWeightJob.Schedule(_proxyCount * count, UnityJobsExt.BatchCount(_proxyCount * count));
+            calculateMaxWeightJob.Schedule(count, UnityJobsExt.BatchCount(count), calculateWeightJobHandle).Complete();
 
-            var result = resultArray[0];
-            
             weightArray.Dispose();
-            resultArray.Dispose();
-            
-            volumeId = result.volumeId;
-            return result.weight;
         }
 
         private void UpdateProxyDataArray() {
@@ -100,15 +112,29 @@ namespace MisterGames.Logic.Water {
         }
         
         [BurstCompile]
+        private struct WriteConstWeightJob : IJobParallelFor {
+            
+            [ReadOnly] public int defaultVolumeId;
+            [ReadOnly] public float weight;
+            public NativeArray<WeightData> results;
+
+            public void Execute(int index) {
+                results[index] = new WeightData(weight, defaultVolumeId);
+            }
+        }
+        
+        [BurstCompile]
         private struct CalculateWeightJob : IJobParallelFor {
             
             [ReadOnly] public NativeArray<ProxyData> proxyDataArray;
-            [ReadOnly] public float3 position;
+            [ReadOnly] public NativeArray<float3> positions;
+            [ReadOnly] public int proxyCount;
             
             public NativeArray<WeightData> weightArray;
             
             public void Execute(int index) {
-                var proxyData = proxyDataArray[index];
+                var proxyData = proxyDataArray[index % proxyCount];
+                var position = positions[(int) math.floor((float) index / proxyCount)];
                 
                 var localPoint = math.mul(math.inverse(proxyData.rotation), position - proxyData.position);
                 var halfSize = proxyData.size * 0.5f;
@@ -117,33 +143,36 @@ namespace MisterGames.Logic.Water {
                     localPoint.y < -halfSize.y || localPoint.y > halfSize.y ||
                     localPoint.z < -halfSize.z || localPoint.z > halfSize.z) 
                 {
-                    weightArray[index] = new WeightData(proxyData.volumeId, 0f);
+                    weightArray[index] = new WeightData(0f, proxyData.volumeId);
                     return;
                 }
                 
-                weightArray[index] = new WeightData(proxyData.volumeId, 1f);
+                weightArray[index] = new WeightData(1f, proxyData.volumeId);
             }
         }
         
         [BurstCompile]
-        private struct CalculateMaxWeightJob : IJob {
+        private struct CalculateMaxWeightJob : IJobParallelFor {
             
             [ReadOnly] public NativeArray<WeightData> weightArray;
+            [ReadOnly] public int defaultVolumeId;
+            [ReadOnly] public int proxyCount;
             
-            public NativeArray<WeightData> result;
+            public NativeArray<WeightData> results;
             
-            public void Execute() {
-                float max = float.MinValue;
-                int volumeId = 0;
+            public void Execute(int index) {
+                int from = index * proxyCount;
+                int to = from + proxyCount;
                 
-                for (int i = 0; i < weightArray.Length; i++) {
-                    max = Mathf.Max(max, weightArray[i].weight);
-                    volumeId = weightArray[i].volumeId;
-                    
-                    if (max >= 1f) break;
+                for (int i = from; i < to; i++) {
+                    var data = weightArray[i];
+                    if (data.weight <= 0f) continue;
+
+                    results[index] = data;
+                    return;
                 }
 
-                result[0] = new WeightData(volumeId, max);
+                results[index] = new WeightData(0f, defaultVolumeId);
             }
         }
         

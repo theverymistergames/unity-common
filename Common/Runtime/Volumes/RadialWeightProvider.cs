@@ -1,5 +1,10 @@
 ﻿using MisterGames.Common.Attributes;
 using MisterGames.Common.Easing;
+using MisterGames.Common.Jobs;
+using Unity.Burst;
+using Unity.Collections;
+using Unity.Jobs;
+using Unity.Mathematics;
 using UnityEngine;
 
 namespace MisterGames.Common.Volumes {
@@ -7,37 +12,63 @@ namespace MisterGames.Common.Volumes {
     public sealed class RadialWeightProvider : PositionWeightProvider {
 
         [SerializeField] private Transform _center;
-        [SerializeField] private float _weightMul = 1f;
-        [SerializeField] private AnimationCurve _weightCurve = EasingType.Linear.ToAnimationCurve();
+        [SerializeField] private EasingType _easingType = EasingType.Linear;
         [SerializeField] [Range(0f, 1f)] private float _fallOff = 1f;
         [SerializeField] [Min(0f)] private float _innerRadius = 1f;
         [SerializeField] [Min(0f)] private float _outerRadius = 2f;
 
-        public override float GetWeight(Vector3 position, out int volumeId) {
-            volumeId = GetInstanceID();
-            return ConvertLinearWeight(GetLinearWeight(position));
+        public override WeightData GetWeight(Vector3 position) {
+            float w = GetWeight(position, _center.position, new float2(_innerRadius, _outerRadius), _fallOff, _easingType);
+            return new WeightData(w, volumeId: GetHashCode());
         }
 
-        private float GetLinearWeight(Vector3 position) {
-            if (_fallOff <= 0f) {
+        public override void GetWeight(NativeArray<float3> positions, NativeArray<WeightData> results, int count) {
+            if (count <= 0) return;
+            
+            var job = new CalculateWeightJob {
+                positions = positions,
+                center = _center.position,
+                radiusInOut = new float2(_innerRadius, _outerRadius),
+                easingType = _easingType,
+                fallOff = _fallOff,
+                volumeId = GetHashCode(),
+                results = results
+            };
+            
+            job.Schedule(count, UnityJobsExt.BatchCount(count)).Complete();
+        }
+
+        private static float GetWeight(float3 position, float3 center, float2 radiusInOut, float fallOff, EasingType easingType) {
+            if (fallOff <= 0f ||
+                math.lengthsq(position - center) <= radiusInOut.x * radiusInOut.x) 
+            {
                 return 1f;
             }
             
-            var center = _center.position;
-            if ((position - center).sqrMagnitude <= _innerRadius * _innerRadius) {
-                return 1f;
-            }
-
-            if (_outerRadius - _innerRadius <= 0f) {
-                return 1f - _fallOff;
+            if (radiusInOut.y - radiusInOut.x <= 0f) {
+                return easingType.Evaluate(1f - fallOff);
             }
             
-            float x = ((center - position).magnitude - _innerRadius) / (_outerRadius - _innerRadius);
-            return Mathf.Clamp01(1f + 2f * _fallOff * (1f / (x + 1f) - 1f));
+            float x = (math.length(center - position) - radiusInOut.x) / (radiusInOut.y - radiusInOut.x);
+            return easingType.Evaluate(math.clamp(1f + 2f * fallOff * (1f / (x + 1f) - 1f), 0f, 1f));
         }
+        
+        [BurstCompile]
+        private struct CalculateWeightJob : IJobParallelFor {
+            
+            [Unity.Collections.ReadOnly] public NativeArray<float3> positions;
+            [Unity.Collections.ReadOnly] public float3 center;
+            [Unity.Collections.ReadOnly] public float2 radiusInOut;
+            [Unity.Collections.ReadOnly] public float fallOff;
+            [Unity.Collections.ReadOnly] public EasingType easingType;
+            [Unity.Collections.ReadOnly] public int volumeId;
+            
+            public NativeArray<WeightData> results;
 
-        private float ConvertLinearWeight(float linearWeight) {
-            return _weightCurve.Evaluate(linearWeight) * _weightMul;
+            public void Execute(int index) {
+                float w = GetWeight(positions[index], center, radiusInOut, fallOff, easingType);
+                results[index] = new WeightData(w, volumeId);
+            }
         }
 
 #if UNITY_EDITOR
@@ -58,29 +89,37 @@ namespace MisterGames.Common.Volumes {
             if (!_showDebugInfo || _center == null) return;
 
             _center.GetPositionAndRotation(out var position, out var rotation);
-            
-            DebugExt.DrawLabel(position + rotation * Vector3.up * 0.12f, $"W = {ConvertLinearWeight(1f):0.000}\nLin = {1f:0.000}");
+
+            float w = 1f;
+            float lin = 1f;
+            DebugExt.DrawLabel(position + rotation * Vector3.up * 0.12f, $"W = {w:0.000}\nLin = {lin:0.000}");
             
             if (_fallOff <= 0f) return;
 
             var pIn = position + rotation * Vector3.forward * _innerRadius;
-            float w = ConvertLinearWeight(1f);
+            
+            w = 1f;
+            lin = 1f;
             DebugExt.DrawSphere(position, _innerRadius, Color.white, gizmo: true);
             DebugExt.DrawPointer(pIn, Color.white, 0.03f, gizmo: true);
-            DebugExt.DrawLabel(pIn + rotation * Vector3.right * 0.12f, $"W = {w:0.000}\nLin = {1f:0.000}", color: Color.white);
+            DebugExt.DrawLabel(pIn + rotation * Vector3.right * 0.12f, $"W = {w:0.000}\nLin = {lin:0.000}", color: Color.white);
             DebugExt.DrawLine(pIn, position, Color.white, gizmo: true);
             
-            var pOut = position + rotation * Vector3.forward * _outerRadius;
-            w = GetWeight(pOut, out _);
+            var pOut = position + rotation * Vector3.forward * _outerRadius; 
             DebugExt.DrawSphere(position, _outerRadius, Color.yellow, gizmo: true);
             DebugExt.DrawPointer(pOut, Color.yellow, 0.03f, gizmo: true);
-            DebugExt.DrawLabel(pOut - rotation * Vector3.right * 0.12f, $"W = {w:0.000}\nLin = {GetLinearWeight(pOut):0.000}", color: Color.yellow);
+
+            w = GetWeight(pOut, position, new float2(_innerRadius, _outerRadius), _fallOff, _easingType);
+            lin = GetWeight(pOut, position, new float2(_innerRadius, _outerRadius), _fallOff, EasingType.Linear);
+            DebugExt.DrawLabel(pOut - rotation * Vector3.right * 0.12f, $"W = {w:0.000}\nLin = {lin:0.000}", color: Color.yellow);
             DebugExt.DrawLine(pOut, pIn, Color.yellow, gizmo: true);
             
             var pFar = position + rotation * Vector3.forward * _testPoint;
-            w = GetWeight(pFar, out _);
+            w = GetWeight(pFar, position, new float2(_innerRadius, _outerRadius), _fallOff, _easingType);
+            lin = GetWeight(pFar, position, new float2(_innerRadius, _outerRadius), _fallOff, EasingType.Linear);
             DebugExt.DrawPointer(pFar, Color.cyan, 0.03f, gizmo: true);
-            DebugExt.DrawLabel(pFar + rotation * Vector3.forward * 0.12f, $"W = {w:0.000}\nLin = {GetLinearWeight(pFar):0.000}", color: Color.cyan);
+            DebugExt.DrawLabel(pFar + rotation * Vector3.forward * 0.12f, $"W = {w:0.000}\nLin = {lin:0.000}", color: Color.cyan);
+            
             if (_testPoint > _outerRadius) DebugExt.DrawLine(pFar, pOut, Color.cyan, gizmo: true);
         }
 #endif

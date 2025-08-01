@@ -1,4 +1,7 @@
-﻿using UnityEngine;
+﻿using MisterGames.Common.Volumes;
+using Unity.Collections;
+using Unity.Mathematics;
+using UnityEngine;
 
 namespace MisterGames.Common.Audio {
     
@@ -7,10 +10,10 @@ namespace MisterGames.Common.Audio {
         int Priority { get; }
         float ListenerPresence { get; }
         
-        float GetWeight(Vector3 position, out int volumeId);
-
-        bool ModifyOcclusionWeightForListener(ref float occlusionWeight);
+        WeightData GetWeight(Vector3 position);
+        void GetWeight(NativeArray<float3> positions, NativeArray<WeightData> results, int count);
         
+        bool ModifyOcclusionWeightForListener(ref float occlusionWeight);
         bool ModifyPitch(ref float pitch);
         bool ModifyAttenuationDistance(ref float attenuationDistance);
         bool ModifyOcclusionWeightForSound(ref float occlusionWeight);
