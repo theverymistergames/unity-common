@@ -235,10 +235,11 @@ namespace MisterGames.Logic.Water {
             int rbId = rb.GetHashCode();
             
             if (!_colliderToRbIdMap.TryAdd(id, rbId)) return;
-            
+
             var pos = collider.transform.position;
             volume.SampleSurface(pos, out var surfacePoint, out var surfaceNormal);
             OnColliderEnter.Invoke(collider, volume.GetClosestPoint(pos), surfacePoint, surfaceNormal);
+            
             
             int oldCount = _rbIdToColliderCountMap.GetValueOrDefault(rbId);
             _rbIdToColliderCountMap[rbId] = oldCount + 1;
@@ -549,10 +550,10 @@ namespace MisterGames.Logic.Water {
 
                 force = (1f + floatingData.buoyancy) * force / validProxyCount 
                         - floatingData.deceleration * floatingData.velocity 
-                        + GetNoiseVector(randomForceT, NoiseOffset * index) * randomForce;
+                        + GetNoiseVector(randomForceT, NoiseOffset * floatingData.rbId) * randomForce;
 
                 var torque = - floatingData.angularVelocity * torqueDeceleration 
-                             + GetNoiseVector(randomTorqueT, NoiseOffset * 5f * index) * randomTorque;
+                             + GetNoiseVector(randomTorqueT, NoiseOffset * 5f * floatingData.rbId) * randomTorque;
                 
                 forceDataArray[index] = new ForceData(
                     floatingData.rbId,
@@ -580,8 +581,8 @@ namespace MisterGames.Logic.Water {
                 var data = rbDataArray[index];
                 int validFloatingPointsCount = 0;
                 
-                for (int i = data.firstFloatingPointIndex; i < data.floatingPointCount; i++) {
-                    if (forceDataArray[i].rbId != 0) validFloatingPointsCount++;
+                for (int i = 0; i < data.floatingPointCount; i++) {
+                    if (forceDataArray[i + data.firstFloatingPointIndex].rbId != 0) validFloatingPointsCount++;
                 }
                 
                 forceMulArray[index] = validFloatingPointsCount > 0 ? 1f / validFloatingPointsCount : 0f;

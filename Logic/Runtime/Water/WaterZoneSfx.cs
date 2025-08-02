@@ -95,12 +95,12 @@ namespace MisterGames.Logic.Water {
         }
 
         private static int GetSoundDataIndex(float colliderSize, float sqrSpeed, SoundData[] sounds) {
+            if (sqrSpeed < 0f) return -1;
+            
             for (int i = sounds.Length - 1; i >= 0; i--) {
                 ref var data = ref sounds[i];
                 
-                if (colliderSize >= data.minColliderSize &&
-                    (sqrSpeed < 0f || sqrSpeed >= data.minSpeed * data.minSpeed)) 
-                {
+                if (colliderSize >= data.minColliderSize && sqrSpeed >= data.minSpeed * data.minSpeed) {
                     return i;
                 }
             }

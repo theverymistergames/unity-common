@@ -82,12 +82,12 @@ namespace MisterGames.Logic.Water {
         }
 
         private static int GetDataIndex(float colliderSize, float sqrSpeed, SpawnData[] prefabs) {
+            if (sqrSpeed < 0f) return -1;
+            
             for (int i = prefabs.Length - 1; i >= 0; i--) {
                 ref var data = ref prefabs[i];
                 
-                if (colliderSize >= data.minColliderSize &&
-                    (sqrSpeed < 0f || sqrSpeed >= data.minSpeed * data.minSpeed)) 
-                {
+                if (colliderSize >= data.minColliderSize && sqrSpeed >= data.minSpeed * data.minSpeed) {
                     return i;
                 }
             }
