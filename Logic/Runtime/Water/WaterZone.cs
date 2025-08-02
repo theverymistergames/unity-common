@@ -15,8 +15,9 @@ namespace MisterGames.Logic.Water {
     
     public sealed class WaterZone : MonoBehaviour, IActorComponent, IUpdate, IWaterZone {
 
-        [Header("Proxy")]
-        [SerializeField] private WaterZoneProxy[] _predefinedProxies;
+        [Header("Volumes")]
+        [SerializeField] private WaterZoneVolume[] _predefinedVolumes;
+        [SerializeField] private WaterZoneVolumeCluster[] _predefinedVolumeClusters;
         
         [Header("Surface")]
         [SerializeField] private float _surfaceOffset;
@@ -53,7 +54,7 @@ namespace MisterGames.Logic.Water {
             }
         }
         
-        private readonly struct ProxyData {
+        private readonly struct VolumeData {
             
             public readonly float3 position;
             public readonly quaternion rotation;
@@ -61,7 +62,7 @@ namespace MisterGames.Logic.Water {
             public readonly float surfaceOffset;
             public readonly float forceMul;
 
-            public ProxyData(float3 position, quaternion rotation, float3 size, float surfaceOffset, float forceMul) {
+            public VolumeData(float3 position, quaternion rotation, float3 size, float surfaceOffset, float forceMul) {
                 this.position = position;
                 this.rotation = rotation;
                 this.size = size;
@@ -69,10 +70,22 @@ namespace MisterGames.Logic.Water {
                 this.forceMul = forceMul;
             }
         }
-        
+
+        private readonly struct FloatingPointsPerRbData {
+
+            public readonly int firstFloatingPointIndex;
+            public readonly int floatingPointCount;
+            
+            public FloatingPointsPerRbData(int firstFloatingPointIndex, int floatingPointCount) {
+                this.firstFloatingPointIndex = firstFloatingPointIndex;
+                this.floatingPointCount = floatingPointCount;
+            }
+        }
+
         private readonly struct FloatingData {
             
             public readonly int rbId;
+            public readonly int rbIndex;
             public readonly float3 point;
             public readonly float3 velocity;
             public readonly float3 angularVelocity;
@@ -82,12 +95,13 @@ namespace MisterGames.Logic.Water {
             public readonly bool drawGizmos;
 #endif
             
-            public FloatingData(int rbId, float3 point, float3 velocity, float3 angularVelocity, float buoyancy, float deceleration
+            public FloatingData(int rbId, int rbIndex, float3 point, float3 velocity, float3 angularVelocity, float buoyancy, float deceleration
 #if UNITY_EDITOR
                 , bool drawGizmos
 #endif            
             ) {
                 this.rbId = rbId;
+                this.rbIndex = rbIndex;
                 this.point = point;
                 this.velocity = velocity;
                 this.angularVelocity = angularVelocity;
@@ -102,6 +116,7 @@ namespace MisterGames.Logic.Water {
         private readonly struct ForceData {
             
             public readonly int rbId;
+            public readonly int rbIndex;
             public readonly float3 point;
             public readonly float3 force;
             public readonly float3 torque;
@@ -110,13 +125,14 @@ namespace MisterGames.Logic.Water {
             public readonly bool drawGizmos;
 #endif
             
-            public ForceData(int rbId, float3 point, float3 force, float3 torque
+            public ForceData(int rbId, int rbIndex, float3 point, float3 force, float3 torque
 #if UNITY_EDITOR
                 , float3 surfacePoint
                 , bool drawGizmos
 #endif
             ) {
                 this.rbId = rbId;
+                this.rbIndex = rbIndex;
                 this.point = point;
                 this.force = force;
                 this.torque = torque;
@@ -132,8 +148,8 @@ namespace MisterGames.Logic.Water {
         public event TriggerAction OnColliderEnter = delegate { };
         public event TriggerAction OnColliderExit = delegate { };
 
-        public HashSet<IWaterZoneProxy> WaterProxySet { get; } = new();
-        private readonly Dictionary<int, int> _proxyVolumeIdToClusterVolumeIdMap = new();
+        public HashSet<IWaterZoneVolume> Volumes { get; } = new();
+        private readonly Dictionary<int, int> _volumeIdMap = new();
         
         private const float NoiseOffset = 100f;
 
@@ -143,25 +159,33 @@ namespace MisterGames.Logic.Water {
         private readonly List<(int id, Rigidbody rb)> _rbList = new();
         private readonly Dictionary<int, int> _rbIdToIndexMap = new();
         private readonly Dictionary<int, WaterClientData> _rbIdToWaterClientDataMap = new();
-        private readonly Dictionary<int, int> _rbIdToProxyCountMap = new();
+        private readonly Dictionary<int, int> _rbIdToVolumeCountMap = new();
 
-        private NativeArray<ProxyData> _proxyDataArray;
+        private NativeArray<VolumeData> _volumeDataArray;
         private int _floatingPointsCount;
         
         private void OnEnable() {
-            for (int i = 0; i < _predefinedProxies.Length; i++) {
-                AddProxy(_predefinedProxies[i]);
+            for (int i = 0; i < _predefinedVolumes.Length; i++) {
+                AddVolume(_predefinedVolumes[i]);
+            }
+            
+            for (int i = 0; i < _predefinedVolumeClusters.Length; i++) {
+                AddVolumeCluster(_predefinedVolumeClusters[i]);
             }
         }
 
         private void OnDisable() {
             PlayerLoopStage.FixedUpdate.Unsubscribe(this);
             
-            for (int i = 0; i < _predefinedProxies.Length; i++) {
-                RemoveProxy(_predefinedProxies[i]);
+            for (int i = 0; i < _predefinedVolumes.Length; i++) {
+                RemoveVolume(_predefinedVolumes[i]);
             }
 
-            _proxyDataArray.Dispose();
+            for (int i = 0; i < _predefinedVolumeClusters.Length; i++) {
+                RemoveVolumeCluster(_predefinedVolumeClusters[i]);
+            }
+            
+            _volumeDataArray.Dispose();
         }
 
         private void OnDestroy() {
@@ -169,52 +193,52 @@ namespace MisterGames.Logic.Water {
             _rbIdToIndexMap.Clear();
             _rbList.Clear();
             
-            WaterProxySet.Clear();
-            _proxyVolumeIdToClusterVolumeIdMap.Clear();
+            Volumes.Clear();
+            _volumeIdMap.Clear();
         }
 
-        public void AddProxyCluster(IWaterZoneProxyCluster cluster) {
-            int count = cluster.ProxyCount;
-            int id = cluster.VolumeId;
-            
+        public void AddVolume(IWaterZoneVolume volume) {
+            Volumes.Add(volume);
+            volume.BindZone(this);
+        }
+
+        public void RemoveVolume(IWaterZoneVolume volume) {
+            Volumes.Remove(volume);
+            volume.UnbindZone(this);
+        }
+
+        public void AddVolumeCluster(IWaterZoneVolumeCluster cluster) {
+            int id = cluster.ClusterId;
+            int count = cluster.VolumeCount;
+
             for (int i = 0; i < count; i++) {
-                _proxyVolumeIdToClusterVolumeIdMap[cluster.GetVolumeId(i)] = id;
+                _volumeIdMap[cluster.GetVolumeId(i)] = id;
             }
         }
 
-        public void RemoveProxyCluster(IWaterZoneProxyCluster cluster) {
-            int count = cluster.ProxyCount;
+        public void RemoveVolumeCluster(IWaterZoneVolumeCluster cluster) {
+            int count = cluster.VolumeCount;
             
             for (int i = 0; i < count; i++) {
-                _proxyVolumeIdToClusterVolumeIdMap.Remove(cluster.GetVolumeId(i));
+                _volumeIdMap.Remove(cluster.GetVolumeId(i));
             }
         }
 
-        public void AddProxy(IWaterZoneProxy proxy) {
-            WaterProxySet.Add(proxy);
-            proxy.BindZone(this);
+        public int GetVolumeId(IWaterZoneVolume volume) {
+            return _volumeIdMap.GetValueOrDefault(volume.VolumeId, volume.VolumeId);
         }
 
-        public void RemoveProxy(IWaterZoneProxy proxy) {
-            WaterProxySet.Remove(proxy);
-            proxy.UnbindZone(this);
-        }
-
-        public int GetProxyVolumeId(IWaterZoneProxy proxy) {
-            return _proxyVolumeIdToClusterVolumeIdMap.TryGetValue(proxy.VolumeId, out int clusterVolumeId) ? clusterVolumeId : proxy.VolumeId;
-        }
-
-        public void TriggerEnter(Collider collider, IWaterZoneProxy proxy) {
+        public void TriggerEnter(Collider collider, IWaterZoneVolume volume) {
             if (collider.attachedRigidbody is not {} rb) return;
             
-            int id = collider.GetInstanceID();
-            int rbId = rb.GetInstanceID();
+            int id = collider.GetHashCode();
+            int rbId = rb.GetHashCode();
             
             if (!_colliderToRbIdMap.TryAdd(id, rbId)) return;
             
             var pos = collider.transform.position;
-            proxy.SampleSurface(pos, out var surfacePoint, out var surfaceNormal);
-            OnColliderEnter.Invoke(collider, proxy.GetClosestPoint(pos), surfacePoint, surfaceNormal);
+            volume.SampleSurface(pos, out var surfacePoint, out var surfaceNormal);
+            OnColliderEnter.Invoke(collider, volume.GetClosestPoint(pos), surfacePoint, surfaceNormal);
             
             int oldCount = _rbIdToColliderCountMap.GetValueOrDefault(rbId);
             _rbIdToColliderCountMap[rbId] = oldCount + 1;
@@ -222,15 +246,15 @@ namespace MisterGames.Logic.Water {
             if (oldCount <= 0) TriggerEnterRigidbody(rb);
         }
 
-        public void TriggerExit(Collider collider, IWaterZoneProxy proxy) {
+        public void TriggerExit(Collider collider, IWaterZoneVolume volume) {
             if (collider == null) return;
             
-            int id = collider.GetInstanceID();
+            int id = collider.GetHashCode();
             if (collider == null || !_colliderToRbIdMap.Remove(id, out int rbId)) return;
 
             var pos = collider.transform.position;
-            proxy.SampleSurface(pos, out var surfacePoint, out var surfaceNormal);
-            OnColliderExit.Invoke(collider, proxy.GetClosestPoint(pos), surfacePoint, surfaceNormal);
+            volume.SampleSurface(pos, out var surfacePoint, out var surfaceNormal);
+            OnColliderExit.Invoke(collider, volume.GetClosestPoint(pos), surfacePoint, surfaceNormal);
             
             int newCount = _rbIdToColliderCountMap.GetValueOrDefault(rbId) - 1;
             if (newCount > 0) {
@@ -243,8 +267,8 @@ namespace MisterGames.Logic.Water {
         }
 
         private void TriggerEnterRigidbody(Rigidbody rigidbody) {
-            int id = rigidbody.GetInstanceID();
-            _rbIdToProxyCountMap[id] = _rbIdToProxyCountMap.GetValueOrDefault(id) + 1;
+            int id = rigidbody.GetHashCode();
+            _rbIdToVolumeCountMap[id] = _rbIdToVolumeCountMap.GetValueOrDefault(id) + 1;
             
             if (!_rbIdToIndexMap.TryAdd(id, _rbList.Count)) return;
             
@@ -266,12 +290,12 @@ namespace MisterGames.Logic.Water {
         }
 
         private void TriggerExitRigidbody(int rbId) {
-            int proxiesLeft = _rbIdToProxyCountMap[rbId] - 1;
+            int volumesLeft = _rbIdToVolumeCountMap[rbId] - 1;
 
-            if (proxiesLeft > 0) _rbIdToProxyCountMap[rbId] = proxiesLeft;
-            else _rbIdToProxyCountMap.Remove(rbId);
+            if (volumesLeft > 0) _rbIdToVolumeCountMap[rbId] = volumesLeft;
+            else _rbIdToVolumeCountMap.Remove(rbId);
             
-            if (proxiesLeft > 0 || !_rbIdToIndexMap.Remove(rbId, out int index)) return;
+            if (volumesLeft > 0 || !_rbIdToIndexMap.Remove(rbId, out int index)) return;
 
             _rbList[index] = default;
             
@@ -284,17 +308,18 @@ namespace MisterGames.Logic.Water {
         }
 
         void IUpdate.OnUpdate(float dt) {
-            var proxyDataArray = CreateProxyDataArray(out int proxyCount);
-            var floatingDataArray = CreateFloatingDataArray(out int floatingPointsCount);
+            CreateVolumeDataArray(out var volumeDataArray, out int volumeCount);
+            CreateFloatingData(out var rbDataArray, out int rbCount, out var floatingDataArray, out int floatingPointsCount);
+
             var forceDataArray = new NativeArray<ForceData>(floatingPointsCount, Allocator.TempJob);
-            var rbIdToFloatingPointsCountMap = new NativeHashMap<int, int>(_rbList.Count, Allocator.TempJob);
+            var forceMulArray = new NativeArray<float>(rbCount, Allocator.TempJob);
 
             float time = Time.time;
             
             var calculateForceJob = new CalculateForceJob {
                 floatingDataArray = floatingDataArray,
-                proxyDataArray = proxyDataArray,
-                proxyCount = proxyCount,
+                volumeDataArray = volumeDataArray,
+                volumeCount = volumeCount,
                 forceLevel = _forceLevelDecrease,
                 forceDataArray = forceDataArray,
                 torqueDeceleration = _torqueDeceleration,
@@ -305,58 +330,52 @@ namespace MisterGames.Logic.Water {
             };
 
             var calculateValidFloatingPointsCountJob = new CalculateValidFloatingPointsPerRbJob {
-                count = floatingPointsCount,
-                rbIdToFloatingPointsCountMap = rbIdToFloatingPointsCountMap,
+                rbDataArray = rbDataArray,
                 forceDataArray = forceDataArray,
+                forceMulArray = forceMulArray,
             };
             
-            var calculateForceJobHandle = calculateForceJob.Schedule(floatingPointsCount, UnityJobsExt.BatchCount(floatingPointsCount));
-            calculateValidFloatingPointsCountJob.Schedule(calculateForceJobHandle).Complete();
-            
-            proxyDataArray.Dispose();
-            floatingDataArray.Dispose();
+            var calculateForceJobHandle = calculateForceJob.Schedule(floatingPointsCount, JobExt.BatchFor(floatingPointsCount));
+            calculateValidFloatingPointsCountJob.Schedule(rbCount, JobExt.BatchFor(rbCount), calculateForceJobHandle).Complete();
 
             for (int i = 0; i < forceDataArray.Length; i++) {
                 var forceData = forceDataArray[i];
                 if (forceData.rbId == 0) continue;
                 
-                int fpCount = rbIdToFloatingPointsCountMap[forceData.rbId];
                 var rb = _rbList[_rbIdToIndexMap[forceData.rbId]].rb;
-
-#if UNITY_EDITOR
-                if (forceData.drawGizmos) DebugExt.DrawLine(forceData.point, forceData.surfacePoint, Color.white);
-#endif
-                
-                float mul = 1f / fpCount;
+                float mul = forceMulArray[forceData.rbIndex];
                 
                 rb.AddForceAtPosition(mul * forceData.force, forceData.point, ForceMode.Acceleration);
                 rb.AddTorque(mul * forceData.torque, ForceMode.Acceleration);
-            
+                
 #if UNITY_EDITOR
-                if (forceData.drawGizmos) DebugExt.DrawRay(forceData.point, forceData.force, Color.magenta);
+                if (forceData.drawGizmos) DebugExt.DrawLine(forceData.point, forceData.surfacePoint, Color.white);
+                if (forceData.drawGizmos) DebugExt.DrawRay(forceData.point, forceData.force * mul, Color.magenta);
 #endif
             }
 
-            rbIdToFloatingPointsCountMap.Dispose();
+            volumeDataArray.Dispose();
+            floatingDataArray.Dispose();
+            forceMulArray.Dispose();
             forceDataArray.Dispose();
             
             if (_rbList.Count == 0) PlayerLoopStage.FixedUpdate.Unsubscribe(this);
         }
 
-        private NativeArray<ProxyData> CreateProxyDataArray(out int count) {
-            count = WaterProxySet.Count;
+        private void CreateVolumeDataArray(out NativeArray<VolumeData> volumeDataArray, out int count) {
+            count = Volumes.Count;
             
             int index = 0;
-            var proxyDataArray = new NativeArray<ProxyData>(count, Allocator.TempJob);
+            volumeDataArray = new NativeArray<VolumeData>(count, Allocator.TempJob);
             
-            foreach (var proxy in WaterProxySet) {
-                proxy.GetBox(out var position, out var rotation, out var size);
+            foreach (var volume in Volumes) {
+                volume.GetBox(out var position, out var rotation, out var size);
                 
-                proxyDataArray[index++] = new ProxyData(
+                volumeDataArray[index++] = new VolumeData(
                     position,
                     rotation,
                     size,
-                    surfaceOffset: _surfaceOffset + proxy.SurfaceOffset,
+                    surfaceOffset: _surfaceOffset + volume.SurfaceOffset,
                     forceMul: _force * _forceSource switch {
                         ForceSource.Constant => 1f,
                         ForceSource.UseGravityMagnitude => 
@@ -367,36 +386,44 @@ namespace MisterGames.Logic.Water {
                     }
                 );
             }
-
-            return proxyDataArray;
         }
 
-        private NativeArray<FloatingData> CreateFloatingDataArray(out int count) {
+        private void CreateFloatingData(
+            out NativeArray<FloatingPointsPerRbData> rbDataArray, out int validRbCount,
+            out NativeArray<FloatingData> floatingDataArray, out int floatingPointsCount) 
+        {
             int rbCount = _rbList.Count;
-            int validRbCount = rbCount;
-            int fpIndex = 0;
             
-            var floatingDataArray = new NativeArray<FloatingData>(_floatingPointsCount, Allocator.TempJob);
+            floatingPointsCount = 0;
+            validRbCount = rbCount;
+            int rbIndexer = 0;
+            
+            rbDataArray = new NativeArray<FloatingPointsPerRbData>(rbCount, Allocator.TempJob);
+            floatingDataArray = new NativeArray<FloatingData>(_floatingPointsCount, Allocator.TempJob);
 
-            for (int i = _rbList.Count - 1; i >= 0; i--) {
+            for (int i = rbCount - 1; i >= 0; i--) {
                 (int id, var rb) = _rbList[i];
                 
                 if (id != 0 && rb != null) {
                     if (rb.isKinematic) continue;
 
+                    int rbIndex = rbIndexer++;
+                    int firstPointIndex = floatingPointsCount;
+                    
                     float3 velocity = rb.linearVelocity;
                     float3 angularVelocity = rb.angularVelocity;
                     
                     if (_rbIdToWaterClientDataMap.TryGetValue(id, out var data) && data.isMainRigidbody) {
                         if (data.waterClient.IgnoreWaterZone) continue;
 
-                        int floatingPointCount = data.waterClient.FloatingPointCount;
+                        int fpCount = data.waterClient.FloatingPointCount;
                         float buoyancy = data.waterClient.Buoyancy;
                         float decelerationMul = data.waterClient.DecelerationMul * _deceleration;
                         
-                        for (int j = 0; j < floatingPointCount; j++) {
-                            floatingDataArray[fpIndex++] = new FloatingData(
+                        for (int j = 0; j < fpCount; j++) {
+                            floatingDataArray[floatingPointsCount++] = new FloatingData(
                                 id,
+                                rbIndex,
                                 data.waterClient.GetFloatingPoint(j),
                                 velocity,
                                 angularVelocity,
@@ -408,11 +435,13 @@ namespace MisterGames.Logic.Water {
                             );
                         }
                         
+                        rbDataArray[rbIndex] = new FloatingPointsPerRbData(firstPointIndex, fpCount);
                         continue;
                     }
                     
-                    floatingDataArray[fpIndex++] = new FloatingData(
+                    floatingDataArray[floatingPointsCount++] = new FloatingData(
                         id,
+                        rbIndex,
                         rb.position,
                         velocity,
                         angularVelocity,
@@ -423,6 +452,7 @@ namespace MisterGames.Logic.Water {
 #endif
                     );
                     
+                    rbDataArray[rbIndex] = new FloatingPointsPerRbData(firstPointIndex, 1);
                     continue;
                 }
 
@@ -443,9 +473,6 @@ namespace MisterGames.Logic.Water {
             }
 
             _rbList.RemoveRange(validRbCount, rbCount - validRbCount);
-            count = fpIndex;
-
-            return floatingDataArray;
         }
 
         private static float3 GetNoiseVector(float t, float offset) {
@@ -460,8 +487,8 @@ namespace MisterGames.Logic.Water {
         private struct CalculateForceJob : IJobParallelFor {
             
             [ReadOnly] public NativeArray<FloatingData> floatingDataArray;
-            [ReadOnly] public NativeArray<ProxyData> proxyDataArray;
-            [ReadOnly] public int proxyCount;
+            [ReadOnly] public NativeArray<VolumeData> volumeDataArray;
+            [ReadOnly] public int volumeCount;
             [ReadOnly] public float forceLevel;
             [ReadOnly] public float torqueDeceleration;
             
@@ -484,11 +511,11 @@ namespace MisterGames.Logic.Water {
                 float3 surfacePoint = default;
 #endif
                 
-                for (int i = 0; i < proxyCount; i++) {
-                    var proxyData = proxyDataArray[i];
+                for (int i = 0; i < volumeCount; i++) {
+                    var volumeData = volumeDataArray[i];
 
-                    var localPoint = math.mul(math.inverse(proxyData.rotation), point - proxyData.position);
-                    var halfSize = proxyData.size * 0.5f;
+                    var localPoint = math.mul(math.inverse(volumeData.rotation), point - volumeData.position);
+                    var halfSize = volumeData.size * 0.5f;
 
                     if (localPoint.x < -halfSize.x || localPoint.x > halfSize.x ||
                         localPoint.y < -halfSize.y || localPoint.y > halfSize.y ||
@@ -497,8 +524,8 @@ namespace MisterGames.Logic.Water {
                         continue;
                     }
                     
-                    var sn = math.mul(proxyData.rotation, up);
-                    var sc = proxyData.position + sn * (halfSize.y + proxyData.surfaceOffset);
+                    var sn = math.mul(volumeData.rotation, up);
+                    var sc = volumeData.position + sn * (halfSize.y + volumeData.surfaceOffset);
                     var sp = point + math.project(sc - point, sn);
                     
 #if UNITY_EDITOR
@@ -511,7 +538,7 @@ namespace MisterGames.Logic.Water {
                     validProxyCount++;
                     
                     float forceMul = forceLevel > 0f ? math.clamp(math.distance(sp, point) / forceLevel, 0f, 1f) : 1f;
-                    force += proxyData.forceMul * forceMul * sn;
+                    force += volumeData.forceMul * forceMul * sn;
                 }
 
                 if (validProxyCount <= 0) {
@@ -528,6 +555,7 @@ namespace MisterGames.Logic.Water {
                 
                 forceDataArray[index] = new ForceData(
                     floatingData.rbId,
+                    floatingData.rbIndex,
                     floatingData.point,
                     force,
                     torque 
@@ -540,21 +568,22 @@ namespace MisterGames.Logic.Water {
         }
         
         [BurstCompile]
-        private struct CalculateValidFloatingPointsPerRbJob : IJob {
+        private struct CalculateValidFloatingPointsPerRbJob : IJobParallelFor {
             
+            [ReadOnly] public NativeArray<FloatingPointsPerRbData> rbDataArray;
             [ReadOnly] public NativeArray<ForceData> forceDataArray;
-            [ReadOnly] public int count;
 
-            public NativeHashMap<int, int> rbIdToFloatingPointsCountMap;
+            public NativeArray<float> forceMulArray;
             
-            public void Execute() {
-                for (int i = 0; i < count; i++) {
-                    var forceData = forceDataArray[i];
-                    if (forceData.rbId == 0) continue;
-                    
-                    rbIdToFloatingPointsCountMap[forceData.rbId] = 
-                        (rbIdToFloatingPointsCountMap.TryGetValue(forceData.rbId, out int count) ? count : 0) + 1;
+            public void Execute(int index) {
+                var data = rbDataArray[index];
+                int validFloatingPointsCount = 0;
+                
+                for (int i = data.firstFloatingPointIndex; i < data.floatingPointCount; i++) {
+                    if (forceDataArray[i].rbId != 0) validFloatingPointsCount++;
                 }
+                
+                forceMulArray[index] = validFloatingPointsCount > 0 ? 1f / validFloatingPointsCount : 0f;
             }
         }
         

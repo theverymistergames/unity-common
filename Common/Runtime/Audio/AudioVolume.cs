@@ -71,7 +71,7 @@ namespace MisterGames.Common.Audio {
                         results = results,
                     };
                 
-                    writeZeroWeightJob.Schedule(count, UnityJobsExt.BatchCount(count)).Complete();
+                    writeZeroWeightJob.Schedule(count, JobExt.BatchFor(count)).Complete();
                     return;
                 
                 case Mode.Local:
@@ -82,7 +82,7 @@ namespace MisterGames.Common.Audio {
                         results = results,
                     };
                 
-                    multiplyWeightJob.Schedule(count, UnityJobsExt.BatchCount(count)).Complete();
+                    multiplyWeightJob.Schedule(count, JobExt.BatchFor(count)).Complete();
                     return;
                 
                 default:

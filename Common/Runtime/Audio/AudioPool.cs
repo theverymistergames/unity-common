@@ -893,8 +893,8 @@ namespace MisterGames.Common.Audio {
             };
 
             var prepareJobHandle = prepareRaycastCommandsJob.ScheduleBatch(count * _rays, _rays);
-            var raycastJobHandle = RaycastCommand.ScheduleBatch(raycastCommands, hits, UnityJobsExt.BatchCount(count * _rays), _maxHits, prepareJobHandle);
-            var calculateWeightsJobHandle = calculateOcclusionWeightsJob.Schedule(count, UnityJobsExt.BatchCount(count), raycastJobHandle);
+            var raycastJobHandle = RaycastCommand.ScheduleBatch(raycastCommands, hits, JobExt.BatchFor(count * _rays), _maxHits, prepareJobHandle);
+            var calculateWeightsJobHandle = calculateOcclusionWeightsJob.Schedule(count, JobExt.BatchFor(count), raycastJobHandle);
                 
             calculateWeightsJobHandle.Complete();
             

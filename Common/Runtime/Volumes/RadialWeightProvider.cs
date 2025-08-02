@@ -1,5 +1,4 @@
 ﻿using MisterGames.Common.Attributes;
-using MisterGames.Common.Easing;
 using MisterGames.Common.Jobs;
 using Unity.Burst;
 using Unity.Collections;
@@ -33,7 +32,7 @@ namespace MisterGames.Common.Volumes {
                 results = results
             };
             
-            job.Schedule(count, UnityJobsExt.BatchCount(count)).Complete();
+            job.Schedule(count, JobExt.BatchFor(count)).Complete();
         }
 
         private static float GetWeight(float3 position, float3 center, float2 radiusInOut, float fallOff) {
@@ -73,7 +72,7 @@ namespace MisterGames.Common.Volumes {
         [SerializeField] private bool _showDebugInfo;
         [VisibleIf(nameof(_showDebugInfo))]
         [SerializeField] private float _testPoint = 1f;
-        
+
         private void Reset() {
             _center = transform;
         }

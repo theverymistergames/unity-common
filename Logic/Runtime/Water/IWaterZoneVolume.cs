@@ -2,7 +2,7 @@
 
 namespace MisterGames.Logic.Water {
     
-    public interface IWaterZoneProxy {
+    public interface IWaterZoneVolume {
 
         int VolumeId { get; }
         float SurfaceOffset { get; }

@@ -46,12 +46,12 @@ namespace MisterGames.Common.Volumes {
                 results = results
             };
             
-            int batchCount = UnityJobsExt.BatchCount(count);
+            int batchCount = JobExt.BatchFor(count);
 
             var prepareCommandsJobHandle = prepareCommandsJob.Schedule(count, batchCount);
             var commandsJobHandle = ClosestPointCommand.ScheduleBatch(commands, closestPoints, batchCount, prepareCommandsJobHandle);
             
-            weightJob.Schedule(count, UnityJobsExt.BatchCount(count), commandsJobHandle).Complete();
+            weightJob.Schedule(count, JobExt.BatchFor(count), commandsJobHandle).Complete();
         }
 
         private static float GetWeight(float3 position, float3 closestPoint, float blend) {
@@ -100,7 +100,7 @@ namespace MisterGames.Common.Volumes {
         [SerializeField] private bool _showDebugInfo;
         [VisibleIf(nameof(_showDebugInfo))]
         [SerializeField] private Vector3 _testPoint;
-
+        
         private void OnDrawGizmos() {
             if (!_showDebugInfo) return;
 

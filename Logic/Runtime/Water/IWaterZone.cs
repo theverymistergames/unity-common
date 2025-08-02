@@ -4,16 +4,16 @@ namespace MisterGames.Logic.Water {
     
     public interface IWaterZone {
 
-        void AddProxyCluster(IWaterZoneProxyCluster cluster);
-        void RemoveProxyCluster(IWaterZoneProxyCluster cluster);
+        void AddVolume(IWaterZoneVolume volume);
+        void RemoveVolume(IWaterZoneVolume volume);
         
-        void AddProxy(IWaterZoneProxy proxy);
-        void RemoveProxy(IWaterZoneProxy proxy);
+        void AddVolumeCluster(IWaterZoneVolumeCluster cluster);
+        void RemoveVolumeCluster(IWaterZoneVolumeCluster cluster);
         
-        int GetProxyVolumeId(IWaterZoneProxy proxy);
+        int GetVolumeId(IWaterZoneVolume volume);
         
-        void TriggerEnter(Collider collider, IWaterZoneProxy proxy);
-        void TriggerExit(Collider collider, IWaterZoneProxy proxy);
+        void TriggerEnter(Collider collider, IWaterZoneVolume volume);
+        void TriggerExit(Collider collider, IWaterZoneVolume volume);
     }
     
 }

@@ -6,7 +6,7 @@ using UnityEngine;
 namespace MisterGames.Logic.Water {
     
     [RequireComponent(typeof(BoxCollider))]
-    public sealed class WaterZoneProxy : MonoBehaviour, IWaterZoneProxy {
+    public sealed class WaterZoneVolume : MonoBehaviour, IWaterZoneVolume {
 
         [SerializeField] private TriggerEmitter _triggerEmitter;
         [SerializeField] private BoxCollider _waterBox;
