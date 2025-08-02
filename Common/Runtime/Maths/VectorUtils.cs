@@ -109,26 +109,6 @@ namespace MisterGames.Common.Maths {
         public static Vector3 Divide(this Vector3 a, Vector3 b) {
             return new Vector3(a.x / b.x, a.y / b.y, a.z / b.z);
         }
-        
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector2 FloorToInt(this Vector2 value) {
-            return new Vector2(Mathf.FloorToInt(value.x), Mathf.FloorToInt(value.y));
-        }
-        
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector3 FloorToInt(this Vector3 value) {
-            return new Vector3(Mathf.FloorToInt(value.x), Mathf.FloorToInt(value.y), Mathf.FloorToInt(value.z));
-        }
-        
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector2 CeilToInt(this Vector2 value) {
-            return new Vector2(Mathf.CeilToInt(value.x), Mathf.CeilToInt(value.y));
-        }
-        
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector3 CeilToInt(this Vector3 value) {
-            return new Vector3(Mathf.CeilToInt(value.x), Mathf.CeilToInt(value.y), Mathf.CeilToInt(value.z));
-        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector2 Mod(this Vector2 value, float divider) {
@@ -326,17 +306,17 @@ namespace MisterGames.Common.Maths {
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float SmoothExp(this float value, float target, float factor) {
-            return value + (target - value) * (1f - Mathf.Exp(-factor));
+            return value + (target - value) * (1f - math.exp(-factor));
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector2 SmoothExp(this Vector2 value, Vector2 target, float factor) {
-            return value + (target - value) * (1f - Mathf.Exp(-factor));
+            return value + (target - value) * (1f - math.exp(-factor));
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector3 SmoothExp(this Vector3 value, Vector3 target, float factor) {
-            return value + (target - value) * (1f - Mathf.Exp(-factor));
+            return value + (target - value) * (1f - math.exp(-factor));
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -351,17 +331,17 @@ namespace MisterGames.Common.Maths {
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float SmoothExpNonZero(this float value, float target, float factor, float dt) {
-            return factor > 0f ? value + (target - value) * (1f - Mathf.Exp(-factor * dt)) : target;
+            return factor > 0f ? value + (target - value) * (1f - math.exp(-factor * dt)) : target;
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector2 SmoothExpNonZero(this Vector2 value, Vector2 target, float factor, float dt) {
-            return factor > 0f ? value + (target - value) * (1f - Mathf.Exp(-factor * dt)) : target;
+            return factor > 0f ? value + (target - value) * (1f - math.exp(-factor * dt)) : target;
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector3 SmoothExpNonZero(this Vector3 value, Vector3 target, float factor, float dt) {
-            return factor > 0f ? value + (target - value) * (1f - Mathf.Exp(-factor * dt)) : target;
+            return factor > 0f ? value + (target - value) * (1f - math.exp(-factor * dt)) : target;
         }
     }
 

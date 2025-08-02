@@ -11,8 +11,8 @@ namespace MisterGames.Common.Audio {
         
         int Id { get; set; }
         int MixerGroupId { get; set; }
-        float Pitch { get; set; }
-        float AttenuationDistance { get; set; }
+        float PitchMul { get; set; }
+        float AttenuationMul { get; set; }
         AudioOptions AudioOptions { get; set; }
         int OcclusionFlag { get; set; }
     }

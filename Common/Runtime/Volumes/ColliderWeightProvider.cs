@@ -72,7 +72,7 @@ namespace MisterGames.Common.Volumes {
             [Unity.Collections.ReadOnly] public quaternion rotation;
             [Unity.Collections.ReadOnly] public float3 scale;
             
-            public NativeArray<ClosestPointCommand> commands;
+            [WriteOnly] public NativeArray<ClosestPointCommand> commands;
             
             public void Execute(int index) {
                 commands[index] = new ClosestPointCommand(positions[index], colliderInstanceId, position, rotation, scale);
@@ -87,7 +87,7 @@ namespace MisterGames.Common.Volumes {
             [Unity.Collections.ReadOnly] public float blend;
             [Unity.Collections.ReadOnly] public int volumeId;
             
-            public NativeArray<WeightData> results;
+            [WriteOnly] public NativeArray<WeightData> results;
 
             public void Execute(int index) {
                 float w = GetWeight(positions[index], closestPoints[index], blend);

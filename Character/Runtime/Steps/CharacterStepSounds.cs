@@ -82,11 +82,24 @@ namespace MisterGames.Character.Steps {
                     volume: volume * info.weight * volumeMul, 
                     pitch: pitch, 
                     options: AudioOptions.AffectedByTimeScale | AudioOptions.AffectedByVolumes | AudioOptions.ApplyOcclusion
-                );   
+                );
             }
         }
 
         private void OnStep(int foot, float distance, Vector3 point) {
+#if UNITY_EDITOR
+            if (_enableDebugSound) {
+                if (_debugSound == null) return;
+                
+                AudioPool.Main.Play(
+                    _debugSound, 
+                    _transform, 
+                    options: AudioOptions.AffectedByTimeScale | AudioOptions.AffectedByVolumes | AudioOptions.ApplyOcclusion
+                );
+                return;
+            }
+#endif
+            
             PlayStepSound();
         }
 
@@ -100,6 +113,9 @@ namespace MisterGames.Character.Steps {
         }
 
 #if UNITY_EDITOR
+        [SerializeField] private bool _enableDebugSound;
+        [SerializeField] private AudioClip _debugSound;
+        
         private void OnValidate() {
             FetchMaterialIdToIndexMap();
         }

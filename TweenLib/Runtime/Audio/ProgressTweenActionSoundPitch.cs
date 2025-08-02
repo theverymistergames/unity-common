@@ -16,7 +16,7 @@ namespace MisterGames.TweenLib.Animations {
         
         public void OnProgressUpdate(float progress) {
             var handle = AudioPool.Main?.GetAudioHandle(transform, attachId) ?? default;
-            handle.Pitch = Mathf.Lerp(startValue, endValue, progress);
+            handle.PitchMul = Mathf.Lerp(startValue, endValue, progress);
         }
     }
     

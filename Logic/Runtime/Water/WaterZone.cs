@@ -354,6 +354,7 @@ namespace MisterGames.Logic.Water {
 #endif
             }
 
+            rbDataArray.Dispose();
             volumeDataArray.Dispose();
             floatingDataArray.Dispose();
             forceMulArray.Dispose();
@@ -497,7 +498,7 @@ namespace MisterGames.Logic.Water {
             [ReadOnly] public float randomTorqueT;
             [ReadOnly] public float randomTorque;
             
-            public NativeArray<ForceData> forceDataArray;
+            [WriteOnly] public NativeArray<ForceData> forceDataArray;
             
             public void Execute(int index) {
                 var floatingData = floatingDataArray[index];
@@ -573,7 +574,7 @@ namespace MisterGames.Logic.Water {
             [ReadOnly] public NativeArray<FloatingPointsPerRbData> rbDataArray;
             [ReadOnly] public NativeArray<ForceData> forceDataArray;
 
-            public NativeArray<float> forceMulArray;
+            [WriteOnly] public NativeArray<float> forceMulArray;
             
             public void Execute(int index) {
                 var data = rbDataArray[index];

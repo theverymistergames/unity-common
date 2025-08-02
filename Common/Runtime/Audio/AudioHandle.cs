@@ -13,9 +13,9 @@ namespace MisterGames.Common.Audio {
             set { if (IsValid(out var e)) e.Source.volume = value; }
         }
 
-        public float Pitch {
-            get => IsValid(out var e) ? e.Source.pitch : 0f;
-            set { if (IsValid(out var e)) e.Pitch = value; }
+        public float PitchMul {
+            get => IsValid(out var e) ? e.PitchMul : 0f;
+            set { if (IsValid(out var e)) e.PitchMul = value; }
         }
         
         public float StereoPan {
@@ -23,9 +23,9 @@ namespace MisterGames.Common.Audio {
             set { if (IsValid(out var e)) e.Source.panStereo = value; }
         }
         
-        public float AttenuationDistance {
-            get => IsValid(out var e) ? e.Source.maxDistance : 0f;
-            set { if (IsValid(out var e)) e.AttenuationDistance = value; }
+        public float AttenuationMul {
+            get => IsValid(out var e) ? e.AttenuationMul : 0f;
+            set { if (IsValid(out var e)) e.AttenuationMul = value; }
         }
 
         public Vector3 Position {

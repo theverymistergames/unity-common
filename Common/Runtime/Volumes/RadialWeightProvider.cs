@@ -59,7 +59,7 @@ namespace MisterGames.Common.Volumes {
             [Unity.Collections.ReadOnly] public float fallOff;
             [Unity.Collections.ReadOnly] public int volumeId;
             
-            public NativeArray<WeightData> results;
+            [WriteOnly] public NativeArray<WeightData> results;
 
             public void Execute(int index) {
                 float w = GetWeight(positions[index], center, radiusInOut, fallOff);

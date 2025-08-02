@@ -125,7 +125,8 @@ namespace MisterGames.Common.Audio {
             
             [Unity.Collections.ReadOnly] public int defaultVolumeId;
             [Unity.Collections.ReadOnly] public float weight;
-            public NativeArray<WeightData> results;
+            
+            [WriteOnly] public NativeArray<WeightData> results;
 
             public void Execute(int index) {
                 results[index] = new WeightData(weight, defaultVolumeId);

@@ -12,11 +12,11 @@ namespace MisterGames.Common.Audio {
         
         WeightData GetWeight(Vector3 position);
         void GetWeight(NativeArray<float3> positions, NativeArray<WeightData> results, int count);
-        
+
         bool ModifyOcclusionWeightForListener(ref float occlusionWeight);
+        bool ModifyOcclusionWeightForSound(ref float occlusionWeight);
         bool ModifyPitch(ref float pitch);
         bool ModifyAttenuationDistance(ref float attenuationDistance);
-        bool ModifyOcclusionWeightForSound(ref float occlusionWeight);
         bool ModifyLowPassFilter(ref float lpCutoffFreq);
         bool ModifyHighPassFilter(ref float hpCutoffFreq);
     }

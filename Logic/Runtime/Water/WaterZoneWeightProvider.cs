@@ -117,7 +117,8 @@ namespace MisterGames.Logic.Water {
             
             [ReadOnly] public int defaultVolumeId;
             [ReadOnly] public float weight;
-            public NativeArray<WeightData> results;
+            
+            [WriteOnly] public NativeArray<WeightData> results;
 
             public void Execute(int index) {
                 results[index] = new WeightData(weight, defaultVolumeId);
@@ -130,10 +131,10 @@ namespace MisterGames.Logic.Water {
             [ReadOnly] public NativeArray<VolumeData> volumeDataArray;
             [ReadOnly] public NativeArray<float3> positions;
             
-            public NativeArray<WeightData> weightArray;
+            [WriteOnly] public NativeArray<WeightData> weightArray;
             
             public void Execute(int startIndex, int count) {
-                var position = positions[(int) math.floor((float) startIndex / count)];
+                var position = positions[startIndex / count];
                 
                 for (int i = 0; i < count; i++) {
                     var volumeData = volumeDataArray[i];
@@ -145,11 +146,11 @@ namespace MisterGames.Logic.Water {
                         localPoint.y < -halfSize.y || localPoint.y > halfSize.y ||
                         localPoint.z < -halfSize.z || localPoint.z > halfSize.z) 
                     {
-                        weightArray[i] = new WeightData(0f, volumeData.volumeId);
+                        weightArray[startIndex + i] = new WeightData(0f, volumeData.volumeId);
                         continue;
                     }
                 
-                    weightArray[i] = new WeightData(1f, volumeData.volumeId);
+                    weightArray[startIndex + i] = new WeightData(1f, volumeData.volumeId);
                 }
             }
         }
@@ -161,7 +162,7 @@ namespace MisterGames.Logic.Water {
             [ReadOnly] public int defaultVolumeId;
             [ReadOnly] public int volumeCount;
             
-            public NativeArray<WeightData> results;
+            [WriteOnly] public NativeArray<WeightData> results;
             
             public void Execute(int index) {
                 int from = index * volumeCount;
