@@ -356,14 +356,14 @@ namespace MisterGames.Common.Audio {
             
             audioElement.AudioOptions = options;
             audioElement.PitchMul = pitch;
-            audioElement.AttenuationMul = _attenuationDistance;
+            audioElement.AttenuationMul = 1f;
             audioElement.OcclusionFlag = 0;
             
             audioElement.LowPass.lowpassResonanceQ = _qLow;
             audioElement.HighPass.highpassResonanceQ = _qHigh;
+            audioElement.Source.maxDistance = _attenuationDistance;
             
-            audioElement.LowPass.cutoffFrequency = LpCutoffUpperBound;
-            audioElement.HighPass.cutoffFrequency = HpCutoffLowerBound;
+            ProcessSound(audioElement);
         }
         
         private IAudioElement GetAudioElementAtWorldPosition(Vector3 position) {
@@ -520,7 +520,6 @@ namespace MisterGames.Common.Audio {
         }
         
         void IUpdate.OnUpdate(float dt) {
-            
             ProcessSounds(dt);
         }
 
@@ -624,6 +623,66 @@ namespace MisterGames.Common.Audio {
             resultSoundArray.Dispose();
             
             _globalOcclusionWeight = 1f;
+        }
+        
+        private void ProcessSound(IAudioElement e) {
+            if (_audioListenersMap.Count == 0) {
+                // To reset smoothed values
+                e.OcclusionFlag = 0;
+                return;
+            }
+            
+            var listenerPos = _listenerTransform.position;
+            var listenerUp = _listenerUp.up;
+
+            var soundDataArray = new NativeArray<SoundData>(2, Allocator.TempJob);
+            var soundOptionsArray = new NativeArray<AudioOptions>(2, Allocator.TempJob);
+            var listenerAndSoundsPositionArray = new NativeArray<float3>(2, Allocator.TempJob);
+            
+            listenerAndSoundsPositionArray[0] = listenerPos;
+            
+            var options = e.AudioOptions;
+            int mixerGroupId = e.MixerGroupId;
+
+            if (mixerGroupId != 0 && !_includeMixerGroupsForVolumesSet.Contains(mixerGroupId)) {
+                options &= ~AudioOptions.AffectedByVolumes;
+            }
+                
+            soundDataArray[0] = new SoundData(
+                e.Id, e.OcclusionFlag,
+                e.Source.spatialBlend, e.PitchMul, e.AttenuationMul, e.LowPass.cutoffFrequency, e.HighPass.cutoffFrequency
+            );
+                
+            soundOptionsArray[0] = options;
+            listenerAndSoundsPositionArray[1] = e.Transform.position;
+
+            var volumeResultArray = CalculateVolumes(listenerAndSoundsPositionArray, soundOptionsArray, 1);
+            
+            var occlusionResultArray = CalculateOcclusion(listenerAndSoundsPositionArray, soundOptionsArray, 1, listenerUp
+#if UNITY_EDITOR
+                , soundDataArray
+#endif
+            );
+            
+            var resultSoundArray = CalculateResult(soundDataArray, soundOptionsArray, volumeResultArray, occlusionResultArray, 1, 0f);
+
+            var resultData = resultSoundArray[0];
+                
+            e.Source.pitch = resultData.pitch;
+            e.Source.maxDistance = resultData.attenuationDistance;
+                
+            e.LowPass.cutoffFrequency = resultData.lpCutoff;
+            e.HighPass.cutoffFrequency = resultData.hpCutoff;
+
+            e.OcclusionFlag = 1;
+
+            soundDataArray.Dispose();
+            soundOptionsArray.Dispose();
+            listenerAndSoundsPositionArray.Dispose();
+            
+            volumeResultArray.Dispose();
+            occlusionResultArray.Dispose();
+            resultSoundArray.Dispose();
         }
         
         private NativeArray<VolumeResultData> CalculateVolumes(
@@ -1413,8 +1472,8 @@ namespace MisterGames.Common.Audio {
                 float lpCutoffBound = math.min(volumeData.lpCutoff, math.lerp(LpCutoffUpperBound, lpCutoff, lpCutoffT));
                 float hpCutoffBound = math.max(volumeData.hpCutoff, math.lerp(HpCutoffLowerBound, hpCutoff, hpCutoffT));
                 
-                lpCutoffBound = soundData.lpCutoff.SmoothExpNonZero(lpCutoffBound, soundData.occlusionFlag * smoothing, dt);
-                hpCutoffBound = soundData.hpCutoff.SmoothExpNonZero(hpCutoffBound, soundData.occlusionFlag * smoothing, dt);
+                lpCutoffBound = dt > 0f ? soundData.lpCutoff.SmoothExpNonZero(lpCutoffBound, soundData.occlusionFlag * smoothing, dt) : lpCutoffBound;
+                hpCutoffBound = dt > 0f ? soundData.hpCutoff.SmoothExpNonZero(hpCutoffBound, soundData.occlusionFlag * smoothing, dt) : hpCutoffBound;
                 
                 resultArray[index] = new SoundResultData(pitch, attenuationDistance, lpCutoffBound, hpCutoffBound);
             }
