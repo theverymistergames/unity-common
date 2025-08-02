@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Easing;
 using MisterGames.Common.Jobs;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Pooling;
+using MisterGames.Common.Strings;
 using MisterGames.Common.Tick;
 using MisterGames.Common.Volumes;
 using Unity.Burst;
@@ -561,11 +563,13 @@ namespace MisterGames.Common.Audio {
             }
 
             var volumeResultArray = CalculateVolumes(listenerAndSoundsPositionArray, soundOptionsArray, soundCount);
+            
             var occlusionResultArray = CalculateOcclusion(listenerAndSoundsPositionArray, soundOptionsArray, soundCount, listenerUp
 #if UNITY_EDITOR
                 , soundDataArray
 #endif
             );
+            
             var resultSoundArray = CalculateResult(soundDataArray, soundOptionsArray, volumeResultArray, occlusionResultArray, soundCount, dt);
 
             for (int i = 0; i < soundCount; i++) {
@@ -576,22 +580,28 @@ namespace MisterGames.Common.Audio {
 
 #if UNITY_EDITOR
                 if (_showSoundsDebugInfo) {
-                    string clipName = e.Source.clip.name;
-                    bool show = false;
-                    
-                    for (int f = 0; f < _showSoundsNameFilters?.Length; f++) {
-                        string filter = _showSoundsNameFilters[f];
-                        if (string.IsNullOrWhiteSpace(filter) || !clipName.Contains(filter)) continue;
+                    bool show = true;
+
+                    if (_showSoundsNameFilters?.Length > 0) {
+                        show = false;
+                        string clipName = e.Source.clip.name;
+
+                        for (int f = 0; f < _showSoundsNameFilters?.Length; f++) {
+                            string filter = _showSoundsNameFilters[f];
+                            if (string.IsNullOrWhiteSpace(filter) || !clipName.Contains(filter)) continue;
                             
-                        show = true;
-                        break;
+                            show = true;
+                            break;
+                        }   
                     }
 
                     if (show) {
                         var occ = occlusionResultArray[i];
+                        var vol = volumeResultArray[i];
                         Debug.Log($"AudioPool.ProcessSounds: f {Time.frameCount}, clip {e.Source.clip.name}, " +
                                   $"w low {occ.weightLowFreq}, w high {occ.weightHighFreq}, lp {resultData.lpCutoff}, hp {resultData.hpCutoff}, " +
-                                  $"dist {occ.distance}, collisions {occ.collisions}, dist w {occ.distanceWeight}, coll w {occ.collisionWeight}");
+                                  $"dist {occ.distance}, collisions {occ.collisions}, dist w {occ.distanceWeight}, coll w {occ.collisionWeight}, " +
+                                  $"vol occ {vol.occlusion}, vol pitch {vol.pitch}, vol atten {vol.attenuation}, vol lp {vol.lpCutoff}, vol hp {vol.hpCutoff}");
                     }
                 }
 #endif
@@ -619,7 +629,7 @@ namespace MisterGames.Common.Audio {
         private NativeArray<VolumeResultData> CalculateVolumes(
             NativeArray<float3> listenerAndSoundPositionArray,
             NativeArray<AudioOptions> soundOptionsArray,
-            int soundCount) 
+            int soundCount)
         {
             NativeArray<VolumeResultData> resultArray;
             
@@ -661,7 +671,7 @@ namespace MisterGames.Common.Audio {
                 if (volume.ModifyAttenuationDistance(ref attenuation)) AudioParameter.Attenuation.WriteToMask(ref mask);
                 if (volume.ModifyLowPassFilter(ref lpCutoff)) AudioParameter.LpCutoff.WriteToMask(ref mask);
                 if (volume.ModifyHighPassFilter(ref hpCutoff)) AudioParameter.HpCutoff.WriteToMask(ref mask);
-
+                
                 volumeProcessDataArray[volumeIndex] = new VolumeProcessData(
                     mask, listenerPresence,
                     occlusionListener, occlusionSound, pitch, attenuation, lpCutoff, hpCutoff
@@ -670,6 +680,24 @@ namespace MisterGames.Common.Audio {
                 var weightArray = new NativeArray<WeightData>(soundCount + 1, Allocator.TempJob);
                 volume.GetWeight(listenerAndSoundPositionArray, weightArray, soundCount + 1);
 
+#if UNITY_EDITOR
+                if (_showVolumeInfo) {
+                    var sb = new StringBuilder();
+                    
+                    if (AudioParameter.ListenerOcclusion.InMask(mask)) sb.Append($"{AudioParameter.ListenerOcclusion} ");
+                    if (AudioParameter.SoundOcclusion.InMask(mask)) sb.Append($"{AudioParameter.SoundOcclusion} ");
+                    if (AudioParameter.Pitch.InMask(mask)) sb.Append($"{AudioParameter.Pitch} ");
+                    if (AudioParameter.Attenuation.InMask(mask)) sb.Append($"{AudioParameter.Attenuation} ");
+                    if (AudioParameter.LpCutoff.InMask(mask)) sb.Append($"{AudioParameter.LpCutoff} ");
+                    if (AudioParameter.HpCutoff.InMask(mask)) sb.Append($"{AudioParameter.HpCutoff}");
+                    
+                    Debug.Log($"AudioPool.CalculateVolumes: f {Time.frameCount}, vol #{volumeIndex} {volume}, " +
+                              $"list presence {listenerPresence}, " +
+                              $"occ lis {occlusionListener}, occ sound {occlusionSound}, pitch {pitch}, atten {attenuation}, lp {lpCutoff}, hp {hpCutoff}, " +
+                              $"changed [{sb}]");
+                }
+#endif
+                
                 var writeWeightJob = new WriteVolumeWeightDataJob {
                     weightArray = weightArray,
                     priority = priority,
@@ -1061,9 +1089,10 @@ namespace MisterGames.Common.Audio {
                 int topPriority = int.MinValue;
                 
                 for (int i = 0; i < volumeCount; i++) {
-                    if (!AudioParameter.ListenerOcclusion.InMask(volumeProcessDataArray[i].mask)) continue;
+                    var weightData = volumeWeightDataArray[i];
+                    if (weightData.weight <= 0f || !AudioParameter.ListenerOcclusion.InMask(volumeProcessDataArray[i].mask)) continue;
 
-                    topPriority = math.max(topPriority, volumeWeightDataArray[i].priority);
+                    topPriority = math.max(topPriority, weightData.priority);
                 }
                 
                 float weightSum = 0f;
@@ -1072,14 +1101,18 @@ namespace MisterGames.Common.Audio {
                 for (int i = 0; i < volumeCount; i++) {
                     var weightData = volumeWeightDataArray[i];
                     var processData = volumeProcessDataArray[i];
+
+                    listenerVolumeIdToWeightMap[weightData.volumeId] = 
+                        math.max(weightData.weight, listenerVolumeIdToWeightMap.TryGetValue(weightData.volumeId, out float w) ? w : 0f);
                     
-                    if (weightData.priority < topPriority || !AudioParameter.ListenerOcclusion.InMask(processData.mask)) continue;
+                    if (weightData.weight <= 0f || weightData.priority < topPriority ||
+                        !AudioParameter.ListenerOcclusion.InMask(processData.mask)) 
+                    {
+                        continue;
+                    }
 
                     weightSum += weightData.weight;
                     occlusionMul += weightData.weight * processData.occlusionListener;
-                    
-                    listenerVolumeIdToWeightMap[weightData.volumeId] = 
-                        math.max(weightData.weight, listenerVolumeIdToWeightMap.TryGetValue(weightData.volumeId, out float w) ? w : 0f);
                 }
                 
                 occlusionMul = weightSum > 0f ? occlusionMul / weightSum : 1f;
@@ -1118,25 +1151,11 @@ namespace MisterGames.Common.Audio {
 
                     int mask = volumeProcessDataArray[i].mask;
                     
-                    if (AudioParameter.SoundOcclusion.InMask(mask)) {
-                        topPriorityOcclusionSound = math.max(topPriorityOcclusionSound, weightData.priority);
-                    }
-                    
-                    if (AudioParameter.Pitch.InMask(mask)) {
-                        topPriorityPitch = math.max(topPriorityPitch, weightData.priority);
-                    }
-                    
-                    if (AudioParameter.Attenuation.InMask(mask)) {
-                        topPriorityAttenuation = math.max(topPriorityAttenuation, weightData.priority);
-                    }
-                    
-                    if (AudioParameter.LpCutoff.InMask(mask)) {
-                        topPriorityLp = math.max(topPriorityLp, weightData.priority);
-                    }
-                    
-                    if (AudioParameter.HpCutoff.InMask(mask)) {
-                        topPriorityHp = math.max(topPriorityHp, weightData.priority);
-                    }
+                    if (AudioParameter.SoundOcclusion.InMask(mask)) topPriorityOcclusionSound = math.max(topPriorityOcclusionSound, weightData.priority);
+                    if (AudioParameter.Pitch.InMask(mask)) topPriorityPitch = math.max(topPriorityPitch, weightData.priority);
+                    if (AudioParameter.Attenuation.InMask(mask)) topPriorityAttenuation = math.max(topPriorityAttenuation, weightData.priority);
+                    if (AudioParameter.LpCutoff.InMask(mask)) topPriorityLp = math.max(topPriorityLp, weightData.priority);
+                    if (AudioParameter.HpCutoff.InMask(mask)) topPriorityHp = math.max(topPriorityHp, weightData.priority);
                 }
                 
                 float occlusionSound = 0f;
@@ -1195,15 +1214,15 @@ namespace MisterGames.Common.Audio {
                     ? math.lerp(1f, pitch / pitchWeightSum, math.clamp(pitchWeightSum, 0f, 1f))
                     : 1f;
                 
-                attenuation = pitchWeightSum > 0f
+                attenuation = attenuationWeightSum > 0f
                     ? math.lerp(attenuationDefault, attenuation / attenuationWeightSum, math.clamp(attenuationWeightSum, 0f, 1f))
                     : attenuationDefault;
                 
-                lpCutoff = pitchWeightSum > 0f
+                lpCutoff = lpCutoffWeightSum > 0f
                     ? math.lerp(LpCutoffUpperBound, lpCutoff / lpCutoffWeightSum, math.clamp(lpCutoffWeightSum, 0f, 1f))
                     : LpCutoffUpperBound;
                 
-                hpCutoff = pitchWeightSum > 0f
+                hpCutoff = hpCutoffWeightSum > 0f
                     ? math.lerp(HpCutoffLowerBound, hpCutoff / hpCutoffWeightSum, math.clamp(hpCutoffWeightSum, 0f, 1f))
                     : HpCutoffLowerBound;
                 
@@ -1402,12 +1421,11 @@ namespace MisterGames.Common.Audio {
         }
 
 #if UNITY_EDITOR
-        [Header("Debug Sounds")]
+        [Header("Debug")]
         [SerializeField] private bool _showSoundsDebugInfo;
-        [SerializeField] private string[] _showSoundsNameFilters;
-        
-        [Header("Debug Occlusion")]
+        [SerializeField] private bool _showVolumeInfo;
         [SerializeField] private bool _showOcclusionInfo;
+        [SerializeField] private string[] _showSoundsNameFilters;
         [SerializeField] private string[] _showOcclusionNameFilters;
 
         internal bool ShowDebugInfo => _showSoundsDebugInfo;
