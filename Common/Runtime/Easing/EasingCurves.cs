@@ -250,7 +250,7 @@ namespace MisterGames.Common.Easing {
 		private static AnimationCurve _easeOutQuart;
 		private static AnimationCurve EaseOutQuart => _easeOutQuart ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
-			new Vector2(0.269099f, 1.072581f),
+			new Vector2(0.26909f, 1.072581f),
 			new Vector2(0.565211f, 0.993938f),
 			new Vector2(1.0f, 1.0f)
 		});
@@ -258,7 +258,7 @@ namespace MisterGames.Common.Easing {
 		private static AnimationCurve _easeInOutQuart;
 		private static AnimationCurve EaseInOutQuart => _easeInOutQuart ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
-			new Vector2(0.217394f, 0.003031f),
+			new Vector2(0.21739f, 0.003031f),
 			new Vector2(0.365451f, -0.036291f),
 			new Vector2(0.5f, 0.5f),
 			new Vector2(0.634549f, 1.036290f),
@@ -296,7 +296,7 @@ namespace MisterGames.Common.Easing {
 		private static AnimationCurve _easeInSine;
 		private static AnimationCurve EaseInSine => _easeInSine ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
-			new Vector2(0.360780f, -0.000436f),
+			new Vector2(0.360781f, -0.000436f),
 			new Vector2(0.673486f, 0.486554f),
 			new Vector2(1.0f, 1.0f)
 		});
@@ -304,7 +304,7 @@ namespace MisterGames.Common.Easing {
 		private static AnimationCurve _easeOutSine;
 		private static AnimationCurve EaseOutSine => _easeOutSine ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
-			new Vector2(0.330931f, 0.520737f),
+			new Vector2(0.33093f, 0.520737f),
 			new Vector2(0.641311f, 1.000333f),
 			new Vector2(1.0f, 1.0f)
 		});
@@ -312,7 +312,7 @@ namespace MisterGames.Common.Easing {
 		private static AnimationCurve _easeInOutSine;
 		private static AnimationCurve EaseInOutSine => _easeInOutSine ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
-			new Vector2(0.180390f, -0.000217f),
+			new Vector2(0.180391f, -0.000217f),
 			new Vector2(0.336743f, 0.243277f),
 			new Vector2(0.5f, 0.5f),
 			new Vector2(0.665465f, 0.760338f),
@@ -323,7 +323,7 @@ namespace MisterGames.Common.Easing {
 		private static AnimationCurve _easeInExpo;
 		private static AnimationCurve EaseInExpo => _easeInExpo ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
-			new Vector2(0.636963f, 0.0199012f),
+			new Vector2(0.63696f, 0.0199012f),
 			new Vector2(0.844333f, -0.0609379f),
 			new Vector2(1.0f, 1.0f),
 		});
@@ -339,7 +339,7 @@ namespace MisterGames.Common.Easing {
 		private static AnimationCurve _easeInOutExpo;
 		private static AnimationCurve EaseInOutExpo => _easeInOutExpo ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
-			new Vector2(0.318482f, 0.009951f),
+			new Vector2(0.31848f, 0.009951f),
 			new Vector2(0.422167f, -0.030469f),
 			new Vector2(0.5f, 0.5f),
 			new Vector2(0.577833f, 1.0304689f),
@@ -440,7 +440,7 @@ namespace MisterGames.Common.Easing {
 		private static AnimationCurve _easeInOutBounce;
 		private static AnimationCurve EaseInOutBounce => _easeInOutBounce ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
-			new Vector2(0.015152f, 0.010417f),
+			new Vector2(0.01515f, 0.010417f),
 			new Vector2(0.030303f, 0.010417f),
 			new Vector2(0.0455f, 0.0f),
 
@@ -504,8 +504,8 @@ namespace MisterGames.Common.Easing {
 		private static AnimationCurve _easeInElastic;
 		private static AnimationCurve EaseInElastic => _easeInElastic ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
-			new Vector2(0.175f, 0.00250747f),
-			new Vector2(0.173542f, 0.0f),
+			new Vector2(0.175f, 0.002507f),
+			new Vector2(0.1735f, 0.0f),
 			new Vector2(0.175f, 0.0f),
 
 			new Vector2(0.4425f, -0.0184028f),
@@ -524,7 +524,7 @@ namespace MisterGames.Common.Easing {
 		private static AnimationCurve _easeOutElastic;
 		private static AnimationCurve EaseOutElastic => _easeOutElastic ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
-			new Vector2(0.133125f, 1.666667f),
+			new Vector2(0.13313f, 1.666667f),
 			new Vector2(0.091875f, 1.586139f),
 			new Vector2(0.225f, 1.0f),
 

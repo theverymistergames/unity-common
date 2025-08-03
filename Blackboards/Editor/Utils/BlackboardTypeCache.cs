@@ -18,7 +18,7 @@ namespace MisterGames.Blackboards.Editor {
         public static List<SearchTreeEntry> SearchTree { get; }
 
         static BlackboardTypeCache() {
-            SearchTree = CreateTypeTree();
+            //SearchTree = CreateTypeTree();
         }
 
         private static List<SearchTreeEntry> CreateTypeTree() {
