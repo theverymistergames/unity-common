@@ -2,8 +2,6 @@
     
     public readonly struct MaterialInfo {
 
-        public static readonly MaterialInfo Empty = new();
-        
         public readonly int materialId;
         public readonly float weight;
         

@@ -19,6 +19,7 @@ namespace MisterGames.Collisions.Utils {
         private static readonly IComparer<RaycastResult> RaycastResultDistanceComparerDesc = new RaycastResultDistanceComparer(false);
         
         private static Func<int, Collider> _getColliderById;
+        private static Func<int, Component> _getBodyById;
         
         private sealed class RaycastHitDistanceComparer : IComparer<RaycastHit> {
             private readonly int _orderSign;
@@ -34,6 +35,7 @@ namespace MisterGames.Collisions.Utils {
 
         static CollisionUtils() {
             PrepareGetColliderByIdFunc();
+            PrepareGetBodyByIdFunc();
         }
         
         private static void PrepareGetColliderByIdFunc() {
@@ -43,9 +45,21 @@ namespace MisterGames.Collisions.Utils {
             _getColliderById = Delegate.CreateDelegate(typeof(Func<int, Collider>), method) as Func<int, Collider>;
         }
         
+        private static void PrepareGetBodyByIdFunc() {
+            if (_getBodyById != null) return;
+            
+            var method = typeof(Physics).GetMethod("GetBodyByInstanceID", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+            _getBodyById = Delegate.CreateDelegate(typeof(Func<int, Component>), method) as Func<int, Component>;
+        }
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Collider GetColliderByInstanceId(int instanceId) {
             return _getColliderById.Invoke(instanceId);
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Rigidbody GetRigidbodyByInstanceId(int instanceId) {
+            return _getBodyById.Invoke(instanceId) as Rigidbody;
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using MisterGames.Actors;
-using MisterGames.Character.Phys;
 using MisterGames.Collisions.Detectors;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Audio;

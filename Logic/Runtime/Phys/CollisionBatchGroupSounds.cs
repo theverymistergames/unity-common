@@ -21,12 +21,13 @@ namespace MisterGames.Logic.Phys {
         [SerializeField] [Min(0f)] private float _primaryMaterialWeight = 1f;
         [SerializeField] private LabelValue _defaultSurfaceMaterial;
         [SerializeField] private MaterialData[] _primaryMaterialsPerLayer;
-        [SerializeField] private MaterialDetectorBase _secondaryMaterialDetector;
+        [SerializeField] private MaterialDetectorBase _materialDetector;
         
         [Header("Sounds")]
         [SerializeField] [Min(0f)] private float _soundCooldown = 0.25f;
         [SerializeField] [Min(0f)] private float _volumeMulMin = 0.1f;
         [SerializeField] [Min(0f)] private float _volumeMulMax = 1f;
+        [SerializeField] [Min(0f)] private float _impulseMin = 0f;
         [SerializeField] [Min(0f)] private float _impulseMax = 1f;
         [SerializeField] private MaterialSounds[] _materialSounds;
         
@@ -50,8 +51,11 @@ namespace MisterGames.Logic.Phys {
         private readonly Dictionary<int, int> _colliderMaterialMap = new();
         private readonly List<MaterialInfo> _materialList = new();
 
+        private bool _hasMaterialDetector;
+        
         private void Awake() {
             FetchMaterialIdToIndexMap();
+            _hasMaterialDetector = _materialDetector != null;
         }
 
         private void OnEnable() {
@@ -66,14 +70,19 @@ namespace MisterGames.Logic.Phys {
         
         private void OnContact(TriggerEventType evt, Rigidbody rb, int rbMaterial, Collider collider, Vector3 point, Vector3 normal, Vector3 impulse) {
             if (evt != TriggerEventType.Enter ||
-                _lastSoundTimeMap.TryGetValue(rb.GetInstanceID(), out float lastSoundTime) && TimeSources.scaledTime < lastSoundTime + _soundCooldown) 
+                _lastSoundTimeMap.TryGetValue(rb.GetHashCode(), out float lastSoundTime) && TimeSources.scaledTime < lastSoundTime + _soundCooldown) 
             {
                 return;
             }
 
-            _lastSoundTimeMap[rb.GetInstanceID()] = TimeSources.scaledTime;
+            _lastSoundTimeMap[rb.GetHashCode()] = TimeSources.scaledTime;
 
-            float volumeMul = _impulseMax > 0f ? Mathf.Clamp01(impulse.sqrMagnitude / (_impulseMax * _impulseMax)) : 1f;
+            if (impulse.sqrMagnitude < _impulseMin * _impulseMin) return;
+            
+            float volumeMul = _impulseMax - _impulseMin > 0f
+                ? Mathf.Lerp(_volumeMulMin, _volumeMulMax, (impulse.magnitude - _impulseMin) / (_impulseMax - _impulseMin)) 
+                : _volumeMulMax;
+            
             var materials = GetSurfaceMaterials(collider, point, normal);
 
             for (int i = 0; i < materials.Count; i++) {
@@ -85,7 +94,10 @@ namespace MisterGames.Logic.Phys {
         private IReadOnlyList<MaterialInfo> GetSurfaceMaterials(Collider collider, Vector3 point, Vector3 normal) {
             _materialList.Clear();
             _materialList.Add(GetSurfaceMaterial(collider));
-            _materialList.AddRange(_secondaryMaterialDetector.GetMaterials(point, normal));
+
+            if (_hasMaterialDetector) {
+                _materialList.AddRange(_materialDetector.GetMaterials(point, normal));   
+            }
             
             float invertedWeightSum = 0f;
             for (int i = 0; i < _materialList.Count; i++) {
@@ -171,7 +183,13 @@ namespace MisterGames.Logic.Phys {
         }
         
         private void OnValidate() {
-            if (Application.isPlaying) FetchMaterialIdToIndexMap();
+            if (_impulseMax < _impulseMin) _impulseMax = _impulseMin;
+            if (_volumeMulMax < _volumeMulMin) _volumeMulMax = _volumeMulMin;
+            
+            if (!Application.isPlaying) return;
+
+            _hasMaterialDetector = _materialDetector != null;
+            FetchMaterialIdToIndexMap();
         }
 #endif
     }
