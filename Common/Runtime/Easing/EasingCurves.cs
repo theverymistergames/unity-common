@@ -544,7 +544,7 @@ namespace MisterGames.Common.Easing {
 		private static AnimationCurve _easeInOutElastic;
 		private static AnimationCurve EaseInOutElastic => _easeInOutElastic ?? BezierToAnimationCurve(new Vector2[] {
 			new Vector2(0.0f, 0.0f),
-			new Vector2(0.0875f, 0.001254f),
+			new Vector2(0.0876f, 0.001254f),
 			new Vector2(0.086771f, 0.0f),
 			new Vector2(0.0875f, 0.0f),
 

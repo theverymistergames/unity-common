@@ -6,7 +6,7 @@ using MisterGames.Common.Editor.Views;
 using UnityEditor;
 using UnityEngine;
 
-namespace MisterGames.Common.Editor.Drawers {
+namespace MisterGames.Common.Editor.Easing {
 
     [CustomPropertyDrawer(typeof(AnimationCurve))]
     public class AnimationCurvePropertyDrawer : PropertyDrawer {

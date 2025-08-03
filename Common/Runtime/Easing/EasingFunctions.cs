@@ -2,16 +2,19 @@
 using System.Runtime.CompilerServices;
 using Unity.Burst;
 using Unity.Mathematics;
-using UnityEngine;
 
 namespace MisterGames.Common.Easing {
 
 	public static class EasingFunctions {
 
+        private const float aExpo = 1.0009775171065494f;
+        private const float bExpo = -0.0009775171065494f;
+        private const float bExpo2 = -0.0004887585532747f;
         private const float sBounce = 1f / 2.75f;
         private const float sBack = 1.70158f;
         private const float sBack1525 = sBack * 1.525f;
-        
+        private const float sElastic = math.PI2 / 0.3f;
+            
         [BurstCompile]
         public static float Evaluate(this EasingType easingType, float value) {
             return easingType switch {
@@ -192,19 +195,20 @@ namespace MisterGames.Common.Easing {
 
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static float EaseInExpo(float value) {
-            return math.pow(2f, 10f * (value - 1f));
+            // 2^-10 is not zero, so we need to scale to match x,y = 0 and x,y = 1 
+            return aExpo * math.pow(2f, 10f * (value - 1f)) + bExpo;
         }
 
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static float EaseOutExpo(float value) {
-            return -math.pow(2f, -10f * value) + 1f;
+            return -aExpo * math.pow(2f, -10f * value) + aExpo;
         }
 
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static float EaseInOutExpo(float value) {
             return value < 0.5f 
-                ? 0.5f * math.pow(2f, 10f * (2f * value - 1)) 
-                : -0.5f * math.pow(2f, -20f * value + 10f) + 1f;
+                ? aExpo * 0.5f * math.pow(2f, 10f * (2f * value - 1f)) + bExpo2
+                : aExpo * -0.5f * math.pow(2f, -10f * (2f * value - 1f)) + 1f - bExpo2;
         }
 
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -214,7 +218,6 @@ namespace MisterGames.Common.Easing {
 
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static float EaseOutCirc(float value) {
-            value--;
             return math.sqrt(1f - (value - 1f) * (value - 1f));
         }
 
@@ -259,36 +262,30 @@ namespace MisterGames.Common.Easing {
 
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static float EaseInOutBack(float value) {
-            return value < 0.5f 
-                ? 0.5f * (4f * value * value * ((sBack1525 + 1) * value - sBack1525)) 
+            return value < 0.5f
+                ? 0.5f * (4f * value * value * ((sBack1525 + 1f) * 2f * value - sBack1525)) 
                 : 2f * (value - 1f) * (value - 1f) * ((sBack1525 + 1f) * 2f * (value - 1f) + sBack1525) + 1f;
         }
 
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static float EaseInElastic(float value) {
-            if (math.abs(value) < float.Epsilon) return 0f;
-            if (math.abs(value - 1f) < float.Epsilon) return 1f;
-
-            return -math.pow(2f, 10f * (value - 1f)) * math.sin((value - 0.075f) * (2f * math.PI) / 0.3f);
+            if (1f - 4 * (value - 0.5f) * (value - 0.5f) < float.Epsilon) return value;
+            return -math.pow(2f, 10f * (value - 1f)) * math.sin((value - 1.075f) * sElastic);
         }
 
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static float EaseOutElastic(float value) {
-            if (math.abs(value) < float.Epsilon) return 0f;
-            if (math.abs(value - 1f) < float.Epsilon) return 1f;
-
-            return math.pow(2f, -10f * value) * math.sin((value - 0.075f) * (2f * math.PI) / 0.3f) + 1f;
+            if (1f - 4 * (value - 0.5f) * (value - 0.5f) < float.Epsilon) return value;
+            return math.pow(2f, -10f * value) * math.sin((value - 0.075f) * sElastic) + 1f;
         }
 
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static float EaseInOutElastic(float value) {
-            if (Math.Abs(value) < float.Epsilon) return 0f;
-
-            if (Math.Abs(2f * value - 2f) < float.Epsilon) return 1f;
-
-            return value < 0.5f 
-                ? -0.5f * (math.pow(2f, 10f * (2f * value - 1f)) * math.sin((value - 0.075f) * (2f * math.PI) / 0.3f)) 
-                : math.pow(2f, -20f * (value - 1f)) * math.sin((value - 0.075f) * (2f * math.PI) / 0.3f) * 0.5f;
+            if (1f - 4f * (value - 0.5f) * (value - 0.5f) < float.Epsilon) return value;
+            
+            return value < 0.5f
+                ? -0.5f * math.pow(2f, 20f * value - 10f) * math.sin((2f * value - 1.075f) * sElastic) 
+                : 0.5f * math.pow(2f, -20f * value + 10f) * math.sin((2f * value - 1.075f) * sElastic) + 1f;
         }
         
         //
