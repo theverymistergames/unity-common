@@ -14,7 +14,7 @@ namespace MisterGames.Common.Service {
         private readonly MultiValueDictionary<KeyIdInstance, Type> _serviceWithIdToTypeMap = new();
 
         private const bool EnableLogs = true;
-        private static readonly string LogPrefix = "Services: ".FormatColorOnlyForEditor(Color.white);
+        private static readonly string LogPrefix = "Services".FormatColorOnlyForEditor(Color.white);
         
         public ServiceBuilder RegisterGlobal<T>(T service) where T : class {
             return RegisterGlobal(service, typeof(T));
@@ -143,15 +143,15 @@ namespace MisterGames.Common.Service {
         }
         
         private static void LogInfo(string message) {
-            if (EnableLogs) Debug.Log($"{LogPrefix}{message}");
+            if (EnableLogs) Debug.Log($"{LogPrefix}: f {Time.frameCount}, {message}");
         }
         
         private static void LogWarning(string message) {
-            if (EnableLogs) Debug.LogWarning($"{LogPrefix}{message}");
+            if (EnableLogs) Debug.LogWarning($"{LogPrefix}: f {Time.frameCount}, {message}");
         }
         
         private static void LogError(string message) {
-            if (EnableLogs) Debug.LogError($"{LogPrefix}{message}");
+            if (EnableLogs) Debug.LogError($"{LogPrefix}: f {Time.frameCount}, {message}");
         }
         
         private readonly struct KeyIdType : IEquatable<KeyIdType> {

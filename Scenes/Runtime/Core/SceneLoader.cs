@@ -34,7 +34,7 @@ namespace MisterGames.Scenes.Core {
         }
         
         private const bool EnableLogs = true;
-        private static readonly string LogPrefix = "SceneLoader: ".FormatColorOnlyForEditor(Color.white);
+        private static readonly string LogPrefix = "SceneLoader".FormatColorOnlyForEditor(Color.white);
         
         public static ApplicationLaunchMode LaunchMode => _instance._applicationLaunchMode;
         
@@ -258,15 +258,15 @@ namespace MisterGames.Scenes.Core {
         }
 
         private static void LogInfo(string message) {
-            if (EnableLogs) Debug.Log($"{LogPrefix}{message}");
+            if (EnableLogs) Debug.Log($"{LogPrefix}: f {Time.frameCount}, {message}");
         }
         
         private static void LogWarning(string message) {
-            if (EnableLogs) Debug.LogWarning($"{LogPrefix}{message}");
+            if (EnableLogs) Debug.LogWarning($"{LogPrefix}: f {Time.frameCount}, {message}");
         }
         
         private static void LogError(string message) {
-            if (EnableLogs) Debug.LogError($"{LogPrefix}{message}");
+            if (EnableLogs) Debug.LogError($"{LogPrefix}: f {Time.frameCount}, {message}");
         }
         
 #if UNITY_EDITOR

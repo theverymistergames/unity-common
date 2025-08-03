@@ -14,14 +14,19 @@ namespace MisterGames.Character.Editor.Utils {
             Selection.activeGameObject = character.gameObject;
             
             var type = typeof(EditorWindow).Assembly.GetType("UnityEditor.SceneHierarchyWindow");
-            var window = EditorWindow.GetWindow(type);
-            var method = type.GetMethod("SetExpandedRecursive");
-            
-            method!.Invoke(window, new object[] { character.gameObject.GetInstanceID(), true });
+            var windows = Resources.FindObjectsOfTypeAll(type);
 
-            int childCount = character.transform.childCount;
-            for (int i = 0; i < childCount; i++) {
-                method!.Invoke(window, new object[] { character.transform.GetChild(i).gameObject.GetInstanceID(), false });   
+            for (int i = 0; i < windows.Length; i++) {
+                var window = windows[i];
+                
+                var method = type.GetMethod("SetExpandedRecursive");
+            
+                method!.Invoke(window, new object[] { character.gameObject.GetInstanceID(), true });
+
+                int childCount = character.transform.childCount;
+                for (int j = 0; j < childCount; j++) {
+                    method!.Invoke(window, new object[] { character.transform.GetChild(j).gameObject.GetInstanceID(), false });   
+                }
             }
             
             EditorGUIUtility.PingObject(character.gameObject);
