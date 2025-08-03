@@ -2,13 +2,16 @@
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using MisterGames.Actors;
+using MisterGames.Actors.Actions;
 using MisterGames.Common.Async;
+using MisterGames.Common.Attributes;
 using MisterGames.Input.Actions;
 using UnityEngine;
 
 namespace MisterGames.Logic.Recording {
     
-    public sealed class CameraRecorder : MonoBehaviour {
+    public sealed class CameraRecorder : MonoBehaviour, IActorComponent {
 
         [SerializeField] private Transform _cameraTransform;
         [SerializeField] private InputActionKey _recordInput;
@@ -19,6 +22,14 @@ namespace MisterGames.Logic.Recording {
         [Header("Recording")]
         [SerializeField] private bool _isRecording;
         [SerializeField] private List<Data> _dataArray;
+        [SerializeField] private List<Data> _reserveDataArray;
+
+        [Header("Playing")]
+        [SerializeField] [Min(0f)] private float _playDelay = 3f;
+        [SubclassSelector]
+        [SerializeReference] private IActorAction _onPlay;
+        [SubclassSelector]
+        [SerializeReference] private IActorAction _onStop;
         
         [Serializable]
         private struct Data {
@@ -28,12 +39,18 @@ namespace MisterGames.Logic.Recording {
         }
 
         private CancellationTokenSource _enableCts;
+        private IActor _actor;
+        
         private Vector3 _initialPosition;
         private Quaternion _initialRotation;
         private bool _startedRecord;
         private bool _isPlaying;
         private float _time;
         private byte _playId;
+
+        void IActorComponent.OnAwake(IActor actor) {
+            _actor = actor;
+        }
 
         private void Awake() {
             _cameraTransform.GetLocalPositionAndRotation(out _initialPosition, out _initialRotation);
@@ -79,6 +96,10 @@ namespace MisterGames.Logic.Recording {
             _dataArray.Clear();
 
             OnResetPositionPressed();
+
+            if (wasPlaying) {
+                _onStop?.Apply(_actor, destroyCancellationToken).Forget();
+            }
             
             Debug.Log($"CameraRecorder.OnClearPressed: f {Time.frameCount}, recording cleared{(wasPlaying ? ", stop playing" : "")}");
         }
@@ -106,6 +127,7 @@ namespace MisterGames.Logic.Recording {
             if (_isPlaying) {
                 _isPlaying = false;
                 Debug.Log($"CameraRecorder.PlayRecording: f {Time.frameCount}, stop playing");
+                _onStop?.Apply(_actor, destroyCancellationToken).Forget();
                 return;
             }
 
@@ -115,6 +137,18 @@ namespace MisterGames.Logic.Recording {
             float time = 0f;
             int index = 0;
             int count = _dataArray.Count;
+            
+            Debug.Log($"CameraRecorder.PlayRecording: f {Time.frameCount}, will start playing in {_playDelay} sec");
+
+            _onPlay?.Apply(_actor, destroyCancellationToken).Forget();
+            
+            var data0 = _dataArray[0];
+            _cameraTransform.SetPositionAndRotation(data0.pos, data0.rot);
+
+            await UniTask.Delay(TimeSpan.FromSeconds(_playDelay), cancellationToken: cancellationToken)
+                .SuppressCancellationThrow();
+            
+            if (cancellationToken.IsCancellationRequested || id != _playId) return;
             
             Debug.Log($"CameraRecorder.PlayRecording: f {Time.frameCount}, start playing");
             
@@ -139,6 +173,10 @@ namespace MisterGames.Logic.Recording {
                 
                 await UniTask.Yield();
             }
+            
+            if (cancellationToken.IsCancellationRequested || id != _playId) return;
+            
+            _onStop?.Apply(_actor, destroyCancellationToken).Forget();
             
             Debug.Log($"CameraRecorder.PlayRecording: f {Time.frameCount}, stop playing");
         }
