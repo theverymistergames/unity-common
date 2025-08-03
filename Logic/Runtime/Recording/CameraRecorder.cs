@@ -14,6 +14,7 @@ namespace MisterGames.Logic.Recording {
         [SerializeField] private InputActionKey _recordInput;
         [SerializeField] private InputActionKey _playInput;
         [SerializeField] private InputActionKey _clearInput;
+        [SerializeField] private InputActionKey _resetCameraPositionInput;
         
         [Header("Recording")]
         [SerializeField] private bool _isRecording;
@@ -27,12 +28,16 @@ namespace MisterGames.Logic.Recording {
         }
 
         private CancellationTokenSource _enableCts;
+        private Vector3 _initialPosition;
+        private Quaternion _initialRotation;
         private bool _startedRecord;
         private bool _isPlaying;
         private float _time;
         private byte _playId;
 
         private void Awake() {
+            _cameraTransform.GetLocalPositionAndRotation(out _initialPosition, out _initialRotation);
+            
             _dataArray ??= new List<Data>(256);
         }
 
@@ -42,6 +47,7 @@ namespace MisterGames.Logic.Recording {
             _recordInput.OnPress += OnRecordPressed;
             _playInput.OnPress += OnPlayPressed;
             _clearInput.OnPress += OnClearPressed;
+            _resetCameraPositionInput.OnPress += OnResetPositionPressed;
         }
         
         private void OnDisable() {
@@ -50,6 +56,7 @@ namespace MisterGames.Logic.Recording {
             _recordInput.OnPress -= OnRecordPressed;
             _playInput.OnPress -= OnPlayPressed;
             _clearInput.OnPress -= OnClearPressed;
+            _resetCameraPositionInput.OnPress -= OnResetPositionPressed;
         }
 
         private void OnRecordPressed() {
@@ -61,10 +68,25 @@ namespace MisterGames.Logic.Recording {
         }
 
         private void OnClearPressed() {
+            _playId++;
+
+            bool wasPlaying = _isPlaying;
+            
+            _isRecording = false;
+            _isPlaying = false;
+            
             _dataArray ??= new List<Data>();
             _dataArray.Clear();
+
+            OnResetPositionPressed();
+            
+            Debug.Log($"CameraRecorder.OnClearPressed: f {Time.frameCount}, recording cleared{(wasPlaying ? ", stop playing" : "")}");
         }
 
+        private void OnResetPositionPressed() {
+            _cameraTransform.SetLocalPositionAndRotation(_initialPosition, _initialRotation);
+        }
+        
         private void LateUpdate() {
             if (!_isRecording) return;
 
@@ -89,20 +111,20 @@ namespace MisterGames.Logic.Recording {
 
             if (_dataArray.Count <= 0) return;
             
-            Debug.Log($"CameraRecorder.PlayRecording: f {Time.frameCount}, start playing");
-            
             _isPlaying = true;
             float time = 0f;
             int index = 0;
             int count = _dataArray.Count;
-
+            
+            Debug.Log($"CameraRecorder.PlayRecording: f {Time.frameCount}, start playing");
+            
             while (!cancellationToken.IsCancellationRequested && id == _playId && index < count) {
                 time += Time.deltaTime;
 
-                while (index < count && time < _dataArray[index].time) {
+                while (index < count && _dataArray[index].time < time) {
                     index++;
                 }
-                
+
                 if (index >= count) break;
                 
                 var d0 = _dataArray[index];
@@ -128,7 +150,12 @@ namespace MisterGames.Logic.Recording {
                 return;
             }
 
-            Debug.Log($"CameraRecorder.ToggleRecord: f {Time.frameCount}, start recording");
+            if (_dataArray?.Count > 0) {
+                Debug.Log($"CameraRecorder.ToggleRecord: f {Time.frameCount}, continue recording");
+            }
+            else {
+                Debug.Log($"CameraRecorder.ToggleRecord: f {Time.frameCount}, start recording");
+            }
             _isRecording = true;
         }
     }
