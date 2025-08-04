@@ -4,6 +4,7 @@ using MisterGames.Collisions.Core;
 using MisterGames.Collisions.Detectors;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Audio;
+using MisterGames.Common.Easing;
 using MisterGames.Common.Labels;
 using MisterGames.Common.Layers;
 using MisterGames.Common.Maths;
@@ -17,18 +18,22 @@ namespace MisterGames.Logic.Phys {
 
         [SerializeField] private CollisionBatchGroup _collisionBatchGroup;
         
-        [Header("Materials")]
+        [Header("Material Detection")]
         [SerializeField] [Min(0f)] private float _primaryMaterialWeight = 1f;
         [SerializeField] private LabelValue _defaultSurfaceMaterial;
         [SerializeField] private MaterialData[] _primaryMaterialsPerLayer;
         [SerializeField] private MaterialDetectorBase _materialDetector;
         
-        [Header("Sounds")]
+        [Header("Sound Settings")]
         [SerializeField] [Min(0f)] private float _soundCooldown = 0.25f;
         [SerializeField] [Min(0f)] private float _volumeMulMin = 0.1f;
         [SerializeField] [Min(0f)] private float _volumeMulMax = 1f;
+        [SerializeField] private EasingType _volumeEasing = EasingType.Linear;
         [SerializeField] [Min(0f)] private float _impulseMin = 0f;
         [SerializeField] [Min(0f)] private float _impulseMax = 1f;
+        [SerializeField] [Min(0f)] private float _distanceThreshold = 0.25f;
+        
+        [Header("Sound List")]
         [SerializeField] private MaterialSounds[] _materialSounds;
         
         [Serializable]
@@ -45,9 +50,20 @@ namespace MisterGames.Logic.Phys {
             public LayerMask layerMask;
             public LabelValue material;
         }
+
+        private readonly struct RbData {
+            
+            public readonly float soundTime;
+            public readonly Vector3 point;
+            
+            public RbData(float soundTime, Vector3 point) {
+                this.soundTime = soundTime;
+                this.point = point;
+            }
+        }
         
         private readonly Dictionary<(int material, int surface), int> _materialPairToIndexMap = new();
-        private readonly Dictionary<int, float> _lastSoundTimeMap = new();
+        private readonly Dictionary<int, RbData> _lastRbDataMap = new();
         private readonly Dictionary<int, int> _colliderMaterialMap = new();
         private readonly List<MaterialInfo> _materialList = new();
 
@@ -62,25 +78,25 @@ namespace MisterGames.Logic.Phys {
             _collisionBatchGroup.OnContact += OnContact;
         }
 
-        private void OnDisable() 
-        {
+        private void OnDisable() {
             _materialList.Clear();
             _collisionBatchGroup.OnContact -= OnContact;
         }
         
         private void OnContact(TriggerEventType evt, Rigidbody rb, int rbMaterial, Collider collider, Vector3 point, Vector3 normal, Vector3 impulse) {
-            if (evt != TriggerEventType.Enter ||
-                _lastSoundTimeMap.TryGetValue(rb.GetHashCode(), out float lastSoundTime) && TimeSources.scaledTime < lastSoundTime + _soundCooldown) 
+            if (evt == TriggerEventType.Exit ||
+                _lastRbDataMap.TryGetValue(rb.GetHashCode(), out var data) && 
+                (TimeSources.scaledTime < data.soundTime + _soundCooldown || (point - data.point).sqrMagnitude < _distanceThreshold * _distanceThreshold)) 
             {
                 return;
             }
 
-            _lastSoundTimeMap[rb.GetHashCode()] = TimeSources.scaledTime;
-
             if (impulse.sqrMagnitude < _impulseMin * _impulseMin) return;
             
+            _lastRbDataMap[rb.GetHashCode()] = new RbData(TimeSources.scaledTime, point);
+            
             float volumeMul = _impulseMax - _impulseMin > 0f
-                ? Mathf.Lerp(_volumeMulMin, _volumeMulMax, (impulse.magnitude - _impulseMin) / (_impulseMax - _impulseMin)) 
+                ? Mathf.Lerp(_volumeMulMin, _volumeMulMax, _volumeEasing.Evaluate(impulse.magnitude - _impulseMin) / (_impulseMax - _impulseMin)) 
                 : _volumeMulMax;
             
             var materials = GetSurfaceMaterials(collider, point, normal);

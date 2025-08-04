@@ -1,4 +1,5 @@
-﻿using MisterGames.Collisions.Core;
+﻿using System.Runtime.CompilerServices;
+using MisterGames.Collisions.Core;
 using MisterGames.Collisions.Utils;
 using MisterGames.Common.Jobs;
 using MisterGames.Common.Layers;
@@ -161,6 +162,7 @@ namespace MisterGames.Logic.Phys {
             contactResultExitArray.Dispose();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool IsValidContact(Collider collider, int otherBodyId) {
             return _layerMask.Contains(otherBodyId != 0 ? collider.attachedRigidbody.gameObject.layer : collider.gameObject.layer);
         }
@@ -231,13 +233,16 @@ namespace MisterGames.Logic.Phys {
             [WriteOnly] public NativeArray<ContactResult> contactResultExitArray;
             
             public void Execute(int index) {
-                CreateContactResult(ref contactEnterArray.GetRef(index), out var result);
+                var info = contactEnterArray[index];
+                CreateContactResult(ref info, out var result);
                 contactResultEnterArray[index] = result;
                 
-                CreateContactResult(ref contactStayArray.GetRef(index), out result);
+                info = contactStayArray[index];
+                CreateContactResult(ref info, out result);
                 contactResultStayArray[index] = result;
                 
-                CreateContactResult(ref contactExitArray.GetRef(index), out result);
+                info = contactExitArray[index];
+                CreateContactResult(ref info, out result);
                 contactResultExitArray[index] = result;
             }
 

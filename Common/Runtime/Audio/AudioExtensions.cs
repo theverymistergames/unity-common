@@ -20,11 +20,12 @@ namespace MisterGames.Common.Audio {
         
         public static int GetRandomIndex(ref int indicesMask, ref int startIndex, int lastIndex, int count) {
             switch (count) {
-                case 2:
-                    return 1 - lastIndex;
+                case 1:
+                    return 0;
                 
+                case 2:
                 case 3:
-                    return (int) Mathf.Repeat(lastIndex + Mathf.Sign(Random.value - 0.5f), 3);
+                    return Random.Range(0, count);
             }
             
             const int bits = 32;
