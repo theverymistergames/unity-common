@@ -86,7 +86,8 @@ namespace MisterGames.Logic.Phys {
         private void OnContact(TriggerEventType evt, Rigidbody rb, int rbMaterial, Collider collider, Vector3 point, Vector3 normal, Vector3 impulse) {
             if (evt == TriggerEventType.Exit ||
                 _lastRbDataMap.TryGetValue(rb.GetHashCode(), out var data) && 
-                (TimeSources.scaledTime < data.soundTime + _soundCooldown || (point - data.point).sqrMagnitude < _distanceThreshold * _distanceThreshold)) 
+                (TimeSources.scaledTime < data.soundTime + _soundCooldown || 
+                 evt == TriggerEventType.Stay && (point - data.point).sqrMagnitude < _distanceThreshold * _distanceThreshold)) 
             {
                 return;
             }
