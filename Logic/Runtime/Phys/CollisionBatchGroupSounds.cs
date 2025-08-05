@@ -34,11 +34,25 @@ namespace MisterGames.Logic.Phys {
         [SerializeField] [Min(0f)] private float _distanceThreshold = 0.25f;
         
         [Header("Sound List")]
-        [SerializeField] private MaterialSounds[] _materialSounds;
+        [SerializeField] private MaterialGroup[] _materialGroups;
         
         [Serializable]
         private struct MaterialSounds {
             public LabelValue material;
+            public LabelValue[] surfaces;
+            [Range(0f, 2f)] public float volume;
+            [MinMaxSlider(0f, 2f)] public Vector2 pitch;
+            public AudioClip[] clips;
+        }
+
+        [Serializable]
+        private struct MaterialGroup {
+            public LabelValue material;
+            public MaterialSurfaces[] surfaces;
+        }
+        
+        [Serializable]
+        private struct MaterialSurfaces {
             public LabelValue[] surfaces;
             [Range(0f, 2f)] public float volume;
             [MinMaxSlider(0f, 2f)] public Vector2 pitch;
@@ -62,7 +76,7 @@ namespace MisterGames.Logic.Phys {
             }
         }
         
-        private readonly Dictionary<(int material, int surface), int> _materialPairToIndexMap = new();
+        private readonly Dictionary<(int material, int surface), (int group, int item)> _materialPairToIndexMap = new();
         private readonly Dictionary<int, RbData> _lastRbDataMap = new();
         private readonly Dictionary<int, int> _colliderMaterialMap = new();
         private readonly List<MaterialInfo> _materialList = new();
@@ -160,14 +174,15 @@ namespace MisterGames.Logic.Phys {
         }
         
         private void PlaySound(Vector3 point, int rbMaterial, int surfaceMaterial, float volumeMul = 1f) {
-            if (!_materialPairToIndexMap.TryGetValue((rbMaterial, surfaceMaterial), out int index) &&
-                !_materialPairToIndexMap.TryGetValue((0, surfaceMaterial), out index) &&
-                !_materialPairToIndexMap.TryGetValue((rbMaterial, 0), out index)) 
+            if (!_materialPairToIndexMap.TryGetValue((rbMaterial, surfaceMaterial), out var address) &&
+                !_materialPairToIndexMap.TryGetValue((0, surfaceMaterial), out address) &&
+                !_materialPairToIndexMap.TryGetValue((rbMaterial, 0), out address)) 
             {
                 return;
             }
-            
-            ref var data = ref _materialSounds[index];
+
+            ref var group = ref _materialGroups[address.group];
+            ref var data = ref group.surfaces[address.item];
 
             AudioPool.Main.Play(
                 AudioPool.Main.ShuffleClips(data.clips), 
@@ -181,15 +196,19 @@ namespace MisterGames.Logic.Phys {
         private void FetchMaterialIdToIndexMap() {
             _materialPairToIndexMap.Clear();
             
-            for (int i = 0; i < _materialSounds?.Length; i++) {
-                ref var data = ref _materialSounds[i];
-                int mat = data.material.GetValue();
+            for (int i = 0; i < _materialGroups?.Length; i++) {
+                ref var g = ref _materialGroups[i];
+                int mat = g.material.GetValue();
                 
-                for (int j = 0; j < data.surfaces?.Length; j++) {
-                    var surface = data.surfaces[j];
-                    if (surface.IsNull()) continue;
+                for (int j = 0; j < g.surfaces.Length; j++) {
+                    ref var surfaceGroup = ref g.surfaces[j];
                     
-                    _materialPairToIndexMap[(mat, surface.GetValue())] = i;   
+                    for (int k = 0; k < surfaceGroup.surfaces.Length; k++) {
+                        var surface = surfaceGroup.surfaces[k];
+                        if (surface.IsNull()) continue;
+                    
+                        _materialPairToIndexMap[(mat, surface.GetValue())] = (i, j);    
+                    }
                 }
             }
         }

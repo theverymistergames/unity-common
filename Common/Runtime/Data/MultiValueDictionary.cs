@@ -7,6 +7,7 @@ namespace MisterGames.Common.Data
     public sealed class MultiValueDictionary<K, V> {
         
         public int Count => _valueMap.Count;
+        public IReadOnlyCollection<K> Keys => _countMap.Keys;
         public IReadOnlyCollection<V> Values => _valueMap.Values;
         
         private readonly Dictionary<K, int> _countMap;
