@@ -1,4 +1,5 @@
-﻿using MisterGames.Collisions.Core;
+﻿using System.Collections;
+using MisterGames.Collisions.Core;
 using MisterGames.Common.Labels;
 using MisterGames.Common.Service;
 using UnityEngine;
@@ -13,6 +14,8 @@ namespace MisterGames.Logic.Phys {
         [SerializeField] private SurfaceMaterial _surfaceMaterial;
         [SerializeField] private Collider[] _colliders;
 
+        public LabelValue Group { get => _group; set => _group = value; }
+        
         private void OnEnable() {
             ProvideContacts(true);
             Services.Get<CollisionBatchGroup>(_group.GetValue())
@@ -32,6 +35,12 @@ namespace MisterGames.Logic.Phys {
         
 #if UNITY_EDITOR
         private void Reset() {
+            StartCoroutine(ResetNextFrame());
+        }
+
+        private IEnumerator ResetNextFrame() {
+            yield return null;
+            
             _rigidbody = GetComponent<Rigidbody>();
             _colliders = GetComponentsInChildren<Collider>();
             _surfaceMaterial = GetComponent<SurfaceMaterial>();

@@ -10,7 +10,7 @@ namespace MisterGames.Common.Labels {
         [SerializeField] internal LabelLibraryBase library;
         [SerializeField] internal int id;
 
-        internal LabelValue(LabelLibraryBase library, int id) {
+        public LabelValue(LabelLibraryBase library, int id) {
             this.library = library;
             this.id = id;
         }
@@ -46,7 +46,7 @@ namespace MisterGames.Common.Labels {
         [SerializeField] internal LabelLibraryBase<T> library;
         [SerializeField] internal int id;
 
-        internal LabelValue(LabelLibraryBase<T> library, int id) {
+        public LabelValue(LabelLibraryBase<T> library, int id) {
             this.library = library;
             this.id = id;
         }

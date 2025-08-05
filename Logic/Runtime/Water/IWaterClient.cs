@@ -12,11 +12,10 @@ namespace MisterGames.Logic.Water {
         Vector3 GetFloatingPoint(int index);
         
         float Buoyancy { get; set; }
-        float MaxSpeed { get; set; }
         float DecelerationMul { get; set; }
 
 #if UNITY_EDITOR
-        bool DrawGizmos { get; }
+        internal bool DrawGizmos { get; }
 #endif
     }
     

@@ -3,6 +3,7 @@ using MisterGames.Actors;
 using MisterGames.Common;
 using UnityEngine;
 using Object = UnityEngine.Object;
+using System.Collections;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -20,8 +21,7 @@ namespace MisterGames.Logic.Water {
         [SerializeField] private Vector3[] _mainFloatingPoints;
 
         [Header("Settings")]
-        [SerializeField] private float _buoyancy = 0f;
-        [SerializeField] [Min(-1f)] private float _maxSpeed = -1f;
+        [SerializeField] private float _buoyancy = 1f;
         [SerializeField] private float _decelerationMul = 1f;
         
         public bool IgnoreWaterZone { get => _ignoreWaterZone; set => _ignoreWaterZone = value; }
@@ -31,7 +31,6 @@ namespace MisterGames.Logic.Water {
         public Vector3 GetFloatingPoint(int index) => _transform.TransformPoint(_mainFloatingPoints[index]);
 
         public float Buoyancy { get => _buoyancy; set => _buoyancy = value; }
-        public float MaxSpeed { get => _maxSpeed; set => _maxSpeed = value; }
         public float DecelerationMul { get => _decelerationMul; set => _decelerationMul = value; }
         
         private Transform _transform;
@@ -41,15 +40,21 @@ namespace MisterGames.Logic.Water {
         }
 
 #if UNITY_EDITOR
-        public bool DrawGizmos => _showDebugInfo;
-
         [Header("Debug")]
         [SerializeField] private bool _showDebugInfo;
         
+        bool IWaterClient.DrawGizmos => _showDebugInfo;
+        
         private void Reset() {
+            StartCoroutine(ResetNextFrame());
+        }
+
+        private IEnumerator ResetNextFrame() {
+            yield return null;
+            
             _transform = transform;
             _rigidbody = GetComponent<Rigidbody>();
-            _mainFloatingPoints = new []{ _transform.InverseTransformPoint(_rigidbody.transform.position) };
+            _mainFloatingPoints = new []{ Vector3.zero };
         }
 
         private void OnDrawGizmos() {
@@ -106,12 +111,11 @@ namespace MisterGames.Logic.Water {
                 for (int i = 0; i < points?.Length; i++) {
                     var p = waterClient.GetFloatingPoint(i);
                     var newP = Handles.PositionHandle(p, Quaternion.identity);
+
+                    if (newP == p) continue;
                     
-                    if (newP != p)
-                    {
-                        points[i] = waterClient._transform.InverseTransformPoint(newP);
-                        EditorUtility.SetDirty(waterClient);
-                    }
+                    points[i] = waterClient._transform.InverseTransformPoint(newP);
+                    EditorUtility.SetDirty(waterClient);
                 }
             }
         }

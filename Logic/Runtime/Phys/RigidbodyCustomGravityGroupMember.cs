@@ -13,6 +13,10 @@ namespace MisterGames.Logic.Phys {
         [SerializeField] private RigidbodyCustomGravityGroup.Options _options;
         [SerializeField] private bool _kinematicOnAwake = true;
 
+        public LabelValue Group { get => _group; set => _group = value; }
+        public RigidbodyCustomGravityGroup.Options Options { get => _options; set => _options = value; }
+        public bool KinematicOnAwake { get => _kinematicOnAwake; set => _kinematicOnAwake = value; }
+        
         private void Awake() {
             _rigidbody.isKinematic = _kinematicOnAwake;
         }

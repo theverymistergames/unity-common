@@ -552,7 +552,7 @@ namespace MisterGames.Logic.Water {
                         - floatingData.deceleration * floatingData.velocity 
                         + GetNoiseVector(randomForceT, NoiseOffset * floatingData.rbId) * randomForce;
 
-                var torque = - floatingData.angularVelocity * torqueDeceleration 
+                var torque = -floatingData.deceleration * floatingData.angularVelocity * torqueDeceleration 
                              + GetNoiseVector(randomTorqueT, NoiseOffset * 5f * floatingData.rbId) * randomTorque;
                 
                 forceDataArray[index] = new ForceData(
