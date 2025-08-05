@@ -161,8 +161,7 @@ namespace MisterGames.Logic.Phys {
             
             foreach (var rb in _rigidbodyMap.Keys) {
                 rb.useGravity = useGravity;
-                
-                if (!_useGravity || !changed && rb.IsSleeping()) return;
+                if (!_useGravity || !changed && rb.IsSleeping()) continue;
                 
                 rb.AddForce(gravity, ForceMode.Acceleration);
             }

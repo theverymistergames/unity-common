@@ -101,14 +101,14 @@ namespace MisterGames.Logic.Phys {
             if (evt == TriggerEventType.Exit ||
                 _lastRbDataMap.TryGetValue(rb.GetHashCode(), out var data) && 
                 (TimeSources.scaledTime < data.soundTime + _soundCooldown || 
-                 evt == TriggerEventType.Stay && (point - data.point).sqrMagnitude < _distanceThreshold * _distanceThreshold)) 
+                 evt == TriggerEventType.Stay && rb.position is var pos && (pos - data.point).sqrMagnitude < _distanceThreshold * _distanceThreshold)) 
             {
                 return;
             }
 
             if (impulse.sqrMagnitude < _impulseMin * _impulseMin) return;
             
-            _lastRbDataMap[rb.GetHashCode()] = new RbData(TimeSources.scaledTime, point);
+            _lastRbDataMap[rb.GetHashCode()] = new RbData(TimeSources.scaledTime, rb.position);
             
             float volumeMul = _impulseMax - _impulseMin > 0f
                 ? Mathf.Lerp(_volumeMulMin, _volumeMulMax, _volumeEasing.Evaluate(impulse.magnitude - _impulseMin) / (_impulseMax - _impulseMin)) 
