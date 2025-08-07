@@ -27,7 +27,8 @@ namespace MisterGames.Logic.Water {
         [Header("Buoyancy")]
         [SerializeField] private float _buoyancyDefault = 0f;
         [SerializeField] private float _buoyancyRandomAdd = 0.1f;
-        [SerializeField] private float _buoyancyScale = 1f;
+        [SerializeField] private float _buoyancyScalePositive = 1f;
+        [SerializeField] private float _buoyancyScaleNegative = 1f;
 
         [Header("Force")]
         [SerializeField] private ForceSource _forceSource;
@@ -337,7 +338,8 @@ namespace MisterGames.Logic.Water {
                 forceLevel = _forceLevelDecrease,
                 forceDataArray = forceDataArray,
                 torqueDeceleration = _torqueDeceleration,
-                buoyancyScale = _buoyancyScale,
+                buoyancyScalePositive = _buoyancyScalePositive,
+                buoyancyScaleNegative = _buoyancyScaleNegative,
                 buoyancyRandom = _buoyancyRandomAdd,
                 randomForce = _randomForce,
                 randomForceT = time * _randomForceSpeed,
@@ -511,8 +513,9 @@ namespace MisterGames.Logic.Water {
             [ReadOnly] public int volumeCount;
             [ReadOnly] public float forceLevel;
             [ReadOnly] public float torqueDeceleration;
-            
-            [ReadOnly] public float buoyancyScale;
+
+            [ReadOnly] public float buoyancyScalePositive;
+            [ReadOnly] public float buoyancyScaleNegative;
             [ReadOnly] public float buoyancyRandom;
             
             [ReadOnly] public float randomForceT;
@@ -570,8 +573,15 @@ namespace MisterGames.Logic.Water {
                 }
 
                 float randomSeed = floatingData.rbId % RandomSeed;
-                float buoyancy = buoyancyScale * (floatingData.buoyancy + 
-                                                  noise.cnoise((float2) randomSeed * floatingData.buoyancy) * buoyancyRandom);
+
+                float buoyancy = floatingData.buoyancy;
+                
+                if (buoyancy > 0f) {
+                    buoyancy = buoyancyScalePositive * math.max(0f, buoyancy + noise.cnoise((float2) randomSeed) * buoyancyRandom);
+                }
+                else {
+                    buoyancy = buoyancyScaleNegative * math.min(0f, buoyancy + noise.cnoise((float2) randomSeed) * buoyancyRandom);
+                }
                 
                 force = (1f + buoyancy) * force / validProxyCount
                         - floatingData.deceleration * floatingData.velocity
