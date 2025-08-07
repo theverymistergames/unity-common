@@ -417,7 +417,7 @@ namespace MisterGames.Common.Audio {
                    _handleIdToAudioElementMap.ContainsKey(id) && 
                    (loop || source.time is var time && time < clipLength && time >= maxTime)) 
             {
-                maxTime = source.time;
+                maxTime = math.max(source.time, maxTime);
                 await UniTask.Yield();
             }
             
@@ -519,10 +519,6 @@ namespace MisterGames.Common.Audio {
         }
         
         void IUpdate.OnUpdate(float dt) {
-            ProcessSounds(dt);
-        }
-
-        private void ProcessSounds(float dt) {
             if (_audioListenersMap.Count == 0) {
                 foreach (var audioElement in _handleIdToAudioElementMap.Values) {
                     // To reset smoothed values
@@ -1480,13 +1476,14 @@ namespace MisterGames.Common.Audio {
 
 #if UNITY_EDITOR
         [Header("Debug")]
+        [SerializeField] private bool _showSoundsGizmo;
         [SerializeField] private bool _showSoundsDebugInfo;
         [SerializeField] private bool _showVolumeInfo;
         [SerializeField] private bool _showOcclusionInfo;
         [SerializeField] private string[] _showSoundsNameFilters;
         [SerializeField] private string[] _showOcclusionNameFilters;
 
-        internal bool ShowDebugInfo => _showSoundsDebugInfo;
+        internal bool ShowGizmo => _showSoundsGizmo;
         private readonly Dictionary<int, Color> _debugColors = new();
 
         private void OnValidate() {

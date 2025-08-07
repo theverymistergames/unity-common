@@ -37,7 +37,7 @@ namespace MisterGames.Common.Audio {
         }
 
         private void OnDrawGizmos() {
-            if (!Application.isPlaying || AudioPool.Main is not AudioPool { ShowDebugInfo: true }) return;
+            if (!Application.isPlaying || AudioPool.Main is not AudioPool { ShowGizmo: true }) return;
             
             DebugExt.DrawLabel(transform.position, $"[{Id}] {(_source.clip == null ? "<null>" : _source.clip.name)}");
         }
