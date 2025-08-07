@@ -58,12 +58,12 @@ namespace MisterGames.Character.Steps {
 
         void IUpdate.OnUpdate(float dt) {
             float time = TimeSources.scaledTime;
-            
-            var velocityFlat = Vector3.ProjectOnPlane(_rigidbody.linearVelocity, _view.BodyRotation * Vector3.up);
-            float sqrSpeedFlat = velocityFlat.sqrMagnitude;
+
+            var velocity = _rigidbody.linearVelocity;
+            float sqrSpeed = velocity.sqrMagnitude;
             
             if (!_groundDetector.HasContact) _lastTimeNotGrounded = time; 
-            if (sqrSpeedFlat >= _speedMin * _speedMin) _lastTimeMoving = time;
+            if (sqrSpeed >= _speedMin * _speedMin) _lastTimeMoving = time;
             
             if (time > _lastTimeNotGrounded + _skipGroundedDuration || 
                 time > _lastTimeMoving + _minSpeedDetectDuration || 
@@ -73,13 +73,13 @@ namespace MisterGames.Character.Steps {
                 return;
             }
 
-            var point = _capsulePipeline.GetColliderTopPoint(_armPointLevel - _capsulePipeline.Radius) + GetArmPointOffset(velocityFlat, _arm);
+            var point = _capsulePipeline.GetColliderTopPoint(_armPointLevel - _capsulePipeline.Radius) + GetArmPointOffset(velocity, _arm);
             float strokeLength = _strokeLengthMin +
                                _strokeLengthMultiplier *
-                               _strokeLengthBySpeed.Evaluate(_speedMax <= 0f ? 0f : sqrSpeedFlat / (_speedMax * _speedMax));
+                               _strokeLengthBySpeed.Evaluate(_speedMax <= 0f ? 0f : sqrSpeed / (_speedMax * _speedMax));
             
             if (_strokeProgress is >= 0f and < 1f) {
-                _strokeProgress = Mathf.Clamp01(_strokeProgress + sqrSpeedFlat * dt / (strokeLength * strokeLength));
+                _strokeProgress = Mathf.Clamp01(_strokeProgress + sqrSpeed * dt / (strokeLength * strokeLength));
                 return;
             }
             
