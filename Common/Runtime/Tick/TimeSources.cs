@@ -5,8 +5,13 @@ using UnityEngine;
 namespace MisterGames.Common.Tick {
 
     public interface ITimeSourceProvider {
+        
         bool ShowDebugInfo { get; }
+        
         ITimeSource Get(PlayerLoopStage stage);
+        
+        ITimeSource UpdateStage();
+        ITimeSource FixedUpdateStage();
     }
 
     public static class TimeSources {
@@ -24,7 +29,7 @@ namespace MisterGames.Common.Tick {
 #if UNITY_EDITOR
             !Application.isPlaying && _isRunningEditorUpdates 
                 ? Time.frameCount
-                : (_timeSourceFixedUpdate ??= Get(PlayerLoopStage.FixedUpdate)).FrameCount;
+                : GetFixedUpdateStage().FrameCount;
 #else
         (_timeSourceFixedUpdate ??= Get(PlayerLoopStage.FixedUpdate)).FrameCount;
 #endif
@@ -42,7 +47,7 @@ namespace MisterGames.Common.Tick {
 #if UNITY_EDITOR
             !Application.isPlaying && _isRunningEditorUpdates 
                 ? _editorUpdatesTime 
-                : (_timeSourceUpdate ??= Get(PlayerLoopStage.Update)).ScaledTime;
+                : GetUpdateStage().ScaledTime;
 #else
         (_timeSourceUpdate ??= Get(PlayerLoopStage.Update)).ScaledTime;
 #endif
@@ -51,16 +56,27 @@ namespace MisterGames.Common.Tick {
         internal static bool ShowDebugInfo => _provider?.ShowDebugInfo ?? false;
 #endif
 
-        private static ITimeSource _timeSourceUpdate;
-        private static ITimeSource _timeSourceFixedUpdate;
-        
         public static ITimeSource Get(this PlayerLoopStage stage) {
 #if UNITY_EDITOR
             return Application.isPlaying ? _provider.Get(stage) : GetOrCreateEditorTimeSource(stage);
 #endif
             return _provider.Get(stage);
         }
+        
+        public static ITimeSource GetUpdateStage() {
+#if UNITY_EDITOR
+            return Application.isPlaying ? _provider.UpdateStage() : GetOrCreateEditorTimeSource(PlayerLoopStage.Update);
+#endif
+            return _provider.UpdateStage();
+        }
 
+        public static ITimeSource GetFixedUpdateStage() {
+#if UNITY_EDITOR
+            return Application.isPlaying ? _provider.FixedUpdateStage() : GetOrCreateEditorTimeSource(PlayerLoopStage.FixedUpdate);
+#endif
+            return _provider.FixedUpdateStage();
+        }
+        
         public static void Subscribe(this PlayerLoopStage stage, IUpdate sub) {
             Get(stage).Subscribe(sub);
         }

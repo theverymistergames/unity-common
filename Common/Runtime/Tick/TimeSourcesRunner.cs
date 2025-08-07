@@ -9,6 +9,15 @@ namespace MisterGames.Common.Tick {
 
         [Header("Debug")]
         [SerializeField] private bool _showDebugInfo;
+
+        public ITimeSource UpdateStage() {
+            return _updateTimeSource;
+        }
+
+        public ITimeSource FixedUpdateStage() {
+            return _fixedUpdateTimeSource;
+        }
+
         public bool ShowDebugInfo => _showDebugInfo;
         
         private readonly TimeSource _preUpdateTimeSource = new TimeSource(DeltaTimeProviders.Main, TimeScaleProviders.Global, "pre update");

@@ -16,6 +16,13 @@ namespace Utils {
             return _getTimeSource.Invoke(stage);
         }
 
+        public ITimeSource UpdateStage() {
+            return _getTimeSource.Invoke(PlayerLoopStage.Update);
+        }
+
+        public ITimeSource FixedUpdateStage() {
+            return _getTimeSource.Invoke(PlayerLoopStage.FixedUpdate);
+        }
     }
 
 }

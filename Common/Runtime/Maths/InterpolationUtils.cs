@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using UnityEngine;
 
 namespace MisterGames.Common.Maths {
 
@@ -45,7 +46,7 @@ namespace MisterGames.Common.Maths {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Remap01(float a, float b, float t) {
             return b - a > 0f 
-                ? (t - a) / (b - a)
+                ? Mathf.Clamp01((t - a) / (b - a))
                 : t > a ? 1f : 0f;
         }
     }
