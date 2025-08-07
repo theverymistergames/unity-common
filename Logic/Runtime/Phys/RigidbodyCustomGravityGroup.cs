@@ -65,6 +65,7 @@ namespace MisterGames.Logic.Phys {
         private const float GravityMagnitudeDefault = 9.81f;
 
         private readonly Dictionary<Rigidbody, RigidbodyData> _rigidbodyMap = new();
+        
         private Vector3 _lastGravity = Vector3.down * GravityMagnitudeDefault;
         private bool _isCustomGravityActive;
 
@@ -105,6 +106,10 @@ namespace MisterGames.Logic.Phys {
         public void Unregister(Rigidbody rigidbody) {
             SetupRigidbodyInitialState(rigidbody);
             _rigidbodyMap.Remove(rigidbody);
+        }
+
+        public void ForceActivate(Rigidbody rigidbody) {
+            SetupRigidbodyActiveState(rigidbody);
         }
 
         private static Options CreateOptions(Options optionsOfRigidbody, Options defaultOptions) {

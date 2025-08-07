@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using MisterGames.Actors;
 using MisterGames.Common;
 using MisterGames.Common.Jobs;
@@ -23,16 +24,18 @@ namespace MisterGames.Logic.Water {
         [SerializeField] private float _surfaceOffset;
         [SerializeField] [Min(0f)] private float _forceLevelDecrease = 0f;
         
-        [Header("Motion")]
+        [Header("Buoyancy")]
         [SerializeField] private float _buoyancyDefault = 0f;
+        [SerializeField] private float _buoyancyRandomAdd = 0.1f;
+        [SerializeField] private float _buoyancyScale = 1f;
+
+        [Header("Force")]
+        [SerializeField] private ForceSource _forceSource;
+        [SerializeField] private float _force = 0f;
         [SerializeField] private float _deceleration = 0f;
         [SerializeField] private float _torqueDeceleration = 0f;
         
-        [Header("Force")]
-        [SerializeField] private float _force = 0f;
-        [SerializeField] private ForceSource _forceSource;
-        
-        [Header("Random")]
+        [Header("Force Random")]
         [SerializeField] private float _randomForce = 0f;
         [SerializeField] private float _randomTorque = 0f;
         [SerializeField] private float _randomForceSpeed = 0f;
@@ -143,15 +146,17 @@ namespace MisterGames.Logic.Water {
             }
         }
 
-        public delegate void TriggerAction(Collider collider, Vector3 position, Vector3 surfacePoint, Vector3 surfaceNormal);
-        
-        public event TriggerAction OnColliderEnter = delegate { };
-        public event TriggerAction OnColliderExit = delegate { };
+        public event IWaterZone.TriggerCollider OnColliderEnter = delegate { };
+        public event IWaterZone.TriggerCollider OnColliderExit = delegate { };
+
+        public event IWaterZone.TriggerRigidbody OnRigidbodyEnter = delegate { };
+        public event IWaterZone.TriggerRigidbody OnRigidbodyExit = delegate { };
 
         public HashSet<IWaterZoneVolume> Volumes { get; } = new();
         private readonly Dictionary<int, int> _volumeIdMap = new();
         
         private const float NoiseOffset = 100f;
+        private const int RandomSeed = 1000;
 
         private readonly Dictionary<int, int> _colliderToRbIdMap = new();
         private readonly Dictionary<int, int> _rbIdToColliderCountMap = new();
@@ -238,13 +243,14 @@ namespace MisterGames.Logic.Water {
 
             var pos = collider.transform.position;
             volume.SampleSurface(pos, out var surfacePoint, out var surfaceNormal);
-            OnColliderEnter.Invoke(collider, volume.GetClosestPoint(pos), surfacePoint, surfaceNormal);
+            var closestPoint = volume.GetClosestPoint(collider.transform.position);
             
+            OnColliderEnter.Invoke(collider, closestPoint, surfacePoint, surfaceNormal);
             
             int oldCount = _rbIdToColliderCountMap.GetValueOrDefault(rbId);
             _rbIdToColliderCountMap[rbId] = oldCount + 1;
 
-            if (oldCount <= 0) TriggerEnterRigidbody(rb);
+            if (oldCount <= 0) TriggerEnterRigidbody(rb, closestPoint, surfacePoint, surfaceNormal);
         }
 
         public void TriggerExit(Collider collider, IWaterZoneVolume volume) {
@@ -255,7 +261,9 @@ namespace MisterGames.Logic.Water {
 
             var pos = collider.transform.position;
             volume.SampleSurface(pos, out var surfacePoint, out var surfaceNormal);
-            OnColliderExit.Invoke(collider, volume.GetClosestPoint(pos), surfacePoint, surfaceNormal);
+            var closestPoint = volume.GetClosestPoint(collider.transform.position);
+            
+            OnColliderExit.Invoke(collider, closestPoint, surfacePoint, surfaceNormal);
             
             int newCount = _rbIdToColliderCountMap.GetValueOrDefault(rbId) - 1;
             if (newCount > 0) {
@@ -264,17 +272,17 @@ namespace MisterGames.Logic.Water {
             }
 
             _rbIdToColliderCountMap.Remove(rbId);
-            TriggerExitRigidbody(rbId);
+            TriggerExitRigidbody(rbId, closestPoint, surfacePoint, surfaceNormal);
         }
 
-        private void TriggerEnterRigidbody(Rigidbody rigidbody) {
+        private void TriggerEnterRigidbody(Rigidbody rigidbody, Vector3 position, Vector3 surfacePoint, Vector3 surfaceNormal) {
             int id = rigidbody.GetHashCode();
             _rbIdToVolumeCountMap[id] = _rbIdToVolumeCountMap.GetValueOrDefault(id) + 1;
             
             if (!_rbIdToIndexMap.TryAdd(id, _rbList.Count)) return;
             
             _rbList.Add((id, rigidbody));
-
+            
             if (rigidbody.TryGetComponent(out IWaterClient waterClient)) {
                 _rbIdToWaterClientDataMap[id] = new WaterClientData(
                     isMainRigidbody: waterClient.Rigidbody == rigidbody,
@@ -287,17 +295,20 @@ namespace MisterGames.Logic.Water {
                 _floatingPointsCount++;
             }
             
+            OnRigidbodyEnter.Invoke(rigidbody, position, surfacePoint, surfaceNormal);
+            
             PlayerLoopStage.FixedUpdate.Subscribe(this);
         }
 
-        private void TriggerExitRigidbody(int rbId) {
+        private void TriggerExitRigidbody(int rbId, Vector3 position, Vector3 surfacePoint, Vector3 surfaceNormal) {
             int volumesLeft = _rbIdToVolumeCountMap[rbId] - 1;
 
             if (volumesLeft > 0) _rbIdToVolumeCountMap[rbId] = volumesLeft;
             else _rbIdToVolumeCountMap.Remove(rbId);
             
             if (volumesLeft > 0 || !_rbIdToIndexMap.Remove(rbId, out int index)) return;
-
+            
+            var rb = _rbList[index].rb;
             _rbList[index] = default;
             
             if (_rbIdToWaterClientDataMap.Remove(rbId, out var data)) {
@@ -306,6 +317,8 @@ namespace MisterGames.Logic.Water {
             else {
                 _floatingPointsCount--;
             }
+            
+            OnRigidbodyExit.Invoke(rb, position, surfacePoint, surfaceNormal);
         }
 
         void IUpdate.OnUpdate(float dt) {
@@ -324,6 +337,8 @@ namespace MisterGames.Logic.Water {
                 forceLevel = _forceLevelDecrease,
                 forceDataArray = forceDataArray,
                 torqueDeceleration = _torqueDeceleration,
+                buoyancyScale = _buoyancyScale,
+                buoyancyRandom = _buoyancyRandomAdd,
                 randomForce = _randomForce,
                 randomForceT = time * _randomForceSpeed,
                 randomTorque = _randomTorque,
@@ -350,8 +365,10 @@ namespace MisterGames.Logic.Water {
                 rb.AddTorque(mul * forceData.torque, ForceMode.Acceleration);
                 
 #if UNITY_EDITOR
-                if (forceData.drawGizmos) DebugExt.DrawLine(forceData.point, forceData.surfacePoint, Color.white);
-                if (forceData.drawGizmos) DebugExt.DrawRay(forceData.point, forceData.force * mul, Color.magenta);
+                if (forceData.drawGizmos) {
+                    DebugExt.DrawLine(forceData.point, forceData.surfacePoint, Color.white);
+                    DebugExt.DrawRay(forceData.point, forceData.force * mul, Color.magenta);
+                }
 #endif
             }
 
@@ -477,11 +494,12 @@ namespace MisterGames.Logic.Water {
             _rbList.RemoveRange(validRbCount, rbCount - validRbCount);
         }
 
-        private static float3 GetNoiseVector(float t, float offset) {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static float3 GetNoiseVector(float2 t, float offset) {
             return new float3(
-                noise.cnoise((float2) t + offset),
-                noise.cnoise((float2) t + 7f * offset),
-                noise.cnoise((float2) t + 11f * offset)
+                noise.cnoise(t + offset),
+                noise.cnoise(t + 7f * offset),
+                noise.cnoise(t + 11f * offset)
             );
         }
         
@@ -493,6 +511,9 @@ namespace MisterGames.Logic.Water {
             [ReadOnly] public int volumeCount;
             [ReadOnly] public float forceLevel;
             [ReadOnly] public float torqueDeceleration;
+            
+            [ReadOnly] public float buoyancyScale;
+            [ReadOnly] public float buoyancyRandom;
             
             [ReadOnly] public float randomForceT;
             [ReadOnly] public float randomForce;
@@ -548,12 +569,16 @@ namespace MisterGames.Logic.Water {
                     return;
                 }
 
-                force = (1f + floatingData.buoyancy) * force / validProxyCount 
-                        - floatingData.deceleration * floatingData.velocity 
-                        + GetNoiseVector(randomForceT, NoiseOffset * floatingData.rbId) * randomForce;
+                float randomSeed = floatingData.rbId % RandomSeed;
+                float buoyancy = buoyancyScale * (floatingData.buoyancy + 
+                                                  noise.cnoise((float2) randomSeed * floatingData.buoyancy) * buoyancyRandom);
+                
+                force = (1f + buoyancy) * force / validProxyCount
+                        - floatingData.deceleration * floatingData.velocity
+                        + GetNoiseVector(randomForceT, NoiseOffset * randomSeed) * randomForce;
 
                 var torque = -floatingData.deceleration * floatingData.angularVelocity * torqueDeceleration 
-                             + GetNoiseVector(randomTorqueT, NoiseOffset * 5f * floatingData.rbId) * randomTorque;
+                             + GetNoiseVector(randomTorqueT, NoiseOffset * 5f * randomSeed) * randomTorque;
                 
                 forceDataArray[index] = new ForceData(
                     floatingData.rbId,
