@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace MisterGames.Character.Steps {
 
-    public sealed class CharacterStepsHeadbobPipeline : MonoBehaviour, IActorComponent, IUpdate {
+    public sealed class CharacterSwimHeadbobPipeline : MonoBehaviour, IActorComponent, IUpdate {
 
         [Header("Motion Settings")]
         [SerializeField] [Min(0f)] private float _cameraWeight = 1f;
@@ -16,7 +16,7 @@ namespace MisterGames.Character.Steps {
 
         [Header("Headbob Settings")]
         [SerializeField] [Min(0f)] private float _minSpeed = 0.2f;
-        [SerializeField] [Min(0f)] private float _maxSpeed = 6f;
+        [SerializeField] [Min(0f)] private float _maxSpeed = 2f;
         [SerializeField] private float _baseAmplitude = 1f;
         [SerializeField] private float _baseAmplitudeRandom = 0.2f;
         [SerializeField] private AnimationCurve _baseAmplitudeBySpeed = AnimationCurve.Linear(0f, 0f, 1f, 1f);
@@ -25,7 +25,7 @@ namespace MisterGames.Character.Steps {
         
         private Rigidbody _rigidbody;
         private CameraContainer _cameraContainer;
-        private CharacterStepsPipeline _steps;
+        private CharacterSwimStrokePipeline _swimStrokes;
         private CharacterViewPipeline _view;
         private int _cameraStateId;
 
@@ -42,29 +42,29 @@ namespace MisterGames.Character.Steps {
             _rigidbody = actor.GetComponent<Rigidbody>();
             _view = actor.GetComponent<CharacterViewPipeline>();
             _cameraContainer = actor.GetComponent<CameraContainer>();
-            _steps = actor.GetComponent<CharacterStepsPipeline>();
+            _swimStrokes = actor.GetComponent<CharacterSwimStrokePipeline>();
         }
 
         private void OnEnable() {
             _cameraStateId = _cameraContainer.CreateState();
             PlayerLoopStage.Update.Subscribe(this);
 
-            _steps.OnStep += OnStep;
+            _swimStrokes.OnStroke += OnStroke;
         }
 
         private void OnDisable() {
             _cameraContainer.RemoveState(_cameraStateId);
             PlayerLoopStage.Update.Unsubscribe(this);
 
-            _steps.OnStep -= OnStep;
+            _swimStrokes.OnStroke -= OnStroke;
         }
-
-        private void OnStep(int foot, float distance, Vector3 point) {
+        
+        private void OnStroke(int arm, float distance, Vector3 point) {
             float speedRatio = _maxSpeed > 0f ? _rigidbody.linearVelocity.magnitude / _maxSpeed : 0f;
             float baseAmplitude = _baseAmplitude + Random.Range(-_baseAmplitudeRandom, _baseAmplitudeRandom);
             baseAmplitude *= _baseAmplitudeBySpeed.Evaluate(speedRatio);
             
-            int footDir = foot == 0 ? 1 : -1;
+            int footDir = arm == 0 ? 1 : -1;
 
             _targetPositionAmplitude = baseAmplitude * _positionOffset.CreateMultiplier().Multiply(footDir, 1f, 1f);
             _targetRotationAmplitude = baseAmplitude * _rotationOffset.CreateMultiplier().Multiply(1f, footDir, footDir);
@@ -82,8 +82,8 @@ namespace MisterGames.Character.Steps {
             }
             else {
                 targetSmooth = _smooth;
-                _targetPositionOffset = _positionOffset.Evaluate(_steps.StepProgress).Multiply(_targetPositionAmplitude);
-                _targetRotationOffset = Quaternion.Euler(_rotationOffset.Evaluate(_steps.StepProgress).Multiply(_targetRotationAmplitude));
+                _targetPositionOffset = _positionOffset.Evaluate(_swimStrokes.StrokeProgress).Multiply(_targetPositionAmplitude);
+                _targetRotationOffset = Quaternion.Euler(_rotationOffset.Evaluate(_swimStrokes.StrokeProgress).Multiply(_targetRotationAmplitude));
             }
 
             _currentPositionOffset = Vector3.Lerp(_currentPositionOffset, _targetPositionOffset, dt * targetSmooth);

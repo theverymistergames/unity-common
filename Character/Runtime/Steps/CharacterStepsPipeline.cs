@@ -18,7 +18,7 @@ namespace MisterGames.Character.Steps {
         [SerializeField] [Min(0f)] private float _minSpeedDetectDuration = 0.15f;
         [SerializeField] [Min(0f)] private float _skipNotGroundedDuration = 0.15f;
         [SerializeField] [Min(0f)] private float _stepLengthMin = 0.4f;
-        [SerializeField] [Min(0f)] private float _stepLengthMultiplier = 3f;
+        [SerializeField] [Min(0f)] private float _stepLengthMultiplier = 2f;
         [SerializeField] private AnimationCurve _stepLengthBySpeed = EasingType.EaseOutExpo.ToAnimationCurve();
         
         public delegate void StepCallback(int foot, float distance, Vector3 point);
@@ -35,8 +35,8 @@ namespace MisterGames.Character.Steps {
         private float _lastTimeMoving;
         private float _stepProgress = -1;
         private int _foot;
-        
-        public void OnAwake(IActor actor) {
+
+        void IActorComponent.OnAwake(IActor actor) {
             _rigidbody = actor.GetComponent<Rigidbody>();
             _groundDetector = actor.GetComponent<CharacterGroundDetector>();
             _view = actor.GetComponent<CharacterViewPipeline>();
@@ -51,7 +51,7 @@ namespace MisterGames.Character.Steps {
         }
 
         void IUpdate.OnUpdate(float dt) {
-            float time = Time.time;
+            float time = TimeSources.scaledTime;
             var velocityFlat = Vector3.ProjectOnPlane(_rigidbody.linearVelocity, _view.BodyRotation * Vector3.up);
             float sqrSpeedFlat = velocityFlat.sqrMagnitude;
             

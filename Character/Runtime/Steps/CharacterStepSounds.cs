@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
 using MisterGames.Actors;
+using MisterGames.Character.Capsule;
 using MisterGames.Collisions.Detectors;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Audio;
 using MisterGames.Common.Labels;
 using MisterGames.Common.Maths;
+using MisterGames.Common.Tick;
 using UnityEngine;
 
 namespace MisterGames.Character.Steps {
@@ -29,33 +31,55 @@ namespace MisterGames.Character.Steps {
         }
         
         private readonly Dictionary<int, int> _materialIdToIndexMap = new();
-        private Transform _transform;
-        private CharacterStepsPipeline _characterStepsPipeline;
+        
+        private CharacterStepsPipeline _stepsPipeline;
+        private CharacterCapsulePipeline _capsulePipeline;
         private float _nextStepSoundTime;
 
         void IActorComponent.OnAwake(IActor actor) {
-            _transform = transform;
-            _characterStepsPipeline = actor.GetComponent<CharacterStepsPipeline>();
+            _stepsPipeline = actor.GetComponent<CharacterStepsPipeline>();
+            _capsulePipeline = actor.GetComponent<CharacterCapsulePipeline>();
             
             FetchMaterialIdToIndexMap();
         }
 
         private void OnEnable() {
-            _characterStepsPipeline.OnStep += OnStep;
+            _stepsPipeline.OnStep += OnStep;
         }
 
         private void OnDisable() {
-            _characterStepsPipeline.OnStep -= OnStep;
+            _stepsPipeline.OnStep -= OnStep;
+        }
+
+        private void OnStep(int foot, float distance, Vector3 point) {
+#if UNITY_EDITOR
+            if (_enableDebugSound) {
+                if (_debugSound == null) return;
+                
+                AudioPool.Main.Play(
+                    _debugSound, 
+                    _capsulePipeline.Root, 
+                    options: AudioOptions.AffectedByTimeScale | AudioOptions.AffectedByVolumes | AudioOptions.ApplyOcclusion
+                );
+                return;
+            }
+#endif
+            
+            PlayStepSound(point);
         }
 
         public void PlayStepSound(float volumeMul = 1f, float cooldown = -1f) {
-            float time = Time.time;
+            PlayStepSound(_capsulePipeline.GetColliderBottomPoint(_capsulePipeline.Radius), volumeMul, cooldown);
+        }
+
+        private void PlayStepSound(Vector3 stepPoint, float volumeMul = 1f, float cooldown = -1f) {
+            float time = TimeSources.scaledTime;
             if (time < _nextStepSoundTime) return;
             
             _nextStepSoundTime = time + (cooldown < 0f ? _playSoundCooldown : cooldown);
 
-            var up = _transform.up;
-            var point = _transform.TransformPoint(_capsuleCollider.center) - _capsuleCollider.height * 0.5f * up;
+            var up = _capsulePipeline.Root.up;
+            var point = _capsulePipeline.GetColliderBottomPoint(_capsulePipeline.Radius);
             
             var materials = _materialDetector.GetMaterials(point, up);
             
@@ -77,7 +101,7 @@ namespace MisterGames.Character.Steps {
                 
                 AudioPool.Main.Play(
                     AudioPool.Main.ShuffleClips(clips), 
-                    _transform, 
+                    stepPoint, 
                     volume: volume * info.weight * volumeMul, 
                     pitch: pitch, 
                     options: AudioOptions.AffectedByTimeScale | AudioOptions.AffectedByVolumes | AudioOptions.ApplyOcclusion
@@ -85,22 +109,6 @@ namespace MisterGames.Character.Steps {
             }
         }
 
-        private void OnStep(int foot, float distance, Vector3 point) {
-#if UNITY_EDITOR
-            if (_enableDebugSound) {
-                if (_debugSound == null) return;
-                
-                AudioPool.Main.Play(
-                    _debugSound, 
-                    _transform, 
-                    options: AudioOptions.AffectedByTimeScale | AudioOptions.AffectedByVolumes | AudioOptions.ApplyOcclusion
-                );
-                return;
-            }
-#endif
-            
-            PlayStepSound();
-        }
 
         private void FetchMaterialIdToIndexMap() {
             _materialIdToIndexMap.Clear();

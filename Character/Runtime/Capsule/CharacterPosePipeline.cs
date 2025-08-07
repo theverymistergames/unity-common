@@ -13,8 +13,8 @@ namespace MisterGames.Character.Capsule {
         public CharacterPose CurrentPose { get => _currentPose; set => SetPose(value); }
         public CharacterPose TargetPose { get; private set; }
 
-        public CharacterCapsuleSize CurrentCapsuleSize { get => _capsule.CapsuleSize; set => _capsule.CapsuleSize = value; }
-        public CharacterCapsuleSize TargetCapsuleSize { get; private set; }
+        public CapsuleSize CurrentCapsuleSize { get => _capsule.CapsuleSize; set => _capsule.CapsuleSize = value; }
+        public CapsuleSize TargetCapsuleSize { get; private set; }
 
         public delegate void PoseChanged(CharacterPose newPose, CharacterPose oldPose);
 
@@ -31,7 +31,7 @@ namespace MisterGames.Character.Capsule {
 
         public async UniTask ChangePose(
             CharacterPose targetPose,
-            CharacterCapsuleSize capsuleSize,
+            CapsuleSize capsuleSize,
             float duration,
             float setTargetPoseAt = 0f,
             CancellationToken cancellationToken = default

@@ -10,19 +10,14 @@ namespace MisterGames.Character.Capsule {
 
         [SerializeField] private Transform _headRoot;
         
+        public delegate void HeightChangeCallback(float newHeight, float oldHeight);
         public event HeightChangeCallback OnHeightChange = delegate { };
 
+        public Transform Root { get; private set; }
         public float Height { get => _capsuleCollider.height; set => SetHeight(value); }
         public float Radius { get => _capsuleCollider.radius; set => SetRadius(value); }
-        public CharacterCapsuleSize CapsuleSize { get => GetCapsuleSize(); set => SetCapsuleSize(value); }
+        public CapsuleSize CapsuleSize { get => GetCapsuleSize(); set => SetCapsuleSize(value); }
 
-        public Vector3 ColliderTop => GetColliderTopPoint();
-        public Vector3 ColliderCenter => GetColliderCenterPoint();
-        public Vector3 ColliderBottom => GetColliderBottomPoint();
-
-        public delegate void HeightChangeCallback(float newHeight, float oldHeight);
-
-        private Transform _transform;
         private CapsuleCollider _capsuleCollider;
         private IRadiusCollisionDetector _groundDetector;
         private IRadiusCollisionDetector _ceilingDetector;
@@ -30,8 +25,8 @@ namespace MisterGames.Character.Capsule {
         private Vector3 _headRootInitialPosition;
         private float _initialHeight;
 
-        public void OnAwake(IActor actor) {
-            _transform = actor.Transform;
+        void IActorComponent.OnAwake(IActor actor) {
+            Root = actor.Transform;
             
             _capsuleCollider = actor.GetComponent<CapsuleCollider>();
             _groundDetector = actor.GetComponent<CharacterGroundDetector>();
@@ -45,7 +40,7 @@ namespace MisterGames.Character.Capsule {
             _headRoot.localPosition = _headRootInitialPosition;
         }
 
-        private void SetCapsuleSize(CharacterCapsuleSize capsuleSize) {
+        private void SetCapsuleSize(CapsuleSize capsuleSize) {
             SetHeight(capsuleSize.height);
             SetRadius(capsuleSize.radius);
         }
@@ -81,7 +76,7 @@ namespace MisterGames.Character.Capsule {
             _groundDetector.Distance = height * 0.5f - _capsuleCollider.radius;
             
             if (!_groundDetector.HasContact) {
-                _transform.position += (prevHeight - height) * _transform.up;
+                Root.position += (prevHeight - height) * Root.up;
             }
         }
 
@@ -91,23 +86,23 @@ namespace MisterGames.Character.Capsule {
             _ceilingDetector.Radius = radius;
         }
 
-        private CharacterCapsuleSize GetCapsuleSize() {
-            return new CharacterCapsuleSize {
+        private CapsuleSize GetCapsuleSize() {
+            return new CapsuleSize {
                 height = _capsuleCollider.height,
                 radius = _capsuleCollider.radius,
             };
         }
 
-        private Vector3 GetColliderTopPoint() {
-            return GetColliderCenterPoint(_capsuleCollider.height * 0.5f);
+        public Vector3 GetColliderTopPoint(float offset = 0f) {
+            return GetColliderCenterPoint(_capsuleCollider.height * 0.5f + offset);
         }
 
-        private Vector3 GetColliderBottomPoint() {
-            return GetColliderCenterPoint(-_capsuleCollider.height * 0.5f);
+        public Vector3 GetColliderBottomPoint(float offset = 0f) {
+            return GetColliderCenterPoint(-_capsuleCollider.height * 0.5f + offset);
         }
 
-        private Vector3 GetColliderCenterPoint(float verticalOffset = 0f) {
-            return _transform.TransformPoint(_capsuleCollider.center + verticalOffset * Vector3.up);
+        public Vector3 GetColliderCenterPoint(float offset = 0f) {
+            return Root.TransformPoint(_capsuleCollider.center + offset * Vector3.up);
         }
     }
 

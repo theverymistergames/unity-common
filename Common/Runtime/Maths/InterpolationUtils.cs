@@ -1,4 +1,6 @@
-﻿namespace MisterGames.Common.Maths {
+﻿using System.Runtime.CompilerServices;
+
+namespace MisterGames.Common.Maths {
 
     public static class InterpolationUtils {
 
@@ -40,6 +42,12 @@
             return (1f - t) / edgeWeight;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float Remap01(float a, float b, float t) {
+            return b - a > 0f 
+                ? (t - a) / (b - a)
+                : t > a ? 1f : 0f;
+        }
     }
 
 }

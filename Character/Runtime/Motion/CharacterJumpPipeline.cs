@@ -232,7 +232,7 @@ namespace MisterGames.Character.Motion {
         private bool HasNoCeiling() {
             var info = _ceilingDetector.CollisionInfo;
             return !info.hasContact ||
-                   (info.point - _capsulePipeline.ColliderTop).sqrMagnitude > _minCeilingHeight * _minCeilingHeight;
+                   (info.point - _capsulePipeline.GetColliderTopPoint()).sqrMagnitude > _minCeilingHeight * _minCeilingHeight;
         }
     }
 

@@ -5,6 +5,7 @@ using MisterGames.Character.Capsule;
 using MisterGames.Character.Phys;
 using MisterGames.Character.Core;
 using MisterGames.Common.Data;
+using UnityEngine;
 
 namespace MisterGames.ActionLib.Character {
 
@@ -27,7 +28,7 @@ namespace MisterGames.ActionLib.Character {
             if (!minCeilingHeight.HasValue) return hasCeiling;
 
             var capsule = context.GetComponent<CharacterCapsulePipeline>();
-            var top = capsule.ColliderTop;
+            var top = capsule.GetColliderTopPoint();
             float sqrDistanceToCeiling = (info.point - top).sqrMagnitude;
 
             // Has contact, current distance from character top point to ceiling contact point is above min limit:

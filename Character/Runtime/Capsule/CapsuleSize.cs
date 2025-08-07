@@ -4,13 +4,13 @@ using UnityEngine;
 namespace MisterGames.Character.Capsule {
     
     [Serializable]
-    public struct CharacterCapsuleSize {
+    public struct CapsuleSize {
 
         [Min(0f)] public float height;
         [Min(0f)] public float radius;
 
         public override string ToString() {
-            return $"{nameof(CharacterCapsuleSize)}(h: {height}, r: {radius})";
+            return $"{nameof(CapsuleSize)}(h: {height}, r: {radius})";
         }
     }
     
