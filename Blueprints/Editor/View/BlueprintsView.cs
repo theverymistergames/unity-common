@@ -732,8 +732,7 @@ namespace MisterGames.Blueprints.Editor.View {
             if (repaintBlackboard) RepopulateBlackboardView();
 
             if (hasEdgesToCreate || hasElementsToRemove) {
-                if (hasNodesToRemove) RepopulateView();
-                else RepaintInvalidNodes();
+                RepopulateView();
             }
 
             return change;
