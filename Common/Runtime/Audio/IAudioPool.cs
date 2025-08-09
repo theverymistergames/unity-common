@@ -48,8 +48,13 @@ namespace MisterGames.Common.Audio {
         
         void SetGlobalOcclusionWeightNextFrame(float weight);
         
-        internal void ReleaseAudioHandle(int handleId);
+        internal void ReleaseAudioHandle(int handleId, bool immediate = false);
         internal bool TryGetAudioElement(int handleId, out IAudioElement audioElement);
+        internal void SetAudioHandleVolume(int handleId, float volume);
+
+#if UNITY_EDITOR
+        internal bool ShowGizmo { get; }  
+#endif
     }
     
 }

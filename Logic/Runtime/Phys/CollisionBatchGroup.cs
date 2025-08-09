@@ -20,6 +20,10 @@ namespace MisterGames.Logic.Phys {
 
         private NativeHashMap<int, int> _rbIdToMaterialMap;
 
+        private void Awake() {
+            _rbIdToMaterialMap = new NativeHashMap<int, int>(2, Allocator.Persistent);
+        }
+
         private void OnEnable() {
             Physics.ContactEvent += OnContactEvent;
         }
@@ -33,14 +37,10 @@ namespace MisterGames.Logic.Phys {
         }
 
         public void Register(Rigidbody rigidbody, int surfaceMaterial = 0) {
-            if (!_rbIdToMaterialMap.IsCreated) _rbIdToMaterialMap = new NativeHashMap<int, int>(surfaceMaterial, Allocator.Persistent);
-
             _rbIdToMaterialMap[rigidbody.GetHashCode()] = surfaceMaterial;
         }
 
         public void Unregister(Rigidbody rigidbody) {
-            if (!_rbIdToMaterialMap.IsCreated) return;
-            
             _rbIdToMaterialMap.Remove(rigidbody.GetHashCode());
         }
 

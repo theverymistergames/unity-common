@@ -1,4 +1,6 @@
-﻿using UnityEngine;
+﻿using System;
+using System.Threading;
+using UnityEngine;
 
 namespace MisterGames.Common.Audio {
     
@@ -19,10 +21,20 @@ namespace MisterGames.Common.Audio {
 
         public int Id { get; set; }
         public int MixerGroupId { get; set; }
+        public IAudioPool AudioPool { get; set; }
+        public CancellationToken CancellationToken { get; set; }
+
+        public AudioOptions AudioOptions { get; set; }
         public float PitchMul { get; set; }
         public float AttenuationMul { get; set; }
-        public AudioOptions AudioOptions { get; set; }
+        public float ClipLength { get; set; }
+        public float ClipTime { get; set; }
+        public float FadeOut { get; set; }
         public int OcclusionFlag { get; set; }
+
+        private void OnDestroy() {
+            AudioPool?.ReleaseAudioHandle(Id, immediate: true);
+        }
 
         public override string ToString() {
             return $"{nameof(AudioElement)}({_source.clip.name})";
@@ -37,7 +49,7 @@ namespace MisterGames.Common.Audio {
         }
 
         private void OnDrawGizmos() {
-            if (!Application.isPlaying || AudioPool.Main is not AudioPool { ShowGizmo: true }) return;
+            if (!Application.isPlaying || !(AudioPool?.ShowGizmo ?? false)) return;
             
             DebugExt.DrawLabel(transform.position, $"[{Id}] {(_source.clip == null ? "<null>" : _source.clip.name)}");
         }

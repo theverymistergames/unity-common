@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
-using Cysharp.Threading.Tasks;
 using MisterGames.Common.Easing;
 using MisterGames.Common.Jobs;
 using MisterGames.Common.Maths;
@@ -75,10 +74,16 @@ namespace MisterGames.Common.Audio {
         private static readonly float3 Right = Vector3.right;
         
         private readonly Dictionary<int, IndexData> _clipsHashToLastIndexMap = new();
-
+        private float _lastClipShufflesCheckTime;
+        
         private readonly Dictionary<AttachKey, int> _attachKeyToHandleIdMap = new();
+        private readonly Dictionary<int, AttachKey> _handleIdToAttachKeyMap = new();
         private readonly Dictionary<int, IAudioElement> _handleIdToAudioElementMap = new();
         private int _lastHandleId;
+        
+        private readonly Dictionary<int, FadeData> _fadeInDataMap = new();
+        private readonly Dictionary<int, FadeData> _fadeOutDataMap = new();
+        private readonly Dictionary<int, AudioSource> _releaseSourcesMap = new();
         
         private readonly Dictionary<AudioListener, ListenerData> _audioListenersMap = new();
         private Transform _listenerTransform;
@@ -88,7 +93,6 @@ namespace MisterGames.Common.Audio {
         private readonly HashSet<int> _includeMixerGroupsForVolumesSet = new();
         
         private Transform _transform;
-        private CancellationToken _destroyToken;
         private float _lastTimeScale;
         private float _globalOcclusionWeight = 1f;
         
@@ -96,27 +100,30 @@ namespace MisterGames.Common.Audio {
             Main = this;
             
             _transform = transform;
-            _destroyToken = destroyCancellationToken;
             
             FetchIncludeMixerGroupsFromVolumes();
             
-            StartLastClipIndexUpdates(_destroyToken).Forget();
-            
-            PlayerLoopStage.Update.Subscribe(this);
+            PlayerLoopStage.LateUpdate.Subscribe(this);
         }
 
         private void OnDestroy() {
             _clipsHashToLastIndexMap.Clear();
             
             _attachKeyToHandleIdMap.Clear();
+            _handleIdToAttachKeyMap.Clear();
             _handleIdToAudioElementMap.Clear();
 
+            _fadeInDataMap.Clear();
+            _fadeOutDataMap.Clear();
+            _releaseSourcesMap.Clear();
+            
             _audioListenersMap.Clear();
             _volumes.Clear();
             _includeMixerGroupsForVolumesSet.Clear();
             
             Main = null;
-            PlayerLoopStage.Update.Unsubscribe(this);
+            
+            PlayerLoopStage.LateUpdate.Unsubscribe(this);
         }
         
         private void FetchIncludeMixerGroupsFromVolumes() {
@@ -128,44 +135,6 @@ namespace MisterGames.Common.Audio {
 
             if (_includeDefaultMixerGroupsForVolumes && _defaultMixerGroup != null) {
                 _includeMixerGroupsForVolumesSet.Add(_defaultMixerGroup.GetInstanceID());
-            }
-        }
-
-        private readonly struct IndexCheckData {
-
-            public readonly int hash;
-            public readonly float time;
-            
-            public IndexCheckData(int hash, float time) {
-                this.hash = hash;
-                this.time = time;
-            }
-        }
-
-        private async UniTask StartLastClipIndexUpdates(CancellationToken cancellationToken) {
-            while (!cancellationToken.IsCancellationRequested) {
-                float time = Time.time;
-                int count = _clipsHashToLastIndexMap.Count;
-                
-                var buffer = new NativeArray<IndexCheckData>(count, Allocator.Temp);
-                int index = 0;
-                
-                foreach ((int hash, var data) in _clipsHashToLastIndexMap) {
-                    buffer[index++] = new IndexCheckData(hash, data.time);
-                }
-
-                for (int i = 0; i < count; i++) {
-                    var data = buffer[i];
-                    
-                    if (time - data.time > _lastIndexStoreLifetime) {
-                        _clipsHashToLastIndexMap.Remove(data.hash);
-                    }
-                }
-                
-                buffer.Dispose();
-
-                await UniTask.Delay(TimeSpan.FromSeconds(_lastIndexStoreLifetime), cancellationToken: cancellationToken)
-                    .SuppressCancellationThrow(); 
             }
         }
         
@@ -254,23 +223,29 @@ namespace MisterGames.Common.Audio {
             bool affectedByTimeScale = (options & AudioOptions.AffectedByTimeScale) == AudioOptions.AffectedByTimeScale;
             normalizedTime = Mathf.Clamp01(normalizedTime);
             mixerGroup = mixerGroup == null ? _defaultMixerGroup : mixerGroup;
-            
-            InitializeAudioElement(audioElement, id, pitch, options, mixerGroup);
-            
-            _handleIdToAudioElementMap[id] = audioElement;
 
-            RestartAudioSource(
-                id, audioElement.Source, clip, mixerGroup, 
-                fadeIn, volume, pitch * (affectedByTimeScale ? Time.timeScale : 1f), 
-                spatialBlend, normalizedTime, loop, 
-                cancellationToken
-            ).Forget();
+            float clipLength = clip.length;
+            float clipTime = normalizedTime * clipLength;
             
-            WaitAndRelease(
-                id, AttachKey.Invalid, audioElement.Source, 
-                loop, fadeOut, 
-                cancellationToken
-            ).Forget();
+            InitializeAudioElement(audioElement, id, pitch, fadeOut, clipLength, clipTime, options, mixerGroup, cancellationToken);
+            ProcessSound(audioElement);
+
+            if (fadeIn > 0f) {
+                _fadeInDataMap[id] = new FadeData(
+                    affectedByTimeScale ? TimeSources.scaledTime : Time.realtimeSinceStartup, 
+                    fadeIn, 
+                    volume,
+                    affectedByTimeScale
+                );   
+            }
+
+            _handleIdToAudioElementMap[id] = audioElement;
+            
+            RestartAudioSource(
+                audioElement.Source, clip, mixerGroup, 
+                fadeIn, volume, pitch * (affectedByTimeScale ? Time.timeScale : 1f), 
+                spatialBlend, clipTime, loop
+            );
             
             return new AudioHandle(this, id);
         }
@@ -299,7 +274,7 @@ namespace MisterGames.Common.Audio {
 
             int id = GetNextHandleId();
             var audioElement = GetAudioElementAttached(attachTo, localPosition);
-            var attachKey = new AttachKey(attachTo.GetInstanceID(), attachId);
+            var attachKey = new AttachKey(attachTo.GetHashCode(), attachId);
 
 #if UNITY_EDITOR
             CreateDebugColor(id, clip.name);
@@ -310,33 +285,36 @@ namespace MisterGames.Common.Audio {
             normalizedTime = Mathf.Clamp01(normalizedTime);
             mixerGroup = mixerGroup == null ? _defaultMixerGroup : mixerGroup;
             
+            float clipLength = clip.length;
+            float clipTime = normalizedTime * clipLength;
+            
             if (attachId != 0) {
-                int oldAttachedHandleId = _attachKeyToHandleIdMap.GetValueOrDefault(attachKey);
+                if (_attachKeyToHandleIdMap.TryGetValue(attachKey, out int oldId)) {
+                    ReleaseSound(oldId, immediate: false);
+                }
                 
-                _handleIdToAudioElementMap.Remove(oldAttachedHandleId);
                 _attachKeyToHandleIdMap[attachKey] = id;
-                
-#if UNITY_EDITOR
-                RemoveDebugColor(oldAttachedHandleId);
-#endif
             }
             
-            InitializeAudioElement(audioElement, id, pitch, options, mixerGroup);
+            InitializeAudioElement(audioElement, id, pitch, fadeOut, clipLength, clipTime, options, mixerGroup, cancellationToken);
+            ProcessSound(audioElement);
             
             _handleIdToAudioElementMap[id] = audioElement;
             
+            if (fadeIn > 0f) {
+                _fadeInDataMap[id] = new FadeData(
+                    affectedByTimeScale ? TimeSources.scaledTime : Time.realtimeSinceStartup, 
+                    fadeIn, 
+                    volume,
+                    affectedByTimeScale
+                );   
+            }
+
             RestartAudioSource(
-                id, audioElement.Source, clip, mixerGroup, 
+                audioElement.Source, clip, mixerGroup, 
                 fadeIn, volume, pitch * (affectedByTimeScale ? Time.timeScale : 1f), 
-                spatialBlend, normalizedTime, loop, 
-                cancellationToken
-            ).Forget();
-            
-            WaitAndRelease(
-                id, attachKey, audioElement.Source, 
-                loop, fadeOut, 
-                cancellationToken
-            ).Forget();
+                spatialBlend, clipTime, loop
+            );
 
             return new AudioHandle(this, id);
         }
@@ -349,20 +327,34 @@ namespace MisterGames.Common.Audio {
             return _lastHandleId;
         }
 
-        private void InitializeAudioElement(IAudioElement audioElement, int id, float pitch, AudioOptions options, AudioMixerGroup mixerGroup) {
+        private void InitializeAudioElement(
+            IAudioElement audioElement,
+            int id,
+            float pitch,
+            float fadeOut,
+            float clipLength,
+            float clipTime,
+            AudioOptions options,
+            AudioMixerGroup mixerGroup,
+            CancellationToken cancellationToken) 
+        {
             audioElement.Id = id;
             audioElement.MixerGroupId = mixerGroup == null ? 0 : mixerGroup.GetInstanceID();
             
             audioElement.AudioOptions = options;
             audioElement.PitchMul = pitch;
             audioElement.AttenuationMul = 1f;
+
+            audioElement.ClipLength = clipLength;
+            audioElement.ClipTime = clipTime;
+            audioElement.FadeOut = fadeOut < 0f ? _fadeOut : fadeOut;
             audioElement.OcclusionFlag = 0;
-            
+
             audioElement.LowPass.lowpassResonanceQ = _qLow;
             audioElement.HighPass.highpassResonanceQ = _qHigh;
             audioElement.Source.maxDistance = _attenuationDistance;
-            
-            ProcessSound(audioElement);
+
+            audioElement.CancellationToken = cancellationToken;
         }
         
         private IAudioElement GetAudioElementAtWorldPosition(Vector3 position) {
@@ -373,8 +365,7 @@ namespace MisterGames.Common.Audio {
             return PrefabPool.Main.Get(_prefab, parent.TransformPoint(localPosition), Quaternion.identity, parent);
         }
         
-        private UniTask RestartAudioSource(
-            int id,
+        private static void RestartAudioSource(
             AudioSource source,
             AudioClip clip,
             AudioMixerGroup mixerGroup,
@@ -382,14 +373,13 @@ namespace MisterGames.Common.Audio {
             float volume, 
             float pitch, 
             float spatialBlend,
-            float normalizedTime, 
-            bool loop,  
-            CancellationToken cancellationToken) 
+            float clipTime,
+            bool loop) 
         {
             source.Stop();
 
             source.clip = clip;
-            source.time = normalizedTime * clip.length;
+            source.time = clipTime;
             source.volume = fadeIn > 0f ? 0f : volume;
             source.pitch = pitch;
             source.loop = loop;
@@ -397,73 +387,6 @@ namespace MisterGames.Common.Audio {
             source.outputAudioMixerGroup = mixerGroup;
             
             source.Play();
-            
-            return fadeIn > 0f ? FadeIn(id, source, fadeIn, volume, cancellationToken) : default;
-        }
-        
-        private async UniTask WaitAndRelease(
-            int id,
-            AttachKey attachKey,
-            AudioSource source,
-            bool loop,
-            float fadeOut,
-            CancellationToken cancellationToken) 
-        {
-            float maxTime = source.time;
-            float clipLength = source.clip.length;
-            
-            while (!cancellationToken.IsCancellationRequested && 
-                   !_destroyToken.IsCancellationRequested && 
-                   _handleIdToAudioElementMap.ContainsKey(id) && 
-                   (loop || source.time is var time && time < clipLength && time >= maxTime)) 
-            {
-                maxTime = math.max(source.time, maxTime);
-                await UniTask.Yield();
-            }
-            
-            if (_destroyToken.IsCancellationRequested) return;
-            
-            _handleIdToAudioElementMap.Remove(id);
-            _attachKeyToHandleIdMap.Remove(attachKey);
-            
-#if UNITY_EDITOR
-            RemoveDebugColor(id);
-#endif
-            
-            if (source == null) return;
-            
-            await FadeOut(source, fadeOut < 0f ? _fadeOut : fadeOut);
-            
-            if (_destroyToken.IsCancellationRequested) return;
-            
-            PrefabPool.Main.Release(source);
-        }
-        
-        private async UniTask FadeIn(int id, AudioSource source, float duration, float volume, CancellationToken cancellationToken) {
-            float t = 0f;
-            float speed = duration > 0f ? 1f / duration : float.MaxValue;
-
-            while (t < 1f && _handleIdToAudioElementMap.ContainsKey(id) && 
-                   !cancellationToken.IsCancellationRequested && !_destroyToken.IsCancellationRequested) 
-            {
-                t += Time.unscaledDeltaTime * speed;
-                source.volume = Mathf.Lerp(0f, volume, t);
-                
-                await UniTask.Yield();
-            }
-        }
-
-        private async UniTask FadeOut(AudioSource source, float duration) {
-            float t = 0f;
-            float speed = duration > 0f ? 1f / duration : float.MaxValue;
-            float startVolume = source.volume;
-            
-            while (t < 1f && !_destroyToken.IsCancellationRequested) {
-                t += Time.unscaledDeltaTime * speed;
-                source.volume = Mathf.Lerp(startVolume, 0f, t);
-                
-                await UniTask.Yield();
-            }
         }
 
         public AudioClip ShuffleClips(IReadOnlyList<AudioClip> clips) {
@@ -506,19 +429,167 @@ namespace MisterGames.Common.Audio {
                 : AudioHandle.Invalid;
         }
         
-        void IAudioPool.ReleaseAudioHandle(int handleId) {
-            _handleIdToAudioElementMap.Remove(handleId);
+        void IAudioPool.ReleaseAudioHandle(int handleId, bool immediate) {
+            ReleaseSound(handleId, immediate);
+        }
+
+        private void ReleaseSound(int handleId, bool immediate) {
+            if (!_handleIdToAudioElementMap.Remove(handleId, out var e)) return;
+
+            if (_handleIdToAttachKeyMap.Remove(handleId, out var attachKey)) {
+                _attachKeyToHandleIdMap.Remove(attachKey);
+            }
+
+            _fadeInDataMap.Remove(handleId);
+
+            bool isNull = e.Source == null;
             
+            if (immediate || isNull) {
+                if (!isNull) PrefabPool.Main.Release(e.Source);
+            }
+            else {
+                bool affectedByTimescale = (e.AudioOptions & AudioOptions.AffectedByTimeScale) == AudioOptions.AffectedByTimeScale;
+
+                _fadeOutDataMap[handleId] = new FadeData(
+                    affectedByTimescale ? TimeSources.scaledTime : Time.realtimeSinceStartup,
+                    e.FadeOut,
+                    e.Source.volume,
+                    affectedByTimescale
+                );
+
+                _releaseSourcesMap[handleId] = e.Source;
+            }
+
 #if UNITY_EDITOR
             RemoveDebugColor(handleId);
 #endif
         }
 
+        void IAudioPool.SetAudioHandleVolume(int handleId, float volume) { 
+            if (!_handleIdToAudioElementMap.TryGetValue(handleId, out var e)) return;
+
+            // Stop fade in
+            _fadeInDataMap.Remove(handleId);
+            e.Source.volume = volume;
+        }
+
         bool IAudioPool.TryGetAudioElement(int handleId, out IAudioElement audioElement) {
             return _handleIdToAudioElementMap.TryGetValue(handleId, out audioElement);
         }
-        
+
         void IUpdate.OnUpdate(float dt) {
+            ProcessClipShuffles();
+            ProcessFadeIn();
+            ProcessFadeOutAndRelease();
+            ProcessSounds(dt);
+        }
+
+        private void ProcessClipShuffles() {
+            float time = Time.realtimeSinceStartup;
+            if (time < _lastClipShufflesCheckTime + _lastIndexStoreLifetime) return;
+
+            _lastClipShufflesCheckTime = time;
+            
+            int count = _clipsHashToLastIndexMap.Count;
+            var buffer = new NativeArray<IndexCheckData>(count, Allocator.Temp);
+            int index = 0;
+                
+            foreach ((int hash, var data) in _clipsHashToLastIndexMap) {
+                buffer[index++] = new IndexCheckData(hash, data.time);
+            }
+
+            for (int i = 0; i < count; i++) {
+                var data = buffer[i];
+                    
+                if (time - data.time > _lastIndexStoreLifetime) {
+                    _clipsHashToLastIndexMap.Remove(data.hash);
+                }
+            }
+                
+            buffer.Dispose();
+        }
+
+        private void ProcessFadeIn() {
+            float scaledTime = TimeSources.scaledTime;
+            float time = Time.realtimeSinceStartup;
+
+            int fadeInCount = _fadeInDataMap.Count;
+            var fadeInCalculateArray = new NativeArray<FadeCalculateData>(fadeInCount, Allocator.TempJob);
+            var fadeInResultArray = new NativeArray<FadeResultData>(fadeInCount, Allocator.TempJob);
+            
+            int index = 0;
+            
+            foreach ((int id, var data) in _fadeInDataMap) {
+                fadeInCalculateArray[index++] = new FadeCalculateData(id, data.affectedByTimescale, data.startTime, data.fade, 0f, data.volume);
+            }
+
+            var calculateFadeInJob = new CalculateFadeJob {
+                fadeCalculateDataArray = fadeInCalculateArray,
+                scaledTime = scaledTime,
+                unscaledTime = time,
+                fadeResultArray = fadeInResultArray
+            };
+            
+            calculateFadeInJob.Schedule(fadeInCount, JobExt.BatchFor(fadeInCount)).Complete();
+
+            for (int i = 0; i < fadeInCount; i++) {
+                var result = fadeInResultArray[i];
+                var e = _handleIdToAudioElementMap[result.id];
+                
+                e.Source.volume = result.volume;
+
+                if (result.progress < 1f) continue;
+                
+                _fadeInDataMap.Remove(result.id);
+            }
+            
+            fadeInCalculateArray.Dispose();
+            fadeInResultArray.Dispose();
+        }
+
+        private void ProcessFadeOutAndRelease() {
+            float scaledTime = TimeSources.scaledTime;
+            float time = Time.realtimeSinceStartup;
+
+            int fadeOutCount = _fadeOutDataMap.Count;
+            var fadeOutCalculateArray = new NativeArray<FadeCalculateData>(fadeOutCount, Allocator.TempJob);
+            var fadeOutResultArray = new NativeArray<FadeResultData>(fadeOutCount, Allocator.TempJob);
+            
+            int index = 0;
+            
+            foreach ((int id, var data) in _fadeOutDataMap) {
+                fadeOutCalculateArray[index++] = new FadeCalculateData(id, data.affectedByTimescale, data.startTime, data.fade, data.volume, 0f);
+            }
+
+            var calculateFadeOutJob = new CalculateFadeJob {
+                fadeCalculateDataArray = fadeOutCalculateArray,
+                scaledTime = scaledTime,
+                unscaledTime = time,
+                fadeResultArray = fadeOutResultArray
+            };
+            
+            calculateFadeOutJob.Schedule(fadeOutCount, JobExt.BatchFor(fadeOutCount)).Complete();
+
+            var pool = PrefabPool.Main;
+            
+            for (int i = 0; i < fadeOutCount; i++) {
+                var result = fadeOutResultArray[i];
+                var source = _releaseSourcesMap[result.id];
+                
+                source.volume = result.volume;
+                
+                if (result.progress < 1f) continue;
+                
+                _fadeOutDataMap.Remove(result.id);
+                _releaseSourcesMap.Remove(result.id);
+                pool.Release(source);
+            }
+            
+            fadeOutCalculateArray.Dispose();
+            fadeOutResultArray.Dispose();
+        }
+
+        private void ProcessSounds(float dt) {
             if (_audioListenersMap.Count == 0) {
                 foreach (var audioElement in _handleIdToAudioElementMap.Values) {
                     // To reset smoothed values
@@ -567,11 +638,21 @@ namespace MisterGames.Common.Audio {
             var resultSoundArray = CalculateResult(soundDataArray, soundOptionsArray, volumeResultArray, occlusionResultArray, soundCount, dt);
 
             for (int i = 0; i < soundCount; i++) {
+                var options = soundOptionsArray[i];
                 var soundData = soundDataArray[i];
-                var resultData = resultSoundArray[i];
                 
                 var e = _handleIdToAudioElementMap[soundData.id];
-
+                
+                if (e.CancellationToken.IsCancellationRequested || 
+                    (options & AudioOptions.Loop) == 0 && 
+                    (e.ClipTime = math.max(e.ClipTime, e.Source.time)) >= e.ClipLength) 
+                {
+                    ReleaseSound(soundData.id, immediate: false);
+                    continue;
+                }
+                
+                var resultData = resultSoundArray[i];
+                
 #if UNITY_EDITOR
                 if (_showSoundsDebugInfo) {
                     bool show = true;
@@ -940,6 +1021,8 @@ namespace MisterGames.Common.Audio {
             return math.clamp((distance - min) / (max - min + DistanceThreshold), 0f, 1f);
         }
         
+        #region DATA TYPES
+        
         private readonly struct ListenerData {
             
             public readonly int priority;
@@ -965,11 +1048,20 @@ namespace MisterGames.Common.Audio {
                 this.time = time;
             }
         }
+        
+        private readonly struct IndexCheckData {
+
+            public readonly int hash;
+            public readonly float time;
+            
+            public IndexCheckData(int hash, float time) {
+                this.hash = hash;
+                this.time = time;
+            }
+        }
 
         private readonly struct AttachKey : IEquatable<AttachKey> {
             
-            public static readonly AttachKey Invalid = new(0, 0);
-
             private readonly int _instanceId;
             private readonly int _hash;
             
@@ -981,9 +1073,55 @@ namespace MisterGames.Common.Audio {
             public bool Equals(AttachKey other) => _instanceId == other._instanceId && _hash == other._hash;
             public override bool Equals(object obj) => obj is AttachKey other && Equals(other);
             public override int GetHashCode() => HashCode.Combine(_instanceId, _hash);
-
             public static bool operator ==(AttachKey left, AttachKey right) => left.Equals(right);
             public static bool operator !=(AttachKey left, AttachKey right) => !left.Equals(right);
+        }
+        
+        private readonly struct FadeData {
+            
+            public readonly float startTime;
+            public readonly float fade;
+            public readonly float volume;
+            public readonly bool affectedByTimescale;
+            
+            public FadeData(float startTime, float fade, float volume, bool affectedByTimescale) {
+                this.startTime = startTime;
+                this.fade = fade;
+                this.volume = volume;
+                this.affectedByTimescale = affectedByTimescale;
+            }
+        }
+        
+        private readonly struct FadeCalculateData {
+            
+            public readonly int id;
+            public readonly bool affectedByTimescale;
+            public readonly float startTime;
+            public readonly float fade;
+            public readonly float volume0;
+            public readonly float volume1;
+            
+            public FadeCalculateData(int id, bool affectedByTimescale, float startTime, float fade, float volume0, float volume1) {
+                this.id = id;
+                this.affectedByTimescale = affectedByTimescale;
+                this.startTime = startTime;
+                this.fade = fade;
+                this.volume0 = volume0;
+                this.volume1 = volume1;
+            }
+        }
+        
+        private readonly struct FadeResultData {
+            
+            public readonly int id;
+            public readonly float volume;
+            public readonly float progress;
+            
+            public FadeResultData(int id, float volume, float progress) {
+                this.id = id;
+                this.volume = volume;
+                this.progress = progress;
+            }
         }
         
         private readonly struct SoundData {
@@ -1108,6 +1246,31 @@ namespace MisterGames.Common.Audio {
                 this.attenuationDistance = attenuationDistance;
                 this.lpCutoff = lpCutoff;
                 this.hpCutoff = hpCutoff;
+            }
+        }
+        
+        #endregion DATA TYPES
+        
+        #region JOBS
+        
+        [BurstCompile]
+        private struct CalculateFadeJob : IJobParallelFor {
+
+            [ReadOnly] public NativeArray<FadeCalculateData> fadeCalculateDataArray;
+            [ReadOnly] public float scaledTime;
+            [ReadOnly] public float unscaledTime;
+            
+            [WriteOnly] public NativeArray<FadeResultData> fadeResultArray;
+            
+            public void Execute(int index) {
+                var data = fadeCalculateDataArray[index];
+                
+                float currentTime = data.affectedByTimescale ? scaledTime : unscaledTime;
+                float t = data.fade > 0f 
+                    ? math.clamp((currentTime - data.startTime) / data.fade, 0f, 1f)
+                    : 1f;
+
+                fadeResultArray[index] = new FadeResultData(data.id, math.lerp(data.volume0, data.volume1, t), t);
             }
         }
         
@@ -1473,7 +1636,11 @@ namespace MisterGames.Common.Audio {
                 resultArray[index] = new SoundResultData(pitch, attenuationDistance, lpCutoffBound, hpCutoffBound);
             }
         }
-
+        
+        #endregion JOBS
+        
+        #region EDITOR
+        
 #if UNITY_EDITOR
         [Header("Debug")]
         [SerializeField] private bool _showSoundsGizmo;
@@ -1483,7 +1650,8 @@ namespace MisterGames.Common.Audio {
         [SerializeField] private string[] _showSoundsNameFilters;
         [SerializeField] private string[] _showOcclusionNameFilters;
 
-        internal bool ShowGizmo => _showSoundsGizmo;
+        bool IAudioPool.ShowGizmo => _showSoundsGizmo;
+        
         private readonly Dictionary<int, Color> _debugColors = new();
 
         private void OnValidate() {
@@ -1508,6 +1676,8 @@ namespace MisterGames.Common.Audio {
             _debugColors.Remove(id);
         }
 #endif
+        
+        #endregion EDITOR
     }
     
 }

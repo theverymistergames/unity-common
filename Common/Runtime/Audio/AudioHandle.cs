@@ -10,7 +10,12 @@ namespace MisterGames.Common.Audio {
         
         public float Volume {
             get => IsValid(out var e) ? e.Source.volume : 0f;
-            set { if (IsValid(out var e)) e.Source.volume = value; }
+            set => _pool?.SetAudioHandleVolume(_id, value);
+        }
+        
+        public float FadeOut {
+            get => IsValid(out var e) ? e.FadeOut : 0f;
+            set { if (IsValid(out var e)) e.FadeOut = value; }
         }
 
         public float PitchMul {
@@ -62,8 +67,8 @@ namespace MisterGames.Common.Audio {
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Release() {
-            _pool?.ReleaseAudioHandle(_id);
+        public void Release(bool immediate = false) {
+            _pool?.ReleaseAudioHandle(_id, immediate);
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
