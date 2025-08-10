@@ -1,8 +1,12 @@
-﻿namespace MisterGames.Common.Localization {
+﻿using System;
+
+namespace MisterGames.Common.Localization {
     
     public interface ILocalizationService {
         
-        int LocalizationId { get; set; }
+        event Action<Locale> OnLocaleChanged;
+        
+        Locale Locale { get; set; }
         
     }
     

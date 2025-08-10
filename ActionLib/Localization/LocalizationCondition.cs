@@ -1,20 +1,18 @@
 ﻿using System;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
-using MisterGames.Common.Labels;
 using MisterGames.Common.Localization;
+using MisterGames.Common.Service;
 
 namespace MisterGames.ActionLib.Localization {
     
     [Serializable]
     public sealed class LocalizationCondition : IActorCondition {
 
-        [LabelFilter("LocalizationLib")]
-        public LabelValue localization;
+        public Locale locale;
         
         public bool IsMatch(IActor context, float startTime) {
-            return LocalizationService.Instance is { } service && 
-                   service.LocalizationId == localization.GetValue();
+            return Services.Get<ILocalizationService>() is { } service && service.Locale == locale;
         }
     }
     

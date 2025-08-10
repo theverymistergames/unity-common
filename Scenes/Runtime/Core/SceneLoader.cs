@@ -34,7 +34,7 @@ namespace MisterGames.Scenes.Core {
         }
         
         private const bool EnableLogs = true;
-        private static readonly string LogPrefix = "SceneLoader".FormatColorOnlyForEditor(Color.white);
+        private static readonly string LogPrefix = nameof(SceneLoader).FormatColorOnlyForEditor(Color.white);
         
         public static ApplicationLaunchMode LaunchMode => _instance._applicationLaunchMode;
         

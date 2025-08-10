@@ -1,11 +1,15 @@
-﻿using MisterGames.Common.Labels.Base;
+﻿using MisterGames.Common.Labels;
+using MisterGames.Common.Labels.Base;
 using UnityEditor;
 using UnityEngine;
 
 namespace MisterGames.Common.Editor.Labels {
     
     [InitializeOnLoad]
-    public static class LabelValueContextMenu {
+    internal static class LabelValueContextMenu {
+        
+        private const string LibraryPropertyPath = nameof(LabelValue.library);
+        private const string IdPropertyPath = nameof(LabelValue.id);
         
         static LabelValueContextMenu() {
             EditorApplication.contextualPropertyMenu -= OnContextMenuOpening;
@@ -14,8 +18,8 @@ namespace MisterGames.Common.Editor.Labels {
 
         private static void OnContextMenuOpening(GenericMenu menu, SerializedProperty property) {
             if (property.propertyType != SerializedPropertyType.Generic ||
-                property.FindPropertyRelative("library") is not { objectReferenceValue: LabelLibraryBase labelLibrary } ||
-                property.FindPropertyRelative("id") is null
+                property.FindPropertyRelative(LibraryPropertyPath) is not { objectReferenceValue: LabelLibraryBase labelLibrary } ||
+                property.FindPropertyRelative(IdPropertyPath) is null
             ) {
                 return;
             }

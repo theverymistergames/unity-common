@@ -1,52 +1,46 @@
-﻿using MisterGames.Common.Labels;
+﻿using System;
+using MisterGames.Common.Strings;
 using UnityEngine;
 
 namespace MisterGames.Common.Localization {
     
-    [DefaultExecutionOrder(-10000)]
-    public sealed class LocalizationService : MonoBehaviour, ILocalizationService {
+    public sealed class LocalizationService : ILocalizationService {
         
-        [SerializeField] private LabelLibrary _localizationLib;
-        [SerializeField] [Min(0)] private int _languagesArray;
-        [LabelFilter("LocalizationLib")]
-        [SerializeField] private LabelValue _defaultLanguage;
+        private const bool EnableLogs = true;
+        private static readonly string LogPrefix = nameof(LocalizationService).FormatColorOnlyForEditor(Color.white);
+
+        public event Action<Locale> OnLocaleChanged = delegate { };
+
+        public Locale Locale { get => _locale; set => SetLocale(value); }
         
-        public static ILocalizationService Instance { get; private set; }
+        private LocalizationSettings _settings;
+        private Locale _locale;
 
-        public int LocalizationId { get => _localizationId; set => SetLocalizationId(value); }
-        private int _localizationId;
-        
-        private void Awake() {
-            Instance = this;
-
-            SetLocalizationId(_defaultLanguage.GetValue());
-        }
-
-        private void OnDestroy() {
-            Instance = null;
-        }
-
-        private void SetLocalizationId(int hash) {
-            int count = _localizationLib.GetLabelsCount(_languagesArray);
-            int lastId = _localizationId;
+        public void Initialize(LocalizationSettings settings) {
+            _settings = settings;
             
-            for (int i = 0; i < count; i++) {
-                int id = _localizationLib.GetLabelId(_languagesArray, i);
-                if (hash != _localizationLib.GetValue(id)) continue;
-                
-                _localizationId = hash;
-                if (_localizationId != lastId) Debug.Log($"LocalizationService: set localization {_localizationLib.GetLabel(id)}");
-                break;
-            }
+            var defaultLocale = settings.GetLocaleOrFallback(CreateSystemLocale());
+            SetLocale(defaultLocale);
         }
-
-#if UNITY_EDITOR
-        private void OnValidate() {
-            if (!Application.isPlaying || Instance == null) return;
+        
+        private void SetLocale(Locale locale) 
+        {
+            if (locale == _locale) return;
             
-            SetLocalizationId(_defaultLanguage.GetValue());
-        }  
-#endif
+            _locale = locale;
+            LogInfo($"set language: {locale}");
+            
+            OnLocaleChanged.Invoke(locale);
+        }
+        
+        private static Locale CreateSystemLocale() {
+            var id = LocaleExtensions.SystemLanguageToLocaleId(Application.systemLanguage);
+            return LocaleExtensions.TryGetLocaleById(id, out var locale) ? locale : default;
+        }
+        
+        private static void LogInfo(string message) {
+            if (EnableLogs) Debug.Log($"{LogPrefix}: f {Time.frameCount}, {message}");
+        }
     }
     
 }
