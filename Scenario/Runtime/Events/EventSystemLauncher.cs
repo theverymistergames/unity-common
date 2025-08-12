@@ -32,7 +32,7 @@ namespace MisterGames.Scenario.Events {
         }
 
         public void OnLoadData(ISaveSystem saveSystem) {
-            saveSystem.Pop(_id, _eventsListEmpty, out var eventList);
+            saveSystem.Pop(SaveStorage.CurrentSave, _id, _eventsListEmpty, out var eventList);
 
             var raisedEventsMap = EventSystem.Main.RaisedEvents;
             
@@ -52,7 +52,7 @@ namespace MisterGames.Scenario.Events {
                 _eventsListSaveable.Add(new EventEntry { eventReference = e, count = count });
             }
             
-            saveSystem.Push(_id, _eventsListSaveable);
+            saveSystem.Push(SaveStorage.CurrentSave, _id, _eventsListSaveable);
         }
     }
 

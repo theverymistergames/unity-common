@@ -22,17 +22,17 @@ namespace MisterGames.Common.Save {
 
         void Unregister(ISaveable saveable);
         
-        bool TryGet<T>(string id, int index, out T data);
+        bool TryGet<T>(SaveStorage storage, string id, int index, out T data);
         
-        T Get<T>(string id, int index);
+        T Get<T>(SaveStorage storage, string id, int index);
         
-        void Set<T>(string id, int index, T data);
+        void Set<T>(SaveStorage storage, string id, int index, T data);
         
-        SaveBuilder Pop<T>(string id, out T data);
+        SaveBuilder Pop<T>(SaveStorage storage, string id, out T data);
         
-        SaveBuilder Pop<T>(string id, T def, out T data);
+        SaveBuilder Pop<T>(SaveStorage storage, string id, T def, out T data);
         
-        SaveBuilder Push<T>(string id, T data);
+        SaveBuilder Push<T>(SaveStorage storage, string id, T data);
     }
     
 }

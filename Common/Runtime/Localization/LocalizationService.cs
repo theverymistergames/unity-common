@@ -19,6 +19,7 @@ namespace MisterGames.Common.Localization {
         public void Initialize(LocalizationSettings settings) {
             _settings = settings;
             
+            // todo load locale from saved settings
             var defaultLocale = settings.GetLocaleOrFallback(CreateSystemLocale());
             SetLocale(defaultLocale);
         }
