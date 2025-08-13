@@ -39,7 +39,7 @@ namespace MisterGames.Common.Localization {
             return valueRow.values[localeIndex];
         }
 
-        public void AddValue(string key, string value, Locale locale) {
+        public void SetValue(string key, string value, Locale locale) {
             int localeIndex = GetOrAddLocale(locale);
             int keyIndex = GetOrAddKey(key);
             
@@ -50,6 +50,10 @@ namespace MisterGames.Common.Localization {
         public void ClearAll() {
             _locales = Array.Empty<Locale>();
             _valueRows = Array.Empty<ValueRow>();
+
+#if UNITY_EDITOR
+            _keyHashToIndexMap = null;      
+#endif
         }
 
         private int GetOrAddLocale(Locale locale) {
@@ -59,6 +63,10 @@ namespace MisterGames.Common.Localization {
                 if (_locales![i] == locale) return i; 
             }
             
+#if UNITY_EDITOR
+            _allowInvalidateMap = false;
+#endif
+            
             Array.Resize(ref _locales, count + 1);
             _locales[count] = locale;
 
@@ -67,6 +75,10 @@ namespace MisterGames.Common.Localization {
                 Array.Resize(ref valueRow.values, count + 1);
             }
 
+#if UNITY_EDITOR
+            _allowInvalidateMap = true;
+#endif
+            
             return count;
         }
         
@@ -91,20 +103,29 @@ namespace MisterGames.Common.Localization {
 
                 return i;
             }
+
+#if UNITY_EDITOR
+            _allowInvalidateMap = false;
+#endif
             
             Array.Resize(ref _valueRows, count + 1);
-      
+            _valueRows[count] = new ValueRow { key = key, values = new string[_locales?.Length ?? 0] };
+
 #if UNITY_EDITOR
+            _allowInvalidateMap = true;
             _keyHashToIndexMap.Add(Animator.StringToHash(key), count);
 #endif
             
-            _valueRows[count] = new ValueRow { key = key, values = new string[_locales?.Length ?? 0] };
-
             return count;
         }
 
 #if UNITY_EDITOR
         private Dictionary<int, int> _keyHashToIndexMap;
+        private bool _allowInvalidateMap = true;
+
+        private void OnValidate() {
+            if (_allowInvalidateMap) _keyHashToIndexMap = null;
+        }
 #endif
     }
     

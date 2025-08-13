@@ -12,7 +12,7 @@
 
         string GetValue(int keyIndex, int localeIndex);
 
-        void AddValue(string key, string value, Locale locale);
+        void SetValue(string key, string value, Locale locale);
 
         void ClearAll();
     }

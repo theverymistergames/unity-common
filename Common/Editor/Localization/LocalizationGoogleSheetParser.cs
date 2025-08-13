@@ -68,7 +68,7 @@ namespace MisterGames.Common.Editor.Localization {
                         localesSet.Add(locale);
                         localesSetLocal.Add(locale);
 
-                        storage.AddValue(row, value, locale);
+                        storage.SetValue(row, value, locale);
                     }
                 }
 
@@ -80,10 +80,6 @@ namespace MisterGames.Common.Editor.Localization {
             }
 
             LogInfo($"parsed {valuesAdded} values in {sheetTables.Count} tables using {storages.Count} storages, used locales: {localesSet.AsString()}.");
-        }
-
-        private static void LogInfo(string message) {
-            Debug.Log($"{nameof(LocalizationGoogleSheetParser).FormatColorOnlyForEditor(Color.white)}: {message}");
         }
 
         private static bool TryGetLocale(string localeCode, IReadOnlyList<LocalizationSettings> settingsList, out Locale locale) {
@@ -151,21 +147,19 @@ namespace MisterGames.Common.Editor.Localization {
             
             try {
                 AssetDatabase.CreateAsset(instance, path);
-                AssetDatabase.SaveAssets();
 
-                Debug.Log($"Created new {nameof(LocalizationTableStorage)} instance at [{path}]");
+                LogInfo($"created new {nameof(LocalizationTableStorage)} instance at [{path}].");
             }
             catch (Exception) {
-                Debug.LogWarning($"Failed to create {nameof(LocalizationTableStorage)} instance at [{path}] at first attempt. " +
-                                 $"Asset will be created after delay.");
+                LogWarning($"failed to create {nameof(LocalizationTableStorage)} instance at [{path}] at first attempt. " +
+                           $"Asset will be created after delay.");
 
                 int attempts = 0;
                 while (attempts++ < _retryCreateStorageAttempts) {
                     try {
                         AssetDatabase.CreateAsset(instance, path);
-                        AssetDatabase.SaveAssets();
 
-                        Debug.Log($"Created new {nameof(LocalizationTableStorage)} instance at [{path}]");
+                        LogInfo($"created new {nameof(LocalizationTableStorage)} instance at [{path}].");
                         break;
                     }
                     catch (Exception) {
@@ -184,6 +178,14 @@ namespace MisterGames.Common.Editor.Localization {
         
         private string GetAssetPath(string fileName) {
             return $"Assets/{_folderPath}/{fileName}.asset";
+        }
+        
+        private static void LogInfo(string message) {
+            Debug.Log($"{nameof(LocalizationGoogleSheetParser).FormatColorOnlyForEditor(Color.white)}: {message}");
+        }
+        
+        private static void LogWarning(string message) {
+            Debug.LogWarning($"{nameof(LocalizationGoogleSheetParser).FormatColorOnlyForEditor(Color.white)}: {message}");
         }
     }
     

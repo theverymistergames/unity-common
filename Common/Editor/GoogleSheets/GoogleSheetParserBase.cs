@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Cysharp.Threading.Tasks;
+using MisterGames.Common.Async;
 using MisterGames.Common.Attributes;
 using UnityEditor;
 using UnityEngine;
@@ -12,10 +14,29 @@ namespace MisterGames.Common.Editor.GoogleSheets {
         [Header("Download Settings")]
         [SerializeField] private GoogleSheetImporter _googleSheetImporter;
         [SerializeField] private string[] _sheetIds;
+
+        private CancellationTokenSource _cts;
+        
+        public async UniTask DownloadAndParse(CancellationToken cancellationToken) {
+            if (Application.isPlaying) {
+                Debug.LogWarning($"Downloading Google Sheets is not allowed in playmode.");
+                return;
+            }
+            
+            AsyncExt.RecreateCts(ref _cts);
+            var token = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _cts.Token).Token;
+            
+            await _googleSheetImporter.DownloadAndParse(_sheetIds, this, token);
+        }
         
         [Button]
         public void DownloadAndParse() {
-            _googleSheetImporter.DownloadAndParse(_sheetIds, this).Forget();
+            DownloadAndParse(default).Forget();
+        }
+
+        [Button]
+        public void CancelDownload() {
+            AsyncExt.DisposeCts(ref _cts);
         }
 
         public abstract void Parse(IReadOnlyList<SheetTable> sheetTables);

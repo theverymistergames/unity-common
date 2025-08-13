@@ -2,6 +2,7 @@
 using System.Buffers;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Strings;
 using UnityEngine;
@@ -15,12 +16,24 @@ namespace MisterGames.Common.Editor.GoogleSheets {
         [SerializeField] private TextAsset _credentials;
         [SerializeField] private bool _cancelOnAnyError = true;
         
-        public async UniTask DownloadAndParse(IReadOnlyList<string> sheetIds, IGoogleSheetParser parser) {
+        public async UniTask DownloadAndParse(IReadOnlyList<string> sheetIds, IGoogleSheetParser parser, CancellationToken cancellationToken) {
+            if (sheetIds is not { Count: > 0 }) {
+                LogInfo($"nothing to download.");    
+                return;
+            }
+            
             var loader = new GoogleSheetLoader(_credentials.text);
+            
+            LogInfo($"starting to download {sheetIds.Count} sheets...");
             
             var titleResults = await DownloadTitles(loader, sheetIds);
             var titlesDownloadStatus = PrintTitlesDownloadResults(sheetIds, titleResults);
 
+            if (cancellationToken.IsCancellationRequested) {
+                LogWarning("aborted downloading sheets due to cancellation.");
+                return;
+            }
+            
             if (_cancelOnAnyError && titlesDownloadStatus == GoogleSheetLoader.Status.Error) {
                 LogWarning("aborted downloading sheets due to errors.");
                 return;
@@ -28,6 +41,11 @@ namespace MisterGames.Common.Editor.GoogleSheets {
 
             var tableResults = await DownloadAllTables(loader, sheetIds, titleResults);
             var tablesDownloadStatus = PrintTablesDownloadResults(sheetIds, titleResults, tableResults);
+            
+            if (cancellationToken.IsCancellationRequested) {
+                LogWarning("aborted downloading tables due to cancellation.");
+                return;
+            }
             
             if (_cancelOnAnyError && tablesDownloadStatus == GoogleSheetLoader.Status.Error) {
                 LogWarning("aborted downloading tables due to errors.");
