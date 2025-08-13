@@ -2,10 +2,11 @@
 using System.Text;
 using UnityEngine;
 
-namespace MisterGames.Common.GoogleSheets {
+namespace MisterGames.Common.Editor.GoogleSheets {
     
     public sealed class SheetTable {
 
+        public string Title { get; }
         public int RowCount { get; private set; }
         public int ColumnCount { get; private set; }
 
@@ -13,6 +14,10 @@ namespace MisterGames.Common.GoogleSheets {
         private readonly List<string> _columns = new();
         private readonly List<string> _data = new();
 
+        public SheetTable(string title) {
+            Title = title;
+        }
+        
         public string GetRow(int row) {
             return row < RowCount ? _rows[row] : null;
         }

@@ -6,40 +6,40 @@ using Google.Apis.Auth.OAuth2;
 using Google.Apis.Services;
 using Google.Apis.Sheets.v4;
 
-namespace MisterGames.Common.GoogleSheets {
+namespace MisterGames.Common.Editor.GoogleSheets {
     
-    public sealed class GoogleSheetImporter {
+    public sealed class GoogleSheetLoader {
         
         public readonly struct Result<T> {
             
-            public readonly ResultType resultType;
+            public readonly Status status;
             public readonly T data;
             public readonly string message;
             
-            public Result(ResultType resultType, T data, string message) {
-                this.resultType = resultType;
+            public Result(Status status, T data, string message) {
+                this.status = status;
                 this.data = data;
                 this.message = message;
             }
 
-            public static Result<T> Success(T data) => new(ResultType.Success, data, message: null);
-            public static Result<T> Error(string message) => new(ResultType.Error, data: default, message);
+            public static Result<T> Success(T data) => new(Status.Success, data, message: null);
+            public static Result<T> Error(string message) => new(Status.Error, data: default, message);
         }
         
-        public enum ResultType {
-            Success,
+        public enum Status {
             Error,
+            Success,
         }
         
         private readonly SheetsService _service;
         
-        public GoogleSheetImporter(string credentialsJson) {
+        public GoogleSheetLoader(string credentialsJson) {
             _service = new SheetsService(new BaseClientService.Initializer {
                 HttpClientInitializer = GoogleCredential.FromJson(credentialsJson).CreateScoped(SheetsService.Scope.Spreadsheets)
             });
         }
         
-        public async UniTask<Result<IReadOnlyList<string>>> GetTitles(string sheetId) {
+        public async UniTask<Result<IReadOnlyList<string>>> DownloadTitles(string sheetId) {
             try {
                 var request = _service.Spreadsheets.Get(sheetId);
                 var spreadsheet = await request.ExecuteAsync();
@@ -54,13 +54,13 @@ namespace MisterGames.Common.GoogleSheets {
             }
         }
         
-        public async UniTask<Result<SheetTable>> DownloadSheet(string sheetId, string sheetName) {
+        public async UniTask<Result<SheetTable>> DownloadTable(string sheetId, string sheetTitle) {
             try {
-                string range = $"{sheetName}!A1:Z";
+                string range = $"{sheetTitle}!A1:Z";
                 var request = _service.Spreadsheets.Values.Get(sheetId, range);
                 var response = await request.ExecuteAsync();
                 
-                var table = new SheetTable();
+                var table = new SheetTable(sheetTitle);
                 var rows = response.Values;
 
                 int startRow = -1;
