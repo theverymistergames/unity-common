@@ -9,6 +9,7 @@ namespace MisterGames.Common.Editor.GoogleSheets {
     
     public abstract class GoogleSheetParserBase : ScriptableObject, IGoogleSheetParser {
         
+        [Header("Download Settings")]
         [SerializeField] private GoogleSheetImporter _googleSheetImporter;
         [SerializeField] private string[] _sheetIds;
         

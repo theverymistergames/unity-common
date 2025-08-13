@@ -30,6 +30,26 @@ namespace MisterGames.Common.Localization {
         
         private Dictionary<int, Locale> _localeFallbackMap;
         private Dictionary<int, int> _localeHashToIndexMap;
+
+        public bool TryGetLocale(string localeCode, out Locale locale) {
+            localeCode = LocaleExtensions.FormatLocaleCode(localeCode);
+            
+            if (localeCode == null) {
+                locale = default;
+                return false;
+            }
+            
+            if (_localeHashToIndexMap == null) FetchLocaleIndices();
+
+            int hash = Animator.StringToHash(localeCode);
+            if (_localeHashToIndexMap!.TryGetValue(hash, out int index)) {
+                locale = new Locale(hash, index < (customLocales?.Length ?? 0) ? this : null);
+                return true;
+            }
+
+            locale = default;
+            return false;
+        }
         
         public IReadOnlyList<Locale> GetSupportedLocales() {
             if (_locales == null) {
@@ -83,7 +103,10 @@ namespace MisterGames.Common.Localization {
             
             for (int i = 0; i < customLength; i++) {
                 ref var descriptor = ref customLocales![i];
-                _localeHashToIndexMap[Animator.StringToHash(descriptor.code)] = i;
+                string code = LocaleExtensions.FormatLocaleCode(descriptor.code);
+                if (string.IsNullOrEmpty(code)) continue;
+                
+                _localeHashToIndexMap[Animator.StringToHash(code)] = i;
             }
 
             for (int i = 0; i < predefinedLength; i++) {

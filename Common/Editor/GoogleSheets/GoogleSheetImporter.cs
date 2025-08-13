@@ -40,10 +40,10 @@ namespace MisterGames.Common.Editor.GoogleSheets {
         private static IReadOnlyList<SheetTable> ConvertTableResults(GoogleSheetLoader.Result<SheetTable>[][] tableResults) {
             var tables = new List<SheetTable>();
 
-            for (int i = 0; i < tableResults.Length; i++) {
+            for (int i = 0; i < tableResults?.Length; i++) {
                 var results = tableResults[i];
                 
-                for (int j = 0; j < results.Length; j++) {
+                for (int j = 0; j < results?.Length; j++) {
                     var result = results[j];
 
                     switch (result.status) {
@@ -142,8 +142,8 @@ namespace MisterGames.Common.Editor.GoogleSheets {
             IReadOnlyList<string> sheetIds,
             GoogleSheetLoader.Result<IReadOnlyList<string>>[] results) 
         {
-            var sbSuccess = new StringBuilder("sheets downloaded successfully: ");
-            var sbError = new StringBuilder("error downloading sheets: ");
+            var sbSuccess = new StringBuilder("sheet titles downloaded successfully: ");
+            var sbError = new StringBuilder("error downloading sheet titles: ");
             
             int successCount = 0;
             int errorsCount = 0;
@@ -154,7 +154,7 @@ namespace MisterGames.Common.Editor.GoogleSheets {
                 switch (result.status) {
                     case GoogleSheetLoader.Status.Success:
                         successCount++;
-                        sbSuccess.AppendLine($"[{i}] Sheet {sheetIds[i]}: [{result.data.AsString()}]");
+                        sbSuccess.AppendLine($"[{i}] Sheet {sheetIds[i]}: {result.data.AsString()}");
                         break;
 
                     case GoogleSheetLoader.Status.Error:
@@ -197,12 +197,12 @@ namespace MisterGames.Common.Editor.GoogleSheets {
                     switch (tableResult.status) {
                         case GoogleSheetLoader.Status.Success:
                             successCount++;
-                            sbSuccess.AppendLine($"[{i}] Sheet {sheetId}, table [{j}] {title}");
+                            sbSuccess.AppendLine($"[{i}] Sheet {sheetId}, [{j}] table {title}");
                             break;
 
                         case GoogleSheetLoader.Status.Error:
                             errorsCount++;
-                            sbError.AppendLine($"[{i}] Sheet {sheetId}, table [{j}] {title}: {tableResult.message}");
+                            sbError.AppendLine($"[{i}] Sheet {sheetId}, [{j}] table {title}: {tableResult.message}");
                             break;
                     }
                 }

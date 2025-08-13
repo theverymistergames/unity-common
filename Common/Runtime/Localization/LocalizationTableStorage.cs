@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace MisterGames.Common.Localization {
@@ -15,45 +16,17 @@ namespace MisterGames.Common.Localization {
             public string key;
             public string[] values;
         }
-
+        
         public int GetLocaleCount() {
             return _locales?.Length ?? 0;
-        }
-
-        public void SetLocalesCount(int count) {
-            Array.Resize(ref _locales, count);
-
-            for (int i = 0; i < _valueRows?.Length; i++) {
-                ref var valueRow = ref _valueRows[i];
-                Array.Resize(ref valueRow.values, count);
-            }
         }
 
         public Locale GetLocale(int localeIndex) {
             return _locales[localeIndex];
         }
         
-        public void SetLocale(int localeIndex, Locale locale) {
-            _locales[localeIndex] = locale;
-        }
-        
-        public void ClearLocales() {
-            _locales = Array.Empty<Locale>();
-        }
-        
         public int GetKeyCount() {
             return _valueRows?.Length ?? 0;
-        }
-        
-        public void SetKeyCount(int count) {
-            Array.Resize(ref _valueRows, count);
-            
-            int localesCount = _locales?.Length ?? 0;
-            
-            for (int i = 0; i < _valueRows?.Length; i++) {
-                ref var valueRow = ref _valueRows[i];
-                Array.Resize(ref valueRow.values, localesCount);
-            }
         }
 
         public string GetKey(int keyIndex) {
@@ -61,24 +34,78 @@ namespace MisterGames.Common.Localization {
             return valueRow.key;
         }
 
-        public void SetKey(int keyIndex, string key) {
-            ref var valueRow = ref _valueRows[keyIndex];
-            valueRow.key = key;
-        }
-        
-        public void ClearKeysAndValues() {
-            _valueRows = Array.Empty<ValueRow>();
-        }
-
         public string GetValue(int keyIndex, int localeIndex) {
             ref var valueRow = ref _valueRows[keyIndex];
             return valueRow.values[localeIndex];
         }
 
-        public void SetValue(int keyIndex, int localeIndex, string value) {
+        public void AddValue(string key, string value, Locale locale) {
+            int localeIndex = GetOrAddLocale(locale);
+            int keyIndex = GetOrAddKey(key);
+            
             ref var valueRow = ref _valueRows[keyIndex];
             valueRow.values[localeIndex] = value;
         }
+
+        public void ClearAll() {
+            _locales = Array.Empty<Locale>();
+            _valueRows = Array.Empty<ValueRow>();
+        }
+
+        private int GetOrAddLocale(Locale locale) {
+            int count = _locales?.Length ?? 0;
+            
+            for (int i = 0; i < count; i++) {
+                if (_locales![i] == locale) return i; 
+            }
+            
+            Array.Resize(ref _locales, count + 1);
+            _locales[count] = locale;
+
+            for (int i = 0; i < _valueRows?.Length; i++) {
+                ref var valueRow = ref _valueRows[i];
+                Array.Resize(ref valueRow.values, count + 1);
+            }
+
+            return count;
+        }
+        
+        private int GetOrAddKey(string key) {
+#if UNITY_EDITOR
+            if (_keyHashToIndexMap?.TryGetValue(Animator.StringToHash(key), out int index) ?? false) {
+                return index;
+            }
+            
+            _keyHashToIndexMap ??= new Dictionary<int, int>();
+#endif
+            
+            int count = _valueRows?.Length ?? 0;
+            
+            for (int i = 0; i < count; i++) {
+                ref var valueRow = ref _valueRows![i];
+                if (valueRow.key != key) continue;
+                    
+#if UNITY_EDITOR
+                _keyHashToIndexMap.Add(Animator.StringToHash(key), i);
+#endif
+
+                return i;
+            }
+            
+            Array.Resize(ref _valueRows, count + 1);
+      
+#if UNITY_EDITOR
+            _keyHashToIndexMap.Add(Animator.StringToHash(key), count);
+#endif
+            
+            _valueRows[count] = new ValueRow { key = key, values = new string[_locales?.Length ?? 0] };
+
+            return count;
+        }
+
+#if UNITY_EDITOR
+        private Dictionary<int, int> _keyHashToIndexMap;
+#endif
     }
     
 }

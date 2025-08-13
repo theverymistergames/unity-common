@@ -15,8 +15,8 @@ namespace MisterGames.Common.Localization {
             { LocaleId.bg, new LocaleDescriptor("bg", "Bulgarian", "bŭlgarski") },
             { LocaleId.ca, new LocaleDescriptor("ca", "Catalan", "català") },
             { LocaleId.zh, new LocaleDescriptor("zh", "Chinese", "普通话") },
-            { LocaleId.zhCN, new LocaleDescriptor("zh-CN", "Chinese (simplified)", "普通话 (simplified)") },
-            { LocaleId.zhTW, new LocaleDescriptor("zh-TW", "Chinese (traditional)", "普通话 (traditional)") },
+            { LocaleId.zhCN, new LocaleDescriptor("zh-cn", "Chinese (simplified)", "普通话 (simplified)") },
+            { LocaleId.zhTW, new LocaleDescriptor("zh-tw", "Chinese (traditional)", "普通话 (traditional)") },
             { LocaleId.cs, new LocaleDescriptor("cs", "Czech", "Český") },
             { LocaleId.da, new LocaleDescriptor("da", "Danish", "dansk") },
             { LocaleId.nl, new LocaleDescriptor("nl", "Dutch", "nederlandse") },
@@ -72,6 +72,10 @@ namespace MisterGames.Common.Localization {
                 LocaleHashToIdMap[hash] = id;
                 LocaleIdArray[index++] = id;
             }
+        }
+
+        public static string FormatLocaleCode(string localeCode) {
+            return string.IsNullOrWhiteSpace(localeCode) ? null : localeCode.ToLowerInvariant();
         }
         
         public static bool TryGetLocaleHashById(LocaleId id, out int hash) {

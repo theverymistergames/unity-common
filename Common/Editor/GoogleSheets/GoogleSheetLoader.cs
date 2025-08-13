@@ -60,7 +60,7 @@ namespace MisterGames.Common.Editor.GoogleSheets {
                 var request = _service.Spreadsheets.Values.Get(sheetId, range);
                 var response = await request.ExecuteAsync();
                 
-                var table = new SheetTable(sheetTitle);
+                var table = new SheetTable(sheetId, sheetTitle);
                 var rows = response.Values;
 
                 int startRow = -1;
