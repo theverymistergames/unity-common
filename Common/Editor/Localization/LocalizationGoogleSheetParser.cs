@@ -5,6 +5,7 @@ using System.Linq;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Editor.GoogleSheets;
 using MisterGames.Common.Localization;
+using MisterGames.Common.Strings;
 using UnityEditor;
 using UnityEngine;
 
@@ -37,6 +38,11 @@ namespace MisterGames.Common.Editor.Localization {
                 .Select(guid => AssetDatabase.LoadAssetAtPath<LocalizationSettings>(AssetDatabase.GUIDToAssetPath(guid)))
                 .ToArray();
             
+            int valuesAdded = 0;
+            var localesSet = new HashSet<Locale>();
+            
+            LogInfo($"starting to parse {sheetTables.Count} tables...");
+            
             for (int i = 0; i < sheetTables.Count; i++) {
                 var sheetTable = sheetTables[i];
                 var storage = GetOrCreateStorage(sheetTable, storages);
@@ -44,6 +50,9 @@ namespace MisterGames.Common.Editor.Localization {
                 int columnCount = sheetTable.ColumnCount;
                 int rowCount = sheetTable.RowCount;
 
+                var localesSetLocal = new HashSet<Locale>();
+                int valuesAddedLocal = 0;
+                
                 for (int r = 0; r < rowCount; r++) {
                     string row = sheetTable.GetRow(r);
 
@@ -52,15 +61,29 @@ namespace MisterGames.Common.Editor.Localization {
                         string column = sheetTable.GetColumn(c);
                         
                         if (string.IsNullOrEmpty(value) || !TryGetLocale(column, localizationSettingsAssets, out var locale)) continue;
-                        
+
+                        valuesAdded++;
+                        valuesAddedLocal++;
+
+                        localesSet.Add(locale);
+                        localesSetLocal.Add(locale);
+
                         storage.AddValue(row, value, locale);
                     }
                 }
+
+                LogInfo($"[{i}] Table {sheetTable.Title} (storage {storage.name}): parsed {valuesAddedLocal} values, used locales: {localesSetLocal.AsString()}.");
             }
 
             foreach (var storage in storages.Values) {
                 EditorUtility.SetDirty(storage);
             }
+
+            LogInfo($"parsed {valuesAdded} values in {sheetTables.Count} tables using {storages.Count} storages, used locales: {localesSet.AsString()}.");
+        }
+
+        private static void LogInfo(string message) {
+            Debug.Log($"{nameof(LocalizationGoogleSheetParser).FormatColorOnlyForEditor(Color.white)}: {message}");
         }
 
         private static bool TryGetLocale(string localeCode, IReadOnlyList<LocalizationSettings> settingsList, out Locale locale) {
@@ -94,7 +117,7 @@ namespace MisterGames.Common.Editor.Localization {
 
         private LocalizationTableStorage GetOrCreateStorage(string fileName, Dictionary<string, LocalizationTableStorage> storages) {
             if (!storages.TryGetValue(fileName, out var storage)) {
-                storage = CreateStorage(fileName);
+                storage = GetOrCreateStorage(fileName);
                 storage.ClearAll();
                 storages[fileName] = storage;
             }
@@ -102,8 +125,11 @@ namespace MisterGames.Common.Editor.Localization {
             return storage;
         }
 
-        private LocalizationTableStorage CreateStorage(string fileName) {
-            var instance = CreateInstance<LocalizationTableStorage>();
+        private LocalizationTableStorage GetOrCreateStorage(string fileName) {
+            var instance = AssetDatabase.LoadAssetAtPath<LocalizationTableStorage>(GetAssetPath(fileName));
+            if (instance != null) return instance;
+            
+            instance = CreateInstance<LocalizationTableStorage>();
             instance.hideFlags = HideFlags.DontUnloadUnusedAsset;
 
             SaveAsset(instance, fileName).Forget();
