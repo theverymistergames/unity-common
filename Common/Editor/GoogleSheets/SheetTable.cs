@@ -6,8 +6,8 @@ namespace MisterGames.Common.Editor.GoogleSheets {
     
     public sealed class SheetTable {
 
-        public string SheetId { get; }
-        public string Title { get; }
+        public string SheetTitle { get; }
+        public string TableTitle { get; }
         public int RowCount { get; private set; }
         public int ColumnCount { get; private set; }
 
@@ -15,9 +15,9 @@ namespace MisterGames.Common.Editor.GoogleSheets {
         private readonly List<string> _columns = new();
         private readonly List<string> _data = new();
 
-        public SheetTable(string sheetId, string title) {
-            SheetId = sheetId;
-            Title = title;
+        public SheetTable(string sheetTitle, string tableTitle) {
+            SheetTitle = sheetTitle;
+            TableTitle = tableTitle;
         }
         
         public string GetRow(int row) {

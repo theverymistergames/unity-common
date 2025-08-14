@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Cysharp.Threading.Tasks;
+using MisterGames.Common.Attributes;
 using MisterGames.Common.Editor.GoogleSheets;
 using MisterGames.Common.Localization;
 using MisterGames.Common.Strings;
@@ -15,16 +16,16 @@ namespace MisterGames.Common.Editor.Localization {
     public sealed class LocalizationGoogleSheetParser : GoogleSheetParserBase {
 
         [Header("Storage Settings")]
+        [SerializeField] private string _fileNamePrefix = "LocTable";
         [SerializeField] private string _folderPath = "Localization";
         [SerializeField] private DivideFilesMode _divideFilesMode;
+        [VisibleIf(nameof(_divideFilesMode), 2)]
+        [SerializeField] private bool _includeSheetTitleInFilename;
         
         [Header("Create ScriptableObject Settings")]
         [SerializeField] [Range(1, 100)] private int _retryCreateStorageAttempts = 5;
         [SerializeField] [Min(0f)] private float _retryCreateStorageDelay = 0.5f;
 
-        private const string FileNamePrefix = "LocalizationTable";
-        private static readonly string MainFileName = $"{FileNamePrefix}_main";
-        
         private enum DivideFilesMode {
             OneFile,
             OneFileForEachSpreadsheet,
@@ -72,14 +73,14 @@ namespace MisterGames.Common.Editor.Localization {
                     }
                 }
 
-                LogInfo($"[{i}] Table {sheetTable.Title} (storage {storage.name}): parsed {valuesAddedLocal} values, used locales: {localesSetLocal.AsString()}.");
+                LogInfo($"[{i}] Table {sheetTable.TableTitle} (storage {storage.name}): parsed {valuesAddedLocal} values, used locales: {localesSetLocal.AsString()}.");
             }
 
             foreach (var storage in storages.Values) {
                 EditorUtility.SetDirty(storage);
             }
 
-            LogInfo($"parsed {valuesAdded} values in {sheetTables.Count} tables using {storages.Count} storages, used locales: {localesSet.AsString()}.");
+            LogInfo($"parsed total {valuesAdded} values in {sheetTables.Count} tables using {storages.Count} storages, used locales: {localesSet.AsString()}.");
         }
 
         private static bool TryGetLocale(string localeCode, IReadOnlyList<LocalizationSettings> settingsList, out Locale locale) {
@@ -89,7 +90,7 @@ namespace MisterGames.Common.Editor.Localization {
             }
             
             for (int i = 0; i < settingsList.Count; i++) {
-                if (settingsList[i].TryGetLocale(localeCode, out locale)) return true;
+                if (settingsList[i].TryGetSupportedLocale(localeCode, out locale)) return true;
             }
             
             int hash = Animator.StringToHash(LocaleExtensions.FormatLocaleCode(localeCode));
@@ -103,14 +104,36 @@ namespace MisterGames.Common.Editor.Localization {
         }
 
         private LocalizationTableStorage GetOrCreateStorage(SheetTable sheetTable, Dictionary<string, LocalizationTableStorage> storages) {
+            
+            
             return _divideFilesMode switch {
-                DivideFilesMode.OneFile => GetOrCreateStorage(MainFileName, storages),
-                DivideFilesMode.OneFileForEachSpreadsheet => GetOrCreateStorage($"{FileNamePrefix}_{sheetTable.SheetId}", storages),
-                DivideFilesMode.OneFileForEachTable => GetOrCreateStorage($"{FileNamePrefix}_{sheetTable.Title}_{sheetTable.SheetId}", storages),
+                DivideFilesMode.OneFile => GetOrCreateStorage(GetSingleFileName(), storages),
+                DivideFilesMode.OneFileForEachSpreadsheet => GetOrCreateStorage(GetSpreadsheetFileName(sheetTable.SheetTitle), storages),
+                DivideFilesMode.OneFileForEachTable => GetOrCreateStorage(GetTableFileName(sheetTable.SheetTitle, sheetTable.TableTitle), storages),
                 _ => throw new ArgumentOutOfRangeException()
             };
         }
 
+        private string GetSingleFileName() {
+            return string.IsNullOrWhiteSpace(_fileNamePrefix) ? "LocTable_main" : $"{_fileNamePrefix}_main";
+        }
+        
+        private string GetSpreadsheetFileName(string sheetTitle) {
+            return string.IsNullOrWhiteSpace(_fileNamePrefix) ? sheetTitle : $"{_fileNamePrefix}_{sheetTitle}";
+        }
+        
+        private string GetTableFileName(string sheetTitle, string tableTitle) {
+            if (_includeSheetTitleInFilename) {
+                return string.IsNullOrWhiteSpace(_fileNamePrefix) 
+                    ? $"{sheetTitle}_{tableTitle}" 
+                    : $"{_fileNamePrefix}_{sheetTitle}_{tableTitle}";    
+            }
+            
+            return string.IsNullOrWhiteSpace(_fileNamePrefix) 
+                ? $"{tableTitle}" 
+                : $"{_fileNamePrefix}_{tableTitle}";
+        }
+        
         private LocalizationTableStorage GetOrCreateStorage(string fileName, Dictionary<string, LocalizationTableStorage> storages) {
             if (!storages.TryGetValue(fileName, out var storage)) {
                 storage = GetOrCreateStorage(fileName);

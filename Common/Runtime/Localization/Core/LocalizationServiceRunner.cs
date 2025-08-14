@@ -1,4 +1,5 @@
-﻿using MisterGames.Common.Service;
+﻿using MisterGames.Common.Attributes;
+using MisterGames.Common.Service;
 using UnityEngine;
 
 namespace MisterGames.Common.Localization {
@@ -17,7 +18,17 @@ namespace MisterGames.Common.Localization {
 
         private void OnDestroy() {
             Services.Unregister(_localizationService);
+            _localizationService.Dispose();
         }
+
+#if UNITY_EDITOR
+        [SerializeField] private Locale _debugLocale;
+        
+        [Button(mode: ButtonAttribute.Mode.Runtime)]
+        private void ApplyDebugLocale() {
+            _localizationService.Locale = _debugLocale;
+        }
+#endif
     }
     
 }

@@ -5,6 +5,7 @@ using Cysharp.Threading.Tasks;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Services;
 using Google.Apis.Sheets.v4;
+using UnityEngine;
 
 namespace MisterGames.Common.Editor.GoogleSheets {
     
@@ -39,30 +40,33 @@ namespace MisterGames.Common.Editor.GoogleSheets {
             });
         }
         
-        public async UniTask<Result<IReadOnlyList<string>>> DownloadTitles(string sheetId) {
+        public async UniTask<Result<SheetMeta>> DownloadMeta(string sheetId) {
             try {
                 var request = _service.Spreadsheets.Get(sheetId);
                 var spreadsheet = await request.ExecuteAsync();
-                string[] data = spreadsheet == null 
+
+                string title = spreadsheet?.Properties.Title;
+                
+                string[] tables = spreadsheet == null 
                     ? Array.Empty<string>() 
                     : spreadsheet.Sheets.Select(x => x.Properties.Title).ToArray();
                 
-                return Result<IReadOnlyList<string>>.Success(data);
+                return Result<SheetMeta>.Success(new SheetMeta(title, tables));
             }
             catch (Exception e) {
-                return Result<IReadOnlyList<string>>.Error(e.Message);
+                return Result<SheetMeta>.Error(e.Message);
             }
         }
         
-        public async UniTask<Result<SheetTable>> DownloadTable(string sheetId, string sheetTitle) {
+        public async UniTask<Result<SheetTable>> DownloadTable(string sheetId, string sheetTitle, string tableTitle) {
             try {
-                string range = $"{sheetTitle}!A1:Z";
+                string range = $"{tableTitle}!A1:Z";
                 var request = _service.Spreadsheets.Values.Get(sheetId, range);
                 var response = await request.ExecuteAsync();
                 
-                var table = new SheetTable(sheetId, sheetTitle);
+                var table = new SheetTable(sheetTitle, tableTitle);
                 var rows = response.Values;
-
+                
                 int startRow = -1;
                 int startColumn = -1;
                 

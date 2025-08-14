@@ -8,6 +8,8 @@
 
         int GetKeyCount();
 
+        bool TryGetKey(int keyHash, out string key);
+        
         string GetKey(int keyIndex);
 
         string GetValue(int keyIndex, int localeIndex);

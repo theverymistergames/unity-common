@@ -1,10 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Pool;
 
 namespace MisterGames.Common.Localization {
     
-    public sealed class LocalizationTable : ILocalizationTable {
-        
+    public sealed class LocalizationTable : ILocalizationTable, IDisposable {
+
         private readonly ILocalizationTableStorage _storage;
         private readonly Dictionary<int, int> _keyHashToIndexMap;
         private readonly Dictionary<int, int> _localeHashToIndexMap;
@@ -13,6 +15,11 @@ namespace MisterGames.Common.Localization {
             _storage = storage;
             _keyHashToIndexMap = CreateKeyIndexMap(storage);
             _localeHashToIndexMap = CreateLocaleIndexMap(storage);
+        }
+
+        public void Dispose() {
+            DictionaryPool<int, int>.Release(_keyHashToIndexMap);
+            DictionaryPool<int, int>.Release(_localeHashToIndexMap);
         }
 
         public bool ContainsKey(int keyHash) {
@@ -33,7 +40,7 @@ namespace MisterGames.Common.Localization {
         
         private static Dictionary<int, int> CreateKeyIndexMap(ILocalizationTableStorage storage) {
             int keyCount = storage.GetKeyCount();
-            var map = new Dictionary<int, int>(keyCount);
+            var map = DictionaryPool<int, int>.Get();
 
             for (int i = 0; i < keyCount; i++) {
                 string key = storage.GetKey(i);
@@ -47,7 +54,7 @@ namespace MisterGames.Common.Localization {
         
         private static Dictionary<int, int> CreateLocaleIndexMap(ILocalizationTableStorage storage) {
             int localeCount = storage.GetLocaleCount();
-            var map = new Dictionary<int, int>(localeCount);
+            var map = DictionaryPool<int, int>.Get();
 
             for (int i = 0; i < localeCount; i++) {
                 map[storage.GetLocale(i).Hash] = i;

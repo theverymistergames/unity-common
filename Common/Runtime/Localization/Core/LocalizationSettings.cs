@@ -9,12 +9,15 @@ namespace MisterGames.Common.Localization {
 
         [Header("Supported Locales")]
         [LocaleFilter(LocaleFilter.Hardcoded)]
-        [SerializeField] internal Locale[] predefinedLocales;
-        [SerializeField] internal LocaleDescriptor[] customLocales;
+        [SerializeField] private Locale[] _predefinedLocales;
+        [SerializeField] private LocaleDescriptor[] _customLocales;
 
         [Header("Fallback Locales")]
         [SerializeField] private Locale _defaultFallbackLocale;
         [SerializeField] private FallbackGroup[] _fallbackGroups;
+
+        [Header("Tables")]
+        [SerializeField] [Min(0)] private float _unloadUnusedTablesDelay = 60f;
         
         [Serializable]
         private struct FallbackGroup {
@@ -25,13 +28,15 @@ namespace MisterGames.Common.Localization {
             public Locale[] locales;
         }
 
+        public float UnloadUnusedTablesDelay => _unloadUnusedTablesDelay;
+        
         private List<Locale> _locales;
         private HashSet<int> _supportedLocales;
         
         private Dictionary<int, Locale> _localeFallbackMap;
         private Dictionary<int, int> _localeHashToIndexMap;
 
-        public bool TryGetLocale(string localeCode, out Locale locale) {
+        public bool TryGetSupportedLocale(string localeCode, out Locale locale) {
             localeCode = LocaleExtensions.FormatLocaleCode(localeCode);
             
             if (localeCode == null) {
@@ -43,7 +48,7 @@ namespace MisterGames.Common.Localization {
 
             int hash = Animator.StringToHash(localeCode);
             if (_localeHashToIndexMap!.TryGetValue(hash, out int index)) {
-                locale = new Locale(hash, index < (customLocales?.Length ?? 0) ? this : null);
+                locale = new Locale(hash, index < (_customLocales?.Length ?? 0) ? this : null);
                 return true;
             }
 
@@ -53,12 +58,12 @@ namespace MisterGames.Common.Localization {
         
         public IReadOnlyList<Locale> GetSupportedLocales() {
             if (_locales == null) {
-                _locales = new List<Locale>((predefinedLocales?.Length ?? 0) + (customLocales?.Length ?? 0));
+                _locales = new List<Locale>((_predefinedLocales?.Length ?? 0) + (_customLocales?.Length ?? 0));
                 
-                if (predefinedLocales != null) _locales.AddRange(predefinedLocales);
+                if (_predefinedLocales != null) _locales.AddRange(_predefinedLocales);
                 
-                for (int i = 0; i < customLocales?.Length; i++) {
-                    ref var desc = ref customLocales[i];
+                for (int i = 0; i < _customLocales?.Length; i++) {
+                    ref var desc = ref _customLocales[i];
                     _locales.Add(new Locale(Animator.StringToHash(desc.code), this));
                 }
             }
@@ -78,12 +83,16 @@ namespace MisterGames.Common.Localization {
             return locale;
         }
         
+        public Locale GetDefaultFallbackLocale() {
+            return _defaultFallbackLocale;
+        }
+        
         public bool TryGetLocaleDescriptorByHash(int hash, out LocaleDescriptor localeDescriptor) {
             if (_localeHashToIndexMap == null) FetchLocaleIndices();
 
             if (_localeHashToIndexMap!.TryGetValue(hash, out int index)) {
-                if (index < (customLocales?.Length ?? 0)) {
-                    localeDescriptor = customLocales![index];
+                if (index < (_customLocales?.Length ?? 0)) {
+                    localeDescriptor = _customLocales![index];
                     return true;
                 }
                 
@@ -93,16 +102,16 @@ namespace MisterGames.Common.Localization {
             localeDescriptor = default;
             return false;
         }
-
+        
         private void FetchLocaleIndices() {
-            int customLength = customLocales?.Length ?? 0;
-            int predefinedLength = predefinedLocales?.Length ?? 0;
+            int customLength = _customLocales?.Length ?? 0;
+            int predefinedLength = _predefinedLocales?.Length ?? 0;
             
             _localeHashToIndexMap ??= new Dictionary<int, int>(customLength + predefinedLength);
             _localeHashToIndexMap.Clear();
             
             for (int i = 0; i < customLength; i++) {
-                ref var descriptor = ref customLocales![i];
+                ref var descriptor = ref _customLocales![i];
                 string code = LocaleExtensions.FormatLocaleCode(descriptor.code);
                 if (string.IsNullOrEmpty(code)) continue;
                 
@@ -110,7 +119,7 @@ namespace MisterGames.Common.Localization {
             }
 
             for (int i = 0; i < predefinedLength; i++) {
-                ref var locale = ref predefinedLocales![i];
+                ref var locale = ref _predefinedLocales![i];
                 _localeHashToIndexMap[locale.Hash] = i + customLength;
             }
         }

@@ -26,21 +26,21 @@ namespace MisterGames.Common.Editor.GoogleSheets {
             
             LogInfo($"starting to download {sheetIds.Count} sheets...");
             
-            var titleResults = await DownloadTitles(loader, sheetIds);
-            var titlesDownloadStatus = PrintTitlesDownloadResults(sheetIds, titleResults);
+            var metaResults = await DownloadMeta(loader, sheetIds);
+            var metaDownloadStatus = PrintMetaDownloadResults(sheetIds, metaResults);
 
             if (cancellationToken.IsCancellationRequested) {
                 LogWarning("aborted downloading sheets due to cancellation.");
                 return;
             }
             
-            if (_cancelOnAnyError && titlesDownloadStatus == GoogleSheetLoader.Status.Error) {
-                LogWarning("aborted downloading sheets due to errors.");
+            if (_cancelOnAnyError && metaDownloadStatus == GoogleSheetLoader.Status.Error) {
+                LogWarning("aborted downloading sheets meta due to errors.");
                 return;
             }
 
-            var tableResults = await DownloadAllTables(loader, sheetIds, titleResults);
-            var tablesDownloadStatus = PrintTablesDownloadResults(sheetIds, titleResults, tableResults);
+            var tableResults = await DownloadAllTables(loader, sheetIds, metaResults);
+            var tablesDownloadStatus = PrintTablesDownloadResults(sheetIds, metaResults, tableResults);
             
             if (cancellationToken.IsCancellationRequested) {
                 LogWarning("aborted downloading tables due to cancellation.");
@@ -78,25 +78,25 @@ namespace MisterGames.Common.Editor.GoogleSheets {
             return tables;
         }
 
-        private static async UniTask<GoogleSheetLoader.Result<IReadOnlyList<string>>[]> DownloadTitles(
+        private static async UniTask<GoogleSheetLoader.Result<SheetMeta>[]> DownloadMeta(
             GoogleSheetLoader loader, 
             IReadOnlyList<string> sheetIds) 
         {
             if (sheetIds is not { Count: > 0 }) {
-                return Array.Empty<GoogleSheetLoader.Result<IReadOnlyList<string>>>();
+                return Array.Empty<GoogleSheetLoader.Result<SheetMeta>>();
             }
             
-            var tasks = ArrayPool<UniTask<GoogleSheetLoader.Result<IReadOnlyList<string>>>>.Shared.Rent(sheetIds.Count);
+            var tasks = ArrayPool<UniTask<GoogleSheetLoader.Result<SheetMeta>>>.Shared.Rent(sheetIds.Count);
             
             for (int i = 0; i < sheetIds.Count; i++) {
                 string id = sheetIds[i];
                 if (string.IsNullOrWhiteSpace(id)) continue;
 
-                tasks[i] = loader.DownloadTitles(id);
+                tasks[i] = loader.DownloadMeta(id);
             }
 
             var results = await UniTask.WhenAll(tasks);
-            ArrayPool<UniTask<GoogleSheetLoader.Result<IReadOnlyList<string>>>>.Shared.Return(tasks, clearArray: true);
+            ArrayPool<UniTask<GoogleSheetLoader.Result<SheetMeta>>>.Shared.Return(tasks, clearArray: true);
             
             return results;
         }
@@ -104,7 +104,7 @@ namespace MisterGames.Common.Editor.GoogleSheets {
         private static async UniTask<GoogleSheetLoader.Result<SheetTable>[][]> DownloadAllTables(
             GoogleSheetLoader loader, 
             IReadOnlyList<string> sheetIds, 
-            GoogleSheetLoader.Result<IReadOnlyList<string>>[] titleResults) 
+            GoogleSheetLoader.Result<SheetMeta>[] metaResults) 
         {
             if (sheetIds is not { Count: > 0 }) {
                 return Array.Empty<GoogleSheetLoader.Result<SheetTable>[]>();
@@ -113,12 +113,12 @@ namespace MisterGames.Common.Editor.GoogleSheets {
             var tasks = ArrayPool<UniTask<GoogleSheetLoader.Result<SheetTable>[]>>.Shared.Rent(sheetIds.Count);
             
             for (int i = 0; i < sheetIds.Count; i++) {
-                var result = titleResults[i];
+                var result = metaResults[i];
                 string sheetId = sheetIds[i];
                 
                 switch (result.status) {
                     case GoogleSheetLoader.Status.Success:
-                        tasks[i] = DownloadTables(loader, sheetId, result.data);
+                        tasks[i] = DownloadTables(loader, sheetId, result.data.sheetTitle, result.data.tables);
                         break;
 
                     case GoogleSheetLoader.Status.Error:
@@ -134,20 +134,21 @@ namespace MisterGames.Common.Editor.GoogleSheets {
         
         private static async UniTask<GoogleSheetLoader.Result<SheetTable>[]> DownloadTables(
             GoogleSheetLoader loader, 
-            string sheetId, 
-            IReadOnlyList<string> titles) 
+            string sheetId,
+            string sheetTitle,
+            IReadOnlyList<string> tables) 
         {
-            if (titles is not { Count: > 0 }) {
+            if (tables is not { Count: > 0 }) {
                 return Array.Empty<GoogleSheetLoader.Result<SheetTable>>();
             }
             
-            var tasks = ArrayPool<UniTask<GoogleSheetLoader.Result<SheetTable>>>.Shared.Rent(titles.Count);
+            var tasks = ArrayPool<UniTask<GoogleSheetLoader.Result<SheetTable>>>.Shared.Rent(tables.Count);
             
-            for (int i = 0; i < titles.Count; i++) {
-                string title = titles[i];
+            for (int i = 0; i < tables.Count; i++) {
+                string title = tables[i];
                 if (string.IsNullOrWhiteSpace(title)) continue;
 
-                tasks[i] = loader.DownloadTable(sheetId, title);
+                tasks[i] = loader.DownloadTable(sheetId, sheetTitle, title);
             }
 
             var results = await UniTask.WhenAll(tasks);
@@ -156,12 +157,12 @@ namespace MisterGames.Common.Editor.GoogleSheets {
             return results;
         }
 
-        private static GoogleSheetLoader.Status PrintTitlesDownloadResults(
+        private static GoogleSheetLoader.Status PrintMetaDownloadResults(
             IReadOnlyList<string> sheetIds,
-            GoogleSheetLoader.Result<IReadOnlyList<string>>[] results) 
+            GoogleSheetLoader.Result<SheetMeta>[] results) 
         {
-            var sbSuccess = new StringBuilder("sheet titles downloaded successfully: ");
-            var sbError = new StringBuilder("error downloading sheet titles: ");
+            var sbSuccess = new StringBuilder("sheets meta downloaded successfully: ");
+            var sbError = new StringBuilder("error downloading sheets meta: ");
             
             int successCount = 0;
             int errorsCount = 0;
@@ -172,7 +173,7 @@ namespace MisterGames.Common.Editor.GoogleSheets {
                 switch (result.status) {
                     case GoogleSheetLoader.Status.Success:
                         successCount++;
-                        sbSuccess.AppendLine($"[{i}] Sheet {sheetIds[i]}: {result.data.AsString()}");
+                        sbSuccess.AppendLine($"[{i}] Sheet {result.data.sheetTitle}: {result.data.tables.AsString()}");
                         break;
 
                     case GoogleSheetLoader.Status.Error:
@@ -194,7 +195,7 @@ namespace MisterGames.Common.Editor.GoogleSheets {
         
         private static GoogleSheetLoader.Status PrintTablesDownloadResults(
             IReadOnlyList<string> sheetIds, 
-            GoogleSheetLoader.Result<IReadOnlyList<string>>[] titleResults, 
+            GoogleSheetLoader.Result<SheetMeta>[] metaResults, 
             GoogleSheetLoader.Result<SheetTable>[][] tableResults) 
         {
             var sbSuccess = new StringBuilder("tables downloaded successfully: ");
@@ -204,23 +205,22 @@ namespace MisterGames.Common.Editor.GoogleSheets {
             int errorsCount = 0;
             
             for (int i = 0; i < sheetIds.Count; i++) {
-                string sheetId = sheetIds[i];
-                var titleResult = titleResults[i];
+                var metaResult = metaResults[i];
                 var tables = tableResults[i];
 
-                for (int j = 0; j < titleResult.data?.Count; j++) {
-                    string title = titleResult.data[j];
+                for (int j = 0; j < metaResult.data.tables?.Count; j++) {
+                    string title = metaResult.data.tables[j];
                     var tableResult = tables[j];
                     
                     switch (tableResult.status) {
                         case GoogleSheetLoader.Status.Success:
                             successCount++;
-                            sbSuccess.AppendLine($"[{i}] Sheet {sheetId}, [{j}] table {title}");
+                            sbSuccess.AppendLine($"[{i}] Sheet {metaResult.data.sheetTitle}, [{j}] table {title}");
                             break;
 
                         case GoogleSheetLoader.Status.Error:
                             errorsCount++;
-                            sbError.AppendLine($"[{i}] Sheet {sheetId}, [{j}] table {title}: {tableResult.message}");
+                            sbError.AppendLine($"[{i}] Sheet {metaResult.data.sheetTitle}, [{j}] table {title}: {tableResult.message}");
                             break;
                     }
                 }

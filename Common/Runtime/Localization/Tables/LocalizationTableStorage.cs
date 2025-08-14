@@ -29,6 +29,36 @@ namespace MisterGames.Common.Localization {
             return _valueRows?.Length ?? 0;
         }
 
+        public bool TryGetKey(int keyHash, out string key) {
+#if UNITY_EDITOR
+            if (_keyHashToIndexMap?.TryGetValue(keyHash, out int index) ?? false) {
+                key = _valueRows[index].key;
+                return true;
+            }
+            
+            _keyHashToIndexMap ??= new Dictionary<int, int>();
+#endif
+            
+            int count = _valueRows?.Length ?? 0;
+            
+            for (int i = 0; i < count; i++) {
+                ref var valueRow = ref _valueRows![i];
+                int hash = Animator.StringToHash(valueRow.key);
+                
+#if UNITY_EDITOR
+                _keyHashToIndexMap[hash] = i;
+#endif
+                
+                if (hash != keyHash) continue;
+
+                key = valueRow.key;
+                return true;
+            }
+
+            key = null;
+            return false;
+        }
+
         public string GetKey(int keyIndex) {
             ref var valueRow = ref _valueRows[keyIndex];
             return valueRow.key;
