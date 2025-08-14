@@ -1,13 +1,14 @@
 ﻿using MisterGames.Common.Service;
-using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace MisterGames.Common.Localization.Components {
     
-    public sealed class TmpTextLocalizator : MonoBehaviour {
+    public sealed class SpriteLocalizator : MonoBehaviour {
         
-        [SerializeField] private TMP_Text _textField;
+        [SerializeField] private Image _image;
         [SerializeField] private LocalizationKey _key;
+        [SerializeField] private bool _dontSetNull = true;
 
         private ILocalizationService _service;
         
@@ -30,12 +31,13 @@ namespace MisterGames.Common.Localization.Components {
         }
 
         private void SetupValue() {
-            _textField.text = _service.GetLocalizedString(_key);
+            var sprite = _service.GetLocalizedAsset<Sprite>(_key);
+            if (!_dontSetNull || sprite != null) _image.sprite = sprite;
         }
 
 #if UNITY_EDITOR
         private void Reset() {
-            _textField = GetComponentInChildren<TMP_Text>();
+            _image = GetComponentInChildren<Image>();
         }
 #endif
     }

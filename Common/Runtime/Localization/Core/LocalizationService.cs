@@ -22,7 +22,7 @@ namespace MisterGames.Common.Localization {
         
         private readonly Dictionary<int, float> _tableUsageTimeMap = new();
         private readonly Dictionary<int, ILocalizationTable> _tableMap = new();
-        private readonly Dictionary<int, LocalizationTableStorage> _tableStorageMap = new();
+        private readonly Dictionary<int, LocalizationTableStorageBase> _tableStorageMap = new();
 
         private CancellationTokenSource _cts;
         private LocalizationSettings _settings;
@@ -59,23 +59,37 @@ namespace MisterGames.Common.Localization {
             var table = GetTable(key.tableGuid);
             if (table == null) return null;
             
-            if (table.TryGetValue(key.hash, _locale.Hash, out string value) || 
+            if (table.TryGetValue(key.hash, _locale.Hash, out string value) && !string.IsNullOrEmpty(value) ||
+                _settings.ReplaceNotLocalizedStringsWithDefaultLocale &&
                 table.TryGetValue(key.hash, _settings.GetDefaultFallbackLocale().Hash, out value)) 
             {
-                return value;
+                return string.IsNullOrEmpty(value) ? _settings.GetFallbackString() : value;
             }
 
             return null;
         }
 
-        private void SetLocale(Locale locale) 
-        {
+        public T GetLocalizedAsset<T>(LocalizationKey key) {
+            var table = GetTable(key.tableGuid);
+            if (table == null) return default;
+            
+            if (table.TryGetValue(key.hash, _locale.Hash, out T value) ||
+                _settings.ReplaceNotLocalizedAssetsWithDefaultLocale &&
+                table.TryGetValue(key.hash, _settings.GetDefaultFallbackLocale().Hash, out value)) 
+            {
+                return value;
+            }
+
+            return default;
+        }
+
+        private void SetLocale(Locale locale) {
             if (locale == _locale) return;
             
-            _locale = locale;
-            LogInfo($"set language: {locale}");
+            _locale = _settings.GetLocaleOrFallback(locale);
+            LogInfo($"set language: {_locale}");
             
-            OnLocaleChanged.Invoke(locale);
+            OnLocaleChanged.Invoke(_locale);
         }
 
         private ILocalizationTable GetTable(string guid) {
@@ -86,7 +100,7 @@ namespace MisterGames.Common.Localization {
                 return table;
             }
             
-            var load = Addressables.LoadAssetAsync<LocalizationTableStorage>(guid);
+            var load = Addressables.LoadAssetAsync<LocalizationTableStorageBase>(guid);
             load.WaitForCompletion();
 
             switch (load.Status) {

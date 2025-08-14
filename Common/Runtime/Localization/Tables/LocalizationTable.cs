@@ -26,15 +26,15 @@ namespace MisterGames.Common.Localization {
             return _keyHashToIndexMap.ContainsKey(keyHash);
         }
 
-        public bool TryGetValue(int keyHash, int localeHash, out string value) {
+        public bool TryGetValue<T>(int keyHash, int localeHash, out T value) {
             if (_localeHashToIndexMap.TryGetValue(localeHash, out int localeIndex) &&
-                _keyHashToIndexMap.TryGetValue(keyHash, out int keyIndex)) 
+                _keyHashToIndexMap.TryGetValue(keyHash, out int keyIndex) && 
+                _storage is ILocalizationTableStorage<T> storageT) 
             {
-                value = _storage.GetValue(keyIndex, localeIndex);
-                return !string.IsNullOrEmpty(value);
+                return storageT.TryGetValue(keyIndex, localeIndex, out value);
             }
 
-            value = null;
+            value = default;
             return false;
         }
         

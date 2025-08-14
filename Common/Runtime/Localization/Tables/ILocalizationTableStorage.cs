@@ -12,11 +12,14 @@
         
         string GetKey(int keyIndex);
 
-        string GetValue(int keyIndex, int localeIndex);
-
-        void SetValue(string key, string value, Locale locale);
-
         void ClearAll();
+    }
+    
+    public interface ILocalizationTableStorage<T> : ILocalizationTableStorage {
+
+        bool TryGetValue(int keyIndex, int localeIndex, out T value);
+
+        void SetValue(string key, T value, Locale locale);
     }
     
 }

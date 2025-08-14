@@ -4,7 +4,7 @@
 
         bool ContainsKey(int keyHash);
 
-        bool TryGetValue(int keyHash, int localeHash, out string value);
+        bool TryGetValue<T>(int keyHash, int localeHash, out T value);
     }
     
 }

@@ -21,10 +21,10 @@ namespace MisterGames.Common.Editor.Localization {
 
         private readonly struct Entry {
             
-            public readonly LocalizationTableStorage table;
+            public readonly LocalizationTableStorageBase table;
             public readonly string key;
             
-            public Entry(LocalizationTableStorage table, string key) {
+            public Entry(LocalizationTableStorageBase table, string key) {
                 this.table = table;
                 this.key = key;
             }
@@ -91,13 +91,13 @@ namespace MisterGames.Common.Editor.Localization {
 
         private static IEnumerable<Entry> GetAllEntries() {
             return AssetDatabase
-                .FindAssets($"a:assets t:{nameof(LocalizationTableStorage)}")
-                .Select(guid => AssetDatabase.LoadAssetAtPath<LocalizationTableStorage>(AssetDatabase.GUIDToAssetPath(guid)))
+                .FindAssets($"a:assets t:{nameof(LocalizationTableStorageBase)}")
+                .Select(guid => AssetDatabase.LoadAssetAtPath<LocalizationTableStorageBase>(AssetDatabase.GUIDToAssetPath(guid)))
                 .SelectMany(GetKeys)
                 .Prepend(default);
         }
 
-        private static IEnumerable<Entry> GetKeys(LocalizationTableStorage table) {
+        private static IEnumerable<Entry> GetKeys(LocalizationTableStorageBase table) {
             int count = table.GetKeyCount();
             if (count <= 0) return Array.Empty<Entry>();
             
@@ -114,7 +114,7 @@ namespace MisterGames.Common.Editor.Localization {
 
         private static GUIContent GetDropdownLabel(int hash, string tableGuid) {
             if (string.IsNullOrEmpty(tableGuid) ||
-                AssetDatabase.LoadAssetAtPath<LocalizationTableStorage>(AssetDatabase.GUIDToAssetPath(tableGuid)) is not { } table) 
+                AssetDatabase.LoadAssetAtPath<LocalizationTableStorageBase>(AssetDatabase.GUIDToAssetPath(tableGuid)) is not { } table) 
             {
                 return NullLabel;
             }

@@ -78,6 +78,16 @@ namespace MisterGames.Common.Localization {
             return string.IsNullOrWhiteSpace(localeCode) ? null : localeCode.ToLowerInvariant();
         }
         
+        public static bool IsNull(this Locale locale) {
+            return locale.hash == 0 || 
+                   !LocaleHashToIdMap.ContainsKey(locale.hash) && 
+                   (locale.localizationSettings == null || !locale.localizationSettings.IsSupportedLocale(locale.Hash));
+        }
+        
+        public static bool IsNotNull(this Locale locale) {
+            return !IsNull(locale);
+        }
+        
         public static bool TryGetLocaleHashById(LocaleId id, out int hash) {
             return LocaleIdToHashMap.TryGetValue(id, out hash);
         }

@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
@@ -45,6 +46,20 @@ namespace MisterGames.Common.Editor.SerializedProperties {
             }
 
             return $"{path.Remove(dotIndex)}.{propertyName}";
+        }
+        
+        public static bool TryGetPropertyIndexInArray(SerializedProperty property, out int index) {
+            index = -1;
+            
+            string path = property.propertyPath;
+            int dotIndex = path.LastIndexOf('.');
+            
+            if (dotIndex < 0 || !path.Contains('[')) return false;
+
+            int indexClose = path.LastIndexOf(']');
+            int indexOpen = path.LastIndexOf('[');
+
+            return int.TryParse(path.AsSpan()[(indexOpen + 1)..indexClose], out index);;
         }
 
         public static FieldInfo GetFieldInfo(this SerializedProperty property) {

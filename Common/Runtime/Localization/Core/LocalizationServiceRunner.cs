@@ -26,6 +26,8 @@ namespace MisterGames.Common.Localization {
         
         [Button(mode: ButtonAttribute.Mode.Runtime)]
         private void ApplyDebugLocale() {
+            if (_debugLocale.IsNull()) return;
+            
             _localizationService.Locale = _debugLocale;
         }
 #endif

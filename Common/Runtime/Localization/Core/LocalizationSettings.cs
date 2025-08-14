@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using MisterGames.Common.Attributes;
 using UnityEngine;
 
 namespace MisterGames.Common.Localization {
@@ -19,6 +20,15 @@ namespace MisterGames.Common.Localization {
         [Header("Tables")]
         [SerializeField] [Min(0)] private float _unloadUnusedTablesDelay = 60f;
         
+        [Header("String Values")]
+        [SerializeField] private bool _replaceNotLocalizedStringsWithDefaultLocale = true;
+        [SerializeField] private bool _replaceEmptyStringsWithFallback = true;
+        [VisibleIf(nameof(_replaceEmptyStringsWithFallback))]
+        [SerializeField] private string _emptyStringFallback = "<not localized>";
+        
+        [Header("Asset Values")]
+        [SerializeField] private bool _replaceNotLocalizedAssetsWithDefaultLocale = true;
+
         [Serializable]
         private struct FallbackGroup {
             [LocaleFilter(LocaleFilter.All)]
@@ -29,6 +39,8 @@ namespace MisterGames.Common.Localization {
         }
 
         public float UnloadUnusedTablesDelay => _unloadUnusedTablesDelay;
+        public bool ReplaceNotLocalizedStringsWithDefaultLocale => _replaceNotLocalizedStringsWithDefaultLocale;
+        public bool ReplaceNotLocalizedAssetsWithDefaultLocale => _replaceNotLocalizedAssetsWithDefaultLocale;
         
         private List<Locale> _locales;
         private HashSet<int> _supportedLocales;
@@ -36,6 +48,10 @@ namespace MisterGames.Common.Localization {
         private Dictionary<int, Locale> _localeFallbackMap;
         private Dictionary<int, int> _localeHashToIndexMap;
 
+        public string GetFallbackString() {
+            return _replaceEmptyStringsWithFallback ? _emptyStringFallback : null;
+        }
+        
         public bool TryGetSupportedLocale(string localeCode, out Locale locale) {
             localeCode = LocaleExtensions.FormatLocaleCode(localeCode);
             
@@ -85,6 +101,12 @@ namespace MisterGames.Common.Localization {
         
         public Locale GetDefaultFallbackLocale() {
             return _defaultFallbackLocale;
+        }
+
+        public bool IsSupportedLocale(int localeHash) {
+            if (_localeFallbackMap == null) FetchLocaleMap();
+            
+            return _supportedLocales.Contains(localeHash);
         }
         
         public bool TryGetLocaleDescriptorByHash(int hash, out LocaleDescriptor localeDescriptor) {
