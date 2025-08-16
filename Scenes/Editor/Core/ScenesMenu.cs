@@ -3,7 +3,6 @@ using MisterGames.Scenes.Core;
 using MisterGames.Scenes.Utils;
 using UnityEditor;
 using UnityEditor.SceneManagement;
-using UnityEngine;
 using UnityEngine.SceneManagement;
 
 namespace MisterGames.Scenes.Editor.Core {
@@ -17,17 +16,20 @@ namespace MisterGames.Scenes.Editor.Core {
 
         private static void EditorApplicationOnplayModeStateChanged(PlayModeStateChange change) {
             if (change != PlayModeStateChange.ExitingEditMode) return;
-
-            SceneLoaderSettings.SavePlaymodeStartScenes(SceneUtils.GetOpenedScenes().Select(s => s.name), SceneManager.GetActiveScene().name);
+            
             TrySetPlaymodeStartScene(SceneLoaderSettings.Instance.rootScene.scene);   
         }
         
         private static void TrySetPlaymodeStartScene(string sceneName) {
             if (!SceneLoaderSettings.Instance.enablePlayModeStartSceneOverride) {
                 EditorSceneManager.playModeStartScene = null;
+                PlaymodeStartScenesUtils.DeletePlaymodeStartScenes();
                 return;
             }
 
+            var openedScenes = SceneUtils.GetOpenedScenes().Select(s => s.name);
+            PlaymodeStartScenesUtils.SavePlaymodeStartScenes(openedScenes, SceneManager.GetActiveScene().name);
+            
             var currentPlaymodeStartScene = EditorSceneManager.playModeStartScene;
             if (currentPlaymodeStartScene != null && currentPlaymodeStartScene.name == sceneName) {
                 return;

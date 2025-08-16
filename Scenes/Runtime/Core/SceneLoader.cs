@@ -2,29 +2,20 @@
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using MisterGames.Common.Data;
-using MisterGames.Common.Easing;
+using MisterGames.Common.Attributes;
 using MisterGames.Common.Lists;
 using MisterGames.Common.Strings;
-using MisterGames.Scenes.Loading;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 namespace MisterGames.Scenes.Core {
     
+    [DefaultExecutionOrder(-100_000)]
     public sealed class SceneLoader : MonoBehaviour {
 
-        [Header("Scenes")]
-        [SerializeField] private SceneReference _splashScreenScene;
-        [SerializeField] private SceneReference _startScene;
-        [SerializeField] private SceneReference _gameplayScene;
-        [SerializeField] private SceneReference _loadingScene;
-
-        [Header("Fader")]
-        [SerializeField] [Min(-1f)] private float _fadeIn = -1f;
-        [SerializeField] [Min(-1f)] private float _fadeOut = -1f;
-        [SerializeField] private Optional<AnimationCurve> _fadeInCurve = Optional<AnimationCurve>.WithDisabled(EasingType.Linear.ToAnimationCurve());
-        [SerializeField] private Optional<AnimationCurve> _fadeOutCurve = Optional<AnimationCurve>.WithDisabled(EasingType.Linear.ToAnimationCurve());
+        [Header("Actions")]
+        [SubclassSelector]
+        [SerializeReference] private ISceneLoaderAction[] _startActions;
         
         private struct SceneLoadData
         {
@@ -36,13 +27,18 @@ namespace MisterGames.Scenes.Core {
         private const bool EnableLogs = true;
         private static readonly string LogPrefix = nameof(SceneLoader).FormatColorOnlyForEditor(Color.white);
         
-        public static ApplicationLaunchMode LaunchMode => _instance._applicationLaunchMode;
-        
+        public static ApplicationLaunchMode LaunchMode {
+            get => _instance._applicationLaunchMode;
+            internal set => _instance._applicationLaunchMode = value;
+        }
+
+        public static string RootScene => _instance._rootScene;
+
         private static SceneLoader _instance;
-        private static string _rootScene;
-        private static readonly Dictionary<string, SceneLoadData> _loadSceneDataMap = new();
         
+        private readonly Dictionary<string, SceneLoadData> _loadSceneDataMap = new();
         private ApplicationLaunchMode _applicationLaunchMode;
+        private string _rootScene;
         
         private void Awake() {
             if (_instance != null) {
@@ -51,6 +47,7 @@ namespace MisterGames.Scenes.Core {
             }
             
             _instance = this;
+            _rootScene = SceneManager.GetActiveScene().name;
             
             LoadStartScenes(destroyCancellationToken).Forget();
         }
@@ -60,77 +57,18 @@ namespace MisterGames.Scenes.Core {
         }
 
         private async UniTask LoadStartScenes(CancellationToken cancellationToken) {
-            _rootScene = SceneManager.GetActiveScene().name;
             _applicationLaunchMode = ApplicationLaunchMode.FromRootScene;
-
-            bool playSplashScreen = _splashScreenScene.IsValid();
             
 #if UNITY_EDITOR
-            if (_rootScene != SceneLoaderSettings.Instance.rootScene.scene) {
-                LogError($"loaded not on the root scene {SceneLoaderSettings.Instance.rootScene.scene}, " + 
-                         $"make sure {nameof(SceneLoader)} is on the root scene that should be selected in {nameof(SceneLoaderSettings)} asset.");
-            }
-
-            playSplashScreen &= _playSplashScreenInEditor;
-#endif
-            
-            if (playSplashScreen) {
-                await Fader.Main.FadeInAsync(duration: 0f);
-                if (cancellationToken.IsCancellationRequested) return;
-                
-                if (_splashScreenScene.scene == _loadingScene.scene) {
-                    LoadingService.Instance.ShowLoadingScreen(true);
-                }
-                
-                await LoadSceneAsync(_splashScreenScene.scene, makeActive: true);
-                if (cancellationToken.IsCancellationRequested) return;
-                
-                await Fader.Main.FadeOutAsync(_fadeOut, _fadeOutCurve.GetOrDefault());
-                if (cancellationToken.IsCancellationRequested) return;
-            }
-            
-            LoadSceneAsync(_loadingScene.scene, makeActive: false).Forget();
-            
-            var startScenes = new List<string> { _startScene.scene };
-            
-#if UNITY_EDITOR
-            if (SceneLoaderSettings.Instance.enablePlayModeStartSceneOverride) {
-                var playmodeStartScenes = SceneLoaderSettings.GetPlaymodeStartScenes();
-                playmodeStartScenes?.Remove(_rootScene);
-                
-                if (playmodeStartScenes is { Count: > 0 }) {
-                    startScenes = playmodeStartScenes; 
-                }
-                
-                // Force load gameplay scene in Unity Editor's playmode
-                // if app is launched from custom scene.
-                if (!startScenes.Contains(_startScene.scene)) {
-                    _applicationLaunchMode = ApplicationLaunchMode.FromCustomEditorScene;
-                
-                    await LoadSceneAsync(_gameplayScene.scene, makeActive: false);
-                    if (cancellationToken.IsCancellationRequested) return;
-                }   
+            if (RootScene != SceneLoaderSettings.Instance.rootScene.scene) {
+                if (EnableLogs) LogError($"loaded not on the root scene {SceneLoaderSettings.Instance.rootScene.scene}, " + 
+                                         $"make sure {nameof(SceneLoader)} is on the root scene that should be selected in {nameof(SceneLoaderSettings)} asset.");
             }
 #endif
 
-            await LoadScenesAsync(startScenes);
-            
-            if (cancellationToken.IsCancellationRequested) return;
-
-            if (playSplashScreen) {
-                await Fader.Main.FadeInAsync(_fadeIn, _fadeInCurve.GetOrDefault());
-                if (cancellationToken.IsCancellationRequested) return;
-                
-                if (_splashScreenScene.scene != _loadingScene.scene) {
-                    UnloadSceneAsync(_splashScreenScene.scene).Forget();
-                }
-                
-                LoadingService.Instance.ShowLoadingScreen(false);
+            for (int i = 0; i < _startActions?.Length && !cancellationToken.IsCancellationRequested; i++) {
+                await _startActions[i].Apply(cancellationToken);
             }
-
-            SetActiveScene(startScenes[0]);
-            
-            await Fader.Main.FadeOutAsync(_fadeOut, _fadeOutCurve.GetOrDefault());
         }
 
         public static bool IsSceneLoaded(string sceneName) {
@@ -141,10 +79,10 @@ namespace MisterGames.Scenes.Core {
             bool result = SceneManager.SetActiveScene(SceneManager.GetSceneByName(sceneName));
 
             if (result) {
-                LogInfo($"set active scene {sceneName.FormatColorOnlyForEditor(Color.green)}");
+                if (EnableLogs) LogInfo($"set active scene {sceneName.FormatColorOnlyForEditor(Color.green)}");
             }
             else {
-                LogWarning($"failed to set active scene {sceneName.FormatColorOnlyForEditor(Color.red)}");
+                if (EnableLogs) LogWarning($"failed to set active scene {sceneName.FormatColorOnlyForEditor(Color.red)}");
             }
             
             return result;
@@ -167,11 +105,11 @@ namespace MisterGames.Scenes.Core {
         }
 
         public static async UniTask LoadSceneAsync(string sceneName, bool makeActive) {
-            if (string.IsNullOrEmpty(sceneName) || sceneName == _rootScene) {
+            if (string.IsNullOrEmpty(sceneName) || sceneName == RootScene) {
                 return;
             }
             
-            if (_loadSceneDataMap.TryGetValue(sceneName, out var data)) {
+            if (_instance._loadSceneDataMap.TryGetValue(sceneName, out var data)) {
                 if (data.isLoading) {
                     await data.handle.ToUniTask();
                     return;
@@ -184,20 +122,20 @@ namespace MisterGames.Scenes.Core {
             var handle = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
             
             data = new SceneLoadData { handle = handle, cts = new CancellationTokenSource(), isLoading = true }; 
-            _loadSceneDataMap[sceneName] = data;
+            _instance._loadSceneDataMap[sceneName] = data;
             
             await handle.WithCancellation(data.cts.Token);
 
             if (data.cts.IsCancellationRequested) return;
             
-            LogInfo($"loaded scene {sceneName.FormatColorOnlyForEditor(Color.yellow)} ({SceneManager.GetSceneByName(sceneName).buildIndex})");
+            if (EnableLogs) LogInfo($"loaded scene {sceneName.FormatColorOnlyForEditor(Color.yellow)} ({SceneManager.GetSceneByName(sceneName).buildIndex})");
 
             if (makeActive) SetActiveScene(sceneName);
         }
 
         public static async UniTask UnloadSceneAsync(string sceneName) {
-            if (string.IsNullOrEmpty(sceneName) || sceneName == _rootScene || 
-                !_loadSceneDataMap.TryGetValue(sceneName, out var data)) 
+            if (string.IsNullOrEmpty(sceneName) || sceneName == RootScene || 
+                !_instance._loadSceneDataMap.TryGetValue(sceneName, out var data)) 
             {
                 return;
             }
@@ -212,20 +150,20 @@ namespace MisterGames.Scenes.Core {
             
             var handle = SceneManager.UnloadSceneAsync(sceneName);
             if (handle == null) {
-                _loadSceneDataMap.Remove(sceneName);    
+                _instance._loadSceneDataMap.Remove(sceneName);    
                 return;
             }
             
             data = new SceneLoadData { handle = handle, cts = new CancellationTokenSource(), isLoading = false }; 
-            _loadSceneDataMap[sceneName] = data;
+            _instance._loadSceneDataMap[sceneName] = data;
             
             await handle.WithCancellation(data.cts.Token);
             
             if (data.cts.IsCancellationRequested) return;
 
-            LogInfo($"unloaded scene {sceneName.FormatColorOnlyForEditor(Color.yellow)}");
+            if (EnableLogs) LogInfo($"unloaded scene {sceneName.FormatColorOnlyForEditor(Color.yellow)}");
             
-            _loadSceneDataMap.Remove(sceneName);
+            _instance._loadSceneDataMap.Remove(sceneName);
         }
 
         public static async UniTask LoadScenesAsync(IReadOnlyList<string> sceneNames, string activeScene = null) {
@@ -258,21 +196,16 @@ namespace MisterGames.Scenes.Core {
         }
 
         private static void LogInfo(string message) {
-            if (EnableLogs) Debug.Log($"{LogPrefix}: f {Time.frameCount}, {message}");
+            Debug.Log($"{LogPrefix}: f {Time.frameCount}, {message}");
         }
         
         private static void LogWarning(string message) {
-            if (EnableLogs) Debug.LogWarning($"{LogPrefix}: f {Time.frameCount}, {message}");
+            Debug.LogWarning($"{LogPrefix}: f {Time.frameCount}, {message}");
         }
         
         private static void LogError(string message) {
-            if (EnableLogs) Debug.LogError($"{LogPrefix}: f {Time.frameCount}, {message}");
+            Debug.LogError($"{LogPrefix}: f {Time.frameCount}, {message}");
         }
-        
-#if UNITY_EDITOR
-        [Header("Debug")]
-        [SerializeField] private bool _playSplashScreenInEditor = false;
-#endif
     }
     
 }

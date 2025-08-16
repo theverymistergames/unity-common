@@ -1,12 +1,14 @@
-﻿using UnityEngine;
-
-namespace MisterGames.Scenes.Loading {
+﻿namespace MisterGames.Scenes.Loading {
     
     public interface ILoadingService {
     
+        string LoadingScene { get; }
+        
         void ShowLoadingScreen(bool show);
+        void BlockLoadingScreenOverlay(object source, bool block);
 
-        void RegisterLoadingScreenRoot(GameObject root);
+        void RegisterLoadingScreen(ILoadingScreen loadingScreen);
+        void UnregisterLoadingScreen(ILoadingScreen loadingScreen);
     }
     
 }
