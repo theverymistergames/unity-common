@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Buffers;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Attributes;
+using MisterGames.Common.Lists;
 using MisterGames.Scenes.Core;
 using UnityEngine;
 
@@ -24,7 +26,7 @@ namespace MisterGames.Scenes.Transactions {
 
             if (operationsCount <= 0) return;
 
-            var tasks = new UniTask[operationsCount];
+            var tasks = ArrayPool<UniTask>.Shared.Rent(operationsCount);
 
             for (int i = 0; i < operationsCount; i++) {
                 tasks[i] = i < loadLength
@@ -34,6 +36,11 @@ namespace MisterGames.Scenes.Transactions {
 
             await UniTask.WhenAll(tasks);
 
+            tasks.ResetArrayElements();
+            ArrayPool<UniTask>.Shared.Return(tasks);
+            
+            if (cancellationToken.IsCancellationRequested) return;
+            
             if (_activateSceneAfterLoad) await SceneLoader.LoadSceneAsync(_targetActiveScene.scene, true);
         }
     }

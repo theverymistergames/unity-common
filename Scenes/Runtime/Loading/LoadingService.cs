@@ -1,77 +1,63 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using MisterGames.Common.Service;
 using MisterGames.Scenes.Core;
+using MisterGames.Scenes.SceneRoots;
 using UnityEngine;
 
 namespace MisterGames.Scenes.Loading {
     
-    [DefaultExecutionOrder(-99_999)]
-    public sealed class LoadingService : MonoBehaviour, ILoadingService {
-        
+    [Serializable]
+    public sealed class LoadingService : ILoadingService {
+
         [Header("Scene Settings")]
         [SerializeField] private SceneReference _loadingScene;
         [SerializeField] private bool _makeSceneActiveOnShow = true;
         
         [Header("Load Settings")]
-        [SerializeField] private bool _loadOnAwake;
+        [SerializeField] private bool _loadOnStart;
 #if UNITY_EDITOR
-        [SerializeField] private bool _loadOnAwakeIfPlaymodeStartScenesOverriden = true;  
+        [SerializeField] private bool _loadOnStartIfPlaymodeStartScenesOverriden = true;  
 #endif
+        [SerializeField] private bool _canUnloadLoadingScene;
         
-        public static ILoadingService Instance { get; private set; }
-
         public string LoadingScene => _loadingScene.scene;
         
-        private ILoadingScreen _loadingScreen;
-        private readonly HashSet<int> _overlayBlockSources = new();
         private bool _showLoadingScreen;
 
-        private void Awake() {
-            Instance = this;
+        public void Initialize() {
+            Services.Get<ISceneRootService>().SetSceneRootEnabled(_loadingScene.scene, false);
             
-            if (CanLoadOnAwake()) SceneLoader.LoadScene(_loadingScene.scene);
+            if (CanLoadOnInitialize()) SceneLoader.LoadScene(_loadingScene.scene);
         }
 
         public void ShowLoadingScreen(bool show) {
             _showLoadingScreen = show;
-            _loadingScreen?.SetState(GetState());
+            Services.Get<ISceneRootService>().SetSceneRootEnabled(_loadingScene.scene, GetState());
 
-            if (show && _loadingScreen == null) {
+            if (!show) {
+                if (_canUnloadLoadingScene) SceneLoader.UnloadScene(_loadingScene.scene);
+                return;
+            }
+
+            if (!SceneLoader.IsSceneLoaded(_loadingScene.scene)) {
                 SceneLoader.LoadScene(_loadingScene.scene, _makeSceneActiveOnShow);
                 return;
             }
 
-            if (show && _makeSceneActiveOnShow && SceneLoader.IsSceneLoaded(_loadingScene.scene)) {
+            if (_makeSceneActiveOnShow) {
                 SceneLoader.SetActiveScene(_loadingScene.scene);
             }
         }
-
-        public void BlockLoadingScreenOverlay(object source, bool block) {
-            if (block) _overlayBlockSources.Add(source.GetHashCode());
-            else _overlayBlockSources.Remove(source.GetHashCode());
-            
-            _loadingScreen?.SetState(GetState());
+        
+        private bool GetState() {
+            return _showLoadingScreen;
         }
-
-        public void RegisterLoadingScreen(ILoadingScreen loadingScreen) {
-            _loadingScreen = loadingScreen;
-            _loadingScreen.SetState(GetState());
-        }
-
-        public void UnregisterLoadingScreen(ILoadingScreen loadingScreen) {
-            _loadingScreen = null;
-        }
-
-        private LoadingScreenState GetState() {
-            return _showLoadingScreen
-                ? _overlayBlockSources.Count == 0 ? LoadingScreenState.Full : LoadingScreenState.Background
-                : LoadingScreenState.Off;
-        }
-
-        private bool CanLoadOnAwake() {
-            bool canLoad = _loadOnAwake;
+        
+        private bool CanLoadOnInitialize() {
+            bool canLoad = _loadOnStart;
 
 #if UNITY_EDITOR
-            canLoad |= _loadOnAwakeIfPlaymodeStartScenesOverriden;
+            canLoad |= _loadOnStartIfPlaymodeStartScenesOverriden;
 #endif
             
             return canLoad;

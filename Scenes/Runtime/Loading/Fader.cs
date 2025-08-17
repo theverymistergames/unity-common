@@ -9,7 +9,7 @@ using UnityEngine.UI;
 
 namespace MisterGames.Scenes.Loading {
     
-    [DefaultExecutionOrder(-100_000)]
+    [DefaultExecutionOrder(-200_000)]
     public sealed class Fader : MonoBehaviour, IFader {
 
         [SerializeField] private bool _mainFader = true;

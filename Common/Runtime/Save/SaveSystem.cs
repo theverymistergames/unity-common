@@ -3,6 +3,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using Cysharp.Threading.Tasks;
+using MisterGames.Common.Lists;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Save.Tables;
 using UnityEngine;
@@ -153,6 +154,9 @@ namespace MisterGames.Common.Save {
             tasks[1] = SaveStorageAsync(_tablesPersistent, _saveSystemSettings.GetFilePathPersistent(), _saveSystemSettings.bufferSize);
             
             await UniTask.WhenAll(tasks);
+            
+            tasks.ResetArrayElements();
+            ArrayPool<UniTask>.Shared.Return(tasks);
             
             NotifyAfterSaveAll();
         }

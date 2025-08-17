@@ -53,7 +53,7 @@ namespace MisterGames.Scenes.Utils {
                 .sceneNames;
 
             if (playmodeStartScenes is not { Count: > 0 } ||
-                playmodeStartScenes.Contains(SceneLoader.RootScene)) 
+                playmodeStartScenes.Contains(SceneLoader.GetRootScene())) 
             {
                 return false;
             }

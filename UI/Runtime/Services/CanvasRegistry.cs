@@ -23,6 +23,8 @@ namespace MisterGames.UI.Services {
         public void AddCanvasEventCamera(Camera eventCamera) {
             _cameraList.Add(eventCamera);
 
+            _cameraList.Sort((x, y) => y.depth.CompareTo(x.depth));
+            
             if (TryGetCurrentEventCamera(out var camera)) {
                 UpdateEventCamera(camera);
             }

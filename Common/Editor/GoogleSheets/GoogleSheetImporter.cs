@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using MisterGames.Common.Lists;
 using MisterGames.Common.Strings;
 using UnityEngine;
 
@@ -96,7 +97,9 @@ namespace MisterGames.Common.Editor.GoogleSheets {
             }
 
             var results = await UniTask.WhenAll(tasks);
-            ArrayPool<UniTask<GoogleSheetLoader.Result<SheetMeta>>>.Shared.Return(tasks, clearArray: true);
+            
+            tasks.ResetArrayElements();
+            ArrayPool<UniTask<GoogleSheetLoader.Result<SheetMeta>>>.Shared.Return(tasks);
             
             return results;
         }
@@ -127,7 +130,9 @@ namespace MisterGames.Common.Editor.GoogleSheets {
             }
 
             var results = await UniTask.WhenAll(tasks);
-            ArrayPool<UniTask<GoogleSheetLoader.Result<SheetTable>[]>>.Shared.Return(tasks, clearArray: true);
+            
+            tasks.ResetArrayElements();
+            ArrayPool<UniTask<GoogleSheetLoader.Result<SheetTable>[]>>.Shared.Return(tasks);
             
             return results;
         }
@@ -152,6 +157,8 @@ namespace MisterGames.Common.Editor.GoogleSheets {
             }
 
             var results = await UniTask.WhenAll(tasks);
+            
+            tasks.ResetArrayElements();
             ArrayPool<UniTask<GoogleSheetLoader.Result<SheetTable>>>.Shared.Return(tasks, clearArray: true);
             
             return results;

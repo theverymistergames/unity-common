@@ -46,8 +46,8 @@ namespace MisterGames.Common.Actions {
                     }
 
                     await UniTask.WhenAll(tasks);
-
-                    tasks.ResetArrayElements(count);
+                    tasks.ResetArrayElements();
+                    
                     ArrayPool<UniTask>.Shared.Return(tasks);
                     break;
 

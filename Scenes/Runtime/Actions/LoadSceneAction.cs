@@ -3,6 +3,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Data;
 using MisterGames.Common.Easing;
+using MisterGames.Common.Service;
 using MisterGames.Scenes.Core;
 using MisterGames.Scenes.Loading;
 using MisterGames.Scenes.Utils;
@@ -35,12 +36,14 @@ namespace MisterGames.Scenes.Actions {
 
         public async UniTask Apply(CancellationToken cancellationToken) {
             if (!CanShowScene()) return;
+
+            var loadingService = Services.Get<ILoadingService>();
             
             float showStartTime = Time.realtimeSinceStartup;
-            bool isLoadingScene = _scene.scene == LoadingService.Instance.LoadingScene;
+            bool isLoadingScene = _scene.scene == loadingService.LoadingScene;
             
             if (isLoadingScene) {
-                LoadingService.Instance.ShowLoadingScreen(true);
+                loadingService.ShowLoadingScreen(true);
             }
 
             await SceneLoader.LoadSceneAsync(_scene.scene, _makeActive);
@@ -67,7 +70,7 @@ namespace MisterGames.Scenes.Actions {
             if (!_unloadOnFinish) return;
 
             if (isLoadingScene) {
-                LoadingService.Instance.ShowLoadingScreen(false);
+                loadingService.ShowLoadingScreen(false);
                 return;
             }
 

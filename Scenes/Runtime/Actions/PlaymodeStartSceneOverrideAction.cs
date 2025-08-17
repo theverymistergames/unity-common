@@ -21,7 +21,7 @@ namespace MisterGames.Scenes.Actions {
             // Force load gameplay scene in Unity Editor's playmode
             // if app is launched from custom scene.
             if (!playmodeStartScenes.Contains(_startScene.scene)) {
-                SceneLoader.LaunchMode = ApplicationLaunchMode.FromCustomEditorScene;
+                SceneLoader.SetApplicationLaunchMode(ApplicationLaunchMode.FromCustomEditorScene);
 
                 if (_preloadIfNotStartScene.IsValid()) {
                     await SceneLoader.LoadSceneAsync(_preloadIfNotStartScene.scene, makeActive: false);

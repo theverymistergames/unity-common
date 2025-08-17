@@ -343,7 +343,7 @@ namespace MisterGames.Tweens {
             }
 
             await UniTask.WhenAll(tasks);
-
+            
             tasks.ResetArrayElements();
             ArrayPool<UniTask>.Shared.Return(tasks);
         }

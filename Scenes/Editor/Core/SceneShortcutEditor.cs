@@ -65,7 +65,7 @@ namespace MisterGames.Scenes.Editor.Core {
 			int loadedCount = SceneManager.loadedSceneCount;
 			string sceneName = sceneAsset.name;
 			bool isRequestedSceneLoaded = SceneManager.GetSceneByName(sceneName).isLoaded;
-			HashSet<string> scenesToUnload = null;
+			HashSet<Scene> scenesToUnload = null;
 			
 			for (int i = 0; i < loadedCount; i++) {
 				var scene = SceneManager.GetSceneAt(i);
@@ -79,10 +79,8 @@ namespace MisterGames.Scenes.Editor.Core {
 				if (!needUnload) continue;
 				if (!SceneUtils.ShowSaveSceneDialog_EditorOnly(scene)) return;
 
-				if (selectType == AdvancedDropdownSelectType.ItemIcon) {
-					scenesToUnload ??= HashSetPool<string>.Get();
-					scenesToUnload.Add(scene.name);	
-				}
+				scenesToUnload ??= HashSetPool<Scene>.Get();
+				scenesToUnload.Add(scene);	
 			}
 			
 			if (!isRequestedSceneLoaded) {
@@ -93,11 +91,13 @@ namespace MisterGames.Scenes.Editor.Core {
 				};
 				
 				EditorSceneManager.OpenScene(AssetDatabase.GetAssetPath(sceneAsset), mode);
+				
+				if (mode == OpenSceneMode.Single) return;
 			}
 
 			if (scenesToUnload != null) {
-				foreach (string scene in scenesToUnload) {
-					SceneManager.UnloadSceneAsync(scene);
+				foreach (var scene in scenesToUnload) {
+					EditorSceneManager.CloseScene(scene, removeScene: true);
 				}	
 			}
 		}
