@@ -88,6 +88,7 @@ namespace MisterGames.Scenes.Background {
             if (backgroundIndexCount <= 0) return;
 
             GetNextProcessId(hash);
+
             ProcessLoadRequest(hash, backgroundIndexCount, out var scenesToLoad, out string activeScene);
 
             if (scenesToLoad == null) {
@@ -127,7 +128,7 @@ namespace MisterGames.Scenes.Background {
                     _sceneRootService.SetSceneRootEnabled(backgroundScene, true);
                     
                     if (SceneLoader.IsSceneRequestedToLoad(backgroundScene)) continue;
-
+                    
                     scenesToLoad ??= ListPool<string>.Get();
                     scenesToLoad.Add(backgroundScene);
                 }

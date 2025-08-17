@@ -29,6 +29,7 @@ namespace MisterGames.Scenes.SceneRoots {
         }
 
         public UniTask OnSceneUnloadRequest(string sceneName, CancellationToken cancellationToken) {
+            _sceneHashToEnableStateMap.Remove(sceneName.GetHashCode());
             return default;
         }
 
