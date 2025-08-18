@@ -6,6 +6,7 @@ using Object = UnityEngine.Object;
 
 #if UNITY_EDITOR
 using Cysharp.Threading.Tasks;
+using MisterGames.Common.Build;
 using UnityEditor;
 #endif
 
@@ -102,7 +103,7 @@ namespace MisterGames.Logic.GameObjects {
         private byte _applyId;
         
         private void OnValidate() {
-            if (!_applyStateInEditor) return;
+            if (!_applyStateInEditor || BuildInfo.IsBuildProcessing) return;
 
             bool enable = _mode switch {
                 Mode.SyncMonoBehaviourEnable => GetMonoBehaviourEnableState(),

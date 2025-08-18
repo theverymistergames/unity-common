@@ -70,9 +70,9 @@ namespace MisterGames.BlueprintLib {
             };
 
 #else
-            Debug.LogWarning($"Using {nameof(BlueprintNodeToString2)} " +
-                             $"in blueprint `{((BlueprintRunner2) blueprint.Host.Runner).BlueprintAsset}` or in its subgraphs " +
-                             $"in blueprint runner `{blueprint.Host.Runner.name}`: " +
+            Debug.LogWarning($"Using {nameof(BlueprintNodeToString)} " +
+                             $"in blueprint `{(blueprint.Host is BlueprintRunner r ? r.BlueprintAsset : "")}` or in its subgraphs " +
+                             $"in blueprint runner `{blueprint.Host.name}`: " +
                              $"this node uses reflection and it is for debug purposes only, " +
                              $"it must be removed in the release build.\n" +
                              $"Note that in the non-development build it returns empty string.");

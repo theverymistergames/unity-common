@@ -326,7 +326,10 @@ namespace MisterGames.Blueprints.Meta {
         }
 
         public override string ToString() {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             return $"{nameof(BlueprintMeta)}(owner {owner})";
+#endif
+            return $"{nameof(BlueprintMeta)}";
         }
     }
 

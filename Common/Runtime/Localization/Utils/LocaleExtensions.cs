@@ -1,10 +1,8 @@
 ﻿using System.Collections.Generic;
-using UnityEditor;
 using UnityEngine;
 
 namespace MisterGames.Common.Localization {
     
-    [InitializeOnLoad]
     public static class LocaleExtensions {
         
         private static readonly Dictionary<LocaleId, LocaleDescriptor> LocaleIdToDescriptorMap = new() {
@@ -52,14 +50,19 @@ namespace MisterGames.Common.Localization {
             { LocaleId.uk, new LocaleDescriptor("uk", "Ukrainian", "українська") },
             { LocaleId.vi, new LocaleDescriptor("vi", "Vietnamese", "tiếng Việt") },
         };
-        
-        private static readonly LocaleId[] LocaleIdArray;
+
         private static readonly Dictionary<LocaleId, int> LocaleIdToHashMap = new();
         private static readonly Dictionary<int, LocaleId> LocaleHashToIdMap = new();
+        private static LocaleId[] LocaleIdArray;
+        private static bool _initialized;
 
         public static IReadOnlyList<LocaleId> LocaleIds => LocaleIdArray;
         
-        static LocaleExtensions() {
+        private static void InitializeMaps() {
+            if (_initialized) return;
+            
+            _initialized = true;
+            
             LocaleIdArray = new LocaleId[LocaleIdToDescriptorMap.Count];
             int index = 0;
             
@@ -79,6 +82,8 @@ namespace MisterGames.Common.Localization {
         }
         
         public static bool IsNull(this Locale locale) {
+            InitializeMaps();
+            
             return locale.hash == 0 || 
                    !LocaleHashToIdMap.ContainsKey(locale.hash) && 
                    (locale.localizationSettings == null || !locale.localizationSettings.IsSupportedLocale(locale.Hash));
@@ -89,10 +94,12 @@ namespace MisterGames.Common.Localization {
         }
         
         public static bool TryGetLocaleHashById(LocaleId id, out int hash) {
+            InitializeMaps();
             return LocaleIdToHashMap.TryGetValue(id, out hash);
         }
         
         public static bool TryGetLocaleIdByHash(int hash, out LocaleId localeId) {
+            InitializeMaps();
             return LocaleHashToIdMap.TryGetValue(hash, out localeId);
         }
 
@@ -107,6 +114,7 @@ namespace MisterGames.Common.Localization {
         }
 
         public static bool TryGetLocaleDescriptorById(LocaleId id, out LocaleDescriptor localeDescriptor) {
+            InitializeMaps();
             return LocaleIdToDescriptorMap.TryGetValue(id, out localeDescriptor);
         }
 

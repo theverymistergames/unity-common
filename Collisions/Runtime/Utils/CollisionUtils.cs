@@ -4,13 +4,11 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using MisterGames.Collisions.Core;
 using MisterGames.Common.Layers;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
 namespace MisterGames.Collisions.Utils {
     
-    [InitializeOnLoad]
     public static class CollisionUtils {
 
         private static readonly IComparer<RaycastHit> RaycastHitDistanceComparerAsc = new RaycastHitDistanceComparer(true);
@@ -32,11 +30,6 @@ namespace MisterGames.Collisions.Utils {
             public RaycastResultDistanceComparer(bool ascending) => _orderSign = ascending ? 1 : -1;
             public int Compare(RaycastResult x, RaycastResult y) => x.distance.CompareTo(y.distance) * _orderSign;
         }
-
-        static CollisionUtils() {
-            PrepareGetColliderByIdFunc();
-            PrepareGetBodyByIdFunc();
-        }
         
         private static void PrepareGetColliderByIdFunc() {
             if (_getColliderById != null) return;
@@ -54,11 +47,13 @@ namespace MisterGames.Collisions.Utils {
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Collider GetColliderByInstanceId(int instanceId) {
+            PrepareGetColliderByIdFunc();
             return _getColliderById.Invoke(instanceId);
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Rigidbody GetRigidbodyByInstanceId(int instanceId) {
+            PrepareGetBodyByIdFunc();
             return _getBodyById.Invoke(instanceId) as Rigidbody;
         }
         
