@@ -25,7 +25,9 @@ namespace MisterGames.UI.Components {
         [SerializeField] private TMP_Text _buttonText;
 
         [Header("Click")]
-        [SerializeField] private CancelMode _cancelMode;
+        [SerializeField] [Min(0f)] private float _clickCooldown = 0.1f;
+        [SerializeField] private ActionMode _actionMode = ActionMode.WaitPreviousAction;
+        [SerializeField] private CancelMode _cancelMode = CancelMode.NotCancelable;
         [SerializeReference] [SubclassSelector] private IActorAction _clickAction;
         
         [Header("Animation")]
@@ -74,6 +76,12 @@ namespace MisterGames.UI.Components {
             Pressed,
         }
 
+        private enum ActionMode {
+            InvokeNewAction,
+            CancelPreviousAction,
+            WaitPreviousAction,
+        } 
+        
         private enum CancelMode {
             NotCancelable,
             OnButtonDisabled,
@@ -89,12 +97,17 @@ namespace MisterGames.UI.Components {
         }
         
         private CancellationTokenSource _enableCts;
+        private CancellationTokenSource _clickCts;
         private IActor _actor;
         private bool _isHovering;
         private bool _isPressed;
         private Vector3 _originalScale;
         private byte _transitionId;
-
+        
+        private float _clickTime;
+        private byte _clickActionId;
+        private byte _awaitClickActionId;
+        
         void IActorComponent.OnAwake(IActor actor) {
             _actor = actor;
         }
@@ -113,6 +126,7 @@ namespace MisterGames.UI.Components {
 
         private void OnDisable() {
             AsyncExt.DisposeCts(ref _enableCts);
+            AsyncExt.DisposeCts(ref _clickCts);
             
             _isHovering = false;
             _isPressed = false;
@@ -121,9 +135,14 @@ namespace MisterGames.UI.Components {
         }
         
         private void OnClick() {
-            OnClicked.Invoke();
+            if (!CanClick()) return;
+
+            _clickTime = Time.realtimeSinceStartup;
             
-            if (_clickAction == null) return;
+            if (_clickAction == null) {
+                OnClicked.Invoke();
+                return;
+            }
 
             var cancellationToken = _cancelMode switch {
                 CancelMode.NotCancelable => CancellationToken.None,
@@ -131,12 +150,48 @@ namespace MisterGames.UI.Components {
                 CancelMode.OnButtonDestroyed => destroyCancellationToken,
                 _ => throw new ArgumentOutOfRangeException()
             };
+            
+            switch (_actionMode) {
+                case ActionMode.InvokeNewAction:
+                    break;
+                
+                case ActionMode.CancelPreviousAction:
+                    AsyncExt.RecreateCts(ref _clickCts);
+                    cancellationToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _clickCts.Token).Token;
+                    break;
+                
+                case ActionMode.WaitPreviousAction:
+                    if (_clickActionId > _awaitClickActionId) return;
 
-            _clickAction.Apply(_actor, cancellationToken).Forget();
+                    unchecked {
+                        _clickActionId++;    
+                    }
+                    
+                    break;
+                
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+            
+            OnClicked.Invoke();
+            WaitClickAction(cancellationToken).Forget();
+        }
+
+        private bool CanClick() {
+            return Time.realtimeSinceStartup > _clickTime + _clickCooldown && 
+                   (_actionMode != ActionMode.WaitPreviousAction || _clickActionId == _awaitClickActionId);
+        }
+
+        private async UniTask WaitClickAction(CancellationToken cancellationToken) {
+            await _clickAction.Apply(_actor, cancellationToken);
+
+            unchecked {
+                _awaitClickActionId = ++_clickActionId;   
+            }
         }
 
         void ISubmitHandler.OnSubmit(BaseEventData eventData) {
-            AnimateSubmit(_enableCts.Token).Forget();
+            if (CanClick()) AnimateSubmit(_enableCts.Token).Forget();
         }
         
         void ISelectHandler.OnSelect(BaseEventData eventData) {
@@ -225,7 +280,7 @@ namespace MisterGames.UI.Components {
         }
 
         private bool CanBePressed() {
-            return _isHovering && IsSelected();
+            return _isHovering && IsSelected() && CanClick();
         }
         
         private bool IsSelected() {
