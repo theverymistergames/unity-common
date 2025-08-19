@@ -10,7 +10,9 @@ namespace MisterGames.Interact.Detectables {
         event Action<IDetector> OnLostBy;
 
         IReadOnlyCollection<IDetector> Observers { get; }
+        
         Transform Transform { get; }
+        GameObject GameObject { get; }
 
         bool IsDetectedBy(IDetector detector);
 

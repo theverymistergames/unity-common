@@ -16,14 +16,16 @@ namespace MisterGames.Interact.Detectables {
         public event Action<IDetector> OnLostBy = delegate {  };
 
         public IReadOnlyCollection<IDetector> Observers => _observersSet;
+        public GameObject GameObject { get; private set; }
         public Transform Transform { get; private set; }
-
+        
         private readonly HashSet<IDetector> _observersSet = new HashSet<IDetector>();
         private readonly List<IDetector> _observers = new List<IDetector>();
 
         private float _startTime;
         
         private void Awake() {
+            GameObject = gameObject;
             Transform = transform;
         }
 

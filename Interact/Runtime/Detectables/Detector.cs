@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using MisterGames.Collisions.Core;
-using MisterGames.Collisions.Utils;
 using MisterGames.Common;
 using MisterGames.Common.Tick;
 using UnityEngine;
@@ -22,14 +21,14 @@ namespace MisterGames.Interact.Detectables {
         public Transform Transform { get; private set; }
         public GameObject Root => _root;
 
-        private readonly List<IDetectable> _detectedTargets = new List<IDetectable>();
-        private readonly HashSet<IDetectable> _detectedTargetsSet = new HashSet<IDetectable>();
+        private readonly List<IDetectable> _detectedTargets = new();
+        private readonly HashSet<IDetectable> _detectedTargetsSet = new();
 
-        private readonly List<IDetectable> _detectedCandidates = new List<IDetectable>();
-        private readonly HashSet<int> _detectedCandidatesHashesSet = new HashSet<int>();
+        private readonly List<IDetectable> _detectedCandidates = new();
+        private readonly HashSet<int> _detectedCandidatesHashesSet = new();
 
-        private readonly HashSet<int> _detectedTransformHashesSet = new HashSet<int>();
-        private readonly HashSet<int> _detectedTransformHashesBuffer = new HashSet<int>();
+        private readonly HashSet<int> _detectedTransformHashesSet = new();
+        private readonly HashSet<int> _detectedTransformHashesBuffer = new();
 
         private CollisionInfo _directViewHit;
         
@@ -57,7 +56,7 @@ namespace MisterGames.Interact.Detectables {
             distance = _directViewHit.hasContact ? _directViewHit.distance : 0f;
             
             return _directViewHit.hasContact &&
-                   _directViewHit.transform.GetHashCode() == detectable.Transform.GetHashCode();
+                   _directViewHit.collider.gameObject.GetHashCode() == detectable.GameObject.GetHashCode();
         }
 
         public bool IsDetected(IDetectable detectable) {
@@ -112,6 +111,15 @@ namespace MisterGames.Interact.Detectables {
             FillDetectedTransformHashesInto(hits, _detectedTransformHashesSet);
         }
 
+        private static void FillDetectedTransformHashesInto(ReadOnlySpan<CollisionInfo> hits, ISet<int> dest) {
+            dest.Clear();
+
+            for (int i = 0; i < hits.Length; i++) {
+                var hit = hits[i];
+                if (hit.hasContact) dest.Add(hit.collider.gameObject.GetHashCode());
+            }
+        }
+
         private void UpdateDirectViewHits() {
             var hits = _directViewDetector.FilterLastResults(_collisionFilter);
             float minDistance = -1f;
@@ -120,7 +128,7 @@ namespace MisterGames.Interact.Detectables {
                 var info = hits[i];
                 
                 if (!info.hasContact ||
-                    !_detectedCandidatesHashesSet.Contains(info.transform.GetHashCode()) ||
+                    !_detectedCandidatesHashesSet.Contains(info.collider.gameObject.GetHashCode()) ||
                     minDistance >= 0f && info.distance > minDistance) 
                 {
                     continue;
@@ -134,7 +142,7 @@ namespace MisterGames.Interact.Detectables {
         private void RemoveNotDetectedCandidates(ICollection<int> detectedTransformHashes) {
             for (int i = _detectedCandidates.Count - 1; i >= 0; i--) {
                 var detectable = _detectedCandidates[i];
-                int hash = detectable.Transform.GetHashCode();
+                int hash = detectable.GameObject.GetHashCode();
                 
                 if (detectedTransformHashes.Contains(hash)) continue;
 
@@ -148,12 +156,12 @@ namespace MisterGames.Interact.Detectables {
                 var hit = hits[i];
                 if (!hit.hasContact) continue;
 
-                int hash = hit.transform.GetHashCode();
+                int hash = hit.collider.gameObject.GetHashCode();
                 if (lastDetectedTransformHashes.Contains(hash)) continue;
 
-                if (hit.transform.GetComponent<IDetectable>() is not {} detectable) continue;
+                if (hit.collider.GetComponent<IDetectable>() is not {} detectable) continue;
 
-                _detectedCandidatesHashesSet.Add(detectable.Transform.GetHashCode());
+                _detectedCandidatesHashesSet.Add(detectable.GameObject.GetHashCode());
                 _detectedCandidates.Add(detectable);
             }
         }
@@ -163,8 +171,11 @@ namespace MisterGames.Interact.Detectables {
                 var detectable = _detectedCandidates[i];
                 if (_detectedTargetsSet.Contains(detectable)) continue;
 
-                if (!detectedTransformHashes.Contains(detectable.Transform.GetHashCode()) ||
-                    !detectable.IsAllowedToStartDetectBy(this)) continue;
+                if (!detectedTransformHashes.Contains(detectable.GameObject.GetHashCode()) ||
+                    !detectable.IsAllowedToStartDetectBy(this)) 
+                {
+                    continue;
+                }
 
                 ForceDetect(detectable);
             }
@@ -174,19 +185,13 @@ namespace MisterGames.Interact.Detectables {
             for (int i = _detectedTargets.Count - 1; i >= 0; i--) {
                 var detectable = _detectedTargets[i];
 
-                if (detectedTransformHashes.Contains(detectable.Transform.GetHashCode()) &&
-                    detectable.IsAllowedToContinueDetectBy(this)) continue;
-
+                if (detectedTransformHashes.Contains(detectable.GameObject.GetHashCode()) &&
+                    detectable.IsAllowedToContinueDetectBy(this)) 
+                {
+                    continue;
+                }
+                
                 ForceLose(detectable);
-            }
-        }
-
-        private static void FillDetectedTransformHashesInto(ReadOnlySpan<CollisionInfo> hits, ISet<int> dest) {
-            dest.Clear();
-
-            for (int i = 0; i < hits.Length; i++) {
-                var hit = hits[i];
-                if (hit.hasContact) dest.Add(hit.transform.GetHashCode());
             }
         }
 
