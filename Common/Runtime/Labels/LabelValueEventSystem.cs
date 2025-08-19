@@ -4,11 +4,11 @@ using MisterGames.Common.Data;
 
 namespace MisterGames.Common.Labels {
     
-    internal sealed class LabelValueEventSystem : ILabelValueEventSystem {
+    internal sealed class LabelValueEventSystem : ILabelValueEventSystem, IDisposable {
         
         private readonly TreeMap<LabelValue, object> _listenerTree = new();
 
-        public void Clear() {
+        public void Dispose() {
             _listenerTree.Clear();
         }
 

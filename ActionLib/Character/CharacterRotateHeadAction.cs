@@ -12,48 +12,28 @@ using UnityEngine;
 namespace MisterGames.ActionLib.Character {
     
     [Serializable]
-    public sealed class CharacterLookAtTargetAction : IActorAction {
+    public sealed class CharacterRotateHeadAction : IActorAction {
 
-        [Header("Target")]
-        public Transform target;
-        public LookAtMode mode;
-        [VisibleIf(nameof(mode), 1)] public Vector3 orientation;
-
-        [Header("Motion")]
+        public Vector3 orientation;
         [Min(0f)] public float angularSpeed = 30f;
         public AnimationCurve progressCurve = EasingType.EaseOutSine.ToAnimationCurve();
-        
-        [Header("Attach")]
-        public bool keepLookingAtAfterFinish;
-        [Min(0f)] public float attachSmoothing;
         
         public async UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
             var view = context.GetComponent<CharacterViewPipeline>();
             
             var startRotation = view.HeadRotation;
-            var startTargetRotation = mode switch {
-                LookAtMode.Free => Quaternion.LookRotation(target.position - view.HeadPosition, view.BodyUp),
-                LookAtMode.Oriented => target.rotation * Quaternion.Euler(orientation),
-                _ => throw new ArgumentOutOfRangeException()
-            };
+            var targetRotation = Quaternion.Euler(orientation);
 
-            float angle = Quaternion.Angle(startRotation, startTargetRotation);
+            float angle = Quaternion.Angle(startRotation, targetRotation);
             float speed = angularSpeed > 0f && angle > 0f ? angularSpeed / angle : float.MaxValue;
             float t = 0f;
             
             view.SetViewOrientation(startRotation, moveView: false);
             
             while (!cancellationToken.IsCancellationRequested) {
-                var targetRotation = mode switch {
-                    LookAtMode.Free => Quaternion.LookRotation(target.position - view.HeadPosition, view.BodyUp),
-                    LookAtMode.Oriented => target.rotation * Quaternion.Euler(orientation),
-                    _ => throw new ArgumentOutOfRangeException()
-                };
-                
                 t += UnityEngine.Time.deltaTime * speed;
                 
-                var rotationOffset = targetRotation * Quaternion.Inverse(startTargetRotation);
-                var rot = Quaternion.Slerp(startRotation * rotationOffset, targetRotation, progressCurve.Evaluate(t));
+                var rot = Quaternion.Slerp(startRotation, targetRotation, progressCurve.Evaluate(t));
                 
                 view.SetViewOrientation(rot, moveView: true);
                 
@@ -66,10 +46,6 @@ namespace MisterGames.ActionLib.Character {
                 
                 await UniTask.Yield(PlayerLoopTiming.PostLateUpdate);
             }
-            
-            if (cancellationToken.IsCancellationRequested) return;
-            
-            if (keepLookingAtAfterFinish) view.LookAt(target, mode, orientation, attachSmoothing);
         }
     }
     

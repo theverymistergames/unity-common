@@ -1,12 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using MisterGames.Common.Attributes;
 using MisterGames.Common.Labels.Base;
 using UnityEngine;
 
 namespace MisterGames.Common.Labels {
     
-    public abstract class LabelLibraryByRef<T> : LabelLibraryBase<T> where T : class {
+    public abstract class LabelLibraryRuntime<T> : LabelLibraryBase<T> where T : class {
 
         [SerializeField] private LabelArray[] _labelArrays;
 
@@ -17,7 +16,7 @@ namespace MisterGames.Common.Labels {
         private struct LabelArray {
 
             [HideInInspector] public int id;
-
+            
             public string name;
             [TextArea]
             public string comment;
@@ -32,12 +31,11 @@ namespace MisterGames.Common.Labels {
         private struct LabelData {
             [HideInInspector] public int id;
             public string name;
-            [SerializeReference] [SubclassSelector] public T data;
         }
         
         private readonly Dictionary<int, (int, int)> _addressMap = new();
         private readonly Dictionary<int, int> _valueMap = new();
-        
+
         public override bool ContainsLabel(int id) {
             return GetAddress(id).index > LabelLibrary.Null;
         }
@@ -84,26 +82,14 @@ namespace MisterGames.Common.Labels {
         }
 
         public override bool TryGetData(int id, out T data) {
-            (int array, int index) = GetAddress(id);
-            
-            if (index < 0) {
-                data = default;
-                return false;
-            }
-
-            ref var arr = ref _labelArrays[array];
-            data = arr.labels[index].data;
-            return true;
+            return LabelLibrariesRunner.RuntimeStorage.TryGetData(this, id, out data);
         }
-        
+
         public override bool TrySetData(int id, T data) {
-            (int array, int index) = GetAddress(id);
+            (int _, int index) = GetAddress(id);
             if (index < 0) return false;
 
-            ref var arr = ref _labelArrays[array];
-            ref var label = ref arr.labels[index];
-            
-            label.data = data;
+            LabelLibrariesRunner.RuntimeStorage.SetData(this, id, data);
             LabelLibrariesRunner.EventSystem.NotifyDataChanged(new LabelValue<T>(this, id), data);
             
             return true;

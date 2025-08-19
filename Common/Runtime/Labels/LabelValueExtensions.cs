@@ -119,7 +119,7 @@ namespace MisterGames.Common.Labels {
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool SubscribeChanges<T>(this LabelValue<T> labelValue, Action<T> listener, bool notifyOnSubscribe = true) {
-            if (!LabelValueEventSystemRunner.EventSystem.Subscribe(labelValue, listener)) return false;
+            if (!LabelLibrariesRunner.EventSystem.Subscribe(labelValue, listener)) return false;
 
             if (notifyOnSubscribe && labelValue.TryGetData(out var data)) {
                 listener?.Invoke(data);
@@ -130,12 +130,12 @@ namespace MisterGames.Common.Labels {
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool UnsubscribeChanges<T>(this LabelValue<T> labelValue, Action<T> listener) {
-            return LabelValueEventSystemRunner.EventSystem.Unsubscribe(labelValue, listener);
+            return LabelLibrariesRunner.EventSystem.Unsubscribe(labelValue, listener);
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool SubscribeChanges<T>(this LabelValue<T> labelValue, ILabelValueListener<T> listener, bool notifyOnSubscribe = true) {
-            if (!LabelValueEventSystemRunner.EventSystem.Subscribe(labelValue, listener)) return false;
+            if (!LabelLibrariesRunner.EventSystem.Subscribe(labelValue, listener)) return false;
 
             if (notifyOnSubscribe && labelValue.TryGetData(out var data)) {
                 listener?.OnDataChanged(labelValue, data);
@@ -146,7 +146,7 @@ namespace MisterGames.Common.Labels {
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool UnsubscribeChanges<T>(this LabelValue<T> labelValue, ILabelValueListener<T> listener) {
-            return LabelValueEventSystemRunner.EventSystem.Unsubscribe(labelValue, listener);
+            return LabelLibrariesRunner.EventSystem.Unsubscribe(labelValue, listener);
         }
     }
     

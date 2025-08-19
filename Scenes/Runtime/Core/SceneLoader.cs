@@ -188,8 +188,7 @@ namespace MisterGames.Scenes.Core {
         }
         
         private async UniTask LoadSceneAsyncInternal(string sceneName, bool makeActive = false) {
-            if (string.IsNullOrEmpty(sceneName) || sceneName == GetRootScene()) 
-            {
+            if (string.IsNullOrEmpty(sceneName) || sceneName == GetRootScene()) {
                 return;
             }
 

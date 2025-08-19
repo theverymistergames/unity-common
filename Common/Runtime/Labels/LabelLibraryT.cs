@@ -103,7 +103,7 @@ namespace MisterGames.Common.Labels {
             ref var label = ref arr.labels[index];
             
             label.data = data;
-            LabelValueEventSystemRunner.EventSystem.NotifyDataChanged(new LabelValue<T>(this, id), data);
+            LabelLibrariesRunner.EventSystem.NotifyDataChanged(new LabelValue<T>(this, id), data);
             
             return true;
         }
