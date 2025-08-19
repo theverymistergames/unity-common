@@ -122,21 +122,22 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
         }
         
         private void SpawnHero(Vector3 position, string spawnPointName) {
-            var access = Object.FindFirstObjectByType<MainCharacter>();
-            if (access == null) {
+            var hero = Object.FindFirstObjectByType<MainCharacter>();
+            
+            if (hero == null) {
                 var newHeroInstance = PrefabPool.Main.Get(_heroPrefab);
-                access = newHeroInstance.GetComponent<MainCharacter>();
+                hero = newHeroInstance.GetComponent<MainCharacter>();
             }
 
-            if (access == null) {
+            if (hero == null) {
                 ConsoleRunner.AppendLine($"Character with {nameof(MainCharacter)} component not found on the scene and in prefabs.");
                 return;
             }
 
-            var actor = access.GetComponent<IActor>();
+            var actor = hero.GetComponent<IActor>();
             actor.GetComponent<CharacterMotionPipeline>().Teleport(position, actor.Transform.rotation, preserveVelocity: false);
 
-            ConsoleRunner.AppendLine($"Character {access.name} was respawned at point [{spawnPointName} :: {position}]");
+            ConsoleRunner.AppendLine($"Character {hero.name} was respawned at point [{spawnPointName} :: {position}]");
         }
     }
 
