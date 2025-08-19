@@ -1,14 +1,19 @@
 ﻿using System.Collections.Generic;
+using MisterGames.Common.GameObjects;
 using UnityEngine;
 
 namespace MisterGames.UI.Services {
     
     public sealed class CanvasRegistry {
 
+        private sealed class CameraDepthComparer : IComparer<Camera> {
+            public int Compare(Camera x, Camera y) => y!.depth.CompareTo(x!.depth);
+        }
+        
         public static readonly CanvasRegistry Instance = new();
         
         private readonly HashSet<Canvas> _canvases = new();
-        private readonly List<Camera> _cameraList = new();
+        private readonly SortedSet<Camera> _cameraSet = new(new CameraDepthComparer());
 
         public void AddCanvas(Canvas canvas) {
             if (TryGetCurrentEventCamera(out var camera)) canvas.worldCamera = camera;
@@ -21,9 +26,7 @@ namespace MisterGames.UI.Services {
         }
 
         public void AddCanvasEventCamera(Camera eventCamera) {
-            _cameraList.Add(eventCamera);
-
-            _cameraList.Sort((x, y) => y.depth.CompareTo(x.depth));
+            _cameraSet.Add(eventCamera);
             
             if (TryGetCurrentEventCamera(out var camera)) {
                 UpdateEventCamera(camera);
@@ -31,7 +34,7 @@ namespace MisterGames.UI.Services {
         }
 
         public void RemoveCanvasEventCamera(Camera eventCamera) {
-            _cameraList.Remove(eventCamera);
+            _cameraSet.Remove(eventCamera);
 
             if (TryGetCurrentEventCamera(out var camera)) {
                 UpdateEventCamera(camera);
@@ -39,14 +42,15 @@ namespace MisterGames.UI.Services {
         }
         
         private void UpdateEventCamera(Camera eventCamera) {
+            Debug.Log($"CanvasRegistry.UpdateEventCamera: f {Time.frameCount}, {eventCamera.GetPathInScene()}");
             foreach (var canvas in _canvases) {
                 if (canvas != null) canvas.worldCamera = eventCamera;
             }
         }
 
         private bool TryGetCurrentEventCamera(out Camera camera) {
-            if (_cameraList.Count > 0) {
-                camera = _cameraList[^1];
+            foreach (var c in _cameraSet) {
+                camera = c;
                 return true;
             }
 
