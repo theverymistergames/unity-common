@@ -12,6 +12,26 @@ namespace MisterGames.Common.Service {
             return ServiceStorageRunner.ServiceStorage.GetService<T>(id);
         }
         
+        public static bool TryGet<T>(out T service) where T : class {
+            if (ServiceStorageRunner.ServiceStorage.GetGlobalService<T>() is { } t) {
+                service = t;
+                return true;
+            }
+            
+            service = null;
+            return false;
+        }
+        
+        public static bool TryGet<T>(int id, out T service) where T : class {
+            if (ServiceStorageRunner.ServiceStorage.GetService<T>(id) is { } t) {
+                service = t;
+                return true;
+            }
+            
+            service = null;
+            return false;
+        }
+        
         public static ServiceBuilder Register<T>(T service) where T : class {
             return ServiceStorageRunner.ServiceStorage.RegisterGlobal(service);
         }

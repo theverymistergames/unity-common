@@ -5,7 +5,7 @@ using MisterGames.Actors;
 using MisterGames.Actors.Actions;
 using MisterGames.Common.Data;
 using MisterGames.Scenes.Loading;
-using MisterGames.UI.Services;
+using MisterGames.UI.Service;
 using UnityEngine;
 
 namespace MisterGames.ActionLib.UI {

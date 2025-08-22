@@ -1,35 +1,34 @@
 ﻿using System.Collections;
 using MisterGames.Common.Inputs;
+using MisterGames.Common.Service;
 using UnityEngine;
 using DeviceType = MisterGames.Common.Inputs.DeviceType;
 
-namespace MisterGames.UI.Services {
+namespace MisterGames.UI.Service {
     
     [DefaultExecutionOrder(-9990)]
     public sealed class CursorService : MonoBehaviour, ICursorService {
         
-        public static ICursorService Instance { get; private set; }
-
         private void Awake() {
-            Instance = this;
+            Services.Register<ICursorService>(this);
         }
 
         private void OnDestroy() {
-            Instance = null;
+            Services.Unregister(this);
         }
 
         private void OnEnable() {
             Application.focusChanged += OnApplicationFocusChanged;
             
             DeviceService.Instance.OnDeviceChanged += OnDeviceChanged;
-            UIWindowsService.Instance.OnWindowsChanged += OnWindowsChanged;
+            if (Services.TryGet(out IUIWindowService windowService)) windowService.OnWindowsChanged += OnWindowsChanged;
         }
 
         private void OnDisable() {
             Application.focusChanged -= OnApplicationFocusChanged;
             
             DeviceService.Instance.OnDeviceChanged -= OnDeviceChanged;
-            UIWindowsService.Instance.OnWindowsChanged -= OnWindowsChanged;
+            if (Services.TryGet(out IUIWindowService windowService)) windowService.OnWindowsChanged -= OnWindowsChanged;
         }
 
         private IEnumerator Start() {
@@ -50,7 +49,8 @@ namespace MisterGames.UI.Services {
         }
 
         private bool IsCursorVisible() {
-            return DeviceService.Instance.CurrentDevice == DeviceType.KeyboardMouse && UIWindowsService.Instance.HasOpenedWindows() ||
+            return DeviceService.Instance.CurrentDevice == DeviceType.KeyboardMouse && 
+                   Services.TryGet(out IUIWindowService windowService) && windowService.HasOpenedWindows() ||
                    !Application.isFocused;
         }
         

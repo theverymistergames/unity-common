@@ -2,7 +2,7 @@
 using MisterGames.Common.GameObjects;
 using UnityEngine;
 
-namespace MisterGames.UI.Services {
+namespace MisterGames.UI.Service {
     
     public sealed class CanvasRegistry {
 

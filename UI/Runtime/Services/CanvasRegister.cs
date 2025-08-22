@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace MisterGames.UI.Services {
+namespace MisterGames.UI.Service {
 
     public sealed class CanvasRegister : MonoBehaviour {
 

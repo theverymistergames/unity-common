@@ -1,25 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
+using MisterGames.Common.Service;
 using UnityEngine;
-using UnityEngine.EventSystems;
-using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.UI;
 
-namespace MisterGames.UI.Services {
+namespace MisterGames.UI.Service {
     
     [DefaultExecutionOrder(-9999)]
     public sealed class UIWindowsService : MonoBehaviour, IUIWindowService {
-        
-        public static IUIWindowService Instance { get; private set; }
         
         public event Action OnWindowsChanged = delegate { };
 
         private readonly HashSet<int> _openedWindows = new();
 
         private void Awake() {
-            Instance = this;
+            Services.Register<IUIWindowService>(this);
         }
-        
+
+        private void OnDestroy() {
+            Services.Unregister(this);
+        }
+
         public bool HasOpenedWindows() {
             return _openedWindows.Count > 0;
         }

@@ -20,7 +20,7 @@ namespace MisterGames.Input.Core {
             
             GlobalInput.Init(_globalInputs);
             _inputChannel.Init();
-
+                
 #if UNITY_EDITOR
             if (!Application.isPlaying) {
                 InputSystem.settings.updateMode = InputSettings.UpdateMode.ProcessEventsManually;

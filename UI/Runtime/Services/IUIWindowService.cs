@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace MisterGames.UI.Services {
+namespace MisterGames.UI.Service {
     
     public interface IUIWindowService {
 

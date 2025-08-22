@@ -72,6 +72,40 @@ namespace MisterGames.Common.Data {
 
             return GetPrime(newSize);
         }
+        
+        public static int Combine(int hash1, int hash2) {
+            unchecked {
+                return hash1 * 486187739 + hash2;
+            }
+        }
+        
+        private struct GuidParts {
+            public ulong low;
+            public ulong high;
+        }
+        
+        public static Guid ComposeGuid(ulong low, ulong high) {
+            return new Guid(
+                (uint) ((low & 0x00000000ffffffff) >> 0),
+                (ushort) ((low & 0x0000ffff00000000) >> 32),
+                (ushort) ((low & 0xffff000000000000) >> 48),
+                (byte) ((high & 0x00000000000000ff) >> 0),
+                (byte) ((high & 0x000000000000ff00) >> 8),
+                (byte) ((high & 0x0000000000ff0000) >> 16),
+                (byte) ((high & 0x00000000ff000000) >> 24),
+                (byte) ((high & 0x000000ff00000000) >> 32),
+                (byte) ((high & 0x0000ff0000000000) >> 40),
+                (byte) ((high & 0x00ff000000000000) >> 48),
+                (byte) ((high & 0xff00000000000000) >> 56)
+            );
+        }
+
+        public static (ulong low, ulong high) DecomposeGuid(Guid guid) {
+            unsafe {
+                var parts = *(GuidParts*)&guid;
+                return (parts.low, parts.high);
+            }
+        }
     }
 
 }
