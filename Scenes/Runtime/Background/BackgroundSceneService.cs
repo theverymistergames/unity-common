@@ -120,7 +120,7 @@ namespace MisterGames.Scenes.Background {
             activeScene = null;
             
             for (int i = 0; i < count; i++) {
-                int index = _sceneHashToBackgroundScenesIndexMap.GetValue(hash, i);
+                int index = _sceneHashToBackgroundScenesIndexMap.GetValueAt(hash, i);
                 ref var data = ref _backgroundScenesMap[index];
 
                 for (int j = 0; j < data.backgroundScenes.Length; j++) {
@@ -144,7 +144,7 @@ namespace MisterGames.Scenes.Background {
             HashSet<string> scenesToUnload = null;
 
             for (int i = 0; i < count; i++) {
-                int index = _sceneHashToBackgroundScenesIndexMap.GetValue(hash, i);
+                int index = _sceneHashToBackgroundScenesIndexMap.GetValueAt(hash, i);
                 ref var data = ref _backgroundScenesMap[index];
                 
                 bool canUnloadBackgroundScenes = true;

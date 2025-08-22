@@ -23,7 +23,7 @@ namespace MisterGames.Input.Activation {
             }
         }
 
-        public void RefillOverlapGroups(List<InputAction> actions) {
+        public void RefillOverlapGroups(List<InputActionBase> actions) {
             Clear();
             FillKeyedActions(actions);
             FillOverlapMap();
@@ -54,7 +54,7 @@ namespace MisterGames.Input.Activation {
             }
         }
 
-        private void FillKeyedActions(List<InputAction> actions) {
+        private void FillKeyedActions(List<InputActionBase> actions) {
             foreach (var action in actions) {
                 if (action is InputActionKey keyedAction) _keyedActions.Add(keyedAction);
             }

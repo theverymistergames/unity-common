@@ -9,7 +9,7 @@ using UnityEngine;
 namespace MisterGames.Input.Actions {
 
     [CreateAssetMenu(fileName = nameof(InputActionKey), menuName = "MisterGames/Input/Action/" + nameof(InputActionKey))]
-    public sealed class InputActionKey : InputAction {
+    public sealed class InputActionKey : InputActionBase {
 
         [SerializeReference] [SubclassSelector] private IKeyActivationStrategy _strategy;
         [SerializeReference] [SubclassSelector] private IKeyBinding[] _bindings;

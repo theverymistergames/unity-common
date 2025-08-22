@@ -9,7 +9,7 @@ using UnityEngine;
 namespace MisterGames.Input.Actions {
 
     [CreateAssetMenu(fileName = nameof(InputActionVector2), menuName = "MisterGames/Input/Action/" + nameof(InputActionVector2))]
-    public sealed class InputActionVector2 : InputAction {
+    public sealed class InputActionVector2 : InputActionBase {
 
         [SerializeField] private NormalizeMode _normalize;
         [SerializeField] private float _sensitivity = 1f;

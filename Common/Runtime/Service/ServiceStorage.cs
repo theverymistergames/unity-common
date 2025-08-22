@@ -56,7 +56,7 @@ namespace MisterGames.Common.Service {
             int count = _globalServiceToTypeMap.GetCount(service);
 
             for (int i = 0; i < count; i++) {
-                _globalServicesMap.Remove(_globalServiceToTypeMap.GetValue(service, i));
+                _globalServicesMap.Remove(_globalServiceToTypeMap.GetValueAt(service, i));
             }
 
             _globalServiceToTypeMap.RemoveValues(service);
@@ -107,7 +107,7 @@ namespace MisterGames.Common.Service {
             int count = _serviceWithIdToTypeMap.GetCount(instanceKey);
 
             for (int i = 0; i < count; i++) {
-                _servicesWithIdMap.Remove(CreateIdTypeKey(_serviceWithIdToTypeMap.GetValue(instanceKey, i), id));
+                _servicesWithIdMap.Remove(CreateIdTypeKey(_serviceWithIdToTypeMap.GetValueAt(instanceKey, i), id));
             }
 
             _serviceWithIdToTypeMap.RemoveValues(instanceKey);

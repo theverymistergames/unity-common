@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using MisterGames.Common.Maths;
 
 namespace MisterGames.Common.Data
 {
@@ -7,8 +8,8 @@ namespace MisterGames.Common.Data
     public sealed class MultiValueDictionary<K, V> {
         
         public int Count => _valueMap.Count;
-        public IReadOnlyCollection<K> Keys => _countMap.Keys;
-        public IReadOnlyCollection<V> Values => _valueMap.Values;
+        public Dictionary<K, int>.KeyCollection Keys => _countMap.Keys;
+        public Dictionary<(K, int), V>.ValueCollection Values => _valueMap.Values;
         
         private readonly Dictionary<K, int> _countMap;
         private readonly Dictionary<(K, int), V> _valueMap;
@@ -39,7 +40,7 @@ namespace MisterGames.Common.Data
             return _valueMap.TryGetValue((key, 0), out value);
         }
 
-        public V GetValue(K key, int index) {
+        public V GetValueAt(K key, int index) {
             if (!_valueMap.TryGetValue((key, index), out var value)) {
                 throw new ArgumentException($"No entry with key {key} and index {index} was found");
             }
@@ -47,41 +48,68 @@ namespace MisterGames.Common.Data
             return value;
         }
 
-        public bool TryGetValue(K key, int index, out V value) {
+        public bool TryGetValueAt(K key, int index, out V value) {
             return _valueMap.TryGetValue((key, index), out value);
         }
-
-        public int AddValue(K key, V value) {
-            int index = _countMap.GetValueOrDefault(key);
-            SetValue(key, index, value);
-            return index;
-        }
-
-        public void SetValue(K key, int index, V value) {
-            _countMap[key] = Math.Max(_countMap.GetValueOrDefault(key), index + 1);
-            _valueMap[(key, index)] = value;
-            _version++;
-        }
-
-        public bool TrySetValue(K key, int index, V value) {
-            if (!_valueMap.ContainsKey((key, index))) return false;
-            
-            SetValue(key, index, value);
-            return true;
-        }
-
-        public bool RemoveValue(K key, V value) {
+        
+        public int GetValueIndex(K key, V value) {
             int count = _countMap.GetValueOrDefault(key);
-            int index = -1;
             
             for (int i = 0; i < count; i++) {
                 if (EqualityComparer<V>.Default.Equals(value, _valueMap[(key, i)])) {
-                    index = i;
-                    break;
+                    return i;
                 }
             }
+            
+            return -1;
+        }
 
-            return RemoveValueAt(key, index);
+        public bool TryGetValueIndex(K key, V value, out int index) {
+            index = GetValueIndex(key, value);
+            return index >= 0;
+        }
+        
+        public bool ContainsValue(K key, V value) {
+            return GetValueIndex(key, value) >= 0;
+        }
+        
+        public int AddValue(K key, V value) {
+            int index = _countMap.GetValueOrDefault(key);
+            
+            _countMap[key] = index + 1;
+            _valueMap[(key, index)] = value;
+            _version.IncrementUnchecked();
+            
+            return index;
+        }
+
+        public bool TrySetValueAt(K key, int index, V value) {
+            int count = _countMap.GetValueOrDefault(key);
+            if (index < 0 || index > count) return false;
+            
+            if (index == count) _countMap[key] = count + 1;
+            
+            _valueMap[(key, index)] = value;
+            _version.IncrementUnchecked();
+            
+            return true;
+        }
+        
+        public void SetValueAt(K key, int index, V value) {
+            int count = _countMap.GetValueOrDefault(key);
+            if (index < 0 || index > count) {
+                throw new ArgumentException($"Trying to set value {value} for key {key} at index {index} that is out of range, key count is {count}.");
+            }
+            
+            if (index == count) _countMap[key] = count + 1;
+            
+            _valueMap[(key, index)] = value;
+            _version.IncrementUnchecked();
+        }
+        
+        public bool RemoveValue(K key, V value) {
+            int index = GetValueIndex(key, value);
+            return index >= 0 && RemoveValueAt(key, index);
         }
         
         public bool RemoveValueAt(K key, int index) {
@@ -99,10 +127,33 @@ namespace MisterGames.Common.Data
                 else _countMap.Remove(key);
             }
             
-            _version++;
+            _version.IncrementUnchecked();
             return true;
         }
 
+        public bool RemoveValueAt(K key, int index, out V value) {
+            int count = _countMap.GetValueOrDefault(key);
+            
+            if (index < 0 || index > count - 1) {
+                value = default;
+                return false;
+            }
+            
+            _valueMap.Remove((key, index), out value);
+
+            if (count > 0) {
+                count = index > count - 1 ? index + 1
+                    : index < count - 1 ? count
+                    : count - 1;
+                
+                if (count > 0) _countMap[key] = count; 
+                else _countMap.Remove(key);
+            }
+            
+            _version.IncrementUnchecked();
+            return true;
+        }
+        
         public ValueCollection GetValues(K key) {
             return new ValueCollection(this, key);
         }
@@ -120,7 +171,7 @@ namespace MisterGames.Common.Data
                 _valueMap[(key, i++)] = value;
             }
             
-            _version++;
+            _version.IncrementUnchecked();
         }
         
         public void AddValues(K key, IReadOnlyCollection<V> values) {
@@ -135,7 +186,7 @@ namespace MisterGames.Common.Data
                 _valueMap[(key, i++)] = value;
             }
             
-            _version++;
+            _version.IncrementUnchecked();
         }
 
         public int RemoveValues(K key) {
@@ -145,7 +196,7 @@ namespace MisterGames.Common.Data
             }
 
             _countMap.Remove(key);
-            _version++;
+            _version.IncrementUnchecked();
             
             return count;
         }
@@ -153,11 +204,11 @@ namespace MisterGames.Common.Data
         public void Clear() {
             _countMap.Clear();
             _valueMap.Clear();
-            _version++;
+            _version.IncrementUnchecked();
         }
 
         public struct ValueCollection {
-            public V Current => _source.GetValue(_key, _index);
+            public V Current => _source.GetValueAt(_key, _index);
             
             private readonly MultiValueDictionary<K, V> _source;
             private readonly K _key;

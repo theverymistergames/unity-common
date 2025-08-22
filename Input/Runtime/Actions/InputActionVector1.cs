@@ -8,7 +8,7 @@ using UnityEngine;
 namespace MisterGames.Input.Actions {
 
     [CreateAssetMenu(fileName = nameof(InputActionVector1), menuName = "MisterGames/Input/Action/" + nameof(InputActionVector1))]
-    public sealed class InputActionVector1 : InputAction {
+    public sealed class InputActionVector1 : InputActionBase {
         
         [SerializeField] private float _sensitivity = 1f;
         [SerializeField] private bool _ignoreNewValueIfNotChanged;

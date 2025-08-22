@@ -10,9 +10,7 @@ namespace MisterGames.Common.Data {
         [SerializeField] private ulong _guidHigh;
 
         public static readonly SerializedGuid Empty = new(0, 0);
-        
-        public Guid Guid => HashHelpers.ComposeGuid(_guidLow, _guidHigh);
-        
+
         public SerializedGuid(ulong guidLow, ulong guidHigh) {
             _guidLow = guidLow;
             _guidHigh = guidHigh;
@@ -20,6 +18,10 @@ namespace MisterGames.Common.Data {
 
         public SerializedGuid(Guid guid) {
             (_guidLow, _guidHigh) = HashHelpers.DecomposeGuid(guid);
+        }
+        
+        public Guid ToGuid() {
+            return HashHelpers.ComposeGuid(_guidLow, _guidHigh);
         }
 
         public override int GetHashCode() {
@@ -47,11 +49,11 @@ namespace MisterGames.Common.Data {
         }
 
         public string ToString(string format) {
-            return Guid.ToString(format);
+            return ToGuid().ToString(format);
         }
 
         public string ToString(string format, IFormatProvider provider) {
-            return Guid.ToString(format, provider);
+            return ToGuid().ToString(format, provider);
         }
     }
     

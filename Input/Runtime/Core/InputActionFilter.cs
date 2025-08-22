@@ -7,8 +7,8 @@ namespace MisterGames.Input.Core {
     public sealed class InputActionFilter {
 
         [SerializeField] private InputChannel _inputChannel;
-        [SerializeField] private InputAction[] _addActions;
-        [SerializeField] private InputAction[] _removeActions;
+        [SerializeField] private InputActionBase[] _addActions;
+        [SerializeField] private InputActionBase[] _removeActions;
 
         private bool _isApplied;
         
@@ -28,7 +28,7 @@ namespace MisterGames.Input.Core {
             _isApplied = false;
         }
 
-        private void Activate(InputAction[] actions) {
+        private void Activate(InputActionBase[] actions) {
             if (actions is not { Length: >0 }) return;
 
             for (int i = 0; i < actions.Length; i++) {
@@ -36,7 +36,7 @@ namespace MisterGames.Input.Core {
             }
         }
         
-        private void Deactivate(InputAction[] actions) {
+        private void Deactivate(InputActionBase[] actions) {
             if (actions is not { Length: >0 }) return;
 
             for (int i = 0; i < actions.Length; i++) {

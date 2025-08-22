@@ -68,7 +68,7 @@ namespace MisterGames.Scenes.SceneRoots {
             int count = _sceneHashToRootsMap.GetCount(sceneHash);
             
             for (int i = 0; i < count; i++) {
-                _sceneHashToRootsMap.GetValue(sceneHash, i).SetEnabled(enabled);
+                _sceneHashToRootsMap.GetValueAt(sceneHash, i).SetEnabled(enabled);
             }
         }
     }

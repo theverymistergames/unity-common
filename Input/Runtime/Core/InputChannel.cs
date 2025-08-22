@@ -11,9 +11,9 @@ namespace MisterGames.Input.Core {
         [SerializeField] private InputScheme[] _initialInputSchemes = Array.Empty<InputScheme>();
         
         private readonly List<InputScheme> _schemes = new List<InputScheme>();
-        private readonly List<InputAction> _actions = new List<InputAction>();
-        private readonly List<InputAction> _actionsToAdd = new List<InputAction>();
-        private readonly List<InputAction> _actionsToRemove = new List<InputAction>();
+        private readonly List<InputActionBase> _actions = new List<InputActionBase>();
+        private readonly List<InputActionBase> _actionsToAdd = new List<InputActionBase>();
+        private readonly List<InputActionBase> _actionsToRemove = new List<InputActionBase>();
         private readonly KeyOverlapResolver _overlap = new KeyOverlapResolver();
 
         public void ActivateInputScheme(InputScheme scheme) {
@@ -38,7 +38,7 @@ namespace MisterGames.Input.Core {
             }
         }
         
-        public void AddInputAction(InputAction action) {
+        public void AddInputAction(InputActionBase action) {
             if (_actionsToAdd.Contains(action)) return;
 
             if (_actionsToRemove.Contains(action)) {
@@ -49,7 +49,7 @@ namespace MisterGames.Input.Core {
             _actionsToAdd.Add(action);
         }
         
-        public void RemoveInputAction(InputAction action) {
+        public void RemoveInputAction(InputActionBase action) {
             if (_actionsToRemove.Contains(action)) return;
             
             if (_actionsToAdd.Contains(action)) {
@@ -128,7 +128,7 @@ namespace MisterGames.Input.Core {
             if (wasUpdated) _overlap.RefillOverlapGroups(_actions);
         }
 
-        private void UpdateInputActionState(InputAction action) {
+        private void UpdateInputActionState(InputActionBase action) {
             switch (CurrentStage) {
                 case Stage.Initialized:
                     action.Init();

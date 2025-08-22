@@ -2,7 +2,7 @@
 
 namespace MisterGames.Common.Data {
 
-    internal static class HashHelpers {
+    public static class HashHelpers {
 
         private const int HashPrime = 101;
 

@@ -80,6 +80,20 @@ namespace MisterGames.Common.Maths {
                 ? range.x
                 : (value - range.x) / (range.y - range.x);
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static byte IncrementUnchecked(this byte value) {
+            unchecked {
+                return ++value;
+            }
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int IncrementUnchecked(this int value) {
+            unchecked {
+                return ++value;
+            }
+        }
     }
 
 }

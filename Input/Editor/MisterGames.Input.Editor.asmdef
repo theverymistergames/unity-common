@@ -1,12 +1,15 @@
 {
-    "name": "MisterGames.Input",
-    "rootNamespace": "MisterGames.Input",
+    "name": "MisterGames.Input.Editor",
+    "rootNamespace": "MisterGames.Input.Editor",
     "references": [
+        "GUID:27b41c8f92a5419d8b9fce851e1339f8",
         "GUID:0175294ec022c624cbe537915e3c9e71",
-        "GUID:75469ad4d38634e559750d17036d5f7c",
-        "GUID:e0cd26848372d4e5c891c569017e11f1"
+        "GUID:bc3879bae5b869d48a8b5df880b31fff",
+        "GUID:75469ad4d38634e559750d17036d5f7c"
     ],
-    "includePlatforms": [],
+    "includePlatforms": [
+        "Editor"
+    ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,
