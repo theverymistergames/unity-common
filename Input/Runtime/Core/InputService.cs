@@ -1,14 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
 using System.Threading;
 using MisterGames.Common.Data;
+using MisterGames.Common.Strings;
+using MisterGames.Common.Tick;
 using Unity.Collections;
+using UnityEngine;
 using UnityEngine.InputSystem;
 
 namespace MisterGames.Input.Core {
-    
-    public sealed class InputService : IDisposable {
 
+    [Serializable]
+    public sealed class InputService : IDisposable, IUpdate {
+
+        [SerializeField] private bool _enableLogs;
+        
         private readonly struct BlockKey : IEquatable<BlockKey> {
             
             public readonly int hash;
@@ -42,13 +49,111 @@ namespace MisterGames.Input.Core {
 
         private readonly MultiValueDictionary<int, Guid> _sourceHashToInputActionBlocks = new();
         private readonly MultiValueDictionary<Guid, int> _inputActionToSourceHashBlocks = new();
+        private readonly Dictionary<BlockKey, BlockData> _inputActionBlocks = new();
+        
         private readonly MultiValueDictionary<int, Guid> _sourceHashToInputMapBlocks = new();
         private readonly MultiValueDictionary<Guid, int> _inputMapToSourceHashBlocks = new();
-        private readonly Dictionary<BlockKey, BlockData> _blockMap = new();
+        private readonly Dictionary<BlockKey, BlockData> _inputMapBlocks = new();
+        
+        public void Initialize() {
+            PlayerLoopStage.LateUpdate.Subscribe(this);
+            FetchInputs();
+        }
         
         public void Dispose() {
+            PlayerLoopStage.LateUpdate.Unsubscribe(this);
+            
             _inputActions.Clear();
             _inputMaps.Clear();
+            
+            _sourceHashToInputActionBlocks.Clear();
+            _inputActionToSourceHashBlocks.Clear();
+            _inputActionBlocks.Clear();
+            
+            _sourceHashToInputMapBlocks.Clear();
+            _inputMapToSourceHashBlocks.Clear();
+            _inputMapBlocks.Clear();
+        }
+
+        private void FetchInputs() {
+            var inputMaps = InputSystem.actions.actionMaps;
+            
+            for (int i = 0; i < inputMaps.Count; i++) {
+                var inputMap = inputMaps[i];
+                _inputMaps[inputMap.id] = inputMap;
+                
+                var inputActions = inputMap.actions;
+                for (int j = 0; j < inputActions.Count; j++) {
+                    var inputAction = inputActions[j];
+                    _inputActions[inputAction.id] = inputAction;
+                }
+            }
+        }
+
+        void IUpdate.OnUpdate(float dt) {
+            var inputActionBlocksToRemove = new NativeArray<BlockKey>(_inputActionBlocks.Count, Allocator.Temp);
+            var inputMapBlocksToRemove = new NativeArray<BlockKey>(_inputMapBlocks.Count, Allocator.Temp);
+            
+            var changedInputActions = new NativeHashSet<Guid>(_inputActionBlocks.Count, Allocator.Temp);
+            var changedInputMaps = new NativeHashSet<Guid>(_inputMapBlocks.Count, Allocator.Temp);
+            
+            int removeInputActionsCount = 0;
+            int removeInputMapsCount = 0;
+            
+            foreach (var (key, data) in _inputActionBlocks) {
+                if (data.cancellationToken.IsCancellationRequested) inputActionBlocksToRemove[removeInputActionsCount++] = key;
+            }
+            
+            foreach (var (key, data) in _inputMapBlocks) {
+                if (data.cancellationToken.IsCancellationRequested) inputMapBlocksToRemove[removeInputMapsCount++] = key;
+            }
+            
+            for (int i = 0; i < removeInputActionsCount; i++) {
+                var key = inputActionBlocksToRemove[i];
+                
+                _inputActionBlocks.Remove(key);
+                _sourceHashToInputActionBlocks.RemoveValue(key.hash, key.guid);
+                _inputActionToSourceHashBlocks.RemoveValue(key.guid, key.hash);
+
+                changedInputActions.Add(key.guid);
+            }
+            
+            inputActionBlocksToRemove.Dispose();
+
+            for (int i = 0; i < inputMapBlocksToRemove.Length; i++) {
+                var key = inputMapBlocksToRemove[i];
+                
+                _inputMapBlocks.Remove(key);
+                _sourceHashToInputMapBlocks.RemoveValue(key.hash, key.guid);
+                _inputMapToSourceHashBlocks.RemoveValue(key.guid, key.hash);
+                
+                changedInputMaps.Add(key.guid);
+            }
+            
+            inputMapBlocksToRemove.Dispose();
+            
+            foreach (var guid in changedInputMaps) {
+                UpdateInputMapBlockState(GetInputMap(guid));
+            }
+            
+            foreach (var guid in changedInputActions) {
+                var inputAction = GetInputAction(guid);
+
+                if (inputAction == null ||
+                    inputAction.actionMap != null && changedInputMaps.Contains(inputAction.actionMap.id)) 
+                {
+                    continue;
+                }
+                
+                UpdateInputActionBlockState(inputAction);
+            }
+
+            if (_enableLogs) {
+                LogInfo($"cleared canceled blocks for maps [{JoinMapsToString(changedInputMaps)}] and inputs [{JoinActionsToString(changedInputActions)}], state:\n{GetInputsStateString()}");
+            }
+            
+            changedInputActions.Dispose();
+            changedInputMaps.Dispose();
         }
 
         public InputAction GetInputAction(InputActionRef inputActionRef) {
@@ -85,11 +190,224 @@ namespace MisterGames.Input.Core {
             return inputMap is { enabled: true } && !_inputMapToSourceHashBlocks.ContainsKey(inputMap.id);
         }
 
+        #region InputMapBlocks
+        
+        public bool BlockInputMap(object source, InputActionMap inputMap, CancellationToken cancellationToken = default) {
+            if (SetInputMapBlockInternal(source, inputMap, blocked: true, cancellationToken)) {
+                UpdateInputMapBlockState(inputMap);
+                if (_enableLogs) LogInfo($"map [{inputMap.name}] blocked by [{source}], state:\n{GetInputsStateString()}");
+                return true;
+            }
+            
+            return false;
+        }
+        
+        public bool BlockInputMap(object source, InputMapRef inputMapRef, CancellationToken cancellationToken = default) {
+            var inputMap = GetInputMap(inputMapRef);
+            
+            if (SetInputMapBlockInternal(source, inputMap, blocked: true, cancellationToken)) {
+                UpdateInputMapBlockState(inputMap);
+                if (_enableLogs) LogInfo($"map [{inputMap.name}] blocked by [{source}], state:\n{GetInputsStateString()}");
+                return true;
+            }
+            
+            return false;
+        }
+
+        public bool BlockInputMaps(object source, IReadOnlyList<InputActionMap> inputMaps, CancellationToken cancellationToken = default) {
+            var changedList = new NativeList<Guid>(Allocator.Temp);
+            
+            for (int i = 0; i < inputMaps?.Count; i++) {
+                var inputMap = inputMaps[i];
+                
+                if (SetInputMapBlockInternal(source, inputMap, blocked: true, cancellationToken)) {
+                    changedList.Add(inputMap.id);
+                }
+            }
+
+            int count = changedList.Length;
+            if (count > 0) {
+                UpdateInputMapsBlockState(changedList);
+                if (_enableLogs) LogInfo($"maps [{JoinMapsToString(inputMaps)}] blocked by [{source}], state:\n{GetInputsStateString()}");
+            }
+            
+            changedList.Dispose();
+            
+            return count > 0;
+        }
+
+        public bool BlockInputMaps(object source, IReadOnlyList<InputMapRef> inputMapRefs, CancellationToken cancellationToken = default) {
+            var changedList = new NativeList<Guid>(Allocator.Temp);
+            
+            for (int i = 0; i < inputMapRefs?.Count; i++) {
+                var inputMap = GetInputMap(inputMapRefs[i]);
+                
+                if (SetInputMapBlockInternal(source, inputMap, blocked: true, cancellationToken)) {
+                    changedList.Add(inputMap.id);
+                }
+            }
+
+            int count = changedList.Length;
+            if (count > 0) {
+                UpdateInputMapsBlockState(changedList);
+                if (_enableLogs) LogInfo($"maps [{JoinMapsToString(inputMapRefs)}] blocked by [{source}], state:\n{GetInputsStateString()}");
+            }
+            
+            changedList.Dispose();
+            
+            return count > 0;
+        }
+        
+        public bool UnblockInputMap(object source, InputActionMap inputMap) {
+            if (SetInputMapBlockInternal(source, inputMap, blocked: false)) {
+                UpdateInputMapBlockState(inputMap);
+                if (_enableLogs) LogInfo($"map [{inputMap.name}] unblocked by [{source}], state:\n{GetInputsStateString()}");
+                return true;
+            }
+            
+            return false;
+        }
+        
+        public bool UnblockInputMap(object source, InputMapRef inputMapRef) {
+            var inputMap = GetInputMap(inputMapRef);
+            
+            if (SetInputMapBlockInternal(source, inputMap, blocked: false)) {
+                UpdateInputMapBlockState(inputMap);
+                if (_enableLogs) LogInfo($"map [{inputMap.name}] unblocked by [{source}], state:\n{GetInputsStateString()}");
+                return true;
+            }
+            
+            return false;
+        }
+
+        public bool UnblockInputMaps(object source, IReadOnlyList<InputActionMap> inputMaps) {
+            var changedList = new NativeList<Guid>(Allocator.Temp);
+            
+            for (int i = 0; i < inputMaps?.Count; i++) {
+                var inputMap = inputMaps[i];
+                
+                if (SetInputMapBlockInternal(source, inputMap, blocked: false)) {
+                    changedList.Add(inputMap.id);
+                }
+            }
+
+            int count = changedList.Length;
+            if (count > 0) {
+                UpdateInputMapsBlockState(changedList);
+                if (_enableLogs) LogInfo($"maps [{JoinMapsToString(inputMaps)}] unblocked by [{source}], state:\n{GetInputsStateString()}");
+            }
+            
+            changedList.Dispose();
+            
+            return count > 0;
+        }
+        
+        public bool UnblockInputMaps(object source, IReadOnlyList<InputMapRef> inputMapRefs) {
+            var changedList = new NativeList<Guid>(Allocator.Temp);
+            
+            for (int i = 0; i < inputMapRefs?.Count; i++) {
+                var inputMap = GetInputMap(inputMapRefs[i]);
+                
+                if (SetInputMapBlockInternal(source, inputMap, blocked: false)) {
+                    changedList.Add(inputMap.id);
+                }
+            }
+
+            int count = changedList.Length;
+            if (count > 0) {
+                UpdateInputMapsBlockState(changedList);
+                if (_enableLogs) LogInfo($"maps [{JoinMapsToString(inputMapRefs)}] unblocked by [{source}], state:\n{GetInputsStateString()}");
+            }
+            
+            changedList.Dispose();
+            
+            return count > 0;
+        }
+
+        public bool ClearAllInputMapBlocksOf(object source) {
+            int hash = source.GetHashCode();
+            int count = _sourceHashToInputMapBlocks.GetCount(hash);
+
+            if (count <= 0) return false;
+            
+            var changedList = new NativeList<Guid>(Allocator.Temp);
+            
+            for (int i = count - 1; i >= 0; i--) {
+                if (!_sourceHashToInputMapBlocks.TryGetValueAt(hash, i, out var guid)) continue;
+                
+                _inputMapToSourceHashBlocks.RemoveValue(guid, hash);
+                    
+                if (_inputMapBlocks.Remove(new BlockKey(hash, guid))) changedList.Add(guid);
+            }
+
+            _sourceHashToInputMapBlocks.RemoveValues(hash);
+            
+            int changedCount = changedList.Length;
+            if (changedCount > 0) {
+                UpdateInputMapsBlockState(changedList);
+                if (_enableLogs) LogInfo($"cleared all {changedCount} map blocks of [{source}], state:\n{GetInputsStateString()}");
+            }
+            
+            changedList.Dispose();
+            
+            return changedCount > 0;
+        }
+
+        public bool ClearAllInputMapBlocks() {
+            int changedCount = _inputMapBlocks.Count;
+            var changedList = new NativeList<Guid>(changedCount, Allocator.Temp);
+            
+            foreach (var key in _inputMapBlocks.Keys) {
+                changedList.Add(key.guid);
+            }
+            
+            _inputMapBlocks.Clear();
+            _sourceHashToInputMapBlocks.Clear();
+            _inputMapToSourceHashBlocks.Clear();
+
+            if (changedCount > 0) {
+                UpdateInputMapsBlockState(changedList);
+                if (_enableLogs) LogInfo($"cleared all {changedCount} map blocks of all sources, state:\n{GetInputsStateString()}");
+            }
+            
+            changedList.Dispose();
+            
+            return changedCount > 0;
+        }
+        
+        private bool SetInputMapBlockInternal(object source, InputActionMap inputMap, bool blocked, CancellationToken cancellationToken = default) {
+            if (inputMap == null) return false;
+            
+            var guid = inputMap.id;
+            int hash = source.GetHashCode();
+
+            if (!blocked || cancellationToken.IsCancellationRequested) {
+                _sourceHashToInputMapBlocks.RemoveValue(hash, guid);
+                _inputMapToSourceHashBlocks.RemoveValue(guid, hash);
+                
+                return _inputMapBlocks.Remove(new BlockKey(hash, guid));
+            }
+
+            if (!_sourceHashToInputMapBlocks.ContainsValue(hash, guid)) {
+                _sourceHashToInputMapBlocks.AddValue(hash, guid);
+            }
+            
+            if (!_inputMapToSourceHashBlocks.ContainsValue(guid, hash)) {
+                _inputMapToSourceHashBlocks.AddValue(guid, hash);
+            }
+            
+            _inputMapBlocks[new BlockKey(hash, guid)] = new BlockData(blocked: true, cancellationToken);
+            return true;
+        }
+
+        #endregion
+        
         #region InputActionBlockOverrides
         
         public bool SetInputActionBlockOverride(object source, InputAction inputAction, bool blocked, CancellationToken cancellationToken = default) {
             if (SetInputActionBlockOverrideInternal(source, inputAction, blocked, cancellationToken)) {
-                UpdateInputActionBlockState(inputAction.id);
+                UpdateInputActionBlockState(inputAction);
+                if (_enableLogs) LogInfo($"input [{inputAction.name}] set overriden state {(blocked ? "blocked" : "unblocked")} by [{source}], state:\n{GetInputsStateString()}");
                 return true;
             }
             
@@ -100,7 +418,8 @@ namespace MisterGames.Input.Core {
             var inputAction = GetInputAction(inputActionRef);
             
             if (SetInputActionBlockOverrideInternal(source, inputAction, blocked, cancellationToken)) {
-                UpdateInputActionBlockState(inputAction.id);
+                UpdateInputActionBlockState(inputAction);
+                if (_enableLogs) LogInfo($"input [{inputAction.name}] set overriden state {(blocked ? "blocked" : "unblocked")} by [{source}], state:\n{GetInputsStateString()}");
                 return true;
             }
             
@@ -119,7 +438,10 @@ namespace MisterGames.Input.Core {
             }
 
             int count = changedList.Length;
-            if (count > 0) UpdateInputActionsBlockState(changedList);
+            if (count > 0) {
+                UpdateInputActionsBlockState(changedList);
+                if (_enableLogs) LogInfo($"inputs [{JoinActionsToString(inputActions)}] set overriden state {(blocked ? "blocked" : "unblocked")} by [{source}], state:\n{GetInputsStateString()}");
+            }
             
             changedList.Dispose();
             
@@ -138,7 +460,10 @@ namespace MisterGames.Input.Core {
             }
 
             int count = changedList.Length;
-            if (count > 0) UpdateInputActionsBlockState(changedList);
+            if (count > 0) {
+                UpdateInputActionsBlockState(changedList);
+                if (_enableLogs) LogInfo($"inputs [{JoinActionsToString(inputActionRefs)}] set overriden state {(blocked ? "blocked" : "unblocked")} by [{source}], state:\n{GetInputsStateString()}");
+            }
             
             changedList.Dispose();
             
@@ -147,7 +472,8 @@ namespace MisterGames.Input.Core {
 
         public bool RemoveInputActionBlockOverride(object source, InputAction inputAction) {
             if (RemoveInputActionBlockOverrideInternal(source, inputAction)) {
-                UpdateInputActionBlockState(inputAction.id);
+                UpdateInputActionBlockState(inputAction);
+                if (_enableLogs) LogInfo($"input [{inputAction.name}] removed overriden state by [{source}], state:\n{GetInputsStateString()}");
                 return true;
             }
             
@@ -158,7 +484,8 @@ namespace MisterGames.Input.Core {
             var inputAction = GetInputAction(inputActionRef);
             
             if (RemoveInputActionBlockOverrideInternal(source, inputAction)) {
-                UpdateInputActionBlockState(inputAction.id);
+                UpdateInputActionBlockState(inputAction);
+                if (_enableLogs) LogInfo($"input [{inputAction.name}] removed overriden state by [{source}], state:\n{GetInputsStateString()}");
                 return true;
             }
             
@@ -177,7 +504,10 @@ namespace MisterGames.Input.Core {
             }
 
             int count = changedList.Length;
-            if (count > 0) UpdateInputActionsBlockState(changedList);
+            if (count > 0) {
+                UpdateInputActionsBlockState(changedList);
+                if (_enableLogs) LogInfo($"inputs [{JoinActionsToString(inputActions)}] removed overriden state by [{source}], state:\n{GetInputsStateString()}");
+            }
             
             changedList.Dispose();
             
@@ -196,14 +526,17 @@ namespace MisterGames.Input.Core {
             }
 
             int count = changedList.Length;
-            if (count > 0) UpdateInputActionsBlockState(changedList);
+            if (count > 0) {
+                UpdateInputActionsBlockState(changedList);
+                if (_enableLogs) LogInfo($"inputs [{JoinActionsToString(inputActionRefs)}] removed overriden state by [{source}], state:\n{GetInputsStateString()}");
+            }
             
             changedList.Dispose();
             
             return count > 0;
         }
         
-        public bool ClearInputActionBlockOverridesFor(object source) {
+        public bool ClearAllInputActionBlockOverridesOf(object source) {
             int hash = source.GetHashCode();
             int count = _sourceHashToInputActionBlocks.GetCount(hash);
 
@@ -212,15 +545,20 @@ namespace MisterGames.Input.Core {
             var changedList = new NativeList<Guid>(Allocator.Temp);
             
             for (int i = count - 1; i >= 0; i--) {
-                if (!_sourceHashToInputActionBlocks.RemoveValueAt(hash, i, out var guid)) continue;
+                if (!_sourceHashToInputActionBlocks.TryGetValueAt(hash, i, out var guid)) continue;
                 
                 _inputActionToSourceHashBlocks.RemoveValue(guid, hash);
                     
-                if (_blockMap.Remove(new BlockKey(hash, guid))) changedList.Add(guid);
+                if (_inputActionBlocks.Remove(new BlockKey(hash, guid))) changedList.Add(guid);
             }
+
+            _sourceHashToInputActionBlocks.RemoveValues(hash);
             
             int changedCount = changedList.Length;
-            if (changedCount > 0) UpdateInputActionsBlockState(changedList);
+            if (changedCount > 0) {
+                UpdateInputActionsBlockState(changedList);
+                if (_enableLogs) LogInfo($"cleared all {changedCount} input overriden states of [{source}], state:\n{GetInputsStateString()}");
+            }
             
             changedList.Dispose();
             
@@ -228,23 +566,21 @@ namespace MisterGames.Input.Core {
         }
         
         public bool ClearAllInputActionBlockOverrides() {
-            var changedList = new NativeList<Guid>(Allocator.Temp);
+            int changedCount = _inputActionBlocks.Count;
+            var changedList = new NativeList<Guid>(changedCount, Allocator.Temp);
 
-            foreach (int hash in _sourceHashToInputActionBlocks.Keys) {
-                int count = _sourceHashToInputActionBlocks.GetCount(hash);
-                
-                for (int i = count - 1; i >= 0; i--) {
-                    if (!_sourceHashToInputActionBlocks.TryGetValueAt(hash, i, out var guid)) continue;
-                    
-                    if (_blockMap.Remove(new BlockKey(hash, guid))) changedList.Add(guid);
-                }
+            foreach (var key in _inputActionBlocks.Keys) {
+                changedList.Add(key.guid);
             }
             
+            _inputActionBlocks.Clear();
             _sourceHashToInputActionBlocks.Clear();
             _inputActionToSourceHashBlocks.Clear();
-            
-            int changedCount = changedList.Length;
-            if (changedCount > 0) UpdateInputActionsBlockState(changedList);
+
+            if (changedCount > 0) {
+                UpdateInputActionsBlockState(changedList);
+                if (_enableLogs) LogInfo($"cleared all {changedCount} input overriden states of all sources, state:\n{GetInputsStateString()}");
+            }
             
             changedList.Dispose();
             
@@ -261,7 +597,7 @@ namespace MisterGames.Input.Core {
                 _sourceHashToInputActionBlocks.RemoveValue(hash, guid);
                 _inputActionToSourceHashBlocks.RemoveValue(guid, hash);
                 
-                return _blockMap.Remove(new BlockKey(hash, guid));
+                return _inputActionBlocks.Remove(new BlockKey(hash, guid));
             }
 
             if (!_sourceHashToInputActionBlocks.ContainsValue(hash, guid)) {
@@ -272,7 +608,7 @@ namespace MisterGames.Input.Core {
                 _inputActionToSourceHashBlocks.AddValue(guid, hash);
             }
             
-            _blockMap[new BlockKey(hash, guid)] = new BlockData(blocked, cancellationToken);
+            _inputActionBlocks[new BlockKey(hash, guid)] = new BlockData(blocked, cancellationToken);
             return true;
         }
         
@@ -285,20 +621,54 @@ namespace MisterGames.Input.Core {
             _sourceHashToInputActionBlocks.RemoveValue(hash, guid);
             _inputActionToSourceHashBlocks.RemoveValue(guid, hash);
             
-            return _blockMap.Remove(new BlockKey(hash, guid));
+            return _inputActionBlocks.Remove(new BlockKey(hash, guid));
         }
         
-        private void UpdateInputActionBlockState(Guid guid) {
-            var inputAction = GetInputAction(guid);
+        #endregion
+
+        public void ClearAllBlocks() {
+            _sourceHashToInputActionBlocks.Clear();
+            _inputActionToSourceHashBlocks.Clear();
+            _inputActionBlocks.Clear();
+            
+            _sourceHashToInputMapBlocks.Clear();
+            _inputMapToSourceHashBlocks.Clear();
+            _inputMapBlocks.Clear();
+            
+            foreach (var inputMap in _inputMaps.Values) {
+                inputMap.Enable();
+
+                var inputActions = inputMap.actions;
+                for (int i = 0; i < inputActions.Count; i++) {
+                    inputMap.actions[i].Enable();
+                }
+            }
+        }
+        
+        private void UpdateInputMapBlockState(InputActionMap inputMap) {
+            for (int i = 0; i < inputMap?.actions.Count; i++) {
+                UpdateInputActionBlockState(inputMap.actions[i]);
+            }
+        }
+        
+        private void UpdateInputMapsBlockState(NativeList<Guid> guids) {
+            for (int i = 0; i < guids.Length; i++) {
+                UpdateInputMapBlockState(GetInputMap(guids[i]));
+            }
+        }
+
+        private void UpdateInputActionBlockState(InputAction inputAction) {
             if (inputAction == null) return;
             
+            var guid = inputAction.id;
             int count = _inputActionToSourceHashBlocks.GetCount(guid);
+            
             bool hasOverride = false;
             bool enableInputAction = false;
 
             for (int i = 0; i < count; i++) {
                 int hash = _inputActionToSourceHashBlocks.GetValueAt(guid, i);
-                if (!_blockMap.TryGetValue(new BlockKey(hash, guid), out var block)) continue;
+                if (!_inputActionBlocks.TryGetValue(new BlockKey(hash, guid), out var block)) continue;
 
                 hasOverride = true;
                 
@@ -319,11 +689,132 @@ namespace MisterGames.Input.Core {
      
         private void UpdateInputActionsBlockState(NativeList<Guid> guids) {
             for (int i = 0; i < guids.Length; i++) {
-                UpdateInputActionBlockState(guids[i]);
+                UpdateInputActionBlockState(GetInputAction(guids[i]));
             }
         }
+
+        private static void LogInfo(string message) {
+            Debug.Log($"{nameof(InputService).FormatColorOnlyForEditor(Color.white)}: {message}");
+        }
+
+        private string GetInputsStateString() {
+            var sb = new StringBuilder();
+
+            foreach (var inputMap in _inputMaps.Values) {
+                sb.AppendLine($"{inputMap.name} {FormatStateString(IsInputMapEnabled(inputMap))} {FormatMapBlocksString(inputMap.id)}");
+                
+                var inputActions = inputMap.actions;
+                
+                for (int i = 0; i < inputActions.Count; i++) {
+                    var inputAction = inputActions[i];
+                    sb.AppendLine($"- {inputAction.name} {FormatStateString(IsInputActionEnabled(inputAction))} {FormatActionBlocksString(inputAction.id)}");
+                }
+            }
+            
+            return sb.ToString();
+        }
+
+        private string JoinActionsToString(IReadOnlyList<InputAction> inputActions) {
+            var sb = new StringBuilder();
+
+            for (int i = 0; i < inputActions?.Count; i++) {
+                var inputAction = inputActions[i];
+                if (inputAction == null) continue;
+
+                sb.Append($"{(inputAction.actionMap == null ? null : $"{inputAction.actionMap.name}/")}{inputAction.name}{(i < inputActions.Count - 1 ? ", " : null)}");
+            }
+            
+            return sb.ToString();
+        }
         
-        #endregion
+        private string JoinActionsToString(IReadOnlyList<InputActionRef> inputActionRefs) {
+            var sb = new StringBuilder();
+
+            for (int i = 0; i < inputActionRefs?.Count; i++) {
+                var inputAction = GetInputAction(inputActionRefs[i]);
+                if (inputAction == null) continue;
+
+                sb.Append($"{(inputAction.actionMap == null ? null : $"{inputAction.actionMap.name}/")}{inputAction.name}{(i < inputActionRefs.Count - 1 ? ", " : null)}");
+            }
+            
+            return sb.ToString();
+        }
+        
+        private string JoinActionsToString(NativeHashSet<Guid> inputActions) {
+            var sb = new StringBuilder();
+            int count = inputActions.Count;
+            int index = 0;
+            
+            foreach (var guid in inputActions) {
+                index++;
+                
+                var inputAction = GetInputAction(guid);
+                if (inputAction == null) continue;
+
+                sb.Append($"{(inputAction.actionMap == null ? null : $"{inputAction.actionMap.name}/")}{inputAction.name}{(index < count ? ", " : null)}");
+            }
+            
+            return sb.ToString();
+        }
+        
+        private string JoinMapsToString(IReadOnlyList<InputActionMap> inputMaps) {
+            var sb = new StringBuilder();
+
+            for (int i = 0; i < inputMaps?.Count; i++) {
+                var inputMap = inputMaps[i];
+                if (inputMap == null) continue;
+
+                sb.Append($"{inputMap.name}{(i < inputMaps.Count - 1 ? ", " : null)}");
+            }
+            
+            return sb.ToString();
+        }
+
+        private string JoinMapsToString(IReadOnlyList<InputMapRef> inputMapRefs) {
+            var sb = new StringBuilder();
+
+            for (int i = 0; i < inputMapRefs?.Count; i++) {
+                var inputMap = GetInputMap(inputMapRefs[i]);
+                if (inputMap == null) continue;
+
+                sb.Append($"{inputMap.name}{(i < inputMapRefs.Count - 1 ? ", " : null)}");
+            }
+            
+            return sb.ToString();
+        }
+        
+        private string JoinMapsToString(NativeHashSet<Guid> inputMaps) {
+            var sb = new StringBuilder();
+            int count = inputMaps.Count;
+            int index = 0;
+            
+            foreach (var guid in inputMaps) {
+                index++;
+                
+                var inputMap = GetInputMap(guid);
+                if (inputMap == null) continue;
+
+                sb.Append($"{inputMap.name}{(index < count ? ", " : null)}");
+            }
+            
+            return sb.ToString();
+        }
+        
+        private string FormatMapBlocksString(Guid guid) {
+            int count = _inputMapToSourceHashBlocks.GetCount(guid);
+            return count > 0 ? $"({count} blocks)" : null;
+        }
+        
+        private string FormatActionBlocksString(Guid guid) {
+            int count = _inputActionToSourceHashBlocks.GetCount(guid);
+            return count > 0 ? $"({count} block overrides)" : null;
+        }
+        
+        private static string FormatStateString(bool enableState) {
+            return enableState 
+                ? "ON".FormatColorOnlyForEditor(Color.green) 
+                : "OFF".FormatColorOnlyForEditor(Color.red);
+        }
     }
     
 }
