@@ -5,6 +5,7 @@ using MisterGames.Input.Actions;
 using MisterGames.Interact.Interactives;
 using MisterGames.Common.Tick;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace MisterGames.Character.Interactives {
     
@@ -12,7 +13,7 @@ namespace MisterGames.Character.Interactives {
     public sealed class InteractiveRotation : MonoBehaviour, IActorComponent, IUpdate {
 
         [SerializeField] private Transform _target;
-        [SerializeField] private InputActionVector2 _rotationInput;
+        [SerializeField] private InputActionRef _rotationInput;
         [SerializeField] private Vector2 _sensitivity = Vector2.one;
         [SerializeField] [Min(0f)] private float _smoothing = 10f;
         [SerializeField] [Min(0f)] private float _inputSmoothing = 1f;
@@ -48,7 +49,7 @@ namespace MisterGames.Character.Interactives {
             
             _interactive.OnStartInteract -= OnStartInteract;
             _interactive.OnStopInteract -= OnStopInteract;
-            _rotationInput.OnChanged -= OnRotationInput;
+            _rotationInput.Get().performed -= OnRotationInput;
             
             _inputAccum = Vector2.zero;
             _finishingFlag = false;
@@ -66,16 +67,17 @@ namespace MisterGames.Character.Interactives {
             if (_interactive.IsInteracting) {
                 _finishingFlag = false;
                 PlayerLoopStage.Update.Subscribe(this);
-                _rotationInput.OnChanged -= OnRotationInput;
-                _rotationInput.OnChanged += OnRotationInput;
+                _rotationInput.Get().performed -= OnRotationInput;
+                _rotationInput.Get().performed += OnRotationInput;
                 return;
             }
             
-            _rotationInput.OnChanged -= OnRotationInput;
+            _rotationInput.Get().performed -= OnRotationInput;
             _finishingFlag = true;
         }
 
-        private void OnRotationInput(Vector2 delta) {
+        private void OnRotationInput(InputAction.CallbackContext callbackContext) {
+            var delta = callbackContext.ReadValue<Vector2>();
             _inputAccum += new Vector2(delta.y, delta.x) * _sensitivity;
         }
 

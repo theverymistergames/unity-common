@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
 using MisterGames.Common.Inputs.DualSense;
-using MisterGames.Common.Lists;
 using MisterGames.Common.Tick;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -19,6 +18,8 @@ namespace MisterGames.Common.Inputs {
         public event Action<DeviceType> OnDeviceChanged = delegate { };
         
         public DeviceType CurrentDevice { get; private set; }
+        public int LastPointerDeviceId { get; private set; }
+        
         public IGamepadVibration GamepadVibration => _gamepadVibration;
         public IDualSenseAdapter DualSenseAdapter => _dualSenseAdapter;
 
@@ -44,6 +45,15 @@ namespace MisterGames.Common.Inputs {
         }
 
         void IUpdate.OnUpdate(float dt) {
+            FetchPointerDeviceId();
+            CheckDeviceType();
+        }
+
+        private void FetchPointerDeviceId() {
+            if (Mouse.current != null) LastPointerDeviceId = Mouse.current.deviceId;
+        }
+        
+        private void CheckDeviceType() {
             var lastDevice = CurrentDevice;
             CurrentDevice = GetCurrentDeviceType();
 
@@ -51,13 +61,11 @@ namespace MisterGames.Common.Inputs {
         }
 
         private DeviceType GetCurrentDeviceType() {
-            if (IsAnyKeyboardMouseControlPressed())
-            {
+            if (IsAnyKeyboardMouseControlPressed()) {
                 return DeviceType.KeyboardMouse;
             }
             
-            if (Gamepad.current != null && IsAnyGamepadControlPressed())
-            {
+            if (Gamepad.current != null && IsAnyGamepadControlPressed()) {
                 return DeviceType.Gamepad;
             }
             

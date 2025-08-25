@@ -8,16 +8,17 @@ using MisterGames.Common.Async;
 using MisterGames.Common.Attributes;
 using MisterGames.Input.Actions;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace MisterGames.Logic.Recording {
     
     public sealed class CameraRecorder : MonoBehaviour, IActorComponent {
 
         [SerializeField] private Transform _cameraTransform;
-        [SerializeField] private InputActionKey _recordInput;
-        [SerializeField] private InputActionKey _playInput;
-        [SerializeField] private InputActionKey _clearInput;
-        [SerializeField] private InputActionKey _resetCameraPositionInput;
+        [SerializeField] private InputActionRef _recordInput;
+        [SerializeField] private InputActionRef _playInput;
+        [SerializeField] private InputActionRef _clearInput;
+        [SerializeField] private InputActionRef _resetCameraPositionInput;
         
         [Header("Recording")]
         [SerializeField] private bool _isRecording;
@@ -61,30 +62,30 @@ namespace MisterGames.Logic.Recording {
         private void OnEnable() {
             AsyncExt.RecreateCts(ref _enableCts);
             
-            _recordInput.OnPress += OnRecordPressed;
-            _playInput.OnPress += OnPlayPressed;
-            _clearInput.OnPress += OnClearPressed;
-            _resetCameraPositionInput.OnPress += OnResetPositionPressed;
+            _recordInput.Get().performed += OnRecordPressed;
+            _playInput.Get().performed += OnPlayPressed;
+            _clearInput.Get().performed += OnClearPressed;
+            _resetCameraPositionInput.Get().performed += OnResetPositionPressed;
         }
         
         private void OnDisable() {
             AsyncExt.DisposeCts(ref _enableCts);
             
-            _recordInput.OnPress -= OnRecordPressed;
-            _playInput.OnPress -= OnPlayPressed;
-            _clearInput.OnPress -= OnClearPressed;
-            _resetCameraPositionInput.OnPress -= OnResetPositionPressed;
+            _recordInput.Get().performed -= OnRecordPressed;
+            _playInput.Get().performed -= OnPlayPressed;
+            _clearInput.Get().performed -= OnClearPressed;
+            _resetCameraPositionInput.Get().performed -= OnResetPositionPressed;
         }
 
-        private void OnRecordPressed() {
+        private void OnRecordPressed(InputAction.CallbackContext callbackContext) {
             ToggleRecord();
         }
         
-        private void OnPlayPressed() {
+        private void OnPlayPressed(InputAction.CallbackContext callbackContext) {
             PlayRecording(_enableCts.Token).Forget();
         }
 
-        private void OnClearPressed() {
+        private void OnClearPressed(InputAction.CallbackContext callbackContext) {
             _playId++;
 
             bool wasPlaying = _isPlaying;
@@ -95,7 +96,7 @@ namespace MisterGames.Logic.Recording {
             _dataArray ??= new List<Data>();
             _dataArray.Clear();
 
-            OnResetPositionPressed();
+            ResetCameraPosition();
 
             if (wasPlaying) {
                 _onStop?.Apply(_actor, destroyCancellationToken).Forget();
@@ -104,7 +105,11 @@ namespace MisterGames.Logic.Recording {
             Debug.Log($"CameraRecorder.OnClearPressed: f {Time.frameCount}, recording cleared{(wasPlaying ? ", stop playing" : "")}");
         }
 
-        private void OnResetPositionPressed() {
+        private void OnResetPositionPressed(InputAction.CallbackContext callbackContext) {
+            ResetCameraPosition();
+        }
+
+        private void ResetCameraPosition() {
             _cameraTransform.SetLocalPositionAndRotation(_initialPosition, _initialRotation);
         }
         

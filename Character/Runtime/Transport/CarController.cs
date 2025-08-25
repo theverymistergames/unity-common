@@ -13,9 +13,9 @@ namespace MisterGames.Character.Transport {
     public sealed class CarController : MonoBehaviour, IActorComponent, IUpdate {
 
         [Header("Inputs")]
-        [SerializeField] private InputActionVector2 _move;
-        [SerializeField] private InputActionVector1 _brake;
-        [SerializeField] private InputActionKey _nitro;
+        [SerializeField] private InputActionRef _move;
+        [SerializeField] private InputActionRef _brake;
+        [SerializeField] private InputActionRef _nitro;
         [SerializeField] private Vector2 _inputSmoothing = new Vector2(10f, 10f);
         [SerializeField] private Vector2 _inputSmoothingRelease = new Vector2(10f, 10f);
 
@@ -198,10 +198,10 @@ namespace MisterGames.Character.Transport {
 
         void IUpdate.OnUpdate(float dt) {
             AnimateWheels();
-            EnableBrakes(!IsIgnitionOn || _brake.Value > 0f);
+            EnableBrakes(!IsIgnitionOn || _brake.Get().ReadValue<float>() > 0f);
             CheckIgnition();
             
-            var targetInput = _move.Value;
+            var targetInput = _move.Get().ReadValue<Vector2>();
 
             var smoothing = new Vector2(
                 targetInput.x.IsNearlyZero() ? _inputSmoothingRelease.x : _inputSmoothing.x,
@@ -211,7 +211,7 @@ namespace MisterGames.Character.Transport {
             _input.x = Mathf.Lerp(_input.x, targetInput.x, dt * smoothing.x);
             _input.y = Mathf.Lerp(_input.y, targetInput.y, dt * smoothing.y);
             
-            float brake = _brake.Value;
+            float brake = _brake.Get().ReadValue<float>();
             float brakeForce = 0f;
             bool atLeastOneDriveWheelGrounded = false;
             bool atLeastOneBrakeWheelGrounded = false;
@@ -249,7 +249,7 @@ namespace MisterGames.Character.Transport {
                     break;
                 
                 case IgnitionMode.OnAcceleration:
-                    if (_move.Value.y.IsNearlyZero()) EnableIgnition(false, forceNotify: _isIgnitionStartRequested);
+                    if (_move.Get().ReadValue<Vector2>().y.IsNearlyZero()) EnableIgnition(false, forceNotify: _isIgnitionStartRequested);
                     else StartIgnition(_ignitionDuration);
                     break;
             }
@@ -260,7 +260,7 @@ namespace MisterGames.Character.Transport {
         }
 
         private void UpdateRpm(float dt) {
-            bool accelerationPressed = !_move.Value.y.IsNearlyZero();
+            bool accelerationPressed = !_move.Get().ReadValue<Vector2>().y.IsNearlyZero();
             
             float targetRpm = accelerationPressed
                 ? AreDriveWheelsGrounded 
@@ -318,7 +318,7 @@ namespace MisterGames.Character.Transport {
         private void Accelerate(ref WheelData wheel, float input, float dt) {
             if (!IsIgnitionOn || !IsMatch(wheel.axel, _driveMode)) return;
 
-            float acceleration = _nitro.IsPressed ? _nitroAcceleration : _acceleration;
+            float acceleration = _nitro.Get().IsPressed() ? _nitroAcceleration : _acceleration;
             input = Mathf.Abs(input) < _inputThreshold ? 0f : input;
             
             wheel.collider.motorTorque = input * acceleration * _forcesScale * dt;

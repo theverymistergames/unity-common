@@ -1,10 +1,12 @@
 ﻿namespace MisterGames.Input.Bindings {
     
     public enum AxisBinding {
+        MousePosition,
         MouseDelta,
         MouseScroll,
-        JoystickStickLeft,
-        JoystickStickRight,
+        
+        GamepadStickLeft,
+        GamepadStickRight,
     }
     
 }

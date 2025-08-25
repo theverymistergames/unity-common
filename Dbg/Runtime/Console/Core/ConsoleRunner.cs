@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using MisterGames.Common.Attributes;
 using MisterGames.Input.Actions;
+using MisterGames.Input.Bindings;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Pool;
@@ -26,7 +27,7 @@ namespace MisterGames.Dbg.Console.Core {
         [TextArea] [SerializeField] private string _greeting = "MisterGames Debug Console";
 
         [Header("Inputs")]
-        [SerializeField] private InputActionKey _activationInput;
+        [SerializeField] private KeyBinding _activationInput = KeyBinding.Backquote;
         [SerializeReference] [SubclassSelector] private IConsoleModule[] _consoleModules;
 
         private const string Editor = "editor";  
@@ -67,14 +68,14 @@ namespace MisterGames.Dbg.Console.Core {
         }
 
         private void OnEnable() {
-            _activationInput.OnPress -= OnPressActivationInput;
-            _activationInput.OnPress += OnPressActivationInput;
+            _activationInput.AddPressCallback(OnPressActivationInput);
         }
 
         private void OnDisable() {
+            _activationInput.RemovePressCallback(OnPressActivationInput);
+            
             ClearConsole();
             HideConsole();
-            _activationInput.OnPress -= OnPressActivationInput;
         }
 
         public void RunCommand(string input) {

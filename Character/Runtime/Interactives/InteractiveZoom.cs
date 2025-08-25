@@ -4,6 +4,7 @@ using MisterGames.Input.Actions;
 using MisterGames.Interact.Interactives;
 using MisterGames.Common.Tick;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace MisterGames.Character.Interactives {
     
@@ -12,7 +13,7 @@ namespace MisterGames.Character.Interactives {
 
         [Header("Target Camera")]
         [SerializeField] private Camera _camera;
-        [SerializeField] private InputActionVector2 _zoomInput;
+        [SerializeField] private InputActionRef _zoomInput;
         [SerializeField] private float _sensitivity = 1f;
         [SerializeField] private float _fovSmoothing = 10f;
         [SerializeField] private Vector2 _fovRange;
@@ -62,7 +63,7 @@ namespace MisterGames.Character.Interactives {
             PlayerLoopStage.Update.Unsubscribe(this);
             _interactive.OnStartInteract -= OnStartInteract;
             _interactive.OnStopInteract -= OnStopInteract;
-            _zoomInput.OnChanged -= OnZoomInput;
+            _zoomInput.Get().performed -= OnZoomInput;
         }
 
         private void OnStartInteract(IInteractiveUser user) {
@@ -79,8 +80,8 @@ namespace MisterGames.Character.Interactives {
             if (_interactive.IsInteracting) {
                 PlayerLoopStage.Update.Subscribe(this);
                 
-                _zoomInput.OnChanged -= OnZoomInput;
-                _zoomInput.OnChanged += OnZoomInput;
+                _zoomInput.Get().performed -= OnZoomInput;
+                _zoomInput.Get().performed += OnZoomInput;
 
                 if (_cameraContainer == null) {
                     foreach (var user in _interactive.Users) {
@@ -102,7 +103,7 @@ namespace MisterGames.Character.Interactives {
             
             PlayerLoopStage.Update.Unsubscribe(this);
 
-            _zoomInput.OnChanged -= OnZoomInput;
+            _zoomInput.Get().performed -= OnZoomInput;
             _inputAccum = Vector2.zero;
 
             if (_cameraContainer != null) {
@@ -110,7 +111,8 @@ namespace MisterGames.Character.Interactives {
             }
         }
 
-        private void OnZoomInput(Vector2 delta) {
+        private void OnZoomInput(InputAction.CallbackContext callbackContext) {
+            var delta = callbackContext.ReadValue<Vector2>();
             _inputAccum += new Vector2(delta.x, delta.y) * _sensitivity;
         }
 

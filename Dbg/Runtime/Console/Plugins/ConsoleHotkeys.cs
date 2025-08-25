@@ -4,7 +4,6 @@ using System.Reflection;
 using MisterGames.Dbg.Console.Attributes;
 using MisterGames.Dbg.Console.Core;
 using MisterGames.Input.Bindings;
-using MisterGames.Input.Global;
 using UnityEngine;
 
 namespace MisterGames.Dbg.Console.Plugins {
@@ -38,7 +37,7 @@ namespace MisterGames.Dbg.Console.Plugins {
                 var hotkey = _hotkeys[i];
 
                 bool wasActive = _inputActiveMap[i];
-                bool active = hotkey.key.IsActive() && hotkey.modifiers.IsActive();
+                bool active = hotkey.key.IsPressed() && hotkey.modifiers.ArePressed();
                 
                 if (active && !wasActive) _consoleRunner.RunCommand(hotkey.command);
 

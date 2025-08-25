@@ -1,9 +1,9 @@
 ﻿using System;
 using MisterGames.Collisions.Core;
 using MisterGames.Collisions.Utils;
+using MisterGames.Common.Inputs;
 using MisterGames.Common.Layers;
 using MisterGames.Common.Maths;
-using MisterGames.Input.Global;
 using MisterGames.Common.Tick;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -69,7 +69,7 @@ namespace MisterGames.Collisions.Detectors {
                 return false;
             }
             
-            hit = inputModule.GetLastRaycastResult(GlobalInput.DeviceId);
+            hit = inputModule.GetLastRaycastResult(DeviceService.Instance.LastPointerDeviceId);
             return hit.isValid && hit.distance <= _maxDistance && _layerMask.Contains(hit.gameObject.layer);
         }
     }

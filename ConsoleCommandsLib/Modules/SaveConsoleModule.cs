@@ -100,34 +100,34 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
             SaveSystem.Main.DeleteAllSaves();
         }
 
-        [ConsoleHotkey("saves/load default_0", KeyBinding.A0, ShortcutModifiers.Control | ShortcutModifiers.Shift)] 
+        [ConsoleHotkey("saves/load default_0", KeyBinding.Digit0, ShortcutModifiers.Control | ShortcutModifiers.Shift)] 
         public void LoadSave0() {}
         
-        [ConsoleHotkey("saves/load default_1", KeyBinding.A1, ShortcutModifiers.Control | ShortcutModifiers.Shift)] 
+        [ConsoleHotkey("saves/load default_1", KeyBinding.Digit1, ShortcutModifiers.Control | ShortcutModifiers.Shift)] 
         public void LoadSave1() {}
         
-        [ConsoleHotkey("saves/load default_2", KeyBinding.A2, ShortcutModifiers.Control | ShortcutModifiers.Shift)] 
+        [ConsoleHotkey("saves/load default_2", KeyBinding.Digit2, ShortcutModifiers.Control | ShortcutModifiers.Shift)] 
         public void LoadSave2() {}
         
-        [ConsoleHotkey("saves/load default_3", KeyBinding.A3, ShortcutModifiers.Control | ShortcutModifiers.Shift)] 
+        [ConsoleHotkey("saves/load default_3", KeyBinding.Digit3, ShortcutModifiers.Control | ShortcutModifiers.Shift)] 
         public void LoadSave3() {}
         
-        [ConsoleHotkey("saves/load default_4", KeyBinding.A4, ShortcutModifiers.Control | ShortcutModifiers.Shift)] 
+        [ConsoleHotkey("saves/load default_4", KeyBinding.Digit4, ShortcutModifiers.Control | ShortcutModifiers.Shift)] 
         public void LoadSave4() {}
         
-        [ConsoleHotkey("saves/load default_5", KeyBinding.A5, ShortcutModifiers.Control | ShortcutModifiers.Shift)] 
+        [ConsoleHotkey("saves/load default_5", KeyBinding.Digit5, ShortcutModifiers.Control | ShortcutModifiers.Shift)] 
         public void LoadSave5() {}
         
-        [ConsoleHotkey("saves/load default_6", KeyBinding.A6, ShortcutModifiers.Control | ShortcutModifiers.Shift)] 
+        [ConsoleHotkey("saves/load default_6", KeyBinding.Digit6, ShortcutModifiers.Control | ShortcutModifiers.Shift)] 
         public void LoadSave6() {}
         
-        [ConsoleHotkey("saves/load default_7", KeyBinding.A7, ShortcutModifiers.Control | ShortcutModifiers.Shift)] 
+        [ConsoleHotkey("saves/load default_7", KeyBinding.Digit7, ShortcutModifiers.Control | ShortcutModifiers.Shift)] 
         public void LoadSave7() {}
         
-        [ConsoleHotkey("saves/load default_8", KeyBinding.A8, ShortcutModifiers.Control | ShortcutModifiers.Shift)] 
+        [ConsoleHotkey("saves/load default_8", KeyBinding.Digit8, ShortcutModifiers.Control | ShortcutModifiers.Shift)] 
         public void LoadSave8() {}
         
-        [ConsoleHotkey("saves/load default_9", KeyBinding.A9, ShortcutModifiers.Control | ShortcutModifiers.Shift)] 
+        [ConsoleHotkey("saves/load default_9", KeyBinding.Digit9, ShortcutModifiers.Control | ShortcutModifiers.Shift)] 
         public void LoadSave9() {}
     }
 

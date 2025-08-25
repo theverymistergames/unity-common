@@ -1,25 +1,37 @@
-﻿using UnityEngine;
+﻿using MisterGames.Input.Bindings;
+using UnityEngine;
 
 namespace MisterGames.Input.Core {
 
-    public class InputRunner : MonoBehaviour {
+    [DefaultExecutionOrder(-100_000)]
+    public sealed class InputRunner : MonoBehaviour {
 
-        [SerializeField] private InputUpdater _inputUpdater;
-
+        [SerializeField] private InputBlockService _inputBlockService;
+        
+        private readonly InputStorage _inputStorage = new();
+        private readonly InputBindingHelper _inputBindingHelper = new();
+        
         public void Awake() {
-            _inputUpdater.Awake();
+#if UNITY_EDITOR
+            InputServices.DisableInputInEditModeAndClearSources();
+#endif
+            
+            InputServices.Storage = _inputStorage;
+            InputServices.Blocks = _inputBlockService;
+            InputServices.BindingHelper = _inputBindingHelper;
+            
+            _inputBindingHelper.Initialize();
+            _inputStorage.Initialize();
+            _inputBlockService.Initialize(_inputStorage);
         }
 
         public void OnDestroy() {
-            _inputUpdater.OnDestroy();
-        }
-
-        public void OnEnable() {
-            _inputUpdater.OnEnable();
-        }
-
-        public void OnDisable() {
-            _inputUpdater.OnDisable();
+            _inputStorage.Dispose();
+            _inputBlockService.Dispose();
+            
+            InputServices.Storage = null;
+            InputServices.Blocks = null;
+            InputServices.BindingHelper = null;
         }
     }
 

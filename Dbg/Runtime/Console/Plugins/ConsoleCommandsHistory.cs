@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
-using MisterGames.Common.Lists;
 using MisterGames.Dbg.Console.Core;
-using MisterGames.Input.Actions;
+using MisterGames.Input.Bindings;
 using UnityEngine;
 
 namespace MisterGames.Dbg.Console.Plugins {
@@ -11,8 +10,8 @@ namespace MisterGames.Dbg.Console.Plugins {
         [SerializeField] private ConsoleRunner _consoleRunner;
 
         [Header("Inputs")]
-        [SerializeField] private InputActionKey _historyUpInput;
-        [SerializeField] private InputActionKey _historyDownInput;
+        [SerializeField] private KeyBinding _historyUpInput = KeyBinding.ArrowUp;
+        [SerializeField] private KeyBinding _historyDownInput = KeyBinding.ArrowDown;
 
         [Header("Commands")]
         [SerializeField] private int _maxCommandHistorySize = 20;
@@ -114,16 +113,15 @@ namespace MisterGames.Dbg.Console.Plugins {
         }
 
         private void SubscribeHistoryInput() {
-            _historyUpInput.OnPress -= OnHistoryUp;
-            _historyUpInput.OnPress += OnHistoryUp;
-
-            _historyDownInput.OnPress -= OnHistoryDown;
-            _historyDownInput.OnPress += OnHistoryDown;
+            UnsubscribeHistoryInput();
+            
+            _historyUpInput.AddPressCallback(OnHistoryUp);
+            _historyDownInput.AddPressCallback(OnHistoryDown);
         }
 
         private void UnsubscribeHistoryInput() {
-            _historyUpInput.OnPress -= OnHistoryUp;
-            _historyDownInput.OnPress -= OnHistoryDown;
+            _historyUpInput.RemovePressCallback(OnHistoryUp);
+            _historyDownInput.RemovePressCallback(OnHistoryDown);
         }
     }
 

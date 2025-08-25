@@ -9,6 +9,7 @@ using MisterGames.Common.Maths;
 using MisterGames.Common.Tick;
 using MisterGames.Input.Actions;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -20,7 +21,7 @@ namespace MisterGames.Character.Transport {
     public sealed class CarEffects : MonoBehaviour, IActorComponent, IUpdate {
         
         [Header("Lights")]
-        [SerializeField] private InputActionKey _lightInput;
+        [SerializeField] private InputActionRef _lightInput;
         [SerializeField] private bool _enableLightsOnEnter = true;
         [SerializeField] private float _intensityMultiplier = 1f;
         [SerializeField] private LightData[] _lights;
@@ -112,7 +113,7 @@ namespace MisterGames.Character.Transport {
         private void OnEnable() {
             AsyncExt.RecreateCts(ref _enableCts);
             
-            _lightInput.OnPress += OnLightInput;
+            _lightInput.Get().performed += OnLightInput;
             
             _carController.OnEnter += OnEnterCar;
             _carController.OnExit += OnExitCar;
@@ -134,7 +135,8 @@ namespace MisterGames.Character.Transport {
         private void OnDisable() {
             AsyncExt.DisposeCts(ref _enableCts);
 
-            _lightInput.OnPress -= OnLightInput;
+            _lightInput.Get().performed -= OnLightInput;
+            
             _carController.OnEnter -= OnEnterCar;
             _carController.OnExit -= OnExitCar;
             _carController.OnStartIgnition -= OnStartIgnition;
@@ -261,7 +263,7 @@ namespace MisterGames.Character.Transport {
             }
         }
 
-        private void OnLightInput() {
+        private void OnLightInput(InputAction.CallbackContext callbackContext) {
             SetLightEnabled(!_isLightEnabled, _isBrakeEnabled);
         }
 

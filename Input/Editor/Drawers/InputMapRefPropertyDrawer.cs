@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using MisterGames.Common.Data;
 using MisterGames.Common.Editor.Views;
-using MisterGames.Common.Strings;
-using MisterGames.Input.Core;
+using MisterGames.Input.Actions;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -18,7 +16,7 @@ namespace MisterGames.Input.Editor.Drawers {
         private const string Null = "<null>";
         private const string NotFound = "(not found)";
 
-        private const string GuidPropertyPath = nameof(InputMapRef.guid);
+        private const string GuidPropertyPath = nameof(InputMapRef._guid);
         private const string GuidLowPropertyPath = "_guidLow";
         private const string GuidHighPropertyPath = "_guidHigh";
 
