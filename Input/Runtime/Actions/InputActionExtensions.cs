@@ -6,11 +6,11 @@ namespace MisterGames.Input.Actions {
     public static class InputActionExtensions {
 
         public static InputAction Get(this InputActionRef inputActionRef) {
-            return InputServices.Storage.GetInputAction(inputActionRef.Guid);
+            return InputServices.Mapper.GetInputAction(inputActionRef.Guid);
         }
         
         public static InputActionMap Get(this InputMapRef inputMapRef) {
-            return InputServices.Storage.GetInputMap(inputMapRef.Guid);
+            return InputServices.Mapper.GetInputMap(inputMapRef.Guid);
         }
     }
     

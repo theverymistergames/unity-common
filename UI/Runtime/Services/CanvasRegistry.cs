@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using MisterGames.Common.GameObjects;
 using UnityEngine;
 
 namespace MisterGames.UI.Service {
@@ -42,7 +41,6 @@ namespace MisterGames.UI.Service {
         }
         
         private void UpdateEventCamera(Camera eventCamera) {
-            Debug.Log($"CanvasRegistry.UpdateEventCamera: f {Time.frameCount}, {eventCamera.GetPathInScene()}");
             foreach (var canvas in _canvases) {
                 if (canvas != null) canvas.worldCamera = eventCamera;
             }

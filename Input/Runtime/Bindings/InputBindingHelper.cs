@@ -17,13 +17,21 @@ namespace MisterGames.Input.Bindings {
         private readonly MultiValueDictionary<KeyBinding, Action> _keyPressCallbackMap = new();
         private readonly MultiValueDictionary<KeyBinding, Action> _keyReleaseCallbackMap = new();
         
+        private bool _initialized;
+        
         public void Initialize() {
+            _initialized = true;
+            
             FetchKeyboardBindings();
             FetchMouseBindings();
             FetchGamepadBindings();
         }
         
         public void Dispose() {
+            if (!_initialized) return;
+            
+            _initialized = false;
+            
             PlayerLoopStage.LateUpdate.Unsubscribe(this);
             
             _keyPressCallbackMap.Clear();
@@ -33,23 +41,23 @@ namespace MisterGames.Input.Bindings {
         }
         
         public bool IsKeyPressed(KeyBinding key) {
-            return _keyBindingMap.TryGetValue(key, out var control) && control.isPressed;
+            return _initialized && _keyBindingMap.TryGetValue(key, out var control) && control.isPressed;
         }
         
         public bool WasKeyPressedThisFrame(KeyBinding key) {
-            return _keyBindingMap.TryGetValue(key, out var control) && control.wasPressedThisFrame;
+            return _initialized && _keyBindingMap.TryGetValue(key, out var control) && control.wasPressedThisFrame;
         }
 
         public bool WasKeyReleasedThisFrame(KeyBinding key) {
-            return _keyBindingMap.TryGetValue(key, out var control) && control.wasReleasedThisFrame;
+            return _initialized && _keyBindingMap.TryGetValue(key, out var control) && control.wasReleasedThisFrame;
         }
         
         public Vector2 GetAxisValue(AxisBinding axis) {
-            return _axisBindingMap.TryGetValue(axis, out var control) ? control.ReadValue() : default;
+            return _initialized && _axisBindingMap.TryGetValue(axis, out var control) ? control.ReadValue() : default;
         }
 
         public bool AreModifiersPressed(ShortcutModifiers key) {
-            if (key == ShortcutModifiers.None) return true;
+            if (!_initialized || key == ShortcutModifiers.None) return true;
 
             return ((key & ShortcutModifiers.Alt) != ShortcutModifiers.Alt || 
                     IsKeyPressed(KeyBinding.LeftAlt) || IsKeyPressed(KeyBinding.RightAlt)) &&
@@ -65,7 +73,7 @@ namespace MisterGames.Input.Bindings {
         }
 
         public void AddKeyPressCallback(KeyBinding keyBinding, Action callback) {
-            if (callback == null) return;
+            if (!_initialized || callback == null) return;
             
             _keyPressCallbackMap.AddValue(keyBinding, callback);
             
@@ -73,13 +81,15 @@ namespace MisterGames.Input.Bindings {
         }
         
         public void RemoveKeyPressCallback(KeyBinding keyBinding, Action callback) {
+            if (!_initialized) return;
+            
             _keyPressCallbackMap.RemoveValue(keyBinding, callback);
             
             if (!HasSubscribedCallbacks()) PlayerLoopStage.LateUpdate.Unsubscribe(this);
         }
 
         public void AddKeyReleaseCallback(KeyBinding keyBinding, Action callback) {
-            if (callback == null) return;
+            if (!_initialized || callback == null) return;
             
             _keyReleaseCallbackMap.AddValue(keyBinding, callback);
             
@@ -87,6 +97,8 @@ namespace MisterGames.Input.Bindings {
         }
         
         public void RemoveKeyReleaseCallback(KeyBinding keyBinding, Action callback) {
+            if (!_initialized) return;
+            
             _keyReleaseCallbackMap.RemoveValue(keyBinding, callback);
             
             if (!HasSubscribedCallbacks()) PlayerLoopStage.LateUpdate.Unsubscribe(this);

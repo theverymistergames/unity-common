@@ -22,7 +22,7 @@ namespace MisterGames.Common.Localization {
         
         private readonly Dictionary<int, float> _tableUsageTimeMap = new();
         private readonly Dictionary<int, ILocalizationTable> _tableMap = new();
-        private readonly Dictionary<int, LocalizationTableStorageBase> _tableStorageMap = new();
+        private readonly Dictionary<int, AsyncOperationHandle<LocalizationTableStorageBase>> _tableStorageHandlesMap = new();
 
         private CancellationTokenSource _cts;
         private LocalizationSettings _settings;
@@ -46,13 +46,13 @@ namespace MisterGames.Common.Localization {
                 if (table is IDisposable disposable) disposable.Dispose();
             }
             
-            foreach (var storage in _tableStorageMap.Values) {
-                Addressables.Release(storage);
+            foreach (var handle in _tableStorageHandlesMap.Values) {
+                Addressables.Release(handle);
             }
             
             _tableUsageTimeMap.Clear();
             _tableMap.Clear();
-            _tableStorageMap.Clear();
+            _tableStorageHandlesMap.Clear();
         }
 
         public string GetLocalizedString(LocalizationKey key) {
@@ -100,15 +100,16 @@ namespace MisterGames.Common.Localization {
                 return table;
             }
             
-            var load = Addressables.LoadAssetAsync<LocalizationTableStorageBase>(guid);
-            load.WaitForCompletion();
+            var handle = Addressables.LoadAssetAsync<LocalizationTableStorageBase>(guid);
+            _tableStorageHandlesMap[hash] = handle;
+            
+            handle.WaitForCompletion();
 
-            switch (load.Status) {
+            switch (handle.Status) {
                 case AsyncOperationStatus.Succeeded:
-                    var storage = load.Result;
+                    var storage = handle.Result;
                     table = new LocalizationTable(storage);
             
-                    _tableStorageMap[hash] = storage;
                     _tableMap[hash] = table;
                     _tableUsageTimeMap[hash] = Time.realtimeSinceStartup;
             
@@ -116,6 +117,7 @@ namespace MisterGames.Common.Localization {
                 
                 case AsyncOperationStatus.None:
                 case AsyncOperationStatus.Failed:
+                    _tableStorageHandlesMap.Remove(hash);
                     LogError($"table with guid {guid} is not found.");
                     return null;
                 
@@ -145,8 +147,8 @@ namespace MisterGames.Common.Localization {
                         disposable.Dispose();
                     }
 
-                    if (_tableStorageMap.Remove(hash, out var storage)) {
-                        Addressables.Release(storage);
+                    if (_tableStorageHandlesMap.Remove(hash, out var handle)) {
+                        Addressables.Release(handle);
                     }
                 }
                 

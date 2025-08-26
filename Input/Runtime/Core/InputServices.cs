@@ -8,7 +8,7 @@ namespace MisterGames.Input.Core {
     
     public static class InputServices {
         
-        public static IInputStorage Storage { get; internal set; }
+        public static IInputMapper Mapper { get; internal set; }
         public static IInputBlockService Blocks { get; internal set; }
         public static IInputBindingHelper BindingHelper { get; internal set; }
 
@@ -23,8 +23,8 @@ namespace MisterGames.Input.Core {
             if (enable) {
                 _enabledPlayerUpdatesInEditModeSources.Add(source.GetHashCode());
                 
-                Storage ??= CreateInputStorage();
-                Blocks ??= CreateInputBlockService(Storage);
+                Mapper ??= CreateInputStorage();
+                Blocks ??= CreateInputBlockService(Mapper);
                 BindingHelper ??= CreateInputBindingHelper();
                 
                 InputSystem.settings.SetInternalFeatureFlag(RunPlayerUpdatesInEditModeFeature, true);
@@ -37,31 +37,35 @@ namespace MisterGames.Input.Core {
             DisableInputInEditModeAndClearSources();
         }
 
-        public static void DisableInputInEditModeAndClearSources() {
+        internal static void DisableInputInEditModeAndClearSources() {
             _enabledPlayerUpdatesInEditModeSources.Clear();
             
+            InputSystem.settings.SetInternalFeatureFlag(RunPlayerUpdatesInEditModeFeature, false);
+
             if (Application.isPlaying) return;
             
-            (Storage as IDisposable)?.Dispose();
+            DisposeServices();
+        }
+
+        internal static void DisposeServices() {
+            (Mapper as IDisposable)?.Dispose();
             (Blocks as IDisposable)?.Dispose();
             (BindingHelper as IDisposable)?.Dispose();
                 
-            Storage = null;
+            Mapper = null;
             Blocks = null;
             BindingHelper = null;
-            
-            InputSystem.settings.SetInternalFeatureFlag(RunPlayerUpdatesInEditModeFeature, false);
         }
 
-        private static IInputStorage CreateInputStorage() {
-            var storage = new InputStorage();
-            storage.Initialize();
+        private static IInputMapper CreateInputStorage() {
+            var storage = new InputMapper();
+            storage.Initialize(InputSystem.actions);
             return storage;
         }
 
-        private static IInputBlockService CreateInputBlockService(IInputStorage storage) {
+        private static IInputBlockService CreateInputBlockService(IInputMapper mapper) {
             var blocks = new InputBlockService();
-            blocks.Initialize(storage);
+            blocks.Initialize(mapper);
             return blocks;
         }
 

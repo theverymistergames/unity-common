@@ -53,15 +53,21 @@ namespace MisterGames.Input.Core {
         private readonly MultiValueDictionary<Guid, int> _inputMapToSourceHashBlocks = new();
         private readonly Dictionary<BlockKey, BlockData> _inputMapBlocks = new();
         
-        private IInputStorage _inputStorage;
+        private IInputMapper _inputMapper;
+        private bool _initialized;
         
-        public void Initialize(IInputStorage inputStorage) {
-            _inputStorage = inputStorage;
+        public void Initialize(IInputMapper inputMapper) {
+            _initialized = true;
+            _inputMapper = inputMapper;
             
             PlayerLoopStage.LateUpdate.Subscribe(this);
         }
         
         public void Dispose() {
+            if (!_initialized) return;
+
+            _initialized = false;
+            
             PlayerLoopStage.LateUpdate.Unsubscribe(this);
             
             _sourceHashToInputActionBlocks.Clear();
@@ -116,11 +122,11 @@ namespace MisterGames.Input.Core {
             inputMapBlocksToRemove.Dispose();
             
             foreach (var guid in changedInputMaps) {
-                UpdateInputMapBlockState(_inputStorage.GetInputMap(guid));
+                UpdateInputMapBlockState(_inputMapper.GetInputMap(guid));
             }
             
             foreach (var guid in changedInputActions) {
-                var inputAction = _inputStorage.GetInputAction(guid);
+                var inputAction = _inputMapper.GetInputAction(guid);
 
                 if (inputAction == null ||
                     inputAction.actionMap != null && changedInputMaps.Contains(inputAction.actionMap.id)) 
@@ -131,7 +137,7 @@ namespace MisterGames.Input.Core {
                 UpdateInputActionBlockState(inputAction);
             }
 
-            if (_enableLogs) {
+            if (_enableLogs && (changedInputActions.Count > 0 || changedInputMaps.Count > 0)) {
                 LogInfo($"cleared canceled blocks for maps [{JoinMapsToString(changedInputMaps)}] and inputs [{JoinActionsToString(changedInputActions)}], state:\n{GetInputsStateString()}");
             }
             
@@ -140,17 +146,17 @@ namespace MisterGames.Input.Core {
         }
 
         public bool IsInputActionEnabled(InputAction inputAction) {
-            return inputAction is { enabled: true } && IsInputMapEnabled(inputAction.actionMap);
+            return _initialized && inputAction is { enabled: true } && IsInputMapEnabled(inputAction.actionMap);
         }
         
         public bool IsInputMapEnabled(InputActionMap inputMap) {
-            return inputMap is { enabled: true } && !_inputMapToSourceHashBlocks.ContainsKey(inputMap.id);
+            return _initialized && inputMap is { enabled: true } && !_inputMapToSourceHashBlocks.ContainsKey(inputMap.id);
         }
 
         #region InputMapBlocks
         
         public bool BlockInputMap(object source, InputActionMap inputMap, CancellationToken cancellationToken = default) {
-            if (SetInputMapBlockInternal(source, inputMap, blocked: true, cancellationToken)) {
+            if (_initialized && SetInputMapBlockInternal(source, inputMap, blocked: true, cancellationToken)) {
                 UpdateInputMapBlockState(inputMap);
                 if (_enableLogs) LogInfo($"map [{inputMap.name}] blocked by [{source}], state:\n{GetInputsStateString()}");
                 return true;
@@ -160,9 +166,9 @@ namespace MisterGames.Input.Core {
         }
         
         public bool BlockInputMap(object source, InputMapRef inputMapRef, CancellationToken cancellationToken = default) {
-            var inputMap = _inputStorage.GetInputMap(inputMapRef.Guid);
-            
-            if (SetInputMapBlockInternal(source, inputMap, blocked: true, cancellationToken)) {
+            if (_initialized && _inputMapper.GetInputMap(inputMapRef.Guid) is { } inputMap && 
+                SetInputMapBlockInternal(source, inputMap, blocked: true, cancellationToken)) 
+            {
                 UpdateInputMapBlockState(inputMap);
                 if (_enableLogs) LogInfo($"map [{inputMap.name}] blocked by [{source}], state:\n{GetInputsStateString()}");
                 return true;
@@ -172,6 +178,8 @@ namespace MisterGames.Input.Core {
         }
 
         public bool BlockInputMaps(object source, IReadOnlyList<InputActionMap> inputMaps, CancellationToken cancellationToken = default) {
+            if (!_initialized) return false;
+            
             var changedList = new NativeList<Guid>(Allocator.Temp);
             
             for (int i = 0; i < inputMaps?.Count; i++) {
@@ -194,10 +202,12 @@ namespace MisterGames.Input.Core {
         }
 
         public bool BlockInputMaps(object source, IReadOnlyList<InputMapRef> inputMapRefs, CancellationToken cancellationToken = default) {
+            if (!_initialized) return false;
+            
             var changedList = new NativeList<Guid>(Allocator.Temp);
             
             for (int i = 0; i < inputMapRefs?.Count; i++) {
-                var inputMap = _inputStorage.GetInputMap(inputMapRefs[i].Guid);
+                var inputMap = _inputMapper.GetInputMap(inputMapRefs[i].Guid);
                 
                 if (SetInputMapBlockInternal(source, inputMap, blocked: true, cancellationToken)) {
                     changedList.Add(inputMap.id);
@@ -216,7 +226,7 @@ namespace MisterGames.Input.Core {
         }
         
         public bool UnblockInputMap(object source, InputActionMap inputMap) {
-            if (SetInputMapBlockInternal(source, inputMap, blocked: false)) {
+            if (_initialized && SetInputMapBlockInternal(source, inputMap, blocked: false)) {
                 UpdateInputMapBlockState(inputMap);
                 if (_enableLogs) LogInfo($"map [{inputMap.name}] unblocked by [{source}], state:\n{GetInputsStateString()}");
                 return true;
@@ -226,9 +236,10 @@ namespace MisterGames.Input.Core {
         }
         
         public bool UnblockInputMap(object source, InputMapRef inputMapRef) {
-            var inputMap = _inputStorage.GetInputMap(inputMapRef.Guid);
-            
-            if (SetInputMapBlockInternal(source, inputMap, blocked: false)) {
+            if (_initialized &&
+                _inputMapper.GetInputMap(inputMapRef.Guid) is { } inputMap &&
+                SetInputMapBlockInternal(source, inputMap, blocked: false)) 
+            {
                 UpdateInputMapBlockState(inputMap);
                 if (_enableLogs) LogInfo($"map [{inputMap.name}] unblocked by [{source}], state:\n{GetInputsStateString()}");
                 return true;
@@ -238,6 +249,8 @@ namespace MisterGames.Input.Core {
         }
 
         public bool UnblockInputMaps(object source, IReadOnlyList<InputActionMap> inputMaps) {
+            if (!_initialized) return false;
+            
             var changedList = new NativeList<Guid>(Allocator.Temp);
             
             for (int i = 0; i < inputMaps?.Count; i++) {
@@ -260,10 +273,12 @@ namespace MisterGames.Input.Core {
         }
         
         public bool UnblockInputMaps(object source, IReadOnlyList<InputMapRef> inputMapRefs) {
+            if (!_initialized) return false;
+            
             var changedList = new NativeList<Guid>(Allocator.Temp);
             
             for (int i = 0; i < inputMapRefs?.Count; i++) {
-                var inputMap = _inputStorage.GetInputMap(inputMapRefs[i].Guid);
+                var inputMap = _inputMapper.GetInputMap(inputMapRefs[i].Guid);
                 
                 if (SetInputMapBlockInternal(source, inputMap, blocked: false)) {
                     changedList.Add(inputMap.id);
@@ -282,6 +297,8 @@ namespace MisterGames.Input.Core {
         }
 
         public bool ClearAllInputMapBlocksOf(object source) {
+            if (!_initialized) return false;
+            
             int hash = source.GetHashCode();
             int count = _sourceHashToInputMapBlocks.GetCount(hash);
 
@@ -311,6 +328,8 @@ namespace MisterGames.Input.Core {
         }
 
         public bool ClearAllInputMapBlocks() {
+            if (!_initialized) return false;
+            
             int changedCount = _inputMapBlocks.Count;
             var changedList = new NativeList<Guid>(changedCount, Allocator.Temp);
             
@@ -333,7 +352,7 @@ namespace MisterGames.Input.Core {
         }
         
         private bool SetInputMapBlockInternal(object source, InputActionMap inputMap, bool blocked, CancellationToken cancellationToken = default) {
-            if (inputMap == null) return false;
+            if (!_initialized || inputMap == null) return false;
             
             var guid = inputMap.id;
             int hash = source.GetHashCode();
@@ -362,7 +381,7 @@ namespace MisterGames.Input.Core {
         #region InputActionBlockOverrides
         
         public bool SetInputActionBlockOverride(object source, InputAction inputAction, bool blocked, CancellationToken cancellationToken = default) {
-            if (SetInputActionBlockOverrideInternal(source, inputAction, blocked, cancellationToken)) {
+            if (_initialized && SetInputActionBlockOverrideInternal(source, inputAction, blocked, cancellationToken)) {
                 UpdateInputActionBlockState(inputAction);
                 if (_enableLogs) LogInfo($"input [{inputAction.name}] set overriden state {(blocked ? "blocked" : "unblocked")} by [{source}], state:\n{GetInputsStateString()}");
                 return true;
@@ -372,9 +391,10 @@ namespace MisterGames.Input.Core {
         }
 
         public bool SetInputActionBlockOverride(object source, InputActionRef inputActionRef, bool blocked, CancellationToken cancellationToken = default) {
-            var inputAction = _inputStorage.GetInputAction(inputActionRef.Guid);
-            
-            if (SetInputActionBlockOverrideInternal(source, inputAction, blocked, cancellationToken)) {
+            if (_initialized && 
+                _inputMapper.GetInputAction(inputActionRef.Guid) is { } inputAction &&
+                SetInputActionBlockOverrideInternal(source, inputAction, blocked, cancellationToken)) 
+            {
                 UpdateInputActionBlockState(inputAction);
                 if (_enableLogs) LogInfo($"input [{inputAction.name}] set overriden state {(blocked ? "blocked" : "unblocked")} by [{source}], state:\n{GetInputsStateString()}");
                 return true;
@@ -384,6 +404,8 @@ namespace MisterGames.Input.Core {
         }
 
         public bool SetInputActionBlockOverrides(object source, IReadOnlyList<InputAction> inputActions, bool blocked, CancellationToken cancellationToken = default) {
+            if (!_initialized) return false;
+            
             var changedList = new NativeList<Guid>(Allocator.Temp);
             
             for (int i = 0; i < inputActions?.Count; i++) {
@@ -406,10 +428,12 @@ namespace MisterGames.Input.Core {
         }
 
         public bool SetInputActionBlockOverrides(object source, IReadOnlyList<InputActionRef> inputActionRefs, bool blocked, CancellationToken cancellationToken = default) {
+            if (!_initialized) return false;
+            
             var changedList = new NativeList<Guid>(Allocator.Temp);
             
             for (int i = 0; i < inputActionRefs?.Count; i++) {
-                var inputAction = _inputStorage.GetInputAction(inputActionRefs[i].Guid);
+                var inputAction = _inputMapper.GetInputAction(inputActionRefs[i].Guid);
                 
                 if (SetInputActionBlockOverrideInternal(source, inputAction, blocked, cancellationToken)) {
                     changedList.Add(inputAction.id);
@@ -428,7 +452,7 @@ namespace MisterGames.Input.Core {
         }
 
         public bool RemoveInputActionBlockOverride(object source, InputAction inputAction) {
-            if (RemoveInputActionBlockOverrideInternal(source, inputAction)) {
+            if (_initialized && RemoveInputActionBlockOverrideInternal(source, inputAction)) {
                 UpdateInputActionBlockState(inputAction);
                 if (_enableLogs) LogInfo($"input [{inputAction.name}] removed overriden state by [{source}], state:\n{GetInputsStateString()}");
                 return true;
@@ -438,9 +462,9 @@ namespace MisterGames.Input.Core {
         }
         
         public bool RemoveInputActionBlockOverride(object source, InputActionRef inputActionRef) {
-            var inputAction = _inputStorage.GetInputAction(inputActionRef.Guid);
+            var inputAction = _inputMapper.GetInputAction(inputActionRef.Guid);
             
-            if (RemoveInputActionBlockOverrideInternal(source, inputAction)) {
+            if (_initialized && RemoveInputActionBlockOverrideInternal(source, inputAction)) {
                 UpdateInputActionBlockState(inputAction);
                 if (_enableLogs) LogInfo($"input [{inputAction.name}] removed overriden state by [{source}], state:\n{GetInputsStateString()}");
                 return true;
@@ -450,6 +474,8 @@ namespace MisterGames.Input.Core {
         }
 
         public bool RemoveInputActionBlockOverrides(object source, IReadOnlyList<InputAction> inputActions) {
+            if (!_initialized) return false;
+            
             var changedList = new NativeList<Guid>(Allocator.Temp);
             
             for (int i = 0; i < inputActions?.Count; i++) {
@@ -472,10 +498,12 @@ namespace MisterGames.Input.Core {
         }
         
         public bool RemoveInputActionBlockOverrides(object source, IReadOnlyList<InputActionRef> inputActionRefs) {
+            if (!_initialized) return false;
+            
             var changedList = new NativeList<Guid>(Allocator.Temp);
             
             for (int i = 0; i < inputActionRefs?.Count; i++) {
-                var inputAction = _inputStorage.GetInputAction(inputActionRefs[i].Guid);
+                var inputAction = _inputMapper.GetInputAction(inputActionRefs[i].Guid);
                 
                 if (RemoveInputActionBlockOverrideInternal(source, inputAction)) {
                     changedList.Add(inputAction.id);
@@ -494,6 +522,8 @@ namespace MisterGames.Input.Core {
         }
         
         public bool ClearAllInputActionBlockOverridesOf(object source) {
+            if (!_initialized) return false;
+            
             int hash = source.GetHashCode();
             int count = _sourceHashToInputActionBlocks.GetCount(hash);
 
@@ -523,6 +553,8 @@ namespace MisterGames.Input.Core {
         }
         
         public bool ClearAllInputActionBlockOverrides() {
+            if (!_initialized) return false;
+            
             int changedCount = _inputActionBlocks.Count;
             var changedList = new NativeList<Guid>(changedCount, Allocator.Temp);
 
@@ -545,7 +577,7 @@ namespace MisterGames.Input.Core {
         }
         
         private bool SetInputActionBlockOverrideInternal(object source, InputAction inputAction, bool blocked, CancellationToken cancellationToken) {
-            if (inputAction == null) return false;
+            if (!_initialized || inputAction == null) return false;
             
             var guid = inputAction.id;
             int hash = source.GetHashCode();
@@ -570,7 +602,7 @@ namespace MisterGames.Input.Core {
         }
         
         private bool RemoveInputActionBlockOverrideInternal(object source, InputAction inputAction) {
-            if (inputAction == null) return false;
+            if (!_initialized || inputAction == null) return false;
             
             var guid = inputAction.id;
             int hash = source.GetHashCode();
@@ -584,6 +616,8 @@ namespace MisterGames.Input.Core {
         #endregion
 
         public void ClearAllBlocks() {
+            if (!_initialized) return;
+            
             _sourceHashToInputActionBlocks.Clear();
             _inputActionToSourceHashBlocks.Clear();
             _inputActionBlocks.Clear();
@@ -592,8 +626,8 @@ namespace MisterGames.Input.Core {
             _inputMapToSourceHashBlocks.Clear();
             _inputMapBlocks.Clear();
 
-            for (int i = 0; i < _inputStorage.InputMaps.Count; i++) {
-                var inputMap = _inputStorage.InputMaps[i];
+            for (int i = 0; i < _inputMapper.InputMaps.Count; i++) {
+                var inputMap = _inputMapper.InputMaps[i];
                 inputMap.Enable();
 
                 var inputActions = inputMap.actions;
@@ -611,7 +645,7 @@ namespace MisterGames.Input.Core {
         
         private void UpdateInputMapsBlockState(NativeList<Guid> guids) {
             for (int i = 0; i < guids.Length; i++) {
-                UpdateInputMapBlockState(_inputStorage.GetInputMap(guids[i]));
+                UpdateInputMapBlockState(_inputMapper.GetInputMap(guids[i]));
             }
         }
 
@@ -647,7 +681,7 @@ namespace MisterGames.Input.Core {
      
         private void UpdateInputActionsBlockState(NativeList<Guid> guids) {
             for (int i = 0; i < guids.Length; i++) {
-                UpdateInputActionBlockState(_inputStorage.GetInputAction(guids[i]));
+                UpdateInputActionBlockState(_inputMapper.GetInputAction(guids[i]));
             }
         }
 
@@ -658,8 +692,8 @@ namespace MisterGames.Input.Core {
         private string GetInputsStateString() {
             var sb = new StringBuilder();
 
-            for (int i = 0; i < _inputStorage.InputMaps.Count; i++) {
-                var inputMap = _inputStorage.InputMaps[i];
+            for (int i = 0; i < _inputMapper.InputMaps.Count; i++) {
+                var inputMap = _inputMapper.InputMaps[i];
                 sb.AppendLine($"{inputMap.name} {FormatStateString(IsInputMapEnabled(inputMap))} {FormatMapBlocksString(inputMap.id)}");
 
                 var inputActions = inputMap.actions;
@@ -690,7 +724,7 @@ namespace MisterGames.Input.Core {
             var sb = new StringBuilder();
 
             for (int i = 0; i < inputActionRefs?.Count; i++) {
-                var inputAction = _inputStorage.GetInputAction(inputActionRefs[i].Guid);
+                var inputAction = _inputMapper.GetInputAction(inputActionRefs[i].Guid);
                 if (inputAction == null) continue;
 
                 sb.Append($"{(inputAction.actionMap == null ? null : $"{inputAction.actionMap.name}/")}{inputAction.name}{(i < inputActionRefs.Count - 1 ? ", " : null)}");
@@ -707,7 +741,7 @@ namespace MisterGames.Input.Core {
             foreach (var guid in inputActions) {
                 index++;
                 
-                var inputAction = _inputStorage.GetInputAction(guid);
+                var inputAction = _inputMapper.GetInputAction(guid);
                 if (inputAction == null) continue;
 
                 sb.Append($"{(inputAction.actionMap == null ? null : $"{inputAction.actionMap.name}/")}{inputAction.name}{(index < count ? ", " : null)}");
@@ -733,7 +767,7 @@ namespace MisterGames.Input.Core {
             var sb = new StringBuilder();
 
             for (int i = 0; i < inputMapRefs?.Count; i++) {
-                var inputMap = _inputStorage.GetInputMap(inputMapRefs[i].Guid);
+                var inputMap = _inputMapper.GetInputMap(inputMapRefs[i].Guid);
                 if (inputMap == null) continue;
 
                 sb.Append($"{inputMap.name}{(i < inputMapRefs.Count - 1 ? ", " : null)}");
@@ -750,7 +784,7 @@ namespace MisterGames.Input.Core {
             foreach (var guid in inputMaps) {
                 index++;
                 
-                var inputMap = _inputStorage.GetInputMap(guid);
+                var inputMap = _inputMapper.GetInputMap(guid);
                 if (inputMap == null) continue;
 
                 sb.Append($"{inputMap.name}{(index < count ? ", " : null)}");
