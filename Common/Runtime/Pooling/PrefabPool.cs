@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using MisterGames.Common.Attributes;
+using MisterGames.Common.Async;
+using MisterGames.Common.Strings;
 using UnityEngine;
-using UnityEngine.Pool;
 using UnityEngine.SceneManagement;
 
 namespace MisterGames.Common.Pooling {
@@ -31,10 +32,6 @@ namespace MisterGames.Common.Pooling {
         
         [Serializable]
         private struct PoolSettings {
-#if UNITY_EDITOR
-            [HideLabel] public string name;      
-#endif
-            
             public bool enabled;
             [Min(0)] public int initialSize;
             [Min(0)] public int maxSize;
@@ -48,39 +45,46 @@ namespace MisterGames.Common.Pooling {
         }
 
         public static IPrefabPool Main { get; private set; }
-        private static CancellationToken DestroyToken;
         
         public Transform ActiveSceneRoot { get; private set; }
         public Transform PoolRoot { get; private set; }
         
-        private readonly Dictionary<int, ObjectPool<GameObject>> _poolMap = new();
+        private readonly Dictionary<int, IObjectPoolAsync<GameObject>> _poolMap = new();
         private readonly Dictionary<int, AutoPoolUsage> _autoPoolUsageMap = new();
         private readonly List<GameObject> _activeSceneRoots = new();
 
+        private CancellationTokenSource _destroyCts;
         private Transform _disabledRoot;
+        private bool _isEnabled;
         
         private void Awake() {
             if (_isMainPool) Main = this;
-            
-            DestroyToken = destroyCancellationToken;
+
+            AsyncExt.RecreateCts(ref _destroyCts);
+            _isEnabled = true;
+
             PoolRoot = transform;
             
             CreateDisabledRoot();
             InitializePools();
 
-            StartAutoPoolChecks(DestroyToken).Forget();
+            StartAutoPoolChecks(_destroyCts.Token).Forget();
         }
 
         private void OnDestroy() {
+            AsyncExt.DisposeCts(ref _destroyCts);
+            
             DeInitializePools();
             if (_isMainPool) Main = null;
         }
 
         private void OnEnable() {
+            _isEnabled = true;
             SceneManager.activeSceneChanged += OnActiveSceneChanged;
         }
 
         private void OnDisable() {
+            _isEnabled = false;
             SceneManager.activeSceneChanged -= OnActiveSceneChanged;
         }
 
@@ -146,7 +150,7 @@ namespace MisterGames.Common.Pooling {
                     var pool = CreatePool(prefab, poolSettings.initialSize, poolSettings.maxSize);
                     _poolMap[GetPoolId(prefab)] = pool;
                     
-                    FillPool(pool, poolSettings.initialSize);
+                    FillPool(pool, prefab, poolSettings.initialSize, _destroyCts.Token).Forget();
                 }
             }
         }
@@ -160,13 +164,14 @@ namespace MisterGames.Common.Pooling {
             _poolMap.Clear();
         }
         
-        private ObjectPool<GameObject> CreatePool(GameObject prefab, int initialSize, int maxSize) {
+        private IObjectPoolAsync<GameObject> CreatePool(GameObject prefab, int initialSize, int maxSize) {
 #if UNITY_EDITOR
-            Log($"creating {(_autoPoolUsageMap.ContainsKey(GetPoolId(prefab)) ? "auto " : "")}pool for {prefab}, size {initialSize}/{maxSize}");
+            if (showDebugLogs) Log($"creating {(_autoPoolUsageMap.ContainsKey(GetPoolId(prefab)) ? "auto " : "")}pool for {prefab}, size {initialSize}/{maxSize}");
 #endif
             
-            return new ObjectPool<GameObject>(
-                () => CreatePoolObject(prefab),
+            return new ObjectPoolAsync<GameObject>(
+                CreatePoolObject,
+                CreatePoolObjectAsync,
                 OnGetFromPool,
                 OnReleaseToPool,
                 DestroyPoolObject,
@@ -176,70 +181,220 @@ namespace MisterGames.Common.Pooling {
             );
         }
 
-        private void FillPool(IObjectPool<GameObject> pool, int count) {
-            for (int i = 0; i < count; i++) { 
-                pool.Release(pool.Get());
+        private static async UniTask FillPool(IObjectPoolAsync<GameObject> pool, GameObject prefab, int count, CancellationToken cancellationToken) {
+            for (int i = 0; i < count && !cancellationToken.IsCancellationRequested; i++) { 
+                pool.Release(await pool.GetAsync(prefab));
             }
         }
         
         public GameObject Get(GameObject prefab, bool active = true) {
-            return GetInternal(prefab, PoolRoot, position: default, rotation: default, active, worldPositionStays: false, setupPositionAndRotation: false);
+            return !_isEnabled || prefab is null ? null 
+                : GetInternal(prefab, PoolRoot, position: default, rotation: default, prefab.transform.localScale, active, worldPositionStays: false, setupPositionAndRotation: false);
         }
 
         public GameObject Get(GameObject prefab, Transform parent, bool active = true, bool worldPositionStays = true) {
-            return GetInternal(prefab, parent, position: default, rotation: default, active, worldPositionStays, setupPositionAndRotation: false);
+            return !_isEnabled || prefab is null ? null
+                : GetInternal(prefab, parent, position: default, rotation: default, prefab.transform.localScale, active, worldPositionStays, setupPositionAndRotation: false);
         }
 
         public GameObject Get(GameObject prefab, Vector3 position, Quaternion rotation, bool active = true) {
-            return GetInternal(prefab, PoolRoot, position, rotation, active, worldPositionStays: false, setupPositionAndRotation: true);
+            return !_isEnabled || prefab is null ? null
+                : GetInternal(prefab, PoolRoot, position, rotation, prefab.transform.localScale, active, worldPositionStays: false, setupPositionAndRotation: true);
+        }
+
+        public GameObject Get(GameObject prefab, Vector3 position, Quaternion rotation, Vector3 scale, bool active = true) {
+            return !_isEnabled || prefab is null ? null
+                : GetInternal(prefab, PoolRoot, position, rotation, scale, active, worldPositionStays: false, setupPositionAndRotation: true);
         }
 
         public GameObject Get(GameObject prefab, Vector3 position, Quaternion rotation, Transform parent, bool active = true) {
-            return GetInternal(prefab, parent, position, rotation, active, worldPositionStays: false, setupPositionAndRotation: true);
+            return !_isEnabled || prefab is null ? null
+                : GetInternal(prefab, parent, position, rotation, prefab.transform.localScale, active, worldPositionStays: true, setupPositionAndRotation: true);
+        }
+
+        public GameObject Get(GameObject prefab, Vector3 position, Quaternion rotation, Vector3 scale, Transform parent, bool active = true) {
+            return !_isEnabled || prefab is null ? null
+                : GetInternal(prefab, parent, position, rotation, scale, active, worldPositionStays: true, setupPositionAndRotation: true);
         }
 
         public T Get<T>(GameObject prefab, bool active = true) where T : Component {
-            return GetInternal(prefab, PoolRoot, position: default, rotation: default, active, worldPositionStays: false, setupPositionAndRotation: false).GetComponent<T>();
+            return !_isEnabled || prefab is null ? null
+                : GetInternal(prefab, PoolRoot, position: default, rotation: default, prefab.transform.localScale, active, worldPositionStays: false, setupPositionAndRotation: false).GetComponent<T>();
         }
 
         public T Get<T>(GameObject prefab, Transform parent, bool active = true, bool worldPositionStays = true) where T : Component {
-            return GetInternal(prefab, parent, position: default, rotation: default, active, worldPositionStays, setupPositionAndRotation: false).GetComponent<T>();
+            return !_isEnabled || prefab is null ? null
+                : GetInternal(prefab, parent, position: default, rotation: default, prefab.transform.localScale, active, worldPositionStays, setupPositionAndRotation: false).GetComponent<T>();
         }
 
         public T Get<T>(GameObject prefab, Vector3 position, Quaternion rotation, bool active = true) where T : Component {
-            return GetInternal(prefab, PoolRoot, position, rotation, active, worldPositionStays: false, setupPositionAndRotation: true).GetComponent<T>();
+            return !_isEnabled || prefab is null ? null
+                : GetInternal(prefab, PoolRoot, position, rotation, prefab.transform.localScale, active, worldPositionStays: false, setupPositionAndRotation: true).GetComponent<T>();
+        }
+
+        public T Get<T>(GameObject prefab, Vector3 position, Quaternion rotation, Vector3 scale, bool active = true) where T : Component {
+            return !_isEnabled || prefab is null ? null
+                : GetInternal(prefab, PoolRoot, position, rotation, scale, active, worldPositionStays: false, setupPositionAndRotation: true).GetComponent<T>();
         }
 
         public T Get<T>(GameObject prefab, Vector3 position, Quaternion rotation, Transform parent, bool active = true) where T : Component {
-            return GetInternal(prefab, parent, position, rotation, active, worldPositionStays: false, setupPositionAndRotation: true).GetComponent<T>();
+            return !_isEnabled || prefab is null ? null
+                : GetInternal(prefab, parent, position, rotation, prefab.transform.localScale, active, worldPositionStays: true, setupPositionAndRotation: true).GetComponent<T>();
+        }
+
+        public T Get<T>(GameObject prefab, Vector3 position, Quaternion rotation, Vector3 scale, Transform parent, bool active = true) where T : Component {
+            return !_isEnabled || prefab is null ? null
+                : GetInternal(prefab, parent, position, rotation, scale, active, worldPositionStays: true, setupPositionAndRotation: true).GetComponent<T>();
         }
 
         public T Get<T>(T prefab, bool active = true) where T : Component {
-            return GetInternal(prefab.gameObject, PoolRoot, position: default, rotation: default, active, worldPositionStays: false, setupPositionAndRotation: false).GetComponent<T>();
+            return !_isEnabled || prefab is null ? null
+                : GetInternal(prefab.gameObject, PoolRoot, position: default, rotation: default, prefab.transform.localScale, active, worldPositionStays: false, setupPositionAndRotation: false).GetComponent<T>();
         }
 
         public T Get<T>(T prefab, Transform parent, bool active = true, bool worldPositionStays = true) where T : Component {
-            return GetInternal(prefab.gameObject, parent, position: default, rotation: default, active, worldPositionStays, setupPositionAndRotation: false).GetComponent<T>();
+            return !_isEnabled || prefab is null ? null
+                : GetInternal(prefab.gameObject, parent, position: default, rotation: default, prefab.transform.localScale, active, worldPositionStays, setupPositionAndRotation: false).GetComponent<T>();
         }
 
         public T Get<T>(T prefab, Vector3 position, Quaternion rotation, bool active = true) where T : Component {
-            return GetInternal(prefab.gameObject, PoolRoot, position, rotation, active, worldPositionStays: false, setupPositionAndRotation: true).GetComponent<T>();
+            return !_isEnabled || prefab is null ? null
+                : GetInternal(prefab.gameObject, PoolRoot, position, rotation, prefab.transform.localScale, active, worldPositionStays: false, setupPositionAndRotation: true).GetComponent<T>();
+        }
+
+        public T Get<T>(T prefab, Vector3 position, Quaternion rotation, Vector3 scale, bool active = true) where T : Component {
+            return !_isEnabled || prefab is null ? null
+                : GetInternal(prefab.gameObject, PoolRoot, position, rotation, scale, active, worldPositionStays: false, setupPositionAndRotation: true).GetComponent<T>();
         }
 
         public T Get<T>(T prefab, Vector3 position, Quaternion rotation, Transform parent, bool active = true) where T : Component {
-            return GetInternal(prefab.gameObject, parent, position, rotation, active, worldPositionStays: false, setupPositionAndRotation: true).GetComponent<T>();
+            return !_isEnabled || prefab is null ? null
+                : GetInternal(prefab.gameObject, parent, position, rotation, prefab.transform.localScale, active, worldPositionStays: true, setupPositionAndRotation: true).GetComponent<T>();
+        }
+
+        public T Get<T>(T prefab, Vector3 position, Quaternion rotation, Vector3 scale, Transform parent, bool active = true) where T : Component {
+            return !_isEnabled || prefab is null ? null
+                : GetInternal(prefab.gameObject, parent, position, rotation, scale, active, worldPositionStays: true, setupPositionAndRotation: true).GetComponent<T>();
+        }
+        
+        public UniTask<GameObject> GetAsync(GameObject prefab, bool active = true) {
+            return !_isEnabled || prefab is null 
+                ? UniTask.FromResult<GameObject>(null) 
+                : GetInternalAsync(prefab, PoolRoot, position: default, rotation: default, prefab.transform.localScale, active, worldPositionStays: false, setupPositionAndRotation: false);
+        }
+
+        public UniTask<GameObject> GetAsync(GameObject prefab, Transform parent, bool active = true, bool worldPositionStays = true) {
+            return !_isEnabled || prefab is null 
+                ? UniTask.FromResult<GameObject>(null) 
+                : GetInternalAsync(prefab, parent, position: default, rotation: default, prefab.transform.localScale, active, worldPositionStays, setupPositionAndRotation: false);
+        }
+
+        public UniTask<GameObject> GetAsync(GameObject prefab, Vector3 position, Quaternion rotation, bool active = true) {
+            return !_isEnabled || prefab is null 
+                ? UniTask.FromResult<GameObject>(null) 
+                : GetInternalAsync(prefab, PoolRoot, position, rotation, prefab.transform.localScale, active, worldPositionStays: false, setupPositionAndRotation: true);
+        }
+
+        public UniTask<GameObject> GetAsync(GameObject prefab, Vector3 position, Quaternion rotation, Vector3 scale, bool active = true) {
+            return !_isEnabled || prefab is null 
+                ? UniTask.FromResult<GameObject>(null) 
+                : GetInternalAsync(prefab, PoolRoot, position, rotation, scale, active, worldPositionStays: false, setupPositionAndRotation: true);
+        }
+
+        public UniTask<GameObject> GetAsync(GameObject prefab, Vector3 position, Quaternion rotation, Transform parent, bool active = true) {
+            return !_isEnabled || prefab is null 
+                ? UniTask.FromResult<GameObject>(null) 
+                : GetInternalAsync(prefab, parent, position, rotation, prefab.transform.localScale, active, worldPositionStays: true, setupPositionAndRotation: true);
+        }
+
+        public UniTask<GameObject> GetAsync(GameObject prefab, Vector3 position, Quaternion rotation, Vector3 scale, Transform parent, bool active = true) {
+            return !_isEnabled || prefab is null 
+                ? UniTask.FromResult<GameObject>(null) 
+                : GetInternalAsync(prefab, parent, position, rotation, scale, active, worldPositionStays: true, setupPositionAndRotation: true);
+        }
+
+        public UniTask<T> GetAsync<T>(GameObject prefab, bool active = true) where T : Component {
+            return !_isEnabled || prefab is null 
+                ? UniTask.FromResult<T>(null) 
+                : GetInternalAsyncComponent<T>(prefab, PoolRoot, position: default, rotation: default, prefab.transform.localScale, active, worldPositionStays: false, setupPositionAndRotation: false);
+        }
+
+        public UniTask<T> GetAsync<T>(GameObject prefab, Transform parent, bool active = true, bool worldPositionStays = true) where T : Component {
+            return !_isEnabled || prefab is null 
+                ? UniTask.FromResult<T>(null) 
+                : GetInternalAsyncComponent<T>(prefab, parent, position: default, rotation: default, prefab.transform.localScale, active, worldPositionStays, setupPositionAndRotation: false);
+        }
+
+        public UniTask<T> GetAsync<T>(GameObject prefab, Vector3 position, Quaternion rotation, bool active = true) where T : Component {
+            return !_isEnabled || prefab is null 
+                ? UniTask.FromResult<T>(null) 
+                : GetInternalAsyncComponent<T>(prefab, PoolRoot, position, rotation, prefab.transform.localScale, active, worldPositionStays: false, setupPositionAndRotation: true);
+        }
+
+        public UniTask<T> GetAsync<T>(GameObject prefab, Vector3 position, Quaternion rotation, Vector3 scale, bool active = true) where T : Component {
+            return !_isEnabled || prefab is null 
+                ? UniTask.FromResult<T>(null) 
+                : GetInternalAsyncComponent<T>(prefab, PoolRoot, position, rotation, scale, active, worldPositionStays: false, setupPositionAndRotation: true);
+        }
+
+        public UniTask<T> GetAsync<T>(GameObject prefab, Vector3 position, Quaternion rotation, Transform parent, bool active = true) where T : Component {
+            return !_isEnabled || prefab is null 
+                ? UniTask.FromResult<T>(null) 
+                : GetInternalAsyncComponent<T>(prefab, parent, position, rotation, prefab.transform.localScale, active, worldPositionStays: true, setupPositionAndRotation: true);
+        }
+
+        public UniTask<T> GetAsync<T>(GameObject prefab, Vector3 position, Quaternion rotation, Vector3 scale, Transform parent, bool active = true) where T : Component {
+            return !_isEnabled || prefab is null 
+                ? UniTask.FromResult<T>(null) 
+                : GetInternalAsyncComponent<T>(prefab, parent, position, rotation, scale, active, worldPositionStays: true, setupPositionAndRotation: true);
+        }
+
+        public UniTask<T> GetAsync<T>(T prefab, bool active = true) where T : Component {
+            return !_isEnabled || prefab is null 
+                ? UniTask.FromResult<T>(null) 
+                : GetInternalAsyncComponent<T>(prefab.gameObject, PoolRoot, position: default, rotation: default, prefab.transform.localScale, active, worldPositionStays: false, setupPositionAndRotation: false);
+        }
+
+        public UniTask<T> GetAsync<T>(T prefab, Transform parent, bool active = true, bool worldPositionStays = true) where T : Component {
+            return !_isEnabled || prefab is null 
+                ? UniTask.FromResult<T>(null) 
+                : GetInternalAsyncComponent<T>(prefab.gameObject, parent, position: default, rotation: default, prefab.transform.localScale, active, worldPositionStays, setupPositionAndRotation: false);
+        }
+
+        public UniTask<T> GetAsync<T>(T prefab, Vector3 position, Quaternion rotation, bool active = true) where T : Component {
+            return !_isEnabled || prefab is null 
+                ? UniTask.FromResult<T>(null) 
+                : GetInternalAsyncComponent<T>(prefab.gameObject, PoolRoot, position, rotation, prefab.transform.localScale, active, worldPositionStays: false, setupPositionAndRotation: true);
+        }
+
+        public UniTask<T> GetAsync<T>(T prefab, Vector3 position, Quaternion rotation, Vector3 scale, bool active = true) where T : Component {
+            return !_isEnabled || prefab is null 
+                ? UniTask.FromResult<T>(null) 
+                : GetInternalAsyncComponent<T>(prefab.gameObject, PoolRoot, position, rotation, scale, active, worldPositionStays: false, setupPositionAndRotation: true);
+        }
+
+        public UniTask<T> GetAsync<T>(T prefab, Vector3 position, Quaternion rotation, Transform parent, bool active = true) where T : Component {
+            return !_isEnabled || prefab is null 
+                ? UniTask.FromResult<T>(null) 
+                : GetInternalAsyncComponent<T>(prefab.gameObject, parent, position, rotation, prefab.transform.localScale, active, worldPositionStays: true, setupPositionAndRotation: true);
+        }
+
+        public UniTask<T> GetAsync<T>(T prefab, Vector3 position, Quaternion rotation, Vector3 scale, Transform parent, bool active = true) where T : Component {
+            return !_isEnabled || prefab is null 
+                ? UniTask.FromResult<T>(null) 
+                : GetInternalAsyncComponent<T>(prefab.gameObject, parent, position, rotation, scale, active, worldPositionStays: true, setupPositionAndRotation: true);
         }
 
         public void Release(GameObject instance, float duration = 0f) {
-            if (instance == null) return;
+            if (!_isEnabled || instance == null) return;
             
-            WaitAndRelease(instance, duration, DestroyToken).Forget();
+            WaitAndRelease(instance, duration, _destroyCts.Token).Forget();
         }
 
         public void Release(Component component, float duration = 0f) {
-            if (component == null) return;
+            if (!_isEnabled || component == null) return;
             
-            WaitAndRelease(component.gameObject, duration, DestroyToken).Forget();
+            WaitAndRelease(component.gameObject, duration, _destroyCts.Token).Forget();
         }
         
         private GameObject GetInternal(
@@ -247,20 +402,18 @@ namespace MisterGames.Common.Pooling {
             Transform parent,
             Vector3 position,
             Quaternion rotation,
+            Vector3 scale,
             bool active,
             bool worldPositionStays,
             bool setupPositionAndRotation
         ) {
-            if (prefab == null) return null;
-            
             int id = GetPoolId(prefab);
             UpdateAutoPoolUsageOnTake(id, prefab);
-            
-            var pool = _poolMap.GetValueOrDefault(id);
-            var instance = pool?.Get() ?? CreatePoolObject(prefab);
+
+            var instance = _poolMap.GetValueOrDefault(id)?.Get(prefab) ?? CreatePoolObject(prefab);
 
             var t = instance.transform;
-            t.localScale = prefab.transform.localScale;
+            t.localScale = scale;
             
             t.SetParent(parent, worldPositionStays);
             if (setupPositionAndRotation) t.SetPositionAndRotation(position, rotation);
@@ -272,10 +425,61 @@ namespace MisterGames.Common.Pooling {
             }
             
 #if UNITY_EDITOR
-            Log($"taken instance of prefab {prefab} {GetPoolInfo(id)}");
+            if (showDebugLogs) Log($"taken instance of prefab {prefab} {GetPoolInfo(id)}");
 #endif
             
             return instance;
+        }
+        
+        private async UniTask<GameObject> GetInternalAsync(
+            GameObject prefab,
+            Transform parent,
+            Vector3 position,
+            Quaternion rotation,
+            Vector3 scale,
+            bool active,
+            bool worldPositionStays,
+            bool setupPositionAndRotation)
+        {
+            int id = GetPoolId(prefab);
+            UpdateAutoPoolUsageOnTake(id, prefab);
+            
+            var instance = _poolMap.GetValueOrDefault(id) is { } pool 
+                ? await pool.GetAsync(prefab) 
+                : await CreatePoolObjectAsync(prefab);
+            
+            var t = instance.transform;
+            t.localScale = scale;
+            
+            t.SetParent(parent, worldPositionStays);
+            if (setupPositionAndRotation) t.SetPositionAndRotation(position, rotation);
+
+            instance.SetActive(active);
+            
+            if (instance.TryGetComponent(out PoolElement poolElement)) {
+                poolElement.NotifyTakenFromPool(this);
+            }
+            
+#if UNITY_EDITOR
+            if (showDebugLogs) Log($"taken instance of prefab {prefab} {GetPoolInfo(id)}");
+#endif
+            
+            return instance;
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private async UniTask<T> GetInternalAsyncComponent<T>(
+            GameObject prefab,
+            Transform parent,
+            Vector3 position,
+            Quaternion rotation,
+            Vector3 scale,
+            bool active,
+            bool worldPositionStays,
+            bool setupPositionAndRotation)
+            where T : Component
+        {
+            return (await GetInternalAsync(prefab, parent, position, rotation, scale, active, worldPositionStays, setupPositionAndRotation)).GetComponent<T>();
         }
 
         private async UniTask WaitAndRelease(GameObject instance, float duration, CancellationToken cancellationToken) {
@@ -300,7 +504,7 @@ namespace MisterGames.Common.Pooling {
             UpdateAutoPoolUsageOnRelease(id, pool);
             
 #if UNITY_EDITOR
-            Log($"released instance {instance} {GetPoolInfo(id)}");
+            if (showDebugLogs) Log($"released instance {instance} {GetPoolInfo(id)}");
 #endif
         }
 
@@ -322,7 +526,7 @@ namespace MisterGames.Common.Pooling {
             }
         }
         
-        private void UpdateAutoPoolUsageOnRelease(int id, IObjectPool<GameObject> pool) {
+        private void UpdateAutoPoolUsageOnRelease(int id, IObjectPoolAsync<GameObject> pool) {
             if (!_autoPoolUsageMap.TryGetValue(id, out var usage) && pool != null) return;
             
             usage.activeObjectsCount = Mathf.Max(0, usage.activeObjectsCount - 1);
@@ -333,6 +537,15 @@ namespace MisterGames.Common.Pooling {
 
         private GameObject CreatePoolObject(GameObject prefab) {
             var instance = Instantiate(prefab, Vector3.zero, Quaternion.identity, _disabledRoot);
+            
+            instance.name = prefab.name;
+            instance.SetActive(false);
+            
+            return instance;
+        }
+        
+        private async UniTask<GameObject> CreatePoolObjectAsync(GameObject prefab) {
+            var instance = (await InstantiateAsync(prefab, 1, _disabledRoot, Vector3.zero, Quaternion.identity))[0];
             
             instance.name = prefab.name;
             instance.SetActive(false);
@@ -358,15 +571,7 @@ namespace MisterGames.Common.Pooling {
         }
 
         private void Log(string message) {
-#if UNITY_EDITOR
-            string cOpen = "<color=cyan>";
-            string cClose = "</color>";
-#else
-            string cOpen = null;
-            string cClose = null;
-#endif
-            
-            if (showDebugLogs) Debug.Log($"{cOpen}PrefabPool {(_isMainPool ? "Main" : name)}{cClose} [f {Time.frameCount}]: {message}");
+            Debug.Log($"{$"PrefabPool {(_isMainPool ? "Main" : name)}".FormatColorOnlyForEditor(Color.cyan)} [f {Time.frameCount}]: {message}");
         }
 
         private string GetPoolInfo(int id) {
@@ -385,7 +590,6 @@ namespace MisterGames.Common.Pooling {
             for (int i = _lastPredefinedPoolsCount; i < _predefinedPools?.Length; i++) {
                 ref var poolSettings = ref _predefinedPools[i];
 
-                poolSettings.name = null;
                 poolSettings.enabled = true;
                 poolSettings.initialSize = _defaultInitialSize;
                 poolSettings.maxSize = _defaultMaxSize;
