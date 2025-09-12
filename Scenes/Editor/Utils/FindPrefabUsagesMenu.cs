@@ -39,7 +39,7 @@ namespace MisterGames.Scenes.Editor.Utils {
                 containingScenesCount += countOnScene > 0 ? 1 : 0;
             }
             
-            Debug.Log($"Found total <color=yellow>{totalCount}</color> usages " +
+            Debug.Log($"Found total <color=yellow>{totalCount}</color> usages and dependencies " +
                       $"of prefab <color=yellow>{prefab.name}</color> " +
                       $"on <color=white>{containingScenesCount}/{sceneAssets.Length}</color> scenes");
 
@@ -68,7 +68,7 @@ namespace MisterGames.Scenes.Editor.Utils {
                 containingScenesCount += countOnScene > 0 ? 1 : 0;
             }
             
-            Debug.Log($"Found total <color=yellow>{totalCount}</color> usages " +
+            Debug.Log($"Found total <color=yellow>{totalCount}</color> usages and dependencies " +
                       $"of prefab <color=yellow>{prefab.name}</color> " +
                       $"on <color=white>{containingScenesCount}/{openedScenes.Count}</color> scenes.");
         }
@@ -96,7 +96,7 @@ namespace MisterGames.Scenes.Editor.Utils {
                 containingPrefabsCount += countInPrefab > 0 ? 1 : 0;
             }
             
-            Debug.Log($"Found total <color=yellow>{totalCount}</color> usages " +
+            Debug.Log($"Found total <color=yellow>{totalCount}</color> usages and dependencies" +
                       $"of prefab <color=yellow>{prefab.name}</color> " +
                       $"in <color=white>{containingPrefabsCount}/{allPrefabs.Length}</color> prefabs.");
         }
@@ -108,14 +108,14 @@ namespace MisterGames.Scenes.Editor.Utils {
             return Selection.activeObject != null && PrefabUtility.IsPartOfAnyPrefab(Selection.activeObject);
         }
         
-        private static int FindPrefabUsagesOnScene(GameObject prefab, Scene scene)
-        {
+        private static int FindPrefabUsagesOnScene(GameObject prefab, Scene scene) {
             var rootObjects = scene.GetRootGameObjects();
             int count = 0;
-            StringBuilder sb = null;
-
-            for (int i = 0; i < rootObjects.Length; i++)
-            {
+            int depCount = 0;
+            
+            Debug.Log($"Searching scene <color=yellow>{scene.name}</color> for usages of prefab <color=yellow>{prefab.name}</color>...");
+            
+            for (int i = 0; i < rootObjects.Length; i++) {
                 var obj = rootObjects[i];
                 var children = obj.GetComponentsInChildren<Transform>(true);
 
@@ -124,26 +124,37 @@ namespace MisterGames.Scenes.Editor.Utils {
 
                     if (PrefabUtility.GetCorrespondingObjectFromSource(t.gameObject) != prefab) continue;
 
-                    sb ??= new StringBuilder();
-                    sb.AppendLine($" + {GameObjectExtensions.GetPathInScene(t)}");
+                    Debug.Log($" + {t.GetPathInScene()}");
                     
                     count++;
                 }
             }
             
-            if (count > 0)
+            string prefabPath = AssetDatabase.GetAssetPath(prefab);
+            string prefabToSearchPath = AssetDatabase.GetAssetPath(SceneLoaderSettings.GetSceneAsset(scene.name));
+        
+            string[] dependencies = AssetDatabase.GetDependencies(prefabToSearchPath);
+
+            for (int i = 0; i < dependencies.Length; i++)
             {
-                Debug.Log($"Found <color=yellow>{count}</color> usages " +
-                          $"of prefab <color=yellow>{prefab.name}</color> " +
-                          $"on scene <color=white>{scene.name}</color>:\n{sb}");
+                string dependency = dependencies[i];
+                if (dependency != prefabPath) continue;
+                
+                depCount++;
             }
             
-            return count;
+            if (count > 0 || depCount > 0) {
+                Debug.Log($"Found <color=yellow>{count}</color> usages and <color=yellow>{depCount}</color> dependencies " +
+                          $"of prefab <color=yellow>{prefab.name}</color> " +
+                          $"on scene <color=white>{scene.name}</color>");
+            }
+
+            return count + depCount;
         }
         
-        private static int FindPrefabUsagesInPrefab(GameObject prefab, GameObject prefabToSearch)
-        {
+        private static int FindPrefabUsagesInPrefab(GameObject prefab, GameObject prefabToSearch) {
             int count = 0;
+            int depCount = 0;
             StringBuilder sb = null;
 
             var children = prefabToSearch.GetComponentsInChildren<Transform>(true);
@@ -153,21 +164,31 @@ namespace MisterGames.Scenes.Editor.Utils {
 
                 if (PrefabUtility.GetCorrespondingObjectFromSource(t.gameObject) != prefab) continue;
 
-                sb ??= new StringBuilder();
-                sb.AppendLine($" + {GameObjectExtensions.GetPathInScene(t)}");
+                sb ??= new StringBuilder(":\n");
+                sb.AppendLine($" + {t.GetPathInScene()}");
                     
                 count++;
             }
             
-            
-            if (count > 0)
-            {
-                Debug.Log($"Found <color=yellow>{count}</color> usages " +
+            string prefabPath = AssetDatabase.GetAssetPath(prefab);
+            string prefabToSearchPath = AssetDatabase.GetAssetPath(prefabToSearch);
+        
+            string[] dependencies = AssetDatabase.GetDependencies(prefabToSearchPath);
+
+            for (int i = 0; i < dependencies.Length; i++) {
+                string dependency = dependencies[i];
+                if (dependency != prefabPath) continue;
+                
+                depCount++;
+            }
+
+            if (count > 0 || depCount > 0) {
+                Debug.Log($"Found <color=yellow>{count}</color> usages and <color=yellow>{depCount}</color> dependencies " +
                           $"of prefab <color=yellow>{prefab.name}</color> " +
-                          $"in prefab <color=white>{AssetDatabase.GetAssetPath(prefabToSearch)}</color>:\n{sb}");
+                          $"in prefab <color=white>{prefabToSearchPath}</color>{sb}");
             }
             
-            return count;
+            return count + depCount;
         }
     }
     

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
 using MisterGames.Common.Maths;
 
 namespace MisterGames.Common.Data
@@ -79,7 +80,7 @@ namespace MisterGames.Common.Data
             _countMap[key] = index + 1;
             _valueMap[(key, index)] = value;
             _version.IncrementUnchecked();
-            
+
             return index;
         }
 
@@ -113,22 +114,7 @@ namespace MisterGames.Common.Data
         }
         
         public bool RemoveValueAt(K key, int index) {
-            int count = _countMap.GetValueOrDefault(key);
-            if (index < 0 || index > count - 1) return false;
-            
-            _valueMap.Remove((key, index));
-
-            if (count > 0) {
-                count = index > count - 1 ? index + 1
-                    : index < count - 1 ? count
-                    : count - 1;
-                
-                if (count > 0) _countMap[key] = count; 
-                else _countMap.Remove(key);
-            }
-            
-            _version.IncrementUnchecked();
-            return true;
+            return RemoveValueAt(key, index, out _);
         }
 
         public bool RemoveValueAt(K key, int index, out V value) {
@@ -141,13 +127,15 @@ namespace MisterGames.Common.Data
             
             _valueMap.Remove((key, index), out value);
 
-            if (count > 0) {
-                count = index > count - 1 ? index + 1
-                    : index < count - 1 ? count
-                    : count - 1;
+            if (count > 1) {
+                if (index < count - 1) {
+                    _valueMap[(key, index)] = _valueMap[(key, count - 1)];
+                }
                 
-                if (count > 0) _countMap[key] = count; 
-                else _countMap.Remove(key);
+                _countMap[key] = count - 1;
+            }
+            else {
+                _countMap.Remove(key);
             }
             
             _version.IncrementUnchecked();
@@ -205,6 +193,28 @@ namespace MisterGames.Common.Data
             _countMap.Clear();
             _valueMap.Clear();
             _version.IncrementUnchecked();
+        }
+
+        public override string ToString() {
+            return $"{typeof(MultiValueDictionary<K, V>).Name}<{nameof(K)}, {nameof(V)}>(keys {_countMap.Count}, values {_valueMap.Count}):\n{GetStateString()}";
+        }
+
+        private string GetStateString() {
+            var sb = new StringBuilder();
+
+            sb.AppendLine("Keys:");
+            
+            foreach ((var key, int count) in _countMap) {
+                sb.AppendLine($"- Key {key} (count {count})");
+            }
+            
+            sb.AppendLine("Values:");
+            
+            foreach (var (key, value) in _valueMap) {
+                sb.AppendLine($"- Key {key.Item1}[{key.Item2}], value {value}");
+            }
+            
+            return sb.ToString();
         }
 
         public struct ValueCollection {

@@ -57,8 +57,6 @@ namespace MisterGames.Scenes.Core {
             return GetAllSceneAssets().FirstOrDefault(a => a.name == sceneName);
         }
 
-        
-
         private static IEnumerable<SceneAsset> CollectAllSceneAssets() {
             return AssetDatabase
                 .FindAssets($"a:assets t:{nameof(SceneAsset)}")

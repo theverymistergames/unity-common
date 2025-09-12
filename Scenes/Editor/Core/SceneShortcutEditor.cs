@@ -98,7 +98,9 @@ namespace MisterGames.Scenes.Editor.Core {
 			if (scenesToUnload != null) {
 				foreach (var scene in scenesToUnload) {
 					EditorSceneManager.CloseScene(scene, removeScene: true);
-				}	
+				}
+				
+				HashSetPool<Scene>.Release(scenesToUnload);
 			}
 		}
 	}

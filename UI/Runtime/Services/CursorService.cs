@@ -21,14 +21,14 @@ namespace MisterGames.UI.Service {
             Application.focusChanged += OnApplicationFocusChanged;
             
             DeviceService.Instance.OnDeviceChanged += OnDeviceChanged;
-            if (Services.TryGet(out IUIWindowService windowService)) windowService.OnWindowsChanged += OnWindowsChanged;
+            if (Services.TryGet(out IUIWindowService windowService)) windowService.OnWindowsHierarchyChanged += OnWindowsChanged;
         }
 
         private void OnDisable() {
             Application.focusChanged -= OnApplicationFocusChanged;
             
             DeviceService.Instance.OnDeviceChanged -= OnDeviceChanged;
-            if (Services.TryGet(out IUIWindowService windowService)) windowService.OnWindowsChanged -= OnWindowsChanged;
+            if (Services.TryGet(out IUIWindowService windowService)) windowService.OnWindowsHierarchyChanged -= OnWindowsChanged;
         }
 
         private IEnumerator Start() {
