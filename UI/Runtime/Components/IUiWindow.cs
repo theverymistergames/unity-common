@@ -5,7 +5,7 @@ namespace MisterGames.UI.Components {
     
     public interface IUiWindow {
         
-        Selectable FirstSelected { get; }
+        Selectable FirstSelectable { get; }
         UiWindowState State { get; }
         bool IsRoot { get; }
         

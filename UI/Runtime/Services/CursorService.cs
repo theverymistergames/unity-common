@@ -21,14 +21,14 @@ namespace MisterGames.UI.Service {
             Application.focusChanged += OnApplicationFocusChanged;
             
             DeviceService.Instance.OnDeviceChanged += OnDeviceChanged;
-            if (Services.TryGet(out IUIWindowService windowService)) windowService.OnWindowsHierarchyChanged += OnWindowsChanged;
+            if (Services.TryGet(out IUiWindowService windowService)) windowService.OnWindowsHierarchyChanged += OnWindowsChanged;
         }
 
         private void OnDisable() {
             Application.focusChanged -= OnApplicationFocusChanged;
             
             DeviceService.Instance.OnDeviceChanged -= OnDeviceChanged;
-            if (Services.TryGet(out IUIWindowService windowService)) windowService.OnWindowsHierarchyChanged -= OnWindowsChanged;
+            if (Services.TryGet(out IUiWindowService windowService)) windowService.OnWindowsHierarchyChanged -= OnWindowsChanged;
         }
 
         private IEnumerator Start() {
@@ -50,7 +50,7 @@ namespace MisterGames.UI.Service {
 
         private bool IsCursorVisible() {
             return DeviceService.Instance.CurrentDevice == DeviceType.KeyboardMouse && 
-                   Services.TryGet(out IUIWindowService windowService) && windowService.HasOpenedWindows() ||
+                   Services.TryGet(out IUiWindowService windowService) && windowService.HasOpenedWindows() ||
                    !Application.isFocused;
         }
         

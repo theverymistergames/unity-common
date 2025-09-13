@@ -12,7 +12,6 @@ namespace MisterGames.UI.Components {
     public sealed class UiWindow : MonoBehaviour, IUiWindow {
         
         [SerializeField] private WindowState _initialState;
-        [VisibleIf(nameof(_initialState), 0)]
         [SerializeField] private int _layer;
         [SerializeField] private Selectable _firstSelected;
         [SerializeField] private GameObject[] _enableGameObjects;
@@ -30,15 +29,12 @@ namespace MisterGames.UI.Components {
             public UiWindowMode mode;
         }
 
-        public Selectable FirstSelected => _firstSelected;
+        public Selectable FirstSelectable => _firstSelected;
         public UiWindowState State { get; private set; }
-        public bool IsOpened => gameObject is { activeSelf: true, activeInHierarchy: true };
         public bool IsRoot => _initialState == WindowState.Root;
         
-        private UiWindowState _currentState;
-
         private void Awake() {
-            if (Services.Get<IUIWindowService>() is not { } service) return;
+            var service = Services.Get<IUiWindowService>();
             
             service.RegisterWindow(this, _layer);
             
@@ -54,11 +50,14 @@ namespace MisterGames.UI.Components {
                 _ => throw new ArgumentOutOfRangeException()
             };
             
-            service.SetWindowState(this, state);
+            // Prevent setting initial window state if it has a parent window 
+            if (service.GetParentWindow(this) == null) {
+                service.SetWindowState(this, state);
+            }
         }
 
         private void OnDestroy() {
-            if (Services.Get<IUIWindowService>() is not { } service) return;
+            if (Services.Get<IUiWindowService>() is not { } service) return;
             
             for (int i = 0; i < _children.Length; i++) {
                 ref var child = ref _children[i];
@@ -86,8 +85,8 @@ namespace MisterGames.UI.Components {
         }
 
 #if UNITY_EDITOR
-        [Button] private void OpenWindow() => Services.Get<IUIWindowService>().SetWindowState(this, UiWindowState.Opened);
-        [Button] private void CloseWindow() => Services.Get<IUIWindowService>().SetWindowState(this, UiWindowState.Closed);
+        [Button] private void OpenWindow() => Services.Get<IUiWindowService>().SetWindowState(this, UiWindowState.Opened);
+        [Button] private void CloseWindow() => Services.Get<IUiWindowService>().SetWindowState(this, UiWindowState.Closed);
 #endif
     }
     

@@ -70,10 +70,11 @@ namespace MisterGames.ActionLib.Character {
             else {
                 startPoint = view.HeadLocalPosition;
                 targetPoint = localPosition;
+                var forward = targetPoint == default ? startPoint : -targetPoint;
                 var rot = 
-                    Quaternion.LookRotation(targetPoint.sqrMagnitude > 0f ? -targetPoint : startPoint, Vector3.up) * 
+                    (forward == default ? Quaternion.identity : Quaternion.LookRotation(forward, Vector3.up)) * 
                     Quaternion.Euler(rotationOffset);
-                        
+                
                 curvePoint = BezierExtensions.GetCurvaturePoint(startPoint, targetPoint, rot, curvature);
             }
 

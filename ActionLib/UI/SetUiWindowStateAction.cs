@@ -17,7 +17,7 @@ namespace MisterGames.ActionLib.UI {
         public UiWindowState state;
         
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            Services.Get<IUIWindowService>().SetWindowState(window, state);
+            Services.Get<IUiWindowService>().SetWindowState(window, state);
             return UniTask.CompletedTask;
         }
     }

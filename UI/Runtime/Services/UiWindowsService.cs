@@ -6,7 +6,7 @@ using MisterGames.UI.Data;
 
 namespace MisterGames.UI.Service {
     
-    public sealed class UIWindowsService : IUIWindowService, IDisposable {
+    public sealed class UiWindowsService : IUiWindowService, IDisposable {
 
         private readonly struct WindowData {
             
@@ -24,13 +24,13 @@ namespace MisterGames.UI.Service {
         private readonly Dictionary<IUiWindow, int> _windowToLayerMap = new();
         private readonly Dictionary<IUiWindow, WindowData> _childToParentMap = new();
         private readonly MultiValueDictionary<IUiWindow, IUiWindow> _relationTree = new();
-        private readonly Dictionary<int, IUiWindow> _layerToFrontOpenedWindowMap = new();
+        private readonly Dictionary<int, IUiWindow> _layerToOpenedWindowMap = new();
 
         public void Dispose() {
             _windowToLayerMap.Clear();
             _childToParentMap.Clear();
             _relationTree.Clear();
-            _layerToFrontOpenedWindowMap.Clear();
+            _layerToOpenedWindowMap.Clear();
         }
 
         public void RegisterWindow(IUiWindow window, int layer) {
@@ -54,6 +54,18 @@ namespace MisterGames.UI.Service {
             }
         }
 
+        public IUiWindow GetFrontWindow() {
+            return TryGetTopOpenedLayer(out int layer) ? _layerToOpenedWindowMap[layer] : null;
+        }
+
+        public IUiWindow GetParentWindow(IUiWindow child) {
+            return _childToParentMap.GetValueOrDefault(child).parent;
+        }
+
+        public bool HasOpenedWindows() {
+            return _layerToOpenedWindowMap.Count > 0;
+        }
+
         public void SetWindowState(IUiWindow window, UiWindowState state) {
             switch (state) {
                 case UiWindowState.Closed:
@@ -69,15 +81,25 @@ namespace MisterGames.UI.Service {
             }
         }
 
-        public bool HasOpenedWindows() {
-            return _layerToFrontOpenedWindowMap.Count > 0;
+        private bool TryGetTopOpenedLayer(out int layer) {
+            bool hasLayers = false;
+            layer = 0;
+            
+            foreach (int l in _layerToOpenedWindowMap.Keys) {
+                if (hasLayers && l < layer) continue;
+                
+                layer = l;
+                hasLayers = true;
+            }
+            
+            return hasLayers;
         }
-
+        
         private void OpenWindow(IUiWindow window) {
-            if (!TryGetWindowLayer(window, out int layer)) return;
-
+            if (!TryGetWindowRootLayer(window, out int layer)) return;
+            
             SetWindowBranchStates(window, rootState: UiWindowState.Opened, childStates: UiWindowState.Closed);
-            _layerToFrontOpenedWindowMap[layer] = window;
+            _layerToOpenedWindowMap[layer] = window;
             
             var lastParentState = UiWindowState.Opened;
             
@@ -108,20 +130,26 @@ namespace MisterGames.UI.Service {
         }
 
         private void CloseWindow(IUiWindow window) {
-            if (!TryGetWindowLayer(window, out int layer) || window.IsRoot) return;
+            if (window == null) return;
 
             if (_childToParentMap.TryGetValue(window, out var data)) {
                 OpenWindow(data.parent);
                 return;
             }
 
-            _layerToFrontOpenedWindowMap.Remove(layer);
+            var root = GetWindowRoot(window);
+            if (root == window && root.IsRoot) return;
+            
+            if (_windowToLayerMap.TryGetValue(root, out int layer)) {
+                _layerToOpenedWindowMap.Remove(layer);
+            }
+            
             SetWindowBranchState(window, UiWindowState.Closed);
             
             OnWindowsHierarchyChanged.Invoke();
         }
 
-        private bool TryGetWindowLayer(IUiWindow window, out int layer) {
+        private bool TryGetWindowRootLayer(IUiWindow window, out int layer) {
             if (GetWindowRoot(window) is { } root && 
                 _windowToLayerMap.TryGetValue(root, out layer)) 
             {

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading;
 using MisterGames.Common.Audio;
+using MisterGames.Common.Labels;
 using MisterGames.Common.Maths;
 using UnityEngine;
 
@@ -10,13 +11,13 @@ namespace MisterGames.UI.Components {
     public sealed class UiButtonSfx : MonoBehaviour {
 
         [SerializeField] private UiSfxSettings _uiSfxSettings;
+        [SerializeField] private LabelValue<AudioClip[]> _clickSounds;
         [SerializeField] private Option[] _stateOptions;
-        [SerializeField] private AudioClip[] _clickSounds;
-        
+
         [Serializable]
         private struct Option {
             public UiButton.State state;
-            public AudioClip[] sounds;
+            public LabelValue<AudioClip[]> sounds;
         }
         
         private UiButton _button;
@@ -36,7 +37,7 @@ namespace MisterGames.UI.Components {
         }
 
         private void OnClicked() {
-            PlaySound(_clickSounds);
+            PlaySound(_clickSounds.GetData());
         }
 
         private void OnStateChanged(UiButton.State state) {
@@ -44,7 +45,7 @@ namespace MisterGames.UI.Components {
                 ref var option = ref _stateOptions[i];
                 if (option.state != state) continue;
                 
-                PlaySound(option.sounds);
+                PlaySound(option.sounds.GetData());
                 break;
             }
         }

@@ -4,7 +4,7 @@ using MisterGames.UI.Data;
 
 namespace MisterGames.UI.Service {
     
-    public interface IUIWindowService {
+    public interface IUiWindowService {
 
         event Action OnWindowsHierarchyChanged;
         
@@ -13,10 +13,12 @@ namespace MisterGames.UI.Service {
         
         void RegisterRelation(IUiWindow parent, IUiWindow child, UiWindowMode mode);
         void UnregisterRelation(IUiWindow parent, IUiWindow child);
-        
-        void SetWindowState(IUiWindow window, UiWindowState state);
+
+        IUiWindow GetFrontWindow();
+        IUiWindow GetParentWindow(IUiWindow child);
         
         bool HasOpenedWindows();
+        void SetWindowState(IUiWindow window, UiWindowState state);
     }
     
 }
