@@ -22,6 +22,8 @@ namespace MisterGames.UI.Navigation {
             
             _uiWindowService.OnWindowsHierarchyChanged += OnWindowsHierarchyChanged;
             _uiNavigationSettings.cancelInput.Get().performed += OnCancelInputPerformed;
+            
+            OnWindowsHierarchyChanged();
         }
 
         public void Dispose() {
@@ -33,9 +35,7 @@ namespace MisterGames.UI.Navigation {
         }
 
         private void OnWindowsHierarchyChanged() {
-            var frontWindow = _uiWindowService.GetFrontWindow();
-            var selectable = frontWindow?.FirstSelectable;
-            
+            var selectable = _uiWindowService.GetFrontWindow()?.CurrentSelectable;
             if (selectable == null) return;
             
             EventSystem.current.SetSelectedGameObject(selectable.gameObject);

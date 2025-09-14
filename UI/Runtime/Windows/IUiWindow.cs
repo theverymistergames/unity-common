@@ -1,14 +1,18 @@
-﻿using UnityEngine.UI;
+﻿using UnityEngine;
 
 namespace MisterGames.UI.Windows {
     
     public interface IUiWindow {
         
-        Selectable FirstSelectable { get; }
-        UiWindowState State { get; }
+        GameObject GameObject { get; }
+        int Layer { get; }
         bool IsRoot { get; }
         
-        void NotifyWindowState(UiWindowState state);
+        UiWindowState State { get; }
+        bool IsFocused { get; }
+        GameObject CurrentSelectable { get; }
+
+        void NotifyWindowState(UiWindowState state, bool focused);
     }
     
 }

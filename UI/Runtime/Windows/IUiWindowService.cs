@@ -1,4 +1,5 @@
 ﻿using System;
+using UnityEngine;
 
 namespace MisterGames.UI.Windows {
     
@@ -6,7 +7,7 @@ namespace MisterGames.UI.Windows {
 
         event Action OnWindowsHierarchyChanged;
         
-        void RegisterWindow(IUiWindow window, int layer);
+        void RegisterWindow(IUiWindow window);
         void UnregisterWindow(IUiWindow window);
         
         void RegisterRelation(IUiWindow parent, IUiWindow child, UiWindowMode mode);
@@ -14,6 +15,7 @@ namespace MisterGames.UI.Windows {
 
         IUiWindow GetFrontWindow();
         IUiWindow GetParentWindow(IUiWindow child);
+        IUiWindow GetClosestParentWindow(GameObject gameObject);
         
         bool HasOpenedWindows();
         void SetWindowState(IUiWindow window, UiWindowState state);

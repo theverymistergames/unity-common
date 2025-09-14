@@ -3,6 +3,7 @@ using MisterGames.Common.Attributes;
 using MisterGames.Common.GameObjects;
 using MisterGames.Common.Service;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace MisterGames.UI.Windows {
@@ -27,17 +28,24 @@ namespace MisterGames.UI.Windows {
             public UiWindowMode mode;
         }
 
-        public Selectable FirstSelectable => _firstSelected;
-        public UiWindowState State { get; private set; }
+        public GameObject GameObject => gameObject;
+        public int Layer => _layer;
         public bool IsRoot => _initialState == WindowState.Root;
-        
+        public UiWindowState State { get; private set; }
+        public bool IsFocused { get; private set; }
+        public GameObject CurrentSelectable { get; private set; }
+
         private void Awake() {
+            CurrentSelectable = _firstSelected.gameObject;
+            
             var service = Services.Get<IUiWindowService>();
             
-            service.RegisterWindow(this, _layer);
+            service.RegisterWindow(this);
             
             for (int i = 0; i < _children.Length; i++) {
                 ref var child = ref _children[i];
+                
+                service.RegisterWindow(child.window);
                 service.RegisterRelation(this, child.window, child.mode);
             }
 
@@ -59,14 +67,21 @@ namespace MisterGames.UI.Windows {
             
             for (int i = 0; i < _children.Length; i++) {
                 ref var child = ref _children[i];
+                
                 service.UnregisterRelation(this, child.window);
+                service.UnregisterWindow(child.window);
             }
             
             service.UnregisterWindow(this);
         }
 
-        void IUiWindow.NotifyWindowState(UiWindowState state) {
+        void IUiWindow.NotifyWindowState(UiWindowState state, bool focused) {
             State = state;
+            IsFocused = focused;
+
+            if (!focused) {
+                SaveLastSelectedElement();
+            }
             
             switch (state) {
                 case UiWindowState.Closed:
@@ -82,9 +97,25 @@ namespace MisterGames.UI.Windows {
             }
         }
 
+        private void SaveLastSelectedElement() {
+            var go = EventSystem.current.currentSelectedGameObject;
+            
+            if (go == null ||
+                Services.Get<IUiWindowService>().GetClosestParentWindow(go) is not { } window ||
+                !ReferenceEquals(window, this)
+            ) {
+                CurrentSelectable = _firstSelected.gameObject;
+                return;
+            }
+
+            CurrentSelectable = go;
+        }
+
 #if UNITY_EDITOR
-        [Button] private void OpenWindow() => Services.Get<IUiWindowService>().SetWindowState(this, UiWindowState.Opened);
-        [Button] private void CloseWindow() => Services.Get<IUiWindowService>().SetWindowState(this, UiWindowState.Closed);
+        [Button(mode: ButtonAttribute.Mode.Runtime)] 
+        private void OpenWindow() => Services.Get<IUiWindowService>()?.SetWindowState(this, UiWindowState.Opened);
+        [Button(mode: ButtonAttribute.Mode.Runtime)] 
+        private void CloseWindow() => Services.Get<IUiWindowService>()?.SetWindowState(this, UiWindowState.Closed);
 #endif
     }
     

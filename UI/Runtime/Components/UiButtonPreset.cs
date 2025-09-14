@@ -46,7 +46,6 @@ namespace MisterGames.UI.Components {
         public Color selectColorText = Color.white;
         [VisibleIf(nameof(applyColorToText))]
         public Color pressColorText = Color.white;
-        
     }
     
 }
