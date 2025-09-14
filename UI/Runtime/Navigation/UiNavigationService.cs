@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using MisterGames.Common.Data;
 using MisterGames.Input.Actions;
 using MisterGames.UI.Windows;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
 namespace MisterGames.UI.Navigation {
@@ -19,14 +20,25 @@ namespace MisterGames.UI.Navigation {
             _uiWindowService = uiWindowService;
             _uiNavigationSettings = settings;
             
+            _uiWindowService.OnWindowsHierarchyChanged += OnWindowsHierarchyChanged;
             _uiNavigationSettings.cancelInput.Get().performed += OnCancelInputPerformed;
         }
 
         public void Dispose() {
+            _uiWindowService.OnWindowsHierarchyChanged -= OnWindowsHierarchyChanged;
             _uiNavigationSettings.cancelInput.Get().performed -= OnCancelInputPerformed;
             
             _windowCallbackMap.Clear();
             _callbacksBuffer.Clear();
+        }
+
+        private void OnWindowsHierarchyChanged() {
+            var frontWindow = _uiWindowService.GetFrontWindow();
+            var selectable = frontWindow?.FirstSelectable;
+            
+            if (selectable == null) return;
+            
+            EventSystem.current.SetSelectedGameObject(selectable.gameObject);
         }
 
         private void OnCancelInputPerformed(InputAction.CallbackContext obj) {

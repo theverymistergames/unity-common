@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading;
+using MisterGames.Common.Attributes;
 using MisterGames.Common.Audio;
 using MisterGames.Common.Labels;
 using MisterGames.Common.Maths;
@@ -10,6 +11,7 @@ namespace MisterGames.UI.Components {
     [RequireComponent(typeof(UiButton))]
     public sealed class UiButtonSfx : MonoBehaviour {
 
+        [EmbeddedInspector]
         [SerializeField] private UiSfxSettings _uiSfxSettings;
         [SerializeField] private LabelValue<AudioClip[]> _clickSounds;
         [SerializeField] private Option[] _stateOptions;

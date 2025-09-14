@@ -5,7 +5,7 @@ using MisterGames.Actors;
 using MisterGames.Actors.Actions;
 using MisterGames.Common.Async;
 using MisterGames.Common.Attributes;
-using MisterGames.Common.Easing;
+using MisterGames.Common.Maths;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -23,47 +23,13 @@ namespace MisterGames.UI.Components {
     {
         [SerializeField] private Button _button;
         [SerializeField] private TMP_Text _buttonText;
+        [EmbeddedInspector]
+        [SerializeField] private UiButtonPreset _preset;
 
         [Header("Click")]
-        [SerializeField] [Min(0f)] private float _clickCooldown = 0.1f;
         [SerializeField] private ActionMode _actionMode = ActionMode.WaitPreviousAction;
-        [SerializeField] private CancelMode _cancelMode = CancelMode.NotCancelable;
+        [SerializeField] private CancelMode _cancelMode = CancelMode.NonCancelable;
         [SerializeReference] [SubclassSelector] private IActorAction _clickAction;
-        
-        [Header("Animation")]
-        [SerializeField] private bool _selectOnHover = true;
-        [SerializeField] [Min(0f)] private float _defaultDuration = 0.25f;
-        [SerializeField] [Min(0f)] private float _hoverDuration = 0.25f;
-        [SerializeField] [Min(0f)] private float _selectDuration = 0.25f;
-        [SerializeField] [Min(0f)] private float _pressDuration = 0.25f;
-        [SerializeField] private AnimationCurve _defaultCurve = EasingType.Linear.ToAnimationCurve();
-        [SerializeField] private AnimationCurve _hoverCurve = EasingType.Linear.ToAnimationCurve();
-        [SerializeField] private AnimationCurve _selectCurve = EasingType.Linear.ToAnimationCurve();
-        [SerializeField] private AnimationCurve _pressCurve = EasingType.Linear.ToAnimationCurve();
-        [SerializeField] private float _defaultScale = 1f;
-        [SerializeField] private float _hoverScale = 1f;
-        [SerializeField] private float _selectScale = 1f;
-        [SerializeField] private float _pressScale = 1.1f;
-        
-        [Header("Colors")]
-        [SerializeField] private bool _applyColorToImage;
-        [VisibleIf(nameof(_applyColorToImage))]
-        [SerializeField] private Color _defaultColorImage = Color.white;
-        [VisibleIf(nameof(_applyColorToImage))]
-        [SerializeField] private Color _hoverColorImage = Color.white;
-        [VisibleIf(nameof(_applyColorToImage))]
-        [SerializeField] private Color _selectColorImage = Color.white;
-        [VisibleIf(nameof(_applyColorToImage))]
-        [SerializeField] private Color _pressColorImage = Color.white;
-        [SerializeField] private bool _applyColorToText;
-        [VisibleIf(nameof(_applyColorToText))]
-        [SerializeField] private Color _defaultColorText = Color.white;
-        [VisibleIf(nameof(_applyColorToText))]
-        [SerializeField] private Color _hoverColorText = Color.white;
-        [VisibleIf(nameof(_applyColorToText))]
-        [SerializeField] private Color _selectColorText = Color.white;
-        [VisibleIf(nameof(_applyColorToText))]
-        [SerializeField] private Color _pressColorText = Color.white;
 
         public event Action OnClicked = delegate { };
         public event Action<State> OnStateChanged = delegate { };
@@ -83,7 +49,7 @@ namespace MisterGames.UI.Components {
         } 
         
         private enum CancelMode {
-            NotCancelable,
+            NonCancelable,
             OnButtonDisabled,
             OnButtonDestroyed,
         }
@@ -96,6 +62,7 @@ namespace MisterGames.UI.Components {
             public float scale;
         }
         
+        private CancellationTokenSource _destroyCts;
         private CancellationTokenSource _enableCts;
         private CancellationTokenSource _clickCts;
         private IActor _actor;
@@ -113,7 +80,13 @@ namespace MisterGames.UI.Components {
         }
 
         private void Awake() {
+            AsyncExt.RecreateCts(ref _destroyCts);
+            
             _originalScale = _button.transform.localScale;
+        }
+
+        private void OnDestroy() {
+            AsyncExt.DisposeCts(ref _destroyCts);
         }
 
         private void OnEnable() {
@@ -138,16 +111,16 @@ namespace MisterGames.UI.Components {
             if (!CanClick()) return;
 
             _clickTime = Time.realtimeSinceStartup;
-            
+
             if (_clickAction == null) {
                 OnClicked.Invoke();
                 return;
             }
 
             var cancellationToken = _cancelMode switch {
-                CancelMode.NotCancelable => CancellationToken.None,
+                CancelMode.NonCancelable => CancellationToken.None,
                 CancelMode.OnButtonDisabled => _enableCts.Token,
-                CancelMode.OnButtonDestroyed => destroyCancellationToken,
+                CancelMode.OnButtonDestroyed => _destroyCts.Token,
                 _ => throw new ArgumentOutOfRangeException()
             };
             
@@ -163,10 +136,7 @@ namespace MisterGames.UI.Components {
                 case ActionMode.WaitPreviousAction:
                     if (_clickActionId > _awaitClickActionId) return;
 
-                    unchecked {
-                        _clickActionId++;    
-                    }
-                    
+                    _clickActionId.IncrementUnchecked();
                     break;
                 
                 default:
@@ -177,17 +147,10 @@ namespace MisterGames.UI.Components {
             WaitClickAction(cancellationToken).Forget();
         }
 
-        private bool CanClick() {
-            return Time.realtimeSinceStartup > _clickTime + _clickCooldown && 
-                   (_actionMode != ActionMode.WaitPreviousAction || _clickActionId == _awaitClickActionId);
-        }
-
         private async UniTask WaitClickAction(CancellationToken cancellationToken) {
             await _clickAction.Apply(_actor, cancellationToken);
 
-            unchecked {
-                _awaitClickActionId = ++_clickActionId;   
-            }
+            _awaitClickActionId = _clickActionId.IncrementUnchecked();
         }
 
         void ISubmitHandler.OnSubmit(BaseEventData eventData) {
@@ -201,7 +164,7 @@ namespace MisterGames.UI.Components {
         private void OnSelect() {
             _isHovering = true;
             
-            var next = _isPressed && CanBePressed()
+            var next = CurrentState == State.Pressed
                 ? State.Pressed 
                 : State.Selected;
             
@@ -211,7 +174,7 @@ namespace MisterGames.UI.Components {
         void IDeselectHandler.OnDeselect(BaseEventData eventData) {
             _isHovering = false;
             
-            var next = _isPressed && CanBePressed()
+            var next = CurrentState == State.Pressed
                 ? State.Pressed 
                 : State.Default;
             
@@ -221,21 +184,23 @@ namespace MisterGames.UI.Components {
         void IPointerMoveHandler.OnPointerMove(PointerEventData eventData) {
             _isHovering = true;
             
-            var next = _isPressed && CanBePressed()
-                ? State.Pressed 
-                : IsSelected() ? State.Selected : State.Hover;
+            var next = CurrentState == State.Pressed
+                ? State.Pressed
+                : IsSelected() ? State.Selected 
+                : State.Hover;
             
             ApplyState(next);
             
-            if (_selectOnHover) _button.Select();
+            if (_preset.selectOnHover) _button.Select();
         }
 
         public void OnPointerExit(PointerEventData eventData) {
             _isHovering = false;
             
-            var next = _isPressed && CanBePressed()
+            var next = CurrentState == State.Pressed
                 ? State.Pressed
-                : IsSelected() ? State.Selected : State.Default;
+                : IsSelected() ? State.Selected 
+                : State.Default;
             
             ApplyState(next);
         }
@@ -243,12 +208,12 @@ namespace MisterGames.UI.Components {
         void IPointerDownHandler.OnPointerDown(PointerEventData eventData) {
             _isPressed = true;
             
-            var next = _isPressed && CanBePressed()
+            var next = CanBePressed()
                 ? State.Pressed
                 : IsSelected() ? State.Selected
                 : _isHovering ? State.Hover 
                 : State.Default;
-            
+
             ApplyState(next);
         }
 
@@ -257,18 +222,19 @@ namespace MisterGames.UI.Components {
             
             var next = IsSelected() 
                 ? State.Selected 
-                : _isHovering ? State.Hover : State.Default;
+                : _isHovering ? State.Hover 
+                : State.Default;
             
             ApplyState(next);
         }
 
         private void ApplyState(State state, bool force = false) {
             if (state == CurrentState && !force) return;
-
+            
             CurrentState = state;
             OnStateChanged.Invoke(CurrentState);
             
-            byte id = ++_transitionId;
+            byte id = _transitionId.IncrementUnchecked();
             if (_enableCts != null) TransitTo(id, state, instant: force, _enableCts.Token).Forget();
         }
 
@@ -278,9 +244,17 @@ namespace MisterGames.UI.Components {
                 : _isHovering ? State.Hover 
                 : State.Default;
         }
+        
+        private bool CanClick() {
+            return Time.realtimeSinceStartup > _clickTime + _preset.clickCooldown && !IsAwaitingClickAction();
+        }
 
+        private bool IsAwaitingClickAction() {
+            return _actionMode == ActionMode.WaitPreviousAction && _clickActionId != _awaitClickActionId;
+        }
+        
         private bool CanBePressed() {
-            return _isHovering && IsSelected() && CanClick();
+            return _isPressed && _isHovering && IsSelected() && !IsAwaitingClickAction();
         }
         
         private bool IsSelected() {
@@ -288,7 +262,7 @@ namespace MisterGames.UI.Components {
         }
 
         private async UniTask AnimateSubmit(CancellationToken cancellationToken) {
-            byte id = ++_transitionId;
+            byte id = _transitionId.IncrementUnchecked();
             
             await TransitTo(id, State.Pressed, instant: false, cancellationToken);
             
@@ -298,8 +272,8 @@ namespace MisterGames.UI.Components {
         }
         
         private async UniTask TransitTo(byte id, State state, bool instant, CancellationToken cancellationToken) {
-            bool applyImageColor = _applyColorToImage && _button.image != null;
-            bool applyTextColor = _applyColorToText && _buttonText != null;
+            bool applyImageColor = _preset.applyColorToImage && _button.image != null;
+            bool applyTextColor = _preset.applyColorToText && _buttonText != null;
 
             GetStateData(state, out var data);
 
@@ -332,35 +306,35 @@ namespace MisterGames.UI.Components {
             
             switch (state) {
                 case State.Default:
-                    data.duration = _defaultDuration;
-                    data.curve = _defaultCurve;
-                    data.imageColor = _defaultColorImage;
-                    data.textColor = _defaultColorText;
-                    data.scale = _defaultScale;
+                    data.duration = _preset.defaultDuration;
+                    data.curve = _preset.defaultCurve;
+                    data.imageColor = _preset.defaultColorImage;
+                    data.textColor = _preset.defaultColorText;
+                    data.scale = _preset.defaultScale;
                     break;
                 
                 case State.Hover:
-                    data.duration = _hoverDuration;
-                    data.curve = _hoverCurve;
-                    data.imageColor = _hoverColorImage;
-                    data.textColor = _hoverColorText;
-                    data.scale = _hoverScale;
+                    data.duration = _preset.hoverDuration;
+                    data.curve = _preset.hoverCurve;
+                    data.imageColor = _preset.hoverColorImage;
+                    data.textColor = _preset.hoverColorText;
+                    data.scale = _preset.hoverScale;
                     break;
                 
                 case State.Selected:
-                    data.duration = _selectDuration;
-                    data.curve = _selectCurve;
-                    data.imageColor = _selectColorImage;
-                    data.textColor = _selectColorText;
-                    data.scale = _selectScale;
+                    data.duration = _preset.selectDuration;
+                    data.curve = _preset.selectCurve;
+                    data.imageColor = _preset.selectColorImage;
+                    data.textColor = _preset.selectColorText;
+                    data.scale = _preset.selectScale;
                     break;
                 
                 case State.Pressed:
-                    data.duration = _pressDuration;
-                    data.curve = _pressCurve;
-                    data.imageColor = _pressColorImage;
-                    data.textColor = _pressColorText;
-                    data.scale = _pressScale;
+                    data.duration = _preset.pressDuration;
+                    data.curve = _preset.pressCurve;
+                    data.imageColor = _preset.pressColorImage;
+                    data.textColor = _preset.pressColorText;
+                    data.scale = _preset.pressScale;
                     break;
                 
                 default:
