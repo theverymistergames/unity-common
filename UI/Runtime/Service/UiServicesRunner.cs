@@ -1,5 +1,6 @@
 ﻿using MisterGames.Common.Service;
-using MisterGames.UI.Data;
+using MisterGames.UI.Navigation;
+using MisterGames.UI.Windows;
 using UnityEngine;
 
 namespace MisterGames.UI.Service {

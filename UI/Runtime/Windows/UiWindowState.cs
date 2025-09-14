@@ -1,4 +1,4 @@
-﻿namespace MisterGames.UI.Data {
+﻿namespace MisterGames.UI.Windows {
     
     public enum UiWindowState {
         Closed,

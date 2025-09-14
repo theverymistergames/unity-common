@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using MisterGames.Common.Inputs;
 using MisterGames.Common.Service;
+using MisterGames.UI.Windows;
 using UnityEngine;
 using DeviceType = MisterGames.Common.Inputs.DeviceType;
 
@@ -10,25 +11,25 @@ namespace MisterGames.UI.Service {
     public sealed class CursorService : MonoBehaviour, ICursorService {
         
         private void Awake() {
-            Services.Register<ICursorService>(this);
+            Common.Service.Services.Register<ICursorService>(this);
         }
 
         private void OnDestroy() {
-            Services.Unregister(this);
+            Common.Service.Services.Unregister(this);
         }
 
         private void OnEnable() {
             Application.focusChanged += OnApplicationFocusChanged;
             
             DeviceService.Instance.OnDeviceChanged += OnDeviceChanged;
-            if (Services.TryGet(out IUiWindowService windowService)) windowService.OnWindowsHierarchyChanged += OnWindowsChanged;
+            if (Common.Service.Services.TryGet(out IUiWindowService windowService)) windowService.OnWindowsHierarchyChanged += OnWindowsChanged;
         }
 
         private void OnDisable() {
             Application.focusChanged -= OnApplicationFocusChanged;
             
             DeviceService.Instance.OnDeviceChanged -= OnDeviceChanged;
-            if (Services.TryGet(out IUiWindowService windowService)) windowService.OnWindowsHierarchyChanged -= OnWindowsChanged;
+            if (Common.Service.Services.TryGet(out IUiWindowService windowService)) windowService.OnWindowsHierarchyChanged -= OnWindowsChanged;
         }
 
         private IEnumerator Start() {
@@ -50,7 +51,7 @@ namespace MisterGames.UI.Service {
 
         private bool IsCursorVisible() {
             return DeviceService.Instance.CurrentDevice == DeviceType.KeyboardMouse && 
-                   Services.TryGet(out IUiWindowService windowService) && windowService.HasOpenedWindows() ||
+                   Common.Service.Services.TryGet(out IUiWindowService windowService) && windowService.HasOpenedWindows() ||
                    !Application.isFocused;
         }
         

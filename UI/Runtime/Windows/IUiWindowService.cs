@@ -1,8 +1,6 @@
 ﻿using System;
-using MisterGames.UI.Components;
-using MisterGames.UI.Data;
 
-namespace MisterGames.UI.Service {
+namespace MisterGames.UI.Windows {
     
     public interface IUiWindowService {
 

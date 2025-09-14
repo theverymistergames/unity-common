@@ -1,7 +1,6 @@
-﻿using MisterGames.UI.Data;
-using UnityEngine.UI;
+﻿using UnityEngine.UI;
 
-namespace MisterGames.UI.Components {
+namespace MisterGames.UI.Windows {
     
     public interface IUiWindow {
         

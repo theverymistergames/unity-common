@@ -1,7 +1,7 @@
 ﻿using MisterGames.Input.Actions;
 using UnityEngine;
 
-namespace MisterGames.UI.Data {
+namespace MisterGames.UI.Navigation {
 
     [CreateAssetMenu(fileName = nameof(UiNavigationSettings), menuName = "MisterGames/UI/" + nameof(UiNavigationSettings))]
     public sealed class UiNavigationSettings : ScriptableObject {

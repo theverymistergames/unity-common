@@ -2,12 +2,10 @@
 using MisterGames.Common.Attributes;
 using MisterGames.Common.GameObjects;
 using MisterGames.Common.Service;
-using MisterGames.UI.Data;
-using MisterGames.UI.Service;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace MisterGames.UI.Components {
+namespace MisterGames.UI.Windows {
     
     public sealed class UiWindow : MonoBehaviour, IUiWindow {
         

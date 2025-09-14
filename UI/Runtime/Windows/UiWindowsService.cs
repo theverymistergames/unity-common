@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using MisterGames.Common.Data;
-using MisterGames.UI.Components;
-using MisterGames.UI.Data;
 
-namespace MisterGames.UI.Service {
+namespace MisterGames.UI.Windows {
     
     public sealed class UiWindowsService : IUiWindowService, IDisposable {
 
