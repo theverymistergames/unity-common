@@ -7,6 +7,7 @@ namespace MisterGames.UI.Navigation {
     public sealed class UiNavigationSettings : ScriptableObject {
 
         public InputActionRef cancelInput;
+        public InputActionRef moveInput;
 
     }
     

@@ -2,8 +2,8 @@
 using MisterGames.Common.Attributes;
 using MisterGames.Common.GameObjects;
 using MisterGames.Common.Service;
+using MisterGames.UI.Navigation;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace MisterGames.UI.Windows {
@@ -38,15 +38,24 @@ namespace MisterGames.UI.Windows {
         private void Awake() {
             CurrentSelectable = _firstSelected.gameObject;
             
-            var service = Services.Get<IUiWindowService>();
+            RegisterWindow();
+        }
+
+        private void OnDestroy() {
+            UnregisterWindow();
+            UnsubscribeSelectedGameObject();
+        }
+
+        private void RegisterWindow() {
+            var windowService = Services.Get<IUiWindowService>();
             
-            service.RegisterWindow(this);
+            windowService.RegisterWindow(this);
             
             for (int i = 0; i < _children.Length; i++) {
                 ref var child = ref _children[i];
                 
-                service.RegisterWindow(child.window);
-                service.RegisterRelation(this, child.window, child.mode);
+                windowService.RegisterWindow(child.window);
+                windowService.RegisterRelation(this, child.window, child.mode);
             }
 
             var state = _initialState switch {
@@ -57,12 +66,12 @@ namespace MisterGames.UI.Windows {
             };
             
             // Prevent setting initial window state if it has a parent window 
-            if (service.GetParentWindow(this) == null) {
-                service.SetWindowState(this, state);
+            if (windowService.GetParentWindow(this) == null) {
+                windowService.SetWindowState(this, state);
             }
         }
 
-        private void OnDestroy() {
+        private void UnregisterWindow() {
             if (Services.Get<IUiWindowService>() is not { } service) return;
             
             for (int i = 0; i < _children.Length; i++) {
@@ -75,40 +84,49 @@ namespace MisterGames.UI.Windows {
             service.UnregisterWindow(this);
         }
 
-        void IUiWindow.NotifyWindowState(UiWindowState state, bool focused) {
-            State = state;
-            IsFocused = focused;
-
-            if (!focused) {
-                SaveLastSelectedElement();
-            }
+        private void SubscribeSelectedGameObject() {
+            if (Services.Get<IUiNavigationService>() is not { } service) return;
             
-            switch (state) {
-                case UiWindowState.Closed:
-                    _enableGameObjects.SetActive(false);
-                    break;
-                
-                case UiWindowState.Opened:
-                    _enableGameObjects.SetActive(true);
-                    break;
-                
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(state), state, null);
-            }
+            service.onSelectedGameObjectChanged -= OnSelectedGameObjectChanged;
+            service.onSelectedGameObjectChanged += OnSelectedGameObjectChanged;
         }
 
-        private void SaveLastSelectedElement() {
-            var go = EventSystem.current.currentSelectedGameObject;
+        private void UnsubscribeSelectedGameObject() {
+            if (Services.Get<IUiNavigationService>() is not { } service) return;
             
-            if (go == null ||
-                Services.Get<IUiWindowService>().GetClosestParentWindow(go) is not { } window ||
+            service.onSelectedGameObjectChanged -= OnSelectedGameObjectChanged;
+        }
+
+        private void OnSelectedGameObjectChanged(GameObject obj) {
+            if (obj == null ||
+                Services.Get<IUiWindowService>().GetClosestParentWindow(obj) is not { } window ||
                 !ReferenceEquals(window, this)
             ) {
                 CurrentSelectable = _firstSelected.gameObject;
                 return;
             }
 
-            CurrentSelectable = go;
+            CurrentSelectable = obj;
+        }
+
+        void IUiWindow.NotifyWindowState(UiWindowState state, bool focused) {
+            State = state;
+            IsFocused = focused;
+
+            switch (state) {
+                case UiWindowState.Closed:
+                    _enableGameObjects.SetActive(false);
+                    UnsubscribeSelectedGameObject();
+                    break;
+                
+                case UiWindowState.Opened:
+                    _enableGameObjects.SetActive(true);
+                    SubscribeSelectedGameObject();
+                    break;
+                
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(state), state, null);
+            }
         }
 
 #if UNITY_EDITOR
