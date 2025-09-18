@@ -97,11 +97,8 @@ namespace MisterGames.UI.Windows {
             service.onSelectedGameObjectChanged -= OnSelectedGameObjectChanged;
         }
 
-        private void OnSelectedGameObjectChanged(GameObject obj) {
-            if (obj == null ||
-                Services.Get<IUiWindowService>().GetClosestParentWindow(obj) is not { } window ||
-                !ReferenceEquals(window, this)
-            ) {
+        private void OnSelectedGameObjectChanged(GameObject obj, IUiWindow window) {
+            if (obj == null || !ReferenceEquals(window, this)) {
                 CurrentSelectable = _firstSelected.gameObject;
                 return;
             }

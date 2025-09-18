@@ -6,7 +6,7 @@ namespace MisterGames.UI.Navigation {
     
     public interface IUiNavigationService {
 
-        event Action<GameObject> onSelectedGameObjectChanged;
+        event Action<GameObject, IUiWindow> onSelectedGameObjectChanged;
         
         GameObject SelectedGameObject { get; }
         bool HasSelectedGameObject { get; }
