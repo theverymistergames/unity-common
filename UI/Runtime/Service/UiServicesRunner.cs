@@ -12,20 +12,25 @@ namespace MisterGames.UI.Service {
         
         private readonly UiWindowsService _windowService = new();
         private readonly UiNavigationService _navigationService = new();
+        private readonly CursorService _cursorService = new();
         
         private void Awake() {
-            _navigationService.Initialize(_windowService, _uiNavigationSettings);
-
             Services.Register<IUiNavigationService>(_navigationService);
             Services.Register<IUiWindowService>(_windowService);
+            Services.Register<ICursorService>(_cursorService);
+            
+            _navigationService.Initialize(_windowService, _uiNavigationSettings);
+            _cursorService.Initialize();
         }
 
         private void OnDestroy() {
             Services.Unregister(_windowService);
             Services.Unregister(_navigationService);
+            Services.Unregister(_cursorService);
             
             _windowService.Dispose();
             _navigationService.Dispose();
+            _cursorService.Dispose();
         }
     }
     

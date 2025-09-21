@@ -3,6 +3,7 @@ using MisterGames.Common.Easing;
 using MisterGames.Common.Inputs;
 using MisterGames.Common.Labels;
 using MisterGames.Common.Maths;
+using MisterGames.Common.Service;
 using MisterGames.Common.Tick;
 using UnityEngine;
 
@@ -77,14 +78,14 @@ namespace MisterGames.Character.Interactives {
         private void Register() {
             if (_isRegistered) return;
             
-            DeviceService.Instance.GamepadVibration.Register(this, _priority.GetValue());
+            Services.Get<IDeviceService>().GamepadVibration.Register(this, _priority.GetValue());
             _isRegistered = true;
         }
 
         private void Unregister() {
             if (!_isRegistered) return;
             
-            DeviceService.Instance?.GamepadVibration.Unregister(this);
+            Services.Get<IDeviceService>()?.GamepadVibration.Unregister(this);
             _isRegistered = false;
         }
 
@@ -100,7 +101,7 @@ namespace MisterGames.Character.Interactives {
                 Mathf.Lerp(_rightFreqStart, _rightFreqEnd, _rightFreqCurve.Evaluate(_weightSmoothedRight))
             );
             
-            DeviceService.Instance.GamepadVibration.SetTwoMotors(
+            Services.Get<IDeviceService>().GamepadVibration.SetTwoMotors(
                 this,
                 freq,
                 _weightSmoothedLeft * _leftWeightMul,

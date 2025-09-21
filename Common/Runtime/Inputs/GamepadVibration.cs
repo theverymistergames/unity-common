@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using MisterGames.Common.Maths;
+using MisterGames.Common.Service;
 using UnityEngine;
 
 namespace MisterGames.Common.Inputs {
@@ -25,11 +26,11 @@ namespace MisterGames.Common.Inputs {
         private int _topPriority;
 
         private void OnEnable() {
-            DeviceService.Instance.OnDeviceChanged += OnDeviceChanged;
+            if (Services.TryGet(out IDeviceService deviceService)) deviceService.OnDeviceChanged += OnDeviceChanged;
         }
 
         private void OnDisable() {
-            DeviceService.Instance.OnDeviceChanged -= OnDeviceChanged;
+            if (Services.TryGet(out IDeviceService deviceService)) deviceService.OnDeviceChanged -= OnDeviceChanged;
         }
 
         private void OnDeviceChanged(DeviceType device) {
@@ -106,7 +107,7 @@ namespace MisterGames.Common.Inputs {
         }
 
         private void ApplyFrequencyIfGamepadActive(Vector2 frequency) {
-            switch (DeviceService.Instance.CurrentDevice) {
+            switch (Services.Get<IDeviceService>().CurrentDevice) {
                 case DeviceType.KeyboardMouse:
                     return;
 
@@ -120,12 +121,12 @@ namespace MisterGames.Common.Inputs {
         }
 
         private void ApplyFrequency(Vector2 frequency) {
-            if (DeviceService.Instance.DualSenseAdapter.HasController()) {
-                DeviceService.Instance.DualSenseAdapter.SetRumble(frequency);
+            if (Services.Get<IDeviceService>().DualSenseAdapter.HasController()) {
+                Services.Get<IDeviceService>().DualSenseAdapter.SetRumble(frequency);
                 return;
             } 
             
-            if (DeviceService.Instance.TryGetGamepad(out var gamepad)) {
+            if (Services.Get<IDeviceService>().TryGetGamepad(out var gamepad)) {
                 gamepad.SetMotorSpeeds(frequency.x, frequency.y);   
             }
         }

@@ -4,6 +4,7 @@ using MisterGames.Common.Data;
 using MisterGames.Common.Tick;
 using MisterGames.Input.Actions;
 using MisterGames.UI.Windows;
+using Unity.Collections;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -24,11 +25,13 @@ namespace MisterGames.UI.Navigation {
         private readonly MultiValueDictionary<IUiWindow, IUiNavigationCallback> _windowCallbackMap = new();
         private readonly List<IUiNavigationCallback> _callbacksBuffer = new();
 
+        private readonly Dictionary<int, IUiNavigationNode> _gameObjectIdToNodeMap = new();
+        private readonly Dictionary<int, int> _childNodeToParentMap = new();
+        private readonly Dictionary<int, Selectable> _selectableMap = new();
+
         private Selectable _selectable;
         private InputAction _moveInput;
         private int _selectedGameObjectHash;
-        private int _lastMoveInputDir;
-        private float _selectNextElementTime;
         
         public void Initialize(IUiWindowService uiWindowService, UiNavigationSettings settings) {
             _uiWindowService = uiWindowService;
@@ -82,16 +85,6 @@ namespace MisterGames.UI.Navigation {
             }
 
             _selectable = selectable;
-            
-            // Skip disabling Unity navigation for selectables out of any IUIWindow
-            if (parent == null) return;
-            
-            var nav = _selectable.navigation;
-            
-            // Disable Unity navigation
-            nav.mode = UnityEngine.UI.Navigation.Mode.None;
-
-            _selectable.navigation = nav;
         }
 
         private void ProcessSelectableNavigation(Selectable selectable, IUiWindow parent) {
@@ -100,14 +93,13 @@ namespace MisterGames.UI.Navigation {
             if (moveVector == default || 
                 parent == null || selectable == null) 
             {
-                _lastMoveInputDir = 0;
                 return;
             }
             
             // Up = 1, down = -1, left = -2, right = 2
-            (int dir, float mag) = Mathf.Abs(moveVector.y) >= Mathf.Abs(moveVector.x) 
-                ? ((int) Mathf.Sign(moveVector.y), moveVector.y)
-                : ((int) Mathf.Sign(moveVector.x) * 2f, moveVector.x);
+            int dir = Mathf.Abs(moveVector.y) >= Mathf.Abs(moveVector.x) 
+                ? (int) Mathf.Sign(moveVector.y)
+                : (int) (Mathf.Sign(moveVector.x) * 2f);
             
             var nextElement = dir switch {
                 1 => selectable.navigation.selectOnUp,
@@ -119,36 +111,13 @@ namespace MisterGames.UI.Navigation {
 
             if (nextElement == null) {
                 MoveSelectionToWindow(parent);
-                return;
             }
-            
-            float time = Time.realtimeSinceStartup;
-            
-            if (_lastMoveInputDir == 0 || _lastMoveInputDir != dir) {
-                // Immediate select if input was zero
-                if (_lastMoveInputDir == 0) {
-                    SelectGameObject(nextElement.gameObject);
-                }
-                
-                _selectNextElementTime = time + _settings.startSelectDelay;
-                _lastMoveInputDir = dir;
-                return;
-            }
-
-            if (time < _selectNextElementTime) return;
-            
-            SelectGameObject(nextElement.gameObject);
-            
-            float t = _settings.selectNextDelayCurve.Evaluate(mag);
-            float delay = Mathf.Lerp(_settings.selectNextDelay0, _settings.selectNextDelay1, t);
-            
-            _selectNextElementTime = time + delay;
         }
 
         private void MoveSelectionToWindow(IUiWindow window) {
             if (window == null) return;
+
             
-            // todo iterate opened windows and their current selectable to select where to move next
         }
 
         public void SelectGameObject(GameObject gameObject) {
@@ -199,6 +168,148 @@ namespace MisterGames.UI.Navigation {
             }
             
             return _callbacksBuffer;
+        }
+        
+        public void BindNavigation(IUiNavigationNode node) {
+            _gameObjectIdToNodeMap[node.GameObject.GetHashCode()] = node;
+            
+            BindNavigationNode(node);
+            ActualizeNavigationTree(node.GameObject);
+            ActualizeSelectablesNavigation(node.GameObject);
+        }
+
+        public void UnbindNavigation(IUiNavigationNode node) {
+            _gameObjectIdToNodeMap.Remove(node.GameObject.GetHashCode());
+            
+            UnbindNavigationNode(node);
+            ActualizeNavigationTree(node.GameObject);
+            ActualizeSelectablesNavigation(node.GameObject);
+        }
+
+        public void BindNavigation(Selectable selectable) {
+            _selectableMap[selectable.GetHashCode()] = selectable;
+            
+            BindNavigationNodeSelectable(selectable);
+        }
+
+        public void UnbindNavigation(Selectable selectable) {
+            _selectableMap.Remove(selectable.GetHashCode());
+            
+            UnbindNavigationNodeSelectable(selectable);
+        }
+        
+        private void BindNavigationNode(IUiNavigationNode node) {
+            if (node?.GameObject == null) return;
+            
+            var parentNode = GetClosestParentNavigationNode(node.GameObject);
+            
+            if (parentNode == null) {
+                UnbindNavigationNode(node);
+                return;
+            }
+            
+            int nodeId = node.GameObject.GetHashCode();
+            int parentNodeId = parentNode.GameObject.GetHashCode();
+            
+            if (_childNodeToParentMap.TryGetValue(nodeId, out int existentNodeId) && existentNodeId != parentNodeId) {
+                UnbindNavigationNode(node);
+            }
+            
+            _childNodeToParentMap[nodeId] = parentNodeId;
+            
+            parentNode.Bind(node);
+        }
+        
+        private void UnbindNavigationNode(IUiNavigationNode node) {
+            if (node?.GameObject == null ||
+                !_childNodeToParentMap.Remove(node.GameObject.GetHashCode(), out int parentNodeId) || 
+                !_gameObjectIdToNodeMap.TryGetValue(parentNodeId, out var parentNode)) 
+            {
+                return;
+            }
+            
+            parentNode.Unbind(node);
+        }
+
+        private void BindNavigationNodeSelectable(Selectable selectable) {
+            if (selectable == null) return;
+            
+            var parentNode = GetClosestParentNavigationNode(selectable.gameObject);
+            
+            if (parentNode == null) {
+                UnbindNavigationNodeSelectable(selectable);
+                return;
+            }
+            
+            int selectableId = selectable.GetHashCode();
+            int parentNodeId = parentNode.GameObject.GetHashCode();
+            
+            if (_childNodeToParentMap.TryGetValue(selectableId, out int existentNodeId) && existentNodeId != parentNodeId) {
+                UnbindNavigationNodeSelectable(selectable);
+            }
+            
+            _childNodeToParentMap[selectableId] = parentNodeId;
+            
+            parentNode.Bind(selectable);
+        }
+        
+        private void UnbindNavigationNodeSelectable(Selectable selectable) {
+            if (selectable == null ||
+                !_childNodeToParentMap.Remove(selectable.GetHashCode(), out int parentNodeId) || 
+                !_gameObjectIdToNodeMap.TryGetValue(parentNodeId, out var parentNode)) 
+            {
+                return;
+            }
+            
+            parentNode.Unbind(selectable);
+        }
+
+        private IUiNavigationNode GetClosestParentNavigationNode(GameObject gameObject) {
+            while (gameObject != null) {
+                if (_gameObjectIdToNodeMap.TryGetValue(gameObject.GetHashCode(), out var node)) return node;
+
+                gameObject = gameObject.transform.parent?.gameObject;
+            }
+            
+            return null;
+        }
+
+        private void ActualizeNavigationTree(GameObject root) {
+            var ids = new NativeArray<int>(_gameObjectIdToNodeMap.Count, Allocator.Temp);
+            int count = 0;
+            
+            var rootTrf = root.transform;
+            
+            foreach ((int id, var node) in _gameObjectIdToNodeMap) {
+                if (!node.GameObject.transform.IsChildOf(rootTrf)) continue;
+                
+                ids[count++] = id;
+            }
+
+            for (int i = 0; i < count; i++) {
+                BindNavigationNode(_gameObjectIdToNodeMap[ids[i]]);
+            }
+            
+            ids.Dispose();
+        }
+        
+        private void ActualizeSelectablesNavigation(GameObject root) {
+            var ids = new NativeArray<int>(_selectableMap.Count, Allocator.Temp);
+            int count = 0;
+            
+            var rootTrf = root.transform;
+            
+            foreach ((int id, var selectable) in _selectableMap) {
+                if (!selectable.transform.IsChildOf(rootTrf)) continue;
+                
+                ids[count++] = id;
+            }
+
+            for (int i = 0; i < count; i++) {
+                BindNavigationNodeSelectable(_selectableMap[ids[i]]);
+            }
+            
+            ids.Dispose();
         }
     }
     

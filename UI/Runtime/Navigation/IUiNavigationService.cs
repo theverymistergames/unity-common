@@ -1,6 +1,7 @@
 ﻿using System;
 using MisterGames.UI.Windows;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace MisterGames.UI.Navigation {
     
@@ -17,6 +18,12 @@ namespace MisterGames.UI.Navigation {
 
         void AddNavigationCallback(IUiWindow window, IUiNavigationCallback callback);
         void RemoveNavigationCallback(IUiWindow window, IUiNavigationCallback callback);
+
+        void BindNavigation(IUiNavigationNode node);
+        void UnbindNavigation(IUiNavigationNode node);
+
+        void BindNavigation(Selectable selectable);
+        void UnbindNavigation(Selectable selectable);
     }
     
 }

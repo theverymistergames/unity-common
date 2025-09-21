@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
 using MisterGames.Common.Inputs.DualSense;
+using MisterGames.Common.Service;
 using MisterGames.Common.Tick;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -12,9 +13,7 @@ namespace MisterGames.Common.Inputs {
         
         [SerializeField] private GamepadVibration _gamepadVibration;
         [SerializeField] private DualSenseAdapter _dualSenseAdapter;
-        
-        public static IDeviceService Instance { get; private set; }
-        
+
         public event Action<DeviceType> OnDeviceChanged = delegate { };
         
         public DeviceType CurrentDevice { get; private set; }
@@ -24,11 +23,11 @@ namespace MisterGames.Common.Inputs {
         public IDualSenseAdapter DualSenseAdapter => _dualSenseAdapter;
 
         private void Awake() {
-            Instance = this; 
+            Services.Register<IDeviceService>(this);
         }
 
         private void OnDestroy() {
-            Instance = null;
+            Services.Unregister(this);
         }
 
         private void OnEnable() {

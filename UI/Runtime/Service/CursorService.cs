@@ -1,4 +1,7 @@
-﻿using System.Collections;
+﻿using System;
+using System.Threading;
+using Cysharp.Threading.Tasks;
+using MisterGames.Common.Async;
 using MisterGames.Common.Inputs;
 using MisterGames.Common.Service;
 using MisterGames.UI.Windows;
@@ -7,33 +10,34 @@ using DeviceType = MisterGames.Common.Inputs.DeviceType;
 
 namespace MisterGames.UI.Service {
     
-    [DefaultExecutionOrder(-9990)]
-    public sealed class CursorService : MonoBehaviour, ICursorService {
+    public sealed class CursorService : ICursorService, IDisposable {
+
+        private CancellationTokenSource _cts;
         
-        private void Awake() {
-            Common.Service.Services.Register<ICursorService>(this);
-        }
-
-        private void OnDestroy() {
-            Common.Service.Services.Unregister(this);
-        }
-
-        private void OnEnable() {
+        public void Initialize() {
+            AsyncExt.RecreateCts(ref _cts);
+            
             Application.focusChanged += OnApplicationFocusChanged;
             
-            DeviceService.Instance.OnDeviceChanged += OnDeviceChanged;
-            if (Common.Service.Services.TryGet(out IUiWindowService windowService)) windowService.OnWindowsHierarchyChanged += OnWindowsChanged;
+            if (Services.TryGet(out IDeviceService deviceService)) deviceService.OnDeviceChanged += OnDeviceChanged;
+            if (Services.TryGet(out IUiWindowService windowService)) windowService.OnWindowsHierarchyChanged += OnWindowsChanged;
+
+            UpdateCursorVisibilityNextFrame(_cts.Token).Forget();
         }
 
-        private void OnDisable() {
+        public void Dispose() {
+            AsyncExt.DisposeCts(ref _cts);
+            
             Application.focusChanged -= OnApplicationFocusChanged;
             
-            DeviceService.Instance.OnDeviceChanged -= OnDeviceChanged;
-            if (Common.Service.Services.TryGet(out IUiWindowService windowService)) windowService.OnWindowsHierarchyChanged -= OnWindowsChanged;
+            if (Services.TryGet(out IDeviceService deviceService)) deviceService.OnDeviceChanged -= OnDeviceChanged;
+            if (Services.TryGet(out IUiWindowService windowService)) windowService.OnWindowsHierarchyChanged -= OnWindowsChanged;
         }
 
-        private IEnumerator Start() {
-            yield return null;
+        private async UniTask UpdateCursorVisibilityNextFrame(CancellationToken cancellationToken) {
+            await UniTask.Yield();
+            if (cancellationToken.IsCancellationRequested) return;
+            
             SetCursorVisible(IsCursorVisible());
         }
 
@@ -49,13 +53,13 @@ namespace MisterGames.UI.Service {
             SetCursorVisible(IsCursorVisible());
         }
 
-        private bool IsCursorVisible() {
-            return DeviceService.Instance.CurrentDevice == DeviceType.KeyboardMouse && 
-                   Common.Service.Services.TryGet(out IUiWindowService windowService) && windowService.HasOpenedWindows() ||
-                   !Application.isFocused;
+        private static bool IsCursorVisible() {
+            return !Application.isFocused || 
+                   (!Services.TryGet(out IDeviceService deviceService) || deviceService.CurrentDevice == DeviceType.KeyboardMouse) && 
+                   (!Services.TryGet(out IUiWindowService windowService) || windowService.HasOpenedWindows());
         }
         
-        private void SetCursorVisible(bool visible) {
+        private static void SetCursorVisible(bool visible) {
             Cursor.visible = visible;
             Cursor.lockState = visible 
                 ? Application.isFocused ? CursorLockMode.Confined : CursorLockMode.None 

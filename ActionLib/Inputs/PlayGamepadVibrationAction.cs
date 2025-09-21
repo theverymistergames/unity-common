@@ -6,6 +6,7 @@ using MisterGames.Actors.Actions;
 using MisterGames.Common.Easing;
 using MisterGames.Common.Inputs;
 using MisterGames.Common.Labels;
+using MisterGames.Common.Service;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -25,7 +26,7 @@ namespace MisterGames.ActionLib.Inputs {
         public OscillatedCurve curveRight;
         
         public async UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            var vibration = DeviceService.Instance.GamepadVibration;
+            var vibration = Services.Get<IDeviceService>().GamepadVibration;
             vibration.Register(this, priority.GetValue());
             
             float dur = Mathf.Max(0f, duration + Random.Range(-durationRandom, durationRandom));

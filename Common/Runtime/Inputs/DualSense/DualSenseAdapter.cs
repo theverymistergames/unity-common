@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using MisterGames.Common.Service;
 using UnityEngine;
 
 namespace MisterGames.Common.Inputs.DualSense {
@@ -23,7 +24,7 @@ namespace MisterGames.Common.Inputs.DualSense {
         }
 
         public bool HasController(int index = 0) {
-            return index >= 0 && index < _controllerCount && DeviceService.Instance.CurrentDevice == DeviceType.Gamepad;
+            return index >= 0 && index < _controllerCount && Services.Get<IDeviceService>().CurrentDevice == DeviceType.Gamepad;
         }
         
         public void SetRumble(Vector2 rumble, int index = 0) {

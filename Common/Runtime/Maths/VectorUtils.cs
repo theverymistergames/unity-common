@@ -16,6 +16,42 @@ namespace MisterGames.Common.Maths {
             return (double) num1 * num1 + (double) num2 * num2 + (double) num3 * num3 < 9.999999439624929E-11;
         }
         
+        [BurstCompile]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float Angle(float3 a, float3 b) {
+            return math.degrees(math.acos(math.clamp(math.dot(math.normalize(a), math.normalize(b)), -1f, 1f)));
+        }
+        
+        [BurstCompile]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float Angle(float2 a, float2 b) {
+            return math.degrees(math.acos(math.clamp(math.dot(math.normalize(a), math.normalize(b)), -1f, 1f)));
+        }
+        
+        [BurstCompile]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float2 ToFloat2XY(this float3 v) => new(v.x, v.y);
+
+        [BurstCompile]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float2 ToFloat2XZ(this float3 v) => new(v.x, v.z);
+
+        [BurstCompile]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float2 ToFloat2YZ(this float3 v) => new(v.y, v.z);
+        
+        [BurstCompile]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float2 ToFloat2XY(this Vector3 v) => new(v.x, v.y);
+
+        [BurstCompile]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float2 ToFloat2XZ(this Vector3 v) => new(v.x, v.z);
+
+        [BurstCompile]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float2 ToFloat2YZ(this Vector3 v) => new(v.y, v.z);
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector2 WithX(this Vector2 vector, float x) => new(x, vector.y);
 
