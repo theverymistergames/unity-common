@@ -5,6 +5,7 @@ using UnityEngine.UI;
 
 namespace MisterGames.UI.Components {
     
+    [DisallowMultipleComponent]
     [RequireComponent(typeof(Selectable))]
     public sealed class UiNavigationNodeSelectable : MonoBehaviour {
         

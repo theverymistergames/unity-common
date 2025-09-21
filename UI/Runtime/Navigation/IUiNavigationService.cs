@@ -7,7 +7,7 @@ namespace MisterGames.UI.Navigation {
     
     public interface IUiNavigationService {
 
-        event Action<GameObject, IUiWindow> onSelectedGameObjectChanged;
+        event Action<GameObject, IUiWindow> OnSelectedGameObjectChanged;
         
         GameObject SelectedGameObject { get; }
         bool HasSelectedGameObject { get; }
@@ -24,6 +24,8 @@ namespace MisterGames.UI.Navigation {
 
         void BindNavigation(Selectable selectable);
         void UnbindNavigation(Selectable selectable);
+
+        IUiNavigationNode GetClosestParentNavigationNode(GameObject gameObject, bool includeSelf = true);
     }
     
 }

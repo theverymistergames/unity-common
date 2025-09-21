@@ -1,5 +1,6 @@
 ﻿using System;
 using MisterGames.Common.Attributes;
+using MisterGames.Common.Data;
 using MisterGames.Common.GameObjects;
 using MisterGames.Common.Service;
 using MisterGames.UI.Navigation;
@@ -8,13 +9,15 @@ using UnityEngine.UI;
 
 namespace MisterGames.UI.Windows {
     
+    [DisallowMultipleComponent]
     public sealed class UiWindow : MonoBehaviour, IUiWindow {
         
         [SerializeField] private WindowState _initialState;
         [SerializeField] private int _layer;
-        [SerializeField] private Selectable _firstSelected;
+        [VisibleIf(nameof(_initialState), 0, CompareMode.NotEqual)]
+        [SerializeField] private UiWindowMode _mode;
         [SerializeField] private GameObject[] _enableGameObjects;
-        [SerializeField] private Child[] _children;
+        [SerializeField] private Selectable _firstSelected;
 
         private enum WindowState {
             Root,
@@ -22,21 +25,17 @@ namespace MisterGames.UI.Windows {
             Closed,
         }
         
-        [Serializable]
-        private struct Child {
-            public UiWindow window;
-            public UiWindowMode mode;
-        }
-
         public GameObject GameObject => gameObject;
+        public GameObject CurrentSelected { get; private set; }
+
         public int Layer => _layer;
         public bool IsRoot => _initialState == WindowState.Root;
+        public UiWindowMode Mode => _mode;
         public UiWindowState State { get; private set; }
         public bool IsFocused { get; private set; }
-        public GameObject CurrentSelectable { get; private set; }
 
         private void Awake() {
-            CurrentSelectable = _firstSelected.gameObject;
+            CurrentSelected = _firstSelected?.gameObject;
             
             RegisterWindow();
         }
@@ -50,13 +49,6 @@ namespace MisterGames.UI.Windows {
             var windowService = Services.Get<IUiWindowService>();
             
             windowService.RegisterWindow(this);
-            
-            for (int i = 0; i < _children.Length; i++) {
-                ref var child = ref _children[i];
-                
-                windowService.RegisterWindow(child.window);
-                windowService.RegisterRelation(this, child.window, child.mode);
-            }
 
             var state = _initialState switch {
                 WindowState.Root => UiWindowState.Opened,
@@ -72,40 +64,28 @@ namespace MisterGames.UI.Windows {
         }
 
         private void UnregisterWindow() {
-            if (Services.Get<IUiWindowService>() is not { } service) return;
-            
-            for (int i = 0; i < _children.Length; i++) {
-                ref var child = ref _children[i];
-                
-                service.UnregisterRelation(this, child.window);
-                service.UnregisterWindow(child.window);
-            }
-            
-            service.UnregisterWindow(this);
+            Services.Get<IUiWindowService>()?.UnregisterWindow(this);
         }
 
         private void SubscribeSelectedGameObject() {
             if (Services.Get<IUiNavigationService>() is not { } service) return;
             
-            service.onSelectedGameObjectChanged -= OnSelectedGameObjectChanged;
-            service.onSelectedGameObjectChanged += OnSelectedGameObjectChanged;
+            service.OnSelectedGameObjectChanged -= OnSelectedGameObjectChanged;
+            service.OnSelectedGameObjectChanged += OnSelectedGameObjectChanged;
         }
 
         private void UnsubscribeSelectedGameObject() {
             if (Services.Get<IUiNavigationService>() is not { } service) return;
             
-            service.onSelectedGameObjectChanged -= OnSelectedGameObjectChanged;
+            service.OnSelectedGameObjectChanged -= OnSelectedGameObjectChanged;
         }
 
         private void OnSelectedGameObjectChanged(GameObject obj, IUiWindow window) {
-            if (obj == null || !ReferenceEquals(window, this)) {
-                CurrentSelectable = _firstSelected.gameObject;
-                return;
-            }
+            if (obj == null || !ReferenceEquals(window, this)) return;
 
-            CurrentSelectable = obj;
+            CurrentSelected = obj;
         }
-
+        
         void IUiWindow.NotifyWindowState(UiWindowState state, bool focused) {
             State = state;
             IsFocused = focused;
@@ -114,6 +94,7 @@ namespace MisterGames.UI.Windows {
                 case UiWindowState.Closed:
                     _enableGameObjects.SetActive(false);
                     UnsubscribeSelectedGameObject();
+                    MaybeResetSelectionToFirst();
                     break;
                 
                 case UiWindowState.Opened:
@@ -124,6 +105,18 @@ namespace MisterGames.UI.Windows {
                 default:
                     throw new ArgumentOutOfRangeException(nameof(state), state, null);
             }
+        }
+        
+        private void MaybeResetSelectionToFirst() {
+            // Do not reset to first if focused window is a child of this window to preserve selection history.
+            if (!Services.TryGet(out IUiWindowService service) ||
+                service.IsChildWindow(this, service.GetFocusedWindow()) || 
+                _firstSelected == null) 
+            {
+                return;
+            }
+            
+            CurrentSelected = _firstSelected?.gameObject;
         }
 
 #if UNITY_EDITOR

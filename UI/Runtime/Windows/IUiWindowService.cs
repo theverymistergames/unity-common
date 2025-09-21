@@ -10,13 +10,11 @@ namespace MisterGames.UI.Windows {
         void RegisterWindow(IUiWindow window);
         void UnregisterWindow(IUiWindow window);
         
-        void RegisterRelation(IUiWindow parent, IUiWindow child, UiWindowMode mode);
-        void UnregisterRelation(IUiWindow parent, IUiWindow child);
-
-        IUiWindow GetFrontWindow();
+        IUiWindow GetFocusedWindow();
         IUiWindow GetParentWindow(IUiWindow child);
-        IUiWindow GetClosestParentWindow(GameObject gameObject);
-        
+        IUiWindow GetClosestParentWindow(GameObject gameObject, bool includeSelf = true);
+        bool IsChildWindow(IUiWindow window, IUiWindow child);
+
         bool HasOpenedWindows();
         void SetWindowState(IUiWindow window, UiWindowState state);
     }

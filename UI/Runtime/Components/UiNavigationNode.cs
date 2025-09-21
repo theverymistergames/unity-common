@@ -13,6 +13,7 @@ using UnityEngine.UI;
 
 namespace MisterGames.UI.Components {
     
+    [DisallowMultipleComponent]
     public sealed class UiNavigationNode : MonoBehaviour, IUiNavigationNode {
 
         [SerializeField] private Mode _mode;
@@ -24,10 +25,15 @@ namespace MisterGames.UI.Components {
             Horizontal,
         }
 
-        GameObject IUiNavigationNode.GameObject => gameObject;
+        public GameObject GameObject => gameObject;
+        public GameObject CurrentSelected { get; private set; }
         
         private readonly Dictionary<int, Selectable> _selectableMap = new();
-        
+
+        private void Awake() {
+            //CurrentSelected = _firstSelected?.gameObject;
+        }
+
         private void OnEnable() {
             Services.Get<IUiNavigationService>()?.BindNavigation(this);
         }
@@ -35,17 +41,7 @@ namespace MisterGames.UI.Components {
         private void OnDisable() {
             Services.Get<IUiNavigationService>()?.UnbindNavigation(this);
         }
-
-        void IUiNavigationNode.Bind(Selectable selectable) {
-            _selectableMap[selectable.GetHashCode()] = selectable;
-            RecalculateSelectablesLayout();
-        }
-
-        void IUiNavigationNode.Unbind(Selectable selectable) {
-            _selectableMap.Remove(selectable.GetHashCode());
-            RecalculateSelectablesLayout();
-        }
-
+        
         void IUiNavigationNode.Bind(IUiNavigationNode node) {
             
         }
@@ -54,7 +50,15 @@ namespace MisterGames.UI.Components {
             
         }
 
-        private void RecalculateSelectablesLayout() {
+        public void Bind(Selectable selectable) {
+            _selectableMap[selectable.GetHashCode()] = selectable;
+        }
+
+        public void Unbind(Selectable selectable) {
+            _selectableMap.Remove(selectable.GetHashCode());
+        }
+
+        public void UpdateNavigation() {
             var selectablesArray = new NativeArray<SelectableData>(_selectableMap.Count, Allocator.TempJob);
             var neighborsArray = new NativeArray<SelectableNeighborsData>(_selectableMap.Count, Allocator.TempJob);
             
@@ -158,11 +162,15 @@ namespace MisterGames.UI.Components {
                 
                 for (int i = 0; i < selectablesArray.Length; i++) {
                     var data = selectablesArray[i];
+                    if (data.id == current.id) continue;
 
-                    float sqrDistance = math.distancesq(current.position, data.position);
+                    bool isUp = IsInDirection(mode, Up, current.position, data.position);
+                    bool isDown = IsInDirection(mode, Down, current.position, data.position);
+                    bool isLeft = IsInDirection(mode, Left, current.position, data.position);
+                    bool isRight = IsInDirection(mode, Right, current.position, data.position);
 
                     if (loop) {
-                        if (data.id != current.id && IsInDirection(mode, Up, current.position, data.position) &&
+                        if (isUp &&
                             (minDistanceUpmost.x < 0f ||
                              data.position.y - current.position.y >= minDistanceUpmost.y &&
                              math.abs(current.position.x - data.position.x) <= minDistanceUpmost.x)) 
@@ -171,7 +179,7 @@ namespace MisterGames.UI.Components {
                             upmostId = data.id;
                         }
                     
-                        if (data.id != current.id && IsInDirection(mode, Down, current.position, data.position) &&
+                        if (isDown &&
                             (minDistanceDownmost.x < 0f ||
                              current.position.y - data.position.y >= minDistanceDownmost.y &&
                              math.abs(current.position.x - data.position.x) <= minDistanceDownmost.x)) 
@@ -180,7 +188,7 @@ namespace MisterGames.UI.Components {
                             downmostId = data.id;
                         }
                     
-                        if (data.id != current.id && IsInDirection(mode, Right, current.position, data.position) &&
+                        if (isRight &&
                             (minDistanceRightmost.y < 0f ||
                              data.position.x - current.position.x >= minDistanceRightmost.x &&
                              math.abs(current.position.y - data.position.y) <= minDistanceRightmost.y)) 
@@ -189,7 +197,7 @@ namespace MisterGames.UI.Components {
                             rightmostId = data.id;
                         }
                     
-                        if (data.id != current.id && IsInDirection(mode, Left, current.position, data.position) &&
+                        if (isLeft &&
                             (minDistanceLeftmost.y < 0f ||
                              current.position.x - data.position.x >= minDistanceLeftmost.x &&
                              math.abs(current.position.y - data.position.y) <= minDistanceLeftmost.y)) 
@@ -199,33 +207,27 @@ namespace MisterGames.UI.Components {
                         }
                     }
                     
-                    if (data.id != current.id && IsInDirection(mode, Up, current.position, data.position) &&
-                        (minSqrDistanceUp < 0f || sqrDistance < minSqrDistanceUp)) 
-                    {
+                    float sqrDistance = math.distancesq(current.position, data.position);
+                    
+                    if (isUp && (minSqrDistanceUp < 0f || sqrDistance < minSqrDistanceUp)) {
                         minSqrDistanceUp = sqrDistance;
                         upId = data.id;
                         continue;
                     }
                 
-                    if (data.id != current.id && IsInDirection(mode, Down, current.position, data.position) &&
-                        (minSqrDistanceDown < 0f || sqrDistance < minSqrDistanceDown)) 
-                    {
+                    if (isDown && (minSqrDistanceDown < 0f || sqrDistance < minSqrDistanceDown)) {
                         minSqrDistanceDown = sqrDistance;
                         downId = data.id;
                         continue;
                     }
                 
-                    if (data.id != current.id && IsInDirection(mode, Right, current.position, data.position) &&
-                        (minSqrDistanceRight < 0f || sqrDistance < minSqrDistanceRight)) 
-                    {
+                    if (isRight && (minSqrDistanceRight < 0f || sqrDistance < minSqrDistanceRight)) {
                         minSqrDistanceRight = sqrDistance;
                         rightId = data.id;
                         continue;
                     }
                 
-                    if (data.id != current.id && IsInDirection(mode, Left, current.position, data.position) &&
-                        (minSqrDistanceLeft < 0f || sqrDistance < minSqrDistanceLeft)) 
-                    {
+                    if (isLeft && (minSqrDistanceLeft < 0f || sqrDistance < minSqrDistanceLeft)) {
                         minSqrDistanceLeft = sqrDistance;
                         leftId = data.id;
                     }

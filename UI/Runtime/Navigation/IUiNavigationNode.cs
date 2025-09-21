@@ -6,12 +6,15 @@ namespace MisterGames.UI.Navigation {
     public interface IUiNavigationNode {
         
         GameObject GameObject { get; }
-
-        void Bind(Selectable selectable);
-        void Unbind(Selectable selectable);
+        GameObject CurrentSelected { get; }
         
         void Bind(IUiNavigationNode node);
         void Unbind(IUiNavigationNode node);
+        
+        void Bind(Selectable selectable);
+        void Unbind(Selectable selectable);
+
+        void UpdateNavigation();
     }
     
 }
