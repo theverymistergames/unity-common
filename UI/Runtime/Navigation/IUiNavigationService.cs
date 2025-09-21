@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using MisterGames.UI.Windows;
 using UnityEngine;
 using UnityEngine.UI;
@@ -12,6 +13,8 @@ namespace MisterGames.UI.Navigation {
         GameObject SelectedGameObject { get; }
         IUiWindow SelectedGameObjectWindow { get; }
         bool HasSelectedGameObject { get; }
+        
+        IReadOnlyCollection<Selectable> Selectables { get; }
         
         void SelectGameObject(GameObject gameObject);
         
@@ -29,6 +32,8 @@ namespace MisterGames.UI.Navigation {
         IUiNavigationNode GetParentNavigationNode(Selectable selectable);
         IUiNavigationNode GetParentNavigationNode(IUiNavigationNode node);
         IUiNavigationNode FindClosestParentNavigationNode(GameObject gameObject, bool includeSelf = true);
+        
+        bool IsChildNode(IUiNavigationNode node, IUiNavigationNode parent, bool direct);
     }
     
 }

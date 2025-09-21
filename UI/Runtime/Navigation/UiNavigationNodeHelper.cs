@@ -104,11 +104,6 @@ namespace MisterGames.UI.Navigation {
             [ReadOnly] public bool loop;
             
             [WriteOnly] public NativeArray<SelectableNeighborsData> neighborsArray;
-
-            private static readonly int2 Up = new(0, 1);
-            private static readonly int2 Down = new(0, -1);
-            private static readonly int2 Left = new(-1, 0);
-            private static readonly int2 Right = new(1, 0);
             
             public void Execute(int index) {
                 var current = selectablesArray[index];
@@ -137,10 +132,10 @@ namespace MisterGames.UI.Navigation {
                     var data = selectablesArray[i];
                     if (data.id == current.id) continue;
 
-                    bool isUp = UiNavigationUtils.IsInDirection(mode, Up, current.position, data.position);
-                    bool isDown = UiNavigationUtils.IsInDirection(mode, Down, current.position, data.position);
-                    bool isLeft = UiNavigationUtils.IsInDirection(mode, Left, current.position, data.position);
-                    bool isRight = UiNavigationUtils.IsInDirection(mode, Right, current.position, data.position);
+                    bool isUp = data.position.IsHigherThan(current.position, mode);
+                    bool isDown = data.position.IsLowerThan(current.position, mode);
+                    bool isLeft = data.position.IsToTheLeftTo(current.position, mode);
+                    bool isRight = data.position.IsToTheRightTo(current.position, mode);
 
                     if (loop) {
                         if (isUp &&

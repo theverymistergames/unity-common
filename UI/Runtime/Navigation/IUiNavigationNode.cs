@@ -12,6 +12,8 @@ namespace MisterGames.UI.Navigation {
         void Unbind(Selectable selectable);
 
         void UpdateNavigation();
+        
+        void OnNavigateOut(Selectable fromSelectable, UiNavigationDirection direction);
     }
     
 }

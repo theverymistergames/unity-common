@@ -18,6 +18,8 @@ namespace MisterGames.UI.Navigation {
         public GameObject SelectedGameObject { get; private set; }
         public IUiWindow SelectedGameObjectWindow { get; private set; }
         public bool HasSelectedGameObject => _selectedGameObjectHash != 0;
+
+        public IReadOnlyCollection<Selectable> Selectables => _selectableMap.Values;
         
         private IUiWindowService _uiWindowService;
         private UiNavigationSettings _settings;
@@ -97,29 +99,21 @@ namespace MisterGames.UI.Navigation {
             var moveVector = _moveInput.ReadValue<Vector2>();
             if (moveVector == default || selectable == null) return;
             
-            // Up = 1, down = -1, left = -2, right = 2
-            int dir = Mathf.Abs(moveVector.y) >= Mathf.Abs(moveVector.x) 
-                ? (int) Mathf.Sign(moveVector.y)
-                : (int) (Mathf.Sign(moveVector.x) * 2f);
+            var dir = Mathf.Abs(moveVector.y) >= Mathf.Abs(moveVector.x) 
+                ? Mathf.Sign(moveVector.y) > 0f ? UiNavigationDirection.Up : UiNavigationDirection.Down
+                : Mathf.Sign(moveVector.x) > 0f ? UiNavigationDirection.Right : UiNavigationDirection.Left;
             
             var nextElement = dir switch {
-                1 => selectable.navigation.selectOnUp,
-                -1 => selectable.navigation.selectOnDown,
-                2 => selectable.navigation.selectOnRight,
-                -2 => selectable.navigation.selectOnLeft,
-                _ => null,
+                UiNavigationDirection.Up => selectable.navigation.selectOnUp,
+                UiNavigationDirection.Down => selectable.navigation.selectOnDown,
+                UiNavigationDirection.Right => selectable.navigation.selectOnRight,
+                UiNavigationDirection.Left => selectable.navigation.selectOnLeft,
+                _ => throw new ArgumentOutOfRangeException()
             };
 
             if (nextElement == null) {
-                ProcessNodeNavigation(GetParentNavigationNode(selectable), selectable, dir);
+                GetParentNavigationNode(selectable)?.OnNavigateOut(selectable, dir);
             }
-        }
-
-        // Up = 1, down = -1, left = -2, right = 2
-        private void ProcessNodeNavigation(IUiNavigationNode node, Selectable selectable, int dir) {
-            if (node == null) return;
-
-            
         }
 
         public void SelectGameObject(GameObject gameObject) {
@@ -192,7 +186,7 @@ namespace MisterGames.UI.Navigation {
             
             UnbindNavigationNodeSelectable(selectable);
         }
-        
+
         private void BindNavigationNode(IUiNavigationNode node) {
             if (node?.GameObject == null) return;
             
@@ -262,11 +256,11 @@ namespace MisterGames.UI.Navigation {
         }
 
         public IUiNavigationNode GetParentNavigationNode(Selectable selectable) {
-            return _gameObjectIdToNodeMap.GetValueOrDefault(_childNodeToParentMap[selectable.GetHashCode()]);
+            return _gameObjectIdToNodeMap.GetValueOrDefault(_childNodeToParentMap.GetValueOrDefault(selectable.GetHashCode()));
         }
 
         public IUiNavigationNode GetParentNavigationNode(IUiNavigationNode node) {
-            return _gameObjectIdToNodeMap.GetValueOrDefault(_childNodeToParentMap[node.GameObject.GetHashCode()]);
+            return _gameObjectIdToNodeMap.GetValueOrDefault(_childNodeToParentMap.GetValueOrDefault(node.GameObject.GetHashCode()));
         }
 
         public IUiNavigationNode FindClosestParentNavigationNode(GameObject gameObject, bool includeSelf = true) {
@@ -279,6 +273,13 @@ namespace MisterGames.UI.Navigation {
             }
             
             return null;
+        }
+        
+        public bool IsChildNode(IUiNavigationNode node, IUiNavigationNode parent, bool direct) {
+            return node?.GameObject != null && parent?.GameObject != null &&
+                   (direct 
+                       ? GetParentNavigationNode(node) == parent 
+                       : node.GameObject.transform.IsChildOf(parent.GameObject.transform));
         }
 
         private void ActualizeNavigationTree(GameObject root) {
