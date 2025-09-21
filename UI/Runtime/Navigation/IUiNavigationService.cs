@@ -10,6 +10,7 @@ namespace MisterGames.UI.Navigation {
         event Action<GameObject, IUiWindow> OnSelectedGameObjectChanged;
         
         GameObject SelectedGameObject { get; }
+        IUiWindow SelectedGameObjectWindow { get; }
         bool HasSelectedGameObject { get; }
         
         void SelectGameObject(GameObject gameObject);
@@ -25,7 +26,9 @@ namespace MisterGames.UI.Navigation {
         void BindNavigation(Selectable selectable);
         void UnbindNavigation(Selectable selectable);
 
-        IUiNavigationNode GetClosestParentNavigationNode(GameObject gameObject, bool includeSelf = true);
+        IUiNavigationNode GetParentNavigationNode(Selectable selectable);
+        IUiNavigationNode GetParentNavigationNode(IUiNavigationNode node);
+        IUiNavigationNode FindClosestParentNavigationNode(GameObject gameObject, bool includeSelf = true);
     }
     
 }

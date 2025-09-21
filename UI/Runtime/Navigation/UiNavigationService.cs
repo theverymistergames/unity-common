@@ -14,9 +14,9 @@ namespace MisterGames.UI.Navigation {
     public sealed class UiNavigationService : IUiNavigationService, IUpdate, IDisposable {
 
         public event Action<GameObject, IUiWindow> OnSelectedGameObjectChanged = delegate { };
-        
-        public IUiWindow SelectedGameObjectWindow { get; private set; }
+
         public GameObject SelectedGameObject { get; private set; }
+        public IUiWindow SelectedGameObjectWindow { get; private set; }
         public bool HasSelectedGameObject => _selectedGameObjectHash != 0;
         
         private IUiWindowService _uiWindowService;
@@ -75,7 +75,7 @@ namespace MisterGames.UI.Navigation {
             if (hash == _selectedGameObjectHash) return;
 
             _selectedGameObjectHash = hash;
-            SelectedGameObjectWindow = _uiWindowService.GetClosestParentWindow(SelectedGameObject, includeSelf: true);
+            SelectedGameObjectWindow = _uiWindowService.FindClosestParentWindow(SelectedGameObject, includeSelf: true);
             
             FetchNavigation(SelectedGameObject);
             
@@ -110,15 +110,14 @@ namespace MisterGames.UI.Navigation {
                 _ => null,
             };
 
-            if (nextElement == null && 
-                GetClosestParentNavigationNode(selectable.gameObject, includeSelf: true) is { } node) 
-            {
-                
+            if (nextElement == null) {
+                ProcessNodeNavigation(GetParentNavigationNode(selectable), selectable, dir);
             }
         }
 
-        private void MoveSelectionToWindow(IUiWindow window) {
-            if (window == null) return;
+        // Up = 1, down = -1, left = -2, right = 2
+        private void ProcessNodeNavigation(IUiNavigationNode node, Selectable selectable, int dir) {
+            if (node == null) return;
 
             
         }
@@ -167,7 +166,7 @@ namespace MisterGames.UI.Navigation {
         }
         
         public void BindNavigation(IUiNavigationNode node) {
-            _gameObjectIdToNodeMap[node.GameObject.GetHashCode()] = node;
+            if (!_gameObjectIdToNodeMap.TryAdd(node.GameObject.GetHashCode(), node)) return;
             
             BindNavigationNode(node);
             ActualizeNavigationTree(node.GameObject);
@@ -175,7 +174,7 @@ namespace MisterGames.UI.Navigation {
         }
 
         public void UnbindNavigation(IUiNavigationNode node) {
-            _gameObjectIdToNodeMap.Remove(node.GameObject.GetHashCode());
+            if (!_gameObjectIdToNodeMap.Remove(node.GameObject.GetHashCode())) return;
             
             UnbindNavigationNode(node);
             ActualizeNavigationTree(node.GameObject);
@@ -183,13 +182,13 @@ namespace MisterGames.UI.Navigation {
         }
 
         public void BindNavigation(Selectable selectable) {
-            _selectableMap[selectable.GetHashCode()] = selectable;
+            if (!_selectableMap.TryAdd(selectable.GetHashCode(), selectable)) return;
             
             BindNavigationNodeSelectable(selectable);
         }
 
         public void UnbindNavigation(Selectable selectable) {
-            _selectableMap.Remove(selectable.GetHashCode());
+            if (!_selectableMap.Remove(selectable.GetHashCode())) return;
             
             UnbindNavigationNodeSelectable(selectable);
         }
@@ -197,7 +196,7 @@ namespace MisterGames.UI.Navigation {
         private void BindNavigationNode(IUiNavigationNode node) {
             if (node?.GameObject == null) return;
             
-            var parentNode = GetClosestParentNavigationNode(node.GameObject, includeSelf: false);
+            var parentNode = FindClosestParentNavigationNode(node.GameObject, includeSelf: false);
             
             if (parentNode == null) {
                 UnbindNavigationNode(node);
@@ -213,7 +212,7 @@ namespace MisterGames.UI.Navigation {
             
             _childNodeToParentMap[nodeId] = parentNodeId;
             
-            parentNode.Bind(node);
+            //parentNode.Bind(node);
         }
         
         private void UnbindNavigationNode(IUiNavigationNode node) {
@@ -224,13 +223,13 @@ namespace MisterGames.UI.Navigation {
                 return;
             }
             
-            parentNode.Unbind(node);
+            //parentNode.Unbind(node);
         }
 
         private void BindNavigationNodeSelectable(Selectable selectable) {
             if (selectable == null) return;
             
-            var parentNode = GetClosestParentNavigationNode(selectable.gameObject, includeSelf: true);
+            var parentNode = FindClosestParentNavigationNode(selectable.gameObject, includeSelf: true);
             
             if (parentNode == null) {
                 UnbindNavigationNodeSelectable(selectable);
@@ -262,7 +261,15 @@ namespace MisterGames.UI.Navigation {
             parentNode.UpdateNavigation();
         }
 
-        public IUiNavigationNode GetClosestParentNavigationNode(GameObject gameObject, bool includeSelf = true) {
+        public IUiNavigationNode GetParentNavigationNode(Selectable selectable) {
+            return _gameObjectIdToNodeMap.GetValueOrDefault(_childNodeToParentMap[selectable.GetHashCode()]);
+        }
+
+        public IUiNavigationNode GetParentNavigationNode(IUiNavigationNode node) {
+            return _gameObjectIdToNodeMap.GetValueOrDefault(_childNodeToParentMap[node.GameObject.GetHashCode()]);
+        }
+
+        public IUiNavigationNode FindClosestParentNavigationNode(GameObject gameObject, bool includeSelf = true) {
             if (!includeSelf) gameObject = gameObject?.transform.parent?.gameObject;
             
             while (gameObject != null) {

@@ -4,12 +4,14 @@ using MisterGames.Common.Data;
 using MisterGames.Common.GameObjects;
 using MisterGames.Common.Service;
 using MisterGames.UI.Navigation;
+using MisterGames.UI.Windows;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace MisterGames.UI.Windows {
+namespace MisterGames.UI.Components {
     
     [DisallowMultipleComponent]
+    [RequireComponent(typeof(UiNavigationNode))]
     public sealed class UiWindow : MonoBehaviour, IUiWindow {
         
         [SerializeField] private WindowState _initialState;

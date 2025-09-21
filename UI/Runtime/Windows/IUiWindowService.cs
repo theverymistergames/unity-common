@@ -12,7 +12,7 @@ namespace MisterGames.UI.Windows {
         
         IUiWindow GetFocusedWindow();
         IUiWindow GetParentWindow(IUiWindow child);
-        IUiWindow GetClosestParentWindow(GameObject gameObject, bool includeSelf = true);
+        IUiWindow FindClosestParentWindow(GameObject gameObject, bool includeSelf = true);
         bool IsChildWindow(IUiWindow window, IUiWindow child);
 
         bool HasOpenedWindows();

@@ -8,9 +8,6 @@ namespace MisterGames.UI.Navigation {
         GameObject GameObject { get; }
         GameObject CurrentSelected { get; }
         
-        void Bind(IUiNavigationNode node);
-        void Unbind(IUiNavigationNode node);
-        
         void Bind(Selectable selectable);
         void Unbind(Selectable selectable);
 

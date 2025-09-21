@@ -48,7 +48,7 @@ namespace MisterGames.UI.Windows {
         private void BindWindowHierarchy(IUiWindow window) {
             if (window?.GameObject == null) return;
             
-            var parentWindow = GetClosestParentWindow(window.GameObject, includeSelf: false);
+            var parentWindow = FindClosestParentWindow(window.GameObject, includeSelf: false);
             
             if (parentWindow == null) {
                 UnbindWindowHierarchy(window);
@@ -88,7 +88,7 @@ namespace MisterGames.UI.Windows {
             return _gameObjectIdToWindowMap.GetValueOrDefault(_childToParentMap.GetValueOrDefault(GetWindowId(child)));
         }
 
-        public IUiWindow GetClosestParentWindow(GameObject gameObject, bool includeSelf = true) {
+        public IUiWindow FindClosestParentWindow(GameObject gameObject, bool includeSelf = true) {
             if (!includeSelf) gameObject = gameObject?.transform.parent?.gameObject;
             
             while (gameObject != null) {
