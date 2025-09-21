@@ -3,7 +3,7 @@
 namespace MisterGames.UI.Navigation {
     
     [Flags]
-    public enum UiNavigationOuterOptions {
+    public enum UiNavigateToOuterNodesOptions {
         None = 0,
         Parent = 1,
         Siblings = 2,

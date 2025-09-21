@@ -205,19 +205,12 @@ namespace MisterGames.UI.Navigation {
             }
             
             _childNodeToParentMap[nodeId] = parentNodeId;
-            
-            //parentNode.Bind(node);
         }
         
         private void UnbindNavigationNode(IUiNavigationNode node) {
-            if (node?.GameObject == null ||
-                !_childNodeToParentMap.Remove(node.GameObject.GetHashCode(), out int parentNodeId) || 
-                !_gameObjectIdToNodeMap.TryGetValue(parentNodeId, out var parentNode)) 
-            {
-                return;
-            }
-            
-            //parentNode.Unbind(node);
+            if (node?.GameObject == null) return;
+
+            _childNodeToParentMap.Remove(node.GameObject.GetHashCode());
         }
 
         private void BindNavigationNodeSelectable(Selectable selectable) {

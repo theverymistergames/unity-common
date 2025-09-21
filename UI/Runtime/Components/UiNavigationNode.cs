@@ -12,14 +12,20 @@ namespace MisterGames.UI.Components {
     [DisallowMultipleComponent]
     public sealed class UiNavigationNode : MonoBehaviour, IUiNavigationNode {
         
+        [Header("Inner Navigation")]
         [SerializeField] private UiNavigationMode _mode;
         [SerializeField] private bool _loop = true;
-        [SerializeField] private UiNavigationOuterOptions _outerNavigationOptions = UiNavigationOuterOptions.Parent | 
-                                                                                    UiNavigationOuterOptions.Siblings | 
-                                                                                    UiNavigationOuterOptions.Children;
+        
+        [Header("Outer Navigation")]
+        [SerializeField] private UiNavigateFromOuterNodesOptions _navigateFromOuterNodesOptions = 
+                UiNavigateFromOuterNodesOptions.SelectClosestElement;
+        
+        [SerializeField] private UiNavigateToOuterNodesOptions _navigateToOuterNodesOptions = 
+            UiNavigateToOuterNodesOptions.Parent | UiNavigateToOuterNodesOptions.Siblings | UiNavigateToOuterNodesOptions.Children;
         
         public GameObject GameObject => gameObject;
         public GameObject CurrentSelected { get; private set; }
+        public UiNavigateFromOuterNodesOptions NavigateFromOuterNodesOptions => _navigateFromOuterNodesOptions;
         
         private readonly UiNavigationNodeHelper _helper = new();
         
@@ -76,7 +82,7 @@ namespace MisterGames.UI.Components {
         }
 
         public void OnNavigateOut(Selectable fromSelectable, UiNavigationDirection direction) {
-            if (_outerNavigationOptions == UiNavigationOuterOptions.None ||
+            if (_navigateToOuterNodesOptions == UiNavigateToOuterNodesOptions.None ||
                 !Services.TryGet(out IUiNavigationService service)) 
             {
                 return;
@@ -84,9 +90,9 @@ namespace MisterGames.UI.Components {
 
             var selectables = service.Selectables;
             
-            bool allowParent = (_outerNavigationOptions & UiNavigationOuterOptions.Parent) == UiNavigationOuterOptions.Parent;
-            bool allowSiblings = (_outerNavigationOptions & UiNavigationOuterOptions.Siblings) == UiNavigationOuterOptions.Siblings;
-            bool allowChildren = (_outerNavigationOptions & UiNavigationOuterOptions.Children) == UiNavigationOuterOptions.Children;
+            bool allowParent = (_navigateToOuterNodesOptions & UiNavigateToOuterNodesOptions.Parent) == UiNavigateToOuterNodesOptions.Parent;
+            bool allowSiblings = (_navigateToOuterNodesOptions & UiNavigateToOuterNodesOptions.Siblings) == UiNavigateToOuterNodesOptions.Siblings;
+            bool allowChildren = (_navigateToOuterNodesOptions & UiNavigateToOuterNodesOptions.Children) == UiNavigateToOuterNodesOptions.Children;
 
             var parentNode = service.GetParentNavigationNode(this);
 
@@ -94,7 +100,7 @@ namespace MisterGames.UI.Components {
             var origin = rootTrf.InverseTransformPoint(fromSelectable.transform.position).ToFloat2XY();
             
             float minSqrDistance = -1f;
-            Selectable nextSelectable = null;
+            Selectable closestSelectable = null;
             
             foreach (var selectable in selectables) {
                 if (_helper.IsBound(selectable.gameObject) || 
@@ -113,10 +119,24 @@ namespace MisterGames.UI.Components {
                 if (minSqrDistance >= 0f && sqrDistance > minSqrDistance) continue;
                 
                 minSqrDistance = sqrDistance;
-                nextSelectable = selectable;
+                closestSelectable = selectable;
             }
+
+            if (closestSelectable == null) return;
+
+            var nextParentNode = service.GetParentNavigationNode(closestSelectable);
             
-            if (nextSelectable != null) service.SelectGameObject(nextSelectable.gameObject);
+            var options = nextParentNode?.CurrentSelected == null
+                ? UiNavigateFromOuterNodesOptions.SelectClosestElement
+                : nextParentNode.NavigateFromOuterNodesOptions;
+            
+            var selectTarget = options switch {
+                UiNavigateFromOuterNodesOptions.SelectClosestElement => closestSelectable.gameObject,
+                UiNavigateFromOuterNodesOptions.SelectHistoryElement => nextParentNode!.CurrentSelected,
+                _ => throw new ArgumentOutOfRangeException()
+            };
+            
+            service.SelectGameObject(selectTarget);
         }
         
         private void OnWindowsHierarchyChanged() {

@@ -7,6 +7,7 @@ namespace MisterGames.UI.Navigation {
         
         GameObject GameObject { get; }
         GameObject CurrentSelected { get; }
+        UiNavigateFromOuterNodesOptions NavigateFromOuterNodesOptions { get; }
         
         void Bind(Selectable selectable);
         void Unbind(Selectable selectable);

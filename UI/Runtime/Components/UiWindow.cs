@@ -14,13 +14,18 @@ namespace MisterGames.UI.Components {
     [RequireComponent(typeof(UiNavigationNode))]
     public sealed class UiWindow : MonoBehaviour, IUiWindow {
         
-        [SerializeField] private WindowState _initialState;
+        [Header("Window")]
         [SerializeField] private int _layer;
+        [SerializeField] private WindowState _initialState;
         [VisibleIf(nameof(_initialState), 0, CompareMode.NotEqual)]
         [SerializeField] private UiWindowMode _mode;
-        [SerializeField] private GameObject[] _enableGameObjects;
+        
+        [Header("Selection")]
         [SerializeField] private Selectable _firstSelected;
-
+        
+        [Header("View")]
+        [SerializeField] private GameObject[] _enableGameObjects;
+        
         private enum WindowState {
             Root,
             Opened,
