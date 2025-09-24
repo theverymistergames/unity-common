@@ -46,16 +46,15 @@ namespace MisterGames.Character.Input {
             Unsubscribe();
         }
 
-        private void OnDestroy() {
-            Unsubscribe();
-        }
-
         private void Subscribe() {
             _view.Get().performed -= HandleViewChanged;
             _view.Get().performed += HandleViewChanged;
 
             _move.Get().performed -= HandleMoveChanged;
             _move.Get().performed += HandleMoveChanged;
+            
+            _move.Get().canceled -= HandleMoveChanged;
+            _move.Get().canceled += HandleMoveChanged;
 
             _crouch.Get().performed -= HandleCrouchPressed;
             _crouch.Get().performed += HandleCrouchPressed;

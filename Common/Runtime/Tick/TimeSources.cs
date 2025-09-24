@@ -1,5 +1,6 @@
 ﻿using System;
 using Cysharp.Threading.Tasks;
+using MisterGames.Common.Maths;
 using UnityEngine;
 
 namespace MisterGames.Common.Tick {
@@ -16,42 +17,40 @@ namespace MisterGames.Common.Tick {
 
     public static class TimeSources {
 
-        public static int frameCount =>
+        public static float time {
+            get {
 #if UNITY_EDITOR
-            !Application.isPlaying && _isRunningEditorUpdates
-                ? _editorUpdatesFrameCount 
-                : Time.frameCount;
+                if (Application.isPlaying) return Time.time;
+                
+                if (_editorDeltaTimeProvider == null) CheckEditorUpdatesAreStarted().Forget();
+                
+                return _editorUpdatesTime;
 #else
-            Time.frameCount;
+                return Time.time;
 #endif
+            }
+        }
         
-        public static int fixedFrameCount =>
+        public static float scaledTime => GetUpdateStage().ScaledTime;
+        
+        public static float deltaTime => GetUpdateStage().DeltaTime;
+        
+        public static int frameCount {
+            get {
 #if UNITY_EDITOR
-            !Application.isPlaying && _isRunningEditorUpdates 
-                ? Time.frameCount
-                : GetFixedUpdateStage().FrameCount;
+                if (Application.isPlaying) return Time.frameCount;
+                
+                if (_editorDeltaTimeProvider == null) CheckEditorUpdatesAreStarted().Forget();
+                
+                return _editorUpdatesFrameCount;
 #else
-            GetFixedUpdateStage().FrameCount;
+                return Time.frameCount;
 #endif
+            }
+        }
+        
+        public static int fixedFrameCount => GetFixedUpdateStage().FrameCount;
 
-        public static float time =>
-#if UNITY_EDITOR
-            !Application.isPlaying && _isRunningEditorUpdates 
-                ? _editorUpdatesTime 
-                : Time.time;
-#else
-            Time.time;
-#endif
-        
-        public static float scaledTime =>
-#if UNITY_EDITOR
-            !Application.isPlaying && _isRunningEditorUpdates 
-                ? _editorUpdatesTime 
-                : GetUpdateStage().ScaledTime;
-#else
-            GetUpdateStage().ScaledTime;
-#endif
-        
 #if UNITY_EDITOR
         internal static bool ShowDebugInfo => _provider?.ShowDebugInfo ?? false;
 #endif
@@ -84,10 +83,6 @@ namespace MisterGames.Common.Tick {
         public static void Unsubscribe(this PlayerLoopStage stage, IUpdate sub) {
             Get(stage).Unsubscribe(sub);
         }
-
-        public static float DeltaTime(PlayerLoopStage stage = PlayerLoopStage.Update) {
-            return Get(stage).DeltaTime;
-        }
         
         private static ITimeSourceProvider _provider;
 
@@ -104,72 +99,41 @@ namespace MisterGames.Common.Tick {
         private static TimeSource _editorUpdateTimeSource;
         private static TimeSource _editorUnscaledUpdateTimeSource;
         private static TimeSource _editorLateUpdateTimeSource;
+        private static TimeSource _editorFixedUpdateTimeSource;
 
-        private static bool _isRunningEditorUpdates;
         private static int _editorUpdatesFrameCount;
         private static float _editorUpdatesTime;
+        private static byte _editorUpdatesId;
 
         private static ITimeSource GetOrCreateEditorTimeSource(PlayerLoopStage stage) {
             CheckEditorUpdatesAreStarted().Forget();
 
-            switch (stage) {
-                case PlayerLoopStage.PreUpdate:
-                    if (_editorPreUpdateTimeSource != null) return _editorPreUpdateTimeSource;
-
-                    _editorTimeScaleProvider ??= TimeScaleProviders.Create();
-                    _editorPreUpdateTimeSource = new TimeSource(_editorDeltaTimeProvider, _editorTimeScaleProvider, "editor pre update");
-
-                    return _editorPreUpdateTimeSource;
-
-                case PlayerLoopStage.Update:
-                    if (_editorUpdateTimeSource != null) return _editorUpdateTimeSource;
-
-                    _editorTimeScaleProvider ??= TimeScaleProviders.Create();
-                    _editorUpdateTimeSource = new TimeSource(_editorDeltaTimeProvider, _editorTimeScaleProvider, "editor update");
-
-                    return _editorUpdateTimeSource;
-
-                case PlayerLoopStage.UnscaledUpdate:
-                    if (_editorUnscaledUpdateTimeSource != null) return _editorUnscaledUpdateTimeSource;
-
-                    _editorUnscaledTimeScaleProvider ??= TimeScaleProviders.Create();
-                    _editorUnscaledUpdateTimeSource = new TimeSource(_editorDeltaTimeProvider, _editorUnscaledTimeScaleProvider, "editor unscaled");
-
-                    return _editorUnscaledUpdateTimeSource;
-
-                case PlayerLoopStage.LateUpdate:
-                    if (_editorLateUpdateTimeSource != null) return _editorLateUpdateTimeSource;
-
-                    _editorTimeScaleProvider ??= TimeScaleProviders.Create();
-                    _editorLateUpdateTimeSource = new TimeSource(_editorDeltaTimeProvider, _editorTimeScaleProvider, "editor late update");
-
-                    return _editorLateUpdateTimeSource;
-
-                default:
-                    throw new NotImplementedException($"Cannot create TimeSource for {nameof(PlayerLoopStage)} {stage} in edit mode");
-            }
+            return stage switch {
+                PlayerLoopStage.PreUpdate => _editorPreUpdateTimeSource ??= new TimeSource(_editorDeltaTimeProvider, _editorTimeScaleProvider, "editor pre update"),
+                PlayerLoopStage.Update => _editorUpdateTimeSource ??= new TimeSource(_editorDeltaTimeProvider, _editorTimeScaleProvider, "editor update"),
+                PlayerLoopStage.UnscaledUpdate => _editorUnscaledUpdateTimeSource ??= new TimeSource(_editorDeltaTimeProvider, _editorUnscaledTimeScaleProvider, "editor unscaled"),
+                PlayerLoopStage.LateUpdate => _editorLateUpdateTimeSource ??= new TimeSource(_editorDeltaTimeProvider, _editorTimeScaleProvider, "editor late update"),
+                PlayerLoopStage.FixedUpdate => _editorFixedUpdateTimeSource ??= new TimeSource(_editorDeltaTimeProvider, _editorTimeScaleProvider, "editor fixed update"),
+                _ => throw new NotImplementedException($"Cannot create TimeSource for {nameof(PlayerLoopStage)} {stage} in edit mode")
+            };
         }
 
         private static async UniTaskVoid CheckEditorUpdatesAreStarted() {
-            if (_isRunningEditorUpdates &&
-                (_editorPreUpdateTimeSource != null ||
-                _editorUpdateTimeSource != null ||
-                _editorUnscaledUpdateTimeSource != null ||
-                _editorLateUpdateTimeSource != null)) 
-            {
-                return;
-            }
+            if (_editorDeltaTimeProvider != null) return;
             
-            _isRunningEditorUpdates = true;
+            byte id = _editorUpdatesId.IncrementUnchecked();
+            
             _editorUpdatesFrameCount = Time.frameCount;
-            _editorUpdatesTime = Time.time;
+            _editorUpdatesTime = Time.realtimeSinceStartup;
             _editorDeltaTimeProvider = new EditorDeltaTimeProvider();
+            _editorTimeScaleProvider = TimeScaleProviders.Create();
             
-            while (true) {
+            while (id == _editorUpdatesId) {
                 _editorDeltaTimeProvider.UpdateDeltaTime();
                 _editorUpdatesTime += _editorDeltaTimeProvider.DeltaTime;
                 
                 _editorPreUpdateTimeSource?.Tick();
+                _editorFixedUpdateTimeSource?.Tick();
                 _editorUpdateTimeSource?.Tick();
                 _editorUnscaledUpdateTimeSource?.Tick();
                 _editorLateUpdateTimeSource?.Tick();
@@ -180,6 +144,7 @@ namespace MisterGames.Common.Tick {
                 
                 bool canStopEditorUpdates =
                     CanStopUpdate(_editorPreUpdateTimeSource) &&
+                    CanStopUpdate(_editorFixedUpdateTimeSource) &&
                     CanStopUpdate(_editorUpdateTimeSource) &&
                     CanStopUpdate(_editorUnscaledUpdateTimeSource) &&
                     CanStopUpdate(_editorLateUpdateTimeSource);
@@ -187,15 +152,19 @@ namespace MisterGames.Common.Tick {
                 if (canStopEditorUpdates) break;
             }
 
+            if (id != _editorUpdatesId) return;
+            
             _editorDeltaTimeProvider = null;
+            _editorTimeScaleProvider = null;
+            
             _editorPreUpdateTimeSource = null;
             _editorUpdateTimeSource = null;
             _editorUnscaledUpdateTimeSource = null;
             _editorLateUpdateTimeSource = null;
+            _editorFixedUpdateTimeSource = null;
 
-            _isRunningEditorUpdates = false;
             _editorUpdatesFrameCount = Time.frameCount;
-            _editorUpdatesTime = Time.time;
+            _editorUpdatesTime = Time.realtimeSinceStartup;
         }
 
         private static bool CanStopUpdate(ITimeSourceApi timeSource) {
@@ -206,11 +175,12 @@ namespace MisterGames.Common.Tick {
 
             public float DeltaTime { get; private set; }
 
-            private float _lastTimeSinceStartup = Time.realtimeSinceStartup;
+            private double _lastTimeSinceStartup = Time.realtimeSinceStartup;
 
             public void UpdateDeltaTime() {
-                float timeSinceStartup = Time.realtimeSinceStartup;
-                DeltaTime = timeSinceStartup - _lastTimeSinceStartup;
+                double timeSinceStartup = Time.realtimeSinceStartupAsDouble;
+                DeltaTime = Mathf.Max(0f, (float) (timeSinceStartup - _lastTimeSinceStartup));
+                
                 _lastTimeSinceStartup = timeSinceStartup;
             }
         }
