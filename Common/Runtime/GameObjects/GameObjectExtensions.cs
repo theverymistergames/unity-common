@@ -2,6 +2,10 @@
 using System.Text;
 using UnityEngine;
 
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
 namespace MisterGames.Common.GameObjects {
     
     public static class GameObjectExtensions {
@@ -14,6 +18,14 @@ namespace MisterGames.Common.GameObjects {
             for (int i = 0; i < gameObjects.Count; i++) {
                 gameObjects[i].SetActive(active);
             }
+        }
+        
+        public static void SetDirty(this IReadOnlyList<GameObject> gameObjects) {
+#if UNITY_EDITOR
+            for (int i = 0; i < gameObjects.Count; i++) {
+                if (gameObjects[i] != null) EditorUtility.SetDirty(gameObjects[i]);
+            }      
+#endif
         }
         
         public static void SetEnabled(this IReadOnlyList<Object> objects, bool active) {

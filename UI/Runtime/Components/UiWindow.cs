@@ -7,6 +7,10 @@ using MisterGames.UI.Windows;
 using UnityEngine;
 using UnityEngine.UI;
 
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
 namespace MisterGames.UI.Components {
     
     [DisallowMultipleComponent]
@@ -73,7 +77,10 @@ namespace MisterGames.UI.Components {
         
         void IUiWindow.NotifyWindowState(UiWindowState state) {
             State = state;
+            ApplyState(state);
+        }
 
+        private void ApplyState(UiWindowState state) {
             switch (state) {
                 case UiWindowState.Closed:
                     _enableGameObjects.SetActive(false);
@@ -108,6 +115,26 @@ namespace MisterGames.UI.Components {
         private void OpenWindow() => Services.Get<IUiWindowService>()?.SetWindowState(this, UiWindowState.Opened);
         [Button(mode: ButtonAttribute.Mode.Runtime)] 
         private void CloseWindow() => Services.Get<IUiWindowService>()?.SetWindowState(this, UiWindowState.Closed);
+
+        private void OnValidate() {
+            if (Application.isPlaying) {
+                ApplyState(State);
+                return;
+            }
+
+            for (int i = 0; i < _enableGameObjects.Length; i++) {
+                var go = _enableGameObjects[i];
+                if (go == null) continue;
+
+                bool isEnabled = go.IsEnabled();
+                bool setEnabled = _initialState == UiWindowState.Opened;
+                
+                if (isEnabled == setEnabled) continue;
+                
+                go.SetEnabled(setEnabled);
+                EditorUtility.SetDirty(go);
+            }
+        }
 #endif
     }
     
