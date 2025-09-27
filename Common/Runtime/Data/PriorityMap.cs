@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace MisterGames.Common.Data {
     
@@ -11,6 +12,8 @@ namespace MisterGames.Common.Data {
             set => _map[key] = _map.GetValueOrDefault(key).WithValue(value);
         }
         
+        public IReadOnlyList<K> SortedKeys => _sortedKeys;
+        
         private readonly Dictionary<K, Entry> _map = new();
         private readonly List<K> _sortedKeys = new();
         private V _resultCache;
@@ -18,14 +21,14 @@ namespace MisterGames.Common.Data {
         private readonly struct Entry {
             
             public readonly V value;
-            public readonly int priority;
+            public readonly int order;
             
-            public Entry(V value, int priority = 0) {
+            public Entry(V value, int order = 0) {
                 this.value = value;
-                this.priority = priority;
+                this.order = order;
             }
 
-            public Entry WithValue(V value) => new(value, priority);
+            public Entry WithValue(V value) => new(value, order);
         }
         
         public bool TryGetResult(out V value) {
@@ -55,6 +58,14 @@ namespace MisterGames.Common.Data {
             value = default;
             return false;
         }
+
+        public int GetFirstOrder() {
+            return _sortedKeys.Count > 0 ? _map[_sortedKeys[0]].order : 0;
+        }
+
+        public int GetOrder(K key) {
+            return _map.GetValueOrDefault(key).order;
+        }
         
         public void Set(K key, V value, int priority) {
             var entry = new Entry(value, priority);
@@ -66,13 +77,15 @@ namespace MisterGames.Common.Data {
             _resultCache = GetResult(); 
         }
 
-        public void Remove(K key) {
-            if (!_map.Remove(key)) return;
+        public bool Remove(K key) {
+            if (!_map.Remove(key)) return false;
             
             _sortedKeys.Remove(key);
             _sortedKeys.Sort(this);
 
             _resultCache = GetResult();
+            
+            return true;
         }
 
         public void Clear() {
@@ -82,7 +95,7 @@ namespace MisterGames.Common.Data {
         }
 
         int IComparer<K>.Compare(K x, K y) {
-            return _map.GetValueOrDefault(x).priority.CompareTo(_map.GetValueOrDefault(y).priority);
+            return _map.GetValueOrDefault(x).order.CompareTo(_map.GetValueOrDefault(y).order);
         }
 
         private V GetResult() {

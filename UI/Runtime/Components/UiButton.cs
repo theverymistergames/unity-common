@@ -137,7 +137,7 @@ namespace MisterGames.UI.Components {
                 case ActionMode.WaitPreviousAction:
                     if (_clickActionId > _awaitClickActionId) return;
 
-                    _clickActionId.IncrementUnchecked();
+                    _clickActionId.IncrementUncheckedRef();
                     break;
                 
                 default:
@@ -151,7 +151,7 @@ namespace MisterGames.UI.Components {
         private async UniTask WaitClickAction(CancellationToken cancellationToken) {
             await _clickAction.Apply(_actor, cancellationToken);
 
-            _awaitClickActionId = _clickActionId.IncrementUnchecked();
+            _awaitClickActionId = _clickActionId.IncrementUncheckedRef();
         }
 
         void ISubmitHandler.OnSubmit(BaseEventData eventData) {
@@ -235,7 +235,7 @@ namespace MisterGames.UI.Components {
             CurrentState = state;
             OnStateChanged.Invoke(CurrentState);
             
-            byte id = _transitionId.IncrementUnchecked();
+            byte id = _transitionId.IncrementUncheckedRef();
             if (_enableCts != null) TransitTo(id, state, instant: force, _enableCts.Token).Forget();
         }
 
@@ -263,7 +263,7 @@ namespace MisterGames.UI.Components {
         }
 
         private async UniTask AnimateSubmit(CancellationToken cancellationToken) {
-            byte id = _transitionId.IncrementUnchecked();
+            byte id = _transitionId.IncrementUncheckedRef();
             
             await TransitTo(id, State.Pressed, instant: false, cancellationToken);
             

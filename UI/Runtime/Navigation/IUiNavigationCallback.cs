@@ -2,8 +2,9 @@
     
     public interface IUiNavigationCallback {
 
-        bool OnNavigateBack();
-
+        bool CanNavigateBack();
+        
+        void OnNavigateBack();
     }
     
 }

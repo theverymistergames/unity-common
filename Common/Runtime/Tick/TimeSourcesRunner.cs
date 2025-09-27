@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using MisterGames.Common.Service;
 using UnityEngine;
 
 namespace MisterGames.Common.Tick {
@@ -28,6 +29,8 @@ namespace MisterGames.Common.Tick {
 
         private readonly List<TimeSource> _timeSources = new List<TimeSource>();
 
+        private readonly TimescaleSystem _timescaleSystem = new();
+        
         public ITimeSource Get(PlayerLoopStage stage) {
             return stage switch {
                 PlayerLoopStage.PreUpdate => _preUpdateTimeSource,
@@ -46,6 +49,8 @@ namespace MisterGames.Common.Tick {
             _timeSources.Add(_lateUpdateTimeSource);
             _timeSources.Add(_fixedUpdateTimeSource);
 
+            Services.Register<ITimescaleSystem>(_timescaleSystem);
+            
             TimeSources.InjectProvider(this);
         }
 
@@ -53,6 +58,10 @@ namespace MisterGames.Common.Tick {
             for (int i = 0; i < _timeSources.Count; i++) {
                 _timeSources[i].Reset();
             }
+            
+            _timescaleSystem.Dispose();
+            
+            Services.Unregister(_timescaleSystem);
         }
 
         private void Start() {

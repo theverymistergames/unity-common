@@ -17,12 +17,13 @@ namespace MisterGames.UI.Navigation {
         IReadOnlyCollection<Selectable> Selectables { get; }
         
         void SelectGameObject(GameObject gameObject);
+
+        bool IsExitToPauseBlocked();
+        void BlockExitToPause(object source);
+        void UnblockExitToPause(object source);
         
         void PerformCancel();
-
-        void AddNavigationCallback(IUiWindow window, IUiNavigationCallback callback);
-        void RemoveNavigationCallback(IUiWindow window, IUiNavigationCallback callback);
-
+        
         void BindNavigation(IUiNavigationNode node);
         void UnbindNavigation(IUiNavigationNode node);
 

@@ -7,15 +7,18 @@ namespace MisterGames.UI.Windows {
 
         event Action OnWindowsHierarchyChanged;
         
-        void RegisterWindow(IUiWindow window);
+        void RegisterWindow(IUiWindow window, UiWindowState state);
         void UnregisterWindow(IUiWindow window);
         
         IUiWindow GetFocusedWindow();
         IUiWindow GetParentWindow(IUiWindow child);
+        IUiWindow GetRootWindow(IUiWindow window);
         IUiWindow FindClosestParentWindow(GameObject gameObject, bool includeSelf = true);
         bool IsChildWindow(IUiWindow window, IUiWindow child);
 
         bool HasOpenedWindows();
+        bool IsInOpenedBranch(IUiWindow window);
+
         void SetWindowState(IUiWindow window, UiWindowState state);
     }
     

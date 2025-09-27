@@ -1,6 +1,5 @@
 ﻿using System;
 using MisterGames.Common.Attributes;
-using MisterGames.Common.Data;
 using MisterGames.Common.GameObjects;
 using MisterGames.Common.Service;
 using MisterGames.UI.Navigation;
@@ -16,9 +15,9 @@ namespace MisterGames.UI.Components {
         
         [Header("Window")]
         [SerializeField] private int _layer;
-        [SerializeField] private WindowState _initialState;
-        [VisibleIf(nameof(_initialState), 0, CompareMode.NotEqual)]
-        [SerializeField] private UiWindowMode _mode;
+        [SerializeField] private UiWindowState _initialState;
+        [SerializeField] private UiWindowOpenMode _openMode;
+        [SerializeField] private UiWindowCloseMode _closeMode;
         
         [Header("Selection")]
         [SerializeField] private Selectable _firstSelected;
@@ -26,20 +25,13 @@ namespace MisterGames.UI.Components {
         [Header("View")]
         [SerializeField] private GameObject[] _enableGameObjects;
         
-        private enum WindowState {
-            Root,
-            Opened,
-            Closed,
-        }
-        
         public GameObject GameObject => gameObject;
         public GameObject CurrentSelected { get; private set; }
 
         public int Layer => _layer;
-        public bool IsRoot => _initialState == WindowState.Root;
-        public UiWindowMode Mode => _mode;
+        public UiWindowOpenMode OpenMode => _openMode;
+        public UiWindowCloseMode CloseMode => _closeMode; 
         public UiWindowState State { get; private set; }
-        public bool IsFocused { get; private set; }
 
         private void Awake() {
             CurrentSelected = _firstSelected?.gameObject;
@@ -53,21 +45,7 @@ namespace MisterGames.UI.Components {
         }
 
         private void RegisterWindow() {
-            var windowService = Services.Get<IUiWindowService>();
-            
-            windowService.RegisterWindow(this);
-
-            var state = _initialState switch {
-                WindowState.Root => UiWindowState.Opened,
-                WindowState.Opened => UiWindowState.Opened,
-                WindowState.Closed => UiWindowState.Closed,
-                _ => throw new ArgumentOutOfRangeException()
-            };
-            
-            // Prevent setting initial window state if it has a parent window 
-            if (windowService.GetParentWindow(this) == null) {
-                windowService.SetWindowState(this, state);
-            }
+            Services.Get<IUiWindowService>()?.RegisterWindow(this, _initialState);
         }
 
         private void UnregisterWindow() {
@@ -93,9 +71,8 @@ namespace MisterGames.UI.Components {
             CurrentSelected = obj;
         }
         
-        void IUiWindow.NotifyWindowState(UiWindowState state, bool focused) {
+        void IUiWindow.NotifyWindowState(UiWindowState state) {
             State = state;
-            IsFocused = focused;
 
             switch (state) {
                 case UiWindowState.Closed:

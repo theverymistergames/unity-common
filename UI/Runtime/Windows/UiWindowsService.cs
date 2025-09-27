@@ -21,13 +21,24 @@ namespace MisterGames.UI.Windows {
             _layerToOpenedWindowIdMap.Clear();
         }
 
-        public void RegisterWindow(IUiWindow window) {
+        public void RegisterWindow(IUiWindow window, UiWindowState state) {
             _gameObjectIdToWindowMap[GetWindowId(window)] = window;
             
             UpdateHierarchy(window.GameObject);
+            
+            // Prevent setting initial window state if it has a parent window
+            var firstState = GetParentWindow(window) != null
+                ? UiWindowState.Closed
+                : state;
+            
+            SetWindowState(window, firstState);
         }
 
         public void UnregisterWindow(IUiWindow window) {
+            if (window.State == UiWindowState.Opened) {
+                CloseWindow(window);
+            }
+            
             _gameObjectIdToWindowMap.Remove(GetWindowId(window));
             
             UpdateHierarchy(window.GameObject);
@@ -87,7 +98,17 @@ namespace MisterGames.UI.Windows {
         public IUiWindow GetParentWindow(IUiWindow child) {
             return _gameObjectIdToWindowMap.GetValueOrDefault(_childToParentMap.GetValueOrDefault(GetWindowId(child)));
         }
-
+        
+        public IUiWindow GetRootWindow(IUiWindow window) {
+            if (window == null) return null;
+            
+            while (_childToParentMap.TryGetValue(GetWindowId(window), out int parentId)) {
+                window = _gameObjectIdToWindowMap.GetValueOrDefault(parentId);
+            }
+            
+            return window;
+        }
+        
         public IUiWindow FindClosestParentWindow(GameObject gameObject, bool includeSelf = true) {
             if (!includeSelf) gameObject = gameObject?.transform.parent?.gameObject;
             
@@ -108,6 +129,22 @@ namespace MisterGames.UI.Windows {
 
         public bool HasOpenedWindows() {
             return _layerToOpenedWindowIdMap.Count > 0;
+        }
+
+        public bool IsInOpenedBranch(IUiWindow window) {
+            if (window == null || !TryGetWindowRootLayer(window, out int layer)) return false;
+
+            var frontWindow = _gameObjectIdToWindowMap.GetValueOrDefault(_layerToOpenedWindowIdMap[layer], window);
+            
+            while (frontWindow?.GameObject != null) 
+            {
+                if (frontWindow.State == UiWindowState.Opened) return true;
+                if (frontWindow == window) return false;
+                
+                frontWindow = GetParentWindow(frontWindow);
+            }
+            
+            return false;
         }
 
         public void SetWindowState(IUiWindow window, UiWindowState state) {
@@ -153,20 +190,20 @@ namespace MisterGames.UI.Windows {
                 
                 for (int i = 0; i < siblingsCount; i++) {
                     var sibling = _gameObjectIdToWindowMap.GetValueOrDefault(_relationTree.GetValueAt(parentId, i));
-                    if (sibling != window) SetWindowBranchState(sibling, UiWindowState.Closed, focused: false);
+                    if (sibling != window) SetWindowBranchState(sibling, UiWindowState.Closed);
                 }
 
                 lastParentState = lastParentState switch {
                     UiWindowState.Closed => UiWindowState.Closed,
-                    UiWindowState.Opened => window.Mode switch {
-                        UiWindowMode.Full => UiWindowState.Closed,
-                        UiWindowMode.Embedded => UiWindowState.Opened,
+                    UiWindowState.Opened => window.OpenMode switch {
+                        UiWindowOpenMode.Full => UiWindowState.Closed,
+                        UiWindowOpenMode.Embedded => UiWindowState.Opened,
                         _ => throw new ArgumentOutOfRangeException()
                     },
                     _ => throw new ArgumentOutOfRangeException()
                 };
                 
-                _gameObjectIdToWindowMap.GetValueOrDefault(parentId)?.NotifyWindowState(lastParentState, focused: false);
+                _gameObjectIdToWindowMap.GetValueOrDefault(parentId)?.NotifyWindowState(lastParentState);
                 
                 window = _gameObjectIdToWindowMap.GetValueOrDefault(parentId);
             }
@@ -175,7 +212,7 @@ namespace MisterGames.UI.Windows {
         }
 
         private void CloseWindow(IUiWindow window) {
-            if (window == null) return;
+            if (window is null or { CloseMode: UiWindowCloseMode.NoExit }) return;
 
             int id = GetWindowId(window);
             
@@ -184,20 +221,17 @@ namespace MisterGames.UI.Windows {
                 return;
             }
 
-            var root = GetWindowRoot(window);
-            if (root == window && root.IsRoot) return;
-
             if (_layerToOpenedWindowIdMap.TryGetValue(id, out int frontWindowId) && frontWindowId == id) {
                 _layerToOpenedWindowIdMap.Remove(window.Layer);
             }
             
-            SetWindowBranchState(window, UiWindowState.Closed, focused: false);
+            SetWindowBranchState(window, UiWindowState.Closed);
             
             OnWindowsHierarchyChanged.Invoke();
         }
 
         private bool TryGetWindowRootLayer(IUiWindow window, out int layer) {
-            if (GetWindowRoot(window) is { } root) {
+            if (GetRootWindow(window) is { } root) {
                 layer = root.Layer;
                 return true;
             }
@@ -205,42 +239,32 @@ namespace MisterGames.UI.Windows {
             layer = 0;
             return false;
         }
-
-        private IUiWindow GetWindowRoot(IUiWindow window) {
-            if (window == null) return null;
-            
-            while (_childToParentMap.TryGetValue(GetWindowId(window), out int parentId)) {
-                window = _gameObjectIdToWindowMap.GetValueOrDefault(parentId);
-            }
-            
-            return window;
-        }
         
         private void OpenWindowBranch(IUiWindow root) {
             if (root == null) return;
             
-            root.NotifyWindowState(UiWindowState.Opened, focused: true);
+            root.NotifyWindowState(UiWindowState.Opened);
             
             int id = GetWindowId(root);
             int childCount = _relationTree.GetCount(id);
             
             for (int i = 0; i < childCount; i++) {
                 var window = _gameObjectIdToWindowMap.GetValueOrDefault(_relationTree.GetValueAt(id, i));
-                SetWindowBranchState(window, UiWindowState.Closed, focused: false);
+                SetWindowBranchState(window, UiWindowState.Closed);
             }
         }
 
-        private void SetWindowBranchState(IUiWindow root, UiWindowState state, bool focused) {
+        private void SetWindowBranchState(IUiWindow root, UiWindowState state) {
             if (root == null) return;
             
-            root.NotifyWindowState(state, focused);
+            root.NotifyWindowState(state);
             
             int id = GetWindowId(root);
             int childCount = _relationTree.GetCount(id);
             
             for (int i = 0; i < childCount; i++) {
                 var window = _gameObjectIdToWindowMap.GetValueOrDefault(_relationTree.GetValueAt(id, i));
-                SetWindowBranchState(window, state, focused);
+                SetWindowBranchState(window, state);
             }
         }
 

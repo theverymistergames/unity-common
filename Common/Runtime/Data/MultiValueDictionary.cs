@@ -79,7 +79,7 @@ namespace MisterGames.Common.Data
             
             _countMap[key] = index + 1;
             _valueMap[(key, index)] = value;
-            _version.IncrementUnchecked();
+            _version.IncrementUncheckedRef();
 
             return index;
         }
@@ -91,7 +91,7 @@ namespace MisterGames.Common.Data
             if (index == count) _countMap[key] = count + 1;
             
             _valueMap[(key, index)] = value;
-            _version.IncrementUnchecked();
+            _version.IncrementUncheckedRef();
             
             return true;
         }
@@ -105,7 +105,7 @@ namespace MisterGames.Common.Data
             if (index == count) _countMap[key] = count + 1;
             
             _valueMap[(key, index)] = value;
-            _version.IncrementUnchecked();
+            _version.IncrementUncheckedRef();
         }
         
         public bool RemoveValue(K key, V value) {
@@ -138,7 +138,7 @@ namespace MisterGames.Common.Data
                 _countMap.Remove(key);
             }
             
-            _version.IncrementUnchecked();
+            _version.IncrementUncheckedRef();
             return true;
         }
         
@@ -159,7 +159,7 @@ namespace MisterGames.Common.Data
                 _valueMap[(key, i++)] = value;
             }
             
-            _version.IncrementUnchecked();
+            _version.IncrementUncheckedRef();
         }
         
         public void AddValues(K key, IReadOnlyCollection<V> values) {
@@ -174,7 +174,7 @@ namespace MisterGames.Common.Data
                 _valueMap[(key, i++)] = value;
             }
             
-            _version.IncrementUnchecked();
+            _version.IncrementUncheckedRef();
         }
 
         public int RemoveValues(K key) {
@@ -184,7 +184,7 @@ namespace MisterGames.Common.Data
             }
 
             _countMap.Remove(key);
-            _version.IncrementUnchecked();
+            _version.IncrementUncheckedRef();
             
             return count;
         }
@@ -192,7 +192,7 @@ namespace MisterGames.Common.Data
         public void Clear() {
             _countMap.Clear();
             _valueMap.Clear();
-            _version.IncrementUnchecked();
+            _version.IncrementUncheckedRef();
         }
 
         public override string ToString() {

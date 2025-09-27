@@ -25,11 +25,12 @@ namespace MisterGames.UI.Navigation {
         private UiNavigationSettings _settings;
         
         private readonly MultiValueDictionary<IUiWindow, IUiNavigationCallback> _windowCallbackMap = new();
-        private readonly List<IUiNavigationCallback> _callbacksBuffer = new();
+        private readonly List<IUiNavigationCallback> _windowCallbacksBuffer = new();
 
         private readonly Dictionary<int, IUiNavigationNode> _gameObjectIdToNodeMap = new();
         private readonly Dictionary<int, int> _childNodeToParentMap = new();
         private readonly Dictionary<int, Selectable> _selectableMap = new();
+        private readonly HashSet<int> _pauseBlockers = new();
 
         private Selectable _selectable;
         private InputAction _moveInput;
@@ -42,6 +43,7 @@ namespace MisterGames.UI.Navigation {
             _uiWindowService.OnWindowsHierarchyChanged += OnWindowsHierarchyChanged;
             
             _settings.cancelInput.Get().performed += OnCancelInputPerformed;
+            
             _moveInput = _settings.moveInput.Get();
             
             PlayerLoopStage.LateUpdate.Subscribe(this);
@@ -53,7 +55,12 @@ namespace MisterGames.UI.Navigation {
             _settings.cancelInput.Get().performed -= OnCancelInputPerformed;
             
             _windowCallbackMap.Clear();
-            _callbacksBuffer.Clear();
+            _windowCallbacksBuffer.Clear();
+            
+            _gameObjectIdToNodeMap.Clear();
+            _childNodeToParentMap.Clear();
+            _selectableMap.Clear();
+            _pauseBlockers.Clear();
             
             PlayerLoopStage.LateUpdate.Unsubscribe(this);
         }
@@ -120,43 +127,63 @@ namespace MisterGames.UI.Navigation {
             EventSystem.current.SetSelectedGameObject(gameObject);
         }
 
+        public bool IsExitToPauseBlocked() {
+            return _pauseBlockers.Count > 0;
+        }
+
+        public void BlockExitToPause(object source) {
+            _pauseBlockers.Add(source.GetHashCode());
+        }
+
+        public void UnblockExitToPause(object source) {
+            _pauseBlockers.Remove(source.GetHashCode());
+        }
+
         private void OnCancelInputPerformed(InputAction.CallbackContext obj) {
-            PerformCancel();
+            OnCancelInputFromWindow();
         }
 
         public void PerformCancel() {
-            var frontWindow = _uiWindowService.GetFocusedWindow();
-            if (frontWindow == null) return;
+            OnCancelInputFromWindow();
+        }
 
-            var callbacks = CreateCallbacksBuffer(frontWindow);
-            bool canCloseFrontWindow = true;
+        private void OnCancelInputFromWindow() {
+            var window = _uiWindowService.GetFocusedWindow();
+            if (window == null) return;
+
+            var callbacks = CreateWindowCallbacksBuffer(window);
+            bool canNavigateBack = true;
 
             for (int i = 0; i < callbacks.Count; i++) {
-                canCloseFrontWindow &= callbacks[i].OnNavigateBack();
+                canNavigateBack &= callbacks[i].CanNavigateBack();
             }
 
-            if (canCloseFrontWindow) {
-                _uiWindowService.SetWindowState(frontWindow, UiWindowState.Closed);
+            if (!canNavigateBack) return;
+            
+            _uiWindowService.SetWindowState(window, UiWindowState.Closed);
+            
+            for (int i = 0; i < callbacks.Count; i++) {
+                callbacks[i].OnNavigateBack();
             }
         }
 
-        public void AddNavigationCallback(IUiWindow window, IUiNavigationCallback callback) {
+        public void AddWindowNavigationCallback(IUiWindow window, IUiNavigationCallback callback) {
             _windowCallbackMap.AddValue(window, callback);
         }
 
-        public void RemoveNavigationCallback(IUiWindow window, IUiNavigationCallback callback) {
+        public void RemoveWindowNavigationCallback(IUiWindow window, IUiNavigationCallback callback) {
             _windowCallbackMap.RemoveValue(window, callback);
         }
 
-        private IReadOnlyList<IUiNavigationCallback> CreateCallbacksBuffer(IUiWindow window) {
-            _callbacksBuffer.Clear();
+        private IReadOnlyList<IUiNavigationCallback> CreateWindowCallbacksBuffer(IUiWindow window) {
+            _windowCallbacksBuffer.Clear();
 
             int count = _windowCallbackMap.GetCount(window);
             for (int i = 0; i < count; i++) {
-                _callbacksBuffer.Add(_windowCallbackMap.GetValueAt(window, i));
+                _windowCallbacksBuffer.Add(_windowCallbackMap.GetValueAt(window, i));
             }
             
-            return _callbacksBuffer;
+            return _windowCallbacksBuffer;
         }
         
         public void BindNavigation(IUiNavigationNode node) {

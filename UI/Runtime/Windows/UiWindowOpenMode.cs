@@ -1,6 +1,6 @@
 ﻿namespace MisterGames.UI.Windows {
     
-    public enum UiWindowMode {
+    public enum UiWindowOpenMode {
         Full,
         Embedded,
     }

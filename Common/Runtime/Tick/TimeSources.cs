@@ -121,7 +121,7 @@ namespace MisterGames.Common.Tick {
         private static async UniTaskVoid CheckEditorUpdatesAreStarted() {
             if (_editorDeltaTimeProvider != null) return;
             
-            byte id = _editorUpdatesId.IncrementUnchecked();
+            byte id = _editorUpdatesId.IncrementUncheckedRef();
             
             _editorUpdatesFrameCount = Time.frameCount;
             _editorUpdatesTime = Time.realtimeSinceStartup;

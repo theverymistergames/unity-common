@@ -8,12 +8,11 @@ namespace MisterGames.UI.Windows {
         GameObject CurrentSelected { get; }
         
         int Layer { get; }
-        bool IsRoot { get; }
-        UiWindowMode Mode { get; }
+        UiWindowOpenMode OpenMode { get; }
+        UiWindowCloseMode CloseMode { get; }
         UiWindowState State { get; }
-        bool IsFocused { get; }
-
-        void NotifyWindowState(UiWindowState state, bool focused);
+        
+        void NotifyWindowState(UiWindowState state);
     }
     
 }

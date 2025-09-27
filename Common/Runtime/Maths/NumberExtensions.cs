@@ -82,14 +82,14 @@ namespace MisterGames.Common.Maths {
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static byte IncrementUnchecked(this ref byte value) {
+        public static byte IncrementUncheckedRef(this ref byte value) {
             unchecked {
                 return ++value;
             }
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int IncrementUnchecked(this ref int value) {
+        public static int IncrementUncheckedRef(this ref int value) {
             unchecked {
                 return ++value;
             }

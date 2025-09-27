@@ -1,63 +1,98 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
+using Cysharp.Threading.Tasks;
+using MisterGames.Common.Data;
+using MisterGames.Common.Easing;
+using MisterGames.Common.Maths;
 using UnityEngine;
 
 namespace MisterGames.Common.Tick {
     
-    public static class TimescaleSystem {
-
-        private sealed class Comparer : IComparer<Key> {
-            public int Compare(Key x, Key y) => y.priority.CompareTo(x.priority);
+    public sealed class TimescaleSystem : ITimescaleSystem, IDisposable {
+        
+        private readonly PriorityMap<int, float> _priorityMap = new();
+        private readonly Dictionary<int, byte> _sourceToChangeIdMap = new();
+        
+        public void Dispose() {
+            _priorityMap.Clear();
+            _sourceToChangeIdMap.Clear();
         }
 
-        private readonly struct Key : IEquatable<Key> {
-            
-            public readonly int hash;
-            public readonly int priority;
-            
-            public Key(int hash, int priority) {
-                this.hash = hash;
-                this.priority = priority;
-            }
-            
-            public bool Equals(Key other) => hash == other.hash;
-            public override bool Equals(object obj) => obj is Key other && Equals(other);
-            public override int GetHashCode() => hash;
-            public static bool operator ==(Key left, Key right) => left.Equals(right);
-            public static bool operator !=(Key left, Key right) => !left.Equals(right);
-        }
-        
-        private static readonly SortedDictionary<Key, float> _timeScaleMap = new(new Comparer()); 
-        private static readonly Dictionary<int, int> _priorityMap = new(); 
-        
-        public static void SetTimeScale(object source, int priority, float timeScale) {
+        public void SetTimeScale(object source, int priority, float timeScale) {
             int hash = source.GetHashCode();
-
-            if (_priorityMap.TryGetValue(hash, out int oldPriority)) {
-                _timeScaleMap.Remove(new Key(hash, oldPriority));
-            }
             
-            _priorityMap[hash] = priority;
-            _timeScaleMap[new Key(hash, priority)] = timeScale;
+            _priorityMap.Set(hash, timeScale, priority);
+            
+            byte id = _sourceToChangeIdMap[hash];
+            _sourceToChangeIdMap[hash] = id.IncrementUncheckedRef();
             
             Time.timeScale = GetTimeScale();
         }
 
-        public static void RemoveTimeScale(object source) {
+        public void RemoveTimeScale(object source) {
             int hash = source.GetHashCode();
-            if (!_priorityMap.Remove(hash, out int priority)) return;
-
-            _timeScaleMap.Remove(new Key(hash, priority));
+            _sourceToChangeIdMap.Remove(hash);
+            
+            if (!_priorityMap.Remove(hash)) return;
             
             Time.timeScale = GetTimeScale();
         }
 
-        private static float GetTimeScale() {
-            foreach (float timeScale in _timeScaleMap.Values) {
-                return timeScale;
+        public async UniTask ChangeTimeScale(
+            object source,
+            int priority,
+            float timescale,
+            float duration,
+            bool removeOnFinish = false,
+            AnimationCurve curve = null,
+            CancellationToken cancellationToken = default) 
+        {
+            int hash = source.GetHashCode();
+
+            byte currentId;
+            byte id = _sourceToChangeIdMap[hash];
+            _sourceToChangeIdMap[hash] = id.IncrementUncheckedRef();
+            
+            float t = 0f;
+            float speed = duration > 0f ? 1f / duration : float.MaxValue;
+            float startTimescale = _priorityMap.GetValueOrDefault(hash, 1f);
+            
+            _priorityMap.Set(hash, startTimescale, priority);
+            
+            while (t < 1f && 
+                   !cancellationToken.IsCancellationRequested && 
+                   _sourceToChangeIdMap.TryGetValue(hash, out currentId) && id == currentId) 
+            {
+                t = Mathf.Clamp01(t + Time.deltaTime * speed);
+                
+                _priorityMap.Set(hash, Mathf.Lerp(startTimescale, timescale, curve?.Evaluate(t) ?? t), priority);
+                
+                Time.timeScale = GetTimeScale();
+                
+                await UniTask.Yield();
             }
 
-            return 1f;
+            if (removeOnFinish && _sourceToChangeIdMap.TryGetValue(hash, out currentId) && id == currentId) {
+                RemoveTimeScale(source);
+            }
+        }
+
+        private float GetTimeScale() {
+            var keys = _priorityMap.SortedKeys;
+            int firstOrder = _priorityMap.GetFirstOrder();
+            
+            float lowestTimescale = 1f;
+            
+            for (int i = 0; i < keys.Count; i++) {
+                int key = keys[i];
+                if (_priorityMap.GetOrder(key) > firstOrder) break;
+                
+                float timescale = _priorityMap[key];
+                if (timescale < lowestTimescale) lowestTimescale = timescale;
+            }
+            
+            return lowestTimescale;
         }
     }
     
