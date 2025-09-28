@@ -94,7 +94,14 @@ namespace MisterGames.Common.Labels {
             
             return true;
         }
+        
+        public override bool ClearData(int id) {
+            if (!LabelLibrariesRunner.RuntimeStorage.RemoveData(this, id)) return false;
 
+            LabelLibrariesRunner.EventSystem.NotifyDataChanged(new LabelValue<T>(this, id), default);
+            return true;
+        }
+        
         public override int GetArraysCount() {
             return _labelArrays?.Length ?? 0;
         }

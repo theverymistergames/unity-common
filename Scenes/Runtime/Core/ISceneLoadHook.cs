@@ -8,6 +8,8 @@ namespace MisterGames.Scenes.Core {
         UniTask OnSceneLoadRequest(string sceneName, CancellationToken cancellationToken);
         
         UniTask OnSceneUnloadRequest(string sceneName, CancellationToken cancellationToken);
+        
+        bool CanUnloadScene(string sceneName);
     }
     
 }

@@ -13,7 +13,7 @@ namespace MisterGames.Logic.Libs {
         }
 
         void IActorComponent.OnDestroyed(IActor actor) {
-            _label.TrySetData(null);
+            _label.ClearData();
         }
     }
     

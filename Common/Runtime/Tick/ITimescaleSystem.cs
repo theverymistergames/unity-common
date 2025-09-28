@@ -5,7 +5,10 @@ using UnityEngine;
 namespace MisterGames.Common.Tick {
     
     public interface ITimescaleSystem {
-    
+
+        float GetTimeScale();
+        float GetTimeScale(int order);
+        
         void SetTimeScale(object source, int priority, float timeScale);
         void RemoveTimeScale(object source);
         

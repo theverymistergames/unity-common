@@ -182,7 +182,7 @@ namespace MisterGames.Scenes.Core {
                     LogInfo($"set active scene {sceneName.FormatColorOnlyForEditor(Color.green)}");
                 }
                 else {
-                    LogWarning($"failed to set active scene {sceneName.FormatColorOnlyForEditor(Color.red)}");
+                    LogInfo($"request active scene {sceneName.FormatColorOnlyForEditor(Color.yellow)}, will be set later, not loaded yet.");
                 }   
             }
         }
@@ -242,7 +242,8 @@ namespace MisterGames.Scenes.Core {
 
         private async UniTask UnloadSceneAsyncInternal(string sceneName) {
             if (string.IsNullOrEmpty(sceneName) || sceneName == GetRootScene() || 
-                !_loadSceneDataMap.TryGetValue(sceneName, out var data)) 
+                !_loadSceneDataMap.TryGetValue(sceneName, out var data) || 
+                CanUnloadScene(sceneName)) 
             {
                 return;
             }
@@ -266,6 +267,7 @@ namespace MisterGames.Scenes.Core {
                 _loadSceneDataMap.Remove(sceneName);    
                 return;
             }
+            
             var cts = new CancellationTokenSource();
             var token = cts.Token;
             
@@ -312,6 +314,14 @@ namespace MisterGames.Scenes.Core {
             
             tasks.ResetArrayElements();
             ArrayPool<UniTask>.Shared.Return(tasks);
+        }
+
+        private bool CanUnloadScene(string sceneName) {
+            foreach (var hook in _sceneLoadHooks) {
+                if (!hook.CanUnloadScene(sceneName)) return false;
+            }
+            
+            return true;
         }
         
         private int GetNextLoadId() {

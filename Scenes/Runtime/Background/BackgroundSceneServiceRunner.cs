@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using MisterGames.Common.Service;
+using UnityEngine;
 
 namespace MisterGames.Scenes.Background {
     
@@ -9,9 +10,11 @@ namespace MisterGames.Scenes.Background {
         
         private void Awake() {
             _backgroundSceneService.Initialize();
+            Services.Register<IBackgroundSceneService>(_backgroundSceneService);
         }
 
         private void OnDestroy() {
+            Services.Unregister(_backgroundSceneService);
             _backgroundSceneService.Dispose();
         }
 

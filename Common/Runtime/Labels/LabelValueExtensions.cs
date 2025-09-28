@@ -118,6 +118,11 @@ namespace MisterGames.Common.Labels {
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool ClearData<T>(this LabelValue<T> labelValue) {
+            return labelValue.library?.ClearData(labelValue.id) ?? false;
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool SubscribeChanges<T>(this LabelValue<T> labelValue, Action<T> listener, bool notifyOnSubscribe = true) {
             if (!LabelLibrariesRunner.EventSystem.Subscribe(labelValue, listener)) return false;
 

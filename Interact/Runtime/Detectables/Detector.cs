@@ -116,7 +116,7 @@ namespace MisterGames.Interact.Detectables {
 
             for (int i = 0; i < hits.Length; i++) {
                 var hit = hits[i];
-                if (hit.hasContact) dest.Add(hit.collider.gameObject.GetHashCode());
+                if (hit is { hasContact: true, isValid: true }) dest.Add(hit.collider.gameObject.GetHashCode());
             }
         }
 

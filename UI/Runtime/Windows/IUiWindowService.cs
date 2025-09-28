@@ -19,7 +19,7 @@ namespace MisterGames.UI.Windows {
         bool HasOpenedWindows();
         bool IsInOpenedBranch(IUiWindow window);
 
-        void SetWindowState(IUiWindow window, UiWindowState state);
+        bool SetWindowState(IUiWindow window, UiWindowState state);
     }
     
 }

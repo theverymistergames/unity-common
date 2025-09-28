@@ -22,7 +22,8 @@ namespace MisterGames.UI.Navigation {
         void BlockExitToPause(object source);
         void UnblockExitToPause(object source);
         
-        void PerformCancel();
+        void NavigateBack();
+        bool NavigateBackPerformedThisFrame();
         
         void BindNavigation(IUiNavigationNode node);
         void UnbindNavigation(IUiNavigationNode node);

@@ -23,14 +23,18 @@ namespace MisterGames.Scenes.SceneRoots {
             SceneLoader.RemoveSceneLoadHook(this);
         }
 
-        public UniTask OnSceneLoadRequest(string sceneName, CancellationToken cancellationToken) {
+        UniTask ISceneLoadHook.OnSceneLoadRequest(string sceneName, CancellationToken cancellationToken) {
             _sceneHashToEnableStateMap.TryAdd(sceneName.GetHashCode(), true);
             return default;
         }
 
-        public UniTask OnSceneUnloadRequest(string sceneName, CancellationToken cancellationToken) {
+        UniTask ISceneLoadHook.OnSceneUnloadRequest(string sceneName, CancellationToken cancellationToken) {
             _sceneHashToEnableStateMap.Remove(sceneName.GetHashCode());
             return default;
+        }
+
+        bool ISceneLoadHook.CanUnloadScene(string sceneName) {
+            return true;
         }
 
         public void Register(ISceneRoot sceneRoot, string sceneName) {

@@ -43,7 +43,6 @@ namespace MisterGames.Common.Labels {
                     case ILabelValueListener<T> interfaceListener:
                         interfaceListener.OnDataChanged(labelValue, data);
                         break;
-
                 }
 
                 i = next;

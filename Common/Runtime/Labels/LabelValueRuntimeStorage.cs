@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-
+using MisterGames.Common.Labels.Base;
 namespace MisterGames.Common.Labels {
     
     public sealed class LabelValueRuntimeStorage : ILabelValueRuntimeStorage, IDisposable {
@@ -28,7 +28,7 @@ namespace MisterGames.Common.Labels {
             _valueMap.Clear();
         }
 
-        public bool TryGetData<T>(LabelLibraryRuntime<T> library, int id, out T data) where T : class {
+        public bool TryGetData<T>(LabelLibraryBase<T> library, int id, out T data) where T : class {
             if (_valueMap.TryGetValue(CreateKey(library, id), out object obj)) {
                 data = (T) obj;
                 return true;
@@ -38,11 +38,15 @@ namespace MisterGames.Common.Labels {
             return false;
         }
 
-        public void SetData<T>(LabelLibraryRuntime<T> library, int id, T data) where T : class {
+        public void SetData<T>(LabelLibraryBase<T> library, int id, T data) where T : class {
             _valueMap[CreateKey(library, id)] = data;
         }
 
-        private static Key CreateKey<T>(LabelLibraryRuntime<T> library, int valueId) where T : class {
+        public bool RemoveData<T>(LabelLibraryBase<T> library, int id) where T : class {
+            return _valueMap.Remove(CreateKey(library, id));
+        }
+
+        private static Key CreateKey<T>(LabelLibraryBase<T> library, int valueId) where T : class {
             return new Key(library.GetInstanceID(), valueId);
         }
     }

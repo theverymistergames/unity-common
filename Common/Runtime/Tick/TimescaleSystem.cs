@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Data;
-using MisterGames.Common.Easing;
 using MisterGames.Common.Maths;
 using UnityEngine;
 
@@ -24,10 +23,10 @@ namespace MisterGames.Common.Tick {
             
             _priorityMap.Set(hash, timeScale, priority);
             
-            byte id = _sourceToChangeIdMap[hash];
+            byte id = _sourceToChangeIdMap.GetValueOrDefault(hash);
             _sourceToChangeIdMap[hash] = id.IncrementUncheckedRef();
             
-            Time.timeScale = GetTimeScale();
+            Time.timeScale = CalculateTimeScale(_priorityMap.GetFirstOrder());
         }
 
         public void RemoveTimeScale(object source) {
@@ -36,7 +35,7 @@ namespace MisterGames.Common.Tick {
             
             if (!_priorityMap.Remove(hash)) return;
             
-            Time.timeScale = GetTimeScale();
+            Time.timeScale = CalculateTimeScale(_priorityMap.GetFirstOrder());
         }
 
         public async UniTask ChangeTimeScale(
@@ -51,7 +50,7 @@ namespace MisterGames.Common.Tick {
             int hash = source.GetHashCode();
 
             byte currentId;
-            byte id = _sourceToChangeIdMap[hash];
+            byte id = _sourceToChangeIdMap.GetValueOrDefault(hash);
             _sourceToChangeIdMap[hash] = id.IncrementUncheckedRef();
             
             float t = 0f;
@@ -64,12 +63,11 @@ namespace MisterGames.Common.Tick {
                    !cancellationToken.IsCancellationRequested && 
                    _sourceToChangeIdMap.TryGetValue(hash, out currentId) && id == currentId) 
             {
-                t = Mathf.Clamp01(t + Time.deltaTime * speed);
+                t = Mathf.Clamp01(t + Time.unscaledDeltaTime * speed);
                 
                 _priorityMap.Set(hash, Mathf.Lerp(startTimescale, timescale, curve?.Evaluate(t) ?? t), priority);
-                
-                Time.timeScale = GetTimeScale();
-                
+                Time.timeScale = CalculateTimeScale(_priorityMap.GetFirstOrder());
+
                 await UniTask.Yield();
             }
 
@@ -78,15 +76,28 @@ namespace MisterGames.Common.Tick {
             }
         }
 
-        private float GetTimeScale() {
-            var keys = _priorityMap.SortedKeys;
+        public float GetTimeScale() {
+            return Time.timeScale;
+        }
+
+        public float GetTimeScale(int order) {
+            return CalculateTimeScale(order);
+        }
+
+        private float CalculateTimeScale(int maxOrder) {
+            float lowestTimescale = 1f;
             int firstOrder = _priorityMap.GetFirstOrder();
             
-            float lowestTimescale = 1f;
+            if (firstOrder > maxOrder) return lowestTimescale;
+            
+            maxOrder = Mathf.Min(firstOrder, maxOrder);
+            var keys = _priorityMap.SortedKeys;
             
             for (int i = 0; i < keys.Count; i++) {
                 int key = keys[i];
-                if (_priorityMap.GetOrder(key) > firstOrder) break;
+                int order = _priorityMap.GetOrder(key);
+                
+                if (order > maxOrder) break;
                 
                 float timescale = _priorityMap[key];
                 if (timescale < lowestTimescale) lowestTimescale = timescale;

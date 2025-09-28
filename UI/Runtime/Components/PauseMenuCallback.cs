@@ -29,7 +29,7 @@ namespace MisterGames.UI.Components {
         
         [Header("Window")]
         [SerializeField] [Min(0)] private int _openWindowOrder;
-        [SerializeField] private LabelValue<IUiWindow> _menuWindowId;
+        [SerializeField] private UiWindow _menuWindow;
 
         [Header("Conditions")]
         [SubclassSelector]
@@ -40,7 +40,8 @@ namespace MisterGames.UI.Components {
         [SerializeField] [Min(0)] private int _changeTimescaleOrderOnOpen;
         [SerializeField] [Min(0)] private int _changeTimescaleOrderOnClose;
         [SerializeField] [Min(0f)] private float _timeScale = 1f;
-        [SerializeField] [Min(0f)] private float _timeScaleFullChangeDuration = 0f;
+        [SerializeField] [Min(0f)] private float _timeScaleDurationOnOpen;
+        [SerializeField] [Min(0f)] private float _timeScaleDurationOnClose;
         [SerializeField] private AnimationCurve _timeScaleCurve = EasingType.Linear.ToAnimationCurve();
         
         [Header("Actions")]
@@ -76,9 +77,18 @@ namespace MisterGames.UI.Components {
         private void OnEnable() {
             _startTime = TimeSources.scaledTime;
             
+            if (Services.TryGet(out IUiWindowService service)) service.OnWindowsHierarchyChanged += OnWindowHierarchyChanged;
+            
+            _isMenuOpened = IsWindowRootInOpenedBranch(_menuWindow);
+
             _openPauseMenuInput.Get().performed += OnPauseInput;
             
-            if (Services.TryGet(out IUiWindowService service)) service.OnWindowsHierarchyChanged += OnWindowHierarchyChanged;
+            if (_isMenuOpened) {
+                Services.Get<ITimescaleSystem>().SetTimeScale(this, _timescalePriority.GetValue(), _timeScale);
+            }
+            else {
+                Services.Get<ITimescaleSystem>().RemoveTimeScale(this);
+            }
         }
 
         private void OnDisable() {
@@ -93,19 +103,17 @@ namespace MisterGames.UI.Components {
         }
 
         private void OnWindowHierarchyChanged() {
-            var menuWindow = _menuWindowId.GetData();
-            
             bool wasMenuOpened = _isMenuOpened;
-            _isMenuOpened = IsWindowRootInOpenedBranch(menuWindow);
+            _isMenuOpened = IsWindowRootInOpenedBranch(_menuWindow);
 
-            if (wasMenuOpened && !_isMenuOpened) {
-                AsyncExt.RecreateCts(ref _actionCts);
+            if (!wasMenuOpened || _isMenuOpened) return;
+            
+            AsyncExt.RecreateCts(ref _actionCts);
                 
-                _openId = _operationId.IncrementUncheckedRef();
-                _openId.IncrementUncheckedRef();
+            _openId = _operationId.IncrementUncheckedRef();
+            _openId.IncrementUncheckedRef();
                 
-                OnCloseMenu(_actionCts.Token).Forget();
-            }
+            OnCloseMenu(_actionCts.Token).Forget();
         }
 
         private void OnPauseInput(InputAction.CallbackContext obj) {
@@ -118,11 +126,11 @@ namespace MisterGames.UI.Components {
                 OnCloseMenu(_actionCts.Token).Forget();
                 return;
             }
-            
-            var menuWindow = _menuWindowId.GetData();
 
-            if ((Services.Get<IUiNavigationService>()?.IsExitToPauseBlocked() ?? true) ||
-                IsWindowRootInOpenedBranch(menuWindow) ||
+            if (!Services.TryGet(out IUiNavigationService service) || 
+                service.IsExitToPauseBlocked() ||
+                _menuWindow == null ||
+                IsWindowRootInOpenedBranch(_menuWindow) ||
                 !IsConditionMatch(_canOpenPauseMenu)) 
             {
                 return;
@@ -130,8 +138,7 @@ namespace MisterGames.UI.Components {
             
             AsyncExt.RecreateCts(ref _actionCts);
             _openId = _operationId.IncrementUncheckedRef();
-            
-            OpenMenu(menuWindow, _actionCts.Token).Forget();
+            OpenMenu(_menuWindow, _actionCts.Token).Forget();
         }
 
         private async UniTask OpenMenu(IUiWindow window, CancellationToken cancellationToken) {
@@ -154,7 +161,7 @@ namespace MisterGames.UI.Components {
                         source: this,
                         timescalePriority,
                         _timeScale,
-                        _timeScaleFullChangeDuration,
+                        _timeScaleDurationOnOpen,
                         removeOnFinish: false,
                         _timeScaleCurve,
                         cancellationToken
@@ -197,7 +204,7 @@ namespace MisterGames.UI.Components {
                         source: this,
                         timescalePriority,
                         1f,
-                        _timeScaleFullChangeDuration,
+                        _timeScaleDurationOnClose,
                         removeOnFinish: true,
                         _timeScaleCurve,
                         cancellationToken

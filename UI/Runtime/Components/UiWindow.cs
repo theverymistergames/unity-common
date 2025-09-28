@@ -5,6 +5,7 @@ using MisterGames.Common.Service;
 using MisterGames.UI.Navigation;
 using MisterGames.UI.Windows;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 #if UNITY_EDITOR
@@ -27,7 +28,9 @@ namespace MisterGames.UI.Components {
         [SerializeField] private Selectable _firstSelected;
         
         [Header("View")]
-        [SerializeField] private GameObject[] _enableGameObjects;
+        [FormerlySerializedAs("_enableGameObjects")]
+        [SerializeField] private GameObject[] _enableOnWindowOpened;
+        [SerializeField] private GameObject[] _enableOnBranchOpened;
         
         public GameObject GameObject => gameObject;
         public GameObject CurrentSelected { get; private set; }
@@ -76,20 +79,27 @@ namespace MisterGames.UI.Components {
         }
         
         void IUiWindow.NotifyWindowState(UiWindowState state) {
+#if UNITY_EDITOR
+            if (!Application.isPlaying) {
+                SetEnableState(_enableOnWindowOpened, state == UiWindowState.Opened);
+                SetEnableState(_enableOnBranchOpened, state == UiWindowState.Opened);
+                return;
+            }
+#endif
+            
             State = state;
-            ApplyState(state);
-        }
-
-        private void ApplyState(UiWindowState state) {
+            
+            SetEnableState(_enableOnBranchOpened, Services.Get<IUiWindowService>().IsInOpenedBranch(this));
+            
             switch (state) {
                 case UiWindowState.Closed:
-                    _enableGameObjects.SetActive(false);
+                    SetEnableState(_enableOnWindowOpened, false);
                     UnsubscribeSelectedGameObject();
                     MaybeResetSelectionToFirst();
                     break;
                 
                 case UiWindowState.Opened:
-                    _enableGameObjects.SetActive(true);
+                    SetEnableState(_enableOnWindowOpened, true);
                     SubscribeSelectedGameObject();
                     break;
                 
@@ -97,7 +107,7 @@ namespace MisterGames.UI.Components {
                     throw new ArgumentOutOfRangeException(nameof(state), state, null);
             }
         }
-        
+
         private void MaybeResetSelectionToFirst() {
             // Do not reset to first if focused window is a child of this window to preserve selection history.
             if (!Services.TryGet(out IUiWindowService service) ||
@@ -109,30 +119,51 @@ namespace MisterGames.UI.Components {
             
             CurrentSelected = _firstSelected?.gameObject;
         }
+        
+        private static void SetEnableState(GameObject[] gameObjects, bool enable) {
+            for (int i = 0; i < gameObjects?.Length; i++) {
+                var go = gameObjects[i];
+                
+#if UNITY_EDITOR
+                if (!Application.isPlaying && (go == null || go.IsEnabled() == enable)) continue;
+#endif
+
+                go.SetActive(enable);
+                
+#if UNITY_EDITOR
+                if (!Application.isPlaying) EditorUtility.SetDirty(go);
+#endif
+            }
+        }
 
 #if UNITY_EDITOR
-        [Button(mode: ButtonAttribute.Mode.Runtime)] 
-        private void OpenWindow() => Services.Get<IUiWindowService>()?.SetWindowState(this, UiWindowState.Opened);
-        [Button(mode: ButtonAttribute.Mode.Runtime)] 
-        private void CloseWindow() => Services.Get<IUiWindowService>()?.SetWindowState(this, UiWindowState.Closed);
-
-        private void OnValidate() {
+        [Button] 
+        private void OpenWindow() {
             if (Application.isPlaying) {
-                ApplyState(State);
+                Services.Get<IUiWindowService>()?.SetWindowState(this, UiWindowState.Opened);
                 return;
             }
 
-            for (int i = 0; i < _enableGameObjects.Length; i++) {
-                var go = _enableGameObjects[i];
-                if (go == null) continue;
+            var windows = gameObject.GetComponentsInChildren<IUiWindow>();
+            
+            for (int i = 0; i < windows.Length; i++) {
+                var uiWindow = windows[i];
+                var state = ReferenceEquals(uiWindow, this) ? UiWindowState.Opened : UiWindowState.Closed;
+                uiWindow.NotifyWindowState(state);
+            }
+        }
 
-                bool isEnabled = go.IsEnabled();
-                bool setEnabled = _initialState == UiWindowState.Opened;
-                
-                if (isEnabled == setEnabled) continue;
-                
-                go.SetEnabled(setEnabled);
-                EditorUtility.SetDirty(go);
+        [Button] 
+        private void CloseWindow() {
+            if (Application.isPlaying) {
+                Services.Get<IUiWindowService>()?.SetWindowState(this, UiWindowState.Closed);
+                return;
+            }
+            
+            var windows = gameObject.GetComponentsInChildren<IUiWindow>();
+            
+            for (int i = 0; i < windows.Length; i++) {
+                windows[i].NotifyWindowState(UiWindowState.Closed);
             }
         }
 #endif

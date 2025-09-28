@@ -34,7 +34,9 @@ namespace MisterGames.UI.Navigation {
 
         private Selectable _selectable;
         private InputAction _moveInput;
+        private InputAction _cancelInput;
         private int _selectedGameObjectHash;
+        private int _navigateBackPerformFrame;
         
         public void Initialize(IUiWindowService uiWindowService, UiNavigationSettings settings) {
             _uiWindowService = uiWindowService;
@@ -42,9 +44,10 @@ namespace MisterGames.UI.Navigation {
             
             _uiWindowService.OnWindowsHierarchyChanged += OnWindowsHierarchyChanged;
             
-            _settings.cancelInput.Get().performed += OnCancelInputPerformed;
-            
             _moveInput = _settings.moveInput.Get();
+            _cancelInput = _settings.cancelInput.Get();
+            
+            _cancelInput.performed += OnCancelInputPerformed;
             
             PlayerLoopStage.LateUpdate.Subscribe(this);
         }
@@ -52,7 +55,7 @@ namespace MisterGames.UI.Navigation {
         public void Dispose() {
             _uiWindowService.OnWindowsHierarchyChanged -= OnWindowsHierarchyChanged;
             
-            _settings.cancelInput.Get().performed -= OnCancelInputPerformed;
+            _cancelInput.performed -= OnCancelInputPerformed;
             
             _windowCallbackMap.Clear();
             _windowCallbacksBuffer.Clear();
@@ -128,7 +131,7 @@ namespace MisterGames.UI.Navigation {
         }
 
         public bool IsExitToPauseBlocked() {
-            return _pauseBlockers.Count > 0;
+            return _pauseBlockers.Count > 0 || NavigateBackPerformedThisFrame();
         }
 
         public void BlockExitToPause(object source) {
@@ -143,7 +146,11 @@ namespace MisterGames.UI.Navigation {
             OnCancelInputFromWindow();
         }
 
-        public void PerformCancel() {
+        public bool NavigateBackPerformedThisFrame() {
+            return Time.frameCount == _navigateBackPerformFrame;
+        }
+
+        public void NavigateBack() {
             OnCancelInputFromWindow();
         }
 
@@ -159,6 +166,8 @@ namespace MisterGames.UI.Navigation {
             }
 
             if (!canNavigateBack) return;
+            
+            _navigateBackPerformFrame = Time.frameCount;
             
             _uiWindowService.SetWindowState(window, UiWindowState.Closed);
             

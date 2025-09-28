@@ -5,7 +5,10 @@ using MisterGames.Actors;
 using MisterGames.Character.Input;
 using MisterGames.Character.Motion;
 using MisterGames.Common.Async;
+using MisterGames.Common.Labels;
 using MisterGames.Common.Maths;
+using MisterGames.Common.Service;
+using MisterGames.Common.Tick;
 using UnityEngine;
 
 namespace MisterGames.Character.View {
@@ -28,6 +31,9 @@ namespace MisterGames.Character.View {
         
         [Header("Gravity Settings")]
         [SerializeField] [Min(0f)] private float _gravityDirSmoothing = 6f;
+        
+        [Header("Timescale")]
+        [SerializeField] private LabelValue _timescalePriority;
         
         public event Action<float> OnAttach { add => _headJoint.OnAttach += value; remove => _headJoint.OnAttach -= value; }
         public event Action OnDetach { add => _headJoint.OnDetach += value; remove => _headJoint.OnDetach -= value; }
@@ -80,6 +86,7 @@ namespace MisterGames.Character.View {
         
         private readonly CharacterHeadJoint _headJoint = new();
         private CancellationTokenSource _enableCts;
+        private ITimescaleSystem _timescaleSystem;
         
         private CameraContainer _cameraContainer;
         private CharacterInputPipeline _inputPipeline;
@@ -110,6 +117,8 @@ namespace MisterGames.Character.View {
             _headParent = _head.parent;
             
             _startTime = Time.time;
+
+            _timescaleSystem = Services.Get<ITimescaleSystem>();
         }
 
         void IActorComponent.OnSetData(IActor actor) {
@@ -268,18 +277,24 @@ namespace MisterGames.Character.View {
 
         private async UniTask StartPreUpdate(PlayerLoopTiming loop, CancellationToken cancellationToken) {
             while (!cancellationToken.IsCancellationRequested) {
-                PreUpdate(Time.unscaledDeltaTime);
+                PreUpdate(GetDeltaTime());
                 await UniTask.Yield(loop);
             }
         }
         
         private async UniTask StartPostUpdate(PlayerLoopTiming loop, CancellationToken cancellationToken) {
             while (!cancellationToken.IsCancellationRequested) {
-                PostUpdate(Time.unscaledDeltaTime);
+                PostUpdate(GetDeltaTime());
                 await UniTask.Yield(loop);
             }
         }
 
+        private float GetDeltaTime() {
+            return _timescalePriority.TryGetValue(out int value) 
+                ? Time.unscaledDeltaTime * _timescaleSystem.GetTimeScale(value) 
+                : Time.unscaledDeltaTime;
+        }
+        
         private void PreUpdate(float dt) {
             ProcessGravityAlign(dt);
             ProcessPositionSnap(dt);
