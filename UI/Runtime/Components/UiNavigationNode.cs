@@ -1,4 +1,9 @@
 ﻿using System;
+using System.Threading;
+using Cysharp.Threading.Tasks;
+using MisterGames.Common;
+using MisterGames.Common.Async;
+using MisterGames.Common.Attributes;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Service;
 using MisterGames.UI.Navigation;
@@ -14,6 +19,7 @@ namespace MisterGames.UI.Components {
         
         [Header("Inner Navigation")]
         [SerializeField] private UiNavigationMode _mode;
+        [SerializeField] private Vector2 _cell = new(400f, 50f);
         [SerializeField] private bool _loop = true;
         
         [Header("Outer Navigation")]
@@ -28,6 +34,7 @@ namespace MisterGames.UI.Components {
         public UiNavigateFromOuterNodesOptions NavigateFromOuterNodesOptions => _navigateFromOuterNodesOptions;
         
         private readonly UiNavigationNodeHelper _helper = new();
+        private CancellationTokenSource _enableCts;
         
         private IUiWindow _window;
         
@@ -40,6 +47,8 @@ namespace MisterGames.UI.Components {
         }
 
         private void OnEnable() {
+            AsyncExt.RecreateCts(ref _enableCts);
+            
             if (Services.TryGet(out IUiWindowService windowService)) {
                 windowService.OnWindowsHierarchyChanged += OnWindowsHierarchyChanged;
             }
@@ -51,9 +60,13 @@ namespace MisterGames.UI.Components {
                     navigationService.BindNavigation(this);
                 }
             }
+            
+            UpdateNavigation();
         }
 
         private void OnDisable() {
+            AsyncExt.DisposeCts(ref _enableCts);
+            
             if (Services.TryGet(out IUiWindowService windowService)) {
                 windowService.OnWindowsHierarchyChanged -= OnWindowsHierarchyChanged;
             }
@@ -67,7 +80,8 @@ namespace MisterGames.UI.Components {
 
         public void Bind(Selectable selectable) {
             _helper.Bind(selectable);
-
+            
+            DebugExt.DrawSphere(selectable.transform.position, 0.013f, RandomExtensions.GetRandomColor(), duration: 3f);
             if (Services.TryGet(out IUiNavigationService service)) {
                 OnSelectedGameObjectChanged(service.SelectedGameObject, service.SelectedGameObjectWindow);   
             }
@@ -77,8 +91,28 @@ namespace MisterGames.UI.Components {
             _helper.Unbind(selectable);
         }
 
+#if UNITY_EDITOR
+        [Button(mode: ButtonAttribute.Mode.Runtime)]
+#endif
         public void UpdateNavigation() {
-            _helper.UpdateNavigation(transform, _mode, _loop);
+            UpdateNavigationNextFrame(_enableCts?.Token ?? default).Forget();
+        }
+
+        private async UniTask UpdateNavigationNextFrame(CancellationToken cancellationToken) {
+            _helper.UpdateNavigation(transform, _mode, _loop, _cell);
+            
+            // The position of the selectable during enabling layout groups maybe inconsistent
+            // (all selectables in the layout group share the same selectable.transform.position), 
+            // so to avoid setting incorrect navigation lets update it two frames later.
+            await UniTask.Yield();
+            if (cancellationToken.IsCancellationRequested) return;
+            
+            _helper.UpdateNavigation(transform, _mode, _loop, _cell);
+            
+            await UniTask.Yield();
+            if (cancellationToken.IsCancellationRequested) return;
+            
+            _helper.UpdateNavigation(transform, _mode, _loop, _cell);
         }
 
         public void OnNavigateOut(Selectable fromSelectable, UiNavigationDirection direction) {
@@ -113,7 +147,7 @@ namespace MisterGames.UI.Components {
                 }
             
                 var pos = rootTrf.InverseTransformPoint(selectable.transform.position).ToFloat2XY();
-                if (!pos.IsInDirection(origin, direction)) continue;
+                if (!pos.IsInDirection(origin, direction, _cell)) continue;
                 
                 float sqrDistance = math.distancesq(pos, origin);
                 if (minSqrDistance >= 0f && sqrDistance > minSqrDistance) continue;

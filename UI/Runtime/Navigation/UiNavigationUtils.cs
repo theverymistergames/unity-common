@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
-using MisterGames.Common.Maths;
 using Unity.Burst;
 using Unity.Mathematics;
 
@@ -14,27 +13,33 @@ namespace MisterGames.UI.Navigation {
         private static readonly int2 Right = new(1, 0);
 
         [BurstCompile]
-        public static bool IsHigherThan(this float2 position, float2 relativeTo, UiNavigationMode mode) {
-            return IsInDirection(position, relativeTo, Up, mode);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int2 DeltaInCells(this float2 vector, float2 cellSize) {
+            return new int2((int) math.floor(vector.x / cellSize.x), (int) math.floor(vector.y / cellSize.y));
         }
         
         [BurstCompile]
-        public static bool IsLowerThan(this float2 position, float2 relativeTo, UiNavigationMode mode) {
-            return IsInDirection(position, relativeTo, Down, mode);
+        public static bool IsHigherThan(this float2 position, float2 relativeTo, float2 cellSize) {
+            return IsInDirection(position, relativeTo, Up, cellSize);
         }
         
         [BurstCompile]
-        public static bool IsToTheLeftTo(this float2 position, float2 relativeTo, UiNavigationMode mode) {
-            return IsInDirection(position, relativeTo, Left, mode);
+        public static bool IsLowerThan(this float2 position, float2 relativeTo, float2 cellSize) {
+            return IsInDirection(position, relativeTo, Down, cellSize);
         }
         
         [BurstCompile]
-        public static bool IsToTheRightTo(this float2 position, float2 relativeTo, UiNavigationMode mode) {
-            return IsInDirection(position, relativeTo, Right, mode);
+        public static bool IsToTheLeftTo(this float2 position, float2 relativeTo, float2 cellSize) {
+            return IsInDirection(position, relativeTo, Left, cellSize);
         }
         
         [BurstCompile]
-        public static bool IsInDirection(this float2 position, float2 relativeTo, UiNavigationDirection direction, UiNavigationMode mode) {
+        public static bool IsToTheRightTo(this float2 position, float2 relativeTo, float2 cellSize) {
+            return IsInDirection(position, relativeTo, Right, cellSize);
+        }
+        
+        [BurstCompile]
+        public static bool IsInDirection(this float2 position, float2 relativeTo, UiNavigationDirection direction, float2 cellSize) {
             var dir = direction switch {
                 UiNavigationDirection.Up => Up,
                 UiNavigationDirection.Down => Down,
@@ -43,40 +48,26 @@ namespace MisterGames.UI.Navigation {
                 _ => throw new ArgumentOutOfRangeException(nameof(direction), direction, null)
             };
             
-            return IsInDirection(position, relativeTo, dir, mode);
+            return IsInDirection(position, relativeTo, dir, cellSize);
         }
         
         [BurstCompile]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsInDirection(this float2 position, float2 relativeTo, UiNavigationDirection direction) {
+        private static bool IsInDirection(this float2 position, float2 relativeTo, int2 direction, float2 cellSize) {
+            var cells = DeltaInCells(position - relativeTo, cellSize);
+
+            if (math.abs(cells.y) >= math.abs(cells.x)) {
+                return direction switch {
+                    { x: 0, y: > 0 } => cells.y > 0,
+                    { x: 0, y: < 0 } => cells.y < 0,
+                    _ => false,
+                };
+            }
+
             return direction switch {
-                UiNavigationDirection.Up => position.y > relativeTo.y,
-                UiNavigationDirection.Down => position.y < relativeTo.y,
-                UiNavigationDirection.Left => position.x < relativeTo.x,
-                UiNavigationDirection.Right => position.x > relativeTo.x,
-                _ => throw new ArgumentOutOfRangeException(nameof(direction), direction, null)
-            };
-        }
-        
-        [BurstCompile]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static bool IsInDirection(this float2 position, float2 relativeTo, int2 direction, UiNavigationMode mode) {
-            return mode switch {
-                UiNavigationMode.Grid => VectorUtils.Angle(direction, position - relativeTo) <= 45f,
-                
-                UiNavigationMode.Vertical => direction switch {
-                    { x: 0, y: 1 } => position.y > relativeTo.y,
-                    { x: 0, y: -1 } => position.y < relativeTo.y,
-                    _ => false,
-                },
-                    
-                UiNavigationMode.Horizontal => direction switch {
-                    { x: 1, y: 0 } => position.x > relativeTo.x,
-                    { x: -1, y: 0 } => position.x < relativeTo.x,
-                    _ => false,
-                },
-                    
-                _ => throw new ArgumentOutOfRangeException()
+                { x: > 0, y: 0 } => cells.x > 0,
+                { x: < 0, y: 0 } => cells.x < 0,
+                _ => false,
             };
         }
         
