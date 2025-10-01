@@ -30,8 +30,19 @@ namespace MisterGames.UI.Windows {
             var firstState = GetParentWindow(window) != null
                 ? UiWindowState.Closed
                 : state;
-            
-            SetWindowState(window, firstState);
+
+            switch (firstState) {
+                case UiWindowState.Closed:
+                    SetWindowBranchState(window, UiWindowState.Closed);
+                    break;
+                
+                case UiWindowState.Opened:
+                    OpenWindow(window);
+                    break;
+                
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
 
         public void UnregisterWindow(IUiWindow window) {

@@ -15,12 +15,12 @@ namespace MisterGames.ActionLib.Character {
         public Optional<ViewAxisClamp> vertical;
 
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            var view = context.GetComponent<CharacterViewPipeline>();
+            if (!context.TryGetComponent(out CharacterViewPipeline view)) return UniTask.CompletedTask;
             
             if (horizontal.HasValue) view.ApplyHorizontalClamp(horizontal.Value);
             if (vertical.HasValue) view.ApplyVerticalClamp(vertical.Value);
             
-            return default;
+            return UniTask.CompletedTask;
         }
     }
     

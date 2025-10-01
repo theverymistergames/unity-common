@@ -262,6 +262,7 @@ namespace MisterGames.Collisions.Utils {
 
                 if (hit.distance <= filter.maxDistance &&
                     hit.colliderInstanceID != 0 &&
+                    hit.collider != null && 
                     filter.layerMask.Contains(hit.collider.gameObject.layer)) 
                 {
                     continue;

@@ -243,7 +243,7 @@ namespace MisterGames.Scenes.Core {
         private async UniTask UnloadSceneAsyncInternal(string sceneName) {
             if (string.IsNullOrEmpty(sceneName) || sceneName == GetRootScene() || 
                 !_loadSceneDataMap.TryGetValue(sceneName, out var data) || 
-                CanUnloadScene(sceneName)) 
+                !CanUnloadScene(sceneName)) 
             {
                 return;
             }
@@ -316,7 +316,7 @@ namespace MisterGames.Scenes.Core {
             ArrayPool<UniTask>.Shared.Return(tasks);
         }
 
-        private bool CanUnloadScene(string sceneName) {
+        private static bool CanUnloadScene(string sceneName) {
             foreach (var hook in _sceneLoadHooks) {
                 if (!hook.CanUnloadScene(sceneName)) return false;
             }

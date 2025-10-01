@@ -74,18 +74,20 @@ namespace MisterGames.Scenes.Background {
             _sceneRootService.OnSceneRootsEnableStateChanged -= SceneRootsEnableStateChanged;
         }
 
-        public void BindBackgroundScene(object source, string sceneName) {
+        public void BindBackgroundScene(object source, string sceneName, bool makeActive = false) {
             _sceneHashToBackgroundSourceHashMap.AddValue(sceneName.GetHashCode(), source.GetHashCode());
             _sceneRootService.SetSceneRootEnabled(sceneName, true);
-            
-            SceneLoader.LoadScene(sceneName);
+
+            SceneLoader.LoadScene(sceneName, makeActive);
         }
 
         public void UnbindBackgroundScene(object source, string sceneName) {
             _sceneHashToBackgroundSourceHashMap.RemoveValue(sceneName.GetHashCode(), source.GetHashCode());
             _sceneRootService.SetSceneRootEnabled(sceneName, !CanUnloadScene(sceneName));
-            
-            SceneLoader.UnloadScene(sceneName);
+
+            if (GetUnloadMode(sceneName) == UnloadMode.UnloadScene) {
+                SceneLoader.UnloadScene(sceneName);
+            }
         }
         
         private void SceneRootsEnableStateChanged(string sceneName, bool enabled) {
@@ -108,12 +110,14 @@ namespace MisterGames.Scenes.Background {
 
             for (int i = 0; i < count; i++) {
                 int index = _sceneHashToForScenesIndexMap.GetValueAt(hash, i);
-
                 ref var backgroundSceneData = ref _backgroundScenesMap[index];
                 
                 for (int j = 0; j < backgroundSceneData.forScenes.Length; j++) {
                     ref string scene = ref backgroundSceneData.forScenes[j].scene;
-                    if (IsRequestedToBeLoaded(scene)) return false;
+
+                    if (IsRequestedToBeLoaded(scene)) {
+                        return false;
+                    }
                 }
             }
             
@@ -124,8 +128,10 @@ namespace MisterGames.Scenes.Background {
             int hash = sceneName.GetHashCode();
             
             int backgroundIndexCount = _sceneHashToBackgroundScenesIndexMap.GetCount(hash);
-            if (backgroundIndexCount <= 0) return;
-
+            if (backgroundIndexCount <= 0) {
+                return;
+            }
+            
             GetNextProcessId(hash);
             ProcessLoadRequest(hash, backgroundIndexCount, out var scenesToLoad, out string activeScene);
 
@@ -143,7 +149,10 @@ namespace MisterGames.Scenes.Background {
             int hash = sceneName.GetHashCode();
             
             int backgroundIndexCount = _sceneHashToBackgroundScenesIndexMap.GetCount(hash);
-            if (backgroundIndexCount <= 0) return;
+            
+            if (backgroundIndexCount <= 0) {
+                return;
+            }
             
             byte id = GetNextProcessId(hash);
             
@@ -171,7 +180,10 @@ namespace MisterGames.Scenes.Background {
                     ref string backgroundScene = ref data.backgroundScenes[j].scene;
                     
                     _sceneRootService.SetSceneRootEnabled(backgroundScene, true);
-                    if (SceneLoader.IsSceneRequestedToLoad(backgroundScene)) continue;
+                    
+                    if (SceneLoader.IsSceneRequestedToLoad(backgroundScene)) {
+                        continue;
+                    }
                     
                     scenesToLoad ??= ListPool<string>.Get();
                     scenesToLoad.Add(backgroundScene);
@@ -196,24 +208,25 @@ namespace MisterGames.Scenes.Background {
                 for (int j = 0; j < data.forScenes.Length; j++) {
                     ref string scene = ref data.forScenes[j].scene;
 
-                    if (!IsRequestedToBeLoaded(scene) || CanUnloadScene(scene)) continue;
+                    if (!IsRequestedToBeLoaded(scene)) {
+                        continue;
+                    }
                     
                     canUnloadBackgroundScenes = false;
                     break;
                 }
                 
-                ref var set = ref canUnloadBackgroundScenes ? ref scenesToUnload : ref scenesToKeep;
-                
-                set ??= HashSetPool<string>.Get();
-
                 for (int j = 0; j < data.backgroundScenes.Length; j++) {
                     ref string backgroundScene = ref data.backgroundScenes[j].scene;
-                    
-                    if (canUnloadBackgroundScenes && !CanUnloadScene(backgroundScene)) {
+
+                    if (!canUnloadBackgroundScenes || !CanUnloadScene(backgroundScene)) {
+                        scenesToKeep ??= HashSetPool<string>.Get();
+                        scenesToKeep.Add(backgroundScene);
                         continue;
                     }
                     
-                    set.Add(backgroundScene);
+                    scenesToUnload ??= HashSetPool<string>.Get();
+                    scenesToUnload.Add(backgroundScene);
                 }
             }
 
@@ -224,7 +237,7 @@ namespace MisterGames.Scenes.Background {
             
             foreach (string scene in scenesToUnload) {
                 if (scenesToKeep?.Contains(scene) ?? false) continue;
-
+                
                 _sceneRootService.SetSceneRootEnabled(scene, false);
                 
                 if (GetUnloadMode(scene) == UnloadMode.UnloadScene) {

@@ -81,7 +81,6 @@ namespace MisterGames.UI.Components {
         public void Bind(Selectable selectable) {
             _helper.Bind(selectable);
             
-            DebugExt.DrawSphere(selectable.transform.position, 0.013f, RandomExtensions.GetRandomColor(), duration: 3f);
             if (Services.TryGet(out IUiNavigationService service)) {
                 OnSelectedGameObjectChanged(service.SelectedGameObject, service.SelectedGameObjectWindow);   
             }

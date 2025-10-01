@@ -116,7 +116,9 @@ namespace MisterGames.Interact.Detectables {
 
             for (int i = 0; i < hits.Length; i++) {
                 var hit = hits[i];
-                if (hit is { hasContact: true, isValid: true }) dest.Add(hit.collider.gameObject.GetHashCode());
+                if (hit is { hasContact: true, isValid: true } && hit.collider != null) {
+                    dest.Add(hit.collider.gameObject.GetHashCode());
+                }
             }
         }
 
@@ -154,7 +156,7 @@ namespace MisterGames.Interact.Detectables {
         private void AddNewDetectedCandidates(ICollection<int> lastDetectedTransformHashes, ReadOnlySpan<CollisionInfo> hits) {
             for (int i = 0; i < hits.Length; i++) {
                 var hit = hits[i];
-                if (!hit.hasContact) continue;
+                if (!hit.hasContact || hit.collider == null) continue;
 
                 int hash = hit.collider.gameObject.GetHashCode();
                 if (lastDetectedTransformHashes.Contains(hash)) continue;

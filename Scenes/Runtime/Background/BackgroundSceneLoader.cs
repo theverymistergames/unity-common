@@ -44,9 +44,7 @@ namespace MisterGames.Scenes.Background {
 
             for (int i = 0; i < _scenes?.Length; i++) {
                 ref string scene = ref _scenes[i].scene;
-                service.BindBackgroundScene(this, scene);
-                
-                if (i == 0 && _activateFirstScene) SceneLoader.SetActiveScene(scene);
+                service.BindBackgroundScene(this, scene, makeActive: i == 0 && _activateFirstScene);
             }
         }
 
