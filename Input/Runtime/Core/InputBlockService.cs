@@ -109,7 +109,7 @@ namespace MisterGames.Input.Core {
             
             inputActionBlocksToRemove.Dispose();
 
-            for (int i = 0; i < inputMapBlocksToRemove.Length; i++) {
+            for (int i = 0; i < removeInputMapsCount; i++) {
                 var key = inputMapBlocksToRemove[i];
                 
                 _inputMapBlocks.Remove(key);
@@ -657,11 +657,11 @@ namespace MisterGames.Input.Core {
             
             bool hasOverride = false;
             bool enableInputAction = false;
-
+            
             for (int i = 0; i < count; i++) {
                 int hash = _inputActionToSourceHashBlocks.GetValueAt(guid, i);
                 if (!_inputActionBlocks.TryGetValue(new BlockKey(hash, guid), out var block)) continue;
-
+                
                 hasOverride = true;
                 
                 if (block.blocked) continue;
@@ -669,12 +669,12 @@ namespace MisterGames.Input.Core {
                 enableInputAction = true;
                 break;
             }
-
+            
             if (!hasOverride) {
                 enableInputAction = inputAction.actionMap == null || 
-                                    inputAction.actionMap.enabled && !_inputMapToSourceHashBlocks.ContainsKey(inputAction.actionMap.id);
+                                    !_inputMapToSourceHashBlocks.ContainsKey(inputAction.actionMap.id);
             }
-
+            
             if (enableInputAction) inputAction.Enable();
             else inputAction.Disable();
         }
@@ -686,7 +686,7 @@ namespace MisterGames.Input.Core {
         }
 
         private static void LogInfo(string message) {
-            Debug.Log($"{nameof(InputBlockService).FormatColorOnlyForEditor(Color.white)}: {message}");
+            Debug.Log($"{nameof(InputBlockService).FormatColorOnlyForEditor(Color.white)}: f {Time.frameCount}, {message}");
         }
 
         private string GetInputsStateString() {

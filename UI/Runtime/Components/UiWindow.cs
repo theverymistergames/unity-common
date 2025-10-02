@@ -23,6 +23,7 @@ namespace MisterGames.UI.Components {
         [SerializeField] private UiWindowState _initialState;
         [SerializeField] private UiWindowOpenMode _openMode;
         [SerializeField] private UiWindowCloseMode _closeMode;
+        [SerializeField] private UiWindowOptions _options;
         
         [Header("Selection")]
         [SerializeField] private Selectable _firstSelected;
@@ -34,29 +35,30 @@ namespace MisterGames.UI.Components {
         
         public GameObject GameObject => gameObject;
         public GameObject CurrentSelected { get; private set; }
-
+        
         public int Layer => _layer;
         public UiWindowOpenMode OpenMode => _openMode;
         public UiWindowCloseMode CloseMode => _closeMode; 
         public UiWindowState State { get; private set; }
+        public UiWindowOptions Options => _options;
 
         private void Awake() {
             CurrentSelected = _firstSelected?.gameObject;
             
-            RegisterWindow();
-        }
-
-        private void OnDestroy() {
-            UnregisterWindow();
-            UnsubscribeSelectedGameObject();
-        }
-
-        private void RegisterWindow() {
             Services.Get<IUiWindowService>()?.RegisterWindow(this, _initialState);
         }
 
-        private void UnregisterWindow() {
+        private void OnDestroy() {
             Services.Get<IUiWindowService>()?.UnregisterWindow(this);
+            UnsubscribeSelectedGameObject();
+        }
+
+        private void OnEnable() {
+            Services.Get<IUiWindowService>()?.NotifyWindowEnabled(this, true);
+        }
+
+        private void OnDisable() {
+            Services.Get<IUiWindowService>()?.NotifyWindowEnabled(this, false);
         }
 
         private void SubscribeSelectedGameObject() {
@@ -79,6 +81,8 @@ namespace MisterGames.UI.Components {
         }
         
         void IUiWindow.NotifyWindowState(UiWindowState state) {
+            if (!enabled) state = UiWindowState.Closed;
+            
 #if UNITY_EDITOR
             if (!Application.isPlaying) {
                 SetEnableState(_enableOnWindowOpened, state == UiWindowState.Opened);
@@ -111,8 +115,10 @@ namespace MisterGames.UI.Components {
         private void MaybeResetSelectionToFirst() {
             // Do not reset to first if focused window is a child of this window to preserve selection history.
             if (!Services.TryGet(out IUiWindowService service) ||
-                service.IsChildWindow(this, service.GetFocusedWindow()) || 
-                _firstSelected == null) 
+                _firstSelected == null ||
+                service.GetRootWindow(this) is { } root && 
+                service.GetFrontOpenedWindow(root.Layer) is { } front &&
+                service.IsChildWindow(window: this, child: front)) 
             {
                 return;
             }

@@ -11,6 +11,7 @@ namespace MisterGames.UI.Windows {
         UiWindowOpenMode OpenMode { get; }
         UiWindowCloseMode CloseMode { get; }
         UiWindowState State { get; }
+        UiWindowOptions Options { get; }
         
         void NotifyWindowState(UiWindowState state);
     }

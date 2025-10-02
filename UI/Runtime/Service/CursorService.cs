@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Async;
@@ -6,18 +7,21 @@ using MisterGames.Common.Inputs;
 using MisterGames.Common.Service;
 using MisterGames.UI.Windows;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using DeviceType = MisterGames.Common.Inputs.DeviceType;
 
 namespace MisterGames.UI.Service {
     
     public sealed class CursorService : ICursorService, IDisposable {
 
+        private readonly HashSet<int> _visibilityBlockers = new();
         private CancellationTokenSource _cts;
         
         public void Initialize() {
             AsyncExt.RecreateCts(ref _cts);
             
             Application.focusChanged += OnApplicationFocusChanged;
+            SceneManager.activeSceneChanged += OnActiveSceneChanged;
             
             if (Services.TryGet(out IDeviceService deviceService)) deviceService.OnDeviceChanged += OnDeviceChanged;
             if (Services.TryGet(out IUiWindowService windowService)) windowService.OnWindowsHierarchyChanged += OnWindowsChanged;
@@ -29,34 +33,53 @@ namespace MisterGames.UI.Service {
             AsyncExt.DisposeCts(ref _cts);
             
             Application.focusChanged -= OnApplicationFocusChanged;
+            SceneManager.activeSceneChanged -= OnActiveSceneChanged;
             
             if (Services.TryGet(out IDeviceService deviceService)) deviceService.OnDeviceChanged -= OnDeviceChanged;
             if (Services.TryGet(out IUiWindowService windowService)) windowService.OnWindowsHierarchyChanged -= OnWindowsChanged;
+            
+            _visibilityBlockers.Clear();
+        }
+
+        public void BlockCursor(object source, bool block) {
+            if (block) _visibilityBlockers.Add(source.GetHashCode());
+            else _visibilityBlockers.Remove(source.GetHashCode());
+            
+            UpdateCursorVisibility();
+        }
+
+        public void UpdateCursorVisibility() {
+            SetCursorVisible(IsCursorVisible());
         }
 
         private async UniTask UpdateCursorVisibilityNextFrame(CancellationToken cancellationToken) {
             await UniTask.Yield();
             if (cancellationToken.IsCancellationRequested) return;
             
-            SetCursorVisible(IsCursorVisible());
+            UpdateCursorVisibility();
+        }
+
+        private void OnActiveSceneChanged(Scene arg0, Scene arg1) {
+            UpdateCursorVisibility();
         }
 
         private void OnApplicationFocusChanged(bool isFocused) {
-            SetCursorVisible(IsCursorVisible());
+            UpdateCursorVisibility();
         }
 
         private void OnDeviceChanged(DeviceType device) {
-            SetCursorVisible(IsCursorVisible());
+            UpdateCursorVisibility();
         }
 
         private void OnWindowsChanged() {
-            SetCursorVisible(IsCursorVisible());
+            UpdateCursorVisibility();
         }
 
-        private static bool IsCursorVisible() {
+        private bool IsCursorVisible() {
             return !Application.isFocused || 
+                   _visibilityBlockers.Count == 0 &&
                    (!Services.TryGet(out IDeviceService deviceService) || deviceService.CurrentDevice == DeviceType.KeyboardMouse) && 
-                   (!Services.TryGet(out IUiWindowService windowService) || windowService.HasOpenedWindows());
+                   (!Services.TryGet(out IUiWindowService windowService) || windowService.IsCursorRequired());
         }
         
         private static void SetCursorVisible(bool visible) {

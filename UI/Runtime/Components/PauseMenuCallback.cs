@@ -14,6 +14,7 @@ using MisterGames.Common.Maths;
 using MisterGames.Common.Service;
 using MisterGames.Common.Tick;
 using MisterGames.Input.Actions;
+using MisterGames.Input.Core;
 using MisterGames.UI.Navigation;
 using MisterGames.UI.Windows;
 using Unity.Collections;
@@ -26,6 +27,7 @@ namespace MisterGames.UI.Components {
 
         [Header("Input")]
         [SerializeField] private InputActionRef _openPauseMenuInput;
+        [SerializeField] private InputMapRef[] _blockInputMaps;
         
         [Header("Window")]
         [SerializeField] [Min(0)] private int _openWindowOrder;
@@ -71,6 +73,7 @@ namespace MisterGames.UI.Components {
         }
 
         private void OnDestroy() {
+            UnblockInputs();
             AsyncExt.DisposeCts(ref _actionCts);
         }
 
@@ -84,9 +87,11 @@ namespace MisterGames.UI.Components {
             _openPauseMenuInput.Get().performed += OnPauseInput;
             
             if (_isMenuOpened) {
+                BlockInputs();
                 Services.Get<ITimescaleSystem>().SetTimeScale(this, _timescalePriority.GetValue(), _timeScale);
             }
             else {
+                UnblockInputs();
                 Services.Get<ITimescaleSystem>().RemoveTimeScale(this);
             }
         }
@@ -95,6 +100,7 @@ namespace MisterGames.UI.Components {
             if (_cancelOnDisable) {
                 AsyncExt.DisposeCts(ref _actionCts);
                 Services.Get<ITimescaleSystem>()?.RemoveTimeScale(this);
+                UnblockInputs();
             }
             
             _openPauseMenuInput.Get().performed -= OnPauseInput;
@@ -142,6 +148,8 @@ namespace MisterGames.UI.Components {
         }
 
         private async UniTask OpenMenu(IUiWindow window, CancellationToken cancellationToken) {
+            BlockInputs(cancellationToken);
+            
             var order = GetActionsOrder(onOpen: true, out int actionsCount);
             int timescalePriority = _timescalePriority.GetValue();
             
@@ -190,6 +198,8 @@ namespace MisterGames.UI.Components {
         }
         
         private async UniTask OnCloseMenu(CancellationToken cancellationToken) {
+            UnblockInputs();
+            
             var order = GetActionsOrder(onOpen: false, out int actionsCount);
             int timescalePriority = _timescalePriority.GetValue();
             var tasks = ArrayPool<UniTask>.Shared.Rent(actionsCount);
@@ -230,6 +240,14 @@ namespace MisterGames.UI.Components {
             tasks.ResetArrayElements();
             
             ArrayPool<UniTask>.Shared.Return(tasks);
+        }
+
+        private void BlockInputs(CancellationToken cancellationToken = default) {
+            InputServices.Blocks?.BlockInputMaps(this, _blockInputMaps, cancellationToken);
+        }
+
+        private void UnblockInputs() {
+            InputServices.Blocks?.ClearAllInputMapBlocksOf(this);
         }
 
         private IReadOnlyList<int> GetActionsOrder(bool onOpen, out int actionsCount) {

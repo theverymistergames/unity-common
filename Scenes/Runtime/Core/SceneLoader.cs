@@ -209,7 +209,7 @@ namespace MisterGames.Scenes.Core {
             
             if (_loadSceneDataMap.TryGetValue(sceneName, out var data)) {
                 if (data.isLoading) {
-                    await data.handle.ToUniTask();
+                    await WaitAlreadyStartedLoading(sceneName);
                     return;
                 }
                 
@@ -219,6 +219,9 @@ namespace MisterGames.Scenes.Core {
             
             var cts = new CancellationTokenSource();
             var token = cts.Token;
+            
+            data = new SceneLoadData { handle = null, cts = cts, isLoading = true }; 
+            _loadSceneDataMap[sceneName] = data;
             
             await ProcessSceneHooksLoadRequest(sceneName, token);
             if (token.IsCancellationRequested) return;
@@ -284,6 +287,20 @@ namespace MisterGames.Scenes.Core {
             _loadSceneDataMap.Remove(sceneName);
         }
 
+        private async UniTask WaitAlreadyStartedLoading(string sceneName) {
+            SceneLoadData data;
+            
+            while (_loadSceneDataMap.TryGetValue(sceneName, out data) && 
+                   data is { isLoading: true, handle: null, cts: { IsCancellationRequested: false }}) 
+            {
+                await UniTask.Yield();
+            }
+                    
+            if (data.cts is not { IsCancellationRequested: false }) return;
+                    
+            await data.handle.ToUniTask();
+        }
+        
         private static async UniTask ProcessSceneHooksLoadRequest(string sceneName, CancellationToken cancellationToken) {
             int count = _sceneLoadHooks.Count;
             

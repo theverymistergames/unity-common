@@ -130,6 +130,7 @@ namespace MisterGames.Interact.Detectables {
                 var info = hits[i];
                 
                 if (!info.hasContact ||
+                    info.collider == null ||
                     !_detectedCandidatesHashesSet.Contains(info.collider.gameObject.GetHashCode()) ||
                     minDistance >= 0f && info.distance > minDistance) 
                 {
