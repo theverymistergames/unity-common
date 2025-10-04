@@ -116,12 +116,15 @@ namespace MisterGames.Character.View {
                     Mathf.Lerp(_persistentStateBuffer.fov, 0f, t)
                 );
                 
-                await UniTask.Yield();
-                
+                // Avoid waiting one frame if operation is done on the frame it started.
                 if (t >= 1f) break;
+                
+                await UniTask.Yield();
             }
 
-            if (id != _clearPersistentStateOperationId || cancellationToken.IsCancellationRequested) return;
+            if (id != _clearPersistentStateOperationId || cancellationToken.IsCancellationRequested) {
+                return;
+            }
             
             _isClearingPersistentStates = false;
         }

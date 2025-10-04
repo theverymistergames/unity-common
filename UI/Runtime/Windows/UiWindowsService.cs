@@ -29,7 +29,7 @@ namespace MisterGames.UI.Windows {
 
         public void RegisterWindow(IUiWindow window, UiWindowState state) {
             _gameObjectIdToWindowMap[GetWindowId(window)] = window;
-            
+
             UpdateHierarchy(window.GameObject);
             
             // Prevent setting initial window state if it has a parent window
@@ -53,7 +53,7 @@ namespace MisterGames.UI.Windows {
 
         public void UnregisterWindow(IUiWindow window) {
             int id = GetWindowId(window);
-            
+
             if (_openedWindowIdsSet.Contains(id)) {
                 CloseWindow(window, canOpenParent: false, forceClose: true, notify: true);
             }
@@ -219,8 +219,8 @@ namespace MisterGames.UI.Windows {
                 return;
             }
             
-            if (root != null && GetFocusedWindow(root.Layer) is { } focusedWindow) {
-                OpenWindow(focusedWindow, notify: true);
+            if (root != null && GetFrontOpenedWindow(root.Layer) is { } frontWindow) {
+                OpenWindow(frontWindow, notify: true);
             }
         }
 
@@ -299,7 +299,7 @@ namespace MisterGames.UI.Windows {
             if (window == null || !forceClose && window is { CloseMode: UiWindowCloseMode.NoExit }) return false;
 
             int id = GetWindowId(window);
-
+            
             if (canOpenParent && _childToParentMap.TryGetValue(id, out int parentId)) {
                 return OpenWindow(_gameObjectIdToWindowMap.GetValueOrDefault(parentId), notify);    
             }
