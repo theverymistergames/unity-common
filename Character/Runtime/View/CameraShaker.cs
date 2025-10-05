@@ -24,6 +24,7 @@ namespace MisterGames.Character.View {
         private CameraContainer _cameraContainer;
 
         private readonly struct VectorData {
+            
             public readonly Vector3 offset;
             public readonly Vector3 multiplier;
             
@@ -49,7 +50,7 @@ namespace MisterGames.Character.View {
             int id = _cameraContainer.CreateState();
             
             _weightMap[id] = weight;
-            _timeMap[id] = Time.time;
+            _timeMap[id] = TimeSources.scaledTime;
             _speedMap[id] = default;
             _positionMap[id] = default;
             _rotationMap[id] = default;
@@ -76,7 +77,7 @@ namespace MisterGames.Character.View {
         }
 
         public void SetSpeed(int id, Vector3 speed) {
-            float time = Time.time;
+            float time = TimeSources.scaledTime;
             var lastSpeed = _speedMap.GetValueOrDefault(id);
             var offset = lastSpeed.offset + lastSpeed.multiplier * (time - _timeMap[id]);
             
@@ -93,7 +94,7 @@ namespace MisterGames.Character.View {
         }
 
         void IUpdate.OnUpdate(float dt) {
-            float time = Time.time;
+            float time = TimeSources.scaledTime;
             
             foreach ((int id, float w) in _weightMap) {
                 var position = _positionMap[id];

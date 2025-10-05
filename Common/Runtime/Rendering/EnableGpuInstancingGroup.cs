@@ -4,6 +4,10 @@ using MisterGames.Common.Data;
 using MisterGames.Common.GameObjects;
 using UnityEngine;
 using UnityEngine.Serialization;
+using UnityEngine.Tilemaps;
+using UnityEngine.U2D;
+using UnityEngine.UIElements;
+using UnityEngine.VFX;
 
 #if UNITY_EDITOR
 using System.Linq;
@@ -16,6 +20,7 @@ namespace MisterGames.Common.Rendering {
     [DefaultExecutionOrder(-100_001)]
     public sealed class EnableGpuInstancingGroup : MonoBehaviour {
         
+        [Header("Renderers")]
         [FormerlySerializedAs("_meshRenderers")]
         [SerializeField] private Renderer[] _renderers;
         
@@ -24,7 +29,7 @@ namespace MisterGames.Common.Rendering {
         [SerializeField] private ColorProperty[] _colors;
         [SerializeField] private GenericProperty<float>[] _floats;
         [SerializeField] private GenericProperty<Vector4>[] _vectors;
-
+        
         private enum ApplyMode {
             OnlyFirstMaterial,
             AllMaterials,
@@ -127,7 +132,26 @@ namespace MisterGames.Common.Rendering {
 
 #if UNITY_EDITOR
         [Header("Collect")]
+        [SerializeField] private RenderersMode _renderersMode = ~RenderersMode.None;
         [SerializeField] private bool _excludeRenderersFromOtherGroups = true;
+        
+        [Flags]
+        private enum RenderersMode {
+            None = 0,
+            BillboardRenderer = 1 << 0,
+            LineRenderer = 1 << 1,
+            MeshRenderer = 1 << 2,
+            ParticleSystemRenderer = 1 << 3,
+            SkinnedMeshRenderer = 1 << 4,
+            SpriteMask = 1 << 5,
+            SpriteRenderer = 1 << 6,
+            TilemapRenderer = 1 << 7,
+            TrailRenderer = 1 << 8,
+            SpriteShapeRenderer = 1 << 9,
+            UIRenderer = 1 << 10,
+            VFXRenderer = 1 << 11,
+            Other = 1 << 12,
+        }
         
         private void OnValidate() {
             SetupPropertyBlock();
@@ -154,10 +178,32 @@ namespace MisterGames.Common.Rendering {
             }
 
             _renderers = excluded != null
-                ? GetComponentsInChildren<Renderer>().Where(x => !excluded.Contains(x.GetInstanceID())).ToArray()
-                : GetComponentsInChildren<Renderer>();
+                ? GetRenderersInChildren().Where(x => !excluded.Contains(x.GetInstanceID())).ToArray()
+                : GetRenderersInChildren();
 
             EditorUtility.SetDirty(this);
+        }
+
+        private Renderer[] GetRenderersInChildren() {
+            return GetComponentsInChildren<Renderer>(includeInactive: true).Where(IsValidRenderer).ToArray();
+        }
+
+        private bool IsValidRenderer(Renderer renderer) {
+            return renderer switch {
+                BillboardRenderer => (_renderersMode & RenderersMode.BillboardRenderer) != 0,
+                LineRenderer => (_renderersMode & RenderersMode.LineRenderer) != 0,
+                MeshRenderer => (_renderersMode & RenderersMode.MeshRenderer) != 0,
+                ParticleSystemRenderer => (_renderersMode & RenderersMode.ParticleSystemRenderer) != 0,
+                SkinnedMeshRenderer => (_renderersMode & RenderersMode.SkinnedMeshRenderer) != 0,
+                SpriteMask => (_renderersMode & RenderersMode.SpriteMask) != 0,
+                SpriteRenderer => (_renderersMode & RenderersMode.SpriteRenderer) != 0,
+                TilemapRenderer => (_renderersMode & RenderersMode.TilemapRenderer) != 0,
+                TrailRenderer => (_renderersMode & RenderersMode.TrailRenderer) != 0,
+                SpriteShapeRenderer => (_renderersMode & RenderersMode.SpriteShapeRenderer) != 0,
+                UIRenderer => (_renderersMode & RenderersMode.UIRenderer) != 0,
+                VFXRenderer => (_renderersMode & RenderersMode.VFXRenderer) != 0,
+                _ => (_renderersMode & RenderersMode.Other) != 0
+            };
         }
         
         private void Reset() {
