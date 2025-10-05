@@ -81,7 +81,7 @@ namespace MisterGames.Common.Editor.Drawers {
             }
             
             if (EditorGUI.DropdownButton(rect, GetDropdownLabel(library, id), FocusType.Keyboard)) {
-                var dropdown = new AdvancedDropdown<Entry>(
+               var dropdown = new AdvancedDropdown<Entry>(
                     "Select value",
                     GetAllEntries(fieldInfo),
                     e => e.path ?? Null,
@@ -114,7 +114,10 @@ namespace MisterGames.Common.Editor.Drawers {
 
         private static IEnumerable<Entry> GetAllEntries(FieldInfo propertyFieldInfo) {
             var filters = propertyFieldInfo.GetCustomAttributes<LabelFilterAttribute>().ToArray();
-            var genericType = propertyFieldInfo.FieldType.IsGenericType ? propertyFieldInfo.FieldType.GetGenericArguments()[0] : null;
+            
+            var fieldType = propertyFieldInfo.FieldType;
+            var elementType = fieldType.IsArray ? fieldType.GetElementType() ?? fieldType : fieldType;
+            var genericType = elementType.IsGenericType ? elementType.GetGenericArguments()[0] : null;
             
             return AssetDatabase
                 .FindAssets($"a:assets t:{nameof(LabelLibraryBase)}")

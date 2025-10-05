@@ -33,6 +33,12 @@ namespace MisterGames.Common.GameObjects {
                 objects[i].SetEnabled(active);
             }
         }
+        
+        public static void SetEnabled(this HashSet<Object> objects, bool active) {
+            foreach (var obj in objects) {
+                obj.SetEnabled(active);
+            }
+        }
 
         public static void SetEnabled(this Object obj, bool enabled) {
             switch (obj) {

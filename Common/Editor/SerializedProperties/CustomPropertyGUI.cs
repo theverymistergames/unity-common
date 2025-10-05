@@ -49,6 +49,11 @@ namespace MisterGames.Common.Editor.SerializedProperties {
 
 			while (true) {
 				var drawerTargetType = attr?.GetType() ?? fieldInfo?.FieldType;
+
+				if (drawerTargetType?.IsArray ?? false) {
+					drawerTargetType = drawerTargetType.GetElementType();
+				}
+				
 				if (drawerTargetType == null) return null;
 
 				var propertyDrawerType = GetPropertyDrawerTypeByFieldType(drawerTargetType);

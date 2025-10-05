@@ -20,7 +20,7 @@ namespace MisterGames.Logic.Rendering {
         
         public float Weight { get => _weight; set => SetWeight(value); }
         public float Intensity { get => _intensity; set => SetIntensity(value); }
-
+        
         private static readonly int EmissiveColor = Shader.PropertyToID("_EmissiveColor");
         
         private float[] _lightIntensities;
@@ -36,6 +36,16 @@ namespace MisterGames.Logic.Rendering {
         }
 
         private void OnEnable() {
+            for (int i = 0; i < _lights.Length; i++) {
+                _lights[i].enabled = true;
+            }
+        }
+
+        private void OnDisable() {
+            for (int i = 0; i < _lights.Length; i++) {
+                _lights[i].enabled = false;
+            }
+            
             UpdateState();
         }
 
@@ -122,7 +132,7 @@ namespace MisterGames.Logic.Rendering {
         }
         
         private void UpdateState() {
-            float intensity = _weight * _intensity;
+            float intensity = _weight * _intensity * enabled.AsFloat();
             
             for (int i = 0; i < _lights.Length; i++) {
                 var light = _lights[i];

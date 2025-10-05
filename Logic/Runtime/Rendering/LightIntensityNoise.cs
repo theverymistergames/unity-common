@@ -93,7 +93,7 @@ namespace MisterGames.Logic.Rendering {
             public void Execute(int index) {
                 float currentIntensity = intensityArray[index];
                 
-                float lerp = noise.cnoise((float2) (t + index * IndexOffset)) * 2f - 1f;
+                float lerp = noise.cnoise((float2) (t + index * IndexOffset));
                 float targetIntensity = math.lerp(intensity0, intensity1, lerp);
                 
                 intensityArray[index] = currentIntensity.SmoothExpNonZero(targetIntensity, smoothing, dt);
