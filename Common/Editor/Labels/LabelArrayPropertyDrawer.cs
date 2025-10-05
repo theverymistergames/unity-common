@@ -11,36 +11,31 @@ using UnityEngine;
 
 namespace MisterGames.Common.Editor.Drawers {
     
-    [CustomPropertyDrawer(typeof(LabelValue))]
-    [CustomPropertyDrawer(typeof(LabelValue<>))]
-    public sealed class LabelValuePropertyDrawer : PropertyDrawer {
+    [CustomPropertyDrawer(typeof(LabelArray))]
+    [CustomPropertyDrawer(typeof(LabelArray<>))]
+    public sealed class LabelArrayPropertyDrawer : PropertyDrawer {
         
         private const string Separator = " : ";
-        private const string None = "None";
         private const string Null = "<null>";
         private const string NotFound = "(not found)";
 
-        private const string LibraryPropertyPath = nameof(LabelValue.library);
-        private const string IdPropertyPath = nameof(LabelValue.id);
+        private const string LibraryPropertyPath = nameof(LabelArray.library);
+        private const string IdPropertyPath = nameof(LabelArray.id);
 
         private static readonly GUIContent NullLabel = new(Null);
         
         private readonly struct Entry {
             
             public readonly LabelLibraryBase library;
-            public readonly int array;
-            public readonly int id;
-            public readonly int index;
-            public readonly LabelArrayUsage usage;
+            public readonly int arrayIndex;
+            public readonly int arrayId;
             public readonly string path;
 
-            public Entry(LabelLibraryBase library, int id, int index, int array, string path, LabelArrayUsage usage) {
+            public Entry(LabelLibraryBase library, int arrayId, int arrayIndex, string path) {
                 this.library = library;
-                this.id = id;
-                this.index = index;
-                this.array = array;
+                this.arrayId = arrayId;
+                this.arrayIndex = arrayIndex;
                 this.path = path;
-                this.usage = usage;
             }
         }
 
@@ -64,7 +59,7 @@ namespace MisterGames.Common.Editor.Drawers {
             var idProperty = property.FindPropertyRelative(IdPropertyPath);
 
             if (libraryProperty == null || idProperty == null) {
-                GUI.Label(rect, $"Error: {property.propertyPath} is not a LabelValue");
+                GUI.Label(rect, $"Error: {property.propertyPath} is not a LabelArray");
                 EditorGUI.EndProperty();
                 return;
             }
@@ -89,16 +84,14 @@ namespace MisterGames.Common.Editor.Drawers {
                         var p = property.Copy();
                         
                         property.FindPropertyRelative(LibraryPropertyPath).objectReferenceValue = e.library; 
-                        property.FindPropertyRelative(IdPropertyPath).intValue = e.id; 
+                        property.FindPropertyRelative(IdPropertyPath).intValue = e.arrayId; 
                         
                         p.serializedObject.ApplyModifiedProperties();
                         p.serializedObject.Update();
                     },
                     sort: nodes => nodes
                         .OrderBy(n => n.data.data.library == null)
-                        .ThenBy(n => n.data.data.array)
-                        .ThenBy(n => n.data.data.usage == LabelArrayUsage.ByIndex ? n.data.data.index : 0)
-                        .ThenBy(n => n.data.data.usage == LabelArrayUsage.ByHash ? n.data.name : null),
+                        .ThenBy(n => n.data.data.arrayIndex),
                     pathToName: pathParts => string.Join(Separator, pathParts)
                 );
                 
@@ -136,31 +129,14 @@ namespace MisterGames.Common.Editor.Drawers {
 
             for (int i = 0; i < arrayCount; i++) {
                 string arrayName = library.GetArrayName(i);
-                arrayName = string.IsNullOrWhiteSpace(arrayName)
-                    ? arrayCount == 1 ? null : $"Array [{i}]"
-                    : arrayName;
-
-                string path;
-                bool none = library.GetArrayNoneLabel(i);
-                var usage = library.GetArrayUsage(i);
                 
-                if (none) {
-                    path = GetEntryPath(libName, arrayName, None);
-                    if (!IsValidPath(path, filters)) continue;
-                    
-                    list.Add(new Entry(library, library.GetArrayId(i), index: 0, array: i, path, usage));
-                }
-
-                int labelsCount = library.GetArrayLabelsCount(i);
+                string path = string.IsNullOrWhiteSpace(arrayName) 
+                    ? $"{libName}/Array [{i}]"
+                    : $"{libName}/{arrayName}";
                 
-                for (int j = 0; j < labelsCount; j++) {
-                    int id = library.GetLabelId(i, j);
-                    path = GetEntryPath(libName, arrayName, library.GetLabel(id));
-                    
-                    if (!IsValidPath(path, filters)) continue;
-                    
-                    list.Add(new Entry(library, library.GetLabelId(i, j), index: none ? j + 1 : j, array: i, path, usage));
-                }
+                if (!IsValidPath(path, filters)) continue;
+                
+                list.Add(new Entry(library, library.GetArrayId(i), arrayIndex: i, path));
             }
 
             return list;
@@ -182,40 +158,19 @@ namespace MisterGames.Common.Editor.Drawers {
             return false;
         }
 
-        private static string GetEntryPath(string library, string array, string value) {
-            return string.IsNullOrWhiteSpace(array)
-                    ? $"{library}/{value}"
-                    : $"{library}/{array}/{value}";
-        }
-
         private static GUIContent GetDropdownLabel(LabelLibraryBase library, int id) {
             if (library == null) return NullLabel;
 
-            if (!library.ContainsLabel(id)) {
+            int arrayIndex = library.GetArrayIndex(id);
+            
+            if (arrayIndex < 0) {
                 return new GUIContent($"{library.name}{Separator}Id [{id}] {NotFound}");
             }
 
-            int arrayCount = library.GetArraysCount();
-            int array = library.GetLabelArrayIndex(id);
-            int arrayId = library.GetArrayId(array);
-            
-            string arrayName = library.GetArrayName(array);
-            arrayName = string.IsNullOrWhiteSpace(arrayName) 
-                ? arrayCount == 1 
-                    ? Separator 
-                    : $"{Separator}Array [{array}]{Separator}" 
-                : $"{Separator}{arrayName}{Separator}";
-
-            bool none = library.GetArrayNoneLabel(array);
-            if (none && id == arrayId) {
-                return new GUIContent($"{library.name}{arrayName}{None}");
-            }
-
-            string label = library.GetLabel(id);
-            
-            return string.IsNullOrWhiteSpace(label)
-                ? new GUIContent($"{library.name}{arrayName}Label [{library.GetLabelIndex(id)}]")
-                : new GUIContent($"{library.name}{arrayName}{label}");
+            string arrayName = library.GetArrayName(arrayIndex);
+            return string.IsNullOrWhiteSpace(arrayName)
+                ? new GUIContent($"{library.name}{Separator}Array [{arrayIndex}]")
+                : new GUIContent($"{library.name}{Separator}{arrayName}");
         }
     }
     

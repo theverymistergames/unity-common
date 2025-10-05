@@ -5,45 +5,62 @@ namespace MisterGames.Common.Labels {
     
     public static class LabelValueExtensions {
         
+        // Null checks
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsNull(this LabelValue labelValue)
-        {
+        public static bool IsNull(this LabelValue labelValue) {
             return labelValue.library is null || !labelValue.library.ContainsLabel(labelValue.id);
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsNull<T>(this LabelValue<T> labelValue)
-        {
+        public static bool IsNull<T>(this LabelValue<T> labelValue) {
             return labelValue.library is null || !labelValue.library.ContainsLabel(labelValue.id);
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsNotNull(this LabelValue labelValue)
-        {
+        public static bool IsNotNull(this LabelValue labelValue) {
             return labelValue.library?.ContainsLabel(labelValue.id) ?? false;
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsNotNull<T>(this LabelValue<T> labelValue)
-        {
+        public static bool IsNotNull<T>(this LabelValue<T> labelValue) {
             return labelValue.library?.ContainsLabel(labelValue.id) ?? false;
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int GetValue(this LabelValue labelValue)
-        {
+        public static bool IsNull(this LabelArray labelArray) {
+            return (labelArray.library?.GetArrayIndex(labelArray.id) ?? -1) < 0;
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsNull<T>(this LabelArray<T> labelArray) {
+            return (labelArray.library?.GetArrayIndex(labelArray.id) ?? -1) < 0;
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsNotNull(this LabelArray labelArray) {
+            return (labelArray.library?.GetArrayIndex(labelArray.id) ?? -1) >= 0;
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsNotNull<T>(this LabelArray<T> labelArray) {
+            return (labelArray.library?.GetArrayIndex(labelArray.id) ?? -1) >= 0;
+        }
+        
+        // Value
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int GetValue(this LabelValue labelValue) {
             return labelValue.library?.GetValue(labelValue.id) ?? 0;
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int GetValue<T>(this LabelValue<T> labelValue)
-        {
+        public static int GetValue<T>(this LabelValue<T> labelValue) {
             return labelValue.library?.GetValue(labelValue.id) ?? 0;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool TryGetValue(this LabelValue labelValue, out int value)
-        {
+        public static bool TryGetValue(this LabelValue labelValue, out int value) {
             if (labelValue.library?.ContainsLabel(labelValue.id) ?? false) {
                 value = labelValue.library.GetValue(labelValue.id);
                 return true;
@@ -54,8 +71,7 @@ namespace MisterGames.Common.Labels {
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool TryGetValue<T>(this LabelValue<T> labelValue, out int value)
-        {
+        public static bool TryGetValue<T>(this LabelValue<T> labelValue, out int value) {
             if (labelValue.library?.ContainsLabel(labelValue.id) ?? false) {
                 value = labelValue.library.GetValue(labelValue.id);
                 return true;
@@ -64,29 +80,80 @@ namespace MisterGames.Common.Labels {
             value = default;
             return false;
         }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int GetValuesCount(this LabelArray labelArray) {
+            int arrayIndex = labelArray.library?.GetArrayIndex(labelArray.id) ?? -1; 
+            return arrayIndex >= 0 ? labelArray.library!.GetArrayLabelsCount(arrayIndex) : 0;
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int GetValuesCount<T>(this LabelArray<T> labelArray) {
+            int arrayIndex = labelArray.library?.GetArrayIndex(labelArray.id) ?? -1; 
+            return arrayIndex >= 0 ? labelArray.library!.GetArrayLabelsCount(arrayIndex) : 0;
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int GetValue(this LabelArray labelArray, int labelIndex) {
+            int arrayIndex = labelArray.library?.GetArrayIndex(labelArray.id) ?? -1;
+            return arrayIndex < 0 
+                ? 0 
+                : labelArray.library!.GetValue(labelArray.library.GetLabelId(arrayIndex, labelIndex));
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int GetValue<T>(this LabelArray<T> labelArray, int labelIndex) {
+            int arrayIndex = labelArray.library?.GetArrayIndex(labelArray.id) ?? -1;
+            return arrayIndex < 0 
+                ? 0 
+                : labelArray.library!.GetValue(labelArray.library.GetLabelId(arrayIndex, labelIndex));
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static string GetLabel(this LabelValue labelValue)
-        {
+        public static bool TryGetValue(this LabelArray labelArray, int labelIndex, out int value) {
+            int arrayIndex = labelArray.library?.GetArrayIndex(labelArray.id) ?? -1;
+            int labelId = labelArray.library?.GetLabelId(arrayIndex, labelIndex) ?? 0;
+            
+            if (arrayIndex >= 0 && labelArray.library!.ContainsLabel(labelId)) {
+                value = labelArray.library.GetValue(labelId);
+                return true;
+            }
+
+            value = default;
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool TryGetValue<T>(this LabelArray<T> labelArray, int labelIndex, out int value) {
+            int arrayIndex = labelArray.library?.GetArrayIndex(labelArray.id) ?? -1;
+            int labelId = labelArray.library?.GetLabelId(arrayIndex, labelIndex) ?? 0;
+            
+            if (arrayIndex >= 0 && labelArray.library!.ContainsLabel(labelId)) {
+                value = labelArray.library.GetValue(labelId);
+                return true;
+            }
+
+            value = default;
+            return false;
+        }
+
+        // Label
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static string GetLabel(this LabelValue labelValue) {
             return labelValue.library?.GetLabel(labelValue.id);
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static string GetLabel<T>(this LabelValue<T> labelValue)
-        {
+        public static string GetLabel<T>(this LabelValue<T> labelValue) {
             return labelValue.library?.GetLabel(labelValue.id);
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool TryGetLabel(this LabelValue labelValue, out string label) {
-            if (labelValue.library?.ContainsLabel(labelValue.id) ?? false) {
-                label = labelValue.library.GetLabel(labelValue.id);
-                return true;
-            }
-
-            label = default;
-            return false;
-        }    
+            label = labelValue.library?.GetLabel(labelValue.id);
+            return label != null;
+        }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool TryGetLabel<T>(this LabelValue<T> labelValue, out string label) {
@@ -98,6 +165,26 @@ namespace MisterGames.Common.Labels {
             label = default;
             return false;
         }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static string GetLabel(this LabelArray labelArray) {
+            int arrayIndex = labelArray.library?.GetArrayIndex(labelArray.id) ?? -1; 
+            return arrayIndex >= 0 ? labelArray.library!.GetArrayName(arrayIndex) : null;
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static string GetLabel<T>(this LabelArray<T> labelArray) {
+            int arrayIndex = labelArray.library?.GetArrayIndex(labelArray.id) ?? -1; 
+            return arrayIndex >= 0 ? labelArray.library!.GetArrayName(arrayIndex) : null;
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool TryGetLabel(this LabelArray labelArray, out string label) {
+            label = GetLabel(labelArray);
+            return label != null;
+        }
+        
+        // Data
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T GetData<T>(this LabelValue<T> labelValue) {

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using MisterGames.Common.Labels.Base;
+using MisterGames.Common.Maths;
 using UnityEngine;
 
 namespace MisterGames.Common.Labels {
@@ -33,17 +34,17 @@ namespace MisterGames.Common.Labels {
             public string name;
             public T data;
         }
-        
-        private readonly Dictionary<int, (int, int)> _addressMap = new();
-        private readonly Dictionary<int, int> _valueMap = new();
-        private readonly Dictionary<int, T> _localOverridesMap = new();
 
-        public override bool ContainsLabel(int id) {
-            return GetAddress(id).index > LabelLibrary.Null;
+        private readonly Dictionary<int, (int arrayIndex, int labelIndex)> _labelIdToAddressMap = new();
+        private readonly Dictionary<int, int> _arrayIdToIndexMap = new();
+        private readonly Dictionary<int, int> _valueMap = new();
+
+        public override bool ContainsLabel(int labelId) {
+            return GetLabelAddress(labelId).labelIndex > LabelLibrary.Null;
         }
 
-        public override string GetLabel(int id) {
-            (int array, int index) = GetAddress(id);
+        public override string GetLabel(int labelId) {
+            (int array, int index) = GetLabelAddress(labelId);
             
             switch (index) {
                 case LabelLibrary.Null:
@@ -58,18 +59,18 @@ namespace MisterGames.Common.Labels {
             }
         }
 
-        public override int GetValue(int id) {
+        public override int GetValue(int labelId) {
 #if UNITY_EDITOR
             if (_invalidateFlag) {
-                _addressMap.Clear();
+                _arrayIdToIndexMap.Clear();
                 _valueMap.Clear();
                 _invalidateFlag = false;
             }
 #endif
 
-            if (_valueMap.TryGetValue(id, out int value)) return value;
+            if (_valueMap.TryGetValue(labelId, out int value)) return value;
             
-            (int array, int index) = GetAddress(id);
+            (int array, int index) = GetLabelAddress(labelId);
             if (index < 0) return 0;
             
             ref var arr = ref _labelArrays[array];
@@ -79,12 +80,12 @@ namespace MisterGames.Common.Labels {
                 _ => throw new ArgumentOutOfRangeException(),
             };
                     
-            _valueMap[id] = value;
+            _valueMap[labelId] = value;
             return value;
         }
 
         public override bool TryGetData(int id, out T data) {
-            (int array, int index) = GetAddress(id);
+            (int array, int index) = GetLabelAddress(id);
             
             if (index < 0) {
                 data = default;
@@ -109,98 +110,124 @@ namespace MisterGames.Common.Labels {
             return _labelArrays?.Length ?? 0;
         }
 
-        public override string GetArrayName(int array) {
-            if (_labelArrays == null || _labelArrays.Length <= array) return default;
+        public override string GetArrayName(int arrayIndex) {
+            if (_labelArrays == null || _labelArrays.Length <= arrayIndex) return default;
 
-            ref var arr = ref _labelArrays[array];
+            ref var arr = ref _labelArrays[arrayIndex];
             return arr.name;
         }
 
-        public override bool GetArrayNoneLabel(int array) {
-            if (_labelArrays == null || _labelArrays.Length <= array) return default;
+        public override bool GetArrayNoneLabel(int arrayIndex) {
+            if (_labelArrays == null || _labelArrays.Length <= arrayIndex) return default;
 
-            ref var arr = ref _labelArrays[array];
+            ref var arr = ref _labelArrays[arrayIndex];
             return arr.none;
         }
 
-        public override int GetArrayId(int array) {
-            if (_labelArrays == null || _labelArrays.Length <= array) return default;
+        public override int GetArrayId(int arrayIndex) {
+            if (_labelArrays == null || _labelArrays.Length <= arrayIndex) return default;
 
-            ref var arr = ref _labelArrays[array];
+            ref var arr = ref _labelArrays[arrayIndex];
             return arr.id;
         }
         
-        public override LabelArrayUsage GetArrayUsage(int array) {
-            if (_labelArrays == null || _labelArrays.Length <= array) return default;
+        public override int GetArrayIndex(int arrayId) {
+            return GetArrayIndexById(arrayId);
+        }
+        
+        public override LabelArrayUsage GetArrayUsage(int arrayIndex) {
+            if (_labelArrays == null || _labelArrays.Length <= arrayIndex) return default;
 
-            ref var arr = ref _labelArrays[array];
+            ref var arr = ref _labelArrays[arrayIndex];
             return arr.usage;
         }
 
-        public override int GetArrayIndex(int labelId) {
-            return GetAddress(labelId).array;
+        public override int GetLabelArrayIndex(int labelId) {
+            return GetLabelAddress(labelId).arrayIndex;
         }
 
-        public override int GetLabelsCount(int array) {
-            if (_labelArrays == null || _labelArrays.Length <= array) return 0;
+        public override int GetArrayLabelsCount(int arrayIndex) {
+            if (_labelArrays == null || _labelArrays.Length <= arrayIndex) return 0;
 
-            ref var arr = ref _labelArrays[array];
+            ref var arr = ref _labelArrays[arrayIndex];
             return arr.labels?.Length ?? 0;
         }
 
-        public override int GetLabelId(int array, int index) {
-            if (_labelArrays == null || _labelArrays.Length <= array) return default;
+        public override int GetLabelId(int arrayIndex, int labelIndex) {
+            if (_labelArrays == null || _labelArrays.Length <= arrayIndex) return default;
 
-            ref var arr = ref _labelArrays[array];
-            if (arr.labels == null || arr.labels.Length <= index) return default;
+            ref var arr = ref _labelArrays[arrayIndex];
+            if (arr.labels == null || arr.labels.Length <= labelIndex) return default;
             
-            return arr.labels[index].id;
+            return arr.labels[labelIndex].id;
         }
         
         public override int GetLabelIndex(int labelId) {
-            return GetAddress(labelId).index;
+            return GetLabelAddress(labelId).labelIndex;
         }
 
-        private (int array, int index) GetAddress(int id) {
+        private (int arrayIndex, int labelIndex) GetLabelAddress(int labelId) {
 #if UNITY_EDITOR
-            if (_invalidateFlag) {
-                _addressMap.Clear();
-                _valueMap.Clear();
-                _invalidateFlag = false;
-            }
+            ClearMapsIfInvalid();
 #endif
             
-            if (_addressMap.TryGetValue(id, out (int array, int index) address)) return address;
+            if (_labelIdToAddressMap.TryGetValue(labelId, out var address)) return address;
 
             address = (0, LabelLibrary.Null);
-            _addressMap[id] = address;
-                
+            if (labelId == 0) return address;
+            
+            FetchAddresses();
+
+            return _labelIdToAddressMap.GetValueOrDefault(labelId, address);
+        }
+        
+        private int GetArrayIndexById(int arrayId) {
+#if UNITY_EDITOR
+            ClearMapsIfInvalid();
+#endif
+            
+            if (_arrayIdToIndexMap.TryGetValue(arrayId, out int index)) return index;
+
+            index = -1;
+            if (arrayId == 0) return index;
+            
+            FetchAddresses();
+
+            return _arrayIdToIndexMap.GetValueOrDefault(arrayId, -1);
+        }
+
+        private void FetchAddresses() {
             int arrays = _labelArrays?.Length ?? 0;
             
             for (int i = 0; i < arrays; i++) {
                 ref var array = ref _labelArrays![i];
-
+                _arrayIdToIndexMap[array.id] = i;
+                
                 if (array.none) {
-                    _addressMap[id] = (i, LabelLibrary.None); 
-                    if (array.id == id) address = (i, LabelLibrary.None);
+                    _labelIdToAddressMap[array.id] = (i, LabelLibrary.None); 
                 }
 
                 int labels = array.labels?.Length ?? 0;
                 
                 for (int j = 0; j < labels; j++) {
                     ref var label = ref array.labels![j];
-                    
-                    _addressMap[label.id] = (i, j);
-                    if (label.id == id) address = (i, j);
+                    _labelIdToAddressMap[label.id] = (i, j);
                 }
             }
-
-            return address;
         }
         
 #if UNITY_EDITOR
         private readonly HashSet<int> _occupiedIdsCache = new();
         private bool _invalidateFlag;
+        
+        private void ClearMapsIfInvalid() {
+            if (!_invalidateFlag) return;
+            
+            _labelIdToAddressMap.Clear();
+            _arrayIdToIndexMap.Clear();
+            _valueMap.Clear();
+            _invalidateFlag = false;
+        }
         
         private void OnValidate() {
             _invalidateFlag = true;
@@ -226,8 +253,8 @@ namespace MisterGames.Common.Labels {
         }
 
         private int GetNextId() {
-            if (_lastId == 0) _lastId++;
-            return _lastId++;
+            if (_lastId == 0) _lastId.IncrementUncheckedRef();
+            return _lastId.IncrementUncheckedRef();
         }
 #endif
     }
