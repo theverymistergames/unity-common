@@ -204,13 +204,15 @@ namespace MisterGames.UI.Components {
             int timescalePriority = _timescalePriority.GetValue();
             var tasks = ArrayPool<UniTask>.Shared.Rent(actionsCount);
             
+            var timescaleSystem = Services.Get<ITimescaleSystem>();
+            
             for (int i = 0; i < order.Count && !cancellationToken.IsCancellationRequested; i++) {
                 int index = order[i];
 
                 int parallelCount = 0;
                 
                 if (i == _changeTimescaleOrderOnClose) {
-                    tasks[parallelCount++] = Services.Get<ITimescaleSystem>().ChangeTimeScale(
+                    tasks[parallelCount++] = timescaleSystem?.ChangeTimeScale(
                         source: this,
                         timescalePriority,
                         1f,
@@ -218,7 +220,7 @@ namespace MisterGames.UI.Components {
                         removeOnFinish: true,
                         _timeScaleCurve,
                         cancellationToken
-                    );
+                    ) ?? default;
                 }
 
                 for (int j = 0; j < _actionsOnCloseMenu.Length; j++) {

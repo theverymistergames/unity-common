@@ -80,7 +80,7 @@ namespace MisterGames.Common.Editor.Drawers {
                 property.serializedObject.Update();
             }
             
-            if (EditorGUI.DropdownButton(rect, GetDropdownLabel(library, id), FocusType.Keyboard)) {
+            if (EditorGUI.DropdownButton(rect, GetDropdownLabel(library, id, fieldInfo), FocusType.Keyboard)) {
                var dropdown = new AdvancedDropdown<Entry>(
                     "Select value",
                     GetAllEntries(fieldInfo),
@@ -188,7 +188,7 @@ namespace MisterGames.Common.Editor.Drawers {
                     : $"{library}/{array}/{value}";
         }
 
-        private static GUIContent GetDropdownLabel(LabelLibraryBase library, int id) {
+        private static GUIContent GetDropdownLabel(LabelLibraryBase library, int id, FieldInfo propertyFieldInfo) {
             if (library == null) return NullLabel;
 
             if (!library.ContainsLabel(id)) {
@@ -199,23 +199,33 @@ namespace MisterGames.Common.Editor.Drawers {
             int array = library.GetLabelArrayIndex(id);
             int arrayId = library.GetArrayId(array);
             
-            string arrayName = library.GetArrayName(array);
-            arrayName = string.IsNullOrWhiteSpace(arrayName) 
-                ? arrayCount == 1 
-                    ? Separator 
-                    : $"{Separator}Array [{array}]{Separator}" 
-                : $"{Separator}{arrayName}{Separator}";
+            var visibility = propertyFieldInfo.GetCustomAttribute<LabelValueVisibilityAttribute>();
 
+            string libName = visibility?.lib ?? true
+                ? $"{library.name}{Separator}"
+                : null;
+            
+            string arrayName = library.GetArrayName(array);
+            
+            arrayName = visibility?.array ?? true
+                ? string.IsNullOrWhiteSpace(arrayName)
+                    ? arrayCount == 1
+                        ? null
+                        : $"Array [{array}]{Separator}"
+                    : $"{arrayName}{Separator}"
+                : null;
+            
             bool none = library.GetArrayNoneLabel(array);
+            
             if (none && id == arrayId) {
-                return new GUIContent($"{library.name}{arrayName}{None}");
+                return new GUIContent($"{libName}{arrayName}{None}");
             }
 
             string label = library.GetLabel(id);
             
             return string.IsNullOrWhiteSpace(label)
-                ? new GUIContent($"{library.name}{arrayName}Label [{library.GetLabelIndex(id)}]")
-                : new GUIContent($"{library.name}{arrayName}{label}");
+                ? new GUIContent($"{libName}{arrayName}Label [{library.GetLabelIndex(id)}]")
+                : new GUIContent($"{libName}{arrayName}{label}");
         }
     }
     

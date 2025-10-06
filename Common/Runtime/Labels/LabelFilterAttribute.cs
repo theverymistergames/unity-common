@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace MisterGames.Common.Labels {
     
-    [AttributeUsage(AttributeTargets.Field)]
+    [AttributeUsage(AttributeTargets.Field, AllowMultiple = true)]
     public sealed class LabelFilterAttribute : PropertyAttribute {
         
         public readonly string path;
