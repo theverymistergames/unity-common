@@ -15,7 +15,11 @@ namespace MisterGames.Common.Localization {
             public string key;
             [UseLocaleLabel] public T[] values;
         }
-        
+
+        public override Type GetDataType() {
+            return typeof(T);
+        }
+
         public override int GetLocaleCount() {
             return _locales?.Length ?? 0;
         }
@@ -78,6 +82,33 @@ namespace MisterGames.Common.Localization {
             valueRow.values[localeIndex] = value;
         }
 
+        public override string GetValuesPropertyPath(int keyHash) {
+#if UNITY_EDITOR
+            if (_keyHashToIndexMap?.TryGetValue(keyHash, out int index) ?? false) {
+                return FormatValuesPath(index);
+            }
+            
+            _keyHashToIndexMap ??= new Dictionary<int, int>();
+#endif
+            
+            int count = _valueRows?.Length ?? 0;
+            
+            for (int i = 0; i < count; i++) {
+                ref var valueRow = ref _valueRows![i];
+                int hash = Animator.StringToHash(valueRow.key);
+                
+#if UNITY_EDITOR
+                _keyHashToIndexMap[hash] = i;
+#endif
+                
+                if (hash != keyHash) continue;
+                
+                return FormatValuesPath(i);
+            }
+
+            return null;
+        }
+
         public override void ClearAll() {
             _locales = Array.Empty<Locale>();
             _valueRows = Array.Empty<ValueRow>();
@@ -87,6 +118,10 @@ namespace MisterGames.Common.Localization {
 #endif
         }
 
+        private static string FormatValuesPath(int keyIndex) {
+            return $"{nameof(_valueRows)}.Array.data[{keyIndex}].values";
+        }
+        
         private int GetOrAddLocale(Locale locale) {
             int count = _locales?.Length ?? 0;
             

@@ -10,7 +10,7 @@ namespace MisterGames.Common.Localization {
         
         string GetLocalizedString(LocalizationKey key);
         
-        T GetLocalizedAsset<T>(LocalizationKey key);
+        T GetLocalizedAsset<T>(LocalizationKey<T> key);
     }
     
 }

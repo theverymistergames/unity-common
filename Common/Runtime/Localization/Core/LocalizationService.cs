@@ -56,7 +56,7 @@ namespace MisterGames.Common.Localization {
         }
 
         public string GetLocalizedString(LocalizationKey key) {
-            var table = GetTable(key.tableGuid);
+            var table = GetTable(key.tableGuid.ToGuid());
             if (table == null) return null;
             
             if (table.TryGetValue(key.hash, _locale.Hash, out string value) && !string.IsNullOrEmpty(value) ||
@@ -69,8 +69,8 @@ namespace MisterGames.Common.Localization {
             return null;
         }
 
-        public T GetLocalizedAsset<T>(LocalizationKey key) {
-            var table = GetTable(key.tableGuid);
+        public T GetLocalizedAsset<T>(LocalizationKey<T> key) {
+            var table = GetTable(key.tableGuid.ToGuid());
             if (table == null) return default;
             
             if (table.TryGetValue(key.hash, _locale.Hash, out T value) ||
@@ -92,14 +92,14 @@ namespace MisterGames.Common.Localization {
             OnLocaleChanged.Invoke(_locale);
         }
 
-        private ILocalizationTable GetTable(string guid) {
+        private ILocalizationTable GetTable(Guid guid) {
             int hash = guid.GetHashCode();
             
             if (_tableMap.TryGetValue(hash, out var table)) {
                 _tableUsageTimeMap[hash] = Time.realtimeSinceStartup;
                 return table;
             }
-            
+
             var handle = Addressables.LoadAssetAsync<LocalizationTableStorageBase>(guid);
             _tableStorageHandlesMap[hash] = handle;
             

@@ -3,13 +3,12 @@ using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Async;
-using MisterGames.Common.Attributes;
 using UnityEditor;
 using UnityEngine;
 
 namespace MisterGames.Common.Editor.GoogleSheets {
     
-    public abstract class GoogleSheetParserBase : ScriptableObject, IGoogleSheetParser {
+    public abstract class GoogleSheetParserBase : SheetParserBase, IGoogleSheetParser {
         
         [Header("Download Settings")]
         [SerializeField] private GoogleSheetImporter _googleSheetImporter;
@@ -17,7 +16,7 @@ namespace MisterGames.Common.Editor.GoogleSheets {
 
         private CancellationTokenSource _cts;
         
-        public async UniTask DownloadAndParse(CancellationToken cancellationToken) {
+        public override async UniTask DownloadAndParse(CancellationToken cancellationToken) {
             if (Application.isPlaying) {
                 Debug.LogWarning($"Downloading Google Sheets is not allowed in playmode.");
                 return;
@@ -28,14 +27,8 @@ namespace MisterGames.Common.Editor.GoogleSheets {
             
             await _googleSheetImporter.DownloadAndParse(_sheetIds, this, token);
         }
-        
-        [Button]
-        public void DownloadAndParse() {
-            DownloadAndParse(default).Forget();
-        }
 
-        [Button]
-        public void CancelDownload() {
+        protected override void Cancel() {
             AsyncExt.DisposeCts(ref _cts);
         }
 

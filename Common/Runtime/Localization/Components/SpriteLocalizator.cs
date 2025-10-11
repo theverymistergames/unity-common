@@ -7,7 +7,7 @@ namespace MisterGames.Common.Localization.Components {
     public sealed class SpriteLocalizator : MonoBehaviour {
         
         [SerializeField] private Image _image;
-        [SerializeField] private LocalizationKey _key;
+        [SerializeField] private LocalizationKey<Sprite> _key;
         [SerializeField] private bool _dontSetNull = true;
 
         private ILocalizationService _service;
@@ -31,7 +31,7 @@ namespace MisterGames.Common.Localization.Components {
         }
 
         private void SetupValue() {
-            var sprite = _service.GetLocalizedAsset<Sprite>(_key);
+            var sprite = _service.GetLocalizedAsset(_key);
             if (!_dontSetNull || sprite != null) _image.sprite = sprite;
         }
 

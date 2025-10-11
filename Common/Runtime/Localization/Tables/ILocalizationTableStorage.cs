@@ -1,7 +1,11 @@
-﻿namespace MisterGames.Common.Localization {
+﻿using System;
+
+namespace MisterGames.Common.Localization {
     
     public interface ILocalizationTableStorage {
 
+        Type GetDataType();
+        
         int GetLocaleCount();
 
         Locale GetLocale(int localeIndex);
@@ -12,6 +16,8 @@
         
         string GetKey(int keyIndex);
 
+        string GetValuesPropertyPath(int keyHash);
+        
         void ClearAll();
     }
     

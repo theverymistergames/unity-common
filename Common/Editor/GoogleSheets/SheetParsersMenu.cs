@@ -7,20 +7,20 @@ using UnityEngine;
 
 namespace MisterGames.Common.Editor.GoogleSheets {
     
-    public static class GoogleSheetsMenu {
+    public static class SheetParsersMenu {
 
         private static CancellationTokenSource _cts;
         
-        [MenuItem("MisterGames/Google/Download all Google Sheets")]
+        [MenuItem("MisterGames/Sheets/Download and parse all sheets")]
         private static void DownloadAllGoogleSheets() {
             if (Application.isPlaying) {
-                Debug.LogWarning($"Downloading Google Sheets is not allowed in playmode.");
+                Debug.LogWarning($"Downloading sheets is not allowed in playmode.");
                 return;
             }
 
             var parsers = AssetDatabase
-                .FindAssets($"a:assets t:{nameof(GoogleSheetParserBase)}")
-                .Select(guid => AssetDatabase.LoadAssetAtPath<GoogleSheetParserBase>(AssetDatabase.GUIDToAssetPath(guid)))
+                .FindAssets($"a:assets t:{nameof(SheetParserBase)}")
+                .Select(guid => AssetDatabase.LoadAssetAtPath<SheetParserBase>(AssetDatabase.GUIDToAssetPath(guid)))
                 .ToArray();
 
             AsyncExt.RecreateCts(ref _cts);

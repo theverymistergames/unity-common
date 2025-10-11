@@ -100,11 +100,15 @@ namespace MisterGames.Common.Data {
             );
         }
 
-        public static (ulong low, ulong high) DecomposeGuid(Guid guid) {
+        public static (ulong low, ulong high) DecomposeGuid(this Guid guid) {
             unsafe {
                 var parts = *(GuidParts*)&guid;
                 return (parts.low, parts.high);
             }
+        }
+
+        public static string FormatUnityEditorGUID(this Guid guid) {
+            return guid.ToString().Replace("-", "");
         }
     }
 

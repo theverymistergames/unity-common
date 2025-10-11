@@ -17,7 +17,7 @@ namespace MisterGames.Common.Editor.Localization {
 
         [Header("Storage Settings")]
         [SerializeField] private string _fileNamePrefix = "LocTable";
-        [SerializeField] private string _folderPath = "Localization";
+        [SerializeField] private string _folderPath = "Localization/Tables";
         [SerializeField] private DivideFilesMode _divideFilesMode;
         [VisibleIf(nameof(_divideFilesMode), 2)]
         [SerializeField] private bool _includeSheetTitleInFilename;
@@ -39,7 +39,7 @@ namespace MisterGames.Common.Editor.Localization {
                 .Select(guid => AssetDatabase.LoadAssetAtPath<LocalizationSettings>(AssetDatabase.GUIDToAssetPath(guid)))
                 .ToArray();
             
-            int valuesAdded = 0;
+            int valuesParsed = 0;
             var localesSet = new HashSet<Locale>();
             
             LogInfo($"starting to parse {sheetTables.Count} tables...");
@@ -52,7 +52,7 @@ namespace MisterGames.Common.Editor.Localization {
                 int rowCount = sheetTable.RowCount;
 
                 var localesSetLocal = new HashSet<Locale>();
-                int valuesAddedLocal = 0;
+                int valuesParsedLocal = 0;
                 
                 for (int r = 0; r < rowCount; r++) {
                     string row = sheetTable.GetRow(r);
@@ -61,10 +61,10 @@ namespace MisterGames.Common.Editor.Localization {
                         string value = sheetTable.GetData(r, c);
                         string column = sheetTable.GetColumn(c);
                         
-                        if (string.IsNullOrEmpty(value) || !TryGetLocale(column, localizationSettingsAssets, out var locale)) continue;
+                        if (string.IsNullOrEmpty(value) || !LocaleExtensions.TryGetLocale(column, localizationSettingsAssets, out var locale)) continue;
 
-                        valuesAdded++;
-                        valuesAddedLocal++;
+                        valuesParsed++;
+                        valuesParsedLocal++;
 
                         localesSet.Add(locale);
                         localesSetLocal.Add(locale);
@@ -73,39 +73,17 @@ namespace MisterGames.Common.Editor.Localization {
                     }
                 }
 
-                LogInfo($"[{i}] Table {sheetTable.TableTitle} (storage {storage.name}): parsed {valuesAddedLocal} values, used locales: {localesSetLocal.AsString()}.");
+                LogInfo($"[{i}] Table {sheetTable.TableTitle} (storage {storage.name}): parsed {valuesParsedLocal} values, used locales: {localesSetLocal.AsString()}.");
             }
 
             foreach (var storage in storages.Values) {
                 EditorUtility.SetDirty(storage);
             }
 
-            LogInfo($"parsed total {valuesAdded} values in {sheetTables.Count} tables using {storages.Count} storages, used locales: {localesSet.AsString()}.");
+            LogInfo($"parsed total {valuesParsed} values in {sheetTables.Count} tables using {storages.Count} storages, used locales: {localesSet.AsString()}.");
         }
-
-        private static bool TryGetLocale(string localeCode, IReadOnlyList<LocalizationSettings> settingsList, out Locale locale) {
-            if (string.IsNullOrWhiteSpace(localeCode)) {
-                locale = default;
-                return false;
-            }
-            
-            for (int i = 0; i < settingsList.Count; i++) {
-                if (settingsList[i].TryGetSupportedLocale(localeCode, out locale)) return true;
-            }
-            
-            int hash = Animator.StringToHash(LocaleExtensions.FormatLocaleCode(localeCode));
-            
-            if (LocaleExtensions.TryGetLocaleIdByHash(hash, out var id)) {
-                return LocaleExtensions.TryGetLocaleById(id, out locale);
-            }
-
-            locale = default;
-            return false;
-        }
-
+        
         private LocalizationTableStorage GetOrCreateStorage(SheetTable sheetTable, Dictionary<string, LocalizationTableStorage> storages) {
-            
-            
             return _divideFilesMode switch {
                 DivideFilesMode.OneFile => GetOrCreateStorage(GetSingleFileName(), storages),
                 DivideFilesMode.OneFileForEachSpreadsheet => GetOrCreateStorage(GetSpreadsheetFileName(sheetTable.SheetTitle), storages),
@@ -162,7 +140,7 @@ namespace MisterGames.Common.Editor.Localization {
             if (!AssetDatabase.IsValidFolder(folderPath)) {
                 string[] parts = folderPath.Split('/');
                 for (int i = 1; i < parts.Length; i++) {
-                    AssetDatabase.CreateFolder(Path.Combine(parts[..(i - 1)]), parts[i]);
+                    AssetDatabase.CreateFolder(Path.Combine(parts[..i]), parts[i]);
                 }
             }
 

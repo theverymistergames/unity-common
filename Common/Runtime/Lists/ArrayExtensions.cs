@@ -56,6 +56,24 @@ namespace MisterGames.Common.Lists {
             list.RemoveRange(count, list.Count - count);
         }
         
+        /// <summary>
+        /// Remove elements with positive predicate.
+        /// </summary>
+        public static void RemoveIf<T, S>(this List<T> list, S data, Func<T, S, bool> predicate) {
+            int count = list.Count;
+            
+            for (int i = count - 1; i >= 0; i--) {
+                var t = list[i];
+                if (!predicate.Invoke(t, data)) continue;
+                
+                int lastValid = --count;
+                list[i] = list[lastValid];
+                list[lastValid] = t;
+            }
+            
+            list.RemoveRange(count, list.Count - count);
+        }
+        
         public static float WriteToCircularBufferAndGetAverage(this float[] buffer, float value, ref int pointer) {
             buffer[pointer++ % buffer.Length] = value;
             

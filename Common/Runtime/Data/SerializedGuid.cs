@@ -23,7 +23,7 @@ namespace MisterGames.Common.Data {
         public Guid ToGuid() {
             return HashHelpers.ComposeGuid(_guidLow, _guidHigh);
         }
-
+        
         public override int GetHashCode() {
             return HashHelpers.Combine(_guidLow.GetHashCode(), _guidHigh.GetHashCode());
         }

@@ -3,6 +3,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using Cysharp.Threading.Tasks;
+using MisterGames.Common.Files;
 using MisterGames.Common.Lists;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Save.Tables;
@@ -161,23 +162,9 @@ namespace MisterGames.Common.Save {
             NotifyAfterSaveAll();
         }
 
-        private static async UniTask SaveStorageAsync(ISaveTableFactory storage, string filePath, int bufferSize) {
+        private static UniTask SaveStorageAsync(ISaveTableFactory storage, string filePath, int bufferSize) {
             var saveFileDto = new SaveFileDto { tables = new List<ISaveTable>(storage.Tables) };
-            
-            await using var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize, true);
-            await using var sw = new StreamWriter(fs);
-            
-            try {
-                await sw.WriteAsync(JsonUtility.ToJson(saveFileDto, prettyPrint: true));
-            }
-            catch (IOException e) {
-                Console.WriteLine(e);
-                throw;
-            }
-            finally {
-                sw.Close();
-                fs.Close();
-            }
+            return JsonExtensions.WriteJsonIntoFile(saveFileDto, filePath, bufferSize);
         }
 
         public bool TryLoad(string saveId = null) {
