@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+using MisterGames.Common.Maths;
 using UnityEditor;
 
 namespace MisterGames.Common.Editor.SerializedProperties {
@@ -19,6 +20,21 @@ namespace MisterGames.Common.Editor.SerializedProperties {
         private struct PropertyPathComponent {
             public string propertyName;
             public int elementIndex;
+        }
+
+        public static void WriteSerializedGuid(SerializedProperty guidProperty, ulong low, ulong high) {
+            NumberExtensions.UlongAsTwoInts(low, out int low0, out int low1);
+            NumberExtensions.UlongAsTwoInts(high, out int high0, out int high1);
+
+            guidProperty.FindPropertyRelative("_guidLow0").intValue = low0;
+            guidProperty.FindPropertyRelative("_guidLow1").intValue = low1;
+            guidProperty.FindPropertyRelative("_guidHigh0").intValue = high0;
+            guidProperty.FindPropertyRelative("_guidHigh1").intValue = high1;
+        }
+        
+        public static void ReadSerializedGuid(SerializedProperty guidProperty, out ulong low, out ulong high) {
+            low = NumberExtensions.TwoIntsAsUlong(guidProperty.FindPropertyRelative("_guidLow0").intValue, guidProperty.FindPropertyRelative("_guidLow1").intValue);
+            high = NumberExtensions.TwoIntsAsUlong(guidProperty.FindPropertyRelative("_guidHigh0").intValue, guidProperty.FindPropertyRelative("_guidHigh1").intValue);
         }
         
         public static string GetNeighbourPropertyPath(SerializedProperty property, string propertyName) {

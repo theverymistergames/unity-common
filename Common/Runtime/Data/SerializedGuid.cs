@@ -1,4 +1,5 @@
 ﻿using System;
+using MisterGames.Common.Maths;
 using UnityEngine;
 
 namespace MisterGames.Common.Data {
@@ -6,26 +7,39 @@ namespace MisterGames.Common.Data {
     [Serializable]
     public struct SerializedGuid : IEquatable<SerializedGuid> {
         
-        [SerializeField] private ulong _guidLow;
-        [SerializeField] private ulong _guidHigh;
+        [SerializeField] private int _guidLow0;
+        [SerializeField] private int _guidLow1;
+        [SerializeField] private int _guidHigh0;
+        [SerializeField] private int _guidHigh1;
+        
+        public static readonly SerializedGuid Empty = new(0, 0, 0, 0);
 
-        public static readonly SerializedGuid Empty = new(0, 0);
-
-        public SerializedGuid(ulong guidLow, ulong guidHigh) {
-            _guidLow = guidLow;
-            _guidHigh = guidHigh;
+        public SerializedGuid(int guidLow0, int guidLow1, int guidHigh0, int guidHigh1) {
+            _guidLow0 = guidLow0;
+            _guidLow1 = guidLow1;
+            _guidHigh0 = guidHigh0;
+            _guidHigh1 = guidHigh1;
         }
 
         public SerializedGuid(Guid guid) {
-            (_guidLow, _guidHigh) = HashHelpers.DecomposeGuid(guid);
+            (ulong low, ulong high) = guid.DecomposeGuid();
+
+            NumberExtensions.UlongAsTwoInts(low, out _guidLow0, out _guidLow1);
+            NumberExtensions.UlongAsTwoInts(high, out _guidHigh0, out _guidHigh1);
         }
         
         public Guid ToGuid() {
-            return HashHelpers.ComposeGuid(_guidLow, _guidHigh);
+            return HashHelpers.ComposeGuid(
+                NumberExtensions.TwoIntsAsUlong(_guidLow0, _guidLow1),
+                NumberExtensions.TwoIntsAsUlong(_guidHigh0, _guidHigh1)
+            );
         }
         
         public override int GetHashCode() {
-            return HashHelpers.Combine(_guidLow.GetHashCode(), _guidHigh.GetHashCode());
+            ulong low = NumberExtensions.TwoIntsAsUlong(_guidLow0, _guidLow1);
+            ulong high = NumberExtensions.TwoIntsAsUlong(_guidHigh0, _guidHigh1);
+            
+            return HashHelpers.Combine(low.GetHashCode(), high.GetHashCode());
         }
 
         public override bool Equals(object obj) {
@@ -33,7 +47,10 @@ namespace MisterGames.Common.Data {
         }
 
         public bool Equals(SerializedGuid other) {
-            return _guidLow == other._guidLow && _guidHigh == other._guidHigh;
+            return _guidLow0 == other._guidLow0 &&
+                   _guidLow1 == other._guidLow1 &&
+                   _guidHigh0 == other._guidHigh0 && 
+                   _guidHigh1 == other._guidHigh1;
         }
 
         public static bool operator ==(SerializedGuid lhs, SerializedGuid rhs) {
@@ -45,7 +62,10 @@ namespace MisterGames.Common.Data {
         }
         
         public override string ToString() {
-            return $"{_guidLow:X16}-{_guidHigh:X16}";
+            ulong low = NumberExtensions.TwoIntsAsUlong(_guidLow0, _guidLow1);
+            ulong high = NumberExtensions.TwoIntsAsUlong(_guidHigh0, _guidHigh1);
+            
+            return $"{low:X16}-{high:X16}";
         }
 
         public string ToString(string format) {

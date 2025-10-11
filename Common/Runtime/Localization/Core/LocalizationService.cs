@@ -56,7 +56,7 @@ namespace MisterGames.Common.Localization {
         }
 
         public string GetLocalizedString(LocalizationKey key) {
-            var table = GetTable(key.tableGuid.ToGuid());
+            var table = GetTable(key.table.ToGuid());
             if (table == null) return null;
             
             if (table.TryGetValue(key.hash, _locale.Hash, out string value) && !string.IsNullOrEmpty(value) ||
@@ -70,7 +70,7 @@ namespace MisterGames.Common.Localization {
         }
 
         public T GetLocalizedAsset<T>(LocalizationKey<T> key) {
-            var table = GetTable(key.tableGuid.ToGuid());
+            var table = GetTable(key.table.ToGuid());
             if (table == null) return default;
             
             if (table.TryGetValue(key.hash, _locale.Hash, out T value) ||

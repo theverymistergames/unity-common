@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using MisterGames.Common.Data;
+using MisterGames.Common.Editor.SerializedProperties;
 using MisterGames.Common.Editor.Views;
 using MisterGames.Common.Localization;
+using MisterGames.Common.Maths;
 using UnityEditor;
 using UnityEngine;
 
@@ -20,7 +22,7 @@ namespace MisterGames.Common.Editor.Localization {
         private static readonly GUIContent NullLabel = new(Null);
 
         private const string KeyHashPath = nameof(LocalizationKey.hash);
-        private const string TableGuidPath = nameof(LocalizationKey.tableGuid);
+        private const string TableGuidPath = nameof(LocalizationKey.table);
 
         private readonly struct Entry {
             
@@ -54,7 +56,7 @@ namespace MisterGames.Common.Editor.Localization {
             
             var foldoutRect = position;
             foldoutRect.height = EditorGUIUtility.singleLineHeight;
-            property.isExpanded = EditorGUI.Foldout(foldoutRect, property.isExpanded, label, toggleOnLabelClick: true);
+            property.isExpanded = EditorGUI.Foldout(foldoutRect, property.isExpanded, label);
             
             if (property.isExpanded && table != null) {
                 var serializedObject = new SerializedObject(table);
@@ -91,20 +93,14 @@ namespace MisterGames.Common.Editor.Localization {
                     onItemSelected: (e, _) => {
                         var p = property.Copy();
 
-                        ulong low;
-                        ulong high;
+                        (ulong, ulong) guidData = default;
                         
-                        if (e.table == null) {
-                            low = 0;
-                            high = 0;
-                        }
-                        else {
+                        if (e.table != null) {
                             string guid = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(e.table));
-                            (low, high) = new Guid(guid).DecomposeGuid();
+                            guidData = new Guid(guid).DecomposeGuid();
                         }
                         
-                        property.FindPropertyRelative(TableGuidPath).FindPropertyRelative("_guidLow").ulongValue = low;
-                        property.FindPropertyRelative(TableGuidPath).FindPropertyRelative("_guidHigh").ulongValue = high;
+                        SerializedPropertyExtensions.WriteSerializedGuid(p.FindPropertyRelative(TableGuidPath), guidData.Item1, guidData.Item2);
                         
                         property.FindPropertyRelative(KeyHashPath).intValue = string.IsNullOrWhiteSpace(e.key)
                             ? 0
@@ -148,9 +144,7 @@ namespace MisterGames.Common.Editor.Localization {
         }
 
         private static string GetUnityEditorGuid(SerializedProperty guidProperty) {
-            ulong low = guidProperty.FindPropertyRelative("_guidLow").ulongValue;
-            ulong high = guidProperty.FindPropertyRelative("_guidHigh").ulongValue;
-
+            SerializedPropertyExtensions.ReadSerializedGuid(guidProperty, out ulong low, out ulong high);
             return HashHelpers.ComposeGuid(low, high).FormatUnityEditorGUID();
         }
 
@@ -173,7 +167,7 @@ namespace MisterGames.Common.Editor.Localization {
         
         private static bool IsValidTableType(LocalizationTableStorageBase table, Type genericType) {
             var dataType = table.GetDataType();
-            return genericType?.IsAssignableFrom(dataType) ?? dataType == null;
+            return genericType?.IsAssignableFrom(dataType) ?? dataType == typeof(string);
         }
 
         private static IEnumerable<Entry> GetKeys(LocalizationTableStorageBase table) {

@@ -52,8 +52,20 @@ namespace MisterGames.Common.Maths {
             b = (int) (l >> 32);
         }
 
+        public static void UlongAsTwoInts(ulong l, out int a, out int b) {
+            a = (int) (l & uint.MaxValue);
+            b = (int) (l >> 32);
+        }
+        
         public static long TwoIntsAsLong(int a, int b) {
             long l = b;
+            l <<= 32;
+            l |= (uint) a;
+            return l;
+        }
+        
+        public static ulong TwoIntsAsUlong(int a, int b) {
+            ulong l = (uint) b;
             l <<= 32;
             l |= (uint) a;
             return l;

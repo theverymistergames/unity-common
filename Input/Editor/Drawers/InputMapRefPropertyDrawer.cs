@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using MisterGames.Common.Data;
+using MisterGames.Common.Editor.SerializedProperties;
 using MisterGames.Common.Editor.Views;
 using MisterGames.Input.Actions;
 using UnityEditor;
@@ -50,9 +51,7 @@ namespace MisterGames.Input.Editor.Drawers {
             rect.width -= offset;
             
             var guidProperty = property.FindPropertyRelative(GuidPropertyPath);
-            ulong guidLow = guidProperty.FindPropertyRelative(GuidLowPropertyPath).ulongValue;
-            ulong guidHigh = guidProperty.FindPropertyRelative(GuidHighPropertyPath).ulongValue;
-
+            SerializedPropertyExtensions.ReadSerializedGuid(guidProperty, out ulong guidLow, out ulong guidHigh);
             var guid = HashHelpers.ComposeGuid(guidLow, guidHigh);
             
             if (EditorGUI.DropdownButton(rect, GetDropdownLabel(guid), FocusType.Keyboard)) {
@@ -64,10 +63,8 @@ namespace MisterGames.Input.Editor.Drawers {
                         var p = property.Copy();
 
                         var guidP = p.FindPropertyRelative(GuidPropertyPath);
-                        (ulong low, ulong high) = HashHelpers.DecomposeGuid(e.guid);
-
-                        guidP.FindPropertyRelative(GuidLowPropertyPath).ulongValue = low;
-                        guidP.FindPropertyRelative(GuidHighPropertyPath).ulongValue = high;
+                        (ulong low, ulong high) = e.guid.DecomposeGuid();
+                        SerializedPropertyExtensions.WriteSerializedGuid(guidP, low, high);
 
                         p.serializedObject.ApplyModifiedProperties();
                         p.serializedObject.Update();

@@ -8,16 +8,16 @@ namespace MisterGames.Common.Localization {
     public struct LocalizationKey : IEquatable<LocalizationKey> {
         
         [SerializeField] internal int hash;
-        [SerializeField] internal SerializedGuid tableGuid;
+        [SerializeField] internal SerializedGuid table;
 
-        public LocalizationKey(int hash, Guid tableGuid) {
+        public LocalizationKey(int hash, Guid table) {
             this.hash = hash;
-            this.tableGuid = new SerializedGuid(tableGuid);
+            this.table = new SerializedGuid(table);
         }
         
-        public bool Equals(LocalizationKey other) => hash == other.hash && tableGuid == other.tableGuid;
+        public bool Equals(LocalizationKey other) => hash == other.hash && table == other.table;
         public override bool Equals(object obj) => obj is LocalizationKey other && Equals(other);
-        public override int GetHashCode() => HashCode.Combine(hash, tableGuid);
+        public override int GetHashCode() => HashCode.Combine(hash, table);
         public static bool operator ==(LocalizationKey left, LocalizationKey right) => left.Equals(right);
         public static bool operator !=(LocalizationKey left, LocalizationKey right) => !left.Equals(right);
     }
@@ -26,16 +26,16 @@ namespace MisterGames.Common.Localization {
     public struct LocalizationKey<T> : IEquatable<LocalizationKey<T>> {
         
         [SerializeField] internal int hash;
-        [SerializeField] internal SerializedGuid tableGuid;
+        [SerializeField] internal SerializedGuid table;
 
-        public LocalizationKey(int hash, Guid tableGuid) {
+        public LocalizationKey(int hash, Guid table) {
             this.hash = hash;
-            this.tableGuid = new SerializedGuid(tableGuid);
+            this.table = new SerializedGuid(table);
         }
         
-        public bool Equals(LocalizationKey<T> other) => hash == other.hash && tableGuid == other.tableGuid;
+        public bool Equals(LocalizationKey<T> other) => hash == other.hash && table == other.table;
         public override bool Equals(object obj) => obj is LocalizationKey<T> other && Equals(other);
-        public override int GetHashCode() => HashCode.Combine(hash, tableGuid);
+        public override int GetHashCode() => HashCode.Combine(hash, table);
         public static bool operator ==(LocalizationKey<T> left, LocalizationKey<T> right) => left.Equals(right);
         public static bool operator !=(LocalizationKey<T> left, LocalizationKey<T> right) => !left.Equals(right);
     }
