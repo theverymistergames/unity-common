@@ -67,7 +67,7 @@ namespace MisterGames.Common.Data {
             
             return $"{low:X16}-{high:X16}";
         }
-
+        
         public string ToString(string format) {
             return ToGuid().ToString(format);
         }

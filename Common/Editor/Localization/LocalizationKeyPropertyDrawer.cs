@@ -145,7 +145,7 @@ namespace MisterGames.Common.Editor.Localization {
 
         private static string GetUnityEditorGuid(SerializedProperty guidProperty) {
             SerializedPropertyExtensions.ReadSerializedGuid(guidProperty, out ulong low, out ulong high);
-            return HashHelpers.ComposeGuid(low, high).FormatUnityEditorGUID();
+            return HashHelpers.ComposeGuid(low, high).ToUnityEditorGUID();
         }
 
         private static string GetPath(Entry entry) {

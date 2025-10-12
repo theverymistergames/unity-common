@@ -20,7 +20,7 @@ namespace MisterGames.UI.Components {
         
         [Header("Window")]
         [SerializeField] private int _layer;
-        [SerializeField] private UiWindowState _initialState;
+        [SerializeField] private UiWindowState _state;
         [SerializeField] private UiWindowOpenMode _openMode;
         [SerializeField] private UiWindowCloseMode _closeMode;
         [SerializeField] private UiWindowOptions _options;
@@ -38,14 +38,14 @@ namespace MisterGames.UI.Components {
         
         public int Layer => _layer;
         public UiWindowOpenMode OpenMode => _openMode;
-        public UiWindowCloseMode CloseMode => _closeMode; 
-        public UiWindowState State { get; private set; }
+        public UiWindowCloseMode CloseMode => _closeMode;
+        public UiWindowState State => _state;
         public UiWindowOptions Options => _options;
 
         private void Awake() {
             CurrentSelected = _firstSelected?.gameObject;
             
-            Services.Get<IUiWindowService>()?.RegisterWindow(this, _initialState);
+            Services.Get<IUiWindowService>()?.RegisterWindow(this, _state);
         }
 
         private void OnDestroy() {
@@ -81,8 +81,6 @@ namespace MisterGames.UI.Components {
         }
         
         void IUiWindow.NotifyWindowState(UiWindowState state) {
-            if (!enabled) state = UiWindowState.Closed;
-            
 #if UNITY_EDITOR
             if (!Application.isPlaying) {
                 SetEnableState(_enableOnWindowOpened, state == UiWindowState.Opened);
@@ -91,7 +89,7 @@ namespace MisterGames.UI.Components {
             }
 #endif
             
-            State = state;
+            _state = state;
             
             SetEnableState(_enableOnBranchOpened, Services.Get<IUiWindowService>().IsInOpenedBranch(this));
             
@@ -143,6 +141,11 @@ namespace MisterGames.UI.Components {
         }
 
 #if UNITY_EDITOR
+        private void OnValidate() {
+            if (_state == UiWindowState.Closed) CloseWindow();
+            else OpenWindow();
+        }
+
         [Button] 
         private void OpenWindow() {
             if (Application.isPlaying) {

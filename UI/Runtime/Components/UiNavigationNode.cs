@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using MisterGames.Common;
 using MisterGames.Common.Async;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Maths;
@@ -146,7 +145,7 @@ namespace MisterGames.UI.Components {
                 }
             
                 var pos = rootTrf.InverseTransformPoint(selectable.transform.position).ToFloat2XY();
-                if (!pos.IsInDirection(origin, direction, _cell)) continue;
+                if (!pos.IsInDirection(origin, direction)) continue;
                 
                 float sqrDistance = math.distancesq(pos, origin);
                 if (minSqrDistance >= 0f && sqrDistance > minSqrDistance) continue;

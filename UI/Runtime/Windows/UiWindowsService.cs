@@ -28,12 +28,28 @@ namespace MisterGames.UI.Windows {
         }
 
         public void RegisterWindow(IUiWindow window, UiWindowState state) {
+            RegisterWindow(window, state, forceState: false);
+        }
+
+        public void UnregisterWindow(IUiWindow window) {
+            int id = GetWindowId(window);
+
+            if (_openedWindowIdsSet.Contains(id)) {
+                CloseWindow(window, canOpenParent: false, forceClose: true, notify: true);
+            }
+            
+            _gameObjectIdToWindowMap.Remove(id);
+            
+            UpdateHierarchy(window.GameObject);
+        }
+
+        private void RegisterWindow(IUiWindow window, UiWindowState state, bool forceState) {
             _gameObjectIdToWindowMap[GetWindowId(window)] = window;
 
             UpdateHierarchy(window.GameObject);
             
             // Prevent setting initial window state if it has a parent window
-            var firstState = GetParentWindow(window) != null
+            var firstState = !forceState && GetParentWindow(window) != null
                 ? UiWindowState.Closed
                 : state;
 
@@ -49,18 +65,6 @@ namespace MisterGames.UI.Windows {
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-        }
-
-        public void UnregisterWindow(IUiWindow window) {
-            int id = GetWindowId(window);
-
-            if (_openedWindowIdsSet.Contains(id)) {
-                CloseWindow(window, canOpenParent: false, forceClose: true, notify: true);
-            }
-            
-            _gameObjectIdToWindowMap.Remove(id);
-            
-            UpdateHierarchy(window.GameObject);
         }
 
         private void UpdateHierarchy(GameObject root) {
@@ -245,7 +249,21 @@ namespace MisterGames.UI.Windows {
         }
         
         private bool OpenWindow(IUiWindow window, bool notify) {
-            if (!TryGetWindowRootLayer(window, out int layer)) return false;
+            if (window == null) {
+                return false;
+            }
+
+            if (!_gameObjectIdToWindowMap.TryGetValue(window.GameObject.GetHashCode(), out var existent) || 
+                existent != window) 
+            {
+                window.GameObject.SetActive(true);
+                RegisterWindow(window, UiWindowState.Opened, forceState: true);
+                return true;
+            }
+            
+            if (!TryGetWindowRootLayer(window, out int layer)) {
+                return false;
+            }
             
             _layerToFrontOpenedWindowIdMap[layer] = GetWindowId(window);
             

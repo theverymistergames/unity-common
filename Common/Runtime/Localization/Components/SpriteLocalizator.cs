@@ -2,6 +2,10 @@
 using UnityEngine;
 using UnityEngine.UI;
 
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
 namespace MisterGames.Common.Localization.Components {
     
     public sealed class SpriteLocalizator : MonoBehaviour {
@@ -36,8 +40,27 @@ namespace MisterGames.Common.Localization.Components {
         }
 
 #if UNITY_EDITOR
+        [Header("Debug")]
+        [SerializeField] private bool _updateInEditor = true;
+        [SerializeField] private Locale _defaultLocale = LocaleId.en.ToLocale();
+        
         private void Reset() {
             _image = GetComponentInChildren<Image>();
+        }
+
+        private void OnValidate() {
+            if (enabled && _updateInEditor) FetchValue();
+        }
+
+        [Attributes.Button]
+        private void FetchValue() {
+            if (_key.IsNull() || _image == null) return;
+
+            var sprite = _key.GetValue(_defaultLocale);
+            if (sprite == _image.sprite) return;
+            
+            _image.sprite = sprite;
+            EditorUtility.SetDirty(_image);
         }
 #endif
     }

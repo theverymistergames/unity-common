@@ -2,6 +2,10 @@
 using TMPro;
 using UnityEngine;
 
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
 namespace MisterGames.Common.Localization.Components {
     
     public sealed class TmpTextLocalizator : MonoBehaviour {
@@ -34,8 +38,27 @@ namespace MisterGames.Common.Localization.Components {
         }
 
 #if UNITY_EDITOR
+        [Header("Debug")]
+        [SerializeField] private bool _updateInEditor = true;
+        [SerializeField] private Locale _defaultLocale = LocaleId.en.ToLocale();
+        
         private void Reset() {
             _textField = GetComponentInChildren<TMP_Text>();
+        }
+
+        private void OnValidate() {
+            if (enabled && _updateInEditor) FetchValue();
+        }
+
+        [Attributes.Button]
+        private void FetchValue() {
+            if (_key.IsNull() || _textField == null) return;
+
+            string text = _key.GetValue(_defaultLocale);
+            if (text == _textField.text) return;
+            
+            _textField.SetText(text);
+            EditorUtility.SetDirty(_textField);
         }
 #endif
     }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Async;
+using MisterGames.Common.Data;
 using MisterGames.Common.Strings;
 using Unity.Collections;
 using UnityEngine;
@@ -56,10 +57,18 @@ namespace MisterGames.Common.Localization {
         }
 
         public string GetLocalizedString(LocalizationKey key) {
+            return GetLocalizedString(key, _locale);
+        }
+
+        public T GetLocalizedAsset<T>(LocalizationKey<T> key) {
+            return GetLocalizedAsset(key, _locale);
+        }
+        
+        public string GetLocalizedString(LocalizationKey key, Locale locale) {
             var table = GetTable(key.table.ToGuid());
             if (table == null) return null;
             
-            if (table.TryGetValue(key.hash, _locale.Hash, out string value) && !string.IsNullOrEmpty(value) ||
+            if (table.TryGetValue(key.hash, locale.Hash, out string value) && !string.IsNullOrEmpty(value) ||
                 _settings.ReplaceNotLocalizedStringsWithDefaultLocale &&
                 table.TryGetValue(key.hash, _settings.GetDefaultFallbackLocale().Hash, out value)) 
             {
@@ -69,11 +78,11 @@ namespace MisterGames.Common.Localization {
             return null;
         }
 
-        public T GetLocalizedAsset<T>(LocalizationKey<T> key) {
+        public T GetLocalizedAsset<T>(LocalizationKey<T> key, Locale locale) {
             var table = GetTable(key.table.ToGuid());
             if (table == null) return default;
             
-            if (table.TryGetValue(key.hash, _locale.Hash, out T value) ||
+            if (table.TryGetValue(key.hash, locale.Hash, out T value) ||
                 _settings.ReplaceNotLocalizedAssetsWithDefaultLocale &&
                 table.TryGetValue(key.hash, _settings.GetDefaultFallbackLocale().Hash, out value)) 
             {
@@ -93,14 +102,16 @@ namespace MisterGames.Common.Localization {
         }
 
         private ILocalizationTable GetTable(Guid guid) {
+            if (guid == Guid.Empty) return null;
+            
             int hash = guid.GetHashCode();
             
             if (_tableMap.TryGetValue(hash, out var table)) {
                 _tableUsageTimeMap[hash] = Time.realtimeSinceStartup;
                 return table;
             }
-
-            var handle = Addressables.LoadAssetAsync<LocalizationTableStorageBase>(guid);
+            
+            var handle = Addressables.LoadAssetAsync<LocalizationTableStorageBase>(guid.ToUnityEditorGUID());
             _tableStorageHandlesMap[hash] = handle;
             
             handle.WaitForCompletion();

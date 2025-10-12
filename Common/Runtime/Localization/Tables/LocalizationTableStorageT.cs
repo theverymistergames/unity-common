@@ -193,7 +193,6 @@ namespace MisterGames.Common.Localization {
             if (_allowInvalidateMap) _keyHashToIndexMap = null;
         }
 #endif
-        
     }
     
 }

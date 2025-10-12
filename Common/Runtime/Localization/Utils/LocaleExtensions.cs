@@ -133,6 +133,11 @@ namespace MisterGames.Common.Localization {
             return new Locale(hash, null);
         }
         
+        public static Locale ToLocale(this LocaleId id) {
+            InitializeMaps();
+            return LocaleIdToHashMap.TryGetValue(id, out int hash) ? new Locale(hash, null) : default;
+        }
+        
         public static bool TryGetLocaleHashById(LocaleId id, out int hash) {
             InitializeMaps();
             return LocaleIdToHashMap.TryGetValue(id, out hash);

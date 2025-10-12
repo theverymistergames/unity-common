@@ -139,10 +139,10 @@ namespace MisterGames.UI.Navigation {
                     var data = selectablesArray[i];
                     if (data.id == current.id) continue;
 
-                    bool isUp = mode != UiNavigationMode.Horizontal && data.position.IsHigherThan(current.position, cellSize);
-                    bool isDown = mode != UiNavigationMode.Horizontal && data.position.IsLowerThan(current.position, cellSize);
-                    bool isLeft = mode != UiNavigationMode.Vertical && data.position.IsToTheLeftTo(current.position, cellSize);
-                    bool isRight = mode != UiNavigationMode.Vertical && data.position.IsToTheRightTo(current.position, cellSize);
+                    bool isUp = mode != UiNavigationMode.Horizontal && data.position.IsHigherThan(current.position);
+                    bool isDown = mode != UiNavigationMode.Horizontal && data.position.IsLowerThan(current.position);
+                    bool isLeft = mode != UiNavigationMode.Vertical && data.position.IsToTheLeftTo(current.position);
+                    bool isRight = mode != UiNavigationMode.Vertical && data.position.IsToTheRightTo(current.position);
 
                     var distance = new float2(
                         math.abs(current.position.x - data.position.x),

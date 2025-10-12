@@ -107,7 +107,7 @@ namespace MisterGames.Common.Data {
             }
         }
 
-        public static string FormatUnityEditorGUID(this Guid guid) {
+        public static string ToUnityEditorGUID(this Guid guid) {
             return guid.ToString().Replace("-", "");
         }
     }
