@@ -28,28 +28,10 @@ namespace MisterGames.UI.Windows {
         }
 
         public void RegisterWindow(IUiWindow window, UiWindowState state) {
-            RegisterWindow(window, state, forceState: false);
-        }
-
-        public void UnregisterWindow(IUiWindow window) {
-            int id = GetWindowId(window);
-
-            if (_openedWindowIdsSet.Contains(id)) {
-                CloseWindow(window, canOpenParent: false, forceClose: true, notify: true);
-            }
-            
-            _gameObjectIdToWindowMap.Remove(id);
-            
-            UpdateHierarchy(window.GameObject);
-        }
-
-        private void RegisterWindow(IUiWindow window, UiWindowState state, bool forceState) {
-            _gameObjectIdToWindowMap[GetWindowId(window)] = window;
-
-            UpdateHierarchy(window.GameObject);
+            AddToHierarchy(window);
             
             // Prevent setting initial window state if it has a parent window
-            var firstState = !forceState && GetParentWindow(window) != null
+            var firstState = GetParentWindow(window) != null
                 ? UiWindowState.Closed
                 : state;
 
@@ -65,6 +47,23 @@ namespace MisterGames.UI.Windows {
                 default:
                     throw new ArgumentOutOfRangeException();
             }
+        }
+
+        public void UnregisterWindow(IUiWindow window) {
+            int id = GetWindowId(window);
+
+            if (_openedWindowIdsSet.Contains(id)) {
+                CloseWindow(window, canOpenParent: false, forceClose: true, notify: true);
+            }
+            
+            _gameObjectIdToWindowMap.Remove(id);
+            
+            UpdateHierarchy(window.GameObject);
+        }
+
+        private void AddToHierarchy(IUiWindow window) {
+            _gameObjectIdToWindowMap[GetWindowId(window)] = window;
+            UpdateHierarchy(window.GameObject);
         }
 
         private void UpdateHierarchy(GameObject root) {
@@ -209,7 +208,11 @@ namespace MisterGames.UI.Windows {
         }
 
         public void NotifyWindowEnabled(IUiWindow window, bool enabled) {
-            if (window == null) return;
+            if (window?.GameObject == null ||
+                !_gameObjectIdToWindowMap.ContainsKey(window.GameObject.GetHashCode())) 
+            {
+                return;
+            }
 
             if (!enabled) {
                 CloseWindow(window, canOpenParent: false, forceClose: true, notify: true);
@@ -217,7 +220,7 @@ namespace MisterGames.UI.Windows {
             }
 
             var root = GetRootWindow(window);
-
+            
             if (root == window && window.CloseMode == UiWindowCloseMode.NoExit) {
                 OpenWindow(window, notify: true);
                 return;
@@ -249,7 +252,7 @@ namespace MisterGames.UI.Windows {
         }
         
         private bool OpenWindow(IUiWindow window, bool notify) {
-            if (window == null) {
+            if (window?.GameObject == null) {
                 return false;
             }
 
@@ -257,8 +260,7 @@ namespace MisterGames.UI.Windows {
                 existent != window) 
             {
                 window.GameObject.SetActive(true);
-                RegisterWindow(window, UiWindowState.Opened, forceState: true);
-                return true;
+                AddToHierarchy(window);
             }
             
             if (!TryGetWindowRootLayer(window, out int layer)) {
@@ -282,17 +284,17 @@ namespace MisterGames.UI.Windows {
                     if (sibling != window) changed |= SetWindowBranchState(sibling, UiWindowState.Closed);
                 }
 
+                var parent = _gameObjectIdToWindowMap.GetValueOrDefault(parentId);
+                
                 parentState = parentState switch {
                     UiWindowState.Closed => UiWindowState.Closed,
-                    UiWindowState.Opened => window.OpenMode switch {
-                        UiWindowOpenMode.Full => UiWindowState.Closed,
-                        UiWindowOpenMode.Embedded => UiWindowState.Opened,
-                        _ => throw new ArgumentOutOfRangeException()
+                    UiWindowState.Opened => window.OpenMode switch { 
+                        UiWindowOpenMode.Full => UiWindowState.Closed, 
+                        UiWindowOpenMode.Embedded => UiWindowState.Opened, 
+                        _ => throw new ArgumentOutOfRangeException() 
                     },
                     _ => throw new ArgumentOutOfRangeException()
                 };
-                
-                var parent = _gameObjectIdToWindowMap.GetValueOrDefault(parentId);
 
                 changed |= parent != null && parentState switch {
                     UiWindowState.Closed => _openedWindowIdsSet.Contains(parentId),

@@ -106,7 +106,7 @@ namespace MisterGames.Scenes.Loading {
             while (id == _fadeId && !cancellationToken.IsCancellationRequested && 
                    (dir > 0f && Progress < max || dir < 0f && Progress > min)) 
             {
-                Progress = Mathf.Clamp(Progress + Time.deltaTime * speed * dir, min, max);
+                Progress = Mathf.Clamp(Progress + Time.unscaledDeltaTime * speed * dir, min, max);
                 
                 float t = progressStart.IsNearlyEqual(progressEnd) 
                     ? 1f 
