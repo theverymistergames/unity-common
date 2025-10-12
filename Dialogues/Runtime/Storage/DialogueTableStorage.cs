@@ -5,8 +5,8 @@ using UnityEngine;
 
 namespace MisterGames.Dialogues.Storage {
     
-    [CreateAssetMenu(fileName = nameof(DialogueStorage), menuName = "MisterGames/Dialogues/" + nameof(DialogueStorage))]
-    public sealed class DialogueStorage : ScriptableObject, IDialogueStorage {
+    [CreateAssetMenu(fileName = nameof(DialogueTableStorage), menuName = "MisterGames/Dialogues/" + nameof(DialogueTableStorage))]
+    public sealed class DialogueTableStorage : ScriptableObject, IDialogueTableStorage {
 
         [SerializeField] private LocalizationKey _dialogueId;
         [HideLocalizationTable]

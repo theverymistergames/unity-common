@@ -63,7 +63,7 @@ namespace MisterGames.Dialogues.Editor.Parser {
             cancellationToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _cts.Token).Token;
             
             var localizationTableStorages = new Dictionary<string, LocalizationTableStorage>();
-            var dialogueStorages = new Dictionary<string, DialogueStorage>();
+            var dialogueStorages = new Dictionary<string, DialogueTableStorage>();
             
             var localizationSettingsAssets = AssetDatabase
                 .FindAssets($"a:assets t:{nameof(LocalizationSettings)}")
@@ -136,7 +136,7 @@ namespace MisterGames.Dialogues.Editor.Parser {
         private async UniTask<int> ParseAndWriteDialoguesFromFile(
             string filePath,
             Dictionary<string, LocalizationTableStorage> localizationTableStorages,
-            Dictionary<string, DialogueStorage> dialogueStorages,
+            Dictionary<string, DialogueTableStorage> dialogueStorages,
             LocalizationSettings[] localizationSettingsArray,
             CancellationToken cancellationToken) 
         {
@@ -158,13 +158,13 @@ namespace MisterGames.Dialogues.Editor.Parser {
             
             var localizationTableStorage = GetOrCreateLocalizationTableStorage(
                 locTableStorageFolderPath,
-                fileDto.header.id,
+                fileDto.id,
                 localizationTableStorages
             );
                 
             var dialogueStorage = GetOrCreateDialogueStorage(
                 dialogueStorageFolderPath,
-                fileDto.header.id,
+                fileDto.id,
                 dialogueStorages
             );
 
@@ -175,7 +175,7 @@ namespace MisterGames.Dialogues.Editor.Parser {
                 return 0;
             }
             
-            LogInfo($"File {filePath}: parsed dialog {fileDto.header.id}.");
+            LogInfo($"File {filePath}: parsed dialog {fileDto.id}.");
             return 1;
         }
 
@@ -197,10 +197,10 @@ namespace MisterGames.Dialogues.Editor.Parser {
             return storage;
         }
 
-        private DialogueStorage GetOrCreateDialogueStorage(
+        private DialogueTableStorage GetOrCreateDialogueStorage(
             string folderPath,
             string dialogueId,
-            Dictionary<string, DialogueStorage> storages) 
+            Dictionary<string, DialogueTableStorage> storages) 
         {
             string filename = GetSingleDialogueFilename(dialogueId, _dialogueFilenamePrefix);
             var storage = GetOrCreateScriptableObject(folderPath, filename, storages, out bool wasAlreadyAdded);

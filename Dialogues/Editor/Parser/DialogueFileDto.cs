@@ -1,20 +1,15 @@
 ﻿using System;
 
-namespace MisterGames.Dialogues.Storage {
+namespace MisterGames.Dialogues.Editor.Parser {
 
     [Serializable]
     public sealed class DialogueFileDto {
         
-        public Header header;
+        public string id;
+        public LocalizedContent[] titleLocalizations;
         public Role[] roles;
         public Branch[] branches;
         public ElementsArray[] localizations;
-        
-        [Serializable]
-        public struct Header {
-            public string id;
-            public LocalizedContent[] localizations;
-        }
         
         [Serializable]
         public struct Role {

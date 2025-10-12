@@ -2,7 +2,7 @@
 
 namespace MisterGames.Dialogues.Storage {
     
-    public interface IDialogueStorage {
+    public interface IDialogueTableStorage {
     
         LocalizationKey DialogueId { get; }
         int RolesCount { get; }

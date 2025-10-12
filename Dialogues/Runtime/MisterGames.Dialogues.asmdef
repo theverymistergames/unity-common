@@ -1,6 +1,6 @@
 {
-    "name": "MisterGames.Dialogs",
-    "rootNamespace": "MisterGames.Dialogs",
+    "name": "MisterGames.Dialogues",
+    "rootNamespace": "MisterGames.Dialogues",
     "references": [
         "GUID:f51ebe6a0ceec4240a699833d6309b23",
         "GUID:75469ad4d38634e559750d17036d5f7c",
@@ -11,7 +11,10 @@
         "GUID:9e24947de15b9834991c9d8411ea37cf",
         "GUID:84651a3751eca9349aac36a66bba901b",
         "GUID:6055be8ebefd69e48b49212b09b47b2f",
-        "GUID:0175294ec022c624cbe537915e3c9e71"
+        "GUID:0175294ec022c624cbe537915e3c9e71",
+        "GUID:aca0e2fb81716ab4ca096bf5427d3f5a",
+        "GUID:27b41c8f92a5419d8b9fce851e1339f8",
+        "GUID:32c4950bf8b33bd4fa90d0e72d80cc0c"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

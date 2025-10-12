@@ -18,21 +18,21 @@ namespace MisterGames.Dialogues.Editor.Parser {
             DialogueFileDto dto,
             Guid localizationTableGuid,
             ILocalizationTableStorage<string> writeLocalizationTable,
-            IDialogueStorage writeDialogueStorage,
+            IDialogueTableStorage writeDialogueTableStorage,
             IReadOnlyList<LocalizationSettings> localizationSettingsList) 
         {
-            if (dto == null || writeDialogueStorage == null || writeLocalizationTable == null ||
-                string.IsNullOrWhiteSpace(dto.header.id)) 
+            if (dto == null || writeDialogueTableStorage == null || writeLocalizationTable == null ||
+                string.IsNullOrWhiteSpace(dto.id)) 
             {
                 return false;
             }
             
-            string dialogueId = dto.header.id.Trim();
+            string dialogueId = dto.id.Trim();
             
-            WriteHeader(dialogueId, dto, localizationTableGuid, writeLocalizationTable, writeDialogueStorage, localizationSettingsList);
-            WriteRoles(dialogueId, dto, localizationTableGuid, writeLocalizationTable, writeDialogueStorage, localizationSettingsList);
-            WriteBranches(dialogueId, dto, localizationTableGuid, writeLocalizationTable, writeDialogueStorage, localizationSettingsList);
-            WriteElements(dialogueId, dto, localizationTableGuid, writeLocalizationTable, writeDialogueStorage, localizationSettingsList);
+            WriteHeader(dialogueId, dto, localizationTableGuid, writeLocalizationTable, writeDialogueTableStorage, localizationSettingsList);
+            WriteRoles(dialogueId, dto, localizationTableGuid, writeLocalizationTable, writeDialogueTableStorage, localizationSettingsList);
+            WriteBranches(dialogueId, dto, localizationTableGuid, writeLocalizationTable, writeDialogueTableStorage, localizationSettingsList);
+            WriteElements(dialogueId, dto, localizationTableGuid, writeLocalizationTable, writeDialogueTableStorage, localizationSettingsList);
             
             return true;
         }
@@ -42,13 +42,13 @@ namespace MisterGames.Dialogues.Editor.Parser {
             DialogueFileDto dto,
             Guid localizationTableGuid,
             ILocalizationTableStorage<string> writeLocalizationTable,
-            IDialogueStorage writeDialogueStorage,
+            IDialogueTableStorage writeDialogueTableStorage,
             IReadOnlyList<LocalizationSettings> localizationSettingsList) 
         {
             bool hasLocalizations = false;
             
-            for (int i = 0; i < dto.header.localizations?.Length; i++) {
-                var locData = dto.header.localizations[i];
+            for (int i = 0; i < dto.titleLocalizations?.Length; i++) {
+                var locData = dto.titleLocalizations[i];
                 if (string.IsNullOrWhiteSpace(locData.loc)) continue;
                     
                 writeLocalizationTable.SetValue(dialogueId, locData.content?.Trim(), LocaleExtensions.CreateLocale(locData.loc.Trim(), localizationSettingsList));
@@ -59,7 +59,7 @@ namespace MisterGames.Dialogues.Editor.Parser {
                 writeLocalizationTable.SetValue(dialogueId, dialogueId, LocaleExtensions.DefaultLocale);
             }
             
-            writeDialogueStorage.SetDialogueId(LocalizationKeyExtensions.CreateLocalizationKey(dialogueId, localizationTableGuid));
+            writeDialogueTableStorage.SetDialogueId(LocalizationKeyExtensions.CreateLocalizationKey(dialogueId, localizationTableGuid));
         }
 
         private static void WriteRoles(
@@ -67,7 +67,7 @@ namespace MisterGames.Dialogues.Editor.Parser {
             DialogueFileDto dto, 
             Guid localizationTableGuid,
             ILocalizationTableStorage<string> writeLocalizationTable,
-            IDialogueStorage writeDialogueStorage,
+            IDialogueTableStorage writeDialogueTableStorage,
             IReadOnlyList<LocalizationSettings> localizationSettingsList) 
         {
             string roleId;
@@ -78,7 +78,7 @@ namespace MisterGames.Dialogues.Editor.Parser {
                 if (string.IsNullOrEmpty(roleData.roleId)) continue;
                 
                 roleId = FormatRoleId(dialogueId, roleData.roleId.Trim(), i);
-                writeDialogueStorage.AddRole(LocalizationKeyExtensions.CreateLocalizationKey(roleId, localizationTableGuid));
+                writeDialogueTableStorage.AddRole(LocalizationKeyExtensions.CreateLocalizationKey(roleId, localizationTableGuid));
                 bool hasLocalizations = false;
                 
                 for (int j = 0; j < roleData.localizations?.Length; j++) {
@@ -101,7 +101,7 @@ namespace MisterGames.Dialogues.Editor.Parser {
             roleId = FormatRoleId(dialogueId, DefaultRoleId, 0);
 
             writeLocalizationTable.SetValue(roleId, roleId, LocaleExtensions.DefaultLocale);
-            writeDialogueStorage.AddRole(LocalizationKeyExtensions.CreateLocalizationKey(roleId, localizationTableGuid));
+            writeDialogueTableStorage.AddRole(LocalizationKeyExtensions.CreateLocalizationKey(roleId, localizationTableGuid));
         }
 
         private static void WriteBranches(
@@ -109,7 +109,7 @@ namespace MisterGames.Dialogues.Editor.Parser {
             DialogueFileDto dto, 
             Guid localizationTableGuid,
             ILocalizationTableStorage<string> writeLocalizationTable,
-            IDialogueStorage writeDialogueStorage,
+            IDialogueTableStorage writeDialogueTableStorage,
             IReadOnlyList<LocalizationSettings> localizationSettingsList) 
         {
             string branchId;
@@ -120,7 +120,7 @@ namespace MisterGames.Dialogues.Editor.Parser {
                 if (string.IsNullOrEmpty(branchData.branchId)) continue;
 
                 branchId = FormatBranchId(dialogueId, branchData.branchId.Trim(), i);
-                writeDialogueStorage.AddBranch(LocalizationKeyExtensions.CreateLocalizationKey(branchId, localizationTableGuid));
+                writeDialogueTableStorage.AddBranch(LocalizationKeyExtensions.CreateLocalizationKey(branchId, localizationTableGuid));
                 bool hasLocalizations = false;
                     
                 for (int j = 0; j < branchData.localizations?.Length; j++) {
@@ -143,7 +143,7 @@ namespace MisterGames.Dialogues.Editor.Parser {
             branchId = FormatBranchId(dialogueId, DefaultBranchId, 0);
 
             writeLocalizationTable.SetValue(branchId, branchId, LocaleExtensions.DefaultLocale);
-            writeDialogueStorage.AddBranch(LocalizationKeyExtensions.CreateLocalizationKey(branchId, localizationTableGuid));
+            writeDialogueTableStorage.AddBranch(LocalizationKeyExtensions.CreateLocalizationKey(branchId, localizationTableGuid));
         }
 
         private static void WriteElements(
@@ -151,7 +151,7 @@ namespace MisterGames.Dialogues.Editor.Parser {
             DialogueFileDto dto, 
             Guid localizationTableGuid,
             ILocalizationTableStorage<string> writeLocalizationTable,
-            IDialogueStorage writeDialogueStorage,
+            IDialogueTableStorage writeDialogueTableStorage,
             IReadOnlyList<LocalizationSettings> localizationSettingsList) 
         {
             var sb = new StringBuilder();
@@ -199,7 +199,7 @@ namespace MisterGames.Dialogues.Editor.Parser {
                     
                     if (!addedElementsHashes.Add(elementHash)) continue;
                     
-                    writeDialogueStorage.AddElement(new DialogueElement {
+                    writeDialogueTableStorage.AddElement(new DialogueElement {
                         roleId = LocalizationKeyExtensions.CreateLocalizationKey(FormatRoleId(dialogueId, roleId, roleIndex), localizationTableGuid),
                         branchId = LocalizationKeyExtensions.CreateLocalizationKey(FormatBranchId(dialogueId, branchId, branchIndex), localizationTableGuid),
                         key = LocalizationKeyExtensions.CreateLocalizationKey(elementId, localizationTableGuid),
