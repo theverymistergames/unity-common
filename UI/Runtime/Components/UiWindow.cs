@@ -141,11 +141,6 @@ namespace MisterGames.UI.Components {
         }
 
 #if UNITY_EDITOR
-        private void OnValidate() {
-            if (_state == UiWindowState.Closed) CloseWindow();
-            else OpenWindow();
-        }
-
         [Button] 
         private void OpenWindow() {
             if (Application.isPlaying) {
