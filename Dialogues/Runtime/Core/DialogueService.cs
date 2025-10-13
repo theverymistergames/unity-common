@@ -224,13 +224,13 @@ namespace MisterGames.Dialogues.Core {
             _printers.Remove(printer);
         }
         
-        public async UniTask PrintElementAsync(LocalizationKey dialogue, LocalizationKey key, CancellationToken cancellationToken) {
+        public async UniTask PrintElementAsync(LocalizationKey key, int roleIndex, bool instant, CancellationToken cancellationToken) {
             var tasks = ArrayPool<UniTask>.Shared.Rent(_printers.Count);
             tasks.ResetArrayElements();
             int count = 0;
             
             foreach (var dialoguePrinter in _printers) {
-                tasks[count++] = dialoguePrinter.PrintElement(key, cancellationToken);
+                tasks[count++] = dialoguePrinter.PrintElement(key, roleIndex, instant, cancellationToken);
             }
 
             await UniTask.WhenAll(tasks);

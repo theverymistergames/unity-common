@@ -41,7 +41,7 @@ namespace MisterGames.Dialogues.Core {
         void RegisterPrinter(IDialoguePrinter printer);
         void UnregisterPrinter(IDialoguePrinter printer);
 
-        UniTask PrintElementAsync(LocalizationKey dialogue, LocalizationKey key, CancellationToken cancellationToken);
+        UniTask PrintElementAsync(LocalizationKey key, int roleIndex, bool instant, CancellationToken cancellationToken);
         void CancelCurrentElementPrinting(DialogueCancelMode mode);
         void ClearAllPrinters();
     }

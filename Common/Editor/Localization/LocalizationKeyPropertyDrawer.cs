@@ -6,7 +6,6 @@ using MisterGames.Common.Data;
 using MisterGames.Common.Editor.SerializedProperties;
 using MisterGames.Common.Editor.Views;
 using MisterGames.Common.Localization;
-using MisterGames.Common.Maths;
 using UnityEditor;
 using UnityEngine;
 
@@ -133,9 +132,15 @@ namespace MisterGames.Common.Editor.Localization {
                     var valuesProperty = serializedObject.FindProperty(table.GetValuesPropertyPath(hash));
 
                     if (valuesProperty != null) {
-                        return EditorGUI.GetPropertyHeight(valuesProperty, includeChildren: true) + 
-                               EditorGUIUtility.standardVerticalSpacing * 3f - 
-                               EditorGUIUtility.singleLineHeight * 2f;
+                        float height = EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
+                        
+                        for (int i = 0; i < valuesProperty.arraySize; i++) {
+                            var valueProperty = valuesProperty.GetArrayElementAtIndex(i);
+                            
+                            height += EditorGUI.GetPropertyHeight(valueProperty, includeChildren: true) + EditorGUIUtility.standardVerticalSpacing;
+                        }
+
+                        return height;
                     }
                 }
             }

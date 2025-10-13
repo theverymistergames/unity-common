@@ -8,6 +8,9 @@ namespace MisterGames.Common.Localization {
         
         Locale Locale { get; set; }
         
+        string GetId(LocalizationKey key);
+        string GetId<T>(LocalizationKey<T> key);
+        
         string GetLocalizedString(LocalizationKey key);
         
         T GetLocalizedAsset<T>(LocalizationKey<T> key);

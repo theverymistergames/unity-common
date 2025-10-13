@@ -4,10 +4,12 @@ using System.Text;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Async;
+using MisterGames.Common.Attributes;
 using MisterGames.Common.Localization;
 using MisterGames.Common.Maths;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Pool;
 using Random = UnityEngine.Random;
 
 namespace MisterGames.UI.Components {
@@ -15,21 +17,27 @@ namespace MisterGames.UI.Components {
     public sealed class UiTextPrinter : MonoBehaviour {
 
         [Header("Text")]
-        [SerializeField] private TMP_Text _textField;
-        [SerializeField] private LocalizationKey _localizationKey;
         [SerializeField] private LaunchMode _launchMode;
+        [VisibleIf(nameof(_launchMode), 0)]
+        [SerializeField] private TMP_Text _textField;
+        [VisibleIf(nameof(_launchMode), 0)]
+        [SerializeField] private LocalizationKey _localizationKey;
 
-        [Header("Timings")]
-        [SerializeField] private bool _useTimeScale;
-        [SerializeField] [Min(0f)] private float _symbolDelayMin;
-        [SerializeField] [Min(0f)] private float _symbolDelayMax;
-        [SerializeField] [Min(0f)] private float _wordDelayMin;
-        [SerializeField] [Min(0f)] private float _wordDelayMax;
+        [Header("Printing")]
+        [SerializeField] private bool _richText = true;
+        [SerializeField] private bool _useTimeScale = true;
+        [SerializeField] [Min(0f)] private float _symbolDelayMin = 0f;
+        [SerializeField] [Min(0f)] private float _symbolDelayMax = 0.1f;
+        [SerializeField] [Min(0f)] private float _wordDelayMin = 0.1f;
+        [SerializeField] [Min(0f)] private float _wordDelayMax = 0.25f;
 
         private enum LaunchMode {
             OnEnable,
             Manual,
         }
+
+        private const string TransparentTagOpen = "<color=#00000000>";
+        private const string TransparentTagClose = "</color>";
 
         private CancellationTokenSource _enableCts;
         private CancellationToken _destroyToken;
@@ -58,9 +66,14 @@ namespace MisterGames.UI.Components {
             _operationIdMap[hash] = id.IncrementUncheckedRef();
 
             var sb = new StringBuilder();
+            sb.Append(TransparentTagOpen);
+            sb.Append(content);
+            sb.Append(TransparentTagClose);
+            
             int length = content.Length;
             int pointer = 0;
-
+            int caret = 0;
+            
             while (pointer < length && 
                    !cancellationToken.IsCancellationRequested && 
                    !_destroyToken.IsCancellationRequested &&
@@ -74,8 +87,19 @@ namespace MisterGames.UI.Components {
                 }
                 
                 char c = content[pointer++];
-                sb.Append(c);
 
+                if (c == '<' && pointer < length) {
+                    while (pointer < length) {
+                        if (content[pointer++] == '>') break;
+                    }
+                    
+                    pointer++;
+                }
+
+                sb.Remove(caret, TransparentTagOpen.Length);
+                caret = pointer;
+                sb.Insert(caret, TransparentTagOpen);
+                
                 textField.SetText(sb);
                 
                 if (pointer >= length) break;

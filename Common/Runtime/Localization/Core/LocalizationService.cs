@@ -56,6 +56,18 @@ namespace MisterGames.Common.Localization {
             _tableStorageHandlesMap.Clear();
         }
 
+        public string GetId(LocalizationKey key) {
+            return GetTable(key.table.ToGuid())?.TryGetKey(key.hash, out string id) ?? false
+                ? id
+                : null;
+        }
+
+        public string GetId<T>(LocalizationKey<T> key) {
+            return GetTable(key.table.ToGuid())?.TryGetKey(key.hash, out string id) ?? false
+                ? id
+                : null;
+        }
+
         public string GetLocalizedString(LocalizationKey key) {
             return GetLocalizedString(key, _locale);
         }

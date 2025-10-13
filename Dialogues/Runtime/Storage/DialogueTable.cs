@@ -15,9 +15,9 @@ namespace MisterGames.Dialogues.Storage {
         public IReadOnlyList<LocalizationKey> Branches => _branches;
         public IReadOnlyList<DialogueElement> Elements => _elements;
 
-        private readonly LocalizationKey[] _roles;
-        private readonly LocalizationKey[] _branches;
-        private readonly DialogueElement[] _elements;
+        private readonly List<LocalizationKey> _roles;
+        private readonly List<LocalizationKey> _branches;
+        private readonly List<DialogueElement> _elements;
         private readonly Dictionary<LocalizationKey, int> _elementsIndexMap;
         
         public DialogueTable(IDialogueTableStorage storage) {
@@ -28,9 +28,9 @@ namespace MisterGames.Dialogues.Storage {
         }
 
         public void Dispose() {
-            ArrayPool<LocalizationKey>.Shared.Return(_roles);
-            ArrayPool<LocalizationKey>.Shared.Return(_branches);
-            ArrayPool<DialogueElement>.Shared.Return(_elements);
+            ListPool<LocalizationKey>.Release(_roles);
+            ListPool<LocalizationKey>.Release(_branches);
+            ListPool<DialogueElement>.Release(_elements);
             DictionaryPool<LocalizationKey, int>.Release(_elementsIndexMap);
         }
 
@@ -38,38 +38,38 @@ namespace MisterGames.Dialogues.Storage {
             return _elementsIndexMap.TryGetValue(elementKey, out int index) ? _elements[index] : default;
         }
 
-        private static LocalizationKey[] CreateRoles(IDialogueTableStorage storage) {
+        private static List<LocalizationKey> CreateRoles(IDialogueTableStorage storage) {
             int rolesCount = storage.RolesCount;
-            var roles = ArrayPool<LocalizationKey>.Shared.Rent(rolesCount);
+            var roles = ListPool<LocalizationKey>.Get();
             
             for (int i = 0; i < rolesCount; i++) {
-                roles[i] = storage.GetRoleAt(i);
+                roles.Add(storage.GetRoleAt(i));
             }
 
             return roles;
         }
         
-        private static LocalizationKey[] CreateBranches(IDialogueTableStorage storage) {
+        private static List<LocalizationKey> CreateBranches(IDialogueTableStorage storage) {
             int branchesCount = storage.BranchesCount;
-            var branches = ArrayPool<LocalizationKey>.Shared.Rent(branchesCount);
+            var branches = ListPool<LocalizationKey>.Get();
             
             for (int i = 0; i < branchesCount; i++) {
-                branches[i] = storage.GetBranchAt(i);
+                branches.Add(storage.GetBranchAt(i));
             }
 
             return branches;
         }
         
-        private static DialogueElement[] CreateElements(IDialogueTableStorage storage, out Dictionary<LocalizationKey, int> indexMap) {
+        private static List<DialogueElement> CreateElements(IDialogueTableStorage storage, out Dictionary<LocalizationKey, int> indexMap) {
             int elementsCount = storage.ElementsCount;
-            var elements = ArrayPool<DialogueElement>.Shared.Rent(elementsCount);
+            var elements = ListPool<DialogueElement>.Get();
             
             indexMap = DictionaryPool<LocalizationKey, int>.Get();
             
             for (int i = 0; i < elementsCount; i++) {
                 var e = storage.GetElementAt(i);
                 
-                elements[i] = e;
+                elements.Add(e);
                 indexMap[e.key] = i;
             }
             

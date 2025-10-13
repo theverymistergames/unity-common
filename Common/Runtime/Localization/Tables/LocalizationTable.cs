@@ -26,6 +26,16 @@ namespace MisterGames.Common.Localization {
             return _keyHashToIndexMap.ContainsKey(keyHash);
         }
 
+        public bool TryGetKey(int keyHash, out string value) {
+            if (_keyHashToIndexMap.TryGetValue(keyHash, out int keyIndex)) {
+                value = _storage.GetKey(keyIndex);
+                return true;
+            }
+            
+            value = null;
+            return false;
+        }
+
         public bool TryGetValue<T>(int keyHash, int localeHash, out T value) {
             if (_localeHashToIndexMap.TryGetValue(localeHash, out int localeIndex) &&
                 _keyHashToIndexMap.TryGetValue(keyHash, out int keyIndex) && 

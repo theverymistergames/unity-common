@@ -20,6 +20,8 @@ namespace MisterGames.Common.Localization {
         public override int GetHashCode() => HashCode.Combine(hash, table);
         public static bool operator ==(LocalizationKey left, LocalizationKey right) => left.Equals(right);
         public static bool operator !=(LocalizationKey left, LocalizationKey right) => !left.Equals(right);
+
+        public override string ToString() => this.GetId();
     }
     
     [Serializable]
@@ -38,6 +40,8 @@ namespace MisterGames.Common.Localization {
         public override int GetHashCode() => HashCode.Combine(hash, table);
         public static bool operator ==(LocalizationKey<T> left, LocalizationKey<T> right) => left.Equals(right);
         public static bool operator !=(LocalizationKey<T> left, LocalizationKey<T> right) => !left.Equals(right);
+        
+        public override string ToString() => this.GetId();
     }
     
 }

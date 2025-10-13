@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Async;
+using MisterGames.Common.Lists;
 using MisterGames.Common.Localization;
 using MisterGames.Common.Pooling;
 using MisterGames.Common.Service;
@@ -20,6 +21,18 @@ namespace MisterGames.Dialogues.Components {
         [SerializeField] private Transform _replicaParent;
         [SerializeField] private TMP_Text _replicaTextPrefab;
         
+        [Header("Roles")]
+        [SerializeField] private HorizontalAlignmentOptions _alignmentDefault;
+        [SerializeField] private Vector4 _marginDefault;
+        [SerializeField] private RoleData[] _rolesData;
+
+        [Serializable]
+        private struct RoleData {
+            public int roleIndex;
+            public HorizontalAlignmentOptions alignment;
+            public Vector4 margin;
+        }
+        
         private readonly List<TMP_Text> _allocatedTextFields = new();
         private CancellationTokenSource _enableCts;
 
@@ -35,12 +48,16 @@ namespace MisterGames.Dialogues.Components {
             Services.Get<IDialogueService>()?.UnregisterPrinter(this);
         }
 
-        public async UniTask PrintElement(LocalizationKey key, CancellationToken cancellationToken) {
+        public async UniTask PrintElement(LocalizationKey key, int roleIndex, bool instant, CancellationToken cancellationToken) {
             cancellationToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _enableCts.Token).Token;
             
             var textField = await CreateTextField(_replicaParent);
             if (cancellationToken.IsCancellationRequested) return;
 
+            int index = _rolesData.TryFindIndex(roleIndex, (r, i) => r.roleIndex == i);
+            textField.margin = index >= 0 ? _rolesData[index].margin : _marginDefault;
+            textField.horizontalAlignment = index >= 0 ? _rolesData[index].alignment : _alignmentDefault;
+            
             await _textPrinter.PrintTextAsync(textField, key.GetValue(), cancellationToken);
         }
 
@@ -74,6 +91,10 @@ namespace MisterGames.Dialogues.Components {
         private async UniTask<TMP_Text> CreateTextField(Transform parent) {
             var textField = await PrefabPool.Main.GetAsync(_replicaTextPrefab, parent, active: false);
             _allocatedTextFields.Add(textField);
+
+            var trf = textField.transform;
+            trf.SetLocalPositionAndRotation(default, default);
+            trf.localScale = Vector3.one;
             
             textField.SetText((string) null);
             textField.gameObject.SetActive(true);

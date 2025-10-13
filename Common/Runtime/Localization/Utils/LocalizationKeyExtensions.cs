@@ -30,6 +30,32 @@ namespace MisterGames.Common.Localization {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsNotNull<T>(this LocalizationKey<T> key) => key.table != SerializedGuid.Empty;
 
+        public static string GetId(this LocalizationKey key) {
+#if UNITY_EDITOR
+            if (!Application.isPlaying) {
+                return LoadTableStorageAssetInEditor(key, out int _) is ILocalizationTableStorage<string> table &&
+                       table.TryGetKey(key.hash, out string id)
+                    ? id
+                    : null;
+            }
+#endif
+            
+            return Services.Get<ILocalizationService>().GetId(key);
+        }
+        
+        public static string GetId<T>(this LocalizationKey<T> key) {
+#if UNITY_EDITOR
+            if (!Application.isPlaying) {
+                return LoadTableStorageAssetInEditor(new LocalizationKey(key.hash, key.table.ToGuid()), out int _) is ILocalizationTableStorage<string> table &&
+                       table.TryGetKey(key.hash, out string id)
+                    ? id
+                    : null;
+            }
+#endif
+            
+            return Services.Get<ILocalizationService>().GetId(key);
+        }
+        
         public static string GetValue(this LocalizationKey key) {
 #if UNITY_EDITOR
             if (!Application.isPlaying) {
@@ -82,7 +108,19 @@ namespace MisterGames.Common.Localization {
             return Services.Get<ILocalizationService>().GetLocalizedAsset(key, locale);
         }
 
-        private static ILocalizationTableStorage LoadTableStorageAssetInEditor(LocalizationKey key, out int keyIndex) {
+        private static int GetLocaleIndex(ILocalizationTableStorage table, Locale locale) {
+            if (table == null || locale.IsNull()) return 0;
+
+            int count = table.GetLocaleCount();
+            for (int i = 0; i < count; i++) {
+                if (table.GetLocale(i) == locale) return i;
+            }
+            
+            return 0;
+        }
+
+#if UNITY_EDITOR
+        internal static LocalizationTableStorageBase LoadTableStorageAssetInEditor(LocalizationKey key, out int keyIndex) {
             keyIndex = -1;
             
             string path = AssetDatabase.GUIDToAssetPath(key.table.ToGuid().ToUnityEditorGUID());
@@ -103,17 +141,7 @@ namespace MisterGames.Common.Localization {
             
             return table;
         }
-
-        private static int GetLocaleIndex(ILocalizationTableStorage table, Locale locale) {
-            if (table == null || locale.IsNull()) return 0;
-
-            int count = table.GetLocaleCount();
-            for (int i = 0; i < count; i++) {
-                if (table.GetLocale(i) == locale) return i;
-            }
-            
-            return 0;
-        }
+#endif
     }
     
 }
