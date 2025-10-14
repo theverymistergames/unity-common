@@ -38,45 +38,58 @@ namespace MisterGames.Dialogues.Components {
         public bool IsPaused { get; private set; }
         public bool IsRunning { get; private set; }
 
-        private CancellationTokenSource _cts;
-        private float _skipRequestedTime = -1f;
-
+        private CancellationTokenSource _destroyCts;
+        private CancellationTokenSource _enableCts;
+        private CancellationTokenSource _dialogueLaunchCts;
+        private CancellationTokenSource _skipCts;
+        
         private void Awake() {
-            if (_launchMode == LaunchMode.OnAwake) LaunchDialogue(_dialogueReference.AssetGUID);
+            AsyncExt.RecreateCts(ref _destroyCts);
+
+            if (_launchMode == LaunchMode.OnAwake) {
+                LaunchDialogueAsync(_dialogueReference.AssetGUID, _destroyCts.Token).Forget();
+            }
         }
 
         private void OnDestroy() {
-            if (_launchMode == LaunchMode.OnAwake) StopDialogue();
+            AsyncExt.DisposeCts(ref _destroyCts);
+
+            if (_launchMode == LaunchMode.OnAwake) {
+                StopDialogue();
+            }
         }
 
         private void OnEnable() {
+            AsyncExt.RecreateCts(ref _enableCts);
+            
             if (_skipInput.Get() is { } inputAction) inputAction.performed += OnSkipInput;
             
-            if (_launchMode == LaunchMode.OnEnable) LaunchDialogue(_dialogueReference.AssetGUID);
+            if (_launchMode == LaunchMode.OnEnable) {
+                LaunchDialogueAsync(_dialogueReference.AssetGUID, _enableCts.Token).Forget();
+            }
         }
 
         private void OnDisable() {
+            AsyncExt.DisposeCts(ref _enableCts);
+            
             if (_skipInput.Get() is { } inputAction) inputAction.performed -= OnSkipInput;
 
-            if (_launchMode == LaunchMode.OnEnable) StopDialogue();
+            if (_launchMode == LaunchMode.OnEnable) {
+                StopDialogue();
+            }
         }
 
         private void OnSkipInput(InputAction.CallbackContext obj) {
             if (!IsRunning) return;
-
-            _skipRequestedTime = Time.realtimeSinceStartup;
+            
+            AsyncExt.DisposeCts(ref _skipCts);
             Services.Get<IDialogueService>()?.CancelCurrentElementPrinting(DialogueCancelMode.PrintToEnd);
-        }
-
-        public void LaunchDialogue(string guid) {
-            LaunchDialogueAsync(guid, default).Forget();
         }
 
         [Button(mode: ButtonAttribute.Mode.Runtime)]
         public void PauseDialogue() {
             if (!IsRunning) return;
             
-            _skipRequestedTime = -1f;
             IsPaused = true;
         }
         
@@ -84,28 +97,28 @@ namespace MisterGames.Dialogues.Components {
         public void ResumeDialogue() {
             if (!IsRunning) return;
             
-            _skipRequestedTime = -1f;
             IsPaused = false;
         }
         
         [Button(mode: ButtonAttribute.Mode.Runtime)]
         public void StopDialogue() {
-            AsyncExt.DisposeCts(ref _cts);
+            AsyncExt.DisposeCts(ref _dialogueLaunchCts);
+            AsyncExt.DisposeCts(ref _skipCts);
 
             IsRunning = false;
             IsPaused = false;
-            _skipRequestedTime = -1f;
             
             Services.Get<IDialogueService>()?.UnloadDialogue(_dialogueReference.AssetGUID);
         }
 
         public async UniTask LaunchDialogueAsync(string guid, CancellationToken cancellationToken) {
-            AsyncExt.RecreateCts(ref _cts);
-            cancellationToken = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, cancellationToken).Token;
+            AsyncExt.RecreateCts(ref _dialogueLaunchCts);
+            AsyncExt.RecreateCts(ref _skipCts);
+            
+            cancellationToken = CancellationTokenSource.CreateLinkedTokenSource(_dialogueLaunchCts.Token, cancellationToken).Token;
 
             IsRunning = true;
             IsPaused = false;
-            _skipRequestedTime = -1f;
             
             var service = Services.Get<IDialogueService>();
             
@@ -131,7 +144,6 @@ namespace MisterGames.Dialogues.Components {
                 var element = elements[i];
                 
                 service.StartDialogueElement(table.DialogueId, element);
-                
                 var branch = element.branchId;
                 var role = element.roleId;
 
@@ -147,27 +159,37 @@ namespace MisterGames.Dialogues.Components {
                     lastRole = role;
                     await service.AwaitDialogueEvents(branch, DialogueEvent.DialogueRoleStart, cancellationToken);
                     if (cancellationToken.IsCancellationRequested) break;
-                    
                     elementDelay = Random.Range(_minReplicaDelayChangedRole, _maxReplicaDelayChangedRole);
                 }
                 else {
                     elementDelay = Random.Range(_minReplicaDelaySameRole, _maxReplicaDelaySameRole);
                 }
                 
-                if (Time.realtimeSinceStartup - _skipRequestedTime < _skipDuration && elementDelay > 0f) {
-                    await UniTask.Delay(TimeSpan.FromSeconds(elementDelay), cancellationToken: cancellationToken)
+                var skipToken = CancellationToken.None;
+                
+                if (_skipCts == null) {
+                    AsyncExt.RecreateCts(ref _skipCts);
+                    skipToken = CancellationTokenSource.CreateLinkedTokenSource(_skipCts.Token, cancellationToken).Token;
+                }
+                
+                if (elementDelay > 0f) {
+                    await UniTask.Delay(TimeSpan.FromSeconds(elementDelay), cancellationToken: skipToken)
                         .SuppressCancellationThrow();
                     if (cancellationToken.IsCancellationRequested) break;
                 }
                 
+                while (!cancellationToken.IsCancellationRequested && IsPaused) {
+                    await UniTask.Yield();
+                }
+                if (cancellationToken.IsCancellationRequested) break;
+
                 await service.AwaitDialogueEvents(branch, DialogueEvent.DialogueElementStart, cancellationToken);
                 if (cancellationToken.IsCancellationRequested) break;
                 
                 if (element.key.IsNotNull()) {
                     int roleIndex = Mathf.Max(0, table.Roles.TryFindIndex(element.roleId, (k0, k1) => k0 == k1));
-                    bool instant = Time.realtimeSinceStartup - _skipRequestedTime < _skipDuration;
                     
-                    await service.PrintElementAsync(element.key, roleIndex, instant, cancellationToken);
+                    await service.PrintElementAsync(element.key, roleIndex, instant: skipToken.IsCancellationRequested, cancellationToken);
                     if (cancellationToken.IsCancellationRequested) break;
                 }
                 
@@ -175,7 +197,7 @@ namespace MisterGames.Dialogues.Components {
                     await UniTask.Yield();
                 }
             }
-            
+
             if (cancellationToken.IsCancellationRequested) return;
             
             service.StopDialogue(table.DialogueId);

@@ -16,6 +16,7 @@ namespace MisterGames.UI.Windows {
         private readonly Dictionary<int, int> _layerToFocusedWindowIdMap = new();
         private readonly HashSet<int> _openedWindowIdsSet = new();
         private readonly HashSet<int> _openedWindowIdsWithCursorSet = new();
+        private readonly HashSet<int> _initializedWindowsSet = new();
 
         public void Dispose() {
             _gameObjectIdToWindowMap.Clear();
@@ -25,6 +26,7 @@ namespace MisterGames.UI.Windows {
             _layerToFocusedWindowIdMap.Clear();
             _openedWindowIdsSet.Clear();
             _openedWindowIdsWithCursorSet.Clear();
+            _initializedWindowsSet.Clear();
         }
 
         public void RegisterWindow(IUiWindow window, UiWindowState state) {
@@ -34,7 +36,7 @@ namespace MisterGames.UI.Windows {
             var firstState = GetParentWindow(window) != null
                 ? UiWindowState.Closed
                 : state;
-
+            
             switch (firstState) {
                 case UiWindowState.Closed:
                     SetWindowBranchState(window, UiWindowState.Closed);
@@ -209,7 +211,8 @@ namespace MisterGames.UI.Windows {
 
         public void NotifyWindowEnabled(IUiWindow window, bool enabled) {
             if (window?.GameObject == null ||
-                !_gameObjectIdToWindowMap.ContainsKey(window.GameObject.GetHashCode())) 
+                !_gameObjectIdToWindowMap.ContainsKey(GetWindowId(window)) ||
+                _initializedWindowsSet.Add(GetWindowId(window))) // First enabling is skipped
             {
                 return;
             }
