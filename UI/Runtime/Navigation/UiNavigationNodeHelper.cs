@@ -33,7 +33,7 @@ namespace MisterGames.UI.Navigation {
         public void UpdateNavigation(Transform rootTrf, UiNavigationMode mode, bool loop, Vector2 cellSize) {
             var selectablesArray = new NativeArray<SelectableData>(_gameObjectIdToSelectableMap.Count, Allocator.TempJob);
             var neighborsArray = new NativeArray<SelectableNeighborsData>(_gameObjectIdToSelectableMap.Count, Allocator.TempJob);
-            
+             
             int count = 0;
             
             foreach ((int id, var selectable) in _gameObjectIdToSelectableMap) {
@@ -51,6 +51,8 @@ namespace MisterGames.UI.Navigation {
             job.Schedule(count, JobExt.BatchFor(count)).Complete();
             
             for (int i = 0; i < count; i++) {
+                job.Execute(i);
+                
                 var data = selectablesArray[i];
                 var neighborsData = neighborsArray[i];
 
@@ -75,7 +77,7 @@ namespace MisterGames.UI.Navigation {
             
             public readonly int id;
             public readonly float2 position;
-            
+
             public SelectableData(int id, float3 position) {
                 this.id = id;
                 this.position = math.float2(position.x, position.y);
@@ -114,17 +116,17 @@ namespace MisterGames.UI.Navigation {
                 int downId = 0;
                 int leftId = 0;
                 int rightId = 0;
-            
-                float minSqrDistanceUp = -1f;
-                float minSqrDistanceDown = -1f;
-                float minSqrDistanceLeft = -1f;
-                float minSqrDistanceRight = -1f;
                 
                 int upmostId = 0;
                 int downmostId = 0;
                 int leftmostId = 0;
                 int rightmostId = 0;
             
+                float minSqrDistanceUp = -1f;
+                float minSqrDistanceDown = -1f;
+                float minSqrDistanceLeft = -1f;
+                float minSqrDistanceRight = -1f;
+                
                 var distanceUpmost = new float2(-1f, -1f);
                 var distanceDownmost = new float2(-1f, -1f);
                 var distanceLeftmost = new float2(-1f, -1f);
@@ -144,81 +146,77 @@ namespace MisterGames.UI.Navigation {
                     bool isLeft = mode != UiNavigationMode.Vertical && data.position.IsToTheLeftTo(current.position);
                     bool isRight = mode != UiNavigationMode.Vertical && data.position.IsToTheRightTo(current.position);
 
-                    var distance = new float2(
+                    var distance2 = new float2(
                         math.abs(current.position.x - data.position.x),
                         math.abs(current.position.y - data.position.y)
                     );  
                     
-                    var distanceCells = new int2((int) math.floor(distance.x / cellSize.x), (int) math.floor(distance.y / cellSize.y));
-                    
-                    if (loop) {
-                        if (isUp &&
-                            (distanceUpmost.x < 0f ||
-                             distance.y >= distanceUpmost.y && 
-                             (distance.x <= distanceUpmost.x || distanceCells.x <= distanceUpmostCells.x))) 
-                        {
-                            distanceUpmost = distance;
-                            distanceUpmostCells = distanceCells;
-                            upmostId = data.id;
-                        }
-                    
-                        if (isDown &&
-                            (distanceDownmost.x < 0f ||
-                             distance.y >= distanceDownmost.y && 
-                             (distance.x <= distanceDownmost.x || distanceCells.x <= distanceDownmostCells.x))) 
-                        {
-                            distanceDownmost = distance;
-                            distanceDownmostCells = distanceCells;
-                            downmostId = data.id;
-                        }
-                    
-                        if (isRight &&
-                            (distanceRightmost.y < 0f ||
-                             distance.x >= distanceRightmost.x && 
-                             (distance.y <= distanceRightmost.y || distanceCells.y <= distanceRightmostCells.y))) 
-                        {
-                            distanceRightmost = distance;
-                            distanceRightmostCells = distanceCells;
-                            rightmostId = data.id;
-                        }
-                    
-                        if (isLeft &&
-                            (distanceLeftmost.y < 0f ||
-                             distance.x >= distanceLeftmost.x && 
-                             (distance.y <= distanceLeftmost.y || distanceCells.y <= distanceLeftmostCells.y))) 
-                        {
-                            distanceLeftmost = distance;
-                            distanceLeftmostCells = distanceCells;
-                            leftmostId = data.id;
-                        }
-                    }
-                    
+                    var distanceCells2 = new int2((int) math.floor(distance2.x / cellSize.x), (int) math.floor(distance2.y / cellSize.y));
                     float sqrDistance = math.distancesq(current.position, data.position);
                     
                     if (isUp && (minSqrDistanceUp < 0f || sqrDistance < minSqrDistanceUp)) {
                         minSqrDistanceUp = sqrDistance;
                         upId = data.id;
-                        continue;
                     }
                 
                     if (isDown && (minSqrDistanceDown < 0f || sqrDistance < minSqrDistanceDown)) {
                         minSqrDistanceDown = sqrDistance;
                         downId = data.id;
-                        continue;
                     }
                 
                     if (isRight && (minSqrDistanceRight < 0f || sqrDistance < minSqrDistanceRight)) {
                         minSqrDistanceRight = sqrDistance;
                         rightId = data.id;
-                        continue;
                     }
                 
                     if (isLeft && (minSqrDistanceLeft < 0f || sqrDistance < minSqrDistanceLeft)) {
                         minSqrDistanceLeft = sqrDistance;
                         leftId = data.id;
                     }
+                    
+                    if (loop) {
+                        if (isUp &&
+                            (distanceUpmost.x < 0f ||
+                             distance2.y >= distanceUpmost.y && 
+                             (distance2.x <= distanceUpmost.x || distanceCells2.x <= distanceUpmostCells.x))) 
+                        {
+                            distanceUpmost = distance2;
+                            distanceUpmostCells = distanceCells2;
+                            upmostId = data.id;
+                        }
+                    
+                        if (isDown &&
+                            (distanceDownmost.x < 0f ||
+                             distance2.y >= distanceDownmost.y && 
+                             (distance2.x <= distanceDownmost.x || distanceCells2.x <= distanceDownmostCells.x))) 
+                        {
+                            distanceDownmost = distance2;
+                            distanceDownmostCells = distanceCells2;
+                            downmostId = data.id;
+                        }
+                    
+                        if (isRight &&
+                            (distanceRightmost.y < 0f ||
+                             distance2.x >= distanceRightmost.x && 
+                             (distance2.y <= distanceRightmost.y || distanceCells2.y <= distanceRightmostCells.y))) 
+                        {
+                            distanceRightmost = distance2;
+                            distanceRightmostCells = distanceCells2;
+                            rightmostId = data.id;
+                        }
+                    
+                        if (isLeft &&
+                            (distanceLeftmost.y < 0f ||
+                             distance2.x >= distanceLeftmost.x && 
+                             (distance2.y <= distanceLeftmost.y || distanceCells2.y <= distanceLeftmostCells.y))) 
+                        {
+                            distanceLeftmost = distance2;
+                            distanceLeftmostCells = distanceCells2;
+                            leftmostId = data.id;
+                        }
+                    }
                 }
-
+                
                 if (loop) {
                     if (upId == 0) upId = downmostId;
                     if (downId == 0) downId = upmostId;

@@ -40,6 +40,7 @@ namespace MisterGames.Common.Localization.Components {
 #if UNITY_EDITOR
         [Header("Debug")]
         [SerializeField] private bool _updateInEditor = true;
+        [SerializeField] private bool _updateInRuntime = false;
         [SerializeField] private Locale _defaultLocale = LocaleId.en.ToLocale();
         
         private void Reset() {
@@ -47,7 +48,7 @@ namespace MisterGames.Common.Localization.Components {
         }
 
         private void OnValidate() {
-            if (enabled && _updateInEditor) FetchValue();
+            if (enabled && (Application.isPlaying ? _updateInEditor : _updateInRuntime)) FetchValue();
         }
 
         [Attributes.Button]

@@ -158,6 +158,7 @@ namespace MisterGames.UI.Components {
         }
         
         void ISelectHandler.OnSelect(BaseEventData eventData) {
+            Debug.Log($"UiButton.OnSelect: f {Time.frameCount}, {name}");
             OnSelect();
         }
 
@@ -172,6 +173,7 @@ namespace MisterGames.UI.Components {
         }
 
         void IDeselectHandler.OnDeselect(BaseEventData eventData) {
+            Debug.Log($"UiButton.OnDeselect: f {Time.frameCount}, {name}");
             _isHovering = false;
             
             var next = CurrentState == State.Pressed

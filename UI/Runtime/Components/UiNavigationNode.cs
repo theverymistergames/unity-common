@@ -104,7 +104,7 @@ namespace MisterGames.UI.Components {
             // so to avoid setting incorrect navigation lets update it two frames later.
             await UniTask.Yield();
             if (cancellationToken.IsCancellationRequested) return;
-            
+
             _helper.UpdateNavigation(transform, _mode, _loop, _cell);
             
             await UniTask.Yield();
