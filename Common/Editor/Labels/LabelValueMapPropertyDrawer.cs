@@ -43,7 +43,9 @@ namespace MisterGames.Common.Editor.Drawers {
                     labelLib.GetArrayId(labelLib.GetLabelArrayIndex(labelId)) != arrayId || 
                     !_labelsBuffer.TryAdd(labelId, i)) 
                 {
-                    var swapLabelProperty = valuesProperty.GetArrayElementAtIndex(--validEntriesCount).FindPropertyRelative(LabelPropertyPath);
+                    var swapLabelProperty = valuesProperty.GetArrayElementAtIndex(--validEntriesCount)?.FindPropertyRelative(LabelPropertyPath);
+                    if (swapLabelProperty == null) continue;
+                    
                     var swapIdProperty = swapLabelProperty.FindPropertyRelative(nameof(LabelValue.id));
                     var swapLibProperty = swapLabelProperty.FindPropertyRelative(nameof(LabelValue.library));
                     

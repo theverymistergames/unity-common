@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using MisterGames.Common.Service;
+using UnityEngine;
 
 namespace MisterGames.UI.Service {
     
@@ -12,11 +13,11 @@ namespace MisterGames.UI.Service {
         }
 
         private void OnEnable() {
-            CanvasRegistry.Instance.AddCanvasEventCamera(_camera);
+            Services.Get<CanvasRegistry>()?.AddCanvasEventCamera(_camera);
         }
         
         private void OnDisable() {
-            CanvasRegistry.Instance.RemoveCanvasEventCamera(_camera);
+            Services.Get<CanvasRegistry>()?.RemoveCanvasEventCamera(_camera);
         }
     }
     

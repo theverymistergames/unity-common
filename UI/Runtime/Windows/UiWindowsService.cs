@@ -197,6 +197,14 @@ namespace MisterGames.UI.Windows {
             return false;
         }
 
+        public bool IsInTopOpenedLayer(IUiWindow window) {
+            return window != null && 
+                   _openedWindowIdsSet.Contains(GetWindowId(window)) && 
+                   TryGetWindowRootLayer(window, out int layer) &&
+                   TryGetTopOpenedLayer(onlyNavigable: true, out int topLayer) &&
+                   layer == topLayer;
+        }
+
         public bool SetWindowState(IUiWindow window, UiWindowState state) {
             return state switch {
                 UiWindowState.Closed => CloseWindow(window, canOpenParent: true, forceClose: false, notify: true),

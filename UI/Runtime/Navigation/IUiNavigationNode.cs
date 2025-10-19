@@ -8,8 +8,10 @@ namespace MisterGames.UI.Navigation {
         GameObject GameObject { get; }
         GameObject CurrentSelected { get; }
         UiNavigateFromOuterNodesOptions NavigateFromOuterNodesOptions { get; }
+        bool IsScrollable { get; }
+        RectTransform Viewport { get; }
         
-        void Bind(Selectable selectable);
+        void Bind(Selectable selectable, UiNavigationMask mask = ~UiNavigationMask.None);
         void Unbind(Selectable selectable);
 
         void UpdateNavigation();

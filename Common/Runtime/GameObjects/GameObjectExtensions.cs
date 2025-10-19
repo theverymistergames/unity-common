@@ -9,11 +9,22 @@ using UnityEditor;
 namespace MisterGames.Common.GameObjects {
     
     public static class GameObjectExtensions {
-        
-        public static void SetupUniqueMaterial(this Renderer renderer) {
-            if (renderer.material == renderer.sharedMaterial) renderer.material = new Material(renderer.sharedMaterial);
-        }
 
+        public static T GetOrAddComponent<T>(this GameObject gameObject) where T : Component {
+            if (gameObject.TryGetComponent(out T c)) return c;
+                
+            c = gameObject.AddComponent<T>();
+
+#if UNITY_EDITOR
+            if (!Application.isPlaying) {
+                EditorUtility.SetDirty(c);
+                EditorUtility.SetDirty(gameObject);
+            }
+#endif
+            
+            return c;
+        }
+        
         public static void SetActive(this IReadOnlyList<GameObject> gameObjects, bool active) {
             for (int i = 0; i < gameObjects.Count; i++) {
                 gameObjects[i].SetActive(active);

@@ -25,6 +25,7 @@ namespace MisterGames.UI.Windows {
         bool HasFocusedWindows();
         bool HasFocusedWindows(out int topLayer);
         bool IsInOpenedBranch(IUiWindow window);
+        bool IsInTopOpenedLayer(IUiWindow window);
 
         bool IsCursorRequired();
         

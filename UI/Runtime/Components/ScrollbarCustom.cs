@@ -1,9 +1,12 @@
 ﻿using System;
-using UnityEditor;
-using UnityEditor.UI;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+
+#if UNITY_EDITOR
+using UnityEditor;
+using UnityEditor.UI;
+#endif
 
 namespace MisterGames.UI.Components {
     
@@ -32,7 +35,7 @@ namespace MisterGames.UI.Components {
             
             base.OnMove(eventData);
         }
-
+        
         public void OnPointerMove(PointerEventData eventData) {
             if (_selectOnHover) Select();
         }
@@ -40,7 +43,7 @@ namespace MisterGames.UI.Components {
 #if UNITY_EDITOR
         [CustomEditor(typeof(ScrollbarCustom), true)]
         [CanEditMultipleObjects]
-        public class ScrollbarCustomEditor : ScrollbarEditor {
+        private class ScrollbarCustomEditor : ScrollbarEditor {
         
             private const string CustomPropertiesLabel = "Custom Properties";
             

@@ -14,12 +14,18 @@ namespace MisterGames.UI.Navigation {
     public sealed class UiNavigationService : IUiNavigationService, IUpdate, IDisposable {
 
         public event Action<GameObject, IUiWindow> OnSelectedGameObjectChanged = delegate { };
-
+        public event Action OnNavigationHierarchyChanged = delegate { };
+        
+        public bool HasSelectedGameObject => _selectedGameObjectHash != 0;
+        public Selectable CurrentSelectable { get; private set; }
+        public UiNavigationOptions SelectedObjectOptions => _selectableDataMap.GetValueOrDefault(_selectedSelectableHash).options;
+        public UiNavigationMask SelectedObjectNavigationMask => _selectableDataMap.GetValueOrDefault(_selectedSelectableHash).mask;
         public GameObject SelectedGameObject { get; private set; }
         public IUiWindow SelectedGameObjectWindow { get; private set; }
-        public bool HasSelectedGameObject => _selectedGameObjectHash != 0;
 
         public IReadOnlyCollection<Selectable> Selectables => _selectableMap.Values;
+        public IReadOnlyCollection<IUiNavigationNode> Nodes => _gameObjectIdToNodeMap.Values;
+        public IReadOnlyCollection<RectTransform> ScrollableViewports => _scrollableViewports.Values;
         
         private IUiWindowService _uiWindowService;
         private UiNavigationSettings _settings;
@@ -28,14 +34,16 @@ namespace MisterGames.UI.Navigation {
         private readonly List<IUiNavigationCallback> _windowCallbacksBuffer = new();
 
         private readonly Dictionary<int, IUiNavigationNode> _gameObjectIdToNodeMap = new();
+        private readonly Dictionary<int, RectTransform> _scrollableViewports = new();
         private readonly Dictionary<int, int> _childNodeToParentMap = new();
         private readonly Dictionary<int, Selectable> _selectableMap = new();
+        private readonly Dictionary<int, (UiNavigationMask mask, UiNavigationOptions options)> _selectableDataMap = new();
         private readonly HashSet<int> _pauseBlockers = new();
 
-        private Selectable _selectable;
         private InputAction _moveInput;
         private InputAction _cancelInput;
         private int _selectedGameObjectHash;
+        private int _selectedSelectableHash;
         private int _navigateBackPerformFrame;
         
         public void Initialize(IUiWindowService uiWindowService, UiNavigationSettings settings) {
@@ -63,6 +71,7 @@ namespace MisterGames.UI.Navigation {
             _gameObjectIdToNodeMap.Clear();
             _childNodeToParentMap.Clear();
             _selectableMap.Clear();
+            _selectableDataMap.Clear();
             _pauseBlockers.Clear();
             
             PlayerLoopStage.LateUpdate.Unsubscribe(this);
@@ -70,7 +79,7 @@ namespace MisterGames.UI.Navigation {
 
         void IUpdate.OnUpdate(float dt) {
             CheckCurrentSelectedGameObject();
-            ProcessSelectableNavigation(_selectable);
+            ProcessSelectableNavigation(CurrentSelectable);
         }
 
         private void OnWindowsHierarchyChanged() {
@@ -83,26 +92,32 @@ namespace MisterGames.UI.Navigation {
         private void CheckCurrentSelectedGameObject() {
             SelectedGameObject = EventSystem.current.currentSelectedGameObject;
             
-            int hash = SelectedGameObject == null ? 0 : SelectedGameObject.GetHashCode();
+            bool isNull = SelectedGameObject == null;
+            int hash = isNull ? 0 : SelectedGameObject.GetHashCode();
+            
             if (hash == _selectedGameObjectHash) return;
 
+            CurrentSelectable = isNull ? null : SelectedGameObject.GetComponent<Selectable>(); 
+            
             _selectedGameObjectHash = hash;
+            _selectedSelectableHash = CurrentSelectable == null ? 0 : CurrentSelectable.GetHashCode();
+            
             SelectedGameObjectWindow = _uiWindowService.FindClosestParentWindow(SelectedGameObject, includeSelf: true);
             
-            FetchNavigation(SelectedGameObject);
+            FetchSelectable(SelectedGameObject);
             
             OnSelectedGameObjectChanged.Invoke(SelectedGameObject, SelectedGameObjectWindow);
         }
 
-        private void FetchNavigation(GameObject gameObject) {
+        private void FetchSelectable(GameObject gameObject) {
             if (gameObject == null || 
                 !gameObject.TryGetComponent(out Selectable selectable)) 
             {
-                _selectable = null;
+                CurrentSelectable = null;
                 return;
             }
 
-            _selectable = selectable;
+            CurrentSelectable = selectable;
         }
 
         private void ProcessSelectableNavigation(Selectable selectable) {
@@ -197,28 +212,42 @@ namespace MisterGames.UI.Navigation {
         
         public void BindNavigation(IUiNavigationNode node) {
             if (!_gameObjectIdToNodeMap.TryAdd(node.GameObject.GetHashCode(), node)) return;
-            
+
             BindNavigationNode(node);
             ActualizeNavigationTree(node.GameObject);
             ActualizeSelectablesNavigation(node.GameObject);
+            
+            OnNavigationHierarchyChanged.Invoke();
         }
 
         public void UnbindNavigation(IUiNavigationNode node) {
             if (!_gameObjectIdToNodeMap.Remove(node.GameObject.GetHashCode())) return;
-            
+
             UnbindNavigationNode(node);
             ActualizeNavigationTree(node.GameObject);
             ActualizeSelectablesNavigation(node.GameObject);
+            
+            OnNavigationHierarchyChanged.Invoke();
         }
 
-        public void BindNavigation(Selectable selectable) {
-            if (!_selectableMap.TryAdd(selectable.GetHashCode(), selectable)) return;
+        public void BindNavigation(Selectable selectable, UiNavigationMask mask = ~UiNavigationMask.None, UiNavigationOptions options = default) {
+            int hash = selectable.GetHashCode();
             
-            BindNavigationNodeSelectable(selectable);
+            if (!_selectableMap.TryAdd(hash, selectable) && 
+                _selectableDataMap.TryGetValue(hash, out var d) && d.mask == mask && d.options == options) 
+            {
+                return;
+            }
+            
+            _selectableDataMap[hash] = (mask, options);
+            BindNavigationNodeSelectable(selectable, mask);
         }
 
         public void UnbindNavigation(Selectable selectable) {
-            if (!_selectableMap.Remove(selectable.GetHashCode())) return;
+            int hash = selectable.GetHashCode();
+            _selectableDataMap.Remove(hash);
+            
+            if (!_selectableMap.Remove(hash)) return;
             
             UnbindNavigationNodeSelectable(selectable);
         }
@@ -241,15 +270,21 @@ namespace MisterGames.UI.Navigation {
             }
             
             _childNodeToParentMap[nodeId] = parentNodeId;
+
+            if (node.IsScrollable) _scrollableViewports[nodeId] = node.Viewport;
+            else _scrollableViewports.Remove(nodeId);
         }
         
         private void UnbindNavigationNode(IUiNavigationNode node) {
             if (node?.GameObject == null) return;
 
-            _childNodeToParentMap.Remove(node.GameObject.GetHashCode());
+            int nodeId = node.GameObject.GetHashCode();
+
+            _scrollableViewports.Remove(nodeId);
+            _childNodeToParentMap.Remove(nodeId);
         }
 
-        private void BindNavigationNodeSelectable(Selectable selectable) {
+        private void BindNavigationNodeSelectable(Selectable selectable, UiNavigationMask mask) {
             if (selectable == null) return;
             
             var parentNode = FindClosestParentNavigationNode(selectable.gameObject, includeSelf: true);
@@ -268,7 +303,7 @@ namespace MisterGames.UI.Navigation {
             
             _childNodeToParentMap[selectableId] = parentNodeId;
             
-            parentNode.Bind(selectable);
+            parentNode.Bind(selectable, mask);
             parentNode.UpdateNavigation();
         }
         
@@ -282,6 +317,14 @@ namespace MisterGames.UI.Navigation {
             
             parentNode.Unbind(selectable);
             parentNode.UpdateNavigation();
+        }
+
+        public IUiNavigationNode GetNavigationNode(GameObject gameObject) {
+            return _gameObjectIdToNodeMap.GetValueOrDefault(gameObject.GetHashCode());
+        }
+
+        public IUiNavigationNode GetParentNavigationNode(GameObject gameObject) {
+            return _gameObjectIdToNodeMap.GetValueOrDefault(_childNodeToParentMap.GetValueOrDefault(gameObject.GetHashCode()));
         }
 
         public IUiNavigationNode GetParentNavigationNode(Selectable selectable) {
@@ -330,8 +373,8 @@ namespace MisterGames.UI.Navigation {
             
             foreach (var selectable in _selectableMap.Values) {
                 if (!selectable.transform.IsChildOf(rootTrf)) continue;
-                
-                BindNavigationNodeSelectable(selectable);
+                var data = _selectableDataMap.GetValueOrDefault(selectable.GetHashCode());
+                BindNavigationNodeSelectable(selectable, data.mask);
             }
         }
     }

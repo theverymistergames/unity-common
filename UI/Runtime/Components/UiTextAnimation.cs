@@ -95,7 +95,7 @@ namespace MisterGames.UI.Components {
         }
 
         private void OnValidate() {
-            if (_animatedText != null) _chars = _animatedText.ToCharArray();
+            if (Application.isPlaying && _animatedText != null) _chars = _animatedText.ToCharArray();
         }
 #endif
     }

@@ -13,11 +13,13 @@ namespace MisterGames.UI.Service {
         private readonly UiWindowsService _windowService = new();
         private readonly UiNavigationService _navigationService = new();
         private readonly CursorService _cursorService = new();
+        private readonly CanvasRegistry _canvasRegistry = new();
         
         private void Awake() {
             Services.Register<IUiNavigationService>(_navigationService);
             Services.Register<IUiWindowService>(_windowService);
             Services.Register<ICursorService>(_cursorService);
+            Services.Register<CanvasRegistry>(_canvasRegistry);
             
             _navigationService.Initialize(_windowService, _uiNavigationSettings);
             _cursorService.Initialize();
@@ -31,6 +33,7 @@ namespace MisterGames.UI.Service {
             _windowService.Dispose();
             _navigationService.Dispose();
             _cursorService.Dispose();
+            _canvasRegistry.Dispose();
         }
     }
     

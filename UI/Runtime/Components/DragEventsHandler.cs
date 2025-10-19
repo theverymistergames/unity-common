@@ -4,8 +4,10 @@ using UnityEngine.EventSystems;
 
 namespace MisterGames.UI.Components {
     
-    public sealed class DragEventsHandler : MonoBehaviour, IBeginDragHandler, IEndDragHandler, IDragHandler {
-        
+    public sealed class DragEventsHandler : 
+        MonoBehaviour, 
+        IBeginDragHandler, IEndDragHandler, IDragHandler
+    {
         public event Action<PointerEventData> OnBeginDrag = delegate { };
         public event Action<PointerEventData> OnEndDrag = delegate { };
         public event Action<PointerEventData> OnDrag = delegate { };

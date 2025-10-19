@@ -10,9 +10,11 @@ namespace MisterGames.UI.Components {
     public sealed class UiNavigationNodeSelectable : MonoBehaviour {
         
         [SerializeField] private Selectable _selectable;
+        [SerializeField] private UiNavigationMask _allowNavigate = ~UiNavigationMask.None;
+        [SerializeField] private UiNavigationOptions _options;
 
         private void OnEnable() {
-            Services.Get<IUiNavigationService>()?.BindNavigation(_selectable);
+            Services.Get<IUiNavigationService>()?.BindNavigation(_selectable, _allowNavigate, _options);
         }
 
         private void OnDisable() {
@@ -22,6 +24,7 @@ namespace MisterGames.UI.Components {
 #if UNITY_EDITOR
         private void Reset() {
             _selectable = GetComponent<Selectable>();
+            if (_selectable != null && _selectable is Scrollbar) _options |= UiNavigationOptions.Scrollable;
         }
 #endif
     }

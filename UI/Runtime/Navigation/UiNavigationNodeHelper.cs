@@ -1,6 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using MisterGames.Common.Jobs;
+using MisterGames.Common.Maths;
+using MisterGames.Common.Service;
+using MisterGames.Common.Strings;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Jobs;
@@ -13,21 +18,109 @@ namespace MisterGames.UI.Navigation {
     public sealed class UiNavigationNodeHelper : IDisposable {
 
         private readonly Dictionary<int, Selectable> _gameObjectIdToSelectableMap = new();
+        private readonly Dictionary<int, UiNavigationMask> _gameObjectIdToMaskMap = new();
 
         public void Dispose() {
             _gameObjectIdToSelectableMap.Clear();
+            _gameObjectIdToMaskMap.Clear();
         }
 
-        public void Bind(Selectable selectable) {
-            _gameObjectIdToSelectableMap[selectable.gameObject.GetHashCode()] = selectable;
+        public void Bind(Selectable selectable, UiNavigationMask mask = ~UiNavigationMask.None) {
+            int hash = selectable.gameObject.GetHashCode();
+            
+            _gameObjectIdToSelectableMap[hash] = selectable;
+            _gameObjectIdToMaskMap[hash] = mask;
         }
 
         public void Unbind(Selectable selectable) {
-            _gameObjectIdToSelectableMap.Remove(selectable.gameObject.GetHashCode());
+            int hash = selectable.gameObject.GetHashCode();
+            
+            _gameObjectIdToSelectableMap.Remove(hash);
+            _gameObjectIdToMaskMap.Remove(hash);
         }
 
         public bool IsBound(GameObject gameObject) {
             return _gameObjectIdToSelectableMap.ContainsKey(gameObject.GetHashCode());
+        }
+        
+        public void NavigateOut(
+            IUiNavigationNode node,
+            Selectable fromSelectable,
+            UiNavigationDirection direction,
+            UiNavigateToOuterNodesOptions options) 
+        {
+            if (options == UiNavigateToOuterNodesOptions.None ||
+                !Services.TryGet(out IUiNavigationService service)) 
+            {
+                return;
+            }
+            
+            bool allowParent = (options & UiNavigateToOuterNodesOptions.Parent) == UiNavigateToOuterNodesOptions.Parent;
+            bool allowSiblings = (options & UiNavigateToOuterNodesOptions.Siblings) == UiNavigateToOuterNodesOptions.Siblings;
+            bool allowChildren = (options & UiNavigateToOuterNodesOptions.Children) == UiNavigateToOuterNodesOptions.Children;
+
+            var parentNode = service.GetParentNavigationNode(node);
+            var root = node.GameObject.transform;
+            var origin = root.InverseTransformPoint(fromSelectable.transform.position).ToFloat2XY();
+
+            var selectables = service.Selectables;
+            Selectable closestSelectable = null;
+            float minSqrDistance = -1f;
+
+            foreach (var selectable in selectables) {
+                if (IsBound(selectable.gameObject) || 
+                    service.GetParentNavigationNode(selectable) is not { } p || 
+                    !allowParent && p != parentNode || 
+                    !allowSiblings && !service.IsChildNode(p, parentNode, direct: true) ||
+                    !allowChildren && !service.IsChildNode(p, node, direct: true))
+                {
+                    continue;
+                }
+            
+                var pos = root.InverseTransformPoint(selectable.transform.position).ToFloat2XY();
+                if (!pos.IsInDirection(origin, direction)) continue;
+                
+                float sqrDistance = math.distancesq(pos, origin);
+                if (minSqrDistance >= 0f && sqrDistance > minSqrDistance) continue;
+                
+                minSqrDistance = sqrDistance;
+                closestSelectable = selectable;
+            }
+
+            if (closestSelectable == null) return;
+
+            var nextParentNode = service.GetParentNavigationNode(closestSelectable);
+            
+            var nextOptions = nextParentNode?.CurrentSelected == null
+                ? UiNavigateFromOuterNodesOptions.SelectClosestElement
+                : nextParentNode.NavigateFromOuterNodesOptions;
+            
+            var selectTarget = nextOptions switch {
+                UiNavigateFromOuterNodesOptions.SelectClosestElement => closestSelectable.gameObject,
+                UiNavigateFromOuterNodesOptions.SelectHistoryElement => nextParentNode!.CurrentSelected,
+                _ => throw new ArgumentOutOfRangeException()
+            };
+            
+            service.SelectGameObject(selectTarget);
+        }
+        
+        public async UniTask UpdateNavigationNextFrame(
+            Transform rootTrf,
+            UiNavigationMode mode,
+            bool loop,
+            Vector2 cell,
+            CancellationToken cancellationToken) 
+        {
+            UpdateNavigation(rootTrf, mode, loop, cell);
+            
+            // The position of the selectable during enabling layout groups maybe inconsistent
+            // (all selectables in the layout group share the same selectable.transform.position), 
+            // so to avoid setting incorrect navigation lets update it two frames later.
+            await UniTask.Yield();
+            await UniTask.Yield();
+            if (cancellationToken.IsCancellationRequested) return;
+
+            UpdateNavigation(rootTrf, mode, loop, cell);
         }
         
         public void UpdateNavigation(Transform rootTrf, UiNavigationMode mode, bool loop, Vector2 cellSize) {
@@ -35,9 +128,13 @@ namespace MisterGames.UI.Navigation {
             var neighborsArray = new NativeArray<SelectableNeighborsData>(_gameObjectIdToSelectableMap.Count, Allocator.TempJob);
              
             int count = 0;
-            
+
             foreach ((int id, var selectable) in _gameObjectIdToSelectableMap) {
-                selectablesArray[count++] = new SelectableData(id, rootTrf.InverseTransformPoint(selectable.transform.position));
+                selectablesArray[count++] = new SelectableData(
+                    id,
+                    rootTrf.InverseTransformPoint(selectable.transform.position), 
+                    _gameObjectIdToMaskMap.GetValueOrDefault(id)
+                );
             }
 
             var job = new GetSelectableNeighborsJob {
@@ -51,8 +148,6 @@ namespace MisterGames.UI.Navigation {
             job.Schedule(count, JobExt.BatchFor(count)).Complete();
             
             for (int i = 0; i < count; i++) {
-                job.Execute(i);
-                
                 var data = selectablesArray[i];
                 var neighborsData = neighborsArray[i];
 
@@ -77,10 +172,12 @@ namespace MisterGames.UI.Navigation {
             
             public readonly int id;
             public readonly float2 position;
+            public readonly UiNavigationMask mask;
 
-            public SelectableData(int id, float3 position) {
+            public SelectableData(int id, float3 position, UiNavigationMask mask) {
                 this.id = id;
                 this.position = math.float2(position.x, position.y);
+                this.mask = mask;
             }
         }
         
@@ -141,10 +238,10 @@ namespace MisterGames.UI.Navigation {
                     var data = selectablesArray[i];
                     if (data.id == current.id) continue;
 
-                    bool isUp = mode != UiNavigationMode.Horizontal && data.position.IsHigherThan(current.position);
-                    bool isDown = mode != UiNavigationMode.Horizontal && data.position.IsLowerThan(current.position);
-                    bool isLeft = mode != UiNavigationMode.Vertical && data.position.IsToTheLeftTo(current.position);
-                    bool isRight = mode != UiNavigationMode.Vertical && data.position.IsToTheRightTo(current.position);
+                    bool isUp = mode != UiNavigationMode.Horizontal && (data.mask & UiNavigationMask.Down) != 0 && data.position.IsHigherThan(current.position);
+                    bool isDown = mode != UiNavigationMode.Horizontal && (data.mask & UiNavigationMask.Up) != 0 && data.position.IsLowerThan(current.position);
+                    bool isLeft = mode != UiNavigationMode.Vertical && (data.mask & UiNavigationMask.Right) != 0 && data.position.IsToTheLeftTo(current.position);
+                    bool isRight = mode != UiNavigationMode.Vertical && (data.mask & UiNavigationMask.Left) != 0 && data.position.IsToTheRightTo(current.position);
 
                     var distance2 = new float2(
                         math.abs(current.position.x - data.position.x),
@@ -153,7 +250,7 @@ namespace MisterGames.UI.Navigation {
                     
                     var distanceCells2 = new int2((int) math.floor(distance2.x / cellSize.x), (int) math.floor(distance2.y / cellSize.y));
                     float sqrDistance = math.distancesq(current.position, data.position);
-                    
+
                     if (isUp && (minSqrDistanceUp < 0f || sqrDistance < minSqrDistanceUp)) {
                         minSqrDistanceUp = sqrDistance;
                         upId = data.id;
@@ -216,13 +313,18 @@ namespace MisterGames.UI.Navigation {
                         }
                     }
                 }
-                
+
                 if (loop) {
                     if (upId == 0) upId = downmostId;
                     if (downId == 0) downId = upmostId;
                     if (rightId == 0) rightId = leftmostId;
                     if (leftId == 0) leftId = rightmostId;
                 }
+
+                if ((current.mask & UiNavigationMask.Up) == 0) upId = 0;
+                if ((current.mask & UiNavigationMask.Down) == 0) downId = 0;
+                if ((current.mask & UiNavigationMask.Left) == 0) leftId = 0;
+                if ((current.mask & UiNavigationMask.Right) == 0) rightId = 0;
                 
                 neighborsArray[index] = new SelectableNeighborsData(upId, downId, leftId, rightId);
             }

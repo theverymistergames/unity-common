@@ -379,6 +379,35 @@ namespace MisterGames.Common.Maths {
         public static Vector3 SmoothExpNonZero(this Vector3 value, Vector3 target, float factor, float dt) {
             return factor > 0f ? value + (target - value) * (1f - math.exp(-factor * dt)) : target;
         }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector2 Clamp(this Vector2 value, float min, float max) {
+            return new Vector2(Mathf.Clamp(value.x, min, max), Mathf.Clamp(value.y, min, max));
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector3 Clamp(this Vector3 value, float min, float max) {
+            return new Vector3(Mathf.Clamp(value.x, min, max), Mathf.Clamp(value.y, min, max), Mathf.Clamp(value.z, min, max));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector2 Clamp01(this Vector2 value) {
+            return new Vector2(Mathf.Clamp01(value.x), Mathf.Clamp01(value.y));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector3 Clamp01(this Vector3 value) {
+            return new Vector3(Mathf.Clamp01(value.x), Mathf.Clamp01(value.y), Mathf.Clamp01(value.z));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector2 ToVectorXY(this float value) => new(value, value);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector3 ToVectorXYZ(this float value) => new(value, value, value);
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 ToVectorXYZW(this float value) => new(value, value, value, value);
     }
 
 }

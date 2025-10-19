@@ -3,11 +3,9 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Async;
 using MisterGames.Common.Attributes;
-using MisterGames.Common.Maths;
 using MisterGames.Common.Service;
 using MisterGames.UI.Navigation;
 using MisterGames.UI.Windows;
-using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -20,6 +18,9 @@ namespace MisterGames.UI.Components {
         [SerializeField] private UiNavigationMode _mode;
         [SerializeField] private Vector2 _cell = new(400f, 50f);
         [SerializeField] private bool _loop = true;
+        [SerializeField] private bool _scrollable = false;
+        [VisibleIf(nameof(_scrollable))]
+        [SerializeField] private RectTransform _viewport;
         
         [Header("Outer Navigation")]
         [SerializeField] private UiNavigateFromOuterNodesOptions _navigateFromOuterNodesOptions = 
@@ -31,6 +32,8 @@ namespace MisterGames.UI.Components {
         public GameObject GameObject => gameObject;
         public GameObject CurrentSelected { get; private set; }
         public UiNavigateFromOuterNodesOptions NavigateFromOuterNodesOptions => _navigateFromOuterNodesOptions;
+        public bool IsScrollable => _scrollable;
+        public RectTransform Viewport => _viewport;
         
         private readonly UiNavigationNodeHelper _helper = new();
         private CancellationTokenSource _enableCts;
@@ -77,8 +80,8 @@ namespace MisterGames.UI.Components {
             }
         }
 
-        public void Bind(Selectable selectable) {
-            _helper.Bind(selectable);
+        public void Bind(Selectable selectable, UiNavigationMask mask = ~UiNavigationMask.None) {
+            _helper.Bind(selectable, mask);
             
             if (Services.TryGet(out IUiNavigationService service)) {
                 OnSelectedGameObjectChanged(service.SelectedGameObject, service.SelectedGameObjectWindow);   
@@ -93,82 +96,11 @@ namespace MisterGames.UI.Components {
         [Button(mode: ButtonAttribute.Mode.Runtime)]
 #endif
         public void UpdateNavigation() {
-            UpdateNavigationNextFrame(_enableCts?.Token ?? default).Forget();
-        }
-
-        private async UniTask UpdateNavigationNextFrame(CancellationToken cancellationToken) {
-            _helper.UpdateNavigation(transform, _mode, _loop, _cell);
-            
-            // The position of the selectable during enabling layout groups maybe inconsistent
-            // (all selectables in the layout group share the same selectable.transform.position), 
-            // so to avoid setting incorrect navigation lets update it two frames later.
-            await UniTask.Yield();
-            if (cancellationToken.IsCancellationRequested) return;
-
-            _helper.UpdateNavigation(transform, _mode, _loop, _cell);
-            
-            await UniTask.Yield();
-            if (cancellationToken.IsCancellationRequested) return;
-            
-            _helper.UpdateNavigation(transform, _mode, _loop, _cell);
+            _helper.UpdateNavigationNextFrame(transform, _mode, _loop, _cell, _enableCts?.Token ?? default).Forget();
         }
 
         public void OnNavigateOut(Selectable fromSelectable, UiNavigationDirection direction) {
-            if (_navigateToOuterNodesOptions == UiNavigateToOuterNodesOptions.None ||
-                !Services.TryGet(out IUiNavigationService service)) 
-            {
-                return;
-            }
-
-            var selectables = service.Selectables;
-            
-            bool allowParent = (_navigateToOuterNodesOptions & UiNavigateToOuterNodesOptions.Parent) == UiNavigateToOuterNodesOptions.Parent;
-            bool allowSiblings = (_navigateToOuterNodesOptions & UiNavigateToOuterNodesOptions.Siblings) == UiNavigateToOuterNodesOptions.Siblings;
-            bool allowChildren = (_navigateToOuterNodesOptions & UiNavigateToOuterNodesOptions.Children) == UiNavigateToOuterNodesOptions.Children;
-
-            var parentNode = service.GetParentNavigationNode(this);
-
-            var rootTrf = transform;
-            var origin = rootTrf.InverseTransformPoint(fromSelectable.transform.position).ToFloat2XY();
-            
-            float minSqrDistance = -1f;
-            Selectable closestSelectable = null;
-            
-            foreach (var selectable in selectables) {
-                if (_helper.IsBound(selectable.gameObject) || 
-                    service.GetParentNavigationNode(selectable) is not { } node || 
-                    !allowParent && node != parentNode || 
-                    !allowSiblings && !service.IsChildNode(node, parentNode, direct: true) ||
-                    !allowChildren && !service.IsChildNode(node, this, direct: true))
-                {
-                    continue;
-                }
-            
-                var pos = rootTrf.InverseTransformPoint(selectable.transform.position).ToFloat2XY();
-                if (!pos.IsInDirection(origin, direction)) continue;
-                
-                float sqrDistance = math.distancesq(pos, origin);
-                if (minSqrDistance >= 0f && sqrDistance > minSqrDistance) continue;
-                
-                minSqrDistance = sqrDistance;
-                closestSelectable = selectable;
-            }
-
-            if (closestSelectable == null) return;
-
-            var nextParentNode = service.GetParentNavigationNode(closestSelectable);
-            
-            var options = nextParentNode?.CurrentSelected == null
-                ? UiNavigateFromOuterNodesOptions.SelectClosestElement
-                : nextParentNode.NavigateFromOuterNodesOptions;
-            
-            var selectTarget = options switch {
-                UiNavigateFromOuterNodesOptions.SelectClosestElement => closestSelectable.gameObject,
-                UiNavigateFromOuterNodesOptions.SelectHistoryElement => nextParentNode!.CurrentSelected,
-                _ => throw new ArgumentOutOfRangeException()
-            };
-            
-            service.SelectGameObject(selectTarget);
+            _helper.NavigateOut(this, fromSelectable, direction, _navigateToOuterNodesOptions);
         }
         
         private void OnWindowsHierarchyChanged() {

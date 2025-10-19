@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using MisterGames.Common.Service;
+using UnityEngine;
 
 namespace MisterGames.UI.Service {
 
@@ -7,11 +8,11 @@ namespace MisterGames.UI.Service {
         [SerializeField] private Canvas _canvas;
 
         private void Awake() {
-            CanvasRegistry.Instance.AddCanvas(_canvas);
+            Services.Get<CanvasRegistry>()?.AddCanvas(_canvas);
         }
 
         private void OnDestroy() {
-            CanvasRegistry.Instance.RemoveCanvas(_canvas);
+            Services.Get<CanvasRegistry>()?.RemoveCanvas(_canvas);
         }
 
 #if UNITY_EDITOR

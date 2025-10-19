@@ -1,18 +1,23 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using MisterGames.Common.Service;
 using UnityEngine;
 
 namespace MisterGames.UI.Service {
     
-    public sealed class CanvasRegistry {
+    public sealed class CanvasRegistry : IDisposable {
 
         private sealed class CameraDepthComparer : IComparer<Camera> {
             public int Compare(Camera x, Camera y) => y!.depth.CompareTo(x!.depth);
         }
-        
-        public static readonly CanvasRegistry Instance = new();
-        
+
         private readonly HashSet<Canvas> _canvases = new();
         private readonly SortedSet<Camera> _cameraSet = new(new CameraDepthComparer());
+
+        public void Dispose() {
+            _canvases.Clear();
+            _cameraSet.Clear();
+        }
 
         public void AddCanvas(Canvas canvas) {
             if (TryGetCurrentEventCamera(out var camera)) canvas.worldCamera = camera;
@@ -46,7 +51,7 @@ namespace MisterGames.UI.Service {
             }
         }
 
-        private bool TryGetCurrentEventCamera(out Camera camera) {
+        public bool TryGetCurrentEventCamera(out Camera camera) {
             foreach (var c in _cameraSet) {
                 camera = c;
                 return true;

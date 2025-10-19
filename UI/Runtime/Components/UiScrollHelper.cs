@@ -1,46 +1,54 @@
 ﻿using System;
+using MisterGames.Common.Attributes;
+using MisterGames.Common.GameObjects;
 using MisterGames.Common.Maths;
+using MisterGames.Common.Service;
 using MisterGames.Common.Tick;
 using MisterGames.Input.Actions;
+using MisterGames.UI.Navigation;
+using MisterGames.UI.Windows;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
 namespace MisterGames.UI.Components {
     
-    [RequireComponent(typeof(ScrollRect))]
     public sealed class UiScrollHelper : MonoBehaviour, IUpdate {
         
+        [SerializeField] private EnableMode _enableMode = EnableMode.OnFocus;
+        
+        [Header("Scroll Rect")]
         [SerializeField] private ScrollRect _scrollRect;
-        [SerializeField] private DragEventsHandler _dragEventsHandler;
-        [SerializeField] private ScrollEventsHandler _scrollEventsHandler;
+        [SerializeField] private PointerEventsHandler[] _pointerEventHandlers;
         
         [Header("Inputs")]
-        [SerializeField] private InputActionRef _moveInput;
-        [SerializeField] private InputActionRef _vectorAcceleration;
+        [SerializeField] private InputActionRef _accelerateInput;
         [SerializeField] private ScrollInput[] _inputs;
 
         [Header("Motion")]
-        [SerializeField] [Min(0f)] private float _deltaSensitivity = 1f;
-        [SerializeField] [Min(0f)] private float _vectorSensitivity = 1f;
+        [SerializeField] [Min(0f)] private float _deltaSensitivity = 301f;
+        [SerializeField] [Min(0f)] private float _vectorSensitivity = 10f;
         [SerializeField] [Min(0f)] private float _deltaSmoothing = 0f;
-        [SerializeField] [Min(0f)] private float _vectorAccelerationMul = 3f;
+        [SerializeField] [Min(0f)] private float _accelerationMul = 3f;
 
-        [Header("Autoscroll")]
+        [Header("Auto Scroll")]
         [SerializeField] private bool _enableAutoScroll = true;
         [SerializeField] [Min(0f)] private float _autoscrollStartDelay = 1f;
         [SerializeField] [Range(0f, 1f)] private float _autoscrollPositionX = 0f;
         [SerializeField] [Range(0f, 1f)] private float _autoscrollPositionY = 0f;
         [SerializeField] [Min(0f)] private float _autoscrollSmoothing = 5f;
         
-        [Header("Stick to side")]
+        [Header("Stick To Side")]
         [SerializeField] private bool _enableStickToSide = true;
         [SerializeField] private StickMode _stickMode = StickMode.Bottom;
-        [SerializeField] [Min(0f)] private float _stickStartDelay = 2f;
-        [SerializeField] [Min(0f)] private float _stickToSideDuration = 0.5f;
-        [SerializeField] [Min(0f)] private float _stickSmoothing = 5f;
-        [SerializeField] [Min(0f)] private float _sideWidth = 16f;
-        [SerializeField] [Min(0f)] private float _sideHeight = 16f;
+        [SerializeField] [Min(0f)] private float _stickStartDelay = 1f;
+        [SerializeField] [Min(0f)] private float _stickSpeed = 10f;
+        [SerializeField] [Min(0f)] private float _sideWidth = 100f;
+        [SerializeField] [Min(0f)] private float _sideHeight = 100f;
         
         [Serializable]
         private struct ScrollInput {
@@ -48,6 +56,11 @@ namespace MisterGames.UI.Components {
             public InputMode mode;
             public Axis axis;
             public Vector2 sensitivity;
+        }
+
+        private enum EnableMode {
+            OnEnable,
+            OnFocus,
         }
         
         private enum InputMode {
@@ -69,61 +82,321 @@ namespace MisterGames.UI.Components {
             Right = 8,
         }
         
-        public bool EnableAutoScroll { get => _enableAutoScroll; set => _enableAutoScroll = value; }
+        private IUiNavigationService _navigationService;
         
         // x - right, y - left, z - bottom , w - top
-        private Vector4 _lastTimeTouchedSide;
-        private Vector4 _lastTimeHasInputDirectedFromSide;
+        private Vector4 _lastTimeNotTouchedSide;
         private Vector2 _smoothDelta;
         private float _lastTimeHasInputs;
-        private Vector2 _lastNormalizedPosition;
+        private Vector2 _stickDir;
+        private Vector2 _lastInputDir;
+        
+        private float _moveToPositionStartTime;
+        private float _moveToPositionDuration;
+        private Vector2 _targetMovePosition;
+        private Vector2 _moveToPositionVelocity;
+        
+        private IUiNavigationNode _parentNode;
+        private bool _isInTopOpenedLayer;
+        private bool _containsSelectedObjectDirectly;
+
+        private bool _isPointerPressed;
+
+        private void Awake() {
+            _navigationService = Services.Get<IUiNavigationService>();
+        }
 
         private void OnEnable() {
-            _lastNormalizedPosition = _scrollRect.normalizedPosition;
-            
             PlayerLoopStage.LateUpdate.Subscribe(this);
+
+            float time = Time.realtimeSinceStartup;
             
-            _dragEventsHandler.OnDrag += OnDrag;
-            _scrollEventsHandler.OnScroll += OnScroll;
+            _isInTopOpenedLayer = false;
+            _containsSelectedObjectDirectly = false;
+            _parentNode = null;
+            _isPointerPressed = false;
+            _lastTimeHasInputs = time;
+            _lastTimeNotTouchedSide = time.ToVectorXYZW();
+            _stickDir = default;
+            _lastInputDir = default;
+            
+            ResetMoveToPosition();
+            
+            for (int i = 0; i < _pointerEventHandlers.Length; i++) {
+                _pointerEventHandlers[i].OnPointerUp += OnPointerUp;
+                _pointerEventHandlers[i].OnPointerDown += OnPointerDown;
+            }
+            
+            if (Services.TryGet(out IUiNavigationService navigationService)) {
+                navigationService.OnNavigationHierarchyChanged += OnNavigationHierarchyChanged;
+                navigationService.OnSelectedGameObjectChanged += OnSelectedGameObjectChanged;
+
+                OnNavigationHierarchyChanged();
+                OnSelectedGameObjectChanged(navigationService.SelectedGameObject, navigationService.SelectedGameObjectWindow);
+            }
+            
+            if (Services.TryGet(out IUiWindowService windowService)) {
+                windowService.OnWindowsHierarchyChanged += OnWindowsHierarchyChanged;
+
+                OnWindowsHierarchyChanged();
+            }
         }
 
         private void OnDisable() {
             PlayerLoopStage.LateUpdate.Unsubscribe(this);
             
-            _dragEventsHandler.OnDrag -= OnDrag;
-            _scrollEventsHandler.OnScroll -= OnScroll;
-        }
-
-        private void OnScroll(PointerEventData eventData) {
-            UpdateInputDirUsageTime(eventData.scrollDelta, Time.realtimeSinceStartup);
-        }
-
-        private void OnDrag(PointerEventData eventData) {
-            var delta = _scrollRect.normalizedPosition - _lastNormalizedPosition;
-            _lastNormalizedPosition = _scrollRect.normalizedPosition;
+            for (int i = 0; i < _pointerEventHandlers.Length; i++) {
+                _pointerEventHandlers[i].OnPointerUp -= OnPointerUp;
+                _pointerEventHandlers[i].OnPointerDown -= OnPointerDown;
+            }
             
-            UpdateInputDirUsageTime(delta, Time.realtimeSinceStartup);
+            if (Services.TryGet(out IUiNavigationService service)) {
+                service.OnNavigationHierarchyChanged -= OnNavigationHierarchyChanged;
+                service.OnSelectedGameObjectChanged -= OnSelectedGameObjectChanged;
+            }
+            
+            if (Services.TryGet(out IUiWindowService windowService)) {
+                windowService.OnWindowsHierarchyChanged -= OnWindowsHierarchyChanged;
+            }
+        }
+
+        public void MoveToPosition(Vector2 normalizedPosition, float duration) {
+            _moveToPositionVelocity = default;
+            _moveToPositionStartTime = Time.realtimeSinceStartup;
+            _moveToPositionDuration = duration;
+            _targetMovePosition = normalizedPosition;
+        }
+
+        public void ResetMoveToPosition() {
+            _moveToPositionVelocity = default;
+            _moveToPositionStartTime = 0f;
+            _moveToPositionDuration = 0f;
+        }
+
+        private void OnPointerDown(PointerEventData eventData) {
+            _isPointerPressed = true;
+        }
+        
+        private void OnPointerUp(PointerEventData eventData) {
+            _isPointerPressed = false;
+        }
+
+        private void OnWindowsHierarchyChanged() {
+            _isInTopOpenedLayer = Services.TryGet(out IUiWindowService service) &&
+                                  service.FindClosestParentWindow(_scrollRect.gameObject, includeSelf: true) is { } window && 
+                                  service.IsInTopOpenedLayer(window);
+        }
+
+        private void OnNavigationHierarchyChanged() {
+            _parentNode = _navigationService?.FindClosestParentNavigationNode(_scrollRect.gameObject, includeSelf: true);
+        }
+
+        private void OnSelectedGameObjectChanged(GameObject gameObject, IUiWindow parentWindow) {
+            _containsSelectedObjectDirectly = Services.TryGet(out IUiNavigationService navigationService) &&
+                                              ContainsSelectedObjectDirectly(navigationService);
         }
 
         void IUpdate.OnUpdate(float dt) {
-            var contentRect = _scrollRect.content.rect;
+            ProcessScroll(dt);
+        }
+
+        private void ProcessScroll(float dt) {
+            float time = Time.realtimeSinceStartup;
+
+            if (_isPointerPressed) {
+                _smoothDelta = default;
+                _lastTimeHasInputs = time;
+                _lastTimeNotTouchedSide = time.ToVectorXYZW();
+                _stickDir = default;
+                _lastInputDir = default;
+                ResetMoveToPosition();
+                return;
+            }
             
+            var inputDelta = GetInputDelta();
+            var currentPos = _scrollRect.normalizedPosition;
+            
+            if (!_isInTopOpenedLayer || 
+                _enableMode == EnableMode.OnFocus && inputDelta != default && !IsFocused()) 
+            {
+                inputDelta = default;
+            }
+
+            if (inputDelta != default) {
+                _lastTimeHasInputs = time;
+                _lastInputDir = new Vector2(Mathf.Sign(inputDelta.x), Mathf.Sign(inputDelta.y));
+            }
+            
+            ProcessStickToSide(currentPos, ref inputDelta);
+            
+            _smoothDelta = _smoothDelta.SmoothExpNonZero(inputDelta, _deltaSmoothing, dt);
+            var nextPos = (currentPos + _smoothDelta).Clamp01();
+            
+            ProcessAutoScroll(ref nextPos, dt);
+            ProcessMoveToPosition(currentPos, ref nextPos, dt);
+            
+            _scrollRect.normalizedPosition = nextPos;
+        }
+
+        private void ProcessStickToSide(Vector2 currentPos, ref Vector2 inputDelta) {
+            if (!_enableStickToSide) {
+                _stickDir = default;
+                return;
+            }
+            
+            float time = Time.realtimeSinceStartup;
+            var contentRect = _scrollRect.content.rect;
+
+            if (_stickDir.x >= 0f && currentPos.x * contentRect.width > _sideWidth || _lastInputDir.x > 0f) _lastTimeNotTouchedSide.x = time;
+            if (_stickDir.x <= 0f && (1f - currentPos.x) * contentRect.width > _sideWidth || _lastInputDir.x < 0f) _lastTimeNotTouchedSide.y = time;
+            if (_stickDir.y >= 0f && currentPos.y * contentRect.height > _sideHeight || _lastInputDir.y > 0f) _lastTimeNotTouchedSide.z = time;
+            if (_stickDir.y <= 0f && (1f - currentPos.y) * contentRect.height > _sideHeight || _lastInputDir.y < 0f) _lastTimeNotTouchedSide.w = time;
+            
+            _stickDir = default;
+            
+            if ((StickMode.Right & _stickMode) == StickMode.Right &&
+                time - _lastTimeNotTouchedSide.x > _stickStartDelay) 
+            {
+                _stickDir.x = -1f;
+            }
+
+            if ((StickMode.Left & _stickMode) == StickMode.Left &&
+                time - _lastTimeNotTouchedSide.y > _stickStartDelay)
+            {
+                _stickDir.x = 1f;
+            }
+
+            if ((StickMode.Bottom & _stickMode) == StickMode.Bottom &&
+                time - _lastTimeNotTouchedSide.z > _stickStartDelay)
+            {
+                _stickDir.y = -1f;
+            }
+                
+            if ((StickMode.Top & _stickMode) == StickMode.Top &&
+                time - _lastTimeNotTouchedSide.w > _stickStartDelay)
+            {
+                _stickDir.y = 1f;
+            }
+            
+            var stickVelocity = _stickSpeed * _stickDir;
+            var stickDelta = new Vector2(
+                contentRect.width > 0f ? stickVelocity.x / contentRect.width : 0f,
+                contentRect.height > 0f ? stickVelocity.y / contentRect.height : 0f
+            );
+            
+            inputDelta += stickDelta;
+        }
+
+        private void ProcessAutoScroll(ref Vector2 nextPos, float dt) {
+            if (!_enableAutoScroll ||
+                Time.realtimeSinceStartup - _lastTimeHasInputs < _autoscrollStartDelay) 
+            {
+                return;
+            }
+            
+            var autoscrollTarget = new Vector2(_autoscrollPositionX, _autoscrollPositionY);
+            nextPos = nextPos.SmoothExpNonZero(autoscrollTarget, _autoscrollSmoothing, dt).Clamp01();
+        }
+
+        private void ProcessMoveToPosition(Vector2 currentPos, ref Vector2 nextPos, float dt) {
+            float time = Time.realtimeSinceStartup;
+            if (time - _moveToPositionStartTime > _moveToPositionDuration) return;
+            
+            nextPos = Vector2.SmoothDamp(
+                currentPos, 
+                _targetMovePosition,
+                ref _moveToPositionVelocity,
+                smoothTime: _moveToPositionDuration,
+                maxSpeed: float.PositiveInfinity,
+                dt
+            ).Clamp01();
+            
+            _lastTimeHasInputs = time;
+            _lastTimeNotTouchedSide = time.ToVectorXYZW();
+        }
+
+        private bool IsFocused() {
+            bool hasCursor = Cursor.visible && Cursor.lockState != CursorLockMode.Locked;
+            return hasCursor && IsFocusedWithCursor() || !hasCursor && IsFocusedWithoutCursor();
+        }
+
+        private bool IsFocusedWithCursor() {
+            bool insideScrollRect = UiNavigationUtils.IsCursorInsideRect(_scrollRect.viewport);
+            
+            return insideScrollRect && GetFrontScrollRectData().isFront || 
+                   
+                   !insideScrollRect && 
+                   (_containsSelectedObjectDirectly || 
+                   
+                    GetFrontScrollRectData() is var data && 
+                    (!data.hasOthers || !data.insideOthers && IsScrollbarSelected())
+                   );
+        }
+
+        private bool IsFocusedWithoutCursor() {
+            return _containsSelectedObjectDirectly || IsScrollbarSelected();
+        }
+        
+        private (bool isFront, bool insideOthers, bool hasOthers) GetFrontScrollRectData() {
+            bool insideOtherScrollRects = false;
+            bool hasOthers = false;
+            
+            foreach (var viewport in _navigationService.ScrollableViewports) {
+                if (viewport == _scrollRect.viewport) continue;
+
+                hasOthers = true;
+                
+                if (!UiNavigationUtils.IsCursorInsideRect(viewport)) continue;
+                
+                insideOtherScrollRects = true;
+                if (viewport.IsChildOf(_scrollRect.viewport)) return (isFront: false, insideOthers: true, hasOthers: true);
+            }
+
+            return (isFront: true, insideOtherScrollRects, hasOthers);
+        }
+
+        private bool ContainsSelectedObjectDirectly(IUiNavigationService navigationService) {
+            if (_parentNode == null ||
+                !navigationService.HasSelectedGameObject ||
+                (navigationService.SelectedObjectOptions & UiNavigationOptions.Scrollable) == UiNavigationOptions.Scrollable && 
+                !IsScrollbar(navigationService.CurrentSelectable)) 
+            {
+                return false;
+            }
+            
+            var selectableParentNode = navigationService.GetParentNavigationNode(navigationService.CurrentSelectable);
+
+            while (selectableParentNode != _parentNode) {
+                if (selectableParentNode == null || selectableParentNode.IsScrollable) return false;
+
+                selectableParentNode = navigationService.GetParentNavigationNode(selectableParentNode);
+            }
+            
+            return true;
+        }
+
+        private bool IsScrollbarSelected() {
+            return _navigationService.HasSelectedGameObject && IsScrollbar(_navigationService.CurrentSelectable);
+        }
+        
+        private bool IsScrollbar(Selectable selectable) {
+            return selectable == _scrollRect.horizontalScrollbar || selectable == _scrollRect.verticalScrollbar;
+        }
+        
+        private Vector2 GetInputDelta() {
             Vector2 vectorMax = default;
             Vector2 deltaMax = default;
-            float vectorMul = 1f + (_vectorAcceleration.Get()?.ReadValue<float>() ?? 0f) * _vectorAccelerationMul;
-            
+
             for (int i = 0; i < _inputs.Length; i++) {
                 ref var input = ref _inputs[i];
                 var value = GetValue(ref input);
 
                 switch (input.mode) {
                     case InputMode.Delta:
-                        value *= _deltaSensitivity;
                         if (value.sqrMagnitude > deltaMax.sqrMagnitude) deltaMax = value;
                         break;
                     
                     case InputMode.Vector:
-                        value *= _vectorSensitivity * vectorMul;
                         if (value.sqrMagnitude > vectorMax.sqrMagnitude) vectorMax = value;
                         break;
                     
@@ -132,86 +405,21 @@ namespace MisterGames.UI.Components {
                 }
             }
             
-            var targetDelta = new Vector2(
+            float accelerationMul = (_accelerateInput.Get()?.ReadValue<float>() ?? 0f) * _accelerationMul;
+            deltaMax *= (1f + accelerationMul) * _deltaSensitivity;
+            vectorMax *= (1f + accelerationMul) * _vectorSensitivity;
+            
+            var contentRect = _scrollRect.content.rect;
+            
+            return new Vector2(
                 contentRect.width > 0f ? (vectorMax.x + deltaMax.x) / contentRect.width : 0f,
                 contentRect.height > 0f ? (vectorMax.y + deltaMax.y) / contentRect.height : 0f
             );
-
-            float time = Time.realtimeSinceStartup;
-            if (targetDelta != default) _lastTimeHasInputs = time;
-
-            _smoothDelta = _smoothDelta.SmoothExpNonZero(targetDelta, _deltaSmoothing, dt);
-            var currentPos = _scrollRect.normalizedPosition;
-            var nextPos = currentPos + _smoothDelta;
-
-            nextPos.x = Mathf.Clamp01(nextPos.x);
-            nextPos.y = Mathf.Clamp01(nextPos.y);
-
-            if (_enableAutoScroll && time - _lastTimeHasInputs >= _autoscrollStartDelay) {
-                var autoscrollTarget = new Vector2(_autoscrollPositionX, _autoscrollPositionY);
-                nextPos = nextPos.SmoothExpNonZero(autoscrollTarget, _autoscrollSmoothing, dt);
-                
-                nextPos.x = Mathf.Clamp01(nextPos.x);
-                nextPos.y = Mathf.Clamp01(nextPos.y);
-            }
-            
-            if (_enableStickToSide) {
-                var stickTarget = nextPos;
-                
-                UpdateInputDirUsageTime(targetDelta, time);
-                
-                if (nextPos.x * contentRect.width <= _sideWidth) _lastTimeTouchedSide.x = time;
-                if ((1f - nextPos.x) * contentRect.width <= _sideWidth) _lastTimeTouchedSide.y = time;
-                if (nextPos.y * contentRect.height <= _sideHeight) _lastTimeTouchedSide.z = time;
-                if ((1f - nextPos.y) * contentRect.height <= _sideHeight) _lastTimeTouchedSide.w = time;
-                
-                if ((StickMode.Right & _stickMode) == StickMode.Right &&
-                    time - _lastTimeTouchedSide.x <= _stickToSideDuration && 
-                    time - _lastTimeHasInputDirectedFromSide.x > _stickStartDelay) 
-                {
-                    stickTarget.x = 0f;
-                }
-
-                if ((StickMode.Left & _stickMode) == StickMode.Left &&
-                    time - _lastTimeTouchedSide.y <= _stickToSideDuration && 
-                    time - _lastTimeHasInputDirectedFromSide.y > _stickStartDelay)
-                {
-                    stickTarget.x = 1f;
-                }
-
-                if ((StickMode.Bottom & _stickMode) == StickMode.Bottom && 
-                    time - _lastTimeTouchedSide.z <= _stickToSideDuration && 
-                    time - _lastTimeHasInputDirectedFromSide.z > _stickStartDelay)
-                {
-                    stickTarget.y = 0f;
-                }
-                
-                if ((StickMode.Top & _stickMode) == StickMode.Top &&
-                    time - _lastTimeTouchedSide.w <= _stickToSideDuration && 
-                    time - _lastTimeHasInputDirectedFromSide.w > _stickStartDelay)
-                {
-                    stickTarget.y = 1f;
-                }
-                
-                nextPos = nextPos.SmoothExpNonZero(stickTarget, _stickSmoothing, dt);
-                
-                nextPos.x = Mathf.Clamp01(nextPos.x);
-                nextPos.y = Mathf.Clamp01(nextPos.y);
-            }
-            
-            _scrollRect.normalizedPosition = nextPos;
-            _lastNormalizedPosition = nextPos;
-        }
-
-        private void UpdateInputDirUsageTime(Vector2 targetDelta, float time) {
-            if (targetDelta.x > 0f) _lastTimeHasInputDirectedFromSide.x = time;
-            if (targetDelta.x < 0f) _lastTimeHasInputDirectedFromSide.y = time;
-            if (targetDelta.y > 0f) _lastTimeHasInputDirectedFromSide.z = time;
-            if (targetDelta.y < 0f) _lastTimeHasInputDirectedFromSide.w = time;
         }
         
         private static Vector2 GetValue(ref ScrollInput input) {
-            var vector = input.inputAction.Get().ReadValue<Vector2>();
+            var inputAction = input.inputAction.Get();
+            var vector = inputAction.ReadValue<Vector2>();
             
             var value = input.axis switch {
                 Axis.XY => vector,
@@ -225,6 +433,44 @@ namespace MisterGames.UI.Components {
 #if UNITY_EDITOR
         private void Reset() {
             _scrollRect = GetComponent<ScrollRect>();
+            FetchEventHandlers();
+        }
+
+        [Button]
+        private void FetchScrollbarHandlers() {
+            if (FetchEventHandlers()) EditorUtility.SetDirty(this);
+        }
+        
+        private bool FetchEventHandlers() {
+            if (_scrollRect == null) return false;
+
+            bool changed = false;
+            int length = (_scrollRect.verticalScrollbar != null).AsInt() + 
+                         (_scrollRect.horizontalScrollbar != null).AsInt();
+
+            if (_pointerEventHandlers == null || _pointerEventHandlers.Length != length) {
+                _pointerEventHandlers = new PointerEventsHandler[length];
+                changed = true;
+            }
+            
+            if (_scrollRect.verticalScrollbar != null) {
+                var handler = _scrollRect.verticalScrollbar.gameObject.GetOrAddComponent<PointerEventsHandler>();
+
+                changed |= _pointerEventHandlers[0] != handler;
+                
+                _pointerEventHandlers[0] = handler;
+            }
+            
+            if (_scrollRect.horizontalScrollbar != null) {
+                int index = _scrollRect.verticalScrollbar == null ? 0 : 1;
+                var handler = _scrollRect.horizontalScrollbar.gameObject.GetOrAddComponent<PointerEventsHandler>();
+                
+                changed |= _pointerEventHandlers[index] != handler;
+                
+                _pointerEventHandlers[index] = handler;
+            }
+
+            return changed;
         }
 #endif
     }
