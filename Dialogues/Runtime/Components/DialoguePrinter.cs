@@ -2,7 +2,10 @@
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using MisterGames.Actors;
+using MisterGames.Actors.Actions;
 using MisterGames.Common.Async;
+using MisterGames.Common.Attributes;
 using MisterGames.Common.Lists;
 using MisterGames.Common.Localization;
 using MisterGames.Common.Pooling;
@@ -14,12 +17,14 @@ using UnityEngine;
 
 namespace MisterGames.Dialogues.Components {
     
-    public sealed class DialoguePrinter : MonoBehaviour, IDialoguePrinter {
+    public sealed class DialoguePrinter : MonoBehaviour, IActorComponent, IDialoguePrinter {
         
         [Header("Printing")]
         [SerializeField] private UiTextPrinter _textPrinter;
         [SerializeField] private Transform _replicaParent;
         [SerializeField] private TMP_Text _replicaTextPrefab;
+        [SubclassSelector]
+        [SerializeReference] private IActorAction _forceFinishElementAction;
         
         [Header("Roles")]
         [SerializeField] private HorizontalAlignmentOptions _alignmentDefault;
@@ -34,7 +39,21 @@ namespace MisterGames.Dialogues.Components {
         }
         
         private readonly List<TMP_Text> _allocatedTextFields = new();
+        private CancellationTokenSource _destroyCts;
         private CancellationTokenSource _enableCts;
+        private IActor _actor;
+        
+        void IActorComponent.OnAwake(IActor actor) { 
+            _actor = actor;    
+        }
+
+        private void Awake() {
+            AsyncExt.RecreateCts(ref _destroyCts);
+        }
+
+        private void OnDestroy() {
+            AsyncExt.DisposeCts(ref _destroyCts);
+        }
 
         private void OnEnable() {
             AsyncExt.RecreateCts(ref _enableCts);
@@ -48,7 +67,7 @@ namespace MisterGames.Dialogues.Components {
             Services.Get<IDialogueService>()?.UnregisterPrinter(this);
         }
 
-        public async UniTask PrintElement(LocalizationKey key, int roleIndex, bool instant, CancellationToken cancellationToken) {
+        public async UniTask PrintElement(LocalizationKey key, int roleIndex, CancellationToken cancellationToken) {
             cancellationToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _enableCts.Token).Token;
             
             var textField = await CreateTextField(_replicaParent);
@@ -61,27 +80,18 @@ namespace MisterGames.Dialogues.Components {
             await _textPrinter.PrintTextAsync(textField, key.GetValue(), cancellationToken);
         }
 
-        public void CancelCurrentElementPrinting(DialogueCancelMode mode) {
+        public void CancelLastPrinting(bool clear = false) {
             if (_allocatedTextFields.Count == 0) return;
 
-            var textField = _allocatedTextFields[^1];
-            
-            switch (mode) {
-                case DialogueCancelMode.Clear:
-                    _textPrinter.ClearText(textField);
-                    break;
-                
-                case DialogueCancelMode.Stop:
-                    _textPrinter.CancelPrinting(textField);
-                    break;
-                
-                case DialogueCancelMode.PrintToEnd:
-                    _textPrinter.FinishPrintingImmediately(textField);
-                    break;
-                
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(mode), mode, null);
-            }
+            _textPrinter.CancelPrinting(_allocatedTextFields[^1], clear);
+        }
+
+        public void FinishLastPrinting(float symbolDelay = -1) {
+            if (_allocatedTextFields.Count == 0) return;
+
+            _textPrinter.ForceFinishPrinting(_allocatedTextFields[^1], symbolDelay);
+
+            _forceFinishElementAction?.Apply(_actor, _enableCts?.Token ?? _destroyCts.Token);
         }
 
         public void ClearAllText() {

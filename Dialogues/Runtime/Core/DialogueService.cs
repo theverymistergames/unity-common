@@ -32,7 +32,7 @@ namespace MisterGames.Dialogues.Core {
         private readonly Dictionary<int, AsyncOperationHandle<DialogueTableStorage>> _tableStorageHandlesMap = new();
         private readonly Dictionary<LocalizationKey, DialogueElement> _startedDialogues = new();
         
-        private readonly MultiValueDictionary<(LocalizationKey, DialogueEvent), Func<UniTask>> _dialogueEvents = new();
+        private readonly MultiValueDictionary<(LocalizationKey, DialogueEvent), Func<CancellationToken, UniTask>> _dialogueEvents = new();
         private readonly HashSet<IDialoguePrinter> _printers = new();
         
         public void Initialize() {
@@ -192,11 +192,11 @@ namespace MisterGames.Dialogues.Core {
             }
         }
 
-        public void AddDialogueEvent(LocalizationKey key, DialogueEvent eventType, Func<UniTask> action) {
+        public void AddDialogueEvent(LocalizationKey key, DialogueEvent eventType, Func<CancellationToken, UniTask> action) {
             _dialogueEvents.AddValue((key, eventType), action);
         }
 
-        public void RemoveDialogueEvent(LocalizationKey key, DialogueEvent eventType, Func<UniTask> action) {
+        public void RemoveDialogueEvent(LocalizationKey key, DialogueEvent eventType, Func<CancellationToken, UniTask> action) {
             _dialogueEvents.RemoveValue((key, eventType), action);
         }
 
@@ -208,7 +208,7 @@ namespace MisterGames.Dialogues.Core {
             tasks.ResetArrayElements();
             
             for (int i = 0; i < count; i++) {
-                tasks[i] = _dialogueEvents.GetValueAt(id, i)?.Invoke() ?? UniTask.CompletedTask;
+                tasks[i] = _dialogueEvents.GetValueAt(id, i)?.Invoke(cancellationToken) ?? UniTask.CompletedTask;
             }
             
             await UniTask.WhenAll(tasks);
@@ -224,13 +224,13 @@ namespace MisterGames.Dialogues.Core {
             _printers.Remove(printer);
         }
         
-        public async UniTask PrintElementAsync(LocalizationKey key, int roleIndex, bool instant, CancellationToken cancellationToken) {
+        public async UniTask PrintElementAsync(LocalizationKey key, int roleIndex, CancellationToken cancellationToken) {
             var tasks = ArrayPool<UniTask>.Shared.Rent(_printers.Count);
             tasks.ResetArrayElements();
             int count = 0;
             
             foreach (var dialoguePrinter in _printers) {
-                tasks[count++] = dialoguePrinter.PrintElement(key, roleIndex, instant, cancellationToken);
+                tasks[count++] = dialoguePrinter.PrintElement(key, roleIndex, cancellationToken);
             }
 
             await UniTask.WhenAll(tasks);
@@ -239,9 +239,15 @@ namespace MisterGames.Dialogues.Core {
             ArrayPool<UniTask>.Shared.Return(tasks);
         }
 
-        public void CancelCurrentElementPrinting(DialogueCancelMode mode) {
+        public void CancelLastPrinting(bool clear = false) {
             foreach (var dialoguePrinter in _printers) {
-                dialoguePrinter.CancelCurrentElementPrinting(mode);
+                dialoguePrinter.CancelLastPrinting(clear);
+            }
+        }
+
+        public void FinishLastPrinting(float symbolDelay = -1) {
+            foreach (var dialoguePrinter in _printers) {
+                dialoguePrinter.FinishLastPrinting(symbolDelay);
             }
         }
 

@@ -45,6 +45,7 @@ namespace MisterGames.UI.Components {
         [Header("Stick To Side")]
         [SerializeField] private bool _enableStickToSide = true;
         [SerializeField] private StickMode _stickMode = StickMode.Bottom;
+        [SerializeField] private StickMode _initialStickMode = StickMode.Bottom;
         [SerializeField] [Min(0f)] private float _stickStartDelay = 1f;
         [SerializeField] [Min(0f)] private float _stickSpeed = 10f;
         [SerializeField] [Min(0f)] private float _sideWidth = 100f;
@@ -86,7 +87,7 @@ namespace MisterGames.UI.Components {
         
         // x - right, y - left, z - bottom , w - top
         private Vector4 _lastTimeNotTouchedSide;
-        private Vector2 _smoothDelta;
+        private Vector2 _velocity;
         private float _lastTimeHasInputs;
         private Vector2 _stickDir;
         private Vector2 _lastInputDir;
@@ -109,17 +110,22 @@ namespace MisterGames.UI.Components {
         private void OnEnable() {
             PlayerLoopStage.LateUpdate.Subscribe(this);
 
-            float time = Time.realtimeSinceStartup;
-            
             _isInTopOpenedLayer = false;
             _containsSelectedObjectDirectly = false;
             _parentNode = null;
             _isPointerPressed = false;
-            _lastTimeHasInputs = time;
-            _lastTimeNotTouchedSide = time.ToVectorXYZW();
-            _stickDir = default;
+            _lastTimeHasInputs = 0f;
+            _lastTimeNotTouchedSide = default;
             _lastInputDir = default;
-            
+            _stickDir = new Vector2(
+                (_initialStickMode & StickMode.Right) != 0 ? -1f 
+                : (_initialStickMode & StickMode.Left) != 0 ? 1f 
+                : 0f,
+                (_initialStickMode & StickMode.Bottom) != 0 ? -1f 
+                : (_initialStickMode & StickMode.Top) != 0 ? 1f
+                : 0f
+            );
+
             ResetMoveToPosition();
             
             for (int i = 0; i < _pointerEventHandlers.Length; i++) {
@@ -201,21 +207,32 @@ namespace MisterGames.UI.Components {
         }
 
         private void ProcessScroll(float dt) {
+            var contentRect = _scrollRect.content.rect;
+            var viewportRect = _scrollRect.viewport.rect;
+            
+            bool hasScrollSpace = _scrollRect.horizontal && contentRect.width > viewportRect.width || 
+                                  _scrollRect.vertical && contentRect.height > viewportRect.height;
+            
             float time = Time.realtimeSinceStartup;
-
-            if (_isPointerPressed) {
-                _smoothDelta = default;
+            
+            if (_isPointerPressed || !hasScrollSpace) {
+                _velocity = default;
+                _moveToPositionVelocity = default;
                 _lastTimeHasInputs = time;
-                _lastTimeNotTouchedSide = time.ToVectorXYZW();
-                _stickDir = default;
                 _lastInputDir = default;
+
+                if (hasScrollSpace) {
+                    _lastTimeNotTouchedSide = time.ToVectorXYZW();
+                    _stickDir = default;
+                }
+                
                 ResetMoveToPosition();
                 return;
             }
             
             var inputDelta = GetInputDelta();
-            var currentPos = _scrollRect.normalizedPosition;
-            
+            var currentPos = _scrollRect.content.anchoredPosition;
+
             if (!_isInTopOpenedLayer || 
                 _enableMode == EnableMode.OnFocus && inputDelta != default && !IsFocused()) 
             {
@@ -227,30 +244,33 @@ namespace MisterGames.UI.Components {
                 _lastInputDir = new Vector2(Mathf.Sign(inputDelta.x), Mathf.Sign(inputDelta.y));
             }
             
-            ProcessStickToSide(currentPos, ref inputDelta);
+            ProcessStickToSide(ref inputDelta);
             
-            _smoothDelta = _smoothDelta.SmoothExpNonZero(inputDelta, _deltaSmoothing, dt);
-            var nextPos = (currentPos + _smoothDelta).Clamp01();
+            _velocity = _velocity.SmoothExpNonZero(inputDelta, _deltaSmoothing, dt);
+            var vel = new Vector2(_scrollRect.horizontal.AsFloat() * _velocity.x, _scrollRect.vertical.AsFloat() * -_velocity.y);
+            
+            var nextPos = currentPos + vel;
             
             ProcessAutoScroll(ref nextPos, dt);
             ProcessMoveToPosition(currentPos, ref nextPos, dt);
             
-            _scrollRect.normalizedPosition = nextPos;
+            _scrollRect.content.anchoredPosition = nextPos;
         }
 
-        private void ProcessStickToSide(Vector2 currentPos, ref Vector2 inputDelta) {
+        private void ProcessStickToSide(ref Vector2 inputDelta) {
             if (!_enableStickToSide) {
                 _stickDir = default;
                 return;
             }
             
             float time = Time.realtimeSinceStartup;
-            var contentRect = _scrollRect.content.rect;
-
-            if (_stickDir.x >= 0f && currentPos.x * contentRect.width > _sideWidth || _lastInputDir.x > 0f) _lastTimeNotTouchedSide.x = time;
-            if (_stickDir.x <= 0f && (1f - currentPos.x) * contentRect.width > _sideWidth || _lastInputDir.x < 0f) _lastTimeNotTouchedSide.y = time;
-            if (_stickDir.y >= 0f && currentPos.y * contentRect.height > _sideHeight || _lastInputDir.y > 0f) _lastTimeNotTouchedSide.z = time;
-            if (_stickDir.y <= 0f && (1f - currentPos.y) * contentRect.height > _sideHeight || _lastInputDir.y < 0f) _lastTimeNotTouchedSide.w = time;
+            var currentPos = _scrollRect.normalizedPosition;
+            var size = _scrollRect.content.rect.size;
+            
+            if (_stickDir.x >= 0f && size.x * currentPos.x > _sideWidth || _lastInputDir.x > 0f) _lastTimeNotTouchedSide.x = time;
+            if (_stickDir.x <= 0f && size.x * (1f - currentPos.x) > _sideWidth || _lastInputDir.x < 0f) _lastTimeNotTouchedSide.y = time;
+            if (_stickDir.y >= 0f && size.y * currentPos.y > _sideHeight || _lastInputDir.y > 0f) _lastTimeNotTouchedSide.z = time;
+            if (_stickDir.y <= 0f && size.y * (1f - currentPos.y) > _sideHeight || _lastInputDir.y < 0f) _lastTimeNotTouchedSide.w = time;
             
             _stickDir = default;
             
@@ -277,14 +297,8 @@ namespace MisterGames.UI.Components {
             {
                 _stickDir.y = 1f;
             }
-            
-            var stickVelocity = _stickSpeed * _stickDir;
-            var stickDelta = new Vector2(
-                contentRect.width > 0f ? stickVelocity.x / contentRect.width : 0f,
-                contentRect.height > 0f ? stickVelocity.y / contentRect.height : 0f
-            );
-            
-            inputDelta += stickDelta;
+
+            inputDelta += _stickSpeed * _stickDir;
         }
 
         private void ProcessAutoScroll(ref Vector2 nextPos, float dt) {
@@ -293,23 +307,23 @@ namespace MisterGames.UI.Components {
             {
                 return;
             }
-            
-            var autoscrollTarget = new Vector2(_autoscrollPositionX, _autoscrollPositionY);
-            nextPos = nextPos.SmoothExpNonZero(autoscrollTarget, _autoscrollSmoothing, dt).Clamp01();
+
+            var autoscrollTarget = new Vector2(_autoscrollPositionX, _autoscrollPositionY) * _scrollRect.content.rect.size;
+            nextPos = nextPos.SmoothExpNonZero(autoscrollTarget, _autoscrollSmoothing, dt);
         }
 
         private void ProcessMoveToPosition(Vector2 currentPos, ref Vector2 nextPos, float dt) {
             float time = Time.realtimeSinceStartup;
             if (time - _moveToPositionStartTime > _moveToPositionDuration) return;
-            
+
             nextPos = Vector2.SmoothDamp(
                 currentPos, 
-                _targetMovePosition,
+                _targetMovePosition.WithY(-_targetMovePosition.y) * _scrollRect.content.rect.size,
                 ref _moveToPositionVelocity,
                 smoothTime: _moveToPositionDuration,
                 maxSpeed: float.PositiveInfinity,
                 dt
-            ).Clamp01();
+            );
             
             _lastTimeHasInputs = time;
             _lastTimeNotTouchedSide = time.ToVectorXYZW();
@@ -409,12 +423,7 @@ namespace MisterGames.UI.Components {
             deltaMax *= (1f + accelerationMul) * _deltaSensitivity;
             vectorMax *= (1f + accelerationMul) * _vectorSensitivity;
             
-            var contentRect = _scrollRect.content.rect;
-            
-            return new Vector2(
-                contentRect.width > 0f ? (vectorMax.x + deltaMax.x) / contentRect.width : 0f,
-                contentRect.height > 0f ? (vectorMax.y + deltaMax.y) / contentRect.height : 0f
-            );
+            return vectorMax == default ? deltaMax : vectorMax;
         }
         
         private static Vector2 GetValue(ref ScrollInput input) {

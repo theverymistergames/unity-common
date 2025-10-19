@@ -5,16 +5,17 @@ using MisterGames.Actors;
 using MisterGames.Actors.Actions;
 using MisterGames.Common.Service;
 using MisterGames.Dialogues.Core;
+using UnityEngine;
 
 namespace MisterGames.ActionLib.Dialogues {
     
     [Serializable]
-    public sealed class CancelDialogueElementAction : IActorAction {
+    public sealed class FinishDialogueElementAction : IActorAction {
 
-        public bool clearText;
+        [Min(-1f)] public float symbolDelay = -1f;
         
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-			Services.Get<IDialogueService>()?.CancelLastPrinting(clearText);
+			Services.Get<IDialogueService>()?.FinishLastPrinting(symbolDelay);
             return UniTask.CompletedTask;
         }
     }

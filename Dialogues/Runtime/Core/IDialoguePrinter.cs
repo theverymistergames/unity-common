@@ -6,8 +6,9 @@ namespace MisterGames.Dialogues.Core {
     
     public interface IDialoguePrinter {
         
-        UniTask PrintElement(LocalizationKey key, int roleIndex, bool instant, CancellationToken cancellationToken);
-        void CancelCurrentElementPrinting(DialogueCancelMode mode);
+        UniTask PrintElement(LocalizationKey key, int roleIndex, CancellationToken cancellationToken);
+        void CancelLastPrinting(bool clear = false);
+        void FinishLastPrinting(float symbolDelay = -1f);
         void ClearAllText();
     }
     

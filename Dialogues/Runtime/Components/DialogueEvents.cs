@@ -26,7 +26,7 @@ namespace MisterGames.Dialogues.Components {
             [SerializeReference] public IActorAction action;
         }
 
-        private readonly Dictionary<int, Func<UniTask>> _subscribedEventsMap = new();
+        private readonly Dictionary<int, Func<CancellationToken, UniTask>> _subscribedEventsMap = new();
         
         private CancellationTokenSource _enableCts;
         private IActor _actor;
@@ -90,8 +90,8 @@ namespace MisterGames.Dialogues.Components {
             _subscribedEventsMap.Clear();
         }
 
-        private Func<UniTask> CreateEventActionFactory(IActorAction action) {
-            return () => action.Apply(_actor, _enableCts.Token);
+        private Func<CancellationToken, UniTask> CreateEventActionFactory(IActorAction action) {
+            return ct => action.Apply(_actor, ct);
         }
     }
     
