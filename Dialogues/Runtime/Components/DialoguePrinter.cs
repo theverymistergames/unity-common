@@ -3,9 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
-using MisterGames.Actors.Actions;
 using MisterGames.Common.Async;
-using MisterGames.Common.Attributes;
 using MisterGames.Common.Lists;
 using MisterGames.Common.Localization;
 using MisterGames.Common.Pooling;
@@ -23,8 +21,6 @@ namespace MisterGames.Dialogues.Components {
         [SerializeField] private UiTextPrinter _textPrinter;
         [SerializeField] private Transform _replicaParent;
         [SerializeField] private TMP_Text _replicaTextPrefab;
-        [SubclassSelector]
-        [SerializeReference] private IActorAction _forceFinishElementAction;
         
         [Header("Roles")]
         [SerializeField] private HorizontalAlignmentOptions _alignmentDefault;
@@ -41,11 +37,6 @@ namespace MisterGames.Dialogues.Components {
         private readonly List<TMP_Text> _allocatedTextFields = new();
         private CancellationTokenSource _destroyCts;
         private CancellationTokenSource _enableCts;
-        private IActor _actor;
-        
-        void IActorComponent.OnAwake(IActor actor) { 
-            _actor = actor;    
-        }
 
         private void Awake() {
             AsyncExt.RecreateCts(ref _destroyCts);
@@ -90,8 +81,6 @@ namespace MisterGames.Dialogues.Components {
             if (_allocatedTextFields.Count == 0) return;
 
             _textPrinter.ForceFinishPrinting(_allocatedTextFields[^1], symbolDelay);
-
-            _forceFinishElementAction?.Apply(_actor, _enableCts?.Token ?? _destroyCts.Token);
         }
 
         public void ClearAllText() {

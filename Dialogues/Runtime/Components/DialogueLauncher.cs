@@ -8,7 +8,6 @@ using MisterGames.Common.Lists;
 using MisterGames.Common.Localization;
 using MisterGames.Common.Service;
 using MisterGames.Dialogues.Core;
-using MisterGames.Input.Actions;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Random = UnityEngine.Random;
@@ -21,8 +20,7 @@ namespace MisterGames.Dialogues.Components {
         [SerializeField] private LaunchMode _launchMode = LaunchMode.OnEnable;
         
         [Header("Skip")]
-        [SerializeField] private InputActionRef[] _skipInputs;
-        [SerializeField] private NextElementMode _nextElementMode = NextElementMode.WaitSkipInput;
+        [SerializeField] private NextElementMode _nextElementMode = NextElementMode.WaitSkip;
         [SerializeField] [Min(-1f)] private float _maxTimeAfterSkipToMoveToNext = 0.1f;
         [SerializeField] [Min(-1f)] private float _skipSymbolDelay = -1f;
             
@@ -40,7 +38,7 @@ namespace MisterGames.Dialogues.Components {
         }
 
         private enum NextElementMode {
-            WaitSkipInput,
+            WaitSkip,
             AutoPlayNext,
         }
 
@@ -70,9 +68,8 @@ namespace MisterGames.Dialogues.Components {
         private void OnEnable() {
             AsyncExt.RecreateCts(ref _enableCts);
 
-            for (int i = 0; i < _skipInputs.Length; i++) {
-                ref var inputActionRef = ref _skipInputs[i];
-                if (inputActionRef.Get() is { } inputAction) inputAction.performed += OnSkipInput;
+            if (Services.TryGet(out IDialogueService dialogueService)) {
+                dialogueService.OnSkipApplied += OnSkipApplied;
             }
             
             if (_launchMode == LaunchMode.OnEnable) {
@@ -83,17 +80,16 @@ namespace MisterGames.Dialogues.Components {
         private void OnDisable() {
             AsyncExt.DisposeCts(ref _enableCts);
             
-            for (int i = 0; i < _skipInputs.Length; i++) {
-                ref var inputActionRef = ref _skipInputs[i];
-                if (inputActionRef.Get() is { } inputAction) inputAction.performed -= OnSkipInput;
+            if (Services.TryGet(out IDialogueService dialogueService)) {
+                dialogueService.OnSkipApplied -= OnSkipApplied;
             }
-
+                
             if (_launchMode == LaunchMode.OnEnable) {
                 StopDialogue();
             }
         }
 
-        private void OnSkipInput(InputAction.CallbackContext obj) {
+        private void OnSkipApplied() {
             if (!IsRunning || IsPaused) return;
             
             _lastSkipTime = Time.realtimeSinceStartup;
@@ -223,7 +219,7 @@ namespace MisterGames.Dialogues.Components {
                 }
                 
                 switch (_nextElementMode) {
-                    case NextElementMode.WaitSkipInput:
+                    case NextElementMode.WaitSkip:
                         if (Time.realtimeSinceStartup - _lastSkipTime <= _maxTimeAfterSkipToMoveToNext) continue;
                         
                         if (_skipCts == null) {

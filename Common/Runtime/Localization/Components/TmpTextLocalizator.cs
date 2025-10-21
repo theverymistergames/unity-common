@@ -51,9 +51,8 @@ namespace MisterGames.Common.Localization.Components {
         private void OnValidate() {
             if (enabled && (!Application.isPlaying || _updateInRuntime) && _lastKey != _key) {
                 FetchValueForDefaultLocale();
+                _lastKey = _key;
             }
-
-            _lastKey = _key;
         }
 
         [Attributes.Button]

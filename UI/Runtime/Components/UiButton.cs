@@ -106,6 +106,11 @@ namespace MisterGames.UI.Components {
             
             _button.onClick.RemoveListener(OnClick);
         }
+
+        public void ClickManual() {
+            OnClick();
+            AnimateSubmit(_enableCts.Token).Forget();
+        }
         
         private void OnClick() {
             if (!CanClick()) return;
@@ -149,12 +154,11 @@ namespace MisterGames.UI.Components {
 
         private async UniTask WaitClickAction(CancellationToken cancellationToken) {
             await _clickAction.Apply(_actor, cancellationToken);
-
             _awaitClickActionId = _clickActionId.IncrementUncheckedRef();
         }
 
         void ISubmitHandler.OnSubmit(BaseEventData eventData) {
-            if (CanClick()) AnimateSubmit(_enableCts.Token).Forget();
+            AnimateSubmit(_enableCts.Token).Forget();
         }
         
         void ISelectHandler.OnSelect(BaseEventData eventData) {

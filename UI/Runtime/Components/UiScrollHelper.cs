@@ -1,5 +1,6 @@
 ﻿using System;
 using MisterGames.Common.Attributes;
+using MisterGames.Common.Easing;
 using MisterGames.Common.GameObjects;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Service;
@@ -35,6 +36,9 @@ namespace MisterGames.UI.Components {
         [SerializeField] [Min(0f)] private float _deltaSmoothing = 0f;
         [SerializeField] [Min(0f)] private float _accelerationMul = 3f;
 
+        [Header("Move To Position")]
+        [SerializeField] private EasingType _moveToPositionEasing = EasingType.EaseInOutSine;
+        
         [Header("Auto Scroll")]
         [SerializeField] private bool _enableAutoScroll = true;
         [SerializeField] [Min(0f)] private float _autoscrollStartDelay = 1f;
@@ -94,8 +98,8 @@ namespace MisterGames.UI.Components {
         
         private float _moveToPositionStartTime;
         private float _moveToPositionDuration;
-        private Vector2 _targetMovePosition;
-        private Vector2 _moveToPositionVelocity;
+        private Vector2 _startMovePosition;
+        private Vector2 _targetMovePositionNormalized;
         
         private IUiNavigationNode _parentNode;
         private bool _isInTopOpenedLayer;
@@ -167,14 +171,16 @@ namespace MisterGames.UI.Components {
         }
 
         public void MoveToPosition(Vector2 normalizedPosition, float duration) {
-            _moveToPositionVelocity = default;
+            _startMovePosition = _scrollRect.content.anchoredPosition;
+            
+            _targetMovePositionNormalized = normalizedPosition.Clamp01();
+            _targetMovePositionNormalized.y = 1f - _targetMovePositionNormalized.y;
+            
             _moveToPositionStartTime = Time.realtimeSinceStartup;
             _moveToPositionDuration = duration;
-            _targetMovePosition = normalizedPosition;
         }
 
         public void ResetMoveToPosition() {
-            _moveToPositionVelocity = default;
             _moveToPositionStartTime = 0f;
             _moveToPositionDuration = 0f;
         }
@@ -217,7 +223,6 @@ namespace MisterGames.UI.Components {
             
             if (_isPointerPressed || !hasScrollSpace) {
                 _velocity = default;
-                _moveToPositionVelocity = default;
                 _lastTimeHasInputs = time;
                 _lastInputDir = default;
 
@@ -252,8 +257,8 @@ namespace MisterGames.UI.Components {
             var nextPos = currentPos + vel;
             
             ProcessAutoScroll(ref nextPos, dt);
-            ProcessMoveToPosition(currentPos, ref nextPos, dt);
-            
+            ProcessMoveToPosition(ref nextPos);
+
             _scrollRect.content.anchoredPosition = nextPos;
         }
 
@@ -308,22 +313,20 @@ namespace MisterGames.UI.Components {
                 return;
             }
 
-            var autoscrollTarget = new Vector2(_autoscrollPositionX, _autoscrollPositionY) * _scrollRect.content.rect.size;
-            nextPos = nextPos.SmoothExpNonZero(autoscrollTarget, _autoscrollSmoothing, dt);
+            var target = new Vector2(_autoscrollPositionX, 1f - _autoscrollPositionY) * _scrollRect.content.rect.size;
+            nextPos = nextPos.SmoothExpNonZero(target, _autoscrollSmoothing, dt);
         }
 
-        private void ProcessMoveToPosition(Vector2 currentPos, ref Vector2 nextPos, float dt) {
+        private void ProcessMoveToPosition(ref Vector2 nextPos) {
             float time = Time.realtimeSinceStartup;
             if (time - _moveToPositionStartTime > _moveToPositionDuration) return;
 
-            nextPos = Vector2.SmoothDamp(
-                currentPos, 
-                _targetMovePosition.WithY(-_targetMovePosition.y) * _scrollRect.content.rect.size,
-                ref _moveToPositionVelocity,
-                smoothTime: _moveToPositionDuration,
-                maxSpeed: float.PositiveInfinity,
-                dt
-            );
+            float t = _moveToPositionDuration > 0f 
+                ? Mathf.Clamp01((time - _moveToPositionStartTime) / _moveToPositionDuration) 
+                : 1f;
+
+            var target = _targetMovePositionNormalized * _scrollRect.content.rect.size;
+            nextPos = Vector2.Lerp(_startMovePosition, target, _moveToPositionEasing.Evaluate(t));
             
             _lastTimeHasInputs = time;
             _lastTimeNotTouchedSide = time.ToVectorXYZW();
@@ -438,7 +441,7 @@ namespace MisterGames.UI.Components {
             
             return input.sensitivity.Multiply(value);
         }
-
+        
 #if UNITY_EDITOR
         private void Reset() {
             _scrollRect = GetComponent<ScrollRect>();

@@ -27,7 +27,8 @@ namespace MisterGames.Dialogues.Core {
         public event IDialogueService.GroupStart OnDialogueRoleStart = delegate { };
         public event IDialogueService.ElementStart OnDialogueElementStart = delegate { };
         public event IDialogueService.DialogueGenericEvent OnAnyDialogueEvent = delegate { };
-
+        public event Action OnSkipApplied = delegate { };
+        
         private readonly Dictionary<int, IDialogueTable> _tableMap = new();
         private readonly Dictionary<int, AsyncOperationHandle<DialogueTableStorage>> _tableStorageHandlesMap = new();
         private readonly Dictionary<LocalizationKey, DialogueElement> _startedDialogues = new();
@@ -255,6 +256,10 @@ namespace MisterGames.Dialogues.Core {
             foreach (var dialoguePrinter in _printers) {
                 dialoguePrinter.ClearAllText();
             }
+        }
+
+        public void NotifySkip() {
+            OnSkipApplied.Invoke();
         }
 
         private static void LogInfo(string message) {
