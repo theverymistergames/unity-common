@@ -1,10 +1,9 @@
 ﻿using System;
-using MisterGames.Common.Easing;
 using UnityEngine;
 
-namespace MisterGames.Common.Editor.Easing {
+namespace MisterGames.Common.Easing {
     
-    internal sealed class EasingTest : MonoBehaviour {
+    internal sealed class EasingVisualizer : MonoBehaviour {
         
         public AnimationCurve curve = EasingType.Linear.ToAnimationCurve();
         public EasingType easingType = EasingType.Linear;
@@ -14,8 +13,11 @@ namespace MisterGames.Common.Editor.Easing {
         [Min(0f)] public float sizeY = 1f;
         public Vector2 curveEasingOffset;
         public Vector2 labelOffset;
+        
+        [Header("Display")]
         public bool displayCurve = true;
         public bool displayEasingType = true;
+        public bool displaySum = false;
 
         private void OnValidate() {
             curve = easingType.ToAnimationCurve();
@@ -27,6 +29,7 @@ namespace MisterGames.Common.Editor.Easing {
             
             if (displayCurve) Draw(t => curve.Evaluate(t), pos, rot, Color.yellow);
             if (displayEasingType) Draw(t => easingType.Evaluate(t), pos + rot * offset, rot, Color.cyan);
+            if (displaySum) Draw(t => (curve.Evaluate(t) + easingType.Evaluate(t)) * 0.5f, pos + rot * offset * 2f, rot, Color.white);
             
             DebugExt.DrawLabel(transform.TransformPoint(labelOffset), $"{easingType}");
         }

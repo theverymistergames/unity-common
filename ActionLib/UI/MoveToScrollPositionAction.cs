@@ -11,7 +11,7 @@ namespace MisterGames.ActionLib.UI {
     [Serializable]
     public sealed class MoveToScrollPositionAction : IActorAction {
 
-        public UiScrollHelper scrollHelper;
+        public ScrollRectHelper scrollHelper;
         [Range(0f, 1f)] public float x;
         [Range(0f, 1f)] public float y;
         [Min(0f)] public float duration = 0.5f;

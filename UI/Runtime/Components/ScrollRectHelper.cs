@@ -18,7 +18,7 @@ using UnityEditor;
 
 namespace MisterGames.UI.Components {
     
-    public sealed class UiScrollHelper : MonoBehaviour, IUpdate {
+    public sealed class ScrollRectHelper : MonoBehaviour, IUpdate {
         
         [SerializeField] private EnableMode _enableMode = EnableMode.OnFocus;
         
@@ -98,7 +98,6 @@ namespace MisterGames.UI.Components {
         
         private float _moveToPositionStartTime;
         private float _moveToPositionDuration;
-        private Vector2 _startMovePosition;
         private Vector2 _targetMovePositionNormalized;
         
         private IUiNavigationNode _parentNode;
@@ -171,10 +170,9 @@ namespace MisterGames.UI.Components {
         }
 
         public void MoveToPosition(Vector2 normalizedPosition, float duration) {
-            _startMovePosition = _scrollRect.content.anchoredPosition;
-            
-            _targetMovePositionNormalized = normalizedPosition.Clamp01();
-            _targetMovePositionNormalized.y = 1f - _targetMovePositionNormalized.y;
+            _targetMovePositionNormalized = normalizedPosition
+                //.WithY(-normalizedPosition.y)
+                .Clamp01();
             
             _moveToPositionStartTime = Time.realtimeSinceStartup;
             _moveToPositionDuration = duration;
@@ -253,15 +251,24 @@ namespace MisterGames.UI.Components {
             
             _velocity = _velocity.SmoothExpNonZero(inputDelta, _deltaSmoothing, dt);
             var vel = new Vector2(_scrollRect.horizontal.AsFloat() * _velocity.x, _scrollRect.vertical.AsFloat() * -_velocity.y);
-            
             var nextPos = currentPos + vel;
             
-            ProcessAutoScroll(ref nextPos, dt);
-            ProcessMoveToPosition(ref nextPos);
+            var delta = GetNormalizedDelta(nextPos - currentPos, contentRect.size);
+            var normPos = (_scrollRect.normalizedPosition + delta).Clamp01();
+            
+            ProcessAutoScroll(ref normPos, dt);
+            ProcessMoveToPosition(ref normPos);
 
-            _scrollRect.content.anchoredPosition = nextPos;
+            _scrollRect.normalizedPosition = normPos;
         }
 
+        private static Vector2 GetNormalizedDelta(Vector2 worldDelta, Vector2 size) {
+            var delta = worldDelta / size;
+            delta.y = -delta.y;
+            
+            return delta;
+        }
+        
         private void ProcessStickToSide(ref Vector2 inputDelta) {
             if (!_enableStickToSide) {
                 _stickDir = default;
@@ -306,18 +313,18 @@ namespace MisterGames.UI.Components {
             inputDelta += _stickSpeed * _stickDir;
         }
 
-        private void ProcessAutoScroll(ref Vector2 nextPos, float dt) {
+        private void ProcessAutoScroll(ref Vector2 normPos, float dt) {
             if (!_enableAutoScroll ||
                 Time.realtimeSinceStartup - _lastTimeHasInputs < _autoscrollStartDelay) 
             {
                 return;
             }
 
-            var target = new Vector2(_autoscrollPositionX, 1f - _autoscrollPositionY) * _scrollRect.content.rect.size;
-            nextPos = nextPos.SmoothExpNonZero(target, _autoscrollSmoothing, dt);
+            var target = new Vector2(_autoscrollPositionX, _autoscrollPositionY);
+            normPos = normPos.SmoothExpNonZero(target, _autoscrollSmoothing, dt);
         }
 
-        private void ProcessMoveToPosition(ref Vector2 nextPos) {
+        private void ProcessMoveToPosition(ref Vector2 normPos) {
             float time = Time.realtimeSinceStartup;
             if (time - _moveToPositionStartTime > _moveToPositionDuration) return;
 
@@ -325,8 +332,8 @@ namespace MisterGames.UI.Components {
                 ? Mathf.Clamp01((time - _moveToPositionStartTime) / _moveToPositionDuration) 
                 : 1f;
 
-            var target = _targetMovePositionNormalized * _scrollRect.content.rect.size;
-            nextPos = Vector2.Lerp(_startMovePosition, target, _moveToPositionEasing.Evaluate(t));
+            float linear = EasingFunctions.EaseInQuad(t);
+            normPos = Vector2.Lerp(normPos, _targetMovePositionNormalized, _moveToPositionEasing.Evaluate(linear));
             
             _lastTimeHasInputs = time;
             _lastTimeNotTouchedSide = time.ToVectorXYZW();

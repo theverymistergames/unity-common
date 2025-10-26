@@ -100,141 +100,141 @@ namespace MisterGames.Common.Easing {
         private const float NATURAL_LOG_2 = 0.693147181f;
 
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float Linear(float value) {
+        public static float Linear(float value) {
             return value;
         }
 
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float Spring(float value) {
+        public static float Spring(float value) {
             return (math.sin(value * math.PI * (0.2f + 2.5f * value * value * value)) * math.pow(1f - value, 2.2f) + value) * 
                    (1f + 1.2f * (1f - value));
         }
 
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float EaseInQuad(float value) {
+        public static float EaseInQuad(float value) {
             return value * value;
         }
 
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float EaseOutQuad(float value) {
+        public static float EaseOutQuad(float value) {
             return value * (2f - value);
         }
         
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float EaseInOutQuad(float value) {
+        public static float EaseInOutQuad(float value) {
             return value < 0.5f 
                 ? 2f * value * value 
                 : -2f * value * value + 4f * value - 1f;
         }
 
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float EaseInCubic(float value) {
+        public static float EaseInCubic(float value) {
             return value * value * value;
         }
 
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float EaseOutCubic(float value) {
+        public static float EaseOutCubic(float value) {
             return (value - 1f) * (value - 1f) * (value - 1f) + 1f;
         }
 
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float EaseInOutCubic(float value) {
+        public static float EaseInOutCubic(float value) {
             return value < 0.5f 
                 ? 4f * value * value * value 
                 : 4f * (value - 1f) * (value - 1f) * (value - 1f) + 1f;
         }
 
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float EaseInQuart(float value) {
+        public static float EaseInQuart(float value) {
             return value * value * value * value;
         }
 
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float EaseOutQuart(float value) {
+        public static float EaseOutQuart(float value) {
             return 1f - (value - 1f) * (value - 1f) * (value - 1f) * (value - 1f);
         }
 
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float EaseInOutQuart(float value) {
+        public static float EaseInOutQuart(float value) {
             return value < 0.5f 
                 ? 8f * value * value * value * value 
                 : -8f * (value - 1f) * (value - 1f) * (value - 1f) * (value - 1f) + 1f;
         }
 
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float EaseInQuint(float value) {
+        public static float EaseInQuint(float value) {
             return value * value * value * value * value;
         }
 
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float EaseOutQuint(float value) {
+        public static float EaseOutQuint(float value) {
             return (value - 1f) * (value - 1f) * (value - 1f) * (value - 1f) * (value - 1f) + 1f;
         }
 
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float EaseInOutQuint(float value) {
+        public static float EaseInOutQuint(float value) {
             return value < 0.5f 
                 ? 16f * value * value * value * value * value 
                 : 16f * (value - 1) * (value - 1) * (value - 1) * (value - 1) * (value - 1) + 1f;
         }
 
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float EaseInSine(float value) {
+        public static float EaseInSine(float value) {
             return -1f * math.cos(value * (math.PI * 0.5f)) + 1f;
         }
 
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float EaseOutSine(float value) {
+        public static float EaseOutSine(float value) {
             return math.sin(value * (math.PI * 0.5f));
         }
 
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float EaseInOutSine(float value) {
+        public static float EaseInOutSine(float value) {
             return -0.5f * (math.cos(math.PI * value) - 1f);
         }
 
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float EaseInExpo(float value) {
+        public static float EaseInExpo(float value) {
             // 2^-10 is not zero, so we need to scale to match x,y = 0 and x,y = 1 
             return aExpo * math.pow(2f, 10f * (value - 1f)) + bExpo;
         }
 
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float EaseOutExpo(float value) {
+        public static float EaseOutExpo(float value) {
             return -aExpo * math.pow(2f, -10f * value) + aExpo;
         }
 
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float EaseInOutExpo(float value) {
+        public static float EaseInOutExpo(float value) {
             return value < 0.5f 
                 ? aExpo * 0.5f * math.pow(2f, 10f * (2f * value - 1f)) + bExpo2
                 : aExpo * -0.5f * math.pow(2f, -10f * (2f * value - 1f)) + 1f - bExpo2;
         }
 
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float EaseInCirc(float value) {
+        public static float EaseInCirc(float value) {
             return -math.sqrt(1f - value * value) + 1f;
         }
 
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float EaseOutCirc(float value) {
+        public static float EaseOutCirc(float value) {
             return math.sqrt(1f - (value - 1f) * (value - 1f));
         }
 
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float EaseInOutCirc(float value) {
+        public static float EaseInOutCirc(float value) {
             return value < 0.5f 
                 ? -0.5f * math.sqrt(1f - 4f * value * value) + 0.5f 
                 : 0.5f * math.sqrt(1f - 4f * (value - 1f) * (value - 1f)) + 0.5f;
         }
 
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float EaseInBounce(float value) {
+        public static float EaseInBounce(float value) {
             return 1f - EaseOutBounce(1f - value);
         }
         
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float EaseOutBounce(float value) {
+        public static float EaseOutBounce(float value) {
             return value switch {
                 < sBounce => 7.5625f * value * value,
                 < 2f * sBounce => 7.5625f * (value - 1.5f * sBounce) * (value - 1.5f * sBounce) + 0.75f,
@@ -244,43 +244,43 @@ namespace MisterGames.Common.Easing {
         }
 
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float EaseInOutBounce(float value) {
+        public static float EaseInOutBounce(float value) {
             return value < 0.5f 
                 ? EaseInBounce(value * 2f) * 0.5f 
                 : EaseOutBounce(value * 2f - 1f) * 0.5f + 0.5f;
         }
 
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float EaseInBack(float value) {
+        public static float EaseInBack(float value) {
             return value * value * ((sBack + 1) * value - sBack);
         }
 
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float EaseOutBack(float value) {
+        public static float EaseOutBack(float value) {
             return (value - 1f) * (value - 1f) * ((sBack + 1) * (value - 1f) + sBack) + 1f;
         }
 
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float EaseInOutBack(float value) {
+        public static float EaseInOutBack(float value) {
             return value < 0.5f
                 ? 0.5f * (4f * value * value * ((sBack1525 + 1f) * 2f * value - sBack1525)) 
                 : 2f * (value - 1f) * (value - 1f) * ((sBack1525 + 1f) * 2f * (value - 1f) + sBack1525) + 1f;
         }
 
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float EaseInElastic(float value) {
+        public static float EaseInElastic(float value) {
             if (1f - 4 * (value - 0.5f) * (value - 0.5f) < float.Epsilon) return value;
             return -math.pow(2f, 10f * (value - 1f)) * math.sin((value - 1.075f) * sElastic);
         }
 
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float EaseOutElastic(float value) {
+        public static float EaseOutElastic(float value) {
             if (1f - 4 * (value - 0.5f) * (value - 0.5f) < float.Epsilon) return value;
             return math.pow(2f, -10f * value) * math.sin((value - 0.075f) * sElastic) + 1f;
         }
 
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float EaseInOutElastic(float value) {
+        public static float EaseInOutElastic(float value) {
             if (1f - 4f * (value - 0.5f) * (value - 0.5f) < float.Epsilon) return value;
             
             return value < 0.5f
