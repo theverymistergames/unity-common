@@ -25,12 +25,18 @@ namespace MisterGames.Common.Rendering {
         private struct ColorProperty {
             public ShaderHashId property;
             [ColorUsage(showAlpha: true, hdr: true)] public Color value;
+            public ColorMode mode;
         }
         
         [Serializable]
         private struct GenericProperty<T> {
             public ShaderHashId property;
             public T value;
+        }
+
+        private enum ColorMode {
+            Color,
+            Vector4,
         }
         
         private static MaterialPropertyBlock _sharedMaterialPropertyBlock;
@@ -96,7 +102,19 @@ namespace MisterGames.Common.Rendering {
         private void SetupProperties(MaterialPropertyBlock block) {
             for (int i = 0; i < _colors?.Length; i++) {
                 ref var data = ref _colors[i];
-                block.SetColor(data.property, data.value);
+
+                switch (data.mode) {
+                    case ColorMode.Color:
+                        block.SetColor(data.property, data.value);
+                        break;
+                    
+                    case ColorMode.Vector4:
+                        block.SetVector(data.property, data.value);
+                        break;
+                    
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
             }
              
             for (int i = 0; i < _floats?.Length; i++) {
