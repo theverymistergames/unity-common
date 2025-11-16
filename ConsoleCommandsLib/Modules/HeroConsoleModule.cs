@@ -6,6 +6,7 @@ using MisterGames.Common.Pooling;
 using MisterGames.Dbg.Console.Attributes;
 using MisterGames.Dbg.Console.Core;
 using MisterGames.Input.Bindings;
+using MisterGames.Logic.Damage;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -85,33 +86,54 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
             }
         }
 
+        [ConsoleCommand("hero/kill")]
+        [ConsoleCommandHelp("kills hero if there is one on the currently opened scenes")]
+        public void KillHero() {
+            var hero = Object.FindFirstObjectByType<MainCharacter>();
+            
+            if (hero == null) {
+                ConsoleRunner.AppendLine($"Character with {nameof(MainCharacter)} component not found on the scene and in prefabs.");
+                return;
+            }
+            
+            var actor = hero.GetComponent<IActor>();
+            if (actor == null || !actor.TryGetComponent(out HealthBehaviour health)) {
+                ConsoleRunner.AppendLine($"Character with {nameof(MainCharacter)}, {nameof(IActor)} and {nameof(HealthBehaviour)} components not found on the scene and in prefabs.");
+                return;
+            }
+            
+            var result = health.Kill(author: actor, point: actor.Transform.position, notifyDamage: true);
+
+            ConsoleRunner.AppendLine($"Character {hero.name} was killed, damage info: {result}");
+        }
+
         [ConsoleHotkey("hero/spawni 0", KeyBinding.Digit0, ShortcutModifiers.Shift)]
         public void SpawnAtPointByIndex0() { }
 
         [ConsoleHotkey("hero/spawni 1", KeyBinding.Digit1, ShortcutModifiers.Shift)]
         public void SpawnAtPointByIndex1() { }
-        
+
         [ConsoleHotkey("hero/spawni 2", KeyBinding.Digit2, ShortcutModifiers.Shift)]
         public void SpawnAtPointByIndex2() { }
-        
+
         [ConsoleHotkey("hero/spawni 3", KeyBinding.Digit3, ShortcutModifiers.Shift)]
         public void SpawnAtPointByIndex3() { }
-        
+
         [ConsoleHotkey("hero/spawni 4", KeyBinding.Digit4, ShortcutModifiers.Shift)]
         public void SpawnAtPointByIndex4() { }
-        
+
         [ConsoleHotkey("hero/spawni 5", KeyBinding.Digit5, ShortcutModifiers.Shift)]
         public void SpawnAtPointByIndex5() { }
-        
+
         [ConsoleHotkey("hero/spawni 6", KeyBinding.Digit6, ShortcutModifiers.Shift)]
         public void SpawnAtPointByIndex6() { }
-        
+
         [ConsoleHotkey("hero/spawni 7", KeyBinding.Digit7, ShortcutModifiers.Shift)]
         public void SpawnAtPointByIndex7() { }
-        
+
         [ConsoleHotkey("hero/spawni 8", KeyBinding.Digit8, ShortcutModifiers.Shift)]
         public void SpawnAtPointByIndex8() { }
-        
+
         [ConsoleHotkey("hero/spawni 9", KeyBinding.Digit9, ShortcutModifiers.Shift)]
         public void SpawnAtPointByIndex9() { }
 
@@ -120,7 +142,7 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
             Array.Sort(spawnPoints, (p0, p1) => p0.transform.GetInstanceID().CompareTo(p1.transform.GetInstanceID()));
             return spawnPoints;
         }
-        
+
         private void SpawnHero(Vector3 position, string spawnPointName) {
             var hero = Object.FindFirstObjectByType<MainCharacter>();
             

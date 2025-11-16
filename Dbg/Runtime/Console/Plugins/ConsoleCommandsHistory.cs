@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using MisterGames.Common.Attributes;
 using MisterGames.Dbg.Console.Core;
 using MisterGames.Input.Bindings;
 using UnityEngine;
@@ -14,24 +16,29 @@ namespace MisterGames.Dbg.Console.Plugins {
         [SerializeField] private KeyBinding _historyDownInput = KeyBinding.ArrowDown;
 
         [Header("Commands")]
+        [SerializeField] private string _playerPrefsId = "ConsoleCommandsHistory";
         [SerializeField] private int _maxCommandHistorySize = 20;
 
-        private readonly List<string> _commandHistory = new List<string>();
+        [Serializable]
+        private sealed class JsonDto {
+            public List<string> history;
+        }
+        
+        private readonly List<string> _commandHistory = new();
+        private JsonDto _dto = new();
+        
         private string _historyCurrentInput;
         private int _historyPointer;
 
         private void OnEnable() {
             SubscribeShowHideConsole();
-
-            _historyPointer = _commandHistory.Count;
+            RestoreHistoryFromPlayerPrefs();
         }
 
         private void OnDisable() {
             UnsubscribeShowHideConsole();
             UnsubscribeHistoryInput();
             UnsubscribeConsoleInput();
-
-            ClearHistory();
         }
 
         private void OnShowConsole() {
@@ -48,6 +55,8 @@ namespace MisterGames.Dbg.Console.Plugins {
             _commandHistory.Add(input);
             ValidateHistorySize();
             _historyPointer = _commandHistory.Count;
+            
+            SaveHistoryToPlayerPrefs();
         }
 
         private void OnHistoryUp() {
@@ -64,6 +73,27 @@ namespace MisterGames.Dbg.Console.Plugins {
             SetTextInputFieldFromHistory();
         }
 
+        private void SaveHistoryToPlayerPrefs() {
+            _dto ??= new JsonDto();
+            _dto.history = _commandHistory;
+            
+            PlayerPrefs.SetString(_playerPrefsId, JsonUtility.ToJson(_dto));
+        }
+
+        private void RestoreHistoryFromPlayerPrefs() {
+            string json = PlayerPrefs.GetString(_playerPrefsId);
+            _dto = JsonUtility.FromJson<JsonDto>(json) ?? new JsonDto();
+
+            if (_dto.history == null || _dto.history.Count == 0) {
+                ClearHistory();
+                return;
+            }
+
+            _commandHistory.Clear();
+            _commandHistory.AddRange(_dto.history);
+            _historyPointer = _commandHistory.Count;
+        }
+        
         private void ValidateHistorySize() {
             int length = _commandHistory.Count;
             if (length <= _maxCommandHistorySize) return;
@@ -73,9 +103,12 @@ namespace MisterGames.Dbg.Console.Plugins {
             _commandHistory.RemoveRange(0, toRemoveCount);
         }
 
+        [Button]
         private void ClearHistory() {
             _commandHistory.Clear();
             _historyPointer = 0;
+            
+            PlayerPrefs.DeleteKey(_playerPrefsId);
         }
 
         private void SetTextInputFieldFromHistory() {
