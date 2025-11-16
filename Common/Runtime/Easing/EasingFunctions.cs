@@ -2,13 +2,13 @@
 using System.Runtime.CompilerServices;
 using Unity.Burst;
 using Unity.Mathematics;
+using UnityEngine;
 
 namespace MisterGames.Common.Easing {
 
 	public static class EasingFunctions {
 
         private const float aExpo = 1.0009775171065494f;
-        private const float bExpo = -0.0009775171065494f;
         private const float bExpo2 = -0.0004887585532747f;
         private const float sBounce = 1f / 2.75f;
         private const float sBack = 1.70158f;
@@ -55,6 +55,48 @@ namespace MisterGames.Common.Easing {
                 _ => throw new NotImplementedException($"Easing function {easingType} is not implemented")
             };
         }
+        
+        [BurstCompile]
+        public static float EvaluatePower(this EasingType easingType, float value, float power) {
+            return easingType switch {
+                EasingType.EaseInQuad => EaseInQuad(value),
+                EasingType.EaseOutQuad => EaseOutQuad(value),
+                EasingType.EaseInOutQuad => EaseInOutQuad(value),
+                EasingType.EaseInCubic => EaseInCubic(value),
+                EasingType.EaseOutCubic => EaseOutCubic(value),
+                EasingType.EaseInOutCubic => EaseInOutCubic(value),
+                EasingType.EaseInQuart => EaseInQuart(value),
+                EasingType.EaseOutQuart => EaseOutQuart(value),
+                EasingType.EaseInOutQuart => EaseInOutQuart(value),
+                EasingType.EaseInQuint => EaseInQuint(value),
+                EasingType.EaseOutQuint => EaseOutQuint(value),
+                EasingType.EaseInOutQuint => EaseInOutQuint(value),
+                EasingType.EaseInSine => EaseInSine(value),
+                EasingType.EaseOutSine => EaseOutSine(value),
+                EasingType.EaseInOutSine => EaseInOutSine(value),
+                EasingType.EaseInExpo => EaseInExpo(value, power),
+                EasingType.EaseOutExpo => EaseOutExpo(value, power),
+                EasingType.EaseInOutExpo => EaseInOutExpo(value, power),
+                EasingType.EaseInCirc => EaseInCirc(value),
+                EasingType.EaseOutCirc => EaseOutCirc(value),
+                EasingType.EaseInOutCirc => EaseInOutCirc(value),
+                EasingType.Linear => Linear(value),
+                EasingType.Spring => Spring(value),
+                EasingType.EaseInBounce => EaseInBounce(value),
+                EasingType.EaseOutBounce => EaseOutBounce(value),
+                EasingType.EaseInOutBounce => EaseInOutBounce(value),
+                EasingType.EaseInBack => EaseInBack(value),
+                EasingType.EaseOutBack => EaseOutBack(value),
+                EasingType.EaseInOutBack => EaseInOutBack(value),
+                EasingType.EaseInElastic => EaseInElastic(value),
+                EasingType.EaseOutElastic => EaseOutElastic(value),
+                EasingType.EaseInOutElastic => EaseInOutElastic(value),
+                EasingType.Constant0 => 0f,
+                EasingType.Constant1 => 1f,
+                _ => throw new NotImplementedException($"Easing function {easingType} is not implemented")
+            };
+        }
+        
 /*
         [BurstCompile]
         public static float EvaluateDerivative(this EasingType easingType, float value) {
@@ -196,7 +238,7 @@ namespace MisterGames.Common.Easing {
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float EaseInExpo(float value) {
             // 2^-10 is not zero, so we need to scale to match x,y = 0 and x,y = 1 
-            return aExpo * math.pow(2f, 10f * (value - 1f)) + bExpo;
+            return aExpo * math.pow(2f, 10f * (value - 1f)) + (1f - aExpo);
         }
 
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -211,6 +253,27 @@ namespace MisterGames.Common.Easing {
                 : aExpo * -0.5f * math.pow(2f, -10f * (2f * value - 1f)) + 1f - bExpo2;
         }
 
+        [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float EaseInExpo(float value, float power) {
+            float a = 1f / (1f - math.pow(2f, -power));
+            return a * math.pow(2f, power * (value - 1f)) + (1f - a);
+        }
+
+        [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float EaseOutExpo(float value, float power) {
+            float a = 1f / (1f - Mathf.Pow(2f, -power));
+            return -a * math.pow(2f, -power * value) + a;
+        }
+
+        [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float EaseInOutExpo(float value, float power) {
+            float a = 1f / (1f - Mathf.Pow(2f, -power));
+            float b = 0.5f - 0.5f * a;
+            return value < 0.5f 
+                ? a * 0.5f * math.pow(2f, power * (2f * value - 1f)) + b
+                : a * -0.5f * math.pow(2f, -power * (2f * value - 1f)) + 1f - b;
+        }
+        
         [BurstCompile] [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float EaseInCirc(float value) {
             return -math.sqrt(1f - value * value) + 1f;

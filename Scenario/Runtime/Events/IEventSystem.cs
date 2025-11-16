@@ -16,6 +16,8 @@ namespace MisterGames.Scenario.Events {
         void Raise<T>(EventReference e, T data, int add = 1);
         void SetCount<T>(EventReference e, T data, int count);
 
+        void RaiseGlobal<T>(T data);
+        
         void ResetEventsOf(EventDomain eventDomain, bool includeSaved, bool notify);
         void ResetAllEvents(bool notify);
         

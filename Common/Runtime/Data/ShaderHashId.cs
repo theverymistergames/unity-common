@@ -11,7 +11,7 @@ namespace MisterGames.Common.Data {
         private int _hash;
         
         public bool Equals(ShaderHashId other) => _name == other._name;
-        public override bool Equals(object obj) => obj is HashId other && Equals(other);
+        public override bool Equals(object obj) => obj is ShaderHashId other && Equals(other);
         public override int GetHashCode() => _name.GetHashCode();
 
         public static bool operator ==(ShaderHashId left, ShaderHashId right) => left.Equals(right);

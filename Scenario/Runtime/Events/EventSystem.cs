@@ -51,6 +51,11 @@ namespace MisterGames.Scenario.Events {
             NotifyEventRaised(e, data);
         }
 
+        public void RaiseGlobal<T>(T data) {
+            SetEventCount(RootEvent, RaisedEvents.GetValueOrDefault(RootEvent, 0) + 1);
+            NotifyEventRaised(RootEvent);
+        }
+
         public void ResetEventsOf(EventDomain eventDomain, bool includeSaved, bool notify) {
             var groups = eventDomain.EventGroups;
             List<EventReference> buffer = null;
