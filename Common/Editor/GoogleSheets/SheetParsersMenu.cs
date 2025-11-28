@@ -11,7 +11,7 @@ namespace MisterGames.Common.Editor.GoogleSheets {
 
         private static CancellationTokenSource _cts;
         
-        [MenuItem("MisterGames/Sheets/Download and parse all sheets")]
+        [MenuItem("MisterGames/Sheets/Download and parse all sheets %f5")]
         private static void DownloadAllGoogleSheets() {
             if (Application.isPlaying) {
                 Debug.LogWarning($"Downloading sheets is not allowed in playmode.");

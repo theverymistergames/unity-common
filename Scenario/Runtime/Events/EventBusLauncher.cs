@@ -6,7 +6,7 @@ using UnityEngine;
 namespace MisterGames.Scenario.Events {
     
     [DefaultExecutionOrder(-10000)]
-    public sealed class EventSystemLauncher : MonoBehaviour, ISaveable {
+    public sealed class EventBusLauncher : MonoBehaviour, ISaveable {
 
         [SerializeField] private string _id;
 
@@ -28,13 +28,13 @@ namespace MisterGames.Scenario.Events {
         }
 
         private void OnDestroy() {
-            EventSystem.Main.Dispose();
+            EventBus.Main.Dispose();
         }
 
         public void OnLoadData(ISaveSystem saveSystem) {
             saveSystem.Pop(SaveStorage.CurrentSave, _id, _eventsListEmpty, out var eventList);
 
-            var raisedEventsMap = EventSystem.Main.RaisedEvents;
+            var raisedEventsMap = EventBus.Main.RaisedEvents;
             
             for (int i = 0; i < eventList.Count; i++) {
                 var eventEntry = eventList[i];
@@ -44,7 +44,7 @@ namespace MisterGames.Scenario.Events {
 
         public void OnSaveData(ISaveSystem saveSystem) {
             _eventsListSaveable.Clear();
-            var raisedEventsMap = EventSystem.Main.RaisedEvents;
+            var raisedEventsMap = EventBus.Main.RaisedEvents;
             
             foreach ((var e, int count) in raisedEventsMap) {
                 if (!e.EventDomain.IsSerializable(e.EventId)) continue;

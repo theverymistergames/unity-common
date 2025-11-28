@@ -7,9 +7,9 @@ using UnityEngine.Pool;
 
 namespace MisterGames.Scenario.Events {
 
-    public sealed class EventSystem : IEventSystem {
+    public sealed class EventBus : IEventBus {
         
-        public static readonly IEventSystem Main = new EventSystem();
+        public static readonly IEventBus Main = new EventBus();
         private static readonly EventReference RootEvent = new();
 
         public Dictionary<EventReference, int> RaisedEvents { get; } = new();
@@ -53,7 +53,7 @@ namespace MisterGames.Scenario.Events {
 
         public void RaiseGlobal<T>(T data) {
             SetEventCount(RootEvent, RaisedEvents.GetValueOrDefault(RootEvent, 0) + 1);
-            NotifyEventRaised(RootEvent);
+            NotifyEventRaised(RootEvent, data);
         }
 
         public void ResetEventsOf(EventDomain eventDomain, bool includeSaved, bool notify) {

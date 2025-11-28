@@ -39,24 +39,31 @@ namespace MisterGames.Common.Localization.Components {
 
 #if UNITY_EDITOR
         [Header("Debug")]
-        [SerializeField] private bool _updateInRuntime = false;
         [SerializeField] private Locale _defaultLocale = LocaleId.en.ToLocale();
-        [HideInInspector] 
-        [SerializeField] private LocalizationKey _lastKey;
+        [HideInInspector] [SerializeField] private Locale _lastLocale = LocaleId.en.ToLocale();
+        [HideInInspector] [SerializeField] private LocalizationKey _lastKey;
         
         private void Reset() {
             _textField = GetComponentInChildren<TMP_Text>();
         }
 
         private void OnValidate() {
-            if (enabled && (!Application.isPlaying || _updateInRuntime) && _lastKey != _key) {
-                FetchValueForDefaultLocale();
-                _lastKey = _key;
+            if (Application.isPlaying || 
+                EditorApplication.isPlayingOrWillChangePlaymode ||
+                !enabled || 
+                _lastKey == _key && _lastLocale == _defaultLocale) 
+            {
+                return;
             }
+            
+            FetchValueForDefaultLocale();
         }
 
         [Attributes.Button]
         private void FetchValueForDefaultLocale() {
+            _lastLocale = _defaultLocale;
+            _lastKey = _key;
+            
             if (_key.IsNull() || _textField == null) return;
 
             string text = _key.GetValue(_defaultLocale);

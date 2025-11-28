@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace MisterGames.Scenario.Events {
 
-    public interface IEventSystem : IDisposable {
+    public interface IEventBus : IDisposable {
 
         Dictionary<EventReference, int> RaisedEvents { get; }
         

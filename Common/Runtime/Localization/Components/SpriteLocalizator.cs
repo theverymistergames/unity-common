@@ -43,22 +43,30 @@ namespace MisterGames.Common.Localization.Components {
         [Header("Debug")]
         [SerializeField] private bool _updateInRuntime = false;
         [SerializeField] private Locale _defaultLocale = LocaleId.en.ToLocale();
-        [HideInInspector] 
-        [SerializeField] private LocalizationKey<Sprite> _lastKey;
+        [HideInInspector] [SerializeField] private Locale _lastLocale = LocaleId.en.ToLocale();
+        [HideInInspector] [SerializeField] private LocalizationKey<Sprite> _lastKey;
         
         private void Reset() {
             _image = GetComponentInChildren<Image>();
         }
 
         private void OnValidate() {
-            if (enabled && (!Application.isPlaying || _updateInRuntime) && _lastKey != _key) {
-                FetchValueForDefaultLocale();
-                _lastKey = _key;
+            if (Application.isPlaying || 
+                EditorApplication.isPlayingOrWillChangePlaymode ||
+                !enabled || 
+                _lastKey == _key && _lastLocale == _defaultLocale) 
+            {
+                return;
             }
+            
+            FetchValueForDefaultLocale();
         }
 
         [Attributes.Button]
         private void FetchValueForDefaultLocale() {
+            _lastLocale = _defaultLocale;
+            _lastKey = _key;
+            
             if (_key.IsNull() || _image == null) return;
 
             var sprite = _key.GetValue(_defaultLocale);

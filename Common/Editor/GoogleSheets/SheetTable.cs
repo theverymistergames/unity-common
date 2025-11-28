@@ -29,7 +29,8 @@ namespace MisterGames.Common.Editor.GoogleSheets {
         }
 
         public string GetData(int row, int column) {
-            return row < RowCount && column < ColumnCount ? _data[row * ColumnCount + column] : null;
+            int i = row * ColumnCount + column;
+            return i >= 0 && i < _data.Count ? _data[row * ColumnCount + column] : null;
         }
 
         public void SetRow(int row, string key) {
