@@ -16,11 +16,13 @@ namespace MisterGames.Scenario.Events {
         
         private readonly HashSet<EventReference> _subIdEventSet = new();
         private readonly TreeMap<EventReference, object> _listenerTree = new();
-
+        private readonly MultiValueDictionary<Type, object> _streamMap = new();
+        
         public void Dispose() {
             _listenerTree.Clear();
             _subIdEventSet.Clear();
             RaisedEvents.Clear();
+            _streamMap.Clear();
         }
 
         public bool IsRaised(EventReference e) {
@@ -52,10 +54,34 @@ namespace MisterGames.Scenario.Events {
         }
 
         public void RaiseGlobal<T>(T data) {
-            SetEventCount(RootEvent, RaisedEvents.GetValueOrDefault(RootEvent, 0) + 1);
             NotifyEventRaised(RootEvent, data);
         }
 
+        public void AddStream<T>(IEventStream<T> stream) {
+            _streamMap.AddValue(typeof(T), stream);
+        }
+        
+        public void RemoveStream<T>(IEventStream<T> stream) {
+            _streamMap.RemoveValue(typeof(T), stream);
+        }
+
+        public void RequestData<T>(T defaultValue = default) {
+            NotifyEventRaised(RootEvent, GetStreamData(defaultValue));
+        }
+        
+        private T GetStreamData<T>(T value) {
+            var type = typeof(T);
+            int count = _streamMap.GetCount(type);
+
+            for (int i = 0; i < count; i++) {
+                if (_streamMap.GetValueAt(type, i) is not IEventStream<T> stream) continue;
+                
+                stream.OnReadStream(ref value);
+            }
+            
+            return value;
+        }
+        
         public void ResetEventsOf(EventDomain eventDomain, bool includeSaved, bool notify) {
             var groups = eventDomain.EventGroups;
             List<EventReference> buffer = null;
@@ -129,14 +155,6 @@ namespace MisterGames.Scenario.Events {
             UnsubscribeListener(e, listener);
         }
 
-        public void Subscribe<T>(IEventListener<T> listener) {
-            SubscribeListener(RootEvent, listener);
-        }
-
-        public void Unsubscribe<T>(IEventListener<T> listener) {
-            UnsubscribeListener(RootEvent, listener);
-        }
-
         public void Subscribe(EventReference e, Action listener) {
             SubscribeListener(e, listener);
         }
@@ -152,9 +170,19 @@ namespace MisterGames.Scenario.Events {
         public void Unsubscribe<T>(EventReference e, Action<T> listener) {
             UnsubscribeListener(e, listener);
         }
-
-        public void Subscribe<T>(Action<T> listener) {
+        
+        public void Subscribe<T>(IEventListener<T> listener, bool forceNotify = false) {
             SubscribeListener(RootEvent, listener);
+            if (forceNotify) RequestData<T>();
+        }
+
+        public void Unsubscribe<T>(IEventListener<T> listener) {
+            UnsubscribeListener(RootEvent, listener);
+        }
+
+        public void Subscribe<T>(Action<T> listener, bool forceNotify = false) {
+            SubscribeListener(RootEvent, listener);
+            if (forceNotify) RequestData<T>();
         }
 
         public void Unsubscribe<T>(Action<T> listener) {

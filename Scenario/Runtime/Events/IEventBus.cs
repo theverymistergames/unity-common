@@ -18,6 +18,10 @@ namespace MisterGames.Scenario.Events {
 
         void RaiseGlobal<T>(T data);
         
+        void AddStream<T>(IEventStream<T> stream);
+        void RemoveStream<T>(IEventStream<T> stream);
+        void RequestData<T>(T defaultValue = default);
+        
         void ResetEventsOf(EventDomain eventDomain, bool includeSaved, bool notify);
         void ResetAllEvents(bool notify);
         
@@ -27,16 +31,16 @@ namespace MisterGames.Scenario.Events {
         void Subscribe<T>(EventReference e, IEventListener<T> listener);
         void Unsubscribe<T>(EventReference e, IEventListener<T> listener);
         
-        void Subscribe<T>(IEventListener<T> listener);
-        void Unsubscribe<T>(IEventListener<T> listener);
-        
         void Subscribe(EventReference e, Action listener);
         void Unsubscribe(EventReference e, Action listener);
         
         void Subscribe<T>(EventReference e, Action<T> listener);
         void Unsubscribe<T>(EventReference e, Action<T> listener);
         
-        void Subscribe<T>(Action<T> listener);
+        void Subscribe<T>(IEventListener<T> listener, bool forceNotify = false);
+        void Unsubscribe<T>(IEventListener<T> listener);
+        
+        void Subscribe<T>(Action<T> listener, bool forceNotify = false);
         void Unsubscribe<T>(Action<T> listener);
     }
 
