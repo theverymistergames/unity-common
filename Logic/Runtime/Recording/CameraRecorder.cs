@@ -193,6 +193,32 @@ namespace MisterGames.Logic.Recording {
             }
             _isRecording = true;
         }
+        
+        [Button]
+        private void Clear() {
+            _playId++;
+
+            bool wasPlaying = _isPlaying;
+            
+            _isRecording = false;
+            _isPlaying = false;
+            
+            _dataArray ??= new List<Data>();
+            _dataArray.Clear();
+
+            ResetCameraPosition();
+
+            if (wasPlaying) {
+                _onStop?.Apply(_actor, destroyCancellationToken).Forget();
+            }
+            
+            Debug.Log($"CameraRecorder.OnClearPressed: f {Time.frameCount}, recording cleared{(wasPlaying ? ", stop playing" : "")}");
+        }
+        
+        [Button]
+        private void ResetCameraPosition() {
+            _cameraTransform.SetLocalPositionAndRotation(_initialPosition, _initialRotation);
+        }
 
 #if UNITY_EDITOR
         [Button]
@@ -257,32 +283,6 @@ namespace MisterGames.Logic.Recording {
             Debug.Log($"CameraRecorder.Save: loaded recording at index {index}, name <color=yellow>{_loadName}</color>, frames {_dataArray?.Count ?? 0}");
             
             if (Application.isPlaying && _isPlaying) PlayRecording(_enableCts.Token).Forget();
-        }
-        
-        [Button]
-        private void Clear() {
-            _playId++;
-
-            bool wasPlaying = _isPlaying;
-            
-            _isRecording = false;
-            _isPlaying = false;
-            
-            _dataArray ??= new List<Data>();
-            _dataArray.Clear();
-
-            ResetCameraPosition();
-
-            if (wasPlaying) {
-                _onStop?.Apply(_actor, destroyCancellationToken).Forget();
-            }
-            
-            Debug.Log($"CameraRecorder.OnClearPressed: f {Time.frameCount}, recording cleared{(wasPlaying ? ", stop playing" : "")}");
-        }
-        
-        [Button]
-        private void ResetCameraPosition() {
-            _cameraTransform.SetLocalPositionAndRotation(_initialPosition, _initialRotation);
         }
 #endif
     }
