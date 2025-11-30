@@ -107,7 +107,9 @@ namespace MisterGames.Common.Inputs {
         }
 
         private void ApplyFrequencyIfGamepadActive(Vector2 frequency) {
-            switch (Services.Get<IDeviceService>().CurrentDevice) {
+            if (!Services.TryGet(out IDeviceService deviceService)) return;
+            
+            switch (deviceService.CurrentDevice) {
                 case DeviceType.KeyboardMouse:
                     return;
 

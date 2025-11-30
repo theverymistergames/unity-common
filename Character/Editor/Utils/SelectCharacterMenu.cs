@@ -1,6 +1,9 @@
-﻿using MisterGames.Character.Core;
+﻿using System.Linq;
+using Cysharp.Threading.Tasks;
+using MisterGames.Character.Core;
 using UnityEditor;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace MisterGames.Character.Editor.Utils {
     
@@ -8,9 +11,36 @@ namespace MisterGames.Character.Editor.Utils {
         
         [MenuItem("MisterGames/Tools/Select character %h")]
         private static void SelectCharacter() {
+            if (!Application.isPlaying || IsCharacterInstanceSelected()) {
+                PingCharacterPrefab();
+                return;
+            }
+            
             var character = Object.FindFirstObjectByType<MainCharacter>();
             if (character == null) return;
             
+            PingCharacterInstance(character).Forget();
+        }
+        
+        private static bool IsCharacterInstanceSelected() {
+            return Selection.activeGameObject != null && 
+                   Selection.activeGameObject.TryGetComponent(out MainCharacter _) && 
+                   Selection.activeGameObject.scene.name != null;
+        }
+
+        private static void PingCharacterPrefab() {
+            var mainCharacterPrefab = AssetDatabase
+                .FindAssets($"a:assets t:Prefab")
+                .Select(AssetDatabase.GUIDToAssetPath)
+                .Select(AssetDatabase.LoadAssetAtPath<GameObject>)
+                .Where(g => g != null)
+                .FirstOrDefault(g => g.TryGetComponent<MainCharacter>(out _));
+
+            EditorGUIUtility.PingObject(mainCharacterPrefab);
+            Selection.activeGameObject = mainCharacterPrefab;
+        }
+
+        private static async UniTask PingCharacterInstance(MainCharacter character) {
             Selection.activeGameObject = character.gameObject;
             
             var type = typeof(EditorWindow).Assembly.GetType("UnityEditor.SceneHierarchyWindow");

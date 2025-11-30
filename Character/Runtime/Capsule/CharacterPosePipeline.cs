@@ -19,13 +19,10 @@ namespace MisterGames.Character.Capsule {
         public delegate void PoseChanged(CharacterPose newPose, CharacterPose oldPose);
 
         private CharacterCapsulePipeline _capsule;
-        private ITimeSource _timeSource;
-
         private CharacterPose _currentPose;
         private byte _lastPoseChangeId;
 
         void IActorComponent.OnAwake(IActor actor) {
-            _timeSource = PlayerLoopStage.Update.Get();
             _capsule = actor.GetComponent<CharacterCapsulePipeline>();
         }
 
@@ -63,7 +60,7 @@ namespace MisterGames.Character.Capsule {
             if (setTargetPoseAt >= 1f) setTargetPoseAt = 1f;
 
             while (!cancellationToken.IsCancellationRequested && enabled && changeId == _lastPoseChangeId) {
-                progress = Mathf.Clamp01(progress + _timeSource.DeltaTime / duration);
+                progress = Mathf.Clamp01(progress + TimeSources.deltaTime / duration);
 
                 float linearHeight = Mathf.Lerp(sourceHeight, targetHeight, progress);
                 float linearRadius = Mathf.Lerp(sourceRadius, targetRadius, progress);

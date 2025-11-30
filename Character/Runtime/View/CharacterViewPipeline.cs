@@ -19,7 +19,7 @@ namespace MisterGames.Character.View {
         [SerializeField] private Transform _body;
         
         [Header("View Settings")]
-        [SerializeField] private Vector2 _sensitivity = new Vector2(0.15f, 0.15f);
+        [SerializeField] private Vector2 _sensitivity = new(0.15f, 0.15f);
         [SerializeField] [Min(0f)] private float _smoothing = 20f;
         [SerializeField] [Min(0f)] private float _positionSmoothing = 30f;
         [SerializeField] [Min(0f)] private float _defaultFov = 70f;

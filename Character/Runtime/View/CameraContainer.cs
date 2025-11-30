@@ -1,7 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+using System.Text;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
+using MisterGames.Common.Maths;
+using MisterGames.Common.Strings;
 using UnityEngine;
 
 namespace MisterGames.Character.View {
@@ -10,7 +14,7 @@ namespace MisterGames.Character.View {
         
         [SerializeField] private Transform _translationRoot;
         [SerializeField] private Transform _rotationRoot;
-
+        
         public enum MaskMode {
             And,
             Xand,
@@ -68,14 +72,32 @@ namespace MisterGames.Character.View {
             _fovStates.Clear();
         }
 
+#if UNITY_EDITOR
+        public int CreateState(
+            [CallerFilePath] string filePath = "", 
+            [CallerMemberName] string memberName = "", 
+            [CallerLineNumber] int lineNumber = 0) 
+        {
+#else
         public int CreateState() {
-            return _lastStateId++;
+#endif      
+            int id = _lastStateId.IncrementUncheckedRef();
+
+#if UNITY_EDITOR
+            if (_showDebugInfo) Log($"created state {id} for {filePath}, {memberName}, line {lineNumber}, state: {GetStateAsString()}");
+#endif
+            
+            return id;
         }
 
         public void RemoveState(int id, bool keepChanges = false) {
             _positionStates.Remove(id);
             _rotationStates.Remove(id);
             _fovStates.Remove(id);
+            
+#if UNITY_EDITOR
+            if (_showDebugInfo) Log($"remove state {id}, keepChanges: {keepChanges}, state: {GetStateAsString()}");
+#endif
             
             var currentState = _resultState;
             _resultState = BuildResultState();
@@ -96,8 +118,12 @@ namespace MisterGames.Character.View {
         }
 
         public async UniTask ClearPersistentStates(float duration = 0f) {
-            byte id = ++_clearPersistentStateOperationId;
+            byte id = _clearPersistentStateOperationId.IncrementUncheckedRef();
             var cancellationToken = destroyCancellationToken;
+            
+#if UNITY_EDITOR
+            if (_showDebugInfo) Log($"clearing persistent state in {duration:0.000} sec, operation id {id}, state: {GetStateAsString()}");
+#endif
             
             var startState = _persistentState;
             _persistentState = CameraState.Empty;
@@ -127,6 +153,10 @@ namespace MisterGames.Character.View {
             }
             
             _isClearingPersistentStates = false;
+            
+#if UNITY_EDITOR
+            if (_showDebugInfo) Log($"finished clearing persistent state, operation id {id}, state: {GetStateAsString()}");
+#endif
         }
 
         public void SetBasePositionOffset(Vector3 offset) {
@@ -301,6 +331,36 @@ namespace MisterGames.Character.View {
             
             return max <= WeightTolerance ? 0f : 1f / max;
         }
+        
+#if UNITY_EDITOR
+        [Header("Debug")]
+        [SerializeField] private bool _showDebugInfo;
+
+        private void Log(string message) {
+            Debug.Log($"{nameof(CameraContainer).FormatColorOnlyForEditor(Color.white)}: f {Time.frameCount}, {message}");
+        }
+        
+        private string GetStateAsString() {
+            var sb = new StringBuilder();
+
+            sb.AppendLine($"Position states ({_positionStates.Count}):");
+            foreach ((int id, var data) in _positionStates) {
+                sb.AppendLine($"[{id}] w {data.weight:0.00}, value {data.value}");
+            }
+            
+            sb.AppendLine($"Rotation states ({_rotationStates.Count}):");
+            foreach ((int id, var data) in _rotationStates) {
+                sb.AppendLine($"[{id}] w {data.weight:0.00}, value {data.value}");
+            }
+            
+            sb.AppendLine($"Fov states ({_fovStates.Count}):");
+            foreach ((int id, var data) in _fovStates) {
+                sb.AppendLine($"[{id}] w {data.weight:0.00}, value {data.value}");
+            }
+            
+            return sb.ToString();
+        }
+#endif
     }
 
 }

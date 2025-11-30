@@ -82,7 +82,7 @@ namespace MisterGames.Common.GameObjects {
         }
 
         public static string GetPathInScene(this GameObject gameObject, bool includeSceneName = true) {
-            return gameObject.transform.GetPathInScene(includeSceneName);
+            return gameObject == null ? null : gameObject.transform.GetPathInScene(includeSceneName);
         }
 
         public static string GetPathInScene(this Component component, bool includeSceneName = true) {
