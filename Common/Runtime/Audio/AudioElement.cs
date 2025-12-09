@@ -1,5 +1,4 @@
-﻿using System;
-using System.Threading;
+﻿using System.Threading;
 using UnityEngine;
 
 namespace MisterGames.Common.Audio {
@@ -32,7 +31,7 @@ namespace MisterGames.Common.Audio {
         public float FadeOut { get; set; }
         public int OcclusionFlag { get; set; }
 
-        private void OnDestroy() {
+        private void OnDisable() {
             AudioPool?.ReleaseAudioHandle(Id, immediate: true);
         }
 

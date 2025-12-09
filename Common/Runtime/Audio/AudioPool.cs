@@ -227,7 +227,18 @@ namespace MisterGames.Common.Audio {
             float clipLength = clip.length;
             float clipTime = normalizedTime * clipLength;
             
-            InitializeAudioElement(audioElement, id, pitch, fadeOut, clipLength, clipTime, options, mixerGroup, cancellationToken);
+            InitializeAudioElement(
+                audioElement,
+                id,
+                pitch,
+                fadeOut,
+                clipLength,
+                clipTime,
+                options,
+                mixerGroup,
+                cancellationToken
+            );
+            
             ProcessSound(audioElement);
 
             if (fadeIn > 0f) {
@@ -296,7 +307,18 @@ namespace MisterGames.Common.Audio {
                 _attachKeyToHandleIdMap[attachKey] = id;
             }
             
-            InitializeAudioElement(audioElement, id, pitch, fadeOut, clipLength, clipTime, options, mixerGroup, cancellationToken);
+            InitializeAudioElement(
+                audioElement,
+                id,
+                pitch,
+                fadeOut,
+                clipLength,
+                clipTime,
+                options,
+                mixerGroup,
+                cancellationToken
+            );
+            
             ProcessSound(audioElement);
             
             _handleIdToAudioElementMap[id] = audioElement;
@@ -340,6 +362,7 @@ namespace MisterGames.Common.Audio {
         {
             audioElement.Id = id;
             audioElement.MixerGroupId = mixerGroup == null ? 0 : mixerGroup.GetInstanceID();
+            audioElement.AudioPool = this;
             
             audioElement.AudioOptions = options;
             audioElement.PitchMul = pitch;
@@ -394,7 +417,7 @@ namespace MisterGames.Common.Audio {
             
             switch (count) {
                 case 0:
-                    return default;
+                    return null;
                 
                 case 1:
                     return clips![0];
@@ -728,7 +751,7 @@ namespace MisterGames.Common.Audio {
                 e.Id, e.OcclusionFlag,
                 e.Source.spatialBlend, e.PitchMul, e.AttenuationMul, e.LowPass.cutoffFrequency, e.HighPass.cutoffFrequency
             );
-                
+            
             soundOptionsArray[0] = options;
             listenerAndSoundsPositionArray[1] = e.Transform.position;
 
