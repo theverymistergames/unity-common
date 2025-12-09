@@ -105,11 +105,6 @@ namespace MisterGames.Common.Maths {
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector3 ToZYX(this Vector2 vector, float z) => new(z, vector.y, vector.x);
-        
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector2 Multiply(this Vector2 a, Vector2 b) {
-            return new Vector2(a.x * b.x, a.y * b.y);
-        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector2 Multiply(this Vector2 a, float x, float y) {

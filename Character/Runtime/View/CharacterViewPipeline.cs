@@ -5,11 +5,13 @@ using MisterGames.Actors;
 using MisterGames.Character.Input;
 using MisterGames.Character.Motion;
 using MisterGames.Common.Async;
+using MisterGames.Common.Inputs;
 using MisterGames.Common.Labels;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Service;
 using MisterGames.Common.Tick;
 using UnityEngine;
+using DeviceType = MisterGames.Common.Inputs.DeviceType;
 
 namespace MisterGames.Character.View {
 
@@ -19,7 +21,8 @@ namespace MisterGames.Character.View {
         [SerializeField] private Transform _body;
         
         [Header("View Settings")]
-        [SerializeField] private Vector2 _sensitivity = new(0.15f, 0.15f);
+        [SerializeField] private Vector2 _sensitivityMouse = new(0.15f, 0.15f);
+        [SerializeField] private Vector2 _sensitivityGamepad = new(1f, 1f);
         [SerializeField] [Min(0f)] private float _smoothing = 20f;
         [SerializeField] [Min(0f)] private float _positionSmoothing = 30f;
         [SerializeField] [Min(0f)] private float _defaultFov = 70f;
@@ -87,6 +90,7 @@ namespace MisterGames.Character.View {
         private readonly CharacterHeadJoint _headJoint = new();
         private CancellationTokenSource _enableCts;
         private ITimescaleSystem _timescaleSystem;
+        private IDeviceService _deviceService;
         
         private CameraContainer _cameraContainer;
         private CharacterInputPipeline _inputPipeline;
@@ -96,6 +100,8 @@ namespace MisterGames.Character.View {
         private CharacterViewData _viewData;
         private Quaternion _gravityRotation = Quaternion.identity;
         private Vector2 _inputDeltaAccum;
+        private Vector2 _inputStick;
+        
         private bool _isHorizontalClampOverriden;
         private bool _isVerticalClampOverriden;
         private bool _isSmoothingOverriden;
@@ -119,6 +125,7 @@ namespace MisterGames.Character.View {
             _startTime = Time.time;
 
             _timescaleSystem = Services.Get<ITimescaleSystem>();
+            _deviceService = Services.Get<IDeviceService>();
         }
 
         void IActorComponent.OnSetData(IActor actor) {
@@ -243,12 +250,12 @@ namespace MisterGames.Character.View {
 
         public void ApplySensitivity(Vector2 sensitivity) {
             _isSensitivityOverriden = true;
-            _sensitivity = sensitivity;
+            _sensitivityMouse = sensitivity;
         }
 
         public void ResetSensitivity() {
             _isSensitivityOverriden = false;
-            _sensitivity = _viewData?.sensitivity ?? default;
+            _sensitivityMouse = _viewData?.sensitivity ?? default;
         }
 
         public void ResetHeadOffset() {
@@ -265,14 +272,27 @@ namespace MisterGames.Character.View {
                 _viewClamp.ApplyVerticalClamp(_viewData?.verticalClamp ?? _viewClamp.Vertical, _headRotation.ToEulerAngles180());
             }
             
-            if (!_isSensitivityOverriden) _sensitivity = _viewData?.sensitivity ?? _sensitivity;
+            if (!_isSensitivityOverriden) _sensitivityMouse = _viewData?.sensitivity ?? _sensitivityMouse;
             if (!_isSmoothingOverriden) _smoothing = _viewData?.viewSmoothing ?? _smoothing;
         }
 
         private void HandleViewVectorChanged(Vector2 input) {
             if (Time.time < _startTime + _startDelay) return;
-            
-            _inputDeltaAccum += new Vector2(-input.y, input.x);
+
+            switch (_deviceService.CurrentDevice) {
+                case DeviceType.KeyboardMouse:
+                    _inputDeltaAccum += new Vector2(-input.y, input.x);
+                    _inputStick = default;
+                    break;
+                
+                case DeviceType.Gamepad:
+                    _inputDeltaAccum = default;
+                    _inputStick = new Vector2(-input.y, input.x);
+                    break;
+                
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
 
         private async UniTask StartPreUpdate(PlayerLoopTiming loop, CancellationToken cancellationToken) {
@@ -307,7 +327,7 @@ namespace MisterGames.Character.View {
         }
         
         private void PostUpdate(float dt) {
-            var delta = ConsumeInputDelta();
+            var delta = ConsumeInputDelta(dt);
             var currentOrientation = (Vector2) _headRotation.ToEulerAngles180();
             var targetOrientation = currentOrientation + delta;
             var position = _headPosition + _head.rotation * _headOffset;
@@ -325,9 +345,15 @@ namespace MisterGames.Character.View {
             ApplyCameraState();
         }
 
-        private Vector2 ConsumeInputDelta() {
-            var delta = new Vector2(_inputDeltaAccum.x * _sensitivity.x, _inputDeltaAccum.y * _sensitivity.y);
+        private Vector2 ConsumeInputDelta(float dt) {
+            var delta = _deviceService.CurrentDevice switch {
+                DeviceType.KeyboardMouse => _inputDeltaAccum * _sensitivityMouse,
+                DeviceType.Gamepad => _inputStick * _sensitivityGamepad * dt,
+                _ => throw new ArgumentOutOfRangeException()
+            };
+
             _inputDeltaAccum = Vector2.zero;
+
             return delta;
         }
 

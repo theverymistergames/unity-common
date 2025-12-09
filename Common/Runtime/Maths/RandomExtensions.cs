@@ -88,7 +88,7 @@ namespace MisterGames.Common.Maths {
                 point[i] = halfSize[i] + point[i] / halfExcludeCenter[i] * (halfExcludeCenter[i] - halfSize[i]);
             }
 
-            return point.Multiply(sign);
+            return point * sign;
         }
 
         public static Vector3 PlacePointInBounds(Vector3 point, Vector3 halfSize, Vector3 halfExcludeCenter = default) {

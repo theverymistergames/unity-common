@@ -40,6 +40,7 @@ namespace MisterGames.Common.Inputs {
                     break;
                 
                 case DeviceType.Gamepad:
+                    ApplyFrequencyIfGamepadActive(_resultFrequency);
                     break;
                 
                 default:

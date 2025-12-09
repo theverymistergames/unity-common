@@ -446,7 +446,7 @@ namespace MisterGames.UI.Components {
                 _ => throw new ArgumentOutOfRangeException()
             };
             
-            return input.sensitivity.Multiply(value);
+            return input.sensitivity * value;
         }
         
 #if UNITY_EDITOR

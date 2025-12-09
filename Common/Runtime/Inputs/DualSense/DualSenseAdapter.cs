@@ -16,7 +16,43 @@ namespace MisterGames.Common.Inputs.DualSense {
         private void Awake() {
             StartControllersCountChecks(destroyCancellationToken).Forget();
         }
+        
+        private void OnEnable() {
+            if (Services.TryGet(out IDeviceService deviceService)) deviceService.OnDeviceChanged += OnDeviceChanged;
+        }
 
+        private void OnDisable() {
+            if (Services.TryGet(out IDeviceService deviceService)) deviceService.OnDeviceChanged -= OnDeviceChanged;
+        }
+
+        private void OnDeviceChanged(DeviceType device) {
+            switch (device) {
+                case DeviceType.KeyboardMouse:
+                    ResetAllGamepadsOutputState();
+                    break;
+                
+                case DeviceType.Gamepad:
+                    ActualizeAllGamepadsOutputState();
+                    break;
+                
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(device), device, null);
+            }
+        }
+        
+        public void ActualizeAllGamepadsOutputState() {
+            for (uint i = 0; i < _controllerCount; i++) {
+                ref var state = ref _outputStates[i];
+                DualSenseNative.SetControllerOutputState(i, state);
+            }
+        }
+
+        public void ResetAllGamepadsOutputState() {
+            for (uint i = 0; i < _controllerCount; i++) {
+                DualSenseNative.SetControllerOutputState(i, default);
+            }
+        }
+        
         public ControllerInputState GetInputState(int index = 0) {
             if (index < 0 || index >= _controllerCount) return default;
 
@@ -24,10 +60,13 @@ namespace MisterGames.Common.Inputs.DualSense {
         }
 
         public bool HasController(int index = 0) {
-            return index >= 0 && index < _controllerCount && Services.Get<IDeviceService>().CurrentDevice == DeviceType.Gamepad;
+            return index >= 0 && index < _controllerCount && 
+                   Services.Get<IDeviceService>().CurrentDevice == DeviceType.Gamepad;
         }
         
         public void SetRumble(Vector2 rumble, int index = 0) {
+            if (!HasController(index)) return;
+            
             if (_replicateOutputStateForAllControllers) {
                 for (uint i = 0; i < _controllerCount; i++) {
                     ref var s = ref _outputStates[i];
@@ -52,6 +91,8 @@ namespace MisterGames.Common.Inputs.DualSense {
         }
 
         public void SetTriggerEffect(GamepadSide side, TriggerEffect effect, int index = 0) {
+            if (!HasController(index)) return;
+            
             if (_replicateOutputStateForAllControllers) {
                 for (uint i = 0; i < _controllerCount; i++) {
                     ref var s = ref _outputStates[i];

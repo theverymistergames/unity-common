@@ -468,7 +468,7 @@ namespace MisterGames.Common.Audio {
             bool isNull = e.Source == null;
             
             if (immediate || isNull) {
-                if (!isNull) PrefabPool.Main.Release(e.Source);
+                if (!isNull) PrefabPool.Main?.Release(e.Source);
             }
             else {
                 bool affectedByTimescale = (e.AudioOptions & AudioOptions.AffectedByTimeScale) == AudioOptions.AffectedByTimeScale;

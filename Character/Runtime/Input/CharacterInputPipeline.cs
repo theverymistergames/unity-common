@@ -49,6 +49,9 @@ namespace MisterGames.Character.Input {
         private void Subscribe() {
             _view.Get().performed -= HandleViewChanged;
             _view.Get().performed += HandleViewChanged;
+            
+            _view.Get().canceled -= HandleViewCanceled;
+            _view.Get().canceled += HandleViewCanceled;
 
             _move.Get().performed -= HandleMoveChanged;
             _move.Get().performed += HandleMoveChanged;
@@ -77,6 +80,7 @@ namespace MisterGames.Character.Input {
         
         private void Unsubscribe() {
             _view.Get().performed -= HandleViewChanged;
+            _view.Get().canceled -= HandleViewCanceled;
             _move.Get().performed -= HandleMoveChanged;
 
             _crouch.Get().performed -= HandleCrouchPressed;
@@ -88,10 +92,12 @@ namespace MisterGames.Character.Input {
 
             _jump.Get().performed -= HandleJumpPressed;
             
+            OnViewVectorChanged.Invoke(Vector2.zero);
             OnMotionVectorChanged.Invoke(Vector2.zero);
         }
 
         private void HandleViewChanged(InputAction.CallbackContext callbackContext) => OnViewVectorChanged.Invoke(callbackContext.ReadValue<Vector2>());
+        private void HandleViewCanceled(InputAction.CallbackContext callbackContext) => OnViewVectorChanged.Invoke(Vector2.zero);
         private void HandleMoveChanged(InputAction.CallbackContext callbackContext) => OnMotionVectorChanged.Invoke(callbackContext.ReadValue<Vector2>());
 
         private void HandleCrouchPressed(InputAction.CallbackContext callbackContext) => OnCrouchPressed.Invoke();
