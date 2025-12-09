@@ -562,7 +562,17 @@ namespace MisterGames.Common.Pooling {
         }
 
         private void OnReleaseToPool(GameObject go) {
+            ReleaseToPoolAsync(go).Forget();
+        }
+        
+        private async UniTaskVoid ReleaseToPoolAsync(GameObject go) {
             go.SetActive(false);
+            
+            // Wait frame to avoid setting parent while object is being deactivated/destroyed.
+            await UniTask.Yield();
+
+            if (!_isEnabled || go == null) return;
+            
             go.transform.SetParent(PoolRoot);
         }
         
