@@ -19,7 +19,7 @@ namespace MisterGames.Character.Editor.Utils {
             var character = Object.FindFirstObjectByType<MainCharacter>();
             if (character == null) return;
             
-            PingCharacterInstance(character).Forget();
+            PingCharacterInstance(character);
         }
         
         private static bool IsCharacterInstanceSelected() {
@@ -40,7 +40,7 @@ namespace MisterGames.Character.Editor.Utils {
             Selection.activeGameObject = mainCharacterPrefab;
         }
 
-        private static async UniTask PingCharacterInstance(MainCharacter character) {
+        private static void PingCharacterInstance(MainCharacter character) {
             Selection.activeGameObject = character.gameObject;
             
             var type = typeof(EditorWindow).Assembly.GetType("UnityEditor.SceneHierarchyWindow");
