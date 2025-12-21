@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using MisterGames.Common.Layers;
+using MisterGames.Common.Maths;
 using MisterGames.Common.Tick;
 using Unity.Burst;
 using Unity.Collections;
@@ -11,6 +12,7 @@ namespace MisterGames.Collisions.Rigidbodies {
     public sealed class TriggerListener : TriggerEmitter, IUpdate {
         
         [SerializeField] private LayerMask _layerMask;
+        [SerializeField] private bool _collideWithTriggers = true;
         [SerializeField] private bool _clearCollidersOnDisable = true;
         
         public override event TriggerCallback TriggerEnter = delegate { };
@@ -54,7 +56,7 @@ namespace MisterGames.Collisions.Rigidbodies {
             int count = _colliderSet.Count;
             
             var job = new CheckExitedCollidersJob {
-                frameCount = _frameCount++,
+                frameCount = _frameCount.IncrementUncheckedRef(),
                 colliderHashToStayFrameMap = _colliderHashToStayFrameMap,
                 exitArray = new NativeArray<int>(count, Allocator.TempJob),
                 exitArrayCount = new NativeArray<int>(2, Allocator.TempJob),
@@ -112,7 +114,9 @@ namespace MisterGames.Collisions.Rigidbodies {
         }
 
         private bool CanCollide(Collider collider) {
-            return enabled && _layerMask.Contains(collider.gameObject.layer);
+            return enabled && 
+                   _layerMask.Contains(collider.gameObject.layer) && 
+                   (_collideWithTriggers || !collider.isTrigger);
         }
         
         [BurstCompile]
