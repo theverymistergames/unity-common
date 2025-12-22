@@ -54,6 +54,8 @@ namespace MisterGames.Logic.GameObjects {
 
         private void SetStateInternal(bool enabled, bool notifyMonoBehaviour) {
 #if UNITY_EDITOR
+            if (this == null) return;
+            
             bool wasEnabled = this.enabled;
             var lastState = _state;
 #endif
