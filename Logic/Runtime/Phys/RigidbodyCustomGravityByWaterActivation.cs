@@ -5,10 +5,9 @@ using UnityEngine;
 
 namespace MisterGames.Logic.Phys {
     
-    [RequireComponent(typeof(RigidbodyCustomGravityGroup))]
     public sealed class RigidbodyCustomGravityByWaterActivation : MonoBehaviour {
 
-        [SerializeField] private RigidbodyCustomGravityGroup _customGravityGroup;
+        [SerializeField] private LabelValue _groupId;
         [SerializeField] private LabelValue _waterZoneId;
 
         private void OnEnable() {
@@ -20,7 +19,7 @@ namespace MisterGames.Logic.Phys {
         }
 
         private void OnRigidbodyEnter(Rigidbody rigidbody, Vector3 position, Vector3 surfacePoint, Vector3 surfaceNormal) {
-            _customGravityGroup.ForceActivate(rigidbody);
+            Services.Get<RigidbodyCustomGravityGroup>(_groupId.GetValue())?.ForceActivate(rigidbody);
         }
     }
     

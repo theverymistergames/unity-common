@@ -63,7 +63,20 @@ namespace MisterGames.Collisions.Detectors {
 
             for (int i = 0; i < _numTextures; i++) 
             {
-                float opacity = _splatMapData[(int) terrainCoord.z, (int) terrainCoord.x, i];
+                int z = (int) terrainCoord.z;
+                int x = (int) terrainCoord.x;
+
+                if (z < _splatMapData.GetLowerBound(0) ||
+                    z > _splatMapData.GetUpperBound(0) ||
+                    x < _splatMapData.GetLowerBound(1) ||
+                    x > _splatMapData.GetUpperBound(1) ||
+                    i < _splatMapData.GetLowerBound(2) ||
+                    i > _splatMapData.GetUpperBound(2))
+                {
+                    continue;
+                }
+
+                float opacity = _splatMapData[z, x, i];
                 if (opacity <= 0f) continue;
                 
                 int materialId = _textureIndexToMaterialIdMap.GetValueOrDefault(i, _defaultMaterial.GetValue());

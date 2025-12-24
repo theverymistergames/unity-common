@@ -18,7 +18,7 @@ namespace MisterGames.Logic.Phys {
         }
 
         private void CollisionEnter(Collision collision) {
-            if (collision.rigidbody is not {} rb) return;
+            if (collision.rigidbody is not {} rb || rb.isKinematic) return;
 
             var contact = collision.GetContact(0);
             rb.AddForceAtPosition(-collision.relativeVelocity * _force, contact.point, _forceMode);

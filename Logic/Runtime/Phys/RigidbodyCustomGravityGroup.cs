@@ -4,6 +4,7 @@ using MisterGames.Common;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Tick;
+using Unity.VisualScripting.Antlr3.Runtime.Tree;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -86,14 +87,7 @@ namespace MisterGames.Logic.Phys {
         }
 
         private void OnDisable() {
-            PlayerLoopStage.FixedUpdate.Unsubscribe(this);
-            
-            _isCustomGravityActive = false;
-            _lastGravity = Vector3.down * GravityMagnitudeDefault;
-            
-            foreach (var rb in _rigidbodyMap.Keys) {
-                SetupRigidbodyInitialState(rb);
-            }
+            ResetAllMembers();
         }
 
         public void Register(Rigidbody rigidbody, Options options) {
@@ -112,6 +106,17 @@ namespace MisterGames.Logic.Phys {
             SetupRigidbodyActiveState(rigidbody);
         }
 
+        public void ResetAllMembers() {
+            PlayerLoopStage.FixedUpdate.Unsubscribe(this);
+            
+            _isCustomGravityActive = false;
+            _lastGravity = Vector3.down * GravityMagnitudeDefault;
+            
+            foreach (var rb in _rigidbodyMap.Keys) {
+                SetupRigidbodyInitialState(rb);
+            }
+        }
+        
         private static Options CreateOptions(Options optionsOfRigidbody, Options defaultOptions) {
             return optionsOfRigidbody == Options.UseDefault ? defaultOptions : optionsOfRigidbody;
         }
