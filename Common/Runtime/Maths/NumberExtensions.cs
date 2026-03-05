@@ -106,6 +106,20 @@ namespace MisterGames.Common.Maths {
                 return ++value;
             }
         }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static byte ReturnThenIncrementUncheckedRef(this ref byte value) {
+            unchecked {
+                return value++;
+            }
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int ReturnThenIncrementUncheckedRef(this ref int value) {
+            unchecked {
+                return value++;
+            }
+        }
     }
 
 }

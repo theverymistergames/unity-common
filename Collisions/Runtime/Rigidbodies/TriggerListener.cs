@@ -56,7 +56,7 @@ namespace MisterGames.Collisions.Rigidbodies {
             int count = _colliderSet.Count;
             
             var job = new CheckExitedCollidersJob {
-                frameCount = _frameCount.IncrementUncheckedRef(),
+                frameCount = _frameCount.ReturnThenIncrementUncheckedRef(),
                 colliderHashToStayFrameMap = _colliderHashToStayFrameMap,
                 exitArray = new NativeArray<int>(count, Allocator.TempJob),
                 exitArrayCount = new NativeArray<int>(2, Allocator.TempJob),
