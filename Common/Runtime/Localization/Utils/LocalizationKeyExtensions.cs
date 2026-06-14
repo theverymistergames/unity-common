@@ -66,7 +66,7 @@ namespace MisterGames.Common.Localization {
             }
 #endif
             
-            return Services.Get<ILocalizationService>().GetLocalizedString(key);
+            return Services.Get<ILocalizationService>()?.GetLocalizedString(key);
         }
         
         public static T GetValue<T>(this LocalizationKey<T> key) {

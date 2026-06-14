@@ -1,36 +1,48 @@
 ﻿using System;
 using System.Collections.Generic;
-using MisterGames.Common.Editor.Menu;
 using MisterGames.Common.Editor.Views;
 using MisterGames.Scenes.Core;
-using MisterGames.Scenes.Editor.Utils;
 using MisterGames.Scenes.Utils;
 using UnityEditor;
 using UnityEditor.SceneManagement;
+using UnityEditor.Toolbars;
 using UnityEngine;
 using UnityEngine.Pool;
 using UnityEngine.SceneManagement;
 
 namespace MisterGames.Scenes.Editor.Core {
 
-	[InitializeOnLoad]
 	public static class SceneShortcutEditor {
 
+		private const string Path = "Scenes Shortcut";
+		
 		private static Texture2D _iconPlus;
 		private static Texture2D _iconMinus;
-		
-		static SceneShortcutEditor() {
-			ToolbarExtender.OnRightToolbarGUI(OnGUI);
+
+		[InitializeOnLoadMethod]
+		private static void RegisterCallbacks() {
+			EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
+			EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+
+			EditorSceneManager.activeSceneChangedInEditMode -= OnActiveSceneChanged;
+			EditorSceneManager.activeSceneChangedInEditMode += OnActiveSceneChanged;
 		}
 
-		private static void OnGUI(Rect rect) {
-			EditorGUI.BeginDisabledGroup(Application.isPlaying);
+		private static void OnPlayModeStateChanged(PlayModeStateChange state) {
+			MainToolbar.Refresh(Path);
+		}
 
-			string activeSceneName = SceneManager.GetActiveScene().name;
+		private static void OnActiveSceneChanged(Scene previous, Scene next) {
+			MainToolbar.Refresh(Path);
+		}
+
+		[MainToolbarElement(Path, defaultDockPosition = MainToolbarDockPosition.Middle)]
+		private static MainToolbarElement CreateScenesShortcutDropdown() {
+			var toolbarContent = new MainToolbarContent(SceneManager.GetActiveScene().name);
 			
-			if (EditorGUILayout.DropdownButton(new GUIContent(activeSceneName), FocusType.Keyboard, GUILayout.MinWidth(222))) {
+			return new MainToolbarDropdown(toolbarContent, rect => {
 				LoadIcons();
-				
+
 				var scenesDropdown = new AdvancedDropdown<SceneAsset>(
 					"Select scene",
 					SceneLoaderSettings.GetAllSceneAssets(),
@@ -43,9 +55,9 @@ namespace MisterGames.Scenes.Editor.Core {
 				dropdownRect.y += EditorGUIUtility.singleLineHeight;
 
 				scenesDropdown.Show(dropdownRect);
-			}
-
-			EditorGUI.EndDisabledGroup();
+			}) {
+				enabled = !EditorApplication.isPlayingOrWillChangePlaymode
+			};
 		}
 
 		private static void LoadIcons() {

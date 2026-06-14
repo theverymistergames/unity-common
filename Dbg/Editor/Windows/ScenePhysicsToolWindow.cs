@@ -40,7 +40,7 @@ namespace MisterGames.Dbg.Editor.Windows {
 
         private void StartSimulation()
         {
-            Physics.autoSimulation = false;
+            Physics.simulationMode = SimulationMode.Script;
 
             EditorApplication.update -= OnUpdate;
             EditorApplication.update += OnUpdate;
@@ -49,7 +49,8 @@ namespace MisterGames.Dbg.Editor.Windows {
         private void StopSimulation()
         {
             EditorApplication.update -= OnUpdate;
-            Physics.autoSimulation = true;
+            
+            Physics.simulationMode = SimulationMode.FixedUpdate;
         }
 
         private void OnUpdate()
@@ -60,12 +61,12 @@ namespace MisterGames.Dbg.Editor.Windows {
         private void RunSimulationStep() {
             EditorApplication.update -= OnUpdate;
 
-            bool autoSim = Physics.autoSimulation;
-            Physics.autoSimulation = false;
+            var mode = Physics.simulationMode;
+            Physics.simulationMode = SimulationMode.Script;
 
             OnUpdate();
 
-            Physics.autoSimulation = autoSim;
+            Physics.simulationMode = mode;
         }
 
         private static void SwitchRagdoll() {

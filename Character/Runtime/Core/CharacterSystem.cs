@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using MisterGames.Actors;
 using MisterGames.Character.Motion;
 using MisterGames.Common.GameObjects;
-using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -45,7 +43,6 @@ namespace MisterGames.Character.Core {
             }
         }
 
-#if UNITY_EDITOR
         private void OnEnable() {
             if (TryTeleportToSpawnPoint()) return;
             
@@ -79,7 +76,6 @@ namespace MisterGames.Character.Core {
             
             return true;
         }
-#endif
     }
 
 }

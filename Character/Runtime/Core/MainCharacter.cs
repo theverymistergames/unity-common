@@ -25,7 +25,6 @@ namespace MisterGames.Character.Core {
 
             Destroy(actor.GameObject);
         }
-
     }
 
 }

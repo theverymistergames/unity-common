@@ -40,10 +40,10 @@ namespace MisterGames.Scenes.Actions {
             var loadingService = Services.Get<ILoadingService>();
             
             float showStartTime = Time.realtimeSinceStartup;
-            bool isLoadingScene = _scene.scene == loadingService.LoadingScene;
+            bool isLoadingScene = _scene.scene == loadingService?.LoadingScene;
             
             if (isLoadingScene) {
-                loadingService.ShowLoadingScreen(true);
+                loadingService?.ShowLoadingScreen(true);
             }
 
             await SceneLoader.LoadSceneAsync(_scene.scene, _makeActive);
@@ -70,7 +70,7 @@ namespace MisterGames.Scenes.Actions {
             if (!_unloadOnFinish) return;
 
             if (isLoadingScene) {
-                loadingService.ShowLoadingScreen(false);
+                loadingService?.ShowLoadingScreen(false);
                 return;
             }
 
