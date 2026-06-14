@@ -10,7 +10,7 @@ namespace MisterGames.Character.Core {
     [DefaultExecutionOrder(-10000)]
     public sealed class CharacterSystem : MonoBehaviour {
 
-        [SerializeField] private Actor _hero;
+        [SerializeField] private ActorRoot _hero;
 
         public static CharacterSystem Instance { get; private set; }
 

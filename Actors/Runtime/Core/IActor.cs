@@ -1,21 +1,24 @@
 ﻿using System.Collections.Generic;
+using System.Threading;
 using UnityEngine;
 
 namespace MisterGames.Actors {
     
     public interface IActor {
         
-        IActor ParentActor { get; }
+        IActor ParentActor { get; set; }
         GameObject GameObject { get; }
         Transform Transform { get; }
         ActorData DataSO { get; }
+        CancellationToken EnableToken { get; }
+        CancellationToken DestroyToken { get; }
         
         bool TryGetData<T>(out T data) where T : class, IActorData;
         T GetData<T>() where T : class, IActorData;
         
         void SetData(IActorData data);
         void SetData(IReadOnlyList<IActorData> data);
-        bool RemoveData<T>() where T : class, IActorData;
+        void MuteData<T>() where T : class, IActorData;
         
         void SetDataOverride(object source, IActorData data);
         void SetDataOverrides(object source, IReadOnlyList<IActorData> data);

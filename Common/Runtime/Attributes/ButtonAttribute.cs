@@ -7,6 +7,7 @@ namespace MisterGames.Common.Attributes {
     {
         public readonly string name;
         public readonly Mode mode;
+        public readonly string showIf;
 
         public enum Mode {
             Always,
@@ -14,9 +15,10 @@ namespace MisterGames.Common.Attributes {
             Editor,
         }
         
-        public ButtonAttribute(string name = null, Mode mode = Mode.Always) {
+        public ButtonAttribute(string name = null, Mode mode = Mode.Always, string showIf = null) {
             this.name = name;
             this.mode = mode;
+            this.showIf = showIf;
         }
     }
     

@@ -44,7 +44,7 @@ namespace MisterGames.Common.Editor.SerializedProperties {
 			       ?? EditorGUI.GetPropertyHeight(property, label, includeChildren);
 		}
 
-		private static PropertyDrawer GetCustomPropertyDrawerForProperty(FieldInfo fieldInfo, Attribute attr) {
+		public static PropertyDrawer GetCustomPropertyDrawerForProperty(FieldInfo fieldInfo, Attribute attr) {
 			FieldTypeToPropertyDrawerInstanceMap ??= new Dictionary<Type, PropertyDrawer>();
 
 			while (true) {
@@ -81,7 +81,7 @@ namespace MisterGames.Common.Editor.SerializedProperties {
 			}
 		}
 
-		private static Attribute GetNextAttribute(FieldInfo fieldInfo, Attribute attribute) {
+		public static Attribute GetNextAttribute(FieldInfo fieldInfo, Attribute attribute) {
 			if (attribute == null) return null;
 
 			object[] attributes = fieldInfo

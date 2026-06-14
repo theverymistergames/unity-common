@@ -17,8 +17,9 @@ namespace MisterGames.Common.Editor.Drawers {
             public readonly string displayName;
             public readonly ButtonAttribute.Mode mode;
             public readonly MethodInfo method;
+            public readonly MethodInfo validationMethod;
         
-            public ButtonData(MethodInfo method, ButtonAttribute attribute)
+            public ButtonData(MethodInfo method, ButtonAttribute attribute, MethodInfo validationMethod)
             {
                 displayName = string.IsNullOrEmpty(attribute.name) 
                     ? ObjectNames.NicifyVariableName(method.Name) 
@@ -26,18 +27,21 @@ namespace MisterGames.Common.Editor.Drawers {
 
                 mode = attribute.mode; 
                 this.method = method;
+                this.validationMethod = validationMethod;
             }
         }
         
         public ButtonsDrawer(object target)
         {
             const BindingFlags flags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
-            var methods = target.GetType().GetMethods(flags);
+            var targetType = target.GetType();
+            var methods = targetType.GetMethods(flags);
             var buttons = new List<ButtonData>();
             
             foreach (var method in methods) {
                 if (method.GetCustomAttribute<ButtonAttribute>() is { } attr) {
-                    buttons.Add(new ButtonData(method, attr));
+                    var validationMethod = attr.showIf == null ? null : targetType.GetMethod(attr.showIf, flags);
+                    buttons.Add(new ButtonData(method, attr, validationMethod));
                 }
             }
 
@@ -47,21 +51,23 @@ namespace MisterGames.Common.Editor.Drawers {
         public void DrawButtons(IReadOnlyList<object> targets) {
             for (int i = 0; i < _buttons.Count; i++) {
                 var button = _buttons[i];
-                if (!CanDrawButton(button.mode) || !GUILayout.Button(button.displayName)) continue;
-
+                
                 for (int j = 0; j < targets.Count; j++) {
+                    if (!CanDrawButton(button.mode, button.validationMethod, targets[j]) || !GUILayout.Button(button.displayName)) continue;
+
                     button.method.Invoke(targets[j], null);
                 }
             }
         }
 
-        private static bool CanDrawButton(ButtonAttribute.Mode mode) {
+        private static bool CanDrawButton(ButtonAttribute.Mode mode, MethodInfo validationMethod, object target) {
             return mode switch {
                 ButtonAttribute.Mode.Always => true,
                 ButtonAttribute.Mode.Runtime => Application.isPlaying,
                 ButtonAttribute.Mode.Editor => !Application.isPlaying,
                 _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
-            };
+            } && 
+                   (validationMethod == null || validationMethod.ReturnType != typeof(bool) || (bool) validationMethod.Invoke(target, null));
         }
     }
     

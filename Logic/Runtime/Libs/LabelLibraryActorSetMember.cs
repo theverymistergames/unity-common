@@ -9,7 +9,7 @@ namespace MisterGames.Logic.Libs {
     public sealed class LabelLibraryActorSetMember : MonoBehaviour, IActorComponent {
         
         [SerializeField] private LabelValue<HashSet<IActor>> _setLabel;
-        [SerializeField] private Actor[] _addToGroup;
+        [SerializeField] private ActorRoot[] _addToGroup;
 
         private void Awake() {
             if (!_setLabel.TryGetData(out var data) || data == null) {
