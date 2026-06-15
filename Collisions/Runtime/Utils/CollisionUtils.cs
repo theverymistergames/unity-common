@@ -16,8 +16,8 @@ namespace MisterGames.Collisions.Utils {
         private static readonly IComparer<RaycastResult> RaycastResultDistanceComparerAsc = new RaycastResultDistanceComparer(true);
         private static readonly IComparer<RaycastResult> RaycastResultDistanceComparerDesc = new RaycastResultDistanceComparer(false);
         
-        private static Func<int, Collider> _getColliderById;
-        private static Func<int, Component> _getBodyById;
+        private static Func<EntityId, Collider> _getColliderById;
+        private static Func<EntityId, Component> _getBodyById;
         
         private sealed class RaycastHitDistanceComparer : IComparer<RaycastHit> {
             private readonly int _orderSign;
@@ -35,24 +35,24 @@ namespace MisterGames.Collisions.Utils {
             if (_getColliderById != null) return;
             
             var method = typeof(Physics).GetMethod("GetColliderByInstanceID", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-            _getColliderById = Delegate.CreateDelegate(typeof(Func<int, Collider>), method) as Func<int, Collider>;
+            _getColliderById = Delegate.CreateDelegate(typeof(Func<EntityId, Collider>), method) as Func<EntityId, Collider>;
         }
         
         private static void PrepareGetBodyByIdFunc() {
             if (_getBodyById != null) return;
             
             var method = typeof(Physics).GetMethod("GetBodyByInstanceID", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-            _getBodyById = Delegate.CreateDelegate(typeof(Func<int, Component>), method) as Func<int, Component>;
+            _getBodyById = Delegate.CreateDelegate(typeof(Func<EntityId, Component>), method) as Func<EntityId, Component>;
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Collider GetColliderByInstanceId(int instanceId) {
+        public static Collider GetColliderByInstanceId(EntityId instanceId) {
             PrepareGetColliderByIdFunc();
             return _getColliderById.Invoke(instanceId);
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Rigidbody GetRigidbodyByInstanceId(int instanceId) {
+        public static Rigidbody GetRigidbodyByInstanceId(EntityId instanceId) {
             PrepareGetBodyByIdFunc();
             return _getBodyById.Invoke(instanceId) as Rigidbody;
         }
