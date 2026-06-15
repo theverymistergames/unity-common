@@ -4,6 +4,7 @@
     
         string LoadingScene { get; }
 
+        void Initialize();
         void ShowLoadingScreen(bool show);
     }
     

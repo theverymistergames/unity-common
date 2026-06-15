@@ -7,10 +7,11 @@ namespace MisterGames.Scenes.Loading {
     public sealed class LoadingServiceRunner : MonoBehaviour {
         
         [SerializeField] private LoadingService _loadingService;
+        [SerializeField] private bool _autoInitialize;
         
         private void Awake() {
             Services.Register<ILoadingService>(_loadingService);
-            _loadingService.Initialize();
+            if (_autoInitialize) _loadingService.Initialize();
         }
 
         private void OnDestroy() {
