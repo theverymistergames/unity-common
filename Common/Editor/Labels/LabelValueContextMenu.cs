@@ -19,14 +19,20 @@ namespace MisterGames.Common.Editor.Labels {
         private static void OnContextMenuOpening(GenericMenu menu, SerializedProperty property) {
             if (property.propertyType != SerializedPropertyType.Generic ||
                 property.FindPropertyRelative(LibraryPropertyPath) is not { objectReferenceValue: LabelLibraryBase labelLibrary } ||
-                property.FindPropertyRelative(IdPropertyPath) is null
+                property.FindPropertyRelative(IdPropertyPath) is not { } idProperty
             ) {
                 return;
             }
             
-            menu.AddItem(new GUIContent("Select Label Library"), false, () => {
+            menu.AddItem(new GUIContent("Select LabelLibrary"), false, () => {
                 EditorGUIUtility.PingObject(labelLibrary);
             });
+            
+            if (idProperty.intValue != 0) {
+                menu.AddItem(new GUIContent("Search usages..."), false, () => {
+                    LabelValueSearchWindow.SearchLabelValue(new LabelValue(labelLibrary, idProperty.intValue));
+                });
+            }
         }
     }
     

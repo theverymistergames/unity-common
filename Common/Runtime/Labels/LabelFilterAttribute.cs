@@ -7,9 +7,11 @@ namespace MisterGames.Common.Labels {
     public sealed class LabelFilterAttribute : PropertyAttribute {
         
         public readonly string path;
+        public readonly bool ignoreValueType;
 
-        public LabelFilterAttribute(string path) {
+        public LabelFilterAttribute(string path = null, bool ignoreValueType = false) {
             this.path = path;
+            this.ignoreValueType = ignoreValueType;
         }
     }
     

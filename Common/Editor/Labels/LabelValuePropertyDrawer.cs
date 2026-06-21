@@ -22,8 +22,6 @@ namespace MisterGames.Common.Editor.Drawers {
 
         private const string LibraryPropertyPath = nameof(LabelValue.library);
         private const string IdPropertyPath = nameof(LabelValue.id);
-
-        private static readonly GUIContent NullLabel = new(Null);
         
         private readonly struct Entry {
             
@@ -80,7 +78,7 @@ namespace MisterGames.Common.Editor.Drawers {
                 property.serializedObject.Update();
             }
             
-            if (EditorGUI.DropdownButton(rect, GetDropdownLabel(library, id, fieldInfo), FocusType.Keyboard)) {
+            if (EditorGUI.DropdownButton(rect, new GUIContent(GetFullLabel(library, id, fieldInfo)), FocusType.Keyboard)) {
                var dropdown = new AdvancedDropdown<Entry>(
                     "Select value",
                     GetAllEntries(fieldInfo),
@@ -119,10 +117,12 @@ namespace MisterGames.Common.Editor.Drawers {
             var elementType = fieldType.IsArray ? fieldType.GetElementType() ?? fieldType : fieldType;
             var genericType = elementType.IsGenericType ? elementType.GetGenericArguments()[0] : null;
             
+            bool ignoreValueType = filters.Any(f => f.ignoreValueType);
+            
             return AssetDatabase
                 .FindAssets($"a:assets t:{nameof(LabelLibraryBase)}")
                 .Select(guid => AssetDatabase.LoadAssetAtPath<LabelLibraryBase>(AssetDatabase.GUIDToAssetPath(guid)))
-                .Where(lib => IsValidLibraryType(lib, genericType))
+                .Where(lib => IsValidLibraryType(lib, genericType, ignoreValueType))
                 .SelectMany(lib => GetLibraryEntries(lib, filters))
                 .Prepend(default);
         }
@@ -166,9 +166,9 @@ namespace MisterGames.Common.Editor.Drawers {
             return list;
         }
 
-        private static bool IsValidLibraryType(LabelLibraryBase library, Type genericType) {
+        private static bool IsValidLibraryType(LabelLibraryBase library, Type genericType, bool ignoreValueType) {
             var dataType = library.GetDataType();
-            return genericType?.IsAssignableFrom(dataType) ?? dataType == null;
+            return ignoreValueType || (genericType?.IsAssignableFrom(dataType) ?? dataType == null);
         }
         
         private static bool IsValidPath(string path, LabelFilterAttribute[] filters) {
@@ -188,11 +188,11 @@ namespace MisterGames.Common.Editor.Drawers {
                     : $"{library}/{array}/{value}";
         }
 
-        private static GUIContent GetDropdownLabel(LabelLibraryBase library, int id, FieldInfo propertyFieldInfo) {
-            if (library == null) return NullLabel;
+        public static string GetFullLabel(LabelLibraryBase library, int id, FieldInfo propertyFieldInfo) {
+            if (library == null) return Null;
 
             if (!library.ContainsLabel(id)) {
-                return new GUIContent($"{library.name}{Separator}Id [{id}] {NotFound}");
+                return $"{library.name}{Separator}Id [{id}] {NotFound}";
             }
 
             int arrayCount = library.GetArraysCount();
@@ -218,14 +218,14 @@ namespace MisterGames.Common.Editor.Drawers {
             bool none = library.GetArrayNoneLabel(array);
             
             if (none && id == arrayId) {
-                return new GUIContent($"{libName}{arrayName}{None}");
+                return $"{libName}{arrayName}{None}";
             }
 
             string label = library.GetLabel(id);
             
             return string.IsNullOrWhiteSpace(label)
-                ? new GUIContent($"{libName}{arrayName}Label [{library.GetLabelIndex(id)}]")
-                : new GUIContent($"{libName}{arrayName}{label}");
+                ? $"{libName}{arrayName}Label [{library.GetLabelIndex(id)}]"
+                : $"{libName}{arrayName}{label}";
         }
     }
     
