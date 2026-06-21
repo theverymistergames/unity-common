@@ -22,7 +22,6 @@ namespace MisterGames.Scenario.Editor.Events {
 
         private const float SubIdWidthRatio = 0.15f;
 
-        private static readonly GUIContent NullLabel = new(Null);
         private static readonly Color BoxColor = new Color(0.2f, 0.2f, 0.2f);
 
         private readonly struct Entry {
@@ -96,7 +95,7 @@ namespace MisterGames.Scenario.Editor.Events {
             rect.y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing * 2f;
             rect.height = EditorGUIUtility.singleLineHeight;
             
-            if (EditorGUI.DropdownButton(rect, GetDropdownLabel(eventDomain, eventId), FocusType.Keyboard)) {
+            if (EditorGUI.DropdownButton(rect, new GUIContent(GetFullLabel(eventDomain, eventId)), FocusType.Keyboard)) {
                 bool hasCurrentDomain = eventDomain != null;
                 
                 var dropdown = new AdvancedDropdown<Entry>(
@@ -175,11 +174,11 @@ namespace MisterGames.Scenario.Editor.Events {
                     : $"{(includeDomain ? $"{entry.eventDomain.name}/" : string.Empty)}{entry.group}/{entry.name}";
         }
 
-        private static GUIContent GetDropdownLabel(EventDomain eventDomain, int eventId) {
-            if (eventDomain == null) return NullLabel;
+        public static string GetFullLabel(EventDomain eventDomain, int eventId) {
+            if (eventDomain == null) return Null;
             
             if (!eventDomain.TryGetAddress(eventId, out int group, out int index)) {
-                return new GUIContent($"Event [{eventId}] {NotFound}");
+                return $"Event [{eventId}] {NotFound}";
             }
 
             var eventGroups = eventDomain.EventGroups;
@@ -194,7 +193,7 @@ namespace MisterGames.Scenario.Editor.Events {
             string eventName = eventDomain.GetEventName(eventId);
             eventName = string.IsNullOrWhiteSpace(eventName) ? $"Event [{index}]" : eventName;
             
-            return new GUIContent($"{groupName}{eventName}");
+            return $"{groupName}{eventName}";
         }
     }
 

@@ -6,14 +6,14 @@ namespace MisterGames.Scenario.Events {
     [Serializable]
     public struct EventReference : IEquatable<EventReference> {
         
-        [SerializeField] private EventDomain _eventDomain;
-        [SerializeField] private int _eventId;
-        [SerializeField] private int _subId;
+        [SerializeField] internal EventDomain _eventDomain;
+        [SerializeField] internal int _eventId;
+        [SerializeField] internal int _subId;
 
         public EventDomain EventDomain => _eventDomain;
         public int EventId => _eventId;
         public int SubId => _subId;
-
+        
         public EventReference(EventDomain eventDomain, int eventId, int subId = 0) {
             _eventDomain = eventDomain;
             _eventId = eventId;

@@ -25,13 +25,7 @@ namespace MisterGames.Common.Labels {
             [Space(10f)]
             public LabelArrayUsage usage;
             public bool none;
-            public LabelData[] labels;
-        }
-
-        [Serializable]
-        private struct LabelData {
-            [HideInInspector] public int id;
-            public string name;
+            public LabelLibrary.LabelData[] labels;
         }
 
         private readonly Dictionary<int, (int arrayIndex, int labelIndex)> _labelIdToAddressMap = new();

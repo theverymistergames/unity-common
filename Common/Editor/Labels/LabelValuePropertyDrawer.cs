@@ -199,7 +199,7 @@ namespace MisterGames.Common.Editor.Drawers {
             int array = library.GetLabelArrayIndex(id);
             int arrayId = library.GetArrayId(array);
             
-            var visibility = propertyFieldInfo.GetCustomAttribute<LabelValueVisibilityAttribute>();
+            var visibility = propertyFieldInfo?.GetCustomAttribute<LabelValueVisibilityAttribute>();
 
             string libName = visibility?.lib ?? true
                 ? $"{library.name}{Separator}"

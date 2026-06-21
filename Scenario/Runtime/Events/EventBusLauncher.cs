@@ -47,7 +47,7 @@ namespace MisterGames.Scenario.Events {
             var raisedEventsMap = EventBus.Main.RaisedEvents;
             
             foreach ((var e, int count) in raisedEventsMap) {
-                if (!e.EventDomain.IsSerializable(e.EventId)) continue;
+                if (!e._eventDomain.IsSerializable(e._eventId)) continue;
                 
                 _eventsListSaveable.Add(new EventEntry { eventReference = e, count = count });
             }

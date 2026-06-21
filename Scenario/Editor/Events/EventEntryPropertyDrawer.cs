@@ -67,10 +67,10 @@ namespace MisterGames.Scenario.Editor.Events {
                 var raisedEventsMap = EventBus.Main.RaisedEvents;
                 
                 foreach ((var e, int count) in raisedEventsMap) {
-                    if (e.EventId != eventId || e.EventDomain != eventDomain) continue;
+                    if (e._eventId != eventId || e._eventDomain != eventDomain) continue;
 
                     rect.y += EditorGUIUtility.standardVerticalSpacing + EditorGUIUtility.singleLineHeight;
-                    GUI.Label(rect, $" - [{e.SubId}]: count {count}");
+                    GUI.Label(rect, $" - [{e._subId}]: count {count}");
                 }
             }
             
@@ -86,7 +86,7 @@ namespace MisterGames.Scenario.Editor.Events {
                 var raisedEventsMap = EventBus.Main.RaisedEvents;
                 
                 foreach (var e in raisedEventsMap.Keys) {
-                    if (e.EventId == eventId && e.EventDomain == eventDomain) count++;
+                    if (e._eventId == eventId && e._eventDomain == eventDomain) count++;
                 }
                 
                 return (count + 2) * EditorGUIUtility.singleLineHeight + (count + 1) * EditorGUIUtility.standardVerticalSpacing;
