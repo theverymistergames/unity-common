@@ -75,7 +75,7 @@ namespace MisterGames.Common.Editor.Drawers {
                 property.serializedObject.Update();
             }
             
-            if (EditorGUI.DropdownButton(rect, GetDropdownLabel(library, id), FocusType.Keyboard)) {
+            if (EditorGUI.DropdownButton(rect, new GUIContent(GetFullLabel(library, id)), FocusType.Keyboard)) {
                var dropdown = new AdvancedDropdown<Entry>(
                     "Select value",
                     GetAllEntries(fieldInfo),
@@ -111,11 +111,12 @@ namespace MisterGames.Common.Editor.Drawers {
             var fieldType = propertyFieldInfo.FieldType;
             var elementType = fieldType.IsArray ? fieldType.GetElementType() ?? fieldType : fieldType;
             var genericType = elementType.IsGenericType ? elementType.GetGenericArguments()[0] : null;
+            bool ignoreValueType = filters.Any(f => f.ignoreValueType);
             
             return AssetDatabase
                 .FindAssets($"a:assets t:{nameof(LabelLibraryBase)}")
                 .Select(guid => AssetDatabase.LoadAssetAtPath<LabelLibraryBase>(AssetDatabase.GUIDToAssetPath(guid)))
-                .Where(lib => IsValidLibraryType(lib, genericType))
+                .Where(lib => IsValidLibraryType(lib, genericType, ignoreValueType))
                 .SelectMany(lib => GetLibraryEntries(lib, filters))
                 .Prepend(default);
         }
@@ -142,9 +143,9 @@ namespace MisterGames.Common.Editor.Drawers {
             return list;
         }
 
-        private static bool IsValidLibraryType(LabelLibraryBase library, Type genericType) {
+        private static bool IsValidLibraryType(LabelLibraryBase library, Type genericType, bool ignoreValueType) {
             var dataType = library.GetDataType();
-            return genericType?.IsAssignableFrom(dataType) ?? dataType == null;
+            return ignoreValueType || (genericType?.IsAssignableFrom(dataType) ?? dataType == null);
         }
         
         private static bool IsValidPath(string path, LabelFilterAttribute[] filters) {
@@ -158,19 +159,19 @@ namespace MisterGames.Common.Editor.Drawers {
             return false;
         }
 
-        private static GUIContent GetDropdownLabel(LabelLibraryBase library, int id) {
-            if (library == null) return NullLabel;
+        public static string GetFullLabel(LabelLibraryBase library, int id) {
+            if (library == null) return Null;
 
             int arrayIndex = library.GetArrayIndex(id);
             
             if (arrayIndex < 0) {
-                return new GUIContent($"{library.name}{Separator}Id [{id}] {NotFound}");
+                return $"{library.name}{Separator}Id [{id}] {NotFound}";
             }
 
             string arrayName = library.GetArrayName(arrayIndex);
             return string.IsNullOrWhiteSpace(arrayName)
-                ? new GUIContent($"{library.name}{Separator}Array [{arrayIndex}]")
-                : new GUIContent($"{library.name}{Separator}{arrayName}");
+                ? $"{library.name}{Separator}Array [{arrayIndex}]"
+                : $"{library.name}{Separator}{arrayName}";
         }
     }
     

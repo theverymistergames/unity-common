@@ -36,7 +36,17 @@ namespace MisterGames.Common.Editor.SerializedProperties {
             low = NumberExtensions.TwoIntsAsUlong(guidProperty.FindPropertyRelative("_guidLow0").intValue, guidProperty.FindPropertyRelative("_guidLow1").intValue);
             high = NumberExtensions.TwoIntsAsUlong(guidProperty.FindPropertyRelative("_guidHigh0").intValue, guidProperty.FindPropertyRelative("_guidHigh1").intValue);
         }
+
+        public static string GetParentPropertyPath(this SerializedProperty property) {
+            string path = property.propertyPath;
+            int lastDot = path.LastIndexOf('.');
+            return lastDot < 0 ? null : path[..lastDot];
+        }
         
+        public static SerializedProperty GetParentProperty(this SerializedProperty property) {
+            return property.serializedObject.FindProperty(property.GetParentPropertyPath());
+        }
+
         public static string GetNeighbourPropertyPath(SerializedProperty property, string propertyName) {
             string path = property.propertyPath;
             int dotIndex = path.LastIndexOf('.');

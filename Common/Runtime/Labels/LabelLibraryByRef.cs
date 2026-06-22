@@ -30,7 +30,7 @@ namespace MisterGames.Common.Labels {
         }
 
         [Serializable]
-        internal struct LabelData {
+        private struct LabelData {
             [HideInInspector] public int id;
             public string name;
             [SerializeReference] [SubclassSelector] public T data;

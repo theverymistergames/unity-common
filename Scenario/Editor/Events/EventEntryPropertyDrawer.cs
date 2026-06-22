@@ -28,7 +28,7 @@ namespace MisterGames.Scenario.Editor.Events {
             EditorGUI.BeginProperty(rect, label, property);
             
             rect.width -= EditorGUIUtility.singleLineHeight + DividerDefault + saveWidth;
-            EditorGUI.PropertyField(rect, property.FindPropertyRelative("name"), GUIContent.none);
+            EditorGUI.PropertyField(rect, property.FindPropertyRelative("name"));
             
             rect.x += rect.width + DividerDefault;
             rect.width = saveWidth;

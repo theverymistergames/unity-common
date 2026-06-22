@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using MisterGames.Common.Editor.Menu;
 using MisterGames.Common.Editor.SerializedProperties;
@@ -10,16 +10,19 @@ using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
 
 namespace MisterGames.Scenario.Editor.Events {
-    
+
     public sealed class EventReferenceSearchWindow : EditorWindow {
-        
+
         private sealed class SearchState : ScriptableObject
         {
-            public List<EventReference> targets = new();
             public List<DefaultAsset> searchFolders = new();
             public bool searchInAssets = true;
             public bool searchInOpenedScenes = false;
             public bool searchInAllScenes = false;
+        }
+
+        private sealed class TabTargetsState : ScriptableObject {
+            public List<EventReference> targets = new();
         }
 
         private sealed class SingleEventReferenceState : ScriptableObject
@@ -43,6 +46,8 @@ namespace MisterGames.Scenario.Editor.Events {
             public string Label;
             public List<SearchTabGroup> Groups = new();
             public List<SavedUsage> Results = new();
+            public List<string> TargetDomainPaths = new();
+            public List<int> TargetIds = new();
         }
 
         private sealed class TabRuntime
@@ -54,6 +59,10 @@ namespace MisterGames.Scenario.Editor.Events {
             public readonly List<SerializedReferenceUsageFinder.Usage> Results = new();
             public Vector2 Scroll;
             public readonly Dictionary<string, Object> ResultObjectCache = new();
+
+            public TabTargetsState TargetsState;
+            public SerializedObject TargetsSerializedObject;
+            public SerializedProperty TargetsProperty;
         }
 
         [Serializable]
@@ -65,8 +74,6 @@ namespace MisterGames.Scenario.Editor.Events {
         [Serializable]
         private sealed class SavedSearchState
         {
-            public List<string> TargetDomainPaths = new();
-            public List<int> TargetIds = new();
             public bool SearchInAssets = true;
             public bool SearchInOpenedScenes = false;
             public bool SearchInAllScenes = false;
@@ -86,17 +93,15 @@ namespace MisterGames.Scenario.Editor.Events {
 
         private const string SearchStatePrefsKeyPrefix = "EventReferenceSearchWindow.SearchState.";
         private static string SearchStatePrefsKey => SearchStatePrefsKeyPrefix + Application.dataPath;
-        
+
         private SearchState _state;
         private SerializedObject _serializedState;
-        private SerializedProperty _targetsProperty;
         private SerializedProperty _searchFoldersProperty;
         private SerializedProperty _searchInAssetsProperty;
         private SerializedProperty _searchInOpenedScenesProperty;
         private SerializedProperty _searchInAllScenesProperty;
 
-        private bool _hasRequestedSearch;
-        private EventReference _requestedSearch;
+        private EventReference[] _requestedSearch;
 
         private float _assetColWidth = 230f;
         private float _scriptColWidth = 170f;
@@ -104,16 +109,19 @@ namespace MisterGames.Scenario.Editor.Events {
         private int _draggingCol = -1;
         private float _dragStartMouseX;
         private float _dragStartColWidth;
+        private GUIStyle _tabStyle;
 
         private const float ColDividerWidth = 5f;
         private const float MinColWidth = 60f;
+        private const float TabMaxWidth = 400f;
+        private const float TabMinWidth = 100f;
 
         [SerializeField] private List<SearchTab> _tabs = new();
         [SerializeField] private int _activeTabIndex = -1;
         private readonly List<TabRuntime> _tabRuntimes = new();
 
         private static Dictionary<string, MonoScript> _monoScriptByTypeFullName;
-        
+
         [MenuItem("MisterGames/Tools/Event Reference Search")]
         public static void Open() {
             var window = GetWindow<EventReferenceSearchWindow>("Event Reference Search");
@@ -123,25 +131,26 @@ namespace MisterGames.Scenario.Editor.Events {
         public static void SearchEventReference(EventReference eventReference) {
             var window = GetWindow<EventReferenceSearchWindow>("Event Reference Search");
             SetupSize(window);
-            window._requestedSearch = eventReference;
-            window._hasRequestedSearch = true;
-            if (window._state != null) {
-                window._state.targets.Clear();
-                window._state.targets.Add(eventReference);
-            }
+            window._requestedSearch = new[] { eventReference };
+            window.ApplyRequestedSearchToActiveTab();
+        }
+
+        public static void SearchEventReferences(EventReference[] eventReferences) {
+            var window = GetWindow<EventReferenceSearchWindow>("Event Reference Search");
+            SetupSize(window);
+            window._requestedSearch = eventReferences;
+            window.ApplyRequestedSearchToActiveTab();
         }
 
         private static void SetupSize(EventReferenceSearchWindow window) {
             window.minSize = new Vector2(520, 420);
             window.maxSize = new Vector2(3840, 2160);
-            window.position = new Rect(window.position.x, window.position.y, 650, 600);
         }
 
         private void OnEnable() {
             _state = CreateInstance<SearchState>();
             _state.hideFlags = HideFlags.HideInHierarchy | HideFlags.DontSaveInEditor | HideFlags.DontSaveInBuild;
             _serializedState = new SerializedObject(_state);
-            _targetsProperty = _serializedState.FindProperty(nameof(SearchState.targets));
             _searchFoldersProperty = _serializedState.FindProperty(nameof(SearchState.searchFolders));
             _searchInAssetsProperty = _serializedState.FindProperty(nameof(SearchState.searchInAssets));
             _searchInOpenedScenesProperty = _serializedState.FindProperty(nameof(SearchState.searchInOpenedScenes));
@@ -149,16 +158,16 @@ namespace MisterGames.Scenario.Editor.Events {
 
             LoadSearchState();
 
-            if (_hasRequestedSearch) {
-                _state.targets.Clear();
-                _state.targets.Add(_requestedSearch);
-                _hasRequestedSearch = false;
-            }
-
             // Rebuild tab runtimes from serialized tabs
             _tabRuntimes.Clear();
             foreach (var tab in _tabs) {
                 var runtime = CreateTabRuntime();
+
+                for (int i = 0; i < tab.TargetDomainPaths.Count && i < tab.TargetIds.Count; i++) {
+                    var domain = AssetDatabase.LoadAssetAtPath<EventDomain>(tab.TargetDomainPaths[i]);
+                    if (domain != null) runtime.TargetsState.targets.Add(new EventReference(domain, tab.TargetIds[i]));
+                }
+
                 foreach (var group in tab.Groups) {
                     var lib = AssetDatabase.LoadAssetAtPath<EventDomain>(group.DomainPath);
                     AddGroupHeaderToRuntime(runtime, lib, group.Id);
@@ -171,6 +180,8 @@ namespace MisterGames.Scenario.Editor.Events {
             }
 
             if (_activeTabIndex >= _tabs.Count) _activeTabIndex = _tabs.Count - 1;
+
+            ApplyRequestedSearchToActiveTab();
 
             EditorSceneManager.sceneOpened += OnSceneOpened;
             EditorSceneManager.sceneClosed += OnSceneClosed;
@@ -204,6 +215,7 @@ namespace MisterGames.Scenario.Editor.Events {
                 foreach (var state in runtime.GroupHeaderStates) {
                     if (state != null) DestroyImmediate(state);
                 }
+                if (runtime.TargetsState != null) DestroyImmediate(runtime.TargetsState);
             }
             _tabRuntimes.Clear();
         }
@@ -222,41 +234,38 @@ namespace MisterGames.Scenario.Editor.Events {
             Repaint();
         }
 
+        private static readonly Color TopBgColor = new Color(0.314f, 0.314f, 0.314f, 1f);
+        private float _topBgBottom;
+
         private void OnGUI() {
-            DrawSearchSettings();
+            if (_topBgBottom > 0f)
+                EditorGUI.DrawRect(new Rect(0f, 0f, position.width, _topBgBottom), TopBgColor);
 
-            EditorGUILayout.Space(8);
+            DrawSearchOptions();
+            DrawSearchFolders();
+            EditorGUILayout.Space(4);
 
-            DrawSearchButton();
-
-            EditorGUILayout.Space(8);
+            if (Event.current.type == EventType.Repaint) {
+                float newBottom = GUILayoutUtility.GetLastRect().yMax;
+                if (_topBgBottom != newBottom) {
+                    _topBgBottom = newBottom;
+                    Repaint();
+                }
+            }
 
             DrawResults();
         }
 
-        private void DrawSearchSettings() {
-            DrawTargets();
-
-            EditorGUILayout.Space(6);
-
-            DrawSearchOptions();
-            DrawSearchFolders();
-            
-            EditorGUILayout.Space(6);
-        }
-
         private void DrawSearchOptions() {
-            EditorGUILayout.LabelField("Search In", EditorStyles.boldLabel);
             _serializedState.Update();
-            EditorGUILayout.PropertyField(_searchInAssetsProperty, new GUIContent("Assets and Prefabs"));
-            EditorGUILayout.PropertyField(_searchInOpenedScenesProperty, new GUIContent("Opened Scenes"));
-            EditorGUILayout.PropertyField(_searchInAllScenesProperty, new GUIContent("All Scenes"));
-            if (_serializedState.ApplyModifiedProperties()) SaveSearchState();
-        }
-
-        private void DrawTargets() {
-            _serializedState.Update();
-            EditorGUILayout.PropertyField(_targetsProperty, includeChildren: true);
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("Search In", EditorStyles.boldLabel, GUILayout.Width(64));
+            _searchInAssetsProperty.boolValue = EditorGUILayout.ToggleLeft("Assets", _searchInAssetsProperty.boolValue, GUILayout.Width(62));
+            GUILayout.Space(8);
+            _searchInOpenedScenesProperty.boolValue = EditorGUILayout.ToggleLeft("Opened Scenes", _searchInOpenedScenesProperty.boolValue, GUILayout.Width(108));
+            GUILayout.Space(8);
+            _searchInAllScenesProperty.boolValue = EditorGUILayout.ToggleLeft("All Scenes", _searchInAllScenesProperty.boolValue, GUILayout.Width(88));
+            EditorGUILayout.EndHorizontal();
             if (_serializedState.ApplyModifiedProperties()) SaveSearchState();
         }
 
@@ -280,10 +289,16 @@ namespace MisterGames.Scenario.Editor.Events {
             var rt = _tabRuntimes[_activeTabIndex];
             var tab = _tabs[_activeTabIndex];
 
+            rt.Scroll = EditorGUILayout.BeginScrollView(rt.Scroll);
+
+            DrawActiveTabTargets(rt);
+
+            EditorGUILayout.Space(4);
+            DrawSearchButton();
+            EditorGUILayout.Space(4);
+
             EditorGUILayout.LabelField($"Results: {rt.Results.Count}", EditorStyles.boldLabel);
             DrawResultsHeader();
-
-            rt.Scroll = EditorGUILayout.BeginScrollView(rt.Scroll);
 
             for (int g = 0; g < tab.Groups.Count; g++) {
                 var group = tab.Groups[g];
@@ -294,6 +309,18 @@ namespace MisterGames.Scenario.Editor.Events {
             }
 
             EditorGUILayout.EndScrollView();
+        }
+
+        private void DrawActiveTabTargets(TabRuntime rt) {
+            if (rt.TargetsSerializedObject == null) return;
+            rt.TargetsSerializedObject.Update();
+            EditorGUILayout.PropertyField(rt.TargetsProperty, includeChildren: true);
+            if (rt.TargetsSerializedObject.ApplyModifiedProperties()) {
+                SyncTabTargets(_activeTabIndex);
+                if (_activeTabIndex >= 0 && _activeTabIndex < _tabs.Count) {
+                    _tabs[_activeTabIndex].Label = BuildTabLabel(rt.TargetsState.targets);
+                }
+            }
         }
 
         private static void DrawGroupHeader(TabRuntime rt, int groupIndex) {
@@ -313,16 +340,21 @@ namespace MisterGames.Scenario.Editor.Events {
         }
 
         private void DrawTabBar() {
+            if (_tabStyle == null) {
+                _tabStyle = new GUIStyle(EditorStyles.toolbarButton);
+                _tabStyle.padding.left = 8;
+            }
+
             EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
             for (int i = 0; i < _tabs.Count; i++) {
                 bool isActive = i == _activeTabIndex;
-                string label = _tabs[i].Label;
+                string fullLabel = _tabs[i].Label;
 
-                var labelContent = new GUIContent(label, label);
-                float labelW = EditorStyles.toolbarButton.CalcSize(labelContent).x + 12f;
-                labelW = Mathf.Clamp(labelW, 40f, 220f);
+                string display = TruncateLabelToFit(fullLabel, TabMaxWidth, _tabStyle);
+                var content = new GUIContent(display, fullLabel);
+                float tabW = Mathf.Clamp(_tabStyle.CalcSize(content).x, TabMinWidth, TabMaxWidth);
 
-                bool clicked = GUILayout.Toggle(isActive, labelContent, EditorStyles.toolbarButton, GUILayout.Width(labelW));
+                bool clicked = GUILayout.Toggle(isActive, content, _tabStyle, GUILayout.Width(tabW));
                 if (clicked && !isActive) _activeTabIndex = i;
 
                 if (GUILayout.Button("✕", EditorStyles.toolbarButton, GUILayout.Width(18))) {
@@ -343,7 +375,24 @@ namespace MisterGames.Scenario.Editor.Events {
             GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();
         }
-        
+
+        private static string TruncateLabelToFit(string label, float maxWidth, GUIStyle style) {
+            if (style.CalcSize(new GUIContent(label)).x <= maxWidth) return label;
+
+            const string ellipsis = "…";
+            int lo = 0, hi = label.Length - 1;
+            while (lo < hi) {
+                int mid = (lo + hi + 1) / 2;
+                if (style.CalcSize(new GUIContent(label.Substring(0, mid) + ellipsis)).x <= maxWidth)
+                    lo = mid;
+                else
+                    hi = mid - 1;
+            }
+
+            string truncated = label.Substring(0, lo) + ellipsis;
+            return style.CalcSize(new GUIContent(truncated)).x <= maxWidth ? truncated : ellipsis;
+        }
+
         private void DrawResultsHeader() {
             var rect = EditorGUILayout.GetControlRect(false, EditorGUIUtility.singleLineHeight);
             GetColumnRects(rect, out var assetRect, out var div0, out var scriptRect, out var div1, out var propertyRect);
@@ -653,6 +702,16 @@ namespace MisterGames.Scenario.Editor.Events {
         }
 
         private void Search() {
+            if (_activeTabIndex < 0 || _activeTabIndex >= _tabs.Count) {
+                _tabs.Add(new SearchTab { Label = "New" });
+                _tabRuntimes.Add(CreateTabRuntime());
+                _activeTabIndex = _tabs.Count - 1;
+            }
+
+            var activeRt = _tabRuntimes[_activeTabIndex];
+            var activeTab = _tabs[_activeTabIndex];
+            var targets = activeRt.TargetsState.targets;
+
             string[] searchFolders = GetValidSearchFolderPaths();
             SaveSearchFolders();
 
@@ -662,9 +721,8 @@ namespace MisterGames.Scenario.Editor.Events {
 
             if (searchFolders.Length == 0 && !searchOpenedScenes && !searchAllScenes) return;
 
-            // Group targets by library for a single search pass per library
             var libraryGroups = new Dictionary<EventDomain, HashSet<int>>();
-            foreach (var entry in _state.targets) {
+            foreach (var entry in targets) {
                 if (entry.EventDomain == null) continue;
                 if (!libraryGroups.TryGetValue(entry.EventDomain, out var ids)) {
                     ids = new HashSet<int>();
@@ -673,7 +731,6 @@ namespace MisterGames.Scenario.Editor.Events {
                 ids.Add(entry.EventId);
             }
 
-            // matchedBy: usageKey → (libPath, id) to group results after search
             var matchedBy = new Dictionary<string, (string libPath, int id)>();
             var allResults = new List<SerializedReferenceUsageFinder.Usage>();
             var seen = new HashSet<string>();
@@ -699,7 +756,6 @@ namespace MisterGames.Scenario.Editor.Events {
                         lib, predicate: Predicate), allResults, seen);
             }
 
-            // Group results by target order
             var resultsByTarget = new Dictionary<(string, int), List<SerializedReferenceUsageFinder.Usage>>();
             foreach (var r in allResults) {
                 string k = $"{r.Kind}|{r.AssetPath}|{r.ObjectPath}|{r.OwnerType}|{r.PropertyPath}";
@@ -713,10 +769,10 @@ namespace MisterGames.Scenario.Editor.Events {
 
             var orderedResults = new List<SerializedReferenceUsageFinder.Usage>();
             var tabGroups = new List<SearchTabGroup>();
+            var domainIds = new List<(EventDomain domain, int id)>();
             var seenPairs = new HashSet<(string, int)>();
-            var runtime = CreateTabRuntime();
 
-            foreach (var target in _state.targets) {
+            foreach (var target in targets) {
                 if (target._eventDomain == null) continue;
                 string libPath = AssetDatabase.GetAssetPath(target._eventDomain);
                 var pair = (libPath, target._eventId);
@@ -736,43 +792,85 @@ namespace MisterGames.Scenario.Editor.Events {
                 });
 
                 orderedResults.AddRange(groupResults);
-                AddGroupHeaderToRuntime(runtime, target._eventDomain, target._eventId);
+                domainIds.Add((target._eventDomain, target._eventId));
             }
 
-            var tab = new SearchTab { Label = BuildTabLabel() };
+            // Clear old results, keep targets state intact
+            foreach (var state in activeRt.GroupHeaderStates) {
+                if (state != null) DestroyImmediate(state);
+            }
+            activeRt.GroupHeaderStates.Clear();
+            activeRt.GroupHeaderSerializedObjects.Clear();
+            activeRt.GroupHeaderProperties.Clear();
+            activeRt.GroupDomainProperties.Clear();
+            activeRt.Results.Clear();
+            activeRt.ResultObjectCache.Clear();
+            activeRt.Scroll = Vector2.zero;
 
-            tab.Groups.AddRange(tabGroups);
+            activeTab.Groups.Clear();
+            activeTab.Results.Clear();
 
+            activeTab.Groups.AddRange(tabGroups);
             foreach (var usage in orderedResults) {
-                tab.Results.Add(new SavedUsage {
+                activeTab.Results.Add(new SavedUsage {
                     Kind = usage.Kind, AssetPath = usage.AssetPath,
                     ObjectPath = usage.ObjectPath, OwnerType = usage.OwnerType,
                     PropertyPath = usage.PropertyPath,
                 });
-                runtime.Results.Add(usage);
+                activeRt.Results.Add(usage);
+            }
+            foreach (var (domain, id) in domainIds) {
+                AddGroupHeaderToRuntime(activeRt, domain, id);
             }
 
-            bool replaceEmpty = _activeTabIndex >= 0 && _activeTabIndex < _tabs.Count
-                && _tabs[_activeTabIndex].Groups.Count == 0;
-
-            if (replaceEmpty) {
-                var old = _tabRuntimes[_activeTabIndex];
-                foreach (var state in old.GroupHeaderStates) {
-                    if (state != null) DestroyImmediate(state);
-                }
-                _tabs[_activeTabIndex] = tab;
-                _tabRuntimes[_activeTabIndex] = runtime;
-            } else {
-                _tabs.Add(tab);
-                _tabRuntimes.Add(runtime);
-                _activeTabIndex = _tabs.Count - 1;
-            }
+            activeTab.Label = BuildTabLabel(targets);
 
             SaveSearchState();
             Repaint();
         }
 
-        private static TabRuntime CreateTabRuntime() => new TabRuntime();
+        private static TabRuntime CreateTabRuntime() {
+            var rt = new TabRuntime();
+            var targetsState = CreateInstance<TabTargetsState>();
+            targetsState.hideFlags = HideFlags.HideInHierarchy | HideFlags.DontSaveInEditor | HideFlags.DontSaveInBuild;
+            var so = new SerializedObject(targetsState);
+            rt.TargetsState = targetsState;
+            rt.TargetsSerializedObject = so;
+            rt.TargetsProperty = so.FindProperty(nameof(TabTargetsState.targets));
+            return rt;
+        }
+
+        private void SyncTabTargets(int tabIndex) {
+            if (tabIndex < 0 || tabIndex >= _tabs.Count || tabIndex >= _tabRuntimes.Count) return;
+            var tab = _tabs[tabIndex];
+            var rt = _tabRuntimes[tabIndex];
+            tab.TargetDomainPaths.Clear();
+            tab.TargetIds.Clear();
+            foreach (var t in rt.TargetsState.targets) {
+                if (t._eventDomain == null) continue;
+                tab.TargetDomainPaths.Add(AssetDatabase.GetAssetPath(t._eventDomain));
+                tab.TargetIds.Add(t._eventId);
+            }
+        }
+
+        private void ApplyRequestedSearchToActiveTab() {
+            if (_requestedSearch == null || _requestedSearch.Length == 0) return;
+
+            var rt = CreateTabRuntime();
+            rt.TargetsState.targets.AddRange(_requestedSearch);
+            rt.TargetsSerializedObject.Update();
+            rt.TargetsProperty.isExpanded = true;
+
+            _tabs.Add(new SearchTab { Label = "New" });
+            _tabRuntimes.Add(rt);
+            _activeTabIndex = _tabs.Count - 1;
+
+            SyncTabTargets(_activeTabIndex);
+            _tabs[_activeTabIndex].Label = BuildTabLabel(rt.TargetsState.targets);
+
+            _requestedSearch = null;
+            Repaint();
+        }
 
         private void AddGroupHeaderToRuntime(TabRuntime runtime, EventDomain lib, int id) {
             var state = CreateInstance<SingleEventReferenceState>();
@@ -792,6 +890,7 @@ namespace MisterGames.Scenario.Editor.Events {
                 foreach (var state in runtime.GroupHeaderStates) {
                     if (state != null) DestroyImmediate(state);
                 }
+                if (runtime.TargetsState != null) DestroyImmediate(runtime.TargetsState);
                 _tabRuntimes.RemoveAt(index);
             }
             if (index < _tabs.Count) _tabs.RemoveAt(index);
@@ -802,10 +901,10 @@ namespace MisterGames.Scenario.Editor.Events {
             SaveSearchState();
         }
 
-        private string BuildTabLabel() {
+        private string BuildTabLabel(List<EventReference> targets) {
             int validCount = 0;
             string first = null;
-            foreach (var t in _state.targets) {
+            foreach (var t in targets) {
                 if (t._eventDomain == null) continue;
                 if (first == null) {
                     first = EventReferencePropertyDrawer.GetFullLabel(t._eventDomain, t._eventId);
@@ -859,7 +958,7 @@ namespace MisterGames.Scenario.Editor.Events {
 
             return path;
         }
-        
+
         private static bool IsEventReference(
             SerializedReferenceUsageFinder.UsageCandidate<EventDomain> usage,
             EventDomain lib,
@@ -875,19 +974,13 @@ namespace MisterGames.Scenario.Editor.Events {
             matchedId = idProp.intValue;
             return ids.Contains(matchedId);
         }
-        
+
         private void SaveSearchState() {
             var saved = new SavedSearchState {
                 SearchInAssets = _state.searchInAssets,
                 SearchInOpenedScenes = _state.searchInOpenedScenes,
                 SearchInAllScenes = _state.searchInAllScenes,
             };
-
-            foreach (var t in _state.targets) {
-                if (t._eventDomain == null) continue;
-                saved.TargetDomainPaths.Add(AssetDatabase.GetAssetPath(t._eventDomain));
-                saved.TargetIds.Add(t._eventId);
-            }
 
             EditorPrefs.SetString(SearchStatePrefsKey, JsonUtility.ToJson(saved));
         }
@@ -904,12 +997,6 @@ namespace MisterGames.Scenario.Editor.Events {
             _state.searchInAssets = saved.SearchInAssets;
             _state.searchInOpenedScenes = saved.SearchInOpenedScenes;
             _state.searchInAllScenes = saved.SearchInAllScenes;
-
-            _state.targets.Clear();
-            for (int i = 0; i < saved.TargetDomainPaths.Count && i < saved.TargetIds.Count; i++) {
-                var lib = AssetDatabase.LoadAssetAtPath<EventDomain>(saved.TargetDomainPaths[i]);
-                if (lib != null) _state.targets.Add(new EventReference(lib, saved.TargetIds[i]));
-            }
         }
 
         private void SaveSearchFolders()
@@ -966,5 +1053,5 @@ namespace MisterGames.Scenario.Editor.Events {
             }
         }
     }
-    
+
 }
