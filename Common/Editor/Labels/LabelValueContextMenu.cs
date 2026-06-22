@@ -10,7 +10,6 @@ namespace MisterGames.Common.Editor.Labels {
         
         private const string LibraryPropertyPath = nameof(LabelValue.library);
         private const string IdPropertyPath = nameof(LabelValue.id);
-        private const string LabelDataIdPropertyPath = nameof(LabelLibrary.LabelData.id);
         
         static LabelValueContextMenu() {
             EditorApplication.contextualPropertyMenu -= OnContextMenuOpening;
@@ -19,7 +18,6 @@ namespace MisterGames.Common.Editor.Labels {
 
         private static void OnContextMenuOpening(GenericMenu menu, SerializedProperty property) {
             CheckLabelValue(menu, property);
-            CheckLabelData(menu, property);
         }
 
         private static void CheckLabelValue(GenericMenu menu, SerializedProperty property) {
@@ -33,21 +31,6 @@ namespace MisterGames.Common.Editor.Labels {
             menu.AddItem(new GUIContent("Select LabelLibrary"), false, () => {
                 EditorGUIUtility.PingObject(labelLibrary);
             });
-            
-            if (idProperty.intValue != 0) {
-                menu.AddItem(new GUIContent("Search usages..."), false, () => {
-                    LabelValueSearchWindow.SearchLabelValue(new LabelValue(labelLibrary, idProperty.intValue));
-                });
-            }
-        }
-        
-        private static void CheckLabelData(GenericMenu menu, SerializedProperty property) {
-            if (property.propertyType != SerializedPropertyType.Generic ||
-                property.serializedObject.targetObject is not LabelLibraryBase labelLibrary ||
-                property.FindPropertyRelative(LabelDataIdPropertyPath) is not { } idProperty
-               ) {
-                return;
-            }
             
             if (idProperty.intValue != 0) {
                 menu.AddItem(new GUIContent("Search usages..."), false, () => {
