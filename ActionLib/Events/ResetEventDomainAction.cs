@@ -4,7 +4,6 @@ using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
 using MisterGames.Scenario.Events;
-using UnityEngine;
 
 namespace MisterGames.ActionLib.Events {
     
@@ -12,11 +11,10 @@ namespace MisterGames.ActionLib.Events {
     public sealed class ResetEventDomainAction : IActorAction {
 
         public EventDomain eventDomain;
-        public bool includeSaved;
         public bool notify;
 
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            EventBus.Main.ResetEventsOf(eventDomain, includeSaved, notify);
+            EventBus.Main.ResetEventsOf(eventDomain, notify);
             return default;
         }
     }

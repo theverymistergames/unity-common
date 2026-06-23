@@ -26,7 +26,6 @@ namespace MisterGames.Scenario.Events {
             public string name;
             public int id;
             public int subId;
-            public bool save;
         }
 
         public string GetEventName(int eventId) {
@@ -45,15 +44,6 @@ namespace MisterGames.Scenario.Events {
             ref var e = ref g.events[index];
 
             return new EventReference(this, e.id);
-        }
-
-        internal bool IsSerializable(int eventId) {
-            if (!TryGetAddress(eventId, out int group, out int index)) return false;
-
-            ref var g = ref _eventGroups[group];
-            ref var e = ref g.events[index];
-
-            return e.save;
         }
 
         internal bool TryGetAddress(int eventId, out int group, out int index) {

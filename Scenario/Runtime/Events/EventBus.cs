@@ -82,12 +82,11 @@ namespace MisterGames.Scenario.Events {
             return value;
         }
         
-        public void ResetEventsOf(EventDomain eventDomain, bool includeSaved, bool notify) {
-            var groups = eventDomain.EventGroups;
+        public void ResetEventsOf(EventDomain eventDomain, bool notify) {
             List<EventReference> buffer = null;
             
             foreach (var e in _subIdEventSet) {
-                if (e._eventDomain == null || !includeSaved && e._eventDomain.IsSerializable(e._eventId) || !RaisedEvents.Remove(e)) continue;
+                if (e._eventDomain != eventDomain || !RaisedEvents.Remove(e)) continue;
 
                 buffer ??= ListPool<EventReference>.Get();
                 buffer.Add(e);
@@ -102,6 +101,7 @@ namespace MisterGames.Scenario.Events {
                 ListPool<EventReference>.Release(buffer);
             }
             
+            var groups = eventDomain.EventGroups;
             for (int i = 0; i < groups.Length; i++) {
                 ref var group = ref groups[i];
                 
@@ -109,7 +109,7 @@ namespace MisterGames.Scenario.Events {
                     ref var evt = ref group.events[j];
                     var e = new EventReference(eventDomain, evt.id);
                     
-                    if ((includeSaved || !evt.save) && RaisedEvents.Remove(e) && notify) NotifyEventRaised(e);
+                    if (RaisedEvents.Remove(e) && notify) NotifyEventRaised(e);
                 }
             }
         }

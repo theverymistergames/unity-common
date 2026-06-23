@@ -8,7 +8,6 @@ namespace MisterGames.Scenario.Editor.Events {
     public class EventEntryPropertyDrawer : PropertyDrawer {
 
         private static readonly GUIContent RaisedEventsLabel = new GUIContent("Raised events");
-        private static readonly GUIContent SaveLabel = new GUIContent("Save");
 
         private const float DividerDefault = 3f;
         private const float DividerGroup = 60f;
@@ -18,7 +17,6 @@ namespace MisterGames.Scenario.Editor.Events {
             int eventId = property.FindPropertyRelative("id").intValue;
             
             float subIdWidth = position.width * 0.1f;
-            float saveWidth = position.width * 0.1f;
             
             var rect = position;
             
@@ -27,16 +25,9 @@ namespace MisterGames.Scenario.Editor.Events {
             
             EditorGUI.BeginProperty(rect, label, property);
             
-            rect.width -= EditorGUIUtility.singleLineHeight + DividerDefault + saveWidth;
+            rect.width -= EditorGUIUtility.singleLineHeight + DividerDefault;
             EditorGUI.PropertyField(rect, property.FindPropertyRelative("name"));
             
-            rect.x += rect.width + DividerDefault;
-            rect.width = saveWidth;
-            GUI.Label(rect, SaveLabel);
-            
-            rect.x += rect.width + DividerDefault;
-            rect.width = EditorGUIUtility.singleLineHeight;
-            EditorGUI.PropertyField(rect, property.FindPropertyRelative("save"), GUIContent.none);
             EditorGUI.EndProperty();
 
             EditorGUI.BeginDisabledGroup(!Application.isPlaying);
@@ -45,7 +36,7 @@ namespace MisterGames.Scenario.Editor.Events {
             rect.width = subIdWidth;
 
             var subIdProperty = property.FindPropertyRelative("subId");
-            subIdProperty.intValue = EditorGUI.IntField(rect, GUIContent.none, subIdProperty.intValue);
+            subIdProperty.intValue = EditorGUI.IntField(rect, GUIContent.none, Application.isPlaying ? subIdProperty.intValue : 0);
             
             rect.x += subIdWidth + DividerDefault;
             rect.width = EditorGUIUtility.singleLineHeight;

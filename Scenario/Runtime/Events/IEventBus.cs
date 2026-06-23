@@ -22,7 +22,7 @@ namespace MisterGames.Scenario.Events {
         void RemoveStream<T>(IEventStream<T> stream);
         void RequestData<T>(T defaultValue = default);
         
-        void ResetEventsOf(EventDomain eventDomain, bool includeSaved, bool notify);
+        void ResetEventsOf(EventDomain eventDomain, bool notify);
         void ResetAllEvents(bool notify);
         
         void Subscribe(EventReference e, IEventListener listener);
