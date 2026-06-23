@@ -74,6 +74,11 @@ namespace MisterGames.Scenario.Events {
         public static void Unsubscribe<T>(this EventReference e, Action<T> listener) {
             EventBus.Main.Unsubscribe(e, listener);
         }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ResetDomainEvents(this EventDomain eventDomain, bool notify = false) {
+            EventBus.Main.ResetEventsOf(eventDomain, notify);
+        }
     }
 
 }

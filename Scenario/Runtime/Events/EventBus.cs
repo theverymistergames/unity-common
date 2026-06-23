@@ -10,14 +10,14 @@ namespace MisterGames.Scenario.Events {
     public sealed class EventBus : IEventBus {
         
         public static readonly IEventBus Main = new EventBus();
-        private static readonly EventReference RootEvent = new();
+        private static readonly EventReference GlobalEvent = new(eventDomain: null, eventId: -1);
 
         public Dictionary<EventReference, int> RaisedEvents { get; } = new();
         
         private readonly HashSet<EventReference> _subIdEventSet = new();
         private readonly TreeMap<EventReference, object> _listenerTree = new();
         private readonly MultiValueDictionary<Type, object> _streamMap = new();
-        
+
         public void Dispose() {
             _listenerTree.Clear();
             _subIdEventSet.Clear();
@@ -54,7 +54,7 @@ namespace MisterGames.Scenario.Events {
         }
 
         public void RaiseGlobal<T>(T data) {
-            NotifyEventRaised(RootEvent, data);
+            NotifyEventRaised(GlobalEvent, data);
         }
 
         public void AddStream<T>(IEventStream<T> stream) {
@@ -66,7 +66,7 @@ namespace MisterGames.Scenario.Events {
         }
 
         public void RequestData<T>(T defaultValue = default) {
-            NotifyEventRaised(RootEvent, GetStreamData(defaultValue));
+            NotifyEventRaised(GlobalEvent, GetStreamData(defaultValue));
         }
         
         private T GetStreamData<T>(T value) {
@@ -172,21 +172,21 @@ namespace MisterGames.Scenario.Events {
         }
         
         public void Subscribe<T>(IEventListener<T> listener, bool forceNotify = false) {
-            SubscribeListener(RootEvent, listener);
+            SubscribeListener(GlobalEvent, listener);
             if (forceNotify) RequestData<T>();
         }
 
         public void Unsubscribe<T>(IEventListener<T> listener) {
-            UnsubscribeListener(RootEvent, listener);
+            UnsubscribeListener(GlobalEvent, listener);
         }
 
         public void Subscribe<T>(Action<T> listener, bool forceNotify = false) {
-            SubscribeListener(RootEvent, listener);
+            SubscribeListener(GlobalEvent, listener);
             if (forceNotify) RequestData<T>();
         }
 
         public void Unsubscribe<T>(Action<T> listener) {
-            UnsubscribeListener(RootEvent, listener);
+            UnsubscribeListener(GlobalEvent, listener);
         }
 
         private void SetEventCount(EventReference e, int count) {

@@ -14,7 +14,7 @@ namespace MisterGames.ActionLib.Events {
         public bool notify;
 
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            EventBus.Main.ResetEventsOf(eventDomain, notify);
+            eventDomain.ResetDomainEvents(notify);
             return default;
         }
     }

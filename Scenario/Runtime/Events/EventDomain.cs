@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using MisterGames.Common.Maths;
 using UnityEngine;
 
 namespace MisterGames.Scenario.Events {
@@ -131,7 +132,11 @@ namespace MisterGames.Scenario.Events {
             _occupiedIdsCache.Clear();
 
             int id = _nextId;
-
+            if (id <= 0) {
+                id = 0;
+                id.IncrementUncheckedRef();
+            }
+            
             for (int i = 0; i < _eventGroups.Length; i++) {
                 var events = _eventGroups[i].events;
 
@@ -139,8 +144,12 @@ namespace MisterGames.Scenario.Events {
                     ref var entry = ref events[j];
 
                     if (entry.id == 0 || _occupiedIdsCache.Contains(entry.id)) {
-                        if (id == 0) id++;
-                        entry.id = id++;
+                        if (id <= 0) {
+                            id = 0;
+                            id.IncrementUncheckedRef();
+                        }
+                        
+                        entry.id = id.IncrementUncheckedRef();
                     }
 
                     _occupiedIdsCache.Add(entry.id);
