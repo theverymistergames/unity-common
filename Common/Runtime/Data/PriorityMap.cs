@@ -1,9 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace MisterGames.Common.Data {
     
     public sealed class PriorityMap<K, V> : IComparer<K> {
+        
+        private readonly struct Entry {
+            
+            public readonly V value;
+            public readonly int order;
+            
+            public Entry(V value, int order = 0) {
+                this.value = value;
+                this.order = order;
+            }
+
+            public Entry WithValue(V value) => new(value, order);
+        }
         
         public int Count => _map.Count;
         
@@ -16,19 +28,11 @@ namespace MisterGames.Common.Data {
         
         private readonly Dictionary<K, Entry> _map = new();
         private readonly List<K> _sortedKeys = new();
+        private readonly int _sortOrder;
         private V _resultCache;
 
-        private readonly struct Entry {
-            
-            public readonly V value;
-            public readonly int order;
-            
-            public Entry(V value, int order = 0) {
-                this.value = value;
-                this.order = order;
-            }
-
-            public Entry WithValue(V value) => new(value, order);
+        public PriorityMap(bool asc = true) {
+            _sortOrder = asc ? 1 : -1;
         }
         
         public bool TryGetResult(out V value) {
@@ -95,7 +99,7 @@ namespace MisterGames.Common.Data {
         }
 
         int IComparer<K>.Compare(K x, K y) {
-            return _map.GetValueOrDefault(x).order.CompareTo(_map.GetValueOrDefault(y).order);
+            return _map.GetValueOrDefault(x).order.CompareTo(_map.GetValueOrDefault(y).order) * _sortOrder;
         }
 
         private V GetResult() {

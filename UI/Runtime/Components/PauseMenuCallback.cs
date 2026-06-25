@@ -33,10 +33,6 @@ namespace MisterGames.UI.Components {
         [SerializeField] [Min(0)] private int _openWindowOrder;
         [SerializeField] private UiWindow _menuWindow;
 
-        [Header("Conditions")]
-        [SubclassSelector]
-        [SerializeReference] private IActorCondition _canOpenPauseMenu;
-
         [Header("Timescale")]
         [SerializeField] private LabelValue _timescalePriority;
         [SerializeField] [Min(0)] private int _changeTimescaleOrderOnOpen;
@@ -63,7 +59,6 @@ namespace MisterGames.UI.Components {
         
         private CancellationTokenSource _actionCts;
         private IActor _actor;
-        private float _startTime;
         private bool _isMenuOpened;
         private byte _openId;
         private byte _operationId;
@@ -78,8 +73,6 @@ namespace MisterGames.UI.Components {
         }
 
         private void OnEnable() {
-            _startTime = TimeSources.scaledTime;
-            
             if (Services.TryGet(out IUiWindowService service)) service.OnWindowsHierarchyChanged += OnWindowHierarchyChanged;
             
             _isMenuOpened = IsWindowRootInOpenedBranch(_menuWindow);
@@ -136,8 +129,7 @@ namespace MisterGames.UI.Components {
             if (!Services.TryGet(out IUiNavigationService service) || 
                 service.IsExitToPauseBlocked() ||
                 _menuWindow == null ||
-                IsWindowRootInOpenedBranch(_menuWindow) ||
-                !IsConditionMatch(_canOpenPauseMenu)) 
+                IsWindowRootInOpenedBranch(_menuWindow)) 
             {
                 return;
             }
@@ -292,10 +284,6 @@ namespace MisterGames.UI.Components {
                    Services.TryGet(out IUiWindowService windowService) &&
                    windowService.GetRootWindow(window) is { } rootWindow &&
                    windowService.IsInOpenedBranch(rootWindow);
-        }
-
-        private bool IsConditionMatch(IActorCondition condition) {
-            return condition == null || condition.IsMatch(_actor, _startTime);
         }
     }
     

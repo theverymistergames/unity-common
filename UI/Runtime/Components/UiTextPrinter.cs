@@ -158,10 +158,10 @@ namespace MisterGames.UI.Components {
                 prev = c;
                 delayAccum += symbolDelay;
                 
-                float startTime = useTimeScale ? TimeSources.scaledTime : Time.time;
+                float startTime = useTimeScale ? TimeSources.scaledTime : Time.unscaledTime;
                 finishDelay = isForceFinish ? finishDelay : -1f;
                 
-                while ((useTimeScale ? TimeSources.scaledTime : Time.time) - startTime < delayAccum &&
+                while ((useTimeScale ? TimeSources.scaledTime : Time.unscaledTime) - startTime < delayAccum &&
                        !cancellationToken.IsCancellationRequested &&
                        !_destroyCts.IsCancellationRequested &&
                        _operationIdMap.TryGetValue(hash, out currentId) && currentId == id && 
@@ -173,7 +173,7 @@ namespace MisterGames.UI.Components {
                 float newFinishDelay = _immediateFinishRequestsMap.GetValueOrDefault(hash, -1f);
 
                 if (finishDelay.IsNearlyEqual(newFinishDelay)) {
-                    delayAccum -= (useTimeScale ? TimeSources.scaledTime : Time.time) - startTime;
+                    delayAccum -= (useTimeScale ? TimeSources.scaledTime : Time.unscaledTime) - startTime;
                     continue;
                 }
 

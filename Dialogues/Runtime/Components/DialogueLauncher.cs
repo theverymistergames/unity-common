@@ -9,7 +9,6 @@ using MisterGames.Common.Localization;
 using MisterGames.Common.Service;
 using MisterGames.Dialogues.Core;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using Random = UnityEngine.Random;
 
 namespace MisterGames.Dialogues.Components {
@@ -18,6 +17,7 @@ namespace MisterGames.Dialogues.Components {
 
         [SerializeField] private DialogueReference _dialogueReference;
         [SerializeField] private LaunchMode _launchMode = LaunchMode.OnEnable;
+        [SerializeField] private bool _useTimeScale = false;
         
         [Header("Skip")]
         [SerializeField] private NextElementMode _nextElementMode = NextElementMode.WaitSkip;
@@ -263,8 +263,8 @@ namespace MisterGames.Dialogues.Components {
             }
         }
         
-        private static UniTask WaitDelay(float delay, CancellationToken cancellationToken) {
-            return UniTask.Delay(TimeSpan.FromSeconds(delay), cancellationToken: cancellationToken)
+        private UniTask WaitDelay(float delay, CancellationToken cancellationToken) {
+            return UniTask.Delay(TimeSpan.FromSeconds(delay), _useTimeScale ? DelayType.DeltaTime : DelayType.UnscaledDeltaTime, cancellationToken: cancellationToken)
                 .SuppressCancellationThrow();
         }
     }

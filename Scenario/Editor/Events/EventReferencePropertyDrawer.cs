@@ -16,13 +16,13 @@ namespace MisterGames.Scenario.Editor.Events {
         private const string Null = "<null>";
         private const string NotFound = "(not found)";
 
-        private const string EventDomainPropertyPath = "_eventDomain";
-        private const string EventIdPropertyPath = "_eventId";
-        private const string SubIdPropertyPath = "_subId";
+        public const string EventDomainPropertyPath = "_eventDomain";
+        public const string EventIdPropertyPath = "_eventId";
+        public const string EventSubIdPropertyPath = "_subId";
 
         private const float SubIdWidthRatio = 0.15f;
 
-        private static readonly Color BoxColor = new Color(0.2f, 0.2f, 0.2f);
+        private static readonly Color BoxColor = new(0.2f, 0.2f, 0.2f);
 
         private readonly struct Entry {
 
@@ -56,10 +56,10 @@ namespace MisterGames.Scenario.Editor.Events {
             GUI.color = BoxColor;
             GUI.Box(rect, GUIContent.none, EditorStyles.helpBox);
             GUI.color = oldColor;
-            
+
             var eventDomainProperty = property.FindPropertyRelative(EventDomainPropertyPath);
             var eventIdProperty = property.FindPropertyRelative(EventIdPropertyPath);
-            var subIdProperty = property.FindPropertyRelative(SubIdPropertyPath);
+            var subIdProperty = property.FindPropertyRelative(EventSubIdPropertyPath);
 
             rect = position;
             rect.x += indent - 1f;
@@ -107,7 +107,7 @@ namespace MisterGames.Scenario.Editor.Events {
 
                         property.FindPropertyRelative(EventDomainPropertyPath).objectReferenceValue = e.eventDomain;
                         property.FindPropertyRelative(EventIdPropertyPath).intValue = e.eventId;
-                        property.FindPropertyRelative(SubIdPropertyPath).intValue = 0;
+                        property.FindPropertyRelative(EventSubIdPropertyPath).intValue = 0;
 
                         p.serializedObject.ApplyModifiedProperties();
                         p.serializedObject.Update();

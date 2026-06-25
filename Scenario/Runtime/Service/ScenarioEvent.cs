@@ -8,10 +8,20 @@ using UnityEngine;
 namespace MisterGames.Scenario.Service {
     
     [Serializable]
-    public struct ScenarioEvent {
+    public sealed class ScenarioEvent {
+        
+        [Header("Event Conditions")]
         public EventReference startEvent;
-        public Optional<CompareInt> expectedCount;
+        public Mode subIdMode;
+        public Optional<CompareInt> expectedRaiseCount = Optional<CompareInt>.WithValue(new CompareInt { mode = CompareMode.Greater, value = 0 });
+        
+        [Header("Action")]
         [SerializeReference] [SubclassSelector] public IActorAction startAction;
+
+        public enum Mode {
+            IgnoreSubId,
+            ExpectSubId,
+        }
     }
     
 }

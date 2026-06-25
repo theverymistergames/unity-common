@@ -6,9 +6,9 @@ namespace MisterGames.Scenario.Events {
     [Serializable]
     public struct EventReference : IEquatable<EventReference> {
         
-        [SerializeField] internal EventDomain _eventDomain;
-        [SerializeField] internal int _eventId;
-        [SerializeField] internal int _subId;
+        [SerializeField] private EventDomain _eventDomain;
+        [SerializeField] private int _eventId;
+        [SerializeField] private int _subId;
 
         public EventDomain EventDomain => _eventDomain;
         public int EventId => _eventId;

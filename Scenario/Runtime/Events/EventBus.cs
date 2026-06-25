@@ -86,7 +86,7 @@ namespace MisterGames.Scenario.Events {
             List<EventReference> buffer = null;
             
             foreach (var e in _subIdEventSet) {
-                if (e._eventDomain != eventDomain || !RaisedEvents.Remove(e)) continue;
+                if (e.EventDomain != eventDomain || !RaisedEvents.Remove(e)) continue;
 
                 buffer ??= ListPool<EventReference>.Get();
                 buffer.Add(e);
@@ -192,12 +192,12 @@ namespace MisterGames.Scenario.Events {
         private void SetEventCount(EventReference e, int count) {
             if (count == 0) {
                 RaisedEvents.Remove(e);
-                if (e._subId != 0) _subIdEventSet.Remove(e);
+                if (e.SubId != 0) _subIdEventSet.Remove(e);
                 return;
             }
 
             RaisedEvents[e] = count;
-            if (e._subId != 0) _subIdEventSet.Add(e);
+            if (e.SubId != 0) _subIdEventSet.Add(e);
         }
         
         private void SubscribeListener(EventReference e, object listener) {

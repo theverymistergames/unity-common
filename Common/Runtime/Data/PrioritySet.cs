@@ -8,7 +8,12 @@ namespace MisterGames.Common.Data {
         
         private readonly Dictionary<T, int> _map = new();
         private readonly List<T> _sortedKeys = new();
+        private readonly int _sortOrder;
         private T _resultCache;
+        
+        public PrioritySet(bool asc = true) {
+            _sortOrder = asc ? 1 : -1;
+        }
         
         public bool TryGetResult(out T value) {
             if (_map.Count > 0) {
@@ -48,7 +53,7 @@ namespace MisterGames.Common.Data {
         }
 
         int IComparer<T>.Compare(T x, T y) {
-            return _map.GetValueOrDefault(x).CompareTo(_map.GetValueOrDefault(y));
+            return _map.GetValueOrDefault(x).CompareTo(_map.GetValueOrDefault(y)) * _sortOrder;
         }
 
         private T GetResult() {

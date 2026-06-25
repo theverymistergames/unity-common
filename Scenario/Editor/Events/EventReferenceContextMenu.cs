@@ -9,8 +9,6 @@ namespace MisterGames.Scenario.Editor.Events {
     [InitializeOnLoad]
     internal static class EventReferenceContextMenu {
         
-        private const string LibraryPropertyPath = nameof(EventReference._eventDomain);
-        private const string IdPropertyPath = nameof(EventReference._eventId);
         private const string EntryNamePropertyPath = nameof(EventDomain.EventEntry.name);
         private const string EntryIdPropertyPath = nameof(EventDomain.EventEntry.id);
         private const string GroupNamePropertyPath = nameof(EventDomain.EventGroup.name);
@@ -29,8 +27,8 @@ namespace MisterGames.Scenario.Editor.Events {
 
         private static void CheckEventReference(GenericMenu menu, SerializedProperty property) {
             if (property.propertyType != SerializedPropertyType.Generic ||
-                property.FindPropertyRelative(LibraryPropertyPath) is not { objectReferenceValue: EventDomain eventDomain } ||
-                property.FindPropertyRelative(IdPropertyPath) is not { } idProperty
+                property.FindPropertyRelative(EventReferencePropertyDrawer.EventDomainPropertyPath) is not { objectReferenceValue: EventDomain eventDomain } ||
+                property.FindPropertyRelative(EventReferencePropertyDrawer.EventIdPropertyPath) is not { } idProperty
                ) {
                 return;
             }

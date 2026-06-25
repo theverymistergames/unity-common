@@ -662,8 +662,8 @@ namespace MisterGames.Scenario.Editor.Events {
         private static string FormatPropertyPath(string path) {
             if (string.IsNullOrEmpty(path)) return path;
             path = path.Replace(".Array.data[", "[");
-            if (path.EndsWith($".{nameof(EventReference._eventDomain)}"))
-                path = path.Substring(0, path.Length - $".{nameof(EventReference._eventDomain)}".Length);
+            if (path.EndsWith($".{EventReferencePropertyDrawer.EventDomainPropertyPath}"))
+                path = path[..^$".{EventReferencePropertyDrawer.EventDomainPropertyPath}".Length];
             return path;
         }
 
@@ -773,26 +773,26 @@ namespace MisterGames.Scenario.Editor.Events {
             var seenPairs = new HashSet<(string, int)>();
 
             foreach (var target in targets) {
-                if (target._eventDomain == null) continue;
-                string libPath = AssetDatabase.GetAssetPath(target._eventDomain);
-                var pair = (libPath, target._eventId);
+                if (target.EventDomain == null) continue;
+                string libPath = AssetDatabase.GetAssetPath(target.EventDomain);
+                var pair = (libPath, target.EventId);
                 if (!seenPairs.Add(pair)) continue;
 
                 resultsByTarget.TryGetValue(pair, out var groupResults);
                 groupResults ??= new List<SerializedReferenceUsageFinder.Usage>();
 
-                string groupLabel = EventReferencePropertyDrawer.GetFullLabel(target._eventDomain, target._eventId);
+                string groupLabel = EventReferencePropertyDrawer.GetFullLabel(target.EventDomain, target.EventId);
 
                 tabGroups.Add(new SearchTabGroup {
                     DomainPath = libPath,
-                    Id = target._eventId,
+                    Id = target.EventId,
                     Label = groupLabel,
                     ResultStartIndex = orderedResults.Count,
                     ResultCount = groupResults.Count,
                 });
 
                 orderedResults.AddRange(groupResults);
-                domainIds.Add((target._eventDomain, target._eventId));
+                domainIds.Add((target.EventDomain, target.EventId));
             }
 
             // Clear old results, keep targets state intact
@@ -847,9 +847,9 @@ namespace MisterGames.Scenario.Editor.Events {
             tab.TargetDomainPaths.Clear();
             tab.TargetIds.Clear();
             foreach (var t in rt.TargetsState.targets) {
-                if (t._eventDomain == null) continue;
-                tab.TargetDomainPaths.Add(AssetDatabase.GetAssetPath(t._eventDomain));
-                tab.TargetIds.Add(t._eventId);
+                if (t.EventDomain == null) continue;
+                tab.TargetDomainPaths.Add(AssetDatabase.GetAssetPath(t.EventDomain));
+                tab.TargetIds.Add(t.EventId);
             }
         }
 
@@ -881,7 +881,7 @@ namespace MisterGames.Scenario.Editor.Events {
             runtime.GroupHeaderStates.Add(state);
             runtime.GroupHeaderSerializedObjects.Add(so);
             runtime.GroupHeaderProperties.Add(labelProp);
-            runtime.GroupDomainProperties.Add(labelProp.FindPropertyRelative(nameof(EventReference._eventDomain)));
+            runtime.GroupDomainProperties.Add(labelProp.FindPropertyRelative(EventReferencePropertyDrawer.EventDomainPropertyPath));
         }
 
         private void CloseTab(int index) {
@@ -905,9 +905,9 @@ namespace MisterGames.Scenario.Editor.Events {
             int validCount = 0;
             string first = null;
             foreach (var t in targets) {
-                if (t._eventDomain == null) continue;
+                if (t.EventDomain == null) continue;
                 if (first == null) {
-                    first = EventReferencePropertyDrawer.GetFullLabel(t._eventDomain, t._eventId);
+                    first = EventReferencePropertyDrawer.GetFullLabel(t.EventDomain, t.EventId);
                 }
                 validCount++;
             }
@@ -969,7 +969,7 @@ namespace MisterGames.Scenario.Editor.Events {
             if (fieldType == null) return false;
             if (fieldType != typeof(EventReference)) return false;
             if (usage.Target != lib) return false;
-            var idProp = usage.GetSiblingProperty(nameof(EventReference._eventId));
+            var idProp = usage.GetSiblingProperty(EventReferencePropertyDrawer.EventIdPropertyPath);
             if (idProp?.propertyType != SerializedPropertyType.Integer) return false;
             matchedId = idProp.intValue;
             return ids.Contains(matchedId);
