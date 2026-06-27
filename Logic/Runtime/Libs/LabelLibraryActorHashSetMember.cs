@@ -2,18 +2,17 @@
 using MisterGames.Actors;
 using MisterGames.Common.Labels;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 namespace MisterGames.Logic.Libs {
     
-    public sealed class LabelLibraryObjectSetMember : MonoBehaviour, IActorComponent {
+    public sealed class LabelLibraryActorHashSetMember : MonoBehaviour, IActorComponent {
         
-        [SerializeField] private LabelValue<HashSet<Object>> _groupLabel;
-        [SerializeField] private Object[] _addToGroup;
+        [SerializeField] private LabelValue<HashSet<IActor>> _setLabel;
+        [SerializeField] private ActorRoot[] _addToGroup;
 
         private void Awake() {
-            if (!_groupLabel.TryGetData(out var data) || data == null) {
-                _groupLabel.TrySetData(new HashSet<Object>(_addToGroup));
+            if (!_setLabel.TryGetData(out var data) || data == null) {
+                _setLabel.TrySetData(new HashSet<IActor>(_addToGroup));
                 return;
             }
 
@@ -23,7 +22,7 @@ namespace MisterGames.Logic.Libs {
         }
 
         private void OnDestroy() {
-            _groupLabel.ClearData();
+            _setLabel.ClearData();
         }
     }
     

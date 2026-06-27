@@ -12,8 +12,12 @@ namespace MisterGames.Character.View {
 
     public sealed class CameraContainer : MonoBehaviour, IActorComponent {
         
+        [Header("Transforms")]
         [SerializeField] private Transform _translationRoot;
         [SerializeField] private Transform _rotationRoot;
+        
+        [Header("Timescale")]
+        [SerializeField] private bool _useUnscaledTime;
         
         public enum MaskMode {
             And,
@@ -116,6 +120,10 @@ namespace MisterGames.Character.View {
                 dest.fov + state.fov - _resultState.fov
             );
         }
+        
+        private float GetDeltaTime() {
+            return _useUnscaledTime ? Time.unscaledDeltaTime : Time.deltaTime;
+        }
 
         public async UniTask ClearPersistentStates(float duration = 0f) {
             byte id = _clearPersistentStateOperationId.IncrementUncheckedRef();
@@ -134,7 +142,7 @@ namespace MisterGames.Character.View {
             _isClearingPersistentStates = true;
             
             while (id == _clearPersistentStateOperationId && !cancellationToken.IsCancellationRequested) {
-                t = Mathf.Clamp01(t + speed * Time.deltaTime);
+                t = Mathf.Clamp01(t + speed * GetDeltaTime());
 
                 _persistentStateBuffer = new CameraState(
                     Vector3.Lerp(_persistentStateBuffer.position, Vector3.zero, t),

@@ -7,7 +7,7 @@ namespace MisterGames.Interact.Interactives {
 
         public bool shouldBeInInteraction;
 
-        public bool IsMatch((IInteractiveUser, IInteractive) context, float startTime) {
+        public bool IsMatch((IInteractiveUser, IInteractive) context) {
             var (user, _) = context;
             return shouldBeInInteraction == user.Interactives.Count > 0;
         }

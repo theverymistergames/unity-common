@@ -2,6 +2,7 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
+using MisterGames.Actors.Actions;
 using MisterGames.Common.Async;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Lists;
@@ -31,6 +32,10 @@ namespace MisterGames.Dialogues.Components {
         [SerializeField] [Min(0f)] private float _minReplicaDelayChangedRole = 0.6f;
         [SerializeField] [Min(0f)] private float _maxReplicaDelayChangedRole = 1f;
         
+        [Header("Actions")]
+        [SerializeReference] [SubclassSelector] private IActorAction _beforeStartAction;
+        [SerializeReference] [SubclassSelector] private IActorAction _afterFinishAction;
+        
         private enum LaunchMode {
             OnAwake,
             OnEnable,
@@ -49,7 +54,12 @@ namespace MisterGames.Dialogues.Components {
         private CancellationTokenSource _enableCts;
         private CancellationTokenSource _dialogueLaunchCts;
         private CancellationTokenSource _skipCts;
+        private IActor _actor;
         private float _lastSkipTime;
+
+        void IActorComponent.OnAwake(IActor actor) {
+            _actor = actor;
+        }
 
         private void Awake() {
             AsyncExt.RecreateCts(ref _destroyCts);
@@ -143,6 +153,11 @@ namespace MisterGames.Dialogues.Components {
                 return;
             }
 
+            if (_beforeStartAction != null) {
+                await _beforeStartAction.Apply(_actor, cancellationToken);
+                if (cancellationToken.IsCancellationRequested) return;
+            }
+            
             service.StartDialogue(table.DialogueId);
 
             await service.AwaitDialogueEvents(table.DialogueId, DialogueEvent.DialogueStart, cancellationToken);
@@ -243,10 +258,14 @@ namespace MisterGames.Dialogues.Components {
             service.StopDialogue(table.DialogueId);
             service.UnloadDialogue(_dialogueReference.AssetGUID);
             
-            await service.AwaitDialogueEvents(table.DialogueId, DialogueEvent.DialogueStart, cancellationToken);
-            
+            await service.AwaitDialogueEvents(table.DialogueId, DialogueEvent.DialogueStop, cancellationToken);
             if (cancellationToken.IsCancellationRequested) return;
-
+            
+            if (_afterFinishAction != null) {
+                await _afterFinishAction.Apply(_actor, cancellationToken);
+                if (cancellationToken.IsCancellationRequested) return;
+            }
+            
             IsRunning = false;
             IsPaused = false;
         }

@@ -7,7 +7,7 @@ namespace MisterGames.Scenario.Events {
 
         Dictionary<EventReference, int> RaisedEvents { get; }
         
-        bool IsRaised(EventReference e);
+        bool IsRaisedAtLeastOnce(EventReference e);
         int GetCount(EventReference e);
         
         void Raise(EventReference e, int add = 1);

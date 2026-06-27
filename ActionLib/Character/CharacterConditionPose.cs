@@ -12,7 +12,7 @@ namespace MisterGames.ActionLib.Character {
         public Optional<CharacterPose> equalsCurrentPose;
         public Optional<CharacterPose> equalsTargetPose;
 
-        public bool IsMatch(IActor context, float startTime) {
+        public bool IsMatch(IActor context) {
             var pose = context.GetComponent<CharacterPosePipeline>();
             return equalsCurrentPose.IsEmptyOrEquals(pose.CurrentPose) &&
                    equalsTargetPose.IsEmptyOrEquals(pose.TargetPose);

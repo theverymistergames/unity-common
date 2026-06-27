@@ -11,8 +11,18 @@ namespace MisterGames.Scenario.Events {
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsRaised(this EventReference e) {
-            return EventBus.Main.IsRaised(e);
+        public static bool IsRaisedAtLeastOnce(this EventReference e) {
+            return EventBus.Main.IsRaisedAtLeastOnce(e);
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsCountZero(this EventReference e) {
+            return EventBus.Main.GetCount(e) == 0;
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsCountMoreThanZero(this EventReference e) {
+            return EventBus.Main.GetCount(e) > 0;
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

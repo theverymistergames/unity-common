@@ -19,6 +19,9 @@ namespace MisterGames.Character.Breath {
         [SerializeField] private float _rotationAmplitude = 1f;
         [SerializeField] private float _rotationAmplitudeRandom = 0.3f;
 
+        [Header("Timescale")]
+        [SerializeField] private bool _useUnscaledTime;
+        
         private CharacterBreathPipeline _breath;
         private CameraContainer _cameraContainer;
         private int _cameraStateId;
@@ -41,7 +44,7 @@ namespace MisterGames.Character.Breath {
             _breath.OnExhale += OnExhale;
 
             _cameraStateId = _cameraContainer.CreateState();
-            TimeSources.Get(PlayerLoopStage.Update).Subscribe(this);
+            PlayerLoopStage.Update.Subscribe(this);
         }
 
         private void OnDisable() {
@@ -49,10 +52,12 @@ namespace MisterGames.Character.Breath {
             _breath.OnExhale -= OnExhale;
 
             _cameraContainer.RemoveState(_cameraStateId);
-            TimeSources.Get(PlayerLoopStage.Update).Unsubscribe(this);
+            PlayerLoopStage.Update.Unsubscribe(this);
         }
 
-        public void OnUpdate(float dt) {
+        void IUpdate.OnUpdate(float dt) {
+            dt = GetDeltaTime();
+            
             _preTargetPositionOffset = Vector3.Lerp(_preTargetPositionOffset, _targetPositionOffset, _smoothFactor * dt);
             _preTargetRotationOffset = Quaternion.SlerpUnclamped(_preTargetRotationOffset, _targetRotationOffset, _smoothFactor * dt);
 
@@ -63,6 +68,10 @@ namespace MisterGames.Character.Breath {
             _cameraContainer.SetRotationOffset(_cameraStateId, _cameraMotionWeight, _currentRotationOffset);
         }
 
+        private float GetDeltaTime() {
+            return _useUnscaledTime ? Time.unscaledDeltaTime : Time.deltaTime;
+        }
+        
         private void OnInhale(float duration, float amplitude) {
             SetupNextTargetOffsets(1, amplitude);
         }

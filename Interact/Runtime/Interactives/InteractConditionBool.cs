@@ -7,7 +7,7 @@ namespace MisterGames.Interact.Interactives {
 
         public bool allow;
 
-        public bool IsMatch((IInteractiveUser, IInteractive) context, float startTime) {
+        public bool IsMatch((IInteractiveUser, IInteractive) context) {
             return allow;
         }
     }

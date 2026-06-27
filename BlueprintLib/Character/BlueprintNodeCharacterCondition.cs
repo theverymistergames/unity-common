@@ -31,7 +31,7 @@ namespace MisterGames.BlueprintLib {
             var actor = blueprint.Read<IActor>(token, 0);
             var condition = blueprint.Read<IActorCondition>(token, 1, _condition);
             
-            return condition?.IsMatch(actor, _startTime) ?? false;
+            return condition?.IsMatch(actor) ?? false;
         }
     }
 

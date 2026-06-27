@@ -23,7 +23,7 @@ namespace MisterGames.Actors.Actions {
             for (int i = 0; i < cases.Length; i++) {
                 ref var c = ref cases[i];
                 
-                if (c.condition?.IsMatch(context, time) ?? true) {
+                if (c.condition?.IsMatch(context) ?? true) {
                     return c.action?.Apply(context, cancellationToken) ?? default;
                 }
             }

@@ -38,7 +38,7 @@ namespace MisterGames.Common.Tick {
         private void OnDisable() {
             AsyncExt.DisposeCts(ref _enableCts);
             
-            ChangeTimescale(_timeScale, _timeScaleDurationOnOpen, removeOnFinish: false, _destroyCts.Token).Forget();
+            ChangeTimescale(1f, _timeScaleDurationOnOpen, removeOnFinish: true, _destroyCts.Token).Forget();
         }
 
         private UniTask ChangeTimescale(float timescale, float duration, bool removeOnFinish, CancellationToken cancellationToken) {

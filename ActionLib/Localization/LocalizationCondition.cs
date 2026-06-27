@@ -11,7 +11,7 @@ namespace MisterGames.ActionLib.Localization {
 
         public Locale locale;
         
-        public bool IsMatch(IActor context, float startTime) {
+        public bool IsMatch(IActor context) {
             return Services.Get<ILocalizationService>() is { } service && service.Locale == locale;
         }
     }

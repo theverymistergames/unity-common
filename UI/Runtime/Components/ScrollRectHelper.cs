@@ -170,11 +170,16 @@ namespace MisterGames.UI.Components {
         }
 
         public void MoveToPosition(Vector2 normalizedPosition, float duration) {
-            _targetMovePositionNormalized = normalizedPosition
-                //.WithY(-normalizedPosition.y)
-                .Clamp01();
+            var nextTargetPos = normalizedPosition.Clamp01();
+            var currTargetPos = _targetMovePositionNormalized;
+            float time = Time.realtimeSinceStartup;
             
-            _moveToPositionStartTime = Time.realtimeSinceStartup;
+            _targetMovePositionNormalized = nextTargetPos;
+
+            if (currTargetPos != nextTargetPos || time >= _moveToPositionStartTime + _moveToPositionDuration) {
+                _moveToPositionStartTime = time;
+            }
+            
             _moveToPositionDuration = duration;
         }
 

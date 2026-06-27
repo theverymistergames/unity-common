@@ -18,7 +18,7 @@ namespace MisterGames.ActionLib.Flow {
             float time = UnityEngine.Time.time;
             
             while (!cancellationToken.IsCancellationRequested) {
-                if (condition.IsMatch(context, time)) return;
+                if (condition.IsMatch(context)) return;
 
                 if (checkPeriod > 0f) {
                     await UniTask.Delay(TimeSpan.FromSeconds(checkPeriod), cancellationToken: cancellationToken)

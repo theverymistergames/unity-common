@@ -3,11 +3,15 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using MisterGames.Common.Data;
+using MisterGames.Common.Strings;
+using UnityEngine;
 using UnityEngine.Pool;
 
 namespace MisterGames.Scenario.Events {
 
     public sealed class EventBus : IEventBus {
+
+        private const bool EnableLogs = false;
         
         public static readonly IEventBus Main = new EventBus();
         private static readonly EventReference GlobalEvent = new(eventDomain: null, eventId: -1);
@@ -25,8 +29,8 @@ namespace MisterGames.Scenario.Events {
             _streamMap.Clear();
         }
 
-        public bool IsRaised(EventReference e) {
-            return RaisedEvents.TryGetValue(e, out int count) && count > 0;
+        public bool IsRaisedAtLeastOnce(EventReference e) {
+            return RaisedEvents.ContainsKey(e);
         }
 
         public int GetCount(EventReference e) {
@@ -59,10 +63,14 @@ namespace MisterGames.Scenario.Events {
 
         public void AddStream<T>(IEventStream<T> stream) {
             _streamMap.AddValue(typeof(T), stream);
+            
+            if (EnableLogs) Log($"added stream [{stream}] for data type {nameof(T)}");
         }
         
         public void RemoveStream<T>(IEventStream<T> stream) {
             _streamMap.RemoveValue(typeof(T), stream);
+            
+            if (EnableLogs) Log($"removed stream [{stream}] for data type {nameof(T)}");
         }
 
         public void RequestData<T>(T defaultValue = default) {
@@ -83,6 +91,8 @@ namespace MisterGames.Scenario.Events {
         }
         
         public void ResetEventsOf(EventDomain eventDomain, bool notify) {
+            if (EnableLogs) Log($"reset events of [{eventDomain}] (notify {notify})");
+            
             List<EventReference> buffer = null;
             
             foreach (var e in _subIdEventSet) {
@@ -115,6 +125,8 @@ namespace MisterGames.Scenario.Events {
         }
 
         public void ResetAllEvents(bool notify) {
+            if (EnableLogs) Log($"reset all events (notify {notify})");
+            
             if (!notify) {
                 RaisedEvents.Clear();
                 _subIdEventSet.Clear();
@@ -137,6 +149,67 @@ namespace MisterGames.Scenario.Events {
             }
             
             ArrayPool<EventReference>.Shared.Return(buffer);
+        }
+        
+        private void SetEventCount(EventReference e, int count) {
+            RaisedEvents[e] = count;
+            if (e.SubId != 0) _subIdEventSet.Add(e);
+            
+            if (EnableLogs) Log($"set count [{count}] for [{e}]");
+        }
+
+        private void NotifyEventRaised(EventReference e) {
+            if (EnableLogs) Log($"raised [{e}] (no data)");
+            
+            if (!_listenerTree.TryGetNode(e, out int root)) return;
+
+            int i = _listenerTree.GetChild(root);
+            while (i >= 0) {
+                int next = _listenerTree.GetNext(i);
+                
+                switch (_listenerTree.GetValueAt(i)) {
+                    case IEventListener interfaceListener:
+                        interfaceListener.OnEventRaised(e);
+                        break;
+
+                    case Action actionListener:
+                        actionListener.Invoke();
+                        break;
+                }
+
+                i = next;
+            }
+        }
+        
+        private void NotifyEventRaised<T>(EventReference e, T data) {
+            if (EnableLogs) Log($"raised [{e}] with data [{data}]");
+            
+            if (!_listenerTree.TryGetNode(e, out int root)) return;
+            
+            int i = _listenerTree.GetChild(root);
+            while (i >= 0) {
+                int next = _listenerTree.GetNext(i);
+                
+                switch (_listenerTree.GetValueAt(i)) {
+                    case IEventListener<T> interfaceListener:
+                        interfaceListener.OnEventRaised(e, data);
+                        break;
+
+                    case Action<T> actionListener:
+                        actionListener.Invoke(data);
+                        break;
+                    
+                    case IEventListener interfaceListener:
+                        interfaceListener.OnEventRaised(e);
+                        break;
+
+                    case Action actionListener:
+                        actionListener.Invoke();
+                        break;
+                }
+
+                i = next;
+            }
         }
 
         public void Subscribe(EventReference e, IEventListener listener) {
@@ -189,17 +262,6 @@ namespace MisterGames.Scenario.Events {
             UnsubscribeListener(GlobalEvent, listener);
         }
 
-        private void SetEventCount(EventReference e, int count) {
-            if (count == 0) {
-                RaisedEvents.Remove(e);
-                if (e.SubId != 0) _subIdEventSet.Remove(e);
-                return;
-            }
-
-            RaisedEvents[e] = count;
-            if (e.SubId != 0) _subIdEventSet.Add(e);
-        }
-        
         private void SubscribeListener(EventReference e, object listener) {
             int root = _listenerTree.GetOrAddNode(e);
             
@@ -208,8 +270,10 @@ namespace MisterGames.Scenario.Events {
             }
 
             _listenerTree.AddEndPoint(root, listener);
+            
+            if (EnableLogs) Log($"added listener [{listener}] for [{e}]");
         }
-        
+
         private void UnsubscribeListener(EventReference e, object listener) {
             if (!_listenerTree.TryGetNode(e, out int root)) return;
             
@@ -217,63 +281,20 @@ namespace MisterGames.Scenario.Events {
                 if (!AreEqualListeners(_listenerTree.GetValueAt(i), listener)) continue;
 
                 _listenerTree.RemoveNodeAt(i);
+                
+                if (EnableLogs) Log($"removed listener [{listener}] for [{e}]");
                 return;
-            }
-        }
-        
-        private void NotifyEventRaised(EventReference e) {
-            if (!_listenerTree.TryGetNode(e, out int root)) return;
-
-            int i = _listenerTree.GetChild(root);
-            while (i >= 0) {
-                int next = _listenerTree.GetNext(i);
-                
-                switch (_listenerTree.GetValueAt(i)) {
-                    case IEventListener interfaceListener:
-                        interfaceListener.OnEventRaised(e);
-                        break;
-
-                    case Action actionListener:
-                        actionListener.Invoke();
-                        break;
-                }
-
-                i = next;
-            }
-        }
-        
-        private void NotifyEventRaised<T>(EventReference e, T data) {
-            if (!_listenerTree.TryGetNode(e, out int root)) return;
-            
-            int i = _listenerTree.GetChild(root);
-            while (i >= 0) {
-                int next = _listenerTree.GetNext(i);
-                
-                switch (_listenerTree.GetValueAt(i)) {
-                    case IEventListener<T> interfaceListener:
-                        interfaceListener.OnEventRaised(e, data);
-                        break;
-
-                    case Action<T> actionListener:
-                        actionListener.Invoke(data);
-                        break;
-                    
-                    case IEventListener interfaceListener:
-                        interfaceListener.OnEventRaised(e);
-                        break;
-
-                    case Action actionListener:
-                        actionListener.Invoke();
-                        break;
-                }
-
-                i = next;
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool AreEqualListeners(object l0, object l1) {
             return l0 is not null && l0.Equals(l1);
+        }
+
+        [HideInCallstack]
+        private static void Log(string message) {
+            Debug.Log($"{nameof(EventBus).FormatColorOnlyForEditor(Color.white)}: f {Time.frameCount}, {message}");
         }
     }
     

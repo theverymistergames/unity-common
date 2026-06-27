@@ -11,7 +11,7 @@ namespace MisterGames.ActionLib.Flow {
         
         [Range(0f, 1f)] public float probability;
         
-        public bool IsMatch(IActor context, float startTime) {
+        public bool IsMatch(IActor context) {
             return probability >= Random.value;
         }
     }

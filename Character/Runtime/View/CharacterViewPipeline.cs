@@ -17,6 +17,7 @@ namespace MisterGames.Character.View {
 
     public sealed class CharacterViewPipeline : MonoBehaviour, IActorComponent {
         
+        [Header("Transforms")]
         [SerializeField] private Transform _head;
         [SerializeField] private Transform _body;
         
@@ -122,7 +123,7 @@ namespace MisterGames.Character.View {
 
             _headParent = _head.parent;
             
-            _startTime = Time.time;
+            _startTime = GetTime();
 
             _timescaleSystem = Services.Get<ITimescaleSystem>();
             _deviceService = Services.Get<IDeviceService>();
@@ -277,7 +278,7 @@ namespace MisterGames.Character.View {
         }
 
         private void HandleViewVectorChanged(Vector2 input) {
-            if (Time.time < _startTime + _startDelay) return;
+            if (GetTime() < _startTime + _startDelay) return;
 
             switch (_deviceService.CurrentDevice) {
                 case DeviceType.KeyboardMouse:
@@ -309,6 +310,10 @@ namespace MisterGames.Character.View {
             }
         }
 
+        private static float GetTime() {
+            return Time.unscaledTime;
+        }
+        
         private float GetDeltaTime() {
             return _timescalePriority.TryGetValue(out int value) 
                 ? Time.unscaledDeltaTime * _timescaleSystem.GetTimeScale(value) 

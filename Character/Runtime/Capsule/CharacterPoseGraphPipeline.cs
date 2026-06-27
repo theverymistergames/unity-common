@@ -161,7 +161,7 @@ namespace MisterGames.Character.Capsule {
 
                 if (t.SourcePose == sourcePose &&
                     t.TargetPose == targetPose &&
-                    (t.Condition == null || t.Condition.IsMatch(_actor, _startTime))
+                    (t.Condition == null || t.Condition.IsMatch(_actor))
                 ) {
                     transition = t;
                     return true;

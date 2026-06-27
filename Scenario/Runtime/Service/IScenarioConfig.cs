@@ -3,9 +3,9 @@
 namespace MisterGames.Scenario.Service {
     
     public interface IScenarioConfig {
-    
-        IReadOnlyList<ScenarioEvent> ScenarioEvents { get; }
-        
+
+        void CollectAllScenarioEvents(List<ScenarioEvent> buffer);
+
     }
     
 }

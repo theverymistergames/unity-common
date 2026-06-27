@@ -1,6 +1,7 @@
 ﻿using MisterGames.Actors;
 using MisterGames.Common.Tick;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace MisterGames.Character.Breath {
 
@@ -14,6 +15,9 @@ namespace MisterGames.Character.Breath {
         [SerializeField] [Min(0f)] private float _amplitude = 1f;
         [SerializeField] [Min(0f)] private float _amplitudeRandom = 0.1f;
 
+        [Header("Timescale")]
+        [SerializeField] private bool _useUnscaledTime;
+        
         public event BreathCallback OnInhale = delegate {  };
         public event BreathCallback OnExhale = delegate {  };
 
@@ -35,7 +39,7 @@ namespace MisterGames.Character.Breath {
             PlayerLoopStage.Update.Unsubscribe(this);
         }
 
-        public void OnUpdate(float dt) {
+        void IUpdate.OnUpdate(float dt) {
             int lastDirection = _dir;
 
             if (_timer <= 0f || _timer >= _targetPeriod) {
@@ -47,7 +51,7 @@ namespace MisterGames.Character.Breath {
                 _dir = -1;
             }
 
-            _timer += dt;
+            _timer += GetDeltaTime();
 
             if (lastDirection == _dir) return;
 
@@ -55,6 +59,10 @@ namespace MisterGames.Character.Breath {
 
             if (_dir > 0) OnInhale.Invoke(_targetPeriod * 0.5f, targetAmplitude);
             else OnExhale.Invoke(_targetPeriod * 0.5f, targetAmplitude);
+        }
+        
+        private float GetDeltaTime() {
+            return _useUnscaledTime ? Time.unscaledDeltaTime : Time.deltaTime;
         }
     }
 

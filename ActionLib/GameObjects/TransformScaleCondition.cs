@@ -21,7 +21,7 @@ namespace MisterGames.ActionLib.GameObjects {
             AxisZ,
         }
         
-        public bool IsMatch(IActor context, float startTime) {
+        public bool IsMatch(IActor context) {
             var scale = target.localScale;
             return compareValue switch {
                 ComparedValue.Magnitude => mode.IsMatch(scale.sqrMagnitude, 3f * Mathf.Sign(value) * value * value),

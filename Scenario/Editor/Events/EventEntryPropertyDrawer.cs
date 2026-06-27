@@ -7,8 +7,6 @@ namespace MisterGames.Scenario.Editor.Events {
     [CustomPropertyDrawer(typeof(EventDomain.EventEntry))]
     public class EventEntryPropertyDrawer : PropertyDrawer {
 
-        private static readonly GUIContent RaisedEventsLabel = new("Raised events");
-
         private const float DividerDefault = 3f;
         private const float DividerGroup = 60f;
 
@@ -49,20 +47,18 @@ namespace MisterGames.Scenario.Editor.Events {
             if (Application.isPlaying) {
                 rect = new Rect(
                     position.x,
-                    position.y + EditorGUIUtility.standardVerticalSpacing + EditorGUIUtility.singleLineHeight,
+                    position.y,
                     position.width,
                     EditorGUIUtility.singleLineHeight
                 );
                 
-                GUI.Label(rect, RaisedEventsLabel);
-
                 var raisedEventsMap = EventBus.Main.RaisedEvents;
                 
                 foreach ((var e, int count) in raisedEventsMap) {
                     if (e.EventId != eventIdProp.intValue || e.EventDomain != eventDomain) continue;
 
                     rect.y += EditorGUIUtility.standardVerticalSpacing + EditorGUIUtility.singleLineHeight;
-                    GUI.Label(rect, $" - [{e.SubId}]: count {count}");
+                    EditorGUI.PrefixLabel(rect, new GUIContent($"[subID {e.SubId}]: count {count}"));
                 }
             }
             
@@ -81,7 +77,7 @@ namespace MisterGames.Scenario.Editor.Events {
                     if (e.EventId == eventId && e.EventDomain == eventDomain) count++;
                 }
                 
-                return (count + 2) * EditorGUIUtility.singleLineHeight + (count + 1) * EditorGUIUtility.standardVerticalSpacing;
+                return (count + 1) * EditorGUIUtility.singleLineHeight + count * EditorGUIUtility.standardVerticalSpacing;
             }
             
             return EditorGUIUtility.singleLineHeight; 

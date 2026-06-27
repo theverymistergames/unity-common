@@ -19,7 +19,7 @@ namespace MisterGames.Interact.Cursors {
         public bool TryGetCursorIcon(IInteractiveUser user, IInteractive interactive, float startTime, out CursorIcon cursorIcon) {
             for (int i = 0; i < _cases.Length; i++) {
                 var c = _cases[i];
-                if (!c.constraint.IsMatch((user, interactive), startTime)) continue;
+                if (!c.constraint.IsMatch((user, interactive))) continue;
 
                 cursorIcon = c.cursorIcon;
                 return true;

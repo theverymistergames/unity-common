@@ -315,7 +315,7 @@ namespace MisterGames.Common.Stats {
                 bool conditionResult = true;
 
                 if (_conditionsMap.TryGetValue(data.id, out var conditionData)) {
-                    conditionResult = conditionData.condition.IsMatch(_context, conditionData.startTime);
+                    conditionResult = conditionData.condition.IsMatch(_context);
 
                     if (conditionData.result != conditionResult) {
                         conditionData = new ConditionData(conditionData.condition, conditionData.startTime, conditionResult);
@@ -397,7 +397,7 @@ namespace MisterGames.Common.Stats {
             _modifiersMap[id] = modifier;
             _modifiersData.Add(new ModifierData(id, sourceHash, startTime, modifier.Duration));
 
-            if (condition != null) _conditionsMap[id] = new ConditionData(condition, startTime, condition.IsMatch(_context, startTime));
+            if (condition != null) _conditionsMap[id] = new ConditionData(condition, startTime, condition.IsMatch(_context));
         }
 
         private static GroupKey CreateGroupKey(IStatModifier modifier) {

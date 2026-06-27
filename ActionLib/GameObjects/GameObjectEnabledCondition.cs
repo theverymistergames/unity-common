@@ -11,7 +11,7 @@ namespace MisterGames.ActionLib.GameObjects {
         public GameObject gameObject;
         public bool shouldBeActiveSelf;
         
-        public bool IsMatch(IActor context, float startTime) {
+        public bool IsMatch(IActor context) {
             return shouldBeActiveSelf == gameObject.activeSelf;
         }
     }

@@ -10,7 +10,7 @@ namespace MisterGames.ActionLib.Character {
 
         public bool isGrounded;
 
-        public bool IsMatch(IActor context, float startTime) {
+        public bool IsMatch(IActor context) {
             return context.GetComponent<CharacterGroundDetector>().CollisionInfo.hasContact == isGrounded;
         }
     }
