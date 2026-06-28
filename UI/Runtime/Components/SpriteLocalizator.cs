@@ -1,12 +1,13 @@
-﻿using MisterGames.Common.Service;
+﻿using MisterGames.Common.Attributes;
+using MisterGames.Common.Localization;
+using MisterGames.Common.Service;
 using UnityEngine;
 using UnityEngine.UI;
-
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
 
-namespace MisterGames.Common.Localization.Components {
+namespace MisterGames.UI.Components {
     
     public sealed class SpriteLocalizator : MonoBehaviour {
         
@@ -41,7 +42,6 @@ namespace MisterGames.Common.Localization.Components {
 
 #if UNITY_EDITOR
         [Header("Debug")]
-        [SerializeField] private bool _updateInRuntime = false;
         [SerializeField] private Locale _defaultLocale = LocaleId.en.ToLocale();
         [HideInInspector] [SerializeField] private Locale _lastLocale = LocaleId.en.ToLocale();
         [HideInInspector] [SerializeField] private LocalizationKey<Sprite> _lastKey;
@@ -62,7 +62,7 @@ namespace MisterGames.Common.Localization.Components {
             FetchValueForDefaultLocale();
         }
 
-        [Attributes.Button]
+        [Button]
         private void FetchValueForDefaultLocale() {
             _lastLocale = _defaultLocale;
             _lastKey = _key;

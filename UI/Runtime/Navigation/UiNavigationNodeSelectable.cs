@@ -1,9 +1,8 @@
 ﻿using MisterGames.Common.Service;
-using MisterGames.UI.Navigation;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace MisterGames.UI.Components {
+namespace MisterGames.UI.Navigation {
     
     [DisallowMultipleComponent]
     [RequireComponent(typeof(Selectable))]

@@ -4,12 +4,11 @@ using Cysharp.Threading.Tasks;
 using MisterGames.Common.Async;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Service;
-using MisterGames.UI.Navigation;
 using MisterGames.UI.Windows;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace MisterGames.UI.Components {
+namespace MisterGames.UI.Navigation {
     
     [DisallowMultipleComponent]
     public sealed class UiNavigationNode : MonoBehaviour, IUiNavigationNode {
@@ -17,7 +16,7 @@ namespace MisterGames.UI.Components {
         [Header("Inner Navigation")]
         [SerializeField] private UiNavigationMode _mode;
         [SerializeField] private Vector2 _cell = new(400f, 50f);
-        [SerializeField] private bool _loop = true;
+        [SerializeField] private UiNavigationLoop _loop = UiNavigationLoop.Vertical;
         [SerializeField] private bool _scrollable = false;
         [VisibleIf(nameof(_scrollable))]
         [SerializeField] private RectTransform _viewport;

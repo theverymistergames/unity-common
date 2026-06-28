@@ -2,7 +2,6 @@
 using MisterGames.Common.Attributes;
 using MisterGames.Common.GameObjects;
 using MisterGames.Common.Service;
-using MisterGames.UI.Navigation;
 using MisterGames.UI.Windows;
 using UnityEngine;
 using UnityEngine.Serialization;
@@ -12,7 +11,7 @@ using UnityEngine.UI;
 using UnityEditor;
 #endif
 
-namespace MisterGames.UI.Components {
+namespace MisterGames.UI.Navigation {
     
     [DisallowMultipleComponent]
     [RequireComponent(typeof(UiNavigationNode))]

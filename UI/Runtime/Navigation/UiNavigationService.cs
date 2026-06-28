@@ -45,6 +45,8 @@ namespace MisterGames.UI.Navigation {
         private int _selectedGameObjectHash;
         private int _selectedSelectableHash;
         private int _navigateBackPerformFrame;
+        private float _lastRealtimeUsedBuiltInNavigation;
+        private UiNavigationDirection _lastDirUsedBuiltInNavigation;
         
         public void Initialize(IUiWindowService uiWindowService, UiNavigationSettings settings) {
             _uiWindowService = uiWindowService;
@@ -78,8 +80,8 @@ namespace MisterGames.UI.Navigation {
         }
 
         void IUpdate.OnUpdate(float dt) {
-            CheckCurrentSelectedGameObject();
             ProcessSelectableNavigation(CurrentSelectable);
+            CheckCurrentSelectedGameObject();
         }
 
         private void OnWindowsHierarchyChanged() {
@@ -122,7 +124,10 @@ namespace MisterGames.UI.Navigation {
 
         private void ProcessSelectableNavigation(Selectable selectable) {
             var moveVector = _moveInput.ReadValue<Vector2>();
-            if (moveVector == default || selectable == null) return;
+            if (moveVector == default || selectable == null) {
+                _lastRealtimeUsedBuiltInNavigation = -1f;
+                return;
+            }
             
             var dir = Mathf.Abs(moveVector.y) >= Mathf.Abs(moveVector.x) 
                 ? Mathf.Sign(moveVector.y) > 0f ? UiNavigationDirection.Up : UiNavigationDirection.Down
@@ -136,9 +141,24 @@ namespace MisterGames.UI.Navigation {
                 _ => throw new ArgumentOutOfRangeException()
             };
 
-            if (nextElement == null) {
-                GetParentNavigationNode(selectable)?.OnNavigateOut(selectable, dir);
+            float time = Time.realtimeSinceStartup;
+            
+            // Use built-in navigation
+            if (nextElement != null) {
+                _lastRealtimeUsedBuiltInNavigation = time;
+                _lastDirUsedBuiltInNavigation = dir;
+                return;
             }
+            
+            // Cooldown for outer node navigation if same dir used
+            if (dir == _lastDirUsedBuiltInNavigation &&
+                _lastRealtimeUsedBuiltInNavigation >= 0f &&
+                time < _lastRealtimeUsedBuiltInNavigation + _settings.outerNodeNavigationCooldown) 
+            {
+                return;
+            }
+            
+            GetParentNavigationNode(selectable)?.OnNavigateOut(selectable, dir);
         }
 
         public void SelectGameObject(GameObject gameObject) {

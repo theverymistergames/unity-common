@@ -1,12 +1,13 @@
-﻿using MisterGames.Common.Service;
+﻿using MisterGames.Common.Attributes;
+using MisterGames.Common.Localization;
+using MisterGames.Common.Service;
 using TMPro;
 using UnityEngine;
-
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
 
-namespace MisterGames.Common.Localization.Components {
+namespace MisterGames.UI.Components {
     
     public sealed class TmpTextLocalizator : MonoBehaviour {
         
@@ -59,7 +60,7 @@ namespace MisterGames.Common.Localization.Components {
             FetchValueForDefaultLocale();
         }
 
-        [Attributes.Button]
+        [Button]
         private void FetchValueForDefaultLocale() {
             _lastLocale = _defaultLocale;
             _lastKey = _key;

@@ -27,12 +27,47 @@ namespace MisterGames.UI.Components {
         public void SetElements(IReadOnlyList<string> elements) {
             _elements.Clear();
             _elements.AddRange(elements);
-            
-            SetSelectedIndex(_selectedIndex);
 
+            SetSelectedIndex(_selectedIndex);
+            
 #if UNITY_EDITOR
             if (!Application.isPlaying) EditorUtility.SetDirty(this);
 #endif
+        }
+
+        public void SetElementsCount(int count) {
+            _elements ??= new List<string>(count);
+
+            int oldCount = _elements.Count;
+            if (oldCount == count) return;
+            
+            if (oldCount > count) {
+                _elements.RemoveRange(count, _elements.Count - count);
+            }
+            else if (oldCount < count) {
+                for (int i = oldCount; i < count; i++) {
+                    _elements.Add(null);
+                }
+            }
+      
+            SetSelectedIndex(_selectedIndex);
+            
+#if UNITY_EDITOR
+            if (!Application.isPlaying) EditorUtility.SetDirty(this);
+#endif
+        }
+
+        public bool SetElement(int index, string text) {
+            if (_elements == null || index < 0 || index >= _elements.Count) return false;
+            
+            _elements[index] = text;
+            if (index == _selectedIndex) SetSelectedIndex(index);
+            
+#if UNITY_EDITOR
+            if (!Application.isPlaying) EditorUtility.SetDirty(this);
+#endif
+            
+            return true;
         }
 
         public int GetSelectedIndex() {
@@ -40,14 +75,24 @@ namespace MisterGames.UI.Components {
         }
 
         public void SetSelectedIndex(int index) {
+            int nextIndex;
+            string nextText;
+
             if (_elements == null || _elements.Count == 0) {
-                _selectedIndex = 0;
-                ApplyText(null);
-                return;
+                nextIndex = 0;
+                nextText = null;
             }
-            
-            _selectedIndex = Mathf.Clamp(index, 0, _elements.Count - 1);
-            ApplyText(_elements[_selectedIndex]);
+            else {
+                nextIndex = Mathf.Clamp(index, 0, _elements.Count - 1);
+                nextText = _elements[nextIndex];
+            }
+
+            _selectedIndex = nextIndex;
+            ApplyText(nextText);
+
+#if UNITY_EDITOR
+            if (!Application.isPlaying) EditorUtility.SetDirty(this);
+#endif
         }
 
         public void IncrementSelectedIndex() {

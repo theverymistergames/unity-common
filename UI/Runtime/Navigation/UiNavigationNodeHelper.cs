@@ -5,7 +5,6 @@ using Cysharp.Threading.Tasks;
 using MisterGames.Common.Jobs;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Service;
-using MisterGames.Common.Strings;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Jobs;
@@ -107,7 +106,7 @@ namespace MisterGames.UI.Navigation {
         public async UniTask UpdateNavigationNextFrame(
             Transform rootTrf,
             UiNavigationMode mode,
-            bool loop,
+            UiNavigationLoop loop,
             Vector2 cell,
             CancellationToken cancellationToken) 
         {
@@ -123,7 +122,7 @@ namespace MisterGames.UI.Navigation {
             UpdateNavigation(rootTrf, mode, loop, cell);
         }
         
-        public void UpdateNavigation(Transform rootTrf, UiNavigationMode mode, bool loop, Vector2 cellSize) {
+        public void UpdateNavigation(Transform rootTrf, UiNavigationMode mode, UiNavigationLoop loop, Vector2 cellSize) {
             var selectablesArray = new NativeArray<SelectableData>(_gameObjectIdToSelectableMap.Count, Allocator.TempJob);
             var neighborsArray = new NativeArray<SelectableNeighborsData>(_gameObjectIdToSelectableMap.Count, Allocator.TempJob);
              
@@ -201,7 +200,7 @@ namespace MisterGames.UI.Navigation {
             
             [ReadOnly] public NativeArray<SelectableData> selectablesArray;
             [ReadOnly] public UiNavigationMode mode;
-            [ReadOnly] public bool loop;
+            [ReadOnly] public UiNavigationLoop loop;
             [ReadOnly] public float2 cellSize;
             
             [WriteOnly] public NativeArray<SelectableNeighborsData> neighborsArray;
@@ -270,28 +269,31 @@ namespace MisterGames.UI.Navigation {
                         minSqrDistanceLeft = sqrDistance;
                         leftId = data.id;
                     }
-                    
-                    if (loop) {
+
+                    if ((loop & UiNavigationLoop.Vertical) != 0) {
                         if (isUp &&
                             (distanceUpmost.x < 0f ||
-                             distance2.y >= distanceUpmost.y && 
+                             distance2.y >= distanceUpmost.y &&
                              (distance2.x <= distanceUpmost.x || distanceCells2.x <= distanceUpmostCells.x))) 
                         {
                             distanceUpmost = distance2;
                             distanceUpmostCells = distanceCells2;
                             upmostId = data.id;
                         }
-                    
+
                         if (isDown &&
                             (distanceDownmost.x < 0f ||
-                             distance2.y >= distanceDownmost.y && 
+                             distance2.y >= distanceDownmost.y &&
                              (distance2.x <= distanceDownmost.x || distanceCells2.x <= distanceDownmostCells.x))) 
                         {
                             distanceDownmost = distance2;
                             distanceDownmostCells = distanceCells2;
                             downmostId = data.id;
                         }
+                    }
                     
+                    if ((loop & UiNavigationLoop.Horizontal) != 0)
+                    {
                         if (isRight &&
                             (distanceRightmost.y < 0f ||
                              distance2.x >= distanceRightmost.x && 
@@ -314,9 +316,12 @@ namespace MisterGames.UI.Navigation {
                     }
                 }
 
-                if (loop) {
+                if ((loop & UiNavigationLoop.Vertical) != 0) {
                     if (upId == 0) upId = downmostId;
                     if (downId == 0) downId = upmostId;
+                }
+
+                if ((loop & UiNavigationLoop.Horizontal) != 0) {
                     if (rightId == 0) rightId = leftmostId;
                     if (leftId == 0) leftId = rightmostId;
                 }
