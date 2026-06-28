@@ -5,7 +5,7 @@ using UnityEngine.InputSystem;
 namespace MisterGames.UI.Components {
     
     [RequireComponent(typeof(UiButton))]
-    public sealed class UiButtonInputs : MonoBehaviour {
+    public sealed class UiButtonInputClick : MonoBehaviour {
 
         [SerializeField] private UiButton _button;
         [SerializeField] private InputActionRef[] _inputs;

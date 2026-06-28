@@ -9,14 +9,12 @@ using UnityEngine;
 
 namespace MisterGames.UI.Components {
     
-    [RequireComponent(typeof(UiButton))]
     [RequireComponent(typeof(UiElementAnimator))]
-    public sealed class UiButtonSfx : MonoBehaviour {
+    public sealed class UiElementSfx : MonoBehaviour {
 
         [EmbeddedInspector]
         [SerializeField] private UiSfxSettings _uiSfxSettings;
         [SerializeField] private Option[] _stateOptions;
-        [SerializeField] private LabelValue<AudioClip[]> _clickSounds;
 
         [Serializable]
         private struct Option {
@@ -24,26 +22,18 @@ namespace MisterGames.UI.Components {
             public LabelValue<AudioClip[]> sounds;
         }
         
-        private UiButton _button;
         private IUiElementAnimator _animator;
         
         private void Awake() {
-            _button = GetComponent<UiButton>();
             _animator = GetComponent<IUiElementAnimator>();
         }
 
         private void OnEnable() {
             if (_animator != null) _animator.OnStateChanged += OnStateChanged;
-            _button.OnClicked += OnClicked;
         }
 
         private void OnDisable() {
             if (_animator != null) _animator.OnStateChanged -= OnStateChanged;
-            _button.OnClicked -= OnClicked;
-        }
-
-        private void OnClicked() {
-            PlaySound(_clickSounds.GetData());
         }
 
         private void OnStateChanged(UiElementState state) {

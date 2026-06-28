@@ -36,7 +36,7 @@ namespace MisterGames.Collisions.Core {
                 raycastHit.transform,
                 raycastHit.rigidbody,
                 raycastHit.collider,
-                isValid: raycastHit.colliderInstanceID != 0
+                isValid: raycastHit.colliderEntityId != EntityId.None
             );
         }
 

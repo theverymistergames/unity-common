@@ -2,7 +2,7 @@
 using UnityEngine;
 using UnityEngine.Audio;
 
-namespace MisterGames.UI.Components {
+namespace MisterGames.UI.Data {
 
     [CreateAssetMenu(fileName = nameof(UiSfxSettings), menuName = "MisterGames/UI/" + nameof(UiSfxSettings))]
     public sealed class UiSfxSettings : ScriptableObject {

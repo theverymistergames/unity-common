@@ -80,7 +80,7 @@ namespace MisterGames.Collisions.Detectors {
                 if (opacity <= 0f) continue;
                 
                 int materialId = _textureIndexToMaterialIdMap.GetValueOrDefault(i, _defaultMaterial.GetValue());
-                _materialList.Add(new MaterialInfo(materialId, opacity));
+                _materialList.Add(new MaterialInfo(materialId, _weight * opacity));
             }
 
             return _materialList;

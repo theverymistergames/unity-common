@@ -46,15 +46,15 @@ namespace MisterGames.Collisions.Utils {
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Collider GetColliderByInstanceId(EntityId instanceId) {
+        public static Collider GetColliderByEntityId(EntityId entityId) {
             PrepareGetColliderByIdFunc();
-            return _getColliderById.Invoke(instanceId);
+            return _getColliderById.Invoke(entityId);
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Rigidbody GetRigidbodyByInstanceId(EntityId instanceId) {
+        public static Rigidbody GetRigidbodyByEntityId(EntityId entityId) {
             PrepareGetBodyByIdFunc();
-            return _getBodyById.Invoke(instanceId) as Rigidbody;
+            return _getBodyById.Invoke(entityId) as Rigidbody;
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
