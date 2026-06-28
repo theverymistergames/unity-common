@@ -5,6 +5,7 @@
         Hover,
         Selected,
         Pressed,
+        Blocked,
     }
     
 }

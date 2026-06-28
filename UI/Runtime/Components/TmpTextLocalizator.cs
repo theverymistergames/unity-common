@@ -35,7 +35,7 @@ namespace MisterGames.UI.Components {
         }
 
         private void SetupValue() {
-            _textField.SetText(_service.GetLocalizedString(_key));
+            _textField.SetText(_key.GetValue());
         }
 
 #if UNITY_EDITOR

@@ -11,6 +11,9 @@ namespace MisterGames.UI.Components {
 
         [Header("UI Components")]
         [SerializeField] private TMP_Text _elementTextField;
+        [SerializeField] private UiButton _buttonDecrement;
+        [SerializeField] private UiButton _buttonIncrement;
+        [SerializeField] private bool _loop;
         
         [Header("Elements")]
         [SerializeField] [Min(0)] private int _selectedIndex;
@@ -18,6 +21,19 @@ namespace MisterGames.UI.Components {
 
         private void Awake() {
             SetSelectedIndex(_selectedIndex);
+        }
+
+        private void OnEnable() {
+            _buttonIncrement.OnClicked += IncrementSelectedIndex;
+            _buttonDecrement.OnClicked += DecrementSelectedIndex;
+        }
+
+        private void OnDisable() {
+            _buttonIncrement.OnClicked -= IncrementSelectedIndex;
+            _buttonDecrement.OnClicked -= DecrementSelectedIndex;
+            
+            _buttonIncrement.Block(this, false);
+            _buttonDecrement.Block(this, false);
         }
 
         public IReadOnlyList<string> GetElements() {
@@ -89,24 +105,46 @@ namespace MisterGames.UI.Components {
 
             _selectedIndex = nextIndex;
             ApplyText(nextText);
-
+            UpdateButtons();
+            
 #if UNITY_EDITOR
             if (!Application.isPlaying) EditorUtility.SetDirty(this);
 #endif
         }
 
-        public void IncrementSelectedIndex() {
-            SetSelectedIndex(_selectedIndex + 1);
+        private void IncrementSelectedIndex() {
+            int count = _elements?.Count ?? 0;
+            int next = _loop && _selectedIndex >= count ? 0 : _selectedIndex + 1;
+            
+            SetSelectedIndex(next);
         }
 
-        public void DecrementSelectedIndex() {
-            SetSelectedIndex(_selectedIndex - 1);
+        private void DecrementSelectedIndex() {
+            int count = _elements?.Count ?? 0;
+            int next = _loop && _selectedIndex <= 0 ? count - 1 : _selectedIndex - 1;
+            
+            SetSelectedIndex(next);
+        }
+
+        private void UpdateButtons() {
+#if UNITY_EDITOR
+            if (!Application.isPlaying) return;
+#endif
+
+            int count = _elements?.Count ?? 0;
+            bool canShowDecrement = count > 1 && (_loop || _selectedIndex > 0);
+            bool canShowIncrement = count > 1 && (_loop || _selectedIndex < count - 1);
+            
+            _buttonIncrement.Block(this, !canShowIncrement);
+            _buttonDecrement.Block(this, !canShowDecrement);
         }
 
         private void ApplyText(string text) {
 #if UNITY_EDITOR
             if (!Application.isPlaying && !_applyTextInEditor) return;
 #endif
+            
+            if (_elementTextField == null) return;
             
             _elementTextField.SetText(text);
 

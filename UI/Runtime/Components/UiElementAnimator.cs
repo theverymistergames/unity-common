@@ -32,7 +32,10 @@ namespace MisterGames.UI.Components {
         private bool _isPressed;
         private Vector3 _originalScale;
         private byte _transitionId;
-        
+
+        private bool _hasCustomState;
+        private UiElementState _customState;
+
         private void Awake() {
             _originalScale = _elementRoot.localScale;
 
@@ -44,7 +47,7 @@ namespace MisterGames.UI.Components {
         private void OnEnable() {
             AsyncExt.RecreateCts(ref _enableCts);
 
-            ApplyState(GetState(), force: true);
+            SetState(GetAutoState(), force: true);
         }
 
         private void OnDisable() {
@@ -61,7 +64,7 @@ namespace MisterGames.UI.Components {
                 ? UiElementState.Pressed 
                 : UiElementState.Selected;
             
-            ApplyState(next);
+            SetState(next);
         }
 
         void IDeselectHandler.OnDeselect(BaseEventData eventData) {
@@ -71,7 +74,7 @@ namespace MisterGames.UI.Components {
                 ? UiElementState.Pressed 
                 : UiElementState.Default;
             
-            ApplyState(next);
+            SetState(next);
         }
 
         void IPointerMoveHandler.OnPointerMove(PointerEventData eventData) {
@@ -82,7 +85,7 @@ namespace MisterGames.UI.Components {
                 : IsSelected() ? UiElementState.Selected 
                 : UiElementState.Hover;
             
-            ApplyState(next);
+            SetState(next);
             
             if (_preset.selectOnHover && _selectable != null) _selectable.Select();
         }
@@ -95,7 +98,7 @@ namespace MisterGames.UI.Components {
                 : IsSelected() ? UiElementState.Selected 
                 : UiElementState.Default;
             
-            ApplyState(next);
+            SetState(next);
         }
 
         void IPointerDownHandler.OnPointerDown(PointerEventData eventData) {
@@ -107,7 +110,7 @@ namespace MisterGames.UI.Components {
                 : _isHovering ? UiElementState.Hover 
                 : UiElementState.Default;
 
-            ApplyState(next);
+            SetState(next);
         }
 
         void IPointerUpHandler.OnPointerUp(PointerEventData eventData) {
@@ -118,21 +121,39 @@ namespace MisterGames.UI.Components {
                 : _isHovering ? UiElementState.Hover 
                 : UiElementState.Default;
             
-            ApplyState(next);
+            SetState(next);
         }
 
-        private void ApplyState(UiElementState state, bool force = false) {
-            if (state == CurrentState && !force) return;
+        void IUiElementAnimator.ApplyCustomState(UiElementState state) {
+            _hasCustomState = true;
+            _customState = state;
             
-            CurrentState = state;
-            OnStateChanged.Invoke(CurrentState);
+            SetState(_customState);
+        }
+
+        void IUiElementAnimator.ResetCustomState() {
+            _hasCustomState = false;
             
-            byte id = _transitionId.IncrementUncheckedRef();
-            if (_enableCts != null) AnimateTransitionTo(id, state, instant: force, _enableCts.Token).Forget();
+            SetState(GetAutoState());
         }
 
         void IUiElementAnimator.AnimateState(UiElementState state) {
             if (_enableCts != null) AnimateStateAsync(state, _enableCts.Token).Forget();
+        }
+
+        private void SetState(UiElementState state, bool force = false) {
+            var nextState = _hasCustomState ? _customState : state;
+            if (nextState == CurrentState && !force) return;
+            
+            ApplyState(nextState, instant: force);
+        }
+
+        private void ApplyState(UiElementState state, bool instant) {
+            CurrentState = state;
+            OnStateChanged.Invoke(CurrentState);
+            
+            byte id = _transitionId.IncrementUncheckedRef();
+            if (_enableCts != null) AnimateTransitionTo(id, state, instant, _enableCts.Token).Forget();
         }
 
         private async UniTask AnimateStateAsync(UiElementState state, CancellationToken cancellationToken) {
@@ -141,7 +162,7 @@ namespace MisterGames.UI.Components {
             await AnimateTransitionTo(id, state, instant: false, cancellationToken);
             if (id != _transitionId || cancellationToken.IsCancellationRequested) return;
             
-            await AnimateTransitionTo(id, GetState(), instant: false, cancellationToken);
+            await AnimateTransitionTo(id, _hasCustomState ? _customState : GetAutoState(), instant: false, cancellationToken);
         }
 
         private async UniTask AnimateTransitionTo(byte id, UiElementState state, bool instant, CancellationToken cancellationToken) {
@@ -174,7 +195,7 @@ namespace MisterGames.UI.Components {
             }
         }
 
-        private UiElementState GetState() {
+        private UiElementState GetAutoState() {
             return _isPressed ? UiElementState.Pressed 
                 : IsSelected() ? UiElementState.Selected 
                 : _isHovering ? UiElementState.Hover 

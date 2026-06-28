@@ -35,7 +35,7 @@ namespace MisterGames.UI.Components {
             _uiList.SetElementsCount(count);
             
             for (int i = 0; i < count; i++) {
-                _uiList.SetElement(i, _service.GetLocalizedString(_keys![i], locale));
+                _uiList.SetElement(i, _keys![i].GetValue(locale));
             }
         }
         

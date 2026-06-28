@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using MisterGames.Common.Async;
 using MisterGames.UI.Data;
@@ -18,6 +19,7 @@ namespace MisterGames.UI.Components {
         
         public event Action OnClicked = delegate { };
         
+        private readonly HashSet<int> _blocks = new();
         private CancellationTokenSource _enableCts;
         private IUiElementAnimator _uiElementAnimator;
         private float _clickTime;
@@ -35,11 +37,27 @@ namespace MisterGames.UI.Components {
         }
 
         public void ClickManual() {
+            if (!CanClick()) return;
+            
             OnClick();
             _uiElementAnimator?.AnimateState(UiElementState.Pressed);
         }
 
+        public void Block(object source, bool block) {
+            if (block) _blocks.Add(source.GetHashCode());
+            else _blocks.Remove(source.GetHashCode());
+
+            if (_blocks.Count > 0) {
+                _uiElementAnimator?.ApplyCustomState(UiElementState.Blocked);
+            }
+            else {
+                _uiElementAnimator?.ResetCustomState();
+            }
+        }
+        
         void ISubmitHandler.OnSubmit(BaseEventData eventData) {
+            if (IsBlocked()) return;
+            
             _uiElementAnimator?.AnimateState(UiElementState.Pressed);
         }
 
@@ -54,8 +72,12 @@ namespace MisterGames.UI.Components {
             OnClicked.Invoke();
         }
 
+        private bool IsBlocked() {
+            return _blocks.Count > 0;
+        }
+
         private bool CanClick() {
-            return Time.realtimeSinceStartup > _clickTime + _clickCooldown;
+            return !IsBlocked() && Time.realtimeSinceStartup > _clickTime + _clickCooldown;
         }
         
 #if UNITY_EDITOR
