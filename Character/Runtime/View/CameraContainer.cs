@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
+using MisterGames.Common.Async;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Strings;
 using UnityEngine;
@@ -36,6 +38,7 @@ namespace MisterGames.Character.View {
         private readonly Dictionary<int, WeightedValue<float>> _fovStates = new();
         private readonly Dictionary<int, (int mask, MaskMode mode)> _cullingMaskStates = new();
 
+        private CancellationTokenSource _destroyCts;
         private CameraState _baseState;
         private CameraState _resultState;
         private CameraState _persistentState;
@@ -52,6 +55,8 @@ namespace MisterGames.Character.View {
         private bool _isClearingPersistentStates;
 
         void IActorComponent.OnAwake(IActor actor) {
+            AsyncExt.RecreateCts(ref _destroyCts);
+            
             Camera = actor.GetComponent<Camera>();
             CameraTransform = Camera.transform;
             
@@ -69,6 +74,8 @@ namespace MisterGames.Character.View {
         }
 
         private void OnDestroy() {
+            AsyncExt.DisposeCts(ref _destroyCts);
+            
             _isInitialized = false;
             
             _positionStates.Clear();
@@ -125,9 +132,9 @@ namespace MisterGames.Character.View {
             return _useUnscaledTime ? Time.unscaledDeltaTime : Time.deltaTime;
         }
 
-        public async UniTask ClearPersistentStates(float duration = 0f) {
+        public async UniTask ClearPersistentStates(float duration = 0f, CancellationToken cancellationToken = default) {
             byte id = _clearPersistentStateOperationId.IncrementUncheckedRef();
-            var cancellationToken = destroyCancellationToken;
+            var destroyToken = _destroyCts.Token;
             
 #if UNITY_EDITOR
             if (_showDebugInfo) Log($"clearing persistent state in {duration:0.000} sec, operation id {id}, state: {GetStateAsString()}");
@@ -141,7 +148,10 @@ namespace MisterGames.Character.View {
             float t = 0f;
             _isClearingPersistentStates = true;
             
-            while (id == _clearPersistentStateOperationId && !cancellationToken.IsCancellationRequested) {
+            while (id == _clearPersistentStateOperationId && 
+                   !cancellationToken.IsCancellationRequested && 
+                   !destroyToken.IsCancellationRequested) 
+            {
                 t = Mathf.Clamp01(t + speed * GetDeltaTime());
 
                 _persistentStateBuffer = new CameraState(
@@ -156,7 +166,9 @@ namespace MisterGames.Character.View {
                 await UniTask.Yield();
             }
 
-            if (id != _clearPersistentStateOperationId || cancellationToken.IsCancellationRequested) {
+            if (id != _clearPersistentStateOperationId || 
+                destroyToken.IsCancellationRequested) 
+            {
                 return;
             }
             
