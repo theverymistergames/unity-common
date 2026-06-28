@@ -1,10 +1,10 @@
-﻿using System.Buffers;
+﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Async;
 using MisterGames.Common.Attributes;
-using MisterGames.Common.Build;
 using MisterGames.Common.Lists;
 using MisterGames.Common.Strings;
 using UnityEngine;
@@ -41,6 +41,7 @@ namespace MisterGames.Scenes.Core {
         private static bool _destroyed = true;
         private static readonly HashSet<ISceneLoadHook> _sceneLoadHooks = new();
         
+        private readonly HashSet<string> _loadedScenes = new();
         private readonly Dictionary<string, SceneLoadData> _loadSceneDataMap = new();
         private ApplicationLaunchMode _applicationLaunchMode;
         private string _rootScene;
@@ -67,6 +68,7 @@ namespace MisterGames.Scenes.Core {
             _destroyed = true;
             _instance = null;
 
+            _loadedScenes.Clear();
             _loadSceneDataMap.Clear();
             _sceneLoadHooks.Clear();
         }
@@ -103,6 +105,10 @@ namespace MisterGames.Scenes.Core {
         public static bool IsSceneRequestedToLoad(string sceneName) {
             return !_destroyed && 
                    _instance._loadSceneDataMap.TryGetValue(sceneName, out var data) && data.isLoading;
+        }
+
+        public static IReadOnlyCollection<string> GetLoadedScenes() {
+            return _destroyed ? Array.Empty<string>() : _instance._loadedScenes;
         }
         
         public static void SetActiveScene(string sceneName) {
@@ -234,6 +240,8 @@ namespace MisterGames.Scenes.Core {
             await handle.WithCancellation(token);
             if (token.IsCancellationRequested) return;
 
+            _loadedScenes.Add(sceneName);
+            
             if (_logLevel >= LogLevel.Short) {
                 LogInfo($"#{id}, loaded scene {sceneName.FormatColorOnlyForEditor(Color.yellow)}");
             }
@@ -267,7 +275,8 @@ namespace MisterGames.Scenes.Core {
             
             var handle = SceneManager.UnloadSceneAsync(sceneName);
             if (handle == null) {
-                _loadSceneDataMap.Remove(sceneName);    
+                _loadSceneDataMap.Remove(sceneName);
+                _loadedScenes.Remove(sceneName);
                 return;
             }
             
@@ -279,11 +288,12 @@ namespace MisterGames.Scenes.Core {
 
             await AsyncExt.WhenAll(handle.WithCancellation(token), ProcessSceneHooksUnloadRequest(sceneName, token));
             if (token.IsCancellationRequested) return;
-
+            
             if (_logLevel >= LogLevel.Short) {
                 LogInfo($"unloaded scene {sceneName.FormatColorOnlyForEditor(Color.yellow)}");
             }
             
+            _loadedScenes.Remove(sceneName);
             _loadSceneDataMap.Remove(sceneName);
         }
 
