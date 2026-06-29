@@ -28,6 +28,8 @@ namespace MisterGames.UI.Components {
             AsyncExt.RecreateCts(ref _enableCts);
             
             _button.onClick.AddListener(OnClick);
+            
+            CheckBlockState();
         }
 
         private void OnDisable() {
@@ -46,13 +48,19 @@ namespace MisterGames.UI.Components {
         public void Block(object source, bool block) {
             if (block) _blocks.Add(source.GetHashCode());
             else _blocks.Remove(source.GetHashCode());
+            
+            CheckBlockState();
+        }
 
-            if (_blocks.Count > 0) {
+        private void CheckBlockState() {
+            if (IsBlocked()) {
                 _uiElementAnimator?.ApplyCustomState(UiElementState.Blocked);
+                _button.interactable = false;
+                return;
             }
-            else {
-                _uiElementAnimator?.ResetCustomState();
-            }
+
+            _button.interactable = true;
+            _uiElementAnimator?.ResetCustomState();
         }
         
         void ISubmitHandler.OnSubmit(BaseEventData eventData) {
@@ -63,6 +71,7 @@ namespace MisterGames.UI.Components {
 
         void IUiElementAnimated.BindAnimator(IUiElementAnimator animator) {
             _uiElementAnimator = animator;
+            CheckBlockState();
         }
 
         private void OnClick() {
@@ -81,8 +90,16 @@ namespace MisterGames.UI.Components {
         }
         
 #if UNITY_EDITOR
+        [SerializeField] private bool _isBlockedDebug;
+        
         private void Reset() {
             _button = GetComponent<Button>();
+        }
+
+        private void OnValidate() {
+            if (!Application.isPlaying) return;
+            
+            //Block(this, _isBlockedDebug);
         }
 #endif
     }

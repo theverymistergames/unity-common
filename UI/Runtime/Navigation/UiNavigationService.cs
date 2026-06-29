@@ -13,7 +13,7 @@ namespace MisterGames.UI.Navigation {
     
     public sealed class UiNavigationService : IUiNavigationService, IUpdate, IDisposable {
 
-        public event Action<GameObject, IUiWindow> OnSelectedGameObjectChanged = delegate { };
+        public event Action<Selectable, IUiWindow> OnSelectableChanged = delegate { };
         public event Action OnNavigationHierarchyChanged = delegate { };
         
         public bool HasSelectedGameObject => _selectedGameObjectHash != 0;
@@ -44,10 +44,15 @@ namespace MisterGames.UI.Navigation {
         private InputAction _cancelInput;
         private int _selectedGameObjectHash;
         private int _selectedSelectableHash;
+        private int _lastNonNullSelectableHash;
         private int _navigateBackPerformFrame;
         private float _lastRealtimeUsedBuiltInNavigation;
         private UiNavigationDirection _lastDirUsedBuiltInNavigation;
-        
+
+        private int _lastSelectableHashUsedOuterNavigation;
+        private float _lastRealtimeUsedOuterNavigation;
+        private UiNavigationDirection _lastDirUsedOuterNavigation;
+
         public void Initialize(IUiWindowService uiWindowService, UiNavigationSettings settings) {
             _uiWindowService = uiWindowService;
             _settings = settings;
@@ -88,7 +93,7 @@ namespace MisterGames.UI.Navigation {
             var selectable = _uiWindowService.GetFocusedWindow()?.CurrentSelected;
             if (selectable == null) return;
 
-            SelectGameObject(selectable);
+            SetCurrentSelectable(selectable);
         }
         
         private void CheckCurrentSelectedGameObject() {
@@ -99,33 +104,36 @@ namespace MisterGames.UI.Navigation {
             
             if (hash == _selectedGameObjectHash) return;
 
-            CurrentSelectable = isNull ? null : SelectedGameObject.GetComponent<Selectable>(); 
-            
             _selectedGameObjectHash = hash;
-            _selectedSelectableHash = CurrentSelectable == null ? 0 : CurrentSelectable.GetHashCode();
-            
-            SelectedGameObjectWindow = _uiWindowService.FindClosestParentWindow(SelectedGameObject, includeSelf: true);
-            
-            FetchSelectable(SelectedGameObject);
-            
-            OnSelectedGameObjectChanged.Invoke(SelectedGameObject, SelectedGameObjectWindow);
-        }
+            CurrentSelectable = isNull ? null : SelectedGameObject.GetComponent<Selectable>();
 
-        private void FetchSelectable(GameObject gameObject) {
-            if (gameObject == null || 
-                !gameObject.TryGetComponent(out Selectable selectable)) 
-            {
-                CurrentSelectable = null;
-                return;
+            if (CurrentSelectable == null) {
+                _selectedSelectableHash = 0;
+            }
+            else {
+                _selectedSelectableHash = CurrentSelectable.GetHashCode();
+                _lastNonNullSelectableHash = _selectedSelectableHash;
             }
 
-            CurrentSelectable = selectable;
+            SelectedGameObjectWindow = _uiWindowService.FindClosestParentWindow(SelectedGameObject, includeSelf: true);
+            
+            OnSelectableChanged.Invoke(CurrentSelectable, SelectedGameObjectWindow);
         }
 
         private void ProcessSelectableNavigation(Selectable selectable) {
             var moveVector = _moveInput.ReadValue<Vector2>();
-            if (moveVector == default || selectable == null) {
+
+            if (moveVector == default || 
+                // Try to get last nonnull selectable to avoid getting stuck
+                selectable == null && !_selectableMap.TryGetValue(_lastNonNullSelectableHash, out selectable)) 
+            {
+                // Not moving or no selectable: reset outer navigation cooldown and restore default navigation
+                if (_lastRealtimeUsedOuterNavigation >= 0f) {
+                    ActualizeSelectableNavigation(_lastSelectableHashUsedOuterNavigation);
+                }
+
                 _lastRealtimeUsedBuiltInNavigation = -1f;
+                _lastRealtimeUsedOuterNavigation = -1f;
                 return;
             }
             
@@ -142,11 +150,27 @@ namespace MisterGames.UI.Navigation {
             };
 
             float time = Time.realtimeSinceStartup;
+
+            // Outer navigation selectable or dir changed: reset outer navigation cooldown and restore default navigation
+            if (_lastRealtimeUsedOuterNavigation >= 0f &&
+                (_lastDirUsedOuterNavigation != dir ||
+                 time > _lastRealtimeUsedOuterNavigation + _settings.outerNodeNavigationCooldown ||
+                 selectable.GetHashCode() != _lastSelectableHashUsedOuterNavigation)) 
+            {
+                _lastRealtimeUsedOuterNavigation = -1f;
+                ActualizeSelectableNavigation(_lastSelectableHashUsedOuterNavigation);
+            }
             
             // Use built-in navigation
             if (nextElement != null) {
                 _lastRealtimeUsedBuiltInNavigation = time;
                 _lastDirUsedBuiltInNavigation = dir;
+                
+                // Fallback from disabled selectable
+                if (!selectable.interactable || !selectable.enabled) {
+                    nextElement.Select();
+                }
+                
                 return;
             }
             
@@ -161,8 +185,43 @@ namespace MisterGames.UI.Navigation {
             GetParentNavigationNode(selectable)?.OnNavigateOut(selectable, dir);
         }
 
-        public void SelectGameObject(GameObject gameObject) {
-            EventSystem.current.SetSelectedGameObject(gameObject);
+        public void NavigateOutTo(Selectable selectable, UiNavigationDirection direction) {
+            if (selectable == null) return;
+
+            _lastDirUsedOuterNavigation = direction;
+            _lastRealtimeUsedOuterNavigation = Time.realtimeSinceStartup;
+            _lastSelectableHashUsedOuterNavigation = selectable.GetHashCode();
+            
+            var nav = selectable.navigation;
+            
+            switch (direction) {
+                case UiNavigationDirection.Up:
+                    nav.selectOnUp = null;
+                    break;
+                
+                case UiNavigationDirection.Down:
+                    nav.selectOnDown = null;
+                    break;
+                
+                case UiNavigationDirection.Left:
+                    nav.selectOnLeft = null;
+                    break;
+                
+                case UiNavigationDirection.Right:
+                    nav.selectOnRight = null;
+                    break;
+                
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(direction), direction, null);
+            }
+
+            selectable.navigation = nav;
+            
+            SetCurrentSelectable(selectable);
+        }
+
+        public void SetCurrentSelectable(Selectable selectable) {
+            EventSystem.current.SetSelectedGameObject(selectable.gameObject);
         }
 
         public bool IsExitToPauseBlocked() {
@@ -396,6 +455,12 @@ namespace MisterGames.UI.Navigation {
                 var data = _selectableDataMap.GetValueOrDefault(selectable.GetHashCode());
                 BindNavigationNodeSelectable(selectable, data.mask);
             }
+        }
+        
+        private void ActualizeSelectableNavigation(int selectableHash) {
+            if (!_selectableMap.TryGetValue(selectableHash, out var selectable)) return;
+
+            BindNavigationNodeSelectable(selectable, _selectableDataMap.GetValueOrDefault(selectableHash).mask);
         }
     }
     

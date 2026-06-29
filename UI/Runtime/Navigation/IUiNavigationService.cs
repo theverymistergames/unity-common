@@ -8,7 +8,7 @@ namespace MisterGames.UI.Navigation {
     
     public interface IUiNavigationService {
 
-        event Action<GameObject, IUiWindow> OnSelectedGameObjectChanged;
+        event Action<Selectable, IUiWindow> OnSelectableChanged;
         event Action OnNavigationHierarchyChanged;
         
         bool HasSelectedGameObject { get; }
@@ -22,11 +22,13 @@ namespace MisterGames.UI.Navigation {
         IReadOnlyCollection<IUiNavigationNode> Nodes { get; }
         IReadOnlyCollection<RectTransform> ScrollableViewports { get; }
         
-        void SelectGameObject(GameObject gameObject);
+        void SetCurrentSelectable(Selectable selectable);
         
         bool IsExitToPauseBlocked();
         void BlockExitToPause(object source);
         void UnblockExitToPause(object source);
+        
+        void NavigateOutTo(Selectable selectable, UiNavigationDirection direction);
         
         void NavigateBack();
         bool NavigateBackPerformedThisFrame();

@@ -87,6 +87,12 @@ namespace MisterGames.UI.Service {
             Cursor.lockState = visible 
                 ? Application.isFocused ? CursorLockMode.Confined : CursorLockMode.None 
                 : CursorLockMode.Locked;
+
+#if UNITY_EDITOR
+            Cursor.lockState = visible 
+                ? CursorLockMode.None 
+                : CursorLockMode.Locked;
+#endif
         }
     }
     

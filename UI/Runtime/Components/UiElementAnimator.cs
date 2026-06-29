@@ -47,7 +47,7 @@ namespace MisterGames.UI.Components {
         private void OnEnable() {
             AsyncExt.RecreateCts(ref _enableCts);
 
-            SetState(GetAutoState(), force: true);
+            ApplyState(_hasCustomState ? _customState : GetAutoState(), force: true);
         }
 
         private void OnDisable() {
@@ -64,7 +64,7 @@ namespace MisterGames.UI.Components {
                 ? UiElementState.Pressed 
                 : UiElementState.Selected;
             
-            SetState(next);
+            ApplyState(_hasCustomState ? _customState : next);
         }
 
         void IDeselectHandler.OnDeselect(BaseEventData eventData) {
@@ -74,7 +74,7 @@ namespace MisterGames.UI.Components {
                 ? UiElementState.Pressed 
                 : UiElementState.Default;
             
-            SetState(next);
+            ApplyState(_hasCustomState ? _customState : next);
         }
 
         void IPointerMoveHandler.OnPointerMove(PointerEventData eventData) {
@@ -83,9 +83,9 @@ namespace MisterGames.UI.Components {
             var next = CurrentState == UiElementState.Pressed
                 ? UiElementState.Pressed
                 : IsSelected() ? UiElementState.Selected 
-                : UiElementState.Hover;
+                    : UiElementState.Hover;
             
-            SetState(next);
+            ApplyState(_hasCustomState ? _customState : next);
             
             if (_preset.selectOnHover && _selectable != null) _selectable.Select();
         }
@@ -96,9 +96,9 @@ namespace MisterGames.UI.Components {
             var next = CurrentState == UiElementState.Pressed
                 ? UiElementState.Pressed
                 : IsSelected() ? UiElementState.Selected 
-                : UiElementState.Default;
+                    : UiElementState.Default;
             
-            SetState(next);
+            ApplyState(_hasCustomState ? _customState : next);
         }
 
         void IPointerDownHandler.OnPointerDown(PointerEventData eventData) {
@@ -107,10 +107,10 @@ namespace MisterGames.UI.Components {
             var next = CanBePressed()
                 ? UiElementState.Pressed
                 : IsSelected() ? UiElementState.Selected
-                : _isHovering ? UiElementState.Hover 
-                : UiElementState.Default;
-
-            SetState(next);
+                    : _isHovering ? UiElementState.Hover 
+                        : UiElementState.Default;
+            
+            ApplyState(_hasCustomState ? _customState : next);
         }
 
         void IPointerUpHandler.OnPointerUp(PointerEventData eventData) {
@@ -119,41 +119,36 @@ namespace MisterGames.UI.Components {
             var next = IsSelected() 
                 ? UiElementState.Selected 
                 : _isHovering ? UiElementState.Hover 
-                : UiElementState.Default;
+                    : UiElementState.Default;
             
-            SetState(next);
+            ApplyState(_hasCustomState ? _customState : next);
         }
 
         void IUiElementAnimator.ApplyCustomState(UiElementState state) {
             _hasCustomState = true;
             _customState = state;
             
-            SetState(_customState);
+            ApplyState(state);
         }
 
         void IUiElementAnimator.ResetCustomState() {
             _hasCustomState = false;
             
-            SetState(GetAutoState());
+            ApplyState(GetAutoState());
         }
 
         void IUiElementAnimator.AnimateState(UiElementState state) {
             if (_enableCts != null) AnimateStateAsync(state, _enableCts.Token).Forget();
         }
 
-        private void SetState(UiElementState state, bool force = false) {
-            var nextState = _hasCustomState ? _customState : state;
-            if (nextState == CurrentState && !force) return;
-            
-            ApplyState(nextState, instant: force);
-        }
+        private void ApplyState(UiElementState state, bool force = false) {
+            if (state == CurrentState && !force) return;
 
-        private void ApplyState(UiElementState state, bool instant) {
             CurrentState = state;
             OnStateChanged.Invoke(CurrentState);
             
             byte id = _transitionId.IncrementUncheckedRef();
-            if (_enableCts != null) AnimateTransitionTo(id, state, instant, _enableCts.Token).Forget();
+            if (_enableCts != null) AnimateTransitionTo(id, state, force, _enableCts.Token).Forget();
         }
 
         private async UniTask AnimateStateAsync(UiElementState state, CancellationToken cancellationToken) {
@@ -194,7 +189,7 @@ namespace MisterGames.UI.Components {
                 await UniTask.Yield();
             }
         }
-
+        
         private UiElementState GetAutoState() {
             return _isPressed ? UiElementState.Pressed 
                 : IsSelected() ? UiElementState.Selected 

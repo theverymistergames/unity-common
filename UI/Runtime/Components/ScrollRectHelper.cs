@@ -138,10 +138,10 @@ namespace MisterGames.UI.Components {
             
             if (Services.TryGet(out IUiNavigationService navigationService)) {
                 navigationService.OnNavigationHierarchyChanged += OnNavigationHierarchyChanged;
-                navigationService.OnSelectedGameObjectChanged += OnSelectedGameObjectChanged;
+                navigationService.OnSelectableChanged += OnSelectableChanged;
 
                 OnNavigationHierarchyChanged();
-                OnSelectedGameObjectChanged(navigationService.SelectedGameObject, navigationService.SelectedGameObjectWindow);
+                OnSelectableChanged(navigationService.CurrentSelectable, navigationService.SelectedGameObjectWindow);
             }
             
             if (Services.TryGet(out IUiWindowService windowService)) {
@@ -161,7 +161,7 @@ namespace MisterGames.UI.Components {
             
             if (Services.TryGet(out IUiNavigationService service)) {
                 service.OnNavigationHierarchyChanged -= OnNavigationHierarchyChanged;
-                service.OnSelectedGameObjectChanged -= OnSelectedGameObjectChanged;
+                service.OnSelectableChanged -= OnSelectableChanged;
             }
             
             if (Services.TryGet(out IUiWindowService windowService)) {
@@ -206,7 +206,7 @@ namespace MisterGames.UI.Components {
             _parentNode = _navigationService?.FindClosestParentNavigationNode(_scrollRect.gameObject, includeSelf: true);
         }
 
-        private void OnSelectedGameObjectChanged(GameObject gameObject, IUiWindow parentWindow) {
+        private void OnSelectableChanged(Selectable selectable, IUiWindow parentWindow) {
             _containsSelectedObjectDirectly = Services.TryGet(out IUiNavigationService navigationService) &&
                                               ContainsSelectedObjectDirectly(navigationService);
         }

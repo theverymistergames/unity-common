@@ -29,7 +29,7 @@ namespace MisterGames.UI.Navigation {
             UiNavigateToOuterNodesOptions.Parent | UiNavigateToOuterNodesOptions.Siblings | UiNavigateToOuterNodesOptions.Children;
         
         public GameObject GameObject => gameObject;
-        public GameObject CurrentSelected { get; private set; }
+        public Selectable CurrentSelected { get; private set; }
         public UiNavigateFromOuterNodesOptions NavigateFromOuterNodesOptions => _navigateFromOuterNodesOptions;
         public bool IsScrollable => _scrollable;
         public RectTransform Viewport => _viewport;
@@ -55,7 +55,7 @@ namespace MisterGames.UI.Navigation {
             }
 
             if (Services.TryGet(out IUiNavigationService navigationService)) {
-                navigationService.OnSelectedGameObjectChanged += OnSelectedGameObjectChanged;
+                navigationService.OnSelectableChanged += OnSelectedGameObjectChanged;
                 
                 if (_window == null || _window.State == UiWindowState.Opened) {
                     navigationService.BindNavigation(this);
@@ -73,7 +73,7 @@ namespace MisterGames.UI.Navigation {
             }
 
             if (Services.TryGet(out IUiNavigationService navigationService)) {
-                navigationService.OnSelectedGameObjectChanged -= OnSelectedGameObjectChanged;
+                navigationService.OnSelectableChanged -= OnSelectedGameObjectChanged;
                 
                 navigationService.UnbindNavigation(this);
             }
@@ -83,7 +83,7 @@ namespace MisterGames.UI.Navigation {
             _helper.Bind(selectable, mask);
             
             if (Services.TryGet(out IUiNavigationService service)) {
-                OnSelectedGameObjectChanged(service.SelectedGameObject, service.SelectedGameObjectWindow);   
+                OnSelectedGameObjectChanged(service.CurrentSelectable, service.SelectedGameObjectWindow);   
             }
         }
 
@@ -119,8 +119,8 @@ namespace MisterGames.UI.Navigation {
             }
         }
 
-        private void OnSelectedGameObjectChanged(GameObject selected, IUiWindow parent) {
-            if (selected != null && _helper.IsBound(selected)) {
+        private void OnSelectedGameObjectChanged(Selectable selected, IUiWindow parent) {
+            if (selected != null && _helper.IsBound(selected.gameObject)) {
                 CurrentSelected = selected;
             }
         }

@@ -1,11 +1,12 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
 
 namespace MisterGames.UI.Windows {
     
     public interface IUiWindow {
         
         GameObject GameObject { get; }
-        GameObject CurrentSelected { get; }
+        Selectable CurrentSelected { get; }
         
         int Layer { get; }
         UiWindowOpenMode OpenMode { get; }

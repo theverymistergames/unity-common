@@ -77,10 +77,14 @@ namespace MisterGames.UI.Navigation {
                 }
             
                 var pos = root.InverseTransformPoint(selectable.transform.position).ToFloat2XY();
-                if (!pos.IsInDirection(origin, direction)) continue;
+                if (!pos.IsInDirection(origin, direction)) {
+                    continue;
+                }
                 
                 float sqrDistance = math.distancesq(pos, origin);
-                if (minSqrDistance >= 0f && sqrDistance > minSqrDistance) continue;
+                if (minSqrDistance >= 0f && sqrDistance > minSqrDistance) {
+                    continue;
+                }
                 
                 minSqrDistance = sqrDistance;
                 closestSelectable = selectable;
@@ -95,12 +99,12 @@ namespace MisterGames.UI.Navigation {
                 : nextParentNode.NavigateFromOuterNodesOptions;
             
             var selectTarget = nextOptions switch {
-                UiNavigateFromOuterNodesOptions.SelectClosestElement => closestSelectable.gameObject,
+                UiNavigateFromOuterNodesOptions.SelectClosestElement => closestSelectable,
                 UiNavigateFromOuterNodesOptions.SelectHistoryElement => nextParentNode!.CurrentSelected,
                 _ => throw new ArgumentOutOfRangeException()
             };
             
-            service.SelectGameObject(selectTarget);
+            service.NavigateOutTo(selectTarget, direction);
         }
         
         public async UniTask UpdateNavigationNextFrame(

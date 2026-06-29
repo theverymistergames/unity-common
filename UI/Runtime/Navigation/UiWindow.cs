@@ -33,7 +33,7 @@ namespace MisterGames.UI.Navigation {
         [SerializeField] private GameObject[] _enableOnBranchOpened;
         
         public GameObject GameObject => gameObject;
-        public GameObject CurrentSelected { get; private set; }
+        public Selectable CurrentSelected { get; private set; }
         
         public int Layer => _layer;
         public UiWindowOpenMode OpenMode => _openMode;
@@ -42,7 +42,7 @@ namespace MisterGames.UI.Navigation {
         public UiWindowOptions Options => _options;
 
         private void Awake() {
-            CurrentSelected = _firstSelected?.gameObject;
+            CurrentSelected = _firstSelected;
             
             Services.Get<IUiWindowService>()?.RegisterWindow(this, _state);
         }
@@ -63,20 +63,20 @@ namespace MisterGames.UI.Navigation {
         private void SubscribeSelectedGameObject() {
             if (Services.Get<IUiNavigationService>() is not { } service) return;
             
-            service.OnSelectedGameObjectChanged -= OnSelectedGameObjectChanged;
-            service.OnSelectedGameObjectChanged += OnSelectedGameObjectChanged;
+            service.OnSelectableChanged -= OnSelectableChanged;
+            service.OnSelectableChanged += OnSelectableChanged;
         }
 
         private void UnsubscribeSelectedGameObject() {
             if (Services.Get<IUiNavigationService>() is not { } service) return;
             
-            service.OnSelectedGameObjectChanged -= OnSelectedGameObjectChanged;
+            service.OnSelectableChanged -= OnSelectableChanged;
         }
 
-        private void OnSelectedGameObjectChanged(GameObject obj, IUiWindow window) {
-            if (obj == null || !ReferenceEquals(window, this)) return;
+        private void OnSelectableChanged(Selectable selectable, IUiWindow window) {
+            if (selectable == null || !ReferenceEquals(window, this)) return;
 
-            CurrentSelected = obj;
+            CurrentSelected = selectable;
         }
         
         void IUiWindow.NotifyWindowState(UiWindowState state) {
@@ -120,7 +120,7 @@ namespace MisterGames.UI.Navigation {
                 return;
             }
             
-            CurrentSelected = _firstSelected?.gameObject;
+            CurrentSelected = _firstSelected;
         }
         
         private static void SetEnableState(GameObject[] gameObjects, bool enable) {

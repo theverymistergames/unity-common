@@ -19,13 +19,13 @@ namespace MisterGames.UI.Components {
         [SerializeField] [Min(0)] private int _selectedIndex;
         [SerializeField] private List<string> _elements = new();
 
-        private void Awake() {
-            SetSelectedIndex(_selectedIndex);
-        }
+        private int _currentTextHash;
 
         private void OnEnable() {
             _buttonIncrement.OnClicked += IncrementSelectedIndex;
             _buttonDecrement.OnClicked += DecrementSelectedIndex;
+            
+            SetSelectedIndex(_selectedIndex, force: true);
         }
 
         private void OnDisable() {
@@ -77,7 +77,7 @@ namespace MisterGames.UI.Components {
             if (_elements == null || index < 0 || index >= _elements.Count) return false;
             
             _elements[index] = text;
-            if (index == _selectedIndex) SetSelectedIndex(index);
+            if (index == _selectedIndex) SelectIndex(index);
             
 #if UNITY_EDITOR
             if (!Application.isPlaying) EditorUtility.SetDirty(this);
@@ -90,26 +90,8 @@ namespace MisterGames.UI.Components {
             return _selectedIndex;
         }
 
-        public void SetSelectedIndex(int index) {
-            int nextIndex;
-            string nextText;
-
-            if (_elements == null || _elements.Count == 0) {
-                nextIndex = 0;
-                nextText = null;
-            }
-            else {
-                nextIndex = Mathf.Clamp(index, 0, _elements.Count - 1);
-                nextText = _elements[nextIndex];
-            }
-
-            _selectedIndex = nextIndex;
-            ApplyText(nextText);
-            UpdateButtons();
-            
-#if UNITY_EDITOR
-            if (!Application.isPlaying) EditorUtility.SetDirty(this);
-#endif
+        public void SelectIndex(int index) {
+            SetSelectedIndex(index, force: false);
         }
 
         private void IncrementSelectedIndex() {
@@ -126,17 +108,32 @@ namespace MisterGames.UI.Components {
             SetSelectedIndex(next);
         }
 
-        private void UpdateButtons() {
-#if UNITY_EDITOR
-            if (!Application.isPlaying) return;
-#endif
+        private void SetSelectedIndex(int index, bool force = false) {
+            int nextIndex;
+            string nextText;
 
-            int count = _elements?.Count ?? 0;
-            bool canShowDecrement = count > 1 && (_loop || _selectedIndex > 0);
-            bool canShowIncrement = count > 1 && (_loop || _selectedIndex < count - 1);
+            if (_elements == null || _elements.Count == 0) {
+                nextIndex = 0;
+                nextText = null;
+            }
+            else {
+                nextIndex = Mathf.Clamp(index, 0, _elements.Count - 1);
+                nextText = _elements[nextIndex];
+            }
+
+            int nextHash = GetTextHash(nextText);
             
-            _buttonIncrement.Block(this, !canShowIncrement);
-            _buttonDecrement.Block(this, !canShowDecrement);
+            if (nextIndex == _selectedIndex && nextHash == _currentTextHash && !force) return;
+            
+            _selectedIndex = nextIndex;
+            _currentTextHash = nextHash;
+            
+            ApplyText(nextText);
+            UpdateButtons();
+            
+#if UNITY_EDITOR
+            if (!Application.isPlaying) EditorUtility.SetDirty(this);
+#endif
         }
 
         private void ApplyText(string text) {
@@ -151,6 +148,23 @@ namespace MisterGames.UI.Components {
 #if UNITY_EDITOR
             if (!Application.isPlaying) EditorUtility.SetDirty(_elementTextField);
 #endif
+        }
+
+        private void UpdateButtons() {
+#if UNITY_EDITOR
+            if (!Application.isPlaying) return;
+#endif
+
+            int count = _elements?.Count ?? 0;
+            bool canShowDecrement = count > 1 && (_loop || _selectedIndex > 0);
+            bool canShowIncrement = count > 1 && (_loop || _selectedIndex < count - 1);
+
+            _buttonIncrement.Block(this, !canShowIncrement);
+            _buttonDecrement.Block(this, !canShowDecrement);
+        }
+
+        private static int GetTextHash(string text) {
+            return text == null ? 0 : Animator.StringToHash(text);
         }
         
 #if UNITY_EDITOR
