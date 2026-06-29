@@ -53,14 +53,9 @@ namespace MisterGames.UI.Components {
         }
 
         private void CheckBlockState() {
-            if (IsBlocked()) {
-                _uiElementAnimator?.ApplyCustomState(UiElementState.Blocked);
-                _button.interactable = false;
-                return;
-            }
-
-            _button.interactable = true;
-            _uiElementAnimator?.ResetCustomState();
+            bool isBlocked = IsBlocked();
+            _uiElementAnimator?.SetBlockedState(isBlocked);
+            _button.interactable = !isBlocked;
         }
         
         void ISubmitHandler.OnSubmit(BaseEventData eventData) {
@@ -99,7 +94,7 @@ namespace MisterGames.UI.Components {
         private void OnValidate() {
             if (!Application.isPlaying) return;
             
-            //Block(this, _isBlockedDebug);
+            Block(this, _isBlockedDebug);
         }
 #endif
     }

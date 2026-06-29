@@ -7,10 +7,8 @@ namespace MisterGames.UI.Data {
         event Action<UiElementState> OnStateChanged;
         UiElementState CurrentState { get; }
         
-        void ApplyCustomState(UiElementState state);
-        void ResetCustomState();
-        
         void AnimateState(UiElementState state);
+        void SetBlockedState(bool blocked);
     }
     
 }

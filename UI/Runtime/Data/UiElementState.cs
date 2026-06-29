@@ -6,6 +6,7 @@
         Selected,
         Pressed,
         Blocked,
+        BlockedSelected,
     }
     
 }

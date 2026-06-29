@@ -13,6 +13,7 @@ namespace MisterGames.UI.Navigation {
         
         bool HasSelectedGameObject { get; }
         Selectable CurrentSelectable { get; }
+        Selectable LastNonNullSelectable { get; }
         UiNavigationMask SelectedObjectNavigationMask { get; }
         UiNavigationOptions SelectedObjectOptions { get; }
         GameObject SelectedGameObject { get; }

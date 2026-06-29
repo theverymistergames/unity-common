@@ -11,10 +11,10 @@ namespace MisterGames.UI.Components {
     
         [Header("Animation")]
         public bool selectOnHover = true;
-        [Min(0f)] public float defaultDuration = 0.25f;
-        [Min(0f)] public float hoverDuration = 0.25f;
-        [Min(0f)] public float selectDuration = 0.25f;
-        [Min(0f)] public float pressDuration = 0.25f;
+        [Min(0f)] public float defaultDuration = 0.1f;
+        [Min(0f)] public float hoverDuration = 0.1f;
+        [Min(0f)] public float selectDuration = 0.1f;
+        [Min(0f)] public float pressDuration = 0.1f;
         [Min(0f)] public float blockDuration = 0.1f;
         public AnimationCurve defaultCurve = EasingType.Linear.ToAnimationCurve();
         public AnimationCurve hoverCurve = EasingType.Linear.ToAnimationCurve();
@@ -26,6 +26,7 @@ namespace MisterGames.UI.Components {
         public float selectScale = 1f;
         public float pressScale = 1.1f;
         public float blockedScale = 1f;
+        public float blockedSelectedScale = 1f;
         
         [Header("Image Colors")]
         public bool applyColorToImage;
@@ -39,6 +40,8 @@ namespace MisterGames.UI.Components {
         public Color pressColorImage = Color.white;
         [VisibleIf(nameof(applyColorToImage))]
         public Color blockedColorImage = Color.white;
+        [VisibleIf(nameof(applyColorToImage))]
+        public Color blockedSelectedColorImage = Color.white;
         
         [Header("Text Colors")]
         public bool applyColorToText;
@@ -52,6 +55,8 @@ namespace MisterGames.UI.Components {
         public Color pressColorText = Color.white;
         [VisibleIf(nameof(applyColorToText))]
         public Color blockedColorText = Color.white;
+        [VisibleIf(nameof(applyColorToText))]
+        public Color blockedSelectedColorText = Color.white;
         
         public void GetStateData(UiElementState state, out UiElementStateData data) {
             data = default;
@@ -95,6 +100,14 @@ namespace MisterGames.UI.Components {
                     data.imageColor = blockedColorImage;
                     data.textColor = blockedColorText;
                     data.scale = blockedScale;
+                    break;
+                
+                case UiElementState.BlockedSelected:
+                    data.duration = selectDuration;
+                    data.curve = selectCurve;
+                    data.imageColor = blockedSelectedColorImage;
+                    data.textColor = blockedSelectedColorText;
+                    data.scale = blockedSelectedScale;
                     break;
                 
                 default:

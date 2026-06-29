@@ -4,7 +4,10 @@ using Cysharp.Threading.Tasks;
 using MisterGames.Common.Async;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Maths;
+using MisterGames.Common.Service;
 using MisterGames.UI.Data;
+using MisterGames.UI.Navigation;
+using MisterGames.UI.Windows;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -30,11 +33,9 @@ namespace MisterGames.UI.Components {
         private CancellationTokenSource _enableCts;
         private bool _isHovering;
         private bool _isPressed;
+        private bool _isBlocked;
         private Vector3 _originalScale;
         private byte _transitionId;
-
-        private bool _hasCustomState;
-        private UiElementState _customState;
 
         private void Awake() {
             _originalScale = _elementRoot.localScale;
@@ -47,34 +48,59 @@ namespace MisterGames.UI.Components {
         private void OnEnable() {
             AsyncExt.RecreateCts(ref _enableCts);
 
-            ApplyState(_hasCustomState ? _customState : GetAutoState(), force: true);
+            if (Services.TryGet(out IUiNavigationService service)) { 
+                service.OnSelectableChanged += OnSelectableChanged;    
+            }
+            
+            ApplyState(GetAutoState(), force: true);
         }
 
         private void OnDisable() {
             AsyncExt.DisposeCts(ref _enableCts);
             
+            if (Services.TryGet(out IUiNavigationService service)) { 
+                service.OnSelectableChanged -= OnSelectableChanged;    
+            }
+            
             _isHovering = false;
             _isPressed = false;
         }
-        
+
+        private void OnSelectableChanged(Selectable selectable, IUiWindow window) {
+            if (selectable == _selectable) OnSelect();
+            else OnDeselect();
+        }
+
         void ISelectHandler.OnSelect(BaseEventData eventData) {
+            OnSelect();
+        }
+
+        void IDeselectHandler.OnDeselect(BaseEventData eventData) {
+            OnDeselect();
+        }
+
+        private void OnSelect() {
             _isHovering = true;
             
             var next = CurrentState == UiElementState.Pressed
                 ? UiElementState.Pressed 
                 : UiElementState.Selected;
+
+            if (_isBlocked) next = GetAutoState();
             
-            ApplyState(_hasCustomState ? _customState : next);
+            ApplyState(next);
         }
 
-        void IDeselectHandler.OnDeselect(BaseEventData eventData) {
+        private void OnDeselect() {
             _isHovering = false;
             
             var next = CurrentState == UiElementState.Pressed
                 ? UiElementState.Pressed 
                 : UiElementState.Default;
             
-            ApplyState(_hasCustomState ? _customState : next);
+            if (_isBlocked) next = GetAutoState();
+            
+            ApplyState(next);
         }
 
         void IPointerMoveHandler.OnPointerMove(PointerEventData eventData) {
@@ -85,7 +111,9 @@ namespace MisterGames.UI.Components {
                 : IsSelected() ? UiElementState.Selected 
                     : UiElementState.Hover;
             
-            ApplyState(_hasCustomState ? _customState : next);
+            if (_isBlocked) next = GetAutoState();
+            
+            ApplyState(next);
             
             if (_preset.selectOnHover && _selectable != null) _selectable.Select();
         }
@@ -98,10 +126,14 @@ namespace MisterGames.UI.Components {
                 : IsSelected() ? UiElementState.Selected 
                     : UiElementState.Default;
             
-            ApplyState(_hasCustomState ? _customState : next);
+            if (_isBlocked) next = GetAutoState();
+            
+            ApplyState(next);
         }
 
         void IPointerDownHandler.OnPointerDown(PointerEventData eventData) {
+            if (_isBlocked) return;
+            
             _isPressed = true;
             
             var next = CanBePressed()
@@ -110,29 +142,24 @@ namespace MisterGames.UI.Components {
                     : _isHovering ? UiElementState.Hover 
                         : UiElementState.Default;
             
-            ApplyState(_hasCustomState ? _customState : next);
+            ApplyState(next);
         }
 
         void IPointerUpHandler.OnPointerUp(PointerEventData eventData) {
-            _isPressed = false;
+            if (_isBlocked) return;
             
+            _isPressed = false;
+
             var next = IsSelected() 
                 ? UiElementState.Selected 
                 : _isHovering ? UiElementState.Hover 
                     : UiElementState.Default;
             
-            ApplyState(_hasCustomState ? _customState : next);
+            ApplyState(next);
         }
 
-        void IUiElementAnimator.ApplyCustomState(UiElementState state) {
-            _hasCustomState = true;
-            _customState = state;
-            
-            ApplyState(state);
-        }
-
-        void IUiElementAnimator.ResetCustomState() {
-            _hasCustomState = false;
+        void IUiElementAnimator.SetBlockedState(bool blocked) {
+            _isBlocked = blocked;
             
             ApplyState(GetAutoState());
         }
@@ -143,28 +170,32 @@ namespace MisterGames.UI.Components {
 
         private void ApplyState(UiElementState state, bool force = false) {
             if (state == CurrentState && !force) return;
-
+            
             CurrentState = state;
             OnStateChanged.Invoke(CurrentState);
             
+            if (_enableCts == null) return;
+            
             byte id = _transitionId.IncrementUncheckedRef();
-            if (_enableCts != null) AnimateTransitionTo(id, state, force, _enableCts.Token).Forget();
+            _preset.GetStateData(state, out var data);
+            AnimateTransitionTo(id, data, force, _enableCts.Token).Forget();
         }
 
         private async UniTask AnimateStateAsync(UiElementState state, CancellationToken cancellationToken) {
             byte id = _transitionId.IncrementUncheckedRef();
             
-            await AnimateTransitionTo(id, state, instant: false, cancellationToken);
+            _preset.GetStateData(state, out var data);
+            await AnimateTransitionTo(id, data, instant: false, cancellationToken);
+            
             if (id != _transitionId || cancellationToken.IsCancellationRequested) return;
             
-            await AnimateTransitionTo(id, _hasCustomState ? _customState : GetAutoState(), instant: false, cancellationToken);
+            _preset.GetStateData(GetAutoState(), out data);
+            await AnimateTransitionTo(id, data, instant: false, cancellationToken);
         }
 
-        private async UniTask AnimateTransitionTo(byte id, UiElementState state, bool instant, CancellationToken cancellationToken) {
+        private async UniTask AnimateTransitionTo(byte id, UiElementStateData data, bool instant, CancellationToken cancellationToken) {
             bool applyImageColor = _preset.applyColorToImage && _image != null;
             bool applyTextColor = _preset.applyColorToText && _text != null;
-
-            _preset.GetStateData(state, out var data);
 
             var trf = _elementRoot;
             
@@ -191,6 +222,10 @@ namespace MisterGames.UI.Components {
         }
         
         private UiElementState GetAutoState() {
+            if (_isBlocked) {
+                return IsSelected() ? UiElementState.BlockedSelected : UiElementState.Blocked;
+            }
+            
             return _isPressed ? UiElementState.Pressed 
                 : IsSelected() ? UiElementState.Selected 
                 : _isHovering ? UiElementState.Hover 
@@ -198,11 +233,13 @@ namespace MisterGames.UI.Components {
         }
 
         private bool CanBePressed() {
-            return _isPressed && _isHovering && IsSelected();
+            return _isPressed && _isHovering && !_isBlocked && IsSelected();
         }
 
         private bool IsSelected() {
-            return _selectable != null && EventSystem.current?.currentSelectedGameObject == _selectable.gameObject;
+            return _selectable != null && 
+                   (Services.Get<UiNavigationService>()?.LastNonNullSelectable == _selectable || 
+                    EventSystem.current?.currentSelectedGameObject == _selectable.gameObject);
         }
 
 #if UNITY_EDITOR

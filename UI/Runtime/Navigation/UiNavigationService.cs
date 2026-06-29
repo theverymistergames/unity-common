@@ -18,6 +18,8 @@ namespace MisterGames.UI.Navigation {
         
         public bool HasSelectedGameObject => _selectedGameObjectHash != 0;
         public Selectable CurrentSelectable { get; private set; }
+        public Selectable LastNonNullSelectable => CurrentSelectable != null ? CurrentSelectable : _selectableMap.GetValueOrDefault(_lastNonNullSelectableHash);
+        
         public UiNavigationOptions SelectedObjectOptions => _selectableDataMap.GetValueOrDefault(_selectedSelectableHash).options;
         public UiNavigationMask SelectedObjectNavigationMask => _selectableDataMap.GetValueOrDefault(_selectedSelectableHash).mask;
         public GameObject SelectedGameObject { get; private set; }
