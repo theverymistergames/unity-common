@@ -1,6 +1,5 @@
 ﻿using System;
 using MisterGames.Common.Data;
-using MisterGames.Common.Maths;
 using UnityEngine;
 
 namespace MisterGames.Common.Save.Tables {
@@ -9,22 +8,17 @@ namespace MisterGames.Common.Save.Tables {
     [SaveTable(typeof(object[]))]
     public sealed class SaveTableReferenceArray : ISaveTable {
 
-        [SerializeField] private Map<long, SaveRecord<object[]>> _dataMap = new();
+        [SerializeField] private Map<long, object[]> _dataMap = new();
 
         public Type GetElementType() => typeof(object[]);
 
-        public void PrepareRecord(string id, int index) {
-            long key = NumberExtensions.TwoIntsAsLong(Animator.StringToHash(id), index);
-            if (!_dataMap.ContainsKey(key)) _dataMap[key] = new SaveRecord<object[]> { id = id, index = index };
-        }
-
         public bool TryGetData<S>(long id, out S data) {
-            if (_dataMap.TryGetValue(id, out var record)) {
+            if (_dataMap.TryGetValue(id, out object[] record)) {
                 var elementType = typeof(S).GetElementType() ?? typeof(object);    
-                var array = Array.CreateInstance(elementType, record.data.Length);
+                var array = Array.CreateInstance(elementType, record?.Length ?? 0);
 
-                for (int i = 0; i < record.data.Length; i++) {
-                    array.SetValue(record.data[i], i);
+                for (int i = 0; i < record?.Length; i++) {
+                    array.SetValue(record[i], i);
                 }
                 
                 data = array is S s ? s : default;
@@ -36,15 +30,13 @@ namespace MisterGames.Common.Save.Tables {
         }
 
         public void SetData<S>(long id, S data) {
-            if (!_dataMap.ContainsKey(id)) return;
-            
             if (data is not Array array) return;
             
-            ref var record = ref _dataMap.Get(id);
-            record.data = new object[array.Length];
+            object[] dataArray = new object[array.Length];
+            _dataMap[id] = dataArray;
             
             for (int i = 0; i < array.Length; i++) {
-                if (array.GetValue(i) is {} v) record.data[i] = v;
+                if (array.GetValue(i) is {} v) dataArray[i] = v;
             }
         }
 

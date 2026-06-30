@@ -10,8 +10,6 @@ namespace MisterGames.Common.Save.Tables {
     
         void SetData<T>(long id, T data);
         
-        void PrepareRecord(string id, int index);
-        
         void RemoveData(long id);
         
         void Clear();

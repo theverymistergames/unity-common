@@ -1,6 +1,5 @@
 ﻿using System;
 using MisterGames.Common.Data;
-using MisterGames.Common.Maths;
 using UnityEngine;
 
 namespace MisterGames.Common.Save.Tables {
@@ -9,22 +8,17 @@ namespace MisterGames.Common.Save.Tables {
     [SaveTable(typeof(Enum[]))]
     public sealed class SaveTableEnumArray : ISaveTable {
 
-        [SerializeField] private Map<long, SaveRecord<ulong[]>> _dataMap = new();
+        [SerializeField] private Map<long, ulong[]> _dataMap = new();
 
         public Type GetElementType() => typeof(Enum[]);
-
-        public void PrepareRecord(string id, int index) {
-            long key = NumberExtensions.TwoIntsAsLong(Animator.StringToHash(id), index);
-            if (!_dataMap.ContainsKey(key)) _dataMap[key] = new SaveRecord<ulong[]> { id = id, index = index };
-        }
         
         public bool TryGetData<S>(long id, out S data) {
-            if (_dataMap.TryGetValue(id, out var record)) {
+            if (_dataMap.TryGetValue(id, out ulong[] record)) {
                 var elementType = typeof(S).GetElementType() ?? typeof(ulong);    
-                var array = Array.CreateInstance(elementType, record.data.Length);
+                var array = Array.CreateInstance(elementType, record?.Length ?? 0);
 
-                for (int i = 0; i < record.data.Length; i++) {
-                    if (Enum.ToObject(elementType, record.data[i]) is {} e) array.SetValue(e, i);
+                for (int i = 0; i < record?.Length; i++) {
+                    if (Enum.ToObject(elementType, record[i]) is {} e) array.SetValue(e, i);
                 }
                 
                 data = array is S s ? s : default;
@@ -36,15 +30,13 @@ namespace MisterGames.Common.Save.Tables {
         }
 
         public void SetData<S>(long id, S data) {
-            if (!_dataMap.ContainsKey(id)) return;
-            
             if (data is not Array array) return;
             
-            ref var record = ref _dataMap.Get(id);
-            record.data = new ulong[array.Length];
+            ulong[] dataArray = new ulong[array.Length];
+            _dataMap[id] = dataArray;
             
             for (int i = 0; i < array.Length; i++) {
-                if (Convert.ChangeType(array.GetValue(i), typeof(ulong)) is {} e) record.data[i] = (ulong) e;
+                if (Convert.ChangeType(array.GetValue(i), typeof(ulong)) is {} e) dataArray[i] = (ulong) e;
             }
         }
 

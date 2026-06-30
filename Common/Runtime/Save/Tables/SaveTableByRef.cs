@@ -1,6 +1,5 @@
 ﻿using System;
 using MisterGames.Common.Data;
-using MisterGames.Common.Maths;
 using UnityEngine;
 
 namespace MisterGames.Common.Save.Tables {
@@ -14,26 +13,20 @@ namespace MisterGames.Common.Save.Tables {
             return typeof(T);
         }
 
-        public void PrepareRecord(string id, int index) {
-            long key = NumberExtensions.TwoIntsAsLong(Animator.StringToHash(id), index);
-            if (!_dataMap.ContainsKey(key)) _dataMap[key] = new SaveRecordByRef<T> { id = id, index = index };
-        }
-
         public bool TryGetData<S>(long id, out S data) {
-            if (!_dataMap.TryGetValue(id, out var record)) {
+            if (this is not SaveTableByRef<S> table || !table._dataMap.TryGetValue(id, out var record)) {
                 data = default;
                 return false;
             }
             
-            data = record.data is S s ? s : default;
+            data = record.data;
             return true;
         }
 
         public void SetData<S>(long id, S data) {
-            if (!_dataMap.ContainsKey(id)) return;
+            if (this is not SaveTableByRef<S> table) return;
             
-            ref var record = ref _dataMap.Get(id);
-            record.data = data is T t ? t : default;
+            table._dataMap[id] = new SaveRecordByRef<S>(data);
         }
 
         public void RemoveData(long id) {

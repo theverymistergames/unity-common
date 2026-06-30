@@ -7,6 +7,7 @@ using MisterGames.Common.Files;
 using MisterGames.Common.Lists;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Save.Tables;
+using MisterGames.Common.Strings;
 using UnityEngine;
 
 namespace MisterGames.Common.Save {
@@ -14,32 +15,27 @@ namespace MisterGames.Common.Save {
     public sealed class SaveSystem : ISaveSystem, IDisposable {
         
         public static readonly ISaveSystem Main = new SaveSystem();
-        
+
+        private readonly Dictionary<string, ISaveStorage> _saveStorageMap = new();
         private readonly HashSet<ISaveable> _saveableSet = new();
-        private readonly ISaveTableFactory _tablesCurrentSave = new SaveTableFactory();
-        private readonly ISaveTableFactory _tablesPersistent = new SaveTableFactory();
-        
-        private readonly List<SaveMeta> _saveMetas = new();
         
         private SaveSystemSettings _saveSystemSettings;
-        private string _activeSaveId;
         private bool _disposed;
 
         public void Initialize(SaveSystemSettings saveSystemSettings) {
             _disposed = false;
             _saveSystemSettings = saveSystemSettings;
-            
-            _tablesCurrentSave.Prewarm();
-            _tablesPersistent.Prewarm();
         }
 
         public void Dispose() {
             if (_disposed) return;
             
+            foreach (var storage in _saveStorageMap.Values) {
+                storage.Clear();
+            }
+            
             _saveableSet.Clear();
-            _tablesCurrentSave.Clear();
-            _tablesPersistent.Clear();
-            _saveMetas.Clear();
+            _saveStorageMap.Clear();
             
             _disposed = true;
         }
@@ -53,218 +49,196 @@ namespace MisterGames.Common.Save {
             _saveableSet.Remove(saveable);
         }
 
-        public T Get<T>(SaveStorage storage, string id, int index) {
-            return TryGet<T>(storage, id, index, out var data) ? data : default;
+        public T Get<T>(string storageId, string dataId, int index) {
+            return TryGet<T>(storageId, dataId, index, out var data) ? data : default;
         }
 
-        public bool TryGet<T>(SaveStorage storage, string id, int index, out T data) {
+        public bool TryGet<T>(string storageId, string dataId, int index, out T data) {
             data = default;
             
-            return GetStorage(storage)
-                .Get<T>()
-                ?.TryGetData(NumberExtensions.TwoIntsAsLong(Animator.StringToHash(id), index), out data) ?? false;
+            return GetStorage(storageId)
+                ?.Get<T>()
+                ?.TryGetData(NumberExtensions.TwoIntsAsLong(Animator.StringToHash(dataId), index), out data) ?? false;
         }
 
-        public void Set<T>(SaveStorage storage, string id, int index, T data) {
-            var table = GetStorage(storage).GetOrCreate<T>();
-            long key = NumberExtensions.TwoIntsAsLong(Animator.StringToHash(id), index);
-            
-            table?.PrepareRecord(id, index);
-            table?.SetData(key, data);
+        public void Set<T>(string storageId, string dataId, int index, T data) {
+            long key = NumberExtensions.TwoIntsAsLong(Animator.StringToHash(dataId), index);
+            GetOrCreateStorage(storageId)?.GetOrCreateTable<T>()?.SetData(key, data);
         }
 
-        public SaveBuilder Pop<T>(SaveStorage storage, string id, T def, out T data) {
-            return new SaveBuilder(this, storage, id).Pop(def, out data);
+        public SaveBuilder Pop<T>(string storageId, string dataId, T def, out T data) {
+            return new SaveBuilder(this, storageId, dataId).Pop(def, out data);
         }
 
-        public SaveBuilder Pop<T>(SaveStorage storage, string id, out T data) {
-            return new SaveBuilder(this, storage, id).Pop(out data);
+        public SaveBuilder Pop<T>(string storageId, string dataId, out T data) {
+            return new SaveBuilder(this, storageId, dataId).Pop(out data);
         }
 
-        public SaveBuilder Push<T>(SaveStorage storage, string id, T data) {
-            return new SaveBuilder(this, storage, id).Push(data);
+        public SaveBuilder Push<T>(string storageId, string dataId, T data) {
+            return new SaveBuilder(this, storageId, dataId).Push(data);
         }
-
-        public string GetActiveSave() {
-            return _activeSaveId;
-        }
-
-        public string GetLastWrittenSave() {
-            string dir = _saveSystemSettings.GetFolderPath();
-            if (!Directory.Exists(dir)) return null;
-            
-            string[] files = Directory.GetFiles(dir);
-            string fileNameTemplate = _saveSystemSettings.fileName;
-            string fileFormat = _saveSystemSettings.fileFormat;
-            string result = null;
-            var lastTime = DateTime.MinValue;
-            
-            for (int i = 0; i < files.Length; i++) {
-                string file = files[i];
-                string fileName = Path.GetFileNameWithoutExtension(file);
-                
-                if (!fileName.Contains(fileNameTemplate) || !Path.GetExtension(file).Contains(fileFormat)) continue;
-
-                var writeTime = File.GetLastWriteTime(file);
-                if (writeTime <= lastTime) continue;
-
-                result = _saveSystemSettings.GetSaveId(fileName);
-                lastTime = writeTime;
-            }
-
-            return result;
-        }
-
-        public IReadOnlyList<SaveMeta> GetSaves() {
+        
+        public IReadOnlyList<StorageData> GetStorageFiles() {
             string path = _saveSystemSettings.GetFolderPath();
-            if (!Directory.Exists(path)) return Array.Empty<SaveMeta>();
-            
-            _saveMetas.Clear();
+            if (!Directory.Exists(path)) return Array.Empty<StorageData>();
             
             string[] files = Directory.GetFiles(path);
             string fileNameTemplate = _saveSystemSettings.fileName;
             string fileFormat = _saveSystemSettings.fileFormat;
             
+            var saves = new List<StorageData>();
+            
             for (int i = 0; i < files.Length; i++) {
                 string file = files[i];
                 string fileName = Path.GetFileNameWithoutExtension(file);
 
                 if (!fileName.Contains(fileNameTemplate) || !Path.GetExtension(file).Contains(fileFormat)) continue;
                 
-                _saveMetas.Add(new SaveMeta(_saveSystemSettings.GetSaveId(fileName), File.GetLastWriteTime(file)));
+                saves.Add(new StorageData(_saveSystemSettings.GetFileId(fileName), File.GetLastWriteTime(file)));
             }
 
-            return _saveMetas;
+            return saves;
         }
 
-        public void Save(string saveId = null) {
-            SaveAllAsync(saveId).Forget();
+        private ISaveStorage GetStorage(string storageId) {
+            return _saveStorageMap.GetValueOrDefault(storageId);
+        }
+
+        private ISaveStorage GetOrCreateStorage(string storageId) {
+            if (_saveStorageMap.TryGetValue(storageId, out var storage)) return storage;
+            
+            storage = new SaveStorage();
+            storage.PrewarmTables();
+            
+            _saveStorageMap[storageId] = storage;
+            
+            return storage;
+        }
+
+        public void SaveIntoFile(string storageId) {
+            SaveStorageAsync(storageId).Forget();
+        }
+
+        public void SaveAllFiles() {
+            SaveAllStoragesAsync().Forget();
+        }
+
+        public void LoadFromFile(string storageId) {
+            LoadStorageAsync(storageId).Forget();
+        }
+
+        public void LoadAllFiles() {
+            LoadAllStoragesAsync().Forget();
+        }
+
+        private async UniTask SaveAllStoragesAsync() {
+            int count = _saveStorageMap.Count;
+            var tasks = ArrayPool<UniTask>.Shared.Rent(count);
+            tasks.ResetArrayElements();
+            
+            foreach (string storageId in _saveStorageMap.Keys) {
+                tasks[count++] = SaveStorageAsync(storageId);
+            }
+            
+            await UniTask.WhenAll(tasks);
+            
+            ArrayPool<UniTask>.Shared.Return(tasks);
         }
         
-        private async UniTask SaveAllAsync(string saveId) {
-            saveId ??= _activeSaveId ?? _saveSystemSettings.fileName;
-            _activeSaveId = saveId;
+        private async UniTask SaveStorageAsync(string storageId) {
+            if (!_saveStorageMap.TryGetValue(storageId, out var storage)) return;
             
             NotifySaveAll();
             
             Directory.CreateDirectory(_saveSystemSettings.GetFolderPath());
 
-            var tasks = ArrayPool<UniTask>.Shared.Rent(2);
+            var result = await SaveFileAsync(
+                new SaveFileDto { tables = new List<ISaveTable>(storage.Tables) },
+                _saveSystemSettings.GetFilePath(storageId),
+                _saveSystemSettings.bufferSize
+            );
 
-            tasks[0] = SaveStorageAsync(_tablesCurrentSave, _saveSystemSettings.GetFilePath(saveId), _saveSystemSettings.bufferSize);
-            tasks[1] = SaveStorageAsync(_tablesPersistent, _saveSystemSettings.GetFilePathPersistent(), _saveSystemSettings.bufferSize);
-            
-            await UniTask.WhenAll(tasks);
-            
-            tasks.ResetArrayElements();
-            ArrayPool<UniTask>.Shared.Return(tasks);
+            switch (result.status) {
+                case JsonExtensions.Status.Success:
+                    break;
+                
+                case JsonExtensions.Status.Error:
+                    LogError($"could not save storage [{storageId}]: {result.message}");
+                    break;
+                
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
             
             NotifyAfterSaveAll();
         }
+        
+        private async UniTask LoadAllStoragesAsync() {
+            var storageFiles = GetStorageFiles();
+            int count = storageFiles.Count;
+            var tasks = ArrayPool<UniTask>.Shared.Rent(count);
+            tasks.ResetArrayElements();
 
-        private static UniTask SaveStorageAsync(ISaveTableFactory storage, string filePath, int bufferSize) {
-            var saveFileDto = new SaveFileDto { tables = new List<ISaveTable>(storage.Tables) };
-            return JsonExtensions.WriteJsonIntoFile(saveFileDto, filePath, bufferSize);
+            for (int i = 0; i < storageFiles.Count; i++) {
+                tasks[count++] = LoadStorageAsync(storageFiles[i].storageId);
+            }
+
+            await UniTask.WhenAll(tasks);
+            
+            ArrayPool<UniTask>.Shared.Return(tasks);
         }
 
-        public bool TryLoad(string saveId = null) {
-            saveId ??= _activeSaveId ?? _saveSystemSettings.fileName;
-            
-            _tablesCurrentSave.Clear();
-
-            bool loadedSave = TryLoad(_tablesCurrentSave, _saveSystemSettings.GetFilePath(saveId));
-            bool loadedPersistent = TryLoad(_tablesPersistent, _saveSystemSettings.GetFilePathPersistent());
-
-            if (loadedSave) _activeSaveId = saveId;
-            
-            NotifyLoadAll();
-            NotifyAfterLoadAll();
-            
-            return loadedSave;
-        }
-
-        private static bool TryLoad(ISaveTableFactory storage, string filePath) {
+        private async UniTask LoadStorageAsync(string storageId) {
+            var storage = GetOrCreateStorage(storageId);
             storage.Clear();
-
-            if (!File.Exists(filePath)) return false;
             
-            using var fs = new FileStream(filePath, FileMode.Open);
-            using var sr = new StreamReader(fs);
+            var result = await LoadFileAsync(
+                _saveSystemSettings.GetFilePath(storageId),
+                _saveSystemSettings.bufferSize
+            );
 
-            try {
-                var tables = JsonUtility.FromJson<SaveFileDto>(sr.ReadToEnd()).tables;
+            switch (result.status) {
+                case JsonExtensions.Status.Success:
+                    var tables = (IReadOnlyList<ISaveTable>) result.value.tables ?? Array.Empty<ISaveTable>();
+                    for (int i = 0; i < tables.Count; i++) {
+                        var table = tables[i];
+                        storage.Set(table.GetElementType(), table);
+                    }
+                    
+                    NotifyLoadAll();
+                    NotifyAfterLoadAll();
+                    
+                    break;
                 
-                for (int i = 0; i < tables.Count; i++) {
-                    var table = tables[i];
-                    storage.Set(table.GetElementType(), table);
-                }
+                case JsonExtensions.Status.Error:
+                    LogError($"could not load storage [{storageId}]: {result.message}");
+                    break;
+                
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
-            catch (IOException e) {
-                Console.WriteLine(e);
-                return false;
-            }
-            finally {
-                sr.Close();
-                fs.Close();
-            }
-            
-            return true;
         }
         
-        public void DeleteSave(string saveId) {
-            string path = _saveSystemSettings.GetFolderPath();
-            if (!Directory.Exists(path)) return;
-            
-            _saveMetas.Clear();
-            
-            string[] files = Directory.GetFiles(path);
-            string fileNameTemplate = _saveSystemSettings.fileName;
-            string fileFormat = _saveSystemSettings.fileFormat;
-            
-            for (int i = 0; i < files.Length; i++) {
-                string file = files[i];
-                string fileName = Path.GetFileNameWithoutExtension(file);
-                
-                if (!fileName.Contains(fileNameTemplate) ||
-                    !fileName.Contains(saveId) ||
-                    !Path.GetExtension(file).Contains(fileFormat)
-                ) {
-                    continue;
-                }
-                
-                File.Delete(file);
-            }
+        private static UniTask<JsonExtensions.Result> SaveFileAsync(SaveFileDto saveFileDto, string filePath, int bufferSize) {
+            return JsonExtensions.WriteJsonIntoFile(saveFileDto, filePath, bufferSize);
+        }
+        
+        private static UniTask<JsonExtensions.Result<SaveFileDto>> LoadFileAsync(string filePath, int bufferSize) {
+            return JsonExtensions.ReadJsonFromFile<SaveFileDto>(filePath, bufferSize);
+        }
+        
+        public void DeleteFile(string storageId) {
+            File.Delete(_saveSystemSettings.GetFilePath(storageId));
         }
 
-        public void DeleteAllSaves() {
-            string path = _saveSystemSettings.GetFolderPath();
-            if (!Directory.Exists(path)) return;
-            
-            _saveMetas.Clear();
-            
-            string[] files = Directory.GetFiles(path);
-            string fileNameTemplate = _saveSystemSettings.fileName;
-            string fileFormat = _saveSystemSettings.fileFormat;
-            
-            for (int i = 0; i < files.Length; i++) {
-                string file = files[i];
+        public void DeleteAllFiles() {
+            var storageFiles = GetStorageFiles();
 
-                if (!Path.GetFileNameWithoutExtension(file).Contains(fileNameTemplate) ||
-                    !Path.GetExtension(file).Contains(fileFormat)
-                ) {
-                    continue;
-                }
-                
-                File.Delete(file);
+            for (int i = 0; i < storageFiles.Count; i++) {
+                var storageFile = storageFiles[i];
+                string filePath = _saveSystemSettings.GetFilePath(storageFile.storageId);
+                File.Delete(filePath);
             }
-        }
-
-        private ISaveTableFactory GetStorage(SaveStorage storage) {
-            return storage switch {
-                SaveStorage.CurrentSave => _tablesCurrentSave,
-                SaveStorage.Persistent => _tablesPersistent,
-                _ => throw new ArgumentOutOfRangeException(nameof(storage), storage, null)
-            };
         }
         
         private void NotifyLoadAll() {
@@ -289,6 +263,21 @@ namespace MisterGames.Common.Save {
             foreach (var saveable in _saveableSet) {
                 saveable.OnAfterSaveData(this);
             }
+        }
+        
+        [HideInCallstack]
+        private static void Log(string message) {
+            Debug.Log($"{nameof(SaveSystem).FormatColorOnlyForEditor(Color.white)}: f {Time.frameCount}, {message}");
+        }
+        
+        [HideInCallstack]
+        private static void LogWarning(string message) {
+            Debug.LogWarning($"{nameof(SaveSystem).FormatColorOnlyForEditor(Color.white)}: f {Time.frameCount}, {message}");
+        }
+        
+        [HideInCallstack]
+        private static void LogError(string message) {
+            Debug.LogError($"{nameof(SaveSystem).FormatColorOnlyForEditor(Color.white)}: f {Time.frameCount}, {message}");
         }
     }
     

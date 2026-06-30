@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace MisterGames.Common.Save.Tables {
     
-    public interface ISaveTableFactory {
+    public interface ISaveStorage {
 
         IEnumerable<ISaveTable> Tables { get; }
         
@@ -15,11 +15,11 @@ namespace MisterGames.Common.Save.Tables {
 
         void Set(Type elementType, ISaveTable value);
 
-        ISaveTable GetOrCreate<T>();
+        ISaveTable GetOrCreateTable<T>();
 
-        ISaveTable GetOrCreate(Type elementType);
+        ISaveTable GetOrCreateTable(Type elementType);
 
-        void Prewarm();
+        void PrewarmTables();
 
         void Clear();
     }

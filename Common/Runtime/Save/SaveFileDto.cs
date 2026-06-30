@@ -7,7 +7,6 @@ namespace MisterGames.Common.Save {
     
     [Serializable]
     public sealed class SaveFileDto {
-        
         [SerializeReference] public List<ISaveTable> tables;
     }
     

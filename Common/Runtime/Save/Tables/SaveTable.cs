@@ -8,32 +8,23 @@ namespace MisterGames.Common.Save.Tables {
     [Serializable]
     public abstract class SaveTable<T> : ISaveTable {
         
-        [SerializeField] private Map<long, SaveRecord<T>> _dataMap = new();
+        [SerializeField] private Map<long, T> _dataMap = new();
 
         public Type GetElementType() {
             return typeof(T);
         }
 
-        public void PrepareRecord(string id, int index) {
-            long key = NumberExtensions.TwoIntsAsLong(Animator.StringToHash(id), index);
-            if (!_dataMap.ContainsKey(key)) _dataMap[key] = new SaveRecord<T> { id = id, index = index };
-        }
-
         public bool TryGetData<S>(long id, out S data) {
-            if (this is not SaveTable<S> table || !table._dataMap.TryGetValue(id, out var record)) {
-                data = default;
-                return false;
-            }
+            if (this is SaveTable<S> table && table._dataMap.TryGetValue(id, out data)) return true;
             
-            data = record.data;
-            return true;
+            data = default;
+            return false;
         }
 
         public void SetData<S>(long id, S data) {
-            if (this is not SaveTable<S> table || !table._dataMap.ContainsKey(id)) return;
-            
-            ref var record = ref table._dataMap.Get(id);
-            record.data = data;
+            if (this is not SaveTable<S> table) return;
+
+            table._dataMap[id] = data;
         }
 
         public void RemoveData(long id) {

@@ -5,16 +5,22 @@ namespace MisterGames.Common.Save.Tables {
 
     [Serializable]
     public struct SaveRecord<T> {
-        public string id;
-        public int index;
+        
         public T data;
+
+        public SaveRecord(T data) {
+            this.data = data;
+        }
     }
     
     [Serializable]
     public struct SaveRecordByRef<T> {
-        public string id;
-        public int index;
+        
         [SerializeReference] public T data;
+
+        public SaveRecordByRef(T data) {
+            this.data = data;
+        }
     }
     
 }

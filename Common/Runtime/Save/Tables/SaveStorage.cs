@@ -5,7 +5,7 @@ using Object = UnityEngine.Object;
 
 namespace MisterGames.Common.Save.Tables {
     
-    public sealed class SaveTableFactory : ISaveTableFactory {
+    public sealed class SaveStorage : ISaveStorage {
         
         private static readonly Dictionary<Type, Type> _tableTypes = new();
         private readonly Dictionary<Type, ISaveTable> _tables = new();
@@ -28,11 +28,11 @@ namespace MisterGames.Common.Save.Tables {
             _tables[GetBaseElementType(elementType)] = value;
         }
 
-        public ISaveTable GetOrCreate<T>() {
-            return GetOrCreate(typeof(T));
+        public ISaveTable GetOrCreateTable<T>() {
+            return GetOrCreateTable(typeof(T));
         }
         
-        public ISaveTable GetOrCreate(Type elementType) {
+        public ISaveTable GetOrCreateTable(Type elementType) {
             if (_tables.TryGetValue(elementType, out var repo) && repo != null) {
                 return repo;
             }
@@ -42,7 +42,7 @@ namespace MisterGames.Common.Save.Tables {
                 return repo;
             }
             
-            Prewarm();
+            PrewarmTables();
 
             if (_tableTypes.TryGetValue(elementType, out var repositoryType)) {
                 repo = Activator.CreateInstance(repositoryType) as ISaveTable;
@@ -57,10 +57,14 @@ namespace MisterGames.Common.Save.Tables {
         }
 
         public void Clear() {
+            foreach (var table in _tables.Values) {
+                table.Clear();
+            }
+
             _tables.Clear();
         }
 
-        public void Prewarm() {
+        public void PrewarmTables() {
             if (_tableTypes.Count > 0) return;
             
             var assemblies = AppDomain.CurrentDomain.GetAssemblies();
