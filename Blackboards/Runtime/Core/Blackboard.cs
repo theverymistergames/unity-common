@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using MisterGames.Blackboards.Tables;
 using MisterGames.Common.Data;
+using MisterGames.Common.Maths;
 using MisterGames.Common.Strings;
 using MisterGames.Common.Types;
 using UnityEngine;
@@ -50,7 +51,7 @@ namespace MisterGames.Blackboards.Core {
         }
 
         public static int StringToHash(string name) {
-            return name.GetHashCode();
+            return name == null ? 0 : Animator.StringToHash(name);
         }
 
         public void Clear() {
@@ -291,7 +292,7 @@ namespace MisterGames.Blackboards.Core {
             }
 
             var table = (IBlackboardTable) Activator.CreateInstance(tableType);
-            int id = _tablesHead++;
+            int id = _tablesHead.IncrementUncheckedRef();
             _tables[id] = table;
 
             return id;

@@ -1,6 +1,5 @@
 ﻿using System;
 using MisterGames.Common.Data;
-using MisterGames.Common.Maths;
 using UnityEngine;
 
 namespace MisterGames.Common.Save.Tables {
@@ -8,7 +7,7 @@ namespace MisterGames.Common.Save.Tables {
     [Serializable]
     public abstract class SaveTable<T> : ISaveTable {
         
-        [SerializeField] private Map<long, T> _dataMap = new();
+        [SerializeField] private SerializedDictionary<long, T> _dataMap = new();
 
         public Type GetElementType() {
             return typeof(T);

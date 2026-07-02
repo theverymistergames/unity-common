@@ -16,7 +16,7 @@ namespace MisterGames.Common.Save {
         
         public static readonly ISaveSystem Main = new SaveSystem();
 
-        private readonly Dictionary<string, ISaveStorage> _saveStorageMap = new();
+        private readonly Dictionary<string, SaveStorage> _saveStorageMap = new();
         private readonly HashSet<ISaveable> _saveableSet = new();
         
         private SaveSystemSettings _saveSystemSettings;
@@ -153,7 +153,7 @@ namespace MisterGames.Common.Save {
             Directory.CreateDirectory(_saveSystemSettings.GetFolderPath());
 
             var result = await SaveFileAsync(
-                new SaveFileDto { tables = new List<ISaveTable>(storage.Tables) },
+                storage,
                 _saveSystemSettings.GetFilePath(storageId),
                 _saveSystemSettings.bufferSize
             );
@@ -199,7 +199,7 @@ namespace MisterGames.Common.Save {
 
             switch (result.status) {
                 case JsonExtensions.Status.Success:
-                    var tables = (IReadOnlyList<ISaveTable>) result.value.tables ?? Array.Empty<ISaveTable>();
+                    var tables = (IReadOnlyList<ISaveTable>) result.value.Tables ?? Array.Empty<ISaveTable>();
                     for (int i = 0; i < tables.Count; i++) {
                         var table = tables[i];
                         storage.Set(table.GetElementType(), table);
@@ -219,12 +219,12 @@ namespace MisterGames.Common.Save {
             }
         }
         
-        private static UniTask<JsonExtensions.Result> SaveFileAsync(SaveFileDto saveFileDto, string filePath, int bufferSize) {
-            return JsonExtensions.WriteJsonIntoFile(saveFileDto, filePath, bufferSize);
+        private static UniTask<JsonExtensions.Result> SaveFileAsync(SaveStorage storage, string filePath, int bufferSize) {
+            return JsonExtensions.WriteJsonIntoFile(storage, filePath, bufferSize);
         }
         
-        private static UniTask<JsonExtensions.Result<SaveFileDto>> LoadFileAsync(string filePath, int bufferSize) {
-            return JsonExtensions.ReadJsonFromFile<SaveFileDto>(filePath, bufferSize);
+        private static UniTask<JsonExtensions.Result<SaveStorage>> LoadFileAsync(string filePath, int bufferSize) {
+            return JsonExtensions.ReadJsonFromFile<SaveStorage>(filePath, bufferSize);
         }
         
         public void DeleteFile(string storageId) {

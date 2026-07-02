@@ -1,14 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
+using MisterGames.Common.Data;
+using UnityEngine;
 using Object = UnityEngine.Object;
 
 namespace MisterGames.Common.Save.Tables {
     
+    [Serializable]
     public sealed class SaveStorage : ISaveStorage {
         
-        private static readonly Dictionary<Type, Type> _tableTypes = new();
-        private readonly Dictionary<Type, ISaveTable> _tables = new();
+        [SerializeField] private SerializedTypeMapByRef<ISaveTable> _tables = new();
+        
+        private static readonly Dictionary<Type, Type> _tableTypesCache = new();
 
         public IEnumerable<ISaveTable> Tables => _tables.Values;
         
@@ -44,11 +48,11 @@ namespace MisterGames.Common.Save.Tables {
             
             PrewarmTables();
 
-            if (_tableTypes.TryGetValue(elementType, out var repositoryType)) {
+            if (_tableTypesCache.TryGetValue(elementType, out var repositoryType)) {
                 repo = Activator.CreateInstance(repositoryType) as ISaveTable;
                 _tables[baseType] = repo;
             }
-            else if (_tableTypes.TryGetValue(baseType, out repositoryType)) {
+            else if (_tableTypesCache.TryGetValue(baseType, out repositoryType)) {
                 repo = Activator.CreateInstance(repositoryType) as ISaveTable;
                 _tables[baseType] = repo;
             }
@@ -65,7 +69,7 @@ namespace MisterGames.Common.Save.Tables {
         }
 
         public void PrewarmTables() {
-            if (_tableTypes.Count > 0) return;
+            if (_tableTypesCache.Count > 0) return;
             
             var assemblies = AppDomain.CurrentDomain.GetAssemblies();
             
@@ -84,7 +88,7 @@ namespace MisterGames.Common.Save.Tables {
                         continue;
                     }
 
-                    _tableTypes[elementType] = type;
+                    _tableTypesCache[elementType] = type;
                 }
             }
         }

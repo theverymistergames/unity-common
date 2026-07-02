@@ -9,7 +9,7 @@ namespace MisterGames.Common.Save.Tables {
     [SaveTable(typeof(Object[]))]
     public sealed class SaveTableUnityObjectArray : ISaveTable {
 
-        [SerializeField] private Map<long, Object[]> _dataMap = new();
+        [SerializeField] private SerializedDictionary<long, Object[]> _dataMap = new();
 
         public Type GetElementType() => typeof(Object[]);
 

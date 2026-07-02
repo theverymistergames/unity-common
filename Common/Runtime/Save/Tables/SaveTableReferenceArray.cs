@@ -8,7 +8,7 @@ namespace MisterGames.Common.Save.Tables {
     [SaveTable(typeof(object[]))]
     public sealed class SaveTableReferenceArray : ISaveTable {
 
-        [SerializeField] private Map<long, object[]> _dataMap = new();
+        [SerializeField] private SerializedDictionaryByRef<long, object[]> _dataMap = new();
 
         public Type GetElementType() => typeof(object[]);
 

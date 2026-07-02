@@ -8,7 +8,7 @@ namespace MisterGames.Common.Save.Tables {
     [SaveTable(typeof(Enum))]
     public sealed class SaveTableEnum : ISaveTable {
 
-        [SerializeField] private Map<long, ulong> _dataMap = new();
+        [SerializeField] private SerializedDictionary<long, ulong> _dataMap = new();
 
         public Type GetElementType() => typeof(Enum);
 
