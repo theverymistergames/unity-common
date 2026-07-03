@@ -22,6 +22,17 @@ namespace MisterGames.Common.Editor.SerializedProperties {
             public int elementIndex;
         }
 
+        public static bool CanBeNullable(SerializedPropertyType serializedPropertyType) {
+            return serializedPropertyType switch {
+                SerializedPropertyType.Generic => true,
+                SerializedPropertyType.String => true,
+                SerializedPropertyType.ObjectReference => true,
+                SerializedPropertyType.ExposedReference => true,
+                SerializedPropertyType.ManagedReference => true,
+                _ => false,
+            };
+        }
+        
         public static void WriteSerializedGuid(SerializedProperty guidProperty, ulong low, ulong high) {
             NumberExtensions.UlongAsTwoInts(low, out int low0, out int low1);
             NumberExtensions.UlongAsTwoInts(high, out int high0, out int high1);

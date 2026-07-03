@@ -1,29 +1,40 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using MisterGames.Common.Attributes;
 using UnityEngine;
 
 namespace MisterGames.Common.Data {
 
     [Serializable]
-    public sealed class SerializedDictionary<TKey, TValue> : SerializedDictionaryBase<TKey, TValue, TKey, TValue> {
-        protected override TKey SerializeKey(TKey key) => key;
-        protected override TKey DeserializeKey(TKey key) => key;
-        protected override TValue SerializeValue(TValue value) => value;
-        protected override TValue DeserializeValue(TValue value) => value;
+    public sealed class SerializedDictionary<TKey, TValue> : SerializedDictionaryBase<TKey, TValue, SerializedDictionary<TKey, TValue>.Entry> {
+        [Serializable]
+        public struct Entry {
+            public TKey key;
+            public TValue value;
+        }
+
+        protected override Entry Serialize(TKey key, TValue value) => new() { key = key, value = value };
+        protected override (TKey, TValue) Deserialize(Entry entry) => (entry.key, entry.value);
     }
     
     [Serializable]
-    public abstract class SerializedDictionaryBase<TKey, TValue, TSerializedKey, TSerializedValue> : IDictionary<TKey, TValue>, ISerializationCallbackReceiver {
-
-        [SerializeField] private List<Entry> _entries = new();
-        [SerializeField] private int _confirmedCount = -1;
-
+    public sealed class SerializedDictionaryByRef<TKey, TValue> : SerializedDictionaryBase<TKey, TValue, SerializedDictionaryByRef<TKey, TValue>.Entry> {
         [Serializable]
-        internal struct Entry {
-            public TSerializedKey key;
-            public TSerializedValue value;
+        public struct Entry {
+            public TKey key;
+            [SerializeReference] [SubclassSelector] public TValue value;
         }
+
+        protected override Entry Serialize(TKey key, TValue value) => new() { key = key, value = value };
+        protected override (TKey, TValue) Deserialize(Entry entry) => (entry.key, entry.value);
+    }
+    
+    [Serializable]
+    public abstract class SerializedDictionaryBase<TKey, TValue, TEntry> : IDictionary<TKey, TValue>, ISerializationCallbackReceiver {
+
+        [SerializeField] private List<TEntry> _entries = new();
+        [SerializeField] private int _newEntry;
 
         private readonly Dictionary<TKey, TValue> _dict = new();
 
@@ -53,28 +64,41 @@ namespace MisterGames.Common.Data {
         IEnumerator IEnumerable.GetEnumerator() => _dict.GetEnumerator();
 
         void ISerializationCallbackReceiver.OnBeforeSerialize() {
-            if (_confirmedCount >= 0) return;
-
-            _entries.Clear();
+            TEntry entry = default;
+            _newEntry = (_entries?.Count ?? 0) == 0 ? 0 : _newEntry;
+            
+            if (_newEntry > 0) {
+                entry = _entries![^1];
+            }
+            
+            _entries!.Clear();
             foreach (var kvp in _dict) {
-                _entries.Add(new Entry { key = SerializeKey(kvp.Key), value = SerializeValue(kvp.Value) });
+                _entries.Add(Serialize(kvp.Key, kvp.Value));
+            }
+
+            if (_newEntry > 0) {
+                _entries.Add(entry);
             }
         }
 
         void ISerializationCallbackReceiver.OnAfterDeserialize() {
             _dict.Clear();
 
-            int count = _confirmedCount >= 0 ? _confirmedCount : _entries.Count;
+            int count = (_entries?.Count ?? 0) - _newEntry;
+            bool isValueType = typeof(TKey).IsValueType;
+            
             for (int i = 0; i < count; i++) {
-                var entry = _entries[i];
-                _dict[DeserializeKey(entry.key)] = DeserializeValue(entry.value);
+                var entry = _entries![i];
+                var (key, value) = Deserialize(entry);
+                
+                if (!isValueType && key == null) continue;
+                
+                _dict[key] = value;
             }
         }
 
-        protected abstract TSerializedKey SerializeKey(TKey key);
-        protected abstract TKey DeserializeKey(TSerializedKey key);
-        protected abstract TSerializedValue SerializeValue(TValue value);
-        protected abstract TValue DeserializeValue(TSerializedValue value);
+        protected abstract TEntry Serialize(TKey key, TValue value);
+        protected abstract (TKey, TValue) Deserialize(TEntry entry);
     }
     
 }

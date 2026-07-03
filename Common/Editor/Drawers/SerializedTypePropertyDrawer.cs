@@ -25,11 +25,6 @@ namespace MisterGames.Common.Editor.Drawers {
             var type = SerializedType.DeserializeType(typeString);
             var filters = fieldInfo.GetCustomAttributes<TypeFilterAttribute>().ToArray();
 
-            if (filters.Length == 0) {
-                EditorGUI.LabelField(position, label, new GUIContent(TypeNameFormatter.GetShortTypeName(type)));
-                return;
-            }
-            
             var typeLabel = type == null ? NullLabel : new GUIContent(TypeNameFormatter.GetShortTypeName(type));
             label = label == null || label.text == typeString ? GUIContent.none : label;
             
@@ -52,19 +47,24 @@ namespace MisterGames.Common.Editor.Drawers {
         
         private static AdvancedDropdown<Type> CreateTypeDropdown(SerializedProperty property, TypeFilterAttribute[] filters) {
             var types = new List<Type> { null };
-            
-            for (int i = 0; i < filters.Length; i++) {
-                var attr = filters[i];
-                if (string.IsNullOrWhiteSpace(attr.propertyName)) continue;
+
+            if (filters == null || filters.Length == 0) {
                 
-                string path = SerializedPropertyExtensions.GetNeighbourPropertyPath(property, attr.propertyName);
-                var prop = property.serializedObject.FindProperty(path);
-
-                if (prop?.GetValue() is not {} value) continue;
-
-                types.AddRange(GetAllParentTypesAndInterfaces(value.GetType(), attr.mode));
             }
+            else {
+                for (int i = 0; i < filters?.Length; i++) {
+                    var attr = filters[i];
+                    if (string.IsNullOrWhiteSpace(attr.propertyName)) continue;
+                
+                    string path = SerializedPropertyExtensions.GetNeighbourPropertyPath(property, attr.propertyName);
+                    var prop = property.serializedObject.FindProperty(path);
 
+                    if (prop?.GetValue() is not {} value) continue;
+
+                    types.AddRange(GetAllParentTypesAndInterfaces(value.GetType(), attr.mode));
+                }
+            }
+            
             property = property.Copy();
 
             return new AdvancedDropdown<Type>(

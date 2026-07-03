@@ -8,8 +8,6 @@ namespace MisterGames.Common.Editor.Attributes {
     [CustomPropertyDrawer(typeof(HideLabelAttribute))]
     public sealed class HideLabelDrawer : PropertyDrawer {
 
-        private bool _hasCachedPropertyDrawer;
-
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
             float labelWidthCache = EditorGUIUtility.labelWidth;
             EditorGUIUtility.labelWidth = 0f;
