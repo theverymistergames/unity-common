@@ -13,7 +13,6 @@ namespace MisterGames.Common.Data {
             public TKey key;
             public TValue value;
         }
-
         protected override Entry Serialize(TKey key, TValue value) => new() { key = key, value = value };
         protected override (TKey, TValue) Deserialize(Entry entry) => (entry.key, entry.value);
     }
@@ -25,11 +24,13 @@ namespace MisterGames.Common.Data {
             public TKey key;
             [SerializeReference] [SubclassSelector] public TValue value;
         }
-
         protected override Entry Serialize(TKey key, TValue value) => new() { key = key, value = value };
         protected override (TKey, TValue) Deserialize(Entry entry) => (entry.key, entry.value);
     }
     
+    /// <summary>
+    /// Serializable dictionary. TEntry should have "key" and "value" fields to be drawn properly in the inspector.  
+    /// </summary>
     [Serializable]
     public abstract class SerializedDictionaryBase<TKey, TValue, TEntry> : IDictionary<TKey, TValue>, ISerializationCallbackReceiver {
 
@@ -60,9 +61,44 @@ namespace MisterGames.Common.Data {
             ((IDictionary<TKey, TValue>) _dict).CopyTo(array, arrayIndex);
         }
 
+        public int FirstIndexOf(Func<TEntry, bool> predicate) {
+            for (int i = 0; i < _entries.Count; i++) {
+                if (predicate.Invoke(_entries[i])) return i;
+            }
+            
+            return -1;
+        }
+        
+        public int FirstIndexOf<T>(T data, Func<T, TEntry, bool> predicate) {
+            for (int i = 0; i < _entries.Count; i++) {
+                if (predicate.Invoke(data, _entries[i])) return i;
+            }
+            
+            return -1;
+        }
+        
+        public int LastIndexOf(Func<TEntry, bool> predicate) {
+            for (int i = _entries.Count - 1; i >= 0; i--) {
+                if (predicate.Invoke(_entries[i])) return i;
+            }
+            
+            return -1;
+        }
+        
+        public int LastIndexOf<T>(T data, Func<T, TEntry, bool> predicate) {
+            for (int i = _entries.Count - 1; i >= 0; i--) {
+                if (predicate.Invoke(data, _entries[i])) return i;
+            }
+            
+            return -1;
+        }
+        
         public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator() => _dict.GetEnumerator();
         IEnumerator IEnumerable.GetEnumerator() => _dict.GetEnumerator();
 
+        protected abstract TEntry Serialize(TKey key, TValue value);
+        protected abstract (TKey, TValue) Deserialize(TEntry entry);
+        
         void ISerializationCallbackReceiver.OnBeforeSerialize() {
             TEntry entry = default;
             _newEntry = (_entries?.Count ?? 0) == 0 ? 0 : _newEntry;
@@ -96,9 +132,6 @@ namespace MisterGames.Common.Data {
                 _dict[key] = value;
             }
         }
-
-        protected abstract TEntry Serialize(TKey key, TValue value);
-        protected abstract (TKey, TValue) Deserialize(TEntry entry);
     }
     
 }

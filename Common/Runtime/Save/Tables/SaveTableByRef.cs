@@ -20,18 +20,51 @@ namespace MisterGames.Common.Save.Tables {
             return false;
         }
 
-        public void SetData<S>(long id, S data) {
-            if (this is not SaveTableByRef<S> table) return;
+        public bool SetData<S>(long id, S data) {
+            if (this is not SaveTableByRef<S> table) return false;
 
             table._dataMap[id] = data;
+            return true;
         }
 
-        public void RemoveData(long id) {
-            _dataMap.Remove(id);
+        public bool TryGetDataBoxed(long id, out object data) {
+            if (_dataMap.TryGetValue(id, out var value)) {
+                data = value;
+                return true;
+            }
+
+            data = null;
+            return false;
+        }
+        
+        public bool SetDataBoxed(long id, object data) {
+            if (data is not T t) return false;
+            
+            _dataMap[id] = t;
+            return true;
+        }
+        
+        public bool RemoveData(long id) {
+            return _dataMap.Remove(id);
+        }
+
+        public bool ContainsData(long id) {
+            return _dataMap.ContainsKey(id);
+        }
+
+        public bool IsEmpty() {
+            return _dataMap.Count == 0;
         }
 
         public void Clear() {
             _dataMap.Clear();
+        }
+        
+        public string GetSerializedPropertyPath(long hash) {
+            int index = _dataMap.FirstIndexOf(hash, (h, e) => e.key == h);
+            return index >= 0
+                ? $"{nameof(_dataMap)}._entries.Array.data[{index}].value"
+                : null;
         }
     }
     

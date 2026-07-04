@@ -30,8 +30,8 @@ namespace MisterGames.Common.Save.Tables {
             return false;
         }
 
-        public void SetData<S>(long id, S data) {
-            if (data is not Array array) return;
+        public bool SetData<S>(long id, S data) {
+            if (data is not Array array) return false;
             
             var dataArray = new Object[array.Length];
             _dataMap[id] = dataArray;
@@ -39,14 +39,54 @@ namespace MisterGames.Common.Save.Tables {
             for (int i = 0; i < array.Length; i++) {
                 if (array.GetValue(i) is Object v) dataArray[i] = v;
             }
+            
+            return true;
         }
 
-        public void RemoveData(long id) {
-            _dataMap.Remove(id);
+        public bool TryGetDataBoxed(long id, out object data) {
+            if (_dataMap.TryGetValue(id, out var value)) {
+                data = value;
+                return true;
+            }
+
+            data = null;
+            return false;
+        }
+        
+        public bool SetDataBoxed(long id, object data) {
+            if (data is not Array array) return false;
+            
+            var dataArray = new Object[array.Length];
+            _dataMap[id] = dataArray;
+            
+            for (int i = 0; i < array.Length; i++) {
+                if (array.GetValue(i) is Object v) dataArray[i] = v;
+            }
+            
+            return true;
+        }
+
+        public bool RemoveData(long id) {
+            return _dataMap.Remove(id);
+        }
+
+        public bool ContainsData(long id) {
+            return _dataMap.ContainsKey(id);
+        }
+
+        public bool IsEmpty() {
+            return _dataMap.Count == 0;
         }
 
         public void Clear() {
             _dataMap.Clear();
+        }
+        
+        public string GetSerializedPropertyPath(long hash) {
+            int index = _dataMap.FirstIndexOf(hash, (h, e) => e.key == h);
+            return index >= 0
+                ? $"{nameof(_dataMap)}._entries.Array.data[{index}].value"
+                : null;
         }
     }
 

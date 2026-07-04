@@ -19,7 +19,7 @@ namespace MisterGames.Scenario.Events {
         public Dictionary<EventReference, int> RaisedEvents { get; } = new();
         
         private readonly HashSet<EventReference> _subIdEventSet = new();
-        private readonly TreeMap<EventReference, object> _listenerTree = new();
+        private readonly MultiValueDictionary<EventReference, object> _listenerTree = new();
         private readonly MultiValueDictionary<Type, object> _streamMap = new();
 
         public void Dispose() {
@@ -160,14 +160,11 @@ namespace MisterGames.Scenario.Events {
 
         private void NotifyEventRaised(EventReference e) {
             if (EnableLogs) Log($"raised [{e}] (no data)");
-            
-            if (!_listenerTree.TryGetNode(e, out int root)) return;
 
-            int i = _listenerTree.GetChild(root);
-            while (i >= 0) {
-                int next = _listenerTree.GetNext(i);
-                
-                switch (_listenerTree.GetValueAt(i)) {
+            int count = _listenerTree.GetCount(e);
+            
+            for (int i = 0; i < count; i++) {
+                switch (_listenerTree.GetValueAt(e, i)) {
                     case IEventListener interfaceListener:
                         interfaceListener.OnEventRaised(e);
                         break;
@@ -176,21 +173,15 @@ namespace MisterGames.Scenario.Events {
                         actionListener.Invoke();
                         break;
                 }
-
-                i = next;
             }
         }
         
         private void NotifyEventRaised<T>(EventReference e, T data) {
             if (EnableLogs) Log($"raised [{e}] with data [{data}]");
+            int count = _listenerTree.GetCount(e);
             
-            if (!_listenerTree.TryGetNode(e, out int root)) return;
-            
-            int i = _listenerTree.GetChild(root);
-            while (i >= 0) {
-                int next = _listenerTree.GetNext(i);
-                
-                switch (_listenerTree.GetValueAt(i)) {
+            for (int i = 0; i < count; i++) {
+                switch (_listenerTree.GetValueAt(e, i)) {
                     case IEventListener<T> interfaceListener:
                         interfaceListener.OnEventRaised(e, data);
                         break;
@@ -207,8 +198,6 @@ namespace MisterGames.Scenario.Events {
                         actionListener.Invoke();
                         break;
                 }
-
-                i = next;
             }
         }
 
@@ -263,28 +252,21 @@ namespace MisterGames.Scenario.Events {
         }
 
         private void SubscribeListener(EventReference e, object listener) {
-            int root = _listenerTree.GetOrAddNode(e);
-            
-            for (int i = _listenerTree.GetChild(root); i >= 0; i = _listenerTree.GetNext(i)) {
-                if (AreEqualListeners(_listenerTree.GetValueAt(i), listener)) return;
+            int count = _listenerTree.GetCount(e);
+
+            for (int i = 0; i < count; i++) {
+                if (AreEqualListeners(_listenerTree.GetValueAt(e, i), listener)) return;
             }
 
-            _listenerTree.AddEndPoint(root, listener);
+            _listenerTree.AddValue(e, listener);
             
             if (EnableLogs) Log($"added listener [{listener}] for [{e}]");
         }
 
         private void UnsubscribeListener(EventReference e, object listener) {
-            if (!_listenerTree.TryGetNode(e, out int root)) return;
+            if (!_listenerTree.RemoveValue(e, listener)) return;
             
-            for (int i = _listenerTree.GetChild(root); i >= 0; i = _listenerTree.GetNext(i)) {
-                if (!AreEqualListeners(_listenerTree.GetValueAt(i), listener)) continue;
-
-                _listenerTree.RemoveNodeAt(i);
-                
-                if (EnableLogs) Log($"removed listener [{listener}] for [{e}]");
-                return;
-            }
+            if (EnableLogs) Log($"removed listener [{listener}] for [{e}]");
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

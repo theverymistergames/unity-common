@@ -6,6 +6,7 @@ using Cysharp.Threading.Tasks;
 using MisterGames.Common.Files;
 using MisterGames.Common.Lists;
 using MisterGames.Common.Maths;
+using MisterGames.Common.Save.Storages;
 using MisterGames.Common.Save.Tables;
 using MisterGames.Common.Strings;
 using UnityEngine;
@@ -57,7 +58,7 @@ namespace MisterGames.Common.Save {
             data = default;
             
             return GetStorage(storageId)
-                ?.Get<T>()
+                ?.GetTable<T>()
                 ?.TryGetData(NumberExtensions.TwoIntsAsLong(Animator.StringToHash(dataId), index), out data) ?? false;
         }
 
@@ -108,8 +109,6 @@ namespace MisterGames.Common.Save {
             if (_saveStorageMap.TryGetValue(storageId, out var storage)) return storage;
             
             storage = new SaveStorage();
-            storage.PrewarmTables();
-            
             _saveStorageMap[storageId] = storage;
             
             return storage;
@@ -202,7 +201,7 @@ namespace MisterGames.Common.Save {
                     var tables = (IReadOnlyList<ISaveTable>) result.value.Tables ?? Array.Empty<ISaveTable>();
                     for (int i = 0; i < tables.Count; i++) {
                         var table = tables[i];
-                        storage.Set(table.GetElementType(), table);
+                        storage.SetTable(table.GetElementType(), table);
                     }
                     
                     NotifyLoadAll();

@@ -12,8 +12,8 @@ namespace MisterGames.Blueprints.Runtime {
 
     internal sealed class BlueprintCompiler {
 
-        private readonly Dictionary<NodeId, NodeId> _runtimeNodeMap = new Dictionary<NodeId, NodeId>();
-        private readonly TreeMap<int, RuntimeLink> _hashLinks = new TreeMap<int, RuntimeLink>();
+        private readonly Dictionary<NodeId, NodeId> _runtimeNodeMap = new();
+        private readonly TreeMap<int, RuntimeLink> _hashLinks = new();
 
         public RuntimeBlueprint Compile(BlueprintMeta meta, IBlueprintFactory factory, IBlueprintHost host) {
             _runtimeNodeMap.Clear();

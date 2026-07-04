@@ -6,7 +6,7 @@ namespace MisterGames.Common.Labels {
     
     internal sealed class LabelValueEventSystem : ILabelValueEventSystem, IDisposable {
         
-        private readonly TreeMap<LabelValue, object> _listenerTree = new();
+        private readonly MultiValueDictionary<LabelValue, object> _listenerTree = new();
 
         public void Dispose() {
             _listenerTree.Clear();
@@ -29,13 +29,11 @@ namespace MisterGames.Common.Labels {
         }
 
         public void NotifyDataChanged<T>(LabelValue<T> labelValue, T data) {
-            if (!_listenerTree.TryGetNode(ConvertToPlainLabelValue(labelValue), out int root)) return;
-            
-            int i = _listenerTree.GetChild(root);
-            while (i >= 0) {
-                int next = _listenerTree.GetNext(i);
+            var key = ConvertToPlainLabelValue(labelValue);
+            int count = _listenerTree.GetCount(key);
 
-                switch (_listenerTree.GetValueAt(i)) {
+            for (int i = 0; i < count; i++) {
+                switch (_listenerTree.GetValueAt(key, i)) {
                     case Action<T> actionListener:
                         actionListener.Invoke(data);
                         break;
@@ -44,38 +42,23 @@ namespace MisterGames.Common.Labels {
                         interfaceListener.OnDataChanged(labelValue, data);
                         break;
                 }
-
-                i = next;
             }
         }
 
         private bool SubscribeListener<T>(LabelValue<T> labelValue, object listener) {
-            if (labelValue.library == null) return false;
-            int root = _listenerTree.GetOrAddNode(ConvertToPlainLabelValue(labelValue));
-            
-            for (int i = _listenerTree.GetChild(root); i >= 0; i = _listenerTree.GetNext(i)) {
-                if (AreEqualListeners(_listenerTree.GetValueAt(i), listener)) return false;
+            var key = ConvertToPlainLabelValue(labelValue);
+            int count = _listenerTree.GetCount(key);
+
+            for (int i = 0; i < count; i++) {
+                if (AreEqualListeners(_listenerTree.GetValueAt(key, i), listener)) return false;
             }
 
-            _listenerTree.AddEndPoint(root, listener);
+            _listenerTree.AddValue(key, listener);
             return true;
         }
 
         private bool UnsubscribeListener<T>(LabelValue<T> labelValue, object listener) {
-            if (labelValue.library == null ||
-                !_listenerTree.TryGetNode(ConvertToPlainLabelValue(labelValue), out int root)) 
-            {
-                return false;
-            }
-            
-            for (int i = _listenerTree.GetChild(root); i >= 0; i = _listenerTree.GetNext(i)) {
-                if (!AreEqualListeners(_listenerTree.GetValueAt(i), listener)) continue;
-
-                _listenerTree.RemoveNodeAt(i);
-                return true;
-            }
-
-            return false;
+            return _listenerTree.RemoveValue(ConvertToPlainLabelValue(labelValue), listener);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

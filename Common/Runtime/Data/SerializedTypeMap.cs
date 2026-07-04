@@ -12,7 +12,6 @@ namespace MisterGames.Common.Data {
             public SerializedType key;
             public TValue value;
         }
-
         protected override Entry Serialize(Type key, TValue value) => new() { key = new SerializedType(key), value = value };
         protected override (Type, TValue) Deserialize(Entry entry) => (entry.key.ToType(), entry.value);
     }
@@ -24,7 +23,6 @@ namespace MisterGames.Common.Data {
             public SerializedType key;
             [SerializeReference] [SubclassSelector] public TValue value;
         }
-
         protected override Entry Serialize(Type key, TValue value) => new() { key = new SerializedType(key), value = value };
         protected override (Type, TValue) Deserialize(Entry entry) => (entry.key.ToType(), entry.value);
     }

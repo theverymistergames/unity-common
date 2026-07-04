@@ -48,21 +48,16 @@ namespace MisterGames.Common.Editor.Drawers {
         private static AdvancedDropdown<Type> CreateTypeDropdown(SerializedProperty property, TypeFilterAttribute[] filters) {
             var types = new List<Type> { null };
 
-            if (filters == null || filters.Length == 0) {
+            for (int i = 0; i < filters?.Length; i++) {
+                var attr = filters[i];
+                if (string.IsNullOrWhiteSpace(attr.propertyName)) continue;
                 
-            }
-            else {
-                for (int i = 0; i < filters?.Length; i++) {
-                    var attr = filters[i];
-                    if (string.IsNullOrWhiteSpace(attr.propertyName)) continue;
-                
-                    string path = SerializedPropertyExtensions.GetNeighbourPropertyPath(property, attr.propertyName);
-                    var prop = property.serializedObject.FindProperty(path);
+                string path = SerializedPropertyExtensions.GetNeighbourPropertyPath(property, attr.propertyName);
+                var prop = property.serializedObject.FindProperty(path);
 
-                    if (prop?.GetValue() is not {} value) continue;
+                if (prop?.GetValue() is not {} value) continue;
 
-                    types.AddRange(GetAllParentTypesAndInterfaces(value.GetType(), attr.mode));
-                }
+                types.AddRange(GetAllParentTypesAndInterfaces(value.GetType(), attr.mode));
             }
             
             property = property.Copy();

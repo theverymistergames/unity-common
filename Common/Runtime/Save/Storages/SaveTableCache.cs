@@ -4,15 +4,19 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using UnityEditor;
+using MisterGames.Common.Save.Tables;
 using UnityEngine;
+using Object = UnityEngine.Object;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
-namespace MisterGames.Blackboards.Tables {
+namespace MisterGames.Common.Save.Storages {
 
 #if UNITY_EDITOR
     [InitializeOnLoad]
 #endif
-    public static class BlackboardTableUtils {
+    internal static class SaveTableCache {
 
         private static readonly object _lock = new();
         private static SynchronizationContext _mainThreadContext;
@@ -21,37 +25,15 @@ namespace MisterGames.Blackboards.Tables {
 
         private static Dictionary<Type, Type> _tableTypesCache = new();
         
-        public static bool IsSupportedElementType(Type t) {
-            return GetBlackboardTableType(t) != null;
-        }
-
-        public static Type GetBlackboardTableType(Type t) {
-            if (!IsValidElementType(t)) return null;
-            
-            if (TryGetBlackboardTableType(t, out var tableType)) return tableType;
-
-            bool isArray = t.IsArray;
-            if (isArray) t = t.GetElementType()!;
-
-            t = typeof(UnityEngine.Object).IsAssignableFrom(t) ? typeof(UnityEngine.Object) :
+        public static Type GetBaseElementType(Type t) {
+            return t.IsArray ? t :
+                typeof(Object).IsAssignableFrom(t) ? typeof(Object) :
                 t.IsClass || t.IsInterface ? typeof(object) :
                 t.IsEnum ? typeof(Enum) :
                 t;
-
-            if (isArray) t = t.MakeArrayType();
-            
-            return TryGetBlackboardTableType(t, out tableType) ? tableType : null;
-        }
-
-        private static bool IsValidElementType(Type t) {
-            if (t == null) return false;
-            if (t.IsArray) t = t.GetElementType()!;
-
-            return t.IsVisible && (t.IsPublic || t.IsNestedPublic) && !t.IsGenericType &&
-                   t.FullName is not null && !t.FullName.Contains(Editor, StringComparison.OrdinalIgnoreCase);
         }
         
-        public static bool TryGetBlackboardTableType(Type elementType, out Type tableType)
+        public static bool TryGetTableType(Type elementType, out Type tableType)
         {
 #if UNITY_EDITOR
             return _tableTypesCache.TryGetValue(elementType, out tableType);
@@ -70,19 +52,19 @@ namespace MisterGames.Blackboards.Tables {
         }
 
 #if UNITY_EDITOR
-        static BlackboardTableUtils() {
+        static SaveTableCache() {
             InitializeForEditor();
         }
         
         private static void InitializeForEditor() {
-            var types = TypeCache.GetTypesDerivedFrom<IBlackboardTable>();
+            var types = TypeCache.GetTypesDerivedFrom<ISaveTable>();
             
             for (int i = 0; i < types.Count; i++) {
                 var type = types[i];
 
                 if (!type.IsAbstract &&
                     Attribute.IsDefined(type, typeof(SerializableAttribute)) &&
-                    type.GetCustomAttribute<BlackboardTableAttribute>(false)?.elementType is { } elementType) 
+                    type.GetCustomAttribute<SaveTableAttribute>(false)?.elementType is { } elementType) 
                 {
                     _tableTypesCache[elementType] = type;
                 }
@@ -173,9 +155,9 @@ namespace MisterGames.Blackboards.Tables {
                         continue;
 
                     if (!type.IsAbstract &&
-                        typeof(IBlackboardTable).IsAssignableFrom(type) &&
+                        typeof(ISaveTable).IsAssignableFrom(type) &&
                         Attribute.IsDefined(type, typeof(SerializableAttribute)) &&
-                        type.GetCustomAttribute<BlackboardTableAttribute>(false)?.elementType is { } elementType
+                        type.GetCustomAttribute<SaveTableAttribute>(false)?.elementType is { } elementType
                     ) {
                         result[elementType] = type;
                     }
@@ -194,5 +176,5 @@ namespace MisterGames.Blackboards.Tables {
             }
         }
     }
-
+    
 }

@@ -5,18 +5,16 @@ using UnityEngine;
 
 namespace MisterGames.Character.Inventory {
 
-    [Serializable]
     public sealed class InventoryStorage : IInventoryStorage {
-
-        [SerializeField] private Map<InventoryItemAsset, int> _items;
-
+        
         public IReadOnlyDictionary<InventoryItemAsset, int> Items => _items;
+        private readonly Dictionary<InventoryItemAsset, int> _items = new();
 
-        public InventoryStorage() {
-            _items = new Map<InventoryItemAsset, int>();
-        }
-
-        public int AddItems(InventoryItemAsset asset, int count, InventoryItemStackOverflowPolicy policy = InventoryItemStackOverflowPolicy.Cancel) {
+        public int AddItems(
+            InventoryItemAsset asset,
+            int count,
+            InventoryItemStackOverflowPolicy policy = InventoryItemStackOverflowPolicy.Cancel) 
+        {
             if (count <= 0 || asset == null) {
                 return 0;
             }
@@ -27,16 +25,23 @@ namespace MisterGames.Character.Inventory {
             return count;
         }
 
-        public int RemoveItems(InventoryItemAsset asset, int count, InventoryItemStackOverflowPolicy policy = InventoryItemStackOverflowPolicy.Cancel) {
-            if (count <= 0 || asset == null || !_items.ContainsKey(asset)) {
+        public int RemoveItems(
+            InventoryItemAsset asset,
+            int count,
+            InventoryItemStackOverflowPolicy policy = InventoryItemStackOverflowPolicy.Cancel) 
+        {
+            if (count <= 0 || 
+                asset == null || 
+                !_items.TryGetValue(asset, out int existent)) 
+            {
                 return 0;
             }
 
-            ref int existent = ref _items.Get(asset);
-
             if (existent >= count) {
                 existent -= count;
+                
                 if (existent <= 0) _items.Remove(asset);
+                else _items[asset] = existent;
             }
             else {
                 switch (policy) {
@@ -58,11 +63,9 @@ namespace MisterGames.Character.Inventory {
         }
 
         public int RemoveAllItemsOf(InventoryItemAsset asset) {
-            if (asset == null || !_items.TryGetValue(asset, out int existent)) {
+            if (asset == null || !_items.Remove(asset, out int existent)) {
                 return 0;
             }
-
-            _items.Remove(asset);
 
             return existent;
         }

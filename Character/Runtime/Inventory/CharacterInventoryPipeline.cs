@@ -6,11 +6,10 @@ namespace MisterGames.Character.Inventory {
     public sealed class CharacterInventoryPipeline : MonoBehaviour, IActorComponent {
 
         [SerializeField] private InventoryItemStack[] _addItems;
-        [SerializeField] [HideInInspector] private InventoryStorage _storage;
-
+        
         public IInventory Inventory => GetOrCreateInventoryInstance();
         private Inventory _inventoryInstance;
-
+        
         public void OnAwake(IActor actor) {
             GetOrCreateInventoryInstance();
         }
@@ -30,12 +29,14 @@ namespace MisterGames.Character.Inventory {
         private Inventory GetOrCreateInventoryInstance() {
             if (_inventoryInstance != null) return _inventoryInstance;
 
+            var storage = new InventoryStorage();
+            
             for (int i = 0; i < _addItems.Length; i++) {
                 var stack = _addItems[i];
-                _storage.AddItems(stack.asset, stack.count);
+                storage.AddItems(stack.asset, stack.count);
             }
 
-            _inventoryInstance = new Inventory(_storage);
+            _inventoryInstance = new Inventory(storage);
             return _inventoryInstance;
         }
 
