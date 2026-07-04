@@ -2,17 +2,17 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using MisterGames.Blackboards.Tables;
+using MisterGames.Common.Save.Storages;
 using MisterGames.Common.Trees;
 using MisterGames.Common.Types;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using Object = UnityEngine.Object;
 
-namespace MisterGames.Blackboards.Editor {
+namespace MisterGames.Common.Editor {
 
     [InitializeOnLoad]
-    internal static class BlackboardTypeCache {
+    internal static class SaveValueSearchTreeCache {
 
         private const string Editor = "editor";
         private static readonly ManualResetEventSlim _treeNodesReadyEvent = new(false);
@@ -34,10 +34,10 @@ namespace MisterGames.Blackboards.Editor {
             }
         }
 
-        static BlackboardTypeCache() {
+        static SaveValueSearchTreeCache() {
             var thread = new Thread(BuildTreeNodesInBackground) {
                 IsBackground = true,
-                Name = nameof(BlackboardTypeCache) + ".BuildSearchTree",
+                Name = nameof(SaveValueSearchTreeCache) + ".BuildSearchTree",
             };
             thread.Start();
         }
@@ -68,33 +68,38 @@ namespace MisterGames.Blackboards.Editor {
             }
         }
 
+        private static bool IsSupportedElementType(Type t) {
+            return SaveTableCache.TryGetTableType(t, out _) ||
+                   SaveTableCache.TryGetTableType(SaveTableCache.GetBaseElementType(t), out _);
+        }
+        
         private static List<TreeNode> CreateTypeTree() {
             var tree = new List<TreeNode>();
 
             var assemblyTypes = CollectAssemblyTypes();
 
             var types = assemblyTypes
-                .Where(t => t.IsEnum && BlackboardTableUtils.IsSupportedElementType(t))
+                .Where(t => t.IsEnum && IsSupportedElementType(t))
                 .ToArray();
             tree.AddRange(GetTypeTree("Enums", types, 1));
 
             types = assemblyTypes
-                .Where(t => t.IsInterface && BlackboardTableUtils.IsSupportedElementType(t))
+                .Where(t => t.IsInterface && IsSupportedElementType(t))
                 .ToArray();
             tree.AddRange(GetTypeTree("Interfaces", types, 1));
 
             types = assemblyTypes
-                .Where(t => t.IsClass && !typeof(Object).IsAssignableFrom(t) && BlackboardTableUtils.IsSupportedElementType(t))
+                .Where(t => t.IsClass && !typeof(Object).IsAssignableFrom(t) && IsSupportedElementType(t))
                 .ToArray();
             tree.AddRange(GetTypeTree("System.Object", types, 1));
 
             types = assemblyTypes
-                .Where(t => t.IsClass && typeof(Object).IsAssignableFrom(t) && BlackboardTableUtils.IsSupportedElementType(t))
+                .Where(t => t.IsClass && typeof(Object).IsAssignableFrom(t) && IsSupportedElementType(t))
                 .ToArray();
             tree.AddRange(GetTypeTree("UnityEngine.Object", types, 1));
 
             types = assemblyTypes
-                .Where(t => t.IsValueType && !t.IsEnum && BlackboardTableUtils.IsSupportedElementType(t))
+                .Where(t => t.IsValueType && !t.IsEnum && IsSupportedElementType(t))
                 .ToArray();
             tree.AddRange(GetTypeTree("Value types", types, 1));
 

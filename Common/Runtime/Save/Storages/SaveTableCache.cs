@@ -48,7 +48,6 @@ namespace MisterGames.Common.Save.Storages {
             }
 
             return cache.TryGetValue(elementType, out tableType);
-
         }
 
 #if UNITY_EDITOR

@@ -81,9 +81,9 @@ namespace MisterGames.Common.Editor.Attributes.SubclassSelector {
                 float popupWidth = label == GUIContent.none || string.IsNullOrEmpty(label.text)
                     ? position.width - 14f
                     : position.width - EditorGUIUtility.labelWidth;
-
-                var popupPosition = new Rect(position.x + position.width - popupWidth, position.y, popupWidth, EditorGUIUtility.singleLineHeight);
-
+                float offsetX = 2f; 
+                var popupPosition = new Rect(position.x + position.width - popupWidth + offsetX, position.y, popupWidth - offsetX, EditorGUIUtility.singleLineHeight);
+                
                 if (EditorGUI.DropdownButton(popupPosition, typeLabel, FocusType.Keyboard)) {
                     CreateTypeDropdown(baseType, property).Show(popupPosition);
                 }

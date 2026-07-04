@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using MisterGames.Common.Attributes;
+using MisterGames.Common.Data;
 using MisterGames.Common.Labels.Base;
 using MisterGames.Common.Maths;
 using UnityEngine;
@@ -20,7 +21,7 @@ namespace MisterGames.Common.Labels {
             [HideInInspector] public int id;
 
             public string name;
-            [TextArea]
+            [TextAreaExtended]
             public string comment;
             
             [Space(10f)]
@@ -243,6 +244,7 @@ namespace MisterGames.Common.Labels {
             for (int i = 0; i < arrays; i++) {
                 ref var array = ref _labelArrays![i];
                 
+                if (array.id == 0) array.usage = LabelArrayUsage.ByHash;
                 if (array.id == 0 || _occupiedIdsCache.Contains(array.id)) array.id = GetNextId();
                 _occupiedIdsCache.Add(array.id);
                 

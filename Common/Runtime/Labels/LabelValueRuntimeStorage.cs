@@ -34,7 +34,7 @@ namespace MisterGames.Common.Labels {
                 return true;
             }
             
-            data = default;
+            data = null;
             return false;
         }
 
