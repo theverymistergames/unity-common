@@ -62,9 +62,9 @@ namespace MisterGames.Common.Save {
                 ?.TryGetData(NumberExtensions.TwoIntsAsLong(Animator.StringToHash(dataId), index), out data) ?? false;
         }
 
-        public void Set<T>(string storageId, string dataId, int index, T data) {
+        public bool Set<T>(string storageId, string dataId, int index, T data) {
             long key = NumberExtensions.TwoIntsAsLong(Animator.StringToHash(dataId), index);
-            GetOrCreateStorage(storageId)?.GetOrCreateTable<T>()?.SetData(key, data);
+            return GetOrCreateStorage(storageId)?.GetOrCreateTable<T>()?.SetData(key, data) ?? false;
         }
 
         public SaveBuilder Pop<T>(string storageId, string dataId, T def, out T data) {

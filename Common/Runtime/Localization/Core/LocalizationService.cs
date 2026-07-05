@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Async;
@@ -19,6 +20,7 @@ namespace MisterGames.Common.Localization {
 
         public event Action<Locale> OnLocaleChanged = delegate { };
 
+        public LocalizationSettings Settings { get; private set; }
         public Locale Locale { get => _locale; set => SetLocale(value); }
         
         private readonly Dictionary<int, float> _tableUsageTimeMap = new();
@@ -26,15 +28,12 @@ namespace MisterGames.Common.Localization {
         private readonly Dictionary<int, AsyncOperationHandle<LocalizationTableStorageBase>> _tableStorageHandlesMap = new();
 
         private CancellationTokenSource _cts;
-        private LocalizationSettings _settings;
         private Locale _locale;
 
         public void Initialize(LocalizationSettings settings) {
-            _settings = settings;
+            Settings = settings;
             
-            // todo load locale from saved settings
-            var defaultLocale = settings.GetLocaleOrFallback(CreateSystemLocale());
-            SetLocale(defaultLocale);
+            if (_locale.IsNull()) SetLocale(GetDefaultLocale());
             
             AsyncExt.RecreateCts(ref _cts);
             StartTableDisposalRoutine(_cts.Token).Forget();
@@ -54,6 +53,10 @@ namespace MisterGames.Common.Localization {
             _tableUsageTimeMap.Clear();
             _tableMap.Clear();
             _tableStorageHandlesMap.Clear();
+        }
+
+        public Locale GetDefaultLocale() {
+            return Settings.GetLocaleOrFallback(GetSystemLocale());
         }
 
         public string GetId(LocalizationKey key) {
@@ -81,10 +84,10 @@ namespace MisterGames.Common.Localization {
             if (table == null) return null;
             
             if (table.TryGetValue(key.hash, locale.Hash, out string value) && !string.IsNullOrEmpty(value) ||
-                _settings.ReplaceNotLocalizedStringsWithDefaultLocale &&
-                table.TryGetValue(key.hash, _settings.GetDefaultFallbackLocale().Hash, out value)) 
+                Settings.ReplaceNotLocalizedStringsWithDefaultLocale &&
+                table.TryGetValue(key.hash, Settings.GetDefaultFallbackLocale().Hash, out value)) 
             {
-                return string.IsNullOrEmpty(value) ? _settings.GetFallbackString() : value;
+                return string.IsNullOrEmpty(value) ? Settings.GetFallbackString() : value;
             }
 
             return null;
@@ -95,8 +98,8 @@ namespace MisterGames.Common.Localization {
             if (table == null) return default;
             
             if (table.TryGetValue(key.hash, locale.Hash, out T value) ||
-                _settings.ReplaceNotLocalizedAssetsWithDefaultLocale &&
-                table.TryGetValue(key.hash, _settings.GetDefaultFallbackLocale().Hash, out value)) 
+                Settings.ReplaceNotLocalizedAssetsWithDefaultLocale &&
+                table.TryGetValue(key.hash, Settings.GetDefaultFallbackLocale().Hash, out value)) 
             {
                 return value;
             }
@@ -107,7 +110,7 @@ namespace MisterGames.Common.Localization {
         private void SetLocale(Locale locale) {
             if (locale == _locale) return;
             
-            _locale = _settings.GetLocaleOrFallback(locale);
+            _locale = Settings.GetLocaleOrFallback(locale);
             LogInfo($"set language: {_locale}");
             
             OnLocaleChanged.Invoke(_locale);
@@ -152,7 +155,7 @@ namespace MisterGames.Common.Localization {
         private async UniTask StartTableDisposalRoutine(CancellationToken cancellationToken) {
             while (!cancellationToken.IsCancellationRequested) {
                 float time = Time.realtimeSinceStartup;
-                float disposeDelay = _settings.UnloadUnusedTablesDelay;
+                float disposeDelay = Settings.UnloadUnusedTablesDelay;
                 
                 var disposeBuffer = new NativeArray<int>(_tableMap.Count, Allocator.Temp);
                 int bufferCount = 0;
@@ -186,9 +189,21 @@ namespace MisterGames.Common.Localization {
             }
         }
         
-        private static Locale CreateSystemLocale() {
+        private static Locale GetSystemLocale() {
             var id = LocaleExtensions.SystemLanguageToLocaleId(Application.systemLanguage);
-            return LocaleExtensions.TryGetLocaleById(id, out var locale) ? locale : default;
+            if (LocaleExtensions.TryGetLocaleById(id, out var locale)) return locale;
+
+            try
+            {
+                var culture = CultureInfo.CurrentUICulture;
+                return LocaleExtensions.TryGetLocale(culture.TwoLetterISOLanguageName, out locale) 
+                    ? locale 
+                    : LocaleExtensions.DefaultLocale;
+            }
+            catch
+            {
+                return LocaleExtensions.DefaultLocale;
+            }
         }
         
         private static void LogInfo(string message) {

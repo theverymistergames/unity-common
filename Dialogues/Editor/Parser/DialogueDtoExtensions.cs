@@ -18,8 +18,7 @@ namespace MisterGames.Dialogues.Editor.Parser {
             DialogueFileDto dto,
             Guid localizationTableGuid,
             ILocalizationTableStorage<string> writeLocalizationTable,
-            IDialogueTableStorage writeDialogueTableStorage,
-            IReadOnlyList<LocalizationSettings> localizationSettingsList) 
+            IDialogueTableStorage writeDialogueTableStorage) 
         {
             if (dto == null || writeDialogueTableStorage == null || writeLocalizationTable == null ||
                 string.IsNullOrWhiteSpace(dto.id)) 
@@ -29,10 +28,10 @@ namespace MisterGames.Dialogues.Editor.Parser {
             
             string dialogueId = dto.id.Trim();
             
-            WriteHeader(dialogueId, dto, localizationTableGuid, writeLocalizationTable, writeDialogueTableStorage, localizationSettingsList);
-            WriteRoles(dialogueId, dto, localizationTableGuid, writeLocalizationTable, writeDialogueTableStorage, localizationSettingsList);
-            WriteBranches(dialogueId, dto, localizationTableGuid, writeLocalizationTable, writeDialogueTableStorage, localizationSettingsList);
-            WriteElements(dialogueId, dto, localizationTableGuid, writeLocalizationTable, writeDialogueTableStorage, localizationSettingsList);
+            WriteHeader(dialogueId, dto, localizationTableGuid, writeLocalizationTable, writeDialogueTableStorage);
+            WriteRoles(dialogueId, dto, localizationTableGuid, writeLocalizationTable, writeDialogueTableStorage);
+            WriteBranches(dialogueId, dto, localizationTableGuid, writeLocalizationTable, writeDialogueTableStorage);
+            WriteElements(dialogueId, dto, localizationTableGuid, writeLocalizationTable, writeDialogueTableStorage);
             
             return true;
         }
@@ -42,8 +41,7 @@ namespace MisterGames.Dialogues.Editor.Parser {
             DialogueFileDto dto,
             Guid localizationTableGuid,
             ILocalizationTableStorage<string> writeLocalizationTable,
-            IDialogueTableStorage writeDialogueTableStorage,
-            IReadOnlyList<LocalizationSettings> localizationSettingsList) 
+            IDialogueTableStorage writeDialogueTableStorage) 
         {
             bool hasLocalizations = false;
             
@@ -51,7 +49,7 @@ namespace MisterGames.Dialogues.Editor.Parser {
                 var locData = dto.titleLocalizations[i];
                 if (string.IsNullOrWhiteSpace(locData.loc)) continue;
                     
-                writeLocalizationTable.SetValue(dialogueId, locData.content?.Trim(), LocaleExtensions.CreateLocale(locData.loc.Trim(), localizationSettingsList));
+                writeLocalizationTable.SetValue(dialogueId, locData.content?.Trim(), LocaleExtensions.CreateLocale(locData.loc.Trim()));
                 hasLocalizations = true;
             }
             
@@ -67,8 +65,7 @@ namespace MisterGames.Dialogues.Editor.Parser {
             DialogueFileDto dto, 
             Guid localizationTableGuid,
             ILocalizationTableStorage<string> writeLocalizationTable,
-            IDialogueTableStorage writeDialogueTableStorage,
-            IReadOnlyList<LocalizationSettings> localizationSettingsList) 
+            IDialogueTableStorage writeDialogueTableStorage) 
         {
             string roleId;
             bool hasRoles = false;
@@ -85,7 +82,7 @@ namespace MisterGames.Dialogues.Editor.Parser {
                     var locData = roleData.localizations[j];
                     if (string.IsNullOrEmpty(locData.loc)) continue;
                     
-                    writeLocalizationTable.SetValue(roleId, locData.content?.Trim(), LocaleExtensions.CreateLocale(locData.loc.Trim(), localizationSettingsList));
+                    writeLocalizationTable.SetValue(roleId, locData.content?.Trim(), LocaleExtensions.CreateLocale(locData.loc.Trim()));
                     hasLocalizations = true;
                 }
                 
@@ -109,8 +106,7 @@ namespace MisterGames.Dialogues.Editor.Parser {
             DialogueFileDto dto, 
             Guid localizationTableGuid,
             ILocalizationTableStorage<string> writeLocalizationTable,
-            IDialogueTableStorage writeDialogueTableStorage,
-            IReadOnlyList<LocalizationSettings> localizationSettingsList) 
+            IDialogueTableStorage writeDialogueTableStorage) 
         {
             string branchId;
             bool hasBranches = false;
@@ -127,7 +123,7 @@ namespace MisterGames.Dialogues.Editor.Parser {
                     var locData = branchData.localizations[j];
                     if (string.IsNullOrEmpty(locData.loc)) continue;
                     
-                    writeLocalizationTable.SetValue(branchId, locData.content?.Trim(), LocaleExtensions.CreateLocale(locData.loc.Trim(), localizationSettingsList));
+                    writeLocalizationTable.SetValue(branchId, locData.content?.Trim(), LocaleExtensions.CreateLocale(locData.loc.Trim()));
                     hasLocalizations = true;
                 }
 
@@ -151,8 +147,7 @@ namespace MisterGames.Dialogues.Editor.Parser {
             DialogueFileDto dto, 
             Guid localizationTableGuid,
             ILocalizationTableStorage<string> writeLocalizationTable,
-            IDialogueTableStorage writeDialogueTableStorage,
-            IReadOnlyList<LocalizationSettings> localizationSettingsList) 
+            IDialogueTableStorage writeDialogueTableStorage) 
         {
             var sb = new StringBuilder();
             var addedElementsHashes = new NativeHashSet<int>(100, Allocator.Temp);
@@ -162,7 +157,7 @@ namespace MisterGames.Dialogues.Editor.Parser {
                 
                 var locale = string.IsNullOrEmpty(localizationData.loc)
                     ? LocaleExtensions.DefaultLocale
-                    : LocaleExtensions.CreateLocale(localizationData.loc, localizationSettingsList);
+                    : LocaleExtensions.CreateLocale(localizationData.loc);
 
                 string roleId = dto.roles?.Length > 0 ? dto.roles[0].roleId?.Trim() : null;
                 string branchId = dto.branches?.Length > 0 ? dto.branches[0].branchId?.Trim() : null;

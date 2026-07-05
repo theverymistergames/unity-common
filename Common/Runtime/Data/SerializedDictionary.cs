@@ -61,6 +61,10 @@ namespace MisterGames.Common.Data {
             ((IDictionary<TKey, TValue>) _dict).CopyTo(array, arrayIndex);
         }
 
+        public TEntry GetEntry(int index) {
+            return _entries[index];
+        }
+        
         public int FirstIndexOf(Func<TEntry, bool> predicate) {
             for (int i = 0; i < _entries.Count; i++) {
                 if (predicate.Invoke(_entries[i])) return i;
@@ -121,14 +125,10 @@ namespace MisterGames.Common.Data {
             _dict.Clear();
 
             int count = (_entries?.Count ?? 0) - _newEntry;
-            bool isValueType = typeof(TKey).IsValueType;
             
             for (int i = 0; i < count; i++) {
                 var entry = _entries![i];
                 var (key, value) = Deserialize(entry);
-                
-                if (!isValueType && key == null) continue;
-                
                 _dict[key] = value;
             }
         }

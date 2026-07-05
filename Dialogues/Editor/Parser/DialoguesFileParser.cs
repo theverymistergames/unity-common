@@ -5,7 +5,6 @@ using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Async;
-using MisterGames.Common.Data;
 using MisterGames.Common.Editor.GoogleSheets;
 using MisterGames.Common.Files;
 using MisterGames.Common.Localization;
@@ -80,7 +79,6 @@ namespace MisterGames.Dialogues.Editor.Parser {
                     dialogueFiles[i],
                     localizationTableStorages,
                     dialogueStorages,
-                    localizationSettingsAssets,
                     cancellationToken
                 );
             }
@@ -137,7 +135,6 @@ namespace MisterGames.Dialogues.Editor.Parser {
             string filePath,
             Dictionary<string, LocalizationTableStorage> localizationTableStorages,
             Dictionary<string, DialogueTableStorage> dialogueStorages,
-            LocalizationSettings[] localizationSettingsArray,
             CancellationToken cancellationToken) 
         {
             var result = await JsonExtensions.ReadJsonFromFile<DialogueFileDto>(filePath, BufferSize);
@@ -170,7 +167,7 @@ namespace MisterGames.Dialogues.Editor.Parser {
 
             string guid = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(localizationTableStorage));
 
-            if (!DialogueDtoExtensions.ParseAndWrite(fileDto, new Guid(guid), localizationTableStorage, dialogueStorage, localizationSettingsArray)) {
+            if (!DialogueDtoExtensions.ParseAndWrite(fileDto, new Guid(guid), localizationTableStorage, dialogueStorage)) {
                 LogError($"Error while parsing [{filePath}]: dialogue id is not set properly.");
                 return 0;
             }

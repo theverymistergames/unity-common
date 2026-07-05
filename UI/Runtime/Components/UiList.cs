@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 #if UNITY_EDITOR
@@ -19,6 +20,8 @@ namespace MisterGames.UI.Components {
         [SerializeField] [Min(0)] private int _selectedIndex;
         [SerializeField] private List<string> _elements = new();
 
+        public event Action<int> OnSelectedIndexChanged = delegate { };
+        
         private int _currentTextHash;
 
         private void OnEnable() {
@@ -127,6 +130,8 @@ namespace MisterGames.UI.Components {
             
             _selectedIndex = nextIndex;
             _currentTextHash = nextHash;
+            
+            OnSelectedIndexChanged.Invoke(_selectedIndex);
             
             ApplyText(nextText);
             UpdateButtons();

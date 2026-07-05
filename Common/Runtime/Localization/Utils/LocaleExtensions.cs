@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 namespace MisterGames.Common.Localization {
@@ -92,15 +91,16 @@ namespace MisterGames.Common.Localization {
         }
         
         public static bool IsNotNull(this Locale locale) {
-            return !IsNull(locale);
+            return !locale.IsNull();
         }
         
-        public static bool TryGetLocale(string localeCode, IReadOnlyList<LocalizationSettings> settingsList, out Locale locale) {
+        public static bool TryGetLocale(string localeCode, out Locale locale) {
             if (string.IsNullOrWhiteSpace(localeCode)) {
                 locale = default;
                 return false;
             }
-            
+
+            var settingsList = LocalizationSettingsCache.GetAllLocalizationSettings();
             for (int i = 0; i < settingsList.Count; i++) {
                 if (settingsList[i].TryGetSupportedLocale(localeCode, out locale)) return true;
             }
@@ -115,22 +115,10 @@ namespace MisterGames.Common.Localization {
             return false;
         }
         
-        public static Locale CreateLocale(string localeCode, IReadOnlyList<LocalizationSettings> settingsList) {
-            if (string.IsNullOrWhiteSpace(localeCode)) {
-                return default;
-            }
-            
-            for (int i = 0; i < settingsList.Count; i++) {
-                if (settingsList[i].TryGetSupportedLocale(localeCode, out var locale)) return locale;
-            }
-            
-            int hash = Animator.StringToHash(FormatLocaleCode(localeCode));
-            
-            if (TryGetLocaleIdByHash(hash, out var id)) {
-                return TryGetLocaleById(id, out var locale) ? locale : new Locale(hash, null);
-            }
-
-            return new Locale(hash, null);
+        public static Locale CreateLocale(string localeCode) {
+            return TryGetLocale(localeCode, out var locale) 
+                ? locale 
+                : new Locale(Animator.StringToHash(FormatLocaleCode(localeCode)), null);
         }
         
         public static Locale ToLocale(this LocaleId id) {

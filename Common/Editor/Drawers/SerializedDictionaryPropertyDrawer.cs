@@ -186,7 +186,7 @@ namespace MisterGames.Common.Editor.Drawers {
             }
 
             return itemKey.propertyType switch {
-                SerializedPropertyType.Generic => itemKey.GetValue() != null,
+                SerializedPropertyType.Generic => true,
                 SerializedPropertyType.String => !string.IsNullOrEmpty(itemKey.stringValue),
                 SerializedPropertyType.ObjectReference => itemKey.objectReferenceValue != null,
                 SerializedPropertyType.AnimationCurve => itemKey.animationCurveValue != null,

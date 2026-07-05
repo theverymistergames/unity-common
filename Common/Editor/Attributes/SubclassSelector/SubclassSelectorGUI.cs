@@ -75,7 +75,7 @@ namespace MisterGames.Common.Editor.Attributes.SubclassSelector {
 
             if (baseType.IsAbstract || baseType.IsInterface) {
                 var type = GetManagedReferenceValueType(property);
-                var typeLabel = type == null ? NullLabel : new GUIContent(type.Name);
+                var typeLabel = type == null ? NullLabel : new GUIContent(GetDisplayedTypeName(type));
                 label = label.text == typeLabel.text ? GUIContent.none : label;
 
                 float popupWidth = label == GUIContent.none || string.IsNullOrEmpty(label.text)
@@ -200,7 +200,14 @@ namespace MisterGames.Common.Editor.Attributes.SubclassSelector {
             if (string.IsNullOrEmpty(typeName)) return null;
 
             int splitIndex = typeName.IndexOf(' ');
-            return Assembly.Load(typeName[..splitIndex]).GetType(typeName[(splitIndex + 1)..]);
+            string assemblyName = typeName[..splitIndex];
+            string className = typeName[(splitIndex + 1)..].Replace('/', '+');
+
+            return Assembly.Load(assemblyName).GetType(className);
+        }
+
+        private static string GetDisplayedTypeName(Type type) {
+            return type.IsNested ? $"{type.DeclaringType!.Name}.{type.Name}" : type.Name;
         }
     }
 

@@ -30,6 +30,9 @@ namespace MisterGames.UI.Navigation {
         void UnblockExitToPause(object source);
         
         void NavigateOutTo(Selectable selectable, UiNavigationDirection direction);
+
+        void AddWindowNavigationCallback(IUiWindow window, IUiNavigationCallback callback);
+        void RemoveWindowNavigationCallback(IUiWindow window, IUiNavigationCallback callback);
         
         void NavigateBack();
         bool NavigateBackPerformedThisFrame();

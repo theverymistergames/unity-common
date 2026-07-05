@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Editor.GoogleSheets;
@@ -34,10 +33,7 @@ namespace MisterGames.Common.Editor.Localization {
         
         public override void Parse(IReadOnlyList<SheetTable> sheetTables) {
             var storages = new Dictionary<string, LocalizationTableStorage>();
-            var localizationSettingsAssets = AssetDatabase
-                .FindAssets($"a:assets t:{nameof(LocalizationSettings)}")
-                .Select(guid => AssetDatabase.LoadAssetAtPath<LocalizationSettings>(AssetDatabase.GUIDToAssetPath(guid)))
-                .ToArray();
+            
             
             int valuesParsed = 0;
             var localesSet = new HashSet<Locale>();
@@ -61,7 +57,7 @@ namespace MisterGames.Common.Editor.Localization {
                         string value = sheetTable.GetData(r, c);
                         string column = sheetTable.GetColumn(c);
                         
-                        if (string.IsNullOrEmpty(value) || !LocaleExtensions.TryGetLocale(column, localizationSettingsAssets, out var locale)) continue;
+                        if (string.IsNullOrEmpty(value) || !LocaleExtensions.TryGetLocale(column, out var locale)) continue;
 
                         valuesParsed++;
                         valuesParsedLocal++;

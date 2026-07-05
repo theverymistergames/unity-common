@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace MisterGames.Common.Localization {
     
-    [DefaultExecutionOrder(-10000)]
+    [DefaultExecutionOrder(-100_000)]
     public sealed class LocalizationServiceRunner : MonoBehaviour {
 
         [SerializeField] private LocalizationSettings _localizationSettings;
