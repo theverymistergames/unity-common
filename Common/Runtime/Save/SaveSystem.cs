@@ -2,6 +2,7 @@
 using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Files;
 using MisterGames.Common.Lists;
@@ -114,16 +115,16 @@ namespace MisterGames.Common.Save {
             return storage;
         }
 
-        public void SaveIntoFile(string storageId) {
-            SaveStorageAsync(storageId).Forget();
+        public UniTask SaveIntoFile(string storageId) {
+            return SaveStorageAsync(storageId);
+        }
+
+        public UniTask LoadFromFile(string storageId) {
+            return LoadStorageAsync(storageId);
         }
 
         public void SaveAllFiles() {
             SaveAllStoragesAsync().Forget();
-        }
-
-        public void LoadFromFile(string storageId) {
-            LoadStorageAsync(storageId).Forget();
         }
 
         public void LoadAllFiles() {
@@ -198,8 +199,8 @@ namespace MisterGames.Common.Save {
 
             switch (result.status) {
                 case JsonExtensions.Status.Success:
-                    var tables = (IReadOnlyList<ISaveTable>) result.value.Tables ?? Array.Empty<ISaveTable>();
-                    for (int i = 0; i < tables.Count; i++) {
+                    var tables = result.value?.Tables?.ToArray() ?? Array.Empty<ISaveTable>();
+                    for (int i = 0; i < tables.Length; i++) {
                         var table = tables[i];
                         storage.SetTable(table.GetElementType(), table);
                     }

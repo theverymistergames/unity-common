@@ -43,15 +43,14 @@ namespace MisterGames.SettingsLib.Base {
             
             if (_title != null) {
                 string title = desc?.GetName().GetValue() ?? "<unknown>";
-#if UNITY_EDITOR
                 string oldTitle = _title.text;
-#endif
-                
-                _title.SetText(title);
 
+                if (oldTitle != title) {
+                    _title.SetText(title);
 #if UNITY_EDITOR
-                if (!Application.isPlaying && oldTitle != title) EditorUtility.SetDirty(_title);
+                    if (!Application.isPlaying) EditorUtility.SetDirty(_title);
 #endif
+                }
             }
             
             if (_binder != null) {
@@ -61,8 +60,9 @@ namespace MisterGames.SettingsLib.Base {
         }
 
 #if UNITY_EDITOR
-        private void OnValidate() {
-            if (enabled) SetupBinder();
+        [Button]
+        private void ForceUpdateView() {
+            SetupBinder();
         }
 #endif
     }

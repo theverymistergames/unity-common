@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Threading;
+using Cysharp.Threading.Tasks;
+using MisterGames.Common.Async;
 using MisterGames.Common.Save;
 using MisterGames.Common.Tick;
 using UnityEngine;
@@ -9,6 +12,7 @@ namespace MisterGames.SettingsLib.Base {
 
         public bool HasUnsavedChanges { get; private set; }
 
+        private CancellationTokenSource _cts;
         private SettingsConfig _settingsConfig;
         private SettingsStorage _settingsStorage;
         private ISaveSystem _saveSystem;
@@ -16,20 +20,30 @@ namespace MisterGames.SettingsLib.Base {
         private float _lastDirtyTime;
 
         public void Initialize(SettingsConfig settingsConfig, SettingsStorage settingsStorage, ISaveSystem saveSystem, string storageId) {
+            AsyncExt.RecreateCts(ref _cts);
+            
             _settingsConfig = settingsConfig;
             _settingsStorage = settingsStorage;
             _saveSystem = saveSystem;
             _storageId = storageId;
-            
-            ForEachSetting(_settingsStorage, (self, desc, label) => desc.Initialize(self, label));
-            
-            PlayerLoopStage.LateUpdate.Subscribe(this);
+
+            InitializeAsync(_cts.Token).Forget();
         }
 
         public void Dispose() {
+            AsyncExt.DisposeCts(ref _cts);
+            
             ForEachSetting(_settingsStorage, (self, desc, label) => desc.Deinitialize(self, label));
             
             PlayerLoopStage.LateUpdate.Unsubscribe(this);
+        }
+
+        private async UniTask InitializeAsync(CancellationToken cancellationToken) {
+            await _saveSystem.LoadFromFile(_storageId);
+            if (cancellationToken.IsCancellationRequested) return;
+            
+            ForEachSetting(_settingsStorage, (self, desc, label) => desc.Initialize(self, label));
+            PlayerLoopStage.LateUpdate.Subscribe(this);
         }
 
         void IUpdate.OnUpdate(float dt) {

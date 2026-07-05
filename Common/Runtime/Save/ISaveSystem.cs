@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 
 namespace MisterGames.Common.Save {
 
@@ -16,8 +17,8 @@ namespace MisterGames.Common.Save {
 
         IReadOnlyList<StorageData> GetStorageFiles();
         
-        void SaveIntoFile(string storageId);
-        void LoadFromFile(string storageId);
+        UniTask SaveIntoFile(string storageId);
+        UniTask LoadFromFile(string storageId);
         void DeleteFile(string storageId);
 
         void SaveAllFiles();

@@ -55,6 +55,10 @@ namespace MisterGames.Common.Files {
         }
         
         public static async UniTask<Result<T>> ReadJsonFromFile<T>(string filePath, int bufferSize) {
+            if (!File.Exists(filePath)) {
+                return new Result<T>(Status.Error, message: $"File at path {filePath} is not found");
+            }
+            
             await using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize, true);
             using var sr = new StreamReader(fs);
             
