@@ -68,38 +68,33 @@ namespace MisterGames.Common.Editor {
             }
         }
 
-        private static bool IsSupportedElementType(Type t) {
-            return SaveTableCache.TryGetTableType(t, out _) ||
-                   SaveTableCache.TryGetTableType(SaveTableCache.GetBaseElementType(t), out _);
-        }
-        
         private static List<TreeNode> CreateTypeTree() {
             var tree = new List<TreeNode>();
 
             var assemblyTypes = CollectAssemblyTypes();
 
             var types = assemblyTypes
-                .Where(t => t.IsEnum && IsSupportedElementType(t))
+                .Where(t => t.IsEnum && SaveTableCache.IsSupportedValueType(t))
                 .ToArray();
             tree.AddRange(GetTypeTree("Enums", types, 1));
 
             types = assemblyTypes
-                .Where(t => t.IsInterface && IsSupportedElementType(t))
+                .Where(t => t.IsInterface && SaveTableCache.IsSupportedValueType(t))
                 .ToArray();
             tree.AddRange(GetTypeTree("Interfaces", types, 1));
 
             types = assemblyTypes
-                .Where(t => t.IsClass && !typeof(Object).IsAssignableFrom(t) && IsSupportedElementType(t))
+                .Where(t => t.IsClass && !typeof(Object).IsAssignableFrom(t) && SaveTableCache.IsSupportedValueType(t))
                 .ToArray();
             tree.AddRange(GetTypeTree("System.Object", types, 1));
 
             types = assemblyTypes
-                .Where(t => t.IsClass && typeof(Object).IsAssignableFrom(t) && IsSupportedElementType(t))
+                .Where(t => t.IsClass && typeof(Object).IsAssignableFrom(t) && SaveTableCache.IsSupportedValueType(t))
                 .ToArray();
             tree.AddRange(GetTypeTree("UnityEngine.Object", types, 1));
 
             types = assemblyTypes
-                .Where(t => t.IsValueType && !t.IsEnum && IsSupportedElementType(t))
+                .Where(t => t.IsValueType && !t.IsEnum && SaveTableCache.IsSupportedValueType(t))
                 .ToArray();
             tree.AddRange(GetTypeTree("Value types", types, 1));
 

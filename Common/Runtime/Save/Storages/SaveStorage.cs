@@ -8,22 +8,22 @@ using UnityEngine;
 namespace MisterGames.Common.Save.Storages {
     
     [Serializable]
-    public sealed class SaveStorage : ISaveStorage {
+    public sealed class SaveStorage<TKey> : ISaveStorage<TKey> where TKey : IEquatable<TKey> {
         
         [SerializeField] private SerializedTypeMapByRef<ISaveTable> _tables = new();
 
         public IEnumerable<ISaveTable> Tables => _tables.Values;
         
-        public ISaveTable GetTable<T>() {
-            return GetTable(typeof(T));
+        public ISaveTable<TKey> GetTable<T>() {
+            return GetTable(typeof(T)) as ISaveTable<TKey>;
         }
         
-        public ISaveTable GetTable(Type elementType) {
-            if (_tables.TryGetValue(elementType, out var table) && table != null) {
+        public ISaveTable GetTable(Type valueType) {
+            if (_tables.TryGetValue(valueType, out var table) && table != null) {
                 return table;
             }
             
-            var baseType = SaveTableCache.GetBaseElementType(elementType);
+            var baseType = SaveTableCache.GetBaseElementType(valueType);
             if (_tables.TryGetValue(baseType, out table) && table != null) {
                 return table;
             }
@@ -31,30 +31,32 @@ namespace MisterGames.Common.Save.Storages {
             return null;
         }
 
-        public void SetTable<T>(ISaveTable value) {
+        public void SetTable<T>(ISaveTable<TKey> value) {
             SetTable(typeof(T), value);
         }
 
-        public void SetTable(Type elementType, ISaveTable value) {
-            _tables[SaveTableCache.GetBaseElementType(elementType)] = value;
+        public void SetTable(Type valueType, ISaveTable value) {
+            _tables[SaveTableCache.GetBaseElementType(valueType)] = value;
         }
 
-        public ISaveTable GetOrCreateTable<T>() {
-            return GetOrCreateTable(typeof(T));
+        public ISaveTable<TKey> GetOrCreateTable<T>() {
+            return GetOrCreateTable(typeof(T)) as ISaveTable<TKey>;
         }
         
-        public ISaveTable GetOrCreateTable(Type elementType) {
-            if (_tables.TryGetValue(elementType, out var table) && table != null) {
+        public ISaveTable GetOrCreateTable(Type valueType) {
+            if (_tables.TryGetValue(valueType, out var table) && table != null) {
                 return table;
             }
             
-            var baseType = SaveTableCache.GetBaseElementType(elementType);
+            var baseType = SaveTableCache.GetBaseElementType(valueType);
             if (_tables.TryGetValue(baseType, out table) && table != null) {
                 return table;
             }
 
-            if (SaveTableCache.TryGetTableType(elementType, out var tableType) || 
-                SaveTableCache.TryGetTableType(baseType, out tableType)) 
+            var keyType = typeof(TKey);
+            
+            if (SaveTableCache.TryGetTableType(keyType, valueType, out var tableType) || 
+                SaveTableCache.TryGetTableType(keyType, baseType, out tableType)) 
             {
                 table = Activator.CreateInstance(tableType) as ISaveTable;
                 _tables[baseType] = table;
@@ -67,8 +69,8 @@ namespace MisterGames.Common.Save.Storages {
             return RemoveTable(typeof(T));
         }
         
-        public bool RemoveTable(Type elementType) {
-            return _tables.Remove(SaveTableCache.GetBaseElementType(elementType));
+        public bool RemoveTable(Type valueType) {
+            return _tables.Remove(SaveTableCache.GetBaseElementType(valueType));
         }
 
         public void Clear() {
@@ -79,8 +81,8 @@ namespace MisterGames.Common.Save.Storages {
             _tables.Clear();
         }
 
-        public string GetSerializedPropertyPath(Type elementType) {
-            int index = _tables.FirstIndexOf(new SerializedType(elementType), (h, e) => e.key == h);
+        public string GetSerializedPropertyPath(Type valueType) {
+            int index = _tables.FirstIndexOf(new SerializedType(valueType), (h, e) => e.key == h);
             return index >= 0
                 ? $"{nameof(_tables)}._entries.Array.data[{index}].value"
                 : null;

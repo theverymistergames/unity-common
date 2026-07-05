@@ -6,7 +6,6 @@ using System.Linq;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Files;
 using MisterGames.Common.Lists;
-using MisterGames.Common.Maths;
 using MisterGames.Common.Save.Storages;
 using MisterGames.Common.Save.Tables;
 using MisterGames.Common.Strings;
@@ -18,7 +17,7 @@ namespace MisterGames.Common.Save {
         
         public static readonly ISaveSystem Main = new SaveSystem();
 
-        private readonly Dictionary<string, SaveStorage> _saveStorageMap = new();
+        private readonly Dictionary<string, SaveStorage<SaveKey>> _saveStorageMap = new();
         private readonly HashSet<ISaveable> _saveableSet = new();
         
         private SaveSystemSettings _saveSystemSettings;
@@ -60,12 +59,11 @@ namespace MisterGames.Common.Save {
             
             return GetStorage(storageId)
                 ?.GetTable<T>()
-                ?.TryGetData(NumberExtensions.TwoIntsAsLong(Animator.StringToHash(dataId), index), out data) ?? false;
+                ?.TryGetData(new SaveKey(dataId, index), out data) ?? false;
         }
 
         public bool Set<T>(string storageId, string dataId, int index, T data) {
-            long key = NumberExtensions.TwoIntsAsLong(Animator.StringToHash(dataId), index);
-            return GetOrCreateStorage(storageId)?.GetOrCreateTable<T>()?.SetData(key, data) ?? false;
+            return GetOrCreateStorage(storageId)?.GetOrCreateTable<T>()?.SetData(new SaveKey(dataId, index), data) ?? false;
         }
 
         public SaveBuilder Pop<T>(string storageId, string dataId, T def, out T data) {
@@ -102,14 +100,14 @@ namespace MisterGames.Common.Save {
             return saves;
         }
 
-        private ISaveStorage GetStorage(string storageId) {
+        private ISaveStorage<SaveKey> GetStorage(string storageId) {
             return _saveStorageMap.GetValueOrDefault(storageId);
         }
 
-        private ISaveStorage GetOrCreateStorage(string storageId) {
+        private ISaveStorage<SaveKey> GetOrCreateStorage(string storageId) {
             if (_saveStorageMap.TryGetValue(storageId, out var storage)) return storage;
             
-            storage = new SaveStorage();
+            storage = new SaveStorage<SaveKey>();
             _saveStorageMap[storageId] = storage;
             
             return storage;
@@ -202,7 +200,7 @@ namespace MisterGames.Common.Save {
                     var tables = result.value?.Tables?.ToArray() ?? Array.Empty<ISaveTable>();
                     for (int i = 0; i < tables.Length; i++) {
                         var table = tables[i];
-                        storage.SetTable(table.GetElementType(), table);
+                        storage.SetTable(table.GetValueType(), table);
                     }
                     
                     NotifyLoadAll();
@@ -219,12 +217,12 @@ namespace MisterGames.Common.Save {
             }
         }
         
-        private static UniTask<JsonExtensions.Result> SaveFileAsync(SaveStorage storage, string filePath, int bufferSize) {
+        private static UniTask<JsonExtensions.Result> SaveFileAsync(SaveStorage<SaveKey> storage, string filePath, int bufferSize) {
             return JsonExtensions.WriteJsonIntoFile(storage, filePath, bufferSize);
         }
         
-        private static UniTask<JsonExtensions.Result<SaveStorage>> LoadFileAsync(string filePath, int bufferSize) {
-            return JsonExtensions.ReadJsonFromFile<SaveStorage>(filePath, bufferSize);
+        private static UniTask<JsonExtensions.Result<SaveStorage<SaveKey>>> LoadFileAsync(string filePath, int bufferSize) {
+            return JsonExtensions.ReadJsonFromFile<SaveStorage<SaveKey>>(filePath, bufferSize);
         }
         
         public void DeleteFile(string storageId) {

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using MisterGames.Common.Data;
+using MisterGames.Common.Save.Tables;
 using MisterGames.Common.Strings;
 using MisterGames.Common.Types;
 using UnityEngine;
@@ -10,41 +11,35 @@ namespace MisterGames.Common.Save.Storages {
     [Serializable]
     public sealed class SaveBoard {
 
-        [SerializeField] private SaveStorage _saveStorage = new();
-        [SerializeField] private SerializedDictionary<long, SaveProperty> _propertyMap = new();
-        [SerializeField] private List<long> _propertyList = new();
+        [SerializeField] private SaveStorage<int> _saveStorage = new();
+        [SerializeField] private SerializedDictionary<int, SaveProperty> _propertyMap = new();
+        [SerializeField] private List<int> _propertyList = new();
         
-        public IReadOnlyList<long> PropertyList => _propertyList;
+        public IReadOnlyList<int> PropertyList => _propertyList;
         
         public static int StringToHash(string name) {
             return name == null ? 0 : Animator.StringToHash(name);
         }
         
-        public bool TryGet<T>(long hash, out T data) {
+        public bool TryGet<T>(int key, out T data) {
             data = default;
-            return _propertyMap.TryGetValue(hash, out var property) &&
-                   _saveStorage.GetTable(property.type.ToType()) is { } table &&
-                   table.TryGetData(hash, out data);
+            return _saveStorage.GetTable<T>() is { } table && table.TryGetData(key, out data);
         }
         
-        public T Get<T>(long hash) {
-            return TryGet(hash, out T data) ? data : default;
+        public T Get<T>(int key) {
+            return TryGet(key, out T data) ? data : default;
         }
 
-        public T GetOrDefault<T>(long hash, T defaultValue = default) {
-            return TryGet(hash, out T data) ? data : defaultValue;
+        public T GetOrDefault<T>(int key, T defaultValue = default) {
+            return TryGet(key, out T data) ? data : defaultValue;
         }
         
-        public bool Set<T>(long hash, T value) {
-            return _propertyMap.TryGetValue(hash, out var property) &&
-                   _saveStorage.GetTable(property.type.ToType()) is { } table &&
-                   table.SetData(hash, value);
+        public bool Set<T>(int key, T value) {
+            return _saveStorage.GetTable<T>() is { } table && table.SetData(key, value);
         }
 
-        public bool Contains(long hash) {
-            return _propertyMap.TryGetValue(hash, out var property) && 
-                   _saveStorage.GetTable(property.type.ToType()) is { } table && 
-                   table.ContainsData(hash);
+        public bool Contains<T>(int key) {
+            return _saveStorage.GetTable<T>() is { } table && table.ContainsData(key);
         }
 
         public void Clear() {
@@ -69,26 +64,26 @@ namespace MisterGames.Common.Save.Storages {
             return true;
         }
 
-        public bool TryGetProperty(long hash, out SaveProperty property) {
+        public bool TryGetProperty(int hash, out SaveProperty property) {
             return _propertyMap.TryGetValue(hash, out property);
         }
 
-        public bool TryGetPropertyValueBoxed(long hash, out object value) {
+        public bool TryGetPropertyValueBoxed(int hash, out object value) {
             value = null;
             return _propertyMap.TryGetValue(hash, out var property) &&
-                   _saveStorage.GetTable(property.type.ToType()) is { } table &&
+                   _saveStorage.GetTable(property.type.ToType()) is ISaveTable<int> table &&
                    table.TryGetDataBoxed(hash, out value);
         }
 
-        public bool SetPropertyValueBoxed(long hash, object value) {
+        public bool SetPropertyValueBoxed(int hash, object value) {
             return _propertyMap.TryGetValue(hash, out var property) &&
-                   _saveStorage.GetTable(property.type.ToType()) is { } table &&
+                   _saveStorage.GetTable(property.type.ToType()) is ISaveTable<int> table &&
                    table.SetDataBoxed(hash, value);
         }
         
-        public bool RemovePropertyValue(long hash) {
+        public bool RemovePropertyValue(int hash) {
             if (!_propertyMap.TryGetValue(hash, out var property) ||
-                _saveStorage.GetTable(property.type.ToType()) is not { } table) 
+                _saveStorage.GetTable(property.type.ToType()) is not ISaveTable<int> table) 
             {
                 return false;
             }
@@ -98,7 +93,7 @@ namespace MisterGames.Common.Save.Storages {
             return removed;
         }
 
-        public bool TrySetPropertyName(long hash, string newName) {
+        public bool TrySetPropertyName(int hash, string newName) {
             if (!_propertyMap.TryGetValue(hash, out var property)) return false;
 
             newName = ValidateName(newName);
@@ -151,9 +146,9 @@ namespace MisterGames.Common.Save.Storages {
             return true;
         }
 
-        public string GetSerializedPropertyPath(long hash) {
+        public string GetSerializedPropertyPath(int hash) {
             if (!_propertyMap.TryGetValue(hash, out var property) || 
-                _saveStorage.GetTable(property.type.ToType()) is not { } table || 
+                _saveStorage.GetTable(property.type.ToType()) is not ISaveTable<int> table || 
                 table.GetSerializedPropertyPath(hash) is not { } valuePath || 
                 _saveStorage.GetSerializedPropertyPath(property.type.ToType()) is not { } tablePath) 
             {

@@ -5,23 +5,28 @@ using UnityEngine;
 namespace MisterGames.Common.Save.Tables {
 
     [Serializable]
-    [SaveTable(typeof(Enum[]))]
-    public sealed class SaveTableEnumArray : ISaveTable {
+    public abstract class SaveTableEnumArray<TKey> : ISaveTable<TKey> where TKey : IEquatable<TKey> {
 
-        [SerializeField] private SerializedDictionary<long, ulong[]> _dataMap = new();
+        [SerializeField] private SerializedDictionary<TKey, ulong[]> _dataMap = new();
 
-        public Type GetElementType() => typeof(Enum[]);
-        
-        public bool TryGetData<S>(long id, out S data) {
-            if (_dataMap.TryGetValue(id, out ulong[] record)) {
-                var elementType = typeof(S).GetElementType() ?? typeof(ulong);    
+        public Type GetKeyType() {
+            return typeof(TKey);
+        }
+
+        public Type GetValueType() {
+            return typeof(Enum[]);
+        }
+
+        public bool TryGetData<V>(TKey key, out V data) {
+            if (_dataMap.TryGetValue(key, out ulong[] record)) {
+                var elementType = typeof(V).GetElementType() ?? typeof(ulong);    
                 var array = Array.CreateInstance(elementType, record?.Length ?? 0);
 
                 for (int i = 0; i < record?.Length; i++) {
                     if (Enum.ToObject(elementType, record[i]) is {} e) array.SetValue(e, i);
                 }
                 
-                data = array is S s ? s : default;
+                data = array is V s ? s : default;
                 return true;
             }
             
@@ -29,11 +34,11 @@ namespace MisterGames.Common.Save.Tables {
             return false;
         }
 
-        public bool SetData<S>(long id, S data) {
+        public bool SetData<S>(TKey key, S data) {
             if (data is not Array array) return false;
             
             ulong[] dataArray = new ulong[array.Length];
-            _dataMap[id] = dataArray;
+            _dataMap[key] = dataArray;
             
             for (int i = 0; i < array.Length; i++) {
                 if (Convert.ChangeType(array.GetValue(i), typeof(ulong)) is {} e) dataArray[i] = (ulong) e;
@@ -42,8 +47,8 @@ namespace MisterGames.Common.Save.Tables {
             return true;
         }
 
-        public bool TryGetDataBoxed(long id, out object data) {
-            if (_dataMap.TryGetValue(id, out ulong[] value)) {
+        public bool TryGetDataBoxed(TKey key, out object data) {
+            if (_dataMap.TryGetValue(key, out ulong[] value)) {
                 data = value;
                 return true;
             }
@@ -52,11 +57,11 @@ namespace MisterGames.Common.Save.Tables {
             return false;
         }
         
-        public bool SetDataBoxed(long id, object data) {
+        public bool SetDataBoxed(TKey key, object data) {
             if (data is not Array array) return false;
             
             ulong[] dataArray = new ulong[array.Length];
-            _dataMap[id] = dataArray;
+            _dataMap[key] = dataArray;
             
             for (int i = 0; i < array.Length; i++) {
                 if (Convert.ChangeType(array.GetValue(i), typeof(ulong)) is {} e) dataArray[i] = (ulong) e;
@@ -65,12 +70,12 @@ namespace MisterGames.Common.Save.Tables {
             return true;
         }
 
-        public bool RemoveData(long id) {
-            return _dataMap.Remove(id);
+        public bool RemoveData(TKey key) {
+            return _dataMap.Remove(key);
         }
 
-        public bool ContainsData(long id) {
-            return _dataMap.ContainsKey(id);
+        public bool ContainsData(TKey key) {
+            return _dataMap.ContainsKey(key);
         }
 
         public bool IsEmpty() {
@@ -81,8 +86,8 @@ namespace MisterGames.Common.Save.Tables {
             _dataMap.Clear();
         }
         
-        public string GetSerializedPropertyPath(long hash) {
-            int index = _dataMap.FirstIndexOf(hash, (h, e) => e.key == h);
+        public string GetSerializedPropertyPath(TKey key) {
+            int index = _dataMap.FirstIndexOf(key, (h, e) => e.key.Equals(h));
             return index >= 0
                 ? $"{nameof(_dataMap)}._entries.Array.data[{index}].value"
                 : null;

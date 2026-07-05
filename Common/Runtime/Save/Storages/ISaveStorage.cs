@@ -3,30 +3,33 @@ using System.Collections.Generic;
 using MisterGames.Common.Save.Tables;
 
 namespace MisterGames.Common.Save.Storages {
-    
-    public interface ISaveStorage {
 
+    public interface ISaveStorage {
+        
         IEnumerable<ISaveTable> Tables { get; }
         
-        ISaveTable GetTable<T>();
-
-        ISaveTable GetTable(Type elementType);
+        ISaveTable GetTable(Type valueType);
         
-        void SetTable<T>(ISaveTable value);
-
-        void SetTable(Type elementType, ISaveTable value);
-
-        ISaveTable GetOrCreateTable<T>();
-
-        ISaveTable GetOrCreateTable(Type elementType);
-
-        bool RemoveTable<T>();
+        ISaveTable GetOrCreateTable(Type valueType);
         
-        bool RemoveTable(Type elementType);
-
+        void SetTable(Type valueType, ISaveTable value);
+        
+        bool RemoveTable(Type valueType);
+        
         void Clear();
         
-        string GetSerializedPropertyPath(Type elementType);
+        string GetSerializedPropertyPath(Type valueType);
+    }
+    
+    public interface ISaveStorage<TKey> : ISaveStorage where TKey : IEquatable<TKey> {
+        
+        ISaveTable<TKey> GetTable<T>();
+        
+        void SetTable<T>(ISaveTable<TKey> value);
+        
+        ISaveTable<TKey> GetOrCreateTable<T>();
+        
+        bool RemoveTable<T>();
     }
     
 }

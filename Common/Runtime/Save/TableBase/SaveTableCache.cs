@@ -20,10 +20,14 @@ namespace MisterGames.Common.Save.Storages {
 
         private static readonly object _lock = new();
         private static SynchronizationContext _mainThreadContext;
-        private static Task<Dictionary<Type, Type>> _buildTask;
+        private static Task<Cache> _buildTask;
         private const string Editor = "editor";
-
-        private static Dictionary<Type, Type> _tableTypesCache = new();
+        private static Cache _cache;
+        
+        private sealed class Cache {
+            public readonly Dictionary<(Type, Type), Type> tableMap = new();
+            public readonly HashSet<Type> valueTypeSet = new();
+        }
         
         public static Type GetBaseElementType(Type t) {
             return t.IsArray ? t :
@@ -33,12 +37,21 @@ namespace MisterGames.Common.Save.Storages {
                 t;
         }
         
-        public static bool TryGetTableType(Type elementType, out Type tableType)
-        {
+        public static bool TryGetTableType(Type keyType, Type valueType, out Type tableType) {
+            return LoadCache().tableMap.TryGetValue((keyType, valueType), out tableType);
+        }
+
+        public static bool IsSupportedValueType(Type valueType) {
+            var set = LoadCache().valueTypeSet;
+            return set.Contains(valueType) || set.Contains(GetBaseElementType(valueType));
+        }
+        
+        private static Cache LoadCache() {
+            var cache = _cache;
+
 #if UNITY_EDITOR
-            return _tableTypesCache.TryGetValue(elementType, out tableType);
+            return cache;
 #endif
-            var cache = _tableTypesCache;
             
             if (cache == null)
             {
@@ -47,7 +60,7 @@ namespace MisterGames.Common.Save.Storages {
                 PublishResult(cache);
             }
 
-            return cache.TryGetValue(elementType, out tableType);
+            return cache;
         }
 
 #if UNITY_EDITOR
@@ -56,6 +69,8 @@ namespace MisterGames.Common.Save.Storages {
         }
         
         private static void InitializeForEditor() {
+            _cache = new Cache();
+            
             var types = TypeCache.GetTypesDerivedFrom<ISaveTable>();
             
             for (int i = 0; i < types.Count; i++) {
@@ -63,9 +78,10 @@ namespace MisterGames.Common.Save.Storages {
 
                 if (!type.IsAbstract &&
                     Attribute.IsDefined(type, typeof(SerializableAttribute)) &&
-                    type.GetCustomAttribute<SaveTableAttribute>(false)?.elementType is { } elementType) 
+                    type.GetCustomAttribute<SaveTableAttribute>(false) is { keyType: { } keyType, valueType: { } valueType }) 
                 {
-                    _tableTypesCache[elementType] = type;
+                    _cache.tableMap[(keyType, valueType)] = type;
+                    _cache.valueTypeSet.Add(valueType);
                 }
             }
         }
@@ -83,13 +99,13 @@ namespace MisterGames.Common.Save.Storages {
             }
         }
 
-        private static Task<Dictionary<Type, Type>> EnsureBuildStarted() {
+        private static Task<Cache> EnsureBuildStarted() {
             lock (_lock) {
                 return EnsureBuildStartedInternal();
             }
         }
 
-        private static Task<Dictionary<Type, Type>> EnsureBuildStartedInternal() {
+        private static Task<Cache> EnsureBuildStartedInternal() {
             if (_buildTask != null)
                 return _buildTask;
 
@@ -116,7 +132,7 @@ namespace MisterGames.Common.Save.Storages {
             return _buildTask;
         }
 
-        private static void PublishOnMainThread(Dictionary<Type, Type> result) {
+        private static void PublishOnMainThread(Cache result) {
             if (_mainThreadContext == null) {
                 PublishResult(result);
                 return;
@@ -127,19 +143,19 @@ namespace MisterGames.Common.Save.Storages {
             }, null);
         }
 
-        private static void PublishResult(Dictionary<Type, Type> result)
+        private static void PublishResult(Cache result)
         {
             lock (_lock)
             {
-                _tableTypesCache ??= result;
+                _cache ??= result;
             }
         }
 
-        private static Dictionary<Type, Type> BuildCacheFromAssemblies(
+        private static Cache BuildCacheFromAssemblies(
             Assembly[] assemblies,
             CancellationToken token
         ) {
-            var result = new Dictionary<Type, Type>();
+            var result = new Cache();
 
             for (int i = 0; i < assemblies.Length; i++) {
                 token.ThrowIfCancellationRequested();
@@ -156,9 +172,10 @@ namespace MisterGames.Common.Save.Storages {
                     if (!type.IsAbstract &&
                         typeof(ISaveTable).IsAssignableFrom(type) &&
                         Attribute.IsDefined(type, typeof(SerializableAttribute)) &&
-                        type.GetCustomAttribute<SaveTableAttribute>(false)?.elementType is { } elementType
-                    ) {
-                        result[elementType] = type;
+                        type.GetCustomAttribute<SaveTableAttribute>(false) is { keyType: { } keyType, valueType: { } valueType }) 
+                    {
+                        result.tableMap[(keyType, valueType)] = type;
+                        result.valueTypeSet.Add(valueType);
                     }
                 }
             }
