@@ -1,26 +1,39 @@
 ﻿using System;
 using MisterGames.Common.Save;
+using MisterGames.Common.Tick;
+using UnityEngine;
 
 namespace MisterGames.SettingsLib.Base {
     
-    public sealed class SettingsService : ISettingsService, IDisposable {
+    public sealed class SettingsService : ISettingsService, IDisposable, IUpdate {
 
         public bool HasUnsavedChanges { get; private set; }
-        
-        private ISaveSystem _saveSystem;
-        private SettingsStorage _settingsStorage;
-        private string _storageId;
 
-        public void Initialize(SettingsStorage settingsStorage, ISaveSystem saveSystem, string storageId) {
+        private SettingsConfig _settingsConfig;
+        private SettingsStorage _settingsStorage;
+        private ISaveSystem _saveSystem;
+        private string _storageId;
+        private float _lastDirtyTime;
+
+        public void Initialize(SettingsConfig settingsConfig, SettingsStorage settingsStorage, ISaveSystem saveSystem, string storageId) {
+            _settingsConfig = settingsConfig;
             _settingsStorage = settingsStorage;
             _saveSystem = saveSystem;
             _storageId = storageId;
             
             ForEachSetting(_settingsStorage, (self, desc, label) => desc.Initialize(self, label));
+            
+            PlayerLoopStage.LateUpdate.Subscribe(this);
         }
 
         public void Dispose() {
             ForEachSetting(_settingsStorage, (self, desc, label) => desc.Deinitialize(self, label));
+            
+            PlayerLoopStage.LateUpdate.Unsubscribe(this);
+        }
+
+        void IUpdate.OnUpdate(float dt) {
+            CheckDirty();
         }
 
         private void ForEachSetting(SettingsStorage settingsStorage, Action<ISettingsService, ISettingDesc, string> action) {
@@ -43,23 +56,44 @@ namespace MisterGames.SettingsLib.Base {
         }
         
         public bool Set<T>(string key, int index, T setting) {
-            HasUnsavedChanges = true;
+            NotifyDirty();
             return _saveSystem.Set(_storageId, key, index, setting);
         }
 
         public void SaveSettings() {
-            HasUnsavedChanges = false;
+            ResetDirty();
             _saveSystem.SaveIntoFile(_storageId);
         }
 
         public void RevertToLastSavedSettings() {
-            HasUnsavedChanges = false;
+            ResetDirty();
             _saveSystem.LoadFromFile(_storageId);
         }
 
         public void RevertToDefaultSettings() {
-            HasUnsavedChanges = false;
+            ResetDirty();
             _saveSystem.DeleteFile(_storageId);
+        }
+
+        private void CheckDirty() {
+            if (!HasUnsavedChanges ||
+                _lastDirtyTime < 0f ||
+                Time.realtimeSinceStartup < _lastDirtyTime + _settingsConfig.saveDirtyChangesTimeout) 
+            {
+                return;
+            }
+            
+            SaveSettings();
+        }
+        
+        private void NotifyDirty() {
+            _lastDirtyTime = Time.realtimeSinceStartup;
+            HasUnsavedChanges = true;
+        }
+
+        private void ResetDirty() {
+            _lastDirtyTime = -1f;
+            HasUnsavedChanges = false;
         }
     }
     
