@@ -5,23 +5,24 @@ using System.Threading;
 using MisterGames.Common.Save.Storages;
 using MisterGames.Common.Trees;
 using MisterGames.Common.Types;
-using UnityEditor;
 using UnityEditor.Experimental.GraphView;
+using UnityEngine;
 using Object = UnityEngine.Object;
 
 namespace MisterGames.Common.Editor {
 
-    [InitializeOnLoad]
     internal static class SaveValueSearchTreeCache {
 
         private const string Editor = "editor";
         private static readonly ManualResetEventSlim _treeNodesReadyEvent = new(false);
         private static readonly object _searchTreeLock = new();
+        private static bool _buildStarted;
         private static List<TreeNode> _treeNodes;
         private static List<SearchTreeEntry> _searchTree;
 
         public static List<SearchTreeEntry> SearchTree {
             get {
+                EnsureBuildStarted();
                 _treeNodesReadyEvent.Wait();
 
                 if (_searchTree != null) return _searchTree;
@@ -34,12 +35,19 @@ namespace MisterGames.Common.Editor {
             }
         }
 
-        static SaveValueSearchTreeCache() {
-            var thread = new Thread(BuildTreeNodesInBackground) {
-                IsBackground = true,
-                Name = nameof(SaveValueSearchTreeCache) + ".BuildSearchTree",
-            };
-            thread.Start();
+        private static void EnsureBuildStarted() {
+            if (_buildStarted) return;
+
+            lock (_searchTreeLock) {
+                if (_buildStarted) return;
+                _buildStarted = true;
+
+                var thread = new Thread(BuildTreeNodesInBackground) {
+                    IsBackground = true,
+                    Name = nameof(SaveValueSearchTreeCache) + ".BuildSearchTree",
+                };
+                thread.Start();
+            }
         }
 
         private static void BuildTreeNodesInBackground() {

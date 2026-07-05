@@ -199,8 +199,7 @@ namespace MisterGames.Common.Save {
                 case JsonExtensions.Status.Success:
                     var tables = result.value?.Tables?.ToArray() ?? Array.Empty<ISaveTable>();
                     for (int i = 0; i < tables.Length; i++) {
-                        var table = tables[i];
-                        storage.SetTable(table.GetValueType(), table);
+                        if (tables[i] is { } table) storage.SetTable(table.GetValueType(), table);
                     }
                     
                     NotifyLoadAll();

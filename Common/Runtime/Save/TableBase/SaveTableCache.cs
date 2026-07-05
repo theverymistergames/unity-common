@@ -52,14 +52,14 @@ namespace MisterGames.Common.Save.Storages {
 #if UNITY_EDITOR
             return cache;
 #endif
-            
+
             if (cache == null)
             {
                 var task = EnsureBuildStarted();
                 cache = task.GetAwaiter().GetResult();
                 PublishResult(cache);
             }
-
+            
             return cache;
         }
 
@@ -179,7 +179,7 @@ namespace MisterGames.Common.Save.Storages {
                     }
                 }
             }
-
+            
             return result;
         }
 
