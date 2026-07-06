@@ -17,43 +17,50 @@ namespace MisterGames.Dialogues.Components {
     
     public sealed class DialoguePrinter : MonoBehaviour, IActorComponent, IDialoguePrinter {
         
-        [Header("Printing")]
-        [SerializeField] private UiTextPrinter _textPrinter;
-        [SerializeField] private Transform _replicaParent;
-        [SerializeField] private TMP_Text _replicaTextPrefab;
+        [SerializeField] private PrintSettings _defaultSettings;
+        [SerializeField] private RoleData[] _perRoleSettings;
         
-        [Header("Roles")]
-        [SerializeField] private HorizontalAlignmentOptions _alignmentDefault;
-        [SerializeField] private Vector4 _marginDefault;
-        [SerializeField] private RoleData[] _rolesData;
-
         [Serializable]
         private struct RoleData {
             public int roleIndex;
+            public PrintSettings printSettings;
+        }
+        
+        [Serializable]
+        private struct PrintSettings {
+            [Header("Printer")]
+            public UiTextPrinter textPrinter;
+            public PrinterOutput printerOutput;
+            public Transform replicaParent;
+            public TMP_Text replicaTextPrefab;
+            
+            [Header("Text")]
             public HorizontalAlignmentOptions alignment;
+            public VerticalAlignmentOptions vertical;
             public Vector4 margin;
+        }
+
+        private enum PrinterOutput {
+            TextFieldPrefab,
+            DefaultTextField,
         }
         
         private readonly List<TMP_Text> _allocatedTextFields = new();
-        private CancellationTokenSource _destroyCts;
         private CancellationTokenSource _enableCts;
-
-        private void Awake() {
-            AsyncExt.RecreateCts(ref _destroyCts);
-        }
-
-        private void OnDestroy() {
-            AsyncExt.DisposeCts(ref _destroyCts);
-        }
+        private UiTextPrinter _lastPrinter;
+        private TMP_Text _lastTextField;
 
         private void OnEnable() {
             AsyncExt.RecreateCts(ref _enableCts);
-            
+
             Services.Get<IDialogueService>()?.RegisterPrinter(this);
         }
 
         private void OnDisable() {
             AsyncExt.DisposeCts(ref _enableCts);
+
+            _lastPrinter = null;
+            _lastTextField = null;
             
             Services.Get<IDialogueService>()?.UnregisterPrinter(this);
         }
@@ -61,34 +68,90 @@ namespace MisterGames.Dialogues.Components {
         public async UniTask PrintElement(LocalizationKey key, int roleIndex, CancellationToken cancellationToken) {
             cancellationToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _enableCts.Token).Token;
             
-            var textField = await CreateTextField(_replicaParent);
-            if (cancellationToken.IsCancellationRequested) return;
+            bool hasCustomSettings = _perRoleSettings.TryFind(roleIndex, (r, i) => r.roleIndex == i, out var data);
+            var customSettings = data.printSettings;
 
-            int index = _rolesData.TryFindIndex(roleIndex, (r, i) => r.roleIndex == i);
-            textField.margin = index >= 0 ? _rolesData[index].margin : _marginDefault;
-            textField.horizontalAlignment = index >= 0 ? _rolesData[index].alignment : _alignmentDefault;
+            var output = hasCustomSettings
+                ? customSettings.printerOutput
+                : _defaultSettings.printerOutput;
+
+            var textPrinter = hasCustomSettings && customSettings.textPrinter != null
+                ? customSettings.textPrinter
+                : _defaultSettings.textPrinter;
+
+            TMP_Text textField;
             
-            await _textPrinter.PrintTextAsync(textField, key.GetValue(), cancellationToken);
+            switch (output) {
+                case PrinterOutput.TextFieldPrefab:
+                    var textPrefab = hasCustomSettings && customSettings.replicaTextPrefab != null 
+                        ? customSettings.replicaTextPrefab
+                        : _defaultSettings.replicaTextPrefab;
+            
+                    var textParent = hasCustomSettings && customSettings.replicaParent != null 
+                        ? customSettings.replicaParent
+                        : _defaultSettings.replicaParent;
+            
+                    textField = await CreateTextField(textPrefab, textParent);
+                    if (cancellationToken.IsCancellationRequested) return;
+                    
+                    break;
+                
+                case PrinterOutput.DefaultTextField:
+                    textField = textPrinter.DefaultTextField;
+                    break;
+                
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+            
+            if (hasCustomSettings) {
+                textField.margin = customSettings.margin;
+                textField.horizontalAlignment = customSettings.alignment;
+                textField.verticalAlignment = customSettings.vertical;
+            }
+            else {
+                textField.margin = _defaultSettings.margin;
+                textField.horizontalAlignment = _defaultSettings.alignment;
+                textField.verticalAlignment = _defaultSettings.vertical;
+            }
+
+            _lastPrinter = textPrinter;
+            _lastTextField = textField;
+            
+            await textPrinter.PrintTextAsync(textField, key.GetValue(), cancellationToken);
         }
 
         public void CancelLastPrinting(bool clear = false) {
-            if (_allocatedTextFields.Count == 0) return;
+            if (_lastPrinter == null || _lastTextField == null) return;
 
-            _textPrinter.CancelPrinting(_allocatedTextFields[^1], clear);
+            _lastPrinter.CancelPrinting(_lastTextField, clear);
         }
 
         public void FinishLastPrinting(float symbolDelay = -1) {
-            if (_allocatedTextFields.Count == 0) return;
+            if (_lastPrinter == null || _lastTextField == null) return;
 
-            _textPrinter.ForceFinishPrinting(_allocatedTextFields[^1], symbolDelay);
+            _lastPrinter.ForceFinishPrinting(_lastTextField, symbolDelay);
         }
 
         public void ClearAllText() {
             ReleaseAllTextFields();
+
+            if (_defaultSettings.textPrinter != null) {
+                _defaultSettings.textPrinter.CancelPrinting(_defaultSettings.textPrinter.DefaultTextField, clear: true);
+            }
+
+            for (int i = 0; i < _perRoleSettings.Length; i++) {
+                ref var perRoleSetting = ref _perRoleSettings[i];
+                ref var printSettings = ref perRoleSetting.printSettings;
+
+                if (printSettings.textPrinter != null) {
+                    printSettings.textPrinter.CancelPrinting(printSettings.textPrinter.DefaultTextField, clear: true);
+                }
+            }
         }
 
-        private async UniTask<TMP_Text> CreateTextField(Transform parent) {
-            var textField = await PrefabPool.Main.GetAsync(_replicaTextPrefab, parent, active: false);
+        private async UniTask<TMP_Text> CreateTextField(TMP_Text prefab, Transform parent) {
+            var textField = await PrefabPool.Main.GetAsync(prefab, parent, active: false);
             _allocatedTextFields.Add(textField);
 
             var trf = textField.transform;

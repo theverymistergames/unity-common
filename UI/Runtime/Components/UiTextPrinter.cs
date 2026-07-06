@@ -4,7 +4,6 @@ using System.Text;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Async;
-using MisterGames.Common.Attributes;
 using MisterGames.Common.Localization;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Tick;
@@ -18,10 +17,8 @@ namespace MisterGames.UI.Components {
 
         [Header("Text")]
         [SerializeField] private LaunchMode _launchMode;
-        [VisibleIf(nameof(_launchMode), 0)]
-        [SerializeField] private TMP_Text _textField;
-        [VisibleIf(nameof(_launchMode), 0)]
-        [SerializeField] private LocalizationKey _localizationKey;
+        [SerializeField] private TMP_Text _defaultTextField;
+        [SerializeField] private LocalizationKey _defaultLocalizationKey;
 
         [Header("Printing")]
         [SerializeField] private bool _useTimeScale = true;
@@ -61,6 +58,9 @@ namespace MisterGames.UI.Components {
         private const string TransparentTagOpen = "<color=#00000000>";
         private const string TransparentTagClose = "</color>";
 
+        public TMP_Text DefaultTextField => _defaultTextField;
+        public LocalizationKey DefaultLocalizationKey => _defaultLocalizationKey;
+        
         private CancellationTokenSource _destroyCts;
         private CancellationTokenSource _enableCts;
 
@@ -79,24 +79,12 @@ namespace MisterGames.UI.Components {
             AsyncExt.RecreateCts(ref _enableCts);
 
             if (_launchMode == LaunchMode.OnEnable) {
-                PrintDefaultAsync(_enableCts.Token).Forget();
+                PrintTextAsync(_defaultTextField, _defaultLocalizationKey.GetValue(), _enableCts.Token).Forget();
             }
         }
 
         private void OnDisable() {
             AsyncExt.DisposeCts(ref _enableCts);
-        }
-
-        public UniTask PrintDefaultAsync(CancellationToken cancellationToken) {
-            return PrintTextAsync(_textField, _localizationKey.GetValue(), cancellationToken);
-        }
-
-        public void CancelPrintingDefault(bool clear = false) {
-            CancelPrinting(_textField, clear);
-        }
-
-        public void ForceFinishPrintingDefault(float symbolDelay = -1f) {
-            ForceFinishPrinting(_textField, symbolDelay);
         }
         
         public async UniTask PrintTextAsync(
@@ -192,16 +180,16 @@ namespace MisterGames.UI.Components {
         }
 
         public void CancelPrinting(TMP_Text textField, bool clear = false) {
-            int hash = textField.GetHashCode();
+            int hash = textField?.GetHashCode() ?? 0;
             
             _operationIdMap.Remove(hash);
             _immediateFinishRequestsMap.Remove(hash);
             
-            if (clear) textField.SetText((string) null);
+            if (clear && textField != null) textField.SetText((string) null);
         }
 
         public void ForceFinishPrinting(TMP_Text textField, float symbolDelay = -1f) {
-            int hash = textField.GetHashCode();
+            int hash = textField?.GetHashCode() ?? 0;
             
             if (_operationIdMap.ContainsKey(hash)) {
                 if (symbolDelay < 0f) symbolDelay = _forceFinishSymbolDelay;

@@ -144,8 +144,6 @@ namespace MisterGames.Dialogues.Components {
             
             var service = Services.Get<IDialogueService>();
             
-            service.ClearAllPrinters();
-            
             var table = await service.LoadDialogueAsync(guid);
             
             if (cancellationToken.IsCancellationRequested) {
@@ -153,6 +151,8 @@ namespace MisterGames.Dialogues.Components {
                 return;
             }
 
+            service.ClearAllPrinters();
+            
             if (_beforeStartAction != null) {
                 await _beforeStartAction.Apply(_actor, cancellationToken);
                 if (cancellationToken.IsCancellationRequested) return;
