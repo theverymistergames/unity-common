@@ -7,7 +7,6 @@ namespace MisterGames.Scenes.Background {
     public sealed class BackgroundSceneLoader : MonoBehaviour {
 
         [SerializeField] private Mode _mode;
-        [SerializeField] private bool _activateFirstScene = true;
         [SerializeField] private SceneReference[] _scenes;
         
         private enum Mode {
@@ -44,7 +43,7 @@ namespace MisterGames.Scenes.Background {
 
             for (int i = 0; i < _scenes?.Length; i++) {
                 ref string scene = ref _scenes[i].scene;
-                service.BindBackgroundScene(this, scene, makeActive: i == 0 && _activateFirstScene);
+                service.BindBackgroundScene(this, scene);
             }
         }
 

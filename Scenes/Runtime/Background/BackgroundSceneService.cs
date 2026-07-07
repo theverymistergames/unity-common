@@ -31,7 +31,6 @@ namespace MisterGames.Scenes.Background {
 
         [Serializable]
         private struct BackgroundSceneData {
-            public bool activateFirstBackgroundScene;
             public SceneReference[] backgroundScenes;
             public SceneReference[] forScenes;
         }
@@ -74,11 +73,11 @@ namespace MisterGames.Scenes.Background {
             _sceneRootService.OnSceneRootsEnableStateChanged -= SceneRootsEnableStateChanged;
         }
 
-        public void BindBackgroundScene(object source, string sceneName, bool makeActive = false) {
+        public void BindBackgroundScene(object source, string sceneName) {
             _sceneHashToBackgroundSourceHashMap.AddValue(sceneName.GetHashCode(), source.GetHashCode());
             _sceneRootService.SetSceneRootEnabled(sceneName, true);
 
-            SceneLoader.LoadScene(sceneName, makeActive);
+            SceneLoader.LoadScene(sceneName);
         }
 
         public void UnbindBackgroundScene(object source, string sceneName) {
@@ -133,14 +132,13 @@ namespace MisterGames.Scenes.Background {
             }
             
             GetNextProcessId(hash);
-            ProcessLoadRequest(hash, backgroundIndexCount, out var scenesToLoad, out string activeScene);
+            ProcessLoadRequest(hash, backgroundIndexCount, out var scenesToLoad);
 
             if (scenesToLoad == null) {
-                if (activeScene != null) await SceneLoader.LoadSceneAsync(activeScene, makeActive: true);
                 return;
             }
 
-            await SceneLoader.LoadScenesAsync(scenesToLoad, activeScene);
+            await SceneLoader.LoadScenesAsync(scenesToLoad);
             
             ListPool<string>.Release(scenesToLoad);
         }
@@ -168,9 +166,8 @@ namespace MisterGames.Scenes.Background {
                 : SceneLoader.IsSceneRequestedToLoad(sceneName);
         }
 
-        private void ProcessLoadRequest(int hash, int count, out List<string> scenesToLoad, out string activeScene) {
+        private void ProcessLoadRequest(int hash, int count, out List<string> scenesToLoad) {
             scenesToLoad = null;
-            activeScene = null;
             
             for (int i = 0; i < count; i++) {
                 int index = _sceneHashToBackgroundScenesIndexMap.GetValueAt(hash, i);
@@ -187,10 +184,6 @@ namespace MisterGames.Scenes.Background {
                     
                     scenesToLoad ??= ListPool<string>.Get();
                     scenesToLoad.Add(backgroundScene);
-                }
-
-                if (data.activateFirstBackgroundScene && data.backgroundScenes.Length > 0) {
-                    activeScene = data.backgroundScenes[0].scene;
                 }
             }
         }

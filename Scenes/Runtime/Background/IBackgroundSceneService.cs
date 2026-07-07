@@ -2,7 +2,7 @@
     
     public interface IBackgroundSceneService {
 
-        void BindBackgroundScene(object source, string sceneName, bool makeActive = false);
+        void BindBackgroundScene(object source, string sceneName);
 
         void UnbindBackgroundScene(object source, string sceneName);
     }
