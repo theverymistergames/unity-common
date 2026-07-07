@@ -78,7 +78,7 @@ namespace MisterGames.Logic.Libs {
             {
                 return UniTask.CompletedTask;
             }
-            
+
             _lastInvokedActionLabel = actionData.label;
             return actionData.action?.Apply(context, CreateCancellationToken(cancellationToken)) ?? UniTask.CompletedTask;
         }

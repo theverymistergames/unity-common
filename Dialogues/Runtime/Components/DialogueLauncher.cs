@@ -16,9 +16,10 @@ namespace MisterGames.Dialogues.Components {
     
     public sealed class DialogueLauncher : MonoBehaviour, IActorComponent {
 
+        [Header("Launch")]
         [SerializeField] private DialogueReference _dialogueReference;
         [SerializeField] private LaunchMode _launchMode = LaunchMode.OnEnable;
-        [SerializeField] private bool _useTimeScale = false;
+        [SerializeField] private bool _clearOnFinish;
         
         [Header("Skip")]
         [SerializeField] private NextElementMode _nextElementMode = NextElementMode.WaitSkip;
@@ -31,6 +32,7 @@ namespace MisterGames.Dialogues.Components {
         [SerializeField] [Min(0f)] private float _maxReplicaDelaySameRole = 0.7f;
         [SerializeField] [Min(0f)] private float _minReplicaDelayChangedRole = 0.6f;
         [SerializeField] [Min(0f)] private float _maxReplicaDelayChangedRole = 1f;
+        [SerializeField] private bool _useTimeScale = false;
         
         [Header("Actions")]
         [SerializeReference] [SubclassSelector] private IActorAction _beforeStartAction;
@@ -265,6 +267,8 @@ namespace MisterGames.Dialogues.Components {
                 await _afterFinishAction.Apply(_actor, cancellationToken);
                 if (cancellationToken.IsCancellationRequested) return;
             }
+            
+            if (_clearOnFinish) service.ClearAllPrinters();
             
             IsRunning = false;
             IsPaused = false;
