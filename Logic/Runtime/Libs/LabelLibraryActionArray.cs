@@ -6,6 +6,7 @@ using MisterGames.Actors.Actions;
 using MisterGames.Common.Async;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Labels;
+using MisterGames.Common.Lists;
 using UnityEngine;
 
 namespace MisterGames.Logic.Libs {
@@ -23,28 +24,26 @@ namespace MisterGames.Logic.Libs {
         
         [Serializable]
         private struct ActionData {
-            [SerializeField] public LabelValue<IActorAction> label;
+            public LabelValue<IActorAction> label;
+            public LabelValue<IActorAction>[] disallowLaunchAfter;
             [SerializeReference] [SubclassSelector] public IActorAction action;
         }
 
         private sealed class ActionWrapper : IActorAction {
-            
-            private readonly LabelValue<IActorAction> _label;
-            private readonly IActorAction _action;
-            private readonly Func<LabelValue<IActorAction>, IActorAction, IActor, CancellationToken, UniTask> _apply;
+
+            private readonly int _index;
+            private readonly Func<int, IActor, CancellationToken, UniTask> _apply;
 
             public ActionWrapper(
-                LabelValue<IActorAction> label, 
-                IActorAction action, 
-                Func<LabelValue<IActorAction>, IActorAction, IActor, CancellationToken, UniTask> apply) 
+                int index, 
+                Func<int, IActor, CancellationToken, UniTask> apply) 
             {
-                _label = label;
-                _action = action;
+                _index = index;
                 _apply = apply;
             }
 
             public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-                return _apply.Invoke(_label, _action, context, cancellationToken);
+                return _apply.Invoke(_index, context, cancellationToken);
             }
         }
 
@@ -67,18 +66,21 @@ namespace MisterGames.Logic.Libs {
         private void CreateActionsWrappers() {
             for (int i = 0; i < _actions?.Length; i++) {
                 ref var actionData = ref _actions[i];
-                actionData.label.TrySetData(new ActionWrapper(actionData.label, actionData.action, OnApply));
+                actionData.label.TrySetData(new ActionWrapper(i, OnApply));
             }
         }
 
-        private UniTask OnApply(LabelValue<IActorAction> label, IActorAction action, IActor context, CancellationToken cancellationToken) {
-            if (_disallowInvokeSameActionSequentially && _lastInvokedActionLabel == label) {
+        private UniTask OnApply(int index, IActor context, CancellationToken cancellationToken) {
+            ref var actionData = ref _actions[index];
+            
+            if (_disallowInvokeSameActionSequentially && _lastInvokedActionLabel == actionData.label ||
+                actionData.disallowLaunchAfter.Contains(_lastInvokedActionLabel)) 
+            {
                 return UniTask.CompletedTask;
             }
             
-            _lastInvokedActionLabel = label;
-            
-            return action?.Apply(context, CreateCancellationToken(cancellationToken)) ?? UniTask.CompletedTask;
+            _lastInvokedActionLabel = actionData.label;
+            return actionData.action?.Apply(context, CreateCancellationToken(cancellationToken)) ?? UniTask.CompletedTask;
         }
         
         private CancellationToken CreateCancellationToken(CancellationToken defaultCancellationToken) {
