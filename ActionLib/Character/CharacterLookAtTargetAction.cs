@@ -22,6 +22,7 @@ namespace MisterGames.ActionLib.Character {
         [Header("Motion")]
         [Min(0f)] public float angularSpeed = 30f;
         public AnimationCurve progressCurve = EasingType.EaseOutSine.ToAnimationCurve();
+        public bool useUnscaledTime;
         
         [Header("Attach")]
         public bool keepLookingAtAfterFinish;
@@ -44,13 +45,14 @@ namespace MisterGames.ActionLib.Character {
             view.SetViewOrientation(startRotation, moveView: false);
             
             while (!cancellationToken.IsCancellationRequested) {
+                float dt = useUnscaledTime ? UnityEngine.Time.unscaledDeltaTime : UnityEngine.Time.deltaTime;
                 var targetRotation = mode switch {
                     LookAtMode.Free => Quaternion.LookRotation(target.position - view.HeadPosition, view.BodyUp),
                     LookAtMode.Oriented => target.rotation * Quaternion.Euler(orientation),
                     _ => throw new ArgumentOutOfRangeException()
                 };
                 
-                t += UnityEngine.Time.deltaTime * speed;
+                t += dt * speed;
                 
                 var rotationOffset = targetRotation * Quaternion.Inverse(startTargetRotation);
                 var rot = Quaternion.Slerp(startRotation * rotationOffset, targetRotation, progressCurve.Evaluate(t));

@@ -4,7 +4,6 @@ using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
 using MisterGames.Character.Capsule;
-using UnityEngine;
 
 namespace MisterGames.ActionLib.Character {
     

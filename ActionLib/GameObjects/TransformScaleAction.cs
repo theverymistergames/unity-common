@@ -15,6 +15,7 @@ namespace MisterGames.ActionLib.GameObjects {
         [Min(0f)] public float duration;
         public Vector3 endScale;
         public AnimationCurve curve = EasingType.Linear.ToAnimationCurve();
+        public bool useUnscaledTime;
 
         public async UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
             var startScale = transform.localScale;
@@ -22,7 +23,8 @@ namespace MisterGames.ActionLib.GameObjects {
             float t = 0f;
 
             while (t < 1f && !cancellationToken.IsCancellationRequested) {
-                t = Mathf.Clamp01(t + UnityEngine.Time.deltaTime * speed);
+                float dt = useUnscaledTime ? UnityEngine.Time.unscaledDeltaTime : UnityEngine.Time.deltaTime;
+                t = Mathf.Clamp01(t + dt * speed);
                 
                 transform.localScale = Vector3.Lerp(startScale, endScale, curve.Evaluate(t));
                 await UniTask.Yield();

@@ -3,7 +3,6 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
-using MisterGames.Common.Tick;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -15,6 +14,7 @@ namespace MisterGames.ActionLib.Character {
         public Volume volume;
         [Range(0f, 1f)] public float weight;
         [Min(0f)] public float duration;
+        public bool useUnscaledTime;
         
         public async UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
             float start = volume.weight;
@@ -23,7 +23,8 @@ namespace MisterGames.ActionLib.Character {
             float t = 0f;
 
             while (!cancellationToken.IsCancellationRequested && t < 1f) {
-                t = Mathf.Clamp01(t + speed * UnityEngine.Time.deltaTime);
+                float dt = useUnscaledTime ? UnityEngine.Time.unscaledDeltaTime : UnityEngine.Time.deltaTime;
+                t = Mathf.Clamp01(t + speed * dt);
                 volume.weight = Mathf.Lerp(start, weight, t);
                 
                 await UniTask.Yield();

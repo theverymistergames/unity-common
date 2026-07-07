@@ -24,19 +24,21 @@ namespace MisterGames.ActionLib.Inputs {
         [Range(0f, 1f)] public float amplitudeRandom;
         public OscillatedCurve curveLeft;
         public OscillatedCurve curveRight;
-        
+        public bool useUnscaledTime;
+
         public async UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
             var vibration = Services.Get<IDeviceService>().GamepadVibration;
             vibration.Register(this, priority.GetValue());
-            
+
             float dur = Mathf.Max(0f, duration + Random.Range(-durationRandom, durationRandom));
             float speed = dur > 0f ? 1f / dur : float.MaxValue;
             float t = 0f;
-            
+
             float amp = Mathf.Max(0f, amplitude + Random.Range(-amplitudeRandom, amplitudeRandom));
-            
-            while (t < 1f && !cancellationToken.IsCancellationRequested) { 
-                t = Mathf.Clamp01(t + UnityEngine.Time.deltaTime * speed);
+
+            while (t < 1f && !cancellationToken.IsCancellationRequested) {
+                float dt = useUnscaledTime ? UnityEngine.Time.unscaledDeltaTime : UnityEngine.Time.deltaTime;
+                t = Mathf.Clamp01(t + dt * speed);
                 
                 var freq = new Vector2(curveLeft.Evaluate(t), curveRight.Evaluate(t)) * amp;
                 vibration.SetTwoMotors(this, freq, weightLeft, weightRight);

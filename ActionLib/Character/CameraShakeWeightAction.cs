@@ -3,12 +3,8 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
-using MisterGames.Character.Core;
 using MisterGames.Character.Interactives;
-using MisterGames.Character.View;
 using MisterGames.Common.Data;
-using MisterGames.Common.Maths;
-using MisterGames.Common.Tick;
 using UnityEngine;
 
 namespace MisterGames.ActionLib.Character {

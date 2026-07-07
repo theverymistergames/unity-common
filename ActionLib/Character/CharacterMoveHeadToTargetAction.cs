@@ -27,6 +27,7 @@ namespace MisterGames.ActionLib.Character {
         [Min(0f)] public float speed = 1f;
         public float curvature = 1f;
         public AnimationCurve progressCurve = AnimationCurve.Linear(0f, 0f, 1f, 1f);
+        public bool useUnscaledTime;
         
         [Header("Attach")]
         [VisibleIf(nameof(targetType), 1)] public bool attach;
@@ -83,7 +84,8 @@ namespace MisterGames.ActionLib.Character {
             float t = 0f;
             
             while (!cancellationToken.IsCancellationRequested) {
-                t = Mathf.Clamp01(t + UnityEngine.Time.deltaTime * speed);
+                float dt = useUnscaledTime ? UnityEngine.Time.unscaledDeltaTime : UnityEngine.Time.deltaTime;
+                t = Mathf.Clamp01(t + dt * speed);
 
                 var position = BezierExtensions.EvaluateBezier3Points(
                     startPoint,
@@ -151,7 +153,8 @@ namespace MisterGames.ActionLib.Character {
                 curvePoint = targetPosition + targetRotationOffset * curvePointOffset;
                 finalPoint = targetPosition + targetRotationOffset * finalPointOffset;
 
-                t = Mathf.Clamp01(t + UnityEngine.Time.deltaTime * speed);
+                float dt = useUnscaledTime ? UnityEngine.Time.unscaledDeltaTime : UnityEngine.Time.deltaTime;
+                t = Mathf.Clamp01(t + dt * speed);
 
                 var position = BezierExtensions.EvaluateBezier3Points(
                     startPoint,

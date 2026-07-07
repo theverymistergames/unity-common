@@ -16,6 +16,7 @@ namespace MisterGames.ActionLib.Time {
         [Min(0)] public float delayTo;
         public DelayAction.Mode mode;
         [SerializeReference] [SubclassSelector] public IActorAction action;
+        public bool useUnscaledTime;
         
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
             float delay = Random.Range(delayFrom, delayTo);
@@ -28,8 +29,8 @@ namespace MisterGames.ActionLib.Time {
 
         private async UniTask ApplyDelayed(IActor context, float delay, CancellationToken cancellationToken) {
             if (delay > 0f) {
-                await UniTask.Delay(TimeSpan.FromSeconds(delay), cancellationToken: cancellationToken)
-                    .SuppressCancellationThrow();    
+                await UniTask.Delay(TimeSpan.FromSeconds(delay), ignoreTimeScale: useUnscaledTime, cancellationToken: cancellationToken)
+                    .SuppressCancellationThrow();
             }
 
             if (cancellationToken.IsCancellationRequested || action == null) return;

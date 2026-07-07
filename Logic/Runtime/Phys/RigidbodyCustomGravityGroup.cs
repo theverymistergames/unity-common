@@ -4,7 +4,6 @@ using MisterGames.Common;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Tick;
-using Unity.VisualScripting.Antlr3.Runtime.Tree;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -26,7 +25,6 @@ namespace MisterGames.Logic.Phys {
         [SerializeField] private float _gravityScale = 1f;
         
         [Header("Torque")]
-        [SerializeField] private bool _addRandomTorqueOnGravityChange = true;
         [SerializeField] [Min(0f)] private float _torqueMin = 0f;
         [SerializeField] [Min(0f)] private float _torqueMax = 60f;
         

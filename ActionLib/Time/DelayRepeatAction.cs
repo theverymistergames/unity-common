@@ -15,13 +15,14 @@ namespace MisterGames.ActionLib.Time {
         [Min(0f)] public float delayFrom = 0f;
         [Min(0f)] public float delayTo = 1f;
         [SerializeReference] [SubclassSelector] public IActorAction action;
-        
+        public bool useUnscaledTime;
+
         public async UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
             while (!cancellationToken.IsCancellationRequested) {
                 float delay = Random.Range(delayFrom, delayTo);
 
                 if (delay > 0f) {
-                    await UniTask.Delay(TimeSpan.FromSeconds(delay), cancellationToken: cancellationToken)
+                    await UniTask.Delay(TimeSpan.FromSeconds(delay), ignoreTimeScale: useUnscaledTime, cancellationToken: cancellationToken)
                         .SuppressCancellationThrow();
                 }
                 

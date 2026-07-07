@@ -15,15 +15,16 @@ namespace MisterGames.ActionLib.Flow {
         public ShortcutModifiers modifiers;
         
         [Min(0f)] public float delay;
-        
+        public bool useUnscaledTime;
+
         public async UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
             while (!cancellationToken.IsCancellationRequested && !IsActive()) {
                 await UniTask.Yield();
             }
 
             if (cancellationToken.IsCancellationRequested) return;
-            
-            await UniTask.Delay(TimeSpan.FromSeconds(delay), cancellationToken: cancellationToken)
+
+            await UniTask.Delay(TimeSpan.FromSeconds(delay), ignoreTimeScale: useUnscaledTime, cancellationToken: cancellationToken)
                 .SuppressCancellationThrow();
         }
 

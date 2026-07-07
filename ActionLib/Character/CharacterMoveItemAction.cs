@@ -29,6 +29,7 @@ namespace MisterGames.ActionLib.Character {
         public float curvature = 1f;
         public AnimationCurve progressCurve = AnimationCurve.Linear(0f, 0f, 1f, 1f);
         public AnimationCurve rotationCurve = AnimationCurve.Linear(0f, 0f, 1f, 1f);
+        public bool useUnscaledTime;
         
         [Header("Attach")]
         public bool detachOnStart;
@@ -130,7 +131,8 @@ namespace MisterGames.ActionLib.Character {
                 startRotation = targetRotation * startRotationOffset;
                 finalRotation = targetRotation * finalRotationOffset;
 
-                t = Mathf.Clamp01(t + UnityEngine.Time.deltaTime * speed);
+                float dt = useUnscaledTime ? UnityEngine.Time.unscaledDeltaTime : UnityEngine.Time.deltaTime;
+                t = Mathf.Clamp01(t + dt * speed);
 
                 var position = BezierExtensions.EvaluateBezier3Points(
                     startPoint,

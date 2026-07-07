@@ -29,6 +29,7 @@ namespace MisterGames.ActionLib.GameObjects {
         public float startAngle;
         public float endAngle;
         [Min(0f)] public float stepDelay;
+        public bool useUnscaledTime;
 
         public enum Mode {
             UseActorTransform,
@@ -63,8 +64,8 @@ namespace MisterGames.ActionLib.GameObjects {
 #endif
 
                 if (stepDelay > 0f) {
-                    await UniTask.Delay(TimeSpan.FromSeconds(stepDelay), cancellationToken: cancellationToken)
-                        .SuppressCancellationThrow();    
+                    await UniTask.Delay(TimeSpan.FromSeconds(stepDelay), ignoreTimeScale: useUnscaledTime, cancellationToken: cancellationToken)
+                        .SuppressCancellationThrow();
                 }
             }
         }

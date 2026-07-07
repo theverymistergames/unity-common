@@ -13,15 +13,16 @@ namespace MisterGames.ActionLib.Flow {
 
         [Min(0f)] public float checkPeriod;
         [SerializeReference] [SubclassSelector] public IActorCondition condition;
-        
+        public bool useUnscaledTime;
+
         public async UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
             float time = UnityEngine.Time.time;
-            
+
             while (!cancellationToken.IsCancellationRequested) {
                 if (condition.IsMatch(context)) return;
 
                 if (checkPeriod > 0f) {
-                    await UniTask.Delay(TimeSpan.FromSeconds(checkPeriod), cancellationToken: cancellationToken)
+                    await UniTask.Delay(TimeSpan.FromSeconds(checkPeriod), ignoreTimeScale: useUnscaledTime, cancellationToken: cancellationToken)
                         .SuppressCancellationThrow();
                     continue;
                 }

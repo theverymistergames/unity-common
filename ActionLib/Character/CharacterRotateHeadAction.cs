@@ -5,7 +5,6 @@ using MisterGames.Actors;
 using MisterGames.Actors.Actions;
 using MisterGames.Character.View;
 using MisterGames.Common;
-using MisterGames.Common.Attributes;
 using MisterGames.Common.Easing;
 using UnityEngine;
 
@@ -17,6 +16,7 @@ namespace MisterGames.ActionLib.Character {
         public Vector3 orientation;
         [Min(0f)] public float angularSpeed = 30f;
         public AnimationCurve progressCurve = EasingType.EaseOutSine.ToAnimationCurve();
+        public bool useUnscaledTime;
         
         public async UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
             var view = context.GetComponent<CharacterViewPipeline>();
@@ -31,7 +31,8 @@ namespace MisterGames.ActionLib.Character {
             view.SetViewOrientation(startRotation, moveView: false);
             
             while (!cancellationToken.IsCancellationRequested) {
-                t += UnityEngine.Time.deltaTime * speed;
+                float dt = useUnscaledTime ? UnityEngine.Time.unscaledDeltaTime : UnityEngine.Time.deltaTime;
+                t += dt * speed;
                 
                 var rot = Quaternion.Slerp(startRotation, targetRotation, progressCurve.Evaluate(t));
                 

@@ -13,10 +13,11 @@ namespace MisterGames.ActionLib.GameObjects {
 
         [Min(0f)] public float delay;
         public GameObject[] gameObjects;
-        
+        public bool useUnscaledTime;
+
         public async UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
             if (delay > 0f) {
-                await UniTask.Delay(TimeSpan.FromSeconds(delay), cancellationToken: cancellationToken)
+                await UniTask.Delay(TimeSpan.FromSeconds(delay), ignoreTimeScale: useUnscaledTime, cancellationToken: cancellationToken)
                     .SuppressCancellationThrow();
             }
             

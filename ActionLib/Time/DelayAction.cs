@@ -14,6 +14,7 @@ namespace MisterGames.ActionLib.Time {
         [Min(0f)] public float delay;
         public Mode mode;
         [SerializeReference] [SubclassSelector] public IActorAction action;
+        public bool useUnscaledTime;
 
         public enum Mode {
             WaitDelayAndAction,
@@ -30,8 +31,8 @@ namespace MisterGames.ActionLib.Time {
 
         private async UniTask ApplyDelayed(IActor context, CancellationToken cancellationToken) {
             if (delay > 0f) {
-                await UniTask.Delay(TimeSpan.FromSeconds(delay), cancellationToken: cancellationToken)
-                    .SuppressCancellationThrow();    
+                await UniTask.Delay(TimeSpan.FromSeconds(delay), ignoreTimeScale: useUnscaledTime, cancellationToken: cancellationToken)
+                    .SuppressCancellationThrow();
             }
 
             if (cancellationToken.IsCancellationRequested || action == null) return;

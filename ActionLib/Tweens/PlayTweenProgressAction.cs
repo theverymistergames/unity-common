@@ -18,13 +18,15 @@ namespace MisterGames.ActionLib.Tweens {
         [Min(0f)] public float duration;
         public AnimationCurve curve = EasingType.Linear.ToAnimationCurve();
         [SerializeReference] [SubclassSelector] public ITweenProgressAction action;
-        
+        public bool useUnscaledTime;
+
         public async UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
             float t = 0f;
             float speed = duration > 0f ? 1f / duration : float.MaxValue;
-            
+
             while (!cancellationToken.IsCancellationRequested) {
-                t = Mathf.Clamp01(t + UnityEngine.Time.deltaTime * speed);
+                float dt = useUnscaledTime ? UnityEngine.Time.unscaledDeltaTime : UnityEngine.Time.deltaTime;
+                t = Mathf.Clamp01(t + dt * speed);
                 
                 action?.OnProgressUpdate(Mathf.Lerp(startProgress, endProgress, curve.Evaluate(t)));
                 
