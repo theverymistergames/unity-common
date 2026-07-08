@@ -36,7 +36,6 @@ namespace MisterGames.Scenes.Core {
         }
 
         private static readonly string LogPrefix = nameof(SceneLoader).FormatColorOnlyForEditor(Color.white);
-
         private static SceneLoader _instance;
         private static bool _destroyed = true;
         private static readonly HashSet<ISceneLoadHook> _sceneLoadHooks = new();
@@ -174,6 +173,10 @@ namespace MisterGames.Scenes.Core {
         
         public static void RemoveSceneLoadHook(ISceneLoadHook hook) {
             _sceneLoadHooks.Remove(hook);
+        }
+
+        public static string GetRequestedActiveScene() {
+            return _destroyed ? null : _instance._requestedActiveScene;
         }
         
         private void SetActiveSceneInternal(string sceneName) {
@@ -361,14 +364,17 @@ namespace MisterGames.Scenes.Core {
             return id;
         }
 
+        [HideInCallstack]
         private static void LogInfo(string message) {
             Debug.Log($"{LogPrefix}: f {Time.frameCount}, {message}");
         }
         
+        [HideInCallstack]
         private static void LogWarning(string message) {
             Debug.LogWarning($"{LogPrefix}: f {Time.frameCount}, {message}");
         }
         
+        [HideInCallstack]
         private static void LogError(string message) {
             Debug.LogError($"{LogPrefix}: f {Time.frameCount}, {message}");
         }

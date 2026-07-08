@@ -9,7 +9,7 @@ namespace MisterGames.Scenes.SceneRoots {
     
     public sealed class SceneRootService : ISceneRootService, ISceneLoadHook, IDisposable {
         
-        public event Action<string, bool> OnSceneRootsEnableStateChanged = delegate { };
+        public event ISceneRootService.OnSceneRootsStateCallback OnSceneRootsEnableStateChanged = delegate { };
 
         private readonly MultiValueDictionary<int, ISceneRoot> _sceneHashToRootsMap = new();
         private readonly Dictionary<ISceneRoot, int> _rootToSceneHashMap = new();

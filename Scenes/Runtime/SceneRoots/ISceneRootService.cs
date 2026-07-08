@@ -1,10 +1,9 @@
-﻿using System;
-
-namespace MisterGames.Scenes.SceneRoots {
+﻿namespace MisterGames.Scenes.SceneRoots {
     
     public interface ISceneRootService {
         
-        event Action<string, bool> OnSceneRootsEnableStateChanged;  
+        public delegate void OnSceneRootsStateCallback(string sceneName, bool enabled);
+        event OnSceneRootsStateCallback OnSceneRootsEnableStateChanged;  
         
         void Register(ISceneRoot sceneRoot, string sceneName);
         void Unregister(ISceneRoot sceneRoot);
