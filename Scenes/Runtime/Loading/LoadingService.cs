@@ -11,7 +11,6 @@ namespace MisterGames.Scenes.Loading {
 
         [Header("Scene Settings")]
         [SerializeField] private SceneReference _loadingScene;
-        [SerializeField] private bool _makeSceneActiveOnShow = true;
         
         [Header("Load Settings")]
         [SerializeField] private bool _loadOnStart;
@@ -40,12 +39,7 @@ namespace MisterGames.Scenes.Loading {
             }
 
             if (!SceneLoader.IsSceneLoaded(_loadingScene.scene)) {
-                SceneLoader.LoadScene(_loadingScene.scene, _makeSceneActiveOnShow);
-                return;
-            }
-
-            if (_makeSceneActiveOnShow) {
-                SceneLoader.SetActiveScene(_loadingScene.scene);
+                SceneLoader.LoadScene(_loadingScene.scene);
             }
         }
         
