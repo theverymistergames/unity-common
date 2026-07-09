@@ -9,15 +9,14 @@ using UnityEngine;
 
 namespace MisterGames.Character.Transport {
     
-    [RequireComponent(typeof(Rigidbody))]
     public sealed class CarController : MonoBehaviour, IActorComponent, IUpdate {
 
         [Header("Inputs")]
         [SerializeField] private InputActionRef _move;
         [SerializeField] private InputActionRef _brake;
         [SerializeField] private InputActionRef _nitro;
-        [SerializeField] private Vector2 _inputSmoothing = new Vector2(10f, 10f);
-        [SerializeField] private Vector2 _inputSmoothingRelease = new Vector2(10f, 10f);
+        [SerializeField] private Vector2 _inputSmoothing = new(10f, 10f);
+        [SerializeField] private Vector2 _inputSmoothingRelease = new(10f, 10f);
 
         [Header("Startup")]
         [SerializeField] private IgnitionMode _ignitionMode;
@@ -26,7 +25,6 @@ namespace MisterGames.Character.Transport {
         
         [Header("Mass")]
         [SerializeField] private float _mass = 100f;
-        [SerializeField] private float _wheelMass = 10f;
         [SerializeField] private Vector3 _centerOfMass;
         [SerializeField] private float _forcesScale = 1f;
         
@@ -57,11 +55,14 @@ namespace MisterGames.Character.Transport {
         [Header("Overturn")]
         [SerializeField] private Vector3 _overturnForceOffset;
         [SerializeField] private float _overturnForce;
-        [SerializeField] [Range(0f, 1f)] private float _overturnAngleMin = 80f;
+        [SerializeField] [Range(0f, 180f)] private float _overturnAngleMin = 80f;
         [SerializeField] [Min(0f)] private float _minTimeOverturnedToApplyForce = 0.5f;
         
         [Header("Wheels")]
-        [SerializeField] private float _sideOffset;
+        [SerializeField] private Vector3 _sideOffset;
+        [SerializeField] [Min(0f)] private float _wheelMass = 10f;
+        [SerializeField] [Min(0f)] private float _wheelSpring = 2000f;
+        [SerializeField] [Min(0f)] private float _wheelDamper = 100f;
         [SerializeField] private WheelData[] _wheels;
 
         [Header("Debug")]
@@ -123,7 +124,6 @@ namespace MisterGames.Character.Transport {
         private readonly Dictionary<WheelCollider, int> _wheelIndexMap = new();
         private IActor _actor;
         private Rigidbody _rigidbody;
-        private Quaternion[] _wheelRotations;
         private Vector2 _input;
         private float _lastTimeNotOverturned;
         private float _ignitionStartTime;
@@ -143,6 +143,7 @@ namespace MisterGames.Character.Transport {
             
             InitializeMass();
             InitializeWheels();
+            SetupWheelsData();
             AnimateWheels();
         }
         
@@ -173,26 +174,32 @@ namespace MisterGames.Character.Transport {
         
         private void InitializeWheels() {
             _wheelIndexMap.Clear();
-            _wheelRotations = new Quaternion[_wheels.Length];
             
             for (int i = 0; i < _wheels.Length; i++) {
                 ref var wheel = ref _wheels[i];
-                
-                _wheelRotations[i] = wheel.geo.localRotation;
                 
                 var forwardFriction = wheel.collider.forwardFriction;
                 var sidewaysFriction = wheel.collider.sidewaysFriction;
                 
                 wheel.forwardExtremumSlip = forwardFriction.extremumSlip;
                 wheel.sideExtremumSlip = sidewaysFriction.extremumSlip;
-
-                wheel.collider.mass = _wheelMass;
                 
                 // Workaround for Unity 6 wheels bug
                 wheel.collider.enabled = false;
                 wheel.collider.enabled = true;
                 
                 _wheelIndexMap[wheel.collider] = i;
+            }
+        }
+
+        private void SetupWheelsData() {
+            for (int i = 0; i < _wheels.Length; i++) {
+                ref var wheel = ref _wheels[i];
+                var sus = wheel.collider.suspensionSpring;
+                sus.spring = _wheelSpring;
+                sus.damper = _wheelDamper;
+                wheel.collider.suspensionSpring = sus;
+                wheel.collider.mass = _wheelMass;
             }
         }
 
@@ -378,6 +385,13 @@ namespace MisterGames.Character.Transport {
 
             var f0 = Mathf.Abs(input) * force;
             var f1 = -f0;
+
+#if UNITY_EDITOR
+            if (_showDebugInfo) DebugExt.DrawSphere(p0, 0.03f, Color.yellow);
+            if (_showDebugInfo) DebugExt.DrawSphere(p1, 0.03f, Color.yellow);
+            if (_showDebugInfo) DebugExt.DrawRay(p0, f0, Color.yellow);
+            if (_showDebugInfo) DebugExt.DrawRay(p1, f1, Color.yellow);
+#endif
             
             _rigidbody.AddForceAtPosition(f0, p0, ForceMode.Acceleration);
             _rigidbody.AddForceAtPosition(f1, p1, ForceMode.Acceleration);
@@ -389,23 +403,27 @@ namespace MisterGames.Character.Transport {
             
             for (int i = 0; i < _wheels.Length; i++) {
                 ref var wheel = ref _wheels[i];
-                var rotationOffset = _wheelRotations[i];
                 
                 wheel.collider.GetWorldPose(out var pos, out var rot);
 
-                rot *= Quaternion.Inverse(rotationOffset);
                 float side = Mathf.Sign(Vector3.Dot(pos - rootPos, right));
+                var offset = _sideOffset.WithX(_sideOffset.x * side);
                 
-                wheel.geo.SetPositionAndRotation(pos + rot * new Vector3(0f, side * _sideOffset, 0f), rot);
+                wheel.geo.SetPositionAndRotation(pos + rot * offset, rot);
             }
         }
         
 #if UNITY_EDITOR
-        private void OnDrawGizmos() {
-            if (!_showDebugInfo) return;
-
-            if (_rigidbody == null) _rigidbody = GetComponent<Rigidbody>();
+        private void OnValidate() {
+            if (_rigidbody == null) return;
             
+            InitializeMass();
+            SetupWheelsData();
+        }
+
+        private void OnDrawGizmos() {
+            if (!_showDebugInfo || _rigidbody == null) return;
+
             DebugExt.DrawSphere(_rigidbody.position, 0.05f, Color.green, gizmo: true);
             DebugExt.DrawSphere(_rigidbody.position + _rigidbody.centerOfMass, 0.03f, Color.cyan, gizmo: true);
 
