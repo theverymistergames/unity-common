@@ -214,6 +214,13 @@ namespace MisterGames.Common.Audio {
             
             int id = GetNextHandleId();
             var audioElement = GetAudioElementAtWorldPosition(position);
+            
+            if (audioElement == null) {
+#if UNITY_EDITOR
+                Debug.LogWarning($"{nameof(AudioPool)}: cannot create audio element, prefab pool is disposed.");          
+#endif          
+                return AudioHandle.Invalid;
+            }
 
 #if UNITY_EDITOR
             CreateDebugColor(id, clip.name);
@@ -285,6 +292,14 @@ namespace MisterGames.Common.Audio {
 
             int id = GetNextHandleId();
             var audioElement = GetAudioElementAttached(attachTo, localPosition);
+
+            if (audioElement == null) {
+#if UNITY_EDITOR
+                Debug.LogWarning($"{nameof(AudioPool)}: cannot create audio element, prefab pool is disposed.");          
+#endif          
+                return AudioHandle.Invalid;
+            }
+            
             var attachKey = new AttachKey(attachTo.GetHashCode(), attachId);
 
 #if UNITY_EDITOR
@@ -385,7 +400,7 @@ namespace MisterGames.Common.Audio {
         }
 
         private IAudioElement GetAudioElementAttached(Transform parent, Vector3 localPosition = default) {
-            return PrefabPool.Main.Get(_prefab, parent.TransformPoint(localPosition), Quaternion.identity, parent);
+            return PrefabPool.Main?.Get(_prefab, parent.TransformPoint(localPosition), Quaternion.identity, parent);
         }
         
         private static void RestartAudioSource(

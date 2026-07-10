@@ -124,7 +124,7 @@ namespace MisterGames.Character.View {
         }
         
         public void UpdateSelf(ref Vector3 position, Quaternion rotationOffset, Vector2 orientation, float dt) {
-            position = GetPosition(position, rotationOffset, orientation, dt);
+            UpdatePosition(ref position, rotationOffset, orientation, dt);
         }
 
         public void UpdateAttachedObjects(Vector3 position, Quaternion rotation, Vector2 delta, float dt) {
@@ -132,27 +132,29 @@ namespace MisterGames.Character.View {
             UpdateRotationObjects(rotation, delta, dt);
         }
 
-        private Vector3 GetPosition(Vector3 position, Quaternion rotationOffset, Vector2 orientation, float dt) {
+        private void UpdatePosition(ref Vector3 position, Quaternion rotationOffset, Vector2 orientation, float dt) {
             switch (_mode) {
                 case Mode.Point:
-                    return position.SmoothExpNonZero(_targetPoint, _smoothing, dt);
+                    position = position.SmoothExpNonZero(_targetPoint, _smoothing, dt);
+                    return;
 
                 case Mode.Transform: 
-                    _targetPoint = _target.position + 
-                                   _target.rotation * Quaternion.Inverse(_targetRotation) * _targetDir * AttachDistance; 
-                    return position.SmoothExpNonZero(_targetPoint, _smoothing, dt);
+                    _targetPoint = _target.position + _target.rotation * Quaternion.Inverse(_targetRotation) * _targetDir * AttachDistance; 
+                    position = position.SmoothExpNonZero(_targetPoint, _smoothing, dt);
+                    return;
 
                 case Mode.TransformWithoutRotation: 
                     _targetPoint = _target.position + _targetDir * AttachDistance;
-                    return position.SmoothExpNonZero(_targetPoint, _smoothing, dt);
+                    position = position.SmoothExpNonZero(_targetPoint, _smoothing, dt);
+                    return;
 
                 case Mode.TransformLookaround:
                     _targetPoint = _targetPoint.SmoothExpNonZero(_target.position, _smoothing, dt);
-                    return _targetPoint + 
-                           rotationOffset * Quaternion.Euler(orientation) * Vector3.back * AttachDistance;
+                    position = _targetPoint + rotationOffset * Quaternion.Euler(orientation) * Vector3.back * AttachDistance;
+                    return;
 
                 default: 
-                    return position;
+                    return;
             }
         }
 

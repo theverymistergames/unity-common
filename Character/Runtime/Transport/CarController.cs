@@ -53,7 +53,6 @@ namespace MisterGames.Character.Transport {
         [SerializeField] [Min(0f)] private float _steerSmoothing = 1f;
         
         [Header("Overturn")]
-        [SerializeField] private Vector3 _overturnForceOffset;
         [SerializeField] private float _overturnForce;
         [SerializeField] [Range(0f, 180f)] private float _overturnAngleMin = 80f;
         [SerializeField] [Min(0f)] private float _minTimeOverturnedToApplyForce = 0.5f;
@@ -374,27 +373,8 @@ namespace MisterGames.Character.Transport {
             if (Time.time < _lastTimeNotOverturned + _minTimeOverturnedToApplyForce) {
                 return;
             }
-            
-            var pos = Root.position;
-            var rot = Root.rotation;
-            var offset = Vector3.Scale(_overturnForceOffset, Root.localScale);
-            var force = _overturnForce * up;
 
-            var p0 = pos + rot * offset * input;
-            var p1 = pos - rot * offset * input;
-
-            var f0 = Mathf.Abs(input) * force;
-            var f1 = -f0;
-
-#if UNITY_EDITOR
-            if (_showDebugInfo) DebugExt.DrawSphere(p0, 0.03f, Color.yellow);
-            if (_showDebugInfo) DebugExt.DrawSphere(p1, 0.03f, Color.yellow);
-            if (_showDebugInfo) DebugExt.DrawRay(p0, f0, Color.yellow);
-            if (_showDebugInfo) DebugExt.DrawRay(p1, f1, Color.yellow);
-#endif
-            
-            _rigidbody.AddForceAtPosition(f0, p0, ForceMode.Acceleration);
-            _rigidbody.AddForceAtPosition(f1, p1, ForceMode.Acceleration);
+            _rigidbody.AddRelativeTorque(_overturnForce * input * Vector3.forward, ForceMode.Acceleration);
         }
 
         private void AnimateWheels() {
