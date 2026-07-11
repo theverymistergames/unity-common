@@ -81,7 +81,7 @@ namespace MisterGames.Scenes.Loading {
         private async UniTask Fade(float progressEnd, float duration, AnimationCurve curve, CancellationToken cancellationToken) {
             if (cancellationToken.IsCancellationRequested) return;
             
-            byte id = ++_fadeId;
+            byte id = _fadeId.IncrementUncheckedRef();
 
             float dir;
             float min;

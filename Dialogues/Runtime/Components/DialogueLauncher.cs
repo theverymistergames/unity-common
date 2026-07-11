@@ -39,7 +39,6 @@ namespace MisterGames.Dialogues.Components {
         [SerializeReference] [SubclassSelector] private IActorAction _afterFinishAction;
         
         private enum LaunchMode {
-            OnAwake,
             OnEnable,
             Manual,
         }
@@ -65,16 +64,10 @@ namespace MisterGames.Dialogues.Components {
 
         private void Awake() {
             AsyncExt.RecreateCts(ref _destroyCts);
-
-            if (_launchMode == LaunchMode.OnAwake) {
-                LaunchDialogueAsync(_dialogueReference.AssetGUID, _destroyCts.Token).Forget();
-            }
         }
 
         private void OnDestroy() {
             AsyncExt.DisposeCts(ref _destroyCts);
-
-            StopDialogue();
         }
 
         private void OnEnable() {
@@ -96,9 +89,7 @@ namespace MisterGames.Dialogues.Components {
                 dialogueService.OnSkipApplied -= OnSkipApplied;
             }
                 
-            if (_launchMode == LaunchMode.OnEnable) {
-                StopDialogue();
-            }
+            StopDialogue();
         }
 
         private void OnSkipApplied() {
@@ -135,7 +126,7 @@ namespace MisterGames.Dialogues.Components {
             Services.Get<IDialogueService>()?.UnloadDialogue(_dialogueReference.AssetGUID);
         }
 
-        public async UniTask LaunchDialogueAsync(string guid, CancellationToken cancellationToken) {
+        public async UniTask LaunchDialogueAsync(string guid, CancellationToken cancellationToken = default) {
             AsyncExt.RecreateCts(ref _dialogueLaunchCts);
             AsyncExt.RecreateCts(ref _skipCts);
             
