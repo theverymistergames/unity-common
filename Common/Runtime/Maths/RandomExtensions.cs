@@ -4,7 +4,21 @@ using UnityEngine;
 namespace MisterGames.Common.Maths {
     
     public static class RandomExtensions {
+        
+        public static int IndexToHash(int index) {
+            unchecked {
+                uint h = (uint) index;
 
+                h ^= h >> 16;
+                h *= 0x85ebca6b;
+                h ^= h >> 13;
+                h *= 0xc2b2ae35;
+                h ^= h >> 16;
+
+                return (int) h;
+            }
+        }
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Color GetRandomColor() {
             var r = Random.onUnitSphere;

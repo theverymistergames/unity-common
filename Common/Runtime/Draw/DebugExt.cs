@@ -7,7 +7,127 @@ namespace MisterGames.Common {
     
     public static class DebugExt
     {
+        public static void DrawCollider(Collider collider, Color color, bool solid = false)
+        {
+            switch (collider)
+            {
+                case BoxCollider box:
+                    DrawBoxCollider(box, color, solid);
+                    break;
 
+                case SphereCollider sphere:
+                    DrawSphereCollider(sphere, color, solid);
+                    break;
+
+                case CapsuleCollider capsule:
+                    DrawCapsuleCollider(capsule, color, solid);
+                    break;
+
+                case MeshCollider mesh when mesh.sharedMesh != null:
+                    DrawMeshCollider(mesh, color, solid);
+                    break;
+            }
+        }
+
+        public static void DrawMeshCollider(MeshCollider collider, Color color, bool solid = false)
+        {
+            var c = Gizmos.color;
+            var m = Gizmos.matrix;
+            Gizmos.color = color;
+            Gizmos.matrix = collider.transform.localToWorldMatrix;
+            
+            if (solid) Gizmos.DrawMesh(collider.sharedMesh);
+            else Gizmos.DrawWireMesh(collider.sharedMesh);
+            
+            Gizmos.matrix = m;
+            Gizmos.color = c;
+        }
+
+        public static void DrawBoxCollider(BoxCollider collider, Color color, bool solid = false)
+        {
+            var c = Gizmos.color;
+            var m = Gizmos.matrix;
+            Gizmos.color = color;
+            Gizmos.matrix = collider.transform.localToWorldMatrix;
+            
+            if (solid) Gizmos.DrawCube(collider.center, collider.size);
+            else Gizmos.DrawWireCube(collider.center, collider.size);
+            
+            Gizmos.matrix = m;
+            Gizmos.color = c;
+        }
+
+        public static void DrawSphereCollider(SphereCollider collider, Color color, bool solid = false)
+        {
+            var c = Gizmos.color;
+            var m = Gizmos.matrix;
+            Gizmos.color = color;
+            Gizmos.matrix = collider.transform.localToWorldMatrix;
+            
+            if (solid) Gizmos.DrawSphere(collider.center, collider.radius);
+            else Gizmos.DrawWireSphere(collider.center, collider.radius);
+            
+            Gizmos.matrix = m;
+            Gizmos.color = c;
+        }
+
+        public static void DrawCapsuleCollider(CapsuleCollider collider, Color color, bool solid = false) {
+            var axis = collider.direction switch {
+                0 => Vector3.right,
+                1 => Vector3.up,
+                _ => Vector3.forward
+            };
+
+            float radius = collider.radius;
+            float cylinderHeight = Mathf.Max(0f, collider.height - radius * 2f);
+
+            var offset = axis * cylinderHeight * 0.5f;
+            var pointA = collider.center + offset;
+            var pointB = collider.center - offset;
+
+            var c = Gizmos.color;
+            var m = Gizmos.matrix;
+            Gizmos.color = color;
+            Gizmos.matrix = collider.transform.localToWorldMatrix;
+
+            if (solid) {
+                Gizmos.DrawSphere(pointA, radius);
+                Gizmos.DrawSphere(pointB, radius);
+            }
+            else {
+                Gizmos.DrawWireSphere(pointA, radius);
+                Gizmos.DrawWireSphere(pointB, radius);
+            }
+            
+            DrawCapsuleSides(pointA, pointB, axis, radius);
+            
+            Gizmos.matrix = m;
+            Gizmos.color = c;
+        }
+
+        private static void DrawCapsuleSides(Vector3 pointA, Vector3 pointB, Vector3 axis, float radius) {
+            Vector3 tangentA;
+            Vector3 tangentB;
+
+            if (axis == Vector3.up) {
+                tangentA = Vector3.right * radius;
+                tangentB = Vector3.forward * radius;
+            }
+            else if (axis == Vector3.right) {
+                tangentA = Vector3.up * radius;
+                tangentB = Vector3.forward * radius;
+            }
+            else {
+                tangentA = Vector3.right * radius;
+                tangentB = Vector3.up * radius;
+            }
+
+            Gizmos.DrawLine(pointA + tangentA, pointB + tangentA);
+            Gizmos.DrawLine(pointA - tangentA, pointB - tangentA);
+            Gizmos.DrawLine(pointA + tangentB, pointB + tangentB);
+            Gizmos.DrawLine(pointA - tangentB, pointB - tangentB);
+        }
+        
         public static void DrawLabel(Vector3 origin, string text, int fontSize = 14, Color? color = default) {
 #if UNITY_EDITOR
             var c = color ?? Color.white;

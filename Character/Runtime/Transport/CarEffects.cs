@@ -188,7 +188,7 @@ namespace MisterGames.Character.Transport {
         
         private void UpdateNitroSound() {
             _nitroAudioSource.volume = Mathf.Lerp(0f, 1f, _carController.NitroActivation);
-            _nitroAudioSource.pitch = Mathf.Lerp(_minPitchNitro, _maxPitchNitro, _carController.NitroActivation);
+            _nitroAudioSource.pitch = Mathf.Lerp(_minPitchNitro, _maxPitchNitro, _carController.NitroActivation) * Time.timeScale;
 
             bool wasNitroActive = _isNitroActive;
             _isNitroActive = _carController.IsNitroActive;
@@ -207,7 +207,7 @@ namespace MisterGames.Character.Transport {
             float volume = Mathf.Clamp(_rpmToVolume * _carController.Rpm, _minVolumeEngine, _maxVolumeEngine);
 
             _engineAudioSource.volume = volume;
-            _engineAudioSource.pitch = pitch;
+            _engineAudioSource.pitch = pitch * Time.timeScale;
         }
 
         private void UpdateBrakesSound() {
@@ -215,7 +215,7 @@ namespace MisterGames.Character.Transport {
             float pitch = Mathf.Clamp(_brakeForceToPitch * brakeRatio, _minPitchBrakes, _maxPitchBrakes);
             float volume = Mathf.Clamp(_brakeForceToVolume * brakeRatio, _minVolumeBrakes, _maxVolumeBrakes);
 
-            _brakesAudioSource.pitch = pitch;
+            _brakesAudioSource.pitch = pitch * Time.timeScale;
             _brakesAudioSource.volume = volume *
                                         _carController.IsBrakeOn.AsFloat() *
                                         _carController.AreBrakeWheelsGrounded.AsFloat() *
