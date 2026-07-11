@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
@@ -94,6 +95,7 @@ namespace MisterGames.Character.Transport {
         
         private static readonly int EmissiveColor = Shader.PropertyToID("_EmissiveColor");
 
+        private readonly List<Material> _runtimeMaterials = new();
         private CancellationTokenSource _enableCts;
         private IActor _actor;
         private CarController _carController;
@@ -121,6 +123,14 @@ namespace MisterGames.Character.Transport {
             
             InitializeRenderers();
             SetLightEnabled(false, false);
+        }
+
+        private void OnDestroy() {
+            for (int i = 0; i < _runtimeMaterials.Count; i++) {
+                Destroy(_runtimeMaterials[i]);
+            }
+            
+            _runtimeMaterials.Clear();
         }
 
         private void OnEnable() {
@@ -218,10 +228,9 @@ namespace MisterGames.Character.Transport {
                 
                 for (int j = 0; j < data.renderers.Length; j++) {
                     var renderer = data.renderers[j];
-                    
-                    if (renderer.material == renderer.sharedMaterial) {
-                        renderer.material = new Material(renderer.sharedMaterial);
-                    }
+                    var mat = new Material(renderer.sharedMaterial);
+                    renderer.material = mat;
+                    _runtimeMaterials.Add(mat);
                 }
             }
         }
