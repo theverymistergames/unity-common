@@ -26,11 +26,11 @@ namespace MisterGames.ActionLib.Sounds {
         
         [Header("Settings")]
         [MinMaxSlider(0f, 1f)] public Vector2 startTime;
-        [Range(0f, 2f)] public float volume = 1f;
+        [Range(0f, 3f)] public float volume = 1f;
         [Min(0f)] public float fadeIn;
         [Min(-1f)] public float fadeOut = -1f;
-        [Range(0f, 2f)] public float pitch = 1f;
-        [Range(0f, 2f)] public float pitchRandomAdd;
+        [Range(0f, 3f)] public float pitch = 1f;
+        [Range(0f, 3f)] public float pitchRandomAdd;
         [Range(0f, 1f)] public float spatialBlend = 1f;
         public bool loop;
         public bool affectedByTimeScale = true;

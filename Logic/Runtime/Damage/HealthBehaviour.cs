@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using MisterGames.Actors;
 using MisterGames.Common.Attributes;
 using UnityEngine;
@@ -20,6 +21,7 @@ namespace MisterGames.Logic.Damage {
         public bool IsAlive => _health > 0f;
         public bool IsDead => _health <= 0f;
         
+        private readonly HashSet<int> _invulnerableSet = new();
         private IActor _actor;
         private HealthData _healthData;
 
@@ -32,6 +34,11 @@ namespace MisterGames.Logic.Damage {
             _healthData = actor.GetData<HealthData>();
         }
 
+        public void SetInvulnerable(object source, bool invulnerable) {
+            if (invulnerable) _invulnerableSet.Add(source.GetHashCode());
+            else _invulnerableSet.Remove(source.GetHashCode());
+        }
+        
         public void RestoreFullHealth() {
             float oldHealth = _health;
             _health = _healthData?.health ?? _health;
@@ -57,6 +64,10 @@ namespace MisterGames.Logic.Damage {
         }
         
         public DamageInfo TakeDamage(float damage, IActor author = null, Vector3 point = default) {
+            if (_invulnerableSet.Count > 0) {
+                return new DamageInfo(_actor, 0f, mortal: false, author, point);
+            }
+            
             float oldHealth = _health;
             _health = Mathf.Max(0f, _health - damage);
             

@@ -12,8 +12,8 @@ namespace MisterGames.ActionLib.GameObjects {
     public sealed class DestroyGameObjectAction : IActorAction {
 
         [Min(0f)] public float delay;
-        public GameObject[] gameObjects;
         public bool useUnscaledTime;
+        public GameObject[] gameObjects;
 
         public async UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
             if (delay > 0f) {

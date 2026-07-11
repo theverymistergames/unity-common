@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using MisterGames.Common.Data;
 using MisterGames.Common.Maths;
 using UnityEngine;
 
@@ -19,6 +20,8 @@ namespace MisterGames.Scenario.Events {
         [Serializable]
         internal struct EventGroup {
             public string name;
+            [TextAreaExtended]
+            public string description;
             public EventEntry[] events;
         }
 

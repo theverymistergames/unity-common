@@ -14,8 +14,8 @@ namespace MisterGames.ActionLib.GameObjects {
 
         public bool enabled;
         [Min(0f)] public float delay;
-        public Object[] objects;
         public bool useUnscaledTime;
+        public Object[] objects;
 
         public async UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
             if (delay > 0f) {
