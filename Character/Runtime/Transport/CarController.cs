@@ -32,13 +32,16 @@ namespace MisterGames.Character.Transport {
         [SerializeField] private DriveMode _driveMode;
         [SerializeField] [Min(0f)] private float _acceleration = 30f;
         [SerializeField] [Min(0f)] private float _inputThreshold = 0.1f;
-        [SerializeField] [Min(0f)] private float _nitroAcceleration = 30f;
         [SerializeField] [Min(0f)] private float _speedToRpm = 0.1f;
         [SerializeField] [Min(0f)] private float _rpmMin = 0.6f;
         [SerializeField] [Min(0f)] private float _rpmMax = 6f;
         [SerializeField] [Min(0f)] private float _rpmUpSmoothing = 8f;
         [SerializeField] [Min(0f)] private float _rpmUpNotGroundedSmoothing = 3f;
         [SerializeField] [Min(0f)] private float _rpmDownSmoothing = 0.7f;
+        
+        [Header("Nitro")]
+        [SerializeField] [Min(0f)] private float _nitroAcceleration = 30f;
+        [SerializeField] [Min(0f)] private float _nitroProgressSmoothing = 7f;
         
         [Header("Brakes")]
         [SerializeField] private DriveMode _brakeMode;
@@ -47,6 +50,7 @@ namespace MisterGames.Character.Transport {
         [SerializeField] [Min(0f)] private float _brakeSideExtremumSlip = 0.4f;
         [SerializeField] [Min(0f)] private float _brakeForwardExtremumSlip = 0.4f;
         [SerializeField] [Min(0f)] private float _brakeSmoothing = 15f;
+        [SerializeField] [Min(0f)] private float _slipSmoothing = 15f;
         
         [Header("Steering")]
         [SerializeField] [Range(0f, 180f)] private float _steerMaxAngle = 45f;
@@ -119,6 +123,8 @@ namespace MisterGames.Character.Transport {
         public float BrakeForce { get; private set; }
         public bool AreBrakeWheelsGrounded { get; private set; }
         public bool AreDriveWheelsGrounded { get; private set; }
+        public bool IsNitroActive { get; private set; }
+        public float NitroActivation { get; private set; }
 
         private readonly Dictionary<WheelCollider, int> _wheelIndexMap = new();
         private IActor _actor;
@@ -218,6 +224,12 @@ namespace MisterGames.Character.Transport {
             _input.y = Mathf.Lerp(_input.y, targetInput.y, dt * smoothing.y);
             
             float brake = _brake.Get().ReadValue<float>();
+            bool nitro = _nitro.Get().IsPressed() && IsIgnitionOn && _input.y >= _inputThreshold;
+
+            IsNitroActive = nitro;
+            NitroActivation = NitroActivation.SmoothExpNonZero(nitro ? 1f : 0f, _nitroProgressSmoothing, dt);
+            
+            float acceleration = Mathf.Lerp(_acceleration, _nitroAcceleration, NitroActivation);
             float brakeForce = 0f;
             bool atLeastOneDriveWheelGrounded = false;
             bool atLeastOneBrakeWheelGrounded = false;
@@ -227,7 +239,7 @@ namespace MisterGames.Character.Transport {
                 bool isGrounded = wheel.collider.isGrounded;
                 
                 Steer(ref wheel, _input.x, dt);
-                Accelerate(ref wheel, _input.y, dt);
+                Accelerate(ref wheel, _input.y, acceleration, dt);
                 Brake(ref wheel, brake, dt);
                 
                 brakeForce += wheel.collider.brakeTorque;
@@ -321,10 +333,9 @@ namespace MisterGames.Character.Transport {
             wheel.collider.steerAngle = Mathf.Lerp(wheel.collider.steerAngle, input * _steerMaxAngle, _steerSmoothing * dt);
         }
 
-        private void Accelerate(ref WheelData wheel, float input, float dt) {
+        private void Accelerate(ref WheelData wheel, float input, float acceleration, float dt) {
             if (!IsIgnitionOn || !IsMatch(wheel.axel, _driveMode)) return;
-
-            float acceleration = _nitro.Get().IsPressed() ? _nitroAcceleration : _acceleration;
+            
             input = Mathf.Abs(input) < _inputThreshold ? 0f : input;
             
             wheel.collider.motorTorque = input * acceleration * _forcesScale * dt;
@@ -333,8 +344,8 @@ namespace MisterGames.Character.Transport {
         private void Brake(ref WheelData wheel, float brakeInput, float dt) {
             if (IsMatch(wheel.axel, _brakeMode)) {
                 float brake = brakeInput * _brakeAcceleration * _forcesScale * dt;
-                wheel.collider.brakeTorque = !brakeInput.IsNearlyZero() && _brakeSmoothing > 0f 
-                    ? Mathf.Lerp(wheel.collider.brakeTorque, brake, _brakeSmoothing * dt)
+                wheel.collider.brakeTorque = !brakeInput.IsNearlyZero()
+                    ? wheel.collider.brakeTorque.SmoothExpNonZero( brake, _brakeSmoothing, dt)
                     : brake;
             }
             else {
@@ -345,8 +356,13 @@ namespace MisterGames.Character.Transport {
             var sidewaysFriction = wheel.collider.sidewaysFriction;
             
             if (IsMatch(wheel.axel, _driftMode)) {
-                forwardFriction.extremumSlip = Mathf.Lerp(wheel.forwardExtremumSlip, _brakeForwardExtremumSlip, brakeInput);
-                sidewaysFriction.extremumSlip = Mathf.Lerp(wheel.sideExtremumSlip, _brakeSideExtremumSlip, brakeInput);
+                forwardFriction.extremumSlip = brakeInput.IsNearlyZero()
+                    ? forwardFriction.extremumSlip.SmoothExpNonZero( wheel.forwardExtremumSlip, _slipSmoothing, dt)
+                    : Mathf.Lerp(wheel.forwardExtremumSlip, _brakeForwardExtremumSlip, brakeInput);
+                
+                sidewaysFriction.extremumSlip = brakeInput.IsNearlyZero()
+                    ? sidewaysFriction.extremumSlip.SmoothExpNonZero( wheel.sideExtremumSlip, _slipSmoothing, dt)
+                    : Mathf.Lerp(wheel.sideExtremumSlip, _brakeSideExtremumSlip, brakeInput);
             }
             else {
                 forwardFriction.extremumSlip = wheel.forwardExtremumSlip;

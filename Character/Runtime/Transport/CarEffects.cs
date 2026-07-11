@@ -46,6 +46,14 @@ namespace MisterGames.Character.Transport {
         [SerializeField] [Min(0f)] private float _maxVolumeEngine = 1f;
         [SerializeField] [Min(0f)] private float _rpmToVolume = 1f;
         
+        [Header("Nitro")]
+        [SerializeField] private AudioSource _nitroAudioSource;
+        [SerializeField] private AudioClip _nitroSound;
+        [SerializeReference] [SubclassSelector] private IActorAction _nitroOn;
+        [SerializeReference] [SubclassSelector] private IActorAction _nitroOff;
+        [SerializeField] [Min(0f)] private float _minPitchNitro = 0.8f;
+        [SerializeField] [Min(0f)] private float _maxPitchNitro = 1.2f;
+
         [Header("Brakes Sound")]
         [SerializeField] private AudioSource _brakesAudioSource;
         [SerializeField] private AudioClip _brakesSound;
@@ -94,8 +102,9 @@ namespace MisterGames.Character.Transport {
         private float _ignitionDuration;
         private float _ignitionStartTime;
         private float _ignitionTurnOffTime;
-
-        public void OnAwake(IActor actor) {
+        private bool _isNitroActive;
+        
+        void IActorComponent.OnAwake(IActor actor) {
             _actor = actor;
             _carController = GetComponent<CarController>();
             
@@ -104,7 +113,11 @@ namespace MisterGames.Character.Transport {
 
             _brakesAudioSource.clip = _brakesSound;
             _brakesAudioSource.loop = true;
-            _brakesAudioSource.volume = 0f; 
+            _brakesAudioSource.volume = 0f;
+
+            _nitroAudioSource.clip = _nitroSound;
+            _nitroAudioSource.loop = true;
+            _nitroAudioSource.volume = 0f;
             
             InitializeRenderers();
             SetLightEnabled(false, false);
@@ -128,6 +141,7 @@ namespace MisterGames.Character.Transport {
             DisableTrails();
             
             _brakesAudioSource.Play();
+            _nitroAudioSource.Play();
             
             PlayerLoopStage.LateUpdate.Subscribe(this);
         }
@@ -148,6 +162,9 @@ namespace MisterGames.Character.Transport {
             
             _engineAudioSource.Stop();
             _brakesAudioSource.Stop();
+            _nitroAudioSource.Stop();
+
+            _isNitroActive = false;
             
             PlayerLoopStage.LateUpdate.Unsubscribe(this);
         }
@@ -155,9 +172,26 @@ namespace MisterGames.Character.Transport {
         void IUpdate.OnUpdate(float dt) {
             UpdateEngineSound();
             UpdateBrakesSound();
+            UpdateNitroSound();
             UpdateTrails();
         }
+        
+        private void UpdateNitroSound() {
+            _nitroAudioSource.volume = Mathf.Lerp(0f, 1f, _carController.NitroActivation);
+            _nitroAudioSource.pitch = Mathf.Lerp(_minPitchNitro, _maxPitchNitro, _carController.NitroActivation);
 
+            bool wasNitroActive = _isNitroActive;
+            _isNitroActive = _carController.IsNitroActive;
+
+            if (!wasNitroActive && _isNitroActive) {
+                _nitroOn?.Apply(_actor, _enableCts.Token).Forget();
+            }
+            
+            if (wasNitroActive && !_isNitroActive) {
+                _nitroOff?.Apply(_actor, _enableCts.Token).Forget();
+            }
+        }
+        
         private void UpdateEngineSound() {
             float pitch = Mathf.Clamp(_rpmToPitch * _carController.Rpm, _minPitchEngine, _maxPitchEngine);
             float volume = Mathf.Clamp(_rpmToVolume * _carController.Rpm, _minVolumeEngine, _maxVolumeEngine);

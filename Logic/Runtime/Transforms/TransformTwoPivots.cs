@@ -16,13 +16,11 @@ namespace MisterGames.Logic.Transforms {
         [SerializeField] private Transform _p1;
         [SerializeField] private Vector3 _p0Offset;
         [SerializeField] private Vector3 _p1Offset;
-        [SerializeField] private Vector3 _rotationAxis = Vector3.up;
         [SerializeField] [Range(0f, 1f)] private float _pivot = 0.5f;
-        
+
         private Vector3 _p0Local;
         private Vector3 _p1Local;
         private Vector3 _originDir;
-        private Quaternion _originRot;
         private Quaternion _localRotOffset;
 
         private void Awake() {
@@ -57,7 +55,7 @@ namespace MisterGames.Logic.Transforms {
         }
 
         private void SetPivotPoints(Vector3 p0, Vector3 p1, float t) {
-            var rot = Quaternion.FromToRotation(_originDir, p1 - p0) * _originRot;
+            var rot = Quaternion.FromToRotation(_originDir, p1 - p0);
             var pos = Vector3.Lerp(p0, p1, t) + rot * Vector3.Lerp(_p0Local, _p1Local, t);
 
             _target.SetPositionAndRotation(pos, rot * _localRotOffset);
@@ -72,14 +70,11 @@ namespace MisterGames.Logic.Transforms {
             p0 += r0 * _p0Offset;
             p1 += r1 * _p1Offset;
 
-            _originDir = (p1 - p0).normalized;
-            _originRot = Quaternion.LookRotation(_originDir, _rotationAxis);
-            var invOriginRot = Quaternion.Inverse(_originRot);
+            _originDir = p1 - p0;
 
-            _p0Local = invOriginRot * (pos - p0);
-            _p1Local = invOriginRot * (pos - p1);
-
-            _localRotOffset = invOriginRot * rot;
+            _p0Local = pos - p0;
+            _p1Local = pos - p1;
+            _localRotOffset = rot;
         }
 
 #if UNITY_EDITOR

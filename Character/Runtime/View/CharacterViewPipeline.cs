@@ -141,8 +141,8 @@ namespace MisterGames.Character.View {
             
             _head.GetPositionAndRotation(out _headPosition, out _headRotation);
 
-            StartPreUpdate(_enableCts.Token).Forget();
-            StartPostUpdate(_enableCts.Token).Forget();
+            StartPreUpdate(PlayerLoopTiming.PreLateUpdate, _enableCts.Token).Forget();
+            StartPostUpdate(PlayerLoopTiming.LastPostLateUpdate, _enableCts.Token).Forget();
         }
 
         private void OnDisable() {
@@ -246,7 +246,7 @@ namespace MisterGames.Character.View {
 
         public void ResetSmoothing() {
             _isSmoothingOverriden = false;
-            _smoothing = _viewData?.viewSmoothing ?? 0f;
+            _smoothing = _viewData?.viewSmoothing ?? default;
         }
 
         public void ApplySensitivity(Vector2 sensitivity) {
@@ -296,36 +296,41 @@ namespace MisterGames.Character.View {
             }
         }
 
-        private async UniTask StartPreUpdate(CancellationToken cancellationToken) {
+        private async UniTask StartPreUpdate(PlayerLoopTiming loop, CancellationToken cancellationToken) {
             while (!cancellationToken.IsCancellationRequested) {
                 PreUpdate(GetDeltaTime());
-                await UniTask.Yield(PlayerLoopTiming.PreLateUpdate);
+                await UniTask.Yield(loop);
             }
         }
         
-        private async UniTask StartPostUpdate(CancellationToken cancellationToken) {
+        private async UniTask StartPostUpdate(PlayerLoopTiming loop, CancellationToken cancellationToken) {
             while (!cancellationToken.IsCancellationRequested) {
                 PostUpdate(GetDeltaTime());
-                await UniTask.Yield(PlayerLoopTiming.LastPostLateUpdate);
+                await UniTask.Yield(loop);
             }
         }
 
+        private static float GetTime() {
+            return Time.unscaledTime;
+        }
+        
+        private float GetDeltaTime() {
+            return _timescalePriority.TryGetValue(out int value) 
+                ? Time.unscaledDeltaTime * _timescaleSystem.GetTimeScale(value) 
+                : Time.unscaledDeltaTime;
+        }
+        
         private void PreUpdate(float dt) {
-            if (_hasGravity && !_characterGravity.IsGravityAlignBlocked) {
-                var target = Quaternion.FromToRotation(Vector3.down, _characterGravity.GravityDirection);
-                _gravityRotation = _gravityRotation.SlerpNonZero(target, _gravityDirSmoothing, dt);
-            }
-
-            if (!_headJoint.IsAttached) _headPosition = _headPosition.SmoothExpNonZero(_headParent.position, _positionSmoothing, dt);
-
+            ProcessGravityAlign(dt);
+            ProcessPositionSnap(dt);
+            
             var position = _headPosition + _head.rotation * _headOffset;
-            var currentOrientation = (Vector2) _headRotation.ToEulerAngles180();
+            var orientation = (Vector2) _headRotation.ToEulerAngles180();
             
-            _headJoint.UpdateSelf(ref position, _gravityRotation, currentOrientation, dt);
-            
+            ApplyAttach(ref position, orientation, dt);
             ApplyPosition(position);
         }
-
+        
         private void PostUpdate(float dt) {
             var delta = ConsumeInputDelta(dt);
             var currentOrientation = (Vector2) _headRotation.ToEulerAngles180();
@@ -333,31 +338,20 @@ namespace MisterGames.Character.View {
             var position = _headPosition + _head.rotation * _headOffset;
 
             ApplyClamp(position, ref currentOrientation, ref targetOrientation, dt);
-            currentOrientation = Quaternion.Euler(currentOrientation)
-                .SlerpNonZero(Quaternion.Euler(targetOrientation), _smoothing, dt).eulerAngles;
-
-            // Copy current into target to reapply clamp after smoothing
+            ApplySmoothing(ref currentOrientation, targetOrientation, dt);
+            
+            // reapply clamp after smoothing to get valid target orientation
             targetOrientation = currentOrientation;
             ApplyClamp(position, ref currentOrientation, ref targetOrientation, dt: 0f);
             
-            _headJoint.UpdateSelf(ref position, _gravityRotation, targetOrientation, dt: 0f);
-            _headJoint.UpdateAttachedObjects(position, _gravityRotation * Quaternion.Euler(targetOrientation), delta, dt);
+            // apply attach without dt to get valid position, then reapply clamp again for new position
+            ApplyAttach(ref position, targetOrientation, dt: 0f);
+            ApplyClamp(position, ref currentOrientation, ref targetOrientation, dt: 0f);
             
-            ApplyHeadRotation(targetOrientation);
-            ApplyBodyRotation(targetOrientation, dt);
+            ApplyAttachedObjects(position, targetOrientation, delta, dt);
+            ApplyRotation(targetOrientation, dt);
             ApplyPosition(position);
-            
-            _cameraContainer.SetBaseFov(_viewData?.fov ?? _defaultFov);
-        }
-
-        private static float GetTime() {
-            return Time.unscaledTime;
-        }
-
-        private float GetDeltaTime() {
-            return _timescalePriority.TryGetValue(out int value) 
-                ? Time.unscaledDeltaTime * _timescaleSystem.GetTimeScale(value) 
-                : Time.unscaledDeltaTime;
+            ApplyCameraState();
         }
 
         private Vector2 ConsumeInputDelta(float dt) {
@@ -372,16 +366,30 @@ namespace MisterGames.Character.View {
             return delta;
         }
 
+        private void ApplyAttach(ref Vector3 position, Vector2 orientation, float dt) {
+            _headJoint.UpdateSelf(ref position, _gravityRotation, orientation, dt);
+        }
+        
+        private void ApplyAttachedObjects(Vector3 position, Vector2 orientation, Vector2 delta, float dt) {
+            _headJoint.UpdateAttachedObjects(position, _gravityRotation * Quaternion.Euler(orientation), delta, dt);
+        }
+        
         private void ApplyClamp(Vector3 position, ref Vector2 current, ref Vector2 target, float dt) {
             _viewClamp.Process(position, _gravityRotation, ref current, ref target, dt);
         }
 
-        private void ApplyHeadRotation(Vector2 eulerAngles) {
-            _headRotation = Quaternion.Euler(eulerAngles);
-            _head.rotation = _gravityRotation * _headRotation;
+        private void ApplySmoothing(ref Vector2 current, Vector2 target, float dt) {
+            current = Quaternion.Euler(current)
+                .SlerpNonZero(Quaternion.Euler(target), _smoothing, dt).eulerAngles;
         }
-        
-        private void ApplyBodyRotation(Vector2 eulerAngles, float dt) {
+
+        private void ApplyCameraState() {
+            _cameraContainer.SetBaseFov(_viewData?.fov ?? _defaultFov);
+        }
+
+        private void ApplyRotation(Vector2 eulerAngles, float dt) {
+            _headRotation = Quaternion.Euler(eulerAngles);
+            
             // If head offset from body is longer than free head rotation distance,
             // body rotation is not applied to prevent head from rotation around body vertical axis. 
             if (_head.localPosition.sqrMagnitude < _freeHeadRotationDistance * _freeHeadRotationDistance) {
@@ -393,6 +401,20 @@ namespace MisterGames.Character.View {
             }
 
             _body.rotation = _gravityRotation * _bodyRotation;
+            _head.rotation = _gravityRotation * _headRotation;
+        }
+
+        private void ProcessGravityAlign(float dt) {
+            if (!_hasGravity || _characterGravity.IsGravityAlignBlocked) return;
+            
+            var target = Quaternion.FromToRotation(Vector3.down, _characterGravity.GravityDirection);
+            _gravityRotation = _gravityRotation.SlerpNonZero(target, _gravityDirSmoothing, dt);
+        }
+
+        private void ProcessPositionSnap(float dt) {
+            if (_headJoint.IsAttached) return;
+            
+            _headPosition = _headPosition.SmoothExpNonZero(_headParent.position, _positionSmoothing, dt);
         }
 
         private void ApplyPosition(Vector3 position) {
