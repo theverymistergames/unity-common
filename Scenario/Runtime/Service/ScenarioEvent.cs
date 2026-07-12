@@ -16,16 +16,24 @@ namespace MisterGames.Scenario.Service {
 
         [Header("Event Conditions")]
         public EventReference startEvent;
-        public Mode subIdMode;
+        public SubIdMode subIdMode;
         public Optional<CompareInt> expectedRaiseCount = Optional<CompareInt>.WithValue(new CompareInt { mode = CompareMode.Greater, value = 0 });
         [SerializeReference] [SubclassSelector] public IActorCondition condition;
         
         [Header("Action")]
+        public ActionMode actionMode = ActionMode.IgnoreNewIfRunningPrevious;
         [SerializeReference] [SubclassSelector] public IActorAction startAction;
 
-        public enum Mode {
+        public enum SubIdMode {
             IgnoreSubId,
             ExpectSubId,
+        }
+
+        public enum ActionMode {
+            FireAndForget,
+            CancelPreviousAndStartNew,
+            WaitPreviousThenStartNew,
+            IgnoreNewIfRunningPrevious
         }
 
         public override string ToString() {

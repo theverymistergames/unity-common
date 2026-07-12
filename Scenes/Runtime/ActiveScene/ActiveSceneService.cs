@@ -11,6 +11,7 @@ namespace MisterGames.Scenes.ActiveScene {
     
     public sealed class ActiveSceneService : IDisposable {
 
+        private const bool EnableLogs = false; 
         private static readonly string LogPrefix = nameof(ActiveSceneService).FormatColorOnlyForEditor(Color.white);
 
         private readonly Dictionary<string, float> _loadTimeMap = new();
@@ -85,7 +86,7 @@ namespace MisterGames.Scenes.ActiveScene {
         private void ProcessLoadedScenes(HashSet<string> loadedScenesSet) {
             if (TryGetCustomActiveScene(loadedScenesSet, out string activeScene)) {
                 if (SceneLoader.GetRequestedActiveScene() != activeScene) {
-                    LogInfo($"found custom active scene {activeScene.FormatColorOnlyForEditor(Color.green)}, setting up...");
+                    if (EnableLogs) LogInfo($"found custom active scene {activeScene.FormatColorOnlyForEditor(Color.green)}, setting up...");
                     SceneLoader.SetActiveScene(activeScene);
                 }
                 return;
@@ -98,7 +99,7 @@ namespace MisterGames.Scenes.ActiveScene {
                 if (!loadedScenesSet.Contains(sceneReference.scene)) continue;
                 
                 if (SceneLoader.GetRequestedActiveScene() != sceneReference.scene) {
-                    LogInfo($"found high priority active scene {sceneReference.scene.FormatColorOnlyForEditor(Color.green)}, setting up...");
+                    if (EnableLogs) LogInfo($"found high priority active scene {sceneReference.scene.FormatColorOnlyForEditor(Color.green)}, setting up...");
                     SceneLoader.SetActiveScene(sceneReference.scene);
                 }
                 return;
@@ -119,7 +120,7 @@ namespace MisterGames.Scenes.ActiveScene {
 
                     case ActiveSceneSettings.Mode.SetLastLoadedAsActive:
                         if (SceneLoader.GetRequestedActiveScene() != lastLoadedScene) {
-                            LogInfo($"using last loaded scene {lastLoadedScene.FormatColorOnlyForEditor(Color.green)} as active, setting up...");
+                            if (EnableLogs) LogInfo($"using last loaded scene {lastLoadedScene.FormatColorOnlyForEditor(Color.green)} as active, setting up...");
                             SceneLoader.SetActiveScene(lastLoadedScene);
                         }
                         return;
@@ -132,7 +133,7 @@ namespace MisterGames.Scenes.ActiveScene {
             if (topLoadedSceneFromLowPriority == null) return;
             
             if (SceneLoader.GetRequestedActiveScene() != topLoadedSceneFromLowPriority) {
-                LogInfo($"found low priority active scene {topLoadedSceneFromLowPriority.FormatColorOnlyForEditor(Color.green)}, setting up...");
+                if (EnableLogs) LogInfo($"found low priority active scene {topLoadedSceneFromLowPriority.FormatColorOnlyForEditor(Color.green)}, setting up...");
                 SceneLoader.SetActiveScene(topLoadedSceneFromLowPriority);
             } 
         }

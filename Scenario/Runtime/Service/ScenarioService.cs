@@ -17,6 +17,8 @@ namespace MisterGames.Scenario.Service {
         private readonly HashSet<IScenarioConfig> _scenarioConfigsMap = new();
         private readonly List<ScenarioEvent> _scenarioEventsBuffer = new();
         private readonly MultiValueDictionary<EventReference, ScenarioEvent> _eventToResponseIdMap = new();
+        private readonly Dictionary<ScenarioEvent, int> _runActionMap = new();
+        private readonly Dictionary<ScenarioEvent, CancellationTokenSource> _ctsMap = new();
         private CancellationTokenSource _cts;
 
         public void Initialize() {
@@ -61,7 +63,9 @@ namespace MisterGames.Scenario.Service {
             int count = _eventToResponseIdMap.GetCount(e);
             for (int i = 0; i < count; i++) {
                 var evt = _eventToResponseIdMap.GetValueAt(e, i);
-                if (CanStartScenarioEvent(evt, e)) StartScenarioEvent(evt);
+                if (!CanStartScenarioEvent(evt, e)) continue;
+                
+                StartScenarioEvent(evt).Forget();
             }
         }
 
@@ -81,22 +85,110 @@ namespace MisterGames.Scenario.Service {
             }
         }
 
-        private void StartScenarioEvent(ScenarioEvent scenarioEvent) {
-            if (EnableLogs) Log($"Starting scenario event [{scenarioEvent}]");
-            
-            scenarioEvent.startAction.Apply(context: null, _cts.Token).Forget();
+        private async UniTask StartScenarioEvent(ScenarioEvent scenarioEvent) {
+            switch (scenarioEvent.actionMode) {
+                case ScenarioEvent.ActionMode.FireAndForget: {
+                    if (EnableLogs) Log($"Starting new scenario event [{scenarioEvent}]");
+                    
+                    EnqueueNewScenarioEvent(scenarioEvent);
+                    var token = GetScenarioEventCancellationToken(scenarioEvent, cancelPrevious: false);
+                    await scenarioEvent.startAction.Apply(context: null, token);
+                    DequeueScenarioEvent(scenarioEvent);
+                    break;
+                }
+
+                case ScenarioEvent.ActionMode.CancelPreviousAndStartNew: {
+                    if (EnableLogs) {
+                        Log(HasOngoingScenarioEvent(scenarioEvent)
+                            ? $"Canceling ongoing scenario event and starting new [{scenarioEvent}] due to action mode {scenarioEvent.actionMode}" 
+                            : $"Starting new scenario event [{scenarioEvent}]"
+                        );
+                    }
+                    
+                    EnqueueNewScenarioEvent(scenarioEvent);
+                    var token = GetScenarioEventCancellationToken(scenarioEvent, cancelPrevious: true);
+                    await scenarioEvent.startAction.Apply(context: null, token);
+                    DequeueScenarioEvent(scenarioEvent);
+                    break;
+                }
+
+                case ScenarioEvent.ActionMode.WaitPreviousThenStartNew: {
+                    if (EnableLogs) {
+                        Log(HasOngoingScenarioEvent(scenarioEvent)
+                            ? $"Waiting ongoing scenario events then starting new [{scenarioEvent}] due to action mode {scenarioEvent.actionMode}" 
+                            : $"Starting new scenario event [{scenarioEvent}]"
+                        );
+                    }
+
+                    var globalToken = _cts.Token;
+                    while (!globalToken.IsCancellationRequested && HasOngoingScenarioEvent(scenarioEvent)) {
+                        await UniTask.Yield();
+                    }
+                    
+                    EnqueueNewScenarioEvent(scenarioEvent);
+                    var token = GetScenarioEventCancellationToken(scenarioEvent, cancelPrevious: false);
+                    await scenarioEvent.startAction.Apply(context: null, token);
+                    DequeueScenarioEvent(scenarioEvent);
+                    break;
+                }
+
+                case ScenarioEvent.ActionMode.IgnoreNewIfRunningPrevious: {
+                    if (HasOngoingScenarioEvent(scenarioEvent)) 
+                    {
+                        if (EnableLogs) Log($"Requested new scenario event [{scenarioEvent}], but previous is still running. " +
+                                            $"Ignore due to action mode {scenarioEvent.actionMode}.");
+                        return;
+                    }
+                    
+                    if (EnableLogs) Log($"Starting new scenario event [{scenarioEvent}]");
+                    
+                    EnqueueNewScenarioEvent(scenarioEvent);
+                    var token = GetScenarioEventCancellationToken(scenarioEvent, cancelPrevious: false);
+                    await scenarioEvent.startAction.Apply(context: null, token);
+                    DequeueScenarioEvent(scenarioEvent);
+                    break;
+                }
+
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
 
+        private CancellationToken GetScenarioEventCancellationToken(ScenarioEvent scenarioEvent, bool cancelPrevious) {
+            if (_ctsMap.TryGetValue(scenarioEvent, out var cts) && !cancelPrevious) return cts.Token;
+            
+            cts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, new CancellationTokenSource().Token);
+            _ctsMap[scenarioEvent] = cts;
+
+            return cts.Token;
+        }
+
+        private void EnqueueNewScenarioEvent(ScenarioEvent scenarioEvent) {
+            int nextCount = _runActionMap.GetValueOrDefault(scenarioEvent) + 1;
+            
+            _runActionMap[scenarioEvent] = nextCount;
+        }
+
+        private void DequeueScenarioEvent(ScenarioEvent scenarioEvent) {
+            int nextCount = _runActionMap.GetValueOrDefault(scenarioEvent) - 1;
+
+            if (nextCount > 0) _runActionMap[scenarioEvent] = nextCount;
+            else _runActionMap.Remove(scenarioEvent);
+        }
+        
+        private bool HasOngoingScenarioEvent(ScenarioEvent scenarioEvent) {
+            return _runActionMap.TryGetValue(scenarioEvent, out int count) && count > 0;
+        }
+        
         private static bool CanStartScenarioEvent(ScenarioEvent scenarioEvent, EventReference e) {
             return scenarioEvent is { startAction: not null } && 
                    scenarioEvent.startEvent.EventDomain == e.EventDomain && 
                    scenarioEvent.startEvent.EventId == e.EventId && 
-                   (scenarioEvent.subIdMode == ScenarioEvent.Mode.IgnoreSubId || scenarioEvent.startEvent.SubId == e.SubId) && 
+                   (scenarioEvent.subIdMode == ScenarioEvent.SubIdMode.IgnoreSubId || scenarioEvent.startEvent.SubId == e.SubId) && 
                    (!scenarioEvent.expectedRaiseCount.HasValue || scenarioEvent.expectedRaiseCount.Value.IsMatch(e.GetCount())) && 
                    (scenarioEvent.condition == null || scenarioEvent.condition.IsMatch(null));
-                   
         }
-        
+
         [HideInCallstack]
         private static void Log(string message) {
             Debug.Log($"{nameof(ScenarioService).FormatColorOnlyForEditor(Color.white)}: f {Time.frameCount}, {message}");

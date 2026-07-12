@@ -50,6 +50,7 @@ namespace MisterGames.Dialogues.Components {
 
         public bool IsPaused { get; private set; }
         public bool IsRunning { get; private set; }
+        public string CurrentDialogueGuid { get; private set; }
 
         private CancellationTokenSource _destroyCts;
         private CancellationTokenSource _enableCts;
@@ -123,7 +124,7 @@ namespace MisterGames.Dialogues.Components {
             IsRunning = false;
             IsPaused = false;
             
-            Services.Get<IDialogueService>()?.UnloadDialogue(_dialogueReference.AssetGUID);
+            Services.Get<IDialogueService>()?.UnloadDialogue(CurrentDialogueGuid);
         }
 
         public async UniTask LaunchDialogueAsync(string guid, CancellationToken cancellationToken = default) {
@@ -134,6 +135,7 @@ namespace MisterGames.Dialogues.Components {
 
             IsRunning = true;
             IsPaused = false;
+            CurrentDialogueGuid = guid;
             
             var service = Services.Get<IDialogueService>();
             var table = await service.LoadDialogueAsync(guid);
@@ -248,7 +250,7 @@ namespace MisterGames.Dialogues.Components {
             if (cancellationToken.IsCancellationRequested) return;
             
             service.StopDialogue(table.DialogueId);
-            service.UnloadDialogue(_dialogueReference.AssetGUID);
+            service.UnloadDialogue(guid);
             
             await service.AwaitDialogueEvents(table.DialogueId, DialogueEvent.DialogueStop, cancellationToken);
             if (cancellationToken.IsCancellationRequested) return;
