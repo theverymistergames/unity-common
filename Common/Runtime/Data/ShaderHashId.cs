@@ -8,6 +8,11 @@ namespace MisterGames.Common.Data {
         
         [SerializeField] private string _name;
 
+        public ShaderHashId(string name) {
+            _name = name;
+            _hash = 0;
+        }
+        
         private int _hash;
         
         public bool Equals(ShaderHashId other) => _name == other._name;
