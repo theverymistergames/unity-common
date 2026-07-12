@@ -29,7 +29,7 @@ namespace MisterGames.ActionLib.Dialogues {
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
             var dialogueLauncher = dialogueLauncherId.GetData() as DialogueLauncher;
             if (dialogueLauncher == null) {
-                Debug.Log($"LaunchDialogueAction.Apply: f {UnityEngine.Time.frameCount}, cannot find dialogue launcher by id {dialogueLauncherId}");
+                Debug.LogError($"LaunchDialogueAction.Apply: f {UnityEngine.Time.frameCount}, cannot find dialogue launcher by id {dialogueLauncherId}");
                 return default;
             }
             

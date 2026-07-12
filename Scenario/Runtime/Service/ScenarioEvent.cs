@@ -10,6 +10,9 @@ namespace MisterGames.Scenario.Service {
     [Serializable]
     public sealed class ScenarioEvent {
 
+        [HideInInspector]
+        [SerializeField] internal int id;
+        
         public string name;
         [TextAreaExtended]
         public string description;

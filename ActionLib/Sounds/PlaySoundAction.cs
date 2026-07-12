@@ -6,9 +6,12 @@ using MisterGames.Actors.Actions;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Audio;
 using MisterGames.Common.Data;
+using MisterGames.Common.Labels;
 using MisterGames.Common.Maths;
+using MisterGames.Common.Strings;
 using UnityEngine;
 using UnityEngine.Audio;
+using Object = System.Object;
 using Random = UnityEngine.Random;
 
 namespace MisterGames.ActionLib.Sounds {
@@ -23,6 +26,8 @@ namespace MisterGames.ActionLib.Sounds {
         public PositionMode position;
         [VisibleIf(nameof(position), 1)]
         public Transform transform;
+        [VisibleIf(nameof(position), 2)]
+        public LabelValue<UnityEngine.Object> libraryObject;
         
         [Header("Settings")]
         [MinMaxSlider(0f, 1f)] public Vector2 startTime;
@@ -49,6 +54,7 @@ namespace MisterGames.ActionLib.Sounds {
         public enum PositionMode {
             ActorTransform,
             ExplicitTransform,
+            LibraryObject,
         }
         
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
@@ -61,8 +67,14 @@ namespace MisterGames.ActionLib.Sounds {
             var trf = position switch {
                 PositionMode.ActorTransform => context.Transform,
                 PositionMode.ExplicitTransform => transform,
+                PositionMode.LibraryObject => libraryObject.TryGetData(out var obj) && obj is Component c ? c.transform : null,
                 _ => throw new ArgumentOutOfRangeException()
             };
+
+            if (trf == null) {
+                Debug.LogError($"PlaySoundAction.Apply: f {UnityEngine.Time.frameCount}, cannot find transform (mode {position}) to play sound. Audio clip variants: {audioClipVariants.AsString()}");
+                return default;
+            }
 
             var options = AudioOptions.None;
             options |= loop ? AudioOptions.Loop : AudioOptions.None;
