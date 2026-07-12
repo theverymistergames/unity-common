@@ -396,7 +396,7 @@ namespace MisterGames.Character.Transport {
         }
 
         private void OnValidate() {
-            SetLightEnabled(_isLightEnabled, _isBrakeEnabled);
+            if (Application.isPlaying) SetLightEnabled(_isLightEnabled, _isBrakeEnabled);
         }
 #endif
     }

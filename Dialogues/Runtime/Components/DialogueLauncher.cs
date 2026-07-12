@@ -136,7 +136,6 @@ namespace MisterGames.Dialogues.Components {
             IsPaused = false;
             
             var service = Services.Get<IDialogueService>();
-            
             var table = await service.LoadDialogueAsync(guid);
             
             if (cancellationToken.IsCancellationRequested) {

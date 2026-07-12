@@ -212,7 +212,7 @@ namespace MisterGames.UI.Components {
         }
 
         void IUpdate.OnUpdate(float dt) {
-            ProcessScroll(dt);
+            ProcessScroll(Time.unscaledDeltaTime);
         }
 
         private void ProcessScroll(float dt) {
@@ -263,7 +263,7 @@ namespace MisterGames.UI.Components {
             
             ProcessAutoScroll(ref normPos, dt);
             ProcessMoveToPosition(ref normPos);
-
+            
             _scrollRect.normalizedPosition = normPos;
         }
 

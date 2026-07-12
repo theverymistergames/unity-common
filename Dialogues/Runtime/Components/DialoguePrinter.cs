@@ -50,19 +50,20 @@ namespace MisterGames.Dialogues.Components {
         private UiTextPrinter _lastPrinter;
         private TMP_Text _lastTextField;
 
+        private void Awake() {
+            Services.Get<IDialogueService>()?.RegisterPrinter(this);
+        }
+
+        private void OnDestroy() {
+            Services.Get<IDialogueService>()?.UnregisterPrinter(this);
+        }
+
         private void OnEnable() {
             AsyncExt.RecreateCts(ref _enableCts);
-
-            Services.Get<IDialogueService>()?.RegisterPrinter(this);
         }
 
         private void OnDisable() {
             AsyncExt.DisposeCts(ref _enableCts);
-
-            _lastPrinter = null;
-            _lastTextField = null;
-            
-            Services.Get<IDialogueService>()?.UnregisterPrinter(this);
         }
 
         public async UniTask PrintElement(LocalizationKey key, int roleIndex, CancellationToken cancellationToken) {
@@ -117,6 +118,10 @@ namespace MisterGames.Dialogues.Components {
 
             _lastPrinter = textPrinter;
             _lastTextField = textField;
+
+#if UNITY_EDITOR
+            textField.name = $"textField_{textField.GetHashCode()}_{key.GetId()}";      
+#endif
             
             await textPrinter.PrintTextAsync(textField, key.GetValue(), cancellationToken);
         }
@@ -164,14 +169,9 @@ namespace MisterGames.Dialogues.Components {
             return textField;
         }
 
-        private void ReleaseTextField(TMP_Text textField) {
-            PrefabPool.Main.Release(textField);
-            _allocatedTextFields.Remove(textField);
-        }
-        
         private void ReleaseAllTextFields() {
             for (int i = 0; i < _allocatedTextFields.Count; i++) {
-                ReleaseTextField(_allocatedTextFields[i]);
+                PrefabPool.Main.Release(_allocatedTextFields[i]);
             }
             
             _allocatedTextFields.Clear();
