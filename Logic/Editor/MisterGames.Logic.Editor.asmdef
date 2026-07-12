@@ -1,0 +1,20 @@
+{
+    "name": "MisterGames.Logic.Editor",
+    "rootNamespace": "MisterGames.Logic.Editor",
+    "references": [
+        "GUID:32bbeb842d9a320498a44b1a7cd7d0f2",
+        "GUID:0175294ec022c624cbe537915e3c9e71",
+        "GUID:bc3879bae5b869d48a8b5df880b31fff"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

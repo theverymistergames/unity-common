@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace MisterGames.Common.Editor.Drawers {
     
-    internal sealed class ButtonsDrawer
+    public sealed class ButtonsDrawer
     {
         private readonly List<ButtonData> _buttons;
 
