@@ -80,14 +80,14 @@ namespace MisterGames.Logic.Water {
             var center = _waterBox.bounds.center;
             normal = _waterBoxTransform.up;
             
-            var sc = center + normal * (_waterBoxTransform.localScale.y * _waterBox.size.y * 0.5f);
+            var sc = center + normal * (_waterBoxTransform.lossyScale.y * _waterBox.size.y * 0.5f);
             surfacePoint = position + Vector3.Project(sc - position, normal);
         }
 
         public void GetBox(out Vector3 position, out Quaternion rotation, out Vector3 size) {
             position = _waterBox.bounds.center;
             rotation = _waterBoxTransform.rotation;
-            size = _waterBox.size.Multiply(_waterBoxTransform.localScale);
+            size = _waterBox.size.Multiply(_waterBoxTransform.lossyScale);
         }
 
 #if UNITY_EDITOR
@@ -109,7 +109,7 @@ namespace MisterGames.Logic.Water {
             var rot = _waterBoxTransform.rotation;
             var normal = _waterBoxTransform.up;
             
-            var surfaceCenter = _waterBox.bounds.center + normal * (0.5f * _waterBox.size.y * _waterBoxTransform.localScale.y);
+            var surfaceCenter = _waterBox.bounds.center + normal * (0.5f * _waterBox.size.y * _waterBoxTransform.lossyScale.y);
             var surfacePoint = center + Vector3.Project(surfaceCenter - center, normal) + _surfaceOffset * normal;
             
             DebugExt.DrawSphere(center, 0.03f, Color.white, gizmo: true);
