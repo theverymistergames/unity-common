@@ -32,6 +32,18 @@ namespace MisterGames.Common.Async {
             
             ArrayPool<UniTask>.Shared.Return(tasks, clearArray: true);
         }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static async UniTask DelayTimescaled(float delay, CancellationToken cancellationToken) {
+            float t = 0f;
+            float speed = delay > 0f ? 1f / delay : float.MaxValue;
+
+            while (t < 1f && !cancellationToken.IsCancellationRequested) {
+                t += UnityEngine.Time.deltaTime * speed;
+                await UniTask.Yield();
+            }
+        }
+
     }
     
 }
