@@ -82,7 +82,7 @@ namespace MisterGames.ActionLib.Sounds {
             options |= occlusion ? AudioOptions.ApplyOcclusion : AudioOptions.None;
             options |= affectedByVolumes ? AudioOptions.AffectedByVolumes : AudioOptions.None;
 
-            cancellationToken = useActorDestroyToken ? context.GameObject.GetCancellationTokenOnDestroy() : cancellationToken;
+            cancellationToken = useActorDestroyToken ? context.DestroyToken : cancellationToken;
             
             if (attach) {
                 pool.Play(clip, trf, localPosition: default, attachId, volume, fadeIn, fadeOut, resultPitch, spatialBlend, resultStartTime, mixerGroup, options, cancellationToken);    
