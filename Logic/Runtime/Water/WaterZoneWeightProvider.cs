@@ -42,8 +42,7 @@ namespace MisterGames.Logic.Water {
 
             positionArray[0] = position;
             
-            GetWeight(positionArray, resultArray, 1);
-            
+            Sample(positionArray, resultArray, 1);
             var result = resultArray[0];
 
             positionArray.Dispose();
@@ -53,6 +52,10 @@ namespace MisterGames.Logic.Water {
         }
 
         public override void GetWeight(NativeArray<float3> positions, NativeArray<WeightData> results, int count) {
+            Sample(positions, results, count);
+        }
+        
+        private void Sample(NativeArray<float3> positions, NativeArray<WeightData> results, int count) {
             if (count <= 0) return;
             
             UpdateVolumeDataArray();
@@ -60,9 +63,10 @@ namespace MisterGames.Logic.Water {
             int batchCount = JobExt.BatchFor(count);
             
             if (_volumeCount <= 0) {
-                var writeZeroWeightJob = new WriteConstWeightJob {
+                var writeZeroWeightJob = new WriteConstResultJob {
                     weight = 0f,
                     defaultVolumeId = GetHashCode(),
+                    positionArray = positions,
                     results = results,
                 };
                 
@@ -80,6 +84,7 @@ namespace MisterGames.Logic.Water {
 
             var calculateMaxWeightJob = new CalculateMaxWeightJob {
                 weightArray = weightArray,
+                positions = positions,
                 defaultVolumeId = GetHashCode(),
                 volumeCount = _volumeCount,
                 results = results,
@@ -113,15 +118,15 @@ namespace MisterGames.Logic.Water {
         }
         
         [BurstCompile]
-        private struct WriteConstWeightJob : IJobParallelFor {
+        private struct WriteConstResultJob : IJobParallelFor {
             
             [ReadOnly] public int defaultVolumeId;
             [ReadOnly] public float weight;
-            
+            [ReadOnly] public NativeArray<float3> positionArray;
             [WriteOnly] public NativeArray<WeightData> results;
 
             public void Execute(int index) {
-                results[index] = new WeightData(weight, defaultVolumeId);
+                results[index] = new WeightData(weight, defaultVolumeId, positionArray[index]);
             }
         }
         
@@ -130,7 +135,6 @@ namespace MisterGames.Logic.Water {
             
             [ReadOnly] public NativeArray<VolumeData> volumeDataArray;
             [ReadOnly] public NativeArray<float3> positions;
-            
             [WriteOnly] public NativeArray<WeightData> weightArray;
             
             public void Execute(int startIndex, int count) {
@@ -144,13 +148,16 @@ namespace MisterGames.Logic.Water {
 
                     if (localPoint.x < -halfSize.x || localPoint.x > halfSize.x ||
                         localPoint.y < -halfSize.y || localPoint.y > halfSize.y ||
-                        localPoint.z < -halfSize.z || localPoint.z > halfSize.z) 
+                        localPoint.z < -halfSize.z || localPoint.z > halfSize.z)
                     {
-                        weightArray[startIndex + i] = new WeightData(0f, volumeData.volumeId);
+                        var closestLocalPoint = math.clamp(localPoint, -halfSize, halfSize);
+                        var closestPoint = math.mul(volumeData.rotation, closestLocalPoint) + volumeData.position;
+
+                        weightArray[startIndex + i] = new WeightData(0f, volumeData.volumeId, closestPoint);
                         continue;
                     }
                 
-                    weightArray[startIndex + i] = new WeightData(1f, volumeData.volumeId);
+                    weightArray[startIndex + i] = new WeightData(1f, volumeData.volumeId, position);
                 }
             }
         }
@@ -159,24 +166,31 @@ namespace MisterGames.Logic.Water {
         private struct CalculateMaxWeightJob : IJobParallelFor {
             
             [ReadOnly] public NativeArray<WeightData> weightArray;
+            [ReadOnly] public NativeArray<float3> positions;
             [ReadOnly] public int defaultVolumeId;
             [ReadOnly] public int volumeCount;
-            
             [WriteOnly] public NativeArray<WeightData> results;
             
             public void Execute(int index) {
                 int from = index * volumeCount;
                 int to = from + volumeCount;
                 
+                var pos = positions[index];
+                var result = new WeightData(0f, defaultVolumeId, pos);
+                float closestSqrDist = -1f;
+
                 for (int i = from; i < to; i++) {
                     var data = weightArray[i];
                     if (data.weight <= 0f) continue;
 
-                    results[index] = data;
-                    return;
+                    float sqrDist = math.lengthsq(data.closestPoint - pos);
+                    if (closestSqrDist >= 0 && sqrDist >= closestSqrDist) continue;
+
+                    closestSqrDist = sqrDist;
+                    result = data;
                 }
 
-                results[index] = new WeightData(0f, defaultVolumeId);
+                results[index] = result;
             }
         }
         

@@ -15,9 +15,16 @@ namespace MisterGames.Common.Volumes {
         [SerializeField] [Min(0f)] private float _innerRadius = 1f;
         [SerializeField] [Min(0f)] private float _outerRadius = 2f;
 
+        private static float3 ClosestPoint(float3 position, float3 center, float innerRadius) {
+            float sqrDist = math.lengthsq(position - center);
+            if (sqrDist <= innerRadius * innerRadius) return position;
+            return center + math.normalize(position - center) * innerRadius;
+        }
+
         public override WeightData GetWeight(Vector3 position) {
-            float w = GetWeight(position, _center.position, new float2(_innerRadius, _outerRadius), _fallOff);
-            return new WeightData(w, volumeId: GetHashCode());
+            float3 center = _center.position;
+            float w = GetWeight(position, center, new float2(_innerRadius, _outerRadius), _fallOff);
+            return new WeightData(w, volumeId: GetHashCode(), ClosestPoint(position, center, _innerRadius));
         }
 
         public override void GetWeight(NativeArray<float3> positions, NativeArray<WeightData> results, int count) {
@@ -63,7 +70,7 @@ namespace MisterGames.Common.Volumes {
 
             public void Execute(int index) {
                 float w = GetWeight(positions[index], center, radiusInOut, fallOff);
-                results[index] = new WeightData(w, volumeId);
+                results[index] = new WeightData(w, volumeId, ClosestPoint(positions[index], center, radiusInOut.x));
             }
         }
 

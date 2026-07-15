@@ -51,11 +51,11 @@ namespace MisterGames.Common.Audio {
         public WeightData GetWeight(Vector3 position) {
             switch (_mode) {
                 case Mode.Global:
-                    return new WeightData(_weight, GetHashCode());
+                    return new WeightData(_weight, GetHashCode(), position);
                 
                 case Mode.Local:
                     var data = _positionWeightProvider.GetWeight(position);
-                    return new WeightData(_weight * data.weight, data.volumeId);
+                    return new WeightData(_weight * data.weight, data.volumeId, data.closestPoint);
                 
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -68,6 +68,7 @@ namespace MisterGames.Common.Audio {
                     var writeZeroWeightJob = new WriteConstWeightJob {
                         weight = _weight,
                         defaultVolumeId = GetHashCode(),
+                        positions = positions,
                         results = results,
                     };
                 
@@ -125,11 +126,12 @@ namespace MisterGames.Common.Audio {
             
             [Unity.Collections.ReadOnly] public int defaultVolumeId;
             [Unity.Collections.ReadOnly] public float weight;
+            [Unity.Collections.ReadOnly] public NativeArray<float3> positions;
             
             [WriteOnly] public NativeArray<WeightData> results;
 
             public void Execute(int index) {
-                results[index] = new WeightData(weight, defaultVolumeId);
+                results[index] = new WeightData(weight, defaultVolumeId, positions[index]);
             }
         }
         
@@ -142,7 +144,7 @@ namespace MisterGames.Common.Audio {
 
             public void Execute(int index) {
                 var data = results[index];
-                results[index] = new WeightData(data.weight * mul, data.volumeId);
+                results[index] = new WeightData(data.weight * mul, data.volumeId, data.closestPoint);
             }
         }
     }

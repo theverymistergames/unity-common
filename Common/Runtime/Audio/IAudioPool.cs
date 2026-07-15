@@ -13,6 +13,8 @@ namespace MisterGames.Common.Audio {
         void RegisterVolume(IAudioVolume volume);
         void UnregisterVolume(IAudioVolume volume);
         
+        bool TryGetListenerPosition(out Vector3 position);
+        
         AudioHandle Play(
             AudioClip clip,
             Vector3 position,

@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
 namespace MisterGames.Logic.Water {
     
@@ -12,6 +13,8 @@ namespace MisterGames.Logic.Water {
         
         event TriggerRigidbody OnRigidbodyEnter;
         event TriggerRigidbody OnRigidbodyExit;
+        
+        HashSet<IWaterZoneVolume> Volumes { get; }
         
         void AddVolume(IWaterZoneVolume volume);
         void RemoveVolume(IWaterZoneVolume volume);

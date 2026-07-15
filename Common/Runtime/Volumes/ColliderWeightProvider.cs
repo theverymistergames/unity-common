@@ -1,5 +1,4 @@
 ﻿using MisterGames.Common.Attributes;
-using MisterGames.Common.Easing;
 using MisterGames.Common.Jobs;
 using MisterGames.Common.Maths;
 using Unity.Burst;
@@ -17,7 +16,7 @@ namespace MisterGames.Common.Volumes {
 
         public override WeightData GetWeight(Vector3 position) {
             float w = GetWeight(position, _collider.ClosestPoint(position), _blendDistance);
-            return new WeightData(w, volumeId: GetHashCode());
+            return new WeightData(w, volumeId: GetHashCode(), _collider.ClosestPoint(position));
         }
 
         public override void GetWeight(NativeArray<float3> positions, NativeArray<WeightData> results, int count) {
@@ -91,7 +90,7 @@ namespace MisterGames.Common.Volumes {
 
             public void Execute(int index) {
                 float w = GetWeight(positions[index], closestPoints[index], blend);
-                results[index] = new WeightData(w, volumeId);
+                results[index] = new WeightData(w, volumeId, closestPoints[index]);
             }
         }
 
@@ -102,7 +101,7 @@ namespace MisterGames.Common.Volumes {
         [SerializeField] private Vector3 _testPoint;
         
         private void OnDrawGizmos() {
-            if (!_showDebugInfo) return;
+            if (!_showDebugInfo || _collider == null) return;
 
             var p = transform.TransformPoint(_testPoint);
             var b = _collider.ClosestPoint(p);
@@ -113,6 +112,10 @@ namespace MisterGames.Common.Volumes {
             float w = GetWeight(p, b, _blendDistance);
             
             DebugExt.DrawLabel(p + transform.up * 0.1f, $"W = {w:0.000}");
+        }
+
+        private void Reset() {
+            _collider = GetComponent<Collider>();
         }
 #endif
     }

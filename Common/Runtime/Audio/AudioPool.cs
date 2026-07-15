@@ -147,7 +147,17 @@ namespace MisterGames.Common.Audio {
             _audioListenersMap.Remove(listener);
             UpdateListeners();
         }
-        
+
+        public bool TryGetListenerPosition(out Vector3 position) {
+            if (_listenerTransform == null) {
+                position = default;
+                return false;
+            }
+
+            position = _listenerTransform.position;
+            return true;
+        }
+
         private void UpdateListeners() {
             if (TryGetCurrentListener(out var currentListener, out var transformUp)) {
                 _listenerTransform = currentListener.transform;
@@ -320,6 +330,7 @@ namespace MisterGames.Common.Audio {
                 }
                 
                 _attachKeyToHandleIdMap[attachKey] = id;
+                _handleIdToAttachKeyMap[id] = attachKey;
             }
             
             InitializeAudioElement(
