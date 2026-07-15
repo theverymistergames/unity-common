@@ -13,15 +13,39 @@ namespace MisterGames.Common.Volumes {
     
         [SerializeField] private Collider _collider;
         [SerializeField] [Min(0f)] private float _blendDistance = 1f;
+        [SerializeReference] [SubclassSelector] private IPositionWeightProcessor[] _processors;
+        
+        private void OnEnable() {
+            for (int i = 0; i < _processors?.Length; i++) {
+                _processors[i].Initialize();
+            }
+        }
 
+        private void OnDisable() {
+            for (int i = 0; i < _processors?.Length; i++) {
+                _processors[i].DeInitialize();
+            }
+        }
+
+        private float GetProcessorsWeight() {
+            float w = 1f;
+
+            for (int i = 0; i < _processors.Length; i++) {
+                w *= _processors[i].GetWeight();
+            }
+            
+            return w;
+        }
+        
         public override WeightData GetWeight(Vector3 position) {
-            float w = GetWeight(position, _collider.ClosestPoint(position), _blendDistance);
+            float w = GetWeight(position, _collider.ClosestPoint(position), _blendDistance) * GetProcessorsWeight();
             return new WeightData(w, volumeId: GetHashCode(), _collider.ClosestPoint(position));
         }
 
         public override void GetWeight(NativeArray<float3> positions, NativeArray<WeightData> results, int count) {
             if (count <= 0) return;
-            
+
+            float wMul = GetProcessorsWeight();
             var commands = new NativeArray<ClosestPointCommand>(count, Allocator.TempJob);
             var closestPoints = new NativeArray<Vector3>(count, Allocator.TempJob);
 
@@ -41,6 +65,7 @@ namespace MisterGames.Common.Volumes {
                 positions = positions,
                 closestPoints = closestPoints,
                 blend = _blendDistance,
+                weightMul = wMul,
                 volumeId = GetHashCode(),
                 results = results
             };
@@ -84,13 +109,14 @@ namespace MisterGames.Common.Volumes {
             [Unity.Collections.ReadOnly] public NativeArray<float3> positions;
             [Unity.Collections.ReadOnly] public NativeArray<Vector3> closestPoints;
             [Unity.Collections.ReadOnly] public float blend;
+            [Unity.Collections.ReadOnly] public float weightMul;
             [Unity.Collections.ReadOnly] public int volumeId;
             
             [WriteOnly] public NativeArray<WeightData> results;
 
             public void Execute(int index) {
                 float w = GetWeight(positions[index], closestPoints[index], blend);
-                results[index] = new WeightData(w, volumeId, closestPoints[index]);
+                results[index] = new WeightData(w * weightMul, volumeId, closestPoints[index]);
             }
         }
 
@@ -99,7 +125,17 @@ namespace MisterGames.Common.Volumes {
         [SerializeField] private bool _showDebugInfo;
         [VisibleIf(nameof(_showDebugInfo))]
         [SerializeField] private Vector3 _testPoint;
-        
+
+        private void Reset() {
+            _collider = GetComponent<Collider>();
+        }
+
+        private void OnValidate() {
+            for (int i = 0; i < _processors.Length; i++) {
+                _processors[i]?.OnValidate();
+            }
+        }
+
         private void OnDrawGizmos() {
             if (!_showDebugInfo || _collider == null) return;
 
@@ -114,9 +150,6 @@ namespace MisterGames.Common.Volumes {
             DebugExt.DrawLabel(p + transform.up * 0.1f, $"W = {w:0.000}");
         }
 
-        private void Reset() {
-            _collider = GetComponent<Collider>();
-        }
 #endif
     }
     

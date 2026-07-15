@@ -95,7 +95,7 @@ namespace MisterGames.Common.Audio {
         public static bool operator !=(AudioHandle left, AudioHandle right) => !left.Equals(right);
 
         public override string ToString() {
-            return $"AudioHandle({(IsValid() ? _id.ToString() : "invalid")})";
+            return $"AudioHandle({(IsValid(out var audioElement) ? audioElement.ToString() : "invalid")})";
         }
     }
     

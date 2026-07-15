@@ -640,13 +640,10 @@ namespace MisterGames.Common.Audio {
 
         private void ProcessSounds(float dt) {
             if (_audioListenersMap.Count == 0) {
-                foreach (var audioElement in _handleIdToAudioElementMap.Values) {
-                    // To reset smoothed values
-                    audioElement.OcclusionFlag = 0;
-                }
+                ReleaseFinishedSounds();
                 return;
             }
-            
+
             var listenerPos = _listenerTransform.position;
             var listenerUp = _listenerUp.up;
             
@@ -692,10 +689,7 @@ namespace MisterGames.Common.Audio {
                 
                 var e = _handleIdToAudioElementMap[soundData.id];
                 
-                if (e.CancellationToken.IsCancellationRequested || 
-                    (options & AudioOptions.Loop) == 0 && 
-                    (e.ClipTime = math.max(e.ClipTime, e.Source.time)) >= e.ClipLength) 
-                {
+                if (e.CancellationToken.IsCancellationRequested || IsSoundFinished(e, options)) {
                     ReleaseSound(soundData.id, immediate: false);
                     continue;
                 }
@@ -749,7 +743,32 @@ namespace MisterGames.Common.Audio {
             
             _globalOcclusionWeight = 1f;
         }
-        
+
+        private void ReleaseFinishedSounds() {
+            var releaseCandidateIdsBuffer = new NativeList<int>(Allocator.Temp);
+            
+            foreach ((int id, var e) in _handleIdToAudioElementMap) {
+                // To reset smoothed values
+                e.OcclusionFlag = 0;
+
+                if (e.CancellationToken.IsCancellationRequested || IsSoundFinished(e, e.AudioOptions)) {
+                    releaseCandidateIdsBuffer.Add(id);
+                }
+            }
+
+            for (int i = 0; i < releaseCandidateIdsBuffer.Length; i++) {
+                ReleaseSound(releaseCandidateIdsBuffer[i], immediate: false);
+            }
+
+            releaseCandidateIdsBuffer.Dispose();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsSoundFinished(IAudioElement e, AudioOptions options) {
+            e.ClipTime = math.max(e.ClipTime, e.Source.time);
+            return (options & AudioOptions.Loop) == 0 && (!e.Source.isPlaying || e.ClipTime >= e.ClipLength);
+        }
+
         private void ProcessSound(IAudioElement e) {
             if (_audioListenersMap.Count == 0) {
                 // To reset smoothed values
@@ -1612,7 +1631,7 @@ namespace MisterGames.Common.Audio {
                     
                     for (int r = 0; r < maxHits; r++) {
                         var hit = hitsArray[index * rays + j * maxHits + r];
-                        if (hit.colliderInstanceID == 0) break;
+                        if (hit.colliderEntityId == EntityId.None) break;
                         
                         collisions++;
 

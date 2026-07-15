@@ -27,10 +27,10 @@ namespace MisterGames.Common.Audio {
         public float PitchMul { get; set; }
         public float AttenuationMul { get; set; }
         public float ClipLength { get; set; }
-        public float ClipTime { get; set; }
         public float FadeOut { get; set; }
         public int OcclusionFlag { get; set; }
-
+        public float ClipTime { get; set; }
+        
         private void OnDisable() {
             AudioPool?.ReleaseAudioHandle(Id, immediate: true);
         }

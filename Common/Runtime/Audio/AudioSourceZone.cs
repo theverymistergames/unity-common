@@ -74,9 +74,18 @@ namespace MisterGames.Common.Audio {
         }
 
 #if UNITY_EDITOR
+        [Header("Debug")]
+        [SerializeField] private bool _showDebugInfo;
+        
         private void Reset() {
             _root = transform;
             _positionWeightProvider = GetComponent<PositionWeightProvider>();
+        }
+
+        private void OnDrawGizmos() {
+            if (_showDebugInfo && _soundInstance.IsValid()) {
+                DebugExt.DrawLabel(_soundInstance.Position, $"[V = {_soundInstance.Volume}, clip = {_soundInstance}]");
+            }
         }
 #endif
     }
