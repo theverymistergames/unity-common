@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using MisterGames.Actors;
+using MisterGames.Character.Input;
 using MisterGames.Character.View;
 using MisterGames.Collisions.Rigidbodies;
 using MisterGames.Common;
@@ -20,25 +21,29 @@ namespace MisterGames.Character.Motion {
         [Header("Submerge")]
         [SerializeField] private int _orientationPriority = 1;
         [SerializeField] [Min(0f)] private float _underwaterSpeed = 1f;
+        [SerializeField] [Min(0f)] private float _underwaterForceUp = 5f;
         [SerializeField] private float _lowerPoint;
         [SerializeField] private float _topPoint;
-        [SerializeField] [MinMaxSlider(0f, 1f)] private Vector2 _speedWeightRemap;
+        [SerializeField] [MinMaxSlider(0f, 1f)] private Vector2 _speedWeightRemap = new(0.2f, 0.8f);
+        [SerializeField] [MinMaxSlider(0f, 1f)] private Vector2 _forceUpWeightRemap = new(0.2f, 0.8f);
         
         public float SubmergeWeight { get; private set; }
-        public float SubmergeSpeedWeight => GetSpeedWeight(SubmergeWeight);
-        public bool InWaterColliders => _colliders.Count > 0;
         public bool IsUnderwater => SubmergeWeight >= 1f;
         
         private readonly HashSet<Collider> _colliders = new();
         
+        private CharacterInputPipeline _inputPipeline;
         private CharacterMotionPipeline _motionPipeline;
         private CharacterViewPipeline _viewPipeline;
+        private CharacterGravity _characterGravity;
         private Transform _rootTransform;
         
         void IActorComponent.OnAwake(IActor actor) {
             _motionPipeline  = actor.GetComponent<CharacterMotionPipeline>();
             _viewPipeline = actor.GetComponent<CharacterViewPipeline>();
-
+            _inputPipeline = actor.GetComponent<CharacterInputPipeline>();
+            _characterGravity = actor.GetComponent<CharacterGravity>();
+            
             _rootTransform = _rootCollider.transform;
         }
 
@@ -74,22 +79,24 @@ namespace MisterGames.Character.Motion {
 
         bool IMotionProcessor.ProcessOrientation(ref Quaternion orientation, out int priority) {
             priority = _orientationPriority;
-            if (GetSpeedWeight(SubmergeWeight) < 1f) return false;
+            if (RemapWeight(SubmergeWeight, _speedWeightRemap) < 1f) return false;
             
             orientation = _viewPipeline.HeadRotation;
             return true;
         }
 
         void IMotionProcessor.ProcessInputSpeed(ref float speed, float dt) {
-            speed = Mathf.Lerp(speed, _underwaterSpeed, GetSpeedWeight(SubmergeWeight));
+            speed = Mathf.Lerp(speed, _underwaterSpeed, RemapWeight(SubmergeWeight, _speedWeightRemap));
         }
 
         void IMotionProcessor.ProcessInputForce(ref Vector3 inputForce, Vector3 desiredVelocity, float dt) {
-            
+            if (_inputPipeline.IsJumpPressed) {
+                inputForce -= _characterGravity.GravityDirection * (_underwaterForceUp * RemapWeight(SubmergeWeight, _forceUpWeightRemap));
+            }
         }
 
-        private float GetSpeedWeight(float submergeWeight) {
-            return InterpolationUtils.Remap01(_speedWeightRemap.x, _speedWeightRemap.y, submergeWeight);
+        private static float RemapWeight(float submergeWeight, Vector2 remap) {
+            return InterpolationUtils.Remap01(remap.x, remap.y, submergeWeight);
         }
 
         private float GetSubmergeWeightMax() {
