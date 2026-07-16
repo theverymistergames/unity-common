@@ -5,22 +5,20 @@ using UnityEngine.AI;
 
 namespace MisterGames.Common {
     
-    public static class DebugExt
-    {
-        public static void DrawCollider(Collider collider, Color color, bool solid = false)
-        {
-            switch (collider)
-            {
+    public static class DebugExt {
+        
+        public static void DrawCollider(Collider collider, Color color, bool solid = false, float expand = 0f) {
+            switch (collider) {
                 case BoxCollider box:
-                    DrawBoxCollider(box, color, solid);
+                    DrawBoxCollider(box, color, solid, expand);
                     break;
 
                 case SphereCollider sphere:
-                    DrawSphereCollider(sphere, color, solid);
+                    DrawSphereCollider(sphere, color, solid, expand);
                     break;
 
                 case CapsuleCollider capsule:
-                    DrawCapsuleCollider(capsule, color, solid);
+                    DrawCapsuleCollider(capsule, color, solid, expand);
                     break;
 
                 case MeshCollider mesh when mesh.sharedMesh != null:
@@ -29,57 +27,65 @@ namespace MisterGames.Common {
             }
         }
 
-        public static void DrawMeshCollider(MeshCollider collider, Color color, bool solid = false)
-        {
+        public static void DrawMeshCollider(MeshCollider collider, Color color, bool solid = false) {
             var c = Gizmos.color;
             var m = Gizmos.matrix;
             Gizmos.color = color;
             Gizmos.matrix = collider.transform.localToWorldMatrix;
-            
+
             if (solid) Gizmos.DrawMesh(collider.sharedMesh);
             else Gizmos.DrawWireMesh(collider.sharedMesh);
-            
+
             Gizmos.matrix = m;
             Gizmos.color = c;
         }
 
-        public static void DrawBoxCollider(BoxCollider collider, Color color, bool solid = false)
-        {
+        public static void DrawBoxCollider(BoxCollider collider, Color color, bool solid = false, float expand = 0f) {
             var c = Gizmos.color;
             var m = Gizmos.matrix;
             Gizmos.color = color;
             Gizmos.matrix = collider.transform.localToWorldMatrix;
-            
-            if (solid) Gizmos.DrawCube(collider.center, collider.size);
-            else Gizmos.DrawWireCube(collider.center, collider.size);
-            
+
+            var scale = collider.transform.lossyScale;
+            var localExpand = new Vector3(
+                scale.x != 0f ? expand / scale.x : 0f,
+                scale.y != 0f ? expand / scale.y : 0f,
+                scale.z != 0f ? expand / scale.z : 0f
+            );
+
+            var size = collider.size + localExpand * 2f;
+            if (solid) Gizmos.DrawCube(collider.center, size);
+            else Gizmos.DrawWireCube(collider.center, size);
+
             Gizmos.matrix = m;
             Gizmos.color = c;
         }
 
-        public static void DrawSphereCollider(SphereCollider collider, Color color, bool solid = false)
-        {
+        public static void DrawSphereCollider(SphereCollider collider, Color color, bool solid = false, float expand = 0f) {
             var c = Gizmos.color;
             var m = Gizmos.matrix;
             Gizmos.color = color;
             Gizmos.matrix = collider.transform.localToWorldMatrix;
-            
-            if (solid) Gizmos.DrawSphere(collider.center, collider.radius);
-            else Gizmos.DrawWireSphere(collider.center, collider.radius);
-            
+
+            float scale = collider.transform.lossyScale.x;
+            float radius = collider.radius + (scale != 0f ? expand / scale : expand);
+            if (solid) Gizmos.DrawSphere(collider.center, radius);
+            else Gizmos.DrawWireSphere(collider.center, radius);
+
             Gizmos.matrix = m;
             Gizmos.color = c;
         }
 
-        public static void DrawCapsuleCollider(CapsuleCollider collider, Color color, bool solid = false) {
+        public static void DrawCapsuleCollider(CapsuleCollider collider, Color color, bool solid = false, float expand = 0f) {
             var axis = collider.direction switch {
                 0 => Vector3.right,
                 1 => Vector3.up,
                 _ => Vector3.forward
             };
 
-            float radius = collider.radius;
-            float cylinderHeight = Mathf.Max(0f, collider.height - radius * 2f);
+            float scale = collider.transform.lossyScale.x;
+            float radius = collider.radius + (scale != 0f ? expand / scale : expand);
+            float cylinderHeight = Mathf.Max(0f, collider.height - collider.radius * 2f);
 
             var offset = axis * cylinderHeight * 0.5f;
             var pointA = collider.center + offset;
@@ -128,7 +134,7 @@ namespace MisterGames.Common {
             Gizmos.DrawLine(pointA - tangentB, pointB - tangentB);
         }
         
-        public static void DrawLabel(Vector3 origin, string text, int fontSize = 14, Color? color = default) {
+        public static void DrawLabel(Vector3 origin, string text, int fontSize = 14, Color? color = null) {
 #if UNITY_EDITOR
             var c = color ?? Color.white;
             UnityEditor.Handles.Label(origin, text, new GUIStyle { fontSize = fontSize, normal = { textColor = c }});      

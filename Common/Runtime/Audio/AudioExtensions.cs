@@ -5,7 +5,7 @@ using UnityEngine;
 namespace MisterGames.Common.Audio {
     
     public static class AudioExtensions {
-
+        
         [BurstCompile]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool InMask(this AudioParameter parameter, int mask) {

@@ -10,8 +10,11 @@ namespace MisterGames.Common.Audio {
         void RegisterListener(AudioListener listener, Transform up, int priority);
         void UnregisterListener(AudioListener listener);
         
-        void RegisterVolume(IAudioVolume volume);
-        void UnregisterVolume(IAudioVolume volume);
+        void RegisterAudioVolume(IAudioVolume volume);
+        void UnregisterAudioVolume(IAudioVolume volume);
+        
+        void RegisterReverbVolume(IReverbVolume volume);
+        void UnregisterReverbVolume(IReverbVolume volume);
         
         bool TryGetListenerPosition(out Vector3 position);
         

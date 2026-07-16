@@ -1,4 +1,5 @@
 ﻿using MisterGames.Common.Attributes;
+using MisterGames.Common.Colors;
 using MisterGames.Common.Jobs;
 using MisterGames.Common.Maths;
 using Unity.Burst;
@@ -122,6 +123,9 @@ namespace MisterGames.Common.Volumes {
 
 #if UNITY_EDITOR
         [Header("Debug")]
+        [SerializeField] private bool _showGizmo;
+        [VisibleIf(nameof(_showGizmo))]
+        [SerializeField] private Color _color = Color.lightGreen.WithAlpha(0.3f);
         [SerializeField] private bool _showDebugInfo;
         [VisibleIf(nameof(_showDebugInfo))]
         [SerializeField] private Vector3 _testPoint;
@@ -131,25 +135,31 @@ namespace MisterGames.Common.Volumes {
         }
 
         private void OnValidate() {
-            for (int i = 0; i < _processors.Length; i++) {
+            for (int i = 0; i < _processors?.Length; i++) {
                 _processors[i]?.OnValidate();
             }
         }
 
         private void OnDrawGizmos() {
-            if (!_showDebugInfo || _collider == null) return;
+            if (_collider == null) return;
 
-            var p = transform.TransformPoint(_testPoint);
-            var b = _collider.ClosestPoint(p);
-            
-            DebugExt.DrawSphere(p, 0.05f, Color.white);
-            DebugExt.DrawLine(p, b, Color.white);
-            
-            float w = GetWeight(p, b, _blendDistance);
-            
-            DebugExt.DrawLabel(p + transform.up * 0.1f, $"W = {w:0.000}");
+            if (_showGizmo) {
+                DebugExt.DrawCollider(_collider, _color, solid: true);
+                DebugExt.DrawCollider(_collider, _color.WithAlpha(_color.a * 0.5f), expand: _blendDistance, solid: true);
+            }
+
+            if (_showDebugInfo) {
+                var p = transform.TransformPoint(_testPoint);
+                var b = _collider.ClosestPoint(p);
+
+                DebugExt.DrawSphere(p, 0.05f, Color.white);
+                DebugExt.DrawLine(p, b, Color.white);
+
+                float w = GetWeight(p, b, _blendDistance);
+
+                DebugExt.DrawLabel(p + transform.up * 0.1f, $"W = {w:0.000}");   
+            }
         }
-
 #endif
     }
     

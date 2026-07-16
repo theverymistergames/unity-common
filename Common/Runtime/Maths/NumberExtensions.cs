@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using Unity.Mathematics;
 using UnityEngine;
 
 namespace MisterGames.Common.Maths {
@@ -19,22 +20,22 @@ namespace MisterGames.Common.Maths {
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsNearlyZero(this float value) {
-            return Mathf.Abs(value) <= Mathf.Epsilon;
+            return math.abs(value) <= math.EPSILON;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsNearlyZero(this float value, float tolerance) {
-            return Mathf.Abs(value) <= tolerance;
+            return math.abs(value) <= tolerance;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsNearlyEqual(this float value, float other) {
-            return IsNearlyZero(value - other);
+            return math.abs(value - other) <= math.EPSILON;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsNearlyEqual(this float value, float other, float tolerance) {
-            return IsNearlyZero(value - other, tolerance);
+            return math.abs(value - other) <= tolerance;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

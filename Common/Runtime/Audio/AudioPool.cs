@@ -37,6 +37,12 @@ namespace MisterGames.Common.Audio {
         [SerializeField] private bool _includeDefaultMixerGroupsForVolumes = true;
         [SerializeField] private AudioMixerGroup[] _includeMixerGroupsForVolumes;
         
+        [Header("Reverb Volumes")]
+        [SerializeField] private bool _enableReverbVolumes = true;
+        [SerializeField] [Min(0f)] private float _reverbParamsSmoothing = 3f;
+        [SerializeField] private string _reverbParamPrefix = "Reverb_";
+        [SerializeField] private AudioMixer[] _reverbMixers;
+        
         [Header("Occlusion Detection")]
         [SerializeField] private bool _applyOcclusion = true;
         [SerializeField] [Min(0f)] private float _minDistance = 0.1f;
@@ -89,8 +95,12 @@ namespace MisterGames.Common.Audio {
         private Transform _listenerTransform;
         private Transform _listenerUp;
 
-        private readonly HashSet<IAudioVolume> _volumes = new();
+        private readonly Dictionary<int, IAudioVolume> _audioVolumes = new();
         private readonly HashSet<int> _includeMixerGroupsForVolumesSet = new();
+        
+        private readonly Dictionary<int, IReverbVolume> _reverbVolumes = new();
+        private string[] _reverbParamNames;
+        private ReverbSettingsData _smoothedReverbSettings;
         
         private Transform _transform;
         private float _lastTimeScale;
@@ -118,12 +128,44 @@ namespace MisterGames.Common.Audio {
             _releaseSourcesMap.Clear();
             
             _audioListenersMap.Clear();
-            _volumes.Clear();
+            _audioVolumes.Clear();
             _includeMixerGroupsForVolumesSet.Clear();
             
             Main = null;
             
             PlayerLoopStage.LateUpdate.Unsubscribe(this);
+        }
+        
+        private const string ReverbParamRoom = "Room";
+        private const string ReverbParamRoomHf = "RoomHF";
+        private const string ReverbParamRoomLf = "RoomLF";
+        private const string ReverbParamDecayTime = "DecayTime";
+        private const string ReverbParamDecayHfRatio = "DecayHFRatio";
+        private const string ReverbParamReflectionsLevel = "ReflectionsLevel";
+        private const string ReverbParamReflectionsDelay = "ReflectionsDelay";
+        private const string ReverbParamReverbLevel = "ReverbLevel";
+        private const string ReverbParamReverbDelay = "ReverbDelay";
+        private const string ReverbParamHfReference = "HFReference";
+        private const string ReverbParamLfReference = "LFReference";
+        private const string ReverbParamDiffusion = "Diffusion";
+        private const string ReverbParamDensity = "Density";
+        
+        private void CreateReverbParamNames() {
+            _reverbParamNames ??= new string[13];
+            
+            _reverbParamNames[0] = $"{_reverbParamPrefix}{ReverbParamRoom}"; 
+            _reverbParamNames[1] = $"{_reverbParamPrefix}{ReverbParamRoomHf}"; 
+            _reverbParamNames[2] = $"{_reverbParamPrefix}{ReverbParamRoomLf}"; 
+            _reverbParamNames[3] = $"{_reverbParamPrefix}{ReverbParamDecayTime}"; 
+            _reverbParamNames[4] = $"{_reverbParamPrefix}{ReverbParamDecayHfRatio}"; 
+            _reverbParamNames[5] = $"{_reverbParamPrefix}{ReverbParamReflectionsLevel}"; 
+            _reverbParamNames[6] = $"{_reverbParamPrefix}{ReverbParamReflectionsDelay}"; 
+            _reverbParamNames[7] = $"{_reverbParamPrefix}{ReverbParamReverbLevel}"; 
+            _reverbParamNames[8] = $"{_reverbParamPrefix}{ReverbParamReverbDelay}"; 
+            _reverbParamNames[9] = $"{_reverbParamPrefix}{ReverbParamHfReference}"; 
+            _reverbParamNames[10] = $"{_reverbParamPrefix}{ReverbParamLfReference}"; 
+            _reverbParamNames[11] = $"{_reverbParamPrefix}{ReverbParamDiffusion}"; 
+            _reverbParamNames[12] = $"{_reverbParamPrefix}{ReverbParamDensity}"; 
         }
         
         private void FetchIncludeMixerGroupsFromVolumes() {
@@ -190,14 +232,22 @@ namespace MisterGames.Common.Audio {
             return listener != null;
         }
 
-        public void RegisterVolume(IAudioVolume volume) {
-            _volumes.Add(volume);
+        public void RegisterAudioVolume(IAudioVolume volume) {
+            _audioVolumes[volume.Id] = volume;
         }
 
-        public void UnregisterVolume(IAudioVolume volume) {
-            _volumes.Remove(volume);
+        public void UnregisterAudioVolume(IAudioVolume volume) {
+            _audioVolumes.Remove(volume.Id);
         }
 
+        public void RegisterReverbVolume(IReverbVolume volume) {
+            _reverbVolumes[volume.Id] = volume;
+        }
+
+        public void UnregisterReverbVolume(IReverbVolume volume) {
+            _reverbVolumes.Remove(volume.Id);
+        }
+        
         public void SetGlobalOcclusionWeightNextFrame(float weight) {
             _globalOcclusionWeight = weight;
         }
@@ -531,6 +581,7 @@ namespace MisterGames.Common.Audio {
             ProcessFadeIn();
             ProcessFadeOutAndRelease();
             ProcessSounds(dt);
+            ProcessReverb(dt);
         }
 
         private void ProcessClipShuffles() {
@@ -673,7 +724,7 @@ namespace MisterGames.Common.Audio {
                 listenerAndSoundsPositionArray[1 + index++] = e.Transform.position;
             }
 
-            var volumeResultArray = CalculateVolumes(listenerAndSoundsPositionArray, soundOptionsArray, soundCount);
+            var volumeResultArray = CalculateAudioVolumes(listenerAndSoundsPositionArray, soundOptionsArray, soundCount);
             
             var occlusionResultArray = CalculateOcclusion(listenerAndSoundsPositionArray, soundOptionsArray, soundCount, listenerUp
 #if UNITY_EDITOR
@@ -744,6 +795,68 @@ namespace MisterGames.Common.Audio {
             _globalOcclusionWeight = 1f;
         }
 
+        private void ProcessReverb(float dt) {
+            if (!_enableReverbVolumes || 
+                _audioListenersMap.Count == 0 || 
+                _reverbMixers is not { Length: > 0 }) 
+            {
+                return;
+            }
+            
+            var listenerPos = _listenerTransform.position;
+            var resultReverb = CalculateReverbVolumes(listenerPos);
+            
+            if (UpdateSmoothedReverbSettings(ref _smoothedReverbSettings, ref resultReverb, dt)) {
+                ApplyReverbSettings(ref _smoothedReverbSettings);   
+            }
+        }
+
+        private bool UpdateSmoothedReverbSettings(ref ReverbSettingsData dest, ref ReverbSettingsData target, float dt) {
+            var old = dest;
+            
+            if (_reverbParamsSmoothing <= 0f) {
+                dest = target;
+            }
+            else {
+                float t = _reverbParamsSmoothing * dt;
+
+                dest.room = dest.room.SmoothExp(target.room, t);
+                dest.roomHf = dest.roomHf.SmoothExp(target.roomHf, t);
+                dest.roomLf = dest.roomLf.SmoothExp(target.roomLf, t);
+                dest.decayTime = dest.decayTime.SmoothExp(target.decayTime, t);
+                dest.decayHfRatio = dest.decayHfRatio.SmoothExp(target.decayHfRatio, t);
+                dest.reflectionsLevel = dest.reflectionsLevel.SmoothExp(target.reflectionsLevel, t);
+                dest.reflectionsDelay = dest.reflectionsDelay.SmoothExp(target.reflectionsDelay, t);
+                dest.reverbLevel = dest.reverbLevel.SmoothExp(target.reverbLevel, t);
+                dest.reverbDelay = dest.reverbDelay.SmoothExp(target.reverbDelay, t);
+                dest.hfReference = dest.hfReference.SmoothExp(target.hfReference, t);
+                dest.lfReference = dest.lfReference.SmoothExp(target.lfReference, t);
+                dest.diffusion = dest.diffusion.SmoothExp(target.diffusion, t);
+                dest.density = dest.density.SmoothExp(target.density, t);   
+            }
+
+            return !old.Equals(dest);
+        }
+        
+        private void ApplyReverbSettings(ref ReverbSettingsData reverbSettings) {
+            for (int i = 0; i < _reverbMixers.Length; i++) {
+                var mixer = _reverbMixers[i]; 
+                mixer.SetFloat(_reverbParamNames[0], reverbSettings.room);
+                mixer.SetFloat(_reverbParamNames[1], reverbSettings.roomHf);
+                mixer.SetFloat(_reverbParamNames[2], reverbSettings.roomLf);
+                mixer.SetFloat(_reverbParamNames[3], reverbSettings.decayTime);
+                mixer.SetFloat(_reverbParamNames[4], reverbSettings.decayHfRatio);
+                mixer.SetFloat(_reverbParamNames[5], reverbSettings.reflectionsLevel);
+                mixer.SetFloat(_reverbParamNames[6], reverbSettings.reflectionsDelay);
+                mixer.SetFloat(_reverbParamNames[7], reverbSettings.reverbLevel);
+                mixer.SetFloat(_reverbParamNames[8], reverbSettings.reverbDelay);
+                mixer.SetFloat(_reverbParamNames[9], reverbSettings.hfReference);
+                mixer.SetFloat(_reverbParamNames[10], reverbSettings.lfReference);
+                mixer.SetFloat(_reverbParamNames[11], reverbSettings.diffusion);
+                mixer.SetFloat(_reverbParamNames[12], reverbSettings.density);
+            }
+        }
+        
         private void ReleaseFinishedSounds() {
             var releaseCandidateIdsBuffer = new NativeList<int>(Allocator.Temp);
             
@@ -800,7 +913,7 @@ namespace MisterGames.Common.Audio {
             soundOptionsArray[0] = options;
             listenerAndSoundsPositionArray[1] = e.Transform.position;
 
-            var volumeResultArray = CalculateVolumes(listenerAndSoundsPositionArray, soundOptionsArray, 1);
+            var volumeResultArray = CalculateAudioVolumes(listenerAndSoundsPositionArray, soundOptionsArray, 1);
             
             var occlusionResultArray = CalculateOcclusion(listenerAndSoundsPositionArray, soundOptionsArray, 1, listenerUp
 #if UNITY_EDITOR
@@ -829,15 +942,15 @@ namespace MisterGames.Common.Audio {
             resultSoundArray.Dispose();
         }
         
-        private NativeArray<VolumeResultData> CalculateVolumes(
+        private NativeArray<AudioVolumeResultData> CalculateAudioVolumes(
             NativeArray<float3> listenerAndSoundPositionArray,
             NativeArray<AudioOptions> soundOptionsArray,
             int soundCount)
         {
-            NativeArray<VolumeResultData> resultArray;
+            NativeArray<AudioVolumeResultData> resultArray;
             
             if (!_enableVolumes) {
-                resultArray = new NativeArray<VolumeResultData>(soundCount, Allocator.TempJob);
+                resultArray = new NativeArray<AudioVolumeResultData>(soundCount, Allocator.TempJob);
                 
                 var writeDefaultVolumeResultJob = new WriteDefaultVolumeResultDataJob {
                     attenuationDefault = _attenuationDistance,
@@ -849,13 +962,13 @@ namespace MisterGames.Common.Audio {
                 return resultArray;
             }
             
-            int volumeCount = _volumes.Count;
+            int volumeCount = _audioVolumes.Count;
             int volumeIndex = 0;
             
             var volumeWeightDataArray = new NativeArray<VolumeWeightData>((soundCount + 1) * volumeCount, Allocator.TempJob);
-            var volumeProcessDataArray = new NativeArray<VolumeProcessData>(volumeCount, Allocator.TempJob);
+            var volumeProcessDataArray = new NativeArray<AudioVolumeProcessData>(volumeCount, Allocator.TempJob);
             
-            foreach (var volume in _volumes) {
+            foreach (var volume in _audioVolumes.Values) {
                 int priority = volume.Priority;
                 float listenerPresence = volume.ListenerPresence;
 
@@ -875,7 +988,7 @@ namespace MisterGames.Common.Audio {
                 if (volume.ModifyLowPassFilter(ref lpCutoff)) AudioParameter.LpCutoff.WriteToMask(ref mask);
                 if (volume.ModifyHighPassFilter(ref hpCutoff)) AudioParameter.HpCutoff.WriteToMask(ref mask);
                 
-                volumeProcessDataArray[volumeIndex] = new VolumeProcessData(
+                volumeProcessDataArray[volumeIndex] = new AudioVolumeProcessData(
                     mask, listenerPresence,
                     occlusionListener, occlusionSound, pitch, attenuation, lpCutoff, hpCutoff
                 );
@@ -894,7 +1007,7 @@ namespace MisterGames.Common.Audio {
                     if (AudioParameter.LpCutoff.InMask(mask)) sb.Append($"{AudioParameter.LpCutoff} ");
                     if (AudioParameter.HpCutoff.InMask(mask)) sb.Append($"{AudioParameter.HpCutoff}");
                     
-                    Debug.Log($"AudioPool.CalculateVolumes: f {Time.frameCount}, vol #{volumeIndex} {volume}, " +
+                    Debug.Log($"AudioPool.CalculateAudioVolumes: f {Time.frameCount}, vol #{volumeIndex} {volume}, " +
                               $"list presence {listenerPresence}, " +
                               $"occ lis {occlusionListener}, occ sound {occlusionSound}, pitch {pitch}, atten {attenuation}, lp {lpCutoff}, hp {hpCutoff}, " +
                               $"changed [{sb}]");
@@ -918,7 +1031,7 @@ namespace MisterGames.Common.Audio {
 
             var listenerVolumeIdToWeightMap = new NativeHashMap<int, float>(volumeCount, Allocator.TempJob);
             var occlusionListenerResultArray = new NativeArray<float>(2, Allocator.TempJob);
-            resultArray = new NativeArray<VolumeResultData>(soundCount, Allocator.TempJob);
+            resultArray = new NativeArray<AudioVolumeResultData>(soundCount, Allocator.TempJob);
             
             var calculateListenerVolumeJob = new CalculateListenerVolumeJob {
                 volumeWeightDataArray = volumeWeightDataArray,
@@ -950,6 +1063,51 @@ namespace MisterGames.Common.Audio {
             occlusionListenerResultArray.Dispose();
 
             return resultArray;
+        }
+        
+        private ReverbSettingsData CalculateReverbVolumes(float3 listenerPosition)
+        {
+            int volumeCount = _reverbVolumes.Count;
+            var volumeIdArray = new NativeArray<int>(volumeCount, Allocator.Temp);
+            var volumeWeightDataArray = new NativeArray<VolumeWeightData>(volumeCount, Allocator.TempJob);
+            volumeCount = 0;
+            
+            foreach ((int id, var volume) in _reverbVolumes) {
+                var settings = volume.GetReverbSettings();
+                if (settings == null || volume.GetWeight(listenerPosition) is not { weight: > 0f } weightData) continue;
+
+                int i = volumeCount++;
+                volumeIdArray[i] = id;
+                volumeWeightDataArray[i] = new VolumeWeightData(weightData.volumeId, volume.Priority, weightData.weight);
+            }
+            
+            var reverbSettingsArray = new NativeArray<ReverbSettingsData>(volumeCount, Allocator.TempJob);
+
+            for (int i = 0; i < volumeCount; i++) {
+                int id = volumeIdArray[i];
+                var volume = _reverbVolumes[id];
+                reverbSettingsArray[i] = new ReverbSettingsData(volume.Level, volume.GetReverbSettings());
+            }
+            
+            var resultReverbSettingsArray = new NativeArray<ReverbSettingsData>(2, Allocator.TempJob);
+
+            var job = new CalculateReverbJob {
+                volumeWeightDataArray = volumeWeightDataArray,
+                reverbSettingsArray = reverbSettingsArray,
+                volumeCount = volumeCount,
+                resultReverbSettingsArray = resultReverbSettingsArray,
+            };
+            
+            job.Schedule().Complete();
+
+            var result = resultReverbSettingsArray[0];
+            
+            volumeIdArray.Dispose();
+            volumeWeightDataArray.Dispose();
+            reverbSettingsArray.Dispose();
+            resultReverbSettingsArray.Dispose();
+            
+            return result;
         }
 
         private NativeArray<OcclusionResultData> CalculateOcclusion(
@@ -1048,7 +1206,7 @@ namespace MisterGames.Common.Audio {
         private NativeArray<SoundResultData> CalculateResult(
             NativeArray<SoundData> soundDataArray, 
             NativeArray<AudioOptions> soundOptionsArray, 
-            NativeArray<VolumeResultData> volumeResultDataArray, 
+            NativeArray<AudioVolumeResultData> volumeResultDataArray, 
             NativeArray<OcclusionResultData> occlusionResultDataArray,
             int soundCount,
             float dt) 
@@ -1228,7 +1386,7 @@ namespace MisterGames.Common.Audio {
             }
         }
         
-        private readonly struct VolumeProcessData {
+        private readonly struct AudioVolumeProcessData {
             
             public readonly int mask;
             public readonly float listenerPresence;
@@ -1239,7 +1397,7 @@ namespace MisterGames.Common.Audio {
             public readonly float lpCutoff;
             public readonly float hpCutoff;
             
-            public VolumeProcessData(
+            public AudioVolumeProcessData(
                 int mask, float listenerPresence,
                 float occlusionListener, float occlusionSound, float pitch, float attenuation, float lpCutoff, float hpCutoff) 
             {
@@ -1255,7 +1413,7 @@ namespace MisterGames.Common.Audio {
             }
         }
         
-        private readonly struct VolumeResultData {
+        private readonly struct AudioVolumeResultData {
             
             public readonly float occlusion;
             public readonly float pitch;
@@ -1263,12 +1421,79 @@ namespace MisterGames.Common.Audio {
             public readonly float lpCutoff;
             public readonly float hpCutoff;
             
-            public VolumeResultData(float occlusion, float pitch, float attenuation, float lpCutoff, float hpCutoff) {
+            public AudioVolumeResultData(float occlusion, float pitch, float attenuation, float lpCutoff, float hpCutoff) {
                 this.occlusion = occlusion;
                 this.pitch = pitch;
                 this.attenuation = attenuation;
                 this.lpCutoff = lpCutoff;
                 this.hpCutoff = hpCutoff;
+            }
+        }
+        
+        private struct ReverbSettingsData {
+
+            public float room;
+            public float roomHf;
+            public float roomLf;
+            public float decayTime;
+            public float decayHfRatio;
+            public float reflectionsLevel;
+            public float reflectionsDelay;
+            public float reverbLevel;
+            public float reverbDelay;
+            public float hfReference;
+            public float lfReference;
+            public float diffusion;
+            public float density;
+
+            public ReverbSettingsData(float room, IReverbSettings settings) : this(
+                room, settings.RoomHf, settings.RoomLf,
+                settings.DecayTime, settings.DecayHfRatio, 
+                settings.ReflectionsLevel, settings.ReflectionsDelay,
+                settings.ReverbLevel, settings.ReverbDelay,
+                settings.HfReference, settings.LfReference,
+                settings.Diffusion, settings.Density) 
+            {
+                
+            }
+            
+            public ReverbSettingsData(
+                float room, float roomHf, float roomLf,
+                float decayTime, float decayHfRatio,
+                float reflectionsLevel, float reflectionsDelay,
+                float reverbLevel, float reverbDelay,
+                float hfReference, float lfReference,
+                float diffusion, float density) 
+            {
+                this.room = room;
+                this.roomHf = roomHf;
+                this.roomLf = roomLf;
+                this.decayTime = decayTime;
+                this.decayHfRatio = decayHfRatio;
+                this.reflectionsLevel = reflectionsLevel;
+                this.reflectionsDelay = reflectionsDelay;
+                this.reverbLevel = reverbLevel;
+                this.reverbDelay = reverbDelay;
+                this.hfReference = hfReference;
+                this.lfReference = lfReference;
+                this.diffusion = diffusion;
+                this.density = density;
+            }
+            
+            public bool Equals(ReverbSettingsData other) {
+                return room.IsNearlyEqual(other.room) &&
+                       roomHf.IsNearlyEqual(other.roomHf) &&
+                       roomLf.IsNearlyEqual(other.roomLf) &&
+                       decayTime.IsNearlyEqual(other.decayTime) &&
+                       decayHfRatio.IsNearlyEqual(other.decayHfRatio) &&
+                       reflectionsLevel.IsNearlyEqual(other.reflectionsLevel) &&
+                       reflectionsDelay.IsNearlyEqual(other.reflectionsDelay) &&
+                       reverbLevel.IsNearlyEqual(other.reverbLevel) &&
+                       reverbDelay.IsNearlyEqual(other.reverbDelay) &&
+                       hfReference.IsNearlyEqual(other.hfReference) &&
+                       lfReference.IsNearlyEqual(other.lfReference) &&
+                       diffusion.IsNearlyEqual(other.diffusion) &&
+                       density.IsNearlyEqual(other.density);
             }
         }
         
@@ -1361,10 +1586,76 @@ namespace MisterGames.Common.Audio {
         }
         
         [BurstCompile]
+        private struct CalculateReverbJob : IJob {
+
+            [ReadOnly] public NativeArray<VolumeWeightData> volumeWeightDataArray;
+            public NativeArray<ReverbSettingsData> reverbSettingsArray;
+            [ReadOnly] public int volumeCount;
+            public NativeArray<ReverbSettingsData> resultReverbSettingsArray;
+            
+            public void Execute() {
+                int topPriority = int.MinValue;
+                
+                for (int i = 0; i < volumeCount; i++) {
+                    var weightData = volumeWeightDataArray[i];
+                    if (weightData.weight <= 0f) continue;
+
+                    topPriority = math.max(topPriority, weightData.priority);
+                }
+                
+                float weightSum = 0f;
+                var result = new ReverbSettingsData();
+                
+                for (int i = 0; i < volumeCount; i++) {
+                    var weightData = volumeWeightDataArray[i];
+                    if (weightData.weight <= 0f || weightData.priority < topPriority) continue;
+
+                    ref var reverbSettings = ref reverbSettingsArray.GetRef(i);
+                    
+                    weightSum += weightData.weight;
+
+                    result.room += reverbSettings.room * weightData.weight;
+                    result.roomHf += reverbSettings.roomHf * weightData.weight;
+                    result.roomLf += reverbSettings.roomLf * weightData.weight;
+                    result.decayTime += reverbSettings.decayTime * weightData.weight;
+                    result.decayHfRatio += reverbSettings.decayHfRatio * weightData.weight;
+                    result.reflectionsLevel += reverbSettings.reflectionsLevel * weightData.weight;
+                    result.reflectionsDelay += reverbSettings.reflectionsDelay * weightData.weight;
+                    result.reverbLevel += reverbSettings.reverbLevel * weightData.weight;
+                    result.reverbDelay += reverbSettings.reverbDelay * weightData.weight;
+                    result.hfReference += reverbSettings.hfReference * weightData.weight;
+                    result.lfReference += reverbSettings.lfReference * weightData.weight;
+                    result.diffusion += reverbSettings.diffusion * weightData.weight;
+                    result.density += reverbSettings.density * weightData.weight;
+                }
+
+                if (weightSum > 0f) {
+                    float invW = 1f / weightSum;
+                    
+                    result.room *= invW;
+                    result.roomHf *= invW;
+                    result.roomLf *= invW;
+                    result.decayTime *= invW;
+                    result.decayHfRatio *= invW;
+                    result.reflectionsLevel *= invW;
+                    result.reflectionsDelay *= invW;
+                    result.reverbLevel *= invW;
+                    result.reverbDelay *= invW;
+                    result.hfReference *= invW;
+                    result.lfReference *= invW;
+                    result.diffusion *= invW;
+                    result.density *= invW;
+                }
+
+                resultReverbSettingsArray[0] = result;
+            }
+        }
+        
+        [BurstCompile]
         private struct CalculateListenerVolumeJob : IJob {
 
             [ReadOnly] public NativeArray<VolumeWeightData> volumeWeightDataArray;
-            [ReadOnly] public NativeArray<VolumeProcessData> volumeProcessDataArray;
+            [ReadOnly] public NativeArray<AudioVolumeProcessData> volumeProcessDataArray;
             [ReadOnly] public int volumeCount;
 
             public NativeHashMap<int, float> listenerVolumeIdToWeightMap;
@@ -1409,18 +1700,18 @@ namespace MisterGames.Common.Audio {
         private struct CalculateVolumeResultDataJob : IJobParallelFor {
             
             [ReadOnly] public NativeArray<VolumeWeightData> volumeWeightDataArray;
-            [ReadOnly] public NativeArray<VolumeProcessData> volumeProcessDataArray;
+            [ReadOnly] public NativeArray<AudioVolumeProcessData> volumeProcessDataArray;
             [ReadOnly] public NativeArray<AudioOptions> soundOptionsArray;
             [ReadOnly] public NativeArray<float> occlusionListenerResultArray;
             [ReadOnly] public NativeHashMap<int, float> listenerVolumeIdToWeightMap;
             [ReadOnly] public int volumeCount;
             [ReadOnly] public float attenuationDefault;
             
-            [WriteOnly] public NativeArray<VolumeResultData> resultArray;
+            [WriteOnly] public NativeArray<AudioVolumeResultData> resultArray;
 
             public void Execute(int index) {
                 if ((soundOptionsArray[index] & AudioOptions.AffectedByVolumes) == 0) {
-                    resultArray[index] = new VolumeResultData(1f, 1f, attenuationDefault, LpCutoffUpperBound, HpCutoffLowerBound);
+                    resultArray[index] = new AudioVolumeResultData(1f, 1f, attenuationDefault, LpCutoffUpperBound, HpCutoffLowerBound);
                     return;
                 }
                 
@@ -1511,7 +1802,7 @@ namespace MisterGames.Common.Audio {
                     ? math.lerp(HpCutoffLowerBound, hpCutoff / hpCutoffWeightSum, math.clamp(hpCutoffWeightSum, 0f, 1f))
                     : HpCutoffLowerBound;
                 
-                resultArray[index] = new VolumeResultData(
+                resultArray[index] = new AudioVolumeResultData(
                     occlusionSound * occlusionListenerResultArray[0],
                     pitch, 
                     attenuation, 
@@ -1525,10 +1816,10 @@ namespace MisterGames.Common.Audio {
         private struct WriteDefaultVolumeResultDataJob : IJobParallelFor {
             
             [ReadOnly] public float attenuationDefault;
-            [WriteOnly] public NativeArray<VolumeResultData> resultArray;
+            [WriteOnly] public NativeArray<AudioVolumeResultData> resultArray;
             
             public void Execute(int index) {
-                resultArray[index] = new VolumeResultData(
+                resultArray[index] = new AudioVolumeResultData(
                     1f,
                     1f, 
                     attenuationDefault, 
@@ -1667,7 +1958,7 @@ namespace MisterGames.Common.Audio {
             
             [ReadOnly] public NativeArray<SoundData> soundDataArray; 
             [ReadOnly] public NativeArray<AudioOptions> soundOptionsArray; 
-            [ReadOnly] public NativeArray<VolumeResultData> volumeResultDataArray; 
+            [ReadOnly] public NativeArray<AudioVolumeResultData> volumeResultDataArray; 
             [ReadOnly] public NativeArray<OcclusionResultData> occlusionResultDataArray;
             [ReadOnly] public float timescale;
             [ReadOnly] public float dt;
@@ -1724,8 +2015,11 @@ namespace MisterGames.Common.Audio {
 
         private void OnValidate() {
             if (_maxDistance < _minDistance) _maxDistance = _minDistance;
-            
-            if (Application.isPlaying) FetchIncludeMixerGroupsFromVolumes();
+
+            if (Application.isPlaying) {
+                FetchIncludeMixerGroupsFromVolumes();
+                CreateReverbParamNames();
+            }
         }
 
         private void CreateDebugColor(int id, string clipName) {

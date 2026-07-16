@@ -31,21 +31,22 @@ namespace MisterGames.Common.Audio {
         [SerializeField] private Optional<ValueModifier> _occlusionWeightSound = Optional<ValueModifier>.WithDisabled(ValueModifier.Empty);
         [SerializeField] private Optional<ValueModifier> _lowPassCutoffFrequency = Optional<ValueModifier>.WithDisabled(ValueModifier.Empty);
         [SerializeField] private Optional<ValueModifier> _highPassCutoffFrequency = Optional<ValueModifier>.WithDisabled(ValueModifier.Empty);
-        
+
         private enum Mode {
             Global,
             Local,
         }
-        
+
+        public int Id => GetEntityId();
         public int Priority => _priority;
         public float ListenerPresence => _listenerPresence;
 
         private void OnEnable() {
-            AudioPool.Main?.RegisterVolume(this);
+            AudioPool.Main?.RegisterAudioVolume(this);
         }
 
         private void OnDisable() {
-            AudioPool.Main?.UnregisterVolume(this);
+            AudioPool.Main?.UnregisterAudioVolume(this);
         }
 
         public WeightData GetWeight(Vector3 position) {
