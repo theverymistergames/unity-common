@@ -141,9 +141,9 @@ namespace MisterGames.Common.Audio {
         private const string ReverbParamRoomLf = "RoomLF";
         private const string ReverbParamDecayTime = "DecayTime";
         private const string ReverbParamDecayHfRatio = "DecayHFRatio";
-        private const string ReverbParamReflectionsLevel = "ReflectionsLevel";
-        private const string ReverbParamReflectionsDelay = "ReflectionsDelay";
-        private const string ReverbParamReverbLevel = "ReverbLevel";
+        private const string ReverbParamReflectionsLevel = "Reflections";
+        private const string ReverbParamReflectionsDelay = "ReflectDelay";
+        private const string ReverbParamReverbLevel = "Reverb";
         private const string ReverbParamReverbDelay = "ReverbDelay";
         private const string ReverbParamHfReference = "HFReference";
         private const string ReverbParamLfReference = "LFReference";
