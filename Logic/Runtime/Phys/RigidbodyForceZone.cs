@@ -16,6 +16,7 @@ namespace MisterGames.Logic.Phys {
 
         [Header("Force Zone")]
         [SerializeField] private TriggerListenerForRigidbody _triggerListenerForRigidbody;
+        [SerializeField] private ForceZoneType _zoneType;
         [SerializeField] private Transform _forceSourcePoint;
         [SerializeField] private Vector3 _forceRotation;
         [SerializeField] [Min(0f)] private float _maxDistance;
@@ -23,13 +24,17 @@ namespace MisterGames.Logic.Phys {
 
         [Header("Force Power")]
         [SerializeField] private float _forceMultiplier;
-        [SerializeField] private AnimationCurve _forceByDistanceCurve = AnimationCurve.Linear(0f, 1f, 1f, 0f);
-        [SerializeField] [MinMaxSlider(0f, 1f)] private Vector2 _forceByVelocityAngleWeight = new Vector2(0.3f, 1f);
+        [SerializeField] private AnimationCurve _forceByDistanceCurve = AnimationCurve.Linear(0f, 0f, 1f, 1f);
+        [SerializeField] [MinMaxSlider(0f, 1f)] private Vector2 _forceByVelocityAngleWeight = new(0.3f, 1f);
 
         [Header("Force Power Random")]
         [SerializeField] [Min(0f)] private float _randomMultiplier;
         [SerializeField] private float _randomNoiseSpeed = 1f;
-        [SerializeField] private AnimationCurve _randomByDistanceCurve = AnimationCurve.Linear(0f, 1f, 1f, 0f);
+        [SerializeField] private AnimationCurve _randomByDistanceCurve = AnimationCurve.Linear(0f, 0f, 1f, 1f);
+
+        [Header("Force To Line")]
+        [SerializeField] private float _lineForceMultiplier;
+        [SerializeField] private AnimationCurve _lineForceByDistanceCurve = AnimationCurve.Linear(0f, 0f, 1f, 1f);
 
         [Header("Obstacles")]
         [SerializeField] private bool _considerObstacles;
@@ -40,6 +45,11 @@ namespace MisterGames.Logic.Phys {
 
         [Header("Disabling")]
         [SerializeField] [Min(0f)] private float _disableDuration = 0.5f;
+        
+        private enum ForceZoneType {
+            Directional,
+            Suction,
+        }
         
         public event Action<Rigidbody> OnEnterZone = delegate { };
         public event Action<Rigidbody> OnExitZone = delegate { };
@@ -139,21 +149,29 @@ namespace MisterGames.Logic.Phys {
                     continue;
                 }
 
-                float distance = (rb.position - forcePoint).magnitude;
+                var rbPos = rb.position;
+                var toSource = forcePoint - rbPos;
+                float distance = toSource.magnitude;
+                var dir = _zoneType == ForceZoneType.Suction
+                    ? distance.IsNearlyZero() ? Vector3.zero : toSource / distance
+                    : forceDir;
+
                 float t = _maxDistance > 0f ? 1f - Mathf.Clamp01(distance / _maxDistance) : 0f;
 
                 float forceK = GetMainForce(t);
-                float angleK = GetAngleCoeff(forceDir, rb.linearVelocity);
+                float angleK = GetAngleCoeff(dir, rb.linearVelocity);
                 float randomK = GetRandomForce(t);
-                
-                float obstacleK = _considerObstacles && DetectObstacle(forcePoint, forceDir, rb, distance) 
-                    ? _behindObstacleForceMultiplier 
+
+                float obstacleK = _considerObstacles && DetectObstacle(forcePoint, dir, rb, distance)
+                    ? _behindObstacleForceMultiplier
                     : 1f;
-                
-                rb.AddForce(_forceEnableMul * (forceK * angleK + randomK) * obstacleK * forceDir, _forceMode);
-                
-                _rigidbodyForceWeightMap[rb] = _forceMultiplier.IsNearlyZero() 
-                    ? 0f 
+
+                var force = (forceK * angleK + randomK) * dir + GetLineForce(forcePoint, forceDir, rbPos, t);
+
+                rb.AddForce(_forceEnableMul * obstacleK * force, _forceMode);
+
+                _rigidbodyForceWeightMap[rb] = _forceMultiplier.IsNearlyZero()
+                    ? 0f
                     : _forceEnableMul * (forceK + randomK) * obstacleK / _forceMultiplier;
             }
         }
@@ -171,6 +189,12 @@ namespace MisterGames.Logic.Phys {
         private float GetRandomForce(float t) {
             float randomBase = (Mathf.PerlinNoise1D(Time.time * _randomNoiseSpeed) - 0.5f) * 2f;
             return _randomMultiplier * randomBase * _randomByDistanceCurve.Evaluate(t);
+        }
+
+        private Vector3 GetLineForce(Vector3 forcePoint, Vector3 lineDir, Vector3 position, float t) {
+            var perp = Vector3.ProjectOnPlane(position - forcePoint, lineDir);
+            float lineForceK = _lineForceMultiplier * _lineForceByDistanceCurve.Evaluate(t);
+            return -lineForceK * perp.normalized;
         }
 
         private bool DetectObstacle(Vector3 forcePoint, Vector3 forceDir, Rigidbody rb, float distance) {
@@ -192,8 +216,20 @@ namespace MisterGames.Logic.Phys {
             var target = source + Quaternion.Euler(_forceRotation) * _forceSourcePoint.forward * _maxDistance;
 
             DebugExt.DrawSphere(source, 0.3f, Color.blue, gizmo: true);
-            DebugExt.DrawSphere(target, 0.15f, Color.green, gizmo: true);
-            DebugExt.DrawLine(source, target, Color.green, gizmo: true);
+            DebugExt.DrawLine(source, target, Color.cyan, gizmo: true);
+
+            if (_zoneType == ForceZoneType.Suction) {
+                DrawArrowHead(source, source - target, Color.cyan);
+                return;
+            }
+
+            DrawArrowHead(target, target - source, Color.cyan);
+        }
+
+        private static void DrawArrowHead(Vector3 tip, Vector3 dir, Color color) {
+            var back = -dir.normalized * 0.5f;
+            DebugExt.DrawLine(tip, tip + Quaternion.AngleAxis(30f, Vector3.up) * back, color, gizmo: true);
+            DebugExt.DrawLine(tip, tip + Quaternion.AngleAxis(-30f, Vector3.up) * back, color, gizmo: true);
         }
 #endif
     }
