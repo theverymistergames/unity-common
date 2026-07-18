@@ -21,6 +21,8 @@ namespace MisterGames.Logic.Phys {
         [SerializeField] private Vector3 _forceRotation;
         [SerializeField] [Min(0f)] private float _maxDistance;
         [SerializeField] private ForceMode _forceMode;
+        [SerializeField] [Min(0f)] private float _disableDuration = 0.5f;
+        [SerializeField] [Min(0f)] private float _maxSpeed = 100f;
 
         [Header("Force Power")]
         [SerializeField] private float _forceMultiplier;
@@ -42,9 +44,6 @@ namespace MisterGames.Logic.Phys {
         [SerializeField] [Min(1)] private int _maxHits = 6;
         [SerializeField] [Min(0f)] private float _distanceOffset = 0.5f;
         [SerializeField] [Min(0f)] private float _behindObstacleForceMultiplier = 0.01f;
-
-        [Header("Disabling")]
-        [SerializeField] [Min(0f)] private float _disableDuration = 0.5f;
         
         private enum ForceZoneType {
             Directional,
@@ -168,6 +167,9 @@ namespace MisterGames.Logic.Phys {
 
                 var force = (forceK * angleK + randomK) * dir + GetLineForce(forcePoint, forceDir, rbPos, t);
 
+                var velocityProj = Vector3.Project(rb.linearVelocity, dir);
+                force = VectorUtils.ClampAcceleration(force, velocityProj, _maxSpeed, dt);
+                
                 rb.AddForce(_forceEnableMul * obstacleK * force, _forceMode);
 
                 _rigidbodyForceWeightMap[rb] = _forceMultiplier.IsNearlyZero()
