@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Mathematics;
@@ -11,6 +12,17 @@ namespace MisterGames.Common.Lists {
 
     public static class ArrayExtensions {
 
+        [BurstCompile]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static NativeArray<int> ShuffledIndices(int length, Allocator allocator, uint seed = 0) {
+            var indices = new NativeArray<int>(length, allocator);
+            for (int i = 0; i < length; i++) {
+                indices[i] = i;
+            }
+            indices.Shuffle(length, seed);
+            return indices;
+        }
+        
         [BurstCompile]
         public static void Shuffle<T>(this NativeArray<T> array, int length = -1, uint seed = 0) where T : struct {
             if (seed == 0) seed = (uint) DateTime.Now.Ticks;
