@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using Unity.Burst;
+using Unity.Collections;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.InputSystem.Utilities;
 using Random = UnityEngine.Random;
@@ -8,6 +11,28 @@ namespace MisterGames.Common.Lists {
 
     public static class ArrayExtensions {
 
+        [BurstCompile]
+        public static void Shuffle<T>(this NativeArray<T> array, int length = -1, uint seed = 0) where T : struct {
+            if (seed == 0) seed = (uint) DateTime.Now.Ticks;
+            var rng = new Unity.Mathematics.Random(seed);
+            int n = length < 0 ? array.Length : length;
+            while (n > 1) {
+                int k = rng.NextInt(0, n--);
+                (array[n], array[k]) = (array[k], array[n]);
+            }
+        }
+        
+        [BurstCompile]
+        public static void Shuffle<T>(this NativeList<T> array, int length = -1, uint seed = 0) where T : unmanaged {
+            if (seed == 0) seed = (uint) DateTime.Now.Ticks;
+            var rng = new Unity.Mathematics.Random(seed);
+            int n = length < 0 ? array.Length : length;
+            while (n > 1) {
+                int k = rng.NextInt(0, n--);
+                (array[n], array[k]) = (array[k], array[n]);
+            }
+        }
+        
         public static void Shuffle<T>(this T[] array, int length = -1) {
             int n = length < 0 ? array.Length : length;
             while (n > 1) {

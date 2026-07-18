@@ -5,6 +5,7 @@ namespace MisterGames.Common.Maths {
     
     public static class RandomExtensions {
         
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int IndexToHash(int index) {
             unchecked {
                 uint h = (uint) index;
