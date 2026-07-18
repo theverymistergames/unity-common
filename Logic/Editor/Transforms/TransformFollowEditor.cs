@@ -12,6 +12,7 @@ namespace MisterGames.Logic.Editor.Transforms {
         private SerializedProperty _followProperty;
         private SerializedProperty _positionOffsetProperty;
         private SerializedProperty _rotationOffsetProperty;
+        private SerializedProperty _showGizmoProperty;
         private ButtonsDrawer _buttonsDrawer;
 
         private void OnEnable() {
@@ -19,6 +20,7 @@ namespace MisterGames.Logic.Editor.Transforms {
             _followProperty = serializedObject.FindProperty("_follow");
             _positionOffsetProperty = serializedObject.FindProperty("_positonOffset");
             _rotationOffsetProperty = serializedObject.FindProperty("_rotationOffset");
+            _showGizmoProperty = serializedObject.FindProperty("_showGizmo");
         }
 
         public override void OnInspectorGUI() {
@@ -29,7 +31,10 @@ namespace MisterGames.Logic.Editor.Transforms {
         private const float HANDLE_OFFSET_SCALE = 2f;
 
         private void OnSceneGUI() {
-            if (_followProperty.objectReferenceValue is not Transform follow) return;
+            if (_followProperty.objectReferenceValue is not Transform follow ||
+                !_showGizmoProperty.boolValue) {
+                return;
+            }
 
             serializedObject.Update();
 
@@ -59,6 +64,7 @@ namespace MisterGames.Logic.Editor.Transforms {
 
             Handles.DrawDottedLine(handlePos, worldPos, 4f);
             Handles.SphereHandleCap(0, handlePos, Quaternion.identity, HandleUtility.GetHandleSize(handlePos) * 0.5f, EventType.Repaint);
+            Handles.SphereHandleCap(0, worldPos, Quaternion.identity, HandleUtility.GetHandleSize(handlePos) * 0.1f, EventType.Repaint);
 
             Handles.color = prevColor;
             

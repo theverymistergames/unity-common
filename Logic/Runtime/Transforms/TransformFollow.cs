@@ -1,4 +1,5 @@
-﻿using MisterGames.Common.Maths;
+﻿using MisterGames.Common.GameObjects;
+using MisterGames.Common.Maths;
 using MisterGames.Common.Tick;
 using UnityEngine;
 #if UNITY_EDITOR
@@ -38,6 +39,13 @@ namespace MisterGames.Logic.Transforms {
         }
 
         private void Follow(float dt) {
+#if UNITY_EDITOR
+            if (_follow.IsChildOf(_target)) {
+                Debug.Log($"TransformFollow [{gameObject.GetPathInScene()}]: follow transform {_follow} cannot be child of target transform {_target}");
+                return;
+            }
+#endif
+            
             _target.GetPositionAndRotation(out var pos, out var rot);
             _follow.GetPositionAndRotation(out var followPos, out var followRot);
             
@@ -57,6 +65,7 @@ namespace MisterGames.Logic.Transforms {
 #if UNITY_EDITOR
         [Header("Debug")]
         [SerializeField] private bool _updateInEditor;
+        [SerializeField] private bool _showGizmo = true;
 
         private float _lastTimeEditor = -1f;
         
