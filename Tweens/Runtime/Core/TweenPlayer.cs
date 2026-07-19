@@ -3,7 +3,6 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Maths;
-using MisterGames.Common.Tick;
 using UnityEngine;
 
 namespace MisterGames.Tweens {
