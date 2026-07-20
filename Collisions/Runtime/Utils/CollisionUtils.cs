@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using MisterGames.Collisions.Core;
 using MisterGames.Common.Layers;
@@ -16,9 +15,6 @@ namespace MisterGames.Collisions.Utils {
         private static readonly IComparer<RaycastResult> RaycastResultDistanceComparerAsc = new RaycastResultDistanceComparer(true);
         private static readonly IComparer<RaycastResult> RaycastResultDistanceComparerDesc = new RaycastResultDistanceComparer(false);
         
-        private static Func<EntityId, Collider> _getColliderById;
-        private static Func<EntityId, Component> _getBodyById;
-        
         private sealed class RaycastHitDistanceComparer : IComparer<RaycastHit> {
             private readonly int _orderSign;
             public RaycastHitDistanceComparer(bool ascending) => _orderSign = ascending ? 1 : -1;
@@ -31,30 +27,14 @@ namespace MisterGames.Collisions.Utils {
             public int Compare(RaycastResult x, RaycastResult y) => x.distance.CompareTo(y.distance) * _orderSign;
         }
         
-        private static void PrepareGetColliderByIdFunc() {
-            if (_getColliderById != null) return;
-            
-            var method = typeof(Physics).GetMethod("GetColliderByInstanceID", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-            _getColliderById = Delegate.CreateDelegate(typeof(Func<EntityId, Collider>), method) as Func<EntityId, Collider>;
-        }
-        
-        private static void PrepareGetBodyByIdFunc() {
-            if (_getBodyById != null) return;
-            
-            var method = typeof(Physics).GetMethod("GetBodyByInstanceID", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-            _getBodyById = Delegate.CreateDelegate(typeof(Func<EntityId, Component>), method) as Func<EntityId, Component>;
-        }
-        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Collider GetColliderByEntityId(EntityId entityId) {
-            PrepareGetColliderByIdFunc();
-            return _getColliderById.Invoke(entityId);
+            return Resources.EntityIdToObject(entityId) as Collider;
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Rigidbody GetRigidbodyByEntityId(EntityId entityId) {
-            PrepareGetBodyByIdFunc();
-            return _getBodyById.Invoke(entityId) as Rigidbody;
+            return Resources.EntityIdToObject(entityId) as Rigidbody;
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -86,7 +66,7 @@ namespace MisterGames.Collisions.Utils {
             
             for (int i = hitCount - 1; i >= 0; i--) {
                 var currentHit = hits[i];
-                if (currentHit.distance > 0f && currentHit.colliderInstanceID != 0) continue;
+                if (currentHit.distance > 0f && currentHit.colliderEntityId != EntityId.None) continue;
 
                 int lastValidHitIndex = --hitCount;
                 hits[i] = hits[lastValidHitIndex];
@@ -104,7 +84,7 @@ namespace MisterGames.Collisions.Utils {
 
             for (int i = hitCount - 1; i >= 0; i--) {
                 var currentHit = hits[i];
-                if (currentHit.distance > 0f && currentHit.colliderInstanceID != 0) continue;
+                if (currentHit.distance > 0f && currentHit.colliderEntityId != EntityId.None) continue;
 
                 int lastValidHitIndex = --hitCount;
                 hits[i] = hits[lastValidHitIndex];
@@ -261,7 +241,7 @@ namespace MisterGames.Collisions.Utils {
                 var hit = hits[i];
 
                 if (hit.distance <= filter.maxDistance &&
-                    hit.colliderInstanceID != 0 &&
+                    hit.colliderEntityId != EntityId.None &&
                     hit.collider != null && 
                     filter.layerMask.Contains(hit.collider.gameObject.layer)) 
                 {
@@ -312,7 +292,7 @@ namespace MisterGames.Collisions.Utils {
                 var hit = hits[i];
 
                 if (hit.distance <= filter.maxDistance &&
-                    hit.colliderInstanceID != 0 &&
+                    hit.colliderEntityId != EntityId.None &&
                     filter.layerMask.Contains(hit.collider.gameObject.layer)) 
                 {
                     continue;
