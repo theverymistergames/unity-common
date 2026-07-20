@@ -177,6 +177,7 @@ namespace MisterGames.Logic.Transforms {
         [SerializeField] private float _lastNoiseScale = 1f;
 
         private void Reset() {
+            _transform = transform;
             SaveOriginalValues();
         }
 
