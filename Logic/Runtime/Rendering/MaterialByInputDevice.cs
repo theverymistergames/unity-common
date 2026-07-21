@@ -59,6 +59,12 @@ namespace MisterGames.Logic.Rendering {
             
             return null;
         }
+
+#if UNITY_EDITOR
+        private void Reset() {
+            _renderer = GetComponent<Renderer>();
+        }
+#endif
     }
     
 }

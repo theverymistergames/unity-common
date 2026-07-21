@@ -216,7 +216,7 @@ namespace MisterGames.Character.View {
         public void SetViewOrientation(Quaternion orientation, bool moveView = false) {
             _viewClamp.SetViewOrientation((Quaternion.Inverse(_gravityRotation) * orientation).ToEulerAngles180());
             if (!moveView) _viewClamp.ResetNextViewCenterOffset();
-            SnapHeadPositionToParent();
+            //SnapHeadPositionToParent();
         }
 
         public void ApplyHorizontalClamp(ViewAxisClamp clamp) {

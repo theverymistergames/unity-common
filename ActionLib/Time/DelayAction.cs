@@ -12,9 +12,9 @@ namespace MisterGames.ActionLib.Time {
     public sealed class DelayAction : IActorAction {
 
         [Min(0f)] public float delay;
+        public bool useUnscaledTime;
         public Mode mode;
         [SerializeReference] [SubclassSelector] public IActorAction action;
-        public bool useUnscaledTime;
 
         public enum Mode {
             WaitDelayAndAction,

@@ -29,17 +29,10 @@ namespace MisterGames.Tweens {
         public YoyoMode Yoyo { get => _yoyo; set => _yoyo = value; }
         public bool Loop { get => _loop; set => _loop = value; }
         public bool InvertNextPlay { get => _invertNextPlay; set => _invertNextPlay = value; }
+        public TweenState State { get; private set; }
 
         private CancellationTokenSource _cts;
         private byte _trackProgressId;
-        private PlayState _playState;
-        
-        private enum PlayState {
-            DurationNotSet,
-            DurationCalculated,
-            Playing,
-            Completed,
-        }
         
         public async UniTask<bool> Play<T>(
             T data,
@@ -47,13 +40,13 @@ namespace MisterGames.Tweens {
             float progress = -1f,
             CancellationToken cancellationToken = default
         ) {
-            Stop();
+            Cancel();
 
             if (progress >= 0f) _progress = progress;
             
-            float duration = GetDuration(forceRecalculate: _playState != PlayState.DurationCalculated);
-            if (_invertNextPlay && _playState == PlayState.Playing) _speed = -_speed;
-            _playState = PlayState.Playing;
+            float duration = GetDuration(forceRecalculate: State != TweenState.DurationCalculated);
+            if (_invertNextPlay && State == TweenState.Playing) _speed = -_speed;
+            State = TweenState.Playing;
             
             if (duration > 0f) {
                 _cts = new CancellationTokenSource();
@@ -90,7 +83,7 @@ namespace MisterGames.Tweens {
                     continue;
                 }
 
-                _playState = PlayState.Completed;
+                State = TweenState.Completed;
                 if (_invertNextPlay) _speed = -_speed;
                 
                 return true;
@@ -140,6 +133,11 @@ namespace MisterGames.Tweens {
         }
 
         public void Stop() {
+            Cancel();
+            State = TweenState.DurationNotSet;
+        }
+
+        private void Cancel() {
             _cts?.Cancel();
             _cts?.Dispose();
             _cts = null;
@@ -197,13 +195,13 @@ namespace MisterGames.Tweens {
         }
 
         private void SetTween(TTween tween) {
-            Stop();
+            Cancel();
             _tween = tween;
-            _playState = PlayState.DurationNotSet;
+            State = TweenState.DurationNotSet;
         }
 
         private void SetProgress(float value) {
-            Stop();
+            Cancel();
             _progress = Mathf.Clamp01(value);
             
 #if UNITY_EDITOR
@@ -212,15 +210,15 @@ namespace MisterGames.Tweens {
         }
 
         private void SetSpeed(float value) {
-            Stop();
+            Cancel();
             _speed = value;
-            _playState = PlayState.DurationNotSet;
+            State = TweenState.DurationNotSet;
         }
 
         private float GetDuration(bool forceRecalculate) {
-            if (forceRecalculate || _playState == PlayState.DurationNotSet) {
+            if (forceRecalculate || State == TweenState.DurationNotSet) {
                 _tween?.CreateNextDuration();
-                if (_playState == PlayState.DurationNotSet) _playState = PlayState.DurationCalculated;
+                if (State == TweenState.DurationNotSet) State = TweenState.DurationCalculated;
             }
             
             return Mathf.Max(_tween?.Duration ?? 0f, 0f);
