@@ -332,7 +332,7 @@ namespace MisterGames.Character.View {
         }
         
         private void PostUpdate(float dt) {
-            var delta = ConsumeInputDelta(dt);
+            var delta = ConsumeInputDelta();
             var currentOrientation = (Vector2) _headRotation.ToEulerAngles180();
             var targetOrientation = currentOrientation + delta;
             var position = _headPosition + _head.rotation * _headOffset;
@@ -354,10 +354,10 @@ namespace MisterGames.Character.View {
             ApplyCameraState();
         }
 
-        private Vector2 ConsumeInputDelta(float dt) {
+        private Vector2 ConsumeInputDelta() {
             var delta = _deviceService.CurrentDevice switch {
                 DeviceType.KeyboardMouse => _inputDeltaAccum * _sensitivityMouse,
-                DeviceType.Gamepad => _inputStick * _sensitivityGamepad * dt,
+                DeviceType.Gamepad => _inputStick * _sensitivityGamepad,
                 _ => throw new ArgumentOutOfRangeException()
             };
 

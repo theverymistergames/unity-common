@@ -46,24 +46,31 @@ namespace MisterGames.Dialogues.Components {
         }
         
         private readonly List<TMP_Text> _allocatedTextFields = new();
+        private readonly Dictionary<TMP_Text, (LocalizationKey key, UiTextPrinter printer)> _textPrintMap = new();
         private CancellationTokenSource _enableCts;
         private UiTextPrinter _lastPrinter;
         private TMP_Text _lastTextField;
 
-        private void Awake() {
-            Services.Get<IDialogueService>()?.RegisterPrinter(this);
-        }
-
-        private void OnDestroy() {
-            Services.Get<IDialogueService>()?.UnregisterPrinter(this);
-        }
-
         private void OnEnable() {
             AsyncExt.RecreateCts(ref _enableCts);
+
+            if (Services.TryGet(out ILocalizationService localizationService)) {
+                localizationService.OnLocaleChanged += OnLocaleChanged;
+            }
         }
 
         private void OnDisable() {
             AsyncExt.DisposeCts(ref _enableCts);
+            
+            if (Services.TryGet(out ILocalizationService localizationService)) {
+                localizationService.OnLocaleChanged -= OnLocaleChanged;
+            }
+        }
+
+        private void OnLocaleChanged(Locale locale) {
+            foreach (var (textField, (key, printer)) in _textPrintMap) {
+                printer.SetText(textField, key.GetValue());
+            }
         }
 
         public async UniTask PrintElement(LocalizationKey key, int roleIndex, CancellationToken cancellationToken) {
@@ -122,6 +129,8 @@ namespace MisterGames.Dialogues.Components {
 #if UNITY_EDITOR
             textField.name = $"textField_{textField.GetHashCode()}_{key.GetId()}";      
 #endif
+
+            _textPrintMap[textField] = (key, textPrinter);
             
             await textPrinter.PrintTextAsync(textField, key.GetValue(), cancellationToken);
         }

@@ -4,7 +4,6 @@ using System.Text;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Async;
-using MisterGames.Common.Localization;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Tick;
 using TMPro;
@@ -16,11 +15,7 @@ namespace MisterGames.UI.Components {
     public sealed class UiTextPrinter : MonoBehaviour {
 
         [Header("Text")]
-        [SerializeField] private LaunchMode _launchMode;
         [SerializeField] private TMP_Text _defaultTextField;
-        [SerializeField] private LocalizationKey _defaultLocalizationKey;
-
-        [Header("Printing")]
         [SerializeField] private bool _useTimeScale = true;
         [SerializeField] [Min(0f)] private float _symbolDelayMin = 0.1f;
         [SerializeField] [Min(0f)] private float _symbolDelayMax = 0.1f;
@@ -50,16 +45,10 @@ namespace MisterGames.UI.Components {
             Ellipsis = 256,
         }
         
-        private enum LaunchMode {
-            OnEnable,
-            Manual,
-        }
-
         private const string TransparentTagOpen = "<color=#00000000>";
         private const string TransparentTagClose = "</color>";
 
         public TMP_Text DefaultTextField => _defaultTextField;
-        public LocalizationKey DefaultLocalizationKey => _defaultLocalizationKey;
         
         private CancellationTokenSource _destroyCts;
         private CancellationTokenSource _enableCts;
@@ -77,14 +66,15 @@ namespace MisterGames.UI.Components {
 
         private void OnEnable() {
             AsyncExt.RecreateCts(ref _enableCts);
-
-            if (_launchMode == LaunchMode.OnEnable) {
-                PrintTextAsync(_defaultTextField, _defaultLocalizationKey.GetValue(), _enableCts.Token).Forget();
-            }
         }
 
         private void OnDisable() {
             AsyncExt.DisposeCts(ref _enableCts);
+        }
+
+        public void SetText(TMP_Text textField, string content) {
+            CancelPrinting(textField, clear: true);
+            textField.SetText(content);
         }
         
         public async UniTask PrintTextAsync(

@@ -35,7 +35,12 @@ namespace MisterGames.Character.Input {
 
         public void EnableViewInput(bool enable) {
             _view.Get().performed -= HandleViewChanged;
-            if (enable) _view.Get().performed += HandleViewChanged;
+            _view.Get().canceled -= HandleViewCanceled;
+
+            if (enable) {
+                _view.Get().performed += HandleViewChanged;
+                _view.Get().canceled += HandleViewCanceled;
+            }
         }
         
         private void OnEnable() {
@@ -98,6 +103,7 @@ namespace MisterGames.Character.Input {
 
         private void HandleViewChanged(InputAction.CallbackContext callbackContext) => OnViewVectorChanged.Invoke(callbackContext.ReadValue<Vector2>());
         private void HandleViewCanceled(InputAction.CallbackContext callbackContext) => OnViewVectorChanged.Invoke(Vector2.zero);
+
         private void HandleMoveChanged(InputAction.CallbackContext callbackContext) => OnMotionVectorChanged.Invoke(callbackContext.ReadValue<Vector2>());
 
         private void HandleCrouchPressed(InputAction.CallbackContext callbackContext) => OnCrouchPressed.Invoke();

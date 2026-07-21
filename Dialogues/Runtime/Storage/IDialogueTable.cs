@@ -13,7 +13,6 @@ namespace MisterGames.Dialogues.Core {
         IReadOnlyList<DialogueElement> Elements { get; }
         
         DialogueElement GetElementData(LocalizationKey elementKey);
-
     }
     
 }

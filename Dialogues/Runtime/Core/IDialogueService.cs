@@ -19,7 +19,6 @@ namespace MisterGames.Dialogues.Core {
         event GroupStart OnDialogueRoleStart;
         event ElementStart OnDialogueElementStart;
         event DialogueGenericEvent OnAnyDialogueEvent;
-        event Action OnSkipApplied;
         
         IDialogueTable LoadDialogue(string guid);
         UniTask<IDialogueTable> LoadDialogueAsync(string guid);
@@ -37,16 +36,6 @@ namespace MisterGames.Dialogues.Core {
         void AddDialogueEvent(LocalizationKey key, DialogueEvent eventType, Func<CancellationToken, UniTask> action);
         void RemoveDialogueEvent(LocalizationKey key, DialogueEvent eventType, Func<CancellationToken, UniTask> action);
         UniTask AwaitDialogueEvents(LocalizationKey key, DialogueEvent eventType, CancellationToken cancellationToken);
-
-        void RegisterPrinter(IDialoguePrinter printer);
-        void UnregisterPrinter(IDialoguePrinter printer);
-
-        UniTask PrintElementAsync(LocalizationKey key, int roleIndex, CancellationToken cancellationToken);
-        void CancelLastPrinting(bool clear = false);
-        void FinishLastPrinting(float symbolDelay = -1f);
-        void ClearAllPrinters();
-
-        void NotifySkip();
     }
     
 }

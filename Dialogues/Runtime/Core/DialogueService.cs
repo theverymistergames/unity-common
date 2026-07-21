@@ -25,7 +25,6 @@ namespace MisterGames.Dialogues.Core {
         public event IDialogueService.GroupStart OnDialogueRoleStart = delegate { };
         public event IDialogueService.ElementStart OnDialogueElementStart = delegate { };
         public event IDialogueService.DialogueGenericEvent OnAnyDialogueEvent = delegate { };
-        public event Action OnSkipApplied = delegate { };
         
         private readonly Dictionary<int, IDialogueTable> _tableMap = new();
         private readonly Dictionary<int, AsyncOperationHandle<DialogueTableStorage>> _tableStorageHandlesMap = new();
@@ -213,51 +212,6 @@ namespace MisterGames.Dialogues.Core {
             await UniTask.WhenAll(tasks);
             
             ArrayPool<UniTask>.Shared.Return(tasks);
-        }
-
-        public void RegisterPrinter(IDialoguePrinter printer) {
-            _printers.Add(printer);
-        }
-
-        public void UnregisterPrinter(IDialoguePrinter printer) {
-            _printers.Remove(printer);
-        }
-        
-        public async UniTask PrintElementAsync(LocalizationKey key, int roleIndex, CancellationToken cancellationToken) {
-            var tasks = ArrayPool<UniTask>.Shared.Rent(_printers.Count);
-            tasks.ResetArrayElements();
-            int count = 0;
-            
-            foreach (var dialoguePrinter in _printers) {
-                tasks[count++] = dialoguePrinter.PrintElement(key, roleIndex, cancellationToken);
-            }
-
-            await UniTask.WhenAll(tasks);
-            
-            tasks.ResetArrayElements();
-            ArrayPool<UniTask>.Shared.Return(tasks);
-        }
-
-        public void CancelLastPrinting(bool clear = false) {
-            foreach (var dialoguePrinter in _printers) {
-                dialoguePrinter.CancelLastPrinting(clear);
-            }
-        }
-
-        public void FinishLastPrinting(float symbolDelay = -1) {
-            foreach (var dialoguePrinter in _printers) {
-                dialoguePrinter.FinishLastPrinting(symbolDelay);
-            }
-        }
-
-        public void ClearAllPrinters() {
-            foreach (var dialoguePrinter in _printers) {
-                dialoguePrinter.ClearAllText();
-            }
-        }
-
-        public void NotifySkip() {
-            OnSkipApplied.Invoke();
         }
 
         private static void LogInfo(string message) {

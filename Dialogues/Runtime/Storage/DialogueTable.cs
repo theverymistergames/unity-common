@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Buffers;
 using System.Collections.Generic;
 using MisterGames.Common.Localization;
 using MisterGames.Dialogues.Core;
@@ -24,7 +23,26 @@ namespace MisterGames.Dialogues.Storage {
             DialogueId = storage.DialogueId;
             _roles = CreateRoles(storage);
             _branches = CreateBranches(storage);
-            _elements = CreateElements(storage, out _elementsIndexMap);
+            _elements = CreateElements(storage);
+            _elementsIndexMap = CreateElementsIndexMap(_elements);
+        }
+
+        public DialogueTable(
+            LocalizationKey dialogueId,
+            IReadOnlyList<LocalizationKey> roles,
+            IReadOnlyList<LocalizationKey> branches,
+            IReadOnlyList<DialogueElement> elements) 
+        {
+            DialogueId = dialogueId;
+            
+            _roles = ListPool<LocalizationKey>.Get();
+            _branches = ListPool<LocalizationKey>.Get();
+            _elements = ListPool<DialogueElement>.Get();
+            
+            _roles.AddRange(roles);
+            _branches.AddRange(branches);
+            _elements.AddRange(elements);
+            _elementsIndexMap = CreateElementsIndexMap(_elements);
         }
 
         public void Dispose() {
@@ -59,21 +77,26 @@ namespace MisterGames.Dialogues.Storage {
 
             return branches;
         }
-        
-        private static List<DialogueElement> CreateElements(IDialogueTableStorage storage, out Dictionary<LocalizationKey, int> indexMap) {
+
+        private static List<DialogueElement> CreateElements(IDialogueTableStorage storage) {
             int elementsCount = storage.ElementsCount;
             var elements = ListPool<DialogueElement>.Get();
             
-            indexMap = DictionaryPool<LocalizationKey, int>.Get();
-            
             for (int i = 0; i < elementsCount; i++) {
-                var e = storage.GetElementAt(i);
-                
-                elements.Add(e);
-                indexMap[e.key] = i;
+                elements.Add(storage.GetElementAt(i));
             }
             
             return elements;
+        }
+
+        private static Dictionary<LocalizationKey, int> CreateElementsIndexMap(IReadOnlyList<DialogueElement> elements) {
+            var indexMap = DictionaryPool<LocalizationKey, int>.Get();
+            
+            for (int i = 0; i < elements.Count; i++) {
+                indexMap[elements[i].key] = i;
+            }
+            
+            return indexMap;
         }
     }
     
