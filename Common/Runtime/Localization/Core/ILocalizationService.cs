@@ -17,6 +17,9 @@ namespace MisterGames.Common.Localization {
         string GetLocalizedString(LocalizationKey key, Locale locale);
         T GetLocalizedAsset<T>(LocalizationKey<T> key);
         T GetLocalizedAsset<T>(LocalizationKey<T> key, Locale locale);
+        
+        void RegisterFormatter(ILocalizationFormatter formatter);
+        void UnregisterFormatter(ILocalizationFormatter formatter);
     }
     
 }

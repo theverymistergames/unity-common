@@ -26,7 +26,8 @@ namespace MisterGames.Common.Localization {
         private readonly Dictionary<int, float> _tableUsageTimeMap = new();
         private readonly Dictionary<int, ILocalizationTable> _tableMap = new();
         private readonly Dictionary<int, AsyncOperationHandle<LocalizationTableStorageBase>> _tableStorageHandlesMap = new();
-
+        private readonly HashSet<ILocalizationFormatter> _formatters = new();
+        
         private CancellationTokenSource _cts;
         private Locale _locale;
 
@@ -82,12 +83,21 @@ namespace MisterGames.Common.Localization {
         public string GetLocalizedString(LocalizationKey key, Locale locale) {
             var table = GetTable(key.table.ToGuid());
             if (table == null) return null;
+
+            if (table.TryGetValue(key.hash, locale.Hash, out string value) && 
+                !string.IsNullOrEmpty(value)) 
+            {
+                FormatString(key, locale, ref value);
+                return value;
+            }
             
-            if (table.TryGetValue(key.hash, locale.Hash, out string value) && !string.IsNullOrEmpty(value) ||
-                Settings.ReplaceNotLocalizedStringsWithDefaultLocale &&
+            if (Settings.ReplaceNotLocalizedStringsWithDefaultLocale &&
                 table.TryGetValue(key.hash, Settings.GetDefaultFallbackLocale().Hash, out value)) 
             {
-                return string.IsNullOrEmpty(value) ? Settings.GetFallbackString() : value;
+                if (string.IsNullOrEmpty(value)) return Settings.GetFallbackString();
+                
+                FormatString(key, Settings.GetDefaultFallbackLocale(), ref value);
+                return value;
             }
 
             return null;
@@ -105,6 +115,20 @@ namespace MisterGames.Common.Localization {
             }
 
             return default;
+        }
+
+        public void RegisterFormatter(ILocalizationFormatter formatter) {
+            _formatters.Add(formatter);
+        }
+        
+        public void UnregisterFormatter(ILocalizationFormatter formatter) {
+            _formatters.Remove(formatter);
+        }
+
+        private void FormatString(LocalizationKey key, Locale locale, ref string value) {
+            foreach (var formatter in _formatters) {
+                formatter.Format(key, locale, ref value);
+            }
         }
 
         private void SetLocale(Locale locale) {
