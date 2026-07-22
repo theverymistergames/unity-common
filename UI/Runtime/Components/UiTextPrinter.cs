@@ -193,13 +193,13 @@ namespace MisterGames.UI.Components {
 
         private static char GetNextCharSkippingTags(string content, ref int pointer, int length) {
             char c = pointer < length ? content[pointer++] : '\0';
-            
-            while (pointer - 1 < length && c == '<') {
-                while (pointer < length && content[pointer++] != '>') {
-                    // Skip all tags in a row
-                }
-                
-                if (pointer < length) c = content[pointer++];
+
+            while (c == '<') {
+                int closeIndex = content.IndexOf('>', pointer);
+                if (closeIndex < 0) break;
+
+                pointer = closeIndex + 1;
+                c = pointer < length ? content[pointer++] : '\0';
             }
 
             return c;
