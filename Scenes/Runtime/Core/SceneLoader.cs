@@ -179,6 +179,22 @@ namespace MisterGames.Scenes.Core {
             return _destroyed ? null : _instance._requestedActiveScene;
         }
         
+        public static float GetLoadingProgress() {
+            return _destroyed ? 1f : _instance.GetAverageLoadingProgress();
+        }
+        
+        private float GetAverageLoadingProgress() {
+            float progressSum = 0f;
+            int count = 0;
+            
+            foreach (var data in _loadSceneDataMap.Values) {
+                count++;
+                progressSum += data.handle?.progress ?? 0f;
+            }
+
+            return count > 0 ? progressSum / count : 1f;
+        }
+        
         private void SetActiveSceneInternal(string sceneName) {
             if (SceneManager.GetActiveScene().name == sceneName) return;
             
@@ -236,13 +252,21 @@ namespace MisterGames.Scenes.Core {
             if (token.IsCancellationRequested) return;
             
             var handle = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+            if (handle != null) handle.allowSceneActivation = false;
             
             data = new SceneLoadData { handle = handle, cts = cts, isLoading = true }; 
             _loadSceneDataMap[sceneName] = data;
+
+            while (!token.IsCancellationRequested && handle is { progress: < 0.9f }) {
+                await UniTask.Yield();
+            }
+            if (token.IsCancellationRequested) return;
+            
+            if (handle != null) handle.allowSceneActivation = true;
             
             await handle.WithCancellation(token);
             if (token.IsCancellationRequested) return;
-
+            
             _loadedScenes.Add(sceneName);
             
             if (_logLevel >= LogLevel.Short) {
