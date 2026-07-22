@@ -11,9 +11,9 @@ namespace MisterGames.Logic.Loading {
         public LocalizationKey dialogueId;
         public LocalizationKey roleId;
         public LocalizationKey branchId;
-        
+
         [Space]
-        public LocalizationKey[] elements;
+        [SerializeReference] [SubclassSelector] public ILocalizedStringProvider[] blocks;
         [Space]
         public Arguments[] args;
         

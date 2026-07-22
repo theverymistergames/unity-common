@@ -14,6 +14,16 @@ namespace MisterGames.Common.Lists {
 
         [BurstCompile]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static NativeArray<int> Indices(int length, Allocator allocator) {
+            var indices = new NativeArray<int>(length, allocator);
+            for (int i = 0; i < length; i++) {
+                indices[i] = i;
+            }
+            return indices;
+        }
+        
+        [BurstCompile]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static NativeArray<int> ShuffledIndices(int length, Allocator allocator, uint seed = 0) {
             var indices = new NativeArray<int>(length, allocator);
             for (int i = 0; i < length; i++) {

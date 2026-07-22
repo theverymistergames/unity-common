@@ -46,10 +46,17 @@ namespace MisterGames.Logic.Loading {
         
         private static IReadOnlyList<DialogueElement> CreateDialogueElements(LoadingTextPreset preset) {
             var list = new List<DialogueElement>();
+            var buffer = ListPool<LocalizationKey>.Get();
 
-            for (int i = 0; i < preset.elements.Length; i++) {
-                list.Add(new DialogueElement { branchId = preset.branchId, roleId = preset.roleId, key = preset.elements[i] });
+            for (int i = 0; i < preset.blocks.Length; i++) {
+                preset.blocks[i].GetValues(buffer);
             }
+
+            for (int i = 0; i < buffer.Count; i++) {
+                list.Add(new DialogueElement { branchId = preset.branchId, roleId = preset.roleId, key = buffer[i] });
+            }
+            
+            ListPool<LocalizationKey>.Release(buffer);
             
             return list;
         }

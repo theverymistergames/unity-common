@@ -47,6 +47,7 @@ namespace MisterGames.UI.Components {
         
         private const string TransparentTagOpen = "<color=#00000000>";
         private const string TransparentTagClose = "</color>";
+        private static readonly string TransparentNewLine = $"{TransparentTagOpen}\n.{TransparentTagClose}";
 
         public TMP_Text DefaultTextField => _defaultTextField;
         
@@ -96,7 +97,8 @@ namespace MisterGames.UI.Components {
             int length = content.Length;
             int pointer = 0;
             int caret = 0;
-            
+            int sbOffset = 0;
+
             bool useTimeScale = _useTimeScale;
             float delayAccum = 0f;
             char prev = '\0';
@@ -123,9 +125,17 @@ namespace MisterGames.UI.Components {
                 char c = GetNextCharSkippingTags(content, ref pointer, length);
 
                 sb.Remove(caret, TransparentTagOpen.Length);
-                caret = pointer;
+
+                if (c == '\n') {
+                    int newLineIndex = pointer - 2 + sbOffset;
+                    sb.Remove(newLineIndex, 2);
+                    sb.Insert(newLineIndex, TransparentNewLine);
+                    sbOffset += TransparentNewLine.Length - 2;
+                }
+
+                caret = pointer + sbOffset;
                 sb.Insert(caret, TransparentTagOpen);
-                
+
                 textField.SetText(sb);
                 
                 if (symbolDelay < 0f) {
@@ -200,6 +210,11 @@ namespace MisterGames.UI.Components {
 
                 pointer = closeIndex + 1;
                 c = pointer < length ? content[pointer++] : '\0';
+            }
+
+            if (c == '\\' && pointer < length && content[pointer] == 'n') {
+                pointer++;
+                c = '\n';
             }
 
             return c;
