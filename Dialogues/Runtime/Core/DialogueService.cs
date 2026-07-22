@@ -31,7 +31,6 @@ namespace MisterGames.Dialogues.Core {
         private readonly Dictionary<LocalizationKey, DialogueElement> _startedDialogues = new();
         
         private readonly MultiValueDictionary<(LocalizationKey, DialogueEvent), Func<CancellationToken, UniTask>> _dialogueEvents = new();
-        private readonly HashSet<IDialoguePrinter> _printers = new();
         
         public void Initialize() {
             

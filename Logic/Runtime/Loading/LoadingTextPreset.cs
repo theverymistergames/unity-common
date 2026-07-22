@@ -8,14 +8,20 @@ namespace MisterGames.Logic.Loading {
     [CreateAssetMenu(fileName = nameof(LoadingTextPreset), menuName = "MisterGames/Dialogues/" + nameof(LoadingTextPreset))]
     public sealed class LoadingTextPreset : ScriptableObject {
         
+        [Header("Meta")]
         public LocalizationKey dialogueId;
         public LocalizationKey roleId;
         public LocalizationKey branchId;
 
-        [Space]
+        [Header("Elements")]
         [SerializeReference] [SubclassSelector] public ILocalizedStringProvider[] blocks;
-        [Space]
         public Arguments[] args;
+
+        [Header("Loading")]
+        public LocalizationKey loadingProgressKey;
+        [Min(0)] public int loadProgressCharsCount = 20;
+        public char loadProgressEmptyChar = '░';
+        public char loadProgressFullChar = '█';
         
         [Serializable]
         public struct Arguments {

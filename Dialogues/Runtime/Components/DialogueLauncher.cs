@@ -49,6 +49,8 @@ namespace MisterGames.Dialogues.Components {
             AutoPlayNext,
         }
 
+        public event Action<LocalizationKey, int> OnDialogueElementPrinted = delegate { }; 
+        
         public bool IsPaused { get; private set; }
         public bool IsRunning { get; private set; }
 
@@ -222,6 +224,8 @@ namespace MisterGames.Dialogues.Components {
                     await _dialoguePrinter.PrintElement(element.key, roleIndex, cancellationToken);
                     if (cancellationToken.IsCancellationRequested) break;
                     
+                    OnDialogueElementPrinted.Invoke(element.key, roleIndex);
+                    
                     await WaitWhilePaused(cancellationToken);
                     if (cancellationToken.IsCancellationRequested) break;
                 }
@@ -276,6 +280,10 @@ namespace MisterGames.Dialogues.Components {
             _dialoguePrinter.FinishLastPrinting(symbolDelay);
         }
 
+        public void ReprintLast(LocalizationKey key) {
+            _dialoguePrinter.ReprintLast(key);
+        }
+        
         private async UniTask WaitWhilePaused(CancellationToken cancellationToken) {
             while (!cancellationToken.IsCancellationRequested && IsPaused) {
                 await UniTask.Yield();

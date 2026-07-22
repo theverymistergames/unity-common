@@ -3,6 +3,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
+using MisterGames.Common.Attributes;
 using MisterGames.Common.Labels;
 using MisterGames.Dialogues.Components;
 using MisterGames.Dialogues.Core;
@@ -16,7 +17,7 @@ namespace MisterGames.ActionLib.Dialogues {
 
         public LabelValue<UnityEngine.Object> loadingTextLauncher;
         public LoadingTextPreset preset;
-        public bool wait;
+        [SerializeReference] [SubclassSelector] public IActorAction loadAction;
         
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
             var launcher = loadingTextLauncher.GetData() as LoadingTextLauncher;
@@ -24,12 +25,8 @@ namespace MisterGames.ActionLib.Dialogues {
                 Debug.LogError($"LaunchLoadingTextAction.Apply: f {UnityEngine.Time.frameCount}, cannot find loading text launcher by id {loadingTextLauncher}");
                 return default;
             }
-            if (wait) {
-                return launcher.PrintLoadingText(preset, cancellationToken);
-            }
             
-            launcher.PrintLoadingText(preset, cancellationToken).Forget();
-            return UniTask.CompletedTask;
+            return launcher.PrintLoadingText(context, preset, loadAction, cancellationToken);
         }
     }
     

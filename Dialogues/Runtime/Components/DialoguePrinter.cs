@@ -8,14 +8,13 @@ using MisterGames.Common.Lists;
 using MisterGames.Common.Localization;
 using MisterGames.Common.Pooling;
 using MisterGames.Common.Service;
-using MisterGames.Dialogues.Core;
 using MisterGames.UI.Components;
 using TMPro;
 using UnityEngine;
 
 namespace MisterGames.Dialogues.Components {
     
-    public sealed class DialoguePrinter : MonoBehaviour, IActorComponent, IDialoguePrinter {
+    public sealed class DialoguePrinter : MonoBehaviour, IActorComponent {
         
         [SerializeField] private PrintSettings _defaultSettings;
         [SerializeField] private RoleData[] _perRoleSettings;
@@ -47,6 +46,7 @@ namespace MisterGames.Dialogues.Components {
         
         private readonly List<TMP_Text> _allocatedTextFields = new();
         private readonly Dictionary<TMP_Text, (LocalizationKey key, UiTextPrinter printer)> _textPrintMap = new();
+        private readonly Dictionary<LocalizationKey, (TMP_Text textField, UiTextPrinter printer)> _lastPrintMap = new();
         private CancellationTokenSource _enableCts;
         private UiTextPrinter _lastPrinter;
         private TMP_Text _lastTextField;
@@ -131,6 +131,7 @@ namespace MisterGames.Dialogues.Components {
 #endif
 
             _textPrintMap[textField] = (key, textPrinter);
+            _lastPrintMap[key] = (textField, textPrinter);
             
             await textPrinter.PrintTextAsync(textField, key.GetValue(), cancellationToken);
         }
@@ -147,6 +148,12 @@ namespace MisterGames.Dialogues.Components {
             _lastPrinter.ForceFinishPrinting(_lastTextField, symbolDelay);
         }
 
+        public void ReprintLast(LocalizationKey key) {
+            if (!_lastPrintMap.TryGetValue(key, out var data)) return;
+            
+            data.printer.SetText(data.textField, key.GetValue());
+        }
+        
         public void ClearAllText() {
             ReleaseAllTextFields();
 
@@ -162,6 +169,9 @@ namespace MisterGames.Dialogues.Components {
                     printSettings.textPrinter.CancelPrinting(printSettings.textPrinter.DefaultTextField, clear: true);
                 }
             }
+            
+            _lastPrintMap.Clear();
+            _textPrintMap.Clear();
         }
 
         private async UniTask<TMP_Text> CreateTextField(TMP_Text prefab, Transform parent) {
