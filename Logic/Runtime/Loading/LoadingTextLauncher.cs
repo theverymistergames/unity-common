@@ -162,7 +162,7 @@ namespace MisterGames.Logic.Loading {
                 float oldProgress = _loadingProgress;
                 float targetProgress = SceneLoader.GetLoadingProgress();
                 
-                _loadingProgress = _loadingProgress.SmoothExpNonZero(targetProgress, preset.progressSmoothing, Time.deltaTime);
+                _loadingProgress = _loadingProgress.SmoothExpNonZero(targetProgress, preset.progressSmoothing, Time.unscaledDeltaTime);
                 
                 if (!oldProgress.IsNearlyEqual(_loadingProgress)) {
                     _dialoguePrinter.ReprintLast(preset.loadingProgressKey);    

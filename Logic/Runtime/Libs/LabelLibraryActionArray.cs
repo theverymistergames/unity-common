@@ -19,7 +19,7 @@ namespace MisterGames.Logic.Libs {
 
         private enum ActionMode {
             InvokeNewAction,
-            CancelPreviousAction,
+            CancelPreviousThenInvokeNewAction,
         }
         
         [Serializable]
@@ -88,7 +88,7 @@ namespace MisterGames.Logic.Libs {
                 case ActionMode.InvokeNewAction:
                     return defaultCancellationToken;
                 
-                case ActionMode.CancelPreviousAction:
+                case ActionMode.CancelPreviousThenInvokeNewAction:
                     AsyncExt.RecreateCts(ref _cts);
                     return CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, defaultCancellationToken).Token;
                 

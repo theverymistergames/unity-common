@@ -57,7 +57,7 @@ namespace MisterGames.Scenes.Actions {
             float wait = Mathf.Max(Time.realtimeSinceStartup - showStartTime, _minDuration);
             
             if (wait > 0f) {
-                await UniTask.Delay(TimeSpan.FromSeconds(wait), cancellationToken: cancellationToken)
+                await UniTask.Delay(TimeSpan.FromSeconds(wait), delayType: DelayType.UnscaledDeltaTime, cancellationToken: cancellationToken)
                     .SuppressCancellationThrow();
                 if (cancellationToken.IsCancellationRequested) return;
             }
