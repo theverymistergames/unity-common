@@ -5,12 +5,15 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
+using MisterGames.Common.Audio;
 using MisterGames.Common.Inputs;
+using MisterGames.Common.Labels;
 using MisterGames.Common.Localization;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Service;
 using MisterGames.Dialogues.Components;
 using MisterGames.Scenes.Core;
+using MisterGames.UI.Data;
 using UnityEngine;
 using UnityEngine.Pool;
 
@@ -19,7 +22,8 @@ namespace MisterGames.Logic.Loading {
     public sealed class LoadingTextLauncher : MonoBehaviour, IArgumentResolver {
         
         [SerializeField] private DialoguePrinter _dialoguePrinter;
-
+        [SerializeField] private UiSfxSettings _uiSfxSettings;
+        
         private LoadingTextPreset _preset;
         private float _loadingProgress;
         private byte _loadingId;
@@ -75,6 +79,19 @@ namespace MisterGames.Logic.Loading {
                 
                 await AwaitAnyInput(id, cancellationToken);
                 if (cancellationToken.IsCancellationRequested || id != _loadingId) return;
+
+                if (AudioPool.Main is { } audioPool) {
+                    audioPool.Play(
+                        audioPool.ShuffleClips(preset.awaitedInputSounds.GetData()),
+                        Vector3.zero,
+                        _uiSfxSettings.volume.GetRandomInRange(),
+                        pitch: _uiSfxSettings.pitch.GetRandomInRange(),
+                        spatialBlend: 0f,
+                        mixerGroup: _uiSfxSettings.mixerGroup,
+                        options: _uiSfxSettings.affectedByTimeScale ? AudioOptions.AffectedByTimeScale : AudioOptions.None,
+                        cancellationToken: CancellationToken.None
+                    );
+                }
             }
             
             await UniTask.Delay(TimeSpan.FromSeconds(preset.finishDelay), delayType: DelayType.UnscaledDeltaTime, cancellationToken: cancellationToken)

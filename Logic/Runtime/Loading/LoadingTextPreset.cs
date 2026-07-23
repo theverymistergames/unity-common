@@ -1,5 +1,6 @@
 ﻿using System;
 using MisterGames.Common.Attributes;
+using MisterGames.Common.Labels;
 using MisterGames.Common.Localization;
 using UnityEngine;
 
@@ -33,6 +34,9 @@ namespace MisterGames.Logic.Loading {
         [Min(0f)] public float dotPrintRestartDelay = 0.7f;
         [Min(0f)] public int dotsCount = 3;
         public char dotChar = '.';
+        
+        [Header("Sounds")]
+        public LabelValue<AudioClip[]> awaitedInputSounds;
         
         [Serializable]
         public struct Arguments {
