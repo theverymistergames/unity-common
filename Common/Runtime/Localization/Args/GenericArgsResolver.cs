@@ -9,7 +9,7 @@ namespace MisterGames.Common.Localization {
 
         [SerializeReference] [SubclassSelector] public IArgumentValue[] args;
         
-        public void Resolve(Locale locale, ref string value) {
+        public void Resolve(LocalizationKey key, Locale locale, ref string value) {
             ArgumentResolveExtensions.ResolveArgs((args, locale), args.Length, ref value, (a, i) => a.args[i].GetValue(a.locale));
         }
     }

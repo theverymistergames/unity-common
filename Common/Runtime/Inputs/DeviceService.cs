@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using MisterGames.Common.Inputs.DualSense;
 using MisterGames.Common.Service;
@@ -19,9 +20,17 @@ namespace MisterGames.Common.Inputs {
         public DeviceType CurrentDevice { get; private set; }
         public int LastPointerDeviceId { get; private set; }
         
+        public bool AnyKeyPressedThisFrame { get; private set; }
+        public bool AnyInputActivatedThisFrame { get; private set; }
+        
         public IGamepadVibration GamepadVibration => _gamepadVibration;
         public IDualSenseAdapter DualSenseAdapter => _dualSenseAdapter;
 
+        private static readonly HashSet<string> _gamepadStickNames = new() {
+            "leftStick",
+            "rightStick",
+        };
+        
         private void Awake() {
             Services.Register<IDeviceService>(this);
         }
@@ -36,6 +45,7 @@ namespace MisterGames.Common.Inputs {
 
         private void OnDisable() {
             PlayerLoopStage.LateUpdate.Unsubscribe(this);
+            AnyKeyPressedThisFrame = false;
         }
         
         public bool TryGetGamepad(out Gamepad gamepad) {
@@ -53,43 +63,59 @@ namespace MisterGames.Common.Inputs {
         }
         
         private void CheckDeviceType() {
+            bool keyboardMousePressed = IsAnyKeyboardMouseControlPressed();
+            bool mouseOrScrollMoved = IsMouseOrScrollMoved();
+            IsAnyGamepadControlPressed(out bool gamepadPressed, out bool gamepadSticksMoved);
+            
+            AnyKeyPressedThisFrame = keyboardMousePressed || gamepadPressed;
+            AnyInputActivatedThisFrame = keyboardMousePressed || mouseOrScrollMoved || gamepadPressed || gamepadSticksMoved;
+            
             var lastDevice = CurrentDevice;
-            CurrentDevice = GetCurrentDeviceType();
+            CurrentDevice = gamepadPressed || gamepadSticksMoved ? DeviceType.Gamepad 
+                : keyboardMousePressed || mouseOrScrollMoved ? DeviceType.KeyboardMouse
+                : CurrentDevice;
 
             if (lastDevice != CurrentDevice) OnDeviceChanged.Invoke(CurrentDevice);
         }
 
-        private DeviceType GetCurrentDeviceType() {
-            if (IsAnyKeyboardMouseControlPressed()) {
-                return DeviceType.KeyboardMouse;
-            }
-            
-            if (Gamepad.current != null && IsAnyGamepadControlPressed()) {
-                return DeviceType.Gamepad;
-            }
-            
-            return CurrentDevice;
-        }
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool IsAnyKeyboardMouseControlPressed() {
-            return Keyboard.current.anyKey.wasPressedThisFrame 
-                   || Mouse.current.leftButton.wasPressedThisFrame
+            return Keyboard.current != null && Keyboard.current.anyKey.wasPressedThisFrame
+                   || Mouse.current != null &&
+                   (Mouse.current.leftButton.wasPressedThisFrame
                    || Mouse.current.rightButton.wasPressedThisFrame
-                   || Mouse.current.middleButton.wasPressedThisFrame
-                   || Mouse.current.scroll.ReadValue() != default
-                   || Mouse.current.delta.ReadValue() != default;
+                   || Mouse.current.middleButton.wasPressedThisFrame);
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static bool IsAnyGamepadControlPressed() {
+        private static bool IsMouseOrScrollMoved() {
+            return Mouse.current != null &&
+                   (Mouse.current.scroll.ReadValue() != default
+                    || Mouse.current.delta.ReadValue() != default);
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void IsAnyGamepadControlPressed(out bool keysPressed, out bool sticksMoved) {
+            keysPressed = false;
+            sticksMoved = false;
+            
+            if (Gamepad.current == null) return;
+            
             var controls = Gamepad.current.allControls;
             
             for (int i = 0; i < controls.Count; i++) {
-                if (controls[i].IsPressed() && !controls[i].synthetic) return true;
-            }
+                var c = controls[i];
+                if (c.synthetic || !c.IsPressed()) continue;
 
-            return false;
+                if (_gamepadStickNames.Contains(c.name)) {
+                    sticksMoved = true;
+                }
+                else {
+                    keysPressed = true;
+                }
+                
+                if (sticksMoved && keysPressed) return;
+            }
         }
     }
     

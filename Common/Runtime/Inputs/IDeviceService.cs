@@ -12,6 +12,7 @@ namespace MisterGames.Common.Inputs {
         DeviceType CurrentDevice { get; }
         IGamepadVibration GamepadVibration { get; }
         IDualSenseAdapter DualSenseAdapter { get; }
+        bool AnyKeyPressedThisFrame { get; }
         
         bool TryGetGamepad(out Gamepad gamepad);
     }

@@ -5,11 +5,11 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
+using MisterGames.Common.Inputs;
 using MisterGames.Common.Localization;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Service;
 using MisterGames.Dialogues.Components;
-using MisterGames.Dialogues.Storage;
 using MisterGames.Scenes.Core;
 using UnityEngine;
 using UnityEngine.Pool;
@@ -18,127 +18,187 @@ namespace MisterGames.Logic.Loading {
     
     public sealed class LoadingTextLauncher : MonoBehaviour, IArgumentResolver {
         
-        [SerializeField] private DialogueLauncher _dialogueLauncher;
-        [SerializeField] [Min(0f)] private float _loadingProgressSmoothing = 2f;
-        [SerializeField] [Min(0f)] private float _finishDelay = 0.5f;
-
-        public float LoadingProgress { get; private set; }
+        [SerializeField] private DialoguePrinter _dialoguePrinter;
 
         private LoadingTextPreset _preset;
+        private float _loadingProgress;
         private byte _loadingId;
+        private int _dotsCount;
 
         public async UniTask PrintLoadingText(IActor context, LoadingTextPreset preset, IActorAction loadAction, CancellationToken cancellationToken) {
             _preset = preset;
             
             byte id = _loadingId.IncrementUncheckedRef();
-            var table = CreateDialogueTable(preset);
-            var formatter = CreateFormatter(preset);
-            var cs = new UniTaskCompletionSource();
+            var formatter = new Formatter(preset, specialResolver: this);
             
             if (Services.TryGet(out ILocalizationService localizationService)) {
                 localizationService.RegisterFormatter(formatter);
             }
             
-            _dialogueLauncher.OnDialogueElementPrinted += OnDialogueElementPrinted;
+            _dialoguePrinter.ClearAllText();
             
-            await _dialogueLauncher.LaunchDialogueAsync(table, cancellationToken);
-
-            _dialogueLauncher.OnDialogueElementPrinted -= OnDialogueElementPrinted;
-
-            await cs.Task;
+            await PrintMainElements(id, preset, cancellationToken);
             
-            await UniTask.Delay(TimeSpan.FromSeconds(_finishDelay), cancellationToken: cancellationToken)
+            if (cancellationToken.IsCancellationRequested || id != _loadingId) {
+                return;
+            }
+
+            if (preset.showProgress) {
+                await _dialoguePrinter.PrintElement(preset.loadingProgressKey, 0, cancellationToken);
+                if (cancellationToken.IsCancellationRequested || id != _loadingId) return;
+            
+                NotifyLoadingProgress(id, preset, cancellationToken).Forget();
+            }
+            
+            if (loadAction != null) await loadAction.Apply(context, cancellationToken);
+            
+            if (cancellationToken.IsCancellationRequested || id != _loadingId) {
+                return;
+            }
+            
+            await UniTask.Delay(TimeSpan.FromSeconds(preset.afterLoadDelay), delayType: DelayType.UnscaledDeltaTime, cancellationToken: cancellationToken)
                 .SuppressCancellationThrow();
+            if (cancellationToken.IsCancellationRequested || id != _loadingId) {
+                return;
+            }
             
+            await PrintElementsAfterLoading(id, preset, cancellationToken);
+            if (cancellationToken.IsCancellationRequested || id != _loadingId) {
+                return;
+            }
+
+            if (preset.awaitInput) {
+                await _dialoguePrinter.PrintElement(preset.awaitInputKey, 0, cancellationToken);
+                if (cancellationToken.IsCancellationRequested || id != _loadingId) return;
+                
+                AnimateDots(id, preset.awaitInputKey, cancellationToken).Forget();
+                
+                await AwaitAnyInput(id, cancellationToken);
+                if (cancellationToken.IsCancellationRequested || id != _loadingId) return;
+            }
             
+            await UniTask.Delay(TimeSpan.FromSeconds(preset.finishDelay), delayType: DelayType.UnscaledDeltaTime, cancellationToken: cancellationToken)
+                .SuppressCancellationThrow();
+            if (cancellationToken.IsCancellationRequested || id != _loadingId) {
+                return;
+            }
             
             _loadingId.IncrementUncheckedRef();
             localizationService?.UnregisterFormatter(formatter);
-            table.Dispose();
             formatter.Dispose();
-            
-            return;
+        }
 
-            void OnDialogueElementPrinted(LocalizationKey key, int roleIndex) {
-                if (preset.loadingProgressKey != key) return;
+        public void ClearAllText() {
+            _dialoguePrinter.ClearAllText();
+        }
+        
+        private async UniTask PrintMainElements(byte id, LoadingTextPreset preset, CancellationToken cancellationToken) {
+            var buffer = ListPool<LocalizationKey>.Get();
+            
+            for (int i = 0; i < preset.blocks?.Length; i++) {
+                preset.blocks[i].GetValues(buffer);
+            }
+
+            for (int i = 0; i < buffer.Count && !cancellationToken.IsCancellationRequested && id == _loadingId; i++) {
+                await _dialoguePrinter.PrintElement(buffer[i], 0, cancellationToken);
+                if (cancellationToken.IsCancellationRequested || id != _loadingId) break;
                 
-                NotifyLoadingProgress(id, key, cancellationToken).Forget();
-                LaunchLoading(context, loadAction, cs, cancellationToken).Forget();
+                await UniTask.Delay(TimeSpan.FromSeconds(preset.printElementDelay), delayType: DelayType.UnscaledDeltaTime, cancellationToken: cancellationToken)
+                    .SuppressCancellationThrow();
+            }
+            
+            ListPool<LocalizationKey>.Release(buffer);
+        }
+        
+        private async UniTask PrintElementsAfterLoading(byte id, LoadingTextPreset preset, CancellationToken cancellationToken) {
+            var buffer = ListPool<LocalizationKey>.Get();
+            
+            for (int i = 0; i < preset.afterLoading?.Length; i++) {
+                preset.afterLoading[i].GetValues(buffer);
+            }
+
+            for (int i = 0; i < buffer.Count && !cancellationToken.IsCancellationRequested && id == _loadingId; i++) {
+                await _dialoguePrinter.PrintElement(buffer[i], 0, cancellationToken);
+            }
+            
+            ListPool<LocalizationKey>.Release(buffer);
+        }
+
+        private async UniTask AwaitAnyInput(byte id, CancellationToken cancellationToken) {
+            while (!cancellationToken.IsCancellationRequested && 
+                   Services.TryGet(out IDeviceService deviceService) && 
+                   !deviceService.AnyKeyPressedThisFrame && 
+                   _loadingId == id) 
+            {
+                await UniTask.Yield();
             }
         }
 
-        private static async UniTask LaunchLoading(IActor context, IActorAction loadAction, UniTaskCompletionSource cs, CancellationToken cancellationToken) {
-            if (loadAction != null) await loadAction.Apply(context, cancellationToken);
-            cs.TrySetResult();
-        }
-        
-        private async UniTask NotifyLoadingProgress(byte id, LocalizationKey key, CancellationToken cancellationToken) {
-            LoadingProgress = 0f;
+        private async UniTask AnimateDots(byte id, LocalizationKey key, CancellationToken cancellationToken) {
+            _dotsCount = 0;
             
             while (!cancellationToken.IsCancellationRequested && id == _loadingId) {
-                float oldProgress = LoadingProgress;
+                for (int i = 0; i <= _preset.dotsCount && !cancellationToken.IsCancellationRequested && id == _loadingId; i++) {
+                    _dotsCount = i;
+                    _dialoguePrinter.ReprintLast(key);
+                    
+                    await UniTask.Delay(TimeSpan.FromSeconds(_preset.dotPrintDelay), delayType: DelayType.UnscaledDeltaTime, cancellationToken: cancellationToken)
+                        .SuppressCancellationThrow();
+                }
+                
+                if (cancellationToken.IsCancellationRequested || id != _loadingId) break;
+                
+                await UniTask.Delay(TimeSpan.FromSeconds(_preset.dotPrintRestartDelay), delayType: DelayType.UnscaledDeltaTime, cancellationToken: cancellationToken)
+                    .SuppressCancellationThrow();
+                
+                await UniTask.Yield();
+            }
+        }
+        
+        private async UniTask NotifyLoadingProgress(byte id, LoadingTextPreset preset, CancellationToken cancellationToken) {
+            _loadingProgress = 0f;
+            
+            while (!cancellationToken.IsCancellationRequested && id == _loadingId) {
+                float oldProgress = _loadingProgress;
                 float targetProgress = SceneLoader.GetLoadingProgress();
                 
-                LoadingProgress = LoadingProgress.SmoothExpNonZero(targetProgress, _loadingProgressSmoothing, Time.deltaTime);
+                _loadingProgress = _loadingProgress.SmoothExpNonZero(targetProgress, preset.progressSmoothing, Time.deltaTime);
                 
-                if (!oldProgress.IsNearlyEqual(LoadingProgress)) {
-                    _dialogueLauncher.ReprintLast(key);    
+                if (!oldProgress.IsNearlyEqual(_loadingProgress)) {
+                    _dialoguePrinter.ReprintLast(preset.loadingProgressKey);    
                 }
                 
                 await UniTask.Yield();
             }
         }
 
-        void IArgumentResolver.Resolve(Locale locale, ref string value) {
-            if (_preset.loadProgressCharsCount > 0) {
-                var sb = new StringBuilder();
-                int dec = Mathf.FloorToInt(LoadingProgress * _preset.loadProgressCharsCount);
-                for (int i = 0; i < _preset.loadProgressCharsCount; i++) {
-                    sb.Append(i <= dec ? _preset.loadProgressFullChar : _preset.loadProgressEmptyChar);
-                }
+        void IArgumentResolver.Resolve(LocalizationKey key, Locale locale, ref string value) {
+            if (key == _preset.loadingProgressKey) {
+                if (_preset.loadProgressCharsCount > 0) {
+                    var sb = new StringBuilder();
+                    int dec = Mathf.FloorToInt(_loadingProgress * _preset.loadProgressCharsCount);
+                    for (int i = 0; i < _preset.loadProgressCharsCount; i++) {
+                        sb.Append(i <= dec ? _preset.loadProgressFullChar : _preset.loadProgressEmptyChar);
+                    }
                 
-                value = string.Format(value, $"{sb} {LoadingProgress * 100f:00}%");
+                    value = string.Format(value, $"{sb} {_loadingProgress * 100f:00}%");
+                    return;
+                }
+            
+                value = string.Format(value, $"{_loadingProgress * 100f:00}%");
                 return;
             }
-            
-            value = string.Format(value, $"{LoadingProgress * 100f:00}%");
-        }
 
-        private static DialogueTable CreateDialogueTable(LoadingTextPreset preset) {
-            return new DialogueTable(
-                preset.dialogueId,
-                roles: new[] { preset.roleId },
-                branches: new[] { preset.branchId },
-                elements: CreateDialogueElements(preset) 
-            );
-        }
-
-        private Formatter CreateFormatter(LoadingTextPreset preset) {
-            return new Formatter(preset, loadingProgressResolver: this);
-        }
-        
-        private static IReadOnlyList<DialogueElement> CreateDialogueElements(LoadingTextPreset preset) {
-            var list = new List<DialogueElement>();
-            var buffer = ListPool<LocalizationKey>.Get();
-
-            for (int i = 0; i < preset.blocks.Length; i++) {
-                preset.blocks[i].GetValues(buffer);
+            if (key == _preset.awaitInputKey) {
+                value = string.Format(value, new string(_preset.dotChar, _dotsCount));
             }
-
-            for (int i = 0; i < buffer.Count; i++) {
-                list.Add(new DialogueElement { branchId = preset.branchId, roleId = preset.roleId, key = buffer[i] });
-            }
-            
-            ListPool<LocalizationKey>.Release(buffer);
-            
-            return list;
         }
 
         private sealed class Formatter : ILocalizationFormatter, IDisposable {
 
             private readonly Dictionary<LocalizationKey, IArgumentResolver> _argsMap;
             
-            public Formatter(LoadingTextPreset preset, IArgumentResolver loadingProgressResolver) {
+            public Formatter(LoadingTextPreset preset, IArgumentResolver specialResolver) {
                 _argsMap = DictionaryPool<LocalizationKey, IArgumentResolver>.Get();
                 
                 for (int i = 0; i < preset.args.Length; i++) {
@@ -146,7 +206,8 @@ namespace MisterGames.Logic.Loading {
                     _argsMap[arg.key] = arg.resolver;
                 }
                 
-                _argsMap[preset.loadingProgressKey] = loadingProgressResolver;
+                _argsMap[preset.loadingProgressKey] = specialResolver;
+                _argsMap[preset.awaitInputKey] = specialResolver;
             }
 
             public void Dispose() {
@@ -155,7 +216,7 @@ namespace MisterGames.Logic.Loading {
 
             public void Format(LocalizationKey key, Locale locale, ref string value) {
                 if (_argsMap.TryGetValue(key, out var resolver)) {
-                    resolver.Resolve(locale, ref value);
+                    resolver.Resolve(key, locale, ref value);
                 }
             }
         }
