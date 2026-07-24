@@ -4,12 +4,13 @@ using System.Text;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Audio;
-using MisterGames.Common.Inputs;
 using MisterGames.Common.Labels;
+using MisterGames.Common.Lists;
 using MisterGames.Common.Localization;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Service;
 using MisterGames.Dialogues.Components;
+using MisterGames.Input.Actions;
 using MisterGames.Scenes.Core;
 using MisterGames.UI.Data;
 using UnityEngine;
@@ -19,18 +20,29 @@ namespace MisterGames.Logic.Loading {
     
     public sealed class LoadingTextLauncher : MonoBehaviour, IArgumentResolver {
         
-        [SerializeField] private DialoguePrinter _dialoguePrinter;
-        [SerializeField] private UiSfxSettings _uiSfxSettings;
-        [SerializeField] [Min(0f)] private float _printElementDelay = 0.05f;
+        [Header("Loading")]
+        [SerializeField] private InputActionRef[] _submitInputs;
         [SerializeField] [Min(0f)] private float _afterLoadDelay = 0.2f;
         [SerializeField] [Min(0f)] private float _finishDelay = 0.2f;
+        
+        [Header("Print")]
+        [SerializeField] private DialoguePrinter _dialoguePrinter;
+        [SerializeField] private UiSfxSettings _uiSfxSettings;
+        [SerializeField] [Min(0f)] private float _printElementDelayDefault = 0.1f;
+        [SerializeField] [Min(0f)] private float _printElementDelayFast = 0.05f;
+
+        [Flags]
+        public enum PrintOptions {
+            None = 0,
+            FastPrint = 1,
+        }
         
         private LoadingTextPreset _preset;
         private float _loadingProgress;
         private byte _loadingId;
         private int _dotsCount;
 
-        public async UniTask PrintLoadingText(LoadingTextPreset preset, Func<UniTask> loadTask, CancellationToken cancellationToken) {
+        public async UniTask PrintLoadingText(LoadingTextPreset preset, Func<UniTask> loadTask, PrintOptions options, CancellationToken cancellationToken) {
             _preset = preset;
             
             byte id = _loadingId.IncrementUncheckedRef();
@@ -42,7 +54,13 @@ namespace MisterGames.Logic.Loading {
             
             _dialoguePrinter.ClearAllText();
             
-            await PrintMainElements(id, preset, cancellationToken);
+            float printElementDelay = _printElementDelayDefault;
+
+            if ((options & PrintOptions.FastPrint) != 0) {
+                printElementDelay = _printElementDelayFast;
+            }
+            
+            await PrintMainElements(id, preset, printElementDelay, cancellationToken);
             
             if (cancellationToken.IsCancellationRequested || id != _loadingId) {
                 return;
@@ -67,7 +85,7 @@ namespace MisterGames.Logic.Loading {
                 return;
             }
             
-            await PrintElementsAfterLoading(id, preset, cancellationToken);
+            await PrintElementsAfterLoading(id, preset, printElementDelay, cancellationToken);
             if (cancellationToken.IsCancellationRequested || id != _loadingId) {
                 return;
             }
@@ -78,7 +96,7 @@ namespace MisterGames.Logic.Loading {
                 
                 AnimateDots(id, preset.awaitInputKey, cancellationToken).Forget();
                 
-                await AwaitAnyInput(id, cancellationToken);
+                await AwaitSubmitInput(id, cancellationToken);
                 if (cancellationToken.IsCancellationRequested || id != _loadingId) return;
 
                 if (AudioPool.Main is { } audioPool) {
@@ -110,7 +128,7 @@ namespace MisterGames.Logic.Loading {
             _dialoguePrinter.ClearAllText();
         }
         
-        private async UniTask PrintMainElements(byte id, LoadingTextPreset preset, CancellationToken cancellationToken) {
+        private async UniTask PrintMainElements(byte id, LoadingTextPreset preset, float printDelay, CancellationToken cancellationToken) {
             var buffer = ListPool<LocalizationKey>.Get();
             
             for (int i = 0; i < preset.blocks?.Length; i++) {
@@ -121,14 +139,14 @@ namespace MisterGames.Logic.Loading {
                 await _dialoguePrinter.PrintElement(buffer[i], 0, cancellationToken);
                 if (cancellationToken.IsCancellationRequested || id != _loadingId) break;
                 
-                await UniTask.Delay(TimeSpan.FromSeconds(_printElementDelay), delayType: DelayType.UnscaledDeltaTime, cancellationToken: cancellationToken)
+                await UniTask.Delay(TimeSpan.FromSeconds(printDelay), delayType: DelayType.UnscaledDeltaTime, cancellationToken: cancellationToken)
                     .SuppressCancellationThrow();
             }
             
             ListPool<LocalizationKey>.Release(buffer);
         }
         
-        private async UniTask PrintElementsAfterLoading(byte id, LoadingTextPreset preset, CancellationToken cancellationToken) {
+        private async UniTask PrintElementsAfterLoading(byte id, LoadingTextPreset preset, float printDelay, CancellationToken cancellationToken) {
             var buffer = ListPool<LocalizationKey>.Get();
             
             for (int i = 0; i < preset.afterLoading?.Length; i++) {
@@ -137,15 +155,18 @@ namespace MisterGames.Logic.Loading {
 
             for (int i = 0; i < buffer.Count && !cancellationToken.IsCancellationRequested && id == _loadingId; i++) {
                 await _dialoguePrinter.PrintElement(buffer[i], 0, cancellationToken);
+                if (cancellationToken.IsCancellationRequested || id != _loadingId) break;
+                
+                await UniTask.Delay(TimeSpan.FromSeconds(printDelay), delayType: DelayType.UnscaledDeltaTime, cancellationToken: cancellationToken)
+                    .SuppressCancellationThrow();
             }
             
             ListPool<LocalizationKey>.Release(buffer);
         }
 
-        private async UniTask AwaitAnyInput(byte id, CancellationToken cancellationToken) {
+        private async UniTask AwaitSubmitInput(byte id, CancellationToken cancellationToken) {
             while (!cancellationToken.IsCancellationRequested && 
-                   Services.TryGet(out IDeviceService deviceService) && 
-                   !deviceService.AnyKeyPressedThisFrame && 
+                   !_submitInputs.Any(x => x.Get().IsPressed()) && 
                    _loadingId == id) 
             {
                 await UniTask.Yield();

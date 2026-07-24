@@ -15,6 +15,7 @@ namespace MisterGames.ActionLib.Dialogues {
 
         public LabelValue<UnityEngine.Object> loadingTextLauncher;
         public LoadingTextPreset preset;
+        public LoadingTextLauncher.PrintOptions loadingPrintOptions;
         [SerializeReference] [SubclassSelector] public IActorAction loadAction;
         
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
@@ -26,7 +27,7 @@ namespace MisterGames.ActionLib.Dialogues {
             
             var action = new Func<UniTask>(() => loadAction?.Apply(context, cancellationToken) ?? UniTask.CompletedTask);
             
-            return launcher.PrintLoadingText(preset, action, cancellationToken);
+            return launcher.PrintLoadingText(preset, action, loadingPrintOptions, cancellationToken);
         }
     }
     

@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace MisterGames.Scenes.Utils {
     
-    internal static class PlaymodeStartScenesUtils {
+    public static class PlaymodeStartScenesUtils {
         
         [Serializable]
         private struct ScenesList {

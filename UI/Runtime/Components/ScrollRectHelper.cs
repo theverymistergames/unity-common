@@ -11,7 +11,6 @@ using MisterGames.UI.Windows;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -54,6 +53,7 @@ namespace MisterGames.UI.Components {
         [SerializeField] [Min(0f)] private float _stickSpeed = 10f;
         [SerializeField] [Min(0f)] private float _sideWidth = 100f;
         [SerializeField] [Min(0f)] private float _sideHeight = 100f;
+        [SerializeField] [Min(0f)] private float _thresholdPx = 5f;
         
         [Serializable]
         private struct ScrollInput {
@@ -251,7 +251,7 @@ namespace MisterGames.UI.Components {
                 _lastTimeHasInputs = time;
                 _lastInputDir = new Vector2(Mathf.Sign(inputDelta.x), Mathf.Sign(inputDelta.y));
             }
-            
+
             ProcessStickToSide(ref inputDelta);
             
             _velocity = _velocity.SmoothExpNonZero(inputDelta, _deltaSmoothing, dt);
@@ -259,12 +259,13 @@ namespace MisterGames.UI.Components {
             var nextPos = currentPos + vel;
             
             var delta = GetNormalizedDelta(nextPos - currentPos, contentRect.size);
-            var normPos = (_scrollRect.normalizedPosition + delta).Clamp01();
+            var currNormPos = _scrollRect.normalizedPosition.Clamp01();
+            var nextNormPos = (currNormPos + delta).Clamp01();
             
-            ProcessAutoScroll(ref normPos, dt);
-            ProcessMoveToPosition(ref normPos);
-            
-            _scrollRect.normalizedPosition = normPos;
+            ProcessAutoScroll(ref nextNormPos, dt);
+            ProcessMoveToPosition(ref nextNormPos);
+
+            _scrollRect.normalizedPosition = nextNormPos;
         }
 
         private static Vector2 GetNormalizedDelta(Vector2 worldDelta, Vector2 size) {
@@ -281,7 +282,7 @@ namespace MisterGames.UI.Components {
             }
             
             float time = Time.realtimeSinceStartup;
-            var currentPos = _scrollRect.normalizedPosition;
+            var currentPos = _scrollRect.normalizedPosition.Clamp01();
             var size = _scrollRect.content.rect.size;
             
             if (_stickDir.x >= 0f && size.x * currentPos.x > _sideWidth || _lastInputDir.x > 0f) _lastTimeNotTouchedSide.x = time;
@@ -292,29 +293,33 @@ namespace MisterGames.UI.Components {
             _stickDir = default;
             
             if ((StickMode.Right & _stickMode) == StickMode.Right &&
-                time - _lastTimeNotTouchedSide.x > _stickStartDelay) 
+                time - _lastTimeNotTouchedSide.x > _stickStartDelay && 
+                size.x * currentPos.x > _thresholdPx) 
             {
                 _stickDir.x = -1f;
             }
 
             if ((StickMode.Left & _stickMode) == StickMode.Left &&
-                time - _lastTimeNotTouchedSide.y > _stickStartDelay)
+                time - _lastTimeNotTouchedSide.y > _stickStartDelay && 
+                size.x * (1f - currentPos.x) > _thresholdPx)
             {
                 _stickDir.x = 1f;
             }
 
             if ((StickMode.Bottom & _stickMode) == StickMode.Bottom &&
-                time - _lastTimeNotTouchedSide.z > _stickStartDelay)
+                time - _lastTimeNotTouchedSide.z > _stickStartDelay &&
+                size.y * currentPos.y > _thresholdPx)
             {
                 _stickDir.y = -1f;
             }
                 
             if ((StickMode.Top & _stickMode) == StickMode.Top &&
-                time - _lastTimeNotTouchedSide.w > _stickStartDelay)
+                time - _lastTimeNotTouchedSide.w > _stickStartDelay && 
+                size.y * (1f - currentPos.y) > _thresholdPx)
             {
                 _stickDir.y = 1f;
             }
-
+            
             inputDelta += _stickSpeed * _stickDir;
         }
 

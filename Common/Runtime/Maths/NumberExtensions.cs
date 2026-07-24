@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using Unity.Burst;
 using Unity.Mathematics;
 using UnityEngine;
 
@@ -6,16 +7,14 @@ namespace MisterGames.Common.Maths {
 
     public static class NumberExtensions {
 
-        public static readonly float SqrEpsilon = Mathf.Epsilon * Mathf.Epsilon;
-        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Abs(this float value) {
-            return Mathf.Abs(value);
+            return math.abs(value);
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Abs(this int value) {
-            return Mathf.Abs(value);
+            return math.abs(value);
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -48,16 +47,19 @@ namespace MisterGames.Common.Maths {
             return value ? 1f : 0f;
         }
         
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LongAsTwoInts(long l, out int a, out int b) {
             a = (int) (l & uint.MaxValue);
             b = (int) (l >> 32);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void UlongAsTwoInts(ulong l, out int a, out int b) {
             a = (int) (l & uint.MaxValue);
             b = (int) (l >> 32);
         }
         
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static long TwoIntsAsLong(int a, int b) {
             long l = b;
             l <<= 32;
@@ -65,6 +67,7 @@ namespace MisterGames.Common.Maths {
             return l;
         }
         
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ulong TwoIntsAsUlong(int a, int b) {
             ulong l = (uint) b;
             l <<= 32;
@@ -78,8 +81,8 @@ namespace MisterGames.Common.Maths {
         /// </summary>
         public static float Oscillate(float t, float f0, float f1, float thr, float phase = 0f) {
             float f = f0 + (f1 - f0) * t;
-            float v = Mathf.Sin(2f * Mathf.PI * (t * f + phase));
-            return Mathf.Abs(v) < thr ? v : Mathf.Sign(v);
+            float v = math.sin(2f * math.PI * (t * f + phase));
+            return math.abs(v) < thr ? v : math.sign(v);
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
