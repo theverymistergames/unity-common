@@ -1,14 +1,27 @@
-﻿using UnityEngine;
+﻿using System.Runtime.CompilerServices;
+using UnityEngine;
 
 namespace MisterGames.Common.Colors {
 
     public static class ColorUtils {
         
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Color WithAlpha(this Color color, float alpha) {
             color.a = alpha;
             return color;
         }
         
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static string ColorToHexRGBA(this Color color) {
+            return ColorUtility.ToHtmlStringRGBA(color);
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static string ColorToHexRGB(this Color color) {
+            return ColorUtility.ToHtmlStringRGB(color);
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Color HexToColor(string hex, Color defaultValue = default) {
             return ColorUtility.TryParseHtmlString(hex, out var color) ? color : defaultValue;
         }

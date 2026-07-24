@@ -200,7 +200,8 @@ namespace MisterGames.Scenes.Core {
             
             _requestedActiveScene = sceneName;
             
-            bool result = SceneManager.SetActiveScene(SceneManager.GetSceneByName(sceneName));
+            bool result = IsSceneLoaded(sceneName) && 
+                          SceneManager.SetActiveScene(SceneManager.GetSceneByName(sceneName));
             
             if (_logLevel >= LogLevel.Short) {
                 if (result) {

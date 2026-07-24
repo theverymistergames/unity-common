@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using MisterGames.Actors;
-using MisterGames.Actors.Actions;
 using MisterGames.Common.Audio;
 using MisterGames.Common.Inputs;
 using MisterGames.Common.Labels;
@@ -23,13 +21,16 @@ namespace MisterGames.Logic.Loading {
         
         [SerializeField] private DialoguePrinter _dialoguePrinter;
         [SerializeField] private UiSfxSettings _uiSfxSettings;
+        [SerializeField] [Min(0f)] private float _printElementDelay = 0.05f;
+        [SerializeField] [Min(0f)] private float _afterLoadDelay = 0.2f;
+        [SerializeField] [Min(0f)] private float _finishDelay = 0.2f;
         
         private LoadingTextPreset _preset;
         private float _loadingProgress;
         private byte _loadingId;
         private int _dotsCount;
 
-        public async UniTask PrintLoadingText(IActor context, LoadingTextPreset preset, IActorAction loadAction, CancellationToken cancellationToken) {
+        public async UniTask PrintLoadingText(LoadingTextPreset preset, Func<UniTask> loadTask, CancellationToken cancellationToken) {
             _preset = preset;
             
             byte id = _loadingId.IncrementUncheckedRef();
@@ -54,13 +55,13 @@ namespace MisterGames.Logic.Loading {
                 NotifyLoadingProgress(id, preset, cancellationToken).Forget();
             }
             
-            if (loadAction != null) await loadAction.Apply(context, cancellationToken);
+            if (loadTask != null) await loadTask.Invoke();
             
             if (cancellationToken.IsCancellationRequested || id != _loadingId) {
                 return;
             }
             
-            await UniTask.Delay(TimeSpan.FromSeconds(preset.afterLoadDelay), delayType: DelayType.UnscaledDeltaTime, cancellationToken: cancellationToken)
+            await UniTask.Delay(TimeSpan.FromSeconds(_afterLoadDelay), delayType: DelayType.UnscaledDeltaTime, cancellationToken: cancellationToken)
                 .SuppressCancellationThrow();
             if (cancellationToken.IsCancellationRequested || id != _loadingId) {
                 return;
@@ -94,7 +95,7 @@ namespace MisterGames.Logic.Loading {
                 }
             }
             
-            await UniTask.Delay(TimeSpan.FromSeconds(preset.finishDelay), delayType: DelayType.UnscaledDeltaTime, cancellationToken: cancellationToken)
+            await UniTask.Delay(TimeSpan.FromSeconds(_finishDelay), delayType: DelayType.UnscaledDeltaTime, cancellationToken: cancellationToken)
                 .SuppressCancellationThrow();
             if (cancellationToken.IsCancellationRequested || id != _loadingId) {
                 return;
@@ -120,7 +121,7 @@ namespace MisterGames.Logic.Loading {
                 await _dialoguePrinter.PrintElement(buffer[i], 0, cancellationToken);
                 if (cancellationToken.IsCancellationRequested || id != _loadingId) break;
                 
-                await UniTask.Delay(TimeSpan.FromSeconds(preset.printElementDelay), delayType: DelayType.UnscaledDeltaTime, cancellationToken: cancellationToken)
+                await UniTask.Delay(TimeSpan.FromSeconds(_printElementDelay), delayType: DelayType.UnscaledDeltaTime, cancellationToken: cancellationToken)
                     .SuppressCancellationThrow();
             }
             
@@ -220,7 +221,9 @@ namespace MisterGames.Logic.Loading {
                 
                 for (int i = 0; i < preset.args.Length; i++) {
                     ref var arg = ref preset.args[i];
-                    _argsMap[arg.key] = arg.resolver;
+                    for (int j = 0; j < arg.keys.Length; j++) {
+                        _argsMap[arg.keys[j]] = arg.resolver;
+                    }
                 }
                 
                 _argsMap[preset.loadingProgressKey] = specialResolver;
@@ -231,7 +234,7 @@ namespace MisterGames.Logic.Loading {
                 DictionaryPool<LocalizationKey, IArgumentResolver>.Release(_argsMap);
             }
 
-            public void Format(LocalizationKey key, Locale locale, ref string value) {
+            void ILocalizationFormatter.Format(LocalizationKey key, Locale locale, ref string value) {
                 if (_argsMap.TryGetValue(key, out var resolver)) {
                     resolver.Resolve(key, locale, ref value);
                 }

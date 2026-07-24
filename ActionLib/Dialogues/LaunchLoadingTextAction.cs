@@ -5,8 +5,6 @@ using MisterGames.Actors;
 using MisterGames.Actors.Actions;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Labels;
-using MisterGames.Dialogues.Components;
-using MisterGames.Dialogues.Core;
 using MisterGames.Logic.Loading;
 using UnityEngine;
 
@@ -26,7 +24,9 @@ namespace MisterGames.ActionLib.Dialogues {
                 return default;
             }
             
-            return launcher.PrintLoadingText(context, preset, loadAction, cancellationToken);
+            var action = new Func<UniTask>(() => loadAction?.Apply(context, cancellationToken) ?? UniTask.CompletedTask);
+            
+            return launcher.PrintLoadingText(preset, action, cancellationToken);
         }
     }
     

@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -31,6 +32,21 @@ namespace MisterGames.Common.Async {
             await UniTask.WhenAll(tasks);
             
             ArrayPool<UniTask>.Shared.Return(tasks, clearArray: true);
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static async UniTask WhenSequence(UniTask t0, UniTask t1, CancellationToken cancellationToken = default) {
+            await t0;
+            if (cancellationToken.IsCancellationRequested) return;
+
+            await t1;
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static async UniTask WhenSequence(IReadOnlyList<UniTask> tasks, CancellationToken cancellationToken = default) {
+            for (int i = 0; i < tasks?.Count && !cancellationToken.IsCancellationRequested; i++) {
+                await tasks[i];
+            }
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

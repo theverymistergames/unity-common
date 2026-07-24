@@ -12,9 +12,6 @@ namespace MisterGames.Logic.Loading {
         [Header("Elements")]
         [SerializeReference] [SubclassSelector] public ILocalizedStringProvider[] blocks;
         public Arguments[] args;
-        [Min(0f)] public float printElementDelay = 0.3f;
-        [Min(0f)] public float afterLoadDelay = 0.5f;
-        [Min(0f)] public float finishDelay = 0.5f;
         
         [Header("Loading Progress")]
         public bool showProgress = true;
@@ -40,7 +37,7 @@ namespace MisterGames.Logic.Loading {
         
         [Serializable]
         public struct Arguments {
-            public LocalizationKey key;
+            public LocalizationKey[] keys;
             [SerializeReference] [SubclassSelector] public IArgumentResolver resolver;
         }
     }
