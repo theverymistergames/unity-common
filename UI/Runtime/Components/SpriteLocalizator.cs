@@ -1,4 +1,5 @@
 ﻿using MisterGames.Common.Attributes;
+using MisterGames.Common.Data;
 using MisterGames.Common.Localization;
 using MisterGames.Common.Service;
 using UnityEngine;
@@ -16,6 +17,7 @@ namespace MisterGames.UI.Components {
         [SerializeField] private bool _dontSetNull = true;
 
         private ILocalizationService _service;
+        private Disposable<Sprite> _spriteRef;
         
         private void Awake() {
             _service = Services.Get<ILocalizationService>();
@@ -29,6 +31,8 @@ namespace MisterGames.UI.Components {
 
         private void OnDisable() {
             _service.OnLocaleChanged -= OnLocaleChanged;
+            
+            _spriteRef.Dispose();
         }
 
         private void OnLocaleChanged(Locale locale) {
@@ -36,8 +40,10 @@ namespace MisterGames.UI.Components {
         }
 
         private void SetupValue() {
-            var sprite = _service.GetLocalizedAsset(_key);
-            if (!_dontSetNull || sprite != null) _image.sprite = sprite;
+            _spriteRef.Dispose();
+            _spriteRef = _key.GetValue();
+            
+            if (!_dontSetNull || _spriteRef.value != null) _image.sprite = _spriteRef.value;
         }
 
 #if UNITY_EDITOR
@@ -69,10 +75,12 @@ namespace MisterGames.UI.Components {
             
             if (_key.IsNull() || _image == null) return;
 
-            var sprite = _key.GetValue(_defaultLocale);
-            if (sprite == _image.sprite) return;
+            _spriteRef.Dispose();
+            _spriteRef = _key.GetValue(_defaultLocale);
             
-            _image.sprite = sprite;
+            if (_spriteRef.value == _image.sprite) return;
+            
+            _image.sprite = _spriteRef.value;
             EditorUtility.SetDirty(_image);
         }
 #endif

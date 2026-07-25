@@ -53,7 +53,7 @@ namespace MisterGames.UI.Components {
         [SerializeField] [Min(0f)] private float _stickSpeed = 10f;
         [SerializeField] [Min(0f)] private float _sideWidth = 100f;
         [SerializeField] [Min(0f)] private float _sideHeight = 100f;
-        [SerializeField] [Min(0f)] private float _thresholdPx = 5f;
+        [SerializeField] [Min(0f)] private float _stickThresholdPx = 16f;
         
         [Serializable]
         private struct ScrollInput {
@@ -294,28 +294,28 @@ namespace MisterGames.UI.Components {
             
             if ((StickMode.Right & _stickMode) == StickMode.Right &&
                 time - _lastTimeNotTouchedSide.x > _stickStartDelay && 
-                size.x * currentPos.x > _thresholdPx) 
+                size.x * currentPos.x > _stickThresholdPx) 
             {
                 _stickDir.x = -1f;
             }
 
             if ((StickMode.Left & _stickMode) == StickMode.Left &&
                 time - _lastTimeNotTouchedSide.y > _stickStartDelay && 
-                size.x * (1f - currentPos.x) > _thresholdPx)
+                size.x * (1f - currentPos.x) > _stickThresholdPx)
             {
                 _stickDir.x = 1f;
             }
 
             if ((StickMode.Bottom & _stickMode) == StickMode.Bottom &&
                 time - _lastTimeNotTouchedSide.z > _stickStartDelay &&
-                size.y * currentPos.y > _thresholdPx)
+                size.y * currentPos.y > _stickThresholdPx)
             {
                 _stickDir.y = -1f;
             }
                 
             if ((StickMode.Top & _stickMode) == StickMode.Top &&
                 time - _lastTimeNotTouchedSide.w > _stickStartDelay && 
-                size.y * (1f - currentPos.y) > _thresholdPx)
+                size.y * (1f - currentPos.y) > _stickThresholdPx)
             {
                 _stickDir.y = 1f;
             }

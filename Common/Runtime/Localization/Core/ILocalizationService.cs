@@ -1,4 +1,5 @@
 ﻿using System;
+using MisterGames.Common.Data;
 
 namespace MisterGames.Common.Localization {
     
@@ -15,8 +16,8 @@ namespace MisterGames.Common.Localization {
         
         string GetLocalizedString(LocalizationKey key);
         string GetLocalizedString(LocalizationKey key, Locale locale);
-        T GetLocalizedAsset<T>(LocalizationKey<T> key);
-        T GetLocalizedAsset<T>(LocalizationKey<T> key, Locale locale);
+        Disposable<T> GetLocalizedAsset<T>(LocalizationKey<T> key);
+        Disposable<T> GetLocalizedAsset<T>(LocalizationKey<T> key, Locale locale);
         
         void RegisterFormatter(ILocalizationFormatter formatter);
         void UnregisterFormatter(ILocalizationFormatter formatter);

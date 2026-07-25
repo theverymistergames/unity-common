@@ -69,12 +69,12 @@ namespace MisterGames.Common.Localization {
             return Services.Get<ILocalizationService>()?.GetLocalizedString(key);
         }
         
-        public static T GetValue<T>(this LocalizationKey<T> key) {
+        public static Disposable<T> GetValue<T>(this LocalizationKey<T> key) {
 #if UNITY_EDITOR
             if (!Application.isPlaying) {
                 return LoadTableStorageAssetInEditor(new LocalizationKey(key.hash, key.table.ToGuid()), out int index) is ILocalizationTableStorage<T> table &&
                        table.TryGetValue(index, 0, out var value)
-                    ? value
+                    ? new Disposable<T>(value)
                     : default;
             }
 #endif
@@ -95,12 +95,12 @@ namespace MisterGames.Common.Localization {
             return Services.Get<ILocalizationService>().GetLocalizedString(key, locale);
         }
         
-        public static T GetValue<T>(this LocalizationKey<T> key, Locale locale) {
+        public static Disposable<T> GetValue<T>(this LocalizationKey<T> key, Locale locale) {
 #if UNITY_EDITOR
             if (!Application.isPlaying) {
                 return LoadTableStorageAssetInEditor(new LocalizationKey(key.hash, key.table.ToGuid()), out int index) is ILocalizationTableStorage<T> table &&
                        table.TryGetValue(index, GetLocaleIndex(table, locale), out var value)
-                    ? value
+                    ? new Disposable<T>(value)
                     : default;
             }
 #endif

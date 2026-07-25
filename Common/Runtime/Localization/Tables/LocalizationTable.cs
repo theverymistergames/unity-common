@@ -1,15 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
+using MisterGames.Common.Data;
+using MisterGames.Common.Maths;
 using UnityEngine;
 using UnityEngine.Pool;
 
 namespace MisterGames.Common.Localization {
     
-    public sealed class LocalizationTable : ILocalizationTable, IDisposable {
+    public sealed class LocalizationTable : ILocalizationTable, IDisposable, IDisposableHandler {
 
         private readonly ILocalizationTableStorage _storage;
         private readonly Dictionary<int, int> _keyHashToIndexMap;
         private readonly Dictionary<int, int> _localeHashToIndexMap;
+        private readonly HashSet<int> _disposablesSet = new();
+        private int _lastDisposableId;
 
         public LocalizationTable(ILocalizationTableStorage storage) {
             _storage = storage;
@@ -22,8 +26,8 @@ namespace MisterGames.Common.Localization {
             DictionaryPool<int, int>.Release(_localeHashToIndexMap);
         }
 
-        public bool ContainsKey(int keyHash) {
-            return _keyHashToIndexMap.ContainsKey(keyHash);
+        public bool CanUnload() {
+            return _disposablesSet.Count <= 0;
         }
 
         public bool TryGetKey(int keyHash, out string value) {
@@ -47,7 +51,28 @@ namespace MisterGames.Common.Localization {
             value = default;
             return false;
         }
+
+        public bool TryGetDisposableValue<T>(int keyHash, int localeHash, out Disposable<T> disposableValue) {
+            if (TryGetValue(keyHash, localeHash, out T value)) {
+                disposableValue = CreateDisposableValue(value);
+                return true;
+            }
+
+            disposableValue = default;
+            return false;
+        }
+
+        private Disposable<T> CreateDisposableValue<T>(T value) {
+            int id = _lastDisposableId.IncrementUncheckedRef();
+            _disposablesSet.Add(id);
+            
+            return new Disposable<T>(value, id, this);
+        }
         
+        void IDisposableHandler.NotifyDispose(int id) {
+            _disposablesSet.Remove(id);
+        }
+
         private static Dictionary<int, int> CreateKeyIndexMap(ILocalizationTableStorage storage) {
             int keyCount = storage.GetKeyCount();
             var map = DictionaryPool<int, int>.Get();
