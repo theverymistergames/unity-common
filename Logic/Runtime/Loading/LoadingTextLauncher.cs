@@ -35,6 +35,7 @@ namespace MisterGames.Logic.Loading {
         public enum PrintOptions {
             None = 0,
             FastPrint = 1,
+            SkipPrint = 2,
         }
         
         private LoadingTextPreset _preset;
@@ -43,6 +44,11 @@ namespace MisterGames.Logic.Loading {
         private int _dotsCount;
 
         public async UniTask PrintLoadingText(LoadingTextPreset preset, Func<UniTask> loadTask, PrintOptions options, CancellationToken cancellationToken) {
+            if ((options & PrintOptions.SkipPrint) != 0) {
+                if (loadTask != null) await loadTask.Invoke();
+                return;
+            }
+            
             _preset = preset;
             
             byte id = _loadingId.IncrementUncheckedRef();

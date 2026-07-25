@@ -55,9 +55,9 @@ namespace MisterGames.Interact.Detectables {
 
         public bool IsInDirectView(IDetectable detectable, out float distance) {
             distance = _directViewHit.hasContact ? _directViewHit.distance : 0f;
-            
+            int hash = detectable.GameObject.GetHashCode();
             return _directViewHit.hasContact &&
-                   GetColliderRootHash(_directViewHit.collider) == detectable.GameObject.GetHashCode();
+                   (GetColliderHash(_directViewHit.collider) == hash || GetColliderRootHash(_directViewHit.collider) == hash);
         }
 
         public bool IsDetected(IDetectable detectable) {
@@ -119,6 +119,7 @@ namespace MisterGames.Interact.Detectables {
                 var hit = hits[i];
                 if (hit is not { hasContact: true, isValid: true } || hit.collider is not { } c) continue;
 
+                dest.Add(GetColliderHash(c));
                 dest.Add(GetColliderRootHash(c));
             }
         }
@@ -140,14 +141,16 @@ namespace MisterGames.Interact.Detectables {
                 var hit = hits[i];
                 if (!hit.hasContact || hit.collider == null) continue;
 
-                int hash = GetColliderRootHash(hit.collider);
-                if (lastDetectedHashes.Contains(hash)) continue;
+                int hash = GetColliderHash(hit.collider);
+                int rootHash = GetColliderRootHash(hit.collider);
+                
+                if (lastDetectedHashes.Contains(hash) && lastDetectedHashes.Contains(rootHash)) continue;
 
-                if (hit.collider.GetComponentFromCollider<IDetectable>() is not { } detectable) {
-                    continue;
-                }
+                var detectable = hit.collider.GetComponent<IDetectable>() ?? hit.collider.GetComponentFromCollider<IDetectable>();
+                if (detectable == null) continue;
 
                 _detectedCandidatesHashesSet.Add(hash);
+                _detectedCandidatesHashesSet.Add(rootHash);
                 _detectedCandidates.Add(detectable);
             }
         }
@@ -161,6 +164,7 @@ namespace MisterGames.Interact.Detectables {
                 
                 if (!info.hasContact ||
                     info.collider == null ||
+                    !_detectedCandidatesHashesSet.Contains(GetColliderHash(info.collider)) &&
                     !_detectedCandidatesHashesSet.Contains(GetColliderRootHash(info.collider)) ||
                     minDistance >= 0f && info.distance > minDistance) 
                 {
@@ -205,6 +209,10 @@ namespace MisterGames.Interact.Detectables {
             return $"{nameof(Detector)}({name}, detected targets/candidates count = {_detectedTargets.Count}/{_detectedCandidates.Count})";
         }
 
+        private static int GetColliderHash(Collider c) {
+            return c.gameObject.GetHashCode();
+        }
+        
         private static int GetColliderRootHash(Collider c) {
             return c.attachedRigidbody != null 
                 ? c.attachedRigidbody.gameObject.GetHashCode() 

@@ -18,13 +18,10 @@ namespace MisterGames.ActionLib.Dialogues {
         public LabelValue<UnityEngine.Object> loadingTextLauncher;
         
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            var launcher = loadingTextLauncher.GetData() as LoadingTextLauncher;
-            if (launcher == null) {
-                Debug.LogError($"ClearLoadingTextAction.Apply: f {UnityEngine.Time.frameCount}, cannot find loading text launcher by id {loadingTextLauncher}");
-                return default;
+            if (loadingTextLauncher.GetData() is LoadingTextLauncher launcher) {
+                launcher.ClearAllText();
             }
-            
-            launcher.ClearAllText();
+
             return default;
         }
     }
