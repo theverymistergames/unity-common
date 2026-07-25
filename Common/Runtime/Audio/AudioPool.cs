@@ -75,6 +75,20 @@ namespace MisterGames.Common.Audio {
         private const float HpCutoffLowerBound = 10f;
         private const float LpCutoffUpperBound = 22000f;
         
+        private const string ReverbParamRoom = "Room";
+        private const string ReverbParamRoomHf = "RoomHF";
+        private const string ReverbParamRoomLf = "RoomLF";
+        private const string ReverbParamDecayTime = "DecayTime";
+        private const string ReverbParamDecayHfRatio = "DecayHFRatio";
+        private const string ReverbParamReflectionsLevel = "Reflections";
+        private const string ReverbParamReflectionsDelay = "ReflectDelay";
+        private const string ReverbParamReverbLevel = "Reverb";
+        private const string ReverbParamReverbDelay = "ReverbDelay";
+        private const string ReverbParamHfReference = "HFReference";
+        private const string ReverbParamLfReference = "LFReference";
+        private const string ReverbParamDiffusion = "Diffusion";
+        private const string ReverbParamDensity = "Density";
+        
         private static readonly float3 Up = Vector3.up;
         private static readonly float3 Forward = Vector3.forward;
         private static readonly float3 Right = Vector3.right;
@@ -111,6 +125,7 @@ namespace MisterGames.Common.Audio {
             
             _transform = transform;
             
+            CreateReverbParamNames();
             FetchIncludeMixerGroupsFromVolumes();
             
             PlayerLoopStage.LateUpdate.Subscribe(this);
@@ -135,20 +150,6 @@ namespace MisterGames.Common.Audio {
             
             PlayerLoopStage.LateUpdate.Unsubscribe(this);
         }
-        
-        private const string ReverbParamRoom = "Room";
-        private const string ReverbParamRoomHf = "RoomHF";
-        private const string ReverbParamRoomLf = "RoomLF";
-        private const string ReverbParamDecayTime = "DecayTime";
-        private const string ReverbParamDecayHfRatio = "DecayHFRatio";
-        private const string ReverbParamReflectionsLevel = "Reflections";
-        private const string ReverbParamReflectionsDelay = "ReflectDelay";
-        private const string ReverbParamReverbLevel = "Reverb";
-        private const string ReverbParamReverbDelay = "ReverbDelay";
-        private const string ReverbParamHfReference = "HFReference";
-        private const string ReverbParamLfReference = "LFReference";
-        private const string ReverbParamDiffusion = "Diffusion";
-        private const string ReverbParamDensity = "Density";
         
         private void CreateReverbParamNames() {
             _reverbParamNames ??= new string[13];
