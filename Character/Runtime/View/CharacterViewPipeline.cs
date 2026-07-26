@@ -11,7 +11,6 @@ using MisterGames.Common.Maths;
 using MisterGames.Common.Service;
 using MisterGames.Common.Tick;
 using UnityEngine;
-using DeviceType = MisterGames.Common.Inputs.DeviceType;
 
 namespace MisterGames.Character.View {
 
@@ -281,12 +280,12 @@ namespace MisterGames.Character.View {
             if (GetTime() < _startTime + _startDelay) return;
 
             switch (_deviceService.CurrentDevice) {
-                case DeviceType.KeyboardMouse:
+                case InputDeviceType.KeyboardMouse:
                     _inputDeltaAccum += new Vector2(-input.y, input.x);
                     _inputStick = default;
                     break;
                 
-                case DeviceType.Gamepad:
+                case InputDeviceType.Gamepad:
                     _inputDeltaAccum = default;
                     _inputStick = new Vector2(-input.y, input.x);
                     break;
@@ -356,8 +355,8 @@ namespace MisterGames.Character.View {
 
         private Vector2 ConsumeInputDelta() {
             var delta = _deviceService.CurrentDevice switch {
-                DeviceType.KeyboardMouse => _inputDeltaAccum * _sensitivityMouse,
-                DeviceType.Gamepad => _inputStick * _sensitivityGamepad,
+                InputDeviceType.KeyboardMouse => _inputDeltaAccum * _sensitivityMouse,
+                InputDeviceType.Gamepad => _inputStick * _sensitivityGamepad,
                 _ => throw new ArgumentOutOfRangeException()
             };
 

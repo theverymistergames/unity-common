@@ -7,6 +7,7 @@
         
         GamepadStickLeft,
         GamepadStickRight,
+        GamepadDpad,
     }
     
 }

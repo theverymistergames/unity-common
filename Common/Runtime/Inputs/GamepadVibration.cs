@@ -33,13 +33,13 @@ namespace MisterGames.Common.Inputs {
             if (Services.TryGet(out IDeviceService deviceService)) deviceService.OnDeviceChanged -= OnDeviceChanged;
         }
 
-        private void OnDeviceChanged(DeviceType device) {
+        private void OnDeviceChanged(InputDeviceType device) {
             switch (device) {
-                case DeviceType.KeyboardMouse:
+                case InputDeviceType.KeyboardMouse:
                     ApplyFrequency(Vector2.zero);
                     break;
                 
-                case DeviceType.Gamepad:
+                case InputDeviceType.Gamepad:
                     ApplyFrequencyIfGamepadActive(_resultFrequency);
                     break;
                 
@@ -111,10 +111,10 @@ namespace MisterGames.Common.Inputs {
             if (!Services.TryGet(out IDeviceService deviceService)) return;
             
             switch (deviceService.CurrentDevice) {
-                case DeviceType.KeyboardMouse:
+                case InputDeviceType.KeyboardMouse:
                     return;
 
-                case DeviceType.Gamepad:
+                case InputDeviceType.Gamepad:
                     ApplyFrequency(frequency);
                     break;
                 

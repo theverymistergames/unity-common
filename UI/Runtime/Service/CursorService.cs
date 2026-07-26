@@ -8,7 +8,6 @@ using MisterGames.Common.Service;
 using MisterGames.UI.Windows;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using DeviceType = MisterGames.Common.Inputs.DeviceType;
 
 namespace MisterGames.UI.Service {
     
@@ -67,7 +66,7 @@ namespace MisterGames.UI.Service {
             UpdateCursorVisibility();
         }
 
-        private void OnDeviceChanged(DeviceType device) {
+        private void OnDeviceChanged(InputDeviceType device) {
             UpdateCursorVisibility();
         }
 
@@ -78,7 +77,7 @@ namespace MisterGames.UI.Service {
         private bool IsCursorVisible() {
             return !Application.isFocused || 
                    _visibilityBlockers.Count == 0 &&
-                   (!Services.TryGet(out IDeviceService deviceService) || deviceService.CurrentDevice == DeviceType.KeyboardMouse) && 
+                   (!Services.TryGet(out IDeviceService deviceService) || deviceService.CurrentDevice == InputDeviceType.KeyboardMouse) && 
                    (!Services.TryGet(out IUiWindowService windowService) || windowService.IsCursorRequired());
         }
         

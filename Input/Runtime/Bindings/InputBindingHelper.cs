@@ -39,7 +39,15 @@ namespace MisterGames.Input.Bindings {
             
             ClearAllBindings();
         }
+
+        public InputControl GetControl(KeyBinding key) {
+            return _keyBindingMap.GetValueOrDefault(key);
+        }
         
+        public InputControl GetControl(AxisBinding axis) {
+            return _axisBindingMap.GetValueOrDefault(axis);
+        }
+
         public bool IsKeyPressed(KeyBinding key) {
             return _initialized && _keyBindingMap.TryGetValue(key, out var control) && control.isPressed;
         }
@@ -312,6 +320,7 @@ namespace MisterGames.Input.Bindings {
             
             _axisBindingMap[AxisBinding.GamepadStickLeft] = gamepad.leftStick;
             _axisBindingMap[AxisBinding.GamepadStickRight] = gamepad.rightStick;
+            _axisBindingMap[AxisBinding.GamepadDpad] = gamepad.dpad;
         }
 
         private void ClearAllBindings() {

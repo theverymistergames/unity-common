@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using MisterGames.Common.Inputs;
 using MisterGames.Common.Service;
 using UnityEngine;
-using DeviceType = MisterGames.Common.Inputs.DeviceType;
 
 namespace MisterGames.Logic.Rendering {
     
@@ -14,11 +13,11 @@ namespace MisterGames.Logic.Rendering {
 
         [Serializable]
         private struct MaterialData {
-            public DeviceType deviceType;
+            public InputDeviceType deviceType;
             public Material material;
         }
 
-        private readonly Dictionary<DeviceType, Material> _runtimeMaterials = new();
+        private readonly Dictionary<InputDeviceType, Material> _runtimeMaterials = new();
 
         private void OnDestroy() {
             foreach (var material in _runtimeMaterials.Values) {
@@ -39,11 +38,11 @@ namespace MisterGames.Logic.Rendering {
             service.OnDeviceChanged -= OnDeviceChanged;
         }
 
-        private void OnDeviceChanged(DeviceType deviceType) {
+        private void OnDeviceChanged(InputDeviceType deviceType) {
             _renderer.material = GetMaterial(deviceType); 
         }
 
-        private Material GetMaterial(DeviceType deviceType) {
+        private Material GetMaterial(InputDeviceType deviceType) {
             if (_runtimeMaterials.TryGetValue(deviceType, out var material)) {
                 return material;
             }

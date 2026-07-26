@@ -25,13 +25,13 @@ namespace MisterGames.Common.Inputs.DualSense {
             if (Services.TryGet(out IDeviceService deviceService)) deviceService.OnDeviceChanged -= OnDeviceChanged;
         }
 
-        private void OnDeviceChanged(DeviceType device) {
+        private void OnDeviceChanged(InputDeviceType device) {
             switch (device) {
-                case DeviceType.KeyboardMouse:
+                case InputDeviceType.KeyboardMouse:
                     ResetAllGamepadsOutputState();
                     break;
                 
-                case DeviceType.Gamepad:
+                case InputDeviceType.Gamepad:
                     ActualizeAllGamepadsOutputState();
                     break;
                 
@@ -61,7 +61,7 @@ namespace MisterGames.Common.Inputs.DualSense {
 
         public bool HasController(int index = 0) {
             return index >= 0 && index < _controllerCount && 
-                   Services.Get<IDeviceService>().CurrentDevice == DeviceType.Gamepad;
+                   Services.Get<IDeviceService>().CurrentDevice == InputDeviceType.Gamepad;
         }
         
         public void SetRumble(Vector2 rumble, int index = 0) {

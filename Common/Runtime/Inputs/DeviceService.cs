@@ -6,6 +6,9 @@ using MisterGames.Common.Service;
 using MisterGames.Common.Tick;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.DualShock;
+using UnityEngine.InputSystem.Switch;
+using UnityEngine.InputSystem.XInput;
 
 namespace MisterGames.Common.Inputs {
     
@@ -15,9 +18,10 @@ namespace MisterGames.Common.Inputs {
         [SerializeField] private GamepadVibration _gamepadVibration;
         [SerializeField] private DualSenseAdapter _dualSenseAdapter;
 
-        public event Action<DeviceType> OnDeviceChanged = delegate { };
+        public event Action<InputDeviceType> OnDeviceChanged = delegate { };
         
-        public DeviceType CurrentDevice { get; private set; }
+        public InputDeviceType CurrentDevice { get; private set; }
+        public GamepadType GamepadType { get; private set; }
         public int LastPointerDeviceId { get; private set; }
         
         public bool AnyKeyPressedThisFrame { get; private set; }
@@ -71,10 +75,12 @@ namespace MisterGames.Common.Inputs {
             AnyInputActivatedThisFrame = keyboardMousePressed || mouseOrScrollMoved || gamepadPressed || gamepadSticksMoved;
             
             var lastDevice = CurrentDevice;
-            CurrentDevice = gamepadPressed || gamepadSticksMoved ? DeviceType.Gamepad 
-                : keyboardMousePressed || mouseOrScrollMoved ? DeviceType.KeyboardMouse
+            CurrentDevice = gamepadPressed || gamepadSticksMoved ? InputDeviceType.Gamepad 
+                : keyboardMousePressed || mouseOrScrollMoved ? InputDeviceType.KeyboardMouse
                 : CurrentDevice;
 
+            GamepadType = CurrentDevice is InputDeviceType.Gamepad ? Gamepad.current.GetGamepadType() : GamepadType.Default;
+            
             if (lastDevice != CurrentDevice) OnDeviceChanged.Invoke(CurrentDevice);
         }
 

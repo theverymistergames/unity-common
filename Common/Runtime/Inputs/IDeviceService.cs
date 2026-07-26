@@ -6,10 +6,10 @@ namespace MisterGames.Common.Inputs {
     
     public interface IDeviceService {
         
-        event Action<DeviceType> OnDeviceChanged;
+        event Action<InputDeviceType> OnDeviceChanged;
 
         int LastPointerDeviceId { get; }
-        DeviceType CurrentDevice { get; }
+        InputDeviceType CurrentDevice { get; }
         IGamepadVibration GamepadVibration { get; }
         IDualSenseAdapter DualSenseAdapter { get; }
         bool AnyKeyPressedThisFrame { get; }

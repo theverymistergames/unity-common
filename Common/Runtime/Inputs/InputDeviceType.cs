@@ -1,6 +1,6 @@
 ﻿namespace MisterGames.Common.Inputs {
     
-    public enum DeviceType {
+    public enum InputDeviceType {
         KeyboardMouse,
         Gamepad,
     }

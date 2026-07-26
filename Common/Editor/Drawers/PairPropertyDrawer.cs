@@ -10,30 +10,18 @@ namespace MisterGames.Common.Editor.Drawers {
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
             EditorGUI.BeginProperty(position, label, property);
 
-            var labelRect = new Rect(
-                position.x,
-                position.y,
-                EditorGUIUtility.labelWidth,
-                EditorGUIUtility.singleLineHeight
-            );
-            EditorGUI.LabelField(labelRect, label);
-
-            var valueRect = new Rect(
-                position.x + EditorGUIUtility.labelWidth,
-                position.y,
-                position.width - EditorGUIUtility.labelWidth,
-                position.height
-            );
-
-            float halfWidth = valueRect.width * 0.5f;
-            var valueARect = new Rect(valueRect.x, valueRect.y, halfWidth - EditorGUIUtility.standardVerticalSpacing, valueRect.height);
-            var valueBRect = new Rect(valueRect.x + halfWidth, valueRect.y, halfWidth, valueRect.height);
-
             var propertyA = property.FindPropertyRelative("_a");
             var propertyB = property.FindPropertyRelative("_b");
 
-            EditorGUI.PropertyField(valueARect, propertyA, GUIContent.none, includeChildren: true);
-            EditorGUI.PropertyField(valueBRect, propertyB, GUIContent.none, includeChildren: true);
+            var rectA = position;
+            rectA.width = EditorGUIUtility.labelWidth + (position.width - EditorGUIUtility.labelWidth) * 0.5f - EditorGUIUtility.standardVerticalSpacing;
+            
+            var rectB = position;
+            rectB.x += rectA.width + EditorGUIUtility.standardVerticalSpacing;
+            rectB.width = (position.width - EditorGUIUtility.labelWidth) * 0.5f;
+            
+            EditorGUI.PropertyField(rectA, propertyA, label, includeChildren: true);
+            EditorGUI.PropertyField(rectB, propertyB, GUIContent.none, includeChildren: true);
 
             EditorGUI.EndProperty();
         }

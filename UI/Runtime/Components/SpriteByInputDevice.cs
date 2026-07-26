@@ -3,7 +3,6 @@ using MisterGames.Common.Inputs;
 using MisterGames.Common.Service;
 using UnityEngine;
 using UnityEngine.UI;
-using DeviceType = MisterGames.Common.Inputs.DeviceType;
 
 namespace MisterGames.UI.Components {
     
@@ -14,7 +13,7 @@ namespace MisterGames.UI.Components {
 
         [Serializable]
         private struct SpriteData {
-            public DeviceType deviceType;
+            public InputDeviceType deviceType;
             public Sprite sprite;
         }
 
@@ -31,11 +30,11 @@ namespace MisterGames.UI.Components {
             service.OnDeviceChanged -= OnDeviceChanged;
         }
 
-        private void OnDeviceChanged(DeviceType deviceType) {
+        private void OnDeviceChanged(InputDeviceType deviceType) {
             _image.sprite = GetSprite(deviceType);
         }
 
-        private Sprite GetSprite(DeviceType deviceType) {
+        private Sprite GetSprite(InputDeviceType deviceType) {
             for (int i = 0; i < _spriteData.Length; i++) {
                 ref var spriteData = ref _spriteData[i];
                 if (spriteData.deviceType != deviceType) continue;

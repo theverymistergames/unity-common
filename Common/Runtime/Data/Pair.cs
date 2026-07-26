@@ -37,7 +37,15 @@ namespace MisterGames.Common.Data {
         public override int GetHashCode() {
             return HashCode.Combine(_a, _b);
         }
-
+        
+        public static implicit operator ValueTuple<Ta, Tb>(Pair<Ta, Tb> pair) {
+            return (pair.A, pair.B);
+        }
+        
+        public static implicit operator Pair<Ta, Tb>(ValueTuple<Ta, Tb> tuple) {
+            return new Pair<Ta, Tb>(tuple.Item1, tuple.Item2);
+        }
+        
         public static bool operator ==(Pair<Ta, Tb> left, Pair<Ta, Tb> right) {
             return left.Equals(right);
         }
