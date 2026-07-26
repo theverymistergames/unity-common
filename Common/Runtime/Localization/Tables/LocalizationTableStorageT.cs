@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace MisterGames.Common.Localization {
 
@@ -80,6 +83,10 @@ namespace MisterGames.Common.Localization {
             
             ref var valueRow = ref _valueRows[keyIndex];
             valueRow.values[localeIndex] = value;
+
+#if UNITY_EDITOR
+            EditorUtility.SetDirty(this);
+#endif
         }
 
         public override string GetValuesPropertyPath(int keyHash) {
@@ -143,6 +150,7 @@ namespace MisterGames.Common.Localization {
 
 #if UNITY_EDITOR
             _allowInvalidateMap = true;
+            EditorUtility.SetDirty(this);
 #endif
             
             return count;
@@ -165,6 +173,7 @@ namespace MisterGames.Common.Localization {
                     
 #if UNITY_EDITOR
                 _keyHashToIndexMap.Add(Animator.StringToHash(key), i);
+                EditorUtility.SetDirty(this);
 #endif
 
                 return i;
@@ -180,6 +189,7 @@ namespace MisterGames.Common.Localization {
 #if UNITY_EDITOR
             _allowInvalidateMap = true;
             _keyHashToIndexMap.Add(Animator.StringToHash(key), count);
+            EditorUtility.SetDirty(this);
 #endif
             
             return count;

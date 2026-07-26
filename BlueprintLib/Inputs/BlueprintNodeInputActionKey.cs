@@ -29,20 +29,12 @@ namespace MisterGames.BlueprintLib {
             _blueprint = blueprint;
             _inputActionKey = blueprint.Read(token, 0, _inputActionKey);
 
-#if UNITY_EDITOR
-            if (!Application.isPlaying) InputServices.EnableInputInEditModeForSource(this, enable: true);
-#endif
-
             _inputActionKey.Get().performed += OnUse;
             _inputActionKey.Get().performed += OnPress;
             _inputActionKey.Get().canceled += OnRelease;
         }
 
         public void OnDeInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
-#if UNITY_EDITOR
-            if (!Application.isPlaying) InputServices.EnableInputInEditModeForSource(this, enable: false);
-#endif
-
             _inputActionKey.Get().performed -= OnUse;
             _inputActionKey.Get().performed -= OnPress;
             _inputActionKey.Get().canceled -= OnRelease;

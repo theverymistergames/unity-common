@@ -42,6 +42,10 @@ namespace MisterGames.Input.Icons {
         private const string DigitPattern = "^[0-9]$"; 
         private const string LetterPattern = "^[a-z]$"; 
         private const string FunctionPattern = "^f(?:[1-9]|1[0-9]|2[0-4])$";
+
+        public Sprite GetFallbackSprite() {
+            return _fallbackSprite;
+        }
         
         public void GetIcons(
             List<Sprite> buffer,
@@ -60,13 +64,13 @@ namespace MisterGames.Input.Icons {
         public Sprite GetIcon(KeyBinding key, GamepadType gamepadType = GamepadType.Default) {
             return SplitFullInputPath(key.GetBindingPath(), out string deviceLayoutName, out string controlPath) 
                 ? GetInputBindingSprite(deviceLayoutName, controlPath, gamepadType) 
-                : _fallbackSprite;
+                : null;
         }
         
         public Sprite GetIcon(AxisBinding axis, AxisBingingDirection dir = AxisBingingDirection.Default, GamepadType gamepadType = GamepadType.Default) {
             return SplitFullInputPath(axis.GetBindingPath(dir), out string deviceLayoutName, out string controlPath) 
                 ? GetInputBindingSprite(deviceLayoutName, controlPath, gamepadType) 
-                : _fallbackSprite;
+                : null;
         }
 
         private void GetInputActionSprites(
@@ -89,7 +93,7 @@ namespace MisterGames.Input.Icons {
         private Sprite GetInputBindingSprite(string deviceLayoutName, string controlPath, GamepadType gamepadType) {
             var atlasData = GetAtlasData(deviceLayoutName, gamepadType);
             string spritePath = GetSpritePath(controlPath, ref atlasData);
-            return atlasData.spriteAtlas.GetSprite(spritePath) ?? _fallbackSprite;
+            return atlasData.spriteAtlas.GetSprite(spritePath);
         }
 
         private static bool SplitFullInputPath(string path, out string deviceLayoutName, out string controlPath) {

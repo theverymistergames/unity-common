@@ -55,7 +55,7 @@ namespace MisterGames.SettingsLib.Base {
             
             if (_binder != null) {
                 _binder.SetupView(desc);
-                _binder.SetupValue();
+                _binder.SetupValue(desc);
             }
         }
 

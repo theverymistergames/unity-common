@@ -17,7 +17,7 @@ namespace MisterGames.Input.Core {
         
         private static readonly HashSet<int> _enabledPlayerUpdatesInEditModeSources = new();
 
-        public static void EnableInputInEditModeForSource(object source, bool enable) {
+        internal static void EnableInputInEditModeForSource(object source, bool enable) {
             if (Application.isPlaying) return;
             
             if (enable) {

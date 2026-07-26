@@ -11,21 +11,21 @@ namespace MisterGames.SettingsLib.Base {
 
         private ISettingsService _service;
         private ISettingDescListed _desc;
-        private string _label;
+        private string _id;
 
-        void ISettingBinder.Bind(ISettingsService service, ISettingDesc desc, string label) {
+        void ISettingBinder.Bind(ISettingsService service, ISettingDesc desc, string id) {
             if (!IsValidSettingDesc(desc, out var descListed)) return;
 
             _service = service;
             _desc = descListed;
-            _label = label;
+            _id = id;
             uiList.OnSelectedIndexChanged += OnSelectedIndexChanged;
         }
 
         void ISettingBinder.Unbind() {
             _service = null;
             _desc = null;
-            _label = null;
+            _id = null;
             uiList.OnSelectedIndexChanged -= OnSelectedIndexChanged;
         }
 
@@ -40,20 +40,20 @@ namespace MisterGames.SettingsLib.Base {
             }
         }
 
-        void ISettingBinder.SetupValue() {
-            if (_desc == null || _service == null || string.IsNullOrEmpty(_label)) {
+        void ISettingBinder.SetupValue(ISettingDesc desc) {
+            if (!IsValidSettingDesc(desc, out var descListed) || _service == null || string.IsNullOrEmpty(_id)) {
                 return;
             }
             
-            uiList.SelectIndex(_desc.GetIndex(_service, _label));
+            uiList.SelectIndex(descListed.GetIndex(_service, _id));
         }
 
         private void OnSelectedIndexChanged(int index) {
-            if (_desc == null || _service == null || string.IsNullOrEmpty(_label)) { 
+            if (_desc == null || _service == null || string.IsNullOrEmpty(_id)) { 
                 return;
             }
             
-            _desc.SetIndex(_service, _label, index);
+            _desc.SetIndex(_service, _id, index);
         }
 
         private bool IsValidSettingDesc(ISettingDesc desc, out ISettingDescListed descListed) {

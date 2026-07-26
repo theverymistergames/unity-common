@@ -80,7 +80,7 @@ namespace MisterGames.Common.Localization {
             for (int i = 0; i < keyCount; i++) {
                 string key = storage.GetKey(i);
                 if (string.IsNullOrWhiteSpace(key)) continue;
-
+                
                 map[Animator.StringToHash(key)] = i;
             }
             

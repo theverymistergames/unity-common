@@ -18,8 +18,8 @@ namespace MisterGames.SettingsLib.Descs {
             Auto,
         }
 
-        public void Initialize(ISettingsService service, string label) {
-            if (service.TryGet(label, index: 0, out string localeCode) &&
+        public void Initialize(ISettingsService service, string id) {
+            if (service.TryGet(id, index: 0, out string localeCode) &&
                 LocaleExtensions.CreateLocale(localeCode) is var locale &&
                 TryGetIndexOf(locale, out _)) 
             {

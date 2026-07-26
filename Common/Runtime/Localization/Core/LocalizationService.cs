@@ -79,7 +79,7 @@ namespace MisterGames.Common.Localization {
         public string GetLocalizedString(LocalizationKey key, Locale locale) {
             var table = GetTable(key.table.ToGuid());
             if (table == null) return null;
-
+            
             if (table.TryGetValue(key.hash, locale.Hash, out string value) && 
                 !string.IsNullOrEmpty(value)) 
             {

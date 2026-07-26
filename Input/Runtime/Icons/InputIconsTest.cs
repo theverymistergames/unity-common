@@ -41,8 +41,6 @@ namespace MisterGames.Input.Icons {
                     break;
                 
                 case Mode.InputAction:
-                    InputServices.EnableInputInEditModeForSource(this, true);
-                    
                     if (inputActionRef.Get() is { } inputAction) {
                         var buffer = new List<Sprite>();
                         inputIconsTable.GetIcons(buffer, inputAction, deviceType);
@@ -51,8 +49,6 @@ namespace MisterGames.Input.Icons {
                             images[i].sprite = buffer[i];   
                         }
                     }
-                    
-                    InputServices.EnableInputInEditModeForSource(this, false);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
