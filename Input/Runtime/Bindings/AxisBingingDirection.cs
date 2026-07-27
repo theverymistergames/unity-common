@@ -6,8 +6,8 @@
         Down,
         Left,
         Right,
-        UpDown,
-        LeftRight,
+        Y,
+        X,
     }
     
 }

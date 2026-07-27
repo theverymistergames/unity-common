@@ -207,7 +207,7 @@ namespace MisterGames.UI.Components {
             _containsSelectedObjectDirectly = Services.TryGet(out IUiNavigationService navigationService) &&
                                               ContainsSelectedObjectDirectly(navigationService);
 
-            if (_containsSelectedObjectDirectly && _autoMoveToLastSelectable) {
+            if (_containsSelectedObjectDirectly && _autoMoveToLastSelectable && !IsScrollbar(selectable)) {
                 MoveToPosition(GetNormalizedPosition(selectable.transform.position), _autoMoveToLastSelectableDuration);
             }
         }

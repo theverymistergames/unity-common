@@ -8,6 +8,8 @@
         GamepadStickLeft,
         GamepadStickRight,
         GamepadDpad,
+        
+        None = -1,
     }
     
 }

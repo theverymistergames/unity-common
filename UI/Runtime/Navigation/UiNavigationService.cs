@@ -137,7 +137,7 @@ namespace MisterGames.UI.Navigation {
                 selectable == null && !_selectableMap.TryGetValue(_lastNonNullSelectableHash, out selectable) ||
                 
                 // Current selectable nav mask forbids this direction
-                ((1 << (int) dir) & (int) _selectableDataMap[selectable.GetHashCode()].mask) == 0) 
+                (_selectableDataMap.TryGetValue(selectable.GetHashCode(), out var data) && ((1 << (int) dir) & (int) data.mask) == 0)) 
             {
                 // Not moving or no selectable: reset outer navigation cooldown and restore default navigation
                 if (_lastRealtimeUsedOuterNavigation >= 0f) {

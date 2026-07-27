@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using MisterGames.Common.Attributes;
 using MisterGames.Common.Localization;
 using MisterGames.Input.Actions;
+using MisterGames.Input.Bindings;
 using MisterGames.SettingsLib.Base;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -14,6 +16,7 @@ namespace MisterGames.SettingsLib.Descs {
         public LocalizationKey name;
         public InputActionRef inputActionRef;
         [Min(0f)] public int bindingIndex;
+        [SerializeReference] [SubclassSelector] public IBindingValidator validator;
         
         public delegate void BindingListener(string id, InputAction action, int bindingIndex, string path);
         private readonly HashSet<BindingListener> _bindingListeners = new();
@@ -67,7 +70,7 @@ namespace MisterGames.SettingsLib.Descs {
             if (binding.isComposite) {
                 Debug.LogError($"KeyBindingSetting.ApplyBinding: f {Time.frameCount}, trying to set composite binding with index [{bindingIndex}] for " + 
                                $"input action [{action.actionMap.name}/{action.name}] in {nameof(KeyBindingSetting)} with id [{name}]. " + 
-                               $"Setting composite binding is not allowed, select valid physical binding index.");
+                               "Setting composite binding is not allowed, select valid physical binding index.");
                 return false;
             }
 
@@ -105,10 +108,10 @@ namespace MisterGames.SettingsLib.Descs {
             const string path = "";
             
             service.Set(id, 0, path);
-            ApplyBinding(bindingIndex, path, actionEnabled);
+            ApplyBinding(index, path, actionEnabled);
             
             foreach (var bindingListener in _bindingListeners) {
-                bindingListener.Invoke(id, action, bindingIndex, path);
+                bindingListener.Invoke(id, action, index, path);
             }
         }
 
@@ -119,8 +122,7 @@ namespace MisterGames.SettingsLib.Descs {
         }
 
         private bool IsValidBinding(string controlPath) {
-            
-            return true;
+            return validator?.IsMatch(controlPath) ?? true;
         }
     }
     
