@@ -4,8 +4,10 @@ using MisterGames.Common.Service;
 using MisterGames.Input.Icons;
 using MisterGames.SettingsLib.Descs;
 using MisterGames.UI.Components;
+using MisterGames.UI.Navigation;
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 #if UNITY_EDITOR
 using UnityEditor;
@@ -14,7 +16,7 @@ using UnityEditor;
 namespace MisterGames.SettingsLib.Base {
     
     [Serializable]
-    public sealed class SettingBinderKeyBinding : ISettingBinder {
+    public sealed class SettingBinderKeyBinding : ISettingBinder, IUiNavigationCallback {
 
         public InputIconsTable inputIcons;
         public UiButton button;
@@ -25,6 +27,9 @@ namespace MisterGames.SettingsLib.Base {
         private KeyBindingSetting _desc;
         private string _id;
         
+        private InputActionRebindingExtensions.RebindingOperation _rebindingOperation;
+        private bool _wasActionEnabled;
+        
         public void Bind(ISettingsService service, ISettingDesc desc, string id) {
             if (!IsValidSettingDesc(desc, out var keyBindingSetting)) return;
             
@@ -33,19 +38,89 @@ namespace MisterGames.SettingsLib.Base {
             _id = id;
             
             button.OnClicked += OnClicked;
+            _desc.AddBindingListener(NotifyBindingApplied);
         }
 
         public void Unbind() {
+            _desc?.RemoveBindingListener(NotifyBindingApplied);
+            
             _service = null;
             _desc = null;
             _id = null;
             
             button.OnClicked -= OnClicked;
+
+            if (_rebindingOperation != null) {
+                _rebindingOperation?.Cancel();
+                StopRebindingDialogue();   
+            }
         }
 
-        public void SetupView(ISettingDesc desc) {
-            
+        private void NotifyBindingApplied(string id, InputAction action, int bindingIndex, string controlPath) {
+            if (_desc != null) SetupValue(_desc);
         }
+
+        private void OnClicked() {
+            StartRebindingDialogue();
+        }
+
+        private void StartRebindingDialogue() {
+            if (_rebindingOperation != null || 
+                !_desc.PrepareBinding(out var action, out bool actionEnabled, out int bindingIndex)) 
+            {
+                return;
+            }
+
+            if (Services.TryGet(out IUiNavigationService navigationService)) {
+                navigationService.AddTopLayerNavigationCallback(this);
+                navigationService.BlockUiInputModule(this, true);
+            }
+            
+            SetIcon(inputIcons.GetFallbackSprite(), "???");
+
+            _wasActionEnabled = actionEnabled;
+            
+            _rebindingOperation = action.PerformInteractiveRebinding(bindingIndex)
+                .WithCancelingThrough("<Keyboard>/escape")
+                .WithMatchingEventsBeingSuppressed()
+                .OnCancel(OnRebindingFinish)
+                .OnComplete(OnRebindingFinish)
+                .OnApplyBinding(OnRebindingApply);
+
+            _rebindingOperation.Start();
+        }
+
+        private void StopRebindingDialogue() {
+            _rebindingOperation?.Dispose();
+            _rebindingOperation = null;
+            
+            if (Services.TryGet(out IUiNavigationService navigationService)) {
+                navigationService.RemoveTopLayerNavigationCallback(this);
+                navigationService.BlockUiInputModule(this, false);
+            }
+            
+            SetupValue(_desc);
+        }
+
+        private void OnRebindingApply(InputActionRebindingExtensions.RebindingOperation rebindingOperation, string controlPath) {
+            if (_service == null || _id ==  null) return;
+            
+            _desc?.SetBinding(_service, _id, controlPath, _wasActionEnabled);
+        }
+
+        private void OnRebindingFinish(InputActionRebindingExtensions.RebindingOperation rebindingOperation) {
+            StopRebindingDialogue();
+        }
+
+        bool IUiNavigationCallback.CanNavigateBack() {
+            _rebindingOperation?.Cancel();
+            StopRebindingDialogue();
+            return false;
+        }
+
+        void IUiNavigationCallback.OnNavigateBack() { }
+
+        public void SetupView(ISettingDesc desc) { }
 
         public void SetupValue(ISettingDesc desc) {
             if (!IsValidSettingDesc(desc, out var keyBindingSetting)) return;
@@ -54,21 +129,27 @@ namespace MisterGames.SettingsLib.Base {
             var gamepadType = Services.TryGet(out IDeviceService deviceService) ? deviceService.GamepadType : GamepadType.Default;
             var sprite = inputIcons.GetIcon(binding, gamepadType);
             
-            SetIcon(sprite, binding.effectivePath);
-        }
+            binding.ToDisplayString(out string _, out string controlPath);
 
-        private void OnClicked() {
+            if (string.IsNullOrWhiteSpace(controlPath)) {
+                sprite = inputIcons.GetFallbackSprite();
+            }
             
+            SetIcon(sprite, controlPath);
         }
 
         private void SetIcon(Sprite sprite, string path) {
             if (sprite != null) {
                 icon.sprite = sprite;
                 textFallback.SetText((string) null);
+                icon.enabled = true;
+                textFallback.enabled = false;
             }
             else {
                 icon.sprite = null;
                 textFallback.SetText(path);
+                icon.enabled = false;
+                textFallback.enabled = true;
             }
             
 #if UNITY_EDITOR

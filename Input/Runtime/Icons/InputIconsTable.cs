@@ -43,6 +43,8 @@ namespace MisterGames.Input.Icons {
         private const string LetterPattern = "^[a-z]$"; 
         private const string FunctionPattern = "^f(?:[1-9]|1[0-9]|2[0-4])$";
 
+        private Dictionary<(string, string), string> _spritePathMap;
+        
         public Sprite GetFallbackSprite() {
             return _fallbackSprite;
         }
@@ -62,15 +64,13 @@ namespace MisterGames.Input.Icons {
         }
         
         public Sprite GetIcon(KeyBinding key, GamepadType gamepadType = GamepadType.Default) {
-            return SplitFullInputPath(key.GetBindingPath(), out string deviceLayoutName, out string controlPath) 
-                ? GetInputBindingSprite(deviceLayoutName, controlPath, gamepadType) 
-                : null;
+            (string deviceLayoutName, string controlPath) = key.GetBindingPath();
+            return GetInputBindingSprite(deviceLayoutName, controlPath, gamepadType);
         }
         
         public Sprite GetIcon(AxisBinding axis, AxisBingingDirection dir = AxisBingingDirection.Default, GamepadType gamepadType = GamepadType.Default) {
-            return SplitFullInputPath(axis.GetBindingPath(dir), out string deviceLayoutName, out string controlPath) 
-                ? GetInputBindingSprite(deviceLayoutName, controlPath, gamepadType) 
-                : null;
+            (string deviceLayoutName, string controlPath) = axis.GetBindingPath(dir);
+            return GetInputBindingSprite(deviceLayoutName, controlPath, gamepadType);
         }
 
         private void GetInputActionSprites(
@@ -92,30 +92,16 @@ namespace MisterGames.Input.Icons {
         
         private Sprite GetInputBindingSprite(string deviceLayoutName, string controlPath, GamepadType gamepadType) {
             var atlasData = GetAtlasData(deviceLayoutName, gamepadType);
-            string spritePath = GetSpritePath(controlPath, ref atlasData);
-            return atlasData.spriteAtlas.GetSprite(spritePath);
-        }
 
-        private static bool SplitFullInputPath(string path, out string deviceLayoutName, out string controlPath) {
-            deviceLayoutName = null;
-            controlPath = null;
-            
-            if (string.IsNullOrWhiteSpace(path)) return false;
-
-            int closingBracket = path.IndexOf('>');
-
-            if (!path.StartsWith("<") ||
-                closingBracket <= 1 ||
-                closingBracket + 1 >= path.Length ||
-                path[closingBracket + 1] != '/')
+            if (_spritePathMap == null || 
+                !_spritePathMap.TryGetValue((deviceLayoutName, controlPath), out string spritePath)) 
             {
-                return false;
+                _spritePathMap ??= new Dictionary<(string, string), string>();
+                spritePath = GetSpritePath(controlPath, ref atlasData);
+                _spritePathMap[(deviceLayoutName, controlPath)] = spritePath;
             }
-
-            deviceLayoutName = path[1..closingBracket];
-            controlPath = path[(closingBracket + 2)..];
-
-            return !string.IsNullOrEmpty(controlPath);
+            
+            return atlasData.spriteAtlas.GetSprite(spritePath);
         }
 
         private static InputDeviceType GetDeviceType(string deviceLayoutName) {
@@ -158,6 +144,12 @@ namespace MisterGames.Input.Icons {
 
             return controlPath;
         }
+
+#if UNITY_EDITOR
+        private void OnValidate() {
+            _spritePathMap = null;
+        }
+#endif
     }
     
 }

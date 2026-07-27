@@ -23,6 +23,8 @@ namespace MisterGames.UI.Navigation {
         IReadOnlyCollection<IUiNavigationNode> Nodes { get; }
         IReadOnlyCollection<RectTransform> ScrollableViewports { get; }
         
+        void BlockUiInputModule(object source, bool block);
+        
         void SetCurrentSelectable(Selectable selectable);
         
         bool IsExitToPauseBlocked();
@@ -33,6 +35,8 @@ namespace MisterGames.UI.Navigation {
 
         void AddWindowNavigationCallback(IUiWindow window, IUiNavigationCallback callback);
         void RemoveWindowNavigationCallback(IUiWindow window, IUiNavigationCallback callback);
+        void AddTopLayerNavigationCallback(IUiNavigationCallback callback);
+        void RemoveTopLayerNavigationCallback(IUiNavigationCallback callback);
         
         void NavigateBack();
         bool NavigateBackPerformedThisFrame();

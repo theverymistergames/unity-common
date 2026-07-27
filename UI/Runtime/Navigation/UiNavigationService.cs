@@ -33,7 +33,8 @@ namespace MisterGames.UI.Navigation {
         private UiNavigationSettings _settings;
         
         private readonly MultiValueDictionary<IUiWindow, IUiNavigationCallback> _windowCallbackMap = new();
-        private readonly List<IUiNavigationCallback> _windowCallbacksBuffer = new();
+        private readonly HashSet<IUiNavigationCallback> _topLayerCallbacks = new();
+        private readonly List<IUiNavigationCallback> _callbacksBuffer = new();
 
         private readonly Dictionary<int, IUiNavigationNode> _gameObjectIdToNodeMap = new();
         private readonly Dictionary<int, RectTransform> _scrollableViewports = new();
@@ -41,6 +42,7 @@ namespace MisterGames.UI.Navigation {
         private readonly Dictionary<int, Selectable> _selectableMap = new();
         private readonly Dictionary<int, (UiNavigationMask mask, UiNavigationOptions options)> _selectableDataMap = new();
         private readonly HashSet<int> _pauseBlockers = new();
+        private readonly HashSet<int> _uiInputModuleBlockers = new();
 
         private InputAction _moveInput;
         private InputAction _cancelInput;
@@ -75,7 +77,8 @@ namespace MisterGames.UI.Navigation {
             _cancelInput.performed -= OnCancelInputPerformed;
             
             _windowCallbackMap.Clear();
-            _windowCallbacksBuffer.Clear();
+            _topLayerCallbacks.Clear();
+            _callbacksBuffer.Clear();
             
             _gameObjectIdToNodeMap.Clear();
             _childNodeToParentMap.Clear();
@@ -187,6 +190,13 @@ namespace MisterGames.UI.Navigation {
             GetParentNavigationNode(selectable)?.OnNavigateOut(selectable, dir);
         }
 
+        public void BlockUiInputModule(object source, bool block) {
+            if (block) _uiInputModuleBlockers.Add(source.GetHashCode());
+            else _uiInputModuleBlockers.Remove(source.GetHashCode());
+            
+            EventSystem.current.currentInputModule.enabled = _uiInputModuleBlockers.Count == 0;
+        }
+
         public void NavigateOutTo(Selectable selectable, UiNavigationDirection direction) {
             if (selectable == null) return;
 
@@ -273,22 +283,34 @@ namespace MisterGames.UI.Navigation {
         }
 
         public void AddWindowNavigationCallback(IUiWindow window, IUiNavigationCallback callback) {
-            _windowCallbackMap.AddValue(window, callback);
+            if (!_windowCallbackMap.ContainsValue(window, callback)) _windowCallbackMap.AddValue(window, callback);
         }
 
         public void RemoveWindowNavigationCallback(IUiWindow window, IUiNavigationCallback callback) {
             _windowCallbackMap.RemoveValue(window, callback);
         }
 
-        private IReadOnlyList<IUiNavigationCallback> CreateWindowCallbacksBuffer(IUiWindow window) {
-            _windowCallbacksBuffer.Clear();
+        public void AddTopLayerNavigationCallback(IUiNavigationCallback callback) {
+            _topLayerCallbacks.Add(callback);
+        }
+        
+        public void RemoveTopLayerNavigationCallback(IUiNavigationCallback callback) {
+            _topLayerCallbacks.Remove(callback);
+        }
 
-            int count = _windowCallbackMap.GetCount(window);
-            for (int i = 0; i < count; i++) {
-                _windowCallbacksBuffer.Add(_windowCallbackMap.GetValueAt(window, i));
+        private IReadOnlyList<IUiNavigationCallback> CreateWindowCallbacksBuffer(IUiWindow window) {
+            _callbacksBuffer.Clear();
+
+            foreach (var callback in _topLayerCallbacks) {
+                _callbacksBuffer.Add(callback);
             }
             
-            return _windowCallbacksBuffer;
+            int count = _windowCallbackMap.GetCount(window);
+            for (int i = 0; i < count; i++) {
+                _callbacksBuffer.Add(_windowCallbackMap.GetValueAt(window, i));
+            }
+            
+            return _callbacksBuffer;
         }
         
         public void BindNavigation(IUiNavigationNode node) {
