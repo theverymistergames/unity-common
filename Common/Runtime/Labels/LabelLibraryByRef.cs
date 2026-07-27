@@ -243,9 +243,13 @@ namespace MisterGames.Common.Labels {
 
             for (int i = 0; i < arrays; i++) {
                 ref var array = ref _labelArrays![i];
-                
-                if (array.id == 0) array.usage = LabelArrayUsage.ByHash;
-                if (array.id == 0 || _occupiedIdsCache.Contains(array.id)) array.id = GetNextId();
+
+                if (array.id == 0 || _occupiedIdsCache.Contains(array.id)) {
+                    array.id = GetNextId();
+                    array.usage = LabelArrayUsage.ByHash;
+                    array.comment = null;
+                    array.labels = Array.Empty<LabelData>();
+                }
                 _occupiedIdsCache.Add(array.id);
                 
                 int labels = array.labels?.Length ?? 0;
@@ -253,7 +257,10 @@ namespace MisterGames.Common.Labels {
                 for (int j = 0; j < labels; j++) {
                     ref var label = ref array.labels![j];
 
-                    if (label.id == 0 || _occupiedIdsCache.Contains(label.id)) label.id = GetNextId();
+                    if (label.id == 0 || _occupiedIdsCache.Contains(label.id)) {
+                        label.id = GetNextId();
+                        label.data = null;
+                    }
                     _occupiedIdsCache.Add(label.id);
                 }
             }

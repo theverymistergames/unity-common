@@ -127,10 +127,17 @@ namespace MisterGames.UI.Navigation {
 
         private void ProcessSelectableNavigation(Selectable selectable) {
             var moveVector = _moveInput.ReadValue<Vector2>();
+            var dir = Mathf.Abs(moveVector.y) >= Mathf.Abs(moveVector.x) 
+                ? Mathf.Sign(moveVector.y) > 0f ? UiNavigationDirection.Up : UiNavigationDirection.Down
+                : Mathf.Sign(moveVector.x) > 0f ? UiNavigationDirection.Right : UiNavigationDirection.Left;
 
             if (moveVector == default || 
+                
                 // Try to get last nonnull selectable to avoid getting stuck
-                selectable == null && !_selectableMap.TryGetValue(_lastNonNullSelectableHash, out selectable)) 
+                selectable == null && !_selectableMap.TryGetValue(_lastNonNullSelectableHash, out selectable) ||
+                
+                // Current selectable nav mask forbids this direction
+                ((1 << (int) dir) & (int) _selectableDataMap[selectable.GetHashCode()].mask) == 0) 
             {
                 // Not moving or no selectable: reset outer navigation cooldown and restore default navigation
                 if (_lastRealtimeUsedOuterNavigation >= 0f) {
@@ -141,10 +148,6 @@ namespace MisterGames.UI.Navigation {
                 _lastRealtimeUsedOuterNavigation = -1f;
                 return;
             }
-            
-            var dir = Mathf.Abs(moveVector.y) >= Mathf.Abs(moveVector.x) 
-                ? Mathf.Sign(moveVector.y) > 0f ? UiNavigationDirection.Up : UiNavigationDirection.Down
-                : Mathf.Sign(moveVector.x) > 0f ? UiNavigationDirection.Right : UiNavigationDirection.Left;
             
             var nextElement = dir switch {
                 UiNavigationDirection.Up => selectable.navigation.selectOnUp,

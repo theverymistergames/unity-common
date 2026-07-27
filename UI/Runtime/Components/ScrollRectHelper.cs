@@ -19,15 +19,15 @@ namespace MisterGames.UI.Components {
     
     public sealed class ScrollRectHelper : MonoBehaviour, IUpdate {
         
-        [SerializeField] private EnableMode _enableMode = EnableMode.OnFocus;
-        
         [Header("Scroll Rect")]
         [SerializeField] private ScrollRect _scrollRect;
         [SerializeField] private PointerEventsHandler[] _pointerEventHandlers;
         
         [Header("Inputs")]
         [SerializeField] private InputActionRef _accelerateInput;
-        [SerializeField] private ScrollInput[] _inputs;
+        [SerializeField] private ScrollInput[] _inputsEnabled;
+        [SerializeField] private ScrollInput[] _inputsFocused;
+        [SerializeField] private ScrollInput[] _inputsSelected;
 
         [Header("Motion")]
         [SerializeField] [Min(0f)] private float _deltaSensitivity = 301f;
@@ -37,6 +37,8 @@ namespace MisterGames.UI.Components {
 
         [Header("Move To Position")]
         [SerializeField] private EasingType _moveToPositionEasing = EasingType.EaseInOutSine;
+        [SerializeField] private bool _autoMoveToLastSelectable = true;
+        [SerializeField] [Min(0f)] private float _autoMoveToLastSelectableDuration = 0.6f;
         
         [Header("Auto Scroll")]
         [SerializeField] private bool _enableAutoScroll = true;
@@ -61,11 +63,6 @@ namespace MisterGames.UI.Components {
             public InputMode mode;
             public Axis axis;
             public Vector2 sensitivity;
-        }
-
-        private enum EnableMode {
-            OnEnable,
-            OnFocus,
         }
         
         private enum InputMode {
@@ -209,6 +206,33 @@ namespace MisterGames.UI.Components {
         private void OnSelectableChanged(Selectable selectable, IUiWindow parentWindow) {
             _containsSelectedObjectDirectly = Services.TryGet(out IUiNavigationService navigationService) &&
                                               ContainsSelectedObjectDirectly(navigationService);
+
+            if (_containsSelectedObjectDirectly && _autoMoveToLastSelectable) {
+                MoveToPosition(GetNormalizedPosition(selectable.transform.position), _autoMoveToLastSelectableDuration);
+            }
+        }
+
+        private Vector2 GetNormalizedPosition(Vector3 worldPosition) {
+            var content = _scrollRect.content;
+            var contentRect = content.rect;
+            var viewportRect = _scrollRect.viewport.rect;
+
+            var localPoint = (Vector2) content.InverseTransformPoint(worldPosition);
+            var normalizedPosition = _scrollRect.normalizedPosition;
+
+            float availableWidth = contentRect.width - viewportRect.width;
+            if (_scrollRect.horizontal && availableWidth > 0f) {
+                float x = localPoint.x - contentRect.xMin - viewportRect.width * 0.5f;
+                normalizedPosition.x = Mathf.Clamp01(x / availableWidth);
+            }
+
+            float availableHeight = contentRect.height - viewportRect.height;
+            if (_scrollRect.vertical && availableHeight > 0f) {
+                float y = localPoint.y - contentRect.yMin - viewportRect.height * 0.5f;
+                normalizedPosition.y = Mathf.Clamp01(y / availableHeight);
+            }
+
+            return normalizedPosition;
         }
 
         void IUpdate.OnUpdate(float dt) {
@@ -238,14 +262,11 @@ namespace MisterGames.UI.Components {
                 return;
             }
             
-            var inputDelta = GetInputDelta();
+            var inputDelta = IsScrollbarSelected() 
+                ? GetInputDelta(_inputsSelected) 
+                : _isInTopOpenedLayer && IsFocused() ? GetInputDelta(_inputsFocused) : GetInputDelta(_inputsEnabled);
+            
             var currentPos = _scrollRect.content.anchoredPosition;
-
-            if (!_isInTopOpenedLayer || 
-                _enableMode == EnableMode.OnFocus && inputDelta != default && !IsFocused()) 
-            {
-                inputDelta = default;
-            }
 
             if (inputDelta != default) {
                 _lastTimeHasInputs = time;
@@ -392,7 +413,7 @@ namespace MisterGames.UI.Components {
         private bool ContainsSelectedObjectDirectly(IUiNavigationService navigationService) {
             if (_parentNode == null ||
                 !navigationService.HasSelectedGameObject ||
-                (navigationService.SelectedObjectOptions & UiNavigationOptions.Scrollable) == UiNavigationOptions.Scrollable && 
+                (navigationService.SelectedObjectOptions & UiNavigationOptions.Scrollable) != 0 && 
                 !IsScrollbar(navigationService.CurrentSelectable)) 
             {
                 return false;
@@ -417,12 +438,12 @@ namespace MisterGames.UI.Components {
             return selectable == _scrollRect.horizontalScrollbar || selectable == _scrollRect.verticalScrollbar;
         }
         
-        private Vector2 GetInputDelta() {
+        private Vector2 GetInputDelta(ScrollInput[] inputArray) {
             Vector2 vectorMax = default;
             Vector2 deltaMax = default;
 
-            for (int i = 0; i < _inputs.Length; i++) {
-                ref var input = ref _inputs[i];
+            for (int i = 0; i < inputArray.Length; i++) {
+                ref var input = ref inputArray[i];
                 var value = GetValue(ref input);
 
                 switch (input.mode) {
