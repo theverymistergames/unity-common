@@ -6,6 +6,7 @@ namespace MisterGames.UI.Navigation {
     public enum UiNavigationOptions {
         None = 0,
         Scrollable = 1,
+        NoIncomingNavigation = 2,
     }
     
 }

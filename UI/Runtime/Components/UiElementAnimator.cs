@@ -67,7 +67,7 @@ namespace MisterGames.UI.Components {
         }
 
         private void OnSelectableChanged(Selectable selectable, IUiWindow window) {
-            if (selectable == _selectable) OnSelect();
+            if (IsSelected()) OnSelect();
             else OnDeselect();
         }
 
@@ -238,8 +238,10 @@ namespace MisterGames.UI.Components {
 
         private bool IsSelected() {
             return _selectable != null && 
-                   (Services.Get<UiNavigationService>()?.LastNonNullSelectable == _selectable || 
-                    EventSystem.current?.currentSelectedGameObject == _selectable.gameObject);
+                   (Services.TryGet(out IUiNavigationService service) && 
+                    (service.LastNonNullSelectable == _selectable || service.CurrentSelectable == _selectable) || 
+                    EventSystem.current?.currentSelectedGameObject == _selectable.gameObject
+                   );
         }
 
 #if UNITY_EDITOR

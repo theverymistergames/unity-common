@@ -11,7 +11,7 @@ namespace MisterGames.UI.Navigation {
         bool IsScrollable { get; }
         RectTransform Viewport { get; }
         
-        void Bind(Selectable selectable, UiNavigationMask mask = ~UiNavigationMask.None);
+        void Bind(Selectable selectable, UiNavigationMask mask = ~UiNavigationMask.None, UiNavigationOptions options = UiNavigationOptions.None);
         void Unbind(Selectable selectable);
 
         void UpdateNavigation();

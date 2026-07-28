@@ -26,6 +26,7 @@ namespace MisterGames.UI.Navigation {
         void BlockUiInputModule(object source, bool block);
         
         void SetCurrentSelectable(Selectable selectable);
+        UiNavigationOptions GetSelectableOptions(Selectable selectable);
         
         bool IsExitToPauseBlocked();
         void BlockExitToPause(object source);

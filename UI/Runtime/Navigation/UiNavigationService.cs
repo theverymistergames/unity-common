@@ -239,6 +239,10 @@ namespace MisterGames.UI.Navigation {
             EventSystem.current.SetSelectedGameObject(selectable.gameObject);
         }
 
+        public UiNavigationOptions GetSelectableOptions(Selectable selectable) {
+            return _selectableDataMap.GetValueOrDefault(selectable.GetHashCode()).options;
+        }
+
         public bool IsExitToPauseBlocked() {
             return _pauseBlockers.Count > 0 || NavigateBackPerformedThisFrame();
         }
@@ -346,7 +350,7 @@ namespace MisterGames.UI.Navigation {
             }
             
             _selectableDataMap[hash] = (mask, options);
-            BindNavigationNodeSelectable(selectable, mask);
+            BindNavigationNodeSelectable(selectable, mask, options);
         }
 
         public void UnbindNavigation(Selectable selectable) {
@@ -390,7 +394,7 @@ namespace MisterGames.UI.Navigation {
             _childNodeToParentMap.Remove(nodeId);
         }
 
-        private void BindNavigationNodeSelectable(Selectable selectable, UiNavigationMask mask) {
+        private void BindNavigationNodeSelectable(Selectable selectable, UiNavigationMask mask, UiNavigationOptions options) {
             if (selectable == null) return;
             
             var parentNode = FindClosestParentNavigationNode(selectable.gameObject, includeSelf: true);
@@ -409,7 +413,7 @@ namespace MisterGames.UI.Navigation {
             
             _childNodeToParentMap[selectableId] = parentNodeId;
             
-            parentNode.Bind(selectable, mask);
+            parentNode.Bind(selectable, mask, options);
             parentNode.UpdateNavigation();
         }
         
@@ -480,14 +484,15 @@ namespace MisterGames.UI.Navigation {
             foreach (var selectable in _selectableMap.Values) {
                 if (!selectable.transform.IsChildOf(rootTrf)) continue;
                 var data = _selectableDataMap.GetValueOrDefault(selectable.GetHashCode());
-                BindNavigationNodeSelectable(selectable, data.mask);
+                BindNavigationNodeSelectable(selectable, data.mask, data.options);
             }
         }
         
         private void ActualizeSelectableNavigation(int selectableHash) {
             if (!_selectableMap.TryGetValue(selectableHash, out var selectable)) return;
 
-            BindNavigationNodeSelectable(selectable, _selectableDataMap.GetValueOrDefault(selectableHash).mask);
+            var data = _selectableDataMap.GetValueOrDefault(selectableHash);
+            BindNavigationNodeSelectable(selectable, data.mask, data.options);
         }
     }
     

@@ -17,25 +17,29 @@ namespace MisterGames.UI.Navigation {
     public sealed class UiNavigationNodeHelper : IDisposable {
 
         private readonly Dictionary<int, Selectable> _gameObjectIdToSelectableMap = new();
-        private readonly Dictionary<int, UiNavigationMask> _gameObjectIdToMaskMap = new();
+        private readonly Dictionary<int, (UiNavigationMask mask, UiNavigationOptions options)> _gameObjectIdToDataMap = new();
 
         public void Dispose() {
             _gameObjectIdToSelectableMap.Clear();
-            _gameObjectIdToMaskMap.Clear();
+            _gameObjectIdToDataMap.Clear();
         }
 
-        public void Bind(Selectable selectable, UiNavigationMask mask = ~UiNavigationMask.None) {
+        public void Bind(
+            Selectable selectable,
+            UiNavigationMask mask = ~UiNavigationMask.None,
+            UiNavigationOptions options = UiNavigationOptions.None) 
+        {
             int hash = selectable.gameObject.GetHashCode();
             
             _gameObjectIdToSelectableMap[hash] = selectable;
-            _gameObjectIdToMaskMap[hash] = mask;
+            _gameObjectIdToDataMap[hash] = (mask, options);
         }
 
         public void Unbind(Selectable selectable) {
             int hash = selectable.gameObject.GetHashCode();
             
             _gameObjectIdToSelectableMap.Remove(hash);
-            _gameObjectIdToMaskMap.Remove(hash);
+            _gameObjectIdToDataMap.Remove(hash);
         }
 
         public bool IsBound(GameObject gameObject) {
@@ -68,6 +72,7 @@ namespace MisterGames.UI.Navigation {
 
             foreach (var selectable in selectables) {
                 if (IsBound(selectable.gameObject) || 
+                    (service.GetSelectableOptions(selectable) & UiNavigationOptions.NoIncomingNavigation) != 0 ||
                     service.GetParentNavigationNode(selectable) is not { } p || 
                     !allowParent && p != parentNode || 
                     !allowSiblings && !service.IsChildNode(p, parentNode, direct: true) ||
@@ -133,10 +138,12 @@ namespace MisterGames.UI.Navigation {
             int count = 0;
 
             foreach ((int id, var selectable) in _gameObjectIdToSelectableMap) {
+                var data = _gameObjectIdToDataMap.GetValueOrDefault(id);
                 selectablesArray[count++] = new SelectableData(
                     id,
                     rootTrf.InverseTransformPoint(selectable.transform.position), 
-                    _gameObjectIdToMaskMap.GetValueOrDefault(id)
+                    data.mask,
+                    data.options
                 );
             }
 
@@ -176,11 +183,13 @@ namespace MisterGames.UI.Navigation {
             public readonly int id;
             public readonly float2 position;
             public readonly UiNavigationMask mask;
+            public readonly UiNavigationOptions options;
 
-            public SelectableData(int id, float3 position, UiNavigationMask mask) {
+            public SelectableData(int id, float3 position, UiNavigationMask mask, UiNavigationOptions options) {
                 this.id = id;
                 this.position = math.float2(position.x, position.y);
                 this.mask = mask;
+                this.options = options;
             }
         }
         
@@ -239,7 +248,7 @@ namespace MisterGames.UI.Navigation {
                 
                 for (int i = 0; i < selectablesArray.Length; i++) {
                     var data = selectablesArray[i];
-                    if (data.id == current.id) continue;
+                    if (data.id == current.id || (data.options & UiNavigationOptions.NoIncomingNavigation) != 0) continue;
 
                     bool isUp = mode != UiNavigationMode.Horizontal && (data.mask & UiNavigationMask.Down) != 0 && data.position.IsHigherThan(current.position);
                     bool isDown = mode != UiNavigationMode.Horizontal && (data.mask & UiNavigationMask.Up) != 0 && data.position.IsLowerThan(current.position);

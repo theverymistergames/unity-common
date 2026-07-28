@@ -79,8 +79,8 @@ namespace MisterGames.UI.Navigation {
             }
         }
 
-        public void Bind(Selectable selectable, UiNavigationMask mask = ~UiNavigationMask.None) {
-            _helper.Bind(selectable, mask);
+        public void Bind(Selectable selectable, UiNavigationMask mask = ~UiNavigationMask.None, UiNavigationOptions options = UiNavigationOptions.None) {
+            _helper.Bind(selectable, mask, options);
             
             if (Services.TryGet(out IUiNavigationService service)) {
                 OnSelectedGameObjectChanged(service.CurrentSelectable, service.SelectedGameObjectWindow);   
@@ -95,7 +95,7 @@ namespace MisterGames.UI.Navigation {
         [Button(mode: ButtonAttribute.Mode.Runtime)]
 #endif
         public void UpdateNavigation() {
-            _helper.UpdateNavigationNextFrame(transform, _mode, _loop, _cell, _enableCts?.Token ?? default).Forget();
+            _helper.UpdateNavigationNextFrame(transform, _mode, _loop, _cell, _enableCts?.Token ?? CancellationToken.None).Forget();
         }
 
         public void OnNavigateOut(Selectable fromSelectable, UiNavigationDirection direction) {
