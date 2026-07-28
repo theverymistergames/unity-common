@@ -79,10 +79,14 @@ namespace MisterGames.SettingsLib.Base {
             SetIcon(inputIcons.GetFallbackSprite(), "???");
 
             _wasActionEnabled = actionEnabled;
+
+            _desc.TryGetBinding(out action, out var binding, out bindingIndex);
+            binding.ToDisplayString(out string deviceLayoutName, out string controlPath);
             
             _rebindingOperation = action.PerformInteractiveRebinding(bindingIndex)
                 .WithCancelingThrough("<Keyboard>/escape")
-                .WithMatchingEventsBeingSuppressed()
+                .WithControlsHavingToMatchPath($"<{deviceLayoutName}>")
+                .WithActionEventNotificationsBeingSuppressed()
                 .OnCancel(OnRebindingFinish)
                 .OnComplete(OnRebindingFinish)
                 .OnApplyBinding(OnRebindingApply);
@@ -99,7 +103,7 @@ namespace MisterGames.SettingsLib.Base {
                 navigationService.BlockUiInputModule(this, false);
             }
             
-            SetupValue(_desc);
+            if (_desc != null) SetupValue(_desc);
         }
 
         private void OnRebindingApply(InputActionRebindingExtensions.RebindingOperation rebindingOperation, string controlPath) {

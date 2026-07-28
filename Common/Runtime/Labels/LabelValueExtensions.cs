@@ -150,20 +150,13 @@ namespace MisterGames.Common.Labels {
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool TryGetLabel(this LabelValue labelValue, out string label) {
-            label = labelValue.library?.GetLabel(labelValue.id);
-            return label != null;
+        public static string GetFullLabel(this LabelValue labelValue) {
+            return labelValue.library?.GetFullLabel(labelValue.id);
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool TryGetLabel<T>(this LabelValue<T> labelValue, out string label) {
-            if (labelValue.library?.ContainsLabel(labelValue.id) ?? false) {
-                label = labelValue.library.GetLabel(labelValue.id);
-                return true;
-            }
-
-            label = default;
-            return false;
+        public static string GetFullLabel<T>(this LabelValue<T> labelValue) {
+            return labelValue.library?.GetFullLabel(labelValue.id);
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -176,12 +169,6 @@ namespace MisterGames.Common.Labels {
         public static string GetLabel<T>(this LabelArray<T> labelArray) {
             int arrayIndex = labelArray.library?.GetArrayIndex(labelArray.id) ?? -1; 
             return arrayIndex >= 0 ? labelArray.library!.GetArrayName(arrayIndex) : null;
-        }
-        
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool TryGetLabel(this LabelArray labelArray, out string label) {
-            label = GetLabel(labelArray);
-            return label != null;
         }
         
         // Data

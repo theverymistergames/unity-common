@@ -21,7 +21,7 @@ namespace MisterGames.SettingsLib.Descs {
                 var label = keyBindingSettings[i];
                 if (label.GetData() is not KeyBindingSetting setting) continue;
                 
-                _keyBindingSettings[label.GetLabel()] = setting;
+                _keyBindingSettings[label.GetFullLabel()] = setting;
                 setting.AddBindingListener(NotifyBindingApplied);
             }
         }

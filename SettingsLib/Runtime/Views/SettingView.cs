@@ -17,7 +17,7 @@ namespace MisterGames.SettingsLib.Base {
         [SerializeReference] [SubclassSelector] private ISettingBinder _binder;
         
         private void OnEnable() {
-            _binder.Bind(Services.Get<ISettingsService>(), _settingKey.GetData(), _settingKey.GetLabel());
+            _binder.Bind(Services.Get<ISettingsService>(), _settingKey.GetData(), _settingKey.GetFullLabel());
             
             if (Services.TryGet(out ILocalizationService localizationService)) {
                 localizationService.OnLocaleChanged += OnLocaleChanged;

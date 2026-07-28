@@ -60,6 +60,25 @@ namespace MisterGames.Common.Labels {
                     return arr.labels[index].name;
             }
         }
+        
+        public override string GetFullLabel(int labelId) {
+            (int array, int index) = GetLabelAddress(labelId);
+            
+            switch (index) {
+                case LabelLibrary.Null:
+                    return null;
+                
+                case LabelLibrary.None: {
+                    ref var arr = ref _labelArrays[array];
+                    return $"{name}/{arr.name}[{arr.id}]/{LabelLibrary.NoneLabel}[{labelId}]";
+                }
+
+                default: {
+                    ref var arr = ref _labelArrays[array];
+                    return $"{name}/{arr.name}[{arr.id}]/{arr.labels[index].name}[{labelId}]";
+                }
+            }
+        }
 
         public override int GetValue(int labelId) {
 #if UNITY_EDITOR
@@ -160,10 +179,10 @@ namespace MisterGames.Common.Labels {
         }
 
         public override int GetLabelId(int arrayIndex, int labelIndex) {
-            if (_labelArrays == null || _labelArrays.Length <= arrayIndex) return default;
+            if (_labelArrays == null || _labelArrays.Length <= arrayIndex) return 0;
 
             ref var arr = ref _labelArrays[arrayIndex];
-            if (arr.labels == null || arr.labels.Length <= labelIndex) return default;
+            if (arr.labels == null || arr.labels.Length <= labelIndex) return 0;
             
             return arr.labels[labelIndex].id;
         }

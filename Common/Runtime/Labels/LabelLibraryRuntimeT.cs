@@ -52,6 +52,25 @@ namespace MisterGames.Common.Labels {
                     return arr.labels[index].name;
             }
         }
+        
+        public override string GetFullLabel(int labelId) {
+            (int array, int index) = GetLabelAddress(labelId);
+            
+            switch (index) {
+                case LabelLibrary.Null:
+                    return null;
+                
+                case LabelLibrary.None: {
+                    ref var arr = ref _labelArrays[array];
+                    return $"{name}/{arr.name}[{arr.id}]/{LabelLibrary.NoneLabel}[{labelId}]";
+                }
+
+                default: {
+                    ref var arr = ref _labelArrays[array];
+                    return $"{name}/{arr.name}[{arr.id}]/{arr.labels[index].name}[{labelId}]";
+                }
+            }
+        }
 
         public override int GetValue(int labelId) {
 #if UNITY_EDITOR

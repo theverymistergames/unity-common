@@ -208,7 +208,7 @@ namespace MisterGames.Common.Save {
                     break;
                 
                 case JsonExtensions.Status.Error:
-                    LogError($"could not load storage [{storageId}]: {result.message}");
+                    LogWarning($"could not load storage [{storageId}]: {result.message}");
                     break;
                 
                 default:

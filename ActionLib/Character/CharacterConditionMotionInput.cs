@@ -3,7 +3,6 @@ using MisterGames.Actors;
 using MisterGames.Actors.Actions;
 using MisterGames.Character.Motion;
 using MisterGames.Common.Data;
-using MisterGames.Common.Maths;
 using UnityEngine;
 
 namespace MisterGames.ActionLib.Character {

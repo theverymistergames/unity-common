@@ -60,7 +60,7 @@ namespace MisterGames.SettingsLib.Base {
                     int labelId = settingsStorage.GetLabelId(i, j);
                     if (!settingsStorage.TryGetData(labelId, out var setting)) continue;
                     
-                    action.Invoke(this, setting, settingsStorage.GetLabel(labelId));
+                    action.Invoke(this, setting, settingsStorage.GetFullLabel(labelId));
                 }
             }
         }

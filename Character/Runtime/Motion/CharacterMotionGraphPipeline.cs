@@ -4,7 +4,6 @@ using MisterGames.Actors;
 using MisterGames.Actors.Actions;
 using MisterGames.Character.Capsule;
 using MisterGames.Character.Phys;
-using MisterGames.Character.Input;
 using MisterGames.Common.Async;
 using MisterGames.Common.Data;
 using UnityEngine;
@@ -19,19 +18,19 @@ namespace MisterGames.Character.Motion {
         
         private IActor _actor;
         private CharacterPosePipeline _pose;
-        private CharacterInputPipeline _input;
+        private CharacterMotionRunPipeline _run;
         private CharacterGroundDetector _groundDetector;
         private CancellationTokenSource _enableCts;
 
         void IActorComponent.OnAwake(IActor actor) {
             _actor = actor;
             _pose = actor.GetComponent<CharacterPosePipeline>();
-            _input = actor.GetComponent<CharacterInputPipeline>();
+            _run = actor.GetComponent<CharacterMotionRunPipeline>();
             _groundDetector = actor.GetComponent<CharacterGroundDetector>();
         }
 
         private void OnEnable() {
-            _blockSet.OnUpdate += UpdateState;
+            _blockSet.OnUpdate -= UpdateState;
             
             UpdateState();
         }
@@ -67,10 +66,6 @@ namespace MisterGames.Character.Motion {
             ApplyState();
         }
 
-        private void OnRunReleased() {
-            ApplyState();
-        }
-
         private void EnableGraph() {
             if (_enableCts != null) return;
             
@@ -78,12 +73,11 @@ namespace MisterGames.Character.Motion {
             
             _groundDetector.OnContact += OnStartContactGround;
             _groundDetector.OnLostContact += OnStopContactGround;
-
             _pose.OnPoseChanged += OnPoseChanged;
-            
-            _input.OnRunPressed += OnRunPressed;
-            _input.OnRunReleased += OnRunReleased;
-            
+            _run.OnRunStateChanged += OnRunPressed;
+
+            _blockSet.OnUpdate += UpdateState;
+
             ApplyState();
         }
 
@@ -94,11 +88,10 @@ namespace MisterGames.Character.Motion {
             
             _groundDetector.OnContact -= OnStartContactGround;
             _groundDetector.OnLostContact -= OnStopContactGround;
-
             _pose.OnPoseChanged -= OnPoseChanged;
+            _run.OnRunStateChanged -= OnRunPressed;
 
-            _input.OnRunPressed -= OnRunPressed;
-            _input.OnRunReleased -= OnRunReleased;
+            _blockSet.OnUpdate -= UpdateState;
         }
 
         private void ApplyState() {

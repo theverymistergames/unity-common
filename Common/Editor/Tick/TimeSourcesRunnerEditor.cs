@@ -32,7 +32,7 @@ namespace MisterGames.Tick.Editor.Drawers {
             EditorApplication.update -= OnEditorUpdate;
             EditorApplication.update += OnEditorUpdate;
 
-            var playerLoopStages = PlayerLoopStages.All;
+            var playerLoopStages = TimeSources.PlayerLoopStages;
             for (int i = 0; i < playerLoopStages.Length; i++) {
                 var stage = playerLoopStages[i];
 

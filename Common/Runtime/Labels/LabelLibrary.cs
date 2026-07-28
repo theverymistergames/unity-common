@@ -68,6 +68,25 @@ namespace MisterGames.Common.Labels {
             }
         }
 
+        public override string GetFullLabel(int labelId) {
+            (int array, int index) = GetLabelAddress(labelId);
+            
+            switch (index) {
+                case Null:
+                    return null;
+                
+                case None: {
+                    ref var arr = ref _labelArrays[array];
+                    return $"{name}/{arr.name}[{arr.id}]/{NoneLabel}[{labelId}]";
+                }
+
+                default: {
+                    ref var arr = ref _labelArrays[array];
+                    return $"{name}/{arr.name}[{arr.id}]/{arr.labels[index].name}[{labelId}]";
+                }
+            }
+        }
+
         public override int GetValue(int labelId) {
 #if UNITY_EDITOR
             ClearMapsIfInvalid();
@@ -94,21 +113,21 @@ namespace MisterGames.Common.Labels {
         }
 
         public override string GetArrayName(int arrayIndex) {
-            if (_labelArrays == null || _labelArrays.Length <= arrayIndex) return default;
+            if (_labelArrays == null || _labelArrays.Length <= arrayIndex) return null;
 
             ref var arr = ref _labelArrays[arrayIndex];
             return arr.name;
         }
 
         public override bool GetArrayNoneLabel(int arrayIndex) {
-            if (_labelArrays == null || _labelArrays.Length <= arrayIndex) return default;
+            if (_labelArrays == null || _labelArrays.Length <= arrayIndex) return false;
 
             ref var arr = ref _labelArrays[arrayIndex];
             return arr.none;
         }
 
         public override int GetArrayId(int arrayIndex) {
-            if (_labelArrays == null || _labelArrays.Length <= arrayIndex) return default;
+            if (_labelArrays == null || _labelArrays.Length <= arrayIndex) return 0;
 
             ref var arr = ref _labelArrays[arrayIndex];
             return arr.id;
@@ -137,10 +156,10 @@ namespace MisterGames.Common.Labels {
         }
 
         public override int GetLabelId(int arrayIndex, int labelIndex) {
-            if (_labelArrays == null || _labelArrays.Length <= arrayIndex) return default;
+            if (_labelArrays == null || _labelArrays.Length <= arrayIndex) return 0;
 
             ref var arr = ref _labelArrays[arrayIndex];
-            if (arr.labels == null || arr.labels.Length <= labelIndex) return default;
+            if (arr.labels == null || arr.labels.Length <= labelIndex) return 0;
             
             return arr.labels[labelIndex].id;
         }

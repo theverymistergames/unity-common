@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Maths;
 using UnityEngine;
@@ -17,6 +18,16 @@ namespace MisterGames.Common.Tick {
 
     public static class TimeSources {
 
+        public static ReadOnlySpan<PlayerLoopStage> PlayerLoopStages => PlayerLoopStagesArray;
+        private static readonly PlayerLoopStage[] PlayerLoopStagesArray = CreatePlayerLoopStagesArray();
+
+        private static PlayerLoopStage[] CreatePlayerLoopStagesArray() {
+            return typeof(PlayerLoopStage)
+                .GetEnumValues()
+                .Cast<PlayerLoopStage>()
+                .ToArray();
+        }
+        
         public static float time {
             get {
 #if UNITY_EDITOR

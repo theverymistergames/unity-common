@@ -9,6 +9,7 @@ namespace MisterGames.Common.Labels.Base {
 
         public abstract bool ContainsLabel(int labelId);
         public abstract string GetLabel(int labelId);
+        public abstract string GetFullLabel(int labelId);
         public abstract int GetValue(int labelId);
 
         public abstract int GetArraysCount();

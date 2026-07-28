@@ -1,7 +1,9 @@
 ﻿using System;
 using MisterGames.Common.Attributes;
+using MisterGames.Common.Data;
 using MisterGames.Common.Easing;
 using MisterGames.Common.GameObjects;
+using MisterGames.Common.Inputs;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Service;
 using MisterGames.Common.Tick;
@@ -60,6 +62,7 @@ namespace MisterGames.UI.Components {
         [Serializable]
         private struct ScrollInput {
             public InputActionRef inputAction;
+            public Optional<InputDeviceType> deviceType;
             public InputMode mode;
             public Axis axis;
             public Vector2 sensitivity;
@@ -85,6 +88,7 @@ namespace MisterGames.UI.Components {
         }
         
         private IUiNavigationService _navigationService;
+        private IDeviceService _deviceService;
         
         // x - right, y - left, z - bottom , w - top
         private Vector4 _lastTimeNotTouchedSide;
@@ -96,7 +100,7 @@ namespace MisterGames.UI.Components {
         private float _moveToPositionStartTime;
         private float _moveToPositionDuration;
         private Vector2 _targetMovePositionNormalized;
-        
+
         private IUiNavigationNode _parentNode;
         private bool _isInTopOpenedLayer;
         private bool _containsSelectedObjectDirectly;
@@ -105,6 +109,7 @@ namespace MisterGames.UI.Components {
 
         private void Awake() {
             _navigationService = Services.Get<IUiNavigationService>();
+            _deviceService = Services.Get<IDeviceService>();
         }
 
         private void OnEnable() {
@@ -262,9 +267,13 @@ namespace MisterGames.UI.Components {
                 return;
             }
             
-            var inputDelta = IsScrollbarSelected() 
-                ? GetInputDelta(_inputsSelected) 
-                : _isInTopOpenedLayer && IsFocused() ? GetInputDelta(_inputsFocused) : GetInputDelta(_inputsEnabled);
+            var inputDelta = _navigationService.IsUiInputModuleBlocked
+                ? default
+                : IsScrollbarSelected() 
+                    ? GetInputDelta(_inputsSelected) 
+                    : _isInTopOpenedLayer && IsFocused() 
+                        ? GetInputDelta(_inputsFocused) 
+                        : GetInputDelta(_inputsEnabled);
             
             var currentPos = _scrollRect.content.anchoredPosition;
 
@@ -442,10 +451,14 @@ namespace MisterGames.UI.Components {
             Vector2 vectorMax = default;
             Vector2 deltaMax = default;
 
+            var device = _deviceService.CurrentDevice;
+            
             for (int i = 0; i < inputArray.Length; i++) {
                 ref var input = ref inputArray[i];
+                if (input.deviceType.HasValue && input.deviceType.Value != device) continue;
+                
                 var value = GetValue(ref input);
-
+                
                 switch (input.mode) {
                     case InputMode.Delta:
                         if (value.sqrMagnitude > deltaMax.sqrMagnitude) deltaMax = value;

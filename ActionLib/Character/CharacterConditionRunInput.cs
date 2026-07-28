@@ -1,7 +1,7 @@
 ﻿using System;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
-using MisterGames.Character.Input;
+using MisterGames.Character.Motion;
 using MisterGames.Common.Data;
 
 namespace MisterGames.ActionLib.Character {
@@ -12,7 +12,7 @@ namespace MisterGames.ActionLib.Character {
         public Optional<bool> isRunInputPressed;
 
         public bool IsMatch(IActor context) {
-            return isRunInputPressed.IsEmptyOrEquals(context.GetComponent<CharacterInputPipeline>().IsRunPressed);
+            return isRunInputPressed.IsEmptyOrEquals(context.GetComponent<CharacterMotionRunPipeline>().IsRunActive);
         }
     }
 

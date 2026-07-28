@@ -28,7 +28,9 @@ namespace MisterGames.UI.Navigation {
         public IReadOnlyCollection<Selectable> Selectables => _selectableMap.Values;
         public IReadOnlyCollection<IUiNavigationNode> Nodes => _gameObjectIdToNodeMap.Values;
         public IReadOnlyCollection<RectTransform> ScrollableViewports => _scrollableViewports.Values;
-        
+
+        public bool IsUiInputModuleBlocked => _uiInputModuleBlockers.Count > 0;
+
         private IUiWindowService _uiWindowService;
         private UiNavigationSettings _settings;
         
@@ -131,7 +133,9 @@ namespace MisterGames.UI.Navigation {
                 ? Mathf.Sign(moveVector.y) > 0f ? UiNavigationDirection.Up : UiNavigationDirection.Down
                 : Mathf.Sign(moveVector.x) > 0f ? UiNavigationDirection.Right : UiNavigationDirection.Left;
 
-            if (moveVector == default || 
+            if (_uiInputModuleBlockers.Count > 0 ||
+                
+                moveVector == default || 
                 
                 // Try to get last nonnull selectable to avoid getting stuck
                 selectable == null && !_selectableMap.TryGetValue(_lastNonNullSelectableHash, out selectable) ||
