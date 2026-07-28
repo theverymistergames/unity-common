@@ -51,9 +51,13 @@ namespace MisterGames.UI.Components {
                 base.OnInspectorGUI();
             
                 GUILayout.Label(CustomPropertiesLabel, EditorStyles.boldLabel);
-                
+
+                serializedObject.Update();
+
                 EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(_disableMoveInput)));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(_selectOnHover)));
+
+                serializedObject.ApplyModifiedProperties();
             }
         } 
 #endif

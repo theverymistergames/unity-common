@@ -24,7 +24,8 @@ namespace MisterGames.UI.Navigation {
         IReadOnlyCollection<RectTransform> ScrollableViewports { get; }
         
         bool IsUiInputModuleBlocked { get; }
-        void BlockUiInputModule(object source, bool block);
+        void BlockUiInputModule(object source);
+        void UnblockUiInputModule(object source, float delay = 0f);
         
         void SetCurrentSelectable(Selectable selectable);
         UiNavigationOptions GetSelectableOptions(Selectable selectable);

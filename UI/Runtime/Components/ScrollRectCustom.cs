@@ -99,9 +99,13 @@ namespace MisterGames.UI.Components {
                 base.OnInspectorGUI();
             
                 GUILayout.Label(CustomPropertiesLabel, EditorStyles.boldLabel);
-                
+
+                serializedObject.Update();
+
                 EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(_disableInternalScrollInput)));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(_fitEpsilon)));
+
+                serializedObject.ApplyModifiedProperties();
             }
         } 
 #endif

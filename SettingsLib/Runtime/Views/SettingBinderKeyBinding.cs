@@ -22,6 +22,7 @@ namespace MisterGames.SettingsLib.Base {
         public UiButton button;
         public Image icon;
         public TMP_Text textFallback;
+        [Min(0f)] public float delayUnblockUiAfterRebind = 0.01f;
         
         private ISettingsService _service;
         private KeyBindingSetting _desc;
@@ -73,7 +74,7 @@ namespace MisterGames.SettingsLib.Base {
 
             if (Services.TryGet(out IUiNavigationService navigationService)) {
                 navigationService.AddTopLayerNavigationCallback(this);
-                navigationService.BlockUiInputModule(this, true);
+                navigationService.BlockUiInputModule(this);
             }
             
             SetIcon(inputIcons.GetFallbackSprite(), "???");
@@ -81,12 +82,13 @@ namespace MisterGames.SettingsLib.Base {
             _wasActionEnabled = actionEnabled;
 
             _desc.TryGetBinding(out action, out var binding, out bindingIndex);
-            binding.ToDisplayString(out string deviceLayoutName, out string controlPath);
+            binding.ToDisplayString(out string deviceLayoutName, out string _);
             
             _rebindingOperation = action.PerformInteractiveRebinding(bindingIndex)
                 .WithCancelingThrough("<Keyboard>/escape")
                 .WithControlsHavingToMatchPath($"<{deviceLayoutName}>")
                 .WithActionEventNotificationsBeingSuppressed()
+                .WithMatchingEventsBeingSuppressed()
                 .OnCancel(OnRebindingFinish)
                 .OnComplete(OnRebindingFinish)
                 .OnApplyBinding(OnRebindingApply);
@@ -100,7 +102,7 @@ namespace MisterGames.SettingsLib.Base {
             
             if (Services.TryGet(out IUiNavigationService navigationService)) {
                 navigationService.RemoveTopLayerNavigationCallback(this);
-                navigationService.BlockUiInputModule(this, false);
+                navigationService.UnblockUiInputModule(this, delay: delayUnblockUiAfterRebind);
             }
             
             if (_desc != null) SetupValue(_desc);

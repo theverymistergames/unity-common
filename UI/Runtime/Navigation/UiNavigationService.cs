@@ -29,7 +29,7 @@ namespace MisterGames.UI.Navigation {
         public IReadOnlyCollection<IUiNavigationNode> Nodes => _gameObjectIdToNodeMap.Values;
         public IReadOnlyCollection<RectTransform> ScrollableViewports => _scrollableViewports.Values;
 
-        public bool IsUiInputModuleBlocked => _uiInputModuleBlockers.Count > 0;
+        public bool IsUiInputModuleBlocked => !EventSystem.current.currentInputModule.enabled;
 
         private IUiWindowService _uiWindowService;
         private UiNavigationSettings _settings;
@@ -44,8 +44,10 @@ namespace MisterGames.UI.Navigation {
         private readonly Dictionary<int, Selectable> _selectableMap = new();
         private readonly Dictionary<int, (UiNavigationMask mask, UiNavigationOptions options)> _selectableDataMap = new();
         private readonly HashSet<int> _pauseBlockers = new();
+        
         private readonly HashSet<int> _uiInputModuleBlockers = new();
-
+        private float _unblockEndTime;
+        
         private InputAction _moveInput;
         private InputAction _cancelInput;
         private int _selectedGameObjectHash;
@@ -94,6 +96,7 @@ namespace MisterGames.UI.Navigation {
         void IUpdate.OnUpdate(float dt) {
             ProcessSelectableNavigation(CurrentSelectable);
             CheckCurrentSelectedGameObject();
+            CheckUiInputModuleBlocks();
         }
 
         private void OnWindowsHierarchyChanged() {
@@ -197,13 +200,32 @@ namespace MisterGames.UI.Navigation {
             GetParentNavigationNode(selectable)?.OnNavigateOut(selectable, dir);
         }
 
-        public void BlockUiInputModule(object source, bool block) {
-            if (block) _uiInputModuleBlockers.Add(source.GetHashCode());
-            else _uiInputModuleBlockers.Remove(source.GetHashCode());
-            
-            EventSystem.current.currentInputModule.enabled = _uiInputModuleBlockers.Count == 0;
+        public void BlockUiInputModule(object source) {
+            _uiInputModuleBlockers.Add(source.GetHashCode());
+            EventSystem.current.currentInputModule.enabled = false;
         }
 
+        public void UnblockUiInputModule(object source, float delay = 0f) {
+            _uiInputModuleBlockers.Remove(source.GetHashCode());
+            _unblockEndTime = Mathf.Max(_unblockEndTime, Time.realtimeSinceStartup + delay);
+            
+            if (_uiInputModuleBlockers.Count <= 0 && Time.realtimeSinceStartup >= _unblockEndTime) {
+                EventSystem.current.currentInputModule.enabled = true;
+            } 
+        }
+
+        private void CheckUiInputModuleBlocks() {
+            if (_uiInputModuleBlockers.Count > 0 ||
+                Time.realtimeSinceStartup < _unblockEndTime ||
+                EventSystem.current?.currentInputModule is not { } inputModule ||
+                inputModule.enabled) 
+            {
+                return;
+            }
+            
+            inputModule.enabled = true;
+        }
+        
         public void NavigateOutTo(Selectable selectable, UiNavigationDirection direction) {
             if (selectable == null) return;
 
