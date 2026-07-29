@@ -8,6 +8,11 @@ namespace MisterGames.Common.Maths {
     public static class NumberExtensions {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float RoundToStep(this float value, float step) {
+            return step <= 0f ? value : Mathf.Round(value / step) * step;
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Abs(this float value) {
             return math.abs(value);
         }

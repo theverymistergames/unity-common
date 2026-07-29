@@ -4,6 +4,7 @@ using MisterGames.Common.Labels;
 using MisterGames.Common.Localization;
 using MisterGames.Common.Service;
 using MisterGames.SettingsLib.Base;
+using UnityEngine;
 using UnityEngine.InputSystem;
 
 namespace MisterGames.SettingsLib.Descs {
@@ -19,7 +20,11 @@ namespace MisterGames.SettingsLib.Descs {
         public void Initialize(ISettingsService service, string id) {
             for (int i = 0; i < keyBindingSettings.Length; i++) {
                 var label = keyBindingSettings[i];
-                if (label.GetData() is not KeyBindingSetting setting) continue;
+                if (label.GetData() is not KeyBindingSetting setting) {
+                    Debug.LogError($"{nameof(KeyBindingSettingGroup)} [{id}]: setting #{i} [{label}] is not a {nameof(KeyBindingSetting)}. " +
+                                   $"Setting of type {nameof(KeyBindingSetting)} is required. Skipping this setting.");
+                    continue;
+                }
                 
                 _keyBindingSettings[label.GetFullLabel()] = setting;
                 setting.AddBindingListener(NotifyBindingApplied);
