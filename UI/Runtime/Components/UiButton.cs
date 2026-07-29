@@ -17,7 +17,7 @@ namespace MisterGames.UI.Components {
         [SerializeField] private TMP_Text _buttonText;
         [SerializeField] [Min(0f)] private float _clickCooldown = 0.1f;
         
-        public event Action OnClicked = delegate { };
+        public event Action<UiButton> OnClicked = delegate { };
         
         private readonly HashSet<int> _blocks = new();
         private CancellationTokenSource _enableCts;
@@ -73,7 +73,7 @@ namespace MisterGames.UI.Components {
             if (!CanClick()) return;
 
             _clickTime = Time.realtimeSinceStartup;
-            OnClicked.Invoke();
+            OnClicked.Invoke(this);
         }
 
         private bool IsBlocked() {

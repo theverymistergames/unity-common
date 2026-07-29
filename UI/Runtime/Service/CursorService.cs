@@ -9,7 +9,7 @@ using MisterGames.UI.Windows;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-namespace MisterGames.UI.Service {
+namespace MisterGames.UI.UiServices {
     
     public sealed class CursorService : ICursorService, IDisposable {
 

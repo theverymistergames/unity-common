@@ -6,7 +6,6 @@ using MisterGames.UI.Windows;
 using UnityEngine;
 using UnityEngine.Serialization;
 using UnityEngine.UI;
-
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -89,7 +88,7 @@ namespace MisterGames.UI.Navigation {
 #endif
             
             _state = state;
-            
+
             SetEnableState(_enableOnBranchOpened, Services.Get<IUiWindowService>().IsInOpenedBranch(this));
             
             switch (state) {

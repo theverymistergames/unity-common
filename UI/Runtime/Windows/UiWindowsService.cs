@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using MisterGames.Common.Data;
+using MisterGames.Common.Maths;
+using Unity.Collections;
 using UnityEngine;
 
 namespace MisterGames.UI.Windows {
@@ -17,6 +19,7 @@ namespace MisterGames.UI.Windows {
         private readonly HashSet<int> _openedWindowIdsSet = new();
         private readonly HashSet<int> _openedWindowIdsWithCursorSet = new();
         private readonly HashSet<int> _initializedWindowsSet = new();
+        private readonly Dictionary<int, byte> _windowOperationIdMap = new();
 
         public void Dispose() {
             _gameObjectIdToWindowMap.Clear();
@@ -27,6 +30,7 @@ namespace MisterGames.UI.Windows {
             _openedWindowIdsSet.Clear();
             _openedWindowIdsWithCursorSet.Clear();
             _initializedWindowsSet.Clear();
+            _windowOperationIdMap.Clear();
         }
 
         public void RegisterWindow(IUiWindow window, UiWindowState state) {
@@ -39,7 +43,7 @@ namespace MisterGames.UI.Windows {
             
             switch (firstState) {
                 case UiWindowState.Closed:
-                    SetWindowBranchState(window, UiWindowState.Closed);
+                    CloseWindowBranch(window);
                     break;
                 
                 case UiWindowState.Opened:
@@ -59,6 +63,7 @@ namespace MisterGames.UI.Windows {
             }
             
             _gameObjectIdToWindowMap.Remove(id);
+            ClearWindowOperationId(GetWindowId(window));
             
             UpdateHierarchy(window.GameObject);
         }
@@ -292,7 +297,7 @@ namespace MisterGames.UI.Windows {
                 
                 for (int i = 0; i < siblingsCount; i++) {
                     var sibling = _gameObjectIdToWindowMap.GetValueOrDefault(_relationTree.GetValueAt(parentId, i));
-                    if (sibling != window) changed |= SetWindowBranchState(sibling, UiWindowState.Closed);
+                    if (sibling != window) changed |= CloseWindowBranch(sibling);
                 }
 
                 var parent = _gameObjectIdToWindowMap.GetValueOrDefault(parentId);
@@ -342,7 +347,7 @@ namespace MisterGames.UI.Windows {
                 _layerToFocusedWindowIdMap.Remove(window.Layer);
             }
             
-            bool changed = SetWindowBranchState(window, UiWindowState.Closed);
+            bool changed = CloseWindowBranch(window);
             if (changed && notify) OnHierarchyChanged();
             
             return changed;
@@ -367,35 +372,107 @@ namespace MisterGames.UI.Windows {
 
             int id = GetWindowId(root);
             bool changed = GetWindowState(root) == UiWindowState.Closed;
+            byte operationId = CreateNextWindowOperationId(id);
+            
+            int childCount = _relationTree.GetCount(id);
+            var childrenIds = new NativeArray<int>(childCount, Allocator.Temp);
+            var childrenOperationIds = new NativeArray<byte>(childCount, Allocator.Temp);
 
+            for (int i = 0; i < childCount; i++) {
+                int childId = _relationTree.GetValueAt(id, i);
+                childrenIds[i] = childId;
+                childrenOperationIds[i] = CreateNextWindowOperationId(childId);
+            }
+            
             WriteWindowState(id, UiWindowState.Opened, root.Options);
             root.NotifyWindowState(UiWindowState.Opened);
             
+            for (int i = 0; i < childCount; i++) {
+                if (GetCurrentWindowOperationId(id) != operationId ||
+                    childrenOperationIds[i] != GetCurrentWindowOperationId(childrenIds[i])) 
+                {
+                    break;
+                }
+                
+                var child = _gameObjectIdToWindowMap.GetValueOrDefault(childrenIds[i]);
+                changed |= SetWindowBranchState(childrenOperationIds[i], child, UiWindowState.Closed);
+            }
+
+            childrenIds.Dispose();
+            childrenOperationIds.Dispose();
+            
+            return changed;
+        }
+        
+        private bool CloseWindowBranch(IUiWindow root) {
+            if (root == null) return false;
+
+            int id = GetWindowId(root);
+            bool changed = GetWindowState(root) == UiWindowState.Opened;
+            byte operationId = CreateNextWindowOperationId(id);
+            
             int childCount = _relationTree.GetCount(id);
+            var childrenIds = new NativeArray<int>(childCount, Allocator.Temp);
+            var childrenOperationIds = new NativeArray<byte>(childCount, Allocator.Temp);
+
+            for (int i = 0; i < childCount; i++) {
+                int childId = _relationTree.GetValueAt(id, i);
+                childrenIds[i] = childId;
+                childrenOperationIds[i] = CreateNextWindowOperationId(childId);
+            }
+
+            WriteWindowState(id, UiWindowState.Closed, root.Options);
+            root.NotifyWindowState(UiWindowState.Closed);
             
             for (int i = 0; i < childCount; i++) {
-                var window = _gameObjectIdToWindowMap.GetValueOrDefault(_relationTree.GetValueAt(id, i));
-                changed |= SetWindowBranchState(window, UiWindowState.Closed);
+                if (GetCurrentWindowOperationId(id) != operationId ||
+                    childrenOperationIds[i] != GetCurrentWindowOperationId(childrenIds[i])) 
+                {
+                    break;
+                }
+                
+                var child = _gameObjectIdToWindowMap.GetValueOrDefault(childrenIds[i]);
+                changed |= SetWindowBranchState(childrenOperationIds[i], child, UiWindowState.Closed);
             }
+
+            childrenIds.Dispose();
+            childrenOperationIds.Dispose();
 
             return changed;
         }
 
-        private bool SetWindowBranchState(IUiWindow root, UiWindowState state) {
+        private bool SetWindowBranchState(byte operationId, IUiWindow root, UiWindowState state) {
             if (root == null) return false;
             
             int id = GetWindowId(root);
             bool changed = state != GetWindowState(root);
+
+            int childCount = _relationTree.GetCount(id);
+            var childrenIds = new NativeArray<int>(childCount, Allocator.Temp);
+            var childrenOperationIds = new NativeArray<byte>(childCount, Allocator.Temp);
+
+            for (int i = 0; i < childCount; i++) {
+                int childId = _relationTree.GetValueAt(id, i);
+                childrenIds[i] = childId;
+                childrenOperationIds[i] = CreateNextWindowOperationId(childId);
+            }
             
             WriteWindowState(id, state, root.Options);
             root.NotifyWindowState(state);
             
-            int childCount = _relationTree.GetCount(id);
-            
             for (int i = 0; i < childCount; i++) {
-                var window = _gameObjectIdToWindowMap.GetValueOrDefault(_relationTree.GetValueAt(id, i));
-                changed |= SetWindowBranchState(window, state);
+                if (GetCurrentWindowOperationId(id) != operationId ||
+                    childrenOperationIds[i] != GetCurrentWindowOperationId(childrenIds[i])) 
+                {
+                    break;
+                }
+                
+                var child = _gameObjectIdToWindowMap.GetValueOrDefault(childrenIds[i]);
+                changed |= SetWindowBranchState(childrenOperationIds[i], child, state);
             }
+
+            childrenIds.Dispose();
+            childrenOperationIds.Dispose();
 
             return changed;
         }
@@ -418,6 +495,20 @@ namespace MisterGames.UI.Windows {
                 default:
                     throw new ArgumentOutOfRangeException(nameof(state), state, null);
             }
+        }
+
+        private byte CreateNextWindowOperationId(int windowId) {
+            byte id = _windowOperationIdMap.GetValueOrDefault(windowId);
+            _windowOperationIdMap[windowId] = id.IncrementUncheckedRef();
+            return id;
+        }
+        
+        private byte GetCurrentWindowOperationId(int windowId) {
+            return _windowOperationIdMap.GetValueOrDefault(windowId);
+        }
+
+        private void ClearWindowOperationId(int windowId) {
+            _windowOperationIdMap.Remove(windowId);
         }
 
         private static int GetWindowId(IUiWindow window) {

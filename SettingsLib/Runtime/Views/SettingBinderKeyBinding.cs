@@ -61,7 +61,7 @@ namespace MisterGames.SettingsLib.Base {
             if (_desc != null) SetupValue(_desc);
         }
 
-        private void OnClicked() {
+        private void OnClicked(UiButton button) {
             StartRebindingDialogue();
         }
 

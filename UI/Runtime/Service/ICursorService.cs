@@ -1,4 +1,4 @@
-﻿namespace MisterGames.UI.Service {
+﻿namespace MisterGames.UI.UiServices {
     
     public interface ICursorService {
 

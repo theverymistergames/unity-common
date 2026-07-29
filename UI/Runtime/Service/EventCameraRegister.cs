@@ -1,7 +1,7 @@
 ﻿using MisterGames.Common.Service;
 using UnityEngine;
 
-namespace MisterGames.UI.Service {
+namespace MisterGames.UI.UiServices {
     
     [RequireComponent(typeof(Camera))]
     public sealed class EventCameraRegister : MonoBehaviour {

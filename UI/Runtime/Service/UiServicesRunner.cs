@@ -3,7 +3,7 @@ using MisterGames.UI.Navigation;
 using MisterGames.UI.Windows;
 using UnityEngine;
 
-namespace MisterGames.UI.Service {
+namespace MisterGames.UI.UiServices {
     
     [DefaultExecutionOrder(-9999)]
     public sealed class UiServicesRunner : MonoBehaviour {

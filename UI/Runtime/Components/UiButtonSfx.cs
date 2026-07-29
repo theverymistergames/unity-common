@@ -42,7 +42,7 @@ namespace MisterGames.UI.Components {
             _button.OnClicked -= OnClicked;
         }
 
-        private void OnClicked() {
+        private void OnClicked(UiButton button) {
             PlaySound(_clickSounds.GetData());
         }
 

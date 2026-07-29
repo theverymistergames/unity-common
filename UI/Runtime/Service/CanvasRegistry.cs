@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using MisterGames.Common.Service;
 using UnityEngine;
 
-namespace MisterGames.UI.Service {
+namespace MisterGames.UI.UiServices {
     
     public sealed class CanvasRegistry : IDisposable {
 

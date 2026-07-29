@@ -62,7 +62,7 @@ namespace MisterGames.UI.Components {
             _uiButton.OnClicked -= OnClick;
         }
 
-        private void OnClick() {
+        private void OnClick(UiButton button) {
             var cancellationToken = _cancelMode switch {
                 CancelMode.NonCancelable => CancellationToken.None,
                 CancelMode.OnButtonDisabled => _enableCts.Token,

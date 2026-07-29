@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
 using MisterGames.Common.Service;
-using MisterGames.UI.Service;
+using MisterGames.UI.UiServices;
 using Unity.Burst;
 using Unity.Mathematics;
 using UnityEngine;

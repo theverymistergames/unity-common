@@ -34,6 +34,8 @@ namespace MisterGames.UI.Components {
         private bool _isHovering;
         private bool _isPressed;
         private bool _isBlocked;
+        private bool _hasForceState;
+        private UiElementState _forceState;
         private Vector3 _originalScale;
         private byte _transitionId;
 
@@ -86,7 +88,7 @@ namespace MisterGames.UI.Components {
                 ? UiElementState.Pressed 
                 : UiElementState.Selected;
 
-            if (_isBlocked) next = GetAutoState();
+            if (_isBlocked || _hasForceState) next = GetAutoState();
             
             ApplyState(next);
         }
@@ -98,7 +100,7 @@ namespace MisterGames.UI.Components {
                 ? UiElementState.Pressed 
                 : UiElementState.Default;
             
-            if (_isBlocked) next = GetAutoState();
+            if (_isBlocked || _hasForceState) next = GetAutoState();
             
             ApplyState(next);
         }
@@ -111,7 +113,7 @@ namespace MisterGames.UI.Components {
                 : IsSelected() ? UiElementState.Selected 
                     : UiElementState.Hover;
             
-            if (_isBlocked) next = GetAutoState();
+            if (_isBlocked || _hasForceState) next = GetAutoState();
             
             ApplyState(next);
             
@@ -126,13 +128,13 @@ namespace MisterGames.UI.Components {
                 : IsSelected() ? UiElementState.Selected 
                     : UiElementState.Default;
             
-            if (_isBlocked) next = GetAutoState();
+            if (_isBlocked || _hasForceState) next = GetAutoState();
             
             ApplyState(next);
         }
 
         void IPointerDownHandler.OnPointerDown(PointerEventData eventData) {
-            if (_isBlocked) return;
+            if (_isBlocked || _hasForceState) return;
             
             _isPressed = true;
             
@@ -146,7 +148,7 @@ namespace MisterGames.UI.Components {
         }
 
         void IPointerUpHandler.OnPointerUp(PointerEventData eventData) {
-            if (_isBlocked) return;
+            if (_isBlocked || _hasForceState) return;
             
             _isPressed = false;
 
@@ -160,6 +162,19 @@ namespace MisterGames.UI.Components {
 
         void IUiElementAnimator.SetBlockedState(bool blocked) {
             _isBlocked = blocked;
+            
+            ApplyState(GetAutoState());
+        }
+
+        void IUiElementAnimator.SetForceState(UiElementState state) {
+            _hasForceState = true;
+            _forceState = state;
+            
+            ApplyState(GetAutoState());
+        }
+
+        void IUiElementAnimator.ResetForceState() {
+            _hasForceState = false;
             
             ApplyState(GetAutoState());
         }
@@ -222,6 +237,10 @@ namespace MisterGames.UI.Components {
         }
         
         private UiElementState GetAutoState() {
+            if (_hasForceState) {
+                return _forceState;
+            }
+            
             if (_isBlocked) {
                 return IsSelected() ? UiElementState.BlockedSelected : UiElementState.Blocked;
             }

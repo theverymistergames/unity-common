@@ -97,14 +97,14 @@ namespace MisterGames.UI.Components {
             SetSelectedIndex(index, force: false);
         }
 
-        private void IncrementSelectedIndex() {
+        private void IncrementSelectedIndex(UiButton button) {
             int count = _elements?.Count ?? 0;
             int next = _loop && _selectedIndex >= count ? 0 : _selectedIndex + 1;
             
             SetSelectedIndex(next);
         }
 
-        private void DecrementSelectedIndex() {
+        private void DecrementSelectedIndex(UiButton button) {
             int count = _elements?.Count ?? 0;
             int next = _loop && _selectedIndex <= 0 ? count - 1 : _selectedIndex - 1;
             

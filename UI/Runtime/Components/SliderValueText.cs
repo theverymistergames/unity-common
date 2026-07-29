@@ -61,6 +61,10 @@ namespace MisterGames.UI.Components {
             string v = value.ToString(_format);
             string text = string.IsNullOrWhiteSpace(_surround) ? v : string.Format(_surround, v);
             
+#if UNITY_EDITOR
+            if (!Application.isPlaying && _textField.text == text) return;
+#endif
+            
             _textField.SetText(text);
 
 #if UNITY_EDITOR
