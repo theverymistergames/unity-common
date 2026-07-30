@@ -267,7 +267,7 @@ namespace MisterGames.UI.Components {
                 return;
             }
             
-            var inputDelta = _navigationService.IsUiInputModuleBlocked
+            var inputDelta = _navigationService.IsUiBlocked
                 ? default
                 : IsScrollbarSelected() 
                     ? GetInputDelta(_inputsSelected) 

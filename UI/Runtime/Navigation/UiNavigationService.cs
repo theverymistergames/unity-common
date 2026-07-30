@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using MisterGames.Common.Data;
 using MisterGames.Common.Tick;
 using MisterGames.Input.Actions;
+using MisterGames.Input.Core;
 using MisterGames.UI.Windows;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -29,7 +30,7 @@ namespace MisterGames.UI.Navigation {
         public IReadOnlyCollection<IUiNavigationNode> Nodes => _gameObjectIdToNodeMap.Values;
         public IReadOnlyCollection<RectTransform> ScrollableViewports => _scrollableViewports.Values;
 
-        public bool IsUiInputModuleBlocked => !EventSystem.current.currentInputModule.enabled;
+        public bool IsUiBlocked { get; private set; }
 
         private IUiWindowService _uiWindowService;
         private UiNavigationSettings _settings;
@@ -90,13 +91,15 @@ namespace MisterGames.UI.Navigation {
             _selectableDataMap.Clear();
             _pauseBlockers.Clear();
             
+            ApplyUiInputsBlock(false);
+            
             PlayerLoopStage.LateUpdate.Unsubscribe(this);
         }
 
         void IUpdate.OnUpdate(float dt) {
             ProcessSelectableNavigation(CurrentSelectable);
             CheckCurrentSelectedGameObject();
-            CheckUiInputModuleBlocks();
+            CheckUiBlock();
         }
 
         private void OnWindowsHierarchyChanged() {
@@ -136,7 +139,7 @@ namespace MisterGames.UI.Navigation {
                 ? Mathf.Sign(moveVector.y) > 0f ? UiNavigationDirection.Up : UiNavigationDirection.Down
                 : Mathf.Sign(moveVector.x) > 0f ? UiNavigationDirection.Right : UiNavigationDirection.Left;
 
-            if (_uiInputModuleBlockers.Count > 0 ||
+            if (IsUiBlocked ||
                 
                 moveVector == default || 
                 
@@ -202,28 +205,45 @@ namespace MisterGames.UI.Navigation {
 
         public void BlockUiInputModule(object source) {
             _uiInputModuleBlockers.Add(source.GetHashCode());
-            EventSystem.current.currentInputModule.enabled = false;
+            
+            bool wasBlocked = IsUiBlocked;
+            IsUiBlocked = _uiInputModuleBlockers.Count > 0 || Time.realtimeSinceStartup < _unblockEndTime;
+
+            if (wasBlocked || !IsUiBlocked) return;
+            
+            ApplyUiInputsBlock(true);
         }
 
         public void UnblockUiInputModule(object source, float delay = 0f) {
             _uiInputModuleBlockers.Remove(source.GetHashCode());
             _unblockEndTime = Mathf.Max(_unblockEndTime, Time.realtimeSinceStartup + delay);
+
+            bool wasBlocked = IsUiBlocked;
+            IsUiBlocked = _uiInputModuleBlockers.Count > 0 || Time.realtimeSinceStartup < _unblockEndTime;
             
-            if (_uiInputModuleBlockers.Count <= 0 && Time.realtimeSinceStartup >= _unblockEndTime) {
-                EventSystem.current.currentInputModule.enabled = true;
-            } 
+            if (!wasBlocked || IsUiBlocked) return;
+
+            ApplyUiInputsBlock(false);
         }
 
-        private void CheckUiInputModuleBlocks() {
-            if (_uiInputModuleBlockers.Count > 0 ||
-                Time.realtimeSinceStartup < _unblockEndTime ||
-                EventSystem.current?.currentInputModule is not { } inputModule ||
-                inputModule.enabled) 
-            {
+        private void CheckUiBlock() {
+            bool wasBlocked = IsUiBlocked;
+            IsUiBlocked = _uiInputModuleBlockers.Count > 0 || Time.realtimeSinceStartup < _unblockEndTime;
+            
+            if (IsUiBlocked == wasBlocked || IsUiBlocked) return;
+            
+            ApplyUiInputsBlock(false);
+        }
+
+        private void ApplyUiInputsBlock(bool block) {
+            if (block) {
+                InputServices.Blocks.SetInputActionBlockOverrides(this, _settings.unblockInputsWhileUiBlocked, blocked: false);
+                InputServices.Blocks.BlockInputMaps(this, _settings.blockInputMapsWhileUiBlocked);
                 return;
             }
-            
-            inputModule.enabled = true;
+
+            InputServices.Blocks.UnblockInputMaps(this, _settings.blockInputMapsWhileUiBlocked);
+            InputServices.Blocks.RemoveInputActionBlockOverrides(this, _settings.unblockInputsWhileUiBlocked);
         }
         
         public void NavigateOutTo(Selectable selectable, UiNavigationDirection direction) {

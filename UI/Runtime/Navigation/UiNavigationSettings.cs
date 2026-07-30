@@ -9,7 +9,9 @@ namespace MisterGames.UI.Navigation {
         [Header("Inputs")]
         public InputActionRef cancelInput;
         public InputActionRef moveInput;
-
+        public InputMapRef[] blockInputMapsWhileUiBlocked;
+        public InputActionRef[] unblockInputsWhileUiBlocked;
+        
         [Header("Navigation")]
         [Min(0f)] public float outerNodeNavigationCooldown = 0.7f;
     }

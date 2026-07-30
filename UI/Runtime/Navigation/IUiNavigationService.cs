@@ -23,7 +23,7 @@ namespace MisterGames.UI.Navigation {
         IReadOnlyCollection<IUiNavigationNode> Nodes { get; }
         IReadOnlyCollection<RectTransform> ScrollableViewports { get; }
         
-        bool IsUiInputModuleBlocked { get; }
+        bool IsUiBlocked { get; }
         void BlockUiInputModule(object source);
         void UnblockUiInputModule(object source, float delay = 0f);
         

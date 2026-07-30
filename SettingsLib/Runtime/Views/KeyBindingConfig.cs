@@ -9,6 +9,9 @@ namespace MisterGames.SettingsLib.Base {
         
         public InputIconsTable inputIcons;
 
+        [Header("Rebinding")]
+        [Min(0f)] public float delayUnblockUiAfterRebind = 0.05f;
+        
         [Header("Modal Dialog Rebinding")]
         public LocalizationKey rebindingDialogTitle;
         public LocalizationKey rebindingDialogContent;

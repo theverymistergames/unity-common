@@ -26,7 +26,6 @@ namespace MisterGames.SettingsLib.Base {
         public UiButton button;
         public Image icon;
         public TMP_Text textFallback;
-        [Min(0f)] public float delayUnblockUiAfterRebind = 0.01f;
         
         private ISettingsService _service;
         private KeyBindingSetting _desc;
@@ -71,8 +70,8 @@ namespace MisterGames.SettingsLib.Base {
         }
 
         private void StartRebindingDialogue() {
-            if (_rebindingOperation != null || 
-                !_desc.PrepareBinding(out var action, out bool actionEnabled, out int bindingIndex)) 
+            if (_rebindingOperation != null ||
+                !_desc.PrepareRebinding(out var action, out bool actionEnabled, out int bindingIndex))
             {
                 return;
             }
@@ -85,32 +84,56 @@ namespace MisterGames.SettingsLib.Base {
             SetIcon(keyBindingConfig.inputIcons.GetFallbackSprite(), "???");
 
             _wasActionEnabled = actionEnabled;
-            
-            _desc.TryGetBinding(out action, out var binding, out bindingIndex);
-            binding.ToDisplayString(out string deviceLayoutName, out string _);
-            
-            _rebindingOperation = action.PerformInteractiveRebinding(bindingIndex)
+
+            var operation = new InputActionRebindingExtensions.RebindingOperation()
+                .WithAction(action)
+                .WithTargetBinding(bindingIndex)
+                .OnMatchWaitForAnother(0.05f)
+
                 .WithCancelingThrough("<Keyboard>/escape")
-                .WithControlsHavingToMatchPath($"<{deviceLayoutName}>")
+                .WithControlsExcluding("<Pointer>/delta")
+                .WithControlsExcluding("<Pointer>/position")
+                .WithControlsExcluding("<Touchscreen>/touch*/position")
+                .WithControlsExcluding("<Touchscreen>/touch*/delta")
+                .WithControlsExcluding("<Mouse>/clickCount")
                 .WithActionEventNotificationsBeingSuppressed()
                 .WithMatchingEventsBeingSuppressed()
+
                 .OnCancel(OnRebindingFinish)
                 .OnComplete(OnRebindingFinish)
                 .OnApplyBinding(OnRebindingApply);
 
+            switch (_desc.GetDeviceType()) {
+                case InputDeviceType.KeyboardMouse:
+                    operation.WithControlsHavingToMatchPath("<Keyboard>");
+                    operation.WithControlsHavingToMatchPath("<Mouse>");
+                    break;
+                
+                case InputDeviceType.Gamepad:
+                    operation.WithControlsHavingToMatchPath("<Gamepad>");
+                    break;
+                
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+            
+            _rebindingOperation = operation;
             _rebindingOperation.Start();
         }
 
         private void StopRebindingDialogue() {
             _rebindingOperation?.Dispose();
             _rebindingOperation = null;
-            
+
             if (Services.TryGet(out IUiNavigationService navigationService)) {
                 navigationService.RemoveTopLayerNavigationCallback(this);
-                navigationService.UnblockUiInputModule(this, delay: delayUnblockUiAfterRebind);
+                navigationService.UnblockUiInputModule(this, delay: keyBindingConfig.delayUnblockUiAfterRebind);
             }
+
+            if (_desc == null) return;
             
-            if (_desc != null) SetupValue(_desc);
+            _desc.FinishRebinding(_wasActionEnabled);
+            SetupValue(_desc);
         }
 
         private void OnRebindingApply(InputActionRebindingExtensions.RebindingOperation rebindingOperation, string controlPath) {
@@ -143,7 +166,7 @@ namespace MisterGames.SettingsLib.Base {
                 var parentCanvas = Services.Get<CanvasRegistry>().GetClosestParentCanvas(button.transform);
                 Services.Get<IUiModalDialogService>().CreateModalDialogDefault(parentCanvas)
                     .SetTitle(keyBindingConfig.rebindingDialogTitle)
-                    .SetContent(keyBindingConfig.rebindingDialogContent, (LocalizationKey key, Locale locale, ref string value) => {
+                    .SetContent(keyBindingConfig.rebindingDialogContent, (LocalizationKey key, Locale _, ref string value) => {
                         var sb = new StringBuilder();
                         for (int i = 0; i < inputActionsWithSamePath.Length; i++) {
                             sb.AppendLine(string.Format(keyBindingConfig.rebindingDialogUsedAction.GetValue(), inputActionsWithSamePath[i].GetValue()));
@@ -153,10 +176,12 @@ namespace MisterGames.SettingsLib.Base {
                     })
                     .AddButton(keyBindingConfig.rebindingDialogOk, () => {
                         _isRebindingDialogActive = false;
-                        _desc?.SetBinding(_service, _id, controlPath, _wasActionEnabled);
+                        _desc?.ApplyRebinding(_service, _id, controlPath);
+                        _desc?.FinishRebinding(_wasActionEnabled);
                     })
                     .AddButton(keyBindingConfig.rebindingDialogCancel, () => {
                         _isRebindingDialogActive = false;
+                        _desc?.FinishRebinding(_wasActionEnabled);
                         SetupValue(_desc);
                     })
                     .SetBackNavigation(canCloseOnNavigateBack: true, callButton: 1)
@@ -164,8 +189,12 @@ namespace MisterGames.SettingsLib.Base {
                 return;
             }
             
+            if (samePathBindings != null) ListPool<KeyBindingSetting>.Release(samePathBindings);
+            
             _isRebindingDialogActive = false;
-            _desc?.SetBinding(_service, _id, controlPath, _wasActionEnabled);
+            
+            _desc?.ApplyRebinding(_service, _id, controlPath);
+            _desc?.FinishRebinding(_wasActionEnabled);
         }
 
         private void OnRebindingFinish(InputActionRebindingExtensions.RebindingOperation rebindingOperation) {

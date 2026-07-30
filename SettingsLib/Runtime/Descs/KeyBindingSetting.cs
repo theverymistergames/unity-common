@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using MisterGames.Common.Attributes;
+using MisterGames.Common.Inputs;
 using MisterGames.Common.Localization;
 using MisterGames.Input.Actions;
 using MisterGames.Input.Bindings;
@@ -16,6 +17,7 @@ namespace MisterGames.SettingsLib.Descs {
         public LocalizationKey name;
         public InputActionRef inputActionRef;
         [Min(0f)] public int bindingIndex;
+        public InputDeviceType deviceType;
         [SerializeReference] [SubclassSelector] public IBindingValidator validator;
         
         public delegate void BindingListener(string id, InputAction action, int bindingIndex, string path);
@@ -25,9 +27,10 @@ namespace MisterGames.SettingsLib.Descs {
         
         public void Initialize(ISettingsService service, string id) {
             if (service.TryGet(id, 0, out string controlPath) && 
-                PrepareBinding(out _, out bool actionEnabled, out int index)) 
+                PrepareRebinding(out _, out bool actionEnabled, out int index)) 
             {
-                ApplyBinding(index, controlPath, actionEnabled);
+                ApplyBinding(index, controlPath);
+                FinishRebinding(actionEnabled);
             }
         }
         
@@ -53,6 +56,10 @@ namespace MisterGames.SettingsLib.Descs {
 
         public HashSet<KeyBindingSettingGroup> GetKeyBindingGroups() {
             return _groups;
+        }
+
+        public InputDeviceType GetDeviceType() {
+            return deviceType;
         }
         
         public LocalizationKey GetName() {
@@ -91,7 +98,7 @@ namespace MisterGames.SettingsLib.Descs {
             return true;
         }
 
-        public bool PrepareBinding(out InputAction action, out bool actionEnabled, out int bindingIndex) {
+        public bool PrepareRebinding(out InputAction action, out bool actionEnabled, out int bindingIndex) {
             if (!TryGetBinding(out action, out _, out bindingIndex)) {
                 actionEnabled = false;
                 return false;
@@ -102,11 +109,11 @@ namespace MisterGames.SettingsLib.Descs {
             return true;
         }
 
-        public bool SetBinding(ISettingsService service, string id, string path, bool enableAction) {
+        public bool ApplyRebinding(ISettingsService service, string id, string path) {
             if (!IsValidBinding(path)) return false;
             
             service.Set(id, 0, path);
-            ApplyBinding(bindingIndex, path, enableAction);
+            ApplyBinding(bindingIndex, path);
             var action = inputActionRef.Get();
             
             foreach (var bindingListener in _bindingListeners) {
@@ -116,23 +123,26 @@ namespace MisterGames.SettingsLib.Descs {
             return true;
         }
 
+        public void FinishRebinding(bool enableAction) {
+            if (enableAction) inputActionRef.Get().Enable();
+        }
+
         public void ClearBinding(ISettingsService service, string id) {
-            if (!PrepareBinding(out var action, out bool actionEnabled, out int index)) return;
+            if (!PrepareRebinding(out var action, out bool actionEnabled, out int index)) return;
             
             const string path = "";
             
             service.Set(id, 0, path);
-            ApplyBinding(index, path, actionEnabled);
+            ApplyBinding(index, path);
+            if (actionEnabled) inputActionRef.Get().Enable();
             
             foreach (var bindingListener in _bindingListeners) {
                 bindingListener.Invoke(id, action, index, path);
             }
         }
 
-        private void ApplyBinding(int index, string controlPath, bool enableAction) {
-            var action = inputActionRef.Get();
-            action.ApplyBindingOverride(index, controlPath);
-            if (enableAction) action.Enable();
+        private void ApplyBinding(int index, string controlPath) {
+            inputActionRef.Get().ApplyBindingOverride(index, controlPath);
         }
 
         private bool IsValidBinding(string controlPath) {

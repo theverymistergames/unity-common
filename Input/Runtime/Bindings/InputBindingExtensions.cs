@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using MisterGames.Common.Inputs;
 using MisterGames.Input.Core;
 using MisterGames.Input.Icons;
 using UnityEngine;
@@ -62,7 +63,7 @@ namespace MisterGames.Input.Bindings {
         public static void RemoveReleaseCallback(this KeyBinding key, Action callback) {
             InputServices.BindingHelper?.RemoveKeyReleaseCallback(key, callback);
         }
-
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static (string deviceLayoutName, string controlPath) GetBindingPath(this KeyBinding keyBinding) {
             return KeyBindingToPathMap.GetValueOrDefault(keyBinding);

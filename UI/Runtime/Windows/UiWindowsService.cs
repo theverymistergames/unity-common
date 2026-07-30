@@ -208,7 +208,7 @@ namespace MisterGames.UI.Windows {
             return window != null && 
                    _openedWindowIdsSet.Contains(GetWindowId(window)) && 
                    TryGetWindowRootLayer(window, out int layer) &&
-                   TryGetTopOpenedLayer(onlyNavigable: true, out int topLayer) &&
+                   TryGetTopOpenedLayer(onlyNavigable: false, out int topLayer) &&
                    layer == topLayer;
         }
 
