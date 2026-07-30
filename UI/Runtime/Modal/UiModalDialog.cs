@@ -4,6 +4,7 @@ using MisterGames.Common.Localization;
 using MisterGames.Common.Pooling;
 using MisterGames.Common.Service;
 using MisterGames.UI.Navigation;
+using MisterGames.UI.Windows;
 using TMPro;
 using UnityEngine;
 
@@ -14,6 +15,7 @@ namespace MisterGames.UI.Components {
         [SerializeField] private TMP_Text _title;
         [SerializeField] private TMP_Text _content;
         [SerializeField] private Transform _buttonsParent;
+        [SerializeField] private RectTransform _container;
         [SerializeField] private UiButton _buttonPrefab;
         [SerializeField] private UiWindow _window;
 
@@ -41,7 +43,8 @@ namespace MisterGames.UI.Components {
         private LocalizationKey _contentKey;
         private bool _canCloseOnNavigateBack;
         private int _navigateBackCallIndex = -1;
-        
+
+
         private void OnEnable() {
             GetLocalizationService().OnLocaleChanged += OnLocaleChanged;
 
@@ -118,19 +121,21 @@ namespace MisterGames.UI.Components {
 
         public void Show() {
             gameObject.SetActive(true);
-            if (Services.TryGet(out IUiNavigationService navigationService)) {
-                navigationService.AddTopLayerNavigationCallback(this);
-            }
+            
+            Services.Get<IUiWindowService>()?.SetWindowState(_window, UiWindowState.Opened);
+            Services.Get<IUiNavigationService>()?.AddTopLayerNavigationCallback(this);
         }
 
         public void Close() {
             ClearButtons();
+            
             _formatMap.Clear();
             _canCloseOnNavigateBack = false;
             _navigateBackCallIndex = -1;
-            if (Services.TryGet(out IUiNavigationService navigationService)) {
-                navigationService.RemoveTopLayerNavigationCallback(this);
-            }
+            
+            Services.Get<IUiWindowService>()?.SetWindowState(_window, UiWindowState.Closed);
+            Services.Get<IUiNavigationService>()?.RemoveTopLayerNavigationCallback(this);
+            
             PrefabPool.Main.Release(gameObject);
         }
 

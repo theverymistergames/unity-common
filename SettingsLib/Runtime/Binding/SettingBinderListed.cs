@@ -19,14 +19,18 @@ namespace MisterGames.SettingsLib.Base {
             _service = service;
             _desc = descListed;
             _id = id;
+            
             uiList.OnSelectedIndexChanged += OnSelectedIndexChanged;
+            _desc?.AddListener(OnSettingIndexChanged);
         }
 
         void ISettingBinder.Unbind() {
+            uiList.OnSelectedIndexChanged -= OnSelectedIndexChanged;
+            _desc?.RemoveListener(OnSettingIndexChanged);
+            
             _service = null;
             _desc = null;
             _id = null;
-            uiList.OnSelectedIndexChanged -= OnSelectedIndexChanged;
         }
 
         void ISettingBinder.SetupView(ISettingDesc desc) {
@@ -46,6 +50,10 @@ namespace MisterGames.SettingsLib.Base {
             }
             
             uiList.SelectIndex(descListed.GetIndex(_service, _id));
+        }
+
+        private void OnSettingIndexChanged(string id, int index) {
+            uiList.SelectIndex(index);
         }
 
         private void OnSelectedIndexChanged(int index) {

@@ -92,6 +92,14 @@ namespace MisterGames.Common.Save.Tables {
                 ? $"{nameof(_dataMap)}._entries.Array.data[{index}].value"
                 : null;
         }
+        
+        public void CopyTo(ISaveTable dest) {
+            if (dest is not SaveTableByRefArray<TKey, TValue> table) return;
+
+            foreach (var (key, value) in _dataMap) {
+                table._dataMap[key] = value;
+            }
+        }
     }
 
 }

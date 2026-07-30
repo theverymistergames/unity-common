@@ -30,6 +30,8 @@ namespace MisterGames.Common.Save.Storages {
         ISaveTable<TKey> GetOrCreateTable<T>();
         
         bool RemoveTable<T>();
+        
+        void CopyTo(ISaveStorage<TKey> dest);
     }
     
 }

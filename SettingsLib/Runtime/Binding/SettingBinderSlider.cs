@@ -27,23 +27,32 @@ namespace MisterGames.SettingsLib.Base {
             _desc = descListed;
             _id = id;
             
-            slider.onValueChanged.AddListener(OnValueChanged);
-            OnValueChanged(slider.value);
+            _desc.AddListener(OnSettingValueChanged);
+            slider.onValueChanged.AddListener(OnSliderValueChanged);
         }
 
         void ISettingBinder.Unbind() {
+            _desc?.RemoveListener(OnSettingValueChanged);
+            slider.onValueChanged.RemoveListener(OnSliderValueChanged);
+            
             _service = null;
             _desc = null;
             _id = null;
-            
-            slider.onValueChanged.RemoveListener(OnValueChanged);
         }
 
-        private void OnValueChanged(float value) {
-            if (_ignoreValueChange || value.IsNearlyEqual(_lastSetValue, epsilon)) return;
+        private void OnSettingValueChanged(string id, float value) {
+            if (_ignoreValueChange || _desc == null) return;
             
+            SetupValue(_desc);
+        }
+
+        private void OnSliderValueChanged(float value) {
+            if (_ignoreValueChange || value.IsNearlyEqual(_lastSetValue, epsilon)) return;
+
+            _ignoreValueChange = true;
             _lastSetValue = GetSliderNormalizedValue(slider.value);
             _desc.SetValue(_service, _id, _lastSetValue);
+            _ignoreValueChange = false;
         }
 
         private float GetSliderNormalizedValue(float input) {
@@ -57,10 +66,12 @@ namespace MisterGames.SettingsLib.Base {
         void ISettingBinder.SetupView(ISettingDesc desc) {
             if (!IsValidSettingDesc(desc, out var d) || slider == null) return;
 
-            slider.SetValueWithoutNotify(GetSliderInput(d.GetDefaultValue()));
+            _ignoreValueChange = true;
+            slider.value = GetSliderInput(d.GetDefaultValue());
+            _ignoreValueChange = false;
         }
 
-        void ISettingBinder.SetupValue(ISettingDesc desc) {
+        public void SetupValue(ISettingDesc desc) {
             if (_desc == null || _service == null || string.IsNullOrEmpty(_id)) return;
 
             _ignoreValueChange = true;

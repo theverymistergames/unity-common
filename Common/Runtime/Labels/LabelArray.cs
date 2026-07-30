@@ -43,10 +43,10 @@ namespace MisterGames.Common.Labels {
     [Serializable]
     public struct LabelArray<T> : IEquatable<LabelArray<T>> {
         
-        [SerializeField] internal LabelLibraryBase library;
+        [SerializeField] internal LabelLibraryBase<T> library;
         [SerializeField] internal int id;
 
-        public LabelArray(LabelLibraryBase library, int id) {
+        public LabelArray(LabelLibraryBase<T> library, int id) {
             this.library = library;
             this.id = id;
         }

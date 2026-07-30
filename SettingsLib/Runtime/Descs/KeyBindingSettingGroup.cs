@@ -39,6 +39,18 @@ namespace MisterGames.SettingsLib.Descs {
             }
         }
 
+        public void ApplySetting(ISettingsService service, string id) {
+            
+        }
+
+        public void ClearSetting(ISettingsService service, string id) {
+            
+        }
+
+        public void ResaveSetting(ISettingsService service, string id) {
+            
+        }
+
         public LocalizationKey GetName() {
             return default;
         }

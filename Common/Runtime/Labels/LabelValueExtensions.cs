@@ -92,51 +92,23 @@ namespace MisterGames.Common.Labels {
             int arrayIndex = labelArray.library?.GetArrayIndex(labelArray.id) ?? -1; 
             return arrayIndex >= 0 ? labelArray.library!.GetArrayLabelsCount(arrayIndex) : 0;
         }
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int GetValue(this LabelArray labelArray, int labelIndex) {
+        public static LabelValue GetLabelValue(this LabelArray labelArray, int labelIndex) {
             int arrayIndex = labelArray.library?.GetArrayIndex(labelArray.id) ?? -1;
             return arrayIndex < 0 
-                ? 0 
-                : labelArray.library!.GetValue(labelArray.library.GetLabelId(arrayIndex, labelIndex));
+                ? default
+                : new LabelValue(labelArray.library, labelArray.library!.GetLabelId(arrayIndex, labelIndex));
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int GetValue<T>(this LabelArray<T> labelArray, int labelIndex) {
+        public static LabelValue<T> GetLabelValue<T>(this LabelArray<T> labelArray, int labelIndex) {
             int arrayIndex = labelArray.library?.GetArrayIndex(labelArray.id) ?? -1;
             return arrayIndex < 0 
-                ? 0 
-                : labelArray.library!.GetValue(labelArray.library.GetLabelId(arrayIndex, labelIndex));
+                ? default
+                : new LabelValue<T>(labelArray.library, labelArray.library!.GetLabelId(arrayIndex, labelIndex));
         }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool TryGetValue(this LabelArray labelArray, int labelIndex, out int value) {
-            int arrayIndex = labelArray.library?.GetArrayIndex(labelArray.id) ?? -1;
-            int labelId = labelArray.library?.GetLabelId(arrayIndex, labelIndex) ?? 0;
-            
-            if (arrayIndex >= 0 && labelArray.library!.ContainsLabel(labelId)) {
-                value = labelArray.library.GetValue(labelId);
-                return true;
-            }
-
-            value = default;
-            return false;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool TryGetValue<T>(this LabelArray<T> labelArray, int labelIndex, out int value) {
-            int arrayIndex = labelArray.library?.GetArrayIndex(labelArray.id) ?? -1;
-            int labelId = labelArray.library?.GetLabelId(arrayIndex, labelIndex) ?? 0;
-            
-            if (arrayIndex >= 0 && labelArray.library!.ContainsLabel(labelId)) {
-                value = labelArray.library.GetValue(labelId);
-                return true;
-            }
-
-            value = default;
-            return false;
-        }
-
+        
         // Label
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

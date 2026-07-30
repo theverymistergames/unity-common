@@ -47,13 +47,12 @@ namespace MisterGames.SettingsLib.Base {
         }
 
         public void Unbind() {
+            button.OnClicked -= OnClicked;
             _desc?.RemoveBindingListener(NotifyBindingApplied);
             
             _service = null;
             _desc = null;
             _id = null;
-            
-            button.OnClicked -= OnClicked;
 
             if (_rebindingOperation != null) {
                 _rebindingOperation?.Cancel();
@@ -163,7 +162,7 @@ namespace MisterGames.SettingsLib.Base {
                 }
                 ListPool<KeyBindingSetting>.Release(samePathBindings);
                 
-                var parentCanvas = Services.Get<CanvasRegistry>().GetClosestParentCanvas(button.transform);
+                var parentCanvas = Services.Get<CanvasRegistry>().FindClosestParentCanvas(button.transform);
                 Services.Get<IUiModalDialogService>().CreateModalDialogDefault(parentCanvas)
                     .SetTitle(keyBindingConfig.rebindingDialogTitle)
                     .SetContent(keyBindingConfig.rebindingDialogContent, (LocalizationKey key, Locale _, ref string value) => {

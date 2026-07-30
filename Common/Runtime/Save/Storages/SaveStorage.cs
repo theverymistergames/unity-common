@@ -87,6 +87,12 @@ namespace MisterGames.Common.Save.Storages {
                 ? $"{nameof(_tables)}._entries.Array.data[{index}].value"
                 : null;
         }
+
+        public void CopyTo(ISaveStorage<TKey> dest) {
+            foreach (var (type, table) in _tables) {
+                table.CopyTo(dest.GetOrCreateTable(type));
+            }
+        }
     }
     
 }

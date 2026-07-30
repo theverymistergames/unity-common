@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Easing;
 using MisterGames.Common.Localization;
@@ -16,16 +17,32 @@ namespace MisterGames.SettingsLib.Descs {
         public AnimationCurve curve = EasingType.Linear.ToAnimationCurve();
         [SerializeReference] [SubclassSelector] public ISettingReaderFloat reader;
         
+        private readonly HashSet<ISettingDescValued<float>.Listener> _listeners = new();
+        
         public LocalizationKey GetName() {
             return name;
         }
 
-        public void Initialize(ISettingsService service, string id) {
-            reader?.OnReadValue(GetRealValue(GetValue(service, id)));
+        public void AddListener(ISettingDescValued<float>.Listener listener) {
+            _listeners.Add(listener);
         }
         
-        public void Deinitialize(ISettingsService service, string id) {
-            
+        public void RemoveListener(ISettingDescValued<float>.Listener listener) {
+            _listeners.Remove(listener);
+        }
+
+        public void ApplySetting(ISettingsService service, string id) {
+            NotifyValue(id, GetValue(service, id));
+        }
+
+        public void ClearSetting(ISettingsService service, string id) {
+            service.Remove<float>(id, 0);
+        }
+
+        public void ResaveSetting(ISettingsService service, string id) {
+            if (service.TryGet(id, 0, out float value)) {
+                service.Set(id, 0, value);
+            }
         }
 
         public float GetDefaultValue() {
@@ -37,10 +54,18 @@ namespace MisterGames.SettingsLib.Descs {
         }
         
         public void SetValue(ISettingsService service, string id, float value) {
-            reader?.OnReadValue(GetRealValue(value));
             service.Set(id, 0, value);
+            NotifyValue(id, value);
         }
 
+        private void NotifyValue(string id, float value) {
+            reader?.OnReadValue(GetRealValue(value));
+            
+            foreach (var listener in _listeners) { 
+                listener.Invoke(id, value);    
+            }
+        }
+        
         private float GetRealValue(float normalizedValue) {
             return Mathf.Lerp(remap.x, remap.y, curve.Evaluate(normalizedValue));
         }

@@ -20,30 +20,35 @@ namespace MisterGames.SettingsLib.Descs {
         public InputDeviceType deviceType;
         [SerializeReference] [SubclassSelector] public IBindingValidator validator;
         
-        public delegate void BindingListener(string id, InputAction action, int bindingIndex, string path);
+        public delegate void Listener(string id, InputAction action, int bindingIndex, string path);
         
-        private readonly HashSet<BindingListener> _bindingListeners = new();
+        private readonly HashSet<Listener> _listeners = new();
         private readonly HashSet<KeyBindingSettingGroup> _groups = new();
-        
-        public void Initialize(ISettingsService service, string id) {
-            if (service.TryGet(id, 0, out string controlPath) && 
-                PrepareRebinding(out _, out bool actionEnabled, out int index)) 
-            {
-                ApplyBinding(index, controlPath);
-                FinishRebinding(actionEnabled);
+
+        public void ApplySetting(ISettingsService service, string id) {
+            if (!PrepareRebinding(out _, out bool actionEnabled, out int index)) return;
+            
+            string controlPath = service.TryGet(id, 0, out string p) ? p : null; 
+            ApplyBinding(id, index, controlPath);
+            FinishRebinding(actionEnabled);
+        }
+
+        public void ClearSetting(ISettingsService service, string id) {
+            service.Remove<string>(id, 0);
+        }
+
+        public void ResaveSetting(ISettingsService service, string id) {
+            if (service.TryGet(id, 0, out string value)) {
+                service.Set(id, 0, value);
             }
         }
-        
-        public void Deinitialize(ISettingsService service, string id) {
-            
+
+        public void AddBindingListener(Listener listener) {
+            _listeners.Add(listener);
         }
 
-        public void AddBindingListener(BindingListener listener) {
-            _bindingListeners.Add(listener);
-        }
-
-        public void RemoveBindingListener(BindingListener listener) {
-            _bindingListeners.Remove(listener);
+        public void RemoveBindingListener(Listener listener) {
+            _listeners.Remove(listener);
         }
 
         public void AddToGroup(KeyBindingSettingGroup group) {
@@ -113,12 +118,7 @@ namespace MisterGames.SettingsLib.Descs {
             if (!IsValidBinding(path)) return false;
             
             service.Set(id, 0, path);
-            ApplyBinding(bindingIndex, path);
-            var action = inputActionRef.Get();
-            
-            foreach (var bindingListener in _bindingListeners) {
-                bindingListener.Invoke(id, action, bindingIndex, path);
-            }
+            ApplyBinding(id, bindingIndex, path);
             
             return true;
         }
@@ -133,20 +133,25 @@ namespace MisterGames.SettingsLib.Descs {
             const string path = "";
             
             service.Set(id, 0, path);
-            ApplyBinding(index, path);
-            if (actionEnabled) inputActionRef.Get().Enable();
+            ApplyBinding(id, index, path);
             
-            foreach (var bindingListener in _bindingListeners) {
-                bindingListener.Invoke(id, action, index, path);
+            if (actionEnabled) action.Enable();
+        }
+
+        private void ApplyBinding(string id, int index, string controlPath) {
+            var action = inputActionRef.Get();
+            
+            if (controlPath != null) action.ApplyBindingOverride(index, controlPath);
+            else action.RemoveBindingOverride(index);
+            
+            foreach (var bindingListener in _listeners) {
+                bindingListener.Invoke(id, action, index, controlPath);
             }
         }
 
-        private void ApplyBinding(int index, string controlPath) {
-            inputActionRef.Get().ApplyBindingOverride(index, controlPath);
-        }
-
         private bool IsValidBinding(string controlPath) {
-            return validator?.IsMatch(controlPath) ?? true;
+            return !string.IsNullOrWhiteSpace(controlPath) && 
+                   (validator?.IsMatch(controlPath) ?? true);
         }
     }
     

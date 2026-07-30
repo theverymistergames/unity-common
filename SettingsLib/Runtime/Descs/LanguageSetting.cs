@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using MisterGames.Common.Data;
 using MisterGames.Common.Localization;
 using MisterGames.Common.Service;
@@ -17,21 +18,37 @@ namespace MisterGames.SettingsLib.Descs {
             FirstLocaleInList,
             Auto,
         }
+        
+        private readonly HashSet<ISettingDescListed.Listener> _listeners = new();
 
-        public void Initialize(ISettingsService service, string id) {
-            if (service.TryGet(id, index: 0, out string localeCode) &&
-                LocaleExtensions.CreateLocale(localeCode) is var locale &&
-                TryGetIndexOf(locale, out _)) 
-            {
-                Services.Get<ILocalizationService>().Locale = locale;
-                return;
-            }
-
-            Services.Get<ILocalizationService>().Locale = GetDefaultLocale(out _);
+        public void ApplySetting(ISettingsService service, string id) {
+            var locale = TryGetSavedLocale(service, id, out var l, out int index)
+                ? l
+                : GetDefaultLocale(out index);
+            
+            SetLocale(id, locale, index);
         }
-
+        
+        public void ClearSetting(ISettingsService service, string id) {
+            service.Remove<string>(id, 0); 
+        }
+        
+        public void ResaveSetting(ISettingsService service, string id) {
+            if (service.TryGet(id, 0, out string value)) {
+                service.Set(id, 0, value);
+            }
+        }
+        
         public LocalizationKey GetName() {
             return name;
+        }
+
+        public void AddListener(ISettingDescListed.Listener listener) {
+            _listeners.Add(listener);
+        }
+        
+        public void RemoveListener(ISettingDescListed.Listener listener) {
+            _listeners.Remove(listener);
         }
 
         public int GetCount() {
@@ -46,8 +63,8 @@ namespace MisterGames.SettingsLib.Descs {
             return locales!.GetEntry(index).value.GetValue();
         }
 
-        public int GetIndex(ISettingsService service, string label) {
-            if (service.TryGet(label, index: 0, out string localeCode) && 
+        public int GetIndex(ISettingsService service, string id) {
+            if (service.TryGet(id, index: 0, out string localeCode) && 
                 TryGetIndexOf(LocaleExtensions.CreateLocale(localeCode), out int index)) 
             {
                 return index;
@@ -57,15 +74,39 @@ namespace MisterGames.SettingsLib.Descs {
             return index >= 0 ? index : 0;
         }
 
-        public bool SetIndex(ISettingsService service, string label, int index) {
-            var locale = locales?.GetEntry(index).key ?? GetDefaultLocale(out _);
-            bool ok = service.Set(label, index: 0, locale.GetDescriptor().code);
+        public bool SetIndex(ISettingsService service, string id, int index) {
+            var locale = locales?.GetEntry(index).key ?? GetDefaultLocale(out index);
+            bool ok = service.Set(id, index: 0, locale.GetDescriptor().code);
 
-            Services.Get<ILocalizationService>().Locale = locale;
+            SetLocale(id, locale, index);
             
             return ok;
         }
 
+        private void SetLocale(string id, Locale locale, int index) {
+            Services.Get<ILocalizationService>().Locale = locale;
+
+            foreach (var listener in _listeners) {
+                listener.Invoke(id, index);
+            }
+        }
+        
+        private bool TryGetSavedLocale(ISettingsService service, string id, out Locale locale, out int index) {
+            locale = default;
+            index = -1;
+            
+            if (service.TryGet(id, index: 0, out string localeCode) &&
+                LocaleExtensions.CreateLocale(localeCode) is var l &&
+                TryGetIndexOf(l, out index)) 
+            {
+                locale = l;
+                return true;
+            }
+            
+            index = -1;
+            return false;
+        }
+        
         private Locale GetDefaultLocale(out int index) {
             index = -1;
             

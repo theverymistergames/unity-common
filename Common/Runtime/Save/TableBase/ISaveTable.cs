@@ -11,6 +11,8 @@ namespace MisterGames.Common.Save.Tables {
         bool IsEmpty();
         
         void Clear();
+
+        void CopyTo(ISaveTable dest);
     }
     
     public interface ISaveTable<in TKey> : ISaveTable where TKey : IEquatable<TKey> {

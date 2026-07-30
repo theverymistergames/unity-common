@@ -6,6 +6,9 @@ namespace MisterGames.SettingsLib.Base {
         LocalizationKey GetName();
         void Initialize(ISettingsService service, string id) { }
         void Deinitialize(ISettingsService service, string id) { }
+        void ApplySetting(ISettingsService service, string id);
+        void ClearSetting(ISettingsService service, string id);
+        void ResaveSetting(ISettingsService service, string id);
     }
     
 }

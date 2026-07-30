@@ -19,7 +19,7 @@ namespace MisterGames.UI.UiServices {
             _cameraSet.Clear();
         }
 
-        public Canvas GetClosestParentCanvas(Transform transform) {
+        public Canvas FindClosestParentCanvas(Transform transform) {
             List<Canvas> candidates = null;
             
             foreach (var c in _canvases) {

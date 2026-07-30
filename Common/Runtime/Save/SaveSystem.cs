@@ -66,6 +66,10 @@ namespace MisterGames.Common.Save {
             return GetOrCreateStorage(storageId)?.GetOrCreateTable<T>()?.SetData(new SaveKey(dataId, index), data) ?? false;
         }
 
+        public bool Remove<T>(string storageId, string dataId, int index) {
+            return GetStorage(storageId)?.GetTable<T>()?.RemoveData(new SaveKey(dataId, index)) ?? false;
+        }
+
         public SaveBuilder Pop<T>(string storageId, string dataId, T def, out T data) {
             return new SaveBuilder(this, storageId, dataId).Pop(def, out data);
         }
@@ -100,7 +104,7 @@ namespace MisterGames.Common.Save {
             return saves;
         }
 
-        private ISaveStorage<SaveKey> GetStorage(string storageId) {
+        public ISaveStorage<SaveKey> GetStorage(string storageId) {
             return _saveStorageMap.GetValueOrDefault(storageId);
         }
 
@@ -114,13 +118,26 @@ namespace MisterGames.Common.Save {
         }
 
         public UniTask SaveIntoFile(string storageId) {
-            return SaveStorageAsync(storageId);
+            return _saveStorageMap.TryGetValue(storageId, out var storage) 
+                ? SaveStorageAsync(storageId, storage) 
+                : default;
+        }
+
+        public UniTask SaveIntoFile(string storageId, ISaveStorage source) {
+            return source == null ? default : SaveStorageAsync(storageId, source);
         }
 
         public UniTask LoadFromFile(string storageId) {
-            return LoadStorageAsync(storageId);
+            var storage = GetOrCreateStorage(storageId);
+            storage.Clear();
+            
+            return LoadStorageAsync(storageId, storage);
         }
 
+        public UniTask LoadFromFile(string storageId, ISaveStorage dest) {
+            return dest == null ? default : LoadStorageAsync(storageId, dest);
+        }
+        
         public void SaveAllFiles() {
             SaveAllStoragesAsync().Forget();
         }
@@ -134,8 +151,8 @@ namespace MisterGames.Common.Save {
             var tasks = ArrayPool<UniTask>.Shared.Rent(count);
             tasks.ResetArrayElements();
             
-            foreach (string storageId in _saveStorageMap.Keys) {
-                tasks[count++] = SaveStorageAsync(storageId);
+            foreach ((string storageId, var storage) in _saveStorageMap) {
+                tasks[count++] = SaveStorageAsync(storageId, storage);
             }
             
             await UniTask.WhenAll(tasks);
@@ -143,15 +160,15 @@ namespace MisterGames.Common.Save {
             ArrayPool<UniTask>.Shared.Return(tasks);
         }
         
-        private async UniTask SaveStorageAsync(string storageId) {
-            if (!_saveStorageMap.TryGetValue(storageId, out var storage)) return;
-            
+        private async UniTask SaveStorageAsync(string storageId, ISaveStorage source) {
             NotifySaveAll();
             
             Directory.CreateDirectory(_saveSystemSettings.GetFolderPath());
 
+            var dto = new SaveStorageDto(source.Tables.ToArray());
+            
             var result = await SaveFileAsync(
-                storage,
+                dto,
                 _saveSystemSettings.GetFilePath(storageId),
                 _saveSystemSettings.bufferSize
             );
@@ -178,7 +195,12 @@ namespace MisterGames.Common.Save {
             tasks.ResetArrayElements();
 
             for (int i = 0; i < storageFiles.Count; i++) {
-                tasks[count++] = LoadStorageAsync(storageFiles[i].storageId);
+                string storageId = storageFiles[i].storageId;
+                
+                var storage = GetOrCreateStorage(storageId);
+                storage.Clear();
+                
+                tasks[count++] = LoadStorageAsync(storageId, storage);
             }
 
             await UniTask.WhenAll(tasks);
@@ -186,10 +208,7 @@ namespace MisterGames.Common.Save {
             ArrayPool<UniTask>.Shared.Return(tasks);
         }
 
-        private async UniTask LoadStorageAsync(string storageId) {
-            var storage = GetOrCreateStorage(storageId);
-            storage.Clear();
-            
+        private async UniTask LoadStorageAsync(string storageId, ISaveStorage storage) {
             var result = await LoadFileAsync(
                 _saveSystemSettings.GetFilePath(storageId),
                 _saveSystemSettings.bufferSize
@@ -197,8 +216,8 @@ namespace MisterGames.Common.Save {
 
             switch (result.status) {
                 case JsonExtensions.Status.Success:
-                    var tables = result.value?.Tables?.ToArray() ?? Array.Empty<ISaveTable>();
-                    for (int i = 0; i < tables.Length; i++) {
+                    var tables = result.value?.Tables ?? Array.Empty<ISaveTable>();
+                    for (int i = 0; i < tables.Count; i++) {
                         if (tables[i] is { } table) storage.SetTable(table.GetValueType(), table);
                     }
                     
@@ -216,15 +235,16 @@ namespace MisterGames.Common.Save {
             }
         }
         
-        private static UniTask<JsonExtensions.Result> SaveFileAsync(SaveStorage<SaveKey> storage, string filePath, int bufferSize) {
-            return JsonExtensions.WriteJsonIntoFile(storage, filePath, bufferSize);
+        private static UniTask<JsonExtensions.Result> SaveFileAsync(SaveStorageDto dto, string filePath, int bufferSize) {
+            return JsonExtensions.WriteJsonIntoFile(dto, filePath, bufferSize);
         }
         
-        private static UniTask<JsonExtensions.Result<SaveStorage<SaveKey>>> LoadFileAsync(string filePath, int bufferSize) {
-            return JsonExtensions.ReadJsonFromFile<SaveStorage<SaveKey>>(filePath, bufferSize);
+        private static UniTask<JsonExtensions.Result<SaveStorageDto>> LoadFileAsync(string filePath, int bufferSize) {
+            return JsonExtensions.ReadJsonFromFile<SaveStorageDto>(filePath, bufferSize);
         }
         
         public void DeleteFile(string storageId) {
+            GetStorage(storageId)?.Clear();
             File.Delete(_saveSystemSettings.GetFilePath(storageId));
         }
 
