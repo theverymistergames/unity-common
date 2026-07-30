@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using MisterGames.Common.Inputs;
 using MisterGames.Input.Core;
 using MisterGames.Input.Icons;
 using UnityEngine;
@@ -97,6 +96,28 @@ namespace MisterGames.Input.Bindings {
             };
             
             return (deviceLayoutName, controlPath);
+        }
+        
+        public static bool SplitFullInputPath(string path, out string deviceLayoutName, out string controlPath) {
+            deviceLayoutName = null;
+            controlPath = null;
+            
+            if (string.IsNullOrWhiteSpace(path)) return false;
+
+            int closingBracket = path.IndexOf('>');
+
+            if (!path.StartsWith("<") ||
+                closingBracket <= 1 ||
+                closingBracket + 1 >= path.Length ||
+                path[closingBracket + 1] != '/')
+            {
+                return false;
+            }
+
+            deviceLayoutName = path[1..closingBracket];
+            controlPath = path[(closingBracket + 2)..];
+
+            return !string.IsNullOrEmpty(controlPath);
         }
 
         private static readonly Dictionary<AxisBinding, (string, string)> AxisBindingToPathMap = new() {

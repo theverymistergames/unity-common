@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using MisterGames.Common.Data;
 using MisterGames.Common.Inputs;
 using MisterGames.Input.Bindings;
+using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.U2D;
@@ -18,18 +19,27 @@ namespace MisterGames.Input.Icons {
         [SerializeField] private SpriteAtlasData _mouse;
         [SerializeField] private SpriteAtlasData _gamepadDefault;
         [SerializeField] private SerializedDictionary<GamepadType, SpriteAtlasData> _gamepadPerType;
-        [SerializeField] private Sprite _fallbackSprite;
-        [SerializeField] private Sprite _nullSprite;
         
+        [Header("Fallback")]
+        [SerializeField] private SpriteData _fallbackSprite;
+        [SerializeField] private SpriteData _nullSprite;
+
         [Serializable]
         private struct SpriteAtlasData {
             public SpriteAtlas spriteAtlas;
+            public TMPSpriteAtlas tmpSpriteAtlas;
             public string pathPattern;
             public string digitsPattern;
             public PathOptions pathOptions;
             public SerializedDictionary<string, string> replaceNames;
         }
 
+        [Serializable]
+        private struct SpriteData {
+            public TMPSpriteAtlas tmpSpriteAtlas;
+            public Sprite sprite;
+        }
+        
         [Flags]
         private enum PathOptions {
             None = 0,
@@ -47,25 +57,34 @@ namespace MisterGames.Input.Icons {
         private Dictionary<(string, string), string> _spritePathMap;
         
         public Sprite GetFallbackSprite() {
-            return _fallbackSprite;
+            return _fallbackSprite.sprite;
         }
         
         public Sprite GetNullSprite() {
-            return _nullSprite;
+            return _nullSprite.sprite;
         }
         
-        public void GetIcons(
-            List<Sprite> buffer,
-            InputAction inputAction,
-            InputDeviceType deviceType,
-            GamepadType gamepadType = GamepadType.Default) 
-        {
-            GetInputActionSprites(inputAction, deviceType, gamepadType, buffer);
+        public string GetEmbeddedFallbackSpriteTag() {
+            return _fallbackSprite.tmpSpriteAtlas == null
+                ? null
+                : CreateEmbeddedSpriteTag(_fallbackSprite.tmpSpriteAtlas.name, _fallbackSprite.sprite.name);
+        }
+        
+        public string GetEmbeddedNullSpriteTag() {
+            return _nullSprite.tmpSpriteAtlas == null
+                ? null
+                : CreateEmbeddedSpriteTag(_nullSprite.tmpSpriteAtlas.name, _nullSprite.sprite.name);
         }
 
         public Sprite GetIcon(InputBinding inputBinding, GamepadType gamepadType = GamepadType.Default) {
             inputBinding.ToDisplayString(out string deviceLayoutName, out string controlPath);
             return GetInputBindingSprite(deviceLayoutName, controlPath, gamepadType);
+        }
+        
+        public Sprite GetIcon(string path, GamepadType gamepadType = GamepadType.Default) {
+            return InputBindingExtensions.SplitFullInputPath(path, out string deviceLayoutName, out string controlPath) 
+                ? GetInputBindingSprite(deviceLayoutName, controlPath, gamepadType)
+                : null;
         }
         
         public Sprite GetIcon(KeyBinding key, GamepadType gamepadType = GamepadType.Default) {
@@ -77,22 +96,26 @@ namespace MisterGames.Input.Icons {
             (string deviceLayoutName, string controlPath) = axis.GetBindingPath(dir);
             return GetInputBindingSprite(deviceLayoutName, controlPath, gamepadType);
         }
-
-        private void GetInputActionSprites(
-            InputAction inputAction,
-            InputDeviceType deviceType,
-            GamepadType gamepadType,
-            List<Sprite> dest) 
-        {
-            for (int i = 0; i < inputAction.bindings.Count; i++) {
-                var binding = inputAction.bindings[i];
-                if (binding.isComposite) continue;
-                
-                binding.ToDisplayString(out string deviceLayoutName, out string controlPath);
-                if (GetDeviceType(deviceLayoutName) != deviceType) continue;
-                
-                dest.Add(GetInputBindingSprite(deviceLayoutName, controlPath, gamepadType));
-            }
+        
+        public string GetEmbeddedSpriteTag(InputBinding inputBinding, GamepadType gamepadType = GamepadType.Default) {
+            inputBinding.ToDisplayString(out string deviceLayoutName, out string controlPath);
+            return GetInputBindingSpriteTag(deviceLayoutName, controlPath, gamepadType);
+        }
+        
+        public string GetEmbeddedSpriteTag(string path, GamepadType gamepadType = GamepadType.Default) {
+            return InputBindingExtensions.SplitFullInputPath(path, out string deviceLayoutName, out string controlPath) 
+                ? GetInputBindingSpriteTag(deviceLayoutName, controlPath, gamepadType)
+                : null;
+        }
+        
+        public string GetEmbeddedSpriteTag(KeyBinding key, GamepadType gamepadType = GamepadType.Default) {
+            (string deviceLayoutName, string controlPath) = key.GetBindingPath();
+            return GetInputBindingSpriteTag(deviceLayoutName, controlPath, gamepadType);
+        }
+        
+        public string GetEmbeddedSpriteTag(AxisBinding axis, AxisBingingDirection dir = AxisBingingDirection.Default, GamepadType gamepadType = GamepadType.Default) {
+            (string deviceLayoutName, string controlPath) = axis.GetBindingPath(dir);
+            return GetInputBindingSpriteTag(deviceLayoutName, controlPath, gamepadType);
         }
         
         private Sprite GetInputBindingSprite(string deviceLayoutName, string controlPath, GamepadType gamepadType) {
@@ -108,12 +131,23 @@ namespace MisterGames.Input.Icons {
             
             return atlasData.spriteAtlas.GetSprite(spritePath);
         }
+        
+        private string GetInputBindingSpriteTag(string deviceLayoutName, string controlPath, GamepadType gamepadType) {
+            var atlasData = GetAtlasData(deviceLayoutName, gamepadType);
+            if (atlasData.tmpSpriteAtlas == null) return null;
+            
+            if (_spritePathMap == null || 
+                !_spritePathMap.TryGetValue((deviceLayoutName, controlPath), out string spritePath)) 
+            {
+                _spritePathMap ??= new Dictionary<(string, string), string>();
+                spritePath = GetSpritePath(controlPath, ref atlasData);
+            }
 
-        private static InputDeviceType GetDeviceType(string deviceLayoutName) {
-            return deviceLayoutName switch {
-                Keyboard or Mouse => InputDeviceType.KeyboardMouse,
-                _ => InputDeviceType.Gamepad,
-            };
+            return CreateEmbeddedSpriteTag(atlasData.tmpSpriteAtlas.name, spritePath);
+        }
+
+        private static string CreateEmbeddedSpriteTag(string assetName, string spritePath) {
+            return $"<sprite=\"{assetName}\" name=\"{spritePath}\">";
         }
         
         private SpriteAtlasData GetAtlasData(string deviceLayoutName, GamepadType gamepadType) {

@@ -149,7 +149,7 @@ namespace MisterGames.SettingsLib.Base {
                             sb.AppendLine(string.Format(keyBindingConfig.rebindingDialogUsedAction.GetValue(), inputActionsWithSamePath[i].GetValue()));
                         }
 
-                        value = string.Format(key.GetValue(), sb);
+                        value = string.Format(key.GetValue(), GetEmbeddedIconTag(controlPath), sb);
                     })
                     .AddButton(keyBindingConfig.rebindingDialogOk, () => {
                         _isRebindingDialogActive = false;
@@ -184,13 +184,22 @@ namespace MisterGames.SettingsLib.Base {
 
         public void SetupValue(ISettingDesc desc) {
             if (!IsValidSettingDesc(desc, out var keyBindingSetting)) return;
-            
-            var binding = keyBindingSetting.GetBinding();
+
+            var sprite = GetIcon(keyBindingSetting.GetBinding(), out string controlPath);
+            SetIcon(sprite, controlPath);
+        }
+
+        private string GetEmbeddedIconTag(string controlPath) {
+            var gamepadType = Services.TryGet(out IDeviceService deviceService) ? deviceService.GamepadType : GamepadType.Default;
+            string sprite = keyBindingConfig.inputIcons.GetEmbeddedSpriteTag(controlPath, gamepadType);
+            return string.IsNullOrWhiteSpace(sprite) ? controlPath : sprite;
+        }
+        
+        private Sprite GetIcon(InputBinding binding, out string controlPath) {
             var gamepadType = Services.TryGet(out IDeviceService deviceService) ? deviceService.GamepadType : GamepadType.Default;
             var sprite = keyBindingConfig.inputIcons.GetIcon(binding, gamepadType);
+            binding.ToDisplayString(out string _, out controlPath);
             
-            binding.ToDisplayString(out string _, out string controlPath);
-
             if (_isRebindingDialogActive || _rebindingOperation != null) {
                 sprite = keyBindingConfig.inputIcons.GetFallbackSprite();
             }
@@ -198,7 +207,7 @@ namespace MisterGames.SettingsLib.Base {
                 sprite = keyBindingConfig.inputIcons.GetNullSprite();
             }
             
-            SetIcon(sprite, controlPath);
+            return sprite;
         }
 
         private void SetIcon(Sprite sprite, string path) {
