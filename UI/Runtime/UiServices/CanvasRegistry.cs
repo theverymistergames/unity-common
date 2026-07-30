@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using MisterGames.Common.Service;
 using UnityEngine;
+using UnityEngine.Pool;
 
 namespace MisterGames.UI.UiServices {
     
@@ -17,6 +17,42 @@ namespace MisterGames.UI.UiServices {
         public void Dispose() {
             _canvases.Clear();
             _cameraSet.Clear();
+        }
+
+        public Canvas GetClosestParentCanvas(Transform transform) {
+            List<Canvas> candidates = null;
+            
+            foreach (var c in _canvases) {
+                if (!transform.IsChildOf(c.transform) && transform != c.transform) continue;
+
+                candidates ??= ListPool<Canvas>.Get();
+                candidates.Add(c);
+            }
+            
+            if (candidates == null) return null;
+
+            Canvas canvas = null;
+
+            for (int i = 0; i < candidates.Count; i++) {
+                var trf = candidates[i].transform;
+                bool isChildForAll = true;
+                
+                for (int j = 0; j < candidates.Count; j++) {
+                    if (i == j || trf.IsChildOf(candidates[j].transform)) continue;
+                    
+                    isChildForAll = false;
+                    break;
+                }
+                
+                if (!isChildForAll) continue;
+                
+                canvas = candidates[i];
+                break;
+            }
+
+            ListPool<Canvas>.Release(candidates);
+
+            return canvas;
         }
 
         public void AddCanvas(Canvas canvas) {

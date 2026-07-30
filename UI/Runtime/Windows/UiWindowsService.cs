@@ -88,7 +88,9 @@ namespace MisterGames.UI.Windows {
         private void BindWindowHierarchy(IUiWindow window) {
             if (window?.GameObject == null) return;
             
-            var parentWindow = FindClosestParentWindow(window.GameObject, includeSelf: false);
+            var parentWindow = (window.Options & UiWindowOptions.IgnoreNavigation) == 0 
+                ? FindClosestParentWindow(window.GameObject, includeSelf: false)
+                : null;
             
             if (parentWindow == null) {
                 UnbindWindowHierarchy(window);
@@ -383,7 +385,7 @@ namespace MisterGames.UI.Windows {
                 childrenIds[i] = childId;
                 childrenOperationIds[i] = CreateNextWindowOperationId(childId);
             }
-            
+
             WriteWindowState(id, UiWindowState.Opened, root.Options);
             root.NotifyWindowState(UiWindowState.Opened);
             
@@ -393,7 +395,7 @@ namespace MisterGames.UI.Windows {
                 {
                     break;
                 }
-                
+
                 var child = _gameObjectIdToWindowMap.GetValueOrDefault(childrenIds[i]);
                 changed |= SetWindowBranchState(childrenOperationIds[i], child, UiWindowState.Closed);
             }

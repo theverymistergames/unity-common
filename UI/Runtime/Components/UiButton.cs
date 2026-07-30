@@ -18,6 +18,8 @@ namespace MisterGames.UI.Components {
         [SerializeField] [Min(0f)] private float _clickCooldown = 0.1f;
         
         public event Action<UiButton> OnClicked = delegate { };
+        public Selectable Selectable => _button;
+        public TMP_Text ButtonText => _buttonText;
         
         private readonly HashSet<int> _blocks = new();
         private CancellationTokenSource _enableCts;

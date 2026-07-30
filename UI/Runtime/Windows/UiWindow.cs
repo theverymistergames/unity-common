@@ -33,6 +33,7 @@ namespace MisterGames.UI.Navigation {
         
         public GameObject GameObject => gameObject;
         public Selectable CurrentSelected { get; private set; }
+        public Selectable FirstSelected { get => _firstSelected; set => _firstSelected = value; }
         
         public int Layer => _layer;
         public UiWindowOpenMode OpenMode => _openMode;

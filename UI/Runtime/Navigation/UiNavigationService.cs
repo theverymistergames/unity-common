@@ -100,7 +100,7 @@ namespace MisterGames.UI.Navigation {
         }
 
         private void OnWindowsHierarchyChanged() {
-            var selectable = _uiWindowService.GetFocusedWindow()?.CurrentSelected;
+            var selectable = _uiWindowService.GetFrontOpenedWindow()?.CurrentSelected;
             if (selectable == null) return;
 
             SetCurrentSelectable(selectable);
@@ -294,7 +294,7 @@ namespace MisterGames.UI.Navigation {
         }
 
         private void OnCancelInputFromWindow() {
-            var window = _uiWindowService.GetFocusedWindow();
+            var window = _uiWindowService.GetFrontOpenedWindow();
             if (window == null) return;
 
             var callbacks = CreateWindowCallbacksBuffer(window);

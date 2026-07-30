@@ -175,6 +175,7 @@ namespace MisterGames.Common.Pooling {
                 OnGetFromPool,
                 OnReleaseToPool,
                 DestroyPoolObject,
+                isNull: t => t == null,
                 collectionCheck: false,
                 initialSize,
                 maxSize
@@ -410,7 +411,8 @@ namespace MisterGames.Common.Pooling {
             int id = GetPoolId(prefab);
             UpdateAutoPoolUsageOnTake(id, prefab);
 
-            var instance = _poolMap.GetValueOrDefault(id)?.Get(prefab) ?? CreatePoolObject(prefab);
+            var instance = _poolMap.GetValueOrDefault(id)?.Get(prefab);
+            if (instance == null) instance = CreatePoolObject(prefab);
 
             var t = instance.transform;
             t.localScale = scale;
@@ -443,11 +445,13 @@ namespace MisterGames.Common.Pooling {
         {
             int id = GetPoolId(prefab);
             UpdateAutoPoolUsageOnTake(id, prefab);
-            
-            var instance = _poolMap.GetValueOrDefault(id) is { } pool 
-                ? await pool.GetAsync(prefab) 
+
+            var instance = _poolMap.GetValueOrDefault(id) is { } pool
+                ? await pool.GetAsync(prefab)
                 : await CreatePoolObjectAsync(prefab);
-            
+
+            if (instance == null) instance = await CreatePoolObjectAsync(prefab);
+
             var t = instance.transform;
             t.localScale = scale;
             

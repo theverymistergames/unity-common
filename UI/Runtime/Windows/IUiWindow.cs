@@ -7,6 +7,7 @@ namespace MisterGames.UI.Windows {
         
         GameObject GameObject { get; }
         Selectable CurrentSelected { get; }
+        Selectable FirstSelected { get; set; }
         
         int Layer { get; }
         UiWindowOpenMode OpenMode { get; }

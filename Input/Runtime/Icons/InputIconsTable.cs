@@ -19,6 +19,7 @@ namespace MisterGames.Input.Icons {
         [SerializeField] private SpriteAtlasData _gamepadDefault;
         [SerializeField] private SerializedDictionary<GamepadType, SpriteAtlasData> _gamepadPerType;
         [SerializeField] private Sprite _fallbackSprite;
+        [SerializeField] private Sprite _nullSprite;
         
         [Serializable]
         private struct SpriteAtlasData {
@@ -47,6 +48,10 @@ namespace MisterGames.Input.Icons {
         
         public Sprite GetFallbackSprite() {
             return _fallbackSprite;
+        }
+        
+        public Sprite GetNullSprite() {
+            return _nullSprite;
         }
         
         public void GetIcons(

@@ -19,7 +19,9 @@ namespace MisterGames.SettingsLib.Descs {
         [SerializeReference] [SubclassSelector] public IBindingValidator validator;
         
         public delegate void BindingListener(string id, InputAction action, int bindingIndex, string path);
+        
         private readonly HashSet<BindingListener> _bindingListeners = new();
+        private readonly HashSet<KeyBindingSettingGroup> _groups = new();
         
         public void Initialize(ISettingsService service, string id) {
             if (service.TryGet(id, 0, out string controlPath) && 
@@ -41,6 +43,18 @@ namespace MisterGames.SettingsLib.Descs {
             _bindingListeners.Remove(listener);
         }
 
+        public void AddToGroup(KeyBindingSettingGroup group) {
+            _groups.Add(group);
+        }
+
+        public void RemoveFromGroup(KeyBindingSettingGroup group) {
+            _groups.Remove(group);
+        }
+
+        public HashSet<KeyBindingSettingGroup> GetKeyBindingGroups() {
+            return _groups;
+        }
+        
         public LocalizationKey GetName() {
             return name;
         }

@@ -1,13 +1,17 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Text;
 using MisterGames.Common.Inputs;
+using MisterGames.Common.Localization;
 using MisterGames.Common.Service;
-using MisterGames.Input.Icons;
 using MisterGames.SettingsLib.Descs;
 using MisterGames.UI.Components;
 using MisterGames.UI.Navigation;
+using MisterGames.UI.UiServices;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Pool;
 using UnityEngine.UI;
 #if UNITY_EDITOR
 using UnityEditor;
@@ -17,8 +21,8 @@ namespace MisterGames.SettingsLib.Base {
     
     [Serializable]
     public sealed class SettingBinderKeyBinding : ISettingBinder, IUiNavigationCallback {
-
-        public InputIconsTable inputIcons;
+        
+        public KeyBindingConfig keyBindingConfig;
         public UiButton button;
         public Image icon;
         public TMP_Text textFallback;
@@ -30,6 +34,7 @@ namespace MisterGames.SettingsLib.Base {
         
         private InputActionRebindingExtensions.RebindingOperation _rebindingOperation;
         private bool _wasActionEnabled;
+        private bool _isRebindingDialogActive;
         
         public void Bind(ISettingsService service, ISettingDesc desc, string id) {
             if (!IsValidSettingDesc(desc, out var keyBindingSetting)) return;
@@ -77,10 +82,10 @@ namespace MisterGames.SettingsLib.Base {
                 navigationService.BlockUiInputModule(this);
             }
             
-            SetIcon(inputIcons.GetFallbackSprite(), "???");
+            SetIcon(keyBindingConfig.inputIcons.GetFallbackSprite(), "???");
 
             _wasActionEnabled = actionEnabled;
-
+            
             _desc.TryGetBinding(out action, out var binding, out bindingIndex);
             binding.ToDisplayString(out string deviceLayoutName, out string _);
             
@@ -110,7 +115,56 @@ namespace MisterGames.SettingsLib.Base {
 
         private void OnRebindingApply(InputActionRebindingExtensions.RebindingOperation rebindingOperation, string controlPath) {
             if (_service == null || _id ==  null) return;
+
+            List<KeyBindingSetting> samePathBindings = null;
             
+            var groups = _desc.GetKeyBindingGroups();
+            foreach (var group in groups) {
+                var groupKeyBindings = group.GetKeyBindings();
+                foreach ((string id, var keyBinding) in groupKeyBindings) {
+                    if (id == _id || !keyBinding.TryGetBinding(out _, out var binding, out _) || binding.effectivePath != controlPath) {
+                        continue;
+                    }
+
+                    samePathBindings ??= ListPool<KeyBindingSetting>.Get();
+                    samePathBindings.Add(keyBinding);
+                }
+            }
+
+            if (samePathBindings is { Count: > 0 }) {
+                _isRebindingDialogActive = true;
+                
+                var inputActionsWithSamePath = new LocalizationKey[samePathBindings.Count];
+                for (int i = 0; i < samePathBindings.Count; i++) {
+                    inputActionsWithSamePath[i] = samePathBindings[i].GetName();
+                }
+                ListPool<KeyBindingSetting>.Release(samePathBindings);
+                
+                var parentCanvas = Services.Get<CanvasRegistry>().GetClosestParentCanvas(button.transform);
+                Services.Get<IUiModalDialogService>().CreateModalDialogDefault(parentCanvas)
+                    .SetTitle(keyBindingConfig.rebindingDialogTitle)
+                    .SetContent(keyBindingConfig.rebindingDialogContent, (LocalizationKey key, Locale locale, ref string value) => {
+                        var sb = new StringBuilder();
+                        for (int i = 0; i < inputActionsWithSamePath.Length; i++) {
+                            sb.AppendLine(string.Format(keyBindingConfig.rebindingDialogUsedAction.GetValue(), inputActionsWithSamePath[i].GetValue()));
+                        }
+
+                        value = string.Format(key.GetValue(), sb);
+                    })
+                    .AddButton(keyBindingConfig.rebindingDialogOk, () => {
+                        _isRebindingDialogActive = false;
+                        _desc?.SetBinding(_service, _id, controlPath, _wasActionEnabled);
+                    })
+                    .AddButton(keyBindingConfig.rebindingDialogCancel, () => {
+                        _isRebindingDialogActive = false;
+                        SetupValue(_desc);
+                    })
+                    .SetBackNavigation(canCloseOnNavigateBack: true, callButton: 1)
+                    .Show();
+                return;
+            }
+            
+            _isRebindingDialogActive = false;
             _desc?.SetBinding(_service, _id, controlPath, _wasActionEnabled);
         }
 
@@ -133,12 +187,15 @@ namespace MisterGames.SettingsLib.Base {
             
             var binding = keyBindingSetting.GetBinding();
             var gamepadType = Services.TryGet(out IDeviceService deviceService) ? deviceService.GamepadType : GamepadType.Default;
-            var sprite = inputIcons.GetIcon(binding, gamepadType);
+            var sprite = keyBindingConfig.inputIcons.GetIcon(binding, gamepadType);
             
             binding.ToDisplayString(out string _, out string controlPath);
 
-            if (string.IsNullOrWhiteSpace(controlPath)) {
-                sprite = inputIcons.GetFallbackSprite();
+            if (_isRebindingDialogActive || _rebindingOperation != null) {
+                sprite = keyBindingConfig.inputIcons.GetFallbackSprite();
+            }
+            else if (string.IsNullOrWhiteSpace(controlPath)) {
+                sprite = keyBindingConfig.inputIcons.GetNullSprite();
             }
             
             SetIcon(sprite, controlPath);

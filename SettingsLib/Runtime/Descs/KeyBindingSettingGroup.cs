@@ -28,17 +28,23 @@ namespace MisterGames.SettingsLib.Descs {
                 
                 _keyBindingSettings[label.GetFullLabel()] = setting;
                 setting.AddBindingListener(NotifyBindingApplied);
+                setting.AddToGroup(this);
             }
         }
         
         public void Deinitialize(ISettingsService service, string id) {
             foreach (var setting in _keyBindingSettings.Values) {
                 setting.RemoveBindingListener(NotifyBindingApplied);
+                setting.RemoveFromGroup(this);
             }
         }
 
         public LocalizationKey GetName() {
             return default;
+        }
+
+        public Dictionary<string, KeyBindingSetting> GetKeyBindings() {
+            return _keyBindingSettings;
         }
 
         private void NotifyBindingApplied(string id, InputAction action, int bindingIndex, string path) {
@@ -47,9 +53,9 @@ namespace MisterGames.SettingsLib.Descs {
             _suppressNotify = true;
             
             foreach ((string label, var setting) in _keyBindingSettings) {
-                if (!setting.TryGetBinding(out var inputAction, out var binding, out int index) ||
-                    action == inputAction && bindingIndex == index || 
-                    inputAction.bindings[index].effectivePath != path) 
+                if (id == label ||
+                    !setting.TryGetBinding(out _, out var binding, out int _) ||
+                    binding.effectivePath != path) 
                 {
                     continue;
                 }
