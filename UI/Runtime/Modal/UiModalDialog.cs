@@ -38,12 +38,11 @@ namespace MisterGames.UI.Components {
         
         private readonly List<ButtonData> _buttons = new();
         private readonly Dictionary<(LocalizationKey, int), ILocalizationFormatter.Lambda> _formatMap = new();
-        
+
         private LocalizationKey _titleKey;
         private LocalizationKey _contentKey;
         private bool _canCloseOnNavigateBack;
         private int _navigateBackCallIndex = -1;
-
 
         private void OnEnable() {
             GetLocalizationService().OnLocaleChanged += OnLocaleChanged;
@@ -114,7 +113,7 @@ namespace MisterGames.UI.Components {
             _formatMap[(text, index)] = format;
             button.ButtonText.SetText(Format(text, index, GetLocalizationService().Locale));
 
-            if (firstSelected) _window.FirstSelected = button.Selectable; 
+            if (firstSelected) _window.Node.SetCurrentSelected(button.Selectable); 
             
             return this;
         }

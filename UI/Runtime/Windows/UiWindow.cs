@@ -5,7 +5,6 @@ using MisterGames.Common.Service;
 using MisterGames.UI.Windows;
 using UnityEngine;
 using UnityEngine.Serialization;
-using UnityEngine.UI;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -23,23 +22,21 @@ namespace MisterGames.UI.Navigation {
         [SerializeField] private UiWindowCloseMode _closeMode;
         [SerializeField] private UiWindowOptions _options;
         
-        [Header("Selection")]
-        [SerializeField] private Selectable _firstSelected;
-        
         [Header("View")]
         [FormerlySerializedAs("_enableGameObjects")]
         [SerializeField] private GameObject[] _enableOnWindowOpened;
         [SerializeField] private GameObject[] _enableOnBranchOpened;
         
         public GameObject GameObject => gameObject;
-        public Selectable FirstSelected { get => _firstSelected; set => _firstSelected = value; }
-        
         public int Layer => _layer;
         public UiWindowOpenMode OpenMode => _openMode;
         public UiWindowCloseMode CloseMode => _closeMode;
         public UiWindowState State => _state;
         public UiWindowOptions Options => _options;
-
+        public IUiNavigationNode Node => _node ?? GetComponent<IUiNavigationNode>();
+        
+        private IUiNavigationNode _node;
+        
         private void Awake() {
             Services.Get<IUiWindowService>()?.RegisterWindow(this, _state);
         }
@@ -55,7 +52,7 @@ namespace MisterGames.UI.Navigation {
         private void OnDisable() {
             Services.Get<IUiWindowService>()?.NotifyWindowEnabled(this, false);
         }
-        
+
         void IUiWindow.NotifyWindowState(UiWindowState state) {
 #if UNITY_EDITOR
             if (!Application.isPlaying) {

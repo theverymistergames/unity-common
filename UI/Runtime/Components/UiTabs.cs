@@ -53,7 +53,7 @@ namespace MisterGames.UI.Components {
 
             _navigationService.OnSelectableChanged += OnSelectableChanged;
             
-            OpenTab(0);
+            OpenTab(0, selectButton: true);
         }
 
         private void OnDisable() {
@@ -68,10 +68,13 @@ namespace MisterGames.UI.Components {
             
             if (_openedTab >= 0) {
                 ref var openedTab = ref _tabs[_openedTab];
+                
+                openedTab.window.Node?.SetCurrentSelected(null);
                 _navigationService.RemoveWindowNavigationCallback(openedTab.window, this);
                 
                 PrefabPool.Main?.Release(_tabSelectionInstance);
                 _tabSelectionInstance = null;
+                _openedTab = -1;
             }
         }
 
@@ -80,7 +83,7 @@ namespace MisterGames.UI.Components {
                 ref var tab = ref _tabs[i];
                 if (tab.button.Selectable != selectable) continue;
                 
-                OpenTab(i);
+                OpenTab(i, selectButton: false);
                 return;
             }
         }
@@ -91,7 +94,7 @@ namespace MisterGames.UI.Components {
         
         public void OnNavigateBack() {
             if (_openedTab > 0) {
-                OpenTab(0);
+                OpenTab(0, selectButton: true);
                 return;
             }
 
@@ -105,12 +108,13 @@ namespace MisterGames.UI.Components {
                 ref var tab = ref _tabs[i];
                 if (tab.button != button) continue; 
                 
-                OpenTab(i);
+                OpenTab(i, selectButton: false);
                 return;
             }
         }
 
-        private void OpenTab(int index) {
+        private void OpenTab(int index, bool selectButton) {
+            if (index == _openedTab) return;
             _openedTab = index;
             
             for (int i = 0; i < _tabs.Length; i++) {
@@ -120,10 +124,13 @@ namespace MisterGames.UI.Components {
                     if (_setupMinState.HasValue) tab.button.GetComponent<IUiElementAnimator>()?.SetForceMinState(_setupMinState.Value);
                     _windowService.SetWindowState(tab.window, UiWindowState.Opened); 
                     _navigationService.AddWindowNavigationCallback(tab.window, this);
-                    continue;   
+                    if (selectButton) _navigationService.SetCurrentSelectable(tab.button.Selectable);
+                    continue;
                 }
 
                 tab.button.GetComponent<IUiElementAnimator>()?.ResetForceMinState();
+                tab.window.Node?.SetCurrentSelected(null);
+                
                 _navigationService.RemoveWindowNavigationCallback(tab.window, this);
             }
             

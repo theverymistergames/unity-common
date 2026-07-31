@@ -20,25 +20,27 @@ namespace MisterGames.UI.Navigation {
         [SerializeField] private bool _scrollable = false;
         [VisibleIf(nameof(_scrollable))]
         [SerializeField] private RectTransform _viewport;
+        [SerializeField] private Selectable _firstSelected;
         
         [Header("Outer Navigation")]
-        [SerializeField] private UiNavigateFromOuterNodesOptions _incomeOuterNavigation = 
-                UiNavigateFromOuterNodesOptions.SelectClosestElement;
-        [SerializeField] private UiNavigateToOuterNodesOptions _outcomeOuterNavigation = 
+        [SerializeField] private UiNavigateFromOuterNodesOptions _incomeNavigation = 
+                UiNavigateFromOuterNodesOptions.SelectHistoryElement;
+        [SerializeField] private UiNavigateToOuterNodesOptions _outcomeNavigation = 
             UiNavigateToOuterNodesOptions.Parent | UiNavigateToOuterNodesOptions.Siblings | UiNavigateToOuterNodesOptions.Children;
         
         public GameObject GameObject => gameObject;
         public Selectable CurrentSelected { get; private set; }
-        public UiNavigateFromOuterNodesOptions IncomeOuterNavigation => _incomeOuterNavigation;
+        public UiNavigateFromOuterNodesOptions IncomeOuterNavigation => _incomeNavigation;
         public bool IsScrollable => _scrollable;
         public RectTransform Viewport => _viewport;
         
         private readonly UiNavigationNodeHelper _helper = new();
         private CancellationTokenSource _enableCts;
-        
         private IUiWindow _window;
         
         private void Awake() {
+            if (_firstSelected != null) CurrentSelected = _firstSelected;
+            
             _window = GetComponent<IUiWindow>();
         }
 
@@ -98,9 +100,19 @@ namespace MisterGames.UI.Navigation {
         }
 
         public void OnNavigateOut(Selectable fromSelectable, UiNavigationDirection direction) {
-            _helper.NavigateOut(this, fromSelectable, direction, _outcomeOuterNavigation);
+            _helper.NavigateOut(this, fromSelectable, direction, _cell, _outcomeNavigation);
         }
-        
+
+        public void SetCurrentSelected(Selectable selectable) {
+            CurrentSelected = selectable;
+        }
+
+        private void OnSelectedGameObjectChanged(Selectable selected, IUiWindow parent) {
+            if (selected != null && _helper.IsBound(selected.gameObject)) {
+                CurrentSelected = selected;
+            }
+        }
+
         private void OnWindowsHierarchyChanged() {
             if (_window == null || !Services.TryGet(out IUiNavigationService service)) return;
 
@@ -115,12 +127,6 @@ namespace MisterGames.UI.Navigation {
                 
                 default:
                     throw new ArgumentOutOfRangeException();
-            }
-        }
-
-        private void OnSelectedGameObjectChanged(Selectable selected, IUiWindow parent) {
-            if (selected != null && _helper.IsBound(selected.gameObject)) {
-                CurrentSelected = selected;
             }
         }
     }

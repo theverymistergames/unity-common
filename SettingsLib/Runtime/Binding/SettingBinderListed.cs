@@ -46,7 +46,7 @@ namespace MisterGames.SettingsLib.Base {
         }
 
         void ISettingBinder.SetupValue(ISettingDesc desc) {
-            if (!IsValidSettingDesc(desc, out var descListed) || _service == null || string.IsNullOrEmpty(_id)) {
+            if (_ignoreNotify || !IsValidSettingDesc(desc, out var descListed) || _service == null || string.IsNullOrEmpty(_id)) {
                 return;
             }
             

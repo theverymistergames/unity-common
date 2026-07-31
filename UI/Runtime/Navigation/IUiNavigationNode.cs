@@ -13,10 +13,11 @@ namespace MisterGames.UI.Navigation {
         
         void Bind(Selectable selectable, UiNavigationMask mask = ~UiNavigationMask.None, UiNavigationOptions options = UiNavigationOptions.None);
         void Unbind(Selectable selectable);
-
-        void UpdateNavigation();
         
+        void UpdateNavigation();
         void OnNavigateOut(Selectable fromSelectable, UiNavigationDirection direction);
+        
+        void SetCurrentSelected(Selectable selectable);
     }
     
 }

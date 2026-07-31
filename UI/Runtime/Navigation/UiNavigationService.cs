@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using MisterGames.Common.Data;
-using MisterGames.Common.GameObjects;
 using MisterGames.Common.Tick;
 using MisterGames.Input.Actions;
 using MisterGames.Input.Core;
@@ -104,7 +103,7 @@ namespace MisterGames.UI.Navigation {
         }
 
         private void OnWindowsHierarchyChanged() {
-            var selectable = _uiWindowService.GetFrontOpenedWindow()?.FirstSelected;
+            var selectable = _uiWindowService.GetFrontOpenedWindow()?.Node?.CurrentSelected;
             if (selectable == null) return;
 
             SetCurrentSelectable(selectable);
@@ -113,15 +112,16 @@ namespace MisterGames.UI.Navigation {
         private void CheckCurrentSelectedGameObject() {
             SelectedGameObject = EventSystem.current.currentSelectedGameObject;
             
-            bool isNull = SelectedGameObject == null;
-            int hash = isNull ? 0 : SelectedGameObject.GetHashCode();
+            bool isNullOrDisabled = SelectedGameObject == null || 
+                                    SelectedGameObject is not { activeSelf: true, activeInHierarchy: true };
             
+            int hash = isNullOrDisabled ? 0 : SelectedGameObject.GetHashCode();
             if (hash == _selectedGameObjectHash) return;
 
             _selectedGameObjectHash = hash;
-            CurrentSelectable = isNull ? null : SelectedGameObject.GetComponent<Selectable>();
+            CurrentSelectable = isNullOrDisabled ? null : SelectedGameObject.GetComponent<Selectable>();
 
-            if (CurrentSelectable == null) {
+            if (isNullOrDisabled || CurrentSelectable == null) {
                 _selectedSelectableHash = 0;
             }
             else {
@@ -283,7 +283,6 @@ namespace MisterGames.UI.Navigation {
         }
 
         public void SetCurrentSelectable(Selectable selectable) {
-            Debug.Log($"UiNavigationService.SetCurrentSelectable: f {Time.frameCount}, {selectable.GetPathInScene(includeSceneName: false, level: 2)}");
             EventSystem.current.SetSelectedGameObject(selectable.gameObject);
         }
 

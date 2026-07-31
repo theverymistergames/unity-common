@@ -51,6 +51,7 @@ namespace MisterGames.UI.Navigation {
             IUiNavigationNode node,
             Selectable fromSelectable,
             UiNavigationDirection direction,
+            Vector2 cell,
             UiNavigateToOuterNodesOptions options) 
         {
             if (options == UiNavigateToOuterNodesOptions.None ||
@@ -69,7 +70,9 @@ namespace MisterGames.UI.Navigation {
 
             var selectables = service.Selectables;
             Selectable closestSelectable = null;
+            
             float minDistance = -1f;
+            int minPerpCells = -1;
 
             foreach (var selectable in selectables) {
                 if (IsBound(selectable.gameObject) || 
@@ -87,21 +90,33 @@ namespace MisterGames.UI.Navigation {
                 }
             
                 var pos = root.InverseTransformPoint(selectable.transform.position).ToFloat2XY();
+                if (!pos.IsInDirection(origin, direction))
+                    continue;
 
-                if (!pos.IsInDirection(origin, direction)) {
+                var absDistance2 = math.abs(pos - origin);
+                var distanceCells2 = new int2((int) math.floor(absDistance2.x / cell.x), (int) math.floor(absDistance2.y / cell.y));
+                int perpCells = direction switch {
+                    UiNavigationDirection.Up or UiNavigationDirection.Down => distanceCells2.x, 
+                    UiNavigationDirection.Left or UiNavigationDirection.Right => distanceCells2.y,
+                    _ => throw new ArgumentOutOfRangeException(nameof(direction), direction, null)
+                };
+                float proj = direction switch {
+                    UiNavigationDirection.Up or UiNavigationDirection.Down => math.abs(pos.y - origin.y), 
+                    UiNavigationDirection.Left or UiNavigationDirection.Right => math.abs(pos.x - origin.x),
+                    _ => throw new ArgumentOutOfRangeException(nameof(direction), direction, null)
+                };
+
+                if (minPerpCells >= 0 && perpCells > minPerpCells ||
+                    perpCells == minPerpCells && minDistance >= 0f && proj >= minDistance) 
+                {
                     continue;
                 }
-
-                float distance = (pos - origin).Project(direction).Abs();
                 
-                if (minDistance >= 0f && distance > minDistance) {
-                    continue;
-                }
-                
-                minDistance = distance;
+                minDistance = proj;
+                minPerpCells = perpCells;
                 closestSelectable = selectable;
             }
-            
+
             if (closestSelectable == null) return;
             
             var nextParentNode = service.GetParentNavigationNode(closestSelectable);
@@ -252,7 +267,7 @@ namespace MisterGames.UI.Navigation {
                     var data = selectablesArray[i];
                     if (data.id == current.id || (data.options & UiNavigationOptions.DisallowAnyIncomingNavigation) != 0) continue;
                     
-                    var absDistance2 = new float2(math.abs(current.position.x - data.position.x), math.abs(current.position.y - data.position.y));  
+                    var absDistance2 = math.abs(current.position - data.position);  
                     var distanceCells2 = new int2((int) math.floor(absDistance2.x / cellSize.x), (int) math.floor(absDistance2.y / cellSize.y));
 
                     bool isUp = mode != UiNavigationMode.Horizontal && (data.mask & UiNavigationMask.Down) != 0 && data.position.IsHigherThan(current.position);

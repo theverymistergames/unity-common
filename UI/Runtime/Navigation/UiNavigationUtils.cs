@@ -38,16 +38,6 @@ namespace MisterGames.UI.Navigation {
             };
         }
         
-        [BurstCompile]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static float Project(this float2 vector, UiNavigationDirection onDirection) {
-            return onDirection switch {
-                UiNavigationDirection.Up or UiNavigationDirection.Down => vector.y,
-                UiNavigationDirection.Left or UiNavigationDirection.Right => vector.x,
-                _ => throw new ArgumentOutOfRangeException(nameof(onDirection), onDirection, null)
-            };
-        }
-        
         public static bool IsCursorInsideRect(RectTransform rectTransform) {
             var camera = Services.TryGet(out CanvasRegistry canvasRegistry) &&
                          canvasRegistry.TryGetCurrentEventCamera(out var c)
