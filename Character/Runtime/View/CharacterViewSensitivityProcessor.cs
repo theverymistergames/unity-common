@@ -55,11 +55,11 @@ namespace MisterGames.Character.View {
         }
 
         private void OnMouseInvertYChanged(int key) {
-            _mouseMul = _characterSettings.Get(key, false) ? new Vector2(1f, -1f) : new Vector2(1f, 1f);
+            _mouseMul = _characterSettings.Get(key, false) ? new Vector2(-1f, 1f) : new Vector2(1f, 1f);
         }
 
         private void OnGamepadInvertYChanged(int key) {
-            _gamepadMul = _characterSettings.Get(key, false) ? new Vector2(1f, -1f) : new Vector2(1f, 1f);
+            _gamepadMul = _characterSettings.Get(key, false) ? new Vector2(-1f, 1f) : new Vector2(1f, 1f);
         }
 
         Vector2 IViewProcessor.GetViewSensitivity(InputDeviceType deviceType) {

@@ -49,7 +49,7 @@ namespace MisterGames.SettingsLib.Base {
             if (_ignoreNotify || !IsValidSettingDesc(desc, out var descListed) || _service == null || string.IsNullOrEmpty(_id)) {
                 return;
             }
-            
+
             uiList.SelectIndex(descListed.GetIndex(_service, _id));
         }
 
@@ -63,7 +63,7 @@ namespace MisterGames.SettingsLib.Base {
             if (_desc == null || _service == null || string.IsNullOrEmpty(_id)) { 
                 return;
             }
-
+            
             _ignoreNotify = true;
             _desc.SetIndex(_service, _id, index);
             _ignoreNotify = false;

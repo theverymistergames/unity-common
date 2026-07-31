@@ -54,7 +54,7 @@ namespace MisterGames.SettingsLib.Base {
         }
 
         private async UniTask InitializeAsync(CancellationToken cancellationToken) {
-            await _saveSystem.LoadFromFile(_storageId);
+            await _saveSystem.LoadFromFile(_storageId, _saveStorage);
             if (cancellationToken.IsCancellationRequested) return;
             
             foreach ((string key, var desc) in _settingMap) {
@@ -81,7 +81,7 @@ namespace MisterGames.SettingsLib.Base {
         
         public bool Set<T>(string key, int index, T setting) {
             NotifyDirty(key);
-            return _saveStorage.GetTable<T>()?.SetData(new SaveKey(key, index), setting) ?? false;
+            return _saveStorage.GetOrCreateTable<T>()?.SetData(new SaveKey(key, index), setting) ?? false;
         }
 
         public bool Remove<T>(string key, int index) {

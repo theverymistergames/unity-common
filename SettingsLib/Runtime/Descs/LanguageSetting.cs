@@ -77,7 +77,7 @@ namespace MisterGames.SettingsLib.Descs {
         public bool SetIndex(ISettingsService service, string id, int index) {
             var locale = locales?.GetEntry(index).key ?? GetDefaultLocale(out index);
             bool ok = service.Set(id, index: 0, locale.GetDescriptor().code);
-
+            
             SetLocale(id, locale, index);
             
             return ok;
