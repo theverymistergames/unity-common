@@ -14,7 +14,7 @@ namespace MisterGames.ActionLib.Logic {
         public LookAtBehaviour lookAtBehaviour;
         
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            lookAtBehaviour.LookAt(CharacterSystem.Instance.GetCharacter()?.Transform);
+            lookAtBehaviour.LookAt(CharacterSpawner.Instance.GetCharacter()?.Transform);
             return default;
         }
     }

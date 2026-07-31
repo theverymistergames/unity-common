@@ -12,14 +12,14 @@ namespace MisterGames.Character.Behaviours {
         private int _stateId;
         
         private void OnEnable() {
-            var cameraContainer = CharacterSystem.Instance.GetCharacter().GetComponent<CameraContainer>();
+            var cameraContainer = CharacterSpawner.Instance.GetCharacter().GetComponent<CameraContainer>();
             _stateId = cameraContainer.CreateState();
             
             cameraContainer.SetCullingMask(_stateId, _cullingMask, _maskMode);
         }
 
         private void OnDisable() {
-            var cameraContainer = CharacterSystem.Instance.GetCharacter().GetComponent<CameraContainer>();
+            var cameraContainer = CharacterSpawner.Instance.GetCharacter().GetComponent<CameraContainer>();
             cameraContainer.RemoveCullingMask(_stateId);
         }
     }

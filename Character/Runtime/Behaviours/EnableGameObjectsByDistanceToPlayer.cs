@@ -29,7 +29,7 @@ namespace MisterGames.Character.Behaviours {
         }
 
         private void Start() {
-            StartTrackingDistance(CharacterSystem.Instance.GetCharacter(), destroyCancellationToken).Forget();
+            StartTrackingDistance(CharacterSpawner.Instance.GetCharacter(), destroyCancellationToken).Forget();
         }
 
         private async UniTask StartTrackingDistance(IActor actor, CancellationToken cancellationToken) {

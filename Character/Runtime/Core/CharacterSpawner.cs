@@ -8,11 +8,11 @@ using UnityEngine.SceneManagement;
 namespace MisterGames.Character.Core {
 
     [DefaultExecutionOrder(-10000)]
-    public sealed class CharacterSystem : MonoBehaviour {
+    public sealed class CharacterSpawner : MonoBehaviour {
 
         [SerializeField] private ActorRoot _hero;
 
-        public static CharacterSystem Instance { get; private set; }
+        public static CharacterSpawner Instance { get; private set; }
 
         private bool _isSpawned;
         
@@ -24,8 +24,8 @@ namespace MisterGames.Character.Core {
             Instance = this;
 
             if (_hero == null) {
-                Debug.LogError($"{nameof(CharacterSystem)}: hero actor is not set. " +
-                               $"Please assign a hero actor to the {nameof(CharacterSystem)} in the inspector " +
+                Debug.LogError($"{nameof(CharacterSpawner)}: hero actor is not set. " +
+                               $"Please assign a hero actor to the {nameof(CharacterSpawner)} in the inspector " +
                                $"at {transform.GetPathInScene(includeSceneName: true)}.");
             }
         }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
@@ -86,6 +87,9 @@ namespace MisterGames.Character.View {
         }
 
         public Vector3 BodyUp => _body.up;
+
+        private readonly Dictionary<IViewProcessor, int> _processorIndexMap = new();
+        private readonly List<IViewProcessor> _processorList = new();
         
         private readonly CharacterHeadJoint _headJoint = new();
         private CancellationTokenSource _enableCts;
@@ -105,7 +109,6 @@ namespace MisterGames.Character.View {
         private bool _isHorizontalClampOverriden;
         private bool _isVerticalClampOverriden;
         private bool _isSmoothingOverriden;
-        private bool _isSensitivityOverriden;
         private bool _hasGravity;
         
         private Vector3 _headPosition;
@@ -153,6 +156,18 @@ namespace MisterGames.Character.View {
         private void OnDestroy() {
             Detach();
             StopLookAt();
+        }
+        
+        public void AddProcessor(IViewProcessor processor) {
+            if (!_processorIndexMap.TryAdd(processor, _processorList.Count)) return;
+
+            _processorList.Add(processor);
+        }
+
+        public void RemoveProcessor(IViewProcessor processor) {
+            if (!_processorIndexMap.Remove(processor, out int index)) return;
+
+            _processorList[index] = null;
         }
         
         public void AttachObject(Transform obj, Vector3 point, float smoothing = 0f) {
@@ -245,17 +260,7 @@ namespace MisterGames.Character.View {
 
         public void ResetSmoothing() {
             _isSmoothingOverriden = false;
-            _smoothing = _viewData?.viewSmoothing ?? default;
-        }
-
-        public void ApplySensitivity(Vector2 sensitivity) {
-            _isSensitivityOverriden = true;
-            _sensitivityMouse = sensitivity;
-        }
-
-        public void ResetSensitivity() {
-            _isSensitivityOverriden = false;
-            _sensitivityMouse = _viewData?.sensitivity ?? default;
+            _smoothing = _viewData?.viewSmoothing ?? 0f;
         }
 
         public void ResetHeadOffset() {
@@ -272,7 +277,6 @@ namespace MisterGames.Character.View {
                 _viewClamp.ApplyVerticalClamp(_viewData?.verticalClamp ?? _viewClamp.Vertical, _headRotation.ToEulerAngles180());
             }
             
-            if (!_isSensitivityOverriden) _sensitivityMouse = _viewData?.sensitivity ?? _sensitivityMouse;
             if (!_isSmoothingOverriden) _smoothing = _viewData?.viewSmoothing ?? _smoothing;
         }
 
@@ -354,9 +358,11 @@ namespace MisterGames.Character.View {
         }
 
         private Vector2 ConsumeInputDelta() {
-            var delta = _deviceService.CurrentDevice switch {
-                InputDeviceType.KeyboardMouse => _inputDeltaAccum * _sensitivityMouse,
-                InputDeviceType.Gamepad => _inputStick * _sensitivityGamepad,
+            var device = _deviceService.CurrentDevice;
+            var sens = ApplyProcessorsForSensitivity(device);
+            var delta = device switch {
+                InputDeviceType.KeyboardMouse => _inputDeltaAccum * _sensitivityMouse * sens,
+                InputDeviceType.Gamepad => _inputStick * _sensitivityGamepad * sens,
                 _ => throw new ArgumentOutOfRangeException()
             };
 
@@ -424,6 +430,31 @@ namespace MisterGames.Character.View {
         private void SnapHeadPositionToParent() {
             _headPosition = _headParent.position;
             _headOffset = _head.InverseTransformDirection(_head.position - _headPosition);
+        }
+        
+        private Vector2 ApplyProcessorsForSensitivity(InputDeviceType deviceType) {
+            int count = _processorList.Count;
+            var sens = Vector2.one;
+            for (int i = 0; i < count; i++) {
+                if (_processorList[i] is { } processor) {
+                    sens *= processor.GetViewSensitivity(deviceType);
+                }
+            }
+            return sens;
+        }
+
+        private void CleanupProcessors() {
+            int count = _processorList.Count;
+            int validCount = count;
+            
+            for (int i = count - 1; i >= 0; i--) {
+                if (_processorList[i] is null && _processorList[--validCount] is { } swap) {
+                    _processorList[i] = swap;
+                    _processorIndexMap[swap] = i;
+                }
+            }
+            
+            _processorList.RemoveRange(validCount, count - validCount);
         }
     }
 

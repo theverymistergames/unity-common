@@ -46,7 +46,7 @@ namespace MisterGames.Character.Interactives {
         }
 
         private void Awake() {
-            var character = CharacterSystem.Instance.GetCharacter();
+            var character = CharacterSpawner.Instance.GetCharacter();
             
             _cameraShaker = character.GetComponent<CameraShaker>();
             _cameraContainer = character.GetComponent<CameraContainer>();

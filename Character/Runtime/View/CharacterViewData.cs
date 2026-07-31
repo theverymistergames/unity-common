@@ -8,7 +8,6 @@ namespace MisterGames.Character.View {
     [Serializable]
     public sealed class CharacterViewData : IActorData {
         
-        public Vector2 sensitivity = new Vector2(0.15f, 0.15f);
         public float viewSmoothing = 20f;
         [Min(0f)] public float fov = 70f;
         public ViewAxisClamp horizontalClamp;

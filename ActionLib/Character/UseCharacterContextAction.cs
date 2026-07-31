@@ -15,7 +15,7 @@ namespace MisterGames.ActionLib.Character {
         [SerializeReference] [SubclassSelector] public IActorAction action;
         
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            return action?.Apply(CharacterSystem.Instance.GetCharacter(), cancellationToken) ?? default;
+            return action?.Apply(CharacterSpawner.Instance.GetCharacter(), cancellationToken) ?? default;
         }
     }
     

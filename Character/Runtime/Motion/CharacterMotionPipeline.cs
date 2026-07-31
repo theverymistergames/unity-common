@@ -127,7 +127,6 @@ namespace MisterGames.Character.Motion {
             _view.ResetHorizontalClamp();
             _view.ResetVerticalClamp();
             _view.ResetSmoothing();
-            _view.ResetSensitivity();
             _view.ResetHeadOffset();
             
             _collisionPipeline.Block(this, blocked: false);

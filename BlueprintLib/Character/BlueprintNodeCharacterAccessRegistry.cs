@@ -21,15 +21,15 @@ namespace MisterGames.BlueprintLib {
         }
 
         IActor IBlueprintOutput<IActor>.GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
-            return port == 0 ? CharacterSystem.Instance.GetCharacter() : default;
+            return port == 0 ? CharacterSpawner.Instance.GetCharacter() : default;
         }
         
         GameObject IBlueprintOutput<GameObject>.GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
-            return port == 1 ? CharacterSystem.Instance.GetCharacter()?.GameObject : default;
+            return port == 1 ? CharacterSpawner.Instance.GetCharacter()?.GameObject : default;
         }
         
         Transform IBlueprintOutput<Transform>.GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
-            return port == 1 ? CharacterSystem.Instance.GetCharacter()?.Transform : default;
+            return port == 1 ? CharacterSpawner.Instance.GetCharacter()?.Transform : default;
         }
     }
 

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using MisterGames.Common.Data;
+using MisterGames.Common.GameObjects;
 using MisterGames.Common.Tick;
 using MisterGames.Input.Actions;
 using MisterGames.Input.Core;
@@ -103,7 +104,7 @@ namespace MisterGames.UI.Navigation {
         }
 
         private void OnWindowsHierarchyChanged() {
-            var selectable = _uiWindowService.GetFrontOpenedWindow()?.CurrentSelected;
+            var selectable = _uiWindowService.GetFrontOpenedWindow()?.FirstSelected;
             if (selectable == null) return;
 
             SetCurrentSelectable(selectable);
@@ -282,6 +283,7 @@ namespace MisterGames.UI.Navigation {
         }
 
         public void SetCurrentSelectable(Selectable selectable) {
+            Debug.Log($"UiNavigationService.SetCurrentSelectable: f {Time.frameCount}, {selectable.GetPathInScene(includeSceneName: false, level: 2)}");
             EventSystem.current.SetSelectedGameObject(selectable.gameObject);
         }
 

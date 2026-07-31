@@ -32,7 +32,6 @@ namespace MisterGames.UI.Navigation {
         [SerializeField] private GameObject[] _enableOnBranchOpened;
         
         public GameObject GameObject => gameObject;
-        public Selectable CurrentSelected { get; private set; }
         public Selectable FirstSelected { get => _firstSelected; set => _firstSelected = value; }
         
         public int Layer => _layer;
@@ -42,14 +41,11 @@ namespace MisterGames.UI.Navigation {
         public UiWindowOptions Options => _options;
 
         private void Awake() {
-            CurrentSelected = _firstSelected;
-            
             Services.Get<IUiWindowService>()?.RegisterWindow(this, _state);
         }
 
         private void OnDestroy() {
             Services.Get<IUiWindowService>()?.UnregisterWindow(this);
-            UnsubscribeSelectedGameObject();
         }
 
         private void OnEnable() {
@@ -58,25 +54,6 @@ namespace MisterGames.UI.Navigation {
 
         private void OnDisable() {
             Services.Get<IUiWindowService>()?.NotifyWindowEnabled(this, false);
-        }
-
-        private void SubscribeSelectedGameObject() {
-            if (Services.Get<IUiNavigationService>() is not { } service) return;
-            
-            service.OnSelectableChanged -= OnSelectableChanged;
-            service.OnSelectableChanged += OnSelectableChanged;
-        }
-
-        private void UnsubscribeSelectedGameObject() {
-            if (Services.Get<IUiNavigationService>() is not { } service) return;
-            
-            service.OnSelectableChanged -= OnSelectableChanged;
-        }
-
-        private void OnSelectableChanged(Selectable selectable, IUiWindow window) {
-            if (selectable == null || !ReferenceEquals(window, this)) return;
-
-            CurrentSelected = selectable;
         }
         
         void IUiWindow.NotifyWindowState(UiWindowState state) {
@@ -95,32 +72,15 @@ namespace MisterGames.UI.Navigation {
             switch (state) {
                 case UiWindowState.Closed:
                     SetEnableState(_enableOnWindowOpened, false);
-                    UnsubscribeSelectedGameObject();
-                    MaybeResetSelectionToFirst();
                     break;
                 
                 case UiWindowState.Opened:
                     SetEnableState(_enableOnWindowOpened, true);
-                    SubscribeSelectedGameObject();
                     break;
                 
                 default:
                     throw new ArgumentOutOfRangeException(nameof(state), state, null);
             }
-        }
-
-        private void MaybeResetSelectionToFirst() {
-            // Do not reset to first if focused window is a child of this window to preserve selection history.
-            if (!Services.TryGet(out IUiWindowService service) ||
-                _firstSelected == null ||
-                service.GetRootWindow(this) is { } root && 
-                service.GetFrontOpenedWindow(root.Layer) is { } front &&
-                service.IsChildWindow(window: this, child: front)) 
-            {
-                return;
-            }
-            
-            CurrentSelected = _firstSelected;
         }
         
         private static void SetEnableState(GameObject[] gameObjects, bool enable) {

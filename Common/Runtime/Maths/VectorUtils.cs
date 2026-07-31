@@ -110,6 +110,11 @@ namespace MisterGames.Common.Maths {
         public static Vector2 Multiply(this Vector2 a, float x, float y) {
             return new Vector2(a.x * x, a.y * y);
         }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector2 Multiply(this Vector2 a, Vector2 b) {
+            return new Vector2(a.x * b.x, a.y * b.y);
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector3 Multiply(this Vector3 a, float x, float y, float z) {

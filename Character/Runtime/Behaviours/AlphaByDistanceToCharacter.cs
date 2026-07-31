@@ -38,7 +38,7 @@ namespace MisterGames.Character.Behaviours {
         }
 
         private float GetProgress() {
-            var characterPos = CharacterSystem.Instance.GetCharacter().Transform.position;
+            var characterPos = CharacterSpawner.Instance.GetCharacter().Transform.position;
             float distance = (_transform.position - characterPos).magnitude;
             
             return Mathf.Clamp01(distance - _minDistance) / (_maxDistance - _minDistance);

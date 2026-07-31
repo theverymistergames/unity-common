@@ -25,7 +25,7 @@ namespace MisterGames.ActionLib.Character {
         public bool useUnscaledTime;
         
         public async UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            if (!CharacterSystem.Instance.GetCharacter().TryGetComponent(out CameraShaker shaker)) return;
+            if (!CharacterSpawner.Instance.GetCharacter().TryGetComponent(out CameraShaker shaker)) return;
 
             int id = shaker.CreateState(weight);
 

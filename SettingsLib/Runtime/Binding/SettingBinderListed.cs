@@ -12,6 +12,7 @@ namespace MisterGames.SettingsLib.Base {
         private ISettingsService _service;
         private ISettingDescListed _desc;
         private string _id;
+        private bool _ignoreNotify;
 
         void ISettingBinder.Bind(ISettingsService service, ISettingDesc desc, string id) {
             if (!IsValidSettingDesc(desc, out var descListed)) return;
@@ -53,6 +54,8 @@ namespace MisterGames.SettingsLib.Base {
         }
 
         private void OnSettingIndexChanged(string id, int index) {
+            if (_ignoreNotify) return;
+            
             uiList.SelectIndex(index);
         }
 
@@ -60,8 +63,10 @@ namespace MisterGames.SettingsLib.Base {
             if (_desc == null || _service == null || string.IsNullOrEmpty(_id)) { 
                 return;
             }
-            
+
+            _ignoreNotify = true;
             _desc.SetIndex(_service, _id, index);
+            _ignoreNotify = false;
         }
 
         private bool IsValidSettingDesc(ISettingDesc desc, out ISettingDescListed descListed) {

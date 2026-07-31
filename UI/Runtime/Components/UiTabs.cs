@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Threading;
+using Cysharp.Threading.Tasks;
+using MisterGames.Common.Async;
 using MisterGames.Common.Data;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Pooling;
@@ -7,6 +10,7 @@ using MisterGames.UI.Data;
 using MisterGames.UI.Navigation;
 using MisterGames.UI.Windows;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace MisterGames.UI.Components {
     
@@ -27,33 +31,57 @@ namespace MisterGames.UI.Components {
 
         private IUiNavigationService _navigationService;
         private IUiWindowService _windowService;
-        private int _openedTab = -1;
-        private RectTransform _tabSelectionInstance;
 
+        private CancellationTokenSource _enableCts;
+        
+        private RectTransform _tabSelectionInstance;
+        private int _openedTab = -1;
+        private byte _selectOperationId;
+        
         private void Awake() {
             _navigationService = Services.Get<IUiNavigationService>();
             _windowService = Services.Get<IUiWindowService>();
         }
 
         private void OnEnable() {
+            AsyncExt.RecreateCts(ref _enableCts);
+            
             for (int i = 0; i < _tabs.Length; i++) {
                 ref var tab = ref _tabs[i];
                 tab.button.OnClicked += OnClicked;
             }
 
+            _navigationService.OnSelectableChanged += OnSelectableChanged;
+            
             OpenTab(0);
         }
 
         private void OnDisable() {
+            AsyncExt.DisposeCts(ref _enableCts);
+            
             for (int i = 0; i < _tabs.Length; i++) {
                 ref var tab = ref _tabs[i];
                 tab.button.OnClicked -= OnClicked;
             }
 
+            _navigationService.OnSelectableChanged -= OnSelectableChanged;
+            
             if (_openedTab >= 0) {
                 ref var openedTab = ref _tabs[_openedTab];
                 _navigationService.RemoveWindowNavigationCallback(openedTab.window, this);
+                
                 PrefabPool.Main?.Release(_tabSelectionInstance);
+                _tabSelectionInstance = null;
+            }
+        }
+
+        private void OnSelectableChanged(Selectable selectable, IUiWindow window) {
+            for (int i = 0; i < _tabs.Length; i++) {
+                ref var tab = ref _tabs[i];
+                if (tab.button.Selectable != selectable) continue;
+                
+                OpenTab(i);
+                return;
             }
         }
 
@@ -99,10 +127,12 @@ namespace MisterGames.UI.Components {
                 _navigationService.RemoveWindowNavigationCallback(tab.window, this);
             }
             
-            SetupTabSelection(index);
+            SetupTabSelection(index, _enableCts.Token).Forget();
         }
 
-        private void SetupTabSelection(int index) {
+        private async UniTask SetupTabSelection(int index, CancellationToken cancellationToken) {
+            byte id = _selectOperationId.IncrementUncheckedRef();
+            
             if (_tabSelectionPrefab != null && _tabSelectionInstance == null) {
                 _tabSelectionInstance = PrefabPool.Main.Get(_tabSelectionPrefab, _tabSelectionParent);
             }
@@ -110,17 +140,21 @@ namespace MisterGames.UI.Components {
             _tabSelectionInstance.localScale = _tabSelectionScale.WithZ(1f);
             
             for (int i = 0; i < _tabs.Length; i++) {
-                ref var tab = ref _tabs[i];
-
-                if (index == i) {
-                    if (_setupMinState.HasValue) tab.button.GetComponent<IUiElementAnimator>()?.SetForceMinState(_setupMinState.Value);
-                    var pos = tab.button.GetComponent<RectTransform>().anchoredPosition3D;
-                    _tabSelectionInstance.anchoredPosition3D = pos + _tabSelectionOffset;
-                    continue;   
-                }
-
-                tab.button.GetComponent<IUiElementAnimator>()?.ResetForceMinState();
+                if (index != i) _tabs[i].button.GetComponent<IUiElementAnimator>()?.ResetForceMinState();
             }
+
+            var tab = _tabs[index];
+            
+            if (_setupMinState.HasValue) tab.button.GetComponent<IUiElementAnimator>()?.SetForceMinState(_setupMinState.Value);
+            
+            var buttonRect = tab.button.GetComponent<RectTransform>();
+            _tabSelectionInstance.anchoredPosition3D = buttonRect.anchoredPosition3D + _tabSelectionOffset;
+            
+            await UniTask.Yield();
+            if (id != _selectOperationId || cancellationToken.IsCancellationRequested) return;
+            
+            // Set pos again to wait layout
+            _tabSelectionInstance.anchoredPosition3D = buttonRect.anchoredPosition3D + _tabSelectionOffset;
         }
 
         private void OnValidate() {

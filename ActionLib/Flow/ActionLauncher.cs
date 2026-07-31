@@ -77,7 +77,7 @@ namespace MisterGames.ActionLib.Flow {
         }
 
         private IActor GetActor() {
-            return _useCharacterAsActor ? CharacterSystem.Instance.GetCharacter() : _actor;
+            return _useCharacterAsActor ? CharacterSpawner.Instance.GetCharacter() : _actor;
         }
 
         private CancellationToken GetCancellationToken() {
