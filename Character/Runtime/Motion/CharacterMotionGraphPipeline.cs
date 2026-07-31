@@ -30,7 +30,7 @@ namespace MisterGames.Character.Motion {
         }
 
         private void OnEnable() {
-            _blockSet.OnUpdate -= UpdateState;
+            _blockSet.OnUpdate += UpdateState;
             
             UpdateState();
         }
@@ -76,8 +76,6 @@ namespace MisterGames.Character.Motion {
             _pose.OnPoseChanged += OnPoseChanged;
             _run.OnRunStateChanged += OnRunPressed;
 
-            _blockSet.OnUpdate += UpdateState;
-
             ApplyState();
         }
 
@@ -90,8 +88,6 @@ namespace MisterGames.Character.Motion {
             _groundDetector.OnLostContact -= OnStopContactGround;
             _pose.OnPoseChanged -= OnPoseChanged;
             _run.OnRunStateChanged -= OnRunPressed;
-
-            _blockSet.OnUpdate -= UpdateState;
         }
 
         private void ApplyState() {

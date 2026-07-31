@@ -18,7 +18,8 @@ namespace MisterGames.UI.Navigation {
 
         private readonly Dictionary<int, Selectable> _gameObjectIdToSelectableMap = new();
         private readonly Dictionary<int, (UiNavigationMask mask, UiNavigationOptions options)> _gameObjectIdToDataMap = new();
-
+        private byte _updateNavigationId;
+        
         public void Dispose() {
             _gameObjectIdToSelectableMap.Clear();
             _gameObjectIdToDataMap.Clear();
@@ -68,40 +69,46 @@ namespace MisterGames.UI.Navigation {
 
             var selectables = service.Selectables;
             Selectable closestSelectable = null;
-            float minSqrDistance = -1f;
+            float minDistance = -1f;
 
             foreach (var selectable in selectables) {
                 if (IsBound(selectable.gameObject) || 
-                    (service.GetSelectableOptions(selectable) & UiNavigationOptions.NoIncomingNavigation) != 0 ||
+                    
+                    service.GetSelectableOptions(selectable) is var opt && 
+                    ((opt & UiNavigationOptions.DisallowAnyIncomingNavigation) != 0 || 
+                     (opt & UiNavigationOptions.DisallowIncomingNavigationFromOuterNodes) != 0) ||
+                      
                     service.GetParentNavigationNode(selectable) is not { } p || 
-                    !allowParent && p != parentNode || 
-                    !allowSiblings && !service.IsChildNode(p, parentNode, direct: true) ||
-                    !allowChildren && !service.IsChildNode(p, node, direct: true))
+                    !allowParent && p == parentNode || 
+                    !allowSiblings && service.IsChildNode(p, parentNode, direct: false) ||
+                    !allowChildren && service.IsChildNode(p, node, direct: false))
                 {
                     continue;
                 }
             
                 var pos = root.InverseTransformPoint(selectable.transform.position).ToFloat2XY();
+
                 if (!pos.IsInDirection(origin, direction)) {
                     continue;
                 }
+
+                float distance = (pos - origin).Project(direction).Abs();
                 
-                float sqrDistance = math.distancesq(pos, origin);
-                if (minSqrDistance >= 0f && sqrDistance > minSqrDistance) {
+                if (minDistance >= 0f && distance > minDistance) {
                     continue;
                 }
                 
-                minSqrDistance = sqrDistance;
+                minDistance = distance;
                 closestSelectable = selectable;
             }
-
+            
             if (closestSelectable == null) return;
-
+            
             var nextParentNode = service.GetParentNavigationNode(closestSelectable);
             
             var nextOptions = nextParentNode?.CurrentSelected == null
                 ? UiNavigateFromOuterNodesOptions.SelectClosestElement
-                : nextParentNode.NavigateFromOuterNodesOptions;
+                : nextParentNode.IncomeOuterNavigation;
             
             var selectTarget = nextOptions switch {
                 UiNavigateFromOuterNodesOptions.SelectClosestElement => closestSelectable,
@@ -119,6 +126,7 @@ namespace MisterGames.UI.Navigation {
             Vector2 cell,
             CancellationToken cancellationToken) 
         {
+            byte id = _updateNavigationId.IncrementUncheckedRef();
             UpdateNavigation(rootTrf, mode, loop, cell);
             
             // The position of the selectable during enabling layout groups maybe inconsistent
@@ -126,12 +134,12 @@ namespace MisterGames.UI.Navigation {
             // so to avoid setting incorrect navigation lets update it two frames later.
             await UniTask.Yield();
             await UniTask.Yield();
-            if (cancellationToken.IsCancellationRequested) return;
+            if (id != _updateNavigationId || cancellationToken.IsCancellationRequested) return;
 
             UpdateNavigation(rootTrf, mode, loop, cell);
         }
-        
-        public void UpdateNavigation(Transform rootTrf, UiNavigationMode mode, UiNavigationLoop loop, Vector2 cellSize) {
+
+        private void UpdateNavigation(Transform rootTrf, UiNavigationMode mode, UiNavigationLoop loop, Vector2 cellSize) {
             var selectablesArray = new NativeArray<SelectableData>(_gameObjectIdToSelectableMap.Count, Allocator.TempJob);
             var neighborsArray = new NativeArray<SelectableNeighborsData>(_gameObjectIdToSelectableMap.Count, Allocator.TempJob);
              
@@ -209,13 +217,12 @@ namespace MisterGames.UI.Navigation {
         }
 
         [BurstCompile]
-        private struct GetSelectableNeighborsJob : IJobParallelFor {
-            
+        private struct GetSelectableNeighborsJob : IJobParallelFor 
+        {
             [ReadOnly] public NativeArray<SelectableData> selectablesArray;
-            [ReadOnly] public UiNavigationMode mode;
+            [ReadOnly] public UiNavigationMode mode; 
             [ReadOnly] public UiNavigationLoop loop;
             [ReadOnly] public float2 cellSize;
-            
             [WriteOnly] public NativeArray<SelectableNeighborsData> neighborsArray;
             
             public void Execute(int index) {
@@ -231,99 +238,89 @@ namespace MisterGames.UI.Navigation {
                 int leftmostId = 0;
                 int rightmostId = 0;
             
-                float minSqrDistanceUp = -1f;
-                float minSqrDistanceDown = -1f;
-                float minSqrDistanceLeft = -1f;
-                float minSqrDistanceRight = -1f;
+                float minDistanceUp = -1f;
+                float minDistanceDown = -1f;
+                float minDistanceLeft = -1f;
+                float minDistanceRight = -1f;
                 
                 var distanceUpmost = new float2(-1f, -1f);
                 var distanceDownmost = new float2(-1f, -1f);
                 var distanceLeftmost = new float2(-1f, -1f);
                 var distanceRightmost = new float2(-1f, -1f);
                 
-                var distanceUpmostCells = new int2(-1, -1);
-                var distanceDownmostCells = new int2(-1, -1);
-                var distanceLeftmostCells = new int2(-1, -1);
-                var distanceRightmostCells = new int2(-1, -1);
-                
                 for (int i = 0; i < selectablesArray.Length; i++) {
                     var data = selectablesArray[i];
-                    if (data.id == current.id || (data.options & UiNavigationOptions.NoIncomingNavigation) != 0) continue;
+                    if (data.id == current.id || (data.options & UiNavigationOptions.DisallowAnyIncomingNavigation) != 0) continue;
+                    
+                    var absDistance2 = new float2(math.abs(current.position.x - data.position.x), math.abs(current.position.y - data.position.y));  
+                    var distanceCells2 = new int2((int) math.floor(absDistance2.x / cellSize.x), (int) math.floor(absDistance2.y / cellSize.y));
 
                     bool isUp = mode != UiNavigationMode.Horizontal && (data.mask & UiNavigationMask.Down) != 0 && data.position.IsHigherThan(current.position);
                     bool isDown = mode != UiNavigationMode.Horizontal && (data.mask & UiNavigationMask.Up) != 0 && data.position.IsLowerThan(current.position);
                     bool isLeft = mode != UiNavigationMode.Vertical && (data.mask & UiNavigationMask.Right) != 0 && data.position.IsToTheLeftTo(current.position);
                     bool isRight = mode != UiNavigationMode.Vertical && (data.mask & UiNavigationMask.Left) != 0 && data.position.IsToTheRightTo(current.position);
 
-                    var distance2 = new float2(
-                        math.abs(current.position.x - data.position.x),
-                        math.abs(current.position.y - data.position.y)
-                    );  
+                    // Vertical and horizontal: check by cell distance then by abs distance
+                    if ((isUp || isDown) && (isLeft || isRight)) {
+                        if (distanceCells2.y > distanceCells2.x) {
+                            isLeft = false;
+                            isRight = false;
+                        }
+                        else if (distanceCells2.y < distanceCells2.x) {
+                            isUp = false;
+                            isDown = false;
+                        }
+                        else if (absDistance2.y >= absDistance2.x) {
+                            isLeft = false;
+                            isRight = false;
+                        }
+                        else {
+                            isUp = false;
+                            isDown = false;
+                        }
+                    }
                     
-                    var distanceCells2 = new int2((int) math.floor(distance2.x / cellSize.x), (int) math.floor(distance2.y / cellSize.y));
-                    float sqrDistance = math.distancesq(current.position, data.position);
-
-                    if (isUp && (minSqrDistanceUp < 0f || sqrDistance < minSqrDistanceUp)) {
-                        minSqrDistanceUp = sqrDistance;
+                    if (isUp && (minDistanceUp < 0f || absDistance2.y < minDistanceUp)) {
+                        minDistanceUp = absDistance2.y;
                         upId = data.id;
                     }
                 
-                    if (isDown && (minSqrDistanceDown < 0f || sqrDistance < minSqrDistanceDown)) {
-                        minSqrDistanceDown = sqrDistance;
+                    if (isDown && (minDistanceDown < 0f || absDistance2.y < minDistanceDown)) {
+                        minDistanceDown = absDistance2.y;
                         downId = data.id;
                     }
                 
-                    if (isRight && (minSqrDistanceRight < 0f || sqrDistance < minSqrDistanceRight)) {
-                        minSqrDistanceRight = sqrDistance;
+                    if (isRight && (minDistanceRight < 0f || absDistance2.x < minDistanceRight)) {
+                        minDistanceRight = absDistance2.x;
                         rightId = data.id;
                     }
                 
-                    if (isLeft && (minSqrDistanceLeft < 0f || sqrDistance < minSqrDistanceLeft)) {
-                        minSqrDistanceLeft = sqrDistance;
+                    if (isLeft && (minDistanceLeft < 0f || absDistance2.x < minDistanceLeft)) {
+                        minDistanceLeft = absDistance2.x;
                         leftId = data.id;
                     }
 
                     if ((loop & UiNavigationLoop.Vertical) != 0) {
-                        if (isUp &&
-                            (distanceUpmost.x < 0f ||
-                             distance2.y >= distanceUpmost.y &&
-                             (distance2.x <= distanceUpmost.x || distanceCells2.x <= distanceUpmostCells.x))) 
-                        {
-                            distanceUpmost = distance2;
-                            distanceUpmostCells = distanceCells2;
+                        if (isUp && (distanceUpmost.x < 0f || absDistance2.y >= distanceUpmost.y)) {
+                            distanceUpmost = absDistance2;
                             upmostId = data.id;
                         }
 
-                        if (isDown &&
-                            (distanceDownmost.x < 0f ||
-                             distance2.y >= distanceDownmost.y &&
-                             (distance2.x <= distanceDownmost.x || distanceCells2.x <= distanceDownmostCells.x))) 
-                        {
-                            distanceDownmost = distance2;
-                            distanceDownmostCells = distanceCells2;
+                        if (isDown && (distanceDownmost.x < 0f || absDistance2.y >= distanceDownmost.y)) {
+                            distanceDownmost = absDistance2;
                             downmostId = data.id;
                         }
                     }
                     
                     if ((loop & UiNavigationLoop.Horizontal) != 0)
                     {
-                        if (isRight &&
-                            (distanceRightmost.y < 0f ||
-                             distance2.x >= distanceRightmost.x && 
-                             (distance2.y <= distanceRightmost.y || distanceCells2.y <= distanceRightmostCells.y))) 
-                        {
-                            distanceRightmost = distance2;
-                            distanceRightmostCells = distanceCells2;
+                        if (isRight && (distanceRightmost.y < 0f || absDistance2.x >= distanceRightmost.x)) {
+                            distanceRightmost = absDistance2;
                             rightmostId = data.id;
                         }
                     
-                        if (isLeft &&
-                            (distanceLeftmost.y < 0f ||
-                             distance2.x >= distanceLeftmost.x && 
-                             (distance2.y <= distanceLeftmost.y || distanceCells2.y <= distanceLeftmostCells.y))) 
-                        {
-                            distanceLeftmost = distance2;
-                            distanceLeftmostCells = distanceCells2;
+                        if (isLeft && (distanceLeftmost.y < 0f || absDistance2.x >= distanceLeftmost.x)) {
+                            distanceLeftmost = absDistance2;
                             leftmostId = data.id;
                         }
                     }

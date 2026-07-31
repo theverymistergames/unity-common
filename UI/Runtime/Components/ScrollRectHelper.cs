@@ -36,10 +36,12 @@ namespace MisterGames.UI.Components {
         [SerializeField] [Min(0f)] private float _vectorSensitivity = 10f;
         [SerializeField] [Min(0f)] private float _deltaSmoothing = 0f;
         [SerializeField] [Min(0f)] private float _accelerationMul = 3f;
-
+        [SerializeField] [Min(0f)] private float _clampThresholdPx = 16f;
+        
         [Header("Move To Position")]
         [SerializeField] private EasingType _moveToPositionEasing = EasingType.EaseInOutSine;
         [SerializeField] private bool _autoMoveToLastSelectable = true;
+        [SerializeField] [Range(0f, 1f)] private float _autoMoveToLastSelectableWindow = 0.5f;
         [SerializeField] [Min(0f)] private float _autoMoveToLastSelectableDuration = 0.6f;
         
         [Header("Auto Scroll")]
@@ -57,7 +59,6 @@ namespace MisterGames.UI.Components {
         [SerializeField] [Min(0f)] private float _stickSpeed = 10f;
         [SerializeField] [Min(0f)] private float _sideWidth = 100f;
         [SerializeField] [Min(0f)] private float _sideHeight = 100f;
-        [SerializeField] [Min(0f)] private float _stickThresholdPx = 16f;
         
         [Serializable]
         private struct ScrollInput {
@@ -212,9 +213,25 @@ namespace MisterGames.UI.Components {
             _containsSelectedObjectDirectly = Services.TryGet(out IUiNavigationService navigationService) &&
                                               ContainsSelectedObjectDirectly(navigationService);
 
-            if (_containsSelectedObjectDirectly && _autoMoveToLastSelectable && !IsScrollbar(selectable)) {
+            if (_containsSelectedObjectDirectly && _autoMoveToLastSelectable && !IsScrollbar(selectable) &&
+                !IsInsideSelectableWindow(selectable.transform.position))
+            {
                 MoveToPosition(GetNormalizedPosition(selectable.transform.position), _autoMoveToLastSelectableDuration);
             }
+        }
+
+        private bool IsInsideSelectableWindow(Vector3 worldPosition) {
+            var viewport = _scrollRect.viewport;
+            var viewportRect = viewport.rect;
+
+            var localPoint = (Vector2) viewport.InverseTransformPoint(worldPosition);
+            var offset = localPoint - viewportRect.center;
+            var halfWindow = viewportRect.size * (_autoMoveToLastSelectableWindow * 0.5f);
+
+            bool insideX = !_scrollRect.horizontal || Mathf.Abs(offset.x) <= halfWindow.x;
+            bool insideY = !_scrollRect.vertical || Mathf.Abs(offset.y) <= halfWindow.y;
+
+            return insideX && insideY;
         }
 
         private Vector2 GetNormalizedPosition(Vector3 worldPosition) {
@@ -275,8 +292,6 @@ namespace MisterGames.UI.Components {
                         ? GetInputDelta(_inputsFocused) 
                         : GetInputDelta(_inputsEnabled);
             
-            var currentPos = _scrollRect.content.anchoredPosition;
-
             if (inputDelta != default) {
                 _lastTimeHasInputs = time;
                 _lastInputDir = new Vector2(Mathf.Sign(inputDelta.x), Mathf.Sign(inputDelta.y));
@@ -284,18 +299,32 @@ namespace MisterGames.UI.Components {
 
             ProcessStickToSide(ref inputDelta);
             
+            ClampInputDelta(ref inputDelta);
+            
             _velocity = _velocity.SmoothExpNonZero(inputDelta, _deltaSmoothing, dt);
             var vel = new Vector2(_scrollRect.horizontal.AsFloat() * _velocity.x, _scrollRect.vertical.AsFloat() * -_velocity.y);
-            var nextPos = currentPos + vel;
-            
-            var delta = GetNormalizedDelta(nextPos - currentPos, contentRect.size);
+
+            var delta = GetNormalizedDelta(vel, contentRect.size);
             var currNormPos = _scrollRect.normalizedPosition.Clamp01();
             var nextNormPos = (currNormPos + delta).Clamp01();
             
             ProcessAutoScroll(ref nextNormPos, dt);
             ProcessMoveToPosition(ref nextNormPos);
 
+            if (IsRestingAtEdge(currNormPos.x, nextNormPos.x, contentRect.size.x)) {
+                nextNormPos.x = currNormPos.x;
+            }
+            
+            if (IsRestingAtEdge(currNormPos.y, nextNormPos.y, contentRect.size.y)) {
+                nextNormPos.y = currNormPos.y;
+            }
+            
             _scrollRect.normalizedPosition = nextNormPos;
+        }
+
+        private bool IsRestingAtEdge(float currPos, float nextPos, float size) {
+            return size * currPos < _clampThresholdPx && size * nextPos < _clampThresholdPx || 
+                   size * (1f - currPos) < _clampThresholdPx && size * (1f - nextPos) < _clampThresholdPx;
         }
 
         private static Vector2 GetNormalizedDelta(Vector2 worldDelta, Vector2 size) {
@@ -304,7 +333,24 @@ namespace MisterGames.UI.Components {
             
             return delta;
         }
-        
+
+        private void ClampInputDelta(ref Vector2 inputDelta) {
+            var currentPos = _scrollRect.normalizedPosition.Clamp01();
+            var size = _scrollRect.content.rect.size;
+            
+            if (inputDelta.x < 0f && size.x * currentPos.x < _clampThresholdPx || 
+                inputDelta.x > 0f && size.x * (1f - currentPos.x) < _clampThresholdPx) 
+            {
+                inputDelta.x = 0f;
+            }
+
+            if (inputDelta.y < 0f && size.y * currentPos.y < _clampThresholdPx || 
+                inputDelta.y > 0f && size.y * (1f - currentPos.y) < _clampThresholdPx) 
+            {
+                inputDelta.y = 0f;
+            }
+        }
+
         private void ProcessStickToSide(ref Vector2 inputDelta) {
             if (!_enableStickToSide) {
                 _stickDir = default;
@@ -323,29 +369,25 @@ namespace MisterGames.UI.Components {
             _stickDir = default;
             
             if ((StickMode.Right & _stickMode) == StickMode.Right &&
-                time - _lastTimeNotTouchedSide.x > _stickStartDelay && 
-                size.x * currentPos.x > _stickThresholdPx) 
+                time - _lastTimeNotTouchedSide.x > _stickStartDelay) 
             {
                 _stickDir.x = -1f;
             }
 
             if ((StickMode.Left & _stickMode) == StickMode.Left &&
-                time - _lastTimeNotTouchedSide.y > _stickStartDelay && 
-                size.x * (1f - currentPos.x) > _stickThresholdPx)
+                time - _lastTimeNotTouchedSide.y > _stickStartDelay)
             {
                 _stickDir.x = 1f;
             }
 
             if ((StickMode.Bottom & _stickMode) == StickMode.Bottom &&
-                time - _lastTimeNotTouchedSide.z > _stickStartDelay &&
-                size.y * currentPos.y > _stickThresholdPx)
+                time - _lastTimeNotTouchedSide.z > _stickStartDelay)
             {
                 _stickDir.y = -1f;
             }
                 
             if ((StickMode.Top & _stickMode) == StickMode.Top &&
-                time - _lastTimeNotTouchedSide.w > _stickStartDelay && 
-                size.y * (1f - currentPos.y) > _stickThresholdPx)
+                time - _lastTimeNotTouchedSide.w > _stickStartDelay)
             {
                 _stickDir.y = 1f;
             }

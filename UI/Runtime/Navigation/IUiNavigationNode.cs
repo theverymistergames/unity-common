@@ -7,7 +7,7 @@ namespace MisterGames.UI.Navigation {
         
         GameObject GameObject { get; }
         Selectable CurrentSelected { get; }
-        UiNavigateFromOuterNodesOptions NavigateFromOuterNodesOptions { get; }
+        UiNavigateFromOuterNodesOptions IncomeOuterNavigation { get; }
         bool IsScrollable { get; }
         RectTransform Viewport { get; }
         

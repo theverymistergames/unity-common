@@ -34,8 +34,8 @@ namespace MisterGames.UI.Components {
         private bool _isHovering;
         private bool _isPressed;
         private bool _isBlocked;
-        private bool _hasForceState;
-        private UiElementState _forceState;
+        private bool _hasForceMinState;
+        private UiElementState _minState;
         private Vector3 _originalScale;
         private byte _transitionId;
 
@@ -88,7 +88,8 @@ namespace MisterGames.UI.Components {
                 ? UiElementState.Pressed 
                 : UiElementState.Selected;
 
-            if (_isBlocked || _hasForceState) next = GetAutoState();
+            if (_hasForceMinState) next = ApplyMinState(next, _minState);
+            if (_isBlocked) next = GetAutoState();
             
             ApplyState(next);
         }
@@ -100,7 +101,8 @@ namespace MisterGames.UI.Components {
                 ? UiElementState.Pressed 
                 : UiElementState.Default;
             
-            if (_isBlocked || _hasForceState) next = GetAutoState();
+            if (_hasForceMinState) next = ApplyMinState(next, _minState);
+            if (_isBlocked) next = GetAutoState();
             
             ApplyState(next);
         }
@@ -113,7 +115,8 @@ namespace MisterGames.UI.Components {
                 : IsSelected() ? UiElementState.Selected 
                     : UiElementState.Hover;
             
-            if (_isBlocked || _hasForceState) next = GetAutoState();
+            if (_hasForceMinState) next = ApplyMinState(next, _minState);
+            if (_isBlocked) next = GetAutoState();
             
             ApplyState(next);
             
@@ -128,13 +131,14 @@ namespace MisterGames.UI.Components {
                 : IsSelected() ? UiElementState.Selected 
                     : UiElementState.Default;
             
-            if (_isBlocked || _hasForceState) next = GetAutoState();
+            if (_hasForceMinState) next = ApplyMinState(next, _minState);
+            if (_isBlocked) next = GetAutoState();
             
             ApplyState(next);
         }
 
         void IPointerDownHandler.OnPointerDown(PointerEventData eventData) {
-            if (_isBlocked || _hasForceState) return;
+            if (_isBlocked) return;
             
             _isPressed = true;
             
@@ -144,11 +148,13 @@ namespace MisterGames.UI.Components {
                     : _isHovering ? UiElementState.Hover 
                         : UiElementState.Default;
             
+            if (_hasForceMinState) next = ApplyMinState(next, _minState);
+            
             ApplyState(next);
         }
 
         void IPointerUpHandler.OnPointerUp(PointerEventData eventData) {
-            if (_isBlocked || _hasForceState) return;
+            if (_isBlocked) return;
             
             _isPressed = false;
 
@@ -156,6 +162,8 @@ namespace MisterGames.UI.Components {
                 ? UiElementState.Selected 
                 : _isHovering ? UiElementState.Hover 
                     : UiElementState.Default;
+            
+            if (_hasForceMinState) next = ApplyMinState(next, _minState);
             
             ApplyState(next);
         }
@@ -166,15 +174,15 @@ namespace MisterGames.UI.Components {
             ApplyState(GetAutoState());
         }
 
-        void IUiElementAnimator.SetForceState(UiElementState state) {
-            _hasForceState = true;
-            _forceState = state;
+        void IUiElementAnimator.SetForceMinState(UiElementState state) {
+            _hasForceMinState = true;
+            _minState = state;
             
             ApplyState(GetAutoState());
         }
 
-        void IUiElementAnimator.ResetForceState() {
-            _hasForceState = false;
+        void IUiElementAnimator.ResetForceMinState() {
+            _hasForceMinState = false;
             
             ApplyState(GetAutoState());
         }
@@ -237,18 +245,20 @@ namespace MisterGames.UI.Components {
         }
         
         private UiElementState GetAutoState() {
-            if (_hasForceState) {
-                return _forceState;
-            }
-            
-            if (_isBlocked) {
-                return IsSelected() ? UiElementState.BlockedSelected : UiElementState.Blocked;
-            }
-            
-            return _isPressed ? UiElementState.Pressed 
-                : IsSelected() ? UiElementState.Selected 
-                : _isHovering ? UiElementState.Hover 
-                : UiElementState.Default;
+            var state = _isBlocked
+                ? IsSelected() ? UiElementState.BlockedSelected : UiElementState.Blocked
+                : _isPressed ? UiElementState.Pressed 
+                    : IsSelected() ? UiElementState.Selected 
+                        : _isHovering ? UiElementState.Hover 
+                            : UiElementState.Default;
+
+            if (_hasForceMinState) state = ApplyMinState(state, _minState);
+
+            return state;
+        }
+
+        private static UiElementState ApplyMinState(UiElementState state, UiElementState minState) {
+            return (UiElementState) Mathf.Max((int) state, (int) minState);
         }
 
         private bool CanBePressed() {

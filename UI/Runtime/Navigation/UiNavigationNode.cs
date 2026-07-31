@@ -22,15 +22,14 @@ namespace MisterGames.UI.Navigation {
         [SerializeField] private RectTransform _viewport;
         
         [Header("Outer Navigation")]
-        [SerializeField] private UiNavigateFromOuterNodesOptions _navigateFromOuterNodesOptions = 
+        [SerializeField] private UiNavigateFromOuterNodesOptions _incomeOuterNavigation = 
                 UiNavigateFromOuterNodesOptions.SelectClosestElement;
-        
-        [SerializeField] private UiNavigateToOuterNodesOptions _navigateToOuterNodesOptions = 
+        [SerializeField] private UiNavigateToOuterNodesOptions _outcomeOuterNavigation = 
             UiNavigateToOuterNodesOptions.Parent | UiNavigateToOuterNodesOptions.Siblings | UiNavigateToOuterNodesOptions.Children;
         
         public GameObject GameObject => gameObject;
         public Selectable CurrentSelected { get; private set; }
-        public UiNavigateFromOuterNodesOptions NavigateFromOuterNodesOptions => _navigateFromOuterNodesOptions;
+        public UiNavigateFromOuterNodesOptions IncomeOuterNavigation => _incomeOuterNavigation;
         public bool IsScrollable => _scrollable;
         public RectTransform Viewport => _viewport;
         
@@ -99,7 +98,7 @@ namespace MisterGames.UI.Navigation {
         }
 
         public void OnNavigateOut(Selectable fromSelectable, UiNavigationDirection direction) {
-            _helper.NavigateOut(this, fromSelectable, direction, _navigateToOuterNodesOptions);
+            _helper.NavigateOut(this, fromSelectable, direction, _outcomeOuterNavigation);
         }
         
         private void OnWindowsHierarchyChanged() {

@@ -81,19 +81,21 @@ namespace MisterGames.Common.GameObjects {
             };
         }
 
-        public static string GetPathInScene(this GameObject gameObject, bool includeSceneName = true) {
-            return gameObject == null ? null : gameObject.transform.GetPathInScene(includeSceneName);
+        public static string GetPathInScene(this GameObject gameObject, bool includeSceneName = true, int level = -1) {
+            return gameObject == null ? null : gameObject.transform.GetPathInScene(includeSceneName, level);
         }
 
-        public static string GetPathInScene(this Component component, bool includeSceneName = true) {
+        public static string GetPathInScene(this Component component, bool includeSceneName = true, int level = -1) {
             if (component == null) return string.Empty;
 
             var transform = component.transform;
             
             var sb = new StringBuilder(transform.name);
             var original = transform;
+            int depth = 0;
             
-            while (transform.parent != null) {
+            while (transform.parent != null && 
+                   (level < 0 || ++depth < level)) {
                 sb.Insert(0, '/');
                 sb.Insert(0, transform.parent.name);
                 transform = transform.parent;
