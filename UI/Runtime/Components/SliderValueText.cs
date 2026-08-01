@@ -13,8 +13,6 @@ namespace MisterGames.UI.Components {
         [SerializeField] private TMP_Text _textField;
         [SerializeField] private string _format = "0.0";
         [SerializeField] private string _surround = "{0}%";
-        [SerializeField] [Min(0f)] private float _sliderValue0 = 0f;
-        [SerializeField] [Min(0f)] private float _sliderValue1 = 1f;
         [SerializeField] private float _outputValue0 = 0f;
         [SerializeField] private float _outputValue1 = 100f;
         [SerializeField] [Min(0f)] private float _epsilon = 0.1f;
@@ -77,9 +75,8 @@ namespace MisterGames.UI.Components {
             if (!Application.isPlaying && _slider == null) return _outputValue0;
 #endif
             
-            float v = _slider.value;
-            float t = Mathf.InverseLerp(_sliderValue0, _sliderValue1, v);
-            return Mathf.Lerp(_outputValue0, _outputValue1, t).RoundToStep(_epsilon);
+            float v = _slider.normalizedValue;
+            return Mathf.Lerp(_outputValue0, _outputValue1, v).RoundToStep(_epsilon);
         }
 
 #if UNITY_EDITOR

@@ -10,8 +10,6 @@ namespace MisterGames.SettingsLib.Base {
     public sealed class SettingBinderSlider : ISettingBinder {
 
         public Slider slider;
-        [Min(0f)] public float sliderValue0;
-        [Min(0f)] public float sliderValue1 = 1f;
         [Min(0f)] public float epsilon = 0.01f;
 
         private ISettingsService _service;
@@ -50,24 +48,16 @@ namespace MisterGames.SettingsLib.Base {
             if (_ignoreValueChange || value.IsNearlyEqual(_lastSetValue, epsilon)) return;
 
             _ignoreValueChange = true;
-            _lastSetValue = GetSliderNormalizedValue(slider.value);
+            _lastSetValue = slider.normalizedValue;
             _desc.SetValue(_service, _id, _lastSetValue);
             _ignoreValueChange = false;
-        }
-
-        private float GetSliderNormalizedValue(float input) {
-            return Mathf.InverseLerp(sliderValue0, sliderValue1, input);
-        }
-        
-        private float GetSliderInput(float output) {
-            return Mathf.Lerp(sliderValue0, sliderValue1, output);
         }
 
         void ISettingBinder.SetupView(ISettingDesc desc) {
             if (!IsValidSettingDesc(desc, out var d) || slider == null) return;
 
             _ignoreValueChange = true;
-            slider.value = GetSliderInput(d.GetDefaultValue());
+            slider.normalizedValue = d.GetDefaultValue();
             _ignoreValueChange = false;
         }
 
@@ -75,7 +65,7 @@ namespace MisterGames.SettingsLib.Base {
             if (_desc == null || _service == null || string.IsNullOrEmpty(_id)) return;
 
             _ignoreValueChange = true;
-            slider.value = GetSliderInput(_desc.GetValue(_service, _id));
+            slider.normalizedValue = _desc.GetValue(_service, _id);
             _ignoreValueChange = false;
         }
 

@@ -106,8 +106,8 @@ namespace MisterGames.UI.Components {
         private void OnClicked(UiButton button) {
             for (int i = 0; i < _tabs.Length; i++) {
                 ref var tab = ref _tabs[i];
-                if (tab.button != button) continue; 
-                
+                if (tab.button != button) continue;
+
                 OpenTab(i, selectButton: false);
                 return;
             }

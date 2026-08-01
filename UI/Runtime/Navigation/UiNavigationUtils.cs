@@ -38,14 +38,14 @@ namespace MisterGames.UI.Navigation {
             };
         }
         
-        public static bool IsCursorInsideRect(RectTransform rectTransform) {
+        public static bool IsCursorInsideRect(RectTransform rectTransform, Vector4 offset = default) {
             var camera = Services.TryGet(out CanvasRegistry canvasRegistry) &&
                          canvasRegistry.TryGetCurrentEventCamera(out var c)
                 ? c
                 : null;
 
             return Cursor.visible &&
-                   RectTransformUtility.RectangleContainsScreenPoint(rectTransform, UnityEngine.Input.mousePosition, camera);
+                   RectTransformUtility.RectangleContainsScreenPoint(rectTransform, UnityEngine.Input.mousePosition, camera, offset);
         }
     }
     
