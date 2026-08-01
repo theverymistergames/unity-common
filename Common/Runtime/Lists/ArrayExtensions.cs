@@ -222,7 +222,7 @@ namespace MisterGames.Common.Lists {
 
             return -1;
         }
-        
+
         public static T FirstOrDefault<T>(this IReadOnlyList<T> list, Func<T, bool> predicate, T defaultValue = default) {
             return TryFind(list, predicate, out var value) ? value : defaultValue;
         }
