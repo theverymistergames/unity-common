@@ -1,5 +1,4 @@
 ﻿using System;
-using MisterGames.Common.Maths;
 using MisterGames.SettingsLib.Descs;
 using UnityEngine;
 using UnityEngine.UI;
@@ -10,7 +9,6 @@ namespace MisterGames.SettingsLib.Base {
     public sealed class SettingBinderSlider : ISettingBinder {
 
         public Slider slider;
-        [Min(0f)] public float epsilon = 0.01f;
 
         private ISettingsService _service;
         private ISettingDescValued<float> _desc;
@@ -45,7 +43,7 @@ namespace MisterGames.SettingsLib.Base {
         }
 
         private void OnSliderValueChanged(float value) {
-            if (_ignoreValueChange || value.IsNearlyEqual(_lastSetValue, epsilon)) return;
+            if (_ignoreValueChange) return;
 
             _ignoreValueChange = true;
             _lastSetValue = slider.normalizedValue;

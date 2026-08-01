@@ -32,6 +32,7 @@ namespace MisterGames.Common.Save.Storages {
         public static Type GetBaseElementType(Type t) {
             return t.IsArray ? t :
                 typeof(Object).IsAssignableFrom(t) ? typeof(Object) :
+                t == typeof(string) ? t :
                 t.IsClass || t.IsInterface ? typeof(object) :
                 t.IsEnum ? typeof(Enum) :
                 t;

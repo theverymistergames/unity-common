@@ -89,7 +89,7 @@ namespace MisterGames.SettingsLib.Descs {
             return index switch {
                 0 => unlimitedFps.GetValue(),
                 1 => string.Format(vsync.GetValue(), string.Format(numberFps.GetValue(), Mathf.RoundToInt((float) screenRes.refreshRateRatio.value))),
-                2 => string.Format(vsyncHalf.GetValue(), string.Format(numberFps.GetValue(), Mathf.RoundToInt((float) screenRes.refreshRateRatio.value * 0.5f))),
+                2 => string.Format(vsyncHalf.GetValue(), string.Format(numberFps.GetValue(), Mathf.RoundToInt((float) screenRes.refreshRateRatio.value))),
                 _ => string.Format(numberFps.GetValue(), fpsNumbers[index - 3])
             };
         }
