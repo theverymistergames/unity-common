@@ -268,7 +268,7 @@ namespace MisterGames.Collisions.Utils {
 
                 if (hit.distance <= filter.maxDistance &&
                     hit.isValid &&
-                    filter.layerMask.Contains(hit.transform.gameObject.layer)) 
+                    hit.transform != null && filter.layerMask.Contains(hit.transform.gameObject.layer)) 
                 {
                     continue;
                 }

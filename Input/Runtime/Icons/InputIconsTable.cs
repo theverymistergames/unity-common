@@ -76,23 +76,23 @@ namespace MisterGames.Input.Icons {
                 : CreateEmbeddedSpriteTag(_nullSprite.tmpSpriteAtlas.name, _nullSprite.sprite.name);
         }
 
-        public Sprite GetIcon(InputBinding inputBinding, GamepadType gamepadType = GamepadType.Default) {
+        public Sprite GetSprite(InputBinding inputBinding, GamepadType gamepadType = GamepadType.Default) {
             inputBinding.ToDisplayString(out string deviceLayoutName, out string controlPath);
             return GetInputBindingSprite(deviceLayoutName, controlPath, gamepadType);
         }
         
-        public Sprite GetIcon(string path, GamepadType gamepadType = GamepadType.Default) {
+        public Sprite GetSprite(string path, GamepadType gamepadType = GamepadType.Default) {
             return InputBindingExtensions.SplitFullInputPath(path, out string deviceLayoutName, out string controlPath) 
                 ? GetInputBindingSprite(deviceLayoutName, controlPath, gamepadType)
                 : null;
         }
         
-        public Sprite GetIcon(KeyBinding key, GamepadType gamepadType = GamepadType.Default) {
+        public Sprite GetSprite(KeyBinding key, GamepadType gamepadType = GamepadType.Default) {
             (string deviceLayoutName, string controlPath) = key.GetBindingPath();
             return GetInputBindingSprite(deviceLayoutName, controlPath, gamepadType);
         }
         
-        public Sprite GetIcon(AxisBinding axis, AxisBingingDirection dir = AxisBingingDirection.Default, GamepadType gamepadType = GamepadType.Default) {
+        public Sprite GetSprite(AxisBinding axis, AxisBingingDirection dir = AxisBingingDirection.Default, GamepadType gamepadType = GamepadType.Default) {
             (string deviceLayoutName, string controlPath) = axis.GetBindingPath(dir);
             return GetInputBindingSprite(deviceLayoutName, controlPath, gamepadType);
         }

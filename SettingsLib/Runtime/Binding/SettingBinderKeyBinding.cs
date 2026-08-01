@@ -225,7 +225,7 @@ namespace MisterGames.SettingsLib.Base {
         
         private Sprite GetIcon(InputBinding binding, out string controlPath) {
             var gamepadType = Services.TryGet(out IDeviceService deviceService) ? deviceService.GamepadType : GamepadType.Default;
-            var sprite = keyBindingConfig.inputIcons.GetIcon(binding, gamepadType);
+            var sprite = keyBindingConfig.inputIcons.GetSprite(binding, gamepadType);
             binding.ToDisplayString(out string _, out controlPath);
             
             if (_isRebindingDialogActive || _rebindingOperation != null) {
