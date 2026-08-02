@@ -299,8 +299,6 @@ namespace MisterGames.UI.Components {
 
             ProcessStickToSide(ref inputDelta);
             
-            ClampInputDelta(ref inputDelta);
-            
             _velocity = _velocity.SmoothExpNonZero(inputDelta, _deltaSmoothing, dt);
             var vel = new Vector2(_scrollRect.horizontal.AsFloat() * _velocity.x, _scrollRect.vertical.AsFloat() * -_velocity.y);
 
@@ -332,23 +330,6 @@ namespace MisterGames.UI.Components {
             delta.y = -delta.y;
             
             return delta;
-        }
-
-        private void ClampInputDelta(ref Vector2 inputDelta) {
-            var currentPos = _scrollRect.normalizedPosition.Clamp01();
-            var size = _scrollRect.content.rect.size;
-            
-            if (inputDelta.x < 0f && size.x * currentPos.x < _clampThresholdPx || 
-                inputDelta.x > 0f && size.x * (1f - currentPos.x) < _clampThresholdPx) 
-            {
-                inputDelta.x = 0f;
-            }
-
-            if (inputDelta.y < 0f && size.y * currentPos.y < _clampThresholdPx || 
-                inputDelta.y > 0f && size.y * (1f - currentPos.y) < _clampThresholdPx) 
-            {
-                inputDelta.y = 0f;
-            }
         }
 
         private void ProcessStickToSide(ref Vector2 inputDelta) {

@@ -57,7 +57,6 @@ namespace MisterGames.UI.Components {
         private void CheckBlockState() {
             bool isBlocked = IsBlocked();
             _uiElementAnimator?.SetBlockedState(isBlocked);
-            _button.interactable = !isBlocked;
         }
         
         void ISubmitHandler.OnSubmit(BaseEventData eventData) {
