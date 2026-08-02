@@ -40,6 +40,21 @@ namespace MisterGames.UI.Navigation {
         
         [BurstCompile]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsPossibleDirection(this UiNavigationDirection direction, UiNavigationMask mask) {
+            return ((1 << (int) direction) & (int) mask) != 0;
+        }
+        
+        [BurstCompile]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsLoopDirection(this UiNavigationDirection direction, UiNavigationLoop loop) {
+            int vertical = (int) (loop & UiNavigationLoop.Vertical);
+            int horizontal = (int) (loop & UiNavigationLoop.Horizontal);
+            int mask = vertical | (vertical << 1) | (horizontal << 1) | (horizontal << 2);
+            return ((1 << (int) direction) & mask) != 0;
+        }
+        
+        [BurstCompile]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Project(this float2 vector, UiNavigationDirection direction) {
             return direction switch {
                 UiNavigationDirection.Up or UiNavigationDirection.Down => vector.y, 
@@ -112,15 +127,15 @@ namespace MisterGames.UI.Navigation {
         [BurstCompile]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsFartherAlongDirection(
-            float projDistance,
+            float projMinusOrthDistance,
             int orthCells, 
-            ref float maxProjDistance,
+            ref float maxProjMinusOrthDistance,
             ref int minOrthCells) 
         {
             if (orthCells < minOrthCells || 
-                orthCells == minOrthCells && projDistance > maxProjDistance) 
+                orthCells == minOrthCells && projMinusOrthDistance > maxProjMinusOrthDistance) 
             {
-                maxProjDistance = projDistance;
+                maxProjMinusOrthDistance = projMinusOrthDistance;
                 minOrthCells = orthCells;
                 return true;
             }
@@ -168,23 +183,23 @@ namespace MisterGames.UI.Navigation {
             float2 relativeTo,
             float2 cell,
             UiNavigationDirection direction,
-            ref float maxProjDistance,
+            ref float maxProjMinusOrthDistance,
             ref int minOrthCells) 
         {
             var absDistance2 = math.abs(pos - relativeTo);
             int orthCells;
-            float projDistance;
+            float projMinusOrthDistance;
             
             switch (direction) {
                 case UiNavigationDirection.Up:
                 case UiNavigationDirection.Down:
-                    projDistance = absDistance2.y;
+                    projMinusOrthDistance = absDistance2.y - absDistance2.x;
                     orthCells = (int) math.floor(absDistance2.x / cell.x);
                     break;
                 
                 case UiNavigationDirection.Left:
                 case UiNavigationDirection.Right:
-                    projDistance = absDistance2.x;
+                    projMinusOrthDistance = absDistance2.x - absDistance2.y;
                     orthCells = (int) math.floor(absDistance2.y / cell.y);
                     break;
                 
@@ -192,7 +207,7 @@ namespace MisterGames.UI.Navigation {
                     throw new ArgumentOutOfRangeException(nameof(direction), direction, null);
             }
             
-            return IsFartherAlongDirection(projDistance, orthCells, ref maxProjDistance, ref minOrthCells);
+            return IsFartherAlongDirection(projMinusOrthDistance, orthCells, ref maxProjMinusOrthDistance, ref minOrthCells);
         }
         
         public static bool IsCursorInsideRect(RectTransform rectTransform, Vector4 offset = default) {

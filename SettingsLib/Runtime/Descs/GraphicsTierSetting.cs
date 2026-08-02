@@ -21,9 +21,7 @@ namespace MisterGames.SettingsLib.Descs {
                 tier = defaultTier;
             }
 
-            int index = Array.IndexOf(QualitySettings.names, tier);
-
-            NotifyMode(id, index);
+            NotifyMode(id, tier);
         }
         
         public void ClearSetting(ISettingsService service, string id) {
@@ -67,17 +65,20 @@ namespace MisterGames.SettingsLib.Descs {
             string tier = tiers.GetEntry(index).key;
             bool ok = service.Set(id, index: 0, tier);
             
-            NotifyMode(id, index);
+            NotifyMode(id, tier);
             
             return ok;
         }
 
-        private void NotifyMode(string id, int index) {
+        private void NotifyMode(string id, string tier) {
+            int elementIndex = tiers.FirstIndexOf(tier, (x, e) => x == e.key);
+            int tierIndex = Array.IndexOf(QualitySettings.names, tier);
+            
             foreach (var listener in _listeners) {
-                listener.Invoke(id, index);
+                listener.Invoke(id, elementIndex);
             }
             
-            QualitySettings.SetQualityLevel(index, applyExpensiveChanges: true);
+            QualitySettings.SetQualityLevel(tierIndex, applyExpensiveChanges: true);
         }
     }
     

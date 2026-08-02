@@ -1,6 +1,6 @@
 ﻿namespace MisterGames.UI.Navigation {
     
-    public enum UiNavigateFromOuterNodesOptions {
+    public enum UiIncomingOuterNavigationOptions {
         SelectClosestElement,
         SelectHistoryElement,
     }

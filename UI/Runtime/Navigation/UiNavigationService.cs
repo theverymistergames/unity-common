@@ -103,7 +103,7 @@ namespace MisterGames.UI.Navigation {
         }
 
         private void OnWindowsHierarchyChanged() {
-            var selectable = _uiWindowService.GetFrontOpenedWindow()?.Node?.CurrentSelected;
+            var selectable = _uiWindowService.GetFrontOpenedWindow()?.Node?.CurrentSelectable;
             if (selectable == null) return;
 
             SetCurrentSelectable(selectable);
@@ -148,7 +148,7 @@ namespace MisterGames.UI.Navigation {
                 selectable == null && !_selectableMap.TryGetValue(_lastNonNullSelectableHash, out selectable) ||
                 
                 // Current selectable nav mask forbids this direction
-                (_selectableDataMap.TryGetValue(selectable.GetHashCode(), out var data) && ((1 << (int) dir) & (int) data.mask) == 0)) 
+                (_selectableDataMap.TryGetValue(selectable.GetHashCode(), out var data) && !dir.IsPossibleDirection(data.mask))) 
             {
                 // Not moving or no selectable: reset outer navigation cooldown and restore default navigation
                 if (_lastRealtimeUsedOuterNavigation >= 0f) {
@@ -196,11 +196,15 @@ namespace MisterGames.UI.Navigation {
             // Cooldown for outer node navigation if same dir used
             if (dir == _lastDirUsedBuiltInNavigation &&
                 _lastRealtimeUsedBuiltInNavigation >= 0f &&
-                time < _lastRealtimeUsedBuiltInNavigation + _settings.outerNodeNavigationCooldown) 
+                time < _lastRealtimeUsedBuiltInNavigation + _settings.outerNodeNavigationCooldown ||
+                
+                dir == _lastDirUsedOuterNavigation && 
+                _lastRealtimeUsedOuterNavigation >= 0f && 
+                time < _lastRealtimeUsedOuterNavigation + _settings.outerNodeNavigationCooldown) 
             {
                 return;
             }
-            
+
             GetParentNavigationNode(selectable)?.OnNavigateOut(selectable, dir);
         }
 

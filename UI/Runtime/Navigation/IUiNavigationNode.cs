@@ -6,8 +6,9 @@ namespace MisterGames.UI.Navigation {
     public interface IUiNavigationNode {
         
         GameObject GameObject { get; }
-        Selectable CurrentSelected { get; }
-        UiNavigateFromOuterNodesOptions IncomeOuterNavigation { get; }
+        Selectable CurrentSelectable { get; }
+        Selectable DefaultSelectable { get; }
+        UiIncomingOuterNavigationOptions IncomingOuterNavigation { get; }
         bool IsScrollable { get; }
         RectTransform Viewport { get; }
         
@@ -17,7 +18,7 @@ namespace MisterGames.UI.Navigation {
         void UpdateNavigation();
         void OnNavigateOut(Selectable fromSelectable, UiNavigationDirection direction);
         
-        void SetCurrentSelected(Selectable selectable);
+        void SetCurrentSelectable(Selectable selectable);
     }
     
 }

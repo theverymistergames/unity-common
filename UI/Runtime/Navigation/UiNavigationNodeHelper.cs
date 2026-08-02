@@ -52,39 +52,29 @@ namespace MisterGames.UI.Navigation {
             Selectable fromSelectable,
             UiNavigationDirection direction,
             float2 cell,
-            UiNavigateToOuterNodesOptions options) 
+            UiNavigationMask mask,
+            UiNavigationLoop loop) 
         {
-            if (options == UiNavigateToOuterNodesOptions.None ||
+            if (!direction.IsPossibleDirection(mask) ||
+                direction.IsLoopDirection(loop) ||
                 !Services.TryGet(out IUiNavigationService service)) 
             {
                 return;
             }
             
-            bool allowParent = (options & UiNavigateToOuterNodesOptions.Parent) == UiNavigateToOuterNodesOptions.Parent;
-            bool allowSiblings = (options & UiNavigateToOuterNodesOptions.Siblings) == UiNavigateToOuterNodesOptions.Siblings;
-            bool allowChildren = (options & UiNavigateToOuterNodesOptions.Children) == UiNavigateToOuterNodesOptions.Children;
-
-            var parentNode = service.GetParentNavigationNode(node);
             var root = node.GameObject.transform;
             var origin = root.InverseTransformPoint(fromSelectable.transform.position).ToFloat2XY();
-
             var selectables = service.Selectables;
-            Selectable closestSelectable = null;
             
+            Selectable closestSelectable = null;
             float minSqr = float.MaxValue;
             var minOrthProjCells = new int2(int.MaxValue, int.MaxValue);
 
             foreach (var selectable in selectables) {
                 if (IsBound(selectable.gameObject) || 
-                    
                     service.GetSelectableOptions(selectable) is var opt && 
                     ((opt & UiNavigationOptions.DisallowAnyIncomingNavigation) != 0 || 
-                     (opt & UiNavigationOptions.DisallowIncomingNavigationFromOuterNodes) != 0) ||
-                      
-                    service.GetParentNavigationNode(selectable) is not { } p || 
-                    !allowParent && p == parentNode || 
-                    !allowSiblings && service.IsChildNode(p, parentNode, direct: false) ||
-                    !allowChildren && service.IsChildNode(p, node, direct: false))
+                     (opt & UiNavigationOptions.DisallowIncomingNavigationFromOuterNodes) != 0))
                 {
                     continue;
                 }
@@ -96,21 +86,25 @@ namespace MisterGames.UI.Navigation {
                 {
                     continue;
                 }
-
+                
                 closestSelectable = selectable;
             }
 
             if (closestSelectable == null) return;
             
             var nextParentNode = service.GetParentNavigationNode(closestSelectable);
+
+            var nextHistoryTarget = nextParentNode?.CurrentSelectable != null
+                ? nextParentNode.CurrentSelectable
+                : nextParentNode?.DefaultSelectable;
             
-            var nextOptions = nextParentNode?.CurrentSelected == null
-                ? UiNavigateFromOuterNodesOptions.SelectClosestElement
-                : nextParentNode.IncomeOuterNavigation;
+            var nextOptions = nextHistoryTarget == null 
+                ? UiIncomingOuterNavigationOptions.SelectClosestElement
+                : nextParentNode.IncomingOuterNavigation;
             
             var selectTarget = nextOptions switch {
-                UiNavigateFromOuterNodesOptions.SelectClosestElement => closestSelectable,
-                UiNavigateFromOuterNodesOptions.SelectHistoryElement => nextParentNode!.CurrentSelected,
+                UiIncomingOuterNavigationOptions.SelectClosestElement => closestSelectable,
+                UiIncomingOuterNavigationOptions.SelectHistoryElement => nextHistoryTarget,
                 _ => throw new ArgumentOutOfRangeException()
             };
             
@@ -246,10 +240,10 @@ namespace MisterGames.UI.Navigation {
                 var minOrthProjCellsLeft = new int2(int.MaxValue, int.MaxValue);
                 var minOrthProjCellsRight = new int2(int.MaxValue, int.MaxValue);
                 
-                float maxProjUpmost = float.MinValue;
-                float maxProjDownmost = float.MinValue;
-                float maxProjLeftmost = float.MinValue;
-                float maxProjRightmost = float.MinValue;
+                float maxProjMinusOrthUpmost = float.MinValue;
+                float maxProjMinusOrthDownmost = float.MinValue;
+                float maxProjMinusOrthLeftmost = float.MinValue;
+                float maxProjMinusOrthRightmost = float.MinValue;
                 
                 int minOrthCellsUpmost = int.MaxValue;
                 int minOrthCellsDownmost = int.MaxValue;
@@ -315,13 +309,13 @@ namespace MisterGames.UI.Navigation {
 
                     if ((loop & UiNavigationLoop.Vertical) != 0) {
                         if (isUp && 
-                            UiNavigationUtils.IsFartherAlongDirection(absDistance2.y, cells2.x, ref maxProjUpmost, ref minOrthCellsUpmost)) 
+                            UiNavigationUtils.IsFartherAlongDirection(absDistance2.y - absDistance2.x, cells2.x, ref maxProjMinusOrthUpmost, ref minOrthCellsUpmost)) 
                         {
                             upmostId = data.id;
                         }
 
                         if (isDown && 
-                            UiNavigationUtils.IsFartherAlongDirection(absDistance2.y, cells2.x, ref maxProjDownmost, ref minOrthCellsDownmost)) 
+                            UiNavigationUtils.IsFartherAlongDirection(absDistance2.y - absDistance2.x, cells2.x, ref maxProjMinusOrthDownmost, ref minOrthCellsDownmost)) 
                         {
                             downmostId = data.id;
                         }
@@ -330,13 +324,13 @@ namespace MisterGames.UI.Navigation {
                     if ((loop & UiNavigationLoop.Horizontal) != 0)
                     {
                         if (isLeft && 
-                            UiNavigationUtils.IsFartherAlongDirection(absDistance2.x, cells2.y, ref maxProjLeftmost, ref minOrthCellsLeftmost)) 
+                            UiNavigationUtils.IsFartherAlongDirection(absDistance2.x - absDistance2.y, cells2.y, ref maxProjMinusOrthLeftmost, ref minOrthCellsLeftmost)) 
                         {
                             leftmostId = data.id;
                         }
                     
                         if (isRight && 
-                            UiNavigationUtils.IsFartherAlongDirection(absDistance2.x, cells2.y, ref maxProjRightmost, ref minOrthCellsRightmost)) 
+                            UiNavigationUtils.IsFartherAlongDirection(absDistance2.x - absDistance2.y, cells2.y, ref maxProjMinusOrthRightmost, ref minOrthCellsRightmost)) 
                         {
                             rightmostId = data.id;
                         }

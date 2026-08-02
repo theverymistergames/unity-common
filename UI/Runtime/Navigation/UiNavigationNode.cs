@@ -15,31 +15,31 @@ namespace MisterGames.UI.Navigation {
         
         [Header("Inner Navigation")]
         [SerializeField] private UiNavigationMode _mode;
-        [SerializeField] private Vector2 _cell = new(400f, 50f);
+        [SerializeField] private Vector2 _cell = new(1000f, 50f);
         [SerializeField] private UiNavigationLoop _loop = UiNavigationLoop.Vertical;
+        [SerializeField] private Selectable _firstSelected;
         [SerializeField] private bool _scrollable = false;
         [VisibleIf(nameof(_scrollable))]
         [SerializeField] private RectTransform _viewport;
-        [SerializeField] private Selectable _firstSelected;
         
         [Header("Outer Navigation")]
-        [SerializeField] private UiNavigateFromOuterNodesOptions _incomeNavigation = 
-                UiNavigateFromOuterNodesOptions.SelectHistoryElement;
-        [SerializeField] private UiNavigateToOuterNodesOptions _outcomeNavigation = 
-            UiNavigateToOuterNodesOptions.Parent | UiNavigateToOuterNodesOptions.Siblings | UiNavigateToOuterNodesOptions.Children;
+        [SerializeField] private UiIncomingOuterNavigationOptions _incomingNavigation = UiIncomingOuterNavigationOptions.SelectHistoryElement;
+        [SerializeField] private UiNavigationMask _outcomingNavigation = ~UiNavigationMask.None;
         
         public GameObject GameObject => gameObject;
-        public Selectable CurrentSelected { get; private set; }
-        public UiNavigateFromOuterNodesOptions IncomeOuterNavigation => _incomeNavigation;
+        public Selectable CurrentSelectable { get; private set; }
+        public Selectable DefaultSelectable => _firstSelected;
+        public UiIncomingOuterNavigationOptions IncomingOuterNavigation => _incomingNavigation;
         public bool IsScrollable => _scrollable;
         public RectTransform Viewport => _viewport;
         
         private readonly UiNavigationNodeHelper _helper = new();
         private CancellationTokenSource _enableCts;
         private IUiWindow _window;
+        private bool _hasSetupCurrentSelectable;
         
         private void Awake() {
-            if (_firstSelected != null) CurrentSelected = _firstSelected;
+            if (!_hasSetupCurrentSelectable) CurrentSelectable = _firstSelected;
             
             _window = GetComponent<IUiWindow>();
         }
@@ -100,16 +100,17 @@ namespace MisterGames.UI.Navigation {
         }
 
         public void OnNavigateOut(Selectable fromSelectable, UiNavigationDirection direction) {
-            _helper.NavigateOut(this, fromSelectable, direction, _cell, _outcomeNavigation);
+            _helper.NavigateOut(this, fromSelectable, direction, _cell, _outcomingNavigation, _loop);
         }
 
-        public void SetCurrentSelected(Selectable selectable) {
-            CurrentSelected = selectable;
+        public void SetCurrentSelectable(Selectable selectable) {
+            _hasSetupCurrentSelectable = true;
+            CurrentSelectable = selectable;
         }
 
         private void OnSelectedGameObjectChanged(Selectable selected, IUiWindow parent) {
             if (selected != null && _helper.IsBound(selected.gameObject)) {
-                CurrentSelected = selected;
+                CurrentSelectable = selected;
             }
         }
 

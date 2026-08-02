@@ -69,7 +69,7 @@ namespace MisterGames.UI.Components {
             if (_openedTab >= 0) {
                 ref var openedTab = ref _tabs[_openedTab];
                 
-                openedTab.window.Node?.SetCurrentSelected(null);
+                openedTab.window.Node?.SetCurrentSelectable(null);
                 _navigationService.RemoveWindowNavigationCallback(openedTab.window, this);
                 
                 PrefabPool.Main?.Release(_tabSelectionInstance);
@@ -120,6 +120,8 @@ namespace MisterGames.UI.Components {
             for (int i = 0; i < _tabs.Length; i++) {
                 ref var tab = ref _tabs[i];
 
+                tab.window.Node?.SetCurrentSelectable(null);
+                
                 if (index == i) {
                     if (_setupMinState.HasValue) tab.button.GetComponent<IUiElementAnimator>()?.SetForceMinState(_setupMinState.Value);
                     _windowService.SetWindowState(tab.window, UiWindowState.Opened); 
@@ -129,7 +131,6 @@ namespace MisterGames.UI.Components {
                 }
 
                 tab.button.GetComponent<IUiElementAnimator>()?.ResetForceMinState();
-                tab.window.Node?.SetCurrentSelected(null);
                 
                 _navigationService.RemoveWindowNavigationCallback(tab.window, this);
             }

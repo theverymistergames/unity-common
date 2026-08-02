@@ -49,30 +49,13 @@ namespace MisterGames.UI.Components {
 #if UNITY_EDITOR
         [Header("Debug")]
         [SerializeField] private Locale _defaultLocale = LocaleId.en.ToLocale();
-        [HideInInspector] [SerializeField] private Locale _lastLocale = LocaleId.en.ToLocale();
-        [HideInInspector] [SerializeField] private LocalizationKey<Sprite> _lastKey;
         
         private void Reset() {
             _image = GetComponentInChildren<Image>();
         }
 
-        private void OnValidate() {
-            if (Application.isPlaying || 
-                EditorApplication.isPlayingOrWillChangePlaymode ||
-                !enabled || 
-                _lastKey == _key && _lastLocale == _defaultLocale) 
-            {
-                return;
-            }
-            
-            FetchValueForDefaultLocale();
-        }
-
         [Button]
         private void FetchValueForDefaultLocale() {
-            _lastLocale = _defaultLocale;
-            _lastKey = _key;
-            
             if (_key.IsNull() || _image == null) return;
 
             _spriteRef.Dispose();

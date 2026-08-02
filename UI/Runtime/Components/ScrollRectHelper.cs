@@ -403,25 +403,14 @@ namespace MisterGames.UI.Components {
         }
 
         private bool IsFocused() {
-            bool hasCursor = Cursor.visible && Cursor.lockState != CursorLockMode.Locked;
-            return hasCursor && IsFocusedWithCursor() || !hasCursor && IsFocusedWithoutCursor();
-        }
-
-        private bool IsFocusedWithCursor() {
-            bool insideScrollRect = UiNavigationUtils.IsCursorInsideRect(_scrollRect.viewport);
-            
-            return insideScrollRect && GetFrontScrollRectData().isFront || 
+            return GetFrontScrollRectData().isFront || 
                    
-                   !insideScrollRect && 
+                   !UiNavigationUtils.IsCursorInsideRect(_scrollRect.viewport) && 
                    (_containsSelectedObjectDirectly || 
                    
                     GetFrontScrollRectData() is var data && 
                     (!data.hasOthers || !data.insideOthers && IsScrollbarSelected())
                    );
-        }
-
-        private bool IsFocusedWithoutCursor() {
-            return _containsSelectedObjectDirectly || IsScrollbarSelected();
         }
         
         private (bool isFront, bool insideOthers, bool hasOthers) GetFrontScrollRectData() {

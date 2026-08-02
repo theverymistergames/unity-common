@@ -113,7 +113,7 @@ namespace MisterGames.UI.Components {
             _formatMap[(text, index)] = format;
             button.ButtonText.SetText(Format(text, index, GetLocalizationService().Locale));
 
-            if (firstSelected) _window.Node.SetCurrentSelected(button.Selectable); 
+            if (firstSelected) _window.Node.SetCurrentSelectable(button.Selectable); 
             
             return this;
         }
