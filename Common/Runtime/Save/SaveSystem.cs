@@ -2,7 +2,6 @@
 using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Files;
 using MisterGames.Common.Lists;
@@ -165,7 +164,7 @@ namespace MisterGames.Common.Save {
             
             Directory.CreateDirectory(_saveSystemSettings.GetFolderPath());
 
-            var dto = new SaveStorageDto(source.Tables.ToArray());
+            var dto = new SaveStorageDto(source.Tables);
             
             var result = await SaveFileAsync(
                 dto,
@@ -216,9 +215,10 @@ namespace MisterGames.Common.Save {
 
             switch (result.status) {
                 case JsonExtensions.Status.Success:
-                    var tables = result.value?.Tables ?? Array.Empty<ISaveTable>();
-                    for (int i = 0; i < tables.Count; i++) {
-                        if (tables[i] is { } table) storage.SetTable(table.GetValueType(), table);
+                    if (result.value?.Tables is { } tables) {
+                        foreach (var (type, table) in tables) {
+                            storage.SetTable(type, table);
+                        }
                     }
                     
                     NotifyLoadAll();

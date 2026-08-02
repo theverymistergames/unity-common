@@ -17,8 +17,6 @@ namespace MisterGames.Character.View {
 
     public sealed class CharacterViewPipeline : MonoBehaviour, IActorComponent {
 
-        [SerializeField] private PlayerLoopTiming _loop = PlayerLoopTiming.LastPostLateUpdate;
-        
         [Header("Transforms")]
         [SerializeField] private Transform _head;
         [SerializeField] private Rigidbody _body;

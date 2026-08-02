@@ -50,17 +50,21 @@ namespace MisterGames.SettingsLib.Base {
                 return;
             }
 
+            _ignoreNotify = true;
             uiList.SelectIndex(descListed.GetIndex(_service, _id));
+            _ignoreNotify = false;
         }
 
         private void OnSettingIndexChanged(string id, int index) {
             if (_ignoreNotify) return;
             
+            _ignoreNotify = true;
             uiList.SelectIndex(index);
+            _ignoreNotify = false;
         }
 
         private void OnSelectedIndexChanged(int index) {
-            if (_desc == null || _service == null || string.IsNullOrEmpty(_id)) { 
+            if (_ignoreNotify || _desc == null || _service == null || string.IsNullOrEmpty(_id)) { 
                 return;
             }
             

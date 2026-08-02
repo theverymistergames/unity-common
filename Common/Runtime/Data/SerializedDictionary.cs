@@ -32,7 +32,10 @@ namespace MisterGames.Common.Data {
     /// Serializable dictionary. TEntry should have "key" and "value" fields to be drawn properly in the inspector.  
     /// </summary>
     [Serializable]
-    public abstract class SerializedDictionaryBase<TKey, TValue, TEntry> : IDictionary<TKey, TValue>, ISerializationCallbackReceiver {
+    public abstract class SerializedDictionaryBase<TKey, TValue, TEntry> : 
+        IDictionary<TKey, TValue>, 
+        IReadOnlyDictionary<TKey, TValue>, 
+        ISerializationCallbackReceiver {
 
         [SerializeField] private List<TEntry> _entries = new();
         [SerializeField] private int _newEntry;
@@ -42,9 +45,12 @@ namespace MisterGames.Common.Data {
         public TValue this[TKey key] { get => _dict[key]; set => _dict[key] = value; }
         public ICollection<TKey> Keys => _dict.Keys;
         public ICollection<TValue> Values => _dict.Values;
+        IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys => Keys;
+        IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values => Values;
+
         public int Count => _dict.Count;
         public bool IsReadOnly => false;
-
+        
         public void Add(TKey key, TValue value) => _dict.Add(key, value);
         public void Add(KeyValuePair<TKey, TValue> item) => _dict.Add(item.Key, item.Value);
         public bool TryAdd(TKey key, TValue value) => _dict.TryAdd(key, value);
@@ -56,7 +62,7 @@ namespace MisterGames.Common.Data {
         public bool TryGetValue(TKey key, out TValue value) => _dict.TryGetValue(key, out value);
         public TValue GetValueOrDefault(TKey key, TValue defaultValue = default) => _dict.GetValueOrDefault(key, defaultValue);
         public void Clear() => _dict.Clear();
-
+        
         public void CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex) {
             ((IDictionary<TKey, TValue>) _dict).CopyTo(array, arrayIndex);
         }

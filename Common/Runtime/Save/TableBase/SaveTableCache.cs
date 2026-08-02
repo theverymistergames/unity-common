@@ -28,6 +28,8 @@ namespace MisterGames.Common.Save.Storages {
             public readonly Dictionary<(Type, Type), Type> tableMap = new();
             public readonly HashSet<Type> valueTypeSet = new();
         }
+
+        private sealed class AnyType {}
         
         public static Type GetBaseElementType(Type t) {
             return t.IsArray ? t :
@@ -39,7 +41,9 @@ namespace MisterGames.Common.Save.Storages {
         }
         
         public static bool TryGetTableType(Type keyType, Type valueType, out Type tableType) {
-            return LoadCache().tableMap.TryGetValue((keyType, valueType), out tableType);
+            var cache = LoadCache();
+            return cache.tableMap.TryGetValue((keyType, valueType), out tableType) || 
+                   cache.tableMap.TryGetValue((keyType, typeof(AnyType)), out tableType);
         }
 
         public static bool IsSupportedValueType(Type valueType) {
@@ -73,16 +77,17 @@ namespace MisterGames.Common.Save.Storages {
             _cache = new Cache();
             
             var types = TypeCache.GetTypesDerivedFrom<ISaveTable>();
+            var anyType = typeof(AnyType);
             
             for (int i = 0; i < types.Count; i++) {
                 var type = types[i];
 
                 if (!type.IsAbstract &&
                     Attribute.IsDefined(type, typeof(SerializableAttribute)) &&
-                    type.GetCustomAttribute<SaveTableAttribute>(false) is { keyType: { } keyType, valueType: { } valueType }) 
+                    type.GetCustomAttribute<SaveTableAttribute>(false) is { } attr) 
                 {
-                    _cache.tableMap[(keyType, valueType)] = type;
-                    _cache.valueTypeSet.Add(valueType);
+                    _cache.tableMap[(attr.keyType, attr.valueType ?? anyType)] = type;
+                    if (attr.valueType != null) _cache.valueTypeSet.Add(attr.valueType);
                 }
             }
         }
@@ -157,7 +162,8 @@ namespace MisterGames.Common.Save.Storages {
             CancellationToken token
         ) {
             var result = new Cache();
-
+            var anyType = typeof(AnyType);
+            
             for (int i = 0; i < assemblies.Length; i++) {
                 token.ThrowIfCancellationRequested();
 
@@ -173,10 +179,10 @@ namespace MisterGames.Common.Save.Storages {
                     if (!type.IsAbstract &&
                         typeof(ISaveTable).IsAssignableFrom(type) &&
                         Attribute.IsDefined(type, typeof(SerializableAttribute)) &&
-                        type.GetCustomAttribute<SaveTableAttribute>(false) is { keyType: { } keyType, valueType: { } valueType }) 
+                        type.GetCustomAttribute<SaveTableAttribute>(false) is { } attr) 
                     {
-                        result.tableMap[(keyType, valueType)] = type;
-                        result.valueTypeSet.Add(valueType);
+                        result.tableMap[(attr.keyType, attr.valueType ?? anyType)] = type;
+                        if (attr.valueType != null) result.valueTypeSet.Add(attr.valueType);
                     }
                 }
             }

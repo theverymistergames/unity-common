@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using MisterGames.Common.Lists;
 using MisterGames.Common.Localization;
 using MisterGames.SettingsLib.Base;
 using UnityEngine;
@@ -18,7 +17,6 @@ namespace MisterGames.SettingsLib.Descs {
         public LocalizationKey vsyncHalf;
         public ModeData defaultMode;
         [Min(0)] public int[] fpsNumbers = {
-            30,
             60,
             75,
             90,
@@ -30,10 +28,10 @@ namespace MisterGames.SettingsLib.Descs {
         [Serializable]
         public struct ModeData {
             public Mode mode;
-            public int fps;
+            [Min(0)] public int fpsIndex;
             
-            public ModeData(int fps, Mode mode) {
-                this.fps = fps;
+            public ModeData(Mode mode, int fpsIndex) {
+                this.fpsIndex = fpsIndex;
                 this.mode = mode;
             }
         }
@@ -103,10 +101,10 @@ namespace MisterGames.SettingsLib.Descs {
             if (index < 0 || index >= fpsNumbers.Length + 3) return false;
 
             var mode = index switch {
-                0 => new ModeData(0, Mode.Unlimited),
-                1 => new ModeData(0, Mode.VSync),
-                2 => new ModeData(0, Mode.VSyncHalf),
-                _ => new ModeData(fpsNumbers[index - 3], Mode.NumberFps)
+                0 => new ModeData(Mode.Unlimited, 0),
+                1 => new ModeData(Mode.VSync, 0),
+                2 => new ModeData(Mode.VSyncHalf, 0),
+                _ => new ModeData(Mode.NumberFps, index - 3)
             };
             
             bool ok = service.Set(id, index: 0, mode);
@@ -121,7 +119,7 @@ namespace MisterGames.SettingsLib.Descs {
                 Mode.Unlimited => 0,
                 Mode.VSync => 1,
                 Mode.VSyncHalf => 2,
-                Mode.NumberFps => 3 + fpsNumbers.TryFindIndex(data.fps, (x, y) => x == y),
+                Mode.NumberFps => 3 + data.fpsIndex,
                 _ => throw new ArgumentOutOfRangeException()
             };
         }
@@ -143,7 +141,7 @@ namespace MisterGames.SettingsLib.Descs {
                 
                 case Mode.NumberFps:
                     QualitySettings.vSyncCount = 0;
-                    Application.targetFrameRate = data.fps;
+                    Application.targetFrameRate = fpsNumbers[data.fpsIndex];
                     break;
                 
                 default:

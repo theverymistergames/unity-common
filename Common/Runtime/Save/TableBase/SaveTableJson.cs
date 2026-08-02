@@ -3,15 +3,15 @@ using MisterGames.Common.Data;
 using UnityEngine;
 
 namespace MisterGames.Common.Save.Tables {
-
+    
     [Serializable]
-    public abstract class SaveTableEnum<TKey> : ISaveTable<TKey> where TKey : IEquatable<TKey> {
-
-        [SerializeField] private SerializedDictionary<TKey, ulong> _dataMap = new();
+    public abstract class SaveTableJson<TKey> : ISaveTable<TKey> where TKey : IEquatable<TKey> {
+        
+        [SerializeField] private SerializedDictionary<TKey, string> _dataMap = new();
 
         public bool TryGetData<V>(TKey key, out V data) {
-            if (_dataMap.TryGetValue(key, out ulong record) && Enum.ToObject(typeof(V), record) is V s) {
-                data = s;
+            if (_dataMap.TryGetValue(key, out string json)) {
+                data = JsonUtility.FromJson<V>(json);
                 return true;
             }
             
@@ -20,26 +20,22 @@ namespace MisterGames.Common.Save.Tables {
         }
 
         public bool SetData<V>(TKey key, V data) {
-            if (Convert.ChangeType(data, typeof(ulong)) is not {} e) return false;
-            
-            _dataMap[key] = (ulong) e;
+            _dataMap[key] = JsonUtility.ToJson(data);
             return true;
         }
 
         public bool TryGetDataBoxed(TKey key, out object data) {
-            if (_dataMap.TryGetValue(key, out ulong value)) {
-                data = value;
+            if (_dataMap.TryGetValue(key, out string json)) {
+                data = JsonUtility.FromJson(json, typeof(object));
                 return true;
             }
-
+            
             data = null;
             return false;
         }
         
         public bool SetDataBoxed(TKey key, object data) {
-            if (Convert.ChangeType(data, typeof(ulong)) is not {} e) return false;
-            
-            _dataMap[key] = (ulong) e;
+            _dataMap[key] = JsonUtility.ToJson(data);
             return true;
         }
 
@@ -65,14 +61,14 @@ namespace MisterGames.Common.Save.Tables {
                 ? $"{nameof(_dataMap)}._entries.Array.data[{index}].value"
                 : null;
         }
-        
-        public void CopyTo(ISaveTable dest) {
-            if (dest is not SaveTableEnum<TKey> table) return;
 
-            foreach ((var key, ulong value) in _dataMap) {
+        public void CopyTo(ISaveTable dest) {
+            if (dest is not SaveTableJson<TKey> table) return;
+
+            foreach ((var key, string value) in _dataMap) {
                 table._dataMap[key] = value;
             }
         }
     }
-
+    
 }

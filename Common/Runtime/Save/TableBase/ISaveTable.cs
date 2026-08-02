@@ -3,10 +3,6 @@
 namespace MisterGames.Common.Save.Tables {
     
     public interface ISaveTable {
-
-        Type GetKeyType();
-        
-        Type GetValueType();
         
         bool IsEmpty();
         

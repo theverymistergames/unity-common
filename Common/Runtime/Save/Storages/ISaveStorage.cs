@@ -6,13 +6,13 @@ namespace MisterGames.Common.Save.Storages {
 
     public interface ISaveStorage {
         
-        IEnumerable<ISaveTable> Tables { get; }
+        IReadOnlyDictionary<Type, ISaveTable> Tables { get; }
         
         ISaveTable GetTable(Type valueType);
         
         ISaveTable GetOrCreateTable(Type valueType);
         
-        void SetTable(Type valueType, ISaveTable value);
+        void SetTable(Type valueType, ISaveTable table);
         
         bool RemoveTable(Type valueType);
         
@@ -25,9 +25,9 @@ namespace MisterGames.Common.Save.Storages {
         
         ISaveTable<TKey> GetTable<T>();
         
-        void SetTable<T>(ISaveTable<TKey> value);
-        
         ISaveTable<TKey> GetOrCreateTable<T>();
+        
+        void SetTable<T>(ISaveTable<TKey> table);
         
         bool RemoveTable<T>();
         

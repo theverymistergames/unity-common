@@ -9,14 +9,6 @@ namespace MisterGames.Common.Save.Tables {
 
         [SerializeField] private SerializedDictionaryByRef<TKey, TValue[]> _dataMap = new();
 
-        public Type GetKeyType() {
-            return typeof(TKey);
-        }
-
-        public Type GetValueType() {
-            return typeof(TValue[]);
-        }
-
         public bool TryGetData<S>(TKey key, out S data) {
             if (_dataMap.TryGetValue(key, out var record)) {
                 var elementType = typeof(S).GetElementType() ?? typeof(TValue);    

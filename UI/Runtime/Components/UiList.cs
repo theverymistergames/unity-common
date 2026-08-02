@@ -28,7 +28,7 @@ namespace MisterGames.UI.Components {
             _buttonIncrement.OnClicked += IncrementSelectedIndex;
             _buttonDecrement.OnClicked += DecrementSelectedIndex;
             
-            SetSelectedIndex(_selectedIndex, force: true);
+            SetSelectedIndex(_selectedIndex, force: true, notify: false);
         }
 
         private void OnDisable() {
@@ -111,7 +111,7 @@ namespace MisterGames.UI.Components {
             SetSelectedIndex(next);
         }
 
-        private void SetSelectedIndex(int index, bool force = false) {
+        private void SetSelectedIndex(int index, bool force = false, bool notify = true) {
             int nextIndex;
             string nextText;
 
@@ -131,7 +131,7 @@ namespace MisterGames.UI.Components {
             _selectedIndex = nextIndex;
             _currentTextHash = nextHash;
             
-            OnSelectedIndexChanged.Invoke(_selectedIndex);
+            if (notify) OnSelectedIndexChanged.Invoke(_selectedIndex);
             
             ApplyText(nextText);
             UpdateButtons();

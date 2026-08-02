@@ -12,7 +12,7 @@ namespace MisterGames.Common.Save.Storages {
         
         [SerializeField] private SerializedTypeMapByRef<ISaveTable> _tables = new();
 
-        public IEnumerable<ISaveTable> Tables => _tables.Values;
+        public IReadOnlyDictionary<Type, ISaveTable> Tables => _tables;
         
         public ISaveTable<TKey> GetTable<T>() {
             return GetTable(typeof(T)) as ISaveTable<TKey>;
@@ -29,14 +29,6 @@ namespace MisterGames.Common.Save.Storages {
             }
             
             return null;
-        }
-
-        public void SetTable<T>(ISaveTable<TKey> value) {
-            SetTable(typeof(T), value);
-        }
-
-        public void SetTable(Type valueType, ISaveTable value) {
-            _tables[SaveTableCache.GetBaseElementType(valueType)] = value;
         }
 
         public ISaveTable<TKey> GetOrCreateTable<T>() {
@@ -64,13 +56,22 @@ namespace MisterGames.Common.Save.Storages {
 
             return table;
         }
+        
+        public void SetTable<T>(ISaveTable<TKey> value) {
+            SetTable(typeof(T), value);
+        }
+
+        public void SetTable(Type valueType, ISaveTable value) {
+            _tables[valueType] = value;
+        }
 
         public bool RemoveTable<T>() {
             return RemoveTable(typeof(T));
         }
         
         public bool RemoveTable(Type valueType) {
-            return _tables.Remove(SaveTableCache.GetBaseElementType(valueType));
+            return _tables.Remove(valueType) || 
+                   _tables.Remove(SaveTableCache.GetBaseElementType(valueType));
         }
 
         public void Clear() {

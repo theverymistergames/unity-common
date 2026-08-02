@@ -9,7 +9,7 @@ namespace MisterGames.Common.Save.Tables {
         public readonly Type keyType;
         public readonly Type valueType;
 
-        public SaveTableAttribute(Type key, Type value) {
+        public SaveTableAttribute(Type key, Type value = null) {
             keyType = key;
             valueType = value;
         }

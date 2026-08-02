@@ -9,14 +9,6 @@ namespace MisterGames.Common.Save.Tables {
 
         [SerializeField] private SerializedDictionary<TKey, ulong[]> _dataMap = new();
 
-        public Type GetKeyType() {
-            return typeof(TKey);
-        }
-
-        public Type GetValueType() {
-            return typeof(Enum[]);
-        }
-
         public bool TryGetData<V>(TKey key, out V data) {
             if (_dataMap.TryGetValue(key, out ulong[] record)) {
                 var elementType = typeof(V).GetElementType() ?? typeof(ulong);    
