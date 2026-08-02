@@ -23,6 +23,7 @@ namespace MisterGames.Character.View {
         private Quaternion _targetRotation;
         private Mode _mode;
         private float _smoothing;
+        private Vector3 _attachOffset;
 
         private enum Mode {
             Free,
@@ -48,7 +49,14 @@ namespace MisterGames.Character.View {
             public RotationPlane plane;
         }
         
-        public void AttachTo(Transform target, Vector3 point, AttachMode mode, float smoothing) {
+        public void AttachTo(
+            Transform target,
+            Vector3 point,
+            AttachMode mode,
+            Quaternion rotationOffset,
+            Vector2 orientation,
+            float smoothing) 
+        {
             var targetPos = target.position;
             
             _target = target;
@@ -64,6 +72,10 @@ namespace MisterGames.Character.View {
                 AttachMode.RotateAroundTarget => Mode.TransformLookaround,
                 _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
             };
+
+            var lookaroundPoint = _targetPoint + 
+                                  rotationOffset * Quaternion.Euler(orientation) * Vector3.back * AttachDistance;
+            _attachOffset = point - lookaroundPoint;
             
             OnAttach.Invoke(AttachDistance);
         }
@@ -134,27 +146,37 @@ namespace MisterGames.Character.View {
 
         private void UpdatePosition(ref Vector3 position, Quaternion rotationOffset, Vector2 orientation, float dt) {
             switch (_mode) {
+                case Mode.Free:
+                    break;
+                
                 case Mode.Point:
                     position = position.SmoothExpNonZero(_targetPoint, _smoothing, dt);
-                    return;
+                    break;
 
                 case Mode.Transform: 
                     _targetPoint = _target.position + _target.rotation * Quaternion.Inverse(_targetRotation) * _targetDir * AttachDistance; 
                     position = position.SmoothExpNonZero(_targetPoint, _smoothing, dt);
-                    return;
+                    break;
 
                 case Mode.TransformWithoutRotation: 
                     _targetPoint = _target.position + _targetDir * AttachDistance;
                     position = position.SmoothExpNonZero(_targetPoint, _smoothing, dt);
-                    return;
+                    break;
 
-                case Mode.TransformLookaround:
+                case Mode.TransformLookaround: {
                     _targetPoint = _targetPoint.SmoothExpNonZero(_target.position, _smoothing, dt);
-                    position = _targetPoint + rotationOffset * Quaternion.Euler(orientation) * Vector3.back * AttachDistance;
-                    return;
 
-                default: 
-                    return;
+                    var lookaroundPoint = _targetPoint + 
+                                          rotationOffset * Quaternion.Euler(orientation) * Vector3.back * AttachDistance;
+
+                    _attachOffset = _attachOffset.SmoothExpNonZero(Vector3.zero, _smoothing, dt);
+
+                    position = lookaroundPoint + _attachOffset;
+                    break;
+                }
+                
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
         }
 

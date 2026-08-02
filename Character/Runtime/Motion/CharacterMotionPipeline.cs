@@ -115,19 +115,21 @@ namespace MisterGames.Character.Motion {
                 Vector3.ProjectOnPlane(rotation * Vector3.forward, up)
             );
             
-            var headOffset = t.InverseTransformPoint(_view.HeadSmoothPosition);
+            var headOffset = t.InverseTransformPoint(_view.HeadPosition);
+
+            _rigidbody.position = position;
+            _rigidbody.rotation = rotation;
             
             t.SetPositionAndRotation(position, flatRotDelta * oldBodyRotation);
             
             _view.HeadRotation = rotDelta * oldHeadRotation;
-            _view.HeadSmoothPosition = t.TransformPoint(headOffset);
+            _view.HeadPosition = t.TransformPoint(headOffset);
 
             _view.Detach();
             _view.StopLookAt();
             _view.ResetHorizontalClamp();
             _view.ResetVerticalClamp();
             _view.ResetSmoothing();
-            _view.ResetHeadOffset();
             
             _collisionPipeline.Block(this, blocked: false);
             

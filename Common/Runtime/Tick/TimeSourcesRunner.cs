@@ -43,6 +43,8 @@ namespace MisterGames.Common.Tick {
         }
 
         private void Awake() {
+            _timescaleSystem.Initialize();
+            
             _timeSources.Add(_preUpdateTimeSource);
             _timeSources.Add(_updateTimeSource);
             _timeSources.Add(_unscaledUpdateTimeSource);

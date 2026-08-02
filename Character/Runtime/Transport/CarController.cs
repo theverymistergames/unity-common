@@ -26,10 +26,12 @@ namespace MisterGames.Character.Transport {
         [Header("Mass")]
         [SerializeField] private float _mass = 100f;
         [SerializeField] private Vector3 _centerOfMass;
+        [SerializeField] private Vector3 _centerOfMassAir;
         [SerializeField] private float _forcesScale = 1f;
         
         [Header("Acceleration")]
         [SerializeField] private DriveMode _driveMode;
+        [SerializeField] [Min(0f)] private float _maxSpeed = 10f;
         [SerializeField] [Min(0f)] private float _acceleration = 30f;
         [SerializeField] [Min(0f)] private float _inputThreshold = 0.1f;
         [SerializeField] [Min(0f)] private float _speedToRpm = 0.1f;
@@ -40,6 +42,7 @@ namespace MisterGames.Character.Transport {
         [SerializeField] [Min(0f)] private float _rpmDownSmoothing = 0.7f;
         
         [Header("Nitro")]
+        [SerializeField] [Min(0f)] private float _maxSpeedNitro = 5f;
         [SerializeField] [Min(0f)] private float _nitroAcceleration = 30f;
         [SerializeField] [Min(0f)] private float _nitroProgressSmoothing = 7f;
         
@@ -174,7 +177,6 @@ namespace MisterGames.Character.Transport {
 
         private void InitializeMass() {
             _rigidbody.mass = _mass;
-            _rigidbody.centerOfMass = Vector3.Scale(_centerOfMass, Root.localScale);
         }
         
         private void InitializeWheels() {
@@ -233,6 +235,7 @@ namespace MisterGames.Character.Transport {
             float brakeForce = 0f;
             bool atLeastOneDriveWheelGrounded = false;
             bool atLeastOneBrakeWheelGrounded = false;
+            bool atLeastOneWheelGrounded = false;
             
             for (int i = 0; i < _wheels.Length; i++) {
                 ref var wheel = ref _wheels[i];
@@ -243,10 +246,18 @@ namespace MisterGames.Character.Transport {
                 Brake(ref wheel, brake, dt);
                 
                 brakeForce += wheel.collider.brakeTorque;
-
+                
+                atLeastOneWheelGrounded |= isGrounded;
                 if (IsMatch(wheel.axel, _driveMode)) atLeastOneDriveWheelGrounded |= isGrounded;
                 if (IsMatch(wheel.axel, _brakeMode)) atLeastOneBrakeWheelGrounded |= isGrounded;
             }
+
+            var massCenter = atLeastOneWheelGrounded ? _centerOfMass : _centerOfMassAir; 
+            _rigidbody.centerOfMass = Vector3.Scale(massCenter, Root.localScale);
+            
+            var vel = _rigidbody.linearVelocity;
+            float maxSpeed = nitro ? _maxSpeedNitro : _maxSpeed;
+            _rigidbody.linearVelocity = VectorUtils.ClampVelocity(vel, Vector3.ProjectOnPlane(vel, Vector3.up), maxSpeed);
 
             AreBrakeWheelsGrounded = atLeastOneBrakeWheelGrounded;
             AreDriveWheelsGrounded = atLeastOneDriveWheelGrounded;

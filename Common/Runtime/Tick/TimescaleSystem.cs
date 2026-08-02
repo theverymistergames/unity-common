@@ -12,6 +12,12 @@ namespace MisterGames.Common.Tick {
         
         private readonly PriorityMap<int, float> _priorityMap = new();
         private readonly Dictionary<int, byte> _sourceToChangeIdMap = new();
+
+        private float _baseFixedDt;
+        
+        public void Initialize() {
+            _baseFixedDt = Time.fixedDeltaTime;
+        }
         
         public void Dispose() {
             _priorityMap.Clear();
@@ -27,6 +33,7 @@ namespace MisterGames.Common.Tick {
             _sourceToChangeIdMap[hash] = id.IncrementUncheckedRef();
             
             Time.timeScale = CalculateTimeScale(_priorityMap.GetFirstOrder());
+            Time.fixedDeltaTime = _baseFixedDt * Time.timeScale;
         }
 
         public void RemoveTimeScale(object source) {
@@ -36,6 +43,7 @@ namespace MisterGames.Common.Tick {
             if (!_priorityMap.Remove(hash)) return;
             
             Time.timeScale = CalculateTimeScale(_priorityMap.GetFirstOrder());
+            Time.fixedDeltaTime = _baseFixedDt * Time.timeScale;
         }
 
         public async UniTask ChangeTimeScale(
@@ -66,8 +74,10 @@ namespace MisterGames.Common.Tick {
                 t = Mathf.Clamp01(t + Time.unscaledDeltaTime * speed);
                 
                 _priorityMap.Set(hash, Mathf.Lerp(startTimescale, timescale, curve?.Evaluate(t) ?? t), priority);
+                
                 Time.timeScale = CalculateTimeScale(_priorityMap.GetFirstOrder());
-
+                Time.fixedDeltaTime = _baseFixedDt * Time.timeScale;
+                
                 await UniTask.Yield();
             }
 

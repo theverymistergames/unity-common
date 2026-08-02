@@ -27,6 +27,20 @@ namespace MisterGames.Character.Input {
         public event Action JumpPressed = delegate {  };
         public bool IsJumpPressed => enabled && _jump.Get().IsPressed();
 
+        private InputAction _viewAction;
+
+        private void Awake() {
+            _viewAction = _view.Get();
+        }
+
+        private void OnEnable() {
+            Subscribe();
+        }
+
+        private void OnDisable() {
+            Unsubscribe();
+        }
+
         public void EnableViewInput(bool enable) {
             _view.Get().performed -= HandleViewChanged;
             _view.Get().canceled -= HandleViewCanceled;
@@ -35,14 +49,6 @@ namespace MisterGames.Character.Input {
                 _view.Get().performed += HandleViewChanged;
                 _view.Get().canceled += HandleViewCanceled;
             }
-        }
-        
-        private void OnEnable() {
-            Subscribe();
-        }
-
-        private void OnDisable() {
-            Unsubscribe();
         }
 
         private void Subscribe() {
@@ -84,6 +90,10 @@ namespace MisterGames.Character.Input {
             
             OnViewVectorChanged.Invoke(Vector2.zero);
             OnMotionVectorChanged.Invoke(Vector2.zero);
+        }
+        
+        public Vector2 GetViewInputVector() {
+            return _viewAction.ReadValue<Vector2>();
         }
 
         private void HandleViewChanged(InputAction.CallbackContext callbackContext) => OnViewVectorChanged.Invoke(callbackContext.ReadValue<Vector2>());

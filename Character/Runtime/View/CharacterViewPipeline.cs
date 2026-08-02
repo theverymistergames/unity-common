@@ -16,16 +16,17 @@ using UnityEngine;
 namespace MisterGames.Character.View {
 
     public sealed class CharacterViewPipeline : MonoBehaviour, IActorComponent {
+
+        [SerializeField] private PlayerLoopTiming _loop = PlayerLoopTiming.LastPostLateUpdate;
         
         [Header("Transforms")]
         [SerializeField] private Transform _head;
-        [SerializeField] private Transform _body;
+        [SerializeField] private Rigidbody _body;
         
         [Header("View Settings")]
         [SerializeField] private Vector2 _sensitivityMouse = new(0.15f, 0.15f);
         [SerializeField] private Vector2 _sensitivityGamepad = new(1f, 1f);
         [SerializeField] [Min(0f)] private float _smoothing = 20f;
-        [SerializeField] [Min(0f)] private float _positionSmoothing = 30f;
         [SerializeField] [Min(0f)] private float _defaultFov = 70f;
         [SerializeField] [Min(0f)] private float _freeHeadRotationDistance;
         [SerializeField] private float _returnFreeHeadRotationSmoothing = 5f;
@@ -39,33 +40,16 @@ namespace MisterGames.Character.View {
         [Header("Timescale")]
         [SerializeField] private LabelValue _timescalePriority;
         
-        public event Action<float> OnAttach { add => _headJoint.OnAttach += value; remove => _headJoint.OnAttach -= value; }
-        public event Action OnDetach { add => _headJoint.OnDetach += value; remove => _headJoint.OnDetach -= value; }
-
         public bool IsAttached => _headJoint.IsAttached;
 
         public Vector3 HeadPosition {
             get => _head.position;
-            set {
-                _head.position = value;
-                SnapHeadPositionToParent();
-            }
+            set => _head.position = value;
         }
 
         public Vector3 HeadLocalPosition {
             get => _head.localPosition;
-            set {
-                _head.localPosition = value;
-                SnapHeadPositionToParent();
-            }
-        }
-        
-        public Vector3 HeadSmoothPosition {
-            get => _headPosition;
-            set {
-                _headPosition = value;
-                _head.position = value + _head.rotation * _headOffset;
-            }
+            set => _head.localPosition = value;
         }
 
         public Quaternion HeadRotation {
@@ -81,12 +65,20 @@ namespace MisterGames.Character.View {
             set => _body.position = value;
         }
         
+        public Vector3 BodyPositionTransform {
+            get => _body.transform.position;
+            set => _body.transform.position = value;
+        }
+        
         public Quaternion BodyRotation {
             get => _body.rotation;
-            set => _body.rotation = value;
+            set {
+                _bodyRotation = Quaternion.Inverse(_gravityRotation) * value;
+                _body.rotation = value;
+            }
         }
 
-        public Vector3 BodyUp => _body.up;
+        public Vector3 BodyUp => _body.transform.up;
 
         private readonly Dictionary<IViewProcessor, int> _processorIndexMap = new();
         private readonly List<IViewProcessor> _processorList = new();
@@ -99,20 +91,15 @@ namespace MisterGames.Character.View {
         private CameraContainer _cameraContainer;
         private CharacterInputPipeline _inputPipeline;
         private CharacterGravity _characterGravity;
-        private Transform _headParent;
         
         private CharacterViewData _viewData;
         private Quaternion _gravityRotation = Quaternion.identity;
-        private Vector2 _inputDeltaAccum;
-        private Vector2 _inputStick;
         
         private bool _isHorizontalClampOverriden;
         private bool _isVerticalClampOverriden;
         private bool _isSmoothingOverriden;
         private bool _hasGravity;
         
-        private Vector3 _headPosition;
-        private Vector3 _headOffset;
         private Quaternion _headRotation = Quaternion.identity;
         private Quaternion _bodyRotation = Quaternion.identity;
 
@@ -122,8 +109,6 @@ namespace MisterGames.Character.View {
             _cameraContainer = actor.GetComponent<CameraContainer>();
             _inputPipeline = actor.GetComponent<CharacterInputPipeline>();
             _hasGravity = actor.TryGetComponent(out _characterGravity);
-
-            _headParent = _head.parent;
             
             _startTime = GetTime();
 
@@ -139,18 +124,14 @@ namespace MisterGames.Character.View {
         private void OnEnable() {
             AsyncExt.RecreateCts(ref _enableCts);
             
-            _inputPipeline.OnViewVectorChanged += HandleViewVectorChanged;
-            
-            _head.GetPositionAndRotation(out _headPosition, out _headRotation);
+            _headRotation = _head.rotation;
 
-            StartPreUpdate(PlayerLoopTiming.PreLateUpdate, _enableCts.Token).Forget();
-            StartPostUpdate(PlayerLoopTiming.LastPostLateUpdate, _enableCts.Token).Forget();
+            StartBodyUpdate(_enableCts.Token).Forget();
+            StartHeadUpdate(_enableCts.Token).Forget();
         }
 
         private void OnDisable() {
             AsyncExt.DisposeCts(ref _enableCts);
-            
-            _inputPipeline.OnViewVectorChanged -= HandleViewVectorChanged;
         }
 
         private void OnDestroy() {
@@ -187,13 +168,11 @@ namespace MisterGames.Character.View {
         }
         
         public void AttachTo(Transform target, Vector3 point, AttachMode mode = AttachMode.OffsetOnly, float smoothing = 0f) {
-            _headJoint.AttachTo(target, point, mode, smoothing);
-            SnapHeadPositionToParent();
+            _headJoint.AttachTo(target, point, mode, _gravityRotation, _headRotation.ToEulerAngles180(), smoothing);
         }
         
         public void AttachTo(Vector3 point, float smoothing = 0f) {
             _headJoint.AttachTo(point, smoothing);
-            SnapHeadPositionToParent();
         }
 
         public void Detach() {
@@ -207,19 +186,16 @@ namespace MisterGames.Character.View {
         public void LookAt(Transform target, LookAtMode mode = LookAtMode.Free, Vector3 orientation = default, float smoothing = 0f) {
             _viewClamp.LookAt(target, _headRotation.ToEulerAngles180(), mode, offset: default, orientation, smoothing);
             _viewClamp.ResetNextViewCenterOffset();
-            SnapHeadPositionToParent();
         }
 
         public void LookAt(Vector3 target, float smoothing = 0f) {
             _viewClamp.LookAt(target, _headRotation.ToEulerAngles180(), smoothing);
             _viewClamp.ResetNextViewCenterOffset();
-            SnapHeadPositionToParent();
         }
 
         public void LookAlong(Quaternion orientation, float smoothing = 0f) {
             _viewClamp.LookAlong(orientation, _headRotation.ToEulerAngles180(), smoothing);
             _viewClamp.ResetNextViewCenterOffset();
-            SnapHeadPositionToParent();
         }
 
         public void StopLookAt() {
@@ -230,7 +206,6 @@ namespace MisterGames.Character.View {
         public void SetViewOrientation(Quaternion orientation, bool moveView = false) {
             _viewClamp.SetViewOrientation((Quaternion.Inverse(_gravityRotation) * orientation).ToEulerAngles180());
             if (!moveView) _viewClamp.ResetNextViewCenterOffset();
-            //SnapHeadPositionToParent();
         }
 
         public void ApplyHorizontalClamp(ViewAxisClamp clamp) {
@@ -263,11 +238,6 @@ namespace MisterGames.Character.View {
             _smoothing = _viewData?.viewSmoothing ?? 0f;
         }
 
-        public void ResetHeadOffset() {
-            _headOffset = Vector3.zero;
-            _head.position = _headPosition;
-        }
-
         private void UpdateOverridableParameters() {
             if (!_isHorizontalClampOverriden) {
                 _viewClamp.ApplyHorizontalClamp(_viewData?.horizontalClamp ?? _viewClamp.Horizontal, _headRotation.ToEulerAngles180());
@@ -280,36 +250,20 @@ namespace MisterGames.Character.View {
             if (!_isSmoothingOverriden) _smoothing = _viewData?.viewSmoothing ?? _smoothing;
         }
 
-        private void HandleViewVectorChanged(Vector2 input) {
-            if (GetTime() < _startTime + _startDelay) return;
-
-            switch (_deviceService.CurrentDevice) {
-                case InputDeviceType.KeyboardMouse:
-                    _inputDeltaAccum += new Vector2(-input.y, input.x);
-                    _inputStick = default;
-                    break;
-                
-                case InputDeviceType.Gamepad:
-                    _inputDeltaAccum = default;
-                    _inputStick = new Vector2(-input.y, input.x);
-                    break;
-                
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
-        }
-
-        private async UniTask StartPreUpdate(PlayerLoopTiming loop, CancellationToken cancellationToken) {
+        private async UniTask StartBodyUpdate(CancellationToken cancellationToken) {
             while (!cancellationToken.IsCancellationRequested) {
-                PreUpdate(GetDeltaTime());
-                await UniTask.Yield(loop);
+                ProcessBodyUpdate(Time.fixedDeltaTime);
+                await UniTask.Yield(PlayerLoopTiming.FixedUpdate);
             }
         }
         
-        private async UniTask StartPostUpdate(PlayerLoopTiming loop, CancellationToken cancellationToken) {
+        private async UniTask StartHeadUpdate(CancellationToken cancellationToken) {
             while (!cancellationToken.IsCancellationRequested) {
-                PostUpdate(GetDeltaTime());
-                await UniTask.Yield(loop);
+                float dt = _timescalePriority.TryGetValue(out int value) 
+                    ? Time.unscaledDeltaTime * _timescaleSystem.GetTimeScale(value) 
+                    : Time.unscaledDeltaTime;
+                ProcessHeadUpdate(dt);
+                await UniTask.Yield(PlayerLoopTiming.LastPostLateUpdate);
             }
         }
 
@@ -317,58 +271,52 @@ namespace MisterGames.Character.View {
             return Time.unscaledTime;
         }
         
-        private float GetDeltaTime() {
-            return _timescalePriority.TryGetValue(out int value) 
-                ? Time.unscaledDeltaTime * _timescaleSystem.GetTimeScale(value) 
-                : Time.unscaledDeltaTime;
+        private void ProcessBodyUpdate(float dt) {
+            var currentOrientation = (Vector2) _headRotation.ToEulerAngles180();
+            ApplyBodyRotation(currentOrientation, dt);
         }
         
-        private void PreUpdate(float dt) {
-            ProcessGravityAlign(dt);
-            ProcessPositionSnap(dt);
-            
-            var position = _headPosition + _head.rotation * _headOffset;
-            var orientation = (Vector2) _headRotation.ToEulerAngles180();
-            
-            ApplyAttach(ref position, orientation, dt);
-            ApplyPosition(position);
-        }
-        
-        private void PostUpdate(float dt) {
+        private void ProcessHeadUpdate(float dt) {
+            var position = _head.position;
             var delta = ConsumeInputDelta();
             var currentOrientation = (Vector2) _headRotation.ToEulerAngles180();
             var targetOrientation = currentOrientation + delta;
-            var position = _headPosition + _head.rotation * _headOffset;
 
+            ProcessGravityAlign(dt);
+            
             ApplyClamp(position, ref currentOrientation, ref targetOrientation, dt);
             ApplySmoothing(ref currentOrientation, targetOrientation, dt);
             
-            // reapply clamp after smoothing to get valid target orientation
+            // reapply clamp to get valid target orientation
+            currentOrientation = currentOrientation.ToEulerAngles180();
             targetOrientation = currentOrientation;
             ApplyClamp(position, ref currentOrientation, ref targetOrientation, dt: 0f);
-            
-            // apply attach without dt to get valid position, then reapply clamp again for new position
-            ApplyAttach(ref position, targetOrientation, dt: 0f);
+
+            // reapply clamp to get valid target orientation
+            ApplyAttach(ref position, targetOrientation, dt);
             ApplyClamp(position, ref currentOrientation, ref targetOrientation, dt: 0f);
             
             ApplyAttachedObjects(position, targetOrientation, delta, dt);
-            ApplyRotation(targetOrientation, dt);
+            ApplyHeadRotation(targetOrientation);
             ApplyPosition(position);
             ApplyCameraState();
+            
+            CleanupProcessors();
         }
 
         private Vector2 ConsumeInputDelta() {
+            if (GetTime() < _startTime + _startDelay) return default;
+            
             var device = _deviceService.CurrentDevice;
             var sens = ApplyProcessorsForSensitivity(device);
-            var delta = device switch {
-                InputDeviceType.KeyboardMouse => _inputDeltaAccum * _sensitivityMouse * sens,
-                InputDeviceType.Gamepad => _inputStick * _sensitivityGamepad * sens,
+            var input = _inputPipeline.GetViewInputVector();
+            var vector = new Vector2(-input.y, input.x);
+
+            return device switch {
+                InputDeviceType.KeyboardMouse => vector * _sensitivityMouse * sens,
+                InputDeviceType.Gamepad => vector * _sensitivityGamepad * sens,
                 _ => throw new ArgumentOutOfRangeException()
             };
-
-            _inputDeltaAccum = Vector2.zero;
-
-            return delta;
         }
 
         private void ApplyAttach(ref Vector3 position, Vector2 orientation, float dt) {
@@ -392,9 +340,12 @@ namespace MisterGames.Character.View {
             _cameraContainer.SetBaseFov(_viewData?.fov ?? _defaultFov);
         }
 
-        private void ApplyRotation(Vector2 eulerAngles, float dt) {
+        private void ApplyHeadRotation(Vector2 eulerAngles) {
             _headRotation = Quaternion.Euler(eulerAngles);
-            
+            _head.rotation = _gravityRotation * _headRotation;
+        }
+
+        private void ApplyBodyRotation(Vector2 eulerAngles, float dt) {
             // If head offset from body is longer than free head rotation distance,
             // body rotation is not applied to prevent head from rotation around body vertical axis. 
             if (_head.localPosition.sqrMagnitude < _freeHeadRotationDistance * _freeHeadRotationDistance) {
@@ -404,9 +355,8 @@ namespace MisterGames.Character.View {
                 
                 _bodyRotation = _bodyRotation.SlerpNonZero(Quaternion.Euler(0f, eulerAngles.y, 0f), smooth, dt);
             }
-
+            
             _body.rotation = _gravityRotation * _bodyRotation;
-            _head.rotation = _gravityRotation * _headRotation;
         }
 
         private void ProcessGravityAlign(float dt) {
@@ -416,20 +366,8 @@ namespace MisterGames.Character.View {
             _gravityRotation = _gravityRotation.SlerpNonZero(target, _gravityDirSmoothing, dt);
         }
 
-        private void ProcessPositionSnap(float dt) {
-            if (_headJoint.IsAttached) return;
-            
-            _headPosition = _headPosition.SmoothExpNonZero(_headParent.position, _positionSmoothing, dt);
-        }
-
         private void ApplyPosition(Vector3 position) {
             _head.position = position;
-            _headOffset = _head.InverseTransformDirection(position - _headPosition);
-        }
-        
-        private void SnapHeadPositionToParent() {
-            _headPosition = _headParent.position;
-            _headOffset = _head.InverseTransformDirection(_head.position - _headPosition);
         }
         
         private Vector2 ApplyProcessorsForSensitivity(InputDeviceType deviceType) {

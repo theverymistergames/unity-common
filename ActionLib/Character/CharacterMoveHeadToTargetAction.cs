@@ -117,7 +117,6 @@ namespace MisterGames.ActionLib.Character {
             
             target.GetPositionAndRotation(out var targetStartPosition, out var targetStartRotation);
             
-            var headStartRotation = view.HeadRotation;
             var startPoint = view.HeadPosition;
 
             var offsetOrient = offsetMode switch {
@@ -127,9 +126,7 @@ namespace MisterGames.ActionLib.Character {
                 _ => throw new ArgumentOutOfRangeException()
             };
             
-            var finalPoint = attach && attachMode == AttachMode.RotateAroundTarget
-                ? targetStartPosition + view.HeadRotation * offset
-                : targetStartPosition + offsetOrient * offset;
+            var finalPoint = targetStartPosition + offsetOrient * offset;
                     
             var rot = Quaternion.LookRotation(offsetOrient * offset, Vector3.up);
             var curvePoint = BezierExtensions.GetCurvaturePoint(startPoint, finalPoint, rot, curvature);
@@ -145,9 +142,7 @@ namespace MisterGames.ActionLib.Character {
             while (!cancellationToken.IsCancellationRequested) {
                 target.GetPositionAndRotation(out var targetPosition, out var targetRotation);
 
-                var targetRotationOffset = attach && attachMode == AttachMode.RotateAroundTarget
-                    ? view.HeadRotation * Quaternion.Inverse(headStartRotation) 
-                    : targetRotation * Quaternion.Inverse(targetStartRotation);
+                var targetRotationOffset = targetRotation * Quaternion.Inverse(targetStartRotation);
                 
                 startPoint = targetPosition + targetRotationOffset * startPointOffset;
                 curvePoint = targetPosition + targetRotationOffset * curvePointOffset;

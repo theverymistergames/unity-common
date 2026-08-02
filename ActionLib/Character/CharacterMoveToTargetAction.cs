@@ -101,6 +101,9 @@ namespace MisterGames.ActionLib.Character {
 
             if (disableCollisionsWhileMoving) collisions.Block(this, blocked: true, cancellationToken);
             
+            var headPos = view.HeadPosition;
+            bool waitedFrame = false;
+            
             while (!cancellationToken.IsCancellationRequested) {
                 target.GetPositionAndRotation(out var targetPosition, out var targetRotation);
                 
@@ -110,7 +113,7 @@ namespace MisterGames.ActionLib.Character {
                 curvePoint = targetPosition + targetRotationOffset * curvePointOffset;
                 finalPoint = targetPosition + targetRotationOffset * finalPointOffset;
 
-                float dt = useUnscaledTime ? UnityEngine.Time.unscaledDeltaTime : UnityEngine.Time.deltaTime;
+                float dt = useUnscaledTime ? UnityEngine.Time.fixedUnscaledDeltaTime : UnityEngine.Time.fixedDeltaTime;
                 t = Mathf.Clamp01(t + speed * dt);
                 
                 var position = BezierExtensions.EvaluateBezier3Points(
@@ -120,10 +123,9 @@ namespace MisterGames.ActionLib.Character {
                     progressCurve.Evaluate(t)
                 );
 
-                var headPos = view.HeadPosition;
+                headPos = view.HeadPosition;
                 
                 view.BodyPosition = position;
-                if (saveHeadPosition) view.HeadPosition = headPos;
                 
                 if (t >= 1f) break;
                 
@@ -131,10 +133,21 @@ namespace MisterGames.ActionLib.Character {
                 DebugExt.DrawSphere(view.BodyPosition, 0.005f, Color.yellow, duration: 5f);
 #endif
                 
-                await UniTask.Yield();
+                await UniTask.Yield(PlayerLoopTiming.FixedUpdate);
+                waitedFrame = true;
+                
+                if (cancellationToken.IsCancellationRequested) break;
+                
+                if (saveHeadPosition && view != null) view.HeadPosition = headPos;
             }
       
             if (cancellationToken.IsCancellationRequested) return;
+
+            if (saveHeadPosition && !waitedFrame) {
+                view.BodyPositionTransform = finalPoint;
+                Physics.SyncTransforms();
+                view.HeadPosition = headPos;
+            }
             
 #if UNITY_EDITOR
             DebugExt.DrawSphere(view.BodyPosition, 0.01f, Color.green, duration: 5f);
@@ -188,6 +201,9 @@ namespace MisterGames.ActionLib.Character {
             
             if (disableCollisionsWhileMoving) collisions.Block(this, blocked: true, cancellationToken);
 
+            var headPos = view.HeadPosition;
+            bool waitedFrame = false;
+            
             while (!cancellationToken.IsCancellationRequested) {
                 var targetPosition = view.HeadPosition;
 
@@ -195,7 +211,7 @@ namespace MisterGames.ActionLib.Character {
                 curvePoint = targetPosition + curvePointOffset;
                 finalPoint = targetPosition + finalPointOffset;
 
-                float dt = useUnscaledTime ? UnityEngine.Time.unscaledDeltaTime : UnityEngine.Time.deltaTime;
+                float dt = useUnscaledTime ? UnityEngine.Time.fixedUnscaledDeltaTime : UnityEngine.Time.fixedDeltaTime;
                 t = Mathf.Clamp01(t + speed * dt);
                 
                 var position = BezierExtensions.EvaluateBezier3Points(
@@ -205,10 +221,9 @@ namespace MisterGames.ActionLib.Character {
                     progressCurve.Evaluate(t)
                 );
 
-                var headPos = view.HeadPosition;
+                headPos = view.HeadPosition;
                 
                 view.BodyPosition = position;
-                view.HeadPosition = headPos;
                 
                 if (t >= 1f) break;
                 
@@ -216,10 +231,21 @@ namespace MisterGames.ActionLib.Character {
                 DebugExt.DrawSphere(view.BodyPosition, 0.005f, Color.yellow, duration: 5f);
 #endif
                 
-                await UniTask.Yield();
+                await UniTask.Yield(PlayerLoopTiming.FixedUpdate);
+                waitedFrame = true;
+                
+                if (cancellationToken.IsCancellationRequested) continue;
+                
+                if (view != null) view.HeadPosition = headPos;
             }
       
             if (cancellationToken.IsCancellationRequested) return;
+
+            if (!waitedFrame) {
+                view.BodyPositionTransform = finalPoint;
+                Physics.SyncTransforms();
+                view.HeadPosition = headPos;
+            }
             
 #if UNITY_EDITOR
             DebugExt.DrawSphere(view.BodyPosition, 0.01f, Color.green, duration: 5f);
