@@ -1,8 +1,10 @@
 ﻿using MisterGames.Common.Maths;
 using TMPro;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace MisterGames.UI.Components {
     
