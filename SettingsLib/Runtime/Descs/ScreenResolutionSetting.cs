@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using MisterGames.Common.Localization;
+using MisterGames.Common.Maths;
 using MisterGames.SettingsLib.Base;
-using UnityEngine.Device;
+using UnityEngine;
+using Screen = UnityEngine.Device.Screen;
 
 namespace MisterGames.SettingsLib.Descs {
     
@@ -19,6 +21,15 @@ namespace MisterGames.SettingsLib.Descs {
             public Res(int width, int height) {
                 this.width = width;
                 this.height = height;
+            }
+
+            public static Res FromLong(long value) {
+                NumberExtensions.LongAsTwoInts(value, out int x, out int y);
+                return new Res(x, y);
+            }
+
+            public long ToLong() {
+                return NumberExtensions.TwoIntsAsLong(width, height);
             }
         }
         
@@ -37,22 +48,24 @@ namespace MisterGames.SettingsLib.Descs {
         }
 
         public void ApplySetting(ISettingsService service, string id) {
-            if (!service.TryGet(id, 0, out Res res)) {
-                res = new Res(Screen.width, Screen.height);
+            var res = new Res(Screen.width, Screen.height);
+            
+            if (service.TryGet(id, 0, out long value)) {
+                res = Res.FromLong(value);
             }
 
             int index = GetResolutionIndex(res);
-            
+
             NotifyResolution(id, res, index);
         }
         
         public void ClearSetting(ISettingsService service, string id) {
-            service.Remove<Res>(id, 0);
+            service.Remove<long>(id, 0);
         }
         
         public void ResaveSetting(ISettingsService service, string id) {
-            if (service.TryGet<Res>(id, 0, out var res)) {
-                service.Set(id, 0, res);
+            if (service.TryGet(id, 0, out long value)) {
+                service.Set(id, 0, value);
             }
         }
         
@@ -78,7 +91,12 @@ namespace MisterGames.SettingsLib.Descs {
         }
 
         public int GetIndex(ISettingsService service, string id) {
-            var res = service.TryGet(id, index: 0, out Res r) ? r : new Res(Screen.width, Screen.height);
+            var res = new Res(Screen.width, Screen.height);
+            
+            if (service.TryGet(id, 0, out long value)) {
+                res = Res.FromLong(value);
+            }
+            
             return GetResolutionIndex(res);
         }
 
@@ -86,7 +104,7 @@ namespace MisterGames.SettingsLib.Descs {
             if (index < 0 || index >= _supportedResolutions.Count) return false;
 
             var res = _supportedResolutions[index];
-            bool ok = service.Set(id, index: 0, res);
+            bool ok = service.Set(id, index: 0, res.ToLong());
             
             NotifyResolution(id, res, index);
             

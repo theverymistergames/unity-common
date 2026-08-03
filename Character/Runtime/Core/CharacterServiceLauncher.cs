@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace MisterGames.Character.Core {
     
-    [DefaultExecutionOrder(-10000)]
+    [DefaultExecutionOrder(-100_000)]
     public sealed class CharacterServiceLauncher : MonoBehaviour {
         
         private readonly CharacterSettings _characterSettings = new();

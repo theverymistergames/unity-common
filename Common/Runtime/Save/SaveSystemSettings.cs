@@ -14,8 +14,11 @@ namespace MisterGames.Common.Save {
         public string fileName;
         public string fileFormat;
 
+        [Header("Editor")]
+        public bool useSeparateEditorFolder = true;
+        
         public string GetFolderPath() {
-            return Path.Combine(Application.persistentDataPath, folder);
+            return Path.Combine(GetPersistentDataPath(), folder);
         }
         
         public string GetFilePath(string fileId) {
@@ -26,6 +29,14 @@ namespace MisterGames.Common.Save {
             fileName = fileName.Substring(this.fileName.Length, fileName.Length - this.fileName.Length);
             if (fileName[0] == '_') fileName = fileName.Remove(0, 1);
             return fileName;
+        }
+        
+        public string GetPersistentDataPath() {
+#if UNITY_EDITOR
+            if (useSeparateEditorFolder) return $"{Application.persistentDataPath}_editor";
+#endif
+            
+            return Application.persistentDataPath;
         }
     }
     

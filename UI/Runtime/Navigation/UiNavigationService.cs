@@ -115,12 +115,27 @@ namespace MisterGames.UI.Navigation {
             bool isNullOrDisabled = SelectedGameObject == null || 
                                     SelectedGameObject is not { activeSelf: true, activeInHierarchy: true };
             
+            if (isNullOrDisabled) {
+                var candidate = _selectableMap.GetValueOrDefault(_lastNonNullSelectableHash);
+                
+                if (candidate == null || candidate is not { gameObject: { activeSelf: true, activeInHierarchy: true }}) {
+                    var node = _uiWindowService.GetFrontOpenedWindow()?.Node;
+                    candidate = node?.CurrentSelectable != null ? node.CurrentSelectable : node?.DefaultSelectable;
+                }
+                
+                if (candidate != null && candidate is { gameObject: { activeSelf: true, activeInHierarchy: true }}) {
+                    SelectedGameObject = candidate.gameObject;
+                    SetCurrentSelectable(candidate);
+                    isNullOrDisabled = false;
+                } 
+            }
+            
             int hash = isNullOrDisabled ? 0 : SelectedGameObject.GetHashCode();
             if (hash == _selectedGameObjectHash) return;
-
+            
             _selectedGameObjectHash = hash;
             CurrentSelectable = isNullOrDisabled ? null : SelectedGameObject.GetComponent<Selectable>();
-
+            
             if (isNullOrDisabled || CurrentSelectable == null) {
                 _selectedSelectableHash = 0;
             }

@@ -47,7 +47,7 @@ namespace MisterGames.UI.Components {
             _elements.Clear();
             _elements.AddRange(elements);
 
-            SetSelectedIndex(_selectedIndex);
+            SetSelectedIndex(_selectedIndex, notify: false);
             
 #if UNITY_EDITOR
             if (!Application.isPlaying) EditorUtility.SetDirty(this);
@@ -69,7 +69,7 @@ namespace MisterGames.UI.Components {
                 }
             }
       
-            SetSelectedIndex(_selectedIndex);
+            SetSelectedIndex(_selectedIndex, notify: false);
             
 #if UNITY_EDITOR
             if (!Application.isPlaying) EditorUtility.SetDirty(this);
@@ -80,7 +80,7 @@ namespace MisterGames.UI.Components {
             if (_elements == null || index < 0 || index >= _elements.Count) return false;
             
             _elements[index] = text;
-            if (index == _selectedIndex) SelectIndex(index);
+            if (index == _selectedIndex) SetSelectedIndex(index, notify: false);
             
 #if UNITY_EDITOR
             if (!Application.isPlaying) EditorUtility.SetDirty(this);
@@ -94,7 +94,7 @@ namespace MisterGames.UI.Components {
         }
 
         public void SelectIndex(int index) {
-            SetSelectedIndex(index, force: false);
+            SetSelectedIndex(index);
         }
 
         private void IncrementSelectedIndex(UiButton button) {
