@@ -122,21 +122,23 @@ namespace MisterGames.UI.Navigation {
         /// <summary>
         /// To sort positions by:
         /// 1) Min orthogonal distance to ray along direction measured in cells
-        /// 2) Max projection distance between positions along direction.
+        /// 2) Max projection distance between positions along direction measured in cells
+        /// 3) Max projection minus orthogonal distance between positions along direction.
         /// </summary>
         [BurstCompile]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsFartherAlongDirection(
             float projMinusOrthDistance,
-            int orthCells, 
+            int2 orthProjCells, 
             ref float maxProjMinusOrthDistance,
-            ref int minOrthCells) 
+            ref int2 maxOrthProjCells) 
         {
-            if (orthCells < minOrthCells || 
-                orthCells == minOrthCells && projMinusOrthDistance > maxProjMinusOrthDistance) 
+            if (orthProjCells.x < maxOrthProjCells.x || 
+                orthProjCells.x == maxOrthProjCells.x && 
+                (orthProjCells.y > maxOrthProjCells.y || orthProjCells.y == maxOrthProjCells.y && projMinusOrthDistance > maxProjMinusOrthDistance)) 
             {
                 maxProjMinusOrthDistance = projMinusOrthDistance;
-                minOrthCells = orthCells;
+                maxOrthProjCells = orthProjCells;
                 return true;
             }
             
@@ -160,11 +162,11 @@ namespace MisterGames.UI.Navigation {
             ref int2 minOrthProjCells) 
         {
             var absDistance2 = math.abs(pos - relativeTo);
-            var distanceCells2 = new int2((int) math.floor(absDistance2.x / cell.x), (int) math.floor(absDistance2.y / cell.y));
+            var cells2 = new int2((int) math.floor(absDistance2.x / cell.x), (int) math.floor(absDistance2.y / cell.y));
             float sqrDistance = math.lengthsq(absDistance2);
             var orthProjCells = direction switch {
-                UiNavigationDirection.Up or UiNavigationDirection.Down => new int2(distanceCells2.x, distanceCells2.y),
-                UiNavigationDirection.Left or UiNavigationDirection.Right => new int2(distanceCells2.y, distanceCells2.x),
+                UiNavigationDirection.Up or UiNavigationDirection.Down => cells2.xy,
+                UiNavigationDirection.Left or UiNavigationDirection.Right => cells2.yx,
                 _ => throw new ArgumentOutOfRangeException(nameof(direction), direction, null)
             };
 
@@ -174,7 +176,8 @@ namespace MisterGames.UI.Navigation {
         /// <summary>
         /// To sort positions by:
         /// 1) Min orthogonal distance to ray along direction measured in cells
-        /// 2) Max projection distance between positions along direction.
+        /// 2) Max projection distance between positions along direction measured in cells
+        /// 3) Max projection minus orthogonal distance between positions along direction.
         /// </summary>
         [BurstCompile]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -184,30 +187,31 @@ namespace MisterGames.UI.Navigation {
             float2 cell,
             UiNavigationDirection direction,
             ref float maxProjMinusOrthDistance,
-            ref int minOrthCells) 
+            ref int2 maxOrthProjCells) 
         {
             var absDistance2 = math.abs(pos - relativeTo);
-            int orthCells;
+            var cells2 = new int2((int) math.floor(absDistance2.x / cell.x), (int) math.floor(absDistance2.y / cell.y));
+            int2 orthProjCells;
             float projMinusOrthDistance;
             
             switch (direction) {
                 case UiNavigationDirection.Up:
                 case UiNavigationDirection.Down:
                     projMinusOrthDistance = absDistance2.y - absDistance2.x;
-                    orthCells = (int) math.floor(absDistance2.x / cell.x);
+                    orthProjCells = cells2.xy;
                     break;
                 
                 case UiNavigationDirection.Left:
                 case UiNavigationDirection.Right:
                     projMinusOrthDistance = absDistance2.x - absDistance2.y;
-                    orthCells = (int) math.floor(absDistance2.y / cell.y);
+                    orthProjCells = cells2.yx;
                     break;
                 
                 default:
                     throw new ArgumentOutOfRangeException(nameof(direction), direction, null);
             }
             
-            return IsFartherAlongDirection(projMinusOrthDistance, orthCells, ref maxProjMinusOrthDistance, ref minOrthCells);
+            return IsFartherAlongDirection(projMinusOrthDistance, orthProjCells, ref maxProjMinusOrthDistance, ref maxOrthProjCells);
         }
         
         public static bool IsCursorInsideRect(RectTransform rectTransform, Vector4 offset = default) {

@@ -245,10 +245,10 @@ namespace MisterGames.UI.Navigation {
                 float maxProjMinusOrthLeftmost = float.MinValue;
                 float maxProjMinusOrthRightmost = float.MinValue;
                 
-                int minOrthCellsUpmost = int.MaxValue;
-                int minOrthCellsDownmost = int.MaxValue;
-                int minOrthCellsLeftmost = int.MaxValue;
-                int minOrthCellsRightmost = int.MaxValue;
+                var maxOrthProjCellsUpmost = new int2(int.MaxValue, int.MinValue);
+                var maxOrthProjCellsDownmost = new int2(int.MaxValue, int.MinValue);
+                var maxOrthProjCellsLeftmost = new int2(int.MaxValue, int.MinValue);
+                var maxOrthProjCellsRightmost = new int2(int.MaxValue, int.MinValue);
                 
                 for (int i = 0; i < selectablesArray.Length; i++) {
                     var data = selectablesArray[i];
@@ -284,38 +284,38 @@ namespace MisterGames.UI.Navigation {
                     }
 
                     if (isUp &&
-                        UiNavigationUtils.IsCloserAlongDirection(sqr, new int2(cells2.x, cells2.y), ref minSqrUp, ref minOrthProjCellsUp)) 
+                        UiNavigationUtils.IsCloserAlongDirection(sqr, cells2.xy, ref minSqrUp, ref minOrthProjCellsUp)) 
                     {
                         upId = data.id;
                     }
                     
                     if (isDown &&
-                        UiNavigationUtils.IsCloserAlongDirection(sqr, new int2(cells2.x, cells2.y), ref minSqrDown, ref minOrthProjCellsDown)) 
+                        UiNavigationUtils.IsCloserAlongDirection(sqr, cells2.xy, ref minSqrDown, ref minOrthProjCellsDown)) 
                     {
                         downId = data.id;
                     }
                     
                     if (isLeft &&
-                        UiNavigationUtils.IsCloserAlongDirection(sqr, new int2(cells2.y, cells2.x), ref minSqrLeft, ref minOrthProjCellsLeft)) 
+                        UiNavigationUtils.IsCloserAlongDirection(sqr, cells2.yx, ref minSqrLeft, ref minOrthProjCellsLeft)) 
                     {
                         leftId = data.id;
                     }
                 
                     if (isRight &&
-                        UiNavigationUtils.IsCloserAlongDirection(sqr, new int2(cells2.y, cells2.x), ref minSqrRight, ref minOrthProjCellsRight)) 
+                        UiNavigationUtils.IsCloserAlongDirection(sqr, cells2.yx, ref minSqrRight, ref minOrthProjCellsRight)) 
                     {
                         rightId = data.id;
                     }
 
                     if ((loop & UiNavigationLoop.Vertical) != 0) {
                         if (isUp && 
-                            UiNavigationUtils.IsFartherAlongDirection(absDistance2.y - absDistance2.x, cells2.x, ref maxProjMinusOrthUpmost, ref minOrthCellsUpmost)) 
+                            UiNavigationUtils.IsFartherAlongDirection(absDistance2.y - absDistance2.x, cells2.xy, ref maxProjMinusOrthUpmost, ref maxOrthProjCellsUpmost)) 
                         {
                             upmostId = data.id;
                         }
 
                         if (isDown && 
-                            UiNavigationUtils.IsFartherAlongDirection(absDistance2.y - absDistance2.x, cells2.x, ref maxProjMinusOrthDownmost, ref minOrthCellsDownmost)) 
+                            UiNavigationUtils.IsFartherAlongDirection(absDistance2.y - absDistance2.x, cells2.xy, ref maxProjMinusOrthDownmost, ref maxOrthProjCellsDownmost)) 
                         {
                             downmostId = data.id;
                         }
@@ -324,13 +324,13 @@ namespace MisterGames.UI.Navigation {
                     if ((loop & UiNavigationLoop.Horizontal) != 0)
                     {
                         if (isLeft && 
-                            UiNavigationUtils.IsFartherAlongDirection(absDistance2.x - absDistance2.y, cells2.y, ref maxProjMinusOrthLeftmost, ref minOrthCellsLeftmost)) 
+                            UiNavigationUtils.IsFartherAlongDirection(absDistance2.x - absDistance2.y, cells2.yx, ref maxProjMinusOrthLeftmost, ref maxOrthProjCellsLeftmost)) 
                         {
                             leftmostId = data.id;
                         }
                     
                         if (isRight && 
-                            UiNavigationUtils.IsFartherAlongDirection(absDistance2.x - absDistance2.y, cells2.y, ref maxProjMinusOrthRightmost, ref minOrthCellsRightmost)) 
+                            UiNavigationUtils.IsFartherAlongDirection(absDistance2.x - absDistance2.y, cells2.yx, ref maxProjMinusOrthRightmost, ref maxOrthProjCellsRightmost)) 
                         {
                             rightmostId = data.id;
                         }
