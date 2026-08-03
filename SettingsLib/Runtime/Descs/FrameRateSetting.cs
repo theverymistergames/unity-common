@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using MisterGames.Common.Localization;
+using MisterGames.Common.Maths;
 using MisterGames.SettingsLib.Base;
 using UnityEngine;
 using Screen = UnityEngine.Device.Screen;
@@ -34,6 +35,10 @@ namespace MisterGames.SettingsLib.Descs {
                 this.fpsIndex = fpsIndex;
                 this.mode = mode;
             }
+
+            public long AsLong() {
+                return NumberExtensions.TwoIntsAsLong((int) mode, fpsIndex);
+            }
         }
         
         public enum Mode {
@@ -46,8 +51,13 @@ namespace MisterGames.SettingsLib.Descs {
         private readonly HashSet<ISettingDescListed.Listener> _listeners = new();
         
         public void ApplySetting(ISettingsService service, string id) {
-            if (!service.TryGet(id, 0, out ModeData data)) {
-                data = defaultMode;
+            var data = defaultMode;
+            
+            if (service.TryGet(id, 0, out long value)) {
+                NumberExtensions.LongAsTwoInts(value, out int a, out int b);
+                if (a is >= 0 and <= 3 && b >= 0 && b < fpsNumbers.Length) {
+                    data = new ModeData((Mode) a, b);
+                }
             }
 
             int index = GetIndex(data);
@@ -56,12 +66,12 @@ namespace MisterGames.SettingsLib.Descs {
         }
         
         public void ClearSetting(ISettingsService service, string id) {
-            service.Remove<ModeData>(id, 0);
+            service.Remove<long>(id, 0);
         }
         
         public void ResaveSetting(ISettingsService service, string id) {
-            if (service.TryGet<ModeData>(id, 0, out var data)) {
-                service.Set(id, 0, data);
+            if (service.TryGet(id, 0, out long value)) {
+                service.Set(id, 0, value);
             }
         }
         
@@ -88,12 +98,20 @@ namespace MisterGames.SettingsLib.Descs {
                 0 => unlimitedFps.GetValue(),
                 1 => string.Format(vsync.GetValue(), string.Format(numberFps.GetValue(), Mathf.RoundToInt((float) screenRes.refreshRateRatio.value))),
                 2 => string.Format(vsyncHalf.GetValue(), string.Format(numberFps.GetValue(), Mathf.RoundToInt((float) screenRes.refreshRateRatio.value))),
-                _ => string.Format(numberFps.GetValue(), fpsNumbers[index - 3])
+                _ => string.Format(numberFps.GetValue(), index - 3 >= 0 && index - 3 < fpsNumbers.Length ? fpsNumbers[index - 3] : fpsNumbers[0])
             };
         }
 
         public int GetIndex(ISettingsService service, string id) {
-            var data = service.TryGet(id, index: 0, out ModeData m) ? m : defaultMode;
+            var data = defaultMode;
+            
+            if (service.TryGet(id, 0, out long value)) {
+                NumberExtensions.LongAsTwoInts(value, out int a, out int b);
+                if (a is >= 0 and <= 3 && b >= 0 && b < fpsNumbers.Length) {
+                    data = new ModeData((Mode) a, b);
+                }
+            }
+
             return GetIndex(data);
         }
 
@@ -107,7 +125,7 @@ namespace MisterGames.SettingsLib.Descs {
                 _ => new ModeData(Mode.NumberFps, index - 3)
             };
             
-            bool ok = service.Set(id, index: 0, mode);
+            bool ok = service.Set(id, index: 0, mode.AsLong());
             
             NotifyMode(id, mode, index);
             
@@ -119,7 +137,7 @@ namespace MisterGames.SettingsLib.Descs {
                 Mode.Unlimited => 0,
                 Mode.VSync => 1,
                 Mode.VSyncHalf => 2,
-                Mode.NumberFps => 3 + data.fpsIndex,
+                Mode.NumberFps => 3 + Mathf.Clamp(data.fpsIndex, 0, fpsNumbers.Length),
                 _ => throw new ArgumentOutOfRangeException()
             };
         }
@@ -141,7 +159,7 @@ namespace MisterGames.SettingsLib.Descs {
                 
                 case Mode.NumberFps:
                     QualitySettings.vSyncCount = 0;
-                    Application.targetFrameRate = fpsNumbers[data.fpsIndex];
+                    Application.targetFrameRate = fpsNumbers[data.fpsIndex >= 0 && data.fpsIndex < fpsNumbers.Length ? data.fpsIndex : 0];
                     break;
                 
                 default:
