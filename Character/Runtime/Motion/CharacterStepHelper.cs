@@ -1,4 +1,5 @@
 ﻿using MisterGames.Actors;
+using MisterGames.Character.Capsule;
 using MisterGames.Character.Phys;
 using MisterGames.Collisions.Utils;
 using MisterGames.Common;
@@ -17,6 +18,8 @@ namespace MisterGames.Character.Motion {
         [SerializeField] [Min(0f)] private float _minInclineAngle;
         [SerializeField] [Min(0f)] private float _maxStepDepth;
         [SerializeField] [Min(1)] private int _maxHits = 6;
+        [SerializeField] [Min(1)] private int _maxHitsSweepTest = 12;
+        [SerializeField] [Min(0f)] private float _sweepDistance = 0.1f;
         
         [Header("Resolving")]
         [SerializeField] private bool _disableIfNotUsingGravity;
@@ -35,16 +38,20 @@ namespace MisterGames.Character.Motion {
         private CharacterGroundDetector _groundDetector;
         private CharacterMotionPipeline _motion;
         private CharacterGravity _characterGravity;
+        private CharacterCapsulePipeline _capsulePipeline;
         private Transform _transform;
         private RaycastHit[] _hits;
+        private RaycastHit[] _sweepHits;
 
         void IActorComponent.OnAwake(IActor actor) {
             _transform = actor.Transform;
             _hits = new RaycastHit[_maxHits];
+            _sweepHits = new RaycastHit[_maxHitsSweepTest];
             
             _motion = actor.GetComponent<CharacterMotionPipeline>();
             _groundDetector = actor.GetComponent<CharacterGroundDetector>();
             _characterGravity = actor.GetComponent<CharacterGravity>();
+            _capsulePipeline = actor.GetComponent<CharacterCapsulePipeline>();
         }
 
         private void OnEnable() {
@@ -61,8 +68,9 @@ namespace MisterGames.Character.Motion {
             bool isGrounded = _groundDetector.HasContact;
             var up = _transform.up;
             float stepHeight = isGrounded ? _maxStepHeight : _maxStepHeightAir;
-            
-            var lowerPoint = _transform.position + _lowerRayOffset * up;
+
+            var origin = _transform.position;
+            var lowerPoint = origin + _lowerRayOffset * up;
             var upperPoint = lowerPoint + stepHeight * up;
             var inputDir = Vector3.ProjectOnPlane(_motion.InputDirWorld, up).normalized;
             
@@ -97,6 +105,7 @@ namespace MisterGames.Character.Motion {
             float forceK = isGrounded ? _forceMultiplierGround : _forceMultiplierAir;
             
             var diff = speedK * dt * speedVector;
+            if (HasObstacles(origin, inputDir, _sweepDistance, up, upperPoint)) return;
             
             _motion.Position += diff;
             _motion.AddForce(forceVector * forceK, ForceMode.Acceleration);
@@ -105,6 +114,22 @@ namespace MisterGames.Character.Motion {
             if (_showDebugInfo) DebugExt.DrawSphere(lowerPoint, 0.01f, Color.green, duration: 5f);
             if (_showDebugInfo) DebugExt.DrawRay(lowerPoint, diff, Color.green, duration: 5f);
 #endif
+        }
+
+        private bool HasObstacles(Vector3 origin, Vector3 direction, float distance, Vector3 up, Vector3 upperPoint) {
+            _capsulePipeline.GetCapsule(out var p0, out var p1, out float radius, out _);
+            
+            int hitCount = Physics.CapsuleCastNonAlloc(origin + p0, origin + p1, radius, direction, _sweepHits, distance, _layerMask, QueryTriggerInteraction.Ignore);
+            _sweepHits.RemoveInvalidHits(ref hitCount);
+
+            for (int i = 0; i < hitCount; i++) {
+                var p = _sweepHits[i];
+                if (Vector3.Dot(p.point - upperPoint, up) < 0f) continue;
+
+                return true;
+            }
+
+            return false;
         }
         
         private bool DoubleRaycast(Vector3 origin, Vector3 direction, Vector3 up, float distance, out RaycastHit closestHit) {

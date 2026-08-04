@@ -59,14 +59,14 @@ namespace MisterGames.ActionLib.Character {
         public async UniTask MoveToTransform(IActor context, CancellationToken cancellationToken = default) {
             var view = context.GetComponent<CharacterViewPipeline>();
             var collisions = context.GetComponent<CharacterCollisionPipeline>();
-
             target.GetPositionAndRotation(out var targetStartPosition, out var targetStartRotation);
             
             var finalRotation =
                 (offsetMode == OffsetMode.Local ? targetStartRotation : Quaternion.identity) * 
                 Quaternion.Euler(rotationOffset);
 
-            var startPoint = view.BodyPosition;
+            var originPoint = view.BodyPosition;
+            var startPoint = originPoint;
             var finalPoint = targetStartPosition + finalRotation * offset;
 
             var up = view.BodyUp;
@@ -84,9 +84,6 @@ namespace MisterGames.ActionLib.Character {
                 if (hasHit) {
                     finalPoint = hit.point + up * groundOffset;
                 }
-            } 
-            else if (!allowTranslationY) {
-                finalPoint = startPoint + Vector3.ProjectOnPlane(finalPoint - startPoint, up);
             }
             
             var curvePoint = BezierExtensions.GetCurvaturePoint(startPoint, finalPoint, finalRotation, curvature);
@@ -99,7 +96,10 @@ namespace MisterGames.ActionLib.Character {
             float speed = pathLength > 0f && this.speed > 0f ? this.speed / pathLength : float.MaxValue;
             float t = 0f;
 
-            if (disableCollisionsWhileMoving) collisions.Block(this, blocked: true, cancellationToken);
+            if (disableCollisionsWhileMoving) {
+                
+                collisions.Block(this, blocked: true, cancellationToken);
+            }
             
             var headPos = view.HeadPosition;
             bool waitedFrame = false;
@@ -124,8 +124,11 @@ namespace MisterGames.ActionLib.Character {
                 );
 
                 headPos = view.HeadPosition;
+
+                if (!allowTranslationY) position.y = originPoint.y;
                 
                 view.BodyPosition = position;
+                view.BodyPositionTransform = position;
                 
                 if (t >= 1f) break;
                 
@@ -133,7 +136,7 @@ namespace MisterGames.ActionLib.Character {
                 DebugExt.DrawSphere(view.BodyPosition, 0.005f, Color.yellow, duration: 5f);
 #endif
                 
-                await UniTask.Yield(PlayerLoopTiming.FixedUpdate);
+                await UniTask.Yield(PlayerLoopTiming.LastFixedUpdate);
                 waitedFrame = true;
                 
                 if (cancellationToken.IsCancellationRequested) break;
@@ -144,6 +147,7 @@ namespace MisterGames.ActionLib.Character {
             if (cancellationToken.IsCancellationRequested) return;
 
             if (saveHeadPosition && !waitedFrame) {
+                if (!allowTranslationY) finalPoint.y = originPoint.y;
                 view.BodyPositionTransform = finalPoint;
                 Physics.SyncTransforms();
                 view.HeadPosition = headPos;
@@ -166,7 +170,9 @@ namespace MisterGames.ActionLib.Character {
                 (offsetMode == OffsetMode.Local ? view.HeadRotation : Quaternion.identity) * 
                 Quaternion.Euler(rotationOffset);
 
-            var startPoint = view.BodyPosition;
+            var originPoint = view.BodyPosition;
+            var startPoint = originPoint;
+
             var finalPoint = view.HeadPosition + targetRotation * offset;
             
             var up = view.BodyUp;
@@ -184,9 +190,6 @@ namespace MisterGames.ActionLib.Character {
                 if (hasHit) {
                     finalPoint = hit.point + up * groundOffset;
                 }
-            } 
-            else if (!allowTranslationY) {
-                finalPoint = startPoint + Vector3.ProjectOnPlane(finalPoint - startPoint, up);
             }
             
             var curvePoint = BezierExtensions.GetCurvaturePoint(startPoint, finalPoint, targetRotation, curvature);
@@ -223,7 +226,10 @@ namespace MisterGames.ActionLib.Character {
 
                 headPos = view.HeadPosition;
                 
+                if (!allowTranslationY) position.y = originPoint.y;
+                
                 view.BodyPosition = position;
+                view.BodyPositionTransform = position;
                 
                 if (t >= 1f) break;
                 
@@ -231,7 +237,7 @@ namespace MisterGames.ActionLib.Character {
                 DebugExt.DrawSphere(view.BodyPosition, 0.005f, Color.yellow, duration: 5f);
 #endif
                 
-                await UniTask.Yield(PlayerLoopTiming.FixedUpdate);
+                await UniTask.Yield(PlayerLoopTiming.LastFixedUpdate);
                 waitedFrame = true;
                 
                 if (cancellationToken.IsCancellationRequested) continue;
@@ -240,8 +246,9 @@ namespace MisterGames.ActionLib.Character {
             }
       
             if (cancellationToken.IsCancellationRequested) return;
-
+            
             if (!waitedFrame) {
+                if (!allowTranslationY) finalPoint.y = originPoint.y;
                 view.BodyPositionTransform = finalPoint;
                 Physics.SyncTransforms();
                 view.HeadPosition = headPos;

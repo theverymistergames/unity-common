@@ -24,6 +24,7 @@ namespace MisterGames.Character.Motion {
         [SerializeField] private float _inputSmoothing = 20f;
         
         public event Action OnTeleport = delegate { }; 
+        public bool HasBeenTeleported { get; private set; }
         
         public Vector3 MotionDirWorld { get; private set; }
         public Vector3 MotionNormal { get; private set; }
@@ -31,10 +32,10 @@ namespace MisterGames.Character.Motion {
         public Vector2 Input { get; private set; }
         public Vector3 Up => _transform.up;
         
-        public bool IsKinematic { get => _rigidbody.isKinematic; set => _rigidbody.isKinematic = value; }
-        public Vector3 Velocity { get => _rigidbody.linearVelocity; set => _rigidbody.linearVelocity = value; }
-        public Vector3 Position { get => _rigidbody.position; set => _rigidbody.position = value; }
-        public bool HasBeenTeleported { get; private set; }
+        public Rigidbody Rigidbody { get; private set; }
+        public bool IsKinematic { get => Rigidbody.isKinematic; set => Rigidbody.isKinematic = value; }
+        public Vector3 Velocity { get => Rigidbody.linearVelocity; set => Rigidbody.linearVelocity = value; }
+        public Vector3 Position { get => Rigidbody.position; set => Rigidbody.position = value; }
 
         public float MoveForce { get => _moveForce; set => _moveForce = value; }
         public float Speed { get; set; }
@@ -45,7 +46,6 @@ namespace MisterGames.Character.Motion {
         private readonly List<IMotionProcessor> _processorList = new();
         
         private Transform _transform;
-        private Rigidbody _rigidbody;
         private CharacterGravity _characterGravity;
         private CharacterViewPipeline _view;
         private CharacterInputPipeline _input;
@@ -57,7 +57,7 @@ namespace MisterGames.Character.Motion {
             _transform = actor.Transform;
             
             _input = actor.GetComponent<CharacterInputPipeline>();
-            _rigidbody = actor.GetComponent<Rigidbody>();
+            Rigidbody = actor.GetComponent<Rigidbody>();
             _characterGravity = actor.GetComponent<CharacterGravity>();
             _view = actor.GetComponent<CharacterViewPipeline>();
             _groundDetector = actor.GetComponent<CharacterGroundDetector>();
@@ -89,22 +89,22 @@ namespace MisterGames.Character.Motion {
         }
 
         public void Move(Vector3 delta) {
-            _rigidbody.MovePosition(_rigidbody.position + delta);
+            Rigidbody.MovePosition(Rigidbody.position + delta);
         }
         
         public void AddForce(Vector3 force, ForceMode mode = ForceMode.Force) {
-            _rigidbody.AddForce(force, mode);
+            Rigidbody.AddForce(force, mode);
         }
 
         public void Teleport(Vector3 position, Quaternion rotation, bool preserveVelocity = true) {
             _collisionPipeline.Block(this, blocked: true);
             
-            var velocity = _rigidbody.linearVelocity;
-            var angularVelocity = _rigidbody.angularVelocity;
+            var velocity = Rigidbody.linearVelocity;
+            var angularVelocity = Rigidbody.angularVelocity;
             
-            _rigidbody.Sleep();
+            Rigidbody.Sleep();
 
-            var t = _rigidbody.transform;
+            var t = Rigidbody.transform;
             var oldBodyRotation = t.rotation;
             var oldHeadRotation = _view.HeadRotation;
             
@@ -117,8 +117,8 @@ namespace MisterGames.Character.Motion {
             
             var headOffset = t.InverseTransformPoint(_view.HeadPosition);
 
-            _rigidbody.position = position;
-            _rigidbody.rotation = rotation;
+            Rigidbody.position = position;
+            Rigidbody.rotation = rotation;
             
             t.SetPositionAndRotation(position, flatRotDelta * oldBodyRotation);
             
@@ -133,11 +133,11 @@ namespace MisterGames.Character.Motion {
             
             _collisionPipeline.Block(this, blocked: false);
             
-            _rigidbody.WakeUp();
+            Rigidbody.WakeUp();
 
-            if (!_rigidbody.isKinematic) {
-                _rigidbody.linearVelocity = preserveVelocity ? rotDelta * velocity : Vector3.zero;
-                _rigidbody.angularVelocity = preserveVelocity ? angularVelocity : Vector3.zero;
+            if (!Rigidbody.isKinematic) {
+                Rigidbody.linearVelocity = preserveVelocity ? rotDelta * velocity : Vector3.zero;
+                Rigidbody.angularVelocity = preserveVelocity ? angularVelocity : Vector3.zero;
             }
             
             OnTeleport.Invoke();
@@ -162,7 +162,7 @@ namespace MisterGames.Character.Motion {
             MotionDirWorld = normalRot * InputDirWorld;
             _smoothedInput = _smoothedInput.SmoothExpNonZero(Input, _inputSmoothing, dt);
 
-            if (_rigidbody.isKinematic) {
+            if (Rigidbody.isKinematic) {
                 CleanupProcessors();
                 return;
             }
@@ -171,7 +171,7 @@ namespace MisterGames.Character.Motion {
             ApplyProcessorsForInputSpeed(ref inputSpeed, dt);
             
             float maxSpeed = CalculateSpeedCorrection(Input) * inputSpeed;
-            var velocity = _rigidbody.linearVelocity;
+            var velocity = Rigidbody.linearVelocity;
 
             var inputDirNormalized = normalRot * orient * (_smoothedInput == Vector2.zero ? Vector3.forward : InputToLocal(_smoothedInput).normalized);
             var inputDirSmoothed = normalRot * orient * InputToLocal(_smoothedInput);
@@ -183,12 +183,12 @@ namespace MisterGames.Character.Motion {
             
             CleanupProcessors();
             
-            _rigidbody.AddForce(force, ForceMode.Acceleration);
+            Rigidbody.AddForce(force, ForceMode.Acceleration);
             
 #if UNITY_EDITOR
-            if (_showDebugInfo) DebugExt.DrawSphere(_rigidbody.position, 0.05f, Color.green);
-            if (_showDebugInfo) DebugExt.DrawRay(_rigidbody.position, MotionDirWorld, Color.green);
-            if (_showDebugInfo) DebugExt.DrawRay(_rigidbody.position, MotionNormal, Color.cyan);
+            if (_showDebugInfo) DebugExt.DrawSphere(Rigidbody.position, 0.05f, Color.green);
+            if (_showDebugInfo) DebugExt.DrawRay(Rigidbody.position, MotionDirWorld, Color.green);
+            if (_showDebugInfo) DebugExt.DrawRay(Rigidbody.position, MotionNormal, Color.cyan);
 #endif
         }
 
@@ -264,7 +264,7 @@ namespace MisterGames.Character.Motion {
             if (Application.isPlaying) {
                 Handles.Label(
                     transform.TransformPoint(Vector3.up),
-                    $"Speed {_rigidbody.linearVelocity.magnitude:0.00} / {CalculateSpeedCorrection(_smoothedInput) * Speed:0.00}\n" +
+                    $"Speed {Rigidbody.linearVelocity.magnitude:0.00} / {CalculateSpeedCorrection(_smoothedInput) * Speed:0.00}\n" +
                     $"Move force {_moveForce:0.00}"
                 );
             }

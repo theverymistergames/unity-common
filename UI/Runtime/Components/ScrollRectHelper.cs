@@ -321,8 +321,8 @@ namespace MisterGames.UI.Components {
         }
 
         private bool IsRestingAtEdge(float currPos, float nextPos, float size) {
-            return size * currPos < _clampThresholdPx && size * nextPos < _clampThresholdPx || 
-                   size * (1f - currPos) < _clampThresholdPx && size * (1f - nextPos) < _clampThresholdPx;
+            return size * currPos < _clampThresholdPx && size * nextPos < _clampThresholdPx && nextPos <= currPos || 
+                   size * (1f - currPos) < _clampThresholdPx && size * (1f - nextPos) < _clampThresholdPx && nextPos >= currPos;
         }
 
         private static Vector2 GetNormalizedDelta(Vector2 worldDelta, Vector2 size) {

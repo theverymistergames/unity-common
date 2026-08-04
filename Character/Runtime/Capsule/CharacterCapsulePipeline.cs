@@ -40,6 +40,18 @@ namespace MisterGames.Character.Capsule {
             _headRoot.localPosition = _headRootInitialPosition;
         }
 
+        public void GetCapsule(out Vector3 p0, out Vector3 p1, out float radius, out float height) {
+            height = _capsuleCollider.height;
+            radius = _capsuleCollider.radius;
+            
+            var center = _capsuleCollider.center;
+            var up = Root.up;
+            float halfHeight = height * 0.5f - radius;
+
+            p0 = center + halfHeight * up;
+            p1 = center - halfHeight * up;
+        }
+        
         private void SetCapsuleSize(CapsuleSize capsuleSize) {
             SetHeight(capsuleSize.height);
             SetRadius(capsuleSize.radius);
