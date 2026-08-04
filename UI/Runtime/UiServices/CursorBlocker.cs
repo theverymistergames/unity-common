@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace MisterGames.UI.UiServices {
     
-    public sealed class CursorLocker : MonoBehaviour {
+    public sealed class CursorBlocker : MonoBehaviour {
 
         private void OnEnable() {
 			Services.Get<ICursorService>()?.BlockCursor(this, true);            

@@ -125,8 +125,12 @@ namespace MisterGames.UI.Navigation {
             CurrentSelectable = selectable;
         }
 
+        public bool IsBoundSelectable(Selectable selectable) {
+            return selectable != null && _helper.IsBound(selectable.gameObject);
+        }
+
         private void OnSelectedGameObjectChanged(Selectable selected, IUiWindow parent) {
-            if (selected != null && _helper.IsBound(selected.gameObject)) {
+            if (IsBoundSelectable(selected)) {
                 CurrentSelectable = selected;
             }
         }

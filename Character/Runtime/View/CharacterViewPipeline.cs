@@ -36,7 +36,6 @@ namespace MisterGames.Character.View {
         [SerializeField] [Min(0f)] private float _gravityDirSmoothing = 6f;
 
         [Header("Timing")]
-        [SerializeField] private PlayerLoopTiming _headUpdateLoop = PlayerLoopTiming.LastPreLateUpdate;
         [SerializeField] private LabelValue _timescalePriority;
         
         public bool IsAttached => _headJoint.IsAttached;
@@ -264,7 +263,7 @@ namespace MisterGames.Character.View {
                     ? Time.unscaledDeltaTime * _timescaleSystem.GetTimeScale(value) 
                     : Time.unscaledDeltaTime;
                 ProcessHeadUpdate(dt);
-                await UniTask.Yield(_headUpdateLoop);
+                await UniTask.Yield(PlayerLoopTiming.LastUpdate);
             }
         }
 

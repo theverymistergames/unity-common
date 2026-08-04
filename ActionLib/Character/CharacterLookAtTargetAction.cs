@@ -66,7 +66,7 @@ namespace MisterGames.ActionLib.Character {
                 DebugExt.DrawRay(view.HeadPosition, targetRotation * Vector3.forward, Color.green, duration: 3f);
 #endif
                 
-                await UniTask.Yield(PlayerLoopTiming.PostLateUpdate);
+                await UniTask.Yield(PlayerLoopTiming.PreUpdate);
             }
             
             if (cancellationToken.IsCancellationRequested) return;

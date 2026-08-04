@@ -89,15 +89,26 @@ namespace MisterGames.UI.Components {
         }
 
         public bool CanNavigateBack() {
+            if (_openedTab < 0) return true;
+            
+            ref var tab = ref _tabs[_openedTab];
+
+            if (_navigationService.CurrentSelectable != null 
+                && (tab.window?.Node?.IsBoundSelectable(_navigationService.CurrentSelectable) ?? false)) 
+            {
+                _navigationService.SetCurrentSelectable(tab.button.Selectable);
+                return false;
+            }
+            
+            if (_openedTab > 0) {
+                OpenTab(0, selectButton: true);   
+                return false;
+            }
+            
             return true;
         }
         
         public void OnNavigateBack() {
-            if (_openedTab > 0) {
-                OpenTab(0, selectButton: true);
-                return;
-            }
-
             if (_windowService.FindClosestParentWindow(gameObject) is { } parentWindow) {
                 _windowService.SetWindowState(parentWindow, UiWindowState.Closed);
             }

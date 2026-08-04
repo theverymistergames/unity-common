@@ -64,7 +64,7 @@ namespace MisterGames.SettingsLib.Descs {
         }
 
         public void ApplySetting(ISettingsService service, string id) {
-            var res = new Res(Screen.currentResolution);
+            var res = new Res(Display.main.systemWidth, Display.main.systemHeight);
             
             if (service.TryGet(id, 0, out long value)) {
                 res = Res.FromLong(value);
@@ -107,7 +107,7 @@ namespace MisterGames.SettingsLib.Descs {
         }
 
         public int GetIndex(ISettingsService service, string id) {
-            var res = new Res(Screen.currentResolution);
+            var res = new Res(Display.main.systemWidth, Display.main.systemHeight);
             
             if (service.TryGet(id, 0, out long value)) {
                 res = Res.FromLong(value);

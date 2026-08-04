@@ -102,7 +102,7 @@ namespace MisterGames.ActionLib.Character {
                 DebugExt.DrawSphere(view.HeadPosition, 0.008f, Color.yellow, duration: 5f);
 #endif
                 
-                await UniTask.Yield(PlayerLoopTiming.PreLateUpdate);
+                await UniTask.Yield(PlayerLoopTiming.PreUpdate);
             }
             
 #if UNITY_EDITOR
@@ -166,7 +166,7 @@ namespace MisterGames.ActionLib.Character {
                 DebugExt.DrawSphere(view.HeadPosition, 0.008f, Color.yellow, duration: 5f);
 #endif
                 
-                await UniTask.Yield(PlayerLoopTiming.PreLateUpdate);
+                await UniTask.Yield(PlayerLoopTiming.PreUpdate);
             }
       
             if (cancellationToken.IsCancellationRequested) return;

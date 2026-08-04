@@ -19,6 +19,7 @@ namespace MisterGames.UI.Navigation {
         void OnNavigateOut(Selectable fromSelectable, UiNavigationDirection direction);
         
         void SetCurrentSelectable(Selectable selectable);
+        bool IsBoundSelectable(Selectable selectable);
     }
     
 }
