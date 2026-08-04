@@ -88,8 +88,6 @@ namespace MisterGames.SettingsLib.Base {
                 .WithAction(action)
                 .WithTargetBinding(bindingIndex)
                 .OnMatchWaitForAnother(0.05f)
-
-                .WithCancelingThrough("<Keyboard>/escape")
                 .WithControlsExcluding("<Pointer>/delta")
                 .WithControlsExcluding("<Pointer>/position")
                 .WithControlsExcluding("<Touchscreen>/touch*/position")
@@ -97,7 +95,6 @@ namespace MisterGames.SettingsLib.Base {
                 .WithControlsExcluding("<Mouse>/clickCount")
                 .WithActionEventNotificationsBeingSuppressed()
                 .WithMatchingEventsBeingSuppressed()
-
                 .OnCancel(OnRebindingFinish)
                 .OnComplete(OnRebindingFinish)
                 .OnApplyBinding(OnRebindingApply);
@@ -106,10 +103,13 @@ namespace MisterGames.SettingsLib.Base {
                 case InputDeviceType.KeyboardMouse:
                     operation.WithControlsHavingToMatchPath("<Keyboard>");
                     operation.WithControlsHavingToMatchPath("<Mouse>");
+                    operation.WithCancelingThrough("<Keyboard>/escape");
+                    operation.WithCancelingThrough("<Gamepad>/buttonEast");
                     break;
                 
                 case InputDeviceType.Gamepad:
                     operation.WithControlsHavingToMatchPath("<Gamepad>");
+                    operation.WithCancelingThrough("<Keyboard>/escape");
                     break;
                 
                 default:

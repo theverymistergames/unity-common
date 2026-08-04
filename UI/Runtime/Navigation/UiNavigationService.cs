@@ -154,7 +154,7 @@ namespace MisterGames.UI.Navigation {
             var dir = Mathf.Abs(moveVector.y) >= Mathf.Abs(moveVector.x) 
                 ? Mathf.Sign(moveVector.y) > 0f ? UiNavigationDirection.Up : UiNavigationDirection.Down
                 : Mathf.Sign(moveVector.x) > 0f ? UiNavigationDirection.Right : UiNavigationDirection.Left;
-
+            
             if (IsUiBlocked ||
                 
                 moveVector == default || 

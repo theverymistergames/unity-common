@@ -10,7 +10,6 @@ using MisterGames.Common.Attributes;
 using MisterGames.Common.Easing;
 using MisterGames.Common.Labels;
 using MisterGames.Common.Lists;
-using MisterGames.Common.Maths;
 using MisterGames.Common.Service;
 using MisterGames.Common.Tick;
 using MisterGames.Input.Actions;
@@ -44,7 +43,6 @@ namespace MisterGames.UI.Components {
         
         [Header("Actions")]
         [SerializeField] private bool _cancelOnDisable = true;
-        [SerializeField] private bool _cancelOnInputPressedBeforeWindowOpened = true;
         [SerializeField] private Action[] _actionsOnOpenMenu;
         [SerializeField] private Action[] _actionsOnCloseMenu;
 
@@ -60,8 +58,6 @@ namespace MisterGames.UI.Components {
         private CancellationTokenSource _actionCts;
         private IActor _actor;
         private bool _isMenuOpened;
-        private byte _openId;
-        private byte _operationId;
 
         void IActorComponent.OnAwake(IActor actor) {
             _actor = actor;
@@ -108,24 +104,10 @@ namespace MisterGames.UI.Components {
             if (!wasMenuOpened || _isMenuOpened) return;
             
             AsyncExt.RecreateCts(ref _actionCts);
-                
-            _openId = _operationId.IncrementUncheckedRef();
-            _openId.IncrementUncheckedRef();
-                
             OnCloseMenu(_actionCts.Token).Forget();
         }
 
         private void OnPauseInput(InputAction.CallbackContext obj) {
-            if (_cancelOnInputPressedBeforeWindowOpened && _actionCts != null && _openId == _operationId) {
-                AsyncExt.RecreateCts(ref _actionCts);
-                
-                _openId = _operationId.IncrementUncheckedRef();
-                _openId.IncrementUncheckedRef();
-
-                OnCloseMenu(_actionCts.Token).Forget();
-                return;
-            }
-
             if (!Services.TryGet(out IUiNavigationService service) || 
                 service.IsExitToPauseBlocked() ||
                 _menuWindow == null ||
@@ -135,7 +117,6 @@ namespace MisterGames.UI.Components {
             }
             
             AsyncExt.RecreateCts(ref _actionCts);
-            _openId = _operationId.IncrementUncheckedRef();
             OpenMenu(_menuWindow, _actionCts.Token).Forget();
         }
 

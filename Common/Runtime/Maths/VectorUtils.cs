@@ -198,7 +198,8 @@ namespace MisterGames.Common.Maths {
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float ToEulerAngles180(float eulerAngle) {
-            return (eulerAngle + 180f) % 360f - 180f;
+            float angle = (eulerAngle + 180f) % 360f;
+            return (angle < 0f ? angle + 360f : angle) - 180f;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -362,7 +363,7 @@ namespace MisterGames.Common.Maths {
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Quaternion SlerpNonZero(this Quaternion value, Quaternion target, float factor, float dt) {
-            return factor > 0f ? Quaternion.Slerp(value, target, factor * dt) : target;
+            return factor > 0f ? Quaternion.Slerp(value, target, 1f - math.exp(-factor * dt)) : target;
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

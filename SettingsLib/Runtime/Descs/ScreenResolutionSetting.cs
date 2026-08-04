@@ -4,6 +4,7 @@ using MisterGames.Common.Localization;
 using MisterGames.Common.Maths;
 using MisterGames.SettingsLib.Base;
 using Unity.Collections;
+using UnityEngine;
 using Screen = UnityEngine.Device.Screen;
 
 namespace MisterGames.SettingsLib.Descs {
@@ -18,6 +19,11 @@ namespace MisterGames.SettingsLib.Descs {
             public int width;
             public int height;
 
+            public Res(Resolution r) {
+                width = r.width;
+                height = r.height;
+            }
+            
             public Res(int width, int height) {
                 this.width = width;
                 this.height = height;
@@ -44,9 +50,7 @@ namespace MisterGames.SettingsLib.Descs {
             var set = new NativeHashSet<long>(Screen.resolutions.Length, Allocator.Temp);
             
             for (int i = 0; i < Screen.resolutions.Length; i++) {
-                var r = Screen.resolutions[i];
-                var res = new Res(r.width, r.height);
-                
+                var res = new Res(Screen.resolutions[i]);
                 if (!set.Add(res.ToLong())) continue;
                 
                 _supportedResolutions.Add(res);
@@ -60,7 +64,7 @@ namespace MisterGames.SettingsLib.Descs {
         }
 
         public void ApplySetting(ISettingsService service, string id) {
-            var res = new Res(Screen.width, Screen.height);
+            var res = new Res(Screen.currentResolution);
             
             if (service.TryGet(id, 0, out long value)) {
                 res = Res.FromLong(value);
@@ -103,7 +107,7 @@ namespace MisterGames.SettingsLib.Descs {
         }
 
         public int GetIndex(ISettingsService service, string id) {
-            var res = new Res(Screen.width, Screen.height);
+            var res = new Res(Screen.currentResolution);
             
             if (service.TryGet(id, 0, out long value)) {
                 res = Res.FromLong(value);

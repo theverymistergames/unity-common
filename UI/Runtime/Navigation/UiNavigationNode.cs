@@ -2,7 +2,6 @@
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Async;
 using MisterGames.Common.Attributes;
-using MisterGames.Common.GameObjects;
 using MisterGames.Common.Service;
 using MisterGames.UI.Windows;
 using UnityEngine;
@@ -35,6 +34,7 @@ namespace MisterGames.UI.Navigation {
         public RectTransform Viewport => _viewport;
 
         private IUiNavigationService _navigationService;
+        private IUiWindowService _windowService;
         
         private readonly UiNavigationNodeHelper _helper = new();
         private CancellationTokenSource _enableCts;
@@ -45,6 +45,8 @@ namespace MisterGames.UI.Navigation {
             if (!_hasSetupCurrentSelectable) CurrentSelectable = _firstSelected;
             
             _navigationService = Services.Get<IUiNavigationService>();
+            _windowService = Services.Get<IUiWindowService>();
+            
             _window = GetComponent<IUiWindow>();
         }
 
@@ -92,6 +94,10 @@ namespace MisterGames.UI.Navigation {
             if (state != UiWindowState.Closed) return;
             
             _navigationService.UnbindNavigation(this);
+
+            if (!_windowService.IsInOpenedBranch(_window)) {
+                SetCurrentSelectable(_firstSelected);
+            }
         }
         
         public void BindSelectable(Selectable selectable, UiNavigationMask mask = ~UiNavigationMask.None, UiNavigationOptions options = UiNavigationOptions.None) {
