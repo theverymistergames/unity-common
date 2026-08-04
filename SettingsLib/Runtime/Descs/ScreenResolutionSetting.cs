@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using MisterGames.Common.Localization;
 using MisterGames.Common.Maths;
 using MisterGames.SettingsLib.Base;
-using UnityEngine;
+using Unity.Collections;
 using Screen = UnityEngine.Device.Screen;
 
 namespace MisterGames.SettingsLib.Descs {
@@ -12,7 +12,7 @@ namespace MisterGames.SettingsLib.Descs {
     public sealed class ScreenResolutionSetting : ISettingDescListed {
 
         public LocalizationKey name;
-
+        
         [Serializable]
         private struct Res {
             public int width;
@@ -31,16 +31,28 @@ namespace MisterGames.SettingsLib.Descs {
             public long ToLong() {
                 return NumberExtensions.TwoIntsAsLong(width, height);
             }
+
+            public override string ToString() {
+                return $"[{width}x{height}]";
+            }
         }
         
         private readonly HashSet<ISettingDescListed.Listener> _listeners = new();
         private readonly List<Res> _supportedResolutions = new();
         
         public void Initialize(ISettingsService service, string id) {
+            var set = new NativeHashSet<long>(Screen.resolutions.Length, Allocator.Temp);
+            
             for (int i = 0; i < Screen.resolutions.Length; i++) {
-                var res = Screen.resolutions[i];
-                _supportedResolutions.Add(new Res(res.width, res.height));
+                var r = Screen.resolutions[i];
+                var res = new Res(r.width, r.height);
+                
+                if (!set.Add(res.ToLong())) continue;
+                
+                _supportedResolutions.Add(res);
             }
+
+            set.Dispose();
         }
         
         public void Deinitialize(ISettingsService service, string id) {
@@ -102,10 +114,10 @@ namespace MisterGames.SettingsLib.Descs {
 
         public bool SetIndex(ISettingsService service, string id, int index) {
             if (index < 0 || index >= _supportedResolutions.Count) return false;
-
+            
             var res = _supportedResolutions[index];
             bool ok = service.Set(id, index: 0, res.ToLong());
-            
+
             NotifyResolution(id, res, index);
             
             return ok;
@@ -113,7 +125,7 @@ namespace MisterGames.SettingsLib.Descs {
 
         private void NotifyResolution(string id, Res res, int index) {
             Screen.SetResolution(res.width, res.height, Screen.fullScreenMode);
-
+            
             foreach (var listener in _listeners) {
                 listener.Invoke(id, index);
             }

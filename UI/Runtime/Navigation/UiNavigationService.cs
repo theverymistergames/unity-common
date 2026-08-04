@@ -104,7 +104,7 @@ namespace MisterGames.UI.Navigation {
 
         private void OnWindowsHierarchyChanged() {
             var selectable = _uiWindowService.GetFrontOpenedWindow()?.Node?.CurrentSelectable;
-            if (selectable == null) return;
+            if (selectable == null || selectable is not { gameObject: { activeSelf: true, activeInHierarchy: true }}) return;
 
             SetCurrentSelectable(selectable);
         }
@@ -122,7 +122,7 @@ namespace MisterGames.UI.Navigation {
                     var node = _uiWindowService.GetFrontOpenedWindow()?.Node;
                     candidate = node?.CurrentSelectable != null ? node.CurrentSelectable : node?.DefaultSelectable;
                 }
-                
+
                 if (candidate != null && candidate is { gameObject: { activeSelf: true, activeInHierarchy: true }}) {
                     SelectedGameObject = candidate.gameObject;
                     SetCurrentSelectable(candidate);
@@ -388,7 +388,7 @@ namespace MisterGames.UI.Navigation {
         
         public void BindNavigation(IUiNavigationNode node) {
             if (!_gameObjectIdToNodeMap.TryAdd(node.GameObject.GetHashCode(), node)) return;
-
+            
             BindNavigationNode(node);
             ActualizeNavigationTree(node.GameObject);
             ActualizeSelectablesNavigation(node.GameObject);
@@ -479,7 +479,7 @@ namespace MisterGames.UI.Navigation {
             
             _childNodeToParentMap[selectableId] = parentNodeId;
             
-            parentNode.Bind(selectable, mask, options);
+            parentNode.BindSelectable(selectable, mask, options);
             parentNode.UpdateNavigation();
         }
         
@@ -491,7 +491,7 @@ namespace MisterGames.UI.Navigation {
                 return;
             }
             
-            parentNode.Unbind(selectable);
+            parentNode.UnbindSelectable(selectable);
             parentNode.UpdateNavigation();
         }
 

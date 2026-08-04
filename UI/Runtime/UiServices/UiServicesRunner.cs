@@ -1,4 +1,5 @@
-﻿using MisterGames.Common.Service;
+﻿using MisterGames.Common.Inputs;
+using MisterGames.Common.Service;
 using MisterGames.UI.Components;
 using MisterGames.UI.Navigation;
 using MisterGames.UI.Windows;
@@ -27,7 +28,7 @@ namespace MisterGames.UI.UiServices {
             
             _uiModalDialogService.Initialize(_defaultModalDialogPrefab);
             _navigationService.Initialize(_windowService, _uiNavigationSettings);
-            _cursorService.Initialize();
+            _cursorService.Initialize(Services.Get<IDeviceService>(), _windowService);
         }
 
         private void OnDestroy() {

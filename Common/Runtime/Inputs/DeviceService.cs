@@ -2,22 +2,13 @@
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using MisterGames.Common.Inputs.DualSense;
-using MisterGames.Common.Service;
 using MisterGames.Common.Tick;
-using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.DualShock;
-using UnityEngine.InputSystem.Switch;
-using UnityEngine.InputSystem.XInput;
 
 namespace MisterGames.Common.Inputs {
-    
-    [DefaultExecutionOrder(-9999)]
-    public sealed class DeviceService : MonoBehaviour, IDeviceService, IUpdate {
-        
-        [SerializeField] private GamepadVibration _gamepadVibration;
-        [SerializeField] private DualSenseAdapter _dualSenseAdapter;
 
+    public sealed class DeviceService : IDeviceService, IDisposable, IUpdate {
+        
         public event Action<InputDeviceType> OnDeviceChanged = delegate { };
         
         public InputDeviceType CurrentDevice { get; private set; }
@@ -27,29 +18,26 @@ namespace MisterGames.Common.Inputs {
         public bool AnyKeyPressedThisFrame { get; private set; }
         public bool AnyInputActivatedThisFrame { get; private set; }
         
-        public IGamepadVibration GamepadVibration => _gamepadVibration;
-        public IDualSenseAdapter DualSenseAdapter => _dualSenseAdapter;
+        public IGamepadVibration GamepadVibration { get; private set; }
+        public IDualSenseAdapter DualSenseAdapter { get; private set; }
 
         private static readonly HashSet<string> _gamepadStickNames = new() {
             "leftStick",
             "rightStick",
         };
-        
-        private void Awake() {
-            Services.Register<IDeviceService>(this);
-        }
 
-        private void OnDestroy() {
-            Services.Unregister(this);
-        }
-
-        private void OnEnable() {
+        public void Initialize(IGamepadVibration gamepadVibration, IDualSenseAdapter dualSenseAdapter) {
+            GamepadVibration = gamepadVibration;
+            DualSenseAdapter = dualSenseAdapter;
+            
             PlayerLoopStage.LateUpdate.Subscribe(this);
         }
 
-        private void OnDisable() {
-            PlayerLoopStage.LateUpdate.Unsubscribe(this);
+        public void Dispose() {
             AnyKeyPressedThisFrame = false;
+            AnyInputActivatedThisFrame = false;
+            
+            PlayerLoopStage.LateUpdate.Unsubscribe(this);
         }
         
         public bool TryGetGamepad(out Gamepad gamepad) {
@@ -80,8 +68,10 @@ namespace MisterGames.Common.Inputs {
                 : CurrentDevice;
 
             GamepadType = CurrentDevice is InputDeviceType.Gamepad ? Gamepad.current.GetGamepadType() : GamepadType.Default;
-            
-            if (lastDevice != CurrentDevice) OnDeviceChanged.Invoke(CurrentDevice);
+
+            if (lastDevice == CurrentDevice) return;
+
+            OnDeviceChanged.Invoke(CurrentDevice);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

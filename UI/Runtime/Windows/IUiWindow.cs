@@ -1,9 +1,13 @@
-﻿using MisterGames.UI.Navigation;
+﻿using System;
+using MisterGames.UI.Navigation;
 using UnityEngine;
 
 namespace MisterGames.UI.Windows {
     
     public interface IUiWindow {
+        
+        event Action<UiWindowState> OnBeforeStateChanged;
+        event Action<UiWindowState> OnAfterStateChanged;
         
         GameObject GameObject { get; }
         int Layer { get; }

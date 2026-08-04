@@ -11,6 +11,7 @@ using UnityEditor;
 
 namespace MisterGames.UI.Navigation {
     
+    [DefaultExecutionOrder(-200)]
     [DisallowMultipleComponent]
     [RequireComponent(typeof(UiNavigationNode))]
     public sealed class UiWindow : MonoBehaviour, IUiWindow {
@@ -26,7 +27,10 @@ namespace MisterGames.UI.Navigation {
         [FormerlySerializedAs("_enableGameObjects")]
         [SerializeField] private GameObject[] _enableOnWindowOpened;
         [SerializeField] private GameObject[] _enableOnBranchOpened;
-        
+
+        public event Action<UiWindowState> OnBeforeStateChanged = delegate { };
+        public event Action<UiWindowState> OnAfterStateChanged = delegate { };
+
         public GameObject GameObject => gameObject;
         public int Layer => _layer;
         public UiWindowOpenMode OpenMode => _openMode;
@@ -34,23 +38,25 @@ namespace MisterGames.UI.Navigation {
         public UiWindowState State => _state;
         public UiWindowOptions Options => _options;
         public IUiNavigationNode Node => _node ?? GetComponent<IUiNavigationNode>();
-        
+
+        private IUiWindowService _windowService;
         private IUiNavigationNode _node;
         
         private void Awake() {
-            Services.Get<IUiWindowService>()?.RegisterWindow(this, _state);
+            _windowService = Services.Get<IUiWindowService>();
+            _windowService.RegisterWindow(this, _state);
         }
 
         private void OnDestroy() {
-            Services.Get<IUiWindowService>()?.UnregisterWindow(this);
+            _windowService.UnregisterWindow(this);
         }
 
         private void OnEnable() {
-            Services.Get<IUiWindowService>()?.NotifyWindowEnabled(this, true);
+            _windowService.NotifyWindowEnabled(this, true);
         }
 
         private void OnDisable() {
-            Services.Get<IUiWindowService>()?.NotifyWindowEnabled(this, false);
+            _windowService.NotifyWindowEnabled(this, false);
         }
 
         void IUiWindow.NotifyWindowState(UiWindowState state) {
@@ -63,8 +69,9 @@ namespace MisterGames.UI.Navigation {
 #endif
             
             _state = state;
-
-            SetEnableState(_enableOnBranchOpened, Services.Get<IUiWindowService>().IsInOpenedBranch(this));
+            OnBeforeStateChanged.Invoke(_state);
+            
+            SetEnableState(_enableOnBranchOpened, _windowService.IsInOpenedBranch(this));
             
             switch (state) {
                 case UiWindowState.Closed:
@@ -78,6 +85,8 @@ namespace MisterGames.UI.Navigation {
                 default:
                     throw new ArgumentOutOfRangeException(nameof(state), state, null);
             }
+            
+            OnAfterStateChanged.Invoke(_state);
         }
         
         private static void SetEnableState(GameObject[] gameObjects, bool enable) {
@@ -100,7 +109,7 @@ namespace MisterGames.UI.Navigation {
         [Button] 
         private void OpenWindow() {
             if (Application.isPlaying) {
-                Services.Get<IUiWindowService>()?.SetWindowState(this, UiWindowState.Opened);
+                _windowService.SetWindowState(this, UiWindowState.Opened);
                 return;
             }
 
@@ -116,7 +125,7 @@ namespace MisterGames.UI.Navigation {
         [Button] 
         private void CloseWindow() {
             if (Application.isPlaying) {
-                Services.Get<IUiWindowService>()?.SetWindowState(this, UiWindowState.Closed);
+                _windowService.SetWindowState(this, UiWindowState.Closed);
                 return;
             }
             

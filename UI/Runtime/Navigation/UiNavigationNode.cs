@@ -1,8 +1,8 @@
-﻿using System;
-using System.Threading;
+﻿using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Async;
 using MisterGames.Common.Attributes;
+using MisterGames.Common.GameObjects;
 using MisterGames.Common.Service;
 using MisterGames.UI.Windows;
 using UnityEngine;
@@ -10,6 +10,7 @@ using UnityEngine.UI;
 
 namespace MisterGames.UI.Navigation {
     
+    [DefaultExecutionOrder(-100)]
     [DisallowMultipleComponent]
     public sealed class UiNavigationNode : MonoBehaviour, IUiNavigationNode {
         
@@ -32,6 +33,8 @@ namespace MisterGames.UI.Navigation {
         public UiIncomingOuterNavigationOptions IncomingOuterNavigation => _incomingNavigation;
         public bool IsScrollable => _scrollable;
         public RectTransform Viewport => _viewport;
+
+        private IUiNavigationService _navigationService;
         
         private readonly UiNavigationNodeHelper _helper = new();
         private CancellationTokenSource _enableCts;
@@ -41,6 +44,7 @@ namespace MisterGames.UI.Navigation {
         private void Awake() {
             if (!_hasSetupCurrentSelectable) CurrentSelectable = _firstSelected;
             
+            _navigationService = Services.Get<IUiNavigationService>();
             _window = GetComponent<IUiWindow>();
         }
 
@@ -50,17 +54,16 @@ namespace MisterGames.UI.Navigation {
 
         private void OnEnable() {
             AsyncExt.RecreateCts(ref _enableCts);
-            
-            if (Services.TryGet(out IUiWindowService windowService)) {
-                windowService.OnWindowsHierarchyChanged += OnWindowsHierarchyChanged;
-            }
 
-            if (Services.TryGet(out IUiNavigationService navigationService)) {
-                navigationService.OnSelectableChanged += OnSelectedGameObjectChanged;
+            if (_window != null) {
+                _window.OnBeforeStateChanged += OnBeforeWindowStateChanged;
+                _window.OnAfterStateChanged += OnAfterWindowStateChanged;
+            }
+            
+            _navigationService.OnSelectableChanged += OnSelectedGameObjectChanged;
                 
-                if (_window == null || _window.State == UiWindowState.Opened) {
-                    navigationService.BindNavigation(this);
-                }
+            if (_window == null || _window.State == UiWindowState.Opened) {
+                _navigationService.BindNavigation(this);
             }
             
             UpdateNavigation();
@@ -69,26 +72,34 @@ namespace MisterGames.UI.Navigation {
         private void OnDisable() {
             AsyncExt.DisposeCts(ref _enableCts);
             
-            if (Services.TryGet(out IUiWindowService windowService)) {
-                windowService.OnWindowsHierarchyChanged -= OnWindowsHierarchyChanged;
+            if (_window != null) {
+                _window.OnBeforeStateChanged -= OnBeforeWindowStateChanged;
+                _window.OnAfterStateChanged -= OnAfterWindowStateChanged;
             }
-
-            if (Services.TryGet(out IUiNavigationService navigationService)) {
-                navigationService.OnSelectableChanged -= OnSelectedGameObjectChanged;
-                
-                navigationService.UnbindNavigation(this);
-            }
-        }
-
-        public void Bind(Selectable selectable, UiNavigationMask mask = ~UiNavigationMask.None, UiNavigationOptions options = UiNavigationOptions.None) {
-            _helper.Bind(selectable, mask, options);
             
-            if (Services.TryGet(out IUiNavigationService service)) {
-                OnSelectedGameObjectChanged(service.CurrentSelectable, service.SelectedGameObjectWindow);   
-            }
+            _navigationService.OnSelectableChanged -= OnSelectedGameObjectChanged;
+            
+            _navigationService.UnbindNavigation(this);
         }
 
-        public void Unbind(Selectable selectable) {
+        private void OnBeforeWindowStateChanged(UiWindowState state) {
+            if (state != UiWindowState.Opened) return;
+            
+            _navigationService.BindNavigation(this);
+        }
+        
+        private void OnAfterWindowStateChanged(UiWindowState state) {
+            if (state != UiWindowState.Closed) return;
+            
+            _navigationService.UnbindNavigation(this);
+        }
+        
+        public void BindSelectable(Selectable selectable, UiNavigationMask mask = ~UiNavigationMask.None, UiNavigationOptions options = UiNavigationOptions.None) {
+            _helper.Bind(selectable, mask, options);
+            OnSelectedGameObjectChanged(_navigationService.CurrentSelectable, _navigationService.SelectedGameObjectWindow);   
+        }
+
+        public void UnbindSelectable(Selectable selectable) {
             _helper.Unbind(selectable);
         }
 
@@ -111,23 +122,6 @@ namespace MisterGames.UI.Navigation {
         private void OnSelectedGameObjectChanged(Selectable selected, IUiWindow parent) {
             if (selected != null && _helper.IsBound(selected.gameObject)) {
                 CurrentSelectable = selected;
-            }
-        }
-
-        private void OnWindowsHierarchyChanged() {
-            if (_window == null || !Services.TryGet(out IUiNavigationService service)) return;
-
-            switch (_window.State) {
-                case UiWindowState.Closed:
-                    service.UnbindNavigation(this);
-                    break;
-                
-                case UiWindowState.Opened:
-                    service.BindNavigation(this);
-                    break;
-                
-                default:
-                    throw new ArgumentOutOfRangeException();
             }
         }
     }

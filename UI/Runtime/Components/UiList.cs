@@ -177,7 +177,7 @@ namespace MisterGames.UI.Components {
         [SerializeField] private bool _applyTextInEditor = true;
         
         private void OnValidate() {
-            SetSelectedIndex(_selectedIndex);
+            if (Application.isPlaying) SetSelectedIndex(_selectedIndex);
         }
 #endif
     }

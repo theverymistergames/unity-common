@@ -108,6 +108,13 @@ namespace MisterGames.UI.Components {
                 ref var tab = ref _tabs[i];
                 if (tab.button != button) continue;
 
+                if (_openedTab == i) {
+                    if (tab.window.Node?.DefaultSelectable != null) {
+                        _navigationService.SetCurrentSelectable(tab.window.Node.DefaultSelectable);
+                    }
+                    return;
+                }
+
                 OpenTab(i, selectButton: false);
                 return;
             }
