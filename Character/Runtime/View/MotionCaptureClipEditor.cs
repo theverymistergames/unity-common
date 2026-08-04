@@ -70,7 +70,7 @@ namespace MisterGames.TweenLib.Editor.MotionCapture {
         }
 
         private static Camera GetCamera() {
-            var cameras = FindObjectsOfType<Camera>();
+            var cameras = FindObjectsByType<Camera>(FindObjectsSortMode.None);
             if (cameras.Length == 1) return cameras[0];
 
             for (int i = 0; i < cameras.Length; i++) {

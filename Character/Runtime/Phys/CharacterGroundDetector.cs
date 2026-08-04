@@ -143,7 +143,7 @@ namespace MisterGames.Character.Phys {
                         hitPoint = hit.point;
                         rigidbody = hit.rigidbody;
                         collider = hit.collider;
-                        isValid = hit.colliderInstanceID != 0;
+                        isValid = hit.colliderEntityId != EntityId.None;
                     }
 
                     normal += hit.normal;

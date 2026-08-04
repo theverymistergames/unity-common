@@ -15,7 +15,6 @@ namespace MisterGames.Character.Interactives {
         [Header("Camera Settings")]
         [SerializeField] private float _cameraStateWeight = 1f;
         [SerializeField] [Min(0f)] private float _forceWeightSmoothing = 3f;
-        [SerializeField] [Min(0f)] private float _fovSmoothing = 3f;
         [SerializeField] private float _fovOffsetStart; 
         [SerializeField] private float _fovOffsetEnd;
         
