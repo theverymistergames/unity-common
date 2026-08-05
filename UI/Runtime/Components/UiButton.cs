@@ -16,6 +16,7 @@ namespace MisterGames.UI.Components {
         [SerializeField] private Button _button;
         [SerializeField] private TMP_Text _buttonText;
         [SerializeField] [Min(0f)] private float _clickCooldown = 0.1f;
+        [SerializeField] private bool _isBlocked;
         
         public event Action<UiButton> OnClicked = delegate { };
         public Selectable Selectable => _button;
@@ -25,6 +26,10 @@ namespace MisterGames.UI.Components {
         private CancellationTokenSource _enableCts;
         private IUiElementAnimator _uiElementAnimator;
         private float _clickTime;
+
+        private void Awake() {
+            Block(this, _isBlocked);
+        }
 
         private void OnEnable() {
             AsyncExt.RecreateCts(ref _enableCts);
@@ -85,8 +90,6 @@ namespace MisterGames.UI.Components {
         }
         
 #if UNITY_EDITOR
-        [SerializeField] private bool _isBlockedDebug;
-        
         private void Reset() {
             _button = GetComponent<Button>();
         }
@@ -94,7 +97,7 @@ namespace MisterGames.UI.Components {
         private void OnValidate() {
             if (!Application.isPlaying) return;
             
-            Block(this, _isBlockedDebug);
+            Block(this, _isBlocked);
         }
 #endif
     }
