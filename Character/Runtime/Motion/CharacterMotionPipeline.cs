@@ -33,9 +33,7 @@ namespace MisterGames.Character.Motion {
         public Vector3 Up => _transform.up;
         
         public Rigidbody Rigidbody { get; private set; }
-        public bool IsKinematic { get => Rigidbody.isKinematic; set => Rigidbody.isKinematic = value; }
         public Vector3 Velocity { get => Rigidbody.linearVelocity; set => Rigidbody.linearVelocity = value; }
-        public Vector3 Position { get => Rigidbody.position; set => Rigidbody.position = value; }
 
         public float MoveForce { get => _moveForce; set => _moveForce = value; }
         public float Speed { get; set; }

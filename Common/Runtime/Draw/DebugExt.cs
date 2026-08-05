@@ -463,6 +463,20 @@ namespace MisterGames.Common {
             DrawCircle(position, or1, radius, color, angle: 360f, step, duration, gizmo);
             DrawCircle(position, or2, radius, color, angle: 360f, step, duration, gizmo);
         }
+        
+        public static void DrawCapsuleCast(
+            Vector3 from,
+            Vector3 to,
+            float radius,
+            Vector3 direction,
+            Color color,
+            float step = 0.05f,
+            float duration = 0f,
+            bool gizmo = false)
+        {
+            DrawCapsule(from, to, radius, color, step, duration, gizmo);
+            DrawCapsule(from + direction, to + direction, radius, color, step, duration, gizmo);
+        }
 
         public static void DrawCapsule(
             Vector3 from,

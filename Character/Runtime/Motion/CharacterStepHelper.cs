@@ -107,7 +107,7 @@ namespace MisterGames.Character.Motion {
             var diff = speedK * dt * speedVector;
             if (HasObstacles(origin, inputDir, _sweepDistance, up, upperPoint)) return;
             
-            _motion.Position += diff;
+            _motion.Rigidbody.MovePosition(_motion.Rigidbody.position + diff);
             _motion.AddForce(forceVector * forceK, ForceMode.Acceleration);
             
 #if UNITY_EDITOR
@@ -118,6 +118,10 @@ namespace MisterGames.Character.Motion {
 
         private bool HasObstacles(Vector3 origin, Vector3 direction, float distance, Vector3 up, Vector3 upperPoint) {
             _capsulePipeline.GetCapsule(out var p0, out var p1, out float radius, out _);
+
+#if UNITY_EDITOR
+            if (_showDebugInfo) DebugExt.DrawCapsuleCast(origin + p0, origin + p1, radius, direction * distance, Color.magenta);
+#endif
             
             int hitCount = Physics.CapsuleCastNonAlloc(origin + p0, origin + p1, radius, direction, _sweepHits, distance, _layerMask, QueryTriggerInteraction.Ignore);
             _sweepHits.RemoveInvalidHits(ref hitCount);

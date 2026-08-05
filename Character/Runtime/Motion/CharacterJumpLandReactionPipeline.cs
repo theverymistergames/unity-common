@@ -53,7 +53,7 @@ namespace MisterGames.Character.Motion {
         }
 
         private void OnLanded(Vector3 point, float relativeSpeed) {
-            if (_motionPipeline.IsKinematic) return;
+            if (_motionPipeline.Rigidbody.isKinematic) return;
             
             for (int i = _landingOptions.Length - 1; i >= 0; i--)
             {
