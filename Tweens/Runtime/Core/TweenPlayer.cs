@@ -203,10 +203,7 @@ namespace MisterGames.Tweens {
         private void SetProgress(float value) {
             Cancel();
             _progress = Mathf.Clamp01(value);
-            
-#if UNITY_EDITOR
             _tween?.Play(context: default, Duration, _progress, speed: 0f).Forget();
-#endif
         }
 
         private void SetSpeed(float value) {

@@ -1,9 +1,14 @@
-﻿using MisterGames.Actors;
+﻿using System;
+using MisterGames.Actors;
 using MisterGames.Character.View;
+using MisterGames.Common.Data;
+using MisterGames.Common.Inputs;
 using MisterGames.Common.Maths;
+using MisterGames.Common.Service;
 using MisterGames.Input.Actions;
 using MisterGames.Interact.Interactives;
 using MisterGames.Common.Tick;
+using MisterGames.UI.Windows;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -14,11 +19,16 @@ namespace MisterGames.Character.Interactives {
 
         [SerializeField] private Transform _target;
         [SerializeField] private InputActionRef _rotationInput;
-        [SerializeField] private Vector2 _sensitivity = Vector2.one;
+        [SerializeField] private Vector2 _sensitivityMouse = Vector2.one;
+        [SerializeField] private Vector2 _sensitivityGamepad = Vector2.one;
         [SerializeField] [Min(0f)] private float _smoothing = 10f;
         [SerializeField] [Min(0f)] private float _inputSmoothing = 1f;
         [SerializeField] private ViewClampProcessor _viewClamp;
 
+        [Header("Exit")]
+        [SerializeField] private InputActionRef _exitInput;
+        [SerializeField] private Optional<InputDeviceType> _deviceType = new(InputDeviceType.Gamepad, true);
+        
         private Interactive _interactive;
         private Vector2 _inputAccum;
         private Vector2 _targetOrientation;
@@ -49,7 +59,7 @@ namespace MisterGames.Character.Interactives {
             
             _interactive.OnStartInteract -= OnStartInteract;
             _interactive.OnStopInteract -= OnStopInteract;
-            _rotationInput.Get().performed -= OnRotationInput;
+            _exitInput.Get().performed -= OnExitInput;
             
             _inputAccum = Vector2.zero;
             _finishingFlag = false;
@@ -66,22 +76,33 @@ namespace MisterGames.Character.Interactives {
         private void ActualizeSubscriptions() {
             if (_interactive.IsInteracting) {
                 _finishingFlag = false;
+                _exitInput.Get().performed -= OnExitInput;
+                _exitInput.Get().performed += OnExitInput;
                 PlayerLoopStage.Update.Subscribe(this);
-                _rotationInput.Get().performed -= OnRotationInput;
-                _rotationInput.Get().performed += OnRotationInput;
                 return;
             }
             
-            _rotationInput.Get().performed -= OnRotationInput;
+            _exitInput.Get().performed -= OnExitInput;
             _finishingFlag = true;
         }
 
-        private void OnRotationInput(InputAction.CallbackContext callbackContext) {
-            var delta = callbackContext.ReadValue<Vector2>();
-            _inputAccum += new Vector2(delta.y, delta.x) * _sensitivity;
+        private void OnExitInput(InputAction.CallbackContext obj) {
+            if (_deviceType.HasValue && _deviceType.Value != Services.Get<IDeviceService>().CurrentDevice || 
+                Services.Get<IUiWindowService>().HasOpenedWindows()) return;
+            
+            _interactive.ForceStopInteractWithAllUsers();
         }
 
         void IUpdate.OnUpdate(float dt) {
+            var delta = _rotationInput.Get().ReadValue<Vector2>();
+            var sens = Services.Get<IDeviceService>().CurrentDevice switch {
+                InputDeviceType.KeyboardMouse => _sensitivityMouse,
+                InputDeviceType.Gamepad => _sensitivityGamepad,
+                _ => throw new ArgumentOutOfRangeException()
+            };
+            
+            _inputAccum += new Vector2(delta.y, delta.x) * sens;
+            
             float consume = _inputSmoothing * dt;
             _targetOrientation += consume * _inputAccum;
             _inputAccum *= Mathf.Max(1f - consume, 0f);

@@ -361,7 +361,7 @@ namespace MisterGames.Common.Audio {
                 return AudioHandle.Invalid;
             }
             
-            var attachKey = new AttachKey(attachTo.GetHashCode(), attachId);
+            var attachKey = new AttachKey(attachTo.GetEntityId(), attachId);
 
 #if UNITY_EDITOR
             CreateDebugColor(id, clip.name);
@@ -523,7 +523,7 @@ namespace MisterGames.Common.Audio {
         }
         
         public AudioHandle GetAudioHandle(Transform attachedTo, int hash) {
-            return _attachKeyToHandleIdMap.TryGetValue(new AttachKey(attachedTo.GetInstanceID(), hash), out int id) && 
+            return _attachKeyToHandleIdMap.TryGetValue(new AttachKey(attachedTo.GetEntityId(), hash), out int id) && 
                    _handleIdToAudioElementMap.ContainsKey(id)
                 ? new AudioHandle(this, id)
                 : AudioHandle.Invalid;
@@ -1289,17 +1289,17 @@ namespace MisterGames.Common.Audio {
 
         private readonly struct AttachKey : IEquatable<AttachKey> {
             
-            private readonly int _instanceId;
+            private readonly EntityId _entityId;
             private readonly int _hash;
             
-            public AttachKey(int instanceId, int hash) {
-                _instanceId = instanceId;
+            public AttachKey(EntityId entityId, int hash) {
+                _entityId = entityId;
                 _hash = hash;
             }
             
-            public bool Equals(AttachKey other) => _instanceId == other._instanceId && _hash == other._hash;
+            public bool Equals(AttachKey other) => _entityId == other._entityId && _hash == other._hash;
             public override bool Equals(object obj) => obj is AttachKey other && Equals(other);
-            public override int GetHashCode() => HashCode.Combine(_instanceId, _hash);
+            public override int GetHashCode() => HashCode.Combine(_entityId, _hash);
             public static bool operator ==(AttachKey left, AttachKey right) => left.Equals(right);
             public static bool operator !=(AttachKey left, AttachKey right) => !left.Equals(right);
         }

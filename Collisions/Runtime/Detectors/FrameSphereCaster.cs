@@ -9,7 +9,6 @@ namespace MisterGames.Collisions.Detectors {
     public sealed class FrameSphereCaster : CollisionDetectorBase, IRadiusCollisionDetector, IUpdate {
 
         [SerializeField] private Transform _transform;
-        [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
 
         [Header("Spherecast Settings")]
         [SerializeField] [Min(1)] private int _maxHits = 6;
@@ -33,11 +32,11 @@ namespace MisterGames.Collisions.Detectors {
         }
 
         private void OnEnable() {
-            _timeSourceStage.Subscribe(this);
+            PlayerLoopStage.Update.Subscribe(this);
         }
 
         private void OnDisable() {
-            _timeSourceStage.Unsubscribe(this);
+            PlayerLoopStage.Update.Unsubscribe(this);
         }
 
         private void Start() {

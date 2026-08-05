@@ -10,11 +10,19 @@ namespace MisterGames.Collisions.Utils {
     
     public static class CollisionUtils {
 
+        private static readonly IComparer<CollisionInfo> CollisionInfoDistanceComparerAsc = new CollisionInfoDistanceComparer(true);
+        private static readonly IComparer<CollisionInfo> CollisionInfoDistanceComparerDesc = new CollisionInfoDistanceComparer(false);
         private static readonly IComparer<RaycastHit> RaycastHitDistanceComparerAsc = new RaycastHitDistanceComparer(true);
         private static readonly IComparer<RaycastHit> RaycastHitDistanceComparerDesc = new RaycastHitDistanceComparer(false);
         private static readonly IComparer<RaycastResult> RaycastResultDistanceComparerAsc = new RaycastResultDistanceComparer(true);
         private static readonly IComparer<RaycastResult> RaycastResultDistanceComparerDesc = new RaycastResultDistanceComparer(false);
-        
+
+        private sealed class CollisionInfoDistanceComparer : IComparer<CollisionInfo> {
+            private readonly int _orderSign;
+            public CollisionInfoDistanceComparer(bool ascending) => _orderSign = ascending ? 1 : -1;
+            public int Compare(CollisionInfo x, CollisionInfo y) => x.distance.CompareTo(y.distance) * _orderSign;
+        }
+
         private sealed class RaycastHitDistanceComparer : IComparer<RaycastHit> {
             private readonly int _orderSign;
             public RaycastHitDistanceComparer(bool ascending) => _orderSign = ascending ? 1 : -1;
@@ -343,7 +351,33 @@ namespace MisterGames.Collisions.Utils {
 
             return hits;
         }
+        
+        public static CollisionInfo[] SortByDistance(
+            this CollisionInfo[] hits,
+            int hitCount,
+            bool ascending = true
+        ) {
+            hitCount = Math.Min(hitCount, hits.Length);
 
+            var comparer = ascending ? CollisionInfoDistanceComparerAsc : CollisionInfoDistanceComparerDesc;
+            Array.Sort(hits, 0, hitCount, comparer);
+
+            return hits;
+        }
+        
+        public static List<CollisionInfo> SortByDistance(
+            this List<CollisionInfo> hits,
+            int hitCount,
+            bool ascending = true
+        ) {
+            hitCount = Math.Min(hitCount, hits.Count);
+
+            var comparer = ascending ? CollisionInfoDistanceComparerAsc : CollisionInfoDistanceComparerDesc;
+            hits.Sort(0, hitCount, comparer);
+
+            return hits;
+        }
+        
         public static List<RaycastResult> SortByDistance(
             this List<RaycastResult> hits,
             int hitCount,

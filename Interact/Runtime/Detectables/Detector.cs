@@ -31,6 +31,8 @@ namespace MisterGames.Interact.Detectables {
         private readonly HashSet<int> _detectedHashesSet = new();
         private readonly HashSet<int> _detectedHashesBuffer = new();
 
+        private readonly List<CollisionInfo> _hitsBuffer = new();
+        private readonly List<CollisionInfo> _hitsBufferResult = new();
         private CollisionInfo _directViewHit;
         
         private void Awake() {
@@ -98,7 +100,7 @@ namespace MisterGames.Interact.Detectables {
         }
 
         void IUpdate.OnUpdate(float dt) {
-            var hits = _collisionDetector.FilterLastResults(_collisionFilter);
+            var hits = GetHits();
             
             _detectedHashesBuffer.Clear();
             FillDetectedHashesInto(hits, _detectedHashesBuffer);
@@ -114,8 +116,30 @@ namespace MisterGames.Interact.Detectables {
             FillDetectedHashesInto(hits, _detectedHashesSet);
         }
 
-        private static void FillDetectedHashesInto(ReadOnlySpan<CollisionInfo> hits, HashSet<int> dest) {
+        private IReadOnlyList<CollisionInfo> GetHits() {
+            _hitsBuffer.Clear();
+            _hitsBufferResult.Clear();
+            
+            var hits = _collisionDetector.FilterLastResults(_collisionFilter);
             for (int i = 0; i < hits.Length; i++) {
+                _hitsBuffer.Add(hits[i]);
+            }
+
+            _hitsBuffer.SortByDistance(hits.Length, ascending: true);
+            
+            for (int i = 0; i < _hitsBuffer.Count; i++) {
+                var hit = _hitsBuffer[i];
+                if (hit.collider == null) continue;
+
+                _hitsBufferResult.Add(hit);
+                if (!hit.collider.isTrigger) break;
+            }
+
+            return _hitsBufferResult;
+        }
+        
+        private static void FillDetectedHashesInto(IReadOnlyList<CollisionInfo> hits, HashSet<int> dest) {
+            for (int i = 0; i < hits.Count; i++) {
                 var hit = hits[i];
                 if (hit is not { hasContact: true, isValid: true } || hit.collider is not { } c) continue;
 
@@ -136,8 +160,8 @@ namespace MisterGames.Interact.Detectables {
             }
         }
 
-        private void AddNewDetectedCandidates(ReadOnlySpan<CollisionInfo> hits, HashSet<int> lastDetectedHashes) {
-            for (int i = 0; i < hits.Length; i++) {
+        private void AddNewDetectedCandidates(IReadOnlyList<CollisionInfo> hits, HashSet<int> lastDetectedHashes) {
+            for (int i = 0; i < hits.Count; i++) {
                 var hit = hits[i];
                 if (!hit.hasContact || hit.collider == null) continue;
 
