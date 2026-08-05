@@ -28,10 +28,15 @@ namespace MisterGames.Character.Interactives {
         [SerializeField] [Range(0f, 1f)] private float _rightFreqEnd;
         [SerializeField] private OscillatedCurve _leftFreqCurve;
         [SerializeField] private OscillatedCurve _rightFreqCurve;
-        
+
+        private IGamepadVibration _gamepadVibration;
         private float _weightSmoothedLeft;
         private float _weightSmoothedRight;
         private bool _isRegistered;
+
+        private void Awake() {
+            _gamepadVibration = Services.Get<IDeviceService>().GamepadVibration;
+        }
 
         public void SetWeight(GamepadSide side, float weight) {
             switch (side) {
@@ -78,14 +83,14 @@ namespace MisterGames.Character.Interactives {
         private void Register() {
             if (_isRegistered) return;
             
-            Services.Get<IDeviceService>().GamepadVibration.Register(this, _priority.GetValue());
+            _gamepadVibration?.Register(this, _priority.GetValue());
             _isRegistered = true;
         }
 
         private void Unregister() {
             if (!_isRegistered) return;
             
-            Services.Get<IDeviceService>()?.GamepadVibration.Unregister(this);
+            _gamepadVibration?.Unregister(this);
             _isRegistered = false;
         }
 
@@ -101,7 +106,7 @@ namespace MisterGames.Character.Interactives {
                 Mathf.Lerp(_rightFreqStart, _rightFreqEnd, _rightFreqCurve.Evaluate(_weightSmoothedRight))
             );
             
-            Services.Get<IDeviceService>().GamepadVibration.SetTwoMotors(
+            _gamepadVibration?.SetTwoMotors(
                 this,
                 freq,
                 _weightSmoothedLeft * _leftWeightMul,
