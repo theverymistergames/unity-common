@@ -11,7 +11,6 @@ using MisterGames.Common.Maths;
 using MisterGames.Common.Strings;
 using UnityEngine;
 using UnityEngine.Audio;
-using Object = System.Object;
 using Random = UnityEngine.Random;
 
 namespace MisterGames.ActionLib.Sounds {
@@ -58,6 +57,11 @@ namespace MisterGames.ActionLib.Sounds {
         }
         
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
+            PlaySound(context, cancellationToken);
+            return default;
+        }
+
+        public AudioHandle PlaySound(IActor context, CancellationToken cancellationToken) {
             if (audioClipVariants is not { Length: > 0 } || AudioPool.Main is not {} pool) return default;
 
             var clip = pool.ShuffleClips(audioClipVariants);
@@ -84,14 +88,9 @@ namespace MisterGames.ActionLib.Sounds {
 
             cancellationToken = useActorDestroyToken ? context.DestroyToken : cancellationToken;
             
-            if (attach) {
-                pool.Play(clip, trf, localPosition: default, attachId, volume, fadeIn, fadeOut, resultPitch, spatialBlend, resultStartTime, mixerGroup, options, cancellationToken);    
-            }
-            else {
-                pool.Play(clip, trf.position, volume, fadeIn, fadeOut, resultPitch, spatialBlend, resultStartTime, mixerGroup, options, cancellationToken);
-            }
-            
-            return default;
+            return attach 
+                ? pool.Play(clip, trf, localPosition: default, attachId, volume, fadeIn, fadeOut, resultPitch, spatialBlend, resultStartTime, mixerGroup, options, cancellationToken) 
+                : pool.Play(clip, trf.position, volume, fadeIn, fadeOut, resultPitch, spatialBlend, resultStartTime, mixerGroup, options, cancellationToken);
         }
     }
     

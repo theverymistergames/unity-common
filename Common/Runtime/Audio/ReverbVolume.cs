@@ -2,6 +2,9 @@
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Volumes;
 using UnityEngine;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace MisterGames.Common.Audio {
     
@@ -26,6 +29,16 @@ namespace MisterGames.Common.Audio {
         public int Id => GetEntityId();
         public int Priority => _priority;
         public float Level => _level;
+
+        public float Weight {
+            get => _weight;
+            set {
+                _weight = value;
+#if UNITY_EDITOR
+                if (!Application.isPlaying) EditorUtility.SetDirty(this);
+#endif
+            }
+        }
 
         public IReverbSettings GetReverbSettings() {
             return _reverbSettings;

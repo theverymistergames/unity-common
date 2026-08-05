@@ -8,6 +8,7 @@ namespace MisterGames.Common.Audio {
         int Id { get; }
         int Priority { get; }
         float Level { get; }
+        float Weight { get; set; }
         
         IReverbSettings GetReverbSettings();
         WeightData GetWeight(Vector3 position);
