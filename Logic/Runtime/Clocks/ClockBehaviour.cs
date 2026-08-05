@@ -103,7 +103,7 @@ namespace MisterGames.Logic.Clocks {
             var normal = rot * _centerNormal;
 
             if (_hasHourArrow) {
-                var angle = Quaternion.AngleAxis(now.Hour * 15f, normal) * rot;
+                var angle = Quaternion.AngleAxis(now.Hour * 30f, normal) * rot;
                 _hourArrow.SetPositionAndRotation(pos + angle * _hourOffset, angle * _hourRotationOffset);
             }
             
