@@ -57,14 +57,20 @@ namespace MisterGames.ActionLib.Sounds {
         }
         
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            PlaySound(context, cancellationToken);
+            PlayDefaultSound(context, cancellationToken);
             return default;
         }
 
-        public AudioHandle PlaySound(IActor context, CancellationToken cancellationToken) {
-            if (audioClipVariants is not { Length: > 0 } || AudioPool.Main is not {} pool) return default;
+        public AudioHandle PlayDefaultSound(IActor context, CancellationToken cancellationToken) {
+            if (audioClipVariants is not { Length: > 0 }) return default;
 
-            var clip = pool.ShuffleClips(audioClipVariants);
+            var clip = AudioPool.Main?.ShuffleClips(audioClipVariants);
+            return PlaySound(clip, context, cancellationToken);
+        }
+        
+        public AudioHandle PlaySound(AudioClip clip, IActor context, CancellationToken cancellationToken) {
+            if (clip == null || AudioPool.Main is not { } pool) return default;
+            
             float resultPitch = pitch + Random.Range(-pitchRandomAdd, pitchRandomAdd);
             float resultStartTime = startTime.GetRandomInRange();
 

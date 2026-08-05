@@ -16,6 +16,7 @@ namespace MisterGames.Scenario.Components {
         [SerializeField] private bool _unsubscribeAfterMatch;
         
         [Header("Comparison")]
+        [SerializeField] private bool _compareEventRaiseCount = true;
         [SerializeField] private CompareMode _compareMode;
         
         [Header("For equal or not equal comparisons")]
@@ -46,7 +47,7 @@ namespace MisterGames.Scenario.Components {
         }
 
         public void OnEventRaised(EventReference e) {
-            bool isMatch = IsMatch(e.GetCount());
+            bool isMatch = !_compareEventRaiseCount || IsMatch(e.GetCount());
             if (!isMatch) return;
 
             _action?.Apply(_actor, destroyCancellationToken).Forget();

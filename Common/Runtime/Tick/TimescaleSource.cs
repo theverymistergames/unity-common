@@ -2,7 +2,6 @@
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Async;
 using MisterGames.Common.Easing;
-using MisterGames.Common.Labels;
 using MisterGames.Common.Service;
 using UnityEngine;
 
@@ -10,7 +9,7 @@ namespace MisterGames.Common.Tick {
     
     public sealed class TimescaleSource : MonoBehaviour {
 
-        [SerializeField] private LabelValue _timescalePriority;
+        [SerializeField] private TimescalePriority _priority;
         [SerializeField] [Min(0f)] private float _timeScale;
         [SerializeField] [Min(0f)] private float _timeScaleDurationOnOpen;
         [SerializeField] [Min(0f)] private float _timeScaleDurationOnClose;
@@ -26,7 +25,7 @@ namespace MisterGames.Common.Tick {
         private void OnDestroy() {
             AsyncExt.DisposeCts(ref _destroyCts);
             
-            Services.Get<ITimescaleSystem>()?.RemoveTimeScale(this);
+            Services.Get<ITimescaleSystem>()?.RemoveTimescale(this);
         }
 
         private void OnEnable() {
@@ -42,9 +41,9 @@ namespace MisterGames.Common.Tick {
         }
 
         private UniTask ChangeTimescale(float timescale, float duration, bool removeOnFinish, CancellationToken cancellationToken) {
-            return Services.Get<ITimescaleSystem>()?.ChangeTimeScale(
+            return Services.Get<ITimescaleSystem>()?.ChangeTimescale(
                 source: this,
-                _timescalePriority.GetValue(),
+                _priority,
                 timescale,
                 duration,
                 removeOnFinish,

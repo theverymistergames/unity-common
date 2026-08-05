@@ -6,15 +6,27 @@ namespace MisterGames.Common.Tick {
     
     public interface ITimescaleSystem {
 
-        float GetTimeScale();
-        float GetTimeScale(int order);
+        float GetTimescale();
+        float GetTimescale(byte priority);
+        float GetTimescale(TimescalePriority priority);
         
-        void SetTimeScale(object source, int priority, float timeScale);
-        void RemoveTimeScale(object source);
+        void SetTimescale(object source, byte priority, float timescale);
+        void SetTimescale(object source, TimescalePriority priority, float timescale);
+        void RemoveTimescale(object source);
         
-        UniTask ChangeTimeScale(
+        UniTask ChangeTimescale(
             object source,
-            int priority,
+            byte priority,
+            float timescale,
+            float duration,
+            bool removeOnFinish = false,
+            AnimationCurve curve = null,
+            CancellationToken cancellationToken = default
+        );
+        
+        UniTask ChangeTimescale(
+            object source,
+            TimescalePriority priority,
             float timescale,
             float duration,
             bool removeOnFinish = false,

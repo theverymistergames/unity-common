@@ -8,12 +8,11 @@ namespace MisterGames.Common.Editor.Build {
     
     internal sealed class BuildProcessHelper : IPreprocessBuildWithReport, IPostprocessBuildWithReport {
 
-        public int callbackOrder => 0;
+        public int callbackOrder => -100_000;
         private byte _operationId;
 
         public void OnPreprocessBuild(BuildReport report) {
             _operationId.IncrementUncheckedRef();
-            
             BuildInfo.IsBuildProcessing = true;
         }
         

@@ -7,7 +7,6 @@ using MisterGames.Character.Input;
 using MisterGames.Character.Motion;
 using MisterGames.Common.Async;
 using MisterGames.Common.Inputs;
-using MisterGames.Common.Labels;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Service;
 using MisterGames.Common.Tick;
@@ -34,9 +33,6 @@ namespace MisterGames.Character.View {
         
         [Header("Gravity Settings")]
         [SerializeField] [Min(0f)] private float _gravityDirSmoothing = 6f;
-
-        [Header("Timing")]
-        [SerializeField] private LabelValue _timescalePriority;
         
         public bool IsAttached => _headJoint.IsAttached;
 
@@ -259,9 +255,7 @@ namespace MisterGames.Character.View {
         
         private async UniTask StartHeadUpdate(CancellationToken cancellationToken) {
             while (!cancellationToken.IsCancellationRequested) {
-                float dt = _timescalePriority.TryGetValue(out int value) 
-                    ? Time.unscaledDeltaTime * _timescaleSystem.GetTimeScale(value) 
-                    : Time.unscaledDeltaTime;
+                float dt = Time.unscaledDeltaTime * _timescaleSystem.GetTimescale(TimescalePriority.Default);
                 ProcessHeadUpdate(dt);
                 await UniTask.Yield(PlayerLoopTiming.LastUpdate);
             }

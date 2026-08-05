@@ -33,7 +33,6 @@ namespace MisterGames.UI.Components {
         [SerializeField] private UiWindow _menuWindow;
 
         [Header("Timescale")]
-        [SerializeField] private LabelValue _timescalePriority;
         [SerializeField] [Min(0)] private int _changeTimescaleOrderOnOpen;
         [SerializeField] [Min(0)] private int _changeTimescaleOrderOnClose;
         [SerializeField] [Min(0f)] private float _timeScale = 1f;
@@ -77,18 +76,18 @@ namespace MisterGames.UI.Components {
             
             if (_isMenuOpened) {
                 BlockInputs();
-                Services.Get<ITimescaleSystem>().SetTimeScale(this, _timescalePriority.GetValue(), _timeScale);
+                Services.Get<ITimescaleSystem>().SetTimescale(this, TimescalePriority.Menu, _timeScale);
             }
             else {
                 UnblockInputs();
-                Services.Get<ITimescaleSystem>().RemoveTimeScale(this);
+                Services.Get<ITimescaleSystem>().RemoveTimescale(this);
             }
         }
 
         private void OnDisable() {
             if (_cancelOnDisable) {
                 AsyncExt.DisposeCts(ref _actionCts);
-                Services.Get<ITimescaleSystem>()?.RemoveTimeScale(this);
+                Services.Get<ITimescaleSystem>()?.RemoveTimescale(this);
                 UnblockInputs();
             }
             
@@ -124,8 +123,6 @@ namespace MisterGames.UI.Components {
             BlockInputs(cancellationToken);
             
             var order = GetActionsOrder(onOpen: true, out int actionsCount);
-            int timescalePriority = _timescalePriority.GetValue();
-            
             var tasks = ArrayPool<UniTask>.Shared.Rent(actionsCount);
             
             for (int i = 0; i < order.Count && !cancellationToken.IsCancellationRequested; i++) {
@@ -138,9 +135,9 @@ namespace MisterGames.UI.Components {
                 }
 
                 if (index == _changeTimescaleOrderOnOpen) {
-                    tasks[parallelCount++] = Services.Get<ITimescaleSystem>().ChangeTimeScale(
+                    tasks[parallelCount++] = Services.Get<ITimescaleSystem>().ChangeTimescale(
                         source: this,
-                        timescalePriority,
+                        TimescalePriority.Menu,
                         _timeScale,
                         _timeScaleDurationOnOpen,
                         removeOnFinish: false,
@@ -174,7 +171,6 @@ namespace MisterGames.UI.Components {
             UnblockInputs();
             
             var order = GetActionsOrder(onOpen: false, out int actionsCount);
-            int timescalePriority = _timescalePriority.GetValue();
             var tasks = ArrayPool<UniTask>.Shared.Rent(actionsCount);
             
             var timescaleSystem = Services.Get<ITimescaleSystem>();
@@ -185,9 +181,9 @@ namespace MisterGames.UI.Components {
                 int parallelCount = 0;
                 
                 if (i == _changeTimescaleOrderOnClose) {
-                    tasks[parallelCount++] = timescaleSystem?.ChangeTimeScale(
+                    tasks[parallelCount++] = timescaleSystem?.ChangeTimescale(
                         source: this,
-                        timescalePriority,
+                        TimescalePriority.Menu,
                         1f,
                         _timeScaleDurationOnClose,
                         removeOnFinish: true,

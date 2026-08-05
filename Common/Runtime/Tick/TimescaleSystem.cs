@@ -2,15 +2,15 @@
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using MisterGames.Common.Data;
 using MisterGames.Common.Maths;
+using Unity.Collections;
 using UnityEngine;
 
 namespace MisterGames.Common.Tick {
     
     public sealed class TimescaleSystem : ITimescaleSystem, IDisposable {
-        
-        private readonly PriorityMap<int, float> _priorityMap = new();
+
+        private readonly Dictionary<int, (byte priority, float timescale)> _timescaleMap = new();
         private readonly Dictionary<int, byte> _sourceToChangeIdMap = new();
 
         private float _baseFixedDt;
@@ -20,35 +20,60 @@ namespace MisterGames.Common.Tick {
         }
         
         public void Dispose() {
-            _priorityMap.Clear();
+            _timescaleMap.Clear();
             _sourceToChangeIdMap.Clear();
         }
 
-        public void SetTimeScale(object source, int priority, float timeScale) {
+        public float GetTimescale() {
+            return Time.timeScale;
+        }
+
+        public float GetTimescale(TimescalePriority priority) {
+            return GetTimescale((byte) priority);
+        }
+
+        public float GetTimescale(byte priority) {
+            return CalculateTimescale(priority);
+        }
+
+        public void SetTimescale(object source, TimescalePriority priority, float timescale) {
+            SetTimescale(source, (byte) priority, timescale);
+        }
+
+        public void SetTimescale(object source, byte priority, float timescale) {
             int hash = source.GetHashCode();
-            
-            _priorityMap.Set(hash, timeScale, priority);
+            _timescaleMap[hash] = (priority, timescale);
             
             byte id = _sourceToChangeIdMap.GetValueOrDefault(hash);
             _sourceToChangeIdMap[hash] = id.IncrementUncheckedRef();
             
-            Time.timeScale = CalculateTimeScale(_priorityMap.GetFirstOrder());
-            Time.fixedDeltaTime = _baseFixedDt * Time.timeScale;
+            ApplySystemTimescale(CalculateTimescale(0));
         }
 
-        public void RemoveTimeScale(object source) {
+        public void RemoveTimescale(object source) {
             int hash = source.GetHashCode();
             _sourceToChangeIdMap.Remove(hash);
             
-            if (!_priorityMap.Remove(hash)) return;
+            if (!_timescaleMap.Remove(hash)) return;
             
-            Time.timeScale = CalculateTimeScale(_priorityMap.GetFirstOrder());
-            Time.fixedDeltaTime = _baseFixedDt * Time.timeScale;
+            ApplySystemTimescale(CalculateTimescale(0));
         }
 
-        public async UniTask ChangeTimeScale(
+        public UniTask ChangeTimescale(
             object source,
-            int priority,
+            TimescalePriority priority,
+            float timescale,
+            float duration,
+            bool removeOnFinish = false,
+            AnimationCurve curve = null,
+            CancellationToken cancellationToken = default) 
+        {
+            return ChangeTimescale(source, (byte) priority, timescale, duration, removeOnFinish, curve, cancellationToken);
+        }
+
+        public async UniTask ChangeTimescale(
+            object source,
+            byte priority,
             float timescale,
             float duration,
             bool removeOnFinish = false,
@@ -63,57 +88,58 @@ namespace MisterGames.Common.Tick {
             
             float t = 0f;
             float speed = duration > 0f ? 1f / duration : float.MaxValue;
-            float startTimescale = _priorityMap.GetValueOrDefault(hash, 1f);
+            float startTimescale = _timescaleMap.GetValueOrDefault(hash, (priority, timescale: 1f)).timescale;
             
-            _priorityMap.Set(hash, startTimescale, priority);
+            _timescaleMap[hash] = (priority, startTimescale);
             
             while (t < 1f && 
                    !cancellationToken.IsCancellationRequested && 
                    _sourceToChangeIdMap.TryGetValue(hash, out currentId) && id == currentId) 
             {
                 t = Mathf.Clamp01(t + Time.unscaledDeltaTime * speed);
+                float ts = Mathf.Lerp(startTimescale, timescale, curve?.Evaluate(t) ?? t);
+                _timescaleMap[hash] = (priority, ts);
                 
-                _priorityMap.Set(hash, Mathf.Lerp(startTimescale, timescale, curve?.Evaluate(t) ?? t), priority);
-                
-                Time.timeScale = CalculateTimeScale(_priorityMap.GetFirstOrder());
-                Time.fixedDeltaTime = _baseFixedDt * Time.timeScale;
+                ApplySystemTimescale(CalculateTimescale(0));
                 
                 await UniTask.Yield();
             }
 
             if (removeOnFinish && _sourceToChangeIdMap.TryGetValue(hash, out currentId) && id == currentId) {
-                RemoveTimeScale(source);
+                RemoveTimescale(source);
             }
         }
 
-        public float GetTimeScale() {
-            return Time.timeScale;
+        private void ApplySystemTimescale(float timescale) {
+            Time.timeScale = timescale;
+            Time.fixedDeltaTime = _baseFixedDt * timescale;
         }
+        
+        private float CalculateTimescale(byte minPriority) {
+            if (_timescaleMap.Count <= 0) return 1f;
+            
+            var priorityTimescaleMap = new NativeHashMap<byte, float>(2, Allocator.Temp);
+            
+            foreach ((byte prior, float timescale) in _timescaleMap.Values) {
+                if (prior < minPriority) continue;
 
-        public float GetTimeScale(int order) {
-            return CalculateTimeScale(order);
-        }
+                if (priorityTimescaleMap.TryGetValue(prior, out float existingTimescale)) {
+                    priorityTimescaleMap[prior] = Mathf.Min(existingTimescale, timescale);
+                }
+                else {
+                    priorityTimescaleMap[prior] = timescale;
+                }
+            }
 
-        private float CalculateTimeScale(int maxOrder) {
-            float lowestTimescale = 1f;
-            int firstOrder = _priorityMap.GetFirstOrder();
+            float result = 1f;
             
-            if (firstOrder > maxOrder) return lowestTimescale;
-            
-            maxOrder = Mathf.Min(firstOrder, maxOrder);
-            var keys = _priorityMap.SortedKeys;
-            
-            for (int i = 0; i < keys.Count; i++) {
-                int key = keys[i];
-                int order = _priorityMap.GetOrder(key);
-                
-                if (order > maxOrder) break;
-                
-                float timescale = _priorityMap[key];
-                if (timescale < lowestTimescale) lowestTimescale = timescale;
+            foreach (var kv in priorityTimescaleMap) {
+                result *= kv.Value;
             }
             
-            return lowestTimescale;
+            priorityTimescaleMap.Dispose();
+            
+            return result;
         }
     }
     

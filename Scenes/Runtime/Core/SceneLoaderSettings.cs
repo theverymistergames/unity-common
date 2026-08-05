@@ -3,9 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using MisterGames.Common.Strings;
 using UnityEngine;
-
-#if UNITY_EDITOR
 using System.Threading.Tasks;
+#if UNITY_EDITOR
 using UnityEditor;
 #endif
 
