@@ -13,10 +13,11 @@ namespace MisterGames.ActionLib.Save {
     public sealed class LoadGameplaySaveProfileAction : IActorAction {
 
         [Min(0)] public int index;
+        public bool makeCurrent = true;
         
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
             return Services.TryGet(out IGameplaySaveService service) 
-                ? service.LoadOrCreateProfile(service.GetProfileKey(index)) 
+                ? service.LoadOrCreateProfile(service.GetProfileKey(index), makeCurrent) 
                 : default;
         }
     }

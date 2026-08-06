@@ -25,7 +25,7 @@ namespace MisterGames.Common.Gameplay {
             }
             
             AsyncExt.RecreateCts(ref _cts);
-            gameplaySaveService.LoadOrCreateProfile(gameplaySaveService.GetProfileKey(_editorProfileIndex));
+            gameplaySaveService.LoadOrCreateProfile(gameplaySaveService.GetProfileKey(_editorProfileIndex), makeCurrent: true);
             _action?.Apply(null, _cts.Token).Forget();
         }
 

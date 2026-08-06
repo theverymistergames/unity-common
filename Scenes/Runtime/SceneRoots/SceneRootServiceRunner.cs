@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace MisterGames.Scenes.SceneRoots {
     
-    [DefaultExecutionOrder(-200_000)]
+    [DefaultExecutionOrder(-2_000_000)]
     public sealed class SceneRootServiceRunner : MonoBehaviour {
         
         private readonly SceneRootService _service = new();
