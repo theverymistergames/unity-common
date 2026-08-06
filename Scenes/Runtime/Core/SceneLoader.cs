@@ -12,7 +12,7 @@ using UnityEngine.SceneManagement;
 
 namespace MisterGames.Scenes.Core {
     
-    [DefaultExecutionOrder(-100_000)]
+    [DefaultExecutionOrder(-1_000_000)]
     public sealed class SceneLoader : MonoBehaviour {
 
         [Header("Actions")]
