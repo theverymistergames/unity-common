@@ -734,7 +734,8 @@ namespace MisterGames.Common.Audio {
             );
             
             var resultSoundArray = CalculateResult(soundDataArray, soundOptionsArray, volumeResultArray, occlusionResultArray, soundCount, dt);
-
+            float timescale = Time.timeScale;
+            
             for (int i = 0; i < soundCount; i++) {
                 var options = soundOptionsArray[i];
                 var soundData = soundDataArray[i];
@@ -747,6 +748,15 @@ namespace MisterGames.Common.Audio {
                 }
                 
                 var resultData = resultSoundArray[i];
+
+                if ((options & AudioOptions.AffectedByTimeScale) != 0) {
+                    if (timescale <= 0f && e.Source.isPlaying) {
+                        e.Source.Pause();
+                    }
+                    else if (timescale > 0f && !e.Source.isPlaying) {
+                        e.Source.UnPause();
+                    }   
+                }
                 
 #if UNITY_EDITOR
                 if (_showSoundsDebugInfo) {
