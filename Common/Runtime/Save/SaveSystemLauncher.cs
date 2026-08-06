@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace MisterGames.Common.Save {
     
-    [DefaultExecutionOrder(-100_000)]
+    [DefaultExecutionOrder(-1_000_000)]
     public sealed class SaveSystemLauncher : MonoBehaviour {
 
         [EmbeddedInspector]

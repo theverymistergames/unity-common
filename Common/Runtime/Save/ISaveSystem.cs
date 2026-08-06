@@ -14,10 +14,7 @@ namespace MisterGames.Common.Save {
         T Get<T>(string storageId, string dataId, int index);
         bool Set<T>(string storageId, string dataId, int index, T data);
         bool Remove<T>(string storageId, string dataId, int index);
-        SaveBuilder Pop<T>(string storageId, string dataId, out T data);
-        SaveBuilder Pop<T>(string storageId, string dataId, T def, out T data);
-        SaveBuilder Push<T>(string storageId, string dataId, T data);
-
+   
         ISaveStorage<SaveKey> GetStorage(string storageId);
         
         IReadOnlyList<StorageData> GetStorageFiles();

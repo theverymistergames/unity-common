@@ -68,18 +68,6 @@ namespace MisterGames.Common.Save {
         public bool Remove<T>(string storageId, string dataId, int index) {
             return GetStorage(storageId)?.GetTable<T>()?.RemoveData(new SaveKey(dataId, index)) ?? false;
         }
-
-        public SaveBuilder Pop<T>(string storageId, string dataId, T def, out T data) {
-            return new SaveBuilder(this, storageId, dataId).Pop(def, out data);
-        }
-
-        public SaveBuilder Pop<T>(string storageId, string dataId, out T data) {
-            return new SaveBuilder(this, storageId, dataId).Pop(out data);
-        }
-
-        public SaveBuilder Push<T>(string storageId, string dataId, T data) {
-            return new SaveBuilder(this, storageId, dataId).Push(data);
-        }
         
         public IReadOnlyList<StorageData> GetStorageFiles() {
             string path = _saveSystemSettings.GetFolderPath();

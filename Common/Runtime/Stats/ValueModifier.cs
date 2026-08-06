@@ -5,7 +5,7 @@ namespace MisterGames.Common.Stats {
     [Serializable]
     public struct ValueModifier {
         
-        public static ValueModifier Empty = new ValueModifier(OperationType.Mul, 1f);
+        public static ValueModifier Empty = new(OperationType.Mul, 1f);
         
         public OperationType operation;
         public float modifier;
