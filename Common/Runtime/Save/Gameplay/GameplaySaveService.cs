@@ -61,8 +61,8 @@ namespace MisterGames.Common.Save {
 
         public async UniTask LoadOrCreateProfile(string profileKey) {
             _unsavedChangesInProfiles.Remove(profileKey);
-            await _saveSystem.LoadFromFile(profileKey, GetOrCreateStorage(profileKey));
             _currentProfileKey = profileKey;
+            await _saveSystem.LoadFromFile(profileKey, GetOrCreateStorage(profileKey));
             FetchProfiles();
             OnProfileChanged.Invoke(profileKey);
         }
@@ -94,20 +94,58 @@ namespace MisterGames.Common.Save {
         
         public bool TryGet<T>(string key, int index, out T data) {
             data = default;
+            
+            if (string.IsNullOrWhiteSpace(key)) {
+                Debug.LogError($"{nameof(GameplaySaveService).FormatColorOnlyForEditor(Color.white)}: {Time.frameCount}, " +
+                               $"trying to get data of type {typeof(T)} with empty key");
+                return false;
+            }
+            
+            if (string.IsNullOrWhiteSpace(_currentProfileKey)) {
+                Debug.LogError($"{nameof(GameplaySaveService).FormatColorOnlyForEditor(Color.white)}: {Time.frameCount}, " +
+                               $"trying to get data of type {typeof(T)} with key {key} for empty profile");
+                return false;
+            }
+            
             return GetOrCreateStorage(_currentProfileKey)?.GetTable<T>()?.TryGetData(new SaveKey(key, index), out data) ?? false;
         }
         
-        public bool Set<T>(string key, int index, T setting) {
-            bool ok = GetOrCreateStorage(_currentProfileKey)?.GetOrCreateTable<T>().SetData(new SaveKey(key, index), setting) ?? false;
+        public bool Set<T>(string key, int index, T data) {
+            if (string.IsNullOrWhiteSpace(key)) {
+                Debug.LogError($"{nameof(GameplaySaveService).FormatColorOnlyForEditor(Color.white)}: {Time.frameCount}, " +
+                               $"trying to set data of type {typeof(T)} with empty key");
+                return false;
+            }
+            
+            if (string.IsNullOrWhiteSpace(_currentProfileKey)) {
+                Debug.LogError($"{nameof(GameplaySaveService).FormatColorOnlyForEditor(Color.white)}: {Time.frameCount}, " +
+                               $"trying to set data of type {typeof(T)} with key {key} for empty profile");
+                return false;
+            }
+            
+            bool ok = GetOrCreateStorage(_currentProfileKey)?.GetOrCreateTable<T>().SetData(new SaveKey(key, index), data) ?? false;
             if (ok) {
                 _unsavedChangesInProfiles.Add(_currentProfileKey);
                 _lastDirtyTime = Time.realtimeSinceStartup;
                 OnDataChanged.Invoke(key);
             }
+            
             return ok;
         }
 
         public bool Remove<T>(string key, int index) {
+            if (string.IsNullOrWhiteSpace(key)) {
+                Debug.LogError($"{nameof(GameplaySaveService).FormatColorOnlyForEditor(Color.white)}: {Time.frameCount}, " +
+                               $"trying to set data of type {typeof(T)} with empty key");
+                return false;
+            }
+            
+            if (string.IsNullOrWhiteSpace(_currentProfileKey)) {
+                Debug.LogError($"{nameof(GameplaySaveService).FormatColorOnlyForEditor(Color.white)}: {Time.frameCount}, " +
+                               $"trying to remove data of type {typeof(T)} with key {key} for empty profile");
+                return false;
+            }
+            
             bool ok = GetOrCreateStorage(_currentProfileKey)?.GetTable<T>()?.RemoveData(new SaveKey(key, index)) ?? false;
             if (ok) {
                 _unsavedChangesInProfiles.Add(_currentProfileKey);
@@ -118,7 +156,7 @@ namespace MisterGames.Common.Save {
         }
 
         private ISaveStorage<SaveKey> GetOrCreateStorage(string profileKey) {
-            if (string.IsNullOrWhiteSpace(_currentProfileKey)) {
+            if (string.IsNullOrWhiteSpace(profileKey)) {
                 Debug.LogError($"{nameof(GameplaySaveService).FormatColorOnlyForEditor(Color.white)}: {Time.frameCount}, " +
                                $"trying to get or create storage for empty profile name");
                 return null;

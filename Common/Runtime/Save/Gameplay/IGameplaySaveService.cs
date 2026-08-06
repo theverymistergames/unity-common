@@ -18,7 +18,7 @@ namespace MisterGames.Common.Save {
         bool HasSavedProfile(string profileKey);
         
         bool TryGet<T>(string key, int index, out T data);
-        bool Set<T>(string key, int index, T setting);
+        bool Set<T>(string key, int index, T data);
         bool Remove<T>(string key, int index);
     }
     
