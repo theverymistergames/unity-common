@@ -9,7 +9,7 @@ namespace MisterGames.Common.Stats {
         
         [SerializeField] private LabelValue _statType;
         [SerializeField] private ModifierPriority _priority;
-        [SerializeField] private OperationType _operation;
+        [SerializeField] private ModifierType _operation;
         [SerializeField] private float _modifier;
         [SerializeField] private float _duration;
         [SerializeField] private ModifierOptions _options;
@@ -29,7 +29,7 @@ namespace MisterGames.Common.Stats {
         public StatModifier(
             LabelValue statType,
             ModifierPriority priority,
-            OperationType operation,
+            ModifierType operation,
             float modifier,
             float duration = 0f,
             ModifierOptions options = ModifierOptions.None)

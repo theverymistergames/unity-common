@@ -7,6 +7,7 @@ using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Common.Async;
 using MisterGames.Common.Maths;
+using MisterGames.Common.Stats;
 using MisterGames.Common.Strings;
 using UnityEngine;
 
@@ -27,7 +28,15 @@ namespace MisterGames.Character.View {
             Or,
             Xor,
         }
-        
+
+        public enum FovMode {
+            AdditiveOffset,
+            AverageOffset,
+            LowerLimit,
+            UpperLimit,
+            AbsoluteValue,
+        }
+
         private const float WeightTolerance = 0.00001f;
         
         public Camera Camera { get; private set; }
@@ -35,7 +44,7 @@ namespace MisterGames.Character.View {
         
         private readonly Dictionary<int, WeightedValue<Vector3>> _positionStates = new();
         private readonly Dictionary<int, WeightedValue<Quaternion>> _rotationStates = new();
-        private readonly Dictionary<int, WeightedValue<float>> _fovStates = new();
+        private readonly Dictionary<int, WeightedValue<(FovMode mode, float value)>> _fovStates = new();
         private readonly Dictionary<int, (int mask, MaskMode mode)> _cullingMaskStates = new();
 
         private CancellationTokenSource _destroyCts;
@@ -105,7 +114,7 @@ namespace MisterGames.Character.View {
             _positionStates.Remove(id);
             _rotationStates.Remove(id);
             _fovStates.Remove(id);
-            
+
 #if UNITY_EDITOR
             if (_showDebugInfo) Log($"remove state {id}, keepChanges: {keepChanges}, state: {GetStateAsString()}");
 #endif
@@ -190,15 +199,10 @@ namespace MisterGames.Character.View {
         }
         
         public void SetBaseFov(float fov) {
-            _baseState = _baseState.WithFov(fov);
-            ApplyResultState();
-        }
-
-        public void AddPositionOffset(int id, float weight, Vector3 offsetDelta) {
-            var data = _positionStates.GetValueOrDefault(id);
-            _positionStates[id] = new WeightedValue<Vector3>(weight, data.value + offsetDelta);
-            _resultState = _resultState.WithPosition(BuildResultPosition());
+            if (_baseState.fov.IsNearlyEqual(fov)) return;
             
+            _baseState = _baseState.WithFov(fov);
+            _resultState = _resultState.WithFov(BuildResultFovOffset(_baseState.fov));
             ApplyResultState();
         }
 
@@ -216,16 +220,6 @@ namespace MisterGames.Character.View {
             ApplyResultState();
         }
 
-        public void AddRotationOffset(int id, float weight, Quaternion rotation) {
-            var data = _rotationStates
-                .GetValueOrDefault(id, new WeightedValue<Quaternion>(0f, Quaternion.identity));
-            
-            _rotationStates[id] = new WeightedValue<Quaternion>(weight, data.value * rotation);
-            _resultState = _resultState.WithRotation(BuildResultRotation());
-            
-            ApplyResultState();
-        }
-
         public void SetRotationOffset(int id, float weight, Quaternion rotation) {
             _rotationStates[id] = new WeightedValue<Quaternion>(weight, rotation);
             _resultState = _resultState.WithRotation(BuildResultRotation());
@@ -239,26 +233,18 @@ namespace MisterGames.Character.View {
             
             ApplyResultState();
         }
-        
-        public void AddFovOffset(int id, float weight, float fov) {
-            var data = _fovStates.GetValueOrDefault(id);
-            _fovStates[id] = new WeightedValue<float>(weight, data.value + fov);
-            _resultState = _resultState.WithFov(BuildResultFov());
+
+        public void SetFov(int id, float weight, float fov, FovMode mode) {
+            _fovStates[id] = new WeightedValue<(FovMode, float)>(weight, (mode, fov));
+            _resultState = _resultState.WithFov(BuildResultFovOffset(_baseState.fov));
             
             ApplyResultState();
         }
 
-        public void SetFovOffset(int id, float weight, float fov) {
-            _fovStates[id] = new WeightedValue<float>(weight, fov);
-            _resultState = _resultState.WithFov(BuildResultFov());
-            
-            ApplyResultState();
-        }
+        public void ResetFov(int id, float weight) {
+            _fovStates[id] = new WeightedValue<(FovMode, float)>(weight, (FovMode.AdditiveOffset, 0f));
+            _resultState = _resultState.WithFov(BuildResultFovOffset(_baseState.fov));
 
-        public void ResetFovOffset(int id, float weight) {
-            _fovStates[id] = new WeightedValue<float>(weight, 0f);
-            _resultState = _resultState.WithFov(BuildResultFov());
-            
             ApplyResultState();
         }
 
@@ -305,12 +291,12 @@ namespace MisterGames.Character.View {
         }
         
         private CameraState BuildResultState() {
-            return new CameraState(BuildResultPosition(), BuildResultRotation(), BuildResultFov());
+            return new CameraState(BuildResultPosition(), BuildResultRotation(), BuildResultFovOffset(_baseState.fov));
         }
         
         private Vector3 BuildResultPosition() {
             var result = Vector3.zero;
-            float w = BuildWeightMultiplier(_positionStates);
+            float w = BuildInvertedMaxWeight(_positionStates);
             
             foreach (var data in _positionStates.Values) {
                 result += w * data.weight * data.value;
@@ -321,7 +307,7 @@ namespace MisterGames.Character.View {
 
         private Quaternion BuildResultRotation() {
             var result = Quaternion.identity;
-            float w = BuildWeightMultiplier(_rotationStates);
+            float w = BuildInvertedMaxWeight(_rotationStates);
             
             foreach (var data in _rotationStates.Values) {
                 result *= Quaternion.SlerpUnclamped(Quaternion.identity, data.value, data.weight * w);
@@ -330,18 +316,84 @@ namespace MisterGames.Character.View {
             return result;
         }
         
-        private float BuildResultFov() {
-            float result = 0f;
-            float w = BuildWeightMultiplier(_fovStates);
+        private float BuildResultFovOffset(float baseFov) {
+            float accumAddWeightMax = 0f;
+            float accumAvgWeightSum = 0f;
+            float lowerBoundWeightSum = 0f;
+            float upperBoundWeightSum = 0f;
+            float setWeightSum = 0f;
             
             foreach (var data in _fovStates.Values) {
-                result += w * data.weight * data.value;
+                float wAbs = Mathf.Abs(data.weight);
+                
+                switch (data.value.mode) {
+                    case FovMode.AdditiveOffset:
+                        if (wAbs > accumAddWeightMax) accumAddWeightMax = wAbs;
+                        break;
+                    case FovMode.AverageOffset:
+                        accumAvgWeightSum += wAbs;
+                        break;
+                    case FovMode.LowerLimit:
+                        lowerBoundWeightSum += wAbs;
+                        break;
+                    case FovMode.UpperLimit:
+                        upperBoundWeightSum += wAbs;
+                        break;
+                    case FovMode.AbsoluteValue:
+                        setWeightSum += wAbs;
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
             }
+
+            float accumAddWeightMaxInv = accumAddWeightMax >= WeightTolerance ? 1f / accumAddWeightMax : 0f;
+            float accumAvgWeightSumInv = accumAvgWeightSum >= WeightTolerance ? 1f / accumAvgWeightSum : 0f;
+            float lowerBoundWeightSumInv = lowerBoundWeightSum >= WeightTolerance ? 1f / lowerBoundWeightSum : 0f;
+            float upperBoundWeightSumInv = upperBoundWeightSum >= WeightTolerance ? 1f / upperBoundWeightSum : 0f;
+            float setWeightSumInv = setWeightSum >= WeightTolerance ? 1f / setWeightSum : 0f;
+
+            float accumAdd = 0f;
+            float accumAvg = 0f;
+            float accumLowerBound = 0f;
+            float accumUpperBound = 0f;
+            float accumSet = 0f;
             
-            return result;
+            foreach (var data in _fovStates.Values) {
+                var modifier = data.value;
+                
+                switch (data.value.mode) {
+                    case FovMode.AdditiveOffset:
+                        accumAdd += Mathf.LerpUnclamped(0f, modifier.value, data.weight * accumAddWeightMaxInv);
+                        break;
+                    case FovMode.AverageOffset:
+                        accumAvg += modifier.value * data.weight * accumAvgWeightSumInv;
+                        break;
+                    case FovMode.LowerLimit:
+                        accumLowerBound += modifier.value * data.weight * lowerBoundWeightSumInv;
+                        break;
+                    case FovMode.UpperLimit:
+                        accumUpperBound += modifier.value * data.weight * upperBoundWeightSumInv;
+                        break;
+                    case FovMode.AbsoluteValue:
+                        accumSet += modifier.value * data.weight * setWeightSumInv;
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+            }
+
+            float lowerBound = lowerBoundWeightSum > 0f ? accumLowerBound : float.MinValue;
+            float upperBound = upperBoundWeightSum > 0f ? accumUpperBound : float.MaxValue;
+
+            float fov = setWeightSum > 0f 
+                ? accumSet
+                : Mathf.Clamp(baseFov + accumAvg + accumAdd, lowerBound, upperBound);
+            
+            return fov - baseFov;
         }
         
-        private static float BuildWeightMultiplier<T>(Dictionary<int, WeightedValue<T>> source) {
+        private static float BuildInvertedMaxWeight<T>(Dictionary<int, WeightedValue<T>> source) {
             float max = 0f;
             
             foreach (var data in source.Values) {
@@ -373,11 +425,10 @@ namespace MisterGames.Character.View {
                 sb.AppendLine($"[{id}] w {data.weight:0.00}, value {data.value}");
             }
             
-            sb.AppendLine($"Fov states ({_fovStates.Count}):");
+            sb.AppendLine($"Fov add states ({_fovStates.Count}):");
             foreach ((int id, var data) in _fovStates) {
                 sb.AppendLine($"[{id}] w {data.weight:0.00}, value {data.value}");
             }
-            
             return sb.ToString();
         }
 #endif

@@ -17,6 +17,7 @@ namespace MisterGames.Character.Interactives {
         [SerializeField] [Min(0f)] private float _forceWeightSmoothing = 3f;
         [SerializeField] private float _fovOffsetStart; 
         [SerializeField] private float _fovOffsetEnd;
+        [SerializeField] private CameraContainer.FovMode _fovModifier = CameraContainer.FovMode.AdditiveOffset;
         
         [Header("Camera Shake")]
         [SerializeField] private Vector3 _noiseSpeedStart;
@@ -80,7 +81,7 @@ namespace MisterGames.Character.Interactives {
             _cameraShaker.SetRotation(_shakerStateId, _noiseRotationOffset, _noiseRotationMul * _forceWeightSmoothed);
 
             float targetFov = Mathf.Lerp(_fovOffsetStart, _fovOffsetEnd, _forceWeightSmoothed);
-            _cameraContainer.SetFovOffset(_containerStateId, _cameraStateWeight, targetFov);
+            _cameraContainer.SetFov(_containerStateId, _cameraStateWeight, targetFov, _fovModifier);
             
             if (_rigidbodyForceZone.enabled && _rigidbodyForceZone.InZone(_characterRigidbody) || _forceWeightSmoothed > 0f) return;
             

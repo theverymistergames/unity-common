@@ -15,6 +15,7 @@ namespace MisterGames.ActionLib.Character {
 
         public bool keepChanges;
         public float weight = 1f;
+        public CameraContainer.FovMode fovModifier = CameraContainer.FovMode.AdditiveOffset;
         [Min(0f)] public float duration;
         [Min(0f)] public float durationRandom;
         public bool useUnscaledTime;
@@ -36,7 +37,7 @@ namespace MisterGames.ActionLib.Character {
                 progress = Mathf.Clamp01(progress + progressDelta);
 
                 float fov = m * fovOffset.Evaluate(progress);
-                cameraContainer.SetFovOffset(id, weight, fov);
+                cameraContainer.SetFov(id, weight, fov, fovModifier);
 
                 if (progress >= 1f) break;
 

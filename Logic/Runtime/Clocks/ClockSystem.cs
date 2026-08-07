@@ -7,8 +7,6 @@ namespace MisterGames.Logic.Clocks {
     public sealed class ClockSystem : MonoBehaviour, IUpdate {
         
         public static DateTime Now { get; private set; } = new();
-
-        private double _lastTime;
         
         public static void SetTime(DateTime dateTime) {
             Now = dateTime;
@@ -16,7 +14,6 @@ namespace MisterGames.Logic.Clocks {
 
         private void OnEnable() {
             PlayerLoopStage.Update.Subscribe(this);
-            _lastTime = Time.unscaledTimeAsDouble;
         }
 
         private void OnDisable() {
@@ -24,11 +21,7 @@ namespace MisterGames.Logic.Clocks {
         }
 
         void IUpdate.OnUpdate(float dt) {
-            double time = Time.unscaledTimeAsDouble;
-            double delta = time - _lastTime;
-            _lastTime = time;
-            
-            Now = Now.AddSeconds(delta * Time.timeScale);
+            Now = Now.AddSeconds(Time.deltaTime);
         }
     }
     

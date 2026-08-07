@@ -18,7 +18,12 @@ namespace MisterGames.Common.Save {
 
         private readonly Dictionary<string, SaveStorage<SaveKey>> _saveStorageMap = new();
         private readonly HashSet<ISaveable> _saveableSet = new();
-        
+
+        private readonly Dictionary<string, UniTask> _fileOperations = new();
+        private readonly Dictionary<string, int> _fileOperationIds = new();
+        private readonly Dictionary<string, int> _fileDeleteVersions = new();
+        private readonly Dictionary<string, object> _fileLocks = new();
+
         private SaveSystemSettings _saveSystemSettings;
         private bool _disposed;
 
@@ -29,15 +34,68 @@ namespace MisterGames.Common.Save {
 
         public void Dispose() {
             if (_disposed) return;
-            
+
             foreach (var storage in _saveStorageMap.Values) {
                 storage.Clear();
             }
-            
+
             _saveableSet.Clear();
             _saveStorageMap.Clear();
-            
+
+            WaitForStartedFileOperations();
+
+            _fileOperations.Clear();
+            _fileOperationIds.Clear();
+            _fileDeleteVersions.Clear();
+            _fileLocks.Clear();
+
             _disposed = true;
+        }
+
+        private void WaitForStartedFileOperations() {
+            foreach (object fileLock in _fileLocks.Values) {
+                lock (fileLock) { }
+            }
+        }
+
+        private object GetFileLock(string storageId) {
+            if (!_fileLocks.TryGetValue(storageId, out object fileLock)) {
+                fileLock = new object();
+                _fileLocks[storageId] = fileLock;
+            }
+
+            return fileLock;
+        }
+
+        private UniTask EnqueueFileOperation(string storageId, Func<UniTask> operation) {
+            int id = _fileOperationIds.GetValueOrDefault(storageId) + 1;
+            _fileOperationIds[storageId] = id;
+
+            var task = ProcessFileOperationAsync(storageId, id, _fileOperations.GetValueOrDefault(storageId), operation)
+                .Preserve(); 
+            
+            if (task.Status == UniTaskStatus.Pending) _fileOperations[storageId] = task;
+
+            return task;
+        }
+
+        private async UniTask ProcessFileOperationAsync(string storageId, int id, UniTask previous, Func<UniTask> operation) {
+            try {
+                await previous;
+            }
+            catch (Exception) {
+                // Result of the previous operation is observed by the code that requested it.
+            }
+
+            try {
+                await operation.Invoke();
+            }
+            finally {
+                if (_fileOperationIds.GetValueOrDefault(storageId) == id) {
+                    _fileOperations.Remove(storageId);
+                    _fileOperationIds.Remove(storageId);
+                }
+            }
         }
         
         public void Register(ISaveable saveable, bool notifyLoad = true) {
@@ -137,28 +195,43 @@ namespace MisterGames.Common.Save {
             int count = _saveStorageMap.Count;
             var tasks = ArrayPool<UniTask>.Shared.Rent(count);
             tasks.ResetArrayElements();
-            
+
+            int index = 0;
             foreach ((string storageId, var storage) in _saveStorageMap) {
-                tasks[count++] = SaveStorageAsync(storageId, storage);
+                tasks[index++] = SaveStorageAsync(storageId, storage);
             }
-            
+
             await UniTask.WhenAll(tasks);
-            
+
+            tasks.ResetArrayElements();
             ArrayPool<UniTask>.Shared.Return(tasks);
         }
         
-        private async UniTask SaveStorageAsync(string storageId, ISaveStorage source) {
+        private UniTask SaveStorageAsync(string storageId, ISaveStorage source) {
             NotifySaveAll();
-            
+
             Directory.CreateDirectory(_saveSystemSettings.GetFolderPath());
 
-            var dto = new SaveStorageDto(source.Tables);
-            
-            var result = await SaveFileAsync(
-                dto,
-                _saveSystemSettings.GetFilePath(storageId),
-                _saveSystemSettings.bufferSize
-            );
+            string json = JsonExtensions.SerializeJson(new SaveStorageDto(source.Tables));
+            string filePath = _saveSystemSettings.GetFilePath(storageId);
+            int bufferSize = _saveSystemSettings.bufferSize;
+            int deleteVersion = _fileDeleteVersions.GetValueOrDefault(storageId);
+            object fileLock = GetFileLock(storageId);
+
+            return EnqueueFileOperation(storageId, () => WriteStorageAsync(storageId, deleteVersion, json, filePath, bufferSize, fileLock));
+        }
+
+        private async UniTask WriteStorageAsync(
+            string storageId,
+            int deleteVersion,
+            string json,
+            string filePath,
+            int bufferSize,
+            object fileLock)
+        {
+            if (_fileDeleteVersions.GetValueOrDefault(storageId) != deleteVersion) return;
+
+            var result = await SaveFileAsync(json, filePath, bufferSize, fileLock);
 
             switch (result.status) {
                 case JsonExtensions.Status.Success:
@@ -181,25 +254,31 @@ namespace MisterGames.Common.Save {
             var tasks = ArrayPool<UniTask>.Shared.Rent(count);
             tasks.ResetArrayElements();
 
-            for (int i = 0; i < storageFiles.Count; i++) {
+            for (int i = 0; i < count; i++) {
                 string storageId = storageFiles[i].storageId;
-                
+
                 var storage = GetOrCreateStorage(storageId);
                 storage.Clear();
-                
-                tasks[count++] = LoadStorageAsync(storageId, storage);
+
+                tasks[i] = LoadStorageAsync(storageId, storage);
             }
 
             await UniTask.WhenAll(tasks);
-            
+
+            tasks.ResetArrayElements();
             ArrayPool<UniTask>.Shared.Return(tasks);
         }
 
-        private async UniTask LoadStorageAsync(string storageId, ISaveStorage storage) {
-            var result = await LoadFileAsync(
-                _saveSystemSettings.GetFilePath(storageId),
-                _saveSystemSettings.bufferSize
-            );
+        private UniTask LoadStorageAsync(string storageId, ISaveStorage storage) {
+            string filePath = _saveSystemSettings.GetFilePath(storageId);
+            int bufferSize = _saveSystemSettings.bufferSize;
+            object fileLock = GetFileLock(storageId);
+
+            return EnqueueFileOperation(storageId, () => ReadStorageAsync(storageId, storage, filePath, bufferSize, fileLock));
+        }
+
+        private async UniTask ReadStorageAsync(string storageId, ISaveStorage storage, string filePath, int bufferSize, object fileLock) {
+            var result = await LoadFileAsync(filePath, bufferSize, fileLock);
 
             switch (result.status) {
                 case JsonExtensions.Status.Success:
@@ -223,26 +302,34 @@ namespace MisterGames.Common.Save {
             }
         }
         
-        private static UniTask<JsonExtensions.Result> SaveFileAsync(SaveStorageDto dto, string filePath, int bufferSize) {
-            return JsonExtensions.WriteJsonIntoFile(dto, filePath, bufferSize);
+        private static UniTask<JsonExtensions.Result> SaveFileAsync(string json, string filePath, int bufferSize, object fileLock) {
+            return JsonExtensions.WriteJsonIntoFile(json, filePath, bufferSize, fileLock);
         }
-        
-        private static UniTask<JsonExtensions.Result<SaveStorageDto>> LoadFileAsync(string filePath, int bufferSize) {
-            return JsonExtensions.ReadJsonFromFile<SaveStorageDto>(filePath, bufferSize);
+
+        private static UniTask<JsonExtensions.Result<SaveStorageDto>> LoadFileAsync(string filePath, int bufferSize, object fileLock) {
+            return JsonExtensions.ReadJsonFromFile<SaveStorageDto>(filePath, bufferSize, fileLock);
         }
         
         public void DeleteFile(string storageId) {
             GetStorage(storageId)?.Clear();
-            File.Delete(_saveSystemSettings.GetFilePath(storageId));
+            DeleteFileInternal(storageId);
         }
 
         public void DeleteAllFiles() {
             var storageFiles = GetStorageFiles();
 
             for (int i = 0; i < storageFiles.Count; i++) {
-                var storageFile = storageFiles[i];
-                string filePath = _saveSystemSettings.GetFilePath(storageFile.storageId);
-                File.Delete(filePath);
+                DeleteFileInternal(storageFiles[i].storageId);
+            }
+        }
+
+        private void DeleteFileInternal(string storageId) {
+            _fileDeleteVersions[storageId] = _fileDeleteVersions.GetValueOrDefault(storageId) + 1;
+
+            var result = JsonExtensions.DeleteFile(_saveSystemSettings.GetFilePath(storageId), GetFileLock(storageId));
+
+            if (result.status == JsonExtensions.Status.Error) {
+                LogError($"could not delete storage [{storageId}]: {result.message}");
             }
         }
         

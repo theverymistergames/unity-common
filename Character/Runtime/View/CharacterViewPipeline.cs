@@ -21,6 +21,7 @@ namespace MisterGames.Character.View {
         [SerializeField] private Rigidbody _body;
         
         [Header("View Settings")]
+        [SerializeField] private bool _useUnscaledTime;
         [SerializeField] private Vector2 _sensitivityMouse = new(0.15f, 0.15f);
         [SerializeField] private Vector2 _sensitivityGamepad = new(1f, 1f);
         [SerializeField] [Min(0f)] private float _smoothing = 20f;
@@ -29,9 +30,6 @@ namespace MisterGames.Character.View {
         [SerializeField] private float _returnFreeHeadRotationSmoothing = 5f;
         [SerializeField] private float _returnFreeHeadRotationSmoothingMax = 20f;
         [SerializeField] private ViewClampProcessor _viewClamp;
-        [SerializeField] [Min(0f)] private float _startDelay = 0.3f;
-        
-        [Header("Gravity Settings")]
         [SerializeField] [Min(0f)] private float _gravityDirSmoothing = 6f;
         
         public bool IsAttached => _headJoint.IsAttached;
@@ -98,15 +96,11 @@ namespace MisterGames.Character.View {
         private Quaternion _bodyRotation = Quaternion.identity;
         private Vector2 _inputResidual;
 
-        private float _startTime;
-
         void IActorComponent.OnAwake(IActor actor) {
             _cameraContainer = actor.GetComponent<CameraContainer>();
             _inputPipeline = actor.GetComponent<CharacterInputPipeline>();
             _hasGravity = actor.TryGetComponent(out _characterGravity);
             
-            _startTime = GetTime();
-
             _timescaleSystem = Services.Get<ITimescaleSystem>();
             _deviceService = Services.Get<IDeviceService>();
         }
@@ -253,16 +247,20 @@ namespace MisterGames.Character.View {
             }
         }
         
+        private float GetDeltaTime() {
+            if (_useUnscaledTime) return Time.unscaledDeltaTime;
+            
+            float dt = Time.deltaTime;
+            if (Time.timeScale > 0f) dt /= Time.timeScale;
+            return dt;
+        }
+        
         private async UniTask StartHeadUpdate(CancellationToken cancellationToken) {
             while (!cancellationToken.IsCancellationRequested) {
-                float dt = Time.unscaledDeltaTime * _timescaleSystem.GetTimescale(TimescalePriority.Default);
+                float dt = GetDeltaTime();
                 ProcessHeadUpdate(dt);
                 await UniTask.Yield(PlayerLoopTiming.LastUpdate);
             }
-        }
-
-        private static float GetTime() {
-            return Time.unscaledTime;
         }
         
         private void ProcessBodyUpdate() {
@@ -309,8 +307,6 @@ namespace MisterGames.Character.View {
         }
 
         private Vector2 ConsumeInputDelta(float dt) {
-            if (GetTime() < _startTime + _startDelay) return default;
-
             var device = _deviceService.CurrentDevice;
             var sens = ApplyProcessorsForSensitivity(device);
             var input = _inputPipeline.GetViewInputVector();

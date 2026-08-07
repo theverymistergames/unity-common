@@ -1,5 +1,6 @@
 ﻿using MisterGames.Actors;
 using MisterGames.Character.View;
+using MisterGames.Common.Stats;
 using MisterGames.Input.Actions;
 using MisterGames.Interact.Interactives;
 using MisterGames.Common.Tick;
@@ -17,6 +18,7 @@ namespace MisterGames.Character.Interactives {
         [SerializeField] private float _sensitivity = 1f;
         [SerializeField] private float _fovSmoothing = 10f;
         [SerializeField] private Vector2 _fovRange;
+        [SerializeField] private CameraContainer.FovMode _fovModifier = CameraContainer.FovMode.AdditiveOffset;
         
         [Header("Player Camera")]
         [SerializeField] private Vector2 _playerFovRange;
@@ -150,7 +152,7 @@ namespace MisterGames.Character.Interactives {
             _playerFovOffset = Mathf.Lerp(_playerFovOffset, fovOffset, dt * _playerFovSmoothing);
             _playerAttachDistance = Mathf.Lerp(_playerAttachDistance, attachDistance, dt * _playerAttachSmoothing);
 
-            _cameraContainer.SetFovOffset(_cameraStateId, 1f, _playerFovOffset);
+            _cameraContainer.SetFov(_cameraStateId, 1f, _playerFovOffset, _fovModifier);
             _viewPipeline.ApplyAttachDistance(_playerAttachDistance);
         }
     }

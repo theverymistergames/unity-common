@@ -1,6 +1,6 @@
 ﻿namespace MisterGames.Common.Stats {
     
-    public enum OperationType {
+    public enum ModifierType {
         Mul,
         Add,
         Min,

@@ -29,10 +29,6 @@ namespace MisterGames.Character.Input {
 
         private InputAction _viewAction;
 
-        private void Awake() {
-            _viewAction = _view.Get();
-        }
-
         private void OnEnable() {
             Subscribe();
         }
@@ -93,7 +89,7 @@ namespace MisterGames.Character.Input {
         }
         
         public Vector2 GetViewInputVector() {
-            return _viewAction.ReadValue<Vector2>();
+            return (_viewAction ??= _view.Get()).ReadValue<Vector2>();
         }
 
         private void HandleViewChanged(InputAction.CallbackContext callbackContext) => OnViewVectorChanged.Invoke(callbackContext.ReadValue<Vector2>());

@@ -33,6 +33,7 @@ namespace MisterGames.Character.Interactives {
         private float _weightSmoothedLeft;
         private float _weightSmoothedRight;
         private bool _isRegistered;
+        private bool _enabled;
 
         private void Awake() {
             _gamepadVibration = Services.Get<IDeviceService>().GamepadVibration;
@@ -72,8 +73,14 @@ namespace MisterGames.Character.Interactives {
         }
         
         private void OnEnable() {
+            _enabled = true;
+            
             Register();
             PlayerLoopStage.LateUpdate.Subscribe(this);
+        }
+
+        private void OnDisable() {
+            _enabled = false;
         }
 
         private void OnDestroy() {
@@ -95,8 +102,8 @@ namespace MisterGames.Character.Interactives {
         }
 
         void IUpdate.OnUpdate(float dt) {
-            float targetWeightLeft = enabled ? _targetWeightLeft : 0f;
-            float targetWeightRight = enabled ? _targetWeightRight : 0f;
+            float targetWeightLeft = _enabled ? _targetWeightLeft : 0f;
+            float targetWeightRight = _enabled ? _targetWeightRight : 0f;
             
             _weightSmoothedLeft = _weightSmoothedLeft.SmoothExpNonZero(targetWeightLeft, _weightSmoothingLeft, dt);
             _weightSmoothedRight = _weightSmoothedRight.SmoothExpNonZero(targetWeightRight, _weightSmoothingRight, dt);

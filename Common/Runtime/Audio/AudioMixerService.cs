@@ -75,19 +75,19 @@ namespace MisterGames.Common.Audio {
                 var modifier = data.mod;
                 
                 switch (modifier.operation) {
-                    case OperationType.Mul:
+                    case ModifierType.Mul:
                         accumMul *= modifier.modifier;
                         break;
-                    case OperationType.Add:
+                    case ModifierType.Add:
                         accumAdd += modifier.modifier;
                         break;
-                    case OperationType.Min:
+                    case ModifierType.Min:
                         lowerBound = Mathf.Max(lowerBound, modifier.modifier);
                         break;
-                    case OperationType.Max:
+                    case ModifierType.Max:
                         upperBound = Mathf.Min(upperBound, modifier.modifier);
                         break;
-                    case OperationType.Set:
+                    case ModifierType.Set:
                         if (lastSetTime < 0f || data.time > lastSetTime) {
                             set = modifier.modifier;
                             lastSetTime = data.time;
