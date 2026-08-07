@@ -24,24 +24,25 @@ namespace MisterGames.Common.Audio {
 
         [Header("Audio Element")]
         [SerializeField] private AudioElement _prefab;
-        [SerializeField] private AudioMixerGroup _defaultMixerGroup;
         [SerializeField] [Min(0f)] private float _fadeOut = 0.25f;
         [SerializeField] [Min(0f)] private float _attenuationDistance = 50f;
         [SerializeField] [Min(0f)] private float _audioParametersSmoothing = 3f;
+        [SerializeField] [Min(0f)] private float _shuffleClipsOrderLifetime = 60f;
         
-        [Header("Shuffle")]
-        [SerializeField] [Min(0f)] private float _lastIndexStoreLifetime = 60f;
+        [Header("Mixers")]
+        [SerializeField] private AudioMixerGroup _defaultMixerGroup;
+        [SerializeField] private AudioMixerGroup[] _includeMixerGroupsForVolumes;
+        [SerializeField] private AudioMixerGroup[] _ignoreZeroTimescaleForMixerGroups;
+        [SerializeField] private AudioMixer[] _reverbMixers;
 
         [Header("Audio Volumes")]
         [SerializeField] private bool _enableVolumes = true;
         [SerializeField] private bool _includeDefaultMixerGroupsForVolumes = true;
-        [SerializeField] private AudioMixerGroup[] _includeMixerGroupsForVolumes;
         
         [Header("Reverb Volumes")]
         [SerializeField] private bool _enableReverbVolumes = true;
         [SerializeField] [Min(0f)] private float _reverbParamsSmoothing = 3f;
         [SerializeField] private string _reverbParamPrefix = "Reverb_";
-        [SerializeField] private AudioMixer[] _reverbMixers;
         
         [Header("Occlusion Detection")]
         [SerializeField] private bool _applyOcclusion = true;
@@ -110,7 +111,8 @@ namespace MisterGames.Common.Audio {
         private Transform _listenerUp;
 
         private readonly Dictionary<int, IAudioVolume> _audioVolumes = new();
-        private readonly HashSet<int> _includeMixerGroupsForVolumesSet = new();
+        private readonly HashSet<EntityId> _includeMixerGroupsForVolumesSet = new();
+        private readonly HashSet<EntityId> _ignoreZeroTimescaleForMixerGroupsSet = new();
         
         private readonly Dictionary<int, IReverbVolume> _reverbVolumes = new();
         private string[] _reverbParamNames;
@@ -120,13 +122,23 @@ namespace MisterGames.Common.Audio {
         private float _lastTimeScale;
         private float _globalOcclusionWeight = 1f;
         
+        // 0 - scaled time, 1 - unscaled above ts = 0, 2 - unscaled focused
+        private readonly float[] _internalTime = new float[3];
+        private bool _isFocused;
+        private bool _isPaused;
+        private bool _discardNextFrameDt;
+        
         private void Awake() {
             Main = this;
+
+            _isFocused = Application.isFocused;
+            _isPaused = false;
             
             _transform = transform;
             
             CreateReverbParamNames();
             FetchIncludeMixerGroupsFromVolumes();
+            FetchIgnoreZeroTimescaleMixerGroups();
             
             PlayerLoopStage.LateUpdate.Subscribe(this);
         }
@@ -150,7 +162,17 @@ namespace MisterGames.Common.Audio {
             
             PlayerLoopStage.LateUpdate.Unsubscribe(this);
         }
-        
+
+        private void OnApplicationFocus(bool hasFocus) {
+            _isFocused = hasFocus;
+            _discardNextFrameDt |= hasFocus;
+        }
+
+        private void OnApplicationPause(bool pauseStatus) {
+            _isPaused = pauseStatus;
+            _discardNextFrameDt |= !pauseStatus;
+        }
+
         private void CreateReverbParamNames() {
             _reverbParamNames ??= new string[13];
             
@@ -173,11 +195,19 @@ namespace MisterGames.Common.Audio {
             _includeMixerGroupsForVolumesSet.Clear();
             
             for (int i = 0; i < _includeMixerGroupsForVolumes.Length; i++) {
-                _includeMixerGroupsForVolumesSet.Add(_includeMixerGroupsForVolumes[i].GetInstanceID());
+                _includeMixerGroupsForVolumesSet.Add(_includeMixerGroupsForVolumes[i].GetEntityId());
             }
 
             if (_includeDefaultMixerGroupsForVolumes && _defaultMixerGroup != null) {
-                _includeMixerGroupsForVolumesSet.Add(_defaultMixerGroup.GetInstanceID());
+                _includeMixerGroupsForVolumesSet.Add(_defaultMixerGroup.GetEntityId());
+            }
+        }
+        
+        private void FetchIgnoreZeroTimescaleMixerGroups() {
+            _ignoreZeroTimescaleForMixerGroupsSet.Clear();
+            
+            for (int i = 0; i < _ignoreZeroTimescaleForMixerGroups.Length; i++) {
+                _ignoreZeroTimescaleForMixerGroupsSet.Add(_ignoreZeroTimescaleForMixerGroups[i].GetEntityId());
             }
         }
         
@@ -310,11 +340,15 @@ namespace MisterGames.Common.Audio {
             ProcessSound(audioElement);
 
             if (fadeIn > 0f) {
+                int timeSource = affectedByTimeScale
+                    ? 0
+                    : _ignoreZeroTimescaleForMixerGroupsSet.Contains(audioElement.MixerGroupId) ? 2 : 1;
+                
                 _fadeInDataMap[id] = new FadeData(
-                    affectedByTimeScale ? TimeSources.scaledTime : Time.realtimeSinceStartup, 
+                    _internalTime[timeSource], 
                     fadeIn, 
                     volume,
-                    affectedByTimeScale
+                    timeSource
                 );   
             }
 
@@ -367,8 +401,6 @@ namespace MisterGames.Common.Audio {
             CreateDebugColor(id, clip.name);
 #endif
             
-            bool loop = (options & AudioOptions.Loop) == AudioOptions.Loop;
-            bool affectedByTimeScale = (options & AudioOptions.AffectedByTimeScale) == AudioOptions.AffectedByTimeScale;
             normalizedTime = Mathf.Clamp01(normalizedTime);
             mixerGroup = mixerGroup == null ? _defaultMixerGroup : mixerGroup;
             
@@ -400,12 +432,19 @@ namespace MisterGames.Common.Audio {
             
             _handleIdToAudioElementMap[id] = audioElement;
             
+            bool loop = (options & AudioOptions.Loop) != 0;
+            bool affectedByTimeScale = (options & AudioOptions.AffectedByTimeScale) != 0;
+            
             if (fadeIn > 0f) {
+                int timeSource = affectedByTimeScale
+                    ? 0
+                    : _ignoreZeroTimescaleForMixerGroupsSet.Contains(audioElement.MixerGroupId) ? 2 : 1;
+                
                 _fadeInDataMap[id] = new FadeData(
-                    affectedByTimeScale ? TimeSources.scaledTime : Time.realtimeSinceStartup, 
+                    _internalTime[timeSource], 
                     fadeIn, 
                     volume,
-                    affectedByTimeScale
+                    timeSource
                 );   
             }
 
@@ -440,7 +479,8 @@ namespace MisterGames.Common.Audio {
             audioElement.Id = id;
             audioElement.MixerGroupId = mixerGroup == null ? 0 : mixerGroup.GetInstanceID();
             audioElement.AudioPool = this;
-            
+
+            audioElement.IsPaused = false;
             audioElement.AudioOptions = options;
             audioElement.PitchMul = pitch;
             audioElement.AttenuationMul = 1f;
@@ -517,7 +557,7 @@ namespace MisterGames.Common.Audio {
             int startIndex = data.startIndex;
             int index = AudioExtensions.GetRandomIndex(ref mask, ref startIndex, data.lastIndex, count);
             
-            _clipsHashToLastIndexMap[hash] = new IndexData(mask, startIndex, index, Time.time);
+            _clipsHashToLastIndexMap[hash] = new IndexData(mask, startIndex, index, _internalTime[2]);
             
             return index;
         }
@@ -548,13 +588,15 @@ namespace MisterGames.Common.Audio {
                 if (!isNull) PrefabPool.Main?.Release(e.Source);
             }
             else {
-                bool affectedByTimescale = (e.AudioOptions & AudioOptions.AffectedByTimeScale) == AudioOptions.AffectedByTimeScale;
-
+                int timeSource = (e.AudioOptions & AudioOptions.AffectedByTimeScale) != 0
+                    ? 0
+                    : _ignoreZeroTimescaleForMixerGroupsSet.Contains(e.MixerGroupId) ? 2 : 1;
+                
                 _fadeOutDataMap[handleId] = new FadeData(
-                    affectedByTimescale ? TimeSources.scaledTime : Time.realtimeSinceStartup,
+                    _internalTime[timeSource],
                     e.FadeOut,
                     e.Source.volume,
-                    affectedByTimescale
+                    timeSource
                 );
 
                 _releaseSourcesMap[handleId] = e.Source;
@@ -578,16 +620,34 @@ namespace MisterGames.Common.Audio {
         }
 
         void IUpdate.OnUpdate(float dt) {
+            ProcessInternalTime(out float dtScaled, out float dtUnscaled);
             ProcessClipShuffles();
             ProcessFadeIn();
             ProcessFadeOutAndRelease();
-            ProcessSounds(dt);
-            ProcessReverb(dt);
+            ProcessSounds(dtScaled, dtUnscaled);
+            ProcessReverb(dtScaled);
         }
 
+        private void ProcessInternalTime(out float dtScaled, out float dtUnscaled) {
+            dtScaled = Time.deltaTime;
+            dtUnscaled = _isPaused || !_isFocused || _discardNextFrameDt ? 0f : Time.unscaledDeltaTime;
+            float ts = Time.timeScale;
+            
+            // scaled
+            _internalTime[0] += dtScaled;
+
+            // unscaled above ts = 0
+            if (ts > 0f) _internalTime[1] += dtUnscaled;
+            
+            // unscaled focused
+            _internalTime[2] += dtUnscaled;
+
+            _discardNextFrameDt = false;
+        }
+        
         private void ProcessClipShuffles() {
-            float time = Time.realtimeSinceStartup;
-            if (time < _lastClipShufflesCheckTime + _lastIndexStoreLifetime) return;
+            float time = _internalTime[2];
+            if (time < _lastClipShufflesCheckTime + _shuffleClipsOrderLifetime) return;
 
             _lastClipShufflesCheckTime = time;
             
@@ -602,7 +662,7 @@ namespace MisterGames.Common.Audio {
             for (int i = 0; i < count; i++) {
                 var data = buffer[i];
                     
-                if (time - data.time > _lastIndexStoreLifetime) {
+                if (time - data.time > _shuffleClipsOrderLifetime) {
                     _clipsHashToLastIndexMap.Remove(data.hash);
                 }
             }
@@ -611,23 +671,24 @@ namespace MisterGames.Common.Audio {
         }
 
         private void ProcessFadeIn() {
-            float scaledTime = TimeSources.scaledTime;
-            float time = Time.realtimeSinceStartup;
-
             int fadeInCount = _fadeInDataMap.Count;
             var fadeInCalculateArray = new NativeArray<FadeCalculateData>(fadeInCount, Allocator.TempJob);
             var fadeInResultArray = new NativeArray<FadeResultData>(fadeInCount, Allocator.TempJob);
-            
+            var timeArray = new NativeArray<float>(3, Allocator.TempJob);
+
+            for (int i = 0; i < _internalTime.Length; i++) {
+                timeArray[i] = _internalTime[i];
+            }
+
             int index = 0;
             
             foreach ((int id, var data) in _fadeInDataMap) {
-                fadeInCalculateArray[index++] = new FadeCalculateData(id, data.affectedByTimescale, data.startTime, data.fade, 0f, data.volume);
+                fadeInCalculateArray[index++] = new FadeCalculateData(id, data.timeSource, data.startTime, data.fade, 0f, data.volume);
             }
 
             var calculateFadeInJob = new CalculateFadeJob {
                 fadeCalculateDataArray = fadeInCalculateArray,
-                scaledTime = scaledTime,
-                unscaledTime = time,
+                timeArray = timeArray,
                 fadeResultArray = fadeInResultArray
             };
             
@@ -646,26 +707,28 @@ namespace MisterGames.Common.Audio {
             
             fadeInCalculateArray.Dispose();
             fadeInResultArray.Dispose();
+            timeArray.Dispose();
         }
 
         private void ProcessFadeOutAndRelease() {
-            float scaledTime = TimeSources.scaledTime;
-            float time = Time.realtimeSinceStartup;
-
             int fadeOutCount = _fadeOutDataMap.Count;
             var fadeOutCalculateArray = new NativeArray<FadeCalculateData>(fadeOutCount, Allocator.TempJob);
             var fadeOutResultArray = new NativeArray<FadeResultData>(fadeOutCount, Allocator.TempJob);
+            var timeArray = new NativeArray<float>(3, Allocator.TempJob);
+
+            for (int i = 0; i < _internalTime.Length; i++) {
+                timeArray[i] = _internalTime[i];
+            }
             
             int index = 0;
             
             foreach ((int id, var data) in _fadeOutDataMap) {
-                fadeOutCalculateArray[index++] = new FadeCalculateData(id, data.affectedByTimescale, data.startTime, data.fade, data.volume, 0f);
+                fadeOutCalculateArray[index++] = new FadeCalculateData(id, data.timeSource, data.startTime, data.fade, data.volume, 0f);
             }
 
             var calculateFadeOutJob = new CalculateFadeJob {
                 fadeCalculateDataArray = fadeOutCalculateArray,
-                scaledTime = scaledTime,
-                unscaledTime = time,
+                timeArray = timeArray,
                 fadeResultArray = fadeOutResultArray
             };
             
@@ -688,9 +751,10 @@ namespace MisterGames.Common.Audio {
             
             fadeOutCalculateArray.Dispose();
             fadeOutResultArray.Dispose();
+            timeArray.Dispose();
         }
 
-        private void ProcessSounds(float dt) {
+        private void ProcessSounds(float dtScaled, float dtUnscaled) {
             if (_audioListenersMap.Count == 0) {
                 ReleaseFinishedSounds();
                 return;
@@ -710,9 +774,9 @@ namespace MisterGames.Common.Audio {
             int index = 0;
             foreach (var e in _handleIdToAudioElementMap.Values) {
                 var options = e.AudioOptions;
-                int mixerGroupId = e.MixerGroupId;
+                var mixerGroupId = e.MixerGroupId;
 
-                if (mixerGroupId != 0 && !_includeMixerGroupsForVolumesSet.Contains(mixerGroupId)) {
+                if (mixerGroupId != EntityId.None && !_includeMixerGroupsForVolumesSet.Contains(mixerGroupId)) {
                     options &= ~AudioOptions.AffectedByVolumes;
                 }
                 
@@ -733,7 +797,7 @@ namespace MisterGames.Common.Audio {
 #endif
             );
             
-            var resultSoundArray = CalculateResult(soundDataArray, soundOptionsArray, volumeResultArray, occlusionResultArray, soundCount, dt);
+            var resultSoundArray = CalculateResult(soundDataArray, soundOptionsArray, volumeResultArray, occlusionResultArray, soundCount, dtScaled, dtUnscaled);
             float timescale = Time.timeScale;
             
             for (int i = 0; i < soundCount; i++) {
@@ -749,12 +813,14 @@ namespace MisterGames.Common.Audio {
                 
                 var resultData = resultSoundArray[i];
 
-                if ((options & AudioOptions.AffectedByTimeScale) != 0) {
+                if (!_ignoreZeroTimescaleForMixerGroupsSet.Contains(e.MixerGroupId)) {
                     if (timescale <= 0f && e.Source.isPlaying) {
+                        e.IsPaused = true;
                         e.Source.Pause();
                     }
                     else if (timescale > 0f && !e.Source.isPlaying) {
                         e.Source.UnPause();
+                        e.IsPaused = false;
                     }   
                 }
                 
@@ -890,7 +956,7 @@ namespace MisterGames.Common.Audio {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool IsSoundFinished(IAudioElement e, AudioOptions options) {
             e.ClipTime = math.max(e.ClipTime, e.Source.time);
-            return (options & AudioOptions.Loop) == 0 && (!e.Source.isPlaying || e.ClipTime >= e.ClipLength);
+            return (options & AudioOptions.Loop) == 0 && (!e.IsPaused && !e.Source.isPlaying || e.ClipTime >= e.ClipLength);
         }
 
         private void ProcessSound(IAudioElement e) {
@@ -910,9 +976,9 @@ namespace MisterGames.Common.Audio {
             listenerAndSoundsPositionArray[0] = listenerPos;
             
             var options = e.AudioOptions;
-            int mixerGroupId = e.MixerGroupId;
+            var mixerGroupId = e.MixerGroupId;
 
-            if (mixerGroupId != 0 && !_includeMixerGroupsForVolumesSet.Contains(mixerGroupId)) {
+            if (mixerGroupId != EntityId.None && !_includeMixerGroupsForVolumesSet.Contains(mixerGroupId)) {
                 options &= ~AudioOptions.AffectedByVolumes;
             }
                 
@@ -932,7 +998,7 @@ namespace MisterGames.Common.Audio {
 #endif
             );
             
-            var resultSoundArray = CalculateResult(soundDataArray, soundOptionsArray, volumeResultArray, occlusionResultArray, 1, 0f);
+            var resultSoundArray = CalculateResult(soundDataArray, soundOptionsArray, volumeResultArray, occlusionResultArray, 1, 0f, 0f);
 
             var resultData = resultSoundArray[0];
                 
@@ -1220,7 +1286,8 @@ namespace MisterGames.Common.Audio {
             NativeArray<AudioVolumeResultData> volumeResultDataArray, 
             NativeArray<OcclusionResultData> occlusionResultDataArray,
             int soundCount,
-            float dt) 
+            float dtScaled,
+            float dtUnscaled) 
         {
             var resultArray = new NativeArray<SoundResultData>(soundCount, Allocator.TempJob);
             
@@ -1230,7 +1297,8 @@ namespace MisterGames.Common.Audio {
                 volumeResultDataArray = volumeResultDataArray,
                 occlusionResultDataArray = occlusionResultDataArray,
                 timescale = Time.timeScale,
-                dt = dt,
+                dtScaled = dtScaled,
+                dtUnscaled = dtUnscaled,
                 smoothing = _audioParametersSmoothing,
                 lpCutoff = _cutoffLow,
                 hpCutoff = _cutoffHigh,
@@ -1319,32 +1387,33 @@ namespace MisterGames.Common.Audio {
             public readonly float startTime;
             public readonly float fade;
             public readonly float volume;
-            public readonly bool affectedByTimescale;
+            public readonly int timeSource;
             
-            public FadeData(float startTime, float fade, float volume, bool affectedByTimescale) {
+            public FadeData(float startTime, float fade, float volume, int timeSource) {
                 this.startTime = startTime;
                 this.fade = fade;
                 this.volume = volume;
-                this.affectedByTimescale = affectedByTimescale;
+                this.timeSource = timeSource;
             }
         }
         
         private readonly struct FadeCalculateData {
             
             public readonly int id;
-            public readonly bool affectedByTimescale;
+            public readonly int timeSource;
             public readonly float startTime;
             public readonly float fade;
             public readonly float volume0;
             public readonly float volume1;
             
-            public FadeCalculateData(int id, bool affectedByTimescale, float startTime, float fade, float volume0, float volume1) {
+            public FadeCalculateData(int id, int timeSource, float startTime, float fade, float volume0, float volume1) {
                 this.id = id;
-                this.affectedByTimescale = affectedByTimescale;
+                this.timeSource = timeSource;
                 this.startTime = startTime;
                 this.fade = fade;
                 this.volume0 = volume0;
                 this.volume1 = volume1;
+                this.timeSource = timeSource;
             }
         }
         
@@ -1561,15 +1630,13 @@ namespace MisterGames.Common.Audio {
         private struct CalculateFadeJob : IJobParallelFor {
 
             [ReadOnly] public NativeArray<FadeCalculateData> fadeCalculateDataArray;
-            [ReadOnly] public float scaledTime;
-            [ReadOnly] public float unscaledTime;
-            
+            [ReadOnly] public NativeArray<float> timeArray;
             [WriteOnly] public NativeArray<FadeResultData> fadeResultArray;
             
             public void Execute(int index) {
                 var data = fadeCalculateDataArray[index];
                 
-                float currentTime = data.affectedByTimescale ? scaledTime : unscaledTime;
+                float currentTime = timeArray[data.timeSource];
                 float t = data.fade > 0f 
                     ? math.clamp((currentTime - data.startTime) / data.fade, 0f, 1f)
                     : 1f;
@@ -1972,7 +2039,8 @@ namespace MisterGames.Common.Audio {
             [ReadOnly] public NativeArray<AudioVolumeResultData> volumeResultDataArray; 
             [ReadOnly] public NativeArray<OcclusionResultData> occlusionResultDataArray;
             [ReadOnly] public float timescale;
-            [ReadOnly] public float dt;
+            [ReadOnly] public float dtScaled;
+            [ReadOnly] public float dtUnscaled;
             [ReadOnly] public float smoothing;
             [ReadOnly] public float lpCutoff;
             [ReadOnly] public float hpCutoff;
@@ -1988,7 +2056,7 @@ namespace MisterGames.Common.Audio {
                 var occlusionData = occlusionResultDataArray[index];
 
                 float pitch = volumeData.pitch * soundData.pitchMul;
-                if ((options & AudioOptions.AffectedByTimeScale) == AudioOptions.AffectedByTimeScale) {
+                if ((options & AudioOptions.AffectedByTimeScale) != 0) {
                     pitch *= timescale;
                 }
 
@@ -1999,7 +2067,8 @@ namespace MisterGames.Common.Audio {
                 
                 float lpCutoffBound = math.min(volumeData.lpCutoff, math.lerp(LpCutoffUpperBound, lpCutoff, lpCutoffT));
                 float hpCutoffBound = math.max(volumeData.hpCutoff, math.lerp(HpCutoffLowerBound, hpCutoff, hpCutoffT));
-                
+
+                float dt = (options & AudioOptions.AffectedByTimeScale) != 0 ? dtScaled : dtUnscaled;
                 lpCutoffBound = dt > 0f ? soundData.lpCutoff.SmoothExpNonZero(lpCutoffBound, soundData.occlusionFlag * smoothing, dt) : lpCutoffBound;
                 hpCutoffBound = dt > 0f ? soundData.hpCutoff.SmoothExpNonZero(hpCutoffBound, soundData.occlusionFlag * smoothing, dt) : hpCutoffBound;
                 
@@ -2029,6 +2098,7 @@ namespace MisterGames.Common.Audio {
 
             if (Application.isPlaying) {
                 FetchIncludeMixerGroupsFromVolumes();
+                FetchIgnoreZeroTimescaleMixerGroups();
                 CreateReverbParamNames();
             }
         }

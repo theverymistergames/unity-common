@@ -13,23 +13,25 @@ namespace MisterGames.Common.Audio {
         [SerializeField] private AudioLowPassFilter _lowPass;
         [SerializeField] private AudioHighPassFilter _highPass;
 
+        public IAudioPool AudioPool { get; set; }
         public Transform Transform => _transform;
         public AudioSource Source => _source;
         public AudioLowPassFilter LowPass => _lowPass;
         public AudioHighPassFilter HighPass => _highPass;
 
         public int Id { get; set; }
-        public int MixerGroupId { get; set; }
-        public IAudioPool AudioPool { get; set; }
-        public CancellationToken CancellationToken { get; set; }
-
-        public AudioOptions AudioOptions { get; set; }
+        public EntityId MixerGroupId { get; set; }
         public float PitchMul { get; set; }
         public float AttenuationMul { get; set; }
+        public AudioOptions AudioOptions { get; set; }
+
+        public bool IsPaused { get; set; }
         public float ClipLength { get; set; }
         public float FadeOut { get; set; }
-        public int OcclusionFlag { get; set; }
         public float ClipTime { get; set; }
+        public int OcclusionFlag { get; set; }
+        
+        public CancellationToken CancellationToken { get; set; }
         
         private void OnDisable() {
             AudioPool?.ReleaseAudioHandle(Id, immediate: true);
