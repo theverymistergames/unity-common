@@ -11,7 +11,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 #endif
 
-namespace MisterGames.Logic.Shaders {
+namespace MisterGames.Logic.ShadersWarmup {
     
     internal sealed class ShadersWarmupSceneContentCollector : MonoBehaviour {
         

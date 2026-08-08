@@ -5,7 +5,7 @@ using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-namespace MisterGames.Logic.Shaders {
+namespace MisterGames.Logic.ShadersWarmup {
  
     internal sealed class ShadersWarmupSceneCamera : MonoBehaviour {
     

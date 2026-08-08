@@ -4,13 +4,13 @@ using System.IO;
 using MisterGames.Common.Attributes;
 using MisterGames.Scenes.Core;
 using UnityEngine;
-using UnityEngine.Experimental.Rendering;
+
 using UnityEngine.VFX;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
 
-namespace MisterGames.Logic.Shaders {
+namespace MisterGames.Logic.ShadersWarmup {
  
     [CreateAssetMenu(fileName = nameof(ShaderWarmupSettings), menuName = "MisterGames/Shaders/" + nameof(ShaderWarmupSettings))]
     internal sealed class ShaderWarmupSettings : ScriptableObject {
@@ -33,7 +33,7 @@ namespace MisterGames.Logic.Shaders {
         [SerializeField] private bool _enterShadersWarmupSceneOnBootstrapInEditor;
 
         [Header("Warmup Collections")]
-        [SerializeField] private GraphicsStateCollection _releaseGraphicsStateCollection;
+        [SerializeField] private UnityEngine.Rendering.GraphicsStateCollection _releaseGraphicsStateCollection;
         [SerializeField] private VisualEffectAsset[] _visualEffectAssets;
         [SerializeField] [Min(1)] private int _progressiveWarmupBatchCountPso = 128;
         [SerializeField] [Min(1)] private int _progressiveWarmupBatchCountVisualEffectAssets = 32;
@@ -56,8 +56,8 @@ namespace MisterGames.Logic.Shaders {
             return Path.Combine(Application.persistentDataPath, _filepath);
         }
 
-        public GraphicsStateCollection GetReleaseGraphicsStateCollection() {
-            return _releaseGraphicsStateCollection ?? new GraphicsStateCollection();
+        public UnityEngine.Rendering.GraphicsStateCollection GetReleaseGraphicsStateCollection() {
+            return _releaseGraphicsStateCollection ?? new UnityEngine.Rendering.GraphicsStateCollection();
         }
 
 #if UNITY_EDITOR
@@ -204,13 +204,13 @@ namespace MisterGames.Logic.Shaders {
                 return;
             }
 
-            var tracingCollection = new GraphicsStateCollection();
+            var tracingCollection = new UnityEngine.Rendering.GraphicsStateCollection();
             tracingCollection.LoadFromFile(GetTracingFilePath());
 
             int tracingCount = tracingCollection.variantCount;
             int releaseCountBefore = _releaseGraphicsStateCollection.variantCount;
 
-            //_releaseGraphicsStateCollection.Append(tracingCollection);
+            _releaseGraphicsStateCollection.Append(tracingCollection);
             int releaseCountAfter = _releaseGraphicsStateCollection.variantCount;
 
             string assetPath = AssetDatabase.GetAssetPath(_releaseGraphicsStateCollection);

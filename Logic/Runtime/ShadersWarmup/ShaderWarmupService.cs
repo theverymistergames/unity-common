@@ -6,51 +6,37 @@ using MisterGames.Common.Async;
 using MisterGames.Common.Tick;
 using Unity.Jobs;
 using UnityEngine;
-using UnityEngine.Experimental.Rendering;
 using UnityEngine.SceneManagement;
 using UnityEngine.VFX;
 
-namespace MisterGames.Logic.Shaders {
+namespace MisterGames.Logic.ShadersWarmup {
 
-    internal sealed class ShaderWarmupService : IDisposable, IUpdate {
+    [DefaultExecutionOrder(-100_000)]
+    internal sealed class ShaderWarmupService : MonoBehaviour, IUpdate {
+
+        [SerializeField] private ShaderWarmupSettings _settings;
         
         public event Action<float> OnWarmupProgress = delegate { };
+        public event Action OnWarmupStarted = delegate { };
         public event Action OnWarmupCompleted = delegate { };
         public bool IsWarmupCompleted { get; private set; }
 
-        internal static ShaderWarmupService Instance { get; private set; }
+        public static ShaderWarmupService Instance { get; private set; }
 
         private CancellationTokenSource _cts;
-        private readonly ShaderWarmupSettings _settings;
-        private GraphicsStateCollection _graphicsStateCollection;
+        private UnityEngine.Rendering.GraphicsStateCollection _graphicsStateCollection;
         private bool _isTracing;
         private float _saveTimer;
         private bool _shaderWarmupScenePassCompleted;
 
-        public ShaderWarmupService(ShaderWarmupSettings settings) {
-            _settings = settings;
-        }
-
-        public void Initialize() {
+        private void Awake() {
             Instance = this;
-
+            
             AsyncExt.RecreateCts(ref _cts);
             PlayerLoopStage.LateUpdate.Subscribe(this);
-
-#if UNITY_EDITOR
-            LoadForEditor(_cts.Token).Forget();
-            return;
-#endif
-
-#if DEVELOPMENT_BUILD
-            LoadForDevelopmentBuild(_cts.Token).Forget();
-            return;
-#endif
-
-            LoadForReleaseBuild();
         }
 
-        public void Dispose() {
+        private void OnDestroy() {
             AsyncExt.DisposeCts(ref _cts);
             PlayerLoopStage.LateUpdate.Unsubscribe(this);
 
@@ -62,6 +48,20 @@ namespace MisterGames.Logic.Shaders {
             UnloadForDevelopmentBuild();
             return;
 #endif
+        }
+
+        public async UniTask Load() {
+#if UNITY_EDITOR
+            await LoadForEditor(_cts.Token);
+            return;
+#endif
+
+#if DEVELOPMENT_BUILD
+            await LoadForDevelopmentBuild(_cts.Token);
+            return;
+#endif
+
+            await LoadForReleaseBuild(_cts.Token);
         }
 
         public void NotifyShaderWarmupScenePassCompleted() {
@@ -101,6 +101,7 @@ namespace MisterGames.Logic.Shaders {
                 }
             }
 
+            NotifyWarmupStarted();
             NotifyWarmupCompleted();
         }
 
@@ -115,7 +116,7 @@ namespace MisterGames.Logic.Shaders {
         }
 
         private async UniTask LoadForDevelopmentBuild(CancellationToken cancellationToken) {
-            _graphicsStateCollection = new GraphicsStateCollection();
+            _graphicsStateCollection = new UnityEngine.Rendering.GraphicsStateCollection();
             BeginTracing();
 
             if (_settings.EnterShadersWarmupSceneOnBootstrapInDevBuild) {
@@ -142,19 +143,19 @@ namespace MisterGames.Logic.Shaders {
             EndTracingAndSaveToLocalFile();
             BeginTracing();
 
-            StartWarmup(LoadReleaseCollection(), _settings.VisualEffectAssets, false, _cts.Token).Forget();
+            await StartWarmup(LoadReleaseCollection(), _settings.VisualEffectAssets, false, cancellationToken);
         }
 
         private void UnloadForDevelopmentBuild() {
             EndTracingAndSaveToLocalFile();
         }
 
-        private void LoadForReleaseBuild() {
-            StartWarmup(LoadReleaseCollection(), _settings.VisualEffectAssets, false, _cts.Token).Forget();
+        private UniTask LoadForReleaseBuild(CancellationToken ct) {
+            return StartWarmup(LoadReleaseCollection(), _settings.VisualEffectAssets, false, ct);
         }
 
-        private GraphicsStateCollection LoadLocalTracingCollection() {
-            var graphicsStateCollection = new GraphicsStateCollection();
+        private UnityEngine.Rendering.GraphicsStateCollection LoadLocalTracingCollection() {
+            var graphicsStateCollection = new UnityEngine.Rendering.GraphicsStateCollection();
 
             string filePath = _settings.GetTracingFilePath();
             if (File.Exists(filePath)) graphicsStateCollection.LoadFromFile(filePath);
@@ -179,11 +180,11 @@ namespace MisterGames.Logic.Shaders {
                       $"total count {_graphicsStateCollection.totalGraphicsStateCount}");
 
             var localTracingCollection = LoadLocalTracingCollection();
-            //localTracingCollection.Append(_graphicsStateCollection);
+            localTracingCollection.Append(_graphicsStateCollection);
             SaveToLocalFile(localTracingCollection);
         }
 
-        private void SaveToLocalFile(GraphicsStateCollection collection) {
+        private void SaveToLocalFile(UnityEngine.Rendering.GraphicsStateCollection collection) {
             string filePath = _settings.GetTracingFilePath();
             string directory = Path.GetDirectoryName(filePath);
 
@@ -194,15 +195,18 @@ namespace MisterGames.Logic.Shaders {
             collection.SaveToFile(filePath);
         }
 
-        private GraphicsStateCollection LoadReleaseCollection() {
+        private UnityEngine.Rendering.GraphicsStateCollection LoadReleaseCollection() {
             return _settings.GetReleaseGraphicsStateCollection();
         }
 
         private async UniTask StartWarmup(
-            GraphicsStateCollection graphicsStateCollection,
+            UnityEngine.Rendering.GraphicsStateCollection graphicsStateCollection,
             VisualEffectAsset[] visualEffectAssets,
             bool traceCacheMisses,
-            CancellationToken ct) {
+            CancellationToken ct) 
+        {
+            NotifyWarmupStarted();
+            
             int totalPso = graphicsStateCollection.totalGraphicsStateCount;
             int totalVisualEffects = visualEffectAssets.Length;
             int total = totalPso + totalVisualEffects;
@@ -210,7 +214,7 @@ namespace MisterGames.Logic.Shaders {
             var handle = new JobHandle();
 
             while (!ct.IsCancellationRequested && graphicsStateCollection.completedWarmupCount < totalPso) {
-                //handle = graphicsStateCollection.WarmUpProgressively(_settings.ProgressiveWarmupBatchCountPso, handle, traceCacheMisses);
+                handle = graphicsStateCollection.WarmUpProgressively(_settings.ProgressiveWarmupBatchCountPso, handle, traceCacheMisses);
                 handle.Complete();
 
                 NotifyWarmupProgress((float) graphicsStateCollection.completedWarmupCount / total);
@@ -222,7 +226,7 @@ namespace MisterGames.Logic.Shaders {
             while (!ct.IsCancellationRequested && warmedVisualEffects < totalVisualEffects) {
                 int batch = Mathf.Min(_settings.ProgressiveWarmupBatchCountVisualEffectAssets, totalVisualEffects - warmedVisualEffects);
                 for (int i = 0; i < batch; i++) {
-                    //visualEffectAssets[warmedVisualEffects + i].PrewarmComputeShaders();
+                    visualEffectAssets[warmedVisualEffects + i].PrewarmComputeShaders();
                 }
 
                 warmedVisualEffects += batch;
@@ -233,6 +237,10 @@ namespace MisterGames.Logic.Shaders {
             }
 
             NotifyWarmupCompleted();
+        }
+
+        private void NotifyWarmupStarted() {
+            OnWarmupStarted.Invoke();
         }
 
         private void NotifyWarmupProgress(float progress) {

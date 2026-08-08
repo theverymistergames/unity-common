@@ -3,10 +3,11 @@
 using UnityEngine;
 using UnityEditor;
 
-namespace MisterGames.Logic.Shaders {
+namespace MisterGames.Logic.ShadersWarmup {
     
     internal static class ShadersWarmupMenu {
-        [MenuItem("MisterGames/Collect shaders and vfx assets for release collection")]
+        
+        [MenuItem("MisterGames/Shaders Warmup/Collect shaders and vfx assets for release collection")]
         private static void CollectTracedShadersAndVfxAssetsIntoReleaseCollection() {
             string[] guids = AssetDatabase.FindAssets($"t:{nameof(ShaderWarmupSettings)}");
 
