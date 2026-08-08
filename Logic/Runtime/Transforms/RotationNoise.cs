@@ -157,12 +157,12 @@ namespace MisterGames.Logic.Transforms {
                 _targetDataArray = arr;
             }
 
-            var map = DictionaryPool<int, Vector3>.Get();
+            var map = DictionaryPool<EntityId, Vector3>.Get();
             for (int i = 0; i < _limits.Length; i++) {
                 ref var targetLimit = ref _limits[i];
                 if (targetLimit.target == null) continue;
                 
-                map[targetLimit.target.GetInstanceID()] = targetLimit.mul;
+                map[targetLimit.target.GetEntityId()] = targetLimit.mul;
             }
 
             _minLevel = 1;
@@ -174,12 +174,12 @@ namespace MisterGames.Logic.Transforms {
                 _minLevel = Mathf.Min(_minLevel, data.level);
                 _maxLevel = Mathf.Max(_maxLevel, data.level);
                 
-                data.mul = _targets[i] == null || !map.TryGetValue(_targets[i].GetInstanceID(), out var mul)
+                data.mul = _targets[i] == null || !map.TryGetValue(_targets[i].GetEntityId(), out var mul)
                     ? Vector3.one
                     : mul;
             }
 
-            DictionaryPool<int, Vector3>.Release(map);
+            DictionaryPool<EntityId, Vector3>.Release(map);
 
 #if UNITY_EDITOR
             EditorUtility.SetDirty(this);
@@ -240,10 +240,10 @@ namespace MisterGames.Logic.Transforms {
                 .LevelOrder().Where(x => x.children.Count == 0 && x.data.data != null)
                 .ToArray();
             
-            var map = DictionaryPool<int, int>.Get();
+            var map = DictionaryPool<EntityId, int>.Get();
             for (int i = 0; i < nodes.Length; i++) {
                 var treeEntry = nodes[i];
-                map[treeEntry.data.data.GetInstanceID()] = treeEntry.level;
+                map[treeEntry.data.data.GetEntityId()] = treeEntry.level;
             }
 
             _minLevel = 1;
@@ -252,7 +252,7 @@ namespace MisterGames.Logic.Transforms {
             for (int i = 0; i < _targetDataArray.Length; i++) {
                 ref var data = ref _targetDataArray[i];
                 
-                data.level = _targets[i] == null || !map.TryGetValue(_targets[i].GetInstanceID(), out int level)
+                data.level = _targets[i] == null || !map.TryGetValue(_targets[i].GetEntityId(), out int level)
                     ? 1
                     : level;
 
@@ -260,7 +260,7 @@ namespace MisterGames.Logic.Transforms {
                 _maxLevel = Mathf.Max(_maxLevel, data.level);
             }
             
-            DictionaryPool<int, int>.Release(map);
+            DictionaryPool<EntityId, int>.Release(map);
             EditorUtility.SetDirty(this);
         }
 #endif

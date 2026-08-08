@@ -37,7 +37,7 @@ namespace MisterGames.Common.Audio {
             Local,
         }
 
-        public int Id => GetEntityId();
+        public EntityId Id => GetEntityId();
         public int Priority => _priority;
         public float ListenerPresence => _listenerPresence;
 

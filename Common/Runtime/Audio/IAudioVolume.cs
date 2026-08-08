@@ -7,7 +7,7 @@ namespace MisterGames.Common.Audio {
     
     public interface IAudioVolume {
 
-        int Id { get; }
+        EntityId Id { get; }
         int Priority { get; }
         float ListenerPresence { get; }
         

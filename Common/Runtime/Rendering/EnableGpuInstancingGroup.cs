@@ -65,7 +65,7 @@ namespace MisterGames.Common.Rendering {
 
             switch (_applyMode) {
                 case ApplyMode.OnlyFirstMaterial:
-                    for (int i = 0; i < _renderers.Length; i++) {
+                    for (int i = 0; i < _renderers?.Length; i++) {
 #if UNITY_EDITOR
                         if (!Application.isPlaying && _renderers[i] == null) continue;
                         if (Application.isPlaying && _renderers[i] == null) {
@@ -85,7 +85,7 @@ namespace MisterGames.Common.Rendering {
                     break;
                 
                 case ApplyMode.AllMaterials:
-                    for (int i = 0; i < _renderers.Length; i++) {
+                    for (int i = 0; i < _renderers?.Length; i++) {
 #if UNITY_EDITOR
                         if (!Application.isPlaying && _renderers[i] == null) continue;
                         if (Application.isPlaying && _renderers[i] == null) {
@@ -161,10 +161,10 @@ namespace MisterGames.Common.Rendering {
         private void CollectChildRenderers() {
             Undo.RecordObject(this, "CollectChildRenderers");
 
-            HashSet<int> excluded = null;
+            HashSet<EntityId> excluded = null;
 
             if (_excludeRenderersFromOtherGroups) {
-                excluded = UnityEngine.Pool.HashSetPool<int>.Get();
+                excluded = UnityEngine.Pool.HashSetPool<EntityId>.Get();
                 var groups = GetComponentsInChildren<EnableGpuInstancingGroup>()
                     .Where(x => x != this)
                     .ToArray();
@@ -172,13 +172,13 @@ namespace MisterGames.Common.Rendering {
                 for (int i = 0; i < groups.Length; i++) {
                     var renderers = groups[i]._renderers;
                     for (int j = 0; j < renderers.Length; j++) {
-                        if (renderers[j] != null) excluded.Add(renderers[j].GetInstanceID());
+                        if (renderers[j] != null) excluded.Add(renderers[j].GetEntityId());
                     }
                 }
             }
 
             _renderers = excluded != null
-                ? GetRenderersInChildren().Where(x => !excluded.Contains(x.GetInstanceID())).ToArray()
+                ? GetRenderersInChildren().Where(x => !excluded.Contains(x.GetEntityId())).ToArray()
                 : GetRenderersInChildren();
 
             EditorUtility.SetDirty(this);

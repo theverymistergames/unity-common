@@ -198,7 +198,7 @@ namespace MisterGames.Common.Editor.Drawers {
 
         private static long GetPropertyKey(SerializedProperty property) {
             return NumberExtensions.TwoIntsAsLong(
-                property.serializedObject.targetObject.GetInstanceID(),
+                property.serializedObject.targetObject.GetHashCode(),
                 Animator.StringToHash(property.propertyPath)
             );
         }

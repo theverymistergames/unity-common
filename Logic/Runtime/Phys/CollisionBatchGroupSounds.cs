@@ -78,7 +78,7 @@ namespace MisterGames.Logic.Phys {
         
         private readonly Dictionary<(int material, int surface), (int group, int item)> _materialPairToIndexMap = new();
         private readonly Dictionary<int, RbData> _lastRbDataMap = new();
-        private readonly Dictionary<int, int> _colliderMaterialMap = new();
+        private readonly Dictionary<EntityId, int> _colliderMaterialMap = new();
         private readonly List<MaterialInfo> _materialList = new();
 
         private bool _hasMaterialDetector;
@@ -146,7 +146,7 @@ namespace MisterGames.Logic.Phys {
         }
 
         private MaterialInfo GetSurfaceMaterial(Collider collider) {
-            int instanceId = collider.GetInstanceID();
+            var instanceId = collider.GetEntityId();
 
             if (!_colliderMaterialMap.TryGetValue(instanceId, out int material)) {
                 material = 

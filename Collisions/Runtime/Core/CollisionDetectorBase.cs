@@ -48,7 +48,7 @@ namespace MisterGames.Collisions.Core {
             return
                 !lastInfo.hasContact && newInfo.hasContact ||
                 lastInfo.hasContact && !newInfo.hasContact ||
-                lastInfo.hasContact && lastInfo.transform.GetInstanceID() != newInfo.transform.GetInstanceID();
+                lastInfo.hasContact && lastInfo.transform.GetEntityId() != newInfo.transform.GetEntityId();
         }
     }
 

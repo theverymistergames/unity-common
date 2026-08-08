@@ -62,12 +62,12 @@ namespace MisterGames.Character.Core {
         private bool TryTeleportToSpawnPoint() {
             if (_isSpawned ||
                 _hero == null ||
-                FindObjectsByType<CharacterSpawnPoint>(FindObjectsInactive.Exclude, FindObjectsSortMode.None) is not { Length: > 0 } spawnPoints
+                FindObjectsByType<CharacterSpawnPoint>(FindObjectsInactive.Exclude) is not { Length: > 0 } spawnPoints
             ) {
                 return false;
             }
             
-            Array.Sort(spawnPoints, (p0, p1) => p0.transform.GetInstanceID().CompareTo(p1.transform.GetInstanceID()));
+            Array.Sort(spawnPoints, (p0, p1) => p0.transform.GetEntityId().CompareTo(p1.transform.GetEntityId()));
             
             var spawnPoint = spawnPoints[0];
             spawnPoint.transform.GetPositionAndRotation(out var position, out var rotation);

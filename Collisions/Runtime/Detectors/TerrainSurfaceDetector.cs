@@ -27,7 +27,7 @@ namespace MisterGames.Collisions.Detectors {
         private int _alphaMapHeight;
         private float[,,] _splatMapData;
         private int _numTextures;
-        private int _lastContactHash;
+        private EntityId _lastContactHash;
 
         private void Awake() {
             FetchTextureIndexToMaterialIdMap();
@@ -88,7 +88,7 @@ namespace MisterGames.Collisions.Detectors {
 
         private void OnContact() {
             var info = _groundDetector.CollisionInfo;
-            int hash = info.collider.GetInstanceID();
+            var hash = info.collider.GetEntityId();
             
             if (hash == _lastContactHash) return;
 
@@ -103,7 +103,7 @@ namespace MisterGames.Collisions.Detectors {
         }
 
         private void OnLostContact() {
-            _lastContactHash = 0;
+            _lastContactHash = EntityId.None;
             ResetTerrainData();
         }
 

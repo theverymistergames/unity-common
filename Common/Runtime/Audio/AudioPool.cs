@@ -110,11 +110,11 @@ namespace MisterGames.Common.Audio {
         private Transform _listenerTransform;
         private Transform _listenerUp;
 
-        private readonly Dictionary<int, IAudioVolume> _audioVolumes = new();
+        private readonly Dictionary<EntityId, IAudioVolume> _audioVolumes = new();
         private readonly HashSet<EntityId> _includeMixerGroupsForVolumesSet = new();
         private readonly HashSet<EntityId> _ignoreZeroTimescaleForMixerGroupsSet = new();
         
-        private readonly Dictionary<int, IReverbVolume> _reverbVolumes = new();
+        private readonly Dictionary<EntityId, IReverbVolume> _reverbVolumes = new();
         private string[] _reverbParamNames;
         private ReverbSettingsData _smoothedReverbSettings;
         
@@ -477,7 +477,7 @@ namespace MisterGames.Common.Audio {
             CancellationToken cancellationToken) 
         {
             audioElement.Id = id;
-            audioElement.MixerGroupId = mixerGroup == null ? 0 : mixerGroup.GetInstanceID();
+            audioElement.MixerGroupId = mixerGroup == null ? EntityId.None : mixerGroup.GetEntityId();
             audioElement.AudioPool = this;
 
             audioElement.IsPaused = false;
@@ -1145,11 +1145,11 @@ namespace MisterGames.Common.Audio {
         private ReverbSettingsData CalculateReverbVolumes(float3 listenerPosition)
         {
             int volumeCount = _reverbVolumes.Count;
-            var volumeIdArray = new NativeArray<int>(volumeCount, Allocator.Temp);
+            var volumeIdArray = new NativeArray<EntityId>(volumeCount, Allocator.Temp);
             var volumeWeightDataArray = new NativeArray<VolumeWeightData>(volumeCount, Allocator.TempJob);
             volumeCount = 0;
             
-            foreach ((int id, var volume) in _reverbVolumes) {
+            foreach (var (id, volume) in _reverbVolumes) {
                 var settings = volume.GetReverbSettings();
                 if (settings == null || volume.GetWeight(listenerPosition) is not { weight: > 0f } weightData) continue;
 
@@ -1161,7 +1161,7 @@ namespace MisterGames.Common.Audio {
             var reverbSettingsArray = new NativeArray<ReverbSettingsData>(volumeCount, Allocator.TempJob);
 
             for (int i = 0; i < volumeCount; i++) {
-                int id = volumeIdArray[i];
+                var id = volumeIdArray[i];
                 var volume = _reverbVolumes[id];
                 reverbSettingsArray[i] = new ReverbSettingsData(volume.Level, volume.GetReverbSettings());
             }

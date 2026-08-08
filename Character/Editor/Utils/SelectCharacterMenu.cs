@@ -51,11 +51,11 @@ namespace MisterGames.Character.Editor.Utils {
                 
                 var method = type.GetMethod("SetExpandedRecursive");
             
-                method!.Invoke(window, new object[] { character.gameObject.GetInstanceID(), true });
+                method!.Invoke(window, new object[] { character.gameObject.GetEntityId(), true });
 
                 int childCount = character.transform.childCount;
                 for (int j = 0; j < childCount; j++) {
-                    method!.Invoke(window, new object[] { character.transform.GetChild(j).gameObject.GetInstanceID(), false });   
+                    method!.Invoke(window, new object[] { character.transform.GetChild(j).gameObject.GetEntityId(), false });   
                 }
             }
             

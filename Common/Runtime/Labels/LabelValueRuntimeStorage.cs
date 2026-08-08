@@ -47,7 +47,7 @@ namespace MisterGames.Common.Labels {
         }
 
         private static Key CreateKey<T>(LabelLibraryBase<T> library, int valueId) where T : class {
-            return new Key(library.GetInstanceID(), valueId);
+            return new Key(library.GetHashCode(), valueId);
         }
     }
     

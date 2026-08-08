@@ -24,14 +24,14 @@ namespace MisterGames.Collisions.Detectors {
 
         private readonly List<MaterialInfo> _materialList = new();
         
-        private int _lastContactHash;
+        private EntityId _lastContactHash;
         private int _lastContactMaterialId;
         
         public override IReadOnlyList<MaterialInfo> GetMaterials(Vector3 point, Vector3 normal) {
             _materialList.Clear();
             
             if (!_collisionDetector.HasContact) {
-                _lastContactHash = 0;
+                _lastContactHash = EntityId.None;
 
                 if (_noContactMaterial.HasValue) {
                     _materialList.Add(new MaterialInfo(_noContactMaterial.Value.GetValue(), _weight));
@@ -41,7 +41,7 @@ namespace MisterGames.Collisions.Detectors {
             }
 
             var info = _collisionDetector.CollisionInfo;
-            int hash = info.collider.GetInstanceID();
+            var hash = info.collider.GetEntityId();
             
             if (hash == _lastContactHash) {
                 _materialList.Add(new MaterialInfo(_lastContactMaterialId, _weight));

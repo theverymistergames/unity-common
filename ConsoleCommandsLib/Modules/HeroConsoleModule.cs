@@ -138,13 +138,13 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
         public void SpawnAtPointByIndex9() { }
 
         private CharacterSpawnPoint[] GetSpawnPoints() {
-            var spawnPoints = Object.FindObjectsByType<CharacterSpawnPoint>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
-            Array.Sort(spawnPoints, (p0, p1) => p0.transform.GetInstanceID().CompareTo(p1.transform.GetInstanceID()));
+            var spawnPoints = Object.FindObjectsByType<CharacterSpawnPoint>(FindObjectsInactive.Exclude);
+            Array.Sort(spawnPoints, (p0, p1) => p0.transform.GetEntityId().CompareTo(p1.transform.GetEntityId()));
             return spawnPoints;
         }
 
         private void SpawnHero(Vector3 position, string spawnPointName) {
-            var hero = Object.FindFirstObjectByType<MainCharacter>();
+            var hero = Object.FindAnyObjectByType<MainCharacter>();
             
             if (hero == null) {
                 var newHeroInstance = PrefabPool.Main.Get(_heroPrefab);

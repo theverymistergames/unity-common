@@ -16,7 +16,7 @@ namespace MisterGames.Character.Motion {
         private Transform _transform;
         private CapsuleCollider _collider;
         private CharacterSlopeProcessor _slopeProcessor;
-        private int _colliderInstanceId;
+        private EntityId _colliderInstanceId;
 
         private Vector3 _up;
         private Vector3 _lowerPoint;
@@ -31,7 +31,7 @@ namespace MisterGames.Character.Motion {
 
             _collider = actor.GetComponent<CapsuleCollider>();
             _collider.hasModifiableContacts = true;
-            _colliderInstanceId = _collider.GetInstanceID();
+            _colliderInstanceId = _collider.GetEntityId();
             
             SetupFriction();
         }
@@ -81,7 +81,7 @@ namespace MisterGames.Character.Motion {
             for (int i = 0; i < pairs.Length; i++) {
                 var pair = pairs[i];
 
-                if (pair.colliderInstanceID != _colliderInstanceId && pair.otherColliderInstanceID != _colliderInstanceId) {
+                if (pair.colliderEntityId != _colliderInstanceId && pair.otherColliderEntityId != _colliderInstanceId) {
                     continue;
                 }
 

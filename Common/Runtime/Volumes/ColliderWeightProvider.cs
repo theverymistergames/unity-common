@@ -55,7 +55,7 @@ namespace MisterGames.Common.Volumes {
             
             var prepareCommandsJob = new PrepareColliderCommandsJob {
                 positions = positions,
-                colliderInstanceId = _collider.GetInstanceID(),
+                colliderInstanceId = _collider.GetEntityId(),
                 position = pos,
                 rotation = rot,
                 scale = trf.localScale,
@@ -92,7 +92,7 @@ namespace MisterGames.Common.Volumes {
         private struct PrepareColliderCommandsJob : IJobParallelFor {
             
             [Unity.Collections.ReadOnly] public NativeArray<float3> positions;
-            [Unity.Collections.ReadOnly] public int colliderInstanceId;
+            [Unity.Collections.ReadOnly] public EntityId colliderInstanceId;
             [Unity.Collections.ReadOnly] public float3 position;
             [Unity.Collections.ReadOnly] public quaternion rotation;
             [Unity.Collections.ReadOnly] public float3 scale;
