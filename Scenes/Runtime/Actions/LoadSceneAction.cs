@@ -27,12 +27,10 @@ namespace MisterGames.Scenes.Actions {
         [Header("Start Fade")]
         [SerializeField] private bool _applyFadeOutOnStart;
         [SerializeField] [Min(-1f)] private float _fadeOutOnStart = -1f;
-        [SerializeField] private Optional<AnimationCurve> _fadeOutCurve = Optional<AnimationCurve>.WithDisabled(EasingType.Linear.ToAnimationCurve());
         
         [Header("Finish Fade")]
         [SerializeField] private bool _applyFadeInOnFinish;
         [SerializeField] [Min(-1f)] private float _fadeInOnFinish = -1f;
-        [SerializeField] private Optional<AnimationCurve> _fadeInCurve = Optional<AnimationCurve>.WithDisabled(EasingType.Linear.ToAnimationCurve());
 
         public async UniTask Apply(CancellationToken cancellationToken) {
             if (!CanShowScene()) return;
@@ -50,7 +48,7 @@ namespace MisterGames.Scenes.Actions {
             if (cancellationToken.IsCancellationRequested) return;
 
             if (_applyFadeOutOnStart) {
-                await Fader.Main.FadeOutAsync(_fadeOutOnStart, _fadeOutCurve.GetOrDefault());
+                await Fader.Main.FadeOutAsync(_fadeOutOnStart);
                 if (cancellationToken.IsCancellationRequested) return;
             }
             
@@ -63,7 +61,7 @@ namespace MisterGames.Scenes.Actions {
             }
 
             if (_applyFadeInOnFinish) {
-                await Fader.Main.FadeInAsync(_fadeInOnFinish, _fadeInCurve.GetOrDefault());
+                await Fader.Main.FadeInAsync(_fadeInOnFinish);
                 if (cancellationToken.IsCancellationRequested) return;
             }
             

@@ -28,7 +28,7 @@ namespace MisterGames.Logic.ShadersWarmup {
         private bool _isTracing;
         private float _saveTimer;
         private bool _shaderWarmupScenePassCompleted;
-
+        
         private void Awake() {
             Instance = this;
         }
@@ -45,6 +45,10 @@ namespace MisterGames.Logic.ShadersWarmup {
             UnloadForDevelopmentBuild();
             return;
 #endif
+        }
+
+        public ShaderWarmupSettings GetSettings() {
+            return _settings;
         }
 
         public async UniTask Load() {
@@ -104,8 +108,7 @@ namespace MisterGames.Logic.ShadersWarmup {
 
             NotifyWarmupStarted();
 
-            if (IsSceneIncludedInBuildList(_settings.WarmupSceneName) && 
-                _settings.SimulateShadersWarmupInEditorDuration > 0f) 
+            if (_settings.SimulateShadersWarmupInEditorDuration > 0f) 
             {
                 Debug.LogWarning($"ShaderWarmupService.LoadForEditor: f {Time.frameCount}, " +
                                  $"simulate shaders warmup for testing. " +
@@ -123,6 +126,15 @@ namespace MisterGames.Logic.ShadersWarmup {
             }
             
             NotifyWarmupCompleted();
+
+            if (_settings.SimulateShadersWarmupInEditorDuration > 0f) {
+                await UniTask.Delay(
+                        TimeSpan.FromSeconds(_settings.DisableViewDelay + _settings.DisableViewFader),
+                        delayType: DelayType.UnscaledDeltaTime,
+                        cancellationToken: cancellationToken
+                    )
+                    .SuppressCancellationThrow();
+            }
         }
 
         private static bool IsSceneIncludedInBuildList(string sceneName) {
@@ -259,6 +271,13 @@ namespace MisterGames.Logic.ShadersWarmup {
             }
 
             NotifyWarmupCompleted();
+
+            await UniTask.Delay(
+                    TimeSpan.FromSeconds(_settings.DisableViewDelay + _settings.DisableViewFader), 
+                    delayType: DelayType.UnscaledDeltaTime, 
+                    cancellationToken: ct 
+                )
+                .SuppressCancellationThrow();
         }
 
         private void NotifyWarmupStarted() {

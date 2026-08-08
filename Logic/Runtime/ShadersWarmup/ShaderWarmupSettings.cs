@@ -30,8 +30,14 @@ namespace MisterGames.Logic.ShadersWarmup {
         [SerializeField] private SceneReference _warmupScene;
         [SerializeField] private bool _enterShadersWarmupSceneOnBootstrapInDevBuild;
         [SerializeField] private bool _enterShadersWarmupSceneOnBootstrapInEditor;
-        [SerializeField] [Min(0f)] private float _simulateShadersWarmupInEditorDuration = 5f;
             
+        [Header("Shaders Warmup Progress View")]
+        [SerializeField] [Min(0f)] private float _simulateShadersWarmupInEditorDuration = 5f;
+        [SerializeField] [Min(0f)] private float _enableViewDelay = 0.5f;
+        [SerializeField] [Min(0f)] private float _disableViewDelay = 0.25f;
+        [SerializeField] [Min(0f)] private float _enableViewFader = 0.25f;
+        [SerializeField] [Min(0f)] private float _disableViewFader = 0.25f;
+        
         [Header("Warmup Collections")]
         [SerializeField] private UnityEngine.Rendering.GraphicsStateCollection _releaseGraphicsStateCollection;
         [SerializeField] private VisualEffectAsset[] _visualEffectAssets;
@@ -49,6 +55,11 @@ namespace MisterGames.Logic.ShadersWarmup {
         public float SimulateShadersWarmupInEditorDuration => _simulateShadersWarmupInEditorDuration;
         public string WarmupSceneName => _warmupScene.scene;
         public VisualEffectAsset[] VisualEffectAssets => _visualEffectAssets ?? Array.Empty<VisualEffectAsset>();
+
+        public float EnableViewDelay => _enableViewDelay;
+        public float DisableViewDelay => _disableViewDelay;
+        public float EnableViewFader => _enableViewFader;
+        public float DisableViewFader => _disableViewFader;
 
         public Shader[] ManualShaders => _manualShaders ?? Array.Empty<Shader>();
         public Shader[] HiddenShaders => _hiddenShaders ?? Array.Empty<Shader>();

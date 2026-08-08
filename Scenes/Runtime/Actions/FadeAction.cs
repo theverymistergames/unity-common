@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using MisterGames.Common.Data;
-using MisterGames.Common.Easing;
 using MisterGames.Scenes.Core;
 using MisterGames.Scenes.Loading;
 using MisterGames.Scenes.Utils;
@@ -19,12 +17,11 @@ namespace MisterGames.Scenes.Actions {
 #endif
         [SerializeField] private FadeMode _fadeMode;
         [SerializeField] [Min(-1f)] private float _duration = -1f;
-        [SerializeField] private Optional<AnimationCurve> _curve = Optional<AnimationCurve>.WithDisabled(EasingType.Linear.ToAnimationCurve());
 
         public async UniTask Apply(CancellationToken cancellationToken) {
             if (!CanApply()) return;
 
-            await Fader.Main.FadeAsync(_fadeMode, _duration, _curve.GetOrDefault());
+            await Fader.Main.FadeAsync(_fadeMode, _duration);
         }
 
         private bool CanApply() {

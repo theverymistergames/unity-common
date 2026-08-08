@@ -2,7 +2,6 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Scenes.Core;
-using MisterGames.Scenes.Loading;
 using MisterGames.Scenes.Utils;
 using UnityEngine;
 
@@ -14,15 +13,16 @@ namespace MisterGames.Logic.ShadersWarmup {
 #if UNITY_EDITOR
         [SerializeField] private bool _bypassIfPlaymodeStartSceneOverriden = true;  
 #endif
-        [SerializeField] [Min(-1f)] private float _fadeOutOnStart = -1f;
-        [SerializeField] [Min(-1f)] private float _fadeInOnFinish = -1f;
+        [SerializeField] [Min(0f)] private float _startDelay = 0.25f;
         
         public async UniTask Apply(CancellationToken cancellationToken) {
             if (!CanApply()) return;
 
-            await Fader.Main.FadeOutAsync(_fadeOutOnStart);
+            await UniTask.Delay(TimeSpan.FromSeconds(_startDelay), cancellationToken: cancellationToken)
+                .SuppressCancellationThrow();
+            if (cancellationToken.IsCancellationRequested) return;
+            
             await ShaderWarmupService.Instance.Load();
-            await Fader.Main.FadeInAsync(_fadeOutOnStart);
         }
         
         private bool CanApply() {

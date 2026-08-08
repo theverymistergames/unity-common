@@ -56,7 +56,7 @@ namespace MisterGames.Scenes.Editor.Core {
                         property.serializedObject.Update();
                     },
                     sort: nodes => nodes
-                        .OrderBy(n => n.data.data == null)
+                        .OrderBy(n => IsNullNode(n) ? 0 : 1)
                         .ThenBy(n => n.data.name)
                 );
 
@@ -64,6 +64,10 @@ namespace MisterGames.Scenes.Editor.Core {
             }
 
             EditorGUI.EndProperty();
+        }
+
+        private static bool IsNullNode(TreeEntry<PathTree.Node<SceneAsset>> node) {
+            return node.data.data == null && node.children.Count == 0;
         }
 
         private static string GetItemPath(SceneAsset sceneAsset, string nullPath) {
