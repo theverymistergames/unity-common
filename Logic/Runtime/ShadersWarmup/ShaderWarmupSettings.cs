@@ -22,8 +22,8 @@ namespace MisterGames.Logic.ShadersWarmup {
         [SerializeField] private DefaultAsset[] _searchInFolders;
         [SerializeField] private DefaultAsset[] _searchScenesFolders;
         [SerializeField] private DefaultAsset[] _excludeFolders;
+        [SerializeField] private DefaultAsset _generatedContentFolder;
 #endif
-        [SerializeField] private string _generatedContentFolder;
         [SerializeField] private Shader[] _manualShaders = Array.Empty<Shader>();
         [SerializeField] private Shader[] _hiddenShaders = Array.Empty<Shader>();
 
@@ -74,9 +74,12 @@ namespace MisterGames.Logic.ShadersWarmup {
         }
         
         public string GetGeneratedContentFolderPath() {
-            return string.IsNullOrWhiteSpace(_generatedContentFolder)
-                ? string.Empty
-                : _generatedContentFolder.Trim().Replace('\\', '/').TrimEnd('/');
+            if (_generatedContentFolder == null) return string.Empty;
+
+            string folderPath = AssetDatabase.GetAssetPath(_generatedContentFolder);
+
+            // DefaultAsset ссылается не только на папки, поэтому файл, кинутый в это поле, путём не считаем.
+            return AssetDatabase.IsValidFolder(folderPath) ? folderPath : string.Empty;
         }
         
         [Button]

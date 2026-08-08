@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.IO;
 using MisterGames.Common.Attributes;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -68,7 +67,6 @@ namespace MisterGames.Logic.ShadersWarmup {
         public IReadOnlyList<VolumeProfile> VolumeProfiles => _volumeProfiles ?? (IReadOnlyList<VolumeProfile>) System.Array.Empty<VolumeProfile>();
 
 #if UNITY_EDITOR
-        private const string AssetsFolder = "Assets";
         private const string PrefabExtension = ".prefab";
         private const string PrefabFilter = "t:Prefab";
         private const string ModelFilter = "t:Model";
@@ -85,6 +83,10 @@ namespace MisterGames.Logic.ShadersWarmup {
         private const string CustomPassHostPrefix = "CUSTOMPASS_";
         private const string ManualMaterialPrefix = "WarmupMat_";
 
+        private const string SrpBatcherCompatibilityCodeMethodName = "GetSRPBatcherCompatibilityCode";
+        private const string DisallowGpuDrivenRenderingTypeName =
+            "UnityEngine.Rendering.DisallowGPUDrivenRendering, Unity.RenderPipelines.GPUDriven.Runtime";
+
         private static Mesh CachedCubeMesh;
         private static ShaderTagId? _lightModeTag;
         private static ShaderTagId LightModeTag {
@@ -93,6 +95,51 @@ namespace MisterGames.Logic.ShadersWarmup {
                 return _lightModeTag.Value;
             }
         }
+        private static bool SrpBatcherCompatibilityMethodResolved;
+        private static System.Reflection.MethodInfo CachedSrpBatcherCompatibilityMethod;
+
+        // Internal, but the only way to tell whether a shader can be drawn by a BatchRendererGroup at all.
+        private static System.Reflection.MethodInfo SrpBatcherCompatibilityMethod {
+            get {
+                if (SrpBatcherCompatibilityMethodResolved) return CachedSrpBatcherCompatibilityMethod;
+
+                SrpBatcherCompatibilityMethodResolved = true;
+                CachedSrpBatcherCompatibilityMethod = typeof(ShaderUtil).GetMethod(
+                    SrpBatcherCompatibilityCodeMethodName,
+                    System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic,
+                    null, new[] { typeof(Shader), typeof(int) }, null);
+
+                if (CachedSrpBatcherCompatibilityMethod == null) {
+                    Debug.LogWarning($"{nameof(ShadersWarmupSceneContentCollector)}: " +
+                                     $"{nameof(ShaderUtil)}.{SrpBatcherCompatibilityCodeMethodName}(Shader, int) is not found, " +
+                                     $"shaders incompatible with GPU driven rendering are not detected.");
+                }
+
+                return CachedSrpBatcherCompatibilityMethod;
+            }
+        }
+
+        private static bool DisallowGpuDrivenRenderingTypeResolved;
+        private static System.Type CachedDisallowGpuDrivenRenderingType;
+
+        // Renderer.allowGPUDrivenRendering is internal, this component is the public way to turn it off,
+        // and unlike the property it survives scene reloads and builds.
+        private static System.Type DisallowGpuDrivenRenderingType {
+            get {
+                if (DisallowGpuDrivenRenderingTypeResolved) return CachedDisallowGpuDrivenRenderingType;
+
+                DisallowGpuDrivenRenderingTypeResolved = true;
+                CachedDisallowGpuDrivenRenderingType = System.Type.GetType(DisallowGpuDrivenRenderingTypeName);
+
+                if (CachedDisallowGpuDrivenRenderingType == null) {
+                    Debug.LogWarning($"{nameof(ShadersWarmupSceneContentCollector)}: type [{DisallowGpuDrivenRenderingTypeName}] is not found, " +
+                                     $"cubes with shaders incompatible with GPU driven rendering are not excluded from it.");
+                }
+
+                return CachedDisallowGpuDrivenRenderingType;
+            }
+        }
+
         private static readonly HashSet<string> MeshLightModes = new() {
             "Forward", "ForwardOnly", "GBuffer", "DepthOnly", "DepthForwardOnly",
             "TransparentBackface", "TransparentDepthPrepass", "TransparentDepthPostpass",
@@ -108,7 +155,7 @@ namespace MisterGames.Logic.ShadersWarmup {
         }
         
         [Button]
-        private void CollectShaders() {
+        private void CollectPrefabs() {
             if (_warmupSettings == null) {
                 Debug.LogError($"{nameof(ShadersWarmupSceneContentCollector)}: {nameof(ShaderWarmupSettings)} is null. " +
                                $"Create one with Create/MisterGames/Shaders/{nameof(ShaderWarmupSettings)} and assign it to Warmup Settings.");
@@ -196,12 +243,13 @@ namespace MisterGames.Logic.ShadersWarmup {
             }
 
             SpawnMaterialHosts(materials, out int materialCubes, out int decalHosts,
-                out int customPassHosts, out int skippedMaterials, out int duplicateVariants);
+                out int customPassHosts, out int skippedMaterials, out int duplicateVariants, out int notGpuDrivenCubes);
 
             Debug.Log($"{nameof(ShadersWarmupSceneContentCollector)}: added {materialCubes} cube meshes, " +
                       $"{decalHosts} decal projectors and {customPassHosts} fullscreen passes " +
                       $"(skipped repeated shaders: {duplicateVariants}, " +
-                      $"skipped materials with no appropriate target: {skippedMaterials}); " +
+                      $"skipped materials with no appropriate target: {skippedMaterials}, " +
+                      $"cubes excluded from GPU driven rendering as not SRP Batcher compatible: {notGpuDrivenCubes}); " +
                       $"materials found {materials.Count}, materials in folders: {folderMaterials}, " +
                       $"materials in models: {modelMaterials}, materials in scenes: {sceneMaterials}, " +
                       $"manual shaders: {manualShaders}, hidden shaders: {hiddenShaders} " +
@@ -324,14 +372,14 @@ namespace MisterGames.Logic.ShadersWarmup {
             var components = prefab.GetComponentsInChildren<Component>(true);
 
             for (int i = 0; i < components.Length; i++) {
-                // null — потерянный (missing) скрипт в префабе, не мешает проверке остальных компонентов.
+                // Null means a missing script in the prefab, it does not affect checking the other components.
                 if (components[i] == null) continue;
 
                 if (!IsShaderComponent(components[i])) continue;
                 if (components[i] is MeshRenderer) continue;
 
-                // Компонент, живущий поверх MeshRenderer (3D-TextMeshPro и подобные), — это та же мешевая
-                // отрисовка: материал у него на рендерере и уже уехал в кубы.
+                // A component living on top of a MeshRenderer (3D TextMeshPro and alike) is the same mesh
+                // rendering: its material is on the renderer and has already gone into cubes.
                 if (DependsOnMeshRendering(components[i])) continue;
 
                 return true;
@@ -406,8 +454,8 @@ namespace MisterGames.Logic.ShadersWarmup {
             List<Material> materials, HashSet<Material> visited, HashSet<Material> nonMeshMaterials) {
             if (scenePaths.Count == 0) return 0;
 
-            // Сцену не открываем: все её материалы, включая лежащие внутри вложенных префабов и моделей,
-            // видны как рекурсивные зависимости ассета сцены.
+            // Scenes are not opened: all their materials, including ones inside nested prefabs and models,
+            // are visible as recursive dependencies of the scene asset.
             string[] dependencies = AssetDatabase.GetDependencies(scenePaths.ToArray(), recursive: true);
             System.Array.Sort(dependencies, System.StringComparer.Ordinal);
 
@@ -437,8 +485,8 @@ namespace MisterGames.Logic.ShadersWarmup {
             int added = 0;
 
             for (int i = 0; i < subAssets.Length; i++) {
-                // Встроенные в модель материалы не лежат в проекте отдельными .mat-ассетами
-                // и поиском материалов по папкам не находятся.
+                // Materials embedded into a model are not stored as separate .mat assets in the project
+                // and are not found by the material search over folders.
                 if (subAssets[i] is Material material &&
                     TryAddMaterial(material, materials, visited, nonMeshMaterials)) {
                     added++;
@@ -468,7 +516,7 @@ namespace MisterGames.Logic.ShadersWarmup {
                 var sharedMaterials = meshRenderers[i].sharedMaterials;
 
                 for (int j = 0; j < sharedMaterials.Length; j++) {
-                    // Пустой слот материала на рендерере — обычное дело, рисовать по нему нечего.
+                    // An empty material slot on a renderer is a common case, there is nothing to draw with it.
                     if (sharedMaterials[j] == null) continue;
                     if (!visited.Add(sharedMaterials[j])) continue;
 
@@ -540,12 +588,13 @@ namespace MisterGames.Logic.ShadersWarmup {
         }
 
         private void SpawnMaterialHosts(List<Material> materials, out int cubes, out int decals,
-            out int customPasses, out int skipped, out int duplicates) {
+            out int customPasses, out int skipped, out int duplicates, out int notGpuDriven) {
             cubes = 0;
             decals = 0;
             customPasses = 0;
             skipped = 0;
             duplicates = 0;
+            notGpuDriven = 0;
 
             if (materials.Count == 0) return;
 
@@ -581,7 +630,7 @@ namespace MisterGames.Logic.ShadersWarmup {
                         continue;
                 }
 
-                SpawnMaterialCube(material, cubeMesh);
+                if (SpawnMaterialCube(material, cubeMesh)) notGpuDriven++;
                 cubes++;
             }
         }
@@ -611,7 +660,7 @@ namespace MisterGames.Logic.ShadersWarmup {
             return key.ToString();
         }
 
-        private void SpawnMaterialCube(Material material, Mesh cubeMesh) {
+        private bool SpawnMaterialCube(Material material, Mesh cubeMesh) {
             var cube = new GameObject($"{MaterialCubePrefix}{material.name}", typeof(MeshFilter), typeof(MeshRenderer));
             cube.transform.SetParent(_prefabParent, false);
 
@@ -619,6 +668,39 @@ namespace MisterGames.Logic.ShadersWarmup {
             cube.GetComponent<MeshRenderer>().sharedMaterial = material;
 
             _prefabs.Add(cube);
+
+            // A BatchRendererGroup (GPU Resident Drawer and alike) can only draw SRP Batcher compatible shaders
+            // and logs an error per draw command for any other one, so such cubes are drawn the regular way.
+            return !IsSrpBatcherCompatible(material.shader) && TryDisallowGpuDrivenRendering(cube);
+        }
+
+        private static bool IsSrpBatcherCompatible(Shader shader) {
+            if (shader == null) return true;
+
+            var method = SrpBatcherCompatibilityMethod;
+            if (method == null) return true;
+
+            var arguments = new object[] { shader, 0 };
+            int subShaderCount = Mathf.Max(shader.subshaderCount, 1);
+
+            // Which subshader is picked depends on the platform, so a shader counts as usable
+            // only when there is nothing incompatible to fall back to.
+            for (int i = 0; i < subShaderCount; i++) {
+                arguments[1] = i;
+
+                // Zero code means the subshader is compatible, any other value is an incompatibility reason.
+                if ((int) method.Invoke(null, arguments) != 0) return false;
+            }
+
+            return true;
+        }
+
+        private static bool TryDisallowGpuDrivenRendering(GameObject host) {
+            var componentType = DisallowGpuDrivenRenderingType;
+            if (componentType == null) return false;
+
+            host.AddComponent(componentType);
+            return true;
         }
 
         private void SpawnDecalHost(Material material) {
@@ -739,12 +821,12 @@ namespace MisterGames.Logic.ShadersWarmup {
         private Material GetOrCreateManualMaterial(Shader shader) {
             if (shader == null) return null;
 
-            string assetPath = $"{_warmupSettings.GetGeneratedContentFolderPath()}/{ManualMaterialPrefix}{GetSafeAssetName(shader.name)}.mat";
+            if (!TryGetGeneratedContentFolder(out string folderPath)) return null;
+
+            string assetPath = $"{folderPath}/{ManualMaterialPrefix}{GetSafeAssetName(shader.name)}.mat";
             var material = AssetDatabase.LoadAssetAtPath<Material>(assetPath);
 
             if (material != null && material.shader == shader) return material;
-
-            if (!EnsureGeneratedContentFolder()) return null;
 
             material = new Material(shader);
             AssetDatabase.CreateAsset(material, assetPath);
@@ -785,12 +867,12 @@ namespace MisterGames.Logic.ShadersWarmup {
         private Mesh GetUnitCubeMesh() {
             if (CachedCubeMesh != null) return CachedCubeMesh;
 
-            string assetPath = $"{_warmupSettings.GetGeneratedContentFolderPath()}/{CubeAssetName}.asset";
+            if (!TryGetGeneratedContentFolder(out string folderPath)) return null;
+
+            string assetPath = $"{folderPath}/{CubeAssetName}.asset";
             var cube = AssetDatabase.LoadAssetAtPath<Mesh>(assetPath);
 
             if (cube == null) {
-                if (!EnsureGeneratedContentFolder()) return null;
-
                 cube = BuildCubeMesh();
                 AssetDatabase.CreateAsset(cube, assetPath);
             }
@@ -863,44 +945,15 @@ namespace MisterGames.Logic.ShadersWarmup {
             return mesh;
         }
 
-        private bool EnsureGeneratedContentFolder() {
-            string path = _warmupSettings.GetGeneratedContentFolderPath();
+        private bool TryGetGeneratedContentFolder(out string folderPath) {
+            folderPath = _warmupSettings.GetGeneratedContentFolderPath();
 
-            if (string.IsNullOrEmpty(path)) {
-                Debug.LogError($"{nameof(ShadersWarmupSceneContentCollector)}: не задана папка для сгенерированного контента " +
-                               $"в {nameof(ShaderWarmupSettings)}, некуда положить сгенерированные ассеты.");
-                return false;
-            }
+            if (!string.IsNullOrEmpty(folderPath)) return true;
 
-            if (AssetDatabase.IsValidFolder(path)) return true;
-
-            string[] folders = path.Split('/');
-
-            if (folders.Length == 0 || !string.Equals(folders[0], AssetsFolder, System.StringComparison.Ordinal)) {
-                Debug.LogError($"{nameof(ShadersWarmupSceneContentCollector)}: путь [{path}] для сгенерированного контента " +
-                               $"должен начинаться с [{AssetsFolder}/], некуда положить сгенерированные ассеты.");
-                return false;
-            }
-
-            string parentFolder = folders[0];
-
-            // AssetDatabase.CreateFolder создаёт только одну папку за раз, поэтому идём по пути посегментно.
-            for (int i = 1; i < folders.Length; i++) {
-                if (string.IsNullOrEmpty(folders[i])) continue;
-
-                string folder = $"{parentFolder}/{folders[i]}";
-
-                if (!AssetDatabase.IsValidFolder(folder) &&
-                    string.IsNullOrEmpty(AssetDatabase.CreateFolder(parentFolder, folders[i]))) {
-                    Debug.LogError($"{nameof(ShadersWarmupSceneContentCollector)}: не удалось создать папку [{folder}], " +
-                                   $"некуда положить сгенерированные ассеты.");
-                    return false;
-                }
-
-                parentFolder = folder;
-            }
-
-            return true;
+            Debug.LogError($"{nameof(ShadersWarmupSceneContentCollector)}: generated content folder is not set " +
+                           $"in {nameof(ShaderWarmupSettings)} (or the assigned asset is not a folder), " +
+                           $"there is no place to put generated assets.");
+            return false;
         }
 
         private bool TryPrepareUiInstance(GameObject instance) {
@@ -1169,6 +1222,7 @@ namespace MisterGames.Logic.ShadersWarmup {
             return requiredType != null && requiredType.IsAssignableFrom(componentType);
         }
 
+        [Button]
         private void ClearPrefabs() {
             _prefabs ??= new List<GameObject>();
             _uiInstances ??= new List<GameObject>();
@@ -1233,8 +1287,8 @@ namespace MisterGames.Logic.ShadersWarmup {
         }
 
         private static bool IsModelPath(string assetPath) {
-            // Модель (fbx, obj и прочие форматы) импортируется как GameObject-ассет и инстанцируется как префаб,
-            // поэтому расширение не проверяем, а отсекаем всё, что моделью не разворачивается.
+            // A model (fbx, obj and other formats) is imported as a GameObject asset and is instantiated like a prefab,
+            // so the extension is not checked, instead everything that does not unfold as a model is cut off.
             return !assetPath.EndsWith(PrefabExtension, System.StringComparison.OrdinalIgnoreCase) &&
                    AssetDatabase.GetMainAssetTypeAtPath(assetPath) == typeof(GameObject);
         }
@@ -1247,7 +1301,7 @@ namespace MisterGames.Logic.ShadersWarmup {
             var scenePaths = new List<string>(guids.Length);
             var visitedPaths = new HashSet<string>();
 
-            // Сцена самого коллектора не нужна: её содержимое и есть результат сбора.
+            // The collector's own scene is not needed: its content is the result of the collecting itself.
             string currentScenePath = gameObject.scene.path;
 
             for (int i = 0; i < guids.Length; i++) {
