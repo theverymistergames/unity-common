@@ -41,14 +41,25 @@ namespace MisterGames.Logic.ShadersWarmup {
         [SerializeField] [Min(0)] private int _tierSettleFrames = 2;
         [SerializeField] private bool _restoreQualityTier = true;
 
-        private readonly List<Vector3> _waypoints = new();
+        private readonly List<PassSegment> _passSegments = new();
+
+        private readonly struct PassSegment {
+
+            public readonly Vector3 start;
+            public readonly Vector3 end;
+
+            public PassSegment(Vector3 start, Vector3 end) {
+                this.start = start;
+                this.end = end;
+            }
+        }
 
         private void Start() {
             RunPass(destroyCancellationToken).Forget();
         }
 
         private async UniTask RunPass(CancellationToken ct) {
-            if (!TryBuildWaypoints()) return;
+            if (!TryBuildPassSegments()) return;
 
             var qualityTiers = BuildQualityTiers();
             if (qualityTiers.Count == 0) return;
@@ -69,7 +80,7 @@ namespace MisterGames.Logic.ShadersWarmup {
                 do {
                     for (int i = 0; i < qualityTiers.Count; i++) {
                         await ApplyQualityTier(qualityTiers[i], ct);
-                        await MoveThroughWaypoints(ct);
+                        await MoveThroughPassSegments(ct);
                         await WarmupUiInstances(ct);
                         await WarmupCustomPasses(ct);
                         await WarmupVolumeProfiles(ct);
@@ -183,20 +194,22 @@ namespace MisterGames.Logic.ShadersWarmup {
             }
         }
 
-        private async UniTask MoveThroughWaypoints(CancellationToken ct) {
-            transform.position = _waypoints[0];
+        private async UniTask MoveThroughPassSegments(CancellationToken ct) {
+            for (int i = 0; i < _passSegments.Count && !ct.IsCancellationRequested; i++) {
+                var segment = _passSegments[i];
 
-            for (int i = 1; i < _waypoints.Count && !ct.IsCancellationRequested; i++) {
-                var target = _waypoints[i];
+                // There is nothing to render between the segments, so the camera jumps to the next start
+                // instead of flying over the empty space.
+                transform.position = segment.start;
 
-                while (!ct.IsCancellationRequested && transform.position != target) {
-                    transform.position = Vector3.MoveTowards(transform.position, target, _speed * Time.deltaTime);
+                while (!ct.IsCancellationRequested && transform.position != segment.end) {
+                    transform.position = Vector3.MoveTowards(transform.position, segment.end, _speed * Time.deltaTime);
                     await UniTask.Yield();
                 }
             }
         }
 
-        private bool TryBuildWaypoints() {
+        private bool TryBuildPassSegments() {
             if (_shadersWarmupSceneContentCollector == null) {
                 Debug.LogError($"{nameof(ShadersWarmupSceneCamera)}: {nameof(ShadersWarmupSceneContentCollector)} is null.");
                 return false;
@@ -207,7 +220,7 @@ namespace MisterGames.Logic.ShadersWarmup {
                 return false;
             }
 
-            _waypoints.Clear();
+            _passSegments.Clear();
 
             var columns = _shadersWarmupSceneContentCollector.GridColumns;
             float requiredFarClip = 0f;
@@ -216,12 +229,10 @@ namespace MisterGames.Logic.ShadersWarmup {
                 var column = columns[i];
                 float distance = GetDistanceToFit(column.size.x);
                 float cameraZ = column.min.z - distance;
-                bool upward = i % 2 == 0;
-                float firstY = upward ? column.min.y : column.max.y;
-                float secondY = upward ? column.max.y : column.min.y;
 
-                _waypoints.Add(new Vector3(column.center.x, firstY, cameraZ));
-                _waypoints.Add(new Vector3(column.center.x, secondY, cameraZ));
+                _passSegments.Add(new PassSegment(
+                    new Vector3(column.center.x, column.min.y, cameraZ),
+                    new Vector3(column.center.x, column.max.y, cameraZ)));
 
                 requiredFarClip = Mathf.Max(requiredFarClip, column.max.z - cameraZ);
             }
@@ -230,8 +241,9 @@ namespace MisterGames.Logic.ShadersWarmup {
                 var row = _shadersWarmupSceneContentCollector.NoBoundsRow;
                 float cameraZ = row.min.z - _noBoundsViewDistance - _zDistancePadding;
 
-                _waypoints.Add(new Vector3(row.min.x, row.center.y, cameraZ));
-                _waypoints.Add(new Vector3(row.max.x, row.center.y, cameraZ));
+                _passSegments.Add(new PassSegment(
+                    new Vector3(row.min.x, row.center.y, cameraZ),
+                    new Vector3(row.max.x, row.center.y, cameraZ)));
 
                 requiredFarClip = Mathf.Max(requiredFarClip, row.max.z - cameraZ);
             }

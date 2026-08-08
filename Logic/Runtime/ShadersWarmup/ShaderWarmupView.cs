@@ -18,6 +18,8 @@ namespace MisterGames.Logic.ShadersWarmup {
         
         [Header("Progress")]
         [SerializeField] private Image _progressBar;
+        [SerializeField] private float _outputValue0 = 0f;
+        [SerializeField] private float _outputValue1 = 100f;
         [SerializeField] private string _progressSurround = "{0}%";
         [SerializeField] private string _progressFormat = "0";
         [SerializeField] [Min(0f)] private float _epsilon = 0.1f;
@@ -56,8 +58,12 @@ namespace MisterGames.Logic.ShadersWarmup {
 
         private void ApplyProgress(float p, bool force) {
             _progressBar.fillAmount = p;
+
+            p = Mathf.Lerp(_outputValue0, _outputValue1, p).RoundToStep(_epsilon);
             
             if (_lastProgress.IsNearlyEqual(p, _epsilon) && !force) return;
+
+            _lastProgress = p;
             
             string v = p.ToString(_progressFormat);
             string text = string.IsNullOrWhiteSpace(_progressSurround) ? v : string.Format(_progressSurround, v);

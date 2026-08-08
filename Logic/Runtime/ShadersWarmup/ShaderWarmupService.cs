@@ -31,9 +31,6 @@ namespace MisterGames.Logic.ShadersWarmup {
 
         private void Awake() {
             Instance = this;
-            
-            AsyncExt.RecreateCts(ref _cts);
-            PlayerLoopStage.LateUpdate.Subscribe(this);
         }
 
         private void OnDestroy() {
@@ -51,6 +48,8 @@ namespace MisterGames.Logic.ShadersWarmup {
         }
 
         public async UniTask Load() {
+            AsyncExt.RecreateCts(ref _cts);
+            
 #if UNITY_EDITOR
             await LoadForEditor(_cts.Token);
             return;
@@ -92,6 +91,8 @@ namespace MisterGames.Logic.ShadersWarmup {
                         await UniTask.Yield();
                     }
 
+                    if (cancellationToken.IsCancellationRequested) return;
+                    
                     await SceneManager.UnloadSceneAsync(_settings.WarmupSceneName);
                 }
                 else {
@@ -102,6 +103,25 @@ namespace MisterGames.Logic.ShadersWarmup {
             }
 
             NotifyWarmupStarted();
+
+            if (IsSceneIncludedInBuildList(_settings.WarmupSceneName) && 
+                _settings.SimulateShadersWarmupInEditorDuration > 0f) 
+            {
+                Debug.LogWarning($"ShaderWarmupService.LoadForEditor: f {Time.frameCount}, " +
+                                 $"simulate shaders warmup for testing. " +
+                                 $"It can be disabled in {_settings}.");
+
+                float t = 0f;
+                float speed = 1f / _settings.SimulateShadersWarmupInEditorDuration;
+                while (t < 1f && !cancellationToken.IsCancellationRequested) {
+                    t = Mathf.Clamp01(t + Time.unscaledDeltaTime * speed);
+                    NotifyWarmupProgress(t);
+                    await UniTask.Yield();
+                }
+                
+                if (cancellationToken.IsCancellationRequested) return;
+            }
+            
             NotifyWarmupCompleted();
         }
 
@@ -165,7 +185,8 @@ namespace MisterGames.Logic.ShadersWarmup {
 
         private void BeginTracing() {
             _isTracing = _graphicsStateCollection.BeginTrace();
-
+            PlayerLoopStage.LateUpdate.Subscribe(this);
+            
             Debug.Log($"ShaderWarmupService.BeginTracing: f {Time.frameCount}, " +
                       $"begin PSO tracing: {_isTracing}, " +
                       $"API {SystemInfo.graphicsDeviceType}");
@@ -174,7 +195,8 @@ namespace MisterGames.Logic.ShadersWarmup {
         private void EndTracingAndSaveToLocalFile() {
             _isTracing = false;
             _graphicsStateCollection.EndTrace();
-
+            PlayerLoopStage.LateUpdate.Unsubscribe(this);
+            
             Debug.Log($"ShaderWarmupService.EndTracingAndSaveToLocalFile: f {Time.frameCount}, " +
                       $"end PSO tracing, " +
                       $"total count {_graphicsStateCollection.totalGraphicsStateCount}");

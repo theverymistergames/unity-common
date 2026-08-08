@@ -4,7 +4,6 @@ using System.IO;
 using MisterGames.Common.Attributes;
 using MisterGames.Scenes.Core;
 using UnityEngine;
-
 using UnityEngine.VFX;
 #if UNITY_EDITOR
 using UnityEditor;
@@ -31,13 +30,14 @@ namespace MisterGames.Logic.ShadersWarmup {
         [SerializeField] private SceneReference _warmupScene;
         [SerializeField] private bool _enterShadersWarmupSceneOnBootstrapInDevBuild;
         [SerializeField] private bool _enterShadersWarmupSceneOnBootstrapInEditor;
-
+        [SerializeField] [Min(0f)] private float _simulateShadersWarmupInEditorDuration = 5f;
+            
         [Header("Warmup Collections")]
         [SerializeField] private UnityEngine.Rendering.GraphicsStateCollection _releaseGraphicsStateCollection;
         [SerializeField] private VisualEffectAsset[] _visualEffectAssets;
         [SerializeField] [Min(1)] private int _progressiveWarmupBatchCountPso = 128;
         [SerializeField] [Min(1)] private int _progressiveWarmupBatchCountVisualEffectAssets = 32;
-
+        
         private const string VisualEffectAssetFilter = "t:VisualEffectAsset";
         private const string HiddenShaderPrefix = "Hidden/";
 
@@ -46,6 +46,7 @@ namespace MisterGames.Logic.ShadersWarmup {
         public float SavePeriod => _traceSavePeriod;
         public bool EnterShadersWarmupSceneOnBootstrapInDevBuild => _enterShadersWarmupSceneOnBootstrapInDevBuild;
         public bool EnterShadersWarmupSceneOnBootstrapInEditor => _enterShadersWarmupSceneOnBootstrapInEditor;
+        public float SimulateShadersWarmupInEditorDuration => _simulateShadersWarmupInEditorDuration;
         public string WarmupSceneName => _warmupScene.scene;
         public VisualEffectAsset[] VisualEffectAssets => _visualEffectAssets ?? Array.Empty<VisualEffectAsset>();
 
