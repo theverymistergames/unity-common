@@ -173,7 +173,7 @@ namespace MisterGames.Logic.ShadersWarmup {
                 return;
             }
 
-            var excludeFolders = GetFolderPaths(_warmupSettings.GetExcludeFolders());
+            var excludeFolders = _warmupSettings.GetExcludeFolderPaths();
             var prefabPaths = CollectPrefabPaths(contentFolders, excludeFolders);
             var modelPaths = CollectModelPaths(contentFolders, excludeFolders);
             var scenePaths = CollectScenePaths(excludeFolders);

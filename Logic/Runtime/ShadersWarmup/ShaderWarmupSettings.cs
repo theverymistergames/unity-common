@@ -22,6 +22,7 @@ namespace MisterGames.Logic.ShadersWarmup {
         [SerializeField] private DefaultAsset[] _searchScenesFolders;
         [SerializeField] private DefaultAsset[] _excludeFolders;
         [SerializeField] private DefaultAsset _generatedContentFolder;
+        [SerializeField] private string[] _skipHiddenShaderMarkers = { "TerrainVisualization" };
 #endif
         [SerializeField] private Shader[] _manualShaders = Array.Empty<Shader>();
         [SerializeField] private Shader[] _hiddenShaders = Array.Empty<Shader>();
@@ -81,8 +82,17 @@ namespace MisterGames.Logic.ShadersWarmup {
             return _searchScenesFolders;
         }
 
-        public DefaultAsset[] GetExcludeFolders() {
-            return _excludeFolders;
+        public List<string> GetExcludeFolderPaths() {
+            var folderPaths = GetFolderPaths(_excludeFolders);
+            string generatedContentFolder = GetGeneratedContentFolderPath();
+
+            // Generated materials and meshes are a search result themselves: collecting them back would keep
+            // them in the warmup scene even after the shaders they were created for are gone from the project.
+            if (!string.IsNullOrEmpty(generatedContentFolder) && !folderPaths.Contains(generatedContentFolder)) {
+                folderPaths.Add(generatedContentFolder);
+            }
+
+            return folderPaths;
         }
         
         public string GetGeneratedContentFolderPath() {
@@ -90,7 +100,7 @@ namespace MisterGames.Logic.ShadersWarmup {
 
             string folderPath = AssetDatabase.GetAssetPath(_generatedContentFolder);
 
-            // DefaultAsset ссылается не только на папки, поэтому файл, кинутый в это поле, путём не считаем.
+            // DefaultAsset refers not only to folders, so a file assigned to this field does not count as a path.
             return AssetDatabase.IsValidFolder(folderPath) ? folderPath : string.Empty;
         }
         
@@ -101,11 +111,17 @@ namespace MisterGames.Logic.ShadersWarmup {
 
             int skippedUnsupported = 0;
             int skippedNotFound = 0;
+            int skippedByMarker = 0;
 
             for (int i = 0; i < shaderInfos.Length; i++) {
                 if (!shaderInfos[i].name.StartsWith(HiddenShaderPrefix, StringComparison.Ordinal)) continue;
 
-                // Неподдерживаемый на этой платформе шейдер всё равно не скомпилируется — прогревать нечего.
+                if (MatchesSkipMarker(shaderInfos[i].name)) {
+                    skippedByMarker++;
+                    continue;
+                }
+
+                // A shader unsupported on this platform will not compile anyway, there is nothing to warm up.
                 if (!shaderInfos[i].supported) {
                     skippedUnsupported++;
                     continue;
@@ -130,14 +146,28 @@ namespace MisterGames.Logic.ShadersWarmup {
             AssetDatabase.SaveAssetIfDirty(this);
 
             Debug.Log($"{nameof(ShaderWarmupSettings)}: collected {_hiddenShaders.Length} hidden shaders (were {countBefore}). " +
-                      $"Skipped unsupported: {skippedUnsupported}, skipped not found by name: {skippedNotFound}. " +
+                      $"Skipped unsupported: {skippedUnsupported}, skipped not found by name: {skippedNotFound}, " +
+                      $"skipped by name markers: {skippedByMarker}. " +
                       $"Press recollect prefabs on {nameof(ShadersWarmupSceneContentCollector)} to include these shaders.");
+        }
+
+        // Editor only tool shaders (terrain visualization and alike) are never rendered by the game, and they can
+        // even fail to compile for a player build, so they are cut off by a name marker before anything else.
+        private bool MatchesSkipMarker(string shaderName) {
+            if (_skipHiddenShaderMarkers == null) return false;
+
+            for (int i = 0; i < _skipHiddenShaderMarkers.Length; i++) {
+                if (string.IsNullOrEmpty(_skipHiddenShaderMarkers[i])) continue;
+                if (shaderName.IndexOf(_skipHiddenShaderMarkers[i], StringComparison.OrdinalIgnoreCase) >= 0) return true;
+            }
+
+            return false;
         }
 
         [Button]
         internal void SearchVisualEffectAssets() {
             var searchInFolders = GetFolderPaths(_searchInFolders);
-            var excludeFolders = GetFolderPaths(_excludeFolders);
+            var excludeFolders = GetExcludeFolderPaths();
             var assetPaths = CollectVisualEffectAssetPaths(searchInFolders, excludeFolders);
             var assets = new List<VisualEffectAsset>(assetPaths.Count);
 

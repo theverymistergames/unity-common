@@ -26,15 +26,18 @@ namespace MisterGames.Interact.Interactives {
         public Transform ViewOrigin => _viewOrigin;
         public GameObject Root => _root;
         
-        private readonly HashSet<IInteractive> _interactiveTargetsSet = new HashSet<IInteractive>();
-        private readonly HashSet<IInteractive> _interactiveCandidatesSet = new HashSet<IInteractive>();
+        private readonly HashSet<IInteractive> _interactiveTargetsSet = new();
+        private readonly HashSet<IInteractive> _interactiveCandidatesSet = new();
         private readonly List<IInteractive> _interactiveCache = new();
-
+        private bool _enabled;
+        
         private void Awake() {
             Transform = transform;
         }
 
         private void OnEnable() {
+            _enabled = true;
+            
             _interactivesDetector.OnDetected -= HandleDetected;
             _interactivesDetector.OnDetected += HandleDetected;
 
@@ -47,6 +50,8 @@ namespace MisterGames.Interact.Interactives {
         }
 
         private void OnDisable() {
+            _enabled = false;
+            
             PlayerLoopStage.Update.Unsubscribe(this);
 
             _interactivesDetector.OnDetected -= HandleDetected;
@@ -62,6 +67,8 @@ namespace MisterGames.Interact.Interactives {
             distance = info.hasContact ? info.distance : 0f;
 
             return info.hasContact &&
+                   info.transform != null &&
+                   interactive.Transform != null &&
                    info.transform.GetHashCode() == interactive.Transform.GetHashCode();
         }
 
@@ -74,7 +81,7 @@ namespace MisterGames.Interact.Interactives {
         }
 
         public bool TryStartInteract(IInteractive interactive) {
-            if (!enabled || interactive == null || !_interactiveTargetsSet.Add(interactive)) return false;
+            if (!_enabled || interactive?.Transform == null || !_interactiveTargetsSet.Add(interactive)) return false;
 
             interactive.NotifyStartedInteractWith(this);
             OnStartInteract.Invoke(interactive);
@@ -88,9 +95,12 @@ namespace MisterGames.Interact.Interactives {
             if (interactive == null || !_interactiveTargetsSet.Contains(interactive)) return false;
 
             _interactiveTargetsSet.Remove(interactive);
-
+            
             OnStopInteract.Invoke(interactive);
-            interactive.NotifyStoppedInteractWith(this);
+            
+            if (interactive.Transform != null) {
+                interactive.NotifyStoppedInteractWith(this);
+            }
 
             if (_interactiveTargetsSet.Count == 0 && _interactiveCandidatesSet.Count == 0) {
                 PlayerLoopStage.Update.Unsubscribe(this);
@@ -101,8 +111,13 @@ namespace MisterGames.Interact.Interactives {
 
         public void ForceStopInteractAll() {
             foreach (var interactive in _interactiveTargetsSet) {
-                OnStopInteract.Invoke(interactive);
-                interactive.NotifyStoppedInteractWith(this);
+                if (interactive != null) {
+                    OnStopInteract.Invoke(interactive);
+                }
+
+                if (interactive?.Transform != null) {
+                    interactive.NotifyStoppedInteractWith(this);
+                }
             }
             
             _interactiveTargetsSet.Clear();
@@ -113,7 +128,8 @@ namespace MisterGames.Interact.Interactives {
         }
 
         private void HandleDetected(IDetectable detectable) {
-            if (detectable.Transform.GetComponent<IInteractive>() is not { } interactive ||
+            if (detectable?.Transform == null ||
+                detectable.Transform.GetComponent<IInteractive>() is not { } interactive ||
                 !_interactiveCandidatesSet.Add(interactive)) 
             {
                 return;
@@ -126,7 +142,7 @@ namespace MisterGames.Interact.Interactives {
         }
 
         private void HandleLost(IDetectable detectable) {
-            if (detectable.Transform == null ||
+            if (detectable?.Transform == null ||
                 detectable.Transform.GetComponent<IInteractive>() is not { } interactive ||
                 !_interactiveCandidatesSet.Contains(interactive)) 
             {
@@ -149,10 +165,14 @@ namespace MisterGames.Interact.Interactives {
             
             for (int i = 0; i < _interactiveCache.Count; i++) {
                 var interactive = _interactiveCache[i];
-                if (_interactiveTargetsSet.Contains(interactive)) continue;
 
-                if (!interactive.IsReadyToStartInteractWith(this) || 
-                    !interactive.IsAllowedToStartInteractWith(this)) continue;
+                if (interactive?.Transform == null ||
+                    _interactiveTargetsSet.Contains(interactive) ||
+                    !interactive.IsReadyToStartInteractWith(this) ||
+                    !interactive.IsAllowedToStartInteractWith(this)) 
+                {
+                    continue;
+                }
 
                 TryStartInteract(interactive);
             }
@@ -162,7 +182,12 @@ namespace MisterGames.Interact.Interactives {
 
             for (int i = 0; i < _interactiveCache.Count; i++) {
                 var interactive = _interactiveCache[i];
-                if (interactive.IsAllowedToContinueInteractWith(this)) continue;
+
+                if (interactive?.Transform != null &&
+                    interactive.IsAllowedToContinueInteractWith(this)) 
+                {
+                    continue;
+                }
                 
                 TryStopInteract(interactive);
             }

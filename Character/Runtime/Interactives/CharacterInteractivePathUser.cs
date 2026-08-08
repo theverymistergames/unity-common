@@ -27,13 +27,15 @@ namespace MisterGames.Character.Interactives {
         }
 
         private void OnStartInteract(IInteractive interactive) {
-            if (!interactive.Transform.TryGetComponent(out CharacterInteractivePathAdapter adapter)) return;
+            if (interactive?.Transform == null || 
+                !interactive.Transform.TryGetComponent(out CharacterInteractivePathAdapter adapter)) return;
             
             adapter.AttachToPath(_actor, _user, interactive);
         }
 
         private void OnStopInteract(IInteractive interactive) {
-            if (!interactive.Transform.TryGetComponent(out CharacterInteractivePathAdapter adapter)) return;
+            if (interactive?.Transform == null || 
+                !interactive.Transform.TryGetComponent(out CharacterInteractivePathAdapter adapter)) return;
             
             adapter.DetachFromPath(_actor, _user, interactive);
         }

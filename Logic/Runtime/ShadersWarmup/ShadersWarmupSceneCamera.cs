@@ -248,7 +248,7 @@ namespace MisterGames.Logic.ShadersWarmup {
                 requiredFarClip = Mathf.Max(requiredFarClip, row.max.z - cameraZ);
             }
 
-            // Далёкая колонка не должна отсекаться far-плоскостью — иначе часть сетки просто не отрисуется.
+            // A distant column must not be cut off by the far plane, otherwise a part of the grid is simply not drawn.
             _camera.farClipPlane = Mathf.Max(_camera.farClipPlane, requiredFarClip * _viewportPadding);
 
             return true;

@@ -33,6 +33,7 @@ namespace MisterGames.Interact.Interactives {
         private readonly Dictionary<IInteractiveUser, InteractionData> _userInteractionMap = new();
         private Detectable _detectable;
         private float _startTime;
+        private bool _enabled;
 
         private readonly struct InteractionData {
 
@@ -49,11 +50,13 @@ namespace MisterGames.Interact.Interactives {
         }
 
         private void OnEnable() {
+            _enabled = true;
             _startTime = Time.time;
             if (_syncEnableStateWithDetectable) _detectable.enabled = true;
         }
 
         private void OnDisable() {
+            _enabled = false;
             ForceStopInteractWithAllUsers();
             if (_syncEnableStateWithDetectable) _detectable.enabled = false;
         }
@@ -73,15 +76,15 @@ namespace MisterGames.Interact.Interactives {
         }
 
         public bool IsReadyToStartInteractWith(IInteractiveUser user) {
-            return enabled && _strategy.IsReadyToStartInteraction(user, this, _startTime);
+            return _enabled && _strategy.IsReadyToStartInteraction(user, this, _startTime);
         }
 
         public bool IsAllowedToStartInteractWith(IInteractiveUser user) {
-            return enabled && _strategy.IsAllowedToStartInteraction(user, this, _startTime);
+            return _enabled && _strategy.IsAllowedToStartInteraction(user, this, _startTime);
         }
 
         public bool IsAllowedToContinueInteractWith(IInteractiveUser user) {
-            return enabled && _strategy.IsAllowedToContinueInteraction(user, this, _startTime);
+            return _enabled && _strategy.IsAllowedToContinueInteraction(user, this, _startTime);
         }
 
         public void NotifyDetectedBy(IInteractiveUser user) {

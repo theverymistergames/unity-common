@@ -57,7 +57,7 @@ namespace MisterGames.Interact.Detectables {
 
         public bool IsInDirectView(IDetectable detectable, out float distance) {
             distance = _directViewHit.hasContact ? _directViewHit.distance : 0f;
-            int hash = detectable.GameObject.GetHashCode();
+            int hash = detectable?.GameObject?.GetHashCode() ?? 0;
             return _directViewHit.hasContact &&
                    (GetColliderHash(_directViewHit.collider) == hash || GetColliderRootHash(_directViewHit.collider) == hash);
         }
@@ -67,7 +67,7 @@ namespace MisterGames.Interact.Detectables {
         }
 
         public void ForceDetect(IDetectable detectable) {
-            if (IsDetected(detectable)) return;
+            if (detectable?.Transform == null || IsDetected(detectable)) return;
 
             _detectedTargetsSet.Add(detectable);
             _detectedTargets.Add(detectable);
@@ -77,12 +77,12 @@ namespace MisterGames.Interact.Detectables {
         }
 
         public void ForceLose(IDetectable detectable) {
-            if (!IsDetected(detectable)) return;
+            if (detectable == null || !IsDetected(detectable)) return;
 
             _detectedTargetsSet.Remove(detectable);
             _detectedTargets.Remove(detectable);
 
-            detectable.NotifyLostBy(this);
+            if (detectable.Transform != null) detectable.NotifyLostBy(this);
             OnLost.Invoke(detectable);
         }
 
@@ -92,8 +92,8 @@ namespace MisterGames.Interact.Detectables {
             for (int i = 0; i < _detectedTargets.Count; i++) {
                 var detectable = _detectedTargets[i];
 
-                detectable.NotifyLostBy(this);
-                OnLost.Invoke(detectable);
+                if (detectable?.Transform != null) detectable.NotifyLostBy(this);
+                if (detectable != null) OnLost.Invoke(detectable);
             }
 
             _detectedTargets.Clear();
@@ -141,7 +141,7 @@ namespace MisterGames.Interact.Detectables {
         private static void FillDetectedHashesInto(IReadOnlyList<CollisionInfo> hits, HashSet<int> dest) {
             for (int i = 0; i < hits.Count; i++) {
                 var hit = hits[i];
-                if (hit is not { hasContact: true, isValid: true } || hit.collider is not { } c) continue;
+                if (hit is not { hasContact: true, isValid: true } || hit.collider is not { } c || c == null) continue;
 
                 dest.Add(GetColliderHash(c));
                 dest.Add(GetColliderRootHash(c));
@@ -151,7 +151,7 @@ namespace MisterGames.Interact.Detectables {
         private void RemoveNotDetectedCandidates(HashSet<int> detectedHashes) {
             for (int i = _detectedCandidates.Count - 1; i >= 0; i--) {
                 var detectable = _detectedCandidates[i];
-                int hash = detectable.GameObject.GetHashCode();
+                int hash = detectable?.GameObject?.GetHashCode() ?? 0;
                 
                 if (detectedHashes.Contains(hash)) continue;
 
@@ -203,9 +203,9 @@ namespace MisterGames.Interact.Detectables {
         private void NotifyNewDetectedOrAllowedTargets(HashSet<int> detectedHashes) {
             for (int i = 0; i < _detectedCandidates.Count; i++) {
                 var detectable = _detectedCandidates[i];
-                if (_detectedTargetsSet.Contains(detectable)) continue;
 
-                if (!detectedHashes.Contains(detectable.GameObject.GetHashCode()) ||
+                if (detectable?.Transform == null || _detectedTargetsSet.Contains(detectable) ||
+                    !detectedHashes.Contains(detectable.GameObject.GetHashCode()) ||
                     !detectable.IsAllowedToStartDetectBy(this)) 
                 {
                     continue;
@@ -219,7 +219,8 @@ namespace MisterGames.Interact.Detectables {
             for (int i = _detectedTargets.Count - 1; i >= 0; i--) {
                 var detectable = _detectedTargets[i];
 
-                if (detectedHashes.Contains(detectable.GameObject.GetHashCode()) &&
+                if (detectable?.Transform != null && 
+                    detectedHashes.Contains(detectable.GameObject.GetHashCode()) &&
                     detectable.IsAllowedToContinueDetectBy(this)) 
                 {
                     continue;
