@@ -152,12 +152,12 @@ namespace MisterGames.ActionLib.Character {
                 
                 await UniTask.Yield(PlayerLoopTiming.PostLateUpdate);
             }
+      
+            if (cancellationToken.IsCancellationRequested) return;
             
 #if UNITY_EDITOR
             DebugExt.DrawSphere(item.position, 0.01f, Color.green, duration: 5f);
 #endif
-            
-            if (cancellationToken.IsCancellationRequested) return;
 
             if (enableColliderOnFinish && collider != null) collider.enabled = true;
 
