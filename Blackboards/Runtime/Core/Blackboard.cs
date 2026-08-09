@@ -232,9 +232,11 @@ namespace MisterGames.Blackboards.Core {
             return true;
         }
 
-        public void RemoveProperty(int hash) {
-            _propertyMap.Remove(hash, out var property);
-
+        public bool RemoveProperty(int hash) {
+            if (!_propertyMap.Remove(hash, out var property)) {
+                return false;
+            }
+            
             for (int i = _propertyList.Count - 1; i >= 0; i--) {
                 if (_propertyList[i] != hash) continue;
 
@@ -242,7 +244,7 @@ namespace MisterGames.Blackboards.Core {
                 break;
             }
 
-            TryRemoveValue(property.table, hash);
+            return TryRemoveValue(property.table, hash);
         }
 
         public string GetSerializedPropertyPath(int hash) {

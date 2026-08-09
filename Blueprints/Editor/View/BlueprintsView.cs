@@ -531,7 +531,10 @@ namespace MisterGames.Blueprints.Editor.View {
 
             Undo.RecordObject(_serializedObject.targetObject, "Blueprint Remove Blackboard Property");
 
-            _blackboard.RemoveProperty(Blackboards.Core.Blackboard.StringToHash(propertyName));
+            if (!_blackboard.RemoveProperty(Blackboards.Core.Blackboard.StringToHash(propertyName))) {
+                // fallback to old hash
+                _blackboard.RemoveProperty(propertyName?.GetHashCode() ?? 0);
+            }
 
             SetTargetObjectDirtyAndNotify();
         }
@@ -541,7 +544,8 @@ namespace MisterGames.Blueprints.Editor.View {
 
             Undo.RecordObject(_serializedObject.targetObject, "Blueprint Blackboard Property Position Changed");
 
-            if (!_blackboard.TrySetPropertyIndex(Blackboards.Core.Blackboard.StringToHash(field.text), newIndex)) return;
+            if (!_blackboard.TrySetPropertyIndex(Blackboards.Core.Blackboard.StringToHash(field.text), newIndex) && 
+                !_blackboard.TrySetPropertyIndex(field.text?.GetHashCode() ?? 0, newIndex)) return; // fallback to old hash
 
             SetTargetObjectDirtyAndNotify();
             RepopulateBlackboardView();
@@ -552,7 +556,8 @@ namespace MisterGames.Blueprints.Editor.View {
 
             Undo.RecordObject(_serializedObject.targetObject, "Blueprint Blackboard Property Name Changed");
 
-            if (!_blackboard.TrySetPropertyName(Blackboards.Core.Blackboard.StringToHash(field.text), newName)) return;
+            if (!_blackboard.TrySetPropertyName(Blackboards.Core.Blackboard.StringToHash(field.text), newName) && 
+                !_blackboard.TrySetPropertyName(field.text?.GetHashCode() ?? 0, newName)) return; // fallback to old hash
 
             field.text = newName;
             SetTargetObjectDirtyAndNotify();
