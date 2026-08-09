@@ -1,6 +1,5 @@
 ﻿using MisterGames.Actors;
 using MisterGames.Character.View;
-using MisterGames.Common.Stats;
 using MisterGames.Input.Actions;
 using MisterGames.Interact.Interactives;
 using MisterGames.Common.Tick;

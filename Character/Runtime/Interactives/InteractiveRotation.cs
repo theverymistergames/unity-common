@@ -23,6 +23,7 @@ namespace MisterGames.Character.Interactives {
         [SerializeField] private Vector2 _sensitivityGamepad = Vector2.one;
         [SerializeField] [Min(0f)] private float _smoothing = 10f;
         [SerializeField] [Min(0f)] private float _inputSmoothing = 1f;
+        [SerializeField] [Range(0f, 180f)] private float _stopAngleThreshold = 2f;
         [SerializeField] private ViewClampProcessor _viewClamp;
 
         [Header("Exit")]
@@ -94,14 +95,16 @@ namespace MisterGames.Character.Interactives {
         }
 
         void IUpdate.OnUpdate(float dt) {
-            var delta = _rotationInput.Get().ReadValue<Vector2>();
-            var sens = Services.Get<IDeviceService>().CurrentDevice switch {
-                InputDeviceType.KeyboardMouse => _sensitivityMouse,
-                InputDeviceType.Gamepad => _sensitivityGamepad,
-                _ => throw new ArgumentOutOfRangeException()
-            };
-            
-            _inputAccum += new Vector2(delta.y, delta.x) * sens;
+            if (!_finishingFlag) {
+                var delta = _rotationInput.Get().ReadValue<Vector2>();
+                var sens = Services.Get<IDeviceService>().CurrentDevice switch {
+                    InputDeviceType.KeyboardMouse => _sensitivityMouse,
+                    InputDeviceType.Gamepad => _sensitivityGamepad,
+                    _ => throw new ArgumentOutOfRangeException()
+                };
+                
+                _inputAccum += new Vector2(delta.y, delta.x) * sens;
+            }
             
             float consume = _inputSmoothing * dt;
             _targetOrientation += consume * _inputAccum;
@@ -112,7 +115,10 @@ namespace MisterGames.Character.Interactives {
             
             _target.rotation = Quaternion.Euler(0f, _smoothedOrientation.y, _smoothedOrientation.x);
 
-            if (_finishingFlag && _smoothedOrientation == _targetOrientation && _inputAccum == Vector2.zero) {
+            if (_finishingFlag && 
+                _inputAccum == Vector2.zero && 
+                Vector3.Angle(_smoothedOrientation, _targetOrientation) <= _stopAngleThreshold) 
+            {
                 _finishingFlag = false;
                 PlayerLoopStage.Update.Unsubscribe(this);
             }
