@@ -40,6 +40,7 @@ namespace MisterGames.Common.Audio {
         public EntityId Id => GetEntityId();
         public int Priority => _priority;
         public float ListenerPresence => _listenerPresence;
+        public float Weight { get => _weight; set => _weight = value; }
 
         private void OnEnable() {
             AudioPool.Main?.RegisterAudioVolume(this);

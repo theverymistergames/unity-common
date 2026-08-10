@@ -10,6 +10,7 @@ namespace MisterGames.Common.Audio {
         EntityId Id { get; }
         int Priority { get; }
         float ListenerPresence { get; }
+        float Weight { get; set; }
         
         WeightData GetWeight(Vector3 position);
         void GetWeight(NativeArray<float3> positions, NativeArray<WeightData> results, int count);

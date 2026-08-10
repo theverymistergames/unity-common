@@ -141,6 +141,7 @@ namespace MisterGames.Scenes.Core {
         public static async UniTask LoadScenesAsync(IReadOnlyList<string> sceneNames, string activeScene = null) {
             int count = sceneNames.Count;
             var tasks = ArrayPool<UniTask>.Shared.Rent(count);
+            tasks.ResetArrayElements();
 
             for (int i = 0; i < count; i++) {
                 string sceneName = sceneNames[i];
@@ -149,7 +150,6 @@ namespace MisterGames.Scenes.Core {
 
             await UniTask.WhenAll(tasks);
 
-            tasks.ResetArrayElements();
             ArrayPool<UniTask>.Shared.Return(tasks);
         }
 
