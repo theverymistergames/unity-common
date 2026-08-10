@@ -8,7 +8,6 @@ using MisterGames.Actors.Actions;
 using MisterGames.Common.Async;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Easing;
-using MisterGames.Common.Labels;
 using MisterGames.Common.Lists;
 using MisterGames.Common.Service;
 using MisterGames.Common.Tick;
@@ -51,6 +50,10 @@ namespace MisterGames.UI.Components {
             [SubclassSelector]
             [SerializeReference] public IActorAction action;
         }
+
+        private IUiNavigationService _navigationService;
+        private IUiWindowService _windowService;
+        private ITimescaleSystem _timescaleSystem;
         
         private readonly List<int> _actionsIndicesBuffer = new();
         
@@ -62,13 +65,20 @@ namespace MisterGames.UI.Components {
             _actor = actor;
         }
 
+        private void Awake() {
+            _navigationService = Services.Get<IUiNavigationService>();
+            _windowService = Services.Get<IUiWindowService>();
+            _timescaleSystem = Services.Get<ITimescaleSystem>();
+        }
+
         private void OnDestroy() {
             UnblockInputs();
             AsyncExt.DisposeCts(ref _actionCts);
         }
 
         private void OnEnable() {
-            if (Services.TryGet(out IUiWindowService service)) service.OnWindowsHierarchyChanged += OnWindowHierarchyChanged;
+            _windowService.OnWindowsHierarchyChanged += OnWindowHierarchyChanged;
+            _navigationService.OnExitToPauseBlocked += OnExitToPauseBlocked;
             
             _isMenuOpened = IsWindowRootInOpenedBranch(_menuWindow);
 
@@ -76,24 +86,32 @@ namespace MisterGames.UI.Components {
             
             if (_isMenuOpened) {
                 BlockInputs();
-                Services.Get<ITimescaleSystem>().SetTimescale(this, TimescalePriority.Menu, _timeScale);
+                _timescaleSystem.SetTimescale(this, TimescalePriority.Menu, _timeScale);
             }
             else {
                 UnblockInputs();
-                Services.Get<ITimescaleSystem>().RemoveTimescale(this);
+                _timescaleSystem.RemoveTimescale(this);
             }
         }
 
         private void OnDisable() {
             if (_cancelOnDisable) {
                 AsyncExt.DisposeCts(ref _actionCts);
-                Services.Get<ITimescaleSystem>()?.RemoveTimescale(this);
+                _timescaleSystem.RemoveTimescale(this);
                 UnblockInputs();
             }
             
             _openPauseMenuInput.Get().performed -= OnPauseInput;
 
-            if (Services.TryGet(out IUiWindowService service)) service.OnWindowsHierarchyChanged -= OnWindowHierarchyChanged;
+            _windowService.OnWindowsHierarchyChanged -= OnWindowHierarchyChanged;
+            _navigationService.OnExitToPauseBlocked -= OnExitToPauseBlocked;
+        }
+
+        private void OnExitToPauseBlocked(bool blocked) {
+            if (!blocked) return;
+            
+            AsyncExt.RecreateCts(ref _actionCts);
+            _windowService.SetWindowState(_menuWindow, UiWindowState.Closed);
         }
 
         private void OnWindowHierarchyChanged() {
@@ -107,8 +125,7 @@ namespace MisterGames.UI.Components {
         }
 
         private void OnPauseInput(InputAction.CallbackContext obj) {
-            if (!Services.TryGet(out IUiNavigationService service) || 
-                service.IsExitToPauseBlocked() ||
+            if (_navigationService.IsExitToPauseBlocked() ||
                 _menuWindow == null ||
                 IsWindowRootInOpenedBranch(_menuWindow)) 
             {
@@ -131,11 +148,11 @@ namespace MisterGames.UI.Components {
                 int parallelCount = 0;
                 
                 if (index == _openWindowOrder) {
-                    Services.Get<IUiWindowService>()?.SetWindowState(window, UiWindowState.Opened);
+                    _windowService.SetWindowState(window, UiWindowState.Opened);
                 }
 
                 if (index == _changeTimescaleOrderOnOpen) {
-                    tasks[parallelCount++] = Services.Get<ITimescaleSystem>().ChangeTimescale(
+                    tasks[parallelCount++] = _timescaleSystem.ChangeTimescale(
                         source: this,
                         TimescalePriority.Menu,
                         _timeScale,
@@ -173,15 +190,13 @@ namespace MisterGames.UI.Components {
             var order = GetActionsOrder(onOpen: false, out int actionsCount);
             var tasks = ArrayPool<UniTask>.Shared.Rent(actionsCount);
             
-            var timescaleSystem = Services.Get<ITimescaleSystem>();
-            
             for (int i = 0; i < order.Count && !cancellationToken.IsCancellationRequested; i++) {
                 int index = order[i];
 
                 int parallelCount = 0;
                 
                 if (i == _changeTimescaleOrderOnClose) {
-                    tasks[parallelCount++] = timescaleSystem?.ChangeTimescale(
+                    tasks[parallelCount++] = _timescaleSystem.ChangeTimescale(
                         source: this,
                         TimescalePriority.Menu,
                         1f,
@@ -189,7 +204,7 @@ namespace MisterGames.UI.Components {
                         removeOnFinish: true,
                         _timeScaleCurve,
                         cancellationToken
-                    ) ?? default;
+                    );
                 }
 
                 for (int j = 0; j < _actionsOnCloseMenu.Length; j++) {
@@ -256,11 +271,10 @@ namespace MisterGames.UI.Components {
             return _actionsIndicesBuffer;
         }
         
-        private static bool IsWindowRootInOpenedBranch(IUiWindow window) {
+        private bool IsWindowRootInOpenedBranch(IUiWindow window) {
             return window != null &&
-                   Services.TryGet(out IUiWindowService windowService) &&
-                   windowService.GetRootWindow(window) is { } rootWindow &&
-                   windowService.IsInOpenedBranch(rootWindow);
+                   _windowService.GetRootWindow(window) is { } rootWindow &&
+                   _windowService.IsInOpenedBranch(rootWindow);
         }
     }
     

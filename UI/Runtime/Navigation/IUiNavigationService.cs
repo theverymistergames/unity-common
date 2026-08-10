@@ -10,6 +10,7 @@ namespace MisterGames.UI.Navigation {
 
         event Action<Selectable, IUiWindow> OnSelectableChanged;
         event Action OnNavigationHierarchyChanged;
+        event Action<bool> OnExitToPauseBlocked;
         
         bool HasSelectedGameObject { get; }
         Selectable CurrentSelectable { get; }

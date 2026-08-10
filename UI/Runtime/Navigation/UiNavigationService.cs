@@ -16,6 +16,7 @@ namespace MisterGames.UI.Navigation {
 
         public event Action<Selectable, IUiWindow> OnSelectableChanged = delegate { };
         public event Action OnNavigationHierarchyChanged = delegate { };
+        public event Action<bool> OnExitToPauseBlocked = delegate { };
         
         public bool HasSelectedGameObject => _selectedGameObjectHash != 0;
         public Selectable CurrentSelectable { get; private set; }
@@ -314,11 +315,17 @@ namespace MisterGames.UI.Navigation {
         }
 
         public void BlockExitToPause(object source) {
+            bool wasBlocked = _pauseBlockers.Count > 0;
             _pauseBlockers.Add(source.GetHashCode());
+            
+            if (!wasBlocked && _pauseBlockers.Count > 0) OnExitToPauseBlocked.Invoke(true);
         }
 
         public void UnblockExitToPause(object source) {
+            bool wasBlocked = _pauseBlockers.Count > 0;
             _pauseBlockers.Remove(source.GetHashCode());
+            
+            if (wasBlocked && _pauseBlockers.Count <= 0) OnExitToPauseBlocked.Invoke(false);
         }
 
         private void OnCancelInputPerformed(InputAction.CallbackContext obj) {
