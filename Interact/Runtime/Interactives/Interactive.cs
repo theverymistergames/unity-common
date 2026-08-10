@@ -30,6 +30,7 @@ namespace MisterGames.Interact.Interactives {
         public Transform Transform { get; private set; }
         public bool IsInteracting => _userInteractionMap.Count > 0;
         private readonly List<IInteractiveUser> _users = new();
+        private readonly List<IInteractiveUser> _detectedByUsers = new();
         private readonly Dictionary<IInteractiveUser, InteractionData> _userInteractionMap = new();
         private Detectable _detectable;
         private float _startTime;
@@ -53,11 +54,20 @@ namespace MisterGames.Interact.Interactives {
             _enabled = true;
             _startTime = Time.time;
             if (_syncEnableStateWithDetectable) _detectable.enabled = true;
+
+            for (int i = 0; i < _detectedByUsers.Count; i++) {
+                TryApplyCursorIcon(_detectedByUsers[i]);
+            }
         }
 
         private void OnDisable() {
             _enabled = false;
             ForceStopInteractWithAllUsers();
+
+            // Users are notified about lost detection only on their next update,
+            // so cursor icon override must be dropped here to not outlive this interactive.
+            ResetCursorIconForDetectedByUsers();
+
             if (_syncEnableStateWithDetectable) _detectable.enabled = false;
         }
 
@@ -88,11 +98,15 @@ namespace MisterGames.Interact.Interactives {
         }
 
         public void NotifyDetectedBy(IInteractiveUser user) {
+            if (user != null && !_detectedByUsers.Contains(user)) _detectedByUsers.Add(user);
+
             OnDetectedBy.Invoke(user);
             TryApplyCursorIcon(user);
         }
 
         public void NotifyLostBy(IInteractiveUser user) {
+            _detectedByUsers.Remove(user);
+
             OnLostBy.Invoke(user);
             TryApplyCursorIcon(user);
         }
@@ -127,14 +141,29 @@ namespace MisterGames.Interact.Interactives {
         }
         
         private void TryApplyCursorIcon(IInteractiveUser user) {
-            if (_strategy == null || !user.Transform.TryGetComponent(out ICursorHost host)) return;
+            if (!TryGetCursorHost(user, out var host)) return;
 
-            if (_cursorStrategy.TryGetCursorIcon(user, this, _startTime, out var icon)) {
+            if (_enabled && _cursorStrategy.TryGetCursorIcon(user, this, _startTime, out var icon)) {
                 host.ApplyCursorIconOverride(this, icon);
                 return;
             }
 
             host.ResetCursorIconOverride(this);
+        }
+
+        private void ResetCursorIconForDetectedByUsers() {
+            for (int i = 0; i < _detectedByUsers.Count; i++) {
+                if (TryGetCursorHost(_detectedByUsers[i], out var host)) host.ResetCursorIconOverride(this);
+            }
+        }
+
+        private bool TryGetCursorHost(IInteractiveUser user, out ICursorHost host) {
+            if (_strategy == null || _cursorStrategy == null || user?.Transform == null) {
+                host = null;
+                return false;
+            }
+
+            return user.Transform.TryGetComponent(out host);
         }
 
         public override string ToString() {

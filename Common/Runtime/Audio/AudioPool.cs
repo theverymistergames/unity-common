@@ -591,7 +591,9 @@ namespace MisterGames.Common.Audio {
                 int timeSource = (e.AudioOptions & AudioOptions.AffectedByTimeScale) != 0
                     ? 0
                     : _ignoreZeroTimescaleForMixerGroupsSet.Contains(e.MixerGroupId) ? 2 : 1;
-                
+
+                if (e.CancellationToken.IsCancellationRequested) timeSource = 2;
+
                 _fadeOutDataMap[handleId] = new FadeData(
                     _internalTime[timeSource],
                     e.FadeOut,

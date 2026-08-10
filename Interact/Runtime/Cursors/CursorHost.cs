@@ -29,6 +29,7 @@ namespace MisterGames.Interact.Cursors {
         private IDeviceService _deviceService;
         
         private readonly Dictionary<object, CursorIconQueueItem> _iconOverridesMap = new();
+        private readonly List<object> _destroyedSourcesCache = new();
 
         private readonly struct CursorIconQueueItem {
 
@@ -73,6 +74,8 @@ namespace MisterGames.Interact.Cursors {
         }
 
         void IUpdate.OnUpdate(float deltaTime) {
+            if (RemoveDestroyedIconOverrides()) RefreshCursorIcon();
+
             if (!_isAlphaControlledByDistance) return;
 
             var hits = _transparencyRaycaster.FilterLastResults(_collisionFilter);
@@ -97,8 +100,31 @@ namespace MisterGames.Interact.Cursors {
             _cursorImage.color = color;
         }
 
+        /// <summary>
+        /// Override source can be destroyed without resetting its override,
+        /// such override must not keep the cursor icon alive.
+        /// </summary>
+        private bool RemoveDestroyedIconOverrides() {
+            _destroyedSourcesCache.Clear();
+
+            foreach (var source in _iconOverridesMap.Keys) {
+                if (source is UnityEngine.Object o && o == null) _destroyedSourcesCache.Add(source);
+            }
+
+            for (int i = 0; i < _destroyedSourcesCache.Count; i++) {
+                _iconOverridesMap.Remove(_destroyedSourcesCache[i]);
+            }
+
+            bool removed = _destroyedSourcesCache.Count > 0;
+            _destroyedSourcesCache.Clear();
+
+            return removed;
+        }
+
         private void RefreshCursorIcon() {
             if (!_enableCursorOverride) return;
+
+            RemoveDestroyedIconOverrides();
 
             int lastCreationFrame = -1;
             CursorIconQueueItem lastCreatedItem = default;

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using MisterGames.Collisions.Core;
 using MisterGames.Collisions.Utils;
@@ -22,19 +22,32 @@ namespace MisterGames.Interact.Detectables {
         public Transform Transform { get; private set; }
         public GameObject Root => _root;
 
+        private readonly struct CandidateData {
+
+            public readonly IDetectable detectable;
+            public readonly Collider collider;
+            public readonly int detectableHash;
+
+            public CandidateData(IDetectable detectable, Collider collider, int detectableHash) {
+                this.detectable = detectable;
+                this.collider = collider;
+                this.detectableHash = detectableHash;
+            }
+        }
+
         private readonly List<IDetectable> _detectedTargets = new();
         private readonly HashSet<IDetectable> _detectedTargetsSet = new();
 
-        private readonly List<IDetectable> _detectedCandidates = new();
-        private readonly HashSet<int> _detectedCandidatesHashesSet = new();
-
-        private readonly HashSet<int> _detectedHashesSet = new();
-        private readonly HashSet<int> _detectedHashesBuffer = new();
+        private readonly List<CandidateData> _detectedCandidates = new();
+        private readonly List<IDetectable> _detectablesCache = new();
+        private readonly List<IDetectable> _forceLoseCache = new();
 
         private readonly List<CollisionInfo> _hitsBuffer = new();
         private readonly List<CollisionInfo> _hitsBufferResult = new();
+
         private CollisionInfo _directViewHit;
-        
+        private IDetectable _directViewDetectable;
+
         private void Awake() {
             Transform = transform;
         }
@@ -49,17 +62,20 @@ namespace MisterGames.Interact.Detectables {
             ForceLoseAll();
 
             _detectedCandidates.Clear();
-            _detectedCandidatesHashesSet.Clear();
+            _detectablesCache.Clear();
+            _forceLoseCache.Clear();
 
-            _detectedHashesSet.Clear();
-            _detectedHashesBuffer.Clear();
+            _hitsBuffer.Clear();
+            _hitsBufferResult.Clear();
+
+            ResetDirectViewHit();
         }
 
         public bool IsInDirectView(IDetectable detectable, out float distance) {
             distance = _directViewHit.hasContact ? _directViewHit.distance : 0f;
-            int hash = detectable?.GameObject?.GetHashCode() ?? 0;
             return _directViewHit.hasContact &&
-                   (GetColliderHash(_directViewHit.collider) == hash || GetColliderRootHash(_directViewHit.collider) == hash);
+                   detectable != null &&
+                   ReferenceEquals(detectable, _directViewDetectable);
         }
 
         public bool IsDetected(IDetectable detectable) {
@@ -87,49 +103,51 @@ namespace MisterGames.Interact.Detectables {
         }
 
         public void ForceLoseAll() {
-            _detectedTargetsSet.Clear();
+            // Lost callbacks can modify targets, so a snapshot is iterated.
+            _forceLoseCache.Clear();
+            _forceLoseCache.AddRange(_detectedTargets);
 
-            for (int i = 0; i < _detectedTargets.Count; i++) {
-                var detectable = _detectedTargets[i];
+            _detectedTargetsSet.Clear();
+            _detectedTargets.Clear();
+
+            for (int i = 0; i < _forceLoseCache.Count; i++) {
+                var detectable = _forceLoseCache[i];
 
                 if (detectable?.Transform != null) detectable.NotifyLostBy(this);
                 if (detectable != null) OnLost.Invoke(detectable);
             }
 
+            _forceLoseCache.Clear();
+
+            // Nothing must be left even if a callback has added something back.
+            _detectedTargetsSet.Clear();
             _detectedTargets.Clear();
         }
 
         void IUpdate.OnUpdate(float dt) {
             var hits = GetHits();
-            
-            _detectedHashesBuffer.Clear();
-            FillDetectedHashesInto(hits, _detectedHashesBuffer);
 
-            RemoveNotDetectedCandidates(_detectedHashesBuffer);
-            AddNewDetectedCandidates(hits, _detectedHashesSet);
-            UpdateDirectViewHits();
-            
-            NotifyNewDetectedOrAllowedTargets(_detectedHashesBuffer);
-            NotifyLostOrNotAllowedTargets(_detectedHashesBuffer);
+            UpdateCandidates(hits);
+            UpdateDirectViewHit();
 
-            _detectedHashesSet.Clear();
-            FillDetectedHashesInto(hits, _detectedHashesSet);
+            NotifyNewDetectedOrAllowedTargets();
+            NotifyLostOrNotAllowedTargets();
         }
 
         private IReadOnlyList<CollisionInfo> GetHits() {
             _hitsBuffer.Clear();
             _hitsBufferResult.Clear();
-            
+
             var hits = _collisionDetector.FilterLastResults(_collisionFilter);
             for (int i = 0; i < hits.Length; i++) {
                 _hitsBuffer.Add(hits[i]);
             }
 
             _hitsBuffer.SortByDistance(hits.Length, ascending: true);
-            
+
             for (int i = 0; i < _hitsBuffer.Count; i++) {
                 var hit = _hitsBuffer[i];
-                if (hit.collider == null) continue;
+                if (!IsActiveCollider(hit.collider)) continue;
 
                 _hitsBufferResult.Add(hit);
                 if (!hit.collider.isTrigger) break;
@@ -137,113 +155,173 @@ namespace MisterGames.Interact.Detectables {
 
             return _hitsBufferResult;
         }
-        
-        private static void FillDetectedHashesInto(IReadOnlyList<CollisionInfo> hits, HashSet<int> dest) {
-            for (int i = 0; i < hits.Count; i++) {
-                var hit = hits[i];
-                if (hit is not { hasContact: true, isValid: true } || hit.collider is not { } c || c == null) continue;
 
-                dest.Add(GetColliderHash(c));
-                dest.Add(GetColliderRootHash(c));
-            }
-        }
-
-        private void RemoveNotDetectedCandidates(HashSet<int> detectedHashes) {
+        private void UpdateCandidates(IReadOnlyList<CollisionInfo> hits) {
             for (int i = _detectedCandidates.Count - 1; i >= 0; i--) {
-                var detectable = _detectedCandidates[i];
-                int hash = detectable?.GameObject?.GetHashCode() ?? 0;
-                
-                if (detectedHashes.Contains(hash)) continue;
+                var candidate = _detectedCandidates[i];
 
-                _detectedCandidatesHashesSet.Remove(hash);
-                _detectedCandidates.RemoveAt(i);
-            }
-        }
-
-        private void AddNewDetectedCandidates(IReadOnlyList<CollisionInfo> hits, HashSet<int> lastDetectedHashes) {
-            for (int i = 0; i < hits.Count; i++) {
-                var hit = hits[i];
-                if (!hit.hasContact || hit.collider == null) continue;
-
-                int hash = GetColliderHash(hit.collider);
-                int rootHash = GetColliderRootHash(hit.collider);
-                
-                if (lastDetectedHashes.Contains(hash) && lastDetectedHashes.Contains(rootHash)) continue;
-
-                var detectable = hit.collider.GetComponent<IDetectable>() ?? hit.collider.GetComponentFromCollider<IDetectable>();
-                if (detectable == null) continue;
-
-                _detectedCandidatesHashesSet.Add(hash);
-                _detectedCandidatesHashesSet.Add(rootHash);
-                _detectedCandidates.Add(detectable);
-            }
-        }
-
-        private void UpdateDirectViewHits() {
-            var hits = _directViewDetector.FilterLastResults(_collisionFilter);
-            float minDistance = -1f;
-            
-            for (int i = 0; i < hits.Length; i++) {
-                var info = hits[i];
-                
-                if (!info.hasContact ||
-                    info.collider == null ||
-                    !_detectedCandidatesHashesSet.Contains(GetColliderHash(info.collider)) &&
-                    !_detectedCandidatesHashesSet.Contains(GetColliderRootHash(info.collider)) ||
-                    minDistance >= 0f && info.distance > minDistance) 
+                if (candidate.detectable?.Transform != null &&
+                    IsActiveCollider(candidate.collider) &&
+                    ContainsCollider(hits, candidate.collider))
                 {
                     continue;
                 }
-                
+
+                _detectedCandidates.RemoveAt(i);
+            }
+
+            for (int i = 0; i < hits.Count; i++) {
+                var hit = hits[i];
+                if (!hit.hasContact || !IsActiveCollider(hit.collider)) continue;
+
+                var c = hit.collider;
+                if (ContainsCandidateWithCollider(c)) continue;
+
+                var detectable = c.GetComponent<IDetectable>() ?? c.GetComponentFromCollider<IDetectable>();
+                if (detectable?.Transform == null) continue;
+
+                _detectedCandidates.Add(new CandidateData(detectable, c, detectable.GameObject.GetHashCode()));
+            }
+        }
+
+        private void UpdateDirectViewHit() {
+            ResetDirectViewHit();
+
+            if (_detectedCandidates.Count == 0) return;
+
+            var hits = _directViewDetector.FilterLastResults(_collisionFilter);
+            float minDistance = -1f;
+
+            for (int i = 0; i < hits.Length; i++) {
+                var info = hits[i];
+
+                if (!info.hasContact ||
+                    !IsActiveCollider(info.collider) ||
+                    minDistance >= 0f && info.distance > minDistance ||
+                    !TryGetCandidateDetectable(info.collider, out var detectable))
+                {
+                    continue;
+                }
+
                 _directViewHit = info;
+                _directViewDetectable = detectable;
                 minDistance = info.distance;
             }
         }
 
-        private void NotifyNewDetectedOrAllowedTargets(HashSet<int> detectedHashes) {
+        private void NotifyNewDetectedOrAllowedTargets() {
+            // Detect callbacks can modify candidates and targets, so a snapshot is iterated.
+            _detectablesCache.Clear();
+
             for (int i = 0; i < _detectedCandidates.Count; i++) {
-                var detectable = _detectedCandidates[i];
+                _detectablesCache.Add(_detectedCandidates[i].detectable);
+            }
+
+            for (int i = 0; i < _detectablesCache.Count; i++) {
+                var detectable = _detectablesCache[i];
 
                 if (detectable?.Transform == null || _detectedTargetsSet.Contains(detectable) ||
-                    !detectedHashes.Contains(detectable.GameObject.GetHashCode()) ||
-                    !detectable.IsAllowedToStartDetectBy(this)) 
+                    !detectable.IsAllowedToStartDetectBy(this))
                 {
                     continue;
                 }
 
                 ForceDetect(detectable);
             }
+
+            _detectablesCache.Clear();
         }
 
-        private void NotifyLostOrNotAllowedTargets(HashSet<int> detectedHashes) {
-            for (int i = _detectedTargets.Count - 1; i >= 0; i--) {
-                var detectable = _detectedTargets[i];
+        private void NotifyLostOrNotAllowedTargets() {
+            // Lost callbacks can modify targets, so a snapshot is iterated.
+            _detectablesCache.Clear();
+            _detectablesCache.AddRange(_detectedTargets);
 
-                if (detectable?.Transform != null && 
-                    detectedHashes.Contains(detectable.GameObject.GetHashCode()) &&
-                    detectable.IsAllowedToContinueDetectBy(this)) 
+            for (int i = 0; i < _detectablesCache.Count; i++) {
+                var detectable = _detectablesCache[i];
+
+                if (detectable?.Transform != null &&
+                    IsCandidate(detectable) &&
+                    detectable.IsAllowedToContinueDetectBy(this))
                 {
                     continue;
                 }
-                
+
                 ForceLose(detectable);
             }
+
+            _detectablesCache.Clear();
         }
-        
+
+        private void ResetDirectViewHit() {
+            _directViewHit = CollisionInfo.Empty;
+            _directViewDetectable = null;
+        }
+
+        private bool IsCandidate(IDetectable detectable) {
+            for (int i = 0; i < _detectedCandidates.Count; i++) {
+                if (ReferenceEquals(_detectedCandidates[i].detectable, detectable)) return true;
+            }
+
+            return false;
+        }
+
+        private bool ContainsCandidateWithCollider(Collider collider) {
+            for (int i = 0; i < _detectedCandidates.Count; i++) {
+                if (_detectedCandidates[i].collider == collider) return true;
+            }
+
+            return false;
+        }
+
+        private bool TryGetCandidateDetectable(Collider collider, out IDetectable detectable) {
+            int hash = GetColliderHash(collider);
+            int rootHash = GetColliderRootHash(collider);
+
+            for (int i = 0; i < _detectedCandidates.Count; i++) {
+                var candidate = _detectedCandidates[i];
+
+                if (candidate.collider != collider &&
+                    candidate.detectableHash != hash &&
+                    candidate.detectableHash != rootHash)
+                {
+                    continue;
+                }
+
+                detectable = candidate.detectable;
+                return true;
+            }
+
+            detectable = null;
+            return false;
+        }
+
+        private static bool ContainsCollider(IReadOnlyList<CollisionInfo> hits, Collider collider) {
+            for (int i = 0; i < hits.Count; i++) {
+                if (hits[i].collider == collider) return true;
+            }
+
+            return false;
+        }
+
         public override string ToString() {
             return $"{nameof(Detector)}({name}, detected targets/candidates count = {_detectedTargets.Count}/{_detectedCandidates.Count})";
+        }
+
+        private static bool IsActiveCollider(Collider c) {
+            return c != null && c.enabled && c.gameObject.activeInHierarchy;
         }
 
         private static int GetColliderHash(Collider c) {
             return c.gameObject.GetHashCode();
         }
-        
+
         private static int GetColliderRootHash(Collider c) {
-            return c.attachedRigidbody != null 
-                ? c.attachedRigidbody.gameObject.GetHashCode() 
+            return c.attachedRigidbody != null
+                ? c.attachedRigidbody.gameObject.GetHashCode()
                 : c.gameObject.GetHashCode();
         }
-        
+
 #if UNITY_EDITOR
         [Header("Debug")]
         [SerializeField] private bool _debugDrawDetectables;
@@ -254,7 +332,9 @@ namespace MisterGames.Interact.Detectables {
             DebugExt.DrawSphere(transform.position, 0.2f, Color.blue, gizmo: true);
 
             for (int i = 0; i < _detectedCandidates.Count; i++) {
-                var detectable = _detectedCandidates[i];
+                var detectable = _detectedCandidates[i].detectable;
+                if (detectable?.Transform == null) continue;
+
                 var color = IsDetected(detectable) ? Color.green : Color.gray;
                 DebugExt.DrawLine(transform.position, detectable.Transform.position, color, gizmo: true);
             }

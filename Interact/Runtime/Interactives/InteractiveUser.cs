@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using MisterGames.Collisions.Core;
 using MisterGames.Interact.Detectables;
@@ -25,24 +25,34 @@ namespace MisterGames.Interact.Interactives {
         public Transform Transform { get; private set; }
         public Transform ViewOrigin => _viewOrigin;
         public GameObject Root => _root;
-        
+
         private readonly HashSet<IInteractive> _interactiveTargetsSet = new();
         private readonly HashSet<IInteractive> _interactiveCandidatesSet = new();
+
+        // Detectable is the key: it allows removing a candidate even if its interactive
+        // or game object is already destroyed and cannot be resolved by GetComponent.
+        private readonly Dictionary<IDetectable, IInteractive> _detectableToCandidateMap = new();
+
         private readonly List<IInteractive> _interactiveCache = new();
+        private readonly List<IInteractive> _forceStopCache = new();
+        private readonly List<IDetectable> _detectableCache = new();
+        private readonly List<IDetectable> _forceLoseCache = new();
         private bool _enabled;
-        
+
         private void Awake() {
             Transform = transform;
         }
 
         private void OnEnable() {
             _enabled = true;
-            
+
             _interactivesDetector.OnDetected -= HandleDetected;
             _interactivesDetector.OnDetected += HandleDetected;
 
             _interactivesDetector.OnLost -= HandleLost;
             _interactivesDetector.OnLost += HandleLost;
+
+            RestoreCandidatesFromDetector();
 
             if (_interactiveCandidatesSet.Count > 0 || _interactiveTargetsSet.Count > 0) {
                 PlayerLoopStage.Update.Subscribe(this);
@@ -51,15 +61,14 @@ namespace MisterGames.Interact.Interactives {
 
         private void OnDisable() {
             _enabled = false;
-            
+
             PlayerLoopStage.Update.Unsubscribe(this);
 
             _interactivesDetector.OnDetected -= HandleDetected;
             _interactivesDetector.OnLost -= HandleLost;
 
-            _interactiveCandidatesSet.Clear();
-
             ForceStopInteractAll();
+            ForceLoseAll();
         }
 
         public bool IsInDirectView(IInteractive interactive, out float distance) {
@@ -68,7 +77,7 @@ namespace MisterGames.Interact.Interactives {
 
             return info.hasContact &&
                    info.transform != null &&
-                   interactive.Transform != null &&
+                   interactive?.Transform != null &&
                    info.transform.GetHashCode() == interactive.Transform.GetHashCode();
         }
 
@@ -92,48 +101,63 @@ namespace MisterGames.Interact.Interactives {
         }
 
         public bool TryStopInteract(IInteractive interactive) {
-            if (interactive == null || !_interactiveTargetsSet.Contains(interactive)) return false;
+            if (interactive == null || !_interactiveTargetsSet.Remove(interactive)) return false;
 
-            _interactiveTargetsSet.Remove(interactive);
-            
             OnStopInteract.Invoke(interactive);
-            
+
             if (interactive.Transform != null) {
                 interactive.NotifyStoppedInteractWith(this);
             }
 
-            if (_interactiveTargetsSet.Count == 0 && _interactiveCandidatesSet.Count == 0) {
-                PlayerLoopStage.Update.Unsubscribe(this);
-            }
+            UnsubscribeIfNoInteractives();
 
             return true;
         }
 
         public void ForceStopInteractAll() {
-            foreach (var interactive in _interactiveTargetsSet) {
-                if (interactive != null) {
-                    OnStopInteract.Invoke(interactive);
-                }
+            _forceStopCache.Clear();
+            _forceStopCache.AddRange(_interactiveTargetsSet);
 
-                if (interactive?.Transform != null) {
-                    interactive.NotifyStoppedInteractWith(this);
-                }
+            for (int i = 0; i < _forceStopCache.Count; i++) {
+                TryStopInteract(_forceStopCache[i]);
             }
-            
+
+            _forceStopCache.Clear();
             _interactiveTargetsSet.Clear();
 
-            if (_interactiveTargetsSet.Count == 0 && _interactiveCandidatesSet.Count == 0) {
-                PlayerLoopStage.Update.Unsubscribe(this);
+            UnsubscribeIfNoInteractives();
+        }
+
+        public void ForceLoseAll() {
+            _forceLoseCache.Clear();
+
+            foreach (var detectable in _detectableToCandidateMap.Keys) {
+                _forceLoseCache.Add(detectable);
             }
+
+            for (int i = 0; i < _forceLoseCache.Count; i++) {
+                RemoveCandidate(_forceLoseCache[i]);
+            }
+
+            _forceLoseCache.Clear();
+
+            // Nothing must be left even if a callback has added something back.
+            _detectableToCandidateMap.Clear();
+            _interactiveCandidatesSet.Clear();
+
+            UnsubscribeIfNoInteractives();
         }
 
         private void HandleDetected(IDetectable detectable) {
             if (detectable?.Transform == null ||
+                _detectableToCandidateMap.ContainsKey(detectable) ||
                 detectable.Transform.GetComponent<IInteractive>() is not { } interactive ||
-                !_interactiveCandidatesSet.Add(interactive)) 
+                !_interactiveCandidatesSet.Add(interactive))
             {
                 return;
             }
+
+            _detectableToCandidateMap[detectable] = interactive;
 
             OnDetected.Invoke(interactive);
             interactive.NotifyDetectedBy(this);
@@ -142,41 +166,90 @@ namespace MisterGames.Interact.Interactives {
         }
 
         private void HandleLost(IDetectable detectable) {
-            if (detectable?.Transform == null ||
-                detectable.Transform.GetComponent<IInteractive>() is not { } interactive ||
-                !_interactiveCandidatesSet.Contains(interactive)) 
-            {
-                return;
-            }
+            if (detectable == null) return;
+
+            RemoveCandidate(detectable);
+        }
+
+        private void RemoveCandidate(IDetectable detectable) {
+            if (!_detectableToCandidateMap.Remove(detectable, out var interactive)) return;
 
             _interactiveCandidatesSet.Remove(interactive);
 
-            interactive.NotifyLostBy(this);
+            if (interactive == null) return;
+
+            if (interactive.Transform != null) interactive.NotifyLostBy(this);
             OnLost.Invoke(interactive);
 
+            UnsubscribeIfNoInteractives();
+        }
+
+        /// <summary>
+        /// Detector keeps its targets while this component is disabled and does not raise
+        /// OnDetected for them again, so candidates have to be restored explicitly.
+        /// </summary>
+        private void RestoreCandidatesFromDetector() {
+            _detectableCache.Clear();
+            _detectableCache.AddRange(_interactivesDetector.Targets);
+
+            for (int i = 0; i < _detectableCache.Count; i++) {
+                HandleDetected(_detectableCache[i]);
+            }
+
+            _detectableCache.Clear();
+        }
+
+        /// <summary>
+        /// Drops candidates that are not detected anymore or became destroyed,
+        /// in case OnLost was not raised for them.
+        /// </summary>
+        private void RemoveInvalidCandidates() {
+            _detectableCache.Clear();
+
+            foreach (var (detectable, interactive) in _detectableToCandidateMap) {
+                if (detectable?.Transform != null &&
+                    interactive?.Transform != null &&
+                    _interactivesDetector.IsDetected(detectable))
+                {
+                    continue;
+                }
+
+                _detectableCache.Add(detectable);
+            }
+
+            for (int i = 0; i < _detectableCache.Count; i++) {
+                RemoveCandidate(_detectableCache[i]);
+            }
+
+            _detectableCache.Clear();
+        }
+
+        private void UnsubscribeIfNoInteractives() {
             if (_interactiveTargetsSet.Count == 0 && _interactiveCandidatesSet.Count == 0) {
                 PlayerLoopStage.Update.Unsubscribe(this);
             }
         }
 
         void IUpdate.OnUpdate(float dt) {
+            RemoveInvalidCandidates();
+
             _interactiveCache.Clear();
             _interactiveCache.AddRange(_interactiveCandidatesSet);
-            
+
             for (int i = 0; i < _interactiveCache.Count; i++) {
                 var interactive = _interactiveCache[i];
 
                 if (interactive?.Transform == null ||
                     _interactiveTargetsSet.Contains(interactive) ||
                     !interactive.IsReadyToStartInteractWith(this) ||
-                    !interactive.IsAllowedToStartInteractWith(this)) 
+                    !interactive.IsAllowedToStartInteractWith(this))
                 {
                     continue;
                 }
 
                 TryStartInteract(interactive);
             }
-            
+
             _interactiveCache.Clear();
             _interactiveCache.AddRange(_interactiveTargetsSet);
 
@@ -184,13 +257,15 @@ namespace MisterGames.Interact.Interactives {
                 var interactive = _interactiveCache[i];
 
                 if (interactive?.Transform != null &&
-                    interactive.IsAllowedToContinueInteractWith(this)) 
+                    interactive.IsAllowedToContinueInteractWith(this))
                 {
                     continue;
                 }
-                
+
                 TryStopInteract(interactive);
             }
+
+            _interactiveCache.Clear();
         }
 
         public override string ToString() {
