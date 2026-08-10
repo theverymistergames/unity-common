@@ -137,11 +137,11 @@ namespace MisterGames.Character.View {
             );
         }
         
-        private float GetDeltaTime() {
-            return _useUnscaledTime ? Time.unscaledDeltaTime : Time.deltaTime;
+        private float GetDeltaTime(bool forceUnscaled = false) {
+            return _useUnscaledTime || forceUnscaled ? Time.unscaledDeltaTime : Time.deltaTime;
         }
 
-        public async UniTask ClearPersistentStates(float duration = 0f, CancellationToken cancellationToken = default) {
+        public async UniTask ClearPersistentStates(float duration = 0f, bool forceUnscaledTime = false, CancellationToken cancellationToken = default) {
             byte id = _clearPersistentStateOperationId.IncrementUncheckedRef();
             var destroyToken = _destroyCts.Token;
             
@@ -161,7 +161,7 @@ namespace MisterGames.Character.View {
                    !cancellationToken.IsCancellationRequested && 
                    !destroyToken.IsCancellationRequested) 
             {
-                t = Mathf.Clamp01(t + speed * GetDeltaTime());
+                t = Mathf.Clamp01(t + speed * GetDeltaTime(forceUnscaledTime));
 
                 _persistentStateBuffer = new CameraState(
                     Vector3.Lerp(_persistentStateBuffer.position, Vector3.zero, t),

@@ -12,9 +12,10 @@ namespace MisterGames.ActionLib.Character {
     public sealed class CharacterActionCameraClearPersistentStates : IActorAction {
         
         [Min(0f)] public float duration;
+        public bool forceUnscaledTime;
 
         public UniTask Apply(IActor actor, CancellationToken cancellationToken = default) {
-            return actor?.GetComponent<CameraContainer>()?.ClearPersistentStates(duration, cancellationToken) ?? default;
+            return actor?.GetComponent<CameraContainer>()?.ClearPersistentStates(duration, forceUnscaledTime, cancellationToken) ?? default;
         }
     }
 
