@@ -20,6 +20,7 @@ namespace MisterGames.Logic.Damage {
         public float Health => _health;
         public bool IsAlive => _health > 0f;
         public bool IsDead => _health <= 0f;
+        public bool IsInvulnerable => _invulnerableSet.Count > 0;
         
         private readonly HashSet<int> _invulnerableSet = new();
         private IActor _actor;

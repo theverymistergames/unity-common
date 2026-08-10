@@ -177,6 +177,26 @@ namespace MisterGames.Common.Maths {
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float MaxAxis(this Vector2 a) {
+            return Mathf.Max(a.x, a.y);
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float MaxAxis(this Vector3 a) {
+            return Mathf.Max(Mathf.Max(a.x, a.y), a.z);
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float MinAxis(this Vector2 a) {
+            return Mathf.Min(a.x, a.y);
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float MinAxis(this Vector3 a) {
+            return Mathf.Min(Mathf.Min(a.x, a.y), a.z);
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector2 Max(Vector2 a, Vector2 b) {
             return new Vector2(Mathf.Max(a.x, b.x), Mathf.Max(a.y, b.y));
         }
