@@ -64,11 +64,6 @@ namespace MisterGames.Dialogues.Editor.Parser {
             var localizationTableStorages = new Dictionary<string, LocalizationTableStorage>();
             var dialogueStorages = new Dictionary<string, DialogueTableStorage>();
             
-            var localizationSettingsAssets = AssetDatabase
-                .FindAssets($"a:assets t:{nameof(LocalizationSettings)}")
-                .Select(guid => AssetDatabase.LoadAssetAtPath<LocalizationSettings>(AssetDatabase.GUIDToAssetPath(guid)))
-                .ToArray();
-
             var dialogueFiles = GetAllDialoguesFilePaths(_searchMode, _searchDialoguesFilesInFolders);
             var tasks = new UniTask<int>[dialogueFiles.Count];
             

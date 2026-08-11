@@ -19,6 +19,10 @@ namespace MisterGames.Character.View {
         public CameraState WithPosition(Vector3 position) => new CameraState(position, rotation, fov);
         public CameraState WithRotation(Quaternion rotation) => new CameraState(position, rotation, fov);
         public CameraState WithFov(float fov) => new CameraState(position, rotation, fov);
+
+        public override string ToString() {
+            return $"CameraState(pos {position}, rot {rotation.eulerAngles}, fov {fov})";
+        }
     }
     
 }

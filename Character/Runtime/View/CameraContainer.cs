@@ -7,7 +7,6 @@ using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Common.Async;
 using MisterGames.Common.Maths;
-using MisterGames.Common.Stats;
 using MisterGames.Common.Strings;
 using UnityEngine;
 
@@ -168,6 +167,8 @@ namespace MisterGames.Character.View {
                     Quaternion.Slerp(_persistentStateBuffer.rotation, Quaternion.identity, t),
                     Mathf.Lerp(_persistentStateBuffer.fov, 0f, t)
                 );
+                
+                ApplyResultState();
                 
                 // Avoid waiting one frame if operation is done on the frame it started.
                 if (t >= 1f) break;
@@ -415,6 +416,8 @@ namespace MisterGames.Character.View {
         private string GetStateAsString() {
             var sb = new StringBuilder();
 
+            sb.AppendLine($"Base {_baseState}, result {_resultState}, persist {_persistentState}, persistBuffer {_persistentStateBuffer}");
+            
             sb.AppendLine($"Position states ({_positionStates.Count}):");
             foreach ((int id, var data) in _positionStates) {
                 sb.AppendLine($"[{id}] w {data.weight:0.00}, value {data.value}");
@@ -425,7 +428,7 @@ namespace MisterGames.Character.View {
                 sb.AppendLine($"[{id}] w {data.weight:0.00}, value {data.value}");
             }
             
-            sb.AppendLine($"Fov add states ({_fovStates.Count}):");
+            sb.AppendLine($"Fov states ({_fovStates.Count}):");
             foreach ((int id, var data) in _fovStates) {
                 sb.AppendLine($"[{id}] w {data.weight:0.00}, value {data.value}");
             }

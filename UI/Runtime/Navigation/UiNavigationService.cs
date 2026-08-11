@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using MisterGames.Common.Data;
+using MisterGames.Common.GameObjects;
 using MisterGames.Common.Tick;
 using MisterGames.Input.Actions;
 using MisterGames.Input.Core;
@@ -121,7 +122,9 @@ namespace MisterGames.UI.Navigation {
                 
                 if (candidate == null || candidate is not { gameObject: { activeSelf: true, activeInHierarchy: true }}) {
                     var node = _uiWindowService.GetFrontOpenedWindow()?.Node;
-                    candidate = node?.CurrentSelectable != null ? node.CurrentSelectable : node?.DefaultSelectable;
+                    candidate = node?.CurrentSelectable != null && node.CurrentSelectable is { gameObject: { activeSelf: true, activeInHierarchy: true }} 
+                        ? node.CurrentSelectable 
+                        : node?.DefaultSelectable;
                 }
 
                 if (candidate != null && candidate is { gameObject: { activeSelf: true, activeInHierarchy: true }}) {

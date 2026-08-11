@@ -9,7 +9,6 @@ using MisterGames.Common.Async;
 using MisterGames.Common.Inputs;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Service;
-using MisterGames.Common.Tick;
 using UnityEngine;
 
 namespace MisterGames.Character.View {
@@ -53,20 +52,24 @@ namespace MisterGames.Character.View {
         }
         
         public Vector3 BodyPosition {
-            get => _body.position;
-            set => _body.position = value;
+            get => _body == null ? default : _body.position;
+            set {
+                if (_body != null) _body.position = value;
+            }
         }
-        
+
         public Vector3 BodyPositionTransform {
-            get => _body.transform.position;
-            set => _body.transform.position = value;
+            get => _body == null ? default : _body.transform.position;
+            set {
+                if (_body != null) _body.transform.position = value;
+            }
         }
-        
+
         public Quaternion BodyRotation {
-            get => _body.rotation;
+            get => _body == null ? Quaternion.identity : _body.rotation;
             set {
                 _bodyRotation = Quaternion.Inverse(_gravityRotation) * value;
-                _body.rotation = value;
+                if (_body != null) _body.rotation = value;
             }
         }
 
@@ -77,7 +80,6 @@ namespace MisterGames.Character.View {
         
         private readonly CharacterHeadJoint _headJoint = new();
         private CancellationTokenSource _enableCts;
-        private ITimescaleSystem _timescaleSystem;
         private IDeviceService _deviceService;
         
         private CameraContainer _cameraContainer;
@@ -101,7 +103,6 @@ namespace MisterGames.Character.View {
             _inputPipeline = actor.GetComponent<CharacterInputPipeline>();
             _hasGravity = actor.TryGetComponent(out _characterGravity);
             
-            _timescaleSystem = Services.Get<ITimescaleSystem>();
             _deviceService = Services.Get<IDeviceService>();
         }
 
@@ -264,7 +265,7 @@ namespace MisterGames.Character.View {
         }
         
         private void ProcessBodyUpdate() {
-            _body.rotation = _gravityRotation * _bodyRotation;
+            if (_body != null) _body.rotation = _gravityRotation * _bodyRotation;
         }
         
         private void ProcessHeadUpdate(float dt) {
