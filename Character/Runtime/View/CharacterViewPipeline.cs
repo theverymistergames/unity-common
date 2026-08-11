@@ -149,8 +149,8 @@ namespace MisterGames.Character.View {
             _headJoint.DetachObject(obj);
         }
         
-        public void RotateObject(Transform obj, Vector3 sensitivity, RotationPlane plane = RotationPlane.XY, float smoothing = 0f) {
-            _headJoint.RotateObject(obj, _headRotation.ToEulerAngles180(), sensitivity, plane, smoothing);
+        public void RotateObject(Transform obj, Vector3 sensitivity, Quaternion rotationOffset, RotationPlane plane = RotationPlane.XY, float smoothing = 0f) {
+            _headJoint.RotateObject(obj, (_headRotation * rotationOffset).ToEulerAngles180(), sensitivity, plane, smoothing);
         }
 
         public void StopRotateObject(Transform obj) {

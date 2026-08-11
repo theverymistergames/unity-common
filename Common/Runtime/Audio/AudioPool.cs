@@ -104,7 +104,7 @@ namespace MisterGames.Common.Audio {
         
         private readonly Dictionary<int, FadeData> _fadeInDataMap = new();
         private readonly Dictionary<int, FadeData> _fadeOutDataMap = new();
-        private readonly Dictionary<int, AudioSource> _releaseSourcesMap = new();
+        private readonly Dictionary<int, IAudioElement> _releaseElementsMap = new();
         
         private readonly Dictionary<AudioListener, ListenerData> _audioListenersMap = new();
         private Transform _listenerTransform;
@@ -152,7 +152,7 @@ namespace MisterGames.Common.Audio {
 
             _fadeInDataMap.Clear();
             _fadeOutDataMap.Clear();
-            _releaseSourcesMap.Clear();
+            _releaseElementsMap.Clear();
             
             _audioListenersMap.Clear();
             _audioVolumes.Clear();
@@ -592,8 +592,6 @@ namespace MisterGames.Common.Audio {
                     ? 0
                     : _ignoreZeroTimescaleForMixerGroupsSet.Contains(e.MixerGroupId) ? 2 : 1;
 
-                if (e.CancellationToken.IsCancellationRequested) timeSource = 2;
-
                 _fadeOutDataMap[handleId] = new FadeData(
                     _internalTime[timeSource],
                     e.FadeOut,
@@ -601,7 +599,7 @@ namespace MisterGames.Common.Audio {
                     timeSource
                 );
 
-                _releaseSourcesMap[handleId] = e.Source;
+                _releaseElementsMap[handleId] = e;
             }
 
 #if UNITY_EDITOR
@@ -737,18 +735,25 @@ namespace MisterGames.Common.Audio {
             calculateFadeOutJob.Schedule(fadeOutCount, JobExt.BatchFor(fadeOutCount)).Complete();
 
             var pool = PrefabPool.Main;
+            float timescale = Time.timeScale;
             
             for (int i = 0; i < fadeOutCount; i++) {
+                var data = fadeOutCalculateArray[i];
                 var result = fadeOutResultArray[i];
-                var source = _releaseSourcesMap[result.id];
+                var e = _releaseElementsMap[result.id];
                 
-                source.volume = result.volume;
+                e.Source.volume = result.volume;
+
+                if (data.timeSource < 2) {
+                    CheckPause(e, timescale);
+                }
                 
                 if (result.progress < 1f) continue;
                 
                 _fadeOutDataMap.Remove(result.id);
-                _releaseSourcesMap.Remove(result.id);
-                pool.Release(source);
+                _releaseElementsMap.Remove(result.id);
+                
+                pool.Release(e.Transform);
             }
             
             fadeOutCalculateArray.Dispose();
@@ -816,14 +821,7 @@ namespace MisterGames.Common.Audio {
                 var resultData = resultSoundArray[i];
 
                 if (!_ignoreZeroTimescaleForMixerGroupsSet.Contains(e.MixerGroupId)) {
-                    if (timescale <= 0f && e.Source.isPlaying) {
-                        e.IsPaused = true;
-                        e.Source.Pause();
-                    }
-                    else if (timescale > 0f && !e.Source.isPlaying) {
-                        e.Source.UnPause();
-                        e.IsPaused = false;
-                    }   
+                    CheckPause(e, timescale);
                 }
                 
 #if UNITY_EDITOR
@@ -874,6 +872,19 @@ namespace MisterGames.Common.Audio {
             _globalOcclusionWeight = 1f;
         }
 
+        private static void CheckPause(IAudioElement e, float timescale) {
+            if (timescale <= 0f && e.Source.isPlaying) {
+                e.IsPaused = true;
+                e.Source.Pause();
+                return;
+            }
+
+            if (timescale > 0f && !e.Source.isPlaying) {
+                e.Source.UnPause();
+                e.IsPaused = false;
+            }
+        }
+        
         private void ProcessReverb(float dt) {
             if (!_enableReverbVolumes || 
                 _audioListenersMap.Count == 0 || 

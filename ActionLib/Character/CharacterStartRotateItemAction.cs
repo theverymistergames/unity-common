@@ -13,11 +13,12 @@ namespace MisterGames.ActionLib.Character {
 
         public Transform item;
         public Vector2 sensitivity = Vector2.one;
+        public Vector3 rotationOffset;
         public RotationPlane plane;
         public float smoothing;
         
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            context.GetComponent<CharacterViewPipeline>().RotateObject(item, sensitivity, plane, smoothing);
+            context.GetComponent<CharacterViewPipeline>().RotateObject(item, sensitivity, Quaternion.Euler(rotationOffset), plane, smoothing);
             return default;
         }
     }
