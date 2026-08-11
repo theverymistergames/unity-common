@@ -14,7 +14,7 @@ namespace MisterGames.Scenario.Events {
         private const bool EnableLogs = false;
         
         public static readonly IEventBus Main = new EventBus();
-        private static readonly EventReference GlobalEvent = new(eventDomain: null, eventId: -1);
+        private static readonly EventReference GlobalEvent = new(eventDomain: null, eventId: int.MinValue);
 
         public Dictionary<EventReference, int> RaisedEvents { get; } = new();
         

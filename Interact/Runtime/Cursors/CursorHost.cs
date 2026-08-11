@@ -52,15 +52,23 @@ namespace MisterGames.Interact.Cursors {
             if (!_enableCursorOverride) SetCursorIcon(_initialCursorIcon);
 
             PlayerLoopStage.Update.Subscribe(this);
+            
+            _deviceService.OnDeviceChanged += OnDeviceChanged;
         }
 
         private void OnDisable() {
             PlayerLoopStage.Update.Unsubscribe(this);
 
+            _deviceService.OnDeviceChanged -= OnDeviceChanged;
+            
             ResetCursorIconOverride(this);
             SetCursorIcon(null);
         }
-        
+
+        private void OnDeviceChanged(InputDeviceType obj) {
+            RefreshCursorIcon();
+        }
+
         public void ApplyCursorIconOverride(object source, CursorIcon icon) {
             _iconOverridesMap[source] = new CursorIconQueueItem(TimeSources.frameCount, icon);
 
@@ -100,14 +108,10 @@ namespace MisterGames.Interact.Cursors {
             _cursorImage.color = color;
         }
 
-        /// <summary>
-        /// Override source can be destroyed without resetting its override,
-        /// such override must not keep the cursor icon alive.
-        /// </summary>
         private bool RemoveDestroyedIconOverrides() {
             _destroyedSourcesCache.Clear();
 
-            foreach (var source in _iconOverridesMap.Keys) {
+            foreach (object source in _iconOverridesMap.Keys) {
                 if (source is UnityEngine.Object o && o == null) _destroyedSourcesCache.Add(source);
             }
 

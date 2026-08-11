@@ -62,10 +62,8 @@ namespace MisterGames.Interact.Interactives {
 
         private void OnDisable() {
             _enabled = false;
+            
             ForceStopInteractWithAllUsers();
-
-            // Users are notified about lost detection only on their next update,
-            // so cursor icon override must be dropped here to not outlive this interactive.
             ResetCursorIconForDetectedByUsers();
 
             if (_syncEnableStateWithDetectable) _detectable.enabled = false;

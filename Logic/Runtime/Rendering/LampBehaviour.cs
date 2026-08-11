@@ -12,6 +12,7 @@ namespace MisterGames.Logic.Rendering {
         [SerializeField] private Renderer[] _renderers;
         [SerializeField] [Min(0f)] private float _weight = 1f;
         [SerializeField] [Min(0f)] private float _intensity = 1f;
+        [SerializeField] private bool _disableLightsOnDisable = true;
 
         private enum MaterialMode {
             MaterialPropertyBlock,
@@ -44,6 +45,8 @@ namespace MisterGames.Logic.Rendering {
         }
 
         private void OnDisable() {
+            if (!_disableLightsOnDisable) return;
+            
             for (int i = 0; i < _lights.Length; i++) {
                 _lights[i].enabled = false;
             }
@@ -134,7 +137,7 @@ namespace MisterGames.Logic.Rendering {
         }
         
         private void UpdateState() {
-            float intensity = _weight * _intensity * enabled.AsFloat();
+            float intensity = _weight * _intensity * (!_disableLightsOnDisable || enabled).AsFloat();
             
             for (int i = 0; i < _lights.Length; i++) {
                 var light = _lights[i];

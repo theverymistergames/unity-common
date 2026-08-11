@@ -8,7 +8,7 @@ namespace MisterGames.TweenLib.Logic {
     [Serializable]
     public sealed class SetWeightMulActionRunnerProgressAction : ITweenProgressAction {
         
-        public WeightActionRunner weightActionRunner;
+        public PositionWeightTweenProgress weightActionRunner;
         [Min(0f)] public float startValue;
         [Min(0f)] public float endValue;
         

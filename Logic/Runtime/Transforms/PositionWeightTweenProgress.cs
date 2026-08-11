@@ -10,7 +10,7 @@ using UnityEngine;
 
 namespace MisterGames.Logic.Transforms {
     
-    public sealed class WeightActionRunner : MonoBehaviour, IUpdate {
+    public sealed class PositionWeightTweenProgress : MonoBehaviour, IUpdate {
         
         [SerializeField] private PositionWeightProvider _weightProvider;
         [SerializeField] private TriggerListenerForRigidbody _triggerListenerForRigidbody;

@@ -59,10 +59,9 @@ namespace MisterGames.Logic.Transforms {
 
             if (_overThreshold == wasOverThreshold) return;
             
-            var lastAction = wasOverThreshold ? _actionHigher : _actionLower;
             var action = _overThreshold ? _actionHigher : _actionLower;
             
-            if (_cancelLastAction && lastAction != null) {
+            if (_cancelLastAction) {
                 AsyncExt.RecreateCts(ref _enableCts);
             }
             
