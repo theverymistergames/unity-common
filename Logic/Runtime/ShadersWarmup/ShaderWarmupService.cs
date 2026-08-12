@@ -4,6 +4,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Async;
 using MisterGames.Common.Tick;
+using MisterGames.Scenes.Loading;
 using Unity.Jobs;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -90,6 +91,8 @@ namespace MisterGames.Logic.ShadersWarmup {
                                      $"open shaders warmup scene {_settings.WarmupSceneName} for testing. " +
                                      $"It can be disabled in {_settings}.");
 
+                    await Fader.Main.FadeOutAsync(0f);
+                    
                     await SceneManager.LoadSceneAsync(_settings.WarmupSceneName, LoadSceneMode.Additive);
 
                     while (!_shaderWarmupScenePassCompleted && !cancellationToken.IsCancellationRequested) {
@@ -99,6 +102,8 @@ namespace MisterGames.Logic.ShadersWarmup {
                     if (cancellationToken.IsCancellationRequested) return;
                     
                     await SceneManager.UnloadSceneAsync(_settings.WarmupSceneName);
+                    
+                    await Fader.Main.FadeInAsync(0f);
                 }
                 else {
                     Debug.LogWarning($"ShaderWarmupService.LoadForEditor: f {Time.frameCount}, " +
@@ -159,6 +164,8 @@ namespace MisterGames.Logic.ShadersWarmup {
                                      $"open shaders warmup scene {_settings.WarmupSceneName} for dev build tracing. " +
                                      $"It can be disabled in {_settings}.");
 
+                    await Fader.Main.FadeOutAsync(0f);
+                    
                     await SceneManager.LoadSceneAsync(_settings.WarmupSceneName, LoadSceneMode.Additive);
 
                     while (!_shaderWarmupScenePassCompleted && !cancellationToken.IsCancellationRequested) {
@@ -166,6 +173,8 @@ namespace MisterGames.Logic.ShadersWarmup {
                     }
 
                     await SceneManager.UnloadSceneAsync(_settings.WarmupSceneName);
+                    
+                    await Fader.Main.FadeInAsync(0f);
                 }
                 else {
                     Debug.LogWarning($"ShaderWarmupService.LoadForDevelopmentBuild: f {Time.frameCount}, " +

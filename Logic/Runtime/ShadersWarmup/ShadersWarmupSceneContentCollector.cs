@@ -207,7 +207,12 @@ namespace MisterGames.Logic.ShadersWarmup {
                     continue;
                 }
 
-                if (PrefabUtility.InstantiatePrefab(prefab, _prefabParent) is not GameObject instance) continue;
+                // Instantiated as a plain copy, not as a prefab instance: the copy is stripped down to shader content
+                // right away, and keeping a link to the source prefab would turn all of it into prefab overrides.
+                var instance = Instantiate(prefab, _prefabParent);
+                if (instance == null) continue;
+
+                instance.name = prefab.name;
 
                 StripNonShaderComponents(instance);
                 StripMeshRenderers(instance);
@@ -963,8 +968,7 @@ namespace MisterGames.Logic.ShadersWarmup {
             var uiRoots = new List<Transform>();
             CollectUiRoots(instance.transform, uiRoots);
 
-            if (uiRoots.Count == 0) return 0; 
-            if (PrefabUtility.IsPartOfPrefabInstance(instance)) PrefabUtility.UnpackPrefabInstance(instance, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+            if (uiRoots.Count == 0) return 0;
 
             int extracted = 0;
             for (int i = 0; i < uiRoots.Count; i++)
