@@ -65,10 +65,10 @@ namespace MisterGames.ActionLib.Sounds {
             if (audioClipVariants is not { Length: > 0 }) return default;
 
             var clip = AudioPool.Main?.ShuffleClips(audioClipVariants);
-            return PlaySound(clip, context, cancellationToken);
+            return PlaySound(clip, volume, context, cancellationToken);
         }
         
-        public AudioHandle PlaySound(AudioClip clip, IActor context, CancellationToken cancellationToken) {
+        public AudioHandle PlaySound(AudioClip clip, float volume, IActor context, CancellationToken cancellationToken) {
             if (clip == null || AudioPool.Main is not { } pool) return default;
             
             float resultPitch = pitch + Random.Range(-pitchRandomAdd, pitchRandomAdd);
