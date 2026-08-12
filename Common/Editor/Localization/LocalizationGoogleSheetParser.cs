@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text.RegularExpressions;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Editor.GoogleSheets;
@@ -13,6 +14,8 @@ namespace MisterGames.Common.Editor.Localization {
 
     [CreateAssetMenu(fileName = nameof(LocalizationGoogleSheetParser), menuName = "MisterGames/Localization/" + nameof(LocalizationGoogleSheetParser))]
     public sealed class LocalizationGoogleSheetParser : GoogleSheetParserBase {
+
+        private static readonly Regex LineBreakRegex = new(@"[ \t]*(?:<\s*br\s*/?\s*>|[\r\n])+\s*", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         [Header("Storage Settings")]
         [SerializeField] private string _fileNamePrefix = "LocTable";
@@ -59,6 +62,10 @@ namespace MisterGames.Common.Editor.Localization {
                         
                         if (string.IsNullOrEmpty(value) || !LocaleExtensions.TryGetLocale(column, out var locale)) continue;
 
+                        value = ReplaceLineBreaksWithSpaces(value);
+
+                        if (string.IsNullOrEmpty(value)) continue;
+
                         valuesParsed++;
                         valuesParsedLocal++;
 
@@ -79,6 +86,10 @@ namespace MisterGames.Common.Editor.Localization {
             LogInfo($"parsed total {valuesParsed} values in {sheetTables.Count} tables using {storages.Count} storages, used locales: {localesSet.AsString()}.");
         }
         
+        private static string ReplaceLineBreaksWithSpaces(string value) {
+            return LineBreakRegex.Replace(value, m => m.Index == 0 || m.Index + m.Length >= value.Length ? string.Empty : " ");
+        }
+
         private LocalizationTableStorage GetOrCreateStorage(SheetTable sheetTable, Dictionary<string, LocalizationTableStorage> storages) {
             return _divideFilesMode switch {
                 DivideFilesMode.OneFile => GetOrCreateStorage(GetSingleFileName(), storages),

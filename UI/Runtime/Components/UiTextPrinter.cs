@@ -124,23 +124,28 @@ namespace MisterGames.UI.Components {
                 
                 char c = GetNextCharSkippingTags(content, ref pointer, length);
 
+                int nextPointer = pointer;
+                char next = GetNextCharSkippingTags(content, ref nextPointer, length);
+
                 sb.Remove(caret, TransparentTagOpen.Length);
 
-                if (c == '\n') {
-                    int newLineIndex = pointer - 2 + sbOffset;
-                    sb.Remove(newLineIndex, 2);
+                if (c == '\n' && IsEndOfContent(content, pointer, length)) {
+                    int newLineLength = pointer > 1 && content[pointer - 2] == '\\' ? 2 : 1;
+                    int newLineIndex = pointer - newLineLength + sbOffset;
+
+                    sb.Remove(newLineIndex, newLineLength);
                     sb.Insert(newLineIndex, TransparentNewLine);
-                    sbOffset += TransparentNewLine.Length - 2;
+
+                    sbOffset += TransparentNewLine.Length - newLineLength;
                 }
 
                 caret = pointer + sbOffset;
                 sb.Insert(caret, TransparentTagOpen);
 
                 textField.SetText(sb);
-                
+
                 if (symbolDelay < 0f) {
-                    int ptr = pointer;
-                    symbolDelay = GetSymbolDelay(prev, c, GetNextCharSkippingTags(content, ref ptr, length));
+                    symbolDelay = GetSymbolDelay(prev, c, next);
                 }
                 
                 prev = c;
@@ -220,6 +225,17 @@ namespace MisterGames.UI.Components {
             return c;
         }
         
+        private static bool IsEndOfContent(string content, int pointer, int length) {
+            while (pointer < length) {
+                char c = GetNextCharSkippingTags(content, ref pointer, length);
+
+                if (c == '\0') break;
+                if (c == '\n' || !char.IsWhiteSpace(c)) return false;
+            }
+
+            return true;
+        }
+
         private float GetSymbolDelay(char prev, char curr, char next) {
             for (int i = 0; i < _specialSymbols.Length; i++) {
                 var data = _specialSymbols[i];

@@ -11,6 +11,70 @@ using Random = UnityEngine.Random;
 namespace MisterGames.Common.Lists {
 
     public static class ArrayExtensions {
+        
+        public static void InsertionSort<T>(this IList<T> items, int startIndex, int count, IComparer<T> comparer) {
+            int endIndex = Mathf.Min(startIndex + count, items.Count);
+
+            for (int i = startIndex + 1; i < endIndex; i++) {
+                var value = items[i];
+                int j = i - 1;
+
+                while (j >= 0 && comparer.Compare(items[j], value) > 0) {
+                    items[j + 1] = items[j];
+                    j--;
+                }
+
+                items[j + 1] = value;
+            }
+        }
+
+        public static void InsertionSort<T>(this IList<T> items, int startIndex, int count, Comparison<T> compare) {
+            int endIndex = Mathf.Min(startIndex + count, items.Count);
+
+            for (int i = startIndex + 1; i < endIndex; i++) {
+                var value = items[i];
+                int j = i - 1;
+
+                while (j >= 0 && compare(items[j], value) > 0) {
+                    items[j + 1] = items[j];
+                    j--;
+                }
+
+                items[j + 1] = value;
+            }
+        }
+
+        public static void InsertionSort<T>(this T[] items, int startIndex, int count, IComparer<T> comparer) {
+            int endIndex = Mathf.Min(startIndex + count, items.Length);
+
+            for (int i = startIndex + 1; i < endIndex; i++) {
+                var value = items[i];
+                int j = i - 1;
+
+                while (j >= 0 && comparer.Compare(items[j], value) > 0) {
+                    items[j + 1] = items[j];
+                    j--;
+                }
+
+                items[j + 1] = value;
+            }
+        }
+
+        public static void InsertionSort<T>(this T[] items, int startIndex, int count, Comparison<T> compare) {
+            int endIndex = Mathf.Min(startIndex + count, items.Length);
+
+            for (int i = startIndex + 1; i < endIndex; i++) {
+                var value = items[i];
+                int j = i - 1;
+
+                while (j >= 0 && compare(items[j], value) > 0) {
+                    items[j + 1] = items[j];
+                    j--;
+                }
+
+                items[j + 1] = value;
+            }
+        }
 
         [BurstCompile]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

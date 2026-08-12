@@ -76,12 +76,21 @@ namespace MisterGames.Logic.UI {
                 buffer.Clear();
                 preset.blocks[i].GetValues(buffer);
                 
-                for (int j = 0; j < buffer.Count && !cancellationToken.IsCancellationRequested && id == _printId; j++) {
-                    await _dialoguePrinter.PrintElement(buffer[j], 0, cancellationToken);
-                    if (cancellationToken.IsCancellationRequested || id != _printId) break;
+                if (_skipCts == null) {
+                    AsyncExt.RecreateCts(ref _skipCts);
+                    skipToken = CancellationTokenSource.CreateLinkedTokenSource(_skipCts.Token, cancellationToken).Token;
+                }
                 
-                    await UniTask.Delay(TimeSpan.FromSeconds(printDelay), ignoreTimeScale: _useUnscaledTime, cancellationToken: cancellationToken)
-                        .SuppressCancellationThrow();
+                for (int j = 0; j < buffer.Count && !cancellationToken.IsCancellationRequested && id == _printId; j++) {
+                    if (_skipCts == null) ForceFinishNextFrame(id, cancellationToken).Forget();
+                    await _dialoguePrinter.PrintElement(buffer[j], 0, cancellationToken);
+                    
+                    if (cancellationToken.IsCancellationRequested || id != _printId) break;
+
+                    if (_skipCts != null) {
+                        await UniTask.Delay(TimeSpan.FromSeconds(printDelay), ignoreTimeScale: _useUnscaledTime, cancellationToken: cancellationToken)
+                            .SuppressCancellationThrow();   
+                    }
                 }
 
                 if (cancellationToken.IsCancellationRequested || id != _printId) break;
@@ -97,6 +106,13 @@ namespace MisterGames.Logic.UI {
             }
 
             ListPool<LocalizationKey>.Release(buffer);
+        }
+        
+        private async UniTask ForceFinishNextFrame(byte id, CancellationToken cancellationToken) {
+            await UniTask.Yield();
+            if (id != _printId || cancellationToken.IsCancellationRequested) return;
+            
+            _dialoguePrinter.FinishLastPrinting(_skipSymbolDelay);
         }
         
         private static async UniTask WaitSkipInput(CancellationToken skipToken, CancellationToken cancellationToken) {

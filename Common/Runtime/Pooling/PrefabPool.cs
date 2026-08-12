@@ -49,8 +49,9 @@ namespace MisterGames.Common.Pooling {
         public Transform ActiveSceneRoot { get; private set; }
         public Transform PoolRoot { get; private set; }
         
-        private readonly Dictionary<int, IObjectPoolAsync<GameObject>> _poolMap = new();
-        private readonly Dictionary<int, AutoPoolUsage> _autoPoolUsageMap = new();
+        private readonly Dictionary<EntityId, EntityId> _instanceToPrefabIdMap = new();
+        private readonly Dictionary<EntityId, IObjectPoolAsync<GameObject>> _poolMap = new();
+        private readonly Dictionary<EntityId, AutoPoolUsage> _autoPoolUsageMap = new();
         private readonly List<GameObject> _activeSceneRoots = new();
 
         private CancellationTokenSource _destroyCts;
@@ -99,7 +100,7 @@ namespace MisterGames.Common.Pooling {
             while (!cancellationToken.IsCancellationRequested) {
                 float time = Time.realtimeSinceStartup;
                 
-                foreach ((int id, var usage) in _autoPoolUsageMap) {
+                foreach (var (id, usage) in _autoPoolUsageMap) {
                     if (time < usage.lastUseTime + _unusedPoolClearTimeout ||
                         !_poolMap.TryGetValue(id, out var pool) ||
                         pool.CountInactive <= 0) 
@@ -408,15 +409,21 @@ namespace MisterGames.Common.Pooling {
             bool worldPositionStays,
             bool setupPositionAndRotation
         ) {
-            int id = GetPoolId(prefab);
+            var id = GetPoolId(prefab);
             UpdateAutoPoolUsageOnTake(id, prefab);
 
-            var instance = _poolMap.GetValueOrDefault(id)?.Get(prefab);
-            if (instance == null) instance = CreatePoolObject(prefab);
+            GameObject instance;
+            
+            if (_poolMap.GetValueOrDefault(id) is { } pool) {
+                instance = pool.Get(prefab);
+                _instanceToPrefabIdMap[instance.GetEntityId()] = id;
+            }
+            else { 
+                instance = CreatePoolObject(prefab);   
+            }
 
             var t = instance.transform;
             t.localScale = scale;
-            
             t.SetParent(parent, worldPositionStays);
             if (setupPositionAndRotation) t.SetPositionAndRotation(position, rotation);
 
@@ -443,18 +450,21 @@ namespace MisterGames.Common.Pooling {
             bool worldPositionStays,
             bool setupPositionAndRotation)
         {
-            int id = GetPoolId(prefab);
+            var id = GetPoolId(prefab);
             UpdateAutoPoolUsageOnTake(id, prefab);
 
-            var instance = _poolMap.GetValueOrDefault(id) is { } pool
-                ? await pool.GetAsync(prefab)
-                : await CreatePoolObjectAsync(prefab);
+            GameObject instance;
 
-            if (instance == null) instance = await CreatePoolObjectAsync(prefab);
+            if (_poolMap.GetValueOrDefault(id) is { } pool) {
+                instance = await pool.GetAsync(prefab);
+                _instanceToPrefabIdMap[instance.GetEntityId()] = id;
+            }
+            else { 
+                instance = await CreatePoolObjectAsync(prefab);   
+            }
 
             var t = instance.transform;
             t.localScale = scale;
-            
             t.SetParent(parent, worldPositionStays);
             if (setupPositionAndRotation) t.SetPositionAndRotation(position, rotation);
 
@@ -494,7 +504,8 @@ namespace MisterGames.Common.Pooling {
             
             if (cancellationToken.IsCancellationRequested) return;
 
-            int id = GetPoolId(instance);
+            var id = _instanceToPrefabIdMap.GetValueOrDefault(instance.GetEntityId(), EntityId.None);
+            
             bool hasPoolElement = instance.TryGetComponent(out PoolElement poolElement);
             if (hasPoolElement) poolElement.NotifyReleasedToPool(this);
             
@@ -512,7 +523,7 @@ namespace MisterGames.Common.Pooling {
 #endif
         }
 
-        private void UpdateAutoPoolUsageOnTake(int id, GameObject prefab) {
+        private void UpdateAutoPoolUsageOnTake(EntityId id, GameObject prefab) {
             bool hasPool = _poolMap.ContainsKey(id);
             if (!_autoPoolUsageMap.TryGetValue(id, out var usage) && hasPool) return;
             
@@ -530,7 +541,7 @@ namespace MisterGames.Common.Pooling {
             }
         }
         
-        private void UpdateAutoPoolUsageOnRelease(int id, IObjectPoolAsync<GameObject> pool) {
+        private void UpdateAutoPoolUsageOnRelease(EntityId id, IObjectPoolAsync<GameObject> pool) {
             if (!_autoPoolUsageMap.TryGetValue(id, out var usage) && pool != null) return;
             
             usage.activeObjectsCount = Mathf.Max(0, usage.activeObjectsCount - 1);
@@ -541,8 +552,6 @@ namespace MisterGames.Common.Pooling {
 
         private GameObject CreatePoolObject(GameObject prefab) {
             var instance = Instantiate(prefab, Vector3.zero, Quaternion.identity, _disabledRoot);
-            
-            instance.name = prefab.name;
             instance.SetActive(false);
             
             return instance;
@@ -550,8 +559,6 @@ namespace MisterGames.Common.Pooling {
         
         private async UniTask<GameObject> CreatePoolObjectAsync(GameObject prefab) {
             var instance = (await InstantiateAsync(prefab, 1, _disabledRoot, Vector3.zero, Quaternion.identity))[0];
-            
-            instance.name = prefab.name;
             instance.SetActive(false);
             
             return instance;
@@ -566,6 +573,7 @@ namespace MisterGames.Common.Pooling {
         }
 
         private void OnReleaseToPool(GameObject go) {
+            _instanceToPrefabIdMap.Remove(go.GetEntityId());
             ReleaseToPoolAsync(go).Forget();
         }
         
@@ -580,15 +588,16 @@ namespace MisterGames.Common.Pooling {
             go.transform.SetParent(PoolRoot);
         }
         
-        private static int GetPoolId(GameObject instance) {
-            return Animator.StringToHash(instance.name);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static EntityId GetPoolId(GameObject instance) {
+            return instance.GetEntityId();
         }
 
         private void Log(string message) {
             Debug.Log($"{$"PrefabPool {(_isMainPool ? "Main" : name)}".FormatColorOnlyForEditor(Color.cyan)} [f {Time.frameCount}]: {message}");
         }
 
-        private string GetPoolInfo(int id) {
+        private string GetPoolInfo(EntityId id) {
             bool hasUsage = _autoPoolUsageMap.TryGetValue(id, out var usage);
             
             return _poolMap.TryGetValue(id, out var pool)

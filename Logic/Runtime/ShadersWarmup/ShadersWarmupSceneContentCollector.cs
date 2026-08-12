@@ -193,7 +193,6 @@ namespace MisterGames.Logic.ShadersWarmup {
             var nonMeshMaterials = new HashSet<Material>();
 
             int skippedCoveredByCubes = 0;
-            int removedComponents = 0;
 
             for (int i = 0; i < assetPaths.Count; i++) {
                 string assetPath = assetPaths[i];
@@ -210,8 +209,8 @@ namespace MisterGames.Logic.ShadersWarmup {
 
                 if (PrefabUtility.InstantiatePrefab(prefab, _prefabParent) is not GameObject instance) continue;
 
-                removedComponents += StripNonShaderComponents(instance);
-                removedComponents += StripMeshRenderers(instance);
+                StripNonShaderComponents(instance);
+                StripMeshRenderers(instance);
                 CollectCustomPassVolumes(instance);
 
                 if (TryPrepareUiInstance(instance)) continue;
@@ -230,16 +229,12 @@ namespace MisterGames.Logic.ShadersWarmup {
 
             int visualEffectShaders = CollectVisualEffectShaders(coveredShaders);
 
-            int manualShaders = 0;
-            int hiddenShaders = 0;
             int coveredManualShaders = 0;
 
             if (_warmupSettings != null) {
-                manualShaders = CollectShaderMaterials(_warmupSettings.ManualShaders, materials, visitedMaterials, coveredShaders);
-                hiddenShaders = CollectShaderMaterials(_warmupSettings.HiddenShaders, materials, visitedMaterials, coveredShaders);
+                int manualShaders = CollectShaderMaterials(_warmupSettings.ManualShaders, materials, visitedMaterials, coveredShaders);
 
-                coveredManualShaders = _warmupSettings.ManualShaders.Length + _warmupSettings.HiddenShaders.Length
-                                       - manualShaders - hiddenShaders;
+                coveredManualShaders = _warmupSettings.ManualShaders.Length - manualShaders;
             }
 
             SpawnMaterialHosts(materials, out int materialCubes, out int decalHosts,
@@ -252,7 +247,6 @@ namespace MisterGames.Logic.ShadersWarmup {
                       $"cubes excluded from GPU driven rendering as not SRP Batcher compatible: {notGpuDrivenCubes}); " +
                       $"materials found {materials.Count}, materials in folders: {folderMaterials}, " +
                       $"materials in models: {modelMaterials}, materials in scenes: {sceneMaterials}, " +
-                      $"manual shaders: {manualShaders}, hidden shaders: {hiddenShaders} " +
                       $"(excluded as already covered: {coveredManualShaders}; " +
                       $"vfx compute shaders: {visualEffectShaders}). " +
                       $"Prefab instances with non-mesh renderers: {prefabInstances}, " +

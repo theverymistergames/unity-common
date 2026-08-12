@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using MisterGames.Common.Data;
 using UnityEngine;
 #if UNITY_EDITOR
 using UnityEditor;
@@ -18,7 +19,8 @@ namespace MisterGames.Common.Localization {
         private struct ValueRow {
             public string key;
             [UseLocaleLabel] 
-            [TextArea] public string[] values;
+            [TextAreaExtended(expandable: false, showEditButtons: true)] 
+            public string[] values;
         }
 
         public override Type GetDataType() {

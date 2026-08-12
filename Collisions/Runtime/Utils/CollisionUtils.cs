@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using MisterGames.Collisions.Core;
 using MisterGames.Common.Layers;
+using MisterGames.Common.Lists;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -345,9 +346,7 @@ namespace MisterGames.Collisions.Utils {
             bool ascending = true
         ) {
             hitCount = Math.Min(hitCount, hits.Length);
-
-            var comparer = ascending ? RaycastHitDistanceComparerAsc : RaycastHitDistanceComparerDesc;
-            Array.Sort(hits, 0, hitCount, comparer);
+            hits.InsertionSort(0, hitCount, ascending ? RaycastHitDistanceComparerAsc : RaycastHitDistanceComparerDesc);
 
             return hits;
         }
@@ -358,10 +357,8 @@ namespace MisterGames.Collisions.Utils {
             bool ascending = true
         ) {
             hitCount = Math.Min(hitCount, hits.Length);
-
-            var comparer = ascending ? CollisionInfoDistanceComparerAsc : CollisionInfoDistanceComparerDesc;
-            Array.Sort(hits, 0, hitCount, comparer);
-
+            hits.InsertionSort(0, hitCount, ascending ? CollisionInfoDistanceComparerAsc : CollisionInfoDistanceComparerDesc);
+            
             return hits;
         }
         
@@ -371,9 +368,7 @@ namespace MisterGames.Collisions.Utils {
             bool ascending = true
         ) {
             hitCount = Math.Min(hitCount, hits.Count);
-
-            var comparer = ascending ? CollisionInfoDistanceComparerAsc : CollisionInfoDistanceComparerDesc;
-            hits.Sort(0, hitCount, comparer);
+            hits.InsertionSort(0, hitCount, ascending ? CollisionInfoDistanceComparerAsc : CollisionInfoDistanceComparerDesc);
 
             return hits;
         }
@@ -384,9 +379,7 @@ namespace MisterGames.Collisions.Utils {
             bool ascending = true
         ) {
             hitCount = Math.Min(hitCount, hits.Count);
-
-            var comparer = ascending ? RaycastResultDistanceComparerAsc : RaycastResultDistanceComparerDesc;
-            hits.Sort(0, hitCount, comparer);
+            hits.InsertionSort(0, hitCount, ascending ? RaycastResultDistanceComparerAsc : RaycastResultDistanceComparerDesc);
 
             return hits;
         }
