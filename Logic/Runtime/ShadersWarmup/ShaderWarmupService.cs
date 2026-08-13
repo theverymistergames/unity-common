@@ -123,7 +123,7 @@ namespace MisterGames.Logic.ShadersWarmup {
                 float t = 0f;
                 float speed = 1f / _settings.SimulateShadersWarmupInEditorDuration;
                 while (t < 1f && !cancellationToken.IsCancellationRequested) {
-                    t = Mathf.Clamp01(t + Time.unscaledDeltaTime * speed);
+                    t = Mathf.Clamp01(t + TimeSources.unscaledDeltaTime * speed);
                     NotifyWarmupProgress(t);
                     await UniTask.Yield();
                 }

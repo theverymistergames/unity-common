@@ -5,6 +5,7 @@ using MisterGames.Common.Async;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Service;
+using MisterGames.Common.Tick;
 using MisterGames.UI.Data;
 using MisterGames.UI.Navigation;
 using MisterGames.UI.Windows;
@@ -232,7 +233,7 @@ namespace MisterGames.UI.Components {
             float t = 0f;
             
             while (!cancellationToken.IsCancellationRequested && id == _transitionId && t < 1f) {
-                t = Mathf.Clamp01(t + speed * Time.unscaledDeltaTime);
+                t = Mathf.Clamp01(t + speed * TimeSources.unscaledDeltaTime);
                 float p = data.curve.Evaluate(t);
                 
                 trf.localScale = Vector3.Lerp(startScale, endScale, p);

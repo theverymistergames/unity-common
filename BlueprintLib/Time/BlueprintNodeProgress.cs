@@ -76,12 +76,11 @@ namespace MisterGames.BlueprintLib {
         }
 
         private async UniTask ProgressAsync(IBlueprint blueprint, NodeToken token, float duration, CancellationToken cancellationToken) {
-            var timeSource = TimeSources.Get(PlayerLoopStage.Update);
-
             blueprint.Call(token, 3);
+            float speed = duration > 0f ? 1f / duration : float.MaxValue;
             
             while (!cancellationToken.IsCancellationRequested) {
-                _progress = Mathf.Clamp01(_progress + timeSource.DeltaTime / duration);
+                _progress = Mathf.Clamp01(_progress + TimeSources.deltaTime * speed);
                 blueprint.Call(token, 5);
 
                 if (_progress >= 1f) break;

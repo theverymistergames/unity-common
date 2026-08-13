@@ -83,14 +83,13 @@ namespace MisterGames.TweenLib.Editor.MotionCapture {
         private async UniTaskVoid Play(Transform t, MotionCaptureClip clip, CancellationToken token) {
             byte id = ++_playId;
             float duration = clip.Duration;
-            var timeSource = PlayerLoopStage.Update.Get();
 
             if (_previewProgress <= 0f) t.GetLocalPositionAndRotation(out _initialPos, out _initialRot);
             
             var prev = t.position;
             
             while (!token.IsCancellationRequested && id == _playId) {
-                _previewProgress = duration > 0f ? Mathf.Clamp01(_previewProgress + timeSource.DeltaTime / duration) : 1f;
+                _previewProgress = duration > 0f ? Mathf.Clamp01(_previewProgress + TimeSources.deltaTime / duration) : 1f;
 
                 t.SetLocalPositionAndRotation(
                     _initialPos + clip.EvaluatePosition(_previewProgress), 

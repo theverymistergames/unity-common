@@ -3,14 +3,15 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Async;
 using MisterGames.Common.Colors;
+using MisterGames.Common.Tick;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Video;
 
 namespace MisterGames.Scenes.Splash {
     
-    public sealed class SplashScreenVideo : MonoBehaviour
-    {
+    public sealed class SplashScreenVideo : MonoBehaviour {
+        
         [SerializeField] private VideoPlayer videoPlayer;
         [SerializeField] private RawImage targetRawImage;
         [SerializeField] private VideoClip videoClip;
@@ -23,14 +24,13 @@ namespace MisterGames.Scenes.Splash {
         private void Awake() {
             AsyncExt.RecreateCts(ref _destroyCts);
             
-            _awakeTime = Time.realtimeSinceStartup;
+            _awakeTime = TimeSources.unscaledTime;
             targetRawImage.color = Color.black;
             
             videoPlayer.playOnAwake = false;
             videoPlayer.renderMode = VideoRenderMode.APIOnly;
 
-            if (videoClip != null)
-            {
+            if (videoClip != null) {
                 videoPlayer.source = VideoSource.VideoClip;
                 videoPlayer.clip = videoClip;
             }
@@ -43,14 +43,32 @@ namespace MisterGames.Scenes.Splash {
         {
             AsyncExt.DisposeCts(ref _destroyCts);
             
-            if (videoPlayer != null)
-            {
+            if (videoPlayer != null) {
                 videoPlayer.prepareCompleted -= OnVideoPrepared;
             }
         }
 
+        private void OnApplicationFocus(bool hasFocus) {
+            UpdateState();
+        }
+
+        private void OnApplicationPause(bool pauseStatus) {
+            UpdateState();
+        }
+
+        private void UpdateState() {
+            if (!videoPlayer.isPrepared) return;
+            
+            if (!TimeSources.isAppFocused || !TimeSources.isAppPaused) {
+                videoPlayer.Pause();
+                return;
+            }
+            
+            videoPlayer.Play();
+        }
+        
         private void OnVideoPrepared(VideoPlayer source) {
-            float preparedInTime = Time.realtimeSinceStartup - _awakeTime;
+            float preparedInTime = TimeSources.unscaledTime - _awakeTime;
             float delay = Mathf.Max(0f, _delay - preparedInTime);
             
             PlayDelayed(source, targetRawImage, delay, _fadeOut, _destroyCts.Token).Forget();
@@ -63,8 +81,7 @@ namespace MisterGames.Scenes.Splash {
             float fadeOut,
             CancellationToken cancellationToken) 
         {
-            await UniTask.Delay(TimeSpan.FromSeconds(delay), cancellationToken: cancellationToken)
-                .SuppressCancellationThrow();
+            await AsyncExt.DelayUnscaled(TimeSpan.FromSeconds(delay), cancellationToken: cancellationToken);
             if (cancellationToken.IsCancellationRequested) return;
             
             target.texture = videoPlayer.texture;
@@ -76,7 +93,7 @@ namespace MisterGames.Scenes.Splash {
             float speed = fadeOut > 0f ? 1f / fadeOut : float.MaxValue;
             
             while (!cancellationToken.IsCancellationRequested) {
-                t += Time.unscaledDeltaTime * speed;
+                t += TimeSources.unscaledDeltaTime * speed;
                 target.color = Color.Lerp(color0, color1, t);
 
                 await UniTask.Yield();

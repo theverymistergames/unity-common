@@ -4,6 +4,7 @@ using Cysharp.Threading.Tasks;
 using MisterGames.Common.Colors;
 using MisterGames.Common.Easing;
 using MisterGames.Common.Maths;
+using MisterGames.Common.Tick;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -106,7 +107,7 @@ namespace MisterGames.Scenes.Loading {
             while (id == _fadeId && !cancellationToken.IsCancellationRequested && 
                    (dir > 0f && Progress < max || dir < 0f && Progress > min)) 
             {
-                Progress = Mathf.Clamp(Progress + Time.unscaledDeltaTime * speed * dir, min, max);
+                Progress = Mathf.Clamp(Progress + TimeSources.unscaledDeltaTime * speed * dir, min, max);
                 
                 float t = progressStart.IsNearlyEqual(progressEnd) 
                     ? 1f 

@@ -1,111 +1,139 @@
-﻿using System.Collections.Generic;
-using System.Text;
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace MisterGames.Common.Tick {
 
-    internal sealed class TimeSource : ITimeSource, ITimeSourceApi {
-        
-        public bool IsPaused { get; set; }
+    internal sealed class TimeSource {
+
         public float DeltaTime { get; private set; }
-        public float TimeScale { get => _timeScaleProvider.TimeScale; set => _timeScaleProvider.TimeScale = value; }
+        public float UnscaledDeltaTime { get; private set; }
+        public float FixedDeltaTime { get; private set; }
+        public float FixedUnscaledDeltaTime { get; private set; }
         public float ScaledTime { get; private set; }
+        public float UnscaledTime { get; private set; }
         public int FrameCount { get; private set; }
+        public bool IsAppPaused { get; private set; }
+        public bool IsAppFocused { get; private set; } = true;
+        public int SubscribersCount => _indexMap.Count;
 
-        public int SubscribersCount => _updateList.Count;
-
-        private readonly string _name;
+        private const int InitialCapacity = 32;
         
-        private readonly Dictionary<IUpdate, int> _indexMap = new();
-        private readonly List<IUpdate> _updateList = new();
+        private readonly Dictionary<IUpdate, Entry> _indexMap = new(InitialCapacity);
+        private readonly List<IUpdate>[] _updateListMap = { new(), new(), new(), new(), new(), };
+        private bool _discardNextFrameDt;
+
+        private readonly struct Entry {
+            public readonly int stage;
+            public readonly int index;
+            public Entry(int stage, int index) {
+                this.stage = stage;
+                this.index = index;
+            }
+        }
         
-        private readonly IDeltaTimeProvider _deltaTimeProvider;
-        private readonly ITimeScaleProvider _timeScaleProvider;
-        
-        public TimeSource(IDeltaTimeProvider deltaTimeProvider, ITimeScaleProvider timeScaleProvider, string name = null) {
-            _deltaTimeProvider = deltaTimeProvider;
-            _timeScaleProvider = timeScaleProvider;
-            _name = name;
-        }
-
-        public bool Subscribe(IUpdate sub) {
-            if (!_indexMap.TryAdd(sub, _updateList.Count)) return false;
-
-            _updateList.Add(sub);
-
-#if UNITY_EDITOR
-            if (TimeSources.ShowDebugInfo) Log($"subscribed {sub}");
-#endif
-            
-            return true;
-        }
-
-        public bool Unsubscribe(IUpdate sub) {
-            if (!_indexMap.Remove(sub, out int index)) return false;
-
-            _updateList[index] = null;
-            
-#if UNITY_EDITOR
-            if (TimeSources.ShowDebugInfo) Log($"unsubscribed {sub}");
-#endif
-            
-            return true;
-        }
-
-        public void Tick() {
-            DeltaTime = IsPaused ? 0f : _deltaTimeProvider.DeltaTime * _timeScaleProvider.TimeScale;
-            ScaledTime += DeltaTime;
-            
-            int count = _updateList.Count;
-            for (int i = 0; i < count; i++) {
-                if (_updateList[i] is { } update) {
-                    update.OnUpdate(DeltaTime);
-                }
+        public void Subscribe(IUpdate sub, PlayerLoopStage stage) {
+            if (sub == null) {
+                throw new NullReferenceException($"{nameof(TimeSource)}.Subscribe: f {Time.frameCount}, subscriber should not be null. Stage: {stage}");
             }
             
-            count = _updateList.Count;
+            int s = (int) stage;
+            
+            if (_indexMap.TryGetValue(sub, out var entry)) {
+                if (entry.stage == s) return;
+                
+                _updateListMap[entry.stage][entry.index] = null;
+                _indexMap.Remove(sub);
+            }
+
+            var list = _updateListMap[s];
+            list.Add(sub);
+            
+            _indexMap[sub] = new Entry(s, list.Count - 1);
+        }
+
+        public void Unsubscribe(IUpdate sub) {
+            if (sub == null) {
+                throw new NullReferenceException($"{nameof(TimeSource)}.Unsubscribe: f {Time.frameCount}, subscriber should not be null");
+            }
+            
+            if (!_indexMap.Remove(sub, out var entry)) return;
+
+            _updateListMap[entry.stage][entry.index] = null;
+        }
+
+        public void OnAppPause(bool paused) {
+            IsAppPaused = paused;
+            _discardNextFrameDt |= !paused;
+        }
+
+        public void OnAppFocused(bool focused) {
+            IsAppFocused = focused;
+            _discardNextFrameDt |= focused;
+        }
+
+        public void TickUpdate(float dtScaled, float dtUnscaled) {
+            UnscaledDeltaTime = IsAppPaused || !IsAppFocused || _discardNextFrameDt ? 0f : dtUnscaled;
+            DeltaTime = dtScaled;
+
+            UnscaledTime += UnscaledDeltaTime;
+            ScaledTime += DeltaTime;
+
+            _discardNextFrameDt = false;
+
+            Tick((int) PlayerLoopStage.PreUpdate, DeltaTime);
+            Tick((int) PlayerLoopStage.Update, DeltaTime);
+            Tick((int) PlayerLoopStage.UnscaledUpdate, UnscaledDeltaTime);
+
+            FrameCount++;
+        }
+
+        public void TickLateUpdate(float dtScaled, float dtUnscaled) {
+            Tick((int) PlayerLoopStage.LateUpdate, DeltaTime);
+        }
+
+        public void TickFixedUpdate(float dtScaled, float dtUnscaled) {
+            FixedDeltaTime = dtScaled;
+            FixedUnscaledDeltaTime = dtUnscaled;
+
+            Tick((int) PlayerLoopStage.FixedUpdate , FixedDeltaTime);
+        }
+
+        private void Tick(int stage, float dt) {
+            var list =  _updateListMap[stage];
+            int count = list.Count;
+            int freeCount = 0;
+
+            for (int i = 0; i < count; i++) {
+                var updatable = list[i];
+
+                if (updatable == null) {
+                    freeCount++;
+                    continue;
+                }
+
+                updatable.OnUpdate(dt);
+            }
+
+            if (freeCount > list.Count * 0.5f) {
+                RemoveEmptySpaces(stage);
+            }
+        }
+        
+        private void RemoveEmptySpaces(int stage) {
+            var list =  _updateListMap[stage];
+            int count = list.Count;
             int validCount = count;
             
             for (int i = count - 1; i >= 0; i--) {
-                if (_updateList[i] is null && _updateList[--validCount] is { } swap) {
-                    _updateList[i] = swap;
-                    _indexMap[swap] = i;
-                }
-            }
-            
-            _updateList.RemoveRange(validCount, count - validCount);
-
-            FrameCount++;
+                if (list[i] is not null || list[--validCount] is not { } swap) continue;
                 
-#if UNITY_EDITOR
-            if (count != validCount && TimeSources.ShowDebugInfo) Log($"cleaned {count - validCount} null subscribers");
-#endif
-        }
-
-        public void Reset() {
-            IsPaused = false;
-            
-            _updateList.Clear();
-            _indexMap.Clear();
-        }
-
-#if UNITY_EDITOR
-        private void Log(string message) {
-            Debug.Log($"TimeSource[{_name}]: f {Time.frameCount}, {message}, state:\n{GetStateString()}");
-        }
-        
-        private string GetStateString() {
-            var sb = new StringBuilder($"Subscribers ({_updateList.Count}):\n");
-            for (int i = 0; i < _updateList.Count; i++) {
-                var sub = _updateList[i];
-                sb.AppendLine(sub == null 
-                    ? $"[{i}] null" 
-                    : $"[{i}] {sub} [index in map {_indexMap.GetValueOrDefault(sub, -1)}]"
-                );
+                list[i] = swap;
+                _indexMap[swap] = new Entry(stage, i);
             }
-            return sb.ToString();
-        }  
-#endif
+            
+            list.RemoveRange(validCount, count - validCount);
+        }
     }
 
 }

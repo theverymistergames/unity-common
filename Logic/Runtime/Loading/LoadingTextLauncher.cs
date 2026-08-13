@@ -9,6 +9,7 @@ using MisterGames.Common.Lists;
 using MisterGames.Common.Localization;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Service;
+using MisterGames.Common.Tick;
 using MisterGames.Dialogues.Components;
 using MisterGames.Input.Actions;
 using MisterGames.Scenes.Core;
@@ -207,7 +208,7 @@ namespace MisterGames.Logic.Loading {
                 float oldProgress = _loadingProgress;
                 float targetProgress = SceneLoader.GetLoadingProgress();
                 
-                _loadingProgress = _loadingProgress.SmoothExpNonZero(targetProgress, preset.progressSmoothing, Time.unscaledDeltaTime);
+                _loadingProgress = _loadingProgress.SmoothExpNonZero(targetProgress, preset.progressSmoothing, TimeSources.unscaledDeltaTime);
                 
                 if (!oldProgress.IsNearlyEqual(_loadingProgress)) {
                     _dialoguePrinter.ReprintLast(preset.loadingProgressKey);    

@@ -258,7 +258,7 @@ namespace MisterGames.UI.Components {
         }
 
         void IUpdate.OnUpdate(float dt) {
-            ProcessScroll(Time.unscaledDeltaTime);
+            ProcessScroll(TimeSources.unscaledDeltaTime);
         }
 
         private void ProcessScroll(float dt) {

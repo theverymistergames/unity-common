@@ -11,7 +11,6 @@ namespace MisterGames.BlueprintLib {
 
         [SerializeField] private PlayerLoopStage _stage = PlayerLoopStage.Update;
 
-        private ITimeSource _timeSource;
         private IBlueprint _blueprint;
         private NodeToken _token;
 
@@ -23,12 +22,10 @@ namespace MisterGames.BlueprintLib {
         }
 
         public void OnInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
-            _timeSource = TimeSources.Get(_stage);
         }
 
         public void OnDeInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
-            _timeSource.Unsubscribe(this);
-            _timeSource = null;
+            PlayerLoopStage.Update.Unsubscribe(this);
             _blueprint = null;
         }
 
@@ -37,19 +34,19 @@ namespace MisterGames.BlueprintLib {
             _token = token;
 
             if (port == 0) {
-                _timeSource.Subscribe(this);
+                PlayerLoopStage.Update.Subscribe(this);
                 return;
             }
 
             if (port == 1) {
-                _timeSource.Unsubscribe(this);
+                PlayerLoopStage.Update.Unsubscribe(this);
                 return;
             }
         }
 
         public float GetPortValue(IBlueprint blueprint, NodeToken token, int port) => port switch {
-            3 => _timeSource.DeltaTime,
-            _ => default,
+            3 => TimeSources.deltaTime,
+            _ => 0,
         };
 
         public void OnUpdate(float dt) {
