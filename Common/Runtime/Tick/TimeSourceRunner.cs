@@ -26,6 +26,10 @@ namespace MisterGames.Common.Tick {
         }
 
         private void OnApplicationFocus(bool hasFocus) {
+#if UNITY_EDITOR
+            hasFocus = true;
+#endif
+            
             _timeSource.OnAppFocused(hasFocus);
         }
 
