@@ -24,6 +24,7 @@ namespace MisterGames.Common.Audio {
         [SerializeField] [MinMaxSlider(0f, 1f)] private Vector2 _startTime;
         [SerializeField] [Min(0f)] private float _fadeIn;
         [SerializeField] [Min(-1f)] private float _fadeOut = -1f;
+        [SerializeField] [Min(0f)] private float _attenuationMul = 1f;
         [SerializeField] private AudioOptions _options = AudioOptions.Everything;
         [SerializeField] private AudioMixerGroup _mixerGroup;
         [SerializeField] private AudioClip[] _audioClipVariants;
@@ -65,7 +66,7 @@ namespace MisterGames.Common.Audio {
             var clip = pool.ShuffleClips(_audioClipVariants);
             float resultStartTime = _startTime.GetRandomInRange();
             
-            _soundInstance = pool.Play(clip, _root, localPosition: default, _attachId, volume: 0f, _fadeIn, _fadeOut, pitch: 1f, _spatialBlend, resultStartTime, _mixerGroup, _options);
+            _soundInstance = pool.Play(clip, _root, localPosition: default, _attachId, volume: 0f, _fadeIn, _fadeOut, pitch: 1f, _spatialBlend, resultStartTime, _attenuationMul, _mixerGroup, _options);
             return _soundInstance;
         }
         

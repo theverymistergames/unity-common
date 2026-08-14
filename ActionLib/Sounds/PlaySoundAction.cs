@@ -36,6 +36,7 @@ namespace MisterGames.ActionLib.Sounds {
         [Range(0f, 3f)] public float pitch = 1f;
         [Range(0f, 3f)] public float pitchRandomAdd;
         [Range(0f, 1f)] public float spatialBlend = 1f;
+        [Min(0f)] public float attenuationMul = 1f;
         public bool loop;
         public bool affectedByTimeScale = true;
         public bool occlusion = true;
@@ -95,8 +96,8 @@ namespace MisterGames.ActionLib.Sounds {
             cancellationToken = useActorDestroyToken ? context.DestroyToken : cancellationToken;
             
             return attach 
-                ? pool.Play(clip, trf, localPosition: default, attachId, volume, fadeIn, fadeOut, resultPitch, spatialBlend, resultStartTime, mixerGroup, options, cancellationToken) 
-                : pool.Play(clip, trf.position, volume, fadeIn, fadeOut, resultPitch, spatialBlend, resultStartTime, mixerGroup, options, cancellationToken);
+                ? pool.Play(clip, trf, localPosition: default, attachId, volume, fadeIn, fadeOut, resultPitch, spatialBlend, resultStartTime, attenuationMul, mixerGroup, options, cancellationToken) 
+                : pool.Play(clip, trf.position, volume, fadeIn, fadeOut, resultPitch, spatialBlend, resultStartTime, attenuationMul, mixerGroup, options, cancellationToken);
         }
     }
     

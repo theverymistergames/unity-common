@@ -276,6 +276,7 @@ namespace MisterGames.Common.Audio {
             float pitch = 1f, 
             float spatialBlend = 1f,
             float normalizedTime = 0f,
+            float attenuationMul = 1f,
             AudioMixerGroup mixerGroup = null,
             AudioOptions options = default,
             CancellationToken cancellationToken = default) 
@@ -316,6 +317,7 @@ namespace MisterGames.Common.Audio {
                 fadeOut,
                 clipLength,
                 clipTime,
+                attenuationMul,
                 options,
                 mixerGroup,
                 cancellationToken
@@ -358,6 +360,7 @@ namespace MisterGames.Common.Audio {
             float pitch = 1f,
             float spatialBlend = 1f,
             float normalizedTime = 0f,
+            float attenuationMul = 1f,
             AudioMixerGroup mixerGroup = null,
             AudioOptions options = default,
             CancellationToken cancellationToken = default) 
@@ -407,6 +410,7 @@ namespace MisterGames.Common.Audio {
                 fadeOut,
                 clipLength,
                 clipTime,
+                attenuationMul,
                 options,
                 mixerGroup,
                 cancellationToken
@@ -456,6 +460,7 @@ namespace MisterGames.Common.Audio {
             float fadeOut,
             float clipLength,
             float clipTime,
+            float attenuationMul,
             AudioOptions options,
             AudioMixerGroup mixerGroup,
             CancellationToken cancellationToken) 
@@ -467,7 +472,7 @@ namespace MisterGames.Common.Audio {
             audioElement.IsPaused = false;
             audioElement.AudioOptions = options;
             audioElement.PitchMul = pitch;
-            audioElement.AttenuationMul = 1f;
+            audioElement.AttenuationMul = attenuationMul;
 
             audioElement.ClipLength = clipLength;
             audioElement.ClipTime = clipTime;
