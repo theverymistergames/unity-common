@@ -6,6 +6,7 @@ using MisterGames.Actors.Actions;
 using MisterGames.Character.View;
 using MisterGames.Common;
 using MisterGames.Common.Easing;
+using MisterGames.Common.Tick;
 using UnityEngine;
 
 namespace MisterGames.ActionLib.Character {
@@ -31,7 +32,7 @@ namespace MisterGames.ActionLib.Character {
             view.SetViewOrientation(startRotation, moveView: false);
             
             while (!cancellationToken.IsCancellationRequested) {
-                float dt = useUnscaledTime ? UnityEngine.Time.unscaledDeltaTime : UnityEngine.Time.deltaTime;
+                float dt = useUnscaledTime ? TimeSources.unscaledDeltaTime : TimeSources.deltaTime;
                 t += dt * speed;
                 
                 var rot = Quaternion.Slerp(startRotation, targetRotation, progressCurve.Evaluate(t));

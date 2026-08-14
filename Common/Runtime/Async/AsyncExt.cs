@@ -52,31 +52,31 @@ namespace MisterGames.Common.Async {
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static async UniTask Delay(float delay, bool ignoreTimescale, CancellationToken cancellationToken) {
+        public static async UniTask Delay(float delay, bool ignoreTimeScale, CancellationToken cancellationToken) {
             float t = 0f;
             float speed = delay > 0f ? 1f / delay : float.MaxValue;
 
             while (t < 1f && !cancellationToken.IsCancellationRequested) {
-                float dt = ignoreTimescale ? TimeSources.unscaledDeltaTime : TimeSources.deltaTime;
+                float dt = ignoreTimeScale ? TimeSources.unscaledDeltaTime : TimeSources.deltaTime;
                 t += dt * speed;
                 await UniTask.Yield();
             }
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static async UniTask Delay(TimeSpan timeSpan, bool ignoreTimescale, CancellationToken cancellationToken) {
+        public static async UniTask Delay(TimeSpan timeSpan, bool ignoreTimeScale, CancellationToken cancellationToken) {
             double t = 0f;
             double speed = timeSpan.TotalSeconds > 0f ? 1f / timeSpan.TotalSeconds : float.MaxValue;
 
             while (t < 1f && !cancellationToken.IsCancellationRequested) {
-                float dt = ignoreTimescale ? TimeSources.unscaledDeltaTime : TimeSources.deltaTime;
+                float dt = ignoreTimeScale ? TimeSources.unscaledDeltaTime : TimeSources.deltaTime;
                 t += dt * speed;
                 await UniTask.Yield();
             }
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static async UniTask DelayScaled(float delay, CancellationToken cancellationToken) {
+        public static async UniTask Delay(float delay, CancellationToken cancellationToken) {
             float t = 0f;
             float speed = delay > 0f ? 1f / delay : float.MaxValue;
 
@@ -87,7 +87,7 @@ namespace MisterGames.Common.Async {
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static async UniTask DelayScaled(TimeSpan timeSpan, CancellationToken cancellationToken) {
+        public static async UniTask Delay(TimeSpan timeSpan, CancellationToken cancellationToken) {
             double t = 0f;
             double speed = timeSpan.TotalSeconds > 0f ? 1f / timeSpan.TotalSeconds : float.MaxValue;
 

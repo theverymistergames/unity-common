@@ -4,6 +4,7 @@ using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
 using MisterGames.Common.Easing;
+using MisterGames.Common.Tick;
 using UnityEngine;
 
 namespace MisterGames.ActionLib.GameObjects {
@@ -23,7 +24,7 @@ namespace MisterGames.ActionLib.GameObjects {
             float t = 0f;
 
             while (t < 1f && !cancellationToken.IsCancellationRequested) {
-                float dt = useUnscaledTime ? UnityEngine.Time.unscaledDeltaTime : UnityEngine.Time.deltaTime;
+                float dt = useUnscaledTime ? TimeSources.unscaledDeltaTime : TimeSources.deltaTime;
                 t = Mathf.Clamp01(t + dt * speed);
                 
                 transform.localScale = Vector3.Lerp(startScale, endScale, curve.Evaluate(t));

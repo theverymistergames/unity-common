@@ -88,8 +88,7 @@ namespace MisterGames.Logic.UI {
                     if (cancellationToken.IsCancellationRequested || id != _printId) break;
 
                     if (_skipCts != null) {
-                        await UniTask.Delay(TimeSpan.FromSeconds(printDelay), ignoreTimeScale: _useUnscaledTime, cancellationToken: cancellationToken)
-                            .SuppressCancellationThrow();   
+                        await AsyncExt.Delay(TimeSpan.FromSeconds(printDelay), _useUnscaledTime, cancellationToken: cancellationToken);   
                     }
                 }
 

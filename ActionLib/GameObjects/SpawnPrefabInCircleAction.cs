@@ -4,6 +4,7 @@ using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
 using MisterGames.Common;
+using MisterGames.Common.Async;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Pooling;
 using UnityEngine;
@@ -64,8 +65,7 @@ namespace MisterGames.ActionLib.GameObjects {
 #endif
 
                 if (stepDelay > 0f) {
-                    await UniTask.Delay(TimeSpan.FromSeconds(stepDelay), ignoreTimeScale: useUnscaledTime, cancellationToken: cancellationToken)
-                        .SuppressCancellationThrow();
+                    await AsyncExt.Delay(TimeSpan.FromSeconds(stepDelay), ignoreTimeScale: useUnscaledTime, cancellationToken);
                 }
             }
         }

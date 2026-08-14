@@ -156,7 +156,7 @@ namespace MisterGames.Character.Transport {
         }
         
         private void OnEnable() {
-            _enterTime = Time.time;
+            _enterTime = TimeSources.scaledTime;
             IsEntered = true;
             OnEnter.Invoke();
             
@@ -270,7 +270,7 @@ namespace MisterGames.Character.Transport {
         }
 
         private void CheckIgnition() {
-            if (IsIgnitionOn || Time.time < _enterTime + _ignitionDelayAfterEnter) return;
+            if (IsIgnitionOn || TimeSources.scaledTime < _enterTime + _ignitionDelayAfterEnter) return;
 
             switch (_ignitionMode) {
                 case IgnitionMode.OnEnter:
@@ -283,7 +283,7 @@ namespace MisterGames.Character.Transport {
                     break;
             }
 
-            if (!_isIgnitionStartRequested || Time.time < _ignitionStartTime + _ignitionDuration) return;
+            if (!_isIgnitionStartRequested || TimeSources.scaledTime < _ignitionStartTime + _ignitionDuration) return;
 
             EnableIgnition(true);
         }
@@ -307,7 +307,7 @@ namespace MisterGames.Character.Transport {
         private void StartIgnition(float duration) {
             if (_isIgnitionStartRequested) return;
 
-            _ignitionStartTime = Time.time;
+            _ignitionStartTime = TimeSources.scaledTime;
             _isIgnitionStartRequested = true;
             
             OnStartIgnition.Invoke(duration);
@@ -393,11 +393,11 @@ namespace MisterGames.Character.Transport {
             var up = Root.up;
             
             if (Vector3.Angle(up, Vector3.up) < _overturnAngleMin) {
-                _lastTimeNotOverturned = Time.time;
+                _lastTimeNotOverturned = TimeSources.scaledTime;
                 return;
             }
 
-            if (Time.time < _lastTimeNotOverturned + _minTimeOverturnedToApplyForce) {
+            if (TimeSources.scaledTime < _lastTimeNotOverturned + _minTimeOverturnedToApplyForce) {
                 return;
             }
 

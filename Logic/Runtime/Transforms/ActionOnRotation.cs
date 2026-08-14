@@ -68,9 +68,9 @@ namespace MisterGames.Logic.Transforms {
             
             _rotation = rot;
             
-            if (angularSpeed < _minAngularSpeed || Time.time < _lastActionTime + _minCooldown) return;
+            if (angularSpeed < _minAngularSpeed || TimeSources.scaledTime < _lastActionTime + _minCooldown) return;
 
-            _lastActionTime = Time.time;
+            _lastActionTime = TimeSources.scaledTime;
             _action?.Apply(_actor, _enableCts.Token).Forget();
         }
 

@@ -96,7 +96,7 @@ namespace MisterGames.Common.Tick {
                    !cancellationToken.IsCancellationRequested && 
                    _sourceToChangeIdMap.TryGetValue(hash, out currentId) && id == currentId) 
             {
-                t = Mathf.Clamp01(t + Time.unscaledDeltaTime * speed);
+                t = Mathf.Clamp01(t + TimeSources.unscaledDeltaTime * speed);
                 float ts = Mathf.Lerp(startTimescale, timescale, curve?.Evaluate(t) ?? t);
                 _timescaleMap[hash] = (priority, ts);
                 

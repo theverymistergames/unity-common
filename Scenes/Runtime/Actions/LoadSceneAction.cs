@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using MisterGames.Common.Async;
 using MisterGames.Common.Data;
 using MisterGames.Common.Easing;
 using MisterGames.Common.Service;
+using MisterGames.Common.Tick;
 using MisterGames.Scenes.Core;
 using MisterGames.Scenes.Loading;
 using MisterGames.Scenes.Utils;
@@ -37,7 +39,7 @@ namespace MisterGames.Scenes.Actions {
 
             var loadingService = Services.Get<ILoadingService>();
             
-            float showStartTime = Time.realtimeSinceStartup;
+            float showStartTime = TimeSources.unscaledTime;
             bool isLoadingScene = _scene.scene == loadingService?.LoadingScene;
             
             if (isLoadingScene) {
@@ -52,11 +54,10 @@ namespace MisterGames.Scenes.Actions {
                 if (cancellationToken.IsCancellationRequested) return;
             }
             
-            float wait = Mathf.Max(Time.realtimeSinceStartup - showStartTime, _minDuration);
+            float wait = Mathf.Max(TimeSources.unscaledTime - showStartTime, _minDuration);
             
             if (wait > 0f) {
-                await UniTask.Delay(TimeSpan.FromSeconds(wait), delayType: DelayType.UnscaledDeltaTime, cancellationToken: cancellationToken)
-                    .SuppressCancellationThrow();
+                await AsyncExt.Delay(TimeSpan.FromSeconds(wait), ignoreTimeScale: true, cancellationToken: cancellationToken);
                 if (cancellationToken.IsCancellationRequested) return;
             }
 

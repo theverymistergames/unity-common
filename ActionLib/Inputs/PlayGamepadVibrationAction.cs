@@ -7,6 +7,7 @@ using MisterGames.Common.Easing;
 using MisterGames.Common.Inputs;
 using MisterGames.Common.Labels;
 using MisterGames.Common.Service;
+using MisterGames.Common.Tick;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -37,7 +38,7 @@ namespace MisterGames.ActionLib.Inputs {
             float amp = Mathf.Max(0f, amplitude + Random.Range(-amplitudeRandom, amplitudeRandom));
 
             while (t < 1f && !cancellationToken.IsCancellationRequested) {
-                float dt = useUnscaledTime ? UnityEngine.Time.unscaledDeltaTime : UnityEngine.Time.deltaTime;
+                float dt = useUnscaledTime ? TimeSources.unscaledDeltaTime : TimeSources.deltaTime;
                 t = Mathf.Clamp01(t + dt * speed);
                 
                 var freq = new Vector2(curveLeft.Evaluate(t), curveRight.Evaluate(t)) * amp;

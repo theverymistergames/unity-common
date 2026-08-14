@@ -7,6 +7,7 @@ using MisterGames.Character.Core;
 using MisterGames.Character.View;
 using MisterGames.Common.Data;
 using MisterGames.Common.Maths;
+using MisterGames.Common.Tick;
 using UnityEngine;
 
 namespace MisterGames.ActionLib.Character {
@@ -37,7 +38,7 @@ namespace MisterGames.ActionLib.Character {
             var rm = rotationMultiplier.CreateMultiplier();
             
             while (!cancellationToken.IsCancellationRequested && t < 1f) {
-                float dt = useUnscaledTime ? UnityEngine.Time.unscaledDeltaTime : UnityEngine.Time.deltaTime;
+                float dt = useUnscaledTime ? TimeSources.unscaledDeltaTime : TimeSources.deltaTime;
                 t = Mathf.Clamp01(t + inc * dt);
 
                 var speed = sm.Multiply(noiseSpeed.Evaluate(t));

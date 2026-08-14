@@ -2,6 +2,7 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.GameObjects;
+using MisterGames.Common.Tick;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -12,7 +13,8 @@ namespace MisterGames.Common.Pooling {
         
         [Header("Lifecycle")]
         [Tooltip("If less than zero, lifetime is infinite.")]
-        [SerializeField] private float _lifetime = -1f;
+        [SerializeField] [Min(-1f)] private float _lifetime = -1f;
+        [SerializeField] private bool _useUnscaledTime;
         
         [Tooltip("These objects are spawned when lifetime is out.")]
         [SerializeField] private GameObject[] _spawnOnLifetimeOut;
@@ -84,13 +86,14 @@ namespace MisterGames.Common.Pooling {
         /// If less than zero, lifetime is infinite.
         /// </summary>
         public float LifetimeTotal { get => _lifetime; set => _lifetime = value; }
-        public float LifetimeLeft => _startTime + _lifetime - Time.time;
-        public float LifetimeProgress => LifetimeTotal > 0f ? Mathf.Clamp01(1f - LifetimeLeft / LifetimeTotal) : 0f;
+        public float LifetimeLeft => _lifetime - GetTimer();
+        public float LifetimeProgress => _lifetime > 0f ? Mathf.Clamp01(GetTimer() / _lifetime) : 0f;
         
         private CancellationTokenSource _enableCts;
         private TransformData[] _syncTransformData;
         private RigidbodyData[] _syncRigidbodyData;
-        private float _startTime;
+        private float _startTimeScaled;
+        private float _startTimeUnscaled;
         private byte _takeId;
         
         private void Awake() {
@@ -125,10 +128,19 @@ namespace MisterGames.Common.Pooling {
             OnRelease.Invoke();
         }
 
+        private float GetTimer() {
+            return _useUnscaledTime 
+                ? TimeSources.unscaledTime - _startTimeUnscaled 
+                : TimeSources.scaledTime - _startTimeScaled;
+        }
+        
         private async UniTask WaitAndRelease(byte id, IPrefabPool pool, CancellationToken cancellationToken) {
-            _startTime = Time.time;
+            _startTimeScaled = TimeSources.scaledTime;
+            _startTimeUnscaled = TimeSources.unscaledTime;
 
-            while (!cancellationToken.IsCancellationRequested && id == _takeId && Time.time <= _startTime + _lifetime)
+            while (id == _takeId && 
+                   !cancellationToken.IsCancellationRequested && 
+                   GetTimer() < _lifetime)
             {
                 await UniTask.Yield();
             }

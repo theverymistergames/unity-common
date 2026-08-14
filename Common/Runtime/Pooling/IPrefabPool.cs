@@ -50,8 +50,8 @@ namespace MisterGames.Common.Pooling {
         UniTask<T> GetAsync<T>(T prefab, Vector3 position, Quaternion rotation, Transform parent, bool active = true) where T : Component;
         UniTask<T> GetAsync<T>(T prefab, Vector3 position, Quaternion rotation, Vector3 scale, Transform parent, bool active = true) where T : Component;
         
-        void Release(GameObject instance, float duration = 0f);
-        void Release(Component component, float duration = 0f);
+        void Release(GameObject instance);
+        void Release(Component component);
     }
     
 }

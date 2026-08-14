@@ -6,6 +6,7 @@ using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Common.Lists;
 using MisterGames.Common.Maths;
+using MisterGames.Common.Tick;
 using UnityEngine;
 using UnityEngine.Assertions;
 
@@ -103,20 +104,9 @@ namespace MisterGames.Tweens {
 
             speed /= duration;
             
-#if UNITY_EDITOR
-            float time = Time.realtimeSinceStartup;
-#endif
-            
             while (!cancellationToken.IsCancellationRequested) {
-                float dt = Time.deltaTime;
+                float dt = TimeSources.deltaTime;
 
-#if UNITY_EDITOR
-                if (!Application.isPlaying) {
-                    dt = Time.realtimeSinceStartup - time;
-                    time = Time.realtimeSinceStartup;
-                }
-#endif
-                
                 linearProgress = Mathf.Clamp01(linearProgress + dt * speed);
                 
                 float oldProgress = progress;
@@ -164,20 +154,9 @@ namespace MisterGames.Tweens {
 
             speed /= duration;
 
-#if UNITY_EDITOR
-            float time = Time.realtimeSinceStartup;
-#endif
-            
             while (!cancellationToken.IsCancellationRequested) {
-                float dt = Time.deltaTime;
+                float dt = TimeSources.deltaTime;
 
-#if UNITY_EDITOR
-                if (!Application.isPlaying) {
-                    dt = Time.realtimeSinceStartup - time;
-                    time = Time.realtimeSinceStartup;
-                }
-#endif
-                
                 linearProgress = Mathf.Clamp01(linearProgress + dt * speed);
                 
                 float oldProgress = progress;

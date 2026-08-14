@@ -3,6 +3,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
+using MisterGames.Common.Async;
 using MisterGames.Common.Attributes;
 using UnityEngine;
 using Random = UnityEngine.Random;
@@ -22,8 +23,7 @@ namespace MisterGames.ActionLib.Time {
                 float delay = Random.Range(delayFrom, delayTo);
 
                 if (delay > 0f) {
-                    await UniTask.Delay(TimeSpan.FromSeconds(delay), ignoreTimeScale: useUnscaledTime, cancellationToken: cancellationToken)
-                        .SuppressCancellationThrow();
+                    await AsyncExt.Delay(TimeSpan.FromSeconds(delay), ignoreTimeScale: useUnscaledTime, cancellationToken);
                 }
                 
                 if (cancellationToken.IsCancellationRequested) return;

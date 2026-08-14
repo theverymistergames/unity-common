@@ -9,7 +9,6 @@ namespace MisterGames.Collisions.Detectors {
     public sealed class FrameRaycaster : CollisionDetectorBase, IUpdate {
 
         [SerializeField] private Transform _transform;
-        [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
 
         [Header("Raycast Settings")]
         [SerializeField] [Min(1)] private int _maxHits = 6;
@@ -31,11 +30,11 @@ namespace MisterGames.Collisions.Detectors {
         }
 
         private void OnEnable() {
-            _timeSourceStage.Subscribe(this);
+            PlayerLoopStage.FixedUpdate.Subscribe(this);
         }
 
         private void OnDisable() {
-            _timeSourceStage.Unsubscribe(this);
+            PlayerLoopStage.FixedUpdate.Unsubscribe(this);
         }
 
         private void Start() {

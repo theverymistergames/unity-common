@@ -152,14 +152,14 @@ namespace MisterGames.Character.Phys {
                 normal = normal.normalized;
                 hitDistance = Vector3.Distance(origin, hitPoint);
 
-                LastGroundedTime = Time.time;
+                LastGroundedTime = TimeSources.scaledTime;
             }
             else {
                 normal = up;
                 hitPoint = origin - distance * up;
                 hitDistance = distance;
                 
-                LastNotGroundedTime = Time.time;
+                LastNotGroundedTime = TimeSources.scaledTime;
             }
             
 #if UNITY_EDITOR

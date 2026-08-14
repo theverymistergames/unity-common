@@ -13,25 +13,10 @@ namespace MisterGames.Common.Tick {
         public static float unscaledDeltaTime => GetTimeSource().UnscaledDeltaTime;
         public static float fixedDeltaTime => GetTimeSource().FixedDeltaTime;
         public static float fixedUnscaledDeltaTime => GetTimeSource().FixedUnscaledDeltaTime;
-        
         public static float scaledTime => GetTimeSource().ScaledTime;
         public static float unscaledTime => GetTimeSource().UnscaledTime;
-        
         public static bool isAppFocused => Application.isFocused;
         public static bool isAppPaused => GetTimeSource().IsAppPaused;
-        
-        public static float time {
-            get {
-#if UNITY_EDITOR
-                if (!Application.isPlaying) {
-                    CheckEditorUpdatesAreStarted().Forget();
-                    return _editorUpdatesTime;   
-                }
-#endif
-      
-                return Time.time;
-            }
-        }
 
         public static int frameCount {
             get {

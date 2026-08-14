@@ -175,7 +175,7 @@ namespace MisterGames.UI.Components {
         public void MoveToPosition(Vector2 normalizedPosition, float duration) {
             var nextTargetPos = normalizedPosition.Clamp01();
             var currTargetPos = _targetMovePositionNormalized;
-            float time = Time.realtimeSinceStartup;
+            float time = TimeSources.unscaledTime;
             
             _targetMovePositionNormalized = nextTargetPos;
 
@@ -268,7 +268,7 @@ namespace MisterGames.UI.Components {
             bool hasScrollSpace = _scrollRect.horizontal && contentRect.width > viewportRect.width || 
                                   _scrollRect.vertical && contentRect.height > viewportRect.height;
             
-            float time = Time.realtimeSinceStartup;
+            float time = TimeSources.unscaledTime;
             
             if (_isPointerPressed || !hasScrollSpace) {
                 _velocity = default;
@@ -338,7 +338,7 @@ namespace MisterGames.UI.Components {
                 return;
             }
             
-            float time = Time.realtimeSinceStartup;
+            float time = TimeSources.unscaledTime;
             var currentPos = _scrollRect.normalizedPosition.Clamp01();
             var size = _scrollRect.content.rect.size;
             
@@ -378,7 +378,7 @@ namespace MisterGames.UI.Components {
 
         private void ProcessAutoScroll(ref Vector2 normPos, float dt) {
             if (!_enableAutoScroll ||
-                Time.realtimeSinceStartup - _lastTimeHasInputs < _autoscrollStartDelay) 
+                TimeSources.unscaledTime - _lastTimeHasInputs < _autoscrollStartDelay) 
             {
                 return;
             }
@@ -388,7 +388,7 @@ namespace MisterGames.UI.Components {
         }
 
         private void ProcessMoveToPosition(ref Vector2 normPos) {
-            float time = Time.realtimeSinceStartup;
+            float time = TimeSources.unscaledTime;
             if (time - _moveToPositionStartTime > _moveToPositionDuration) return;
 
             float t = _moveToPositionDuration > 0f 

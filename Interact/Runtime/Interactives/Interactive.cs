@@ -32,8 +32,8 @@ namespace MisterGames.Interact.Interactives {
         private readonly List<IInteractiveUser> _users = new();
         private readonly List<IInteractiveUser> _detectedByUsers = new();
         private readonly Dictionary<IInteractiveUser, InteractionData> _userInteractionMap = new();
+        
         private Detectable _detectable;
-        private float _startTime;
         private bool _enabled;
 
         private readonly struct InteractionData {
@@ -52,7 +52,7 @@ namespace MisterGames.Interact.Interactives {
 
         private void OnEnable() {
             _enabled = true;
-            _startTime = Time.time;
+            
             if (_syncEnableStateWithDetectable) _detectable.enabled = true;
 
             for (int i = 0; i < _detectedByUsers.Count; i++) {
@@ -84,15 +84,15 @@ namespace MisterGames.Interact.Interactives {
         }
 
         public bool IsReadyToStartInteractWith(IInteractiveUser user) {
-            return _enabled && _strategy.IsReadyToStartInteraction(user, this, _startTime);
+            return _enabled && _strategy.IsReadyToStartInteraction(user, this);
         }
 
         public bool IsAllowedToStartInteractWith(IInteractiveUser user) {
-            return _enabled && _strategy.IsAllowedToStartInteraction(user, this, _startTime);
+            return _enabled && _strategy.IsAllowedToStartInteraction(user, this);
         }
 
         public bool IsAllowedToContinueInteractWith(IInteractiveUser user) {
-            return _enabled && _strategy.IsAllowedToContinueInteraction(user, this, _startTime);
+            return _enabled && _strategy.IsAllowedToContinueInteraction(user, this);
         }
 
         public void NotifyDetectedBy(IInteractiveUser user) {
@@ -141,7 +141,7 @@ namespace MisterGames.Interact.Interactives {
         private void TryApplyCursorIcon(IInteractiveUser user) {
             if (!TryGetCursorHost(user, out var host)) return;
 
-            if (_enabled && _cursorStrategy.TryGetCursorIcon(user, this, _startTime, out var icon)) {
+            if (_enabled && _cursorStrategy.TryGetCursorIcon(user, this, out var icon)) {
                 host.ApplyCursorIconOverride(this, icon);
                 return;
             }

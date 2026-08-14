@@ -62,9 +62,7 @@ namespace MisterGames.Collisions.Rigidbodies {
         }
 
         private async UniTask ApplyModifierDelayed(Modifier modifier, CancellationToken cancellationToken) {
-            await UniTask.Delay(TimeSpan.FromSeconds(modifier.delay), cancellationToken: cancellationToken)
-                .SuppressCancellationThrow();
-            
+            await AsyncExt.Delay(TimeSpan.FromSeconds(modifier.delay), cancellationToken: cancellationToken);
             if (cancellationToken.IsCancellationRequested) return;
 
             for (int i = 0; i < _colliders.Length; i++) {

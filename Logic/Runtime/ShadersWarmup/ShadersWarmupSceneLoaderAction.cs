@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using MisterGames.Common.Async;
 using MisterGames.Scenes.Core;
 using MisterGames.Scenes.Utils;
 using UnityEngine;
@@ -18,8 +19,7 @@ namespace MisterGames.Logic.ShadersWarmup {
         public async UniTask Apply(CancellationToken cancellationToken) {
             if (!CanApply()) return;
 
-            await UniTask.Delay(TimeSpan.FromSeconds(_startDelay), cancellationToken: cancellationToken)
-                .SuppressCancellationThrow();
+            await AsyncExt.DelayUnscaled(_startDelay, cancellationToken: cancellationToken);
             if (cancellationToken.IsCancellationRequested) return;
             
             await ShaderWarmupService.Instance.Load();

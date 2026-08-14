@@ -26,7 +26,6 @@ namespace MisterGames.Character.Capsule {
         private CharacterPosePipeline _pose;
         private CharacterInputPipeline _input;
         private byte _poseChangeId;
-        private float _startTime;
 
         void IActorComponent.OnAwake(IActor actor) {
             _actor = actor;
@@ -45,8 +44,6 @@ namespace MisterGames.Character.Capsule {
 
         private void OnEnable() {
             _blockSet.OnUpdate += UpdateState;
-            
-            _startTime = Time.time;
             
             UpdateState();
         }
@@ -127,8 +124,7 @@ namespace MisterGames.Character.Capsule {
                 while (!cancellationToken.IsCancellationRequested && id == _poseChangeId && 
                        !TryGetTransition(sourcePose, targetPose, out transition)
                 ) {
-                    await UniTask.Delay(TimeSpan.FromSeconds(_poseGraph.retryDelay), cancellationToken: cancellationToken)
-                        .SuppressCancellationThrow();
+                    await AsyncExt.Delay(TimeSpan.FromSeconds(_poseGraph.retryDelay), cancellationToken);
                 }    
             }
             

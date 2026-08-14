@@ -142,8 +142,7 @@ namespace MisterGames.Logic.Recording {
             var data0 = _dataArray[0];
             _cameraTransform.SetPositionAndRotation(data0.pos, data0.rot);
 
-            await UniTask.Delay(TimeSpan.FromSeconds(_playDelay), cancellationToken: cancellationToken)
-                .SuppressCancellationThrow();
+            await AsyncExt.Delay(TimeSpan.FromSeconds(_playDelay), cancellationToken: cancellationToken);
             
             if (cancellationToken.IsCancellationRequested || id != _playId) return;
             

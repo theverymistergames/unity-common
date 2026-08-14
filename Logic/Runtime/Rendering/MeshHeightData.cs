@@ -42,7 +42,7 @@ namespace MisterGames.Logic.Rendering {
         }
 
         void IUpdate.OnUpdate(float dt) {
-            float time = Time.realtimeSinceStartup;
+            float time = TimeSources.unscaledTime;
             if (time < _lastUpdateTime + _updateVerticesPeriod) return;
             
             _lastUpdateTime = time;

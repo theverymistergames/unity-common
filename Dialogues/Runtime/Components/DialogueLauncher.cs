@@ -8,6 +8,7 @@ using MisterGames.Common.Attributes;
 using MisterGames.Common.Lists;
 using MisterGames.Common.Localization;
 using MisterGames.Common.Service;
+using MisterGames.Common.Tick;
 using MisterGames.Dialogues.Core;
 using UnityEngine;
 using Random = UnityEngine.Random;
@@ -33,7 +34,7 @@ namespace MisterGames.Dialogues.Components {
         [SerializeField] [Min(0f)] private float _maxReplicaDelaySameRole = 0.7f;
         [SerializeField] [Min(0f)] private float _minReplicaDelayChangedRole = 0.6f;
         [SerializeField] [Min(0f)] private float _maxReplicaDelayChangedRole = 1f;
-        [SerializeField] private bool _useTimeScale = false;
+        [SerializeField] private bool _useUnscaledTime = true;
         
         [Header("Actions")]
         [SerializeReference] [SubclassSelector] private IActorAction _beforeStartAction;
@@ -88,7 +89,7 @@ namespace MisterGames.Dialogues.Components {
         public void NotifySkip() {
             if (!IsRunning || IsPaused) return;
             
-            _lastSkipTime = Time.realtimeSinceStartup;
+            _lastSkipTime = TimeSources.unscaledTime;
             
             AsyncExt.DisposeCts(ref _skipCts);
             _dialoguePrinter.FinishLastPrinting(_skipSymbolDelay);
@@ -230,7 +231,7 @@ namespace MisterGames.Dialogues.Components {
                 
                 switch (_nextElementMode) {
                     case NextElementMode.WaitSkip:
-                        if (Time.realtimeSinceStartup - _lastSkipTime <= _maxTimeAfterSkipToMoveToNext) continue;
+                        if (TimeSources.unscaledTime - _lastSkipTime <= _maxTimeAfterSkipToMoveToNext) continue;
                         
                         if (_skipCts == null) {
                             AsyncExt.RecreateCts(ref _skipCts);
@@ -291,8 +292,7 @@ namespace MisterGames.Dialogues.Components {
         }
         
         private UniTask WaitDelay(float delay, CancellationToken cancellationToken) {
-            return UniTask.Delay(TimeSpan.FromSeconds(delay), _useTimeScale ? DelayType.DeltaTime : DelayType.UnscaledDeltaTime, cancellationToken: cancellationToken)
-                .SuppressCancellationThrow();
+            return AsyncExt.Delay(TimeSpan.FromSeconds(delay), _useUnscaledTime, cancellationToken);
         }
     }
     

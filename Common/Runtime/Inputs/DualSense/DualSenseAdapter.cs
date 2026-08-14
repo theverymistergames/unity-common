@@ -140,7 +140,7 @@ namespace MisterGames.Common.Inputs.DualSense {
             while (!cancellationToken.IsCancellationRequested) {
                 UpdateOutputStates(DualSenseNative.GetControllerCount());
                 
-                await UniTask.Delay(TimeSpan.FromSeconds(1f), cancellationToken: cancellationToken)
+                await UniTask.Delay(TimeSpan.FromSeconds(1f), ignoreTimeScale: true, cancellationToken: cancellationToken)
                     .SuppressCancellationThrow();
             }
         }

@@ -3,6 +3,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
+using MisterGames.Common.Async;
 using MisterGames.Common.Attributes;
 using UnityEngine;
 
@@ -16,14 +17,11 @@ namespace MisterGames.ActionLib.Flow {
         public bool useUnscaledTime;
 
         public async UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            float time = UnityEngine.Time.time;
-
             while (!cancellationToken.IsCancellationRequested) {
                 if (condition.IsMatch(context)) return;
 
                 if (checkPeriod > 0f) {
-                    await UniTask.Delay(TimeSpan.FromSeconds(checkPeriod), ignoreTimeScale: useUnscaledTime, cancellationToken: cancellationToken)
-                        .SuppressCancellationThrow();
+                    await AsyncExt.Delay(TimeSpan.FromSeconds(checkPeriod), ignoreTimeScale: useUnscaledTime, cancellationToken);
                     continue;
                 }
 

@@ -110,9 +110,8 @@ namespace MisterGames.Common.Pooling {
 
                     pool.Clear();
                 }
-                
-                await UniTask.Delay(TimeSpan.FromSeconds(_autoPoolCheckPeriod), cancellationToken: cancellationToken)
-                             .SuppressCancellationThrow();
+
+                await AsyncExt.DelayUnscaled(_autoPoolCheckPeriod, cancellationToken);
             }
         }
 
@@ -387,16 +386,16 @@ namespace MisterGames.Common.Pooling {
                 : GetInternalAsyncComponent<T>(prefab.gameObject, parent, position, rotation, scale, active, worldPositionStays: true, setupPositionAndRotation: true);
         }
 
-        public void Release(GameObject instance, float duration = 0f) {
+        public void Release(GameObject instance) {
             if (!_isEnabled || instance == null) return;
             
-            WaitAndRelease(instance, duration, _destroyCts.Token).Forget();
+            ReleaseInternal(instance);
         }
 
-        public void Release(Component component, float duration = 0f) {
+        public void Release(Component component) {
             if (!_isEnabled || component == null) return;
             
-            WaitAndRelease(component.gameObject, duration, _destroyCts.Token).Forget();
+            ReleaseInternal(component.gameObject);
         }
         
         private GameObject GetInternal(
@@ -496,14 +495,7 @@ namespace MisterGames.Common.Pooling {
             return (await GetInternalAsync(prefab, parent, position, rotation, scale, active, worldPositionStays, setupPositionAndRotation)).GetComponent<T>();
         }
 
-        private async UniTask WaitAndRelease(GameObject instance, float duration, CancellationToken cancellationToken) {
-            if (duration > 0f) {
-                await UniTask.Delay(TimeSpan.FromSeconds(duration), cancellationToken: cancellationToken)
-                    .SuppressCancellationThrow();
-            }
-            
-            if (cancellationToken.IsCancellationRequested) return;
-
+        private void ReleaseInternal(GameObject instance) {
             var id = _instanceToPrefabIdMap.GetValueOrDefault(instance.GetEntityId(), EntityId.None);
             
             bool hasPoolElement = instance.TryGetComponent(out PoolElement poolElement);

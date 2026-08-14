@@ -3,6 +3,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
+using MisterGames.Common.Tick;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -31,7 +32,7 @@ namespace MisterGames.ActionLib.Rendering {
             float startWeight = volume.weight;
             
             while (t < 1f && !cancellationToken.IsCancellationRequested) {
-                float dt = useUnscaledTime ? UnityEngine.Time.unscaledDeltaTime : UnityEngine.Time.deltaTime; 
+                float dt = useUnscaledTime ? TimeSources.unscaledDeltaTime : TimeSources.deltaTime; 
                 t = Mathf.Clamp01(t + dt * speed);
 
                 volume.weight = Mathf.Lerp(startWeight, weight, curve.Evaluate(t));

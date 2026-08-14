@@ -189,7 +189,7 @@ namespace MisterGames.Logic.Phys {
         }
 
         private float GetRandomForce(float t) {
-            float randomBase = (Mathf.PerlinNoise1D(Time.time * _randomNoiseSpeed) - 0.5f) * 2f;
+            float randomBase = (Mathf.PerlinNoise1D(TimeSources.scaledTime * _randomNoiseSpeed) - 0.5f) * 2f;
             return _randomMultiplier * randomBase * _randomByDistanceCurve.Evaluate(t);
         }
 

@@ -12,6 +12,7 @@ namespace MisterGames.UI.Components {
         [SerializeField] private TMP_Text _text;
         [SerializeField] private string _animatedText;
         [SerializeField] private StateData[] _states;
+        [SerializeField] private bool _useUnscaledTime = true;
 
         private enum State {
             DoNothing,
@@ -70,8 +71,7 @@ namespace MisterGames.UI.Components {
                 }
 
                 if (state.finishDelay > 0f) {
-                    await UniTask.Delay(TimeSpan.FromSeconds(state.finishDelay), cancellationToken: cancellationToken)
-                        .SuppressCancellationThrow();    
+                    await AsyncExt.Delay(TimeSpan.FromSeconds(state.finishDelay), _useUnscaledTime, cancellationToken);
                 }
             }
         }
@@ -83,8 +83,7 @@ namespace MisterGames.UI.Components {
                 _text.SetText(_chars, 0, i + 1);
 
                 if (charPrintPeriod > 0f) {
-                    await UniTask.Delay(TimeSpan.FromSeconds(charPrintPeriod), cancellationToken: cancellationToken)
-                        .SuppressCancellationThrow();   
+                    await AsyncExt.Delay(TimeSpan.FromSeconds(charPrintPeriod), _useUnscaledTime, cancellationToken);   
                 }
             }
         }

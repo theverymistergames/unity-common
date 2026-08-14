@@ -117,7 +117,7 @@ namespace MisterGames.Logic.Transforms {
         }
         
         private void ProcessRandomDirection() {
-            float time = Time.time;
+            float time = TimeSources.scaledTime;
             bool changedOne = false;
             
             for (int i = 0; i < _nextDirectionChangeTimes.Length; i++) {

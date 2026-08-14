@@ -32,11 +32,11 @@ namespace MisterGames.Collisions.Detectors {
         }
 
         private void OnEnable() {
-            PlayerLoopStage.Update.Subscribe(this);
+            PlayerLoopStage.FixedUpdate.Subscribe(this);
         }
 
         private void OnDisable() {
-            PlayerLoopStage.Update.Unsubscribe(this);
+            PlayerLoopStage.FixedUpdate.Unsubscribe(this);
         }
 
         private void Start() {

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using MisterGames.Common.Async;
+using MisterGames.Common.Tick;
 using MisterGames.UI.Data;
 using TMPro;
 using UnityEngine;
@@ -77,7 +78,7 @@ namespace MisterGames.UI.Components {
         private void OnClick() {
             if (!CanClick()) return;
 
-            _clickTime = Time.realtimeSinceStartup;
+            _clickTime = TimeSources.unscaledTime;
             OnClicked.Invoke(this);
         }
 
@@ -86,7 +87,7 @@ namespace MisterGames.UI.Components {
         }
 
         private bool CanClick() {
-            return !IsBlocked() && Time.realtimeSinceStartup > _clickTime + _clickCooldown;
+            return !IsBlocked() && TimeSources.unscaledTime > _clickTime + _clickCooldown;
         }
         
 #if UNITY_EDITOR

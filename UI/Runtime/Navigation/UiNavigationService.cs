@@ -187,7 +187,7 @@ namespace MisterGames.UI.Navigation {
                 _ => throw new ArgumentOutOfRangeException()
             };
 
-            float time = Time.realtimeSinceStartup;
+            float time = TimeSources.unscaledTime;
 
             // Outer navigation selectable or dir changed: reset outer navigation cooldown and restore default navigation
             if (_lastRealtimeUsedOuterNavigation >= 0f &&
@@ -231,7 +231,7 @@ namespace MisterGames.UI.Navigation {
             _uiInputModuleBlockers.Add(source.GetHashCode());
             
             bool wasBlocked = IsUiBlocked;
-            IsUiBlocked = _uiInputModuleBlockers.Count > 0 || Time.realtimeSinceStartup < _unblockEndTime;
+            IsUiBlocked = _uiInputModuleBlockers.Count > 0 || TimeSources.unscaledTime < _unblockEndTime;
 
             if (wasBlocked || !IsUiBlocked) return;
             
@@ -240,10 +240,10 @@ namespace MisterGames.UI.Navigation {
 
         public void UnblockUiInputModule(object source, float delay = 0f) {
             _uiInputModuleBlockers.Remove(source.GetHashCode());
-            _unblockEndTime = Mathf.Max(_unblockEndTime, Time.realtimeSinceStartup + delay);
+            _unblockEndTime = Mathf.Max(_unblockEndTime, TimeSources.unscaledTime + delay);
 
             bool wasBlocked = IsUiBlocked;
-            IsUiBlocked = _uiInputModuleBlockers.Count > 0 || Time.realtimeSinceStartup < _unblockEndTime;
+            IsUiBlocked = _uiInputModuleBlockers.Count > 0 || TimeSources.unscaledTime < _unblockEndTime;
             
             if (!wasBlocked || IsUiBlocked) return;
 
@@ -252,7 +252,7 @@ namespace MisterGames.UI.Navigation {
 
         private void CheckUiBlock() {
             bool wasBlocked = IsUiBlocked;
-            IsUiBlocked = _uiInputModuleBlockers.Count > 0 || Time.realtimeSinceStartup < _unblockEndTime;
+            IsUiBlocked = _uiInputModuleBlockers.Count > 0 || TimeSources.unscaledTime < _unblockEndTime;
             
             if (IsUiBlocked == wasBlocked || IsUiBlocked) return;
             
@@ -274,7 +274,7 @@ namespace MisterGames.UI.Navigation {
             if (selectable == null) return;
 
             _lastDirUsedOuterNavigation = direction;
-            _lastRealtimeUsedOuterNavigation = Time.realtimeSinceStartup;
+            _lastRealtimeUsedOuterNavigation = TimeSources.unscaledTime;
             _lastSelectableHashUsedOuterNavigation = selectable.GetHashCode();
             
             var nav = selectable.navigation;

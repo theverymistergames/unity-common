@@ -14,7 +14,6 @@ namespace MisterGames.Collisions.Detectors {
 
     public sealed class FrameUiRaycaster : CollisionDetectorBase, IUpdate {
 
-        [SerializeField] private PlayerLoopStage _timeSourceStage = PlayerLoopStage.Update;
         [SerializeField] [Min(0f)] private float _maxDistance = 3f;
         [SerializeField] private LayerMask _layerMask;
 
@@ -32,11 +31,11 @@ namespace MisterGames.Collisions.Detectors {
         }
 
         private void OnEnable() {
-            _timeSourceStage.Subscribe(this);
+            PlayerLoopStage.Update.Subscribe(this);
         }
 
         private void OnDisable() {
-            _timeSourceStage.Unsubscribe(this);
+            PlayerLoopStage.Update.Unsubscribe(this);
         }
 
         private void Start() {

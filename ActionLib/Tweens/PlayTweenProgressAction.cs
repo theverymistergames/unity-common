@@ -5,6 +5,7 @@ using MisterGames.Actors;
 using MisterGames.Actors.Actions;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Easing;
+using MisterGames.Common.Tick;
 using MisterGames.Tweens;
 using UnityEngine;
 
@@ -25,7 +26,7 @@ namespace MisterGames.ActionLib.Tweens {
             float speed = duration > 0f ? 1f / duration : float.MaxValue;
 
             while (!cancellationToken.IsCancellationRequested) {
-                float dt = useUnscaledTime ? UnityEngine.Time.unscaledDeltaTime : UnityEngine.Time.deltaTime;
+                float dt = useUnscaledTime ? TimeSources.unscaledDeltaTime : TimeSources.deltaTime;
                 t = Mathf.Clamp01(t + dt * speed);
                 
                 action?.OnProgressUpdate(Mathf.Lerp(startProgress, endProgress, curve.Evaluate(t)));

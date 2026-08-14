@@ -24,13 +24,13 @@ namespace MisterGames.BlueprintLib {
         }
 
         public void OnInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
-            _startTime = TimeSources.time;
+            _startTime = TimeSources.scaledTime;
         }
 
         public float GetPortValue(IBlueprint blueprint, NodeToken token, int port) => port switch {
-            0 => TimeSources.time - _startTime,
-            1 => Mathf.Sin(TimeSources.time - _startTime),
-            2 => Mathf.Cos(TimeSources.time - _startTime),
+            0 => TimeSources.scaledTime - _startTime,
+            1 => Mathf.Sin(TimeSources.scaledTime - _startTime),
+            2 => Mathf.Cos(TimeSources.scaledTime - _startTime),
             _ => default,
         };
     }

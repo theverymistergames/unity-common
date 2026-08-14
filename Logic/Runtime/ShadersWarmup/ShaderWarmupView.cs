@@ -74,8 +74,7 @@ namespace MisterGames.Logic.ShadersWarmup {
         }
 
         private async UniTask EnableViewDelayed(bool enable, float delay, float fader, CancellationToken ct) {
-            await UniTask.Delay(TimeSpan.FromSeconds(delay), delayType: DelayType.UnscaledDeltaTime, cancellationToken: ct)
-                .SuppressCancellationThrow();
+            await AsyncExt.DelayUnscaled(delay, cancellationToken: ct);
             if (ct.IsCancellationRequested) return;
 
             if (enable) {

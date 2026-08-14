@@ -4,6 +4,8 @@ using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Character.Core;
 using MisterGames.Common;
+using MisterGames.Common.Async;
+using MisterGames.Common.Maths;
 using UnityEngine;
 
 namespace MisterGames.Character.Behaviours {
@@ -33,7 +35,7 @@ namespace MisterGames.Character.Behaviours {
         }
 
         private async UniTask StartTrackingDistance(IActor actor, CancellationToken cancellationToken) {
-            byte id = ++_trackId;
+            byte id = _trackId.IncrementUncheckedRef();
             
             if (actor == null) return;
 
@@ -46,8 +48,7 @@ namespace MisterGames.Character.Behaviours {
                     _gameObjects[i].SetActive(inRange);
                 }
 
-                await UniTask.Delay(TimeSpan.FromSeconds(checkPeriod), cancellationToken: cancellationToken)
-                    .SuppressCancellationThrow();
+                await AsyncExt.Delay(TimeSpan.FromSeconds(checkPeriod), cancellationToken);
             }
         }
         

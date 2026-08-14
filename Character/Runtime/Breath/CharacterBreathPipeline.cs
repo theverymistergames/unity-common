@@ -62,7 +62,7 @@ namespace MisterGames.Character.Breath {
         }
         
         private float GetDeltaTime() {
-            return _useUnscaledTime ? Time.unscaledDeltaTime : Time.deltaTime;
+            return _useUnscaledTime ? TimeSources.unscaledDeltaTime : TimeSources.deltaTime;
         }
     }
 

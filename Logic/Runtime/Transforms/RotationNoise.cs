@@ -77,12 +77,8 @@ namespace MisterGames.Logic.Transforms {
         }
         
         private void SetNoiseScale(float oldValue, float newValue) {
-            float time = Time.time;
+            float time = TimeSources.unscaledTime;
 
-#if UNITY_EDITOR
-            if (!Application.isPlaying) time = Time.realtimeSinceStartup;
-#endif
-            
             _noiseScaleOffset += oldValue * (time - _noiseScaleTime);
             _noiseSpeedMul = newValue;
             _noiseScaleTime = time;
@@ -94,11 +90,7 @@ namespace MisterGames.Logic.Transforms {
         }
 
         void IUpdate.OnUpdate(float dt) {
-            float time = Time.time;
-            
-#if UNITY_EDITOR
-            if (!Application.isPlaying) time = Time.realtimeSinceStartup;
-#endif
+            float time = TimeSources.unscaledTime;
 
             float t = (time - _noiseScaleTime) * _noiseSpeedMul + _noiseScaleOffset;
             var noiseMul = _noiseAmplitude * _rotationMul; 

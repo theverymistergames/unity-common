@@ -4,6 +4,7 @@ using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
 using MisterGames.Common.Easing;
+using MisterGames.Common.Tick;
 using UnityEngine;
 
 namespace MisterGames.ActionLib.Animation {
@@ -24,7 +25,7 @@ namespace MisterGames.ActionLib.Animation {
             float t = 0f;
 
             while (!cancellationToken.IsCancellationRequested) {
-                float dt = useUnscaledTime ? UnityEngine.Time.unscaledDeltaTime : UnityEngine.Time.deltaTime;
+                float dt = useUnscaledTime ? TimeSources.unscaledDeltaTime : TimeSources.deltaTime;
                 t = Mathf.Clamp01(t + dt * speed);
                 
                 skinnedMeshRenderer.SetBlendShapeWeight(index, Mathf.Lerp(startWeight, endWeight, curve.Evaluate(t)));

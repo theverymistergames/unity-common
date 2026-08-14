@@ -134,12 +134,7 @@ namespace MisterGames.Logic.ShadersWarmup {
             NotifyWarmupCompleted();
 
             if (_settings.SimulateShadersWarmupInEditorDuration > 0f) {
-                await UniTask.Delay(
-                        TimeSpan.FromSeconds(_settings.DisableViewDelay + _settings.DisableViewFader),
-                        delayType: DelayType.UnscaledDeltaTime,
-                        cancellationToken: cancellationToken
-                    )
-                    .SuppressCancellationThrow();
+                await AsyncExt.DelayUnscaled(_settings.DisableViewDelay + _settings.DisableViewFader, cancellationToken);
             }
         }
 

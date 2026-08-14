@@ -96,7 +96,7 @@ namespace MisterGames.Character.Motion {
             float jumpImpulseDelay = _jumpImpulseDelayDefault;
             if (!CanRequestJump(ref jumpImpulseDelay)) return;
 
-            _jumpRequestTime = Time.time;
+            _jumpRequestTime = TimeSources.scaledTime;
             _jumpImpulseDelay = jumpImpulseDelay;
             _isJumpRequested = true;
         }
@@ -114,7 +114,7 @@ namespace MisterGames.Character.Motion {
         void IUpdate.OnUpdate(float dt) {
             ApplyJumpRequest();
             
-            float time = Time.time;
+            float time = TimeSources.scaledTime;
             
             if (!_input.IsJumpPressed) {
                 _jumpReleaseTime = time;
@@ -133,7 +133,7 @@ namespace MisterGames.Character.Motion {
         }
         
         private void ApplyJumpRequest() {
-            float time = Time.time;
+            float time = TimeSources.scaledTime;
 
             // Jump requested: check if can jump or retry.
             if (_isJumpRequested) {
@@ -191,7 +191,7 @@ namespace MisterGames.Character.Motion {
             
             _motion.AddForce(jumpImpulse, ForceMode.VelocityChange);
             
-            _jumpImpulseApplyTime = Time.time;
+            _jumpImpulseApplyTime = TimeSources.scaledTime;
             OnJumpImpulse?.Invoke(jumpImpulse);
         }
         
@@ -214,7 +214,7 @@ namespace MisterGames.Character.Motion {
         }
         
         private bool CanApplyJumpImpulse(ref float impulseDelay) {
-            float time = Time.time;
+            float time = TimeSources.scaledTime;
             float lastJumpTakeoffTime = JumpImpulseTime + _jumpTakeoffDuration;
             bool hasOverride = _jumpOverrides.TryGetResult(out var jumpOverride);
             

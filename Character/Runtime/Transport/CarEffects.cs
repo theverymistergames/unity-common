@@ -244,7 +244,7 @@ namespace MisterGames.Character.Transport {
         }
         
         private void OnStartIgnition(float duration) {
-            _ignitionStartTime = Time.time;
+            _ignitionStartTime = TimeSources.scaledTime;
             _ignitionDuration = duration;
             
             _onIgnitionStart?.Apply(_actor, _enableCts.Token).Forget();
@@ -261,7 +261,7 @@ namespace MisterGames.Character.Transport {
                 return;
             }
             
-            _ignitionTurnOffTime = Time.time;
+            _ignitionTurnOffTime = TimeSources.scaledTime;
             _engineAudioSource.Stop();
             _onIgnitionOff?.Apply(_actor, _enableCts.Token).Forget();
         }
@@ -275,7 +275,7 @@ namespace MisterGames.Character.Transport {
             float timer = 0f;
             
             while (!cancellationToken.IsCancellationRequested && 
-                   Time.time < _ignitionStartTime + _ignitionDuration && 
+                   TimeSources.scaledTime < _ignitionStartTime + _ignitionDuration && 
                    _ignitionStartTime > _ignitionTurnOffTime
             ) {
                 timer += Time.deltaTime;

@@ -86,11 +86,7 @@ namespace MisterGames.Logic.Transforms {
         }
 
         private void SetNoiseScale(float oldValue, float newValue) {
-            float time = Time.time;
-
-#if UNITY_EDITOR
-            if (!Application.isPlaying) time = Time.realtimeSinceStartup;
-#endif
+            float time = TimeSources.unscaledTime;
             
             _noiseScaleOffset += oldValue * (time - _noiseScaleTime);
             _noiseScale = newValue;
@@ -111,11 +107,7 @@ namespace MisterGames.Logic.Transforms {
         }
 
         void IUpdate.OnUpdate(float dt) {
-            float time = Time.time;
-            
-#if UNITY_EDITOR
-            if (!Application.isPlaying) time = Time.realtimeSinceStartup;
-#endif
+            float time = TimeSources.unscaledTime;
 
             if (!_noiseSpeedRandomize.IsNearlyZero()) {
                 float speedRandomize = Mathf.PerlinNoise1D(time * _noiseSpeedRandomize + _noiseSpeedRandomSeed) - 0.5f;

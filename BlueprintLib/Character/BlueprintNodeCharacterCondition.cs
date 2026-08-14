@@ -19,12 +19,6 @@ namespace MisterGames.BlueprintLib {
             meta.AddPort(id, Port.Output<bool>("Condition"));
         }
 
-        private float _startTime;
-        
-        public void OnInitialize(IBlueprint blueprint, NodeToken token, NodeId root) {
-            _startTime = Time.time;
-        }
-
         public bool GetPortValue(IBlueprint blueprint, NodeToken token, int port) {
             if (port != 2) return default;
 

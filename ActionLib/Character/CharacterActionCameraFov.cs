@@ -5,6 +5,7 @@ using MisterGames.Actors;
 using MisterGames.Actors.Actions;
 using MisterGames.Character.View;
 using MisterGames.Common.Data;
+using MisterGames.Common.Tick;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -32,7 +33,7 @@ namespace MisterGames.ActionLib.Character {
             int id = cameraContainer.CreateState();
 
             while (!cancellationToken.IsCancellationRequested) {
-                float dt = useUnscaledTime ? UnityEngine.Time.unscaledDeltaTime : UnityEngine.Time.deltaTime;
+                float dt = useUnscaledTime ? TimeSources.unscaledDeltaTime : TimeSources.deltaTime;
                 float progressDelta = resultDuration <= 0f ? 1f : dt / resultDuration;
                 progress = Mathf.Clamp01(progress + progressDelta);
 

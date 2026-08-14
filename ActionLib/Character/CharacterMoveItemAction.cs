@@ -7,6 +7,7 @@ using MisterGames.Character.View;
 using MisterGames.Common;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Maths;
+using MisterGames.Common.Tick;
 using UnityEngine;
 
 namespace MisterGames.ActionLib.Character {
@@ -131,7 +132,7 @@ namespace MisterGames.ActionLib.Character {
                 startRotation = targetRotation * startRotationOffset;
                 finalRotation = targetRotation * finalRotationOffset;
 
-                float dt = useUnscaledTime ? UnityEngine.Time.unscaledDeltaTime : UnityEngine.Time.deltaTime;
+                float dt = useUnscaledTime ? TimeSources.unscaledDeltaTime : TimeSources.deltaTime;
                 t = Mathf.Clamp01(t + dt * speed);
 
                 var position = BezierExtensions.EvaluateBezier3Points(

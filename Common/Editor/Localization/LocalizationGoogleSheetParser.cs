@@ -175,7 +175,7 @@ namespace MisterGames.Common.Editor.Localization {
                     }
                     
                     if (_retryCreateStorageDelay > 0f) {
-                        await UniTask.Delay(TimeSpan.FromSeconds(_retryCreateStorageDelay));
+                        await UniTask.Delay(TimeSpan.FromSeconds(_retryCreateStorageDelay), ignoreTimeScale: true);
                     }
                     else {
                         await UniTask.Yield();

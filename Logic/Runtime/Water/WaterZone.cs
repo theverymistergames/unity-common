@@ -329,7 +329,7 @@ namespace MisterGames.Logic.Water {
             var forceDataArray = new NativeArray<ForceData>(floatingPointsCount, Allocator.TempJob);
             var forceMulArray = new NativeArray<float>(rbCount, Allocator.TempJob);
 
-            float time = Time.time;
+            float time = TimeSources.scaledTime;
             
             var calculateForceJob = new CalculateForceJob {
                 floatingDataArray = floatingDataArray,

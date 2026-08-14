@@ -22,7 +22,7 @@ namespace MisterGames.UI.Components {
         private void OnEnable() {
             PlayerLoopStage.LateUpdate.Subscribe(this);
 
-            _lastCheckTime = Time.realtimeSinceStartup;
+            _lastCheckTime = TimeSources.unscaledTime;
             _button.Block(this, NeedBlock());
         }
 
@@ -32,9 +32,9 @@ namespace MisterGames.UI.Components {
         }
 
         void IUpdate.OnUpdate(float dt) {
-            if (Time.realtimeSinceStartup < _lastCheckTime + _checkPeriod) return;
+            if (TimeSources.unscaledTime < _lastCheckTime + _checkPeriod) return;
             
-            _lastCheckTime = Time.realtimeSinceStartup;
+            _lastCheckTime = TimeSources.unscaledTime;
             _button.Block(this, NeedBlock());
         }
 

@@ -7,6 +7,7 @@ using MisterGames.Character.View;
 using MisterGames.Common;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Easing;
+using MisterGames.Common.Tick;
 using UnityEngine;
 
 namespace MisterGames.ActionLib.Character {
@@ -45,7 +46,7 @@ namespace MisterGames.ActionLib.Character {
             view.SetViewOrientation(startRotation, moveView: false);
             
             while (!cancellationToken.IsCancellationRequested) {
-                float dt = useUnscaledTime ? UnityEngine.Time.unscaledDeltaTime : UnityEngine.Time.deltaTime;
+                float dt = useUnscaledTime ? TimeSources.unscaledDeltaTime : TimeSources.deltaTime;
                 var targetRotation = mode switch {
                     LookAtMode.Free => Quaternion.LookRotation(target.position - view.HeadPosition, view.BodyUp),
                     LookAtMode.Oriented => target.rotation * Quaternion.Euler(orientation),

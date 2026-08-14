@@ -3,6 +3,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
+using MisterGames.Common.Async;
 using MisterGames.Input.Bindings;
 using UnityEngine;
 
@@ -24,8 +25,7 @@ namespace MisterGames.ActionLib.Flow {
 
             if (cancellationToken.IsCancellationRequested) return;
 
-            await UniTask.Delay(TimeSpan.FromSeconds(delay), ignoreTimeScale: useUnscaledTime, cancellationToken: cancellationToken)
-                .SuppressCancellationThrow();
+            await AsyncExt.Delay(TimeSpan.FromSeconds(delay), ignoreTimeScale: useUnscaledTime, cancellationToken);
         }
 
         private bool IsActive() {

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using MisterGames.Common.Async;
 using MisterGames.Common.Audio;
 using MisterGames.Common.Labels;
 using MisterGames.Common.Lists;
@@ -85,9 +86,8 @@ namespace MisterGames.Logic.Loading {
             if (cancellationToken.IsCancellationRequested || id != _loadingId) {
                 return;
             }
-            
-            await UniTask.Delay(TimeSpan.FromSeconds(_afterLoadDelay), delayType: DelayType.UnscaledDeltaTime, cancellationToken: cancellationToken)
-                .SuppressCancellationThrow();
+
+            await AsyncExt.DelayUnscaled(TimeSpan.FromSeconds(_afterLoadDelay), cancellationToken: cancellationToken);
             if (cancellationToken.IsCancellationRequested || id != _loadingId) {
                 return;
             }
@@ -119,9 +119,8 @@ namespace MisterGames.Logic.Loading {
                     );
                 }
             }
-            
-            await UniTask.Delay(TimeSpan.FromSeconds(_finishDelay), delayType: DelayType.UnscaledDeltaTime, cancellationToken: cancellationToken)
-                .SuppressCancellationThrow();
+
+            await AsyncExt.DelayUnscaled(TimeSpan.FromSeconds(_finishDelay), cancellationToken: cancellationToken);
             if (cancellationToken.IsCancellationRequested || id != _loadingId) {
                 return;
             }
@@ -145,9 +144,8 @@ namespace MisterGames.Logic.Loading {
             for (int i = 0; i < buffer.Count && !cancellationToken.IsCancellationRequested && id == _loadingId; i++) {
                 await _dialoguePrinter.PrintElement(buffer[i], 0, cancellationToken);
                 if (cancellationToken.IsCancellationRequested || id != _loadingId) break;
-                
-                await UniTask.Delay(TimeSpan.FromSeconds(printDelay), delayType: DelayType.UnscaledDeltaTime, cancellationToken: cancellationToken)
-                    .SuppressCancellationThrow();
+
+                await AsyncExt.DelayUnscaled(TimeSpan.FromSeconds(printDelay), cancellationToken: cancellationToken);
             }
             
             ListPool<LocalizationKey>.Release(buffer);
@@ -163,9 +161,8 @@ namespace MisterGames.Logic.Loading {
             for (int i = 0; i < buffer.Count && !cancellationToken.IsCancellationRequested && id == _loadingId; i++) {
                 await _dialoguePrinter.PrintElement(buffer[i], 0, cancellationToken);
                 if (cancellationToken.IsCancellationRequested || id != _loadingId) break;
-                
-                await UniTask.Delay(TimeSpan.FromSeconds(printDelay), delayType: DelayType.UnscaledDeltaTime, cancellationToken: cancellationToken)
-                    .SuppressCancellationThrow();
+
+                await AsyncExt.DelayUnscaled(TimeSpan.FromSeconds(printDelay), cancellationToken: cancellationToken);
             }
             
             ListPool<LocalizationKey>.Release(buffer);
@@ -187,15 +184,13 @@ namespace MisterGames.Logic.Loading {
                 for (int i = 0; i <= _preset.dotsCount && !cancellationToken.IsCancellationRequested && id == _loadingId; i++) {
                     _dotsCount = i;
                     _dialoguePrinter.ReprintLast(key);
-                    
-                    await UniTask.Delay(TimeSpan.FromSeconds(_preset.dotPrintDelay), delayType: DelayType.UnscaledDeltaTime, cancellationToken: cancellationToken)
-                        .SuppressCancellationThrow();
+
+                    await AsyncExt.DelayUnscaled(TimeSpan.FromSeconds(_preset.dotPrintDelay), cancellationToken: cancellationToken);
                 }
                 
                 if (cancellationToken.IsCancellationRequested || id != _loadingId) break;
-                
-                await UniTask.Delay(TimeSpan.FromSeconds(_preset.dotPrintRestartDelay), delayType: DelayType.UnscaledDeltaTime, cancellationToken: cancellationToken)
-                    .SuppressCancellationThrow();
+
+                await AsyncExt.DelayUnscaled(TimeSpan.FromSeconds(_preset.dotPrintRestartDelay), cancellationToken: cancellationToken);
                 
                 await UniTask.Yield();
             }

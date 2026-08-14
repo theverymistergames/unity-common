@@ -9,8 +9,6 @@ namespace MisterGames.BlueprintLib {
     [BlueprintNode(Name = "Update", Category = "Time", Color = BlueprintColors.Node.Data)]
     public class BlueprintNodeUpdate : IBlueprintNode, IBlueprintEnter, IBlueprintOutput<float>, IUpdate {
 
-        [SerializeField] private PlayerLoopStage _stage = PlayerLoopStage.Update;
-
         private IBlueprint _blueprint;
         private NodeToken _token;
 

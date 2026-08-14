@@ -9,6 +9,7 @@ using MisterGames.Common.Async;
 using MisterGames.Common.Inputs;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Service;
+using MisterGames.Common.Tick;
 using UnityEngine;
 
 namespace MisterGames.Character.View {
@@ -249,11 +250,7 @@ namespace MisterGames.Character.View {
         }
         
         private float GetDeltaTime() {
-            if (_useUnscaledTime) return Time.unscaledDeltaTime;
-            
-            float dt = Time.deltaTime;
-            if (Time.timeScale > 0f) dt /= Time.timeScale;
-            return dt;
+            return _useUnscaledTime || Time.timeScale > 0f ? TimeSources.unscaledDeltaTime : 0f;
         }
         
         private async UniTask StartHeadUpdate(CancellationToken cancellationToken) {

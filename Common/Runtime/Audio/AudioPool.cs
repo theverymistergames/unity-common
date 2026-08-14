@@ -124,16 +124,10 @@ namespace MisterGames.Common.Audio {
         
         // 0 - scaled time, 1 - unscaled above ts = 0, 2 - unscaled focused
         private readonly float[] _internalTime = new float[3];
-        private bool _isFocused;
-        private bool _isPaused;
-        private bool _discardNextFrameDt;
         
         private void Awake() {
             Main = this;
 
-            _isFocused = Application.isFocused;
-            _isPaused = false;
-            
             _transform = transform;
             
             CreateReverbParamNames();
@@ -161,16 +155,6 @@ namespace MisterGames.Common.Audio {
             Main = null;
             
             PlayerLoopStage.LateUpdate.Unsubscribe(this);
-        }
-
-        private void OnApplicationFocus(bool hasFocus) {
-            _isFocused = hasFocus;
-            _discardNextFrameDt |= hasFocus;
-        }
-
-        private void OnApplicationPause(bool pauseStatus) {
-            _isPaused = pauseStatus;
-            _discardNextFrameDt |= !pauseStatus;
         }
 
         private void CreateReverbParamNames() {
@@ -629,8 +613,8 @@ namespace MisterGames.Common.Audio {
         }
 
         private void ProcessInternalTime(out float dtScaled, out float dtUnscaled) {
-            dtScaled = Time.deltaTime;
-            dtUnscaled = _isPaused || !_isFocused || _discardNextFrameDt ? 0f : Time.unscaledDeltaTime;
+            dtScaled = TimeSources.deltaTime;
+            dtUnscaled = TimeSources.unscaledDeltaTime;
             float ts = Time.timeScale;
             
             // scaled
@@ -641,8 +625,6 @@ namespace MisterGames.Common.Audio {
             
             // unscaled focused
             _internalTime[2] += dtUnscaled;
-
-            _discardNextFrameDt = false;
         }
         
         private void ProcessClipShuffles() {

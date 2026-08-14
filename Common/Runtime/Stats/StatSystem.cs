@@ -282,7 +282,7 @@ namespace MisterGames.Common.Stats {
             _groupToRemoveLastIdMap.Clear();
 
             bool changed = false;
-            float time = Time.time;
+            float time = TimeSources.scaledTime;
 
 #if UNITY_EDITOR
             var removedModifiers = ListPool<IStatModifier>.Get();
@@ -392,7 +392,7 @@ namespace MisterGames.Common.Stats {
         private void AddModifierEntry(object source, IStatModifier modifier, ICondition<TContext> condition) {
             int id = _lastId++;
             int sourceHash = source.GetHashCode();
-            float startTime = Time.time;
+            float startTime = TimeSources.scaledTime;
 
             _modifiersMap[id] = modifier;
             _modifiersData.Add(new ModifierData(id, sourceHash, startTime, modifier.Duration));
