@@ -296,6 +296,7 @@ namespace MisterGames.Tweens {
             float startTime = startProgress * duration;
             float targetProgress = speed >= 0f ? 1f : 0f;
             var tasks = ArrayPool<UniTask>.Shared.Rent(count);
+            tasks.ResetArrayElements();
 
             for (int i = 0; i < count; i++) {
                 var tween = tweens[i];
@@ -328,7 +329,6 @@ namespace MisterGames.Tweens {
 
             await UniTask.WhenAll(tasks);
             
-            tasks.ResetArrayElements();
             ArrayPool<UniTask>.Shared.Return(tasks);
         }
 
