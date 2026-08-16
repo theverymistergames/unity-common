@@ -141,6 +141,7 @@ namespace MisterGames.UI.Components {
             
             var order = GetActionsOrder(onOpen: true, out int actionsCount);
             var tasks = ArrayPool<UniTask>.Shared.Rent(actionsCount);
+            tasks.ResetArrayElements();
             
             for (int i = 0; i < order.Count && !cancellationToken.IsCancellationRequested; i++) {
                 int index = order[i];
@@ -178,8 +179,6 @@ namespace MisterGames.UI.Components {
                     await UniTask.WhenAll(tasks);
                 }
             }
-            
-            tasks.ResetArrayElements();
             
             ArrayPool<UniTask>.Shared.Return(tasks);
         }

@@ -21,9 +21,14 @@ namespace MisterGames.Tweens {
 
     public static class TweenExtensions {
 
-        public static bool NeedNotifyProgress(this TweenDirection direction, float oldProgress, float newProgress) {
+        public static bool HasProgressChangedInDirection(this TweenDirection direction, float oldProgress, float newProgress) {
             return direction is TweenDirection.Forward or TweenDirection.Both && oldProgress < newProgress || 
                    direction is TweenDirection.Backwards or TweenDirection.Both && oldProgress > newProgress;
+        }
+        
+        public static bool HasProgressChangedOrEqualInDirection(this TweenDirection direction, float oldProgress, float newProgress) {
+            return direction is TweenDirection.Forward or TweenDirection.Both && oldProgress <= newProgress || 
+                   direction is TweenDirection.Backwards or TweenDirection.Both && oldProgress >= newProgress;
         }
         
         public static void NotifyTweenEvents(
