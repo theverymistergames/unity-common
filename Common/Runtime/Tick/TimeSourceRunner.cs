@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace MisterGames.Common.Tick {
 
-    [DefaultExecutionOrder(-1_000_000)]
+    [DefaultExecutionOrder(-100_000_000)]
     internal sealed class TimeSourceRunner : MonoBehaviour {
 
         private readonly TimescaleSystem _timescaleSystem = new();

@@ -16,6 +16,7 @@ namespace MisterGames.Logic.UI {
         
         [Header("Print")]
         [SerializeField] private DialoguePrinter _dialoguePrinter;
+        [SerializeField] [Min(0f)] private float _startDelay;
         [SerializeField] [Min(0f)] private float _printElementDelayDefault = 0.1f;
         [SerializeField] [Min(0f)] private float _printElementDelayFast = 0.05f;
         [SerializeField] [Min(-1f)] private float _skipSymbolDelay = -1f;
@@ -40,6 +41,9 @@ namespace MisterGames.Logic.UI {
             
             _dialoguePrinter.ClearAllText();
             
+            await AsyncExt.Delay(_startDelay, _useUnscaledTime, cancellationToken);
+            if (cancellationToken.IsCancellationRequested || id != _printId) return;
+            
             float printElementDelay = _printElementDelayDefault;
 
             if ((options & PrintOptions.FastPrint) != 0) {
@@ -47,10 +51,7 @@ namespace MisterGames.Logic.UI {
             }
             
             await PrintMainElements(id, preset, printElementDelay, cancellationToken);
-
-            if (cancellationToken.IsCancellationRequested || id != _printId) {
-                return;
-            }
+            if (cancellationToken.IsCancellationRequested || id != _printId) return;
             
             _printId.IncrementUncheckedRef();
             localizationService?.UnregisterFormatter(formatter);

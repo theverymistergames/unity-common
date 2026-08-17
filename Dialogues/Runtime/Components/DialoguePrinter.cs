@@ -217,10 +217,13 @@ namespace MisterGames.Dialogues.Components {
             _lastPrinter.CancelPrinting(_lastTextField, clear: false);
         }
 
-        public void FinishLastPrinting(float symbolDelay = -1) {
-            if (_lastPrinter == null || _lastTextField == null) return;
+        /// <summary>
+        /// Returns true if there was a printing in progress to finish.
+        /// </summary>
+        public bool FinishLastPrinting(float symbolDelay = -1) {
+            if (_lastPrinter == null || _lastTextField == null) return false;
 
-            _lastPrinter.ForceFinishPrinting(_lastTextField, symbolDelay);
+            return _lastPrinter.ForceFinishPrinting(_lastTextField, symbolDelay);
         }
 
         public void ReprintLast(LocalizationKey key) {

@@ -2,7 +2,6 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Async;
-using MisterGames.Common.Colors;
 using MisterGames.Common.Tick;
 using UnityEngine;
 using UnityEngine.UI;
@@ -58,8 +57,15 @@ namespace MisterGames.Scenes.Splash {
 
         private void UpdateState() {
             if (!videoPlayer.isPrepared) return;
+
+            bool focused = TimeSources.isAppFocused;
+            bool paused = TimeSources.isAppPaused;
+
+#if UNITY_EDITOR
+            focused = true;
+#endif
             
-            if (!TimeSources.isAppFocused || !TimeSources.isAppPaused) {
+            if (!focused || paused) {
                 videoPlayer.Pause();
                 return;
             }

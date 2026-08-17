@@ -197,7 +197,9 @@ namespace MisterGames.UI.Components {
                     int newLineStart = -1;
 
                     // Pause tag is processed as a step that prints no symbol and only delays the next one.
-                    if (TryConsumePauseTag(content, ref pointer, length, out float pause)) {
+                    bool isPauseStep = TryConsumePauseTag(content, ref pointer, length, out float pause);
+
+                    if (isPauseStep) {
                         // Force finish is an explicit request to print faster and therefore ignores pauses.
                         if (symbolDelay < 0f) symbolDelay = pause;
                     }
@@ -252,6 +254,12 @@ namespace MisterGames.UI.Components {
                         textField.SetText(sb);
                     }
 
+                    // Delay of the last symbol would only postpone the end of printing, as nothing is printed after it.
+                    // Printing must not stay in progress while the whole text is already shown:
+                    // otherwise force finish requests are consumed by a printing that has nothing left to print.
+                    // Trailing pause tag is an explicit request to wait and therefore is not skipped.
+                    if (pointer >= length && !isPauseStep) break;
+
                     float startTime = useTimeScale ? TimeSources.scaledTime : TimeSources.unscaledTime;
                     finishDelay = isForceFinish ? finishDelay : -1f;
 
@@ -278,13 +286,11 @@ namespace MisterGames.UI.Components {
                 ReleaseTextBuffer(buffer);
             }
 
-            if (cancellationToken.IsCancellationRequested ||
-                destroyCancellationToken.IsCancellationRequested ||
-                !_operationIdMap.TryGetValue(hash, out currentId) || currentId != id)
-            {
-                return;
-            }
+            // Printing is superseded by a newer printing of the same text field, which owns the maps now.
+            if (!_operationIdMap.TryGetValue(hash, out currentId) || currentId != id) return;
 
+            // Cleaned up even if printing was cancelled: otherwise a force finish request left in the map
+            // is applied to the next printing of the same text field.
             _operationIdMap.Remove(hash);
             _immediateFinishRequestsMap.Remove(hash);
         }
@@ -298,17 +304,23 @@ namespace MisterGames.UI.Components {
             if (clear && textField != null) textField.SetText((string) null);
         }
 
-        public void ForceFinishPrinting(TMP_Text textField, float symbolDelay = -1f) {
+        /// <summary>
+        /// Returns true if there was a printing in progress to finish, so that a caller can tell
+        /// whether the request was consumed or there was nothing left to print.
+        /// </summary>
+        public bool ForceFinishPrinting(TMP_Text textField, float symbolDelay = -1f) {
             int hash = textField?.GetHashCode() ?? 0;
-            
+
             if (_operationIdMap.ContainsKey(hash)) {
                 if (symbolDelay < 0f) symbolDelay = _forceFinishSymbolDelay;
                 _immediateFinishRequestsMap[hash] = symbolDelay;
-                return;
+                return true;
             }
 
             _operationIdMap.Remove(hash);
             _immediateFinishRequestsMap.Remove(hash);
+
+            return false;
         }
 
         private TextBuffer GetTextBuffer() {

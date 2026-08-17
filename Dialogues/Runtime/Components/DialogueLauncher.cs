@@ -59,6 +59,7 @@ namespace MisterGames.Dialogues.Components {
         private CancellationTokenSource _skipCts;
         private IActor _actor;
         private float _lastSkipTime;
+        private bool _skipRequested;
 
         void IActorComponent.OnAwake(IActor actor) {
             _actor = actor;
@@ -88,11 +89,21 @@ namespace MisterGames.Dialogues.Components {
 
         public void NotifySkip() {
             if (!IsRunning || IsPaused) return;
-            
+
             _lastSkipTime = TimeSources.unscaledTime;
-            
+
             AsyncExt.DisposeCts(ref _skipCts);
-            _dialoguePrinter.FinishLastPrinting(_skipSymbolDelay);
+
+            // Skip is consumed by finishing the printing that is in progress. If there is nothing to finish,
+            // it is stored to move to the next element: dialogue loop may not be waiting for skip
+            // at this moment, for example while it is still exiting the print method.
+            if (!_dialoguePrinter.FinishLastPrinting(_skipSymbolDelay)) _skipRequested = true;
+        }
+
+        private bool ConsumeSkipRequest() {
+            bool isRequested = _skipRequested;
+            _skipRequested = false;
+            return isRequested;
         }
 
         [Button(mode: ButtonAttribute.Mode.Runtime)]
@@ -114,6 +125,8 @@ namespace MisterGames.Dialogues.Components {
             AsyncExt.DisposeCts(ref _dialogueLaunchCts);
             AsyncExt.DisposeCts(ref _skipCts);
 
+            _skipRequested = false;
+
             IsRunning = false;
             IsPaused = false;
         }
@@ -132,8 +145,10 @@ namespace MisterGames.Dialogues.Components {
         public async UniTask LaunchDialogueAsync(IDialogueTable table, CancellationToken cancellationToken = default) {
             AsyncExt.RecreateCts(ref _dialogueLaunchCts);
             AsyncExt.RecreateCts(ref _skipCts);
-            
+
             cancellationToken = CancellationTokenSource.CreateLinkedTokenSource(_dialogueLaunchCts.Token, cancellationToken).Token;
+
+            _skipRequested = false;
 
             IsRunning = true;
             IsPaused = false;
@@ -216,13 +231,15 @@ namespace MisterGames.Dialogues.Components {
                     AsyncExt.RecreateCts(ref _skipCts);
                     skipToken = CancellationTokenSource.CreateLinkedTokenSource(_skipCts.Token, cancellationToken).Token;
                 }
-                
+
+                // Skip pressed before the element is printed has already served its purpose by cutting the delay
+                // above and must not move dialogue past the element that is not printed yet.
+                ConsumeSkipRequest();
+
                 if (element.key.IsNotNull()) {
                     int roleIndex = Mathf.Max(0, table.Roles.TryFindIndex(element.roleId, (k0, k1) => k0 == k1));
 
                     await _dialoguePrinter.PrintElement(element.key, roleIndex, cancellationToken);
-                    if (cancellationToken.IsCancellationRequested) break;
-                    
                     if (cancellationToken.IsCancellationRequested) break;
                     
                     await WaitWhilePaused(cancellationToken);
@@ -231,14 +248,21 @@ namespace MisterGames.Dialogues.Components {
                 
                 switch (_nextElementMode) {
                     case NextElementMode.WaitSkip:
-                        if (TimeSources.unscaledTime - _lastSkipTime <= _maxTimeAfterSkipToMoveToNext) continue;
-                        
+                        // Skip pressed while the element was already printed moves to the next element,
+                        // even if it was pressed before the dialogue loop started to wait for it.
+                        if (ConsumeSkipRequest() ||
+                            TimeSources.unscaledTime - _lastSkipTime <= _maxTimeAfterSkipToMoveToNext)
+                        {
+                            continue;
+                        }
+
                         if (_skipCts == null) {
                             AsyncExt.RecreateCts(ref _skipCts);
                             skipToken = CancellationTokenSource.CreateLinkedTokenSource(_skipCts.Token, cancellationToken).Token;
                         }
 
                         await WaitSkipInput(skipToken, cancellationToken);
+                        ConsumeSkipRequest();
                         continue;
                     
                     case NextElementMode.AutoPlayNext:
@@ -275,8 +299,8 @@ namespace MisterGames.Dialogues.Components {
             _dialoguePrinter.CancelLastPrinting(clear);
         }
 
-        public void FinishLastPrinting(float symbolDelay = -1) {
-            _dialoguePrinter.FinishLastPrinting(symbolDelay);
+        public bool FinishLastPrinting(float symbolDelay = -1) {
+            return _dialoguePrinter.FinishLastPrinting(symbolDelay);
         }
 
         private async UniTask WaitWhilePaused(CancellationToken cancellationToken) {
