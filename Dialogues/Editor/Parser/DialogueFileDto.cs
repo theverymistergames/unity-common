@@ -9,7 +9,7 @@ namespace MisterGames.Dialogues.Editor.Parser {
         public LocalizedContent[] titleLocalizations;
         public Role[] roles;
         public Branch[] branches;
-        public ElementsArray[] localizations;
+        public Element[] elements;
         
         [Serializable]
         public struct Role {
@@ -28,19 +28,19 @@ namespace MisterGames.Dialogues.Editor.Parser {
             public string loc;
             public string content;
         }
-
-        [Serializable]
-        public struct ElementsArray {
-            public string loc;
-            public Element[] elements;    
-        }
         
+        [Serializable]
+        public struct LocalizedLines {
+            public string loc;
+            public string[] lines;
+        }
+
         [Serializable]
         public struct Element {
             public string elementId;
             public string branchId;
             public string roleId;
-            public string[] lines;
+            public LocalizedLines[] content;
         }
     }
     

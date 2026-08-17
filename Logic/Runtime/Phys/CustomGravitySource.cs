@@ -1,6 +1,7 @@
 ﻿using System;
 using MisterGames.Common;
 using MisterGames.Common.Attributes;
+using MisterGames.Common.Volumes;
 using UnityEngine;
 
 namespace MisterGames.Logic.Phys {
@@ -18,9 +19,7 @@ namespace MisterGames.Logic.Phys {
         
         [Header("Weight")]
         [SerializeField] private float _weightMul = 1f;
-        [SerializeField] [Range(0f, 1f)] private float _fallOff;
-        [SerializeField] [Min(0f)] private float _innerRadius = 1f;
-        [SerializeField] [Min(0f)] private float _outerRadius = 2f;
+        [SerializeField] private PositionWeightProvider _positionWeightProvider;
 
         private enum Usage {
             AsGlobalGravitySource,
@@ -77,18 +76,7 @@ namespace MisterGames.Logic.Phys {
         }
 
         private float GetWeight(Vector3 position) {
-            if (_fallOff <= 0f) return _weightMul;
-            
-            var center = _source.position;
-
-            if ((position - center).sqrMagnitude <= _innerRadius * _innerRadius) {
-                return _weightMul;
-            }
-
-            if (_outerRadius - _innerRadius <= 0f) return _weightMul * (1f - _fallOff);
-            
-            float x = ((center - position).magnitude - _innerRadius) / (_outerRadius - _innerRadius);
-            return Mathf.Clamp01(1f + 2f * _fallOff * (1f / (x + 1f) - 1f)) * _weightMul;
+            return _positionWeightProvider.GetWeight(position).weight;
         }
 
         private float GetFullMagnitude() {
@@ -103,10 +91,6 @@ namespace MisterGames.Logic.Phys {
 
         private void Reset() {
             _source = transform;
-        }
-
-        private void OnValidate() {
-            if (_outerRadius < _innerRadius) _outerRadius = _innerRadius;
         }
 
         private void OnDrawGizmos() {
@@ -128,28 +112,6 @@ namespace MisterGames.Logic.Phys {
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-            
-            if (_fallOff <= 0f) return;
-
-            var pIn = position + rotation * Vector3.forward * _innerRadius;
-            float w = _weightMul;
-            DebugExt.DrawSphere(position, _innerRadius, Color.white, gizmo: true);
-            DebugExt.DrawPointer(pIn, Color.white, 0.03f, gizmo: true);
-            DebugExt.DrawLabel(pIn + rotation * Vector3.right * 0.12f, $"W = {w:0.000}\nG = {w * GetFullMagnitude():0.000}", color: Color.white);
-            DebugExt.DrawLine(pIn, position, Color.white, gizmo: true);
-            
-            var pOut = position + rotation * Vector3.forward * _outerRadius;
-            w = GetWeight(pOut);
-            DebugExt.DrawSphere(position, _outerRadius, Color.yellow, gizmo: true);
-            DebugExt.DrawPointer(pOut, Color.yellow, 0.03f, gizmo: true);
-            DebugExt.DrawLabel(pOut - rotation * Vector3.right * 0.12f, $"W = {w:0.000}\nG = {w * GetFullMagnitude():0.000}", color: Color.yellow);
-            DebugExt.DrawLine(pOut, pIn, Color.yellow, gizmo: true);
-            
-            var pFar = position + rotation * Vector3.forward * _testPoint;
-            w = GetWeight(pFar);
-            DebugExt.DrawPointer(pFar, Color.cyan, 0.03f, gizmo: true);
-            DebugExt.DrawLabel(pFar + rotation * Vector3.forward * 0.12f, $"W = {w:0.000}\nG = {w * GetFullMagnitude():0.000}", color: Color.cyan);
-            if (_testPoint > _outerRadius) DebugExt.DrawLine(pFar, pOut, Color.cyan, gizmo: true);
         }
 #endif
     }

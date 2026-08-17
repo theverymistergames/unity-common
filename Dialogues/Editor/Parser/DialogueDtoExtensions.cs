@@ -1,11 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Text;
 using MisterGames.Common.Lists;
 using MisterGames.Common.Localization;
 using MisterGames.Dialogues.Storage;
-using Unity.Collections;
-using UnityEngine;
 
 namespace MisterGames.Dialogues.Editor.Parser {
 
@@ -150,59 +147,61 @@ namespace MisterGames.Dialogues.Editor.Parser {
             IDialogueTableStorage writeDialogueTableStorage) 
         {
             var sb = new StringBuilder();
-            var addedElementsHashes = new NativeHashSet<int>(100, Allocator.Temp);
-            
-            for (int i = 0; i < dto.localizations?.Length; i++) {
-                ref var localizationData = ref dto.localizations[i];
-                
-                var locale = string.IsNullOrEmpty(localizationData.loc)
-                    ? LocaleExtensions.DefaultLocale
-                    : LocaleExtensions.CreateLocale(localizationData.loc);
 
-                string roleId = dto.roles?.Length > 0 ? dto.roles[0].roleId?.Trim() : null;
-                string branchId = dto.branches?.Length > 0 ? dto.branches[0].branchId?.Trim() : null;
+            string roleId = dto.roles?.Length > 0 ? dto.roles[0].roleId?.Trim() : null;
+            string branchId = dto.branches?.Length > 0 ? dto.branches[0].branchId?.Trim() : null;
 
-                roleId ??= DefaultRoleId;
-                branchId ??= DefaultBranchId;
-                
-                int roleIndex = 0;
-                int branchIndex = 0;
-                
-                for (int j = 0; j < localizationData.elements?.Length; j++) {
-                    ref var element = ref localizationData.elements[j];
+            roleId ??= DefaultRoleId;
+            branchId ??= DefaultBranchId;
+
+            int roleIndex = 0;
+            int branchIndex = 0;
+
+            for (int i = 0; i < dto.elements?.Length; i++) {
+                ref var element = ref dto.elements[i];
+
+                if (!string.IsNullOrEmpty(element.branchId)) {
+                    branchId = element.branchId.Trim();
+                    branchIndex = dto.branches?.TryFindIndex(branchId, (branch, s) => branch.branchId?.Trim() == s) ?? 0;
+                }
+
+                if (!string.IsNullOrEmpty(element.roleId)) {
+                    roleId = element.roleId.Trim();
+                    roleIndex = dto.roles?.TryFindIndex(roleId, (role, s) => role.roleId?.Trim() == s) ?? 0;
+                }
+
+                string elementId = FormatElementId(dialogueId, branchId, roleId, element.elementId, i);
+                bool hasLocalizations = false;
+
+                for (int j = 0; j < element.content?.Length; j++) {
+                    ref var localizedLines = ref element.content[j];
+
+                    var locale = string.IsNullOrWhiteSpace(localizedLines.loc)
+                        ? LocaleExtensions.DefaultLocale
+                        : LocaleExtensions.CreateLocale(localizedLines.loc.Trim());
 
                     sb.Clear();
 
-                    for (int k = 0; k < element.lines?.Length; k++) {
-                        sb.Append(element.lines[k]);
-                    }
-                    
-                    if (!string.IsNullOrEmpty(element.branchId)) {
-                        branchId = element.branchId.Trim();
-                        branchIndex = dto.branches.TryFindIndex(branchId, (branch, s) => branch.branchId?.Trim() == s);
-                    }
-                    
-                    if (!string.IsNullOrEmpty(element.roleId)) {
-                        roleId = element.roleId.Trim();
-                        roleIndex = dto.roles.TryFindIndex(roleId, (role, s) => role.roleId?.Trim() == s);
+                    int lines = localizedLines.lines?.Length ?? 0;
+                    for (int k = 0; k < lines; k++) {
+                        if (k < lines - 1) sb.AppendLine(localizedLines.lines![k]);
+                        else sb.Append(localizedLines.lines![k]);
                     }
 
-                    string elementId = FormatElementId(dialogueId, branchId, roleId, element.elementId, j);
-                    int elementHash = Animator.StringToHash(elementId);
-                    
                     writeLocalizationTable.SetValue(elementId, sb.ToString(), locale);
-                    
-                    if (!addedElementsHashes.Add(elementHash)) continue;
-                    
-                    writeDialogueTableStorage.AddElement(new DialogueElement {
-                        roleId = LocalizationKeyExtensions.CreateLocalizationKey(FormatRoleId(dialogueId, roleId, roleIndex), localizationTableGuid),
-                        branchId = LocalizationKeyExtensions.CreateLocalizationKey(FormatBranchId(dialogueId, branchId, branchIndex), localizationTableGuid),
-                        key = LocalizationKeyExtensions.CreateLocalizationKey(elementId, localizationTableGuid),
-                    });
+                    hasLocalizations = true;
                 }
-            }
 
-            addedElementsHashes.Dispose();
+                if (!hasLocalizations) {
+                    writeLocalizationTable.SetValue(elementId, null, LocaleExtensions.DefaultLocale);
+                }
+
+                writeDialogueTableStorage.AddElement(new DialogueElement {
+                    roleId = LocalizationKeyExtensions.CreateLocalizationKey(FormatRoleId(dialogueId, roleId, roleIndex), localizationTableGuid),
+                    branchId = LocalizationKeyExtensions.CreateLocalizationKey(FormatBranchId(dialogueId, branchId, branchIndex), localizationTableGuid),
+                    key = LocalizationKeyExtensions.CreateLocalizationKey(elementId, localizationTableGuid),
+                });
+            }
         }
 
         private static string FormatRoleId(string dialogueId, string roleId, int roleIndex) {

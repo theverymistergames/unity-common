@@ -1,9 +1,8 @@
 ﻿using System.Collections.Generic;
 using MisterGames.Collisions.Rigidbodies;
-using MisterGames.Common;
 using MisterGames.Common.Labels;
-using MisterGames.Common.Maths;
 using MisterGames.Common.Tick;
+using MisterGames.Common.Volumes;
 using UnityEngine;
 
 namespace MisterGames.Logic.Phys {
@@ -11,15 +10,13 @@ namespace MisterGames.Logic.Phys {
     public sealed class RigidbodySlowZone : MonoBehaviour, IUpdate {
 
         [SerializeField] private TriggerListenerForRigidbody _triggerListenerForRigidbody;
-        [SerializeField] [Min(0f)] private float _innerRadius = 0.5f;
-        [SerializeField] [Min(0f)] private float _outerRadius = 1f;
+        [SerializeField] private PositionWeightProvider _positionWeightProvider;
         [SerializeField] [Range(0f, 1f)] private float _innerSlowFactor = 0.75f;
         [SerializeField] [Range(0f, 1f)] private float _outerSlowFactor = 0.5f;
         [SerializeField] private bool _disableGravity;
         [SerializeField] private LabelValue _gravityPriority;
         
         private readonly Dictionary<Rigidbody, RigidbodyData> _rigidbodies = new();
-        private Transform _transform;
 
         private readonly struct RigidbodyData {
             public readonly bool useGravity;
@@ -27,10 +24,6 @@ namespace MisterGames.Logic.Phys {
             public RigidbodyData(bool useGravity) {
                 this.useGravity = useGravity;
             }
-        }
-        
-        private void Awake() {
-            _transform = transform;
         }
 
         private void OnEnable() {
@@ -77,47 +70,22 @@ namespace MisterGames.Logic.Phys {
         }
 
         void IUpdate.OnUpdate(float dt) {
-            var center = _transform.position;
-            float scale = _transform.localScale.x;
-            
             foreach (var rb in _rigidbodies.Keys) {
                 if (rb == null || !rb.gameObject.activeSelf || rb.isKinematic) {
                     continue;
                 }
 
-                float slowFactor = GetSlowFactor(center, rb.position, scale);
+                float slowFactor = GetSlowFactor(rb.position);
+                if (slowFactor <= 0f) continue;
+                
                 var force = dt > 0f ? rb.linearVelocity / dt : Vector3.zero;
-
                 rb.AddForce(-force * slowFactor, ForceMode.Acceleration);
             }
         }
 
-        private float GetSlowFactor(Vector3 center, Vector3 point, float scale) {
-            float sqrMagnitude = (center - point).sqrMagnitude;
-            float t = sqrMagnitude < _innerRadius * _innerRadius * scale * scale ? 0f
-                : _innerRadius.IsNearlyEqual(_outerRadius) || sqrMagnitude > _outerRadius * _outerRadius * scale * scale ? 1f
-                : ((center - point).magnitude - _innerRadius * scale) / (_outerRadius * scale - _innerRadius * scale);
-            
-            return Mathf.Lerp(_innerSlowFactor, _outerSlowFactor, t);
+        private float GetSlowFactor(Vector3 point) {
+            return Mathf.Lerp(_outerSlowFactor, _innerSlowFactor, _positionWeightProvider.GetWeight(point).weight);
         }
-        
-#if UNITY_EDITOR
-        [Header("Debug")]
-        [SerializeField] private bool _showDebugInfo;
-        
-        private void OnDrawGizmos() {
-            if (!_showDebugInfo) return;
-            
-            var pos = transform.position;
-            var scale = transform.localScale;
-            DebugExt.DrawSphere(pos, _innerRadius * scale.x, Color.yellow, gizmo: true);
-            DebugExt.DrawSphere(pos, _outerRadius * scale.x, Color.green, gizmo: true);
-        }
-
-        private void OnValidate() {
-            if (_innerRadius > _outerRadius) _innerRadius = _outerRadius;
-        }
-#endif
     }
     
 }

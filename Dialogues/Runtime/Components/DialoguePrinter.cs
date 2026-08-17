@@ -6,6 +6,7 @@ using MisterGames.Actors;
 using MisterGames.Common.Async;
 using MisterGames.Common.Lists;
 using MisterGames.Common.Localization;
+using MisterGames.Common.Maths;
 using MisterGames.Common.Pooling;
 using MisterGames.Common.Service;
 using MisterGames.UI.Components;
@@ -16,9 +17,10 @@ namespace MisterGames.Dialogues.Components {
     
     public sealed class DialoguePrinter : MonoBehaviour, IActorComponent {
         
+        [SerializeField] private bool _useUnscaledTime = true;
         [SerializeField] private PrintSettings _defaultSettings;
         [SerializeField] private RoleData[] _perRoleSettings;
-        
+
         [Serializable]
         private struct RoleData {
             public int roleIndex;
@@ -37,6 +39,10 @@ namespace MisterGames.Dialogues.Components {
             public HorizontalAlignmentOptions alignment;
             public VerticalAlignmentOptions vertical;
             public Vector4 margin;
+            
+            [Tooltip("Time in seconds the element stays on screen after printing is finished. " +
+                     "Negative value means the element is never cleared automatically.")]
+            [Min(-1f)] public float lifetime;
         }
 
         private enum PrinterOutput {
@@ -44,8 +50,14 @@ namespace MisterGames.Dialogues.Components {
             DefaultTextField,
         }
         
+        private struct ElementData {
+            public LocalizationKey key;
+            public UiTextPrinter printer;
+            public byte version;
+        }
+
         private readonly List<TMP_Text> _allocatedTextFields = new();
-        private readonly Dictionary<TMP_Text, (LocalizationKey key, UiTextPrinter printer)> _textPrintMap = new();
+        private readonly Dictionary<TMP_Text, ElementData> _textPrintMap = new();
         private readonly Dictionary<LocalizationKey, (TMP_Text textField, UiTextPrinter printer)> _lastPrintMap = new();
         private CancellationTokenSource _enableCts;
         private UiTextPrinter _lastPrinter;
@@ -68,8 +80,8 @@ namespace MisterGames.Dialogues.Components {
         }
 
         private void OnLocaleChanged(Locale locale) {
-            foreach (var (textField, (key, printer)) in _textPrintMap) {
-                printer.SetText(textField, key.GetValue());
+            foreach (var (textField, data) in _textPrintMap) {
+                data.printer.SetText(textField, data.key.GetValue());
             }
         }
 
@@ -127,19 +139,82 @@ namespace MisterGames.Dialogues.Components {
             _lastTextField = textField;
 
 #if UNITY_EDITOR
-            textField.name = $"textField_{textField.GetHashCode()}_{key.GetId()}";      
+            textField.name = $"textField_{textField.GetHashCode()}_{key.GetId()}";
 #endif
 
-            _textPrintMap[textField] = (key, textPrinter);
+            var elementData = _textPrintMap.GetValueOrDefault(textField);
+
+            if (_lastPrintMap.TryGetValue(elementData.key, out var lastPrint) && lastPrint.textField == textField) {
+                _lastPrintMap.Remove(elementData.key);
+            }
+
+            byte version = elementData.version.IncrementUncheckedRef();
+
+            _textPrintMap[textField] = new ElementData { key = key, printer = textPrinter, version = version };
             _lastPrintMap[key] = (textField, textPrinter);
-            
+
             await textPrinter.PrintTextAsync(textField, key.GetValue(), cancellationToken);
+
+            if (cancellationToken.IsCancellationRequested) return;
+
+            float lifetime = hasCustomSettings ? customSettings.lifetime : _defaultSettings.lifetime;
+
+            if (lifetime < 0f || !IsCurrentVersion(textField, version)) return;
+
+            AwaitLifetimeAndClear(textField, lifetime, version, _enableCts.Token).Forget();
+        }
+
+        private async UniTaskVoid AwaitLifetimeAndClear(TMP_Text textField, float lifetime, byte version, CancellationToken cancellationToken) {
+            if (lifetime > 0f) {
+                await AsyncExt.Delay(lifetime, _useUnscaledTime, cancellationToken);
+            }
+
+            if (cancellationToken.IsCancellationRequested || !IsCurrentVersion(textField, version)) return;
+
+            ClearElement(textField);
+        }
+
+        private bool IsCurrentVersion(TMP_Text textField, byte version) {
+            return _textPrintMap.TryGetValue(textField, out var data) && data.version == version;
+        }
+
+        private void StopLifetime(TMP_Text textField) {
+            if (textField == null || !_textPrintMap.TryGetValue(textField, out var data)) return;
+
+            data.version.IncrementUncheckedRef();
+            _textPrintMap[textField] = data;
+        }
+
+        private void ClearElement(TMP_Text textField) {
+            if (textField == null || !_textPrintMap.Remove(textField, out var data)) return;
+
+            if (data.printer != null) data.printer.CancelPrinting(textField, clear: true);
+
+            if (_lastPrintMap.TryGetValue(data.key, out var lastPrint) && lastPrint.textField == textField) {
+                _lastPrintMap.Remove(data.key);
+            }
+
+            if (_lastTextField == textField) {
+                _lastTextField = null;
+                _lastPrinter = null;
+            }
+
+            if (_allocatedTextFields.Remove(textField)) {
+                PrefabPool.Main.Release(textField);
+            }
         }
 
         public void CancelLastPrinting(bool clear = false) {
             if (_lastPrinter == null || _lastTextField == null) return;
 
-            _lastPrinter.CancelPrinting(_lastTextField, clear);
+            StopLifetime(_lastTextField);
+
+            if (clear) {
+                ClearElement(_lastTextField);
+                return;
+            }
+
+            _lastPrinter.CancelPrinting(_lastTextField, clear: false);
         }
 
         public void FinishLastPrinting(float symbolDelay = -1) {
@@ -150,10 +225,10 @@ namespace MisterGames.Dialogues.Components {
 
         public void ReprintLast(LocalizationKey key) {
             if (!_lastPrintMap.TryGetValue(key, out var data)) return;
-            
+
             data.printer.SetText(data.textField, key.GetValue());
         }
-        
+
         public void ClearAllText() {
             ReleaseAllTextFields();
 
@@ -169,9 +244,12 @@ namespace MisterGames.Dialogues.Components {
                     printSettings.textPrinter.CancelPrinting(printSettings.textPrinter.DefaultTextField, clear: true);
                 }
             }
-            
+
             _lastPrintMap.Clear();
             _textPrintMap.Clear();
+
+            _lastTextField = null;
+            _lastPrinter = null;
         }
 
         private async UniTask<TMP_Text> CreateTextField(TMP_Text prefab, Transform parent) {
