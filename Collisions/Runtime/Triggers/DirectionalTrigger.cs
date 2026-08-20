@@ -57,8 +57,7 @@ namespace MisterGames.Collisions.Triggers {
             _isTrackingCollider = false;
 
             var triggerForward = _useExplicitDirection ? _explicitDirection.forward : _transform.forward;
-            bool isForward = Vector3.Dot(t.forward, triggerForward) >= 0f ||
-                             Vector3.Dot(t.position - _enterPoint, triggerForward) >= 0f;
+            bool isForward = Vector3.Dot(t.position - _enterPoint, triggerForward) >= 0f;
             
             if (isForward) OnTriggeredForward.Invoke(go);
             else OnTriggeredBackward.Invoke(go);
