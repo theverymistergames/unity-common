@@ -11,6 +11,7 @@ namespace MisterGames.Logic.Loading {
         
         [Header("Elements")]
         [SerializeReference] [SubclassSelector] public ILocalizedStringProvider[] blocks;
+        [SerializeReference] [SubclassSelector] public ILocalizedStringProvider[] afterLoading;
         public Arguments[] args;
         
         [Header("Loading Progress")]
@@ -20,9 +21,6 @@ namespace MisterGames.Logic.Loading {
         [Min(0)] public int loadProgressCharsCount = 20;
         public char loadProgressEmptyChar = '░';
         public char loadProgressFullChar = '█';
-        
-        [Header("Print After Loading")]
-        [SerializeReference] [SubclassSelector] public ILocalizedStringProvider[] afterLoading;
 
         [Header("Await Input")]
         public bool awaitInput = true; 

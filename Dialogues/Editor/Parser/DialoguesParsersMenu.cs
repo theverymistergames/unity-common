@@ -12,7 +12,7 @@ namespace MisterGames.Common.Editor.GoogleSheets {
 
         private static CancellationTokenSource _cts;
         
-        [MenuItem("MisterGames/Sheets/Download and parse all dialogues")]
+        [MenuItem("MisterGames/Sheets/Download and parse all dialogues %f4")]
         private static void DownloadAndParseAllDialogueFiles() {
             if (Application.isPlaying) {
                 Debug.LogWarning($"Downloading dialogues is not allowed in playmode.");
