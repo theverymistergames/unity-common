@@ -40,13 +40,13 @@ namespace MisterGames.Common.Actions {
 
                 case Mode.Parallel:
                     var tasks = ArrayPool<UniTask>.Shared.Rent(count);
+                    tasks.ResetArrayElements();
 
                     for (int i = 0; i < count; i++) {
                         tasks[i] = actions[i] is {} action ? action.Apply(context, cancellationToken) : UniTask.CompletedTask;
                     }
 
                     await UniTask.WhenAll(tasks);
-                    tasks.ResetArrayElements();
                     
                     ArrayPool<UniTask>.Shared.Return(tasks);
                     break;
