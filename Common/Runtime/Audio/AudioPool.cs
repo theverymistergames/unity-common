@@ -564,7 +564,10 @@ namespace MisterGames.Common.Audio {
         }
 
         private void ReleaseSound(int handleId, bool immediate) {
-            if (!_handleIdToAudioElementMap.Remove(handleId, out var e)) return;
+            if (!_handleIdToAudioElementMap.Remove(handleId, out var e)) {
+                if (immediate) StopFadeOutAndRelease(handleId);
+                return;
+            }
 
             if (_handleIdToAttachKeyMap.Remove(handleId, out var attachKey)) {
                 _attachKeyToHandleIdMap.Remove(attachKey);
@@ -597,7 +600,13 @@ namespace MisterGames.Common.Audio {
 #endif
         }
 
-        void IAudioPool.SetAudioHandleVolume(int handleId, float volume) { 
+        private void StopFadeOutAndRelease(int handleId) {
+            _fadeOutDataMap.Remove(handleId);
+
+            if (_releaseElementsMap.Remove(handleId, out var e)) PrefabPool.Main?.Release(e.Source);
+        }
+
+        void IAudioPool.SetAudioHandleVolume(int handleId, float volume) {
             if (!_handleIdToAudioElementMap.TryGetValue(handleId, out var e)) return;
 
             // Stop fade in
@@ -728,20 +737,25 @@ namespace MisterGames.Common.Audio {
             for (int i = 0; i < fadeOutCount; i++) {
                 var data = fadeOutCalculateArray[i];
                 var result = fadeOutResultArray[i];
-                var e = _releaseElementsMap[result.id];
-                
+
+                if (!_releaseElementsMap.TryGetValue(result.id, out var e) || e.Source == null) {
+                    _fadeOutDataMap.Remove(result.id);
+                    _releaseElementsMap.Remove(result.id);
+                    continue;
+                }
+
                 e.Source.volume = result.volume;
 
                 if (data.timeSource < 2) {
                     CheckPause(e, timescale);
                 }
-                
+
                 if (result.progress < 1f) continue;
-                
+
                 _fadeOutDataMap.Remove(result.id);
                 _releaseElementsMap.Remove(result.id);
-                
-                pool.Release(e.Transform);
+
+                pool?.Release(e.Transform);
             }
             
             fadeOutCalculateArray.Dispose();
