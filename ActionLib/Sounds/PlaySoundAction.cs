@@ -70,11 +70,6 @@ namespace MisterGames.ActionLib.Sounds {
         }
         
         public AudioHandle PlaySound(AudioClip clip, float volume, IActor context, CancellationToken cancellationToken) {
-            if (clip == null || AudioPool.Main is not { } pool) return default;
-            
-            float resultPitch = pitch + Random.Range(-pitchRandomAdd, pitchRandomAdd);
-            float resultStartTime = startTime.GetRandomInRange();
-
             var trf = position switch {
                 PositionMode.ActorTransform => context.Transform,
                 PositionMode.ExplicitTransform => transform,
@@ -86,7 +81,16 @@ namespace MisterGames.ActionLib.Sounds {
                 Debug.LogError($"PlaySoundAction.Apply: f {UnityEngine.Time.frameCount}, cannot find transform (mode {position}) to play sound. Audio clip variants: {audioClipVariants.AsString()}");
                 return default;
             }
-
+            
+            return PlaySound(clip, trf, volume, context, cancellationToken);
+        }
+        
+        public AudioHandle PlaySound(AudioClip clip, Transform trf, float volume, IActor context, CancellationToken cancellationToken) {
+            if (clip == null || AudioPool.Main is not { } pool) return default;
+            
+            float resultPitch = pitch + Random.Range(-pitchRandomAdd, pitchRandomAdd);
+            float resultStartTime = startTime.GetRandomInRange();
+            
             var options = AudioOptions.None;
             options |= loop ? AudioOptions.Loop : AudioOptions.None;
             options |= affectedByTimeScale ? AudioOptions.AffectedByTimeScale : AudioOptions.None;

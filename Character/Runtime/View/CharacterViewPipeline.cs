@@ -44,6 +44,8 @@ namespace MisterGames.Character.View {
             set => _head.localPosition = value;
         }
 
+        public Vector3 ViewDirection => _head.rotation * Vector3.forward;
+
         public Quaternion HeadRotation {
             get => _head.rotation;
             set {
