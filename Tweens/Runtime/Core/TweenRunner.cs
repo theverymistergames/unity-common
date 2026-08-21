@@ -22,29 +22,40 @@ namespace MisterGames.Tweens {
 
         private IActor _actor;
         private CancellationTokenSource _enableCts;
+        private bool _enabled;
 
         void IActorComponent.OnAwake(IActor actor) {
             _actor = actor;
             _tweenPlayer.Context = actor;
         }
 
-        private void OnEnable() {
-            AsyncExt.RecreateCts(ref _enableCts);
-
+        private void Awake() {
             _tweenPlayer.OnProgressUpdate += OnProgressUpdate;
+        }
+
+        private void OnDestroy() {
+            _tweenPlayer.OnProgressUpdate -= OnProgressUpdate;
+        }
+
+        private void OnEnable() {
+            _enabled = true;
             
             if (!_playAtStart) return;
 
+            AsyncExt.RecreateCts(ref _enableCts);
             _tweenPlayer.Play(cancellationToken: _enableCts.Token).Forget();
         }
 
         private void OnDisable() {
-            AsyncExt.DisposeCts(ref _enableCts);
+            _enabled = false;
             
-            _tweenPlayer.OnProgressUpdate -= OnProgressUpdate;
+            AsyncExt.DisposeCts(ref _enableCts);
         }
 
         private void OnProgressUpdate(float progress, float oldProgress) {
+            if (!_enabled) return;
+            
+            if (_enableCts == null) AsyncExt.RecreateCts(ref _enableCts);
             _events.NotifyTweenEvents(_actor, progress, oldProgress, _enableCts.Token);
         }
     }

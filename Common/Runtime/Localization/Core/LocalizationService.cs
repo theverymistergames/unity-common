@@ -208,13 +208,8 @@ namespace MisterGames.Common.Localization {
                 }
                 
                 disposeBuffer.Dispose();
-                
-                await UniTask.Delay(
-                        TimeSpan.FromSeconds(disposeDelay), 
-                        DelayType.UnscaledDeltaTime, 
-                        cancellationToken: cancellationToken
-                    )
-                    .SuppressCancellationThrow();
+
+                await AsyncExt.DelayUnscaled(TimeSpan.FromSeconds(disposeDelay), cancellationToken: cancellationToken);
             }
         }
         

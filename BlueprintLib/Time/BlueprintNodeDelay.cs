@@ -2,6 +2,7 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Blueprints;
+using MisterGames.Common.Async;
 using UnityEngine;
 
 namespace MisterGames.BlueprintLib {
@@ -63,11 +64,8 @@ namespace MisterGames.BlueprintLib {
         }
 
         private async UniTaskVoid DelayAndExitAsync(IBlueprint blueprint, NodeToken token, float delay, CancellationToken cancellationToken) {
-            bool isCancelled = await UniTask
-                .Delay(TimeSpan.FromSeconds(delay), cancellationToken: cancellationToken)
-                .SuppressCancellationThrow();
-
-            if (isCancelled) return;
+            await AsyncExt.Delay(TimeSpan.FromSeconds(delay), cancellationToken: cancellationToken);
+            if (cancellationToken.IsCancellationRequested) return;
 
             blueprint.Call(token, 3);
         }

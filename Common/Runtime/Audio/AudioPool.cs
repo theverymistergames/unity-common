@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
+using MisterGames.Common.Colors;
 using MisterGames.Common.Easing;
 using MisterGames.Common.Jobs;
 using MisterGames.Common.Maths;
@@ -299,7 +300,7 @@ namespace MisterGames.Common.Audio {
             }
 
 #if UNITY_EDITOR
-            CreateDebugColor(id, clip.name);
+            CreateDebugColor(id, clip);
 #endif
             
             bool loop = (options & AudioOptions.Loop) == AudioOptions.Loop;
@@ -385,7 +386,7 @@ namespace MisterGames.Common.Audio {
             var attachKey = new AttachKey(attachTo.GetEntityId(), attachId);
 
 #if UNITY_EDITOR
-            CreateDebugColor(id, clip.name);
+            CreateDebugColor(id, clip);
 #endif
             
             normalizedTime = Mathf.Clamp01(normalizedTime);
@@ -2103,12 +2104,8 @@ namespace MisterGames.Common.Audio {
             }
         }
 
-        private void CreateDebugColor(int id, string clipName) {
-            int hash = clipName.GetHashCode();
-            var rand = new System.Random(hash);
-            var color = new Color(rand.Next(256) / 256f, rand.Next(256) / 256f, rand.Next(256) / 256f);
-            
-            _debugColors[id] = color;
+        private void CreateDebugColor(int id, AudioClip clip) {
+            _debugColors[id] = ColorUtils.ColorFromHash(clip.GetHashCode());
         }
 
         private Color GetDebugColor(int id) {

@@ -3,6 +3,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
+using MisterGames.Common.Async;
 using MisterGames.Common.Data;
 using MisterGames.Common.Pooling;
 using UnityEngine;
@@ -39,10 +40,7 @@ namespace MisterGames.ActionLib.Character {
         }
 
         private static async UniTask WaitAndDestroy(GameObject gameObject, float delay, CancellationToken cancellationToken) {
-            await UniTask
-                .Delay(TimeSpan.FromSeconds(delay), cancellationToken: cancellationToken)
-                .SuppressCancellationThrow();
-
+            await AsyncExt.Delay(TimeSpan.FromSeconds(delay), cancellationToken: cancellationToken);
             if (cancellationToken.IsCancellationRequested || gameObject == null) return;
             
             PrefabPool.Main.Release(gameObject);

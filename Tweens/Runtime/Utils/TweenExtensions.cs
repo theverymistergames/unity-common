@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
+using MisterGames.Common.Async;
 using MisterGames.Common.Lists;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Tick;
@@ -343,13 +344,9 @@ namespace MisterGames.Tweens {
         ) {
             if (tween == null) return;
 
-            if (delay > 0f)
-            {
-                bool canceled = await UniTask
-                    .Delay(TimeSpan.FromSeconds(delay), cancellationToken: cancellationToken)
-                    .SuppressCancellationThrow();
-
-                if (canceled) return;
+            if (delay > 0f) { 
+                await AsyncExt.Delay(TimeSpan.FromSeconds(delay), cancellationToken: cancellationToken);
+                if (cancellationToken.IsCancellationRequested) return;
             }
             
             await tween.Play(context, duration, startProgress, speed, cancellationToken);

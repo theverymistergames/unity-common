@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using MisterGames.Common.Async;
 using MisterGames.Common.Service;
 using UnityEngine;
 
@@ -139,9 +140,8 @@ namespace MisterGames.Common.Inputs.DualSense {
         private async UniTask StartControllersCountChecks(CancellationToken cancellationToken) {
             while (!cancellationToken.IsCancellationRequested) {
                 UpdateOutputStates(DualSenseNative.GetControllerCount());
-                
-                await UniTask.Delay(TimeSpan.FromSeconds(1f), ignoreTimeScale: true, cancellationToken: cancellationToken)
-                    .SuppressCancellationThrow();
+
+                await AsyncExt.Delay(TimeSpan.FromSeconds(1f), ignoreTimeScale: true, cancellationToken: cancellationToken);
             }
         }
 
