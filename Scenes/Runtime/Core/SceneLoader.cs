@@ -361,6 +361,7 @@ namespace MisterGames.Scenes.Core {
             int count = _sceneLoadHooks.Count;
             
             var tasks = ArrayPool<UniTask>.Shared.Rent(count);
+            tasks.ResetArrayElements();
             int index = 0;
             
             foreach (var hook in _sceneLoadHooks) {
@@ -369,7 +370,6 @@ namespace MisterGames.Scenes.Core {
             
             await UniTask.WhenAll(tasks);
             
-            tasks.ResetArrayElements();
             ArrayPool<UniTask>.Shared.Return(tasks);
         }
 
