@@ -3,14 +3,13 @@ using UnityEngine;
 
 namespace MisterGames.Collisions.Rigidbodies {
     
-    public sealed class CollisionListenerNoStay : CollisionEmitter {
+    public sealed class CollisionListener : CollisionEmitter {
         
         [SerializeField] private LayerMask _layerMask;
         [SerializeField] private bool _collideWithTriggers;
         
         public override event CollisionCallback CollisionEnter = delegate { };
         public override event CollisionCallback CollisionExit = delegate { };
-        public override event CollisionCallback CollisionStay = delegate { };
 
         private void OnCollisionEnter(Collision collision) {
             if (!CanCollide(collision.collider)) return;

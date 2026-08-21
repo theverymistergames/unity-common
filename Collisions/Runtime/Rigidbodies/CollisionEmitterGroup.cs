@@ -8,14 +8,12 @@ namespace MisterGames.Collisions.Rigidbodies {
         
         public override event CollisionCallback CollisionEnter = delegate { };
         public override event CollisionCallback CollisionExit = delegate { };
-        public override event CollisionCallback CollisionStay = delegate { };
         
         private void OnEnable() {
             for (int i = 0; i < _collisionEmitters.Length; i++) {
                 var emitter = _collisionEmitters[i];
              
                 emitter.CollisionEnter += HandleCollisionEnter;
-                emitter.CollisionStay += HandleCollisionStay;
                 emitter.CollisionExit += HandleCollisionExit;
             }
         }
@@ -25,17 +23,12 @@ namespace MisterGames.Collisions.Rigidbodies {
                 var emitter = _collisionEmitters[i];
              
                 emitter.CollisionEnter -= HandleCollisionEnter;
-                emitter.CollisionStay -= HandleCollisionStay;
                 emitter.CollisionExit -= HandleCollisionExit;
             }
         }
 
         private void HandleCollisionEnter(Collision collision) {
             CollisionEnter.Invoke(collision);
-        }
-
-        private void HandleCollisionStay(Collision collision) {
-            CollisionStay.Invoke(collision);
         }
 
         private void HandleCollisionExit(Collision collision) {

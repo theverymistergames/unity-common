@@ -11,7 +11,6 @@ namespace MisterGames.Collisions.Rigidbodies {
         
         public abstract event TriggerCallback TriggerEnter;
         public abstract event TriggerCallback TriggerExit;
-        public abstract event TriggerCallback TriggerStay;
 
         public abstract IReadOnlyCollection<Collider> EnteredColliders { get; } 
         
@@ -19,10 +18,6 @@ namespace MisterGames.Collisions.Rigidbodies {
             switch (evt) {
                 case TriggerEventType.Enter:
                     TriggerEnter += callback;
-                    break;
-                
-                case TriggerEventType.Stay:
-                    TriggerStay += callback;
                     break;
                 
                 case TriggerEventType.Exit:
@@ -38,10 +33,6 @@ namespace MisterGames.Collisions.Rigidbodies {
             switch (eventType) {
                 case TriggerEventType.Enter:
                     TriggerEnter -= callback;
-                    break;
-                
-                case TriggerEventType.Stay:
-                    TriggerStay -= callback;
                     break;
                 
                 case TriggerEventType.Exit:

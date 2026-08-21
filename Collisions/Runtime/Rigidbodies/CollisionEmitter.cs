@@ -10,16 +10,11 @@ namespace MisterGames.Collisions.Rigidbodies {
         
         public abstract event CollisionCallback CollisionEnter;
         public abstract event CollisionCallback CollisionExit;
-        public abstract event CollisionCallback CollisionStay;
 
         public void Subscribe(TriggerEventType evt, CollisionCallback callback) {
             switch (evt) {
                 case TriggerEventType.Enter:
                     CollisionEnter += callback;
-                    break;
-                
-                case TriggerEventType.Stay:
-                    CollisionStay += callback;
                     break;
                 
                 case TriggerEventType.Exit:
@@ -35,10 +30,6 @@ namespace MisterGames.Collisions.Rigidbodies {
             switch (eventType) {
                 case TriggerEventType.Enter:
                     CollisionEnter -= callback;
-                    break;
-                
-                case TriggerEventType.Stay:
-                    CollisionStay -= callback;
                     break;
                 
                 case TriggerEventType.Exit:

@@ -1,9 +1,9 @@
 ﻿namespace MisterGames.Collisions.Core {
     
     public enum TriggerEventType {
-        Enter,
-        Stay,
-        Exit,
+        Enter = 0,
+        Stay = 1,
+        Exit = 2,
     }
     
 }
