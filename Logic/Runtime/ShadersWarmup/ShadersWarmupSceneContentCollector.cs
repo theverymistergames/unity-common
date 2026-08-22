@@ -207,12 +207,11 @@ namespace MisterGames.Logic.ShadersWarmup {
                     continue;
                 }
 
-                // Instantiated as a plain copy, not as a prefab instance: the copy is stripped down to shader content
-                // right away, and keeping a link to the source prefab would turn all of it into prefab overrides.
-                var instance = Instantiate(prefab, _prefabParent);
-                if (instance == null) continue;
-
-                instance.name = prefab.name;
+                // Instantiated as a prefab instance, not as a plain copy: the link to the source prefab is what
+                // keeps the scene readable and small, the stripping below is stored as overrides on top of it.
+                // The instance is never unpacked, so everything done to it further has to stay within what
+                // an instance allows: components and properties, but not restructuring.
+                if (PrefabUtility.InstantiatePrefab(prefab, _prefabParent) is not GameObject instance) continue;
 
                 StripNonShaderComponents(instance);
                 StripMeshRenderers(instance);
@@ -999,28 +998,49 @@ namespace MisterGames.Logic.ShadersWarmup {
 
         private bool TryPrepareUiRoot(GameObject uiRoot) {
             var canvases = uiRoot.GetComponentsInChildren<Canvas>(true);
-            Transform parent;
+            bool canReparent = CanReparent(uiRoot);
 
             if (canvases.Length > 0) {
                 for (int i = 0; i < canvases.Length; i++)
                     canvases[i].renderMode = RenderMode.ScreenSpaceOverlay;
 
-                parent = _prefabParent;
+                if (canReparent) uiRoot.transform.SetParent(_prefabParent, false);
             }
             else {
                 if (!HasCanvasGraphics(uiRoot)) return false;
 
-                var uiCanvas = GetOrCreateUiCanvas();
-                if (uiCanvas == null) return false;
+                if (canReparent) {
+                    var uiCanvas = GetOrCreateUiCanvas();
+                    if (uiCanvas == null) return false;
 
-                parent = uiCanvas.transform;
+                    uiRoot.transform.SetParent(uiCanvas.transform, false);
+                }
+                else {
+                    // Graphics draw through the nearest canvas above them, and here that canvas belongs to the
+                    // same prefab instance and cannot be pulled apart from it. Switching it to overlay is enough:
+                    // it draws over the frame with the rest of the subtree left disabled.
+                    var parentCanvas = uiRoot.GetComponentInParent<Canvas>(includeInactive: true);
+                    if (parentCanvas == null) return false;
+
+                    parentCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+                }
             }
-
-            uiRoot.transform.SetParent(parent, false);
 
             uiRoot.SetActive(false);
             _uiInstances.Add(uiRoot);
             return true;
+        }
+
+        /// <summary>
+        /// Whether the object can be moved to another parent. A nested part of a prefab instance cannot:
+        /// restructuring an instance is only possible after unpacking it, and unpacking throws away the link
+        /// the instance is created for. Such a subtree is prepared where it stands instead, which costs nothing:
+        /// an overlay canvas is drawn over the frame regardless of where in the scene it sits, and its content
+        /// carries no renderer, so it takes no place in the grid either.
+        /// </summary>
+        private static bool CanReparent(GameObject gameObject) {
+            return !PrefabUtility.IsPartOfPrefabInstance(gameObject)
+                   || PrefabUtility.IsOutermostPrefabInstanceRoot(gameObject);
         }
 
         private static bool HasNonUiRenderer(GameObject instance) {
@@ -1227,6 +1247,9 @@ namespace MisterGames.Logic.ShadersWarmup {
             _prefabs ??= new List<GameObject>();
             _uiInstances ??= new List<GameObject>();
 
+            // Prefab instances go first: a ui root taken from a hybrid prefab is a part of one, and a part
+            // of an instance cannot be destroyed on its own. It leaves together with its instance, and by the
+            // time the ui list is walked such an entry is already gone.
             DestroyInstances(_prefabs);
             DestroyInstances(_uiInstances);
 
