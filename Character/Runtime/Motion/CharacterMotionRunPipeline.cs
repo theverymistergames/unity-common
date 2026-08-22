@@ -36,6 +36,8 @@ namespace MisterGames.Character.Motion {
 
         private void OnEnable() {
             PlayerLoopStage.Update.Subscribe(this);
+            
+            UpdateRunState(force: true);
         }
 
         private void OnDisable() {
@@ -45,6 +47,10 @@ namespace MisterGames.Character.Motion {
         }
 
         void IUpdate.OnUpdate(float dt) {
+            UpdateRunState(force: false);
+        }
+
+        private void UpdateRunState(bool force) {
             var mode = GetCurrentMode();
             bool hasInput = _motion.Input != default;
             bool hasRunPressed = _input.IsRunPressed;
@@ -64,7 +70,7 @@ namespace MisterGames.Character.Motion {
                 _ => throw new ArgumentOutOfRangeException()
             };
             
-            if (wasRunActive != IsRunActive) OnRunStateChanged.Invoke(); 
+            if (force || wasRunActive != IsRunActive) OnRunStateChanged.Invoke(); 
         }
 
         private Mode GetCurrentMode() {

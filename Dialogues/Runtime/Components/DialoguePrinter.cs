@@ -86,6 +86,8 @@ namespace MisterGames.Dialogues.Components {
         }
 
         public async UniTask PrintElement(LocalizationKey key, int roleIndex, CancellationToken cancellationToken) {
+            if (_enableCts == null) return;
+            
             cancellationToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _enableCts.Token).Token;
             
             bool hasCustomSettings = _perRoleSettings.TryFind(roleIndex, (r, i) => r.roleIndex == i, out var data);

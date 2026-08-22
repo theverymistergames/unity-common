@@ -15,7 +15,6 @@ namespace MisterGames.Character.Input {
         [SerializeField] private InputActionRef _run;
         [SerializeField] private InputActionRef _jump;
 
-        public event Action<Vector2> OnViewVectorChanged = delegate {  };
         public event Action<Vector2> OnMotionVectorChanged = delegate {  };
 
         public event Action OnCrouchPressed = delegate {  };
@@ -28,6 +27,7 @@ namespace MisterGames.Character.Input {
         public bool IsJumpPressed => enabled && _jump.Get().IsPressed();
 
         private InputAction _viewAction;
+        private bool _viewEnabled = true;
 
         private void OnEnable() {
             Subscribe();
@@ -38,22 +38,10 @@ namespace MisterGames.Character.Input {
         }
 
         public void EnableViewInput(bool enable) {
-            _view.Get().performed -= HandleViewChanged;
-            _view.Get().canceled -= HandleViewCanceled;
-
-            if (enable) {
-                _view.Get().performed += HandleViewChanged;
-                _view.Get().canceled += HandleViewCanceled;
-            }
+            _viewEnabled = enable;
         }
 
         private void Subscribe() {
-            _view.Get().performed -= HandleViewChanged;
-            _view.Get().performed += HandleViewChanged;
-            
-            _view.Get().canceled -= HandleViewCanceled;
-            _view.Get().canceled += HandleViewCanceled;
-
             _move.Get().performed -= HandleMoveChanged;
             _move.Get().performed += HandleMoveChanged;
             
@@ -74,8 +62,6 @@ namespace MisterGames.Character.Input {
         }
         
         private void Unsubscribe() {
-            _view.Get().performed -= HandleViewChanged;
-            _view.Get().canceled -= HandleViewCanceled;
             _move.Get().performed -= HandleMoveChanged;
 
             _crouch.Get().performed -= HandleCrouchPressed;
@@ -84,16 +70,12 @@ namespace MisterGames.Character.Input {
 
             _jump.Get().performed -= HandleJumpPressed;
             
-            OnViewVectorChanged.Invoke(Vector2.zero);
             OnMotionVectorChanged.Invoke(Vector2.zero);
         }
         
         public Vector2 GetViewInputVector() {
-            return (_viewAction ??= _view.Get()).ReadValue<Vector2>();
+            return _viewEnabled ? (_viewAction ??= _view.Get()).ReadValue<Vector2>() : Vector2.zero;
         }
-
-        private void HandleViewChanged(InputAction.CallbackContext callbackContext) => OnViewVectorChanged.Invoke(callbackContext.ReadValue<Vector2>());
-        private void HandleViewCanceled(InputAction.CallbackContext callbackContext) => OnViewVectorChanged.Invoke(Vector2.zero);
 
         private void HandleMoveChanged(InputAction.CallbackContext callbackContext) => OnMotionVectorChanged.Invoke(callbackContext.ReadValue<Vector2>());
 

@@ -18,6 +18,7 @@ namespace MisterGames.Character.Motion {
         
         private IActor _actor;
         private CharacterPosePipeline _pose;
+        private CharacterMotionPipeline _motionPipeline;
         private CharacterMotionRunPipeline _run;
         private CharacterGroundDetector _groundDetector;
         private CancellationTokenSource _enableCts;
@@ -26,6 +27,7 @@ namespace MisterGames.Character.Motion {
             _actor = actor;
             _pose = actor.GetComponent<CharacterPosePipeline>();
             _run = actor.GetComponent<CharacterMotionRunPipeline>();
+            _motionPipeline = actor.GetComponent<CharacterMotionPipeline>();
             _groundDetector = actor.GetComponent<CharacterGroundDetector>();
         }
 
@@ -48,6 +50,8 @@ namespace MisterGames.Character.Motion {
         private void UpdateState() {
             if (_blockSet.Count <= 0) EnableGraph();
             else DisableGraph();
+            
+            ApplyState();
         }
 
         private void OnStartContactGround() {
@@ -75,8 +79,7 @@ namespace MisterGames.Character.Motion {
             _groundDetector.OnLostContact += OnStopContactGround;
             _pose.OnPoseChanged += OnPoseChanged;
             _run.OnRunStateChanged += OnRunPressed;
-
-            ApplyState();
+            _motionPipeline.OnTeleport += OnTeleport;
         }
 
         private void DisableGraph() {
@@ -88,9 +91,16 @@ namespace MisterGames.Character.Motion {
             _groundDetector.OnLostContact -= OnStopContactGround;
             _pose.OnPoseChanged -= OnPoseChanged;
             _run.OnRunStateChanged -= OnRunPressed;
+            _motionPipeline.OnTeleport -= OnTeleport;
+        }
+
+        private void OnTeleport() {
+            ApplyState();
         }
 
         private void ApplyState() {
+            if (_enableCts == null) return; 
+            
             _action.Apply(_actor, _enableCts.Token).Forget();
         }
     }

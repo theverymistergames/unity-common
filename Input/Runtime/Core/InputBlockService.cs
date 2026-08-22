@@ -632,7 +632,9 @@ namespace MisterGames.Input.Core {
 
                 var inputActions = inputMap.actions;
                 for (int j = 0; j < inputActions.Count; j++) {
-                    inputMap.actions[j].Enable();
+                    var inputAction = inputMap.actions[j];
+                    inputAction.wantsInitialStateCheck = true;
+                    inputAction.Enable();
                 }
             }
         }
@@ -674,9 +676,14 @@ namespace MisterGames.Input.Core {
                 enableInputAction = inputAction.actionMap == null || 
                                     !_inputMapToSourceHashBlocks.ContainsKey(inputAction.actionMap.id);
             }
-            
-            if (enableInputAction) inputAction.Enable();
-            else inputAction.Disable();
+
+            if (enableInputAction) {
+                inputAction.wantsInitialStateCheck = true;
+                inputAction.Enable();
+                return;
+            }
+
+            inputAction.Disable();
         }
      
         private void UpdateInputActionsBlockState(NativeList<Guid> guids) {

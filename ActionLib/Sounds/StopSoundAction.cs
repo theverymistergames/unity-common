@@ -20,6 +20,7 @@ namespace MisterGames.ActionLib.Sounds {
         public Transform transform;
         [VisibleIf(nameof(position), 2)]
         public LabelValue<UnityEngine.Object> libraryObject;
+        public bool immediate = false;
         
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
             if (AudioPool.Main is not { } pool) return default;
@@ -31,7 +32,7 @@ namespace MisterGames.ActionLib.Sounds {
                 _ => throw new ArgumentOutOfRangeException()
             };
             
-            pool.GetAudioHandle(trf, attachId).Release();
+            pool.GetAudioHandle(trf, attachId).Release(immediate);
             
             return default;
         }
