@@ -391,7 +391,9 @@ namespace MisterGames.Logic.ShadersWarmup {
             _volumeProfiles ??= new List<VolumeProfile>();
             _volumeProfiles.Clear();
 
-            var volumeFolders = GetFolderPaths(_warmupSettings.GetContentFolders());
+            // Volume profiles usually live outside the art folders, hence a separate field in the settings.
+            // Empty means they are searched in the content folders.
+            var volumeFolders = GetFolderPaths(_warmupSettings.GetVolumeFolders());
             if (volumeFolders.Count == 0) volumeFolders = contentFolders;
 
             string[] guids = AssetDatabase.FindAssets(VolumeProfileFilter, volumeFolders.ToArray());

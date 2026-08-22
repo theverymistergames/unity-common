@@ -41,6 +41,9 @@ namespace MisterGames.Logic.ShadersWarmup {
         [SerializeField] [Min(0)] private int _tierSettleFrames = 2;
         [SerializeField] private bool _restoreQualityTier = true;
 
+        public event Action OnPassCompleted = delegate { };
+        public bool IsPassCompleted { get; private set; }
+
         private readonly List<PassSegment> _passSegments = new();
 
         private readonly struct PassSegment {
@@ -55,10 +58,17 @@ namespace MisterGames.Logic.ShadersWarmup {
         }
 
         private void Start() {
-            RunPass(destroyCancellationToken).Forget();
+            if (_playOnStart) RunPass(destroyCancellationToken).Forget();
         }
 
-        private async UniTask RunPass(CancellationToken ct) {
+        /// <summary>
+        /// Drives the camera through the whole collected grid, then runs the phases that do not depend on the
+        /// camera position: UI (<see cref="WarmupUiInstances"/>), custom passes (<see cref="WarmupCustomPasses"/>)
+        /// and volume profiles (<see cref="WarmupVolumeProfiles"/>). The pass is repeated on every quality tier:
+        /// tiers differ in shadow filtering and volumetrics, that is in shader keywords, and give different
+        /// state sets on the very same content.
+        /// </summary>
+        public async UniTask RunPass(CancellationToken ct) {
             if (!TryBuildPassSegments()) return;
 
             var qualityTiers = BuildQualityTiers();
@@ -70,6 +80,9 @@ namespace MisterGames.Logic.ShadersWarmup {
                                  $"but volume is null. Volumes will be skipped.");
             }
                 
+            IsPassCompleted = false;
+
+            // The grid lies in the XY plane, the camera stands in front of it and looks along +Z.
             transform.rotation = Quaternion.identity;
             int originalTier = QualitySettings.GetQualityLevel();
             var originalProfile = _volume != null ? _volume.sharedProfile : null;
@@ -88,11 +101,21 @@ namespace MisterGames.Logic.ShadersWarmup {
                 } while (_loop && !ct.IsCancellationRequested);
             }
             finally {
+                // The player tier must not depend on how the warmup ended, cancellation included.
                 if (_restoreQualityTier) QualitySettings.SetQualityLevel(originalTier);
+
+                // Cancelled in the middle of the UI phase, one instance would stay enabled on top of the game.
                 SetUiInstancesActive(false);
                 SetCustomPassVolumesEnabled(false);
+
+                // Same with the profile: an interrupted phase would leave a foreign post process on the scene.
                 if (_volume != null) _volume.sharedProfile = originalProfile;
             }
+
+            if (ct.IsCancellationRequested) return;
+
+            IsPassCompleted = true;
+            OnPassCompleted.Invoke();
 
             ShaderWarmupService.Instance.NotifyShaderWarmupScenePassCompleted();
         }
@@ -118,9 +141,19 @@ namespace MisterGames.Logic.ShadersWarmup {
 
             for (int i = 0; i < _qualityTiers.Length; i++) {
                 int tier = _qualityTiers[i];
-                if (tier < 0 || tier >= tierCount) continue;
+
+                if (tier < 0 || tier >= tierCount) {
+                    Debug.LogWarning($"{nameof(ShadersWarmupSceneCamera)}: quality tier [{tier}] does not exist, " +
+                                     $"there are {tierCount} of them in the project. Tier is skipped.");
+                    continue;
+                }
 
                 if (!tiers.Contains(tier)) tiers.Add(tier);
+            }
+
+            if (tiers.Count == 0) {
+                Debug.LogError($"{nameof(ShadersWarmupSceneCamera)}: there is no valid tier left in Quality Tiers. " +
+                               $"Camera pass is not started.");
             }
 
             return tiers;
@@ -246,6 +279,12 @@ namespace MisterGames.Logic.ShadersWarmup {
                     new Vector3(row.max.x, row.center.y, cameraZ)));
 
                 requiredFarClip = Mathf.Max(requiredFarClip, row.max.z - cameraZ);
+            }
+
+            if (_passSegments.Count == 0) {
+                Debug.LogWarning($"{nameof(ShadersWarmupSceneCamera)}: {nameof(ShadersWarmupSceneContentCollector)} " +
+                                 $"has no grid columns, content is not collected or not laid out. Camera pass is not started.");
+                return false;
             }
 
             // A distant column must not be cut off by the far plane, otherwise a part of the grid is simply not drawn.
