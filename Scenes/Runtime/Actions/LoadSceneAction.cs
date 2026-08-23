@@ -37,14 +37,7 @@ namespace MisterGames.Scenes.Actions {
         public async UniTask Apply(CancellationToken cancellationToken) {
             if (!CanShowScene()) return;
 
-            var loadingService = Services.Get<ILoadingService>();
-            
             float showStartTime = TimeSources.unscaledTime;
-            bool isLoadingScene = _scene.scene == loadingService?.LoadingScene;
-            
-            if (isLoadingScene) {
-                loadingService?.ShowLoadingScreen(true);
-            }
 
             await SceneLoader.LoadSceneAsync(_scene.scene, _makeActive);
             if (cancellationToken.IsCancellationRequested) return;
@@ -68,8 +61,8 @@ namespace MisterGames.Scenes.Actions {
             
             if (!_unloadOnFinish) return;
 
-            if (isLoadingScene) {
-                loadingService?.ShowLoadingScreen(false);
+            if (_scene.scene == Services.Get<ILoadingService>()?.LoadingScene) {
+                Services.Get<ILoadingService>()?.ShowLoadingScreen(false);
                 return;
             }
 
