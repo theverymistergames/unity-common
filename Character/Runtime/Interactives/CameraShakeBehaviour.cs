@@ -31,6 +31,7 @@ namespace MisterGames.Character.Interactives {
         private int _shakerStateId;
         private int _containerStateId;
         private bool _isRegistered;
+        private bool _enabled;
 
         public void SetWeight(float weight) {
             _targetWeight = Mathf.Clamp01(weight);
@@ -53,12 +54,19 @@ namespace MisterGames.Character.Interactives {
         }
 
         private void OnEnable() {
+            _enabled = true;
+            
             Register();
             PlayerLoopStage.LateUpdate.Subscribe(this);
         }
 
+        private void OnDisable() {
+            _enabled = false;
+        }
+
         private void OnDestroy() {
             Unregister();
+            PlayerLoopStage.LateUpdate.Unsubscribe(this);
         }
 
         private void Register() {
@@ -78,7 +86,7 @@ namespace MisterGames.Character.Interactives {
         }
 
         void IUpdate.OnUpdate(float dt) {
-            float targetWeight = enabled ? _targetWeight : 0f;
+            float targetWeight = _enabled ? _targetWeight : 0f;
             _weightSmoothed = _weightSmoothed.SmoothExpNonZero(targetWeight, _weightSmoothing, dt);
 
             _cameraShaker.SetWeight(_shakerStateId, _cameraStateWeight);
