@@ -55,7 +55,8 @@ namespace MisterGames.Common.Audio {
         }
 
         private void UpdateValue(string parameter) {
-            _mixer.SetFloat(parameter, GetValue(parameter, _defaultValuesMap[parameter]));
+            float value = GetValue(parameter, _defaultValuesMap[parameter]);
+            _mixer.SetFloat(parameter, value);
         }
 
         private float GetValue(string parameter, float defaultValue) {
