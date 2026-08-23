@@ -1,6 +1,7 @@
 ﻿using System;
 using MisterGames.Actors;
 using MisterGames.Input.Actions;
+using MisterGames.Input.Core;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -14,6 +15,7 @@ namespace MisterGames.Character.Input {
         [SerializeField] private InputActionRef _crouchToggle;
         [SerializeField] private InputActionRef _run;
         [SerializeField] private InputActionRef _jump;
+        [SerializeField] private InputMapRef[] _maps;
 
         public event Action<Vector2> OnMotionVectorChanged = delegate {  };
 
@@ -26,9 +28,6 @@ namespace MisterGames.Character.Input {
         public event Action JumpPressed = delegate {  };
         public bool IsJumpPressed => _enabled && _inputEnabled && _jump.Get().IsPressed();
         
-        public bool IsInputEnabled => _enabled && _inputEnabled;
-        public bool IsViewInputEnabled => _enabled && _viewEnabled;
-
         private InputAction _viewAction;
         private bool _inputEnabled = true;
         private bool _viewEnabled = true;
@@ -36,7 +35,7 @@ namespace MisterGames.Character.Input {
 
         private void OnEnable() {
             _enabled = true;
-            if (_inputEnabled) Subscribe();
+            Subscribe();
         }
 
         private void OnDisable() {
@@ -46,8 +45,9 @@ namespace MisterGames.Character.Input {
 
         public void EnableAllInputs(bool enable) {
             _inputEnabled = enable;
-            if (enable) Subscribe();
-            else Unsubscribe();
+            
+            if (enable) InputServices.Blocks.UnblockInputMaps(this, _maps);
+            else InputServices.Blocks.BlockInputMaps(this, _maps);
         }
         
         public void EnableViewInputs(bool enable) {
