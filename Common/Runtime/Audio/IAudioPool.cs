@@ -52,6 +52,9 @@ namespace MisterGames.Common.Audio {
         
         AudioClip ShuffleClips(IReadOnlyList<AudioClip> clips);
         AudioHandle GetAudioHandle(Transform attachedTo, int hash);
+
+        void ReleaseAll(bool immediate = false);
+        void ReleaseTimescaled(bool immediate = false);
         
         void SetGlobalOcclusionWeightNextFrame(float weight);
         

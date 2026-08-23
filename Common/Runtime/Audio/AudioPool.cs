@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -301,6 +302,7 @@ namespace MisterGames.Common.Audio {
 
 #if UNITY_EDITOR
             CreateDebugColor(id, clip);
+            LogPlaySound(id, clip, options);
 #endif
             
             bool loop = (options & AudioOptions.Loop) == AudioOptions.Loop;
@@ -387,6 +389,7 @@ namespace MisterGames.Common.Audio {
 
 #if UNITY_EDITOR
             CreateDebugColor(id, clip);
+            LogPlaySound(id, clip, options);
 #endif
             
             normalizedTime = Mathf.Clamp01(normalizedTime);
@@ -563,6 +566,38 @@ namespace MisterGames.Common.Audio {
             ReleaseSound(handleId, immediate);
         }
 
+        void IAudioPool.ReleaseAll(bool immediate) {
+            ReleaseSounds(timescaledOnly: false, immediate);
+        }
+
+        void IAudioPool.ReleaseTimescaled(bool immediate) {
+            ReleaseSounds(timescaledOnly: true, immediate);
+        }
+
+        private void ReleaseSounds(bool timescaledOnly, bool immediate) {
+            int count = _handleIdToAudioElementMap.Count;
+            if (count == 0) return;
+
+            var handleIds = new NativeArray<int>(count, Allocator.Temp);
+            int handleCount = 0;
+
+            foreach ((int handleId, var e) in _handleIdToAudioElementMap) {
+                if (!timescaledOnly || GetTimeSource(e) < 2) handleIds[handleCount++] = handleId;
+            }
+
+            for (int i = 0; i < handleCount; i++) {
+                ReleaseSound(handleIds[i], immediate);
+            }
+
+            handleIds.Dispose();
+        }
+
+        private int GetTimeSource(IAudioElement e) {
+            return (e.AudioOptions & AudioOptions.AffectedByTimeScale) != 0
+                ? 0
+                : _ignoreZeroTimescaleForMixerGroupsSet.Contains(e.MixerGroupId) ? 2 : 1;
+        }
+
         private void ReleaseSound(int handleId, bool immediate) {
             if (!_handleIdToAudioElementMap.Remove(handleId, out var e)) {
                 if (immediate) StopFadeOutAndRelease(handleId);
@@ -576,14 +611,16 @@ namespace MisterGames.Common.Audio {
             _fadeInDataMap.Remove(handleId);
 
             bool isNull = e.Source == null;
+
+#if UNITY_EDITOR
+            LogReleaseSound(handleId, e, immediate);
+#endif
             
             if (immediate || isNull) {
                 if (!isNull) PrefabPool.Main?.Release(e.Source);
             }
             else {
-                int timeSource = (e.AudioOptions & AudioOptions.AffectedByTimeScale) != 0
-                    ? 0
-                    : _ignoreZeroTimescaleForMixerGroupsSet.Contains(e.MixerGroupId) ? 2 : 1;
+                int timeSource = GetTimeSource(e);
 
                 _fadeOutDataMap[handleId] = new FadeData(
                     _internalTime[timeSource],
@@ -2099,6 +2136,7 @@ namespace MisterGames.Common.Audio {
         [Header("Debug")]
         [SerializeField] private bool _showSoundsGizmo;
         [SerializeField] private bool _showSoundsDebugInfo;
+        [SerializeField] private bool _showPlayReleaseLogs;
         [SerializeField] private bool _showVolumeInfo;
         [SerializeField] private bool _showOcclusionInfo;
         [SerializeField] private string[] _showSoundsNameFilters;
@@ -2120,6 +2158,39 @@ namespace MisterGames.Common.Audio {
 
         private void CreateDebugColor(int id, AudioClip clip) {
             _debugColors[id] = ColorUtils.ColorFromHash(clip.GetHashCode());
+        }
+
+        private void LogPlaySound(int id, AudioClip clip, AudioOptions options) {
+            if (!_showPlayReleaseLogs || !MatchesNameFilters(clip.name, _showSoundsNameFilters)) return;
+
+            Debug.Log($"AudioPool.Play: f {Time.frameCount}, clip {clip.name}, id {id}, " +
+                      $"timescale {Time.timeScale}, length {clip.length:0.###} s, " +
+                      $"loop {(options & AudioOptions.Loop) != 0}");
+        }
+
+        private void LogReleaseSound(int handleId, IAudioElement e, bool immediate) {
+            if (!_showPlayReleaseLogs) return;
+
+            var source = e.Source;
+            string clipName = source == null || source.clip == null ? "<null>" : source.clip.name;
+
+            if (!MatchesNameFilters(clipName, _showSoundsNameFilters)) return;
+
+            Debug.Log($"AudioPool.Release: f {Time.frameCount}, clip {clipName}, id {handleId}, " +
+                      $"timescale {Time.timeScale}, immediate {immediate}, " +
+                      $"length {e.ClipLength:0.###} s, played {(source == null ? 0f : source.time):0.###} s, " +
+                      $"fade out {(immediate ? 0f : e.FadeOut):0.###} s");
+        }
+
+        private static bool MatchesNameFilters(string clipName, string[] filters) {
+            if (filters is not { Length: > 0 }) return true;
+
+            for (int i = 0; i < filters.Length; i++) {
+                string filter = filters[i];
+                if (!string.IsNullOrWhiteSpace(filter) && clipName.Contains(filter)) return true;
+            }
+
+            return false;
         }
 
         private Color GetDebugColor(int id) {
