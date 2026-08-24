@@ -144,6 +144,7 @@ namespace MisterGames.Character.Motion {
         }
         
         private void HandleMotionInput(Vector2 input) {
+            ApplyProcessorsForInputVector(ref input);
             Input = input;
         }
 
@@ -203,6 +204,15 @@ namespace MisterGames.Character.Motion {
 
             // Moving sideways only: apply side correction
             return _speedCorrectionSide;
+        }
+        
+        private void ApplyProcessorsForInputVector(ref Vector2 input) {
+            int count = _processorList.Count;
+            for (int i = 0; i < count; i++) {
+                if (_processorList[i] is { } processor) {
+                    processor.ProcessInputVector(ref input);
+                }
+            }
         }
         
         private void ApplyProcessorsForOrientation(ref Quaternion orientation) {
