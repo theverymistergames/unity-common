@@ -5,8 +5,8 @@ using UnityEngine.Rendering.HighDefinition;
 
 namespace MisterGames.Logic.Rendering {
     
-    [Serializable, VolumeComponentMenu("Post-processing/Custom/Mirror Screen")]
-    public sealed class MirrorScreen : CustomPostProcessVolumeComponent, IPostProcessComponent
+    [Serializable, VolumeComponentMenu("Post-processing/Custom/Screen Mirror")]
+    public sealed class ScreenMirror : CustomPostProcessVolumeComponent, IPostProcessComponent
     {
         private static readonly int MainTex = Shader.PropertyToID("_MainTex");
         private static readonly int Amount = Shader.PropertyToID("_Amount");
@@ -19,27 +19,37 @@ namespace MisterGames.Logic.Rendering {
 
         public override bool visibleInSceneView => false;
 
+        private Material Material
+        {
+            get
+            {
+                if (material != null) return material;
+
+                var shader = Shader.Find(ShaderName);
+                if (shader == null) return null;
+
+                material = new Material(shader) { hideFlags = HideFlags.HideAndDontSave };
+                return material;
+            }
+        }
+
+        // Cheap checks first, so Shader.Find is only retried while the effect is actually blended in.
         public bool IsActive() =>
-            active && material != null && amount.value > 0.001f;
+            active && amount.value > 0.001f && Material != null;
 
         public override CustomPostProcessInjectionPoint injectionPoint =>
             CustomPostProcessInjectionPoint.AfterPostProcess;
-
-        public override void Setup()
-        {
-            var shader = Shader.Find(ShaderName);
-            if (shader != null)
-                material = new Material(shader);
-        }
 
         public override void Render(
             CommandBuffer cmd, HDCamera camera, RTHandle source, RTHandle destination)
         {
             if (!IsActive()) return;
 
-            material.SetTexture(MainTex, source);
-            material.SetFloat(Amount, amount.value);
-            HDUtils.DrawFullScreen(cmd, material, destination);
+            var mat = Material;
+
+            mat.SetTexture(MainTex, source);
+            mat.SetFloat(Amount, amount.value);
+            HDUtils.DrawFullScreen(cmd, mat, destination);
         }
 
         public override void Cleanup() => CoreUtils.Destroy(material);
