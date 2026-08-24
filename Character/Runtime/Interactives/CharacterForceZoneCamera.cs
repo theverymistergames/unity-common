@@ -1,4 +1,5 @@
-﻿using MisterGames.Actors;
+﻿using System;
+using MisterGames.Actors;
 using MisterGames.Character.Core;
 using MisterGames.Character.View;
 using MisterGames.Common.Maths;
@@ -34,8 +35,11 @@ namespace MisterGames.Character.Interactives {
         private float _fovOffsetSmoothed;
         private int _shakerStateId;
         private int _containerStateId;
+        private bool _enabled;
         
         private void OnEnable() {
+            _enabled = true;
+            
             _rigidbodyForceZone.OnEnterZone += OnEnterZone;
 
             if (_characterRigidbody != null && _rigidbodyForceZone.InZone(_characterRigidbody)) {
@@ -50,7 +54,13 @@ namespace MisterGames.Character.Interactives {
         }
 
         private void OnDisable() {
+            _enabled = false;
+            
             _rigidbodyForceZone.OnEnterZone -= OnEnterZone;
+        }
+
+        private void OnDestroy() {
+            PlayerLoopStage.LateUpdate.Unsubscribe(this);
         }
 
         private void OnEnterZone(Rigidbody rigidbody) {
@@ -72,7 +82,7 @@ namespace MisterGames.Character.Interactives {
         }
 
         void IUpdate.OnUpdate(float dt) {
-            float targetWeight = enabled ? _rigidbodyForceZone.GetForceWeight(_characterRigidbody) : 0f;
+            float targetWeight = _enabled ? _rigidbodyForceZone.GetForceWeight(_characterRigidbody) : 0f;
             _forceWeightSmoothed = _forceWeightSmoothed.SmoothExpNonZero(targetWeight, _forceWeightSmoothing, dt);
             
             _cameraShaker.SetWeight(_shakerStateId, _cameraStateWeight);
@@ -83,7 +93,7 @@ namespace MisterGames.Character.Interactives {
             float targetFov = Mathf.Lerp(_fovOffsetStart, _fovOffsetEnd, _forceWeightSmoothed);
             _cameraContainer.SetFov(_containerStateId, _cameraStateWeight, targetFov, _fovModifier);
             
-            if (_rigidbodyForceZone.enabled && _rigidbodyForceZone.InZone(_characterRigidbody) || _forceWeightSmoothed > 0f) return;
+            if (_enabled && _rigidbodyForceZone.enabled && _rigidbodyForceZone.InZone(_characterRigidbody) || _forceWeightSmoothed > 0f) return;
             
             PlayerLoopStage.LateUpdate.Unsubscribe(this);
 
