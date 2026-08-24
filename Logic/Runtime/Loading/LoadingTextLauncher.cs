@@ -52,6 +52,7 @@ namespace MisterGames.Logic.Loading {
             }
             
             _preset = preset;
+            _loadingProgress = 0f;
             
             byte id = _loadingId.IncrementUncheckedRef();
             var formatter = new Formatter(preset, specialResolver: this);

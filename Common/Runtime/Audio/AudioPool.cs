@@ -575,7 +575,7 @@ namespace MisterGames.Common.Audio {
         }
 
         private void ReleaseSounds(bool timescaledOnly, bool immediate) {
-            int count = _handleIdToAudioElementMap.Count;
+            int count = _handleIdToAudioElementMap.Count + (immediate ? _fadeOutDataMap.Count : 0);
             if (count == 0) return;
 
             var handleIds = new NativeArray<int>(count, Allocator.Temp);
@@ -583,6 +583,12 @@ namespace MisterGames.Common.Audio {
 
             foreach ((int handleId, var e) in _handleIdToAudioElementMap) {
                 if (!timescaledOnly || GetTimeSource(e) < 2) handleIds[handleCount++] = handleId;
+            }
+
+            if (immediate) {
+                foreach ((int handleId, var data) in _fadeOutDataMap) {
+                    if (!timescaledOnly || data.timeSource < 2) handleIds[handleCount++] = handleId;
+                }
             }
 
             for (int i = 0; i < handleCount; i++) {

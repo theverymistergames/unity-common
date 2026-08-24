@@ -95,10 +95,10 @@ namespace MisterGames.SettingsLib.Descs {
             var screenRes = Screen.currentResolution;
 
             return index switch {
-                0 => unlimitedFps.GetValue(),
-                1 => string.Format(vsync.GetValue(), string.Format(numberFps.GetValue(), Mathf.RoundToInt((float) screenRes.refreshRateRatio.value))),
-                2 => string.Format(vsyncHalf.GetValue(), string.Format(numberFps.GetValue(), Mathf.RoundToInt((float) screenRes.refreshRateRatio.value))),
-                _ => string.Format(numberFps.GetValue(), index - 3 >= 0 && index - 3 < fpsNumbers.Length ? fpsNumbers[index - 3] : fpsNumbers[0])
+                _ when index == fpsNumbers.Length + 2 => unlimitedFps.GetValue(),
+                0 => string.Format(vsync.GetValue(), string.Format(numberFps.GetValue(), Mathf.RoundToInt((float) screenRes.refreshRateRatio.value))),
+                1 => string.Format(vsyncHalf.GetValue(), string.Format(numberFps.GetValue(), Mathf.RoundToInt((float) screenRes.refreshRateRatio.value))),
+                _ => string.Format(numberFps.GetValue(), index - 2 >= 0 && index - 2 < fpsNumbers.Length ? fpsNumbers[index - 2] : fpsNumbers[0])
             };
         }
 
@@ -119,10 +119,10 @@ namespace MisterGames.SettingsLib.Descs {
             if (index < 0 || index >= fpsNumbers.Length + 3) return false;
 
             var mode = index switch {
-                0 => new ModeData(Mode.Unlimited, 0),
-                1 => new ModeData(Mode.VSync, 0),
-                2 => new ModeData(Mode.VSyncHalf, 0),
-                _ => new ModeData(Mode.NumberFps, index - 3)
+                _ when index == fpsNumbers.Length + 2 => new ModeData(Mode.Unlimited, 0),
+                0 => new ModeData(Mode.VSync, 0),
+                1 => new ModeData(Mode.VSyncHalf, 0),
+                _ => new ModeData(Mode.NumberFps, index - 2)
             };
             
             bool ok = service.Set(id, index: 0, mode.AsLong());
@@ -134,10 +134,10 @@ namespace MisterGames.SettingsLib.Descs {
         
         private int GetIndex(ModeData data) {
             return data.mode switch {
-                Mode.Unlimited => 0,
-                Mode.VSync => 1,
-                Mode.VSyncHalf => 2,
-                Mode.NumberFps => 3 + Mathf.Clamp(data.fpsIndex, 0, fpsNumbers.Length),
+                Mode.Unlimited => fpsNumbers.Length + 2,
+                Mode.VSync => 0,
+                Mode.VSyncHalf => 1,
+                Mode.NumberFps => 2 + Mathf.Clamp(data.fpsIndex, 0, Mathf.Max(fpsNumbers.Length - 1, 0)),
                 _ => throw new ArgumentOutOfRangeException()
             };
         }
