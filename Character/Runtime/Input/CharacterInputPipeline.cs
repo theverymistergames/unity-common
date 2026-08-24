@@ -15,7 +15,6 @@ namespace MisterGames.Character.Input {
         [SerializeField] private InputActionRef _crouchToggle;
         [SerializeField] private InputActionRef _run;
         [SerializeField] private InputActionRef _jump;
-        [SerializeField] private InputMapRef[] _maps;
 
         public event Action<Vector2> OnMotionVectorChanged = delegate {  };
 
@@ -35,7 +34,7 @@ namespace MisterGames.Character.Input {
 
         private void OnEnable() {
             _enabled = true;
-            Subscribe();
+            if (_inputEnabled) Subscribe();
         }
 
         private void OnDisable() {
@@ -46,8 +45,8 @@ namespace MisterGames.Character.Input {
         public void EnableAllInputs(bool enable) {
             _inputEnabled = enable;
             
-            if (enable) InputServices.Blocks.UnblockInputMaps(this, _maps);
-            else InputServices.Blocks.BlockInputMaps(this, _maps);
+            if (enable) Subscribe();
+            else Unsubscribe();
         }
         
         public void EnableViewInputs(bool enable) {
