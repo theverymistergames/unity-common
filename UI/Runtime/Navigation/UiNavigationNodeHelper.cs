@@ -65,6 +65,8 @@ namespace MisterGames.UI.Navigation {
             var root = node.GameObject.transform;
             var origin = root.InverseTransformPoint(fromSelectable.transform.position).ToFloat2XY();
             var selectables = service.Selectables;
+
+            int windowLayer = service.GetParentWindow(node).Layer;
             
             Selectable closestSelectable = null;
             float minSqr = float.MaxValue;
@@ -74,7 +76,8 @@ namespace MisterGames.UI.Navigation {
                 if (IsBound(selectable.gameObject) || 
                     service.GetSelectableOptions(selectable) is var opt && 
                     ((opt & UiNavigationOptions.DisallowAnyIncomingNavigation) != 0 || 
-                     (opt & UiNavigationOptions.DisallowIncomingNavigationFromOuterNodes) != 0))
+                     (opt & UiNavigationOptions.DisallowIncomingNavigationFromOuterNodes) != 0) || 
+                    service.GetParentWindow(selectable) is not { } window || window.Layer != windowLayer)
                 {
                     continue;
                 }

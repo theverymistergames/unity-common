@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using MisterGames.Common.Data;
-using MisterGames.Common.GameObjects;
 using MisterGames.Common.Tick;
 using MisterGames.Input.Actions;
 using MisterGames.Input.Core;
@@ -519,6 +518,20 @@ namespace MisterGames.UI.Navigation {
 
         public IUiNavigationNode GetParentNavigationNode(IUiNavigationNode node) {
             return _gameObjectIdToNodeMap.GetValueOrDefault(_childNodeToParentMap.GetValueOrDefault(node.GameObject.GetHashCode()));
+        }
+
+        public IUiWindow GetParentWindow(IUiNavigationNode node) {
+            while (node != null) {
+                if (_uiWindowService.GetWindowForNode(node) is { } window) return window;
+                
+                node = GetParentNavigationNode(node);
+            }
+
+            return null;
+        }
+
+        public IUiWindow GetParentWindow(Selectable selectable) {
+            return GetParentWindow(GetParentNavigationNode(selectable));
         }
 
         public IUiNavigationNode FindClosestParentNavigationNode(GameObject gameObject, bool includeSelf = true) {

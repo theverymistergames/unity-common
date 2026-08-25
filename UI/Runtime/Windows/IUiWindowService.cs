@@ -1,4 +1,5 @@
 ﻿using System;
+using MisterGames.UI.Navigation;
 using UnityEngine;
 
 namespace MisterGames.UI.Windows {
@@ -15,6 +16,7 @@ namespace MisterGames.UI.Windows {
         IUiWindow GetFrontOpenedWindow();
         IUiWindow GetFrontOpenedWindow(int layer);
         
+        IUiWindow GetWindowForNode(IUiNavigationNode node);
         IUiWindow GetParentWindow(IUiWindow child);
         IUiWindow GetRootWindow(IUiWindow window);
         IUiWindow FindClosestParentWindow(GameObject gameObject, bool includeSelf = true);

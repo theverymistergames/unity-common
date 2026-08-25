@@ -5,6 +5,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Async;
 using MisterGames.Common.Audio;
+using MisterGames.Common.GameObjects;
 using MisterGames.Common.Labels;
 using MisterGames.Common.Lists;
 using MisterGames.Common.Localization;
@@ -17,6 +18,7 @@ using MisterGames.Scenes.Core;
 using MisterGames.UI.Data;
 using UnityEngine;
 using UnityEngine.Pool;
+using Object = UnityEngine.Object;
 
 namespace MisterGames.Logic.Loading {
     
@@ -33,6 +35,9 @@ namespace MisterGames.Logic.Loading {
         [SerializeField] [Min(0f)] private float _printElementDelayDefault = 0.1f;
         [SerializeField] [Min(0f)] private float _printElementDelayFast = 0.05f;
 
+        [Header("Extra")]
+        [SerializeField] private Object[] _enableWithText;
+        
         [Flags]
         public enum PrintOptions {
             None = 0,
@@ -53,6 +58,8 @@ namespace MisterGames.Logic.Loading {
             
             _preset = preset;
             _loadingProgress = 0f;
+            
+            _enableWithText.SetEnabled(true);
             
             byte id = _loadingId.IncrementUncheckedRef();
             var formatter = new Formatter(preset, specialResolver: this);
@@ -133,6 +140,7 @@ namespace MisterGames.Logic.Loading {
 
         public void ClearAllText() {
             _dialoguePrinter.ClearAllText();
+            _enableWithText.SetEnabled(false);
         }
         
         private async UniTask PrintMainElements(byte id, LoadingTextPreset preset, float printDelay, CancellationToken cancellationToken) {

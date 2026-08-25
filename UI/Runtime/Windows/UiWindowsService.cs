@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using MisterGames.Common.Data;
 using MisterGames.Common.Maths;
+using MisterGames.UI.Navigation;
 using Unity.Collections;
 using UnityEngine;
 
@@ -12,6 +13,7 @@ namespace MisterGames.UI.Windows {
         public event Action OnWindowsHierarchyChanged = delegate { };
 
         private readonly Dictionary<int, IUiWindow> _gameObjectIdToWindowMap = new();
+        private readonly Dictionary<IUiNavigationNode, IUiWindow> _nodeToWindowMap = new();
         private readonly Dictionary<int, int> _childToParentMap = new();
         private readonly MultiValueDictionary<int, int> _relationTree = new();
         private readonly Dictionary<int, int> _layerToFrontOpenedWindowIdMap = new();
@@ -23,6 +25,7 @@ namespace MisterGames.UI.Windows {
 
         public void Dispose() {
             _gameObjectIdToWindowMap.Clear();
+            _nodeToWindowMap.Clear();
             _childToParentMap.Clear();
             _relationTree.Clear();
             _layerToFrontOpenedWindowIdMap.Clear();
@@ -63,6 +66,8 @@ namespace MisterGames.UI.Windows {
             }
             
             _gameObjectIdToWindowMap.Remove(id);
+            _nodeToWindowMap.Remove(window.Node);
+            
             ClearWindowOperationId(GetWindowId(window));
             
             UpdateHierarchy(window.GameObject);
@@ -70,6 +75,8 @@ namespace MisterGames.UI.Windows {
 
         private void AddToHierarchy(IUiWindow window) {
             _gameObjectIdToWindowMap[GetWindowId(window)] = window;
+            _nodeToWindowMap[window.Node] = window;
+            
             UpdateHierarchy(window.GameObject);
         }
 
@@ -138,7 +145,11 @@ namespace MisterGames.UI.Windows {
         public IUiWindow GetParentWindow(IUiWindow child) {
             return _gameObjectIdToWindowMap.GetValueOrDefault(_childToParentMap.GetValueOrDefault(GetWindowId(child)));
         }
-        
+
+        public IUiWindow GetWindowForNode(IUiNavigationNode node) {
+            return _nodeToWindowMap.GetValueOrDefault(node);
+        }
+
         public IUiWindow GetRootWindow(IUiWindow window) {
             if (window == null) return null;
             

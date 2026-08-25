@@ -26,9 +26,21 @@ namespace MisterGames.SettingsLib.Descs {
         private readonly HashSet<KeyBindingSettingGroup> _groups = new();
 
         public void ApplySetting(ISettingsService service, string id) {
-            if (!PrepareRebinding(out _, out bool actionEnabled, out int index)) return;
+            if (!TryGetBinding(out var action, out var binding, out int index)) return;
             
-            string controlPath = service.TryGet(id, 0, out string p) ? p : null; 
+            string controlPath = service.TryGet(id, 0, out string p) ? p : null;
+
+            // Applying binding override causes re-resolve of the whole input action asset, 
+            // which re-triggers input actions bound to the currently pressed controls. 
+            // Do not touch input action if binding is not going to change.
+            if (binding.overridePath == controlPath) {
+                NotifyBindingListeners(id, action, index, controlPath);
+                return;
+            }
+            
+            bool actionEnabled = action.enabled;
+            action.Disable();
+            
             ApplyBinding(id, index, controlPath);
             FinishRebinding(actionEnabled);
         }
@@ -141,9 +153,15 @@ namespace MisterGames.SettingsLib.Descs {
         private void ApplyBinding(string id, int index, string controlPath) {
             var action = inputActionRef.Get();
             
-            if (controlPath != null) action.ApplyBindingOverride(index, controlPath);
-            else action.RemoveBindingOverride(index);
+            if (action.bindings[index].overridePath != controlPath) {
+                if (controlPath != null) action.ApplyBindingOverride(index, controlPath);
+                else action.RemoveBindingOverride(index);
+            }
             
+            NotifyBindingListeners(id, action, index, controlPath);
+        }
+        
+        private void NotifyBindingListeners(string id, InputAction action, int index, string controlPath) {
             foreach (var bindingListener in _listeners) {
                 bindingListener.Invoke(id, action, index, controlPath);
             }

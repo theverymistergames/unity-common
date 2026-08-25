@@ -52,6 +52,8 @@ namespace MisterGames.SettingsLib.Base {
                 return;
             }
 
+            Debug.Log($"SettingRevertButton.OnClicked: f {Time.frameCount}, ");
+            
             var parentCanvas = Services.Get<CanvasRegistry>().FindClosestParentCanvas(transform);
             Services.Get<IUiModalDialogService>().CreateModalDialogDefault(parentCanvas)
                 .SetTitle(_title)
@@ -65,6 +67,8 @@ namespace MisterGames.SettingsLib.Base {
         private void ApplyRevert() {
             if (!Services.TryGet(out ISettingsService service)) return;
 
+            Debug.Log($"SettingRevertButton.ApplyRevert: f {Time.frameCount}, ");
+            
             var set = GetKeys(_target);
             
             switch (_mode) {

@@ -57,6 +57,9 @@ namespace MisterGames.UI.Navigation {
         IUiNavigationNode GetParentNavigationNode(IUiNavigationNode node);
         IUiNavigationNode FindClosestParentNavigationNode(GameObject gameObject, bool includeSelf = true);
         
+        IUiWindow GetParentWindow(IUiNavigationNode node);
+        IUiWindow GetParentWindow(Selectable selectable);
+
         bool IsChildNode(IUiNavigationNode node, IUiNavigationNode parent, bool direct);
     }
     
