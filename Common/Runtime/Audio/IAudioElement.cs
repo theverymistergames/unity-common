@@ -18,6 +18,7 @@ namespace MisterGames.Common.Audio {
         AudioOptions AudioOptions { get; set; }
         
         bool IsPaused { get; set; }
+        bool IsPausedByFocus { get; set; }
         float ClipLength { get; set; }
         float ClipTime { get; set; }
         float FadeOut { get; set; }

@@ -105,8 +105,6 @@ namespace MisterGames.Common.Audio {
         private readonly Dictionary<int, IAudioElement> _handleIdToAudioElementMap = new();
         private int _lastHandleId;
         
-        // Ordered storage parallel to _transformAccessArray, so that sound positions
-        // can be read in a job instead of N native transform accesses per frame.
         private readonly List<IAudioElement> _elements = new();
         private readonly Dictionary<int, int> _handleIdToIndexMap = new();
         private TransformAccessArray _transformAccessArray;
@@ -123,8 +121,6 @@ namespace MisterGames.Common.Audio {
         private readonly Dictionary<EntityId, IAudioVolume> _audioVolumes = new();
         private IAudioVolume[] _volumesBuffer = Array.Empty<IAudioVolume>();
 
-        // Per frame volume state for the immediate path taken on play:
-        // a burst of sounds started in one frame shares one setup.
         private readonly List<ImmediateVolumeData> _immediateVolumes = new();
         private readonly Dictionary<int, float> _immediateListenerWeights = new();
         private float _immediateListenerOcclusion = 1f;
@@ -161,11 +157,17 @@ namespace MisterGames.Common.Audio {
         }
 
         private void OnApplicationFocus(bool hasFocus) {
-            // Run In Background is off, so the audio engine is suspended while the app has no focus.
-            // Sources do not always resume on their own, and the pool is the only thing
-            // that can bring them back: sounds of mixer groups that ignore zero timescale
-            // are never touched by CheckPause and would stay silent forever.
+#if UNITY_EDITOR
+            hasFocus = true;
+#endif
+
             if (hasFocus) _resumeSoundsAfterFocus = true;
+            else PauseSoundsOnFocusLost();
+        }
+
+        private void OnApplicationPause(bool pauseStatus) {
+            // Not every platform reports going into background as a focus change.
+            OnApplicationFocus(!pauseStatus);
         }
 
         private void OnDestroy() {
@@ -546,6 +548,7 @@ namespace MisterGames.Common.Audio {
             audioElement.AudioPool = this;
 
             audioElement.IsPaused = false;
+            audioElement.IsPausedByFocus = false;
             audioElement.AudioOptions = options;
             audioElement.PitchMul = pitch;
             audioElement.AttenuationMul = attenuationMul;
@@ -1273,6 +1276,23 @@ namespace MisterGames.Common.Audio {
             _immediateListenerOcclusion = math.lerp(1f, occlusionMul, math.clamp(weightSum, 0f, 1f));
         }
 
+        private void PauseSoundsOnFocusLost() {
+            for (int i = 0; i < _elements.Count; i++) {
+                PauseOnFocusLost(_elements[i]);
+            }
+
+            foreach (var e in _releaseElementsMap.Values) {
+                PauseOnFocusLost(e);
+            }
+        }
+
+        private static void PauseOnFocusLost(IAudioElement e) {
+            if (e.Source == null || !e.Source.isPlaying) return;
+
+            e.IsPausedByFocus = true;
+            e.Source.Pause();
+        }
+
         private void ResumeSoundsAfterFocus() {
             if (!_resumeSoundsAfterFocus) return;
 
@@ -1288,17 +1308,24 @@ namespace MisterGames.Common.Audio {
         }
 
         private static void ResumeAfterFocus(IAudioElement e) {
-            // IsPaused means the pool paused the sound itself on zero timescale:
-            // such a sound must stay paused until timescale is back.
-            if (e.IsPaused || e.Source == null || e.Source.isPlaying) return;
+            if (!e.IsPausedByFocus) return;
+
+            e.IsPausedByFocus = false;
+
+            if (e.Source == null || e.IsPaused) return;
 
             e.Source.UnPause();
+            if (e.Source.isPlaying) return;
 
-            // Some platforms stop sources instead of pausing them while the app has no focus.
-            // A looping sound cannot end on its own, so silence here means it was cut off.
-            if (!e.Source.isPlaying && (e.AudioOptions & AudioOptions.Loop) != 0) {
+            if ((e.AudioOptions & AudioOptions.Loop) != 0) {
                 e.Source.Play();
+                return;
             }
+
+            if (e.ClipTime >= e.ClipLength) return;
+
+            e.Source.time = e.ClipTime;
+            e.Source.Play();
         }
 
         private static void CheckPause(IAudioElement e, float timescale) {
@@ -1397,12 +1424,10 @@ namespace MisterGames.Common.Audio {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool IsSoundFinished(IAudioElement e, AudioOptions options) {
-            // Clip time is only used to detect the end of a non looping sound,
-            // so a looping one does not need to touch the native audio source at all.
             if ((options & AudioOptions.Loop) != 0) return false;
 
             e.ClipTime = math.max(e.ClipTime, e.Source.time);
-            return !e.IsPaused && !e.Source.isPlaying || e.ClipTime >= e.ClipLength;
+            return !e.IsPaused && !e.IsPausedByFocus && !e.Source.isPlaying || e.ClipTime >= e.ClipLength;
         }
 
         private JobHandle ScheduleAudioVolumes(
