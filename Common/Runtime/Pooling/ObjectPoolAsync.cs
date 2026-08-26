@@ -130,6 +130,10 @@ namespace MisterGames.Common.Pooling {
             }
         }
         
+        public void NotifyElementDestroyed() {
+            if (CountAll > 0) --CountAll;
+        }
+
         public void Clear() {
             if (m_ActionOnDestroy != null) {
                 for (int i = 0; i < m_List.Count; i++) {

@@ -14,6 +14,8 @@ namespace MisterGames.Common.Pooling {
 
         void Release(T element);
 
+        void NotifyElementDestroyed();
+
         void Clear();
     }
     

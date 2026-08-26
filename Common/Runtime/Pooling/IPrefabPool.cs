@@ -7,6 +7,11 @@ namespace MisterGames.Common.Pooling {
         
         Transform ActiveSceneRoot { get; }
         Transform PoolRoot { get; }
+
+        int PoolCount { get; }
+        int ActiveInstancesCount { get; }
+        int InactiveInstancesCount { get; }
+        int TrackedInstancesCount { get; }
         
         GameObject Get(GameObject prefab, bool active = true);
         GameObject Get(GameObject prefab, Transform parent, bool active = true, bool worldPositionStays = true);

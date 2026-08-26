@@ -17,10 +17,6 @@ namespace MisterGames.ActionLib.Materials {
         private static readonly int EmissiveColor = Shader.PropertyToID("_EmissiveColor");
         
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            if (renderer.material == renderer.sharedMaterial) {
-                renderer.material = new Material(renderer.sharedMaterial);
-            }
-            
             renderer.material.SetColor(EmissiveColor, color * intensity);
             return default;
         }

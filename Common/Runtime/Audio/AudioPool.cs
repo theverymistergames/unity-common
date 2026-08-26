@@ -74,6 +74,9 @@ namespace MisterGames.Common.Audio {
         
         public static IAudioPool Main { get; private set; }
 
+        public int ActiveSoundsCount => _elements.Count;
+        public int ReleasingSoundsCount => _releaseElementsMap.Count;
+
         private const float DistanceThreshold = 0.001f;
         private const int MinBatch = 16;
         private const float HpCutoffLowerBound = 10f;

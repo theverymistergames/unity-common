@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.GameObjects;
+using MisterGames.Common.Maths;
 using MisterGames.Common.Tick;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -89,6 +91,7 @@ namespace MisterGames.Common.Pooling {
         public float LifetimeLeft => _lifetime - GetTimer();
         public float LifetimeProgress => _lifetime > 0f ? Mathf.Clamp01(GetTimer() / _lifetime) : 0f;
         
+        private readonly List<GameObject> _replacedInstances = new();
         private CancellationTokenSource _enableCts;
         private TransformData[] _syncTransformData;
         private RigidbodyData[] _syncRigidbodyData;
@@ -111,8 +114,10 @@ namespace MisterGames.Common.Pooling {
         }
 
         internal void NotifyTakenFromPool(IPrefabPool pool) {
-            byte id = ++_takeId;
-            
+            byte id = _takeId.IncrementUncheckedRef();
+
+            ReleaseReplacedInstances(pool);
+
             SyncChildTransforms();
             SyncRigidbodies();
             
@@ -124,7 +129,10 @@ namespace MisterGames.Common.Pooling {
         }
 
         internal void NotifyReleasedToPool(IPrefabPool pool) {
-            _takeId++;
+            _takeId.IncrementUncheckedRef();
+
+            ReleaseReplacedInstances(pool);
+
             OnRelease.Invoke();
         }
 
@@ -206,10 +214,28 @@ namespace MisterGames.Common.Pooling {
 
                 t.GetPositionAndRotation(out var pos, out var rot);
                 var go = pool.Get(data.prefab, parent, active: false);
-                
+
                 go.transform.SetPositionAndRotation(pos, rot);
                 go.SetActive(true);
+
+                _replacedInstances.Add(go);
             }
+        }
+
+        private void ReleaseReplacedInstances(IPrefabPool pool) {
+            for (int i = 0; i < _replacedInstances.Count; i++) {
+                var instance = _replacedInstances[i];
+
+                if (instance == null ||
+                    instance.TryGetComponent(out PoolElement poolElement) && poolElement.LifetimeTotal >= 0f)
+                {
+                    continue;
+                }
+
+                pool.Release(instance);
+            }
+
+            _replacedInstances.Clear();
         }
         
         private void SyncChildTransforms() {

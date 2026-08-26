@@ -44,12 +44,29 @@ namespace MisterGames.Common.Pooling {
             public int totalTakeCount;
         }
 
+        private readonly struct InstanceData {
+
+            public readonly GameObject instance;
+            public readonly EntityId prefabId;
+
+            public InstanceData(GameObject instance, EntityId prefabId) {
+                this.instance = instance;
+                this.prefabId = prefabId;
+            }
+        }
+
         public static IPrefabPool Main { get; private set; }
         
         public Transform ActiveSceneRoot { get; private set; }
         public Transform PoolRoot { get; private set; }
+
+        public int PoolCount => _poolMap.Count;
+        public int ActiveInstancesCount => GetInstancesCount(active: true);
+        public int InactiveInstancesCount => GetInstancesCount(active: false);
+        public int TrackedInstancesCount => _instanceToPrefabIdMap.Count;
         
-        private readonly Dictionary<EntityId, EntityId> _instanceToPrefabIdMap = new();
+        private readonly Dictionary<EntityId, InstanceData> _instanceToPrefabIdMap = new();
+        private readonly List<EntityId> _destroyedInstancesBuffer = new();
         private readonly Dictionary<EntityId, IObjectPoolAsync<GameObject>> _poolMap = new();
         private readonly Dictionary<EntityId, AutoPoolUsage> _autoPoolUsageMap = new();
         private readonly List<GameObject> _activeSceneRoots = new();
@@ -89,6 +106,33 @@ namespace MisterGames.Common.Pooling {
             SceneManager.activeSceneChanged -= OnActiveSceneChanged;
         }
 
+        private void RemoveDestroyedInstances() {
+            foreach (var (id, data) in _instanceToPrefabIdMap) {
+                if (data.instance == null) _destroyedInstancesBuffer.Add(id);
+            }
+
+            for (int i = 0; i < _destroyedInstancesBuffer.Count; i++) {
+                if (!_instanceToPrefabIdMap.Remove(_destroyedInstancesBuffer[i], out var data)) continue;
+
+                var pool = _poolMap.GetValueOrDefault(data.prefabId);
+
+                pool?.NotifyElementDestroyed();
+                UpdateAutoPoolUsageOnRelease(data.prefabId, pool);
+            }
+
+            _destroyedInstancesBuffer.Clear();
+        }
+
+        private int GetInstancesCount(bool active) {
+            int count = 0;
+
+            foreach (var pool in _poolMap.Values) {
+                count += active ? pool.CountActive : pool.CountInactive;
+            }
+
+            return count;
+        }
+
         private void CreateDisabledRoot() {
             var disabledRoot = new GameObject("DisabledRoot");
             disabledRoot.SetActive(false);
@@ -99,7 +143,9 @@ namespace MisterGames.Common.Pooling {
         private async UniTask StartAutoPoolChecks(CancellationToken cancellationToken) {
             while (!cancellationToken.IsCancellationRequested) {
                 float time = Time.realtimeSinceStartup;
-                
+
+                RemoveDestroyedInstances();
+
                 foreach (var (id, usage) in _autoPoolUsageMap) {
                     if (time < usage.lastUseTime + _unusedPoolClearTimeout ||
                         !_poolMap.TryGetValue(id, out var pool) ||
@@ -160,6 +206,8 @@ namespace MisterGames.Common.Pooling {
                 pool.Clear();
             }
 
+            _instanceToPrefabIdMap.Clear();
+            _destroyedInstancesBuffer.Clear();
             _autoPoolUsageMap.Clear();
             _poolMap.Clear();
         }
@@ -415,7 +463,7 @@ namespace MisterGames.Common.Pooling {
             
             if (_poolMap.GetValueOrDefault(id) is { } pool) {
                 instance = pool.Get(prefab);
-                _instanceToPrefabIdMap[instance.GetEntityId()] = id;
+                _instanceToPrefabIdMap[instance.GetEntityId()] = new InstanceData(instance, id);
             }
             else { 
                 instance = CreatePoolObject(prefab);   
@@ -456,7 +504,7 @@ namespace MisterGames.Common.Pooling {
 
             if (_poolMap.GetValueOrDefault(id) is { } pool) {
                 instance = await pool.GetAsync(prefab);
-                _instanceToPrefabIdMap[instance.GetEntityId()] = id;
+                _instanceToPrefabIdMap[instance.GetEntityId()] = new InstanceData(instance, id);
             }
             else { 
                 instance = await CreatePoolObjectAsync(prefab);   
@@ -496,7 +544,9 @@ namespace MisterGames.Common.Pooling {
         }
 
         private void ReleaseInternal(GameObject instance) {
-            var id = _instanceToPrefabIdMap.GetValueOrDefault(instance.GetEntityId(), EntityId.None);
+            var id = _instanceToPrefabIdMap.TryGetValue(instance.GetEntityId(), out var instanceData)
+                ? instanceData.prefabId
+                : EntityId.None;
             
             bool hasPoolElement = instance.TryGetComponent(out PoolElement poolElement);
             if (hasPoolElement) poolElement.NotifyReleasedToPool(this);
@@ -505,7 +555,8 @@ namespace MisterGames.Common.Pooling {
                 pool.Release(instance);
             }
             else {
-                DestroyPoolObject(instance);   
+                _instanceToPrefabIdMap.Remove(instance.GetEntityId());
+                DestroyPoolObject(instance);
             }
             
             UpdateAutoPoolUsageOnRelease(id, pool);
