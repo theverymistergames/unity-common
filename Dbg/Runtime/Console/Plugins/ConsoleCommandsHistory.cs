@@ -30,6 +30,14 @@ namespace MisterGames.Dbg.Console.Plugins {
         private string _historyCurrentInput;
         private int _historyPointer;
 
+#if !UNITY_EDITOR && !DEVELOPMENT_BUILD
+
+        private void Awake() {
+            Destroy(this);
+        }
+
+#else
+
         private void OnEnable() {
             SubscribeShowHideConsole();
             RestoreHistoryFromPlayerPrefs();
@@ -40,6 +48,8 @@ namespace MisterGames.Dbg.Console.Plugins {
             UnsubscribeHistoryInput();
             UnsubscribeConsoleInput();
         }
+
+#endif
 
         private void OnShowConsole() {
             SubscribeHistoryInput();

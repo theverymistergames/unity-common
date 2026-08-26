@@ -266,20 +266,12 @@ namespace MisterGames.Logic.ShadersWarmup {
         private void BeginTracing() {
             _isTracing = _graphicsStateCollection.BeginTrace();
             PlayerLoopStage.LateUpdate.Subscribe(this);
-
-            Debug.Log($"ShaderWarmupService.BeginTracing: f {Time.frameCount}, " +
-                      $"begin PSO tracing: {_isTracing}, " +
-                      $"API {SystemInfo.graphicsDeviceType}");
         }
 
         private void EndTracingAndSaveToLocalFile() {
             _isTracing = false;
             _graphicsStateCollection.EndTrace();
             PlayerLoopStage.LateUpdate.Unsubscribe(this);
-
-            Debug.Log($"ShaderWarmupService.EndTracingAndSaveToLocalFile: f {Time.frameCount}, " +
-                      $"end PSO tracing, " +
-                      $"total count {_graphicsStateCollection.totalGraphicsStateCount}");
 
             var localTracingCollection = LoadLocalTracingCollection();
             localTracingCollection.Append(_graphicsStateCollection);

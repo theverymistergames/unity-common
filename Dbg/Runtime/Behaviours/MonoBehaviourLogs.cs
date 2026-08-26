@@ -76,7 +76,7 @@ namespace MisterGames.Dbg.Behaviours {
                     throw new ArgumentOutOfRangeException();
             }
 
-            if (_logToDebugConsole) {
+            if (_logToDebugConsole && ConsoleRunner.Instance != null) {
                 ConsoleRunner.Instance.AppendLine($"{_level}: {message}");
             }
         }

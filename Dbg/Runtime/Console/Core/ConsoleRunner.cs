@@ -47,6 +47,14 @@ namespace MisterGames.Dbg.Console.Core {
         private CursorLockMode _lastCursorLockMode;
         private bool _lastCursorVisibility;
 
+#if !UNITY_EDITOR && !DEVELOPMENT_BUILD
+
+        private void Awake() {
+            Destroy(gameObject);
+        }
+
+#else
+
         private void Awake() {
             Instance = this;
             
@@ -77,6 +85,8 @@ namespace MisterGames.Dbg.Console.Core {
             ClearConsole();
             HideConsole();
         }
+
+#endif
 
         public void RunCommand(string input) {
             input = input.Trim();

@@ -24,6 +24,14 @@ namespace MisterGames.Dbg.Console.Plugins {
         private ConsoleRunner _consoleRunner;
         private bool[] _inputActiveMap;
 
+#if !UNITY_EDITOR && !DEVELOPMENT_BUILD
+
+        private void Awake() {
+            Destroy(this);
+        }
+
+#else
+
         private void Awake() {
             _consoleRunner = GetComponent<ConsoleRunner>();
         }
@@ -44,6 +52,8 @@ namespace MisterGames.Dbg.Console.Plugins {
                 _inputActiveMap[i] = active;
             }
         }
+
+#endif
 
         private void FetchConsoleCommands() {
             var modules = _consoleRunner.ConsoleModules;
