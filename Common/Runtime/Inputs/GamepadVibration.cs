@@ -92,8 +92,14 @@ namespace MisterGames.Common.Inputs {
         public void SetTwoMotors(object source, Vector2 frequency, float weightLeft = 1f, float weightRight = 1f) {
             int hash = source.GetHashCode();
             if (!_dataMap.TryGetValue(hash, out var data)) return;
+
+            var weight = new Vector2(weightLeft, weightRight);
             
-            _dataMap[hash] = new Data(data.priority, new Vector2(weightLeft, weightRight), frequency);
+            // Sources push their frequency every frame: without this the whole data map is folded
+            // and a gamepad output write is issued each time, even when nothing actually changed.
+            if (data.frequency == frequency && data.weight == weight) return;
+            
+            _dataMap[hash] = new Data(data.priority, weight, frequency);
             _resultFrequency = BuildResultFrequency(_topPriority);
             
             ApplyFrequencyIfGamepadActive(_resultFrequency);
@@ -120,6 +126,8 @@ namespace MisterGames.Common.Inputs {
                 default:
                     throw new ArgumentOutOfRangeException(nameof(side), side, null);
             }
+            
+            if (data.frequency == f && data.weight == w) return;
             
             _dataMap[hash] = new Data(data.priority, w, f);
             _resultFrequency = BuildResultFrequency(_topPriority);

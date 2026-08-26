@@ -16,6 +16,7 @@ namespace MisterGames.UI.Components {
 
         [Header("Text")]
         [SerializeField] private TMP_Text _defaultTextField;
+        [SerializeField] private bool _printDefaultTextFieldOnEnable;
         
         [Header("Print")]
         [SerializeField] private bool _useTimeScale = false;
@@ -79,6 +80,14 @@ namespace MisterGames.UI.Components {
         private readonly Stack<TextBuffer> _textBufferPool = new();
 
         /// <summary>
+        /// Clean content of the last printing of a text field.
+        /// While printing, a text field holds the transparent tags of the not printed part, and TMP returns
+        /// them back from <see cref="TMP_Text.text"/>. Printing a field by its own current text would then
+        /// treat those tags as a part of the content, so everything after them stays hidden forever.
+        /// </summary>
+        private readonly Dictionary<int, string> _sourceContentMap = new();
+
+        /// <summary>
         /// Reusable buffers of a single print operation: allocated once and returned into pool at the end of printing.
         /// </summary>
         private sealed class TextBuffer {
@@ -110,6 +119,10 @@ namespace MisterGames.UI.Components {
 
         private void OnEnable() {
             AsyncExt.RecreateCts(ref _enableCts);
+
+            if (_printDefaultTextFieldOnEnable && _defaultTextField != null) {
+                PrintTextAsync(_defaultTextField, _defaultTextField.text, _enableCts.Token).Forget();
+            } 
         }
 
         private void OnDisable() {
@@ -120,6 +133,8 @@ namespace MisterGames.UI.Components {
             CancelPrinting(textField, clear: true);
 
             if (string.IsNullOrEmpty(content)) return;
+
+            content = ResolveSourceContent(textField.GetHashCode(), content);
 
             var buffer = GetTextBuffer();
             var sb = buffer.stringBuilder;
@@ -143,6 +158,8 @@ namespace MisterGames.UI.Components {
             int hash = textField.GetHashCode();
             byte id = _operationIdMap.GetValueOrDefault(hash);
             byte currentId;
+
+            content = ResolveSourceContent(hash, content);
 
             _operationIdMap[hash] = id.IncrementUncheckedRef();
 
@@ -245,9 +262,13 @@ namespace MisterGames.UI.Components {
 
                     printedLength = sb.Length;
 
-                    sb.Append(TransparentTagOpen);
-                    AppendSkippingRanges(sb, content, pointer, length, hiddenTailRanges);
-                    sb.Append(TransparentTagClose);
+                    // Nothing is left to hide once the caret has reached the end of the content:
+                    // an empty transparent tag pair would only stay in the resulting text of the field.
+                    if (pointer < length) {
+                        sb.Append(TransparentTagOpen);
+                        AppendSkippingRanges(sb, content, pointer, length, hiddenTailRanges);
+                        sb.Append(TransparentTagClose);
+                    }
 
                     // Symbols printed without delay are shown at once with the next symbol that has a delay.
                     if (delayAccum > 0f || pointer >= length) {
@@ -321,6 +342,22 @@ namespace MisterGames.UI.Components {
             _immediateFinishRequestsMap.Remove(hash);
 
             return false;
+        }
+
+        /// <summary>
+        /// Content of a field that is or was being printed contains the transparent tags of the not printed
+        /// part, so printing such a field by its own text is replaced with printing the clean content
+        /// of the last printing. Otherwise the transparent tags are printed as a part of the text
+        /// and hide everything after them.
+        /// </summary>
+        private string ResolveSourceContent(int hash, string content) {
+            bool hasPrinterTags = content != null && content.Contains(TransparentTagOpen);
+
+            if (hasPrinterTags && _sourceContentMap.TryGetValue(hash, out string source)) return source;
+
+            if (!hasPrinterTags) _sourceContentMap[hash] = content;
+
+            return content;
         }
 
         private TextBuffer GetTextBuffer() {

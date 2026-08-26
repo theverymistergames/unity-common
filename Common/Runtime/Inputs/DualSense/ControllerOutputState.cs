@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Data;
@@ -7,7 +8,8 @@ namespace MisterGames.Common.Inputs.DualSense
 {
    
    [Serializable]
-   public struct ControllerOutputState {
+   [StructLayout(LayoutKind.Sequential)]
+   public struct ControllerOutputState : IEquatable<ControllerOutputState> {
       
       public TriggerEffect LeftTriggerEffect;
       public TriggerEffect RightTriggerEffect;
@@ -15,6 +17,7 @@ namespace MisterGames.Common.Inputs.DualSense
       public double LeftRumbleIntensity;
       public double RightRumbleIntensity;
       
+      [MarshalAs(UnmanagedType.I1)]
       public bool LightBarEnabled;
       public double LightBarIntensity;
       public double LightBarR;
@@ -33,6 +36,43 @@ namespace MisterGames.Common.Inputs.DualSense
       public bool RightPlayerLightEnabled;
       [MarshalAs(UnmanagedType.I1)]
       public bool FadePlayerLight;
+
+      public bool Equals(ControllerOutputState other) {
+         return LeftRumbleIntensity.Equals(other.LeftRumbleIntensity) &&
+                RightRumbleIntensity.Equals(other.RightRumbleIntensity) &&
+                LightBarEnabled == other.LightBarEnabled &&
+                LightBarIntensity.Equals(other.LightBarIntensity) &&
+                LightBarR.Equals(other.LightBarR) &&
+                LightBarG.Equals(other.LightBarG) &&
+                LightBarB.Equals(other.LightBarB) &&
+                LeftPlayerLightEnabled == other.LeftPlayerLightEnabled &&
+                MiddleLeftPlayerLightEnabled == other.MiddleLeftPlayerLightEnabled &&
+                MiddlePlayerLightEnabled == other.MiddlePlayerLightEnabled &&
+                MiddleRightPlayerLightEnabled == other.MiddleRightPlayerLightEnabled &&
+                RightPlayerLightEnabled == other.RightPlayerLightEnabled &&
+                FadePlayerLight == other.FadePlayerLight &&
+                LeftTriggerEffect.Equals(other.LeftTriggerEffect) &&
+                RightTriggerEffect.Equals(other.RightTriggerEffect);
+      }
+
+      public override bool Equals(object obj) => obj is ControllerOutputState other && Equals(other);
+
+      public override int GetHashCode() {
+         var hash = new HashCode();
+         hash.Add(LeftTriggerEffect);
+         hash.Add(RightTriggerEffect);
+         hash.Add(LeftRumbleIntensity);
+         hash.Add(RightRumbleIntensity);
+         hash.Add(LightBarEnabled);
+         hash.Add(LightBarIntensity);
+         hash.Add(LightBarR);
+         hash.Add(LightBarG);
+         hash.Add(LightBarB);
+         return hash.ToHashCode();
+      }
+
+      public static bool operator ==(ControllerOutputState a, ControllerOutputState b) => a.Equals(b);
+      public static bool operator !=(ControllerOutputState a, ControllerOutputState b) => !a.Equals(b);
    }
    
    public enum TriggerEffectType {
@@ -43,7 +83,8 @@ namespace MisterGames.Common.Inputs.DualSense
    }
 
    [Serializable]
-   public struct TriggerEffect {
+   [StructLayout(LayoutKind.Sequential)]
+   public struct TriggerEffect : IEquatable<TriggerEffect> {
       
       public TriggerEffectType EffectType;
       [VisibleIf(nameof(EffectType), value: 0, CompareMode.Greater)]
@@ -87,6 +128,36 @@ namespace MisterGames.Common.Inputs.DualSense
          Frequency = frequency;
          KeepEffect = keepEffect;
       }
+
+      [MethodImpl(MethodImplOptions.AggressiveInlining)]
+      public bool Equals(TriggerEffect other) {
+         return EffectType == other.EffectType &&
+                StartPosition.Equals(other.StartPosition) &&
+                EndPosition.Equals(other.EndPosition) &&
+                BeginForce.Equals(other.BeginForce) &&
+                MiddleForce.Equals(other.MiddleForce) &&
+                EndForce.Equals(other.EndForce) &&
+                Frequency.Equals(other.Frequency) &&
+                KeepEffect == other.KeepEffect;
+      }
+
+      public override bool Equals(object obj) => obj is TriggerEffect other && Equals(other);
+
+      public override int GetHashCode() {
+         var hash = new HashCode();
+         hash.Add((int) EffectType);
+         hash.Add(StartPosition);
+         hash.Add(EndPosition);
+         hash.Add(BeginForce);
+         hash.Add(MiddleForce);
+         hash.Add(EndForce);
+         hash.Add(Frequency);
+         hash.Add(KeepEffect);
+         return hash.ToHashCode();
+      }
+
+      public static bool operator ==(TriggerEffect a, TriggerEffect b) => a.Equals(b);
+      public static bool operator !=(TriggerEffect a, TriggerEffect b) => !a.Equals(b);
    }
    
 }
