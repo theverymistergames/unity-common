@@ -122,6 +122,14 @@ namespace MisterGames.Common.Audio {
 
         private readonly Dictionary<EntityId, IAudioVolume> _audioVolumes = new();
         private IAudioVolume[] _volumesBuffer = Array.Empty<IAudioVolume>();
+
+        // Per frame volume state for the immediate path taken on play:
+        // a burst of sounds started in one frame shares one setup.
+        private readonly List<ImmediateVolumeData> _immediateVolumes = new();
+        private readonly Dictionary<int, float> _immediateListenerWeights = new();
+        private float _immediateListenerOcclusion = 1f;
+        private int _immediateVolumesFrame = -1;
+        private RaycastHit[] _immediateHitsBuffer = Array.Empty<RaycastHit>();
         private readonly HashSet<EntityId> _includeMixerGroupsForVolumesSet = new();
         private readonly HashSet<EntityId> _ignoreZeroTimescaleForMixerGroupsSet = new();
         
@@ -160,6 +168,8 @@ namespace MisterGames.Common.Audio {
             
             _elements.Clear();
             _handleIdToIndexMap.Clear();
+            _immediateVolumes.Clear();
+            _immediateListenerWeights.Clear();
             _elementsBuffer = Array.Empty<IAudioElement>();
             if (_transformAccessArray.isCreated) _transformAccessArray.Dispose();
 
@@ -357,13 +367,16 @@ namespace MisterGames.Common.Audio {
             }
 
             AddAudioElement(id, audioElement);
-            
+
             RestartAudioSource(
-                audioElement.Source, clip, mixerGroup, 
-                fadeIn, volume, pitch * (affectedByTimeScale ? Time.timeScale : 1f), 
+                audioElement.Source, clip, mixerGroup,
+                fadeIn, volume, pitch * (affectedByTimeScale ? Time.timeScale : 1f),
                 spatialBlend, clipTime, loop
             );
-            
+
+            // After the source restart, so that computed pitch is not overwritten by the raw one.
+            ProcessSoundImmediate(audioElement);
+
             return new AudioHandle(this, id);
         }
 
@@ -454,10 +467,13 @@ namespace MisterGames.Common.Audio {
             }
 
             RestartAudioSource(
-                audioElement.Source, clip, mixerGroup, 
-                fadeIn, volume, pitch * (affectedByTimeScale ? Time.timeScale : 1f), 
+                audioElement.Source, clip, mixerGroup,
+                fadeIn, volume, pitch * (affectedByTimeScale ? Time.timeScale : 1f),
                 spatialBlend, clipTime, loop
             );
+
+            // After the source restart, so that computed pitch is not overwritten by the raw one.
+            ProcessSoundImmediate(audioElement);
 
             return new AudioHandle(this, id);
         }
@@ -1046,6 +1062,205 @@ namespace MisterGames.Common.Audio {
             }
 
             return count;
+        }
+
+        /// <summary>
+        /// Computes occlusion, volumes and filter cutoffs for a single sound right away,
+        /// so that it starts with final values instead of waiting for the next pool update.
+        /// Runs on the main thread without jobs: for one sound the scheduling overhead
+        /// is far bigger than the math itself.
+        /// </summary>
+        private void ProcessSoundImmediate(IAudioElement e) {
+            if (_audioListenersMap.Count == 0) {
+                // To reset smoothed values
+                e.OcclusionFlag = 0;
+                return;
+            }
+
+            float3 listenerPos = _listenerTransform.position;
+            float3 soundPos = e.Transform.position;
+
+            var options = e.AudioOptions;
+            if (!e.MixerGroupAffectedByVolumes) options &= ~AudioOptions.AffectedByVolumes;
+
+            var volumeResult = CalculateVolumeResultImmediate(listenerPos, soundPos, options);
+            var occlusionResult = CalculateOcclusionImmediate(listenerPos, soundPos, e.SpatialBlend, options);
+
+            var soundData = new SoundData(
+                e.Id, e.OcclusionFlag,
+                e.SpatialBlend, e.PitchMul, e.AttenuationMul, e.LpCutoff, e.HpCutoff
+            );
+
+            // Zero delta time: no smoothing, the sound starts at its final values.
+            var resultData = CalculateSoundResult(
+                soundData, options, volumeResult, occlusionResult,
+                Time.timeScale, dt: 0f, _audioParametersSmoothing,
+                _cutoffLow, _cutoffHigh, _cutoffLowFreqEasing, _cutoffHighFreqEasing
+            );
+
+            e.Source.pitch = resultData.pitch;
+            e.Source.maxDistance = resultData.attenuationDistance;
+
+            e.LowPass.cutoffFrequency = resultData.lpCutoff;
+            e.HighPass.cutoffFrequency = resultData.hpCutoff;
+
+            e.LpCutoff = resultData.lpCutoff;
+            e.HpCutoff = resultData.hpCutoff;
+
+            e.OcclusionFlag = 1;
+        }
+
+        private OcclusionResultData CalculateOcclusionImmediate(float3 listenerPos, float3 soundPos, float spatialBlend, AudioOptions options) {
+            if (!_applyOcclusion || (options & AudioOptions.ApplyOcclusion) == 0 || spatialBlend <= 0f) {
+                return default;
+            }
+
+            float distanceSqr = math.lengthsq(listenerPos - soundPos);
+            if (distanceSqr <= 0f || distanceSqr < _minDistance * _minDistance) return default;
+
+            var profile = GetOcclusionProfile();
+            float distance = math.sqrt(distanceSqr);
+
+            if (distanceSqr > _maxDistance * _maxDistance) {
+                return new OcclusionResultData(1f, 1f
+#if UNITY_EDITOR
+                    , distance
+                    , 0
+                    , 1f
+                    , 1f
+#endif
+                );
+            }
+
+            var dir = (listenerPos - soundPos) / distance;
+            var rot = quaternion.LookRotation(dir, _listenerUp.up);
+            float offset = math.lerp(_rayOffset0, _rayOffset1, GetRelativeDistance(distance, _minDistance, _maxDistance));
+            float raySector = 360f / _rays;
+
+            if (_immediateHitsBuffer.Length < _maxHits) _immediateHitsBuffer = new RaycastHit[math.ceilpow2(_maxHits)];
+
+            int collisions = 0;
+
+            for (int i = 0; i < _rays; i++) {
+                float3 from = soundPos + math.mul(rot, offset * GetOcclusionOffset(i, _rays, raySector));
+
+                int hitCount = Physics.RaycastNonAlloc(
+                    from, dir, _immediateHitsBuffer, distance, _layerMask, QueryTriggerInteraction.Ignore
+                );
+
+                collisions += math.min(hitCount, _maxHits);
+            }
+
+            return CalculateOcclusionResult(distance, collisions, profile);
+        }
+
+        private AudioVolumeResultData CalculateVolumeResultImmediate(float3 listenerPos, float3 soundPos, AudioOptions options) {
+            var defaultResult = new AudioVolumeResultData(1f, 1f, _attenuationDistance, LpCutoffUpperBound, HpCutoffLowerBound);
+
+            if (!_enableVolumes || (options & AudioOptions.AffectedByVolumes) == 0) return defaultResult;
+
+            UpdateImmediateVolumeData(listenerPos);
+
+            int volumeCount = _immediateVolumes.Count;
+            if (volumeCount == 0) return defaultResult;
+
+            var occlusionSound = VolumeParamAccumulator.New();
+            var pitch = VolumeParamAccumulator.New();
+            var attenuation = VolumeParamAccumulator.New();
+            var lpCutoff = VolumeParamAccumulator.New();
+            var hpCutoff = VolumeParamAccumulator.New();
+
+            for (int i = 0; i < volumeCount; i++) {
+                var data = _immediateVolumes[i];
+
+                if (data.volume.GetWeight(soundPos) is not { weight: > 0f } weightData) continue;
+
+                int mask = data.mask;
+                int priority = data.priority;
+                float w = weightData.weight;
+
+                if (data.listenerPresence > 0f) {
+                    w *= math.lerp(1f, _immediateListenerWeights.GetValueOrDefault(weightData.volumeId), data.listenerPresence);
+                }
+
+                if (AudioParameter.SoundOcclusion.InMask(mask)) occlusionSound.Add(priority, w, data.occlusionSound);
+                if (AudioParameter.Pitch.InMask(mask)) pitch.Add(priority, w, data.pitch);
+                if (AudioParameter.Attenuation.InMask(mask)) attenuation.Add(priority, w, data.attenuation);
+                if (AudioParameter.LpCutoff.InMask(mask)) lpCutoff.Add(priority, w, data.lpCutoff);
+                if (AudioParameter.HpCutoff.InMask(mask)) hpCutoff.Add(priority, w, data.hpCutoff);
+            }
+
+            return new AudioVolumeResultData(
+                occlusionSound.Resolve(1f) * _immediateListenerOcclusion,
+                pitch.Resolve(1f),
+                attenuation.Resolve(_attenuationDistance),
+                lpCutoff.Resolve(LpCutoffUpperBound),
+                hpCutoff.Resolve(HpCutoffLowerBound)
+            );
+        }
+
+        private void UpdateImmediateVolumeData(float3 listenerPos) {
+            int frame = Time.frameCount;
+            if (_immediateVolumesFrame == frame) return;
+
+            _immediateVolumesFrame = frame;
+            _immediateVolumes.Clear();
+            _immediateListenerWeights.Clear();
+
+            int topPriority = int.MinValue;
+            float weightSum = 0f;
+            float occlusionMul = 1f;
+
+            foreach (var volume in _audioVolumes.Values) {
+                if (volume.Weight <= 0f) continue;
+
+                float occlusionListener = 1f;
+                float occlusionSound = 1f;
+                float pitch = 1f;
+                float attenuation = _attenuationDistance;
+                float lpCutoff = LpCutoffUpperBound;
+                float hpCutoff = HpCutoffLowerBound;
+
+                int mask = 0;
+
+                if (volume.ModifyOcclusionWeightForListener(ref occlusionListener)) AudioParameter.ListenerOcclusion.WriteToMask(ref mask);
+                if (volume.ModifyOcclusionWeightForSound(ref occlusionSound)) AudioParameter.SoundOcclusion.WriteToMask(ref mask);
+                if (volume.ModifyPitch(ref pitch)) AudioParameter.Pitch.WriteToMask(ref mask);
+                if (volume.ModifyAttenuationDistance(ref attenuation)) AudioParameter.Attenuation.WriteToMask(ref mask);
+                if (volume.ModifyLowPassFilter(ref lpCutoff)) AudioParameter.LpCutoff.WriteToMask(ref mask);
+                if (volume.ModifyHighPassFilter(ref hpCutoff)) AudioParameter.HpCutoff.WriteToMask(ref mask);
+
+                if (mask == 0) continue;
+
+                var weightData = volume.GetWeight(listenerPos);
+                int priority = volume.Priority;
+
+                _immediateVolumes.Add(new ImmediateVolumeData(
+                    volume, mask, priority, volume.ListenerPresence,
+                    occlusionSound, pitch, attenuation, lpCutoff, hpCutoff
+                ));
+
+                _immediateListenerWeights[weightData.volumeId] =
+                    math.max(weightData.weight, _immediateListenerWeights.GetValueOrDefault(weightData.volumeId));
+
+                if (weightData.weight <= 0f || priority < topPriority ||
+                    !AudioParameter.ListenerOcclusion.InMask(mask))
+                {
+                    continue;
+                }
+
+                if (priority > topPriority) {
+                    topPriority = priority;
+                    weightSum = 0f;
+                    occlusionMul = 1f;
+                }
+
+                weightSum += weightData.weight;
+                occlusionMul += weightData.weight * occlusionListener;
+            }
+
+            occlusionMul = weightSum > 0f ? occlusionMul / weightSum : 1f;
+            _immediateListenerOcclusion = math.lerp(1f, occlusionMul, math.clamp(weightSum, 0f, 1f));
         }
 
         private static void CheckPause(IAudioElement e, float timescale) {
