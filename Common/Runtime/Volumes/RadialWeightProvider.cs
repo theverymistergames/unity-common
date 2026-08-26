@@ -2,6 +2,7 @@
 using MisterGames.Common.Jobs;
 using Unity.Burst;
 using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
 using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
@@ -27,8 +28,8 @@ namespace MisterGames.Common.Volumes {
             return new WeightData(w, volumeId: GetHashCode(), ClosestPoint(position, center, _innerRadius));
         }
 
-        public override void GetWeight(NativeArray<float3> positions, NativeArray<WeightData> results, int count) {
-            if (count <= 0) return;
+        public override JobHandle GetWeight(NativeArray<float3> positions, NativeArray<WeightSample> results, int count, JobHandle dependency = default) {
+            if (count <= 0) return dependency;
             
             var job = new CalculateWeightJob {
                 positions = positions,
@@ -39,13 +40,13 @@ namespace MisterGames.Common.Volumes {
                 results = results
             };
             
-            job.Schedule(count, JobExt.BatchFor(count)).Complete();
+            return job.Schedule(count, JobExt.BatchFor(count, MinBatch), dependency);
         }
 
         private static float GetWeight(float3 position, float3 center, float2 radiusInOut, float fallOff) {
-            if (fallOff <= 0f ||
-                math.lengthsq(position - center) <= radiusInOut.x * radiusInOut.x) 
-            {
+            float distanceSqr = math.lengthsq(position - center);
+            
+            if (fallOff <= 0f || distanceSqr <= radiusInOut.x * radiusInOut.x) {
                 return 1f;
             }
             
@@ -53,7 +54,7 @@ namespace MisterGames.Common.Volumes {
                 return 1f - fallOff;
             }
             
-            float x = (math.length(center - position) - radiusInOut.x) / (radiusInOut.y - radiusInOut.x);
+            float x = (math.sqrt(distanceSqr) - radiusInOut.x) / (radiusInOut.y - radiusInOut.x);
             return math.clamp(1f + 2f * fallOff * (1f / (x + 1f) - 1f), 0f, 1f);
         }
         
@@ -66,11 +67,14 @@ namespace MisterGames.Common.Volumes {
             [Unity.Collections.ReadOnly] public float fallOff;
             [Unity.Collections.ReadOnly] public int volumeId;
             
-            [WriteOnly] public NativeArray<WeightData> results;
+            // Results can be a sub array of a bigger buffer shared between volumes:
+            // each volume writes into its own disjoint range, so aliasing check is not applicable.
+            [NativeDisableContainerSafetyRestriction]
+            [WriteOnly] public NativeArray<WeightSample> results;
 
             public void Execute(int index) {
                 float w = GetWeight(positions[index], center, radiusInOut, fallOff);
-                results[index] = new WeightData(w, volumeId, ClosestPoint(positions[index], center, radiusInOut.x));
+                results[index] = new WeightSample(w, volumeId);
             }
         }
 

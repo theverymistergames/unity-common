@@ -6,6 +6,7 @@ using MisterGames.Common.Stats;
 using MisterGames.Common.Volumes;
 using Unity.Burst;
 using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
 using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
@@ -37,6 +38,8 @@ namespace MisterGames.Common.Audio {
             Local,
         }
 
+        private const int MinBatch = 16;
+
         public EntityId Id => GetEntityId();
         public int Priority => _priority;
         public float ListenerPresence => _listenerPresence;
@@ -64,29 +67,31 @@ namespace MisterGames.Common.Audio {
             }
         }
 
-        public void GetWeight(NativeArray<float3> positions, NativeArray<WeightData> results, int count) {
+        public JobHandle GetWeight(NativeArray<float3> positions, NativeArray<WeightSample> results, int count, JobHandle dependency = default) {
+            if (count <= 0) return dependency;
+            
             switch (_mode) {
                 case Mode.Global:
-                    var writeZeroWeightJob = new WriteConstWeightJob {
+                    var writeConstWeightJob = new WriteConstWeightJob {
                         weight = _weight,
                         defaultVolumeId = GetHashCode(),
-                        positions = positions,
                         results = results,
                     };
                 
-                    writeZeroWeightJob.Schedule(count, JobExt.BatchFor(count)).Complete();
-                    return;
+                    return writeConstWeightJob.Schedule(count, JobExt.BatchFor(count, MinBatch), dependency);
                 
                 case Mode.Local:
-                    _positionWeightProvider.GetWeight(positions, results, count);
+                    var handle = _positionWeightProvider.GetWeight(positions, results, count, dependency);
+                    
+                    // Multiplying by one changes nothing, and volumes with zero weight are filtered out by the pool.
+                    if (_weight >= 1f) return handle;
                     
                     var multiplyWeightJob = new MultiplyWeightJob {
                         mul = _weight,
                         results = results,
                     };
                 
-                    multiplyWeightJob.Schedule(count, JobExt.BatchFor(count)).Complete();
-                    return;
+                    return multiplyWeightJob.Schedule(count, JobExt.BatchFor(count, MinBatch), handle);
                 
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -128,12 +133,14 @@ namespace MisterGames.Common.Audio {
             
             [Unity.Collections.ReadOnly] public int defaultVolumeId;
             [Unity.Collections.ReadOnly] public float weight;
-            [Unity.Collections.ReadOnly] public NativeArray<float3> positions;
             
-            [WriteOnly] public NativeArray<WeightData> results;
+            // Results can be a sub array of a buffer shared between volumes:
+            // each volume writes into its own disjoint range, so aliasing check is not applicable.
+            [NativeDisableContainerSafetyRestriction]
+            [WriteOnly] public NativeArray<WeightSample> results;
 
             public void Execute(int index) {
-                results[index] = new WeightData(weight, defaultVolumeId, positions[index]);
+                results[index] = new WeightSample(weight, defaultVolumeId);
             }
         }
         
@@ -142,11 +149,12 @@ namespace MisterGames.Common.Audio {
             
             [Unity.Collections.ReadOnly] public float mul;
             
-            public NativeArray<WeightData> results;
+            [NativeDisableContainerSafetyRestriction]
+            public NativeArray<WeightSample> results;
 
             public void Execute(int index) {
                 var data = results[index];
-                results[index] = new WeightData(data.weight * mul, data.volumeId, data.closestPoint);
+                results[index] = new WeightSample(data.weight * mul, data.volumeId);
             }
         }
     }

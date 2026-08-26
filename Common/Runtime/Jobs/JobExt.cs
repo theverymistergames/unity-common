@@ -8,9 +8,14 @@ namespace MisterGames.Common.Jobs {
     
     public static class JobExt {
 
+        /// <summary>
+        /// Batch size for a parallel job over <paramref name="count"/> items.
+        /// <paramref name="minBatch"/> prevents one-item batches for cheap kernels,
+        /// where per-batch overhead is bigger than the work itself.
+        /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int BatchFor(int count) {
-            return math.max(count / JobsUtility.JobWorkerCount, 1);
+        public static int BatchFor(int count, int minBatch = 1) {
+            return math.max(count / JobsUtility.JobWorkerCount, minBatch);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

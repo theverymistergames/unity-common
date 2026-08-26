@@ -29,8 +29,13 @@ namespace MisterGames.Common.Audio {
         }
         
         public float SpatialBlend {
-            get => IsValid(out var e) ? e.Source.spatialBlend : 0f;
-            set { if (IsValid(out var e)) e.Source.spatialBlend = value; }
+            get => IsValid(out var e) ? e.SpatialBlend : 0f;
+            set {
+                if (!IsValid(out var e)) return;
+
+                e.Source.spatialBlend = value;
+                e.SpatialBlend = value;
+            }
         }
         
         public float AttenuationMul {

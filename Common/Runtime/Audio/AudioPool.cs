@@ -13,11 +13,11 @@ using MisterGames.Common.Tick;
 using MisterGames.Common.Volumes;
 using Unity.Burst;
 using Unity.Collections;
-using Unity.Collections.LowLevel.Unsafe;
 using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Audio;
+using UnityEngine.Jobs;
 
 namespace MisterGames.Common.Audio {
     
@@ -75,6 +75,7 @@ namespace MisterGames.Common.Audio {
         public static IAudioPool Main { get; private set; }
 
         private const float DistanceThreshold = 0.001f;
+        private const int MinBatch = 16;
         private const float HpCutoffLowerBound = 10f;
         private const float LpCutoffUpperBound = 22000f;
         
@@ -104,6 +105,13 @@ namespace MisterGames.Common.Audio {
         private readonly Dictionary<int, IAudioElement> _handleIdToAudioElementMap = new();
         private int _lastHandleId;
         
+        // Ordered storage parallel to _transformAccessArray, so that sound positions
+        // can be read in a job instead of N native transform accesses per frame.
+        private readonly List<IAudioElement> _elements = new();
+        private readonly Dictionary<int, int> _handleIdToIndexMap = new();
+        private TransformAccessArray _transformAccessArray;
+        private IAudioElement[] _elementsBuffer = Array.Empty<IAudioElement>();
+        
         private readonly Dictionary<int, FadeData> _fadeInDataMap = new();
         private readonly Dictionary<int, FadeData> _fadeOutDataMap = new();
         private readonly Dictionary<int, IAudioElement> _releaseElementsMap = new();
@@ -113,6 +121,7 @@ namespace MisterGames.Common.Audio {
         private Transform _listenerUp;
 
         private readonly Dictionary<EntityId, IAudioVolume> _audioVolumes = new();
+        private IAudioVolume[] _volumesBuffer = Array.Empty<IAudioVolume>();
         private readonly HashSet<EntityId> _includeMixerGroupsForVolumesSet = new();
         private readonly HashSet<EntityId> _ignoreZeroTimescaleForMixerGroupsSet = new();
         
@@ -122,6 +131,7 @@ namespace MisterGames.Common.Audio {
         
         private Transform _transform;
         private float _lastTimeScale;
+        private bool _checkPause;
         private float _globalOcclusionWeight = 1f;
         
         // 0 - scaled time, 1 - unscaled above ts = 0, 2 - unscaled focused
@@ -131,6 +141,8 @@ namespace MisterGames.Common.Audio {
             Main = this;
 
             _transform = transform;
+            _lastTimeScale = Time.timeScale;
+            _transformAccessArray = new TransformAccessArray(64);
             
             CreateReverbParamNames();
             FetchIncludeMixerGroupsFromVolumes();
@@ -145,6 +157,11 @@ namespace MisterGames.Common.Audio {
             _attachKeyToHandleIdMap.Clear();
             _handleIdToAttachKeyMap.Clear();
             _handleIdToAudioElementMap.Clear();
+            
+            _elements.Clear();
+            _handleIdToIndexMap.Clear();
+            _elementsBuffer = Array.Empty<IAudioElement>();
+            if (_transformAccessArray.isCreated) _transformAccessArray.Dispose();
 
             _fadeInDataMap.Clear();
             _fadeOutDataMap.Clear();
@@ -326,12 +343,10 @@ namespace MisterGames.Common.Audio {
                 cancellationToken
             );
             
-            ProcessSound(audioElement);
+            audioElement.SpatialBlend = spatialBlend;
 
             if (fadeIn > 0f) {
-                int timeSource = affectedByTimeScale
-                    ? 0
-                    : _ignoreZeroTimescaleForMixerGroupsSet.Contains(audioElement.MixerGroupId) ? 2 : 1;
+                int timeSource = affectedByTimeScale ? 0 : audioElement.IgnoreZeroTimescale ? 2 : 1;
                 
                 _fadeInDataMap[id] = new FadeData(
                     _internalTime[timeSource], 
@@ -341,7 +356,7 @@ namespace MisterGames.Common.Audio {
                 );   
             }
 
-            _handleIdToAudioElementMap[id] = audioElement;
+            AddAudioElement(id, audioElement);
             
             RestartAudioSource(
                 audioElement.Source, clip, mixerGroup, 
@@ -420,17 +435,15 @@ namespace MisterGames.Common.Audio {
                 cancellationToken
             );
             
-            ProcessSound(audioElement);
+            audioElement.SpatialBlend = spatialBlend;
             
-            _handleIdToAudioElementMap[id] = audioElement;
+            AddAudioElement(id, audioElement);
             
             bool loop = (options & AudioOptions.Loop) != 0;
             bool affectedByTimeScale = (options & AudioOptions.AffectedByTimeScale) != 0;
             
             if (fadeIn > 0f) {
-                int timeSource = affectedByTimeScale
-                    ? 0
-                    : _ignoreZeroTimescaleForMixerGroupsSet.Contains(audioElement.MixerGroupId) ? 2 : 1;
+                int timeSource = affectedByTimeScale ? 0 : audioElement.IgnoreZeroTimescale ? 2 : 1;
                 
                 _fadeInDataMap[id] = new FadeData(
                     _internalTime[timeSource], 
@@ -449,6 +462,40 @@ namespace MisterGames.Common.Audio {
             return new AudioHandle(this, id);
         }
         
+        private void AddAudioElement(int id, IAudioElement e) {
+            _handleIdToAudioElementMap[id] = e;
+            _handleIdToIndexMap[id] = _elements.Count;
+            _elements.Add(e);
+            _transformAccessArray.Add(e.Transform);
+        }
+
+        private bool RemoveAudioElement(int id, out IAudioElement e) {
+            if (!_handleIdToAudioElementMap.Remove(id, out e)) return false;
+            if (!_handleIdToIndexMap.Remove(id, out int index)) return true;
+
+            int last = _elements.Count - 1;
+            
+            if (index != last) {
+                var moved = _elements[last];
+                _elements[index] = moved;
+                _handleIdToIndexMap[moved.Id] = index;
+            }
+            
+            _elements.RemoveAt(last);
+            _transformAccessArray.RemoveAtSwapBack(index);
+            
+            return true;
+        }
+
+        private void WriteMixerGroupFlags(IAudioElement e) {
+            var mixerGroupId = e.MixerGroupId;
+            
+            e.MixerGroupAffectedByVolumes = mixerGroupId == EntityId.None || 
+                                            _includeMixerGroupsForVolumesSet.Contains(mixerGroupId);
+            
+            e.IgnoreZeroTimescale = _ignoreZeroTimescaleForMixerGroupsSet.Contains(mixerGroupId);
+        }
+
         private int GetNextHandleId() {
             unchecked {
                 if (++_lastHandleId == 0) _lastHandleId++;   
@@ -486,6 +533,13 @@ namespace MisterGames.Common.Audio {
             audioElement.LowPass.lowpassResonanceQ = _qLow;
             audioElement.HighPass.highpassResonanceQ = _qHigh;
             audioElement.Source.maxDistance = _attenuationDistance;
+
+            audioElement.LpCutoff = LpCutoffUpperBound;
+            audioElement.HpCutoff = HpCutoffLowerBound;
+            audioElement.LowPass.cutoffFrequency = LpCutoffUpperBound;
+            audioElement.HighPass.cutoffFrequency = HpCutoffLowerBound;
+            
+            WriteMixerGroupFlags(audioElement);
 
             audioElement.CancellationToken = cancellationToken;
         }
@@ -598,14 +652,12 @@ namespace MisterGames.Common.Audio {
             handleIds.Dispose();
         }
 
-        private int GetTimeSource(IAudioElement e) {
-            return (e.AudioOptions & AudioOptions.AffectedByTimeScale) != 0
-                ? 0
-                : _ignoreZeroTimescaleForMixerGroupsSet.Contains(e.MixerGroupId) ? 2 : 1;
+        private static int GetTimeSource(IAudioElement e) {
+            return (e.AudioOptions & AudioOptions.AffectedByTimeScale) != 0 ? 0 : e.IgnoreZeroTimescale ? 2 : 1;
         }
 
         private void ReleaseSound(int handleId, bool immediate) {
-            if (!_handleIdToAudioElementMap.Remove(handleId, out var e)) {
+            if (!RemoveAudioElement(handleId, out var e)) {
                 if (immediate) StopFadeOutAndRelease(handleId);
                 return;
             }
@@ -674,7 +726,12 @@ namespace MisterGames.Common.Audio {
             dtScaled = TimeSources.deltaTime;
             dtUnscaled = TimeSources.unscaledDeltaTime;
             float ts = Time.timeScale;
-            
+
+            // Audio sources only need pause state checks while timescale is zero
+            // and on the frame it becomes non zero again.
+            _checkPause = ts <= 0f || _lastTimeScale <= 0f;
+            _lastTimeScale = ts;
+
             // scaled
             _internalTime[0] += dtScaled;
 
@@ -712,98 +769,88 @@ namespace MisterGames.Common.Audio {
 
         private void ProcessFadeIn() {
             int fadeInCount = _fadeInDataMap.Count;
-            var fadeInCalculateArray = new NativeArray<FadeCalculateData>(fadeInCount, Allocator.TempJob);
-            var fadeInResultArray = new NativeArray<FadeResultData>(fadeInCount, Allocator.TempJob);
-            var timeArray = new NativeArray<float>(3, Allocator.TempJob);
+            if (fadeInCount == 0) return;
 
-            for (int i = 0; i < _internalTime.Length; i++) {
-                timeArray[i] = _internalTime[i];
-            }
-
+            // Fade math is a few flops per element and the volume write below is main thread bound anyway,
+            // so scheduling a job here costs more than the work it does.
+            var ids = ArrayPool<int>.Shared.Rent(fadeInCount);
+            var datas = ArrayPool<FadeData>.Shared.Rent(fadeInCount);
             int index = 0;
-            
-            foreach ((int id, var data) in _fadeInDataMap) {
-                fadeInCalculateArray[index++] = new FadeCalculateData(id, data.timeSource, data.startTime, data.fade, 0f, data.volume);
-            }
 
-            var calculateFadeInJob = new CalculateFadeJob {
-                fadeCalculateDataArray = fadeInCalculateArray,
-                timeArray = timeArray,
-                fadeResultArray = fadeInResultArray
-            };
-            
-            calculateFadeInJob.Schedule(fadeInCount, JobExt.BatchFor(fadeInCount)).Complete();
+            foreach ((int id, var data) in _fadeInDataMap) {
+                ids[index] = id;
+                datas[index++] = data;
+            }
 
             for (int i = 0; i < fadeInCount; i++) {
-                var result = fadeInResultArray[i];
-                var e = _handleIdToAudioElementMap[result.id];
-                
-                e.Source.volume = result.volume;
+                int id = ids[i];
+                var data = datas[i];
 
-                if (result.progress < 1f) continue;
-                
-                _fadeInDataMap.Remove(result.id);
+                if (!_handleIdToAudioElementMap.TryGetValue(id, out var e)) {
+                    _fadeInDataMap.Remove(id);
+                    continue;
+                }
+
+                float t = GetFadeProgress(data);
+                e.Source.volume = math.lerp(0f, data.volume, t);
+
+                if (t >= 1f) _fadeInDataMap.Remove(id);
             }
-            
-            fadeInCalculateArray.Dispose();
-            fadeInResultArray.Dispose();
-            timeArray.Dispose();
+
+            ArrayPool<int>.Shared.Return(ids);
+            ArrayPool<FadeData>.Shared.Return(datas);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private float GetFadeProgress(FadeData data) {
+            return data.fade > 0f
+                ? math.clamp((_internalTime[data.timeSource] - data.startTime) / data.fade, 0f, 1f)
+                : 1f;
         }
 
         private void ProcessFadeOutAndRelease() {
             int fadeOutCount = _fadeOutDataMap.Count;
-            var fadeOutCalculateArray = new NativeArray<FadeCalculateData>(fadeOutCount, Allocator.TempJob);
-            var fadeOutResultArray = new NativeArray<FadeResultData>(fadeOutCount, Allocator.TempJob);
-            var timeArray = new NativeArray<float>(3, Allocator.TempJob);
+            if (fadeOutCount == 0) return;
 
-            for (int i = 0; i < _internalTime.Length; i++) {
-                timeArray[i] = _internalTime[i];
-            }
-            
+            var ids = ArrayPool<int>.Shared.Rent(fadeOutCount);
+            var datas = ArrayPool<FadeData>.Shared.Rent(fadeOutCount);
             int index = 0;
-            
-            foreach ((int id, var data) in _fadeOutDataMap) {
-                fadeOutCalculateArray[index++] = new FadeCalculateData(id, data.timeSource, data.startTime, data.fade, data.volume, 0f);
-            }
 
-            var calculateFadeOutJob = new CalculateFadeJob {
-                fadeCalculateDataArray = fadeOutCalculateArray,
-                timeArray = timeArray,
-                fadeResultArray = fadeOutResultArray
-            };
-            
-            calculateFadeOutJob.Schedule(fadeOutCount, JobExt.BatchFor(fadeOutCount)).Complete();
+            foreach ((int id, var data) in _fadeOutDataMap) {
+                ids[index] = id;
+                datas[index++] = data;
+            }
 
             var pool = PrefabPool.Main;
             float timescale = Time.timeScale;
-            
-            for (int i = 0; i < fadeOutCount; i++) {
-                var data = fadeOutCalculateArray[i];
-                var result = fadeOutResultArray[i];
 
-                if (!_releaseElementsMap.TryGetValue(result.id, out var e) || e.Source == null) {
-                    _fadeOutDataMap.Remove(result.id);
-                    _releaseElementsMap.Remove(result.id);
+            for (int i = 0; i < fadeOutCount; i++) {
+                int id = ids[i];
+                var data = datas[i];
+
+                if (!_releaseElementsMap.TryGetValue(id, out var e) || e.Source == null) {
+                    _fadeOutDataMap.Remove(id);
+                    _releaseElementsMap.Remove(id);
                     continue;
                 }
 
-                e.Source.volume = result.volume;
+                float t = GetFadeProgress(data);
+                e.Source.volume = math.lerp(data.volume, 0f, t);
 
-                if (data.timeSource < 2) {
+                if (_checkPause && data.timeSource < 2) {
                     CheckPause(e, timescale);
                 }
 
-                if (result.progress < 1f) continue;
+                if (t < 1f) continue;
 
-                _fadeOutDataMap.Remove(result.id);
-                _releaseElementsMap.Remove(result.id);
+                _fadeOutDataMap.Remove(id);
+                _releaseElementsMap.Remove(id);
 
                 pool?.Release(e.Transform);
             }
-            
-            fadeOutCalculateArray.Dispose();
-            fadeOutResultArray.Dispose();
-            timeArray.Dispose();
+
+            ArrayPool<int>.Shared.Return(ids);
+            ArrayPool<FadeData>.Shared.Return(datas);
         }
 
         private void ProcessSounds(float dtScaled, float dtUnscaled) {
@@ -812,109 +859,193 @@ namespace MisterGames.Common.Audio {
                 return;
             }
 
-            var listenerPos = _listenerTransform.position;
-            var listenerUp = _listenerUp.up;
-            
-            int soundCount = _handleIdToAudioElementMap.Count;
+            int soundCount = _elements.Count;
 
-            var soundDataArray = new NativeArray<SoundData>(soundCount, Allocator.TempJob);
-            var soundOptionsArray = new NativeArray<AudioOptions>(soundCount, Allocator.TempJob);
-            var listenerAndSoundsPositionArray = new NativeArray<float3>(soundCount + 1, Allocator.TempJob);
-            
-            listenerAndSoundsPositionArray[0] = listenerPos;
-            
-            int index = 0;
-            foreach (var e in _handleIdToAudioElementMap.Values) {
-                var options = e.AudioOptions;
-                var mixerGroupId = e.MixerGroupId;
-
-                if (mixerGroupId != EntityId.None && !_includeMixerGroupsForVolumesSet.Contains(mixerGroupId)) {
-                    options &= ~AudioOptions.AffectedByVolumes;
-                }
-                
-                soundDataArray[index] = new SoundData(
-                    e.Id, e.OcclusionFlag,
-                    e.Source.spatialBlend, e.PitchMul, e.AttenuationMul, e.LowPass.cutoffFrequency, e.HighPass.cutoffFrequency
-                );
-                
-                soundOptionsArray[index] = options;
-                listenerAndSoundsPositionArray[1 + index++] = e.Transform.position;
+            if (soundCount == 0) {
+                _globalOcclusionWeight = 1f;
+                return;
             }
 
-            var volumeResultArray = CalculateAudioVolumes(listenerAndSoundsPositionArray, soundOptionsArray, soundCount);
-            
-            var occlusionResultArray = CalculateOcclusion(listenerAndSoundsPositionArray, soundOptionsArray, soundCount, listenerUp
-#if UNITY_EDITOR
-                , soundDataArray
-#endif
-            );
-            
-            var resultSoundArray = CalculateResult(soundDataArray, soundOptionsArray, volumeResultArray, occlusionResultArray, soundCount, dtScaled, dtUnscaled);
-            float timescale = Time.timeScale;
-            
+            float3 listenerPos = _listenerTransform.position;
+            var listenerUp = _listenerUp.up;
+
+            var soundDataArray = new NativeArray<SoundData>(soundCount, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
+            var soundOptionsArray = new NativeArray<AudioOptions>(soundCount, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
+            var positionArray = new NativeArray<float3>(soundCount + 1, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
+
+            positionArray[0] = listenerPos;
+
+            // Sound positions are read in a job, so the fill loop below costs no native transform access.
+            var readPositionsHandle = new ReadSoundPositionsJob { positions = positionArray }.Schedule(_transformAccessArray);
+            JobHandle.ScheduleBatchedJobs();
+
+            if (_elementsBuffer.Length < soundCount) _elementsBuffer = new IAudioElement[math.ceilpow2(soundCount)];
+            var elements = _elementsBuffer;
+
+            bool anyVolumeSound = false;
+
             for (int i = 0; i < soundCount; i++) {
+                var e = _elements[i];
+                elements[i] = e;
+
+                var options = e.AudioOptions;
+                if (!e.MixerGroupAffectedByVolumes) options &= ~AudioOptions.AffectedByVolumes;
+
+                anyVolumeSound |= (options & AudioOptions.AffectedByVolumes) != 0;
+
+                soundDataArray[i] = new SoundData(
+                    e.Id, e.OcclusionFlag,
+                    e.SpatialBlend, e.PitchMul, e.AttenuationMul, e.LpCutoff, e.HpCutoff
+                );
+
+                soundOptionsArray[i] = options;
+            }
+
+            readPositionsHandle.Complete();
+
+            var occlusionResultArray = new NativeArray<OcclusionResultData>(soundCount, Allocator.TempJob);
+            var occlusionCandidates = new NativeArray<OcclusionCandidate>(_applyOcclusion ? soundCount : 0, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
+
+            int occlusionCandidateCount = _applyOcclusion
+                ? CollectOcclusionCandidates(positionArray, soundOptionsArray, soundDataArray, soundCount, occlusionCandidates, occlusionResultArray)
+                : 0;
+
+            // Raycasts are the long pole here, so they are queued first and volume setup below overlaps them.
+            var occlusionHandle = ScheduleOcclusion(
+                positionArray, occlusionCandidates, occlusionCandidateCount, listenerUp, occlusionResultArray,
+                out var raycastCommands, out var hits
+            );
+
+            JobHandle.ScheduleBatchedJobs();
+
+            var volumesHandle = ScheduleAudioVolumes(
+                positionArray, soundOptionsArray, soundCount, anyVolumeSound,
+                out var volumeResultArray, out var volumeResources
+            );
+
+            var resultSoundArray = new NativeArray<SoundResultData>(soundCount, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
+
+            var calculateResultJob = new CalculateResultSoundJob {
+                soundDataArray = soundDataArray,
+                soundOptionsArray = soundOptionsArray,
+                volumeResultDataArray = volumeResultArray,
+                volumesEnabled = volumeResources.created ? 1 : 0,
+                occlusionResultDataArray = occlusionResultArray,
+                timescale = Time.timeScale,
+                dtScaled = dtScaled,
+                dtUnscaled = dtUnscaled,
+                smoothing = _audioParametersSmoothing,
+                attenuationDefault = _attenuationDistance,
+                lpCutoff = _cutoffLow,
+                hpCutoff = _cutoffHigh,
+                lpCutoffEasing = _cutoffLowFreqEasing,
+                hpCutoffEasing = _cutoffHighFreqEasing,
+                resultArray = resultSoundArray,
+            };
+
+            // Volumes and occlusion are independent, so the whole frame has a single sync point.
+            calculateResultJob
+                .Schedule(soundCount, JobExt.BatchFor(soundCount, MinBatch), JobHandle.CombineDependencies(volumesHandle, occlusionHandle))
+                .Complete();
+
+#if UNITY_EDITOR
+            DrawOcclusionDebug(positionArray, soundDataArray, occlusionCandidates, occlusionCandidateCount, raycastCommands);
+#endif
+
+            float timescale = Time.timeScale;
+
+            for (int i = 0; i < soundCount; i++) {
+                var e = elements[i];
+                elements[i] = null;
+
                 var options = soundOptionsArray[i];
-                var soundData = soundDataArray[i];
-                
-                var e = _handleIdToAudioElementMap[soundData.id];
-                
+
                 if (e.CancellationToken.IsCancellationRequested || IsSoundFinished(e, options)) {
-                    ReleaseSound(soundData.id, immediate: false);
+                    ReleaseSound(e.Id, immediate: false);
                     continue;
                 }
-                
+
                 var resultData = resultSoundArray[i];
 
-                if (!_ignoreZeroTimescaleForMixerGroupsSet.Contains(e.MixerGroupId)) {
+                if (_checkPause && !e.IgnoreZeroTimescale) {
                     CheckPause(e, timescale);
                 }
-                
+
 #if UNITY_EDITOR
-                if (_showSoundsDebugInfo) {
-                    bool show = true;
-
-                    if (_showSoundsNameFilters?.Length > 0) {
-                        show = false;
-                        string clipName = e.Source.clip.name;
-
-                        for (int f = 0; f < _showSoundsNameFilters?.Length; f++) {
-                            string filter = _showSoundsNameFilters[f];
-                            if (string.IsNullOrWhiteSpace(filter) || !clipName.Contains(filter)) continue;
-                            
-                            show = true;
-                            break;
-                        }   
-                    }
-
-                    if (show) {
-                        var occ = occlusionResultArray[i];
-                        var vol = volumeResultArray[i];
-                        Debug.Log($"AudioPool.ProcessSounds: f {Time.frameCount}, clip {e.Source.clip.name}, " +
-                                  $"w low {occ.weightLowFreq}, w high {occ.weightHighFreq}, lp {resultData.lpCutoff}, hp {resultData.hpCutoff}, " +
-                                  $"dist {occ.distance}, collisions {occ.collisions}, dist w {occ.distanceWeight}, coll w {occ.collisionWeight}, " +
-                                  $"vol occ {vol.occlusion}, vol pitch {vol.pitch}, vol atten {vol.attenuation}, vol lp {vol.lpCutoff}, vol hp {vol.hpCutoff}");
-                    }
-                }
+                LogSoundDebugInfo(e, occlusionResultArray[i], volumeResources.created ? volumeResultArray[i] : default, resultData);
 #endif
-                
+
                 e.Source.pitch = resultData.pitch;
                 e.Source.maxDistance = resultData.attenuationDistance;
-                
+
                 e.LowPass.cutoffFrequency = resultData.lpCutoff;
                 e.HighPass.cutoffFrequency = resultData.hpCutoff;
+
+                e.LpCutoff = resultData.lpCutoff;
+                e.HpCutoff = resultData.hpCutoff;
 
                 e.OcclusionFlag = 1;
             }
 
             soundDataArray.Dispose();
             soundOptionsArray.Dispose();
-            listenerAndSoundsPositionArray.Dispose();
-            
-            volumeResultArray.Dispose();
+            positionArray.Dispose();
+
             occlusionResultArray.Dispose();
+            occlusionCandidates.Dispose();
+            if (raycastCommands.IsCreated) raycastCommands.Dispose();
+            if (hits.IsCreated) hits.Dispose();
+
+            volumeResultArray.Dispose();
+            volumeResources.Dispose();
             resultSoundArray.Dispose();
-            
+
             _globalOcclusionWeight = 1f;
+        }
+
+        /// <summary>
+        /// Picks sounds that actually need raycasts, so that array sizes and the physics batch
+        /// depend on the number of occluded sounds instead of the total sound count.
+        /// </summary>
+        private int CollectOcclusionCandidates(
+            NativeArray<float3> positionArray,
+            NativeArray<AudioOptions> soundOptionsArray,
+            NativeArray<SoundData> soundDataArray,
+            int soundCount,
+            NativeArray<OcclusionCandidate> candidates,
+            NativeArray<OcclusionResultData> occlusionResultArray)
+        {
+            var listenerPos = positionArray[0];
+            float minDistanceSqr = _minDistance * _minDistance;
+            float maxDistanceSqr = _maxDistance * _maxDistance;
+            int count = 0;
+
+            for (int i = 0; i < soundCount; i++) {
+                if ((soundOptionsArray[i] & AudioOptions.ApplyOcclusion) == 0) continue;
+
+                // Occlusion weights are multiplied by spatial blend down the pipeline,
+                // so a 2d sound can never be affected by them and does not need to be traced.
+                if (soundDataArray[i].spatialBlend <= 0f) continue;
+
+                float distanceSqr = math.lengthsq(listenerPos - positionArray[i + 1]);
+                if (distanceSqr <= 0f || distanceSqr < minDistanceSqr) continue;
+
+                if (distanceSqr > maxDistanceSqr) {
+                    occlusionResultArray[i] = new OcclusionResultData(1f, 1f
+#if UNITY_EDITOR
+                        , math.sqrt(distanceSqr)
+                        , 0
+                        , 1f
+                        , 1f
+#endif
+                    );
+                    continue;
+                }
+
+                candidates[count++] = new OcclusionCandidate(i, math.sqrt(distanceSqr));
+            }
+
+            return count;
         }
 
         private static void CheckPause(IAudioElement e, float timescale) {
@@ -1013,99 +1144,43 @@ namespace MisterGames.Common.Audio {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool IsSoundFinished(IAudioElement e, AudioOptions options) {
+            // Clip time is only used to detect the end of a non looping sound,
+            // so a looping one does not need to touch the native audio source at all.
+            if ((options & AudioOptions.Loop) != 0) return false;
+
             e.ClipTime = math.max(e.ClipTime, e.Source.time);
-            return (options & AudioOptions.Loop) == 0 && (!e.IsPaused && !e.Source.isPlaying || e.ClipTime >= e.ClipLength);
+            return !e.IsPaused && !e.Source.isPlaying || e.ClipTime >= e.ClipLength;
         }
 
-        private void ProcessSound(IAudioElement e) {
-            if (_audioListenersMap.Count == 0) {
-                // To reset smoothed values
-                e.OcclusionFlag = 0;
-                return;
-            }
-            
-            var listenerPos = _listenerTransform.position;
-            var listenerUp = _listenerUp.up;
-
-            var soundDataArray = new NativeArray<SoundData>(2, Allocator.TempJob);
-            var soundOptionsArray = new NativeArray<AudioOptions>(2, Allocator.TempJob);
-            var listenerAndSoundsPositionArray = new NativeArray<float3>(2, Allocator.TempJob);
-            
-            listenerAndSoundsPositionArray[0] = listenerPos;
-            
-            var options = e.AudioOptions;
-            var mixerGroupId = e.MixerGroupId;
-
-            if (mixerGroupId != EntityId.None && !_includeMixerGroupsForVolumesSet.Contains(mixerGroupId)) {
-                options &= ~AudioOptions.AffectedByVolumes;
-            }
-                
-            soundDataArray[0] = new SoundData(
-                e.Id, e.OcclusionFlag,
-                e.Source.spatialBlend, e.PitchMul, e.AttenuationMul, e.LowPass.cutoffFrequency, e.HighPass.cutoffFrequency
-            );
-            
-            soundOptionsArray[0] = options;
-            listenerAndSoundsPositionArray[1] = e.Transform.position;
-
-            var volumeResultArray = CalculateAudioVolumes(listenerAndSoundsPositionArray, soundOptionsArray, 1);
-            
-            var occlusionResultArray = CalculateOcclusion(listenerAndSoundsPositionArray, soundOptionsArray, 1, listenerUp
-#if UNITY_EDITOR
-                , soundDataArray
-#endif
-            );
-            
-            var resultSoundArray = CalculateResult(soundDataArray, soundOptionsArray, volumeResultArray, occlusionResultArray, 1, 0f, 0f);
-
-            var resultData = resultSoundArray[0];
-                
-            e.Source.pitch = resultData.pitch;
-            e.Source.maxDistance = resultData.attenuationDistance;
-                
-            e.LowPass.cutoffFrequency = resultData.lpCutoff;
-            e.HighPass.cutoffFrequency = resultData.hpCutoff;
-
-            e.OcclusionFlag = 1;
-
-            soundDataArray.Dispose();
-            soundOptionsArray.Dispose();
-            listenerAndSoundsPositionArray.Dispose();
-            
-            volumeResultArray.Dispose();
-            occlusionResultArray.Dispose();
-            resultSoundArray.Dispose();
-        }
-        
-        private NativeArray<AudioVolumeResultData> CalculateAudioVolumes(
-            NativeArray<float3> listenerAndSoundPositionArray,
+        private JobHandle ScheduleAudioVolumes(
+            NativeArray<float3> positionArray,
             NativeArray<AudioOptions> soundOptionsArray,
-            int soundCount)
+            int soundCount,
+            bool anyVolumeSound,
+            out NativeArray<AudioVolumeResultData> resultArray,
+            out VolumeJobResources resources)
         {
-            NativeArray<AudioVolumeResultData> resultArray;
-            
-            if (!_enableVolumes) {
-                resultArray = new NativeArray<AudioVolumeResultData>(soundCount, Allocator.TempJob);
-                
-                var writeDefaultVolumeResultJob = new WriteDefaultVolumeResultDataJob {
-                    attenuationDefault = _attenuationDistance,
-                    resultArray = resultArray,
-                };
+            resources = default;
 
-                writeDefaultVolumeResultJob.Schedule(soundCount, JobExt.BatchFor(soundCount)).Complete();
-                
-                return resultArray;
+            if (!_enableVolumes || !anyVolumeSound || _audioVolumes.Count == 0) {
+                // Placeholder: the result job falls back to default values on its own.
+                resultArray = new NativeArray<AudioVolumeResultData>(1, Allocator.TempJob);
+                return default;
             }
-            
-            int volumeCount = _audioVolumes.Count;
-            int volumeIndex = 0;
-            
-            var volumeWeightDataArray = new NativeArray<VolumeWeightData>((soundCount + 1) * volumeCount, Allocator.TempJob);
-            var volumeProcessDataArray = new NativeArray<AudioVolumeProcessData>(volumeCount, Allocator.TempJob);
-            
+
+            int stride = soundCount + 1;
+            int maxVolumeCount = _audioVolumes.Count;
+
+            if (_volumesBuffer.Length < maxVolumeCount) _volumesBuffer = new IAudioVolume[math.ceilpow2(maxVolumeCount)];
+            var volumes = _volumesBuffer;
+
+            var volumeProcessDataArray = new NativeArray<AudioVolumeProcessData>(maxVolumeCount, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
+            int volumeCount = 0;
+
             foreach (var volume in _audioVolumes.Values) {
-                int priority = volume.Priority;
-                float listenerPresence = volume.ListenerPresence;
+                // A volume with zero weight or without a single modified parameter cannot affect anything,
+                // but would still cost a weight job and a whole column of the per sound volume loop.
+                if (volume.Weight <= 0f) continue;
 
                 float occlusionListener = 1f;
                 float occlusionSound = 1f;
@@ -1115,89 +1190,85 @@ namespace MisterGames.Common.Audio {
                 float hpCutoff = HpCutoffLowerBound;
 
                 int mask = 0;
-                
+
                 if (volume.ModifyOcclusionWeightForListener(ref occlusionListener)) AudioParameter.ListenerOcclusion.WriteToMask(ref mask);
                 if (volume.ModifyOcclusionWeightForSound(ref occlusionSound)) AudioParameter.SoundOcclusion.WriteToMask(ref mask);
                 if (volume.ModifyPitch(ref pitch)) AudioParameter.Pitch.WriteToMask(ref mask);
                 if (volume.ModifyAttenuationDistance(ref attenuation)) AudioParameter.Attenuation.WriteToMask(ref mask);
                 if (volume.ModifyLowPassFilter(ref lpCutoff)) AudioParameter.LpCutoff.WriteToMask(ref mask);
                 if (volume.ModifyHighPassFilter(ref hpCutoff)) AudioParameter.HpCutoff.WriteToMask(ref mask);
-                
-                volumeProcessDataArray[volumeIndex] = new AudioVolumeProcessData(
-                    mask, listenerPresence,
-                    occlusionListener, occlusionSound, pitch, attenuation, lpCutoff, hpCutoff
-                );
-                
-                var weightArray = new NativeArray<WeightData>(soundCount + 1, Allocator.TempJob);
-                volume.GetWeight(listenerAndSoundPositionArray, weightArray, soundCount + 1);
+
+                if (mask == 0) continue;
 
 #if UNITY_EDITOR
-                if (_showVolumeInfo) {
-                    var sb = new StringBuilder();
-                    
-                    if (AudioParameter.ListenerOcclusion.InMask(mask)) sb.Append($"{AudioParameter.ListenerOcclusion} ");
-                    if (AudioParameter.SoundOcclusion.InMask(mask)) sb.Append($"{AudioParameter.SoundOcclusion} ");
-                    if (AudioParameter.Pitch.InMask(mask)) sb.Append($"{AudioParameter.Pitch} ");
-                    if (AudioParameter.Attenuation.InMask(mask)) sb.Append($"{AudioParameter.Attenuation} ");
-                    if (AudioParameter.LpCutoff.InMask(mask)) sb.Append($"{AudioParameter.LpCutoff} ");
-                    if (AudioParameter.HpCutoff.InMask(mask)) sb.Append($"{AudioParameter.HpCutoff}");
-                    
-                    Debug.Log($"AudioPool.CalculateAudioVolumes: f {Time.frameCount}, vol #{volumeIndex} {volume}, " +
-                              $"list presence {listenerPresence}, " +
-                              $"occ lis {occlusionListener}, occ sound {occlusionSound}, pitch {pitch}, atten {attenuation}, lp {lpCutoff}, hp {hpCutoff}, " +
-                              $"changed [{sb}]");
-                }
+                LogVolumeDebugInfo(volume, volumeCount, mask, occlusionListener, occlusionSound, pitch, attenuation, lpCutoff, hpCutoff);
 #endif
-                
-                var writeWeightJob = new WriteVolumeWeightDataJob {
-                    weightArray = weightArray,
-                    priority = priority,
-                    volumeCount = volumeCount,
-                    volumeIndex = volumeIndex,
-                    volumeWeightDataArray = volumeWeightDataArray, 
-                };
-                
-                writeWeightJob.Schedule(soundCount + 1, JobExt.BatchFor(soundCount + 1)).Complete();
 
-                weightArray.Dispose();
-                
-                volumeIndex++;
+                volumes[volumeCount] = volume;
+
+                volumeProcessDataArray[volumeCount++] = new AudioVolumeProcessData(
+                    mask, volume.Priority, volume.ListenerPresence,
+                    occlusionListener, occlusionSound, pitch, attenuation, lpCutoff, hpCutoff
+                );
             }
 
+            if (volumeCount == 0) {
+                volumeProcessDataArray.Dispose();
+                resultArray = new NativeArray<AudioVolumeResultData>(1, Allocator.TempJob);
+                return default;
+            }
+
+            // One buffer for all volumes: each volume fills its own contiguous range in parallel,
+            // instead of a schedule and a sync point per volume.
+            var weightArray = new NativeArray<WeightSample>(stride * volumeCount, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
+            var weightHandles = new NativeArray<JobHandle>(volumeCount, Allocator.Temp);
+
+            for (int i = 0; i < volumeCount; i++) {
+                var volume = volumes[i];
+                volumes[i] = null;
+
+                weightHandles[i] = volume.GetWeight(positionArray, weightArray.GetSubArray(i * stride, stride), stride);
+            }
+
+            var weightsHandle = JobHandle.CombineDependencies(weightHandles);
+            weightHandles.Dispose();
+
             var listenerVolumeIdToWeightMap = new NativeHashMap<int, float>(volumeCount, Allocator.TempJob);
-            var occlusionListenerResultArray = new NativeArray<float>(2, Allocator.TempJob);
-            resultArray = new NativeArray<AudioVolumeResultData>(soundCount, Allocator.TempJob);
-            
-            var calculateListenerVolumeJob = new CalculateListenerVolumeJob {
-                volumeWeightDataArray = volumeWeightDataArray,
-                volumeProcessDataArray = volumeProcessDataArray,
-                volumeCount = volumeCount,
+            var occlusionListenerResultArray = new NativeArray<float>(1, Allocator.TempJob);
+            resultArray = new NativeArray<AudioVolumeResultData>(soundCount, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
+
+            resources = new VolumeJobResources {
+                created = true,
+                weightArray = weightArray,
+                processDataArray = volumeProcessDataArray,
                 listenerVolumeIdToWeightMap = listenerVolumeIdToWeightMap,
                 occlusionListenerResultArray = occlusionListenerResultArray,
             };
-            
+
+            var calculateListenerVolumeJob = new CalculateListenerVolumeJob {
+                weightArray = weightArray,
+                volumeProcessDataArray = volumeProcessDataArray,
+                volumeCount = volumeCount,
+                stride = stride,
+                listenerVolumeIdToWeightMap = listenerVolumeIdToWeightMap,
+                occlusionListenerResultArray = occlusionListenerResultArray,
+            };
+
             var calculateVolumeResultJob = new CalculateVolumeResultDataJob {
-                volumeWeightDataArray = volumeWeightDataArray,
+                weightArray = weightArray,
                 volumeProcessDataArray = volumeProcessDataArray,
                 soundOptionsArray = soundOptionsArray,
                 occlusionListenerResultArray = occlusionListenerResultArray,
                 listenerVolumeIdToWeightMap = listenerVolumeIdToWeightMap,
                 volumeCount = volumeCount,
+                stride = stride,
                 attenuationDefault = _attenuationDistance,
                 resultArray = resultArray,
             };
 
-            var listenerJobHandle = calculateListenerVolumeJob.Schedule();
-            var resultJobHandle = calculateVolumeResultJob.Schedule(soundCount, JobExt.BatchFor(soundCount), listenerJobHandle);
-            
-            resultJobHandle.Complete();
-            
-            volumeWeightDataArray.Dispose();
-            volumeProcessDataArray.Dispose();
-            listenerVolumeIdToWeightMap.Dispose();
-            occlusionListenerResultArray.Dispose();
+            var listenerJobHandle = calculateListenerVolumeJob.Schedule(weightsHandle);
 
-            return resultArray;
+            return calculateVolumeResultJob.Schedule(soundCount, JobExt.BatchFor(soundCount, MinBatch), listenerJobHandle);
         }
         
         private ReverbSettingsData CalculateReverbVolumes(float3 listenerPosition)
@@ -1213,7 +1284,7 @@ namespace MisterGames.Common.Audio {
 
                 int i = volumeCount++;
                 volumeIdArray[i] = id;
-                volumeWeightDataArray[i] = new VolumeWeightData(weightData.volumeId, volume.Priority, weightData.weight);
+                volumeWeightDataArray[i] = new VolumeWeightData(volume.Priority, weightData.weight);
             }
             
             var reverbSettingsArray = new NativeArray<ReverbSettingsData>(volumeCount, Allocator.TempJob);
@@ -1245,27 +1316,30 @@ namespace MisterGames.Common.Audio {
             return result;
         }
 
-        private NativeArray<OcclusionResultData> CalculateOcclusion(
-            NativeArray<float3> listenerAndSoundPositionArray,
-            NativeArray<AudioOptions> soundOptionsArray,
-            int soundCount, 
-            Vector3 up
-#if UNITY_EDITOR
-            , NativeArray<SoundData> soundDataArray
-#endif
-            ) 
+        private JobHandle ScheduleOcclusion(
+            NativeArray<float3> positionArray,
+            NativeArray<OcclusionCandidate> candidates,
+            int candidateCount,
+            Vector3 up,
+            NativeArray<OcclusionResultData> resultArray,
+            out NativeArray<RaycastCommand> raycastCommands,
+            out NativeArray<RaycastHit> hits)
         {
-            if (!_applyOcclusion) {
-                return new NativeArray<OcclusionResultData>(soundCount, Allocator.TempJob);
+            if (candidateCount <= 0) {
+                raycastCommands = default;
+                hits = default;
+                return default;
             }
-            
-            var raycastCommands = new NativeArray<RaycastCommand>(soundCount * _rays, Allocator.TempJob);
-            var hits = new NativeArray<RaycastHit>(soundCount * _rays * _maxHits, Allocator.TempJob);
-            var resultArray = new NativeArray<OcclusionResultData>(soundCount, Allocator.TempJob);
-         
+
+            int commandCount = candidateCount * _rays;
+
+            // Every command is fully written by the prepare job, so it does not need to be cleared.
+            raycastCommands = new NativeArray<RaycastCommand>(commandCount, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
+            hits = new NativeArray<RaycastHit>(commandCount * _maxHits, Allocator.TempJob);
+
             var prepareRaycastCommandsJob = new PrepareRaycastCommandsJob {
-                listenerAndSoundsPositionArray = listenerAndSoundPositionArray,
-                soundOptionsArray = soundOptionsArray,
+                listenerAndSoundsPositionArray = positionArray,
+                candidates = candidates,
                 up = up,
                 raySector = 360f / _rays,
                 rayOffset0 = _rayOffset0,
@@ -1277,99 +1351,18 @@ namespace MisterGames.Common.Audio {
             };
 
             var calculateOcclusionWeightsJob = new CalculateOcclusionWeightsJob {
-                listenerAndSoundsPositionArray = listenerAndSoundPositionArray,
-                soundOptionsArray = soundOptionsArray,
+                candidates = candidates,
                 hitsArray = hits,
-                maxHits = _maxHits,
-                maxDistance = _maxDistance,
-                minDistance = _minDistance,
-                rays = _rays,
-                globalOcclusionWeight = _globalOcclusionWeight,
-                distanceLowFreqWeight = _distanceWeightLow,
-                distanceHighFreqWeight = _distanceWeightHigh,
-                collisionLowFreqWeight = _collisionWeightLow,
-                collisionHighFreqWeight = _collisionWeightHigh,
-                distanceLowFreqEasing = _distanceLowFreqEasing,
-                distanceHighFreqEasing = _distanceHighFreqEasing,
+                profile = GetOcclusionProfile(),
                 resultArray = resultArray
             };
 
-            var prepareJobHandle = prepareRaycastCommandsJob.ScheduleBatch(soundCount * _rays, _rays);
-            var raycastJobHandle = RaycastCommand.ScheduleBatch(raycastCommands, hits, JobExt.BatchFor(soundCount * _rays), _maxHits, prepareJobHandle);
-            var calculateWeightsJobHandle = calculateOcclusionWeightsJob.Schedule(soundCount, JobExt.BatchFor(soundCount), raycastJobHandle);
-                
-            calculateWeightsJobHandle.Complete();
+            var prepareJobHandle = prepareRaycastCommandsJob.ScheduleBatch(commandCount, _rays);
+            var raycastJobHandle = RaycastCommand.ScheduleBatch(raycastCommands, hits, JobExt.BatchFor(commandCount, MinBatch), _maxHits, prepareJobHandle);
 
-#if UNITY_EDITOR
-            if (_showOcclusionInfo) {
-                for (int i = 0; i < soundCount; i++) {
-                    int id = soundDataArray[i].id;
-                    
-                    if (_showOcclusionNameFilters?.Length > 0) {
-                        string clipName = _handleIdToAudioElementMap[id].Source.clip.name;
-                        bool show = false;
-                        
-                        for (int f = 0; f < _showOcclusionNameFilters.Length; f++) {
-                            string filter = _showOcclusionNameFilters[f];
-                            if (string.IsNullOrWhiteSpace(filter) || !clipName.Contains(filter)) continue;
-                            
-                            show = true;
-                            break;
-                        }
-                        
-                        if (!show) continue;
-                    }
-                    
-                    var pos = listenerAndSoundPositionArray[i + 1];
-                    var color = GetDebugColor(id);
-                    
-                    for (int j = 0; j < _rays; j++) {
-                        var com = raycastCommands[i * _rays + j];
-                        DebugExt.DrawLine(pos, com.from, color);
-                        DebugExt.DrawRay(com.from, com.direction * com.distance, color);
-                    }
-                }
-            }
-#endif
-            
-            hits.Dispose();
-            raycastCommands.Dispose();
-
-            return resultArray;
+            return calculateOcclusionWeightsJob.Schedule(candidateCount, JobExt.BatchFor(candidateCount, MinBatch), raycastJobHandle);
         }
 
-        private NativeArray<SoundResultData> CalculateResult(
-            NativeArray<SoundData> soundDataArray, 
-            NativeArray<AudioOptions> soundOptionsArray, 
-            NativeArray<AudioVolumeResultData> volumeResultDataArray, 
-            NativeArray<OcclusionResultData> occlusionResultDataArray,
-            int soundCount,
-            float dtScaled,
-            float dtUnscaled) 
-        {
-            var resultArray = new NativeArray<SoundResultData>(soundCount, Allocator.TempJob);
-            
-            var calculateResultJob = new CalculateResultSoundJob {
-                soundDataArray = soundDataArray,
-                soundOptionsArray = soundOptionsArray,
-                volumeResultDataArray = volumeResultDataArray,
-                occlusionResultDataArray = occlusionResultDataArray,
-                timescale = Time.timeScale,
-                dtScaled = dtScaled,
-                dtUnscaled = dtUnscaled,
-                smoothing = _audioParametersSmoothing,
-                lpCutoff = _cutoffLow,
-                hpCutoff = _cutoffHigh,
-                lpCutoffEasing = _cutoffLowFreqEasing,
-                hpCutoffEasing = _cutoffHighFreqEasing,
-                resultArray = resultArray,
-            };
-
-            calculateResultJob.Schedule(soundCount, JobExt.BatchFor(soundCount)).Complete();
-            
-            return resultArray;
-        }
-        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static float3 GetOcclusionOffset(int i, int count, float sector) {
             return count switch {
@@ -1382,6 +1375,76 @@ namespace MisterGames.Common.Audio {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static float GetRelativeDistance(float distance, float min, float max) {
             return math.clamp((distance - min) / (max - min + DistanceThreshold), 0f, 1f);
+        }
+
+        private OcclusionProfile GetOcclusionProfile() {
+            return new OcclusionProfile(
+                _rays, _maxHits, _minDistance, _maxDistance, _globalOcclusionWeight,
+                _distanceWeightLow, _distanceWeightHigh, _collisionWeightLow, _collisionWeightHigh,
+                _distanceLowFreqEasing, _distanceHighFreqEasing
+            );
+        }
+
+        /// <summary>
+        /// Shared by the batched job and by the immediate path taken on play,
+        /// so that a sound gets exactly the same weights either way.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static OcclusionResultData CalculateOcclusionResult(float distance, int collisions, in OcclusionProfile profile) {
+            float distanceWeight = GetRelativeDistance(distance, profile.minDistance, profile.maxDistance);
+            float collisionWeight = math.saturate((float) collisions / (profile.rays * profile.maxHits));
+
+            float wLow = math.clamp((profile.distanceLowFreqEasing.Evaluate(distanceWeight) * profile.distanceLowFreqWeight +
+                                     collisionWeight * profile.collisionLowFreqWeight) * profile.globalOcclusionWeight, 0f, 1f);
+
+            float wHigh = math.clamp((profile.distanceHighFreqEasing.Evaluate(distanceWeight) * profile.distanceHighFreqWeight +
+                                      collisionWeight * profile.collisionHighFreqWeight) * profile.globalOcclusionWeight, 0f, 1f);
+
+            return new OcclusionResultData(wLow, wHigh
+#if UNITY_EDITOR
+                , distance
+                , collisions
+                , distanceWeight
+                , collisionWeight
+#endif
+            );
+        }
+
+        /// <summary>
+        /// Shared by the batched job and by the immediate path taken on play.
+        /// Zero <paramref name="dt"/> means no smoothing, so the sound starts with final values.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static SoundResultData CalculateSoundResult(
+            in SoundData soundData,
+            AudioOptions options,
+            in AudioVolumeResultData volumeData,
+            in OcclusionResultData occlusionData,
+            float timescale,
+            float dt,
+            float smoothing,
+            float lpCutoff,
+            float hpCutoff,
+            EasingType lpCutoffEasing,
+            EasingType hpCutoffEasing)
+        {
+            float pitch = volumeData.pitch * soundData.pitchMul;
+            if ((options & AudioOptions.AffectedByTimeScale) != 0) {
+                pitch *= timescale;
+            }
+
+            float attenuationDistance = soundData.attenuationMul * volumeData.attenuation;
+
+            float lpCutoffT = lpCutoffEasing.Evaluate(occlusionData.weightLowFreq * volumeData.occlusion * soundData.spatialBlend);
+            float hpCutoffT = hpCutoffEasing.Evaluate(occlusionData.weightHighFreq * volumeData.occlusion * soundData.spatialBlend);
+
+            float lpCutoffBound = math.min(volumeData.lpCutoff, math.lerp(LpCutoffUpperBound, lpCutoff, lpCutoffT));
+            float hpCutoffBound = math.max(volumeData.hpCutoff, math.lerp(HpCutoffLowerBound, hpCutoff, hpCutoffT));
+
+            lpCutoffBound = dt > 0f ? soundData.lpCutoff.SmoothExpNonZero(lpCutoffBound, soundData.occlusionFlag * smoothing, dt) : lpCutoffBound;
+            hpCutoffBound = dt > 0f ? soundData.hpCutoff.SmoothExpNonZero(hpCutoffBound, soundData.occlusionFlag * smoothing, dt) : hpCutoffBound;
+
+            return new SoundResultData(pitch, attenuationDistance, lpCutoffBound, hpCutoffBound);
         }
         
         #region DATA TYPES
@@ -1455,39 +1518,133 @@ namespace MisterGames.Common.Audio {
             }
         }
         
-        private readonly struct FadeCalculateData {
-            
-            public readonly int id;
-            public readonly int timeSource;
-            public readonly float startTime;
-            public readonly float fade;
-            public readonly float volume0;
-            public readonly float volume1;
-            
-            public FadeCalculateData(int id, int timeSource, float startTime, float fade, float volume0, float volume1) {
-                this.id = id;
-                this.timeSource = timeSource;
-                this.startTime = startTime;
-                this.fade = fade;
-                this.volume0 = volume0;
-                this.volume1 = volume1;
-                this.timeSource = timeSource;
+        private readonly struct OcclusionProfile {
+
+            public readonly int rays;
+            public readonly int maxHits;
+            public readonly float minDistance;
+            public readonly float maxDistance;
+            public readonly float globalOcclusionWeight;
+            public readonly float distanceLowFreqWeight;
+            public readonly float distanceHighFreqWeight;
+            public readonly float collisionLowFreqWeight;
+            public readonly float collisionHighFreqWeight;
+            public readonly EasingType distanceLowFreqEasing;
+            public readonly EasingType distanceHighFreqEasing;
+
+            public OcclusionProfile(
+                int rays, int maxHits, float minDistance, float maxDistance, float globalOcclusionWeight,
+                float distanceLowFreqWeight, float distanceHighFreqWeight,
+                float collisionLowFreqWeight, float collisionHighFreqWeight,
+                EasingType distanceLowFreqEasing, EasingType distanceHighFreqEasing)
+            {
+                this.rays = rays;
+                this.maxHits = maxHits;
+                this.minDistance = minDistance;
+                this.maxDistance = maxDistance;
+                this.globalOcclusionWeight = globalOcclusionWeight;
+                this.distanceLowFreqWeight = distanceLowFreqWeight;
+                this.distanceHighFreqWeight = distanceHighFreqWeight;
+                this.collisionLowFreqWeight = collisionLowFreqWeight;
+                this.collisionHighFreqWeight = collisionHighFreqWeight;
+                this.distanceLowFreqEasing = distanceLowFreqEasing;
+                this.distanceHighFreqEasing = distanceHighFreqEasing;
             }
         }
-        
-        private readonly struct FadeResultData {
-            
-            public readonly int id;
-            public readonly float volume;
-            public readonly float progress;
-            
-            public FadeResultData(int id, float volume, float progress) {
-                this.id = id;
+
+        /// <summary>
+        /// Accumulates one audio volume parameter across volumes in a single pass:
+        /// a volume with a higher priority discards everything gathered so far.
+        /// </summary>
+        private struct VolumeParamAccumulator {
+
+            private int _topPriority;
+            private float _sum;
+            private float _weightSum;
+
+            public static VolumeParamAccumulator New() {
+                var accumulator = default(VolumeParamAccumulator);
+                accumulator._topPriority = int.MinValue;
+                return accumulator;
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public void Add(int priority, float weight, float value) {
+                if (priority < _topPriority) return;
+
+                if (priority > _topPriority) {
+                    _topPriority = priority;
+                    _sum = 0f;
+                    _weightSum = 0f;
+                }
+
+                _sum += weight * value;
+                _weightSum += weight;
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly float Resolve(float defaultValue) {
+                return _weightSum > 0f
+                    ? math.lerp(defaultValue, _sum / _weightSum, math.clamp(_weightSum, 0f, 1f))
+                    : defaultValue;
+            }
+        }
+
+        private readonly struct ImmediateVolumeData {
+
+            public readonly IAudioVolume volume;
+            public readonly int mask;
+            public readonly int priority;
+            public readonly float listenerPresence;
+            public readonly float occlusionSound;
+            public readonly float pitch;
+            public readonly float attenuation;
+            public readonly float lpCutoff;
+            public readonly float hpCutoff;
+
+            public ImmediateVolumeData(
+                IAudioVolume volume, int mask, int priority, float listenerPresence,
+                float occlusionSound, float pitch, float attenuation, float lpCutoff, float hpCutoff)
+            {
                 this.volume = volume;
-                this.progress = progress;
+                this.mask = mask;
+                this.priority = priority;
+                this.listenerPresence = listenerPresence;
+                this.occlusionSound = occlusionSound;
+                this.pitch = pitch;
+                this.attenuation = attenuation;
+                this.lpCutoff = lpCutoff;
+                this.hpCutoff = hpCutoff;
             }
         }
-        
+
+        private readonly struct OcclusionCandidate {
+
+            public readonly int soundIndex;
+            public readonly float distance;
+
+            public OcclusionCandidate(int soundIndex, float distance) {
+                this.soundIndex = soundIndex;
+                this.distance = distance;
+            }
+        }
+
+        private struct VolumeJobResources {
+
+            public bool created;
+            public NativeArray<WeightSample> weightArray;
+            public NativeArray<AudioVolumeProcessData> processDataArray;
+            public NativeHashMap<int, float> listenerVolumeIdToWeightMap;
+            public NativeArray<float> occlusionListenerResultArray;
+
+            public void Dispose() {
+                if (weightArray.IsCreated) weightArray.Dispose();
+                if (processDataArray.IsCreated) processDataArray.Dispose();
+                if (listenerVolumeIdToWeightMap.IsCreated) listenerVolumeIdToWeightMap.Dispose();
+                if (occlusionListenerResultArray.IsCreated) occlusionListenerResultArray.Dispose();
+            }
+        }
+
         private readonly struct SoundData {
             
             public readonly int id;
@@ -1513,20 +1670,19 @@ namespace MisterGames.Common.Audio {
         
         private readonly struct VolumeWeightData {
             
-            public readonly int volumeId;
             public readonly int priority;
             public readonly float weight;
             
-            public VolumeWeightData(int volumeId, int priority, float weight) {
-                this.volumeId = volumeId;
+            public VolumeWeightData(int priority, float weight) {
                 this.priority = priority;
                 this.weight = weight;
             }
         }
         
         private readonly struct AudioVolumeProcessData {
-            
+
             public readonly int mask;
+            public readonly int priority;
             public readonly float listenerPresence;
             public readonly float occlusionListener;
             public readonly float occlusionSound;
@@ -1534,14 +1690,15 @@ namespace MisterGames.Common.Audio {
             public readonly float attenuation;
             public readonly float lpCutoff;
             public readonly float hpCutoff;
-            
+
             public AudioVolumeProcessData(
-                int mask, float listenerPresence,
-                float occlusionListener, float occlusionSound, float pitch, float attenuation, float lpCutoff, float hpCutoff) 
+                int mask, int priority, float listenerPresence,
+                float occlusionListener, float occlusionSound, float pitch, float attenuation, float lpCutoff, float hpCutoff)
             {
                 this.mask = mask;
+                this.priority = priority;
                 this.listenerPresence = listenerPresence;
-                
+
                 this.occlusionListener = occlusionListener;
                 this.occlusionSound = occlusionSound;
                 this.pitch = pitch;
@@ -1685,39 +1842,14 @@ namespace MisterGames.Common.Audio {
         #region JOBS
         
         [BurstCompile]
-        private struct CalculateFadeJob : IJobParallelFor {
+        private struct ReadSoundPositionsJob : IJobParallelForTransform {
 
-            [ReadOnly] public NativeArray<FadeCalculateData> fadeCalculateDataArray;
-            [ReadOnly] public NativeArray<float> timeArray;
-            [WriteOnly] public NativeArray<FadeResultData> fadeResultArray;
-            
-            public void Execute(int index) {
-                var data = fadeCalculateDataArray[index];
-                
-                float currentTime = timeArray[data.timeSource];
-                float t = data.fade > 0f 
-                    ? math.clamp((currentTime - data.startTime) / data.fade, 0f, 1f)
-                    : 1f;
+            // Index zero is the listener position, written on the main thread.
+            [NativeDisableParallelForRestriction]
+            [WriteOnly] public NativeArray<float3> positions;
 
-                fadeResultArray[index] = new FadeResultData(data.id, math.lerp(data.volume0, data.volume1, t), t);
-            }
-        }
-        
-        [BurstCompile]
-        private struct WriteVolumeWeightDataJob : IJobParallelFor {
-
-            [ReadOnly] public NativeArray<WeightData> weightArray;
-            [ReadOnly] public int priority;
-            [ReadOnly] public int volumeCount;
-            [ReadOnly] public int volumeIndex;
-            
-            [NativeDisableContainerSafetyRestriction]
-            [WriteOnly]
-            public NativeArray<VolumeWeightData> volumeWeightDataArray;
-
-            public void Execute(int index) {
-                var data = weightArray[index];
-                volumeWeightDataArray[volumeIndex + volumeCount * index] = new VolumeWeightData(data.volumeId, priority, data.weight);
+            public void Execute(int index, TransformAccess transform) {
+                positions[index + 1] = transform.position;
             }
         }
         
@@ -1731,23 +1863,22 @@ namespace MisterGames.Common.Audio {
             
             public void Execute() {
                 int topPriority = int.MinValue;
-                
-                for (int i = 0; i < volumeCount; i++) {
-                    var weightData = volumeWeightDataArray[i];
-                    if (weightData.weight <= 0f) continue;
-
-                    topPriority = math.max(topPriority, weightData.priority);
-                }
-                
                 float weightSum = 0f;
                 var result = new ReverbSettingsData();
-                
+
+                // Single pass: a volume with a higher priority discards everything accumulated so far.
                 for (int i = 0; i < volumeCount; i++) {
                     var weightData = volumeWeightDataArray[i];
                     if (weightData.weight <= 0f || weightData.priority < topPriority) continue;
 
+                    if (weightData.priority > topPriority) {
+                        topPriority = weightData.priority;
+                        weightSum = 0f;
+                        result = new ReverbSettingsData();
+                    }
+
                     ref var reverbSettings = ref reverbSettingsArray.GetRef(i);
-                    
+
                     weightSum += weightData.weight;
 
                     result.room += reverbSettings.room * weightData.weight;
@@ -1790,43 +1921,45 @@ namespace MisterGames.Common.Audio {
         [BurstCompile]
         private struct CalculateListenerVolumeJob : IJob {
 
-            [ReadOnly] public NativeArray<VolumeWeightData> volumeWeightDataArray;
+            // Weights of all volumes for all positions: volume v, position i is at v * stride + i,
+            // where position zero is the listener.
+            [ReadOnly] public NativeArray<WeightSample> weightArray;
             [ReadOnly] public NativeArray<AudioVolumeProcessData> volumeProcessDataArray;
             [ReadOnly] public int volumeCount;
+            [ReadOnly] public int stride;
 
             public NativeHashMap<int, float> listenerVolumeIdToWeightMap;
-            public NativeArray<float> occlusionListenerResultArray;
+            [WriteOnly] public NativeArray<float> occlusionListenerResultArray;
 
             public void Execute() {
                 int topPriority = int.MinValue;
-                
-                for (int i = 0; i < volumeCount; i++) {
-                    var weightData = volumeWeightDataArray[i];
-                    if (weightData.weight <= 0f || !AudioParameter.ListenerOcclusion.InMask(volumeProcessDataArray[i].mask)) continue;
-
-                    topPriority = math.max(topPriority, weightData.priority);
-                }
-                
                 float weightSum = 0f;
                 float occlusionMul = 1f;
-                
-                for (int i = 0; i < volumeCount; i++) {
-                    var weightData = volumeWeightDataArray[i];
-                    var processData = volumeProcessDataArray[i];
 
-                    listenerVolumeIdToWeightMap[weightData.volumeId] = 
-                        math.max(weightData.weight, listenerVolumeIdToWeightMap.TryGetValue(weightData.volumeId, out float w) ? w : 0f);
-                    
-                    if (weightData.weight <= 0f || weightData.priority < topPriority ||
-                        !AudioParameter.ListenerOcclusion.InMask(processData.mask)) 
+                // Single pass: a volume with a higher priority discards everything accumulated so far.
+                for (int v = 0; v < volumeCount; v++) {
+                    var sample = weightArray[v * stride];
+                    var processData = volumeProcessDataArray[v];
+
+                    listenerVolumeIdToWeightMap[sample.volumeId] =
+                        math.max(sample.weight, listenerVolumeIdToWeightMap.TryGetValue(sample.volumeId, out float w) ? w : 0f);
+
+                    if (sample.weight <= 0f || processData.priority < topPriority ||
+                        !AudioParameter.ListenerOcclusion.InMask(processData.mask))
                     {
                         continue;
                     }
 
-                    weightSum += weightData.weight;
-                    occlusionMul += weightData.weight * processData.occlusionListener;
+                    if (processData.priority > topPriority) {
+                        topPriority = processData.priority;
+                        weightSum = 0f;
+                        occlusionMul = 1f;
+                    }
+
+                    weightSum += sample.weight;
+                    occlusionMul += sample.weight * processData.occlusionListener;
                 }
-                
+
                 occlusionMul = weightSum > 0f ? occlusionMul / weightSum : 1f;
                 occlusionListenerResultArray[0] = math.lerp(1f, occlusionMul, math.clamp(weightSum, 0f, 1f));
             }
@@ -1834,15 +1967,18 @@ namespace MisterGames.Common.Audio {
 
         [BurstCompile]
         private struct CalculateVolumeResultDataJob : IJobParallelFor {
-            
-            [ReadOnly] public NativeArray<VolumeWeightData> volumeWeightDataArray;
+
+            // Weights of all volumes for all positions: volume v, position i is at v * stride + i,
+            // where position zero is the listener and sound at index is at index + 1.
+            [ReadOnly] public NativeArray<WeightSample> weightArray;
             [ReadOnly] public NativeArray<AudioVolumeProcessData> volumeProcessDataArray;
             [ReadOnly] public NativeArray<AudioOptions> soundOptionsArray;
             [ReadOnly] public NativeArray<float> occlusionListenerResultArray;
             [ReadOnly] public NativeHashMap<int, float> listenerVolumeIdToWeightMap;
             [ReadOnly] public int volumeCount;
+            [ReadOnly] public int stride;
             [ReadOnly] public float attenuationDefault;
-            
+
             [WriteOnly] public NativeArray<AudioVolumeResultData> resultArray;
 
             public void Execute(int index) {
@@ -1850,126 +1986,53 @@ namespace MisterGames.Common.Audio {
                     resultArray[index] = new AudioVolumeResultData(1f, 1f, attenuationDefault, LpCutoffUpperBound, HpCutoffLowerBound);
                     return;
                 }
-                
-                int topPriorityOcclusionSound = int.MinValue;
-                int topPriorityPitch = int.MinValue;
-                int topPriorityAttenuation = int.MinValue;
-                int topPriorityLp = int.MinValue;
-                int topPriorityHp = int.MinValue;
-                
-                for (int i = 0; i < volumeCount; i++) {
-                    var weightData = volumeWeightDataArray[(index + 1) * volumeCount + i];
-                    if (weightData.weight <= 0f) continue;
 
-                    int mask = volumeProcessDataArray[i].mask;
-                    
-                    if (AudioParameter.SoundOcclusion.InMask(mask)) topPriorityOcclusionSound = math.max(topPriorityOcclusionSound, weightData.priority);
-                    if (AudioParameter.Pitch.InMask(mask)) topPriorityPitch = math.max(topPriorityPitch, weightData.priority);
-                    if (AudioParameter.Attenuation.InMask(mask)) topPriorityAttenuation = math.max(topPriorityAttenuation, weightData.priority);
-                    if (AudioParameter.LpCutoff.InMask(mask)) topPriorityLp = math.max(topPriorityLp, weightData.priority);
-                    if (AudioParameter.HpCutoff.InMask(mask)) topPriorityHp = math.max(topPriorityHp, weightData.priority);
-                }
-                
-                float occlusionSound = 0f;
-                float pitch = 0f;
-                float attenuation = 0f;
-                float lpCutoff = 0f;
-                float hpCutoff = 0f;
-                
-                float occlusionSoundWeightSum = 0f;
-                float pitchWeightSum = 0f;
-                float attenuationWeightSum = 0f;
-                float lpCutoffWeightSum = 0f;
-                float hpCutoffWeightSum = 0f;
-                
-                for (int i = 0; i < volumeCount; i++) {
-                    var weightData = volumeWeightDataArray[(index + 1) * volumeCount + i];
-                    if (weightData.weight <= 0f) continue;
-                    
-                    var processData = volumeProcessDataArray[i];
+                var occlusionSound = VolumeParamAccumulator.New();
+                var pitch = VolumeParamAccumulator.New();
+                var attenuation = VolumeParamAccumulator.New();
+                var lpCutoff = VolumeParamAccumulator.New();
+                var hpCutoff = VolumeParamAccumulator.New();
+
+                int row = index + 1;
+
+                for (int v = 0; v < volumeCount; v++) {
+                    var sample = weightArray[v * stride + row];
+                    if (sample.weight <= 0f) continue;
+
+                    var processData = volumeProcessDataArray[v];
                     int mask = processData.mask;
+                    int priority = processData.priority;
 
-                    float listenerWeight = listenerVolumeIdToWeightMap.TryGetValue(weightData.volumeId, out float lw) ? lw : 0f;
-                    float w = weightData.weight * math.lerp(1f, listenerWeight, processData.listenerPresence);
-                    
-                    if (weightData.priority >= topPriorityOcclusionSound && AudioParameter.SoundOcclusion.InMask(mask)) {
-                        occlusionSound += w * processData.occlusionSound;
-                        occlusionSoundWeightSum += w;
+                    float w = sample.weight;
+
+                    // Listener weight is only needed when the volume actually blends by listener presence.
+                    if (processData.listenerPresence > 0f) {
+                        float listenerWeight = listenerVolumeIdToWeightMap.TryGetValue(sample.volumeId, out float lw) ? lw : 0f;
+                        w *= math.lerp(1f, listenerWeight, processData.listenerPresence);
                     }
-                    
-                    if (weightData.priority >= topPriorityPitch && AudioParameter.Pitch.InMask(mask)) {
-                        pitch += w * processData.pitch;
-                        pitchWeightSum += w;
-                    }
-                    
-                    if (weightData.priority >= topPriorityAttenuation && AudioParameter.Attenuation.InMask(mask)) {
-                        attenuation += w * processData.attenuation;
-                        attenuationWeightSum += w;
-                    }
-                    
-                    if (weightData.priority >= topPriorityLp && AudioParameter.LpCutoff.InMask(mask)) {
-                        lpCutoff += w * processData.lpCutoff;
-                        lpCutoffWeightSum += w;
-                    }
-                    
-                    if (weightData.priority >= topPriorityHp && AudioParameter.HpCutoff.InMask(mask)) {
-                        hpCutoff += w * processData.hpCutoff;
-                        hpCutoffWeightSum += w;
-                    }
+
+                    if (AudioParameter.SoundOcclusion.InMask(mask)) occlusionSound.Add(priority, w, processData.occlusionSound);
+                    if (AudioParameter.Pitch.InMask(mask)) pitch.Add(priority, w, processData.pitch);
+                    if (AudioParameter.Attenuation.InMask(mask)) attenuation.Add(priority, w, processData.attenuation);
+                    if (AudioParameter.LpCutoff.InMask(mask)) lpCutoff.Add(priority, w, processData.lpCutoff);
+                    if (AudioParameter.HpCutoff.InMask(mask)) hpCutoff.Add(priority, w, processData.hpCutoff);
                 }
 
-                occlusionSound = occlusionSoundWeightSum > 0f 
-                    ? math.lerp(1f, occlusionSound / occlusionSoundWeightSum, math.clamp(occlusionSoundWeightSum, 0f, 1f))
-                    : 1f;
-
-                pitch = pitchWeightSum > 0f
-                    ? math.lerp(1f, pitch / pitchWeightSum, math.clamp(pitchWeightSum, 0f, 1f))
-                    : 1f;
-                
-                attenuation = attenuationWeightSum > 0f
-                    ? math.lerp(attenuationDefault, attenuation / attenuationWeightSum, math.clamp(attenuationWeightSum, 0f, 1f))
-                    : attenuationDefault;
-                
-                lpCutoff = lpCutoffWeightSum > 0f
-                    ? math.lerp(LpCutoffUpperBound, lpCutoff / lpCutoffWeightSum, math.clamp(lpCutoffWeightSum, 0f, 1f))
-                    : LpCutoffUpperBound;
-                
-                hpCutoff = hpCutoffWeightSum > 0f
-                    ? math.lerp(HpCutoffLowerBound, hpCutoff / hpCutoffWeightSum, math.clamp(hpCutoffWeightSum, 0f, 1f))
-                    : HpCutoffLowerBound;
-                
                 resultArray[index] = new AudioVolumeResultData(
-                    occlusionSound * occlusionListenerResultArray[0],
-                    pitch, 
-                    attenuation, 
-                    lpCutoff, 
-                    hpCutoff
-                );
-            }
-        }
-        
-        [BurstCompile]
-        private struct WriteDefaultVolumeResultDataJob : IJobParallelFor {
-            
-            [ReadOnly] public float attenuationDefault;
-            [WriteOnly] public NativeArray<AudioVolumeResultData> resultArray;
-            
-            public void Execute(int index) {
-                resultArray[index] = new AudioVolumeResultData(
-                    1f,
-                    1f, 
-                    attenuationDefault, 
-                    LpCutoffUpperBound, 
-                    HpCutoffLowerBound
+                    occlusionSound.Resolve(1f) * occlusionListenerResultArray[0],
+                    pitch.Resolve(1f),
+                    attenuation.Resolve(attenuationDefault),
+                    lpCutoff.Resolve(LpCutoffUpperBound),
+                    hpCutoff.Resolve(HpCutoffLowerBound)
                 );
             }
         }
         
         [BurstCompile]
         private struct PrepareRaycastCommandsJob : IJobParallelForBatch {
-            
+
             [ReadOnly] public NativeArray<float3> listenerAndSoundsPositionArray;
-            [ReadOnly] public NativeArray<AudioOptions> soundOptionsArray;
+            [ReadOnly] public NativeArray<OcclusionCandidate> candidates;
             [ReadOnly] public float3 up;
             [ReadOnly] public float raySector;
             [ReadOnly] public float rayOffset0;
@@ -1977,30 +2040,29 @@ namespace MisterGames.Common.Audio {
             [ReadOnly] public float minDistance;
             [ReadOnly] public float maxDistance;
             [ReadOnly] public int layerMask;
-            
+
             [WriteOnly] public NativeArray<RaycastCommand> raycastCommands;
 
             public void Execute(int startIndex, int count) {
-                int soundIndex = startIndex / count;
-                
-                if ((soundOptionsArray[soundIndex] & AudioOptions.ApplyOcclusion) == 0) return;
-                
+                // Candidates are already filtered by flags and distance on the main thread,
+                // so every command written here is a real raycast.
+                var candidate = candidates[startIndex / count];
+
                 var listenerPos = listenerAndSoundsPositionArray[0];
-                var soundPos = listenerAndSoundsPositionArray[soundIndex + 1];
-                
-                float distanceSqr = math.lengthsq(listenerPos - soundPos);
-                if (distanceSqr < minDistance * minDistance || distanceSqr > maxDistance * maxDistance) return;
-                
-                var dir = math.normalize(listenerPos - soundPos);
-                float distance = math.length(listenerPos - soundPos);
+                var soundPos = listenerAndSoundsPositionArray[candidate.soundIndex + 1];
+
+                float distance = candidate.distance;
+                var dir = (listenerPos - soundPos) / distance;
                 var rot = quaternion.LookRotation(dir, up);
                 float offset = math.lerp(rayOffset0, rayOffset1, GetRelativeDistance(distance, minDistance, maxDistance));
-                
+
+                var queryParameters = new QueryParameters(layerMask, hitMultipleFaces: false, hitTriggers: QueryTriggerInteraction.Ignore, hitBackfaces: false);
+
                 for (int i = 0; i < count; i++) {
                     raycastCommands[startIndex + i] = new RaycastCommand(
                         from: soundPos + math.mul(rot, offset * GetOcclusionOffset(i, count, raySector)),
                         dir,
-                        new QueryParameters(layerMask, hitMultipleFaces: false, hitTriggers: QueryTriggerInteraction.Ignore, hitBackfaces: false),
+                        queryParameters,
                         distance
                     );
                 }
@@ -2009,83 +2071,35 @@ namespace MisterGames.Common.Audio {
         
         [BurstCompile]
         private struct CalculateOcclusionWeightsJob : IJobParallelFor {
-            
-            [ReadOnly] public NativeArray<float3> listenerAndSoundsPositionArray;
-            [ReadOnly] public NativeArray<AudioOptions> soundOptionsArray;
+
+            [ReadOnly] public NativeArray<OcclusionCandidate> candidates;
             [ReadOnly] public NativeArray<RaycastHit> hitsArray;
-            [ReadOnly] public int rays;
-            [ReadOnly] public int maxHits;
-            [ReadOnly] public float minDistance;
-            [ReadOnly] public float maxDistance;
-            [ReadOnly] public float globalOcclusionWeight;
-            [ReadOnly] public float distanceLowFreqWeight;
-            [ReadOnly] public float distanceHighFreqWeight;
-            [ReadOnly] public float collisionLowFreqWeight;
-            [ReadOnly] public float collisionHighFreqWeight;
-            [ReadOnly] public EasingType distanceLowFreqEasing;
-            [ReadOnly] public EasingType distanceHighFreqEasing;
-            
-            public NativeArray<OcclusionResultData> resultArray;
+            [ReadOnly] public OcclusionProfile profile;
+
+            // Results are indexed by sound, while this job is indexed by candidate.
+            [NativeDisableParallelForRestriction]
+            [WriteOnly] public NativeArray<OcclusionResultData> resultArray;
 
             public void Execute(int index) {
-                if ((soundOptionsArray[index] & AudioOptions.ApplyOcclusion) == 0) return;
-                
-                var listenerPos = listenerAndSoundsPositionArray[0];
-                var soundPos = listenerAndSoundsPositionArray[index + 1];
-                
-                float distanceSqr = math.lengthsq(listenerPos - soundPos);
-                if (distanceSqr < minDistance * minDistance) return;
+                var candidate = candidates[index];
 
-                if (distanceSqr > maxDistance * maxDistance) {
-                    resultArray[index] = new OcclusionResultData(1f, 1f
-#if UNITY_EDITOR
-                    , math.length(listenerPos - soundPos)
-                    , 0
-                    , 1f
-                    , 1f
-#endif
-                        );
-                    return;
-                }
-                
-                float weightSum = 0f;
-#if UNITY_EDITOR
-                int totalCollisions = 0;
-#endif
-                
+                int rays = profile.rays;
+                int maxHits = profile.maxHits;
+
+                int collisions = 0;
+                int hitOffset = index * rays * maxHits;
+
                 for (int j = 0; j < rays; j++) {
-                    int collisions = 0;
-                    
+                    int rayOffset = hitOffset + j * maxHits;
+
                     for (int r = 0; r < maxHits; r++) {
-                        var hit = hitsArray[index * rays + j * maxHits + r];
-                        if (hit.colliderEntityId == EntityId.None) break;
-                        
+                        if (hitsArray[rayOffset + r].colliderEntityId == EntityId.None) break;
+
                         collisions++;
-
-#if UNITY_EDITOR
-                        totalCollisions++;
-#endif
                     }
-
-                    weightSum += (float) collisions / maxHits;
                 }
 
-                float distance = math.length(listenerPos - soundPos);
-                
-                float distanceWeight = GetRelativeDistance(distance, minDistance, maxDistance);
-                float collisionWeight = math.clamp(weightSum / rays, 0f, 1f);
-                
-                float wLow = math.clamp((distanceLowFreqEasing.Evaluate(distanceWeight) * distanceLowFreqWeight + collisionWeight * collisionLowFreqWeight) * globalOcclusionWeight, 0f, 1f);
-                float wHigh = math.clamp((distanceHighFreqEasing.Evaluate(distanceWeight) * distanceHighFreqWeight + collisionWeight * collisionHighFreqWeight) * globalOcclusionWeight, 0f, 1f);
-                
-                resultArray[index] = new OcclusionResultData(wLow, wHigh
-#if UNITY_EDITOR
-                    , distance
-                    , totalCollisions
-                    , distanceWeight
-                    , collisionWeight
-#endif
-                );
+                resultArray[candidate.soundIndex] = CalculateOcclusionResult(candidate.distance, collisions, profile);
             }
         }
         
@@ -2094,12 +2108,14 @@ namespace MisterGames.Common.Audio {
             
             [ReadOnly] public NativeArray<SoundData> soundDataArray; 
             [ReadOnly] public NativeArray<AudioOptions> soundOptionsArray; 
-            [ReadOnly] public NativeArray<AudioVolumeResultData> volumeResultDataArray; 
+            [ReadOnly] public NativeArray<AudioVolumeResultData> volumeResultDataArray;
+            [ReadOnly] public int volumesEnabled;
             [ReadOnly] public NativeArray<OcclusionResultData> occlusionResultDataArray;
             [ReadOnly] public float timescale;
             [ReadOnly] public float dtScaled;
             [ReadOnly] public float dtUnscaled;
             [ReadOnly] public float smoothing;
+            [ReadOnly] public float attenuationDefault;
             [ReadOnly] public float lpCutoff;
             [ReadOnly] public float hpCutoff;
             [ReadOnly] public EasingType lpCutoffEasing;
@@ -2110,27 +2126,19 @@ namespace MisterGames.Common.Audio {
             public void Execute(int index) {
                 var soundData = soundDataArray[index];
                 var options = soundOptionsArray[index];
-                var volumeData = volumeResultDataArray[index];
                 var occlusionData = occlusionResultDataArray[index];
 
-                float pitch = volumeData.pitch * soundData.pitchMul;
-                if ((options & AudioOptions.AffectedByTimeScale) != 0) {
-                    pitch *= timescale;
-                }
-
-                float attenuationDistance = soundData.attenuationMul * volumeData.attenuation;
-
-                float lpCutoffT = lpCutoffEasing.Evaluate(occlusionData.weightLowFreq * volumeData.occlusion * soundData.spatialBlend);
-                float hpCutoffT = hpCutoffEasing.Evaluate(occlusionData.weightHighFreq * volumeData.occlusion * soundData.spatialBlend);
-                
-                float lpCutoffBound = math.min(volumeData.lpCutoff, math.lerp(LpCutoffUpperBound, lpCutoff, lpCutoffT));
-                float hpCutoffBound = math.max(volumeData.hpCutoff, math.lerp(HpCutoffLowerBound, hpCutoff, hpCutoffT));
+                // With volumes disabled the pipeline skips the whole volume pass and its allocations.
+                var volumeData = volumesEnabled != 0
+                    ? volumeResultDataArray[index]
+                    : new AudioVolumeResultData(1f, 1f, attenuationDefault, LpCutoffUpperBound, HpCutoffLowerBound);
 
                 float dt = (options & AudioOptions.AffectedByTimeScale) != 0 ? dtScaled : dtUnscaled;
-                lpCutoffBound = dt > 0f ? soundData.lpCutoff.SmoothExpNonZero(lpCutoffBound, soundData.occlusionFlag * smoothing, dt) : lpCutoffBound;
-                hpCutoffBound = dt > 0f ? soundData.hpCutoff.SmoothExpNonZero(hpCutoffBound, soundData.occlusionFlag * smoothing, dt) : hpCutoffBound;
-                
-                resultArray[index] = new SoundResultData(pitch, attenuationDistance, lpCutoffBound, hpCutoffBound);
+
+                resultArray[index] = CalculateSoundResult(
+                    soundData, options, volumeData, occlusionData,
+                    timescale, dt, smoothing, lpCutoff, hpCutoff, lpCutoffEasing, hpCutoffEasing
+                );
             }
         }
         
@@ -2159,11 +2167,79 @@ namespace MisterGames.Common.Audio {
                 FetchIncludeMixerGroupsFromVolumes();
                 FetchIgnoreZeroTimescaleMixerGroups();
                 CreateReverbParamNames();
+
+                for (int i = 0; i < _elements.Count; i++) {
+                    WriteMixerGroupFlags(_elements[i]);
+                }
             }
         }
 
         private void CreateDebugColor(int id, AudioClip clip) {
             _debugColors[id] = ColorUtils.ColorFromHash(clip.GetHashCode());
+        }
+
+        private void LogSoundDebugInfo(IAudioElement e, OcclusionResultData occ, AudioVolumeResultData vol, SoundResultData resultData) {
+            if (!_showSoundsDebugInfo) return;
+
+            var clip = e.Source.clip;
+            string clipName = clip == null ? "<null>" : clip.name;
+
+            if (!MatchesNameFilters(clipName, _showSoundsNameFilters)) return;
+
+            Debug.Log($"AudioPool.ProcessSounds: f {Time.frameCount}, clip {clipName}, " +
+                      $"w low {occ.weightLowFreq}, w high {occ.weightHighFreq}, lp {resultData.lpCutoff}, hp {resultData.hpCutoff}, " +
+                      $"dist {occ.distance}, collisions {occ.collisions}, dist w {occ.distanceWeight}, coll w {occ.collisionWeight}, " +
+                      $"vol occ {vol.occlusion}, vol pitch {vol.pitch}, vol atten {vol.attenuation}, vol lp {vol.lpCutoff}, vol hp {vol.hpCutoff}");
+        }
+
+        private void LogVolumeDebugInfo(
+            IAudioVolume volume, int volumeIndex, int mask,
+            float occlusionListener, float occlusionSound, float pitch, float attenuation, float lpCutoff, float hpCutoff)
+        {
+            if (!_showVolumeInfo) return;
+
+            var sb = new StringBuilder();
+
+            if (AudioParameter.ListenerOcclusion.InMask(mask)) sb.Append($"{AudioParameter.ListenerOcclusion} ");
+            if (AudioParameter.SoundOcclusion.InMask(mask)) sb.Append($"{AudioParameter.SoundOcclusion} ");
+            if (AudioParameter.Pitch.InMask(mask)) sb.Append($"{AudioParameter.Pitch} ");
+            if (AudioParameter.Attenuation.InMask(mask)) sb.Append($"{AudioParameter.Attenuation} ");
+            if (AudioParameter.LpCutoff.InMask(mask)) sb.Append($"{AudioParameter.LpCutoff} ");
+            if (AudioParameter.HpCutoff.InMask(mask)) sb.Append($"{AudioParameter.HpCutoff}");
+
+            Debug.Log($"AudioPool.ScheduleAudioVolumes: f {Time.frameCount}, vol #{volumeIndex} {volume}, " +
+                      $"list presence {volume.ListenerPresence}, " +
+                      $"occ lis {occlusionListener}, occ sound {occlusionSound}, pitch {pitch}, atten {attenuation}, lp {lpCutoff}, hp {hpCutoff}, " +
+                      $"changed [{sb}]");
+        }
+
+        private void DrawOcclusionDebug(
+            NativeArray<float3> positionArray,
+            NativeArray<SoundData> soundDataArray,
+            NativeArray<OcclusionCandidate> candidates,
+            int candidateCount,
+            NativeArray<RaycastCommand> raycastCommands)
+        {
+            if (!_showOcclusionInfo || candidateCount <= 0) return;
+
+            for (int c = 0; c < candidateCount; c++) {
+                int soundIndex = candidates[c].soundIndex;
+                int id = soundDataArray[soundIndex].id;
+
+                if (_showOcclusionNameFilters?.Length > 0) {
+                    var clip = _handleIdToAudioElementMap.TryGetValue(id, out var e) ? e.Source.clip : null;
+                    if (!MatchesNameFilters(clip == null ? "<null>" : clip.name, _showOcclusionNameFilters)) continue;
+                }
+
+                var pos = positionArray[soundIndex + 1];
+                var color = GetDebugColor(id);
+
+                for (int j = 0; j < _rays; j++) {
+                    var com = raycastCommands[c * _rays + j];
+                    DebugExt.DrawLine(pos, com.from, color);
+                    DebugExt.DrawRay(com.from, com.direction * com.distance, color);
+                }
+            }
         }
 
         private void LogPlaySound(int id, AudioClip clip, AudioOptions options) {

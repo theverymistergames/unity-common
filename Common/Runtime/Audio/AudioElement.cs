@@ -31,6 +31,12 @@ namespace MisterGames.Common.Audio {
         public float ClipTime { get; set; }
         public int OcclusionFlag { get; set; }
         
+        public float SpatialBlend { get; set; }
+        public float LpCutoff { get; set; }
+        public float HpCutoff { get; set; }
+        public bool MixerGroupAffectedByVolumes { get; set; }
+        public bool IgnoreZeroTimescale { get; set; }
+        
         public CancellationToken CancellationToken { get; set; }
         
         private void OnDisable() {

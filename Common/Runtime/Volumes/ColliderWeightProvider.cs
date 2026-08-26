@@ -4,6 +4,7 @@ using MisterGames.Common.Jobs;
 using MisterGames.Common.Maths;
 using Unity.Burst;
 using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
 using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
@@ -39,16 +40,17 @@ namespace MisterGames.Common.Volumes {
         }
         
         public override WeightData GetWeight(Vector3 position) {
-            float w = GetWeight(position, _collider.ClosestPoint(position), _blendDistance) * GetProcessorsWeight();
-            return new WeightData(w, volumeId: GetHashCode(), _collider.ClosestPoint(position));
+            var closestPoint = _collider.ClosestPoint(position);
+            float w = GetWeight(position, closestPoint, _blendDistance) * GetProcessorsWeight();
+            return new WeightData(w, volumeId: GetHashCode(), closestPoint);
         }
 
-        public override void GetWeight(NativeArray<float3> positions, NativeArray<WeightData> results, int count) {
-            if (count <= 0) return;
+        public override JobHandle GetWeight(NativeArray<float3> positions, NativeArray<WeightSample> results, int count, JobHandle dependency = default) {
+            if (count <= 0) return dependency;
 
             float wMul = GetProcessorsWeight();
-            var commands = new NativeArray<ClosestPointCommand>(count, Allocator.TempJob);
-            var closestPoints = new NativeArray<Vector3>(count, Allocator.TempJob);
+            var commands = new NativeArray<ClosestPointCommand>(count, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
+            var closestPoints = new NativeArray<Vector3>(count, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
 
             var trf = _collider.transform;
             trf.GetPositionAndRotation(out var pos, out var rot);
@@ -71,20 +73,26 @@ namespace MisterGames.Common.Volumes {
                 results = results
             };
             
-            int batchCount = JobExt.BatchFor(count);
+            int batchCount = JobExt.BatchFor(count, MinBatch);
 
-            var prepareCommandsJobHandle = prepareCommandsJob.Schedule(count, batchCount);
+            var prepareCommandsJobHandle = prepareCommandsJob.Schedule(count, batchCount, dependency);
             var commandsJobHandle = ClosestPointCommand.ScheduleBatch(commands, closestPoints, batchCount, prepareCommandsJobHandle);
+            var weightJobHandle = weightJob.Schedule(count, batchCount, commandsJobHandle);
+
+            commands.Dispose(weightJobHandle);
+            closestPoints.Dispose(weightJobHandle);
             
-            weightJob.Schedule(count, JobExt.BatchFor(count), commandsJobHandle).Complete();
+            return weightJobHandle;
         }
 
         private static float GetWeight(float3 position, float3 closestPoint, float blend) {
             if (position.Approx(closestPoint)) return 1f;
-            if (math.lengthsq(position - closestPoint) > blend * blend) return 0f;
+            
+            float distanceSqr = math.lengthsq(position - closestPoint);
+            if (distanceSqr > blend * blend) return 0f;
 
             return blend > 0f 
-                ? math.clamp(1f - math.length(position - closestPoint) / blend, 0f, 1f)
+                ? math.clamp(1f - math.sqrt(distanceSqr) / blend, 0f, 1f)
                 : 1f;
         }
         
@@ -113,11 +121,14 @@ namespace MisterGames.Common.Volumes {
             [Unity.Collections.ReadOnly] public float weightMul;
             [Unity.Collections.ReadOnly] public int volumeId;
             
-            [WriteOnly] public NativeArray<WeightData> results;
+            // Results can be a sub array of a bigger buffer shared between volumes:
+            // each volume writes into its own disjoint range, so aliasing check is not applicable.
+            [NativeDisableContainerSafetyRestriction]
+            [WriteOnly] public NativeArray<WeightSample> results;
 
             public void Execute(int index) {
                 float w = GetWeight(positions[index], closestPoints[index], blend);
-                results[index] = new WeightData(w * weightMul, volumeId, closestPoints[index]);
+                results[index] = new WeightSample(w * weightMul, volumeId);
             }
         }
 

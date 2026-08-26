@@ -23,6 +23,12 @@ namespace MisterGames.Common.Audio {
         float FadeOut { get; set; }
         int OcclusionFlag { get; set; }
         
+        float SpatialBlend { get; set; }
+        float LpCutoff { get; set; }
+        float HpCutoff { get; set; }
+        bool MixerGroupAffectedByVolumes { get; set; }
+        bool IgnoreZeroTimescale { get; set; }
+        
         CancellationToken CancellationToken { get; set; }
     }
     

@@ -14,5 +14,4 @@ namespace MisterGames.Common.Volumes {
             this.closestPoint = closestPoint;
         }
     }
-    
 }
