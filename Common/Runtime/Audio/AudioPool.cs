@@ -140,6 +140,7 @@ namespace MisterGames.Common.Audio {
         private Transform _transform;
         private float _lastTimeScale;
         private bool _checkPause;
+        private bool _resumeSoundsAfterFocus;
         private float _globalOcclusionWeight = 1f;
         
         // 0 - scaled time, 1 - unscaled above ts = 0, 2 - unscaled focused
@@ -157,6 +158,14 @@ namespace MisterGames.Common.Audio {
             FetchIgnoreZeroTimescaleMixerGroups();
             
             PlayerLoopStage.LateUpdate.Subscribe(this);
+        }
+
+        private void OnApplicationFocus(bool hasFocus) {
+            // Run In Background is off, so the audio engine is suspended while the app has no focus.
+            // Sources do not always resume on their own, and the pool is the only thing
+            // that can bring them back: sounds of mixer groups that ignore zero timescale
+            // are never touched by CheckPause and would stay silent forever.
+            if (hasFocus) _resumeSoundsAfterFocus = true;
         }
 
         private void OnDestroy() {
@@ -731,6 +740,7 @@ namespace MisterGames.Common.Audio {
 
         void IUpdate.OnUpdate(float dt) {
             ProcessInternalTime(out float dtScaled, out float dtUnscaled);
+            ResumeSoundsAfterFocus();
             ProcessClipShuffles();
             ProcessFadeIn();
             ProcessFadeOutAndRelease();
@@ -1261,6 +1271,34 @@ namespace MisterGames.Common.Audio {
 
             occlusionMul = weightSum > 0f ? occlusionMul / weightSum : 1f;
             _immediateListenerOcclusion = math.lerp(1f, occlusionMul, math.clamp(weightSum, 0f, 1f));
+        }
+
+        private void ResumeSoundsAfterFocus() {
+            if (!_resumeSoundsAfterFocus) return;
+
+            _resumeSoundsAfterFocus = false;
+
+            for (int i = 0; i < _elements.Count; i++) {
+                ResumeAfterFocus(_elements[i]);
+            }
+
+            foreach (var e in _releaseElementsMap.Values) {
+                ResumeAfterFocus(e);
+            }
+        }
+
+        private static void ResumeAfterFocus(IAudioElement e) {
+            // IsPaused means the pool paused the sound itself on zero timescale:
+            // such a sound must stay paused until timescale is back.
+            if (e.IsPaused || e.Source == null || e.Source.isPlaying) return;
+
+            e.Source.UnPause();
+
+            // Some platforms stop sources instead of pausing them while the app has no focus.
+            // A looping sound cannot end on its own, so silence here means it was cut off.
+            if (!e.Source.isPlaying && (e.AudioOptions & AudioOptions.Loop) != 0) {
+                e.Source.Play();
+            }
         }
 
         private static void CheckPause(IAudioElement e, float timescale) {
