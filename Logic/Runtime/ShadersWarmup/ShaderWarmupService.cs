@@ -214,11 +214,11 @@ namespace MisterGames.Logic.ShadersWarmup {
             await StartWarmup(LoadReleaseCollection(), _settings.VisualEffectAssets, cancellationToken);
             if (cancellationToken.IsCancellationRequested) return;
 
-            BeginTracing();
+            if (_settings.EnableTracingInDevBuild) BeginTracing();
         }
 
         private void UnloadForDevelopmentBuild() {
-            EndTracingAndSaveToLocalFile();
+            if (_settings.EnableTracingInDevBuild) EndTracingAndSaveToLocalFile();
         }
 
         private UniTask LoadForReleaseBuild(CancellationToken ct) {
