@@ -48,7 +48,8 @@ namespace MisterGames.Common.Save.Storages {
             var keyType = typeof(TKey);
             
             if (SaveTableCache.TryGetTableType(keyType, valueType, out var tableType) || 
-                SaveTableCache.TryGetTableType(keyType, baseType, out tableType)) 
+                SaveTableCache.TryGetTableType(keyType, baseType, out tableType) ||
+                SaveTableCache.TryGetFallbackTableType(keyType, out tableType)) 
             {
                 table = Activator.CreateInstance(tableType) as ISaveTable;
                 _tables[baseType] = table;

@@ -2,9 +2,9 @@
 using MisterGames.Common.Data;
 using MisterGames.Common.Save.Storages;
 
-namespace MisterGames.Character.Core {
+namespace MisterGames.Common.Save {
     
-    public sealed class CharacterSettings : ICharacterSettings {
+    public sealed class GameplayRuntimeSettings : IGameplayRuntimeSettings {
 
         private readonly SaveStorage<int> _storage = new();
         private readonly MultiValueDictionary<int, Action<int>> _listeners = new();

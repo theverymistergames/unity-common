@@ -32,8 +32,17 @@ namespace MisterGames.Common.Save.Storages {
         private sealed class AnyType {}
         
         public static Type GetBaseElementType(Type t) {
-            return t.IsArray ? t :
-                typeof(Object).IsAssignableFrom(t) ? typeof(Object) :
+            if (!t.IsArray) return GetBaseType(t);
+
+            var elementType = t.GetElementType();
+            if (elementType == null || elementType.IsArray) return t;
+            
+            var baseElementType = GetBaseType(elementType);
+            return baseElementType == elementType ? t : baseElementType.MakeArrayType();
+        }
+
+        private static Type GetBaseType(Type t) {
+            return typeof(Object).IsAssignableFrom(t) ? typeof(Object) :
                 t == typeof(string) ? t :
                 t.IsClass || t.IsInterface ? typeof(object) :
                 t.IsEnum ? typeof(Enum) :
@@ -41,9 +50,11 @@ namespace MisterGames.Common.Save.Storages {
         }
         
         public static bool TryGetTableType(Type keyType, Type valueType, out Type tableType) {
-            var cache = LoadCache();
-            return cache.tableMap.TryGetValue((keyType, valueType), out tableType) || 
-                   cache.tableMap.TryGetValue((keyType, typeof(AnyType)), out tableType);
+            return LoadCache().tableMap.TryGetValue((keyType, valueType), out tableType);
+        }
+
+        public static bool TryGetFallbackTableType(Type keyType, out Type tableType) {
+            return LoadCache().tableMap.TryGetValue((keyType, typeof(AnyType)), out tableType);
         }
 
         public static bool IsSupportedValueType(Type valueType) {

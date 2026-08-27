@@ -1,8 +1,8 @@
 ﻿using System;
 using MisterGames.Actors;
-using MisterGames.Character.Core;
 using MisterGames.Common.Inputs;
 using MisterGames.Common.Labels;
+using MisterGames.Common.Save;
 using MisterGames.Common.Service;
 using UnityEngine;
 
@@ -12,7 +12,7 @@ namespace MisterGames.Character.View {
 
         private CharacterViewPipeline _view;
         private CharacterViewSensitivityData _data;
-        private ICharacterSettings _characterSettings;
+        private IGameplayRuntimeSettings _gameplaySettings;
 
         private float _mouseSensT = 0.5f;
         private float _gamepadSensT = 0.5f;
@@ -25,41 +25,41 @@ namespace MisterGames.Character.View {
 
         void IActorComponent.OnAwake(IActor actor) {
             _view = actor.GetComponent<CharacterViewPipeline>();
-            _characterSettings = Services.Get<ICharacterSettings>();
+            _gameplaySettings = Services.Get<IGameplayRuntimeSettings>();
         }
 
         private void OnEnable() {
             _view.AddProcessor(this);
             
-            _characterSettings.AddValueChangeListener(_data.mouseSensitivityId.GetValue(), OnMouseSensChanged);
-            _characterSettings.AddValueChangeListener(_data.gamepadSensitivityId.GetValue(), OnGamepadSensChanged);
-            _characterSettings.AddValueChangeListener(_data.mouseInvertYId.GetValue(), OnMouseInvertYChanged);
-            _characterSettings.AddValueChangeListener(_data.gamepadInvertYId.GetValue(), OnGamepadInvertYChanged);
+            _gameplaySettings.AddValueChangeListener(_data.mouseSensitivityId.GetValue(), OnMouseSensChanged);
+            _gameplaySettings.AddValueChangeListener(_data.gamepadSensitivityId.GetValue(), OnGamepadSensChanged);
+            _gameplaySettings.AddValueChangeListener(_data.mouseInvertYId.GetValue(), OnMouseInvertYChanged);
+            _gameplaySettings.AddValueChangeListener(_data.gamepadInvertYId.GetValue(), OnGamepadInvertYChanged);
         }
 
         private void OnDisable() {
             _view.RemoveProcessor(this);
             
-            _characterSettings.RemoveValueChangeListener(_data.mouseSensitivityId.GetValue(), OnMouseSensChanged);
-            _characterSettings.RemoveValueChangeListener(_data.gamepadSensitivityId.GetValue(), OnGamepadSensChanged);
-            _characterSettings.RemoveValueChangeListener(_data.mouseInvertYId.GetValue(), OnMouseInvertYChanged);
-            _characterSettings.RemoveValueChangeListener(_data.gamepadInvertYId.GetValue(), OnGamepadInvertYChanged);
+            _gameplaySettings.RemoveValueChangeListener(_data.mouseSensitivityId.GetValue(), OnMouseSensChanged);
+            _gameplaySettings.RemoveValueChangeListener(_data.gamepadSensitivityId.GetValue(), OnGamepadSensChanged);
+            _gameplaySettings.RemoveValueChangeListener(_data.mouseInvertYId.GetValue(), OnMouseInvertYChanged);
+            _gameplaySettings.RemoveValueChangeListener(_data.gamepadInvertYId.GetValue(), OnGamepadInvertYChanged);
         }
 
         private void OnMouseSensChanged(int key) {
-            _mouseSensT = _characterSettings.Get(key, 0.5f);
+            _mouseSensT = _gameplaySettings.Get(key, 0.5f);
         }
 
         private void OnGamepadSensChanged(int key) {
-            _gamepadSensT = _characterSettings.Get(key, 0.5f);
+            _gamepadSensT = _gameplaySettings.Get(key, 0.5f);
         }
 
         private void OnMouseInvertYChanged(int key) {
-            _mouseMul = _characterSettings.Get(key, false) ? new Vector2(-1f, 1f) : new Vector2(1f, 1f);
+            _mouseMul = _gameplaySettings.Get(key, false) ? new Vector2(-1f, 1f) : new Vector2(1f, 1f);
         }
 
         private void OnGamepadInvertYChanged(int key) {
-            _gamepadMul = _characterSettings.Get(key, false) ? new Vector2(-1f, 1f) : new Vector2(1f, 1f);
+            _gamepadMul = _gameplaySettings.Get(key, false) ? new Vector2(-1f, 1f) : new Vector2(1f, 1f);
         }
 
         Vector2 IViewProcessor.GetViewSensitivity(InputDeviceType deviceType) {

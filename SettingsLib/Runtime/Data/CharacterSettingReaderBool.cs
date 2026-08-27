@@ -1,6 +1,6 @@
 ﻿using System;
-using MisterGames.Character.Core;
 using MisterGames.Common.Labels;
+using MisterGames.Common.Save;
 using MisterGames.Common.Service;
 
 namespace MisterGames.SettingsLib.Descs {
@@ -11,7 +11,7 @@ namespace MisterGames.SettingsLib.Descs {
         public LabelValue settingId;
         
         public void OnReadValue(bool value) {
-            Services.Get<ICharacterSettings>().Set(settingId.GetValue(), value);
+            Services.Get<IGameplayRuntimeSettings>().Set(settingId.GetValue(), value);
         }
     }
     

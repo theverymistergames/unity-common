@@ -1,8 +1,8 @@
 ﻿using System;
 
-namespace MisterGames.Character.Core {
+namespace MisterGames.Common.Save {
     
-    public interface ICharacterSettings {
+    public interface IGameplayRuntimeSettings {
 
         void AddValueChangeListener(int id, Action<int> listener);
         void RemoveValueChangeListener(int id, Action<int> listener);

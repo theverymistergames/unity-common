@@ -1,7 +1,7 @@
 ﻿using MisterGames.Common.Service;
 using UnityEngine;
 
-namespace MisterGames.Common.Save.Tables {
+namespace MisterGames.Common.Save {
     
     [DefaultExecutionOrder(-100_000)]
     public sealed class GameplaySaveServiceLauncher : MonoBehaviour {

@@ -7,20 +7,48 @@ namespace MisterGames.Common.Save.Tables {
     [Serializable]
     public abstract class SaveTable<TKey, TValue> : ISaveTable<TKey> where TKey : IEquatable<TKey> {
         
+        private static readonly bool CanHaveDerivedTypes = !typeof(TValue).IsValueType;
+        
         [SerializeField] private SerializedDictionary<TKey, TValue> _dataMap = new();
 
         public bool TryGetData<V>(TKey key, out V data) {
-            if (this is SaveTable<TKey, V> table && table._dataMap.TryGetValue(key, out data)) return true;
+            if (this is SaveTable<TKey, V> table) return table._dataMap.TryGetValue(key, out data);
+
+            if (CanHaveDerivedTypes && _dataMap.TryGetValue(key, out var value)) {
+                if (value is V v) {
+                    data = v;
+                    return true;
+                }
+                
+                if (value is null && !typeof(V).IsValueType) {
+                    data = default;
+                    return true;
+                }
+            }
             
             data = default;
             return false;
         }
 
         public bool SetData<V>(TKey key, V data) {
-            if (this is not SaveTable<TKey, V> table) return false;
+            if (this is SaveTable<TKey, V> table) {
+                table._dataMap[key] = data;
+                return true;
+            }
+
+            if (!CanHaveDerivedTypes) return false;
             
-            table._dataMap[key] = data;
-            return true;
+            if (data is TValue value) {
+                _dataMap[key] = value;
+                return true;
+            }
+            
+            if (data is null) {
+                _dataMap[key] = default;
+                return true;
+            }
+            
+            return false;
         }
 
         public bool TryGetDataBoxed(TKey key, out object data) {

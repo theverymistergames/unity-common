@@ -25,7 +25,7 @@ namespace MisterGames.Interact.Cursors {
                 return true;
             }
 
-            cursorIcon = default;
+            cursorIcon = null;
             return false;
         }
     }

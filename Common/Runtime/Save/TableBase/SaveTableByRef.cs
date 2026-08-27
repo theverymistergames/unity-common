@@ -10,17 +10,36 @@ namespace MisterGames.Common.Save.Tables {
         [SerializeField] private SerializedDictionaryByRef<TKey, TValue> _dataMap = new();
 
         public bool TryGetData<V>(TKey key, out V data) {
-            if (this is SaveTableByRef<TKey, V> table && table._dataMap.TryGetValue(key, out data)) return true;
+            if (_dataMap.TryGetValue(key, out var value)) {
+                if (value is V v) {
+                    data = v;
+                    return true;
+                }
+                
+                if (value is null && !typeof(V).IsValueType) {
+                    data = default;
+                    return true;
+                }
+            }
             
             data = default;
             return false;
         }
 
         public bool SetData<V>(TKey key, V data) {
-            if (this is not SaveTableByRef<TKey, V> table) return false;
+            if (typeof(V).IsValueType) return false;
             
-            table._dataMap[key] = data;
-            return true;
+            if (data is TValue value) {
+                _dataMap[key] = value;
+                return true;
+            }
+            
+            if (data is null && !typeof(TValue).IsValueType) {
+                _dataMap[key] = default;
+                return true;
+            }
+            
+            return false;
         }
 
         public bool TryGetDataBoxed(TKey key, out object data) {
@@ -34,7 +53,7 @@ namespace MisterGames.Common.Save.Tables {
         }
         
         public bool SetDataBoxed(TKey key, object data) {
-            if (data is not TValue t) return false;
+            if (data is not TValue t || data.GetType().IsValueType) return false;
             
             _dataMap[key] = t;
             return true;

@@ -15,6 +15,7 @@ namespace MisterGames.Interact.Cursors {
 
         [Header("Prompt")]
         public PromptMode showInteractionPrompt = PromptMode.ReplaceCursor;
+        public bool disablePromptAfterLearn = true;
         public Vector2 promptSize = new(48f, 48f);
         public InputIconsTable iconsTable;
         public InputActionRef interactionAction;
@@ -24,7 +25,7 @@ namespace MisterGames.Interact.Cursors {
         public enum PromptMode {
             Disable,
             ShowAdditive,
-            ReplaceCursor
+            ReplaceCursor,
         }
     }
 

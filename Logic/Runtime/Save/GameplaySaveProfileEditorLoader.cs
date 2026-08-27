@@ -8,7 +8,7 @@ using MisterGames.Common.Service;
 using MisterGames.Scenes.Core;
 using UnityEngine;
 
-namespace MisterGames.Common.Gameplay {
+namespace MisterGames.Logic.Save {
     
     public sealed class GameplaySaveProfileEditorLoader : MonoBehaviour {
 

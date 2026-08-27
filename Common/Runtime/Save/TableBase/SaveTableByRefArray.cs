@@ -27,16 +27,7 @@ namespace MisterGames.Common.Save.Tables {
         }
 
         public bool SetData<S>(TKey key, S data) {
-            if (data is not Array array) return false;
-            
-            var dataArray = new TValue[array.Length];
-            _dataMap[key] = dataArray;
-            
-            for (int i = 0; i < array.Length; i++) {
-                if (array.GetValue(i) is TValue v) dataArray[i] = v;
-            }
-            
-            return true;
+            return data is Array array && TrySetArray(key, array);
         }
 
         public bool TryGetDataBoxed(TKey key, out object data) {
@@ -50,15 +41,23 @@ namespace MisterGames.Common.Save.Tables {
         }
         
         public bool SetDataBoxed(TKey key, object data) {
-            if (data is not Array array) return false;
+            return data is Array array && TrySetArray(key, array);
+        }
+
+        private bool TrySetArray(TKey key, Array array) {
+            var elementType = array.GetType().GetElementType();
+            if (elementType == null || elementType.IsValueType) return false;
             
             var dataArray = new TValue[array.Length];
-            _dataMap[key] = dataArray;
             
             for (int i = 0; i < array.Length; i++) {
-                if (array.GetValue(i) is TValue v) dataArray[i] = v;
+                object element = array.GetValue(i);
+                if (element != null && element.GetType().IsValueType) return false;
+                
+                if (element is TValue v) dataArray[i] = v;
             }
             
+            _dataMap[key] = dataArray;
             return true;
         }
 

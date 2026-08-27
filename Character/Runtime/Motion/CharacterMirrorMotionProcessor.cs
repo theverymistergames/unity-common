@@ -1,9 +1,9 @@
 ﻿using MisterGames.Actors;
-using MisterGames.Character.Core;
 using MisterGames.Character.View;
 using MisterGames.Common.Inputs;
 using MisterGames.Common.Labels;
 using MisterGames.Common.Maths;
+using MisterGames.Common.Save;
 using MisterGames.Common.Service;
 using UnityEngine;
 
@@ -15,13 +15,13 @@ namespace MisterGames.Character.Motion {
         [SerializeField] private Vector2 _motionMirror = new(-1f, 1f);
         [SerializeField] private Vector2 _viewMirror = new(-1f, 1f);
 
-        private ICharacterSettings _characterSettings;
+        private IGameplayRuntimeSettings _gameplaySettings;
         private CharacterViewPipeline _viewPipeline;
         private CharacterMotionPipeline _motionPipeline;
         private bool _mirrorEnabled;
         
         void IActorComponent.OnAwake(IActor actor) {
-            _characterSettings = Services.Get<ICharacterSettings>();
+            _gameplaySettings = Services.Get<IGameplayRuntimeSettings>();
             _viewPipeline = actor.GetComponent<CharacterViewPipeline>();
             _motionPipeline = actor.GetComponent<CharacterMotionPipeline>();
         }
@@ -30,7 +30,7 @@ namespace MisterGames.Character.Motion {
             _viewPipeline.AddProcessor(this);
             _motionPipeline.AddProcessor(this);
             
-            _characterSettings.AddValueChangeListener(_mirrorSetting.GetValue(), OnMirrorSettingChange);
+            _gameplaySettings.AddValueChangeListener(_mirrorSetting.GetValue(), OnMirrorSettingChange);
             OnMirrorSettingChange(_mirrorSetting.GetValue());
         }
 
@@ -38,11 +38,11 @@ namespace MisterGames.Character.Motion {
             _viewPipeline.RemoveProcessor(this);
             _motionPipeline.RemoveProcessor(this);
             
-            _characterSettings.RemoveValueChangeListener(_mirrorSetting.GetValue(), OnMirrorSettingChange);
+            _gameplaySettings.RemoveValueChangeListener(_mirrorSetting.GetValue(), OnMirrorSettingChange);
         }
 
         private void OnMirrorSettingChange(int key) {
-            _mirrorEnabled = _characterSettings.Get(key, defaultValue: false);
+            _mirrorEnabled = _gameplaySettings.Get(key, defaultValue: false);
         }
 
         Vector2 IViewProcessor.GetViewSensitivity(InputDeviceType deviceType) {
