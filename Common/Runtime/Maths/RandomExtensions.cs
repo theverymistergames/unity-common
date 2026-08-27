@@ -1,9 +1,29 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System;
+using System.Runtime.CompilerServices;
+using Unity.Mathematics;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace MisterGames.Common.Maths {
     
     public static class RandomExtensions {
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float NextGaussian(float mean, float standardDeviation, uint seed = 0) {
+            if (seed == 0) seed = (uint) DateTime.Now.Ticks;
+            var rng = new Unity.Mathematics.Random(seed);
+            
+            float u1 = 1f - rng.NextFloat();
+            float u2 = 1f - rng.NextFloat();
+            float randStdNormal = math.sqrt(-2f * math.log(u1)) * math.sin(2f * math.PI * u2); 
+            float randNormal = mean + standardDeviation * randStdNormal; 
+            return randNormal;
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float NextGaussian(float min, float max, float meanNormalized) {
+            return NextGaussian(math.lerp(min, max, meanNormalized), 0.5f * (max - min));
+        }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int IndexToHash(int index) {

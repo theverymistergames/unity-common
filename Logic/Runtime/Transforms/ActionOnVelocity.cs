@@ -36,9 +36,9 @@ namespace MisterGames.Logic.Transforms {
 
         private void OnEnable() {
             AsyncExt.RecreateCts(ref _enableCts);
-            
-            PlayerLoopStage.LateUpdate.Subscribe(this);
+
             _lastPosition = _target.position;
+            PlayerLoopStage.LateUpdate.Subscribe(this);
         }
 
         private void OnDisable() {
@@ -55,8 +55,8 @@ namespace MisterGames.Logic.Transforms {
 
             float speed = GetSpeedFromBuffer();
             bool wasOverThreshold = _overThreshold;
-            _overThreshold = speed > _speedThreshold;
-
+            _overThreshold = speed > _speedThreshold; 
+            
             if (_overThreshold == wasOverThreshold) return;
             
             var action = _overThreshold ? _actionHigher : _actionLower;
