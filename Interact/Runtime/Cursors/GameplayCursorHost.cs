@@ -40,6 +40,7 @@ namespace MisterGames.Interact.Cursors {
         private struct LearnDataItem {
             public SerializedGuid guid;
             public int bindingIndex;
+            public int bindingPathHash;
             public int learnCount;
         }
         
@@ -199,7 +200,8 @@ namespace MisterGames.Interact.Cursors {
             }
 
             bool hasInput = TryGetInputBinding(icon, out var action, out int bindingIndex);
-            int learntCount = hasInput ? GetFinishedLearnTimes(action, bindingIndex) : 0;
+            int bindingPathHash = hasInput ? GetBindingPathHash(action, bindingIndex) : 0;
+            int learntCount = hasInput ? GetFinishedLearnTimes(action, bindingIndex, bindingPathHash) : 0;
             int targetLearnCount = GetTargetLearnTimes();
             bool isLearning = hasInput && targetLearnCount >= 0 && learntCount < targetLearnCount;
             bool canShowPrompt = hasInput && (!icon.disablePromptAfterLearn || targetLearnCount < 0 || isLearning);
@@ -214,7 +216,7 @@ namespace MisterGames.Interact.Cursors {
                     var rect = _cursorImage.rectTransform;
                     rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, icon.promptSize.x);
                     rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, icon.promptSize.y);
-                    if (canLearn) NotifyLearn(action, bindingIndex);
+                    if (canLearn) NotifyLearn(action, bindingIndex, bindingPathHash);
                 }
                 else {
                     _cursorImage.sprite = icon.sprite;
@@ -232,7 +234,7 @@ namespace MisterGames.Interact.Cursors {
                     var rect = _helperImage.rectTransform;
                     rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, icon.promptSize.x);
                     rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, icon.promptSize.y);
-                    if (canLearn) NotifyLearn(action, bindingIndex);
+                    if (canLearn) NotifyLearn(action, bindingIndex, bindingPathHash);
                 }
                 else {
                     _helperImage.enabled = false;
@@ -265,16 +267,25 @@ namespace MisterGames.Interact.Cursors {
             };
         }
 
-        private int GetFinishedLearnTimes(InputAction action, int bindingIndex) {
+        private static int GetBindingPathHash(InputAction action, int bindingIndex) {
+            string path = action.bindings[bindingIndex].effectivePath;
+            return string.IsNullOrEmpty(path) ? 0 : Animator.StringToHash(path);
+        }
+        
+        private int GetFinishedLearnTimes(InputAction action, int bindingIndex, int bindingPathHash) {
             if (_learnData == null) return 0;
 
             var guid = new SerializedGuid(action.id);
             int i = _learnData.items.TryFindIndex((guid, bindingIndex), (item, data) => item.bindingIndex == data.bindingIndex && item.guid == data.guid);
+            if (i < 0) return 0;
+
+            var item = _learnData.items[i];
             
-            return i < 0 ? 0 : _learnData.items[i].learnCount;
+            // Binding was rebound after it had been learnt, so it has to be learnt again.
+            return item.bindingPathHash == bindingPathHash ? item.learnCount : 0;
         }
 
-        private void NotifyLearn(InputAction action, int bindingIndex) {
+        private void NotifyLearn(InputAction action, int bindingIndex, int bindingPathHash) {
             if (_learnData == null || TimeSources.scaledTime < _lastLearnTime + _settings.learnCooldown) return;
 
             _lastLearnTime = TimeSources.scaledTime;
@@ -283,11 +294,20 @@ namespace MisterGames.Interact.Cursors {
             int i = _learnData.items.TryFindIndex((guid, bindingIndex), (item, data) => item.bindingIndex == data.bindingIndex && item.guid == data.guid);
             
             if (i < 0) {
-                _learnData.items.Add(new LearnDataItem { guid = guid, bindingIndex = bindingIndex, learnCount = 1 });
+                _learnData.items.Add(new LearnDataItem {
+                    guid = guid,
+                    bindingIndex = bindingIndex,
+                    bindingPathHash = bindingPathHash,
+                    learnCount = 1,
+                });
             }
             else {
                 var item = _learnData.items[i];
-                item.learnCount++;
+                
+                // Binding was rebound after it had been learnt, so learn count starts over.
+                item.learnCount = item.bindingPathHash == bindingPathHash ? item.learnCount + 1 : 1;
+                item.bindingPathHash = bindingPathHash;
+                
                 _learnData.items[i] = item;
             }
 
