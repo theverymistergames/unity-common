@@ -73,7 +73,7 @@ namespace MisterGames.Common.Audio {
         [SerializeField] private EasingType _cutoffHighFreqEasing = EasingType.EaseOutSine;
 
         [Header("Focus")]
-        [Tooltip("Logs focus changes and sound restoring after them. Works in builds.")]
+        [Tooltip("Logs audio engine suspends and sound restoring after them. Works in builds.")]
         [SerializeField] private bool _logFocusEvents;
         
         public static IAudioPool Main { get; private set; }
@@ -90,6 +90,15 @@ namespace MisterGames.Common.Audio {
 
         // Restarting a sound at the very end of its clip is the same as not restarting it.
         private const float ClipRestartOffset = 0.01f;
+
+        // The dsp clock moves in buffer sized steps, so standing still for a few frames is normal.
+        private const float DspStallTimeout = 0.25f;
+
+        // A frame gap this long means the app itself was away, and the audio engine went down with it.
+        private const float FrozenFrameTimeout = 0.5f;
+
+        // A sound that refuses to play for this long is not waiting for the engine, it is its own problem.
+        private const float RestoreTimeout = 0.5f;
         
         private const string ReverbParamRoom = "Room";
         private const string ReverbParamRoomHf = "RoomHF";
@@ -148,8 +157,11 @@ namespace MisterGames.Common.Audio {
         private Transform _transform;
         private float _lastTimeScale;
         private bool _checkPause;
-        private bool _resumeSoundsAfterFocus;
-        private double _dspTimeOnFocusLost;
+        private double _lastDspTime;
+        private float _lastDspProgressTime;
+        private float _lastUpdateTime;
+        private bool _audioEngineSuspended;
+        private float _restoreStartTime = -1f;
         private float _globalOcclusionWeight = 1f;
         
         // 0 - scaled time, 1 - unscaled above ts = 0, 2 - unscaled focused
@@ -160,23 +172,28 @@ namespace MisterGames.Common.Audio {
 
             _transform = transform;
             _lastTimeScale = Time.timeScale;
+            _lastDspTime = AudioSettings.dspTime;
+            _lastDspProgressTime = _lastUpdateTime = Time.realtimeSinceStartup;
             _transformAccessArray = new TransformAccessArray(64);
             
             CreateReverbParamNames();
             FetchIncludeMixerGroupsFromVolumes();
             FetchIgnoreZeroTimescaleMixerGroups();
             
+            AudioSettings.OnAudioConfigurationChanged += OnAudioConfigurationChanged;
             PlayerLoopStage.LateUpdate.Subscribe(this);
         }
 
-        private void OnApplicationFocus(bool hasFocus) {
-#if UNITY_EDITOR
-            // The editor keeps playing while it has no focus, so its sounds are never interrupted.
-            hasFocus = true;
-#endif
+        private void OnAudioConfigurationChanged(bool deviceWasChanged) {
+            // The engine is rebuilt around the new device or config and drops every source on the way,
+            // without reporting it anywhere else: sounds are brought back by ProcessAudioEngineState.
+            SuspendSounds(elapsed: 0f);
+        }
 
-            if (hasFocus) _resumeSoundsAfterFocus = true;
-            else SuspendSoundsOnFocusLost();
+        private void OnApplicationFocus(bool hasFocus) {
+            // Sound state is still readable here: the engine goes down after the callback, not before it.
+            // Coming back is driven by the dsp clock instead, see ProcessAudioEngineState.
+            if (!hasFocus) SuspendSounds(elapsed: 0f);
         }
 
         private void OnApplicationPause(bool pauseStatus) {
@@ -185,6 +202,8 @@ namespace MisterGames.Common.Audio {
         }
 
         private void OnDestroy() {
+            AudioSettings.OnAudioConfigurationChanged -= OnAudioConfigurationChanged;
+
             _clipsHashToLastIndexMap.Clear();
             
             _attachKeyToHandleIdMap.Clear();
@@ -764,8 +783,8 @@ namespace MisterGames.Common.Audio {
         }
 
         void IUpdate.OnUpdate(float dt) {
+            ProcessAudioEngineState();
             ProcessInternalTime(out float dtScaled, out float dtUnscaled);
-            ResumeSoundsAfterFocus();
             ProcessClipShuffles();
             ProcessFadeIn();
             ProcessFadeOutAndRelease();
@@ -779,9 +798,10 @@ namespace MisterGames.Common.Audio {
             float ts = Time.timeScale;
 
             // Audio sources only need pause state checks while timescale is zero
-            // and on the frame it becomes non zero again.
-            _checkPause = ts <= 0f || _lastTimeScale <= 0f;
-            _lastTimeScale = ts;
+            // and on the frame it becomes non zero again. A suspended engine reports every source as
+            // not playing, so the timescale of the last running frame is kept until the engine is back.
+            _checkPause = !_audioEngineSuspended && (ts <= 0f || _lastTimeScale <= 0f);
+            if (!_audioEngineSuspended) _lastTimeScale = ts;
 
             // scaled
             _internalTime[0] += dtScaled;
@@ -1298,84 +1318,161 @@ namespace MisterGames.Common.Audio {
             _immediateListenerOcclusion = math.lerp(1f, occlusionMul, math.clamp(weightSum, 0f, 1f));
         }
 
-        private void SuspendSoundsOnFocusLost() {
-            // The dsp clock stops with the engine and keeps this value until the engine runs again.
-            _dspTimeOnFocusLost = AudioSettings.dspTime;
+        /// <summary>
+        /// Focus events tell when the engine is about to go down, but nothing tells when it is back:
+        /// the engine can start later than the player loop, and UnPause and Play calls made before that
+        /// are silently lost. The dsp clock is the only thing that moves when the engine really runs,
+        /// so it says when restoring is worth trying, and a frame gap covers suspends that arrive
+        /// without a focus event at all.
+        /// </summary>
+        private void ProcessAudioEngineState() {
+            float time = Time.realtimeSinceStartup;
+            double dspTime = AudioSettings.dspTime;
+
+            bool frozenFrame = time - _lastUpdateTime > FrozenFrameTimeout;
+            _lastUpdateTime = time;
+
+            // The clock starts over when the engine is rebuilt around another device or config,
+            // so there is nothing to compare against until the next frame.
+            if (dspTime < _lastDspTime) {
+                _lastDspTime = dspTime;
+                _lastDspProgressTime = time;
+                SuspendSounds(elapsed: 0f);
+                return;
+            }
+
+            // How much audio the engine really produced since the last frame: this clock stops with
+            // the engine and keeps running while the game loop is away, unlike any of the frame clocks.
+            float dspDelta = (float) (dspTime - _lastDspTime);
+            bool dspProgress = dspDelta > 0f;
+
+            _lastDspTime = dspTime;
+            if (dspProgress) _lastDspProgressTime = time;
+
+            if (frozenFrame) {
+                // The clock read on this frame tells about the time the app was away, not about the
+                // engine right now, so progress that proves the engine runs is measured from here on.
+                _lastDspProgressTime = time;
+                SuspendSounds(dspDelta);
+                return;
+            }
+
+            // The clock keeps its last value while the engine is down.
+            if (!dspProgress && time - _lastDspProgressTime > DspStallTimeout) {
+                SuspendSounds(elapsed: 0f);
+                return;
+            }
+
+            if (_audioEngineSuspended) RestoreSounds(time);
+        }
+
+        /// <param name="elapsed">Audio time produced by the engine while the game loop was away.</param>
+        private void SuspendSounds(float elapsed) {
+            if (_audioEngineSuspended) return;
+
+            _audioEngineSuspended = true;
+            _restoreStartTime = -1f;
 
             for (int i = 0; i < _elements.Count; i++) {
-                SuspendOnFocusLost(_elements[i]);
+                SuspendSound(_elements[i], elapsed);
             }
 
             foreach (var e in _releaseElementsMap.Values) {
-                SuspendOnFocusLost(e);
+                SuspendSound(e, elapsed);
             }
 
-            if (_logFocusEvents) LogFocusLost();
+            if (_logFocusEvents) LogAudioEngineSuspended();
         }
 
-        private static void SuspendOnFocusLost(IAudioElement e) {
-            // Not playing means finished or paused by the pool on zero timescale: such a sound
-            // has a known state and must not be restored on the way back.
-            if (e.Source == null || !e.Source.isPlaying) return;
+        private static void SuspendSound(IAudioElement e, float elapsed) {
+            if (e.Source == null) return;
 
-            // Clip time of a looping sound is not tracked per frame, so it is written here.
-            e.ClipTime = math.max(e.ClipTime, e.Source.time);
-            e.IsPausedByFocus = true;
+            if (e.Source.isPlaying) {
+                // Clip time of a looping sound is not tracked per frame, so it is written here.
+                e.ClipTime = math.max(e.ClipTime, e.Source.time);
+                e.IsPausedByFocus = true;
+                return;
+            }
+
+            // Not playing means paused by the pool on zero timescale, paused from the outside, or ended
+            // while the game loop was away: a sound that ended leaves nothing to read but the elapsed
+            // audio time, so it is the only thing that can still bring such a sound to its end.
+            if (!e.IsPaused && !e.IsPausedExplicitly) e.ClipTime += elapsed;
         }
 
-        private void ResumeSoundsAfterFocus() {
-            if (!_resumeSoundsAfterFocus) return;
+        /// <summary>
+        /// A moving dsp clock is not a promise that the engine is ready: the value is sampled once per
+        /// frame and can still describe buffers produced before the suspend. The only reliable answer
+        /// comes from the source itself, so restoring keeps retrying until every sound reports playing,
+        /// and the suspended state that guards sounds from being released is dropped only after that.
+        /// </summary>
+        private void RestoreSounds(float time) {
+            if (_restoreStartTime < 0f) _restoreStartTime = time;
 
-            // The engine can resume later than the player loop, and UnPause and Play calls made
-            // before that are lost. A moved dsp clock means the engine is running again.
-            if (AudioSettings.dspTime <= _dspTimeOnFocusLost) return;
-
-            _resumeSoundsAfterFocus = false;
+            bool restored = true;
 
             for (int i = 0; i < _elements.Count; i++) {
-                ResumeAfterFocus(_elements[i]);
+                restored &= RestoreSound(_elements[i]);
             }
 
             foreach (var e in _releaseElementsMap.Values) {
-                ResumeAfterFocus(e);
+                restored &= RestoreSound(e);
             }
 
-            if (_logFocusEvents) LogFocusGained();
+            // Giving up keeps a sound that cannot be played for reasons of its own, a missing clip
+            // among them, from holding every other sound in the pool in its suspended state forever.
+            if (!restored && time - _restoreStartTime < RestoreTimeout) return;
+
+            _audioEngineSuspended = false;
+            _restoreStartTime = -1f;
+
+            if (_logFocusEvents) LogAudioEngineRestored();
         }
 
-        private static void ResumeAfterFocus(IAudioElement e) {
-            if (!e.IsPausedByFocus) return;
+        private static bool RestoreSound(IAudioElement e) {
+            // IsPaused means the pool paused the sound itself on zero timescale, IsPausedExplicitly means
+            // it was paused from the outside: such sounds must stay paused until they are resumed.
+            if (e.Source == null || e.IsPaused || e.IsPausedExplicitly) {
+                e.IsPausedByFocus = false;
+                return true;
+            }
+
+            if (!e.Source.isPlaying) {
+                e.Source.UnPause();
+            }
+
+            if (!e.Source.isPlaying) {
+                // The source was stopped instead of being suspended, or was started while the engine was
+                // down and the call was lost, so it is restarted from the clip time it was cut off at.
+                bool loop = (e.AudioOptions & AudioOptions.Loop) != 0;
+
+                if (!loop && e.ClipTime >= e.ClipLength) {
+                    e.IsPausedByFocus = false;
+                    return true;
+                }
+
+                e.Source.time = math.clamp(e.ClipTime, 0f, math.max(e.ClipLength - ClipRestartOffset, 0f));
+                e.Source.Play();
+            }
+
+            // The engine swallowed the calls because it is not running yet: the sound keeps its
+            // suspended state and is retried on the next frame instead of being counted as finished.
+            if (!e.Source.isPlaying) return false;
 
             e.IsPausedByFocus = false;
-
-            // IsPaused means the pool paused the sound itself on zero timescale:
-            // such a sound must stay paused until timescale is back.
-            if (e.Source == null || e.IsPaused) return;
-
-            // The engine brought the sound back on its own.
-            if (e.Source.isPlaying) return;
-
-            e.Source.UnPause();
-            if (e.Source.isPlaying) return;
-
-            // The source was stopped instead of being suspended, so it is restarted
-            // from the clip time it was cut off at.
-            bool loop = (e.AudioOptions & AudioOptions.Loop) != 0;
-            if (!loop && e.ClipTime >= e.ClipLength) return;
-
-            e.Source.time = math.clamp(e.ClipTime, 0f, math.max(e.ClipLength - ClipRestartOffset, 0f));
-            e.Source.Play();
+            return true;
         }
 
-        private void LogFocusLost() {
-            Debug.Log($"{nameof(AudioPool)}.FocusLost: f {Time.frameCount}, dsp {AudioSettings.dspTime:0.000}, " +
+        private void LogAudioEngineSuspended() {
+            Debug.Log($"{nameof(AudioPool)}.AudioEngineSuspended: f {Time.frameCount}, " +
+                      $"dsp {AudioSettings.dspTime:0.000}, " +
                       $"sounds {_elements.Count}, releasing {_releaseElementsMap.Count}, " +
                       $"suspended {CountSuspendedByFocus()}.");
         }
 
-        private void LogFocusGained() {
-            Debug.Log($"{nameof(AudioPool)}.FocusGained: f {Time.frameCount}, dsp {AudioSettings.dspTime:0.000} " +
-                      $"(lost at {_dspTimeOnFocusLost:0.000}), " +
+        private void LogAudioEngineRestored() {
+            Debug.Log($"{nameof(AudioPool)}.AudioEngineRestored: f {Time.frameCount}, " +
+                      $"dsp {AudioSettings.dspTime:0.000}, " +
                       $"sounds {_elements.Count}, releasing {_releaseElementsMap.Count}, " +
                       $"playing {CountPlaying()}.");
         }
@@ -1499,11 +1596,15 @@ namespace MisterGames.Common.Audio {
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static bool IsSoundFinished(IAudioElement e, AudioOptions options) {
+        private bool IsSoundFinished(IAudioElement e, AudioOptions options) {
             if ((options & AudioOptions.Loop) != 0) return false;
 
             e.ClipTime = math.max(e.ClipTime, e.Source.time);
-            return !e.IsPaused && !e.IsPausedByFocus && !e.IsPausedExplicitly && !e.Source.isPlaying ||
+
+            // A suspended engine reports every source as not playing, which says nothing about the sound
+            // itself: until the engine is back, only the clip time tracked by the pool can end a sound.
+            return !_audioEngineSuspended &&
+                   !e.IsPaused && !e.IsPausedByFocus && !e.IsPausedExplicitly && !e.Source.isPlaying ||
                    e.ClipTime >= e.ClipLength;
         }
 
@@ -2616,7 +2717,11 @@ namespace MisterGames.Common.Audio {
             Debug.Log($"AudioPool.Release: f {Time.frameCount}, clip {clipName}, id {handleId}, " +
                       $"timescale {Time.timeScale}, immediate {immediate}, " +
                       $"length {e.ClipLength:0.###} s, played {(source == null ? 0f : source.time):0.###} s, " +
-                      $"fade out {(immediate ? 0f : e.FadeOut):0.###} s");
+                      $"fade out {(immediate ? 0f : e.FadeOut):0.###} s, " +
+                      $"clip time {e.ClipTime:0.###} s, playing {source != null && source.isPlaying}, " +
+                      $"cancelled {e.CancellationToken.IsCancellationRequested}, " +
+                      $"paused {e.IsPaused}/{e.IsPausedByFocus}/{e.IsPausedExplicitly}, " +
+                      $"engine suspended {_audioEngineSuspended}");
         }
 
         private static bool MatchesNameFilters(string clipName, string[] filters) {
