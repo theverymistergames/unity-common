@@ -264,7 +264,16 @@ namespace MisterGames.Character.View {
         }
         
         private void ProcessBodyUpdate() {
-            if (_body != null) _body.rotation = _gravityRotation * _bodyRotation;
+            if (_body == null) return;
+            
+            var rotation = _gravityRotation * _bodyRotation;
+            
+            // Body is rotated around the head, so that head is not dragged along an arc around the body pivot
+            // when body rotation follows the view direction.
+            var headOffset = _body.transform.InverseTransformPoint(_head.position);
+            
+            _body.position += _body.rotation * headOffset - rotation * headOffset;
+            _body.rotation = rotation;
         }
         
         private void ProcessHeadUpdate(float dt) {
@@ -341,9 +350,6 @@ namespace MisterGames.Character.View {
         }
 
         private void ApplyRotation(Vector2 eulerAngles, float dt) {
-            _headRotation = Quaternion.Euler(eulerAngles);
-            _head.rotation = _gravityRotation * _headRotation;
-            
             // If head offset from body is longer than free head rotation distance,
             // body rotation is not applied to prevent head from rotation around body vertical axis. 
             if (_head.localPosition.sqrMagnitude < _freeHeadRotationDistance * _freeHeadRotationDistance) {
@@ -353,13 +359,40 @@ namespace MisterGames.Character.View {
                 
                 _bodyRotation = _bodyRotation.SlerpNonZero(Quaternion.Euler(0f, eulerAngles.y, 0f), smooth, dt);
             }
+            
+            _headRotation = Quaternion.Euler(eulerAngles);
+            _head.rotation = _gravityRotation * _headRotation;
         }
 
         private void ProcessGravityAlign(float dt) {
             if (!_hasGravity || _characterGravity.IsGravityAlignBlocked) return;
-            
-            var target = Quaternion.FromToRotation(Vector3.down, _characterGravity.GravityDirection);
-            _gravityRotation = _gravityRotation.SlerpNonZero(target, _gravityDirSmoothing, dt);
+
+            _gravityRotation = _gravityRotation.SlerpNonZero(GetGravityAlignTarget(), _gravityDirSmoothing, dt);
+        }
+        
+        private Quaternion GetGravityAlignTarget() {
+            const float bias = 1e-4f;
+
+            var headRotation = _gravityRotation * _headRotation;
+            var forward = headRotation * Vector3.forward;
+            var right = headRotation * Vector3.right;
+            var up = _gravityRotation * Vector3.up;
+            var wantedUp = (bias * up - _characterGravity.GravityDirection).normalized;
+            var swingAxis = Vector3.Cross(forward, up);
+            swingAxis += bias * Mathf.Sign(Vector3.Dot(swingAxis, right)) * right;
+
+            float swingAngle = Vector3.Angle(forward, wantedUp) - Vector3.Angle(forward, up);
+            var swing = Quaternion.AngleAxis(swingAngle, swingAxis);
+            var swungUp = swing * up;
+            var swungUpPerp = swungUp - forward * Vector3.Dot(swungUp, forward);
+            var wantedUpPerp = wantedUp - forward * Vector3.Dot(wantedUp, forward);
+
+            float twistAngle = Mathf.Atan2(
+                Vector3.Dot(Vector3.Cross(swungUpPerp, wantedUpPerp), forward),
+                Vector3.Dot(swungUpPerp, wantedUpPerp)
+            ) * Mathf.Rad2Deg;
+
+            return Quaternion.AngleAxis(twistAngle, forward) * swing * _gravityRotation;
         }
 
         private void ApplyPosition(Vector3 position) {
